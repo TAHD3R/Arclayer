@@ -4,7 +4,8 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.responses import ORJSONResponse
 
-from apps.api.config import get_settings
+from apps.api.config import Settings, get_settings
+from apps.api.core.logging import configure_logging
 
 
 @asynccontextmanager
@@ -12,17 +13,35 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     yield
 
 
+class AppFactory:
+    def __init__(self, settings: Settings | None = None) -> None:
+        self.settings = settings or get_settings()
+        self.app = FastAPI(
+            debug=self.settings.debug,
+            title=self.settings.application.app_name,
+            version=self.settings.application.app_version,
+            description=self.settings.application.app_description,
+            openapi_url=self.settings.application.app_openapi_url if self.settings.enable_docs else None,
+            docs_url=self.settings.application.app_docs_url if self.settings.enable_docs else None,
+            redoc_url=self.settings.application.app_redoc_url if self.settings.enable_docs else None,
+            default_response_class=ORJSONResponse,
+            lifespan=lifespan,
+        )
+
+    def with_logging(self) -> "AppFactory":
+        configure_logging(self.settings)
+        return self
+
+    def with_middlewares(self) -> "AppFactory":
+        from asgi_correlation_id import CorrelationIdMiddleware
+
+        self.app.add_middleware(CorrelationIdMiddleware)
+
+        return self
+
+    def build(self) -> FastAPI:
+        return self.app
+
+
 def create_app() -> FastAPI:
-    settings = get_settings()
-    app = FastAPI(
-        debug=settings.debug,
-        title=settings.application.app_name,
-        version=settings.application.app_version,
-        description=settings.application.app_description,
-        openapi_url=settings.application.app_openapi_url if settings.enable_docs else None,
-        docs_url=settings.application.app_docs_url if settings.enable_docs else None,
-        redoc_url=settings.application.app_redoc_url if settings.enable_docs else None,
-        default_response_class=ORJSONResponse,
-        lifespan=lifespan,
-    )
-    return app
+    return AppFactory().with_logging().with_middlewares().build()

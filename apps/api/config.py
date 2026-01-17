@@ -36,6 +36,18 @@ class ApplicationSettings(BaseSettings):
     )
 
 
+class LoggingSettings(BaseSettings):
+    """
+    Logging settings for the API application.
+    """
+
+    level: str = Field(default="INFO", validation_alias=AliasChoices("LOG_LEVEL", "APP_LOG_LEVEL"))
+    json_logs: bool | None = Field(
+        default=None,
+        validation_alias=AliasChoices("LOG_JSON", "APP_LOG_JSON"),
+    )
+
+
 class Settings(BaseSettings):
     """
     Global settings for the API application.
@@ -70,6 +82,7 @@ class Settings(BaseSettings):
         return self.app_env in {"development", "test"}
 
     application: ApplicationSettings = Field(default_factory=ApplicationSettings)
+    logging: LoggingSettings = Field(default_factory=LoggingSettings)
 
 
 @lru_cache(maxsize=1)

@@ -12,10 +12,10 @@ dependencies = [
     "granian>=2.6.1",
     "gunicorn>=23.0.0",
     "httpx>=0.28.1",
-    "loguru>=0.7.3",
     "orjson>=3.11.5",
     "pydantic>=2.12.5",
     "pydantic-settings>=2.12.0",
+    "structlog>=25.5.0",
     "uvicorn>=0.40.0",
 ]
 
