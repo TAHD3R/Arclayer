@@ -1,6 +1,6 @@
 [project]
 name = "CelestialCMS"
-version = "0.20.0"
+version = "2026.01.18-dev"
 description = "Celestial is a light-weight, plugin-based CMS framework written in Python."
 readme = "README.md"
 requires-python = ">=3.13"
@@ -16,6 +16,7 @@ dependencies = [
     "orjson>=3.11.5",
     "pydantic>=2.12.5",
     "pydantic-settings>=2.12.0",
+    "uvicorn>=0.40.0",
 ]
 
 [dependency-groups]
