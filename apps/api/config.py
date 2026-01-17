@@ -1,4 +1,5 @@
 from functools import lru_cache
+from pathlib import Path
 from typing import Literal
 
 from pydantic import AliasChoices, Field, computed_field
@@ -46,6 +47,13 @@ class LoggingSettings(BaseSettings):
         default=None,
         validation_alias=AliasChoices("LOG_JSON", "APP_LOG_JSON"),
     )
+    log_dir: Path = Field(
+        default=Path(__file__).resolve().parent / "logs",
+        validation_alias=AliasChoices("LOG_DIR", "APP_LOG_DIR"),
+    )
+    rotation: str = Field(default="1d", validation_alias=AliasChoices("LOG_ROTATION", "APP_LOG_ROTATION"))
+    retention: str = Field(default="7d", validation_alias=AliasChoices("LOG_RETENTION", "APP_LOG_RETENTION"))
+    async_enabled: bool = Field(default=False, validation_alias=AliasChoices("LOG_ASYNC", "APP_LOG_ASYNC"))
 
 
 class Settings(BaseSettings):

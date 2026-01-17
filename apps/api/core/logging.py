@@ -1,5 +1,9 @@
 import logging
 import sys
+import time
+from logging.handlers import QueueHandler, QueueListener, TimedRotatingFileHandler
+from pathlib import Path
+from queue import SimpleQueue
 from typing import Any
 
 import structlog
@@ -9,6 +13,8 @@ from structlog.processors import JSONRenderer, StackInfoRenderer, TimeStamper, a
 from structlog.stdlib import BoundLogger, LoggerFactory, ProcessorFormatter, add_logger_name
 
 from apps.api.config import Settings
+
+_listener: QueueListener | None = None
 
 
 def _add_correlation_id(logger: BoundLogger, method_name: str, event_dict: dict[str, Any]) -> dict[str, Any]:
@@ -93,6 +99,44 @@ def _build_console_renderer() -> structlog.dev.ConsoleRenderer:
     return structlog.dev.ConsoleRenderer(columns=columns, colors=True, sort_keys=False)
 
 
+def _parse_duration_seconds(value: str, *, min_value: int = 1) -> int:
+    value = value.strip().lower()
+    if value.isdigit():
+        return max(min_value, int(value))
+
+    units = {"s": 1, "m": 60, "h": 3600, "d": 86400, "w": 604800}
+    number = ""
+    unit = ""
+    for ch in value:
+        if ch.isdigit():
+            number += ch
+        elif ch.isalpha():
+            unit += ch
+        else:
+            continue
+
+    if not number or unit not in units:
+        raise ValueError(f"Invalid duration format: {value}")
+
+    return max(min_value, int(number) * units[unit])
+
+
+def _cleanup_old_logs(log_dir: Path, base_filename: str, retention_seconds: int) -> None:
+    if retention_seconds <= 0:
+        return
+
+    cutoff = time.time() - retention_seconds
+    try:
+        for path in sorted(
+            (p for p in log_dir.glob(f"{base_filename}.*") if p.is_file()),
+            key=lambda p: p.stat().st_mtime,
+        ):
+            if path.stat().st_mtime < cutoff:
+                path.unlink(missing_ok=True)
+    except OSError:
+        return
+
+
 def configure_logging(settings: Settings) -> None:
     timestamper = TimeStamper(fmt="%Y-%m-%d %H:%M:%S", utc=False)
     base_processors = [
@@ -124,18 +168,56 @@ def configure_logging(settings: Settings) -> None:
         ]
         foreign_pre_chain = [*base_processors, _normalize_console_fields]
 
-    formatter = ProcessorFormatter(
+    console_formatter = ProcessorFormatter(
         processor=renderer,
         foreign_pre_chain=foreign_pre_chain,
     )
 
-    handler = logging.StreamHandler(sys.stdout)
-    handler.setFormatter(formatter)
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setLevel(settings.logging.level)
+    console_handler.setFormatter(console_formatter)
+
+    handlers: list[logging.Handler] = [console_handler]
+
+    log_dir = settings.logging.log_dir
+    log_dir.mkdir(parents=True, exist_ok=True)
+    log_path = log_dir / "app.log"
+    rotation_seconds = _parse_duration_seconds(settings.logging.rotation, min_value=1)
+    retention_seconds = _parse_duration_seconds(settings.logging.retention, min_value=0)
+
+    file_handler = TimedRotatingFileHandler(
+        log_path,
+        when="S",
+        interval=rotation_seconds,
+        backupCount=0,
+        encoding="utf-8",
+        utc=True,
+    )
+    file_handler.suffix = "%Y-%m-%d_%H-%M-%S"
+    file_formatter = ProcessorFormatter(
+        processor=JSONRenderer(),
+        foreign_pre_chain=base_processors,
+    )
+    file_handler.setLevel(settings.logging.level)
+    file_handler.setFormatter(file_formatter)
+    handlers.append(file_handler)
 
     root_logger = logging.getLogger()
-    root_logger.handlers = [handler]
     root_logger.setLevel(settings.logging.level)
     root_logger.propagate = False
+
+    global _listener
+    if _listener is not None:
+        _listener.stop()
+        _listener = None
+
+    if settings.logging.async_enabled:
+        queue = SimpleQueue()
+        root_logger.handlers = [QueueHandler(queue)]
+        _listener = QueueListener(queue, *handlers, respect_handler_level=True)
+        _listener.start()
+    else:
+        root_logger.handlers = handlers
 
     for name in ("uvicorn", "uvicorn.error", "uvicorn.access"):
         logging.getLogger(name).handlers = []
@@ -147,6 +229,8 @@ def configure_logging(settings: Settings) -> None:
         wrapper_class=BoundLogger,
         cache_logger_on_first_use=True,
     )
+
+    _cleanup_old_logs(log_dir, log_path.name, retention_seconds)
 
 
 def get_logger(name: str | None = None) -> BoundLogger:

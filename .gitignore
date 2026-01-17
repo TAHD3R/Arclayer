@@ -13,3 +13,7 @@ wheels/
 
 # Environment files
 .env
+
+# Logs
+apps/api/logs/
+*.log
