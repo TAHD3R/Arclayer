@@ -25,6 +25,7 @@ dev = [
     "pyright>=1.1.408",
     "pytest>=9.0.2",
     "pytest-asyncio>=1.3.0",
+    "pytest-cov>=6.0.0",
     "pyupgrade>=3.21.2",
     "ruff>=0.14.13",
     "safety>=3.7.0",
@@ -95,17 +96,17 @@ quote-style = "double"
 "tests/*" = ["S101", "T201"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["app"]
+known-first-party = ["apps/api"]
 
 [tool.pytest.ini_options]
 minversion = "6.0"
-addopts = "-ra -q --cov=app --cov-report=term-missing"
+addopts = "-ra -q --cov=apps/api --cov-report=term-missing"
 testpaths = ["tests"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 
 [tool.pyright]
-include = ["app"]
+include = ["apps/api"]
 exclude = ["**/__pycache__", "migrations"]
 venvPath = "."
 venv = ".venv"

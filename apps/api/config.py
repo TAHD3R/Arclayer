@@ -69,7 +69,7 @@ class Settings(BaseSettings):
     def enable_docs(self) -> bool:
         return self.app_env in {"development", "test"}
 
-    application: ApplicationSettings = ApplicationSettings()
+    application: ApplicationSettings = Field(default_factory=ApplicationSettings)
 
 
 @lru_cache(maxsize=1)
