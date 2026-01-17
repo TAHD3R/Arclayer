@@ -24,12 +24,6 @@ repos:
         args: [--fix]
       - id: ruff-format
 
-  - repo: https://github.com/commitizen-tools/commitizen
-    rev: v3.13.0
-    hooks:
-      - id: commitizen
-        stages: [commit-msg]
-
   - repo: https://github.com/asottile/pyupgrade
     rev: v3.21.2
     hooks:
