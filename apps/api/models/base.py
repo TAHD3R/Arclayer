@@ -6,8 +6,8 @@ from apps.api.common.ids import uuid7
 
 
 class BaseModel(models.Model):
-    id = fields.UUIDField(pk=True, default=uuid7)
-    created_at = fields.DatetimeField(auto_now_add=True, index=True)
+    id = fields.UUIDField(primary_key=True, default=uuid7)
+    created_at = fields.DatetimeField(auto_now_add=True, db_index=True)
     updated_at = fields.DatetimeField(auto_now=True)
 
     class Meta(models.Model.Meta):

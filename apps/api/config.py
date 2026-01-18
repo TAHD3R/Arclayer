@@ -346,6 +346,12 @@ class PluginSettings(BaseSettings):
 
     enabled: bool = Field(default=True)
     root_dir: Path = Field(default=Path(__file__).resolve().parents[2] / "plugins")
+    auto_migrate: bool = Field(default=True)
+    auto_restart: bool = Field(default=True)
+    migration_lock_ttl_seconds: int = Field(default=300)
+    migration_lock_timeout_seconds: int = Field(default=60)
+    restart_poll_interval_seconds: float = Field(default=2.0)
+    restart_jitter_seconds: float = Field(default=5.0)
 
 
 class Settings(BaseSettings):

@@ -14,10 +14,10 @@ class UserStatus(StrEnum):
 
 
 class User(BaseModel):
-    username = fields.CharField(max_length=64, unique=True, index=True)
+    username = fields.CharField(max_length=64, unique=True, db_index=True)
     email = fields.CharField(max_length=255, null=True, unique=True)
     phone = fields.CharField(max_length=32, null=True, unique=True)
-    status = fields.CharEnumField(UserStatus, default=UserStatus.ACTIVE, index=True)
+    status = fields.CharEnumField(UserStatus, default=UserStatus.ACTIVE, db_index=True)
     display_name = fields.CharField(max_length=64, null=True)
     avatar_url = fields.CharField(max_length=512, null=True)
     last_login_at = fields.DatetimeField(null=True)

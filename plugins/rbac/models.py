@@ -6,11 +6,11 @@ from apps.api.models.base import BaseModel
 
 
 class Role(BaseModel):
-    code = fields.CharField(max_length=64, unique=True, index=True)
+    code = fields.CharField(max_length=64, unique=True, db_index=True)
     name = fields.CharField(max_length=128)
     description = fields.TextField(null=True)
-    is_default = fields.BooleanField(default=False, index=True)
-    is_superuser = fields.BooleanField(default=False, index=True)
+    is_default = fields.BooleanField(default=False, db_index=True)
+    is_superuser = fields.BooleanField(default=False, db_index=True)
 
     class Meta(BaseModel.Meta):
         table = "roles"
@@ -18,10 +18,10 @@ class Role(BaseModel):
 
 
 class Permission(BaseModel):
-    code = fields.CharField(max_length=128, unique=True, index=True)
+    code = fields.CharField(max_length=128, unique=True, db_index=True)
     name = fields.CharField(max_length=128)
     description = fields.TextField(null=True)
-    plugin_id = fields.CharField(max_length=128, null=True, index=True)
+    plugin_id = fields.CharField(max_length=128, null=True, db_index=True)
 
     class Meta(BaseModel.Meta):
         table = "permissions"
