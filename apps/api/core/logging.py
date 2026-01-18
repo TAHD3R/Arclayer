@@ -20,7 +20,21 @@ from structlog.stdlib import (
 
 from apps.api.config import Settings
 
+
+class _LoggerProxy:
+    def __init__(self, name: str | None = None) -> None:
+        self._name = name
+
+    def __getattr__(self, item: str):
+        return getattr(structlog.get_logger(self._name), item)
+
+
 _listener: QueueListener | None = None
+
+
+class _StructlogQueueHandler(QueueHandler):
+    def prepare(self, record: logging.LogRecord) -> logging.LogRecord:
+        return record
 
 
 def _add_correlation_id(logger: BoundLogger, method_name: str, event_dict: dict[str, Any]) -> dict[str, Any]:
@@ -220,13 +234,13 @@ def configure_logging(settings: Settings) -> None:
 
     if settings.logging.async_enabled:
         queue = SimpleQueue()
-        root_logger.handlers = [QueueHandler(queue)]
+        root_logger.handlers = [_StructlogQueueHandler(queue)]
         _listener = QueueListener(queue, *handlers, respect_handler_level=True)
         _listener.start()
     else:
         root_logger.handlers = handlers
 
-    for name in ("uvicorn", "uvicorn.error", "uvicorn.access"):
+    for name in ("uvicorn", "uvicorn.error", "uvicorn.access", "tortoise"):
         logging.getLogger(name).handlers = []
         logging.getLogger(name).propagate = True
 
@@ -234,7 +248,7 @@ def configure_logging(settings: Settings) -> None:
         processors=processors,
         logger_factory=LoggerFactory(),
         wrapper_class=BoundLogger,
-        cache_logger_on_first_use=True,
+        cache_logger_on_first_use=False,
     )
 
     _cleanup_old_logs(log_dir, log_path.name, retention_seconds)
@@ -244,4 +258,4 @@ def get_logger(name: str | None = None) -> BoundLogger:
     return structlog.get_logger(name)
 
 
-logger = get_logger(__name__)
+logger = _LoggerProxy(__name__)

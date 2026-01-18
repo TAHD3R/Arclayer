@@ -12,10 +12,12 @@ class ApplicationSettings(BaseSettings):
     """
 
     model_config = SettingsConfigDict(
+        env_prefix="APPLICATION__",
         env_file_encoding="utf-8",
         env_nested_delimiter="__",
         extra="ignore",
         case_sensitive=False,
+        populate_by_name=True,
         validate_default=True,
     )
 
@@ -63,10 +65,12 @@ class LoggingSettings(BaseSettings):
     """
 
     model_config = SettingsConfigDict(
+        env_prefix="LOGGING__",
         env_file_encoding="utf-8",
         env_nested_delimiter="__",
         extra="ignore",
         case_sensitive=False,
+        populate_by_name=True,
         validate_default=True,
     )
 
@@ -90,10 +94,12 @@ class DatabaseSettings(BaseSettings):
     """
 
     model_config = SettingsConfigDict(
+        env_prefix="DATABASE__",
         env_file_encoding="utf-8",
         env_nested_delimiter="__",
         extra="ignore",
         case_sensitive=False,
+        populate_by_name=True,
         validate_default=True,
     )
 
@@ -137,10 +143,12 @@ class ValkeySettings(BaseSettings):
     """
 
     model_config = SettingsConfigDict(
+        env_prefix="VALKEY__",
         env_file_encoding="utf-8",
         env_nested_delimiter="__",
         extra="ignore",
         case_sensitive=False,
+        populate_by_name=True,
         validate_default=True,
     )
 
@@ -168,10 +176,12 @@ class ObservabilitySettings(BaseSettings):
     """
 
     model_config = SettingsConfigDict(
+        env_prefix="OBSERVABILITY__",
         env_file_encoding="utf-8",
         env_nested_delimiter="__",
         extra="ignore",
         case_sensitive=False,
+        populate_by_name=True,
         validate_default=True,
     )
 
@@ -218,10 +228,12 @@ class MiddlewareSettings(BaseSettings):
     """
 
     model_config = SettingsConfigDict(
+        env_prefix="MIDDLEWARE__",
         env_file_encoding="utf-8",
         env_nested_delimiter="__",
         extra="ignore",
         case_sensitive=False,
+        populate_by_name=True,
         validate_default=True,
     )
 
@@ -328,6 +340,7 @@ class Settings(BaseSettings):
         env_nested_delimiter="__",
         extra="ignore",
         case_sensitive=False,
+        populate_by_name=True,
         validate_default=True,
     )
     app_env: Literal["development", "production", "test"] = Field(
