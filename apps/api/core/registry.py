@@ -7,6 +7,7 @@ from fastapi.responses import ORJSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from apps.api.config import Settings, get_settings
+from apps.api.core.exceptions import init_exception_handlers
 from apps.api.core.logging import configure_logging
 
 
@@ -41,6 +42,10 @@ class AppFactory:
 
         return self
 
+    def with_exception_handlers(self) -> "AppFactory":
+        init_exception_handlers(self.app, self.settings)
+        return self
+
     def with_static(self, *, directory: Path | None = None, url_path: str | None = None) -> "AppFactory":
         enabled = self.settings.application.static_enabled
         if not enabled and directory is None and url_path is None:
@@ -57,4 +62,4 @@ class AppFactory:
 
 
 def create_app() -> FastAPI:
-    return AppFactory().with_logging().with_middlewares().with_static().build()
+    return AppFactory().with_logging().with_middlewares().with_exception_handlers().with_static().build()
