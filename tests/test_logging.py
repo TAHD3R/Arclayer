@@ -21,7 +21,7 @@ def _configure(monkeypatch, log_dir: Path, *, app_env: str, log_json: bool | Non
 
 
 def test_logging_json_renderer_in_production(monkeypatch, capsys, tmp_path) -> None:
-    _configure(monkeypatch, tmp_path, app_env="production")
+    _configure(monkeypatch, tmp_path, app_env="production", log_json=True)
 
     logger = structlog.get_logger("tests.logging.json")
     logger.info("hello", foo="bar")

@@ -181,7 +181,7 @@ async def close_valkey(app: FastAPI) -> None:
         return
 
     try:
-        await client.raw.close()
+        await client.raw.aclose()
         logger.info("Valkey connection closed")
     except Exception as exc:
         logger.warning("Valkey close error", error=repr(exc))

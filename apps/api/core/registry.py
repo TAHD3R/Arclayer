@@ -12,10 +12,10 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from apps.api.config import Settings, get_settings
 from apps.api.core.database.orm import close_orm, init_orm, verify_db_ready
+from apps.api.core.database.valkey import close_valkey, init_valkey
 from apps.api.core.exceptions import init_exception_handlers
 from apps.api.core.logging import configure_logging
 from apps.api.core.observability import configure_observability
-from apps.api.core.valkey import close_valkey, init_valkey
 
 
 def _build_lifespan(settings: Settings):
