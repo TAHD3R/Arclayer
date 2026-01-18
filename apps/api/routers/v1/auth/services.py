@@ -200,19 +200,21 @@ class AuthService(BaseService):
 
     async def logout(self, *, user_id: UUID | None, refresh_token: str | None = None) -> None:
         store = self._require_refresh_store()
-        if refresh_token:
+        if user_id is None and refresh_token:
             payload = decode_token(refresh_token, self.settings.auth)
             if payload.get("typ") != TOKEN_TYPE_REFRESH:
                 raise Unauthorized(message="Refresh Token 无效", error="REFRESH_INVALID")
-            jti = payload.get("jti")
-            if jti:
-                await store.revoke(jti)
-            return
+            user_id = self._parse_user_id(payload.get("sub"))
 
         if user_id is None:
             raise Unauthorized(message="未授权", error="UNAUTHORIZED")
 
-        await store.revoke_all(user_id)
+        user = await self.user_repo.get_by_id(user_id)
+        if not user:
+            raise Unauthorized(message="用户不存在", error="USER_NOT_FOUND")
+
+        await self.user_repo.increment_token_version(user)
+        await store.revoke_all(user.id)
 
     async def change_password(self, *, user_id: UUID, old_password: str, new_password: str) -> None:
         user = await self.user_repo.get_by_id_with_credential(user_id)

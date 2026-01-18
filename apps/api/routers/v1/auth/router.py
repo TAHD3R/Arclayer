@@ -40,7 +40,7 @@ async def login(
     payload: LoginRequest,
     service: AuthService = Depends(_get_auth_service),
 ) -> ResponseModel[TokenPair]:
-    tokens = await service.login(identifier=payload.identifier, password=payload.password)
+    tokens = await service.login(identifier=payload.username, password=payload.password)
     return Response.success(message="登录成功", data=tokens)
 
 

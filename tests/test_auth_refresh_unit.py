@@ -145,3 +145,16 @@ async def test_refresh_rotation_and_reuse_detection(monkeypatch) -> None:
 
     assert exc.value.error == "TOKEN_REUSED"
     assert user.token_version == 1
+
+
+async def test_logout_bumps_token_version(monkeypatch) -> None:
+    service, _, user = _build_service(monkeypatch)
+
+    tokens = await service.login(identifier="demo", password="pass")
+    await service.logout(user_id=user.id, refresh_token=None)
+
+    assert user.token_version == 1
+    with pytest.raises(Unauthorized) as exc:
+        await service.refresh(refresh_token=tokens.refresh_token)
+
+    assert exc.value.error == "TOKEN_STALE"
