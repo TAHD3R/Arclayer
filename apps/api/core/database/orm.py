@@ -2,15 +2,18 @@ from __future__ import annotations
 
 import fnmatch
 import pkgutil
+import sys
 from collections.abc import Iterable
 from functools import lru_cache
 from importlib.util import find_spec
+from pathlib import Path
 from typing import Final
 
 from tortoise import Tortoise
 
 from apps.api.config import Settings, get_settings
 from apps.api.core.logging import logger
+from apps.api.plugin.manifest import load_plugin_manifest
 
 EXCLUDE_NAMES = ("tests", "base", "migrations", "__pycache__", "__init__")
 
@@ -81,7 +84,12 @@ def discover_plugin_models(
     return sorted(modules)
 
 
-def build_models_list(settings: Settings, *, extra_pkgs: Iterable[str] | None = None) -> list[str]:
+def build_models_list(
+    settings: Settings,
+    *,
+    extra_pkgs: Iterable[str] | None = None,
+    extra_modules: Iterable[str] | None = None,
+) -> list[str]:
     modules = set(settings.database.core_models)
     modules.update(
         discover_plugin_models(
@@ -89,14 +97,22 @@ def build_models_list(settings: Settings, *, extra_pkgs: Iterable[str] | None = 
             max_depth=settings.database.models_max_depth,
         )
     )
+    modules.update(_collect_manifest_models(settings))
     for pkg in extra_pkgs or []:
         modules.update(discover_model_modules(pkg))
+    for module in extra_modules or []:
+        modules.add(module)
     modules.add("aerich.models")
     return sorted(modules)
 
 
-def build_tortoise_config(settings: Settings, *, extra_pkgs: Iterable[str] | None = None) -> dict:
-    models = build_models_list(settings, extra_pkgs=extra_pkgs)
+def build_tortoise_config(
+    settings: Settings,
+    *,
+    extra_pkgs: Iterable[str] | None = None,
+    extra_modules: Iterable[str] | None = None,
+) -> dict:
+    models = build_models_list(settings, extra_pkgs=extra_pkgs, extra_modules=extra_modules)
     logger.debug("Tortoise models", models=models)
     return {
         "connections": {
@@ -123,14 +139,43 @@ def build_tortoise_config(settings: Settings, *, extra_pkgs: Iterable[str] | Non
     }
 
 
+def _collect_manifest_models(settings: Settings) -> set[str]:
+    if not settings.plugin.enabled:
+        return set()
+
+    root_dir = Path(settings.plugin.root_dir)
+    if not root_dir.exists():
+        return set()
+
+    root_str = str(root_dir)
+    if root_str not in sys.path:
+        sys.path.insert(0, root_str)
+
+    models: set[str] = set()
+    for manifest_path in root_dir.glob("*/plugin.toml"):
+        try:
+            manifest = load_plugin_manifest(manifest_path)
+        except Exception as exc:
+            logger.warning("Plugin manifest parse failed", path=str(manifest_path), error=str(exc))
+            continue
+        for module in manifest.models:
+            models.add(module)
+    return models
+
+
 TORTOISE_ORM: Final = build_tortoise_config(get_settings())
 
 
-async def init_orm(settings: Settings) -> None:
+async def init_orm(
+    settings: Settings,
+    *,
+    extra_pkgs: Iterable[str] | None = None,
+    extra_modules: Iterable[str] | None = None,
+) -> None:
     if not settings.database.enabled:
         logger.info("Database init skipped (disabled)")
         return
-    await Tortoise.init(config=build_tortoise_config(settings))
+    await Tortoise.init(config=build_tortoise_config(settings, extra_pkgs=extra_pkgs, extra_modules=extra_modules))
 
 
 async def close_orm() -> None:

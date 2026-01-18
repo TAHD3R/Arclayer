@@ -329,6 +329,25 @@ class MiddlewareSettings(BaseSettings):
     )
 
 
+class PluginSettings(BaseSettings):
+    """
+    Plugin system settings.
+    """
+
+    model_config = SettingsConfigDict(
+        env_prefix="PLUGIN__",
+        env_file_encoding="utf-8",
+        env_nested_delimiter="__",
+        extra="ignore",
+        case_sensitive=False,
+        populate_by_name=True,
+        validate_default=True,
+    )
+
+    enabled: bool = Field(default=True)
+    root_dir: Path = Field(default=Path(__file__).resolve().parents[2] / "plugins")
+
+
 class Settings(BaseSettings):
     """
     Global settings for the API application.
@@ -370,6 +389,7 @@ class Settings(BaseSettings):
     valkey: ValkeySettings = Field(default_factory=ValkeySettings)
     observability: ObservabilitySettings = Field(default_factory=ObservabilitySettings)
     middleware: MiddlewareSettings = Field(default_factory=MiddlewareSettings)
+    plugin: PluginSettings = Field(default_factory=PluginSettings)
 
     def _apply_env_overrides(self) -> None:
         def _merge_settings(current, overrides):
@@ -384,6 +404,7 @@ class Settings(BaseSettings):
         self.valkey = _merge_settings(self.valkey, ValkeySettings())
         self.observability = _merge_settings(self.observability, ObservabilitySettings())
         self.middleware = _merge_settings(self.middleware, MiddlewareSettings())
+        self.plugin = _merge_settings(self.plugin, PluginSettings())
 
 
 @lru_cache(maxsize=1)

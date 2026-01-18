@@ -17,16 +17,25 @@ from apps.api.core.exceptions import init_exception_handlers
 from apps.api.core.limiter import close_rate_limiter, init_rate_limiter
 from apps.api.core.logging import configure_logging
 from apps.api.core.observability import configure_observability
+from apps.api.plugin.manager import PluginManager
 
 
 def _build_lifespan(settings: Settings):
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-        await init_orm(settings)
+        plugin_manager = PluginManager(settings)
+        plugin_manager.discover()
+        extra_models = plugin_manager.collect_model_modules()
+
+        await init_orm(settings, extra_modules=extra_models)
         await verify_db_ready(settings)
         await init_valkey(app, settings)
         await init_rate_limiter(app, settings)
+        await plugin_manager.sync_records()
+        await plugin_manager.start()
+        app.state.plugin_manager = plugin_manager
         yield
+        await plugin_manager.stop()
         await close_rate_limiter(app)
         await close_orm()
         await close_valkey(app)
