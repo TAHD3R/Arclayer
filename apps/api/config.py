@@ -2,7 +2,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
-from pydantic import AliasChoices, Field, computed_field
+from pydantic import AliasChoices, Field, SecretStr, computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -82,6 +82,84 @@ class LoggingSettings(BaseSettings):
     rotation: str = Field(default="1d", validation_alias=AliasChoices("LOG_ROTATION", "APP_LOG_ROTATION"))
     retention: str = Field(default="7d", validation_alias=AliasChoices("LOG_RETENTION", "APP_LOG_RETENTION"))
     async_enabled: bool = Field(default=False, validation_alias=AliasChoices("LOG_ASYNC", "APP_LOG_ASYNC"))
+
+
+class DatabaseSettings(BaseSettings):
+    """
+    Database settings for the API application.
+    """
+
+    model_config = SettingsConfigDict(
+        env_file_encoding="utf-8",
+        env_nested_delimiter="__",
+        extra="ignore",
+        case_sensitive=False,
+        validate_default=True,
+    )
+
+    enabled: bool = Field(default=False, validation_alias=AliasChoices("DB_ENABLED", "DATABASE_ENABLED"))
+    engine: str = Field(
+        default="tortoise.backends.asyncpg", validation_alias=AliasChoices("DB_ENGINE", "DATABASE_ENGINE")
+    )
+    host: str = Field(default="127.0.0.1", validation_alias=AliasChoices("DB_HOST", "DATABASE_HOST"))
+    port: int = Field(default=5432, validation_alias=AliasChoices("DB_PORT", "DATABASE_PORT"))
+    user: str = Field(default="postgres", validation_alias=AliasChoices("DB_USER", "DATABASE_USER"))
+    password: SecretStr = Field(
+        default=SecretStr(""), validation_alias=AliasChoices("DB_PASSWORD", "DATABASE_PASSWORD")
+    )
+    database: str = Field(default="celestial", validation_alias=AliasChoices("DB_NAME", "DATABASE_NAME"))
+    pool_size: int = Field(default=10, validation_alias=AliasChoices("DB_POOL_SIZE", "DATABASE_POOL_SIZE"))
+    use_tz: bool = Field(default=True, validation_alias=AliasChoices("DB_USE_TZ", "DATABASE_USE_TZ"))
+    timezone: str = Field(default="UTC", validation_alias=AliasChoices("DB_TIMEZONE", "DATABASE_TIMEZONE"))
+    core_models: list[str] = Field(
+        default_factory=lambda: ["apps.api.models"],
+        validation_alias=AliasChoices("DB_CORE_MODELS", "DATABASE_CORE_MODELS"),
+    )
+    plugin_packages: list[str] = Field(
+        default_factory=lambda: ["apps.api.plugins"],
+        validation_alias=AliasChoices("DB_PLUGIN_PACKAGES", "DATABASE_PLUGIN_PACKAGES"),
+    )
+    models_max_depth: int | None = Field(
+        default=3,
+        validation_alias=AliasChoices("DB_MODELS_MAX_DEPTH", "DATABASE_MODELS_MAX_DEPTH"),
+    )
+
+    @computed_field
+    @property
+    def dsn_async(self) -> str:
+        password = self.password.get_secret_value()
+        return f"postgresql://{self.user}:{password}@{self.host}:{self.port}/{self.database}"
+
+
+class ValkeySettings(BaseSettings):
+    """
+    Valkey settings for the API application.
+    """
+
+    model_config = SettingsConfigDict(
+        env_file_encoding="utf-8",
+        env_nested_delimiter="__",
+        extra="ignore",
+        case_sensitive=False,
+        validate_default=True,
+    )
+
+    enabled: bool = Field(default=False, validation_alias=AliasChoices("VALKEY_ENABLED", "CACHE_ENABLED"))
+    host: str = Field(default="127.0.0.1", validation_alias=AliasChoices("VALKEY_HOST", "CACHE_HOST"))
+    port: int = Field(default=6379, validation_alias=AliasChoices("VALKEY_PORT", "CACHE_PORT"))
+    db: int = Field(default=0, validation_alias=AliasChoices("VALKEY_DB", "CACHE_DB"))
+    username: str | None = Field(default=None, validation_alias=AliasChoices("VALKEY_USERNAME", "CACHE_USERNAME"))
+    password: SecretStr = Field(
+        default=SecretStr(""), validation_alias=AliasChoices("VALKEY_PASSWORD", "CACHE_PASSWORD")
+    )
+
+    @computed_field
+    @property
+    def dsn(self) -> str:
+        user = f"{self.username}:" if self.username else ""
+        password = self.password.get_secret_value()
+        auth = f"{user}{password}@" if password else ""
+        return f"redis://{auth}{self.host}:{self.port}/{self.db}"
 
 
 class ObservabilitySettings(BaseSettings):
@@ -269,6 +347,8 @@ class Settings(BaseSettings):
 
     application: ApplicationSettings = Field(default_factory=ApplicationSettings)
     logging: LoggingSettings = Field(default_factory=LoggingSettings)
+    database: DatabaseSettings = Field(default_factory=DatabaseSettings)
+    valkey: ValkeySettings = Field(default_factory=ValkeySettings)
     observability: ObservabilitySettings = Field(default_factory=ObservabilitySettings)
     middleware: MiddlewareSettings = Field(default_factory=MiddlewareSettings)
 
@@ -281,6 +361,8 @@ class Settings(BaseSettings):
 
         self.application = _merge_settings(self.application, ApplicationSettings())
         self.logging = _merge_settings(self.logging, LoggingSettings())
+        self.database = _merge_settings(self.database, DatabaseSettings())
+        self.valkey = _merge_settings(self.valkey, ValkeySettings())
         self.observability = _merge_settings(self.observability, ObservabilitySettings())
         self.middleware = _merge_settings(self.middleware, MiddlewareSettings())
 

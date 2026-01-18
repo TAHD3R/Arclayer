@@ -11,14 +11,21 @@ from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from apps.api.config import Settings, get_settings
+from apps.api.core.database.orm import close_orm, init_orm, verify_db_ready
 from apps.api.core.exceptions import init_exception_handlers
 from apps.api.core.logging import configure_logging
 from apps.api.core.observability import configure_observability
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    yield
+def _build_lifespan(settings: Settings):
+    @asynccontextmanager
+    async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+        await init_orm(settings)
+        await verify_db_ready(settings)
+        yield
+        await close_orm()
+
+    return lifespan
 
 
 class AppFactory:
@@ -33,7 +40,7 @@ class AppFactory:
             docs_url=self.settings.application.app_docs_url if self.settings.enable_docs else None,
             redoc_url=self.settings.application.app_redoc_url if self.settings.enable_docs else None,
             default_response_class=ORJSONResponse,
-            lifespan=lifespan,
+            lifespan=_build_lifespan(self.settings),
         )
 
     def with_logging(self) -> "AppFactory":

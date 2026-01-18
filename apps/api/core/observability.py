@@ -15,7 +15,7 @@ def configure_observability(app: FastAPI, settings: Settings) -> None:
 
     if obs.sentry_enabled:
         if not obs.sentry_dsn:
-            logger.warning("Sentry 已启用但未配置 DSN")
+            logger.warning("Sentry enabled without valid DSN")
         else:
             sentry_init(
                 dsn=obs.sentry_dsn,

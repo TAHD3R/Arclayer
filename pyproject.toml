@@ -12,12 +12,14 @@ dependencies = [
     "granian>=2.6.1",
     "gunicorn>=23.0.0",
     "httpx>=0.28.1",
+    "asyncpg>=0.30.0",
     "orjson>=3.11.5",
     "pydantic>=2.12.5",
     "pydantic-settings>=2.12.0",
     "prometheus-fastapi-instrumentator>=7.1.0",
     "sentry-sdk>=2.35.0",
     "structlog>=25.5.0",
+    "tortoise-orm>=0.25.0",
     "uvicorn>=0.40.0",
 ]
 
@@ -98,7 +100,7 @@ quote-style = "double"
 "tests/*" = ["S101", "T201"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["apps/api"]
+known-first-party = ["apps"]
 
 [tool.pytest.ini_options]
 minversion = "6.0"
@@ -108,7 +110,7 @@ asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 
 [tool.pyright]
-include = ["apps/api"]
+include = ["apps"]
 exclude = ["**/__pycache__", "migrations"]
 extraPaths = ["."]
 venvPath = "."
@@ -117,3 +119,9 @@ typeCheckingMode = "standard"
 reportMissingImports = true
 reportMissingTypeStubs = false
 pythonVersion = "3.13"
+
+[tool.aerich]
+tortoise_orm = "apps.api.core.database.orm.TORTOISE_ORM"
+location = "./apps/api/migrations"
+src_folder = "./."
+app = "models"
