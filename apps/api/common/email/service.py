@@ -73,7 +73,7 @@ class EmailService:
     ) -> None:
         if not self._enabled():
             self.logger.info(
-                "邮件发送已禁用",
+                "Attempt to send reset password email while email sending is disabled",
                 recipient=recipient,
                 type="reset_password",
                 user_id=user_id,
@@ -81,7 +81,7 @@ class EmailService:
             return
         if not _valid_recipient(recipient):
             self.logger.warning(
-                "邮件收件人无效，跳过发送",
+                "Recipient email is invalid, skip sending mail",
                 recipient=recipient,
                 type="reset_password",
                 user_id=user_id,
@@ -108,7 +108,7 @@ class EmailService:
                 plain_template="reset_password.txt",
             )
             self.logger.info(
-                "邮件发送成功",
+                "Successfully sent reset password email",
                 recipient=recipient,
                 type="reset_password",
                 cid=cid,
@@ -117,7 +117,7 @@ class EmailService:
             )
         except Exception as exc:
             self.logger.exception(
-                "邮件发送失败",
+                "Failed to send reset password email",
                 recipient=recipient,
                 type="reset_password",
                 cid=cid,
@@ -128,7 +128,7 @@ class EmailService:
     async def send_welcome(self, *, recipient: str, username: str, user_id: str | None = None) -> None:
         if not self._enabled():
             self.logger.info(
-                "邮件发送已禁用",
+                "Attempt to send welcome email while email sending is disabled",
                 recipient=recipient,
                 type="welcome",
                 user_id=user_id,
@@ -136,7 +136,7 @@ class EmailService:
             return
         if not _valid_recipient(recipient):
             self.logger.warning(
-                "邮件收件人无效，跳过发送",
+                "Recipient email is invalid, skip sending mail",
                 recipient=recipient,
                 type="welcome",
                 user_id=user_id,
@@ -159,7 +159,7 @@ class EmailService:
                 plain_template="welcome.txt",
             )
             self.logger.info(
-                "邮件发送成功",
+                "Successfully sent welcome email",
                 recipient=recipient,
                 type="welcome",
                 cid=cid,
@@ -167,7 +167,7 @@ class EmailService:
             )
         except Exception as exc:
             self.logger.exception(
-                "邮件发送失败",
+                "Failed to send welcome email",
                 recipient=recipient,
                 type="welcome",
                 cid=cid,

@@ -105,7 +105,7 @@ async def forgot_password(
             expires_in=ttl,
             user_id=user_id,
         )
-    return Response.success(message="如果账号存在，将发送重置指引", data=token_payload)
+    return Response.success(message="如账号存在则将发送重置码至指定邮箱", data=token_payload)
 
 
 @router.post("/reset-password", response_model=ResponseModel[None])
