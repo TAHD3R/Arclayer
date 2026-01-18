@@ -2,14 +2,14 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from typing import Any
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from tortoise.expressions import Q
 
 from apps.api.common.repositories import BaseRepository
 from apps.api.config import AuthSettings
 from apps.api.core.database.valkey import ValkeyClient
-from apps.api.models.user import User, UserStatus
+from apps.api.models.user import User, UserCredential, UserStatus
 from apps.api.routers.v1.auth.constants import (
     REFRESH_STATUS_REVOKED,
     REFRESH_STATUS_ROTATED,
@@ -39,6 +39,9 @@ class UserRepository(BaseRepository):
     async def get_by_id(self, user_id: UUID) -> User | None:
         return await User.get_or_none(id=user_id)
 
+    async def get_by_id_with_credential(self, user_id: UUID) -> User | None:
+        return await User.get_or_none(id=user_id).prefetch_related("credential")
+
     async def update_last_login(self, user: User) -> None:
         user.last_login_at = datetime.now(UTC)
         await user.save(update_fields=["last_login_at"])
@@ -50,6 +53,44 @@ class UserRepository(BaseRepository):
 
     def is_active(self, user: User) -> bool:
         return user.status == UserStatus.ACTIVE
+
+    async def exists_username(self, username: str) -> bool:
+        return await User.filter(username=username).exists()
+
+    async def exists_email(self, email: str) -> bool:
+        return await User.filter(email=email).exists()
+
+    async def exists_phone(self, phone: str) -> bool:
+        return await User.filter(phone=phone).exists()
+
+    async def create_user(
+        self,
+        *,
+        username: str,
+        email: str | None,
+        phone: str | None,
+        display_name: str | None,
+        password_hash: str,
+    ) -> User:
+        user = await User.create(
+            username=username,
+            email=email,
+            phone=phone,
+            status=UserStatus.ACTIVE,
+            display_name=display_name,
+            avatar_url=None,
+        )
+        await UserCredential.create(user=user, password_hash=password_hash)
+        return user
+
+    async def set_password(self, user: User, password_hash: str) -> None:
+        credential = await UserCredential.get_or_none(user_id=user.id)
+        if credential is None:
+            await UserCredential.create(user=user, password_hash=password_hash)
+            return
+        credential.password_hash = password_hash
+        credential.password_updated_at = datetime.now(UTC)
+        await credential.save(update_fields=["password_hash", "password_updated_at"])
 
 
 class RefreshTokenStore:
@@ -116,3 +157,45 @@ class RefreshTokenStore:
         for jti in jtis:
             await self._client.delete(self._refresh_key(jti))
         await self._client.delete(self._user_set_key(user_id))
+
+
+class PasswordResetStore:
+    def __init__(self, client: ValkeyClient, settings: AuthSettings) -> None:
+        self._client = client
+        self._settings = settings
+
+    def _token_key(self, token: str) -> str:
+        return f"auth:reset:{token}"
+
+    def _user_key(self, user_id: UUID) -> str:
+        return f"auth:reset:user:{user_id}"
+
+    async def issue(self, user_id: UUID) -> tuple[str, int]:
+        ttl = max(self._settings.reset_token_ttl_seconds, 1)
+        existing = await self._client.get(self._user_key(user_id))
+        if existing:
+            await self._client.delete(self._token_key(existing))
+
+        token = uuid4().hex
+        now_ts = int(datetime.now(UTC).timestamp())
+        record = {
+            "user_id": str(user_id),
+            "issued_at": now_ts,
+            "expires_at": now_ts + ttl,
+        }
+        await self._client.set_json(self._token_key(token), record, ex=ttl)
+        await self._client.set(self._user_key(user_id), token, ex=ttl)
+        return token, ttl
+
+    async def consume(self, token: str) -> dict[str, Any] | None:
+        record = await self._client.get_json(self._token_key(token))
+        if not isinstance(record, dict):
+            return None
+        await self._client.delete(self._token_key(token))
+        user_id = record.get("user_id")
+        if user_id:
+            user_uuid = UUID(str(user_id))
+            current = await self._client.get(self._user_key(user_uuid))
+            if current == token:
+                await self._client.delete(self._user_key(user_uuid))
+        return record

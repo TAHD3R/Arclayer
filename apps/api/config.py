@@ -372,6 +372,10 @@ class AuthSettings(BaseSettings):
         default=2592000,
         validation_alias=AliasChoices("REFRESH_TOKEN_TTL_SECONDS", "REFRESH_TOKEN_TTL"),
     )
+    reset_token_ttl_seconds: int = Field(
+        default=900,
+        validation_alias=AliasChoices("RESET_TOKEN_TTL_SECONDS", "RESET_TOKEN_TTL"),
+    )
     password_hash_iterations: int = Field(
         default=120_000,
         validation_alias=AliasChoices("PASSWORD_HASH_ITERATIONS", "APP_PASSWORD_HASH_ITERATIONS"),

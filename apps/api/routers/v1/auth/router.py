@@ -8,9 +8,14 @@ from apps.api.core.response import Response, ResponseModel
 from apps.api.models.user import User
 from apps.api.routers.v1.auth.deps import get_current_user
 from apps.api.routers.v1.auth.schema import (
+    ChangePasswordRequest,
+    ForgotPasswordRequest,
     LoginRequest,
     LogoutRequest,
     RefreshRequest,
+    RegisterRequest,
+    ResetPasswordRequest,
+    ResetTokenPayload,
     TokenPair,
     UserProfile,
 )
@@ -39,6 +44,29 @@ async def login(
     return Response.success(message="登录成功", data=tokens)
 
 
+@router.post("/register", response_model=ResponseModel[UserProfile])
+async def register(
+    payload: RegisterRequest,
+    service: AuthService = Depends(_get_auth_service),
+) -> ResponseModel[UserProfile]:
+    user = await service.register(
+        username=payload.username,
+        password=payload.password,
+        email=payload.email,
+        phone=payload.phone,
+        display_name=payload.display_name,
+    )
+    profile = UserProfile(
+        id=user.id,
+        username=user.username,
+        email=user.email,
+        phone=user.phone,
+        display_name=user.display_name,
+        avatar_url=user.avatar_url,
+    )
+    return Response.success(message="注册成功", data=profile)
+
+
 @router.post("/refresh", response_model=ResponseModel[TokenPair])
 async def refresh(
     payload: RefreshRequest,
@@ -46,6 +74,43 @@ async def refresh(
 ) -> ResponseModel[TokenPair]:
     tokens = await service.refresh(refresh_token=payload.refresh_token)
     return Response.success(message="刷新成功", data=tokens)
+
+
+@router.post("/forgot-password", response_model=ResponseModel[ResetTokenPayload])
+async def forgot_password(
+    payload: ForgotPasswordRequest,
+    settings: Settings = Depends(get_settings),
+    service: AuthService = Depends(_get_auth_service),
+) -> ResponseModel[ResetTokenPayload]:
+    issued = await service.forgot_password(identifier=payload.identifier)
+    token_payload = None
+    if issued and settings.app_env in {"development", "test"}:
+        token, ttl = issued
+        token_payload = ResetTokenPayload(reset_token=token, expires_in=ttl)
+    return Response.success(message="如果账号存在，将发送重置指引", data=token_payload)
+
+
+@router.post("/reset-password", response_model=ResponseModel[None])
+async def reset_password(
+    payload: ResetPasswordRequest,
+    service: AuthService = Depends(_get_auth_service),
+) -> ResponseModel[None]:
+    await service.reset_password(reset_token=payload.reset_token, new_password=payload.new_password)
+    return Response.success(message="密码重置成功")
+
+
+@router.post("/change-password", response_model=ResponseModel[None])
+async def change_password(
+    payload: ChangePasswordRequest,
+    user: User = Depends(get_current_user),
+    service: AuthService = Depends(_get_auth_service),
+) -> ResponseModel[None]:
+    await service.change_password(
+        user_id=user.id,
+        old_password=payload.old_password,
+        new_password=payload.new_password,
+    )
+    return Response.success(message="密码修改成功")
 
 
 @router.post("/logout", response_model=ResponseModel[None])

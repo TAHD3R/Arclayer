@@ -6,15 +6,16 @@ from uuid import UUID
 from apps.api.common.services import BaseService
 from apps.api.config import Settings
 from apps.api.core.database.valkey import ValkeyClient
-from apps.api.core.exceptions import Forbidden, ServiceUnavailable, Unauthorized
+from apps.api.core.exceptions import Conflict, Forbidden, ServiceUnavailable, Unauthorized
 from apps.api.routers.v1.auth.constants import REFRESH_STATUS_ACTIVE
-from apps.api.routers.v1.auth.repository import RefreshTokenStore, UserRepository
+from apps.api.routers.v1.auth.repository import PasswordResetStore, RefreshTokenStore, UserRepository
 from apps.api.routers.v1.auth.schema import TokenPair
 from apps.api.routers.v1.auth.security import (
     TOKEN_TYPE_REFRESH,
     build_access_token,
     build_refresh_token,
     decode_token,
+    hash_password,
     verify_password,
 )
 
@@ -31,11 +32,17 @@ class AuthService(BaseService):
         self.user_repo = user_repo or UserRepository()
         self.valkey = valkey
         self.refresh_store = RefreshTokenStore(valkey, settings.auth) if valkey else None
+        self.reset_store = PasswordResetStore(valkey, settings.auth) if valkey else None
 
     def _require_refresh_store(self) -> RefreshTokenStore:
         if self.refresh_store is None:
             raise ServiceUnavailable(message="刷新令牌服务不可用", error="REFRESH_STORE_UNAVAILABLE")
         return self.refresh_store
+
+    def _require_reset_store(self) -> PasswordResetStore:
+        if self.reset_store is None:
+            raise ServiceUnavailable(message="重置令牌服务不可用", error="RESET_STORE_UNAVAILABLE")
+        return self.reset_store
 
     def _parse_user_id(self, raw: str | None) -> UUID:
         if not raw:
@@ -94,6 +101,36 @@ class AuthService(BaseService):
             refresh_token=refresh_token,
             expires_in=access_ttl,
             refresh_expires_in=refresh_ttl,
+        )
+
+    async def register(
+        self,
+        *,
+        username: str,
+        password: str,
+        email: str | None = None,
+        phone: str | None = None,
+        display_name: str | None = None,
+    ):
+        username = username.strip()
+        email = email.strip() if email else None
+        phone = phone.strip() if phone else None
+        display_name = display_name.strip() if display_name else None
+
+        if await self.user_repo.exists_username(username):
+            raise Conflict(message="用户名已存在", error="USERNAME_EXISTS")
+        if email and await self.user_repo.exists_email(email):
+            raise Conflict(message="邮箱已存在", error="EMAIL_EXISTS")
+        if phone and await self.user_repo.exists_phone(phone):
+            raise Conflict(message="手机号已存在", error="PHONE_EXISTS")
+
+        password_hash = hash_password(password, self.settings.auth)
+        return await self.user_repo.create_user(
+            username=username,
+            email=email,
+            phone=phone,
+            display_name=display_name,
+            password_hash=password_hash,
         )
 
     async def refresh(self, *, refresh_token: str) -> TokenPair:
@@ -176,3 +213,45 @@ class AuthService(BaseService):
             raise Unauthorized(message="未授权", error="UNAUTHORIZED")
 
         await store.revoke_all(user_id)
+
+    async def change_password(self, *, user_id: UUID, old_password: str, new_password: str) -> None:
+        user = await self.user_repo.get_by_id_with_credential(user_id)
+        if not user or not getattr(user, "credential", None):
+            raise Unauthorized(message="未授权", error="UNAUTHORIZED")
+
+        if not self.user_repo.is_active(user):
+            raise Forbidden(message="账号不可用", error="USER_DISABLED")
+
+        if not verify_password(old_password, user.credential.password_hash, self.settings.auth):
+            raise Unauthorized(message="原密码错误", error="INVALID_CREDENTIALS")
+
+        await self.user_repo.set_password(user, hash_password(new_password, self.settings.auth))
+        await self.user_repo.increment_token_version(user)
+        if self.refresh_store is not None:
+            await self.refresh_store.revoke_all(user.id)
+
+    async def forgot_password(self, *, identifier: str) -> tuple[str, int] | None:
+        store = self._require_reset_store()
+        user = await self.user_repo.get_by_identifier(identifier)
+        if not user or not self.user_repo.is_active(user):
+            return None
+        return await store.issue(user.id)
+
+    async def reset_password(self, *, reset_token: str, new_password: str) -> None:
+        store = self._require_reset_store()
+        record = await store.consume(reset_token)
+        if not record:
+            raise Unauthorized(message="重置令牌无效", error="RESET_TOKEN_INVALID")
+
+        user_id = self._parse_user_id(record.get("user_id"))
+        user = await self.user_repo.get_by_id(user_id)
+        if not user:
+            raise Unauthorized(message="用户不存在", error="USER_NOT_FOUND")
+
+        if not self.user_repo.is_active(user):
+            raise Forbidden(message="账号不可用", error="USER_DISABLED")
+
+        await self.user_repo.set_password(user, hash_password(new_password, self.settings.auth))
+        await self.user_repo.increment_token_version(user)
+        if self.refresh_store is not None:
+            await self.refresh_store.revoke_all(user.id)
