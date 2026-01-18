@@ -1,5 +1,13 @@
 from apps.api.core.exceptions.handlers import init_exception_handlers
-from apps.api.core.exceptions.types import APIError, BadRequest, Conflict, Forbidden, NotFound, Unauthorized
+from apps.api.core.exceptions.types import (
+    APIError,
+    BadRequest,
+    Conflict,
+    Forbidden,
+    NotFound,
+    ServiceUnavailable,
+    Unauthorized,
+)
 
 __all__ = [
     "APIError",
@@ -8,5 +16,6 @@ __all__ = [
     "Forbidden",
     "NotFound",
     "Conflict",
+    "ServiceUnavailable",
     "init_exception_handlers",
 ]

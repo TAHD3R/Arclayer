@@ -17,15 +17,16 @@ from apps.api.core.exceptions import init_exception_handlers
 from apps.api.core.limiter import close_rate_limiter, init_rate_limiter
 from apps.api.core.logging import configure_logging
 from apps.api.core.observability import configure_observability
+from apps.api.core.routes import register_routes
 from apps.api.plugin.manager import PluginManager
 from apps.api.plugin.restart import start_restart_watcher, stop_restart_watcher
 
 
-def _build_lifespan(settings: Settings):
+def _build_lifespan(settings: Settings, *, plugin_manager: PluginManager):
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-        plugin_manager = PluginManager(settings)
-        plugin_manager.discover()
+        if not plugin_manager.descriptors:
+            plugin_manager.discover()
         extra_models = plugin_manager.collect_model_modules()
 
         await init_orm(settings, extra_modules=extra_models)
@@ -50,6 +51,7 @@ def _build_lifespan(settings: Settings):
 class AppFactory:
     def __init__(self, settings: Settings | None = None) -> None:
         self.settings = settings or get_settings()
+        self.plugin_manager = PluginManager(self.settings)
         self.app = FastAPI(
             debug=self.settings.debug,
             title=self.settings.application.app_name,
@@ -59,7 +61,7 @@ class AppFactory:
             docs_url=self.settings.application.app_docs_url if self.settings.enable_docs else None,
             redoc_url=self.settings.application.app_redoc_url if self.settings.enable_docs else None,
             default_response_class=ORJSONResponse,
-            lifespan=_build_lifespan(self.settings),
+            lifespan=_build_lifespan(self.settings, plugin_manager=self.plugin_manager),
         )
 
     def with_logging(self) -> "AppFactory":
@@ -138,6 +140,7 @@ class AppFactory:
         return self
 
     def build(self) -> FastAPI:
+        register_routes(self.app, self.settings, plugin_manager=self.plugin_manager)
         return self.app
 
 

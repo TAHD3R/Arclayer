@@ -21,6 +21,7 @@ class User(BaseModel):
     display_name = fields.CharField(max_length=64, null=True)
     avatar_url = fields.CharField(max_length=512, null=True)
     last_login_at = fields.DatetimeField(null=True)
+    token_version = fields.IntField(default=0, db_index=True)
 
     class Meta(BaseModel.Meta):
         table = "users"

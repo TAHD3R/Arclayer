@@ -23,7 +23,11 @@ class ApplicationSettings(BaseSettings):
 
     api_prefix: str = Field(
         default="/api",
-        validation_alias=AliasChoices("API_PREFIX", "API_V1_PREFIX", "API_VERSION_PREFIX"),
+        validation_alias=AliasChoices("API_PREFIX"),
+    )
+    api_version_prefix: str = Field(
+        default="/v1",
+        validation_alias=AliasChoices("API_VERSION_PREFIX", "API_V1_PREFIX"),
     )
     app_host: str = Field(default="127.0.0.1", validation_alias="APP_HOST")
     app_port: int = Field(default=8000, validation_alias="APP_PORT")
@@ -329,6 +333,55 @@ class MiddlewareSettings(BaseSettings):
     )
 
 
+class AuthSettings(BaseSettings):
+    """
+    Auth/JWT settings for the API application.
+    """
+
+    model_config = SettingsConfigDict(
+        env_prefix="AUTH__",
+        env_file_encoding="utf-8",
+        env_nested_delimiter="__",
+        extra="ignore",
+        case_sensitive=False,
+        populate_by_name=True,
+        validate_default=True,
+    )
+
+    jwt_secret: SecretStr = Field(
+        default=SecretStr(""),
+        validation_alias=AliasChoices("JWT_SECRET", "APP_JWT_SECRET"),
+    )
+    jwt_algorithm: str = Field(
+        default="HS256",
+        validation_alias=AliasChoices("JWT_ALGORITHM", "APP_JWT_ALGORITHM"),
+    )
+    jwt_issuer: str = Field(
+        default="celestial",
+        validation_alias=AliasChoices("JWT_ISSUER", "APP_JWT_ISSUER"),
+    )
+    jwt_audience: str = Field(
+        default="celestial",
+        validation_alias=AliasChoices("JWT_AUDIENCE", "APP_JWT_AUDIENCE"),
+    )
+    access_token_ttl_seconds: int = Field(
+        default=900,
+        validation_alias=AliasChoices("ACCESS_TOKEN_TTL_SECONDS", "ACCESS_TOKEN_TTL"),
+    )
+    refresh_token_ttl_seconds: int = Field(
+        default=2592000,
+        validation_alias=AliasChoices("REFRESH_TOKEN_TTL_SECONDS", "REFRESH_TOKEN_TTL"),
+    )
+    password_hash_iterations: int = Field(
+        default=120_000,
+        validation_alias=AliasChoices("PASSWORD_HASH_ITERATIONS", "APP_PASSWORD_HASH_ITERATIONS"),
+    )
+    password_hash_salt_bytes: int = Field(
+        default=16,
+        validation_alias=AliasChoices("PASSWORD_HASH_SALT_BYTES", "APP_PASSWORD_HASH_SALT_BYTES"),
+    )
+
+
 class PluginSettings(BaseSettings):
     """
     Plugin system settings.
@@ -395,6 +448,7 @@ class Settings(BaseSettings):
     valkey: ValkeySettings = Field(default_factory=ValkeySettings)
     observability: ObservabilitySettings = Field(default_factory=ObservabilitySettings)
     middleware: MiddlewareSettings = Field(default_factory=MiddlewareSettings)
+    auth: AuthSettings = Field(default_factory=AuthSettings)
     plugin: PluginSettings = Field(default_factory=PluginSettings)
 
     def _apply_env_overrides(self) -> None:
@@ -410,6 +464,7 @@ class Settings(BaseSettings):
         self.valkey = _merge_settings(self.valkey, ValkeySettings())
         self.observability = _merge_settings(self.observability, ObservabilitySettings())
         self.middleware = _merge_settings(self.middleware, MiddlewareSettings())
+        self.auth = _merge_settings(self.auth, AuthSettings())
         self.plugin = _merge_settings(self.plugin, PluginSettings())
 
 
