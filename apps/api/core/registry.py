@@ -1,8 +1,10 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.responses import ORJSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from apps.api.config import Settings, get_settings
 from apps.api.core.logging import configure_logging
@@ -39,9 +41,20 @@ class AppFactory:
 
         return self
 
+    def with_static(self, *, directory: Path | None = None, url_path: str | None = None) -> "AppFactory":
+        enabled = self.settings.application.static_enabled
+        if not enabled and directory is None and url_path is None:
+            return self
+
+        static_dir = Path(directory) if directory is not None else self.settings.application.static_dir
+        static_url = url_path or self.settings.application.static_url
+        static_dir.mkdir(parents=True, exist_ok=True)
+        self.app.mount(static_url, StaticFiles(directory=static_dir), name="static")
+        return self
+
     def build(self) -> FastAPI:
         return self.app
 
 
 def create_app() -> FastAPI:
-    return AppFactory().with_logging().with_middlewares().build()
+    return AppFactory().with_logging().with_middlewares().with_static().build()

@@ -11,6 +11,14 @@ class ApplicationSettings(BaseSettings):
     Application-specific settings for the API application.
     """
 
+    model_config = SettingsConfigDict(
+        env_file_encoding="utf-8",
+        env_nested_delimiter=".",
+        extra="ignore",
+        case_sensitive=False,
+        validate_default=True,
+    )
+
     api_prefix: str = Field(
         default="/api",
         validation_alias=AliasChoices("API_PREFIX", "API_V1_PREFIX", "API_VERSION_PREFIX"),
@@ -35,12 +43,32 @@ class ApplicationSettings(BaseSettings):
         default="/redoc",
         validation_alias="APP_REDOC_URL",
     )
+    static_enabled: bool = Field(
+        default=False,
+        validation_alias=AliasChoices("STATIC_ENABLED", "APP_STATIC_ENABLED"),
+    )
+    static_dir: Path = Field(
+        default=Path(__file__).resolve().parents[2] / "static",
+        validation_alias=AliasChoices("STATIC_DIR", "APP_STATIC_DIR"),
+    )
+    static_url: str = Field(
+        default="/static",
+        validation_alias=AliasChoices("STATIC_URL", "APP_STATIC_URL"),
+    )
 
 
 class LoggingSettings(BaseSettings):
     """
     Logging settings for the API application.
     """
+
+    model_config = SettingsConfigDict(
+        env_file_encoding="utf-8",
+        env_nested_delimiter=".",
+        extra="ignore",
+        case_sensitive=False,
+        validate_default=True,
+    )
 
     level: str = Field(default="INFO", validation_alias=AliasChoices("LOG_LEVEL", "APP_LOG_LEVEL"))
     json_logs: bool | None = Field(
