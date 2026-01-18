@@ -94,6 +94,7 @@ class Settings(BaseSettings):
         **data,
     ) -> None:
         super().__init__(**data)
+        self._apply_env_overrides()
 
     model_config = SettingsConfigDict(
         env_file_encoding="utf-8",
@@ -119,6 +120,16 @@ class Settings(BaseSettings):
 
     application: ApplicationSettings = Field(default_factory=ApplicationSettings)
     logging: LoggingSettings = Field(default_factory=LoggingSettings)
+
+    def _apply_env_overrides(self) -> None:
+        def _merge_settings(current, overrides):
+            updates = {name: getattr(overrides, name) for name in overrides.model_fields_set}
+            if not updates:
+                return current
+            return current.model_copy(update=updates)
+
+        self.application = _merge_settings(self.application, ApplicationSettings())
+        self.logging = _merge_settings(self.logging, LoggingSettings())
 
 
 @lru_cache(maxsize=1)

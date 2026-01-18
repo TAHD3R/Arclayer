@@ -235,3 +235,6 @@ def configure_logging(settings: Settings) -> None:
 
 def get_logger(name: str | None = None) -> BoundLogger:
     return structlog.get_logger(name)
+
+
+logger = get_logger(__name__)

@@ -10,7 +10,7 @@ def _mount_paths(app) -> set[str]:
 
 
 def test_static_not_enabled_by_default(monkeypatch) -> None:
-    monkeypatch.delenv("APP_STATIC_ENABLED", raising=False)
+    monkeypatch.setenv("APP_STATIC_ENABLED", "0")
     monkeypatch.delenv("APP_STATIC_DIR", raising=False)
     monkeypatch.delenv("APP_STATIC_URL", raising=False)
 
