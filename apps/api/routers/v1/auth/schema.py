@@ -1,24 +1,24 @@
 from __future__ import annotations
 
-from uuid import UUID
+from pydantic import Field
 
-from pydantic import BaseModel, Field
+from apps.api.common.schemas import BaseOut, BaseSchema
 
 
-class LoginRequest(BaseModel):
+class LoginRequest(BaseSchema):
     identifier: str = Field(min_length=1)
     password: str = Field(min_length=1)
 
 
-class RefreshRequest(BaseModel):
+class RefreshRequest(BaseSchema):
     refresh_token: str = Field(min_length=1)
 
 
-class LogoutRequest(BaseModel):
+class LogoutRequest(BaseSchema):
     refresh_token: str | None = None
 
 
-class TokenPair(BaseModel):
+class TokenPair(BaseSchema):
     access_token: str
     refresh_token: str
     token_type: str = "bearer"
@@ -26,8 +26,7 @@ class TokenPair(BaseModel):
     refresh_expires_in: int
 
 
-class UserProfile(BaseModel):
-    id: UUID
+class UserProfile(BaseOut):
     username: str
     email: str | None = None
     phone: str | None = None
