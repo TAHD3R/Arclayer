@@ -5,6 +5,10 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.responses import ORJSONResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.cors import CORSMiddleware
+from starlette.middleware.gzip import GZipMiddleware
+from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from apps.api.config import Settings, get_settings
 from apps.api.core.exceptions import init_exception_handlers
@@ -37,6 +41,51 @@ class AppFactory:
 
     def with_middlewares(self) -> "AppFactory":
         from asgi_correlation_id import CorrelationIdMiddleware
+
+        middleware = self.settings.middleware
+
+        if middleware.cors_enabled:
+            self.app.add_middleware(
+                CORSMiddleware,
+                allow_origins=middleware.cors_allow_origins,
+                allow_methods=middleware.cors_allow_methods,
+                allow_headers=middleware.cors_allow_headers,
+                allow_credentials=middleware.cors_allow_credentials,
+                allow_origin_regex=middleware.cors_allow_origin_regex,
+                expose_headers=middleware.cors_expose_headers,
+                max_age=middleware.cors_max_age,
+            )
+
+        if middleware.gzip_enabled:
+            self.app.add_middleware(
+                GZipMiddleware,
+                minimum_size=middleware.gzip_minimum_size,
+                compresslevel=middleware.gzip_compresslevel,
+            )
+
+        if middleware.trusted_host_enabled:
+            self.app.add_middleware(
+                TrustedHostMiddleware,
+                allowed_hosts=middleware.trusted_hosts,
+                www_redirect=middleware.trusted_host_www_redirect,
+            )
+
+        if middleware.https_redirect_enabled and self.settings.app_env == "production":
+            self.app.add_middleware(HTTPSRedirectMiddleware)
+
+        if middleware.csrf_enabled:
+            from apps.api.core.middleware.csrf import CSRFMiddleware
+
+            self.app.add_middleware(
+                CSRFMiddleware,
+                header_name=middleware.csrf_header_name,
+                cookie_name=middleware.csrf_cookie_name,
+                safe_methods=middleware.csrf_safe_methods,
+                cookie_secure=middleware.csrf_cookie_secure,
+                cookie_httponly=middleware.csrf_cookie_httponly,
+                cookie_samesite=middleware.csrf_cookie_samesite,
+                token_bytes=middleware.csrf_token_bytes,
+            )
 
         self.app.add_middleware(CorrelationIdMiddleware)
 

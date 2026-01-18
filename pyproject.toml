@@ -108,6 +108,7 @@ asyncio_default_fixture_loop_scope = "function"
 [tool.pyright]
 include = ["apps/api"]
 exclude = ["**/__pycache__", "migrations"]
+extraPaths = ["."]
 venvPath = "."
 venv = ".venv"
 typeCheckingMode = "standard"

@@ -13,7 +13,7 @@ class ApplicationSettings(BaseSettings):
 
     model_config = SettingsConfigDict(
         env_file_encoding="utf-8",
-        env_nested_delimiter=".",
+        env_nested_delimiter="__",
         extra="ignore",
         case_sensitive=False,
         validate_default=True,
@@ -64,7 +64,7 @@ class LoggingSettings(BaseSettings):
 
     model_config = SettingsConfigDict(
         env_file_encoding="utf-8",
-        env_nested_delimiter=".",
+        env_nested_delimiter="__",
         extra="ignore",
         case_sensitive=False,
         validate_default=True,
@@ -84,6 +84,105 @@ class LoggingSettings(BaseSettings):
     async_enabled: bool = Field(default=False, validation_alias=AliasChoices("LOG_ASYNC", "APP_LOG_ASYNC"))
 
 
+class MiddlewareSettings(BaseSettings):
+    """
+    Middleware settings for the API application.
+    """
+
+    model_config = SettingsConfigDict(
+        env_file_encoding="utf-8",
+        env_nested_delimiter="__",
+        extra="ignore",
+        case_sensitive=False,
+        validate_default=True,
+    )
+
+    cors_enabled: bool = Field(default=False, validation_alias=AliasChoices("CORS_ENABLED", "APP_CORS_ENABLED"))
+    cors_allow_origins: list[str] = Field(
+        default_factory=list,
+        validation_alias=AliasChoices("CORS_ALLOW_ORIGINS", "APP_CORS_ALLOW_ORIGINS"),
+    )
+    cors_allow_methods: list[str] = Field(
+        default_factory=lambda: ["GET"],
+        validation_alias=AliasChoices("CORS_ALLOW_METHODS", "APP_CORS_ALLOW_METHODS"),
+    )
+    cors_allow_headers: list[str] = Field(
+        default_factory=list,
+        validation_alias=AliasChoices("CORS_ALLOW_HEADERS", "APP_CORS_ALLOW_HEADERS"),
+    )
+    cors_allow_credentials: bool = Field(
+        default=False,
+        validation_alias=AliasChoices("CORS_ALLOW_CREDENTIALS", "APP_CORS_ALLOW_CREDENTIALS"),
+    )
+    cors_allow_origin_regex: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("CORS_ALLOW_ORIGIN_REGEX", "APP_CORS_ALLOW_ORIGIN_REGEX"),
+    )
+    cors_expose_headers: list[str] = Field(
+        default_factory=list,
+        validation_alias=AliasChoices("CORS_EXPOSE_HEADERS", "APP_CORS_EXPOSE_HEADERS"),
+    )
+    cors_max_age: int = Field(default=600, validation_alias=AliasChoices("CORS_MAX_AGE", "APP_CORS_MAX_AGE"))
+
+    gzip_enabled: bool = Field(default=False, validation_alias=AliasChoices("GZIP_ENABLED", "APP_GZIP_ENABLED"))
+    gzip_minimum_size: int = Field(
+        default=500,
+        validation_alias=AliasChoices("GZIP_MINIMUM_SIZE", "APP_GZIP_MINIMUM_SIZE"),
+    )
+    gzip_compresslevel: int = Field(
+        default=9,
+        validation_alias=AliasChoices("GZIP_COMPRESSLEVEL", "APP_GZIP_COMPRESSLEVEL"),
+    )
+
+    trusted_host_enabled: bool = Field(
+        default=False,
+        validation_alias=AliasChoices("TRUSTED_HOST_ENABLED", "APP_TRUSTED_HOST_ENABLED"),
+    )
+    trusted_hosts: list[str] = Field(
+        default_factory=lambda: ["*"],
+        validation_alias=AliasChoices("TRUSTED_HOSTS", "APP_TRUSTED_HOSTS"),
+    )
+    trusted_host_www_redirect: bool = Field(
+        default=True,
+        validation_alias=AliasChoices("TRUSTED_HOST_WWW_REDIRECT", "APP_TRUSTED_HOST_WWW_REDIRECT"),
+    )
+
+    https_redirect_enabled: bool = Field(
+        default=False,
+        validation_alias=AliasChoices("HTTPS_REDIRECT_ENABLED", "APP_HTTPS_REDIRECT_ENABLED"),
+    )
+
+    csrf_enabled: bool = Field(default=False, validation_alias=AliasChoices("CSRF_ENABLED", "APP_CSRF_ENABLED"))
+    csrf_header_name: str = Field(
+        default="X-CSRF-Token",
+        validation_alias=AliasChoices("CSRF_HEADER_NAME", "APP_CSRF_HEADER_NAME"),
+    )
+    csrf_cookie_name: str = Field(
+        default="csrf_token",
+        validation_alias=AliasChoices("CSRF_COOKIE_NAME", "APP_CSRF_COOKIE_NAME"),
+    )
+    csrf_cookie_secure: bool = Field(
+        default=False,
+        validation_alias=AliasChoices("CSRF_COOKIE_SECURE", "APP_CSRF_COOKIE_SECURE"),
+    )
+    csrf_cookie_httponly: bool = Field(
+        default=False,
+        validation_alias=AliasChoices("CSRF_COOKIE_HTTPONLY", "APP_CSRF_COOKIE_HTTPONLY"),
+    )
+    csrf_cookie_samesite: str = Field(
+        default="lax",
+        validation_alias=AliasChoices("CSRF_COOKIE_SAMESITE", "APP_CSRF_COOKIE_SAMESITE"),
+    )
+    csrf_safe_methods: list[str] = Field(
+        default_factory=lambda: ["GET", "HEAD", "OPTIONS", "TRACE"],
+        validation_alias=AliasChoices("CSRF_SAFE_METHODS", "APP_CSRF_SAFE_METHODS"),
+    )
+    csrf_token_bytes: int = Field(
+        default=32,
+        validation_alias=AliasChoices("CSRF_TOKEN_BYTES", "APP_CSRF_TOKEN_BYTES"),
+    )
+
+
 class Settings(BaseSettings):
     """
     Global settings for the API application.
@@ -98,7 +197,7 @@ class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(
         env_file_encoding="utf-8",
-        env_nested_delimiter=".",
+        env_nested_delimiter="__",
         extra="ignore",
         case_sensitive=False,
         validate_default=True,
@@ -120,6 +219,7 @@ class Settings(BaseSettings):
 
     application: ApplicationSettings = Field(default_factory=ApplicationSettings)
     logging: LoggingSettings = Field(default_factory=LoggingSettings)
+    middleware: MiddlewareSettings = Field(default_factory=MiddlewareSettings)
 
     def _apply_env_overrides(self) -> None:
         def _merge_settings(current, overrides):
@@ -130,6 +230,7 @@ class Settings(BaseSettings):
 
         self.application = _merge_settings(self.application, ApplicationSettings())
         self.logging = _merge_settings(self.logging, LoggingSettings())
+        self.middleware = _merge_settings(self.middleware, MiddlewareSettings())
 
 
 @lru_cache(maxsize=1)
