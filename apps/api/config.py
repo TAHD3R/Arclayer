@@ -84,6 +84,56 @@ class LoggingSettings(BaseSettings):
     async_enabled: bool = Field(default=False, validation_alias=AliasChoices("LOG_ASYNC", "APP_LOG_ASYNC"))
 
 
+class ObservabilitySettings(BaseSettings):
+    """
+    Observability settings for the API application.
+    """
+
+    model_config = SettingsConfigDict(
+        env_file_encoding="utf-8",
+        env_nested_delimiter="__",
+        extra="ignore",
+        case_sensitive=False,
+        validate_default=True,
+    )
+
+    sentry_enabled: bool = Field(default=False, validation_alias=AliasChoices("SENTRY_ENABLED", "APP_SENTRY_ENABLED"))
+    sentry_dsn: str | None = Field(default=None, validation_alias=AliasChoices("SENTRY_DSN", "APP_SENTRY_DSN"))
+    sentry_environment: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("SENTRY_ENVIRONMENT", "APP_SENTRY_ENVIRONMENT"),
+    )
+    sentry_release: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("SENTRY_RELEASE", "APP_SENTRY_RELEASE"),
+    )
+    sentry_traces_sample_rate: float = Field(
+        default=0.0,
+        validation_alias=AliasChoices("SENTRY_TRACES_SAMPLE_RATE", "APP_SENTRY_TRACES_SAMPLE_RATE"),
+    )
+    sentry_profiles_sample_rate: float = Field(
+        default=0.0,
+        validation_alias=AliasChoices("SENTRY_PROFILES_SAMPLE_RATE", "APP_SENTRY_PROFILES_SAMPLE_RATE"),
+    )
+    sentry_send_pii: bool = Field(
+        default=False,
+        validation_alias=AliasChoices("SENTRY_SEND_PII", "APP_SENTRY_SEND_PII"),
+    )
+
+    metrics_enabled: bool = Field(
+        default=False,
+        validation_alias=AliasChoices("METRICS_ENABLED", "APP_METRICS_ENABLED"),
+    )
+    metrics_path: str = Field(
+        default="/metrics",
+        validation_alias=AliasChoices("METRICS_PATH", "APP_METRICS_PATH"),
+    )
+    metrics_include_in_schema: bool = Field(
+        default=False,
+        validation_alias=AliasChoices("METRICS_INCLUDE_IN_SCHEMA", "APP_METRICS_INCLUDE_IN_SCHEMA"),
+    )
+
+
 class MiddlewareSettings(BaseSettings):
     """
     Middleware settings for the API application.
@@ -219,6 +269,7 @@ class Settings(BaseSettings):
 
     application: ApplicationSettings = Field(default_factory=ApplicationSettings)
     logging: LoggingSettings = Field(default_factory=LoggingSettings)
+    observability: ObservabilitySettings = Field(default_factory=ObservabilitySettings)
     middleware: MiddlewareSettings = Field(default_factory=MiddlewareSettings)
 
     def _apply_env_overrides(self) -> None:
@@ -230,6 +281,7 @@ class Settings(BaseSettings):
 
         self.application = _merge_settings(self.application, ApplicationSettings())
         self.logging = _merge_settings(self.logging, LoggingSettings())
+        self.observability = _merge_settings(self.observability, ObservabilitySettings())
         self.middleware = _merge_settings(self.middleware, MiddlewareSettings())
 
 

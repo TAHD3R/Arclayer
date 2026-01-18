@@ -13,6 +13,7 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 from apps.api.config import Settings, get_settings
 from apps.api.core.exceptions import init_exception_handlers
 from apps.api.core.logging import configure_logging
+from apps.api.core.observability import configure_observability
 
 
 @asynccontextmanager
@@ -91,6 +92,10 @@ class AppFactory:
 
         return self
 
+    def with_observability(self) -> "AppFactory":
+        configure_observability(self.app, self.settings)
+        return self
+
     def with_exception_handlers(self) -> "AppFactory":
         init_exception_handlers(self.app, self.settings)
         return self
@@ -111,4 +116,12 @@ class AppFactory:
 
 
 def create_app() -> FastAPI:
-    return AppFactory().with_logging().with_middlewares().with_exception_handlers().with_static().build()
+    return (
+        AppFactory()
+        .with_logging()
+        .with_observability()
+        .with_middlewares()
+        .with_exception_handlers()
+        .with_static()
+        .build()
+    )
