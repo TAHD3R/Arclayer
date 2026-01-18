@@ -17,10 +17,12 @@ dependencies = [
     "pydantic>=2.12.5",
     "pydantic-settings>=2.12.0",
     "prometheus-fastapi-instrumentator>=7.1.0",
+    "redis>=5.0.0",
     "sentry-sdk>=2.35.0",
     "structlog>=25.5.0",
     "tortoise-orm>=0.25.0",
     "uvicorn>=0.40.0",
+    "valkey>=6.1.1",
 ]
 
 [dependency-groups]

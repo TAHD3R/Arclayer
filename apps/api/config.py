@@ -160,6 +160,10 @@ class ValkeySettings(BaseSettings):
     password: SecretStr = Field(
         default=SecretStr(""), validation_alias=AliasChoices("VALKEY_PASSWORD", "CACHE_PASSWORD")
     )
+    prefix: str = Field(default="", validation_alias=AliasChoices("VALKEY_PREFIX", "CACHE_PREFIX"))
+    default_ttl: int | None = Field(
+        default=None, validation_alias=AliasChoices("VALKEY_DEFAULT_TTL", "CACHE_DEFAULT_TTL")
+    )
 
     @computed_field
     @property

@@ -1,0 +1,194 @@
+from __future__ import annotations
+
+import asyncio
+import json
+from typing import Any, Protocol, cast
+
+from fastapi import FastAPI, Request
+from valkey import exceptions as redis_exc
+from valkey.asyncio import Redis
+
+from apps.api.config import Settings, ValkeySettings
+from apps.api.core.logging import get_logger
+
+logger = get_logger(__name__)
+
+NON_RETRYABLE = (redis_exc.AuthenticationError, redis_exc.ResponseError)
+
+try:
+    import orjson as _orjson
+except Exception:
+    _orjson = None
+
+
+class _AsyncEval(Protocol):
+    async def eval(self, script: str, numkeys: int, *keys_and_args: Any) -> Any: ...
+
+
+def _json_dumps(data: Any) -> str:
+    if _orjson is not None:
+        return _orjson.dumps(data).decode("utf-8")
+    return json.dumps(data, ensure_ascii=False, separators=(",", ":"))
+
+
+def _json_loads(data: bytes | str | None) -> Any:
+    if data is None:
+        return None
+    if isinstance(data, bytes):
+        data = data.decode("utf-8", errors="ignore")
+    return (_orjson or json).loads(data)
+
+
+class ValkeyClient:
+    __slots__ = ("_r", "_prefix", "_default_ttl")
+
+    def __init__(self, client: Redis, *, prefix: str = "", default_ttl: int | None = None) -> None:
+        self._r = client
+        self._prefix = prefix.strip(":")
+        self._default_ttl = default_ttl if default_ttl and default_ttl > 0 else None
+
+    @property
+    def raw(self) -> Redis:
+        return self._r
+
+    def key(self, *parts: str) -> str:
+        if self._prefix:
+            return ":".join((self._prefix, *parts))
+        return ":".join(parts)
+
+    async def ping(self) -> bool:
+        return bool(await self._r.ping())
+
+    async def get(self, key: str) -> str | None:
+        return await self._r.get(self.key(key))
+
+    async def set(
+        self,
+        key: str,
+        value: str,
+        *,
+        ex: int | None = None,
+        nx: bool | None = None,
+        xx: bool | None = None,
+    ) -> bool:
+        ttl = ex if ex is not None else self._default_ttl
+        kwargs: dict[str, Any] = {}
+        if ttl is not None:
+            kwargs["ex"] = ttl
+        if nx is not None:
+            kwargs["nx"] = nx
+        if xx is not None:
+            kwargs["xx"] = xx
+        return bool(await self._r.set(self.key(key), value, **kwargs))
+
+    async def delete(self, *keys: str) -> int:
+        return await self._r.delete(*(self.key(k) for k in keys))
+
+    async def expire(self, key: str, seconds: int) -> bool:
+        return bool(await self._r.expire(self.key(key), seconds))
+
+    async def ttl(self, key: str) -> int:
+        return await self._r.ttl(self.key(key))
+
+    async def getdel(self, key: str) -> str | None:
+        return await self._r.getdel(self.key(key))
+
+    async def setex(self, key: str, seconds: int, value: str) -> bool:
+        return bool(await self._r.setex(self.key(key), seconds, value))
+
+    async def incr(self, key: str, amount: int = 1) -> int:
+        return await self._r.incr(self.key(key), amount)
+
+    async def incr_with_ttl(self, key: str, *, ttl: int | None = None, amount: int = 1) -> int:
+        ttl_value = ttl if ttl is not None else self._default_ttl
+        if not ttl_value:
+            return await self.incr(key, amount=amount)
+
+        script = """
+        local val = redis.call('incrby', KEYS[1], ARGV[1])
+        if val == tonumber(ARGV[1]) then
+            redis.call('expire', KEYS[1], ARGV[2])
+        end
+        return val
+        """
+        redis = cast(_AsyncEval, self._r)
+        result = await redis.eval(script, 1, self.key(key), amount, ttl_value)
+        return int(result)
+
+    async def get_json(self, key: str) -> Any:
+        return _json_loads(await self._r.get(self.key(key)))
+
+    async def set_json(
+        self,
+        key: str,
+        data: Any,
+        *,
+        ex: int | None = None,
+        nx: bool | None = None,
+        xx: bool | None = None,
+    ) -> bool:
+        return await self.set(key, _json_dumps(data), ex=ex, nx=nx, xx=xx)
+
+
+def build_valkey(settings: ValkeySettings) -> Redis:
+    return Redis.from_url(
+        settings.dsn,
+        decode_responses=True,
+        health_check_interval=30,
+    )
+
+
+async def verify_valkey_ready(
+    client: Redis,
+    *,
+    attempts: int = 5,
+    base_delay: float = 0.5,
+) -> None:
+    last_exc: Exception | None = None
+    for attempt in range(1, attempts + 1):
+        try:
+            await client.ping()
+            logger.info("Valkey connectivity OK")
+            return
+        except NON_RETRYABLE as exc:
+            raise RuntimeError(f"Valkey auth error: {exc}") from exc
+        except asyncio.CancelledError:
+            raise
+        except Exception as exc:
+            last_exc = exc
+            await asyncio.sleep(base_delay * attempt)
+
+    raise RuntimeError("Valkey not ready after retries") from last_exc
+
+
+async def init_valkey(app: FastAPI, settings: Settings) -> None:
+    if not settings.valkey.enabled:
+        logger.info("Valkey init skipped (disabled)")
+        return
+
+    client = build_valkey(settings.valkey)
+    await verify_valkey_ready(client)
+    app.state.valkey = ValkeyClient(
+        client,
+        prefix=settings.valkey.prefix,
+        default_ttl=settings.valkey.default_ttl,
+    )
+
+
+async def close_valkey(app: FastAPI) -> None:
+    client: ValkeyClient | None = getattr(app.state, "valkey", None)
+    if client is None:
+        return
+
+    try:
+        await client.raw.close()
+        logger.info("Valkey connection closed")
+    except Exception as exc:
+        logger.warning("Valkey close error", error=repr(exc))
+
+
+def get_valkey(request: Request) -> ValkeyClient:
+    client: ValkeyClient | None = getattr(request.app.state, "valkey", None)
+    if client is None:
+        raise RuntimeError("Valkey client is not initialized")
+    return client

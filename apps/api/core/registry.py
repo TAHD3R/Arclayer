@@ -15,6 +15,7 @@ from apps.api.core.database.orm import close_orm, init_orm, verify_db_ready
 from apps.api.core.exceptions import init_exception_handlers
 from apps.api.core.logging import configure_logging
 from apps.api.core.observability import configure_observability
+from apps.api.core.valkey import close_valkey, init_valkey
 
 
 def _build_lifespan(settings: Settings):
@@ -22,8 +23,10 @@ def _build_lifespan(settings: Settings):
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         await init_orm(settings)
         await verify_db_ready(settings)
+        await init_valkey(app, settings)
         yield
         await close_orm()
+        await close_valkey(app)
 
     return lifespan
 
