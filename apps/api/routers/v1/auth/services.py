@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from uuid import UUID
 
-from apps.api.common.bases import BaseService
+from apps.api.common.services import BaseService
 from apps.api.config import Settings
 from apps.api.core.database.valkey import ValkeyClient
 from apps.api.core.exceptions import Forbidden, ServiceUnavailable, Unauthorized

@@ -4,9 +4,10 @@ from typing import Any, TypeVar, cast
 
 from pydantic import BaseModel, ConfigDict, Field, model_serializer, validate_call
 
-from apps.api.core.logging import logger
+from apps.api.core.logging import get_logger
 
 T = TypeVar("T")
+logger = get_logger(__name__)
 
 
 def _now_ms() -> int:

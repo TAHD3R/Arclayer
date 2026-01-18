@@ -1,21 +1,18 @@
 from __future__ import annotations
 
-import base64
-import hashlib
-import hmac
-import secrets
 from datetime import UTC, datetime, timedelta
 from typing import Any
 from uuid import UUID, uuid4
 
 import jwt
 
+from apps.api.common.utils.passwords import hash_password as _hash_password
+from apps.api.common.utils.passwords import verify_password as _verify_password
 from apps.api.config import AuthSettings
 from apps.api.core.exceptions import ServiceUnavailable, Unauthorized
 
-TOKEN_TYPE_ACCESS = "access"  # noqa: S105
-TOKEN_TYPE_REFRESH = "refresh"  # noqa: S105
-PASSWORD_SCHEME = "pbkdf2_sha256"  # noqa: S105
+TOKEN_TYPE_ACCESS = "access"
+TOKEN_TYPE_REFRESH = "refresh"
 
 
 def _now() -> datetime:
@@ -83,25 +80,8 @@ def build_refresh_token(*, user_id: UUID, token_version: int, settings: AuthSett
 
 
 def hash_password(password: str, settings: AuthSettings) -> str:
-    iterations = max(settings.password_hash_iterations, 1)
-    salt_bytes = max(settings.password_hash_salt_bytes, 8)
-    salt = secrets.token_bytes(salt_bytes)
-    dk = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, iterations)
-    salt_b64 = base64.b64encode(salt).decode("ascii")
-    dk_b64 = base64.b64encode(dk).decode("ascii")
-    return f"{PASSWORD_SCHEME}${iterations}${salt_b64}${dk_b64}"
+    return _hash_password(password)
 
 
 def verify_password(password: str, password_hash: str, settings: AuthSettings) -> bool:
-    try:
-        scheme, iterations_raw, salt_b64, dk_b64 = password_hash.split("$", 3)
-        if scheme != PASSWORD_SCHEME:
-            return False
-        iterations = int(iterations_raw)
-        salt = base64.b64decode(salt_b64)
-        expected = base64.b64decode(dk_b64)
-    except (ValueError, TypeError):
-        return False
-
-    dk = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, iterations)
-    return hmac.compare_digest(dk, expected)
+    return _verify_password(password, password_hash)

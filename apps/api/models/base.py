@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from tortoise import fields, models
 
-from apps.api.common.ids import uuid7
+from apps.api.common.utils.ids import uuid7
 
 
 class BaseModel(models.Model):

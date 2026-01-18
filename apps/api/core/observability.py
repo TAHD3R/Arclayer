@@ -7,7 +7,9 @@ from sentry_sdk.integrations.fastapi import FastApiIntegration
 from sentry_sdk.integrations.starlette import StarletteIntegration
 
 from apps.api.config import Settings
-from apps.api.core.logging import logger
+from apps.api.core.logging import get_logger
+
+logger = get_logger(__name__)
 
 
 def configure_observability(app: FastAPI, settings: Settings) -> None:

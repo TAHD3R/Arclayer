@@ -6,7 +6,7 @@ from uuid import UUID
 
 from tortoise.expressions import Q
 
-from apps.api.common.bases import BaseRepository
+from apps.api.common.repositories import BaseRepository
 from apps.api.config import AuthSettings
 from apps.api.core.database.valkey import ValkeyClient
 from apps.api.models.user import User, UserStatus
@@ -17,10 +17,24 @@ from apps.api.routers.v1.auth.constants import (
 
 
 class UserRepository(BaseRepository):
+    def _is_phone_identifier(self, identifier: str) -> bool:
+        raw = identifier.strip()
+        if raw.startswith("+"):
+            raw = raw[1:]
+        return raw.isdigit() and len(raw) <= 32
+
     async def get_by_identifier(self, identifier: str) -> User | None:
-        return await User.get_or_none(
-            Q(username=identifier) | Q(email=identifier) | Q(phone=identifier)
-        ).prefetch_related("credential")
+        identifier = identifier.strip()
+        filters = Q()
+        if identifier and len(identifier) <= 64:
+            filters |= Q(username=identifier)
+        if "@" in identifier and len(identifier) <= 255:
+            filters |= Q(email=identifier)
+        if self._is_phone_identifier(identifier):
+            filters |= Q(phone=identifier)
+        if not filters:
+            return None
+        return await User.get_or_none(filters).prefetch_related("credential")
 
     async def get_by_id(self, user_id: UUID) -> User | None:
         return await User.get_or_none(id=user_id)

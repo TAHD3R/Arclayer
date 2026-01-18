@@ -21,7 +21,7 @@ class LogoutRequest(BaseModel):
 class TokenPair(BaseModel):
     access_token: str
     refresh_token: str
-    token_type: str = "bearer"  # noqa: S105
+    token_type: str = "bearer"
     expires_in: int
     refresh_expires_in: int
 

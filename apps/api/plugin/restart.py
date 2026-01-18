@@ -84,7 +84,7 @@ async def _restart_watch_loop(app: FastAPI, settings: Settings, valkey: ValkeyCl
             if epoch <= current:
                 continue
             current = epoch
-            delay = random.uniform(0, max(jitter_seconds, 0))  # noqa: S311
+            delay = random.uniform(0, max(jitter_seconds, 0))
             logger.warning("Plugin restart requested", epoch=epoch, delay_seconds=delay)
             if delay:
                 await asyncio.sleep(delay)

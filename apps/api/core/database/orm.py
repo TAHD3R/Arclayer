@@ -12,10 +12,12 @@ from typing import Final
 from tortoise import Tortoise
 
 from apps.api.config import Settings, get_settings
-from apps.api.core.logging import logger
+from apps.api.core.logging import get_logger
 from apps.api.plugin.manifest import load_plugin_manifest
 
 EXCLUDE_NAMES = ("tests", "base", "migrations", "__pycache__", "__init__")
+
+logger = get_logger(__name__)
 
 
 def _should_exclude(modname: str, exclude: tuple[str, ...], exclude_globs: tuple[str, ...]) -> bool:

@@ -12,7 +12,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from apps.api.config import Settings
 from apps.api.core.exceptions.types import APIError
-from apps.api.core.logging import logger
+from apps.api.core.logging import get_logger
 from apps.api.core.response import Response
 
 _HTTP_ERROR_MAP = {
@@ -24,6 +24,8 @@ _HTTP_ERROR_MAP = {
     422: "VALIDATION_ERROR",
     429: "TOO_MANY_REQUESTS",
 }
+
+logger = get_logger(__name__)
 
 
 def _trace_meta(request: Request) -> dict[str, Any]:
