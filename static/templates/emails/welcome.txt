@@ -1,0 +1,3 @@
+你好，{{ username }}：
+
+欢迎加入 Celestial CMS，账号已创建成功。

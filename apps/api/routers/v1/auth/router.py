@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, Request
 
 from apps.api.config import Settings, get_settings
 from apps.api.core.database.valkey import get_valkey
@@ -47,6 +47,7 @@ async def login(
 @router.post("/register", response_model=ResponseModel[UserProfile])
 async def register(
     payload: RegisterRequest,
+    background_tasks: BackgroundTasks,
     service: AuthService = Depends(_get_auth_service),
 ) -> ResponseModel[UserProfile]:
     user = await service.register(
@@ -64,6 +65,13 @@ async def register(
         display_name=user.display_name,
         avatar_url=user.avatar_url,
     )
+    if user.email:
+        background_tasks.add_task(
+            service.send_welcome_email,
+            recipient=user.email,
+            username=user.username,
+            user_id=user.id,
+        )
     return Response.success(message="注册成功", data=profile)
 
 
@@ -79,14 +87,24 @@ async def refresh(
 @router.post("/forgot-password", response_model=ResponseModel[ResetTokenPayload])
 async def forgot_password(
     payload: ForgotPasswordRequest,
+    background_tasks: BackgroundTasks,
     settings: Settings = Depends(get_settings),
     service: AuthService = Depends(_get_auth_service),
 ) -> ResponseModel[ResetTokenPayload]:
     issued = await service.forgot_password(identifier=payload.identifier)
     token_payload = None
     if issued and settings.app_env in {"development", "test"}:
-        token, ttl = issued
+        token, ttl, _recipient, _user_id = issued
         token_payload = ResetTokenPayload(reset_token=token, expires_in=ttl)
+    if issued:
+        token, ttl, recipient, user_id = issued
+        background_tasks.add_task(
+            service.send_reset_email,
+            recipient=recipient,
+            reset_token=token,
+            expires_in=ttl,
+            user_id=user_id,
+        )
     return Response.success(message="如果账号存在，将发送重置指引", data=token_payload)
 
 

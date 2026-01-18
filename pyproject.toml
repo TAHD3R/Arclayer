@@ -10,6 +10,7 @@ dependencies = [
     "asgi-correlation-id>=4.3.4",
     "bcrypt>=4.2.1",
     "fastapi>=0.128.0",
+    "fastapi-mail>=1.5.0",
     "granian>=2.6.1",
     "gunicorn>=23.0.0",
     "httpx>=0.28.1",
@@ -29,6 +30,7 @@ dependencies = [
     "fastapi-limiter>=0.1.6",
     "uuid6>=2024.7.10",
     "setuptools>=80.9.0",
+    "fastapi-mail>=1.6.1",
 ]
 
 [dependency-groups]

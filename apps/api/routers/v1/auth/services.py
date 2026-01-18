@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from uuid import UUID
 
+from apps.api.common.email.service import EmailService
 from apps.api.common.services import BaseService
 from apps.api.config import Settings
 from apps.api.core.database.valkey import ValkeyClient
@@ -33,6 +34,7 @@ class AuthService(BaseService):
         self.valkey = valkey
         self.refresh_store = RefreshTokenStore(valkey, settings.auth) if valkey else None
         self.reset_store = PasswordResetStore(valkey, settings.auth) if valkey else None
+        self.email_service = EmailService(settings)
 
     def _require_refresh_store(self) -> RefreshTokenStore:
         if self.refresh_store is None:
@@ -232,12 +234,37 @@ class AuthService(BaseService):
         if self.refresh_store is not None:
             await self.refresh_store.revoke_all(user.id)
 
-    async def forgot_password(self, *, identifier: str) -> tuple[str, int] | None:
+    async def forgot_password(self, *, identifier: str) -> tuple[str, int, str, UUID] | None:
         store = self._require_reset_store()
         user = await self.user_repo.get_by_identifier(identifier)
         if not user or not self.user_repo.is_active(user):
             return None
-        return await store.issue(user.id)
+        if not user.email:
+            return None
+        token, ttl = await store.issue(user.id)
+        return token, ttl, user.email, user.id
+
+    async def send_reset_email(
+        self,
+        *,
+        recipient: str,
+        reset_token: str,
+        expires_in: int,
+        user_id: UUID | None = None,
+    ) -> None:
+        await self.email_service.send_reset_password(
+            recipient=recipient,
+            reset_token=reset_token,
+            expires_in=expires_in,
+            user_id=str(user_id) if user_id else None,
+        )
+
+    async def send_welcome_email(self, *, recipient: str, username: str, user_id: UUID | None = None) -> None:
+        await self.email_service.send_welcome(
+            recipient=recipient,
+            username=username,
+            user_id=str(user_id) if user_id else None,
+        )
 
     async def reset_password(self, *, reset_token: str, new_password: str) -> None:
         store = self._require_reset_store()

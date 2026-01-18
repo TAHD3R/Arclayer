@@ -386,6 +386,47 @@ class AuthSettings(BaseSettings):
     )
 
 
+class EmailSettings(BaseSettings):
+    """
+    Email settings for the API application.
+    """
+
+    model_config = SettingsConfigDict(
+        env_prefix="MAIL__",
+        env_file_encoding="utf-8",
+        env_nested_delimiter="__",
+        extra="ignore",
+        case_sensitive=False,
+        populate_by_name=True,
+        validate_default=True,
+    )
+
+    enabled: bool = Field(default=False, validation_alias=AliasChoices("MAIL_ENABLED", "APP_MAIL_ENABLED"))
+    username: str | None = Field(default=None, validation_alias=AliasChoices("MAIL_USERNAME", "APP_MAIL_USERNAME"))
+    password: SecretStr | None = Field(
+        default=None, validation_alias=AliasChoices("MAIL_PASSWORD", "APP_MAIL_PASSWORD")
+    )
+    mail_from: str = Field(default="noreply@example.com", validation_alias=AliasChoices("MAIL_FROM"))
+    mail_from_name: str = Field(default="Celestial CMS", validation_alias=AliasChoices("MAIL_FROM_NAME"))
+    server: str = Field(default="localhost", validation_alias=AliasChoices("MAIL_SERVER"))
+    port: int = Field(default=587, validation_alias=AliasChoices("MAIL_PORT"))
+    starttls: bool = Field(default=True, validation_alias=AliasChoices("MAIL_STARTTLS"))
+    ssl_tls: bool = Field(default=False, validation_alias=AliasChoices("MAIL_SSL_TLS"))
+    use_credentials: bool = Field(
+        default=True,
+        validation_alias=AliasChoices("MAIL_USE_CREDENTIALS", "USE_CREDENTIALS"),
+    )
+    validate_certs: bool = Field(
+        default=True,
+        validation_alias=AliasChoices("MAIL_VALIDATE_CERTS", "VALIDATE_CERTS"),
+    )
+    suppress_send: bool = Field(
+        default=False,
+        validation_alias=AliasChoices("MAIL_SUPPRESS_SEND", "SUPPRESS_SEND"),
+    )
+    template_dir: Path | None = Field(default=None, validation_alias=AliasChoices("MAIL_TEMPLATE_DIR"))
+
+
 class PluginSettings(BaseSettings):
     """
     Plugin system settings.
@@ -453,6 +494,7 @@ class Settings(BaseSettings):
     observability: ObservabilitySettings = Field(default_factory=ObservabilitySettings)
     middleware: MiddlewareSettings = Field(default_factory=MiddlewareSettings)
     auth: AuthSettings = Field(default_factory=AuthSettings)
+    email: EmailSettings = Field(default_factory=EmailSettings)
     plugin: PluginSettings = Field(default_factory=PluginSettings)
 
     def _apply_env_overrides(self) -> None:
@@ -469,6 +511,7 @@ class Settings(BaseSettings):
         self.observability = _merge_settings(self.observability, ObservabilitySettings())
         self.middleware = _merge_settings(self.middleware, MiddlewareSettings())
         self.auth = _merge_settings(self.auth, AuthSettings())
+        self.email = _merge_settings(self.email, EmailSettings())
         self.plugin = _merge_settings(self.plugin, PluginSettings())
 
 

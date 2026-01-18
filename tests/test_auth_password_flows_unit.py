@@ -87,6 +87,7 @@ class FakeCredential:
 class FakeUser:
     id: UUID
     username: str
+    email: str | None = None
     status: UserStatus = UserStatus.ACTIVE
     token_version: int = 0
     credential: FakeCredential | None = None
@@ -138,7 +139,7 @@ def _build_service(monkeypatch) -> tuple[AuthService, FakeUser]:
     monkeypatch.setenv("JWT_SECRET", "test-secret")
     settings = get_settings()
 
-    user = FakeUser(id=uuid4(), username="demo")
+    user = FakeUser(id=uuid4(), username="demo", email="demo@example.com")
     user.credential = FakeCredential(password_hash=hash_password("oldpass", settings.auth))
 
     valkey = FakeValkeyClient()
@@ -168,7 +169,7 @@ async def test_forgot_reset_password(monkeypatch) -> None:
 
     issued = await service.forgot_password(identifier=user.username)
     assert issued is not None
-    token, _ = issued
+    token, _, _recipient, _user_id = issued
 
     await service.reset_password(reset_token=token, new_password="resetpass")
     assert user.token_version == 1
