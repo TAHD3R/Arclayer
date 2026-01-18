@@ -14,6 +14,7 @@ from apps.api.config import Settings, get_settings
 from apps.api.core.database.orm import close_orm, init_orm, verify_db_ready
 from apps.api.core.database.valkey import close_valkey, init_valkey
 from apps.api.core.exceptions import init_exception_handlers
+from apps.api.core.limiter import close_rate_limiter, init_rate_limiter
 from apps.api.core.logging import configure_logging
 from apps.api.core.observability import configure_observability
 
@@ -24,7 +25,9 @@ def _build_lifespan(settings: Settings):
         await init_orm(settings)
         await verify_db_ready(settings)
         await init_valkey(app, settings)
+        await init_rate_limiter(app, settings)
         yield
+        await close_rate_limiter(app)
         await close_orm()
         await close_valkey(app)
 

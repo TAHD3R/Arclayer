@@ -5,8 +5,8 @@ import json
 from typing import Any, Protocol, cast
 
 from fastapi import FastAPI, Request
-from valkey import exceptions as redis_exc
-from valkey.asyncio import Redis
+from redis import exceptions as redis_exc
+from redis.asyncio import Redis
 
 from apps.api.config import Settings, ValkeySettings
 from apps.api.core.logging import get_logger

@@ -7,7 +7,7 @@ import pytest
 from fastapi import FastAPI
 
 from apps.api.config import get_settings
-from apps.api.core.valkey import close_valkey, init_valkey
+from apps.api.core.database.valkey import close_valkey, init_valkey
 
 
 def _integration_enabled() -> bool:
