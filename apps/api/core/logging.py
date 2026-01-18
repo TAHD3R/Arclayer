@@ -10,7 +10,13 @@ import structlog
 from asgi_correlation_id import correlation_id
 from structlog.contextvars import merge_contextvars
 from structlog.processors import JSONRenderer, StackInfoRenderer, TimeStamper, add_log_level, format_exc_info
-from structlog.stdlib import BoundLogger, LoggerFactory, ProcessorFormatter, add_logger_name
+from structlog.stdlib import (
+    BoundLogger,
+    LoggerFactory,
+    PositionalArgumentsFormatter,
+    ProcessorFormatter,
+    add_logger_name,
+)
 
 from apps.api.config import Settings
 
@@ -144,6 +150,7 @@ def configure_logging(settings: Settings) -> None:
         _add_correlation_id,
         add_log_level,
         add_logger_name,
+        PositionalArgumentsFormatter(),
         timestamper,
     ]
 

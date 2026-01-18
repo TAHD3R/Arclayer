@@ -11,6 +11,7 @@ from pydantic import ValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from apps.api.config import Settings
+from apps.api.core.exceptions.types import APIError
 from apps.api.core.logging import logger
 from apps.api.core.response import Response
 
@@ -23,24 +24,6 @@ _HTTP_ERROR_MAP = {
     422: "VALIDATION_ERROR",
     429: "TOO_MANY_REQUESTS",
 }
-
-
-class APIError(Exception):
-    def __init__(
-        self,
-        message: str,
-        *,
-        error: str | None = None,
-        status_code: int = 400,
-        details: Any | None = None,
-        headers: dict[str, str] | None = None,
-    ) -> None:
-        self.message = message
-        self.error = error
-        self.status_code = status_code
-        self.details = details
-        self.headers = headers
-        super().__init__(message)
 
 
 def _trace_meta(request: Request) -> dict[str, Any]:
@@ -73,10 +56,16 @@ def init_exception_handlers(app: FastAPI, settings: Settings) -> None:  # noqa: 
 
     @app.exception_handler(APIError)
     async def api_error_handler(request: Request, exc: APIError) -> ORJSONResponse:
+        log_fields = {
+            "method": request.method,
+            "path": request.url.path,
+            "status": exc.status_code,
+            "error": exc.error,
+        }
         if exc.status_code >= 500:
-            logger.exception("APIError {} {} -> {}", request.method, request.url.path, exc.status_code)
+            logger.exception("APIError", **log_fields)
         else:
-            logger.warning("APIError {} {} -> {}", request.method, request.url.path, exc.status_code)
+            logger.warning("APIError", **log_fields)
         return _build_response(
             request=request,
             status_code=exc.status_code,
@@ -89,6 +78,16 @@ def init_exception_handlers(app: FastAPI, settings: Settings) -> None:  # noqa: 
 
     @app.exception_handler(StarletteHTTPException)
     async def http_exception_handler(request: Request, exc: StarletteHTTPException) -> ORJSONResponse:
+        log_fields = {
+            "method": request.method,
+            "path": request.url.path,
+            "status": exc.status_code,
+        }
+        if exc.status_code >= 500:
+            logger.exception("HTTPException", **log_fields)
+        else:
+            logger.warning("HTTPException", **log_fields)
+
         message = "请求错误"
         error: str | None = None
         details: Any | None = None
@@ -118,7 +117,7 @@ def init_exception_handlers(app: FastAPI, settings: Settings) -> None:  # noqa: 
         request: Request,
         exc: RequestValidationError,
     ) -> ORJSONResponse:
-        logger.warning("RequestValidationError {} {}", request.method, request.url.path)
+        logger.warning("RequestValidationError", method=request.method, path=request.url.path)
         return _build_response(
             request=request,
             status_code=422,
@@ -130,7 +129,7 @@ def init_exception_handlers(app: FastAPI, settings: Settings) -> None:  # noqa: 
 
     @app.exception_handler(ValidationError)
     async def pydantic_validation_handler(request: Request, exc: ValidationError) -> ORJSONResponse:
-        logger.warning("PydanticValidationError {} {}", request.method, request.url.path)
+        logger.warning("PydanticValidationError", method=request.method, path=request.url.path)
         return _build_response(
             request=request,
             status_code=422,
@@ -144,6 +143,7 @@ def init_exception_handlers(app: FastAPI, settings: Settings) -> None:  # noqa: 
     async def unhandled_handler(request: Request, exc: Exception) -> ORJSONResponse:
         if isinstance(exc, asyncio.CancelledError):
             raise
+        logger.exception("UnhandledError", method=request.method, path=request.url.path)
         message = str(exc) if debug else "服务器内部错误"
         return _build_response(
             request=request,
