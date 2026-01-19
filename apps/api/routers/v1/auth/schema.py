@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import re
 
-from pydantic import ConfigDict, EmailStr, Field, field_validator
+from pydantic import AliasChoices, ConfigDict, EmailStr, Field, field_validator, model_validator
 
 from apps.api.common.schemas import BaseOut, BaseSchema
+from apps.api.routers.v1.auth.constants import PASSWORD_REGEX, RESET_TOKEN_REGEX
 
 
 class LoginRequest(BaseSchema):
@@ -15,7 +16,8 @@ class LoginRequest(BaseSchema):
     username: str = Field(
         min_length=1,
         max_length=255,
-        description="用户名/邮箱/手机号",
+        description="用户名/邮箱",
+        validation_alias=AliasChoices("username", "identifier"),
     )
     password: str = Field(min_length=1, max_length=128, description="密码")
 
@@ -32,7 +34,6 @@ class RegisterRequest(BaseSchema):
         examples=["john_doe", "user123"],
     )
     email: EmailStr | None = Field(default=None, description="邮箱地址", examples=["user@example.com"])
-    phone: str | None = Field(default=None, min_length=6, max_length=32, description="手机号")
     password: str = Field(min_length=8, max_length=128, description="密码，至少8位")
     confirm_password: str = Field(min_length=8, max_length=128, description="确认密码")
     display_name: str | None = Field(default=None, max_length=64, description="显示名称")
@@ -43,6 +44,13 @@ class RegisterRequest(BaseSchema):
         if not re.match(r"^[a-zA-Z0-9_\u4e00-\u9fa5]+$", value):
             raise ValueError("用户名只能包含字母、数字、下划线和中文字符")
         return value.lower()
+
+    @field_validator("password")
+    @classmethod
+    def validate_password(cls, value: str) -> str:
+        if not re.match(PASSWORD_REGEX, value):
+            raise ValueError("密码必须包含字母和数字，且长度为8-128")
+        return value
 
     @field_validator("confirm_password")
     @classmethod
@@ -70,11 +78,24 @@ class ChangePasswordRequest(BaseSchema):
     old_password: str = Field(min_length=1, max_length=128, description="原密码")
     new_password: str = Field(min_length=8, max_length=128, description="新密码")
 
+    @field_validator("new_password")
+    @classmethod
+    def validate_new_password(cls, value: str) -> str:
+        if not re.match(PASSWORD_REGEX, value):
+            raise ValueError("新密码必须包含字母和数字，且长度为8-128")
+        return value
+
+    @model_validator(mode="after")
+    def validate_not_same(self):
+        if self.old_password == self.new_password:
+            raise ValueError("新旧密码不能相同")
+        return self
+
 
 class ForgotPasswordRequest(BaseSchema):
     """忘记密码请求模型。"""
 
-    identifier: str = Field(min_length=1, description="用户名/邮箱/手机号")
+    identifier: str = Field(min_length=1, description="用户名/邮箱")
 
 
 class ResetPasswordRequest(BaseSchema):
@@ -82,6 +103,20 @@ class ResetPasswordRequest(BaseSchema):
 
     reset_token: str = Field(min_length=1, description="重置令牌")
     new_password: str = Field(min_length=8, max_length=128, description="新密码")
+
+    @field_validator("reset_token")
+    @classmethod
+    def validate_reset_token(cls, value: str) -> str:
+        if not re.match(RESET_TOKEN_REGEX, value):
+            raise ValueError("重置令牌格式不正确")
+        return value
+
+    @field_validator("new_password")
+    @classmethod
+    def validate_new_password(cls, value: str) -> str:
+        if not re.match(PASSWORD_REGEX, value):
+            raise ValueError("新密码必须包含字母和数字，且长度为8-128")
+        return value
 
 
 class TokenPair(BaseSchema):
@@ -106,6 +141,5 @@ class UserProfile(BaseOut):
 
     username: str
     email: str | None = None
-    phone: str | None = None
     display_name: str | None = None
     avatar_url: str | None = None

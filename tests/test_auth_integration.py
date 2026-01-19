@@ -40,11 +40,10 @@ async def test_auth_login_refresh_integration(monkeypatch) -> None:
 
     user = None
     try:
-        password = "pass123"
+        password = "pass1234"
         user = await User.create(
             username=f"demo_{uuid.uuid4().hex}",
             email=None,
-            phone=None,
             status=UserStatus.ACTIVE,
             display_name="Demo",
             avatar_url=None,

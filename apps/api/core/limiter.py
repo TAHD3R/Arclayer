@@ -3,13 +3,14 @@ from __future__ import annotations
 from math import ceil
 from typing import Any
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi_limiter import FastAPILimiter
+from fastapi_limiter.depends import RateLimiter
 from starlette.requests import Request
 from starlette.responses import Response
 from starlette.status import HTTP_429_TOO_MANY_REQUESTS
 
-from apps.api.config import Settings
+from apps.api.config import Settings, get_settings
 from apps.api.core.logging import get_logger
 
 logger = get_logger(__name__)
@@ -32,6 +33,23 @@ async def default_callback(request: Request, response: Response, pexpire: int) -
         detail=detail,
         headers={"Retry-After": str(expire)},
     )
+
+
+def rate_limit(times: int, seconds: int) -> Any:
+    async def _dependency(
+        request: Request,
+        response: Response,
+        settings: Settings = Depends(get_settings),
+    ) -> None:
+        if not settings.valkey.enabled or not settings.valkey.limiter_enabled:
+            return
+        if FastAPILimiter.redis is None:
+            logger.warning("Rate limiter not initialized", path=request.url.path)
+            return
+        limiter = RateLimiter(times=times, seconds=seconds)
+        await limiter(request, response)
+
+    return Depends(_dependency)
 
 
 async def init_rate_limiter(app: FastAPI, settings: Settings) -> None:

@@ -128,9 +128,6 @@ class FakeUserRepository:
     async def exists_email(self, email: str) -> bool:
         return False
 
-    async def exists_phone(self, phone: str) -> bool:
-        return False
-
     async def create_user(self, **kwargs):
         raise RuntimeError("not used")
 
@@ -140,7 +137,7 @@ def _build_service(monkeypatch) -> tuple[AuthService, FakeUser]:
     settings = get_settings()
 
     user = FakeUser(id=uuid4(), username="demo", email="demo@example.com")
-    user.credential = FakeCredential(password_hash=hash_password("oldpass", settings.auth))
+    user.credential = FakeCredential(password_hash=hash_password("oldpass1", settings.auth))
 
     valkey = FakeValkeyClient()
     repo = FakeUserRepository(user)
@@ -151,17 +148,17 @@ def _build_service(monkeypatch) -> tuple[AuthService, FakeUser]:
 async def test_change_password_success(monkeypatch) -> None:
     service, user = _build_service(monkeypatch)
 
-    await service.change_password(user_id=user.id, old_password="oldpass", new_password="newpass")
+    await service.change_password(user_id=user.id, old_password="oldpass1", new_password="newpass1")
     assert user.token_version == 1
     assert user.credential is not None
-    assert verify_password("newpass", user.credential.password_hash, service.settings.auth) is True
+    assert verify_password("newpass1", user.credential.password_hash, service.settings.auth) is True
 
 
 async def test_change_password_invalid(monkeypatch) -> None:
     service, user = _build_service(monkeypatch)
 
     with pytest.raises(Unauthorized):
-        await service.change_password(user_id=user.id, old_password="bad", new_password="newpass")
+        await service.change_password(user_id=user.id, old_password="bad", new_password="newpass1")
 
 
 async def test_forgot_reset_password(monkeypatch) -> None:
@@ -171,6 +168,6 @@ async def test_forgot_reset_password(monkeypatch) -> None:
     assert issued is not None
     token, _, _recipient, _user_id = issued
 
-    await service.reset_password(reset_token=token, new_password="resetpass")
+    await service.reset_password(reset_token=token, new_password="resetpass1")
     assert user.token_version == 1
-    assert verify_password("resetpass", user.credential.password_hash, service.settings.auth) is True
+    assert verify_password("resetpass1", user.credential.password_hash, service.settings.auth) is True

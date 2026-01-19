@@ -4,8 +4,16 @@ from fastapi import APIRouter, BackgroundTasks, Depends, Request
 
 from apps.api.config import Settings, get_settings
 from apps.api.core.database.valkey import get_valkey
+from apps.api.core.limiter import rate_limit
 from apps.api.core.response import Response, ResponseModel
 from apps.api.models.user import User
+from apps.api.routers.v1.auth.constants import (
+    FORGOT_PASSWORD_RATE_LIMIT,
+    LOGIN_RATE_LIMIT,
+    REFRESH_RATE_LIMIT,
+    REGISTER_RATE_LIMIT,
+    RESET_PASSWORD_RATE_LIMIT,
+)
 from apps.api.routers.v1.auth.deps import get_current_user
 from apps.api.routers.v1.auth.schema import (
     ChangePasswordRequest,
@@ -35,7 +43,11 @@ def _get_auth_service(
     return AuthService(settings, valkey=valkey)
 
 
-@router.post("/login", response_model=ResponseModel[TokenPair])
+@router.post(
+    "/login",
+    response_model=ResponseModel[TokenPair],
+    dependencies=[rate_limit(*LOGIN_RATE_LIMIT)],
+)
 async def login(
     payload: LoginRequest,
     service: AuthService = Depends(_get_auth_service),
@@ -44,7 +56,11 @@ async def login(
     return Response.success(message="登录成功", data=tokens)
 
 
-@router.post("/register", response_model=ResponseModel[UserProfile])
+@router.post(
+    "/register",
+    response_model=ResponseModel[UserProfile],
+    dependencies=[rate_limit(*REGISTER_RATE_LIMIT)],
+)
 async def register(
     payload: RegisterRequest,
     background_tasks: BackgroundTasks,
@@ -54,14 +70,12 @@ async def register(
         username=payload.username,
         password=payload.password,
         email=payload.email,
-        phone=payload.phone,
         display_name=payload.display_name,
     )
     profile = UserProfile(
         id=user.id,
         username=user.username,
         email=user.email,
-        phone=user.phone,
         display_name=user.display_name,
         avatar_url=user.avatar_url,
     )
@@ -75,7 +89,11 @@ async def register(
     return Response.success(message="注册成功", data=profile)
 
 
-@router.post("/refresh", response_model=ResponseModel[TokenPair])
+@router.post(
+    "/refresh",
+    response_model=ResponseModel[TokenPair],
+    dependencies=[rate_limit(*REFRESH_RATE_LIMIT)],
+)
 async def refresh(
     payload: RefreshRequest,
     service: AuthService = Depends(_get_auth_service),
@@ -84,7 +102,11 @@ async def refresh(
     return Response.success(message="刷新成功", data=tokens)
 
 
-@router.post("/forgot-password", response_model=ResponseModel[ResetTokenPayload])
+@router.post(
+    "/forgot-password",
+    response_model=ResponseModel[ResetTokenPayload],
+    dependencies=[rate_limit(*FORGOT_PASSWORD_RATE_LIMIT)],
+)
 async def forgot_password(
     payload: ForgotPasswordRequest,
     background_tasks: BackgroundTasks,
@@ -108,7 +130,11 @@ async def forgot_password(
     return Response.success(message="如账号存在则将发送重置码至指定邮箱", data=token_payload)
 
 
-@router.post("/reset-password", response_model=ResponseModel[None])
+@router.post(
+    "/reset-password",
+    response_model=ResponseModel[None],
+    dependencies=[rate_limit(*RESET_PASSWORD_RATE_LIMIT)],
+)
 async def reset_password(
     payload: ResetPasswordRequest,
     service: AuthService = Depends(_get_auth_service),
@@ -149,7 +175,6 @@ async def me(
         id=user.id,
         username=user.username,
         email=user.email,
-        phone=user.phone,
         display_name=user.display_name,
         avatar_url=user.avatar_url,
     )

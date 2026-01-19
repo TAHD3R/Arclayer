@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from datetime import UTC, datetime
 from uuid import UUID
 
@@ -7,8 +8,8 @@ from apps.api.common.email.service import EmailService
 from apps.api.common.services import BaseService
 from apps.api.config import Settings
 from apps.api.core.database.valkey import ValkeyClient
-from apps.api.core.exceptions import Conflict, Forbidden, ServiceUnavailable, Unauthorized
-from apps.api.routers.v1.auth.constants import REFRESH_STATUS_ACTIVE
+from apps.api.core.exceptions import BadRequest, Conflict, Forbidden, ServiceUnavailable, Unauthorized
+from apps.api.routers.v1.auth.constants import PASSWORD_REGEX, REFRESH_STATUS_ACTIVE, RESET_TOKEN_REGEX
 from apps.api.routers.v1.auth.repository import PasswordResetStore, RefreshTokenStore, UserRepository
 from apps.api.routers.v1.auth.schema import TokenPair
 from apps.api.routers.v1.auth.security import (
@@ -53,6 +54,14 @@ class AuthService(BaseService):
             return UUID(str(raw))
         except ValueError as exc:
             raise Unauthorized(message="Token 无效", error="TOKEN_INVALID") from exc
+
+    def _ensure_password_strength(self, password: str) -> None:
+        if not re.match(PASSWORD_REGEX, password):
+            raise BadRequest(message="密码必须包含字母和数字，且长度为8-128", error="PASSWORD_INVALID")
+
+    def _ensure_reset_token_format(self, reset_token: str) -> None:
+        if not re.match(RESET_TOKEN_REGEX, reset_token):
+            raise BadRequest(message="重置令牌格式不正确", error="RESET_TOKEN_INVALID")
 
     async def _handle_refresh_reuse(self, user_id: UUID) -> None:
         user = await self.user_repo.get_by_id(user_id)
@@ -111,26 +120,22 @@ class AuthService(BaseService):
         username: str,
         password: str,
         email: str | None = None,
-        phone: str | None = None,
         display_name: str | None = None,
     ):
         username = username.strip()
         email = email.strip() if email else None
-        phone = phone.strip() if phone else None
         display_name = display_name.strip() if display_name else None
 
         if await self.user_repo.exists_username(username):
             raise Conflict(message="用户名已存在", error="USERNAME_EXISTS")
         if email and await self.user_repo.exists_email(email):
             raise Conflict(message="邮箱已存在", error="EMAIL_EXISTS")
-        if phone and await self.user_repo.exists_phone(phone):
-            raise Conflict(message="手机号已存在", error="PHONE_EXISTS")
 
+        self._ensure_password_strength(password)
         password_hash = hash_password(password, self.settings.auth)
         return await self.user_repo.create_user(
             username=username,
             email=email,
-            phone=phone,
             display_name=display_name,
             password_hash=password_hash,
         )
@@ -229,6 +234,10 @@ class AuthService(BaseService):
         if not verify_password(old_password, user.credential.password_hash, self.settings.auth):
             raise Unauthorized(message="原密码错误", error="INVALID_CREDENTIALS")
 
+        if old_password == new_password:
+            raise Conflict(message="新旧密码不能相同", error="PASSWORD_DUPLICATE")
+        self._ensure_password_strength(new_password)
+
         await self.user_repo.set_password(user, hash_password(new_password, self.settings.auth))
         await self.user_repo.increment_token_version(user)
         if self.refresh_store is not None:
@@ -268,6 +277,7 @@ class AuthService(BaseService):
 
     async def reset_password(self, *, reset_token: str, new_password: str) -> None:
         store = self._require_reset_store()
+        self._ensure_reset_token_format(reset_token)
         record = await store.consume(reset_token)
         if not record:
             raise Unauthorized(message="重置令牌无效", error="RESET_TOKEN_INVALID")
@@ -279,6 +289,12 @@ class AuthService(BaseService):
 
         if not self.user_repo.is_active(user):
             raise Forbidden(message="账号不可用", error="USER_DISABLED")
+
+        if getattr(user, "credential", None) and verify_password(
+            new_password, user.credential.password_hash, self.settings.auth
+        ):
+            raise Conflict(message="新密码不能与旧密码相同", error="PASSWORD_DUPLICATE")
+        self._ensure_password_strength(new_password)
 
         await self.user_repo.set_password(user, hash_password(new_password, self.settings.auth))
         await self.user_repo.increment_token_version(user)

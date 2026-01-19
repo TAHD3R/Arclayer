@@ -17,12 +17,6 @@ from apps.api.routers.v1.auth.constants import (
 
 
 class UserRepository(BaseRepository):
-    def _is_phone_identifier(self, identifier: str) -> bool:
-        raw = identifier.strip()
-        if raw.startswith("+"):
-            raw = raw[1:]
-        return raw.isdigit() and len(raw) <= 32
-
     async def get_by_identifier(self, identifier: str) -> User | None:
         identifier = identifier.strip()
         filters = Q()
@@ -30,8 +24,6 @@ class UserRepository(BaseRepository):
             filters |= Q(username=identifier)
         if "@" in identifier and len(identifier) <= 255:
             filters |= Q(email=identifier)
-        if self._is_phone_identifier(identifier):
-            filters |= Q(phone=identifier)
         if not filters:
             return None
         return await User.get_or_none(filters).prefetch_related("credential")
@@ -60,22 +52,17 @@ class UserRepository(BaseRepository):
     async def exists_email(self, email: str) -> bool:
         return await User.filter(email=email).exists()
 
-    async def exists_phone(self, phone: str) -> bool:
-        return await User.filter(phone=phone).exists()
-
     async def create_user(
         self,
         *,
         username: str,
         email: str | None,
-        phone: str | None,
         display_name: str | None,
         password_hash: str,
     ) -> User:
         user = await User.create(
             username=username,
             email=email,
-            phone=phone,
             status=UserStatus.ACTIVE,
             display_name=display_name,
             avatar_url=None,
