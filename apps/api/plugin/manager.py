@@ -130,11 +130,28 @@ class PluginManager:
             descriptor.config = record.config or defaults
 
     async def start(self) -> None:
+        for descriptor in self.descriptors.values():
+            self.registry.register_permissions(descriptor.plugin_id, descriptor.manifest.permissions)
+
         for plugin_id, descriptor in self.descriptors.items():
             record = self.records.get(plugin_id)
             if record and record.status == PluginStatus.DISABLED:
                 logger.info("Plugin disabled, skip start", plugin_id=plugin_id)
                 continue
+
+            if (
+                self.settings.database.enabled
+                and self._requires_restart(descriptor)
+                and self.settings.plugin.auto_migrate
+            ):
+                try:
+                    await self._run_migrations(plugin_id)
+                except Exception as exc:
+                    if record:
+                        record.status = PluginStatus.FAILED
+                        await record.save()
+                    logger.exception("Plugin migration failed", plugin_id=plugin_id, error=str(exc))
+                    continue
 
             await self._start_plugin(descriptor, record)
 

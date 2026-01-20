@@ -73,7 +73,7 @@ class ResponseBase:
         return ResponseModel[Any](
             message=message,
             data=data,
-            error=error or "UNKNOWN_ERROR",
+            error=None,
             timestamp=_now_ms(),
             meta=meta,
         )

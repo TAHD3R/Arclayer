@@ -14,24 +14,50 @@ issues = "https://github.com/example/celestial-rbac/issues"
 license = "MIT"
 
 [[permissions]]
-code = "users:read"
-name = "查看用户"
-description = "允许查看用户列表与详情"
+code = "rbac:roles:read"
+name = "Read roles"
+description = "Allow listing roles and role details."
 default_roles = ["admin"]
 
 [[permissions]]
-code = "users:create"
-name = "创建用户"
-description = "允许创建用户"
+code = "rbac:roles:write"
+name = "Manage roles"
+description = "Allow creating, updating, and deleting roles."
+default_roles = ["admin"]
+
+[[permissions]]
+code = "rbac:users:assign"
+name = "Assign user roles"
+description = "Allow assigning and revoking user roles."
+default_roles = ["admin"]
+
+[[permissions]]
+code = "rbac:permissions:read"
+name = "Read permissions"
+description = "Allow listing permissions."
+default_roles = ["admin"]
+
+[[permissions]]
+code = "rbac:permissions:sync"
+name = "Sync permissions"
+description = "Allow syncing permissions from plugins."
 default_roles = ["admin"]
 
 [config_schema]
 [[config_schema.sections]]
 id = "general"
-title = "基础设置"
+title = "General"
 
 [[config_schema.sections.fields]]
-key = "default_role"
-type = "str"
-default = "user"
-label = "默认角色"
+key = "enforcement"
+type = "bool"
+default = false
+label = "Enforce permissions"
+description = "Enable RBAC permission checks when true."
+
+[[config_schema.sections.fields]]
+key = "bootstrap_enabled"
+type = "bool"
+default = true
+label = "Enable bootstrap admin"
+description = "Allow one-time admin bootstrap when no admin exists."

@@ -1,1 +1,1 @@
-"""RBAC 插件包。"""
+"""RBAC plugin package."""

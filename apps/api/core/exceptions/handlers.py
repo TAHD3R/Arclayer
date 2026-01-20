@@ -9,6 +9,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import ORJSONResponse
 from pydantic import ValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from tortoise.exceptions import OperationalError
 
 from apps.api.config import Settings
 from apps.api.core.exceptions.types import APIError
@@ -36,6 +37,20 @@ def _trace_meta(request: Request) -> dict[str, Any]:
     }
 
 
+def _sanitize_details(details: Any) -> Any:
+    if details is None:
+        return None
+    if isinstance(details, (str, int, float, bool)):
+        return details
+    if isinstance(details, Exception):
+        return str(details)
+    if isinstance(details, dict):
+        return {str(key): _sanitize_details(value) for key, value in details.items()}
+    if isinstance(details, (list, tuple, set)):
+        return [_sanitize_details(value) for value in details]
+    return str(details)
+
+
 def _build_response(
     *,
     request: Request,
@@ -48,7 +63,7 @@ def _build_response(
 ) -> ORJSONResponse:
     meta = _trace_meta(request) if debug else None
     if debug and details is not None:
-        meta = {**(meta or {}), "details": details}
+        meta = {**(meta or {}), "details": _sanitize_details(details)}
     payload = Response.fail(message=message, error=error, meta=meta)
     return ORJSONResponse(payload.model_dump(), status_code=status_code, headers=headers)
 
@@ -126,6 +141,18 @@ def init_exception_handlers(app: FastAPI, settings: Settings) -> None:  # noqa: 
             message="参数校验失败",
             error="VALIDATION_ERROR",
             details=exc.errors(),
+            debug=debug,
+        )
+
+    @app.exception_handler(OperationalError)
+    async def tortoise_operational_handler(request: Request, exc: OperationalError) -> ORJSONResponse:
+        logger.exception("DBOperationalError", method=request.method, path=request.url.path)
+        return _build_response(
+            request=request,
+            status_code=500,
+            message="数据库操作失败",
+            error="DB_OPERATIONAL_ERROR",
+            details=str(exc) if debug else None,
             debug=debug,
         )
 

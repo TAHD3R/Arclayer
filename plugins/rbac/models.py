@@ -46,3 +46,13 @@ class UserRole(BaseModel):
         table = "user_roles"
         unique_together = ("user_id", "role_id")
         abstract = False
+
+
+class BootstrapState(BaseModel):
+    key = fields.CharField(max_length=64, unique=True, db_index=True)
+    done = fields.BooleanField(default=False, db_index=True)
+    done_at = fields.DatetimeField(null=True)
+
+    class Meta(BaseModel.Meta):
+        table = "rbac_bootstrap_state"
+        abstract = False
