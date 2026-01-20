@@ -47,6 +47,16 @@ class PluginManager:
         root = str(self.root_dir)
         if root not in sys.path:
             sys.path.insert(0, root)
+        if not self.root_dir.exists():
+            return
+        for path in self.root_dir.iterdir():
+            if not path.is_dir():
+                continue
+            if path.name.startswith("."):
+                continue
+            path_str = str(path)
+            if path_str not in sys.path:
+                sys.path.insert(0, path_str)
 
     def discover(self) -> list[PluginDescriptor]:
         if not self.settings.plugin.enabled:

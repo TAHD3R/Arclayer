@@ -155,6 +155,10 @@ def _collect_manifest_models(settings: Settings) -> set[str]:
 
     models: set[str] = set()
     for manifest_path in root_dir.glob("*/plugin.toml"):
+        plugin_root = manifest_path.parent
+        plugin_root_str = str(plugin_root)
+        if plugin_root_str not in sys.path:
+            sys.path.insert(0, plugin_root_str)
         try:
             manifest = load_plugin_manifest(manifest_path)
         except Exception as exc:

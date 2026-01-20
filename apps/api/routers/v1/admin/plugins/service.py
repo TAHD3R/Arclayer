@@ -76,7 +76,8 @@ class PluginService(BaseService):
 
             if not (payload_dir / "plugin.toml").is_file():
                 raise BadRequest(message="插件包缺少 plugin.toml", error="PLUGIN_TOML_MISSING")
-            if not (payload_dir / plugin_id).is_dir():
+            entry_root = self._get_entry_root(manifest)
+            if not (payload_dir / entry_root).is_dir():
                 raise BadRequest(message="插件包缺少主包目录", error="PLUGIN_PACKAGE_MISSING")
 
             target_dir = self.root_dir / plugin_id
@@ -231,12 +232,15 @@ class PluginService(BaseService):
         return PluginManifest.model_validate(payload)
 
     def _validate_manifest(self, manifest: PluginManifest) -> None:
-        plugin_id = manifest.plugin.id
+        self._get_entry_root(manifest)
+
+    def _get_entry_root(self, manifest: PluginManifest) -> str:
         entrypoint = manifest.plugin.entrypoint
         entry_module = entrypoint.split(":", 1)[0]
         entry_root = entry_module.split(".", 1)[0]
-        if plugin_id != entry_root:
-            raise BadRequest(message="插件 ID 与入口包名不一致", error="PLUGIN_ENTRYPOINT_MISMATCH")
+        if not entry_root:
+            raise BadRequest(message="插件入口不合法", error="PLUGIN_ENTRYPOINT_INVALID")
+        return entry_root
 
     def _safe_extract(self, zf: zipfile.ZipFile, target: Path) -> None:
         for member in zf.infolist():
