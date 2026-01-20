@@ -3,13 +3,13 @@ from __future__ import annotations
 from uuid import UUID
 
 from fastapi import APIRouter, Depends
+from rbac.deps import get_rbac_service, require_admin
+from rbac.schema import BootstrapResult, PermissionOut, RoleOut, SyncResult
+from rbac.services import RBACService
 
 from apps.api.core.response import Response, ResponseModel
 from apps.api.models.user import User
 from apps.api.routers.v1.auth.deps import get_current_user
-from rbac.deps import get_rbac_service, require_admin
-from rbac.schema import BootstrapResult, PermissionOut, RoleOut, SyncResult
-from rbac.services import RBACService
 
 admin_router = APIRouter(tags=["rbac"])
 

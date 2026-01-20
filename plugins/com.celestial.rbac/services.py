@@ -3,14 +3,15 @@ from __future__ import annotations
 from typing import Any
 from uuid import UUID
 
+from rbac.constants import PLUGIN_ID, ROLE_ADMIN, ROLE_USER
+from rbac.repository import RBACRepository
+
 from apps.api.common.services import BaseService
 from apps.api.config import Settings
 from apps.api.core.exceptions import BadRequest, Conflict, Forbidden, NotFound
 from apps.api.core.logging import get_logger
 from apps.api.models.plugin import PluginRecord
 from apps.api.plugin.registry import registry
-from rbac.constants import PLUGIN_ID, ROLE_ADMIN, ROLE_USER
-from rbac.repository import RBACRepository
 
 logger = get_logger(__name__)
 

@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+from rbac.engine import RBACAuthorizationEngine
+from rbac.services import RBACService
+
 from apps.api.config import get_settings
 from apps.api.core.authz import AUTHZ_EXTENSION_POINT
 from apps.api.core.logging import get_logger
 from apps.api.plugin.registry import registry
 from apps.api.plugin.types import BasePlugin
-from rbac.engine import RBACAuthorizationEngine
-from rbac.services import RBACService
 
 logger = get_logger(__name__)
 
