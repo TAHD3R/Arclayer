@@ -1,6 +1,6 @@
 from functools import lru_cache
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import AliasChoices, Field, SecretStr, computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -178,6 +178,47 @@ class ValkeySettings(BaseSettings):
         password = self.password.get_secret_value()
         auth = f"{user}{password}@" if password else ""
         return f"redis://{auth}{self.host}:{self.port}/{self.db}"
+
+
+class TestingSettings(BaseSettings):
+    """
+    Testing settings for integration tests.
+    """
+
+    model_config = SettingsConfigDict(
+        env_prefix="",
+        env_file_encoding="utf-8",
+        env_nested_delimiter="__",
+        extra="ignore",
+        case_sensitive=False,
+        populate_by_name=True,
+        validate_default=True,
+    )
+
+    database_enabled: bool = Field(
+        default=False,
+        validation_alias=AliasChoices("TEST_DATABASE__ENABLED", "TEST_DB_ENABLED"),
+    )
+    database_name: str = Field(
+        default="celestial_test",
+        validation_alias=AliasChoices("TEST_DATABASE__NAME", "TEST_DB_NAME"),
+    )
+    valkey_enabled: bool = Field(
+        default=False,
+        validation_alias=AliasChoices("TEST_VALKEY__ENABLED", "TEST_CACHE_ENABLED"),
+    )
+    valkey_db: int = Field(
+        default=15,
+        validation_alias=AliasChoices("TEST_VALKEY__DB", "TEST_CACHE_DB"),
+    )
+    valkey_prefix: str = Field(
+        default="test",
+        validation_alias=AliasChoices("TEST_VALKEY__PREFIX", "TEST_CACHE_PREFIX"),
+    )
+    valkey_default_ttl: int | None = Field(
+        default=5,
+        validation_alias=AliasChoices("TEST_VALKEY__DEFAULT_TTL", "TEST_CACHE_DEFAULT_TTL"),
+    )
 
 
 class ObservabilitySettings(BaseSettings):
@@ -496,6 +537,7 @@ class Settings(BaseSettings):
     auth: AuthSettings = Field(default_factory=AuthSettings)
     email: EmailSettings = Field(default_factory=EmailSettings)
     plugin: PluginSettings = Field(default_factory=PluginSettings)
+    testing: TestingSettings = Field(default_factory=TestingSettings)
 
     def _apply_env_overrides(self) -> None:
         def _merge_settings(current, overrides):
@@ -513,6 +555,25 @@ class Settings(BaseSettings):
         self.auth = _merge_settings(self.auth, AuthSettings())
         self.email = _merge_settings(self.email, EmailSettings())
         self.plugin = _merge_settings(self.plugin, PluginSettings())
+        self.testing = _merge_settings(self.testing, TestingSettings())
+
+        if self.app_env == "test":
+            if self.testing.database_enabled:
+                self.database = self.database.model_copy(
+                    update={
+                        "enabled": True,
+                        "database": self.testing.database_name,
+                    }
+                )
+            if self.testing.valkey_enabled:
+                updates: dict[str, Any] = {
+                    "enabled": True,
+                    "db": self.testing.valkey_db,
+                    "prefix": self.testing.valkey_prefix,
+                }
+                if self.testing.valkey_default_ttl is not None:
+                    updates["default_ttl"] = self.testing.valkey_default_ttl
+                self.valkey = self.valkey.model_copy(update=updates)
 
 
 @lru_cache(maxsize=1)

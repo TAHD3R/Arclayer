@@ -1,21 +1,16 @@
 from __future__ import annotations
 
-import os
 import textwrap
 import uuid
 
 import pytest
-from tortoise import Tortoise
 
 from apps.api.config import get_settings
-from apps.api.core.database.orm import close_orm, init_orm, verify_db_ready
 from apps.api.models.plugin import PluginRecord
 from apps.api.plugin.manager import PluginManager
 from apps.api.plugin.types import PluginStatus
 
-
-def _integration_enabled() -> bool:
-    return os.getenv("RUN_INTEGRATION_TESTS") == "1"
+pytestmark = pytest.mark.integration
 
 
 def _write_demo_plugin(root, plugin_id: str) -> None:
@@ -82,10 +77,8 @@ def _write_demo_plugin(root, plugin_id: str) -> None:
     )
 
 
-async def test_plugin_manager_enable_disable(tmp_path, monkeypatch) -> None:
-    if not _integration_enabled():
-        pytest.skip("integration tests disabled")
-
+async def test_plugin_manager_enable_disable(tmp_path, monkeypatch, db_schema) -> None:
+    _ = db_schema
     plugin_id = f"demo_{uuid.uuid4().hex}"
     _write_demo_plugin(tmp_path, plugin_id)
 
@@ -93,15 +86,11 @@ async def test_plugin_manager_enable_disable(tmp_path, monkeypatch) -> None:
     monkeypatch.setenv("PLUGIN__ROOT_DIR", str(tmp_path))
     monkeypatch.setenv("PLUGIN__AUTO_MIGRATE", "0")
     monkeypatch.setenv("PLUGIN__AUTO_RESTART", "0")
-    monkeypatch.setenv("DATABASE__ENABLED", "1")
+    get_settings.cache_clear()
 
     settings = get_settings()
     manager = PluginManager(settings)
     manager.discover()
-
-    await init_orm(settings)
-    await verify_db_ready(settings)
-    await Tortoise.generate_schemas(safe=True)
     try:
         await manager.sync_records()
         record = await PluginRecord.get(plugin_id=plugin_id)
@@ -119,4 +108,3 @@ async def test_plugin_manager_enable_disable(tmp_path, monkeypatch) -> None:
         assert record.status == PluginStatus.DISABLED
     finally:
         await manager.stop()
-        await close_orm()

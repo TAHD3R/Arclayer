@@ -16,6 +16,7 @@ def test_response_fail() -> None:
     payload = Response.fail(message="bad", data={"id": 2})
 
     assert payload.message == "bad"
-    assert payload.error == "UNKNOWN_ERROR"
+    assert payload.error is None
     assert payload.data == {"id": 2}
     assert payload.timestamp > 0
+    assert "error" not in payload.model_dump()

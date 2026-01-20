@@ -128,7 +128,7 @@ def test_csrf_middleware(monkeypatch, tmp_path: Path) -> None:
 
     bad_post = client.post("/csrf")
     assert bad_post.status_code == 403
-    assert bad_post.json().get("error") == "CSRF_FAILED"
+    assert bad_post.json().get("message") == "CSRF 校验失败"
 
     token = client.cookies.get("csrf_token")
     ok_post = client.post("/csrf", headers={"X-CSRF-Token": token})

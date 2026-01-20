@@ -25,7 +25,7 @@ def test_api_error_handler(monkeypatch, tmp_path: Path) -> None:
 
     assert response.status_code == 400
     payload = response.json()
-    assert payload["error"] == "BAD_REQUEST"
+    assert "error" not in payload
     assert payload["message"] == "请求失败"
 
 
@@ -42,7 +42,7 @@ def test_http_exception_handler(monkeypatch, tmp_path: Path) -> None:
 
     assert response.status_code == 404
     payload = response.json()
-    assert payload["error"] == "NOT_FOUND"
+    assert "error" not in payload
     assert payload["message"] == "资源不存在"
 
 
@@ -59,4 +59,4 @@ def test_request_validation_handler(monkeypatch, tmp_path: Path) -> None:
 
     assert response.status_code == 422
     payload = response.json()
-    assert payload["error"] == "VALIDATION_ERROR"
+    assert "error" not in payload

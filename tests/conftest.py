@@ -1,16 +1,24 @@
 from __future__ import annotations
 
+import os
 import sys
 from collections.abc import Iterator
 from pathlib import Path
+from uuid import uuid4
 
+import asyncpg
 import pytest
+import pytest_asyncio
+from fastapi import FastAPI
+from tortoise import Tortoise
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from apps.api.config import get_settings
+from apps.api.core.database.orm import close_orm, init_orm, verify_db_ready
+from apps.api.core.database.valkey import ValkeyClient, close_valkey, init_valkey
 
 
 @pytest.fixture(autouse=True)
@@ -18,3 +26,80 @@ def clear_settings_cache() -> Iterator[None]:
     get_settings.cache_clear()
     yield
     get_settings.cache_clear()
+
+
+def _integration_enabled() -> bool:
+    return os.getenv("RUN_INTEGRATION_TESTS") == "1"
+
+
+@pytest.fixture
+def integration_db_settings(monkeypatch) -> Iterator[None]:
+    if not _integration_enabled():
+        pytest.skip("integration tests disabled")
+
+    monkeypatch.setenv("APP_ENV", "test")
+    monkeypatch.setenv("TEST_DATABASE__ENABLED", "1")
+    monkeypatch.setenv("TEST_DATABASE__NAME", os.getenv("TEST_DATABASE__NAME", "celestial_test"))
+    yield
+
+
+@pytest.fixture
+def integration_valkey_settings(monkeypatch) -> str:
+    if not _integration_enabled():
+        pytest.skip("integration tests disabled")
+
+    prefix = os.getenv("TEST_VALKEY__PREFIX") or f"test:{uuid4().hex}"
+    monkeypatch.setenv("APP_ENV", "test")
+    monkeypatch.setenv("TEST_VALKEY__ENABLED", "1")
+    monkeypatch.setenv("TEST_VALKEY__DB", os.getenv("TEST_VALKEY__DB", "15"))
+    monkeypatch.setenv("TEST_VALKEY__DEFAULT_TTL", os.getenv("TEST_VALKEY__DEFAULT_TTL", "5"))
+    monkeypatch.setenv("TEST_VALKEY__PREFIX", prefix)
+    return prefix
+
+
+async def _ensure_test_database(settings) -> None:
+    db_name = settings.database.database
+    admin_db = os.getenv("TEST_DATABASE__ADMIN_DB", "postgres")
+    if db_name == admin_db:
+        return
+
+    password = settings.database.password.get_secret_value()
+    auth = f"{settings.database.user}:{password}@" if password else f"{settings.database.user}@"
+    dsn = f"postgresql://{auth}{settings.database.host}:{settings.database.port}/{admin_db}"
+    conn = await asyncpg.connect(dsn)
+    try:
+        exists = await conn.fetchval("SELECT 1 FROM pg_database WHERE datname=$1", db_name)
+        if not exists:
+            safe_name = db_name.replace('"', '""')
+            await conn.execute(f'CREATE DATABASE "{safe_name}"')
+    finally:
+        await conn.close()
+
+
+@pytest_asyncio.fixture
+async def db(integration_db_settings) -> Iterator[None]:
+    settings = get_settings()
+    await _ensure_test_database(settings)
+    await init_orm(settings)
+    await verify_db_ready(settings)
+    try:
+        yield
+    finally:
+        await close_orm()
+
+
+@pytest_asyncio.fixture
+async def db_schema(db) -> Iterator[None]:
+    await Tortoise.generate_schemas(safe=True)
+    yield
+
+
+@pytest_asyncio.fixture
+async def valkey_client(integration_valkey_settings) -> Iterator[tuple[ValkeyClient, str]]:
+    settings = get_settings()
+    app = FastAPI()
+    await init_valkey(app, settings)
+    try:
+        yield app.state.valkey, integration_valkey_settings
+    finally:
+        await close_valkey(app)
