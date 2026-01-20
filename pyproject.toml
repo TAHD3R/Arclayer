@@ -30,6 +30,7 @@ dependencies = [
     "uuid6>=2024.7.10",
     "setuptools>=80.9.0",
     "fastapi-mail>=1.6.1",
+    "python-multipart>=0.0.21",
 ]
 
 [dependency-groups]

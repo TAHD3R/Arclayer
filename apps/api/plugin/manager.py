@@ -202,6 +202,9 @@ class PluginManager:
             await self._request_restart(plugin_id, reason="disable")
         return record
 
+    async def request_restart(self, plugin_id: str | None, *, reason: str) -> None:
+        await self._request_restart(plugin_id, reason=reason)
+
     async def _ensure_descriptor(self, plugin_id: str) -> PluginDescriptor:
         if plugin_id not in self.descriptors:
             self.discover()
