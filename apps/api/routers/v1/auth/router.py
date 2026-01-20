@@ -29,7 +29,7 @@ from apps.api.routers.v1.auth.schema import (
 )
 from apps.api.routers.v1.auth.services import AuthService
 
-router = APIRouter(tags=["auth"])
+router = APIRouter(tags=["Auth module"])
 
 
 def _get_auth_service(
