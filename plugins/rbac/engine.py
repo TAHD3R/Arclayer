@@ -3,11 +3,10 @@ from __future__ import annotations
 from typing import Any
 from uuid import UUID
 
-from rbac.constants import ROLE_ADMIN
-from rbac.repository import RBACRepository
-
 from apps.api.core.logging import get_logger
 from apps.api.plugin.types import PluginDescriptor
+from rbac.constants import ROLE_ADMIN
+from rbac.repository import RBACRepository
 
 logger = get_logger(__name__)
 

@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 from fastapi import Depends
-from rbac.services import RBACService
 
 from apps.api.config import Settings, get_settings
 from apps.api.core.exceptions import Forbidden
 from apps.api.models.user import User
 from apps.api.routers.v1.auth.deps import get_current_user
+from rbac.services import RBACService
 
 
 def get_rbac_service(settings: Settings = Depends(get_settings)) -> RBACService:

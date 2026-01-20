@@ -1,7 +1,7 @@
 models = ["rbac.models"]
 
 [plugin]
-id = "com.celestial.rbac"
+id = "rbac"
 name = "RBAC 权限插件"
 description = "提供基于角色的权限控制"
 author = "Celestial Team"

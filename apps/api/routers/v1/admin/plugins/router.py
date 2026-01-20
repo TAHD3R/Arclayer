@@ -15,7 +15,7 @@ from apps.api.routers.v1.admin.plugins.schema import (
 from apps.api.routers.v1.admin.plugins.service import PluginService
 from apps.api.routers.v1.auth.deps import get_current_user
 
-router = APIRouter(tags=["plugins"])
+router = APIRouter(tags=["plugins management"])
 
 
 def get_plugin_manager(request: Request) -> PluginManager:

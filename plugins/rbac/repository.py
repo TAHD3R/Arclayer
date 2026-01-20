@@ -3,10 +3,9 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from uuid import UUID
 
+from apps.api.common.repositories import BaseRepository
 from rbac.constants import BOOTSTRAP_KEY, ROLE_ADMIN
 from rbac.models import BootstrapState, Permission, Role, RolePermission, UserRole
-
-from apps.api.common.repositories import BaseRepository
 
 
 class RBACRepository(BaseRepository):
