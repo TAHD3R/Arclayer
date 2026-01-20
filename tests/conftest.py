@@ -57,6 +57,17 @@ def integration_valkey_settings(monkeypatch) -> str:
     return prefix
 
 
+@pytest.fixture
+def plugin_root(tmp_path, monkeypatch) -> Path:
+    root = tmp_path / "plugins"
+    monkeypatch.setenv("PLUGIN__ENABLED", "1")
+    monkeypatch.setenv("PLUGIN__ROOT_DIR", str(root))
+    monkeypatch.setenv("PLUGIN__AUTO_MIGRATE", "0")
+    monkeypatch.setenv("PLUGIN__AUTO_RESTART", "0")
+    get_settings.cache_clear()
+    return root
+
+
 async def _ensure_test_database(settings) -> None:
     db_name = settings.database.database
     admin_db = os.getenv("TEST_DATABASE__ADMIN_DB", "postgres")
@@ -86,6 +97,16 @@ async def db(integration_db_settings) -> Iterator[None]:
         yield
     finally:
         await close_orm()
+
+
+@pytest_asyncio.fixture
+async def prepared_db(integration_db_settings, plugin_root) -> Iterator[None]:
+    settings = get_settings()
+    await _ensure_test_database(settings)
+    await init_orm(settings)
+    await Tortoise.generate_schemas(safe=True)
+    await close_orm()
+    yield
 
 
 @pytest_asyncio.fixture
