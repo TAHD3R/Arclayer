@@ -1,0 +1,14 @@
+{
+  "BAD_REQUEST": "Bad request",
+  "UNAUTHORIZED": "Unauthorized",
+  "FORBIDDEN": "Forbidden",
+  "NOT_FOUND": "Resource not found",
+  "CONFLICT": "Conflict",
+  "VALIDATION_ERROR": "Validation failed",
+  "TOO_MANY_REQUESTS": "Too many requests",
+  "HTTP_ERROR": "Request error",
+  "INTERNAL_ERROR": "Internal server error",
+  "DB_OPERATIONAL_ERROR": "Database operation failed",
+  "CSRF_FAILED": "CSRF validation failed",
+  "PLUGIN_MANAGER_UNAVAILABLE": "Plugin manager unavailable"
+}

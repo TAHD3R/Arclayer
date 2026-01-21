@@ -14,6 +14,7 @@ from fastapi import UploadFile
 from apps.api.common.services import BaseService
 from apps.api.config import Settings
 from apps.api.core.exceptions import BadRequest, NotFound, ServiceUnavailable
+from apps.api.core.i18n import t
 from apps.api.core.logging import get_logger
 from apps.api.models.plugin import PluginRecord
 from apps.api.plugin.manager import PluginManager
@@ -23,6 +24,10 @@ from apps.api.routers.v1.admin.plugins.repository import PluginRepository
 from apps.api.routers.v1.admin.plugins.schema import PluginDetail
 
 logger = get_logger(__name__)
+
+
+def _tp(key: str, default: str) -> str:
+    return t("plugin", key, default=default)
 
 
 class PluginService(BaseService):
@@ -38,7 +43,7 @@ class PluginService(BaseService):
     async def get_plugin(self, plugin_id: str) -> PluginRecord:
         record = await self.repo.get_plugin(plugin_id)
         if record is None:
-            raise NotFound(message="插件不存在", error="PLUGIN_NOT_FOUND")
+            raise NotFound(message=_tp("PLUGIN_NOT_FOUND", "插件不存在"), error="PLUGIN_NOT_FOUND")
         return record
 
     async def install_plugin(  # noqa: C901
@@ -49,9 +54,12 @@ class PluginService(BaseService):
         enable: bool,
     ) -> tuple[PluginRecord, bool]:
         if not file.filename:
-            raise BadRequest(message="缺少插件包文件", error="PLUGIN_PACKAGE_REQUIRED")
+            raise BadRequest(message=_tp("PLUGIN_PACKAGE_REQUIRED", "缺少插件包文件"), error="PLUGIN_PACKAGE_REQUIRED")
         if not file.filename.endswith(".zip"):
-            raise BadRequest(message="插件包必须为 zip 格式", error="PLUGIN_PACKAGE_INVALID")
+            raise BadRequest(
+                message=_tp("PLUGIN_PACKAGE_INVALID", "插件包必须为 zip 格式"),
+                error="PLUGIN_PACKAGE_INVALID",
+            )
 
         staging_dir = self.root_dir / ".staging" / uuid4().hex
         staging_dir.mkdir(parents=True, exist_ok=True)
@@ -60,7 +68,10 @@ class PluginService(BaseService):
         try:
             sha256, size = await self._save_upload(file, zip_path)
             if checksum and checksum.lower() != sha256:
-                raise BadRequest(message="插件包校验失败", error="PLUGIN_CHECKSUM_MISMATCH")
+                raise BadRequest(
+                    message=_tp("PLUGIN_CHECKSUM_MISMATCH", "插件包校验失败"),
+                    error="PLUGIN_CHECKSUM_MISMATCH",
+                )
 
             manifest = self._validate_zip(zip_path)
             plugin_id = manifest.plugin.id
@@ -75,10 +86,16 @@ class PluginService(BaseService):
                 self._safe_extract(zf, payload_dir)
 
             if not (payload_dir / "plugin.toml").is_file():
-                raise BadRequest(message="插件包缺少 plugin.toml", error="PLUGIN_TOML_MISSING")
+                raise BadRequest(
+                    message=_tp("PLUGIN_TOML_MISSING", "插件包缺少 plugin.toml"),
+                    error="PLUGIN_TOML_MISSING",
+                )
             entry_root = self._get_entry_root(manifest)
             if not (payload_dir / entry_root).is_dir():
-                raise BadRequest(message="插件包缺少主包目录", error="PLUGIN_PACKAGE_MISSING")
+                raise BadRequest(
+                    message=_tp("PLUGIN_PACKAGE_MISSING", "插件包缺少主包目录"),
+                    error="PLUGIN_PACKAGE_MISSING",
+                )
 
             target_dir = self.root_dir / plugin_id
             backup_dir = None
@@ -91,7 +108,11 @@ class PluginService(BaseService):
             except Exception as exc:
                 if backup_dir and not target_dir.exists() and backup_dir.exists():
                     shutil.move(str(backup_dir), str(target_dir))
-                raise BadRequest(message="插件包安装失败", error="PLUGIN_INSTALL_FAILED", details=str(exc)) from exc
+                raise BadRequest(
+                    message=_tp("PLUGIN_INSTALL_FAILED", "插件包安装失败"),
+                    error="PLUGIN_INSTALL_FAILED",
+                    details=str(exc),
+                ) from exc
         finally:
             shutil.rmtree(staging_dir, ignore_errors=True)
 
@@ -177,7 +198,10 @@ class PluginService(BaseService):
     async def update_config(self, plugin_id: str, payload: dict[str, Any]) -> tuple[PluginRecord, bool]:
         record = await self.get_plugin(plugin_id)
         if not record.config_schema:
-            raise BadRequest(message="插件不支持配置", error="PLUGIN_CONFIG_NOT_SUPPORTED")
+            raise BadRequest(
+                message=_tp("PLUGIN_CONFIG_NOT_SUPPORTED", "插件不支持配置"),
+                error="PLUGIN_CONFIG_NOT_SUPPORTED",
+            )
 
         schema = ConfigSchema.model_validate(record.config_schema)
         defaults = self._build_defaults_from_schema(schema)
@@ -185,7 +209,10 @@ class PluginService(BaseService):
         merged = self._merge_config(defaults, current)
         updates = payload.get("config")
         if not isinstance(updates, dict):
-            raise BadRequest(message="插件配置格式不正确", error="PLUGIN_CONFIG_INVALID")
+            raise BadRequest(
+                message=_tp("PLUGIN_CONFIG_INVALID", "插件配置格式不正确"),
+                error="PLUGIN_CONFIG_INVALID",
+            )
         merged = self._merge_config(merged, updates)
         self._validate_config(schema, merged)
         await self.repo.update_config(record, merged)
@@ -239,7 +266,10 @@ class PluginService(BaseService):
         entry_module = entrypoint.split(":", 1)[0]
         entry_root = entry_module.split(".", 1)[0]
         if not entry_root:
-            raise BadRequest(message="插件入口不合法", error="PLUGIN_ENTRYPOINT_INVALID")
+            raise BadRequest(
+                message=_tp("PLUGIN_ENTRYPOINT_INVALID", "插件入口不合法"),
+                error="PLUGIN_ENTRYPOINT_INVALID",
+            )
         return entry_root
 
     def _safe_extract(self, zf: zipfile.ZipFile, target: Path) -> None:
@@ -291,18 +321,30 @@ class PluginService(BaseService):
         for section_id, values in config.items():
             section = sections.get(section_id)
             if section is None:
-                raise BadRequest(message="插件配置项不合法", error="PLUGIN_CONFIG_INVALID")
+                raise BadRequest(
+                    message=_tp("PLUGIN_CONFIG_ITEM_INVALID", "插件配置项不合法"),
+                    error="PLUGIN_CONFIG_INVALID",
+                )
             if not isinstance(values, dict):
-                raise BadRequest(message="插件配置项不合法", error="PLUGIN_CONFIG_INVALID")
+                raise BadRequest(
+                    message=_tp("PLUGIN_CONFIG_ITEM_INVALID", "插件配置项不合法"),
+                    error="PLUGIN_CONFIG_INVALID",
+                )
             fields = {field.key: field for field in section.fields}
             for key, value in values.items():
                 field = fields.get(key)
                 if field is None:
-                    raise BadRequest(message="插件配置项不合法", error="PLUGIN_CONFIG_INVALID")
+                    raise BadRequest(
+                        message=_tp("PLUGIN_CONFIG_ITEM_INVALID", "插件配置项不合法"),
+                        error="PLUGIN_CONFIG_INVALID",
+                    )
                 if value is None:
                     continue
                 if not self._is_type_valid(field.type, value):
-                    raise BadRequest(message="插件配置项类型不正确", error="PLUGIN_CONFIG_INVALID")
+                    raise BadRequest(
+                        message=_tp("PLUGIN_CONFIG_TYPE_INVALID", "插件配置项类型不正确"),
+                        error="PLUGIN_CONFIG_INVALID",
+                    )
 
     def _is_type_valid(self, field_type: str, value: Any) -> bool:
         if field_type == "str":

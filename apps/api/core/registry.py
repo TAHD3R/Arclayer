@@ -116,6 +116,9 @@ class AppFactory:
                 token_bytes=middleware.csrf_token_bytes,
             )
 
+        from apps.api.core.middleware.locale import LocaleMiddleware
+
+        self.app.add_middleware(LocaleMiddleware)
         self.app.add_middleware(CorrelationIdMiddleware)
 
         return self

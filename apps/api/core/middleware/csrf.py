@@ -8,6 +8,7 @@ from fastapi.responses import ORJSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 
+from apps.api.core.i18n import get_request_locale, localize_message
 from apps.api.core.response import Response as ResponseBuilder
 
 
@@ -50,8 +51,10 @@ class CSRFMiddleware(BaseHTTPMiddleware):
         header_token = request.headers.get(self.header_name)
         cookie_token = request.cookies.get(self.cookie_name)
         if not header_token or not cookie_token or header_token != cookie_token:
+            locale = get_request_locale(request)
+            message = localize_message("CSRF 校验失败", error="CSRF_FAILED", locale=locale)
             payload = ResponseBuilder.fail(
-                message="CSRF 校验失败",
+                message=message,
                 error="CSRF_FAILED",
                 meta={"reason": "token_mismatch"},
             )

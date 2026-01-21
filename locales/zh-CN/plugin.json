@@ -1,0 +1,14 @@
+{
+  "PLUGIN_NOT_FOUND": "插件不存在",
+  "PLUGIN_PACKAGE_REQUIRED": "缺少插件包文件",
+  "PLUGIN_PACKAGE_INVALID": "插件包必须为 zip 格式",
+  "PLUGIN_CHECKSUM_MISMATCH": "插件包校验失败",
+  "PLUGIN_TOML_MISSING": "插件包缺少 plugin.toml",
+  "PLUGIN_PACKAGE_MISSING": "插件包缺少主包目录",
+  "PLUGIN_INSTALL_FAILED": "插件包安装失败",
+  "PLUGIN_CONFIG_NOT_SUPPORTED": "插件不支持配置",
+  "PLUGIN_CONFIG_INVALID": "插件配置格式不正确",
+  "PLUGIN_ENTRYPOINT_INVALID": "插件入口不合法",
+  "PLUGIN_CONFIG_ITEM_INVALID": "插件配置项不合法",
+  "PLUGIN_CONFIG_TYPE_INVALID": "插件配置项类型不正确"
+}

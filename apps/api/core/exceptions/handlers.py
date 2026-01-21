@@ -13,6 +13,7 @@ from tortoise.exceptions import OperationalError
 
 from apps.api.config import Settings
 from apps.api.core.exceptions.types import APIError
+from apps.api.core.i18n import get_request_locale, localize_message
 from apps.api.core.logging import get_logger
 from apps.api.core.response import Response
 
@@ -64,6 +65,8 @@ def _build_response(
     meta = _trace_meta(request) if debug else None
     if debug and details is not None:
         meta = {**(meta or {}), "details": _sanitize_details(details)}
+    locale = get_request_locale(request)
+    message = localize_message(message, error=error, locale=locale)
     payload = Response.fail(message=message, error=error, meta=meta)
     return ORJSONResponse(payload.model_dump(), status_code=status_code, headers=headers)
 

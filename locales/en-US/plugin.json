@@ -1,0 +1,14 @@
+{
+  "PLUGIN_NOT_FOUND": "Plugin not found",
+  "PLUGIN_PACKAGE_REQUIRED": "Plugin package is required",
+  "PLUGIN_PACKAGE_INVALID": "Plugin package must be a zip file",
+  "PLUGIN_CHECKSUM_MISMATCH": "Plugin package checksum mismatch",
+  "PLUGIN_TOML_MISSING": "Plugin package is missing plugin.toml",
+  "PLUGIN_PACKAGE_MISSING": "Plugin package is missing the root package directory",
+  "PLUGIN_INSTALL_FAILED": "Plugin installation failed",
+  "PLUGIN_CONFIG_NOT_SUPPORTED": "Plugin does not support configuration",
+  "PLUGIN_CONFIG_INVALID": "Plugin configuration format is invalid",
+  "PLUGIN_ENTRYPOINT_INVALID": "Plugin entrypoint is invalid",
+  "PLUGIN_CONFIG_ITEM_INVALID": "Plugin configuration item is invalid",
+  "PLUGIN_CONFIG_TYPE_INVALID": "Plugin configuration type is invalid"
+}
