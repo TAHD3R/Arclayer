@@ -17,7 +17,8 @@ pytestmark = pytest.mark.integration
 
 def _build_demo_plugin_zip(tmp_path: Path, plugin_id: str) -> Path:
     payload_dir = tmp_path / "payload"
-    package_dir = payload_dir / "demo"
+    package_name = f"pkg_{plugin_id.replace('-', '_').replace('.', '_')}"
+    package_dir = payload_dir / package_name
     package_dir.mkdir(parents=True, exist_ok=True)
     (package_dir / "__init__.py").write_text("", encoding="utf-8")
     (package_dir / "plugin.py").write_text(
@@ -48,7 +49,7 @@ def _build_demo_plugin_zip(tmp_path: Path, plugin_id: str) -> Path:
             author = "Test"
             version = "0.1.0"
             requires = ">=2026.01.18-dev"
-            entrypoint = "demo.plugin:DemoPlugin"
+            entrypoint = "{package_name}.plugin:DemoPlugin"
 
             [config_schema]
 
@@ -69,7 +70,7 @@ def _build_demo_plugin_zip(tmp_path: Path, plugin_id: str) -> Path:
             label = "Mode"
             """
         )
-        .format(plugin_id=plugin_id)
+        .format(plugin_id=plugin_id, package_name=package_name)
         .lstrip(),
         encoding="utf-8",
     )
@@ -104,18 +105,18 @@ async def test_plugin_management_flow(prepared_db, plugin_root, tmp_path) -> Non
             )
             assert response.status_code == 200
             payload = response.json()
-            assert payload["data"]["plugin"]["plugin_id"] == plugin_id
+            assert payload["data"]["plugin"]["pluginId"] == plugin_id
             assert payload["data"]["plugin"]["status"] == "disabled"
 
             response = await client.get("/api/v1/admin/plugins")
             assert response.status_code == 200
             items = response.json()["data"]
-            assert any(item["plugin_id"] == plugin_id for item in items)
+            assert any(item["pluginId"] == plugin_id for item in items)
 
             response = await client.get(f"/api/v1/admin/plugins/{plugin_id}")
             assert response.status_code == 200
             detail = response.json()["data"]
-            assert detail["plugin_id"] == plugin_id
+            assert detail["pluginId"] == plugin_id
             assert detail["status"] == "disabled"
 
             response = await client.post(f"/api/v1/admin/plugins/{plugin_id}/enable")

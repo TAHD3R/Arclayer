@@ -10,12 +10,19 @@ from datetime import datetime
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
+from pydantic.alias_generators import to_camel
 
 
 class BaseSchema(BaseModel):
     """基础 Schema 类。"""
 
-    model_config = ConfigDict(str_strip_whitespace=True, validate_assignment=True, use_enum_values=True)
+    model_config = ConfigDict(
+        str_strip_whitespace=True,
+        validate_assignment=True,
+        use_enum_values=True,
+        alias_generator=to_camel,
+        populate_by_name=True,
+    )
 
 
 class IdMixin(BaseModel):
@@ -35,7 +42,12 @@ class BaseOut(IdMixin, BaseSchema):
     """基础输出 Schema 类。"""
 
     model_config = ConfigDict(
-        from_attributes=True, str_strip_whitespace=True, validate_assignment=True, use_enum_values=True
+        from_attributes=True,
+        str_strip_whitespace=True,
+        validate_assignment=True,
+        use_enum_values=True,
+        populate_by_name=True,
+        alias_generator=to_camel,
     )
 
 

@@ -14,7 +14,8 @@ pytestmark = pytest.mark.integration
 
 
 def _write_demo_plugin(root, plugin_id: str) -> None:
-    plugin_dir = root / "demo"
+    package_name = f"pkg_{plugin_id.replace('-', '_').replace('.', '_')}"
+    plugin_dir = root / package_name
     plugin_dir.mkdir(parents=True, exist_ok=True)
 
     (plugin_dir / "__init__.py").write_text("", encoding="utf-8")
@@ -50,7 +51,7 @@ def _write_demo_plugin(root, plugin_id: str) -> None:
             author = "Test"
             version = "0.1.0"
             requires = ">=2026.01.18-dev"
-            entrypoint = "demo.plugin:DemoPlugin"
+            entrypoint = "{package_name}.plugin:DemoPlugin"
 
             [[permissions]]
             code = "demo:read"
@@ -71,7 +72,7 @@ def _write_demo_plugin(root, plugin_id: str) -> None:
             label = "Enabled"
             """
         )
-        .format(plugin_id=plugin_id)
+        .format(plugin_id=plugin_id, package_name=package_name)
         .lstrip(),
         encoding="utf-8",
     )
