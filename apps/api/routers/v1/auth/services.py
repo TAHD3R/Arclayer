@@ -306,19 +306,29 @@ class AuthService(BaseService):
         reset_token: str,
         expires_in: int,
         user_id: UUID | None = None,
+        locale: str | None = None,
     ) -> None:
         await self.email_service.send_reset_password(
             recipient=recipient,
             reset_token=reset_token,
             expires_in=expires_in,
             user_id=str(user_id) if user_id else None,
+            locale=locale,
         )
 
-    async def send_welcome_email(self, *, recipient: str, username: str, user_id: UUID | None = None) -> None:
+    async def send_welcome_email(
+        self,
+        *,
+        recipient: str,
+        username: str,
+        user_id: UUID | None = None,
+        locale: str | None = None,
+    ) -> None:
         await self.email_service.send_welcome(
             recipient=recipient,
             username=username,
             user_id=str(user_id) if user_id else None,
+            locale=locale,
         )
 
     async def reset_password(self, *, reset_token: str, new_password: str) -> None:

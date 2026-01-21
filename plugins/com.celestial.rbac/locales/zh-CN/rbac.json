@@ -1,0 +1,8 @@
+{
+  "ADMIN_REQUIRED": "需要管理员权限",
+  "ROLE_NOT_FOUND": "角色不存在",
+  "BOOTSTRAP_DISABLED": "管理员初始化已关闭",
+  "BOOTSTRAP_DONE": "管理员初始化已完成",
+  "ADMIN_EXISTS": "已存在管理员",
+  "ROLE_NOT_READY": "管理员角色未就绪"
+}

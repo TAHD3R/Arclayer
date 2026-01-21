@@ -6,6 +6,7 @@ from uuid import UUID
 from apps.api.common.services import BaseService
 from apps.api.config import Settings
 from apps.api.core.exceptions import BadRequest, Conflict, Forbidden, NotFound
+from apps.api.core.i18n import t
 from apps.api.core.logging import get_logger
 from apps.api.models.plugin import PluginRecord
 from apps.api.plugin.registry import registry
@@ -23,6 +24,10 @@ def _get_bool(config: dict[str, Any], section: str, key: str, default: bool) -> 
     if value is None:
         return default
     return bool(value)
+
+
+def _tr(key: str, default: str) -> str:
+    return t("rbac", key, default=default)
 
 
 class RBACService(BaseService):
@@ -68,30 +73,39 @@ class RBACService(BaseService):
     async def assign_role(self, *, user_id: UUID, role_code: str) -> None:
         role = await self.repo.get_role_by_code(role_code)
         if role is None:
-            raise NotFound(message="角色不存在", error="ROLE_NOT_FOUND")
+            raise NotFound(message=_tr("ROLE_NOT_FOUND", "角色不存在"), error="ROLE_NOT_FOUND")
         await self.repo.assign_role(user_id=user_id, role=role)
 
     async def revoke_role(self, *, user_id: UUID, role_code: str) -> None:
         role = await self.repo.get_role_by_code(role_code)
         if role is None:
-            raise NotFound(message="角色不存在", error="ROLE_NOT_FOUND")
+            raise NotFound(message=_tr("ROLE_NOT_FOUND", "角色不存在"), error="ROLE_NOT_FOUND")
         await self.repo.revoke_role(user_id=user_id, role=role)
 
     async def bootstrap_admin(self, *, user_id: UUID) -> dict[str, Any]:
         config = await self._get_config()
         if not _get_bool(config, "general", "bootstrap_enabled", True):
-            raise Forbidden(message="管理员初始化已关闭", error="BOOTSTRAP_DISABLED")
+            raise Forbidden(
+                message=_tr("BOOTSTRAP_DISABLED", "管理员初始化已关闭"),
+                error="BOOTSTRAP_DISABLED",
+            )
 
         state = await self.repo.get_bootstrap_state()
         if state.done:
-            raise Conflict(message="管理员初始化已完成", error="BOOTSTRAP_DONE")
+            raise Conflict(
+                message=_tr("BOOTSTRAP_DONE", "管理员初始化已完成"),
+                error="BOOTSTRAP_DONE",
+            )
         if await self.repo.admin_binding_exists():
-            raise Conflict(message="已存在管理员", error="ADMIN_EXISTS")
+            raise Conflict(message=_tr("ADMIN_EXISTS", "已存在管理员"), error="ADMIN_EXISTS")
 
         await self.ensure_system_roles()
         admin_role = await self.repo.get_role_by_code(ROLE_ADMIN)
         if admin_role is None:
-            raise BadRequest(message="管理员角色未就绪", error="ROLE_NOT_READY")
+            raise BadRequest(
+                message=_tr("ROLE_NOT_READY", "管理员角色未就绪"),
+                error="ROLE_NOT_READY",
+            )
 
         await self.repo.assign_role(user_id=user_id, role=admin_role)
         state = await self.repo.mark_bootstrap_done()
@@ -106,7 +120,10 @@ class RBACService(BaseService):
         admin_role = await self.repo.get_role_by_code(ROLE_ADMIN)
         user_role = await self.repo.get_role_by_code(ROLE_USER)
         if admin_role is None:
-            raise BadRequest(message="管理员角色未就绪", error="ROLE_NOT_READY")
+            raise BadRequest(
+                message=_tr("ROLE_NOT_READY", "管理员角色未就绪"),
+                error="ROLE_NOT_READY",
+            )
 
         entries = registry.permissions
         templates: dict[str, Any] = {}

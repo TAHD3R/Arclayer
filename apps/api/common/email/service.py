@@ -8,6 +8,7 @@ from fastapi_mail.schemas import MultipartSubtypeEnum
 from pydantic import EmailStr, TypeAdapter, ValidationError
 
 from apps.api.config import EmailSettings, Settings
+from apps.api.core.i18n import t
 from apps.api.core.logging import get_logger
 
 _EMAIL_ADAPTER = TypeAdapter(EmailStr)
@@ -70,6 +71,7 @@ class EmailService:
         reset_token: str,
         expires_in: int,
         user_id: str | None = None,
+        locale: str | None = None,
     ) -> None:
         if not self._enabled():
             self.logger.info(
@@ -91,15 +93,21 @@ class EmailService:
         token_hint = f"{reset_token[:6]}...{reset_token[-4:]}" if len(reset_token) >= 10 else reset_token
         try:
             fm = get_fast_mail(self.settings.email)
+            subject = t("auth", "RESET_EMAIL_SUBJECT", default="重置密码", locale=locale)
+            plain_body = t(
+                "auth",
+                "RESET_EMAIL_PLAIN",
+                default="重置码：{reset_token}，{expires_in} 秒后失效。",
+                locale=locale,
+                reset_token=reset_token,
+                expires_in=expires_in,
+            )
             message = MessageSchema(
-                subject="重置密码",
+                subject=subject,
                 recipients=[recipient],
                 template_body={"reset_token": reset_token, "expires_in": expires_in},
                 subtype=MessageType.html,
-                alternative_body="重置码：{reset_token}，{expires_in} 秒后失效。".format(
-                    reset_token=reset_token,
-                    expires_in=expires_in,
-                ),
+                alternative_body=plain_body,
                 multipart_subtype=MultipartSubtypeEnum.alternative,
             )
             await fm.send_message(
@@ -125,7 +133,14 @@ class EmailService:
                 user_id=user_id,
             )
 
-    async def send_welcome(self, *, recipient: str, username: str, user_id: str | None = None) -> None:
+    async def send_welcome(
+        self,
+        *,
+        recipient: str,
+        username: str,
+        user_id: str | None = None,
+        locale: str | None = None,
+    ) -> None:
         if not self._enabled():
             self.logger.info(
                 "Attempt to send welcome email while email sending is disabled",
@@ -145,12 +160,25 @@ class EmailService:
         cid = uuid4().hex
         try:
             fm = get_fast_mail(self.settings.email)
+            subject = t(
+                "auth",
+                "WELCOME_EMAIL_SUBJECT",
+                default="欢迎加入 Celestial CMS",
+                locale=locale,
+            )
+            plain_body = t(
+                "auth",
+                "WELCOME_EMAIL_PLAIN",
+                default="欢迎加入 Celestial CMS，{username}。",
+                locale=locale,
+                username=username,
+            )
             message = MessageSchema(
-                subject="欢迎加入 Celestial CMS",
+                subject=subject,
                 recipients=[recipient],
                 template_body={"username": username},
                 subtype=MessageType.html,
-                alternative_body="欢迎加入 Celestial CMS，{username}。".format(username=username),
+                alternative_body=plain_body,
                 multipart_subtype=MultipartSubtypeEnum.alternative,
             )
             await fm.send_message(

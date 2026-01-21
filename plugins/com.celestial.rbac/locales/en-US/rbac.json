@@ -1,0 +1,8 @@
+{
+  "ADMIN_REQUIRED": "Administrator access required",
+  "ROLE_NOT_FOUND": "Role not found",
+  "BOOTSTRAP_DISABLED": "Bootstrap admin is disabled",
+  "BOOTSTRAP_DONE": "Bootstrap admin already completed",
+  "ADMIN_EXISTS": "Admin already exists",
+  "ROLE_NOT_READY": "Admin role is not ready"
+}

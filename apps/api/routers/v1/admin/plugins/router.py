@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 
 from apps.api.config import Settings, get_settings
 from apps.api.core.exceptions import ServiceUnavailable
+from apps.api.core.i18n import t
 from apps.api.core.response import Response, ResponseModel
 from apps.api.plugin.manager import PluginManager
 from apps.api.routers.v1.admin.plugins.schema import (
@@ -21,7 +22,10 @@ router = APIRouter(tags=["Plugins management"])
 def get_plugin_manager(request: Request) -> PluginManager:
     manager = getattr(request.app.state, "plugin_manager", None)
     if manager is None:
-        raise ServiceUnavailable(message="插件管理器不可用", error="PLUGIN_MANAGER_UNAVAILABLE")
+        raise ServiceUnavailable(
+            message=t("plugin", "PLUGIN_MANAGER_UNAVAILABLE", default="插件管理器不可用"),
+            error="PLUGIN_MANAGER_UNAVAILABLE",
+        )
     return manager
 
 

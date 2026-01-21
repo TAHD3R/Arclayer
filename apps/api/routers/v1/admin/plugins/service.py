@@ -177,7 +177,7 @@ class PluginService(BaseService):
         try:
             await manager.enable(plugin_id)
         except KeyError as exc:
-            raise NotFound(message="插件未安装", error="PLUGIN_NOT_FOUND") from exc
+            raise NotFound(message=_tp("PLUGIN_NOT_FOUND", "插件未安装"), error="PLUGIN_NOT_FOUND") from exc
         await record.refresh_from_db()
         return record
 
@@ -187,7 +187,7 @@ class PluginService(BaseService):
         try:
             await manager.disable(plugin_id)
         except KeyError as exc:
-            raise NotFound(message="插件未安装", error="PLUGIN_NOT_FOUND") from exc
+            raise NotFound(message=_tp("PLUGIN_NOT_FOUND", "插件未安装"), error="PLUGIN_NOT_FOUND") from exc
         await record.refresh_from_db()
         return record
 
@@ -226,7 +226,10 @@ class PluginService(BaseService):
 
     def _require_manager(self) -> PluginManager:
         if self.manager is None:
-            raise ServiceUnavailable(message="插件管理器不可用", error="PLUGIN_MANAGER_UNAVAILABLE")
+            raise ServiceUnavailable(
+                message=_tp("PLUGIN_MANAGER_UNAVAILABLE", "插件管理器不可用"),
+                error="PLUGIN_MANAGER_UNAVAILABLE",
+            )
         return self.manager
 
     async def _save_upload(self, file: UploadFile, dest: Path) -> tuple[str, int]:
@@ -247,7 +250,10 @@ class PluginService(BaseService):
         with zipfile.ZipFile(zip_path) as zf:
             names = zf.namelist()
             if "plugin.toml" not in names:
-                raise BadRequest(message="插件包缺少 plugin.toml", error="PLUGIN_TOML_MISSING")
+                raise BadRequest(
+                    message=_tp("PLUGIN_TOML_MISSING", "插件包缺少 plugin.toml"),
+                    error="PLUGIN_TOML_MISSING",
+                )
 
             manifest = self._load_manifest_from_zip(zf)
             self._validate_manifest(manifest)
@@ -276,13 +282,22 @@ class PluginService(BaseService):
         for member in zf.infolist():
             name = member.filename
             if name.startswith("/") or name.startswith("\\"):
-                raise BadRequest(message="插件包路径非法", error="PLUGIN_PACKAGE_INVALID")
+                raise BadRequest(
+                    message=_tp("PLUGIN_PACKAGE_INVALID", "插件包路径非法"),
+                    error="PLUGIN_PACKAGE_INVALID",
+                )
             normalized = Path(name)
             if ".." in normalized.parts:
-                raise BadRequest(message="插件包路径非法", error="PLUGIN_PACKAGE_INVALID")
+                raise BadRequest(
+                    message=_tp("PLUGIN_PACKAGE_INVALID", "插件包路径非法"),
+                    error="PLUGIN_PACKAGE_INVALID",
+                )
             resolved = (target / normalized).resolve()
             if not str(resolved).startswith(str(target.resolve())):
-                raise BadRequest(message="插件包路径非法", error="PLUGIN_PACKAGE_INVALID")
+                raise BadRequest(
+                    message=_tp("PLUGIN_PACKAGE_INVALID", "插件包路径非法"),
+                    error="PLUGIN_PACKAGE_INVALID",
+                )
         zf.extractall(target)
 
     def _backup_plugin_dir(self, plugin_id: str, target_dir: Path) -> Path:

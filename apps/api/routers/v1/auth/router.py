@@ -4,7 +4,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, Request
 
 from apps.api.config import Settings, get_settings
 from apps.api.core.database.valkey import get_valkey
-from apps.api.core.i18n import t
+from apps.api.core.i18n import get_current_locale, t
 from apps.api.core.limiter import rate_limit
 from apps.api.core.response import Response, ResponseModel
 from apps.api.models.user import User
@@ -81,11 +81,13 @@ async def register(
         avatar_url=user.avatar_url,
     )
     if user.email:
+        locale = get_current_locale()
         background_tasks.add_task(
             service.send_welcome_email,
             recipient=user.email,
             username=user.username,
             user_id=user.id,
+            locale=locale,
         )
     return Response.success(message=t("auth", "REGISTER_SUCCESS", default="注册成功"), data=profile)
 
@@ -121,12 +123,14 @@ async def forgot_password(
         token_payload = ResetTokenPayload(reset_token=token, expires_in=ttl)
     if issued:
         token, ttl, recipient, user_id = issued
+        locale = get_current_locale()
         background_tasks.add_task(
             service.send_reset_email,
             recipient=recipient,
             reset_token=token,
             expires_in=ttl,
             user_id=user_id,
+            locale=locale,
         )
     return Response.success(
         message=t("auth", "RESET_SENT", default="如账号存在则将发送重置码至指定邮箱"),

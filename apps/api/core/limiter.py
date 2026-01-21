@@ -11,6 +11,7 @@ from starlette.responses import Response
 from starlette.status import HTTP_429_TOO_MANY_REQUESTS
 
 from apps.api.config import Settings, get_settings
+from apps.api.core.i18n import t
 from apps.api.core.logging import get_logger
 
 logger = get_logger(__name__)
@@ -27,7 +28,7 @@ async def default_identifier(request: Request) -> str:
 
 async def default_callback(request: Request, response: Response, pexpire: int) -> None:
     expire = ceil(pexpire / 1000)
-    detail: dict[str, Any] = {"message": "请求过于频繁", "error": "RATE_LIMITED"}
+    detail: dict[str, Any] = {"message": t("errors", "RATE_LIMITED", default="请求过于频繁"), "error": "RATE_LIMITED"}
     raise HTTPException(
         HTTP_429_TOO_MANY_REQUESTS,
         detail=detail,
