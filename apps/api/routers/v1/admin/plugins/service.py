@@ -18,10 +18,10 @@ from apps.api.core.i18n import t
 from apps.api.core.logging import get_logger
 from apps.api.models.plugin import PluginRecord
 from apps.api.plugin.manager import PluginManager
-from apps.api.plugin.manifest import ConfigSchema, PluginManifest, build_default_config
+from apps.api.plugin.manifest import ConfigSchema, PluginManifest, build_default_config, load_plugin_manifest
 from apps.api.plugin.types import PluginStatus
 from apps.api.routers.v1.admin.plugins.repository import PluginRepository
-from apps.api.routers.v1.admin.plugins.schema import PluginDetail
+from apps.api.routers.v1.admin.plugins.schema import PluginDetail, PluginSummary
 
 logger = get_logger(__name__)
 
@@ -222,7 +222,20 @@ class PluginService(BaseService):
         return record, requires_restart
 
     def to_detail(self, record: PluginRecord) -> PluginDetail:
-        return PluginDetail.model_validate(record)
+        detail = PluginDetail.model_validate(record)
+        manifest = self._load_manifest(record)
+        if manifest is None:
+            return detail
+        update = self._localized_fields(manifest)
+        return detail.model_copy(update=update)
+
+    def to_summary(self, record: PluginRecord) -> PluginSummary:
+        summary = PluginSummary.model_validate(record)
+        manifest = self._load_manifest(record)
+        if manifest is None:
+            return summary
+        update = self._localized_fields(manifest, include_schema=False)
+        return summary.model_copy(update=update)
 
     def _require_manager(self) -> PluginManager:
         if self.manager is None:
@@ -231,6 +244,82 @@ class PluginService(BaseService):
                 error="PLUGIN_MANAGER_UNAVAILABLE",
             )
         return self.manager
+
+    def _load_manifest(self, record: PluginRecord) -> PluginManifest | None:
+        if self.manager is not None:
+            descriptor = self.manager.descriptors.get(record.plugin_id)
+            if descriptor is not None:
+                return descriptor.manifest
+        manifest_path = Path(record.storage_path) / "plugin.toml"
+        if not manifest_path.is_file():
+            return None
+        try:
+            return load_plugin_manifest(manifest_path)
+        except Exception as exc:
+            logger.warning("Plugin manifest load failed", plugin_id=record.plugin_id, error=str(exc))
+            return None
+
+    def _localized_fields(self, manifest: PluginManifest, *, include_schema: bool = True) -> dict[str, Any]:
+        name = self._translate_ref(manifest.plugin.name_i18n, manifest.plugin.name)
+        description = self._translate_ref(manifest.plugin.description_i18n, manifest.plugin.description)
+        payload: dict[str, Any] = {"name": name, "description": description}
+        if include_schema:
+            payload["permissions"] = self._localize_permissions(manifest.permissions)
+            payload["config_schema"] = self._localize_config_schema(manifest.config_schema)
+        return payload
+
+    def _localize_permissions(self, permissions: list[Any]) -> list[dict[str, Any]] | None:
+        if not permissions:
+            return None
+        items: list[dict[str, Any]] = []
+        for perm in permissions:
+            items.append({
+                "code": perm.code,
+                "name": self._translate_ref(perm.name_i18n, perm.name),
+                "description": self._translate_ref(perm.description_i18n, perm.description),
+                "default_roles": list(perm.default_roles),
+            })
+        return items
+
+    def _localize_config_schema(self, schema: ConfigSchema | None) -> dict[str, Any] | None:
+        if schema is None:
+            return None
+        sections: list[dict[str, Any]] = []
+        for section in schema.sections:
+            fields: list[dict[str, Any]] = []
+            for field in section.fields:
+                fields.append({
+                    "key": field.key,
+                    "type": field.type,
+                    "default": field.default,
+                    "label": self._translate_ref(field.label_i18n, field.label),
+                    "description": self._translate_ref(field.description_i18n, field.description),
+                })
+            sections.append({
+                "id": section.id,
+                "title": self._translate_ref(section.title_i18n, section.title),
+                "fields": fields,
+            })
+        return {"sections": sections}
+
+    def _translate_ref(self, ref: str | None, default: str | None) -> str | None:
+        if not ref:
+            return default
+        namespace, key = self._split_i18n_ref(ref)
+        if not namespace or not key:
+            return default
+        return t(namespace, key, default=default)
+
+    @staticmethod
+    def _split_i18n_ref(ref: str) -> tuple[str, str]:
+        trimmed = ref.strip()
+        if ":" in trimmed:
+            namespace, key = trimmed.split(":", 1)
+        elif "." in trimmed:
+            namespace, key = trimmed.split(".", 1)
+        else:
+            return "plugin", trimmed
+        return namespace.strip(), key.strip()
 
     async def _save_upload(self, file: UploadFile, dest: Path) -> tuple[str, int]:
         digest = hashlib.sha256()

@@ -11,6 +11,8 @@ class PermissionTemplate(BaseModel):
     code: str
     name: str
     description: str | None = None
+    name_i18n: str | None = None
+    description_i18n: str | None = None
     default_roles: list[str] = Field(default_factory=list)
 
 
@@ -20,11 +22,14 @@ class ConfigField(BaseModel):
     default: Any | None = None
     label: str | None = None
     description: str | None = None
+    label_i18n: str | None = None
+    description_i18n: str | None = None
 
 
 class ConfigSection(BaseModel):
     id: str
     title: str
+    title_i18n: str | None = None
     fields: list[ConfigField] = Field(default_factory=list)
 
 
@@ -36,6 +41,8 @@ class PluginMeta(BaseModel):
     id: str
     name: str
     description: str | None = None
+    name_i18n: str | None = None
+    description_i18n: str | None = None
     author: str
     version: str
     requires: str

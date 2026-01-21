@@ -4,6 +4,8 @@ models = ["rbac.models"]
 id = "com.celestial.rbac"
 name = "RBAC 权限插件"
 description = "提供基于角色的权限控制"
+name_i18n = "rbac:PLUGIN_NAME"
+description_i18n = "rbac:PLUGIN_DESCRIPTION"
 author = "Celestial Team"
 version = "1.0.0"
 requires = ">=2026.01.18-dev"
@@ -17,36 +19,47 @@ license = "MIT"
 code = "rbac:roles:read"
 name = "Read roles"
 description = "Allow listing roles and role details."
+name_i18n = "rbac:PERM_ROLES_READ_NAME"
+description_i18n = "rbac:PERM_ROLES_READ_DESC"
 default_roles = ["admin"]
 
 [[permissions]]
 code = "rbac:roles:write"
 name = "Manage roles"
 description = "Allow creating, updating, and deleting roles."
+name_i18n = "rbac:PERM_ROLES_WRITE_NAME"
+description_i18n = "rbac:PERM_ROLES_WRITE_DESC"
 default_roles = ["admin"]
 
 [[permissions]]
 code = "rbac:users:assign"
 name = "Assign user roles"
 description = "Allow assigning and revoking user roles."
+name_i18n = "rbac:PERM_USERS_ASSIGN_NAME"
+description_i18n = "rbac:PERM_USERS_ASSIGN_DESC"
 default_roles = ["admin"]
 
 [[permissions]]
 code = "rbac:permissions:read"
 name = "Read permissions"
 description = "Allow listing permissions."
+name_i18n = "rbac:PERM_PERMISSIONS_READ_NAME"
+description_i18n = "rbac:PERM_PERMISSIONS_READ_DESC"
 default_roles = ["admin"]
 
 [[permissions]]
 code = "rbac:permissions:sync"
 name = "Sync permissions"
 description = "Allow syncing permissions from plugins."
+name_i18n = "rbac:PERM_PERMISSIONS_SYNC_NAME"
+description_i18n = "rbac:PERM_PERMISSIONS_SYNC_DESC"
 default_roles = ["admin"]
 
 [config_schema]
 [[config_schema.sections]]
 id = "general"
 title = "General"
+title_i18n = "rbac:CONFIG_GENERAL_TITLE"
 
 [[config_schema.sections.fields]]
 key = "enforcement"
@@ -54,6 +67,8 @@ type = "bool"
 default = false
 label = "Enforce permissions"
 description = "Enable RBAC permission checks when true."
+label_i18n = "rbac:CONFIG_ENFORCEMENT_LABEL"
+description_i18n = "rbac:CONFIG_ENFORCEMENT_DESC"
 
 [[config_schema.sections.fields]]
 key = "bootstrap_enabled"
@@ -61,3 +76,5 @@ type = "bool"
 default = true
 label = "Enable bootstrap admin"
 description = "Allow one-time admin bootstrap when no admin exists."
+label_i18n = "rbac:CONFIG_BOOTSTRAP_LABEL"
+description_i18n = "rbac:CONFIG_BOOTSTRAP_DESC"

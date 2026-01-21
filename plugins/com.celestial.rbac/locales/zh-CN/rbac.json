@@ -4,5 +4,22 @@
   "BOOTSTRAP_DISABLED": "管理员初始化已关闭",
   "BOOTSTRAP_DONE": "管理员初始化已完成",
   "ADMIN_EXISTS": "已存在管理员",
-  "ROLE_NOT_READY": "管理员角色未就绪"
+  "ROLE_NOT_READY": "管理员角色未就绪",
+  "PLUGIN_NAME": "RBAC 权限插件",
+  "PLUGIN_DESCRIPTION": "提供基于角色的权限控制",
+  "PERM_ROLES_READ_NAME": "读取角色",
+  "PERM_ROLES_READ_DESC": "允许查看角色列表与详情。",
+  "PERM_ROLES_WRITE_NAME": "管理角色",
+  "PERM_ROLES_WRITE_DESC": "允许创建、更新和删除角色。",
+  "PERM_USERS_ASSIGN_NAME": "分配用户角色",
+  "PERM_USERS_ASSIGN_DESC": "允许为用户分配或撤销角色。",
+  "PERM_PERMISSIONS_READ_NAME": "读取权限",
+  "PERM_PERMISSIONS_READ_DESC": "允许查看权限列表。",
+  "PERM_PERMISSIONS_SYNC_NAME": "同步权限",
+  "PERM_PERMISSIONS_SYNC_DESC": "允许从插件同步权限定义。",
+  "CONFIG_GENERAL_TITLE": "通用",
+  "CONFIG_ENFORCEMENT_LABEL": "启用权限校验",
+  "CONFIG_ENFORCEMENT_DESC": "开启后将执行 RBAC 权限校验。",
+  "CONFIG_BOOTSTRAP_LABEL": "允许管理员初始化",
+  "CONFIG_BOOTSTRAP_DESC": "当系统无管理员时允许一次性初始化管理员。"
 }

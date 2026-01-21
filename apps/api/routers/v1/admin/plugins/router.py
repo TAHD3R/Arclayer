@@ -42,7 +42,7 @@ async def list_plugins(
     _user=Depends(get_current_user),
 ) -> ResponseModel[list[PluginSummary]]:
     records = await service.list_plugins()
-    payload = [PluginSummary.model_validate(record) for record in records]
+    payload = [service.to_summary(record) for record in records]
     return Response.success(data=payload)
 
 

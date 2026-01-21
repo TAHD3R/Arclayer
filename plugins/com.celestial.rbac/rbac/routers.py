@@ -11,10 +11,10 @@ from rbac.deps import get_rbac_service, require_admin
 from rbac.schema import BootstrapResult, PermissionOut, RoleOut, SyncResult
 from rbac.services import RBACService
 
-rbac_router = APIRouter(tags=["Plugin: Role-based access control"])
+admin_router = APIRouter(tags=["Plugin: Role-based access control"])
 
 
-@rbac_router.get(
+@admin_router.get(
     "/roles",
     response_model=ResponseModel[list[RoleOut]],
     dependencies=[Depends(require_admin)],
@@ -27,7 +27,7 @@ async def list_roles(
     return Response.success(data=payload)
 
 
-@rbac_router.get(
+@admin_router.get(
     "/permissions",
     response_model=ResponseModel[list[PermissionOut]],
     dependencies=[Depends(require_admin)],
@@ -40,7 +40,7 @@ async def list_permissions(
     return Response.success(data=payload)
 
 
-@rbac_router.post(
+@admin_router.post(
     "/permissions/sync",
     response_model=ResponseModel[SyncResult],
     dependencies=[Depends(require_admin)],
@@ -52,7 +52,7 @@ async def sync_permissions(
     return Response.success(data=SyncResult.model_validate(result))
 
 
-@rbac_router.get(
+@admin_router.get(
     "/users/{user_id}/roles",
     response_model=ResponseModel[list[RoleOut]],
     dependencies=[Depends(require_admin)],
@@ -66,7 +66,7 @@ async def list_user_roles(
     return Response.success(data=payload)
 
 
-@rbac_router.post(
+@admin_router.post(
     "/users/{user_id}/roles/{role_code}",
     response_model=ResponseModel[None],
     dependencies=[Depends(require_admin)],
@@ -80,7 +80,7 @@ async def assign_role(
     return Response.success()
 
 
-@rbac_router.delete(
+@admin_router.delete(
     "/users/{user_id}/roles/{role_code}",
     response_model=ResponseModel[None],
     dependencies=[Depends(require_admin)],
@@ -94,7 +94,7 @@ async def revoke_role(
     return Response.success()
 
 
-@rbac_router.post(
+@admin_router.post(
     "/bootstrap/admin",
     response_model=ResponseModel[BootstrapResult],
 )
