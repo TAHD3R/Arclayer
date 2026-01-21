@@ -56,6 +56,14 @@
 - 高频接口必须接入 `fastapi-limiter`
 - 受 `VALKEY__ENABLED` 与 `VALKEY__LIMITER_ENABLED` 控制开关
 
+**i18n**
+- 用户可见文案必须使用 `t()` 翻译，避免硬编码
+- 统一在仓库根目录 `locales/<locale>/*.json` 维护通用命名空间
+- 插件自带文案放在 `plugins/<plugin_id>/locales/<locale>/*.json`，系统自动合并
+- 新增词条需同时补齐 `zh-CN` 与 `en-US`
+- 异常提示优先使用 `errors.json` 中的错误码映射
+- 异步任务（如邮件发送）需要显式传递 locale，避免丢失请求语言
+
 **测试与质量门禁**
 - 覆盖单元测试与集成测试
 - Python 代码需通过 Ruff、Pyright（或等效工具）与测试
