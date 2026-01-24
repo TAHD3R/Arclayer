@@ -71,7 +71,7 @@ def _build_response(
     return ORJSONResponse(payload.model_dump(), status_code=status_code, headers=headers)
 
 
-def init_exception_handlers(app: FastAPI, settings: Settings) -> None:  # noqa: C901
+def init_exception_handlers(app: FastAPI, settings: Settings) -> None:
     debug = settings.debug
 
     @app.exception_handler(APIError)

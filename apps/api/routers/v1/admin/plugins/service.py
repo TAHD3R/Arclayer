@@ -16,12 +16,21 @@ from apps.api.config import Settings
 from apps.api.core.exceptions import BadRequest, NotFound, ServiceUnavailable
 from apps.api.core.i18n import t
 from apps.api.core.logging import get_logger
+from apps.api.http.pagination import PageData, PageParams, paginate_queryset
 from apps.api.models.plugin import PluginRecord
 from apps.api.plugin.manager import PluginManager
 from apps.api.plugin.manifest import ConfigSchema, PluginManifest, build_default_config, load_plugin_manifest
 from apps.api.plugin.types import PluginStatus
 from apps.api.routers.v1.admin.plugins.repository import PluginRepository
-from apps.api.routers.v1.admin.plugins.schema import PluginDependencyItem, PluginDetail, PluginSummary
+from apps.api.routers.v1.admin.plugins.schema import (
+    PluginConfigFieldItem,
+    PluginConfigSchemaItem,
+    PluginConfigSectionItem,
+    PluginDependencyItem,
+    PluginDetail,
+    PluginPermissionItem,
+    PluginSummary,
+)
 
 logger = get_logger(__name__)
 
@@ -39,6 +48,11 @@ class PluginService(BaseService):
 
     async def list_plugins(self) -> list[PluginRecord]:
         return await self.repo.list_plugins()
+
+    async def list_plugins_paginated(self, *, params: PageParams) -> PageData[PluginSummary]:
+        qs = self.repo.query_plugins()
+        page = await paginate_queryset(qs, params=params, out_schema=PluginSummary)
+        return page
 
     async def get_plugin(self, plugin_id: str) -> PluginRecord:
         record = await self.repo.get_plugin(plugin_id)
@@ -335,39 +349,45 @@ class PluginService(BaseService):
             payload["config_schema"] = self._localize_config_schema(manifest.config_schema)
         return payload
 
-    def _localize_permissions(self, permissions: list[Any]) -> list[dict[str, Any]] | None:
+    def _localize_permissions(self, permissions: list[Any]) -> list[PluginPermissionItem] | None:
         if not permissions:
             return None
-        items: list[dict[str, Any]] = []
+        items: list[PluginPermissionItem] = []
         for perm in permissions:
-            items.append({
-                "code": perm.code,
-                "name": self._translate_ref(perm.name_i18n, perm.name),
-                "description": self._translate_ref(perm.description_i18n, perm.description),
-                "default_roles": list(perm.default_roles),
-            })
+            items.append(
+                PluginPermissionItem(
+                    code=perm.code,
+                    name=self._translate_ref(perm.name_i18n, perm.name),
+                    description=self._translate_ref(perm.description_i18n, perm.description),
+                    default_roles=list(perm.default_roles),
+                )
+            )
         return items
 
-    def _localize_config_schema(self, schema: ConfigSchema | None) -> dict[str, Any] | None:
+    def _localize_config_schema(self, schema: ConfigSchema | None) -> PluginConfigSchemaItem | None:
         if schema is None:
             return None
-        sections: list[dict[str, Any]] = []
+        sections: list[PluginConfigSectionItem] = []
         for section in schema.sections:
-            fields: list[dict[str, Any]] = []
+            fields: list[PluginConfigFieldItem] = []
             for field in section.fields:
-                fields.append({
-                    "key": field.key,
-                    "type": field.type,
-                    "default": field.default,
-                    "label": self._translate_ref(field.label_i18n, field.label),
-                    "description": self._translate_ref(field.description_i18n, field.description),
-                })
-            sections.append({
-                "id": section.id,
-                "title": self._translate_ref(section.title_i18n, section.title),
-                "fields": fields,
-            })
-        return {"sections": sections}
+                fields.append(
+                    PluginConfigFieldItem(
+                        key=field.key,
+                        type=field.type,
+                        default=field.default,
+                        label=self._translate_ref(field.label_i18n, field.label),
+                        description=self._translate_ref(field.description_i18n, field.description),
+                    )
+                )
+            sections.append(
+                PluginConfigSectionItem(
+                    id=section.id,
+                    title=self._translate_ref(section.title_i18n, section.title),
+                    fields=fields,
+                )
+            )
+        return PluginConfigSchemaItem(sections=sections)
 
     def _translate_ref(self, ref: str | None, default: str | None) -> str | None:
         if not ref:

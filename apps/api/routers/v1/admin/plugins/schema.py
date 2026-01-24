@@ -8,6 +8,31 @@ from pydantic import ConfigDict, Field
 from apps.api.common.schemas import BaseSchema
 
 
+class PluginPermissionItem(BaseSchema):
+    code: str = Field(..., description="Permission code.")
+    name: str | None = Field(default=None, description="Localized permission name.")
+    description: str | None = Field(default=None, description="Localized permission description.")
+    default_roles: list[str] = Field(default_factory=list, description="Default roles for this permission.")
+
+
+class PluginConfigFieldItem(BaseSchema):
+    key: str = Field(..., description="Config key.")
+    type: str = Field(..., description="Config field type.")
+    default: Any | None = Field(default=None, description="Default value.")
+    label: str | None = Field(default=None, description="Localized label.")
+    description: str | None = Field(default=None, description="Localized description.")
+
+
+class PluginConfigSectionItem(BaseSchema):
+    id: str = Field(..., description="Section identifier.")
+    title: str | None = Field(default=None, description="Localized title.")
+    fields: list[PluginConfigFieldItem] = Field(default_factory=list, description="Config fields.")
+
+
+class PluginConfigSchemaItem(BaseSchema):
+    sections: list[PluginConfigSectionItem] = Field(default_factory=list, description="Config sections.")
+
+
 class PluginDependencyItem(BaseSchema):
     plugin_id: str = Field(..., description="Dependency plugin identifier.")
     version: str | None = Field(default=None, description="Dependency version specifier (PEP 440).")
@@ -47,9 +72,9 @@ class PluginDetail(PluginSummary):
     package_filename: str | None = Field(default=None, description="Installed package filename.")
     package_checksum: str | None = Field(default=None, description="Installed package checksum (sha256).")
     package_size: int | None = Field(default=None, description="Installed package size.")
-    config_schema: dict[str, Any] | None = Field(default=None, description="Plugin config schema.")
+    config_schema: PluginConfigSchemaItem | None = Field(default=None, description="Plugin config schema.")
     config: dict[str, Any] | None = Field(default=None, description="Plugin configuration.")
-    permissions: list[dict[str, Any]] | None = Field(default=None, description="Declared permissions.")
+    permissions: list[PluginPermissionItem] | None = Field(default=None, description="Declared permissions.")
     dependencies: list[PluginDependencyItem] | None = Field(default=None, description="Declared dependencies.")
 
 

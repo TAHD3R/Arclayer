@@ -4,11 +4,13 @@ from uuid import UUID
 
 from org.models import Department, Position
 from rbac.models import Role
+from rbac.schema import RoleOut
 
 from apps.api.common.services import BaseService
 from apps.api.config import Settings
 from apps.api.core.exceptions import NotFound
 from apps.api.core.i18n import t
+from apps.api.http.pagination import PageData, PageParams, paginate_queryset
 from rbac_org.repository import RBACOrgRepository
 
 
@@ -48,6 +50,11 @@ class RBACOrgService(BaseService):
         await self._require_position(position_id=position_id)
         return await self.repo.list_position_roles(position_id=position_id)
 
+    async def list_position_roles_paginated(self, *, position_id: UUID, params: PageParams) -> PageData[RoleOut]:
+        await self._require_position(position_id=position_id)
+        qs = self.repo.query_position_roles(position_id=position_id)
+        return await paginate_queryset(qs, params=params, out_schema=RoleOut)
+
     async def set_position_roles(self, *, position_id: UUID, role_codes: list[str]) -> None:
         await self._require_position(position_id=position_id)
         roles = await self._require_roles(role_codes=role_codes)
@@ -68,6 +75,11 @@ class RBACOrgService(BaseService):
     async def list_department_roles(self, *, department_id: UUID) -> list[Role]:
         await self._require_department(department_id=department_id)
         return await self.repo.list_department_roles(department_id=department_id)
+
+    async def list_department_roles_paginated(self, *, department_id: UUID, params: PageParams) -> PageData[RoleOut]:
+        await self._require_department(department_id=department_id)
+        qs = self.repo.query_department_roles(department_id=department_id)
+        return await paginate_queryset(qs, params=params, out_schema=RoleOut)
 
     async def set_department_roles(self, *, department_id: UUID, role_codes: list[str]) -> None:
         await self._require_department(department_id=department_id)

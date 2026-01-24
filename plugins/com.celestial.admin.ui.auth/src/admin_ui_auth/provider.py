@@ -11,6 +11,7 @@ from apps.api.core.admin_ui import (
 )
 from apps.api.core.authz import get_authz_snapshot_provider
 from apps.api.core.i18n import t
+from apps.api.routers.v1.admin.ui.schema import AdminUIActionState, AdminUIContext, AdminUINavNode
 
 
 def _translate_ref(ref: str | None, default: str) -> str:
@@ -49,7 +50,7 @@ def _has_required_permissions(
 
 
 class DefaultAdminUIContextProvider:
-    async def get_context(self, user_id: UUID) -> dict[str, Any]:
+    async def get_context(self, user_id: UUID) -> AdminUIContext:
         snapshot_provider = get_authz_snapshot_provider()
         if snapshot_provider is None:
             # The router will translate this into 503; keep it simple here.
@@ -118,22 +119,22 @@ class DefaultAdminUIContextProvider:
         def _build_nav_node(res: AdminUIResourceSpec) -> dict[str, Any] | None:
             if res.id not in visible_menu_ids:
                 return None
-            node = {
-                "id": res.id,
-                "title": _translate_ref(res.title_i18n, res.title),
-                "icon": res.icon,
-                "path": res.path,
-                "sort": res.sort,
-                "children": [],
-            }
+            node = AdminUINavNode(
+                id=res.id,
+                title=_translate_ref(res.title_i18n, res.title),
+                icon=res.icon,
+                path=res.path,
+                sort=res.sort,
+                children=[],
+            )
             for child in children.get(res.id, []):
                 if child.type in {AdminUIResourceType.MENU_GROUP, AdminUIResourceType.MENU_ITEM}:
                     built = _build_nav_node(child)
                     if built is not None:
-                        node["children"].append(built)
+                        node.children.append(built)
             return node
 
-        nav_tree: list[dict[str, Any]] = []
+        nav_tree: list[AdminUINavNode] = []
         for res in roots:
             if res.type in {AdminUIResourceType.MENU_GROUP, AdminUIResourceType.MENU_ITEM}:
                 built = _build_nav_node(res)
@@ -142,7 +143,7 @@ class DefaultAdminUIContextProvider:
 
         # Build action map: only actions under visible menu nodes are included,
         # but they can be enabled/disabled based on permission codes.
-        actions: dict[str, dict[str, Any]] = {}
+        actions: dict[str, AdminUIActionState] = {}
         for res in resources:
             if res.type != AdminUIResourceType.ACTION:
                 continue
@@ -156,15 +157,12 @@ class DefaultAdminUIContextProvider:
                 required_all=res.required_permissions_all,
                 is_superuser=is_superuser,
             )
-            actions[res.id] = {
-                "id": res.id,
-                "title": _translate_ref(res.title_i18n, res.title),
-                "enabled": bool(enabled),
-                "required_permissions_any": list(res.required_permissions_any),
-                "required_permissions_all": list(res.required_permissions_all),
-            }
+            actions[res.id] = AdminUIActionState(
+                id=res.id,
+                title=_translate_ref(res.title_i18n, res.title),
+                enabled=bool(enabled),
+                required_permissions_any=list(res.required_permissions_any),
+                required_permissions_all=list(res.required_permissions_all),
+            )
 
-        return {
-            "nav_tree": nav_tree,
-            "actions": actions,
-        }
+        return AdminUIContext(nav_tree=nav_tree, actions=actions)

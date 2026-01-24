@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends
 
 from apps.api.core.authz import require_permission_strict
 from apps.api.core.response import Response, ResponseModel
+from apps.api.http.pagination import PageData, PageParams, get_page_params
 from org.deps import get_org_service
 from org.schema import (
     DepartmentCreate,
@@ -24,15 +25,15 @@ admin_router = APIRouter(tags=["Plugin: Organization"])
 
 @admin_router.get(
     "/departments",
-    response_model=ResponseModel[list[DepartmentOut]],
+    response_model=ResponseModel[PageData[DepartmentOut]],
     dependencies=[require_permission_strict("admin:org:departments:read")],
 )
 async def list_departments(
+    params: PageParams = Depends(get_page_params),
     service: OrgService = Depends(get_org_service),
-) -> ResponseModel[list[DepartmentOut]]:
-    items = await service.list_departments()
-    payload = [DepartmentOut.model_validate(item) for item in items]
-    return Response.success(data=payload)
+) -> ResponseModel[PageData[DepartmentOut]]:
+    page = await service.list_departments_paginated(params=params)
+    return Response.success(data=page)
 
 
 @admin_router.post(
@@ -77,15 +78,15 @@ async def delete_department(
 
 @admin_router.get(
     "/positions",
-    response_model=ResponseModel[list[PositionOut]],
+    response_model=ResponseModel[PageData[PositionOut]],
     dependencies=[require_permission_strict("admin:org:positions:read")],
 )
 async def list_positions(
+    params: PageParams = Depends(get_page_params),
     service: OrgService = Depends(get_org_service),
-) -> ResponseModel[list[PositionOut]]:
-    items = await service.list_positions()
-    payload = [PositionOut.model_validate(item) for item in items]
-    return Response.success(data=payload)
+) -> ResponseModel[PageData[PositionOut]]:
+    page = await service.list_positions_paginated(params=params)
+    return Response.success(data=page)
 
 
 @admin_router.post(
@@ -130,16 +131,16 @@ async def delete_position(
 
 @admin_router.get(
     "/users/{user_id}/departments",
-    response_model=ResponseModel[list[UserDepartmentOut]],
+    response_model=ResponseModel[PageData[UserDepartmentOut]],
     dependencies=[require_permission_strict("admin:org:users:assign")],
 )
 async def list_user_departments(
     user_id: UUID,
+    params: PageParams = Depends(get_page_params),
     service: OrgService = Depends(get_org_service),
-) -> ResponseModel[list[UserDepartmentOut]]:
-    items = await service.list_user_departments(user_id=user_id)
-    payload = [UserDepartmentOut.model_validate(item) for item in items]
-    return Response.success(data=payload)
+) -> ResponseModel[PageData[UserDepartmentOut]]:
+    page = await service.list_user_departments_paginated(user_id=user_id, params=params)
+    return Response.success(data=page)
 
 
 @admin_router.post(
@@ -187,16 +188,16 @@ async def revoke_user_department(
 
 @admin_router.get(
     "/users/{user_id}/positions",
-    response_model=ResponseModel[list[UserPositionOut]],
+    response_model=ResponseModel[PageData[UserPositionOut]],
     dependencies=[require_permission_strict("admin:org:users:assign")],
 )
 async def list_user_positions(
     user_id: UUID,
+    params: PageParams = Depends(get_page_params),
     service: OrgService = Depends(get_org_service),
-) -> ResponseModel[list[UserPositionOut]]:
-    items = await service.list_user_positions(user_id=user_id)
-    payload = [UserPositionOut.model_validate(item) for item in items]
-    return Response.success(data=payload)
+) -> ResponseModel[PageData[UserPositionOut]]:
+    page = await service.list_user_positions_paginated(user_id=user_id, params=params)
+    return Response.success(data=page)
 
 
 @admin_router.post(

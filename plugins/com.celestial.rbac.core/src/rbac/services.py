@@ -8,11 +8,13 @@ from apps.api.config import Settings
 from apps.api.core.exceptions import BadRequest, Conflict, Forbidden, NotFound
 from apps.api.core.i18n import t
 from apps.api.core.logging import get_logger
+from apps.api.http.pagination import PageData, PageParams, paginate_queryset
 from apps.api.models.plugin import PluginRecord
 from apps.api.plugin.registry import registry
 from rbac.constants import PLUGIN_ID, ROLE_ADMIN, ROLE_USER
 from rbac.extensions import get_role_resolvers
 from rbac.repository import RBACRepository
+from rbac.schema import AuthzSnapshot, PermissionOut, RoleOut, SyncResult
 
 logger = get_logger(__name__)
 
@@ -61,6 +63,10 @@ class RBACService(BaseService):
 
     async def list_roles(self):
         return await self.repo.list_roles()
+
+    async def list_roles_paginated(self, *, params: PageParams) -> PageData[RoleOut]:
+        qs = self.repo.query_roles()
+        return await paginate_queryset(qs, params=params, out_schema=RoleOut)
 
     async def get_role(self, *, role_code: str):
         role = await self.repo.get_role_by_code(role_code)
@@ -121,9 +127,19 @@ class RBACService(BaseService):
     async def list_permissions(self):
         return await self.repo.list_permissions()
 
+    async def list_permissions_paginated(self, *, params: PageParams) -> PageData[PermissionOut]:
+        qs = self.repo.query_permissions()
+        return await paginate_queryset(qs, params=params, out_schema=PermissionOut)
+
     async def list_role_permissions(self, *, role_code: str):
         role = await self.get_role(role_code=role_code)
         return await self.repo.list_role_permissions(role_id=role.id)
+
+    async def list_role_permissions_paginated(self, *, role_code: str, params: PageParams) -> PageData[PermissionOut]:
+        role = await self.get_role(role_code=role_code)
+        # Role permissions are still a QuerySet of Permission via relation filtering.
+        qs = self.repo.query_permissions().filter(permission_roles__role_id=role.id)
+        return await paginate_queryset(qs, params=params, out_schema=PermissionOut)
 
     async def set_role_permissions(self, *, role_code: str, permission_codes: list[str]) -> None:
         role = await self.get_role(role_code=role_code)
@@ -144,6 +160,10 @@ class RBACService(BaseService):
     async def list_user_roles(self, *, user_id: UUID):
         return await self.repo.list_user_roles(user_id)
 
+    async def list_user_roles_paginated(self, *, user_id: UUID, params: PageParams) -> PageData[RoleOut]:
+        qs = self.repo.query_user_roles(user_id=user_id)
+        return await paginate_queryset(qs, params=params, out_schema=RoleOut)
+
     async def is_admin(self, *, user_id: UUID) -> bool:
         return await self.repo.user_has_role(user_id=user_id, role_code=ROLE_ADMIN)
 
@@ -162,7 +182,7 @@ class RBACService(BaseService):
             role_codes.update(str(code) for code in extra if code)
         return sorted(role_codes)
 
-    async def get_my_authz(self, *, user_id: UUID) -> dict[str, Any]:
+    async def get_my_authz(self, *, user_id: UUID) -> AuthzSnapshot:
         roles = await self.list_effective_role_codes(user_id=user_id)
         is_superuser = await self.repo.role_codes_is_superuser(role_codes=roles)
         if is_superuser:
@@ -171,12 +191,12 @@ class RBACService(BaseService):
             permission_codes = [p.code for p in perms]
         else:
             permission_codes = await self.repo.list_permission_codes_for_role_codes(role_codes=roles)
-        return {
-            "user_id": user_id,
-            "role_codes": roles,
-            "permission_codes": permission_codes,
-            "is_superuser": is_superuser,
-        }
+        return AuthzSnapshot(
+            user_id=user_id,
+            role_codes=roles,
+            permission_codes=permission_codes,
+            is_superuser=is_superuser,
+        )
 
     async def assign_role(self, *, user_id: UUID, role_code: str) -> None:
         role = await self.repo.get_role_by_code(role_code)
@@ -223,7 +243,7 @@ class RBACService(BaseService):
             "done_at": state.done_at,
         }
 
-    async def sync_permissions(self) -> dict[str, int]:
+    async def sync_permissions(self) -> SyncResult:
         await self.ensure_system_roles()
         admin_role = await self.repo.get_role_by_code(ROLE_ADMIN)
         user_role = await self.repo.get_role_by_code(ROLE_USER)
@@ -280,10 +300,10 @@ class RBACService(BaseService):
             granted_admin=granted_admin,
             granted_user=granted_user,
         )
-        return {
-            "total": len(templates),
-            "created": created,
-            "updated": updated,
-            "granted_admin": granted_admin,
-            "granted_user": granted_user,
-        }
+        return SyncResult(
+            total=len(templates),
+            created=created,
+            updated=updated,
+            granted_admin=granted_admin,
+            granted_user=granted_user,
+        )

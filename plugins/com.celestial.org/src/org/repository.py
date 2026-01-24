@@ -2,11 +2,16 @@ from __future__ import annotations
 
 from uuid import UUID
 
+from tortoise.queryset import QuerySet
+
 from apps.api.common.repositories import BaseRepository
 from org.models import Department, Position, UserDepartment, UserPosition
 
 
 class OrgRepository(BaseRepository):
+    def query_departments(self) -> QuerySet[Department]:
+        return Department.all().order_by("sort", "name")
+
     async def list_departments(self) -> list[Department]:
         return await Department.all().order_by("sort", "name")
 
@@ -47,6 +52,9 @@ class OrgRepository(BaseRepository):
     async def department_has_children(self, department_id: UUID) -> bool:
         return await Department.filter(parent_id=department_id).exists()
 
+    def query_positions(self) -> QuerySet[Position]:
+        return Position.all().order_by("sort", "name")
+
     async def list_positions(self) -> list[Position]:
         return await Position.all().order_by("sort", "name")
 
@@ -79,6 +87,9 @@ class OrgRepository(BaseRepository):
     async def list_user_departments(self, *, user_id: UUID) -> list[UserDepartment]:
         return await UserDepartment.filter(user_id=user_id).all().order_by("-is_primary", "created_at")
 
+    def query_user_departments(self, *, user_id: UUID) -> QuerySet[UserDepartment]:
+        return UserDepartment.filter(user_id=user_id).order_by("-is_primary", "created_at")
+
     async def ensure_user_department(self, *, user_id: UUID, department_id: UUID) -> UserDepartment:
         row, _ = await UserDepartment.get_or_create(user_id=user_id, department_id=department_id)
         return row
@@ -95,6 +106,9 @@ class OrgRepository(BaseRepository):
 
     async def list_user_positions(self, *, user_id: UUID) -> list[UserPosition]:
         return await UserPosition.filter(user_id=user_id).all().order_by("created_at")
+
+    def query_user_positions(self, *, user_id: UUID) -> QuerySet[UserPosition]:
+        return UserPosition.filter(user_id=user_id).order_by("created_at")
 
     async def ensure_user_position(self, *, user_id: UUID, position_id: UUID) -> UserPosition:
         row, _ = await UserPosition.get_or_create(user_id=user_id, position_id=position_id)

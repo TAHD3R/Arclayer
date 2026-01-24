@@ -3,12 +3,16 @@ from __future__ import annotations
 from uuid import UUID
 
 from rbac.models import Role
+from tortoise.queryset import QuerySet
 
 from apps.api.common.repositories import BaseRepository
 from rbac_org.models import DepartmentRole, PositionRole
 
 
 class RBACOrgRepository(BaseRepository):
+    def query_position_roles(self, *, position_id: UUID) -> QuerySet[Role]:
+        return Role.filter(rbac_org_position_roles__position_id=position_id).order_by("code")
+
     async def list_position_roles(self, *, position_id: UUID) -> list[Role]:
         rows = await Role.filter(rbac_org_position_roles__position_id=position_id).all()
         return sorted(rows, key=lambda item: item.code)
@@ -23,6 +27,9 @@ class RBACOrgRepository(BaseRepository):
 
     async def remove_position_role(self, *, position_id: UUID, role_id: UUID) -> int:
         return await PositionRole.filter(position_id=position_id, role_id=role_id).delete()
+
+    def query_department_roles(self, *, department_id: UUID) -> QuerySet[Role]:
+        return Role.filter(rbac_org_department_roles__department_id=department_id).order_by("code")
 
     async def list_department_roles(self, *, department_id: UUID) -> list[Role]:
         rows = await Role.filter(rbac_org_department_roles__department_id=department_id).all()

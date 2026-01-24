@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends
 
 from apps.api.core.authz import require_permission_strict
 from apps.api.core.response import Response, ResponseModel
+from apps.api.http.pagination import PageData, PageParams, get_page_params
 from apps.api.models.user import User
 from apps.api.routers.v1.auth.deps import get_current_user
 from rbac.deps import get_rbac_service
@@ -27,15 +28,15 @@ admin_router = APIRouter(tags=["Plugin: Role-based access control"])
 
 @admin_router.get(
     "/roles",
-    response_model=ResponseModel[list[RoleOut]],
+    response_model=ResponseModel[PageData[RoleOut]],
     dependencies=[require_permission_strict("rbac:roles:read")],
 )
 async def list_roles(
+    params: PageParams = Depends(get_page_params),
     service: RBACService = Depends(get_rbac_service),
-) -> ResponseModel[list[RoleOut]]:
-    roles = await service.list_roles()
-    payload = [RoleOut.model_validate(role) for role in roles]
-    return Response.success(data=payload)
+) -> ResponseModel[PageData[RoleOut]]:
+    page = await service.list_roles_paginated(params=params)
+    return Response.success(data=page)
 
 
 @admin_router.get(
@@ -93,29 +94,29 @@ async def delete_role(
 
 @admin_router.get(
     "/permissions",
-    response_model=ResponseModel[list[PermissionOut]],
+    response_model=ResponseModel[PageData[PermissionOut]],
     dependencies=[require_permission_strict("rbac:permissions:read")],
 )
 async def list_permissions(
+    params: PageParams = Depends(get_page_params),
     service: RBACService = Depends(get_rbac_service),
-) -> ResponseModel[list[PermissionOut]]:
-    permissions = await service.list_permissions()
-    payload = [PermissionOut.model_validate(permission) for permission in permissions]
-    return Response.success(data=payload)
+) -> ResponseModel[PageData[PermissionOut]]:
+    page = await service.list_permissions_paginated(params=params)
+    return Response.success(data=page)
 
 
 @admin_router.get(
     "/roles/{role_code}/permissions",
-    response_model=ResponseModel[list[PermissionOut]],
+    response_model=ResponseModel[PageData[PermissionOut]],
     dependencies=[require_permission_strict("rbac:roles:read")],
 )
 async def list_role_permissions(
     role_code: str,
+    params: PageParams = Depends(get_page_params),
     service: RBACService = Depends(get_rbac_service),
-) -> ResponseModel[list[PermissionOut]]:
-    items = await service.list_role_permissions(role_code=role_code)
-    payload = [PermissionOut.model_validate(permission) for permission in items]
-    return Response.success(data=payload)
+) -> ResponseModel[PageData[PermissionOut]]:
+    page = await service.list_role_permissions_paginated(role_code=role_code, params=params)
+    return Response.success(data=page)
 
 
 @admin_router.put(
@@ -141,21 +142,21 @@ async def sync_permissions(
     service: RBACService = Depends(get_rbac_service),
 ) -> ResponseModel[SyncResult]:
     result = await service.sync_permissions()
-    return Response.success(data=SyncResult.model_validate(result))
+    return Response.success(data=result)
 
 
 @admin_router.get(
     "/users/{user_id}/roles",
-    response_model=ResponseModel[list[RoleOut]],
+    response_model=ResponseModel[PageData[RoleOut]],
     dependencies=[require_permission_strict("rbac:users:assign")],
 )
 async def list_user_roles(
     user_id: UUID,
+    params: PageParams = Depends(get_page_params),
     service: RBACService = Depends(get_rbac_service),
-) -> ResponseModel[list[RoleOut]]:
-    roles = await service.list_user_roles(user_id=user_id)
-    payload = [RoleOut.model_validate(role) for role in roles]
-    return Response.success(data=payload)
+) -> ResponseModel[PageData[RoleOut]]:
+    page = await service.list_user_roles_paginated(user_id=user_id, params=params)
+    return Response.success(data=page)
 
 
 @admin_router.post(
@@ -207,4 +208,4 @@ async def get_my_authz(
     service: RBACService = Depends(get_rbac_service),
 ) -> ResponseModel[AuthzSnapshot]:
     payload = await service.get_my_authz(user_id=user.id)
-    return Response.success(data=AuthzSnapshot.model_validate(payload))
+    return Response.success(data=payload)

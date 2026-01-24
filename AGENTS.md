@@ -32,6 +32,13 @@
 - 字段必须使用 `Field` 定义约束、描述与示例
 - 复杂校验必须使用 `validator` / `model_validator`
 
+**HTTP 输出规范（强制）**
+- 禁止在 API 层手写/拼装 JSON 字典作为业务输出（例如 `return {"items": ...}` 或 `Response.success(data={"items": ...})`）
+- 输入/输出只要可以用 Pydantic 表达，就必须使用 Pydantic Schema：
+  - Router 层：`response_model` 必须绑定 Schema；返回时优先返回 Schema 实例或 `Schema.model_validate(...)`
+  - Service/Repository 层：对外返回的分页/业务结果优先返回 Schema（或可被 `model_validate` 接受的对象），避免散落的硬编码 key
+- 例外（允许使用 dict）：`config` 等动态结构、`ResponseModel.meta` 等明确声明为 `dict[str, Any]` 的扩展字段
+
 **日志规范**
 - 全项目统一结构化日志风格
 - 记录关键上下文：`request_id`、`user_id`、`entity_id`、`action`

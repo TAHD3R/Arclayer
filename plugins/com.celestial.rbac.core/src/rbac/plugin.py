@@ -16,7 +16,8 @@ logger = get_logger(__name__)
 class RBACAuthzSnapshotProvider:
     async def get_snapshot(self, user_id):
         service = RBACService(get_settings())
-        return await service.get_my_authz(user_id=user_id)
+        snap = await service.get_my_authz(user_id=user_id)
+        return snap.model_dump()
 
 
 class RBACPlugin(BasePlugin):

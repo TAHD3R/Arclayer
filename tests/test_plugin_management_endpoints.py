@@ -114,7 +114,8 @@ async def test_plugin_management_flow(prepared_db, plugin_root, tmp_path) -> Non
 
                 response = await client.get("/api/v1/admin/plugins")
                 assert response.status_code == 200
-                items = response.json()["data"]
+                page = response.json()["data"]
+                items = page["items"]
                 assert any(item["pluginId"] == plugin_id for item in items)
 
                 response = await client.get(f"/api/v1/admin/plugins/{plugin_id}")

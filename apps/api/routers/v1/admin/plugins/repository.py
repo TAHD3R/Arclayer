@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from tortoise.queryset import QuerySet
+
 from apps.api.common.repositories import BaseRepository
 from apps.api.models.plugin import PluginRecord
 from apps.api.plugin.types import PluginStatus
@@ -8,6 +10,9 @@ from apps.api.plugin.types import PluginStatus
 class PluginRepository(BaseRepository):
     async def list_plugins(self) -> list[PluginRecord]:
         return await PluginRecord.all().order_by("plugin_id")
+
+    def query_plugins(self) -> QuerySet[PluginRecord]:
+        return PluginRecord.all().order_by("plugin_id")
 
     async def get_plugin(self, plugin_id: str) -> PluginRecord | None:
         return await PluginRecord.get_or_none(plugin_id=plugin_id)

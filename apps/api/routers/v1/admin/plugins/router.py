@@ -7,6 +7,7 @@ from apps.api.core.authz import require_permission_strict
 from apps.api.core.exceptions import ServiceUnavailable
 from apps.api.core.i18n import t
 from apps.api.core.response import Response, ResponseModel
+from apps.api.http.pagination import PageData, PageParams, get_page_params
 from apps.api.plugin.manager import PluginManager
 from apps.api.routers.v1.admin.plugins.schema import (
     PluginConfigUpdate,
@@ -40,14 +41,14 @@ def get_plugin_service(
     return PluginService(settings, manager=manager)
 
 
-@router.get("", response_model=ResponseModel[list[PluginSummary]])
+@router.get("", response_model=ResponseModel[PageData[PluginSummary]])
 async def list_plugins(
+    params: PageParams = Depends(get_page_params),
     service: PluginService = Depends(get_plugin_service),
     _user=Depends(get_current_user),
-) -> ResponseModel[list[PluginSummary]]:
-    records = await service.list_plugins()
-    payload = [service.to_summary(record) for record in records]
-    return Response.success(data=payload)
+) -> ResponseModel[PageData[PluginSummary]]:
+    page = await service.list_plugins_paginated(params=params)
+    return Response.success(data=page)
 
 
 @router.get("/{plugin_id}", response_model=ResponseModel[PluginDetail])

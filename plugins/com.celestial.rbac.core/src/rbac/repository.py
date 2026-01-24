@@ -3,17 +3,25 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from uuid import UUID
 
+from tortoise.queryset import QuerySet
+
 from apps.api.common.repositories import BaseRepository
 from rbac.constants import BOOTSTRAP_KEY, ROLE_ADMIN
 from rbac.models import BootstrapState, Permission, Role, RolePermission, UserRole
 
 
 class RBACRepository(BaseRepository):
+    def query_roles(self) -> QuerySet[Role]:
+        return Role.all().order_by("code")
+
     async def get_role_by_code(self, code: str) -> Role | None:
         return await Role.get_or_none(code=code)
 
     async def list_roles(self) -> list[Role]:
         return await Role.all().order_by("code")
+
+    def query_permissions(self) -> QuerySet[Permission]:
+        return Permission.all().order_by("code")
 
     async def create_role(
         self,
@@ -135,6 +143,9 @@ class RBACRepository(BaseRepository):
     async def list_user_roles(self, user_id: UUID) -> list[Role]:
         roles = await Role.filter(role_users__user_id=user_id).all()
         return sorted(roles, key=lambda item: item.code)
+
+    def query_user_roles(self, *, user_id: UUID) -> QuerySet[Role]:
+        return Role.filter(role_users__user_id=user_id).order_by("code")
 
     async def list_user_role_codes(self, *, user_id: UUID) -> list[str]:
         rows = await Role.filter(role_users__user_id=user_id).values_list("code", flat=True)

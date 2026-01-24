@@ -7,8 +7,10 @@ from apps.api.common.services import BaseService
 from apps.api.config import Settings
 from apps.api.core.exceptions import BadRequest, Conflict, NotFound
 from apps.api.core.i18n import t
+from apps.api.http.pagination import PageData, PageParams, paginate_queryset
 from apps.api.models.user import User
 from org.repository import OrgRepository
+from org.schema import DepartmentOut, PositionOut, UserDepartmentOut, UserPositionOut
 
 
 def _tr(key: str, default: str) -> str:
@@ -22,6 +24,10 @@ class OrgService(BaseService):
 
     async def list_departments(self):
         return await self.repo.list_departments()
+
+    async def list_departments_paginated(self, *, params: PageParams) -> PageData[DepartmentOut]:
+        qs = self.repo.query_departments()
+        return await paginate_queryset(qs, params=params, out_schema=DepartmentOut)
 
     async def create_department(self, payload: dict[str, Any]):
         code = payload.get("code")
@@ -83,6 +89,10 @@ class OrgService(BaseService):
     async def list_positions(self):
         return await self.repo.list_positions()
 
+    async def list_positions_paginated(self, *, params: PageParams) -> PageData[PositionOut]:
+        qs = self.repo.query_positions()
+        return await paginate_queryset(qs, params=params, out_schema=PositionOut)
+
     async def create_position(self, payload: dict[str, Any]):
         existing = await self.repo.get_position_by_code(str(payload["code"]))
         if existing is not None:
@@ -122,6 +132,13 @@ class OrgService(BaseService):
         await self._ensure_user(user_id)
         return await self.repo.list_user_departments(user_id=user_id)
 
+    async def list_user_departments_paginated(
+        self, *, user_id: UUID, params: PageParams
+    ) -> PageData[UserDepartmentOut]:
+        await self._ensure_user(user_id)
+        qs = self.repo.query_user_departments(user_id=user_id)
+        return await paginate_queryset(qs, params=params, out_schema=UserDepartmentOut)
+
     async def assign_user_department(self, *, user_id: UUID, department_id: UUID, primary: bool = False) -> None:
         await self._ensure_user(user_id)
         department = await self.repo.get_department(department_id)
@@ -159,6 +176,11 @@ class OrgService(BaseService):
     async def list_user_positions(self, *, user_id: UUID):
         await self._ensure_user(user_id)
         return await self.repo.list_user_positions(user_id=user_id)
+
+    async def list_user_positions_paginated(self, *, user_id: UUID, params: PageParams) -> PageData[UserPositionOut]:
+        await self._ensure_user(user_id)
+        qs = self.repo.query_user_positions(user_id=user_id)
+        return await paginate_queryset(qs, params=params, out_schema=UserPositionOut)
 
     async def assign_user_position(self, *, user_id: UUID, position_id: UUID) -> None:
         await self._ensure_user(user_id)
