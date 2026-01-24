@@ -6,6 +6,7 @@ from uuid import UUID
 from apps.api.core.logging import get_logger
 from apps.api.plugin.types import PluginDescriptor
 from rbac.constants import ROLE_ADMIN
+from rbac.extensions import get_role_resolvers
 from rbac.repository import RBACRepository
 
 logger = get_logger(__name__)
@@ -34,13 +35,30 @@ class RBACAuthorizationEngine:
             return True
         return _get_bool(self._config, "general", "enforcement", False)
 
+    async def _get_effective_role_codes(self, *, user_id: UUID) -> list[str]:
+        role_codes = set(await self._repo.list_user_role_codes(user_id=user_id))
+        for resolver in get_role_resolvers():
+            try:
+                extra = await resolver.get_role_codes(user_id=user_id)
+            except Exception as exc:
+                # Fail closed: ignore resolver output on error to avoid privilege escalation.
+                logger.warning("RBAC role resolver failed", error=str(exc))
+                continue
+            if not extra:
+                continue
+            role_codes.update(str(code) for code in extra if code)
+        return sorted(role_codes)
+
     async def has_permission(self, user_id: UUID, permission: str) -> bool:
         if not self._is_enforced(permission):
             return True
         try:
-            if await self._repo.user_has_role(user_id=user_id, role_code=ROLE_ADMIN):
+            role_codes = await self._get_effective_role_codes(user_id=user_id)
+            if ROLE_ADMIN in role_codes:
                 return True
-            return await self._repo.user_has_permission(user_id=user_id, permission_code=permission)
+            if await self._repo.role_codes_is_superuser(role_codes=role_codes):
+                return True
+            return await self._repo.role_codes_have_permission(role_codes=role_codes, permission_code=permission)
         except Exception as exc:
             logger.warning("RBAC permission check failed", error=str(exc), permission=permission)
             return False

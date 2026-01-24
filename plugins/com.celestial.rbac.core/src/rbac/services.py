@@ -11,6 +11,7 @@ from apps.api.core.logging import get_logger
 from apps.api.models.plugin import PluginRecord
 from apps.api.plugin.registry import registry
 from rbac.constants import PLUGIN_ID, ROLE_ADMIN, ROLE_USER
+from rbac.extensions import get_role_resolvers
 from rbac.repository import RBACRepository
 
 logger = get_logger(__name__)
@@ -146,17 +147,30 @@ class RBACService(BaseService):
     async def is_admin(self, *, user_id: UUID) -> bool:
         return await self.repo.user_has_role(user_id=user_id, role_code=ROLE_ADMIN)
 
+    async def list_effective_role_codes(self, *, user_id: UUID) -> list[str]:
+        # Effective roles = direct user roles + roles resolved by extensions (e.g. org bridge).
+        role_codes = set(await self.repo.list_user_role_codes(user_id=user_id))
+        for resolver in get_role_resolvers():
+            try:
+                extra = await resolver.get_role_codes(user_id=user_id)
+            except Exception as exc:
+                # Fail closed: ignore resolver output on error to avoid privilege escalation.
+                logger.warning("RBAC role resolver failed", error=str(exc))
+                continue
+            if not extra:
+                continue
+            role_codes.update(str(code) for code in extra if code)
+        return sorted(role_codes)
+
     async def get_my_authz(self, *, user_id: UUID) -> dict[str, Any]:
-        # Currently only direct user roles are supported here. When rbac.org bridge is added,
-        # this should aggregate additional roles via role-resolver extensions.
-        roles = await self.repo.list_user_role_codes(user_id=user_id)
-        is_superuser = await self.repo.user_is_superuser(user_id=user_id)
+        roles = await self.list_effective_role_codes(user_id=user_id)
+        is_superuser = await self.repo.role_codes_is_superuser(role_codes=roles)
         if is_superuser:
             # For superuser, return all codes for UI convenience.
             perms = await self.repo.list_permissions()
             permission_codes = [p.code for p in perms]
         else:
-            permission_codes = await self.repo.list_user_permission_codes(user_id=user_id)
+            permission_codes = await self.repo.list_permission_codes_for_role_codes(role_codes=roles)
         return {
             "user_id": user_id,
             "role_codes": roles,

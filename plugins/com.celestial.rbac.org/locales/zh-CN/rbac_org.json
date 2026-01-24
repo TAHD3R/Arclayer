@@ -1,0 +1,15 @@
+{
+  "PLUGIN_NAME": "RBAC 组织桥接插件",
+  "PLUGIN_DESCRIPTION": "将组织结构（部门/岗位）映射为 RBAC 角色，用于计算用户有效权限。",
+  "PERM_POSITIONS_ROLES_READ_NAME": "读取岗位角色绑定",
+  "PERM_POSITIONS_ROLES_READ_DESC": "允许查看岗位绑定了哪些角色。",
+  "PERM_POSITIONS_ROLES_WRITE_NAME": "管理岗位角色绑定",
+  "PERM_POSITIONS_ROLES_WRITE_DESC": "允许为岗位绑定/解绑角色。",
+  "PERM_DEPARTMENTS_ROLES_READ_NAME": "读取部门角色绑定",
+  "PERM_DEPARTMENTS_ROLES_READ_DESC": "允许查看部门绑定了哪些角色。",
+  "PERM_DEPARTMENTS_ROLES_WRITE_NAME": "管理部门角色绑定",
+  "PERM_DEPARTMENTS_ROLES_WRITE_DESC": "允许为部门绑定/解绑角色。",
+  "POSITION_NOT_FOUND": "岗位不存在",
+  "DEPARTMENT_NOT_FOUND": "部门不存在",
+  "ROLE_NOT_FOUND": "角色不存在"
+}

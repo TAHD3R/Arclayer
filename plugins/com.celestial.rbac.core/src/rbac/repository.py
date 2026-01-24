@@ -147,8 +147,19 @@ class RBACRepository(BaseRepository):
         )
         return sorted(set(rows))
 
+    async def list_permission_codes_for_role_codes(self, *, role_codes: list[str]) -> list[str]:
+        if not role_codes:
+            return []
+        rows = await Permission.filter(permission_roles__role__code__in=role_codes).values_list("code", flat=True)
+        return sorted(set(rows))
+
     async def user_is_superuser(self, *, user_id: UUID) -> bool:
         return await Role.filter(role_users__user_id=user_id, is_superuser=True).exists()
+
+    async def role_codes_is_superuser(self, *, role_codes: list[str]) -> bool:
+        if not role_codes:
+            return False
+        return await Role.filter(code__in=role_codes, is_superuser=True).exists()
 
     async def user_has_role(self, *, user_id: UUID, role_code: str) -> bool:
         return await UserRole.filter(user_id=user_id, role__code=role_code).exists()
@@ -156,6 +167,14 @@ class RBACRepository(BaseRepository):
     async def user_has_permission(self, *, user_id: UUID, permission_code: str) -> bool:
         return await RolePermission.filter(
             role__role_users__user_id=user_id,
+            permission__code=permission_code,
+        ).exists()
+
+    async def role_codes_have_permission(self, *, role_codes: list[str], permission_code: str) -> bool:
+        if not role_codes:
+            return False
+        return await RolePermission.filter(
+            role__code__in=role_codes,
             permission__code=permission_code,
         ).exists()
 

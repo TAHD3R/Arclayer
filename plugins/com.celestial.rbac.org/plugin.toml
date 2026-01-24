@@ -1,0 +1,50 @@
+models = ["rbac_org.models"]
+
+dependencies = [
+  { id = "com.celestial.rbac.core", version = ">=1.0.0", optional = false },
+  { id = "com.celestial.org", version = ">=1.0.0", optional = false },
+]
+
+[plugin]
+id = "com.celestial.rbac.org"
+name = "RBAC 组织桥接插件"
+description = "将组织结构（部门/岗位）映射为 RBAC 角色，用于计算用户有效权限。"
+name_i18n = "rbac_org:PLUGIN_NAME"
+description_i18n = "rbac_org:PLUGIN_DESCRIPTION"
+author = "Celestial Team"
+version = "1.0.0"
+requires = ">=2026.01.18-dev"
+entrypoint = "rbac_org.plugin:RBACOrgPlugin"
+license = "MIT"
+
+[[permissions]]
+code = "admin:rbac-org:positions:roles:read"
+name = "Read position roles"
+description = "Allow listing role bindings for positions."
+name_i18n = "rbac_org:PERM_POSITIONS_ROLES_READ_NAME"
+description_i18n = "rbac_org:PERM_POSITIONS_ROLES_READ_DESC"
+default_roles = ["admin"]
+
+[[permissions]]
+code = "admin:rbac-org:positions:roles:write"
+name = "Manage position roles"
+description = "Allow binding/unbinding roles for positions."
+name_i18n = "rbac_org:PERM_POSITIONS_ROLES_WRITE_NAME"
+description_i18n = "rbac_org:PERM_POSITIONS_ROLES_WRITE_DESC"
+default_roles = ["admin"]
+
+[[permissions]]
+code = "admin:rbac-org:departments:roles:read"
+name = "Read department roles"
+description = "Allow listing role bindings for departments."
+name_i18n = "rbac_org:PERM_DEPARTMENTS_ROLES_READ_NAME"
+description_i18n = "rbac_org:PERM_DEPARTMENTS_ROLES_READ_DESC"
+default_roles = ["admin"]
+
+[[permissions]]
+code = "admin:rbac-org:departments:roles:write"
+name = "Manage department roles"
+description = "Allow binding/unbinding roles for departments."
+name_i18n = "rbac_org:PERM_DEPARTMENTS_ROLES_WRITE_NAME"
+description_i18n = "rbac_org:PERM_DEPARTMENTS_ROLES_WRITE_DESC"
+default_roles = ["admin"]
