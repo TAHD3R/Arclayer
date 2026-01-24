@@ -7,6 +7,12 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 
+class PluginDependency(BaseModel):
+    id: str = Field(..., description="Dependency plugin identifier.")
+    version: str | None = Field(default=None, description="Dependency version specifier (PEP 440).")
+    optional: bool = Field(default=False, description="Whether this dependency is optional.")
+
+
 class PermissionTemplate(BaseModel):
     code: str
     name: str
@@ -55,6 +61,7 @@ class PluginMeta(BaseModel):
 
 class PluginManifest(BaseModel):
     plugin: PluginMeta
+    dependencies: list[PluginDependency] = Field(default_factory=list)
     permissions: list[PermissionTemplate] = Field(default_factory=list)
     config_schema: ConfigSchema | None = None
     models: list[str] = Field(default_factory=list)

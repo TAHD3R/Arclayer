@@ -9,7 +9,9 @@ from uuid import uuid4
 import pytest
 from httpx import ASGITransport, AsyncClient
 
+from apps.api.core.authz import AUTHZ_EXTENSION_POINT
 from apps.api.core.registry import create_app
+from apps.api.plugin.registry import registry
 from apps.api.routers.v1.auth.deps import get_current_user
 
 pytestmark = pytest.mark.integration
@@ -83,7 +85,7 @@ def _build_demo_plugin_zip(tmp_path: Path, plugin_id: str) -> Path:
 
 
 async def _fake_user():
-    return SimpleNamespace()
+    return SimpleNamespace(id=uuid4())
 
 
 async def test_plugin_management_flow(prepared_db, plugin_root, tmp_path) -> None:
@@ -93,49 +95,58 @@ async def test_plugin_management_flow(prepared_db, plugin_root, tmp_path) -> Non
 
     app = create_app()
     app.dependency_overrides[get_current_user] = _fake_user
+    registry.register_extension("test", AUTHZ_EXTENSION_POINT, _AllowAllEngine())
 
     transport = ASGITransport(app=app)
-    async with app.router.lifespan_context(app):
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
-            files = {"file": ("demo.zip", zip_path.read_bytes(), "application/zip")}
-            response = await client.post(
-                "/api/v1/admin/plugins/install",
-                data={"enable": "false"},
-                files=files,
-            )
-            assert response.status_code == 200
-            payload = response.json()
-            assert payload["data"]["plugin"]["pluginId"] == plugin_id
-            assert payload["data"]["plugin"]["status"] == "disabled"
+    try:
+        async with app.router.lifespan_context(app):
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                files = {"file": ("demo.zip", zip_path.read_bytes(), "application/zip")}
+                response = await client.post(
+                    "/api/v1/admin/plugins/install",
+                    data={"enable": "false"},
+                    files=files,
+                )
+                assert response.status_code == 200
+                payload = response.json()
+                assert payload["data"]["plugin"]["pluginId"] == plugin_id
+                assert payload["data"]["plugin"]["status"] == "disabled"
 
-            response = await client.get("/api/v1/admin/plugins")
-            assert response.status_code == 200
-            items = response.json()["data"]
-            assert any(item["pluginId"] == plugin_id for item in items)
+                response = await client.get("/api/v1/admin/plugins")
+                assert response.status_code == 200
+                items = response.json()["data"]
+                assert any(item["pluginId"] == plugin_id for item in items)
 
-            response = await client.get(f"/api/v1/admin/plugins/{plugin_id}")
-            assert response.status_code == 200
-            detail = response.json()["data"]
-            assert detail["pluginId"] == plugin_id
-            assert detail["status"] == "disabled"
+                response = await client.get(f"/api/v1/admin/plugins/{plugin_id}")
+                assert response.status_code == 200
+                detail = response.json()["data"]
+                assert detail["pluginId"] == plugin_id
+                assert detail["status"] == "disabled"
 
-            response = await client.post(f"/api/v1/admin/plugins/{plugin_id}/enable")
-            assert response.status_code == 200
-            assert response.json()["data"]["status"] == "started"
+                response = await client.post(f"/api/v1/admin/plugins/{plugin_id}/enable")
+                assert response.status_code == 200
+                assert response.json()["data"]["status"] == "started"
 
-            response = await client.put(
-                f"/api/v1/admin/plugins/{plugin_id}/config",
-                json={"config": {"general": {"enabled": True, "mode": "on"}}},
-            )
-            assert response.status_code == 200
-            config = response.json()["data"]["plugin"]["config"]
-            assert config["general"]["enabled"] is True
-            assert config["general"]["mode"] == "on"
+                response = await client.put(
+                    f"/api/v1/admin/plugins/{plugin_id}/config",
+                    json={"config": {"general": {"enabled": True, "mode": "on"}}},
+                )
+                assert response.status_code == 200
+                config = response.json()["data"]["plugin"]["config"]
+                assert config["general"]["enabled"] is True
+                assert config["general"]["mode"] == "on"
 
-            response = await client.post(f"/api/v1/admin/plugins/{plugin_id}/disable")
-            assert response.status_code == 200
-            assert response.json()["data"]["status"] == "disabled"
+                response = await client.post(f"/api/v1/admin/plugins/{plugin_id}/disable")
+                assert response.status_code == 200
+                assert response.json()["data"]["status"] == "disabled"
 
-            response = await client.post(f"/api/v1/admin/plugins/{plugin_id}/uninstall")
-            assert response.status_code == 200
-            assert response.json()["data"]["status"] == "disabled"
+                response = await client.post(f"/api/v1/admin/plugins/{plugin_id}/uninstall")
+                assert response.status_code == 200
+                assert response.json()["data"]["status"] == "disabled"
+    finally:
+        registry.unregister_extensions("test", AUTHZ_EXTENSION_POINT)
+
+
+class _AllowAllEngine:
+    async def has_permission(self, user_id, permission: str) -> bool:
+        return True

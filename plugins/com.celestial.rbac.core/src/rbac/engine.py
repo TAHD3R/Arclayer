@@ -10,6 +10,8 @@ from rbac.repository import RBACRepository
 
 logger = get_logger(__name__)
 
+ALWAYS_ENFORCED_PREFIXES = ("admin:", "system:")
+
 
 def _get_bool(config: dict[str, Any], section: str, key: str, default: bool) -> bool:
     values = config.get(section, {})
@@ -27,11 +29,13 @@ class RBACAuthorizationEngine:
         self._repo = RBACRepository()
         self._config = descriptor.config or {}
 
-    def _is_enforced(self) -> bool:
+    def _is_enforced(self, permission: str) -> bool:
+        if permission.startswith(ALWAYS_ENFORCED_PREFIXES):
+            return True
         return _get_bool(self._config, "general", "enforcement", False)
 
     async def has_permission(self, user_id: UUID, permission: str) -> bool:
-        if not self._is_enforced():
+        if not self._is_enforced(permission):
             return True
         try:
             if await self._repo.user_has_role(user_id=user_id, role_code=ROLE_ADMIN):

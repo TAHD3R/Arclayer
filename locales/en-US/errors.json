@@ -12,5 +12,6 @@
   "INTERNAL_ERROR": "Internal server error",
   "DB_OPERATIONAL_ERROR": "Database operation failed",
   "CSRF_FAILED": "CSRF validation failed",
-  "PLUGIN_MANAGER_UNAVAILABLE": "Plugin manager unavailable"
+  "PLUGIN_MANAGER_UNAVAILABLE": "Plugin manager unavailable",
+  "AUTHZ_ENGINE_UNAVAILABLE": "Authorization engine unavailable"
 }

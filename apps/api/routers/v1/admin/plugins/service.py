@@ -21,7 +21,7 @@ from apps.api.plugin.manager import PluginManager
 from apps.api.plugin.manifest import ConfigSchema, PluginManifest, build_default_config, load_plugin_manifest
 from apps.api.plugin.types import PluginStatus
 from apps.api.routers.v1.admin.plugins.repository import PluginRepository
-from apps.api.routers.v1.admin.plugins.schema import PluginDetail, PluginSummary
+from apps.api.routers.v1.admin.plugins.schema import PluginDependencyItem, PluginDetail, PluginSummary
 
 logger = get_logger(__name__)
 
@@ -46,7 +46,7 @@ class PluginService(BaseService):
             raise NotFound(message=_tp("PLUGIN_NOT_FOUND", "插件不存在"), error="PLUGIN_NOT_FOUND")
         return record
 
-    async def install_plugin(  # noqa: C901
+    async def install_plugin(
         self,
         *,
         file: UploadFile,
@@ -91,7 +91,7 @@ class PluginService(BaseService):
                     error="PLUGIN_TOML_MISSING",
                 )
             entry_root = self._get_entry_root(manifest)
-            if not (payload_dir / entry_root).is_dir():
+            if not (payload_dir / entry_root).is_dir() and not (payload_dir / "src" / entry_root).is_dir():
                 raise BadRequest(
                     message=_tp("PLUGIN_PACKAGE_MISSING", "插件包缺少主包目录"),
                     error="PLUGIN_PACKAGE_MISSING",
@@ -176,6 +176,12 @@ class PluginService(BaseService):
         manager = self._require_manager()
         try:
             await manager.enable(plugin_id)
+        except ValueError as exc:
+            raise BadRequest(
+                message=_tp("PLUGIN_DEPENDENCY_ERROR", "插件依赖错误"),
+                error="PLUGIN_DEPENDENCY_ERROR",
+                details=str(exc),
+            ) from exc
         except KeyError as exc:
             raise NotFound(message=_tp("PLUGIN_NOT_FOUND", "插件未安装"), error="PLUGIN_NOT_FOUND") from exc
         await record.refresh_from_db()
@@ -186,6 +192,12 @@ class PluginService(BaseService):
         manager = self._require_manager()
         try:
             await manager.disable(plugin_id)
+        except ValueError as exc:
+            raise BadRequest(
+                message=_tp("PLUGIN_DEPENDENCY_ERROR", "插件依赖错误"),
+                error="PLUGIN_DEPENDENCY_ERROR",
+                details=str(exc),
+            ) from exc
         except KeyError as exc:
             raise NotFound(message=_tp("PLUGIN_NOT_FOUND", "插件未安装"), error="PLUGIN_NOT_FOUND") from exc
         await record.refresh_from_db()
@@ -227,6 +239,7 @@ class PluginService(BaseService):
         if manifest is None:
             return detail
         update = self._localized_fields(manifest)
+        update["dependencies"] = self._build_dependency_report(manifest)
         return detail.model_copy(update=update)
 
     def to_summary(self, record: PluginRecord) -> PluginSummary:
@@ -236,6 +249,60 @@ class PluginService(BaseService):
             return summary
         update = self._localized_fields(manifest, include_schema=False)
         return summary.model_copy(update=update)
+
+    def _build_dependency_report(self, manifest: PluginManifest) -> list[PluginDependencyItem] | None:
+        deps = getattr(manifest, "dependencies", None) or []
+        if not deps:
+            return None
+        if self.manager is None:
+            return None
+
+        from packaging.specifiers import SpecifierSet
+        from packaging.version import InvalidVersion, Version
+
+        items: list[PluginDependencyItem] = []
+        for dep in deps:
+            installed_version: str | None = None
+            status = "ok"
+            detail: str | None = None
+
+            dep_record = self.manager.records.get(dep.id)
+            dep_desc = self.manager.descriptors.get(dep.id)
+            if dep_record is not None:
+                installed_version = dep_record.version
+                if dep_record.status == PluginStatus.DISABLED:
+                    status = "disabled"
+                elif dep_record.status == PluginStatus.FAILED:
+                    status = "failed"
+            elif dep_desc is not None:
+                installed_version = dep_desc.manifest.plugin.version
+            else:
+                if dep.optional:
+                    detail = "Optional dependency not installed"
+                    status = "ok"
+                else:
+                    status = "missing"
+
+            if status == "ok" and dep.version and installed_version:
+                try:
+                    if Version(installed_version) not in SpecifierSet(dep.version):
+                        status = "version_mismatch"
+                        detail = f"Installed {installed_version} does not satisfy {dep.version}"
+                except (InvalidVersion, Exception):
+                    status = "version_mismatch"
+                    detail = f"Invalid version comparison (installed={installed_version}, spec={dep.version})"
+
+            items.append(
+                PluginDependencyItem(
+                    plugin_id=dep.id,
+                    version=dep.version,
+                    optional=bool(dep.optional),
+                    status=status,
+                    installed_version=installed_version,
+                    detail=detail,
+                )
+            )
+        return items
 
     def _require_manager(self) -> PluginManager:
         if self.manager is None:

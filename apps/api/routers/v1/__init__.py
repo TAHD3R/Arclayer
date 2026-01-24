@@ -3,6 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter
 
 from apps.api.config import Settings
+from apps.api.core.authz import require_permission_strict
 from apps.api.plugin.manager import PluginManager
 from apps.api.plugin.routes import register_plugin_routers
 from apps.api.routers.v1.admin import router as admin_router
@@ -17,6 +18,6 @@ def build_v1_router(settings: Settings, *, plugin_manager: PluginManager) -> API
 
     root = APIRouter(prefix=f"{api_prefix}{version_prefix}")
     root.include_router(public_router)
-    root.include_router(admin_router, prefix="/admin")
+    root.include_router(admin_router, prefix="/admin", dependencies=[require_permission_strict("admin:access")])
     register_plugin_routers(root, plugin_manager=plugin_manager)
     return root

@@ -14,6 +14,10 @@ pytestmark = pytest.mark.integration
 
 
 def _write_demo_plugin(root, plugin_id: str) -> None:
+    _write_demo_plugin_with_deps(root, plugin_id, deps=None)
+
+
+def _write_demo_plugin_with_deps(root, plugin_id: str, *, deps: list[dict] | None) -> None:
     package_name = f"pkg_{plugin_id.replace('-', '_').replace('.', '_')}"
     plugin_dir = root / package_name
     plugin_dir.mkdir(parents=True, exist_ok=True)
@@ -44,6 +48,7 @@ def _write_demo_plugin(root, plugin_id: str) -> None:
         textwrap
         .dedent(
             """
+            {deps_block}
             [plugin]
             id = "{plugin_id}"
             name = "Demo Plugin"
@@ -72,10 +77,30 @@ def _write_demo_plugin(root, plugin_id: str) -> None:
             label = "Enabled"
             """
         )
-        .format(plugin_id=plugin_id, package_name=package_name)
+        .format(
+            deps_block=_format_deps(deps),
+            plugin_id=plugin_id,
+            package_name=package_name,
+        )
         .lstrip(),
         encoding="utf-8",
     )
+
+
+def _format_deps(deps: list[dict] | None) -> str:
+    if not deps:
+        return ""
+    lines = ["dependencies = ["]
+    for item in deps:
+        plugin_id = item["id"]
+        version = item.get("version")
+        optional = bool(item.get("optional", False))
+        if version is None:
+            lines.append(f'  {{ id = "{plugin_id}", optional = {str(optional).lower()} }},')
+        else:
+            lines.append(f'  {{ id = "{plugin_id}", version = "{version}", optional = {str(optional).lower()} }},')
+    lines.append("]")
+    return "\n".join(lines)
 
 
 async def test_plugin_manager_enable_disable(tmp_path, monkeypatch, db_schema) -> None:
@@ -107,5 +132,49 @@ async def test_plugin_manager_enable_disable(tmp_path, monkeypatch, db_schema) -
         await manager.disable(plugin_id)
         record = await PluginRecord.get(plugin_id=plugin_id)
         assert record.status == PluginStatus.DISABLED
+    finally:
+        await manager.stop()
+
+
+async def test_plugin_manager_dependency_enforcement(tmp_path, monkeypatch, db_schema) -> None:
+    _ = db_schema
+    dep_id = f"demo_dep_{uuid.uuid4().hex}"
+    main_id = f"demo_main_{uuid.uuid4().hex}"
+    missing_dep_id = f"demo_missing_{uuid.uuid4().hex}"
+
+    _write_demo_plugin_with_deps(tmp_path, dep_id, deps=None)
+    _write_demo_plugin_with_deps(
+        tmp_path,
+        main_id,
+        deps=[{"id": dep_id, "version": ">=0.1.0", "optional": False}],
+    )
+    _write_demo_plugin_with_deps(
+        tmp_path,
+        f"demo_broken_{uuid.uuid4().hex}",
+        deps=[{"id": missing_dep_id, "version": ">=0.1.0", "optional": False}],
+    )
+
+    monkeypatch.setenv("PLUGIN__ENABLED", "1")
+    monkeypatch.setenv("PLUGIN__ROOT_DIR", str(tmp_path))
+    monkeypatch.setenv("PLUGIN__AUTO_MIGRATE", "0")
+    monkeypatch.setenv("PLUGIN__AUTO_RESTART", "0")
+    get_settings.cache_clear()
+
+    settings = get_settings()
+    manager = PluginManager(settings)
+    manager.discover()
+    try:
+        await manager.sync_records()
+
+        # A dependency cannot be disabled while an active dependent exists.
+        with pytest.raises(ValueError):
+            await manager.disable(dep_id)
+
+        await manager.disable(main_id)
+        await manager.disable(dep_id)
+
+        broken_id = next(pid for pid in manager.descriptors if pid.startswith("demo_broken_"))
+        with pytest.raises(ValueError):
+            await manager.enable(broken_id)
     finally:
         await manager.stop()

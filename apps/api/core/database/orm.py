@@ -159,6 +159,11 @@ def _collect_manifest_models(settings: Settings) -> set[str]:
         plugin_root_str = str(plugin_root)
         if plugin_root_str not in sys.path:
             sys.path.insert(0, plugin_root_str)
+        src_root = plugin_root / "src"
+        if src_root.is_dir():
+            src_root_str = str(src_root)
+            if src_root_str not in sys.path:
+                sys.path.insert(0, src_root_str)
         try:
             manifest = load_plugin_manifest(manifest_path)
         except Exception as exc:

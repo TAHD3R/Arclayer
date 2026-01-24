@@ -12,5 +12,6 @@
   "INTERNAL_ERROR": "服务器内部错误",
   "DB_OPERATIONAL_ERROR": "数据库操作失败",
   "CSRF_FAILED": "CSRF 校验失败",
-  "PLUGIN_MANAGER_UNAVAILABLE": "插件管理器不可用"
+  "PLUGIN_MANAGER_UNAVAILABLE": "插件管理器不可用",
+  "AUTHZ_ENGINE_UNAVAILABLE": "鉴权引擎不可用"
 }

@@ -11,6 +11,7 @@ from rbac.deps import get_rbac_service, require_admin
 from rbac.schema import BootstrapResult, PermissionOut, RoleOut, SyncResult
 from rbac.services import RBACService
 
+public_router = APIRouter(tags=["Plugin: Role-based access control"])
 admin_router = APIRouter(tags=["Plugin: Role-based access control"])
 
 
@@ -94,7 +95,7 @@ async def revoke_role(
     return Response.success()
 
 
-@admin_router.post(
+@public_router.post(
     "/bootstrap/admin",
     response_model=ResponseModel[BootstrapResult],
 )

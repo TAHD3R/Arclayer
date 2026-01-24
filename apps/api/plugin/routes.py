@@ -5,6 +5,7 @@ from collections.abc import Iterable
 
 from fastapi import APIRouter, Depends
 
+from apps.api.core.authz import require_permission_strict
 from apps.api.core.logging import get_logger
 from apps.api.plugin.deps import require_plugin_enabled
 from apps.api.plugin.manager import PluginManager
@@ -21,10 +22,13 @@ def register_plugin_routers(router: APIRouter, *, plugin_manager: PluginManager)
         for scope, subrouter in _load_plugin_routers(descriptor.entrypoint):
             prefix = _build_plugin_prefix(plugin_id, scope)
             include_tags = None if subrouter.tags else [f"plugin:{plugin_id}"]
+            dependencies = [Depends(require_plugin_enabled(plugin_id))]
+            if scope == "admin":
+                dependencies.append(require_permission_strict("admin:access"))
             router.include_router(
                 subrouter,
                 prefix=prefix,
-                dependencies=[Depends(require_plugin_enabled(plugin_id))],
+                dependencies=dependencies,
                 tags=include_tags,
             )
 

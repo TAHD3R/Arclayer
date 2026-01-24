@@ -12,6 +12,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from packaging.specifiers import SpecifierSet
+from packaging.version import InvalidVersion, Version
 from pydantic import ValidationError
 
 from apps.api.config import Settings
@@ -27,6 +29,7 @@ from apps.api.plugin.types import BasePlugin, PluginDescriptor, PluginStatus
 logger = get_logger(__name__)
 
 MIGRATION_LOCK_KEY = "plugin:migrate:lock"
+PROTECTED_PLUGINS = frozenset({"com.celestial.rbac.core"})
 
 
 class PluginManager:
@@ -39,7 +42,8 @@ class PluginManager:
         self.instances: dict[str, BasePlugin] = {}
         self.records: dict[str, PluginRecord] = {}
         self.valkey: ValkeyClient | None = None
-        self._migration_lock = asyncio.Lock()
+        # Lazily created in async context to avoid binding to a closed loop in sync code paths.
+        self._migration_lock: asyncio.Lock | None = None
 
     def bind_valkey(self, client: ValkeyClient | None) -> None:
         self.valkey = client
@@ -58,6 +62,11 @@ class PluginManager:
             path_str = str(path)
             if path_str not in sys.path:
                 sys.path.insert(0, path_str)
+            src_path = path / "src"
+            if src_path.is_dir():
+                src_str = str(src_path)
+                if src_str not in sys.path:
+                    sys.path.insert(0, src_str)
 
     def discover(self) -> list[PluginDescriptor]:
         if not self.settings.plugin.enabled:
@@ -145,10 +154,22 @@ class PluginManager:
         for descriptor in self.descriptors.values():
             self.registry.register_permissions(descriptor.plugin_id, descriptor.manifest.permissions)
 
-        for plugin_id, descriptor in self.descriptors.items():
+        for plugin_id in self._resolve_start_order():
+            descriptor = self.descriptors[plugin_id]
             record = self.records.get(plugin_id)
             if record and record.status == PluginStatus.DISABLED:
                 logger.info("Plugin disabled, skip start", plugin_id=plugin_id)
+                continue
+            issues = self._validate_dependencies_for_start(descriptor)
+            if issues:
+                if record:
+                    record.status = PluginStatus.FAILED
+                    await record.save()
+                logger.error(
+                    "Plugin dependency check failed",
+                    plugin_id=plugin_id,
+                    issues=issues,
+                )
                 continue
 
             if (
@@ -175,12 +196,20 @@ class PluginManager:
         descriptor = await self._ensure_descriptor(plugin_id)
         record = await self._ensure_record(descriptor)
 
+        await self._ensure_dependencies_enabled(descriptor)
+
         if record.status == PluginStatus.DISABLED:
             record.status = PluginStatus.INSTALLED
             record.started_at = None
             await record.save()
 
         if plugin_id in self.instances:
+            return record
+
+        # If any required dependency needs a restart to be activated in-process, avoid
+        # starting this plugin now and request a restart instead.
+        if self._needs_restart_due_to_dependencies(descriptor):
+            await self._request_restart(plugin_id, reason="enable")
             return record
 
         if self._requires_restart(descriptor):
@@ -201,6 +230,12 @@ class PluginManager:
     async def disable(self, plugin_id: str) -> PluginRecord:
         descriptor = await self._ensure_descriptor(plugin_id)
         record = await self._ensure_record(descriptor)
+
+        if plugin_id in PROTECTED_PLUGINS:
+            raise ValueError(f"Plugin is protected and cannot be disabled: {plugin_id}")
+        dependents = self._list_active_dependents(plugin_id)
+        if dependents:
+            raise ValueError(f"Plugin is required by other plugins: {dependents}")
 
         instance = self.instances.get(plugin_id)
         if instance is not None:
@@ -235,6 +270,146 @@ class PluginManager:
 
     def _requires_restart(self, descriptor: PluginDescriptor) -> bool:
         return bool(descriptor.manifest.models)
+
+    def _resolve_start_order(self) -> list[str]:
+        """
+        Return plugin ids in a best-effort topological order based on declared dependencies.
+
+        The order is used to increase the chance that dependency-providing plugins start
+        before dependent plugins.
+        """
+
+        nodes = set(self.descriptors.keys())
+        outgoing: dict[str, set[str]] = {pid: set() for pid in nodes}
+        indegree: dict[str, int] = dict.fromkeys(nodes, 0)
+
+        for pid, desc in self.descriptors.items():
+            for dep in getattr(desc.manifest, "dependencies", []) or []:
+                if dep.id not in nodes:
+                    # Missing deps will be handled by validation and reported as failures.
+                    continue
+                if dep.id == pid:
+                    continue
+                if pid in outgoing[dep.id]:
+                    continue
+                outgoing[dep.id].add(pid)
+                indegree[pid] += 1
+
+        queue = sorted([pid for pid, deg in indegree.items() if deg == 0])
+        order: list[str] = []
+        while queue:
+            pid = queue.pop(0)
+            order.append(pid)
+            for nxt in sorted(outgoing.get(pid, set())):
+                indegree[nxt] -= 1
+                if indegree[nxt] == 0:
+                    queue.append(nxt)
+                    queue.sort()
+
+        if len(order) != len(nodes):
+            # Cycle or unresolved edges; fall back to stable ordering for remaining nodes.
+            remaining = sorted(nodes.difference(order))
+            logger.error("Plugin dependency cycle detected", plugins=remaining)
+            order.extend(remaining)
+        return order
+
+    def _validate_dependencies_for_start(self, descriptor: PluginDescriptor) -> list[str]:
+        issues: list[str] = []
+        for dep in getattr(descriptor.manifest, "dependencies", []) or []:
+            if dep.optional:
+                continue
+            dep_desc = self.descriptors.get(dep.id)
+            dep_record = self.records.get(dep.id)
+            if dep_desc is None:
+                issues.append(f"missing dependency: {dep.id}")
+                continue
+            if dep_record is not None:
+                if dep_record.status == PluginStatus.DISABLED:
+                    issues.append(f"dependency disabled: {dep.id}")
+                    continue
+                if dep_record.status == PluginStatus.FAILED:
+                    issues.append(f"dependency failed: {dep.id}")
+                    continue
+
+            if dep.version:
+                installed = dep_desc.manifest.plugin.version
+                if not _satisfies_version(installed, dep.version):
+                    issues.append(f"dependency version mismatch: {dep.id} ({installed} not in {dep.version})")
+        return issues
+
+    async def _ensure_dependencies_enabled(self, descriptor: PluginDescriptor) -> None:
+        """
+        Ensure required dependencies are installed and enabled before enabling the plugin.
+        """
+
+        visited: set[str] = set()
+        visiting: set[str] = set()
+
+        async def _walk(current: PluginDescriptor) -> None:
+            if current.plugin_id in visited:
+                return
+            if current.plugin_id in visiting:
+                raise ValueError(f"Cyclic dependency detected at: {current.plugin_id}")
+            visiting.add(current.plugin_id)
+            visited.add(current.plugin_id)
+
+            try:
+                for dep in getattr(current.manifest, "dependencies", []) or []:
+                    if dep.optional:
+                        continue
+                    dep_desc = self.descriptors.get(dep.id)
+                    if dep_desc is None:
+                        raise ValueError(f"Missing dependency: {dep.id}")
+                    if dep.version and not _satisfies_version(dep_desc.manifest.plugin.version, dep.version):
+                        raise ValueError(
+                            f"Dependency version mismatch: {dep.id} "
+                            f"({dep_desc.manifest.plugin.version} not in {dep.version})"
+                        )
+                    dep_record = self.records.get(dep.id)
+                    if dep_record is None:
+                        # Should not happen if sync_records has run, but keep it defensive.
+                        raise ValueError(f"Dependency record not found: {dep.id}")
+                    if dep_record.status == PluginStatus.DISABLED:
+                        await self.enable(dep.id)
+                    if dep_record.status == PluginStatus.FAILED:
+                        raise ValueError(f"Dependency failed: {dep.id}")
+                    await _walk(dep_desc)
+            finally:
+                visiting.discard(current.plugin_id)
+
+        await _walk(descriptor)
+
+    def _needs_restart_due_to_dependencies(self, descriptor: PluginDescriptor) -> bool:
+        for dep in getattr(descriptor.manifest, "dependencies", []) or []:
+            if dep.optional:
+                continue
+            dep_desc = self.descriptors.get(dep.id)
+            if dep_desc is None:
+                continue
+            if self._requires_restart(dep_desc) and dep.id not in self.instances:
+                return True
+        return False
+
+    def _list_active_dependents(self, plugin_id: str) -> list[str]:
+        """
+        Return dependent plugins that are currently active (not disabled).
+        """
+
+        results: list[str] = []
+        for pid, desc in self.descriptors.items():
+            if pid == plugin_id:
+                continue
+            for dep in getattr(desc.manifest, "dependencies", []) or []:
+                if dep.optional:
+                    continue
+                if dep.id != plugin_id:
+                    continue
+                record = self.records.get(pid)
+                if record is None:
+                    continue
+                if record.status != PluginStatus.DISABLED:
+                    results.append(pid)
+        return sorted(set(results))
 
     async def _start_plugin(self, descriptor: PluginDescriptor, record: PluginRecord | None) -> None:
         try:
@@ -273,6 +448,8 @@ class PluginManager:
             logger.exception("Plugin stop failed", plugin_id=plugin_id, error=str(exc))
 
     async def _run_migrations(self, plugin_id: str) -> None:
+        if self._migration_lock is None:
+            self._migration_lock = asyncio.Lock()
         async with self._migration_lock:
             token = await self._acquire_migration_lock()
             if token is None and self.valkey is not None:
@@ -365,6 +542,15 @@ def _merge_config(current: dict[str, Any], defaults: dict[str, Any]) -> dict[str
             for key, value in values.items():
                 merged[section].setdefault(key, value)
     return merged
+
+
+def _satisfies_version(installed: str, spec: str) -> bool:
+    try:
+        return Version(installed) in SpecifierSet(spec)
+    except InvalidVersion:
+        return False
+    except Exception:
+        return False
 
 
 def _load_plugin_class(entrypoint: str) -> type[BasePlugin]:

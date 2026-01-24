@@ -5,7 +5,7 @@ from uuid import UUID
 
 from fastapi import Depends
 
-from apps.api.core.exceptions import Forbidden
+from apps.api.core.exceptions import Forbidden, ServiceUnavailable
 from apps.api.core.i18n import t
 from apps.api.plugin.registry import ExtensionPointType, registry
 from apps.api.routers.v1.auth.deps import get_current_user_id
@@ -38,6 +38,24 @@ def require_permission(permission: str):
         engine = get_authz_engine()
         if engine is None:
             return
+        allowed = await engine.has_permission(user_id, permission)
+        if not allowed:
+            raise Forbidden(
+                message=t("errors", "PERMISSION_DENIED", default="权限不足"),
+                error="PERMISSION_DENIED",
+            )
+
+    return Depends(_dependency)
+
+
+def require_permission_strict(permission: str):
+    async def _dependency(user_id: UUID = Depends(get_current_user_id)) -> None:
+        engine = get_authz_engine()
+        if engine is None:
+            raise ServiceUnavailable(
+                message=t("errors", "AUTHZ_ENGINE_UNAVAILABLE", default="鉴权引擎不可用"),
+                error="AUTHZ_ENGINE_UNAVAILABLE",
+            )
         allowed = await engine.has_permission(user_id, permission)
         if not allowed:
             raise Forbidden(

@@ -8,6 +8,15 @@ from pydantic import ConfigDict, Field
 from apps.api.common.schemas import BaseSchema
 
 
+class PluginDependencyItem(BaseSchema):
+    plugin_id: str = Field(..., description="Dependency plugin identifier.")
+    version: str | None = Field(default=None, description="Dependency version specifier (PEP 440).")
+    optional: bool = Field(default=False, description="Whether this dependency is optional.")
+    status: str = Field(..., description="Dependency status (ok/missing/disabled/version_mismatch/failed).")
+    installed_version: str | None = Field(default=None, description="Installed dependency version if available.")
+    detail: str | None = Field(default=None, description="Optional diagnostic detail.")
+
+
 class PluginSummary(BaseSchema):
     model_config = ConfigDict(
         from_attributes=True,
@@ -41,6 +50,7 @@ class PluginDetail(PluginSummary):
     config_schema: dict[str, Any] | None = Field(default=None, description="Plugin config schema.")
     config: dict[str, Any] | None = Field(default=None, description="Plugin configuration.")
     permissions: list[dict[str, Any]] | None = Field(default=None, description="Declared permissions.")
+    dependencies: list[PluginDependencyItem] | None = Field(default=None, description="Declared dependencies.")
 
 
 class PluginConfigUpdate(BaseSchema):

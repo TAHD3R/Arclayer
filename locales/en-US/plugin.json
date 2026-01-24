@@ -11,5 +11,6 @@
   "PLUGIN_ENTRYPOINT_INVALID": "Plugin entrypoint is invalid",
   "PLUGIN_CONFIG_ITEM_INVALID": "Plugin configuration item is invalid",
   "PLUGIN_CONFIG_TYPE_INVALID": "Plugin configuration type is invalid",
-  "PLUGIN_DISABLED": "Plugin is not enabled"
+  "PLUGIN_DISABLED": "Plugin is not enabled",
+  "PLUGIN_DEPENDENCY_ERROR": "Plugin dependency error"
 }
