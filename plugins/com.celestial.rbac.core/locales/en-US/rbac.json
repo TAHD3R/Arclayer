@@ -1,6 +1,10 @@
 {
   "ADMIN_REQUIRED": "Administrator access required",
   "ROLE_NOT_FOUND": "Role not found",
+  "ROLE_EXISTS": "Role code already exists",
+  "ROLE_DELETE_FORBIDDEN": "System roles cannot be deleted",
+  "ROLE_UPDATE_INVALID": "System role privileges cannot be modified",
+  "PERMISSION_NOT_FOUND": "Permission not found",
   "BOOTSTRAP_DISABLED": "Bootstrap admin is disabled",
   "BOOTSTRAP_DONE": "Bootstrap admin already completed",
   "ADMIN_EXISTS": "Admin already exists",

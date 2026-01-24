@@ -61,14 +61,108 @@ class RBACService(BaseService):
     async def list_roles(self):
         return await self.repo.list_roles()
 
+    async def get_role(self, *, role_code: str):
+        role = await self.repo.get_role_by_code(role_code)
+        if role is None:
+            raise NotFound(message=_tr("ROLE_NOT_FOUND", "角色不存在"), error="ROLE_NOT_FOUND")
+        return role
+
+    async def create_role(
+        self,
+        *,
+        code: str,
+        name: str,
+        description: str | None,
+        is_default: bool,
+        is_superuser: bool,
+    ):
+        existing = await self.repo.get_role_by_code(code)
+        if existing is not None:
+            raise Conflict(message=_tr("ROLE_EXISTS", "角色编码已存在"), error="ROLE_EXISTS")
+        return await self.repo.create_role(
+            code=code,
+            name=name,
+            description=description,
+            is_default=is_default,
+            is_superuser=is_superuser,
+        )
+
+    async def update_role(
+        self,
+        *,
+        role_code: str,
+        payload: dict[str, Any],
+    ):
+        role = await self.get_role(role_code=role_code)
+        updates: dict[str, Any] = dict(payload or {})
+        # Role code must never be modified.
+        updates.pop("code", None)
+
+        if role.code in (ROLE_ADMIN, ROLE_USER):
+            # Avoid turning system roles into unexpected authority. Name/description changes are OK.
+            if "is_superuser" in updates or "is_default" in updates:
+                raise BadRequest(
+                    message=_tr("ROLE_UPDATE_INVALID", "不允许修改系统角色权限"),
+                    error="ROLE_UPDATE_INVALID",
+                )
+
+        if not updates:
+            return role
+
+        return await self.repo.update_role(role, updates=updates)
+
+    async def delete_role(self, *, role_code: str) -> None:
+        role = await self.get_role(role_code=role_code)
+        if role.code in (ROLE_ADMIN, ROLE_USER):
+            raise BadRequest(message=_tr("ROLE_DELETE_FORBIDDEN", "不允许删除系统角色"), error="ROLE_DELETE_FORBIDDEN")
+        await self.repo.delete_role(role)
+
     async def list_permissions(self):
         return await self.repo.list_permissions()
+
+    async def list_role_permissions(self, *, role_code: str):
+        role = await self.get_role(role_code=role_code)
+        return await self.repo.list_role_permissions(role_id=role.id)
+
+    async def set_role_permissions(self, *, role_code: str, permission_codes: list[str]) -> None:
+        role = await self.get_role(role_code=role_code)
+        if role.code in (ROLE_ADMIN, ROLE_USER):
+            raise BadRequest(
+                message=_tr("ROLE_UPDATE_INVALID", "不允许修改系统角色权限"),
+                error="ROLE_UPDATE_INVALID",
+            )
+        unique = sorted(set(permission_codes))
+        ids: list[Any] = []
+        for code in unique:
+            perm = await self.repo.get_permission_by_code(code)
+            if perm is None:
+                raise NotFound(message=_tr("PERMISSION_NOT_FOUND", "权限不存在"), error="PERMISSION_NOT_FOUND")
+            ids.append(perm.id)
+        await self.repo.replace_role_permissions(role=role, permission_ids=ids)
 
     async def list_user_roles(self, *, user_id: UUID):
         return await self.repo.list_user_roles(user_id)
 
     async def is_admin(self, *, user_id: UUID) -> bool:
         return await self.repo.user_has_role(user_id=user_id, role_code=ROLE_ADMIN)
+
+    async def get_my_authz(self, *, user_id: UUID) -> dict[str, Any]:
+        # Currently only direct user roles are supported here. When rbac.org bridge is added,
+        # this should aggregate additional roles via role-resolver extensions.
+        roles = await self.repo.list_user_role_codes(user_id=user_id)
+        is_superuser = await self.repo.user_is_superuser(user_id=user_id)
+        if is_superuser:
+            # For superuser, return all codes for UI convenience.
+            perms = await self.repo.list_permissions()
+            permission_codes = [p.code for p in perms]
+        else:
+            permission_codes = await self.repo.list_user_permission_codes(user_id=user_id)
+        return {
+            "user_id": user_id,
+            "role_codes": roles,
+            "permission_codes": permission_codes,
+            "is_superuser": is_superuser,
+        }
 
     async def assign_role(self, *, user_id: UUID, role_code: str) -> None:
         role = await self.repo.get_role_by_code(role_code)

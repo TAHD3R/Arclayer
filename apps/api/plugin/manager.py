@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import importlib
 import os
+import re
 import signal
 import sys
 import time
@@ -455,7 +456,9 @@ class PluginManager:
             if token is None and self.valkey is not None:
                 raise RuntimeError("Plugin migration lock busy")
             try:
-                await self._run_aerich("migrate", "--name", f"plugin_{plugin_id}", "--no-input")
+                # Aerich migration names become part of Python module filenames; keep them import-safe.
+                safe_name = _sanitize_migration_name(f"plugin_{plugin_id}")
+                await self._run_aerich("migrate", "--name", safe_name, "--no-input")
                 await self._run_aerich("upgrade")
             finally:
                 if token and self.valkey is not None:
@@ -542,6 +545,12 @@ def _merge_config(current: dict[str, Any], defaults: dict[str, Any]) -> dict[str
             for key, value in values.items():
                 merged[section].setdefault(key, value)
     return merged
+
+
+def _sanitize_migration_name(value: str) -> str:
+    # Keep only characters safe for Python module filenames.
+    cleaned = re.sub(r"[^A-Za-z0-9_]+", "_", value).strip("_")
+    return cleaned or "plugin_migration"
 
 
 def _satisfies_version(installed: str, spec: str) -> bool:

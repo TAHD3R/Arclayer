@@ -1,0 +1,22 @@
+{
+  "PLUGIN_NAME": "Organization plugin",
+  "PLUGIN_DESCRIPTION": "Manage departments, positions, and user organization membership.",
+  "PERM_DEPARTMENTS_READ_NAME": "Read departments",
+  "PERM_DEPARTMENTS_READ_DESC": "Allow listing and viewing departments.",
+  "PERM_DEPARTMENTS_WRITE_NAME": "Manage departments",
+  "PERM_DEPARTMENTS_WRITE_DESC": "Allow creating, updating, and deleting departments.",
+  "PERM_POSITIONS_READ_NAME": "Read positions",
+  "PERM_POSITIONS_READ_DESC": "Allow listing and viewing positions.",
+  "PERM_POSITIONS_WRITE_NAME": "Manage positions",
+  "PERM_POSITIONS_WRITE_DESC": "Allow creating, updating, and deleting positions.",
+  "PERM_USERS_ASSIGN_NAME": "Assign user departments and positions",
+  "PERM_USERS_ASSIGN_DESC": "Allow assigning departments/positions to users and setting primary department.",
+  "DEPARTMENT_NOT_FOUND": "Department not found",
+  "DEPARTMENT_HAS_CHILDREN": "Department has child departments",
+  "DEPARTMENT_CODE_EXISTS": "Department code already exists",
+  "INVALID_PARENT": "Invalid parent department",
+  "POSITION_NOT_FOUND": "Position not found",
+  "POSITION_CODE_EXISTS": "Position code already exists",
+  "USER_NOT_FOUND": "User not found",
+  "USER_DEPARTMENT_MISSING": "User is not in the department"
+}

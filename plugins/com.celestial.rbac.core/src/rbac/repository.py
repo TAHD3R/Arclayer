@@ -15,8 +15,46 @@ class RBACRepository(BaseRepository):
     async def list_roles(self) -> list[Role]:
         return await Role.all().order_by("code")
 
+    async def create_role(
+        self,
+        *,
+        code: str,
+        name: str,
+        description: str | None,
+        is_default: bool,
+        is_superuser: bool,
+    ) -> Role:
+        return await Role.create(
+            code=code,
+            name=name,
+            description=description,
+            is_default=is_default,
+            is_superuser=is_superuser,
+        )
+
+    async def update_role(self, role: Role, *, updates: dict) -> Role:
+        for key, value in updates.items():
+            setattr(role, key, value)
+        await role.save()
+        return role
+
+    async def delete_role(self, role: Role) -> int:
+        return await Role.filter(id=role.id).delete()
+
     async def list_permissions(self) -> list[Permission]:
         return await Permission.all().order_by("code")
+
+    async def get_permission_by_code(self, code: str) -> Permission | None:
+        return await Permission.get_or_none(code=code)
+
+    async def list_role_permissions(self, *, role_id) -> list[Permission]:
+        return await Permission.filter(permission_roles__role_id=role_id).all().order_by("code")
+
+    async def replace_role_permissions(self, *, role: Role, permission_ids: list) -> None:
+        # Simple replace strategy: delete then re-create. This is acceptable for early-stage RBAC sizes.
+        await RolePermission.filter(role_id=role.id).delete()
+        for pid in permission_ids:
+            await RolePermission.get_or_create(role_id=role.id, permission_id=pid)
 
     async def get_or_create_role(
         self,
@@ -97,6 +135,20 @@ class RBACRepository(BaseRepository):
     async def list_user_roles(self, user_id: UUID) -> list[Role]:
         roles = await Role.filter(role_users__user_id=user_id).all()
         return sorted(roles, key=lambda item: item.code)
+
+    async def list_user_role_codes(self, *, user_id: UUID) -> list[str]:
+        rows = await Role.filter(role_users__user_id=user_id).values_list("code", flat=True)
+        return sorted(set(rows))
+
+    async def list_user_permission_codes(self, *, user_id: UUID) -> list[str]:
+        rows = await Permission.filter(permission_roles__role__role_users__user_id=user_id).values_list(
+            "code",
+            flat=True,
+        )
+        return sorted(set(rows))
+
+    async def user_is_superuser(self, *, user_id: UUID) -> bool:
+        return await Role.filter(role_users__user_id=user_id, is_superuser=True).exists()
 
     async def user_has_role(self, *, user_id: UUID, role_code: str) -> bool:
         return await UserRole.filter(user_id=user_id, role__code=role_code).exists()

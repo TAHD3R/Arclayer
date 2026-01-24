@@ -10,7 +10,7 @@ from rbac.repository import RBACRepository
 
 logger = get_logger(__name__)
 
-ALWAYS_ENFORCED_PREFIXES = ("admin:", "system:")
+ALWAYS_ENFORCED_PREFIXES = ("admin:", "system:", "rbac:")
 
 
 def _get_bool(config: dict[str, Any], section: str, key: str, default: bool) -> bool:

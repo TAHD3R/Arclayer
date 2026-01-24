@@ -3,7 +3,9 @@ from __future__ import annotations
 from fastapi import APIRouter, BackgroundTasks, Depends, Request
 
 from apps.api.config import Settings, get_settings
+from apps.api.core.authz import get_authz_snapshot_provider, require_permission_strict
 from apps.api.core.database.valkey import get_valkey
+from apps.api.core.exceptions import ServiceUnavailable
 from apps.api.core.i18n import get_current_locale, t
 from apps.api.core.limiter import rate_limit
 from apps.api.core.response import Response, ResponseModel
@@ -17,6 +19,7 @@ from apps.api.routers.v1.auth.constants import (
 )
 from apps.api.routers.v1.auth.deps import get_current_user
 from apps.api.routers.v1.auth.schema import (
+    AuthzSnapshot,
     ChangePasswordRequest,
     ForgotPasswordRequest,
     LoginRequest,
@@ -187,3 +190,21 @@ async def me(
         avatar_url=user.avatar_url,
     )
     return Response.success(data=profile)
+
+
+@router.get(
+    "/me/authz",
+    response_model=ResponseModel[AuthzSnapshot],
+    dependencies=[require_permission_strict("admin:access")],
+)
+async def me_authz(
+    user: User = Depends(get_current_user),
+) -> ResponseModel[AuthzSnapshot]:
+    provider = get_authz_snapshot_provider()
+    if provider is None:
+        raise ServiceUnavailable(
+            message=t("errors", "AUTHZ_ENGINE_UNAVAILABLE", default="鉴权引擎不可用"),
+            error="AUTHZ_ENGINE_UNAVAILABLE",
+        )
+    payload = await provider.get_snapshot(user.id)
+    return Response.success(data=AuthzSnapshot.model_validate(payload))

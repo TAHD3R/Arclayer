@@ -16,11 +16,37 @@ class RoleOut(BaseOut):
     is_superuser: bool = Field(..., description="Whether the role has full access.")
 
 
+class RoleCreate(BaseSchema):
+    code: str = Field(..., min_length=1, max_length=64, description="Role code.")
+    name: str = Field(..., min_length=1, max_length=128, description="Role name.")
+    description: str | None = Field(default=None, description="Role description.")
+    is_default: bool = Field(default=False, description="Whether the role is the default role.")
+    is_superuser: bool = Field(default=False, description="Whether the role has full access.")
+
+
+class RoleUpdate(BaseSchema):
+    name: str | None = Field(default=None, min_length=1, max_length=128, description="Role name.")
+    description: str | None = Field(default=None, description="Role description.")
+    is_default: bool | None = Field(default=None, description="Whether the role is the default role.")
+    is_superuser: bool | None = Field(default=None, description="Whether the role has full access.")
+
+
 class PermissionOut(BaseOut):
     code: str = Field(..., description="Permission code.")
     name: str = Field(..., description="Permission name.")
     description: str | None = Field(default=None, description="Permission description.")
     plugin_id: str | None = Field(default=None, description="Owning plugin identifier.")
+
+
+class RolePermissionSet(BaseSchema):
+    permission_codes: list[str] = Field(default_factory=list, description="Permission codes to set on the role.")
+
+
+class AuthzSnapshot(BaseSchema):
+    user_id: UUID = Field(..., description="User identifier.")
+    role_codes: list[str] = Field(default_factory=list, description="Effective role codes.")
+    permission_codes: list[str] = Field(default_factory=list, description="Effective permission codes.")
+    is_superuser: bool = Field(..., description="Whether user has a superuser role.")
 
 
 class SyncResult(BaseSchema):

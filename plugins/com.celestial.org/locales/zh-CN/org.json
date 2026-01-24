@@ -1,0 +1,22 @@
+{
+  "PLUGIN_NAME": "组织管理插件",
+  "PLUGIN_DESCRIPTION": "提供部门、岗位与用户组织关系管理。",
+  "PERM_DEPARTMENTS_READ_NAME": "读取部门",
+  "PERM_DEPARTMENTS_READ_DESC": "允许查看部门列表与详情。",
+  "PERM_DEPARTMENTS_WRITE_NAME": "管理部门",
+  "PERM_DEPARTMENTS_WRITE_DESC": "允许创建、更新和删除部门。",
+  "PERM_POSITIONS_READ_NAME": "读取岗位",
+  "PERM_POSITIONS_READ_DESC": "允许查看岗位列表与详情。",
+  "PERM_POSITIONS_WRITE_NAME": "管理岗位",
+  "PERM_POSITIONS_WRITE_DESC": "允许创建、更新和删除岗位。",
+  "PERM_USERS_ASSIGN_NAME": "分配用户部门与岗位",
+  "PERM_USERS_ASSIGN_DESC": "允许为用户分配部门/岗位并设置主部门。",
+  "DEPARTMENT_NOT_FOUND": "部门不存在",
+  "DEPARTMENT_HAS_CHILDREN": "部门下存在子部门，无法删除",
+  "DEPARTMENT_CODE_EXISTS": "部门编码已存在",
+  "INVALID_PARENT": "父部门不合法",
+  "POSITION_NOT_FOUND": "岗位不存在",
+  "POSITION_CODE_EXISTS": "岗位编码已存在",
+  "USER_NOT_FOUND": "用户不存在",
+  "USER_DEPARTMENT_MISSING": "用户不在该部门中"
+}
