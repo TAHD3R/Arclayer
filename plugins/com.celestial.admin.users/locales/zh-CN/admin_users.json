@@ -1,0 +1,10 @@
+{
+  "PLUGIN_NAME": "用户管理插件",
+  "PLUGIN_DESCRIPTION": "提供管理后台用户管理（CRUD/禁用/重置密码）能力",
+  "PERM_ADMIN_USERS_READ_NAME": "读取用户",
+  "PERM_ADMIN_USERS_READ_DESC": "允许查看用户列表与用户详情。",
+  "PERM_ADMIN_USERS_WRITE_NAME": "管理用户",
+  "PERM_ADMIN_USERS_WRITE_DESC": "允许创建、更新、启用与禁用用户。",
+  "PERM_ADMIN_USERS_RESET_PASSWORD_NAME": "重置用户密码",
+  "PERM_ADMIN_USERS_RESET_PASSWORD_DESC": "允许在管理后台重置用户密码。"
+}

@@ -1,0 +1,10 @@
+{
+  "PLUGIN_NAME": "Admin Users Plugin",
+  "PLUGIN_DESCRIPTION": "Provides admin-console user management (CRUD/disable/reset password).",
+  "PERM_ADMIN_USERS_READ_NAME": "Read users",
+  "PERM_ADMIN_USERS_READ_DESC": "Allow listing users and reading user details.",
+  "PERM_ADMIN_USERS_WRITE_NAME": "Manage users",
+  "PERM_ADMIN_USERS_WRITE_DESC": "Allow creating, updating, enabling, and disabling users.",
+  "PERM_ADMIN_USERS_RESET_PASSWORD_NAME": "Reset user password",
+  "PERM_ADMIN_USERS_RESET_PASSWORD_DESC": "Allow resetting user passwords in the admin console."
+}
