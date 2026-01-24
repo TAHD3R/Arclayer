@@ -9,6 +9,9 @@
   "PERM_DEPARTMENTS_ROLES_READ_DESC": "允许查看部门绑定了哪些角色。",
   "PERM_DEPARTMENTS_ROLES_WRITE_NAME": "管理部门角色绑定",
   "PERM_DEPARTMENTS_ROLES_WRITE_DESC": "允许为部门绑定/解绑角色。",
+  "MENU_ORG_RBAC_MAPPING": "组织权限映射",
+  "ACTION_BIND_POSITION_ROLE": "绑定岗位角色",
+  "ACTION_BIND_DEPARTMENT_ROLE": "绑定部门角色",
   "POSITION_NOT_FOUND": "岗位不存在",
   "DEPARTMENT_NOT_FOUND": "部门不存在",
   "ROLE_NOT_FOUND": "角色不存在"

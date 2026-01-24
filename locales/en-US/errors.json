@@ -13,5 +13,6 @@
   "DB_OPERATIONAL_ERROR": "Database operation failed",
   "CSRF_FAILED": "CSRF validation failed",
   "PLUGIN_MANAGER_UNAVAILABLE": "Plugin manager unavailable",
-  "AUTHZ_ENGINE_UNAVAILABLE": "Authorization engine unavailable"
+  "AUTHZ_ENGINE_UNAVAILABLE": "Authorization engine unavailable",
+  "ADMIN_UI_CONTEXT_UNAVAILABLE": "Admin UI context provider unavailable"
 }

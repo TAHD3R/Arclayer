@@ -1,0 +1,4 @@
+{
+  "PLUGIN_NAME": "Admin UI Auth",
+  "PLUGIN_DESCRIPTION": "Aggregates plugin UI resources and builds admin menus/action states based on RBAC permissions."
+}

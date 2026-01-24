@@ -9,6 +9,9 @@
   "PERM_DEPARTMENTS_ROLES_READ_DESC": "Allow listing which roles are bound to a department.",
   "PERM_DEPARTMENTS_ROLES_WRITE_NAME": "Manage department role bindings",
   "PERM_DEPARTMENTS_ROLES_WRITE_DESC": "Allow binding/unbinding roles for departments.",
+  "MENU_ORG_RBAC_MAPPING": "Org RBAC mapping",
+  "ACTION_BIND_POSITION_ROLE": "Bind position role",
+  "ACTION_BIND_DEPARTMENT_ROLE": "Bind department role",
   "POSITION_NOT_FOUND": "Position not found",
   "DEPARTMENT_NOT_FOUND": "Department not found",
   "ROLE_NOT_FOUND": "Role not found"

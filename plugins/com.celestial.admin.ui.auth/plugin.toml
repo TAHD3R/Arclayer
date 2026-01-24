@@ -1,0 +1,15 @@
+dependencies = [
+  { id = "com.celestial.rbac.core", version = ">=1.0.0", optional = false }
+]
+
+[plugin]
+id = "com.celestial.admin.ui.auth"
+name = "Admin UI Auth 插件"
+description = "聚合插件 UI 资源定义并基于 RBAC 权限生成后台菜单与按钮状态。"
+name_i18n = "admin_ui_auth:PLUGIN_NAME"
+description_i18n = "admin_ui_auth:PLUGIN_DESCRIPTION"
+author = "Celestial Team"
+version = "1.0.0"
+requires = ">=2026.01.18-dev"
+entrypoint = "admin_ui_auth.plugin:AdminUIAuthPlugin"
+license = "MIT"

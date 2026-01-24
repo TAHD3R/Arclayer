@@ -5,9 +5,11 @@ from uuid import UUID
 from rbac.extensions import RBAC_ROLE_RESOLVER_EXTENSION_POINT
 
 from apps.api.config import get_settings
+from apps.api.core.admin_ui import ADMIN_UI_RESOURCE_PROVIDER_EXTENSION_POINT
 from apps.api.core.logging import get_logger
 from apps.api.plugin.registry import registry
 from apps.api.plugin.types import BasePlugin
+from rbac_org.admin_ui import RBACOrgAdminUIResourceProvider
 from rbac_org.services import RBACOrgService
 
 logger = get_logger(__name__)
@@ -26,8 +28,14 @@ class RBACOrgPlugin(BasePlugin):
         # Register resolver so org bindings affect RBAC effective roles.
         service = RBACOrgService(get_settings())
         registry.register_extension(self.plugin_id, RBAC_ROLE_RESOLVER_EXTENSION_POINT, _OrgRoleResolver(service))
+        registry.register_extension(
+            self.plugin_id,
+            ADMIN_UI_RESOURCE_PROVIDER_EXTENSION_POINT,
+            RBACOrgAdminUIResourceProvider(),
+        )
         logger.info("RBAC org bridge plugin started", plugin_id=self.plugin_id)
 
     async def on_stop(self) -> None:
         registry.unregister_extensions(self.plugin_id, RBAC_ROLE_RESOLVER_EXTENSION_POINT)
+        registry.unregister_extensions(self.plugin_id, ADMIN_UI_RESOURCE_PROVIDER_EXTENSION_POINT)
         logger.info("RBAC org bridge plugin stopped", plugin_id=self.plugin_id)
