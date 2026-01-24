@@ -1,0 +1,16 @@
+{
+  "PLUGIN_NAME": "Org Tools Plugin",
+  "PLUGIN_DESCRIPTION": "Provides org validation/repair and advanced operations (move/merge/reorder).",
+  "PERM_VALIDATE_NAME": "Validate org structure",
+  "PERM_VALIDATE_DESC": "Allow validating department tree integrity and primary department rules.",
+  "PERM_REPAIR_NAME": "Repair org structure",
+  "PERM_REPAIR_DESC": "Allow repairing directory fields and primary departments.",
+  "PERM_MOVE_NAME": "Move departments",
+  "PERM_MOVE_DESC": "Allow moving departments within the tree.",
+  "PERM_MERGE_NAME": "Merge departments",
+  "PERM_MERGE_DESC": "Allow merging departments.",
+  "PERM_REORDER_NAME": "Reorder departments",
+  "PERM_REORDER_DESC": "Allow reordering departments under the same parent.",
+  "DEPARTMENT_NOT_FOUND": "Department not found",
+  "INVALID_OPERATION": "Invalid operation"
+}

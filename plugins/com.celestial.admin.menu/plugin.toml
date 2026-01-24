@@ -1,0 +1,34 @@
+models = ["admin_menu.models"]
+
+[plugin]
+id = "com.celestial.admin.menu"
+name = "菜单管理插件"
+description = "提供后台可配置菜单/路由/排序与权限过滤，用于前端动态路由。"
+name_i18n = "admin_menu:PLUGIN_NAME"
+description_i18n = "admin_menu:PLUGIN_DESCRIPTION"
+author = "Celestial Team"
+version = "1.0.0"
+requires = ">=2026.01.18-dev"
+entrypoint = "admin_menu.plugin:AdminMenuPlugin"
+license = "MIT"
+
+[[dependencies]]
+id = "com.celestial.rbac.core"
+version = ">=1.0.0"
+optional = false
+
+[[permissions]]
+code = "admin:menu:read"
+name = "Read menus"
+description = "Allow listing and viewing menu items."
+name_i18n = "admin_menu:PERM_MENU_READ_NAME"
+description_i18n = "admin_menu:PERM_MENU_READ_DESC"
+default_roles = ["admin"]
+
+[[permissions]]
+code = "admin:menu:write"
+name = "Manage menus"
+description = "Allow creating, updating, deleting and reordering menu items."
+name_i18n = "admin_menu:PERM_MENU_WRITE_NAME"
+description_i18n = "admin_menu:PERM_MENU_WRITE_DESC"
+default_roles = ["admin"]

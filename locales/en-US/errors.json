@@ -15,5 +15,6 @@
   "PLUGIN_MANAGER_UNAVAILABLE": "Plugin manager unavailable",
   "AUTHZ_ENGINE_UNAVAILABLE": "Authorization engine unavailable",
   "ADMIN_UI_CONTEXT_UNAVAILABLE": "Admin UI context provider unavailable",
-  "ADMIN_USERS_PROVIDER_UNAVAILABLE": "Admin users provider unavailable"
+  "ADMIN_USERS_PROVIDER_UNAVAILABLE": "Admin users provider unavailable",
+  "ADMIN_MENU_PROVIDER_UNAVAILABLE": "Admin menu provider unavailable"
 }

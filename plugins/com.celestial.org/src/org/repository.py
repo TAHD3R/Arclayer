@@ -9,32 +9,44 @@ from org.models import Department, Position, UserDepartment, UserPosition
 
 
 class OrgRepository(BaseRepository):
+    def _departments_base_qs(self, *, include_deleted: bool = False) -> QuerySet[Department]:
+        qs = Department.all()
+        if not include_deleted:
+            qs = qs.filter(deleted_at__isnull=True)
+        return qs
+
     def query_departments(self) -> QuerySet[Department]:
-        return Department.all().order_by("sort", "name")
+        return self._departments_base_qs().order_by("sort", "name")
 
     async def list_departments(self) -> list[Department]:
-        return await Department.all().order_by("sort", "name")
+        return await self._departments_base_qs().order_by("sort", "name")
 
     async def get_department(self, department_id: UUID) -> Department | None:
-        return await Department.get_or_none(id=department_id)
+        return await self._departments_base_qs().get_or_none(id=department_id)
 
     async def get_department_by_code(self, code: str) -> Department | None:
-        return await Department.get_or_none(code=code)
+        return await self._departments_base_qs().get_or_none(code=code)
 
     async def create_department(
         self,
         *,
+        department_id: UUID,
         code: str | None,
         name: str,
         parent_id: UUID | None,
+        path: str,
+        depth: int,
         sort: int,
         is_active: bool,
         description: str | None,
     ) -> Department:
         return await Department.create(
+            id=department_id,
             code=code,
             name=name,
             parent_id=parent_id,
+            path=path,
+            depth=depth,
             sort=sort,
             is_active=is_active,
             description=description,
@@ -47,10 +59,30 @@ class OrgRepository(BaseRepository):
         return department
 
     async def delete_department(self, department_id: UUID) -> int:
+        # Deprecated: departments use soft delete at service layer.
         return await Department.filter(id=department_id).delete()
 
     async def department_has_children(self, department_id: UUID) -> bool:
-        return await Department.filter(parent_id=department_id).exists()
+        return await Department.filter(parent_id=department_id, deleted_at__isnull=True).exists()
+
+    async def department_has_users(self, department_id: UUID) -> bool:
+        return await UserDepartment.filter(department_id=department_id).exists()
+
+    async def soft_delete_department(self, department: Department) -> Department:
+        # Keep implementation here so service can remain thin and consistent.
+        from datetime import UTC, datetime
+
+        if department.deleted_at is None:
+            department.deleted_at = datetime.now(UTC)
+        department.is_active = False
+        await department.save(update_fields=["deleted_at", "is_active"])
+        return department
+
+    async def restore_department(self, department: Department) -> Department:
+        department.deleted_at = None
+        department.is_active = True
+        await department.save(update_fields=["deleted_at", "is_active"])
+        return department
 
     def query_positions(self) -> QuerySet[Position]:
         return Position.all().order_by("sort", "name")
@@ -85,10 +117,21 @@ class OrgRepository(BaseRepository):
         return await Position.filter(id=position_id).delete()
 
     async def list_user_departments(self, *, user_id: UUID) -> list[UserDepartment]:
-        return await UserDepartment.filter(user_id=user_id).all().order_by("-is_primary", "created_at")
+        return (
+            await UserDepartment
+            .filter(
+                user_id=user_id,
+                department__deleted_at__isnull=True,
+            )
+            .all()
+            .order_by("-is_primary", "created_at")
+        )
 
     def query_user_departments(self, *, user_id: UUID) -> QuerySet[UserDepartment]:
-        return UserDepartment.filter(user_id=user_id).order_by("-is_primary", "created_at")
+        return UserDepartment.filter(
+            user_id=user_id,
+            department__deleted_at__isnull=True,
+        ).order_by("-is_primary", "created_at")
 
     async def ensure_user_department(self, *, user_id: UUID, department_id: UUID) -> UserDepartment:
         row, _ = await UserDepartment.get_or_create(user_id=user_id, department_id=department_id)

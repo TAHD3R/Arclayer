@@ -28,7 +28,7 @@ class RBACOrgService(BaseService):
             raise NotFound(message=_tr("POSITION_NOT_FOUND", "岗位不存在"), error="POSITION_NOT_FOUND")
 
     async def _require_department(self, *, department_id: UUID) -> None:
-        if not await Department.filter(id=department_id).exists():
+        if not await Department.filter(id=department_id, deleted_at__isnull=True).exists():
             raise NotFound(message=_tr("DEPARTMENT_NOT_FOUND", "部门不存在"), error="DEPARTMENT_NOT_FOUND")
 
     async def _require_roles(self, *, role_codes: list[str]) -> list[Role]:

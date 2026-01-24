@@ -1,0 +1,16 @@
+{
+  "PLUGIN_NAME": "组织工具插件",
+  "PLUGIN_DESCRIPTION": "提供组织结构校验、修复与调整（移动/合并/排序）等高级能力。",
+  "PERM_VALIDATE_NAME": "校验组织结构",
+  "PERM_VALIDATE_DESC": "允许校验部门树完整性与主部门规则。",
+  "PERM_REPAIR_NAME": "修复组织结构",
+  "PERM_REPAIR_DESC": "允许修复目录化字段与主部门数据。",
+  "PERM_MOVE_NAME": "移动部门",
+  "PERM_MOVE_DESC": "允许在部门树中移动部门。",
+  "PERM_MERGE_NAME": "合并部门",
+  "PERM_MERGE_DESC": "允许合并部门。",
+  "PERM_REORDER_NAME": "排序部门",
+  "PERM_REORDER_DESC": "允许调整同级部门排序。",
+  "DEPARTMENT_NOT_FOUND": "部门不存在",
+  "INVALID_OPERATION": "非法操作"
+}

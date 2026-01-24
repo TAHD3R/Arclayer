@@ -14,6 +14,11 @@ class Department(BaseModel):
         null=True,
         on_delete=fields.SET_NULL,
     )
+    # 软删除：商业后台常见需求，保留历史与审计追溯
+    deleted_at = fields.DatetimeField(null=True, db_index=True)
+    # 目录化字段：用于快速构建树/子树查询与防环校验（materialized path）
+    path = fields.CharField(max_length=1024, null=True, db_index=True)
+    depth = fields.IntField(default=0, db_index=True)
     sort = fields.IntField(default=0, db_index=True)
     is_active = fields.BooleanField(default=True, db_index=True)
     description = fields.TextField(null=True)

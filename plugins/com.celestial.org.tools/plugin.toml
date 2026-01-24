@@ -1,0 +1,67 @@
+[plugin]
+id = "com.celestial.org.tools"
+name = "组织工具插件"
+description = "提供组织结构校验、修复与调整（移动/合并/排序）等高级能力"
+name_i18n = "org_tools:PLUGIN_NAME"
+description_i18n = "org_tools:PLUGIN_DESCRIPTION"
+author = "Celestial Team"
+version = "1.0.0"
+requires = ">=2026.01.18-dev"
+entrypoint = "org_tools.plugin:OrgToolsPlugin"
+
+[[dependencies]]
+id = "com.celestial.rbac.core"
+version = ">=1.0.0"
+optional = false
+
+[[dependencies]]
+id = "com.celestial.org"
+version = ">=1.0.0"
+optional = false
+
+[[dependencies]]
+id = "com.celestial.rbac.org"
+version = ">=1.0.0"
+optional = true
+
+models = ["org_tools.models"]
+
+[[permissions]]
+code = "admin:org:tools:validate"
+name = "Validate org structure"
+description = "Allow validating department tree integrity and primary department rules."
+name_i18n = "org_tools:PERM_VALIDATE_NAME"
+description_i18n = "org_tools:PERM_VALIDATE_DESC"
+default_roles = ["admin"]
+
+[[permissions]]
+code = "admin:org:tools:repair"
+name = "Repair org structure"
+description = "Allow repairing directory fields and primary departments."
+name_i18n = "org_tools:PERM_REPAIR_NAME"
+description_i18n = "org_tools:PERM_REPAIR_DESC"
+default_roles = ["admin"]
+
+[[permissions]]
+code = "admin:org:tools:move"
+name = "Move departments"
+description = "Allow moving departments within the tree."
+name_i18n = "org_tools:PERM_MOVE_NAME"
+description_i18n = "org_tools:PERM_MOVE_DESC"
+default_roles = ["admin"]
+
+[[permissions]]
+code = "admin:org:tools:merge"
+name = "Merge departments"
+description = "Allow merging departments."
+name_i18n = "org_tools:PERM_MERGE_NAME"
+description_i18n = "org_tools:PERM_MERGE_DESC"
+default_roles = ["admin"]
+
+[[permissions]]
+code = "admin:org:tools:reorder"
+name = "Reorder departments"
+description = "Allow reordering departments under the same parent."
+name_i18n = "org_tools:PERM_REORDER_NAME"
+description_i18n = "org_tools:PERM_REORDER_DESC"
+default_roles = ["admin"]

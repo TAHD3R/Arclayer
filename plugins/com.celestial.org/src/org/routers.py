@@ -76,6 +76,19 @@ async def delete_department(
     return Response.success()
 
 
+@admin_router.post(
+    "/departments/{department_id}/restore",
+    response_model=ResponseModel[DepartmentOut],
+    dependencies=[require_permission_strict("admin:org:departments:write")],
+)
+async def restore_department(
+    department_id: UUID,
+    service: OrgService = Depends(get_org_service),
+) -> ResponseModel[DepartmentOut]:
+    item = await service.restore_department(department_id=department_id)
+    return Response.success(data=item)
+
+
 @admin_router.get(
     "/positions",
     response_model=ResponseModel[PageData[PositionOut]],

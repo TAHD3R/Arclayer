@@ -59,5 +59,6 @@ class RBACOrgRepository(BaseRepository):
         rows = await Role.filter(
             rbac_org_department_roles__department__org_users__user_id=user_id,
             rbac_org_department_roles__department__is_active=True,
+            rbac_org_department_roles__department__deleted_at__isnull=True,
         ).values_list("code", flat=True)
         return sorted(set(rows))
