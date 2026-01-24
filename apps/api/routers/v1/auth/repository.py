@@ -8,7 +8,7 @@ from tortoise.expressions import Q
 
 from apps.api.common.repositories import BaseRepository
 from apps.api.config import AuthSettings
-from apps.api.core.database.valkey import ValkeyClient
+from apps.api.infra.cache.valkey import ValkeyClient
 from apps.api.models.user import User, UserCredential, UserStatus
 from apps.api.routers.v1.auth.constants import (
     REFRESH_STATUS_REVOKED,

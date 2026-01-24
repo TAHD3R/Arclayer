@@ -10,10 +10,10 @@ import pytest_asyncio
 from tortoise import Tortoise
 
 from apps.api.config import get_settings
-from apps.api.core.database.orm import close_orm, init_orm
 from apps.api.core.exceptions import BadRequest
 from apps.api.core.registry import create_app
 from apps.api.http.pagination import PageParams
+from apps.api.infra.db.orm import close_orm, init_orm
 from apps.api.models.user import UserStatus
 
 pytestmark = pytest.mark.integration

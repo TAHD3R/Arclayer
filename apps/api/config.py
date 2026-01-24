@@ -31,10 +31,10 @@ class ApplicationSettings(BaseSettings):
     )
     app_host: str = Field(default="127.0.0.1", validation_alias="APP_HOST")
     app_port: int = Field(default=8000, validation_alias="APP_PORT")
-    app_name: str = Field(default="Celestial CMS API", validation_alias="APP_NAME")
+    app_name: str = Field(default="Celestial Framework API", validation_alias="APP_NAME")
     app_version: str = Field(default="2026.01.18-dev", validation_alias="APP_VERSION")
     app_description: str = Field(
-        default="Celestial is a light-weight, plugin-based CMS framework written in Python.",
+        default="Celestial is a light-weight, modular plugin-based ASGI python framework based on FastAPI.",
         validation_alias="APP_DESCRIPTION",
     )
     app_openapi_url: str | None = Field(

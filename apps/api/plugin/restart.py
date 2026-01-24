@@ -9,8 +9,8 @@ from datetime import UTC, datetime
 from fastapi import FastAPI
 
 from apps.api.config import Settings
-from apps.api.core.database.valkey import ValkeyClient
 from apps.api.core.logging import get_logger
+from apps.api.infra.cache.valkey import ValkeyClient
 
 logger = get_logger(__name__)
 

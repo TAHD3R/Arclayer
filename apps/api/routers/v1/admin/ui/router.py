@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends
 
-from apps.api.core.admin_ui import get_admin_ui_context_provider
 from apps.api.core.exceptions import ServiceUnavailable
 from apps.api.core.i18n import t
-from apps.api.core.response import Response, ResponseModel
+from apps.api.http.response import Response, ResponseModel
 from apps.api.models.user import User
+from apps.api.plugin.extension_points.admin_ui import get_admin_ui_context_provider
 from apps.api.routers.v1.admin.ui.schema import AdminUIContext
 from apps.api.routers.v1.auth.deps import get_current_user
 

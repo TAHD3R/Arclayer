@@ -4,11 +4,11 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends
 
-from apps.api.core.admin_org_tools import get_admin_org_tools_provider
 from apps.api.core.authz import require_permission_strict
 from apps.api.core.exceptions import ServiceUnavailable
 from apps.api.core.i18n import t
-from apps.api.core.response import Response, ResponseModel
+from apps.api.http.response import Response, ResponseModel
+from apps.api.plugin.extension_points.admin_org_tools import get_admin_org_tools_provider
 from apps.api.routers.v1.admin.org.tools_schema import (
     DepartmentMergeRequest,
     DepartmentMoveRequest,

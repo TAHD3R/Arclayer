@@ -9,7 +9,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 
 from apps.api.core.i18n import get_request_locale, localize_message
-from apps.api.core.response import Response as ResponseBuilder
+from apps.api.http.response import Response as ResponseBuilder
 
 
 class CSRFMiddleware(BaseHTTPMiddleware):

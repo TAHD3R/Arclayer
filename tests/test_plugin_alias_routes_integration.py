@@ -13,8 +13,8 @@ from tortoise import Tortoise
 
 from apps.api.config import get_settings
 from apps.api.core.authz import AUTHZ_EXTENSION_POINT
-from apps.api.core.database.orm import close_orm, init_orm
 from apps.api.core.registry import create_app
+from apps.api.infra.db.orm import close_orm, init_orm
 from apps.api.plugin.registry import registry
 from apps.api.routers.v1.auth.deps import get_current_user
 

@@ -12,8 +12,8 @@ from httpx import ASGITransport, AsyncClient
 from tortoise import Tortoise
 
 from apps.api.config import get_settings
-from apps.api.core.database.orm import close_orm, init_orm, verify_db_ready
 from apps.api.core.registry import create_app
+from apps.api.infra.db.orm import close_orm, init_orm, verify_db_ready
 from apps.api.models.user import UserStatus
 from apps.api.routers.v1.auth.deps import get_current_user
 

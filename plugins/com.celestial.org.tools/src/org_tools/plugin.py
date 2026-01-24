@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from apps.api.core.admin_org_tools import ADMIN_ORG_TOOLS_PROVIDER_EXTENSION_POINT
 from apps.api.core.logging import get_logger
+from apps.api.plugin.extension_points.admin_org_tools import ADMIN_ORG_TOOLS_PROVIDER_EXTENSION_POINT
 from apps.api.plugin.registry import registry
 from apps.api.plugin.types import BasePlugin
 from org_tools.provider import AdminOrgToolsProviderImpl

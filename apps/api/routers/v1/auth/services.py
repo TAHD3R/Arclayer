@@ -7,9 +7,9 @@ from uuid import UUID
 from apps.api.common.email.service import EmailService
 from apps.api.common.services import BaseService
 from apps.api.config import Settings
-from apps.api.core.database.valkey import ValkeyClient
 from apps.api.core.exceptions import BadRequest, Conflict, Forbidden, ServiceUnavailable, Unauthorized
 from apps.api.core.i18n import t
+from apps.api.infra.cache.valkey import ValkeyClient
 from apps.api.routers.v1.auth.constants import PASSWORD_REGEX, REFRESH_STATUS_ACTIVE, RESET_TOKEN_REGEX
 from apps.api.routers.v1.auth.repository import PasswordResetStore, RefreshTokenStore, UserRepository
 from apps.api.routers.v1.auth.schema import TokenPair

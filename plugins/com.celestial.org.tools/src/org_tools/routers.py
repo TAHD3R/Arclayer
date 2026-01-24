@@ -5,7 +5,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends
 
 from apps.api.core.authz import require_permission_strict
-from apps.api.core.response import Response, ResponseModel
+from apps.api.http.response import Response, ResponseModel
 from apps.api.routers.v1.auth.deps import get_current_user_id
 from org_tools.deps import get_org_tools_service
 from org_tools.schema import (

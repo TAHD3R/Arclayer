@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from apps.api.core.admin_ui import AdminUIResourceSpec, AdminUIResourceType
+from apps.api.plugin.extension_points.admin_ui import AdminUIResourceSpec, AdminUIResourceType
 from rbac_org.constants import PLUGIN_ID
 
 

@@ -17,3 +17,12 @@ wheels/
 # Logs
 apps/api/logs/
 *.log
+
+# Testing
+.pytest_cache/
+htmlcov/
+.coverage
+
+# Upload files
+/static/upload
+/references

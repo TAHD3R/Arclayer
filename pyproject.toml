@@ -1,7 +1,7 @@
 [project]
-name = "CelestialCMS"
+name = "Celestial"
 version = "2026.01.18-dev"
-description = "Celestial is a light-weight, plugin-based CMS framework written in Python."
+description = "Celestial is a light-weight, modular plugin-based ASGI python framework based on FastAPI."
 readme = "README.md"
 requires-python = ">=3.13"
 authors = [{ name = "Jassar Ayiken", email = "aspj6771@gmail.com" }]
@@ -134,7 +134,7 @@ reportMissingTypeStubs = false
 pythonVersion = "3.13"
 
 [tool.aerich]
-tortoise_orm = "apps.api.core.database.orm.TORTOISE_ORM"
+tortoise_orm = "apps.api.infra.db.orm.TORTOISE_ORM"
 location = "./apps/api/migrations"
 src_folder = "./."
 app = "models"

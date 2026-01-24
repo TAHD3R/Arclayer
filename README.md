@@ -1,3 +1,3 @@
-# Celestial CMS Framework
+# Celestial Framework
 
-Celestial is a light-weight, plugin-based CMS framework written in Python.
+Celestial is a light-weight, modular plugin-based ASGI python framework based on FastAPI.

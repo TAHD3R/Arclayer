@@ -18,9 +18,9 @@ from packaging.version import InvalidVersion, Version
 from pydantic import ValidationError
 
 from apps.api.config import Settings
-from apps.api.core.database.valkey import ValkeyClient
 from apps.api.core.i18n import register_locale_path
 from apps.api.core.logging import get_logger
+from apps.api.infra.cache.valkey import ValkeyClient
 from apps.api.models.plugin import PluginRecord
 from apps.api.plugin.manifest import build_default_config, load_plugin_manifest
 from apps.api.plugin.registry import ExtensionRegistry, registry

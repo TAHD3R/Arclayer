@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 from apps.api.config import get_settings
-from apps.api.core.admin_org import ADMIN_ORG_PROVIDER_EXTENSION_POINT
-from apps.api.core.admin_ui import ADMIN_UI_RESOURCE_PROVIDER_EXTENSION_POINT
 from apps.api.core.logging import get_logger
+from apps.api.plugin.extension_points.admin_org import ADMIN_ORG_PROVIDER_EXTENSION_POINT
+from apps.api.plugin.extension_points.admin_ui import ADMIN_UI_RESOURCE_PROVIDER_EXTENSION_POINT
 from apps.api.plugin.registry import registry
 from apps.api.plugin.types import BasePlugin
 from org.admin_ui import OrgAdminUIResourceProvider

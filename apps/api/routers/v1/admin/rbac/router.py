@@ -4,12 +4,12 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends
 
-from apps.api.core.admin_rbac import get_admin_rbac_provider
 from apps.api.core.authz import require_permission_strict
 from apps.api.core.exceptions import ServiceUnavailable
 from apps.api.core.i18n import t
-from apps.api.core.response import Response, ResponseModel
 from apps.api.http.pagination import PageData, PageParams, get_page_params
+from apps.api.http.response import Response, ResponseModel
+from apps.api.plugin.extension_points.admin_rbac import get_admin_rbac_provider
 from apps.api.routers.v1.admin.rbac.schema import (
     PermissionOut,
     PermissionSyncResult,

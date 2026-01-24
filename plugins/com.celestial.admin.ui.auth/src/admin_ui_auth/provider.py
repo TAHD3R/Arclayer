@@ -4,13 +4,13 @@ from collections import defaultdict
 from typing import Any
 from uuid import UUID
 
-from apps.api.core.admin_ui import (
+from apps.api.core.authz import get_authz_snapshot_provider
+from apps.api.core.i18n import t
+from apps.api.plugin.extension_points.admin_ui import (
     AdminUIResourceSpec,
     AdminUIResourceType,
     get_admin_ui_resource_providers,
 )
-from apps.api.core.authz import get_authz_snapshot_provider
-from apps.api.core.i18n import t
 from apps.api.routers.v1.admin.ui.schema import AdminUIActionState, AdminUIContext, AdminUINavNode
 
 

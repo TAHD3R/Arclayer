@@ -5,8 +5,8 @@ from uuid import UUID
 from fastapi import APIRouter, Depends
 
 from apps.api.core.authz import require_permission_strict
-from apps.api.core.response import Response, ResponseModel
 from apps.api.http.pagination import PageData, PageParams, get_page_params
+from apps.api.http.response import Response, ResponseModel
 from org.deps import get_org_service
 from org.schema import (
     DepartmentCreate,

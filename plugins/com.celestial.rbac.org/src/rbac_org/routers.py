@@ -6,8 +6,8 @@ from fastapi import APIRouter, Depends
 from rbac.schema import RoleOut
 
 from apps.api.core.authz import require_permission_strict
-from apps.api.core.response import Response, ResponseModel
 from apps.api.http.pagination import PageData, PageParams, get_page_params
+from apps.api.http.response import Response, ResponseModel
 from rbac_org.deps import get_rbac_org_service
 from rbac_org.schema import RoleCodeItem, RoleCodeSet
 from rbac_org.services import RBACOrgService

@@ -13,13 +13,13 @@ from starlette.responses import HTMLResponse
 from starlette.routing import Mount
 
 from apps.api.config import Settings, get_settings
-from apps.api.core.database.orm import close_orm, init_orm, verify_db_ready
-from apps.api.core.database.valkey import close_valkey, init_valkey
 from apps.api.core.exceptions import init_exception_handlers
-from apps.api.core.limiter import close_rate_limiter, init_rate_limiter
 from apps.api.core.logging import configure_logging
 from apps.api.core.observability import configure_observability
 from apps.api.core.routes import register_routes
+from apps.api.infra.cache.valkey import close_valkey, init_valkey
+from apps.api.infra.db.orm import close_orm, init_orm, verify_db_ready
+from apps.api.infra.limiter.limiter import close_rate_limiter, init_rate_limiter
 from apps.api.plugin.manager import PluginManager
 from apps.api.plugin.restart import start_restart_watcher, stop_restart_watcher
 
@@ -200,6 +200,11 @@ class AppFactory:
         return self
 
     def build(self) -> FastAPI:
+        # Register extension points before plugin discovery starts (lifespan),
+        # so plugins can safely register their implementations.
+        from apps.api.plugin.extension_points import init_extension_points
+
+        init_extension_points()
         register_routes(self.app, self.settings, plugin_manager=self.plugin_manager)
         return self.app
 

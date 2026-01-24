@@ -4,11 +4,11 @@ from fastapi import APIRouter, BackgroundTasks, Depends, Request
 
 from apps.api.config import Settings, get_settings
 from apps.api.core.authz import get_authz_snapshot_provider, require_permission_strict
-from apps.api.core.database.valkey import get_valkey
 from apps.api.core.exceptions import ServiceUnavailable
 from apps.api.core.i18n import get_current_locale, t
-from apps.api.core.limiter import rate_limit
-from apps.api.core.response import Response, ResponseModel
+from apps.api.http.response import Response, ResponseModel
+from apps.api.infra.cache.valkey import get_valkey
+from apps.api.infra.limiter.limiter import rate_limit
 from apps.api.models.user import User
 from apps.api.routers.v1.auth.constants import (
     FORGOT_PASSWORD_RATE_LIMIT,

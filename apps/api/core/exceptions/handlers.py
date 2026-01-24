@@ -15,7 +15,7 @@ from apps.api.config import Settings
 from apps.api.core.exceptions.types import APIError
 from apps.api.core.i18n import get_request_locale, localize_message
 from apps.api.core.logging import get_logger
-from apps.api.core.response import Response
+from apps.api.http.response import Response
 
 _HTTP_ERROR_MAP = {
     400: "BAD_REQUEST",
