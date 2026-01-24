@@ -79,3 +79,21 @@
 - 日志输出文本使用英文
 - 代码注释与技术文档使用英文
 - API 文档字段说明使用英文
+
+**MUST DO**
+- Use type hints everywhere (FastAPI requires them)
+- Use Pydantic V2 syntax (field_validator, model_validator, model_config)
+- Use Annotated pattern for dependency injection
+- Use async/await for all I/O operations
+- Use X | None instead of Optional[X]
+- Return proper HTTP status codes
+- Document endpoints (auto-generated OpenAPI)
+
+**MUST NOT DO**
+- Use synchronous database operations
+- Skip Pydantic validation
+- Store passwords in plain text
+- Expose sensitive data in responses
+- Use Pydantic V1 syntax (@validator, class Config)
+- Mix sync and async code improperly
+- Hardcode configuration values

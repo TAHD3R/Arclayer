@@ -10,7 +10,7 @@ from apps.api.models.user import User
 from apps.api.routers.v1.admin.ui.schema import AdminUIContext
 from apps.api.routers.v1.auth.deps import get_current_user
 
-router = APIRouter(tags=["Admin UI"])
+router = APIRouter(tags=["Admin UI - 后台上下文模块"])
 
 
 @router.get("/context", response_model=ResponseModel[AdminUIContext])

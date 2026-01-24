@@ -86,7 +86,7 @@ async def restore_department(
     service: OrgService = Depends(get_org_service),
 ) -> ResponseModel[DepartmentOut]:
     item = await service.restore_department(department_id=department_id)
-    return Response.success(data=item)
+    return Response.success(data=DepartmentOut.model_validate(item))
 
 
 @admin_router.get(

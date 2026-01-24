@@ -20,7 +20,7 @@ from apps.api.routers.v1.admin.users.schema import (
     AdminUserUpdateRequest,
 )
 
-router = APIRouter(tags=["Admin Users"])
+router = APIRouter(tags=["Admin Users - 用户管理模块"])
 
 
 def _require_provider():

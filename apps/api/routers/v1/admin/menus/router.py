@@ -20,7 +20,7 @@ from apps.api.routers.v1.admin.menus.schema import (
 )
 from apps.api.routers.v1.auth.deps import get_current_user_id
 
-router = APIRouter(tags=["Admin Menu"])
+router = APIRouter(tags=["Admin Menu - 管理端菜单模块"])
 
 
 def _require_provider():

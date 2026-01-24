@@ -104,7 +104,7 @@ class OrgService(BaseService):
             )
         await self.repo.soft_delete_department(department)
 
-    async def restore_department(self, *, department_id: UUID) -> DepartmentOut:
+    async def restore_department(self, *, department_id: UUID):
         # Restore is only allowed when parent is not deleted, to avoid creating hidden orphans.
         from org.models import Department
 
@@ -112,7 +112,7 @@ class OrgService(BaseService):
         if department is None:
             raise NotFound(message=_tr("DEPARTMENT_NOT_FOUND", "部门不存在"), error="DEPARTMENT_NOT_FOUND")
         if department.deleted_at is None:
-            return DepartmentOut.model_validate(department, from_attributes=True)
+            return department
 
         if department.parent_id:
             parent = await self.repo.get_department(department.parent_id)
@@ -125,7 +125,7 @@ class OrgService(BaseService):
         department = await self.repo.restore_department(department)
         # Ensure path/depth are valid (restore may happen after directory fields were rebuilt).
         await self.ensure_department_directory()
-        return DepartmentOut.model_validate(department, from_attributes=True)
+        return department
 
     async def ensure_department_directory(self) -> None:
         """

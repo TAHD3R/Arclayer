@@ -33,7 +33,7 @@ from apps.api.routers.v1.auth.schema import (
 )
 from apps.api.routers.v1.auth.services import AuthService
 
-router = APIRouter(tags=["Auth module"])
+router = APIRouter(tags=["Auth module - 授权模块"])
 
 
 def _get_auth_service(

@@ -16,5 +16,9 @@
   "AUTHZ_ENGINE_UNAVAILABLE": "Authorization engine unavailable",
   "ADMIN_UI_CONTEXT_UNAVAILABLE": "Admin UI context provider unavailable",
   "ADMIN_USERS_PROVIDER_UNAVAILABLE": "Admin users provider unavailable",
-  "ADMIN_MENU_PROVIDER_UNAVAILABLE": "Admin menu provider unavailable"
+  "ADMIN_MENU_PROVIDER_UNAVAILABLE": "Admin menu provider unavailable",
+  "ADMIN_ORG_PROVIDER_UNAVAILABLE": "Admin org provider unavailable",
+  "ADMIN_ORG_TOOLS_PROVIDER_UNAVAILABLE": "Admin org tools provider unavailable",
+  "ADMIN_RBAC_PROVIDER_UNAVAILABLE": "Admin RBAC provider unavailable",
+  "ADMIN_RBAC_ORG_PROVIDER_UNAVAILABLE": "Admin RBAC-Org provider unavailable"
 }
