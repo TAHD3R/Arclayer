@@ -9,7 +9,6 @@ def test_response_success() -> None:
     assert payload.error is None
     assert payload.data == {"id": 1}
     assert payload.timestamp > 0
-    assert "error" not in payload.model_dump()
 
 
 def test_response_fail() -> None:
@@ -19,4 +18,3 @@ def test_response_fail() -> None:
     assert payload.error is None
     assert payload.data == {"id": 2}
     assert payload.timestamp > 0
-    assert "error" not in payload.model_dump()

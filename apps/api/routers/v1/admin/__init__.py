@@ -14,7 +14,7 @@ router = APIRouter()
 
 router.include_router(menus_router, prefix="/menus")
 router.include_router(org_router, prefix="/org")
-router.include_router(plugins_router, prefix="/plugins")
+router.include_router(plugins_router, prefix="/plugins-manager")
 router.include_router(rbac_router, prefix="/rbac")
 router.include_router(rbac_org_router, prefix="/rbac-org")
 router.include_router(users_router, prefix="/users")

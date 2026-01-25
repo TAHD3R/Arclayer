@@ -51,6 +51,7 @@ class PluginSummary(BaseSchema):
     )
 
     plugin_id: str = Field(..., description="Plugin identifier.")
+    slug: str | None = Field(default=None, description="Plugin slug used for routing.")
     name: str = Field(..., description="Plugin name.")
     description: str | None = Field(default=None, description="Plugin description.")
     version: str = Field(..., description="Plugin version.")

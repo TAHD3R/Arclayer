@@ -138,7 +138,7 @@ async def test_rbac_org_bridge_effective_roles(prepared_db_with_rbac_org) -> Non
             assert role.code in payload["roleCodes"]
 
             # Access an /admin/** plugin route guarded by admin:access + admin:org:departments:read.
-            resp = await client.get("/api/v1/admin/plugins/com.celestial.org/departments")
+            resp = await client.get("/api/v1/admin/plugins/org/departments")
             assert resp.status_code == 200
             page = resp.json()["data"]
             items = page["items"]

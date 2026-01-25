@@ -40,6 +40,9 @@ class PluginManager:
         self.project_root = Path(__file__).resolve().parents[3]
         self.registry = extension_registry or registry
         self.descriptors: dict[str, PluginDescriptor] = {}
+        # URL 路由使用的 slug 显式由插件 manifest 声明；这里维护双向索引用于解析与校验。
+        self.slug_to_id: dict[str, str] = {}
+        self.id_to_slug: dict[str, str] = {}
         self.instances: dict[str, BasePlugin] = {}
         self.records: dict[str, PluginRecord] = {}
         self.valkey: ValkeyClient | None = None
@@ -80,6 +83,7 @@ class PluginManager:
 
         self._ensure_sys_path()
         descriptors: dict[str, PluginDescriptor] = {}
+        slug_owner: dict[str, str] = {}
         for manifest_path in self.root_dir.glob("*/plugin.toml"):
             try:
                 manifest = load_plugin_manifest(manifest_path)
@@ -87,12 +91,26 @@ class PluginManager:
                 logger.warning("Plugin manifest invalid", path=str(manifest_path), error=str(exc))
                 continue
 
+            slug = manifest.plugin.slug
+            existing = slug_owner.get(slug)
+            if existing and existing != manifest.plugin.id:
+                logger.error(
+                    "Plugin slug collision detected",
+                    slug=slug,
+                    plugin_id=manifest.plugin.id,
+                    existing_plugin_id=existing,
+                )
+                raise RuntimeError(f"Plugin slug collision: {slug} ({manifest.plugin.id} vs {existing})")
+            slug_owner[slug] = manifest.plugin.id
+
             register_locale_path(manifest_path.parent / "locales")
             defaults = build_default_config(manifest)
             descriptor = PluginDescriptor(manifest=manifest, path=manifest_path.parent, config=defaults)
             descriptors[descriptor.plugin_id] = descriptor
 
         self.descriptors = descriptors
+        self.slug_to_id = dict(slug_owner)
+        self.id_to_slug = {pid: desc.manifest.plugin.slug for pid, desc in descriptors.items()}
         return list(descriptors.values())
 
     def collect_model_modules(self) -> list[str]:

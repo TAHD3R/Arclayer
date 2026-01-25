@@ -20,6 +20,7 @@ pytestmark = pytest.mark.integration
 def _build_demo_plugin_zip(tmp_path: Path, plugin_id: str) -> Path:
     payload_dir = tmp_path / "payload"
     package_name = f"pkg_{plugin_id.replace('-', '_').replace('.', '_')}"
+    slug = plugin_id.replace(".", "-").replace("_", "-").lower()
     package_dir = payload_dir / package_name
     package_dir.mkdir(parents=True, exist_ok=True)
     (package_dir / "__init__.py").write_text("", encoding="utf-8")
@@ -46,6 +47,7 @@ def _build_demo_plugin_zip(tmp_path: Path, plugin_id: str) -> Path:
             """
             [plugin]
             id = "{plugin_id}"
+            slug = "{slug}"
             name = "Demo Plugin"
             description = "Demo plugin for endpoints"
             author = "Test"
@@ -72,7 +74,7 @@ def _build_demo_plugin_zip(tmp_path: Path, plugin_id: str) -> Path:
             label = "Mode"
             """
         )
-        .format(plugin_id=plugin_id, package_name=package_name)
+        .format(plugin_id=plugin_id, slug=slug, package_name=package_name)
         .lstrip(),
         encoding="utf-8",
     )
@@ -103,33 +105,37 @@ async def test_plugin_management_flow(prepared_db, plugin_root, tmp_path) -> Non
             async with AsyncClient(transport=transport, base_url="http://test") as client:
                 files = {"file": ("demo.zip", zip_path.read_bytes(), "application/zip")}
                 response = await client.post(
-                    "/api/v1/admin/plugins/install",
+                    "/api/v1/admin/plugins-manager/install",
                     data={"enable": "false"},
                     files=files,
                 )
                 assert response.status_code == 200
                 payload = response.json()
                 assert payload["data"]["plugin"]["pluginId"] == plugin_id
+                assert payload["data"]["plugin"]["slug"] == plugin_id.replace(".", "-").replace("_", "-").lower()
                 assert payload["data"]["plugin"]["status"] == "disabled"
 
-                response = await client.get("/api/v1/admin/plugins")
+                response = await client.get("/api/v1/admin/plugins-manager")
                 assert response.status_code == 200
                 page = response.json()["data"]
                 items = page["items"]
                 assert any(item["pluginId"] == plugin_id for item in items)
 
-                response = await client.get(f"/api/v1/admin/plugins/{plugin_id}")
+                response = await client.get(f"/api/v1/admin/plugins-manager/{plugin_id}")
                 assert response.status_code == 200
                 detail = response.json()["data"]
                 assert detail["pluginId"] == plugin_id
+                slug = plugin_id.replace(".", "-").replace("_", "-").lower()
+                assert detail["slug"] == slug
                 assert detail["status"] == "disabled"
 
-                response = await client.post(f"/api/v1/admin/plugins/{plugin_id}/enable")
+                # Management endpoints accept both plugin id and slug as identifier.
+                response = await client.post(f"/api/v1/admin/plugins-manager/{slug}/enable")
                 assert response.status_code == 200
                 assert response.json()["data"]["status"] == "started"
 
                 response = await client.put(
-                    f"/api/v1/admin/plugins/{plugin_id}/config",
+                    f"/api/v1/admin/plugins-manager/{plugin_id}/config",
                     json={"config": {"general": {"enabled": True, "mode": "on"}}},
                 )
                 assert response.status_code == 200
@@ -137,11 +143,11 @@ async def test_plugin_management_flow(prepared_db, plugin_root, tmp_path) -> Non
                 assert config["general"]["enabled"] is True
                 assert config["general"]["mode"] == "on"
 
-                response = await client.post(f"/api/v1/admin/plugins/{plugin_id}/disable")
+                response = await client.post(f"/api/v1/admin/plugins-manager/{plugin_id}/disable")
                 assert response.status_code == 200
                 assert response.json()["data"]["status"] == "disabled"
 
-                response = await client.post(f"/api/v1/admin/plugins/{plugin_id}/uninstall")
+                response = await client.post(f"/api/v1/admin/plugins-manager/{plugin_id}/uninstall")
                 assert response.status_code == 200
                 assert response.json()["data"]["status"] == "disabled"
     finally:

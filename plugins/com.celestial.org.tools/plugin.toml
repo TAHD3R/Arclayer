@@ -2,6 +2,7 @@ models = ["org_tools.models"]
 
 [plugin]
 id = "com.celestial.org.tools"
+slug = "org-tools"
 name = "组织工具插件"
 description = "提供组织结构校验、修复与调整（移动/合并/排序）等高级能力"
 name_i18n = "org_tools:PLUGIN_NAME"

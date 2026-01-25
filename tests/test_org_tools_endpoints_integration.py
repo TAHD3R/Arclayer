@@ -105,14 +105,14 @@ async def test_org_tools_merge_and_move(prepared_db_with_repo_plugins_auto_migra
 
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             # Validate endpoint works.
-            resp = await client.post("/api/v1/admin/plugins/com.celestial.org.tools/validate")
+            resp = await client.post("/api/v1/admin/plugins/org-tools/validate")
             assert resp.status_code == 200
             data = resp.json()["data"]
             assert "departmentsTotal" in data
 
             # Move child under target.
             resp = await client.post(
-                f"/api/v1/admin/plugins/com.celestial.org.tools/departments/{child.id}/move",
+                f"/api/v1/admin/plugins/org-tools/departments/{child.id}/move",
                 json={"newParentId": str(target.id)},
             )
             assert resp.status_code == 200
@@ -122,7 +122,7 @@ async def test_org_tools_merge_and_move(prepared_db_with_repo_plugins_auto_migra
 
             # Merge source into target.
             resp = await client.post(
-                f"/api/v1/admin/plugins/com.celestial.org.tools/departments/{source.id}/merge",
+                f"/api/v1/admin/plugins/org-tools/departments/{source.id}/merge",
                 json={
                     "targetDepartmentId": str(target.id),
                     "moveChildrenToTarget": True,

@@ -78,7 +78,7 @@ async def test_plugin_admin_alias_route(prepared_db_with_repo_plugins_auto_migra
     try:
         async with app.router.lifespan_context(app):
             async with AsyncClient(transport=transport, base_url="http://test") as client:
-                # com.celestial.org.tools -> org-tools
+                # Plugin routes are slug-based (org-tools).
                 resp = await client.post("/api/v1/admin/plugins/org-tools/validate")
                 assert resp.status_code == 200
                 data = resp.json()["data"]

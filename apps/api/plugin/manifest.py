@@ -45,6 +45,11 @@ class ConfigSchema(BaseModel):
 
 class PluginMeta(BaseModel):
     id: str
+    slug: str = Field(
+        ...,
+        description="Plugin URL slug used for routing (lowercase, kebab-case).",
+        pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$",
+    )
     name: str
     description: str | None = None
     name_i18n: str | None = None

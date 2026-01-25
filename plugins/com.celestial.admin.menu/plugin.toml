@@ -2,6 +2,7 @@ models = ["admin_menu.models"]
 
 [plugin]
 id = "com.celestial.admin.menu"
+slug = "admin-menu"
 name = "菜单管理插件"
 description = "提供后台可配置菜单/路由/排序与权限过滤，用于前端动态路由。"
 name_i18n = "admin_menu:PLUGIN_NAME"

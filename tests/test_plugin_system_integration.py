@@ -19,6 +19,7 @@ def _write_demo_plugin(root, plugin_id: str) -> None:
 
 def _write_demo_plugin_with_deps(root, plugin_id: str, *, deps: list[dict] | None) -> None:
     package_name = f"pkg_{plugin_id.replace('-', '_').replace('.', '_')}"
+    slug = plugin_id.replace(".", "-").replace("_", "-").lower()
     plugin_dir = root / package_name
     plugin_dir.mkdir(parents=True, exist_ok=True)
 
@@ -51,6 +52,7 @@ def _write_demo_plugin_with_deps(root, plugin_id: str, *, deps: list[dict] | Non
             {deps_block}
             [plugin]
             id = "{plugin_id}"
+            slug = "{slug}"
             name = "Demo Plugin"
             description = "Demo plugin for tests"
             author = "Test"
@@ -80,6 +82,7 @@ def _write_demo_plugin_with_deps(root, plugin_id: str, *, deps: list[dict] | Non
         .format(
             deps_block=_format_deps(deps),
             plugin_id=plugin_id,
+            slug=slug,
             package_name=package_name,
         )
         .lstrip(),

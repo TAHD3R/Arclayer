@@ -16,7 +16,7 @@ from apps.api.config import Settings
 from apps.api.core.exceptions import BadRequest, NotFound, ServiceUnavailable
 from apps.api.core.i18n import t
 from apps.api.core.logging import get_logger
-from apps.api.http.pagination import PageData, PageParams, paginate_queryset
+from apps.api.http.pagination import PageData, PageParams
 from apps.api.models.plugin import PluginRecord
 from apps.api.plugin.manager import PluginManager
 from apps.api.plugin.manifest import ConfigSchema, PluginManifest, build_default_config, load_plugin_manifest
@@ -50,15 +50,62 @@ class PluginService(BaseService):
         return await self.repo.list_plugins()
 
     async def list_plugins_paginated(self, *, params: PageParams) -> PageData[PluginSummary]:
+        # Unlike most admin lists, plugin items need manifest-backed fields (e.g. slug)
+        # that are not stored in PluginRecord; build the page manually.
+        from math import ceil
+
         qs = self.repo.query_plugins()
-        page = await paginate_queryset(qs, params=params, out_schema=PluginSummary)
-        return page
+        total = int(await qs.count())
+        pages = ceil(total / params.size) if params.size else 0
+
+        if total == 0 or params.page > pages:
+            items: list[PluginSummary] = []
+        else:
+            rows = await qs.limit(params.limit).offset(params.offset)
+            items = [self.to_summary(row) for row in rows]
+
+        next_page: int | None = None
+        prev_page: int | None = None
+        if pages > 0:
+            if params.page < pages:
+                next_page = params.page + 1
+            if params.page > 1:
+                prev_page = min(params.page - 1, pages)
+
+        return PageData[PluginSummary](
+            items=items,
+            total=total,
+            page=params.page,
+            size=params.size,
+            pages=pages,
+            next=next_page,
+            prev=prev_page,
+        )
 
     async def get_plugin(self, plugin_id: str) -> PluginRecord:
         record = await self.repo.get_plugin(plugin_id)
         if record is None:
             raise NotFound(message=_tp("PLUGIN_NOT_FOUND", "插件不存在"), error="PLUGIN_NOT_FOUND")
         return record
+
+    def resolve_plugin_id(self, plugin_ref: str) -> str:
+        """
+        Resolve an incoming plugin reference (slug or id) to the canonical plugin id.
+        """
+
+        manager = self._require_manager()
+        if not manager.descriptors:
+            manager.discover()
+
+        # Fast path: canonical id.
+        if plugin_ref in manager.descriptors:
+            return plugin_ref
+
+        resolved = manager.slug_to_id.get(plugin_ref)
+        if resolved:
+            return resolved
+
+        raise NotFound(message=_tp("PLUGIN_NOT_FOUND", "插件不存在"), error="PLUGIN_NOT_FOUND")
 
     async def install_plugin(
         self,
@@ -89,6 +136,19 @@ class PluginService(BaseService):
 
             manifest = self._validate_zip(zip_path)
             plugin_id = manifest.plugin.id
+            slug = manifest.plugin.slug
+
+            # Hard fail on slug conflicts.
+            if self.manager is not None:
+                if not self.manager.descriptors:
+                    self.manager.discover()
+                existing = self.manager.slug_to_id.get(slug)
+                if existing and existing != plugin_id:
+                    raise BadRequest(
+                        message=_tp("PLUGIN_SLUG_CONFLICT", "插件 slug 冲突"),
+                        error="PLUGIN_SLUG_CONFLICT",
+                        details=f"slug={slug} conflicts with {existing}",
+                    )
 
             existing = await self.repo.get_plugin(plugin_id)
             if existing and existing.status == PluginStatus.STARTED and self.manager is not None:
@@ -253,6 +313,7 @@ class PluginService(BaseService):
         if manifest is None:
             return detail
         update = self._localized_fields(manifest)
+        update["slug"] = manifest.plugin.slug
         update["dependencies"] = self._build_dependency_report(manifest)
         return detail.model_copy(update=update)
 
@@ -262,6 +323,7 @@ class PluginService(BaseService):
         if manifest is None:
             return summary
         update = self._localized_fields(manifest, include_schema=False)
+        update["slug"] = manifest.plugin.slug
         return summary.model_copy(update=update)
 
     def _build_dependency_report(self, manifest: PluginManifest) -> list[PluginDependencyItem] | None:

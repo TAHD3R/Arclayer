@@ -4,6 +4,7 @@ dependencies = [
 
 [plugin]
 id = "com.celestial.admin.ui.auth"
+slug = "admin-ui-auth"
 name = "Admin UI Auth 插件"
 description = "聚合插件 UI 资源定义并基于 RBAC 权限生成后台菜单与按钮状态。"
 name_i18n = "admin_ui_auth:PLUGIN_NAME"

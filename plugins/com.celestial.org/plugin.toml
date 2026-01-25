@@ -6,6 +6,7 @@ dependencies = [
 
 [plugin]
 id = "com.celestial.org"
+slug = "org"
 name = "组织管理插件"
 description = "提供部门、岗位与用户组织关系管理"
 name_i18n = "org:PLUGIN_NAME"
