@@ -1,7 +1,7 @@
 import { RouterProvider } from "@tanstack/react-router";
 
-import { AppProviders } from "@/app/providers/AppProviders";
-import { router } from "@/app/router";
+import { AppProviders } from "@/core/providers/AppProviders";
+import { router } from "@/core/router";
 
 export default function App() {
   return (

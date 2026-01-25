@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
-import { STORAGE_KEYS } from "@/app/constants/storage";
+import { STORAGE_KEYS } from "@/core/constants/storage";
 
 export interface AuthState {
   accessToken: string | null;

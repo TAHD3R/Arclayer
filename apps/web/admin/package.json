@@ -39,6 +39,7 @@
     "zustand": "^5.0.10"
   },
   "devDependencies": {
+    "@celestial/vite": "workspace:*",
     "@tailwindcss/vite": "^4.1.18",
     "@tanstack/router-plugin": "^1.157.5",
     "@testing-library/jest-dom": "^6.9.1",

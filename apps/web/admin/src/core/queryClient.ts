@@ -1,6 +1,6 @@
 import { MutationCache, QueryCache, QueryClient } from "@tanstack/react-query";
 
-import { notifyError } from "@/app/services/notifications";
+import { notifyError } from "@/core/services/notifications";
 
 export function makeQueryClient(): QueryClient {
   return new QueryClient({

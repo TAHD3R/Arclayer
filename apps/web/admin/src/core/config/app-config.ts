@@ -7,6 +7,7 @@ export interface AppConfig {
 declare global {
   interface Window {
     __APP_CONFIG__?: Partial<AppConfig>;
+    __hideAppLoading?: () => void;
   }
 }
 

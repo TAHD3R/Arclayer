@@ -1,13 +1,13 @@
 import { create } from "zustand";
 
-import { STORAGE_KEYS } from "@/app/constants/storage";
+import { STORAGE_KEYS } from "@/core/constants/storage";
 import {
   getInitialLocale,
   i18n,
   type AppLocale,
   DEFAULT_LOCALE,
   normalizeLocale,
-} from "@/app/i18n";
+} from "@/core/i18n";
 import { type ThemeMode } from "@celestial/ui-theme/antd";
 
 interface PreferencesState {

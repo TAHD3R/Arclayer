@@ -6,27 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="light dark" />
     <title>%VITE_APP_TITLE%</title>
-    <script>
-      (function () {
-        try {
-          var theme = localStorage.getItem("celestial:admin:theme");
-          if (theme !== "dark" && theme !== "light") {
-            theme =
-              window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches
-                ? "dark"
-                : "light";
-          }
-          document.documentElement.dataset.theme = theme;
-
-          var locale = localStorage.getItem("celestial:admin:locale");
-          if (!locale) {
-            var lang = (navigator.language || "").toLowerCase();
-            locale = lang.indexOf("zh") === 0 ? "zh-CN" : "en-US";
-          }
-          document.documentElement.lang = locale;
-        } catch (e) {}
-      })();
-    </script>
   </head>
   <body>
     <div id="root"></div>

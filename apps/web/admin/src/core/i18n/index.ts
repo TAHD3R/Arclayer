@@ -1,10 +1,10 @@
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 
-import { STORAGE_KEYS } from "@/app/constants/storage";
-import { type AppLocale, I18N_NAMESPACES, i18nResources } from "@/app/i18n/resources";
+import { STORAGE_KEYS } from "@/core/constants/storage";
+import { type AppLocale, I18N_NAMESPACES, i18nResources } from "@/core/i18n/resources";
 
-export type { AppLocale } from "@/app/i18n/resources";
+export type { AppLocale } from "@/core/i18n/resources";
 
 export const SUPPORTED_LOCALES = ["zh-CN", "en-US"] as const satisfies readonly AppLocale[];
 export const DEFAULT_LOCALE: AppLocale = "zh-CN";

@@ -1,0 +1,18 @@
+{
+  "name": "@celestial/vite",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./inject-app-config": "./src/inject-app-config.ts",
+    "./inject-preferences": "./src/inject-preferences.ts",
+    "./inject-loading-screen": "./src/inject-loading-screen.ts"
+  },
+  "devDependencies": {
+    "vite": "^7.0.0"
+  },
+  "peerDependencies": {
+    "vite": "^7.0.0"
+  }
+}

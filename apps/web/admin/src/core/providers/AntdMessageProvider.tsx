@@ -1,7 +1,7 @@
 import { message } from "antd";
 import { type PropsWithChildren, useEffect } from "react";
 
-import { setMessageApi } from "@/app/services/notifications";
+import { setMessageApi } from "@/core/services/notifications";
 
 export function AntdMessageProvider({ children }: PropsWithChildren) {
   const [messageApi, contextHolder] = message.useMessage();

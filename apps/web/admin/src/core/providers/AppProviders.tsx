@@ -1,7 +1,7 @@
 import { type PropsWithChildren } from "react";
 
-import { AntdProvider } from "@/app/providers/AntdProvider";
-import { QueryProvider } from "@/app/providers/QueryProvider";
+import { AntdProvider } from "@/core/providers/AntdProvider";
+import { QueryProvider } from "@/core/providers/QueryProvider";
 
 export function AppProviders({ children }: PropsWithChildren) {
   return (

@@ -1,6 +1,6 @@
 import type { MessageInstance } from "antd/es/message/interface";
 
-import { i18n } from "@/app/i18n";
+import { i18n } from "@/core/i18n";
 import { ApiError } from "@/lib/http";
 
 let messageApi: MessageInstance | null = null;

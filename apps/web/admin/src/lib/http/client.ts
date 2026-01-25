@@ -1,6 +1,6 @@
 import { ApiError } from "@/lib/http/errors";
 import { type ResponseModel } from "@/lib/http/types";
-import { getAppConfig } from "@/app/app-config";
+import { getAppConfig } from "@/core/config/app-config";
 import { useAuthStore } from "@/stores/auth.store";
 import { usePreferencesStore } from "@/stores/preferences.store";
 

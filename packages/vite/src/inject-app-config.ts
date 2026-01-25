@@ -9,16 +9,9 @@ export interface InjectAppConfigOptions {
   publicUrl?: string;
 }
 
-/**
- * 在 index.html 中注入一个极小的运行时配置加载器：
- * - 先写入 defaults（构建时 env 作为 fallback）
- * - 再尝试 fetch public/app-config.json 覆盖（用于“无需重新构建即可改配置”）
- * - 同步更新 document.title
- */
 export function injectAppConfig(options: InjectAppConfigOptions): Plugin {
   const publicUrl = options.publicUrl ?? "/app-config.json";
 
-  // Keep it tiny and dependency-free: it runs before React mounts.
   const code = `
 (function () {
   try {

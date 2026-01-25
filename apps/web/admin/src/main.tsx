@@ -5,8 +5,8 @@ import "./index.css";
 import App from "./App";
 import { ProgressProvider } from "@bprogress/react";
 
-import { initI18n } from "@/app/i18n";
-import { router } from "@/app/router";
+import { initI18n } from "@/core/i18n";
+import { router } from "@/core/router";
 import { setUnauthorizedHandler } from "@/lib/http/client";
 import { useAuthStore } from "@/stores/auth.store";
 import { initializePreferences, usePreferencesStore } from "@/stores/preferences.store";
@@ -33,6 +33,10 @@ async function bootstrap() {
       </ProgressProvider>
     </StrictMode>,
   );
+
+  requestAnimationFrame(() => {
+    window.__hideAppLoading?.();
+  });
 }
 
 void bootstrap();
