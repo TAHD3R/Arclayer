@@ -4,11 +4,16 @@
   "private": true,
   "type": "module",
   "exports": {
+    ".": "./src/index.ts",
     "./tokens.css": "./src/tokens.css",
     "./tailwind-preset": "./src/tailwind-preset.ts",
-    "./antd-theme": "./src/antd-theme.ts"
+    "./antd": "./src/antd-theme.ts"
   },
   "peerDependencies": {
+    "antd": "^6.2.1",
+    "tailwindcss": "^4.1.18"
+  },
+  "devDependencies": {
     "antd": "^6.2.1",
     "tailwindcss": "^4.1.18"
   }

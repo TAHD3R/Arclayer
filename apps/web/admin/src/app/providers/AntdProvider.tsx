@@ -1,10 +1,20 @@
 import { ConfigProvider } from "antd";
 import { type PropsWithChildren } from "react";
+import enUS from "antd/locale/en_US";
+import zhCN from "antd/locale/zh_CN";
 
-import { createAntdTheme, type ThemeMode } from "@celestial/ui-theme/antd-theme";
+import { usePreferencesStore } from "@/stores/preferences.store";
+import { useAntdTheme } from "@/app/hooks/useAntdTheme";
 
 export function AntdProvider({ children }: PropsWithChildren) {
-  const mode: ThemeMode = "light";
+  const locale = usePreferencesStore((s) => s.locale);
 
-  return <ConfigProvider theme={createAntdTheme(mode)}>{children}</ConfigProvider>;
+  const theme = useAntdTheme();
+  const antdLocale = locale === "zh-CN" ? zhCN : enUS;
+
+  return (
+    <ConfigProvider theme={theme} locale={antdLocale}>
+      {children}
+    </ConfigProvider>
+  );
 }

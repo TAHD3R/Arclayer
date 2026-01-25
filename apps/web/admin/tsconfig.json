@@ -24,6 +24,7 @@
       "@app/*": ["src/app/*"],
       "@components/*": ["src/components/*"],
       "@lib/*": ["src/lib/*"],
+      "@locales/*": ["../../../locales/*"],
       "@routes/*": ["src/routes/*"],
       "@stores/*": ["src/stores/*"],
       "@test/*": ["src/test/*"]

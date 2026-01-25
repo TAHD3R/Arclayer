@@ -1,4 +1,4 @@
-import { defineConfig } from "vite";
+import { defineConfig, searchForWorkspaceRoot } from "vite";
 import path from "path";
 import react from "@vitejs/plugin-react-swc";
 import tailwindcss from "@tailwindcss/vite";
@@ -24,6 +24,14 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      "@locales": path.resolve(__dirname, "../../../locales"),
+    },
+  },
+  server: {
+    fs: {
+      // Monorepo: allow reading workspace files (e.g. root `locales/` JSON).
+      // Important: setting `server.fs.allow` overrides Vite defaults, so we must include the project root.
+      allow: [searchForWorkspaceRoot(__dirname)],
     },
   },
 });
