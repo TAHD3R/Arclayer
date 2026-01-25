@@ -1,10 +1,14 @@
-import { Link, Outlet, createRootRoute } from "@tanstack/react-router";
+import { Link, Outlet, createRootRoute, redirect } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { Layout, Menu, Typography } from "antd";
+
+import { RouteProgress } from "@/app/ui/RouteProgress";
+import { useAuthStore } from "@/stores/auth.store";
 
 function RootLayout() {
   return (
     <Layout style={{ minHeight: "100vh" }}>
+      <RouteProgress />
       <Layout.Sider width={240} theme="light">
         <div style={{ padding: 16 }}>
           <Typography.Title level={4} style={{ margin: 0 }}>
@@ -38,5 +42,21 @@ function RootLayout() {
 }
 
 export const Route = createRootRoute({
+  beforeLoad: ({ location }) => {
+    const token = useAuthStore.getState().accessToken;
+    const isLogin = location.pathname === "/login";
+
+    if (!token && !isLogin) {
+      throw redirect({
+        to: "/login",
+        // `location.search` is an object; use `searchStr` to keep it stable.
+        search: { redirect: `${location.pathname}${location.searchStr}` },
+      });
+    }
+
+    if (token && isLogin) {
+      throw redirect({ to: "/" });
+    }
+  },
   component: RootLayout,
 });

@@ -5,6 +5,7 @@ import zhCN from "antd/locale/zh_CN";
 
 import { usePreferencesStore } from "@/stores/preferences.store";
 import { useAntdTheme } from "@/app/hooks/useAntdTheme";
+import { AntdMessageProvider } from "@/app/providers/AntdMessageProvider";
 
 export function AntdProvider({ children }: PropsWithChildren) {
   const locale = usePreferencesStore((s) => s.locale);
@@ -14,7 +15,7 @@ export function AntdProvider({ children }: PropsWithChildren) {
 
   return (
     <ConfigProvider theme={theme} locale={antdLocale}>
-      {children}
+      <AntdMessageProvider>{children}</AntdMessageProvider>
     </ConfigProvider>
   );
 }
