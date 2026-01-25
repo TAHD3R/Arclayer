@@ -20,7 +20,7 @@ from apps.api.routers.v1.admin.users.schema import (
 )
 from apps.api.routers.v1.auth.schema import AuthzSnapshot
 
-router = APIRouter(tags=["Admin Users - 用户管理模块"])
+router = APIRouter(tags=["Services: User Service"])
 
 
 def _require_provider():

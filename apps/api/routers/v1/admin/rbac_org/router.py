@@ -13,7 +13,7 @@ from apps.api.plugin.extension_points.admin_rbac_org import get_admin_rbac_org_p
 from apps.api.routers.v1.admin.rbac.schema import RoleOut
 from apps.api.routers.v1.admin.rbac_org.schema import RoleCodeItem, RoleCodeSet
 
-router = APIRouter(tags=["Admin RBAC Org Bridge"])
+router = APIRouter(tags=["Services: RBAC ORG Service"])
 
 
 def _require_provider():

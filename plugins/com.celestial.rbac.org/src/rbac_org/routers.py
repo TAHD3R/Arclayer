@@ -12,7 +12,7 @@ from rbac_org.deps import get_rbac_org_service
 from rbac_org.schema import RoleCodeItem, RoleCodeSet
 from rbac_org.services import RBACOrgService
 
-admin_router = APIRouter(tags=["Plugin: RBAC Org Bridge"])
+admin_router = APIRouter(tags=["Plugin: RBAC-Organization Bridge"])
 
 
 @admin_router.get(

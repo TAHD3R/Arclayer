@@ -18,7 +18,7 @@ from apps.api.routers.v1.admin.org.tools_schema import (
 )
 from apps.api.routers.v1.auth.deps import get_current_user_id
 
-router = APIRouter(tags=["Admin Org Tools - 组织工具服务模块"])
+router = APIRouter(tags=["Services: ORG Tools Service"])
 
 
 def _require_provider():

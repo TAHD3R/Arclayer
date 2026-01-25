@@ -21,7 +21,7 @@ from apps.api.routers.v1.admin.org.schema import (
     UserPositionOut,
 )
 
-router = APIRouter(tags=["Admin Org - 组织服务模块"])
+router = APIRouter(tags=["Services: ORG Core Service"])
 
 
 def _require_provider():

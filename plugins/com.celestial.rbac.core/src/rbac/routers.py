@@ -22,8 +22,8 @@ from rbac.schema import (
 )
 from rbac.services import RBACService
 
-public_router = APIRouter(tags=["Plugin: Role-based access control"])
-admin_router = APIRouter(tags=["Plugin: Role-based access control"])
+public_router = APIRouter(tags=["Plugin: RBAC Core"])
+admin_router = APIRouter(tags=["Plugin: RBAC Core"])
 
 
 @admin_router.get(

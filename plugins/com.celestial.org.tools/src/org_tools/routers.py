@@ -17,7 +17,7 @@ from org_tools.schema import (
 )
 from org_tools.services import OrgToolsService
 
-admin_router = APIRouter(tags=["Plugin: Org Tools"])
+admin_router = APIRouter(tags=["Plugin: Organization Tools"])
 
 
 @admin_router.post(

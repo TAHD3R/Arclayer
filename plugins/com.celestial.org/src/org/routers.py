@@ -20,7 +20,7 @@ from org.schema import (
 )
 from org.services import OrgService
 
-admin_router = APIRouter(tags=["Plugin: Organization"])
+admin_router = APIRouter(tags=["Plugin: Organization Core"])
 
 
 @admin_router.get(

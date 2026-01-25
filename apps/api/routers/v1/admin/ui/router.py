@@ -10,7 +10,7 @@ from apps.api.plugin.extension_points.admin_ui import get_admin_ui_context_provi
 from apps.api.routers.v1.admin.ui.schema import AdminUIContext
 from apps.api.routers.v1.auth.deps import get_current_user
 
-router = APIRouter(tags=["Admin UI - 后台上下文模块"])
+router = APIRouter(tags=["Services: Frontend Context Service"])
 
 
 @router.get("/context", response_model=ResponseModel[AdminUIContext])

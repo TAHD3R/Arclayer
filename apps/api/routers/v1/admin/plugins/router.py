@@ -19,7 +19,7 @@ from apps.api.routers.v1.admin.plugins.service import PluginService
 from apps.api.routers.v1.auth.deps import get_current_user
 
 router = APIRouter(
-    tags=["Plugins management - 插件管理器模块"],
+    tags=["Services: Plugin Service"],
     dependencies=[require_permission_strict("system:plugins:read")],
 )
 

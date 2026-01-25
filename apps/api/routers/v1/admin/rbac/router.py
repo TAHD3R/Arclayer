@@ -20,7 +20,7 @@ from apps.api.routers.v1.admin.rbac.schema import (
     UserRoleAssignRequest,
 )
 
-router = APIRouter(tags=["Admin RBAC - 角色权限模块"])
+router = APIRouter(tags=["Services: RBAC Core Service"])
 
 
 def _require_provider():
