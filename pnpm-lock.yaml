@@ -29,6 +29,9 @@ importers:
 
   apps/web/admin:
     dependencies:
+      '@celestial/ui-theme':
+        specifier: workspace:*
+        version: link:../../../packages/ui-theme
       '@radix-ui/react-slot':
         specifier: ^1.2.4
         version: 1.2.4(@types/react@19.2.9)(react@19.2.3)
@@ -126,6 +129,15 @@ importers:
       vite-plugin-inspect:
         specifier: ^11.3.3
         version: 11.3.3(vite@7.3.1(@types/node@24.10.9)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0))
+
+  packages/ui-theme:
+    dependencies:
+      antd:
+        specifier: ^6.2.1
+        version: 6.2.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      tailwindcss:
+        specifier: ^4.1.18
+        version: 4.1.18
 
 packages:
 

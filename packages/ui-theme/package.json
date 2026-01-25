@@ -1,0 +1,15 @@
+{
+  "name": "@celestial/ui-theme",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./tokens.css": "./src/tokens.css",
+    "./tailwind-preset": "./src/tailwind-preset.ts",
+    "./antd-theme": "./src/antd-theme.ts"
+  },
+  "peerDependencies": {
+    "antd": "^6.2.1",
+    "tailwindcss": "^4.1.18"
+  }
+}

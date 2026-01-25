@@ -28,3 +28,20 @@ repos:
     rev: v3.21.2
     hooks:
       - id: pyupgrade
+
+  # Frontend (oxc toolchain via pnpm workspace)
+  - repo: local
+    hooks:
+      - id: frontend-oxfmt
+        name: frontend oxfmt (apps/web only)
+        entry: bash -lc 'pnpm -w exec oxfmt --check --no-error-on-unmatched-pattern "$@"'
+        language: system
+        files: ^apps/web/
+        pass_filenames: true
+
+      - id: frontend-oxlint
+        name: frontend oxlint (apps/web only)
+        entry: bash -lc 'pnpm -w exec oxlint --tsconfig apps/web/admin/tsconfig.json "$@"'
+        language: system
+        files: ^apps/web/
+        pass_filenames: true
