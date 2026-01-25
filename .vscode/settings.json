@@ -1,9 +1,1 @@
-{
-  "explorer.fileNesting.enabled": true,
-  "explorer.fileNesting.patterns": {
-    "pyproject.toml": "tox.ini, .flake8, .isort.cfg, .coveragerc, uv.lock, pytest.ini, .python-version",
-    ".gitignore": ".pre-commit-config.yaml",
-    "Dockerfile*": "docker-compose.*, .dockerignore",
-    ".env": ".env.*"
-  }
-}
+{}

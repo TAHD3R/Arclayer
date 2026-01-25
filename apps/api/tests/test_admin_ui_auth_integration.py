@@ -19,7 +19,7 @@ from apps.api.core.registry import create_app
 from apps.api.infra.db.orm import close_orm, init_orm, verify_db_ready
 from apps.api.models.user import User, UserStatus
 from apps.api.routers.v1.auth.deps import get_current_user
-from tests.utils.tortoise import reset_postgres_schema
+from apps.api.tests.utils.tortoise import reset_postgres_schema
 
 pytestmark = pytest.mark.integration
 
@@ -46,7 +46,7 @@ async def _ensure_test_database(settings) -> None:
 @pytest_asyncio.fixture
 async def prepared_db_with_admin_ui(integration_db_settings, monkeypatch) -> None:
     # Use repo plugins to ensure admin ui auth + org + rbac plugins are discovered.
-    repo_root = Path(__file__).resolve().parents[1]
+    repo_root = Path(__file__).resolve().parents[3]
     monkeypatch.setenv("PLUGIN__ENABLED", "1")
     monkeypatch.setenv("PLUGIN__ROOT_DIR", str(repo_root / "plugins"))
     monkeypatch.setenv("PLUGIN__AUTO_MIGRATE", "0")

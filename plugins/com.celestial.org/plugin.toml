@@ -1,8 +1,6 @@
 models = ["org.models"]
 
-dependencies = [
-  { id = "com.celestial.rbac.core", version = ">=1.0.0", optional = false },
-]
+dependencies = [{ id = "com.celestial.rbac.core", version = ">=1.0.0", optional = false }]
 
 [plugin]
 id = "com.celestial.org"

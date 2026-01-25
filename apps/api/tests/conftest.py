@@ -12,14 +12,16 @@ import pytest_asyncio
 from fastapi import FastAPI
 from tortoise import Tortoise
 
-ROOT = Path(__file__).resolve().parents[1]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
+# Ensure repository root is importable (e.g. `apps.*`, `plugins/*`), but avoid
+# putting `apps/api` itself on `sys.path` (it would shadow stdlib modules like `http`).
+REPO_ROOT = Path(__file__).resolve().parents[3]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
 from apps.api.config import get_settings
 from apps.api.infra.cache.valkey import ValkeyClient, close_valkey, init_valkey
 from apps.api.infra.db.orm import close_orm, init_orm, verify_db_ready
-from tests.utils.tortoise import reset_postgres_schema
+from apps.api.tests.utils.tortoise import reset_postgres_schema
 
 
 @pytest.fixture(autouse=True)

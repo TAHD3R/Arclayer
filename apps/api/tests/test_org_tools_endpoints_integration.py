@@ -14,7 +14,7 @@ from apps.api.config import get_settings
 from apps.api.core.registry import create_app
 from apps.api.infra.db.orm import close_orm, init_orm
 from apps.api.routers.v1.auth.deps import get_current_user_id
-from tests.utils.tortoise import reset_postgres_schema
+from apps.api.tests.utils.tortoise import reset_postgres_schema
 
 pytestmark = pytest.mark.integration
 
@@ -40,7 +40,7 @@ async def _ensure_test_database(settings) -> None:
 
 @pytest_asyncio.fixture
 async def prepared_db_with_repo_plugins_auto_migrate(integration_db_settings, monkeypatch) -> None:
-    repo_root = Path(__file__).resolve().parents[1]
+    repo_root = Path(__file__).resolve().parents[3]
     monkeypatch.setenv("PLUGIN__ENABLED", "1")
     monkeypatch.setenv("PLUGIN__ROOT_DIR", str(repo_root / "plugins"))
     monkeypatch.setenv("PLUGIN__AUTO_MIGRATE", "1")

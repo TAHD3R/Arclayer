@@ -29,7 +29,7 @@ What must NOT belong here:
 
 Infrastructure implementations and clients. Typical examples:
 
-- `infra/db/`    : ORM init/close, DB health checks
+- `infra/db/` : ORM init/close, DB health checks
 - `infra/cache/` : Valkey/Redis client init/close
 - `infra/limiter/`: rate limiter integration (FastAPI-Limiter, storage coupling)
 
@@ -86,7 +86,7 @@ Reusable building blocks that are not HTTP-specific and not infrastructure-speci
 Recommended import direction:
 
 - `routers/*` -> `http/`, `core/` (cross-cutting only), `common/`, `plugin/extension_points/*`, and local `service/repository/schema`
-- `service`  -> `repository`, `common/`, `core/exceptions`, `core/i18n`
+- `service` -> `repository`, `common/`, `core/exceptions`, `core/i18n`
 - `repository` -> `infra/*`, `models/*`
 - `core` -> `infra/*`, `plugin/*`, and `routers/*` only for route wiring
 - `plugin/*` -> `common/`, `http/` (contracts), but avoid depending on `routers/*`

@@ -1,0 +1,27 @@
+{
+  "name": "celestial-framework",
+  "private": true,
+  "scripts": {
+    "dev:admin": "pnpm --filter celestial-admin dev",
+    "build:admin": "pnpm --filter celestial-admin build",
+    "lint:admin": "pnpm --filter celestial-admin lint",
+    "fmt:admin": "pnpm --filter celestial-admin fmt",
+    "typecheck:admin": "pnpm --filter celestial-admin typecheck",
+    "test:admin": "pnpm --filter celestial-admin test:run",
+    "check:admin": "pnpm --filter celestial-admin check",
+    "dev:api": "uv run --project apps/api uvicorn apps.api.main:app --reload",
+    "lint:py": "uv run --project apps/api ruff check .",
+    "format:py": "uv run --project apps/api ruff format .",
+    "typecheck:py": "uv run --project apps/api pyright",
+    "test:py": "uv run --project apps/api pytest"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "@vitest/ui": "^4.0.18",
+    "oxfmt": "^0.26.0",
+    "oxlint": "^1.41.0",
+    "typescript": "~5.9.3",
+    "vitest": "^4.0.18"
+  },
+  "packageManager": "pnpm@9.0.0"
+}
