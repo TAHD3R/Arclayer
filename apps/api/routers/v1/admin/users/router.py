@@ -3,7 +3,6 @@ from __future__ import annotations
 from uuid import UUID
 
 from fastapi import APIRouter, Depends
-from rbac.schema import AuthzSnapshot
 
 from apps.api.core.authz import require_permission_strict
 from apps.api.core.exceptions import ServiceUnavailable
@@ -19,6 +18,7 @@ from apps.api.routers.v1.admin.users.schema import (
     AdminUserSummaryOut,
     AdminUserUpdateRequest,
 )
+from apps.api.routers.v1.auth.schema import AuthzSnapshot
 
 router = APIRouter(tags=["Admin Users - 用户管理模块"])
 

@@ -21,11 +21,11 @@ async def test_spotlight_enabled_in_development() -> None:
         assert resp.status_code == 200
         html = resp.text
         assert 'apiDescriptionUrl="/openapi.json"' in html
-        assert "/static/spotlight@9.0.6/styles.min.css" in html
-        assert "/static/spotlight@9.0.6/web-components.min.js" in html
+        assert "/_docs/spotlight@9.0.6/styles.min.css" in html
+        assert "/_docs/spotlight@9.0.6/web-components.min.js" in html
 
         # Ensure local static assets are actually served (no network dependency).
-        resp = await client.get("/static/spotlight@9.0.6/styles.min.css")
+        resp = await client.get("/_docs/spotlight@9.0.6/styles.min.css")
         assert resp.status_code == 200
 
 

@@ -39,7 +39,9 @@ def _require_provider():
 async def validate_org() -> ResponseModel[OrgValidateReport]:
     provider = _require_provider()
     report = await provider.validate()
-    return Response.success(data=OrgValidateReport.model_validate(report))
+    # Provider implementations may return their own Pydantic models (e.g. from plugins),
+    # so validate from attributes to support cross-model coercion.
+    return Response.success(data=OrgValidateReport.model_validate(report, from_attributes=True))
 
 
 @router.post(
@@ -52,7 +54,7 @@ async def repair_directory(
 ) -> ResponseModel[OrgRepairResult]:
     provider = _require_provider()
     result = await provider.repair_directory(actor_user_id=actor_user_id)
-    return Response.success(data=OrgRepairResult.model_validate(result))
+    return Response.success(data=OrgRepairResult.model_validate(result, from_attributes=True))
 
 
 @router.post(
@@ -65,7 +67,7 @@ async def repair_primary_department(
 ) -> ResponseModel[OrgRepairResult]:
     provider = _require_provider()
     result = await provider.repair_primary_department(actor_user_id=actor_user_id)
-    return Response.success(data=OrgRepairResult.model_validate(result))
+    return Response.success(data=OrgRepairResult.model_validate(result, from_attributes=True))
 
 
 @router.post(

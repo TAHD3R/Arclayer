@@ -17,6 +17,7 @@ from apps.api.core.registry import create_app
 from apps.api.infra.db.orm import close_orm, init_orm
 from apps.api.plugin.registry import registry
 from apps.api.routers.v1.auth.deps import get_current_user
+from tests.utils.tortoise import reset_postgres_schema
 
 pytestmark = pytest.mark.integration
 
@@ -52,6 +53,7 @@ async def prepared_db_with_repo_plugins_auto_migrate(integration_db_settings, mo
     settings = get_settings()
     await _ensure_test_database(settings)
     await init_orm(settings)
+    await reset_postgres_schema()
     await Tortoise.generate_schemas(safe=True)
     await close_orm()
 

@@ -27,25 +27,29 @@ from apps.api.plugin.restart import start_restart_watcher, stop_restart_watcher
 def _build_lifespan(settings: Settings, *, plugin_manager: PluginManager):
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-        if not plugin_manager.descriptors:
-            plugin_manager.discover()
-        extra_models = plugin_manager.collect_model_modules()
+        # Make startup/teardown resilient: if any step raises before `yield`,
+        # we still want to close DB/cache connections and stop partially-started plugins.
+        try:
+            if not plugin_manager.descriptors:
+                plugin_manager.discover()
+            extra_models = plugin_manager.collect_model_modules()
 
-        await init_orm(settings, extra_modules=extra_models)
-        await verify_db_ready(settings)
-        await init_valkey(app, settings)
-        plugin_manager.bind_valkey(getattr(app.state, "valkey", None))
-        await init_rate_limiter(app, settings)
-        await plugin_manager.sync_records()
-        await plugin_manager.start()
-        await start_restart_watcher(app, settings)
-        app.state.plugin_manager = plugin_manager
-        yield
-        await stop_restart_watcher(app)
-        await plugin_manager.stop()
-        await close_rate_limiter(app)
-        await close_orm()
-        await close_valkey(app)
+            await init_orm(settings, extra_modules=extra_models)
+            await verify_db_ready(settings)
+            await init_valkey(app, settings)
+            plugin_manager.bind_valkey(getattr(app.state, "valkey", None))
+            await init_rate_limiter(app, settings)
+            await plugin_manager.sync_records()
+            await plugin_manager.start()
+            await start_restart_watcher(app, settings)
+            app.state.plugin_manager = plugin_manager
+            yield
+        finally:
+            await stop_restart_watcher(app)
+            await plugin_manager.stop()
+            await close_rate_limiter(app)
+            await close_orm()
+            await close_valkey(app)
 
     return lifespan
 
@@ -79,16 +83,17 @@ class AppFactory:
         if not self.settings.enable_docs:
             return self
 
-        # Ensure static is mounted in dev so spotlight can load local assets even when
-        # `APPLICATION__STATIC_ENABLED` is false.
-        static_dir = self.settings.application.static_dir
-        static_url = self.settings.application.static_url
-        already_mounted = any(isinstance(route, Mount) and route.path == static_url for route in self.app.routes)
+        # Spotlight assets are bundled with the repository under `/<repo>/static/spotlight@9.0.6`.
+        # We mount them under a docs-only path so we don't implicitly enable `/static`
+        # when application static serving is disabled.
+        repo_static_dir = Path(__file__).resolve().parents[3] / "static" / "spotlight@9.0.6"
+        assets_url = "/_docs/spotlight@9.0.6"
+        already_mounted = any(isinstance(route, Mount) and route.path == assets_url for route in self.app.routes)
         if not already_mounted:
-            static_dir.mkdir(parents=True, exist_ok=True)
-            self.app.mount(static_url, StaticFiles(directory=static_dir), name="static")
+            repo_static_dir.mkdir(parents=True, exist_ok=True)
+            self.app.mount(assets_url, StaticFiles(directory=repo_static_dir), name="spotlight-assets")
 
-        assets_base = f"{static_url.rstrip('/')}/spotlight@9.0.6"
+        assets_base = assets_url.rstrip("/")
         openapi_url = self.app.openapi_url or self.settings.application.app_openapi_url or "/openapi.json"
 
         docs_path = self.settings.application.app_docs_url or "/docs"

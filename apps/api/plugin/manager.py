@@ -429,6 +429,8 @@ class PluginManager:
             logger.info("Plugin started", plugin_id=descriptor.plugin_id)
         except Exception as exc:
             logger.exception("Plugin start failed", plugin_id=descriptor.plugin_id, error=str(exc))
+            # Ensure partially-registered extensions don't leak across app lifecycles/tests.
+            self.registry.unregister_extensions(descriptor.plugin_id)
             self.registry.unregister_permissions(descriptor.plugin_id)
             self.instances.pop(descriptor.plugin_id, None)
             if record:
@@ -436,19 +438,33 @@ class PluginManager:
                 await record.save()
 
     async def _stop_plugin(self, plugin_id: str, instance: BasePlugin) -> None:
+        stop_ok = False
         try:
             await instance.on_stop()
+            stop_ok = True
+        except Exception as exc:
+            logger.exception("Plugin stop failed", plugin_id=plugin_id, error=str(exc))
+        finally:
+            # Plugins may forget to unregister their contributions; enforce cleanup here.
+            self.registry.unregister_extensions(plugin_id)
             self.registry.unregister_permissions(plugin_id)
             record = self.records.get(plugin_id)
-            if record:
+            if record and stop_ok:
                 record.status = PluginStatus.STOPPED
                 await record.save()
             self.instances.pop(plugin_id, None)
             logger.info("Plugin stopped", plugin_id=plugin_id)
-        except Exception as exc:
-            logger.exception("Plugin stop failed", plugin_id=plugin_id, error=str(exc))
 
     async def _run_migrations(self, plugin_id: str) -> None:
+        # Integration tests use `Tortoise.generate_schemas()` to build a clean schema.
+        # Running Aerich here is slow and can spawn subprocesses that outlive the test
+        # event loop, leading to flaky "Event loop is closed" errors.
+        #
+        # If we ever need to explicitly test Aerich integration, we can opt in via env.
+        if self.settings.app_env == "test" and os.getenv("PLUGIN__MIGRATE_IN_TEST") != "1":
+            logger.info("Plugin migrations skipped in test env", plugin_id=plugin_id)
+            return
+
         if self._migration_lock is None:
             self._migration_lock = asyncio.Lock()
         async with self._migration_lock:

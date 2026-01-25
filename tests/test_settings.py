@@ -11,16 +11,16 @@ def test_settings_defaults(monkeypatch) -> None:
     assert settings.app_env == "development"
     assert settings.debug is True
     assert settings.enable_docs is True
-    assert settings.application.app_name == "Celestial CMS API"
+    assert settings.application.app_name == "Celestial Framework API"
 
 
 def test_settings_env_overrides(monkeypatch) -> None:
     monkeypatch.setenv("APP_ENV", "production")
-    monkeypatch.setenv("APP_NAME", "Celestial CMS API (Prod)")
+    monkeypatch.setenv("APP_NAME", "Celestial Framework API (Prod)")
 
     settings = get_settings()
 
     assert settings.app_env == "production"
     assert settings.debug is False
     assert settings.enable_docs is False
-    assert settings.application.app_name == "Celestial CMS API (Prod)"
+    assert settings.application.app_name == "Celestial Framework API (Prod)"

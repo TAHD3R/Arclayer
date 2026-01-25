@@ -19,6 +19,7 @@ if str(ROOT) not in sys.path:
 from apps.api.config import get_settings
 from apps.api.infra.cache.valkey import ValkeyClient, close_valkey, init_valkey
 from apps.api.infra.db.orm import close_orm, init_orm, verify_db_ready
+from tests.utils.tortoise import reset_postgres_schema
 
 
 @pytest.fixture(autouse=True)
@@ -104,6 +105,7 @@ async def prepared_db(integration_db_settings, plugin_root) -> Iterator[None]:
     settings = get_settings()
     await _ensure_test_database(settings)
     await init_orm(settings)
+    await reset_postgres_schema()
     await Tortoise.generate_schemas(safe=True)
     await close_orm()
     yield
@@ -111,6 +113,7 @@ async def prepared_db(integration_db_settings, plugin_root) -> Iterator[None]:
 
 @pytest_asyncio.fixture
 async def db_schema(db) -> Iterator[None]:
+    await reset_postgres_schema()
     await Tortoise.generate_schemas(safe=True)
     yield
 

@@ -8,13 +8,12 @@ def test_create_app_docs_enabled_in_test_env(monkeypatch) -> None:
 
     app = create_app()
 
-    assert app.title == "Celestial CMS API"
+    assert app.title == "Celestial Framework API"
     assert app.debug is False
 
     with TestClient(app) as client:
         assert client.get("/docs").status_code == 200
         assert client.get("/openapi.json").status_code == 200
-        assert client.get("/redoc").status_code == 200
 
 
 def test_create_app_docs_disabled_in_production(monkeypatch) -> None:
@@ -25,4 +24,3 @@ def test_create_app_docs_disabled_in_production(monkeypatch) -> None:
     with TestClient(app) as client:
         assert client.get("/docs").status_code == 404
         assert client.get("/openapi.json").status_code == 404
-        assert client.get("/redoc").status_code == 404

@@ -1,3 +1,5 @@
+models = ["org_tools.models"]
+
 [plugin]
 id = "com.celestial.org.tools"
 name = "组织工具插件"
@@ -23,8 +25,6 @@ optional = false
 id = "com.celestial.rbac.org"
 version = ">=1.0.0"
 optional = true
-
-models = ["org_tools.models"]
 
 [[permissions]]
 code = "admin:org:tools:validate"

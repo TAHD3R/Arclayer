@@ -27,9 +27,26 @@ class RBACPlugin(BasePlugin):
         service = RBACService(get_settings())
         await service.ensure_system_roles()
         await service.sync_permissions()
-        engine = RBACAuthorizationEngine(self.descriptor)
-        registry.register_extension(self.plugin_id, AUTHZ_EXTENSION_POINT, engine)
-        registry.register_extension(self.plugin_id, AUTHZ_SNAPSHOT_EXTENSION_POINT, RBACAuthzSnapshotProvider())
+
+        # Authz can be provided by a different plugin (or overridden in tests).
+        # Do not fail startup if another engine/snapshot provider is already registered.
+        if registry.get_extension(AUTHZ_EXTENSION_POINT) is None:
+            engine = RBACAuthorizationEngine(self.descriptor)
+            registry.register_extension(self.plugin_id, AUTHZ_EXTENSION_POINT, engine)
+        else:
+            logger.info(
+                "Authz engine already registered, skip RBAC authz engine",
+                plugin_id=self.plugin_id,
+            )
+
+        if registry.get_extension(AUTHZ_SNAPSHOT_EXTENSION_POINT) is None:
+            registry.register_extension(self.plugin_id, AUTHZ_SNAPSHOT_EXTENSION_POINT, RBACAuthzSnapshotProvider())
+        else:
+            logger.info(
+                "Authz snapshot provider already registered, skip RBAC snapshot provider",
+                plugin_id=self.plugin_id,
+            )
+
         registry.register_extension(self.plugin_id, ADMIN_RBAC_PROVIDER_EXTENSION_POINT, AdminRBACProviderImpl())
         registry.register_extension(
             self.plugin_id,

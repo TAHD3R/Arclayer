@@ -15,6 +15,7 @@ from apps.api.core.registry import create_app
 from apps.api.http.pagination import PageParams
 from apps.api.infra.db.orm import close_orm, init_orm
 from apps.api.models.user import UserStatus
+from tests.utils.tortoise import reset_postgres_schema
 
 pytestmark = pytest.mark.integration
 
@@ -52,6 +53,7 @@ async def prepared_db_with_repo_plugins_auto_migrate(integration_db_settings, mo
     settings = get_settings()
     await _ensure_test_database(settings)
     await init_orm(settings)
+    await reset_postgres_schema()
     # Ensure aerich base table exists for upgrades on a fresh DB.
     await Tortoise.generate_schemas(safe=True)
     await close_orm()
