@@ -438,6 +438,8 @@ class PluginService(BaseService):
                         key=field.key,
                         type=field.type,
                         default=field.default,
+                        secret=bool(getattr(field, "secret", False)),
+                        ui=getattr(field, "ui", None),
                         label=self._translate_ref(field.label_i18n, field.label),
                         description=self._translate_ref(field.description_i18n, field.description),
                     )
@@ -570,34 +572,18 @@ class PluginService(BaseService):
         return defaults
 
     def _validate_config(self, schema: ConfigSchema, config: dict[str, Any]) -> None:
-        sections = {section.id: section for section in schema.sections}
-        for section_id, values in config.items():
-            section = sections.get(section_id)
-            if section is None:
-                raise BadRequest(
-                    message=_tp("PLUGIN_CONFIG_ITEM_INVALID", "插件配置项不合法"),
-                    error="PLUGIN_CONFIG_INVALID",
-                )
-            if not isinstance(values, dict):
-                raise BadRequest(
-                    message=_tp("PLUGIN_CONFIG_ITEM_INVALID", "插件配置项不合法"),
-                    error="PLUGIN_CONFIG_INVALID",
-                )
-            fields = {field.key: field for field in section.fields}
-            for key, value in values.items():
-                field = fields.get(key)
-                if field is None:
-                    raise BadRequest(
-                        message=_tp("PLUGIN_CONFIG_ITEM_INVALID", "插件配置项不合法"),
-                        error="PLUGIN_CONFIG_INVALID",
-                    )
-                if value is None:
-                    continue
-                if not self._is_type_valid(field.type, value):
-                    raise BadRequest(
-                        message=_tp("PLUGIN_CONFIG_TYPE_INVALID", "插件配置项类型不正确"),
-                        error="PLUGIN_CONFIG_INVALID",
-                    )
+        # Keep backward compatibility: allow unknown fields/sections but validate known ones.
+        from apps.api.settings.validation import validate_config_schema
+
+        try:
+            validate_config_schema(schema, config, allow_unknown=True)
+        except BadRequest as exc:
+            # Preserve the plugin error code for existing clients.
+            raise BadRequest(
+                message=exc.message,
+                error="PLUGIN_CONFIG_INVALID",
+                details=getattr(exc, "details", None),
+            ) from exc
 
     def _is_type_valid(self, field_type: str, value: Any) -> bool:
         if field_type == "str":

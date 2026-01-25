@@ -41,6 +41,18 @@ description_i18n = "rbac:PERM_SYSTEM_PLUGINS_MANAGE_DESC"
 default_roles = ["admin"]
 
 [[permissions]]
+code = "system:settings:read"
+name = "Read settings"
+description = "Allow reading system settings and plugin settings."
+default_roles = ["admin"]
+
+[[permissions]]
+code = "system:settings:manage"
+name = "Manage settings"
+description = "Allow updating system settings and plugin settings."
+default_roles = ["admin"]
+
+[[permissions]]
 code = "rbac:roles:read"
 name = "Read roles"
 description = "Allow listing roles and role details."

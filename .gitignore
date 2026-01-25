@@ -26,3 +26,6 @@ htmlcov/
 # Upload files
 /static/upload
 /references
+
+# Local data (runtime)
+/data/

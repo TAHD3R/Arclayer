@@ -26,6 +26,8 @@ class ConfigField(BaseModel):
     key: str
     type: str
     default: Any | None = None
+    secret: bool = False
+    ui: dict[str, Any] | None = None
     label: str | None = None
     description: str | None = None
     label_i18n: str | None = None

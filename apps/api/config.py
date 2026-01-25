@@ -493,6 +493,29 @@ class PluginSettings(BaseSettings):
     restart_jitter_seconds: float = Field(default=5.0)
 
 
+class SetupSettings(BaseSettings):
+    """
+    One-time system initialization (bootstrap) settings.
+    """
+
+    model_config = SettingsConfigDict(
+        env_prefix="SETUP__",
+        env_file_encoding="utf-8",
+        env_nested_delimiter="__",
+        extra="ignore",
+        case_sensitive=False,
+        populate_by_name=True,
+        validate_default=True,
+    )
+
+    enabled: bool = Field(default=True)
+    token: SecretStr | None = Field(default=None, description="Optional setup token for /system/setup.")
+    master_key_path: Path = Field(
+        default=Path(__file__).resolve().parents[2] / "data" / "secrets" / "master.key",
+        description="Path to the master key file used to encrypt secrets in settings.",
+    )
+
+
 class Settings(BaseSettings):
     """
     Global settings for the API application.
@@ -537,6 +560,7 @@ class Settings(BaseSettings):
     auth: AuthSettings = Field(default_factory=AuthSettings)
     email: EmailSettings = Field(default_factory=EmailSettings)
     plugin: PluginSettings = Field(default_factory=PluginSettings)
+    setup: SetupSettings = Field(default_factory=SetupSettings)
     testing: TestingSettings = Field(default_factory=TestingSettings)
 
     def _apply_env_overrides(self) -> None:
@@ -555,6 +579,7 @@ class Settings(BaseSettings):
         self.auth = _merge_settings(self.auth, AuthSettings())
         self.email = _merge_settings(self.email, EmailSettings())
         self.plugin = _merge_settings(self.plugin, PluginSettings())
+        self.setup = _merge_settings(self.setup, SetupSettings())
         self.testing = _merge_settings(self.testing, TestingSettings())
 
         if self.app_env == "test":
