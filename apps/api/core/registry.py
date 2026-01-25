@@ -185,6 +185,16 @@ class AppFactory:
         from apps.api.core.middleware.locale import LocaleMiddleware
 
         self.app.add_middleware(LocaleMiddleware)
+        from apps.api.core.middleware.request_log import RequestLogMiddleware
+
+        # Place request logging inside CorrelationIdMiddleware so the summary line
+        # can reliably include `trace_id` (the correlation middleware may reset contextvars on return).
+        self.app.add_middleware(
+            RequestLogMiddleware,
+            trace_header_name=self.settings.logging.trace_header_name,
+            omit_paths=self.settings.logging.request_log_omit_paths,
+            omit_path_prefixes=self.settings.logging.request_log_omit_path_prefixes,
+        )
         self.app.add_middleware(CorrelationIdMiddleware)
 
         return self

@@ -90,6 +90,40 @@ class LoggingSettings(BaseSettings):
     rotation: str = Field(default="1d", validation_alias=AliasChoices("LOG_ROTATION", "APP_LOG_ROTATION"))
     retention: str = Field(default="7d", validation_alias=AliasChoices("LOG_RETENTION", "APP_LOG_RETENTION"))
     async_enabled: bool = Field(default=False, validation_alias=AliasChoices("LOG_ASYNC", "APP_LOG_ASYNC"))
+    omit_tortoise_logs: bool = Field(
+        default=False,
+        validation_alias=AliasChoices("OMIT_TORTOISE_LOGS", "TORTOISE_LOGS_OMIT"),
+    )
+    omit_uvicorn_access_logs: bool = Field(
+        default=True,
+        validation_alias=AliasChoices("OMIT_UVICORN_ACCESS_LOGS", "UVICORN_ACCESS_LOGS_OMIT"),
+    )
+    trace_header_name: str = Field(
+        default="X-Trace-Id",
+        validation_alias=AliasChoices("TRACE_HEADER_NAME", "X_TRACE_ID_HEADER"),
+    )
+    request_log_omit_paths: list[str] = Field(
+        default_factory=lambda: [
+            "/health",
+            "/healthz",
+            "/readyz",
+            "/livez",
+            "/metrics",
+            "/openapi.json",
+            "/docs",
+            "/redoc",
+            "/spotlight",
+            "/favicon.ico",
+        ],
+        validation_alias=AliasChoices("REQUEST_LOG_OMIT_PATHS"),
+    )
+    request_log_omit_path_prefixes: list[str] = Field(
+        default_factory=lambda: [
+            "/static",
+            "/_docs",
+        ],
+        validation_alias=AliasChoices("REQUEST_LOG_OMIT_PATH_PREFIXES"),
+    )
 
 
 class DatabaseSettings(BaseSettings):

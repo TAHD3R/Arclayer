@@ -68,7 +68,7 @@ class SettingsService(BaseService):
             masked, secrets = self._mask_secrets(schema, raw)
             return SettingsDetail(
                 namespace=CORE_SETTINGS_NAMESPACE,
-                schema=self._to_schema_item(schema),
+                setting_schema=self._to_schema_item(schema),
                 value=masked,
                 secrets=secrets,
                 updated_at=record.updated_at if record else None,
@@ -88,7 +88,7 @@ class SettingsService(BaseService):
             masked, secrets = self._mask_secrets(schema, raw)
             return SettingsDetail(
                 namespace=namespace,
-                schema=self._to_schema_item(schema),
+                setting_schema=self._to_schema_item(schema),
                 value=masked,
                 secrets=secrets,
                 updated_at=record.updated_at if record else None,
@@ -124,7 +124,7 @@ class SettingsService(BaseService):
             masked, secrets = self._mask_secrets(schema, merged)
             return SettingsDetail(
                 namespace=CORE_SETTINGS_NAMESPACE,
-                schema=self._to_schema_item(schema),
+                setting_schema=self._to_schema_item(schema),
                 value=masked,
                 secrets=secrets,
                 updated_at=saved.updated_at,
@@ -163,7 +163,7 @@ class SettingsService(BaseService):
             masked, secrets = self._mask_secrets(schema, merged)
             return SettingsDetail(
                 namespace=namespace,
-                schema=self._to_schema_item(schema),
+                setting_schema=self._to_schema_item(schema),
                 value=masked,
                 secrets=secrets,
                 updated_at=record.updated_at,

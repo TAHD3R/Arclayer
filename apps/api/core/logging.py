@@ -18,6 +18,7 @@ from structlog.stdlib import (
     add_logger_name,
 )
 
+from apps.api.common.utils.redact import redact
 from apps.api.config import Settings
 
 
@@ -40,21 +41,33 @@ class _StructlogQueueHandler(QueueHandler):
 def _add_correlation_id(logger: BoundLogger, method_name: str, event_dict: dict[str, Any]) -> dict[str, Any]:
     cid = correlation_id.get(None)
     if cid:
-        event_dict["correlation_id"] = cid
+        # Use a single name everywhere (console/file/meta) to avoid "request_id vs trace_id" confusion.
+        event_dict["trace_id"] = cid
     return event_dict
 
 
 def _normalize_console_fields(logger: BoundLogger, method_name: str, event_dict: dict[str, Any]) -> dict[str, Any]:
-    logger_name = event_dict.get("logger") or "-"
-    event_dict["logger"] = logger_name
-
-    correlation = event_dict.get("correlation_id")
-    if not correlation:
-        event_dict["correlation_id"] = "-"
+    # Keep console output compact:
+    # - omit correlation_id when missing (do not render placeholder)
+    # - keep logger as-is (will be rendered as a bracketed suffix after the event)
+    correlation = event_dict.get("trace_id")
+    if correlation:
+        event_dict["trace_id"] = str(correlation)
     else:
-        correlation = str(correlation)
-        event_dict["correlation_id"] = correlation
+        event_dict.pop("trace_id", None)
     return event_dict
+
+
+def _redact_sensitive(logger: BoundLogger, method_name: str, event_dict: dict[str, Any]) -> dict[str, Any]:
+    """
+    Best-effort log redaction.
+
+    - Redacts known sensitive keys (password/token/secret/phone/id_card...)
+    - Truncates overly long strings/arrays to keep logs bounded
+    """
+
+    cleaned = redact(event_dict)
+    return cleaned if isinstance(cleaned, dict) else event_dict
 
 
 def _build_console_renderer() -> structlog.dev.ConsoleRenderer:
@@ -79,21 +92,14 @@ def _build_console_renderer() -> structlog.dev.ConsoleRenderer:
             ),
         ),
         structlog.dev.Column(
-            "logger",
+            "trace_id",
             structlog.dev.KeyValueColumnFormatter(
                 key_style=None,
                 value_style=styles.logger_name,
                 reset_style=styles.reset,
                 value_repr=str,
-            ),
-        ),
-        structlog.dev.Column(
-            "correlation_id",
-            structlog.dev.KeyValueColumnFormatter(
-                key_style=None,
-                value_style=styles.logger_name,
-                reset_style=styles.reset,
-                value_repr=str,
+                prefix="[",
+                postfix="]",
             ),
         ),
         structlog.dev.Column(
@@ -103,6 +109,17 @@ def _build_console_renderer() -> structlog.dev.ConsoleRenderer:
                 value_style=styles.reset,
                 reset_style=styles.reset,
                 value_repr=str,
+            ),
+        ),
+        structlog.dev.Column(
+            "logger",
+            structlog.dev.KeyValueColumnFormatter(
+                key_style=None,
+                value_style=styles.logger_name,
+                reset_style=styles.reset,
+                value_repr=str,
+                prefix="[",
+                postfix="]",
             ),
         ),
         structlog.dev.Column(
@@ -117,6 +134,27 @@ def _build_console_renderer() -> structlog.dev.ConsoleRenderer:
     ]
 
     return structlog.dev.ConsoleRenderer(columns=columns, colors=True, sort_keys=False)
+
+
+def _add_exc_info_from_record(logger: BoundLogger, method_name: str, event_dict: dict[str, Any]) -> dict[str, Any]:
+    """
+    Ensure exception/stack info is available to processors (renderer/format_exc_info)
+    for structlog-originated records too.
+    """
+
+    record = event_dict.get("_record")
+    if record is None:
+        return event_dict
+    try:
+        exc_info = getattr(record, "exc_info", None)
+        if exc_info and "exc_info" not in event_dict:
+            event_dict["exc_info"] = exc_info
+        stack_info = getattr(record, "stack_info", None)
+        if stack_info and "stack_info" not in event_dict:
+            event_dict["stack_info"] = stack_info
+    except Exception:
+        return event_dict
+    return event_dict
 
 
 def _parse_duration_seconds(value: str, *, min_value: int = 1) -> int:
@@ -166,6 +204,7 @@ def configure_logging(settings: Settings) -> None:
         add_logger_name,
         PositionalArgumentsFormatter(),
         timestamper,
+        _redact_sensitive,
     ]
 
     use_json = settings.logging.json_logs if settings.logging.json_logs is not None else not settings.debug
@@ -189,9 +228,28 @@ def configure_logging(settings: Settings) -> None:
         ]
         foreign_pre_chain = [*base_processors, _normalize_console_fields]
 
+    # Use handler-specific processors so we can keep pretty console tracebacks
+    # while also producing full exception strings for JSON logs.
+    if use_json:
+        console_processors = (
+            _add_exc_info_from_record,
+            ProcessorFormatter.remove_processors_meta,
+            StackInfoRenderer(),
+            format_exc_info,
+            renderer,
+        )
+    else:
+        console_processors = (
+            _add_exc_info_from_record,
+            ProcessorFormatter.remove_processors_meta,
+            renderer,
+        )
+
     console_formatter = ProcessorFormatter(
-        processor=renderer,
+        processors=console_processors,
         foreign_pre_chain=foreign_pre_chain,
+        keep_exc_info=True,
+        keep_stack_info=True,
     )
 
     console_handler = logging.StreamHandler(sys.stdout)
@@ -216,8 +274,16 @@ def configure_logging(settings: Settings) -> None:
     )
     file_handler.suffix = "%Y-%m-%d_%H-%M-%S"
     file_formatter = ProcessorFormatter(
-        processor=JSONRenderer(),
+        processors=(
+            _add_exc_info_from_record,
+            ProcessorFormatter.remove_processors_meta,
+            StackInfoRenderer(),
+            format_exc_info,
+            JSONRenderer(),
+        ),
         foreign_pre_chain=base_processors,
+        keep_exc_info=True,
+        keep_stack_info=True,
     )
     file_handler.setLevel(settings.logging.level)
     file_handler.setFormatter(file_formatter)
@@ -240,9 +306,32 @@ def configure_logging(settings: Settings) -> None:
     else:
         root_logger.handlers = handlers
 
-    for name in ("uvicorn", "uvicorn.error", "uvicorn.access", "tortoise"):
+    for name in ("uvicorn", "uvicorn.error"):
         logging.getLogger(name).handlers = []
         logging.getLogger(name).propagate = True
+
+    if settings.logging.omit_uvicorn_access_logs:
+        access_logger = logging.getLogger("uvicorn.access")
+        access_logger.handlers = []
+        access_logger.propagate = False
+        access_logger.disabled = True
+    else:
+        access_logger = logging.getLogger("uvicorn.access")
+        access_logger.handlers = []
+        access_logger.propagate = True
+        access_logger.disabled = False
+
+    # Tortoise ORM logs can be extremely noisy (SQL/debug). Allow turning them off explicitly.
+    if settings.logging.omit_tortoise_logs:
+        tortoise_logger = logging.getLogger("tortoise")
+        tortoise_logger.handlers = []
+        tortoise_logger.propagate = False
+        tortoise_logger.disabled = True
+    else:
+        tortoise_logger = logging.getLogger("tortoise")
+        tortoise_logger.handlers = []
+        tortoise_logger.propagate = True
+        tortoise_logger.disabled = False
 
     structlog.configure(
         processors=processors,

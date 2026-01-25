@@ -39,7 +39,7 @@ class SettingsNamespaceSummary(BaseSchema):
 
 class SettingsDetail(BaseSchema):
     namespace: str = Field(..., description="Settings namespace.")
-    schema: SettingsSchemaItem = Field(..., description="Schema for UI and validation.")
+    setting_schema: SettingsSchemaItem = Field(..., description="Schema for UI and validation.")
     value: dict[str, Any] = Field(default_factory=dict, description="Masked settings value.")
     secrets: dict[str, bool] = Field(default_factory=dict, description="Secret field set state by path.")
     updated_at: datetime | None = Field(default=None, description="Last update time.")

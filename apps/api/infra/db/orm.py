@@ -115,7 +115,7 @@ def build_tortoise_config(
     extra_modules: Iterable[str] | None = None,
 ) -> dict:
     models = build_models_list(settings, extra_pkgs=extra_pkgs, extra_modules=extra_modules)
-    logger.debug("Tortoise models", models=models)
+
     return {
         "connections": {
             "default": {

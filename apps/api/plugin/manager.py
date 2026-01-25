@@ -588,7 +588,7 @@ class PluginManager:
             logger.error("Aerich command failed", args=list(args), stdout=out, stderr=err)
             raise RuntimeError("Aerich command failed")
         if out:
-            logger.info("Aerich command output", args=list(args), stdout=out)
+            logger.info("Aerich command output", args=list(args))
         if err:
             logger.warning("Aerich command stderr", args=list(args), stderr=err)
 

@@ -30,9 +30,24 @@ _HTTP_ERROR_MAP = {
 logger = get_logger(__name__)
 
 
+def _exc_info_tuple(exc: BaseException) -> tuple[type[BaseException], BaseException, Any] | None:
+    """
+    Build an explicit exc_info tuple for logging.
+
+    Rationale: FastAPI/Starlette exception handlers are not always executed inside the original
+    `except` block scope, so relying on `logger.exception(..., exc_info=True)` can occasionally
+    lose the traceback. Passing an explicit tuple guarantees stack capture for JSON logs.
+    """
+
+    tb = getattr(exc, "__traceback__", None)
+    if tb is None:
+        return None
+    return (type(exc), exc, tb)
+
+
 def _trace_meta(request: Request) -> dict[str, Any]:
     return {
-        "request_id": correlation_id.get() or "-",
+        "trace_id": correlation_id.get() or "-",
         "method": request.method,
         "path": request.url.path,
     }
@@ -76,6 +91,8 @@ def init_exception_handlers(app: FastAPI, settings: Settings) -> None:
 
     @app.exception_handler(APIError)
     async def api_error_handler(request: Request, exc: APIError) -> ORJSONResponse:
+        request.state.error_code = exc.error
+        request.state.error_message = exc.message
         log_fields = {
             "method": request.method,
             "path": request.url.path,
@@ -83,9 +100,7 @@ def init_exception_handlers(app: FastAPI, settings: Settings) -> None:
             "error": exc.error,
         }
         if exc.status_code >= 500:
-            logger.exception("APIError", **log_fields)
-        else:
-            logger.warning("APIError", **log_fields)
+            logger.exception("APIError", exc_info=_exc_info_tuple(exc), **log_fields)
         return _build_response(
             request=request,
             status_code=exc.status_code,
@@ -104,9 +119,7 @@ def init_exception_handlers(app: FastAPI, settings: Settings) -> None:
             "status": exc.status_code,
         }
         if exc.status_code >= 500:
-            logger.exception("HTTPException", **log_fields)
-        else:
-            logger.warning("HTTPException", **log_fields)
+            logger.exception("HTTPException", exc_info=_exc_info_tuple(exc), **log_fields)
 
         message = "请求错误"
         error: str | None = None
@@ -122,6 +135,8 @@ def init_exception_handlers(app: FastAPI, settings: Settings) -> None:
         if error is None:
             error = _HTTP_ERROR_MAP.get(exc.status_code, "INTERNAL_ERROR" if exc.status_code >= 500 else "HTTP_ERROR")
 
+        request.state.error_code = error
+        request.state.error_message = message
         return _build_response(
             request=request,
             status_code=exc.status_code,
@@ -137,7 +152,8 @@ def init_exception_handlers(app: FastAPI, settings: Settings) -> None:
         request: Request,
         exc: RequestValidationError,
     ) -> ORJSONResponse:
-        logger.warning("RequestValidationError", method=request.method, path=request.url.path)
+        request.state.error_code = "VALIDATION_ERROR"
+        request.state.error_message = "参数校验失败"
         return _build_response(
             request=request,
             status_code=422,
@@ -149,7 +165,14 @@ def init_exception_handlers(app: FastAPI, settings: Settings) -> None:
 
     @app.exception_handler(OperationalError)
     async def tortoise_operational_handler(request: Request, exc: OperationalError) -> ORJSONResponse:
-        logger.exception("DBOperationalError", method=request.method, path=request.url.path)
+        request.state.error_code = "DB_OPERATIONAL_ERROR"
+        request.state.error_message = "数据库操作失败"
+        logger.exception(
+            "DBOperationalError",
+            exc_info=_exc_info_tuple(exc),
+            method=request.method,
+            path=request.url.path,
+        )
         return _build_response(
             request=request,
             status_code=500,
@@ -161,7 +184,8 @@ def init_exception_handlers(app: FastAPI, settings: Settings) -> None:
 
     @app.exception_handler(ValidationError)
     async def pydantic_validation_handler(request: Request, exc: ValidationError) -> ORJSONResponse:
-        logger.warning("PydanticValidationError", method=request.method, path=request.url.path)
+        request.state.error_code = "VALIDATION_ERROR"
+        request.state.error_message = "参数校验失败"
         return _build_response(
             request=request,
             status_code=422,
@@ -175,7 +199,14 @@ def init_exception_handlers(app: FastAPI, settings: Settings) -> None:
     async def unhandled_handler(request: Request, exc: Exception) -> ORJSONResponse:
         if isinstance(exc, asyncio.CancelledError):
             raise
-        logger.exception("UnhandledError", method=request.method, path=request.url.path)
+        request.state.error_code = "INTERNAL_ERROR"
+        request.state.error_message = "服务器内部错误"
+        logger.exception(
+            "UnhandledError",
+            exc_info=_exc_info_tuple(exc),
+            method=request.method,
+            path=request.url.path,
+        )
         message = str(exc) if debug else "服务器内部错误"
         return _build_response(
             request=request,

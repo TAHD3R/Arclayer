@@ -4,6 +4,7 @@ from uuid import UUID
 
 from fastapi import Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from structlog.contextvars import bind_contextvars
 
 from apps.api.config import Settings, get_settings
 from apps.api.core.exceptions import Forbidden, Unauthorized
@@ -47,6 +48,8 @@ async def get_current_user(
     if user.token_version != payload.get("ver"):
         raise Unauthorized(message=t("auth", "TOKEN_STALE", default="Token 已失效"), error="TOKEN_STALE")
 
+    # Bind user context for downstream logs within this request.
+    bind_contextvars(user_id=str(user.id))
     return user
 
 

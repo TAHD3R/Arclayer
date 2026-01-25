@@ -29,7 +29,8 @@ class Event:
     version: str = "1.0"
     occurred_at: datetime = field(default_factory=lambda: datetime.now(UTC))
     source: str | None = None
-    request_id: str | None = None
+    # Use a single name everywhere (logging/meta) to avoid request_id vs trace_id confusion.
+    trace_id: str | None = None
     actor_user_id: str | None = None
 
 
