@@ -47,6 +47,10 @@ def _build_lifespan(settings: Settings, *, plugin_manager: PluginManager):
         finally:
             await stop_restart_watcher(app)
             await plugin_manager.stop()
+            try:
+                await plugin_manager.registry.event_bus.aclose()
+            except Exception:
+                pass
             await close_rate_limiter(app)
             await close_orm()
             await close_valkey(app)

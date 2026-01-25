@@ -22,6 +22,8 @@ from apps.api.core.i18n import register_locale_path
 from apps.api.core.logging import get_logger
 from apps.api.infra.cache.valkey import ValkeyClient
 from apps.api.models.plugin import PluginRecord
+from apps.api.plugin.event_bus import Event
+from apps.api.plugin.events import PLUGIN_DISABLED, PLUGIN_ENABLED
 from apps.api.plugin.manifest import build_default_config, load_plugin_manifest
 from apps.api.plugin.registry import ExtensionRegistry, registry
 from apps.api.plugin.restart import request_restart
@@ -214,6 +216,7 @@ class PluginManager:
     async def enable(self, plugin_id: str) -> PluginRecord:
         descriptor = await self._ensure_descriptor(plugin_id)
         record = await self._ensure_record(descriptor)
+        was_disabled = record.status == PluginStatus.DISABLED
 
         await self._ensure_dependencies_enabled(descriptor)
 
@@ -223,12 +226,16 @@ class PluginManager:
             await record.save()
 
         if plugin_id in self.instances:
+            if was_disabled:
+                await self._emit_plugin_event(PLUGIN_ENABLED, plugin_id)
             return record
 
         # If any required dependency needs a restart to be activated in-process, avoid
         # starting this plugin now and request a restart instead.
         if self._needs_restart_due_to_dependencies(descriptor):
             await self._request_restart(plugin_id, reason="enable")
+            if was_disabled:
+                await self._emit_plugin_event(PLUGIN_ENABLED, plugin_id)
             return record
 
         if self._requires_restart(descriptor):
@@ -241,14 +248,19 @@ class PluginManager:
                     logger.exception("Plugin migration failed", plugin_id=plugin_id, error=str(exc))
                     raise
             await self._request_restart(plugin_id, reason="enable")
+            if was_disabled:
+                await self._emit_plugin_event(PLUGIN_ENABLED, plugin_id)
             return record
 
         await self._start_plugin(descriptor, record)
+        if was_disabled:
+            await self._emit_plugin_event(PLUGIN_ENABLED, plugin_id)
         return record
 
     async def disable(self, plugin_id: str) -> PluginRecord:
         descriptor = await self._ensure_descriptor(plugin_id)
         record = await self._ensure_record(descriptor)
+        was_active = record.status != PluginStatus.DISABLED
 
         if plugin_id in PROTECTED_PLUGINS:
             raise ValueError(f"Plugin is protected and cannot be disabled: {plugin_id}")
@@ -266,7 +278,26 @@ class PluginManager:
 
         if self._requires_restart(descriptor):
             await self._request_restart(plugin_id, reason="disable")
+        if was_active:
+            await self._emit_plugin_event(PLUGIN_DISABLED, plugin_id)
         return record
+
+    async def _emit_plugin_event(self, event_name: str, plugin_id: str) -> None:
+        # Best-effort: never break plugin lifecycle operations.
+        try:
+            desc = self.descriptors.get(plugin_id)
+            await self.registry.event_bus.publish(
+                Event(
+                    name=event_name,
+                    payload={
+                        "plugin_id": plugin_id,
+                        "slug": desc.manifest.plugin.slug if desc is not None else None,
+                    },
+                    source="core",
+                )
+            )
+        except Exception:
+            return
 
     async def request_restart(self, plugin_id: str | None, *, reason: str) -> None:
         await self._request_restart(plugin_id, reason=reason)
@@ -448,6 +479,11 @@ class PluginManager:
         except Exception as exc:
             logger.exception("Plugin start failed", plugin_id=descriptor.plugin_id, error=str(exc))
             # Ensure partially-registered extensions don't leak across app lifecycles/tests.
+            try:
+                await self.registry.event_bus.unsubscribe_all(descriptor.plugin_id)
+            except Exception:
+                # Keep cleanup best-effort.
+                pass
             self.registry.unregister_extensions(descriptor.plugin_id)
             self.registry.unregister_permissions(descriptor.plugin_id)
             self.instances.pop(descriptor.plugin_id, None)
@@ -464,6 +500,10 @@ class PluginManager:
             logger.exception("Plugin stop failed", plugin_id=plugin_id, error=str(exc))
         finally:
             # Plugins may forget to unregister their contributions; enforce cleanup here.
+            try:
+                await self.registry.event_bus.unsubscribe_all(plugin_id)
+            except Exception:
+                pass
             self.registry.unregister_extensions(plugin_id)
             self.registry.unregister_permissions(plugin_id)
             record = self.records.get(plugin_id)

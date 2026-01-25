@@ -7,6 +7,8 @@ from apps.api.config import Settings
 from apps.api.core.exceptions import BadRequest, NotFound, ServiceUnavailable
 from apps.api.core.i18n import t
 from apps.api.models.plugin import PluginRecord
+from apps.api.plugin.event_bus import Event
+from apps.api.plugin.events import SETTINGS_UPDATED
 from apps.api.plugin.manager import PluginManager
 from apps.api.plugin.manifest import ConfigSchema, build_default_config
 from apps.api.routers.v1.admin.settings.repository import SettingsRepository
@@ -111,6 +113,14 @@ class SettingsService(BaseService):
             merged = await self._encrypt_core_secrets(schema, merged)
 
             saved = await self.repo.upsert(namespace=CORE_SETTINGS_NAMESPACE, value=merged, updated_by=updated_by)
+            await self._emit_settings_updated(
+                namespace=CORE_SETTINGS_NAMESPACE,
+                schema=schema,
+                patch=patch,
+                plugin_id=None,
+                plugin_slug=None,
+                actor_user_id=str(updated_by) if updated_by is not None else None,
+            )
             masked, secrets = self._mask_secrets(schema, merged)
             return SettingsDetail(
                 namespace=CORE_SETTINGS_NAMESPACE,
@@ -141,6 +151,14 @@ class SettingsService(BaseService):
             record.config = merged or None
             await record.save(update_fields=["config", "updated_at"])
             await self.manager.request_restart(plugin_id, reason="settings")
+            await self._emit_settings_updated(
+                namespace=namespace,
+                schema=schema,
+                patch=patch,
+                plugin_id=plugin_id,
+                plugin_slug=desc.manifest.plugin.slug,
+                actor_user_id=str(updated_by) if updated_by is not None else None,
+            )
 
             masked, secrets = self._mask_secrets(schema, merged)
             return SettingsDetail(
@@ -160,6 +178,38 @@ class SettingsService(BaseService):
         if desc is None:
             raise NotFound(message=_ts("PLUGIN_NOT_FOUND", "插件不存在"), error="PLUGIN_NOT_FOUND")
         return desc
+
+    async def _emit_settings_updated(
+        self,
+        *,
+        namespace: str,
+        schema: ConfigSchema,
+        patch: dict[str, Any],
+        plugin_id: str | None,
+        plugin_slug: str | None,
+        actor_user_id: str | None,
+    ) -> None:
+        # Best-effort: never break settings update flows.
+        try:
+            secret_paths = set(iter_secret_field_paths(schema))
+            changed_paths = _flatten_patch_paths(patch)
+            contains_secrets = any((p in secret_paths) or _is_secret_descendant(p, secret_paths) for p in changed_paths)
+            await self.manager.registry.event_bus.publish(
+                Event(
+                    name=SETTINGS_UPDATED,
+                    payload={
+                        "namespace": namespace,
+                        "plugin_id": plugin_id,
+                        "plugin_slug": plugin_slug,
+                        "paths": changed_paths,
+                        "contains_secrets": contains_secrets,
+                    },
+                    source="core",
+                    actor_user_id=actor_user_id,
+                )
+            )
+        except Exception:
+            return
 
     async def _encrypt_core_secrets(self, schema: ConfigSchema, config: dict[str, Any]) -> dict[str, Any]:
         # Core secrets are encrypted at-rest using the system master key.
@@ -246,3 +296,26 @@ class SettingsService(BaseService):
         namespace = namespace.strip()
         key = key.strip()
         return t(namespace, key, default=default)
+
+
+def _flatten_patch_paths(patch: dict[str, Any], *, _prefix: str = "") -> list[str]:
+    # Only emit keys/paths, never values (could contain secrets).
+    out: list[str] = []
+    for key, value in (patch or {}).items():
+        if not key:
+            continue
+        path = f"{_prefix}.{key}" if _prefix else str(key)
+        if isinstance(value, dict):
+            out.extend(_flatten_patch_paths(value, _prefix=path))
+        else:
+            out.append(path)
+    return out
+
+
+def _is_secret_descendant(path: str, secrets: set[str]) -> bool:
+    # If a whole section is patched, treat it as potentially containing secrets.
+    prefix = f"{path}."
+    for s in secrets:
+        if s.startswith(prefix):
+            return True
+    return False

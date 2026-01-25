@@ -8,6 +8,8 @@ from apps.api.config import Settings
 from apps.api.core.exceptions import BadRequest, Conflict, ServiceUnavailable
 from apps.api.core.i18n import t
 from apps.api.models.user import User
+from apps.api.plugin.event_bus import Event
+from apps.api.plugin.events import SYSTEM_SETUP_COMPLETED
 from apps.api.plugin.manager import PluginManager
 from apps.api.routers.v1.admin.settings.service import SettingsService
 from apps.api.routers.v1.auth.repository import UserRepository
@@ -83,6 +85,18 @@ class SystemSetupService(BaseService):
         )
 
         rbac_ok = await self._bootstrap_rbac_admin(user_id=user.id)
+        # Emit a best-effort event so plugins can react without hard coupling to setup flow.
+        try:
+            await self.manager.registry.event_bus.publish(
+                Event(
+                    name=SYSTEM_SETUP_COMPLETED,
+                    payload={"admin_user_id": str(user.id), "admin_username": user.username},
+                    source="core",
+                    actor_user_id=str(user.id),
+                )
+            )
+        except Exception:
+            pass
         return now, fingerprint, user, rbac_ok
 
     async def _bootstrap_rbac_admin(self, *, user_id) -> bool:

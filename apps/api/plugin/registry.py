@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Any
 
+from apps.api.plugin.event_bus import EventBus
 from apps.api.plugin.manifest import PermissionTemplate
 
 
@@ -37,6 +38,7 @@ class ExtensionRegistry:
     permissions: list[PermissionEntry] = field(default_factory=list)
     extension_points: dict[str, ExtensionPoint] = field(default_factory=dict)
     extensions: dict[str, list[ExtensionEntry]] = field(default_factory=dict)
+    event_bus: EventBus = field(default_factory=EventBus)
 
     def register_permissions(self, plugin_id: str, templates: list[PermissionTemplate]) -> None:
         existing = {(entry.plugin_id, entry.template.code) for entry in self.permissions}

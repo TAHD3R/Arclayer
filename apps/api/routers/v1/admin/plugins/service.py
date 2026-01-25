@@ -18,6 +18,8 @@ from apps.api.core.i18n import t
 from apps.api.core.logging import get_logger
 from apps.api.http.pagination import PageData, PageParams
 from apps.api.models.plugin import PluginRecord
+from apps.api.plugin.event_bus import Event
+from apps.api.plugin.events import PLUGIN_INSTALLED, SETTINGS_UPDATED
 from apps.api.plugin.manager import PluginManager
 from apps.api.plugin.manifest import ConfigSchema, PluginManifest, build_default_config, load_plugin_manifest
 from apps.api.plugin.types import PluginStatus
@@ -243,6 +245,24 @@ class PluginService(BaseService):
 
         requires_restart = True
         await self._request_restart(plugin_id, reason="install")
+        # Fire an event so other parts (e.g. UI/menu/diagnostics) can react without hard coupling.
+        try:
+            if self.manager is not None:
+                await self.manager.registry.event_bus.publish(
+                    Event(
+                        name=PLUGIN_INSTALLED,
+                        payload={
+                            "plugin_id": plugin_id,
+                            "slug": slug,
+                            "version": manifest.plugin.version,
+                            "status": str(record.status),
+                            "requires_restart": requires_restart,
+                        },
+                        source="core",
+                    )
+                )
+        except Exception:
+            pass
         return record, requires_restart
 
     async def enable_plugin(self, plugin_id: str) -> PluginRecord:
@@ -305,7 +325,39 @@ class PluginService(BaseService):
         await record.refresh_from_db()
         requires_restart = True
         await self._request_restart(plugin_id, reason="config")
+        try:
+            desc = None
+            if self.manager is not None:
+                desc = self.manager.descriptors.get(plugin_id)
+                await self.manager.registry.event_bus.publish(
+                    Event(
+                        name=SETTINGS_UPDATED,
+                        payload={
+                            "namespace": f"plugin:{plugin_id}",
+                            "plugin_id": plugin_id,
+                            "plugin_slug": desc.manifest.plugin.slug if desc is not None else None,
+                            "paths": list(_flatten_patch_paths(updates)),
+                        },
+                        source="core",
+                    )
+                )
+        except Exception:
+            pass
         return record, requires_restart
+
+
+def _flatten_patch_paths(patch: dict[str, Any], *, _prefix: str = "") -> list[str]:
+    # Only emit keys/paths, never values (could contain secrets).
+    out: list[str] = []
+    for key, value in (patch or {}).items():
+        if not key:
+            continue
+        path = f"{_prefix}.{key}" if _prefix else str(key)
+        if isinstance(value, dict):
+            out.extend(_flatten_patch_paths(value, _prefix=path))
+        else:
+            out.append(path)
+    return out
 
     def to_detail(self, record: PluginRecord) -> PluginDetail:
         detail = PluginDetail.model_validate(record)
