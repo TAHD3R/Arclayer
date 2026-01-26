@@ -20,9 +20,14 @@ async function bootstrap() {
 
   setUnauthorizedHandler(() => {
     useAuthStore.getState().clear();
+    // Avoid redirect loops on public auth pages.
+    const current = `${window.location.pathname}${window.location.search}`;
+    if (window.location.pathname === "/login" || window.location.pathname === "/reset-password") {
+      return;
+    }
     void router.navigate({
       to: "/login",
-      search: { redirect: `${window.location.pathname}${window.location.search}` },
+      search: { redirect: current },
     });
   });
 

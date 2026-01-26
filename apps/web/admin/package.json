@@ -41,6 +41,7 @@
   },
   "devDependencies": {
     "@celestial/vite": "workspace:*",
+    "@iconify/react": "^6.0.2",
     "@tailwindcss/vite": "^4.1.18",
     "@tanstack/router-plugin": "^1.157.5",
     "@testing-library/jest-dom": "^6.9.1",

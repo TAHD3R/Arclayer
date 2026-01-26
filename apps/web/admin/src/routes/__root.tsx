@@ -22,7 +22,7 @@ function AuthLayoutFallback() {
 
 function RootLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const isAuthRoute = pathname === "/login";
+  const isAuthRoute = pathname === "/login" || pathname === "/reset-password";
 
   return isAuthRoute ? (
     <Suspense fallback={<AuthLayoutFallback />}>
@@ -40,9 +40,10 @@ function RootLayout() {
 export const Route = createRootRoute({
   beforeLoad: ({ location }) => {
     const token = useAuthStore.getState().accessToken;
+    const isPublic = location.pathname === "/login" || location.pathname === "/reset-password";
     const isLogin = location.pathname === "/login";
 
-    if (!token && !isLogin) {
+    if (!token && !isPublic) {
       throw redirect({
         to: "/login",
         // `location.search` is an object; use `searchStr` to keep it stable.

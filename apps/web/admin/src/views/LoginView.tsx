@@ -1,17 +1,26 @@
-import { Button, Checkbox, Divider, Form, Input, Modal, Space, Tabs, Typography } from "antd";
+import {
+  Alert,
+  Button,
+  Checkbox,
+  Divider,
+  Form,
+  Input,
+  Modal,
+  Space,
+  Tabs,
+  Typography,
+} from "antd";
 import { Chrome, Lock, Mail, User } from "lucide-react";
-import { Trans, useTranslation } from "react-i18next";
-import { useMemo, useState } from "react";
-
-import { notifyInfoText } from "@/core/services/notifications";
+import { useTranslation } from "react-i18next";
+import { useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
 
 export type AuthMode = "login" | "register";
 
 export interface LoginFormValues {
   account: string;
   password: string;
-  remember: boolean;
-  agree: boolean;
+  keepSession: boolean;
 }
 
 export interface RegisterFormValues {
@@ -19,107 +28,98 @@ export interface RegisterFormValues {
   username: string;
   password: string;
   confirmPassword: string;
-  agree: boolean;
 }
 
 export interface LoginViewProps {
   mode: AuthMode;
   onModeChange: (mode: AuthMode) => void;
   onLoginSubmit: (values: LoginFormValues) => void;
+  loginLoading?: boolean;
+  initialKeepSession?: boolean;
+  onForgotPassword: (identifier: string) => Promise<void>;
   onRegisterSubmit: (values: RegisterFormValues) => void;
 }
 
-export function LoginView({ mode, onModeChange, onLoginSubmit, onRegisterSubmit }: LoginViewProps) {
+export function LoginView({
+  mode,
+  onModeChange,
+  onLoginSubmit,
+  loginLoading = false,
+  initialKeepSession = false,
+  onForgotPassword,
+  onRegisterSubmit,
+}: LoginViewProps) {
   const { t } = useTranslation();
-  const [openModal, setOpenModal] = useState<"forgot" | "privacy" | "terms" | null>(null);
+  const navigate = useNavigate();
+  const [openModal, setOpenModal] = useState<"forgot" | null>(null);
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotForm] = Form.useForm<{ identifier: string }>();
 
-  const modalConfig = useMemo(() => {
-    if (!openModal) return null;
-
-    if (openModal === "forgot") {
-      return {
-        title: t("auth:FORGOT_PASSWORD_MODAL_TITLE"),
-        okText: t("auth:MODAL_SUBMIT"),
-        cancelText: t("auth:MODAL_CANCEL"),
-        content: (
-          <div className="space-y-3">
-            <Typography.Paragraph style={{ margin: 0, color: "var(--color-muted-foreground)" }}>
-              {t("auth:FORGOT_PASSWORD_MODAL_DESC")}
-            </Typography.Paragraph>
+  return (
+    <div className="w-full">
+      <Modal
+        open={openModal === "forgot"}
+        title={t("auth:FORGOT_PASSWORD_MODAL_TITLE")}
+        okText={t("auth:MODAL_SUBMIT")}
+        cancelText={t("auth:MODAL_CANCEL")}
+        confirmLoading={forgotLoading}
+        onOk={() => forgotForm.submit()}
+        onCancel={() => setOpenModal(null)}
+        centered
+        destroyOnClose
+      >
+        <div className="space-y-3">
+          <Alert type="info" showIcon message={t("auth:FORGOT_PASSWORD_MODAL_HINT")} />
+          <Typography.Paragraph
+            style={{ marginTop: 0, marginBottom: 0, color: "var(--color-muted-foreground)" }}
+          >
+            {t("auth:FORGOT_PASSWORD_MODAL_DESC")}
+          </Typography.Paragraph>
+        </div>
+        <Form
+          form={forgotForm}
+          layout="vertical"
+          requiredMark={false}
+          autoComplete="off"
+          onFinish={async (values) => {
+            setForgotLoading(true);
+            try {
+              await onForgotPassword(values.identifier);
+              setOpenModal(null);
+              forgotForm.resetFields();
+            } finally {
+              setForgotLoading(false);
+            }
+          }}
+        >
+          <Form.Item
+            name="identifier"
+            rules={[{ required: true, message: t("auth:VALIDATION_ACCOUNT_REQUIRED") }]}
+            style={{ marginTop: 12, marginBottom: 0 }}
+          >
             <Input
               size="large"
               autoComplete="off"
               aria-label={t("auth:FORGOT_PASSWORD_MODAL_FIELD_PLACEHOLDER")}
               placeholder={t("auth:FORGOT_PASSWORD_MODAL_FIELD_PLACEHOLDER")}
+              prefix={<Mail size={16} />}
             />
-            <Typography.Paragraph
-              style={{ margin: 0, fontSize: 12, color: "var(--color-muted-foreground)" }}
-            >
-              {t("auth:MODAL_PLACEHOLDER_HINT")}
-            </Typography.Paragraph>
-          </div>
-        ),
-        onOk: () => {
-          notifyInfoText(t("auth:FORGOT_PASSWORD_COMING_SOON"));
-          setOpenModal(null);
-        },
-      } as const;
-    }
+          </Form.Item>
+        </Form>
 
-    if (openModal === "privacy") {
-      return {
-        title: t("auth:PRIVACY_POLICY_MODAL_TITLE"),
-        okText: t("auth:MODAL_OK"),
-        cancelText: t("auth:MODAL_CANCEL"),
-        content: (
-          <div className="space-y-3">
-            <Typography.Paragraph style={{ margin: 0 }}>
-              {t("auth:PRIVACY_POLICY_MODAL_CONTENT")}
-            </Typography.Paragraph>
-            <Typography.Paragraph
-              style={{ margin: 0, fontSize: 12, color: "var(--color-muted-foreground)" }}
-            >
-              {t("auth:MODAL_PLACEHOLDER_HINT")}
-            </Typography.Paragraph>
-          </div>
-        ),
-        onOk: () => setOpenModal(null),
-      } as const;
-    }
-
-    return {
-      title: t("auth:TERMS_OF_SERVICE_MODAL_TITLE"),
-      okText: t("auth:MODAL_OK"),
-      cancelText: t("auth:MODAL_CANCEL"),
-      content: (
-        <div className="space-y-3">
-          <Typography.Paragraph style={{ margin: 0 }}>
-            {t("auth:TERMS_OF_SERVICE_MODAL_CONTENT")}
-          </Typography.Paragraph>
-          <Typography.Paragraph
-            style={{ margin: 0, fontSize: 12, color: "var(--color-muted-foreground)" }}
+        <div className="mt-2 text-center">
+          <Button
+            type="link"
+            size="small"
+            style={{ paddingInline: 0 }}
+            onClick={() => {
+              setOpenModal(null);
+              void navigate({ to: "/reset-password" });
+            }}
           >
-            {t("auth:MODAL_PLACEHOLDER_HINT")}
-          </Typography.Paragraph>
+            {t("auth:FORGOT_PASSWORD_MODAL_HAVE_TOKEN")}
+          </Button>
         </div>
-      ),
-      onOk: () => setOpenModal(null),
-    } as const;
-  }, [openModal, t]);
-
-  return (
-    <div className="w-full">
-      <Modal
-        open={!!openModal}
-        title={modalConfig?.title}
-        okText={modalConfig?.okText}
-        cancelText={modalConfig?.cancelText}
-        onOk={modalConfig?.onOk}
-        onCancel={() => setOpenModal(null)}
-        centered
-        destroyOnClose
-      >
-        {modalConfig?.content}
       </Modal>
 
       <Tabs
@@ -150,9 +150,10 @@ export function LoginView({ mode, onModeChange, onLoginSubmit, onRegisterSubmit 
                 <Form<LoginFormValues>
                   layout="vertical"
                   onFinish={onLoginSubmit}
-                  initialValues={{ remember: true, agree: true }}
+                  initialValues={{ keepSession: initialKeepSession }}
                   requiredMark={false}
                   autoComplete="off"
+                  disabled={loginLoading}
                 >
                   <Form.Item<LoginFormValues>
                     name="account"
@@ -182,66 +183,31 @@ export function LoginView({ mode, onModeChange, onLoginSubmit, onRegisterSubmit 
 
                   <div className="flex items-center justify-between mb-3">
                     <Form.Item<LoginFormValues>
-                      name="remember"
+                      name="keepSession"
                       valuePropName="checked"
                       style={{ marginBottom: 0 }}
                     >
-                      <Checkbox>{t("auth:REMEMBER_ME")}</Checkbox>
+                      <Checkbox>{t("auth:KEEP_SESSION")}</Checkbox>
                     </Form.Item>
 
                     <Button
                       type="link"
                       size="small"
                       style={{ paddingInline: 0 }}
+                      disabled={loginLoading}
                       onClick={() => setOpenModal("forgot")}
                     >
                       {t("auth:FORGOT_PASSWORD")}
                     </Button>
                   </div>
 
-                  <Form.Item<LoginFormValues>
-                    name="agree"
-                    valuePropName="checked"
-                    rules={[
-                      {
-                        validator: async (_, value) => {
-                          if (value) return;
-                          throw new Error(t("auth:VALIDATION_AGREE_REQUIRED"));
-                        },
-                      },
-                    ]}
-                    style={{ marginBottom: 14 }}
+                  <Button
+                    type="primary"
+                    htmlType="submit"
+                    block
+                    size="large"
+                    loading={loginLoading}
                   >
-                    <Checkbox>
-                      <Trans
-                        i18nKey="auth:AGREE_TERMS"
-                        components={{
-                          privacy: (
-                            <Typography.Link
-                              href="#"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                setOpenModal("privacy");
-                              }}
-                            />
-                          ),
-                          terms: (
-                            <Typography.Link
-                              href="#"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                setOpenModal("terms");
-                              }}
-                            />
-                          ),
-                        }}
-                      />
-                    </Checkbox>
-                  </Form.Item>
-
-                  <Button type="primary" htmlType="submit" block size="large">
                     {t("auth:LOGIN_BUTTON")}
                   </Button>
 
@@ -363,48 +329,6 @@ export function LoginView({ mode, onModeChange, onLoginSubmit, onRegisterSubmit 
                       prefix={<Lock size={16} />}
                       size="large"
                     />
-                  </Form.Item>
-
-                  <Form.Item<RegisterFormValues>
-                    name="agree"
-                    valuePropName="checked"
-                    rules={[
-                      {
-                        validator: async (_, value) => {
-                          if (value) return;
-                          throw new Error(t("auth:VALIDATION_AGREE_REQUIRED"));
-                        },
-                      },
-                    ]}
-                    style={{ marginBottom: 14 }}
-                  >
-                    <Checkbox>
-                      <Trans
-                        i18nKey="auth:AGREE_TERMS"
-                        components={{
-                          privacy: (
-                            <Typography.Link
-                              href="#"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                setOpenModal("privacy");
-                              }}
-                            />
-                          ),
-                          terms: (
-                            <Typography.Link
-                              href="#"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                setOpenModal("terms");
-                              }}
-                            />
-                          ),
-                        }}
-                      />
-                    </Checkbox>
                   </Form.Item>
 
                   <Button type="primary" htmlType="submit" block size="large">

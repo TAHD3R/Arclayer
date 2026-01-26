@@ -61,6 +61,11 @@ class ApplicationSettings(BaseSettings):
         default="/static",
         validation_alias=AliasChoices("STATIC_URL", "APP_STATIC_URL"),
     )
+    frontend_base_url: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("FRONTEND_BASE_URL", "APP_FRONTEND_BASE_URL"),
+        description="Base URL for the frontend application (used in emails, e.g. reset-password links).",
+    )
 
 
 class LoggingSettings(BaseSettings):

@@ -94,18 +94,71 @@ class EmailService:
         try:
             fm = get_fast_mail(self.settings.email)
             subject = t("auth", "RESET_EMAIL_SUBJECT", default="重置密码", locale=locale)
-            plain_body = t(
+            base = (self.settings.application.frontend_base_url or "").strip()
+            base = base.rstrip("/") if base else ""
+            reset_url = f"{base}/reset-password?token={reset_token}" if base else None
+
+            if reset_url:
+                plain_body = t(
+                    "auth",
+                    "RESET_EMAIL_PLAIN_WITH_LINK",
+                    default="重置链接：{reset_url}\n重置码：{reset_token}\n有效期：{expires_in} 秒。\n如非本人操作，请忽略本邮件。",
+                    locale=locale,
+                    reset_url=reset_url,
+                    reset_token=reset_token,
+                    expires_in=expires_in,
+                )
+            else:
+                plain_body = t(
+                    "auth",
+                    "RESET_EMAIL_PLAIN",
+                    default="重置码：{reset_token}，{expires_in} 秒后失效。",
+                    locale=locale,
+                    reset_token=reset_token,
+                    expires_in=expires_in,
+                )
+
+            title = t("auth", "RESET_EMAIL_TITLE", default="重置你的密码", locale=locale)
+            intro = t(
                 "auth",
-                "RESET_EMAIL_PLAIN",
-                default="重置码：{reset_token}，{expires_in} 秒后失效。",
+                "RESET_EMAIL_INTRO",
+                default="我们收到了重置密码请求，请点击下方按钮继续。",
                 locale=locale,
-                reset_token=reset_token,
+            )
+            cta = t("auth", "RESET_EMAIL_CTA", default="重置密码", locale=locale)
+            fallback = t(
+                "auth",
+                "RESET_EMAIL_FALLBACK",
+                default="如果按钮无法使用，你也可以使用以下重置码：",
+                locale=locale,
+            )
+            expires_notice = t(
+                "auth",
+                "RESET_EMAIL_EXPIRES",
+                default="该链接/重置码将在 {expires_in} 秒后失效。",
+                locale=locale,
                 expires_in=expires_in,
+            )
+            ignore_notice = t(
+                "auth",
+                "RESET_EMAIL_IGNORE",
+                default="如非本人操作，请忽略本邮件。",
+                locale=locale,
             )
             message = MessageSchema(
                 subject=subject,
                 recipients=[recipient],
-                template_body={"reset_token": reset_token, "expires_in": expires_in},
+                template_body={
+                    "title": title,
+                    "intro": intro,
+                    "cta": cta,
+                    "fallback": fallback,
+                    "expires_notice": expires_notice,
+                    "ignore_notice": ignore_notice,
+                    "reset_url": reset_url,
+                    "reset_token": reset_token,
+                    "expires_in": expires_in,
+                },
                 subtype=MessageType.html,
                 alternative_body=plain_body,
                 multipart_subtype=MultipartSubtypeEnum.alternative,
@@ -173,10 +226,23 @@ class EmailService:
                 locale=locale,
                 username=username,
             )
+            title = t(
+                "auth",
+                "WELCOME_EMAIL_TITLE",
+                default="欢迎加入 Celestial CMS",
+                locale=locale,
+            )
+            intro = t(
+                "auth",
+                "WELCOME_EMAIL_INTRO",
+                default="你好，{username}，你的账号已创建成功。",
+                locale=locale,
+                username=username,
+            )
             message = MessageSchema(
                 subject=subject,
                 recipients=[recipient],
-                template_body={"username": username},
+                template_body={"username": username, "title": title, "intro": intro},
                 subtype=MessageType.html,
                 alternative_body=plain_body,
                 multipart_subtype=MultipartSubtypeEnum.alternative,

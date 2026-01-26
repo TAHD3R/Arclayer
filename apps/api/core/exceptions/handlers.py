@@ -75,11 +75,14 @@ def _build_response(
     error: str | None,
     details: Any | None,
     debug: bool,
+    include_details: bool = False,
     headers: dict[str, str] | None = None,
 ) -> ORJSONResponse:
-    meta = _trace_meta(request) if debug else None
-    if debug and details is not None:
-        meta = {**(meta or {}), "details": _sanitize_details(details)}
+    meta: dict[str, Any] | None = _trace_meta(request) if debug else None
+    if (debug or include_details) and details is not None:
+        if meta is None:
+            meta = {}
+        meta = {**meta, "details": _sanitize_details(details)}
     locale = get_request_locale(request)
     message = localize_message(message, error=error, locale=locale)
     payload = Response.fail(message=message, error=error, meta=meta)
@@ -161,6 +164,7 @@ def init_exception_handlers(app: FastAPI, settings: Settings) -> None:
             error="VALIDATION_ERROR",
             details=exc.errors(),
             debug=debug,
+            include_details=True,
         )
 
     @app.exception_handler(OperationalError)
@@ -193,6 +197,7 @@ def init_exception_handlers(app: FastAPI, settings: Settings) -> None:
             error="VALIDATION_ERROR",
             details=exc.errors(),
             debug=debug,
+            include_details=True,
         )
 
     @app.exception_handler(Exception)
@@ -207,12 +212,14 @@ def init_exception_handlers(app: FastAPI, settings: Settings) -> None:
             method=request.method,
             path=request.url.path,
         )
-        message = str(exc) if debug else "服务器内部错误"
+        # Never leak internal exception messages to clients (even in debug).
+        # Developers still get trace_id + details via response meta when debug is enabled.
+        message = "服务器内部错误"
         return _build_response(
             request=request,
             status_code=500,
             message=message,
             error="INTERNAL_ERROR",
-            details=None,
+            details=str(exc) if debug else None,
             debug=debug,
         )

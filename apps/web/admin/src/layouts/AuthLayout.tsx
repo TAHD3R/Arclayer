@@ -2,6 +2,7 @@ import { Button, Dropdown, Space, Typography } from "antd";
 import { type PropsWithChildren, useMemo } from "react";
 import { Trans, useTranslation } from "react-i18next";
 import { Languages, Moon, Sun } from "lucide-react";
+import { Icon } from "@iconify/react";
 
 import ColorBends from "@/components/ui/ColorBends";
 import { usePreferencesStore } from "@/stores/preferences.store";
@@ -33,15 +34,30 @@ function LocaleToggle() {
 
   const items = useMemo(
     () => [
-      { key: "zh-CN", label: "简体中文" },
-      { key: "en-US", label: "English" },
+      {
+        key: "zh-CN",
+        label: (
+          <Space size={10}>
+            <Icon icon="twemoji:flag-china" width={18} height={18} />
+            <span>简体中文</span>
+          </Space>
+        ),
+      },
+      {
+        key: "en-US",
+        label: (
+          <Space size={10}>
+            <Icon icon="twemoji:flag-united-states" width={18} height={18} />
+            <span>English</span>
+          </Space>
+        ),
+      },
     ],
     [],
   );
 
   return (
     <Dropdown
-      placement="bottomRight"
       menu={{
         items,
         selectable: true,

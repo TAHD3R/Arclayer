@@ -39,6 +39,16 @@ export function notifyError(err: unknown) {
   console.error(text, err);
 }
 
+export function notifyErrorText(text: string) {
+  if (messageApi) {
+    messageApi.error(text);
+    return;
+  }
+
+  // eslint-disable-next-line no-console
+  console.error(text);
+}
+
 export function notifyInfoText(text: string) {
   if (messageApi) {
     messageApi.info(text);

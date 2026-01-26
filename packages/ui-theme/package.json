@@ -9,11 +9,11 @@
     "./tailwind-preset": "./src/tailwind-preset.ts",
     "./antd": "./src/antd-theme.ts"
   },
-  "peerDependencies": {
+  "devDependencies": {
     "antd": "^6.2.1",
     "tailwindcss": "^4.1.18"
   },
-  "devDependencies": {
+  "peerDependencies": {
     "antd": "^6.2.1",
     "tailwindcss": "^4.1.18"
   }

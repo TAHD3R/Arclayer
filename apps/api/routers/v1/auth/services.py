@@ -342,15 +342,23 @@ class AuthService(BaseService):
             )
 
         user_id = self._parse_user_id(record.get("user_id"))
-        user = await self.user_repo.get_by_id(user_id)
+        # We need credential loaded to compare password hashes. Without prefetch, `user.credential`
+        # is a lazy relation (QuerySet) and will break attribute access.
+        user = await self.user_repo.get_by_id_with_credential(user_id)
         if not user:
             raise Unauthorized(message=self._ta("USER_NOT_FOUND", "用户不存在"), error="USER_NOT_FOUND")
 
         if not self.user_repo.is_active(user):
             raise Forbidden(message=self._ta("USER_DISABLED", "账号不可用"), error="USER_DISABLED")
 
-        if getattr(user, "credential", None) and verify_password(
-            new_password, user.credential.password_hash, self.settings.auth
+        if (
+            getattr(user, "credential", None)
+            and getattr(user.credential, "password_hash", None)
+            and verify_password(
+                new_password,
+                user.credential.password_hash,
+                self.settings.auth,
+            )
         ):
             raise Conflict(
                 message=self._ta("PASSWORD_DUPLICATE", "新密码不能与旧密码相同"),

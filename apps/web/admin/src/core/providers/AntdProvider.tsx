@@ -1,4 +1,4 @@
-import { ConfigProvider } from "antd";
+import { App, ConfigProvider } from "antd";
 import { type PropsWithChildren } from "react";
 import enUS from "antd/locale/en_US";
 import zhCN from "antd/locale/zh_CN";
@@ -14,8 +14,10 @@ export function AntdProvider({ children }: PropsWithChildren) {
   const antdLocale = locale === "zh-CN" ? zhCN : enUS;
 
   return (
-    <ConfigProvider theme={theme} locale={antdLocale}>
-      <AntdMessageProvider>{children}</AntdMessageProvider>
+    <ConfigProvider theme={theme} locale={antdLocale} prefixCls="cls" componentSize="middle">
+      <App message={{ maxCount: 3 }} notification={{ maxCount: 3 }}>
+        <AntdMessageProvider>{children}</AntdMessageProvider>
+      </App>
     </ConfigProvider>
   );
 }

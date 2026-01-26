@@ -32,6 +32,12 @@ repos:
   # Frontend (oxc toolchain via pnpm workspace)
   - repo: local
     hooks:
+      - id: frontend-oxfmt-nocheck
+        name: frontend oxfmt (apps/web only)
+        entry: bash -lc 'pnpm -w exec oxfmt'
+        language: system
+        files: ^apps/web/
+        pass_filenames: true
       - id: frontend-oxfmt
         name: frontend oxfmt (apps/web only)
         entry: bash -lc 'pnpm -w exec oxfmt --check --no-error-on-unmatched-pattern "$@"'
