@@ -1,7 +1,16 @@
 @import "@celestial/ui-theme/tokens.css";
 @import "tailwindcss";
 @plugin "tailwindcss-animate";
-@custom-variant dark (&:is(.dark *));
+@custom-variant dark (&:is([data-theme="dark"] *));
+
+:root {
+  /* Square style: enforce zero radius tokens for shadcn/tailwind. */
+  --radius: 0px;
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
+}
 
 html,
 body,
@@ -11,8 +20,8 @@ body,
 
 body {
   margin: 0;
-  background: var(--color-bg);
-  color: var(--color-fg);
+  background: var(--color-background);
+  color: var(--color-foreground);
 }
 
 /* ant-design-vue 组件库的一些样式重置 */

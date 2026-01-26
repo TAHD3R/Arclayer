@@ -38,3 +38,23 @@ export function notifyError(err: unknown) {
   // eslint-disable-next-line no-console
   console.error(text, err);
 }
+
+export function notifyInfoText(text: string) {
+  if (messageApi) {
+    messageApi.info(text);
+    return;
+  }
+
+  // eslint-disable-next-line no-console
+  console.info(text);
+}
+
+export function notifySuccessText(text: string) {
+  if (messageApi) {
+    messageApi.success(text);
+    return;
+  }
+
+  // eslint-disable-next-line no-console
+  console.info(text);
+}

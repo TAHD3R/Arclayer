@@ -1,10 +1,11 @@
 import { Link, Outlet } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { Layout, Menu, Typography } from "antd";
+import { type PropsWithChildren } from "react";
 
 import { RouteProgress } from "@/core/ui/RouteProgress";
 
-export function AdminLayout() {
+export function AdminLayout({ children }: PropsWithChildren) {
   return (
     <Layout style={{ minHeight: "100vh" }}>
       <RouteProgress />
@@ -32,9 +33,7 @@ export function AdminLayout() {
       </Layout.Sider>
 
       <Layout>
-        <Layout.Content style={{ padding: 24 }}>
-          <Outlet />
-        </Layout.Content>
+        <Layout.Content style={{ padding: 24 }}>{children ?? <Outlet />}</Layout.Content>
       </Layout>
 
       {import.meta.env.DEV ? <TanStackRouterDevtools position="bottom-right" /> : null}

@@ -5,7 +5,7 @@ import tailwindcss from "@tailwindcss/vite";
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import Inspect from "vite-plugin-inspect";
 
-import { injectAppConfig, injectLoadingScreen, injectPreferences } from "@celestial/vite";
+import { injectAppConfig, injectPreferences } from "@celestial/vite";
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, __dirname, "VITE_");
@@ -23,7 +23,6 @@ export default defineConfig(({ mode }) => {
           locale: "celestial:admin:locale",
         },
       }),
-      injectLoadingScreen(),
       injectAppConfig({
         defaults: {
           title: env.VITE_APP_TITLE || "Celestial Admin",
