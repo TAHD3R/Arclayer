@@ -1,13 +1,16 @@
 import { Button } from "antd";
-import { Moon, Sun } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { useState } from "react";
 
 import { toggleThemeModeWithTransition } from "@/core/ui/theme-transition";
 import { usePreferencesStore } from "@/stores/preferences.store";
+import MoonIcon from "@/components/ui/icons/moon-icon";
+import SunIcon from "@/components/ui/icons/sun-icon";
 
 export function AdminThemeModeToggle(props: { className?: string }) {
   const mode = usePreferencesStore((s) => s.themeMode);
   const { t } = useTranslation();
+  const [hovered, setHovered] = useState(false);
 
   const isDark = mode === "dark";
 
@@ -18,10 +21,18 @@ export function AdminThemeModeToggle(props: { className?: string }) {
       size="large"
       className={props.className}
       style={{ width: 44, height: 44, paddingInline: 0 }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
       onClick={() => {
         void toggleThemeModeWithTransition({ direction: "ltr" });
       }}
-      icon={isDark ? <Sun size={18} /> : <Moon size={18} />}
+      icon={
+        isDark ? (
+          <SunIcon size={18} isHovered={hovered} className="text-current" />
+        ) : (
+          <MoonIcon size={18} isHovered={hovered} className="text-current" />
+        )
+      }
     />
   );
 }

@@ -1,6 +1,7 @@
 import { Outlet } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
-import { type CSSProperties, type PropsWithChildren } from "react";
+import { type CSSProperties, type PropsWithChildren, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { ADMIN_NAV_ITEMS } from "@/core/navigation/adminNav";
 import { AdminSiderNav } from "@/components/app/AdminSiderNav";
@@ -18,6 +19,9 @@ import {
 } from "@/components/ui/sidebar";
 
 export function AdminLayout({ children }: PropsWithChildren) {
+  const queryClient = useQueryClient();
+  const [refreshing, setRefreshing] = useState(false);
+
   return (
     <SidebarProvider defaultOpen className="h-screen">
       <RouteProgress />
@@ -49,7 +53,20 @@ export function AdminLayout({ children }: PropsWithChildren) {
       </Sidebar>
 
       <SidebarInset className="w-auto flex-1 min-w-0 overflow-hidden">
-        <AdminHeader navItems={ADMIN_NAV_ITEMS} />
+        <AdminHeader
+          navItems={ADMIN_NAV_ITEMS}
+          refreshing={refreshing}
+          onRefresh={async () => {
+            if (refreshing) return;
+            setRefreshing(true);
+            try {
+              // Only refetch currently mounted queries so we "refresh the page content" without a full reload.
+              await queryClient.refetchQueries({ type: "active" });
+            } finally {
+              setRefreshing(false);
+            }
+          }}
+        />
         <div className="flex-1 min-h-0 overflow-auto">{children ?? <Outlet />}</div>
       </SidebarInset>
 

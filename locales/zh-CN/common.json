@@ -20,6 +20,7 @@
   "ACCOUNT_ROLE_ADMIN": "管理员",
   "ACCOUNT_ROLE_USER": "用户",
 
+  "REFRESH": "刷新",
   "CMD_SEARCH": "搜索",
   "CMDK_TITLE": "搜索",
   "CMDK_PLACEHOLDER": "搜索页面或输入路由…",

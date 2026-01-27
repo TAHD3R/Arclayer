@@ -4,7 +4,7 @@ import type { BreadcrumbItemProps } from "antd/es/breadcrumb/BreadcrumbItem";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Search, Settings } from "lucide-react";
+import { Search } from "lucide-react";
 
 import type { AdminNavItem } from "@/core/navigation/adminNav";
 import { cn } from "@/lib/utils";
@@ -12,6 +12,8 @@ import { AdminLocaleToggle } from "@/components/app/AdminLocaleToggle";
 import { AdminThemeModeToggle } from "@/components/app/AdminThemeModeToggle";
 import { CommandMenu01 } from "@/components/command-menu-01";
 import { Kbd, KbdGroup } from "@/components/ui/kbd";
+import RefreshIcon from "@/components/ui/icons/refresh-icon";
+import SettingsIcon from "@/components/ui/icons/settings-icon";
 
 function normalizePath(input: string): string {
   if (input.length > 1 && input.endsWith("/")) return input.slice(0, -1);
@@ -114,11 +116,18 @@ function buildBreadcrumbMenuItems(
   return items;
 }
 
-export function AdminHeader(props: { navItems: AdminNavItem[]; className?: string }) {
+export function AdminHeader(props: {
+  navItems: AdminNavItem[];
+  className?: string;
+  onRefresh?: () => Promise<void> | void;
+  refreshing?: boolean;
+}) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [commandOpen, setCommandOpen] = useState(false);
+  const [refreshHovered, setRefreshHovered] = useState(false);
+  const [settingsHovered, setSettingsHovered] = useState(false);
 
   const trailNodes = useMemo(
     () => findActiveTrailNodes(props.navItems, pathname),
@@ -177,7 +186,25 @@ export function AdminHeader(props: { navItems: AdminNavItem[]; className?: strin
         props.className,
       )}
     >
-      <div className="min-w-0 flex-1">
+      <div className="min-w-0 flex-1 flex items-center gap-2">
+        <Button
+          aria-label={t("common:REFRESH")}
+          type="text"
+          size="large"
+          style={{ width: 44, height: 44, paddingInline: 0 }}
+          disabled={!props.onRefresh || props.refreshing}
+          onMouseEnter={() => setRefreshHovered(true)}
+          onMouseLeave={() => setRefreshHovered(false)}
+          onClick={() => void props.onRefresh?.()}
+          icon={
+            props.refreshing ? (
+              <RefreshIcon size={18} duration={0.8} loop className="text-current" />
+            ) : (
+              <RefreshIcon size={18} isHovered={refreshHovered} className="text-current" />
+            )
+          }
+        />
+
         <Breadcrumb items={breadcrumbItems} />
       </div>
 
@@ -204,7 +231,9 @@ export function AdminHeader(props: { navItems: AdminNavItem[]; className?: strin
             type="text"
             size="large"
             style={{ width: 44, height: 44, paddingInline: 0 }}
-            icon={<Settings size={18} />}
+            onMouseEnter={() => setSettingsHovered(true)}
+            onMouseLeave={() => setSettingsHovered(false)}
+            icon={<SettingsIcon size={18} isHovered={settingsHovered} className="text-current" />}
             onClick={() => {
               // TODO: route not implemented yet; wire to settings page when available.
             }}

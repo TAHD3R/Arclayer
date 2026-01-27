@@ -1,16 +1,17 @@
 import { Button, Dropdown, Space } from "antd";
-import { Languages } from "lucide-react";
 import { Icon } from "@iconify/react";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { AppLocale } from "@/core/i18n";
 import { usePreferencesStore } from "@/stores/preferences.store";
+import LanguagesIcon from "@/components/ui/icons/languages-icon";
 
 export function AdminLocaleToggle(props: { className?: string }) {
   const locale = usePreferencesStore((s) => s.locale);
   const setLocale = usePreferencesStore((s) => s.setLocale);
   const { t } = useTranslation();
+  const [hovered, setHovered] = useState(false);
 
   const items = useMemo(
     () => [
@@ -52,7 +53,9 @@ export function AdminLocaleToggle(props: { className?: string }) {
         size="large"
         className={props.className}
         style={{ width: 44, height: 44, paddingInline: 0 }}
-        icon={<Languages size={18} />}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        icon={<LanguagesIcon size={18} isHovered={hovered} className="text-current" />}
       />
     </Dropdown>
   );

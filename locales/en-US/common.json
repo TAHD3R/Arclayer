@@ -20,6 +20,7 @@
   "ACCOUNT_ROLE_ADMIN": "Admin",
   "ACCOUNT_ROLE_USER": "User",
 
+  "REFRESH": "Refresh",
   "CMD_SEARCH": "Search",
   "CMDK_TITLE": "Search",
   "CMDK_PLACEHOLDER": "Search pages or type a route…",
