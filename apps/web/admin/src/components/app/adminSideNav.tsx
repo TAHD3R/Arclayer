@@ -5,6 +5,7 @@ import { motion } from "motion/react";
 
 import type { AdminNavItem } from "@/constants/admin-nav";
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
+import ChevronRightIcon from "@/components/ui/icons/chevron-right";
 import {
   SidebarGroup,
   SidebarGroupContent,
@@ -130,6 +131,7 @@ function NavNode({
 }: NodeProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const [hovered, setHovered] = useState(false);
 
   const label = item.labelKey ? t(item.labelKey) : item.label;
   const hasChildren = Boolean(item.children?.length);
@@ -177,7 +179,7 @@ function NavNode({
             onClick={() => openChainForKey(item.key)}
           >
             {iconSlot(depth, Icon)}
-            <span>{label}</span>
+            <span className="min-w-0 flex-1 truncate">{label}</span>
           </Link>
         </SidebarMenuButton>
       </SidebarMenuItem>
@@ -212,6 +214,8 @@ function NavNode({
               paddingLeft: 24 + Math.max(0, depth - 1) * 12,
             } as CSSProperties
           }
+          onMouseEnter={() => setHovered(true)}
+          onMouseLeave={() => setHovered(false)}
           onClick={() => {
             setAnimateOpenKey(item.key);
             openSelf();
@@ -221,7 +225,14 @@ function NavNode({
           }}
         >
           {iconSlot(depth, Icon)}
-          <span>{label}</span>
+          <span className="min-w-0 flex-1 truncate">{label}</span>
+          <ChevronRightIcon
+            size={16}
+            expanded={isOpen}
+            isHovered={hovered}
+            className="ml-auto shrink-0 text-muted-foreground"
+            aria-hidden="true"
+          />
         </SidebarMenuButton>
 
         <CollapsibleContent>

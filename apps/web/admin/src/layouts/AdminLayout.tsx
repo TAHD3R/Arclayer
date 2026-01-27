@@ -18,7 +18,7 @@ import {
   SidebarInset,
   SidebarProvider,
 } from "@/components/ui/sidebar";
-import { Typography } from "antd";
+
 export function AdminLayout({ children }: PropsWithChildren) {
   const queryClient = useQueryClient();
 
