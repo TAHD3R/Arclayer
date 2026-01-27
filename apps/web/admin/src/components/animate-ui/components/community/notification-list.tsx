@@ -65,9 +65,7 @@ function NotificationList(props: {
   return (
     <motion.div
       className={[
-        // Match the project's sidebar/overlay style (similar to AdminAccountMenu).
         "rounded-xl w-full space-y-3 shadow-sm",
-        // In sidebar we want a subtle "panel" contrast; avoid popover pure-black in dark mode.
         "text-sidebar-foreground backdrop-blur-sm",
         props.className ?? "",
       ].join(" ")}
@@ -80,10 +78,10 @@ function NotificationList(props: {
             key={notification.id}
             className={[
               "rounded-lg px-4 py-2 relative",
-              // Give each card a solid surface so stacked cards remain distinguishable in dark mode.
-              "border border-sidebar-border/60 bg-sidebar",
+              "border border-sidebar-border/60 bg-background",
               "shadow-sm hover:shadow-md transition-shadow duration-200",
               "hover:bg-primary/70",
+              "hover:cursor-pointer",
             ].join(" ")}
             variants={getCardVariants(i)}
             transition={transition}
