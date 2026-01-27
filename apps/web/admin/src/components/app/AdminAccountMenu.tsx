@@ -378,7 +378,10 @@ export function AdminAccountMenu() {
           "group w-full justify-start gap-3",
           "px-4 py-3",
           "border-0 bg-transparent",
-          "text-muted-foreground hover:text-foreground",
+          "rounded-none",
+          "text-muted-foreground",
+          "hover:bg-primary hover:text-sidebar-accent-foreground",
+          "data-[state=open]:bg-primary data-[state=open]:text-sidebar-accent-foreground",
           "transition-colors duration-150 ease-out",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0",
         )}
@@ -401,7 +404,11 @@ export function AdminAccountMenu() {
             strong
             ellipsis={{ tooltip: displayName }}
             style={{ maxWidth: "100%", display: "block" }}
-            className="text-sidebar-foreground"
+            className={cn(
+              "text-sidebar-foreground",
+              "group-hover:text-sidebar-accent-foreground",
+              "group-data-[state=open]:text-sidebar-accent-foreground",
+            )}
           >
             {displayName}
           </Typography.Text>
