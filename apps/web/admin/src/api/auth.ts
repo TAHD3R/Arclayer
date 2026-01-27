@@ -15,6 +15,14 @@ export interface AuthzSnapshot {
   is_superuser: boolean;
 }
 
+export interface UserProfile {
+  id: string;
+  username: string;
+  email: string | null;
+  display_name: string | null;
+  avatar_url: string | null;
+}
+
 export interface ResetTokenPayload {
   reset_token: string;
   expires_in: number;
@@ -26,6 +34,8 @@ export const authApi = {
 
   refresh: (payload: { refresh_token: string }) =>
     api.post<TokenPair>("/auth/refresh", payload, { auth: { skipRefresh: true } }),
+
+  me: () => api.get<UserProfile>("/auth/me"),
 
   meAuthz: () => api.get<AuthzSnapshot>("/auth/me/authz"),
 

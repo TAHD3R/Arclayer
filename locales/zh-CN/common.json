@@ -6,5 +6,17 @@
   "NAV_TEST": "测试菜单",
   "NAV_TEST_OVERVIEW": "概览",
   "NAV_TEST_LEVEL2": "二级目录",
-  "NAV_TEST_LEVEL3": "三级目录"
+  "NAV_TEST_LEVEL3": "三级目录",
+  "ACCOUNT_TITLE": "账号",
+  "ACCOUNT_PERSONAL_SETTINGS": "个人设置",
+  "ACCOUNT_THEME": "主题",
+  "ACCOUNT_LANGUAGE": "语言",
+  "ACCOUNT_LOGOUT": "退出登录",
+  "ACCOUNT_THEME_LIGHT": "浅色模式",
+  "ACCOUNT_THEME_DARK": "深色模式",
+  "ACCOUNT_LANGUAGE_ZH": "中文",
+  "ACCOUNT_LANGUAGE_EN": "English",
+  "ACCOUNT_ROLE_SUPERUSER": "超级管理员",
+  "ACCOUNT_ROLE_ADMIN": "管理员",
+  "ACCOUNT_ROLE_USER": "用户"
 }

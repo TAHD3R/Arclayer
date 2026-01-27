@@ -6,5 +6,17 @@
   "NAV_TEST": "Test",
   "NAV_TEST_OVERVIEW": "Overview",
   "NAV_TEST_LEVEL2": "Level 2",
-  "NAV_TEST_LEVEL3": "Level 3"
+  "NAV_TEST_LEVEL3": "Level 3",
+  "ACCOUNT_TITLE": "Account",
+  "ACCOUNT_PERSONAL_SETTINGS": "Personal settings",
+  "ACCOUNT_THEME": "Theme",
+  "ACCOUNT_LANGUAGE": "Language",
+  "ACCOUNT_LOGOUT": "Log out",
+  "ACCOUNT_THEME_LIGHT": "Light mode",
+  "ACCOUNT_THEME_DARK": "Dark mode",
+  "ACCOUNT_LANGUAGE_ZH": "Chinese",
+  "ACCOUNT_LANGUAGE_EN": "English",
+  "ACCOUNT_ROLE_SUPERUSER": "Superuser",
+  "ACCOUNT_ROLE_ADMIN": "Admin",
+  "ACCOUNT_ROLE_USER": "User"
 }

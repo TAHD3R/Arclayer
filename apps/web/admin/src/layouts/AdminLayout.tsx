@@ -5,6 +5,7 @@ import { type CSSProperties, type PropsWithChildren } from "react";
 import { ADMIN_NAV_ITEMS } from "@/core/navigation/adminNav";
 import { AdminSiderNav } from "@/components/app/AdminSiderNav";
 import { AdminLogo } from "@/components/app/AdminLogo";
+import { AdminAccountMenu } from "@/components/app/AdminAccountMenu";
 import { RouteProgress } from "@/core/ui/RouteProgress";
 import {
   Sidebar,
@@ -36,12 +37,14 @@ export function AdminLayout({ children }: PropsWithChildren) {
           <AdminLogo ariaLabel="Celestial Admin" />
         </SidebarHeader>
 
-        <SidebarContent className="pl-0 pr-4 pt-4 pb-16">
+        <SidebarContent className="pl-0 pr-4 pt-4 pb-8">
           <AdminSiderNav items={ADMIN_NAV_ITEMS} />
         </SidebarContent>
 
         <SidebarFooter className="p-0">
-          <div className="h-16 w-full border-t border-sidebar-border bg-sidebar" />
+          <div className="w-full bg-sidebar">
+            <AdminAccountMenu />
+          </div>
         </SidebarFooter>
       </Sidebar>
 
