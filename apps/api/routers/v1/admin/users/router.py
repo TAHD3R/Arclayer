@@ -4,6 +4,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends
 
+from apps.api.common.schemas import AuthzSnapshot
 from apps.api.config import Settings, get_settings
 from apps.api.core.authz import require_permission_strict
 from apps.api.http.pagination import PageData, PageParams, get_page_params
@@ -17,7 +18,6 @@ from apps.api.routers.v1.admin.users.schema import (
     AdminUserUpdateRequest,
 )
 from apps.api.routers.v1.admin.users.service import AdminUsersService
-from apps.api.routers.v1.auth.schema import AuthzSnapshot
 
 router = APIRouter(tags=["Services: User Service"])
 

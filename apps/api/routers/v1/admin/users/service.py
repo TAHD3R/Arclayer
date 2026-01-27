@@ -4,6 +4,7 @@ from uuid import UUID
 
 from tortoise.exceptions import IntegrityError
 
+from apps.api.common.schemas import AuthzSnapshot
 from apps.api.common.services import BaseService
 from apps.api.config import Settings, get_settings
 from apps.api.core.authz import get_authz_snapshot_provider
@@ -22,7 +23,6 @@ from apps.api.routers.v1.admin.users.schema import (
     AdminUserUpdateRequest,
 )
 from apps.api.routers.v1.auth.repository import UserRepository
-from apps.api.routers.v1.auth.schema import AuthzSnapshot
 from apps.api.routers.v1.auth.security import hash_password
 
 

@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Request
 
+from apps.api.common.schemas import AuthzSnapshot
 from apps.api.config import Settings, get_settings
 from apps.api.core.authz import get_authz_snapshot_provider, require_permission_strict
 from apps.api.core.exceptions import BadRequest, Conflict, Forbidden, NotFound, ServiceUnavailable
@@ -26,7 +27,6 @@ from apps.api.routers.v1.auth.constants import (
 from apps.api.routers.v1.auth.deps import get_current_user
 from apps.api.routers.v1.auth.schema import (
     AcceptInvitationRequest,
-    AuthzSnapshot,
     ChangePasswordRequest,
     ForgotPasswordRequest,
     LoginRequest,

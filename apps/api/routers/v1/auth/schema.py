@@ -10,15 +10,6 @@ from apps.api.models.organization import MembershipStatus
 from apps.api.routers.v1.auth.constants import PASSWORD_REGEX, RESET_TOKEN_REGEX
 
 
-class AuthzSnapshot(BaseSchema):
-    """当前用户授权快照（用于后台菜单/按钮鉴权）。"""
-
-    user_id: UUID = Field(..., description="用户ID")
-    role_codes: list[str] = Field(default_factory=list, description="有效角色编码列表")
-    permission_codes: list[str] = Field(default_factory=list, description="有效权限编码列表")
-    is_superuser: bool = Field(default=False, description="是否为超级管理员")
-
-
 class MyOrganizationOut(BaseSchema):
     """当前用户加入的组织信息（用于前端组织选择器）。"""
 
