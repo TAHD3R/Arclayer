@@ -2,28 +2,16 @@
 
 import { RotateCcw, ArrowUpRight } from "lucide-react";
 import { motion, type Transition } from "motion/react";
+import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 
-const notifications = [
-  {
-    id: 1,
-    title: "NPM Install Complete",
-    subtitle: "1,227 packages added!",
-    time: "just now",
-    count: 2,
-  },
-  {
-    id: 2,
-    title: "Build Succeeded",
-    subtitle: "Build finished in 12.34s",
-    time: "1m 11s",
-  },
-  {
-    id: 3,
-    title: "Lint Passed",
-    subtitle: "No problems found",
-    time: "5m",
-  },
-];
+export type NotificationListItem = {
+  id: string | number;
+  title: string;
+  subtitle?: string;
+  time?: string;
+  count?: number;
+};
 
 const transition: Transition = {
   type: "spring",
@@ -57,61 +45,101 @@ const viewAllTextVariants = {
   expanded: { opacity: 1, y: 0, pointerEvents: "auto" },
 };
 
-function NotificationList() {
+function NotificationList(props: {
+  items: NotificationListItem[];
+  maxItems?: number;
+  className?: string;
+  onViewAll?: () => void;
+}) {
+  const { t } = useTranslation("common");
+
+  const items = useMemo(() => {
+    const maxItems = props.maxItems ?? props.items.length;
+    return props.items.slice(0, Math.max(0, maxItems));
+  }, [props.items, props.maxItems]);
+
+  if (!items.length) return null;
+
+  const totalCount = props.items.length;
+
   return (
     <motion.div
-      className="bg-neutral-200 dark:bg-neutral-900 p-3 rounded-3xl w-xs space-y-3 shadow-md"
+      className={[
+        // Match the project's sidebar/overlay style (similar to AdminAccountMenu).
+        "rounded-xl w-full space-y-3 shadow-sm",
+        // In sidebar we want a subtle "panel" contrast; avoid popover pure-black in dark mode.
+        "text-sidebar-foreground backdrop-blur-sm",
+        props.className ?? "",
+      ].join(" ")}
       initial="collapsed"
       whileHover="expanded"
     >
       <div>
-        {notifications.map((notification, i) => (
+        {items.map((notification, i) => (
           <motion.div
             key={notification.id}
-            className="bg-neutral-100 dark:bg-neutral-800 rounded-xl px-4 py-2 shadow-sm hover:shadow-lg transition-shadow duration-200 relative"
+            className={[
+              "rounded-lg px-4 py-2 relative",
+              // Give each card a solid surface so stacked cards remain distinguishable in dark mode.
+              "border border-sidebar-border/60 bg-sidebar",
+              "shadow-sm hover:shadow-md transition-shadow duration-200",
+              "hover:bg-primary/70",
+            ].join(" ")}
             variants={getCardVariants(i)}
             transition={transition}
             style={{
-              zIndex: notifications.length - i,
+              zIndex: items.length - i,
             }}
           >
-            <div className="flex justify-between items-center">
-              <h1 className="text-sm font-medium">{notification.title}</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="min-w-0 flex-1 truncate text-sm font-medium">{notification.title}</h1>
               {notification.count && (
-                <div className="flex items-center text-xs gap-0.5 font-medium text-neutral-500 dark:text-neutral-300">
+                <div className="flex shrink-0 items-center text-xs gap-0.5 font-medium text-sidebar-foreground/70">
                   <RotateCcw className="size-3" />
                   <span>{notification.count}</span>
                 </div>
               )}
             </div>
-            <div className="text-xs text-neutral-500 font-medium">
-              <span>{notification.time}</span>
-              &nbsp;•&nbsp;
-              <span>{notification.subtitle}</span>
-            </div>
+            {notification.time || notification.subtitle ? (
+              <div className="mt-0.5 flex min-w-0 items-start gap-1 text-xs font-medium text-sidebar-foreground/60">
+                {notification.time ? (
+                  <span className="shrink-0">
+                    {notification.time}
+                    {notification.subtitle ? <span aria-hidden="true">&nbsp;•</span> : null}
+                  </span>
+                ) : null}
+                {notification.subtitle ? (
+                  <span className="min-w-0 block line-clamp-2">{notification.subtitle}</span>
+                ) : null}
+              </div>
+            ) : null}
           </motion.div>
         ))}
       </div>
 
       <div className="flex items-center gap-2">
-        <div className="size-5 rounded-full bg-neutral-400 text-white text-xs flex items-center justify-center font-medium">
-          {notifications.length}
+        <div className="size-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-medium">
+          {totalCount}
         </div>
         <span className="grid">
           <motion.span
-            className="text-sm font-medium text-neutral-600 dark:text-neutral-300 row-start-1 col-start-1"
+            className="text-sm font-medium text-sidebar-foreground/70 row-start-1 col-start-1"
             variants={notificationTextVariants}
             transition={textSwitchTransition}
           >
-            Notifications
+            {t("NOTIFICATIONS_TITLE")}
           </motion.span>
-          <motion.span
-            className="text-sm font-medium text-neutral-600 dark:text-neutral-300 flex items-center gap-1 cursor-pointer select-none row-start-1 col-start-1"
-            variants={viewAllTextVariants}
-            transition={textSwitchTransition}
-          >
-            View all <ArrowUpRight className="size-4" />
-          </motion.span>
+          {props.onViewAll ? (
+            <motion.button
+              type="button"
+              className="text-sm font-medium text-sidebar-foreground/70 hover:text-sidebar-foreground flex items-center gap-1 cursor-pointer select-none row-start-1 col-start-1"
+              variants={viewAllTextVariants}
+              transition={textSwitchTransition}
+              onClick={props.onViewAll}
+            >
+              {t("NOTIFICATIONS_VIEW_ALL")} <ArrowUpRight className="size-4" />
+            </motion.button>
+          ) : null}
         </span>
       </div>
     </motion.div>

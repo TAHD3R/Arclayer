@@ -25,5 +25,17 @@
   "CMDK_TITLE": "Search",
   "CMDK_PLACEHOLDER": "Search pages or type a route…",
   "CMDK_NO_RESULTS": "No results found",
-  "CMDK_CLOSE": "Close"
+  "CMDK_CLOSE": "Close",
+
+  "NOTIFICATIONS_TITLE": "Notifications",
+  "NOTIFICATIONS_VIEW_ALL": "View all",
+  "NOTIFICATIONS_DEMO_1_TITLE": "NPM Install Complete",
+  "NOTIFICATIONS_DEMO_1_SUBTITLE": "1,227 packages added!",
+  "NOTIFICATIONS_DEMO_1_TIME": "just now",
+  "NOTIFICATIONS_DEMO_2_TITLE": "Build Succeeded",
+  "NOTIFICATIONS_DEMO_2_SUBTITLE": "Build finished in 12.34s",
+  "NOTIFICATIONS_DEMO_2_TIME": "1m ago",
+  "NOTIFICATIONS_DEMO_3_TITLE": "Lint Passed",
+  "NOTIFICATIONS_DEMO_3_SUBTITLE": "No problems found",
+  "NOTIFICATIONS_DEMO_3_TIME": "5m ago"
 }

@@ -8,6 +8,7 @@ import { AdminSiderNav } from "@/components/app/AdminSiderNav";
 import { AdminLogo } from "@/components/app/AdminLogo";
 import { AdminAccountMenu } from "@/components/app/AdminAccountMenu";
 import { AdminHeader } from "@/components/app/AdminHeader";
+import { AdminNotificationCenter } from "@/components/app/AdminNotificationCenter";
 import { RouteProgress } from "@/core/ui/RouteProgress";
 import {
   Sidebar,
@@ -47,6 +48,9 @@ export function AdminLayout({ children }: PropsWithChildren) {
 
         <SidebarFooter className="p-0">
           <div className="w-full bg-sidebar">
+            <div className="px-4 pb-3">
+              <AdminNotificationCenter maxItems={3} />
+            </div>
             <AdminAccountMenu />
           </div>
         </SidebarFooter>
