@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import datetime
-from uuid import UUID
 
 from pydantic import Field
 
@@ -26,8 +25,6 @@ class AdminUserListQuery(BaseSchema):
     q: str | None = Field(default=None, description="Search query for username/email/display_name.")
     status: UserStatus | None = Field(default=None, description="Filter by user status.")
     role_code: str | None = Field(default=None, description="Filter by role code (effective assignment not expanded).")
-    department_id: UUID | None = Field(default=None, description="Filter by department id.")
-    position_id: UUID | None = Field(default=None, description="Filter by position id.")
     ordering: str | None = Field(default=None, description="Ordering, e.g. '-created_at', 'username'.")
 
 

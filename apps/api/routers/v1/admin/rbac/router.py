@@ -4,12 +4,11 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends
 
+from apps.api.config import Settings, get_settings
 from apps.api.core.authz import require_permission_strict
-from apps.api.core.exceptions import ServiceUnavailable
-from apps.api.core.i18n import t
+from apps.api.core.rbac.service import RBACService
 from apps.api.http.pagination import PageData, PageParams, get_page_params
 from apps.api.http.response import Response, ResponseModel
-from apps.api.plugin.extension_points.admin_rbac import get_admin_rbac_provider
 from apps.api.routers.v1.admin.rbac.schema import (
     PermissionOut,
     PermissionSyncResult,
@@ -23,14 +22,8 @@ from apps.api.routers.v1.admin.rbac.schema import (
 router = APIRouter(tags=["Services: RBAC Core Service"])
 
 
-def _require_provider():
-    provider = get_admin_rbac_provider()
-    if provider is None:
-        raise ServiceUnavailable(
-            message=t("errors", "ADMIN_RBAC_PROVIDER_UNAVAILABLE", default="RBAC 服务不可用"),
-            error="ADMIN_RBAC_PROVIDER_UNAVAILABLE",
-        )
-    return provider
+def get_rbac_service(settings: Settings = Depends(get_settings)) -> RBACService:
+    return RBACService(settings)
 
 
 @router.get(
@@ -40,9 +33,9 @@ def _require_provider():
 )
 async def list_roles(
     params: PageParams = Depends(get_page_params),
+    service: RBACService = Depends(get_rbac_service),
 ) -> ResponseModel[PageData[RoleOut]]:
-    provider = _require_provider()
-    page = await provider.list_roles(params=params)
+    page = await service.list_roles_paginated(params=params, out_schema=RoleOut)
     return Response.success(data=PageData[RoleOut].model_validate(page))
 
 
@@ -53,9 +46,9 @@ async def list_roles(
 )
 async def get_role(
     role_code: str,
+    service: RBACService = Depends(get_rbac_service),
 ) -> ResponseModel[RoleOut]:
-    provider = _require_provider()
-    role = await provider.get_role(role_code=role_code)
+    role = await service.get_role(role_code=role_code)
     return Response.success(data=RoleOut.model_validate(role))
 
 
@@ -66,9 +59,9 @@ async def get_role(
 )
 async def create_role(
     body: RoleCreateRequest,
+    service: RBACService = Depends(get_rbac_service),
 ) -> ResponseModel[RoleOut]:
-    provider = _require_provider()
-    role = await provider.create_role(payload=body)
+    role = await service.create_role(**body.model_dump())
     return Response.success(data=RoleOut.model_validate(role))
 
 
@@ -80,9 +73,9 @@ async def create_role(
 async def update_role(
     role_code: str,
     body: RoleUpdateRequest,
+    service: RBACService = Depends(get_rbac_service),
 ) -> ResponseModel[RoleOut]:
-    provider = _require_provider()
-    role = await provider.update_role(role_code=role_code, payload=body)
+    role = await service.update_role(role_code=role_code, payload=body.model_dump(exclude_unset=True))
     return Response.success(data=RoleOut.model_validate(role))
 
 
@@ -93,9 +86,9 @@ async def update_role(
 )
 async def delete_role(
     role_code: str,
+    service: RBACService = Depends(get_rbac_service),
 ) -> ResponseModel[None]:
-    provider = _require_provider()
-    await provider.delete_role(role_code=role_code)
+    await service.delete_role(role_code=role_code)
     return Response.success()
 
 
@@ -106,9 +99,9 @@ async def delete_role(
 )
 async def list_permissions(
     params: PageParams = Depends(get_page_params),
+    service: RBACService = Depends(get_rbac_service),
 ) -> ResponseModel[PageData[PermissionOut]]:
-    provider = _require_provider()
-    page = await provider.list_permissions(params=params)
+    page = await service.list_permissions_paginated(params=params, out_schema=PermissionOut)
     return Response.success(data=PageData[PermissionOut].model_validate(page))
 
 
@@ -117,9 +110,10 @@ async def list_permissions(
     response_model=ResponseModel[PermissionSyncResult],
     dependencies=[require_permission_strict("rbac:permissions:sync")],
 )
-async def sync_permissions() -> ResponseModel[PermissionSyncResult]:
-    provider = _require_provider()
-    result = await provider.sync_permissions()
+async def sync_permissions(
+    service: RBACService = Depends(get_rbac_service),
+) -> ResponseModel[PermissionSyncResult]:
+    result = await service.sync_permissions()
     return Response.success(data=PermissionSyncResult.model_validate(result))
 
 
@@ -131,9 +125,9 @@ async def sync_permissions() -> ResponseModel[PermissionSyncResult]:
 async def list_role_permissions(
     role_code: str,
     params: PageParams = Depends(get_page_params),
+    service: RBACService = Depends(get_rbac_service),
 ) -> ResponseModel[PageData[PermissionOut]]:
-    provider = _require_provider()
-    page = await provider.list_role_permissions(role_code=role_code, params=params)
+    page = await service.list_role_permissions_paginated(role_code=role_code, params=params, out_schema=PermissionOut)
     return Response.success(data=PageData[PermissionOut].model_validate(page))
 
 
@@ -145,9 +139,9 @@ async def list_role_permissions(
 async def set_role_permissions(
     role_code: str,
     body: RolePermissionSetRequest,
+    service: RBACService = Depends(get_rbac_service),
 ) -> ResponseModel[None]:
-    provider = _require_provider()
-    await provider.set_role_permissions(role_code=role_code, permission_codes=body.permission_codes)
+    await service.set_role_permissions(role_code=role_code, permission_codes=body.permission_codes)
     return Response.success()
 
 
@@ -159,9 +153,9 @@ async def set_role_permissions(
 async def list_user_roles(
     user_id: UUID,
     params: PageParams = Depends(get_page_params),
+    service: RBACService = Depends(get_rbac_service),
 ) -> ResponseModel[PageData[RoleOut]]:
-    provider = _require_provider()
-    page = await provider.list_user_roles(user_id=user_id, params=params)
+    page = await service.list_user_roles_paginated(user_id=user_id, params=params, out_schema=RoleOut)
     return Response.success(data=PageData[RoleOut].model_validate(page))
 
 
@@ -173,9 +167,9 @@ async def list_user_roles(
 async def assign_user_role(
     user_id: UUID,
     body: UserRoleAssignRequest,
+    service: RBACService = Depends(get_rbac_service),
 ) -> ResponseModel[None]:
-    provider = _require_provider()
-    await provider.assign_user_role(user_id=user_id, role_code=body.role_code)
+    await service.assign_role(user_id=user_id, role_code=body.role_code)
     return Response.success()
 
 
@@ -187,7 +181,7 @@ async def assign_user_role(
 async def revoke_user_role(
     user_id: UUID,
     role_code: str,
+    service: RBACService = Depends(get_rbac_service),
 ) -> ResponseModel[None]:
-    provider = _require_provider()
-    await provider.revoke_user_role(user_id=user_id, role_code=role_code)
+    await service.revoke_role(user_id=user_id, role_code=role_code)
     return Response.success()

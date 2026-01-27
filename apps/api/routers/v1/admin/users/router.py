@@ -4,12 +4,10 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends
 
+from apps.api.config import Settings, get_settings
 from apps.api.core.authz import require_permission_strict
-from apps.api.core.exceptions import ServiceUnavailable
-from apps.api.core.i18n import t
 from apps.api.http.pagination import PageData, PageParams, get_page_params
 from apps.api.http.response import Response, ResponseModel
-from apps.api.plugin.extension_points.admin_users import get_admin_users_provider
 from apps.api.routers.v1.admin.users.schema import (
     AdminResetPasswordRequest,
     AdminUserCreateRequest,
@@ -18,19 +16,14 @@ from apps.api.routers.v1.admin.users.schema import (
     AdminUserSummaryOut,
     AdminUserUpdateRequest,
 )
+from apps.api.routers.v1.admin.users.service import AdminUsersService
 from apps.api.routers.v1.auth.schema import AuthzSnapshot
 
 router = APIRouter(tags=["Services: User Service"])
 
 
-def _require_provider():
-    provider = get_admin_users_provider()
-    if provider is None:
-        raise ServiceUnavailable(
-            message=t("errors", "ADMIN_USERS_PROVIDER_UNAVAILABLE", default="用户管理服务不可用"),
-            error="ADMIN_USERS_PROVIDER_UNAVAILABLE",
-        )
-    return provider
+def get_users_service(settings: Settings = Depends(get_settings)) -> AdminUsersService:
+    return AdminUsersService(settings)
 
 
 @router.get(
@@ -41,9 +34,9 @@ def _require_provider():
 async def list_users(
     params: PageParams = Depends(get_page_params),
     filters: AdminUserListQuery = Depends(),
+    service: AdminUsersService = Depends(get_users_service),
 ) -> ResponseModel[PageData[AdminUserSummaryOut]]:
-    provider = _require_provider()
-    page = await provider.list_users(params=params, filters=filters)
+    page = await service.list_users(params=params, filters=filters)
     return Response.success(data=page)
 
 
@@ -54,9 +47,9 @@ async def list_users(
 )
 async def get_user(
     user_id: UUID,
+    service: AdminUsersService = Depends(get_users_service),
 ) -> ResponseModel[AdminUserDetailOut]:
-    provider = _require_provider()
-    user = await provider.get_user(user_id=user_id)
+    user = await service.get_user(user_id=user_id)
     return Response.success(data=user)
 
 
@@ -67,9 +60,9 @@ async def get_user(
 )
 async def create_user(
     body: AdminUserCreateRequest,
+    service: AdminUsersService = Depends(get_users_service),
 ) -> ResponseModel[AdminUserDetailOut]:
-    provider = _require_provider()
-    user = await provider.create_user(payload=body)
+    user = await service.create_user(payload=body)
     return Response.success(data=user)
 
 
@@ -81,9 +74,9 @@ async def create_user(
 async def update_user(
     user_id: UUID,
     body: AdminUserUpdateRequest,
+    service: AdminUsersService = Depends(get_users_service),
 ) -> ResponseModel[AdminUserDetailOut]:
-    provider = _require_provider()
-    user = await provider.update_user(user_id=user_id, payload=body)
+    user = await service.update_user(user_id=user_id, payload=body)
     return Response.success(data=user)
 
 
@@ -94,9 +87,9 @@ async def update_user(
 )
 async def enable_user(
     user_id: UUID,
+    service: AdminUsersService = Depends(get_users_service),
 ) -> ResponseModel[AdminUserDetailOut]:
-    provider = _require_provider()
-    user = await provider.set_user_status(user_id=user_id, enabled=True)
+    user = await service.set_user_status(user_id=user_id, enabled=True)
     return Response.success(data=user)
 
 
@@ -107,9 +100,9 @@ async def enable_user(
 )
 async def disable_user(
     user_id: UUID,
+    service: AdminUsersService = Depends(get_users_service),
 ) -> ResponseModel[AdminUserDetailOut]:
-    provider = _require_provider()
-    user = await provider.set_user_status(user_id=user_id, enabled=False)
+    user = await service.set_user_status(user_id=user_id, enabled=False)
     return Response.success(data=user)
 
 
@@ -121,9 +114,9 @@ async def disable_user(
 async def reset_password(
     user_id: UUID,
     body: AdminResetPasswordRequest,
+    service: AdminUsersService = Depends(get_users_service),
 ) -> ResponseModel[None]:
-    provider = _require_provider()
-    await provider.reset_password(user_id=user_id, new_password=body.new_password)
+    await service.reset_password(user_id=user_id, new_password=body.new_password)
     return Response.success()
 
 
@@ -134,7 +127,7 @@ async def reset_password(
 )
 async def get_user_authz(
     user_id: UUID,
+    service: AdminUsersService = Depends(get_users_service),
 ) -> ResponseModel[AuthzSnapshot]:
-    provider = _require_provider()
-    snap = await provider.get_user_authz(user_id=user_id)
+    snap = await service.get_user_authz(user_id=user_id)
     return Response.success(data=snap)

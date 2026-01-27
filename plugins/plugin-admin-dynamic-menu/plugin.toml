@@ -13,11 +13,6 @@ requires = ">=2026.01.18-dev"
 entrypoint = "admin_menu.plugin:AdminMenuPlugin"
 license = "MIT"
 
-[[dependencies]]
-id = "plugin-rbac-core"
-version = ">=1.0.0"
-optional = false
-
 [[permissions]]
 code = "admin:menu:read"
 name = "Read menus"

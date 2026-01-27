@@ -63,11 +63,9 @@ async def test_admin_menu_filtered_for_user(prepared_db_with_repo_plugins_auto_m
     transport = ASGITransport(app=app)
 
     async with app.router.lifespan_context(app):
-        # Import after plugin startup so plugin packages are available.
-        from rbac.constants import ROLE_ADMIN
-        from rbac.repository import RBACRepository
-        from rbac.services import RBACService
-
+        from apps.api.core.rbac.constants import ROLE_ADMIN
+        from apps.api.core.rbac.repository import RBACRepository
+        from apps.api.core.rbac.service import RBACService
         from apps.api.routers.v1.auth.repository import UserRepository
         from apps.api.routers.v1.auth.security import hash_password
 

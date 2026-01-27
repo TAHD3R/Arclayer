@@ -66,11 +66,8 @@ async def test_admin_users_management_flow(prepared_db_with_repo_plugins) -> Non
     async with app.router.lifespan_context(app):
         await verify_db_ready(settings)
 
-        # Import after lifespan startup, because plugin discovery adds plugin roots to sys.path.
-        from org.models import Department, Position, UserDepartment, UserPosition
-        from rbac.constants import ROLE_ADMIN
-        from rbac.repository import RBACRepository
-
+        from apps.api.core.rbac.constants import ROLE_ADMIN
+        from apps.api.core.rbac.repository import RBACRepository
         from apps.api.routers.v1.auth.repository import UserRepository
         from apps.api.routers.v1.auth.security import hash_password
 
@@ -135,22 +132,6 @@ async def test_admin_users_management_flow(prepared_db_with_repo_plugins) -> Non
             assert resp.status_code == 200
             items = resp.json()["data"]["items"]
             assert any(item["id"] == str(admin.id) for item in items)
-
-            # Bind department/position for filtering.
-            dep = await Department.create(code=f"dep_{uuid4().hex}", name="Dept A", parent_id=None, sort=1)
-            pos = await Position.create(code=f"pos_{uuid4().hex}", name="Position A", sort=1)
-            await UserDepartment.get_or_create(user_id=user_uuid, department_id=dep.id)
-            await UserPosition.get_or_create(user_id=user_uuid, position_id=pos.id)
-
-            resp = await client.get(f"/api/v1/admin/users?departmentId={dep.id}")
-            assert resp.status_code == 200
-            items = resp.json()["data"]["items"]
-            assert any(item["id"] == user_id for item in items)
-
-            resp = await client.get(f"/api/v1/admin/users?positionId={pos.id}")
-            assert resp.status_code == 200
-            items = resp.json()["data"]["items"]
-            assert any(item["id"] == user_id for item in items)
 
             # Detail.
             resp = await client.get(f"/api/v1/admin/users/{user_id}")

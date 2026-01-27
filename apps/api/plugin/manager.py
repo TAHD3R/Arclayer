@@ -32,7 +32,8 @@ from apps.api.plugin.types import BasePlugin, PluginDescriptor, PluginStatus
 logger = get_logger(__name__)
 
 MIGRATION_LOCK_KEY = "plugin:migrate:lock"
-PROTECTED_PLUGINS = frozenset({"plugin-rbac-core"})
+# RBAC is now a core capability, so there are no protected plugins by default.
+PROTECTED_PLUGINS: frozenset[str] = frozenset()
 
 
 class PluginManager:

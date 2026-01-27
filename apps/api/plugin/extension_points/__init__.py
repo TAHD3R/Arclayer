@@ -21,12 +21,5 @@ def init_extension_points() -> None:
     """
 
     # Admin-domain extension points (providers are implemented by plugins).
-    from . import (
-        admin_menu,
-        admin_org,
-        admin_org_tools,
-        admin_rbac,
-        admin_rbac_org,
-        admin_ui,
-        admin_users,
-    )
+    # Note: RBAC/users/org are now core capabilities, so their providers are no longer plugin-based.
+    from . import admin_menu

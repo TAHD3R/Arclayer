@@ -101,11 +101,8 @@ class SystemSetupService(BaseService):
 
     async def _bootstrap_rbac_admin(self, *, user_id) -> bool:
         try:
-            from rbac.services import RBACService
-        except ModuleNotFoundError:
-            self.logger.warning("RBAC plugin is not available, skip admin bootstrap")
-            return False
-        try:
+            from apps.api.core.rbac.service import RBACService
+
             await RBACService(self.settings).bootstrap_admin(user_id=user_id)
             return True
         except Exception as exc:

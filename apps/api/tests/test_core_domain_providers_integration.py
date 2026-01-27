@@ -78,19 +78,13 @@ async def test_core_domain_short_paths(prepared_db_with_repo_plugins_auto_migrat
     try:
         async with app.router.lifespan_context(app):
             async with AsyncClient(transport=transport, base_url="http://test") as client:
-                # Org tools (provider in plugin-organization-core.tools)
-                resp = await client.post("/api/v1/admin/org/tools/validate")
+                # Admin menu (provider in plugin-admin-dynamic-menu)
+                resp = await client.get("/api/v1/admin/menus/me")
                 assert resp.status_code == 200
-                assert "departmentsTotal" in resp.json()["data"]
+                assert "items" in resp.json()["data"]
 
-                # RBAC roles (provider in plugin-rbac-core)
+                # RBAC roles (core)
                 resp = await client.get("/api/v1/admin/rbac/roles?page=1&size=10")
-                assert resp.status_code == 200
-                page = resp.json()["data"]
-                assert "items" in page
-
-                # Org departments (provider in plugin-organization-core)
-                resp = await client.get("/api/v1/admin/org/departments?page=1&size=10")
                 assert resp.status_code == 200
                 page = resp.json()["data"]
                 assert "items" in page
