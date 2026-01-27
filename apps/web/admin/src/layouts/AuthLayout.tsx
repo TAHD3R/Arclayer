@@ -102,7 +102,7 @@ export function AuthLayout({ children }: PropsWithChildren) {
         />
 
         <div className="absolute inset-0 flex items-end p-14">
-          <div className="max-w-[30rem] select-none">
+          <div className="max-w-120 select-none">
             <Typography.Title
               level={1}
               style={{
@@ -137,7 +137,7 @@ export function AuthLayout({ children }: PropsWithChildren) {
         </div>
       </div>
 
-      <div className="relative flex flex-col bg-[var(--color-background)] text-[var(--color-foreground)]">
+      <div className="relative flex flex-col bg-(--color-background) text-(--color-foreground)">
         <div className="absolute top-0 right-0 p-4">
           <Space size={6}>
             <LocaleToggle />
@@ -146,10 +146,10 @@ export function AuthLayout({ children }: PropsWithChildren) {
         </div>
 
         <div className="flex-1 flex items-center justify-center p-8">
-          <div className="w-full max-w-[480px]">{children}</div>
+          <div className="w-full max-w-120">{children}</div>
         </div>
 
-        <div className="p-4 text-center text-xs text-[var(--color-muted-foreground)]">
+        <div className="p-4 text-center text-xs text-(--color-muted-foreground)">
           <Trans
             i18nKey="auth:FOOTER_COPYRIGHT"
             components={{
