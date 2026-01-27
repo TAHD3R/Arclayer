@@ -18,9 +18,10 @@ import {
   SidebarInset,
   SidebarProvider,
 } from "@/components/ui/sidebar";
-
+import { Typography } from "antd";
 export function AdminLayout({ children }: PropsWithChildren) {
   const queryClient = useQueryClient();
+
   const [refreshing, setRefreshing] = useState(false);
 
   return (
@@ -40,6 +41,10 @@ export function AdminLayout({ children }: PropsWithChildren) {
       >
         <SidebarHeader className="flex flex-col items-center gap-4 w-full px-0 pt-16 pb-8">
           <AdminLogo ariaLabel="Celestial Admin" />
+          <h2 className="font-bold line-clamp-2 text-center select-none max-w-2/3 wrap-break-word">
+            {/* TODO: Change with real organization name */}
+            Celestial's Organization
+          </h2>
         </SidebarHeader>
 
         <SidebarContent className="pl-0 pr-4 py-8">
