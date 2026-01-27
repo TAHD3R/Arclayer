@@ -4,7 +4,7 @@ from uuid import UUID
 
 from pydantic import Field
 
-from apps.api.common.schemas import BaseSchema
+from apps.api.common.schemas.base import BaseSchema
 
 
 class AuthzSnapshot(BaseSchema):

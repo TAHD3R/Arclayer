@@ -151,7 +151,8 @@ class TeamService(BaseService):
 
         base = (self.settings.application.frontend_base_url or "").strip()
         base = base.rstrip("/") if base else ""
-        invite_url = f"{base}/admin/accept-invite?token={token}" if base else None
+        # Keep URL consistent with reset-password links (frontend_base_url points to admin web root).
+        invite_url = f"{base}/accept-invite?token={token}" if base else None
 
         out = TeamInvitationOut(
             id=inv.id,
