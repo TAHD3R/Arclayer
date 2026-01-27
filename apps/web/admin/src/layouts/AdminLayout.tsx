@@ -1,42 +1,58 @@
-import { Link, Outlet } from "@tanstack/react-router";
+import { Outlet } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
-import { Layout, Menu, Typography } from "antd";
-import { type PropsWithChildren } from "react";
+import { type CSSProperties, type PropsWithChildren } from "react";
 
+import { ADMIN_NAV_ITEMS } from "@/core/navigation/adminNav";
+import { AdminSiderNav } from "@/components/app/AdminSiderNav";
+import { AdminLogo } from "@/components/app/AdminLogo";
 import { RouteProgress } from "@/core/ui/RouteProgress";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarHeader,
+  SidebarInset,
+  SidebarProvider,
+} from "@/components/ui/sidebar";
 
 export function AdminLayout({ children }: PropsWithChildren) {
   return (
-    <Layout style={{ minHeight: "100vh" }}>
+    <SidebarProvider defaultOpen className="h-screen" id="page_with_common_nav">
       <RouteProgress />
 
-      <Layout.Sider width={240} theme="light">
-        <div style={{ padding: 16 }}>
-          <Typography.Title level={4} style={{ margin: 0 }}>
-            Celestial Admin
-          </Typography.Title>
-        </div>
+      <Sidebar
+        collapsible="none"
+        className="shrink-0 h-full border-r border-sidebar-border"
+        data-qa="admin-nav-container"
+        style={
+          {
+            width: 240,
+            minWidth: 240,
+            "--ant-color-link": "var(--color-muted-foreground)",
+          } as CSSProperties
+        }
+      >
+        <SidebarHeader className="flex flex-col items-center gap-4 w-full px-0 pt-16 pb-8">
+          <AdminLogo ariaLabel="Celestial Admin" />
+        </SidebarHeader>
 
-        <Menu
-          mode="inline"
-          items={[
-            {
-              key: "dashboard",
-              label: <Link to="/">Dashboard</Link>,
-            },
-            {
-              key: "login",
-              label: <Link to="/login">Login</Link>,
-            },
-          ]}
-        />
-      </Layout.Sider>
+        <SidebarContent className="pl-0 pr-4 pt-4 pb-16">
+          <AdminSiderNav items={ADMIN_NAV_ITEMS} />
+        </SidebarContent>
 
-      <Layout>
-        <Layout.Content style={{ padding: 24 }}>{children ?? <Outlet />}</Layout.Content>
-      </Layout>
+        <SidebarFooter className="p-0">
+          <div className="h-16 w-full border-t border-sidebar-border bg-sidebar" />
+        </SidebarFooter>
+      </Sidebar>
+
+      <SidebarInset
+        id="page_contents_with_common_nav"
+        className="w-auto flex-1 min-w-0 overflow-auto"
+      >
+        {children ?? <Outlet />}
+      </SidebarInset>
 
       {import.meta.env.DEV ? <TanStackRouterDevtools position="bottom-right" /> : null}
-    </Layout>
+    </SidebarProvider>
   );
 }

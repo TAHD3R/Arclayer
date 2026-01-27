@@ -14,7 +14,7 @@ export function AntdProvider({ children }: PropsWithChildren) {
   const antdLocale = locale === "zh-CN" ? zhCN : enUS;
 
   return (
-    <ConfigProvider theme={theme} locale={antdLocale} prefixCls="cls" componentSize="middle">
+    <ConfigProvider theme={theme} locale={antdLocale} componentSize="middle">
       <App message={{ maxCount: 3 }} notification={{ maxCount: 3 }}>
         <AntdMessageProvider>{children}</AntdMessageProvider>
       </App>

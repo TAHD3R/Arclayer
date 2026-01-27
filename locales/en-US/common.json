@@ -1,5 +1,10 @@
 {
   "REQUEST_SUCCESS": "Request succeeded",
   "REQUEST_FAILED": "Request failed",
-  "UNKNOWN_ERROR": "Unknown error"
+  "UNKNOWN_ERROR": "Unknown error",
+  "NAV_DASHBOARD": "Dashboard",
+  "NAV_TEST": "Test",
+  "NAV_TEST_OVERVIEW": "Overview",
+  "NAV_TEST_LEVEL2": "Level 2",
+  "NAV_TEST_LEVEL3": "Level 3"
 }

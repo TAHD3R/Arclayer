@@ -1,5 +1,10 @@
 {
   "REQUEST_SUCCESS": "请求成功",
   "REQUEST_FAILED": "请求失败",
-  "UNKNOWN_ERROR": "未知错误"
+  "UNKNOWN_ERROR": "未知错误",
+  "NAV_DASHBOARD": "仪表盘",
+  "NAV_TEST": "测试菜单",
+  "NAV_TEST_OVERVIEW": "概览",
+  "NAV_TEST_LEVEL2": "二级目录",
+  "NAV_TEST_LEVEL3": "三级目录"
 }
