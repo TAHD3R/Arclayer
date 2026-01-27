@@ -95,8 +95,14 @@ function buildNavIndex(items: AdminNavItem[]): Map<string, NavIndexEntry> {
 type OpenByParent = Record<string, string | undefined>;
 
 function iconSlot(depth: number, Icon: AdminNavItem["icon"] | undefined) {
-  if (depth === 0 && Icon) return <Icon className="size-6 shrink-0" />;
-  return <span className="size-6 shrink-0" aria-hidden="true" />;
+  if (depth === 0 && Icon) {
+    return (
+      <span className="size-5 shrink-0 inline-flex items-center justify-center" aria-hidden="true">
+        <Icon className="size-full" />
+      </span>
+    );
+  }
+  return <span className="size-5 shrink-0" aria-hidden="true" />;
 }
 
 type NodeProps = {
@@ -299,7 +305,7 @@ export function AdminSiderNav(props: { items: AdminNavItem[] }) {
   return (
     <SidebarGroup className="p-0">
       <SidebarGroupContent>
-        <SidebarMenu className="gap-4 px-0">
+        <SidebarMenu className="gap-2 px-0">
           {props.items.map((item) => (
             <NavNode
               key={item.key}
