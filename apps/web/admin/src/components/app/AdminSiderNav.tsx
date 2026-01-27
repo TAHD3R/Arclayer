@@ -95,8 +95,8 @@ function buildNavIndex(items: AdminNavItem[]): Map<string, NavIndexEntry> {
 type OpenByParent = Record<string, string | undefined>;
 
 function iconSlot(depth: number, Icon: AdminNavItem["icon"] | undefined) {
-  if (depth === 0 && Icon) return <Icon className="size-4 shrink-0" />;
-  return <span className="size-4 shrink-0" aria-hidden="true" />;
+  if (depth === 0 && Icon) return <Icon className="size-6 shrink-0" />;
+  return <span className="size-6 shrink-0" aria-hidden="true" />;
 }
 
 type NodeProps = {
@@ -161,7 +161,7 @@ function NavNode({
           )}
           style={
             {
-              paddingLeft: 8 + Math.max(0, depth - 1) * 12,
+              paddingLeft: 24 + Math.max(0, depth - 1) * 12,
             } as CSSProperties
           }
         >
@@ -199,8 +199,13 @@ function NavNode({
             "transition-[width,height,padding,color] duration-150 ease-out",
             "text-muted-foreground! hover:text-foreground! hover:bg-transparent! active:bg-transparent!",
             "data-[active=true]:font-semibold data-[active=true]:bg-transparent! data-[active=true]:text-foreground!",
+            "hover:cursor-pointer",
           )}
-          style={{ paddingLeft: 8 + Math.max(0, depth - 1) * 12 }}
+          style={
+            {
+              paddingLeft: 24 + Math.max(0, depth - 1) * 12,
+            } as CSSProperties
+          }
           onClick={() => {
             setAnimateOpenKey(item.key);
             openSelf();

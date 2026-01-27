@@ -4,7 +4,6 @@
 @custom-variant dark (&:is([data-theme="dark"] *));
 
 :root {
-  /* Square style: enforce zero radius tokens for shadcn/tailwind. */
   --radius: 0px;
   --radius-sm: 0px;
   --radius-md: 0px;
@@ -13,7 +12,7 @@
 }
 
 html {
-  font-size: 112.5%;
+  font-size: 16px;
 }
 
 html,
@@ -110,5 +109,35 @@ body {
   }
   body {
     @apply bg-background text-foreground;
+  }
+
+  /* Typography scale (design baseline): h1=32, p=18, span/text=15 (inherits from html). */
+  h1 {
+    font-size: 32px;
+    line-height: 1.15;
+  }
+  p {
+    font-size: 18px;
+    line-height: 1.6;
+  }
+
+  /*
+    Ant Design Typography uses different tags:
+    - Title: h1..h5.ant-typography
+    - Paragraph: div.ant-typography
+    - Text/Link: span/a.ant-typography
+    Align defaults with our scale without touching other antd components.
+  */
+  div.ant-typography {
+    font-size: 18px;
+    line-height: 1.6;
+  }
+  span.ant-typography,
+  a.ant-typography {
+    font-size: 15px;
+  }
+  h1.ant-typography {
+    font-size: 32px;
+    line-height: 1.15;
   }
 }

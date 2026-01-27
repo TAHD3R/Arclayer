@@ -18,6 +18,7 @@ import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { authApi } from "@/api/auth";
 import { useAuthStore } from "@/stores/auth.store";
 import { usePreferencesStore } from "@/stores/preferences.store";
+import { setThemeModeWithTransition } from "@/core/ui/theme-transition";
 import {
   FloatingPanelButton,
   FloatingPanelContent,
@@ -117,7 +118,6 @@ function AdminAccountPanelContent(props: {
   avatarUrl: string | null;
   roleText: string;
   themeMode: "light" | "dark";
-  setThemeMode: (mode: "light" | "dark") => void;
   locale: "zh-CN" | "en-US";
   setLocale: (locale: "zh-CN" | "en-US") => void;
   onLogout: () => Promise<void>;
@@ -166,7 +166,10 @@ function AdminAccountPanelContent(props: {
         <div className="py-1">
           <FloatingPanelButton
             className={menuItemClassName}
-            onClick={() => onClickAndClose(() => props.setThemeMode("light"))}
+            onClick={() => {
+              closeFloatingPanel();
+              void setThemeModeWithTransition("light", { direction: "ltr" });
+            }}
           >
             <MenuItemContent
               icon={<Sun />}
@@ -176,7 +179,10 @@ function AdminAccountPanelContent(props: {
           </FloatingPanelButton>
           <FloatingPanelButton
             className={menuItemClassName}
-            onClick={() => onClickAndClose(() => props.setThemeMode("dark"))}
+            onClick={() => {
+              closeFloatingPanel();
+              void setThemeModeWithTransition("dark", { direction: "ltr" });
+            }}
           >
             <MenuItemContent
               icon={<Moon />}
@@ -320,7 +326,6 @@ export function AdminAccountMenu() {
   const accessToken = useAuthStore((s) => s.accessToken);
 
   const themeMode = usePreferencesStore((s) => s.themeMode);
-  const setThemeMode = usePreferencesStore((s) => s.setThemeMode);
   const locale = usePreferencesStore((s) => s.locale);
   const setLocale = usePreferencesStore((s) => s.setLocale);
 
@@ -423,7 +428,6 @@ export function AdminAccountMenu() {
           avatarUrl={profile.avatarUrl}
           roleText={roleText}
           themeMode={themeMode}
-          setThemeMode={setThemeMode}
           locale={locale}
           setLocale={setLocale}
           onLogout={onLogout}

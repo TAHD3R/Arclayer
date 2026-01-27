@@ -12,7 +12,7 @@ const AuthLayoutLazy = lazy(async () => {
 function AuthLayoutFallback() {
   return (
     <div
-      className="min-h-screen w-full flex items-center justify-center"
+      className="fixed inset-0 w-full flex items-center justify-center overflow-hidden"
       style={{ background: "var(--color-background)", color: "var(--color-foreground)" }}
     >
       <div style={{ color: "var(--color-muted-foreground)", fontSize: 14 }}>Loading…</div>

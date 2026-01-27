@@ -1,16 +1,16 @@
 import { Button, Dropdown, Space, Typography } from "antd";
-import { type PropsWithChildren, useMemo } from "react";
+import { type PropsWithChildren, useEffect, useMemo } from "react";
 import { Trans, useTranslation } from "react-i18next";
 import { Languages, Moon, Sun } from "lucide-react";
 import { Icon } from "@iconify/react";
 
 import ColorBends from "@/components/ui/ColorBends";
+import { toggleThemeModeWithTransition } from "@/core/ui/theme-transition";
 import { usePreferencesStore } from "@/stores/preferences.store";
 import type { AppLocale } from "@/core/i18n";
 
 function ThemeModeToggle() {
   const mode = usePreferencesStore((s) => s.themeMode);
-  const toggle = usePreferencesStore((s) => s.toggleThemeMode);
   const { t } = useTranslation();
 
   const isDark = mode === "dark";
@@ -21,7 +21,9 @@ function ThemeModeToggle() {
       type="text"
       size="large"
       style={{ width: 44, height: 44, paddingInline: 0 }}
-      onClick={toggle}
+      onClick={() => {
+        void toggleThemeModeWithTransition({ direction: "ltr" });
+      }}
       icon={isDark ? <Sun size={18} /> : <Moon size={18} />}
     />
   );
@@ -84,9 +86,24 @@ export function AuthLayout({ children }: PropsWithChildren) {
 
   const bendColors = ["#3b82f6"];
 
+  // Auth pages should always be a full-viewport "scene" without any document scrolling.
+  // This also avoids 1px scrollbars caused by fractional rem sizing during resize.
+  useEffect(() => {
+    const prevHtmlOverflow = document.documentElement.style.overflow;
+    const prevBodyOverflow = document.body.style.overflow;
+
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.documentElement.style.overflow = prevHtmlOverflow;
+      document.body.style.overflow = prevBodyOverflow;
+    };
+  }, []);
+
   return (
-    <div className="min-h-screen w-full grid grid-cols-1 lg:grid-cols-2">
-      <div className="relative hidden lg:block">
+    <div className="fixed inset-0 w-full overflow-hidden grid grid-cols-1 lg:grid-cols-2">
+      <div className="relative hidden lg:block min-h-0 h-full overflow-hidden">
         <ColorBends
           colors={bendColors}
           rotation={45}
@@ -124,7 +141,7 @@ export function AuthLayout({ children }: PropsWithChildren) {
                 marginTop: 14,
                 marginBottom: 0,
                 color: isDark ? "rgba(255,255,255,0.78)" : "rgba(20,20,20,0.78)",
-                fontSize: 18,
+                fontSize: 24,
                 lineHeight: 1.6,
                 textShadow: isDark
                   ? "0 18px 60px rgba(0,0,0,0.35)"
@@ -137,7 +154,7 @@ export function AuthLayout({ children }: PropsWithChildren) {
         </div>
       </div>
 
-      <div className="relative flex flex-col bg-(--color-background) text-(--color-foreground)">
+      <div className="relative flex flex-col min-h-0 h-full overflow-hidden bg-(--color-background) text-(--color-foreground)">
         <div className="absolute top-0 right-0 p-4">
           <Space size={6}>
             <LocaleToggle />
@@ -145,7 +162,7 @@ export function AuthLayout({ children }: PropsWithChildren) {
           </Space>
         </div>
 
-        <div className="flex-1 flex items-center justify-center p-8">
+        <div className="flex-1 min-h-0 flex items-center justify-center overflow-hidden p-8">
           <div className="w-full max-w-120">{children}</div>
         </div>
 

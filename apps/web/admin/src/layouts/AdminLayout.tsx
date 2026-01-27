@@ -36,7 +36,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
           <AdminLogo ariaLabel="Celestial Admin" />
         </SidebarHeader>
 
-        <SidebarContent className="pl-0 pr-4 pt-4 pb-8">
+        <SidebarContent className="pl-0 pr-4 py-8">
           <AdminSiderNav items={ADMIN_NAV_ITEMS} />
         </SidebarContent>
 

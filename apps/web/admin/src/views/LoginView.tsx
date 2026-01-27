@@ -14,6 +14,7 @@ import { Chrome, Lock, Mail, User } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { Icon } from "@iconify/react";
 
 export type AuthMode = "login" | "register";
 
@@ -66,10 +67,10 @@ export function LoginView({
         onOk={() => forgotForm.submit()}
         onCancel={() => setOpenModal(null)}
         centered
-        destroyOnClose
+        destroyOnHidden
       >
         <div className="space-y-3">
-          <Alert type="info" showIcon message={t("auth:FORGOT_PASSWORD_MODAL_HINT")} />
+          <Alert type="info" showIcon title={t("auth:FORGOT_PASSWORD_MODAL_HINT")} />
           <Typography.Paragraph
             style={{ marginTop: 0, marginBottom: 0, color: "var(--color-muted-foreground)" }}
           >
@@ -133,7 +134,7 @@ export function LoginView({
             label: "login",
             children: (
               <>
-                <Typography.Title level={1} style={{ marginTop: 0, marginBottom: 8, fontSize: 36 }}>
+                <Typography.Title level={1} style={{ marginTop: 0, marginBottom: 8, fontSize: 32 }}>
                   {t("auth:LOGIN_PAGE_TITLE")}
                 </Typography.Title>
                 <Typography.Paragraph
@@ -141,7 +142,7 @@ export function LoginView({
                     marginTop: 0,
                     marginBottom: 26,
                     color: "var(--color-muted-foreground)",
-                    fontSize: 15,
+                    fontSize: 18,
                   }}
                 >
                   {t("auth:LOGIN_PAGE_SUBTITLE")}
@@ -217,7 +218,7 @@ export function LoginView({
                     <Button
                       block
                       size="large"
-                      icon={<Chrome size={18} />}
+                      icon={<Icon icon="cbi:oauth" />}
                       disabled
                       aria-label={t("auth:OAUTH_GOOGLE")}
                     >
@@ -246,7 +247,7 @@ export function LoginView({
             label: "register",
             children: (
               <>
-                <Typography.Title level={1} style={{ marginTop: 0, marginBottom: 8, fontSize: 36 }}>
+                <Typography.Title level={1} style={{ marginTop: 0, marginBottom: 8, fontSize: 32 }}>
                   {t("auth:REGISTER_PAGE_TITLE")}
                 </Typography.Title>
                 <Typography.Paragraph
@@ -254,7 +255,7 @@ export function LoginView({
                     marginTop: 0,
                     marginBottom: 26,
                     color: "var(--color-muted-foreground)",
-                    fontSize: 15,
+                    fontSize: 18,
                   }}
                 >
                   {t("auth:REGISTER_PAGE_SUBTITLE")}

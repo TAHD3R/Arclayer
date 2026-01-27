@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { FlaskConical, LayoutDashboard } from "lucide-react";
+import { Gauge, Bug } from "lucide-react";
 
 export type AdminNavItem = {
   key: string;
@@ -16,13 +16,13 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
     label: "Dashboard",
     labelKey: "common:NAV_DASHBOARD",
     to: "/",
-    icon: LayoutDashboard,
+    icon: Gauge,
   },
   {
     key: "test",
     label: "Test",
     labelKey: "common:NAV_TEST",
-    icon: FlaskConical,
+    icon: Bug,
     children: [
       {
         key: "test.index",
