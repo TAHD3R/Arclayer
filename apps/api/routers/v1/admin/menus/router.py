@@ -36,7 +36,6 @@ def _require_provider():
 @router.get(
     "/me",
     response_model=ResponseModel[AdminMenuTreeOut],
-    dependencies=[require_permission_strict("admin:access")],
 )
 async def get_my_menu(
     user_id: UUID = Depends(get_current_user_id),

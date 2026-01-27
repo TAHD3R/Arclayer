@@ -10,7 +10,13 @@ from apps.api.models.organization import Membership, MembershipStatus, Organizat
 
 class OrganizationRepository(BaseRepository):
     def query_user_memberships(self, *, user_id: UUID) -> QuerySet[Membership]:
-        return Membership.filter(user_id=user_id, status=MembershipStatus.ACTIVE)
+        # Only treat memberships under active organizations as selectable/usable.
+        # This keeps org selection strict and prevents acting under a disabled tenant.
+        return Membership.filter(
+            user_id=user_id,
+            status=MembershipStatus.ACTIVE,
+            organization__is_active=True,
+        ).order_by("created_at")
 
     async def list_user_membership_pairs(self, *, user_id: UUID) -> list[tuple[UUID, UUID]]:
         """
@@ -29,7 +35,9 @@ class OrganizationRepository(BaseRepository):
 
     async def list_user_organizations(self, *, user_id: UUID) -> list[Organization]:
         return await Organization.filter(
-            memberships__user_id=user_id, memberships__status=MembershipStatus.ACTIVE
+            is_active=True,
+            memberships__user_id=user_id,
+            memberships__status=MembershipStatus.ACTIVE,
         ).all()
 
     async def list_user_memberships_with_org(self, *, user_id: UUID) -> list[Membership]:
@@ -39,7 +47,11 @@ class OrganizationRepository(BaseRepository):
 
         return await (
             Membership
-            .filter(user_id=user_id, status=MembershipStatus.ACTIVE)
+            .filter(
+                user_id=user_id,
+                status=MembershipStatus.ACTIVE,
+                organization__is_active=True,
+            )
             .select_related("organization")
             .all()
             .order_by("created_at")
@@ -58,6 +70,7 @@ class OrganizationRepository(BaseRepository):
             user_id=user_id,
             organization_id=organization_id,
             status=MembershipStatus.ACTIVE,
+            organization__is_active=True,
         ).exists()
 
     async def create_organization(self, *, slug: str, name: str, logo_url: str | None = None) -> Organization:
