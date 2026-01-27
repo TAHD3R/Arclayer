@@ -92,6 +92,40 @@ def _build_response(
 def init_exception_handlers(app: FastAPI, settings: Settings) -> None:
     debug = settings.debug
 
+    async def _handle_internal_error(request: Request, exc: Exception) -> ORJSONResponse:
+        """
+        A single implementation for "unexpected" errors.
+
+        Why this exists:
+        - Depending on Starlette/FastAPI versions, a generic `@app.exception_handler(Exception)`
+          may not always be selected for subclasses (e.g. RuntimeError).
+        - A status-code handler for 500 is used by Starlette's ServerErrorMiddleware and provides
+          a reliable fallback to return our JSON error envelope.
+        """
+
+        if isinstance(exc, asyncio.CancelledError):
+            raise
+
+        request.state.error_code = "INTERNAL_ERROR"
+        request.state.error_message = "服务器内部错误"
+        logger.exception(
+            "UnhandledError",
+            exc_info=_exc_info_tuple(exc),
+            method=request.method,
+            path=request.url.path,
+        )
+        # Never leak internal exception messages to clients (even in debug).
+        # Developers still get trace_id + details via response meta when debug is enabled.
+        message = "服务器内部错误"
+        return _build_response(
+            request=request,
+            status_code=500,
+            message=message,
+            error="INTERNAL_ERROR",
+            details=str(exc) if debug else None,
+            debug=debug,
+        )
+
     @app.exception_handler(APIError)
     async def api_error_handler(request: Request, exc: APIError) -> ORJSONResponse:
         request.state.error_code = exc.error
@@ -200,26 +234,11 @@ def init_exception_handlers(app: FastAPI, settings: Settings) -> None:
             include_details=True,
         )
 
+    @app.exception_handler(500)
+    async def internal_server_error_handler(request: Request, exc: Exception) -> ORJSONResponse:
+        # ServerErrorMiddleware fallback: guarantees our standard JSON envelope for 500s.
+        return await _handle_internal_error(request, exc)
+
     @app.exception_handler(Exception)
     async def unhandled_handler(request: Request, exc: Exception) -> ORJSONResponse:
-        if isinstance(exc, asyncio.CancelledError):
-            raise
-        request.state.error_code = "INTERNAL_ERROR"
-        request.state.error_message = "服务器内部错误"
-        logger.exception(
-            "UnhandledError",
-            exc_info=_exc_info_tuple(exc),
-            method=request.method,
-            path=request.url.path,
-        )
-        # Never leak internal exception messages to clients (even in debug).
-        # Developers still get trace_id + details via response meta when debug is enabled.
-        message = "服务器内部错误"
-        return _build_response(
-            request=request,
-            status_code=500,
-            message=message,
-            error="INTERNAL_ERROR",
-            details=str(exc) if debug else None,
-            debug=debug,
-        )
+        return await _handle_internal_error(request, exc)

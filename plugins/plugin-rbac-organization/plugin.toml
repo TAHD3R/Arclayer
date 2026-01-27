@@ -1,12 +1,12 @@
 models = ["rbac_org.models"]
 
 dependencies = [
-  { id = "com.celestial.rbac.core", version = ">=1.0.0", optional = false },
-  { id = "com.celestial.org", version = ">=1.0.0", optional = false },
+  { id = "plugin-rbac-core", version = ">=1.0.0", optional = false },
+  { id = "plugin-organization-core", version = ">=1.0.0", optional = false },
 ]
 
 [plugin]
-id = "com.celestial.rbac.org"
+id = "plugin-rbac-organization"
 slug = "rbac-org"
 name = "RBAC 组织桥接插件"
 description = "将组织结构（部门/岗位）映射为 RBAC 角色，用于计算用户有效权限。"

@@ -214,7 +214,7 @@ class OrgToolsService(BaseService):
             # Repair primary departments after migration.
             await self.repair_primary_departments(actor_user_id=actor_user_id)
 
-        # Optional: migrate department role bindings (requires com.celestial.rbac.org).
+        # Optional: migrate department role bindings (requires plugin-rbac-organization).
         migrated_roles = 0
         if payload.migrate_roles:
             try:

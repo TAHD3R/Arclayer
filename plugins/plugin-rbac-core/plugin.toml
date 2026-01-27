@@ -1,7 +1,7 @@
 models = ["rbac.models"]
 
 [plugin]
-id = "com.celestial.rbac.core"
+id = "plugin-rbac-core"
 slug = "rbac-core"
 name = "RBAC Core 插件"
 description = "提供基于角色的权限控制与鉴权引擎"

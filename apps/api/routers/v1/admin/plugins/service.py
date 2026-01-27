@@ -2,13 +2,13 @@ from __future__ import annotations
 
 import hashlib
 import shutil
-import tomllib
 import zipfile
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
+import tomllib
 from fastapi import UploadFile
 
 from apps.api.common.services import BaseService
@@ -345,20 +345,6 @@ class PluginService(BaseService):
             pass
         return record, requires_restart
 
-
-def _flatten_patch_paths(patch: dict[str, Any], *, _prefix: str = "") -> list[str]:
-    # Only emit keys/paths, never values (could contain secrets).
-    out: list[str] = []
-    for key, value in (patch or {}).items():
-        if not key:
-            continue
-        path = f"{_prefix}.{key}" if _prefix else str(key)
-        if isinstance(value, dict):
-            out.extend(_flatten_patch_paths(value, _prefix=path))
-        else:
-            out.append(path)
-    return out
-
     def to_detail(self, record: PluginRecord) -> PluginDetail:
         detail = PluginDetail.model_validate(record)
         manifest = self._load_manifest(record)
@@ -656,3 +642,17 @@ def _flatten_patch_paths(patch: dict[str, Any], *, _prefix: str = "") -> list[st
         if self.manager is None:
             return
         await self.manager.request_restart(plugin_id, reason=reason)
+
+
+def _flatten_patch_paths(patch: dict[str, Any], *, _prefix: str = "") -> list[str]:
+    # Only emit keys/paths, never values (could contain secrets).
+    out: list[str] = []
+    for key, value in (patch or {}).items():
+        if not key:
+            continue
+        path = f"{_prefix}.{key}" if _prefix else str(key)
+        if isinstance(value, dict):
+            out.extend(_flatten_patch_paths(value, _prefix=path))
+        else:
+            out.append(path)
+    return out

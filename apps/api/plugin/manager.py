@@ -32,7 +32,7 @@ from apps.api.plugin.types import BasePlugin, PluginDescriptor, PluginStatus
 logger = get_logger(__name__)
 
 MIGRATION_LOCK_KEY = "plugin:migrate:lock"
-PROTECTED_PLUGINS = frozenset({"com.celestial.rbac.core"})
+PROTECTED_PLUGINS = frozenset({"plugin-rbac-core"})
 
 
 class PluginManager:

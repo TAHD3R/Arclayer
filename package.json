@@ -13,7 +13,8 @@
     "lint:py": "uv run --project apps/api ruff check .",
     "format:py": "uv run --project apps/api ruff format .",
     "typecheck:py": "uv run --project apps/api pyright",
-    "test:py": "uv run --project apps/api pytest"
+    "test:py": "uv run --project apps/api pytest",
+    "test:py-integration": "RUN_INTEGRATION_TESTS=1 uv run --project apps/api pytest -m integration"
   },
   "devDependencies": {
     "@types/node": "^24.10.1",

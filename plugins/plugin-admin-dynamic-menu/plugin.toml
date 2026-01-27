@@ -1,7 +1,7 @@
 models = ["admin_menu.models"]
 
 [plugin]
-id = "com.celestial.admin.menu"
+id = "plugin-admin-dynamic-menu"
 slug = "admin-menu"
 name = "菜单管理插件"
 description = "提供后台可配置菜单/路由/排序与权限过滤，用于前端动态路由。"
@@ -14,7 +14,7 @@ entrypoint = "admin_menu.plugin:AdminMenuPlugin"
 license = "MIT"
 
 [[dependencies]]
-id = "com.celestial.rbac.core"
+id = "plugin-rbac-core"
 version = ">=1.0.0"
 optional = false
 

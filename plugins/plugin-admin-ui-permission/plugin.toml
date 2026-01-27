@@ -1,7 +1,7 @@
-dependencies = [{ id = "com.celestial.rbac.core", version = ">=1.0.0", optional = false }]
+dependencies = [{ id = "plugin-rbac-core", version = ">=1.0.0", optional = false }]
 
 [plugin]
-id = "com.celestial.admin.ui.auth"
+id = "plugin-admin-ui-permission"
 slug = "admin-ui-auth"
 name = "Admin UI Auth 插件"
 description = "聚合插件 UI 资源定义并基于 RBAC 权限生成后台菜单与按钮状态。"

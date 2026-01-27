@@ -1,9 +1,9 @@
 models = ["org.models"]
 
-dependencies = [{ id = "com.celestial.rbac.core", version = ">=1.0.0", optional = false }]
+dependencies = [{ id = "plugin-rbac-core", version = ">=1.0.0", optional = false }]
 
 [plugin]
-id = "com.celestial.org"
+id = "plugin-organization-core"
 slug = "org"
 name = "组织管理插件"
 description = "提供部门、岗位与用户组织关系管理"
