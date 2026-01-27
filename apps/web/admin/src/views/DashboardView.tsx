@@ -1,11 +1,14 @@
 import { Card, Typography } from "antd";
+import { useTranslation } from "react-i18next";
 
 import { DefaultPage } from "@/components/app/defaultPage";
 
 export function DashboardView() {
+  const { t } = useTranslation();
+
   return (
     <DefaultPage
-      title="Dashboard"
+      title={t("common:NAV_DASHBOARD")}
       description="This is the starting point for the Celestial admin console."
     >
       <Card>

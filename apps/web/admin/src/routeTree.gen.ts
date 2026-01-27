@@ -12,9 +12,20 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as TestIndexRouteImport } from './routes/test/index'
-import { Route as TestLevel2IndexRouteImport } from './routes/test/level-2/index'
-import { Route as TestLevel2Level3IndexRouteImport } from './routes/test/level-2/level-3/index'
+import { Route as AssetsIndexRouteImport } from './routes/assets/index'
+import { Route as SettingsSeoIndexRouteImport } from './routes/settings/seo/index'
+import { Route as SettingsGeneralIndexRouteImport } from './routes/settings/general/index'
+import { Route as PluginsInstalledIndexRouteImport } from './routes/plugins/installed/index'
+import { Route as ContentPagesIndexRouteImport } from './routes/content/pages/index'
+import { Route as ContentLibraryIndexRouteImport } from './routes/content/library/index'
+import { Route as AppearanceThemesIndexRouteImport } from './routes/appearance/themes/index'
+import { Route as AppearanceStylesIndexRouteImport } from './routes/appearance/styles/index'
+import { Route as AppearanceNavigationIndexRouteImport } from './routes/appearance/navigation/index'
+import { Route as SettingsTeamRolesIndexRouteImport } from './routes/settings/team/roles/index'
+import { Route as SettingsTeamMembersIndexRouteImport } from './routes/settings/team/members/index'
+import { Route as SettingsMaintenanceStatusIndexRouteImport } from './routes/settings/maintenance/status/index'
+import { Route as SettingsMaintenanceSnapshotsIndexRouteImport } from './routes/settings/maintenance/snapshots/index'
+import { Route as SettingsMaintenanceAuditLogIndexRouteImport } from './routes/settings/maintenance/audit-log/index'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -31,46 +42,139 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const TestIndexRoute = TestIndexRouteImport.update({
-  id: '/test/',
-  path: '/test/',
+const AssetsIndexRoute = AssetsIndexRouteImport.update({
+  id: '/assets/',
+  path: '/assets/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const TestLevel2IndexRoute = TestLevel2IndexRouteImport.update({
-  id: '/test/level-2/',
-  path: '/test/level-2/',
+const SettingsSeoIndexRoute = SettingsSeoIndexRouteImport.update({
+  id: '/settings/seo/',
+  path: '/settings/seo/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const TestLevel2Level3IndexRoute = TestLevel2Level3IndexRouteImport.update({
-  id: '/test/level-2/level-3/',
-  path: '/test/level-2/level-3/',
+const SettingsGeneralIndexRoute = SettingsGeneralIndexRouteImport.update({
+  id: '/settings/general/',
+  path: '/settings/general/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PluginsInstalledIndexRoute = PluginsInstalledIndexRouteImport.update({
+  id: '/plugins/installed/',
+  path: '/plugins/installed/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContentPagesIndexRoute = ContentPagesIndexRouteImport.update({
+  id: '/content/pages/',
+  path: '/content/pages/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContentLibraryIndexRoute = ContentLibraryIndexRouteImport.update({
+  id: '/content/library/',
+  path: '/content/library/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppearanceThemesIndexRoute = AppearanceThemesIndexRouteImport.update({
+  id: '/appearance/themes/',
+  path: '/appearance/themes/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppearanceStylesIndexRoute = AppearanceStylesIndexRouteImport.update({
+  id: '/appearance/styles/',
+  path: '/appearance/styles/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppearanceNavigationIndexRoute =
+  AppearanceNavigationIndexRouteImport.update({
+    id: '/appearance/navigation/',
+    path: '/appearance/navigation/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const SettingsTeamRolesIndexRoute = SettingsTeamRolesIndexRouteImport.update({
+  id: '/settings/team/roles/',
+  path: '/settings/team/roles/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsTeamMembersIndexRoute =
+  SettingsTeamMembersIndexRouteImport.update({
+    id: '/settings/team/members/',
+    path: '/settings/team/members/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const SettingsMaintenanceStatusIndexRoute =
+  SettingsMaintenanceStatusIndexRouteImport.update({
+    id: '/settings/maintenance/status/',
+    path: '/settings/maintenance/status/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const SettingsMaintenanceSnapshotsIndexRoute =
+  SettingsMaintenanceSnapshotsIndexRouteImport.update({
+    id: '/settings/maintenance/snapshots/',
+    path: '/settings/maintenance/snapshots/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const SettingsMaintenanceAuditLogIndexRoute =
+  SettingsMaintenanceAuditLogIndexRouteImport.update({
+    id: '/settings/maintenance/audit-log/',
+    path: '/settings/maintenance/audit-log/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
-  '/test/': typeof TestIndexRoute
-  '/test/level-2/': typeof TestLevel2IndexRoute
-  '/test/level-2/level-3/': typeof TestLevel2Level3IndexRoute
+  '/assets/': typeof AssetsIndexRoute
+  '/appearance/navigation/': typeof AppearanceNavigationIndexRoute
+  '/appearance/styles/': typeof AppearanceStylesIndexRoute
+  '/appearance/themes/': typeof AppearanceThemesIndexRoute
+  '/content/library/': typeof ContentLibraryIndexRoute
+  '/content/pages/': typeof ContentPagesIndexRoute
+  '/plugins/installed/': typeof PluginsInstalledIndexRoute
+  '/settings/general/': typeof SettingsGeneralIndexRoute
+  '/settings/seo/': typeof SettingsSeoIndexRoute
+  '/settings/maintenance/audit-log/': typeof SettingsMaintenanceAuditLogIndexRoute
+  '/settings/maintenance/snapshots/': typeof SettingsMaintenanceSnapshotsIndexRoute
+  '/settings/maintenance/status/': typeof SettingsMaintenanceStatusIndexRoute
+  '/settings/team/members/': typeof SettingsTeamMembersIndexRoute
+  '/settings/team/roles/': typeof SettingsTeamRolesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
-  '/test': typeof TestIndexRoute
-  '/test/level-2': typeof TestLevel2IndexRoute
-  '/test/level-2/level-3': typeof TestLevel2Level3IndexRoute
+  '/assets': typeof AssetsIndexRoute
+  '/appearance/navigation': typeof AppearanceNavigationIndexRoute
+  '/appearance/styles': typeof AppearanceStylesIndexRoute
+  '/appearance/themes': typeof AppearanceThemesIndexRoute
+  '/content/library': typeof ContentLibraryIndexRoute
+  '/content/pages': typeof ContentPagesIndexRoute
+  '/plugins/installed': typeof PluginsInstalledIndexRoute
+  '/settings/general': typeof SettingsGeneralIndexRoute
+  '/settings/seo': typeof SettingsSeoIndexRoute
+  '/settings/maintenance/audit-log': typeof SettingsMaintenanceAuditLogIndexRoute
+  '/settings/maintenance/snapshots': typeof SettingsMaintenanceSnapshotsIndexRoute
+  '/settings/maintenance/status': typeof SettingsMaintenanceStatusIndexRoute
+  '/settings/team/members': typeof SettingsTeamMembersIndexRoute
+  '/settings/team/roles': typeof SettingsTeamRolesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
-  '/test/': typeof TestIndexRoute
-  '/test/level-2/': typeof TestLevel2IndexRoute
-  '/test/level-2/level-3/': typeof TestLevel2Level3IndexRoute
+  '/assets/': typeof AssetsIndexRoute
+  '/appearance/navigation/': typeof AppearanceNavigationIndexRoute
+  '/appearance/styles/': typeof AppearanceStylesIndexRoute
+  '/appearance/themes/': typeof AppearanceThemesIndexRoute
+  '/content/library/': typeof ContentLibraryIndexRoute
+  '/content/pages/': typeof ContentPagesIndexRoute
+  '/plugins/installed/': typeof PluginsInstalledIndexRoute
+  '/settings/general/': typeof SettingsGeneralIndexRoute
+  '/settings/seo/': typeof SettingsSeoIndexRoute
+  '/settings/maintenance/audit-log/': typeof SettingsMaintenanceAuditLogIndexRoute
+  '/settings/maintenance/snapshots/': typeof SettingsMaintenanceSnapshotsIndexRoute
+  '/settings/maintenance/status/': typeof SettingsMaintenanceStatusIndexRoute
+  '/settings/team/members/': typeof SettingsTeamMembersIndexRoute
+  '/settings/team/roles/': typeof SettingsTeamRolesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -78,34 +182,78 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/reset-password'
-    | '/test/'
-    | '/test/level-2/'
-    | '/test/level-2/level-3/'
+    | '/assets/'
+    | '/appearance/navigation/'
+    | '/appearance/styles/'
+    | '/appearance/themes/'
+    | '/content/library/'
+    | '/content/pages/'
+    | '/plugins/installed/'
+    | '/settings/general/'
+    | '/settings/seo/'
+    | '/settings/maintenance/audit-log/'
+    | '/settings/maintenance/snapshots/'
+    | '/settings/maintenance/status/'
+    | '/settings/team/members/'
+    | '/settings/team/roles/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/login'
     | '/reset-password'
-    | '/test'
-    | '/test/level-2'
-    | '/test/level-2/level-3'
+    | '/assets'
+    | '/appearance/navigation'
+    | '/appearance/styles'
+    | '/appearance/themes'
+    | '/content/library'
+    | '/content/pages'
+    | '/plugins/installed'
+    | '/settings/general'
+    | '/settings/seo'
+    | '/settings/maintenance/audit-log'
+    | '/settings/maintenance/snapshots'
+    | '/settings/maintenance/status'
+    | '/settings/team/members'
+    | '/settings/team/roles'
   id:
     | '__root__'
     | '/'
     | '/login'
     | '/reset-password'
-    | '/test/'
-    | '/test/level-2/'
-    | '/test/level-2/level-3/'
+    | '/assets/'
+    | '/appearance/navigation/'
+    | '/appearance/styles/'
+    | '/appearance/themes/'
+    | '/content/library/'
+    | '/content/pages/'
+    | '/plugins/installed/'
+    | '/settings/general/'
+    | '/settings/seo/'
+    | '/settings/maintenance/audit-log/'
+    | '/settings/maintenance/snapshots/'
+    | '/settings/maintenance/status/'
+    | '/settings/team/members/'
+    | '/settings/team/roles/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LoginRoute: typeof LoginRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
-  TestIndexRoute: typeof TestIndexRoute
-  TestLevel2IndexRoute: typeof TestLevel2IndexRoute
-  TestLevel2Level3IndexRoute: typeof TestLevel2Level3IndexRoute
+  AssetsIndexRoute: typeof AssetsIndexRoute
+  AppearanceNavigationIndexRoute: typeof AppearanceNavigationIndexRoute
+  AppearanceStylesIndexRoute: typeof AppearanceStylesIndexRoute
+  AppearanceThemesIndexRoute: typeof AppearanceThemesIndexRoute
+  ContentLibraryIndexRoute: typeof ContentLibraryIndexRoute
+  ContentPagesIndexRoute: typeof ContentPagesIndexRoute
+  PluginsInstalledIndexRoute: typeof PluginsInstalledIndexRoute
+  SettingsGeneralIndexRoute: typeof SettingsGeneralIndexRoute
+  SettingsSeoIndexRoute: typeof SettingsSeoIndexRoute
+  SettingsMaintenanceAuditLogIndexRoute: typeof SettingsMaintenanceAuditLogIndexRoute
+  SettingsMaintenanceSnapshotsIndexRoute: typeof SettingsMaintenanceSnapshotsIndexRoute
+  SettingsMaintenanceStatusIndexRoute: typeof SettingsMaintenanceStatusIndexRoute
+  SettingsTeamMembersIndexRoute: typeof SettingsTeamMembersIndexRoute
+  SettingsTeamRolesIndexRoute: typeof SettingsTeamRolesIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -131,25 +279,102 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/test/': {
-      id: '/test/'
-      path: '/test'
-      fullPath: '/test/'
-      preLoaderRoute: typeof TestIndexRouteImport
+    '/assets/': {
+      id: '/assets/'
+      path: '/assets'
+      fullPath: '/assets/'
+      preLoaderRoute: typeof AssetsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/test/level-2/': {
-      id: '/test/level-2/'
-      path: '/test/level-2'
-      fullPath: '/test/level-2/'
-      preLoaderRoute: typeof TestLevel2IndexRouteImport
+    '/settings/seo/': {
+      id: '/settings/seo/'
+      path: '/settings/seo'
+      fullPath: '/settings/seo/'
+      preLoaderRoute: typeof SettingsSeoIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/test/level-2/level-3/': {
-      id: '/test/level-2/level-3/'
-      path: '/test/level-2/level-3'
-      fullPath: '/test/level-2/level-3/'
-      preLoaderRoute: typeof TestLevel2Level3IndexRouteImport
+    '/settings/general/': {
+      id: '/settings/general/'
+      path: '/settings/general'
+      fullPath: '/settings/general/'
+      preLoaderRoute: typeof SettingsGeneralIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/plugins/installed/': {
+      id: '/plugins/installed/'
+      path: '/plugins/installed'
+      fullPath: '/plugins/installed/'
+      preLoaderRoute: typeof PluginsInstalledIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/content/pages/': {
+      id: '/content/pages/'
+      path: '/content/pages'
+      fullPath: '/content/pages/'
+      preLoaderRoute: typeof ContentPagesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/content/library/': {
+      id: '/content/library/'
+      path: '/content/library'
+      fullPath: '/content/library/'
+      preLoaderRoute: typeof ContentLibraryIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/appearance/themes/': {
+      id: '/appearance/themes/'
+      path: '/appearance/themes'
+      fullPath: '/appearance/themes/'
+      preLoaderRoute: typeof AppearanceThemesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/appearance/styles/': {
+      id: '/appearance/styles/'
+      path: '/appearance/styles'
+      fullPath: '/appearance/styles/'
+      preLoaderRoute: typeof AppearanceStylesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/appearance/navigation/': {
+      id: '/appearance/navigation/'
+      path: '/appearance/navigation'
+      fullPath: '/appearance/navigation/'
+      preLoaderRoute: typeof AppearanceNavigationIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings/team/roles/': {
+      id: '/settings/team/roles/'
+      path: '/settings/team/roles'
+      fullPath: '/settings/team/roles/'
+      preLoaderRoute: typeof SettingsTeamRolesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings/team/members/': {
+      id: '/settings/team/members/'
+      path: '/settings/team/members'
+      fullPath: '/settings/team/members/'
+      preLoaderRoute: typeof SettingsTeamMembersIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings/maintenance/status/': {
+      id: '/settings/maintenance/status/'
+      path: '/settings/maintenance/status'
+      fullPath: '/settings/maintenance/status/'
+      preLoaderRoute: typeof SettingsMaintenanceStatusIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings/maintenance/snapshots/': {
+      id: '/settings/maintenance/snapshots/'
+      path: '/settings/maintenance/snapshots'
+      fullPath: '/settings/maintenance/snapshots/'
+      preLoaderRoute: typeof SettingsMaintenanceSnapshotsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings/maintenance/audit-log/': {
+      id: '/settings/maintenance/audit-log/'
+      path: '/settings/maintenance/audit-log'
+      fullPath: '/settings/maintenance/audit-log/'
+      preLoaderRoute: typeof SettingsMaintenanceAuditLogIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -159,9 +384,21 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LoginRoute: LoginRoute,
   ResetPasswordRoute: ResetPasswordRoute,
-  TestIndexRoute: TestIndexRoute,
-  TestLevel2IndexRoute: TestLevel2IndexRoute,
-  TestLevel2Level3IndexRoute: TestLevel2Level3IndexRoute,
+  AssetsIndexRoute: AssetsIndexRoute,
+  AppearanceNavigationIndexRoute: AppearanceNavigationIndexRoute,
+  AppearanceStylesIndexRoute: AppearanceStylesIndexRoute,
+  AppearanceThemesIndexRoute: AppearanceThemesIndexRoute,
+  ContentLibraryIndexRoute: ContentLibraryIndexRoute,
+  ContentPagesIndexRoute: ContentPagesIndexRoute,
+  PluginsInstalledIndexRoute: PluginsInstalledIndexRoute,
+  SettingsGeneralIndexRoute: SettingsGeneralIndexRoute,
+  SettingsSeoIndexRoute: SettingsSeoIndexRoute,
+  SettingsMaintenanceAuditLogIndexRoute: SettingsMaintenanceAuditLogIndexRoute,
+  SettingsMaintenanceSnapshotsIndexRoute:
+    SettingsMaintenanceSnapshotsIndexRoute,
+  SettingsMaintenanceStatusIndexRoute: SettingsMaintenanceStatusIndexRoute,
+  SettingsTeamMembersIndexRoute: SettingsTeamMembersIndexRoute,
+  SettingsTeamRolesIndexRoute: SettingsTeamRolesIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
