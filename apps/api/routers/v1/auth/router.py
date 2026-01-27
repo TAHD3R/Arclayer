@@ -1,14 +1,20 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
+
 from fastapi import APIRouter, BackgroundTasks, Depends, Request
 
 from apps.api.config import Settings, get_settings
 from apps.api.core.authz import get_authz_snapshot_provider, require_permission_strict
-from apps.api.core.exceptions import ServiceUnavailable
+from apps.api.core.exceptions import BadRequest, Conflict, Forbidden, NotFound, ServiceUnavailable
 from apps.api.core.i18n import get_current_locale, t
+from apps.api.core.organization.invitations import InvitationRepository, hash_invite_token
+from apps.api.core.organization.repository import OrganizationRepository
 from apps.api.http.response import Response, ResponseModel
 from apps.api.infra.cache.valkey import get_valkey
 from apps.api.infra.limiter.limiter import rate_limit
+from apps.api.models.organization import Membership, MembershipStatus
+from apps.api.models.rbac import MembershipRole, Role
 from apps.api.models.user import User
 from apps.api.routers.v1.auth.constants import (
     FORGOT_PASSWORD_RATE_LIMIT,
@@ -19,11 +25,13 @@ from apps.api.routers.v1.auth.constants import (
 )
 from apps.api.routers.v1.auth.deps import get_current_user
 from apps.api.routers.v1.auth.schema import (
+    AcceptInvitationRequest,
     AuthzSnapshot,
     ChangePasswordRequest,
     ForgotPasswordRequest,
     LoginRequest,
     LogoutRequest,
+    MyOrganizationOut,
     RefreshRequest,
     RegisterRequest,
     ResetPasswordRequest,
@@ -68,8 +76,13 @@ async def login(
 async def register(
     payload: RegisterRequest,
     background_tasks: BackgroundTasks,
+    settings: Settings = Depends(get_settings),
     service: AuthService = Depends(_get_auth_service),
 ) -> ResponseModel[UserProfile]:
+    if not settings.auth.allow_public_register:
+        # Hide the endpoint by default to enforce invitation-only onboarding.
+        raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
+
     user = await service.register(
         username=payload.username,
         password=payload.password,
@@ -192,6 +205,35 @@ async def me(
     return Response.success(data=profile)
 
 
+@router.get("/me/orgs", response_model=ResponseModel[list[MyOrganizationOut]])
+async def me_orgs(
+    user: User = Depends(get_current_user),
+) -> ResponseModel[list[MyOrganizationOut]]:
+    """
+    List organizations the current user belongs to.
+
+    This endpoint is primarily used by the admin frontend to implement org selection (strategy B).
+    """
+
+    repo = OrganizationRepository()
+    memberships = await repo.list_user_memberships_with_org(user_id=user.id)
+    items: list[MyOrganizationOut] = []
+    for membership in memberships:
+        org = membership.organization
+        items.append(
+            MyOrganizationOut(
+                organization_id=org.id,
+                slug=org.slug,
+                name=org.name,
+                logo_url=org.logo_url,
+                is_active=org.is_active,
+                membership_id=membership.id,
+                membership_status=membership.status,
+            )
+        )
+    return Response.success(data=items)
+
+
 @router.get(
     "/me/authz",
     response_model=ResponseModel[AuthzSnapshot],
@@ -208,3 +250,81 @@ async def me_authz(
         )
     payload = await provider.get_snapshot(user.id)
     return Response.success(data=AuthzSnapshot.model_validate(payload))
+
+
+@router.post(
+    "/invitations/accept",
+    response_model=ResponseModel[TokenPair],
+    dependencies=[rate_limit(*REGISTER_RATE_LIMIT)],
+)
+async def accept_invitation(
+    payload: AcceptInvitationRequest,
+    service: AuthService = Depends(_get_auth_service),
+) -> ResponseModel[TokenPair]:
+    # If we can't issue refresh tokens, the UX becomes confusing (account created but can't login).
+    service._require_refresh_store()
+
+    token = payload.token.strip()
+    if not token:
+        raise BadRequest(
+            message=t("auth", "INVITE_TOKEN_INVALID", default="邀请 Token 无效"), error="INVITE_TOKEN_INVALID"
+        )
+
+    inv_repo = InvitationRepository()
+    inv = await inv_repo.get_by_token_hash(token_hash=hash_invite_token(token))
+    if inv is None:
+        raise NotFound(message=t("auth", "INVITE_NOT_FOUND", default="邀请不存在"), error="INVITE_NOT_FOUND")
+
+    now = datetime.now(UTC)
+    if inv.revoked_at is not None:
+        raise Forbidden(message=t("auth", "INVITE_REVOKED", default="邀请已被撤销"), error="INVITE_REVOKED")
+    if inv.accepted_at is not None:
+        raise Conflict(
+            message=t("auth", "INVITE_ALREADY_ACCEPTED", default="邀请已被使用"), error="INVITE_ALREADY_ACCEPTED"
+        )
+    if inv.expires_at is not None and inv.expires_at <= now:
+        raise Forbidden(message=t("auth", "INVITE_EXPIRED", default="邀请已过期"), error="INVITE_EXPIRED")
+
+    org = getattr(inv, "organization", None)
+    if org is None or not getattr(org, "is_active", True):
+        raise Forbidden(message=t("auth", "ORG_INACTIVE", default="组织不可用"), error="ORG_INACTIVE")
+
+    # Create user with the invited email address (enforced), no public registration involved.
+    user = await service.register(
+        username=payload.username,
+        password=payload.password,
+        email=inv.email,
+        display_name=payload.display_name,
+    )
+
+    membership, _created = await Membership.get_or_create(
+        user_id=user.id,
+        organization_id=org.id,
+        defaults={"status": MembershipStatus.ACTIVE, "invited_by_user_id": inv.invited_by_user_id},
+    )
+    if membership.status != MembershipStatus.ACTIVE:
+        membership.status = MembershipStatus.ACTIVE
+        await membership.save(update_fields=["status"])
+
+    # Role binding strategy:
+    # - If invitation provides a role_code, bind it.
+    # - Otherwise, bind all default roles (is_default=True).
+    roles: list[Role] = []
+    if inv.role_code:
+        role = await Role.get_or_none(code=inv.role_code)
+        if role is not None:
+            roles = [role]
+    else:
+        roles = await Role.filter(is_default=True).all()
+
+    for role in roles:
+        await MembershipRole.get_or_create(membership_id=membership.id, role_id=role.id)
+
+    updated = await inv_repo.mark_accepted(invitation_id=inv.id, accepted_by_user_id=user.id, now=now)
+    if updated <= 0:
+        raise Conflict(
+            message=t("auth", "INVITE_ALREADY_ACCEPTED", default="邀请已被使用"), error="INVITE_ALREADY_ACCEPTED"
+        )
+
+    tokens = await service.login(identifier=payload.username, password=payload.password)
+    return Response.success(message=t("auth", "INVITE_ACCEPTED", default="加入组织成功"), data=tokens)

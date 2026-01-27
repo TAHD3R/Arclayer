@@ -4,11 +4,10 @@ import asyncio
 from typing import Any
 
 from asgi_correlation_id import correlation_id
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import ORJSONResponse
 from pydantic import ValidationError
-from starlette.exceptions import HTTPException as StarletteHTTPException
 from tortoise.exceptions import OperationalError
 
 from apps.api.config import Settings
@@ -126,30 +125,12 @@ def init_exception_handlers(app: FastAPI, settings: Settings) -> None:
             debug=debug,
         )
 
-    @app.exception_handler(APIError)
-    async def api_error_handler(request: Request, exc: APIError) -> ORJSONResponse:
-        request.state.error_code = exc.error
-        request.state.error_message = exc.message
-        log_fields = {
-            "method": request.method,
-            "path": request.url.path,
-            "status": exc.status_code,
-            "error": exc.error,
-        }
-        if exc.status_code >= 500:
-            logger.exception("APIError", exc_info=_exc_info_tuple(exc), **log_fields)
-        return _build_response(
-            request=request,
-            status_code=exc.status_code,
-            message=exc.message,
-            error=exc.error,
-            details=exc.details,
-            debug=debug,
-            headers=exc.headers,
-        )
+    @app.exception_handler(Exception)
+    async def unhandled_handler(request: Request, exc: Exception) -> ORJSONResponse:
+        return await _handle_internal_error(request, exc)
 
-    @app.exception_handler(StarletteHTTPException)
-    async def http_exception_handler(request: Request, exc: StarletteHTTPException) -> ORJSONResponse:
+    @app.exception_handler(HTTPException)
+    async def http_exception_handler(request: Request, exc: HTTPException) -> ORJSONResponse:
         log_fields = {
             "method": request.method,
             "path": request.url.path,
@@ -184,23 +165,6 @@ def init_exception_handlers(app: FastAPI, settings: Settings) -> None:
             headers=dict(exc.headers) if exc.headers is not None else None,
         )
 
-    @app.exception_handler(RequestValidationError)
-    async def request_validation_handler(
-        request: Request,
-        exc: RequestValidationError,
-    ) -> ORJSONResponse:
-        request.state.error_code = "VALIDATION_ERROR"
-        request.state.error_message = "参数校验失败"
-        return _build_response(
-            request=request,
-            status_code=422,
-            message="参数校验失败",
-            error="VALIDATION_ERROR",
-            details=exc.errors(),
-            debug=debug,
-            include_details=True,
-        )
-
     @app.exception_handler(OperationalError)
     async def tortoise_operational_handler(request: Request, exc: OperationalError) -> ORJSONResponse:
         request.state.error_code = "DB_OPERATIONAL_ERROR"
@@ -220,6 +184,45 @@ def init_exception_handlers(app: FastAPI, settings: Settings) -> None:
             debug=debug,
         )
 
+    @app.exception_handler(APIError)
+    async def api_error_handler(request: Request, exc: APIError) -> ORJSONResponse:
+        request.state.error_code = exc.error
+        request.state.error_message = exc.message
+        log_fields = {
+            "method": request.method,
+            "path": request.url.path,
+            "status": exc.status_code,
+            "error": exc.error,
+        }
+        if exc.status_code >= 500:
+            logger.exception("APIError", exc_info=_exc_info_tuple(exc), **log_fields)
+        return _build_response(
+            request=request,
+            status_code=exc.status_code,
+            message=exc.message,
+            error=exc.error,
+            details=exc.details,
+            debug=debug,
+            headers=exc.headers,
+        )
+
+    @app.exception_handler(RequestValidationError)
+    async def request_validation_handler(
+        request: Request,
+        exc: RequestValidationError,
+    ) -> ORJSONResponse:
+        request.state.error_code = "VALIDATION_ERROR"
+        request.state.error_message = "参数校验失败"
+        return _build_response(
+            request=request,
+            status_code=422,
+            message="参数校验失败",
+            error="VALIDATION_ERROR",
+            details=exc.errors(),
+            debug=debug,
+            include_details=True,
+        )
+
     @app.exception_handler(ValidationError)
     async def pydantic_validation_handler(request: Request, exc: ValidationError) -> ORJSONResponse:
         request.state.error_code = "VALIDATION_ERROR"
@@ -233,12 +236,3 @@ def init_exception_handlers(app: FastAPI, settings: Settings) -> None:
             debug=debug,
             include_details=True,
         )
-
-    @app.exception_handler(500)
-    async def internal_server_error_handler(request: Request, exc: Exception) -> ORJSONResponse:
-        # ServerErrorMiddleware fallback: guarantees our standard JSON envelope for 500s.
-        return await _handle_internal_error(request, exc)
-
-    @app.exception_handler(Exception)
-    async def unhandled_handler(request: Request, exc: Exception) -> ORJSONResponse:
-        return await _handle_internal_error(request, exc)

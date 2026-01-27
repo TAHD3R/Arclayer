@@ -1,5 +1,35 @@
 项目开发规范（Spec）
 
+当前项目采用混合技术栈 Monorepo 架构。在执行任何任务前，请优先参考以下指令集。
+
+**管理后台 (Frontend - Node.js/pnpm)**
+
+管理后台位于 apps/web/admin，使用 pnpm 进行包管理和任务调度。
+
+| 任务             | 指令                   | 描述                     |
+| ---------------- | ---------------------- | ------------------------ |
+| **启动开发环境** | `pnpm dev:admin`       | 启动前端本地开发服务器   |
+| **静态构建**     | `pnpm build:admin`     | 生产环境编译             |
+| **代码检查**     | `pnpm lint:admin`      | 运行 ESLint/Linter       |
+| **代码格式化**   | `pnpm fmt:admin`       | 自动格式化前端代码       |
+| **类型检查**     | `pnpm typecheck:admin` | 运行 TypeScript 类型检查 |
+| **运行测试**     | `pnpm test:admin`      | 执行前端单元测试         |
+
+**后端接口 (Backend - Python/uv/FastAPI)**
+
+后端位于 `apps/api`，使用 `uv` 作为包管理器和运行环境。
+
+避免调用`apps/api/.venv/bin/python`操作python环境，而是使用`uv run --project apps/api`
+
+| 任务              | 指令                       | 描述                                |
+| ----------------- | -------------------------- | ----------------------------------- |
+| **启动 API 服务** | `pnpm dev:api`             | 使用 uvicorn 启动热重载服务         |
+| **Lint 检查**     | `pnpm lint:py`             | 使用 Ruff 进行代码静态分析          |
+| **自动格式化**    | `pnpm format:py`           | 使用 Ruff 格式化 Python 代码        |
+| **类型检查**      | `pnpm typecheck:py`        | 使用 Pyright 验证类型标注           |
+| **单元测试**      | `pnpm test:py`             | 运行标准 pytest 测试套件            |
+| **集成测试**      | `pnpm test:py-integration` | 运行标注了 `integration` 的集成测试 |
+
 **目录约定**
 
 - `apps/api` 为 FastAPI 服务端目录

@@ -63,6 +63,7 @@ async def test_admin_menu_filtered_for_user(prepared_db_with_repo_plugins_auto_m
     transport = ASGITransport(app=app)
 
     async with app.router.lifespan_context(app):
+        from apps.api.core.organization.repository import OrganizationRepository
         from apps.api.core.rbac.constants import ROLE_ADMIN
         from apps.api.core.rbac.repository import RBACRepository
         from apps.api.core.rbac.service import RBACService
@@ -70,8 +71,11 @@ async def test_admin_menu_filtered_for_user(prepared_db_with_repo_plugins_auto_m
         from apps.api.routers.v1.auth.security import hash_password
 
         user_repo = UserRepository()
+        org_repo = OrganizationRepository()
         rbac_repo = RBACRepository()
         rbac_service = RBACService(settings)
+
+        org = await org_repo.create_organization(slug=f"org_{uuid4().hex}", name="Test Org")
 
         # Admin user (superuser) used to configure menu items.
         admin_user = await user_repo.create_user(
@@ -82,7 +86,8 @@ async def test_admin_menu_filtered_for_user(prepared_db_with_repo_plugins_auto_m
         )
         admin_role = await rbac_repo.get_role_by_code(ROLE_ADMIN)
         assert admin_role is not None
-        await rbac_repo.assign_role(user_id=admin_user.id, role=admin_role)
+        admin_membership = await rbac_repo.ensure_membership(user_id=admin_user.id, organization_id=org.id)
+        await rbac_repo.assign_membership_role(membership_id=admin_membership.id, role=admin_role)
 
         # Limited admin: has admin:access + system:plugins:read only.
         limited_user = await user_repo.create_user(
@@ -107,7 +112,8 @@ async def test_admin_menu_filtered_for_user(prepared_db_with_repo_plugins_auto_m
                 "system:plugins:read",
             ],
         )
-        await rbac_repo.assign_role(user_id=limited_user.id, role=role)
+        limited_membership = await rbac_repo.ensure_membership(user_id=limited_user.id, organization_id=org.id)
+        await rbac_repo.assign_membership_role(membership_id=limited_membership.id, role=role)
 
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             # Configure menu items as admin.

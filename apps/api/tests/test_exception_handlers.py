@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from fastapi import HTTPException
-from fastapi.testclient import TestClient
+from httpx import ASGITransport, AsyncClient
 
 from apps.api.core.exceptions import APIError
 from apps.api.core.registry import create_app
@@ -17,7 +17,7 @@ def _configure_logging_env(monkeypatch, log_dir: Path) -> None:
     monkeypatch.setenv("PLUGIN__ENABLED", "0")
 
 
-def test_api_error_handler(monkeypatch, tmp_path: Path) -> None:
+async def test_api_error_handler(monkeypatch, tmp_path: Path) -> None:
     _configure_logging_env(monkeypatch, tmp_path)
     app = create_app()
 
@@ -25,8 +25,10 @@ def test_api_error_handler(monkeypatch, tmp_path: Path) -> None:
     def boom() -> None:
         raise APIError("请求失败", error="BAD_REQUEST", status_code=400, details={"reason": "bad"})
 
-    client = TestClient(app)
-    response = client.get("/boom")
+    transport = ASGITransport(app=app, raise_app_exceptions=False)
+    async with app.router.lifespan_context(app):
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            response = await client.get("/boom")
 
     assert response.status_code == 400
     payload = response.json()
@@ -35,7 +37,7 @@ def test_api_error_handler(monkeypatch, tmp_path: Path) -> None:
     assert payload["error"] == "BAD_REQUEST"
 
 
-def test_http_exception_handler(monkeypatch, tmp_path: Path) -> None:
+async def test_http_exception_handler(monkeypatch, tmp_path: Path) -> None:
     _configure_logging_env(monkeypatch, tmp_path)
     app = create_app()
 
@@ -43,8 +45,10 @@ def test_http_exception_handler(monkeypatch, tmp_path: Path) -> None:
     def missing() -> None:
         raise HTTPException(status_code=404, detail="资源不存在")
 
-    client = TestClient(app)
-    response = client.get("/missing")
+    transport = ASGITransport(app=app, raise_app_exceptions=False)
+    async with app.router.lifespan_context(app):
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            response = await client.get("/missing")
 
     assert response.status_code == 404
     payload = response.json()
@@ -52,7 +56,7 @@ def test_http_exception_handler(monkeypatch, tmp_path: Path) -> None:
     assert payload["error"] == "NOT_FOUND"
 
 
-def test_request_validation_handler(monkeypatch, tmp_path: Path) -> None:
+async def test_request_validation_handler(monkeypatch, tmp_path: Path) -> None:
     _configure_logging_env(monkeypatch, tmp_path)
     app = create_app()
 
@@ -60,8 +64,10 @@ def test_request_validation_handler(monkeypatch, tmp_path: Path) -> None:
     def query(q: int) -> None:
         return None
 
-    client = TestClient(app)
-    response = client.get("/query", params={"q": "abc"})
+    transport = ASGITransport(app=app, raise_app_exceptions=False)
+    async with app.router.lifespan_context(app):
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            response = await client.get("/query", params={"q": "abc"})
 
     assert response.status_code == 422
     payload = response.json()
@@ -71,7 +77,7 @@ def test_request_validation_handler(monkeypatch, tmp_path: Path) -> None:
     assert isinstance(payload["meta"].get("details"), list)
 
 
-def test_unhandled_error_handler(monkeypatch, tmp_path: Path) -> None:
+async def test_unhandled_error_handler(monkeypatch, tmp_path: Path) -> None:
     _configure_logging_env(monkeypatch, tmp_path)
     app = create_app()
 
@@ -79,8 +85,10 @@ def test_unhandled_error_handler(monkeypatch, tmp_path: Path) -> None:
     def unhandled() -> None:
         raise RuntimeError("boom")
 
-    client = TestClient(app)
-    response = client.get("/unhandled")
+    transport = ASGITransport(app=app, raise_app_exceptions=False)
+    async with app.router.lifespan_context(app):
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            response = await client.get("/unhandled")
 
     assert response.status_code == 500
     payload = response.json()

@@ -11,7 +11,7 @@ RBAC_ROLE_RESOLVER_EXTENSION_POINT = "rbac-role-resolver"
 
 
 class RBACRoleResolver(Protocol):
-    async def get_role_codes(self, *, user_id: UUID) -> list[str]: ...
+    async def get_role_codes(self, *, user_id: UUID, organization_id: UUID) -> list[str]: ...
 
 
 def _register_rbac_extension_points() -> None:

@@ -9,6 +9,7 @@ from uuid import uuid4
 import pytest
 from httpx import ASGITransport, AsyncClient
 
+from apps.api.config import get_settings
 from apps.api.core.authz import AUTHZ_EXTENSION_POINT
 from apps.api.core.registry import create_app
 from apps.api.plugin.registry import registry
@@ -86,22 +87,43 @@ def _build_demo_plugin_zip(tmp_path: Path, plugin_id: str) -> Path:
     return zip_path
 
 
-async def _fake_user():
-    return SimpleNamespace(id=uuid4())
-
-
 async def test_plugin_management_flow(prepared_db, plugin_root, tmp_path) -> None:
     _ = prepared_db
     plugin_id = f"demo_{uuid4().hex}"
     zip_path = _build_demo_plugin_zip(tmp_path, plugin_id)
 
     app = create_app()
-    app.dependency_overrides[get_current_user] = _fake_user
-    registry.register_extension("test", AUTHZ_EXTENSION_POINT, _AllowAllEngine())
+    from apps.api.core.rbac.constants import CORE_PERMISSION_OWNER
+    from apps.api.core.rbac.engine import RBACAuthorizationEngine
+
+    prev = registry.get_extension(AUTHZ_EXTENSION_POINT)
+    registry.register_extension(CORE_PERMISSION_OWNER, AUTHZ_EXTENSION_POINT, _AllowAllEngine())
 
     transport = ASGITransport(app=app)
     try:
         async with app.router.lifespan_context(app):
+            from apps.api.core.organization.repository import OrganizationRepository
+            from apps.api.routers.v1.auth.repository import UserRepository
+            from apps.api.routers.v1.auth.security import hash_password
+
+            settings = get_settings()
+            user_repo = UserRepository()
+            org_repo = OrganizationRepository()
+
+            user = await user_repo.create_user(
+                username=f"admin_{uuid4().hex}",
+                email=None,
+                display_name="Admin",
+                password_hash=hash_password("admin_password_123", settings.auth),
+            )
+            org = await org_repo.create_organization(slug=f"org_{uuid4().hex}", name="Test Org")
+            await org_repo.ensure_membership(user_id=user.id, organization_id=org.id)
+
+            async def _fake_user():
+                return SimpleNamespace(id=user.id)
+
+            app.dependency_overrides[get_current_user] = _fake_user
+
             async with AsyncClient(transport=transport, base_url="http://test") as client:
                 files = {"file": ("demo.zip", zip_path.read_bytes(), "application/zip")}
                 response = await client.post(
@@ -151,7 +173,10 @@ async def test_plugin_management_flow(prepared_db, plugin_root, tmp_path) -> Non
                 assert response.status_code == 200
                 assert response.json()["data"]["status"] == "disabled"
     finally:
-        registry.unregister_extensions("test", AUTHZ_EXTENSION_POINT)
+        if prev is None:
+            registry.unregister_extensions(CORE_PERMISSION_OWNER, AUTHZ_EXTENSION_POINT)
+        else:
+            registry.register_extension(CORE_PERMISSION_OWNER, AUTHZ_EXTENSION_POINT, prev or RBACAuthorizationEngine())
 
 
 class _AllowAllEngine:

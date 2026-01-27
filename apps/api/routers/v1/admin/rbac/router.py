@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends
 
 from apps.api.config import Settings, get_settings
 from apps.api.core.authz import require_permission_strict
+from apps.api.core.organization.deps import get_current_org_id
 from apps.api.core.rbac.service import RBACService
 from apps.api.http.pagination import PageData, PageParams, get_page_params
 from apps.api.http.response import Response, ResponseModel
@@ -152,10 +153,16 @@ async def set_role_permissions(
 )
 async def list_user_roles(
     user_id: UUID,
+    organization_id: UUID = Depends(get_current_org_id),
     params: PageParams = Depends(get_page_params),
     service: RBACService = Depends(get_rbac_service),
 ) -> ResponseModel[PageData[RoleOut]]:
-    page = await service.list_user_roles_paginated(user_id=user_id, params=params, out_schema=RoleOut)
+    page = await service.list_user_roles_paginated(
+        user_id=user_id,
+        organization_id=organization_id,
+        params=params,
+        out_schema=RoleOut,
+    )
     return Response.success(data=PageData[RoleOut].model_validate(page))
 
 
@@ -167,9 +174,10 @@ async def list_user_roles(
 async def assign_user_role(
     user_id: UUID,
     body: UserRoleAssignRequest,
+    organization_id: UUID = Depends(get_current_org_id),
     service: RBACService = Depends(get_rbac_service),
 ) -> ResponseModel[None]:
-    await service.assign_role(user_id=user_id, role_code=body.role_code)
+    await service.assign_role(user_id=user_id, organization_id=organization_id, role_code=body.role_code)
     return Response.success()
 
 
@@ -181,7 +189,8 @@ async def assign_user_role(
 async def revoke_user_role(
     user_id: UUID,
     role_code: str,
+    organization_id: UUID = Depends(get_current_org_id),
     service: RBACService = Depends(get_rbac_service),
 ) -> ResponseModel[None]:
-    await service.revoke_role(user_id=user_id, role_code=role_code)
+    await service.revoke_role(user_id=user_id, organization_id=organization_id, role_code=role_code)
     return Response.success()

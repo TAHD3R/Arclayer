@@ -1,35 +1,17 @@
 import { createRootRoute, Outlet, redirect, useRouterState } from "@tanstack/react-router";
-import { lazy, Suspense } from "react";
 
 import { AdminLayout } from "@/layouts/AdminLayout";
+import { AuthLayout } from "@/layouts/AuthLayout";
 import { useAuthStore } from "@/stores/useAuthStore";
-
-const AuthLayoutLazy = lazy(async () => {
-  const mod = await import("@/layouts/AuthLayout");
-  return { default: mod.AuthLayout };
-});
-
-function AuthLayoutFallback() {
-  return (
-    <div
-      className="fixed inset-0 w-full flex items-center justify-center overflow-hidden"
-      style={{ background: "var(--color-background)", color: "var(--color-foreground)" }}
-    >
-      <div style={{ color: "var(--color-muted-foreground)", fontSize: 14 }}>Loading…</div>
-    </div>
-  );
-}
 
 function RootLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isAuthRoute = pathname === "/login" || pathname === "/reset-password";
 
   return isAuthRoute ? (
-    <Suspense fallback={<AuthLayoutFallback />}>
-      <AuthLayoutLazy>
-        <Outlet />
-      </AuthLayoutLazy>
-    </Suspense>
+    <AuthLayout>
+      <Outlet />
+    </AuthLayout>
   ) : (
     <AdminLayout>
       <Outlet />

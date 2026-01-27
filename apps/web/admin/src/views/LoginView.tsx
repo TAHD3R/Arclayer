@@ -1,20 +1,10 @@
-import {
-  Alert,
-  Button,
-  Checkbox,
-  Divider,
-  Form,
-  Input,
-  Modal,
-  Space,
-  Tabs,
-  Typography,
-} from "antd";
-import { Chrome, Lock, Mail, User } from "lucide-react";
+import { Alert, Button, Checkbox, Divider, Form, Input, Modal, Tabs, Typography } from "antd";
+import { Lock, Mail, User } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { Icon } from "@iconify/react";
+
+import { AuthOauthButtons } from "@/components/app/authOauthButtons";
 
 export type AuthMode = "login" | "register";
 
@@ -214,17 +204,7 @@ export function LoginView({
 
                   <Divider style={{ margin: "18px 0" }}>{t("auth:OAUTH_DIVIDER")}</Divider>
 
-                  <Space orientation="vertical" size={10} style={{ width: "100%" }}>
-                    <Button
-                      block
-                      size="large"
-                      icon={<Icon icon="cbi:oauth" />}
-                      disabled
-                      aria-label={t("auth:OAUTH_GOOGLE")}
-                    >
-                      {t("auth:OAUTH_GOOGLE")}
-                    </Button>
-                  </Space>
+                  <AuthOauthButtons disabled />
                 </Form>
 
                 <div className="mt-4 text-center">
@@ -338,11 +318,7 @@ export function LoginView({
 
                   <Divider style={{ margin: "18px 0" }}>{t("auth:OAUTH_DIVIDER")}</Divider>
 
-                  <Space orientation="vertical" size={10} style={{ width: "100%" }}>
-                    <Button block size="large" icon={<Chrome size={18} />} disabled>
-                      {t("auth:OAUTH_GOOGLE")}
-                    </Button>
-                  </Space>
+                  <AuthOauthButtons disabled />
                 </Form>
 
                 <div className="mt-4 text-center">

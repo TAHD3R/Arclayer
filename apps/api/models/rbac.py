@@ -55,12 +55,34 @@ class RolePermission(BaseModel):
 
 
 class UserRole(BaseModel):
+    """
+    Deprecated.
+
+    RBAC assignments are now organization-scoped and should be attached to Membership.
+    Kept here temporarily for migration compatibility; the model will be removed once
+    the database is fully migrated.
+    """
+
     user = fields.ForeignKeyField("models.User", related_name="user_roles", on_delete=fields.CASCADE)
     role = fields.ForeignKeyField("models.Role", related_name="role_users", on_delete=fields.CASCADE)
 
     class Meta(BaseModel.Meta):
         table = "user_roles"
         unique_together = ("user_id", "role_id")
+        abstract = False
+
+
+class MembershipRole(BaseModel):
+    membership = fields.ForeignKeyField(
+        "models.Membership",
+        related_name="membership_roles",
+        on_delete=fields.CASCADE,
+    )
+    role = fields.ForeignKeyField("models.Role", related_name="membership_roles", on_delete=fields.CASCADE)
+
+    class Meta(BaseModel.Meta):
+        table = "membership_roles"
+        unique_together = ("membership_id", "role_id")
         abstract = False
 
 

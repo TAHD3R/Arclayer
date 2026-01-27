@@ -87,4 +87,23 @@ CORE_PERMISSION_TEMPLATES: list[PermissionTemplate] = [
         description="Allow resetting user password in admin console.",
         default_roles=["admin"],
     ),
+    # Team collaboration (org-scoped).
+    PermissionTemplate(
+        code="team:members:read",
+        name="Read team members",
+        description="Allow listing members in current organization.",
+        default_roles=["admin"],
+    ),
+    PermissionTemplate(
+        code="team:members:roles:manage",
+        name="Manage member roles",
+        description="Allow managing member role bindings in current organization.",
+        default_roles=["admin"],
+    ),
+    PermissionTemplate(
+        code="team:invitations:manage",
+        name="Manage invitations",
+        description="Allow creating, listing, and revoking invitations in current organization.",
+        default_roles=["admin"],
+    ),
 ]

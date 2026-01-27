@@ -9,6 +9,8 @@ from apps.api.config import Settings, get_settings
 from apps.api.core.authz import get_authz_snapshot_provider
 from apps.api.core.exceptions import Conflict, NotFound, ServiceUnavailable
 from apps.api.core.i18n import t
+from apps.api.core.organization.context import get_current_org_id as get_current_org_id_ctx
+from apps.api.core.organization.repository import OrganizationRepository
 from apps.api.http.pagination import PageData, PageParams, paginate_queryset
 from apps.api.models.user import UserStatus
 from apps.api.routers.v1.admin.users.repository import AdminUsersRepository
@@ -29,6 +31,7 @@ class AdminUsersService(BaseService):
         super().__init__(settings)
         self.repo = AdminUsersRepository()
         self.user_repo = UserRepository()
+        self.org_repo = OrganizationRepository()
 
     @classmethod
     def from_settings(cls) -> AdminUsersService:
@@ -63,6 +66,12 @@ class AdminUsersService(BaseService):
             )
         except IntegrityError as exc:
             raise Conflict(message=t("errors", "CONFLICT", default="资源冲突"), error="CONFLICT") from exc
+
+        # In org-aware admin, creating a user also creates a membership in the current org
+        # so the account is immediately manageable and appears in the member list.
+        org_id = get_current_org_id_ctx()
+        if org_id is not None:
+            await self.org_repo.ensure_membership(user_id=user.id, organization_id=org_id)
 
         return AdminUserDetailOut.model_validate(user, from_attributes=True)
 

@@ -49,9 +49,13 @@ def get_authz_snapshot_provider() -> AuthzSnapshotProvider | None:
 
 def require_permission(permission: str):
     # Local import to avoid circular dependency with auth router.
+    from apps.api.core.organization.deps import OrgContext, get_current_org_context
     from apps.api.routers.v1.auth.deps import get_current_user_id
 
-    async def _dependency(user_id: UUID = Depends(get_current_user_id)) -> None:
+    async def _dependency(
+        user_id: UUID = Depends(get_current_user_id),
+        _ctx: OrgContext = Depends(get_current_org_context),
+    ) -> None:
         engine = get_authz_engine()
         if engine is None:
             return
@@ -67,9 +71,13 @@ def require_permission(permission: str):
 
 def require_permission_strict(permission: str):
     # Local import to avoid circular dependency with auth router.
+    from apps.api.core.organization.deps import OrgContext, get_current_org_context
     from apps.api.routers.v1.auth.deps import get_current_user_id
 
-    async def _dependency(user_id: UUID = Depends(get_current_user_id)) -> None:
+    async def _dependency(
+        user_id: UUID = Depends(get_current_user_id),
+        _ctx: OrgContext = Depends(get_current_org_context),
+    ) -> None:
         engine = get_authz_engine()
         if engine is None:
             raise ServiceUnavailable(

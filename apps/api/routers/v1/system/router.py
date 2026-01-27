@@ -64,12 +64,16 @@ async def setup_system(
             )
 
     admin = payload.admin
+    org = payload.organization
     master_key_b64 = payload.master_key.get_secret_value() if payload.master_key is not None else None
-    now, fp, user, rbac_ok = await service.setup(
+    now, fp, user, rbac_ok, organization = await service.setup(
         admin_username=admin.username,
         admin_password=admin.password.get_secret_value(),
         admin_email=admin.email,
         admin_display_name=admin.display_name,
+        organization_name=(org.name if org is not None else None),
+        organization_slug=(org.slug if org is not None else None),
+        organization_logo_url=(org.logo_url if org is not None else None),
         master_key_b64=master_key_b64,
         core_patch=payload.core_patch,
     )
@@ -80,5 +84,8 @@ async def setup_system(
             admin_user_id=str(user.id),
             admin_username=user.username,
             rbac_bootstrapped=rbac_ok,
+            organization_id=(str(organization.id) if organization is not None else None),
+            organization_slug=(organization.slug if organization is not None else None),
+            organization_name=(organization.name if organization is not None else None),
         )
     )

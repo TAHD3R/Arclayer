@@ -63,20 +63,42 @@ class _AllowAllEngine:
         return True
 
 
-async def _fake_user():
-    return SimpleNamespace(id=uuid4())
-
-
 async def test_core_domain_short_paths(prepared_db_with_repo_plugins_auto_migrate) -> None:
     _ = prepared_db_with_repo_plugins_auto_migrate
 
     app = create_app()
-    app.dependency_overrides[get_current_user] = _fake_user
-    registry.register_extension("test", AUTHZ_EXTENSION_POINT, _AllowAllEngine())
+    from apps.api.core.rbac.constants import CORE_PERMISSION_OWNER
+    from apps.api.core.rbac.engine import RBACAuthorizationEngine
+
+    prev = registry.get_extension(AUTHZ_EXTENSION_POINT)
+    # Overwrite core authz engine for this test run (singleton).
+    registry.register_extension(CORE_PERMISSION_OWNER, AUTHZ_EXTENSION_POINT, _AllowAllEngine())
 
     transport = ASGITransport(app=app)
     try:
         async with app.router.lifespan_context(app):
+            from apps.api.core.organization.repository import OrganizationRepository
+            from apps.api.routers.v1.auth.repository import UserRepository
+            from apps.api.routers.v1.auth.security import hash_password
+
+            settings = get_settings()
+            user_repo = UserRepository()
+            org_repo = OrganizationRepository()
+
+            user = await user_repo.create_user(
+                username=f"admin_{uuid4().hex}",
+                email=None,
+                display_name="Admin",
+                password_hash=hash_password("admin_password_123", settings.auth),
+            )
+            org = await org_repo.create_organization(slug=f"org_{uuid4().hex}", name="Test Org")
+            await org_repo.ensure_membership(user_id=user.id, organization_id=org.id)
+
+            async def _fake_user():
+                return SimpleNamespace(id=user.id)
+
+            app.dependency_overrides[get_current_user] = _fake_user
+
             async with AsyncClient(transport=transport, base_url="http://test") as client:
                 # Admin menu (provider in plugin-admin-dynamic-menu)
                 resp = await client.get("/api/v1/admin/menus/me")
@@ -89,4 +111,8 @@ async def test_core_domain_short_paths(prepared_db_with_repo_plugins_auto_migrat
                 page = resp.json()["data"]
                 assert "items" in page
     finally:
-        registry.unregister_extensions("test", AUTHZ_EXTENSION_POINT)
+        if prev is None:
+            registry.unregister_extensions(CORE_PERMISSION_OWNER, AUTHZ_EXTENSION_POINT)
+        else:
+            # Restore previous engine (usually RBACAuthorizationEngine).
+            registry.register_extension(CORE_PERMISSION_OWNER, AUTHZ_EXTENSION_POINT, prev or RBACAuthorizationEngine())

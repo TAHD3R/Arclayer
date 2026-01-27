@@ -10,6 +10,7 @@ import { AdminAccountMenu } from "@/components/app/adminAccountMenu";
 import { AdminHeader } from "@/components/app/adminHeader";
 import { AdminNotificationCenter } from "@/components/app/adminNotificationCenter";
 import { RouteProgress } from "@/components/app/routeProgress";
+import { RouteTransition } from "@/components/app/routeTransition";
 import {
   Sidebar,
   SidebarContent,
@@ -76,7 +77,9 @@ export function AdminLayout({ children }: PropsWithChildren) {
             }
           }}
         />
-        <div className="flex-1 min-h-0 overflow-auto">{children ?? <Outlet />}</div>
+        <div className="flex-1 min-h-0 overflow-auto">
+          <RouteTransition className="w-full">{children ?? <Outlet />}</RouteTransition>
+        </div>
       </SidebarInset>
 
       {import.meta.env.DEV ? <TanStackRouterDevtools position="bottom-right" /> : null}

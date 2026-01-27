@@ -35,22 +35,14 @@ export function DefaultPage({
             {(title || action) && (
               <div className={styles.titleRow}>
                 <div className={styles.titleArea}>
-                  {title ? (
-                    <Typography.Title level={2} style={{ margin: 0 }}>
-                      {title}
-                    </Typography.Title>
-                  ) : null}
+                  {title ? <span className="font-bold text-4xl leading-1.5">{title}</span> : null}
                 </div>
 
                 {action ? <div className={styles.actionArea}>{action}</div> : null}
               </div>
             )}
 
-            {description ? (
-              <Typography.Paragraph className={styles.description}>
-                {description}
-              </Typography.Paragraph>
-            ) : null}
+            {description ? <p>{description}</p> : null}
 
             {extra ? <div className={styles.extra}>{extra}</div> : null}
           </header>

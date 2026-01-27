@@ -4,6 +4,8 @@ from tortoise.expressions import Q
 from tortoise.queryset import QuerySet
 
 from apps.api.common.repositories import BaseRepository
+from apps.api.core.organization.context import get_current_org_id
+from apps.api.models.organization import MembershipStatus
 from apps.api.models.user import User
 from apps.api.routers.v1.admin.users.schema import AdminUserListQuery
 
@@ -11,6 +13,11 @@ from apps.api.routers.v1.admin.users.schema import AdminUserListQuery
 class AdminUsersRepository(BaseRepository):
     def query_users(self, *, filters: AdminUserListQuery) -> QuerySet[User]:
         qs = User.all()
+
+        # Admin user management is org-aware (members under current org).
+        org_id = get_current_org_id()
+        if org_id is not None:
+            qs = qs.filter(memberships__organization_id=org_id, memberships__status=MembershipStatus.ACTIVE)
 
         if filters.q:
             needle = filters.q.strip()
@@ -23,7 +30,8 @@ class AdminUsersRepository(BaseRepository):
             qs = qs.filter(status=filters.status)
 
         if filters.role_code:
-            qs = qs.filter(user_roles__role__code=filters.role_code)
+            # Role bindings are org-scoped via MembershipRole.
+            qs = qs.filter(memberships__membership_roles__role__code=filters.role_code)
 
         # Joins (e.g. role filter) may introduce duplicates.
         qs = qs.distinct()

@@ -7,7 +7,8 @@ from tortoise.queryset import QuerySet
 
 from apps.api.common.repositories import BaseRepository
 from apps.api.core.rbac.constants import BOOTSTRAP_KEY, ROLE_ADMIN
-from apps.api.models.rbac import BootstrapState, Permission, Role, RolePermission, UserRole
+from apps.api.models.organization import Membership, MembershipStatus
+from apps.api.models.rbac import BootstrapState, MembershipRole, Permission, Role, RolePermission
 
 
 class RBACRepository(BaseRepository):
@@ -134,17 +135,43 @@ class RBACRepository(BaseRepository):
             await permission.save()
         return changed
 
-    async def assign_role(self, *, user_id: UUID, role: Role) -> None:
-        await UserRole.get_or_create(user_id=user_id, role=role)
+    async def ensure_membership(self, *, user_id: UUID, organization_id: UUID) -> Membership:
+        membership, _ = await Membership.get_or_create(
+            user_id=user_id,
+            organization_id=organization_id,
+            defaults={"status": MembershipStatus.ACTIVE},
+        )
+        return membership
 
-    async def revoke_role(self, *, user_id: UUID, role: Role) -> int:
-        return await UserRole.filter(user_id=user_id, role=role).delete()
+    async def get_membership(self, *, user_id: UUID, organization_id: UUID) -> Membership | None:
+        return await Membership.get_or_none(
+            user_id=user_id,
+            organization_id=organization_id,
+            status=MembershipStatus.ACTIVE,
+        )
 
-    def query_user_roles(self, *, user_id: UUID) -> QuerySet[Role]:
-        return Role.filter(role_users__user_id=user_id).order_by("code")
+    async def assign_membership_role(self, *, membership_id: UUID, role: Role) -> None:
+        await MembershipRole.get_or_create(membership_id=membership_id, role=role)
 
-    async def list_user_role_codes(self, *, user_id: UUID) -> list[str]:
-        rows = await Role.filter(role_users__user_id=user_id).values_list("code", flat=True)
+    async def revoke_membership_role(self, *, membership_id: UUID, role: Role) -> int:
+        return await MembershipRole.filter(membership_id=membership_id, role=role).delete()
+
+    def query_user_roles_in_org(self, *, user_id: UUID, organization_id: UUID) -> QuerySet[Role]:
+        return (
+            Role
+            .filter(
+                membership_roles__membership__user_id=user_id,
+                membership_roles__membership__organization_id=organization_id,
+                membership_roles__membership__status=MembershipStatus.ACTIVE,
+            )
+            .order_by("code")
+            .distinct()
+        )
+
+    async def list_user_role_codes_in_org(self, *, user_id: UUID, organization_id: UUID) -> list[str]:
+        rows = await self.query_user_roles_in_org(user_id=user_id, organization_id=organization_id).values_list(
+            "code", flat=True
+        )
         return sorted(set(rows))
 
     async def list_permission_codes_for_role_codes(self, *, role_codes: list[str]) -> list[str]:
@@ -171,7 +198,8 @@ class RBACRepository(BaseRepository):
         return created
 
     async def admin_binding_exists(self) -> bool:
-        return await UserRole.filter(role__code=ROLE_ADMIN).exists()
+        # Any admin role binding in any org counts as initialized.
+        return await MembershipRole.filter(role__code=ROLE_ADMIN).exists()
 
     async def get_bootstrap_state(self) -> BootstrapState:
         state, _ = await BootstrapState.get_or_create(

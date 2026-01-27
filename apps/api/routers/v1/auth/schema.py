@@ -6,6 +6,7 @@ from uuid import UUID
 from pydantic import AliasChoices, ConfigDict, EmailStr, Field, field_validator, model_validator
 
 from apps.api.common.schemas import BaseOut, BaseSchema
+from apps.api.models.organization import MembershipStatus
 from apps.api.routers.v1.auth.constants import PASSWORD_REGEX, RESET_TOKEN_REGEX
 
 
@@ -16,6 +17,19 @@ class AuthzSnapshot(BaseSchema):
     role_codes: list[str] = Field(default_factory=list, description="有效角色编码列表")
     permission_codes: list[str] = Field(default_factory=list, description="有效权限编码列表")
     is_superuser: bool = Field(default=False, description="是否为超级管理员")
+
+
+class MyOrganizationOut(BaseSchema):
+    """当前用户加入的组织信息（用于前端组织选择器）。"""
+
+    organization_id: UUID = Field(..., description="组织ID")
+    slug: str = Field(..., description="组织slug")
+    name: str = Field(..., description="组织名称")
+    logo_url: str | None = Field(default=None, description="组织Logo")
+    is_active: bool = Field(default=True, description="组织是否可用")
+
+    membership_id: UUID = Field(..., description="成员关系ID")
+    membership_status: MembershipStatus = Field(..., description="成员关系状态")
 
 
 class LoginRequest(BaseSchema):
@@ -44,6 +58,44 @@ class RegisterRequest(BaseSchema):
         examples=["john_doe", "user123"],
     )
     email: EmailStr | None = Field(default=None, description="邮箱地址", examples=["user@example.com"])
+    password: str = Field(min_length=8, max_length=128, description="密码，至少8位")
+    confirm_password: str = Field(min_length=8, max_length=128, description="确认密码")
+    display_name: str | None = Field(default=None, max_length=64, description="显示名称")
+
+    @field_validator("username")
+    @classmethod
+    def validate_username(cls, value: str) -> str:
+        if not re.match(r"^[a-zA-Z0-9_\u4e00-\u9fa5]+$", value):
+            raise ValueError("用户名只能包含字母、数字、下划线和中文字符")
+        return value.lower()
+
+    @field_validator("password")
+    @classmethod
+    def validate_password(cls, value: str) -> str:
+        if not re.match(PASSWORD_REGEX, value):
+            raise ValueError("密码必须包含字母和数字，且长度为8-128")
+        return value
+
+    @field_validator("confirm_password")
+    @classmethod
+    def passwords_match(cls, value: str, info) -> str:
+        if info.data.get("password") and value != info.data["password"]:
+            raise ValueError("确认密码与密码不一致")
+        return value
+
+
+class AcceptInvitationRequest(BaseSchema):
+    """接受邀请并创建账号（邀请制注册）。"""
+
+    model_config = ConfigDict(str_strip_whitespace=True, validate_assignment=True)
+
+    token: str = Field(min_length=8, max_length=512, description="邀请 Token")
+    username: str = Field(
+        min_length=6,
+        max_length=18,
+        description="用户名，6-18个字符，支持字母数字下划线和中文",
+        examples=["john_doe", "user123"],
+    )
     password: str = Field(min_length=8, max_length=128, description="密码，至少8位")
     confirm_password: str = Field(min_length=8, max_length=128, description="确认密码")
     display_name: str | None = Field(default=None, max_length=64, description="显示名称")

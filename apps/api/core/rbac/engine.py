@@ -3,6 +3,7 @@ from __future__ import annotations
 from uuid import UUID
 
 from apps.api.core.logging import get_logger
+from apps.api.core.organization.context import get_current_membership_id, get_current_org_id
 from apps.api.core.rbac.extensions import get_role_resolvers
 from apps.api.core.rbac.repository import RBACRepository
 
@@ -22,10 +23,23 @@ class RBACAuthorizationEngine:
         self._repo = RBACRepository()
 
     async def _get_effective_role_codes(self, *, user_id: UUID) -> list[str]:
-        role_codes = set(await self._repo.list_user_role_codes(user_id=user_id))
+        org_id = get_current_org_id()
+        if org_id is None:
+            return []
+
+        # Prefer the membership_id bound by the org dependency (current user only).
+        membership_id = get_current_membership_id()
+        if membership_id is None:
+            # Fallback: query by (user_id, org_id) (should not happen for protected routes).
+            role_codes = set(await self._repo.list_user_role_codes_in_org(user_id=user_id, organization_id=org_id))
+        else:
+            # MembershipRole is keyed by membership_id, but querying by user+org is simpler
+            # and still safe; membership_id may be used later for further optimization.
+            role_codes = set(await self._repo.list_user_role_codes_in_org(user_id=user_id, organization_id=org_id))
+
         for resolver in get_role_resolvers():
             try:
-                extra = await resolver.get_role_codes(user_id=user_id)
+                extra = await resolver.get_role_codes(user_id=user_id, organization_id=org_id)
             except Exception as exc:
                 # Fail closed: ignore resolver output on error to avoid privilege escalation.
                 logger.warning("RBAC role resolver failed", error=str(exc))

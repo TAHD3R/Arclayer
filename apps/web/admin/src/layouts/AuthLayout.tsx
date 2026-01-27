@@ -5,6 +5,8 @@ import { Trans, useTranslation } from "react-i18next";
 import { usePreferencesStore } from "@/stores/usePreferenceStore";
 import { AdminLocaleToggle } from "@/components/app/adminToggleLocales";
 import { AdminThemeModeToggle } from "@/components/app/adminToggleTheme";
+import { RouteTransition } from "@/components/app/routeTransition";
+import { LoaderOne } from "@/components/ui/loader";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 
 const ColorBendsLazy = lazy(() => import("@/components/ui/color-bends"));
@@ -45,10 +47,16 @@ export function AuthLayout({ children }: PropsWithChildren) {
   }, []);
 
   return (
-    <div className="fixed inset-0 w-full overflow-hidden grid grid-cols-1 lg:grid-cols-2">
-      <div className="relative hidden lg:block min-h-0 h-full overflow-hidden">
+    <div className="fixed inset-0 w-full overflow-hidden grid grid-cols-1 lg:grid-cols-2 bg-(--color-background) text-(--color-foreground)">
+      <div className="relative hidden lg:block min-h-0 h-full overflow-hidden bg-(--color-background)">
         {isLargeScreen && !reducedMotion ? (
-          <Suspense fallback={null}>
+          <Suspense
+            fallback={
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none bg-(--color-background)">
+                <LoaderOne />
+              </div>
+            }
+          >
             <ColorBendsLazy
               colors={AUTH_BEND_COLORS}
               rotation={45}
@@ -110,7 +118,9 @@ export function AuthLayout({ children }: PropsWithChildren) {
         </div>
 
         <div className="flex-1 min-h-0 flex items-center justify-center overflow-hidden p-8">
-          <div className="w-full max-w-120">{children}</div>
+          <div className="w-full max-w-120">
+            <RouteTransition className="w-full">{children}</RouteTransition>
+          </div>
         </div>
 
         <div className="p-4 text-center text-xs text-(--color-muted-foreground)">

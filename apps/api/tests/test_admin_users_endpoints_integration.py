@@ -66,13 +66,17 @@ async def test_admin_users_management_flow(prepared_db_with_repo_plugins) -> Non
     async with app.router.lifespan_context(app):
         await verify_db_ready(settings)
 
+        from apps.api.core.organization.repository import OrganizationRepository
         from apps.api.core.rbac.constants import ROLE_ADMIN
         from apps.api.core.rbac.repository import RBACRepository
         from apps.api.routers.v1.auth.repository import UserRepository
         from apps.api.routers.v1.auth.security import hash_password
 
         user_repo = UserRepository()
+        org_repo = OrganizationRepository()
         rbac_repo = RBACRepository()
+
+        org = await org_repo.create_organization(slug=f"org_{uuid4().hex}", name="Test Org")
 
         # Create an admin user for calling /admin/** endpoints.
         admin_username = f"admin_{uuid4().hex}"
@@ -84,7 +88,8 @@ async def test_admin_users_management_flow(prepared_db_with_repo_plugins) -> Non
         )
         role = await rbac_repo.get_role_by_code(ROLE_ADMIN)
         assert role is not None
-        await rbac_repo.assign_role(user_id=admin.id, role=role)
+        admin_membership = await rbac_repo.ensure_membership(user_id=admin.id, organization_id=org.id)
+        await rbac_repo.assign_membership_role(membership_id=admin_membership.id, role=role)
 
         async def _current_user_id():
             return admin.id

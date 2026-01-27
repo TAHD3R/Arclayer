@@ -16,6 +16,7 @@ from apps.api.config import Settings, get_settings
 from apps.api.core.exceptions import init_exception_handlers
 from apps.api.core.logging import configure_logging
 from apps.api.core.observability import configure_observability
+from apps.api.core.organization.bootstrap import ensure_organization_ready
 from apps.api.core.rbac.bootstrap import ensure_rbac_ready, register_core_authz_providers, register_permission_templates
 from apps.api.core.routes import register_routes
 from apps.api.infra.cache.valkey import close_valkey, init_valkey
@@ -44,12 +45,15 @@ def _build_lifespan(settings: Settings, *, plugin_manager: PluginManager):
 
             await init_orm(settings, extra_modules=extra_models)
             await verify_db_ready(settings)
-            await ensure_rbac_ready(settings=settings)
+            if settings.database.enabled:
+                await ensure_organization_ready()
+                await ensure_rbac_ready(settings=settings)
             await init_valkey(app, settings)
             plugin_manager.bind_valkey(getattr(app.state, "valkey", None))
             await init_rate_limiter(app, settings)
-            await plugin_manager.sync_records()
-            await plugin_manager.start()
+            if settings.database.enabled and settings.plugin.enabled:
+                await plugin_manager.sync_records()
+                await plugin_manager.start()
             await start_restart_watcher(app, settings)
             app.state.plugin_manager = plugin_manager
             yield

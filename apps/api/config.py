@@ -456,6 +456,11 @@ class AuthSettings(BaseSettings):
         default=900,
         validation_alias=AliasChoices("RESET_TOKEN_TTL_SECONDS", "RESET_TOKEN_TTL"),
     )
+    allow_public_register: bool = Field(
+        default=False,
+        validation_alias=AliasChoices("ALLOW_PUBLIC_REGISTER", "PUBLIC_REGISTER_ENABLED"),
+        description="Whether to allow public registration via /api/v1/auth/register.",
+    )
     password_hash_iterations: int = Field(
         default=120_000,
         validation_alias=AliasChoices("PASSWORD_HASH_ITERATIONS", "APP_PASSWORD_HASH_ITERATIONS"),
