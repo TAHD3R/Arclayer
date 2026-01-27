@@ -1,6 +1,6 @@
 import { Button, Card, Space, Tag, Typography } from "antd";
 
-import { DefaultPage } from "@/components/app/DefaultPage";
+import { DefaultPage } from "@/components/app/defaultPage";
 
 export function TestView() {
   return (

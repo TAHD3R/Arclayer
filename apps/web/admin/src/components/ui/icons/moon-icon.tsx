@@ -1,17 +1,13 @@
-"use client";
-
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import type { Easing, SVGMotionProps } from "motion/react";
+
+import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 
 interface MoonIconProps extends Omit<SVGMotionProps<SVGSVGElement>, "strokeWidth"> {
   size?: number;
   duration?: number;
   strokeWidth?: number;
-  /**
-   * 由外部按钮的 hover 状态控制；为 true 时播放一次动效。
-   * 如果需要持续旋转，请使用 `loop`。
-   */
   isHovered?: boolean;
   loop?: boolean;
   repeatDelay?: number;
@@ -20,25 +16,27 @@ interface MoonIconProps extends Omit<SVGMotionProps<SVGSVGElement>, "strokeWidth
 
 const MoonIcon = (props: MoonIconProps) => {
   const {
-    size = 28, // Icon size in pixels
-    duration = 1, // Animation duration in seconds
-    strokeWidth = 2, // SVG stroke width
-    isHovered = false, // 外部 hover 状态（true 时播放一次）
+    size = 28,
+    duration = 1,
+    strokeWidth = 2,
+    isHovered = false,
     loop = false,
-    repeatDelay = 0.3, // Delay between animation loops (seconds)
-    ease = "easeInOut", // Animation easing function
+    repeatDelay = 0.3,
+    ease = "easeInOut",
     className,
     ...restProps
   } = props;
 
   const [nonce, setNonce] = useState(0);
+  const reducedMotion = usePrefersReducedMotion();
 
   useEffect(() => {
     if (loop) return;
+    if (reducedMotion) return;
     if (isHovered) setNonce((n) => n + 1);
-  }, [isHovered, loop]);
+  }, [isHovered, loop, reducedMotion]);
 
-  const shouldAnimate = loop || isHovered;
+  const shouldAnimate = !reducedMotion && (loop || isHovered);
 
   const moonProps = {
     animate: shouldAnimate ? { rotate: [0, -20, 20, -10, 10, 0] } : { rotate: 0 },

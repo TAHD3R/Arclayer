@@ -9,18 +9,13 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as TestRouteImport } from './routes/test'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as TestLevel2RouteImport } from './routes/test.level2'
-import { Route as TestLevel2Level3RouteImport } from './routes/test.level2.level3'
+import { Route as TestIndexRouteImport } from './routes/test/index'
+import { Route as TestLevel2IndexRouteImport } from './routes/test/level-2/index'
+import { Route as TestLevel2Level3IndexRouteImport } from './routes/test/level-2/level-3/index'
 
-const TestRoute = TestRouteImport.update({
-  id: '/test',
-  path: '/test',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
@@ -36,41 +31,46 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const TestLevel2Route = TestLevel2RouteImport.update({
-  id: '/level2',
-  path: '/level2',
-  getParentRoute: () => TestRoute,
+const TestIndexRoute = TestIndexRouteImport.update({
+  id: '/test/',
+  path: '/test/',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const TestLevel2Level3Route = TestLevel2Level3RouteImport.update({
-  id: '/level3',
-  path: '/level3',
-  getParentRoute: () => TestLevel2Route,
+const TestLevel2IndexRoute = TestLevel2IndexRouteImport.update({
+  id: '/test/level-2/',
+  path: '/test/level-2/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TestLevel2Level3IndexRoute = TestLevel2Level3IndexRouteImport.update({
+  id: '/test/level-2/level-3/',
+  path: '/test/level-2/level-3/',
+  getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
-  '/test': typeof TestRouteWithChildren
-  '/test/level2': typeof TestLevel2RouteWithChildren
-  '/test/level2/level3': typeof TestLevel2Level3Route
+  '/test/': typeof TestIndexRoute
+  '/test/level-2/': typeof TestLevel2IndexRoute
+  '/test/level-2/level-3/': typeof TestLevel2Level3IndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
-  '/test': typeof TestRouteWithChildren
-  '/test/level2': typeof TestLevel2RouteWithChildren
-  '/test/level2/level3': typeof TestLevel2Level3Route
+  '/test': typeof TestIndexRoute
+  '/test/level-2': typeof TestLevel2IndexRoute
+  '/test/level-2/level-3': typeof TestLevel2Level3IndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
-  '/test': typeof TestRouteWithChildren
-  '/test/level2': typeof TestLevel2RouteWithChildren
-  '/test/level2/level3': typeof TestLevel2Level3Route
+  '/test/': typeof TestIndexRoute
+  '/test/level-2/': typeof TestLevel2IndexRoute
+  '/test/level-2/level-3/': typeof TestLevel2Level3IndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -78,43 +78,38 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/reset-password'
-    | '/test'
-    | '/test/level2'
-    | '/test/level2/level3'
+    | '/test/'
+    | '/test/level-2/'
+    | '/test/level-2/level-3/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/login'
     | '/reset-password'
     | '/test'
-    | '/test/level2'
-    | '/test/level2/level3'
+    | '/test/level-2'
+    | '/test/level-2/level-3'
   id:
     | '__root__'
     | '/'
     | '/login'
     | '/reset-password'
-    | '/test'
-    | '/test/level2'
-    | '/test/level2/level3'
+    | '/test/'
+    | '/test/level-2/'
+    | '/test/level-2/level-3/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LoginRoute: typeof LoginRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
-  TestRoute: typeof TestRouteWithChildren
+  TestIndexRoute: typeof TestIndexRoute
+  TestLevel2IndexRoute: typeof TestLevel2IndexRoute
+  TestLevel2Level3IndexRoute: typeof TestLevel2Level3IndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/test': {
-      id: '/test'
-      path: '/test'
-      fullPath: '/test'
-      preLoaderRoute: typeof TestRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/reset-password': {
       id: '/reset-password'
       path: '/reset-password'
@@ -136,50 +131,37 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/test/level2': {
-      id: '/test/level2'
-      path: '/level2'
-      fullPath: '/test/level2'
-      preLoaderRoute: typeof TestLevel2RouteImport
-      parentRoute: typeof TestRoute
+    '/test/': {
+      id: '/test/'
+      path: '/test'
+      fullPath: '/test/'
+      preLoaderRoute: typeof TestIndexRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/test/level2/level3': {
-      id: '/test/level2/level3'
-      path: '/level3'
-      fullPath: '/test/level2/level3'
-      preLoaderRoute: typeof TestLevel2Level3RouteImport
-      parentRoute: typeof TestLevel2Route
+    '/test/level-2/': {
+      id: '/test/level-2/'
+      path: '/test/level-2'
+      fullPath: '/test/level-2/'
+      preLoaderRoute: typeof TestLevel2IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/test/level-2/level-3/': {
+      id: '/test/level-2/level-3/'
+      path: '/test/level-2/level-3'
+      fullPath: '/test/level-2/level-3/'
+      preLoaderRoute: typeof TestLevel2Level3IndexRouteImport
+      parentRoute: typeof rootRouteImport
     }
   }
 }
-
-interface TestLevel2RouteChildren {
-  TestLevel2Level3Route: typeof TestLevel2Level3Route
-}
-
-const TestLevel2RouteChildren: TestLevel2RouteChildren = {
-  TestLevel2Level3Route: TestLevel2Level3Route,
-}
-
-const TestLevel2RouteWithChildren = TestLevel2Route._addFileChildren(
-  TestLevel2RouteChildren,
-)
-
-interface TestRouteChildren {
-  TestLevel2Route: typeof TestLevel2RouteWithChildren
-}
-
-const TestRouteChildren: TestRouteChildren = {
-  TestLevel2Route: TestLevel2RouteWithChildren,
-}
-
-const TestRouteWithChildren = TestRoute._addFileChildren(TestRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LoginRoute: LoginRoute,
   ResetPasswordRoute: ResetPasswordRoute,
-  TestRoute: TestRouteWithChildren,
+  TestIndexRoute: TestIndexRoute,
+  TestLevel2IndexRoute: TestLevel2IndexRoute,
+  TestLevel2Level3IndexRoute: TestLevel2Level3IndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

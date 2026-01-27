@@ -1,6 +1,6 @@
 import { Card, Typography } from "antd";
 
-import { DefaultPage } from "@/components/app/DefaultPage";
+import { DefaultPage } from "@/components/app/defaultPage";
 
 export function DashboardView() {
   return (

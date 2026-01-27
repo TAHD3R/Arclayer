@@ -1,17 +1,13 @@
-"use client";
-
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import type { SVGMotionProps } from "motion/react";
+
+import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 
 interface SettingsIconProps extends SVGMotionProps<SVGSVGElement> {
   size?: number;
   duration?: number;
   strokeWidth?: number;
-  /**
-   * 由外部按钮的 hover 状态控制；为 true 时播放一次动效。
-   * 如果需要持续旋转，请使用 `loop`。
-   */
   isHovered?: boolean;
   loop?: boolean;
 }
@@ -28,13 +24,15 @@ const SettingsIcon = (props: SettingsIconProps) => {
   } = props;
 
   const [nonce, setNonce] = useState(0);
+  const reducedMotion = usePrefersReducedMotion();
 
   useEffect(() => {
     if (loop) return;
+    if (reducedMotion) return;
     if (isHovered) setNonce((n) => n + 1);
-  }, [isHovered, loop]);
+  }, [isHovered, loop, reducedMotion]);
 
-  const shouldAnimate = loop || isHovered;
+  const shouldAnimate = !reducedMotion && (loop || isHovered);
 
   const animationProps = {
     animate: shouldAnimate ? { rotate: 360 } : { rotate: 0 },

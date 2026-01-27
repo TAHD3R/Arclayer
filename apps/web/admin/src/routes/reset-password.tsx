@@ -2,8 +2,8 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 
-import { authApi } from "@/api/auth";
-import { notifySuccessText } from "@/core/services/notifications";
+import * as authApi from "@/api/auth";
+import { notifySuccessText } from "@/utils/notifications";
 import { ResetPasswordView } from "@/views/ResetPasswordView";
 
 type ResetPasswordSearch = {

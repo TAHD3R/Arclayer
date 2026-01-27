@@ -28,22 +28,33 @@ export interface ResetTokenPayload {
   expires_in: number;
 }
 
-export const authApi = {
-  login: (payload: { identifier: string; password: string }) =>
-    api.post<TokenPair>("/auth/login", payload, { auth: { skipRefresh: true } }),
+export async function login(payload: { identifier: string; password: string }): Promise<TokenPair> {
+  return api.post<TokenPair>("/auth/login", payload, { auth: { skipRefresh: true } });
+}
 
-  refresh: (payload: { refresh_token: string }) =>
-    api.post<TokenPair>("/auth/refresh", payload, { auth: { skipRefresh: true } }),
+export async function refresh(payload: { refresh_token: string }): Promise<TokenPair> {
+  return api.post<TokenPair>("/auth/refresh", payload, { auth: { skipRefresh: true } });
+}
 
-  me: () => api.get<UserProfile>("/auth/me"),
+export async function me(): Promise<UserProfile> {
+  return api.get<UserProfile>("/auth/me");
+}
 
-  meAuthz: () => api.get<AuthzSnapshot>("/auth/me/authz"),
+export async function meAuthz(): Promise<AuthzSnapshot> {
+  return api.get<AuthzSnapshot>("/auth/me/authz");
+}
 
-  forgotPassword: (payload: { identifier: string }) =>
-    api.post<ResetTokenPayload | null>("/auth/forgot-password", payload, {
-      auth: { skipRefresh: true },
-    }),
+export async function forgotPassword(payload: {
+  identifier: string;
+}): Promise<ResetTokenPayload | null> {
+  return api.post<ResetTokenPayload | null>("/auth/forgot-password", payload, {
+    auth: { skipRefresh: true },
+  });
+}
 
-  resetPassword: (payload: { reset_token: string; new_password: string }) =>
-    api.post<null>("/auth/reset-password", payload, { auth: { skipRefresh: true } }),
-} as const;
+export async function resetPassword(payload: {
+  reset_token: string;
+  new_password: string;
+}): Promise<null> {
+  return api.post<null>("/auth/reset-password", payload, { auth: { skipRefresh: true } });
+}

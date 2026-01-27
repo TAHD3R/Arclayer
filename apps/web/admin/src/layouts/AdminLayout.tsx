@@ -3,13 +3,13 @@ import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { type CSSProperties, type PropsWithChildren, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
-import { ADMIN_NAV_ITEMS } from "@/core/navigation/adminNav";
-import { AdminSiderNav } from "@/components/app/AdminSiderNav";
-import { AdminLogo } from "@/components/app/AdminLogo";
-import { AdminAccountMenu } from "@/components/app/AdminAccountMenu";
-import { AdminHeader } from "@/components/app/AdminHeader";
-import { AdminNotificationCenter } from "@/components/app/AdminNotificationCenter";
-import { RouteProgress } from "@/core/ui/RouteProgress";
+import { ADMIN_NAV_ITEMS } from "@/constants/admin-nav";
+import { AdminSiderNav } from "@/components/app/adminSideNav";
+import { AdminLogo } from "@/components/app/adminLogo";
+import { AdminAccountMenu } from "@/components/app/adminAccountMenu";
+import { AdminHeader } from "@/components/app/adminHeader";
+import { AdminNotificationCenter } from "@/components/app/adminNotificationCenter";
+import { RouteProgress } from "@/components/app/routeProgress";
 import {
   Sidebar,
   SidebarContent,

@@ -2,7 +2,7 @@ import { createRootRoute, Outlet, redirect, useRouterState } from "@tanstack/rea
 import { lazy, Suspense } from "react";
 
 import { AdminLayout } from "@/layouts/AdminLayout";
-import { useAuthStore } from "@/stores/auth.store";
+import { useAuthStore } from "@/stores/useAuthStore";
 
 const AuthLayoutLazy = lazy(async () => {
   const mod = await import("@/layouts/AuthLayout");

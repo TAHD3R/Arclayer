@@ -1,29 +1,17 @@
-"use client";
-
 import { useEffect, useState } from "react";
 import { motion, type SVGMotionProps, type Easing } from "motion/react";
+
+import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 
 interface LanguagesIconProps extends Omit<SVGMotionProps<SVGSVGElement>, "strokeWidth"> {
   size?: number;
   duration?: number;
   strokeWidth?: number;
-  /**
-   * 由外部按钮的 hover 状态控制；为 true 时播放一次动效。
-   * 如果需要持续旋转，请使用 `loop`。
-   */
   isHovered?: boolean;
   loop?: boolean;
   ease?: Easing;
 }
 
-/**
- * 与项目内其他动态 Icon 一致的模式：
- * - 传入 `isHovered` 后仅在 hover 时播放一次动画
- * - 不传入时默认循环动画（通常不建议用于 UI 按钮）
- *
- * SVG 来源（lucide languages）：
- * <svg ... class="lucide lucide-languages">...</svg>
- */
 const LanguagesIcon = (props: LanguagesIconProps) => {
   const {
     size = 28,
@@ -37,13 +25,15 @@ const LanguagesIcon = (props: LanguagesIconProps) => {
   } = props;
 
   const [nonce, setNonce] = useState(0);
+  const reducedMotion = usePrefersReducedMotion();
 
   useEffect(() => {
     if (loop) return;
+    if (reducedMotion) return;
     if (isHovered) setNonce((n) => n + 1);
-  }, [isHovered, loop]);
+  }, [isHovered, loop, reducedMotion]);
 
-  const shouldAnimate = loop || isHovered;
+  const shouldAnimate = !reducedMotion && (loop || isHovered);
 
   const animationProps = {
     animate: shouldAnimate ? { rotate: [0, -8, 8, -4, 4, 0] } : { rotate: 0 },

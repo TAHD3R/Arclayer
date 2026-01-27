@@ -1,8 +1,8 @@
 import { ApiError } from "@/lib/http/errors";
 import { type ResponseModel } from "@/lib/http/types";
-import { getAppConfig } from "@/core/config/app-config";
-import { useAuthStore } from "@/stores/auth.store";
-import { usePreferencesStore } from "@/stores/preferences.store";
+import { getAppConfig } from "@/constants/app-config";
+import { useAuthStore } from "@/stores/useAuthStore";
+import { usePreferencesStore } from "@/stores/usePreferenceStore";
 
 type UnauthorizedHandler = (ctx: {
   url: string;
@@ -225,13 +225,17 @@ async function refreshAccessToken(refreshToken: string): Promise<boolean> {
     if (payload.error) return false;
 
     // `apiRequest` unwraps `data`; do the same here to avoid circular deps.
-    const data = payload.data as any;
+    const data = payload.data;
     if (!data || typeof data !== "object") return false;
-    const hasSnake = "access_token" in data && "refresh_token" in data;
-    const hasCamel = "accessToken" in data && "refreshToken" in data;
+
+    const record = data as Record<string, unknown>;
+    const hasSnake =
+      typeof record.access_token === "string" && typeof record.refresh_token === "string";
+    const hasCamel =
+      typeof record.accessToken === "string" && typeof record.refreshToken === "string";
     if (!hasSnake && !hasCamel) return false;
 
-    useAuthStore.getState().setTokens(data);
+    useAuthStore.getState().setTokens(record);
     return true;
   }
 

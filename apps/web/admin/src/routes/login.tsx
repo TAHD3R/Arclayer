@@ -4,8 +4,8 @@ import { useTranslation } from "react-i18next";
 import { useEffect } from "react";
 import { useState } from "react";
 
-import { authApi } from "@/api/auth";
-import { useAuthStore } from "@/stores/auth.store";
+import * as authApi from "@/api/auth";
+import { useAuthStore } from "@/stores/useAuthStore";
 import {
   type AuthMode,
   type LoginFormValues,
@@ -17,7 +17,7 @@ import {
   notifyErrorText,
   notifyInfoText,
   notifySuccessText,
-} from "@/core/services/notifications";
+} from "@/utils/notifications";
 import { ApiError } from "@/lib/http";
 
 type LoginSearch = {

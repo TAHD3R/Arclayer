@@ -1,18 +1,22 @@
 import { Space, Typography } from "antd";
-import { type PropsWithChildren, useEffect } from "react";
+import { lazy, Suspense, type PropsWithChildren, useEffect, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 
-import ColorBends from "@/components/ui/ColorBends";
-import { usePreferencesStore } from "@/stores/preferences.store";
-import { AdminLocaleToggle } from "@/components/app/AdminLocaleToggle";
-import { AdminThemeModeToggle } from "@/components/app/AdminThemeModeToggle";
+import { usePreferencesStore } from "@/stores/usePreferenceStore";
+import { AdminLocaleToggle } from "@/components/app/adminToggleLocales";
+import { AdminThemeModeToggle } from "@/components/app/adminToggleTheme";
+import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
+
+const ColorBendsLazy = lazy(() => import("@/components/ui/color-bends"));
+const AUTH_BEND_COLORS = ["#3b82f6"] as const;
 
 export function AuthLayout({ children }: PropsWithChildren) {
   const { t } = useTranslation();
   const themeMode = usePreferencesStore((s) => s.themeMode);
   const isDark = themeMode === "dark";
 
-  const bendColors = ["#3b82f6"];
+  const reducedMotion = usePrefersReducedMotion();
+  const [isLargeScreen, setIsLargeScreen] = useState(false);
 
   // Auth pages should always be a full-viewport "scene" without any document scrolling.
   // This also avoids 1px scrollbars caused by fractional rem sizing during resize.
@@ -29,22 +33,37 @@ export function AuthLayout({ children }: PropsWithChildren) {
     };
   }, []);
 
+  useEffect(() => {
+    const mq = window.matchMedia?.("(min-width: 1024px)");
+    if (!mq) return;
+
+    const update = () => setIsLargeScreen(mq.matches);
+    update();
+
+    mq.addEventListener?.("change", update);
+    return () => mq.removeEventListener?.("change", update);
+  }, []);
+
   return (
     <div className="fixed inset-0 w-full overflow-hidden grid grid-cols-1 lg:grid-cols-2">
       <div className="relative hidden lg:block min-h-0 h-full overflow-hidden">
-        <ColorBends
-          colors={bendColors}
-          rotation={45}
-          speed={0.2}
-          scale={1}
-          frequency={1}
-          warpStrength={1}
-          mouseInfluence={1}
-          parallax={1}
-          noise={0.3}
-          transparent
-          autoRotate={0}
-        />
+        {isLargeScreen && !reducedMotion ? (
+          <Suspense fallback={null}>
+            <ColorBendsLazy
+              colors={AUTH_BEND_COLORS}
+              rotation={45}
+              speed={0.2}
+              scale={1}
+              frequency={1}
+              warpStrength={1}
+              mouseInfluence={1}
+              parallax={1}
+              noise={0.3}
+              transparent
+              autoRotate={0}
+            />
+          </Suspense>
+        ) : null}
 
         <div className="absolute inset-0 flex items-end p-14">
           <div className="max-w-120 select-none">
