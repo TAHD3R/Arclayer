@@ -18,5 +18,11 @@
   "ACCOUNT_LANGUAGE_EN": "English",
   "ACCOUNT_ROLE_SUPERUSER": "超级管理员",
   "ACCOUNT_ROLE_ADMIN": "管理员",
-  "ACCOUNT_ROLE_USER": "用户"
+  "ACCOUNT_ROLE_USER": "用户",
+
+  "CMD_SEARCH": "搜索",
+  "CMDK_TITLE": "搜索",
+  "CMDK_PLACEHOLDER": "搜索页面或输入路由…",
+  "CMDK_NO_RESULTS": "没有匹配结果",
+  "CMDK_CLOSE": "关闭"
 }

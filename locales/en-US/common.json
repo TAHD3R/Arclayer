@@ -18,5 +18,11 @@
   "ACCOUNT_LANGUAGE_EN": "English",
   "ACCOUNT_ROLE_SUPERUSER": "Superuser",
   "ACCOUNT_ROLE_ADMIN": "Admin",
-  "ACCOUNT_ROLE_USER": "User"
+  "ACCOUNT_ROLE_USER": "User",
+
+  "CMD_SEARCH": "Search",
+  "CMDK_TITLE": "Search",
+  "CMDK_PLACEHOLDER": "Search pages or type a route…",
+  "CMDK_NO_RESULTS": "No results found",
+  "CMDK_CLOSE": "Close"
 }

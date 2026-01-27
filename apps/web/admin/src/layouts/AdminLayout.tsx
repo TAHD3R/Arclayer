@@ -6,6 +6,7 @@ import { ADMIN_NAV_ITEMS } from "@/core/navigation/adminNav";
 import { AdminSiderNav } from "@/components/app/AdminSiderNav";
 import { AdminLogo } from "@/components/app/AdminLogo";
 import { AdminAccountMenu } from "@/components/app/AdminAccountMenu";
+import { AdminHeader } from "@/components/app/AdminHeader";
 import { RouteProgress } from "@/core/ui/RouteProgress";
 import {
   Sidebar,
@@ -47,8 +48,9 @@ export function AdminLayout({ children }: PropsWithChildren) {
         </SidebarFooter>
       </Sidebar>
 
-      <SidebarInset className="w-auto flex-1 min-w-0 overflow-auto">
-        {children ?? <Outlet />}
+      <SidebarInset className="w-auto flex-1 min-w-0 overflow-hidden">
+        <AdminHeader navItems={ADMIN_NAV_ITEMS} />
+        <div className="flex-1 min-h-0 overflow-auto">{children ?? <Outlet />}</div>
       </SidebarInset>
 
       {import.meta.env.DEV ? <TanStackRouterDevtools position="bottom-right" /> : null}

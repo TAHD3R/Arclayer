@@ -1,83 +1,11 @@
-import { Button, Dropdown, Space, Typography } from "antd";
-import { type PropsWithChildren, useEffect, useMemo } from "react";
+import { Space, Typography } from "antd";
+import { type PropsWithChildren, useEffect } from "react";
 import { Trans, useTranslation } from "react-i18next";
-import { Languages, Moon, Sun } from "lucide-react";
-import { Icon } from "@iconify/react";
 
 import ColorBends from "@/components/ui/ColorBends";
-import { toggleThemeModeWithTransition } from "@/core/ui/theme-transition";
 import { usePreferencesStore } from "@/stores/preferences.store";
-import type { AppLocale } from "@/core/i18n";
-
-function ThemeModeToggle() {
-  const mode = usePreferencesStore((s) => s.themeMode);
-  const { t } = useTranslation();
-
-  const isDark = mode === "dark";
-
-  return (
-    <Button
-      aria-label={isDark ? t("auth:THEME_TO_LIGHT") : t("auth:THEME_TO_DARK")}
-      type="text"
-      size="large"
-      style={{ width: 44, height: 44, paddingInline: 0 }}
-      onClick={() => {
-        void toggleThemeModeWithTransition({ direction: "ltr" });
-      }}
-      icon={isDark ? <Sun size={18} /> : <Moon size={18} />}
-    />
-  );
-}
-
-function LocaleToggle() {
-  const locale = usePreferencesStore((s) => s.locale);
-  const setLocale = usePreferencesStore((s) => s.setLocale);
-  const { t } = useTranslation();
-
-  const items = useMemo(
-    () => [
-      {
-        key: "zh-CN",
-        label: (
-          <Space size={10}>
-            <Icon icon="twemoji:flag-china" width={18} height={18} />
-            <span>简体中文</span>
-          </Space>
-        ),
-      },
-      {
-        key: "en-US",
-        label: (
-          <Space size={10}>
-            <Icon icon="twemoji:flag-united-states" width={18} height={18} />
-            <span>English</span>
-          </Space>
-        ),
-      },
-    ],
-    [],
-  );
-
-  return (
-    <Dropdown
-      menu={{
-        items,
-        selectable: true,
-        selectedKeys: [locale],
-        onClick: (info) => setLocale(info.key as AppLocale),
-      }}
-      trigger={["click"]}
-    >
-      <Button
-        aria-label={t("auth:SWITCH_LANGUAGE")}
-        type="text"
-        size="large"
-        style={{ width: 44, height: 44, paddingInline: 0 }}
-        icon={<Languages size={18} />}
-      />
-    </Dropdown>
-  );
-}
+import { AdminLocaleToggle } from "@/components/app/AdminLocaleToggle";
+import { AdminThemeModeToggle } from "@/components/app/AdminThemeModeToggle";
 
 export function AuthLayout({ children }: PropsWithChildren) {
   const { t } = useTranslation();
@@ -157,8 +85,8 @@ export function AuthLayout({ children }: PropsWithChildren) {
       <div className="relative flex flex-col min-h-0 h-full overflow-hidden bg-(--color-background) text-(--color-foreground)">
         <div className="absolute top-0 right-0 p-4">
           <Space size={6}>
-            <LocaleToggle />
-            <ThemeModeToggle />
+            <AdminLocaleToggle />
+            <AdminThemeModeToggle />
           </Space>
         </div>
 
