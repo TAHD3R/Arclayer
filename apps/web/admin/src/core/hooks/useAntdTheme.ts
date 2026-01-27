@@ -5,5 +5,5 @@ import { usePreferencesStore } from "@/stores/preferences.store";
 
 export function useAntdTheme() {
   const mode = usePreferencesStore((s) => s.themeMode);
-  return useMemo(() => createAntdTheme({ mode }), [mode]);
+  return useMemo(() => createAntdTheme({ mode, token: { fontSize: 16 } }), [mode]);
 }
