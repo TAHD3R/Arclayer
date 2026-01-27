@@ -1,6 +1,7 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
+import { motion } from "motion/react";
 
 import type { AdminNavItem } from "@/core/navigation/adminNav";
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
@@ -106,6 +107,8 @@ type NodeProps = {
   activeKeys: ReadonlySet<string>;
   openByParent: OpenByParent;
   openChainForKey: (key: string) => void;
+  animateOpenKey: string | null;
+  setAnimateOpenKey: (key: string | null) => void;
 };
 
 function NavNode({
@@ -116,6 +119,8 @@ function NavNode({
   activeKeys,
   openByParent,
   openChainForKey,
+  animateOpenKey,
+  setAnimateOpenKey,
 }: NodeProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -127,6 +132,7 @@ function NavNode({
   const Icon = item.icon;
   const isSectionActive = depth === 0 && hasChildren && activeKeys.has(item.key);
   const isTrailActive = activeKeys.has(item.key);
+  const showActiveIndicator = depth === 0 && (isSelected || isSectionActive);
 
   const openSelf = () => {
     if (!hasChildren) return;
@@ -135,13 +141,15 @@ function NavNode({
 
   if (!hasChildren) {
     return (
-      <SidebarMenuItem
-        className={cn(
-          depth === 0 && isSelected
-            ? "before:content-[''] before:absolute before:pointer-events-none before:z-30 before:inset-y-0 before:left-0 before:w-0.75 before:bg-sidebar-primary"
-            : null,
-        )}
-      >
+      <SidebarMenuItem>
+        {showActiveIndicator ? (
+          <motion.span
+            layoutId="admin-sider-active-indicator"
+            layout="position"
+            className="absolute pointer-events-none z-30 inset-y-0 left-0 w-0.75 bg-sidebar-primary"
+            transition={{ duration: 0.22, ease: [0.2, 0, 0, 1] }}
+          />
+        ) : null}
         <SidebarMenuButton
           asChild
           isActive={isSelected}
@@ -171,15 +179,19 @@ function NavNode({
   }
 
   const navTarget = item.children?.[0] ? getFirstDescendantTo(item.children[0]) : null;
+  const shouldAnimateOpen = animateOpenKey === item.key;
 
   return (
     <Collapsible open={isOpen}>
-      <SidebarMenuItem
-        data-section-active={isSectionActive ? "true" : "false"}
-        className={cn(
-          "data-[section-active=true]:before:content-[''] data-[section-active=true]:before:absolute data-[section-active=true]:before:pointer-events-none data-[section-active=true]:before:z-30 data-[section-active=true]:before:inset-y-0 data-[section-active=true]:before:left-0 data-[section-active=true]:before:w-0.75 data-[section-active=true]:before:bg-sidebar-primary",
-        )}
-      >
+      <SidebarMenuItem data-section-active={isSectionActive ? "true" : "false"}>
+        {showActiveIndicator ? (
+          <motion.span
+            layoutId="admin-sider-active-indicator"
+            layout="position"
+            className="absolute pointer-events-none z-30 inset-y-0 left-0 w-0.75 bg-sidebar-primary"
+            transition={{ duration: 0.22, ease: [0.2, 0, 0, 1] }}
+          />
+        ) : null}
         <SidebarMenuButton
           isActive={isTrailActive}
           className={cn(
@@ -190,6 +202,7 @@ function NavNode({
           )}
           style={{ paddingLeft: 8 + Math.max(0, depth - 1) * 12 }}
           onClick={() => {
+            setAnimateOpenKey(item.key);
             openSelf();
             if (navTarget) {
               navigate({ to: navTarget });
@@ -201,20 +214,36 @@ function NavNode({
         </SidebarMenuButton>
 
         <CollapsibleContent>
-          <SidebarMenu>
-            {item.children!.map((child) => (
-              <NavNode
-                key={child.key}
-                item={child}
-                depth={depth + 1}
-                parentKey={item.key}
-                pathname={pathname}
-                activeKeys={activeKeys}
-                openByParent={openByParent}
-                openChainForKey={openChainForKey}
-              />
-            ))}
-          </SidebarMenu>
+          <motion.div
+            // Only animate on user-triggered open; route-driven open should appear instantly.
+            initial={shouldAnimateOpen ? { height: 0, opacity: 0 } : false}
+            animate={{ height: "auto", opacity: 1 }}
+            transition={
+              shouldAnimateOpen ? { duration: 0.18, ease: [0.2, 0, 0, 1] } : { duration: 0 }
+            }
+            style={{ overflow: "hidden" }}
+            onAnimationComplete={() => {
+              // Avoid accidental animations on subsequent re-renders.
+              if (shouldAnimateOpen) setAnimateOpenKey(null);
+            }}
+          >
+            <SidebarMenu>
+              {item.children!.map((child) => (
+                <NavNode
+                  key={child.key}
+                  item={child}
+                  depth={depth + 1}
+                  parentKey={item.key}
+                  pathname={pathname}
+                  activeKeys={activeKeys}
+                  openByParent={openByParent}
+                  openChainForKey={openChainForKey}
+                  animateOpenKey={animateOpenKey}
+                  setAnimateOpenKey={setAnimateOpenKey}
+                />
+              ))}
+            </SidebarMenu>
+          </motion.div>
         </CollapsibleContent>
       </SidebarMenuItem>
     </Collapsible>
@@ -231,6 +260,7 @@ export function AdminSiderNav(props: { items: AdminNavItem[] }) {
   const activeKeys = useMemo(() => new Set(activeTrail), [activeTrail]);
 
   const [openByParent, setOpenByParent] = useState<OpenByParent>({});
+  const [animateOpenKey, setAnimateOpenKey] = useState<string | null>(null);
 
   const openChainForKey = (key: string) => {
     setOpenByParent(() => {
@@ -275,6 +305,8 @@ export function AdminSiderNav(props: { items: AdminNavItem[] }) {
               activeKeys={activeKeys}
               openByParent={openByParent}
               openChainForKey={openChainForKey}
+              animateOpenKey={animateOpenKey}
+              setAnimateOpenKey={setAnimateOpenKey}
             />
           ))}
         </SidebarMenu>

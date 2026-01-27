@@ -18,13 +18,12 @@ import {
 
 export function AdminLayout({ children }: PropsWithChildren) {
   return (
-    <SidebarProvider defaultOpen className="h-screen" id="page_with_common_nav">
+    <SidebarProvider defaultOpen className="h-screen">
       <RouteProgress />
 
       <Sidebar
         collapsible="none"
-        className="shrink-0 h-full border-r border-sidebar-border"
-        data-qa="admin-nav-container"
+        className="shrink-0 h-full border-r"
         style={
           {
             width: 240,
@@ -48,10 +47,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
         </SidebarFooter>
       </Sidebar>
 
-      <SidebarInset
-        id="page_contents_with_common_nav"
-        className="w-auto flex-1 min-w-0 overflow-auto"
-      >
+      <SidebarInset className="w-auto flex-1 min-w-0 overflow-auto">
         {children ?? <Outlet />}
       </SidebarInset>
 
