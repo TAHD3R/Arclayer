@@ -73,9 +73,9 @@ export function SetupSiteStep(props: {
           aria-label={t("common:SETUP_FIELD_SITE_DESC_LABEL")}
           placeholder={t("common:SETUP_FIELD_SITE_DESC_PLACEHOLDER")}
           allowClear
-          maxLength={200}
+          maxLength={160}
           showCount={{
-            formatter: ({ count }) => `${count}/200`,
+            formatter: ({ count }) => `${count}/160`,
           }}
         />
       </Form.Item>

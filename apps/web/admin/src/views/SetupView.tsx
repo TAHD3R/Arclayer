@@ -204,7 +204,7 @@ export function SetupView() {
           date_format: defaults.dateFormat,
         },
       };
-
+      // In setup, we keep it minimal: name/url/description.
       if (siteDescription) {
         corePatch.seo = { default_description: siteDescription };
       }
