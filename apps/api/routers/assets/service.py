@@ -24,6 +24,7 @@ class AssetPublicView:
     original_filename: str | None
     object_key: str
     indexable: bool
+    variants: dict | None
 
 
 def canonical_asset_filename(*, slug: str, ext: str) -> str:
@@ -65,6 +66,7 @@ class AssetsService:
             original_filename=asset.original_filename,
             object_key=asset.object_key,
             indexable=bool(asset.indexable),
+            variants=asset.variants if isinstance(asset.variants, dict) else None,
         )
 
     async def redirect_to_canonical(self, *, asset_id: UUID) -> RedirectResponse:
@@ -119,6 +121,63 @@ class AssetsService:
         media_type = view.mime or "application/octet-stream"
         headers = build_asset_headers(view)
         headers["Content-Disposition"] = build_attachment_content_disposition(filename)
+        return await stream_file_response(
+            path=path,
+            content_type=media_type,
+            range_header=range_header,
+            extra_headers=headers,
+        )
+
+    async def thumbnail(
+        self,
+        *,
+        asset_id: UUID,
+        width: int | None,
+        range_header: str | None,
+    ) -> Response:
+        view = await self._get_public_view(asset_id=asset_id)
+        thumbs = []
+        if isinstance(view.variants, dict):
+            thumbs = view.variants.get("thumbnails") or []
+
+        if not isinstance(thumbs, list) or not thumbs:
+            canonical = canonical_asset_filename(slug=view.slug, ext=view.ext)
+            return RedirectResponse(url=f"/assets/{view.id}/{canonical}", status_code=302)
+
+        ordered = sorted(
+            [t for t in thumbs if isinstance(t, dict) and isinstance(t.get("width"), int)],
+            key=lambda x: int(x.get("width") or 0),
+        )
+        if not ordered:
+            canonical = canonical_asset_filename(slug=view.slug, ext=view.ext)
+            return RedirectResponse(url=f"/assets/{view.id}/{canonical}", status_code=302)
+
+        picked = None
+        if width is None:
+            picked = ordered[0]
+        else:
+            for t in ordered:
+                if int(t.get("width") or 0) >= int(width):
+                    picked = t
+                    break
+            picked = picked or ordered[-1]
+
+        object_key = str((picked or {}).get("object_key") or "")
+        if not object_key:
+            canonical = canonical_asset_filename(slug=view.slug, ext=view.ext)
+            return RedirectResponse(url=f"/assets/{view.id}/{canonical}", status_code=302)
+
+        path = safe_object_key_to_path(self.settings.storage.local_root_dir, object_key)
+        if not path.is_file():
+            canonical = canonical_asset_filename(slug=view.slug, ext=view.ext)
+            return RedirectResponse(url=f"/assets/{view.id}/{canonical}", status_code=302)
+
+        media_type = str((picked or {}).get("mime") or "") or "application/octet-stream"
+        headers = build_asset_headers(view)
+        if view.checksum_sha256:
+            vname = str((picked or {}).get("name") or "thumb")
+            headers["ETag"] = f'"{view.checksum_sha256}:{vname}"'
+
         return await stream_file_response(
             path=path,
             content_type=media_type,

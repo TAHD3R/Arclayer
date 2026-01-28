@@ -1,10 +1,14 @@
 import { Masonry } from "antd";
 import { LayoutGroup } from "motion/react";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { DefaultPage } from "@/components/app/defaultPage";
-import { LoaderTwo } from "@/components/ui/loader";
+import { LoaderOne } from "@/components/ui/loader";
+import { listAdminAssets, type AdminAssetSummary } from "@/api/assets";
+import { getAppConfig } from "@/constants/app-config";
+import { notifyError } from "@/utils/notifications";
 import {
   AssetMasonryTile,
   AssetPreviewOverlay,
@@ -55,36 +59,109 @@ function buildMockAssets(): AssetMasonryItem[] {
   });
 }
 
+function formatBytes(bytes: number | undefined | null): string | undefined {
+  if (!bytes || bytes < 0) return undefined;
+  const units = ["B", "KB", "MB", "GB"] as const;
+  let v = bytes;
+  let idx = 0;
+  while (v >= 1024 && idx < units.length - 1) {
+    v /= 1024;
+    idx += 1;
+  }
+  const n = idx === 0 ? String(Math.round(v)) : v.toFixed(v < 10 ? 1 : 0);
+  return `${n} ${units[idx]}`;
+}
+
+function toMasonryItem(asset: AdminAssetSummary): AssetMasonryItem {
+  const name =
+    asset.originalFilename?.trim() ||
+    asset.title?.trim() ||
+    (asset.slug && asset.ext ? `${asset.slug}.${asset.ext}` : asset.id);
+
+  // Prefer thumbnails for waterfall view to save bandwidth.
+  const { apiBaseUrl } = getAppConfig();
+  const joinBase = (path: string) => {
+    if (!path) return path;
+    if (!apiBaseUrl) return path;
+    const base = apiBaseUrl.endsWith("/") ? apiBaseUrl.slice(0, -1) : apiBaseUrl;
+    const p = path.startsWith("/") ? path : `/${path}`;
+    return `${base}${p}`;
+  };
+
+  const previewPath = asset.publicThumbUrlPath
+    ? `${asset.publicThumbUrlPath}?w=320`
+    : asset.publicUrlPath || "";
+  const previewUrl = joinBase(previewPath);
+
+  return {
+    id: asset.id,
+    name,
+    description: undefined,
+    mimeType: asset.mime || undefined,
+    sizeText: formatBytes(asset.sizeBytes),
+    createdAtText: asset.createdAt?.slice(0, 10),
+    previewUrl: previewUrl || "",
+  };
+}
+
 export function AssetsView() {
   const { t } = useTranslation();
   const layoutIdBase = useId();
   const [active, setActive] = useState<AssetMasonryItem | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
 
-  const items = useMemo(() => buildMockAssets(), []);
-  const [visibleCount, setVisibleCount] = useState(() => Math.min(24, items.length));
+  const mockItems = useMemo(() => buildMockAssets(), []);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
+
+  const assetsQuery = useInfiniteQuery({
+    queryKey: ["assets", "list", { purpose: "library", visibility: "public" }],
+    queryFn: async ({ pageParam }) =>
+      listAdminAssets({
+        page: typeof pageParam === "number" ? pageParam : 1,
+        size: 24,
+        purpose: "library",
+        visibility: "public",
+        ordering: "-created_at",
+      }),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => lastPage.next ?? undefined,
+    staleTime: 30 * 1000,
+    retry: 1,
+  });
+
+  useEffect(() => {
+    if (!assetsQuery.isError) return;
+    notifyError(assetsQuery.error);
+  }, [assetsQuery.error, assetsQuery.isError]);
+
+  const items = useMemo<AssetMasonryItem[]>(() => {
+    if (!assetsQuery.data) return mockItems;
+    const rows = assetsQuery.data.pages.flatMap((p) => p.items);
+    const mapped = rows.map(toMasonryItem).filter((x) => x.previewUrl);
+    return mapped.length ? mapped : mockItems;
+  }, [assetsQuery.data, mockItems]);
 
   useEffect(() => {
     const el = sentinelRef.current;
     if (!el) return;
-    if (visibleCount >= items.length) return;
+    if (assetsQuery.hasNextPage !== true) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
         const entry = entries[0];
         if (!entry?.isIntersecting) return;
-        setVisibleCount((prev) => Math.min(items.length, prev + 24));
+        if (assetsQuery.isFetchingNextPage) return;
+        assetsQuery.fetchNextPage().catch(() => {});
       },
       { root: null, rootMargin: "800px", threshold: 0 },
     );
 
     observer.observe(el);
     return () => observer.disconnect();
-  }, [items.length, visibleCount]);
+  }, [assetsQuery.hasNextPage, assetsQuery.isFetchingNextPage, assetsQuery.fetchNextPage]);
 
   return (
-    <DefaultPage width="full" title={t("common:NAV_ASSETS")}>
+    <DefaultPage title={t("common:NAV_ASSETS")}>
       <LayoutGroup id={`asset-library-${layoutIdBase}`}>
         <AssetPreviewOverlay
           active={active}
@@ -94,8 +171,8 @@ export function AssetsView() {
 
         <Masonry
           gutter={[16, 16]}
-          columns={{ xs: 1, sm: 2, md: 3, lg: 4, xl: 4, xxl: 4 }}
-          items={items.slice(0, visibleCount).map((it) => ({ key: it.id, data: it }))}
+          columns={{ xs: 1, sm: 2, md: 3 }}
+          items={items.map((it) => ({ key: it.id, data: it }))}
           itemRender={(info) => (
             <AssetMasonryTile
               asset={info.data}
@@ -115,9 +192,9 @@ export function AssetsView() {
           )}
         />
 
-        {visibleCount < items.length ? (
+        {assetsQuery.isFetchingNextPage || assetsQuery.hasNextPage ? (
           <div ref={sentinelRef} className="py-8 flex justify-center">
-            <LoaderTwo />
+            <LoaderOne />
           </div>
         ) : null}
       </LayoutGroup>

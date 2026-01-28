@@ -31,6 +31,7 @@ dependencies = [
   "setuptools>=80.9.0",
   "fastapi-mail>=1.6.1",
   "python-multipart>=0.0.21",
+  "pillow>=11.1.0",
 ]
 
 [dependency-groups]

@@ -33,6 +33,12 @@ class AssetRecord(BaseModel):
 
     org_id = fields.UUIDField(db_index=True)
     owner_user_id = fields.UUIDField(null=True, db_index=True)
+    folder = fields.ForeignKeyField(
+        "models.AssetFolderRecord",
+        related_name="assets",
+        null=True,
+        on_delete=fields.SET_NULL,
+    )
 
     purpose = fields.CharEnumField(AssetPurpose, db_index=True)
     visibility = fields.CharEnumField(AssetVisibility, default=AssetVisibility.PUBLIC, db_index=True)

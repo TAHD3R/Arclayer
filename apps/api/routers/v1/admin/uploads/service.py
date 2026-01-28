@@ -15,6 +15,8 @@ from apps.api.common.utils.ids import uuid7
 from apps.api.config import Settings
 from apps.api.core.exceptions import BadRequest, NotFound
 from apps.api.core.i18n import t
+from apps.api.core.logging import get_logger
+from apps.api.infra.assets.thumbnails import generate_image_thumbnails
 from apps.api.infra.storage.local import LocalStorageProvider, safe_object_key_to_path
 from apps.api.infra.storage.merge import merge_parts_to_file
 from apps.api.models.asset import AssetPurpose, AssetRecord, AssetVisibility
@@ -26,6 +28,10 @@ from apps.api.routers.v1.admin.uploads.policy import (
     validate_upload_metadata,
 )
 from apps.api.routers.v1.admin.uploads.repository import UploadsRepository
+
+logger = get_logger(__name__)
+
+_IMAGE_EXTS = {"jpg", "jpeg", "png", "webp", "gif", "bmp", "tif", "tiff", "avif"}
 
 
 def _ts(key: str, default: str) -> str:
@@ -218,6 +224,7 @@ class UploadsService(BaseService):
             id=asset_id,
             org_id=org_id,
             owner_user_id=session.actor_user_id,
+            folder_id=session.target_folder_id,
             purpose=purpose,
             visibility=visibility,
             indexable=indexable,
@@ -321,3 +328,61 @@ class UploadsService(BaseService):
         except Exception:
             pass
         return session
+
+    async def post_process_asset(self, *, org_id: UUID, asset_id: UUID) -> None:
+        """
+        Best-effort background post-processing.
+
+        Current scope:
+        - Generate image thumbnails (variants) to reduce bandwidth for the asset library waterfall view.
+        """
+
+        asset = await AssetRecord.get_or_none(id=asset_id, org_id=org_id, deleted_at=None)
+        if asset is None:
+            return
+
+        # Only local provider for now.
+        if asset.storage_provider != "local":
+            return
+
+        # Skip if already generated.
+        if isinstance(asset.variants, dict) and asset.variants.get("thumbnails"):
+            return
+
+        ext = (asset.ext or "").lstrip(".").lower()
+        if not ((asset.mime or "").startswith("image/") or ext in _IMAGE_EXTS):
+            return
+
+        in_path = safe_object_key_to_path(self.settings.storage.local_root_dir, asset.object_key)
+        if not in_path.is_file():
+            return
+
+        def _out_path_for_width(width: int, *, alpha: bool) -> tuple[Path, str]:
+            out_ext = "png" if alpha else "jpg"
+            key = f"org/{org_id}/assets/{asset_id}/thumb-{width}.{out_ext}"
+            return safe_object_key_to_path(self.settings.storage.local_root_dir, key), key
+
+        try:
+            variants_payload, meta_payload = generate_image_thumbnails(
+                in_path=in_path,
+                out_path_for_width=_out_path_for_width,
+                widths=[320, 640],
+            )
+        except Exception as exc:
+            logger.warning(
+                "Asset thumbnail generation failed",
+                asset_id=str(asset_id),
+                org_id=str(org_id),
+                error=str(exc),
+            )
+            return
+
+        variants: dict = asset.variants if isinstance(asset.variants, dict) else {}
+        variants.update(variants_payload)
+
+        meta: dict = asset.meta if isinstance(asset.meta, dict) else {}
+        meta.update(meta_payload)
+
+        asset.variants = variants
+        asset.meta = meta
+        await asset.save(update_fields=["variants", "meta", "updated_at"])
