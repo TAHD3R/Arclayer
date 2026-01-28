@@ -39,6 +39,34 @@ def build_core_settings_schema() -> ConfigSchema:
                 ],
             ),
             ConfigSection(
+                id="localization",
+                title="Localization",
+                title_i18n="settings:LOCALIZATION_TITLE",
+                fields=[
+                    ConfigField(
+                        key="locale",
+                        type="str",
+                        default="zh-CN",
+                        label="Default language",
+                        label_i18n="settings:LOCALIZATION_LOCALE_LABEL",
+                    ),
+                    ConfigField(
+                        key="timezone",
+                        type="str",
+                        default="UTC",
+                        label="Timezone",
+                        label_i18n="settings:LOCALIZATION_TIMEZONE_LABEL",
+                    ),
+                    ConfigField(
+                        key="date_format",
+                        type="str",
+                        default="YYYY-MM-DD",
+                        label="Date format",
+                        label_i18n="settings:LOCALIZATION_DATE_FORMAT_LABEL",
+                    ),
+                ],
+            ),
+            ConfigSection(
                 id="seo",
                 title="SEO",
                 title_i18n="settings:SEO_TITLE",

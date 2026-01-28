@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SetupRouteImport } from './routes/setup'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as IndexRouteImport } from './routes/index'
@@ -27,6 +28,11 @@ import { Route as SettingsMaintenanceStatusIndexRouteImport } from './routes/set
 import { Route as SettingsMaintenanceSnapshotsIndexRouteImport } from './routes/settings/maintenance/snapshots/index'
 import { Route as SettingsMaintenanceAuditLogIndexRouteImport } from './routes/settings/maintenance/audit-log/index'
 
+const SetupRoute = SetupRouteImport.update({
+  id: '/setup',
+  path: '/setup',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
@@ -122,6 +128,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/setup': typeof SetupRoute
   '/assets/': typeof AssetsIndexRoute
   '/appearance/navigation/': typeof AppearanceNavigationIndexRoute
   '/appearance/styles/': typeof AppearanceStylesIndexRoute
@@ -141,6 +148,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/setup': typeof SetupRoute
   '/assets': typeof AssetsIndexRoute
   '/appearance/navigation': typeof AppearanceNavigationIndexRoute
   '/appearance/styles': typeof AppearanceStylesIndexRoute
@@ -161,6 +169,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/setup': typeof SetupRoute
   '/assets/': typeof AssetsIndexRoute
   '/appearance/navigation/': typeof AppearanceNavigationIndexRoute
   '/appearance/styles/': typeof AppearanceStylesIndexRoute
@@ -182,6 +191,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/reset-password'
+    | '/setup'
     | '/assets/'
     | '/appearance/navigation/'
     | '/appearance/styles/'
@@ -201,6 +211,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/reset-password'
+    | '/setup'
     | '/assets'
     | '/appearance/navigation'
     | '/appearance/styles'
@@ -220,6 +231,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/reset-password'
+    | '/setup'
     | '/assets/'
     | '/appearance/navigation/'
     | '/appearance/styles/'
@@ -240,6 +252,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LoginRoute: typeof LoginRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  SetupRoute: typeof SetupRoute
   AssetsIndexRoute: typeof AssetsIndexRoute
   AppearanceNavigationIndexRoute: typeof AppearanceNavigationIndexRoute
   AppearanceStylesIndexRoute: typeof AppearanceStylesIndexRoute
@@ -258,6 +271,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/setup': {
+      id: '/setup'
+      path: '/setup'
+      fullPath: '/setup'
+      preLoaderRoute: typeof SetupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reset-password': {
       id: '/reset-password'
       path: '/reset-password'
@@ -384,6 +404,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LoginRoute: LoginRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  SetupRoute: SetupRoute,
   AssetsIndexRoute: AssetsIndexRoute,
   AppearanceNavigationIndexRoute: AppearanceNavigationIndexRoute,
   AppearanceStylesIndexRoute: AppearanceStylesIndexRoute,

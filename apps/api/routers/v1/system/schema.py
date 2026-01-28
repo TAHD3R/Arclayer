@@ -46,3 +46,13 @@ class SystemSetupResult(BaseSchema):
     organization_id: str | None = Field(default=None, description="Created organization id (if any).")
     organization_slug: str | None = Field(default=None, description="Created organization slug (if any).")
     organization_name: str | None = Field(default=None, description="Created organization name (if any).")
+
+
+class SystemSetupStatus(BaseSchema):
+    initialized: bool = Field(..., description="Whether the system has been initialized.")
+    setup_enabled: bool = Field(..., description="Whether the setup endpoint is enabled.")
+    access: str = Field(
+        ...,
+        description="Setup access mode: local_only (no token configured) or token (token required).",
+        examples=["local_only", "token"],
+    )

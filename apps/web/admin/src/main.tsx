@@ -9,6 +9,8 @@ import { router } from "@/routes/-router";
 import { setUnauthorizedHandler } from "@/lib/http/client";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { initializePreferences, usePreferencesStore } from "@/stores/usePreferenceStore";
+import { getSetupStatus } from "@/api/system";
+import { useSetupWizardStore } from "@/stores/useSetupWizardStore";
 
 async function bootstrap() {
   initializePreferences();
@@ -17,11 +19,30 @@ async function bootstrap() {
   const { locale } = usePreferencesStore.getState();
   await initI18n(locale);
 
+  // Setup status is needed for the global route guard. Fetch it before rendering so
+  // `__root.beforeLoad` can synchronously read the result and avoid redirect flicker.
+  try {
+    const status = await getSetupStatus();
+    useSetupWizardStore.getState().setSystemStatus(status);
+    // When system is not initialized (fresh DB), any persisted auth tokens are guaranteed to be stale.
+    // Clearing them avoids confusing redirects and noisy 401s.
+    if (status.initialized === false) {
+      useAuthStore.getState().clear();
+    }
+  } catch {
+    // Degrade gracefully: when API is unreachable, keep status unknown and let auth guard handle routing.
+    useSetupWizardStore.getState().setSystemStatus(null);
+  }
+
   setUnauthorizedHandler(() => {
     useAuthStore.getState().clear();
     // Avoid redirect loops on public auth pages.
     const current = `${window.location.pathname}${window.location.search}`;
-    if (window.location.pathname === "/login" || window.location.pathname === "/reset-password") {
+    if (
+      window.location.pathname === "/login" ||
+      window.location.pathname === "/reset-password" ||
+      window.location.pathname.startsWith("/setup")
+    ) {
       return;
     }
     void router.navigate({

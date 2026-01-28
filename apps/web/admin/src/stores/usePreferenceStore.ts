@@ -13,6 +13,12 @@ import { type ThemeMode } from "@celestial/ui-theme/antd";
 interface PreferencesState {
   themeMode: ThemeMode;
   locale: AppLocale;
+  /**
+   * Whether the user explicitly chose a locale:
+   * - set: user preference (client will send X-Locale)
+   * - null: no preference (client won't send X-Locale; server falls back to workspace default)
+   */
+  localePreference: AppLocale | null;
   setThemeMode: (mode: ThemeMode) => void;
   toggleThemeMode: () => void;
   setLocale: (locale: AppLocale) => void;
@@ -72,6 +78,7 @@ function applyLocaleToDom(locale: AppLocale) {
 export const usePreferencesStore = create<PreferencesState>((set, get) => ({
   themeMode: "light",
   locale: DEFAULT_LOCALE,
+  localePreference: null,
 
   setThemeMode: (mode) => {
     applyThemeModeToDom(mode);
@@ -88,7 +95,7 @@ export const usePreferencesStore = create<PreferencesState>((set, get) => ({
     const next = normalizeLocale(locale);
     applyLocaleToDom(next);
     persistLocale(next);
-    set({ locale: next });
+    set({ locale: next, localePreference: next });
     void i18n.changeLanguage(next);
   },
 }));
@@ -104,7 +111,22 @@ export function initializePreferences() {
 
   const initialThemeMode = getInitialThemeMode();
 
-  const initialLocale = getInitialLocale();
+  // Locale has 2 concepts:
+  // - locale: effective UI language used by admin app
+  // - localePreference: whether user explicitly set it (controls X-Locale header)
+  let localePreference: AppLocale | null = null;
+  let initialLocale: AppLocale = DEFAULT_LOCALE;
+  try {
+    const stored = window.localStorage.getItem(STORAGE_KEYS.locale);
+    if (stored) {
+      localePreference = normalizeLocale(stored);
+      initialLocale = localePreference;
+    } else {
+      initialLocale = getInitialLocale();
+    }
+  } catch {
+    initialLocale = getInitialLocale();
+  }
 
   applyThemeModeToDom(initialThemeMode);
   applyLocaleToDom(initialLocale);
@@ -112,6 +134,7 @@ export function initializePreferences() {
   usePreferencesStore.setState({
     themeMode: initialThemeMode,
     locale: initialLocale,
+    localePreference,
   });
 
   // Keep store in sync if something else toggles data-theme at runtime.

@@ -1,5 +1,4 @@
 import { type ReactNode } from "react";
-import { Typography } from "antd";
 import clsx from "clsx";
 
 import styles from "./styles/defaultPage.module.css";

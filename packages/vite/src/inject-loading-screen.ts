@@ -1,12 +1,15 @@
 import { type Plugin } from "vite";
 
 export interface InjectLoadingScreenOptions {
-  // Reserved for future (e.g. accessibility text or custom markup).
+  /**
+   * Text shown on the pre-React loading screen (usually product/app name).
+   * Keep it simple: this runs before React, so avoid WebFont-only designs and heavy JS animation.
+   */
   appName?: string;
 }
 
 export function injectLoadingScreen(options: InjectLoadingScreenOptions = {}): Plugin {
-  void options;
+  const appName = options.appName?.trim() ? options.appName.trim() : "Loading";
 
   const style = `
 #app-loading {
@@ -16,9 +19,11 @@ export function injectLoadingScreen(options: InjectLoadingScreenOptions = {}): P
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 16px;
   pointer-events: none;
   background: var(--background, #ffffff);
-  color: var(--primary, #1677ff);
+  color: var(--foreground, #111111);
+  --app-loading-ink: var(--primary, #1677ff);
   font-family: var(--font-sans, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif);
   z-index: 9999;
   opacity: 1;
@@ -27,125 +32,63 @@ export function injectLoadingScreen(options: InjectLoadingScreenOptions = {}): P
 }
 [data-theme="dark"] #app-loading {
   background: var(--background, #000000);
-  color: var(--primary, #1677ff);
+  color: var(--foreground, #e5e5e5);
 }
 #app-loading.is-hiding {
   opacity: 0;
 }
 
-#app-loading figure {
-  margin: 0;
-  position: relative;
-  width: 120px;
-  height: 120px;
-  border-radius: 150px;
-  box-sizing: border-box;
-  transform-origin: 50% 50%;
-  will-change: transform;
-  transform: rotate(0deg) scale(1.4, 1.4);
-  /* 10s/round: visible but not too distracting. */
-  animation: app-loading-rotation 10s infinite linear;
+/* HTML: <div class="loader"></div> */
+#app-loading .loader {
+  width: 55px;
+  aspect-ratio: 1;
+  --g1: conic-gradient(from 90deg at top 3px left 3px, transparent 90deg, var(--app-loading-ink) 0);
+  --g2: conic-gradient(from -90deg at bottom 3px right 3px, transparent 90deg, var(--app-loading-ink) 0);
+  background:
+    var(--g1), var(--g1), var(--g1), var(--g1),
+    var(--g2), var(--g2), var(--g2), var(--g2);
+  background-position: 0 0, 100% 0, 100% 100%, 0 100%;
+  background-size: 25px 25px;
+  background-repeat: no-repeat;
+  animation: l11 1.5s infinite;
 }
 
-#app-loading figure div {
-  position: absolute;
-  inset: 0;
-}
-
-#app-loading figure div:after {
-  content: "";
-  width: 20px;
-  height: 20px;
-  border: 1px solid currentColor;
-  box-sizing: border-box;
-  position: absolute;
-  left: 20px;
-  top: 20px;
-  animation: app-loading-shuffle 2s infinite;
-}
-
-#app-loading figure div:nth-child(1) {
-  transform: rotate(0deg);
-}
-#app-loading figure div:nth-child(1):after {
-  animation-delay: -0.5s;
-}
-#app-loading figure div:nth-child(2) {
-  transform: rotate(45deg);
-}
-#app-loading figure div:nth-child(2):after {
-  animation-delay: -1s;
-}
-#app-loading figure div:nth-child(3) {
-  transform: rotate(90deg);
-}
-#app-loading figure div:nth-child(3):after {
-  animation-delay: -1.5s;
-}
-#app-loading figure div:nth-child(4) {
-  transform: rotate(135deg);
-}
-#app-loading figure div:nth-child(4):after {
-  animation-delay: -2s;
-}
-#app-loading figure div:nth-child(5) {
-  transform: rotate(180deg);
-}
-#app-loading figure div:nth-child(5):after {
-  animation-delay: -2.5s;
-}
-#app-loading figure div:nth-child(6) {
-  transform: rotate(225deg);
-}
-#app-loading figure div:nth-child(6):after {
-  animation-delay: -3s;
-}
-#app-loading figure div:nth-child(7) {
-  transform: rotate(270deg);
-}
-#app-loading figure div:nth-child(7):after {
-  animation-delay: -3.5s;
-}
-#app-loading figure div:nth-child(8) {
-  transform: rotate(315deg);
-}
-#app-loading figure div:nth-child(8):after {
-  animation-delay: -4s;
-}
-
-@keyframes app-loading-rotation {
+@keyframes l11 {
+  0% {
+    background-size: 35px 15px, 15px 15px, 15px 35px, 35px 35px;
+  }
+  25% {
+    background-size: 35px 35px, 15px 35px, 15px 15px, 35px 15px;
+  }
+  50% {
+    background-size: 15px 35px, 35px 35px, 35px 15px, 15px 15px;
+  }
+  75% {
+    background-size: 15px 15px, 35px 15px, 35px 35px, 15px 35px;
+  }
   100% {
-    transform: rotate(-360deg) scale(1.4, 1.4);
+    background-size: 35px 15px, 15px 15px, 15px 35px, 35px 35px;
   }
 }
 
-@keyframes app-loading-shuffle {
-  50% {
-    transform: scale(0.4, 0.4) rotate(-90deg);
-    border-radius: 50%;
+@media (max-width: 480px) {
+  #app-loading .loader {
+    width: 48px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  #app-loading figure {
-    animation: none;
-  }
-  #app-loading figure div:after {
-    animation: none;
-  }
   #app-loading {
     transition: opacity 0ms linear;
+  }
+  #app-loading .loader {
+    animation: none;
   }
 }
 `.trim();
 
   const innerHtml = `
-<figure aria-hidden="true">
-  <div></div><div></div>
-  <div></div><div></div>
-  <div></div><div></div>
-  <div></div><div></div>
-</figure>
+<div class="loader" role="status" aria-label="${escapeHtml(appName)}" aria-live="polite"></div>
 `.trim();
 
   const script = `
@@ -220,4 +163,13 @@ export function injectLoadingScreen(options: InjectLoadingScreenOptions = {}): P
       ];
     },
   };
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
 }

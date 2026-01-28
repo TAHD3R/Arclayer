@@ -15,14 +15,18 @@ _LOCALE_PATHS: list[Path] = [LOCALES_DIR]
 _current_locale: ContextVar[str] = ContextVar("current_locale", default=DEFAULT_LOCALE)
 
 
-def get_request_locale(request: Request | None) -> str:
+def get_request_locale(request: Request | None, *, default_locale: str | None = None) -> str:
+    fallback = _normalize_locale(default_locale) if default_locale else DEFAULT_LOCALE
     if request is None:
-        return DEFAULT_LOCALE
+        return fallback
     value = request.headers.get("X-Locale")
     if not value:
         value = request.query_params.get("lang")
-    if not value:
+    # Only use Accept-Language when there is no explicit locale AND no workspace default.
+    if not value and default_locale is None:
         value = _parse_accept_language(request.headers.get("Accept-Language"))
+    if not value:
+        return fallback
     return _normalize_locale(value)
 
 

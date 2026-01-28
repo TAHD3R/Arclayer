@@ -7,7 +7,7 @@ from apps.api.core.exceptions import Forbidden, ServiceUnavailable
 from apps.api.core.i18n import t
 from apps.api.http.response import Response, ResponseModel
 from apps.api.plugin.manager import PluginManager
-from apps.api.routers.v1.system.schema import SystemSetupRequest, SystemSetupResult
+from apps.api.routers.v1.system.schema import SystemSetupRequest, SystemSetupResult, SystemSetupStatus
 from apps.api.routers.v1.system.service import SystemSetupService
 
 router = APIRouter(tags=["System: Core Settings"])
@@ -33,6 +33,32 @@ def get_setup_service(
 def _is_local_request(request: Request) -> bool:
     host = getattr(getattr(request, "client", None), "host", None)
     return host in {"127.0.0.1", "::1", "localhost"}
+
+
+@router.get("/setup/status", response_model=ResponseModel[SystemSetupStatus])
+async def setup_status(
+    settings: Settings = Depends(get_settings),
+) -> ResponseModel[SystemSetupStatus]:
+    """
+    Lightweight probe endpoint for admin frontend to decide whether to redirect to /setup.
+
+    Note: This endpoint is intentionally read-only and safe to expose publicly.
+    """
+
+    # Keep this endpoint dependency-light: do not require PluginManager/service wiring.
+    from apps.api.models.user import User
+    from apps.api.settings.crypto import master_key_exists
+
+    initialized = master_key_exists(settings.setup.master_key_path) or await User.all().exists()
+    expected = settings.setup.token.get_secret_value() if settings.setup.token is not None else ""
+    access = "token" if expected else "local_only"
+    return Response.success(
+        data=SystemSetupStatus(
+            initialized=initialized,
+            setup_enabled=settings.setup.enabled,
+            access=access,
+        )
+    )
 
 
 @router.post("/setup", response_model=ResponseModel[SystemSetupResult])

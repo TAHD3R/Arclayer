@@ -6,7 +6,6 @@ import { usePreferencesStore } from "@/stores/usePreferenceStore";
 import { AdminLocaleToggle } from "@/components/app/adminToggleLocales";
 import { AdminThemeModeToggle } from "@/components/app/adminToggleTheme";
 import { RouteTransition } from "@/components/app/routeTransition";
-import { LoaderOne } from "@/components/ui/loader";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 
 const ColorBendsLazy = lazy(() => import("@/components/ui/color-bends"));
@@ -50,13 +49,7 @@ export function AuthLayout({ children }: PropsWithChildren) {
     <div className="fixed inset-0 w-full overflow-hidden grid grid-cols-1 lg:grid-cols-2 bg-(--color-background) text-(--color-foreground)">
       <div className="relative hidden lg:block min-h-0 h-full overflow-hidden bg-(--color-background)">
         {isLargeScreen && !reducedMotion ? (
-          <Suspense
-            fallback={
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none bg-(--color-background)">
-                <LoaderOne />
-              </div>
-            }
-          >
+          <Suspense fallback={<div className="absolute inset-0 bg-(--color-background)" />}>
             <ColorBendsLazy
               colors={AUTH_BEND_COLORS}
               rotation={45}
@@ -80,7 +73,7 @@ export function AuthLayout({ children }: PropsWithChildren) {
               style={{
                 margin: 0,
                 color: isDark ? "rgba(255,255,255,0.96)" : "rgba(20,20,20,0.96)",
-                fontSize: 64,
+                fontSize: 52,
                 fontWeight: 700,
                 lineHeight: 1.05,
                 letterSpacing: -0.6,
@@ -96,7 +89,7 @@ export function AuthLayout({ children }: PropsWithChildren) {
                 marginTop: 14,
                 marginBottom: 0,
                 color: isDark ? "rgba(255,255,255,0.78)" : "rgba(20,20,20,0.78)",
-                fontSize: 24,
+                fontSize: 20,
                 lineHeight: 1.6,
                 textShadow: isDark
                   ? "0 18px 60px rgba(0,0,0,0.35)"
@@ -119,7 +112,9 @@ export function AuthLayout({ children }: PropsWithChildren) {
 
         <div className="flex-1 min-h-0 flex items-center justify-center overflow-hidden p-8">
           <div className="w-full max-w-120">
-            <RouteTransition className="w-full">{children}</RouteTransition>
+            <RouteTransition className="w-full" variant="fade">
+              {children}
+            </RouteTransition>
           </div>
         </div>
 

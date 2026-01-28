@@ -10,6 +10,7 @@ type RouteTransitionProps = PropsWithChildren<{
   className?: string;
   pendingMs?: number;
   pendingMinMs?: number;
+  variant?: "slide" | "fade";
 }>;
 
 function DefaultRoutePending() {
@@ -25,6 +26,7 @@ export function RouteTransition({
   className,
   pendingMs = 1000,
   pendingMinMs = 300,
+  variant = "slide",
 }: RouteTransitionProps) {
   const reducedMotion = usePrefersReducedMotion();
 
@@ -112,9 +114,21 @@ export function RouteTransition({
           <motion.div
             key={displayedPathname}
             className="w-full h-full"
-            initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={reducedMotion ? { opacity: 1 } : { opacity: 0, y: -6 }}
+            initial={
+              reducedMotion
+                ? { opacity: 1 }
+                : variant === "fade"
+                  ? { opacity: 0 }
+                  : { opacity: 0, y: 6 }
+            }
+            animate={variant === "fade" ? { opacity: 1 } : { opacity: 1, y: 0 }}
+            exit={
+              reducedMotion
+                ? { opacity: 1 }
+                : variant === "fade"
+                  ? { opacity: 0 }
+                  : { opacity: 0, y: -6 }
+            }
           >
             {displayedChildren}
           </motion.div>

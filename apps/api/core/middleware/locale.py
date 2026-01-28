@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import time
+
 from fastapi import Request
 from starlette.types import ASGIApp, Receive, Scope, Send
 
@@ -23,9 +25,42 @@ class LocaleMiddleware:
             return
 
         request = Request(scope, receive=receive)
-        locale = get_request_locale(request)
+        # If the client doesn't specify locale, fall back to core settings (best-effort).
+        default_locale = await _get_core_default_locale(request)
+        locale = get_request_locale(request, default_locale=default_locale)
         token = set_current_locale(locale)
         try:
             await self.app(scope, receive, send)
         finally:
             reset_current_locale(token)
+
+
+async def _get_core_default_locale(request: Request) -> str | None:
+    """
+    Best-effort: read default locale from core settings (DB), with a tiny in-memory TTL cache.
+    """
+
+    try:
+        # Use app.state to avoid global state across processes.
+        state = request.app.state
+        now = time.monotonic()
+        cache = getattr(state, "_core_default_locale_cache", None)
+        if isinstance(cache, dict):
+            expires_at = cache.get("expires_at")
+            if isinstance(expires_at, (int, float)) and expires_at > now:
+                cached = cache.get("value")
+                return cached if isinstance(cached, str) else None
+
+        from apps.api.models.setting import SettingRecord
+
+        record = await SettingRecord.get_or_none(namespace="core")
+        value = record.value if record and isinstance(record.value, dict) else {}
+        section = value.get("localization") if isinstance(value, dict) else None
+        locale = section.get("locale") if isinstance(section, dict) else None
+        locale_str = locale if isinstance(locale, str) and locale else None
+
+        # Cache for a short TTL to reduce DB reads under load.
+        state._core_default_locale_cache = {"value": locale_str, "expires_at": now + 5.0}
+        return locale_str
+    except Exception:
+        return None

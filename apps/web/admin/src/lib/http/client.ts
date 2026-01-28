@@ -67,9 +67,12 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
 
   headers.set("accept", "application/json");
 
-  const locale = usePreferencesStore.getState().locale;
-  headers.set("x-locale", locale);
-  headers.set("accept-language", locale);
+  const prefs = usePreferencesStore.getState();
+  // Always send Accept-Language for best-effort; only send X-Locale when user explicitly chose.
+  headers.set("accept-language", prefs.locale);
+  if (prefs.localePreference) {
+    headers.set("x-locale", prefs.localePreference);
+  }
 
   const token = useAuthStore.getState().accessToken;
   const hadAccessToken = !!token;
@@ -204,9 +207,11 @@ async function refreshAccessToken(refreshToken: string): Promise<boolean> {
   headers.set("accept", "application/json");
   headers.set("content-type", "application/json");
 
-  const locale = usePreferencesStore.getState().locale;
-  headers.set("x-locale", locale);
-  headers.set("accept-language", locale);
+  const prefs = usePreferencesStore.getState();
+  headers.set("accept-language", prefs.locale);
+  if (prefs.localePreference) {
+    headers.set("x-locale", prefs.localePreference);
+  }
 
   const res = await fetch(url, {
     method: "POST",
