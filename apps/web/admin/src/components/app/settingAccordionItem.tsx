@@ -74,7 +74,6 @@ export function SettingAccordionItem(props: SettingAccordionItemProps) {
               {hasDescription ? props.description : null}
               {shouldShowSummary ? (
                 <>
-                  {hasDescription ? <span className="mx-2">·</span> : null}
                   <span className="mr-1">{summaryPrefix}</span>
                   <span>{props.summary ?? "-"}</span>
                 </>
