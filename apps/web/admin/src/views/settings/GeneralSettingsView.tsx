@@ -1,4 +1,4 @@
-import { Alert, Button, Form, Input, Select, Spin } from "antd";
+import { Alert, Button, Form, Input, Select } from "antd";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -15,6 +15,8 @@ import { SettingAccordionItem } from "@/components/app/settingAccordionItem";
 import { getCoreSettings, patchCoreSettings } from "@/api/settings";
 import { notifyError, notifySuccessText } from "@/utils/notifications";
 import { type AppLocale } from "@/utils/i18n";
+import RefreshIcon from "@/components/ui/icons/refresh-icon";
+import { LoaderOne } from "@/components/ui/loader";
 
 type GeneralSettingsFormValues = {
   siteName: string;
@@ -339,16 +341,17 @@ export function GeneralSettingsView() {
     >
       {coreQuery.isLoading ? (
         <div className="py-10 flex justify-center">
-          <Spin />
+          <LoaderOne />
         </div>
       ) : coreQuery.isError || !coreQuery.data ? (
         <Alert
           type="error"
           showIcon
-          message={t("common:REQUEST_FAILED")}
+          title={t("common:REQUEST_FAILED")}
           description={t("common:SETTINGS_LOAD_FAILED_DESC")}
           action={
-            <Button size="small" onClick={() => void coreQuery.refetch()}>
+            <Button onClick={() => void coreQuery.refetch()}>
+              <RefreshIcon size={16} />
               {t("common:REFRESH")}
             </Button>
           }

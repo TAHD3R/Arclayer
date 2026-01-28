@@ -141,7 +141,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
         }
       >
         <SidebarHeader className="flex flex-col items-center gap-4 w-full px-0 pt-16 pb-8">
-          <AdminLogo ariaLabel="Celestial Admin" />
+          <AdminLogo ariaLabel="Celestial" />
           <h2 className="font-bold line-clamp-2 text-center select-none max-w-2/3 wrap-break-word">
             {siteName || brandTitle}
           </h2>

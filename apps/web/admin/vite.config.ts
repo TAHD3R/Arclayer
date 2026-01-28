@@ -28,7 +28,7 @@ export default defineConfig(({ mode }) => {
       }),
       injectAppConfig({
         defaults: {
-          title: env.VITE_APP_TITLE || "Celestial Admin",
+          title: env.VITE_APP_TITLE || "Celestial",
           apiBaseUrl: env.VITE_API_BASE_URL || "",
           apiPrefix: env.VITE_API_PREFIX || "/api/v1",
         },
