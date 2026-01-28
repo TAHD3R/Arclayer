@@ -69,11 +69,27 @@ async def test_org_selection_required_when_multi_org(prepared_db) -> None:
                 assert str(org1.id) in candidates
                 assert str(org2.id) in candidates
 
+                # Admin entrypoints should also be blocked without org selection (strategy B).
+                resp = await client.get("/api/v1/admin/menus/me")
+                assert resp.status_code == 409
+                assert resp.json()["error"] == "ORG_SELECTION_REQUIRED"
+
+                resp = await client.get("/api/v1/admin/users?page=1&size=10")
+                assert resp.status_code == 409
+                assert resp.json()["error"] == "ORG_SELECTION_REQUIRED"
+
                 # With X-Org-Id, request should succeed.
                 resp = await client.get("/api/v1/auth/me/authz", headers={"X-Org-Id": str(org1.id)})
                 assert resp.status_code == 200
                 data = resp.json()["data"]
                 assert data["userId"] == str(user.id)
+
+                # With X-Org-Id, admin user list should be accessible.
+                resp = await client.get(
+                    "/api/v1/admin/users?page=1&size=10",
+                    headers={"X-Org-Id": str(org1.id)},
+                )
+                assert resp.status_code == 200
     finally:
         # Restore previous engine (usually RBACAuthorizationEngine).
         if prev is None:

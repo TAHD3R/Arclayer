@@ -73,18 +73,34 @@ def _build_response(
     message: str,
     error: str | None,
     details: Any | None,
+    meta: dict[str, Any] | None = None,
     debug: bool,
     include_details: bool = False,
     headers: dict[str, str] | None = None,
 ) -> ORJSONResponse:
-    meta: dict[str, Any] | None = _trace_meta(request) if debug else None
+    # meta is used for "client-visible" structured metadata (e.g. org candidates).
+    # Trace info is only included when debug is enabled to avoid leaking internals.
+    out_meta: dict[str, Any] | None = None
+
+    if meta is not None:
+        out_meta = _sanitize_details(meta)  # type: ignore[assignment]
+        if not isinstance(out_meta, dict):
+            # Defensive: meta should always be a dict, but don't break responses if misused.
+            out_meta = {"meta": out_meta}
+
+    if debug:
+        trace = _trace_meta(request)
+        out_meta = {**(out_meta or {}), **trace}
+
     if (debug or include_details) and details is not None:
-        if meta is None:
-            meta = {}
-        meta = {**meta, "details": _sanitize_details(details)}
+        out_meta = {**(out_meta or {}), "details": _sanitize_details(details)}
+
+    if out_meta == {}:
+        out_meta = None
+
     locale = get_request_locale(request)
     message = localize_message(message, error=error, locale=locale)
-    payload = Response.fail(message=message, error=error, meta=meta)
+    payload = Response.fail(message=message, error=error, meta=out_meta)
     return ORJSONResponse(payload.model_dump(), status_code=status_code, headers=headers)
 
 
@@ -202,6 +218,7 @@ def init_exception_handlers(app: FastAPI, settings: Settings) -> None:
             message=exc.message,
             error=exc.error,
             details=exc.details,
+            meta=exc.meta,
             debug=debug,
             headers=exc.headers,
         )

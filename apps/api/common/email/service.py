@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from pathlib import Path
 from uuid import uuid4
 
@@ -267,4 +268,165 @@ class EmailService:
                 cid=cid,
                 error=str(exc),
                 user_id=user_id,
+            )
+
+    async def send_invitation(
+        self,
+        *,
+        recipient: str,
+        invite_url: str | None,
+        invite_token: str,
+        expires_at: datetime | None,
+        organization_name: str | None = None,
+        invited_by_user_id: str | None = None,
+        locale: str | None = None,
+    ) -> None:
+        if not self._enabled():
+            self.logger.info(
+                "Attempt to send invitation email while email sending is disabled",
+                recipient=recipient,
+                type="invitation",
+                organization_name=organization_name,
+                invited_by_user_id=invited_by_user_id,
+            )
+            return
+        if not _valid_recipient(recipient):
+            self.logger.warning(
+                "Recipient email is invalid, skip sending mail",
+                recipient=recipient,
+                type="invitation",
+                organization_name=organization_name,
+                invited_by_user_id=invited_by_user_id,
+            )
+            return
+
+        cid = uuid4().hex
+        token_hint = f"{invite_token[:6]}...{invite_token[-4:]}" if len(invite_token) >= 10 else invite_token
+        try:
+            fm = get_fast_mail(self.settings.email)
+
+            org_display = (organization_name or "organization").strip() or "organization"
+            subject = t(
+                "auth",
+                "INVITE_EMAIL_SUBJECT",
+                default="邀请加入 {organization_name}",
+                locale=locale,
+                organization_name=org_display,
+            )
+            title = t(
+                "auth",
+                "INVITE_EMAIL_TITLE",
+                default="你已被邀请加入 {organization_name}",
+                locale=locale,
+                organization_name=org_display,
+            )
+            intro = t(
+                "auth",
+                "INVITE_EMAIL_INTRO",
+                default="请使用下方链接完成账号创建并加入组织。",
+                locale=locale,
+            )
+            cta = t(
+                "auth",
+                "INVITE_EMAIL_CTA",
+                default="接受邀请",
+                locale=locale,
+            )
+            fallback = t(
+                "auth",
+                "INVITE_EMAIL_FALLBACK",
+                default="如果按钮无法使用，你也可以使用以下 Token：",
+                locale=locale,
+            )
+
+            if expires_at is None:
+                expires_notice = t(
+                    "auth",
+                    "INVITE_EMAIL_EXPIRES_NEVER",
+                    default="该邀请链接不会过期。",
+                    locale=locale,
+                )
+            else:
+                expires_notice = t(
+                    "auth",
+                    "INVITE_EMAIL_EXPIRES_AT",
+                    default="该邀请链接将于 {expires_at} 过期（UTC）。",
+                    locale=locale,
+                    expires_at=expires_at.astimezone(UTC).isoformat(),
+                )
+
+            ignore_notice = t(
+                "auth",
+                "INVITE_EMAIL_IGNORE",
+                default="如非本人操作，请忽略本邮件。",
+                locale=locale,
+            )
+
+            if invite_url:
+                plain_body = t(
+                    "auth",
+                    "INVITE_EMAIL_PLAIN_WITH_LINK",
+                    default="组织：{organization_name}\n邀请链接：{invite_url}\nToken：{invite_token}\n{expires_notice}\n{ignore_notice}",
+                    locale=locale,
+                    organization_name=org_display,
+                    invite_url=invite_url,
+                    invite_token=invite_token,
+                    expires_notice=expires_notice,
+                    ignore_notice=ignore_notice,
+                )
+            else:
+                plain_body = t(
+                    "auth",
+                    "INVITE_EMAIL_PLAIN",
+                    default="组织：{organization_name}\nToken：{invite_token}\n{expires_notice}\n{ignore_notice}",
+                    locale=locale,
+                    organization_name=org_display,
+                    invite_token=invite_token,
+                    expires_notice=expires_notice,
+                    ignore_notice=ignore_notice,
+                )
+
+            message = MessageSchema(
+                subject=subject,
+                recipients=[recipient],
+                template_body={
+                    "title": title,
+                    "intro": intro,
+                    "cta": cta,
+                    "fallback": fallback,
+                    "expires_notice": expires_notice,
+                    "ignore_notice": ignore_notice,
+                    "invite_url": invite_url,
+                    "invite_token": invite_token,
+                    "organization_name": org_display,
+                },
+                subtype=MessageType.html,
+                alternative_body=plain_body,
+                multipart_subtype=MultipartSubtypeEnum.alternative,
+            )
+            await fm.send_message(
+                message,
+                html_template="invitation.html",
+                plain_template="invitation.txt",
+            )
+
+            self.logger.info(
+                "Successfully sent invitation email",
+                recipient=recipient,
+                type="invitation",
+                cid=cid,
+                token_hint=token_hint,
+                organization_name=org_display,
+                invited_by_user_id=invited_by_user_id,
+            )
+        except Exception as exc:
+            self.logger.exception(
+                "Failed to send invitation email",
+                recipient=recipient,
+                type="invitation",
+                cid=cid,
+                token_hint=token_hint,
+                organization_name=organization_name,
+                invited_by_user_id=invited_by_user_id,
+                error=str(exc),
             )

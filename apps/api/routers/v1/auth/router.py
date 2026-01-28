@@ -3,20 +3,22 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Request
+from tortoise.transactions import in_transaction
 
 from apps.api.common.schemas import AuthzSnapshot
 from apps.api.config import Settings, get_settings
 from apps.api.core.authz import get_authz_snapshot_provider, require_permission_strict
 from apps.api.core.exceptions import BadRequest, Conflict, Forbidden, NotFound, ServiceUnavailable
 from apps.api.core.i18n import get_current_locale, t
-from apps.api.core.organization.invitations import InvitationRepository, hash_invite_token
+from apps.api.core.organization.invitations import hash_invite_token
 from apps.api.core.organization.repository import OrganizationRepository
 from apps.api.http.response import Response, ResponseModel
 from apps.api.infra.cache.valkey import get_valkey
 from apps.api.infra.limiter.limiter import rate_limit
-from apps.api.models.organization import Membership, MembershipStatus
+from apps.api.models.invitation import OrganizationInvitation
+from apps.api.models.organization import Membership, MembershipStatus, Organization
 from apps.api.models.rbac import MembershipRole, Role
-from apps.api.models.user import User
+from apps.api.models.user import User, UserCredential, UserStatus
 from apps.api.routers.v1.auth.constants import (
     FORGOT_PASSWORD_RATE_LIMIT,
     LOGIN_RATE_LIMIT,
@@ -270,61 +272,93 @@ async def accept_invitation(
             message=t("auth", "INVITE_TOKEN_INVALID", default="邀请 Token 无效"), error="INVITE_TOKEN_INVALID"
         )
 
-    inv_repo = InvitationRepository()
-    inv = await inv_repo.get_by_token_hash(token_hash=hash_invite_token(token))
-    if inv is None:
-        raise NotFound(message=t("auth", "INVITE_NOT_FOUND", default="邀请不存在"), error="INVITE_NOT_FOUND")
-
     now = datetime.now(UTC)
-    if inv.revoked_at is not None:
-        raise Forbidden(message=t("auth", "INVITE_REVOKED", default="邀请已被撤销"), error="INVITE_REVOKED")
-    if inv.accepted_at is not None:
-        raise Conflict(
-            message=t("auth", "INVITE_ALREADY_ACCEPTED", default="邀请已被使用"), error="INVITE_ALREADY_ACCEPTED"
+    token_hash = hash_invite_token(token)
+
+    # Make invitation acceptance atomic:
+    # - lock invitation row (FOR UPDATE)
+    # - create user + membership + role bindings
+    # - mark invitation accepted
+    # Any failure rolls back and leaves no "half-created" user behind.
+    async with in_transaction() as conn:
+        inv = await OrganizationInvitation.filter(token_hash=token_hash).using_db(conn).select_for_update().first()
+        if inv is None:
+            raise NotFound(message=t("auth", "INVITE_NOT_FOUND", default="邀请不存在"), error="INVITE_NOT_FOUND")
+
+        if inv.revoked_at is not None:
+            raise Forbidden(message=t("auth", "INVITE_REVOKED", default="邀请已被撤销"), error="INVITE_REVOKED")
+        if inv.accepted_at is not None:
+            raise Conflict(
+                message=t("auth", "INVITE_ALREADY_ACCEPTED", default="邀请已被使用"),
+                error="INVITE_ALREADY_ACCEPTED",
+            )
+        if inv.expires_at is not None and inv.expires_at <= now:
+            raise Forbidden(message=t("auth", "INVITE_EXPIRED", default="邀请已过期"), error="INVITE_EXPIRED")
+
+        # NOTE: avoid `select_related("organization")` here because it can introduce an OUTER JOIN.
+        # Postgres forbids applying `FOR UPDATE` to the nullable side of an outer join.
+        org = await Organization.get_or_none(id=inv.organization_id, using_db=conn)
+        if org is None or not org.is_active:
+            raise Forbidden(message=t("auth", "ORG_INACTIVE", default="组织不可用"), error="ORG_INACTIVE")
+
+        username = payload.username.strip()
+        email = (inv.email or "").strip().lower()
+        display_name = payload.display_name.strip() if payload.display_name else None
+
+        if not username:
+            raise BadRequest(
+                message=t("auth", "USERNAME_REQUIRED", default="用户名不能为空"), error="USERNAME_REQUIRED"
+            )
+        if not email:
+            raise BadRequest(message=t("auth", "EMAIL_REQUIRED", default="邮箱不能为空"), error="EMAIL_REQUIRED")
+
+        # Enforce uniqueness inside the same transaction to avoid races.
+        if await User.filter(username=username).using_db(conn).exists():
+            raise Conflict(message=t("auth", "USERNAME_EXISTS", default="用户名已存在"), error="USERNAME_EXISTS")
+        if await User.filter(email=email).using_db(conn).exists():
+            raise Conflict(message=t("auth", "EMAIL_EXISTS", default="邮箱已存在"), error="EMAIL_EXISTS")
+
+        service._ensure_password_strength(payload.password)
+        from apps.api.routers.v1.auth.security import hash_password
+
+        password_hash = hash_password(payload.password, service.settings.auth)
+        user = await User.create(
+            using_db=conn,
+            username=username,
+            email=email,
+            status=UserStatus.ACTIVE,
+            display_name=display_name,
+            avatar_url=None,
         )
-    if inv.expires_at is not None and inv.expires_at <= now:
-        raise Forbidden(message=t("auth", "INVITE_EXPIRED", default="邀请已过期"), error="INVITE_EXPIRED")
+        await UserCredential.create(using_db=conn, user_id=user.id, password_hash=password_hash)
 
-    org = getattr(inv, "organization", None)
-    if org is None or not getattr(org, "is_active", True):
-        raise Forbidden(message=t("auth", "ORG_INACTIVE", default="组织不可用"), error="ORG_INACTIVE")
-
-    # Create user with the invited email address (enforced), no public registration involved.
-    user = await service.register(
-        username=payload.username,
-        password=payload.password,
-        email=inv.email,
-        display_name=payload.display_name,
-    )
-
-    membership, _created = await Membership.get_or_create(
-        user_id=user.id,
-        organization_id=org.id,
-        defaults={"status": MembershipStatus.ACTIVE, "invited_by_user_id": inv.invited_by_user_id},
-    )
-    if membership.status != MembershipStatus.ACTIVE:
-        membership.status = MembershipStatus.ACTIVE
-        await membership.save(update_fields=["status"])
-
-    # Role binding strategy:
-    # - If invitation provides a role_code, bind it.
-    # - Otherwise, bind all default roles (is_default=True).
-    roles: list[Role] = []
-    if inv.role_code:
-        role = await Role.get_or_none(code=inv.role_code)
-        if role is not None:
-            roles = [role]
-    else:
-        roles = await Role.filter(is_default=True).all()
-
-    for role in roles:
-        await MembershipRole.get_or_create(membership_id=membership.id, role_id=role.id)
-
-    updated = await inv_repo.mark_accepted(invitation_id=inv.id, accepted_by_user_id=user.id, now=now)
-    if updated <= 0:
-        raise Conflict(
-            message=t("auth", "INVITE_ALREADY_ACCEPTED", default="邀请已被使用"), error="INVITE_ALREADY_ACCEPTED"
+        membership, _created = await Membership.get_or_create(
+            using_db=conn,
+            user_id=user.id,
+            organization_id=org.id,
+            defaults={"status": MembershipStatus.ACTIVE, "invited_by_user_id": inv.invited_by_user_id},
         )
+        if membership.status != MembershipStatus.ACTIVE:
+            membership.status = MembershipStatus.ACTIVE
+            await membership.save(using_db=conn, update_fields=["status"])
+
+        # Role binding strategy:
+        # - If invitation provides a role_code, bind it.
+        # - Otherwise, bind all default roles (is_default=True).
+        roles: list[Role] = []
+        if inv.role_code:
+            role = await Role.get_or_none(code=inv.role_code, using_db=conn)
+            if role is not None:
+                roles = [role]
+        else:
+            roles = await Role.filter(is_default=True).using_db(conn).all()
+
+        for role in roles:
+            await MembershipRole.get_or_create(using_db=conn, membership_id=membership.id, role_id=role.id)
+
+        inv.accepted_by_user_id = user.id
+        inv.accepted_at = now
+        await inv.save(using_db=conn, update_fields=["accepted_by_user_id", "accepted_at"])
 
     tokens = await service.login(identifier=payload.username, password=payload.password)
     return Response.success(message=t("auth", "INVITE_ACCEPTED", default="加入组织成功"), data=tokens)

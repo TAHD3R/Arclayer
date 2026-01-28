@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from uuid import UUID
 
+from apps.api.common.email.service import EmailService
 from apps.api.common.services import BaseService
 from apps.api.config import Settings
 from apps.api.core.exceptions import BadRequest, NotFound
@@ -15,7 +16,7 @@ from apps.api.core.organization.invitations import (
 )
 from apps.api.http.pagination import PageData, PageParams
 from apps.api.models.invitation import OrganizationInvitation
-from apps.api.models.organization import MembershipStatus
+from apps.api.models.organization import MembershipStatus, Organization
 from apps.api.routers.v1.admin.team.repository import TeamRepository
 from apps.api.routers.v1.admin.team.schema import (
     InvitationStatus,
@@ -23,6 +24,7 @@ from apps.api.routers.v1.admin.team.schema import (
     TeamInvitationCreateResult,
     TeamInvitationListQuery,
     TeamInvitationOut,
+    TeamInvitationRenewRequest,
     TeamMemberOut,
     TeamMemberRoleSetRequest,
 )
@@ -33,6 +35,7 @@ class TeamService(BaseService):
         super().__init__(settings)
         self.repo = TeamRepository()
         self.inv_repo = InvitationRepository()
+        self.email_service = EmailService(settings)
 
     def _compute_invitation_status(self, inv: OrganizationInvitation) -> InvitationStatus:
         if inv.accepted_at is not None:
@@ -169,6 +172,34 @@ class TeamService(BaseService):
         )
         return TeamInvitationCreateResult(invitation=out, token=token, invite_url=invite_url)
 
+    async def send_invitation_email(
+        self,
+        *,
+        organization_id: UUID,
+        recipient: str,
+        token: str,
+        invite_url: str | None,
+        expires_at: datetime | None,
+        invited_by_user_id: UUID | None,
+        locale: str | None,
+    ) -> None:
+        org_name: str | None = None
+        try:
+            org = await Organization.get_or_none(id=organization_id)
+            org_name = org.name if org else None
+        except Exception:
+            org_name = None
+
+        await self.email_service.send_invitation(
+            recipient=recipient,
+            invite_url=invite_url,
+            invite_token=token,
+            expires_at=expires_at,
+            organization_name=org_name,
+            invited_by_user_id=str(invited_by_user_id) if invited_by_user_id else None,
+            locale=locale,
+        )
+
     async def list_invitations(
         self,
         *,
@@ -177,7 +208,11 @@ class TeamService(BaseService):
         filters: TeamInvitationListQuery,
     ) -> PageData[TeamInvitationOut]:
         qs = self.inv_repo.query_invitations(organization_id=organization_id)
-        qs = self.inv_repo.apply_filters(qs=qs, q=filters.q, status=(filters.status.value if filters.status else None))
+        # NOTE: BaseSchema enables `use_enum_values=True`, so `filters.status` may already be a plain string.
+        status: str | None = None
+        if filters.status is not None:
+            status = filters.status.value if isinstance(filters.status, InvitationStatus) else str(filters.status)
+        qs = self.inv_repo.apply_filters(qs=qs, q=filters.q, status=status)
 
         total = int(await qs.count())
         pages = (total + params.size - 1) // params.size if params.size else 0
@@ -232,3 +267,57 @@ class TeamService(BaseService):
             return
         inv.revoked_at = datetime.now(UTC)
         await inv.save(update_fields=["revoked_at"])
+
+    async def renew_invitation(
+        self,
+        *,
+        organization_id: UUID,
+        invitation_id: UUID,
+        payload: TeamInvitationRenewRequest,
+    ) -> TeamInvitationOut:
+        inv = await OrganizationInvitation.get_or_none(id=invitation_id, organization_id=organization_id)
+        if inv is None:
+            raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
+        if inv.accepted_at is not None:
+            raise BadRequest(
+                message=t("errors", "INVITATION_ALREADY_ACCEPTED", default="邀请已被接受，无法续订"),
+                error="INVITATION_ALREADY_ACCEPTED",
+            )
+        if inv.revoked_at is not None:
+            raise BadRequest(
+                message=t("errors", "INVITATION_REVOKED", default="邀请已被禁用，无法续订"),
+                error="INVITATION_REVOKED",
+            )
+
+        inv.expires_at = build_expires_at(expires_in_seconds=payload.expires_in_seconds)
+        await inv.save(update_fields=["expires_at"])
+
+        return TeamInvitationOut(
+            id=inv.id,
+            email=inv.email,
+            role_code=inv.role_code,
+            expires_at=inv.expires_at,
+            invited_by_user_id=inv.invited_by_user_id,
+            accepted_by_user_id=inv.accepted_by_user_id,
+            accepted_at=inv.accepted_at,
+            revoked_at=inv.revoked_at,
+            status=self._compute_invitation_status(inv),
+            created_at=inv.created_at,
+            updated_at=inv.updated_at,
+        )
+
+    async def delete_invitation(
+        self,
+        *,
+        organization_id: UUID,
+        invitation_id: UUID,
+    ) -> None:
+        inv = await OrganizationInvitation.get_or_none(id=invitation_id, organization_id=organization_id)
+        if inv is None:
+            raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
+        if inv.accepted_at is not None:
+            raise BadRequest(
+                message=t("errors", "INVITATION_ALREADY_ACCEPTED", default="邀请已被接受，无法删除"),
+                error="INVITATION_ALREADY_ACCEPTED",
+            )
+        await OrganizationInvitation.filter(id=invitation_id, organization_id=organization_id).delete()

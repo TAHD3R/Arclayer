@@ -77,3 +77,11 @@ class TeamInvitationCreateResult(BaseSchema):
 class TeamInvitationListQuery(BaseSchema):
     q: str | None = Field(default=None, description="Search query (email/role_code).")
     status: InvitationStatus | None = Field(default=None, description="Filter by invitation status.")
+
+
+class TeamInvitationRenewRequest(BaseSchema):
+    expires_in_seconds: int | None = Field(
+        default=7 * 24 * 60 * 60,
+        ge=60,
+        description="New invitation TTL in seconds (default 7 days). Set null to never expire.",
+    )

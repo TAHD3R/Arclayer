@@ -134,6 +134,57 @@ async def test_team_invitation_accept_flow(prepared_db, integration_valkey_setti
             )
             assert resp.status_code == 400
 
+            # 7) Filter invitations by status=accepted should include the used invitation.
+            resp = await client.get(
+                "/api/v1/admin/team/invitations?page=1&size=10&status=accepted",
+                headers=headers,
+            )
+            assert resp.status_code == 200
+            accepted_page = resp.json()["data"]
+            assert any(item["id"] == invitation["id"] for item in accepted_page["items"])
+
+            # 8) Link management: renew + delete (only allowed for not-accepted invitations).
+            invite_email2 = f"{uuid4().hex}@example.com"
+            resp = await client.post(
+                "/api/v1/admin/team/invitations",
+                headers=headers,
+                json={
+                    "email": invite_email2,
+                    "roleCode": "admin",
+                    "expiresInSeconds": 3600,
+                },
+            )
+            assert resp.status_code == 200
+            created2 = resp.json()["data"]
+            invitation2 = created2["invitation"]
+            old_expires_at = invitation2.get("expiresAt")
+
+            resp = await client.post(
+                f"/api/v1/admin/team/invitations/{invitation2['id']}/renew",
+                headers=headers,
+                json={"expiresInSeconds": 7200},
+            )
+            assert resp.status_code == 200
+            renewed = resp.json()["data"]
+            assert renewed["id"] == invitation2["id"]
+            assert renewed["email"] == invite_email2
+            assert renewed["status"] == "pending"
+            assert renewed.get("expiresAt") != old_expires_at
+
+            resp = await client.delete(
+                f"/api/v1/admin/team/invitations/{invitation2['id']}",
+                headers=headers,
+            )
+            assert resp.status_code == 200
+
+            resp = await client.get(
+                f"/api/v1/admin/team/invitations?page=1&size=10&q={invite_email2}",
+                headers=headers,
+            )
+            assert resp.status_code == 200
+            deleted_page = resp.json()["data"]
+            assert all(item["id"] != invitation2["id"] for item in deleted_page["items"])
+
         # DB-level sanity checks (membership + role binding).
         invited_user = await user_repo.get_by_identifier(username)
         assert invited_user is not None

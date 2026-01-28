@@ -11,12 +11,14 @@ class APIError(Exception):
         error: str | None = None,
         status_code: int = 400,
         details: Any | None = None,
+        meta: dict[str, Any] | None = None,
         headers: dict[str, str] | None = None,
     ) -> None:
         self.message = message
         self.error = error
         self.status_code = status_code
         self.details = details
+        self.meta = meta
         self.headers = headers
         super().__init__(message)
 
@@ -28,6 +30,7 @@ class BadRequest(APIError):
         *,
         error: str | None = None,
         details: Any | None = None,
+        meta: dict[str, Any] | None = None,
         headers: dict[str, str] | None = None,
     ) -> None:
         super().__init__(
@@ -35,6 +38,7 @@ class BadRequest(APIError):
             error=error or "BAD_REQUEST",
             status_code=400,
             details=details,
+            meta=meta,
             headers=headers,
         )
 
@@ -46,6 +50,7 @@ class Unauthorized(APIError):
         *,
         error: str | None = None,
         details: Any | None = None,
+        meta: dict[str, Any] | None = None,
         headers: dict[str, str] | None = None,
     ) -> None:
         super().__init__(
@@ -53,6 +58,7 @@ class Unauthorized(APIError):
             error=error or "UNAUTHORIZED",
             status_code=401,
             details=details,
+            meta=meta,
             headers=headers,
         )
 
@@ -64,6 +70,7 @@ class Forbidden(APIError):
         *,
         error: str | None = None,
         details: Any | None = None,
+        meta: dict[str, Any] | None = None,
         headers: dict[str, str] | None = None,
     ) -> None:
         super().__init__(
@@ -71,6 +78,7 @@ class Forbidden(APIError):
             error=error or "FORBIDDEN",
             status_code=403,
             details=details,
+            meta=meta,
             headers=headers,
         )
 
@@ -82,6 +90,7 @@ class NotFound(APIError):
         *,
         error: str | None = None,
         details: Any | None = None,
+        meta: dict[str, Any] | None = None,
         headers: dict[str, str] | None = None,
     ) -> None:
         super().__init__(
@@ -89,6 +98,7 @@ class NotFound(APIError):
             error=error or "NOT_FOUND",
             status_code=404,
             details=details,
+            meta=meta,
             headers=headers,
         )
 
@@ -100,6 +110,7 @@ class Conflict(APIError):
         *,
         error: str | None = None,
         details: Any | None = None,
+        meta: dict[str, Any] | None = None,
         headers: dict[str, str] | None = None,
     ) -> None:
         super().__init__(
@@ -107,6 +118,7 @@ class Conflict(APIError):
             error=error or "CONFLICT",
             status_code=409,
             details=details,
+            meta=meta,
             headers=headers,
         )
 
@@ -118,6 +130,7 @@ class TooManyRequests(APIError):
         *,
         error: str | None = None,
         details: Any | None = None,
+        meta: dict[str, Any] | None = None,
         headers: dict[str, str] | None = None,
     ) -> None:
         super().__init__(
@@ -125,6 +138,7 @@ class TooManyRequests(APIError):
             error=error or "TOO_MANY_REQUESTS",
             status_code=429,
             details=details,
+            meta=meta,
             headers=headers,
         )
 
@@ -136,6 +150,7 @@ class InternalServerError(APIError):
         *,
         error: str | None = None,
         details: Any | None = None,
+        meta: dict[str, Any] | None = None,
         headers: dict[str, str] | None = None,
     ) -> None:
         super().__init__(
@@ -143,6 +158,7 @@ class InternalServerError(APIError):
             error=error or "INTERNAL_SERVER_ERROR",
             status_code=500,
             details=details,
+            meta=meta,
             headers=headers,
         )
 
@@ -154,6 +170,7 @@ class ServiceUnavailable(APIError):
         *,
         error: str | None = None,
         details: Any | None = None,
+        meta: dict[str, Any] | None = None,
         headers: dict[str, str] | None = None,
     ) -> None:
         super().__init__(
@@ -161,5 +178,6 @@ class ServiceUnavailable(APIError):
             error=error or "SERVICE_UNAVAILABLE",
             status_code=503,
             details=details,
+            meta=meta,
             headers=headers,
         )

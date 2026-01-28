@@ -1,0 +1,14 @@
+{{ title }}
+
+{{ intro }}
+
+{% if invite_url %}
+{{ cta }}: {{ invite_url }}
+{% endif %}
+
+{{ fallback }}
+
+{{ invite_token }}
+
+{{ expires_notice }}
+{{ ignore_notice }}
