@@ -1,7 +1,9 @@
 import { Space, Typography } from "antd";
 import { lazy, Suspense, type PropsWithChildren, useEffect, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
+import { useRouterState } from "@tanstack/react-router";
 
+import { getAppConfig } from "@/constants/app-config";
 import { usePreferencesStore } from "@/stores/usePreferenceStore";
 import { AdminLocaleToggle } from "@/components/app/adminToggleLocales";
 import { AdminThemeModeToggle } from "@/components/app/adminToggleTheme";
@@ -13,6 +15,7 @@ const AUTH_BEND_COLORS = ["#3b82f6"] as const;
 
 export function AuthLayout({ children }: PropsWithChildren) {
   const { t } = useTranslation();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
   const themeMode = usePreferencesStore((s) => s.themeMode);
   const isDark = themeMode === "dark";
 
@@ -33,6 +36,17 @@ export function AuthLayout({ children }: PropsWithChildren) {
       document.body.style.overflow = prevBodyOverflow;
     };
   }, []);
+
+  useEffect(() => {
+    const brand = (getAppConfig().title || "Celestial").trim();
+    const pageTitle =
+      pathname === "/reset-password"
+        ? t("auth:RESET_PASSWORD_PAGE_TITLE")
+        : pathname === "/login"
+          ? t("auth:LOGIN_PAGE_TITLE")
+          : brand;
+    document.title = `${pageTitle} | ${brand}`;
+  }, [pathname, t]);
 
   useEffect(() => {
     const mq = window.matchMedia?.("(min-width: 1024px)");

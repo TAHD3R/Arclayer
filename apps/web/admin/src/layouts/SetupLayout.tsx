@@ -2,6 +2,7 @@ import { Card, Space, Typography } from "antd";
 import { lazy, Suspense, type PropsWithChildren, useEffect } from "react";
 import { Trans, useTranslation } from "react-i18next";
 
+import { getAppConfig } from "@/constants/app-config";
 import { usePreferencesStore } from "@/stores/usePreferenceStore";
 import { AdminLocaleToggle } from "@/components/app/adminToggleLocales";
 import { AdminThemeModeToggle } from "@/components/app/adminToggleTheme";
@@ -30,6 +31,11 @@ export function SetupLayout({ children }: PropsWithChildren) {
       document.body.style.overflow = prevBodyOverflow;
     };
   }, []);
+
+  useEffect(() => {
+    const brand = (getAppConfig().title || "Celestial").trim();
+    document.title = `${t("common:SETUP_TITLE")} | ${brand}`;
+  }, [t]);
 
   return (
     <div className="fixed inset-0 w-full overflow-hidden bg-(--color-background) text-(--color-foreground)">
