@@ -24,6 +24,7 @@ def test_build_asset_headers_sets_noindex_by_default() -> None:
         object_key="org/x/assets/y.png",
         indexable=False,
         variants=None,
+        storage_provider="local",
     )
     headers = build_asset_headers(view)
     assert headers["Cache-Control"] == "public, max-age=31536000, immutable"
@@ -43,6 +44,7 @@ def test_build_asset_headers_omits_noindex_when_indexable() -> None:
         object_key="org/x/assets/y.png",
         indexable=True,
         variants=None,
+        storage_provider="local",
     )
     headers = build_asset_headers(view)
     assert "X-Robots-Tag" not in headers

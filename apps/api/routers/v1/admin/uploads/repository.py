@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from uuid import UUID
 
+from tortoise.expressions import Q
 from tortoise.queryset import QuerySet
 
 from apps.api.common.repositories import BaseRepository
@@ -27,6 +28,11 @@ class UploadsRepository(BaseRepository):
         storage_provider: str,
         visibility: str,
         indexable: bool,
+        reserved_asset_id: UUID | None,
+        resolved_slug: str | None,
+        resolved_ext: str | None,
+        object_key: str | None,
+        multipart_upload_id: str | None,
     ) -> UploadSessionRecord:
         return await UploadSessionRecord.create(
             org_id=org_id,
@@ -44,6 +50,11 @@ class UploadsRepository(BaseRepository):
             storage_provider=storage_provider,
             visibility=visibility,
             indexable=indexable,
+            reserved_asset_id=reserved_asset_id,
+            resolved_slug=resolved_slug,
+            resolved_ext=resolved_ext,
+            object_key=object_key,
+            multipart_upload_id=multipart_upload_id,
         )
 
     async def get_session(self, *, upload_id: UUID, org_id: UUID) -> UploadSessionRecord | None:
@@ -60,6 +71,7 @@ class UploadsRepository(BaseRepository):
         object_key: str,
         size_bytes: int,
         checksum_sha256: str | None = None,
+        etag: str | None = None,
     ) -> UploadPartRecord:
         part = await UploadPartRecord.get_or_none(session_id=session_id, part_number=part_number)
         if part is None:
@@ -69,13 +81,15 @@ class UploadsRepository(BaseRepository):
                 object_key=object_key,
                 size_bytes=size_bytes,
                 checksum_sha256=checksum_sha256,
+                etag=etag,
                 stored=True,
             )
         part.object_key = object_key
         part.size_bytes = size_bytes
         part.checksum_sha256 = checksum_sha256
+        part.etag = etag
         part.stored = True
-        await part.save(update_fields=["object_key", "size_bytes", "checksum_sha256", "stored", "updated_at"])
+        await part.save(update_fields=["object_key", "size_bytes", "checksum_sha256", "etag", "stored", "updated_at"])
         return part
 
     async def set_session_status(self, session: UploadSessionRecord, *, status: UploadStatus) -> UploadSessionRecord:
@@ -89,3 +103,24 @@ class UploadsRepository(BaseRepository):
         session.asset_id = asset_id
         await session.save(update_fields=["status", "asset_id", "updated_at"])
         return session
+
+    async def try_mark_completing(self, *, upload_id: UUID, org_id: UUID) -> bool:
+        """
+        Atomic CAS for multi-worker correctness.
+
+        Returns True if current worker successfully became the single "completing" winner.
+        """
+
+        from datetime import UTC, datetime
+
+        now = datetime.now(tz=UTC)
+        # If a worker crashes while COMPLETING, allow other workers to take over after a short TTL.
+        stale_cutoff = now - timedelta(seconds=60)
+
+        base = UploadSessionRecord.filter(id=upload_id, org_id=org_id, asset_id=None)
+        base = base.filter(
+            Q(status__in=[UploadStatus.INITIATED, UploadStatus.UPLOADING])
+            | Q(status=UploadStatus.COMPLETING, updated_at__lt=stale_cutoff)
+        )
+        updated = await base.update(status=UploadStatus.COMPLETING, updated_at=now)
+        return int(updated) == 1

@@ -31,6 +31,15 @@ class UploadSessionRecord(BaseModel):
     status = fields.CharEnumField(UploadStatus, default=UploadStatus.INITIATED, db_index=True)
     expires_at = fields.DatetimeField(db_index=True)
     asset_id = fields.UUIDField(null=True, db_index=True)
+    reserved_asset_id = fields.UUIDField(null=True, db_index=True)
+
+    # Resolved metadata used for immutable public URLs / object keys.
+    resolved_slug = fields.CharField(max_length=128, null=True)
+    resolved_ext = fields.CharField(max_length=32, null=True)
+    object_key = fields.CharField(max_length=1024, null=True)
+
+    # Provider-specific state (e.g. S3 multipart upload id).
+    multipart_upload_id = fields.CharField(max_length=256, null=True, db_index=True)
 
     # Requested delivery policy (validated by service):
     # - avatar/site_logo/favicon are forced public + noindex
@@ -51,6 +60,7 @@ class UploadPartRecord(BaseModel):
     part_number = fields.IntField()
     size_bytes = fields.IntField(default=0)
     checksum_sha256 = fields.CharField(max_length=64, null=True)
+    etag = fields.CharField(max_length=128, null=True)
     object_key = fields.CharField(max_length=1024)
     stored = fields.BooleanField(default=False)
 

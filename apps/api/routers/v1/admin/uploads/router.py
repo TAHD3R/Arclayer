@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Header, Request
+from fastapi import APIRouter, Depends, Header, Request
 
 from apps.api.config import Settings, get_settings
 from apps.api.core.exceptions import BadRequest
@@ -14,6 +14,8 @@ from apps.api.routers.v1.admin.uploads.schema import (
     UploadCompleteOut,
     UploadInitOut,
     UploadInitRequest,
+    UploadPartCommitRequest,
+    UploadPartPresignOut,
     UploadStatusOut,
 )
 from apps.api.routers.v1.admin.uploads.service import UploadsService
@@ -51,6 +53,9 @@ async def init_upload(
             chunk_size=session.chunk_size,
             total_parts=session.total_parts,
             expires_at=session.expires_at,
+            method=session.storage_provider if session.storage_provider != "s3" else "s3_multipart",
+            reserved_asset_id=session.reserved_asset_id,
+            object_key=session.object_key,
         )
     )
 
@@ -99,13 +104,11 @@ async def upload_part(
 @router.post("/uploads/{upload_id}/complete", response_model=ResponseModel[UploadCompleteOut])
 async def complete_upload(
     upload_id: UUID,
-    background_tasks: BackgroundTasks,
     org_id: UUID = Depends(get_current_org_id),
     _user=Depends(get_current_user),
     service: UploadsService = Depends(get_uploads_service),
 ) -> ResponseModel[UploadCompleteOut]:
     asset_id = await service.complete(upload_id=upload_id, org_id=org_id)
-    background_tasks.add_task(service.post_process_asset, org_id=org_id, asset_id=asset_id)
     return Response.success(data=UploadCompleteOut(asset_id=asset_id))
 
 
@@ -118,3 +121,34 @@ async def abort_upload(
 ) -> ResponseModel[UploadAbortOut]:
     session = await service.abort(upload_id=upload_id, org_id=org_id)
     return Response.success(data=UploadAbortOut(upload_id=session.id, status=str(session.status)))
+
+
+@router.post("/uploads/{upload_id}/parts/{part_number}/presign", response_model=ResponseModel[UploadPartPresignOut])
+async def presign_upload_part(
+    upload_id: UUID,
+    part_number: int,
+    org_id: UUID = Depends(get_current_org_id),
+    _user=Depends(get_current_user),
+    service: UploadsService = Depends(get_uploads_service),
+) -> ResponseModel[UploadPartPresignOut]:
+    out = await service.presign_part(upload_id=upload_id, org_id=org_id, part_number=part_number)
+    return Response.success(data=out)
+
+
+@router.post("/uploads/{upload_id}/parts/{part_number}/commit", response_model=ResponseModel[None])
+async def commit_upload_part(
+    upload_id: UUID,
+    part_number: int,
+    payload: UploadPartCommitRequest,
+    org_id: UUID = Depends(get_current_org_id),
+    _user=Depends(get_current_user),
+    service: UploadsService = Depends(get_uploads_service),
+) -> ResponseModel[None]:
+    await service.commit_part(
+        upload_id=upload_id,
+        org_id=org_id,
+        part_number=part_number,
+        etag=payload.etag,
+        size_bytes=payload.size_bytes,
+    )
+    return Response.success(data=None)

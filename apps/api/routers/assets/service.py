@@ -10,7 +10,9 @@ from apps.api.config import Settings
 from apps.api.core.exceptions import NotFound
 from apps.api.http.content_disposition import build_attachment_content_disposition
 from apps.api.http.file_stream import stream_file_response
+from apps.api.infra.storage.factory import build_storage_provider
 from apps.api.infra.storage.local import safe_object_key_to_path
+from apps.api.infra.storage.s3 import S3StorageProvider
 from apps.api.routers.assets.repository import AssetsRepository
 
 
@@ -25,6 +27,7 @@ class AssetPublicView:
     object_key: str
     indexable: bool
     variants: dict | None
+    storage_provider: str
 
 
 def canonical_asset_filename(*, slug: str, ext: str) -> str:
@@ -50,6 +53,14 @@ class AssetsService:
         self.settings = settings
         self.repo = AssetsRepository()
 
+    def _public_absolute_url(self, path: str) -> str | None:
+        base = (self.settings.storage.public_base_url or "").strip()
+        if not base:
+            return None
+        b = base.rstrip("/")
+        p = path if path.startswith("/") else f"/{path}"
+        return f"{b}{p}"
+
     async def _get_public_view(self, *, asset_id: UUID) -> AssetPublicView:
         asset = await self.repo.get_public_asset(asset_id=asset_id)
         if asset is None:
@@ -67,6 +78,7 @@ class AssetsService:
             object_key=asset.object_key,
             indexable=bool(asset.indexable),
             variants=asset.variants if isinstance(asset.variants, dict) else None,
+            storage_provider=str(asset.storage_provider),
         )
 
     async def redirect_to_canonical(self, *, asset_id: UUID) -> RedirectResponse:
@@ -85,6 +97,22 @@ class AssetsService:
         canonical = canonical_asset_filename(slug=view.slug, ext=view.ext)
         if filename != canonical:
             return RedirectResponse(url=f"/assets/{view.id}/{canonical}", status_code=301)
+
+        if view.storage_provider == "s3":
+            url = self._public_absolute_url(f"/{view.object_key}")
+            if url:
+                return RedirectResponse(url=url, status_code=302, headers=build_asset_headers(view))
+
+            # Dev / no-CDN fallback: presigned GET.
+            provider = build_storage_provider(self.settings)
+            if not isinstance(provider, S3StorageProvider):
+                raise NotFound(message="Not Found", error="NOT_FOUND")
+            presigned = await provider.presign_get_object(
+                object_key=view.object_key,
+                expires_in=900,
+                response_content_type=view.mime or "application/octet-stream",
+            )
+            return RedirectResponse(url=presigned, status_code=302, headers=build_asset_headers(view))
 
         root_dir = self.settings.storage.local_root_dir
         path = safe_object_key_to_path(root_dir, view.object_key)
@@ -112,6 +140,18 @@ class AssetsService:
         view = await self._get_public_view(asset_id=asset_id)
         fallback = canonical_asset_filename(slug=view.slug, ext=view.ext)
         filename = (view.original_filename or "").strip() or fallback
+
+        if view.storage_provider == "s3":
+            provider = build_storage_provider(self.settings)
+            if not isinstance(provider, S3StorageProvider):
+                raise NotFound(message="Not Found", error="NOT_FOUND")
+            url = await provider.presign_get_object(
+                object_key=view.object_key,
+                expires_in=900,
+                response_content_type=view.mime or "application/octet-stream",
+                response_content_disposition=build_attachment_content_disposition(filename),
+            )
+            return RedirectResponse(url=url, status_code=302, headers=build_asset_headers(view))
 
         root_dir = self.settings.storage.local_root_dir
         path = safe_object_key_to_path(root_dir, view.object_key)
@@ -164,6 +204,23 @@ class AssetsService:
 
         object_key = str((picked or {}).get("object_key") or "")
         if not object_key:
+            canonical = canonical_asset_filename(slug=view.slug, ext=view.ext)
+            return RedirectResponse(url=f"/assets/{view.id}/{canonical}", status_code=302)
+
+        if view.storage_provider == "s3":
+            url = self._public_absolute_url(f"/{object_key}")
+            if url:
+                return RedirectResponse(url=url, status_code=302, headers=build_asset_headers(view))
+
+            provider = build_storage_provider(self.settings)
+            if isinstance(provider, S3StorageProvider):
+                presigned = await provider.presign_get_object(
+                    object_key=object_key,
+                    expires_in=900,
+                    response_content_type=str((picked or {}).get("mime") or "") or "application/octet-stream",
+                )
+                return RedirectResponse(url=presigned, status_code=302, headers=build_asset_headers(view))
+
             canonical = canonical_asset_filename(slug=view.slug, ext=view.ext)
             return RedirectResponse(url=f"/assets/{view.id}/{canonical}", status_code=302)
 

@@ -45,6 +45,10 @@ def _build_lifespan(settings: Settings, *, plugin_manager: PluginManager):
 
             await init_orm(settings, extra_modules=extra_models)
             await verify_db_ready(settings)
+            # Register core event-driven processors (e.g. thumbnails) after DB is ready.
+            from apps.api.core.assets.bootstrap import register_core_asset_processors
+
+            await register_core_asset_processors(plugin_manager.registry, settings)
             if settings.database.enabled:
                 await ensure_organization_ready()
                 await ensure_rbac_ready(settings=settings)

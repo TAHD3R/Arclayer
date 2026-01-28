@@ -9,7 +9,36 @@ This document defines an implementation plan for:
 - Public asset delivery (anonymous access) with HTTP Range support for large videos
 - Asset library (folders + waterfall listing + tags) and external sharing
 - Variants (thumbnails / previews / video posters) as an async pipeline
-- Retention (90-day recycle bin default)
+
+## Current Status (as of 2026-01-29)
+
+Backend delivery status (focus on server-side, per our latest agreement):
+
+- Local provider: resumable upload + Range delivery: DONE
+- Public assets:
+  - `/assets/{asset_id}` -> 301 canonical: DONE
+  - `/assets/{asset_id}/{slug}.{ext}` with Range: DONE
+  - `/assets/{asset_id}/download` attachment: DONE
+  - `/assets/{asset_id}/thumb` thumbnails (fallback): DONE
+- Share link:
+  - `/s/{token}` preview (Range): DONE
+  - `/s/{token}/download`: DONE
+  - Admin create/revoke with expiration: DONE
+- S3 provider (S3-compatible OSS):
+  - Multipart direct upload (presign + commit + complete): DONE
+  - CDN/public base URL redirect: DONE (fallback to presigned GET if no CDN configured)
+  - Note: `expected_sha256` validation is NOT supported for S3 multipart in phase 1.
+- Plugin integration:
+  - Storage provider factories via extension point: DONE (core local + core s3)
+  - Post-upload processors via in-process event bus: DONE
+  - Core thumbnail processor:
+    - local thumbnails: DONE
+    - s3 thumbnails: DONE (best-effort; uploads thumb objects back to S3)
+- Multi-worker correctness:
+  - `complete` single-winner CAS: DONE
+  - stale COMPLETING takeover (avoid stuck sessions): DONE
+  - asset create idempotency (reserved asset_id): DONE
+- Recycle bin / retention: NOT in scope now (no scheduler framework yet); do not implement yet.
 
 ## 1) Confirmed Requirements (Decisions)
 
@@ -25,7 +54,6 @@ This document defines an implementation plan for:
   - Public Library: truly public and indexable.
   - Share link: access via share URL; share supports configurable expiration time.
 - Multi-tenant consideration: Public Library must be bound to an organization.
-- Delete policy: default 90-day recycle bin retention.
 - UX/perf: thumbnails/previews are required for waterfall views.
 - Organization: "categories" should not be a separate system; use tags (optionally grouped) to cover category-like needs.
 
@@ -53,6 +81,7 @@ This document defines an implementation plan for:
 - Video transcoding / HLS / DASH
 - Full-text search / vector search
 - Complex permission matrices beyond: public / share / admin-managed
+- Recycle bin / scheduled retention tasks
 
 ## 3) Architecture Overview
 
@@ -80,13 +109,12 @@ Do not expose user-provided filenames in public URLs (privacy + consistency).
 ### 3.3 Public Library vs Share Link
 
 - Public Library (indexable):
-  - URL: `GET /library/{org_slug}/{library_slug}/...`
-  - Binds a stable library slug to an org + root folder.
+  - URL: `GET /o/{org_slug}/library`
   - Should be crawlable (indexable).
 - Share Link:
-  - URL: `GET /share/{share_id}/...`
+  - URL: `GET /s/{token}`
   - Has `expires_at` (optional) and is not enumerable.
-  - Default indexing policy can be decided later; the requirement is "link access" + expiration.
+  - Must support "link access" + expiration.
 
 ### 3.4 Storage provider abstraction
 
@@ -96,9 +124,9 @@ Define a `StorageProvider` protocol and implement:
   - root directory and tmp directory
   - atomic moves (`rename`) on completion
   - safe path mapping (no path traversal)
-- S3Provider (phase 4)
+- S3Provider (phase 4 -> pulled forward for SaaS readiness)
   - presigned multipart upload (client direct upload)
-  - optional CDN base URL
+  - optional CDN base URL (public_base_url)
 
 ### 3.5 Multi-worker correctness
 
@@ -177,6 +205,8 @@ Use `group="category"` to implement "categories" without a second parallel syste
 - `POST /api/v1/admin/uploads/init`
 - `GET /api/v1/admin/uploads/{upload_id}`
 - `PUT /api/v1/admin/uploads/{upload_id}/parts/{part_number}`
+- `POST /api/v1/admin/uploads/{upload_id}/parts/{part_number}/presign` (S3 only)
+- `POST /api/v1/admin/uploads/{upload_id}/parts/{part_number}/commit` (S3 only)
 - `POST /api/v1/admin/uploads/{upload_id}/complete`
 - `POST /api/v1/admin/uploads/{upload_id}/abort`
 
@@ -199,14 +229,14 @@ Mount on the FastAPI app directly (outside `/api/v1`):
 
 ### 5.4 Public Library (indexable)
 
-- `GET /library/{org_slug}/{library_slug}`
-- `GET /library/{org_slug}/{library_slug}/assets?...` (list)
+- `GET /o/{org_slug}/library` (HTML indexable or JSON)
 
 ### 5.5 Share Link
 
-- `POST /api/v1/admin/shares` (create; includes expires_at)
-- `GET /share/{share_id}`
-- `GET /share/{share_id}/assets?...`
+- `POST /api/v1/admin/assets/{asset_id}/share-links` (create; includes expires_in_seconds)
+- `POST /api/v1/admin/share-links/{link_id}/revoke`
+- `GET /s/{token}` (preview)
+- `GET /s/{token}/download`
 
 ## 6) Variants Pipeline (Thumbnails / Preview / Poster)
 
@@ -229,7 +259,7 @@ Add to `core` settings:
 - `upload.chunk_size_mb`
 - `upload.allowed_mime` (whitelist)
 - `assets.variants.enabled`
-- `assets.recycle_bin_retention_days` (default: 90)
+- (Deferred) recycle bin retention settings; not implemented without a scheduler.
 
 ## 8) Security / Risk Controls
 

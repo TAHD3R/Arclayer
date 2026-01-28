@@ -104,6 +104,43 @@ class StorageSettings(BaseSettings):
         validation_alias=AliasChoices("PUBLIC_BASE_URL", "STORAGE_PUBLIC_BASE_URL"),
         description="Optional public base URL (e.g. CDN) used to build absolute asset URLs.",
     )
+    s3_endpoint_url: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("S3_ENDPOINT_URL", "STORAGE_S3_ENDPOINT_URL"),
+        description="S3-compatible endpoint URL (e.g. https://s3.amazonaws.com or MinIO endpoint).",
+    )
+    s3_region: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("S3_REGION", "STORAGE_S3_REGION"),
+        description="S3 region (optional for some S3-compatible providers).",
+    )
+    s3_bucket: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("S3_BUCKET", "STORAGE_S3_BUCKET"),
+        description="S3 bucket name.",
+    )
+    s3_access_key_id: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("S3_ACCESS_KEY_ID", "STORAGE_S3_ACCESS_KEY_ID"),
+        description="S3 access key id.",
+    )
+    s3_secret_access_key: SecretStr | None = Field(
+        default=None,
+        validation_alias=AliasChoices("S3_SECRET_ACCESS_KEY", "STORAGE_S3_SECRET_ACCESS_KEY"),
+        description="S3 secret access key.",
+    )
+    s3_force_path_style: bool = Field(
+        default=False,
+        validation_alias=AliasChoices("S3_FORCE_PATH_STYLE", "STORAGE_S3_FORCE_PATH_STYLE"),
+        description="Force path-style addressing (recommended for some MinIO setups).",
+    )
+    s3_presign_expires_seconds: int = Field(
+        default=900,
+        ge=60,
+        le=24 * 3600,
+        validation_alias=AliasChoices("S3_PRESIGN_EXPIRES_SECONDS", "STORAGE_S3_PRESIGN_EXPIRES_SECONDS"),
+        description="Presigned URL TTL (seconds) for multipart upload part URLs.",
+    )
     recycle_bin_retention_days: int = Field(
         default=90,
         ge=1,

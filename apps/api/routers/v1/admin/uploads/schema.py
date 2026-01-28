@@ -24,6 +24,9 @@ class UploadInitOut(BaseSchema):
     chunk_size: int = Field(..., ge=1, description="Chunk size in bytes.")
     total_parts: int = Field(..., ge=1, description="Total part count.")
     expires_at: datetime = Field(..., description="Session expiration time.")
+    method: str | None = Field(default=None, description="Upload method: local | s3_multipart.")
+    reserved_asset_id: UUID | None = Field(default=None, description="Reserved asset id (for S3 direct upload).")
+    object_key: str | None = Field(default=None, description="Target object key (for S3 direct upload).")
 
 
 class UploadStatusOut(BaseSchema):
@@ -41,3 +44,15 @@ class UploadCompleteOut(BaseSchema):
 class UploadAbortOut(BaseSchema):
     upload_id: UUID = Field(..., description="Upload session id.")
     status: str = Field(..., description="Final session status.")
+
+
+class UploadPartPresignOut(BaseSchema):
+    url: str = Field(..., description="Presigned URL for direct upload.")
+    method: str = Field(default="PUT", description="HTTP method to use.")
+    headers: dict[str, str] = Field(default_factory=dict, description="Required headers for the upload request.")
+    expires_at: datetime = Field(..., description="Presigned URL expiration time.")
+
+
+class UploadPartCommitRequest(BaseSchema):
+    etag: str = Field(..., min_length=1, max_length=128, description="ETag returned by S3 for this uploaded part.")
+    size_bytes: int = Field(..., ge=0, description="Uploaded part size (bytes).")
