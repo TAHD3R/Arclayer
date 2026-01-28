@@ -88,7 +88,7 @@ function buildDocumentTitle(routeTitle: string | null, siteName: string | null):
   const siteBase = siteName.trim();
   const sitePart = siteBase.toLowerCase().includes(brand.toLowerCase())
     ? siteBase
-    : `${siteBase} ${brand}`;
+    : `${siteBase} | ${brand}`;
   if (routeTitle && routeTitle.trim()) return `${routeTitle.trim()} | ${sitePart}`;
   return sitePart;
 }

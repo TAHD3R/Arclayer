@@ -113,5 +113,19 @@
   "NOTIFICATIONS_DEMO_2_TIME": "1m ago",
   "NOTIFICATIONS_DEMO_3_TITLE": "Lint Passed",
   "NOTIFICATIONS_DEMO_3_SUBTITLE": "No problems found",
-  "NOTIFICATIONS_DEMO_3_TIME": "5m ago"
+  "NOTIFICATIONS_DEMO_3_TIME": "5m ago",
+  "SETTINGS_GENERAL_TITLE": "General settings",
+  "SETTINGS_GENERAL_DESC": "Manage basic site info and localization preferences.",
+  "SETTINGS_GENERAL_TAB_SITE": "Site",
+  "SETTINGS_GENERAL_TAB_LOCALIZATION": "Localization",
+  "SETTINGS_CURRENT": "Current:",
+  "SETTINGS_RESET": "Reset",
+  "SETTINGS_SITE_NAME_DESC": "Used for site branding and browser title.",
+  "SETTINGS_SITE_URL_DESC": "Used for generating links and emails.",
+  "SETTINGS_LANGUAGE_DESC": "Set your workspace language. This affects notifications and registration emails.",
+  "SETTINGS_TIMEZONE_DESC": "Set your workspace timezone. This affects how timestamps are displayed.",
+  "SETTINGS_DATE_FORMAT_DESC": "Set your workspace date format. This affects date display and exports.",
+  "SETTINGS_LOAD_FAILED_DESC": "Failed to load settings. Please check network and permissions, then retry.",
+  "SETTINGS_SAVE": "Save",
+  "SETTINGS_SAVED": "Saved"
 }

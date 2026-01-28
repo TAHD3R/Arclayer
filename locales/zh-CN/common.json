@@ -112,5 +112,19 @@
   "NOTIFICATIONS_DEMO_2_TIME": "1 分钟前",
   "NOTIFICATIONS_DEMO_3_TITLE": "代码检查通过",
   "NOTIFICATIONS_DEMO_3_SUBTITLE": "未发现问题",
-  "NOTIFICATIONS_DEMO_3_TIME": "5 分钟前"
+  "NOTIFICATIONS_DEMO_3_TIME": "5 分钟前",
+  "SETTINGS_GENERAL_TITLE": "通用配置",
+  "SETTINGS_GENERAL_DESC": "管理站点基础信息与本地化偏好。",
+  "SETTINGS_GENERAL_TAB_SITE": "站点",
+  "SETTINGS_GENERAL_TAB_LOCALIZATION": "本地化",
+  "SETTINGS_CURRENT": "当前：",
+  "SETTINGS_RESET": "重置",
+  "SETTINGS_SITE_NAME_DESC": "用于展示站点品牌信息与浏览器标题。",
+  "SETTINGS_SITE_URL_DESC": "用于生成链接与邮件中的站点地址。",
+  "SETTINGS_LANGUAGE_DESC": "设置你的工作区语言。这会影响到系统通知、注册电子邮件。",
+  "SETTINGS_TIMEZONE_DESC": "设置你的工作区时区。这会影响到内容时间显示。",
+  "SETTINGS_DATE_FORMAT_DESC": "设置你的工作区日期格式。这会影响到日期显示与导出。",
+  "SETTINGS_LOAD_FAILED_DESC": "无法加载系统配置，请检查网络连接与当前账号权限，然后重试。",
+  "SETTINGS_SAVE": "保存",
+  "SETTINGS_SAVED": "已保存"
 }
