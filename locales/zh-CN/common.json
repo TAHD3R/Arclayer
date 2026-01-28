@@ -23,6 +23,8 @@
   "NAV_SETTINGS_MAINTENANCE_SNAPSHOTS": "备份与回滚",
   "NAV_SETTINGS_MAINTENANCE_AUDIT_LOG": "操作记录",
   "NAV_SETTINGS_MAINTENANCE_STATUS": "系统状态",
+  "ASSET_ACTION_COPY_LINK": "复制链接",
+  "ASSET_ACTION_DELETE": "删除",
   "PAGE_COMING_SOON": "页面建设中",
   "PAGE_COMING_SOON_DESC": "该功能正在开发中，你可以先从左侧菜单继续浏览其它模块。",
   "SETUP_TITLE": "系统初始化",

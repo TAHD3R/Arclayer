@@ -23,6 +23,8 @@
   "NAV_SETTINGS_MAINTENANCE_SNAPSHOTS": "Backups & rollback",
   "NAV_SETTINGS_MAINTENANCE_AUDIT_LOG": "Audit log",
   "NAV_SETTINGS_MAINTENANCE_STATUS": "System status",
+  "ASSET_ACTION_COPY_LINK": "Copy link",
+  "ASSET_ACTION_DELETE": "Delete",
   "PAGE_COMING_SOON": "Coming soon",
   "PAGE_COMING_SOON_DESC": "This feature is under development. You can explore other modules from the left navigation.",
   "SETUP_TITLE": "System setup",

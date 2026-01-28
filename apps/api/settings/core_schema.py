@@ -44,11 +44,25 @@ def build_core_settings_schema() -> ConfigSchema:
                         label_i18n="settings:SITE_LOGO_LABEL",
                     ),
                     ConfigField(
+                        key="logo_asset_id",
+                        type="str",
+                        default=None,
+                        label="Logo asset id",
+                        label_i18n="settings:SITE_LOGO_ASSET_ID_LABEL",
+                    ),
+                    ConfigField(
                         key="favicon_url",
                         type="str",
                         default=None,
                         label="Favicon URL",
                         label_i18n="settings:SITE_FAVICON_LABEL",
+                    ),
+                    ConfigField(
+                        key="favicon_asset_id",
+                        type="str",
+                        default=None,
+                        label="Favicon asset id",
+                        label_i18n="settings:SITE_FAVICON_ASSET_ID_LABEL",
                     ),
                     ConfigField(
                         key="contact_email",

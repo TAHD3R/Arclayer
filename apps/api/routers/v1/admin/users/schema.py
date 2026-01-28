@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from uuid import UUID
 
 from pydantic import Field
 
@@ -14,6 +15,7 @@ class AdminUserSummaryOut(BaseOut):
     status: UserStatus = Field(..., description="User status.")
     display_name: str | None = Field(default=None, description="Display name.")
     avatar_url: str | None = Field(default=None, description="Avatar URL.")
+    avatar_asset_id: UUID | None = Field(default=None, description="Avatar asset id.")
     last_login_at: datetime | None = Field(default=None, description="Last login time.")
 
 
@@ -39,6 +41,7 @@ class AdminUserUpdateRequest(BaseSchema):
     email: str | None = Field(default=None, max_length=255, description="Email.")
     display_name: str | None = Field(default=None, max_length=64, description="Display name.")
     avatar_url: str | None = Field(default=None, max_length=512, description="Avatar URL.")
+    avatar_asset_id: UUID | None = Field(default=None, description="Avatar asset id.")
 
 
 class AdminResetPasswordRequest(BaseSchema):

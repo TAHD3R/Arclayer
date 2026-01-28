@@ -68,6 +68,92 @@ class ApplicationSettings(BaseSettings):
     )
 
 
+class StorageSettings(BaseSettings):
+    """
+    Storage settings for uploads and asset delivery.
+
+    Notes:
+    - Paths are deployment settings (environment-level), not admin-configurable values.
+    - Default local root points to `<repo>/data/uploads`.
+    """
+
+    model_config = SettingsConfigDict(
+        env_prefix="STORAGE__",
+        env_file_encoding="utf-8",
+        env_nested_delimiter="__",
+        extra="ignore",
+        case_sensitive=False,
+        populate_by_name=True,
+        validate_default=True,
+    )
+
+    provider: Literal["local", "s3"] = Field(
+        default="local",
+        validation_alias=AliasChoices("PROVIDER", "STORAGE_PROVIDER", "APP_STORAGE_PROVIDER"),
+    )
+    local_root_dir: Path = Field(
+        default=Path(__file__).resolve().parents[2] / "data" / "uploads",
+        validation_alias=AliasChoices("LOCAL_ROOT_DIR", "STORAGE_LOCAL_ROOT_DIR"),
+    )
+    local_tmp_dir: Path = Field(
+        default=Path(__file__).resolve().parents[2] / "data" / "uploads" / ".tmp",
+        validation_alias=AliasChoices("LOCAL_TMP_DIR", "STORAGE_LOCAL_TMP_DIR"),
+    )
+    public_base_url: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("PUBLIC_BASE_URL", "STORAGE_PUBLIC_BASE_URL"),
+        description="Optional public base URL (e.g. CDN) used to build absolute asset URLs.",
+    )
+    recycle_bin_retention_days: int = Field(
+        default=90,
+        ge=1,
+        le=3650,
+        validation_alias=AliasChoices("RECYCLE_BIN_RETENTION_DAYS", "STORAGE_RECYCLE_BIN_RETENTION_DAYS"),
+    )
+    upload_chunk_size_mb: int = Field(
+        default=8,
+        ge=1,
+        le=128,
+        validation_alias=AliasChoices("UPLOAD_CHUNK_SIZE_MB", "STORAGE_UPLOAD_CHUNK_SIZE_MB"),
+        description="Default chunk size (MiB) for resumable uploads.",
+    )
+    upload_max_file_size_mb: int = Field(
+        default=2048,
+        ge=1,
+        le=1024 * 100,
+        validation_alias=AliasChoices("UPLOAD_MAX_FILE_SIZE_MB", "STORAGE_UPLOAD_MAX_FILE_SIZE_MB"),
+        description="Max upload file size (MiB).",
+    )
+    upload_max_avatar_size_mb: int = Field(
+        default=10,
+        ge=1,
+        le=1024 * 100,
+        validation_alias=AliasChoices("UPLOAD_MAX_AVATAR_SIZE_MB", "STORAGE_UPLOAD_MAX_AVATAR_SIZE_MB"),
+        description="Max avatar upload size (MiB).",
+    )
+    upload_max_site_logo_size_mb: int = Field(
+        default=20,
+        ge=1,
+        le=1024 * 100,
+        validation_alias=AliasChoices("UPLOAD_MAX_SITE_LOGO_SIZE_MB", "STORAGE_UPLOAD_MAX_SITE_LOGO_SIZE_MB"),
+        description="Max site logo upload size (MiB).",
+    )
+    upload_max_favicon_size_mb: int = Field(
+        default=2,
+        ge=1,
+        le=1024 * 100,
+        validation_alias=AliasChoices("UPLOAD_MAX_FAVICON_SIZE_MB", "STORAGE_UPLOAD_MAX_FAVICON_SIZE_MB"),
+        description="Max favicon upload size (MiB).",
+    )
+    upload_session_ttl_seconds: int = Field(
+        default=3600,
+        ge=60,
+        le=7 * 24 * 3600,
+        validation_alias=AliasChoices("UPLOAD_SESSION_TTL_SECONDS", "STORAGE_UPLOAD_SESSION_TTL_SECONDS"),
+        description="Upload session TTL (seconds).",
+    )
+
+
 class LoggingSettings(BaseSettings):
     """
     Logging settings for the API application.
@@ -596,6 +682,7 @@ class Settings(BaseSettings):
         return self.app_env in {"development", "test"}
 
     application: ApplicationSettings = Field(default_factory=ApplicationSettings)
+    storage: StorageSettings = Field(default_factory=StorageSettings)
     logging: LoggingSettings = Field(default_factory=LoggingSettings)
     database: DatabaseSettings = Field(default_factory=DatabaseSettings)
     valkey: ValkeySettings = Field(default_factory=ValkeySettings)
@@ -615,6 +702,7 @@ class Settings(BaseSettings):
             return current.model_copy(update=updates)
 
         self.application = _merge_settings(self.application, ApplicationSettings())
+        self.storage = _merge_settings(self.storage, StorageSettings())
         self.logging = _merge_settings(self.logging, LoggingSettings())
         self.database = _merge_settings(self.database, DatabaseSettings())
         self.valkey = _merge_settings(self.valkey, ValkeySettings())

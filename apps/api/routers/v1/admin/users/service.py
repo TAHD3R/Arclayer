@@ -90,6 +90,8 @@ class AdminUsersService(BaseService):
             updates["display_name"] = payload.display_name
         if payload.avatar_url is not None:
             updates["avatar_url"] = payload.avatar_url
+        if payload.avatar_asset_id is not None:
+            updates["avatar_asset_id"] = payload.avatar_asset_id
 
         if updates:
             try:
