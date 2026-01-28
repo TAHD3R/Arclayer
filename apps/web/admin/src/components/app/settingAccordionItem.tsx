@@ -63,14 +63,18 @@ export function SettingAccordionItem(props: SettingAccordionItemProps) {
 
   return (
     <AccordionItem value={props.value}>
-      <AccordionTrigger>
+      {/* Override default trigger hover underline: only underline the title, not the whole block. */}
+      <AccordionTrigger className="group hover:no-underline">
         <div className="flex flex-col gap-1">
-          <div className="text-[20px] font-bold leading-tight">{props.title}</div>
+          <div className="text-[20px] font-bold leading-tight">
+            <span className="group-hover:underline underline-offset-4">{props.title}</span>
+          </div>
           {hasDescription || shouldShowSummary ? (
-            <div className="text-[16px] text-muted-foreground leading-snug">
+            <div className="text-[16px] text-muted-foreground leading-snug no-underline">
               {hasDescription ? props.description : null}
               {shouldShowSummary ? (
                 <>
+                  {hasDescription ? <span className="mx-2">·</span> : null}
                   <span className="mr-1">{summaryPrefix}</span>
                   <span>{props.summary ?? "-"}</span>
                 </>

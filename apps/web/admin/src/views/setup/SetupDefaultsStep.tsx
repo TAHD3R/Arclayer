@@ -1,31 +1,19 @@
-import { Form, Input } from "antd";
+import { Form, Input, Select } from "antd";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/animate-ui/components/radix/accordion";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuTrigger,
-} from "@/components/animate-ui/components/radix/dropdown-menu";
-import { Button } from "@/components/ui/button";
+import { Accordion } from "@/components/animate-ui/components/radix/accordion";
+import { SettingAccordionItem } from "@/components/app/settingAccordionItem";
 import { type AppLocale } from "@/utils/i18n";
 import { type SetupDefaultsDraft } from "@/stores/useSetupWizardStore";
 
 const COMMON_TIMEZONES = [
+  "Asia/Shanghai",
   "UTC",
   "America/Los_Angeles",
   "America/New_York",
   "Europe/London",
   "Europe/Berlin",
-  "Asia/Shanghai",
   "Asia/Tokyo",
 ] as const;
 
@@ -72,7 +60,7 @@ export function SetupDefaultsStep(props: {
     return base.map((v) => ({ value: v, label: v }));
   }, [timezone]);
 
-  const currentTimezoneLabel = timezone || timezoneItems[0]?.label || "UTC";
+  const currentTimezoneLabel = timezone || timezoneItems[0]?.label || "Asia/Shanghai";
   const currentLocaleLabel = locale ? formatLocaleLabel(locale, t) : localeItems[0]?.label;
   const currentDateFormatLabel =
     DATE_FORMAT_ITEMS.find((it) => it.value === dateFormat)?.label || DATE_FORMAT_ITEMS[0]?.label;
@@ -110,124 +98,72 @@ export function SetupDefaultsStep(props: {
       </Form.Item>
 
       <Accordion type="single" collapsible className="px-0">
-        <AccordionItem value="timezone">
-          <AccordionTrigger>
-            <div className="flex flex-col gap-1">
-              <div className="text-[20px] font-bold leading-tight">
-                {t("common:SETUP_FIELD_TIMEZONE_TITLE")}
-              </div>
-              <div className="text-[16px] text-muted-foreground leading-snug">
-                {t("common:SETUP_TIMEZONE_DESC", { current: currentTimezoneLabel })}
-              </div>
-            </div>
-          </AccordionTrigger>
-          <AccordionContent>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="justify-between min-w-[240px]">
-                  {t("common:SETUP_SELECT")}
-                  <span className="text-muted-foreground text-xs">{currentTimezoneLabel}</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-[min(360px,calc(100vw-2rem))]">
-                <DropdownMenuRadioGroup
-                  value={timezone || ""}
-                  onValueChange={(v) => {
-                    props.form.setFieldValue("timezone", v);
-                    // `setFieldValue` is programmatic and may not trigger `onValuesChange`,
-                    // so we explicitly sync it to the wizard store.
-                    props.onValuesChange({ timezone: v }, props.form.getFieldsValue(true));
-                  }}
-                >
-                  {timezoneItems.map((it) => (
-                    <DropdownMenuRadioItem key={it.value} value={it.value}>
-                      {it.label}
-                    </DropdownMenuRadioItem>
-                  ))}
-                </DropdownMenuRadioGroup>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </AccordionContent>
-        </AccordionItem>
+        <SettingAccordionItem
+          value="timezone"
+          title={t("common:SETUP_FIELD_TIMEZONE_TITLE")}
+          description={t("common:SETTINGS_TIMEZONE_DESC")}
+          showSummary
+          summary={currentTimezoneLabel}
+          disabled={props.disabled}
+        >
+          <Select
+            size="large"
+            className="min-w-[260px]"
+            disabled={props.disabled}
+            value={timezone}
+            options={timezoneItems}
+            showSearch
+            optionFilterProp="label"
+            onChange={(v) => {
+              props.form.setFieldValue("timezone", v);
+              // `setFieldValue` is programmatic and may not trigger `onValuesChange`,
+              // so we explicitly sync it to the wizard store.
+              props.onValuesChange({ timezone: v }, props.form.getFieldsValue(true));
+            }}
+          />
+        </SettingAccordionItem>
 
-        <AccordionItem value="locale">
-          <AccordionTrigger>
-            <div className="flex flex-col gap-1">
-              <div className="text-[20px] font-bold leading-tight">
-                {t("common:SETUP_FIELD_LANGUAGE_TITLE")}
-              </div>
-              <div className="text-[16px] text-muted-foreground leading-snug">
-                {t("common:SETUP_LANGUAGE_DESC", { current: currentLocaleLabel })}
-              </div>
-            </div>
-          </AccordionTrigger>
-          <AccordionContent>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="justify-between min-w-[220px]">
-                  {t("common:SETUP_SELECT")}
-                  <span className="text-muted-foreground text-xs">{currentLocaleLabel}</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-[min(280px,calc(100vw-2rem))]">
-                <DropdownMenuRadioGroup
-                  value={locale || ""}
-                  onValueChange={(v) => {
-                    props.form.setFieldValue("locale", v as AppLocale);
-                    props.onValuesChange(
-                      { locale: v as AppLocale },
-                      props.form.getFieldsValue(true),
-                    );
-                  }}
-                >
-                  {localeItems.map((it) => (
-                    <DropdownMenuRadioItem key={it.value} value={it.value}>
-                      {it.label}
-                    </DropdownMenuRadioItem>
-                  ))}
-                </DropdownMenuRadioGroup>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </AccordionContent>
-        </AccordionItem>
+        <SettingAccordionItem
+          value="locale"
+          title={t("common:SETUP_FIELD_LANGUAGE_TITLE")}
+          description={t("common:SETTINGS_LANGUAGE_DESC")}
+          showSummary
+          summary={currentLocaleLabel}
+          disabled={props.disabled}
+        >
+          <Select
+            size="large"
+            className="min-w-[220px]"
+            disabled={props.disabled}
+            value={locale}
+            options={localeItems}
+            onChange={(v) => {
+              props.form.setFieldValue("locale", v as AppLocale);
+              props.onValuesChange({ locale: v as AppLocale }, props.form.getFieldsValue(true));
+            }}
+          />
+        </SettingAccordionItem>
 
-        <AccordionItem value="dateFormat">
-          <AccordionTrigger>
-            <div className="flex flex-col gap-1">
-              <div className="text-[20px] font-bold leading-tight">
-                {t("common:SETUP_FIELD_DATE_FORMAT_TITLE")}
-              </div>
-              <div className="text-[16px] text-muted-foreground leading-snug">
-                {t("common:SETUP_DATE_FORMAT_DESC", { current: currentDateFormatLabel })}
-              </div>
-            </div>
-          </AccordionTrigger>
-          <AccordionContent>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="justify-between min-w-[260px]">
-                  {t("common:SETUP_SELECT")}
-                  <span className="text-muted-foreground text-xs">{currentDateFormatLabel}</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-[min(360px,calc(100vw-2rem))]">
-                <DropdownMenuRadioGroup
-                  value={dateFormat || ""}
-                  onValueChange={(v) => {
-                    props.form.setFieldValue("dateFormat", v);
-                    props.onValuesChange({ dateFormat: v }, props.form.getFieldsValue(true));
-                  }}
-                >
-                  {DATE_FORMAT_ITEMS.map((it) => (
-                    <DropdownMenuRadioItem key={it.value} value={it.value}>
-                      {it.label}
-                    </DropdownMenuRadioItem>
-                  ))}
-                </DropdownMenuRadioGroup>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </AccordionContent>
-        </AccordionItem>
+        <SettingAccordionItem
+          value="dateFormat"
+          title={t("common:SETUP_FIELD_DATE_FORMAT_TITLE")}
+          description={t("common:SETTINGS_DATE_FORMAT_DESC")}
+          showSummary
+          summary={currentDateFormatLabel}
+          disabled={props.disabled}
+        >
+          <Select
+            size="large"
+            className="min-w-[320px]"
+            disabled={props.disabled}
+            value={dateFormat}
+            options={DATE_FORMAT_ITEMS.map((it) => ({ value: it.value, label: it.label }))}
+            onChange={(v) => {
+              props.form.setFieldValue("dateFormat", v);
+              props.onValuesChange({ dateFormat: v }, props.form.getFieldsValue(true));
+            }}
+          />
+        </SettingAccordionItem>
       </Accordion>
     </Form>
   );
