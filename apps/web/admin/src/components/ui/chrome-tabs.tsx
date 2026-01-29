@@ -28,7 +28,7 @@ const ChromeTabsList = React.forwardRef<
 ChromeTabsList.displayName = "ChromeTabsList";
 
 const ChromeTabsTrigger = React.forwardRef<
-  React.ElementRef<typeof TabsTrigger>,
+  React.ComponentRef<typeof TabsTrigger>,
   React.ComponentPropsWithoutRef<typeof TabsTrigger>
 >(({ className, ...props }, ref) => (
   <TabsTrigger
@@ -44,7 +44,7 @@ const ChromeTabsTrigger = React.forwardRef<
       "transition-colors",
       "hover:text-foreground",
       // Hover underline for inactive tabs (instead of borders)
-      "after:absolute after:left-8 after:right-8 after:bottom-2 after:h-[2px] after:rounded-full after:bg-transparent after:transition-colors",
+      "after:absolute after:left-8 after:right-8 after:bottom-2 after:h-0.5 after:rounded-full after:bg-transparent after:transition-colors",
       "data-[state=inactive]:hover:after:bg-foreground/60",
       // Active indicator
       "data-[state=active]:text-foreground",
