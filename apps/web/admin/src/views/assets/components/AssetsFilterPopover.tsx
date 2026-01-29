@@ -93,10 +93,16 @@ export function AssetsFilterPopover(props: {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button icon={<Filter size={16} />} title={t("assets:ASSET_FILTER_TITLE")} />
+        <Button
+          type="text"
+          icon={<Filter size={18} />}
+          title={t("assets:ASSET_FILTER_TITLE")}
+          style={{ width: 44, height: 44, paddingInline: 0 }}
+          className="!bg-transparent hover:!bg-accent/40"
+        />
       </PopoverTrigger>
 
-      <PopoverContent align="start" sideOffset={8} className="w-[360px] p-3">
+      <PopoverContent align="start" sideOffset={8} className="w-90 p-3">
         <div className="text-sm font-medium">{t("assets:ASSET_FILTER_TITLE")}</div>
         <div className="mt-3 grid grid-cols-1 gap-3">
           <div className="grid grid-cols-1 gap-1.5">

@@ -8,7 +8,7 @@ from tortoise.queryset import QuerySet
 from apps.api.common.repositories import BaseRepository
 from apps.api.models.asset import AssetRecord
 from apps.api.models.asset_folder import AssetFolderRecord
-from apps.api.models.asset_tag import AssetTagRecord
+from apps.api.models.asset_tag import AssetTagLinkRecord, AssetTagRecord
 from apps.api.routers.v1.admin.assets.schema import AdminAssetListQuery
 
 
@@ -69,6 +69,14 @@ class AdminAssetsRepository(BaseRepository):
     async def get_asset(self, *, org_id: UUID, asset_id: UUID) -> AssetRecord | None:
         return await AssetRecord.get_or_none(id=asset_id, org_id=org_id, deleted_at=None)
 
+    async def get_asset_with_tags(self, *, org_id: UUID, asset_id: UUID) -> AssetRecord | None:
+        return (
+            await AssetRecord
+            .filter(id=asset_id, org_id=org_id, deleted_at=None)
+            .prefetch_related("tag_links__tag")
+            .first()
+        )
+
     def query_folders(self, *, org_id: UUID) -> QuerySet[AssetFolderRecord]:
         return AssetFolderRecord.filter(org_id=org_id).order_by("sort_order", "name")
 
@@ -79,6 +87,32 @@ class AdminAssetsRepository(BaseRepository):
             if needle:
                 qs = qs.filter(name__icontains=needle)
         return qs.order_by("name")
+
+    async def get_tag_by_name(self, *, org_id: UUID, name: str) -> AssetTagRecord | None:
+        return await AssetTagRecord.get_or_none(org_id=org_id, name=name)
+
+    async def create_tag(self, *, org_id: UUID, name: str) -> AssetTagRecord:
+        return await AssetTagRecord.create(org_id=org_id, name=name)
+
+    async def list_tags_by_ids(self, *, org_id: UUID, tag_ids: list[UUID]) -> list[AssetTagRecord]:
+        if not tag_ids:
+            return []
+        return await AssetTagRecord.filter(org_id=org_id, id__in=tag_ids).all()
+
+    async def replace_asset_tags(self, *, asset_id: UUID, tag_ids: list[UUID]) -> None:
+        # Replace links with the given set (idempotent).
+        target = set(tag_ids)
+        existing = set(
+            await AssetTagLinkRecord.filter(asset_id=asset_id).values_list("tag_id", flat=True)  # type: ignore[arg-type]
+        )
+
+        to_delete = list(existing - target)
+        to_add = list(target - existing)
+
+        if to_delete:
+            await AssetTagLinkRecord.filter(asset_id=asset_id, tag_id__in=to_delete).delete()
+        for tag_id in to_add:
+            await AssetTagLinkRecord.create(asset_id=asset_id, tag_id=tag_id)
 
     async def get_folder(self, *, org_id: UUID, folder_id: UUID) -> AssetFolderRecord | None:
         return await AssetFolderRecord.get_or_none(id=folder_id, org_id=org_id)

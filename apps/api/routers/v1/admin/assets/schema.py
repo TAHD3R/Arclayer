@@ -96,6 +96,20 @@ class AdminAssetMoveRequest(BaseSchema):
     folder_id: UUID | None = Field(default=None, description="Target folder id (null = move to root).")
 
 
+class AdminAssetUpdateRequest(BaseSchema):
+    description: str | None = Field(default=None, max_length=4000, description="User-facing description.")
+    tag_ids: list[UUID] | None = Field(default=None, description="Tag ids to set (replace existing).")
+
+
+class AdminAssetTagCreateRequest(BaseSchema):
+    name: str = Field(..., min_length=1, max_length=64, description="Tag name.")
+
+
 class AdminAssetTagOut(BaseOut):
     name: str = Field(..., description="Tag name.")
     created_at: datetime = Field(..., description="Created at.")
+
+
+class AdminAssetDetailOut(AdminAssetSummaryOut):
+    description: str | None = Field(default=None, description="User-facing description (from asset.meta).")
+    tags: list[AdminAssetTagOut] = Field(default_factory=list, description="Attached tags.")

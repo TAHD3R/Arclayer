@@ -46,6 +46,16 @@ export type AdminAssetTag = {
   createdAt: string;
 };
 
+export type AdminAssetDetail = AdminAssetSummary & {
+  description?: string | null;
+  tags: AdminAssetTag[];
+};
+
+export type PatchAdminAssetPayload = {
+  description?: string | null;
+  tagIds?: string[];
+};
+
 export type ListAdminAssetsParams = {
   page?: number;
   size?: number;
@@ -108,4 +118,19 @@ export async function listAdminAssetFolders(): Promise<AdminAssetFolder[]> {
 export async function listAdminAssetTags(params: { q?: string } = {}): Promise<AdminAssetTag[]> {
   const query = toQueryString({ q: params.q });
   return api.get<AdminAssetTag[]>(`/admin/asset-tags${query}`);
+}
+
+export async function createAdminAssetTag(payload: { name: string }): Promise<AdminAssetTag> {
+  return api.post<AdminAssetTag>(`/admin/asset-tags`, payload);
+}
+
+export async function getAdminAssetDetail(assetId: string): Promise<AdminAssetDetail> {
+  return api.get<AdminAssetDetail>(`/admin/assets/${assetId}`);
+}
+
+export async function patchAdminAsset(
+  assetId: string,
+  payload: PatchAdminAssetPayload,
+): Promise<AdminAssetDetail> {
+  return api.patch<AdminAssetDetail>(`/admin/assets/${assetId}`, payload);
 }

@@ -1,4 +1,4 @@
-import { Button, Select, Tooltip } from "antd";
+import { Button, Tooltip } from "antd";
 import {
   CheckCircle2,
   CloudUpload,
@@ -10,12 +10,11 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { useTranslation } from "react-i18next";
 
 import { cn } from "@/lib/utils";
-import type { AdminAssetFolder } from "@/api/assets";
 import {
   abortUpload,
   commitUploadPart,
@@ -28,7 +27,6 @@ import { notifyError, notifySuccessText } from "@/utils/notifications";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/animate-ui/components/radix/dialog";
@@ -73,53 +71,18 @@ function nextLocalId() {
   return `upload-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
-function buildFolderPathOptions(folders: AdminAssetFolder[]) {
-  const byId = new Map<string, AdminAssetFolder>();
-  for (const f of folders) byId.set(f.id, f);
-
-  const memo = new Map<string, string>();
-  const buildPath = (id: string, depth = 0): string => {
-    const cached = memo.get(id);
-    if (cached) return cached;
-    const node = byId.get(id);
-    if (!node) return id;
-    if (depth > 12) return node.name;
-
-    const parentId = node.parentId ?? undefined;
-    if (!parentId) {
-      memo.set(id, node.name);
-      return node.name;
-    }
-
-    const parentLabel = buildPath(parentId, depth + 1);
-    const label = parentLabel ? `${parentLabel} / ${node.name}` : node.name;
-    memo.set(id, label);
-    return label;
-  };
-
-  return folders.map((f) => ({ label: buildPath(f.id), value: f.id }));
-}
-
 export function AssetUploadDialog(props: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  folders: AdminAssetFolder[];
   defaultFolderId?: string;
   onUploaded?: (assetIds: string[]) => void;
 }) {
   const { t } = useTranslation();
   const controllersRef = useRef(new Map<string, AbortController>());
   const [items, setItems] = useState<UploadItem[]>([]);
-  const [folderId, setFolderId] = useState<string | undefined>(props.defaultFolderId);
-  const [visibility, setVisibility] = useState<string>("public");
   const [isUploading, setIsUploading] = useState(false);
-
-  useEffect(() => {
-    if (!props.open) return;
-    // 打开弹窗时，用当前页面的“文件夹上下文”作为默认上传位置。
-    // 若用户已在弹窗里手动改过 folderId，则不会被覆盖（items 非空时通常意味着用户已开始交互）。
-    setFolderId((prev) => (prev ? prev : props.defaultFolderId));
-  }, [props.defaultFolderId, props.open]);
+  const folderId = props.defaultFolderId;
+  const visibility = "public";
 
   const resetState = useCallback(() => {
     controllersRef.current.forEach((c) => c.abort());
@@ -207,7 +170,9 @@ export function AssetUploadDialog(props: {
           mime: item.file.type || null,
           sizeBytes: item.file.size,
           expectedSha256: null,
-          visibility: visibility || null,
+          // 为了降低心智负担，这里使用系统默认上传策略：library 默认 public。
+          // 用户如果需要调整可见性/目录，后续可以在资源详情里进行管理（待实现）。
+          visibility,
           indexable: false,
           folderId: folderId || null,
         });
@@ -291,7 +256,7 @@ export function AssetUploadDialog(props: {
         controllersRef.current.delete(item.id);
       }
     },
-    [folderId, t, updateItem, visibility],
+    [folderId, t, updateItem],
   );
 
   const startUpload = useCallback(async () => {
@@ -340,56 +305,15 @@ export function AssetUploadDialog(props: {
     [abortAllAndClose, closeDialog, hasUploading, props, resetState],
   );
 
-  const folderOptions = useMemo(
-    () => [
-      { label: t("assets:ASSET_UPLOAD_FOLDER_ROOT"), value: "root" },
-      ...buildFolderPathOptions(props.folders),
-    ],
-    [props.folders, t],
-  );
-
   return (
     <Dialog open={props.open} onOpenChange={onDialogOpenChange}>
       <DialogContent
         showCloseButton
         className={cn("p-0 overflow-hidden", "max-w-[min(920px,calc(100vw-2rem))]")}
       >
-        <DialogHeader className="px-5 pt-5">
+        <DialogHeader className="px-5 pt-5 border-b">
           <DialogTitle>{t("assets:ASSET_UPLOAD_DIALOG_TITLE")}</DialogTitle>
-          <DialogDescription>{t("assets:ASSET_UPLOAD_DIALOG_DESC")}</DialogDescription>
         </DialogHeader>
-
-        <div className="px-5">
-          <div className="mt-4 flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-2">
-              <div className="text-xs text-muted-foreground">
-                {t("assets:ASSET_UPLOAD_FIELD_FOLDER")}
-              </div>
-              <Select
-                value={folderId ?? "root"}
-                style={{ width: 240 }}
-                onChange={(v) => setFolderId(v === "root" ? undefined : v)}
-                options={folderOptions}
-              />
-            </div>
-
-            <div className="flex items-center gap-2">
-              <div className="text-xs text-muted-foreground">
-                {t("assets:ASSET_UPLOAD_FIELD_VISIBILITY")}
-              </div>
-              <Select
-                value={visibility}
-                style={{ width: 180 }}
-                onChange={setVisibility}
-                options={[
-                  { label: t("assets:ASSET_FILTER_VISIBILITY_PUBLIC"), value: "public" },
-                  { label: t("assets:ASSET_FILTER_VISIBILITY_PRIVATE"), value: "private" },
-                  { label: t("assets:ASSET_FILTER_VISIBILITY_SHARED"), value: "shared" },
-                ]}
-              />
-            </div>
-          </div>
-        </div>
 
         <div className="px-5 pt-4">
           <div
@@ -424,12 +348,12 @@ export function AssetUploadDialog(props: {
         </div>
 
         <div className="px-5 pt-4 pb-5">
-          <div className="text-sm font-medium">{t("assets:ASSET_UPLOAD_LIST_TITLE")}</div>
+          <div className="font-bold">{t("assets:ASSET_UPLOAD_LIST_TITLE")}</div>
 
           <div
             className={cn(
               "mt-3 rounded-xl border border-border/60",
-              "max-h-[320px] overflow-auto",
+              "max-h-80 overflow-auto",
               items.length ? "bg-background" : "bg-muted/20",
             )}
           >
@@ -446,10 +370,10 @@ export function AssetUploadDialog(props: {
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center justify-between gap-3">
                           <div className="min-w-0">
-                            <div className="truncate text-sm font-medium" title={it.file.name}>
+                            <div className="truncate text-sm font-bold" title={it.file.name}>
                               {it.file.name}
                             </div>
-                            <div className="mt-0.5 text-xs text-muted-foreground">
+                            <div className="mt-0.5 text-sm text-muted-foreground">
                               {formatBytes(it.file.size)}
                             </div>
                           </div>
@@ -491,7 +415,7 @@ export function AssetUploadDialog(props: {
                               style={{ width: `${Math.min(100, Math.max(0, it.progress))}%` }}
                             />
                           </div>
-                          <div className="mt-1 flex items-center justify-between text-xs text-muted-foreground">
+                          <div className="mt-1 flex items-center justify-between text-sm text-muted-foreground">
                             <span>
                               {it.status === "pending"
                                 ? t("assets:ASSET_UPLOAD_STATUS_PENDING")

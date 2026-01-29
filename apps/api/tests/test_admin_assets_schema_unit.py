@@ -66,3 +66,15 @@ def test_admin_asset_list_query_accepts_datetime_and_tags() -> None:
     assert q.created_to is not None
     assert q.tag_ids is not None
     assert q.include_children is True
+
+
+def test_admin_asset_update_request_accepts_description_and_tag_ids() -> None:
+    from apps.api.routers.v1.admin.assets.schema import AdminAssetUpdateRequest
+
+    tid = uuid4()
+    r = AdminAssetUpdateRequest.model_validate({
+        "description": "  hello  ",
+        "tagIds": [str(tid)],
+    })
+    assert r.description == "hello"
+    assert r.tag_ids == [tid]

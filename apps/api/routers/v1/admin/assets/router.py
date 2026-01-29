@@ -11,13 +11,16 @@ from apps.api.http.pagination import PageData, PageParams, get_page_params
 from apps.api.http.response import Response as JsonResponse
 from apps.api.http.response import ResponseModel
 from apps.api.routers.v1.admin.assets.schema import (
+    AdminAssetDetailOut,
     AdminAssetFolderCreateRequest,
     AdminAssetFolderOut,
     AdminAssetFolderUpdateRequest,
     AdminAssetListQuery,
     AdminAssetMoveRequest,
     AdminAssetSummaryOut,
+    AdminAssetTagCreateRequest,
     AdminAssetTagOut,
+    AdminAssetUpdateRequest,
 )
 from apps.api.routers.v1.admin.assets.service import AdminAssetsService
 from apps.api.routers.v1.auth.deps import get_current_user
@@ -60,6 +63,40 @@ async def list_asset_tags(
 ) -> ResponseModel[list[AdminAssetTagOut]]:
     items = await service.list_tags(org_id=org_id, q=q)
     return JsonResponse.success(data=items)
+
+
+@router.post("/asset-tags", response_model=ResponseModel[AdminAssetTagOut])
+async def create_asset_tag(
+    payload: AdminAssetTagCreateRequest,
+    org_id: UUID = Depends(get_current_org_id),
+    _user=Depends(get_current_user),
+    service: AdminAssetsService = Depends(get_admin_assets_service),
+) -> ResponseModel[AdminAssetTagOut]:
+    created = await service.create_tag(org_id=org_id, payload=payload)
+    return JsonResponse.success(data=created)
+
+
+@router.get("/assets/{asset_id}", response_model=ResponseModel[AdminAssetDetailOut])
+async def get_asset_detail(
+    asset_id: UUID,
+    org_id: UUID = Depends(get_current_org_id),
+    _user=Depends(get_current_user),
+    service: AdminAssetsService = Depends(get_admin_assets_service),
+) -> ResponseModel[AdminAssetDetailOut]:
+    detail = await service.get_asset_detail(org_id=org_id, asset_id=asset_id)
+    return JsonResponse.success(data=detail)
+
+
+@router.patch("/assets/{asset_id}", response_model=ResponseModel[AdminAssetDetailOut])
+async def patch_asset(
+    asset_id: UUID,
+    payload: AdminAssetUpdateRequest,
+    org_id: UUID = Depends(get_current_org_id),
+    _user=Depends(get_current_user),
+    service: AdminAssetsService = Depends(get_admin_assets_service),
+) -> ResponseModel[AdminAssetDetailOut]:
+    updated = await service.update_asset(org_id=org_id, asset_id=asset_id, payload=payload)
+    return JsonResponse.success(data=updated)
 
 
 @router.post("/asset-folders", response_model=ResponseModel[AdminAssetFolderOut])

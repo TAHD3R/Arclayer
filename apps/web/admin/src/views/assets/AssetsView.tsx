@@ -15,7 +15,7 @@ import {
   type AdminAssetSummary,
 } from "@/api/assets";
 import { getAppConfig } from "@/constants/app-config";
-import { notifyError, notifyInfoText } from "@/utils/notifications";
+import { notifyError } from "@/utils/notifications";
 import {
   AssetMasonryTile,
   AssetPreviewSheet,
@@ -300,12 +300,7 @@ export function AssetsView() {
         open={uploadOpen}
         onOpenChange={(open) => {
           setUploadOpen(open);
-          if (!open) return;
-          if (foldersQuery.isError) {
-            notifyInfoText(t("assets:ASSET_UPLOAD_FOLDERS_LOADING_FAILED_HINT"));
-          }
         }}
-        folders={(foldersQuery.data ?? []) as AdminAssetFolder[]}
         defaultFolderId={filters.folderId}
         onUploaded={() => {
           // 上传成功后刷新列表；避免 refetch 当前页导致旧的 infinite pages 不一致，直接 invalidate 最稳。
