@@ -51,7 +51,7 @@ function NotificationList(props: {
   className?: string;
   onViewAll?: () => void;
 }) {
-  const { t } = useTranslation("common");
+  const { t } = useTranslation("notifications");
 
   const items = useMemo(() => {
     const maxItems = props.maxItems ?? props.items.length;

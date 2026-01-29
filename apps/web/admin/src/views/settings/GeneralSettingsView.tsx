@@ -126,7 +126,7 @@ function pickBool(obj: unknown, path: readonly string[]): boolean | undefined {
 }
 
 function formatLocaleLabel(locale: AppLocale, t: (key: string) => string): string {
-  return locale === "zh-CN" ? t("common:ACCOUNT_LANGUAGE_ZH") : t("common:ACCOUNT_LANGUAGE_EN");
+  return locale === "zh-CN" ? t("account:ACCOUNT_LANGUAGE_ZH") : t("account:ACCOUNT_LANGUAGE_EN");
 }
 
 export function GeneralSettingsView() {
@@ -218,7 +218,7 @@ export function GeneralSettingsView() {
   const saveMutation = useMutation({
     mutationFn: async (patch: Record<string, unknown>) => patchCoreSettings(patch),
     onSuccess: async () => {
-      notifySuccessText(t("common:SETTINGS_SAVED"));
+      notifySuccessText(t("settings:SETTINGS_SAVED"));
       await queryClient.invalidateQueries({ queryKey: ["settings", "core"] });
     },
     onError: (err) => notifyError(err),
@@ -604,8 +604,8 @@ export function GeneralSettingsView() {
 
   const storageProviderLabel =
     storageProvider === "s3"
-      ? t("common:SETTINGS_STORAGE_PROVIDER_S3")
-      : t("common:SETTINGS_STORAGE_PROVIDER_LOCAL");
+      ? t("settings:SETTINGS_STORAGE_PROVIDER_S3")
+      : t("settings:SETTINGS_STORAGE_PROVIDER_LOCAL");
 
   const hasS3Secret = Boolean(coreQuery.data?.secrets?.["storage.s3_secret_access_key"]);
 
@@ -630,8 +630,8 @@ export function GeneralSettingsView() {
 
   return (
     <DefaultPage
-      title={t("common:SETTINGS_GENERAL_TITLE")}
-      description={t("common:SETTINGS_GENERAL_DESC")}
+      title={t("settings:SETTINGS_GENERAL_TITLE")}
+      description={t("settings:SETTINGS_GENERAL_DESC")}
       width="fixed"
     >
       {coreQuery.isLoading ? (
@@ -643,7 +643,7 @@ export function GeneralSettingsView() {
           type="error"
           showIcon
           title={t("common:REQUEST_FAILED")}
-          description={t("common:SETTINGS_LOAD_FAILED_DESC")}
+          description={t("settings:SETTINGS_LOAD_FAILED_DESC")}
           action={
             <Button onClick={() => void coreQuery.refetch()}>
               <RefreshIcon size={16} />
@@ -663,13 +663,13 @@ export function GeneralSettingsView() {
           <ChromeTabs defaultValue="site">
             <ChromeTabsList>
               <ChromeTabsTrigger value="site">
-                {t("common:SETTINGS_GENERAL_TAB_SITE")}
+                {t("settings:SETTINGS_GENERAL_TAB_SITE")}
               </ChromeTabsTrigger>
               <ChromeTabsTrigger value="localization">
-                {t("common:SETTINGS_GENERAL_TAB_LOCALIZATION")}
+                {t("settings:SETTINGS_GENERAL_TAB_LOCALIZATION")}
               </ChromeTabsTrigger>
               <ChromeTabsTrigger value="storage">
-                {t("common:SETTINGS_GENERAL_TAB_STORAGE")}
+                {t("settings:SETTINGS_GENERAL_TAB_STORAGE")}
               </ChromeTabsTrigger>
             </ChromeTabsList>
 
@@ -677,11 +677,11 @@ export function GeneralSettingsView() {
               <Accordion type="single" collapsible className="px-0">
                 <SettingAccordionItem
                   value="siteName"
-                  title={t("common:SETUP_FIELD_SITE_NAME_LABEL")}
-                  description={t("common:SETTINGS_SITE_NAME_DESC")}
+                  title={t("setup:SETUP_FIELD_SITE_NAME_LABEL")}
+                  description={t("settings:SETTINGS_SITE_NAME_DESC")}
                   showSummary
                   summary={formatSummaryText(siteName)}
-                  confirmText={t("common:SETTINGS_SAVE")}
+                  confirmText={t("settings:SETTINGS_SAVE")}
                   onConfirm={saveSiteName}
                   confirmLoading={savingKey === "siteName"}
                   onReset={isSiteNameDirty || isResettingSiteName ? resetSiteName : undefined}
@@ -691,24 +691,24 @@ export function GeneralSettingsView() {
                   <Form.Item<GeneralSettingsFormValues>
                     name="siteName"
                     rules={[
-                      { required: true, message: t("common:SETUP_VALIDATION_SITE_NAME_REQUIRED") },
+                      { required: true, message: t("setup:SETUP_VALIDATION_SITE_NAME_REQUIRED") },
                     ]}
                     style={{ marginBottom: 0 }}
                   >
                     <Input
                       size="large"
-                      placeholder={t("common:SETUP_FIELD_SITE_NAME_PLACEHOLDER")}
+                      placeholder={t("setup:SETUP_FIELD_SITE_NAME_PLACEHOLDER")}
                     />
                   </Form.Item>
                 </SettingAccordionItem>
 
                 <SettingAccordionItem
                   value="siteSubtitle"
-                  title={t("common:SETTINGS_SITE_SUBTITLE_LABEL")}
-                  description={t("common:SETTINGS_SITE_SUBTITLE_DESC")}
+                  title={t("settings:SETTINGS_SITE_SUBTITLE_LABEL")}
+                  description={t("settings:SETTINGS_SITE_SUBTITLE_DESC")}
                   showSummary
                   summary={formatSummaryText(siteSubtitle)}
-                  confirmText={t("common:SETTINGS_SAVE")}
+                  confirmText={t("settings:SETTINGS_SAVE")}
                   onConfirm={saveSiteSubtitle}
                   confirmLoading={savingKey === "siteSubtitle"}
                   onReset={
@@ -719,12 +719,12 @@ export function GeneralSettingsView() {
                 >
                   <Form.Item<GeneralSettingsFormValues>
                     name="siteSubtitle"
-                    rules={[{ max: 200, message: t("common:SETUP_VALIDATION_SITE_DESC_MAX") }]}
+                    rules={[{ max: 200, message: t("setup:SETUP_VALIDATION_SITE_DESC_MAX") }]}
                     style={{ marginBottom: 0 }}
                   >
                     <Input
                       size="large"
-                      placeholder={t("common:SETTINGS_SITE_SUBTITLE_PLACEHOLDER")}
+                      placeholder={t("settings:SETTINGS_SITE_SUBTITLE_PLACEHOLDER")}
                       allowClear
                     />
                   </Form.Item>
@@ -732,11 +732,11 @@ export function GeneralSettingsView() {
 
                 <SettingAccordionItem
                   value="siteDescription"
-                  title={t("common:SETTINGS_SITE_DESCRIPTION_LABEL")}
-                  description={t("common:SETTINGS_SITE_DESCRIPTION_DESC")}
+                  title={t("settings:SETTINGS_SITE_DESCRIPTION_LABEL")}
+                  description={t("settings:SETTINGS_SITE_DESCRIPTION_DESC")}
                   showSummary
                   summary={formatSummaryText(siteDescription)}
-                  confirmText={t("common:SETTINGS_SAVE")}
+                  confirmText={t("settings:SETTINGS_SAVE")}
                   onConfirm={saveSiteDescription}
                   confirmLoading={savingKey === "siteDescription"}
                   onReset={
@@ -749,12 +749,12 @@ export function GeneralSettingsView() {
                 >
                   <Form.Item<GeneralSettingsFormValues>
                     name="siteDescription"
-                    rules={[{ max: 200, message: t("common:SETUP_VALIDATION_SITE_DESC_MAX") }]}
+                    rules={[{ max: 200, message: t("setup:SETUP_VALIDATION_SITE_DESC_MAX") }]}
                     style={{ marginBottom: 0 }}
                   >
                     <Input.TextArea
                       autoSize={{ minRows: 3, maxRows: 6 }}
-                      placeholder={t("common:SETTINGS_SITE_DESCRIPTION_PLACEHOLDER")}
+                      placeholder={t("settings:SETTINGS_SITE_DESCRIPTION_PLACEHOLDER")}
                       allowClear
                       maxLength={160}
                       showCount={{
@@ -766,11 +766,11 @@ export function GeneralSettingsView() {
 
                 <SettingAccordionItem
                   value="siteUrl"
-                  title={t("common:SETUP_FIELD_SITE_URL_LABEL")}
-                  description={t("common:SETTINGS_SITE_URL_DESC")}
+                  title={t("setup:SETUP_FIELD_SITE_URL_LABEL")}
+                  description={t("settings:SETTINGS_SITE_URL_DESC")}
                   showSummary
                   summary={formatSummaryText(siteUrl)}
-                  confirmText={t("common:SETTINGS_SAVE")}
+                  confirmText={t("settings:SETTINGS_SAVE")}
                   onConfirm={saveSiteUrl}
                   confirmLoading={savingKey === "siteUrl"}
                   onReset={isSiteUrlDirty || isResettingSiteUrl ? resetSiteUrl : undefined}
@@ -780,7 +780,7 @@ export function GeneralSettingsView() {
                   <Form.Item<GeneralSettingsFormValues>
                     name="siteUrl"
                     rules={[
-                      { required: true, message: t("common:SETUP_VALIDATION_SITE_URL_REQUIRED") },
+                      { required: true, message: t("setup:SETUP_VALIDATION_SITE_URL_REQUIRED") },
                       {
                         validator: async (_rule, value: string | undefined) => {
                           const raw = (value || "").trim();
@@ -791,27 +791,24 @@ export function GeneralSettingsView() {
                               throw new Error("invalid protocol");
                             }
                           } catch {
-                            throw new Error(t("common:SETUP_VALIDATION_SITE_URL_INVALID"));
+                            throw new Error(t("setup:SETUP_VALIDATION_SITE_URL_INVALID"));
                           }
                         },
                       },
                     ]}
                     style={{ marginBottom: 0 }}
                   >
-                    <Input
-                      size="large"
-                      placeholder={t("common:SETUP_FIELD_SITE_URL_PLACEHOLDER")}
-                    />
+                    <Input size="large" placeholder={t("setup:SETUP_FIELD_SITE_URL_PLACEHOLDER")} />
                   </Form.Item>
                 </SettingAccordionItem>
 
                 <SettingAccordionItem
                   value="siteLogoUrl"
-                  title={t("common:SETTINGS_SITE_LOGO_LABEL")}
-                  description={t("common:SETTINGS_SITE_LOGO_DESC")}
+                  title={t("settings:SETTINGS_SITE_LOGO_LABEL")}
+                  description={t("settings:SETTINGS_SITE_LOGO_DESC")}
                   showSummary
                   summary={formatSummaryText(siteLogoUrl)}
-                  confirmText={t("common:SETTINGS_SAVE")}
+                  confirmText={t("settings:SETTINGS_SAVE")}
                   onConfirm={saveSiteLogoUrl}
                   confirmLoading={savingKey === "siteLogoUrl"}
                   onReset={
@@ -828,7 +825,7 @@ export function GeneralSettingsView() {
                           const raw = (value || "").trim();
                           if (!raw) return;
                           if (isValidHttpUrlOrAbsolutePath(raw)) return;
-                          throw new Error(t("common:SETTINGS_VALIDATION_URL_OR_PATH_INVALID"));
+                          throw new Error(t("settings:SETTINGS_VALIDATION_URL_OR_PATH_INVALID"));
                         },
                       },
                     ]}
@@ -836,7 +833,7 @@ export function GeneralSettingsView() {
                   >
                     <Input
                       size="large"
-                      placeholder={t("common:SETTINGS_SITE_LOGO_PLACEHOLDER")}
+                      placeholder={t("settings:SETTINGS_SITE_LOGO_PLACEHOLDER")}
                       allowClear
                     />
                   </Form.Item>
@@ -844,11 +841,11 @@ export function GeneralSettingsView() {
 
                 <SettingAccordionItem
                   value="siteFaviconUrl"
-                  title={t("common:SETTINGS_SITE_FAVICON_LABEL")}
-                  description={t("common:SETTINGS_SITE_FAVICON_DESC")}
+                  title={t("settings:SETTINGS_SITE_FAVICON_LABEL")}
+                  description={t("settings:SETTINGS_SITE_FAVICON_DESC")}
                   showSummary
                   summary={formatSummaryText(siteFaviconUrl)}
-                  confirmText={t("common:SETTINGS_SAVE")}
+                  confirmText={t("settings:SETTINGS_SAVE")}
                   onConfirm={saveSiteFaviconUrl}
                   confirmLoading={savingKey === "siteFaviconUrl"}
                   onReset={
@@ -867,7 +864,7 @@ export function GeneralSettingsView() {
                           const raw = (value || "").trim();
                           if (!raw) return;
                           if (isValidHttpUrlOrAbsolutePath(raw)) return;
-                          throw new Error(t("common:SETTINGS_VALIDATION_URL_OR_PATH_INVALID"));
+                          throw new Error(t("settings:SETTINGS_VALIDATION_URL_OR_PATH_INVALID"));
                         },
                       },
                     ]}
@@ -875,7 +872,7 @@ export function GeneralSettingsView() {
                   >
                     <Input
                       size="large"
-                      placeholder={t("common:SETTINGS_SITE_FAVICON_PLACEHOLDER")}
+                      placeholder={t("settings:SETTINGS_SITE_FAVICON_PLACEHOLDER")}
                       allowClear
                     />
                   </Form.Item>
@@ -883,11 +880,11 @@ export function GeneralSettingsView() {
 
                 <SettingAccordionItem
                   value="siteContactEmail"
-                  title={t("common:SETTINGS_SITE_CONTACT_EMAIL_LABEL")}
-                  description={t("common:SETTINGS_SITE_CONTACT_EMAIL_DESC")}
+                  title={t("settings:SETTINGS_SITE_CONTACT_EMAIL_LABEL")}
+                  description={t("settings:SETTINGS_SITE_CONTACT_EMAIL_DESC")}
                   showSummary
                   summary={formatSummaryText(siteContactEmail)}
-                  confirmText={t("common:SETTINGS_SAVE")}
+                  confirmText={t("settings:SETTINGS_SAVE")}
                   onConfirm={saveSiteContactEmail}
                   confirmLoading={savingKey === "siteContactEmail"}
                   onReset={
@@ -908,7 +905,7 @@ export function GeneralSettingsView() {
                           // Minimal email validation for optional field.
                           const ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw);
                           if (ok) return;
-                          throw new Error(t("common:SETTINGS_VALIDATION_EMAIL_INVALID"));
+                          throw new Error(t("settings:SETTINGS_VALIDATION_EMAIL_INVALID"));
                         },
                       },
                     ]}
@@ -916,7 +913,7 @@ export function GeneralSettingsView() {
                   >
                     <Input
                       size="large"
-                      placeholder={t("common:SETTINGS_SITE_CONTACT_EMAIL_PLACEHOLDER")}
+                      placeholder={t("settings:SETTINGS_SITE_CONTACT_EMAIL_PLACEHOLDER")}
                       allowClear
                     />
                   </Form.Item>
@@ -928,11 +925,11 @@ export function GeneralSettingsView() {
               <Accordion type="single" collapsible className="px-0">
                 <SettingAccordionItem
                   value="locale"
-                  title={t("common:SETUP_FIELD_LANGUAGE_TITLE")}
-                  description={t("common:SETTINGS_LANGUAGE_DESC")}
+                  title={t("setup:SETUP_FIELD_LANGUAGE_TITLE")}
+                  description={t("settings:SETTINGS_LANGUAGE_DESC")}
                   showSummary
                   summary={localeLabel || "-"}
-                  confirmText={t("common:SETTINGS_SAVE")}
+                  confirmText={t("settings:SETTINGS_SAVE")}
                   onConfirm={saveLocale}
                   confirmLoading={savingKey === "locale"}
                   onReset={isLocaleDirty || isResettingLocale ? resetLocale : undefined}
@@ -942,15 +939,15 @@ export function GeneralSettingsView() {
                   <Form.Item<GeneralSettingsFormValues>
                     name="locale"
                     rules={[
-                      { required: true, message: t("common:SETUP_VALIDATION_LOCALE_REQUIRED") },
+                      { required: true, message: t("setup:SETUP_VALIDATION_LOCALE_REQUIRED") },
                     ]}
                     style={{ marginBottom: 0 }}
                   >
                     <Select
                       size="large"
                       options={[
-                        { value: "zh-CN", label: t("common:ACCOUNT_LANGUAGE_ZH") },
-                        { value: "en-US", label: t("common:ACCOUNT_LANGUAGE_EN") },
+                        { value: "zh-CN", label: t("account:ACCOUNT_LANGUAGE_ZH") },
+                        { value: "en-US", label: t("account:ACCOUNT_LANGUAGE_EN") },
                       ]}
                     />
                   </Form.Item>
@@ -958,11 +955,11 @@ export function GeneralSettingsView() {
 
                 <SettingAccordionItem
                   value="timezone"
-                  title={t("common:SETUP_FIELD_TIMEZONE_TITLE")}
-                  description={t("common:SETTINGS_TIMEZONE_DESC")}
+                  title={t("setup:SETUP_FIELD_TIMEZONE_TITLE")}
+                  description={t("settings:SETTINGS_TIMEZONE_DESC")}
                   showSummary
                   summary={timezone || "-"}
-                  confirmText={t("common:SETTINGS_SAVE")}
+                  confirmText={t("settings:SETTINGS_SAVE")}
                   onConfirm={saveTimezone}
                   confirmLoading={savingKey === "timezone"}
                   onReset={isTimezoneDirty || isResettingTimezone ? resetTimezone : undefined}
@@ -972,7 +969,7 @@ export function GeneralSettingsView() {
                   <Form.Item<GeneralSettingsFormValues>
                     name="timezone"
                     rules={[
-                      { required: true, message: t("common:SETUP_VALIDATION_TIMEZONE_REQUIRED") },
+                      { required: true, message: t("setup:SETUP_VALIDATION_TIMEZONE_REQUIRED") },
                     ]}
                     style={{ marginBottom: 0 }}
                   >
@@ -987,11 +984,11 @@ export function GeneralSettingsView() {
 
                 <SettingAccordionItem
                   value="dateFormat"
-                  title={t("common:SETUP_FIELD_DATE_FORMAT_TITLE")}
-                  description={t("common:SETTINGS_DATE_FORMAT_DESC")}
+                  title={t("setup:SETUP_FIELD_DATE_FORMAT_TITLE")}
+                  description={t("settings:SETTINGS_DATE_FORMAT_DESC")}
                   showSummary
                   summary={dateFormatLabel || "-"}
-                  confirmText={t("common:SETTINGS_SAVE")}
+                  confirmText={t("settings:SETTINGS_SAVE")}
                   onConfirm={saveDateFormat}
                   confirmLoading={savingKey === "dateFormat"}
                   onReset={isDateFormatDirty || isResettingDateFormat ? resetDateFormat : undefined}
@@ -1003,7 +1000,7 @@ export function GeneralSettingsView() {
                     rules={[
                       {
                         required: true,
-                        message: t("common:SETUP_VALIDATION_DATE_FORMAT_REQUIRED"),
+                        message: t("setup:SETUP_VALIDATION_DATE_FORMAT_REQUIRED"),
                       },
                     ]}
                     style={{ marginBottom: 0 }}
@@ -1023,34 +1020,34 @@ export function GeneralSettingsView() {
             <ChromeTabsContent value="storage">
               <div className="flex flex-col gap-6">
                 <SettingPanel
-                  title={t("common:SETTINGS_STORAGE_PANEL_GLOBAL_TITLE")}
-                  description={t("common:SETTINGS_STORAGE_PANEL_GLOBAL_DESC")}
+                  title={t("settings:SETTINGS_STORAGE_PANEL_GLOBAL_TITLE")}
+                  description={t("settings:SETTINGS_STORAGE_PANEL_GLOBAL_DESC")}
                 >
                   <div className="divide-y">
                     <SettingActionItem
                       className="first:rounded-t-xl last:rounded-b-xl"
-                      title={t("common:SETTINGS_STORAGE_PROVIDER_LABEL")}
+                      title={t("settings:SETTINGS_STORAGE_PROVIDER_LABEL")}
                       summary={storageProviderLabel}
-                      description={t("common:SETTINGS_STORAGE_PROVIDER_DESC")}
+                      description={t("settings:SETTINGS_STORAGE_PROVIDER_DESC")}
                       disabled={disabled}
                       onTrigger={() => openStorageOverlay("provider")}
                     />
                     <SettingActionItem
                       className="first:rounded-t-xl last:rounded-b-xl"
-                      title={t("common:SETTINGS_STORAGE_PUBLIC_BASE_URL_LABEL")}
+                      title={t("settings:SETTINGS_STORAGE_PUBLIC_BASE_URL_LABEL")}
                       summary={
                         storagePublicBaseUrl ? formatSummaryText(storagePublicBaseUrl) : null
                       }
-                      placeholder={t("common:SETTINGS_NOT_SET")}
-                      description={t("common:SETTINGS_STORAGE_PUBLIC_BASE_URL_DESC")}
+                      placeholder={t("settings:SETTINGS_NOT_SET")}
+                      description={t("settings:SETTINGS_STORAGE_PUBLIC_BASE_URL_DESC")}
                       disabled={disabled}
                       onTrigger={() => openStorageOverlay("publicBaseUrl")}
                     />
                     <SettingActionItem
                       className="first:rounded-t-xl last:rounded-b-xl"
-                      title={t("common:SETTINGS_STORAGE_UPLOAD_POLICY_LABEL")}
+                      title={t("settings:SETTINGS_STORAGE_UPLOAD_POLICY_LABEL")}
                       summary={`${uploadChunkSizeMb} MiB / ${uploadMaxFileSizeMb} MiB`}
-                      description={[t("common:SETTINGS_STORAGE_UPLOAD_POLICY_DESC")]}
+                      description={[t("settings:SETTINGS_STORAGE_UPLOAD_POLICY_DESC")]}
                       disabled={disabled}
                       onTrigger={() => openStorageOverlay("uploadPolicy")}
                     />
@@ -1059,15 +1056,15 @@ export function GeneralSettingsView() {
 
                 {storageProvider === "local" ? (
                   <SettingPanel
-                    title={t("common:SETTINGS_STORAGE_PANEL_LOCAL_TITLE")}
-                    description={t("common:SETTINGS_STORAGE_PANEL_LOCAL_DESC")}
+                    title={t("settings:SETTINGS_STORAGE_PANEL_LOCAL_TITLE")}
+                    description={t("settings:SETTINGS_STORAGE_PANEL_LOCAL_DESC")}
                   >
                     <div className="divide-y">
                       <SettingActionItem
                         className="first:rounded-t-xl last:rounded-b-xl"
-                        title={t("common:SETTINGS_STORAGE_LOCAL_INFO_LABEL")}
-                        summary={t("common:SETTINGS_STORAGE_LOCAL_INFO_SUMMARY")}
-                        description={t("common:SETTINGS_STORAGE_LOCAL_INFO_DESC")}
+                        title={t("settings:SETTINGS_STORAGE_LOCAL_INFO_LABEL")}
+                        summary={t("settings:SETTINGS_STORAGE_LOCAL_INFO_SUMMARY")}
+                        description={t("settings:SETTINGS_STORAGE_LOCAL_INFO_DESC")}
                         disabled={disabled}
                         onTrigger={() => openStorageOverlay("localInfo")}
                       />
@@ -1077,20 +1074,20 @@ export function GeneralSettingsView() {
 
                 {storageProvider === "s3" ? (
                   <SettingPanel
-                    title={t("common:SETTINGS_STORAGE_PANEL_S3_TITLE")}
-                    description={t("common:SETTINGS_STORAGE_PANEL_S3_DESC")}
+                    title={t("settings:SETTINGS_STORAGE_PANEL_S3_TITLE")}
+                    description={t("settings:SETTINGS_STORAGE_PANEL_S3_DESC")}
                   >
                     <div className="divide-y">
                       <SettingActionItem
                         className="first:rounded-t-xl last:rounded-b-xl"
-                        title={t("common:SETTINGS_STORAGE_S3_CONFIG_LABEL")}
+                        title={t("settings:SETTINGS_STORAGE_S3_CONFIG_LABEL")}
                         summary={s3Summary ? formatSummaryText(s3Summary, 64) : null}
-                        placeholder={t("common:SETTINGS_NOT_SET")}
+                        placeholder={t("settings:SETTINGS_NOT_SET")}
                         description={[
-                          t("common:SETTINGS_STORAGE_S3_CONFIG_DESC"),
+                          t("settings:SETTINGS_STORAGE_S3_CONFIG_DESC"),
                           hasS3Secret
-                            ? t("common:SETTINGS_STORAGE_S3_SECRET_SET")
-                            : t("common:SETTINGS_STORAGE_S3_SECRET_NOT_SET"),
+                            ? t("settings:SETTINGS_STORAGE_S3_SECRET_SET")
+                            : t("settings:SETTINGS_STORAGE_S3_SECRET_NOT_SET"),
                         ]}
                         disabled={disabled}
                         onTrigger={() => openStorageOverlay("s3Config")}
@@ -1104,8 +1101,8 @@ export function GeneralSettingsView() {
                   onOpenChange={(open) => {
                     if (!open) closeStorageOverlay();
                   }}
-                  title={t("common:SETTINGS_STORAGE_DRAWER_PROVIDER_TITLE")}
-                  description={t("common:SETTINGS_STORAGE_PROVIDER_DIALOG_DESC")}
+                  title={t("settings:SETTINGS_STORAGE_DRAWER_PROVIDER_TITLE")}
+                  description={t("settings:SETTINGS_STORAGE_PROVIDER_DIALOG_DESC")}
                   footer={
                     <div className="flex w-full items-center justify-end gap-2">
                       <Button onClick={closeStorageOverlay}>{t("common:BACK")}</Button>
@@ -1122,7 +1119,7 @@ export function GeneralSettingsView() {
                             }
                           }}
                         >
-                          {t("common:SETTINGS_RESET")}
+                          {t("settings:SETTINGS_RESET")}
                         </Button>
                       ) : null}
                       <Button
@@ -1138,26 +1135,28 @@ export function GeneralSettingsView() {
                           }
                         }}
                       >
-                        {t("common:SETTINGS_SAVE")}
+                        {t("settings:SETTINGS_SAVE")}
                       </Button>
                     </div>
                   }
                 >
                   <div className="mb-4  text-muted-foreground leading-relaxed">
-                    {t("common:SETTINGS_STORAGE_PROVIDER_DIALOG_HELP")}
+                    {t("settings:SETTINGS_STORAGE_PROVIDER_DIALOG_HELP")}
                   </div>
 
                   <Form.Item<GeneralSettingsFormValues>
                     name="storageProvider"
-                    label={t("common:SETTINGS_STORAGE_PROVIDER_LABEL")}
-                    rules={[{ required: true, message: t("common:SETTINGS_VALIDATION_REQUIRED") }]}
+                    label={t("settings:SETTINGS_STORAGE_PROVIDER_LABEL")}
+                    rules={[
+                      { required: true, message: t("settings:SETTINGS_VALIDATION_REQUIRED") },
+                    ]}
                     style={{ marginBottom: 0 }}
                   >
                     <Select
                       size="large"
                       options={[
-                        { value: "local", label: t("common:SETTINGS_STORAGE_PROVIDER_LOCAL") },
-                        { value: "s3", label: t("common:SETTINGS_STORAGE_PROVIDER_S3") },
+                        { value: "local", label: t("settings:SETTINGS_STORAGE_PROVIDER_LOCAL") },
+                        { value: "s3", label: t("settings:SETTINGS_STORAGE_PROVIDER_S3") },
                       ]}
                     />
                   </Form.Item>
@@ -1168,8 +1167,8 @@ export function GeneralSettingsView() {
                   onOpenChange={(open) => {
                     if (!open) closeStorageOverlay();
                   }}
-                  title={t("common:SETTINGS_STORAGE_DRAWER_PUBLIC_BASE_URL_TITLE")}
-                  description={t("common:SETTINGS_STORAGE_PUBLIC_BASE_URL_DIALOG_DESC")}
+                  title={t("settings:SETTINGS_STORAGE_DRAWER_PUBLIC_BASE_URL_TITLE")}
+                  description={t("settings:SETTINGS_STORAGE_PUBLIC_BASE_URL_DIALOG_DESC")}
                   footer={
                     <div className="flex w-full items-center justify-end gap-2">
                       <Button onClick={closeStorageOverlay}>{t("common:BACK")}</Button>
@@ -1186,7 +1185,7 @@ export function GeneralSettingsView() {
                             }
                           }}
                         >
-                          {t("common:SETTINGS_RESET")}
+                          {t("settings:SETTINGS_RESET")}
                         </Button>
                       ) : null}
                       <Button
@@ -1202,25 +1201,25 @@ export function GeneralSettingsView() {
                           }
                         }}
                       >
-                        {t("common:SETTINGS_SAVE")}
+                        {t("settings:SETTINGS_SAVE")}
                       </Button>
                     </div>
                   }
                 >
                   <div className="mb-4  text-muted-foreground leading-relaxed">
-                    {t("common:SETTINGS_STORAGE_PUBLIC_BASE_URL_DIALOG_HELP")}
+                    {t("settings:SETTINGS_STORAGE_PUBLIC_BASE_URL_DIALOG_HELP")}
                   </div>
 
                   <Form.Item<GeneralSettingsFormValues>
                     name="storagePublicBaseUrl"
-                    label={t("common:SETTINGS_STORAGE_PUBLIC_BASE_URL_LABEL")}
+                    label={t("settings:SETTINGS_STORAGE_PUBLIC_BASE_URL_LABEL")}
                     rules={[
                       {
                         validator: async (_rule, value: string | undefined) => {
                           const raw = (value || "").trim();
                           if (!raw) return;
                           if (isValidHttpUrlOrAbsolutePath(raw)) return;
-                          throw new Error(t("common:SETTINGS_VALIDATION_URL_OR_PATH_INVALID"));
+                          throw new Error(t("settings:SETTINGS_VALIDATION_URL_OR_PATH_INVALID"));
                         },
                       },
                     ]}
@@ -1228,7 +1227,7 @@ export function GeneralSettingsView() {
                   >
                     <Input
                       size="large"
-                      placeholder={t("common:SETTINGS_STORAGE_PUBLIC_BASE_URL_PLACEHOLDER")}
+                      placeholder={t("settings:SETTINGS_STORAGE_PUBLIC_BASE_URL_PLACEHOLDER")}
                       allowClear
                     />
                   </Form.Item>
@@ -1239,8 +1238,8 @@ export function GeneralSettingsView() {
                   onOpenChange={(open) => {
                     if (!open) closeStorageOverlay();
                   }}
-                  title={t("common:SETTINGS_STORAGE_DRAWER_UPLOAD_POLICY_TITLE")}
-                  description={t("common:SETTINGS_STORAGE_UPLOAD_POLICY_SHEET_DESC")}
+                  title={t("settings:SETTINGS_STORAGE_DRAWER_UPLOAD_POLICY_TITLE")}
+                  description={t("settings:SETTINGS_STORAGE_UPLOAD_POLICY_SHEET_DESC")}
                   footer={
                     <div className="flex w-full items-center justify-end gap-2">
                       <Button onClick={closeStorageOverlay}>{t("common:BACK")}</Button>
@@ -1257,7 +1256,7 @@ export function GeneralSettingsView() {
                             }
                           }}
                         >
-                          {t("common:SETTINGS_RESET")}
+                          {t("settings:SETTINGS_RESET")}
                         </Button>
                       ) : null}
                       <Button
@@ -1273,19 +1272,19 @@ export function GeneralSettingsView() {
                           }
                         }}
                       >
-                        {t("common:SETTINGS_SAVE")}
+                        {t("settings:SETTINGS_SAVE")}
                       </Button>
                     </div>
                   }
                 >
                   <div className="mb-4  text-muted-foreground leading-relaxed">
-                    {t("common:SETTINGS_STORAGE_UPLOAD_POLICY_SHEET_HELP")}
+                    {t("settings:SETTINGS_STORAGE_UPLOAD_POLICY_SHEET_HELP")}
                   </div>
 
                   <div className="grid grid-cols-1 gap-3">
                     <Form.Item<GeneralSettingsFormValues>
                       name="uploadChunkSizeMb"
-                      label={t("common:SETTINGS_STORAGE_UPLOAD_CHUNK_SIZE_MB_LABEL")}
+                      label={t("settings:SETTINGS_STORAGE_UPLOAD_CHUNK_SIZE_MB_LABEL")}
                       rules={[{ required: true, type: "number", min: 1, max: 128 }]}
                       style={{ marginBottom: 0 }}
                     >
@@ -1294,7 +1293,7 @@ export function GeneralSettingsView() {
 
                     <Form.Item<GeneralSettingsFormValues>
                       name="uploadMaxFileSizeMb"
-                      label={t("common:SETTINGS_STORAGE_UPLOAD_MAX_FILE_SIZE_MB_LABEL")}
+                      label={t("settings:SETTINGS_STORAGE_UPLOAD_MAX_FILE_SIZE_MB_LABEL")}
                       rules={[{ required: true, type: "number", min: 1 }]}
                       style={{ marginBottom: 0 }}
                     >
@@ -1303,7 +1302,7 @@ export function GeneralSettingsView() {
 
                     <Form.Item<GeneralSettingsFormValues>
                       name="uploadMaxAvatarSizeMb"
-                      label={t("common:SETTINGS_STORAGE_UPLOAD_MAX_AVATAR_SIZE_MB_LABEL")}
+                      label={t("settings:SETTINGS_STORAGE_UPLOAD_MAX_AVATAR_SIZE_MB_LABEL")}
                       rules={[{ required: true, type: "number", min: 1 }]}
                       style={{ marginBottom: 0 }}
                     >
@@ -1312,7 +1311,7 @@ export function GeneralSettingsView() {
 
                     <Form.Item<GeneralSettingsFormValues>
                       name="uploadMaxSiteLogoSizeMb"
-                      label={t("common:SETTINGS_STORAGE_UPLOAD_MAX_SITE_LOGO_SIZE_MB_LABEL")}
+                      label={t("settings:SETTINGS_STORAGE_UPLOAD_MAX_SITE_LOGO_SIZE_MB_LABEL")}
                       rules={[{ required: true, type: "number", min: 1 }]}
                       style={{ marginBottom: 0 }}
                     >
@@ -1321,7 +1320,7 @@ export function GeneralSettingsView() {
 
                     <Form.Item<GeneralSettingsFormValues>
                       name="uploadMaxFaviconSizeMb"
-                      label={t("common:SETTINGS_STORAGE_UPLOAD_MAX_FAVICON_SIZE_MB_LABEL")}
+                      label={t("settings:SETTINGS_STORAGE_UPLOAD_MAX_FAVICON_SIZE_MB_LABEL")}
                       rules={[{ required: true, type: "number", min: 1 }]}
                       style={{ marginBottom: 0 }}
                     >
@@ -1335,8 +1334,8 @@ export function GeneralSettingsView() {
                   onOpenChange={(open) => {
                     if (!open) closeStorageOverlay();
                   }}
-                  title={t("common:SETTINGS_STORAGE_DRAWER_LOCAL_INFO_TITLE")}
-                  description={t("common:SETTINGS_STORAGE_LOCAL_INFO_DIALOG_DESC")}
+                  title={t("settings:SETTINGS_STORAGE_DRAWER_LOCAL_INFO_TITLE")}
+                  description={t("settings:SETTINGS_STORAGE_LOCAL_INFO_DIALOG_DESC")}
                   footer={
                     <div className="flex w-full items-center justify-end gap-2">
                       <Button type="primary" onClick={closeStorageOverlay}>
@@ -1346,7 +1345,7 @@ export function GeneralSettingsView() {
                   }
                 >
                   <div className=" text-muted-foreground leading-relaxed">
-                    {t("common:SETTINGS_STORAGE_LOCAL_INFO_DRAWER_DESC")}
+                    {t("settings:SETTINGS_STORAGE_LOCAL_INFO_DRAWER_DESC")}
                   </div>
                 </SettingDialog>
 
@@ -1355,8 +1354,8 @@ export function GeneralSettingsView() {
                   onOpenChange={(open) => {
                     if (!open) closeStorageOverlay();
                   }}
-                  title={t("common:SETTINGS_STORAGE_DRAWER_S3_CONFIG_TITLE")}
-                  description={t("common:SETTINGS_STORAGE_S3_CONFIG_SHEET_DESC")}
+                  title={t("settings:SETTINGS_STORAGE_DRAWER_S3_CONFIG_TITLE")}
+                  description={t("settings:SETTINGS_STORAGE_S3_CONFIG_SHEET_DESC")}
                   footer={
                     <div className="flex w-full items-center justify-end gap-2">
                       <Button onClick={closeStorageOverlay}>{t("common:BACK")}</Button>
@@ -1373,7 +1372,7 @@ export function GeneralSettingsView() {
                             }
                           }}
                         >
-                          {t("common:SETTINGS_RESET")}
+                          {t("settings:SETTINGS_RESET")}
                         </Button>
                       ) : null}
                       <Button
@@ -1389,31 +1388,33 @@ export function GeneralSettingsView() {
                           }
                         }}
                       >
-                        {t("common:SETTINGS_SAVE")}
+                        {t("settings:SETTINGS_SAVE")}
                       </Button>
                     </div>
                   }
                 >
                   <div className="mb-4  text-muted-foreground leading-relaxed">
-                    {t("common:SETTINGS_STORAGE_S3_CONFIG_SHEET_HELP")}
+                    {t("settings:SETTINGS_STORAGE_S3_CONFIG_SHEET_HELP")}
                   </div>
 
                   <div className="grid grid-cols-1 gap-3">
                     <Form.Item<GeneralSettingsFormValues>
                       name="s3EndpointUrl"
-                      label={t("common:SETTINGS_STORAGE_S3_ENDPOINT_URL_LABEL")}
+                      label={t("settings:SETTINGS_STORAGE_S3_ENDPOINT_URL_LABEL")}
                       rules={[
                         {
                           validator: async (_rule, value: string | undefined) => {
                             const raw = (value || "").trim();
-                            if (!raw) throw new Error(t("common:SETTINGS_VALIDATION_REQUIRED"));
+                            if (!raw) throw new Error(t("settings:SETTINGS_VALIDATION_REQUIRED"));
                             try {
                               const url = new URL(raw);
                               if (url.protocol !== "http:" && url.protocol !== "https:") {
                                 throw new Error("invalid protocol");
                               }
                             } catch {
-                              throw new Error(t("common:SETTINGS_STORAGE_VALIDATION_URL_INVALID"));
+                              throw new Error(
+                                t("settings:SETTINGS_STORAGE_VALIDATION_URL_INVALID"),
+                              );
                             }
                           },
                         },
@@ -1422,14 +1423,14 @@ export function GeneralSettingsView() {
                     >
                       <Input
                         size="large"
-                        placeholder={t("common:SETTINGS_STORAGE_S3_ENDPOINT_URL_PLACEHOLDER")}
+                        placeholder={t("settings:SETTINGS_STORAGE_S3_ENDPOINT_URL_PLACEHOLDER")}
                         allowClear
                       />
                     </Form.Item>
 
                     <Form.Item<GeneralSettingsFormValues>
                       name="s3Region"
-                      label={t("common:SETTINGS_STORAGE_S3_REGION_LABEL")}
+                      label={t("settings:SETTINGS_STORAGE_S3_REGION_LABEL")}
                       style={{ marginBottom: 0 }}
                     >
                       <Input size="large" allowClear />
@@ -1437,9 +1438,9 @@ export function GeneralSettingsView() {
 
                     <Form.Item<GeneralSettingsFormValues>
                       name="s3Bucket"
-                      label={t("common:SETTINGS_STORAGE_S3_BUCKET_LABEL")}
+                      label={t("settings:SETTINGS_STORAGE_S3_BUCKET_LABEL")}
                       rules={[
-                        { required: true, message: t("common:SETTINGS_VALIDATION_REQUIRED") },
+                        { required: true, message: t("settings:SETTINGS_VALIDATION_REQUIRED") },
                       ]}
                       style={{ marginBottom: 0 }}
                     >
@@ -1448,9 +1449,9 @@ export function GeneralSettingsView() {
 
                     <Form.Item<GeneralSettingsFormValues>
                       name="s3AccessKeyId"
-                      label={t("common:SETTINGS_STORAGE_S3_ACCESS_KEY_ID_LABEL")}
+                      label={t("settings:SETTINGS_STORAGE_S3_ACCESS_KEY_ID_LABEL")}
                       rules={[
-                        { required: true, message: t("common:SETTINGS_VALIDATION_REQUIRED") },
+                        { required: true, message: t("settings:SETTINGS_VALIDATION_REQUIRED") },
                       ]}
                       style={{ marginBottom: 0 }}
                     >
@@ -1459,7 +1460,7 @@ export function GeneralSettingsView() {
 
                     <Form.Item<GeneralSettingsFormValues>
                       name="s3SecretAccessKey"
-                      label={t("common:SETTINGS_STORAGE_S3_SECRET_ACCESS_KEY_LABEL")}
+                      label={t("settings:SETTINGS_STORAGE_S3_SECRET_ACCESS_KEY_LABEL")}
                       style={{ marginBottom: 0 }}
                     >
                       <Input.Password size="large" placeholder="••••••••" />
@@ -1467,7 +1468,7 @@ export function GeneralSettingsView() {
 
                     <Form.Item<GeneralSettingsFormValues>
                       name="s3ForcePathStyle"
-                      label={t("common:SETTINGS_STORAGE_S3_FORCE_PATH_STYLE_LABEL")}
+                      label={t("settings:SETTINGS_STORAGE_S3_FORCE_PATH_STYLE_LABEL")}
                       valuePropName="checked"
                       style={{ marginBottom: 0 }}
                     >
@@ -1476,7 +1477,7 @@ export function GeneralSettingsView() {
 
                     <Form.Item<GeneralSettingsFormValues>
                       name="s3PresignExpiresSeconds"
-                      label={t("common:SETTINGS_STORAGE_S3_PRESIGN_EXPIRES_SECONDS_LABEL")}
+                      label={t("settings:SETTINGS_STORAGE_S3_PRESIGN_EXPIRES_SECONDS_LABEL")}
                       rules={[{ required: true, type: "number", min: 60, max: 86400 }]}
                       style={{ marginBottom: 0 }}
                     >

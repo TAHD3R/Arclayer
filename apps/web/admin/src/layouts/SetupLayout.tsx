@@ -34,7 +34,7 @@ export function SetupLayout({ children }: PropsWithChildren) {
 
   useEffect(() => {
     const brand = (getAppConfig().title || "Celestial").trim();
-    document.title = `${t("common:SETUP_TITLE")} | ${brand}`;
+    document.title = `${t("setup:SETUP_TITLE")} | ${brand}`;
   }, [t]);
 
   return (

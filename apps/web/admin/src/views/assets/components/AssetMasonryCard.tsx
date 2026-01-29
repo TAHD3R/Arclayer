@@ -365,9 +365,9 @@ export function AssetPreviewOverlay(props: {
                   </div>
 
                   <div className="mt-4 flex items-center gap-2">
-                    <Button size="small">{t("common:ASSET_ACTION_COPY_LINK")}</Button>
+                    <Button size="small">{t("assets:ASSET_ACTION_COPY_LINK")}</Button>
                     <Button size="small" danger>
-                      {t("common:ASSET_ACTION_DELETE")}
+                      {t("assets:ASSET_ACTION_DELETE")}
                     </Button>
                   </div>
                 </div>

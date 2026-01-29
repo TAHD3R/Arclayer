@@ -9,12 +9,12 @@
     "typecheck:admin": "pnpm --filter celestial-admin typecheck",
     "test:admin": "pnpm --filter celestial-admin test:run",
     "check:admin": "pnpm --filter celestial-admin check",
-    "dev:api": "uv run --project apps/api uvicorn apps.api.main:app --reload",
-    "lint:py": "uv run --project apps/api ruff check .",
-    "format:py": "uv run --project apps/api ruff format .",
-    "typecheck:py": "uv run --project apps/api pyright",
-    "test:py": "uv run --project apps/api pytest",
-    "test:py-integration": "RUN_INTEGRATION_TESTS=1 uv run --project apps/api pytest -m integration"
+    "dev:api": "UV_CACHE_DIR=.uv-cache uv run --project apps/api uvicorn apps.api.main:app --reload",
+    "lint:py": "UV_CACHE_DIR=.uv-cache uv run --project apps/api ruff check .",
+    "format:py": "UV_CACHE_DIR=.uv-cache uv run --project apps/api ruff format .",
+    "typecheck:py": "UV_CACHE_DIR=.uv-cache uv run --project apps/api pyright",
+    "test:py": "UV_CACHE_DIR=.uv-cache uv run --project apps/api pytest",
+    "test:py-integration": "RUN_INTEGRATION_TESTS=1 UV_CACHE_DIR=.uv-cache uv run --project apps/api pytest -m integration"
   },
   "devDependencies": {
     "@types/node": "^24.10.1",

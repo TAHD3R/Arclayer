@@ -1,0 +1,14 @@
+{
+  "ACCOUNT_TITLE": "Account",
+  "ACCOUNT_PERSONAL_SETTINGS": "Personal settings",
+  "ACCOUNT_THEME": "Theme",
+  "ACCOUNT_LANGUAGE": "Language",
+  "ACCOUNT_LOGOUT": "Log out",
+  "ACCOUNT_THEME_LIGHT": "Light mode",
+  "ACCOUNT_THEME_DARK": "Dark mode",
+  "ACCOUNT_LANGUAGE_ZH": "Chinese",
+  "ACCOUNT_LANGUAGE_EN": "English",
+  "ACCOUNT_ROLE_SUPERUSER": "Superuser",
+  "ACCOUNT_ROLE_ADMIN": "Admin",
+  "ACCOUNT_ROLE_USER": "User"
+}

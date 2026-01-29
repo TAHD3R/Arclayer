@@ -56,8 +56,8 @@ export function SettingAccordionItem(props: SettingAccordionItemProps) {
   const { t } = useTranslation();
   const hasActions = Boolean(props.onConfirm || props.onReset);
   const busy = Boolean(props.disabled || props.confirmLoading || props.resetLoading);
-  const summaryPrefix = props.summaryPrefix ?? t("common:SETTINGS_CURRENT");
-  const resetText = props.resetText ?? t("common:SETTINGS_RESET");
+  const summaryPrefix = props.summaryPrefix ?? t("settings:SETTINGS_CURRENT");
+  const resetText = props.resetText ?? t("settings:SETTINGS_RESET");
   const shouldShowSummary = Boolean(props.showSummary);
   const hasDescription = props.description !== undefined && props.description !== null;
 
@@ -102,7 +102,7 @@ export function SettingAccordionItem(props: SettingAccordionItemProps) {
                   loading={props.confirmLoading}
                   onClick={() => void props.onConfirm?.()}
                 >
-                  {props.confirmText ?? t("common:SETTINGS_SAVE")}
+                  {props.confirmText ?? t("settings:SETTINGS_SAVE")}
                 </Button>
               ) : null}
               {props.onReset ? (

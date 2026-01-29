@@ -159,7 +159,7 @@ function AdminAccountPanelContent(props: {
   onLogout: () => Promise<void>;
   onPersonalSettings: () => Promise<void> | void;
 }) {
-  const { t } = useTranslation("common");
+  const { t } = useTranslation("account");
   const { isOpen, closeFloatingPanel } = useFloatingPanel();
   const [view, setView] = useState<"root" | "theme" | "language">("root");
 
@@ -186,7 +186,7 @@ function AdminAccountPanelContent(props: {
         <div className="flex items-center gap-2 px-2 py-2">
           <button
             type="button"
-            aria-label={t("BACK")}
+            aria-label={t("common:BACK")}
             className={cn(
               "inline-flex items-center justify-center rounded-md px-2 py-2",
               "text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -238,7 +238,7 @@ function AdminAccountPanelContent(props: {
         <div className="flex items-center gap-2 px-2 py-2">
           <button
             type="button"
-            aria-label={t("BACK")}
+            aria-label={t("common:BACK")}
             className={cn(
               "inline-flex items-center justify-center rounded-md px-2 py-2",
               "text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -359,7 +359,7 @@ function AdminAccountPanelContent(props: {
 
 export function AdminAccountMenu() {
   const navigate = useNavigate();
-  const { t } = useTranslation("common");
+  const { t } = useTranslation("account");
   const clear = useAuthStore((s) => s.clear);
   const accessToken = useAuthStore((s) => s.accessToken);
 

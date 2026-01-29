@@ -85,12 +85,12 @@ export function SetupView() {
     const next: Partial<SetupSiteDraft> = {};
     // Seed only when the field is still untouched (undefined) to avoid fighting user edits.
     if (siteDraft.siteName === undefined) {
-      next.siteName = t("common:SETUP_DEFAULT_SITE_NAME", { username });
+      next.siteName = t("setup:SETUP_DEFAULT_SITE_NAME", { username });
     }
     const effectiveSiteName = (next.siteName || siteDraft.siteName || "").trim();
     if (siteDraft.siteDescription === undefined) {
-      next.siteDescription = t("common:SETUP_DEFAULT_SITE_DESC", {
-        siteName: effectiveSiteName || t("common:SETUP_DEFAULT_SITE_NAME", { username }),
+      next.siteDescription = t("setup:SETUP_DEFAULT_SITE_DESC", {
+        siteName: effectiveSiteName || t("setup:SETUP_DEFAULT_SITE_NAME", { username }),
       });
     }
     if (siteDraft.siteUrl === undefined) {
@@ -134,19 +134,19 @@ export function SetupView() {
   const stageMeta = useMemo(() => {
     if (step === 0) {
       return {
-        title: t("common:SETUP_STAGE_ADMIN_TITLE"),
-        description: t("common:SETUP_STAGE_ADMIN_DESC"),
+        title: t("setup:SETUP_STAGE_ADMIN_TITLE"),
+        description: t("setup:SETUP_STAGE_ADMIN_DESC"),
       };
     }
     if (step === 1) {
       return {
-        title: t("common:SETUP_STAGE_SITE_TITLE"),
-        description: t("common:SETUP_STAGE_SITE_DESC"),
+        title: t("setup:SETUP_STAGE_SITE_TITLE"),
+        description: t("setup:SETUP_STAGE_SITE_DESC"),
       };
     }
     return {
-      title: t("common:SETUP_STAGE_DEFAULTS_TITLE"),
-      description: t("common:SETUP_STAGE_DEFAULTS_DESC"),
+      title: t("setup:SETUP_STAGE_DEFAULTS_TITLE"),
+      description: t("setup:SETUP_STAGE_DEFAULTS_DESC"),
     };
   }, [step, t]);
 
@@ -173,7 +173,7 @@ export function SetupView() {
 
     // Require setup token only when backend enforces it.
     if (access === "token" && !setupToken.trim()) {
-      notifyErrorText(t("common:SETUP_VALIDATION_SETUP_TOKEN_REQUIRED"));
+      notifyErrorText(t("setup:SETUP_VALIDATION_SETUP_TOKEN_REQUIRED"));
       return;
     }
 
@@ -233,7 +233,7 @@ export function SetupView() {
       // Clear sensitive in-memory drafts.
       resetWizard();
 
-      notifySuccessText(t("common:SETUP_SUCCESS"));
+      notifySuccessText(t("setup:SETUP_SUCCESS"));
       await navigate({ to: "/login" });
     } catch (err) {
       notifyError(err);
@@ -262,8 +262,8 @@ export function SetupView() {
         <Alert
           type="warning"
           showIcon
-          message={t("common:SETUP_DISABLED_TITLE")}
-          description={t("common:SETUP_DISABLED_DESC")}
+          message={t("setup:SETUP_DISABLED_TITLE")}
+          description={t("setup:SETUP_DISABLED_DESC")}
           style={{ marginBottom: 12 }}
         />
       ) : null}
@@ -272,8 +272,8 @@ export function SetupView() {
         <Alert
           type="info"
           showIcon
-          message={t("common:SETUP_TOKEN_HINT_TITLE")}
-          description={t("common:SETUP_TOKEN_HINT_DESC")}
+          message={t("setup:SETUP_TOKEN_HINT_TITLE")}
+          description={t("setup:SETUP_TOKEN_HINT_DESC")}
           style={{ marginBottom: 12 }}
         />
       ) : null}
@@ -319,15 +319,15 @@ export function SetupView() {
       {step === 2 && access === "token" ? (
         <div style={{ marginTop: 16 }}>
           <Form.Item
-            label={t("common:SETUP_FIELD_SETUP_TOKEN_LABEL")}
-            help={t("common:SETUP_FIELD_SETUP_TOKEN_HELP")}
+            label={t("setup:SETUP_FIELD_SETUP_TOKEN_LABEL")}
+            help={t("setup:SETUP_FIELD_SETUP_TOKEN_HELP")}
             required
             style={{ marginBottom: 0 }}
           >
             <Input.Password
               value={setupToken}
               onChange={(e) => setSetupToken(e.target.value)}
-              placeholder={t("common:SETUP_FIELD_SETUP_TOKEN_PLACEHOLDER")}
+              placeholder={t("setup:SETUP_FIELD_SETUP_TOKEN_PLACEHOLDER")}
               autoComplete="off"
               disabled={submitting}
               size="large"
@@ -338,7 +338,7 @@ export function SetupView() {
 
       <div className="flex gap-2 justify-end" style={{ marginTop: 16 }}>
         <Button disabled={step <= 0 || submitting} onClick={onPrev}>
-          {t("common:SETUP_PREV")}
+          {t("setup:SETUP_PREV")}
         </Button>
         {step < MAX_STEP ? (
           <Button
@@ -346,7 +346,7 @@ export function SetupView() {
             disabled={setupEnabled === false || submitting}
             onClick={() => void onNext()}
           >
-            {t("common:SETUP_NEXT")}
+            {t("setup:SETUP_NEXT")}
           </Button>
         ) : (
           <Button
@@ -355,7 +355,7 @@ export function SetupView() {
             disabled={setupEnabled === false}
             onClick={() => void onFinish()}
           >
-            {t("common:SETUP_FINISH")}
+            {t("setup:SETUP_FINISH")}
           </Button>
         )}
       </div>

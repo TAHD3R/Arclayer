@@ -19,7 +19,7 @@ export function AdminNotificationCenter({
   className,
   onViewAll,
 }: AdminNotificationCenterProps) {
-  const { t } = useTranslation("common");
+  const { t } = useTranslation("notifications");
 
   const fallbackItems = useMemo<NotificationListItem[]>(
     () => [

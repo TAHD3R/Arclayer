@@ -103,16 +103,16 @@ export function SetupAdminStep(props: {
 
       <Form.Item<SetupAdminDraft>
         name="displayName"
-        label={t("common:SETUP_FIELD_DISPLAY_NAME_LABEL")}
+        label={t("setup:SETUP_FIELD_DISPLAY_NAME_LABEL")}
         rules={[
-          { required: true, message: t("common:SETUP_VALIDATION_DISPLAY_NAME_REQUIRED") },
-          { max: 64, message: t("common:SETUP_VALIDATION_DISPLAY_NAME_MAX") },
+          { required: true, message: t("setup:SETUP_VALIDATION_DISPLAY_NAME_REQUIRED") },
+          { max: 64, message: t("setup:SETUP_VALIDATION_DISPLAY_NAME_MAX") },
         ]}
       >
         <Input
           autoComplete="off"
-          aria-label={t("common:SETUP_FIELD_DISPLAY_NAME_LABEL")}
-          placeholder={t("common:SETUP_FIELD_DISPLAY_NAME_PLACEHOLDER")}
+          aria-label={t("setup:SETUP_FIELD_DISPLAY_NAME_LABEL")}
+          placeholder={t("setup:SETUP_FIELD_DISPLAY_NAME_PLACEHOLDER")}
           size="large"
         />
       </Form.Item>

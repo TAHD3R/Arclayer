@@ -1,0 +1,23 @@
+{
+  "NAV_DASHBOARD": "Dashboard",
+  "NAV_CONTENT": "Content",
+  "NAV_CONTENT_PAGES": "Pages",
+  "NAV_CONTENT_LIBRARY": "Content library",
+  "NAV_ASSETS": "Assets",
+  "NAV_APPEARANCE": "Appearance",
+  "NAV_APPEARANCE_THEMES": "Themes",
+  "NAV_APPEARANCE_NAVIGATION": "Navigation",
+  "NAV_APPEARANCE_STYLES": "Global styles",
+  "NAV_PLUGINS": "Plugins",
+  "NAV_PLUGINS_INSTALLED": "Installed",
+  "NAV_SETTINGS": "Settings",
+  "NAV_SETTINGS_GENERAL": "General",
+  "NAV_SETTINGS_SEO": "SEO",
+  "NAV_SETTINGS_TEAM": "Team",
+  "NAV_SETTINGS_TEAM_MEMBERS": "Member invitations",
+  "NAV_SETTINGS_TEAM_ROLES": "Roles & permissions",
+  "NAV_SETTINGS_MAINTENANCE": "Maintenance",
+  "NAV_SETTINGS_MAINTENANCE_SNAPSHOTS": "Backups & rollback",
+  "NAV_SETTINGS_MAINTENANCE_AUDIT_LOG": "Audit log",
+  "NAV_SETTINGS_MAINTENANCE_STATUS": "System status"
+}

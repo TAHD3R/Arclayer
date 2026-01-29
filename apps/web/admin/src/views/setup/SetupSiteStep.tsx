@@ -22,13 +22,13 @@ export function SetupSiteStep(props: {
     >
       <Form.Item<SetupSiteDraft>
         name="siteName"
-        label={t("common:SETUP_FIELD_SITE_NAME_LABEL")}
-        rules={[{ required: true, message: t("common:SETUP_VALIDATION_SITE_NAME_REQUIRED") }]}
+        label={t("setup:SETUP_FIELD_SITE_NAME_LABEL")}
+        rules={[{ required: true, message: t("setup:SETUP_VALIDATION_SITE_NAME_REQUIRED") }]}
       >
         <Input
           autoComplete="off"
-          aria-label={t("common:SETUP_FIELD_SITE_NAME_LABEL")}
-          placeholder={t("common:SETUP_FIELD_SITE_NAME_PLACEHOLDER")}
+          aria-label={t("setup:SETUP_FIELD_SITE_NAME_LABEL")}
+          placeholder={t("setup:SETUP_FIELD_SITE_NAME_PLACEHOLDER")}
           prefix={<AppWindow size={16} />}
           size="large"
         />
@@ -36,9 +36,9 @@ export function SetupSiteStep(props: {
 
       <Form.Item<SetupSiteDraft>
         name="siteUrl"
-        label={t("common:SETUP_FIELD_SITE_URL_LABEL")}
+        label={t("setup:SETUP_FIELD_SITE_URL_LABEL")}
         rules={[
-          { required: true, message: t("common:SETUP_VALIDATION_SITE_URL_REQUIRED") },
+          { required: true, message: t("setup:SETUP_VALIDATION_SITE_URL_REQUIRED") },
           {
             validator: async (_rule, value: string | undefined) => {
               const raw = (value || "").trim();
@@ -49,7 +49,7 @@ export function SetupSiteStep(props: {
                   throw new Error("invalid protocol");
                 }
               } catch {
-                throw new Error(t("common:SETUP_VALIDATION_SITE_URL_INVALID"));
+                throw new Error(t("setup:SETUP_VALIDATION_SITE_URL_INVALID"));
               }
             },
           },
@@ -57,8 +57,8 @@ export function SetupSiteStep(props: {
       >
         <Input
           autoComplete="off"
-          aria-label={t("common:SETUP_FIELD_SITE_URL_LABEL")}
-          placeholder={t("common:SETUP_FIELD_SITE_URL_PLACEHOLDER")}
+          aria-label={t("setup:SETUP_FIELD_SITE_URL_LABEL")}
+          placeholder={t("setup:SETUP_FIELD_SITE_URL_PLACEHOLDER")}
           prefix={<Link size={16} />}
           size="large"
         />
@@ -66,12 +66,12 @@ export function SetupSiteStep(props: {
 
       <Form.Item<SetupSiteDraft>
         name="siteDescription"
-        label={t("common:SETUP_FIELD_SITE_DESC_LABEL")}
+        label={t("setup:SETUP_FIELD_SITE_DESC_LABEL")}
       >
         <Input.TextArea
           autoSize={{ minRows: 3, maxRows: 6 }}
-          aria-label={t("common:SETUP_FIELD_SITE_DESC_LABEL")}
-          placeholder={t("common:SETUP_FIELD_SITE_DESC_PLACEHOLDER")}
+          aria-label={t("setup:SETUP_FIELD_SITE_DESC_LABEL")}
+          placeholder={t("setup:SETUP_FIELD_SITE_DESC_PLACEHOLDER")}
           allowClear
           maxLength={160}
           showCount={{

@@ -25,8 +25,8 @@ const DATE_FORMAT_ITEMS = [
 ] as const;
 
 function formatLocaleLabel(locale: AppLocale, t: (key: string) => string): string {
-  if (locale === "zh-CN") return t("common:ACCOUNT_LANGUAGE_ZH");
-  return t("common:ACCOUNT_LANGUAGE_EN");
+  if (locale === "zh-CN") return t("account:ACCOUNT_LANGUAGE_ZH");
+  return t("account:ACCOUNT_LANGUAGE_EN");
 }
 
 export function SetupDefaultsStep(props: {
@@ -77,21 +77,21 @@ export function SetupDefaultsStep(props: {
       {/* Hidden items register fields for antd validation. */}
       <Form.Item<SetupDefaultsDraft>
         name="timezone"
-        rules={[{ required: true, message: t("common:SETUP_VALIDATION_TIMEZONE_REQUIRED") }]}
+        rules={[{ required: true, message: t("setup:SETUP_VALIDATION_TIMEZONE_REQUIRED") }]}
         hidden
       >
         <Input />
       </Form.Item>
       <Form.Item<SetupDefaultsDraft>
         name="locale"
-        rules={[{ required: true, message: t("common:SETUP_VALIDATION_LOCALE_REQUIRED") }]}
+        rules={[{ required: true, message: t("setup:SETUP_VALIDATION_LOCALE_REQUIRED") }]}
         hidden
       >
         <Input />
       </Form.Item>
       <Form.Item<SetupDefaultsDraft>
         name="dateFormat"
-        rules={[{ required: true, message: t("common:SETUP_VALIDATION_DATE_FORMAT_REQUIRED") }]}
+        rules={[{ required: true, message: t("setup:SETUP_VALIDATION_DATE_FORMAT_REQUIRED") }]}
         hidden
       >
         <Input />
@@ -100,8 +100,8 @@ export function SetupDefaultsStep(props: {
       <Accordion type="single" collapsible className="px-0">
         <SettingAccordionItem
           value="timezone"
-          title={t("common:SETUP_FIELD_TIMEZONE_TITLE")}
-          description={t("common:SETTINGS_TIMEZONE_DESC")}
+          title={t("setup:SETUP_FIELD_TIMEZONE_TITLE")}
+          description={t("settings:SETTINGS_TIMEZONE_DESC")}
           showSummary
           summary={currentTimezoneLabel}
           disabled={props.disabled}
@@ -125,8 +125,8 @@ export function SetupDefaultsStep(props: {
 
         <SettingAccordionItem
           value="locale"
-          title={t("common:SETUP_FIELD_LANGUAGE_TITLE")}
-          description={t("common:SETTINGS_LANGUAGE_DESC")}
+          title={t("setup:SETUP_FIELD_LANGUAGE_TITLE")}
+          description={t("settings:SETTINGS_LANGUAGE_DESC")}
           showSummary
           summary={currentLocaleLabel}
           disabled={props.disabled}
@@ -146,8 +146,8 @@ export function SetupDefaultsStep(props: {
 
         <SettingAccordionItem
           value="dateFormat"
-          title={t("common:SETUP_FIELD_DATE_FORMAT_TITLE")}
-          description={t("common:SETTINGS_DATE_FORMAT_DESC")}
+          title={t("setup:SETUP_FIELD_DATE_FORMAT_TITLE")}
+          description={t("settings:SETTINGS_DATE_FORMAT_DESC")}
           showSummary
           summary={currentDateFormatLabel}
           disabled={props.disabled}

@@ -8,7 +8,7 @@ export function DashboardView() {
 
   return (
     <DefaultPage
-      title={t("common:NAV_DASHBOARD")}
+      title={t("nav:NAV_DASHBOARD")}
       description="This is the starting point for the Celestial console."
     >
       <Card>

@@ -161,7 +161,7 @@ export function AssetsView() {
   }, [assetsQuery.hasNextPage, assetsQuery.isFetchingNextPage, assetsQuery.fetchNextPage]);
 
   return (
-    <DefaultPage title={t("common:NAV_ASSETS")}>
+    <DefaultPage title={t("nav:NAV_ASSETS")}>
       <LayoutGroup id={`asset-library-${layoutIdBase}`}>
         <AssetPreviewOverlay
           active={active}

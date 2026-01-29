@@ -49,7 +49,7 @@ export function CommandMenu01(props: {
   navItems: AdminNavItem[];
 }) {
   const enableHotkey = props.enableHotkey ?? true;
-  const { t } = useTranslation("common");
+  const { t } = useTranslation("command");
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [query, setQuery] = useState("");

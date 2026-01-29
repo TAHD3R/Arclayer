@@ -216,7 +216,7 @@ export function AdminHeader(props: {
             onClick={() => setCommandOpen(true)}
             className="h-9"
           >
-            <span>{t("common:CMD_SEARCH")}</span>
+            <span>{t("command:CMD_SEARCH")}</span>
             <KbdGroup className="ml-2">
               <Kbd>Ctrl</Kbd>
               <Kbd>K</Kbd>
@@ -227,7 +227,7 @@ export function AdminHeader(props: {
           <AdminThemeModeToggle />
 
           <Button
-            aria-label={t("common:ACCOUNT_PERSONAL_SETTINGS")}
+            aria-label={t("account:ACCOUNT_PERSONAL_SETTINGS")}
             type="text"
             size="large"
             style={{ width: 44, height: 44, paddingInline: 0 }}
