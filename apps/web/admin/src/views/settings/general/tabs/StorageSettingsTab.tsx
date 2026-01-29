@@ -1,8 +1,10 @@
-import { Button, Form, Input, InputNumber, Select, Switch } from "antd";
+import { Form, Input, InputNumber, Select, Switch } from "antd";
 import type { FormInstance } from "antd";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
 
+import { Accordion } from "@/components/animate-ui/components/radix/accordion";
+import { SettingAccordionItem } from "@/components/app/settingAccordionItem";
 import { SettingActionItem } from "@/components/app/settingActionItem";
 import { SettingOverlayFooter } from "@/components/app/settingOverlayFooter";
 import { SettingPanel } from "@/components/app/settingPanel";
@@ -17,7 +19,7 @@ import {
   normalizeOptionalString,
 } from "../utils";
 
-type StorageOverlayKey = "provider" | "publicBaseUrl" | "uploadPolicy" | "localInfo" | "s3Config";
+type StorageOverlayKey = "provider" | "publicBaseUrl" | "uploadPolicy" | "s3Config";
 
 type StorageSettingsTabProps = GeneralSettingsTabBaseProps & {
   coreSecrets?: Record<string, boolean>;
@@ -54,15 +56,6 @@ export function StorageSettingsTab({
   const uploadMaxFileSizeMb =
     (useStorageField(form, "uploadMaxFileSizeMb") as number | undefined) ??
     initialValues.uploadMaxFileSizeMb;
-  const uploadMaxAvatarSizeMb =
-    (useStorageField(form, "uploadMaxAvatarSizeMb") as number | undefined) ??
-    initialValues.uploadMaxAvatarSizeMb;
-  const uploadMaxSiteLogoSizeMb =
-    (useStorageField(form, "uploadMaxSiteLogoSizeMb") as number | undefined) ??
-    initialValues.uploadMaxSiteLogoSizeMb;
-  const uploadMaxFaviconSizeMb =
-    (useStorageField(form, "uploadMaxFaviconSizeMb") as number | undefined) ??
-    initialValues.uploadMaxFaviconSizeMb;
 
   const s3EndpointUrl =
     (useStorageField(form, "s3EndpointUrl") as string | undefined) ?? initialValues.s3EndpointUrl;
@@ -87,10 +80,7 @@ export function StorageSettingsTab({
     (storagePublicBaseUrl || "") !== (initialValues.storagePublicBaseUrl || "");
   const isUploadPolicyDirty =
     uploadChunkSizeMb !== initialValues.uploadChunkSizeMb ||
-    uploadMaxFileSizeMb !== initialValues.uploadMaxFileSizeMb ||
-    uploadMaxAvatarSizeMb !== initialValues.uploadMaxAvatarSizeMb ||
-    uploadMaxSiteLogoSizeMb !== initialValues.uploadMaxSiteLogoSizeMb ||
-    uploadMaxFaviconSizeMb !== initialValues.uploadMaxFaviconSizeMb;
+    uploadMaxFileSizeMb !== initialValues.uploadMaxFileSizeMb;
   const isS3ConfigDirty =
     (s3EndpointUrl || "") !== (initialValues.s3EndpointUrl || "") ||
     (s3Region || "") !== (initialValues.s3Region || "") ||
@@ -136,17 +126,11 @@ export function StorageSettingsTab({
       form.setFieldsValue({
         uploadChunkSizeMb: initialValues.uploadChunkSizeMb,
         uploadMaxFileSizeMb: initialValues.uploadMaxFileSizeMb,
-        uploadMaxAvatarSizeMb: initialValues.uploadMaxAvatarSizeMb,
-        uploadMaxSiteLogoSizeMb: initialValues.uploadMaxSiteLogoSizeMb,
-        uploadMaxFaviconSizeMb: initialValues.uploadMaxFaviconSizeMb,
       });
       await patch({
         storage: {
           upload_chunk_size_mb: initialValues.uploadChunkSizeMb,
           upload_max_file_size_mb: initialValues.uploadMaxFileSizeMb,
-          upload_max_avatar_size_mb: initialValues.uploadMaxAvatarSizeMb,
-          upload_max_site_logo_size_mb: initialValues.uploadMaxSiteLogoSizeMb,
-          upload_max_favicon_size_mb: initialValues.uploadMaxFaviconSizeMb,
         },
       });
     });
@@ -190,20 +174,11 @@ export function StorageSettingsTab({
 
   const saveUploadPolicy = () =>
     withSavingKey("uploadPolicy", async () => {
-      const values = await form.validateFields([
-        "uploadChunkSizeMb",
-        "uploadMaxFileSizeMb",
-        "uploadMaxAvatarSizeMb",
-        "uploadMaxSiteLogoSizeMb",
-        "uploadMaxFaviconSizeMb",
-      ]);
+      const values = await form.validateFields(["uploadChunkSizeMb", "uploadMaxFileSizeMb"]);
       await patch({
         storage: {
           upload_chunk_size_mb: Number(values.uploadChunkSizeMb),
           upload_max_file_size_mb: Number(values.uploadMaxFileSizeMb),
-          upload_max_avatar_size_mb: Number(values.uploadMaxAvatarSizeMb),
-          upload_max_site_logo_size_mb: Number(values.uploadMaxSiteLogoSizeMb),
-          upload_max_favicon_size_mb: Number(values.uploadMaxFaviconSizeMb),
         },
       });
     });
@@ -364,15 +339,6 @@ export function StorageSettingsTab({
 
             <div className="grid grid-cols-1 gap-3">
               <Form.Item<GeneralSettingsFormValues>
-                name="uploadChunkSizeMb"
-                label={t("settings:SETTINGS_STORAGE_UPLOAD_CHUNK_SIZE_MB_LABEL")}
-                rules={[{ required: true, type: "number", min: 1, max: 128 }]}
-                style={{ marginBottom: 0 }}
-              >
-                <InputNumber size="large" min={1} max={128} style={{ width: "100%" }} />
-              </Form.Item>
-
-              <Form.Item<GeneralSettingsFormValues>
                 name="uploadMaxFileSizeMb"
                 label={t("settings:SETTINGS_STORAGE_UPLOAD_MAX_FILE_SIZE_MB_LABEL")}
                 rules={[{ required: true, type: "number", min: 1 }]}
@@ -381,52 +347,26 @@ export function StorageSettingsTab({
                 <InputNumber size="large" min={1} style={{ width: "100%" }} />
               </Form.Item>
 
-              <Form.Item<GeneralSettingsFormValues>
-                name="uploadMaxAvatarSizeMb"
-                label={t("settings:SETTINGS_STORAGE_UPLOAD_MAX_AVATAR_SIZE_MB_LABEL")}
-                rules={[{ required: true, type: "number", min: 1 }]}
-                style={{ marginBottom: 0 }}
-              >
-                <InputNumber size="large" min={1} style={{ width: "100%" }} />
-              </Form.Item>
-
-              <Form.Item<GeneralSettingsFormValues>
-                name="uploadMaxSiteLogoSizeMb"
-                label={t("settings:SETTINGS_STORAGE_UPLOAD_MAX_SITE_LOGO_SIZE_MB_LABEL")}
-                rules={[{ required: true, type: "number", min: 1 }]}
-                style={{ marginBottom: 0 }}
-              >
-                <InputNumber size="large" min={1} style={{ width: "100%" }} />
-              </Form.Item>
-
-              <Form.Item<GeneralSettingsFormValues>
-                name="uploadMaxFaviconSizeMb"
-                label={t("settings:SETTINGS_STORAGE_UPLOAD_MAX_FAVICON_SIZE_MB_LABEL")}
-                rules={[{ required: true, type: "number", min: 1 }]}
-                style={{ marginBottom: 0 }}
-              >
-                <InputNumber size="large" min={1} style={{ width: "100%" }} />
-              </Form.Item>
+              <Accordion type="single" collapsible className="px-0">
+                <SettingAccordionItem
+                  value="uploadPolicyAdvanced"
+                  title={t("settings:SETTINGS_STORAGE_UPLOAD_POLICY_ADVANCED_TITLE")}
+                  description={t("settings:SETTINGS_STORAGE_UPLOAD_POLICY_ADVANCED_DESC")}
+                  disabled={disabled}
+                  keepRendered
+                >
+                  <Form.Item<GeneralSettingsFormValues>
+                    name="uploadChunkSizeMb"
+                    label={t("settings:SETTINGS_STORAGE_UPLOAD_CHUNK_SIZE_MB_LABEL")}
+                    rules={[{ required: true, type: "number", min: 1, max: 128 }]}
+                    style={{ marginBottom: 0 }}
+                  >
+                    <InputNumber size="large" min={1} max={128} style={{ width: "100%" }} />
+                  </Form.Item>
+                </SettingAccordionItem>
+              </Accordion>
             </div>
           </>
-        ),
-      },
-      {
-        key: "localInfo",
-        type: "dialog",
-        title: t("settings:SETTINGS_STORAGE_DRAWER_LOCAL_INFO_TITLE"),
-        description: t("settings:SETTINGS_STORAGE_LOCAL_INFO_DIALOG_DESC"),
-        footer: (ctx) => (
-          <div className="flex w-full items-center justify-end gap-2">
-            <Button type="primary" onClick={ctx.close}>
-              {t("common:BACK")}
-            </Button>
-          </div>
-        ),
-        content: () => (
-          <div className="text-muted-foreground leading-relaxed">
-            {t("settings:SETTINGS_STORAGE_LOCAL_INFO_DRAWER_DESC")}
-          </div>
         ),
       },
       {
@@ -591,31 +531,16 @@ export function StorageSettingsTab({
           <SettingActionItem
             className="first:rounded-t-xl last:rounded-b-xl"
             title={t("settings:SETTINGS_STORAGE_UPLOAD_POLICY_LABEL")}
-            summary={`${uploadChunkSizeMb} MiB / ${uploadMaxFileSizeMb} MiB`}
+            summary={t("settings:SETTINGS_STORAGE_UPLOAD_POLICY_SUMMARY", {
+              max: uploadMaxFileSizeMb,
+              chunk: uploadChunkSizeMb,
+            })}
             description={[t("settings:SETTINGS_STORAGE_UPLOAD_POLICY_DESC")]}
             disabled={disabled}
             onTrigger={() => overlays.open("uploadPolicy")}
           />
         </div>
       </SettingPanel>
-
-      {storageProvider === "local" ? (
-        <SettingPanel
-          title={t("settings:SETTINGS_STORAGE_PANEL_LOCAL_TITLE")}
-          description={t("settings:SETTINGS_STORAGE_PANEL_LOCAL_DESC")}
-        >
-          <div className="divide-y">
-            <SettingActionItem
-              className="first:rounded-t-xl last:rounded-b-xl"
-              title={t("settings:SETTINGS_STORAGE_LOCAL_INFO_LABEL")}
-              summary={t("settings:SETTINGS_STORAGE_LOCAL_INFO_SUMMARY")}
-              description={t("settings:SETTINGS_STORAGE_LOCAL_INFO_DESC")}
-              disabled={disabled}
-              onTrigger={() => overlays.open("localInfo")}
-            />
-          </div>
-        </SettingPanel>
-      ) : null}
 
       {storageProvider === "s3" ? (
         <SettingPanel

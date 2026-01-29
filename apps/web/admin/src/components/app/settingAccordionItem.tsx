@@ -50,6 +50,11 @@ export type SettingAccordionItemProps = {
    * Content container width control. Defaults to a left-aligned, non-stretch layout.
    */
   contentClassName?: string;
+
+  /**
+   * 是否在折叠时仍保持内容渲染（用于表单字段保持挂载，避免 validateFields 找不到字段）。
+   */
+  keepRendered?: boolean;
 };
 
 export function SettingAccordionItem(props: SettingAccordionItemProps) {
@@ -84,7 +89,7 @@ export function SettingAccordionItem(props: SettingAccordionItemProps) {
           ) : null}
         </div>
       </AccordionTrigger>
-      <AccordionContent>
+      <AccordionContent keepRendered={props.keepRendered}>
         <div className={cn("flex flex-col gap-3", "max-w-130", props.contentClassName)}>
           <fieldset
             disabled={busy}
