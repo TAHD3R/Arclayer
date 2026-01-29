@@ -1,5 +1,4 @@
 import { Outlet } from "@tanstack/react-router";
-import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { type CSSProperties, type PropsWithChildren, useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouterState } from "@tanstack/react-router";
@@ -180,8 +179,6 @@ export function AdminLayout({ children }: PropsWithChildren) {
           <RouteTransition className="w-full">{children ?? <Outlet />}</RouteTransition>
         </div>
       </SidebarInset>
-
-      {import.meta.env.DEV ? <TanStackRouterDevtools position="bottom-right" /> : null}
     </SidebarProvider>
   );
 }

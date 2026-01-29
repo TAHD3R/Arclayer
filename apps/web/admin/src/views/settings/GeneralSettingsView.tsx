@@ -4,6 +4,9 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { DefaultPage } from "@/components/app/defaultPage";
+import { SettingActionItem } from "@/components/app/settingActionItem";
+import { SettingDialog } from "@/components/app/settingDialog";
+import { SettingSheet } from "@/components/app/settingSheet";
 import {
   ChromeTabs,
   ChromeTabsContent,
@@ -12,6 +15,7 @@ import {
 } from "@/components/ui/chrome-tabs";
 import { Accordion } from "@/components/animate-ui/components/radix/accordion";
 import { SettingAccordionItem } from "@/components/app/settingAccordionItem";
+import { SettingPanel } from "@/components/app/settingPanel";
 import { getCoreSettings, patchCoreSettings } from "@/api/settings";
 import { notifyError, notifySuccessText } from "@/utils/notifications";
 import { type AppLocale } from "@/utils/i18n";
@@ -130,6 +134,9 @@ export function GeneralSettingsView() {
   const queryClient = useQueryClient();
   const [form] = Form.useForm<GeneralSettingsFormValues>();
   const [savingKey, setSavingKey] = useState<string | null>(null);
+  const [storageOverlayKey, setStorageOverlayKey] = useState<
+    "provider" | "publicBaseUrl" | "uploadPolicy" | "localInfo" | "s3Config" | null
+  >(null);
 
   const coreQuery = useQuery({
     queryKey: ["settings", "core"],
@@ -265,6 +272,21 @@ export function GeneralSettingsView() {
 
   const s3EndpointUrl =
     (Form.useWatch("s3EndpointUrl", form) as string | undefined) ?? initialValues.s3EndpointUrl;
+  const s3Region =
+    (Form.useWatch("s3Region", form) as string | undefined) ?? initialValues.s3Region;
+  const s3Bucket =
+    (Form.useWatch("s3Bucket", form) as string | undefined) ?? initialValues.s3Bucket;
+  const s3AccessKeyId =
+    (Form.useWatch("s3AccessKeyId", form) as string | undefined) ?? initialValues.s3AccessKeyId;
+  const s3SecretAccessKey =
+    (Form.useWatch("s3SecretAccessKey", form) as string | undefined) ??
+    initialValues.s3SecretAccessKey;
+  const s3ForcePathStyle =
+    (Form.useWatch("s3ForcePathStyle", form) as boolean | undefined) ??
+    initialValues.s3ForcePathStyle;
+  const s3PresignExpiresSeconds =
+    (Form.useWatch("s3PresignExpiresSeconds", form) as number | undefined) ??
+    initialValues.s3PresignExpiresSeconds;
 
   const localeLabel = locale ? formatLocaleLabel(locale, t) : undefined;
   const dateFormatLabel =
@@ -293,6 +315,14 @@ export function GeneralSettingsView() {
     uploadMaxAvatarSizeMb !== initialValues.uploadMaxAvatarSizeMb ||
     uploadMaxSiteLogoSizeMb !== initialValues.uploadMaxSiteLogoSizeMb ||
     uploadMaxFaviconSizeMb !== initialValues.uploadMaxFaviconSizeMb;
+  const isS3ConfigDirty =
+    (s3EndpointUrl || "") !== (initialValues.s3EndpointUrl || "") ||
+    (s3Region || "") !== (initialValues.s3Region || "") ||
+    (s3Bucket || "") !== (initialValues.s3Bucket || "") ||
+    (s3AccessKeyId || "") !== (initialValues.s3AccessKeyId || "") ||
+    Boolean((s3SecretAccessKey || "").trim()) ||
+    s3ForcePathStyle !== initialValues.s3ForcePathStyle ||
+    s3PresignExpiresSeconds !== initialValues.s3PresignExpiresSeconds;
 
   const isResettingSiteName = savingKey === "reset:siteName";
   const isResettingSiteSubtitle = savingKey === "reset:siteSubtitle";
@@ -308,6 +338,7 @@ export function GeneralSettingsView() {
   const isResettingStorageProvider = savingKey === "reset:storageProvider";
   const isResettingStoragePublicBaseUrl = savingKey === "reset:storagePublicBaseUrl";
   const isResettingUploadPolicy = savingKey === "reset:uploadPolicy";
+  const isResettingS3Config = savingKey === "reset:s3Config";
 
   const resetSiteName = async () => {
     setSavingKey("reset:siteName");
@@ -409,6 +440,29 @@ export function GeneralSettingsView() {
         upload_max_avatar_size_mb: initialValues.uploadMaxAvatarSizeMb,
         upload_max_site_logo_size_mb: initialValues.uploadMaxSiteLogoSizeMb,
         upload_max_favicon_size_mb: initialValues.uploadMaxFaviconSizeMb,
+      },
+    });
+  };
+
+  const resetS3Config = async () => {
+    setSavingKey("reset:s3Config");
+    form.setFieldsValue({
+      s3EndpointUrl: initialValues.s3EndpointUrl,
+      s3Region: initialValues.s3Region,
+      s3Bucket: initialValues.s3Bucket,
+      s3AccessKeyId: initialValues.s3AccessKeyId,
+      s3SecretAccessKey: "",
+      s3ForcePathStyle: initialValues.s3ForcePathStyle,
+      s3PresignExpiresSeconds: initialValues.s3PresignExpiresSeconds,
+    });
+    await saveMutation.mutateAsync({
+      storage: {
+        s3_endpoint_url: normalizeOptionalString(initialValues.s3EndpointUrl),
+        s3_region: normalizeOptionalString(initialValues.s3Region),
+        s3_bucket: normalizeOptionalString(initialValues.s3Bucket),
+        s3_access_key_id: normalizeOptionalString(initialValues.s3AccessKeyId),
+        s3_force_path_style: Boolean(initialValues.s3ForcePathStyle),
+        s3_presign_expires_seconds: Number(initialValues.s3PresignExpiresSeconds),
       },
     });
   };
@@ -552,6 +606,27 @@ export function GeneralSettingsView() {
     storageProvider === "s3"
       ? t("common:SETTINGS_STORAGE_PROVIDER_S3")
       : t("common:SETTINGS_STORAGE_PROVIDER_LOCAL");
+
+  const hasS3Secret = Boolean(coreQuery.data?.secrets?.["storage.s3_secret_access_key"]);
+
+  const s3Summary = (() => {
+    const endpoint = (s3EndpointUrl || "").trim();
+    const bucket = (s3Bucket || "").trim();
+    const region = (s3Region || "").trim();
+    if (!endpoint && !bucket) return null;
+    let host = endpoint;
+    try {
+      host = new URL(endpoint).host;
+    } catch {
+      // ignore
+    }
+    const parts = [bucket || null, host || null, region || null].filter(Boolean);
+    return parts.join(" / ");
+  })();
+
+  const openStorageOverlay = (key: NonNullable<typeof storageOverlayKey>) =>
+    setStorageOverlayKey(key);
+  const closeStorageOverlay = () => setStorageOverlayKey(null);
 
   return (
     <DefaultPage
@@ -946,26 +1021,135 @@ export function GeneralSettingsView() {
             </ChromeTabsContent>
 
             <ChromeTabsContent value="storage">
-              <Accordion type="single" collapsible className="px-0">
-                <SettingAccordionItem
-                  value="storageProvider"
-                  title={t("common:SETTINGS_STORAGE_PROVIDER_LABEL")}
-                  description={t("common:SETTINGS_STORAGE_PROVIDER_DESC")}
-                  showSummary
-                  summary={storageProviderLabel}
-                  confirmText={t("common:SETTINGS_SAVE")}
-                  onConfirm={saveStorageProvider}
-                  confirmLoading={savingKey === "storageProvider"}
-                  onReset={
-                    isStorageProviderDirty || isResettingStorageProvider
-                      ? resetStorageProvider
-                      : undefined
-                  }
-                  resetLoading={isResettingStorageProvider}
-                  disabled={disabled}
+              <div className="flex flex-col gap-6">
+                <SettingPanel
+                  title={t("common:SETTINGS_STORAGE_PANEL_GLOBAL_TITLE")}
+                  description={t("common:SETTINGS_STORAGE_PANEL_GLOBAL_DESC")}
                 >
+                  <div className="divide-y">
+                    <SettingActionItem
+                      className="first:rounded-t-xl last:rounded-b-xl"
+                      title={t("common:SETTINGS_STORAGE_PROVIDER_LABEL")}
+                      summary={storageProviderLabel}
+                      description={t("common:SETTINGS_STORAGE_PROVIDER_DESC")}
+                      disabled={disabled}
+                      onTrigger={() => openStorageOverlay("provider")}
+                    />
+                    <SettingActionItem
+                      className="first:rounded-t-xl last:rounded-b-xl"
+                      title={t("common:SETTINGS_STORAGE_PUBLIC_BASE_URL_LABEL")}
+                      summary={
+                        storagePublicBaseUrl ? formatSummaryText(storagePublicBaseUrl) : null
+                      }
+                      placeholder={t("common:SETTINGS_NOT_SET")}
+                      description={t("common:SETTINGS_STORAGE_PUBLIC_BASE_URL_DESC")}
+                      disabled={disabled}
+                      onTrigger={() => openStorageOverlay("publicBaseUrl")}
+                    />
+                    <SettingActionItem
+                      className="first:rounded-t-xl last:rounded-b-xl"
+                      title={t("common:SETTINGS_STORAGE_UPLOAD_POLICY_LABEL")}
+                      summary={`${uploadChunkSizeMb} MiB / ${uploadMaxFileSizeMb} MiB`}
+                      description={[t("common:SETTINGS_STORAGE_UPLOAD_POLICY_DESC")]}
+                      disabled={disabled}
+                      onTrigger={() => openStorageOverlay("uploadPolicy")}
+                    />
+                  </div>
+                </SettingPanel>
+
+                {storageProvider === "local" ? (
+                  <SettingPanel
+                    title={t("common:SETTINGS_STORAGE_PANEL_LOCAL_TITLE")}
+                    description={t("common:SETTINGS_STORAGE_PANEL_LOCAL_DESC")}
+                  >
+                    <div className="divide-y">
+                      <SettingActionItem
+                        className="first:rounded-t-xl last:rounded-b-xl"
+                        title={t("common:SETTINGS_STORAGE_LOCAL_INFO_LABEL")}
+                        summary={t("common:SETTINGS_STORAGE_LOCAL_INFO_SUMMARY")}
+                        description={t("common:SETTINGS_STORAGE_LOCAL_INFO_DESC")}
+                        disabled={disabled}
+                        onTrigger={() => openStorageOverlay("localInfo")}
+                      />
+                    </div>
+                  </SettingPanel>
+                ) : null}
+
+                {storageProvider === "s3" ? (
+                  <SettingPanel
+                    title={t("common:SETTINGS_STORAGE_PANEL_S3_TITLE")}
+                    description={t("common:SETTINGS_STORAGE_PANEL_S3_DESC")}
+                  >
+                    <div className="divide-y">
+                      <SettingActionItem
+                        className="first:rounded-t-xl last:rounded-b-xl"
+                        title={t("common:SETTINGS_STORAGE_S3_CONFIG_LABEL")}
+                        summary={s3Summary ? formatSummaryText(s3Summary, 64) : null}
+                        placeholder={t("common:SETTINGS_NOT_SET")}
+                        description={[
+                          t("common:SETTINGS_STORAGE_S3_CONFIG_DESC"),
+                          hasS3Secret
+                            ? t("common:SETTINGS_STORAGE_S3_SECRET_SET")
+                            : t("common:SETTINGS_STORAGE_S3_SECRET_NOT_SET"),
+                        ]}
+                        disabled={disabled}
+                        onTrigger={() => openStorageOverlay("s3Config")}
+                      />
+                    </div>
+                  </SettingPanel>
+                ) : null}
+
+                <SettingDialog
+                  open={storageOverlayKey === "provider"}
+                  onOpenChange={(open) => {
+                    if (!open) closeStorageOverlay();
+                  }}
+                  title={t("common:SETTINGS_STORAGE_DRAWER_PROVIDER_TITLE")}
+                  description={t("common:SETTINGS_STORAGE_PROVIDER_DIALOG_DESC")}
+                  footer={
+                    <div className="flex w-full items-center justify-end gap-2">
+                      <Button onClick={closeStorageOverlay}>{t("common:BACK")}</Button>
+                      {isStorageProviderDirty ? (
+                        <Button
+                          loading={isResettingStorageProvider}
+                          disabled={disabled}
+                          onClick={async () => {
+                            try {
+                              await resetStorageProvider();
+                              closeStorageOverlay();
+                            } catch {
+                              // keep open
+                            }
+                          }}
+                        >
+                          {t("common:SETTINGS_RESET")}
+                        </Button>
+                      ) : null}
+                      <Button
+                        type="primary"
+                        loading={savingKey === "storageProvider"}
+                        disabled={disabled}
+                        onClick={async () => {
+                          try {
+                            await saveStorageProvider();
+                            closeStorageOverlay();
+                          } catch {
+                            // keep open
+                          }
+                        }}
+                      >
+                        {t("common:SETTINGS_SAVE")}
+                      </Button>
+                    </div>
+                  }
+                >
+                  <div className="mb-4  text-muted-foreground leading-relaxed">
+                    {t("common:SETTINGS_STORAGE_PROVIDER_DIALOG_HELP")}
+                  </div>
+
                   <Form.Item<GeneralSettingsFormValues>
                     name="storageProvider"
+                    label={t("common:SETTINGS_STORAGE_PROVIDER_LABEL")}
                     rules={[{ required: true, message: t("common:SETTINGS_VALIDATION_REQUIRED") }]}
                     style={{ marginBottom: 0 }}
                   >
@@ -977,38 +1161,66 @@ export function GeneralSettingsView() {
                       ]}
                     />
                   </Form.Item>
-                </SettingAccordionItem>
+                </SettingDialog>
 
-                <SettingAccordionItem
-                  value="storagePublicBaseUrl"
-                  title={t("common:SETTINGS_STORAGE_PUBLIC_BASE_URL_LABEL")}
-                  description={t("common:SETTINGS_STORAGE_PUBLIC_BASE_URL_DESC")}
-                  confirmText={t("common:SETTINGS_SAVE")}
-                  onConfirm={saveStoragePublicBaseUrl}
-                  confirmLoading={savingKey === "storagePublicBaseUrl"}
-                  onReset={
-                    isStoragePublicBaseUrlDirty || isResettingStoragePublicBaseUrl
-                      ? resetStoragePublicBaseUrl
-                      : undefined
+                <SettingDialog
+                  open={storageOverlayKey === "publicBaseUrl"}
+                  onOpenChange={(open) => {
+                    if (!open) closeStorageOverlay();
+                  }}
+                  title={t("common:SETTINGS_STORAGE_DRAWER_PUBLIC_BASE_URL_TITLE")}
+                  description={t("common:SETTINGS_STORAGE_PUBLIC_BASE_URL_DIALOG_DESC")}
+                  footer={
+                    <div className="flex w-full items-center justify-end gap-2">
+                      <Button onClick={closeStorageOverlay}>{t("common:BACK")}</Button>
+                      {isStoragePublicBaseUrlDirty ? (
+                        <Button
+                          loading={isResettingStoragePublicBaseUrl}
+                          disabled={disabled}
+                          onClick={async () => {
+                            try {
+                              await resetStoragePublicBaseUrl();
+                              closeStorageOverlay();
+                            } catch {
+                              // keep open
+                            }
+                          }}
+                        >
+                          {t("common:SETTINGS_RESET")}
+                        </Button>
+                      ) : null}
+                      <Button
+                        type="primary"
+                        loading={savingKey === "storagePublicBaseUrl"}
+                        disabled={disabled}
+                        onClick={async () => {
+                          try {
+                            await saveStoragePublicBaseUrl();
+                            closeStorageOverlay();
+                          } catch {
+                            // keep open
+                          }
+                        }}
+                      >
+                        {t("common:SETTINGS_SAVE")}
+                      </Button>
+                    </div>
                   }
-                  resetLoading={isResettingStoragePublicBaseUrl}
-                  disabled={disabled}
                 >
+                  <div className="mb-4  text-muted-foreground leading-relaxed">
+                    {t("common:SETTINGS_STORAGE_PUBLIC_BASE_URL_DIALOG_HELP")}
+                  </div>
+
                   <Form.Item<GeneralSettingsFormValues>
                     name="storagePublicBaseUrl"
+                    label={t("common:SETTINGS_STORAGE_PUBLIC_BASE_URL_LABEL")}
                     rules={[
                       {
                         validator: async (_rule, value: string | undefined) => {
                           const raw = (value || "").trim();
                           if (!raw) return;
-                          try {
-                            const url = new URL(raw);
-                            if (url.protocol !== "http:" && url.protocol !== "https:") {
-                              throw new Error("invalid protocol");
-                            }
-                          } catch {
-                            throw new Error(t("common:SETTINGS_STORAGE_VALIDATION_URL_INVALID"));
-                          }
+                          if (isValidHttpUrlOrAbsolutePath(raw)) return;
+                          throw new Error(t("common:SETTINGS_VALIDATION_URL_OR_PATH_INVALID"));
                         },
                       },
                     ]}
@@ -1020,21 +1232,56 @@ export function GeneralSettingsView() {
                       allowClear
                     />
                   </Form.Item>
-                </SettingAccordionItem>
+                </SettingDialog>
 
-                <SettingAccordionItem
-                  value="uploadPolicy"
-                  title={t("common:SETTINGS_STORAGE_UPLOAD_POLICY_LABEL")}
-                  description={t("common:SETTINGS_STORAGE_UPLOAD_POLICY_DESC")}
-                  confirmText={t("common:SETTINGS_SAVE")}
-                  onConfirm={saveUploadPolicy}
-                  confirmLoading={savingKey === "uploadPolicy"}
-                  onReset={
-                    isUploadPolicyDirty || isResettingUploadPolicy ? resetUploadPolicy : undefined
+                <SettingSheet
+                  open={storageOverlayKey === "uploadPolicy"}
+                  onOpenChange={(open) => {
+                    if (!open) closeStorageOverlay();
+                  }}
+                  title={t("common:SETTINGS_STORAGE_DRAWER_UPLOAD_POLICY_TITLE")}
+                  description={t("common:SETTINGS_STORAGE_UPLOAD_POLICY_SHEET_DESC")}
+                  footer={
+                    <div className="flex w-full items-center justify-end gap-2">
+                      <Button onClick={closeStorageOverlay}>{t("common:BACK")}</Button>
+                      {isUploadPolicyDirty ? (
+                        <Button
+                          loading={isResettingUploadPolicy}
+                          disabled={disabled}
+                          onClick={async () => {
+                            try {
+                              await resetUploadPolicy();
+                              closeStorageOverlay();
+                            } catch {
+                              // keep open
+                            }
+                          }}
+                        >
+                          {t("common:SETTINGS_RESET")}
+                        </Button>
+                      ) : null}
+                      <Button
+                        type="primary"
+                        loading={savingKey === "uploadPolicy"}
+                        disabled={disabled}
+                        onClick={async () => {
+                          try {
+                            await saveUploadPolicy();
+                            closeStorageOverlay();
+                          } catch {
+                            // keep open
+                          }
+                        }}
+                      >
+                        {t("common:SETTINGS_SAVE")}
+                      </Button>
+                    </div>
                   }
-                  resetLoading={isResettingUploadPolicy}
-                  disabled={disabled}
                 >
+                  <div className="mb-4  text-muted-foreground leading-relaxed">
+                    {t("common:SETTINGS_STORAGE_UPLOAD_POLICY_SHEET_HELP")}
+                  </div>
+
                   <div className="grid grid-cols-1 gap-3">
                     <Form.Item<GeneralSettingsFormValues>
                       name="uploadChunkSizeMb"
@@ -1081,108 +1328,163 @@ export function GeneralSettingsView() {
                       <InputNumber size="large" min={1} style={{ width: "100%" }} />
                     </Form.Item>
                   </div>
-                </SettingAccordionItem>
+                </SettingSheet>
 
-                {storageProvider === "s3" ? (
-                  <SettingAccordionItem
-                    value="s3Config"
-                    title={t("common:SETTINGS_STORAGE_S3_CONFIG_LABEL")}
-                    description={t("common:SETTINGS_STORAGE_S3_CONFIG_DESC")}
-                    confirmText={t("common:SETTINGS_SAVE")}
-                    onConfirm={saveS3Config}
-                    confirmLoading={savingKey === "s3Config"}
-                    disabled={disabled}
-                  >
-                    <div className="grid grid-cols-1 gap-3">
-                      <Form.Item<GeneralSettingsFormValues>
-                        name="s3EndpointUrl"
-                        label={t("common:SETTINGS_STORAGE_S3_ENDPOINT_URL_LABEL")}
-                        rules={[
-                          {
-                            validator: async (_rule, value: string | undefined) => {
-                              const raw = (value || "").trim();
-                              if (!raw) throw new Error(t("common:SETTINGS_VALIDATION_REQUIRED"));
-                              try {
-                                const url = new URL(raw);
-                                if (url.protocol !== "http:" && url.protocol !== "https:") {
-                                  throw new Error("invalid protocol");
-                                }
-                              } catch {
-                                throw new Error(
-                                  t("common:SETTINGS_STORAGE_VALIDATION_URL_INVALID"),
-                                );
-                              }
-                            },
-                          },
-                        ]}
-                        style={{ marginBottom: 0 }}
-                      >
-                        <Input
-                          size="large"
-                          placeholder={t("common:SETTINGS_STORAGE_S3_ENDPOINT_URL_PLACEHOLDER")}
-                          allowClear
-                        />
-                      </Form.Item>
-
-                      <Form.Item<GeneralSettingsFormValues>
-                        name="s3Region"
-                        label={t("common:SETTINGS_STORAGE_S3_REGION_LABEL")}
-                        style={{ marginBottom: 0 }}
-                      >
-                        <Input size="large" allowClear />
-                      </Form.Item>
-
-                      <Form.Item<GeneralSettingsFormValues>
-                        name="s3Bucket"
-                        label={t("common:SETTINGS_STORAGE_S3_BUCKET_LABEL")}
-                        rules={[
-                          { required: true, message: t("common:SETTINGS_VALIDATION_REQUIRED") },
-                        ]}
-                        style={{ marginBottom: 0 }}
-                      >
-                        <Input size="large" allowClear />
-                      </Form.Item>
-
-                      <Form.Item<GeneralSettingsFormValues>
-                        name="s3AccessKeyId"
-                        label={t("common:SETTINGS_STORAGE_S3_ACCESS_KEY_ID_LABEL")}
-                        rules={[
-                          { required: true, message: t("common:SETTINGS_VALIDATION_REQUIRED") },
-                        ]}
-                        style={{ marginBottom: 0 }}
-                      >
-                        <Input size="large" allowClear />
-                      </Form.Item>
-
-                      <Form.Item<GeneralSettingsFormValues>
-                        name="s3SecretAccessKey"
-                        label={t("common:SETTINGS_STORAGE_S3_SECRET_ACCESS_KEY_LABEL")}
-                        style={{ marginBottom: 0 }}
-                      >
-                        <Input.Password size="large" placeholder="••••••••" />
-                      </Form.Item>
-
-                      <Form.Item<GeneralSettingsFormValues>
-                        name="s3ForcePathStyle"
-                        label={t("common:SETTINGS_STORAGE_S3_FORCE_PATH_STYLE_LABEL")}
-                        valuePropName="checked"
-                        style={{ marginBottom: 0 }}
-                      >
-                        <Switch />
-                      </Form.Item>
-
-                      <Form.Item<GeneralSettingsFormValues>
-                        name="s3PresignExpiresSeconds"
-                        label={t("common:SETTINGS_STORAGE_S3_PRESIGN_EXPIRES_SECONDS_LABEL")}
-                        rules={[{ required: true, type: "number", min: 60, max: 86400 }]}
-                        style={{ marginBottom: 0 }}
-                      >
-                        <InputNumber size="large" min={60} max={86400} style={{ width: "100%" }} />
-                      </Form.Item>
+                <SettingDialog
+                  open={storageOverlayKey === "localInfo"}
+                  onOpenChange={(open) => {
+                    if (!open) closeStorageOverlay();
+                  }}
+                  title={t("common:SETTINGS_STORAGE_DRAWER_LOCAL_INFO_TITLE")}
+                  description={t("common:SETTINGS_STORAGE_LOCAL_INFO_DIALOG_DESC")}
+                  footer={
+                    <div className="flex w-full items-center justify-end gap-2">
+                      <Button type="primary" onClick={closeStorageOverlay}>
+                        {t("common:BACK")}
+                      </Button>
                     </div>
-                  </SettingAccordionItem>
-                ) : null}
-              </Accordion>
+                  }
+                >
+                  <div className=" text-muted-foreground leading-relaxed">
+                    {t("common:SETTINGS_STORAGE_LOCAL_INFO_DRAWER_DESC")}
+                  </div>
+                </SettingDialog>
+
+                <SettingSheet
+                  open={storageOverlayKey === "s3Config"}
+                  onOpenChange={(open) => {
+                    if (!open) closeStorageOverlay();
+                  }}
+                  title={t("common:SETTINGS_STORAGE_DRAWER_S3_CONFIG_TITLE")}
+                  description={t("common:SETTINGS_STORAGE_S3_CONFIG_SHEET_DESC")}
+                  footer={
+                    <div className="flex w-full items-center justify-end gap-2">
+                      <Button onClick={closeStorageOverlay}>{t("common:BACK")}</Button>
+                      {isS3ConfigDirty ? (
+                        <Button
+                          loading={isResettingS3Config}
+                          disabled={disabled}
+                          onClick={async () => {
+                            try {
+                              await resetS3Config();
+                              closeStorageOverlay();
+                            } catch {
+                              // keep open
+                            }
+                          }}
+                        >
+                          {t("common:SETTINGS_RESET")}
+                        </Button>
+                      ) : null}
+                      <Button
+                        type="primary"
+                        loading={savingKey === "s3Config"}
+                        disabled={disabled}
+                        onClick={async () => {
+                          try {
+                            await saveS3Config();
+                            closeStorageOverlay();
+                          } catch {
+                            // keep open
+                          }
+                        }}
+                      >
+                        {t("common:SETTINGS_SAVE")}
+                      </Button>
+                    </div>
+                  }
+                >
+                  <div className="mb-4  text-muted-foreground leading-relaxed">
+                    {t("common:SETTINGS_STORAGE_S3_CONFIG_SHEET_HELP")}
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-3">
+                    <Form.Item<GeneralSettingsFormValues>
+                      name="s3EndpointUrl"
+                      label={t("common:SETTINGS_STORAGE_S3_ENDPOINT_URL_LABEL")}
+                      rules={[
+                        {
+                          validator: async (_rule, value: string | undefined) => {
+                            const raw = (value || "").trim();
+                            if (!raw) throw new Error(t("common:SETTINGS_VALIDATION_REQUIRED"));
+                            try {
+                              const url = new URL(raw);
+                              if (url.protocol !== "http:" && url.protocol !== "https:") {
+                                throw new Error("invalid protocol");
+                              }
+                            } catch {
+                              throw new Error(t("common:SETTINGS_STORAGE_VALIDATION_URL_INVALID"));
+                            }
+                          },
+                        },
+                      ]}
+                      style={{ marginBottom: 0 }}
+                    >
+                      <Input
+                        size="large"
+                        placeholder={t("common:SETTINGS_STORAGE_S3_ENDPOINT_URL_PLACEHOLDER")}
+                        allowClear
+                      />
+                    </Form.Item>
+
+                    <Form.Item<GeneralSettingsFormValues>
+                      name="s3Region"
+                      label={t("common:SETTINGS_STORAGE_S3_REGION_LABEL")}
+                      style={{ marginBottom: 0 }}
+                    >
+                      <Input size="large" allowClear />
+                    </Form.Item>
+
+                    <Form.Item<GeneralSettingsFormValues>
+                      name="s3Bucket"
+                      label={t("common:SETTINGS_STORAGE_S3_BUCKET_LABEL")}
+                      rules={[
+                        { required: true, message: t("common:SETTINGS_VALIDATION_REQUIRED") },
+                      ]}
+                      style={{ marginBottom: 0 }}
+                    >
+                      <Input size="large" allowClear />
+                    </Form.Item>
+
+                    <Form.Item<GeneralSettingsFormValues>
+                      name="s3AccessKeyId"
+                      label={t("common:SETTINGS_STORAGE_S3_ACCESS_KEY_ID_LABEL")}
+                      rules={[
+                        { required: true, message: t("common:SETTINGS_VALIDATION_REQUIRED") },
+                      ]}
+                      style={{ marginBottom: 0 }}
+                    >
+                      <Input size="large" allowClear />
+                    </Form.Item>
+
+                    <Form.Item<GeneralSettingsFormValues>
+                      name="s3SecretAccessKey"
+                      label={t("common:SETTINGS_STORAGE_S3_SECRET_ACCESS_KEY_LABEL")}
+                      style={{ marginBottom: 0 }}
+                    >
+                      <Input.Password size="large" placeholder="••••••••" />
+                    </Form.Item>
+
+                    <Form.Item<GeneralSettingsFormValues>
+                      name="s3ForcePathStyle"
+                      label={t("common:SETTINGS_STORAGE_S3_FORCE_PATH_STYLE_LABEL")}
+                      valuePropName="checked"
+                      style={{ marginBottom: 0 }}
+                    >
+                      <Switch />
+                    </Form.Item>
+
+                    <Form.Item<GeneralSettingsFormValues>
+                      name="s3PresignExpiresSeconds"
+                      label={t("common:SETTINGS_STORAGE_S3_PRESIGN_EXPIRES_SECONDS_LABEL")}
+                      rules={[{ required: true, type: "number", min: 60, max: 86400 }]}
+                      style={{ marginBottom: 0 }}
+                    >
+                      <InputNumber size="large" min={60} max={86400} style={{ width: "100%" }} />
+                    </Form.Item>
+                  </div>
+                </SettingSheet>
+              </div>
             </ChromeTabsContent>
           </ChromeTabs>
         </Form>
