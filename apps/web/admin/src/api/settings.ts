@@ -3,6 +3,7 @@ import { api } from "@/lib/http";
 export type SettingsDetail = {
   namespace: string;
   value: Record<string, unknown>;
+  secrets?: Record<string, boolean>;
   updated_at?: string | null;
 };
 

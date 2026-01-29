@@ -10,10 +10,11 @@ from apps.api.config import Settings
 from apps.api.core.exceptions import NotFound
 from apps.api.http.content_disposition import build_attachment_content_disposition
 from apps.api.http.file_stream import stream_file_response
-from apps.api.infra.storage.factory import build_storage_provider
+from apps.api.infra.storage.factory import build_storage_provider_for
 from apps.api.infra.storage.local import safe_object_key_to_path
 from apps.api.infra.storage.s3 import S3StorageProvider
 from apps.api.routers.assets.repository import AssetsRepository
+from apps.api.settings.runtime import get_effective_settings
 
 
 @dataclass(frozen=True, slots=True)
@@ -53,8 +54,8 @@ class AssetsService:
         self.settings = settings
         self.repo = AssetsRepository()
 
-    def _public_absolute_url(self, path: str) -> str | None:
-        base = (self.settings.storage.public_base_url or "").strip()
+    def _public_absolute_url(self, *, base_url: str | None, path: str) -> str | None:
+        base = (base_url or "").strip()
         if not base:
             return None
         b = base.rstrip("/")
@@ -99,12 +100,16 @@ class AssetsService:
             return RedirectResponse(url=f"/assets/{view.id}/{canonical}", status_code=301)
 
         if view.storage_provider == "s3":
-            url = self._public_absolute_url(f"/{view.object_key}")
+            effective = await get_effective_settings(self.settings)
+            url = self._public_absolute_url(base_url=effective.storage.public_base_url, path=f"/{view.object_key}")
             if url:
                 return RedirectResponse(url=url, status_code=302, headers=build_asset_headers(view))
 
             # Dev / no-CDN fallback: presigned GET.
-            provider = build_storage_provider(self.settings)
+            try:
+                provider = build_storage_provider_for(effective, provider="s3")
+            except Exception:
+                raise NotFound(message="Not Found", error="NOT_FOUND")
             if not isinstance(provider, S3StorageProvider):
                 raise NotFound(message="Not Found", error="NOT_FOUND")
             presigned = await provider.presign_get_object(
@@ -142,7 +147,11 @@ class AssetsService:
         filename = (view.original_filename or "").strip() or fallback
 
         if view.storage_provider == "s3":
-            provider = build_storage_provider(self.settings)
+            effective = await get_effective_settings(self.settings)
+            try:
+                provider = build_storage_provider_for(effective, provider="s3")
+            except Exception:
+                raise NotFound(message="Not Found", error="NOT_FOUND")
             if not isinstance(provider, S3StorageProvider):
                 raise NotFound(message="Not Found", error="NOT_FOUND")
             url = await provider.presign_get_object(
@@ -208,11 +217,15 @@ class AssetsService:
             return RedirectResponse(url=f"/assets/{view.id}/{canonical}", status_code=302)
 
         if view.storage_provider == "s3":
-            url = self._public_absolute_url(f"/{object_key}")
+            effective = await get_effective_settings(self.settings)
+            url = self._public_absolute_url(base_url=effective.storage.public_base_url, path=f"/{object_key}")
             if url:
                 return RedirectResponse(url=url, status_code=302, headers=build_asset_headers(view))
 
-            provider = build_storage_provider(self.settings)
+            try:
+                provider = build_storage_provider_for(effective, provider="s3")
+            except Exception:
+                provider = None
             if isinstance(provider, S3StorageProvider):
                 presigned = await provider.presign_get_object(
                     object_key=object_key,

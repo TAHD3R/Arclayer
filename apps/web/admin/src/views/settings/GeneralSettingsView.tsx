@@ -1,4 +1,4 @@
-import { Alert, Button, Form, Input, Select } from "antd";
+import { Alert, Button, Form, Input, InputNumber, Select, Switch } from "antd";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -29,6 +29,23 @@ type GeneralSettingsFormValues = {
   locale: AppLocale;
   timezone: string;
   dateFormat: string;
+
+  storageProvider: "local" | "s3";
+  storagePublicBaseUrl: string;
+
+  uploadChunkSizeMb: number;
+  uploadMaxFileSizeMb: number;
+  uploadMaxAvatarSizeMb: number;
+  uploadMaxSiteLogoSizeMb: number;
+  uploadMaxFaviconSizeMb: number;
+
+  s3EndpointUrl: string;
+  s3Region: string;
+  s3Bucket: string;
+  s3AccessKeyId: string;
+  s3SecretAccessKey: string;
+  s3ForcePathStyle: boolean;
+  s3PresignExpiresSeconds: number;
 };
 
 const COMMON_TIMEZONES = [
@@ -81,6 +98,29 @@ function pickString(obj: unknown, path: readonly string[]): string | undefined {
   return typeof cur === "string" ? cur : undefined;
 }
 
+function pickNumber(obj: unknown, path: readonly string[]): number | undefined {
+  let cur: any = obj;
+  for (const key of path) {
+    if (!cur || typeof cur !== "object") return undefined;
+    cur = cur[key];
+  }
+  if (typeof cur === "number" && Number.isFinite(cur)) return cur;
+  if (typeof cur === "string" && cur.trim()) {
+    const n = Number(cur);
+    if (Number.isFinite(n)) return n;
+  }
+  return undefined;
+}
+
+function pickBool(obj: unknown, path: readonly string[]): boolean | undefined {
+  let cur: any = obj;
+  for (const key of path) {
+    if (!cur || typeof cur !== "object") return undefined;
+    cur = cur[key];
+  }
+  return typeof cur === "boolean" ? cur : undefined;
+}
+
 function formatLocaleLabel(locale: AppLocale, t: (key: string) => string): string {
   return locale === "zh-CN" ? t("common:ACCOUNT_LANGUAGE_ZH") : t("common:ACCOUNT_LANGUAGE_EN");
 }
@@ -113,6 +153,27 @@ export function GeneralSettingsView() {
     const timezone = pickString(v, ["localization", "timezone"]) ?? "Asia/Shanghai";
     const dateFormat = pickString(v, ["localization", "date_format"]) ?? "YYYY-MM-DD";
 
+    const storageProvider =
+      (pickString(v, ["storage", "provider"]) as "local" | "s3" | undefined) ?? "local";
+    const storagePublicBaseUrl = pickString(v, ["storage", "public_base_url"]) ?? "";
+
+    const uploadChunkSizeMb = pickNumber(v, ["storage", "upload_chunk_size_mb"]) ?? 8;
+    const uploadMaxFileSizeMb = pickNumber(v, ["storage", "upload_max_file_size_mb"]) ?? 2048;
+    const uploadMaxAvatarSizeMb = pickNumber(v, ["storage", "upload_max_avatar_size_mb"]) ?? 10;
+    const uploadMaxSiteLogoSizeMb =
+      pickNumber(v, ["storage", "upload_max_site_logo_size_mb"]) ?? 20;
+    const uploadMaxFaviconSizeMb = pickNumber(v, ["storage", "upload_max_favicon_size_mb"]) ?? 2;
+
+    const s3EndpointUrl = pickString(v, ["storage", "s3_endpoint_url"]) ?? "";
+    const s3Region = pickString(v, ["storage", "s3_region"]) ?? "";
+    const s3Bucket = pickString(v, ["storage", "s3_bucket"]) ?? "";
+    const s3AccessKeyId = pickString(v, ["storage", "s3_access_key_id"]) ?? "";
+    const s3ForcePathStyle = pickBool(v, ["storage", "s3_force_path_style"]) ?? false;
+    const s3PresignExpiresSeconds = pickNumber(v, ["storage", "s3_presign_expires_seconds"]) ?? 900;
+
+    // Secret fields are masked by the API; we only allow "set new value" in UI.
+    const s3SecretAccessKey = "";
+
     return {
       siteName,
       siteSubtitle,
@@ -124,6 +185,21 @@ export function GeneralSettingsView() {
       locale,
       timezone,
       dateFormat,
+
+      storageProvider,
+      storagePublicBaseUrl,
+      uploadChunkSizeMb,
+      uploadMaxFileSizeMb,
+      uploadMaxAvatarSizeMb,
+      uploadMaxSiteLogoSizeMb,
+      uploadMaxFaviconSizeMb,
+      s3EndpointUrl,
+      s3Region,
+      s3Bucket,
+      s3AccessKeyId,
+      s3SecretAccessKey,
+      s3ForcePathStyle,
+      s3PresignExpiresSeconds,
     };
   }, [coreQuery.data?.value]);
 
@@ -164,6 +240,32 @@ export function GeneralSettingsView() {
   const dateFormat =
     (Form.useWatch("dateFormat", form) as string | undefined) ?? initialValues.dateFormat;
 
+  const storageProvider =
+    (Form.useWatch("storageProvider", form) as "local" | "s3" | undefined) ??
+    initialValues.storageProvider;
+  const storagePublicBaseUrl =
+    (Form.useWatch("storagePublicBaseUrl", form) as string | undefined) ??
+    initialValues.storagePublicBaseUrl;
+
+  const uploadChunkSizeMb =
+    (Form.useWatch("uploadChunkSizeMb", form) as number | undefined) ??
+    initialValues.uploadChunkSizeMb;
+  const uploadMaxFileSizeMb =
+    (Form.useWatch("uploadMaxFileSizeMb", form) as number | undefined) ??
+    initialValues.uploadMaxFileSizeMb;
+  const uploadMaxAvatarSizeMb =
+    (Form.useWatch("uploadMaxAvatarSizeMb", form) as number | undefined) ??
+    initialValues.uploadMaxAvatarSizeMb;
+  const uploadMaxSiteLogoSizeMb =
+    (Form.useWatch("uploadMaxSiteLogoSizeMb", form) as number | undefined) ??
+    initialValues.uploadMaxSiteLogoSizeMb;
+  const uploadMaxFaviconSizeMb =
+    (Form.useWatch("uploadMaxFaviconSizeMb", form) as number | undefined) ??
+    initialValues.uploadMaxFaviconSizeMb;
+
+  const s3EndpointUrl =
+    (Form.useWatch("s3EndpointUrl", form) as string | undefined) ?? initialValues.s3EndpointUrl;
+
   const localeLabel = locale ? formatLocaleLabel(locale, t) : undefined;
   const dateFormatLabel =
     DATE_FORMAT_ITEMS.find((it) => it.value === dateFormat)?.label ?? dateFormat;
@@ -182,6 +284,16 @@ export function GeneralSettingsView() {
   const isTimezoneDirty = (timezone || "") !== (initialValues.timezone || "");
   const isDateFormatDirty = (dateFormat || "") !== (initialValues.dateFormat || "");
 
+  const isStorageProviderDirty = (storageProvider || "") !== (initialValues.storageProvider || "");
+  const isStoragePublicBaseUrlDirty =
+    (storagePublicBaseUrl || "") !== (initialValues.storagePublicBaseUrl || "");
+  const isUploadPolicyDirty =
+    uploadChunkSizeMb !== initialValues.uploadChunkSizeMb ||
+    uploadMaxFileSizeMb !== initialValues.uploadMaxFileSizeMb ||
+    uploadMaxAvatarSizeMb !== initialValues.uploadMaxAvatarSizeMb ||
+    uploadMaxSiteLogoSizeMb !== initialValues.uploadMaxSiteLogoSizeMb ||
+    uploadMaxFaviconSizeMb !== initialValues.uploadMaxFaviconSizeMb;
+
   const isResettingSiteName = savingKey === "reset:siteName";
   const isResettingSiteSubtitle = savingKey === "reset:siteSubtitle";
   const isResettingSiteDescription = savingKey === "reset:siteDescription";
@@ -192,6 +304,10 @@ export function GeneralSettingsView() {
   const isResettingLocale = savingKey === "reset:locale";
   const isResettingTimezone = savingKey === "reset:timezone";
   const isResettingDateFormat = savingKey === "reset:dateFormat";
+
+  const isResettingStorageProvider = savingKey === "reset:storageProvider";
+  const isResettingStoragePublicBaseUrl = savingKey === "reset:storagePublicBaseUrl";
+  const isResettingUploadPolicy = savingKey === "reset:uploadPolicy";
 
   const resetSiteName = async () => {
     setSavingKey("reset:siteName");
@@ -261,6 +377,40 @@ export function GeneralSettingsView() {
     setSavingKey("reset:dateFormat");
     form.setFieldValue("dateFormat", initialValues.dateFormat);
     await saveMutation.mutateAsync({ localization: { date_format: initialValues.dateFormat } });
+  };
+
+  const resetStorageProvider = async () => {
+    setSavingKey("reset:storageProvider");
+    form.setFieldValue("storageProvider", initialValues.storageProvider);
+    await saveMutation.mutateAsync({ storage: { provider: initialValues.storageProvider } });
+  };
+
+  const resetStoragePublicBaseUrl = async () => {
+    setSavingKey("reset:storagePublicBaseUrl");
+    form.setFieldValue("storagePublicBaseUrl", initialValues.storagePublicBaseUrl);
+    await saveMutation.mutateAsync({
+      storage: { public_base_url: normalizeOptionalString(initialValues.storagePublicBaseUrl) },
+    });
+  };
+
+  const resetUploadPolicy = async () => {
+    setSavingKey("reset:uploadPolicy");
+    form.setFieldsValue({
+      uploadChunkSizeMb: initialValues.uploadChunkSizeMb,
+      uploadMaxFileSizeMb: initialValues.uploadMaxFileSizeMb,
+      uploadMaxAvatarSizeMb: initialValues.uploadMaxAvatarSizeMb,
+      uploadMaxSiteLogoSizeMb: initialValues.uploadMaxSiteLogoSizeMb,
+      uploadMaxFaviconSizeMb: initialValues.uploadMaxFaviconSizeMb,
+    });
+    await saveMutation.mutateAsync({
+      storage: {
+        upload_chunk_size_mb: initialValues.uploadChunkSizeMb,
+        upload_max_file_size_mb: initialValues.uploadMaxFileSizeMb,
+        upload_max_avatar_size_mb: initialValues.uploadMaxAvatarSizeMb,
+        upload_max_site_logo_size_mb: initialValues.uploadMaxSiteLogoSizeMb,
+        upload_max_favicon_size_mb: initialValues.uploadMaxFaviconSizeMb,
+      },
+    });
   };
 
   const saveSiteName = async () => {
@@ -333,6 +483,76 @@ export function GeneralSettingsView() {
     await saveMutation.mutateAsync({ localization: { date_format: String(values.dateFormat) } });
   };
 
+  const saveStorageProvider = async () => {
+    setSavingKey("storageProvider");
+    const values = await form.validateFields(["storageProvider"]);
+    await saveMutation.mutateAsync({ storage: { provider: values.storageProvider } });
+  };
+
+  const saveStoragePublicBaseUrl = async () => {
+    setSavingKey("storagePublicBaseUrl");
+    const values = await form.validateFields(["storagePublicBaseUrl"]);
+    await saveMutation.mutateAsync({
+      storage: { public_base_url: normalizeOptionalString(values.storagePublicBaseUrl) },
+    });
+  };
+
+  const saveUploadPolicy = async () => {
+    setSavingKey("uploadPolicy");
+    const values = await form.validateFields([
+      "uploadChunkSizeMb",
+      "uploadMaxFileSizeMb",
+      "uploadMaxAvatarSizeMb",
+      "uploadMaxSiteLogoSizeMb",
+      "uploadMaxFaviconSizeMb",
+    ]);
+    await saveMutation.mutateAsync({
+      storage: {
+        upload_chunk_size_mb: Number(values.uploadChunkSizeMb),
+        upload_max_file_size_mb: Number(values.uploadMaxFileSizeMb),
+        upload_max_avatar_size_mb: Number(values.uploadMaxAvatarSizeMb),
+        upload_max_site_logo_size_mb: Number(values.uploadMaxSiteLogoSizeMb),
+        upload_max_favicon_size_mb: Number(values.uploadMaxFaviconSizeMb),
+      },
+    });
+  };
+
+  const saveS3Config = async () => {
+    setSavingKey("s3Config");
+    const values = await form.validateFields([
+      "s3EndpointUrl",
+      "s3Region",
+      "s3Bucket",
+      "s3AccessKeyId",
+      "s3SecretAccessKey",
+      "s3ForcePathStyle",
+      "s3PresignExpiresSeconds",
+    ]);
+
+    const patch: Record<string, unknown> = {
+      s3_endpoint_url: normalizeOptionalString(values.s3EndpointUrl),
+      s3_region: normalizeOptionalString(values.s3Region),
+      s3_bucket: normalizeOptionalString(values.s3Bucket),
+      s3_access_key_id: normalizeOptionalString(values.s3AccessKeyId),
+      s3_force_path_style: Boolean(values.s3ForcePathStyle),
+      s3_presign_expires_seconds: Number(values.s3PresignExpiresSeconds),
+    };
+
+    // Secret fields are masked by the API; do not overwrite unless user provides a new value.
+    const secret = String(values.s3SecretAccessKey || "").trim();
+    if (secret) {
+      patch.s3_secret_access_key = secret;
+      form.setFieldValue("s3SecretAccessKey", "");
+    }
+
+    await saveMutation.mutateAsync({ storage: patch });
+  };
+
+  const storageProviderLabel =
+    storageProvider === "s3"
+      ? t("common:SETTINGS_STORAGE_PROVIDER_S3")
+      : t("common:SETTINGS_STORAGE_PROVIDER_LOCAL");
+
   return (
     <DefaultPage
       title={t("common:SETTINGS_GENERAL_TITLE")}
@@ -372,6 +592,9 @@ export function GeneralSettingsView() {
               </ChromeTabsTrigger>
               <ChromeTabsTrigger value="localization">
                 {t("common:SETTINGS_GENERAL_TAB_LOCALIZATION")}
+              </ChromeTabsTrigger>
+              <ChromeTabsTrigger value="storage">
+                {t("common:SETTINGS_GENERAL_TAB_STORAGE")}
               </ChromeTabsTrigger>
             </ChromeTabsList>
 
@@ -719,6 +942,246 @@ export function GeneralSettingsView() {
                     />
                   </Form.Item>
                 </SettingAccordionItem>
+              </Accordion>
+            </ChromeTabsContent>
+
+            <ChromeTabsContent value="storage">
+              <Accordion type="single" collapsible className="px-0">
+                <SettingAccordionItem
+                  value="storageProvider"
+                  title={t("common:SETTINGS_STORAGE_PROVIDER_LABEL")}
+                  description={t("common:SETTINGS_STORAGE_PROVIDER_DESC")}
+                  showSummary
+                  summary={storageProviderLabel}
+                  confirmText={t("common:SETTINGS_SAVE")}
+                  onConfirm={saveStorageProvider}
+                  confirmLoading={savingKey === "storageProvider"}
+                  onReset={
+                    isStorageProviderDirty || isResettingStorageProvider
+                      ? resetStorageProvider
+                      : undefined
+                  }
+                  resetLoading={isResettingStorageProvider}
+                  disabled={disabled}
+                >
+                  <Form.Item<GeneralSettingsFormValues>
+                    name="storageProvider"
+                    rules={[{ required: true, message: t("common:SETTINGS_VALIDATION_REQUIRED") }]}
+                    style={{ marginBottom: 0 }}
+                  >
+                    <Select
+                      size="large"
+                      options={[
+                        { value: "local", label: t("common:SETTINGS_STORAGE_PROVIDER_LOCAL") },
+                        { value: "s3", label: t("common:SETTINGS_STORAGE_PROVIDER_S3") },
+                      ]}
+                    />
+                  </Form.Item>
+                </SettingAccordionItem>
+
+                <SettingAccordionItem
+                  value="storagePublicBaseUrl"
+                  title={t("common:SETTINGS_STORAGE_PUBLIC_BASE_URL_LABEL")}
+                  description={t("common:SETTINGS_STORAGE_PUBLIC_BASE_URL_DESC")}
+                  confirmText={t("common:SETTINGS_SAVE")}
+                  onConfirm={saveStoragePublicBaseUrl}
+                  confirmLoading={savingKey === "storagePublicBaseUrl"}
+                  onReset={
+                    isStoragePublicBaseUrlDirty || isResettingStoragePublicBaseUrl
+                      ? resetStoragePublicBaseUrl
+                      : undefined
+                  }
+                  resetLoading={isResettingStoragePublicBaseUrl}
+                  disabled={disabled}
+                >
+                  <Form.Item<GeneralSettingsFormValues>
+                    name="storagePublicBaseUrl"
+                    rules={[
+                      {
+                        validator: async (_rule, value: string | undefined) => {
+                          const raw = (value || "").trim();
+                          if (!raw) return;
+                          try {
+                            const url = new URL(raw);
+                            if (url.protocol !== "http:" && url.protocol !== "https:") {
+                              throw new Error("invalid protocol");
+                            }
+                          } catch {
+                            throw new Error(t("common:SETTINGS_STORAGE_VALIDATION_URL_INVALID"));
+                          }
+                        },
+                      },
+                    ]}
+                    style={{ marginBottom: 0 }}
+                  >
+                    <Input
+                      size="large"
+                      placeholder={t("common:SETTINGS_STORAGE_PUBLIC_BASE_URL_PLACEHOLDER")}
+                      allowClear
+                    />
+                  </Form.Item>
+                </SettingAccordionItem>
+
+                <SettingAccordionItem
+                  value="uploadPolicy"
+                  title={t("common:SETTINGS_STORAGE_UPLOAD_POLICY_LABEL")}
+                  description={t("common:SETTINGS_STORAGE_UPLOAD_POLICY_DESC")}
+                  confirmText={t("common:SETTINGS_SAVE")}
+                  onConfirm={saveUploadPolicy}
+                  confirmLoading={savingKey === "uploadPolicy"}
+                  onReset={
+                    isUploadPolicyDirty || isResettingUploadPolicy ? resetUploadPolicy : undefined
+                  }
+                  resetLoading={isResettingUploadPolicy}
+                  disabled={disabled}
+                >
+                  <div className="grid grid-cols-1 gap-3">
+                    <Form.Item<GeneralSettingsFormValues>
+                      name="uploadChunkSizeMb"
+                      label={t("common:SETTINGS_STORAGE_UPLOAD_CHUNK_SIZE_MB_LABEL")}
+                      rules={[{ required: true, type: "number", min: 1, max: 128 }]}
+                      style={{ marginBottom: 0 }}
+                    >
+                      <InputNumber size="large" min={1} max={128} style={{ width: "100%" }} />
+                    </Form.Item>
+
+                    <Form.Item<GeneralSettingsFormValues>
+                      name="uploadMaxFileSizeMb"
+                      label={t("common:SETTINGS_STORAGE_UPLOAD_MAX_FILE_SIZE_MB_LABEL")}
+                      rules={[{ required: true, type: "number", min: 1 }]}
+                      style={{ marginBottom: 0 }}
+                    >
+                      <InputNumber size="large" min={1} style={{ width: "100%" }} />
+                    </Form.Item>
+
+                    <Form.Item<GeneralSettingsFormValues>
+                      name="uploadMaxAvatarSizeMb"
+                      label={t("common:SETTINGS_STORAGE_UPLOAD_MAX_AVATAR_SIZE_MB_LABEL")}
+                      rules={[{ required: true, type: "number", min: 1 }]}
+                      style={{ marginBottom: 0 }}
+                    >
+                      <InputNumber size="large" min={1} style={{ width: "100%" }} />
+                    </Form.Item>
+
+                    <Form.Item<GeneralSettingsFormValues>
+                      name="uploadMaxSiteLogoSizeMb"
+                      label={t("common:SETTINGS_STORAGE_UPLOAD_MAX_SITE_LOGO_SIZE_MB_LABEL")}
+                      rules={[{ required: true, type: "number", min: 1 }]}
+                      style={{ marginBottom: 0 }}
+                    >
+                      <InputNumber size="large" min={1} style={{ width: "100%" }} />
+                    </Form.Item>
+
+                    <Form.Item<GeneralSettingsFormValues>
+                      name="uploadMaxFaviconSizeMb"
+                      label={t("common:SETTINGS_STORAGE_UPLOAD_MAX_FAVICON_SIZE_MB_LABEL")}
+                      rules={[{ required: true, type: "number", min: 1 }]}
+                      style={{ marginBottom: 0 }}
+                    >
+                      <InputNumber size="large" min={1} style={{ width: "100%" }} />
+                    </Form.Item>
+                  </div>
+                </SettingAccordionItem>
+
+                {storageProvider === "s3" ? (
+                  <SettingAccordionItem
+                    value="s3Config"
+                    title={t("common:SETTINGS_STORAGE_S3_CONFIG_LABEL")}
+                    description={t("common:SETTINGS_STORAGE_S3_CONFIG_DESC")}
+                    confirmText={t("common:SETTINGS_SAVE")}
+                    onConfirm={saveS3Config}
+                    confirmLoading={savingKey === "s3Config"}
+                    disabled={disabled}
+                  >
+                    <div className="grid grid-cols-1 gap-3">
+                      <Form.Item<GeneralSettingsFormValues>
+                        name="s3EndpointUrl"
+                        label={t("common:SETTINGS_STORAGE_S3_ENDPOINT_URL_LABEL")}
+                        rules={[
+                          {
+                            validator: async (_rule, value: string | undefined) => {
+                              const raw = (value || "").trim();
+                              if (!raw) throw new Error(t("common:SETTINGS_VALIDATION_REQUIRED"));
+                              try {
+                                const url = new URL(raw);
+                                if (url.protocol !== "http:" && url.protocol !== "https:") {
+                                  throw new Error("invalid protocol");
+                                }
+                              } catch {
+                                throw new Error(
+                                  t("common:SETTINGS_STORAGE_VALIDATION_URL_INVALID"),
+                                );
+                              }
+                            },
+                          },
+                        ]}
+                        style={{ marginBottom: 0 }}
+                      >
+                        <Input
+                          size="large"
+                          placeholder={t("common:SETTINGS_STORAGE_S3_ENDPOINT_URL_PLACEHOLDER")}
+                          allowClear
+                        />
+                      </Form.Item>
+
+                      <Form.Item<GeneralSettingsFormValues>
+                        name="s3Region"
+                        label={t("common:SETTINGS_STORAGE_S3_REGION_LABEL")}
+                        style={{ marginBottom: 0 }}
+                      >
+                        <Input size="large" allowClear />
+                      </Form.Item>
+
+                      <Form.Item<GeneralSettingsFormValues>
+                        name="s3Bucket"
+                        label={t("common:SETTINGS_STORAGE_S3_BUCKET_LABEL")}
+                        rules={[
+                          { required: true, message: t("common:SETTINGS_VALIDATION_REQUIRED") },
+                        ]}
+                        style={{ marginBottom: 0 }}
+                      >
+                        <Input size="large" allowClear />
+                      </Form.Item>
+
+                      <Form.Item<GeneralSettingsFormValues>
+                        name="s3AccessKeyId"
+                        label={t("common:SETTINGS_STORAGE_S3_ACCESS_KEY_ID_LABEL")}
+                        rules={[
+                          { required: true, message: t("common:SETTINGS_VALIDATION_REQUIRED") },
+                        ]}
+                        style={{ marginBottom: 0 }}
+                      >
+                        <Input size="large" allowClear />
+                      </Form.Item>
+
+                      <Form.Item<GeneralSettingsFormValues>
+                        name="s3SecretAccessKey"
+                        label={t("common:SETTINGS_STORAGE_S3_SECRET_ACCESS_KEY_LABEL")}
+                        style={{ marginBottom: 0 }}
+                      >
+                        <Input.Password size="large" placeholder="••••••••" />
+                      </Form.Item>
+
+                      <Form.Item<GeneralSettingsFormValues>
+                        name="s3ForcePathStyle"
+                        label={t("common:SETTINGS_STORAGE_S3_FORCE_PATH_STYLE_LABEL")}
+                        valuePropName="checked"
+                        style={{ marginBottom: 0 }}
+                      >
+                        <Switch />
+                      </Form.Item>
+
+                      <Form.Item<GeneralSettingsFormValues>
+                        name="s3PresignExpiresSeconds"
+                        label={t("common:SETTINGS_STORAGE_S3_PRESIGN_EXPIRES_SECONDS_LABEL")}
+                        rules={[{ required: true, type: "number", min: 60, max: 86400 }]}
+                        style={{ marginBottom: 0 }}
+                      >
+                        <InputNumber size="large" min={60} max={86400} style={{ width: "100%" }} />
+                      </Form.Item>
+                    </div>
+                  </SettingAccordionItem>
+                ) : null}
               </Accordion>
             </ChromeTabsContent>
           </ChromeTabs>

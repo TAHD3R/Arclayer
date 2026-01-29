@@ -11,15 +11,13 @@ from apps.api.infra.storage.s3 import S3StorageProvider
 from apps.api.plugin.registry import registry
 
 
-def build_storage_provider(settings: Settings):
+def build_storage_provider_for(settings: Settings, *, provider: str):
     """
-    Build the active storage provider from environment-level settings.
+    Build a storage provider by name.
 
     This is intentionally infrastructure-level wiring; domain services should depend on
     a provider interface, not directly on Settings.
     """
-
-    provider = settings.storage.provider
 
     # Ensure core providers are available even without plugins.
     factories: list[StorageProviderFactory] = registry.get_extension(STORAGE_PROVIDER_FACTORY_EXTENSION_POINT) or []
@@ -43,6 +41,14 @@ def build_storage_provider(settings: Settings):
             return built
 
     raise ValueError(f"unknown storage provider: {provider}")
+
+
+def build_storage_provider(settings: Settings):
+    """
+    Build the active storage provider from settings.storage.provider.
+    """
+
+    return build_storage_provider_for(settings, provider=settings.storage.provider)
 
 
 class _CoreLocalStorageProviderFactory:

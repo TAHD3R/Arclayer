@@ -14,12 +14,13 @@ from apps.api.core.exceptions import NotFound
 from apps.api.http.content_disposition import build_attachment_content_disposition
 from apps.api.http.file_stream import stream_file_response
 from apps.api.http.range import parse_range_header
-from apps.api.infra.storage.factory import build_storage_provider
+from apps.api.infra.storage.factory import build_storage_provider_for
 from apps.api.infra.storage.local import safe_object_key_to_path
 from apps.api.infra.storage.s3 import S3StorageProvider
 from apps.api.models.asset import AssetRecord
 from apps.api.models.asset_share import AssetShareLinkRecord
 from apps.api.routers.shares.repository import ShareLinksRepository
+from apps.api.settings.runtime import get_effective_settings
 
 
 @dataclass(frozen=True, slots=True)
@@ -51,8 +52,12 @@ class SharesService:
         self.settings = settings
         self.repo = ShareLinksRepository()
 
-    def _build_s3_provider(self) -> S3StorageProvider:
-        provider = build_storage_provider(self.settings)
+    async def _build_s3_provider(self) -> S3StorageProvider:
+        effective = await get_effective_settings(self.settings)
+        try:
+            provider = build_storage_provider_for(effective, provider="s3")
+        except Exception:
+            raise NotFound(message="Not Found", error="NOT_FOUND")
         if not isinstance(provider, S3StorageProvider):
             raise NotFound(message="Not Found", error="NOT_FOUND")
         return provider
@@ -151,7 +156,7 @@ class SharesService:
             headers["ETag"] = f'"{asset.checksum_sha256}"'
 
         if asset.storage_provider == "s3":
-            provider = self._build_s3_provider()
+            provider = await self._build_s3_provider()
             return await self._stream_s3_object(
                 provider=provider,
                 object_key=asset.object_key,
@@ -186,7 +191,7 @@ class SharesService:
             headers["ETag"] = f'"{asset.checksum_sha256}"'
 
         if asset.storage_provider == "s3":
-            provider = self._build_s3_provider()
+            provider = await self._build_s3_provider()
             return await self._stream_s3_object(
                 provider=provider,
                 object_key=asset.object_key,

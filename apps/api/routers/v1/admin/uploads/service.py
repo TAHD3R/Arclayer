@@ -20,7 +20,7 @@ from apps.api.core.assets.events import ASSET_UPLOADED_EVENT
 from apps.api.core.exceptions import BadRequest, NotFound
 from apps.api.core.i18n import t
 from apps.api.core.logging import get_logger
-from apps.api.infra.storage.factory import build_storage_provider
+from apps.api.infra.storage.factory import build_storage_provider_for
 from apps.api.infra.storage.local import LocalStorageProvider, safe_object_key_to_path
 from apps.api.infra.storage.merge import merge_parts_to_file
 from apps.api.infra.storage.s3 import S3StorageProvider
@@ -36,6 +36,7 @@ from apps.api.routers.v1.admin.uploads.policy import (
 )
 from apps.api.routers.v1.admin.uploads.repository import UploadsRepository
 from apps.api.routers.v1.admin.uploads.schema import UploadPartPresignOut
+from apps.api.settings.runtime import get_effective_settings
 
 logger = get_logger(__name__)
 
@@ -80,7 +81,6 @@ class UploadsService(BaseService):
 
         # Temp storage is always local (even for S3 multipart, we don't store bytes here).
         self._tmp_provider = LocalStorageProvider(root_dir=self.settings.storage.local_tmp_dir)
-        self._storage_provider = build_storage_provider(self.settings)
 
     def _chunk_size_bytes(self) -> int:
         return int(self.settings.storage.upload_chunk_size_mb) * 1024 * 1024
@@ -105,13 +105,15 @@ class UploadsService(BaseService):
         normalized_filename = normalize_original_filename(filename)
         expected_sha256 = validate_sha256_hex(expected_sha256)
 
-        global_max_bytes = int(self.settings.storage.upload_max_file_size_mb) * 1024 * 1024
+        effective = await get_effective_settings(self.settings)
+
+        global_max_bytes = int(effective.storage.upload_max_file_size_mb) * 1024 * 1024
         policy = build_upload_policy(
             purpose=purpose,
             global_max_size_bytes=global_max_bytes,
-            max_avatar_size_bytes=int(self.settings.storage.upload_max_avatar_size_mb) * 1024 * 1024,
-            max_site_logo_size_bytes=int(self.settings.storage.upload_max_site_logo_size_mb) * 1024 * 1024,
-            max_favicon_size_bytes=int(self.settings.storage.upload_max_favicon_size_mb) * 1024 * 1024,
+            max_avatar_size_bytes=int(effective.storage.upload_max_avatar_size_mb) * 1024 * 1024,
+            max_site_logo_size_bytes=int(effective.storage.upload_max_site_logo_size_mb) * 1024 * 1024,
+            max_favicon_size_bytes=int(effective.storage.upload_max_favicon_size_mb) * 1024 * 1024,
         )
         ext = validate_upload_metadata(
             purpose=purpose, filename=normalized_filename, size_bytes=size_bytes, policy=policy
@@ -119,9 +121,9 @@ class UploadsService(BaseService):
         stem = Path(normalized_filename).stem or "asset"
         slug = slugify(stem)
 
-        chunk_size = self._chunk_size_bytes()
+        chunk_size = int(effective.storage.upload_chunk_size_mb) * 1024 * 1024
 
-        provider = self.settings.storage.provider
+        provider = str(effective.storage.provider)
         if provider == "s3":
             # S3 multipart upload requires a minimum part size (except the last part).
             # We enforce it at init time so the client can follow the returned chunkSize.
@@ -157,12 +159,19 @@ class UploadsService(BaseService):
             # For S3, we store the object at the same path (relative, without leading slash).
             object_key = f"assets/{reserved_asset_id}/{slug}.{ext}"
 
-            if not isinstance(self._storage_provider, S3StorageProvider):
+            try:
+                provider_impl = build_storage_provider_for(effective, provider="s3")
+            except Exception as exc:
+                raise BadRequest(
+                    message=_ts("STORAGE_PROVIDER_INVALID", "存储配置不正确"),
+                    error="STORAGE_PROVIDER_INVALID",
+                ) from exc
+            if not isinstance(provider_impl, S3StorageProvider):
                 raise BadRequest(
                     message=_ts("STORAGE_PROVIDER_INVALID", "存储配置不正确"),
                     error="STORAGE_PROVIDER_INVALID",
                 )
-            multipart_upload_id = await self._storage_provider.create_multipart_upload(
+            multipart_upload_id = await provider_impl.create_multipart_upload(
                 object_key=object_key,
                 content_type=mime,
                 public_read=(visibility == "public"),
@@ -185,7 +194,7 @@ class UploadsService(BaseService):
             total_parts=total_parts,
             expires_at=self._expires_at(),
             target_folder_id=target_folder_id,
-            storage_provider=self.settings.storage.provider,
+            storage_provider=provider,
             visibility=visibility,
             indexable=indexable,
             reserved_asset_id=reserved_asset_id,
@@ -265,18 +274,25 @@ class UploadsService(BaseService):
         if not session.object_key or not session.multipart_upload_id:
             raise BadRequest(message=_ts("UPLOAD_SESSION_INVALID", "上传会话不完整"), error="UPLOAD_SESSION_INVALID")
 
-        if not isinstance(self._storage_provider, S3StorageProvider):
+        effective = await get_effective_settings(self.settings)
+        try:
+            provider_impl = build_storage_provider_for(effective, provider="s3")
+        except Exception as exc:
+            raise BadRequest(
+                message=_ts("STORAGE_PROVIDER_INVALID", "存储配置不正确"), error="STORAGE_PROVIDER_INVALID"
+            ) from exc
+        if not isinstance(provider_impl, S3StorageProvider):
             raise BadRequest(
                 message=_ts("STORAGE_PROVIDER_INVALID", "存储配置不正确"), error="STORAGE_PROVIDER_INVALID"
             )
 
-        presign = await self._storage_provider.presign_upload_part(
+        presign = await provider_impl.presign_upload_part(
             object_key=str(session.object_key),
             upload_id=str(session.multipart_upload_id),
             part_number=part_number,
-            expires_in=int(self.settings.storage.s3_presign_expires_seconds),
+            expires_in=int(effective.storage.s3_presign_expires_seconds),
         )
-        expires_at = datetime.now(tz=UTC) + timedelta(seconds=int(self.settings.storage.s3_presign_expires_seconds))
+        expires_at = datetime.now(tz=UTC) + timedelta(seconds=int(effective.storage.s3_presign_expires_seconds))
         return UploadPartPresignOut(
             url=presign.url,
             method=presign.method,
@@ -501,7 +517,14 @@ class UploadsService(BaseService):
         return asset.id
 
     async def _complete_s3(self, *, session: UploadSessionRecord, org_id: UUID) -> UUID:
-        if not isinstance(self._storage_provider, S3StorageProvider):
+        effective = await get_effective_settings(self.settings)
+        try:
+            provider_impl = build_storage_provider_for(effective, provider="s3")
+        except Exception as exc:
+            raise BadRequest(
+                message=_ts("STORAGE_PROVIDER_INVALID", "存储配置不正确"), error="STORAGE_PROVIDER_INVALID"
+            ) from exc
+        if not isinstance(provider_impl, S3StorageProvider):
             raise BadRequest(
                 message=_ts("STORAGE_PROVIDER_INVALID", "存储配置不正确"), error="STORAGE_PROVIDER_INVALID"
             )
@@ -550,7 +573,7 @@ class UploadsService(BaseService):
                 tag = f'"{tag}"'
             parts.append({"ETag": tag, "PartNumber": int(row.part_number)})
 
-        await self._storage_provider.complete_multipart_upload(
+        await provider_impl.complete_multipart_upload(
             object_key=object_key,
             upload_id=str(session.multipart_upload_id),
             parts=parts,
@@ -597,14 +620,16 @@ class UploadsService(BaseService):
             raise NotFound(message=_ts("UPLOAD_NOT_FOUND", "上传会话不存在"), error="UPLOAD_NOT_FOUND")
         # Best-effort: abort multipart upload if needed.
         if session.storage_provider == "s3" and session.object_key and session.multipart_upload_id:
-            if isinstance(self._storage_provider, S3StorageProvider):
-                try:
-                    await self._storage_provider.abort_multipart_upload(
+            try:
+                effective = await get_effective_settings(self.settings)
+                provider_impl = build_storage_provider_for(effective, provider="s3")
+                if isinstance(provider_impl, S3StorageProvider):
+                    await provider_impl.abort_multipart_upload(
                         object_key=str(session.object_key),
                         upload_id=str(session.multipart_upload_id),
                     )
-                except Exception:
-                    pass
+            except Exception:
+                pass
 
         await self.repo.set_session_status(session, status=UploadStatus.ABORTED)
 
