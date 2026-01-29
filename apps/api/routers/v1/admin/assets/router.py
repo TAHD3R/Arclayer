@@ -17,6 +17,7 @@ from apps.api.routers.v1.admin.assets.schema import (
     AdminAssetListQuery,
     AdminAssetMoveRequest,
     AdminAssetSummaryOut,
+    AdminAssetTagOut,
 )
 from apps.api.routers.v1.admin.assets.service import AdminAssetsService
 from apps.api.routers.v1.auth.deps import get_current_user
@@ -47,6 +48,17 @@ async def list_asset_folders(
     service: AdminAssetsService = Depends(get_admin_assets_service),
 ) -> ResponseModel[list[AdminAssetFolderOut]]:
     items = await service.list_folders(org_id=org_id)
+    return JsonResponse.success(data=items)
+
+
+@router.get("/asset-tags", response_model=ResponseModel[list[AdminAssetTagOut]])
+async def list_asset_tags(
+    q: str | None = None,
+    org_id: UUID = Depends(get_current_org_id),
+    _user=Depends(get_current_user),
+    service: AdminAssetsService = Depends(get_admin_assets_service),
+) -> ResponseModel[list[AdminAssetTagOut]]:
+    items = await service.list_tags(org_id=org_id, q=q)
     return JsonResponse.success(data=items)
 
 

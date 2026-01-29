@@ -20,7 +20,14 @@ class AdminAssetListQuery(BaseSchema):
     visibility: str | None = Field(default=None, description="Filter by visibility: public/private/shared.")
     indexable: bool | None = Field(default=None, description="Filter by indexable flag.")
     folder_id: UUID | None = Field(default=None, description="Filter by folder id.")
+    include_children: bool = Field(
+        default=False,
+        description="When folder_id is provided, include assets in all descendant folders.",
+    )
     mime_prefix: str | None = Field(default=None, description="Filter by MIME prefix, e.g. 'image/' or 'video/'.")
+    created_from: datetime | None = Field(default=None, description="Filter by created_at >= this ISO datetime.")
+    created_to: datetime | None = Field(default=None, description="Filter by created_at <= this ISO datetime.")
+    tag_ids: list[UUID] | None = Field(default=None, description="Filter by tag ids (any-of).")
     ordering: str | None = Field(default=None, description="Ordering, e.g. '-created_at', 'size_bytes'.")
 
 
@@ -87,3 +94,8 @@ class AdminAssetFolderUpdateRequest(BaseSchema):
 
 class AdminAssetMoveRequest(BaseSchema):
     folder_id: UUID | None = Field(default=None, description="Target folder id (null = move to root).")
+
+
+class AdminAssetTagOut(BaseOut):
+    name: str = Field(..., description="Tag name.")
+    created_at: datetime = Field(..., description="Created at.")

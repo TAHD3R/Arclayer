@@ -1,32 +1,51 @@
-import { Button, Space, Tag } from "antd";
-import { EllipsisVertical } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
+import { Button, Space } from "antd";
+import { Download, EllipsisVertical, ExternalLink, Share2 } from "lucide-react";
+import { motion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/animate-ui/components/radix/checkbox";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/animate-ui/components/radix/dropdown-menu";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/animate-ui/components/radix/sheet";
 import TrashIcon from "@/components/ui/icons/trash-icon";
 import ExternalLinkIcon from "@/components/ui/icons/external-link-icon";
 import { LoaderTwo } from "@/components/ui/loader";
-import { useOutsideClick } from "@/hooks/useOutsideClick";
-
-const SHARED_LAYOUT_TRANSITION = {
-  type: "tween",
-  duration: 0.35,
-  ease: [0.22, 1, 0.36, 1],
-} as const;
+import { notifyErrorText, notifySuccessText } from "@/utils/notifications";
+import { useAuthStore } from "@/stores/useAuthStore";
 
 export type AssetMasonryItem = {
   id: string;
   name: string;
   description?: string;
-  previewUrl: string;
+  previewUrl?: string;
+  thumbBaseUrl?: string;
   mimeType?: string;
   sizeText?: string;
   createdAtText?: string;
   aspectRatio?: number;
+  createdAt?: string;
+  sizeBytes?: number;
+  checksumSha256?: string;
+  visibility?: string;
+  purpose?: string;
+  indexable?: boolean;
+  publicUrl?: string;
+  downloadUrl?: string;
+  contentUrl?: string;
+  uploaderName?: string;
 
   // Future fields (reserved):
   // - category
@@ -111,16 +130,15 @@ function LazyAssetImage(props: {
 
 export function AssetMasonryTile(props: {
   asset: AssetMasonryItem;
-  layoutIdBase: string;
   selected?: boolean;
-  activeId?: string | null;
   onToggleSelected?: (id: string) => void;
   onOpen: (asset: AssetMasonryItem) => void;
 }) {
+  const { t } = useTranslation();
   const aspectRatio = getSafeAspectRatio(props.asset.aspectRatio);
   const selected = Boolean(props.selected);
   const overlayVisible = selected;
-  const isActive = Boolean(props.activeId && props.activeId === props.asset.id);
+  const hasPreview = Boolean(props.asset.previewUrl);
 
   const onKeyDown: React.KeyboardEventHandler<HTMLDivElement> = (e) => {
     if (e.key === "Enter" || e.key === " ") {
@@ -131,38 +149,36 @@ export function AssetMasonryTile(props: {
 
   return (
     <motion.div
-      layoutId={`asset-card-${props.asset.id}-${props.layoutIdBase}`}
       className={cn(
         "group relative w-full overflow-hidden border border-border/50 bg-card",
         "shadow-sm transition duration-200 hover:shadow-md",
         "cursor-pointer outline-none",
       )}
-      transition={{ layout: SHARED_LAYOUT_TRANSITION }}
-      // During shared-element transition, hide the origin tile to avoid double-render ghosting.
-      style={{
-        pointerEvents: isActive ? "none" : undefined,
-        visibility: isActive ? "hidden" : "visible",
-      }}
       role="button"
       tabIndex={0}
       onKeyDown={onKeyDown}
       onClick={() => props.onOpen(props.asset)}
     >
-      <motion.div
-        layoutId={`asset-image-${props.asset.id}-${props.layoutIdBase}`}
-        className="relative w-full overflow-hidden"
-        style={{ aspectRatio }}
-        transition={{ layout: SHARED_LAYOUT_TRANSITION }}
-      >
-        <LazyAssetImage
-          src={props.asset.previewUrl}
-          alt={props.asset.name}
-          className={cn(
-            "absolute inset-0 h-full w-full object-cover",
-            "transition-transform duration-200 ease-out will-change-transform",
-            "group-hover:scale-[1.03]",
-          )}
-        />
+      <motion.div className="relative w-full overflow-hidden" style={{ aspectRatio }}>
+        {hasPreview ? (
+          <LazyAssetImage
+            src={props.asset.previewUrl as string}
+            alt={props.asset.name}
+            className={cn(
+              "absolute inset-0 h-full w-full object-cover",
+              "transition-transform duration-200 ease-out will-change-transform",
+              "group-hover:scale-[1.03]",
+            )}
+          />
+        ) : (
+          <div className="absolute inset-0 grid place-items-center bg-muted/30">
+            <div className="text-xs text-muted-foreground">
+              {props.asset.mimeType?.startsWith("image/")
+                ? t("assets:ASSET_PREVIEW_UNAVAILABLE")
+                : props.asset.mimeType || t("assets:ASSET_FILE_GENERIC")}
+            </div>
+          </div>
+        )}
 
         {/* Hover overlays: top area for selection, bottom area for filename */}
         <div
@@ -213,10 +229,8 @@ export function AssetMasonryTile(props: {
           <div className="absolute inset-x-0 bottom-0 h-24 bg-linear-to-t from-black/45 to-transparent">
             <div className="absolute left-3 right-3 bottom-3">
               <motion.div
-                layoutId={`asset-title-${props.asset.id}-${props.layoutIdBase}`}
                 className={cn("font-bold text-white", "truncate")}
                 title={props.asset.name}
-                transition={{ layout: SHARED_LAYOUT_TRANSITION }}
               >
                 {props.asset.name}
               </motion.div>
@@ -233,150 +247,347 @@ export function AssetMasonryTile(props: {
   );
 }
 
-export function AssetPreviewOverlay(props: {
-  active: AssetMasonryItem | null;
-  layoutIdBase: string;
-  onClose: () => void;
+function buildUploaderAndTimeText(params: {
+  uploaderName?: string;
+  createdAtText?: string;
+  t: (key: string, options?: { ns?: string }) => string;
 }) {
+  const who = params.uploaderName?.trim() || params.t("assets:ASSET_UPLOADER_UNKNOWN");
+  const when = params.createdAtText?.trim();
+  if (!when) return who;
+  return `${who} · ${when}`;
+}
+
+async function copyToClipboard(text: string) {
+  // Clipboard API might be unavailable in some environments; fall back to execCommand.
+  if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+
+  if (typeof document === "undefined") throw new Error("clipboard unavailable");
+  const el = document.createElement("textarea");
+  el.value = text;
+  el.style.position = "fixed";
+  el.style.opacity = "0";
+  document.body.appendChild(el);
+  el.focus();
+  el.select();
+  const ok = document.execCommand("copy");
+  document.body.removeChild(el);
+  if (!ok) throw new Error("copy failed");
+}
+
+async function downloadWithAuth(params: { url: string; filename: string }) {
+  const token = useAuthStore.getState().accessToken;
+  const headers = new Headers();
+  if (token) headers.set("authorization", token.startsWith("Bearer ") ? token : `Bearer ${token}`);
+
+  const res = await fetch(params.url, { headers });
+  if (!res.ok) throw new Error("download failed");
+  const blob = await res.blob();
+
+  const objectUrl = URL.createObjectURL(blob);
+  try {
+    const a = document.createElement("a");
+    a.href = objectUrl;
+    a.download = params.filename;
+    a.rel = "noopener";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  } finally {
+    // 给浏览器一点时间开始读取 objectUrl，避免过早 revoke。
+    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1500);
+  }
+}
+
+export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onClose: () => void }) {
   const { t } = useTranslation();
-  const ref = useRef<HTMLDivElement>(null);
-  const portalTarget = typeof document !== "undefined" ? document.body : null;
-
-  useEffect(() => {
-    if (!props.active) return;
-
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") props.onClose();
-    }
-
-    // Lock scroll without causing layout shift (scrollbar disappears => Masonry reflow => ghosting).
-    const body = document.body;
-    const prevOverflow = body.style.overflow;
-    const prevPaddingRight = body.style.paddingRight;
-    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
-
-    body.style.overflow = "hidden";
-    if (scrollbarWidth > 0) body.style.paddingRight = `${scrollbarWidth}px`;
-
-    window.addEventListener("keydown", onKeyDown);
-    return () => {
-      window.removeEventListener("keydown", onKeyDown);
-      body.style.overflow = prevOverflow;
-      body.style.paddingRight = prevPaddingRight;
-    };
-  }, [props.active, props.onClose]);
-
-  useOutsideClick(ref, () => props.onClose());
-
-  const tags = useMemo(() => ["image", "mock"], []);
   const active = props.active;
   const activeAspectRatio = active ? getSafeAspectRatio(active.aspectRatio) : 4 / 3;
-  // Keep preview image reasonably sized in the viewport while preserving its aspect ratio.
-  const previewMaxHeightVh = 55;
-  const previewMaxWidthVh = `${(previewMaxHeightVh * activeAspectRatio).toFixed(2)}vh`;
+  const [previewSrc, setPreviewSrc] = useState<string | null>(null);
+  const uploaderAndTimeText = buildUploaderAndTimeText({
+    uploaderName: active?.uploaderName,
+    createdAtText: active?.createdAtText,
+    t,
+  });
 
-  if (!portalTarget) return null;
+  useEffect(() => {
+    setPreviewSrc(active?.previewUrl || active?.publicUrl || null);
+  }, [active?.id, active?.previewUrl, active?.publicUrl]);
 
-  return createPortal(
-    <AnimatePresence initial={false} mode="sync">
-      {active ? (
-        <div className="fixed inset-0 z-50">
-          <motion.div
-            key={`asset-preview-backdrop-${active.id}`}
-            initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
-            animate={{ opacity: 1, backdropFilter: "blur(4px)" }}
-            exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
-            className="absolute inset-0 bg-black/20"
-            onClick={() => props.onClose()}
-          />
+  const thumbs = useMemo(() => {
+    if (!active?.thumbBaseUrl) return [];
+    const base = active.thumbBaseUrl;
+    const widths = [64, 128, 256, 512] as const;
+    return widths.map((w) => ({ key: `w${w}`, url: `${base}?w=${w}`, label: `${w}px` }));
+  }, [active?.thumbBaseUrl]);
 
-          <div className="absolute inset-0 grid place-items-center px-4">
-            <motion.div
-              key={`asset-preview-card-wrapper-${active.id}`}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.12 }}
-            >
-              <motion.div
-                layoutId={`asset-card-${active.id}-${props.layoutIdBase}`}
-                ref={ref}
-                className={cn(
-                  "w-full max-w-180",
-                  "max-h-[90vh] overflow-hidden",
-                  "flex flex-col",
+  return (
+    <Sheet
+      open={Boolean(active)}
+      onOpenChange={(isOpen) => {
+        if (!isOpen) props.onClose();
+      }}
+    >
+      <SheetContent
+        side="right"
+        showCloseButton={false}
+        className={cn(
+          // Width: default sheet is 350px; asset detail usually needs more space.
+          "w-full sm:w-[420px] md:w-[480px]",
+          "p-0 gap-0 overflow-hidden",
+        )}
+      >
+        {active ? (
+          <>
+            <SheetHeader className="border-b border-border/60">
+              <div className="flex items-start gap-3">
+                <div className="min-w-0 flex-1">
+                  <SheetTitle className="truncate" title={active.name}>
+                    {active.name}
+                  </SheetTitle>
+                  <SheetDescription className="mt-1 text-sm truncate" title={uploaderAndTimeText}>
+                    {uploaderAndTimeText}
+                  </SheetDescription>
+                </div>
 
-                  // Match FloatingPanel rhythm: rounded-xl + border-border + shadow-lg.
-                  "rounded-xl border border-border bg-popover text-popover-foreground shadow-lg",
-                )}
-                transition={{ layout: SHARED_LAYOUT_TRANSITION }}
-                onClick={(e) => e.stopPropagation()}
-                role="dialog"
-                aria-modal="true"
-              >
-                <motion.div
-                  layoutId={`asset-image-${active.id}-${props.layoutIdBase}`}
-                  transition={{ layout: SHARED_LAYOUT_TRANSITION }}
-                >
-                  <div
-                    className="relative mx-auto overflow-hidden"
-                    // Use min() to cap width by viewport height * aspectRatio, so height never exceeds previewMaxHeightVh.
-                    style={{
-                      aspectRatio: activeAspectRatio,
-                      width: `min(100%, ${previewMaxWidthVh})`,
+                <div className="shrink-0 flex items-center gap-1">
+                  <Button
+                    size="small"
+                    icon={<Download size={16} />}
+                    disabled={!active.downloadUrl && !active.contentUrl}
+                    onClick={() => {
+                      const publicDownload = active.downloadUrl;
+                      if (publicDownload) {
+                        window.open(publicDownload, "_blank", "noopener,noreferrer");
+                        return;
+                      }
+
+                      const contentUrl = active.contentUrl;
+                      if (!contentUrl) return;
+
+                      downloadWithAuth({ url: contentUrl, filename: active.name })
+                        .then(() => notifySuccessText(t("assets:ASSET_DOWNLOAD_STARTED")))
+                        .catch(() => notifyErrorText(t("assets:ASSET_DOWNLOAD_FAILED")));
                     }}
                   >
-                    <LazyAssetImage
-                      eager
-                      src={active.previewUrl}
-                      alt={active.name}
-                      className="absolute inset-0 h-full w-full object-cover object-center"
-                    />
-                  </div>
-                </motion.div>
+                    {t("assets:ASSET_ACTION_DOWNLOAD")}
+                  </Button>
 
-                <div className="p-4">
-                  <motion.div
-                    layoutId={`asset-title-${active.id}-${props.layoutIdBase}`}
-                    className="text-2xl font-bold leading-tight"
-                    transition={{ layout: SHARED_LAYOUT_TRANSITION }}
+                  <Button
+                    size="small"
+                    icon={<Share2 size={16} />}
+                    onClick={() => {
+                      const url = active.publicUrl;
+                      if (!url) {
+                        notifyErrorText(t("assets:ASSET_SHARE_REQUIRES_PUBLIC"));
+                        return;
+                      }
+                      copyToClipboard(url)
+                        .then(() => notifySuccessText(t("assets:ASSET_LINK_COPIED")))
+                        .catch(() => notifyErrorText(t("assets:ASSET_COPY_LINK_FAILED")));
+                    }}
                   >
-                    {active.name}
-                  </motion.div>
+                    {t("assets:ASSET_ACTION_SHARE")}
+                  </Button>
 
-                  {active.description ? (
-                    <div className="mt-2 text-muted-foreground leading-relaxed">
-                      {active.description}
-                    </div>
-                  ) : null}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button size="small" icon={<EllipsisVertical size={16} />} />
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" sideOffset={8}>
+                      <DropdownMenuItem
+                        onSelect={() => {
+                          const url = active.publicUrl;
+                          if (!url) {
+                            notifyErrorText(t("assets:ASSET_SHARE_REQUIRES_PUBLIC"));
+                            return;
+                          }
+                          copyToClipboard(url)
+                            .then(() => notifySuccessText(t("assets:ASSET_LINK_COPIED")))
+                            .catch(() => notifyErrorText(t("assets:ASSET_COPY_LINK_FAILED")));
+                        }}
+                      >
+                        <ExternalLink className="size-4" />
+                        {t("assets:ASSET_ACTION_COPY_LINK")}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        disabled={!active.publicUrl}
+                        onSelect={() => {
+                          const url = active.publicUrl;
+                          if (!url) return;
+                          window.open(url, "_blank", "noopener,noreferrer");
+                        }}
+                      >
+                        <ExternalLink className="size-4" />
+                        {t("assets:ASSET_ACTION_OPEN_IN_NEW_TAB")}
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem variant="destructive" onSelect={() => {}}>
+                        <TrashIcon size={16} isHovered />
+                        {t("assets:ASSET_ACTION_DELETE")}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </div>
+            </SheetHeader>
 
-                  <div className="mt-1 text-xs text-muted-foreground">
-                    {active.sizeText ? <span>{active.sizeText}</span> : null}
-                    {active.sizeText && active.createdAtText ? (
-                      <span className="mx-2">·</span>
-                    ) : null}
-                    {active.createdAtText ? <span>{active.createdAtText}</span> : null}
-                  </div>
-
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {tags.map((tag) => (
-                      <Tag key={tag}>{tag}</Tag>
-                    ))}
-                  </div>
-
-                  <div className="mt-4 flex items-center gap-2">
-                    <Button size="small">{t("assets:ASSET_ACTION_COPY_LINK")}</Button>
-                    <Button size="small" danger>
-                      {t("assets:ASSET_ACTION_DELETE")}
-                    </Button>
+            <div className="flex-1 overflow-auto">
+              <div className="p-4">
+                <div className="relative mx-auto overflow-hidden rounded-lg border border-border/60 bg-black/2">
+                  <div
+                    className="relative w-full"
+                    style={{
+                      // Keep preview reasonably sized but preserve aspect ratio.
+                      aspectRatio: activeAspectRatio,
+                    }}
+                  >
+                    {previewSrc ? (
+                      <LazyAssetImage
+                        eager
+                        src={previewSrc}
+                        alt={active.name}
+                        className="absolute inset-0 h-full w-full object-contain object-center bg-black/5"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 grid place-items-center bg-muted/20">
+                        <div className="text-sm text-muted-foreground">
+                          {t("assets:ASSET_PREVIEW_UNAVAILABLE")}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
-              </motion.div>
-            </motion.div>
-          </div>
-        </div>
-      ) : null}
-    </AnimatePresence>,
-    portalTarget,
+
+                {thumbs.length ? (
+                  <div className="mt-3">
+                    <div className="text-xs text-muted-foreground">
+                      {t("assets:ASSET_THUMBNAILS_TITLE")}
+                    </div>
+                    <div className="mt-2 flex gap-2 overflow-auto pb-1">
+                      {thumbs.map((th) => (
+                        <button
+                          key={th.key}
+                          type="button"
+                          className={cn(
+                            "shrink-0 rounded-md border border-border/60 overflow-hidden",
+                            previewSrc === th.url ? "ring-2 ring-primary" : "hover:border-border",
+                          )}
+                          onClick={() => setPreviewSrc(th.url)}
+                          title={th.label}
+                        >
+                          <img src={th.url} alt={active.name} className="h-14 w-14 object-cover" />
+                        </button>
+                      ))}
+                      {active.publicUrl ? (
+                        <button
+                          type="button"
+                          className={cn(
+                            "shrink-0 rounded-md border border-border/60 px-2 text-xs",
+                            previewSrc === active.publicUrl
+                              ? "ring-2 ring-primary"
+                              : "hover:border-border",
+                          )}
+                          onClick={() => setPreviewSrc(active.publicUrl as string)}
+                        >
+                          {t("assets:ASSET_THUMBNAIL_ORIGINAL")}
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
+                ) : null}
+
+                {active.description ? (
+                  <div className="mt-4 text-sm text-muted-foreground leading-relaxed">
+                    {active.description}
+                  </div>
+                ) : null}
+
+                <div className="mt-5 rounded-lg border border-border/60">
+                  <div className="px-3 py-2 text-sm font-medium">
+                    {t("assets:ASSET_META_TITLE")}
+                  </div>
+                  <div className="px-3 pb-3 text-sm">
+                    <dl className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2">
+                      <div className="min-w-0 sm:col-span-2">
+                        <dt className="text-muted-foreground">
+                          {t("assets:ASSET_META_PUBLIC_URL")}
+                        </dt>
+                        <dd className="mt-0.5 flex items-center gap-2">
+                          <span className="min-w-0 flex-1 font-mono text-xs break-all">
+                            {active.publicUrl || "-"}
+                          </span>
+                          {active.publicUrl ? (
+                            <Button
+                              size="small"
+                              onClick={() => {
+                                copyToClipboard(active.publicUrl as string)
+                                  .then(() => notifySuccessText(t("assets:ASSET_LINK_COPIED")))
+                                  .catch(() => notifyErrorText(t("assets:ASSET_COPY_LINK_FAILED")));
+                              }}
+                            >
+                              {t("assets:ASSET_ACTION_COPY_LINK")}
+                            </Button>
+                          ) : null}
+                        </dd>
+                      </div>
+                      <div className="min-w-0">
+                        <dt className="text-muted-foreground">{t("assets:ASSET_META_ID")}</dt>
+                        <dd className="mt-0.5 font-mono text-xs break-all">{active.id}</dd>
+                      </div>
+                      <div className="min-w-0">
+                        <dt className="text-muted-foreground">{t("assets:ASSET_META_MIME")}</dt>
+                        <dd className="mt-0.5">{active.mimeType || "-"}</dd>
+                      </div>
+                      <div className="min-w-0">
+                        <dt className="text-muted-foreground">{t("assets:ASSET_META_SIZE")}</dt>
+                        <dd className="mt-0.5">{active.sizeText || "-"}</dd>
+                      </div>
+                      <div className="min-w-0">
+                        <dt className="text-muted-foreground">
+                          {t("assets:ASSET_META_CREATED_AT")}
+                        </dt>
+                        <dd className="mt-0.5">{active.createdAtText || "-"}</dd>
+                      </div>
+                      <div className="min-w-0">
+                        <dt className="text-muted-foreground">
+                          {t("assets:ASSET_META_VISIBILITY")}
+                        </dt>
+                        <dd className="mt-0.5">{active.visibility || "-"}</dd>
+                      </div>
+                      <div className="min-w-0">
+                        <dt className="text-muted-foreground">{t("assets:ASSET_META_PURPOSE")}</dt>
+                        <dd className="mt-0.5">{active.purpose || "-"}</dd>
+                      </div>
+                      <div className="min-w-0">
+                        <dt className="text-muted-foreground">
+                          {t("assets:ASSET_META_INDEXABLE")}
+                        </dt>
+                        <dd className="mt-0.5">
+                          {typeof active.indexable === "boolean"
+                            ? active.indexable
+                              ? t("assets:ASSET_META_YES")
+                              : t("assets:ASSET_META_NO")
+                            : "-"}
+                        </dd>
+                      </div>
+                      <div className="min-w-0">
+                        <dt className="text-muted-foreground">{t("assets:ASSET_META_SHA256")}</dt>
+                        <dd className="mt-0.5 font-mono text-xs break-all">
+                          {active.checksumSha256 || "-"}
+                        </dd>
+                      </div>
+                    </dl>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
+        ) : null}
+      </SheetContent>
+    </Sheet>
   );
 }

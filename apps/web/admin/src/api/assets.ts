@@ -40,6 +40,12 @@ export type AdminAssetFolder = {
   createdAt: string;
 };
 
+export type AdminAssetTag = {
+  id: string;
+  name: string;
+  createdAt: string;
+};
+
 export type ListAdminAssetsParams = {
   page?: number;
   size?: number;
@@ -48,7 +54,11 @@ export type ListAdminAssetsParams = {
   visibility?: string;
   indexable?: boolean;
   folderId?: string | null;
+  includeChildren?: boolean;
   mimePrefix?: string;
+  createdFrom?: string;
+  createdTo?: string;
+  tagIds?: string[];
   ordering?: string;
 };
 
@@ -57,6 +67,13 @@ function toQueryString(params: Record<string, unknown>): string {
   for (const [k, v] of Object.entries(params)) {
     if (v === undefined) continue;
     if (v === null) continue;
+    if (Array.isArray(v)) {
+      for (const item of v) {
+        if (item === undefined || item === null) continue;
+        qs.append(k, String(item));
+      }
+      continue;
+    }
     qs.set(k, String(v));
   }
   const s = qs.toString();
@@ -74,7 +91,11 @@ export async function listAdminAssets(
     visibility: params.visibility,
     indexable: params.indexable,
     folderId: params.folderId,
+    includeChildren: params.includeChildren,
     mimePrefix: params.mimePrefix,
+    createdFrom: params.createdFrom,
+    createdTo: params.createdTo,
+    tagIds: params.tagIds,
     ordering: params.ordering,
   });
   return api.get<PageData<AdminAssetSummary>>(`/admin/assets${query}`);
@@ -82,4 +103,9 @@ export async function listAdminAssets(
 
 export async function listAdminAssetFolders(): Promise<AdminAssetFolder[]> {
   return api.get<AdminAssetFolder[]>(`/admin/asset-folders`);
+}
+
+export async function listAdminAssetTags(params: { q?: string } = {}): Promise<AdminAssetTag[]> {
+  const query = toQueryString({ q: params.q });
+  return api.get<AdminAssetTag[]>(`/admin/asset-tags${query}`);
 }

@@ -1,19 +1,31 @@
-import { Masonry } from "antd";
-import { LayoutGroup } from "motion/react";
-import { useInfiniteQuery } from "@tanstack/react-query";
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { Alert, Button, Input, Masonry, Select } from "antd";
+import { Plus, Search } from "lucide-react";
+import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { DefaultPage } from "@/components/app/defaultPage";
 import { LoaderOne } from "@/components/ui/loader";
-import { listAdminAssets, type AdminAssetSummary } from "@/api/assets";
+import {
+  listAdminAssetFolders,
+  listAdminAssetTags,
+  listAdminAssets,
+  type AdminAssetFolder,
+  type AdminAssetTag,
+  type AdminAssetSummary,
+} from "@/api/assets";
 import { getAppConfig } from "@/constants/app-config";
-import { notifyError } from "@/utils/notifications";
+import { notifyError, notifyInfoText } from "@/utils/notifications";
 import {
   AssetMasonryTile,
-  AssetPreviewOverlay,
+  AssetPreviewSheet,
   type AssetMasonryItem,
 } from "@/views/assets/components/AssetMasonryCard";
+import {
+  AssetsFilterPopover,
+  type AssetsFilters,
+} from "@/views/assets/components/AssetsFilterPopover";
+import { AssetUploadDialog } from "@/views/assets/components/AssetUploadDialog";
 
 function buildSvgDataUrl({ hue, aspectRatio }: { hue: number; aspectRatio: number }): string {
   // Avoid network dependency for dev: render a simple SVG placeholder as a data URL.
@@ -46,10 +58,7 @@ function buildMockAssets(): AssetMasonryItem[] {
     return {
       id: `mock-${idx + 1}`,
       name,
-      description:
-        idx % 3 === 0
-          ? "这是一个用于联调的示例资源描述。后续会展示分类、标签、描述以及管理操作。"
-          : undefined,
+      description: undefined,
       mimeType: "image/svg+xml",
       sizeText: `${(128 + idx * 13) % 2048} KB`,
       createdAtText: "2026-01-28",
@@ -88,10 +97,13 @@ function toMasonryItem(asset: AdminAssetSummary): AssetMasonryItem {
     return `${base}${p}`;
   };
 
-  const previewPath = asset.publicThumbUrlPath
-    ? `${asset.publicThumbUrlPath}?w=320`
-    : asset.publicUrlPath || "";
-  const previewUrl = joinBase(previewPath);
+  const thumbBaseUrl = asset.publicThumbUrlPath ? joinBase(asset.publicThumbUrlPath) : undefined;
+  const publicUrl = asset.publicUrlPath ? joinBase(asset.publicUrlPath) : undefined;
+  const previewUrl = thumbBaseUrl ? `${thumbBaseUrl}?w=320` : publicUrl;
+  const downloadUrl = asset.publicDownloadUrlPath
+    ? joinBase(asset.publicDownloadUrlPath)
+    : undefined;
+  const contentUrl = asset.contentUrlPath ? joinBase(asset.contentUrlPath) : undefined;
 
   return {
     id: asset.id,
@@ -100,28 +112,92 @@ function toMasonryItem(asset: AdminAssetSummary): AssetMasonryItem {
     mimeType: asset.mime || undefined,
     sizeText: formatBytes(asset.sizeBytes),
     createdAtText: asset.createdAt?.slice(0, 10),
-    previewUrl: previewUrl || "",
+    previewUrl,
+    thumbBaseUrl,
+    createdAt: asset.createdAt,
+    sizeBytes: asset.sizeBytes,
+    checksumSha256: asset.checksumSha256 || undefined,
+    visibility: asset.visibility,
+    purpose: asset.purpose,
+    indexable: asset.indexable,
+    publicUrl,
+    downloadUrl,
+    contentUrl,
   };
 }
 
 export function AssetsView() {
   const { t } = useTranslation();
-  const layoutIdBase = useId();
+  const queryClient = useQueryClient();
   const [active, setActive] = useState<AssetMasonryItem | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
+  const [uploadOpen, setUploadOpen] = useState(false);
+
+  // Search / filters / ordering
+  const [searchInput, setSearchInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filters, setFilters] = useState<AssetsFilters>(() => ({
+    // 默认只看 public：瀑布流需要 thumb/public url 才能稳定预览；
+    // 其他可见性可通过筛选器切换，但可能只显示“无预览”占位。
+    visibility: "public",
+  }));
+  const [ordering, setOrdering] = useState<string>("-created_at");
 
   const mockItems = useMemo(() => buildMockAssets(), []);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
+  useEffect(() => {
+    const handle = window.setTimeout(() => {
+      setSearchQuery(searchInput.trim());
+    }, 350);
+    return () => window.clearTimeout(handle);
+  }, [searchInput]);
+
+  const foldersQuery = useQuery({
+    queryKey: ["assets", "folders"],
+    queryFn: async () => listAdminAssetFolders(),
+    staleTime: 60 * 1000,
+    retry: 1,
+  });
+
+  const tagsQuery = useQuery({
+    queryKey: ["assets", "tags"],
+    queryFn: async () => listAdminAssetTags(),
+    staleTime: 60 * 1000,
+    retry: 1,
+  });
+
   const assetsQuery = useInfiniteQuery({
-    queryKey: ["assets", "list", { purpose: "library", visibility: "public" }],
+    queryKey: [
+      "assets",
+      "list",
+      {
+        purpose: "library",
+        q: searchQuery || undefined,
+        mimePrefix: filters.mimePrefix,
+        folderId: filters.folderId,
+        includeChildren: filters.folderId ? true : undefined,
+        visibility: filters.visibility,
+        createdFrom: filters.createdFrom,
+        createdTo: filters.createdTo,
+        tagIds: filters.tagIds,
+        ordering,
+      },
+    ],
     queryFn: async ({ pageParam }) =>
       listAdminAssets({
         page: typeof pageParam === "number" ? pageParam : 1,
         size: 24,
         purpose: "library",
-        visibility: "public",
-        ordering: "-created_at",
+        q: searchQuery || undefined,
+        mimePrefix: filters.mimePrefix,
+        folderId: filters.folderId,
+        includeChildren: filters.folderId ? true : undefined,
+        visibility: filters.visibility,
+        createdFrom: filters.createdFrom,
+        createdTo: filters.createdTo,
+        tagIds: filters.tagIds,
+        ordering,
       }),
     initialPageParam: 1,
     getNextPageParam: (lastPage) => lastPage.next ?? undefined,
@@ -134,11 +210,26 @@ export function AssetsView() {
     notifyError(assetsQuery.error);
   }, [assetsQuery.error, assetsQuery.isError]);
 
+  useEffect(() => {
+    // Filters changed => selection & active detail should not "stick" to stale items.
+    setSelectedIds(new Set());
+    setActive(null);
+  }, [
+    searchQuery,
+    filters.folderId,
+    filters.mimePrefix,
+    filters.visibility,
+    filters.createdFrom,
+    filters.createdTo,
+    filters.tagIds,
+    ordering,
+  ]);
+
   const items = useMemo<AssetMasonryItem[]>(() => {
     if (!assetsQuery.data) return mockItems;
     const rows = assetsQuery.data.pages.flatMap((p) => p.items);
-    const mapped = rows.map(toMasonryItem).filter((x) => x.previewUrl);
-    return mapped.length ? mapped : mockItems;
+    const mapped = rows.map(toMasonryItem);
+    return mapped.length ? mapped : [];
   }, [assetsQuery.data, mockItems]);
 
   useEffect(() => {
@@ -161,14 +252,83 @@ export function AssetsView() {
   }, [assetsQuery.hasNextPage, assetsQuery.isFetchingNextPage, assetsQuery.fetchNextPage]);
 
   return (
-    <DefaultPage title={t("nav:NAV_ASSETS")}>
-      <LayoutGroup id={`asset-library-${layoutIdBase}`}>
-        <AssetPreviewOverlay
-          active={active}
-          layoutIdBase={layoutIdBase}
-          onClose={() => setActive(null)}
-        />
+    <DefaultPage
+      title={t("nav:NAV_ASSETS")}
+      action={
+        <Button type="primary" icon={<Plus size={16} />} onClick={() => setUploadOpen(true)}>
+          {t("assets:ASSET_ACTION_UPLOAD")}
+        </Button>
+      }
+      extra={
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <Input
+              allowClear
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              placeholder={t("assets:ASSET_SEARCH_PLACEHOLDER")}
+              prefix={<Search size={16} className="text-muted-foreground" />}
+              style={{ width: 260 }}
+            />
+            <AssetsFilterPopover
+              value={filters}
+              onChange={setFilters}
+              folders={(foldersQuery.data ?? []) as AdminAssetFolder[]}
+              tags={(tagsQuery.data ?? []) as AdminAssetTag[]}
+              tagsLoading={tagsQuery.isLoading}
+            />
+          </div>
 
+          <div className="flex items-center gap-2">
+            <Select
+              value={ordering}
+              style={{ width: 180 }}
+              onChange={setOrdering}
+              options={[
+                { label: t("assets:ASSET_SORT_NEWEST"), value: "-created_at" },
+                { label: t("assets:ASSET_SORT_OLDEST"), value: "created_at" },
+                { label: t("assets:ASSET_SORT_SIZE_LARGE"), value: "-size_bytes" },
+                { label: t("assets:ASSET_SORT_SIZE_SMALL"), value: "size_bytes" },
+              ]}
+            />
+          </div>
+        </div>
+      }
+    >
+      <AssetPreviewSheet active={active} onClose={() => setActive(null)} />
+      <AssetUploadDialog
+        open={uploadOpen}
+        onOpenChange={(open) => {
+          setUploadOpen(open);
+          if (!open) return;
+          if (foldersQuery.isError) {
+            notifyInfoText(t("assets:ASSET_UPLOAD_FOLDERS_LOADING_FAILED_HINT"));
+          }
+        }}
+        folders={(foldersQuery.data ?? []) as AdminAssetFolder[]}
+        defaultFolderId={filters.folderId}
+        onUploaded={() => {
+          // 上传成功后刷新列表；避免 refetch 当前页导致旧的 infinite pages 不一致，直接 invalidate 最稳。
+          void queryClient.invalidateQueries({ queryKey: ["assets", "list"] });
+          setUploadOpen(false);
+        }}
+      />
+
+      {assetsQuery.isLoading && !assetsQuery.data ? (
+        <div className="py-10 flex justify-center">
+          <LoaderOne />
+        </div>
+      ) : assetsQuery.isError ? (
+        <Alert
+          type="error"
+          showIcon
+          message={t("common:REQUEST_FAILED")}
+          description={t("assets:ASSET_LIST_LOAD_FAILED_DESC")}
+          action={<Button onClick={() => void assetsQuery.refetch()}>{t("common:REFRESH")}</Button>}
+        />
+      ) : items.length === 0 ? (
+        <div className="py-10 text-sm text-muted-foreground">{t("assets:ASSET_EMPTY")}</div>
+      ) : (
         <Masonry
           gutter={[16, 16]}
           columns={{ xs: 1, sm: 2, md: 3 }}
@@ -176,9 +336,7 @@ export function AssetsView() {
           itemRender={(info) => (
             <AssetMasonryTile
               asset={info.data}
-              layoutIdBase={layoutIdBase}
               selected={selectedIds.has(info.data.id)}
-              activeId={active?.id ?? null}
               onToggleSelected={(id) => {
                 setSelectedIds((prev) => {
                   const next = new Set(prev);
@@ -191,13 +349,13 @@ export function AssetsView() {
             />
           )}
         />
+      )}
 
-        {assetsQuery.isFetchingNextPage || assetsQuery.hasNextPage ? (
-          <div ref={sentinelRef} className="py-8 flex justify-center">
-            <LoaderOne />
-          </div>
-        ) : null}
-      </LayoutGroup>
+      {assetsQuery.isFetchingNextPage || assetsQuery.hasNextPage ? (
+        <div ref={sentinelRef} className="py-8 flex justify-center">
+          <LoaderOne />
+        </div>
+      ) : null}
     </DefaultPage>
   );
 }

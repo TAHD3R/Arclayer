@@ -50,3 +50,19 @@ def test_admin_asset_summary_out_computed_urls_for_private() -> None:
     assert out.public_url_path is None
     assert out.public_download_url_path is None
     assert out.public_thumb_url_path is None
+
+
+def test_admin_asset_list_query_accepts_datetime_and_tags() -> None:
+    from apps.api.routers.v1.admin.assets.schema import AdminAssetListQuery
+
+    q = AdminAssetListQuery.model_validate({
+        "createdFrom": "2026-01-28T00:00:00Z",
+        "createdTo": "2026-01-29T23:59:59Z",
+        "tagIds": [str(uuid4()), str(uuid4())],
+        "includeChildren": True,
+        "visibility": "public",
+    })
+    assert q.created_from is not None
+    assert q.created_to is not None
+    assert q.tag_ids is not None
+    assert q.include_children is True

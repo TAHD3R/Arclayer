@@ -18,6 +18,7 @@ from apps.api.routers.v1.admin.assets.schema import (
     AdminAssetListQuery,
     AdminAssetMoveRequest,
     AdminAssetSummaryOut,
+    AdminAssetTagOut,
 )
 
 
@@ -33,12 +34,19 @@ class AdminAssetsService(BaseService):
     async def list_assets(
         self, *, org_id: UUID, params: PageParams, filters: AdminAssetListQuery
     ) -> PageData[AdminAssetSummaryOut]:
-        qs = self.repo.query_assets(org_id=org_id, filters=filters)
+        folder_ids: list[UUID] | None = None
+        if filters.folder_id is not None and bool(filters.include_children):
+            folder_ids = await self.repo.collect_descendant_folder_ids(org_id=org_id, root_folder_id=filters.folder_id)
+        qs = self.repo.query_assets(org_id=org_id, filters=filters, folder_ids=folder_ids)
         return await paginate_queryset(qs, params=params, out_schema=AdminAssetSummaryOut)
 
     async def list_folders(self, *, org_id: UUID) -> list[AdminAssetFolderOut]:
         rows = await self.repo.query_folders(org_id=org_id)
         return [AdminAssetFolderOut.model_validate(r, from_attributes=True) for r in rows]
+
+    async def list_tags(self, *, org_id: UUID, q: str | None = None) -> list[AdminAssetTagOut]:
+        rows = await self.repo.query_tags(org_id=org_id, q=q)
+        return [AdminAssetTagOut.model_validate(r, from_attributes=True) for r in rows]
 
     async def create_folder(self, *, org_id: UUID, payload: AdminAssetFolderCreateRequest) -> AdminAssetFolderOut:
         name = payload.name.strip()
