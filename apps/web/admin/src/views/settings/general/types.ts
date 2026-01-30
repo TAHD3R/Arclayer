@@ -10,7 +10,11 @@ export type GeneralSettingsFormValues = {
   siteDescription: string;
   siteUrl: string;
   siteLogoUrl: string;
+  siteLogoAssetId: string;
   siteFaviconUrl: string;
+  siteFaviconAssetId: string;
+  siteAvatarPlaceholderUrl: string;
+  siteAvatarPlaceholderAssetId: string;
   siteContactEmail: string;
   locale: AppLocale;
   timezone: string;

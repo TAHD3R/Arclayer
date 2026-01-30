@@ -22,7 +22,11 @@ export function buildGeneralSettingsInitialValues(
   const siteDescription = pickString(v, ["seo", "default_description"]) ?? "";
   const siteUrl = pickString(v, ["site", "url"]) ?? "";
   const siteLogoUrl = pickString(v, ["site", "logo_url"]) ?? "";
+  const siteLogoAssetId = pickString(v, ["site", "logo_asset_id"]) ?? "";
   const siteFaviconUrl = pickString(v, ["site", "favicon_url"]) ?? "";
+  const siteFaviconAssetId = pickString(v, ["site", "favicon_asset_id"]) ?? "";
+  const siteAvatarPlaceholderUrl = pickString(v, ["site", "avatar_placeholder_url"]) ?? "";
+  const siteAvatarPlaceholderAssetId = pickString(v, ["site", "avatar_placeholder_asset_id"]) ?? "";
   const siteContactEmail = pickString(v, ["site", "contact_email"]) ?? "";
 
   const locale = (pickString(v, ["localization", "locale"]) as AppLocale | undefined) ?? "zh-CN";
@@ -52,7 +56,11 @@ export function buildGeneralSettingsInitialValues(
     siteDescription,
     siteUrl,
     siteLogoUrl,
+    siteLogoAssetId,
     siteFaviconUrl,
+    siteFaviconAssetId,
+    siteAvatarPlaceholderUrl,
+    siteAvatarPlaceholderAssetId,
     siteContactEmail,
     locale,
     timezone,

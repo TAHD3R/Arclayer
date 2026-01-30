@@ -75,6 +75,12 @@ export function AssetUploadDialog(props: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   defaultFolderId?: string;
+  /**
+   * 上传用途：
+   * - 默认走 library（资源库）
+   * - 设置页等入口可传 site_logo / favicon / avatar 等，让后端套用强制策略（例如强制 public/noindex）。
+   */
+  purpose?: string;
   onUploaded?: (assetIds: string[]) => void;
 }) {
   const { t } = useTranslation();
@@ -82,6 +88,7 @@ export function AssetUploadDialog(props: {
   const [items, setItems] = useState<UploadItem[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const folderId = props.defaultFolderId;
+  const purpose = (props.purpose || "library").trim() || "library";
   const visibility = "public";
 
   const resetState = useCallback(() => {
@@ -165,7 +172,7 @@ export function AssetUploadDialog(props: {
 
       try {
         const init = await initUpload({
-          purpose: "library",
+          purpose,
           filename: item.file.name,
           mime: item.file.type || null,
           sizeBytes: item.file.size,

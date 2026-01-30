@@ -65,6 +65,20 @@ def build_core_settings_schema() -> ConfigSchema:
                         label_i18n="settings:SITE_FAVICON_ASSET_ID_LABEL",
                     ),
                     ConfigField(
+                        key="avatar_placeholder_url",
+                        type="str",
+                        default=None,
+                        label="Avatar placeholder URL",
+                        label_i18n="settings:SITE_AVATAR_PLACEHOLDER_LABEL",
+                    ),
+                    ConfigField(
+                        key="avatar_placeholder_asset_id",
+                        type="str",
+                        default=None,
+                        label="Avatar placeholder asset id",
+                        label_i18n="settings:SITE_AVATAR_PLACEHOLDER_ASSET_ID_LABEL",
+                    ),
+                    ConfigField(
                         key="contact_email",
                         type="str",
                         default=None,

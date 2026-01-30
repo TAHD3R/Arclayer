@@ -123,4 +123,29 @@ body {
     font-size: 18px;
     line-height: 1.6;
   }
+
+  .overflow-y-auto,
+  .overflow-auto {
+    scrollbar-gutter: stable;
+  }
+
+  @supports (scrollbar-width: none) or (-webkit-overflow-scrolling: touch) {
+    *::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+
+    *::-webkit-scrollbar-thumb {
+      background-color: #cbd5e1;
+      border-radius: 10px;
+    }
+
+    *::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    *:not(:hover)::-webkit-scrollbar-thumb {
+      background-color: transparent;
+    }
+  }
 }

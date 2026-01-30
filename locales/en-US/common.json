@@ -5,6 +5,9 @@
   "PAGE_COMING_SOON": "Coming soon",
   "PAGE_COMING_SOON_DESC": "This feature is under development. You can explore other modules from the left navigation.",
   "BACK": "Back",
+  "CANCEL": "Cancel",
+  "CONFIRM": "Confirm",
   "REFRESH": "Refresh",
+  "LOADING": "Loading...",
   "RETRY": "Retry"
 }

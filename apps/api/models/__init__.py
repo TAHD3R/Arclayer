@@ -4,6 +4,7 @@ from apps.api.models.asset import AssetPurpose, AssetRecord, AssetVisibility
 from apps.api.models.asset_folder import AssetFolderRecord
 from apps.api.models.asset_share import AssetShareLinkRecord
 from apps.api.models.asset_tag import AssetTagLinkRecord, AssetTagRecord
+from apps.api.models.asset_usage import AssetUsageRecord
 from apps.api.models.invitation import OrganizationInvitation
 from apps.api.models.organization import Membership, MembershipStatus, Organization
 from apps.api.models.plugin import PluginRecord
@@ -19,6 +20,7 @@ __all__ = [
     "AssetShareLinkRecord",
     "AssetTagLinkRecord",
     "AssetTagRecord",
+    "AssetUsageRecord",
     "AssetVisibility",
     "BootstrapState",
     "MembershipRole",

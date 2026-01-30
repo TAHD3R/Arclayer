@@ -1,9 +1,14 @@
-import { Form, Input } from "antd";
+import { Button, Form, Input } from "antd";
 import type { FormInstance } from "antd";
+import { Image } from "antd";
 import { useTranslation } from "react-i18next";
+import { useMemo, useState } from "react";
 
 import { Accordion } from "@/components/animate-ui/components/radix/accordion";
 import { SettingAccordionItem } from "@/components/app/settingAccordionItem";
+import { AssetPickerDialog } from "@/components/app/assetPickerDialog";
+import { resolvePublicAssetUrlPath } from "@/views/assets/utils/assetUrls";
+import { deleteAdminAssetUsageByRef, upsertAdminAssetUsage } from "@/api/asset-usages";
 
 import type { GeneralSettingsTabBaseProps } from "../context";
 import type { GeneralSettingsFormValues } from "../types";
@@ -27,6 +32,9 @@ export function SiteSettingsTab({
   patch,
 }: SiteSettingsTabProps) {
   const { t } = useTranslation();
+  const [logoPickerOpen, setLogoPickerOpen] = useState(false);
+  const [faviconPickerOpen, setFaviconPickerOpen] = useState(false);
+  const [avatarPlaceholderPickerOpen, setAvatarPlaceholderPickerOpen] = useState(false);
 
   // useWatch 在字段未挂载（例如折叠未展开）时可能不触发，这里对齐旧实现：fallback 到初始值。
   const siteName = (useSiteField(form, "siteName") as string | undefined) ?? initialValues.siteName;
@@ -37,8 +45,19 @@ export function SiteSettingsTab({
   const siteUrl = (useSiteField(form, "siteUrl") as string | undefined) ?? initialValues.siteUrl;
   const siteLogoUrl =
     (useSiteField(form, "siteLogoUrl") as string | undefined) ?? initialValues.siteLogoUrl;
+  const siteLogoAssetId =
+    (useSiteField(form, "siteLogoAssetId") as string | undefined) ?? initialValues.siteLogoAssetId;
   const siteFaviconUrl =
     (useSiteField(form, "siteFaviconUrl") as string | undefined) ?? initialValues.siteFaviconUrl;
+  const siteFaviconAssetId =
+    (useSiteField(form, "siteFaviconAssetId") as string | undefined) ??
+    initialValues.siteFaviconAssetId;
+  const siteAvatarPlaceholderUrl =
+    (useSiteField(form, "siteAvatarPlaceholderUrl") as string | undefined) ??
+    initialValues.siteAvatarPlaceholderUrl;
+  const siteAvatarPlaceholderAssetId =
+    (useSiteField(form, "siteAvatarPlaceholderAssetId") as string | undefined) ??
+    initialValues.siteAvatarPlaceholderAssetId;
   const siteContactEmail =
     (useSiteField(form, "siteContactEmail") as string | undefined) ??
     initialValues.siteContactEmail;
@@ -47,8 +66,15 @@ export function SiteSettingsTab({
   const isSiteSubtitleDirty = (siteSubtitle || "") !== (initialValues.siteSubtitle || "");
   const isSiteDescriptionDirty = (siteDescription || "") !== (initialValues.siteDescription || "");
   const isSiteUrlDirty = (siteUrl || "") !== (initialValues.siteUrl || "");
-  const isSiteLogoUrlDirty = (siteLogoUrl || "") !== (initialValues.siteLogoUrl || "");
-  const isSiteFaviconUrlDirty = (siteFaviconUrl || "") !== (initialValues.siteFaviconUrl || "");
+  const isSiteLogoUrlDirty =
+    (siteLogoUrl || "") !== (initialValues.siteLogoUrl || "") ||
+    (siteLogoAssetId || "") !== (initialValues.siteLogoAssetId || "");
+  const isSiteFaviconUrlDirty =
+    (siteFaviconUrl || "") !== (initialValues.siteFaviconUrl || "") ||
+    (siteFaviconAssetId || "") !== (initialValues.siteFaviconAssetId || "");
+  const isSiteAvatarPlaceholderDirty =
+    (siteAvatarPlaceholderUrl || "") !== (initialValues.siteAvatarPlaceholderUrl || "") ||
+    (siteAvatarPlaceholderAssetId || "") !== (initialValues.siteAvatarPlaceholderAssetId || "");
   const isSiteContactEmailDirty =
     (siteContactEmail || "") !== (initialValues.siteContactEmail || "");
 
@@ -58,6 +84,7 @@ export function SiteSettingsTab({
   const isResettingSiteUrl = savingKey === "reset:siteUrl";
   const isResettingSiteLogoUrl = savingKey === "reset:siteLogoUrl";
   const isResettingSiteFaviconUrl = savingKey === "reset:siteFaviconUrl";
+  const isResettingSiteAvatarPlaceholder = savingKey === "reset:siteAvatarPlaceholder";
   const isResettingSiteContactEmail = savingKey === "reset:siteContactEmail";
 
   const resetSiteName = () =>
@@ -91,17 +118,90 @@ export function SiteSettingsTab({
   const resetSiteLogoUrl = () =>
     withSavingKey("reset:siteLogoUrl", async () => {
       form.setFieldValue("siteLogoUrl", initialValues.siteLogoUrl);
+      form.setFieldValue("siteLogoAssetId", initialValues.siteLogoAssetId);
       await patch({
-        site: { logo_url: normalizeOptionalString(initialValues.siteLogoUrl) },
+        site: {
+          logo_url: normalizeOptionalString(initialValues.siteLogoUrl),
+          logo_asset_id: normalizeOptionalString(initialValues.siteLogoAssetId),
+        },
       });
+
+      if (initialValues.siteLogoAssetId) {
+        await upsertAdminAssetUsage({
+          assetId: initialValues.siteLogoAssetId,
+          purpose: "site_logo",
+          entityType: "core.settings",
+          entityId: "site",
+          fieldKey: "site.logo",
+        });
+      } else {
+        await deleteAdminAssetUsageByRef({
+          entityType: "core.settings",
+          entityId: "site",
+          fieldKey: "site.logo",
+        });
+      }
     });
 
   const resetSiteFaviconUrl = () =>
     withSavingKey("reset:siteFaviconUrl", async () => {
       form.setFieldValue("siteFaviconUrl", initialValues.siteFaviconUrl);
+      form.setFieldValue("siteFaviconAssetId", initialValues.siteFaviconAssetId);
       await patch({
-        site: { favicon_url: normalizeOptionalString(initialValues.siteFaviconUrl) },
+        site: {
+          favicon_url: normalizeOptionalString(initialValues.siteFaviconUrl),
+          favicon_asset_id: normalizeOptionalString(initialValues.siteFaviconAssetId),
+        },
       });
+
+      if (initialValues.siteFaviconAssetId) {
+        await upsertAdminAssetUsage({
+          assetId: initialValues.siteFaviconAssetId,
+          purpose: "favicon",
+          entityType: "core.settings",
+          entityId: "site",
+          fieldKey: "site.favicon",
+        });
+      } else {
+        await deleteAdminAssetUsageByRef({
+          entityType: "core.settings",
+          entityId: "site",
+          fieldKey: "site.favicon",
+        });
+      }
+    });
+
+  const resetSiteAvatarPlaceholder = () =>
+    withSavingKey("reset:siteAvatarPlaceholder", async () => {
+      form.setFieldValue("siteAvatarPlaceholderUrl", initialValues.siteAvatarPlaceholderUrl);
+      form.setFieldValue(
+        "siteAvatarPlaceholderAssetId",
+        initialValues.siteAvatarPlaceholderAssetId,
+      );
+      await patch({
+        site: {
+          avatar_placeholder_url: normalizeOptionalString(initialValues.siteAvatarPlaceholderUrl),
+          avatar_placeholder_asset_id: normalizeOptionalString(
+            initialValues.siteAvatarPlaceholderAssetId,
+          ),
+        },
+      });
+
+      if (initialValues.siteAvatarPlaceholderAssetId) {
+        await upsertAdminAssetUsage({
+          assetId: initialValues.siteAvatarPlaceholderAssetId,
+          purpose: "avatar_placeholder",
+          entityType: "core.settings",
+          entityId: "site",
+          fieldKey: "site.avatar_placeholder",
+        });
+      } else {
+        await deleteAdminAssetUsageByRef({
+          entityType: "core.settings",
+          entityId: "site",
+          fieldKey: "site.avatar_placeholder",
+        });
+      }
     });
 
   const resetSiteContactEmail = () =>
@@ -142,19 +242,110 @@ export function SiteSettingsTab({
 
   const saveSiteLogoUrl = () =>
     withSavingKey("siteLogoUrl", async () => {
-      const values = await form.validateFields(["siteLogoUrl"]);
+      const values = await form.validateFields(["siteLogoAssetId", "siteLogoUrl"]);
+      const assetId = normalizeOptionalString(values.siteLogoAssetId);
+      // 兼容旧字段：当选择了资源库资产时，同时写入 logo_url=/assets/<id>，避免历史消费方只读 url。
+      const url = assetId ? `/assets/${assetId}` : normalizeOptionalString(values.siteLogoUrl);
+
       await patch({
-        site: { logo_url: normalizeOptionalString(values.siteLogoUrl) },
+        site: { logo_asset_id: assetId, logo_url: url },
       });
+
+      if (assetId) {
+        await upsertAdminAssetUsage({
+          assetId,
+          purpose: "site_logo",
+          entityType: "core.settings",
+          entityId: "site",
+          fieldKey: "site.logo",
+        });
+      } else {
+        await deleteAdminAssetUsageByRef({
+          entityType: "core.settings",
+          entityId: "site",
+          fieldKey: "site.logo",
+        });
+      }
     });
 
   const saveSiteFaviconUrl = () =>
     withSavingKey("siteFaviconUrl", async () => {
-      const values = await form.validateFields(["siteFaviconUrl"]);
+      const values = await form.validateFields(["siteFaviconAssetId", "siteFaviconUrl"]);
+      const assetId = normalizeOptionalString(values.siteFaviconAssetId);
+      const url = assetId ? `/assets/${assetId}` : normalizeOptionalString(values.siteFaviconUrl);
+
       await patch({
-        site: { favicon_url: normalizeOptionalString(values.siteFaviconUrl) },
+        site: { favicon_asset_id: assetId, favicon_url: url },
       });
+
+      if (assetId) {
+        await upsertAdminAssetUsage({
+          assetId,
+          purpose: "favicon",
+          entityType: "core.settings",
+          entityId: "site",
+          fieldKey: "site.favicon",
+        });
+      } else {
+        await deleteAdminAssetUsageByRef({
+          entityType: "core.settings",
+          entityId: "site",
+          fieldKey: "site.favicon",
+        });
+      }
     });
+
+  const saveSiteAvatarPlaceholder = () =>
+    withSavingKey("siteAvatarPlaceholder", async () => {
+      const values = await form.validateFields([
+        "siteAvatarPlaceholderAssetId",
+        "siteAvatarPlaceholderUrl",
+      ]);
+      const assetId = normalizeOptionalString(values.siteAvatarPlaceholderAssetId);
+      const url = assetId
+        ? `/assets/${assetId}`
+        : normalizeOptionalString(values.siteAvatarPlaceholderUrl);
+
+      await patch({
+        site: { avatar_placeholder_asset_id: assetId, avatar_placeholder_url: url },
+      });
+
+      if (assetId) {
+        await upsertAdminAssetUsage({
+          assetId,
+          purpose: "avatar_placeholder",
+          entityType: "core.settings",
+          entityId: "site",
+          fieldKey: "site.avatar_placeholder",
+        });
+      } else {
+        await deleteAdminAssetUsageByRef({
+          entityType: "core.settings",
+          entityId: "site",
+          fieldKey: "site.avatar_placeholder",
+        });
+      }
+    });
+
+  const siteLogoPreviewUrl = useMemo(() => {
+    if (siteLogoAssetId) return resolvePublicAssetUrlPath(`/assets/${siteLogoAssetId}`);
+    if (siteLogoUrl) return resolvePublicAssetUrlPath(siteLogoUrl) || siteLogoUrl;
+    return undefined;
+  }, [siteLogoAssetId, siteLogoUrl]);
+
+  const siteFaviconPreviewUrl = useMemo(() => {
+    if (siteFaviconAssetId) return resolvePublicAssetUrlPath(`/assets/${siteFaviconAssetId}`);
+    if (siteFaviconUrl) return resolvePublicAssetUrlPath(siteFaviconUrl) || siteFaviconUrl;
+    return undefined;
+  }, [siteFaviconAssetId, siteFaviconUrl]);
+
+  const avatarPlaceholderPreviewUrl = useMemo(() => {
+    if (siteAvatarPlaceholderAssetId)
+      return resolvePublicAssetUrlPath(`/assets/${siteAvatarPlaceholderAssetId}`);
+    if (siteAvatarPlaceholderUrl)
+      return resolvePublicAssetUrlPath(siteAvatarPlaceholderUrl) || siteAvatarPlaceholderUrl;
+    return undefined;
+  }, [siteAvatarPlaceholderAssetId, siteAvatarPlaceholderUrl]);
 
   const saveSiteContactEmail = () =>
     withSavingKey("siteContactEmail", async () => {
@@ -287,27 +478,76 @@ export function SiteSettingsTab({
         title={t("settings:SETTINGS_SITE_LOGO_LABEL")}
         description={t("settings:SETTINGS_SITE_LOGO_DESC")}
         showSummary
-        summary={formatSummaryText(siteLogoUrl)}
+        summary={
+          siteLogoAssetId
+            ? t("settings:SETTINGS_ASSET_PICKER_SUMMARY_SELECTED")
+            : formatSummaryText(siteLogoUrl)
+        }
         confirmText={t("settings:SETTINGS_SAVE")}
         onConfirm={saveSiteLogoUrl}
         confirmLoading={savingKey === "siteLogoUrl"}
         onReset={isSiteLogoUrlDirty || isResettingSiteLogoUrl ? resetSiteLogoUrl : undefined}
         resetLoading={isResettingSiteLogoUrl}
         disabled={disabled}
+        keepRendered
       >
+        <Form.Item<GeneralSettingsFormValues> name="siteLogoAssetId" hidden>
+          <Input />
+        </Form.Item>
+
+        <div className="flex items-center gap-3">
+          <div className="shrink-0">
+            {siteLogoPreviewUrl ? (
+              <Image
+                width={56}
+                height={56}
+                src={siteLogoPreviewUrl}
+                preview={false}
+                className="rounded-md border border-border/60 bg-muted/20"
+              />
+            ) : (
+              <div className="h-14 w-14 rounded-md border border-border/60 bg-muted/20 grid place-items-center text-xs text-muted-foreground">
+                {t("settings:SETTINGS_NOT_SET")}
+              </div>
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-sm font-medium">{t("settings:SETTINGS_ASSET_PICKER_CURRENT")}</div>
+            <div className="mt-1 text-xs text-muted-foreground truncate">
+              {siteLogoAssetId ? `/assets/${siteLogoAssetId}` : formatSummaryText(siteLogoUrl)}
+            </div>
+          </div>
+          <div className="shrink-0 flex items-center gap-2">
+            <Button onClick={() => setLogoPickerOpen(true)}>
+              {t("settings:SETTINGS_ASSET_PICKER_SELECT")}
+            </Button>
+            <Button
+              danger
+              disabled={!siteLogoAssetId && !siteLogoUrl}
+              onClick={() => {
+                form.setFieldValue("siteLogoAssetId", "");
+                form.setFieldValue("siteLogoUrl", "");
+              }}
+            >
+              {t("settings:SETTINGS_ASSET_PICKER_CLEAR")}
+            </Button>
+          </div>
+        </div>
+
         <Form.Item<GeneralSettingsFormValues>
           name="siteLogoUrl"
           rules={[
             {
               validator: async (_rule, value: string | undefined) => {
                 const raw = (value || "").trim();
+                if (siteLogoAssetId) return;
                 if (!raw) return;
                 if (isValidHttpUrlOrAbsolutePath(raw)) return;
                 throw new Error(t("settings:SETTINGS_VALIDATION_URL_OR_PATH_INVALID"));
               },
             },
           ]}
-          style={{ marginBottom: 0 }}
+          style={{ marginBottom: 0, marginTop: 12 }}
         >
           <Input
             size="large"
@@ -315,6 +555,20 @@ export function SiteSettingsTab({
             allowClear
           />
         </Form.Item>
+
+        <AssetPickerDialog
+          open={logoPickerOpen}
+          onOpenChange={setLogoPickerOpen}
+          value={{ assetId: siteLogoAssetId || null }}
+          uploadPurpose="site_logo"
+          title={t("settings:SETTINGS_SITE_LOGO_PICKER_TITLE")}
+          description={t("settings:SETTINGS_SITE_LOGO_PICKER_DESC")}
+          onConfirm={({ assetId }) => {
+            if (!assetId) return;
+            form.setFieldValue("siteLogoAssetId", assetId);
+            form.setFieldValue("siteLogoUrl", `/assets/${assetId}`);
+          }}
+        />
       </SettingAccordionItem>
 
       <SettingAccordionItem
@@ -322,7 +576,11 @@ export function SiteSettingsTab({
         title={t("settings:SETTINGS_SITE_FAVICON_LABEL")}
         description={t("settings:SETTINGS_SITE_FAVICON_DESC")}
         showSummary
-        summary={formatSummaryText(siteFaviconUrl)}
+        summary={
+          siteFaviconAssetId
+            ? t("settings:SETTINGS_ASSET_PICKER_SUMMARY_SELECTED")
+            : formatSummaryText(siteFaviconUrl)
+        }
         confirmText={t("settings:SETTINGS_SAVE")}
         onConfirm={saveSiteFaviconUrl}
         confirmLoading={savingKey === "siteFaviconUrl"}
@@ -331,13 +589,60 @@ export function SiteSettingsTab({
         }
         resetLoading={isResettingSiteFaviconUrl}
         disabled={disabled}
+        keepRendered
       >
+        <Form.Item<GeneralSettingsFormValues> name="siteFaviconAssetId" hidden>
+          <Input />
+        </Form.Item>
+
+        <div className="flex items-center gap-3">
+          <div className="shrink-0">
+            {siteFaviconPreviewUrl ? (
+              <Image
+                width={40}
+                height={40}
+                src={siteFaviconPreviewUrl}
+                preview={false}
+                className="rounded-md border border-border/60 bg-muted/20"
+              />
+            ) : (
+              <div className="h-10 w-10 rounded-md border border-border/60 bg-muted/20 grid place-items-center text-xs text-muted-foreground">
+                {t("settings:SETTINGS_NOT_SET")}
+              </div>
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-sm font-medium">{t("settings:SETTINGS_ASSET_PICKER_CURRENT")}</div>
+            <div className="mt-1 text-xs text-muted-foreground truncate">
+              {siteFaviconAssetId
+                ? `/assets/${siteFaviconAssetId}`
+                : formatSummaryText(siteFaviconUrl)}
+            </div>
+          </div>
+          <div className="shrink-0 flex items-center gap-2">
+            <Button onClick={() => setFaviconPickerOpen(true)}>
+              {t("settings:SETTINGS_ASSET_PICKER_SELECT")}
+            </Button>
+            <Button
+              danger
+              disabled={!siteFaviconAssetId && !siteFaviconUrl}
+              onClick={() => {
+                form.setFieldValue("siteFaviconAssetId", "");
+                form.setFieldValue("siteFaviconUrl", "");
+              }}
+            >
+              {t("settings:SETTINGS_ASSET_PICKER_CLEAR")}
+            </Button>
+          </div>
+        </div>
+
         <Form.Item<GeneralSettingsFormValues>
           name="siteFaviconUrl"
           rules={[
             {
               validator: async (_rule, value: string | undefined) => {
                 const raw = (value || "").trim();
+                if (siteFaviconAssetId) return;
                 if (!raw) return;
                 if (isValidHttpUrlOrAbsolutePath(raw)) return;
                 throw new Error(t("settings:SETTINGS_VALIDATION_URL_OR_PATH_INVALID"));
@@ -352,6 +657,125 @@ export function SiteSettingsTab({
             allowClear
           />
         </Form.Item>
+
+        <AssetPickerDialog
+          open={faviconPickerOpen}
+          onOpenChange={setFaviconPickerOpen}
+          value={{ assetId: siteFaviconAssetId || null }}
+          uploadPurpose="favicon"
+          title={t("settings:SETTINGS_SITE_FAVICON_PICKER_TITLE")}
+          description={t("settings:SETTINGS_SITE_FAVICON_PICKER_DESC")}
+          onConfirm={({ assetId }) => {
+            if (!assetId) return;
+            form.setFieldValue("siteFaviconAssetId", assetId);
+            form.setFieldValue("siteFaviconUrl", `/assets/${assetId}`);
+          }}
+        />
+      </SettingAccordionItem>
+
+      <SettingAccordionItem
+        value="siteAvatarPlaceholder"
+        title={t("settings:SETTINGS_SITE_AVATAR_PLACEHOLDER_LABEL")}
+        description={t("settings:SETTINGS_SITE_AVATAR_PLACEHOLDER_DESC")}
+        showSummary
+        summary={
+          siteAvatarPlaceholderAssetId
+            ? t("settings:SETTINGS_ASSET_PICKER_SUMMARY_SELECTED")
+            : formatSummaryText(siteAvatarPlaceholderUrl)
+        }
+        confirmText={t("settings:SETTINGS_SAVE")}
+        onConfirm={saveSiteAvatarPlaceholder}
+        confirmLoading={savingKey === "siteAvatarPlaceholder"}
+        onReset={
+          isSiteAvatarPlaceholderDirty || isResettingSiteAvatarPlaceholder
+            ? resetSiteAvatarPlaceholder
+            : undefined
+        }
+        resetLoading={isResettingSiteAvatarPlaceholder}
+        disabled={disabled}
+        keepRendered
+      >
+        <Form.Item<GeneralSettingsFormValues> name="siteAvatarPlaceholderAssetId" hidden>
+          <Input />
+        </Form.Item>
+
+        <div className="flex items-center gap-3">
+          <div className="shrink-0">
+            {avatarPlaceholderPreviewUrl ? (
+              <Image
+                width={48}
+                height={48}
+                src={avatarPlaceholderPreviewUrl}
+                preview={false}
+                className="rounded-full border border-border/60 bg-muted/20"
+              />
+            ) : (
+              <div className="h-12 w-12 rounded-full border border-border/60 bg-muted/20 grid place-items-center text-xs text-muted-foreground">
+                {t("settings:SETTINGS_NOT_SET")}
+              </div>
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-sm font-medium">{t("settings:SETTINGS_ASSET_PICKER_CURRENT")}</div>
+            <div className="mt-1 text-xs text-muted-foreground truncate">
+              {siteAvatarPlaceholderAssetId
+                ? `/assets/${siteAvatarPlaceholderAssetId}`
+                : formatSummaryText(siteAvatarPlaceholderUrl)}
+            </div>
+          </div>
+          <div className="shrink-0 flex items-center gap-2">
+            <Button onClick={() => setAvatarPlaceholderPickerOpen(true)}>
+              {t("settings:SETTINGS_ASSET_PICKER_SELECT")}
+            </Button>
+            <Button
+              danger
+              disabled={!siteAvatarPlaceholderAssetId && !siteAvatarPlaceholderUrl}
+              onClick={() => {
+                form.setFieldValue("siteAvatarPlaceholderAssetId", "");
+                form.setFieldValue("siteAvatarPlaceholderUrl", "");
+              }}
+            >
+              {t("settings:SETTINGS_ASSET_PICKER_CLEAR")}
+            </Button>
+          </div>
+        </div>
+
+        <Form.Item<GeneralSettingsFormValues>
+          name="siteAvatarPlaceholderUrl"
+          rules={[
+            {
+              validator: async (_rule, value: string | undefined) => {
+                const raw = (value || "").trim();
+                if (siteAvatarPlaceholderAssetId) return;
+                if (!raw) return;
+                if (isValidHttpUrlOrAbsolutePath(raw)) return;
+                throw new Error(t("settings:SETTINGS_VALIDATION_URL_OR_PATH_INVALID"));
+              },
+            },
+          ]}
+          style={{ marginBottom: 0 }}
+        >
+          <Input
+            size="large"
+            placeholder={t("settings:SETTINGS_SITE_AVATAR_PLACEHOLDER_PLACEHOLDER")}
+            allowClear
+          />
+        </Form.Item>
+
+        <AssetPickerDialog
+          open={avatarPlaceholderPickerOpen}
+          onOpenChange={setAvatarPlaceholderPickerOpen}
+          value={{ assetId: siteAvatarPlaceholderAssetId || null }}
+          // placeholder 走 avatar 策略（强制 public/noindex），但 usage purpose 仍然区分为 avatar_placeholder。
+          uploadPurpose="avatar"
+          title={t("settings:SETTINGS_SITE_AVATAR_PLACEHOLDER_PICKER_TITLE")}
+          description={t("settings:SETTINGS_SITE_AVATAR_PLACEHOLDER_PICKER_DESC")}
+          onConfirm={({ assetId }) => {
+            if (!assetId) return;
+            form.setFieldValue("siteAvatarPlaceholderAssetId", assetId);
+            form.setFieldValue("siteAvatarPlaceholderUrl", `/assets/${assetId}`);
+          }}
+        />
       </SettingAccordionItem>
 
       <SettingAccordionItem

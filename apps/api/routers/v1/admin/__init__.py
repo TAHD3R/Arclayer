@@ -10,6 +10,7 @@ from apps.api.routers.v1.admin.settings import router as settings_router
 from apps.api.routers.v1.admin.shares import router as shares_router
 from apps.api.routers.v1.admin.team import router as team_router
 from apps.api.routers.v1.admin.uploads import router as uploads_router
+from apps.api.routers.v1.admin.usages import router as usages_router
 from apps.api.routers.v1.admin.users import router as users_router
 
 router = APIRouter()
@@ -23,3 +24,4 @@ router.include_router(team_router, prefix="/team")
 router.include_router(uploads_router)
 router.include_router(assets_router)
 router.include_router(shares_router)
+router.include_router(usages_router)

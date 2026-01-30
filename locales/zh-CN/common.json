@@ -5,6 +5,9 @@
   "PAGE_COMING_SOON": "页面建设中",
   "PAGE_COMING_SOON_DESC": "该功能正在开发中，你可以先从左侧菜单继续浏览其它模块。",
   "BACK": "返回",
+  "CANCEL": "取消",
+  "CONFIRM": "确认",
   "REFRESH": "刷新",
+  "LOADING": "加载中...",
   "RETRY": "重试"
 }

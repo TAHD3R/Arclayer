@@ -1,0 +1,82 @@
+from __future__ import annotations
+
+from uuid import UUID
+
+from apps.api.models.asset_usage import AssetUsageRecord
+
+
+class AdminAssetUsagesRepository:
+    async def list_usages_by_asset(self, *, org_id: UUID, asset_id: UUID) -> list[AssetUsageRecord]:
+        return await AssetUsageRecord.filter(org_id=org_id, asset_id=asset_id).order_by("-created_at").all()
+
+    async def get_usage_by_ref(
+        self,
+        *,
+        org_id: UUID,
+        entity_type: str,
+        entity_id: str,
+        field_key: str,
+    ) -> AssetUsageRecord | None:
+        return await AssetUsageRecord.get_or_none(
+            org_id=org_id,
+            entity_type=entity_type,
+            entity_id=entity_id,
+            field_key=field_key,
+        )
+
+    async def upsert_usage(
+        self,
+        *,
+        org_id: UUID,
+        asset_id: UUID,
+        purpose: str,
+        entity_type: str,
+        entity_id: str,
+        field_key: str,
+        created_by_user_id: UUID | None,
+    ) -> AssetUsageRecord:
+        existing = await self.get_usage_by_ref(
+            org_id=org_id,
+            entity_type=entity_type,
+            entity_id=entity_id,
+            field_key=field_key,
+        )
+        if existing is None:
+            return await AssetUsageRecord.create(
+                org_id=org_id,
+                asset_id=asset_id,
+                purpose=purpose,
+                entity_type=entity_type,
+                entity_id=entity_id,
+                field_key=field_key,
+                created_by_user_id=created_by_user_id,
+            )
+
+        changed = False
+        if existing.asset_id != asset_id:
+            existing.asset_id = asset_id
+            changed = True
+        if existing.purpose != purpose:
+            existing.purpose = purpose
+            changed = True
+
+        # created_by_user_id 仅在创建时写入，避免“谁最先配置的”审计信息被覆盖。
+        if changed:
+            await existing.save(update_fields=["asset_id", "purpose", "updated_at"])
+        return existing
+
+    async def delete_usage_by_ref(
+        self,
+        *,
+        org_id: UUID,
+        entity_type: str,
+        entity_id: str,
+        field_key: str,
+    ) -> bool:
+        deleted = await AssetUsageRecord.filter(
+            org_id=org_id,
+            entity_type=entity_type,
+            entity_id=entity_id,
+            field_key=field_key,
+        ).delete()
+        return deleted > 0
