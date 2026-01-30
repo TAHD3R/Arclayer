@@ -8,8 +8,8 @@ from apps.api.config import Settings, get_settings
 from apps.api.core.authz import require_permission_strict
 from apps.api.core.organization.deps import get_current_org_id
 from apps.api.core.rbac.service import RBACService
-from apps.api.http.pagination import PageData, PageParams, get_page_params
-from apps.api.http.response import Response, ResponseModel
+from apps.api.http_utils.pagination import PageData, PageParams, get_page_params
+from apps.api.http_utils.response import Response, ResponseModel
 from apps.api.routers.v1.admin.rbac.schema import (
     PermissionOut,
     PermissionSyncResult,

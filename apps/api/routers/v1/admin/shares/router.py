@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends
 
 from apps.api.config import Settings, get_settings
 from apps.api.core.organization.deps import get_current_org_id
-from apps.api.http.response import Response, ResponseModel
+from apps.api.http_utils.response import Response, ResponseModel
 from apps.api.routers.v1.admin.shares.schema import AdminShareCreateRequest, AdminShareLinkOut, AdminShareRevokeOut
 from apps.api.routers.v1.admin.shares.service import AdminSharesService
 from apps.api.routers.v1.auth.deps import get_current_user

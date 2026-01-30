@@ -7,9 +7,9 @@ from starlette.responses import Response
 
 from apps.api.config import Settings, get_settings
 from apps.api.core.organization.deps import get_current_org_id
-from apps.api.http.pagination import PageData, PageParams, get_page_params
-from apps.api.http.response import Response as JsonResponse
-from apps.api.http.response import ResponseModel
+from apps.api.http_utils.pagination import PageData, PageParams, get_page_params
+from apps.api.http_utils.response import Response as JsonResponse
+from apps.api.http_utils.response import ResponseModel
 from apps.api.routers.v1.admin.assets.schema import (
     AdminAssetDeleteOut,
     AdminAssetDetailOut,

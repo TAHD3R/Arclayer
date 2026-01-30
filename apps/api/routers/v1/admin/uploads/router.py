@@ -8,7 +8,7 @@ from apps.api.config import Settings, get_settings
 from apps.api.core.exceptions import BadRequest
 from apps.api.core.i18n import t
 from apps.api.core.organization.deps import get_current_org_id
-from apps.api.http.response import Response, ResponseModel
+from apps.api.http_utils.response import Response, ResponseModel
 from apps.api.routers.v1.admin.uploads.schema import (
     UploadAbortOut,
     UploadCompleteOut,

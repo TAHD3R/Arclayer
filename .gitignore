@@ -21,6 +21,8 @@ apps/api/logs/
 
 # Node / pnpm
 node_modules/
+.pnpm-store/
+.turbo/
 
 # Testing
 .pytest_cache/

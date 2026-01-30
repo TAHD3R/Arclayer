@@ -12,7 +12,7 @@ from apps.api.core.exceptions import Conflict, NotFound, ServiceUnavailable
 from apps.api.core.i18n import t
 from apps.api.core.organization.context import get_current_org_id as get_current_org_id_ctx
 from apps.api.core.organization.repository import OrganizationRepository
-from apps.api.http.pagination import PageData, PageParams, paginate_queryset
+from apps.api.http_utils.pagination import PageData, PageParams, paginate_queryset
 from apps.api.models.user import UserStatus
 from apps.api.routers.v1.admin.users.repository import AdminUsersRepository
 from apps.api.routers.v1.admin.users.schema import (

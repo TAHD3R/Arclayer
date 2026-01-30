@@ -11,7 +11,7 @@ from apps.api.core.i18n import t
 from apps.api.core.organization.context import get_current_org_id as get_current_org_id_ctx
 from apps.api.core.rbac.constants import CORE_PERMISSION_OWNER, ROLE_ADMIN, ROLE_USER
 from apps.api.core.rbac.repository import RBACRepository
-from apps.api.http.pagination import PageData, PageParams, paginate_queryset
+from apps.api.http_utils.pagination import PageData, PageParams, paginate_queryset
 from apps.api.plugin.registry import registry
 
 

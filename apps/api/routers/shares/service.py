@@ -11,9 +11,9 @@ from starlette.responses import Response, StreamingResponse
 
 from apps.api.config import Settings
 from apps.api.core.exceptions import NotFound
-from apps.api.http.content_disposition import build_attachment_content_disposition
-from apps.api.http.file_stream import stream_file_response
-from apps.api.http.range import parse_range_header
+from apps.api.http_utils.content_disposition import build_attachment_content_disposition
+from apps.api.http_utils.file_stream import stream_file_response
+from apps.api.http_utils.range import parse_range_header
 from apps.api.infra.storage.factory import build_storage_provider_for
 from apps.api.infra.storage.local import safe_object_key_to_path
 from apps.api.infra.storage.s3 import S3StorageProvider

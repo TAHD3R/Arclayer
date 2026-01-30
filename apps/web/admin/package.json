@@ -1,21 +1,20 @@
 {
-  "name": "celestial-admin",
+  "name": "@celestial/admin",
   "version": "2026.01.25-dev",
   "private": true,
+  "author": {
+    "name": "Jassar Ayiken",
+    "email": "aspj6771@gmail.com",
+    "url": "https://github.com/TAHD4R"
+  },
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "typecheck": "pnpm -w exec tsc -p apps/web/admin/tsconfig.json --noEmit",
-    "preview": "vite preview",
-    "lint": "pnpm -w exec oxlint apps/web/admin",
-    "lint:fix": "pnpm -w exec oxlint apps/web/admin --fix",
-    "fmt": "pnpm -w exec oxfmt apps/web/admin",
-    "fmt:check": "pnpm -w exec oxfmt apps/web/admin --check",
-    "test": "pnpm -w exec vitest --config apps/web/admin/vitest.config.ts",
-    "test:run": "pnpm -w exec vitest run --config apps/web/admin/vitest.config.ts",
-    "test:ui": "pnpm -w exec vitest --ui --config apps/web/admin/vitest.config.ts",
-    "check": "pnpm run fmt:check && pnpm run lint && pnpm run typecheck && pnpm run test:run"
+    "dev": "vite --mode development",
+    "build": "vite build --mode production",
+    "typecheck": "tsc --noEmit --skipLibCheck",
+    "lint": "oxlint .",
+    "format": "oxfmt .",
+    "test": "vitest run --config vitest.config.ts"
   },
   "dependencies": {
     "@bprogress/react": "^1.2.7",

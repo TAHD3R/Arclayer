@@ -3,7 +3,7 @@ from __future__ import annotations
 from uuid import UUID
 
 from admin_menu.services import AdminMenuService
-from apps.api.http.pagination import PageData, PageParams
+from apps.api.http_utils.pagination import PageData, PageParams
 from apps.api.routers.v1.admin.menus.schema import (
     AdminMenuCreateRequest,
     AdminMenuItemOut,

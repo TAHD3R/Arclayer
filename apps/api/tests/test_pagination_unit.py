@@ -7,7 +7,7 @@ from typing import Any, TypeVar
 import pytest
 
 from apps.api.common.schemas import BaseSchema
-from apps.api.http.pagination import PageParams, paginate_queryset
+from apps.api.http_utils.pagination import PageParams, paginate_queryset
 
 T = TypeVar("T")
 

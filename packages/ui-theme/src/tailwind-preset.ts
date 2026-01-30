@@ -10,11 +10,11 @@ function mergeTailwindConfig(base: Config, overrides?: PartialConfig): Config {
   // - deep merge for theme/extend
   // - concatenate plugins arrays
   const mergedTheme = {
-    ...(base.theme ?? {}),
-    ...(overrides.theme ?? {}),
+    ...base.theme,
+    ...overrides.theme,
     extend: {
-      ...((base.theme as any)?.extend ?? {}),
-      ...((overrides.theme as any)?.extend ?? {}),
+      ...(base.theme as any)?.extend,
+      ...(overrides.theme as any)?.extend,
     },
   } satisfies Config["theme"];
 

@@ -7,7 +7,7 @@ from starlette.responses import HTMLResponse
 
 from apps.api.config import Settings
 from apps.api.core.exceptions import NotFound
-from apps.api.http.pagination import PageParams, paginate_queryset
+from apps.api.http_utils.pagination import PageParams, paginate_queryset
 from apps.api.routers.library.repository import PublicLibraryRepository
 from apps.api.routers.library.schema import (
     PublicLibraryAssetOut,

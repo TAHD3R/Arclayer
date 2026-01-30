@@ -1,3 +1,15 @@
 packages:
   - "apps/web/*"
   - "packages/*"
+  - "apps/api"
+
+# pnpm catalogs：用一个地方统一管理版本号，package.json 里用 `catalog:` 引用
+catalogs:
+  default:
+    "@types/node": "^24.10.1"
+    "@vitest/ui": "^4.0.18"
+    oxfmt: "^0.26.0"
+    oxlint: "^1.41.0"
+    turbo: "^2.8.0"
+    typescript: "~5.9.3"
+    vitest: "^4.0.18"

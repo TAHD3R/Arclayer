@@ -14,7 +14,7 @@ from apps.api.core.organization.invitations import (
     generate_invite_token,
     hash_invite_token,
 )
-from apps.api.http.pagination import PageData, PageParams
+from apps.api.http_utils.pagination import PageData, PageParams
 from apps.api.models.invitation import OrganizationInvitation
 from apps.api.models.organization import MembershipStatus, Organization
 from apps.api.routers.v1.admin.team.repository import TeamRepository

@@ -5,7 +5,7 @@ from pathlib import Path
 
 from starlette.responses import Response, StreamingResponse
 
-from apps.api.http.range import parse_range_header
+from apps.api.http_utils.range import parse_range_header
 
 
 async def _iter_file_bytes(

@@ -12,7 +12,7 @@ from apps.api.core.exceptions import BadRequest, Conflict, Forbidden, NotFound, 
 from apps.api.core.i18n import get_current_locale, t
 from apps.api.core.organization.invitations import hash_invite_token
 from apps.api.core.organization.repository import OrganizationRepository
-from apps.api.http.response import Response, ResponseModel
+from apps.api.http_utils.response import Response, ResponseModel
 from apps.api.infra.cache.valkey import get_valkey
 from apps.api.infra.limiter.limiter import rate_limit
 from apps.api.models.invitation import OrganizationInvitation

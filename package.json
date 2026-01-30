@@ -2,27 +2,26 @@
   "name": "celestial-framework",
   "private": true,
   "scripts": {
-    "dev:admin": "pnpm --filter celestial-admin dev",
-    "build:admin": "pnpm --filter celestial-admin build",
-    "lint:admin": "pnpm --filter celestial-admin lint",
-    "fmt:admin": "pnpm --filter celestial-admin fmt",
-    "typecheck:admin": "pnpm --filter celestial-admin typecheck",
-    "test:admin": "pnpm --filter celestial-admin test:run",
-    "check:admin": "pnpm --filter celestial-admin check",
-    "dev:api": "UV_CACHE_DIR=.uv-cache uv run --project apps/api uvicorn apps.api.main:app --reload",
-    "lint:py": "UV_CACHE_DIR=.uv-cache uv run --project apps/api ruff check .",
-    "format:py": "UV_CACHE_DIR=.uv-cache uv run --project apps/api ruff format .",
-    "typecheck:py": "UV_CACHE_DIR=.uv-cache uv run --project apps/api pyright",
-    "test:py": "UV_CACHE_DIR=.uv-cache uv run --project apps/api pytest",
-    "test:py-integration": "RUN_INTEGRATION_TESTS=1 UV_CACHE_DIR=.uv-cache uv run --project apps/api pytest -m integration"
+    "dev": "turbo run dev --filter=@celestial/admin --filter=@celestial/api",
+    "build": "turbo run build --filter=@celestial/admin",
+    "check": "turbo run lint format typecheck test --filter=@celestial/admin --filter=@celestial/api",
+    "admin": "turbo run dev --filter=@celestial/admin",
+    "admin:build": "turbo run build --filter=@celestial/admin",
+    "admin:check": "turbo run lint format typecheck test --filter=@celestial/admin",
+    "api": "turbo run dev --filter=@celestial/api",
+    "api:test": "turbo run test --filter=@celestial/api",
+    "api:migrate": "turbo run db:migrate --filter=@celestial/api",
+    "api:upgrade": "turbo run db:upgrade --filter=@celestial/api",
+    "api:check": "turbo run lint format typecheck test --filter=@celestial/api"
   },
   "devDependencies": {
-    "@types/node": "^24.10.1",
-    "@vitest/ui": "^4.0.18",
-    "oxfmt": "^0.26.0",
-    "oxlint": "^1.41.0",
-    "typescript": "~5.9.3",
-    "vitest": "^4.0.18"
+    "@types/node": "catalog:",
+    "@vitest/ui": "catalog:",
+    "oxfmt": "catalog:",
+    "oxlint": "catalog:",
+    "turbo": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   },
-  "packageManager": "pnpm@9.0.0"
+  "packageManager": "pnpm@10.28.2"
 }

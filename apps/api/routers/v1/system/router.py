@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, Header, Request
 from apps.api.config import Settings, get_settings
 from apps.api.core.exceptions import Forbidden, ServiceUnavailable
 from apps.api.core.i18n import t
-from apps.api.http.response import Response, ResponseModel
+from apps.api.http_utils.response import Response, ResponseModel
 from apps.api.plugin.manager import PluginManager
 from apps.api.routers.v1.system.schema import SystemSetupRequest, SystemSetupResult, SystemSetupStatus
 from apps.api.routers.v1.system.service import SystemSetupService

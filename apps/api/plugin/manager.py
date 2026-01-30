@@ -570,7 +570,13 @@ class PluginManager:
             logger.warning("Plugin migration lock release failed", error=str(exc))
 
     async def _run_aerich(self, *args: str) -> None:
-        pyproject = self.project_root / "pyproject.toml"
+        # 约定：API 的运行期配置文件（例如 `.env`）放在 `apps/api` 目录下。
+        # Aerich 会在子进程中导入 `apps.api.infra.db.orm.TORTOISE_ORM`，其内部会调用 `get_settings()`。
+        # 因此这里把工作目录切到 `apps/api`，确保子进程与主进程读取同一份 `.env`，避免硬编码注入 DB 配置。
+        pyproject = self.project_root / "apps" / "api" / "pyproject.toml"
+        env = os.environ.copy()
+        # 在某些启动方式下（例如从 `apps/api` 作为 cwd 启动），需要确保 repo root 可导入 `apps.*`。
+        env.setdefault("PYTHONPATH", str(self.project_root))
         proc = await asyncio.create_subprocess_exec(
             sys.executable,
             "-m",
@@ -578,7 +584,8 @@ class PluginManager:
             "--config",
             str(pyproject),
             *args,
-            cwd=str(self.project_root),
+            cwd=str(pyproject.parent),
+            env=env,
             stdout=PIPE,
             stderr=PIPE,
         )

@@ -9,8 +9,8 @@ from apps.api.common.services import BaseService
 from apps.api.config import Settings
 from apps.api.core.exceptions import BadRequest, Conflict, NotFound
 from apps.api.core.i18n import t
-from apps.api.http.file_stream import stream_file_response
-from apps.api.http.pagination import PageData, PageParams
+from apps.api.http_utils.file_stream import stream_file_response
+from apps.api.http_utils.pagination import PageData, PageParams
 from apps.api.infra.storage.local import safe_object_key_to_path
 from apps.api.models.user import User
 from apps.api.routers.v1.admin.assets.repository import AdminAssetsRepository

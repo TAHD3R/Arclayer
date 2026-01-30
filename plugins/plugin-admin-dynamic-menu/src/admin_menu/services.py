@@ -11,7 +11,7 @@ from apps.api.config import get_settings
 from apps.api.core.authz import get_authz_snapshot_provider
 from apps.api.core.exceptions import BadRequest, Conflict, NotFound, ServiceUnavailable
 from apps.api.core.i18n import t
-from apps.api.http.pagination import PageData, PageParams, paginate_queryset
+from apps.api.http_utils.pagination import PageData, PageParams, paginate_queryset
 from apps.api.routers.v1.admin.menus.schema import (
     AdminMenuCreateRequest,
     AdminMenuItemOut,

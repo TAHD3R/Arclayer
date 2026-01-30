@@ -9,7 +9,7 @@ from httpx import ASGITransport, AsyncClient
 
 @pytest.mark.asyncio
 async def test_stream_file_full_content(tmp_path: Path) -> None:
-    from apps.api.http.file_stream import stream_file_response
+    from apps.api.http_utils.file_stream import stream_file_response
 
     p = tmp_path / "demo.bin"
     p.write_bytes(b"0123456789")
@@ -31,7 +31,7 @@ async def test_stream_file_full_content(tmp_path: Path) -> None:
 
 @pytest.mark.asyncio
 async def test_stream_file_range_content(tmp_path: Path) -> None:
-    from apps.api.http.file_stream import stream_file_response
+    from apps.api.http_utils.file_stream import stream_file_response
 
     p = tmp_path / "demo.bin"
     p.write_bytes(b"0123456789")
@@ -54,7 +54,7 @@ async def test_stream_file_range_content(tmp_path: Path) -> None:
 
 @pytest.mark.asyncio
 async def test_stream_file_invalid_range_returns_416(tmp_path: Path) -> None:
-    from apps.api.http.file_stream import stream_file_response
+    from apps.api.http_utils.file_stream import stream_file_response
 
     p = tmp_path / "demo.bin"
     p.write_bytes(b"0123456789")
@@ -75,7 +75,7 @@ async def test_stream_file_invalid_range_returns_416(tmp_path: Path) -> None:
 
 @pytest.mark.asyncio
 async def test_stream_file_supports_extra_headers(tmp_path: Path) -> None:
-    from apps.api.http.file_stream import stream_file_response
+    from apps.api.http_utils.file_stream import stream_file_response
 
     p = tmp_path / "demo.bin"
     p.write_bytes(b"0123456789")
