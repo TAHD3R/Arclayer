@@ -6,14 +6,12 @@ from uuid import UUID, uuid4
 
 import jwt
 
+from apps.api.common.constants.auth import TOKEN_TYPE_ACCESS, TOKEN_TYPE_REFRESH
 from apps.api.common.utils.passwords import hash_password as _hash_password
 from apps.api.common.utils.passwords import verify_password as _verify_password
 from apps.api.config import AuthSettings
 from apps.api.core.exceptions import ServiceUnavailable, Unauthorized
 from apps.api.core.i18n import t
-
-TOKEN_TYPE_ACCESS = "access"
-TOKEN_TYPE_REFRESH = "refresh"
 
 
 def _now() -> datetime:

@@ -8,14 +8,12 @@ from datetime import UTC, datetime
 
 from fastapi import FastAPI
 
+from apps.api.common.constants.plugin import RESTART_EPOCH_KEY, RESTART_INFO_KEY
 from apps.api.config import Settings
 from apps.api.core.logging import get_logger
 from apps.api.infra.cache.valkey import ValkeyClient
 
 logger = get_logger(__name__)
-
-RESTART_EPOCH_KEY = "plugin:restart:epoch"
-RESTART_INFO_KEY = "plugin:restart:info"
 
 
 def _parse_epoch(value: str | bytes | None) -> int:

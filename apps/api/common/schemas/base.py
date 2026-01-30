@@ -25,13 +25,13 @@ class BaseSchema(BaseModel):
     )
 
 
-class IdMixin(BaseModel):
+class IdMixin(BaseSchema):
     """Mixin that provides an `id` field."""
 
     id: UUID = Field(..., description="ID")
 
 
-class TimestampMixin(BaseModel):
+class TimestampMixin(BaseSchema):
     """Mixin that provides created/updated timestamps."""
 
     created_at: datetime = Field(..., description="Created at.")
@@ -51,13 +51,13 @@ class BaseOut(IdMixin, BaseSchema):
     )
 
 
-class BulkOperationSchema(BaseModel):
+class BulkOperationSchema(BaseSchema):
     """Bulk operation request schema."""
 
     ids: list[UUID] = Field(..., min_length=1, description="Target object ID list.")
 
 
-class BulkOperationResponseSchema(BaseModel):
+class BulkOperationResponseSchema(BaseSchema):
     """Bulk operation response schema."""
 
     total_count: int = Field(..., ge=0, description="Total items.")

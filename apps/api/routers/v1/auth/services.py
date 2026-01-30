@@ -86,7 +86,7 @@ class AuthService(BaseService):
         await self.user_repo.increment_token_version(user)
         store = self._require_refresh_store()
         await store.revoke_all(user.id)
-        self.logger.warning("检测到 Refresh Token 复用", user_id=str(user_id))
+        self.logger.warning("Refresh token reuse detected", user_id=str(user_id))
 
     async def login(self, *, identifier: str, password: str) -> TokenPair:
         store = self._require_refresh_store()

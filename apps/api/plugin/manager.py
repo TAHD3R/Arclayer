@@ -18,6 +18,7 @@ from packaging.version import InvalidVersion, Version
 from pydantic import ValidationError
 
 from apps.api.config import Settings
+from apps.api.common.constants.plugin import MIGRATION_LOCK_KEY, PROTECTED_PLUGINS
 from apps.api.core.i18n import register_locale_path
 from apps.api.core.logging import get_logger
 from apps.api.infra.cache.valkey import ValkeyClient
@@ -30,10 +31,6 @@ from apps.api.plugin.restart import request_restart
 from apps.api.plugin.types import BasePlugin, PluginDescriptor, PluginStatus
 
 logger = get_logger(__name__)
-
-MIGRATION_LOCK_KEY = "plugin:migrate:lock"
-# RBAC is now a core capability, so there are no protected plugins by default.
-PROTECTED_PLUGINS: frozenset[str] = frozenset()
 
 
 class PluginManager:

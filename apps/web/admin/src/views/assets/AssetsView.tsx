@@ -1,4 +1,4 @@
-import { Alert, Button, Input, Masonry, Select } from "antd";
+import { Alert, Button, Input, Masonry } from "antd";
 import { Plus, Search } from "lucide-react";
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 
 import { DefaultPage } from "@/components/app/defaultPage";
 import { LoaderOne } from "@/components/ui/loader";
+import { ChromeTabs, ChromeTabsList, ChromeTabsTrigger } from "@/components/ui/chrome-tabs";
 import {
   listAdminAssetFolders,
   listAdminAssetTags,
@@ -27,6 +28,12 @@ import {
   type AssetsFilters,
 } from "@/views/assets/components/AssetsFilterPopover";
 import { AssetUploadDialog } from "@/views/assets/components/AssetUploadDialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/animate-ui/components/radix/dropdown-menu";
 
 function buildSvgDataUrl({ hue, aspectRatio }: { hue: number; aspectRatio: number }): string {
   // Avoid network dependency for dev: render a simple SVG placeholder as a data URL.
@@ -160,6 +167,23 @@ export function AssetsView() {
   }));
   const [ordering, setOrdering] = useState<string>("-created_at");
 
+  const typeTabValue = useMemo(() => {
+    const mp = filters.mimePrefix;
+    if (!mp) return "all";
+    if (mp === "image/") return "image";
+    if (mp === "video/") return "video";
+    // Advanced types are represented by the "more" tab (its label changes dynamically).
+    return "more";
+  }, [filters.mimePrefix]);
+
+  const moreTabLabel = useMemo(() => {
+    const mp = filters.mimePrefix;
+    if (mp === "audio/") return t("assets:ASSET_FILTER_TYPE_AUDIO");
+    if (mp === "text/") return t("assets:ASSET_FILTER_TYPE_TEXT");
+    if (mp === "application/") return t("assets:ASSET_FILTER_TYPE_APP");
+    return t("assets:ASSET_TYPE_TAB_MORE");
+  }, [filters.mimePrefix, t]);
+
   const mockItems = useMemo(() => buildMockAssets(), []);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
@@ -281,6 +305,64 @@ export function AssetsView() {
       }
       extra={
         <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="min-w-0">
+            <ChromeTabs
+              value={typeTabValue}
+              onValueChange={(next) => {
+                if (next === "all") {
+                  setFilters((prev) => ({ ...prev, mimePrefix: undefined }));
+                  return;
+                }
+                if (next === "image") {
+                  setFilters((prev) => ({ ...prev, mimePrefix: "image/" }));
+                  return;
+                }
+                if (next === "video") {
+                  setFilters((prev) => ({ ...prev, mimePrefix: "video/" }));
+                  return;
+                }
+                // "more" is controlled via dropdown menu; clicking it should not change filters.
+              }}
+            >
+              <ChromeTabsList className="w-auto">
+                <ChromeTabsTrigger value="all">{t("assets:ASSET_TYPE_TAB_ALL")}</ChromeTabsTrigger>
+                <ChromeTabsTrigger value="image">
+                  {t("assets:ASSET_FILTER_TYPE_IMAGE")}
+                </ChromeTabsTrigger>
+                <ChromeTabsTrigger value="video">
+                  {t("assets:ASSET_FILTER_TYPE_VIDEO")}
+                </ChromeTabsTrigger>
+
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <ChromeTabsTrigger value="more" className="flex items-center gap-1">
+                      <span>{moreTabLabel}</span>
+                    </ChromeTabsTrigger>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start">
+                    <DropdownMenuItem
+                      onSelect={() => setFilters((prev) => ({ ...prev, mimePrefix: "audio/" }))}
+                    >
+                      {t("assets:ASSET_FILTER_TYPE_AUDIO")}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onSelect={() => setFilters((prev) => ({ ...prev, mimePrefix: "text/" }))}
+                    >
+                      {t("assets:ASSET_FILTER_TYPE_TEXT")}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onSelect={() =>
+                        setFilters((prev) => ({ ...prev, mimePrefix: "application/" }))
+                      }
+                    >
+                      {t("assets:ASSET_FILTER_TYPE_APP")}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </ChromeTabsList>
+            </ChromeTabs>
+          </div>
+
           <div className="flex flex-wrap items-center gap-2">
             <Input
               allowClear
@@ -293,23 +375,12 @@ export function AssetsView() {
             <AssetsFilterPopover
               value={filters}
               onChange={setFilters}
+              ordering={ordering}
+              onOrderingChange={setOrdering}
+              defaultOrdering="-created_at"
               folders={(foldersQuery.data?.items ?? []) as AdminAssetFolder[]}
               tags={(tagsQuery.data?.items ?? []) as AdminAssetTag[]}
               tagsLoading={tagsQuery.isLoading}
-            />
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Select
-              value={ordering}
-              style={{ width: 180 }}
-              onChange={setOrdering}
-              options={[
-                { label: t("assets:ASSET_SORT_NEWEST"), value: "-created_at" },
-                { label: t("assets:ASSET_SORT_OLDEST"), value: "created_at" },
-                { label: t("assets:ASSET_SORT_SIZE_LARGE"), value: "-size_bytes" },
-                { label: t("assets:ASSET_SORT_SIZE_SMALL"), value: "size_bytes" },
-              ]}
             />
           </div>
         </div>

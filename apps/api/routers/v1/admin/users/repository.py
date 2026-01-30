@@ -3,6 +3,7 @@ from __future__ import annotations
 from tortoise.expressions import Q
 from tortoise.queryset import QuerySet
 
+from apps.api.common.constants.users import ADMIN_USERS_ALLOWED_ORDER_FIELDS
 from apps.api.common.repositories import BaseRepository
 from apps.api.core.organization.context import get_current_org_id
 from apps.api.models.organization import MembershipStatus
@@ -54,14 +55,7 @@ class AdminUsersRepository(BaseRepository):
         return user
 
 
-_ALLOWED_ORDER_FIELDS = {
-    "created_at",
-    "updated_at",
-    "username",
-    "email",
-    "status",
-    "last_login_at",
-}
+_ALLOWED_ORDER_FIELDS = ADMIN_USERS_ALLOWED_ORDER_FIELDS
 
 
 def _normalize_ordering(value: str) -> list[str]:

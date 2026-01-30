@@ -16,7 +16,7 @@ SENSITIVE_KEYS = {
 
 
 def redact(obj: Any, max_len: int = 2048) -> Any:
-    """对 dict/list/标量做浅脱敏 + 体积限制。"""
+    """Shallow redaction for dict/list/scalars with a simple size cap."""
     try:
         if isinstance(obj, dict):
             return {k: ("***" if k.lower() in SENSITIVE_KEYS else redact(v)) for k, v in obj.items()}

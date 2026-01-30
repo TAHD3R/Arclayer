@@ -9,7 +9,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 
 from apps.api.core.http.response import Response as ResponseBuilder
-from apps.api.core.i18n import get_request_locale, localize_message
+from apps.api.core.i18n import get_request_locale, t
 
 
 class CSRFMiddleware(BaseHTTPMiddleware):
@@ -52,7 +52,7 @@ class CSRFMiddleware(BaseHTTPMiddleware):
         cookie_token = request.cookies.get(self.cookie_name)
         if not header_token or not cookie_token or header_token != cookie_token:
             locale = get_request_locale(request)
-            message = localize_message("CSRF 校验失败", error="CSRF_FAILED", locale=locale)
+            message = t("errors", "CSRF_FAILED", locale=locale, default="CSRF validation failed")
             payload = ResponseBuilder.fail(
                 message=message,
                 error="CSRF_FAILED",

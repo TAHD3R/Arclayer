@@ -2,10 +2,9 @@ from __future__ import annotations
 
 from typing import Protocol
 
+from apps.api.common.constants.storage import STORAGE_PROVIDER_FACTORY_EXTENSION_POINT
 from apps.api.config import Settings
 from apps.api.plugin.registry import ExtensionPointType, registry
-
-STORAGE_PROVIDER_FACTORY_EXTENSION_POINT = "storage-provider-factory"
 
 
 class StorageProvider(Protocol):

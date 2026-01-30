@@ -1,1 +1,1 @@
-"""插件系统入口。"""
+"""Plugin system entry point."""

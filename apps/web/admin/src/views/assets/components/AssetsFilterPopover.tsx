@@ -54,6 +54,9 @@ function buildFolderPathOptions(folders: AdminAssetFolder[]) {
 export function AssetsFilterPopover(props: {
   value: AssetsFilters;
   onChange: (next: AssetsFilters) => void;
+  ordering: string;
+  onOrderingChange: (next: string) => void;
+  defaultOrdering?: string;
   folders: AdminAssetFolder[];
   tags: AdminAssetTag[];
   tagsLoading?: boolean;
@@ -68,18 +71,6 @@ export function AssetsFilterPopover(props: {
     }
   }, [props.value.createdFrom, props.value.createdTo]);
 
-  const mimeOptions = useMemo(
-    () => [
-      { label: t("assets:ASSET_FILTER_TYPE_ALL"), value: "all" },
-      { label: t("assets:ASSET_FILTER_TYPE_IMAGE"), value: "image/" },
-      { label: t("assets:ASSET_FILTER_TYPE_VIDEO"), value: "video/" },
-      { label: t("assets:ASSET_FILTER_TYPE_AUDIO"), value: "audio/" },
-      { label: t("assets:ASSET_FILTER_TYPE_TEXT"), value: "text/" },
-      { label: t("assets:ASSET_FILTER_TYPE_APP"), value: "application/" },
-    ],
-    [t],
-  );
-
   const visibilityOptions = useMemo(
     () => [
       { label: t("assets:ASSET_FILTER_VISIBILITY_ALL"), value: "all" },
@@ -93,28 +84,27 @@ export function AssetsFilterPopover(props: {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button
-          type="text"
-          icon={<Filter size={18} />}
-          title={t("assets:ASSET_FILTER_TITLE")}
-          style={{ width: 44, height: 44, paddingInline: 0 }}
-          className="!bg-transparent hover:!bg-accent/40"
-        />
+        <Button icon={<Filter size={18} />} title={t("assets:ASSET_FILTER_TITLE")}>
+          {t("assets:ASSET_FILTER_TITLE")}
+        </Button>
       </PopoverTrigger>
 
-      <PopoverContent align="start" sideOffset={8} className="w-90 p-3">
+      <PopoverContent align="end" sideOffset={8} className="w-90 p-3">
         <div className="font-bold">{t("assets:ASSET_FILTER_TITLE")}</div>
         <div className="mt-3 grid grid-cols-1 gap-3">
           <div className="grid grid-cols-1 gap-1.5">
             <div className="text-sm text-muted-foreground">
-              {t("assets:ASSET_FILTER_FIELD_TYPE")}
+              {t("assets:ASSET_FILTER_FIELD_SORT")}
             </div>
             <Select
-              value={props.value.mimePrefix ?? "all"}
-              onChange={(v) =>
-                props.onChange({ ...props.value, mimePrefix: v === "all" ? undefined : v })
-              }
-              options={mimeOptions}
+              value={props.ordering}
+              onChange={props.onOrderingChange}
+              options={[
+                { label: t("assets:ASSET_SORT_NEWEST"), value: "-created_at" },
+                { label: t("assets:ASSET_SORT_OLDEST"), value: "created_at" },
+                { label: t("assets:ASSET_SORT_SIZE_LARGE"), value: "-size_bytes" },
+                { label: t("assets:ASSET_SORT_SIZE_SMALL"), value: "size_bytes" },
+              ]}
             />
           </div>
 
@@ -194,16 +184,16 @@ export function AssetsFilterPopover(props: {
 
         <div className="mt-4 flex items-center justify-between">
           <Button
-            onClick={() =>
+            onClick={() => {
               props.onChange({
-                mimePrefix: undefined,
                 folderId: undefined,
                 visibility: undefined,
                 createdFrom: undefined,
                 createdTo: undefined,
                 tagIds: [],
-              })
-            }
+              });
+              props.onOrderingChange(props.defaultOrdering ?? "-created_at");
+            }}
           >
             {t("assets:ASSET_FILTER_RESET")}
           </Button>

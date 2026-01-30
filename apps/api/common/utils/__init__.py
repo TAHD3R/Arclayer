@@ -1,4 +1,4 @@
-"""常用工具函数。"""
+"""Common utility functions."""
 
 from apps.api.common.utils.passwords import hash_password, verify_password
 from apps.api.common.utils.redact import SENSITIVE_KEYS, redact

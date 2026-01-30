@@ -5,6 +5,7 @@ from uuid import UUID
 from tortoise.expressions import Q
 from tortoise.queryset import QuerySet
 
+from apps.api.common.constants.assets import PUBLIC_LIBRARY_ASSET_ALLOWED_ORDER_FIELDS
 from apps.api.common.repositories import BaseRepository
 from apps.api.models.asset import AssetPurpose, AssetRecord, AssetVisibility
 from apps.api.models.organization import Organization
@@ -49,7 +50,7 @@ class PublicLibraryRepository(BaseRepository):
         return qs
 
 
-_ALLOWED_ORDER_FIELDS = {"created_at", "updated_at", "size_bytes"}
+_ALLOWED_ORDER_FIELDS = PUBLIC_LIBRARY_ASSET_ALLOWED_ORDER_FIELDS
 
 
 def _normalize_ordering(value: str) -> list[str]:

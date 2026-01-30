@@ -5,6 +5,7 @@ from uuid import UUID
 from tortoise.expressions import Q
 from tortoise.queryset import QuerySet
 
+from apps.api.common.constants.assets import ADMIN_ASSET_ALLOWED_ORDER_FIELDS
 from apps.api.common.repositories import BaseRepository
 from apps.api.models.asset import AssetRecord
 from apps.api.models.asset_folder import AssetFolderRecord
@@ -165,13 +166,7 @@ class AdminAssetsRepository(BaseRepository):
         return asset
 
 
-_ALLOWED_ASSET_ORDER_FIELDS = {
-    "created_at",
-    "updated_at",
-    "size_bytes",
-    "purpose",
-    "visibility",
-}
+_ALLOWED_ASSET_ORDER_FIELDS = ADMIN_ASSET_ALLOWED_ORDER_FIELDS
 
 
 def _normalize_asset_ordering(value: str) -> list[str]:

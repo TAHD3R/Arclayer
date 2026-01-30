@@ -69,7 +69,6 @@ def generate_image_thumbnails(
             if orig_w <= 0 or orig_h <= 0:
                 continue
 
-            # Avoid upscaling.
             target_w = min(w, orig_w)
             target_h = max(1, int(round(orig_h * (target_w / orig_w))))
 
@@ -91,7 +90,6 @@ def generate_image_thumbnails(
 
             _ensure_parent_dir(out_path)
 
-            # Resize
             resized = img.copy()
             resized.thumbnail((target_w, target_h), resample=Image.Resampling.LANCZOS)
 

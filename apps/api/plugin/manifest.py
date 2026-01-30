@@ -4,16 +4,18 @@ from pathlib import Path
 from typing import Any
 
 import tomllib
-from pydantic import BaseModel, Field
+from pydantic import Field
+
+from apps.api.common.schemas import BaseSchema
 
 
-class PluginDependency(BaseModel):
+class PluginDependency(BaseSchema):
     id: str = Field(..., description="Dependency plugin identifier.")
     version: str | None = Field(default=None, description="Dependency version specifier (PEP 440).")
     optional: bool = Field(default=False, description="Whether this dependency is optional.")
 
 
-class PermissionTemplate(BaseModel):
+class PermissionTemplate(BaseSchema):
     code: str
     name: str
     description: str | None = None
@@ -22,7 +24,7 @@ class PermissionTemplate(BaseModel):
     default_roles: list[str] = Field(default_factory=list)
 
 
-class ConfigField(BaseModel):
+class ConfigField(BaseSchema):
     key: str
     type: str
     default: Any | None = None
@@ -34,18 +36,18 @@ class ConfigField(BaseModel):
     description_i18n: str | None = None
 
 
-class ConfigSection(BaseModel):
+class ConfigSection(BaseSchema):
     id: str
     title: str
     title_i18n: str | None = None
     fields: list[ConfigField] = Field(default_factory=list)
 
 
-class ConfigSchema(BaseModel):
+class ConfigSchema(BaseSchema):
     sections: list[ConfigSection] = Field(default_factory=list)
 
 
-class PluginMeta(BaseModel):
+class PluginMeta(BaseSchema):
     id: str
     slug: str = Field(
         ...,
@@ -66,7 +68,7 @@ class PluginMeta(BaseModel):
     license: str | None = None
 
 
-class PluginManifest(BaseModel):
+class PluginManifest(BaseSchema):
     plugin: PluginMeta
     dependencies: list[PluginDependency] = Field(default_factory=list)
     permissions: list[PermissionTemplate] = Field(default_factory=list)

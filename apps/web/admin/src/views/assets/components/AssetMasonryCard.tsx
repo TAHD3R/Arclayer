@@ -24,7 +24,6 @@ import {
   patchAdminAsset,
   type AdminAssetTag,
 } from "@/api/assets";
-import { listAdminAssetUsages, type AdminAssetUsage } from "@/api/asset-usages";
 import {
   Accordion,
   AccordionContent,
@@ -536,38 +535,6 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
     retry: 1,
   });
 
-  const usagesQuery = useQuery({
-    queryKey: ["assets", "usages", active?.id],
-    queryFn: async () => {
-      if (!active?.id) throw new Error("missing asset id");
-      return listAdminAssetUsages({ assetId: active.id });
-    },
-    enabled: Boolean(active?.id),
-    staleTime: 30 * 1000,
-    retry: 1,
-  });
-
-  const usageRows = useMemo(() => {
-    const rows = usagesQuery.data?.items || [];
-    // 先展示 core.settings 这类高价值引用点（后续可扩展到文章/插件/主题等）。
-    const score = (u: AdminAssetUsage) => {
-      if (u.entityType === "core.settings") return 0;
-      return 1;
-    };
-    return [...rows].sort((a, b) => score(a) - score(b));
-  }, [usagesQuery.data]);
-
-  const formatUsageTitle = (u: AdminAssetUsage) => {
-    if (u.entityType === "core.settings") {
-      if (u.fieldKey === "site.logo") return t("assets:ASSET_USAGE_SITE_LOGO");
-      if (u.fieldKey === "site.favicon") return t("assets:ASSET_USAGE_SITE_FAVICON");
-      if (u.fieldKey === "site.avatar_placeholder")
-        return t("assets:ASSET_USAGE_SITE_AVATAR_PLACEHOLDER");
-      return `${t("assets:ASSET_USAGE_SETTINGS")}: ${u.fieldKey}`;
-    }
-    return `${u.entityType}: ${u.fieldKey}`;
-  };
-
   const initializedIdRef = useRef<string | null>(null);
   const dirtyRef = useRef<{ description: boolean; tags: boolean }>({
     description: false,
@@ -972,40 +939,9 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
                 <div className="mt-5 rounded-lg">
                   <Accordion
                     type="multiple"
-                    defaultValue={["meta", "usages"]}
+                    defaultValue={["meta"]}
                     className="border-t border-border/60"
                   >
-                    <AccordionItem value="usages">
-                      <AccordionTrigger className="py-3">
-                        {t("assets:ASSET_USAGES_TITLE")}
-                      </AccordionTrigger>
-                      <AccordionContent>
-                        {usagesQuery.isLoading ? (
-                          <div className="text-sm text-muted-foreground">
-                            {t("assets:ASSET_USAGES_LOADING")}
-                          </div>
-                        ) : usageRows.length === 0 ? (
-                          <div className="text-sm text-muted-foreground">
-                            {t("assets:ASSET_USAGES_EMPTY")}
-                          </div>
-                        ) : (
-                          <div className="space-y-2">
-                            {usageRows.map((u) => (
-                              <div
-                                key={u.id}
-                                className="rounded-md border border-border/60 bg-background px-3 py-2"
-                              >
-                                <div className="text-sm font-medium">{formatUsageTitle(u)}</div>
-                                <div className="mt-0.5 text-xs text-muted-foreground">
-                                  {t("assets:ASSET_USAGE_ENTITY")}: {u.entityType} / {u.entityId}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </AccordionContent>
-                    </AccordionItem>
-
                     <AccordionItem value="meta">
                       <AccordionTrigger className="py-3">
                         {t("assets:ASSET_META_TITLE")}
@@ -1253,11 +1189,6 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
             </AlertDialogTitle>
             <AlertDialogDescription className="text-base">
               {t("assets:ASSET_DELETE_CONFIRM_DESC")}
-              {usageRows.length ? (
-                <div className="mt-2 text-sm text-muted-foreground">
-                  {t("assets:ASSET_DELETE_AFFECTS_REFERENCES", { count: usageRows.length })}
-                </div>
-              ) : null}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

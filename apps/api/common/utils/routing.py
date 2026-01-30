@@ -5,7 +5,7 @@ from fastapi.routing import APIRoute
 
 
 def ensure_unique_route_names(app: FastAPI) -> None:
-    """检查路由名称是否唯一。"""
+    """Validate route name uniqueness (helps client generation and OpenAPI stability)."""
     temp_routes = set()
     for route in app.routes:
         if isinstance(route, APIRoute):
@@ -15,7 +15,7 @@ def ensure_unique_route_names(app: FastAPI) -> None:
 
 
 def simplify_operation_ids(app: FastAPI) -> None:
-    """简化操作 ID，以便生成的客户端具有更简单的 API 函数名称。"""
+    """Simplify operation IDs so generated clients have more ergonomic function names."""
     for route in app.routes:
         if isinstance(route, APIRoute):
             route.operation_id = route.name
