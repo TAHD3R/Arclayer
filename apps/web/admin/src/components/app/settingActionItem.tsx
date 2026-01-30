@@ -13,6 +13,14 @@ export type SettingActionItemProps = {
   disabled?: boolean;
   onTrigger?: () => void;
   className?: string;
+  /** 标题列宽度（px）。默认 240，适用于设置页；在“链接/复制”类场景可以调小。 */
+  titleColumnWidth?: number;
+  /** 右侧箭头是否显示（默认显示）。在“点击复制”类场景可隐藏以节省空间。 */
+  showChevron?: boolean;
+  /** 覆盖 summary 区域样式（默认是 16px + 半粗）。 */
+  summaryClassName?: string;
+  /** 覆盖 title 文案样式。 */
+  titleClassName?: string;
 };
 
 function normalizeDescription(desc: Description): ReactNode {
@@ -37,12 +45,21 @@ function normalizeDescription(desc: Description): ReactNode {
 export function SettingActionItem(props: SettingActionItemProps) {
   const [hovered, setHovered] = useState(false);
   const desc = useMemo(() => normalizeDescription(props.description), [props.description]);
+  const titleColumnWidth = props.titleColumnWidth ?? 240;
+  const showChevron = props.showChevron ?? true;
 
   const summaryNode =
     props.summary !== undefined && props.summary !== null ? (
-      <div className="text-[16px] font-semibold leading-snug text-foreground">{props.summary}</div>
+      <div
+        className={cn(
+          "text-[16px] font-semibold leading-snug text-foreground",
+          props.summaryClassName,
+        )}
+      >
+        {props.summary}
+      </div>
     ) : (
-      <div className="text-[16px] leading-snug text-muted-foreground">
+      <div className={cn("text-[16px] leading-snug text-muted-foreground", props.summaryClassName)}>
         {props.placeholder ?? "-"}
       </div>
     );
@@ -64,15 +81,26 @@ export function SettingActionItem(props: SettingActionItemProps) {
         props.className,
       )}
     >
-      <div className="grid grid-cols-[240px_1fr_auto] items-start gap-4 px-4 py-4">
-        <div className="text-[16px] font-medium leading-snug">{props.title}</div>
+      <div
+        className="grid items-start gap-4 px-4 py-4"
+        style={{
+          gridTemplateColumns: showChevron
+            ? `${titleColumnWidth}px 1fr auto`
+            : `${titleColumnWidth}px 1fr`,
+        }}
+      >
+        <div className={cn("text-[16px] font-medium leading-snug", props.titleClassName)}>
+          {props.title}
+        </div>
         <div className="min-w-0">
           {summaryNode}
           {desc ? <div className="mt-1 text-[16px] text-muted-foreground">{desc}</div> : null}
         </div>
-        <div className="pt-1 text-muted-foreground">
-          <ChevronRightIcon size={18} strokeWidth={2} isHovered={hovered} />
-        </div>
+        {showChevron ? (
+          <div className="pt-1 text-muted-foreground">
+            <ChevronRightIcon size={18} strokeWidth={2} isHovered={hovered} />
+          </div>
+        ) : null}
       </div>
     </button>
   );

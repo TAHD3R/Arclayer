@@ -135,9 +135,16 @@ async def test_uploads_resumable_flow(prepared_db, plugin_root, tmp_path: Path, 
                 assert complete2.status_code == 200
                 assert complete2.json()["data"]["assetId"] == asset_id
 
-            # Verify file content on disk (local provider).
+            # Verify the created asset records uploader.
             from uuid import UUID
 
+            from apps.api.models.asset import AssetRecord
+
+            asset = await AssetRecord.get_or_none(id=UUID(asset_id))
+            assert asset is not None
+            assert asset.owner_user_id == user.id
+
+            # Verify file content on disk (local provider).
             from apps.api.common.utils.assets import build_asset_object_key
             from apps.api.infra.storage.local import safe_object_key_to_path
 

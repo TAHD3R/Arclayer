@@ -15,6 +15,8 @@ export type AdminAssetSummary = {
   purpose: string;
   visibility: "public" | "private" | "shared" | string;
   indexable: boolean;
+  ownerUserId?: string | null;
+  uploaderName?: string | null;
   title?: string | null;
   slug?: string | null;
   originalFilename?: string | null;
@@ -133,4 +135,13 @@ export async function patchAdminAsset(
   payload: PatchAdminAssetPayload,
 ): Promise<AdminAssetDetail> {
   return api.patch<AdminAssetDetail>(`/admin/assets/${assetId}`, payload);
+}
+
+export type AdminAssetDeleteOut = {
+  id: string;
+  deletedAt: string;
+};
+
+export async function deleteAdminAsset(assetId: string): Promise<AdminAssetDeleteOut> {
+  return api.delete<AdminAssetDeleteOut>(`/admin/assets/${assetId}`);
 }

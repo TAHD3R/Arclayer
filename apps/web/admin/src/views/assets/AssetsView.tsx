@@ -21,6 +21,7 @@ import {
   AssetPreviewSheet,
   type AssetMasonryItem,
 } from "@/views/assets/components/AssetMasonryCard";
+import { resolvePublicAssetUrlPath } from "@/views/assets/utils/assetUrls";
 import {
   AssetsFilterPopover,
   type AssetsFilters,
@@ -81,29 +82,41 @@ function formatBytes(bytes: number | undefined | null): string | undefined {
   return `${n} ${units[idx]}`;
 }
 
-function toMasonryItem(asset: AdminAssetSummary): AssetMasonryItem {
+function toMasonryItem(
+  asset: AdminAssetSummary,
+  opts?: { aspectRatioOverride?: number },
+): AssetMasonryItem {
   const name =
     asset.originalFilename?.trim() ||
     asset.title?.trim() ||
     (asset.slug && asset.ext ? `${asset.slug}.${asset.ext}` : asset.id);
 
   // Prefer thumbnails for waterfall view to save bandwidth.
+  // 注意：public `/assets/*` 在 dev 下不应再通过 Vite 代理；这里直接拼出后端绝对 URL。
+  // 重要：不要使用后端拼出来的“真实文件名链接”，统一走 canonical 路由：
+  // - /assets/<id>（后端会 301 到 /assets/<id>/<slug>.<ext>）
+  // - /assets/<id>/thumb?w=xxx
+  const canonicalPublicPath = `/assets/${asset.id}`;
+  const canonicalThumbBasePath = `/assets/${asset.id}/thumb`;
+  const canonicalDownloadPath = `/assets/${asset.id}/download`;
+
+  const thumbBaseUrl = resolvePublicAssetUrlPath(canonicalThumbBasePath);
+  const publicUrl =
+    asset.visibility === "public" ? resolvePublicAssetUrlPath(canonicalPublicPath) : undefined;
+  const previewUrl = thumbBaseUrl ? `${thumbBaseUrl}?w=400` : publicUrl;
+  const downloadUrl =
+    asset.visibility === "public" ? resolvePublicAssetUrlPath(canonicalDownloadPath) : undefined;
+
+  // Admin content endpoint 走 apiPrefix（可能依赖 Vite proxy 绕过 CORS），所以这里只拼 apiBaseUrl。
   const { apiBaseUrl } = getAppConfig();
-  const joinBase = (path: string) => {
-    if (!path) return path;
-    if (!apiBaseUrl) return path;
-    const base = apiBaseUrl.endsWith("/") ? apiBaseUrl.slice(0, -1) : apiBaseUrl;
+  const joinApiBaseUrl = (path: string) => {
+    const b = (apiBaseUrl || "").trim();
+    if (!b) return path;
+    const base = b.endsWith("/") ? b.slice(0, -1) : b;
     const p = path.startsWith("/") ? path : `/${path}`;
     return `${base}${p}`;
   };
-
-  const thumbBaseUrl = asset.publicThumbUrlPath ? joinBase(asset.publicThumbUrlPath) : undefined;
-  const publicUrl = asset.publicUrlPath ? joinBase(asset.publicUrlPath) : undefined;
-  const previewUrl = thumbBaseUrl ? `${thumbBaseUrl}?w=320` : publicUrl;
-  const downloadUrl = asset.publicDownloadUrlPath
-    ? joinBase(asset.publicDownloadUrlPath)
-    : undefined;
-  const contentUrl = asset.contentUrlPath ? joinBase(asset.contentUrlPath) : undefined;
+  const contentUrl = asset.contentUrlPath ? joinApiBaseUrl(asset.contentUrlPath) : undefined;
 
   return {
     id: asset.id,
@@ -123,6 +136,8 @@ function toMasonryItem(asset: AdminAssetSummary): AssetMasonryItem {
     publicUrl,
     downloadUrl,
     contentUrl,
+    uploaderName: asset.uploaderName || undefined,
+    aspectRatio: opts?.aspectRatioOverride,
   };
 }
 
@@ -132,6 +147,8 @@ export function AssetsView() {
   const [active, setActive] = useState<AssetMasonryItem | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [uploadOpen, setUploadOpen] = useState(false);
+  const aspectRatioRef = useRef<Map<string, number>>(new Map());
+  const [layoutTick, forceLayoutTick] = useState(0);
 
   // Search / filters / ordering
   const [searchInput, setSearchInput] = useState("");
@@ -228,9 +245,11 @@ export function AssetsView() {
   const items = useMemo<AssetMasonryItem[]>(() => {
     if (!assetsQuery.data) return mockItems;
     const rows = assetsQuery.data.pages.flatMap((p) => p.items);
-    const mapped = rows.map(toMasonryItem);
+    const mapped = rows.map((row) =>
+      toMasonryItem(row, { aspectRatioOverride: aspectRatioRef.current.get(row.id) }),
+    );
     return mapped.length ? mapped : [];
-  }, [assetsQuery.data, mockItems]);
+  }, [assetsQuery.data, mockItems, layoutTick]);
 
   useEffect(() => {
     const el = sentinelRef.current;
@@ -327,6 +346,7 @@ export function AssetsView() {
         <Masonry
           gutter={[16, 16]}
           columns={{ xs: 1, sm: 2, md: 3 }}
+          fresh
           items={items.map((it) => ({ key: it.id, data: it }))}
           itemRender={(info) => (
             <AssetMasonryTile
@@ -339,6 +359,14 @@ export function AssetsView() {
                   else next.add(id);
                   return next;
                 });
+              }}
+              onAspectRatio={(id, ar) => {
+                const safe = Number.isFinite(ar) && ar > 0.05 ? ar : 4 / 3;
+                const prev = aspectRatioRef.current.get(id);
+                if (prev && Math.abs(prev - safe) < 0.02) return;
+                aspectRatioRef.current.set(id, safe);
+                // 触发重新渲染，让 `toMasonryItem` 读到最新 aspectRatio。
+                forceLayoutTick((v) => v + 1);
               }}
               onOpen={setActive}
             />

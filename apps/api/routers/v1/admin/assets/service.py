@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import mimetypes
+from datetime import UTC, datetime
+from math import ceil
 from uuid import UUID
 
 from apps.api.common.services import BaseService
@@ -8,10 +10,12 @@ from apps.api.config import Settings
 from apps.api.core.exceptions import BadRequest, Conflict, NotFound
 from apps.api.core.i18n import t
 from apps.api.http.file_stream import stream_file_response
-from apps.api.http.pagination import PageData, PageParams, paginate_queryset
+from apps.api.http.pagination import PageData, PageParams
 from apps.api.infra.storage.local import safe_object_key_to_path
+from apps.api.models.user import User
 from apps.api.routers.v1.admin.assets.repository import AdminAssetsRepository
 from apps.api.routers.v1.admin.assets.schema import (
+    AdminAssetDeleteOut,
     AdminAssetDetailOut,
     AdminAssetFolderCreateRequest,
     AdminAssetFolderOut,
@@ -41,7 +45,50 @@ class AdminAssetsService(BaseService):
         if filters.folder_id is not None and bool(filters.include_children):
             folder_ids = await self.repo.collect_descendant_folder_ids(org_id=org_id, root_folder_id=filters.folder_id)
         qs = self.repo.query_assets(org_id=org_id, filters=filters, folder_ids=folder_ids)
-        return await paginate_queryset(qs, params=params, out_schema=AdminAssetSummaryOut)
+        # We implement pagination here (instead of paginate_queryset) so we can enrich uploader info
+        # without changing the shared pagination utility.
+        total = int(await qs.count())
+        pages = ceil(total / params.size) if params.size else 0
+
+        if total == 0 or params.page > pages:
+            items: list[AdminAssetSummaryOut] = []
+        else:
+            rows = await qs.limit(params.limit).offset(params.offset)
+            items = [AdminAssetSummaryOut.model_validate(r, from_attributes=True) for r in rows]
+
+            # Best-effort uploader name (avoid N+1; load all users for current page in one query).
+            user_ids = {x.owner_user_id for x in items if x.owner_user_id is not None}
+            if user_ids:
+                users = await User.filter(id__in=list(user_ids)).values("id", "username", "display_name")
+                id_to_name: dict[UUID, str] = {}
+                for u in users:
+                    uid = u.get("id")
+                    if uid is None:
+                        continue
+                    name = (u.get("display_name") or u.get("username") or "") if isinstance(u, dict) else ""
+                    if isinstance(name, str) and name.strip():
+                        id_to_name[uid] = name.strip()
+                for out in items:
+                    if out.owner_user_id is None:
+                        continue
+                    out.uploader_name = id_to_name.get(out.owner_user_id)
+
+        next_page: int | None = None
+        prev_page: int | None = None
+        if pages > 0:
+            if params.page < pages:
+                next_page = params.page + 1
+            if params.page > 1:
+                prev_page = min(params.page - 1, pages)
+        return PageData[AdminAssetSummaryOut](
+            items=items,
+            total=total,
+            page=params.page,
+            size=params.size,
+            pages=pages,
+            next=next_page,
+            prev=prev_page,
+        )
 
     async def list_folders(self, *, org_id: UUID) -> list[AdminAssetFolderOut]:
         rows = await self.repo.query_folders(org_id=org_id)
@@ -70,6 +117,10 @@ class AdminAssetsService(BaseService):
             raise NotFound(message=_ts("ASSET_NOT_FOUND", "资源不存在"), error="ASSET_NOT_FOUND")
 
         detail = AdminAssetDetailOut.model_validate(asset, from_attributes=True)
+        if detail.owner_user_id is not None:
+            user = await User.get_or_none(id=detail.owner_user_id)
+            if user is not None:
+                detail.uploader_name = (user.display_name or user.username or None) if user else None
         meta = asset.meta if isinstance(asset.meta, dict) else {}
         desc = meta.get("description") if isinstance(meta, dict) else None
         detail.description = desc if isinstance(desc, str) else None
@@ -118,6 +169,17 @@ class AdminAssetsService(BaseService):
 
         # Reload to ensure tag_links/meta reflect latest state.
         return await self.get_asset_detail(org_id=org_id, asset_id=asset.id)
+
+    async def delete_asset(self, *, org_id: UUID, asset_id: UUID) -> AdminAssetDeleteOut:
+        asset = await self.repo.get_asset(org_id=org_id, asset_id=asset_id)
+        if asset is None:
+            raise NotFound(message=_ts("ASSET_NOT_FOUND", "资源不存在"), error="ASSET_NOT_FOUND")
+
+        if asset.deleted_at is None:
+            asset.deleted_at = datetime.now(tz=UTC)
+            await asset.save(update_fields=["deleted_at", "updated_at"])
+
+        return AdminAssetDeleteOut(id=asset.id, deleted_at=asset.deleted_at)
 
     async def create_folder(self, *, org_id: UUID, payload: AdminAssetFolderCreateRequest) -> AdminAssetFolderOut:
         name = payload.name.strip()

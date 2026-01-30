@@ -311,8 +311,8 @@ export function AssetUploadDialog(props: {
         showCloseButton
         className={cn("p-0 overflow-hidden", "max-w-[min(920px,calc(100vw-2rem))]")}
       >
-        <DialogHeader className="px-5 pt-5 border-b">
-          <DialogTitle>{t("assets:ASSET_UPLOAD_DIALOG_TITLE")}</DialogTitle>
+        <DialogHeader className="px-5 pt-4 pb-2 border-b">
+          <DialogTitle className="font-bold!">{t("assets:ASSET_UPLOAD_DIALOG_TITLE")}</DialogTitle>
         </DialogHeader>
 
         <div className="px-5 pt-4">
@@ -348,14 +348,10 @@ export function AssetUploadDialog(props: {
         </div>
 
         <div className="px-5 pt-4 pb-5">
-          <div className="font-bold">{t("assets:ASSET_UPLOAD_LIST_TITLE")}</div>
+          <div className="font-semibold">{t("assets:ASSET_UPLOAD_LIST_TITLE")}</div>
 
           <div
-            className={cn(
-              "mt-3 rounded-xl border border-border/60",
-              "max-h-80 overflow-auto",
-              items.length ? "bg-background" : "bg-muted/20",
-            )}
+            className={cn("max-h-80 overflow-auto", items.length ? "bg-background" : "bg-muted/20")}
           >
             {items.length ? (
               <div className="divide-y">

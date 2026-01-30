@@ -38,8 +38,10 @@ export function SettingDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className={cn("p-0", contentClassName)}>
         <DialogHeader className="px-6 pt-4 border-b">
-          <DialogTitle>{title}</DialogTitle>
-          {description ? <DialogDescription>{description}</DialogDescription> : null}
+          <DialogTitle className="font-bold!">{title}</DialogTitle>
+          {description ? (
+            <DialogDescription className="text-[16px]">{description}</DialogDescription>
+          ) : null}
         </DialogHeader>
 
         <div className="px-6 py-4">{children}</div>

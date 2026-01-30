@@ -32,6 +32,8 @@ class AdminAssetListQuery(BaseSchema):
 
 
 class AdminAssetSummaryOut(BaseOut):
+    owner_user_id: UUID | None = Field(default=None, description="Uploader (owner) user id.")
+    uploader_name: str | None = Field(default=None, description="Uploader display name (best-effort).")
     purpose: str = Field(..., description="Asset purpose.")
     visibility: str = Field(..., description="Asset visibility.")
     indexable: bool = Field(..., description="Whether the asset is indexable.")
@@ -113,3 +115,8 @@ class AdminAssetTagOut(BaseOut):
 class AdminAssetDetailOut(AdminAssetSummaryOut):
     description: str | None = Field(default=None, description="User-facing description (from asset.meta).")
     tags: list[AdminAssetTagOut] = Field(default_factory=list, description="Attached tags.")
+
+
+class AdminAssetDeleteOut(BaseSchema):
+    id: UUID = Field(..., description="Asset id.")
+    deleted_at: datetime = Field(..., description="Deleted timestamp.")

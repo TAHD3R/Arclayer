@@ -11,6 +11,7 @@ from apps.api.http.pagination import PageData, PageParams, get_page_params
 from apps.api.http.response import Response as JsonResponse
 from apps.api.http.response import ResponseModel
 from apps.api.routers.v1.admin.assets.schema import (
+    AdminAssetDeleteOut,
     AdminAssetDetailOut,
     AdminAssetFolderCreateRequest,
     AdminAssetFolderOut,
@@ -97,6 +98,17 @@ async def patch_asset(
 ) -> ResponseModel[AdminAssetDetailOut]:
     updated = await service.update_asset(org_id=org_id, asset_id=asset_id, payload=payload)
     return JsonResponse.success(data=updated)
+
+
+@router.delete("/assets/{asset_id}", response_model=ResponseModel[AdminAssetDeleteOut])
+async def delete_asset(
+    asset_id: UUID,
+    org_id: UUID = Depends(get_current_org_id),
+    _user=Depends(get_current_user),
+    service: AdminAssetsService = Depends(get_admin_assets_service),
+) -> ResponseModel[AdminAssetDeleteOut]:
+    deleted = await service.delete_asset(org_id=org_id, asset_id=asset_id)
+    return JsonResponse.success(data=deleted)
 
 
 @router.post("/asset-folders", response_model=ResponseModel[AdminAssetFolderOut])

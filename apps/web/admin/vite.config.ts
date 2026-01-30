@@ -64,13 +64,6 @@ export default defineConfig(({ mode }) => {
               changeOrigin: true,
               secure: false,
             },
-            // Public assets are served from `/assets/*` (outside apiPrefix). When using proxy mode,
-            // we must proxy it as well; otherwise the admin dev server will 404 on image previews.
-            "/assets": {
-              target: apiProxyTarget,
-              changeOrigin: true,
-              secure: false,
-            },
           }
         : undefined,
     },

@@ -18,6 +18,18 @@ def get_admin_shares_service(settings: Settings = Depends(get_settings)) -> Admi
     return AdminSharesService(settings)
 
 
+@router.get("/assets/{asset_id}/share-links", response_model=ResponseModel[list[AdminShareLinkOut]])
+async def list_share_links(
+    asset_id: UUID,
+    org_id: UUID = Depends(get_current_org_id),
+    _user=Depends(get_current_user),
+    service: AdminSharesService = Depends(get_admin_shares_service),
+) -> ResponseModel[list[AdminShareLinkOut]]:
+    links = await service.list_share_links(org_id=org_id, asset_id=asset_id)
+    out = [AdminShareLinkOut.model_validate(x, from_attributes=True) for x in links]
+    return Response.success(data=out)
+
+
 @router.post("/assets/{asset_id}/share-links", response_model=ResponseModel[AdminShareLinkOut])
 async def create_share_link(
     asset_id: UUID,

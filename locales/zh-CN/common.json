@@ -5,5 +5,6 @@
   "PAGE_COMING_SOON": "页面建设中",
   "PAGE_COMING_SOON_DESC": "该功能正在开发中，你可以先从左侧菜单继续浏览其它模块。",
   "BACK": "返回",
-  "REFRESH": "刷新"
+  "REFRESH": "刷新",
+  "RETRY": "重试"
 }

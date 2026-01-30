@@ -67,6 +67,10 @@ class AdminSharesService(BaseService):
             message=_ts("SHARE_TOKEN_GENERATE_FAILED", "生成分享链接失败"), error="SHARE_TOKEN_GENERATE_FAILED"
         )
 
+    async def list_share_links(self, *, org_id: UUID, asset_id: UUID) -> list[AssetShareLinkRecord]:
+        _ = await self._ensure_asset_exists(org_id=org_id, asset_id=asset_id)
+        return await self.repo.list_links(org_id=org_id, asset_id=asset_id)
+
     async def revoke_share_link(self, *, org_id: UUID, link_id: UUID) -> AssetShareLinkRecord:
         link = await self.repo.get_link(org_id=org_id, link_id=link_id)
         if link is None:

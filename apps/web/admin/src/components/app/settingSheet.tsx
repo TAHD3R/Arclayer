@@ -38,8 +38,10 @@ export function SettingSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className={cn("w-130 max-w-[92vw] p-0 gap-0", contentClassName)}>
         <SheetHeader className="border-b">
-          <SheetTitle>{title}</SheetTitle>
-          {description ? <SheetDescription>{description}</SheetDescription> : null}
+          <SheetTitle className="font-bold!">{title}</SheetTitle>
+          {description ? (
+            <SheetDescription className="text-[16px]!">{description}</SheetDescription>
+          ) : null}
         </SheetHeader>
 
         <div className="flex-1 overflow-auto p-4">{children}</div>

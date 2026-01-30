@@ -103,10 +103,10 @@ export function AssetsFilterPopover(props: {
       </PopoverTrigger>
 
       <PopoverContent align="start" sideOffset={8} className="w-90 p-3">
-        <div className="text-sm font-medium">{t("assets:ASSET_FILTER_TITLE")}</div>
+        <div className="font-bold">{t("assets:ASSET_FILTER_TITLE")}</div>
         <div className="mt-3 grid grid-cols-1 gap-3">
           <div className="grid grid-cols-1 gap-1.5">
-            <div className="text-xs text-muted-foreground">
+            <div className="text-sm text-muted-foreground">
               {t("assets:ASSET_FILTER_FIELD_TYPE")}
             </div>
             <Select
@@ -119,7 +119,7 @@ export function AssetsFilterPopover(props: {
           </div>
 
           <div className="grid grid-cols-1 gap-1.5">
-            <div className="text-xs text-muted-foreground">
+            <div className="text-sm text-muted-foreground">
               {t("assets:ASSET_FILTER_FIELD_FOLDER")}
             </div>
             <Select
@@ -137,7 +137,7 @@ export function AssetsFilterPopover(props: {
           </div>
 
           <div className="grid grid-cols-1 gap-1.5">
-            <div className="text-xs text-muted-foreground">
+            <div className="text-sm text-muted-foreground">
               {t("assets:ASSET_FILTER_FIELD_VISIBILITY")}
             </div>
             <Select
@@ -150,7 +150,7 @@ export function AssetsFilterPopover(props: {
           </div>
 
           <div className="grid grid-cols-1 gap-1.5">
-            <div className="text-xs text-muted-foreground">
+            <div className="text-sm text-muted-foreground">
               {t("assets:ASSET_FILTER_FIELD_CREATED_AT")}
             </div>
             <DatePicker.RangePicker
@@ -175,7 +175,7 @@ export function AssetsFilterPopover(props: {
           </div>
 
           <div className="grid grid-cols-1 gap-1.5">
-            <div className="text-xs text-muted-foreground">
+            <div className="text-sm text-muted-foreground">
               {t("assets:ASSET_FILTER_FIELD_TAGS")}
             </div>
             <Select
