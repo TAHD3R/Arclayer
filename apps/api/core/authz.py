@@ -5,11 +5,10 @@ from uuid import UUID
 
 from fastapi import Depends
 
+from apps.api.common.constants.authz import AUTHZ_EXTENSION_POINT, AUTHZ_SNAPSHOT_EXTENSION_POINT
 from apps.api.core.exceptions import Forbidden, ServiceUnavailable
 from apps.api.core.i18n import t
 from apps.api.plugin.registry import ExtensionPointType, registry
-
-from apps.api.common.constants.authz import AUTHZ_EXTENSION_POINT, AUTHZ_SNAPSHOT_EXTENSION_POINT
 
 
 class AuthorizationEngine(Protocol):

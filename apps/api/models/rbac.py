@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from tortoise import fields
 
 from apps.api.models.base import BaseModel
@@ -22,13 +20,6 @@ class Role(BaseModel):
     is_default = fields.BooleanField(default=False, db_index=True)
     is_superuser = fields.BooleanField(default=False, db_index=True)
 
-    if TYPE_CHECKING:
-        code: str
-        name: str
-        description: str | None
-        is_default: bool
-        is_superuser: bool
-
     class Meta(BaseModel.Meta):
         table = "roles"
         abstract = False
@@ -47,12 +38,6 @@ class Permission(BaseModel):
     name = fields.CharField(max_length=128)
     description = fields.TextField(null=True)
     plugin_id = fields.CharField(max_length=128, null=True, db_index=True)
-
-    if TYPE_CHECKING:
-        code: str
-        name: str
-        description: str | None
-        plugin_id: str | None
 
     class Meta(BaseModel.Meta):
         table = "permissions"

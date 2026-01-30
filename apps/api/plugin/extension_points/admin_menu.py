@@ -3,8 +3,8 @@ from __future__ import annotations
 from typing import Protocol, cast
 from uuid import UUID
 
-from apps.api.core.http.pagination import PageData, PageParams
 from apps.api.common.constants.plugin import ADMIN_MENU_PROVIDER_EXTENSION_POINT
+from apps.api.core.http.pagination import PageData, PageParams
 from apps.api.plugin.registry import ExtensionPointType, registry
 
 

@@ -13,4 +13,3 @@ BOOTSTRAP_KEY = "bootstrap_admin"
 CORE_PERMISSION_OWNER = "core"
 
 RBAC_ROLE_RESOLVER_EXTENSION_POINT = "rbac-role-resolver"
-

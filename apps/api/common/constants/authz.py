@@ -4,4 +4,3 @@ from __future__ import annotations
 
 AUTHZ_EXTENSION_POINT = "authorization-engine"
 AUTHZ_SNAPSHOT_EXTENSION_POINT = "authz-snapshot-provider"
-

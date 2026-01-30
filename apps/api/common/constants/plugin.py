@@ -18,4 +18,3 @@ RESTART_INFO_KEY = "plugin:restart:info"
 
 # RBAC is now a core capability, so there are no protected plugins by default.
 PROTECTED_PLUGINS: frozenset[str] = frozenset()
-

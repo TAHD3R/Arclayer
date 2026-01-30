@@ -1,9 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
 from enum import StrEnum
-from typing import TYPE_CHECKING
-from uuid import UUID
 
 from tortoise import fields
 
@@ -57,29 +54,6 @@ class UploadSessionRecord(BaseModel):
     target_folder_id = fields.UUIDField(null=True, db_index=True)
     storage_provider = fields.CharField(max_length=32, default="local")
 
-    if TYPE_CHECKING:
-        org_id: UUID
-        actor_user_id: UUID
-        purpose: str
-        filename: str
-        mime: str | None
-        size_bytes: int
-        expected_sha256: str | None
-        chunk_size: int
-        total_parts: int
-        status: UploadStatus
-        expires_at: datetime
-        asset_id: UUID | None
-        reserved_asset_id: UUID | None
-        resolved_slug: str | None
-        resolved_ext: str | None
-        object_key: str | None
-        multipart_upload_id: str | None
-        visibility: str
-        indexable: bool
-        target_folder_id: UUID | None
-        storage_provider: str
-
     class Meta(BaseModel.Meta):
         table = "upload_sessions"
         abstract = False
@@ -95,15 +69,6 @@ class UploadPartRecord(BaseModel):
     etag = fields.CharField(max_length=128, null=True)
     object_key = fields.CharField(max_length=1024)
     stored = fields.BooleanField(default=False)
-
-    if TYPE_CHECKING:
-        session_id: UUID
-        part_number: int
-        size_bytes: int
-        checksum_sha256: str | None
-        etag: str | None
-        object_key: str
-        stored: bool
 
     class Meta(BaseModel.Meta):
         table = "upload_parts"

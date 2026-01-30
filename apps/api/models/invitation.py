@@ -1,9 +1,5 @@
 from __future__ import annotations
 
-from datetime import datetime
-from typing import TYPE_CHECKING
-from uuid import UUID
-
 from tortoise import fields
 
 from apps.api.models.base import BaseModel
@@ -30,17 +26,6 @@ class OrganizationInvitation(BaseModel):
     accepted_at = fields.DatetimeField(null=True)
 
     revoked_at = fields.DatetimeField(null=True)
-
-    if TYPE_CHECKING:
-        organization_id: UUID
-        email: str
-        role_code: str | None
-        token_hash: str
-        expires_at: datetime | None
-        invited_by_user_id: UUID | None
-        accepted_by_user_id: UUID | None
-        accepted_at: datetime | None
-        revoked_at: datetime | None
 
     class Meta(BaseModel.Meta):
         table = "organization_invitations"
