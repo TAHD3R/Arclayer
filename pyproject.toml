@@ -83,9 +83,3 @@ typeCheckingMode = "standard"
 reportMissingImports = true
 reportMissingTypeStubs = false
 pythonVersion = "3.13"
-
-[tool.aerich]
-tortoise_orm = "apps.api.infra.db.orm.TORTOISE_ORM"
-location = "./apps/api/migrations"
-src_folder = "./."
-app = "models"

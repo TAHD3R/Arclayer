@@ -1,11 +1,31 @@
 {
   "$schema": "https://turbo.build/schema.json",
+  "ui": "tui",
+  "globalDependencies": [
+    "package.json",
+    "pnpm-lock.yaml",
+    "pyproject.toml",
+    "uv.lock",
+    "tsconfig.json"
+  ],
+  "globalEnv": [
+    "NODE_ENV",
+    "DATABASE_URL",
+    "APPLICATION_ENV",
+    "DATABASE__NAME",
+    "DATABASE__HOST",
+    "VALKEY__DB",
+    "RUN_INTEGRATION_TESTS",
+    "AUTH__JWT_SECRET",
+    "PLUGIN__AUTO_MIGRATE"
+  ],
   "tasks": {
     "dev": {
       "cache": false,
       "persistent": true
     },
     "build": {
+      "dependsOn": ["^build", "lint", "typecheck"],
       "outputs": ["dist/**", ".next/**", "build/**"]
     },
     "typecheck": {
@@ -18,7 +38,7 @@
       "outputs": []
     },
     "test": {
-      "outputs": ["coverage/**"]
+      "outputs": []
     },
     "test:integration": {
       "cache": false

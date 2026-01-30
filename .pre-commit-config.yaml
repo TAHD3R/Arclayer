@@ -12,7 +12,7 @@ repos:
       - id: check-toml
       - id: check-json
       - id: check-added-large-files
-        args: ["--maxkb=500"]
+        args: ["--maxkb=1024"]
       - id: check-merge-conflict
       - id: debug-statements
       - id: detect-private-key
@@ -21,33 +21,25 @@ repos:
     rev: v0.14.13
     hooks:
       - id: ruff
-        args: [--fix]
+        args: [--fix, --exit-non-zero-on-fix]
+        files: ^apps/api/
       - id: ruff-format
+        files: ^apps/api/
 
-  - repo: https://github.com/asottile/pyupgrade
-    rev: v3.21.2
-    hooks:
-      - id: pyupgrade
-
-  # Frontend (oxc toolchain via pnpm workspace)
   - repo: local
     hooks:
-      - id: frontend-oxfmt-nocheck
-        name: frontend oxfmt (apps/web only)
-        entry: bash -lc 'pnpm -w exec oxfmt'
-        language: system
-        files: ^apps/web/
-        pass_filenames: true
-      - id: frontend-oxfmt
-        name: frontend oxfmt (apps/web only)
-        entry: bash -lc 'pnpm -w exec oxfmt --check --no-error-on-unmatched-pattern "$@"'
+      - id: frontend-format
+        name: Frontend Format (oxfmt)
+        entry: pnpm -w oxfmt
         language: system
         files: ^apps/web/
         pass_filenames: true
 
-      - id: frontend-oxlint
-        name: frontend oxlint (apps/web only)
-        entry: bash -lc 'pnpm -w exec oxlint --tsconfig apps/web/admin/tsconfig.json "$@"'
+      # 静态检查
+      - id: frontend-lint
+        name: Frontend Lint (oxlint)
+        entry: pnpm -w oxlint --fix
         language: system
         files: ^apps/web/
         pass_filenames: true
+        args: ["--deny=correctness", "--deny=perf"]

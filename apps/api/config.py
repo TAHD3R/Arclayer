@@ -2,8 +2,32 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any, Literal
 
-from pydantic import AliasChoices, Field, SecretStr, computed_field
+from pydantic import AliasChoices, Field, SecretStr, computed_field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+_API_DIR = Path(__file__).resolve().parent  # `<repo>/apps/api`
+_REPO_ROOT = _API_DIR.parents[1]  # `<repo>`
+_REPO_ROOT_PREFIXES = {
+    "apps",
+    "data",
+    "packages",
+    "plugins",
+    "locales",
+    "static",
+    "docs",
+    "docker",
+}
+
+
+def _normalize_fs_path(value: Path, *, default_base: Path) -> Path:
+    if value.is_absolute():
+        return value
+
+    first = value.parts[0] if value.parts else ""
+    if first in _REPO_ROOT_PREFIXES:
+        return (_REPO_ROOT / value).resolve()
+
+    return (default_base / value).resolve()
 
 
 class ApplicationSettings(BaseSettings):
@@ -66,6 +90,11 @@ class ApplicationSettings(BaseSettings):
         validation_alias=AliasChoices("FRONTEND_BASE_URL", "APP_FRONTEND_BASE_URL"),
         description="Base URL for the frontend application (used in emails, e.g. reset-password links).",
     )
+
+    @field_validator("static_dir", mode="after")
+    @classmethod
+    def _normalize_static_dir(cls, value: Path) -> Path:
+        return _normalize_fs_path(value, default_base=_REPO_ROOT)
 
 
 class StorageSettings(BaseSettings):
@@ -190,6 +219,11 @@ class StorageSettings(BaseSettings):
         description="Upload session TTL (seconds).",
     )
 
+    @field_validator("local_root_dir", "local_tmp_dir", mode="after")
+    @classmethod
+    def _normalize_storage_paths(cls, value: Path) -> Path:
+        return _normalize_fs_path(value, default_base=_REPO_ROOT)
+
 
 class LoggingSettings(BaseSettings):
     """
@@ -252,6 +286,11 @@ class LoggingSettings(BaseSettings):
         ],
         validation_alias=AliasChoices("REQUEST_LOG_OMIT_PATH_PREFIXES"),
     )
+
+    @field_validator("log_dir", mode="after")
+    @classmethod
+    def _normalize_log_dir(cls, value: Path) -> Path:
+        return _normalize_fs_path(value, default_base=_API_DIR)
 
 
 class DatabaseSettings(BaseSettings):
@@ -634,6 +673,13 @@ class EmailSettings(BaseSettings):
     )
     template_dir: Path | None = Field(default=None, validation_alias=AliasChoices("MAIL_TEMPLATE_DIR"))
 
+    @field_validator("template_dir", mode="after")
+    @classmethod
+    def _normalize_template_dir(cls, value: Path | None) -> Path | None:
+        if value is None:
+            return None
+        return _normalize_fs_path(value, default_base=_REPO_ROOT / "static")
+
 
 class PluginSettings(BaseSettings):
     """
@@ -659,6 +705,11 @@ class PluginSettings(BaseSettings):
     restart_poll_interval_seconds: float = Field(default=2.0)
     restart_jitter_seconds: float = Field(default=5.0)
 
+    @field_validator("root_dir", mode="after")
+    @classmethod
+    def _normalize_plugin_root_dir(cls, value: Path) -> Path:
+        return _normalize_fs_path(value, default_base=_REPO_ROOT)
+
 
 class SetupSettings(BaseSettings):
     """
@@ -681,6 +732,11 @@ class SetupSettings(BaseSettings):
         default=Path(__file__).resolve().parents[2] / "data" / "secrets" / "master.key",
         description="Path to the master key file used to encrypt secrets in settings.",
     )
+
+    @field_validator("master_key_path", mode="after")
+    @classmethod
+    def _normalize_master_key_path(cls, value: Path) -> Path:
+        return _normalize_fs_path(value, default_base=_REPO_ROOT)
 
 
 class Settings(BaseSettings):
