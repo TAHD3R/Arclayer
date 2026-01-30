@@ -11,14 +11,14 @@ import uuid
 from asyncio.subprocess import PIPE
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Protocol, cast
 
 from packaging.specifiers import SpecifierSet
 from packaging.version import InvalidVersion, Version
 from pydantic import ValidationError
 
-from apps.api.config import Settings
 from apps.api.common.constants.plugin import MIGRATION_LOCK_KEY, PROTECTED_PLUGINS
+from apps.api.config import Settings
 from apps.api.core.i18n import register_locale_path
 from apps.api.core.logging import get_logger
 from apps.api.infra.cache.valkey import ValkeyClient
@@ -31,6 +31,10 @@ from apps.api.plugin.restart import request_restart
 from apps.api.plugin.types import BasePlugin, PluginDescriptor, PluginStatus
 
 logger = get_logger(__name__)
+
+
+class _AsyncEval(Protocol):
+    async def eval(self, script: str, numkeys: int, *keys_and_args: Any) -> Any: ...
 
 
 class PluginManager:
@@ -467,6 +471,7 @@ class PluginManager:
             instance.on_load()
             self.registry.register_permissions(descriptor.plugin_id, descriptor.manifest.permissions)
             await instance.on_start()
+            instance.started = True
             self.instances[descriptor.plugin_id] = instance
 
             if record:
@@ -494,6 +499,7 @@ class PluginManager:
         stop_ok = False
         try:
             await instance.on_stop()
+            instance.started = False
             stop_ok = True
         except Exception as exc:
             logger.exception("Plugin stop failed", plugin_id=plugin_id, error=str(exc))
@@ -563,7 +569,8 @@ class PluginManager:
         """
         key = self.valkey.key(MIGRATION_LOCK_KEY)
         try:
-            await self.valkey.raw.eval(script, 1, key, token)
+            redis = cast(_AsyncEval, self.valkey.raw)
+            await redis.eval(script, 1, key, token)
         except Exception as exc:
             logger.warning("Plugin migration lock release failed", error=str(exc))
 
@@ -599,7 +606,7 @@ class PluginManager:
         if err:
             logger.warning("Aerich command stderr", args=list(args), stderr=err)
 
-    async def _request_restart(self, plugin_id: str, *, reason: str) -> None:
+    async def _request_restart(self, plugin_id: str | None, *, reason: str) -> None:
         if not self.settings.plugin.auto_restart:
             logger.info("Plugin restart skipped (disabled)", plugin_id=plugin_id)
             return

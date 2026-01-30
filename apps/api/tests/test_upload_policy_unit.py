@@ -4,6 +4,7 @@ import pytest
 
 from apps.api.core.exceptions import BadRequest
 from apps.api.routers.v1.admin.uploads.policy import (
+    UploadPolicy,
     build_upload_policy,
     normalize_original_filename,
     validate_sha256_hex,
@@ -11,7 +12,7 @@ from apps.api.routers.v1.admin.uploads.policy import (
 )
 
 
-def _policy_for(purpose: str) -> object:
+def _policy_for(purpose: str) -> UploadPolicy:
     # Keep numbers small for tests.
     return build_upload_policy(
         purpose=purpose,

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any, Protocol
 
 from pydantic import ConfigDict
 
@@ -17,6 +18,10 @@ class ImageThumbnailVariant(BaseSchema):
     ext: str
     object_key: str
     size_bytes: int
+
+
+class OutPathForWidth(Protocol):
+    def __call__(self, width: int, *, alpha: bool) -> tuple[Path, str]: ...
 
 
 def _ensure_parent_dir(path: Path) -> None:
@@ -37,9 +42,9 @@ def _has_alpha(img) -> bool:  # type: ignore[no-untyped-def]
 def generate_image_thumbnails(
     *,
     in_path: Path,
-    out_path_for_width: callable,
+    out_path_for_width: OutPathForWidth,
     widths: list[int],
-) -> tuple[dict, dict]:
+) -> tuple[dict[str, Any], dict[str, Any]]:
     """
     Generate image thumbnails and return:
     - variants payload (to store in AssetRecord.variants)

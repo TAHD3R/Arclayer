@@ -58,6 +58,8 @@ class LocalStorageProvider:
     - For SaaS/multi-node, use an object storage provider (S3-compatible).
     """
 
+    provider = "local"
+
     def __init__(self, *, root_dir: Path) -> None:
         self.root_dir = Path(root_dir)
 

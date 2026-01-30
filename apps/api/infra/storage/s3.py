@@ -1,9 +1,9 @@
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path
 from typing import Any
 
-import anyio
 from pydantic import ConfigDict
 
 from apps.api.common.schemas import BaseSchema
@@ -61,12 +61,12 @@ class S3StorageProvider:
     def _client(self):
         # Lazy import: keep dev/test usable even if boto3 isn't installed,
         # as long as provider != s3.
-        import boto3  # type: ignore[import-not-found]
+        from boto3.session import Session  # type: ignore[import-not-found]
         from botocore.config import Config  # type: ignore[import-not-found]
 
         s3_cfg = {"addressing_style": "path"} if self.force_path_style else {"addressing_style": "auto"}
         cfg = Config(s3=s3_cfg)
-        session = boto3.session.Session()
+        session = Session()
         return session.client(
             "s3",
             endpoint_url=self.endpoint_url,
@@ -86,7 +86,7 @@ class S3StorageProvider:
                 etag=(resp.get("ETag") or None),
             )
 
-        return await anyio.to_thread.run_sync(_call)
+        return await asyncio.to_thread(_call)
 
     async def get_object(self, *, object_key: str, byte_range: tuple[int, int] | None) -> S3GetObject:
         """
@@ -110,7 +110,7 @@ class S3StorageProvider:
                 etag=(resp.get("ETag") or None),
             )
 
-        return await anyio.to_thread.run_sync(_call)
+        return await asyncio.to_thread(_call)
 
     async def download_object_to_path(self, *, object_key: str, out_path: Path) -> S3HeadObject:
         """
@@ -143,7 +143,7 @@ class S3StorageProvider:
                 etag=(resp.get("ETag") or None),
             )
 
-        return await anyio.to_thread.run_sync(_call)
+        return await asyncio.to_thread(_call)
 
     async def put_object_bytes(
         self,
@@ -164,7 +164,7 @@ class S3StorageProvider:
             params["ACL"] = "public-read" if public_read else "private"
             client.put_object(**params)
 
-        await anyio.to_thread.run_sync(_call)
+        await asyncio.to_thread(_call)
 
     async def create_multipart_upload(
         self,
@@ -183,7 +183,7 @@ class S3StorageProvider:
             resp = client.create_multipart_upload(**params)
             return str(resp["UploadId"])
 
-        return await anyio.to_thread.run_sync(_call)
+        return await asyncio.to_thread(_call)
 
     async def presign_upload_part(
         self,
@@ -207,7 +207,7 @@ class S3StorageProvider:
             )
             return PresignedPart(url=url, method="PUT", headers={})
 
-        return await anyio.to_thread.run_sync(_call)
+        return await asyncio.to_thread(_call)
 
     async def complete_multipart_upload(
         self,
@@ -229,7 +229,7 @@ class S3StorageProvider:
                 MultipartUpload={"Parts": parts},
             )
 
-        await anyio.to_thread.run_sync(_call)
+        await asyncio.to_thread(_call)
 
     async def abort_multipart_upload(self, *, object_key: str, upload_id: str) -> None:
         def _call() -> None:
@@ -240,7 +240,7 @@ class S3StorageProvider:
                 UploadId=upload_id,
             )
 
-        await anyio.to_thread.run_sync(_call)
+        await asyncio.to_thread(_call)
 
     async def presign_get_object(
         self,
@@ -265,4 +265,4 @@ class S3StorageProvider:
                 )
             )
 
-        return await anyio.to_thread.run_sync(_call)
+        return await asyncio.to_thread(_call)

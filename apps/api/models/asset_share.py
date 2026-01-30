@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from datetime import datetime
+from typing import TYPE_CHECKING
+from uuid import UUID
+
 from tortoise import fields
 
 from apps.api.models.base import BaseModel
@@ -27,6 +31,14 @@ class AssetShareLinkRecord(BaseModel):
     revoked_at = fields.DatetimeField(null=True, db_index=True)
 
     created_by_user_id = fields.UUIDField(null=True, db_index=True)
+
+    if TYPE_CHECKING:
+        org_id: UUID
+        token: str
+        expires_at: datetime | None
+        revoked_at: datetime | None
+        created_by_user_id: UUID | None
+        asset_id: UUID
 
     class Meta(BaseModel.Meta):
         table = "asset_share_links"

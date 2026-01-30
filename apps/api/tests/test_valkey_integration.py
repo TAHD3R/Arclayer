@@ -11,7 +11,7 @@ async def test_valkey_basic_roundtrip(valkey_client) -> None:
     key = "basic"
     await client.set(key, "ok")
     assert await client.get(key) == "ok"
-    assert await client.raw.exists(f"{prefix}:{key}") == 1
+    assert await client.exists(key) == 1
 
     ttl = await client.ttl(key)
     assert ttl > 0

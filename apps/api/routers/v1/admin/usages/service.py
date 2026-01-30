@@ -74,6 +74,7 @@ class AdminAssetUsagesService(BaseService):
             field_key=row.field_key,
             created_by_user_id=row.created_by_user_id,
             created_at=row.created_at,
+            updated_at=row.updated_at,
         )
 
     async def delete_usage_by_ref(

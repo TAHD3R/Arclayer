@@ -37,6 +37,7 @@ class BasePlugin:
     def __init__(self, descriptor: PluginDescriptor, registry: ExtensionRegistry) -> None:
         self.descriptor = descriptor
         self.registry = registry
+        self.started: bool = False
 
     @property
     def plugin_id(self) -> str:

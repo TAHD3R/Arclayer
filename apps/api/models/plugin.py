@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from datetime import datetime
+from typing import TYPE_CHECKING, Any
+
 from tortoise import fields
 
 from apps.api.models.base import BaseModel
@@ -29,6 +32,28 @@ class PluginRecord(BaseModel):
     permissions = fields.JSONField(null=True)
     config_schema = fields.JSONField(null=True)
     config = fields.JSONField(null=True)
+
+    if TYPE_CHECKING:
+        plugin_id: str
+        name: str
+        description: str | None
+        author: str
+        version: str
+        requires: str
+        entrypoint: str
+        website: str | None
+        repository: str | None
+        issues: str | None
+        license: str | None
+        status: PluginStatus
+        storage_path: str
+        started_at: datetime | None
+        package_filename: str | None
+        package_checksum: str | None
+        package_size: int | None
+        permissions: list[dict[str, Any]] | None
+        config_schema: dict[str, Any] | None
+        config: dict[str, Any] | None
 
     class Meta(BaseModel.Meta):
         table = "plugins"

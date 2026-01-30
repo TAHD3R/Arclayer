@@ -58,4 +58,7 @@ def test_simplify_operation_ids() -> None:
 
     simplify_operation_ids(app)
     route = next(r for r in app.routes if getattr(r, "name", None) == "hello")
+    from fastapi.routing import APIRoute
+
+    assert isinstance(route, APIRoute)
     assert route.operation_id == "hello"

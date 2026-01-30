@@ -214,8 +214,8 @@ class UploadsService(BaseService):
             await self.repo.set_session_status(session, status=UploadStatus.EXPIRED)
             raise BadRequest(message=_ts("UPLOAD_EXPIRED", "上传会话已过期"), error="UPLOAD_EXPIRED")
 
-        parts = await self.repo.query_parts(session_id=session.id).values_list("part_number", flat=True)
-        uploaded = {int(x) for x in parts}
+        raw_rows = await self.repo.query_parts(session_id=session.id).values_list("part_number", flat=True)
+        uploaded = {int(r[0] if isinstance(r, tuple) else r) for r in raw_rows}
         missing = [i for i in range(1, int(session.total_parts) + 1) if i not in uploaded]
         return session, missing
 

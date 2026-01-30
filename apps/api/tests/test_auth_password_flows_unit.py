@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, cast
 from uuid import UUID, uuid4
 
 import pytest
@@ -9,6 +9,7 @@ import pytest
 from apps.api.config import get_settings
 from apps.api.core.exceptions import Unauthorized
 from apps.api.models.user import UserStatus
+from apps.api.routers.v1.auth.contracts import UserLike
 from apps.api.routers.v1.auth.security import hash_password, verify_password
 from apps.api.routers.v1.auth.services import AuthService
 
@@ -77,6 +78,18 @@ class FakeValkeyClient:
                 removed += 1
         return removed
 
+    async def sadd(self, key: str, *members: str) -> int:
+        return await self.raw.sadd(key, *members)
+
+    async def smembers(self, key: str) -> set[str]:
+        return await self.raw.smembers(key)
+
+    async def srem(self, key: str, *members: str) -> int:
+        return await self.raw.srem(key, *members)
+
+    async def expire(self, key: str, seconds: int) -> bool:
+        return await self.raw.expire(key, seconds)
+
 
 @dataclass
 class FakeCredential:
@@ -88,6 +101,8 @@ class FakeUser:
     id: UUID
     username: str
     email: str | None = None
+    display_name: str | None = None
+    avatar_url: str | None = None
     status: UserStatus = UserStatus.ACTIVE
     token_version: int = 0
     credential: FakeCredential | None = None
@@ -106,21 +121,24 @@ class FakeUserRepository:
     async def get_by_id_with_credential(self, user_id: UUID) -> FakeUser | None:
         return await self.get_by_id(user_id)
 
-    async def update_last_login(self, user: FakeUser) -> None:
+    async def update_last_login(self, user: UserLike) -> None:
         return None
 
-    async def increment_token_version(self, user: FakeUser) -> FakeUser:
-        user.token_version += 1
-        return user
+    async def increment_token_version(self, user: UserLike) -> FakeUser:
+        record = cast(FakeUser, user)
+        record.token_version += 1
+        return record
 
-    def is_active(self, user: FakeUser) -> bool:
-        return user.status == UserStatus.ACTIVE
+    def is_active(self, user: UserLike) -> bool:
+        record = cast(FakeUser, user)
+        return record.status == UserStatus.ACTIVE
 
-    async def set_password(self, user: FakeUser, password_hash: str) -> None:
-        if user.credential is None:
-            user.credential = FakeCredential(password_hash=password_hash)
+    async def set_password(self, user: UserLike, password_hash: str) -> None:
+        record = cast(FakeUser, user)
+        if record.credential is None:
+            record.credential = FakeCredential(password_hash=password_hash)
         else:
-            user.credential.password_hash = password_hash
+            record.credential.password_hash = password_hash
 
     async def exists_username(self, username: str) -> bool:
         return username == self._user.username
@@ -128,7 +146,14 @@ class FakeUserRepository:
     async def exists_email(self, email: str) -> bool:
         return False
 
-    async def create_user(self, **kwargs):
+    async def create_user(
+        self,
+        *,
+        username: str,
+        email: str | None,
+        display_name: str | None,
+        password_hash: str,
+    ) -> FakeUser:
         raise RuntimeError("not used")
 
 
@@ -170,4 +195,5 @@ async def test_forgot_reset_password(monkeypatch) -> None:
 
     await service.reset_password(reset_token=token, new_password="resetpass1")
     assert user.token_version == 1
+    assert user.credential is not None
     assert verify_password("resetpass1", user.credential.password_hash, service.settings.auth) is True

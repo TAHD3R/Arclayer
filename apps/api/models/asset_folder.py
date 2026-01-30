@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+from uuid import UUID
+
 from tortoise import fields
 
 from apps.api.models.base import BaseModel
@@ -23,6 +26,9 @@ class AssetFolderRecord(BaseModel):
     )
     name = fields.CharField(max_length=64)
     sort_order = fields.IntField(default=0)
+
+    if TYPE_CHECKING:
+        parent_id: UUID | None
 
     class Meta(BaseModel.Meta):
         table = "asset_folders"

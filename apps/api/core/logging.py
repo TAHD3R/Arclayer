@@ -4,7 +4,7 @@ import time
 from logging.handlers import QueueHandler, QueueListener, TimedRotatingFileHandler
 from pathlib import Path
 from queue import SimpleQueue
-from typing import Any
+from typing import Any, cast
 
 import structlog
 from asgi_correlation_id import correlation_id
@@ -17,6 +17,7 @@ from structlog.stdlib import (
     ProcessorFormatter,
     add_logger_name,
 )
+from structlog.types import EventDict, Processor, WrappedLogger
 
 from apps.api.common.utils.redact import redact
 from apps.api.config import Settings
@@ -38,7 +39,7 @@ class _StructlogQueueHandler(QueueHandler):
         return record
 
 
-def _add_correlation_id(logger: BoundLogger, method_name: str, event_dict: dict[str, Any]) -> dict[str, Any]:
+def _add_correlation_id(logger: WrappedLogger, method_name: str, event_dict: EventDict) -> EventDict:
     cid = correlation_id.get(None)
     if cid:
         # Use a single name everywhere (console/file/meta) to avoid "request_id vs trace_id" confusion.
@@ -46,7 +47,7 @@ def _add_correlation_id(logger: BoundLogger, method_name: str, event_dict: dict[
     return event_dict
 
 
-def _normalize_console_fields(logger: BoundLogger, method_name: str, event_dict: dict[str, Any]) -> dict[str, Any]:
+def _normalize_console_fields(logger: WrappedLogger, method_name: str, event_dict: EventDict) -> EventDict:
     # Keep console output compact:
     # - omit correlation_id when missing (do not render placeholder)
     # - keep logger as-is (will be rendered as a bracketed suffix after the event)
@@ -58,7 +59,7 @@ def _normalize_console_fields(logger: BoundLogger, method_name: str, event_dict:
     return event_dict
 
 
-def _redact_sensitive(logger: BoundLogger, method_name: str, event_dict: dict[str, Any]) -> dict[str, Any]:
+def _redact_sensitive(logger: WrappedLogger, method_name: str, event_dict: EventDict) -> EventDict:
     """
     Best-effort log redaction.
 
@@ -68,6 +69,37 @@ def _redact_sensitive(logger: BoundLogger, method_name: str, event_dict: dict[st
 
     cleaned = redact(event_dict)
     return cleaned if isinstance(cleaned, dict) else event_dict
+
+
+def _ensure_event_dict(event_dict: EventDict) -> dict[str, Any]:
+    # structlog's stubs use `EventDict` (MutableMapping) but in practice the runtime value is a `dict`.
+    return event_dict if isinstance(event_dict, dict) else dict(event_dict)
+
+
+def _merge_contextvars_processor(logger: WrappedLogger, method_name: str, event_dict: EventDict) -> EventDict:
+    return merge_contextvars(cast(BoundLogger, logger), method_name, _ensure_event_dict(event_dict))
+
+
+def _add_log_level_processor(logger: WrappedLogger, method_name: str, event_dict: EventDict) -> EventDict:
+    return add_log_level(cast(BoundLogger, logger), method_name, _ensure_event_dict(event_dict))
+
+
+def _add_logger_name_processor(logger: WrappedLogger, method_name: str, event_dict: EventDict) -> EventDict:
+    return add_logger_name(cast(BoundLogger, logger), method_name, _ensure_event_dict(event_dict))
+
+
+def _format_exc_info_processor(logger: WrappedLogger, method_name: str, event_dict: EventDict) -> EventDict:
+    return format_exc_info(cast(BoundLogger, logger), method_name, _ensure_event_dict(event_dict))
+
+
+def _wrap_for_formatter_processor(logger: WrappedLogger, method_name: str, event_dict: EventDict) -> EventDict:
+    return ProcessorFormatter.wrap_for_formatter(cast(BoundLogger, logger), method_name, _ensure_event_dict(event_dict))
+
+
+def _remove_processors_meta_processor(logger: WrappedLogger, method_name: str, event_dict: EventDict) -> EventDict:
+    return ProcessorFormatter.remove_processors_meta(
+        cast(BoundLogger, logger), method_name, _ensure_event_dict(event_dict)
+    )
 
 
 def _build_console_renderer() -> structlog.dev.ConsoleRenderer:
@@ -136,25 +168,26 @@ def _build_console_renderer() -> structlog.dev.ConsoleRenderer:
     return structlog.dev.ConsoleRenderer(columns=columns, colors=True, sort_keys=False)
 
 
-def _add_exc_info_from_record(logger: BoundLogger, method_name: str, event_dict: dict[str, Any]) -> dict[str, Any]:
+def _add_exc_info_from_record(logger: WrappedLogger, method_name: str, event_dict: EventDict) -> EventDict:
     """
     Ensure exception/stack info is available to processors (renderer/format_exc_info)
     for structlog-originated records too.
     """
 
-    record = event_dict.get("_record")
+    payload = _ensure_event_dict(event_dict)
+    record = payload.get("_record")
     if record is None:
-        return event_dict
+        return payload
     try:
         exc_info = getattr(record, "exc_info", None)
-        if exc_info and "exc_info" not in event_dict:
-            event_dict["exc_info"] = exc_info
+        if exc_info and "exc_info" not in payload:
+            payload["exc_info"] = exc_info
         stack_info = getattr(record, "stack_info", None)
-        if stack_info and "stack_info" not in event_dict:
-            event_dict["stack_info"] = stack_info
+        if stack_info and "stack_info" not in payload:
+            payload["stack_info"] = stack_info
     except Exception:
-        return event_dict
-    return event_dict
+        return payload
+    return payload
 
 
 def _parse_duration_seconds(value: str, *, min_value: int = 1) -> int:
@@ -197,11 +230,11 @@ def _cleanup_old_logs(log_dir: Path, base_filename: str, retention_seconds: int)
 
 def configure_logging(settings: Settings) -> None:
     timestamper = TimeStamper(fmt="%Y-%m-%d %H:%M:%S", utc=False)
-    base_processors = [
-        merge_contextvars,
+    base_processors: list[Processor] = [
+        _merge_contextvars_processor,
         _add_correlation_id,
-        add_log_level,
-        add_logger_name,
+        _add_log_level_processor,
+        _add_logger_name_processor,
         PositionalArgumentsFormatter(),
         timestamper,
         _redact_sensitive,
@@ -211,11 +244,11 @@ def configure_logging(settings: Settings) -> None:
 
     if use_json:
         renderer = JSONRenderer()
-        processors = [
+        processors: list[Processor] = [
             *base_processors,
             StackInfoRenderer(),
-            format_exc_info,
-            ProcessorFormatter.wrap_for_formatter,
+            _format_exc_info_processor,
+            _wrap_for_formatter_processor,
         ]
         foreign_pre_chain = base_processors
     else:
@@ -224,26 +257,26 @@ def configure_logging(settings: Settings) -> None:
             *base_processors,
             StackInfoRenderer(),
             _normalize_console_fields,
-            ProcessorFormatter.wrap_for_formatter,
+            _wrap_for_formatter_processor,
         ]
         foreign_pre_chain = [*base_processors, _normalize_console_fields]
 
     # Use handler-specific processors so we can keep pretty console tracebacks
     # while also producing full exception strings for JSON logs.
     if use_json:
-        console_processors = (
+        console_processors: list[Processor] = [
             _add_exc_info_from_record,
-            ProcessorFormatter.remove_processors_meta,
+            _remove_processors_meta_processor,
             StackInfoRenderer(),
-            format_exc_info,
+            _format_exc_info_processor,
             renderer,
-        )
+        ]
     else:
-        console_processors = (
+        console_processors = [
             _add_exc_info_from_record,
-            ProcessorFormatter.remove_processors_meta,
+            _remove_processors_meta_processor,
             renderer,
-        )
+        ]
 
     console_formatter = ProcessorFormatter(
         processors=console_processors,
@@ -274,13 +307,13 @@ def configure_logging(settings: Settings) -> None:
     )
     file_handler.suffix = "%Y-%m-%d_%H-%M-%S"
     file_formatter = ProcessorFormatter(
-        processors=(
+        processors=[
             _add_exc_info_from_record,
-            ProcessorFormatter.remove_processors_meta,
+            _remove_processors_meta_processor,
             StackInfoRenderer(),
-            format_exc_info,
+            _format_exc_info_processor,
             JSONRenderer(),
-        ),
+        ],
         foreign_pre_chain=base_processors,
         keep_exc_info=True,
         keep_stack_info=True,

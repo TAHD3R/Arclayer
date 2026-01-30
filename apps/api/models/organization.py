@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from enum import StrEnum
+from typing import TYPE_CHECKING
+from uuid import UUID
 
 from tortoise import fields
 
@@ -25,6 +27,12 @@ class Organization(BaseModel):
     logo_url = fields.CharField(max_length=512, null=True)
     is_active = fields.BooleanField(default=True, db_index=True)
 
+    if TYPE_CHECKING:
+        slug: str
+        name: str
+        logo_url: str | None
+        is_active: bool
+
     class Meta(BaseModel.Meta):
         table = "organizations"
         abstract = False
@@ -39,6 +47,15 @@ class Membership(BaseModel):
     organization = fields.ForeignKeyField("models.Organization", related_name="memberships", on_delete=fields.CASCADE)
     status = fields.CharEnumField(MembershipStatus, default=MembershipStatus.ACTIVE, db_index=True)
     invited_by_user_id = fields.UUIDField(null=True, db_index=True)
+
+    if TYPE_CHECKING:
+        from tortoise.fields.relational import ReverseRelation
+
+        from apps.api.models.rbac import MembershipRole
+
+        status: MembershipStatus
+        invited_by_user_id: UUID | None
+        membership_roles: ReverseRelation[MembershipRole]
 
     class Meta(BaseModel.Meta):
         table = "memberships"

@@ -103,9 +103,13 @@ class AdminAssetsRepository(BaseRepository):
     async def replace_asset_tags(self, *, asset_id: UUID, tag_ids: list[UUID]) -> None:
         # Replace links with the given set (idempotent).
         target = set(tag_ids)
-        existing = set(
-            await AssetTagLinkRecord.filter(asset_id=asset_id).values_list("tag_id", flat=True)  # type: ignore[arg-type]
-        )
+        raw_rows = await AssetTagLinkRecord.filter(asset_id=asset_id).values_list("tag_id", flat=True)
+        existing: set[UUID] = set()
+        for r in raw_rows:
+            value = r[0] if isinstance(r, tuple) else r
+            if value is None:
+                continue
+            existing.add(value if isinstance(value, UUID) else UUID(str(value)))
 
         to_delete = list(existing - target)
         to_add = list(target - existing)

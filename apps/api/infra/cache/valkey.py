@@ -25,6 +25,38 @@ class _AsyncEval(Protocol):
     async def eval(self, script: str, numkeys: int, *keys_and_args: Any) -> Any: ...
 
 
+class _AsyncRedis(Protocol):
+    async def ping(self) -> Any: ...
+
+    async def get(self, key: str) -> str | None: ...
+
+    async def set(self, key: str, value: str, **kwargs: Any) -> Any: ...
+
+    async def delete(self, *keys: str) -> int: ...
+
+    async def exists(self, *keys: str) -> int: ...
+
+    async def expire(self, key: str, seconds: int) -> Any: ...
+
+    async def ttl(self, key: str) -> int: ...
+
+    async def getdel(self, key: str) -> str | None: ...
+
+    async def setex(self, key: str, seconds: int, value: str) -> Any: ...
+
+    async def incr(self, key: str, amount: int = 1) -> int: ...
+
+    async def sadd(self, key: str, *members: str) -> int: ...
+
+    async def srem(self, key: str, *members: str) -> int: ...
+
+    async def smembers(self, key: str) -> set[str]: ...
+
+    async def aclose(self) -> Any: ...
+
+    async def eval(self, script: str, numkeys: int, *keys_and_args: Any) -> Any: ...
+
+
 def _json_dumps(data: Any) -> str:
     if _orjson is not None:
         return _orjson.dumps(data).decode("utf-8")
@@ -42,13 +74,13 @@ def _json_loads(data: bytes | str | None) -> Any:
 class ValkeyClient:
     __slots__ = ("_r", "_prefix", "_default_ttl")
 
-    def __init__(self, client: Redis, *, prefix: str = "", default_ttl: int | None = None) -> None:
+    def __init__(self, client: _AsyncRedis, *, prefix: str = "", default_ttl: int | None = None) -> None:
         self._r = client
         self._prefix = prefix.strip(":")
         self._default_ttl = default_ttl if default_ttl and default_ttl > 0 else None
 
     @property
-    def raw(self) -> Redis:
+    def raw(self) -> _AsyncRedis:
         return self._r
 
     def key(self, *parts: str) -> str:
@@ -84,6 +116,9 @@ class ValkeyClient:
     async def delete(self, *keys: str) -> int:
         return await self._r.delete(*(self.key(k) for k in keys))
 
+    async def exists(self, key: str) -> int:
+        return int(await self._r.exists(self.key(key)))
+
     async def expire(self, key: str, seconds: int) -> bool:
         return bool(await self._r.expire(self.key(key), seconds))
 
@@ -98,6 +133,16 @@ class ValkeyClient:
 
     async def incr(self, key: str, amount: int = 1) -> int:
         return await self._r.incr(self.key(key), amount)
+
+    async def sadd(self, key: str, *members: str) -> int:
+        return int(await self._r.sadd(self.key(key), *members))
+
+    async def srem(self, key: str, *members: str) -> int:
+        return int(await self._r.srem(self.key(key), *members))
+
+    async def smembers(self, key: str) -> set[str]:
+        members = await self._r.smembers(self.key(key))
+        return {str(x) for x in members} if members else set()
 
     async def incr_with_ttl(self, key: str, *, ttl: int | None = None, amount: int = 1) -> int:
         ttl_value = ttl if ttl is not None else self._default_ttl
@@ -130,16 +175,66 @@ class ValkeyClient:
         return await self.set(key, _json_dumps(data), ex=ex, nx=nx, xx=xx)
 
 
-def build_valkey(settings: ValkeySettings) -> Redis:
-    return Redis.from_url(
-        settings.dsn,
-        decode_responses=True,
-        health_check_interval=30,
+class ValkeyClientLike(Protocol):
+    """
+    Structural type for Valkey/Redis access used by domain services.
+
+    This keeps services testable (fakes can implement the same surface area)
+    without depending on a concrete ValkeyClient subclass.
+    """
+
+    def key(self, *parts: str) -> str: ...
+
+    async def get(self, key: str) -> str | None: ...
+
+    async def set(
+        self,
+        key: str,
+        value: str,
+        *,
+        ex: int | None = None,
+        nx: bool | None = None,
+        xx: bool | None = None,
+    ) -> bool: ...
+
+    async def delete(self, *keys: str) -> int: ...
+
+    async def expire(self, key: str, seconds: int) -> bool: ...
+
+    async def ttl(self, key: str) -> int: ...
+
+    async def get_json(self, key: str) -> Any: ...
+
+    async def set_json(
+        self,
+        key: str,
+        data: Any,
+        *,
+        ex: int | None = None,
+        nx: bool | None = None,
+        xx: bool | None = None,
+    ) -> bool: ...
+
+    async def sadd(self, key: str, *members: str) -> int: ...
+
+    async def srem(self, key: str, *members: str) -> int: ...
+
+    async def smembers(self, key: str) -> set[str]: ...
+
+
+def build_valkey(settings: ValkeySettings) -> _AsyncRedis:
+    return cast(
+        _AsyncRedis,
+        Redis.from_url(
+            settings.dsn,
+            decode_responses=True,
+            health_check_interval=30,
+        ),
     )
 
 
 async def verify_valkey_ready(
-    client: Redis,
+    client: _AsyncRedis,
     *,
     attempts: int = 5,
     base_delay: float = 0.5,

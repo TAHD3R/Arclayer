@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import importlib
 from collections.abc import Iterable
+from enum import Enum
+from typing import cast
 
 from fastapi import APIRouter, Depends
 
@@ -30,7 +32,9 @@ def register_plugin_routers(router: APIRouter, *, plugin_manager: PluginManager)
 
         for scope, subrouter in _load_plugin_routers(descriptor.entrypoint):
             prefix = _build_plugin_prefix(slug, scope=scope)
-            include_tags = None if subrouter.tags else [f"plugin:{plugin_id}"]
+            # FastAPI's type hint expects `list[str | Enum]`, but `list[str]` is invariant.
+            tag = cast(str | Enum, f"plugin:{plugin_id}")
+            include_tags: list[str | Enum] | None = None if subrouter.tags else [tag]
             dependencies = [Depends(require_plugin_enabled(plugin_id))]
             if scope == "admin":
                 dependencies.append(require_permission_strict("admin:access"))

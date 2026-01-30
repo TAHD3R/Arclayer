@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Any
+from uuid import UUID
 
 from apps.api.common.repositories.base import BaseRepository
 from apps.api.models.setting import SettingRecord
@@ -15,7 +16,7 @@ class SettingsRepository(BaseRepository):
         *,
         namespace: str,
         value: dict[str, Any] | None,
-        updated_by: Any | None = None,
+        updated_by: UUID | None = None,
     ) -> SettingRecord:
         record = await SettingRecord.get_or_none(namespace=namespace)
         if record is None:

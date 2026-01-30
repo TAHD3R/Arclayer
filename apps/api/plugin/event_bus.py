@@ -125,7 +125,7 @@ class EventBus:
         try:
             await asyncio.wait_for(asyncio.gather(*tasks, return_exceptions=True), timeout=timeout)
         except TimeoutError:
-            logger.warning("Event handlers timed out", event=event.name, timeout=timeout)
+            logger.warning("Event handlers timed out", event_name=event.name, timeout=timeout)
 
     async def aclose(self) -> None:
         # Best-effort cancellation for pending tasks on shutdown.
@@ -173,7 +173,7 @@ class EventBus:
         except Exception as exc:
             logger.exception(
                 "Event handler failed",
-                event=event.name,
+                event_name=event.name,
                 plugin_id=sub.plugin_id,
                 handler=handler_name,
                 error=str(exc),
@@ -183,7 +183,7 @@ class EventBus:
             if elapsed_ms >= 500:
                 logger.warning(
                     "Event handler slow",
-                    event=event.name,
+                    event_name=event.name,
                     plugin_id=sub.plugin_id,
                     handler=handler_name,
                     elapsed_ms=elapsed_ms,

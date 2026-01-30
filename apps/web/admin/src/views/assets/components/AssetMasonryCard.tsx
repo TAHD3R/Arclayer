@@ -47,14 +47,16 @@ import {
 } from "@/components/animate-ui/components/radix/sheet";
 import {
   AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/animate-ui/components/radix/alert-dialog";
+import {
+  AlertDialogAction as AlertDialogActionPrimitive,
+  AlertDialogCancel as AlertDialogCancelPrimitive,
+} from "@/components/animate-ui/primitives/radix/alert-dialog";
 import TrashIcon from "@/components/ui/icons/trash-icon";
 import { LoaderTwo } from "@/components/ui/loader";
 import { SettingActionItem } from "@/components/app/settingActionItem";
@@ -1192,18 +1194,23 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleteMutation.isPending}>
-              {t("assets:ASSET_DELETE_CANCEL")}
-            </AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 cursor-pointer"
-              disabled={deleteMutation.isPending}
-              onClick={() => deleteMutation.mutate()}
-            >
-              {deleteMutation.isPending
-                ? t("assets:ASSET_DELETE_DELETING")
-                : t("assets:ASSET_DELETE_CONFIRM")}
-            </AlertDialogAction>
+            <AlertDialogCancelPrimitive asChild>
+              <Button type="text" disabled={deleteMutation.isPending}>
+                {t("assets:ASSET_DELETE_CANCEL")}
+              </Button>
+            </AlertDialogCancelPrimitive>
+            <AlertDialogActionPrimitive asChild>
+              <Button
+                type="primary"
+                danger
+                loading={deleteMutation.isPending}
+                onClick={() => deleteMutation.mutate()}
+              >
+                {deleteMutation.isPending
+                  ? t("assets:ASSET_DELETE_DELETING")
+                  : t("assets:ASSET_DELETE_CONFIRM")}
+              </Button>
+            </AlertDialogActionPrimitive>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

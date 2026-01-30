@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 import sys
-from collections.abc import Iterator
+from collections.abc import AsyncGenerator, Iterator
 from pathlib import Path
 from uuid import uuid4
 
@@ -91,7 +91,7 @@ async def _ensure_test_database(settings) -> None:
 
 
 @pytest_asyncio.fixture
-async def db(integration_db_settings) -> Iterator[None]:
+async def db(integration_db_settings) -> AsyncGenerator[None, None]:
     settings = get_settings()
     await _ensure_test_database(settings)
     await init_orm(settings)
@@ -103,7 +103,7 @@ async def db(integration_db_settings) -> Iterator[None]:
 
 
 @pytest_asyncio.fixture
-async def prepared_db(integration_db_settings, plugin_root) -> Iterator[None]:
+async def prepared_db(integration_db_settings, plugin_root) -> AsyncGenerator[None, None]:
     settings = get_settings()
     await _ensure_test_database(settings)
     await init_orm(settings)
@@ -114,14 +114,14 @@ async def prepared_db(integration_db_settings, plugin_root) -> Iterator[None]:
 
 
 @pytest_asyncio.fixture
-async def db_schema(db) -> Iterator[None]:
+async def db_schema(db) -> AsyncGenerator[None, None]:
     await reset_postgres_schema()
     await Tortoise.generate_schemas(safe=True)
     yield
 
 
 @pytest_asyncio.fixture
-async def valkey_client(integration_valkey_settings) -> Iterator[tuple[ValkeyClient, str]]:
+async def valkey_client(integration_valkey_settings) -> AsyncGenerator[tuple[ValkeyClient, str], None]:
     settings = get_settings()
     app = FastAPI()
     await init_valkey(app, settings)

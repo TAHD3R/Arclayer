@@ -9,8 +9,9 @@ from apps.api.common.services import BaseService
 from apps.api.config import Settings
 from apps.api.core.exceptions import BadRequest, Conflict, Forbidden, ServiceUnavailable, Unauthorized
 from apps.api.core.i18n import t
-from apps.api.infra.cache.valkey import ValkeyClient
+from apps.api.infra.cache.valkey import ValkeyClientLike
 from apps.api.routers.v1.auth.constants import PASSWORD_REGEX, REFRESH_STATUS_ACTIVE, RESET_TOKEN_REGEX
+from apps.api.routers.v1.auth.contracts import UserRepositoryLike
 from apps.api.routers.v1.auth.repository import PasswordResetStore, RefreshTokenStore, UserRepository
 from apps.api.routers.v1.auth.schema import TokenPair
 from apps.api.routers.v1.auth.security import (
@@ -28,11 +29,11 @@ class AuthService(BaseService):
         self,
         settings: Settings,
         *,
-        valkey: ValkeyClient | None = None,
-        user_repo: UserRepository | None = None,
+        valkey: ValkeyClientLike | None = None,
+        user_repo: UserRepositoryLike | None = None,
     ) -> None:
         super().__init__(settings)
-        self.user_repo = user_repo or UserRepository()
+        self.user_repo: UserRepositoryLike = user_repo or UserRepository()
         self.valkey = valkey
         self.refresh_store = RefreshTokenStore(valkey, settings.auth) if valkey else None
         self.reset_store = PasswordResetStore(valkey, settings.auth) if valkey else None
@@ -91,16 +92,17 @@ class AuthService(BaseService):
     async def login(self, *, identifier: str, password: str) -> TokenPair:
         store = self._require_refresh_store()
         user = await self.user_repo.get_by_identifier(identifier)
-        if not user or not getattr(user, "credential", None):
+        if user is None or user.credential is None:
             raise Unauthorized(
                 message=self._ta("INVALID_CREDENTIALS", "账号或密码错误"),
                 error="INVALID_CREDENTIALS",
             )
+        credential = user.credential
 
         if not self.user_repo.is_active(user):
             raise Forbidden(message=self._ta("USER_DISABLED", "账号不可用"), error="USER_DISABLED")
 
-        if not verify_password(password, user.credential.password_hash, self.settings.auth):
+        if not verify_password(password, credential.password_hash, self.settings.auth):
             raise Unauthorized(
                 message=self._ta("INVALID_CREDENTIALS", "账号或密码错误"),
                 error="INVALID_CREDENTIALS",
@@ -265,13 +267,14 @@ class AuthService(BaseService):
 
     async def change_password(self, *, user_id: UUID, old_password: str, new_password: str) -> None:
         user = await self.user_repo.get_by_id_with_credential(user_id)
-        if not user or not getattr(user, "credential", None):
+        if user is None or user.credential is None:
             raise Unauthorized(message=self._ta("UNAUTHORIZED", "未授权"), error="UNAUTHORIZED")
+        credential = user.credential
 
         if not self.user_repo.is_active(user):
             raise Forbidden(message=self._ta("USER_DISABLED", "账号不可用"), error="USER_DISABLED")
 
-        if not verify_password(old_password, user.credential.password_hash, self.settings.auth):
+        if not verify_password(old_password, credential.password_hash, self.settings.auth):
             raise Unauthorized(
                 message=self._ta("INVALID_CREDENTIALS", "原密码错误"),
                 error="INVALID_CREDENTIALS",
@@ -351,15 +354,8 @@ class AuthService(BaseService):
         if not self.user_repo.is_active(user):
             raise Forbidden(message=self._ta("USER_DISABLED", "账号不可用"), error="USER_DISABLED")
 
-        if (
-            getattr(user, "credential", None)
-            and getattr(user.credential, "password_hash", None)
-            and verify_password(
-                new_password,
-                user.credential.password_hash,
-                self.settings.auth,
-            )
-        ):
+        credential = user.credential
+        if credential is not None and verify_password(new_password, credential.password_hash, self.settings.auth):
             raise Conflict(
                 message=self._ta("PASSWORD_DUPLICATE", "新密码不能与旧密码相同"),
                 error="PASSWORD_DUPLICATE",

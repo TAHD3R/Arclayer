@@ -1,6 +1,6 @@
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, TypeVar, cast
 
 from pydantic import AliasChoices, Field, SecretStr, computed_field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -17,6 +17,27 @@ _REPO_ROOT_PREFIXES = {
     "docs",
     "docker",
 }
+
+S = TypeVar("S", bound=BaseSettings)
+
+
+def _build_settings_from_env_file(
+    settings_cls: type[S],
+    *,
+    env_file: Any,
+    env_file_encoding: str,
+) -> S:
+    """
+    Instantiate a pydantic-settings BaseSettings subclass using runtime dotenv sources.
+
+    Notes:
+    - pydantic-settings supports `_env_file` / `_env_file_encoding` at runtime, but some type stubs
+      don't expose these kwargs, which can confuse Pyright.
+    - We isolate the cast here to keep the rest of the codebase strongly typed.
+    """
+
+    cls_any = cast(Any, settings_cls)
+    return cls_any(_env_file=env_file, _env_file_encoding=env_file_encoding)
 
 
 def _normalize_fs_path(value: Path, *, default_base: Path) -> Path:
@@ -830,40 +851,53 @@ class Settings(BaseSettings):
         # when Settings is primarily populated via nested delimiter env vars (e.g. MIDDLEWARE__*).
         self.application = _merge_settings(
             self.application,
-            ApplicationSettings(_env_file=env_file, _env_file_encoding=env_file_encoding),
+            _build_settings_from_env_file(ApplicationSettings, env_file=env_file, env_file_encoding=env_file_encoding),
         )
         self.storage = _merge_settings(
-            self.storage, StorageSettings(_env_file=env_file, _env_file_encoding=env_file_encoding)
+            self.storage,
+            _build_settings_from_env_file(StorageSettings, env_file=env_file, env_file_encoding=env_file_encoding),
         )
         self.logging = _merge_settings(
-            self.logging, LoggingSettings(_env_file=env_file, _env_file_encoding=env_file_encoding)
+            self.logging,
+            _build_settings_from_env_file(LoggingSettings, env_file=env_file, env_file_encoding=env_file_encoding),
         )
         self.database = _merge_settings(
-            self.database, DatabaseSettings(_env_file=env_file, _env_file_encoding=env_file_encoding)
+            self.database,
+            _build_settings_from_env_file(DatabaseSettings, env_file=env_file, env_file_encoding=env_file_encoding),
         )
         self.valkey = _merge_settings(
-            self.valkey, ValkeySettings(_env_file=env_file, _env_file_encoding=env_file_encoding)
+            self.valkey,
+            _build_settings_from_env_file(ValkeySettings, env_file=env_file, env_file_encoding=env_file_encoding),
         )
         self.observability = _merge_settings(
             self.observability,
-            ObservabilitySettings(_env_file=env_file, _env_file_encoding=env_file_encoding),
+            _build_settings_from_env_file(
+                ObservabilitySettings, env_file=env_file, env_file_encoding=env_file_encoding
+            ),
         )
         self.middleware = _merge_settings(
             self.middleware,
-            MiddlewareSettings(_env_file=env_file, _env_file_encoding=env_file_encoding),
+            _build_settings_from_env_file(MiddlewareSettings, env_file=env_file, env_file_encoding=env_file_encoding),
         )
-        self.auth = _merge_settings(self.auth, AuthSettings(_env_file=env_file, _env_file_encoding=env_file_encoding))
+        self.auth = _merge_settings(
+            self.auth,
+            _build_settings_from_env_file(AuthSettings, env_file=env_file, env_file_encoding=env_file_encoding),
+        )
         self.email = _merge_settings(
-            self.email, EmailSettings(_env_file=env_file, _env_file_encoding=env_file_encoding)
+            self.email,
+            _build_settings_from_env_file(EmailSettings, env_file=env_file, env_file_encoding=env_file_encoding),
         )
         self.plugin = _merge_settings(
-            self.plugin, PluginSettings(_env_file=env_file, _env_file_encoding=env_file_encoding)
+            self.plugin,
+            _build_settings_from_env_file(PluginSettings, env_file=env_file, env_file_encoding=env_file_encoding),
         )
         self.setup = _merge_settings(
-            self.setup, SetupSettings(_env_file=env_file, _env_file_encoding=env_file_encoding)
+            self.setup,
+            _build_settings_from_env_file(SetupSettings, env_file=env_file, env_file_encoding=env_file_encoding),
         )
         self.testing = _merge_settings(
-            self.testing, TestingSettings(_env_file=env_file, _env_file_encoding=env_file_encoding)
+            self.testing,
+            _build_settings_from_env_file(TestingSettings, env_file=env_file, env_file_encoding=env_file_encoding),
         )
 
     def _apply_test_mode_overrides(self) -> None:
@@ -892,4 +926,4 @@ def get_settings() -> Settings:
     current = os.getenv("APP_ENV") or os.getenv("ENV") or "development"
     env_files = (".env", f".env.{current}", ".env.local")
 
-    return Settings(_env_file=env_files, _env_file_encoding="utf-8")
+    return _build_settings_from_env_file(Settings, env_file=env_files, env_file_encoding="utf-8")

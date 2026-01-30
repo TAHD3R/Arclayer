@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+from uuid import UUID
+
 from tortoise import fields
 
 from apps.api.models.base import BaseModel
@@ -37,6 +40,15 @@ class AssetUsageRecord(BaseModel):
     field_key = fields.CharField(max_length=128, db_index=True)
 
     created_by_user_id = fields.UUIDField(null=True, db_index=True)
+
+    if TYPE_CHECKING:
+        org_id: UUID
+        purpose: str
+        entity_type: str
+        entity_id: str
+        field_key: str
+        created_by_user_id: UUID | None
+        asset_id: UUID
 
     class Meta(BaseModel.Meta):
         table = "asset_usages"

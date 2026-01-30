@@ -1,19 +1,20 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, cast
 from uuid import UUID, uuid4
 
 from tortoise.expressions import Q
 
 from apps.api.common.repositories import BaseRepository
 from apps.api.config import AuthSettings
-from apps.api.infra.cache.valkey import ValkeyClient
+from apps.api.infra.cache.valkey import ValkeyClientLike
 from apps.api.models.user import User, UserCredential, UserStatus
 from apps.api.routers.v1.auth.constants import (
     REFRESH_STATUS_REVOKED,
     REFRESH_STATUS_ROTATED,
 )
+from apps.api.routers.v1.auth.contracts import UserLike
 
 
 class UserRepository(BaseRepository):
@@ -34,17 +35,20 @@ class UserRepository(BaseRepository):
     async def get_by_id_with_credential(self, user_id: UUID) -> User | None:
         return await User.get_or_none(id=user_id).prefetch_related("credential")
 
-    async def update_last_login(self, user: User) -> None:
-        user.last_login_at = datetime.now(UTC)
-        await user.save(update_fields=["last_login_at"])
+    async def update_last_login(self, user: UserLike) -> None:
+        record = cast(User, user)
+        record.last_login_at = datetime.now(UTC)
+        await record.save(update_fields=["last_login_at"])
 
-    async def increment_token_version(self, user: User) -> User:
-        user.token_version = (user.token_version or 0) + 1
-        await user.save(update_fields=["token_version"])
-        return user
+    async def increment_token_version(self, user: UserLike) -> User:
+        record = cast(User, user)
+        record.token_version = (record.token_version or 0) + 1
+        await record.save(update_fields=["token_version"])
+        return record
 
-    def is_active(self, user: User) -> bool:
-        return user.status == UserStatus.ACTIVE
+    def is_active(self, user: UserLike) -> bool:
+        record = cast(User, user)
+        return record.status == UserStatus.ACTIVE
 
     async def exists_username(self, username: str) -> bool:
         return await User.filter(username=username).exists()
@@ -70,10 +74,11 @@ class UserRepository(BaseRepository):
         await UserCredential.create(user=user, password_hash=password_hash)
         return user
 
-    async def set_password(self, user: User, password_hash: str) -> None:
-        credential = await UserCredential.get_or_none(user_id=user.id)
+    async def set_password(self, user: UserLike, password_hash: str) -> None:
+        record = cast(User, user)
+        credential = await UserCredential.get_or_none(user_id=record.id)
         if credential is None:
-            await UserCredential.create(user=user, password_hash=password_hash)
+            await UserCredential.create(user=record, password_hash=password_hash)
             return
         credential.password_hash = password_hash
         credential.password_updated_at = datetime.now(UTC)
@@ -81,29 +86,24 @@ class UserRepository(BaseRepository):
 
 
 class RefreshTokenStore:
-    def __init__(self, client: ValkeyClient, settings: AuthSettings) -> None:
+    def __init__(self, client: ValkeyClientLike, settings: AuthSettings) -> None:
         self._client = client
         self._settings = settings
 
     def _refresh_key(self, jti: str) -> str:
         return f"auth:refresh:{jti}"
 
-    def _refresh_key_full(self, jti: str) -> str:
-        return self._client.key("auth", "refresh", jti)
-
     def _user_set_key(self, user_id: UUID) -> str:
         return f"auth:user:{user_id}:refresh"
-
-    def _user_set_key_full(self, user_id: UUID) -> str:
-        return self._client.key("auth", "user", str(user_id), "refresh")
 
     async def store(self, record: dict[str, Any], *, ttl: int) -> None:
         key = self._refresh_key(record["jti"])
         await self._client.set_json(key, record, ex=ttl)
-        set_key = self._user_set_key_full(record["user_id"])
-        await self._client.raw.sadd(set_key, record["jti"])
+        user_uuid = UUID(str(record["user_id"]))
+        set_key = self._user_set_key(user_uuid)
+        await self._client.sadd(set_key, str(record["jti"]))
         if ttl > 0:
-            await self._client.raw.expire(set_key, ttl)
+            await self._client.expire(set_key, ttl)
 
     async def get(self, jti: str) -> dict[str, Any] | None:
         data = await self._client.get_json(self._refresh_key(jti))
@@ -122,7 +122,7 @@ class RefreshTokenStore:
         record["replaced_by"] = replaced_by
         record["rotated_at"] = int(datetime.now(UTC).timestamp())
         await self.update(jti, record)
-        await self._client.raw.srem(self._user_set_key_full(record["user_id"]), jti)
+        await self._client.srem(self._user_set_key(UUID(str(record["user_id"]))), jti)
 
     async def revoke(self, jti: str) -> None:
         record = await self.get(jti)
@@ -131,13 +131,10 @@ class RefreshTokenStore:
         record["status"] = REFRESH_STATUS_REVOKED
         record["revoked_at"] = int(datetime.now(UTC).timestamp())
         await self.update(jti, record)
-        await self._client.raw.srem(self._user_set_key_full(record["user_id"]), jti)
+        await self._client.srem(self._user_set_key(UUID(str(record["user_id"]))), jti)
 
     async def list_active(self, user_id: UUID) -> list[str]:
-        members = await self._client.raw.smembers(self._user_set_key_full(user_id))
-        if not members:
-            return []
-        return sorted(members)
+        return sorted(await self._client.smembers(self._user_set_key(user_id)))
 
     async def revoke_all(self, user_id: UUID) -> None:
         jtis = await self.list_active(user_id)
@@ -147,7 +144,7 @@ class RefreshTokenStore:
 
 
 class PasswordResetStore:
-    def __init__(self, client: ValkeyClient, settings: AuthSettings) -> None:
+    def __init__(self, client: ValkeyClientLike, settings: AuthSettings) -> None:
         self._client = client
         self._settings = settings
 

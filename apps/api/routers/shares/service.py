@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+import asyncio
 import mimetypes
 from collections.abc import AsyncIterator
 from datetime import UTC, datetime
+from typing import Protocol
 from uuid import UUID
 
-import anyio
 from pydantic import ConfigDict
 from starlette.responses import Response, StreamingResponse
 
@@ -19,7 +20,6 @@ from apps.api.infra.storage.factory import build_storage_provider_for
 from apps.api.infra.storage.local import safe_object_key_to_path
 from apps.api.infra.storage.s3 import S3StorageProvider
 from apps.api.models.asset import AssetRecord
-from apps.api.models.asset_share import AssetShareLinkRecord
 from apps.api.routers.shares.repository import ShareLinksRepository
 from apps.api.settings.runtime import get_effective_settings
 
@@ -34,7 +34,12 @@ class ShareResolved(BaseSchema):
     revoked_at: datetime | None
 
 
-def is_share_link_active(link: AssetShareLinkRecord, *, now: datetime | None = None) -> bool:
+class _ShareLinkLike(Protocol):
+    expires_at: datetime | None
+    revoked_at: datetime | None
+
+
+def is_share_link_active(link: _ShareLinkLike, *, now: datetime | None = None) -> bool:
     """
     Share links are active if:
     - not revoked
@@ -106,13 +111,13 @@ class SharesService:
         async def _iter_body() -> AsyncIterator[bytes]:
             try:
                 while True:
-                    chunk = await anyio.to_thread.run_sync(body.read, 1024 * 1024)
+                    chunk = await asyncio.to_thread(body.read, 1024 * 1024)
                     if not chunk:
                         break
                     yield chunk
             finally:
                 try:
-                    await anyio.to_thread.run_sync(body.close)
+                    await asyncio.to_thread(body.close)
                 except Exception:
                     pass
 

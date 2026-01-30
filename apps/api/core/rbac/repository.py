@@ -169,16 +169,19 @@ class RBACRepository(BaseRepository):
         )
 
     async def list_user_role_codes_in_org(self, *, user_id: UUID, organization_id: UUID) -> list[str]:
-        rows = await self.query_user_roles_in_org(user_id=user_id, organization_id=organization_id).values_list(
+        raw_rows = await self.query_user_roles_in_org(user_id=user_id, organization_id=organization_id).values_list(
             "code", flat=True
         )
-        return sorted(set(rows))
+        # Tortoise typing for values_list(flat=True) is not always precise; normalize defensively.
+        codes = [str(r[0] if isinstance(r, tuple) else r) for r in raw_rows if r is not None]
+        return sorted(set(codes))
 
     async def list_permission_codes_for_role_codes(self, *, role_codes: list[str]) -> list[str]:
         if not role_codes:
             return []
-        rows = await Permission.filter(permission_roles__role__code__in=role_codes).values_list("code", flat=True)
-        return sorted(set(rows))
+        raw_rows = await Permission.filter(permission_roles__role__code__in=role_codes).values_list("code", flat=True)
+        codes = [str(r[0] if isinstance(r, tuple) else r) for r in raw_rows if r is not None]
+        return sorted(set(codes))
 
     async def role_codes_is_superuser(self, *, role_codes: list[str]) -> bool:
         if not role_codes:

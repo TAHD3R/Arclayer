@@ -1,11 +1,12 @@
-import { Alert, Button, Input, Masonry } from "antd";
-import { Plus, Search } from "lucide-react";
+import { Alert, Button, Dropdown, Input, Masonry } from "antd";
+import { FileText, Music, Package, Plus, Search } from "lucide-react";
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { DefaultPage } from "@/components/app/defaultPage";
 import { LoaderOne } from "@/components/ui/loader";
+import ChevronDownIcon from "@/components/ui/icons/chevron-down";
 import { ChromeTabs, ChromeTabsList, ChromeTabsTrigger } from "@/components/ui/chrome-tabs";
 import {
   listAdminAssetFolders,
@@ -28,12 +29,7 @@ import {
   type AssetsFilters,
 } from "@/views/assets/components/AssetsFilterPopover";
 import { AssetUploadDialog } from "@/views/assets/components/AssetUploadDialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/animate-ui/components/radix/dropdown-menu";
+import type { MenuProps } from "antd";
 
 function buildSvgDataUrl({ hue, aspectRatio }: { hue: number; aspectRatio: number }): string {
   // Avoid network dependency for dev: render a simple SVG placeholder as a data URL.
@@ -166,6 +162,8 @@ export function AssetsView() {
     visibility: "public",
   }));
   const [ordering, setOrdering] = useState<string>("-created_at");
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [moreHovered, setMoreHovered] = useState(false);
 
   const typeTabValue = useMemo(() => {
     const mp = filters.mimePrefix;
@@ -183,6 +181,27 @@ export function AssetsView() {
     if (mp === "application/") return t("assets:ASSET_FILTER_TYPE_APP");
     return t("assets:ASSET_TYPE_TAB_MORE");
   }, [filters.mimePrefix, t]);
+
+  const moreMenuItems = useMemo<MenuProps["items"]>(
+    () => [
+      {
+        key: "audio",
+        icon: <Music size={16} />,
+        label: t("assets:ASSET_FILTER_TYPE_AUDIO"),
+      },
+      {
+        key: "text",
+        icon: <FileText size={16} />,
+        label: t("assets:ASSET_FILTER_TYPE_TEXT"),
+      },
+      {
+        key: "application",
+        icon: <Package size={16} />,
+        label: t("assets:ASSET_FILTER_TYPE_APP"),
+      },
+    ],
+    [t],
+  );
 
   const mockItems = useMemo(() => buildMockAssets(), []);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
@@ -311,14 +330,17 @@ export function AssetsView() {
               onValueChange={(next) => {
                 if (next === "all") {
                   setFilters((prev) => ({ ...prev, mimePrefix: undefined }));
+                  setMoreOpen(false);
                   return;
                 }
                 if (next === "image") {
                   setFilters((prev) => ({ ...prev, mimePrefix: "image/" }));
+                  setMoreOpen(false);
                   return;
                 }
                 if (next === "video") {
                   setFilters((prev) => ({ ...prev, mimePrefix: "video/" }));
+                  setMoreOpen(false);
                   return;
                 }
                 // "more" is controlled via dropdown menu; clicking it should not change filters.
@@ -333,32 +355,44 @@ export function AssetsView() {
                   {t("assets:ASSET_FILTER_TYPE_VIDEO")}
                 </ChromeTabsTrigger>
 
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <ChromeTabsTrigger value="more" className="flex items-center gap-1">
-                      <span>{moreTabLabel}</span>
-                    </ChromeTabsTrigger>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start">
-                    <DropdownMenuItem
-                      onSelect={() => setFilters((prev) => ({ ...prev, mimePrefix: "audio/" }))}
-                    >
-                      {t("assets:ASSET_FILTER_TYPE_AUDIO")}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onSelect={() => setFilters((prev) => ({ ...prev, mimePrefix: "text/" }))}
-                    >
-                      {t("assets:ASSET_FILTER_TYPE_TEXT")}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onSelect={() =>
-                        setFilters((prev) => ({ ...prev, mimePrefix: "application/" }))
+                <Dropdown
+                  trigger={["click"]}
+                  open={moreOpen}
+                  onOpenChange={(open) => setMoreOpen(open)}
+                  menu={{
+                    items: moreMenuItems,
+                    onClick: (info) => {
+                      if (info.key === "audio") {
+                        setFilters((prev) => ({ ...prev, mimePrefix: "audio/" }));
+                        setMoreOpen(false);
+                        return;
                       }
-                    >
-                      {t("assets:ASSET_FILTER_TYPE_APP")}
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                      if (info.key === "text") {
+                        setFilters((prev) => ({ ...prev, mimePrefix: "text/" }));
+                        setMoreOpen(false);
+                        return;
+                      }
+                      if (info.key === "application") {
+                        setFilters((prev) => ({ ...prev, mimePrefix: "application/" }));
+                        setMoreOpen(false);
+                      }
+                    },
+                  }}
+                >
+                  <ChromeTabsTrigger
+                    value="more"
+                    className="flex items-center gap-1"
+                    onMouseEnter={() => setMoreHovered(true)}
+                    onMouseLeave={() => setMoreHovered(false)}
+                  >
+                    <span>{moreTabLabel}</span>
+                    <ChevronDownIcon
+                      size={16}
+                      className="opacity-75"
+                      isHovered={moreHovered || moreOpen}
+                    />
+                  </ChromeTabsTrigger>
+                </Dropdown>
               </ChromeTabsList>
             </ChromeTabs>
           </div>

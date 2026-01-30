@@ -6,7 +6,7 @@ from uuid import uuid4
 
 from fastapi_mail import ConnectionConfig, FastMail, MessageSchema, MessageType
 from fastapi_mail.schemas import MultipartSubtypeEnum
-from pydantic import EmailStr, TypeAdapter, ValidationError
+from pydantic import EmailStr, NameEmail, SecretStr, TypeAdapter, ValidationError
 
 from apps.api.config import EmailSettings, Settings
 from apps.api.core.i18n import t
@@ -28,10 +28,11 @@ def build_mail_config(settings: EmailSettings) -> ConnectionConfig:
     if template_dir is None:
         template_dir = _default_template_dir()
 
-    password = settings.password.get_secret_value() if settings.password is not None else None
+    # fastapi-mail expects SecretStr for MAIL_PASSWORD. Keep it typed and only unwrap when needed.
+    password: SecretStr = settings.password if settings.password is not None else SecretStr("")
     return ConnectionConfig(
         MAIL_USERNAME=settings.username or "",
-        MAIL_PASSWORD=password or "",
+        MAIL_PASSWORD=password,
         MAIL_FROM=settings.mail_from,
         MAIL_FROM_NAME=settings.mail_from_name,
         MAIL_PORT=settings.port,
@@ -55,6 +56,12 @@ def _valid_recipient(recipient: str) -> bool:
         return True
     except ValidationError:
         return False
+
+
+def _to_name_email(email: str) -> NameEmail:
+    # fastapi-mail expects `recipients: list[NameEmail]` which requires a `name`.
+    local_part = email.split("@", 1)[0].strip()
+    return NameEmail(name=local_part or email, email=email)
 
 
 class EmailService:
@@ -148,7 +155,7 @@ class EmailService:
             )
             message = MessageSchema(
                 subject=subject,
-                recipients=[recipient],
+                recipients=[_to_name_email(recipient)],
                 template_body={
                     "title": title,
                     "intro": intro,
@@ -242,7 +249,7 @@ class EmailService:
             )
             message = MessageSchema(
                 subject=subject,
-                recipients=[recipient],
+                recipients=[_to_name_email(recipient)],
                 template_body={"username": username, "title": title, "intro": intro},
                 subtype=MessageType.html,
                 alternative_body=plain_body,
@@ -388,7 +395,7 @@ class EmailService:
 
             message = MessageSchema(
                 subject=subject,
-                recipients=[recipient],
+                recipients=[_to_name_email(recipient)],
                 template_body={
                     "title": title,
                     "intro": intro,

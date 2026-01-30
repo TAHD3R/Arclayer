@@ -56,4 +56,7 @@ async def revoke_share_link(
     service: AdminSharesService = Depends(get_admin_shares_service),
 ) -> ResponseModel[AdminShareRevokeOut]:
     link = await service.revoke_share_link(org_id=org_id, link_id=link_id)
-    return Response.success(data=AdminShareRevokeOut(id=link.id, revoked_at=link.revoked_at))
+    revoked_at = link.revoked_at
+    if revoked_at is None:
+        raise RuntimeError("Share link revoked_at is missing after revoke operation")
+    return Response.success(data=AdminShareRevokeOut(id=link.id, revoked_at=revoked_at))

@@ -1,9 +1,8 @@
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path
 from uuid import UUID
-
-import anyio
 
 from apps.api.config import Settings
 from apps.api.core.assets.events import ASSET_UPLOADED_EVENT
@@ -62,12 +61,11 @@ async def register_core_asset_processors(registry: ExtensionRegistry, settings: 
                     key = f"org/{org_id}/assets/{asset_id}/thumb-{width}.{out_ext}"
                     return safe_object_key_to_path(settings.storage.local_root_dir, key), key
 
-                variants_payload, meta_payload = await anyio.to_thread.run_sync(
-                    lambda: generate_image_thumbnails(
-                        in_path=in_path,
-                        out_path_for_width=_out_path_for_width,
-                        widths=[320, 640],
-                    )
+                variants_payload, meta_payload = await asyncio.to_thread(
+                    generate_image_thumbnails,
+                    in_path=in_path,
+                    out_path_for_width=_out_path_for_width,
+                    widths=[320, 640],
                 )
 
             elif asset.storage_provider == "s3":
@@ -98,12 +96,11 @@ async def register_core_asset_processors(registry: ExtensionRegistry, settings: 
                     out_paths[object_key] = out_path
                     return out_path, object_key
 
-                variants_payload, meta_payload = await anyio.to_thread.run_sync(
-                    lambda: generate_image_thumbnails(
-                        in_path=in_path,
-                        out_path_for_width=_out_path_for_width,
-                        widths=[320, 640],
-                    )
+                variants_payload, meta_payload = await asyncio.to_thread(
+                    generate_image_thumbnails,
+                    in_path=in_path,
+                    out_path_for_width=_out_path_for_width,
+                    widths=[320, 640],
                 )
 
                 # Upload thumbnails to S3 (best-effort).
@@ -120,7 +117,7 @@ async def register_core_asset_processors(registry: ExtensionRegistry, settings: 
                         if not out_path or not out_path.is_file():
                             continue
                         try:
-                            data = await anyio.to_thread.run_sync(out_path.read_bytes)
+                            data = await asyncio.to_thread(out_path.read_bytes)
                             await provider.put_object_bytes(
                                 object_key=object_key,
                                 data=data,
