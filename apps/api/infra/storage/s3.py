@@ -1,30 +1,34 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 import anyio
+from pydantic import ConfigDict
 
+from apps.api.common.schemas import BaseSchema
 from apps.api.config import Settings
 
 
-@dataclass(frozen=True, slots=True)
-class PresignedPart:
+class PresignedPart(BaseSchema):
+    model_config = ConfigDict(frozen=True)
+
     url: str
     method: str = "PUT"
     headers: dict[str, str] | None = None
 
 
-@dataclass(frozen=True, slots=True)
-class S3HeadObject:
+class S3HeadObject(BaseSchema):
+    model_config = ConfigDict(frozen=True)
+
     size_bytes: int
     content_type: str | None
     etag: str | None
 
 
-@dataclass(frozen=True, slots=True)
-class S3GetObject:
+class S3GetObject(BaseSchema):
+    model_config = ConfigDict(frozen=True, arbitrary_types_allowed=True)
+
     body: Any
     content_type: str | None
     content_length: int | None

@@ -3,6 +3,8 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import UUID
 
+from tortoise.queryset import QuerySet
+
 from apps.api.common.repositories import BaseRepository
 from apps.api.models.asset_share import AssetShareLinkRecord
 
@@ -29,8 +31,8 @@ class AdminSharesRepository(BaseRepository):
     async def get_link(self, *, org_id: UUID, link_id: UUID) -> AssetShareLinkRecord | None:
         return await AssetShareLinkRecord.get_or_none(id=link_id, org_id=org_id)
 
-    async def list_links(self, *, org_id: UUID, asset_id: UUID) -> list[AssetShareLinkRecord]:
-        return await AssetShareLinkRecord.filter(org_id=org_id, asset_id=asset_id).order_by("-created_at").all()
+    def query_links(self, *, org_id: UUID, asset_id: UUID) -> QuerySet[AssetShareLinkRecord]:
+        return AssetShareLinkRecord.filter(org_id=org_id, asset_id=asset_id).order_by("-created_at")
 
     async def revoke(self, link: AssetShareLinkRecord, *, revoked_at: datetime) -> AssetShareLinkRecord:
         if link.revoked_at is None:

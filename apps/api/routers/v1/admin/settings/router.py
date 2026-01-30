@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, Request
 from apps.api.config import Settings, get_settings
 from apps.api.core.authz import require_permission_strict
 from apps.api.core.exceptions import ServiceUnavailable
+from apps.api.core.http.pagination import PageData, PageParams, get_page_params
 from apps.api.core.http.response import Response, ResponseModel
 from apps.api.core.i18n import t
 from apps.api.plugin.manager import PluginManager
@@ -35,13 +36,14 @@ def get_settings_service(
     return SettingsService(settings, manager=manager)
 
 
-@router.get("", response_model=ResponseModel[list[SettingsNamespaceSummary]])
+@router.get("", response_model=ResponseModel[PageData[SettingsNamespaceSummary]])
 async def list_namespaces(
     service: SettingsService = Depends(get_settings_service),
     _user=Depends(get_current_user),
-) -> ResponseModel[list[SettingsNamespaceSummary]]:
-    items = await service.list_namespaces()
-    return Response.success(data=items)
+    params: PageParams = Depends(get_page_params),
+) -> ResponseModel[PageData[SettingsNamespaceSummary]]:
+    page = await service.list_namespaces(params=params)
+    return Response.success(data=page)
 
 
 @router.get("/{namespace}", response_model=ResponseModel[SettingsDetail])

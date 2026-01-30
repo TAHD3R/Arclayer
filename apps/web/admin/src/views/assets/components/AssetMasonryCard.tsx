@@ -540,7 +540,7 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
     queryKey: ["assets", "usages", active?.id],
     queryFn: async () => {
       if (!active?.id) throw new Error("missing asset id");
-      return listAdminAssetUsages(active.id);
+      return listAdminAssetUsages({ assetId: active.id });
     },
     enabled: Boolean(active?.id),
     staleTime: 30 * 1000,
@@ -548,7 +548,7 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
   });
 
   const usageRows = useMemo(() => {
-    const rows = usagesQuery.data || [];
+    const rows = usagesQuery.data?.items || [];
     // 先展示 core.settings 这类高价值引用点（后续可扩展到文章/插件/主题等）。
     const score = (u: AdminAssetUsage) => {
       if (u.entityType === "core.settings") return 0;
@@ -704,7 +704,7 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
     };
   }, [active?.id, descriptionDraft, tagIdsDraft, patchMutation]);
 
-  const allTags = useMemo(() => tagsQuery.data || [], [tagsQuery.data]);
+  const allTags = useMemo(() => tagsQuery.data?.items || [], [tagsQuery.data]);
   const detailTags = useMemo(() => detailQuery.data?.tags || [], [detailQuery.data]);
 
   const selectedTags = useMemo(() => {

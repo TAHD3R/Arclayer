@@ -23,7 +23,7 @@ async def test_api_error_handler(monkeypatch, tmp_path: Path) -> None:
 
     @app.get("/boom")
     def boom() -> None:
-        raise APIError("请求失败", error="BAD_REQUEST", status_code=400, details={"reason": "bad"})
+        raise APIError("Failed", error="BAD_REQUEST", status_code=400, details={"reason": "bad"})
 
     transport = ASGITransport(app=app, raise_app_exceptions=False)
     async with app.router.lifespan_context(app):
@@ -33,7 +33,7 @@ async def test_api_error_handler(monkeypatch, tmp_path: Path) -> None:
     assert response.status_code == 400
     payload = response.json()
 
-    assert payload["message"] == "请求失败"
+    assert payload["message"] == "Failed"
     assert payload["error"] == "BAD_REQUEST"
 
 
@@ -43,7 +43,7 @@ async def test_http_exception_handler(monkeypatch, tmp_path: Path) -> None:
 
     @app.get("/missing")
     def missing() -> None:
-        raise HTTPException(status_code=404, detail="资源不存在")
+        raise HTTPException(status_code=404, detail="Not found")
 
     transport = ASGITransport(app=app, raise_app_exceptions=False)
     async with app.router.lifespan_context(app):
@@ -52,7 +52,7 @@ async def test_http_exception_handler(monkeypatch, tmp_path: Path) -> None:
 
     assert response.status_code == 404
     payload = response.json()
-    assert payload["message"] == "资源不存在"
+    assert payload["message"] == "Not found"
     assert payload["error"] == "NOT_FOUND"
 
 
@@ -71,7 +71,7 @@ async def test_request_validation_handler(monkeypatch, tmp_path: Path) -> None:
 
     assert response.status_code == 422
     payload = response.json()
-    assert payload["message"] == "参数校验失败"
+    assert payload["message"] == "Validation failed"
     assert payload["error"] == "VALIDATION_ERROR"
     assert payload["meta"] is not None
     assert isinstance(payload["meta"].get("details"), list)
@@ -92,7 +92,7 @@ async def test_unhandled_error_handler(monkeypatch, tmp_path: Path) -> None:
 
     assert response.status_code == 500
     payload = response.json()
-    assert payload["message"] == "服务器内部错误"
+    assert payload["message"] == "Internal server error"
     assert payload["error"] == "INTERNAL_ERROR"
     # Never leak stack traces in API responses.
     assert "Traceback" not in response.text

@@ -70,7 +70,7 @@ export function AssetSharePopover(props: {
 
   const linksQuery = useQuery({
     queryKey: ["assets", "shareLinks", props.assetId],
-    queryFn: async () => listAdminAssetShareLinks(props.assetId),
+    queryFn: async () => listAdminAssetShareLinks({ assetId: props.assetId, page: 1, size: 50 }),
     enabled: open && Boolean(props.assetId),
     staleTime: 5 * 1000,
     retry: 1,
@@ -106,7 +106,7 @@ export function AssetSharePopover(props: {
 
   const rows = useMemo(() => {
     // revoked 链接对用户没有价值：不展示在列表中（仍然可通过 API 审计/查询）。
-    const raw = (linksQuery.data || []).filter((x) => !x.revokedAt);
+    const raw = (linksQuery.data?.items || []).filter((x) => !x.revokedAt);
     // 新的在前，方便用户复制最新生成的链接。
     return raw.sort((a, b) => {
       const ta = new Date(a.createdAt).getTime();

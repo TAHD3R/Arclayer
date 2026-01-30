@@ -5,6 +5,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends
 
 from apps.api.config import Settings, get_settings
+from apps.api.core.http.pagination import PageData, PageParams, get_page_params
 from apps.api.core.http.response import Response, ResponseModel
 from apps.api.core.organization.deps import get_current_org_id
 from apps.api.routers.v1.admin.shares.schema import AdminShareCreateRequest, AdminShareLinkOut, AdminShareRevokeOut
@@ -18,16 +19,16 @@ def get_admin_shares_service(settings: Settings = Depends(get_settings)) -> Admi
     return AdminSharesService(settings)
 
 
-@router.get("/assets/{asset_id}/share-links", response_model=ResponseModel[list[AdminShareLinkOut]])
+@router.get("/assets/{asset_id}/share-links", response_model=ResponseModel[PageData[AdminShareLinkOut]])
 async def list_share_links(
     asset_id: UUID,
     org_id: UUID = Depends(get_current_org_id),
     _user=Depends(get_current_user),
+    params: PageParams = Depends(get_page_params),
     service: AdminSharesService = Depends(get_admin_shares_service),
-) -> ResponseModel[list[AdminShareLinkOut]]:
-    links = await service.list_share_links(org_id=org_id, asset_id=asset_id)
-    out = [AdminShareLinkOut.model_validate(x, from_attributes=True) for x in links]
-    return Response.success(data=out)
+) -> ResponseModel[PageData[AdminShareLinkOut]]:
+    page = await service.list_share_links(org_id=org_id, asset_id=asset_id, params=params)
+    return Response.success(data=page)
 
 
 @router.post("/assets/{asset_id}/share-links", response_model=ResponseModel[AdminShareLinkOut])

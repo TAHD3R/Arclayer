@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from uuid import UUID
 
 from fastapi import Depends, Header
+from pydantic import ConfigDict
 from structlog.contextvars import bind_contextvars
 
+from apps.api.common.schemas import BaseSchema
 from apps.api.core.exceptions import BadRequest, Conflict, Forbidden
 from apps.api.core.i18n import t
 from apps.api.core.organization.context import set_current_org_context
@@ -20,8 +21,9 @@ from apps.api.core.organization.select import (
 from apps.api.routers.v1.auth.deps import get_current_user_id
 
 
-@dataclass(frozen=True, slots=True)
-class OrgContext:
+class OrgContext(BaseSchema):
+    model_config = ConfigDict(frozen=True)
+
     org_id: UUID
     membership_id: UUID | None = None
 

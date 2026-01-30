@@ -148,7 +148,7 @@ export function AssetPickerDialog(props: {
   const total = assetsQuery.data?.total ?? 0;
 
   const folderOptions = useMemo(() => {
-    const rows = (foldersQuery.data || []) as AdminAssetFolder[];
+    const rows = (foldersQuery.data?.items || []) as AdminAssetFolder[];
     return [
       { value: "__all__", label: t("assets:ASSET_FILTER_FOLDER_ALL") },
       ...rows.map((f) => ({ value: f.id, label: f.name })),

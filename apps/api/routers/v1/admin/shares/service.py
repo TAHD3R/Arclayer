@@ -7,10 +7,12 @@ from uuid import UUID
 from apps.api.common.services import BaseService
 from apps.api.config import Settings
 from apps.api.core.exceptions import BadRequest, NotFound
+from apps.api.core.http.pagination import PageData, PageParams, paginate_queryset
 from apps.api.core.i18n import t
 from apps.api.models.asset import AssetRecord
 from apps.api.models.asset_share import AssetShareLinkRecord
 from apps.api.routers.v1.admin.shares.repository import AdminSharesRepository
+from apps.api.routers.v1.admin.shares.schema import AdminShareLinkOut
 
 
 def _ts(key: str, default: str) -> str:
@@ -67,9 +69,12 @@ class AdminSharesService(BaseService):
             message=_ts("SHARE_TOKEN_GENERATE_FAILED", "生成分享链接失败"), error="SHARE_TOKEN_GENERATE_FAILED"
         )
 
-    async def list_share_links(self, *, org_id: UUID, asset_id: UUID) -> list[AssetShareLinkRecord]:
+    async def list_share_links(
+        self, *, org_id: UUID, asset_id: UUID, params: PageParams
+    ) -> PageData[AdminShareLinkOut]:
         _ = await self._ensure_asset_exists(org_id=org_id, asset_id=asset_id)
-        return await self.repo.list_links(org_id=org_id, asset_id=asset_id)
+        qs = self.repo.query_links(org_id=org_id, asset_id=asset_id)
+        return await paginate_queryset(qs, params=params, out_schema=AdminShareLinkOut)
 
     async def revoke_share_link(self, *, org_id: UUID, link_id: UUID) -> AssetShareLinkRecord:
         link = await self.repo.get_link(org_id=org_id, link_id=link_id)

@@ -30,6 +30,7 @@ class AdminAssetUsageOut(BaseOut):
     field_key: str = Field(..., description="Field key.")
     created_by_user_id: UUID | None = Field(default=None, description="Creator user id.")
     created_at: datetime = Field(..., description="Created at.")
+    updated_at: datetime = Field(..., description="Updated at.")
 
 
 class AdminAssetUsageDeleteOut(BaseSchema):

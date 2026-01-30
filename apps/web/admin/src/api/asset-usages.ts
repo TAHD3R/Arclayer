@@ -1,4 +1,5 @@
 import { api } from "@/lib/http";
+import type { PageData } from "@/api/assets";
 
 export type AdminAssetUsage = {
   id: string;
@@ -21,8 +22,18 @@ export type UpsertAdminAssetUsagePayload = {
   fieldKey: string;
 };
 
-export async function listAdminAssetUsages(assetId: string): Promise<AdminAssetUsage[]> {
-  return api.get<AdminAssetUsage[]>(`/admin/assets/${assetId}/usages`);
+export async function listAdminAssetUsages(params: {
+  assetId: string;
+  page?: number;
+  size?: number;
+}): Promise<PageData<AdminAssetUsage>> {
+  const query = new URLSearchParams();
+  query.set("page", String(params.page ?? 1));
+  query.set("size", String(params.size ?? 50));
+  const qs = query.toString();
+  return api.get<PageData<AdminAssetUsage>>(
+    `/admin/assets/${params.assetId}/usages${qs ? `?${qs}` : ""}`,
+  );
 }
 
 export async function upsertAdminAssetUsage(

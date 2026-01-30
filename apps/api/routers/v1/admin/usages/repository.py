@@ -2,12 +2,17 @@ from __future__ import annotations
 
 from uuid import UUID
 
+from tortoise.queryset import QuerySet
+
 from apps.api.models.asset_usage import AssetUsageRecord
 
 
 class AdminAssetUsagesRepository:
+    def query_usages_by_asset(self, *, org_id: UUID, asset_id: UUID) -> QuerySet[AssetUsageRecord]:
+        return AssetUsageRecord.filter(org_id=org_id, asset_id=asset_id).order_by("-created_at")
+
     async def list_usages_by_asset(self, *, org_id: UUID, asset_id: UUID) -> list[AssetUsageRecord]:
-        return await AssetUsageRecord.filter(org_id=org_id, asset_id=asset_id).order_by("-created_at").all()
+        return await self.query_usages_by_asset(org_id=org_id, asset_id=asset_id).all()
 
     async def get_usage_by_ref(
         self,
@@ -60,7 +65,7 @@ class AdminAssetUsagesRepository:
             existing.purpose = purpose
             changed = True
 
-        # created_by_user_id 仅在创建时写入，避免“谁最先配置的”审计信息被覆盖。
+        # Only set created_by_user_id on creation to preserve "who configured first" audit intent.
         if changed:
             await existing.save(update_fields=["asset_id", "purpose", "updated_at"])
         return existing

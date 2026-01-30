@@ -45,6 +45,8 @@ class Permission(BaseModel):
 
 
 class RolePermission(BaseModel):
+    """Role -> Permission link (many-to-many)."""
+
     role = fields.ForeignKeyField("models.Role", related_name="role_permissions", on_delete=fields.CASCADE)
     permission = fields.ForeignKeyField("models.Permission", related_name="permission_roles", on_delete=fields.CASCADE)
 
@@ -55,6 +57,8 @@ class RolePermission(BaseModel):
 
 
 class MembershipRole(BaseModel):
+    """Membership -> Role link (many-to-many)."""
+
     membership = fields.ForeignKeyField(
         "models.Membership",
         related_name="membership_roles",

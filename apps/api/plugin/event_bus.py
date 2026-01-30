@@ -3,10 +3,12 @@ from __future__ import annotations
 import asyncio
 import time
 from collections.abc import Awaitable, Callable
-from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
 
+from pydantic import ConfigDict, Field
+
+from apps.api.common.schemas import BaseSchema
 from apps.api.core.logging import get_logger
 
 logger = get_logger(__name__)
@@ -14,8 +16,7 @@ logger = get_logger(__name__)
 EventHandler = Callable[["Event"], Awaitable[None]]
 
 
-@dataclass(frozen=True, slots=True)
-class Event:
+class Event(BaseSchema):
     """
     In-process event contract for plugin decoupling.
 
@@ -24,18 +25,21 @@ class Event:
     - Version is for forward-compatible evolution of payload shape.
     """
 
+    model_config = ConfigDict(frozen=True)
+
     name: str
-    payload: dict[str, Any] = field(default_factory=dict)
+    payload: dict[str, Any] = Field(default_factory=dict)
     version: str = "1.0"
-    occurred_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    occurred_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     source: str | None = None
     # Use a single name everywhere (logging/meta) to avoid request_id vs trace_id confusion.
     trace_id: str | None = None
     actor_user_id: str | None = None
 
 
-@dataclass(slots=True)
-class _Subscription:
+class _Subscription(BaseSchema):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
     plugin_id: str
     handler: EventHandler
     priority: int = 0

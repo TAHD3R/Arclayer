@@ -1,11 +1,15 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from pathlib import Path
 
+from pydantic import ConfigDict
 
-@dataclass(frozen=True, slots=True)
-class ImageThumbnailVariant:
+from apps.api.common.schemas import BaseSchema
+
+
+class ImageThumbnailVariant(BaseSchema):
+    model_config = ConfigDict(frozen=True)
+
     name: str
     width: int
     height: int
@@ -114,20 +118,7 @@ def generate_image_thumbnails(
                 )
             )
 
-    variants_payload = {
-        "thumbnails": [
-            {
-                "name": v.name,
-                "width": v.width,
-                "height": v.height,
-                "mime": v.mime,
-                "ext": v.ext,
-                "object_key": v.object_key,
-                "size_bytes": v.size_bytes,
-            }
-            for v in variants
-        ]
-    }
+    variants_payload = {"thumbnails": [v.model_dump() for v in variants]}
     meta_payload = {
         "image": {
             "width": orig_w,

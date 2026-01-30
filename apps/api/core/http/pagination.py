@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from dataclasses import dataclass
 from math import ceil
 from typing import Any, TypeVar
 
@@ -31,10 +30,18 @@ class PageData[T](BaseSchema):
     prev: int | None = Field(default=None, description="Previous page number.")
 
 
-@dataclass(frozen=True, slots=True)
-class PageParams:
-    page: int = 1
-    size: int = 20
+class PageParams(BaseSchema):
+    """
+    Pagination request parameters.
+
+    Notes:
+    - This model is used as an internal dependency object (not a response schema).
+    - Validation is duplicated with the FastAPI Query constraints to keep service/repository
+      code safe when PageParams is constructed outside request handling (e.g. tests).
+    """
+
+    page: int = Field(default=1, ge=1, description="Page number (1-based).")
+    size: int = Field(default=20, ge=1, le=200, description="Page size.")
 
     @property
     def offset(self) -> int:
@@ -46,15 +53,57 @@ class PageParams:
 
 
 def get_page_params(
-    page: int = Query(1, ge=1, description="页码"),
-    size: int = Query(20, gt=0, le=200, description="每页数量"),
+    page: int = Query(1, ge=1, description="Page number (1-based)."),
+    size: int = Query(20, gt=0, le=200, description="Page size."),
 ) -> PageParams:
-    # Keep params as a pure object (not coupled to FastAPI inside a BaseModel),
-    # which makes service/repository signatures cleaner and easier to test.
+    # Keep params as a small validated object, so service/repository signatures remain explicit
+    # and we can construct the same object in tests without depending on FastAPI.
     return PageParams(page=page, size=size)
 
 
 DependsPagination = Depends(get_page_params)
+
+
+def paginate_items[T](items: Sequence[T], *, params: PageParams) -> PageData[T]:
+    """
+    In-memory pagination helper for small lists.
+
+    Use cases:
+    - data already loaded/aggregated from multiple sources
+    - endpoints where DB pagination is not available or not worth the complexity
+
+    Notes:
+    - This is still deterministic and matches paginate_queryset() semantics.
+    - Prefer paginate_queryset() for DB-backed lists to avoid loading everything into memory.
+    """
+
+    total = int(len(items))
+    pages = ceil(total / params.size) if params.size else 0
+
+    if total == 0 or params.page > pages:
+        out_items: list[T] = []
+    else:
+        start = params.offset
+        end = start + params.limit
+        out_items = list(items[start:end])
+
+    next_page: int | None = None
+    prev_page: int | None = None
+    if pages > 0:
+        if params.page < pages:
+            next_page = params.page + 1
+        if params.page > 1:
+            prev_page = min(params.page - 1, pages)
+
+    return PageData[T](
+        items=out_items,
+        total=total,
+        page=params.page,
+        size=params.size,
+        pages=pages,
+        next=next_page,
+        prev=prev_page,
+    )
 
 
 async def paginate_queryset[T](

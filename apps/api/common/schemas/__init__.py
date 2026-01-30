@@ -1,4 +1,4 @@
-"""公共 Schema。"""
+"""Common Pydantic schemas."""
 
 from apps.api.common.schemas.authz_schema import AuthzSnapshot
 from apps.api.common.schemas.base import (

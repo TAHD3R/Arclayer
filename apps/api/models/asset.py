@@ -8,6 +8,8 @@ from apps.api.models.base import BaseModel
 
 
 class AssetPurpose(StrEnum):
+    """Asset purpose category (used for validation and policies)."""
+
     AVATAR = "avatar"
     SITE_LOGO = "site_logo"
     FAVICON = "favicon"
@@ -17,6 +19,8 @@ class AssetPurpose(StrEnum):
 
 
 class AssetVisibility(StrEnum):
+    """Asset visibility."""
+
     PUBLIC = "public"
     PRIVATE = "private"
     SHARED = "shared"

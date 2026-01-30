@@ -113,13 +113,29 @@ export async function listAdminAssets(
   return api.get<PageData<AdminAssetSummary>>(`/admin/assets${query}`);
 }
 
-export async function listAdminAssetFolders(): Promise<AdminAssetFolder[]> {
-  return api.get<AdminAssetFolder[]>(`/admin/asset-folders`);
+export async function listAdminAssetFolders(
+  params: { page?: number; size?: number } = {},
+): Promise<PageData<AdminAssetFolder>> {
+  const query = toQueryString({
+    page: params.page ?? 1,
+    size: params.size ?? 200,
+  });
+  return api.get<PageData<AdminAssetFolder>>(`/admin/asset-folders${query}`);
 }
 
-export async function listAdminAssetTags(params: { q?: string } = {}): Promise<AdminAssetTag[]> {
-  const query = toQueryString({ q: params.q });
-  return api.get<AdminAssetTag[]>(`/admin/asset-tags${query}`);
+export async function listAdminAssetTags(
+  params: {
+    q?: string;
+    page?: number;
+    size?: number;
+  } = {},
+): Promise<PageData<AdminAssetTag>> {
+  const query = toQueryString({
+    q: params.q,
+    page: params.page ?? 1,
+    size: params.size ?? 200,
+  });
+  return api.get<PageData<AdminAssetTag>>(`/admin/asset-tags${query}`);
 }
 
 export async function createAdminAssetTag(payload: { name: string }): Promise<AdminAssetTag> {

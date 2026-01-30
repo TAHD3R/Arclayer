@@ -1,4 +1,4 @@
-"""数据访问基础层。"""
+"""Repository layer (data access)."""
 
 from apps.api.common.repositories.base import BaseRepository
 

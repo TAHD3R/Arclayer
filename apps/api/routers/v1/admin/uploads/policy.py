@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
 from pathlib import Path
 
+from pydantic import ConfigDict
+
+from apps.api.common.schemas import BaseSchema
 from apps.api.core.exceptions import BadRequest
 from apps.api.core.i18n import t
 
@@ -25,8 +27,9 @@ _VIDEO_EXTS = frozenset({"mp4", "webm", "mov", "m4v"})
 _FONT_EXTS = frozenset({"woff2", "woff", "ttf", "otf", "eot"})
 
 
-@dataclass(frozen=True, slots=True)
-class UploadPolicy:
+class UploadPolicy(BaseSchema):
+    model_config = ConfigDict(frozen=True)
+
     allowed_exts: frozenset[str]
     max_size_bytes: int
     forced_visibility: str | None = None

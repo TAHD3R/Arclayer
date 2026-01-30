@@ -9,15 +9,16 @@ class AssetUsageRecord(BaseModel):
     """
     Asset usage reference (org-scoped).
 
-    用途：
-    - 记录“某个资源被哪个业务实体的哪个字段引用”，用于：
-      - 资源详情页展示 Where used（被引用位置）
-      - 删除/回收站操作前的影响提示
-      - 后续做“未使用资源”清理、审计与治理策略（purpose/indexable presets）
+    Use cases:
+    - Track "which business entity / field references which asset".
+    - Support "Where used" UI in asset details.
+    - Provide impact hints before delete/recycle-bin operations.
+    - Enable future cleanup/audit workflows (e.g. unused assets).
 
-    设计原则：
-    - entity_type 使用字符串约定，支持插件扩展（例如 `core.settings`、`plugin.xxx`）。
-    - field_key 建议用点路径（例如 `site.logo`、`seo.og_image`）。
+    Design notes:
+    - `entity_type` is a string convention and should be extensible by plugins
+      (e.g. `core.settings`, `plugin.xxx`).
+    - `field_key` should use dot paths (e.g. `site.logo`, `seo.og_image`).
     """
 
     org_id = fields.UUIDField(db_index=True)

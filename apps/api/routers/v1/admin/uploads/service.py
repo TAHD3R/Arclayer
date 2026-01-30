@@ -5,6 +5,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from uuid import UUID
 
+from fastapi import BackgroundTasks
 from tortoise.exceptions import IntegrityError
 
 from apps.api.common.services import BaseService
@@ -349,7 +350,7 @@ class UploadsService(BaseService):
         )
         await self.repo.set_session_status(session, status=UploadStatus.UPLOADING)
 
-    async def complete(self, *, upload_id: UUID, org_id: UUID) -> UUID:
+    async def complete(self, *, upload_id: UUID, org_id: UUID, background_tasks: BackgroundTasks | None = None) -> UUID:
         session, missing = await self.get_status(upload_id=upload_id, org_id=org_id)
         if session.status == UploadStatus.COMPLETED and session.asset_id is not None:
             return session.asset_id
@@ -394,25 +395,31 @@ class UploadsService(BaseService):
                 pass
             raise
 
-        # Emit post-upload event for plugin processors (fire-and-forget).
-        try:
-            await plugin_registry.event_bus.publish(
-                Event(
-                    name=ASSET_UPLOADED_EVENT,
-                    payload={
-                        "org_id": str(org_id),
-                        "asset_id": str(asset_id),
-                        "purpose": str(session.purpose),
-                        "storage_provider": str(session.storage_provider),
-                        "visibility": str(session.visibility),
-                        "indexable": bool(session.indexable),
-                    },
-                    source="core",
-                    actor_user_id=str(session.actor_user_id),
-                )
-            )
-        except Exception:
-            pass
+        # Emit post-upload event for plugin processors (best-effort).
+        event = Event(
+            name=ASSET_UPLOADED_EVENT,
+            payload={
+                "org_id": str(org_id),
+                "asset_id": str(asset_id),
+                "purpose": str(session.purpose),
+                "storage_provider": str(session.storage_provider),
+                "visibility": str(session.visibility),
+                "indexable": bool(session.indexable),
+            },
+            source="core",
+            actor_user_id=str(session.actor_user_id),
+        )
+
+        async def _publish() -> None:
+            try:
+                await plugin_registry.event_bus.publish(event)
+            except Exception:
+                return
+
+        if background_tasks is not None:
+            background_tasks.add_task(_publish)
+        else:
+            await _publish()
 
         return asset_id
 

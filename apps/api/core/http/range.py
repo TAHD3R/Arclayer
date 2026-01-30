@@ -1,13 +1,16 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from pydantic import ConfigDict
+
+from apps.api.common.schemas import BaseSchema
 
 
-@dataclass(frozen=True, slots=True)
-class ByteRange:
+class ByteRange(BaseSchema):
     """
     Inclusive byte range [start, end].
     """
+
+    model_config = ConfigDict(frozen=True)
 
     start: int
     end: int

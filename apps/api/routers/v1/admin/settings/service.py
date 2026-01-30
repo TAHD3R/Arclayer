@@ -5,6 +5,7 @@ from typing import Any
 from apps.api.common.services.base import BaseService
 from apps.api.config import Settings
 from apps.api.core.exceptions import BadRequest, NotFound, ServiceUnavailable
+from apps.api.core.http.pagination import PageData, PageParams, paginate_items
 from apps.api.core.i18n import t
 from apps.api.models.plugin import PluginRecord
 from apps.api.plugin.event_bus import Event
@@ -34,7 +35,7 @@ class SettingsService(BaseService):
         self.repo = SettingsRepository()
         self.manager = manager
 
-    async def list_namespaces(self) -> list[SettingsNamespaceSummary]:
+    async def list_namespaces(self, *, params: PageParams) -> PageData[SettingsNamespaceSummary]:
         items: list[SettingsNamespaceSummary] = [
             SettingsNamespaceSummary(
                 namespace=CORE_SETTINGS_NAMESPACE,
@@ -58,7 +59,7 @@ class SettingsService(BaseService):
                     plugin_slug=desc.manifest.plugin.slug,
                 )
             )
-        return items
+        return paginate_items(items, params=params)
 
     async def get_namespace_detail(self, namespace: str) -> SettingsDetail:
         if namespace == CORE_SETTINGS_NAMESPACE:

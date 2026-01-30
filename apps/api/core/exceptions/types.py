@@ -26,7 +26,7 @@ class APIError(Exception):
 class BadRequest(APIError):
     def __init__(
         self,
-        message: str = "请求错误",
+        message: str = "Bad request",
         *,
         error: str | None = None,
         details: Any | None = None,
@@ -46,7 +46,7 @@ class BadRequest(APIError):
 class Unauthorized(APIError):
     def __init__(
         self,
-        message: str = "未授权",
+        message: str = "Unauthorized",
         *,
         error: str | None = None,
         details: Any | None = None,
@@ -66,7 +66,7 @@ class Unauthorized(APIError):
 class Forbidden(APIError):
     def __init__(
         self,
-        message: str = "禁止访问",
+        message: str = "Forbidden",
         *,
         error: str | None = None,
         details: Any | None = None,
@@ -86,7 +86,7 @@ class Forbidden(APIError):
 class NotFound(APIError):
     def __init__(
         self,
-        message: str = "资源不存在",
+        message: str = "Not found",
         *,
         error: str | None = None,
         details: Any | None = None,
@@ -106,7 +106,7 @@ class NotFound(APIError):
 class Conflict(APIError):
     def __init__(
         self,
-        message: str = "资源冲突",
+        message: str = "Conflict",
         *,
         error: str | None = None,
         details: Any | None = None,
@@ -126,7 +126,7 @@ class Conflict(APIError):
 class TooManyRequests(APIError):
     def __init__(
         self,
-        message: str = "过多请求",
+        message: str = "Too many requests",
         *,
         error: str | None = None,
         details: Any | None = None,
@@ -146,7 +146,7 @@ class TooManyRequests(APIError):
 class InternalServerError(APIError):
     def __init__(
         self,
-        message: str = "服务器内部错误",
+        message: str = "Internal server error",
         *,
         error: str | None = None,
         details: Any | None = None,
@@ -166,7 +166,7 @@ class InternalServerError(APIError):
 class ServiceUnavailable(APIError):
     def __init__(
         self,
-        message: str = "服务不可用",
+        message: str = "Service unavailable",
         *,
         error: str | None = None,
         details: Any | None = None,

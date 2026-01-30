@@ -8,6 +8,8 @@ from apps.api.models.base import BaseModel
 
 
 class UploadStatus(StrEnum):
+    """Upload session state machine."""
+
     INITIATED = "initiated"
     UPLOADING = "uploading"
     COMPLETING = "completing"
@@ -17,6 +19,8 @@ class UploadStatus(StrEnum):
 
 
 class UploadSessionRecord(BaseModel):
+    """Upload session (supports local and S3 multipart uploads)."""
+
     org_id = fields.UUIDField(db_index=True)
     actor_user_id = fields.UUIDField(db_index=True)
 
@@ -56,6 +60,8 @@ class UploadSessionRecord(BaseModel):
 
 
 class UploadPartRecord(BaseModel):
+    """Upload part record (per-part bookkeeping for resumable uploads)."""
+
     session = fields.ForeignKeyField("models.UploadSessionRecord", related_name="parts", on_delete=fields.CASCADE)
     part_number = fields.IntField()
     size_bytes = fields.IntField(default=0)

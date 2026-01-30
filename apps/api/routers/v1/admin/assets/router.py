@@ -45,25 +45,27 @@ async def list_assets(
     return JsonResponse.success(data=page)
 
 
-@router.get("/asset-folders", response_model=ResponseModel[list[AdminAssetFolderOut]])
+@router.get("/asset-folders", response_model=ResponseModel[PageData[AdminAssetFolderOut]])
 async def list_asset_folders(
     org_id: UUID = Depends(get_current_org_id),
     _user=Depends(get_current_user),
+    params: PageParams = Depends(get_page_params),
     service: AdminAssetsService = Depends(get_admin_assets_service),
-) -> ResponseModel[list[AdminAssetFolderOut]]:
-    items = await service.list_folders(org_id=org_id)
-    return JsonResponse.success(data=items)
+) -> ResponseModel[PageData[AdminAssetFolderOut]]:
+    page = await service.list_folders(org_id=org_id, params=params)
+    return JsonResponse.success(data=page)
 
 
-@router.get("/asset-tags", response_model=ResponseModel[list[AdminAssetTagOut]])
+@router.get("/asset-tags", response_model=ResponseModel[PageData[AdminAssetTagOut]])
 async def list_asset_tags(
     q: str | None = None,
     org_id: UUID = Depends(get_current_org_id),
     _user=Depends(get_current_user),
+    params: PageParams = Depends(get_page_params),
     service: AdminAssetsService = Depends(get_admin_assets_service),
-) -> ResponseModel[list[AdminAssetTagOut]]:
-    items = await service.list_tags(org_id=org_id, q=q)
-    return JsonResponse.success(data=items)
+) -> ResponseModel[PageData[AdminAssetTagOut]]:
+    page = await service.list_tags(org_id=org_id, params=params, q=q)
+    return JsonResponse.success(data=page)
 
 
 @router.post("/asset-tags", response_model=ResponseModel[AdminAssetTagOut])

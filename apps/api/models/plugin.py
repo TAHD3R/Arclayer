@@ -7,6 +7,8 @@ from apps.api.plugin.types import PluginStatus
 
 
 class PluginRecord(BaseModel):
+    """Installed plugin record (manifest snapshot + runtime config)."""
+
     plugin_id = fields.CharField(max_length=128, unique=True, db_index=True)
     name = fields.CharField(max_length=200)
     description = fields.TextField(null=True)

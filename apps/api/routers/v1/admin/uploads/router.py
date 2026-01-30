@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Header, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, Header, Request
 
 from apps.api.config import Settings, get_settings
 from apps.api.core.exceptions import BadRequest
@@ -103,12 +103,13 @@ async def upload_part(
 
 @router.post("/uploads/{upload_id}/complete", response_model=ResponseModel[UploadCompleteOut])
 async def complete_upload(
+    background_tasks: BackgroundTasks,
     upload_id: UUID,
     org_id: UUID = Depends(get_current_org_id),
     _user=Depends(get_current_user),
     service: UploadsService = Depends(get_uploads_service),
 ) -> ResponseModel[UploadCompleteOut]:
-    asset_id = await service.complete(upload_id=upload_id, org_id=org_id)
+    asset_id = await service.complete(upload_id=upload_id, org_id=org_id, background_tasks=background_tasks)
     return Response.success(data=UploadCompleteOut(asset_id=asset_id))
 
 

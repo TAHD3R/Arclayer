@@ -9,6 +9,7 @@ from apps.api.common.schemas import AuthzSnapshot
 from apps.api.config import Settings, get_settings
 from apps.api.core.authz import get_authz_snapshot_provider, require_permission_strict
 from apps.api.core.exceptions import BadRequest, Conflict, Forbidden, NotFound, ServiceUnavailable
+from apps.api.core.http.pagination import PageData, PageParams, get_page_params, paginate_items
 from apps.api.core.http.response import Response, ResponseModel
 from apps.api.core.i18n import get_current_locale, t
 from apps.api.core.organization.invitations import hash_invite_token
@@ -207,10 +208,11 @@ async def me(
     return Response.success(data=profile)
 
 
-@router.get("/me/orgs", response_model=ResponseModel[list[MyOrganizationOut]])
+@router.get("/me/orgs", response_model=ResponseModel[PageData[MyOrganizationOut]])
 async def me_orgs(
     user: User = Depends(get_current_user),
-) -> ResponseModel[list[MyOrganizationOut]]:
+    params: PageParams = Depends(get_page_params),
+) -> ResponseModel[PageData[MyOrganizationOut]]:
     """
     List organizations the current user belongs to.
 
@@ -233,7 +235,7 @@ async def me_orgs(
                 membership_status=membership.status,
             )
         )
-    return Response.success(data=items)
+    return Response.success(data=paginate_items(items, params=params))
 
 
 @router.get(

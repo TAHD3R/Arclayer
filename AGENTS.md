@@ -43,7 +43,7 @@
 
 - i18n 详细说明与迁移建议：`docs/i18n.md`
 - FastAPI 目录架构：`docs/fastapi-folder-architecture.md`
-
+- 前端设计规范：`docs/design-guideline.md`
 
 
 ## 服务端约定

@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import mimetypes
-from dataclasses import dataclass
 from uuid import UUID
 
+from pydantic import ConfigDict
 from starlette.responses import RedirectResponse, Response
 
+from apps.api.common.schemas import BaseSchema
 from apps.api.config import Settings
 from apps.api.core.exceptions import NotFound
 from apps.api.core.http.content_disposition import build_attachment_content_disposition
@@ -17,8 +18,9 @@ from apps.api.routers.assets.repository import AssetsRepository
 from apps.api.settings.runtime import get_effective_settings
 
 
-@dataclass(frozen=True, slots=True)
-class AssetPublicView:
+class AssetPublicView(BaseSchema):
+    model_config = ConfigDict(frozen=True)
+
     id: UUID
     slug: str
     ext: str

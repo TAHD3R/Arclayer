@@ -1,9 +1,11 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Any
 
+from pydantic import ConfigDict, Field
+
+from apps.api.common.schemas import BaseSchema
 from apps.api.plugin.event_bus import EventBus
 from apps.api.plugin.manifest import PermissionTemplate
 
@@ -13,32 +15,36 @@ class ExtensionPointType(StrEnum):
     MULTI_INSTANCE = "multi-instance"
 
 
-@dataclass(slots=True)
-class ExtensionPoint:
+class ExtensionPoint(BaseSchema):
+    model_config = ConfigDict(frozen=True)
+
     name: str
     kind: ExtensionPointType
     description: str | None = None
 
 
-@dataclass(slots=True)
-class PermissionEntry:
+class PermissionEntry(BaseSchema):
+    model_config = ConfigDict(frozen=True, arbitrary_types_allowed=True)
+
     plugin_id: str
     template: PermissionTemplate
 
 
-@dataclass(slots=True)
-class ExtensionEntry:
+class ExtensionEntry(BaseSchema):
+    model_config = ConfigDict(frozen=True, arbitrary_types_allowed=True)
+
     plugin_id: str
     extension_point: str
     instance: Any
 
 
-@dataclass(slots=True)
-class ExtensionRegistry:
-    permissions: list[PermissionEntry] = field(default_factory=list)
-    extension_points: dict[str, ExtensionPoint] = field(default_factory=dict)
-    extensions: dict[str, list[ExtensionEntry]] = field(default_factory=dict)
-    event_bus: EventBus = field(default_factory=EventBus)
+class ExtensionRegistry(BaseSchema):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    permissions: list[PermissionEntry] = Field(default_factory=list)
+    extension_points: dict[str, ExtensionPoint] = Field(default_factory=dict)
+    extensions: dict[str, list[ExtensionEntry]] = Field(default_factory=dict)
+    event_bus: EventBus = Field(default_factory=EventBus)
 
     def register_permissions(self, plugin_id: str, templates: list[PermissionTemplate]) -> None:
         existing = {(entry.plugin_id, entry.template.code) for entry in self.permissions}

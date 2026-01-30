@@ -5,9 +5,10 @@ from dataclasses import dataclass
 from typing import Any, TypeVar
 
 import pytest
+from pydantic import ValidationError
 
 from apps.api.common.schemas import BaseSchema
-from apps.api.core.http.pagination import PageParams, paginate_queryset
+from apps.api.core.http.pagination import PageParams, paginate_items, paginate_queryset
 
 T = TypeVar("T")
 
@@ -73,6 +74,13 @@ def test_page_params_offset_limit() -> None:
     assert params.limit == 10
 
 
+def test_page_params_validation() -> None:
+    with pytest.raises(ValidationError):
+        PageParams(page=0, size=20)
+    with pytest.raises(ValidationError):
+        PageParams(page=1, size=0)
+
+
 @pytest.mark.asyncio
 async def test_paginate_queryset_empty() -> None:
     qs: Any = FakeQuerySet[_Obj]([])
@@ -119,3 +127,13 @@ async def test_paginate_queryset_out_of_range_page() -> None:
     assert page.next is None
     # For out-of-range pages, prev points to the last available page for convenience.
     assert page.prev == 3
+
+
+def test_paginate_items_in_memory() -> None:
+    items = list(range(1, 6))  # 5 items
+    page = paginate_items(items, params=PageParams(page=2, size=2))
+    assert page.total == 5
+    assert page.pages == 3
+    assert list(page.items) == [3, 4]
+    assert page.next == 3
+    assert page.prev == 1

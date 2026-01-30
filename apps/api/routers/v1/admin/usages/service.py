@@ -5,6 +5,7 @@ from uuid import UUID
 from apps.api.common.services import BaseService
 from apps.api.config import Settings
 from apps.api.core.exceptions import BadRequest, NotFound
+from apps.api.core.http.pagination import PageData, PageParams, paginate_queryset
 from apps.api.core.i18n import t
 from apps.api.models.asset import AssetRecord
 from apps.api.routers.v1.admin.usages.repository import AdminAssetUsagesRepository
@@ -25,26 +26,15 @@ class AdminAssetUsagesService(BaseService):
         super().__init__(settings)
         self.repo = AdminAssetUsagesRepository()
 
-    async def list_usages_by_asset(self, *, org_id: UUID, asset_id: UUID) -> list[AdminAssetUsageOut]:
+    async def list_usages_by_asset(
+        self, *, org_id: UUID, asset_id: UUID, params: PageParams
+    ) -> PageData[AdminAssetUsageOut]:
         asset = await AssetRecord.get_or_none(id=asset_id, org_id=org_id)
         if asset is None:
             raise NotFound(message=_ts("ASSET_NOT_FOUND", "资源不存在"), error="ASSET_NOT_FOUND")
 
-        rows = await self.repo.list_usages_by_asset(org_id=org_id, asset_id=asset_id)
-        return [
-            AdminAssetUsageOut(
-                id=r.id,
-                asset_id=r.asset_id,
-                purpose=r.purpose,
-                entity_type=r.entity_type,
-                entity_id=r.entity_id,
-                field_key=r.field_key,
-                created_by_user_id=r.created_by_user_id,
-                created_at=r.created_at,
-                updated_at=r.updated_at,
-            )
-            for r in rows
-        ]
+        qs = self.repo.query_usages_by_asset(org_id=org_id, asset_id=asset_id)
+        return await paginate_queryset(qs, params=params, out_schema=AdminAssetUsageOut)
 
     async def upsert_usage(
         self,
@@ -53,7 +43,7 @@ class AdminAssetUsagesService(BaseService):
         actor_user_id: UUID | None,
         payload: AdminAssetUsageUpsertRequest,
     ) -> AdminAssetUsageOut:
-        # 保护：asset 必须属于当前 org，避免跨租户引用。
+        # Guard: the asset must belong to the current org to prevent cross-tenant references.
         asset = await AssetRecord.get_or_none(id=payload.asset_id, org_id=org_id)
         if asset is None:
             raise NotFound(message=_ts("ASSET_NOT_FOUND", "资源不存在"), error="ASSET_NOT_FOUND")
@@ -84,7 +74,6 @@ class AdminAssetUsagesService(BaseService):
             field_key=row.field_key,
             created_by_user_id=row.created_by_user_id,
             created_at=row.created_at,
-            updated_at=row.updated_at,
         )
 
     async def delete_usage_by_ref(

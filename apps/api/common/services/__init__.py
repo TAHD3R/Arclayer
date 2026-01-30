@@ -1,4 +1,4 @@
-"""服务基础层。"""
+"""Service layer base classes."""
 
 from apps.api.common.services.base import BaseService
 

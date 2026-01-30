@@ -43,7 +43,8 @@ class PluginManager:
         self.project_root = Path(__file__).resolve().parents[3]
         self.registry = extension_registry or registry
         self.descriptors: dict[str, PluginDescriptor] = {}
-        # URL 路由使用的 slug 显式由插件 manifest 声明；这里维护双向索引用于解析与校验。
+        # Slugs used for URL routing are declared in plugin manifests; keep bidirectional indexes
+        # for resolution and validation.
         self.slug_to_id: dict[str, str] = {}
         self.id_to_slug: dict[str, str] = {}
         self.instances: dict[str, BasePlugin] = {}
@@ -570,12 +571,13 @@ class PluginManager:
             logger.warning("Plugin migration lock release failed", error=str(exc))
 
     async def _run_aerich(self, *args: str) -> None:
-        # 约定：API 的运行期配置文件（例如 `.env`）放在 `apps/api` 目录下。
-        # Aerich 会在子进程中导入 `apps.api.infra.db.orm.TORTOISE_ORM`，其内部会调用 `get_settings()`。
-        # 因此这里把工作目录切到 `apps/api`，确保子进程与主进程读取同一份 `.env`，避免硬编码注入 DB 配置。
+        # Convention: API runtime dotenv files (e.g. `.env`) live under `apps/api`.
+        # Aerich runs in a subprocess and imports `apps.api.infra.db.orm.TORTOISE_ORM`, which calls `get_settings()`.
+        # Set cwd to `apps/api` so the subprocess reads the same dotenv files as the main process,
+        # avoiding mismatched DB configuration.
         pyproject = self.project_root / "apps" / "api" / "pyproject.toml"
         env = os.environ.copy()
-        # 在某些启动方式下（例如从 `apps/api` 作为 cwd 启动），需要确保 repo root 可导入 `apps.*`。
+        # In some launch modes (e.g. `apps/api` as cwd), ensure repo root is importable as `apps.*`.
         env.setdefault("PYTHONPATH", str(self.project_root))
         proc = await asyncio.create_subprocess_exec(
             sys.executable,

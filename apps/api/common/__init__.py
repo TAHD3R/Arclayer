@@ -1,1 +1,1 @@
-"""公共工具包。"""
+"""Common utilities package."""

@@ -19,7 +19,7 @@ def _now_ms() -> int:
 class ResponseModel[T](BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
-    message: str = "请求成功"
+    message: str = "OK"
     data: T | None = None
     error: str | None = None
     timestamp: int = Field(default_factory=_now_ms)
@@ -49,7 +49,7 @@ class ResponseBase:
     @validate_call
     def success(
         *,
-        message: str = "请求成功",
+        message: str = "OK",
         data: Any | None = None,
         meta: dict[str, Any] | None = None,
     ) -> ResponseModel[Any]:
@@ -65,7 +65,7 @@ class ResponseBase:
     @validate_call
     def fail(
         *,
-        message: str = "请求失败",
+        message: str = "Failed",
         error: str | None = None,
         data: Any | None = None,
         meta: dict[str, Any] | None = None,

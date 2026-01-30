@@ -9,7 +9,7 @@ from apps.api.common.services import BaseService
 from apps.api.config import Settings
 from apps.api.core.exceptions import BadRequest, Conflict, NotFound
 from apps.api.core.http.file_stream import stream_file_response
-from apps.api.core.http.pagination import PageData, PageParams
+from apps.api.core.http.pagination import PageData, PageParams, paginate_queryset
 from apps.api.core.i18n import t
 from apps.api.infra.storage.local import safe_object_key_to_path
 from apps.api.models.user import User
@@ -90,13 +90,13 @@ class AdminAssetsService(BaseService):
             prev=prev_page,
         )
 
-    async def list_folders(self, *, org_id: UUID) -> list[AdminAssetFolderOut]:
-        rows = await self.repo.query_folders(org_id=org_id)
-        return [AdminAssetFolderOut.model_validate(r, from_attributes=True) for r in rows]
+    async def list_folders(self, *, org_id: UUID, params: PageParams) -> PageData[AdminAssetFolderOut]:
+        qs = self.repo.query_folders(org_id=org_id)
+        return await paginate_queryset(qs, params=params, out_schema=AdminAssetFolderOut)
 
-    async def list_tags(self, *, org_id: UUID, q: str | None = None) -> list[AdminAssetTagOut]:
-        rows = await self.repo.query_tags(org_id=org_id, q=q)
-        return [AdminAssetTagOut.model_validate(r, from_attributes=True) for r in rows]
+    async def list_tags(self, *, org_id: UUID, params: PageParams, q: str | None = None) -> PageData[AdminAssetTagOut]:
+        qs = self.repo.query_tags(org_id=org_id, q=q)
+        return await paginate_queryset(qs, params=params, out_schema=AdminAssetTagOut)
 
     async def create_tag(self, *, org_id: UUID, payload: AdminAssetTagCreateRequest) -> AdminAssetTagOut:
         name = payload.name.strip()

@@ -273,6 +273,7 @@ export function AssetsView() {
   return (
     <DefaultPage
       title={t("nav:NAV_ASSETS")}
+      width="full"
       action={
         <Button type="primary" icon={<Plus size={16} />} onClick={() => setUploadOpen(true)}>
           {t("assets:ASSET_ACTION_UPLOAD")}
@@ -292,8 +293,8 @@ export function AssetsView() {
             <AssetsFilterPopover
               value={filters}
               onChange={setFilters}
-              folders={(foldersQuery.data ?? []) as AdminAssetFolder[]}
-              tags={(tagsQuery.data ?? []) as AdminAssetTag[]}
+              folders={(foldersQuery.data?.items ?? []) as AdminAssetFolder[]}
+              tags={(tagsQuery.data?.items ?? []) as AdminAssetTag[]}
               tagsLoading={tagsQuery.isLoading}
             />
           </div>
@@ -345,7 +346,7 @@ export function AssetsView() {
       ) : (
         <Masonry
           gutter={[16, 16]}
-          columns={{ xs: 1, sm: 2, md: 3 }}
+          columns={{ xs: 1, sm: 2, md: 3, lg: 4 }}
           fresh
           items={items.map((it) => ({ key: it.id, data: it }))}
           itemRender={(info) => (

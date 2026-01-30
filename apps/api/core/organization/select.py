@@ -1,22 +1,24 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from uuid import UUID
 
 
-@dataclass(slots=True)
 class OrgSelectionRequired(Exception):
-    candidates: list[UUID]
+    def __init__(self, *, candidates: list[UUID]) -> None:
+        self.candidates = list(candidates)
+        super().__init__("organization selection required")
 
 
-@dataclass(slots=True)
 class InvalidOrgHeader(Exception):
-    raw: str
+    def __init__(self, *, raw: str) -> None:
+        self.raw = raw
+        super().__init__("invalid organization header")
 
 
-@dataclass(slots=True)
 class ForbiddenOrgAccess(Exception):
-    org_id: UUID
+    def __init__(self, *, org_id: UUID) -> None:
+        self.org_id = org_id
+        super().__init__("forbidden organization access")
 
 
 class NoOrganizationMembership(Exception):

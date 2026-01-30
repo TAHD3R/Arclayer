@@ -1,7 +1,7 @@
 """
-基础 Schema 定义
+Base schema definitions.
 
-提供项目中所有 Schema 的基础类和通用 Mixin。
+This module provides the base Pydantic models and common mixins used across the project.
 """
 
 from __future__ import annotations
@@ -14,7 +14,7 @@ from pydantic.alias_generators import to_camel
 
 
 class BaseSchema(BaseModel):
-    """基础 Schema 类。"""
+    """Project-wide base schema (camelCase output + strict-ish defaults)."""
 
     model_config = ConfigDict(
         str_strip_whitespace=True,
@@ -26,20 +26,20 @@ class BaseSchema(BaseModel):
 
 
 class IdMixin(BaseModel):
-    """包含 ID 字段的 Mixin。"""
+    """Mixin that provides an `id` field."""
 
     id: UUID = Field(..., description="ID")
 
 
 class TimestampMixin(BaseModel):
-    """包含时间戳字段的 Mixin。"""
+    """Mixin that provides created/updated timestamps."""
 
-    created_at: datetime = Field(..., description="创建时间")
-    updated_at: datetime = Field(..., description="更新时间")
+    created_at: datetime = Field(..., description="Created at.")
+    updated_at: datetime = Field(..., description="Updated at.")
 
 
 class BaseOut(IdMixin, BaseSchema):
-    """基础输出 Schema 类。"""
+    """Base output schema with `id` and ORM (from_attributes) support."""
 
     model_config = ConfigDict(
         from_attributes=True,
@@ -52,18 +52,18 @@ class BaseOut(IdMixin, BaseSchema):
 
 
 class BulkOperationSchema(BaseModel):
-    """批量操作 Schema。"""
+    """Bulk operation request schema."""
 
-    ids: list[UUID] | list[UUID] = Field(..., min_length=1, description="对象ID列表")
+    ids: list[UUID] = Field(..., min_length=1, description="Target object ID list.")
 
 
 class BulkOperationResponseSchema(BaseModel):
-    """批量操作响应 Schema。"""
+    """Bulk operation response schema."""
 
-    total_count: int = Field(..., ge=0, description="总数")
-    success_count: int = Field(..., ge=0, description="成功数")
-    failed_count: int = Field(..., ge=0, description="失败数")
+    total_count: int = Field(..., ge=0, description="Total items.")
+    success_count: int = Field(..., ge=0, description="Succeeded items.")
+    failed_count: int = Field(..., ge=0, description="Failed items.")
     failed_items: list[UUID | str] | None = Field(
         default_factory=list,
-        description="失败项列表（ID 或更易识别的引用，如代码）",
+        description="Failed items (IDs or other identifiable references such as codes).",
     )

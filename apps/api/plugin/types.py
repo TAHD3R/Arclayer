@@ -1,10 +1,12 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
 from typing import Any
 
+from pydantic import Field
+
+from apps.api.common.schemas import BaseSchema
 from apps.api.plugin.manifest import PluginManifest
 from apps.api.plugin.registry import ExtensionRegistry
 
@@ -17,11 +19,10 @@ class PluginStatus(StrEnum):
     FAILED = "failed"
 
 
-@dataclass(slots=True)
-class PluginDescriptor:
+class PluginDescriptor(BaseSchema):
     manifest: PluginManifest
     path: Path
-    config: dict[str, Any]
+    config: dict[str, Any] = Field(default_factory=dict)
 
     @property
     def plugin_id(self) -> str:
@@ -42,10 +43,10 @@ class BasePlugin:
         return self.descriptor.plugin_id
 
     def on_load(self) -> None:
-        """加载阶段钩子（同步）。"""
+        """Load hook (sync)."""
 
     async def on_start(self) -> None:
-        """启动阶段钩子（可做 IO）。"""
+        """Start hook (may perform I/O)."""
 
     async def on_stop(self) -> None:
-        """停止阶段钩子（可做 IO）。"""
+        """Stop hook (may perform I/O)."""

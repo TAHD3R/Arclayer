@@ -744,8 +744,20 @@ class Settings(BaseSettings):
         self,
         **data,
     ) -> None:
+        # Capture runtime env file config so we can reuse it for nested settings overrides.
+        #
+        # Why this exists:
+        # - `Settings(_env_file=...)` is used by get_settings() to load `.env.*`.
+        # - Nested BaseSettings models (e.g. MiddlewareSettings) support legacy APP_* aliases,
+        #   but those aliases are not discoverable via Settings' `env_nested_delimiter` mapping.
+        # - We re-parse nested settings once using the same dotenv sources, then merge only the
+        #   explicitly provided values (env/dotenv) into the already-initialized settings tree.
+        self._runtime_env_file = data.get("_env_file")
+        self._runtime_env_file_encoding = data.get("_env_file_encoding")
+
         super().__init__(**data)
         self._apply_env_overrides()
+        self._apply_test_mode_overrides()
 
     model_config = SettingsConfigDict(
         env_file_encoding="utf-8",
@@ -783,26 +795,78 @@ class Settings(BaseSettings):
     def enable_docs(self) -> bool:
         return self.app_env in {"development", "test"}
 
+    @classmethod
+    def settings_customise_sources(  # type: ignore[override]
+        cls,
+        settings_cls,  # type: ignore[no-untyped-def]
+        init_settings,  # type: ignore[no-untyped-def]
+        env_settings,  # type: ignore[no-untyped-def]
+        dotenv_settings,  # type: ignore[no-untyped-def]
+        file_secret_settings,  # type: ignore[no-untyped-def]
+    ):  # type: ignore[no-untyped-def]
+        """
+        Make environment-based configuration override init kwargs.
+
+        Why:
+        - By default, BaseSettings gives init kwargs higher priority than env/dotenv.
+        - In deployment, env/dotenv should always be able to override code-provided settings.
+        - This also avoids re-instantiating nested settings models for env overrides.
+        """
+
+        # Order is highest priority -> lowest priority.
+        return env_settings, dotenv_settings, file_secret_settings, init_settings
+
     def _apply_env_overrides(self) -> None:
-        def _merge_settings(current, overrides):
+        env_file = getattr(self, "_runtime_env_file", None)
+        env_file_encoding = getattr(self, "_runtime_env_file_encoding", None) or "utf-8"
+
+        def _merge_settings(current: Any, overrides: Any) -> Any:
             updates = {name: getattr(overrides, name) for name in overrides.model_fields_set}
             if not updates:
                 return current
             return current.model_copy(update=updates)
 
-        self.application = _merge_settings(self.application, ApplicationSettings())
-        self.storage = _merge_settings(self.storage, StorageSettings())
-        self.logging = _merge_settings(self.logging, LoggingSettings())
-        self.database = _merge_settings(self.database, DatabaseSettings())
-        self.valkey = _merge_settings(self.valkey, ValkeySettings())
-        self.observability = _merge_settings(self.observability, ObservabilitySettings())
-        self.middleware = _merge_settings(self.middleware, MiddlewareSettings())
-        self.auth = _merge_settings(self.auth, AuthSettings())
-        self.email = _merge_settings(self.email, EmailSettings())
-        self.plugin = _merge_settings(self.plugin, PluginSettings())
-        self.setup = _merge_settings(self.setup, SetupSettings())
-        self.testing = _merge_settings(self.testing, TestingSettings())
+        # Re-parse nested settings so "APP_*" aliases (and other non-nested env keys) work even
+        # when Settings is primarily populated via nested delimiter env vars (e.g. MIDDLEWARE__*).
+        self.application = _merge_settings(
+            self.application,
+            ApplicationSettings(_env_file=env_file, _env_file_encoding=env_file_encoding),
+        )
+        self.storage = _merge_settings(
+            self.storage, StorageSettings(_env_file=env_file, _env_file_encoding=env_file_encoding)
+        )
+        self.logging = _merge_settings(
+            self.logging, LoggingSettings(_env_file=env_file, _env_file_encoding=env_file_encoding)
+        )
+        self.database = _merge_settings(
+            self.database, DatabaseSettings(_env_file=env_file, _env_file_encoding=env_file_encoding)
+        )
+        self.valkey = _merge_settings(
+            self.valkey, ValkeySettings(_env_file=env_file, _env_file_encoding=env_file_encoding)
+        )
+        self.observability = _merge_settings(
+            self.observability,
+            ObservabilitySettings(_env_file=env_file, _env_file_encoding=env_file_encoding),
+        )
+        self.middleware = _merge_settings(
+            self.middleware,
+            MiddlewareSettings(_env_file=env_file, _env_file_encoding=env_file_encoding),
+        )
+        self.auth = _merge_settings(self.auth, AuthSettings(_env_file=env_file, _env_file_encoding=env_file_encoding))
+        self.email = _merge_settings(
+            self.email, EmailSettings(_env_file=env_file, _env_file_encoding=env_file_encoding)
+        )
+        self.plugin = _merge_settings(
+            self.plugin, PluginSettings(_env_file=env_file, _env_file_encoding=env_file_encoding)
+        )
+        self.setup = _merge_settings(
+            self.setup, SetupSettings(_env_file=env_file, _env_file_encoding=env_file_encoding)
+        )
+        self.testing = _merge_settings(
+            self.testing, TestingSettings(_env_file=env_file, _env_file_encoding=env_file_encoding)
+        )
 
+    def _apply_test_mode_overrides(self) -> None:
         if self.app_env == "test":
             if self.testing.database_enabled:
                 updates: dict[str, Any] = {

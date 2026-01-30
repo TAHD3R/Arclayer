@@ -8,6 +8,8 @@ from apps.api.models.base import BaseModel
 
 
 class MembershipStatus(StrEnum):
+    """Membership status."""
+
     ACTIVE = "active"
     INVITED = "invited"
     DISABLED = "disabled"

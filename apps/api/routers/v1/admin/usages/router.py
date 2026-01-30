@@ -5,6 +5,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends
 
 from apps.api.config import Settings, get_settings
+from apps.api.core.http.pagination import PageData, PageParams, get_page_params
 from apps.api.core.http.response import Response as JsonResponse
 from apps.api.core.http.response import ResponseModel
 from apps.api.core.organization.deps import get_current_org_id
@@ -24,15 +25,16 @@ def get_admin_asset_usages_service(settings: Settings = Depends(get_settings)) -
     return AdminAssetUsagesService(settings)
 
 
-@router.get("/assets/{asset_id}/usages", response_model=ResponseModel[list[AdminAssetUsageOut]])
+@router.get("/assets/{asset_id}/usages", response_model=ResponseModel[PageData[AdminAssetUsageOut]])
 async def list_asset_usages(
     asset_id: UUID,
     org_id: UUID = Depends(get_current_org_id),
     _user=Depends(get_current_user),
+    params: PageParams = Depends(get_page_params),
     service: AdminAssetUsagesService = Depends(get_admin_asset_usages_service),
-) -> ResponseModel[list[AdminAssetUsageOut]]:
-    items = await service.list_usages_by_asset(org_id=org_id, asset_id=asset_id)
-    return JsonResponse.success(data=items)
+) -> ResponseModel[PageData[AdminAssetUsageOut]]:
+    page = await service.list_usages_by_asset(org_id=org_id, asset_id=asset_id, params=params)
+    return JsonResponse.success(data=page)
 
 
 @router.put("/asset-usages", response_model=ResponseModel[AdminAssetUsageOut])
@@ -57,7 +59,7 @@ async def delete_asset_usage_by_ref(
     return JsonResponse.success(data=out)
 
 
-# 兼容：部分客户端/封装不支持 DELETE body，这里保留语义一致的 DELETE 版本（内部转发）。
+# Compatibility: some clients do not support DELETE bodies; keep a semantic-equivalent DELETE endpoint.
 @router.delete("/asset-usages", response_model=ResponseModel[AdminAssetUsageDeleteOut])
 async def delete_asset_usage_by_ref_delete(
     payload: AdminAssetUsageDeleteRequest,

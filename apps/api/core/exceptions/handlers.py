@@ -122,7 +122,7 @@ def init_exception_handlers(app: FastAPI, settings: Settings) -> None:
             raise
 
         request.state.error_code = "INTERNAL_ERROR"
-        request.state.error_message = "服务器内部错误"
+        request.state.error_message = "Internal server error"
         logger.exception(
             "UnhandledError",
             exc_info=_exc_info_tuple(exc),
@@ -131,7 +131,7 @@ def init_exception_handlers(app: FastAPI, settings: Settings) -> None:
         )
         # Never leak internal exception messages to clients (even in debug).
         # Developers still get trace_id + details via response meta when debug is enabled.
-        message = "服务器内部错误"
+        message = "Internal server error"
         return _build_response(
             request=request,
             status_code=500,
@@ -155,7 +155,7 @@ def init_exception_handlers(app: FastAPI, settings: Settings) -> None:
         if exc.status_code >= 500:
             logger.exception("HTTPException", exc_info=_exc_info_tuple(exc), **log_fields)
 
-        message = "请求错误"
+        message = "Bad request"
         error: str | None = None
         details: Any | None = None
 
@@ -184,7 +184,7 @@ def init_exception_handlers(app: FastAPI, settings: Settings) -> None:
     @app.exception_handler(OperationalError)
     async def tortoise_operational_handler(request: Request, exc: OperationalError) -> ORJSONResponse:
         request.state.error_code = "DB_OPERATIONAL_ERROR"
-        request.state.error_message = "数据库操作失败"
+        request.state.error_message = "Database operation failed"
         logger.exception(
             "DBOperationalError",
             exc_info=_exc_info_tuple(exc),
@@ -194,7 +194,7 @@ def init_exception_handlers(app: FastAPI, settings: Settings) -> None:
         return _build_response(
             request=request,
             status_code=500,
-            message="数据库操作失败",
+            message="Database operation failed",
             error="DB_OPERATIONAL_ERROR",
             details=str(exc) if debug else None,
             debug=debug,
@@ -229,11 +229,11 @@ def init_exception_handlers(app: FastAPI, settings: Settings) -> None:
         exc: RequestValidationError,
     ) -> ORJSONResponse:
         request.state.error_code = "VALIDATION_ERROR"
-        request.state.error_message = "参数校验失败"
+        request.state.error_message = "Validation failed"
         return _build_response(
             request=request,
             status_code=422,
-            message="参数校验失败",
+            message="Validation failed",
             error="VALIDATION_ERROR",
             details=exc.errors(),
             debug=debug,
@@ -243,11 +243,11 @@ def init_exception_handlers(app: FastAPI, settings: Settings) -> None:
     @app.exception_handler(ValidationError)
     async def pydantic_validation_handler(request: Request, exc: ValidationError) -> ORJSONResponse:
         request.state.error_code = "VALIDATION_ERROR"
-        request.state.error_message = "参数校验失败"
+        request.state.error_message = "Validation failed"
         return _build_response(
             request=request,
             status_code=422,
-            message="参数校验失败",
+            message="Validation failed",
             error="VALIDATION_ERROR",
             details=exc.errors(),
             debug=debug,

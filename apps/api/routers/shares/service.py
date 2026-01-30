@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import mimetypes
 from collections.abc import AsyncIterator
-from dataclasses import dataclass
 from datetime import UTC, datetime
 from uuid import UUID
 
 import anyio
+from pydantic import ConfigDict
 from starlette.responses import Response, StreamingResponse
 
+from apps.api.common.schemas import BaseSchema
 from apps.api.config import Settings
 from apps.api.core.exceptions import NotFound
 from apps.api.core.http.content_disposition import build_attachment_content_disposition
@@ -23,8 +24,9 @@ from apps.api.routers.shares.repository import ShareLinksRepository
 from apps.api.settings.runtime import get_effective_settings
 
 
-@dataclass(frozen=True, slots=True)
-class ShareResolved:
+class ShareResolved(BaseSchema):
+    model_config = ConfigDict(frozen=True)
+
     org_id: UUID
     asset_id: UUID
     token: str
