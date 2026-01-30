@@ -104,7 +104,17 @@ export function AssetSharePopover(props: {
     },
   });
 
-  const rows = useMemo(() => linksQuery.data || [], [linksQuery.data]);
+  const rows = useMemo(() => {
+    // revoked 链接对用户没有价值：不展示在列表中（仍然可通过 API 审计/查询）。
+    const raw = (linksQuery.data || []).filter((x) => !x.revokedAt);
+    // 新的在前，方便用户复制最新生成的链接。
+    return raw.sort((a, b) => {
+      const ta = new Date(a.createdAt).getTime();
+      const tb = new Date(b.createdAt).getTime();
+      if (Number.isNaN(ta) || Number.isNaN(tb)) return 0;
+      return tb - ta;
+    });
+  }, [linksQuery.data]);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -123,7 +133,20 @@ export function AssetSharePopover(props: {
         </Button>
       </PopoverTrigger>
 
-      <PopoverContent align="end" sideOffset={8} className={cn("w-110 p-0", props.className)}>
+      <PopoverContent
+        align="end"
+        sideOffset={8}
+        className={cn("w-[440px] max-w-[calc(100vw-2rem)] p-0", props.className)}
+        onInteractOutside={(e) => {
+          // antd Select 的 dropdown 默认渲染在 body（Portal），Radix 会把点击视为“外部交互”并关闭 Popover，
+          // 导致“无法选择 minutes/days”这类问题。这里对 antd dropdown 做一次白名单处理。
+          const target = e.target as HTMLElement | null;
+          if (!target) return;
+          if (target.closest(".ant-select-dropdown")) {
+            e.preventDefault();
+          }
+        }}
+      >
         <div className="p-4">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
@@ -163,6 +186,9 @@ export function AssetSharePopover(props: {
                   value={expireUnit}
                   style={{ width: 140 }}
                   onChange={(v) => setExpireUnit(v)}
+                  // 默认 Portal 到 body 在 Radix Popover 里会被当成 “outside”，导致无法选择。
+                  // 这里显式把 dropdown 挂在当前触发节点附近，避免关闭/遮挡问题。
+                  getPopupContainer={(triggerNode) => triggerNode.parentElement ?? document.body}
                   options={[
                     { value: "minutes", label: t("assets:ASSET_SHARE_UNIT_MINUTES") },
                     { value: "hours", label: t("assets:ASSET_SHARE_UNIT_HOURS") },
@@ -188,67 +214,73 @@ export function AssetSharePopover(props: {
                 {t("assets:ASSET_SHARE_LINKS_EMPTY")}
               </div>
             ) : (
-              <div className="max-h-80 overflow-auto space-y-2 pr-1">
+              <div
+                className="max-h-80 overflow-y-auto overscroll-contain space-y-2 pr-1"
+                onWheelCapture={(e) => {
+                  // 在 Sheet / 页面滚动容器内，优先保证列表能滚动，不要把滚轮事件冒泡走。
+                  e.stopPropagation();
+                }}
+              >
                 {rows.map((link) => {
                   const url = resolveShareUrl(link);
-                  const revoked = Boolean(link.revokedAt);
-                  const expired = !revoked && isExpired(link.expiresAt ?? null);
+                  const expired = isExpired(link.expiresAt ?? null);
 
                   return (
-                    <div key={link.id}>
-                      <div className="flex flex-col items-start justify-between gap-2">
-                        <div className="min-w-0 flex-1">
-                          <div className="mt-2 flex gap-2">
-                            {revoked ? (
-                              <Tag color="default">{t("assets:ASSET_SHARE_STATUS_REVOKED")}</Tag>
-                            ) : expired ? (
-                              <Tag color="warning">{t("assets:ASSET_SHARE_STATUS_EXPIRED")}</Tag>
-                            ) : (
-                              <Tag color="success">{t("assets:ASSET_SHARE_STATUS_ACTIVE")}</Tag>
-                            )}
-                            <Input
-                              readOnly
-                              value={url}
-                              prefix={<Link2 className="size-4 text-muted-foreground" />}
-                            />
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <div className="text-sm text-muted-foreground">
-                              {t("assets:ASSET_SHARE_CREATED_AT")}:{" "}
-                              {formatIsoDateTime(link.createdAt)}
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                              {t("assets:ASSET_SHARE_EXPIRES_AT")}:{" "}
-                              {link.expiresAt
-                                ? formatIsoDateTime(link.expiresAt)
-                                : t("assets:ASSET_SHARE_NEVER_EXPIRES")}
-                            </div>
-                          </div>
+                    <div key={link.id} className="w-full bg-background">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-2">
+                          {expired ? (
+                            <Tag color="warning">{t("assets:ASSET_SHARE_STATUS_EXPIRED")}</Tag>
+                          ) : (
+                            <Tag color="success">{t("assets:ASSET_SHARE_STATUS_ACTIVE")}</Tag>
+                          )}
                         </div>
 
-                        <div className="shrink-0 flex  gap-2">
+                        <div className="shrink-0 flex items-center gap-1">
                           <Button
-                            type="primary"
                             size="small"
+                            type="text"
+                            icon={<ExternalLink className="size-4" />}
+                            onClick={() => window.open(url, "_blank", "noopener,noreferrer")}
+                          />
+                          <Button
+                            size="small"
+                            type="text"
                             icon={<Copy className="size-4" />}
                             onClick={() => {
                               copyToClipboard(url)
                                 .then(() => notifySuccessText(t("assets:ASSET_LINK_COPIED")))
                                 .catch(() => notifyErrorText(t("assets:ASSET_COPY_LINK_FAILED")));
                             }}
-                          >
-                            {t("assets:ASSET_ACTION_COPY_LINK")}
-                          </Button>
+                          />
                           <Button
                             size="small"
                             type="text"
                             icon={<Trash2 className="size-4" />}
                             loading={revokeMutation.isPending}
-                            disabled={revoked}
                             onClick={() => revokeMutation.mutate(link.id)}
-                          >
-                            {t("assets:ASSET_SHARE_REVOKE")}
-                          </Button>
+                          />
+                        </div>
+                      </div>
+
+                      <div className="mt-2 w-full">
+                        <Input
+                          readOnly
+                          value={url}
+                          className="w-full"
+                          prefix={<Link2 className="size-4 text-muted-foreground" />}
+                        />
+                      </div>
+
+                      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                        <div>
+                          {t("assets:ASSET_SHARE_CREATED_AT")}: {formatIsoDateTime(link.createdAt)}
+                        </div>
+                        <div>
+                          {t("assets:ASSET_SHARE_EXPIRES_AT")}:{" "}
+                          {link.expiresAt
+                            ? formatIsoDateTime(link.expiresAt)
+                            : t("assets:ASSET_SHARE_NEVER_EXPIRES")}
                         </div>
                       </div>
                     </div>

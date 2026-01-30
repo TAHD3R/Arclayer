@@ -125,6 +125,7 @@ function LazyAssetImage(props: {
   errorText?: string;
   retryText?: string;
 }) {
+  const { t } = useTranslation();
   const rootRef = useRef<HTMLDivElement | null>(null);
   const [shouldLoad, setShouldLoad] = useState(Boolean(props.eager));
   const [status, setStatus] = useState<"idle" | "loading" | "loaded" | "error">(
@@ -212,7 +213,9 @@ function LazyAssetImage(props: {
             <div className="rounded-full bg-background/70 p-3 shadow-sm">
               <ImageOff className="size-5" />
             </div>
-            <div className="text-xs">{props.errorText || "图片加载失败"}</div>
+            <div className="text-xs">
+              {props.errorText || t("assets:ASSET_PREVIEW_LOAD_FAILED")}
+            </div>
             {showErrorOverlay ? (
               <Button
                 size="small"
@@ -224,7 +227,7 @@ function LazyAssetImage(props: {
                   setReloadKey((v) => v + 1);
                 }}
               >
-                {props.retryText || "重试"}
+                {props.retryText || t("common:RETRY")}
               </Button>
             ) : null}
           </div>
@@ -306,16 +309,6 @@ function formatCreatedAt(iso: string | undefined, fallback: string | undefined):
     }
   }
   return fallback || "-";
-}
-
-function toRelativeUrl(url: string): string {
-  try {
-    const u = new URL(url);
-    return `${u.pathname}${u.search}${u.hash}`;
-  } catch {
-    // Already relative (or invalid); keep as-is.
-    return url;
-  }
 }
 
 function buildLinkSnippets(params: { url: string; filename: string; isImage: boolean }) {
@@ -473,7 +466,6 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
   const [previewAspectRatio, setPreviewAspectRatio] = useState<number | null>(null);
   const [previewSrc, setPreviewSrc] = useState<string | null>(null);
   const failedPreviewRef = useRef<Set<string>>(new Set());
-  const previewSelectionRef = useRef<"auto" | "user">("auto");
   const uploaderAndTimeText = buildUploaderAndTimeText({
     uploaderName: active?.uploaderName,
     createdAtText: active?.createdAtText,
@@ -493,19 +485,6 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
     if (!active?.id) return null;
     return `/assets/${active.id}`;
   }, [active?.id]);
-
-  const thumbRows = useMemo(() => {
-    const rows = thumbs.map((x) => ({ key: x.key, url: x.url, label: x.label }));
-    // “原图”统一使用 canonical `/assets/<id>`（后端会按需重定向到真实文件名链接）。
-    if (active?.visibility?.toLowerCase() === "public" && canonicalPublicPath) {
-      rows.push({
-        key: "original",
-        url: canonicalPublicPath,
-        label: t("assets:ASSET_THUMBNAIL_ORIGINAL"),
-      });
-    }
-    return rows;
-  }, [active?.visibility, canonicalPublicPath, t, thumbs]);
 
   const publicAbsoluteUrl = useMemo(() => {
     if (active?.visibility?.toLowerCase() !== "public") return null;
@@ -534,7 +513,6 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
 
   useEffect(() => {
     failedPreviewRef.current = new Set();
-    previewSelectionRef.current = "auto";
     setPreviewSrc(previewCandidates[0] || null);
     setPreviewAspectRatio(null);
   }, [active?.id, previewCandidates]);
@@ -929,21 +907,23 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
                         src={previewSrc}
                         alt={active.name}
                         fit="contain"
+                        showErrorOverlay
+                        errorText={t("assets:ASSET_PREVIEW_LOAD_FAILED")}
+                        retryText={t("common:RETRY")}
                         onLoaded={(info) => {
                           setPreviewAspectRatio(info.aspectRatio);
                         }}
                         onError={() => {
                           if (!previewSrc) return;
                           failedPreviewRef.current.add(previewSrc);
-                          if (previewSelectionRef.current === "user") {
-                            notifyErrorText(t("assets:ASSET_PREVIEW_LOAD_FAILED"));
-                            return;
-                          }
-
                           const next = previewCandidates.find(
                             (u) => !failedPreviewRef.current.has(u),
                           );
-                          if (next && next !== previewSrc) setPreviewSrc(next);
+                          if (next && next !== previewSrc) {
+                            setPreviewSrc(next);
+                          } else {
+                            notifyErrorText(t("assets:ASSET_PREVIEW_LOAD_FAILED"));
+                          }
                         }}
                       />
                     ) : (
@@ -1091,55 +1071,6 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
                       </AccordionContent>
                     </AccordionItem>
 
-                    {thumbRows.length ? (
-                      <AccordionItem value="thumbnails">
-                        <AccordionTrigger className="py-3">
-                          {t("assets:ASSET_THUMBNAILS_TITLE")}
-                        </AccordionTrigger>
-                        <AccordionContent>
-                          <div className="mb-2 text-muted-foreground">
-                            {t("assets:ASSET_THUMBNAILS_DESC")}
-                          </div>
-                          <div className="grid grid-cols-1 gap-1">
-                            {thumbRows.map((row) => (
-                              <Button
-                                key={row.key}
-                                type="text"
-                                className={cn(
-                                  "!h-auto !p-2 w-full",
-                                  "flex items-center justify-start gap-3",
-                                  "rounded-md",
-                                  previewSrc === row.url
-                                    ? "!bg-accent/60 dark:!bg-accent/40"
-                                    : "!bg-transparent hover:!bg-accent/40",
-                                )}
-                                onClick={() => {
-                                  previewSelectionRef.current = "user";
-                                  setPreviewSrc(row.url);
-                                }}
-                              >
-                                <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-md border border-border/60">
-                                  <LazyAssetImage
-                                    eager
-                                    src={row.url}
-                                    alt={active.name}
-                                    fit="cover"
-                                    rootClassName="rounded-md"
-                                  />
-                                </div>
-                                <div className="min-w-0 flex-1 text-left">
-                                  <div className="text-sm font-medium">{row.label}</div>
-                                  <div className="text-xs text-muted-foreground truncate">
-                                    {toRelativeUrl(row.url)}
-                                  </div>
-                                </div>
-                              </Button>
-                            ))}
-                          </div>
-                        </AccordionContent>
-                      </AccordionItem>
-                    ) : null}
-
                     <AccordionItem value="links">
                       <AccordionTrigger className="py-3">
                         {t("assets:ASSET_LINKS_TITLE")}
@@ -1253,15 +1184,19 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{t("assets:ASSET_DELETE_CONFIRM_TITLE")}</AlertDialogTitle>
-            <AlertDialogDescription>{t("assets:ASSET_DELETE_CONFIRM_DESC")}</AlertDialogDescription>
+            <AlertDialogTitle className="font-bold! text-xl">
+              {t("assets:ASSET_DELETE_CONFIRM_TITLE")}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-base">
+              {t("assets:ASSET_DELETE_CONFIRM_DESC")}
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deleteMutation.isPending}>
               {t("assets:ASSET_DELETE_CANCEL")}
             </AlertDialogCancel>
             <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 cursor-pointer"
               disabled={deleteMutation.isPending}
               onClick={() => deleteMutation.mutate()}
             >

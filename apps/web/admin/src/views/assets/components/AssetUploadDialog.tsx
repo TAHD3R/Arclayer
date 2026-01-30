@@ -309,7 +309,12 @@ export function AssetUploadDialog(props: {
     <Dialog open={props.open} onOpenChange={onDialogOpenChange}>
       <DialogContent
         showCloseButton
-        className={cn("p-0 overflow-hidden", "max-w-[min(920px,calc(100vw-2rem))]")}
+        className={cn(
+          "p-0",
+          // DialogContent 基类在 sm+ 会附带 `sm:max-w-lg`，当上传多个文件时内容更拥挤，
+          // 容易出现“内容宽度 > dialog，导致被裁切”的观感；这里显式覆盖为更宽的响应式宽度。
+          "max-w-[min(920px,calc(100vw-2rem))] sm:max-w-[min(920px,calc(100vw-2rem))]",
+        )}
       >
         <DialogHeader className="px-5 pt-4 pb-2 border-b">
           <DialogTitle className="font-bold!">{t("assets:ASSET_UPLOAD_DIALOG_TITLE")}</DialogTitle>
