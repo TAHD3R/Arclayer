@@ -58,7 +58,8 @@ class AdminAssetUsagesRepository:
             )
 
         changed = False
-        if existing.asset_id != asset_id:
+        current_asset_id = getattr(existing, "asset_id", None)
+        if current_asset_id != asset_id:
             existing.asset_id = asset_id
             changed = True
         if existing.purpose != purpose:

@@ -126,6 +126,8 @@ class RBACRepository(BaseRepository):
             permission.name = name
             changed = True
         if permission.description != description:
+            # Tortoise field nullability is not always reflected in type stubs; use setattr to
+            # allow Optional values without fighting the descriptor typing.
             permission.description = description
             changed = True
         if permission.plugin_id != plugin_id:

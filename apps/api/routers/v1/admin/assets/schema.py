@@ -98,6 +98,26 @@ class AdminAssetMoveRequest(BaseSchema):
     folder_id: UUID | None = Field(default=None, description="Target folder id (null = move to root).")
 
 
+class AdminAssetBulkMoveRequest(BaseSchema):
+    asset_ids: list[UUID] = Field(..., min_length=1, max_length=500, description="Asset ids to move.")
+    folder_id: UUID | None = Field(default=None, description="Target folder id (null = move to root).")
+
+
+class AdminAssetBulkMoveOut(BaseSchema):
+    moved_count: int = Field(..., ge=0, description="Moved assets count.")
+    folder_id: UUID | None = Field(default=None, description="Target folder id (null = root).")
+    moved_asset_ids: list[UUID] = Field(default_factory=list, description="Moved asset ids (deduplicated).")
+
+
+class AdminAssetBulkDeleteRequest(BaseSchema):
+    asset_ids: list[UUID] = Field(..., min_length=1, max_length=500, description="Asset ids to delete.")
+
+
+class AdminAssetBulkDeleteOut(BaseSchema):
+    deleted_count: int = Field(..., ge=0, description="Soft-deleted assets count.")
+    deleted_asset_ids: list[UUID] = Field(default_factory=list, description="Deleted asset ids (deduplicated).")
+
+
 class AdminAssetUpdateRequest(BaseSchema):
     description: str | None = Field(default=None, max_length=4000, description="User-facing description.")
     tag_ids: list[UUID] | None = Field(default=None, description="Tag ids to set (replace existing).")

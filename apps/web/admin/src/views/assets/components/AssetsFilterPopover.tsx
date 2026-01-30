@@ -9,11 +9,10 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/animate-ui/components/radix/popover";
-import type { AdminAssetFolder, AdminAssetTag } from "@/api/assets";
+import type { AdminAssetTag } from "@/api/assets";
 
 export type AssetsFilters = {
   mimePrefix?: string;
-  folderId?: string;
   visibility?: string;
   createdFrom?: string;
   createdTo?: string;
@@ -22,42 +21,12 @@ export type AssetsFilters = {
   // 预留：当后端支持后，再扩展更多过滤维度
 };
 
-function buildFolderPathOptions(folders: AdminAssetFolder[]) {
-  const byId = new Map<string, AdminAssetFolder>();
-  for (const f of folders) byId.set(f.id, f);
-
-  const memo = new Map<string, string>();
-  const buildPath = (id: string, depth = 0): string => {
-    const cached = memo.get(id);
-    if (cached) return cached;
-    const node = byId.get(id);
-    if (!node) return id;
-
-    // Defensive: avoid infinite loops on corrupted data.
-    if (depth > 12) return node.name;
-
-    const parentId = node.parentId ?? undefined;
-    if (!parentId) {
-      memo.set(id, node.name);
-      return node.name;
-    }
-
-    const parentLabel = buildPath(parentId, depth + 1);
-    const label = parentLabel ? `${parentLabel} / ${node.name}` : node.name;
-    memo.set(id, label);
-    return label;
-  };
-
-  return folders.map((f) => ({ label: buildPath(f.id), value: f.id }));
-}
-
 export function AssetsFilterPopover(props: {
   value: AssetsFilters;
   onChange: (next: AssetsFilters) => void;
   ordering: string;
   onOrderingChange: (next: string) => void;
   defaultOrdering?: string;
-  folders: AdminAssetFolder[];
   tags: AdminAssetTag[];
   tagsLoading?: boolean;
 }) {
@@ -111,24 +80,6 @@ export function AssetsFilterPopover(props: {
                 { label: t("assets:ASSET_SORT_SIZE_LARGE"), value: "-size_bytes" },
                 { label: t("assets:ASSET_SORT_SIZE_SMALL"), value: "size_bytes" },
               ]}
-            />
-          </div>
-
-          <div className="grid grid-cols-1 gap-1.5">
-            <div className="text-sm text-muted-foreground">
-              {t("assets:ASSET_FILTER_FIELD_FOLDER")}
-            </div>
-            <Select
-              value={props.value.folderId ?? "all"}
-              onChange={(v) =>
-                props.onChange({ ...props.value, folderId: v === "all" ? undefined : v })
-              }
-              options={[
-                { label: t("assets:ASSET_FILTER_FOLDER_ALL"), value: "all" },
-                ...buildFolderPathOptions(props.folders),
-              ]}
-              showSearch
-              optionFilterProp="label"
             />
           </div>
 
@@ -192,7 +143,6 @@ export function AssetsFilterPopover(props: {
           <Button
             onClick={() => {
               props.onChange({
-                folderId: undefined,
                 visibility: undefined,
                 createdFrom: undefined,
                 createdTo: undefined,

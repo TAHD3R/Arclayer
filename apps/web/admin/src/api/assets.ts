@@ -161,3 +161,46 @@ export type AdminAssetDeleteOut = {
 export async function deleteAdminAsset(assetId: string): Promise<AdminAssetDeleteOut> {
   return api.delete<AdminAssetDeleteOut>(`/admin/assets/${assetId}`);
 }
+
+export type AdminAssetMoveRequest = {
+  folderId?: string | null;
+};
+
+export async function moveAdminAsset(
+  assetId: string,
+  payload: AdminAssetMoveRequest,
+): Promise<AdminAssetSummary> {
+  return api.put<AdminAssetSummary>(`/admin/assets/${assetId}/move`, payload);
+}
+
+export type AdminAssetsBulkMoveRequest = {
+  assetIds: string[];
+  folderId?: string | null;
+};
+
+export type AdminAssetsBulkMoveOut = {
+  movedCount: number;
+  folderId?: string | null;
+  movedAssetIds: string[];
+};
+
+export async function bulkMoveAdminAssets(
+  payload: AdminAssetsBulkMoveRequest,
+): Promise<AdminAssetsBulkMoveOut> {
+  return api.put<AdminAssetsBulkMoveOut>(`/admin/assets/bulk/move`, payload);
+}
+
+export type AdminAssetsBulkDeleteRequest = {
+  assetIds: string[];
+};
+
+export type AdminAssetsBulkDeleteOut = {
+  deletedCount: number;
+  deletedAssetIds: string[];
+};
+
+export async function bulkDeleteAdminAssets(
+  payload: AdminAssetsBulkDeleteRequest,
+): Promise<AdminAssetsBulkDeleteOut> {
+  return api.post<AdminAssetsBulkDeleteOut>(`/admin/assets/bulk/delete`, payload);
+}

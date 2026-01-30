@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from uuid import UUID
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Request
 from tortoise.transactions import in_transaction
@@ -299,7 +300,8 @@ async def accept_invitation(
 
         # NOTE: avoid `select_related("organization")` here because it can introduce an OUTER JOIN.
         # Postgres forbids applying `FOR UPDATE` to the nullable side of an outer join.
-        org = await Organization.get_or_none(id=inv.organization_id, using_db=conn)
+        organization_id = UUID(str(inv.organization_id))
+        org = await Organization.get_or_none(id=organization_id, using_db=conn)
         if org is None or not org.is_active:
             raise Forbidden(message=t("auth", "ORG_INACTIVE", default="组织不可用"), error="ORG_INACTIVE")
 

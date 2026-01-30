@@ -1,21 +1,23 @@
 from __future__ import annotations
 
-from typing import Protocol
+from typing import Any, Protocol
 from uuid import UUID
 
 
 class CredentialLike(Protocol):
-    password_hash: str
+    # NOTE: Tortoise field descriptors are typed as `Field[T]` which doesn't line up with
+    # runtime attribute values. Use `Any` here to keep the contract compatible with both
+    # Tortoise models and lightweight unit-test fakes.
+    password_hash: Any
 
 
 class UserLike(Protocol):
-    id: UUID
-    username: str
-    email: str | None
-    display_name: str | None
-    avatar_url: str | None
-    token_version: int
-    credential: CredentialLike | None
+    id: Any
+    username: Any
+    email: Any
+    display_name: Any
+    avatar_url: Any
+    token_version: Any
 
 
 class UserRepositoryLike(Protocol):

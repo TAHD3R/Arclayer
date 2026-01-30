@@ -200,6 +200,7 @@ async def test_refresh_rotation_and_reuse_detection(monkeypatch) -> None:
     payload = decode_token(first_refresh, service.settings.auth)
     assert service.refresh_store is not None
     record = await service.refresh_store.get(payload["jti"])
+    assert record is not None
     assert record["status"] == REFRESH_STATUS_ROTATED
 
     with pytest.raises(Unauthorized) as exc:

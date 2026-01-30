@@ -77,28 +77,33 @@ def _ensure_event_dict(event_dict: EventDict) -> dict[str, Any]:
 
 
 def _merge_contextvars_processor(logger: WrappedLogger, method_name: str, event_dict: EventDict) -> EventDict:
-    return merge_contextvars(cast(BoundLogger, logger), method_name, _ensure_event_dict(event_dict))
+    # structlog's type stubs for contextvars processors can be inconsistent across versions.
+    # At runtime this returns a mapping; we cast to keep Pyright satisfied.
+    return cast(EventDict, merge_contextvars(logger, method_name, _ensure_event_dict(event_dict)))
 
 
 def _add_log_level_processor(logger: WrappedLogger, method_name: str, event_dict: EventDict) -> EventDict:
-    return add_log_level(cast(BoundLogger, logger), method_name, _ensure_event_dict(event_dict))
+    return add_log_level(logger, method_name, _ensure_event_dict(event_dict))
 
 
 def _add_logger_name_processor(logger: WrappedLogger, method_name: str, event_dict: EventDict) -> EventDict:
-    return add_logger_name(cast(BoundLogger, logger), method_name, _ensure_event_dict(event_dict))
+    # add_logger_name is a stdlib processor and expects a stdlib Logger in its stubs.
+    return add_logger_name(cast(logging.Logger, logger), method_name, _ensure_event_dict(event_dict))
 
 
 def _format_exc_info_processor(logger: WrappedLogger, method_name: str, event_dict: EventDict) -> EventDict:
-    return format_exc_info(cast(BoundLogger, logger), method_name, _ensure_event_dict(event_dict))
+    return format_exc_info(logger, method_name, _ensure_event_dict(event_dict))
 
 
-def _wrap_for_formatter_processor(logger: WrappedLogger, method_name: str, event_dict: EventDict) -> EventDict:
-    return ProcessorFormatter.wrap_for_formatter(cast(BoundLogger, logger), method_name, _ensure_event_dict(event_dict))
+def _wrap_for_formatter_processor(logger: WrappedLogger, method_name: str, event_dict: EventDict) -> Any:
+    return ProcessorFormatter.wrap_for_formatter(
+        cast(logging.Logger, logger), method_name, _ensure_event_dict(event_dict)
+    )
 
 
 def _remove_processors_meta_processor(logger: WrappedLogger, method_name: str, event_dict: EventDict) -> EventDict:
     return ProcessorFormatter.remove_processors_meta(
-        cast(BoundLogger, logger), method_name, _ensure_event_dict(event_dict)
+        cast(logging.Logger, logger), method_name, _ensure_event_dict(event_dict)
     )
 
 

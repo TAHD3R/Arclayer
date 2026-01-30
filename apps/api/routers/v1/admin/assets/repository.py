@@ -70,6 +70,11 @@ class AdminAssetsRepository(BaseRepository):
     async def get_asset(self, *, org_id: UUID, asset_id: UUID) -> AssetRecord | None:
         return await AssetRecord.get_or_none(id=asset_id, org_id=org_id, deleted_at=None)
 
+    async def get_assets_by_ids(self, *, org_id: UUID, asset_ids: list[UUID]) -> list[AssetRecord]:
+        if not asset_ids:
+            return []
+        return await AssetRecord.filter(org_id=org_id, deleted_at=None, id__in=list(asset_ids)).all()
+
     async def get_asset_with_tags(self, *, org_id: UUID, asset_id: UUID) -> AssetRecord | None:
         return (
             await AssetRecord
@@ -168,6 +173,40 @@ class AdminAssetsRepository(BaseRepository):
             setattr(asset, key, value)
         await asset.save()
         return asset
+
+    async def bulk_update_assets_folder(
+        self,
+        *,
+        org_id: UUID,
+        asset_ids: list[UUID],
+        folder_id: UUID | None,
+        updated_at,
+    ) -> int:
+        if not asset_ids:
+            return 0
+        return int(
+            await AssetRecord.filter(org_id=org_id, deleted_at=None, id__in=list(asset_ids)).update(
+                folder_id=folder_id,
+                updated_at=updated_at,
+            )
+        )
+
+    async def bulk_soft_delete_assets(
+        self,
+        *,
+        org_id: UUID,
+        asset_ids: list[UUID],
+        deleted_at,
+        updated_at,
+    ) -> int:
+        if not asset_ids:
+            return 0
+        return int(
+            await AssetRecord.filter(org_id=org_id, deleted_at=None, id__in=list(asset_ids)).update(
+                deleted_at=deleted_at,
+                updated_at=updated_at,
+            )
+        )
 
 
 _ALLOWED_ASSET_ORDER_FIELDS = ADMIN_ASSET_ALLOWED_ORDER_FIELDS

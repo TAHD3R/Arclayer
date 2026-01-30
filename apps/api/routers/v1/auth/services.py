@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 from datetime import UTC, datetime
+from typing import cast
 from uuid import UUID
 
 from apps.api.common.email.service import EmailService
@@ -11,7 +12,7 @@ from apps.api.core.exceptions import BadRequest, Conflict, Forbidden, ServiceUna
 from apps.api.core.i18n import t
 from apps.api.infra.cache.valkey import ValkeyClientLike
 from apps.api.routers.v1.auth.constants import PASSWORD_REGEX, REFRESH_STATUS_ACTIVE, RESET_TOKEN_REGEX
-from apps.api.routers.v1.auth.contracts import UserRepositoryLike
+from apps.api.routers.v1.auth.contracts import CredentialLike, UserLike, UserRepositoryLike
 from apps.api.routers.v1.auth.repository import PasswordResetStore, RefreshTokenStore, UserRepository
 from apps.api.routers.v1.auth.schema import TokenPair
 from apps.api.routers.v1.auth.security import (
@@ -66,6 +67,16 @@ class AuthService(BaseService):
         except ValueError as exc:
             raise Unauthorized(message=self._ta("TOKEN_INVALID", "Token 无效"), error="TOKEN_INVALID") from exc
 
+    def _coerce_user_id(self, user: UserLike) -> UUID:
+        return UUID(str(user.id))
+
+    def _coerce_token_version(self, user: UserLike) -> int:
+        raw = getattr(user, "token_version", 0)
+        try:
+            return int(raw or 0)
+        except Exception:
+            return 0
+
     def _ensure_password_strength(self, password: str) -> None:
         if not re.match(PASSWORD_REGEX, password):
             raise BadRequest(
@@ -86,18 +97,18 @@ class AuthService(BaseService):
             return
         await self.user_repo.increment_token_version(user)
         store = self._require_refresh_store()
-        await store.revoke_all(user.id)
+        await store.revoke_all(self._coerce_user_id(user))
         self.logger.warning("Refresh token reuse detected", user_id=str(user_id))
 
     async def login(self, *, identifier: str, password: str) -> TokenPair:
         store = self._require_refresh_store()
         user = await self.user_repo.get_by_identifier(identifier)
-        if user is None or user.credential is None:
+        credential = cast(CredentialLike | None, getattr(user, "credential", None) if user is not None else None)
+        if user is None or credential is None:
             raise Unauthorized(
                 message=self._ta("INVALID_CREDENTIALS", "账号或密码错误"),
                 error="INVALID_CREDENTIALS",
             )
-        credential = user.credential
 
         if not self.user_repo.is_active(user):
             raise Forbidden(message=self._ta("USER_DISABLED", "账号不可用"), error="USER_DISABLED")
@@ -108,22 +119,25 @@ class AuthService(BaseService):
                 error="INVALID_CREDENTIALS",
             )
 
+        user_id = self._coerce_user_id(user)
+        token_version = self._coerce_token_version(user)
+
         access_token, access_ttl = build_access_token(
-            user_id=user.id,
-            token_version=user.token_version or 0,
+            user_id=user_id,
+            token_version=token_version,
             settings=self.settings.auth,
         )
         refresh_token, jti, refresh_ttl = build_refresh_token(
-            user_id=user.id,
-            token_version=user.token_version or 0,
+            user_id=user_id,
+            token_version=token_version,
             settings=self.settings.auth,
         )
 
         now_ts = int(datetime.now(UTC).timestamp())
         record = {
             "jti": jti,
-            "user_id": str(user.id),
-            "token_version": user.token_version or 0,
+            "user_id": str(user_id),
+            "token_version": token_version,
             "status": REFRESH_STATUS_ACTIVE,
             "issued_at": now_ts,
             "expires_at": now_ts + refresh_ttl,
@@ -189,7 +203,7 @@ class AuthService(BaseService):
         if not self.user_repo.is_active(user):
             raise Forbidden(message=self._ta("USER_DISABLED", "账号不可用"), error="USER_DISABLED")
 
-        if user.token_version != token_version:
+        if self._coerce_token_version(user) != int(token_version or 0):
             raise Unauthorized(message=self._ta("TOKEN_STALE", "Token 已失效"), error="TOKEN_STALE")
 
         record = await store.get(jti)
@@ -213,14 +227,16 @@ class AuthService(BaseService):
                 error="TOKEN_REUSED",
             )
 
+        resolved_user_id = self._coerce_user_id(user)
+        resolved_token_version = self._coerce_token_version(user)
         access_token, access_ttl = build_access_token(
-            user_id=user.id,
-            token_version=user.token_version or 0,
+            user_id=resolved_user_id,
+            token_version=resolved_token_version,
             settings=self.settings.auth,
         )
         new_refresh_token, new_jti, refresh_ttl = build_refresh_token(
-            user_id=user.id,
-            token_version=user.token_version or 0,
+            user_id=resolved_user_id,
+            token_version=resolved_token_version,
             settings=self.settings.auth,
         )
 
@@ -228,8 +244,8 @@ class AuthService(BaseService):
         now_ts = int(datetime.now(UTC).timestamp())
         new_record = {
             "jti": new_jti,
-            "user_id": str(user.id),
-            "token_version": user.token_version or 0,
+            "user_id": str(resolved_user_id),
+            "token_version": resolved_token_version,
             "status": REFRESH_STATUS_ACTIVE,
             "issued_at": now_ts,
             "expires_at": now_ts + refresh_ttl,
@@ -263,13 +279,13 @@ class AuthService(BaseService):
             raise Unauthorized(message=self._ta("USER_NOT_FOUND", "用户不存在"), error="USER_NOT_FOUND")
 
         await self.user_repo.increment_token_version(user)
-        await store.revoke_all(user.id)
+        await store.revoke_all(self._coerce_user_id(user))
 
     async def change_password(self, *, user_id: UUID, old_password: str, new_password: str) -> None:
         user = await self.user_repo.get_by_id_with_credential(user_id)
-        if user is None or user.credential is None:
+        credential = cast(CredentialLike | None, getattr(user, "credential", None) if user is not None else None)
+        if user is None or credential is None:
             raise Unauthorized(message=self._ta("UNAUTHORIZED", "未授权"), error="UNAUTHORIZED")
-        credential = user.credential
 
         if not self.user_repo.is_active(user):
             raise Forbidden(message=self._ta("USER_DISABLED", "账号不可用"), error="USER_DISABLED")
@@ -290,17 +306,20 @@ class AuthService(BaseService):
         await self.user_repo.set_password(user, hash_password(new_password, self.settings.auth))
         await self.user_repo.increment_token_version(user)
         if self.refresh_store is not None:
-            await self.refresh_store.revoke_all(user.id)
+            await self.refresh_store.revoke_all(self._coerce_user_id(user))
 
     async def forgot_password(self, *, identifier: str) -> tuple[str, int, str, UUID] | None:
         store = self._require_reset_store()
         user = await self.user_repo.get_by_identifier(identifier)
         if not user or not self.user_repo.is_active(user):
             return None
-        if not user.email:
+        email_raw = getattr(user, "email", None)
+        email = str(email_raw).strip() if email_raw else ""
+        if not email:
             return None
-        token, ttl = await store.issue(user.id)
-        return token, ttl, user.email, user.id
+        user_id = self._coerce_user_id(user)
+        token, ttl = await store.issue(user_id)
+        return token, ttl, email, user_id
 
     async def send_reset_email(
         self,
@@ -354,7 +373,7 @@ class AuthService(BaseService):
         if not self.user_repo.is_active(user):
             raise Forbidden(message=self._ta("USER_DISABLED", "账号不可用"), error="USER_DISABLED")
 
-        credential = user.credential
+        credential = cast(CredentialLike | None, getattr(user, "credential", None))
         if credential is not None and verify_password(new_password, credential.password_hash, self.settings.auth):
             raise Conflict(
                 message=self._ta("PASSWORD_DUPLICATE", "新密码不能与旧密码相同"),
@@ -365,4 +384,4 @@ class AuthService(BaseService):
         await self.user_repo.set_password(user, hash_password(new_password, self.settings.auth))
         await self.user_repo.increment_token_version(user)
         if self.refresh_store is not None:
-            await self.refresh_store.revoke_all(user.id)
+            await self.refresh_store.revoke_all(self._coerce_user_id(user))

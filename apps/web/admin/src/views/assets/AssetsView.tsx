@@ -8,6 +8,7 @@ import { DefaultPage } from "@/components/app/defaultPage";
 import { LoaderOne } from "@/components/ui/loader";
 import ChevronDownIcon from "@/components/ui/icons/chevron-down";
 import { ChromeTabs, ChromeTabsList, ChromeTabsTrigger } from "@/components/ui/chrome-tabs";
+import { cn } from "@/lib/utils";
 import {
   listAdminAssetFolders,
   listAdminAssetTags,
@@ -30,6 +31,11 @@ import {
 } from "@/views/assets/components/AssetsFilterPopover";
 import { AssetUploadDialog } from "@/views/assets/components/AssetUploadDialog";
 import type { MenuProps } from "antd";
+
+type MasonryEntry =
+  | { kind: "asset"; asset: AssetMasonryItem }
+  | { kind: "folder"; folder: AdminAssetFolder }
+  | { kind: "folderUp" };
 
 function buildSvgDataUrl({ hue, aspectRatio }: { hue: number; aspectRatio: number }): string {
   // Avoid network dependency for dev: render a simple SVG placeholder as a data URL.
@@ -156,6 +162,8 @@ export function AssetsView() {
   // Search / filters / ordering
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
+  const [focusedFolderId, setFocusedFolderId] = useState<string | null>(null);
   const [filters, setFilters] = useState<AssetsFilters>(() => ({
     // 默认只看 public：瀑布流需要 thumb/public url 才能稳定预览；
     // 其他可见性可通过筛选器切换，但可能只显示“无预览”占位。
@@ -235,8 +243,7 @@ export function AssetsView() {
         purpose: "library",
         q: searchQuery || undefined,
         mimePrefix: filters.mimePrefix,
-        folderId: filters.folderId,
-        includeChildren: filters.folderId ? true : undefined,
+        folderId: currentFolderId || undefined,
         visibility: filters.visibility,
         createdFrom: filters.createdFrom,
         createdTo: filters.createdTo,
@@ -251,8 +258,7 @@ export function AssetsView() {
         purpose: "library",
         q: searchQuery || undefined,
         mimePrefix: filters.mimePrefix,
-        folderId: filters.folderId,
-        includeChildren: filters.folderId ? true : undefined,
+        folderId: currentFolderId || undefined,
         visibility: filters.visibility,
         createdFrom: filters.createdFrom,
         createdTo: filters.createdTo,
@@ -275,8 +281,8 @@ export function AssetsView() {
     setSelectedIds(new Set());
     setActive(null);
   }, [
+    currentFolderId,
     searchQuery,
-    filters.folderId,
     filters.mimePrefix,
     filters.visibility,
     filters.createdFrom,
@@ -293,6 +299,25 @@ export function AssetsView() {
     );
     return mapped.length ? mapped : [];
   }, [assetsQuery.data, mockItems, layoutTick]);
+
+  const folderEntries = useMemo<MasonryEntry[]>(() => {
+    const folders = (foldersQuery.data?.items ?? []) as AdminAssetFolder[];
+    const isRoot = !currentFolderId;
+
+    const visible = folders.filter((f) =>
+      isRoot ? !f.parentId : String(f.parentId || "") === String(currentFolderId),
+    );
+
+    // Root shows only top-level folders; folder mode shows its immediate children.
+    const out: MasonryEntry[] = [];
+    if (!isRoot) out.push({ kind: "folderUp" });
+    for (const f of visible) out.push({ kind: "folder", folder: f });
+    return out;
+  }, [currentFolderId, foldersQuery.data]);
+
+  const masonryEntries = useMemo<MasonryEntry[]>(() => {
+    return [...folderEntries, ...items.map((asset): MasonryEntry => ({ kind: "asset", asset }))];
+  }, [folderEntries, items]);
 
   useEffect(() => {
     const el = sentinelRef.current;
@@ -412,7 +437,6 @@ export function AssetsView() {
               ordering={ordering}
               onOrderingChange={setOrdering}
               defaultOrdering="-created_at"
-              folders={(foldersQuery.data?.items ?? []) as AdminAssetFolder[]}
               tags={(tagsQuery.data?.items ?? []) as AdminAssetTag[]}
               tagsLoading={tagsQuery.isLoading}
             />
@@ -426,7 +450,7 @@ export function AssetsView() {
         onOpenChange={(open) => {
           setUploadOpen(open);
         }}
-        defaultFolderId={filters.folderId}
+        defaultFolderId={currentFolderId || undefined}
         onUploaded={() => {
           // 上传成功后刷新列表；避免 refetch 当前页导致旧的 infinite pages 不一致，直接 invalidate 最稳。
           void queryClient.invalidateQueries({ queryKey: ["assets", "list"] });
@@ -446,37 +470,117 @@ export function AssetsView() {
           description={t("assets:ASSET_LIST_LOAD_FAILED_DESC")}
           action={<Button onClick={() => void assetsQuery.refetch()}>{t("common:REFRESH")}</Button>}
         />
-      ) : items.length === 0 ? (
+      ) : masonryEntries.length === 0 ? (
         <div className="py-10 text-sm text-muted-foreground">{t("assets:ASSET_EMPTY")}</div>
       ) : (
         <Masonry
           gutter={[16, 16]}
           columns={{ xs: 1, sm: 2, md: 3, lg: 4 }}
           fresh
-          items={items.map((it) => ({ key: it.id, data: it }))}
-          itemRender={(info) => (
-            <AssetMasonryTile
-              asset={info.data}
-              selected={selectedIds.has(info.data.id)}
-              onToggleSelected={(id) => {
-                setSelectedIds((prev) => {
-                  const next = new Set(prev);
-                  if (next.has(id)) next.delete(id);
-                  else next.add(id);
-                  return next;
-                });
-              }}
-              onAspectRatio={(id, ar) => {
-                const safe = Number.isFinite(ar) && ar > 0.05 ? ar : 4 / 3;
-                const prev = aspectRatioRef.current.get(id);
-                if (prev && Math.abs(prev - safe) < 0.02) return;
-                aspectRatioRef.current.set(id, safe);
-                // 触发重新渲染，让 `toMasonryItem` 读到最新 aspectRatio。
-                forceLayoutTick((v) => v + 1);
-              }}
-              onOpen={setActive}
-            />
-          )}
+          items={masonryEntries.map((it) => ({
+            key:
+              it.kind === "asset"
+                ? it.asset.id
+                : it.kind === "folder"
+                  ? `folder:${it.folder.id}`
+                  : "folder:__up__",
+            data: it,
+          }))}
+          itemRender={(info) => {
+            const entry = info.data as MasonryEntry;
+            return entry.kind === "asset" ? (
+              <AssetMasonryTile
+                asset={entry.asset}
+                selected={selectedIds.has(entry.asset.id)}
+                onToggleSelected={(id) => {
+                  setSelectedIds((prev) => {
+                    const next = new Set(prev);
+                    if (next.has(id)) next.delete(id);
+                    else next.add(id);
+                    return next;
+                  });
+                }}
+                onAspectRatio={(id, ar) => {
+                  const safe = Number.isFinite(ar) && ar > 0.05 ? ar : 4 / 3;
+                  const prev = aspectRatioRef.current.get(id);
+                  if (prev && Math.abs(prev - safe) < 0.02) return;
+                  aspectRatioRef.current.set(id, safe);
+                  // 触发重新渲染，让 `toMasonryItem` 读到最新 aspectRatio。
+                  forceLayoutTick((v) => v + 1);
+                }}
+                onOpen={setActive}
+              />
+            ) : entry.kind === "folderUp" ? (
+              <div
+                role="button"
+                tabIndex={0}
+                className="group relative w-full overflow-hidden border border-border/50 bg-card cursor-pointer outline-none"
+                onClick={() => {
+                  setFocusedFolderId("__up__");
+                  setSelectedIds(new Set());
+                  setActive(null);
+                }}
+                onDoubleClick={() => {
+                  const folders = (foldersQuery.data?.items ?? []) as AdminAssetFolder[];
+                  const cur = folders.find((f) => f.id === currentFolderId);
+                  setCurrentFolderId(cur?.parentId ? String(cur.parentId) : null);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key !== "Enter") return;
+                  const folders = (foldersQuery.data?.items ?? []) as AdminAssetFolder[];
+                  const cur = folders.find((f) => f.id === currentFolderId);
+                  setCurrentFolderId(cur?.parentId ? String(cur.parentId) : null);
+                }}
+              >
+                <div className="relative w-full overflow-hidden" style={{ aspectRatio: 4 / 3 }}>
+                  <div className="absolute inset-0 grid place-items-center bg-muted/20">
+                    <div className="text-sm font-bold text-muted-foreground">
+                      {t("common:BACK")}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div
+                role="button"
+                tabIndex={0}
+                className={cn(
+                  "group relative w-full overflow-hidden border border-border/50 bg-card cursor-pointer outline-none",
+                  focusedFolderId === entry.folder.id ? "ring-1 ring-foreground/60" : undefined,
+                )}
+                onClick={() => {
+                  setFocusedFolderId(entry.folder.id);
+                  setSelectedIds(new Set());
+                  setActive(null);
+                }}
+                onDoubleClick={() => {
+                  setCurrentFolderId(entry.folder.id);
+                  setFocusedFolderId(null);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key !== "Enter") return;
+                  setCurrentFolderId(entry.folder.id);
+                  setFocusedFolderId(null);
+                }}
+              >
+                <div className="relative w-full overflow-hidden" style={{ aspectRatio: 4 / 3 }}>
+                  <div className="absolute inset-0 flex items-center justify-center bg-muted/20 p-4">
+                    <div className="text-center">
+                      <div
+                        className="text-base font-bold truncate max-w-[12rem]"
+                        title={entry.folder.name}
+                      >
+                        {entry.folder.name}
+                      </div>
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        {t("assets:ASSET_FOLDER")}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          }}
         />
       )}
 

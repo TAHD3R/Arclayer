@@ -3,6 +3,7 @@
   "ASSET_FILTER_TITLE": "筛选",
   "ASSET_TYPE_TAB_ALL": "全部",
   "ASSET_TYPE_TAB_MORE": "更多",
+  "ASSET_FOLDER": "文件夹",
   "ASSET_SEARCH_PLACEHOLDER": "搜索文件名/标题/Slug",
   "ASSET_FILTER_TYPE_ALL": "全部类型",
   "ASSET_FILTER_TYPE_IMAGE": "图片",

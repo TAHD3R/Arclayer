@@ -60,7 +60,8 @@ class TeamService(BaseService):
 
         items: list[TeamMemberOut] = []
         for membership in rows:
-            role_codes = sorted({mr.role.code for mr in (membership.membership_roles or []) if mr.role})
+            membership_roles = getattr(membership, "membership_roles", None) or []
+            role_codes = sorted({mr.role.code for mr in membership_roles if mr.role})
             user = membership.user
             items.append(
                 TeamMemberOut(

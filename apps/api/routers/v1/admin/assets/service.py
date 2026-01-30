@@ -15,6 +15,10 @@ from apps.api.infra.storage.local import safe_object_key_to_path
 from apps.api.models.user import User
 from apps.api.routers.v1.admin.assets.repository import AdminAssetsRepository
 from apps.api.routers.v1.admin.assets.schema import (
+    AdminAssetBulkDeleteOut,
+    AdminAssetBulkDeleteRequest,
+    AdminAssetBulkMoveOut,
+    AdminAssetBulkMoveRequest,
     AdminAssetDeleteOut,
     AdminAssetDetailOut,
     AdminAssetFolderCreateRequest,
@@ -244,6 +248,67 @@ class AdminAssetsService(BaseService):
 
         asset = await self.repo.save_asset_updates(asset, updates={"folder_id": folder_id})
         return AdminAssetSummaryOut.model_validate(asset, from_attributes=True)
+
+    async def bulk_move_assets(
+        self,
+        *,
+        org_id: UUID,
+        payload: AdminAssetBulkMoveRequest,
+    ) -> AdminAssetBulkMoveOut:
+        asset_ids = list(dict.fromkeys(payload.asset_ids))
+        if not asset_ids:
+            raise BadRequest(message=_ts("ASSET_IDS_INVALID", "资源 ID 列表不合法"), error="ASSET_IDS_INVALID")
+
+        folder_id = payload.folder_id
+        if folder_id is not None:
+            folder = await self.repo.get_folder(org_id=org_id, folder_id=folder_id)
+            if folder is None:
+                raise NotFound(message=_ts("ASSET_FOLDER_NOT_FOUND", "文件夹不存在"), error="ASSET_FOLDER_NOT_FOUND")
+
+        rows = await self.repo.get_assets_by_ids(org_id=org_id, asset_ids=asset_ids)
+        if len(rows) != len(asset_ids):
+            raise NotFound(message=_ts("ASSET_NOT_FOUND", "资源不存在"), error="ASSET_NOT_FOUND")
+
+        now = datetime.now(tz=UTC)
+        moved = await self.repo.bulk_update_assets_folder(
+            org_id=org_id,
+            asset_ids=asset_ids,
+            folder_id=folder_id,
+            updated_at=now,
+        )
+
+        return AdminAssetBulkMoveOut(
+            moved_count=moved,
+            folder_id=folder_id,
+            moved_asset_ids=asset_ids,
+        )
+
+    async def bulk_delete_assets(
+        self,
+        *,
+        org_id: UUID,
+        payload: AdminAssetBulkDeleteRequest,
+    ) -> AdminAssetBulkDeleteOut:
+        asset_ids = list(dict.fromkeys(payload.asset_ids))
+        if not asset_ids:
+            raise BadRequest(message=_ts("ASSET_IDS_INVALID", "资源 ID 列表不合法"), error="ASSET_IDS_INVALID")
+
+        rows = await self.repo.get_assets_by_ids(org_id=org_id, asset_ids=asset_ids)
+        if len(rows) != len(asset_ids):
+            raise NotFound(message=_ts("ASSET_NOT_FOUND", "资源不存在"), error="ASSET_NOT_FOUND")
+
+        now = datetime.now(tz=UTC)
+        deleted = await self.repo.bulk_soft_delete_assets(
+            org_id=org_id,
+            asset_ids=asset_ids,
+            deleted_at=now,
+            updated_at=now,
+        )
+
+        return AdminAssetBulkDeleteOut(
+            deleted_count=deleted,
+            deleted_asset_ids=asset_ids,
+        )
 
     async def stream_asset_content(self, *, org_id: UUID, asset_id: UUID, range_header: str | None):
         asset = await self.repo.get_asset(org_id=org_id, asset_id=asset_id)

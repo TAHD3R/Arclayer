@@ -65,9 +65,10 @@ class AdminAssetUsagesService(BaseService):
             field_key=field_key,
             created_by_user_id=actor_user_id,
         )
+        row_asset_id = UUID(str(row.asset_id))
         return AdminAssetUsageOut(
             id=row.id,
-            asset_id=row.asset_id,
+            asset_id=row_asset_id,
             purpose=row.purpose,
             entity_type=row.entity_type,
             entity_id=row.entity_id,
