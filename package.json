@@ -2,7 +2,7 @@
   "name": "celestial-framework",
   "private": true,
   "scripts": {
-    "dev": "turbo run dev --filter=@celestial/admin --filter=@celestial/api",
+    "dev": "turbo run dev --filter=@celestial/admin --filter=@celestial/api --ui=stream",
     "build": "turbo run build --filter=@celestial/admin",
     "check": "turbo run lint format typecheck test --filter=@celestial/admin --filter=@celestial/api",
     "admin": "turbo run dev --filter=@celestial/admin",
