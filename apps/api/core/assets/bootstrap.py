@@ -149,10 +149,9 @@ async def register_core_asset_processors(registry: ExtensionRegistry, settings: 
             asset.meta = meta
             await asset.save(update_fields=["variants", "meta", "updated_at"])
         except Exception as exc:
-            logger.warning("Core asset processor failed", event=ASSET_UPLOADED_EVENT, error=str(exc))
+            logger.warning("Core asset processor failed", error_event=ASSET_UPLOADED_EVENT, error=str(exc))
 
     # Subscribe as "core". If the app hot-reloads, duplicate subscriptions may happen;
-    # our handler is idempotent (checks variants) and cheap.
     await registry.event_bus.subscribe(
         plugin_id="core",
         event_name=ASSET_UPLOADED_EVENT,

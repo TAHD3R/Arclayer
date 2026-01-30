@@ -1,4 +1,4 @@
-from apps.api.http_utils.response import Response, ResponseModel
+from apps.api.core.http.response import Response, ResponseModel
 
 
 def test_response_success() -> None:

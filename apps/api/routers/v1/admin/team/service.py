@@ -7,6 +7,7 @@ from apps.api.common.email.service import EmailService
 from apps.api.common.services import BaseService
 from apps.api.config import Settings
 from apps.api.core.exceptions import BadRequest, NotFound
+from apps.api.core.http.pagination import PageData, PageParams
 from apps.api.core.i18n import t
 from apps.api.core.organization.invitations import (
     InvitationRepository,
@@ -14,7 +15,6 @@ from apps.api.core.organization.invitations import (
     generate_invite_token,
     hash_invite_token,
 )
-from apps.api.http_utils.pagination import PageData, PageParams
 from apps.api.models.invitation import OrganizationInvitation
 from apps.api.models.organization import MembershipStatus, Organization
 from apps.api.routers.v1.admin.team.repository import TeamRepository

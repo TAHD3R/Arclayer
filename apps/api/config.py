@@ -266,10 +266,6 @@ class LoggingSettings(BaseSettings):
     )
     request_log_omit_paths: list[str] = Field(
         default_factory=lambda: [
-            "/health",
-            "/healthz",
-            "/readyz",
-            "/livez",
             "/metrics",
             "/openapi.json",
             "/docs",
@@ -764,16 +760,6 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices("APP_ENV", "ENV"),
     )
 
-    @computed_field
-    @property
-    def debug(self) -> bool:
-        return self.app_env == "development"
-
-    @computed_field
-    @property
-    def enable_docs(self) -> bool:
-        return self.app_env in {"development", "test"}
-
     application: ApplicationSettings = Field(default_factory=ApplicationSettings)
     storage: StorageSettings = Field(default_factory=StorageSettings)
     logging: LoggingSettings = Field(default_factory=LoggingSettings)
@@ -786,6 +772,16 @@ class Settings(BaseSettings):
     plugin: PluginSettings = Field(default_factory=PluginSettings)
     setup: SetupSettings = Field(default_factory=SetupSettings)
     testing: TestingSettings = Field(default_factory=TestingSettings)
+
+    @computed_field
+    @property
+    def debug(self) -> bool:
+        return self.app_env == "development"
+
+    @computed_field
+    @property
+    def enable_docs(self) -> bool:
+        return self.app_env in {"development", "test"}
 
     def _apply_env_overrides(self) -> None:
         def _merge_settings(current, overrides):
@@ -809,12 +805,11 @@ class Settings(BaseSettings):
 
         if self.app_env == "test":
             if self.testing.database_enabled:
-                self.database = self.database.model_copy(
-                    update={
-                        "enabled": True,
-                        "database": self.testing.database_name,
-                    }
-                )
+                updates: dict[str, Any] = {
+                    "enabled": True,
+                    "database": self.testing.database_name,
+                }
+                self.database = self.database.model_copy(update=updates)
             if self.testing.valkey_enabled:
                 updates: dict[str, Any] = {
                     "enabled": True,

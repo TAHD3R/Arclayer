@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from apps.api.http_utils.content_disposition import build_attachment_content_disposition
+from apps.api.core.http.content_disposition import build_attachment_content_disposition
 
 
 def test_build_attachment_content_disposition_includes_utf8_and_ascii_fallback() -> None:

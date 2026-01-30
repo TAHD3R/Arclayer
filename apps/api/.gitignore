@@ -1,0 +1,6 @@
+.venv/
+.turbo/
+logs/
+.coverage
+data/
+static/

@@ -1,187 +1,222 @@
-# CelestialCMS 项目开发规范（AGENTS）
+# 项目开发规范
 
-最后更新：2026-01-29
+本项目为混合架构Monorepo项目，服务端由FastAPI(0.128)实现，前端由Vite7+React19实现。项目目标为提供低耦合、插件化、支持可视化编辑的现代化SaaS/自托管CMS服务。
 
-本仓库为混合技术栈的 Monorepo：前端管理后台（Node.js/pnpm）+ 后端 API（Python/uv/FastAPI）+ 插件系统（plugins）+ 全局 i18n 资源（locales）。
 
-本文档用于统一协作规则，避免在开发/AI 执行过程中出现：
 
-- i18n 文案无规则堆到 `common`，导致文件膨胀、检索困难、LLM 每次读取消耗大量 token
-- Codex/沙箱环境运行 `pytest` 因 uv 缓存目录不可写而“卡住/超时”
-- 为图省事随意放置文件、提交无用注释、保留死代码
+## 全局约定
 
----
+**目录约定**
 
-## 1) 目录与职责（必须遵守）
+`apps/api` 为FastAPI服务端目录
 
-- `apps/web/admin/`：后台管理前端（React + i18next + pnpm）
-- `apps/api/`：后端 FastAPI 服务（uv 作为运行/依赖管理）
-- `packages/`：可复用的包（前端/工具库等）
-- `plugins/`：插件（插件可自带 i18n 文案与配置）
-- `locales/`：全局 i18n 文案（系统级命名空间）
-- `docs/`：项目文档与方案记录（建议按主题拆分，避免单文件膨胀）
-- `data/`：运行期本地数据（已在 `.gitignore` 忽略）
+`plugins` 为插件目录
 
-规则：
+`apps/web` 为前端项目目录
 
-- 禁止把临时文件、脚本、调试产物随意丢在仓库根目录。
-- 新增文件必须能回答：**属于哪个模块？为什么放在这里？未来如何维护？**
+**常用指令**
+
+项目由turborepo提供统一入口，前端与后端统一通过package.json提供的指令执行，禁止直接调用.venv中的环境
+
+**核心原则**
+
+- KISS：保持简单，优先可读与可维护
+- YAGNI：未确认需求不提前实现
+- DRY：消除重复逻辑，统一抽象
+- SOLID：面向扩展、易于测试、职责单一
+
+**工作流程**
+
+- 理解：澄清需求边界与约束
+- 规划：拆解步骤与风险点
+- 执行：按计划实现并自检
+- 汇报：说明改动、风险与验证结果
+
+**职责**
+
+- 新增文件必须能回答：***\*属于哪个模块？为什么放在这里？未来如何维护？\****
 - 新增目录（尤其是跨模块的）必须补充最小说明（README 或 docs 条目）。
+- 全局注释以英文标注
+-
 
----
-
-## 2) 常用命令（Monorepo 入口统一在根目录）
-
-### 2.1 管理后台（apps/web/admin）
-
-| 任务     | 指令                   | 说明               |
-| -------- | ---------------------- | ------------------ |
-| 启动开发 | `pnpm dev:admin`       | 启动后台开发服务器 |
-| 构建     | `pnpm build:admin`     | 生产构建           |
-| Lint     | `pnpm lint:admin`      | ESLint/Linter      |
-| 格式化   | `pnpm fmt:admin`       | 格式化             |
-| 类型检查 | `pnpm typecheck:admin` | TypeScript         |
-| 测试     | `pnpm test:admin`      | 前端单测（Vitest） |
-
-### 2.2 后端 API（apps/api）
-
-后端统一通过 `uv run --project apps/api ...` 执行，**禁止**直接调用 `apps/api/.venv/bin/python`。
-
-| 任务     | 指令                       | 说明             |
-| -------- | -------------------------- | ---------------- |
-| 启动 API | `pnpm dev:api`             | uvicorn 热重载   |
-| Lint     | `pnpm lint:py`             | Ruff             |
-| 格式化   | `pnpm format:py`           | Ruff format      |
-| 类型检查 | `pnpm typecheck:py`        | Pyright          |
-| 单元测试 | `pnpm test:py`             | pytest           |
-| 集成测试 | `pnpm test:py-integration` | `-m integration` |
-
----
-
-## 3) Codex/沙箱环境运行 Python（重点：pytest 不要再卡住/超时）
-
-### 3.1 为什么会“卡住/超时”
-
-在 Codex/沙箱环境下，默认的 uv cache 目录（通常在用户主目录）可能不可写；uv 在启动/同步依赖时尝试写入缓存会导致表现为“长时间无输出/超时/无法运行”。
-
-### 3.2 统一正确做法（强制）
-
-1. **永远用 pnpm 脚本执行后端命令**（根目录已统一设置 `UV_CACHE_DIR=.uv-cache`）。
-2. 如果需要手动执行，必须显式设置缓存目录到仓库可写位置：
-   - 推荐：`UV_CACHE_DIR=.uv-cache uv run --project apps/api <command>`
-   - 备选：`UV_CACHE_DIR=/tmp/uv-cache uv run --project apps/api <command>`
-
-3. 不要用 `apps/api/.venv/bin/python` 直接跑测试或脚本（会绕过 uv 的一致性管理，导致环境漂移）。
-
-### 3.3 pytest 的“正确提速/缩小范围”姿势
-
-当你只需要验证一个点时，不要默认跑全量：
-
-```bash
-# 只跑某个文件
-pnpm test:py -- apps/api/tests/test_xxx.py
-
-# 只跑某个用例（pytest 节点）
-pnpm test:py -- apps/api/tests/test_xxx.py::test_case_name
-
-# 关键字过滤
-pnpm test:py -- -k keyword
-
-# 失败即停 + 更少输出（更适合 AI/CI）
-pnpm test:py -- -x -q
-```
-
----
-
-## 4) i18n 规范（强制：从现在起不允许再把所有文案塞进 common）
-
-### 4.1 总原则
-
-- 任何用户可见文案必须走 `t()` / `<Trans />`，禁止硬编码。
-- 新增词条必须同时补齐 `zh-CN` 与 `en-US`，并保持 key 一致。
-- 按“职责/功能域”拆分命名空间（namespace），避免单文件膨胀。
-- `common` 只放“真正跨模块的通用词条”（例如：通用按钮文案、通用提示、极少量基础文案）。
-
-### 4.2 命名空间与文件位置（当前基线）
-
-系统级文案放在仓库根目录：
-
-- `locales/<locale>/common.json`：极少量通用文案（不要再膨胀）
-- `locales/<locale>/nav.json`：后台导航/菜单相关（`NAV_*`）
-- `locales/<locale>/setup.json`：初始化向导相关（`SETUP_*`）
-- `locales/<locale>/settings.json`：设置页相关（`SETTINGS_*`）
-- `locales/<locale>/account.json`：账号菜单/个人设置入口相关（`ACCOUNT_*`）
-- `locales/<locale>/notifications.json`：通知中心/通知列表相关（`NOTIFICATIONS_*`）
-- `locales/<locale>/command.json`：命令面板/Command-K 相关（`CMDK_*`）
-- `locales/<locale>/assets.json`：资源库相关（`ASSET_*`）
-
-后端/跨端通用：
-
-- `locales/<locale>/errors.json`：错误码 -> 用户提示（建议与后端错误码一致）
-- `locales/<locale>/auth.json`：鉴权/登录/重置密码等（后端与前端可共用语义）
-- `locales/<locale>/plugin.json`：插件管理相关通用错误/提示
-
-插件自带文案：
-
-- `plugins/<plugin_id>/locales/<locale>/*.json`（由系统自动合并）
-
-### 4.3 Key 命名（保持现有风格，避免无意义重构）
-
-目前项目使用 `UPPER_SNAKE_CASE`，并按前缀区分领域（如 `SETTINGS_*`、`SETUP_*`）。
-
-规则：
-
-- 新 key 必须带“领域前缀”，并放入对应 namespace 文件中。
-- 禁止出现“无法判断属于哪个模块”的 key（例如：`TITLE`, `OK`, `TIP1`）。
-- 避免把“业务含义”塞到 `common`：能归类就归类。
-
-### 4.4 前端使用方式（推荐）
-
-- 推荐在组件级别显式声明 namespace，减少误用：
-
-````ts
-const { t } = useTranslation(\"settings\");\n\nt(\"SETTINGS_SAVE\");\n```
-
-- 需要跨 namespace 时，用 `ns:key` 显式指定：
-
-```ts
-t(\"common:REQUEST_FAILED\");\n```
-
-### 4.5 后端/错误码的 i18n（约定）
-
-- 错误对用户展示时优先使用 `errors.json` 的错误码映射。
-- i18next 若缺失 key 通常会返回 key 本身；业务层需要将其视为“未翻译”并降级为通用文案。
-
----
-
-## 5) 代码注释与文件卫生（强制）
-
-### 5.1 注释规则（少而精）
-
-- 不写“显而易见”的注释，不写“解释代码在做什么”的流水账。
-- 注释只用于解释：**为什么这样做**、**有哪些坑**、**有哪些约束**。
-- 禁止提交：
-  - 大段注释掉的代码（需要删掉；历史由 Git 保存）
-  - “TODO 以后再说”但没有上下文/issue 链接的注释
-  - 与实现不一致/过期的注释
-
-### 5.2 文件放置规则
-
-- 新增功能优先“就近放置”，避免形成新的 “misc/”。
-- 跨模块的抽象必须证明可复用，否则不要提前抽象（YAGNI）。
-- 任何“临时修复”必须在同一 PR 内完成收敛：要么补测试/文档，要么明确降级方案。
-
----
-
-## 6) 质量门禁（建议每次提交前至少跑一次）
-
-- 前端：`pnpm lint:admin`、`pnpm typecheck:admin`
-- 后端：`pnpm lint:py`、`pnpm typecheck:py`、`pnpm test:py`（按需缩小范围）
-
----
-
-## 7) 进一步文档
+**进一步说明文档**
 
 - i18n 详细说明与迁移建议：`docs/i18n.md`
 - FastAPI 目录架构：`docs/fastapi-folder-architecture.md`
-````
+
+
+
+## 服务端约定
+
+**服务端架构规范**
+
+- 每个 API 模块分层为 `router` / `service` / `repository` / `schema`
+- `router` 层作为薄入口，每个路由端点提供summary/description。业务逻辑与异常处理由 `service` 层负责，仅返回 `Response.success`；返回列表数据的接口使用`ResponseModel[PageData[T]]` 禁止直接使用ResponseModel[list[T]]
+- `service` 与 `repository` 必须继承自 `BaseService`、`BaseRepository`，多个领域内通用的方法可以考虑提升至基类以减少重复代码
+- `schema` 使用 Pydantic v2，统一放在 `schema` 层，禁止使用dataclass实现
+- 高频接口必须接入 `fastapi-limiter`
+- 受 `VALKEY__ENABLED` 与 `VALKEY__LIMITER_ENABLED` 控制开关
+
+**基础代码组织**
+
+- 避免通用功能混入单一 `bases.py` 文件
+- 避免重复编写相同功能的重复方法，多处复用的代码考虑提升为工具函数
+- 避免每个文件零散储存常量、枚举，相近类型的常量/枚举可考虑放在同一文件统一管理
+
+**Schema 规范**
+
+- 统一继承 `BaseSchema`，必要时复用 `BaseOut`、`IdMixin`、`TimestampMixin`
+- 字段必须使用 `Field` 定义约束、描述与示例
+- 复杂校验必须使用 `validator` / `model_validator`/`model_config`
+
+**HTTP 输出规范（强制）**
+
+- 禁止在 API 层手写/拼装 JSON 字典作为业务输出（例如 `return {"items": ...}` 或 `Response.success(data={"items": ...})`）
+- 输入/输出只要可以用 Pydantic 表达，就必须使用 Pydantic Schema：
+  - Router 层：`response_model` 必须绑定 Schema；返回时优先返回 Schema 实例或 `Schema.model_validate(...)`
+  - Service/Repository 层：对外返回的分页/业务结果优先返回 Schema（或可被 `model_validate` 接受的对象），避免散落的硬编码 key
+- 例外（允许使用 dict）：`config` 等动态结构、`ResponseModel.meta` 等明确声明为 `dict[str, Any]` 的扩展字段
+
+**模型构建**
+
+- 模型表需以docstring形式提供注释
+
+**日志规范**
+
+- 全项目统一结构化日志风格
+- 记录关键上下文：`request_id`、`user_id`、`entity_id`、`org_id`、`action`
+- 日志内容需脱敏，敏感字段必须屏蔽或裁剪
+- 邮件发送需记录收件人、cid、user_id、token_hint 等关键字段
+
+**异常处理**
+
+- 统一使用 `APIError` 体系转为标准响应
+- BackgroundTasks 内部必须捕获异常，避免主流程崩溃
+- 不允许未处理异常导致 500 泄露内部细节
+
+**认证与安全**
+
+- Refresh Token 旋转、复用检测、`token_version` 失效机制必须启用
+- 退出登录必须使 Token 失效（提升 `token_version` + revoke refresh）
+
+**邮件与通知**
+
+- 使用 `fastapi-mail` + `BackgroundTasks`
+- 邮件服务独立封装，模板集中管理
+- 发送失败必须记录日志并降级处理
+
+**i18n**
+
+- 用户可见文案必须使用 `t()` 翻译，避免硬编码
+- 统一在仓库根目录 `locales/<locale>/*.json` 维护通用命名空间
+- 插件自带文案放在 `plugins/<plugin_id>/locales/<locale>/*.json`，系统自动合并
+- 新增词条需同时补齐 `zh-CN` 与 `en-US` 并保持Key一致
+- 异常提示优先使用 `errors.json` 中的错误码映射
+- 异步任务（如邮件发送）需要显式传递 locale，避免丢失请求语言
+- 按“职责/功能域”拆分命名空间（namespace），避免单文件膨胀。
+- `common` 只放“真正跨模块的通用词条”（例如：通用按钮文案、通用提示、极少量基础文案）。
+
+**测试与质量门禁**
+
+- 覆盖单元测试与集成测试（单元测试覆盖率要求达到70%-90%；集成测试覆盖率要求达到40-60%）
+- 路径覆盖优于行覆盖、核心逻辑优先
+- Python 代码需通过 Ruff、Pyright（或等效工具）与测试
+
+**文档与注释**
+
+- 日志输出文本使用英文
+- 代码注释与技术文档使用英文
+- API 文档字段说明使用英文
+
+**强制要求**
+
+- 在任何情况下使用类型推导编写代码
+
+- 使用Pydantic V2语法 (field_validator, model_validator, model_config)
+- 以Annotated方式使用依赖注入
+- 所有涉及I/O的操作使用async/await语法
+- 使用`X | None`避免使用`Optional[X]`
+- 返回正确且合理的HTTP状态码
+- 为端点编写文档（要求至少提供summary，可视情况以docstring的方式提供description）
+
+**强制拒绝执行目标**
+
+- 使用同步方式操作数据库/Valkey
+- 跳过Pydantic校验
+- 以明文储存敏感信息
+- 在Response中暴露敏感信息
+- 使用Pydantic V1语法 (@validator, class Config)
+- 不正确混合使用sync与async语法
+- 硬编码配置项/可配置项
+
+
+
+## 前端约定
+
+**架构与目录约定**
+
+- `apps/web/<app_name>` 遵循模块化架构，禁止跨模块循环引用
+
+- `src/api` 基于tanstack query封装函数式请求，必须与服务端`Schema`保持类型同步
+- `src/components` 统一管理项目可复用组件
+- - `animate-ui` 及 `ui` 为第一方/第三方Shadcn组件，避免直接使用
+  - `app` 项目专用/二次封装组件
+- `src/types` 统一管理项目TS类型定义，新建定义优先考虑放置此目录下，避免零散编写
+- `src/hooks`  全局通用Hooks，业务相关Hooks必须留在相关目录下
+- `src/stores` Zustand全局状态管理，优先使用`React Query`缓存
+
+**核心技术要求**
+
+- 优先使用 `useActionState` 和 `useOptimistic` 处理表单提交与状态更新。
+- 使用 `use` 处理 Promise 或 Context，减少嵌套。
+- 处理异步 I/O 必须配合 `Suspense` 与 `ErrorBoundary`。
+- **Server State**: 统一使用 `@tanstack/react-query`，禁止将 API 数据镜像到全局 Store。
+- **UI State**: 优先组件内 `useState`；跨组件共享使用 `Zustand`。
+- **样式规范**: 统一使用 Tailwind CSS。配色Token与Tailwindcss定义位于 `package/ui-theme`下，禁止使用内联 Style (除Antd样式workaround、动态计算像素外)。
+
+**接口与数据流 (I/O)**
+
+- **类型安全 (End-to-End Type Safety)**:
+  - 前端 `interface` 必须严格匹配服务端 `Pydantic Schema`。
+  - 禁止在组件内直接处理原始 `Response` 字典，必须在 API 层进行数据清洗。
+- **请求库**: 统一使用异步封装，所有 API 方法必须标明返回类型：`async function getData(): Promise<T>`。
+- **Loading 态**: 统一由框架层（Suspense）或组件级 Skeleton 处理，禁止到处手写 `if (loading) return ...`。
+
+**国际化 (i18n)**
+
+- **强制翻译**: 严禁在 JSX 中出现硬编码中文/英文。
+- **调用方式**: 统一使用 `const { t } = useTranslation(ns)`，并指定对应的 `namespace`。
+- **动态内容**: 带有变量的翻译必须使用插值：`t('welcome', { name: user.name })`。
+
+**TailwindCSS使用规范**
+
+- 避免使用精确px定义尺寸 `w-[16px]` 而是使用 `w-4` 方式
+- 使用`TailwindCSS V4`写法
+
+**性能门禁**
+
+- **代码分割**: 路由层级强制使用 `React.lazy` 进行懒加载。
+- **资源优化**: 静态资源（图片/字体）必须经过压缩，大图需放置在 CDN 或由服务端处理。
+- **依赖控制**: 引入新依赖需评估 Bundle Size，优先选择 `Tree-shaking` 友好的库。
+
+**测试与质量控制**
+
+- **组件测试**: 使用 `Vitest` + `React Testing Library`。
+- **覆盖率**:
+  - 应用专用工具函数、复杂逻辑 Hooks 要求 80% 以上覆盖率。
+  - 关键交互路径（如支付、发布）需编写集成测试。
+- **Linting**: 严格执行 `oxlint` 检查。
+
+**强制要求**
+
+- **必须**为所有组件 Props 定义 `interface` 或 `type`。
+- **必须**使用 `clsx` 或 `tailwind-merge` 合并动态类名。
+- **必须**为所有表单接入 `React Hook Form` + `Zod` 校验，与后端 Schema 逻辑对齐。
+- **必须**处理 API 请求的异常捕获，并以用户友好的 `Toast` 提示。
+
+**强制拒绝**
+
+- **严禁**使用 `any` 类型（除非是极特殊的第三方库兼容）。
+- **严禁**在 `useEffect` 中处理复杂的业务数据转换逻辑（应移至 `useMemo` 或 `Service` 层）。
+- **严禁**手动操作 DOM（除非是集成第三方非 React 库）。
+- **严禁**直接在根组件注入全局样式，必须通过 CSS 变量或 Tailwind 类名扩展。

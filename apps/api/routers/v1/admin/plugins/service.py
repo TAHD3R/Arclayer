@@ -14,9 +14,9 @@ from fastapi import UploadFile
 from apps.api.common.services import BaseService
 from apps.api.config import Settings
 from apps.api.core.exceptions import BadRequest, NotFound, ServiceUnavailable
+from apps.api.core.http.pagination import PageData, PageParams
 from apps.api.core.i18n import t
 from apps.api.core.logging import get_logger
-from apps.api.http_utils.pagination import PageData, PageParams
 from apps.api.models.plugin import PluginRecord
 from apps.api.plugin.event_bus import Event
 from apps.api.plugin.events import PLUGIN_INSTALLED, SETTINGS_UPDATED

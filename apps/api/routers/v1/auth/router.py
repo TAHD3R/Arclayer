@@ -9,10 +9,10 @@ from apps.api.common.schemas import AuthzSnapshot
 from apps.api.config import Settings, get_settings
 from apps.api.core.authz import get_authz_snapshot_provider, require_permission_strict
 from apps.api.core.exceptions import BadRequest, Conflict, Forbidden, NotFound, ServiceUnavailable
+from apps.api.core.http.response import Response, ResponseModel
 from apps.api.core.i18n import get_current_locale, t
 from apps.api.core.organization.invitations import hash_invite_token
 from apps.api.core.organization.repository import OrganizationRepository
-from apps.api.http_utils.response import Response, ResponseModel
 from apps.api.infra.cache.valkey import get_valkey
 from apps.api.infra.limiter.limiter import rate_limit
 from apps.api.models.invitation import OrganizationInvitation

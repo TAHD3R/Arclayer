@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Protocol, cast
 from uuid import UUID
 
-from apps.api.http_utils.pagination import PageData, PageParams
+from apps.api.core.http.pagination import PageData, PageParams
 from apps.api.plugin.registry import ExtensionPointType, registry
 
 ADMIN_MENU_PROVIDER_EXTENSION_POINT = "admin-menu-provider"

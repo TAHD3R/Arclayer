@@ -1,94 +1,97 @@
 # Celestial Framework API Architecture (apps/api)
 
-This folder contains the FastAPI backend service.
+This document defines the directory organization, responsibility boundaries, and dependency rules for the FastAPI backend service. The goal is to ensure high cohesion, low coupling, and a "plugin-first" extensibility model.
 
-## Goals
+## 1. Core Goals
 
-- Clear layering: avoid "misc" folders that mix concerns.
-- Predictable imports: each layer has a well-defined dependency direction.
-- Plugin-first extensibility: core domain capabilities can be implemented by plugins.
-- Long-term maintainability: where a file should live is obvious.
+* **Clear Layering**: Eliminate "misc" or "utils" folders that mix concerns; every line of code has a predictable home.
+* **Predictable Dependencies**: Maintain a strictly unidirectional dependency flow to prevent circular imports.
+* **Plugin-First Extensibility**: Core domain capabilities are defined via "Extension Points," allowing plugins to provide implementations.
+* **Long-term Maintainability**: Make it obvious where a file should live, reducing cognitive load for contributors.
 
-## Folder Responsibilities
 
-### `apps/api/core/` (Application bootstrap & cross-cutting concerns)
+## 2. Folder Responsibilities
 
-What belongs here:
+### `core/` (Application Bootstrap & Cross-Cutting Concerns)
 
-- App factory / lifespan (`core/registry.py`)
-- Route wiring (`core/routes.py`)
-- Cross-cutting concerns: logging, observability, i18n, authz, middleware, exception handlers
+**Role**: The "brain" of the application, responsible for startup, configuration, and global policies.
 
-What must NOT belong here:
+* **In-Scope**:
+* App factory and lifespan management (`registry.py`, `lifespan.py`).
+* Centralized route wiring and mounting (`routes.py`).
+* Cross-cutting concerns: Logging, Observability, i18n engine, Authz strategies, Middleware, and Global Exception Handlers.
 
-- Infrastructure implementations (DB/Redis/Rate limiting clients)
-- HTTP response shapes (response envelopes, pagination schemas)
-- Plugin extension-point contracts (they belong to `apps/api/plugin/`)
 
-### `apps/api/infra/` (Infrastructure & external integrations)
+* **Out-of-Scope**: Infrastructure implementation details (e.g., DB pool instances), HTTP response envelopes, or plugin extension contracts.
 
-Infrastructure implementations and clients. Typical examples:
+### `infra/` (Infrastructure & External Integrations)
 
-- `infra/db/` : ORM init/close, DB health checks
-- `infra/cache/` : Valkey/Redis client init/close
-- `infra/limiter/`: rate limiter integration (FastAPI-Limiter, storage coupling)
+**Role**: Encapsulation of technical details and external drivers.
 
-`core/` can call into `infra/`, but `infra/` should not depend on `routers/`.
+* **In-Scope**:
+* `db/`: ORM initialization/cleanup, DB health checks.
+* `cache/`: Valkey/Redis client wrappers.
+* `limiter/`: Rate limiter storage and adapter integration.
 
-### `apps/api/http/` (HTTP-level contracts & utilities)
 
-HTTP concerns that are shared across routers:
+* **Rule**: `core/` may call `infra/`, but `infra/` must **never** depend on `routers/`.
 
-- Response envelope (`http/response.py`)
-- Pagination query params + response schema (`http/pagination.py`)
+### `core/http/` (HTTP Communication Contracts)
 
-Rule of thumb: if it shapes OpenAPI or is used by many routers, it likely belongs here.
+**Role**: Defines the "shape" of the API to ensure a consistent contract between frontend and backend.
 
-### `apps/api/routers/` (API surface / versioned routes)
+* **In-Scope**:
+* Standard Response Envelope (`response.py`): e.g., `Response.success(...)`.
+* Pagination Protocols (`pagination.py`): Common query parameters and response schemas.
 
-API routers grouped by version and domain.
 
-For each domain module:
 
-- `router.py` only does request parsing + dependency wiring + returns `Response.success(...)`.
-- Business logic lives in `service.py`.
-- Data access lives in `repository.py`.
-- Input/output schemas live in `schema.py` (Pydantic v2).
+### `routers/` (API Surface / Domain Logic)
 
-### `apps/api/plugin/` (Plugin system)
+**Role**: Domain-specific modules following the **Router-Service-Repository** pattern.
+Internal structure for each domain module:
 
-Plugin loader, registry, manifests, and all plugin-related primitives.
+* `router.py`: Handles request parsing, dependency injection wiring, and returns standard responses.
+* `service.py`: Core business logic, validation, and workflow orchestration.
+* `repository.py`: Data persistence logic; the only layer directly interacting with Models/DB.
+* `schema.py`: Pydantic V2 models for input validation and output serialization.
 
-Extension point contracts live under:
+### `plugin/` (Plugin System Core)
 
-- `apps/api/plugin/extension_points/`
+**Role**: The engine for plugin loading, registration, and discovery.
 
-Each module defines:
+* **Extension Points**:
+* **Path**: `apps/api/plugin/extension_points/`
+* **Definition**: Each module defines a constant name, a `Protocol` contract, registration logic, and a "Getter" to resolve implementations.
 
-- the extension-point name constant
-- a `Protocol` contract
-- registration code (to declare the extension point)
-- a getter (to resolve the implementation from the registry)
 
-The app bootstrap explicitly calls `init_extension_points()` so plugins can safely register their implementations during startup.
+* **Workflow**: The bootstrap calls `init_extension_points()`, allowing plugins to safely inject logic during startup.
 
-### `apps/api/common/` (Shared primitives)
+### `common/` (Shared Primitives)
 
-Reusable building blocks that are not HTTP-specific and not infrastructure-specific:
+**Role**: Reusable building blocks that are logic-neutral.
 
-- `common/schemas/` base schemas / mixins
-- `common/services/` base services
-- `common/repositories/` base repositories
-- `common/utils/` small pure helpers
+* **In-Scope**: Base classes (BaseSchema, BaseService, BaseRepository), shared mixins, and pure utility helpers (`utils/`).
 
-## Dependency Rules (Import Direction)
 
-Recommended import direction:
+## 3. Dependency Rules (Import Direction)
 
-- `routers/*` -> `http/`, `core/` (cross-cutting only), `common/`, `plugin/extension_points/*`, and local `service/repository/schema`
-- `service` -> `repository`, `common/`, `core/exceptions`, `core/i18n`
-- `repository` -> `infra/*`, `models/*`
-- `core` -> `infra/*`, `plugin/*`, and `routers/*` only for route wiring
-- `plugin/*` -> `common/`, `http/` (contracts), but avoid depending on `routers/*`
+To maintain a clean architecture, the following **Unidirectional Flow** is mandatory:
 
-If you see cycles, it's a sign that responsibilities are mixed and a module should be moved.
+| Layer Initiating Call | Allowed Dependencies |
+| --- | --- |
+| **`routers/`** | `http/`, `core/` (cross-cutting), `common/`, `plugin/`, local service/repo/schema |
+| **`service/`** | `repository/`, `common/`, `core/exceptions`, `core/i18n` |
+| **`repository/`** | `infra/`, `models/` |
+| **`core/`** | `infra/`, `plugin/`, `routers/` (only for mounting) |
+| **`plugin/`** | `common/`, `http/` (contracts only), **Strictly NO `routers/**` |
+
+> [!CAUTION]
+> **Circular Dependency Warning**: If Layer A needs B and B needs A, your boundaries are likely blurred. Extract the shared logic to `common/` or use a `plugin` extension point to decouple them.
+
+
+## 4. Coding Standards
+
+1. **Unified Response**: All endpoints must return `core.http.response.Response.success(...)` or raise an `AppException`.
+2. **Async-First**: Use `async def` for Service and Repository layers unless there is a specific blocking requirement.
+3. **Explicit DI**: Use FastAPI's `Depends` in `router.py` to keep dependencies visible rather than hiding them inside services.

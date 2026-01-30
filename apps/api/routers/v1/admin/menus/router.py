@@ -6,9 +6,9 @@ from fastapi import APIRouter, Depends
 
 from apps.api.core.authz import require_permission_strict
 from apps.api.core.exceptions import ServiceUnavailable
+from apps.api.core.http.pagination import PageData, PageParams, get_page_params
+from apps.api.core.http.response import Response, ResponseModel
 from apps.api.core.i18n import t
-from apps.api.http_utils.pagination import PageData, PageParams, get_page_params
-from apps.api.http_utils.response import Response, ResponseModel
 from apps.api.plugin.extension_points.admin_menu import get_admin_menu_provider
 from apps.api.routers.v1.admin.menus.schema import (
     AdminMenuCreateRequest,

@@ -4,6 +4,7 @@
   "scripts": {
     "dev": "turbo run dev --filter=@celestial/admin --filter=@celestial/api --ui=stream",
     "build": "turbo run build --filter=@celestial/admin",
+    "format": "turbo run format --filter=@celestial/admin --filter=@celestial/api --ui=stream",
     "check": "turbo run lint format typecheck test --filter=@celestial/admin --filter=@celestial/api",
     "admin": "turbo run dev --filter=@celestial/admin",
     "admin:build": "turbo run build --filter=@celestial/admin",
