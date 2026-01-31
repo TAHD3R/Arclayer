@@ -25,6 +25,7 @@ class AssetFolderRecord(BaseModel):
         on_delete=fields.SET_NULL,
     )
     name = fields.CharField(max_length=64)
+    description = fields.CharField(max_length=512, null=True)
     sort_order = fields.IntField(default=0)
 
     if TYPE_CHECKING:

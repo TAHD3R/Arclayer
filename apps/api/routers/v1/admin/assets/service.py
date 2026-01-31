@@ -257,12 +257,20 @@ class AdminAssetsService(BaseService):
             if parent is None:
                 raise NotFound(message=_ts("ASSET_FOLDER_NOT_FOUND", "文件夹不存在"), error="ASSET_FOLDER_NOT_FOUND")
 
+        description = payload.description.strip() if isinstance(payload.description, str) else None
+        if description == "":
+            description = None
+
         exists = await self.repo.query_folders(org_id=org_id).filter(parent_id=parent_id, name=name).exists()
         if exists:
             raise Conflict(message=_ts("ASSET_FOLDER_EXISTS", "文件夹已存在"), error="ASSET_FOLDER_EXISTS")
 
         folder = await self.repo.create_folder(
-            org_id=org_id, name=name, parent_id=parent_id, sort_order=int(payload.sort_order)
+            org_id=org_id,
+            name=name,
+            parent_id=parent_id,
+            description=description,
+            sort_order=int(payload.sort_order),
         )
         return AdminAssetFolderOut.model_validate(folder, from_attributes=True)
 
@@ -274,19 +282,62 @@ class AdminAssetsService(BaseService):
             raise NotFound(message=_ts("ASSET_FOLDER_NOT_FOUND", "文件夹不存在"), error="ASSET_FOLDER_NOT_FOUND")
 
         updates: dict = {}
-        if payload.name is not None:
-            name = payload.name.strip()
-            if not name:
+
+        next_parent_id = folder.parent_id
+        if "parent_id" in payload.model_fields_set:
+            next_parent_id = payload.parent_id
+            if next_parent_id == folder.id:
                 raise BadRequest(
-                    message=_ts("ASSET_FOLDER_NAME_INVALID", "文件夹名称不合法"), error="ASSET_FOLDER_NAME_INVALID"
+                    message=_ts("ASSET_FOLDER_PARENT_INVALID", "文件夹父级不合法"),
+                    error="ASSET_FOLDER_PARENT_INVALID",
                 )
-            if name != folder.name:
-                exists = (
-                    await self.repo.query_folders(org_id=org_id).filter(parent_id=folder.parent_id, name=name).exists()
+            if next_parent_id is not None:
+                parent = await self.repo.get_folder(org_id=org_id, folder_id=next_parent_id)
+                if parent is None:
+                    raise NotFound(
+                        message=_ts("ASSET_FOLDER_NOT_FOUND", "文件夹不存在"),
+                        error="ASSET_FOLDER_NOT_FOUND",
+                    )
+
+                # Prevent cycles: parent cannot be this folder or any of its descendants.
+                descendants = await self.repo.collect_descendant_folder_ids(org_id=org_id, root_folder_id=folder.id)
+                if next_parent_id in descendants:
+                    raise BadRequest(
+                        message=_ts("ASSET_FOLDER_PARENT_INVALID", "文件夹父级不合法"),
+                        error="ASSET_FOLDER_PARENT_INVALID",
+                    )
+            updates["parent_id"] = next_parent_id
+
+        next_name = folder.name
+        if payload.name is not None:
+            next_name = payload.name.strip()
+            if not next_name:
+                raise BadRequest(
+                    message=_ts("ASSET_FOLDER_NAME_INVALID", "文件夹名称不合法"),
+                    error="ASSET_FOLDER_NAME_INVALID",
                 )
-                if exists:
-                    raise Conflict(message=_ts("ASSET_FOLDER_EXISTS", "文件夹已存在"), error="ASSET_FOLDER_EXISTS")
-            updates["name"] = name
+            updates["name"] = next_name
+
+        # Name/parent unique constraint: (org_id, parent_id, name).
+        if ("name" in updates) or ("parent_id" in updates):
+            exists = (
+                await self.repo
+                .query_folders(org_id=org_id)
+                .filter(parent_id=next_parent_id, name=next_name)
+                .exclude(id=folder.id)
+                .exists()
+            )
+            if exists:
+                raise Conflict(message=_ts("ASSET_FOLDER_EXISTS", "文件夹已存在"), error="ASSET_FOLDER_EXISTS")
+
+        if "description" in payload.model_fields_set:
+            desc = payload.description
+            if isinstance(desc, str):
+                cleaned = desc.strip()
+                updates["description"] = cleaned or None
+            else:
+                updates["description"] = None
+
         if payload.sort_order is not None:
             updates["sort_order"] = int(payload.sort_order)
 

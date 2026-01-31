@@ -1,6 +1,7 @@
 {
   "ACCOUNT_TITLE": "账号",
   "ACCOUNT_PERSONAL_SETTINGS": "个人设置",
+  "ACCOUNT_PREFERENCES": "个人偏好",
   "ACCOUNT_THEME": "主题",
   "ACCOUNT_LANGUAGE": "语言",
   "ACCOUNT_LOGOUT": "退出登录",

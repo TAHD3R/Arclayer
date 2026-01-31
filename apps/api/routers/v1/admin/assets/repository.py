@@ -27,6 +27,8 @@ class AdminAssetsRepository(BaseRepository):
             qs = qs.filter(folder_id__in=folder_ids)
         elif filters.folder_id is not None:
             qs = qs.filter(folder_id=filters.folder_id)
+        elif filters.folder_is_null is True:
+            qs = qs.filter(folder_id__isnull=True)
 
         if filters.purpose:
             qs = qs.filter(purpose=filters.purpose)
@@ -167,9 +169,16 @@ class AdminAssetsRepository(BaseRepository):
         org_id: UUID,
         name: str,
         parent_id: UUID | None,
+        description: str | None,
         sort_order: int,
     ) -> AssetFolderRecord:
-        return await AssetFolderRecord.create(org_id=org_id, name=name, parent_id=parent_id, sort_order=sort_order)
+        return await AssetFolderRecord.create(
+            org_id=org_id,
+            name=name,
+            parent_id=parent_id,
+            description=description,
+            sort_order=sort_order,
+        )
 
     async def save_folder_updates(self, folder: AssetFolderRecord, *, updates: dict) -> AssetFolderRecord:
         for key, value in updates.items():

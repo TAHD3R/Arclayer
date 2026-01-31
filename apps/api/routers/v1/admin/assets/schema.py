@@ -21,6 +21,10 @@ class AdminAssetListQuery(BaseSchema):
     visibility: str | None = Field(default=None, description="Filter by visibility: public/private/shared.")
     indexable: bool | None = Field(default=None, description="Filter by indexable flag.")
     folder_id: UUID | None = Field(default=None, description="Filter by folder id.")
+    folder_is_null: bool | None = Field(
+        default=None,
+        description="When true and folder_id is not provided, only return assets in root (folder_id IS NULL).",
+    )
     include_children: bool = Field(
         default=False,
         description="When folder_id is provided, include assets in all descendant folders.",
@@ -80,6 +84,7 @@ class AdminAssetSummaryOut(BaseOut):
 class AdminAssetFolderOut(BaseOut):
     name: str = Field(..., description="Folder name.")
     parent_id: UUID | None = Field(default=None, description="Parent folder id.")
+    description: str | None = Field(default=None, description="Folder description (optional).")
     sort_order: int = Field(default=0, description="Sort order.")
     created_at: datetime = Field(..., description="Created at.")
 
@@ -87,11 +92,14 @@ class AdminAssetFolderOut(BaseOut):
 class AdminAssetFolderCreateRequest(BaseSchema):
     name: str = Field(..., min_length=1, max_length=64, description="Folder name.")
     parent_id: UUID | None = Field(default=None, description="Parent folder id.")
+    description: str | None = Field(default=None, max_length=512, description="Folder description (optional).")
     sort_order: int = Field(default=0, description="Sort order.")
 
 
 class AdminAssetFolderUpdateRequest(BaseSchema):
     name: str | None = Field(default=None, min_length=1, max_length=64, description="Folder name.")
+    parent_id: UUID | None = Field(default=None, description="Parent folder id (null = move to root).")
+    description: str | None = Field(default=None, max_length=512, description="Folder description (optional).")
     sort_order: int | None = Field(default=None, description="Sort order.")
 
 

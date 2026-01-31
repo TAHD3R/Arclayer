@@ -11,6 +11,7 @@ import {
   Languages,
   LogOut,
   Moon,
+  SlidersHorizontal,
   Settings,
   Sun,
 } from "lucide-react";
@@ -163,7 +164,7 @@ function AdminAccountPanelContent(props: {
 }) {
   const { t } = useTranslation("account");
   const { isOpen, closeFloatingPanel } = useFloatingPanel();
-  const [view, setView] = useState<"root" | "theme" | "language">("root");
+  const [view, setView] = useState<"root" | "preferences" | "theme" | "language">("root");
 
   useEffect(() => {
     // Reset to root view whenever the panel closes to avoid reopening in a sub-view.
@@ -278,6 +279,47 @@ function AdminAccountPanelContent(props: {
     );
   }
 
+  if (view === "preferences") {
+    return (
+      <div className="w-72">
+        <div className="flex items-center gap-2 px-2 py-2">
+          <button
+            type="button"
+            aria-label={t("common:BACK")}
+            className={cn(
+              "inline-flex items-center justify-center rounded-md px-2 py-2",
+              "text-muted-foreground hover:bg-muted hover:text-foreground",
+            )}
+            onClick={() => setView("root")}
+          >
+            <ChevronLeft className="size-4" />
+          </button>
+          <div className="text-sm font-semibold">{t("ACCOUNT_PREFERENCES")}</div>
+        </div>
+
+        {divider()}
+
+        <div className="py-1">
+          <FloatingPanelButton className={menuItemClassName} onClick={() => setView("theme")}>
+            <MenuItemContent
+              icon={<Sun />}
+              label={t("ACCOUNT_THEME")}
+              right={<ChevronRight className="size-4" />}
+            />
+          </FloatingPanelButton>
+
+          <FloatingPanelButton className={menuItemClassName} onClick={() => setView("language")}>
+            <MenuItemContent
+              icon={<Languages />}
+              label={t("ACCOUNT_LANGUAGE")}
+              right={<ChevronRight className="size-4" />}
+            />
+          </FloatingPanelButton>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="w-72">
       <div className="px-4 pt-4 pb-3">
@@ -333,20 +375,10 @@ function AdminAccountPanelContent(props: {
       {divider()}
 
       <div className="py-1">
-        <FloatingPanelButton className={menuItemClassName} onClick={() => setView("theme")}>
+        <FloatingPanelButton className={menuItemClassName} onClick={() => setView("preferences")}>
           <MenuItemContent
-            icon={<Sun />}
-            label={t("ACCOUNT_THEME")}
-            right={<ChevronRight className="size-4" />}
-          />
-        </FloatingPanelButton>
-      </div>
-
-      <div className="py-1">
-        <FloatingPanelButton className={menuItemClassName} onClick={() => setView("language")}>
-          <MenuItemContent
-            icon={<Languages />}
-            label={t("ACCOUNT_LANGUAGE")}
+            icon={<SlidersHorizontal />}
+            label={t("ACCOUNT_PREFERENCES")}
             right={<ChevronRight className="size-4" />}
           />
         </FloatingPanelButton>

@@ -70,6 +70,16 @@ body {
   @apply dark:border-border/60 dark:border;
 }
 
+/* Make Select feel less "boxy" in admin UI (align with Tailwind cards). */
+.ant-select .ant-select-selector {
+  border-radius: var(--radius-lg) !important;
+}
+
+.ant-select-dropdown {
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
 .form-valid-error {
   /* Select */
   .ant-select:not(.valid-success) .ant-select-selector:not(.valid-success) {

@@ -45,7 +45,8 @@ async function bootstrap() {
     if (
       window.location.pathname === "/login" ||
       window.location.pathname === "/reset-password" ||
-      window.location.pathname.startsWith("/setup")
+      window.location.pathname.startsWith("/setup") ||
+      window.location.pathname === "/accept-invite"
     ) {
       return;
     }

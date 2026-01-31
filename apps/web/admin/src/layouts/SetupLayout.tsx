@@ -1,6 +1,7 @@
 import { Card, Space, Typography } from "antd";
 import { lazy, Suspense, type PropsWithChildren, useEffect } from "react";
 import { Trans, useTranslation } from "react-i18next";
+import { useRouterState } from "@tanstack/react-router";
 
 import { getAppConfig } from "@/constants/app-config";
 import { usePreferencesStore } from "@/stores/usePreferenceStore";
@@ -14,6 +15,7 @@ const SETUP_BEND_COLORS = ["#3b82f6"] as const;
 
 export function SetupLayout({ children }: PropsWithChildren) {
   const { t } = useTranslation();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
   const themeMode = usePreferencesStore((s) => s.themeMode);
   const isDark = themeMode === "dark";
   const reducedMotion = usePrefersReducedMotion();
@@ -34,8 +36,10 @@ export function SetupLayout({ children }: PropsWithChildren) {
 
   useEffect(() => {
     const brand = (getAppConfig().title || "Celestial").trim();
-    document.title = `${t("setup:SETUP_TITLE")} | ${brand}`;
-  }, [t]);
+    const pageTitle =
+      pathname === "/accept-invite" ? t("invite:INVITE_PAGE_TITLE") : t("setup:SETUP_TITLE");
+    document.title = `${pageTitle} | ${brand}`;
+  }, [pathname, t]);
 
   return (
     <div className="fixed inset-0 w-full overflow-hidden bg-(--color-background) text-(--color-foreground)">
@@ -106,7 +110,10 @@ export function SetupLayout({ children }: PropsWithChildren) {
       {/* Center content */}
       <div className="relative z-10 h-full w-full flex flex-col min-h-0">
         <div className="pt-10 pb-4 flex justify-center">
-          <AdminLogo to="/setup" ariaLabel="Celestial Setup" />
+          <AdminLogo
+            to={pathname === "/accept-invite" ? "/accept-invite" : "/setup"}
+            ariaLabel={pathname === "/accept-invite" ? "Celestial Invite" : "Celestial Setup"}
+          />
         </div>
 
         <div className="flex-1 min-h-0 flex items-start justify-center p-6 pt-2 overflow-hidden">

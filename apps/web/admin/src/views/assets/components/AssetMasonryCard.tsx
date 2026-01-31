@@ -14,7 +14,7 @@ import {
 import { motion } from "motion/react";
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { type InfiniteData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { cn } from "@/lib/utils";
 import {
@@ -25,6 +25,7 @@ import {
   patchAdminAsset,
   type AdminAssetTag,
 } from "@/api/assets";
+import type { AdminAssetSummary, PageData } from "@/api/assets";
 import {
   Accordion,
   AccordionContent,
@@ -401,6 +402,7 @@ export const AssetMasonryTile = memo(
         ref={props.dragRef}
         className={cn(
           "group relative w-full overflow-hidden border border-border/50 bg-card",
+          "rounded-lg",
           "shadow-sm transition duration-200 hover:shadow-md",
           "cursor-pointer outline-none select-none",
           moving ? "pointer-events-none" : null,
@@ -563,16 +565,35 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
 
   const isImage = Boolean(active?.mimeType?.startsWith("image/"));
 
+  const detailQuery = useQuery({
+    queryKey: ["assets", "detail", active?.id],
+    queryFn: async () => {
+      if (!active?.id) throw new Error("missing asset id");
+      return getAdminAssetDetail(active.id);
+    },
+    enabled: Boolean(active?.id),
+    staleTime: 20 * 1000,
+  });
+
+  const tagsQuery = useQuery({
+    queryKey: ["assets", "tags"],
+    queryFn: async () => listAdminAssetTags(),
+    staleTime: 60 * 1000,
+  });
+
+  const displayVisibility = detailQuery.data?.visibility ?? active?.visibility;
+  const displayPurpose = detailQuery.data?.purpose ?? active?.purpose;
+
   const canonicalPublicPath = useMemo(() => {
     if (!active?.id) return null;
     return `/assets/${active.id}`;
   }, [active?.id]);
 
   const publicAbsoluteUrl = useMemo(() => {
-    if (active?.visibility?.toLowerCase() !== "public") return null;
+    if ((displayVisibility || "").toLowerCase() !== "public") return null;
     if (!canonicalPublicPath) return null;
     return toShareableAbsoluteUrl(canonicalPublicPath);
-  }, [active?.visibility, canonicalPublicPath]);
+  }, [canonicalPublicPath, displayVisibility]);
 
   const linkSnippets = useMemo(() => {
     if (!publicAbsoluteUrl) return null;
@@ -589,32 +610,18 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
     if (active?.previewUrl) out.push(active.previewUrl);
     // Prefer larger thumbnails as fallback for the main preview.
     for (const th of [...thumbs].reverse()) out.push(th.url);
-    if (active?.publicUrl) out.push(active.publicUrl);
+    // Avoid using stale public URLs when the asset was just switched to non-public.
+    if ((displayVisibility || "").toLowerCase() === "public" && active?.publicUrl)
+      out.push(active.publicUrl);
     // Deduplicate while preserving order.
     return Array.from(new Set(out.filter(Boolean)));
-  }, [active?.previewUrl, active?.publicUrl, thumbs]);
+  }, [active?.previewUrl, active?.publicUrl, displayVisibility, isImage, thumbs]);
 
   useEffect(() => {
     failedPreviewRef.current = new Set();
     setPreviewSrc(previewCandidates[0] || null);
     setPreviewAspectRatio(null);
   }, [active?.id, previewCandidates]);
-
-  const detailQuery = useQuery({
-    queryKey: ["assets", "detail", active?.id],
-    queryFn: async () => {
-      if (!active?.id) throw new Error("missing asset id");
-      return getAdminAssetDetail(active.id);
-    },
-    enabled: Boolean(active?.id),
-    staleTime: 20 * 1000,
-  });
-
-  const tagsQuery = useQuery({
-    queryKey: ["assets", "tags"],
-    queryFn: async () => listAdminAssetTags(),
-    staleTime: 60 * 1000,
-  });
 
   const initializedIdRef = useRef<string | null>(null);
   const dirtyRef = useRef<{ description: boolean; tags: boolean }>({
@@ -718,6 +725,28 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
     onSuccess: (updated) => {
       notifySuccessText(t("assets:ASSET_EDIT_ACCESS_SUCCESS"));
       queryClient.setQueryData(["assets", "detail", active?.id], updated);
+      // Keep list caches in sync so the masonry tiles reflect the latest access fields immediately.
+      queryClient.setQueriesData({ queryKey: ["assets", "list"] }, (old: unknown): unknown => {
+        const data = old as InfiniteData<PageData<AdminAssetSummary>> | undefined;
+        if (!data) return old;
+        const updatedId = String(updated.id);
+        const pages = data.pages.map((page) => {
+          const items = page.items.map((row) =>
+            String(row.id) === updatedId
+              ? {
+                  ...row,
+                  visibility: updated.visibility ?? row.visibility,
+                  purpose: updated.purpose ?? row.purpose,
+                }
+              : row,
+          );
+
+          // Avoid object spread inside map (oxc no-map-spread) while keeping immutability.
+          return Object.assign({}, page, { items });
+        });
+
+        return Object.assign({}, data, { pages });
+      });
       queryClient.invalidateQueries({ queryKey: ["assets", "list"] });
     },
     onError: () => {
@@ -771,8 +800,6 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
 
   const allTags = useMemo(() => tagsQuery.data?.items || [], [tagsQuery.data]);
   const detailTags = useMemo(() => detailQuery.data?.tags || [], [detailQuery.data]);
-  const displayVisibility = detailQuery.data?.visibility ?? active?.visibility;
-  const displayPurpose = detailQuery.data?.purpose ?? active?.purpose;
 
   const selectedTags = useMemo(() => {
     const byId = new Map<string, string>();
@@ -859,7 +886,7 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
   return (
     <Sheet
       open={Boolean(active)}
-      onOpenChange={(isOpen) => {
+      onOpenChange={(isOpen: any) => {
         if (!isOpen) props.onClose();
       }}
     >
@@ -868,7 +895,7 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
         showCloseButton={false}
         className={cn(
           // Width: default sheet is 350px; asset detail usually needs more space.
-          "w-full sm:w-[420px] md:w-[480px]",
+          "w-full sm:w-105 md:w-120",
           "p-0 gap-0 overflow-hidden",
         )}
       >

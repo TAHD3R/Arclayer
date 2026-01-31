@@ -125,7 +125,7 @@ export function AuthLayout({ children }: PropsWithChildren) {
         </div>
 
         <div className="flex-1 min-h-0 flex items-center justify-center overflow-hidden p-8">
-          <div className="w-full max-w-120">
+          <div className="w-full max-w-90">
             <RouteTransition className="w-full" variant="fade">
               {children}
             </RouteTransition>

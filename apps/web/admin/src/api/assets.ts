@@ -38,6 +38,7 @@ export type AdminAssetFolder = {
   id: string;
   name: string;
   parentId?: string | null;
+  description?: string | null;
   sortOrder?: number;
   createdAt: string;
 };
@@ -68,6 +69,11 @@ export type ListAdminAssetsParams = {
   visibility?: string;
   indexable?: boolean;
   folderId?: string | null;
+  /**
+   * When true and folderId is not provided, only return assets in root (folder_id IS NULL).
+   * This avoids showing the same asset both in root and inside its folder.
+   */
+  folderIsNull?: boolean;
   includeChildren?: boolean;
   mimePrefix?: string;
   createdFrom?: string;
@@ -105,6 +111,7 @@ export async function listAdminAssets(
     visibility: params.visibility,
     indexable: params.indexable,
     folderId: params.folderId,
+    folderIsNull: params.folderIsNull,
     includeChildren: params.includeChildren,
     mimePrefix: params.mimePrefix,
     createdFrom: params.createdFrom,
@@ -128,6 +135,7 @@ export async function listAdminAssetFolders(
 export type AdminAssetFolderCreateRequest = {
   name: string;
   parentId?: string | null;
+  description?: string | null;
   sortOrder?: number;
 };
 
@@ -137,8 +145,23 @@ export async function createAdminAssetFolder(
   return api.post<AdminAssetFolder>(`/admin/asset-folders`, {
     name: payload.name,
     parentId: payload.parentId ?? null,
+    description: payload.description ?? null,
     sortOrder: payload.sortOrder ?? 0,
   });
+}
+
+export type AdminAssetFolderUpdateRequest = {
+  name?: string | null;
+  parentId?: string | null;
+  description?: string | null;
+  sortOrder?: number;
+};
+
+export async function updateAdminAssetFolder(
+  folderId: string,
+  payload: AdminAssetFolderUpdateRequest,
+): Promise<AdminAssetFolder> {
+  return api.put<AdminAssetFolder>(`/admin/asset-folders/${folderId}`, payload);
 }
 
 export type AdminAssetFolderDeleteOut = {

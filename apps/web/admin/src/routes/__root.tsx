@@ -95,12 +95,14 @@ function useSceneRevealTransition(sceneKey: string) {
 function RootLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isSetupRoute = pathname === "/setup" || pathname.startsWith("/setup/");
+  const isAcceptInviteRoute = pathname === "/accept-invite";
+  const isOnboardingRoute = isSetupRoute || isAcceptInviteRoute;
   const isAuthRoute = pathname === "/login" || pathname === "/reset-password";
 
-  const sceneKey = isSetupRoute ? "setup" : isAuthRoute ? "auth" : "admin";
+  const sceneKey = isOnboardingRoute ? "setup" : isAuthRoute ? "auth" : "admin";
   useSceneRevealTransition(sceneKey);
 
-  return isSetupRoute ? (
+  return isOnboardingRoute ? (
     <SetupLayout>
       <Outlet />
     </SetupLayout>
@@ -120,12 +122,14 @@ export const Route = createRootRoute({
     const setup = useSetupWizardStore.getState();
     const setupKnown = setup.initialized !== null;
     const isSetupRoute = location.pathname === "/setup" || location.pathname.startsWith("/setup/");
+    const isAcceptInviteRoute = location.pathname === "/accept-invite";
+    const isOnboardingRoute = isSetupRoute || isAcceptInviteRoute;
     const devAllowSetup = isDevSetupOverrideEnabled(location.searchStr);
 
     if (setupKnown) {
       // Setup flow has higher priority than auth:
       // - If not initialized, the user must finish /setup before they can access /login or admin routes.
-      if (setup.initialized === false && !isSetupRoute) {
+      if (setup.initialized === false && !isOnboardingRoute) {
         throw redirect({ to: "/setup" });
       }
       // - If initialized, /setup should be inaccessible.
@@ -138,7 +142,8 @@ export const Route = createRootRoute({
     const isPublic =
       location.pathname === "/login" ||
       location.pathname === "/reset-password" ||
-      location.pathname.startsWith("/setup");
+      location.pathname.startsWith("/setup") ||
+      location.pathname === "/accept-invite";
     const isLogin = location.pathname === "/login";
 
     if (!token && !isPublic) {

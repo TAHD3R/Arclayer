@@ -20,5 +20,13 @@
   "ADMIN_ORG_PROVIDER_UNAVAILABLE": "Admin org provider unavailable",
   "ADMIN_ORG_TOOLS_PROVIDER_UNAVAILABLE": "Admin org tools provider unavailable",
   "ADMIN_RBAC_PROVIDER_UNAVAILABLE": "Admin RBAC provider unavailable",
-  "ADMIN_RBAC_ORG_PROVIDER_UNAVAILABLE": "Admin RBAC-Org provider unavailable"
+  "ADMIN_RBAC_ORG_PROVIDER_UNAVAILABLE": "Admin RBAC-Org provider unavailable",
+
+  "INVITE_TOKEN_INVALID": "Invalid invitation token",
+  "INVITE_NOT_FOUND": "Invitation not found",
+  "INVITE_REVOKED": "Invitation revoked",
+  "INVITE_ALREADY_ACCEPTED": "Invitation already used",
+  "INVITE_EXPIRED": "Invitation expired",
+  "INVITE_EMAIL_MISMATCH": "Current account email does not match the invitation email",
+  "INVITE_ROLE_MISSING_ADMIN_ACCESS": "Invitation role is missing admin console access"
 }

@@ -16,16 +16,18 @@ export type CreateAssetFolderDialogProps = {
   onOpenChange: (open: boolean) => void;
   parentLabel?: string;
   confirmLoading?: boolean;
-  onCreate: (name: string) => Promise<void> | void;
+  onCreate: (name: string, description: string | null) => Promise<void> | void;
 };
 
 export function CreateAssetFolderDialog(props: CreateAssetFolderDialogProps) {
   const { t } = useTranslation();
   const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
 
   useEffect(() => {
     if (!props.open) return;
     setName("");
+    setDescription("");
   }, [props.open]);
 
   const canSubmit = name.trim().length > 0 && !props.confirmLoading;
@@ -54,10 +56,20 @@ export function CreateAssetFolderDialog(props: CreateAssetFolderDialogProps) {
               if (e.key !== "Enter") return;
               if (!canSubmit) return;
               void (async () => {
-                await props.onCreate(name.trim());
+                await props.onCreate(name.trim(), description.trim() || null);
                 props.onOpenChange(false);
               })();
             }}
+          />
+        </div>
+
+        <div className="mt-4 space-y-1">
+          <div className="text-sm text-foreground/80">{t("assets:ASSET_FOLDER_DESCRIPTION")}</div>
+          <Input.TextArea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder={t("assets:ASSET_FOLDER_DESCRIPTION_PLACEHOLDER")}
+            autoSize={{ minRows: 2, maxRows: 5 }}
           />
         </div>
 
@@ -74,7 +86,7 @@ export function CreateAssetFolderDialog(props: CreateAssetFolderDialogProps) {
             loading={props.confirmLoading}
             disabled={!canSubmit}
             onClick={async () => {
-              await props.onCreate(name.trim());
+              await props.onCreate(name.trim(), description.trim() || null);
               props.onOpenChange(false);
             }}
           >
