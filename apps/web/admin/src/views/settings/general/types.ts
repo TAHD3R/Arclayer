@@ -2,7 +2,7 @@ import type { AppLocale } from "@/utils/i18n";
 
 export type StorageProvider = "local" | "s3";
 
-export type GeneralSettingsTabKey = "site" | "localization" | "storage";
+export type GeneralSettingsTabKey = "site" | "localization" | "storage" | "messaging";
 
 export type GeneralSettingsFormValues = {
   siteName: string;
@@ -36,4 +36,18 @@ export type GeneralSettingsFormValues = {
   s3SecretAccessKey: string;
   s3ForcePathStyle: boolean;
   s3PresignExpiresSeconds: number;
+
+  mailEnabled: boolean;
+  mailServer: string;
+  mailPort: number;
+  mailUsername: string;
+  mailPassword: string;
+  mailFrom: string;
+  mailFromName: string;
+  mailStarttls: boolean;
+  mailSslTls: boolean;
+
+  mailEnabledTemplates: string[];
+
+  notificationInviteEnabled: boolean;
 };

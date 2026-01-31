@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from uuid import UUID
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, Query, Request
 from tortoise.transactions import in_transaction
 
 from apps.api.common.schemas import AuthzSnapshot
@@ -19,7 +19,7 @@ from apps.api.infra.cache.valkey import get_valkey
 from apps.api.infra.limiter.limiter import rate_limit
 from apps.api.models.invitation import OrganizationInvitation
 from apps.api.models.organization import Membership, MembershipStatus, Organization
-from apps.api.models.rbac import MembershipRole, Role
+from apps.api.models.rbac import MembershipRole, Permission, Role
 from apps.api.models.user import User, UserCredential, UserStatus
 from apps.api.routers.v1.auth.constants import (
     FORGOT_PASSWORD_RATE_LIMIT,
@@ -30,9 +30,16 @@ from apps.api.routers.v1.auth.constants import (
 )
 from apps.api.routers.v1.auth.deps import get_current_user
 from apps.api.routers.v1.auth.schema import (
+    AcceptExistingInvitationRequest,
+    AcceptExistingInvitationResult,
     AcceptInvitationRequest,
     ChangePasswordRequest,
     ForgotPasswordRequest,
+    InvitationPreviewInvitationOut,
+    InvitationPreviewInviterOut,
+    InvitationPreviewOrganizationOut,
+    InvitationPreviewResult,
+    InvitationPreviewRoleOut,
     LoginRequest,
     LogoutRequest,
     MyOrganizationOut,
@@ -46,6 +53,59 @@ from apps.api.routers.v1.auth.schema import (
 from apps.api.routers.v1.auth.services import AuthService
 
 router = APIRouter(tags=["Services: Auth Service"])
+
+
+def _mask_email(email: str) -> str:
+    """
+    Mask an email address for safer display.
+
+    Examples:
+    - john@example.com -> jo***n@example.com
+    - a@example.com -> a***@example.com
+    """
+
+    raw = (email or "").strip()
+    if "@" not in raw:
+        return raw
+    local, domain = raw.split("@", 1)
+    if not local:
+        return f"***@{domain}"
+    if len(local) <= 2:
+        return f"{local[0]}***@{domain}"
+    return f"{local[:2]}***{local[-1]}@{domain}"
+
+
+async def _ensure_role_codes_have_admin_access(*, role_codes: list[str], conn) -> None:
+    """
+    Defensive invariant for onboarding flows:
+    user must be able to access admin console after accepting the invitation.
+    """
+
+    codes = sorted({(c or "").strip() for c in (role_codes or []) if (c or "").strip()})
+    if not codes:
+        raise Forbidden(
+            message=t("auth", "INVITE_ROLE_NO_ADMIN_ACCESS", default="邀请角色未包含后台访问权限"),
+            error="INVITE_ROLE_MISSING_ADMIN_ACCESS",
+        )
+
+    # Superuser roles implicitly have all permissions.
+    if await Role.filter(code__in=codes, is_superuser=True).using_db(conn).exists():
+        return
+
+    ok = (
+        await Permission
+        .filter(
+            code="admin:access",
+            permission_roles__role__code__in=codes,
+        )
+        .using_db(conn)
+        .exists()
+    )
+    if not ok:
+        raise Forbidden(
+            message=t("auth", "INVITE_ROLE_NO_ADMIN_ACCESS", default="邀请角色未包含后台访问权限"),
+            error="INVITE_ROLE_MISSING_ADMIN_ACCESS",
+        )
 
 
 def _get_auth_service(
@@ -136,6 +196,14 @@ async def forgot_password(
     settings: Settings = Depends(get_settings),
     service: AuthService = Depends(_get_auth_service),
 ) -> ResponseModel[ResetTokenPayload]:
+    # Password reset is a critical flow: without email, the user can't complete the loop.
+    # To avoid "fake success" and confusion, fail fast when email sending is disabled.
+    if not await service.email_service.is_enabled():
+        raise BadRequest(
+            message=t("auth", "MAIL_DISABLED", default="系统未开启邮件服务，请联系管理员"),
+            error="MAIL_DISABLED",
+        )
+
     issued = await service.forgot_password(identifier=payload.identifier)
     token_payload = None
     if issued and settings.app_env in {"development", "test"}:
@@ -363,6 +431,8 @@ async def accept_invitation(
         for role in roles:
             await MembershipRole.get_or_create(using_db=conn, membership_id=membership.id, role_id=role.id)
 
+        await _ensure_role_codes_have_admin_access(role_codes=[r.code for r in roles], conn=conn)
+
         inv.accepted_by_user_id = user.id
         inv.accepted_at = now
         await inv.save(using_db=conn, update_fields=["accepted_by_user_id", "accepted_at"])
@@ -378,11 +448,228 @@ async def accept_invitation(
     if inviter_user_id is not None and accepted_user_id is not None:
         try:
             from apps.api.models.notification import NotificationCategory, NotificationRecord
+            from apps.api.models.setting import SettingRecord
 
+            # Optional gate: allow disabling invite-related in-app notifications.
+            try:
+                core = await SettingRecord.get_or_none(namespace="core")
+                v = core.value if core and isinstance(core.value, dict) else {}
+                notifications_cfg = v.get("notifications")
+                invite_enabled = True
+                if isinstance(notifications_cfg, dict) and isinstance(notifications_cfg.get("invite_enabled"), bool):
+                    invite_enabled = bool(notifications_cfg.get("invite_enabled"))
+            except Exception:
+                invite_enabled = True
+
+            if invite_enabled:
+                await NotificationRecord.create(
+                    org_id=organization_id,
+                    recipient_user_id=inviter_user_id,
+                    actor_user_id=accepted_user_id,
+                    category=NotificationCategory.TEAM,
+                    title=t(
+                        "notifications",
+                        "NOTIFICATIONS_TEAM_INVITE_ACCEPTED_TITLE",
+                        default="{name} 已加入组织",
+                        name=accepted_display_name or "新成员",
+                    ),
+                    body=t(
+                        "notifications",
+                        "NOTIFICATIONS_TEAM_INVITE_ACCEPTED_BODY",
+                        default="对方已接受邀请并成功加入。",
+                    ),
+                    target_to="/settings/team/members",
+                    target_meta=None,
+                    event_name="team.invitation.accepted",
+                    dedupe_key=f"team.invitation.accepted:{token_hash}",
+                )
+        except Exception as exc:
+            service.logger.warning(
+                "Notification create failed (invite accepted)",
+                error=str(exc),
+                org_id=str(organization_id),
+                inviter_user_id=str(inviter_user_id),
+            )
+
+    return Response.success(message=t("auth", "INVITE_ACCEPTED", default="加入组织成功"), data=tokens)
+
+
+@router.get(
+    "/invitations/preview",
+    response_model=ResponseModel[InvitationPreviewResult],
+    dependencies=[rate_limit(*REGISTER_RATE_LIMIT)],
+)
+async def preview_invitation(
+    token: str = Query(..., min_length=8, max_length=512, description="Invitation token."),
+) -> ResponseModel[InvitationPreviewResult]:
+    token = (token or "").strip()
+    if not token:
+        raise BadRequest(
+            message=t("auth", "INVITE_TOKEN_INVALID", default="邀请 Token 无效"),
+            error="INVITE_TOKEN_INVALID",
+        )
+
+    now = datetime.now(UTC)
+    token_hash = hash_invite_token(token)
+    inv = await OrganizationInvitation.get_or_none(token_hash=token_hash).select_related("organization")
+    if inv is None:
+        raise NotFound(message=t("auth", "INVITE_NOT_FOUND", default="邀请不存在"), error="INVITE_NOT_FOUND")
+
+    if inv.revoked_at is not None:
+        raise Forbidden(message=t("auth", "INVITE_REVOKED", default="邀请已被撤销"), error="INVITE_REVOKED")
+    if inv.accepted_at is not None:
+        raise Conflict(
+            message=t("auth", "INVITE_ALREADY_ACCEPTED", default="邀请已被使用"),
+            error="INVITE_ALREADY_ACCEPTED",
+        )
+    if inv.expires_at is not None and inv.expires_at <= now:
+        raise Forbidden(message=t("auth", "INVITE_EXPIRED", default="邀请已过期"), error="INVITE_EXPIRED")
+
+    org = inv.organization
+    if org is None or not org.is_active:
+        raise Forbidden(message=t("auth", "ORG_INACTIVE", default="组织不可用"), error="ORG_INACTIVE")
+
+    inviter: InvitationPreviewInviterOut | None = None
+    if inv.invited_by_user_id is not None:
+        u = await User.get_or_none(id=inv.invited_by_user_id)
+        if u is not None:
+            inviter = InvitationPreviewInviterOut(
+                id=u.id,
+                username=u.username,
+                display_name=u.display_name,
+                avatar_url=u.avatar_url,
+            )
+
+    # Role semantic info (prefer invitation role_code; fall back to system default role).
+    role_obj: Role | None = None
+    if inv.role_code:
+        role_obj = await Role.get_or_none(code=inv.role_code)
+    if role_obj is None:
+        role_obj = await Role.get_or_none(code="viewer")
+    if role_obj is None:
+        role_obj = await Role.filter(is_default=True).order_by("code").first()
+
+    role_out = InvitationPreviewRoleOut(
+        code=role_obj.code if role_obj is not None else (inv.role_code or "viewer"),
+        name=role_obj.name if role_obj is not None else (inv.role_code or "viewer"),
+        description=role_obj.description if role_obj is not None else None,
+    )
+
+    user_exists = await User.filter(email=inv.email).exists()
+
+    out = InvitationPreviewResult(
+        invitation=InvitationPreviewInvitationOut(
+            email=inv.email,
+            masked_email=_mask_email(inv.email),
+            role_code=inv.role_code,
+            expires_at=inv.expires_at,
+        ),
+        organization=InvitationPreviewOrganizationOut(
+            id=org.id,
+            name=org.name,
+            slug=org.slug,
+            logo_url=org.logo_url,
+        ),
+        inviter=inviter,
+        role=role_out,
+        user_exists=bool(user_exists),
+    )
+    return Response.success(data=out)
+
+
+@router.post(
+    "/invitations/accept-existing",
+    response_model=ResponseModel[AcceptExistingInvitationResult],
+    dependencies=[rate_limit(*REGISTER_RATE_LIMIT)],
+)
+async def accept_existing_invitation(
+    payload: AcceptExistingInvitationRequest,
+    user: User = Depends(get_current_user),
+    service: AuthService = Depends(_get_auth_service),
+) -> ResponseModel[AcceptExistingInvitationResult]:
+    token = (payload.token or "").strip()
+    if not token:
+        raise BadRequest(
+            message=t("auth", "INVITE_TOKEN_INVALID", default="邀请 Token 无效"),
+            error="INVITE_TOKEN_INVALID",
+        )
+
+    now = datetime.now(UTC)
+    token_hash = hash_invite_token(token)
+
+    inviter_user_id: UUID | None = None
+    organization_id: UUID | None = None
+    assigned_role_code: str | None = None
+
+    async with in_transaction() as conn:
+        inv = await OrganizationInvitation.filter(token_hash=token_hash).using_db(conn).select_for_update().first()
+        if inv is None:
+            raise NotFound(message=t("auth", "INVITE_NOT_FOUND", default="邀请不存在"), error="INVITE_NOT_FOUND")
+
+        if inv.revoked_at is not None:
+            raise Forbidden(message=t("auth", "INVITE_REVOKED", default="邀请已被撤销"), error="INVITE_REVOKED")
+        if inv.accepted_at is not None:
+            raise Conflict(
+                message=t("auth", "INVITE_ALREADY_ACCEPTED", default="邀请已被使用"),
+                error="INVITE_ALREADY_ACCEPTED",
+            )
+        if inv.expires_at is not None and inv.expires_at <= now:
+            raise Forbidden(message=t("auth", "INVITE_EXPIRED", default="邀请已过期"), error="INVITE_EXPIRED")
+
+        organization_id = UUID(str(inv.organization_id))
+        org = await Organization.get_or_none(id=organization_id, using_db=conn)
+        if org is None or not org.is_active:
+            raise Forbidden(message=t("auth", "ORG_INACTIVE", default="组织不可用"), error="ORG_INACTIVE")
+
+        invite_email = (inv.email or "").strip().lower()
+        user_email = (user.email or "").strip().lower()
+        if not user_email or user_email != invite_email:
+            raise Forbidden(
+                message=t("auth", "INVITE_EMAIL_MISMATCH", default="当前账号邮箱与邀请邮箱不一致"),
+                error="INVITE_EMAIL_MISMATCH",
+            )
+
+        membership, _created = await Membership.get_or_create(
+            using_db=conn,
+            user_id=user.id,
+            organization_id=org.id,
+            defaults={"status": MembershipStatus.ACTIVE, "invited_by_user_id": inv.invited_by_user_id},
+        )
+        if membership.status != MembershipStatus.ACTIVE:
+            membership.status = MembershipStatus.ACTIVE
+            await membership.save(using_db=conn, update_fields=["status"])
+
+        roles: list[Role] = []
+        if inv.role_code:
+            role = await Role.get_or_none(code=inv.role_code, using_db=conn)
+            if role is not None:
+                roles = [role]
+        else:
+            roles = await Role.filter(is_default=True).using_db(conn).all()
+
+        for role in roles:
+            await MembershipRole.get_or_create(using_db=conn, membership_id=membership.id, role_id=role.id)
+
+        await _ensure_role_codes_have_admin_access(role_codes=[r.code for r in roles], conn=conn)
+
+        inv.accepted_by_user_id = user.id
+        inv.accepted_at = now
+        await inv.save(using_db=conn, update_fields=["accepted_by_user_id", "accepted_at"])
+
+        inviter_user_id = inv.invited_by_user_id
+        assigned_role_code = inv.role_code or (roles[0].code if roles else None)
+
+    # Best-effort: notify inviter that the invite was accepted.
+    # This must never break the onboarding flow if notification creation fails.
+    if inviter_user_id is not None and organization_id is not None:
+        try:
+            from apps.api.models.notification import NotificationCategory, NotificationRecord
+
+            accepted_display_name = user.display_name or user.username
             await NotificationRecord.create(
                 org_id=organization_id,
                 recipient_user_id=inviter_user_id,
-                actor_user_id=accepted_user_id,
+                actor_user_id=user.id,
                 category=NotificationCategory.TEAM,
                 title=t(
                     "notifications",
@@ -402,10 +689,20 @@ async def accept_invitation(
             )
         except Exception as exc:
             service.logger.warning(
-                "Notification create failed (invite accepted)",
+                "Notification create failed (invite accepted existing)",
                 error=str(exc),
                 org_id=str(organization_id),
                 inviter_user_id=str(inviter_user_id),
             )
 
-    return Response.success(message=t("auth", "INVITE_ACCEPTED", default="加入组织成功"), data=tokens)
+    if organization_id is None:
+        # Should never happen, but keep response stable.
+        raise ServiceUnavailable(
+            message=t("errors", "SERVICE_UNAVAILABLE", default="服务不可用"),
+            error="SERVICE_UNAVAILABLE",
+        )
+
+    return Response.success(
+        message=t("auth", "INVITE_ACCEPTED", default="加入组织成功"),
+        data=AcceptExistingInvitationResult(organization_id=organization_id, role_code=assigned_role_code),
+    )

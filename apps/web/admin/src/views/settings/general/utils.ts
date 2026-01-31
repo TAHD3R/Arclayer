@@ -59,6 +59,19 @@ export function pickBool(obj: unknown, path: readonly string[]): boolean | undef
   return typeof cur === "boolean" ? cur : undefined;
 }
 
+export function pickStringArray(obj: unknown, path: readonly string[]): string[] | undefined {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let cur: any = obj;
+  for (const key of path) {
+    if (!cur || typeof cur !== "object") return undefined;
+    cur = cur[key];
+  }
+
+  if (!Array.isArray(cur)) return undefined;
+  const items = cur.filter((x) => typeof x === "string" && x.trim()) as string[];
+  return items;
+}
+
 export function formatLocaleLabel(locale: AppLocale, t: (key: string) => string): string {
   return locale === "zh-CN" ? t("account:ACCOUNT_LANGUAGE_ZH") : t("account:ACCOUNT_LANGUAGE_EN");
 }

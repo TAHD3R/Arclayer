@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from datetime import datetime
 from uuid import UUID
 
 from pydantic import AliasChoices, ConfigDict, EmailStr, Field, field_validator, model_validator
@@ -196,3 +197,63 @@ class UserProfile(BaseOut):
     email: str | None = None
     display_name: str | None = None
     avatar_url: str | None = None
+
+
+class InvitationPreviewInvitationOut(BaseSchema):
+    """Invitation summary for public preview."""
+
+    email: str = Field(..., description="Invited email address (bound to the invitation).")
+    masked_email: str = Field(..., description="Masked email address for safe display.")
+    role_code: str | None = Field(default=None, description="Role code to assign when accepted.")
+    expires_at: datetime | None = Field(default=None, description="Invitation expiry datetime (UTC).")
+
+
+class InvitationPreviewOrganizationOut(BaseSchema):
+    """Organization info for invitation preview."""
+
+    id: UUID = Field(..., description="Organization id.")
+    name: str = Field(..., description="Organization name.")
+    slug: str = Field(..., description="Organization slug.")
+    logo_url: str | None = Field(default=None, description="Organization logo url.")
+
+
+class InvitationPreviewInviterOut(BaseSchema):
+    """Inviter user info for invitation preview."""
+
+    id: UUID = Field(..., description="Inviter user id.")
+    username: str = Field(..., description="Inviter username.")
+    display_name: str | None = Field(default=None, description="Inviter display name.")
+    avatar_url: str | None = Field(default=None, description="Inviter avatar url.")
+
+
+class InvitationPreviewRoleOut(BaseSchema):
+    """Role semantic info for invitation preview."""
+
+    code: str = Field(..., description="Role code.")
+    name: str = Field(..., description="Role display name.")
+    description: str | None = Field(default=None, description="Role description.")
+
+
+class InvitationPreviewResult(BaseSchema):
+    """Invitation preview response used by the accept-invite wizard."""
+
+    invitation: InvitationPreviewInvitationOut
+    organization: InvitationPreviewOrganizationOut
+    inviter: InvitationPreviewInviterOut | None = Field(default=None, description="Inviter info (nullable).")
+    role: InvitationPreviewRoleOut
+    user_exists: bool = Field(default=False, description="Whether the invited email already has an account.")
+
+
+class AcceptExistingInvitationRequest(BaseSchema):
+    """Accept an invitation with an existing logged-in account (email-bound)."""
+
+    model_config = ConfigDict(str_strip_whitespace=True, validate_assignment=True)
+
+    token: str = Field(min_length=8, max_length=512, description="Invitation token.")
+
+
+class AcceptExistingInvitationResult(BaseSchema):
+    """Result for accepting an invitation with an existing account."""
+
+    organization_id: UUID = Field(..., description="Organization id that the user joined.")
+    role_code: str | None = Field(default=None, description="Role code assigned by the invitation.")

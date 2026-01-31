@@ -512,7 +512,6 @@ export function StorageSettingsTab({
       >
         <div className="divide-y">
           <SettingActionItem
-            className="first:rounded-t-xl last:rounded-b-xl"
             title={t("settings:SETTINGS_STORAGE_PROVIDER_LABEL")}
             summary={storageProviderLabel}
             description={t("settings:SETTINGS_STORAGE_PROVIDER_DESC")}
@@ -520,7 +519,6 @@ export function StorageSettingsTab({
             onTrigger={() => overlays.open("provider")}
           />
           <SettingActionItem
-            className="first:rounded-t-xl last:rounded-b-xl"
             title={t("settings:SETTINGS_STORAGE_PUBLIC_BASE_URL_LABEL")}
             summary={storagePublicBaseUrl ? formatSummaryText(storagePublicBaseUrl) : null}
             placeholder={t("settings:SETTINGS_NOT_SET")}
@@ -529,7 +527,6 @@ export function StorageSettingsTab({
             onTrigger={() => overlays.open("publicBaseUrl")}
           />
           <SettingActionItem
-            className="first:rounded-t-xl last:rounded-b-xl"
             title={t("settings:SETTINGS_STORAGE_UPLOAD_POLICY_LABEL")}
             summary={t("settings:SETTINGS_STORAGE_UPLOAD_POLICY_SUMMARY", {
               max: uploadMaxFileSizeMb,
@@ -549,7 +546,6 @@ export function StorageSettingsTab({
         >
           <div className="divide-y">
             <SettingActionItem
-              className="first:rounded-t-xl last:rounded-b-xl"
               title={t("settings:SETTINGS_STORAGE_S3_CONFIG_LABEL")}
               summary={s3Summary ? formatSummaryText(s3Summary, 64) : null}
               placeholder={t("settings:SETTINGS_NOT_SET")}

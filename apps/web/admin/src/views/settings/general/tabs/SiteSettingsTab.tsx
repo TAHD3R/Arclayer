@@ -393,12 +393,6 @@ export function SiteSettingsTab({
         value="siteLogoUrl"
         title={t("settings:SETTINGS_SITE_LOGO_LABEL")}
         description={t("settings:SETTINGS_SITE_LOGO_DESC")}
-        showSummary
-        summary={
-          siteLogoAssetId
-            ? t("settings:SETTINGS_ASSET_PICKER_SUMMARY_SELECTED")
-            : formatSummaryText(siteLogoUrl)
-        }
         confirmText={t("settings:SETTINGS_SAVE")}
         onConfirm={saveSiteLogoUrl}
         confirmLoading={savingKey === "siteLogoUrl"}
@@ -491,12 +485,6 @@ export function SiteSettingsTab({
         value="siteFaviconUrl"
         title={t("settings:SETTINGS_SITE_FAVICON_LABEL")}
         description={t("settings:SETTINGS_SITE_FAVICON_DESC")}
-        showSummary
-        summary={
-          siteFaviconAssetId
-            ? t("settings:SETTINGS_ASSET_PICKER_SUMMARY_SELECTED")
-            : formatSummaryText(siteFaviconUrl)
-        }
         confirmText={t("settings:SETTINGS_SAVE")}
         onConfirm={saveSiteFaviconUrl}
         confirmLoading={savingKey === "siteFaviconUrl"}

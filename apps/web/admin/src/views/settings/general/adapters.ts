@@ -3,7 +3,7 @@ import type { SettingsDetail } from "@/api/settings";
 import type { AppLocale } from "@/utils/i18n";
 
 import type { GeneralSettingsFormValues, StorageProvider } from "./types";
-import { pickBool, pickNumber, pickString } from "./utils";
+import { pickBool, pickNumber, pickString, pickStringArray } from "./utils";
 
 /**
  * buildGeneralSettingsInitialValues：把后端 core settings 的 value 适配为前端表单值。
@@ -50,6 +50,21 @@ export function buildGeneralSettingsInitialValues(
   const s3ForcePathStyle = pickBool(v, ["storage", "s3_force_path_style"]) ?? false;
   const s3PresignExpiresSeconds = pickNumber(v, ["storage", "s3_presign_expires_seconds"]) ?? 900;
 
+  const mailEnabled = pickBool(v, ["mail", "enabled"]) ?? false;
+  const mailServer = pickString(v, ["mail", "server"]) ?? "localhost";
+  const mailPort = pickNumber(v, ["mail", "port"]) ?? 587;
+  const mailUsername = pickString(v, ["mail", "username"]) ?? "";
+  const mailFrom = pickString(v, ["mail", "mail_from"]) ?? "noreply@example.com";
+  const mailFromName = pickString(v, ["mail", "mail_from_name"]) ?? "Celestial CMS";
+  const mailStarttls = pickBool(v, ["mail", "starttls"]) ?? true;
+  const mailSslTls = pickBool(v, ["mail", "ssl_tls"]) ?? false;
+  const mailEnabledTemplates = pickStringArray(v, ["mail", "preferences", "enabled_templates"]) ?? [
+    "registration_prompt",
+    "welcome_email",
+  ];
+
+  const notificationInviteEnabled = pickBool(v, ["notifications", "invite_enabled"]) ?? true;
+
   return {
     siteName,
     siteSubtitle,
@@ -81,5 +96,19 @@ export function buildGeneralSettingsInitialValues(
     s3SecretAccessKey: "",
     s3ForcePathStyle,
     s3PresignExpiresSeconds,
+
+    mailEnabled,
+    mailServer,
+    mailPort,
+    mailUsername,
+    mailPassword: "",
+    mailFrom,
+    mailFromName,
+    mailStarttls,
+    mailSslTls,
+
+    mailEnabledTemplates,
+
+    notificationInviteEnabled,
   };
 }

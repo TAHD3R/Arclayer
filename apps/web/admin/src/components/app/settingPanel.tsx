@@ -7,9 +7,16 @@ export type SettingPanelProps = {
   description?: ReactNode;
   children: ReactNode;
   className?: string;
+  /**
+   * Whether to wrap children in a bordered card container.
+   * - true (default): consistent with most setting panels
+   * - false: used when children already manage their own layout (e.g. accordions)
+   */
+  bordered?: boolean;
 };
 
 export function SettingPanel(props: SettingPanelProps) {
+  const bordered = props.bordered ?? true;
   return (
     <section className={cn("flex flex-col gap-3", props.className)}>
       <header className="flex flex-col gap-1">
@@ -18,7 +25,7 @@ export function SettingPanel(props: SettingPanelProps) {
           <div className="text-[16px] text-muted-foreground leading-snug">{props.description}</div>
         ) : null}
       </header>
-      <div className="rounded-xl border bg-background">{props.children}</div>
+      {bordered ? <div className="bg-background">{props.children}</div> : props.children}
     </section>
   );
 }

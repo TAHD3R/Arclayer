@@ -70,6 +70,7 @@ class RBACRepository(BaseRepository):
         *,
         code: str,
         name: str,
+        description: str | None = None,
         is_default: bool = False,
         is_superuser: bool = False,
     ) -> Role:
@@ -77,6 +78,7 @@ class RBACRepository(BaseRepository):
             code=code,
             defaults={
                 "name": name,
+                "description": description,
                 "is_default": is_default,
                 "is_superuser": is_superuser,
             },
@@ -85,6 +87,9 @@ class RBACRepository(BaseRepository):
             changed = False
             if role.name != name:
                 role.name = name
+                changed = True
+            if role.description != description:
+                role.description = description
                 changed = True
             if role.is_default != is_default:
                 role.is_default = is_default

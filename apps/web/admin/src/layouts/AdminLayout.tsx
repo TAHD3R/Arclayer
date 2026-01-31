@@ -14,6 +14,7 @@ import { AdminNotificationCenter } from "@/components/app/adminNotificationCente
 import { RouteProgress } from "@/components/app/routeProgress";
 import { RouteTransition } from "@/components/app/routeTransition";
 import { useAuthStore } from "@/stores/useAuthStore";
+import { usePreferencesStore } from "@/stores/usePreferenceStore";
 import type { NotificationPreview } from "@/api/notifications";
 import { getUnreadNotificationPreview, markNotificationRead } from "@/api/notifications";
 import { getCoreSettings } from "@/api/settings";
@@ -102,6 +103,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const accessToken = useAuthStore((s) => s.accessToken);
+  const showSidebarNotificationCenter = usePreferencesStore((s) => s.showSidebarNotificationCenter);
 
   const [refreshing, setRefreshing] = useState(false);
 
@@ -179,37 +181,43 @@ export function AdminLayout({ children }: PropsWithChildren) {
         <SidebarFooter className="relative z-10 isolate p-0">
           <div className="w-full bg-sidebar">
             <div className="px-4 pb-3">
-              <AdminNotificationCenter
-                maxItems={2}
-                unreadCount={notificationsPreviewQuery.data?.unreadCount ?? 0}
-                items={(notificationsPreviewQuery.data?.items ?? []).map((n) => ({
-                  id: n.id,
-                  title: n.title,
-                  subtitle: n.body ?? undefined,
-                  time: formatRelativeTimeAt(n.createdAt, i18n.language, nowMs),
-                  to: n.targetTo,
-                }))}
-                onViewAll={() => {
-                  void navigate({ to: "/notifications" });
-                }}
-                onItemClick={(item) => {
-                  const to = item.to;
-                  const id = String(item.id);
-                  markPreviewItemReadOptimistic(id);
-                  void markNotificationRead(id).finally(() => {
-                    // Best-effort refresh to keep badge/list in sync (handles failures/edge cases).
-                    void queryClient.invalidateQueries({ queryKey: ["notifications", "preview"] });
-                  });
-                  if (to) void navigate({ to: to as never });
-                }}
-                onDismiss={(id) => {
-                  const notificationId = String(id);
-                  markPreviewItemReadOptimistic(notificationId);
-                  void markNotificationRead(notificationId).finally(() => {
-                    void queryClient.invalidateQueries({ queryKey: ["notifications", "preview"] });
-                  });
-                }}
-              />
+              {showSidebarNotificationCenter ? (
+                <AdminNotificationCenter
+                  maxItems={2}
+                  unreadCount={notificationsPreviewQuery.data?.unreadCount ?? 0}
+                  items={(notificationsPreviewQuery.data?.items ?? []).map((n) => ({
+                    id: n.id,
+                    title: n.title,
+                    subtitle: n.body ?? undefined,
+                    time: formatRelativeTimeAt(n.createdAt, i18n.language, nowMs),
+                    to: n.targetTo,
+                  }))}
+                  onViewAll={() => {
+                    void navigate({ to: "/notifications" });
+                  }}
+                  onItemClick={(item) => {
+                    const to = item.to;
+                    const id = String(item.id);
+                    markPreviewItemReadOptimistic(id);
+                    void markNotificationRead(id).finally(() => {
+                      // Best-effort refresh to keep badge/list in sync (handles failures/edge cases).
+                      void queryClient.invalidateQueries({
+                        queryKey: ["notifications", "preview"],
+                      });
+                    });
+                    if (to) void navigate({ to: to as never });
+                  }}
+                  onDismiss={(id) => {
+                    const notificationId = String(id);
+                    markPreviewItemReadOptimistic(notificationId);
+                    void markNotificationRead(notificationId).finally(() => {
+                      void queryClient.invalidateQueries({
+                        queryKey: ["notifications", "preview"],
+                      });
+                    });
+                  }}
+                />
+              ) : null}
             </div>
             <AdminAccountMenu />
           </div>

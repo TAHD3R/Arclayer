@@ -1,62 +1,43 @@
 from __future__ import annotations
 
-import os
 from pathlib import Path
 from uuid import UUID, uuid4
 
-import asyncpg
 import pytest
-import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
-from tortoise import Tortoise
 
 from apps.api.config import get_settings
 from apps.api.core.registry import create_app
-from apps.api.infra.db.orm import close_orm, init_orm
 from apps.api.routers.v1.auth.deps import get_current_user_id
-from apps.api.tests.utils.tortoise import reset_postgres_schema
 
 pytestmark = pytest.mark.integration
 
 
-async def _ensure_test_database(settings) -> None:
-    db_name = settings.database.database
-    admin_db = os.getenv("TEST_DATABASE__ADMIN_DB", "postgres")
-    if db_name == admin_db:
-        return
+@pytest.fixture
+def plugin_root(integration_db_settings, monkeypatch) -> Path:
+    """
+    Override the default `plugin_root` (from tests/conftest.py) for this module:
+    we want to run integration tests with repository plugins enabled so the
+    dynamic admin menu plugin models/permissions exist.
 
-    password = settings.database.password.get_secret_value()
-    auth = f"{settings.database.user}:{password}@" if password else f"{settings.database.user}@"
-    dsn = f"postgresql://{auth}{settings.database.host}:{settings.database.port}/{admin_db}"
-    conn = await asyncpg.connect(dsn)
-    try:
-        exists = await conn.fetchval("SELECT 1 FROM pg_database WHERE datname=$1", db_name)
-        if not exists:
-            safe_name = db_name.replace('"', '""')
-            await conn.execute(f'CREATE DATABASE "{safe_name}"')
-    finally:
-        await conn.close()
+    Note:
+    - In test env, we rely on `Tortoise.generate_schemas()` (not Aerich) for schema setup.
+      Keeping AUTO_MIGRATE disabled avoids flaky subprocess behavior.
+    """
 
-
-@pytest_asyncio.fixture
-async def prepared_db_with_repo_plugins_auto_migrate(integration_db_settings, monkeypatch) -> None:
+    _ = integration_db_settings
     repo_root = Path(__file__).resolve().parents[3]
+    root = repo_root / "plugins"
     monkeypatch.setenv("PLUGIN__ENABLED", "1")
-    monkeypatch.setenv("PLUGIN__ROOT_DIR", str(repo_root / "plugins"))
-    monkeypatch.setenv("PLUGIN__AUTO_MIGRATE", "1")
+    monkeypatch.setenv("PLUGIN__ROOT_DIR", str(root))
+    monkeypatch.setenv("PLUGIN__AUTO_MIGRATE", "0")
     monkeypatch.setenv("PLUGIN__AUTO_RESTART", "0")
     get_settings.cache_clear()
-
-    settings = get_settings()
-    await _ensure_test_database(settings)
-    await init_orm(settings)
-    await reset_postgres_schema()
-    await Tortoise.generate_schemas(safe=True)
-    await close_orm()
+    return root
 
 
-async def test_admin_menu_filtered_for_user(prepared_db_with_repo_plugins_auto_migrate) -> None:
-    _ = prepared_db_with_repo_plugins_auto_migrate
+async def test_admin_menu_filtered_for_user(prepared_db) -> None:
+    _ = prepared_db
     settings = get_settings()
 
     app = create_app()

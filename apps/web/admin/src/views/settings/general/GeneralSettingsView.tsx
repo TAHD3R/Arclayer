@@ -18,6 +18,7 @@ import { buildGeneralSettingsInitialValues } from "./adapters";
 import type { GeneralSettingsPatchFn, WithSavingKeyFn } from "./context";
 import type { GeneralSettingsFormValues, GeneralSettingsTabKey } from "./types";
 import { LocalizationSettingsTab } from "./tabs/LocalizationSettingsTab";
+import { MessagingSettingsTab } from "./tabs/MessagingSettingsTab";
 import { SiteSettingsTab } from "./tabs/SiteSettingsTab";
 import { StorageSettingsTab } from "./tabs/StorageSettingsTab";
 
@@ -128,6 +129,9 @@ export function GeneralSettingsView(props: GeneralSettingsViewProps) {
               <ChromeTabsTrigger value="storage">
                 {t("settings:SETTINGS_GENERAL_TAB_STORAGE")}
               </ChromeTabsTrigger>
+              <ChromeTabsTrigger value="messaging">
+                {t("settings:SETTINGS_GENERAL_TAB_MESSAGING")}
+              </ChromeTabsTrigger>
             </ChromeTabsList>
 
             <ChromeTabsContent value="site">
@@ -154,6 +158,18 @@ export function GeneralSettingsView(props: GeneralSettingsViewProps) {
 
             <ChromeTabsContent value="storage">
               <StorageSettingsTab
+                form={form}
+                initialValues={initialValues}
+                disabled={disabled}
+                savingKey={savingKey}
+                withSavingKey={withSavingKey}
+                patch={patch}
+                coreSecrets={coreQuery.data?.secrets}
+              />
+            </ChromeTabsContent>
+
+            <ChromeTabsContent value="messaging">
+              <MessagingSettingsTab
                 form={form}
                 initialValues={initialValues}
                 disabled={disabled}

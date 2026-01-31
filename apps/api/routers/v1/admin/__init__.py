@@ -3,6 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter
 
 from apps.api.routers.v1.admin.assets import router as assets_router
+from apps.api.routers.v1.admin.mail import router as mail_router
 from apps.api.routers.v1.admin.menus import router as menus_router
 from apps.api.routers.v1.admin.notifications import router as notifications_router
 from apps.api.routers.v1.admin.plugins import router as plugins_router
@@ -23,6 +24,7 @@ router.include_router(rbac_router, prefix="/rbac")
 router.include_router(users_router, prefix="/users")
 router.include_router(team_router, prefix="/team")
 router.include_router(notifications_router, prefix="/notifications")
+router.include_router(mail_router, prefix="/mail")
 router.include_router(uploads_router)
 router.include_router(assets_router)
 router.include_router(shares_router)

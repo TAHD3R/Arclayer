@@ -190,8 +190,18 @@ async def init_orm(
 
 
 async def close_orm() -> None:
-    if Tortoise._inited:
-        await Tortoise.close_connections()
+    if not Tortoise._inited:
+        return
+    # In tests we initialize/teardown Tortoise repeatedly (sometimes across different event loops).
+    # Resetting the internal state avoids flaky "Event loop is closed" errors caused by stale
+    # connection/app metadata lingering between runs.
+    await Tortoise.close_connections()
+    try:
+        await Tortoise._reset_apps()
+    except Exception:
+        # Best-effort: do not mask shutdown errors in production.
+        pass
+    Tortoise._inited = False
 
 
 async def verify_db_ready(

@@ -11,6 +11,9 @@ from pydantic import EmailStr, NameEmail, SecretStr, TypeAdapter, ValidationErro
 from apps.api.config import EmailSettings, Settings
 from apps.api.core.i18n import t
 from apps.api.core.logging import get_logger
+from apps.api.models.setting import SettingRecord
+from apps.api.settings.core_schema import CORE_SETTINGS_NAMESPACE
+from apps.api.settings.crypto import decrypt_secret, ensure_master_key, is_encrypted, master_key_exists
 
 _EMAIL_ADAPTER = TypeAdapter(EmailStr)
 
@@ -69,8 +72,107 @@ class EmailService:
         self.settings = settings
         self.logger = get_logger(__name__)
 
-    def _enabled(self) -> bool:
-        return self.settings.email.enabled
+    async def is_enabled(self) -> bool:
+        """
+        Public helper for other flows (e.g. auth) to check whether email sending is enabled.
+
+        Note: "enabled" is configured via core settings (`core.mail.enabled`).
+        """
+
+        return await self._enabled()
+
+    async def _get_core_mail_config(self) -> dict:
+        record = await SettingRecord.get_or_none(namespace=CORE_SETTINGS_NAMESPACE)
+        value = record.value if record and isinstance(record.value, dict) else {}
+        mail = value.get("mail")
+        return mail if isinstance(mail, dict) else {}
+
+    async def _enabled(self) -> bool:
+        mail = await self._get_core_mail_config()
+        enabled = mail.get("enabled")
+        if isinstance(enabled, bool):
+            return enabled
+        # Once email is configurable via core settings, default to disabled unless explicitly enabled.
+        return False
+
+    async def _is_template_enabled(self, template_key: str) -> bool:
+        """
+        Determine whether an optional email template is enabled.
+
+        Notes:
+        - If no preference is configured, default to enabled (backward compatible).
+        - If an allowlist is configured, require template_key to be present.
+        """
+
+        mail = await self._get_core_mail_config()
+        prefs = mail.get("preferences")
+        if not isinstance(prefs, dict):
+            return True
+        enabled = prefs.get("enabled_templates")
+        if enabled is None:
+            return True
+        if not isinstance(enabled, list):
+            return True
+        enabled_set = {str(x) for x in enabled if isinstance(x, str) and x.strip()}
+        if not enabled_set:
+            return False
+        return template_key in enabled_set
+
+    async def _build_connection_config(self) -> ConnectionConfig:
+        base = self.settings.email
+        mail = await self._get_core_mail_config()
+
+        # Prefer DB config (core.mail.*) when present; fall back to env settings.
+        server = mail.get("server") if isinstance(mail.get("server"), str) else base.server
+        port = mail.get("port") if isinstance(mail.get("port"), int) else base.port
+        username = mail.get("username") if isinstance(mail.get("username"), str) else (base.username or "")
+        mail_from = mail.get("mail_from") if isinstance(mail.get("mail_from"), str) else base.mail_from
+        mail_from_name = (
+            mail.get("mail_from_name") if isinstance(mail.get("mail_from_name"), str) else base.mail_from_name
+        )
+        starttls = mail.get("starttls") if isinstance(mail.get("starttls"), bool) else base.starttls
+        ssl_tls = mail.get("ssl_tls") if isinstance(mail.get("ssl_tls"), bool) else base.ssl_tls
+
+        password_raw = mail.get("password")
+        password_secret: SecretStr | None = base.password
+        if isinstance(password_raw, str) and password_raw.strip():
+            if is_encrypted(password_raw):
+                try:
+                    key_path = self.settings.setup.master_key_path
+                    if not master_key_exists(key_path):
+                        raise ValueError("master key missing")
+                    key, _fp = ensure_master_key(key_path)
+                    aad = f"{CORE_SETTINGS_NAMESPACE}:mail.password"
+                    password_secret = SecretStr(decrypt_secret(password_raw, key=key, aad=aad))
+                except Exception as exc:
+                    self.logger.warning(
+                        "Failed to decrypt mail password from core settings, fallback to env password",
+                        error=str(exc),
+                    )
+            else:
+                password_secret = SecretStr(password_raw)
+
+        template_dir: Path | None = base.template_dir
+        if template_dir is None:
+            template_dir = _default_template_dir()
+
+        return ConnectionConfig(
+            MAIL_USERNAME=username or "",
+            MAIL_PASSWORD=password_secret if password_secret is not None else SecretStr(""),
+            MAIL_FROM=mail_from,
+            MAIL_FROM_NAME=mail_from_name,
+            MAIL_PORT=port,
+            MAIL_SERVER=server,
+            MAIL_STARTTLS=starttls,
+            MAIL_SSL_TLS=ssl_tls,
+            USE_CREDENTIALS=base.use_credentials,
+            VALIDATE_CERTS=base.validate_certs,
+            SUPPRESS_SEND=base.suppress_send,
+            TEMPLATE_FOLDER=template_dir,
+        )
+
+    async def _get_fast_mail(self) -> FastMail:
+        return FastMail(await self._build_connection_config())
 
     async def send_reset_password(
         self,
@@ -81,7 +183,7 @@ class EmailService:
         user_id: str | None = None,
         locale: str | None = None,
     ) -> None:
-        if not self._enabled():
+        if not await self._enabled():
             self.logger.info(
                 "Attempt to send reset password email while email sending is disabled",
                 recipient=recipient,
@@ -100,7 +202,7 @@ class EmailService:
         cid = uuid4().hex
         token_hint = f"{reset_token[:6]}...{reset_token[-4:]}" if len(reset_token) >= 10 else reset_token
         try:
-            fm = get_fast_mail(self.settings.email)
+            fm = await self._get_fast_mail()
             subject = t("auth", "RESET_EMAIL_SUBJECT", default="重置密码", locale=locale)
             base = (self.settings.application.frontend_base_url or "").strip()
             base = base.rstrip("/") if base else ""
@@ -202,9 +304,17 @@ class EmailService:
         user_id: str | None = None,
         locale: str | None = None,
     ) -> None:
-        if not self._enabled():
+        if not await self._enabled():
             self.logger.info(
                 "Attempt to send welcome email while email sending is disabled",
+                recipient=recipient,
+                type="welcome",
+                user_id=user_id,
+            )
+            return
+        if not await self._is_template_enabled("welcome_email"):
+            self.logger.info(
+                "Attempt to send welcome email while template is disabled",
                 recipient=recipient,
                 type="welcome",
                 user_id=user_id,
@@ -220,7 +330,7 @@ class EmailService:
             return
         cid = uuid4().hex
         try:
-            fm = get_fast_mail(self.settings.email)
+            fm = await self._get_fast_mail()
             subject = t(
                 "auth",
                 "WELCOME_EMAIL_SUBJECT",
@@ -288,9 +398,18 @@ class EmailService:
         invited_by_user_id: str | None = None,
         locale: str | None = None,
     ) -> None:
-        if not self._enabled():
+        if not await self._enabled():
             self.logger.info(
                 "Attempt to send invitation email while email sending is disabled",
+                recipient=recipient,
+                type="invitation",
+                organization_name=organization_name,
+                invited_by_user_id=invited_by_user_id,
+            )
+            return
+        if not await self._is_template_enabled("registration_prompt"):
+            self.logger.info(
+                "Attempt to send invitation email while template is disabled",
                 recipient=recipient,
                 type="invitation",
                 organization_name=organization_name,
@@ -310,7 +429,7 @@ class EmailService:
         cid = uuid4().hex
         token_hint = f"{invite_token[:6]}...{invite_token[-4:]}" if len(invite_token) >= 10 else invite_token
         try:
-            fm = get_fast_mail(self.settings.email)
+            fm = await self._get_fast_mail()
 
             org_display = (organization_name or "organization").strip() or "organization"
             subject = t(
@@ -437,3 +556,30 @@ class EmailService:
                 invited_by_user_id=invited_by_user_id,
                 error=str(exc),
             )
+
+    async def send_test_email(
+        self,
+        *,
+        recipient: str,
+        locale: str | None = None,
+    ) -> None:
+        if not await self._enabled():
+            raise RuntimeError("MAIL_DISABLED")
+        if not _valid_recipient(recipient):
+            raise ValueError("INVALID_EMAIL")
+
+        fm = await self._get_fast_mail()
+        subject = t("settings", "MAIL_TEST_SUBJECT", default="邮箱配置测试", locale=locale)
+        plain_body = t(
+            "settings",
+            "MAIL_TEST_BODY",
+            default="这是一封测试邮件。如果你收到了它，说明 SMTP 配置已生效。",
+            locale=locale,
+        )
+        message = MessageSchema(
+            subject=subject,
+            recipients=[_to_name_email(recipient)],
+            subtype=MessageType.plain,
+            body=plain_body,
+        )
+        await fm.send_message(message)

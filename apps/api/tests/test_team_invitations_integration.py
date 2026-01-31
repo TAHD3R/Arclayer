@@ -78,6 +78,19 @@ async def test_team_invitation_accept_flow(prepared_db, integration_valkey_setti
             assert invitation["roleCode"] == "admin"
             assert invitation["status"] == "pending"
 
+            # 1.1) Public preview should expose inviter/org/role semantics for the wizard step 1.
+            resp = await client.get(
+                "/api/v1/auth/invitations/preview",
+                params={"token": token},
+            )
+            assert resp.status_code == 200
+            preview = resp.json()["data"]
+            assert preview["invitation"]["email"] == invite_email
+            assert preview["invitation"]["roleCode"] == "admin"
+            assert preview["organization"]["id"] == str(org.id)
+            assert preview["role"]["code"] == "admin"
+            assert preview["userExists"] is False
+
             # 2) List invitations should include the new one.
             resp = await client.get("/api/v1/admin/team/invitations?page=1&size=10", headers=headers)
             assert resp.status_code == 200
@@ -184,6 +197,102 @@ async def test_team_invitation_accept_flow(prepared_db, integration_valkey_setti
             assert resp.status_code == 200
             deleted_page = resp.json()["data"]
             assert all(item["id"] != invitation2["id"] for item in deleted_page["items"])
+
+            # 9) Existing account can accept invite (email-bound) via /auth/invitations/accept-existing.
+            invite_email3 = f"{uuid4().hex}@example.com"
+            resp = await client.post(
+                "/api/v1/admin/team/invitations",
+                headers=headers,
+                json={
+                    "email": invite_email3,
+                    "roleCode": "viewer",
+                    "expiresInSeconds": 3600,
+                },
+            )
+            assert resp.status_code == 200
+            created3 = resp.json()["data"]
+            token3 = created3["token"]
+
+            # Create an existing user with the same email as the invitation.
+            existing_username = f"exist{uuid4().hex[:10]}"
+            existing_password = "existing_password_123"
+            existing_user = await user_repo.create_user(
+                username=existing_username,
+                email=invite_email3,
+                display_name="Existing User",
+                password_hash=hash_password(existing_password, settings.auth),
+            )
+
+            # Login to get access token.
+            resp = await client.post(
+                "/api/v1/auth/login",
+                json={"identifier": invite_email3, "password": existing_password},
+            )
+            assert resp.status_code == 200
+            tokens3 = resp.json()["data"]
+            auth_headers3 = {"Authorization": f"Bearer {tokens3['accessToken']}"}
+
+            # Accept the invitation as an existing user.
+            resp = await client.post(
+                "/api/v1/auth/invitations/accept-existing",
+                headers=auth_headers3,
+                json={"token": token3},
+            )
+            assert resp.status_code == 200
+            accepted3 = resp.json()["data"]
+            assert accepted3["organizationId"] == str(org.id)
+            assert accepted3["roleCode"] == "viewer"
+
+            # Existing user should have org membership now.
+            resp = await client.get("/api/v1/auth/me/orgs", headers=auth_headers3)
+            assert resp.status_code == 200
+            orgs3 = resp.json()["data"]
+            assert any(item["organizationId"] == str(org.id) for item in orgs3["items"])
+
+            # Existing user must have admin:access after accepting (viewer includes it by default in v1).
+            resp = await client.get(
+                "/api/v1/auth/me/authz",
+                headers={**auth_headers3, **headers},
+            )
+            assert resp.status_code == 200
+            authz3 = resp.json()["data"]
+            assert "viewer" in authz3["roleCodes"]
+            assert "admin:access" in authz3["permissionCodes"]
+
+            # Email mismatch must be rejected.
+            invite_email4 = f"{uuid4().hex}@example.com"
+            resp = await client.post(
+                "/api/v1/admin/team/invitations",
+                headers=headers,
+                json={
+                    "email": invite_email4,
+                    "roleCode": "viewer",
+                    "expiresInSeconds": 3600,
+                },
+            )
+            assert resp.status_code == 200
+            created4 = resp.json()["data"]
+            token4 = created4["token"]
+
+            other_user = await user_repo.create_user(
+                username=f"other{uuid4().hex[:10]}",
+                email=f"{uuid4().hex}@example.com",
+                display_name="Other User",
+                password_hash=hash_password("other_password_123", settings.auth),
+            )
+            resp = await client.post(
+                "/api/v1/auth/login",
+                json={"identifier": other_user.username, "password": "other_password_123"},
+            )
+            assert resp.status_code == 200
+            other_tokens = resp.json()["data"]
+            other_headers = {"Authorization": f"Bearer {other_tokens['accessToken']}"}
+            resp = await client.post(
+                "/api/v1/auth/invitations/accept-existing",
+                headers=other_headers,
+                json={"token": token4},
+            )
+            assert resp.status_code == 403
 
         # DB-level sanity checks (membership + role binding).
         invited_user = await user_repo.get_by_identifier(username)

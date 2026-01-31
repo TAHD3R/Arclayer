@@ -10,32 +10,32 @@ CORE_PERMISSION_TEMPLATES: list[PermissionTemplate] = [
         code="admin:access",
         name="Access admin console",
         description="Allow accessing /admin/** routes.",
-        default_roles=["admin"],
+        default_roles=["admin", "owner", "architect", "editor", "viewer"],
     ),
     # System (core) management.
     PermissionTemplate(
         code="system:plugins:read",
         name="Read plugins",
         description="Allow listing plugins and reading plugin details.",
-        default_roles=["admin"],
+        default_roles=["admin", "owner", "architect", "editor", "viewer"],
     ),
     PermissionTemplate(
         code="system:plugins:manage",
         name="Manage plugins",
         description="Allow installing, enabling, disabling, and configuring plugins.",
-        default_roles=["admin"],
+        default_roles=["admin", "owner", "architect"],
     ),
     PermissionTemplate(
         code="system:settings:read",
         name="Read settings",
         description="Allow reading system settings and plugin settings.",
-        default_roles=["admin"],
+        default_roles=["admin", "owner", "architect", "viewer"],
     ),
     PermissionTemplate(
         code="system:settings:manage",
         name="Manage settings",
         description="Allow updating system settings and plugin settings.",
-        default_roles=["admin"],
+        default_roles=["admin", "owner"],
     ),
     # RBAC admin.
     PermissionTemplate(

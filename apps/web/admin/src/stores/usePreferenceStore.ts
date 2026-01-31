@@ -13,6 +13,7 @@ import { type ThemeMode } from "@celestial/ui-theme/antd";
 interface PreferencesState {
   themeMode: ThemeMode;
   locale: AppLocale;
+  showSidebarNotificationCenter: boolean;
   /**
    * Whether the user explicitly chose a locale:
    * - set: user preference (client will send X-Locale)
@@ -22,6 +23,7 @@ interface PreferencesState {
   setThemeMode: (mode: ThemeMode) => void;
   toggleThemeMode: () => void;
   setLocale: (locale: AppLocale) => void;
+  setShowSidebarNotificationCenter: (enabled: boolean) => void;
 }
 
 function normalizeThemeMode(input: unknown): ThemeMode {
@@ -71,6 +73,25 @@ function persistLocale(locale: AppLocale) {
   }
 }
 
+function persistSidebarNotificationCenter(enabled: boolean) {
+  try {
+    window.localStorage.setItem(STORAGE_KEYS.sidebarNotificationCenter, enabled ? "1" : "0");
+  } catch {
+    // ignore storage errors
+  }
+}
+
+function getInitialSidebarNotificationCenterEnabled(): boolean {
+  if (typeof window === "undefined") return true;
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEYS.sidebarNotificationCenter);
+    if (raw === null) return true;
+    return raw === "1" || raw === "true";
+  } catch {
+    return true;
+  }
+}
+
 function applyLocaleToDom(locale: AppLocale) {
   document.documentElement.lang = locale;
 }
@@ -78,6 +99,7 @@ function applyLocaleToDom(locale: AppLocale) {
 export const usePreferencesStore = create<PreferencesState>((set, get) => ({
   themeMode: "light",
   locale: DEFAULT_LOCALE,
+  showSidebarNotificationCenter: true,
   localePreference: null,
 
   setThemeMode: (mode) => {
@@ -97,6 +119,11 @@ export const usePreferencesStore = create<PreferencesState>((set, get) => ({
     persistLocale(next);
     set({ locale: next, localePreference: next });
     void i18n.changeLanguage(next);
+  },
+
+  setShowSidebarNotificationCenter: (enabled) => {
+    persistSidebarNotificationCenter(enabled);
+    set({ showSidebarNotificationCenter: enabled });
   },
 }));
 
@@ -130,10 +157,12 @@ export function initializePreferences() {
 
   applyThemeModeToDom(initialThemeMode);
   applyLocaleToDom(initialLocale);
+  const sidebarNotificationCenterEnabled = getInitialSidebarNotificationCenterEnabled();
 
   usePreferencesStore.setState({
     themeMode: initialThemeMode,
     locale: initialLocale,
+    showSidebarNotificationCenter: sidebarNotificationCenterEnabled,
     localePreference,
   });
 

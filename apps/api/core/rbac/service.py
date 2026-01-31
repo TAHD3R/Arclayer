@@ -10,7 +10,15 @@ from apps.api.core.exceptions import BadRequest, Conflict, NotFound
 from apps.api.core.http.pagination import PageData, PageParams, paginate_queryset
 from apps.api.core.i18n import t
 from apps.api.core.organization.context import get_current_org_id as get_current_org_id_ctx
-from apps.api.core.rbac.constants import CORE_PERMISSION_OWNER, ROLE_ADMIN, ROLE_USER
+from apps.api.core.rbac.constants import (
+    CORE_PERMISSION_OWNER,
+    ROLE_ADMIN,
+    ROLE_ARCHITECT,
+    ROLE_EDITOR,
+    ROLE_OWNER,
+    ROLE_USER,
+    ROLE_VIEWER,
+)
 from apps.api.core.rbac.repository import RBACRepository
 from apps.api.plugin.registry import registry
 
@@ -26,16 +34,47 @@ class RBACService(BaseService):
 
     async def ensure_system_roles(self) -> None:
         await self.repo.get_or_create_role(
-            code=ROLE_ADMIN,
-            name="Administrator",
+            code=ROLE_OWNER,
+            name="Owner",
             is_default=False,
             is_superuser=True,
+            description="Full access. Root authority for the organization.",
         )
+        await self.repo.get_or_create_role(
+            code=ROLE_ADMIN,
+            name="Admin",
+            is_default=False,
+            is_superuser=False,
+            description="Global management (excluding finance and destructive operations).",
+        )
+        await self.repo.get_or_create_role(
+            code=ROLE_ARCHITECT,
+            name="Architect",
+            is_default=False,
+            is_superuser=False,
+            description="Focus on modeling and system structure. Can manage plugins.",
+        )
+        await self.repo.get_or_create_role(
+            code=ROLE_EDITOR,
+            name="Editor",
+            is_default=False,
+            is_superuser=False,
+            description="Content management and publishing.",
+        )
+        await self.repo.get_or_create_role(
+            code=ROLE_VIEWER,
+            name="Viewer",
+            is_default=True,
+            is_superuser=False,
+            description="Read-only access to the admin console.",
+        )
+        # Legacy role (kept for backward compatibility; not used as the default onboarding role).
         await self.repo.get_or_create_role(
             code=ROLE_USER,
             name="User",
-            is_default=True,
+            is_default=False,
             is_superuser=False,
+            description="Legacy role (deprecated).",
         )
 
     async def list_roles_paginated(self, *, params: PageParams, out_schema: type[Any]) -> PageData[Any]:
@@ -74,7 +113,7 @@ class RBACService(BaseService):
         # Role code must never be modified.
         updates.pop("code", None)
 
-        if role.code in (ROLE_ADMIN, ROLE_USER):
+        if role.code in (ROLE_OWNER, ROLE_ADMIN, ROLE_ARCHITECT, ROLE_EDITOR, ROLE_VIEWER, ROLE_USER):
             # Avoid turning system roles into unexpected authority.
             if "is_superuser" in updates or "is_default" in updates:
                 raise BadRequest(
@@ -88,7 +127,7 @@ class RBACService(BaseService):
 
     async def delete_role(self, *, role_code: str) -> None:
         role = await self.get_role(role_code=role_code)
-        if role.code in (ROLE_ADMIN, ROLE_USER):
+        if role.code in (ROLE_OWNER, ROLE_ADMIN, ROLE_ARCHITECT, ROLE_EDITOR, ROLE_VIEWER, ROLE_USER):
             raise BadRequest(message=_tr("ROLE_DELETE_INVALID", "不允许删除系统角色"), error="ROLE_DELETE_INVALID")
         await self.repo.delete_role(role)
 
@@ -226,9 +265,10 @@ class RBACService(BaseService):
         """
 
         await self.ensure_system_roles()
-        admin_role = await self.repo.get_role_by_code(ROLE_ADMIN)
-        user_role = await self.repo.get_role_by_code(ROLE_USER)
-        if admin_role is None or user_role is None:
+        role_map = {r.code: r for r in await self.repo.list_roles()}
+        admin_role = role_map.get(ROLE_ADMIN)
+        user_role = role_map.get(ROLE_USER)
+        if admin_role is None:
             raise BadRequest(message=_tr("ROLE_NOT_READY", "系统角色未就绪"), error="ROLE_NOT_READY")
 
         created = 0
@@ -268,14 +308,18 @@ class RBACService(BaseService):
                 ):
                     updated += 1
 
-            # Grant default roles (early-stage: only admin/user are honored here).
-            defaults = set(tpl.default_roles or [])
-            if "admin" in defaults:
-                if await self.repo.ensure_role_permission(role=admin_role, permission=perm):
-                    granted_admin += 1
-            if "user" in defaults:
-                if await self.repo.ensure_role_permission(role=user_role, permission=perm):
-                    granted_user += 1
+            # Grant default roles.
+            defaults = sorted({str(x).strip() for x in (tpl.default_roles or []) if x and str(x).strip()})
+            for role_code in defaults:
+                role = role_map.get(role_code)
+                if role is None:
+                    # Unknown role code in template; ignore safely.
+                    continue
+                if await self.repo.ensure_role_permission(role=role, permission=perm):
+                    if role_code == ROLE_ADMIN:
+                        granted_admin += 1
+                    elif role_code == ROLE_USER and user_role is not None:
+                        granted_user += 1
 
         return {
             "total": len(templates),

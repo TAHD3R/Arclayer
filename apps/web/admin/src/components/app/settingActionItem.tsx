@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 type Description = ReactNode | string | string[] | undefined | null;
 
 export type SettingActionItemProps = {
+  as?: "button" | "div";
   title: ReactNode;
   summary?: ReactNode;
   placeholder?: ReactNode;
@@ -17,6 +18,8 @@ export type SettingActionItemProps = {
   titleColumnWidth?: number;
   /** 右侧箭头是否显示（默认显示）。在“点击复制”类场景可隐藏以节省空间。 */
   showChevron?: boolean;
+  /** 右侧自定义内容（例如开关、徽标、按钮组）。 */
+  right?: ReactNode;
   /** 覆盖 summary 区域样式（默认是 16px + 半粗）。 */
   summaryClassName?: string;
   /** 覆盖 title 文案样式。 */
@@ -47,6 +50,9 @@ export function SettingActionItem(props: SettingActionItemProps) {
   const desc = useMemo(() => normalizeDescription(props.description), [props.description]);
   const titleColumnWidth = props.titleColumnWidth ?? 240;
   const showChevron = props.showChevron ?? true;
+  const as = props.as ?? "button";
+  const hasRight = props.right !== undefined && props.right !== null;
+  const hasThirdColumn = showChevron || hasRight;
 
   const summaryNode =
     props.summary !== undefined && props.summary !== null ? (
@@ -63,6 +69,48 @@ export function SettingActionItem(props: SettingActionItemProps) {
         {props.placeholder ?? "-"}
       </div>
     );
+
+  const inner = (
+    <div
+      className="grid items-start gap-4 px-4 py-4"
+      style={{
+        gridTemplateColumns: hasThirdColumn
+          ? `${titleColumnWidth}px 1fr auto`
+          : `${titleColumnWidth}px 1fr`,
+      }}
+    >
+      <div className={cn("text-[16px] font-medium leading-snug", props.titleClassName)}>
+        {props.title}
+      </div>
+      <div className="min-w-0">
+        {summaryNode}
+        {desc ? <div className="mt-1 text-[16px] text-muted-foreground">{desc}</div> : null}
+      </div>
+      {hasThirdColumn ? (
+        <div
+          className={cn(
+            "text-muted-foreground",
+            hasRight ? "flex items-center justify-end gap-2" : "pt-1",
+          )}
+        >
+          {hasRight ? props.right : null}
+          {showChevron ? <ChevronRightIcon size={18} strokeWidth={2} isHovered={hovered} /> : null}
+        </div>
+      ) : null}
+    </div>
+  );
+
+  if (as === "div") {
+    return (
+      <div
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        className={cn("w-full text-left", "transition-colors", "hover:bg-muted", props.className)}
+      >
+        {inner}
+      </div>
+    );
+  }
 
   return (
     <button
@@ -81,27 +129,7 @@ export function SettingActionItem(props: SettingActionItemProps) {
         props.className,
       )}
     >
-      <div
-        className="grid items-start gap-4 px-4 py-4"
-        style={{
-          gridTemplateColumns: showChevron
-            ? `${titleColumnWidth}px 1fr auto`
-            : `${titleColumnWidth}px 1fr`,
-        }}
-      >
-        <div className={cn("text-[16px] font-medium leading-snug", props.titleClassName)}>
-          {props.title}
-        </div>
-        <div className="min-w-0">
-          {summaryNode}
-          {desc ? <div className="mt-1 text-[16px] text-muted-foreground">{desc}</div> : null}
-        </div>
-        {showChevron ? (
-          <div className="pt-1 text-muted-foreground">
-            <ChevronRightIcon size={18} strokeWidth={2} isHovered={hovered} />
-          </div>
-        ) : null}
-      </div>
+      {inner}
     </button>
   );
 }
