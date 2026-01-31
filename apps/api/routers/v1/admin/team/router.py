@@ -16,6 +16,11 @@ from apps.api.routers.v1.admin.team.schema import (
     TeamInvitationListQuery,
     TeamInvitationOut,
     TeamInvitationRenewRequest,
+    TeamInviteLinkCreateRequest,
+    TeamInviteLinkCreateResult,
+    TeamInviteLinkListQuery,
+    TeamInviteLinkOut,
+    TeamInviteLinkRenewRequest,
     TeamMemberListQuery,
     TeamMemberOut,
     TeamMemberRoleSetRequest,
@@ -151,4 +156,100 @@ async def delete_invitation(
     service: TeamService = Depends(get_team_service),
 ) -> ResponseModel[None]:
     await service.delete_invitation(organization_id=organization_id, invitation_id=invitation_id)
+    return Response.success()
+
+
+@router.get(
+    "/invite-links",
+    response_model=ResponseModel[PageData[TeamInviteLinkOut]],
+    dependencies=[require_permission_strict("team:invite-links:manage")],
+)
+async def list_invite_links(
+    organization_id: UUID = Depends(get_current_org_id),
+    params: PageParams = Depends(get_page_params),
+    filters: TeamInviteLinkListQuery = Depends(),
+    user_id: UUID = Depends(get_current_user_id),
+    service: TeamService = Depends(get_team_service),
+) -> ResponseModel[PageData[TeamInviteLinkOut]]:
+    page = await service.list_invite_links(
+        organization_id=organization_id,
+        params=params,
+        filters=filters,
+        requesting_user_id=user_id,
+    )
+    return Response.success(data=page)
+
+
+@router.post(
+    "/invite-links",
+    response_model=ResponseModel[TeamInviteLinkCreateResult],
+    dependencies=[require_permission_strict("team:invite-links:manage")],
+)
+async def create_invite_link(
+    body: TeamInviteLinkCreateRequest,
+    background_tasks: BackgroundTasks,
+    organization_id: UUID = Depends(get_current_org_id),
+    user_id: UUID = Depends(get_current_user_id),
+    service: TeamService = Depends(get_team_service),
+) -> ResponseModel[TeamInviteLinkCreateResult]:
+    created = await service.create_invite_link(
+        organization_id=organization_id,
+        created_by_user_id=user_id,
+        payload=body,
+    )
+    if service.settings.email.enabled and body.emails:
+        locale = get_current_locale()
+        for recipient in body.emails:
+            background_tasks.add_task(
+                service.send_invitation_email,
+                organization_id=organization_id,
+                recipient=str(recipient),
+                token=created.token,
+                invite_url=created.invite_url,
+                expires_at=created.link.expires_at,
+                invited_by_user_id=user_id,
+                locale=locale,
+            )
+    return Response.success(data=created)
+
+
+@router.post(
+    "/invite-links/{link_id}/renew",
+    response_model=ResponseModel[TeamInviteLinkOut],
+    dependencies=[require_permission_strict("team:invite-links:manage")],
+)
+async def renew_invite_link(
+    link_id: UUID,
+    body: TeamInviteLinkRenewRequest,
+    organization_id: UUID = Depends(get_current_org_id),
+    service: TeamService = Depends(get_team_service),
+) -> ResponseModel[TeamInviteLinkOut]:
+    link = await service.renew_invite_link(organization_id=organization_id, link_id=link_id, payload=body)
+    return Response.success(data=link)
+
+
+@router.post(
+    "/invite-links/{link_id}/disable",
+    response_model=ResponseModel[None],
+    dependencies=[require_permission_strict("team:invite-links:manage")],
+)
+async def disable_invite_link(
+    link_id: UUID,
+    organization_id: UUID = Depends(get_current_org_id),
+    service: TeamService = Depends(get_team_service),
+) -> ResponseModel[None]:
+    await service.disable_invite_link(organization_id=organization_id, link_id=link_id)
+    return Response.success()
+
+
+@router.post(
+    "/invite-links/disable-all",
+    response_model=ResponseModel[None],
+    dependencies=[require_permission_strict("team:invite-links:manage")],
+)
+async def disable_all_invite_links(
+    organization_id: UUID = Depends(get_current_org_id),
+    service: TeamService = Depends(get_team_service),
+) -> ResponseModel[None]:
+    await service.disable_all_invite_links(organization_id=organization_id)
     return Response.success()

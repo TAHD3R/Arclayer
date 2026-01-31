@@ -29,6 +29,7 @@ function ChromeTabsListImpl(
   React.useImperativeHandle(ref, () => localRef.current as React.ElementRef<typeof TabsList>);
 
   const [indicator, setIndicator] = React.useState<{ x: number; width: number } | null>(null);
+  const rafIdRef = React.useRef<number | null>(null);
 
   const updateIndicator = React.useCallback(() => {
     const el = localRef.current as unknown as HTMLElement | null;
@@ -39,10 +40,10 @@ function ChromeTabsListImpl(
         el.querySelector<HTMLElement>('[aria-selected="true"]')) ||
       null;
 
-    if (!active) {
-      setIndicator(null);
-      return;
-    }
+    // During React re-rendering, the active trigger can briefly disappear.
+    // Don't aggressively reset indicator to null; it can cause a null/value oscillation
+    // when observers fire rapidly.
+    if (!active) return;
 
     const listRect = el.getBoundingClientRect();
     const triggerRect = active.getBoundingClientRect();
@@ -51,38 +52,56 @@ function ChromeTabsListImpl(
     const inset = 32;
     const rawX = triggerRect.left - listRect.left;
     const rawW = triggerRect.width;
-    const width = Math.max(0, rawW - inset * 2);
-    const x = rawX + inset;
+    // Round to whole pixels to avoid sub-pixel jitter causing endless update loops
+    // in layouts where fonts/sizes settle after the first paint.
+    const width = Math.round(Math.max(0, rawW - inset * 2));
+    const x = Math.round(rawX + inset);
 
     setIndicator((prev) => {
-      if (prev && Math.abs(prev.x - x) < 0.5 && Math.abs(prev.width - width) < 0.5) return prev;
+      if (prev && prev.x === x && prev.width === width) return prev;
       return { x, width };
     });
   }, []);
 
+  const scheduleUpdate = React.useCallback(() => {
+    if (rafIdRef.current !== null) {
+      window.cancelAnimationFrame(rafIdRef.current);
+    }
+    rafIdRef.current = window.requestAnimationFrame(() => {
+      rafIdRef.current = null;
+      updateIndicator();
+    });
+  }, [updateIndicator]);
+
   React.useLayoutEffect(() => {
-    updateIndicator();
-  }, [updateIndicator, children]);
+    scheduleUpdate();
+    // `children` is typically a new React element tree every render.
+    // Rely on MutationObserver/ResizeObserver to react to actual DOM changes instead.
+  }, [scheduleUpdate]);
 
   React.useEffect(() => {
     const el = localRef.current as unknown as HTMLElement | null;
     if (!el) return;
 
-    const mo = new MutationObserver(() => updateIndicator());
+    const mo = new MutationObserver(() => scheduleUpdate());
     mo.observe(el, {
       subtree: true,
       attributes: true,
       attributeFilter: ["data-state", "aria-selected"],
     });
 
-    const ro = new ResizeObserver(() => updateIndicator());
+    const ro = new ResizeObserver(() => scheduleUpdate());
     ro.observe(el);
 
     return () => {
+      if (rafIdRef.current !== null) {
+        window.cancelAnimationFrame(rafIdRef.current);
+        rafIdRef.current = null;
+      }
       mo.disconnect();
       ro.disconnect();
     };
-  }, [updateIndicator]);
+  }, [scheduleUpdate]);
 
   return (
     <TabsList

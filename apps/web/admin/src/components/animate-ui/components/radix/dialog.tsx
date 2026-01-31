@@ -110,10 +110,7 @@ type DialogTitleProps = DialogTitlePrimitiveProps;
 
 function DialogTitle({ className, ...props }: DialogTitleProps) {
   return (
-    <DialogTitlePrimitive
-      className={cn("text-xl leading-none font-semibold", className)}
-      {...props}
-    />
+    <DialogTitlePrimitive className={cn("text-xl leading-none font-bold!", className)} {...props} />
   );
 }
 

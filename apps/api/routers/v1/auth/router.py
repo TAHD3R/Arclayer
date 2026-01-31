@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 from uuid import UUID
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Query, Request
+from tortoise.expressions import Q
 from tortoise.transactions import in_transaction
 
 from apps.api.common.schemas import AuthzSnapshot
@@ -17,7 +18,7 @@ from apps.api.core.organization.invitations import hash_invite_token
 from apps.api.core.organization.repository import OrganizationRepository
 from apps.api.infra.cache.valkey import get_valkey
 from apps.api.infra.limiter.limiter import rate_limit
-from apps.api.models.invitation import OrganizationInvitation
+from apps.api.models.invitation import OrganizationInvitation, OrganizationInviteLink
 from apps.api.models.organization import Membership, MembershipStatus, Organization
 from apps.api.models.rbac import MembershipRole, Permission, Role
 from apps.api.models.user import User, UserCredential, UserStatus
@@ -42,6 +43,10 @@ from apps.api.routers.v1.auth.schema import (
     InvitationPreviewRoleOut,
     LoginRequest,
     LogoutRequest,
+    MyInvitationInviterOut,
+    MyInvitationListQuery,
+    MyInvitationOrganizationOut,
+    MyInvitationOut,
     MyOrganizationOut,
     RefreshRequest,
     RegisterRequest,
@@ -307,6 +312,119 @@ async def me_orgs(
     return Response.success(data=paginate_items(items, params=params))
 
 
+@router.get("/me/invitations", response_model=ResponseModel[PageData[MyInvitationOut]])
+async def me_invitations(
+    user: User = Depends(get_current_user),
+    params: PageParams = Depends(get_page_params),
+    filters: MyInvitationListQuery = Depends(),
+) -> ResponseModel[PageData[MyInvitationOut]]:
+    """
+    List invitations sent to the current user (email-bound).
+
+    Semantics:
+    - pending: invitations to my email that are not accepted/revoked/expired
+    - accepted: invitations accepted by me
+    """
+
+    email = (user.email or "").strip().lower()
+    if not email:
+        return Response.success(
+            data=PageData[MyInvitationOut](
+                items=[],
+                total=0,
+                page=params.page,
+                size=params.size,
+                pages=0,
+                next=None,
+                prev=None,
+            )
+        )
+
+    now = datetime.now(UTC)
+
+    qs = OrganizationInvitation.filter(email=email).select_related("organization")
+
+    status = (filters.status or "").strip().lower() if filters.status else ""
+    if status == "accepted":
+        qs = qs.filter(accepted_by_user_id=user.id, accepted_at__not_isnull=True).order_by("-accepted_at")
+    else:
+        # Default to pending.
+        qs = (
+            qs
+            .filter(accepted_at=None, revoked_at=None)
+            .filter(Q(expires_at__isnull=True) | Q(expires_at__gt=now))
+            .order_by("-created_at")
+        )
+
+    if filters.q:
+        needle = filters.q.strip()
+        if needle:
+            qs = qs.filter(Q(role_code__icontains=needle) | Q(organization__name__icontains=needle))
+
+    total = int(await qs.count())
+    pages = (total + params.size - 1) // params.size if params.size else 0
+    rows = await qs.limit(params.limit).offset(params.offset).all()
+
+    inviter_ids = {UUID(str(inv.invited_by_user_id)) for inv in rows if inv.invited_by_user_id is not None}
+    inviter_map: dict[UUID, MyInvitationInviterOut] = {}
+    if inviter_ids:
+        inviter_rows = await User.filter(id__in=list(inviter_ids)).all()
+        for u in inviter_rows:
+            inviter_map[u.id] = MyInvitationInviterOut(
+                id=u.id,
+                username=u.username,
+                email=u.email,
+                display_name=u.display_name,
+                avatar_url=u.avatar_url,
+            )
+
+    items: list[MyInvitationOut] = []
+    for inv in rows:
+        org = inv.organization
+        org_out = MyInvitationOrganizationOut(
+            id=org.id,
+            name=org.name,
+            slug=org.slug,
+            logo_url=org.logo_url,
+        )
+        inviter = None
+        if inv.invited_by_user_id is not None:
+            inviter = inviter_map.get(UUID(str(inv.invited_by_user_id)))
+
+        is_accepted = inv.accepted_at is not None and str(inv.accepted_by_user_id) == str(user.id)
+        out_status = "accepted" if is_accepted else "pending"
+
+        items.append(
+            MyInvitationOut(
+                id=inv.id,
+                email=inv.email,
+                role_code=inv.role_code,
+                expires_at=inv.expires_at,
+                organization=org_out,
+                inviter=inviter,
+                status=out_status,
+                accepted_at=inv.accepted_at,
+                created_at=inv.created_at,
+                updated_at=inv.updated_at,
+            )
+        )
+
+    next_page = params.page + 1 if pages and params.page < pages else None
+    prev_page = min(params.page - 1, pages) if pages and params.page > 1 else None
+
+    return Response.success(
+        data=PageData[MyInvitationOut](
+            items=items,
+            total=total,
+            page=params.page,
+            size=params.size,
+            pages=pages,
+            next=next_page,
+            prev=prev_page,
+        )
+    )
+
+
 @router.get(
     "/me/authz",
     response_model=ResponseModel[AuthzSnapshot],
@@ -355,29 +473,44 @@ async def accept_invitation(
     accepted_user_id: UUID | None = None
     accepted_display_name: str | None = None
     async with in_transaction() as conn:
+        link = await OrganizationInviteLink.filter(token_hash=token_hash).using_db(conn).select_for_update().first()
         inv = await OrganizationInvitation.filter(token_hash=token_hash).using_db(conn).select_for_update().first()
-        if inv is None:
+        if link is None and inv is None:
             raise NotFound(message=t("auth", "INVITE_NOT_FOUND", default="邀请不存在"), error="INVITE_NOT_FOUND")
-
-        if inv.revoked_at is not None:
-            raise Forbidden(message=t("auth", "INVITE_REVOKED", default="邀请已被撤销"), error="INVITE_REVOKED")
-        if inv.accepted_at is not None:
-            raise Conflict(
-                message=t("auth", "INVITE_ALREADY_ACCEPTED", default="邀请已被使用"),
-                error="INVITE_ALREADY_ACCEPTED",
-            )
-        if inv.expires_at is not None and inv.expires_at <= now:
-            raise Forbidden(message=t("auth", "INVITE_EXPIRED", default="邀请已过期"), error="INVITE_EXPIRED")
 
         # NOTE: avoid `select_related("organization")` here because it can introduce an OUTER JOIN.
         # Postgres forbids applying `FOR UPDATE` to the nullable side of an outer join.
-        organization_id = UUID(str(inv.organization_id))
+        if link is not None:
+            if link.disabled_at is not None:
+                raise Forbidden(message=t("auth", "INVITE_REVOKED", default="邀请已被撤销"), error="INVITE_REVOKED")
+            if link.expires_at is not None and link.expires_at <= now:
+                raise Forbidden(message=t("auth", "INVITE_EXPIRED", default="邀请已过期"), error="INVITE_EXPIRED")
+            organization_id = UUID(str(link.organization_id))
+            inviter_user_id = link.created_by_user_id
+            assigned_role_code = link.role_code
+        else:
+            assert inv is not None
+            if inv.revoked_at is not None:
+                raise Forbidden(message=t("auth", "INVITE_REVOKED", default="邀请已被撤销"), error="INVITE_REVOKED")
+            if inv.expires_at is not None and inv.expires_at <= now:
+                raise Forbidden(message=t("auth", "INVITE_EXPIRED", default="邀请已过期"), error="INVITE_EXPIRED")
+            organization_id = UUID(str(inv.organization_id))
+            inviter_user_id = inv.invited_by_user_id
+            assigned_role_code = inv.role_code
+
         org = await Organization.get_or_none(id=organization_id, using_db=conn)
         if org is None or not org.is_active:
             raise Forbidden(message=t("auth", "ORG_INACTIVE", default="组织不可用"), error="ORG_INACTIVE")
 
         username = payload.username.strip()
-        email = (inv.email or "").strip().lower()
+        # Unified semantics:
+        # - Invite links are NOT email-bound, so we must take email from payload.
+        # - Legacy invitations (token only exists in OrganizationInvitation) remain email-bound.
+        email = (
+            (payload.email or "").strip().lower()
+            if link is not None
+            else ((inv.email if inv is not None else "") or "").strip().lower()
+        )
         display_name = payload.display_name.strip() if payload.display_name else None
 
         if not username:
@@ -411,18 +544,18 @@ async def accept_invitation(
             using_db=conn,
             user_id=user.id,
             organization_id=org.id,
-            defaults={"status": MembershipStatus.ACTIVE, "invited_by_user_id": inv.invited_by_user_id},
+            defaults={"status": MembershipStatus.ACTIVE, "invited_by_user_id": inviter_user_id},
         )
         if membership.status != MembershipStatus.ACTIVE:
             membership.status = MembershipStatus.ACTIVE
             await membership.save(using_db=conn, update_fields=["status"])
 
         # Role binding strategy:
-        # - If invitation provides a role_code, bind it.
+        # - If invite provides a role_code, bind it.
         # - Otherwise, bind all default roles (is_default=True).
         roles: list[Role] = []
-        if inv.role_code:
-            role = await Role.get_or_none(code=inv.role_code, using_db=conn)
+        if assigned_role_code:
+            role = await Role.get_or_none(code=assigned_role_code, using_db=conn)
             if role is not None:
                 roles = [role]
         else:
@@ -433,11 +566,35 @@ async def accept_invitation(
 
         await _ensure_role_codes_have_admin_access(role_codes=[r.code for r in roles], conn=conn)
 
-        inv.accepted_by_user_id = user.id
-        inv.accepted_at = now
-        await inv.save(using_db=conn, update_fields=["accepted_by_user_id", "accepted_at"])
+        if link is not None:
+            # Best-effort: mark the delivery record for this email as accepted (if any).
+            # Invite links are reusable, so this should never block onboarding.
+            if email:
+                await (
+                    OrganizationInvitation
+                    .filter(
+                        organization_id=organization_id,
+                        token_hash=token_hash,
+                        email=email,
+                        revoked_at=None,
+                        accepted_at=None,
+                    )
+                    .using_db(conn)
+                    .update(accepted_by_user_id=user.id, accepted_at=now)
+                )
+        else:
+            # Legacy email-bound invitation flow: keep original semantics.
+            if inv is not None and inv.accepted_at is None and inv.revoked_at is None:
+                inv.accepted_by_user_id = user.id
+                inv.accepted_at = now
+                await inv.save(using_db=conn, update_fields=["accepted_by_user_id", "accepted_at"])
 
-        inviter_user_id = inv.invited_by_user_id
+        if link is not None:
+            link.uses_count = int(link.uses_count or 0) + 1
+            link.last_used_by_user_id = user.id
+            link.last_used_at = now
+            await link.save(using_db=conn, update_fields=["uses_count", "last_used_by_user_id", "last_used_at"])
+
         accepted_user_id = user.id
         accepted_display_name = user.display_name or user.username
 
@@ -511,27 +668,46 @@ async def preview_invitation(
 
     now = datetime.now(UTC)
     token_hash = hash_invite_token(token)
-    inv = await OrganizationInvitation.get_or_none(token_hash=token_hash).select_related("organization")
-    if inv is None:
-        raise NotFound(message=t("auth", "INVITE_NOT_FOUND", default="邀请不存在"), error="INVITE_NOT_FOUND")
 
-    if inv.revoked_at is not None:
-        raise Forbidden(message=t("auth", "INVITE_REVOKED", default="邀请已被撤销"), error="INVITE_REVOKED")
-    if inv.accepted_at is not None:
-        raise Conflict(
-            message=t("auth", "INVITE_ALREADY_ACCEPTED", default="邀请已被使用"),
-            error="INVITE_ALREADY_ACCEPTED",
+    # Unified semantics:
+    # - Prefer reusable invite links (OrganizationInviteLink).
+    # - Fall back to legacy email-bound invitations (OrganizationInvitation) if needed.
+    link = await OrganizationInviteLink.get_or_none(token_hash=token_hash).select_related("organization")
+    if link is not None:
+        if link.disabled_at is not None:
+            raise Forbidden(message=t("auth", "INVITE_REVOKED", default="邀请已被撤销"), error="INVITE_REVOKED")
+        if link.expires_at is not None and link.expires_at <= now:
+            raise Forbidden(message=t("auth", "INVITE_EXPIRED", default="邀请已过期"), error="INVITE_EXPIRED")
+        org = link.organization
+        role_code = link.role_code
+        inviter_user_id = link.created_by_user_id
+        expires_at = link.expires_at
+    else:
+        # Legacy flow: treat invitation token as a reusable link.
+        inv = (
+            await OrganizationInvitation
+            .filter(token_hash=token_hash)
+            .select_related("organization")
+            .order_by("-created_at")
+            .first()
         )
-    if inv.expires_at is not None and inv.expires_at <= now:
-        raise Forbidden(message=t("auth", "INVITE_EXPIRED", default="邀请已过期"), error="INVITE_EXPIRED")
+        if inv is None:
+            raise NotFound(message=t("auth", "INVITE_NOT_FOUND", default="邀请不存在"), error="INVITE_NOT_FOUND")
+        if inv.revoked_at is not None:
+            raise Forbidden(message=t("auth", "INVITE_REVOKED", default="邀请已被撤销"), error="INVITE_REVOKED")
+        if inv.expires_at is not None and inv.expires_at <= now:
+            raise Forbidden(message=t("auth", "INVITE_EXPIRED", default="邀请已过期"), error="INVITE_EXPIRED")
+        org = inv.organization
+        role_code = inv.role_code
+        inviter_user_id = inv.invited_by_user_id
+        expires_at = inv.expires_at
 
-    org = inv.organization
     if org is None or not org.is_active:
         raise Forbidden(message=t("auth", "ORG_INACTIVE", default="组织不可用"), error="ORG_INACTIVE")
 
     inviter: InvitationPreviewInviterOut | None = None
-    if inv.invited_by_user_id is not None:
-        u = await User.get_or_none(id=inv.invited_by_user_id)
+    if inviter_user_id is not None:
+        u = await User.get_or_none(id=inviter_user_id)
         if u is not None:
             inviter = InvitationPreviewInviterOut(
                 id=u.id,
@@ -540,29 +716,31 @@ async def preview_invitation(
                 avatar_url=u.avatar_url,
             )
 
-    # Role semantic info (prefer invitation role_code; fall back to system default role).
+    # Role semantic info (prefer link role_code; fall back to system default role).
     role_obj: Role | None = None
-    if inv.role_code:
-        role_obj = await Role.get_or_none(code=inv.role_code)
+    if role_code:
+        role_obj = await Role.get_or_none(code=role_code)
     if role_obj is None:
         role_obj = await Role.get_or_none(code="viewer")
     if role_obj is None:
         role_obj = await Role.filter(is_default=True).order_by("code").first()
 
     role_out = InvitationPreviewRoleOut(
-        code=role_obj.code if role_obj is not None else (inv.role_code or "viewer"),
-        name=role_obj.name if role_obj is not None else (inv.role_code or "viewer"),
+        code=role_obj.code if role_obj is not None else (role_code or "viewer"),
+        name=role_obj.name if role_obj is not None else (role_code or "viewer"),
         description=role_obj.description if role_obj is not None else None,
     )
 
-    user_exists = await User.filter(email=inv.email).exists()
+    # Invite links are reusable and not email-bound; hide recipient email in preview to avoid confusion.
+    invitation_email = None if link is not None else (inv.email if inv is not None else None)
+    user_exists = bool(invitation_email) and await User.filter(email=invitation_email).exists()
 
     out = InvitationPreviewResult(
         invitation=InvitationPreviewInvitationOut(
-            email=inv.email,
-            masked_email=_mask_email(inv.email),
-            role_code=inv.role_code,
-            expires_at=inv.expires_at,
+            email=invitation_email,
+            masked_email=_mask_email(invitation_email) if invitation_email else None,
+            role_code=role_code,
+            expires_at=expires_at,
         ),
         organization=InvitationPreviewOrganizationOut(
             id=org.id,
@@ -602,46 +780,47 @@ async def accept_existing_invitation(
     assigned_role_code: str | None = None
 
     async with in_transaction() as conn:
+        link = await OrganizationInviteLink.filter(token_hash=token_hash).using_db(conn).select_for_update().first()
         inv = await OrganizationInvitation.filter(token_hash=token_hash).using_db(conn).select_for_update().first()
-        if inv is None:
+
+        if link is None and inv is None:
             raise NotFound(message=t("auth", "INVITE_NOT_FOUND", default="邀请不存在"), error="INVITE_NOT_FOUND")
 
-        if inv.revoked_at is not None:
-            raise Forbidden(message=t("auth", "INVITE_REVOKED", default="邀请已被撤销"), error="INVITE_REVOKED")
-        if inv.accepted_at is not None:
-            raise Conflict(
-                message=t("auth", "INVITE_ALREADY_ACCEPTED", default="邀请已被使用"),
-                error="INVITE_ALREADY_ACCEPTED",
-            )
-        if inv.expires_at is not None and inv.expires_at <= now:
-            raise Forbidden(message=t("auth", "INVITE_EXPIRED", default="邀请已过期"), error="INVITE_EXPIRED")
+        if link is not None:
+            if link.disabled_at is not None:
+                raise Forbidden(message=t("auth", "INVITE_REVOKED", default="邀请已被撤销"), error="INVITE_REVOKED")
+            if link.expires_at is not None and link.expires_at <= now:
+                raise Forbidden(message=t("auth", "INVITE_EXPIRED", default="邀请已过期"), error="INVITE_EXPIRED")
+            organization_id = UUID(str(link.organization_id))
+            inviter_user_id = link.created_by_user_id
+            assigned_role_code = link.role_code
+        else:
+            assert inv is not None
+            if inv.revoked_at is not None:
+                raise Forbidden(message=t("auth", "INVITE_REVOKED", default="邀请已被撤销"), error="INVITE_REVOKED")
+            if inv.expires_at is not None and inv.expires_at <= now:
+                raise Forbidden(message=t("auth", "INVITE_EXPIRED", default="邀请已过期"), error="INVITE_EXPIRED")
+            organization_id = UUID(str(inv.organization_id))
+            inviter_user_id = inv.invited_by_user_id
+            assigned_role_code = inv.role_code
 
-        organization_id = UUID(str(inv.organization_id))
         org = await Organization.get_or_none(id=organization_id, using_db=conn)
         if org is None or not org.is_active:
             raise Forbidden(message=t("auth", "ORG_INACTIVE", default="组织不可用"), error="ORG_INACTIVE")
-
-        invite_email = (inv.email or "").strip().lower()
-        user_email = (user.email or "").strip().lower()
-        if not user_email or user_email != invite_email:
-            raise Forbidden(
-                message=t("auth", "INVITE_EMAIL_MISMATCH", default="当前账号邮箱与邀请邮箱不一致"),
-                error="INVITE_EMAIL_MISMATCH",
-            )
 
         membership, _created = await Membership.get_or_create(
             using_db=conn,
             user_id=user.id,
             organization_id=org.id,
-            defaults={"status": MembershipStatus.ACTIVE, "invited_by_user_id": inv.invited_by_user_id},
+            defaults={"status": MembershipStatus.ACTIVE, "invited_by_user_id": inviter_user_id},
         )
         if membership.status != MembershipStatus.ACTIVE:
             membership.status = MembershipStatus.ACTIVE
             await membership.save(using_db=conn, update_fields=["status"])
 
         roles: list[Role] = []
-        if inv.role_code:
-            role = await Role.get_or_none(code=inv.role_code, using_db=conn)
+        if assigned_role_code:
+            role = await Role.get_or_none(code=assigned_role_code, using_db=conn)
             if role is not None:
                 roles = [role]
         else:
@@ -652,12 +831,33 @@ async def accept_existing_invitation(
 
         await _ensure_role_codes_have_admin_access(role_codes=[r.code for r in roles], conn=conn)
 
-        inv.accepted_by_user_id = user.id
-        inv.accepted_at = now
-        await inv.save(using_db=conn, update_fields=["accepted_by_user_id", "accepted_at"])
+        # Best-effort: mark the delivery record for my email as accepted (if any).
+        # Invite links are reusable, so we do NOT invalidate the token.
+        user_email = (user.email or "").strip().lower()
+        if user_email:
+            await (
+                OrganizationInvitation
+                .filter(
+                    organization_id=organization_id,
+                    token_hash=token_hash,
+                    email=user_email,
+                    revoked_at=None,
+                    accepted_at=None,
+                )
+                .using_db(conn)
+                .update(
+                    accepted_by_user_id=user.id,
+                    accepted_at=now,
+                )
+            )
 
-        inviter_user_id = inv.invited_by_user_id
-        assigned_role_code = inv.role_code or (roles[0].code if roles else None)
+        if link is not None:
+            link.uses_count = int(link.uses_count or 0) + 1
+            link.last_used_by_user_id = user.id
+            link.last_used_at = now
+            await link.save(using_db=conn, update_fields=["uses_count", "last_used_by_user_id", "last_used_at"])
+
+        assigned_role_code = assigned_role_code or (roles[0].code if roles else None)
 
     # Best-effort: notify inviter that the invite was accepted.
     # This must never break the onboarding flow if notification creation fails.

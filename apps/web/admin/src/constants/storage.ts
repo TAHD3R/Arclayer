@@ -4,4 +4,5 @@ export const STORAGE_KEYS = {
   auth: "celestial:admin:auth",
   currentOrg: "celestial:admin:currentOrg",
   sidebarNotificationCenter: "celestial:admin:sidebarNotificationCenter",
+  dataTableVisibility: "celestial:admin:dataTable:visibility",
 } as const;

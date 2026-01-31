@@ -21,6 +21,7 @@
   "ADMIN_ORG_TOOLS_PROVIDER_UNAVAILABLE": "Admin org tools provider unavailable",
   "ADMIN_RBAC_PROVIDER_UNAVAILABLE": "Admin RBAC provider unavailable",
   "ADMIN_RBAC_ORG_PROVIDER_UNAVAILABLE": "Admin RBAC-Org provider unavailable",
+  "CANNOT_DISABLE_SELF": "You can't disable your own account",
 
   "INVITE_TOKEN_INVALID": "Invalid invitation token",
   "INVITE_NOT_FOUND": "Invitation not found",

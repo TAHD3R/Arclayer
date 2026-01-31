@@ -2,8 +2,8 @@ import { api } from "@/lib/http";
 import type { TokenPair } from "@/api/auth";
 
 export interface InvitationPreviewInvitation {
-  email: string;
-  maskedEmail: string;
+  email: string | null;
+  maskedEmail: string | null;
   roleCode: string | null;
   expiresAt: string | null;
 }
@@ -55,8 +55,61 @@ export async function acceptExistingInvitation(
   return api.post<AcceptExistingInvitationResult>("/auth/invitations/accept-existing", { token });
 }
 
+export interface MyInvitationOrganization {
+  id: string;
+  name: string;
+  slug: string;
+  logoUrl: string | null;
+}
+
+export interface MyInvitationInviter {
+  id: string;
+  username: string;
+  email: string | null;
+  displayName: string | null;
+  avatarUrl: string | null;
+}
+
+export interface MyInvitation {
+  id: string;
+  email: string;
+  roleCode: string | null;
+  expiresAt: string | null;
+  organization: MyInvitationOrganization;
+  inviter: MyInvitationInviter | null;
+  status: "pending" | "accepted";
+  acceptedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PageData<T> {
+  items: T[];
+  total: number;
+  page: number;
+  size: number;
+  pages: number;
+  next?: number | null;
+  prev?: number | null;
+}
+
+export async function listMyInvitations(params: {
+  page?: number;
+  size?: number;
+  q?: string;
+  status: "pending" | "accepted";
+}): Promise<PageData<MyInvitation>> {
+  const qs = new URLSearchParams();
+  qs.set("page", String(params.page ?? 1));
+  qs.set("size", String(params.size ?? 10));
+  qs.set("status", params.status);
+  if (params.q) qs.set("q", params.q);
+  return api.get<PageData<MyInvitation>>(`/auth/me/invitations?${qs.toString()}`);
+}
+
 export async function acceptInvitation(payload: {
   token: string;
+  email?: string;
   username: string;
   password: string;
   confirmPassword: string;

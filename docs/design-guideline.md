@@ -49,17 +49,15 @@ Strictly control letter spacing and font weight according to Slack’s official 
 
 #### 3.1 Geometry Constraints
 
-While the system variable defines `--radius: 1.3rem`, it **must be overridden to 0.25rem** to align with the rigid, professional aesthetic of CelestialCMS.
-
-* **Radius:** Unified at `0.25rem`.
+* **Radius:** Unified at `0.5rem`.
 * **Border:** Use the 1px solid line defined by the `--border` variable to distinguish layers; do not use shadows (`--shadow-opacity: 0`).
 
 ```
 :root {
-  --radius-sm: 0.125rem;
-  --radius: 0.25rem;
-  --radius-md: 0.375rem;
-  --radius-lg: 0.5rem;
+  --radius-sm: 0.25rem;
+  --radius: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
 }
 ```
 

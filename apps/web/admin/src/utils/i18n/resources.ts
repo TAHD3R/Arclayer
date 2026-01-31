@@ -10,6 +10,7 @@ import zhErrors from "@locales/zh-CN/errors.json";
 import zhAuth from "@locales/zh-CN/auth.json";
 import zhPlugin from "@locales/zh-CN/plugin.json";
 import zhInvite from "@locales/zh-CN/invite.json";
+import zhTeam from "@locales/zh-CN/team.json";
 
 import enCommon from "@locales/en-US/common.json";
 import enNav from "@locales/en-US/nav.json";
@@ -23,12 +24,14 @@ import enErrors from "@locales/en-US/errors.json";
 import enAuth from "@locales/en-US/auth.json";
 import enPlugin from "@locales/en-US/plugin.json";
 import enInvite from "@locales/en-US/invite.json";
+import enTeam from "@locales/en-US/team.json";
 
 export const I18N_NAMESPACES = [
   "common",
   "nav",
   "setup",
   "invite",
+  "team",
   "settings",
   "account",
   "notifications",
@@ -45,6 +48,7 @@ export const i18nResources = {
     nav: zhNav,
     setup: zhSetup,
     invite: zhInvite,
+    team: zhTeam,
     settings: zhSettings,
     account: zhAccount,
     notifications: zhNotifications,
@@ -59,6 +63,7 @@ export const i18nResources = {
     nav: enNav,
     setup: enSetup,
     invite: enInvite,
+    team: enTeam,
     settings: enSettings,
     account: enAccount,
     notifications: enNotifications,

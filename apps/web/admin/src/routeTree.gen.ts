@@ -15,7 +15,9 @@ import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AcceptInviteRouteImport } from './routes/accept-invite'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as TeamIndexRouteImport } from './routes/team/index'
 import { Route as AssetsIndexRouteImport } from './routes/assets/index'
+import { Route as TeamMembersIndexRouteImport } from './routes/team/members/index'
 import { Route as SettingsSeoIndexRouteImport } from './routes/settings/seo/index'
 import { Route as SettingsGeneralIndexRouteImport } from './routes/settings/general/index'
 import { Route as PluginsInstalledIndexRouteImport } from './routes/plugins/installed/index'
@@ -60,9 +62,19 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TeamIndexRoute = TeamIndexRouteImport.update({
+  id: '/team/',
+  path: '/team/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AssetsIndexRoute = AssetsIndexRouteImport.update({
   id: '/assets/',
   path: '/assets/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TeamMembersIndexRoute = TeamMembersIndexRouteImport.update({
+  id: '/team/members/',
+  path: '/team/members/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsSeoIndexRoute = SettingsSeoIndexRouteImport.update({
@@ -144,6 +156,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/setup': typeof SetupRoute
   '/assets/': typeof AssetsIndexRoute
+  '/team/': typeof TeamIndexRoute
   '/appearance/navigation/': typeof AppearanceNavigationIndexRoute
   '/appearance/styles/': typeof AppearanceStylesIndexRoute
   '/appearance/themes/': typeof AppearanceThemesIndexRoute
@@ -152,6 +165,7 @@ export interface FileRoutesByFullPath {
   '/plugins/installed/': typeof PluginsInstalledIndexRoute
   '/settings/general/': typeof SettingsGeneralIndexRoute
   '/settings/seo/': typeof SettingsSeoIndexRoute
+  '/team/members/': typeof TeamMembersIndexRoute
   '/settings/maintenance/audit-log/': typeof SettingsMaintenanceAuditLogIndexRoute
   '/settings/maintenance/snapshots/': typeof SettingsMaintenanceSnapshotsIndexRoute
   '/settings/maintenance/status/': typeof SettingsMaintenanceStatusIndexRoute
@@ -166,6 +180,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/setup': typeof SetupRoute
   '/assets': typeof AssetsIndexRoute
+  '/team': typeof TeamIndexRoute
   '/appearance/navigation': typeof AppearanceNavigationIndexRoute
   '/appearance/styles': typeof AppearanceStylesIndexRoute
   '/appearance/themes': typeof AppearanceThemesIndexRoute
@@ -174,6 +189,7 @@ export interface FileRoutesByTo {
   '/plugins/installed': typeof PluginsInstalledIndexRoute
   '/settings/general': typeof SettingsGeneralIndexRoute
   '/settings/seo': typeof SettingsSeoIndexRoute
+  '/team/members': typeof TeamMembersIndexRoute
   '/settings/maintenance/audit-log': typeof SettingsMaintenanceAuditLogIndexRoute
   '/settings/maintenance/snapshots': typeof SettingsMaintenanceSnapshotsIndexRoute
   '/settings/maintenance/status': typeof SettingsMaintenanceStatusIndexRoute
@@ -189,6 +205,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/setup': typeof SetupRoute
   '/assets/': typeof AssetsIndexRoute
+  '/team/': typeof TeamIndexRoute
   '/appearance/navigation/': typeof AppearanceNavigationIndexRoute
   '/appearance/styles/': typeof AppearanceStylesIndexRoute
   '/appearance/themes/': typeof AppearanceThemesIndexRoute
@@ -197,6 +214,7 @@ export interface FileRoutesById {
   '/plugins/installed/': typeof PluginsInstalledIndexRoute
   '/settings/general/': typeof SettingsGeneralIndexRoute
   '/settings/seo/': typeof SettingsSeoIndexRoute
+  '/team/members/': typeof TeamMembersIndexRoute
   '/settings/maintenance/audit-log/': typeof SettingsMaintenanceAuditLogIndexRoute
   '/settings/maintenance/snapshots/': typeof SettingsMaintenanceSnapshotsIndexRoute
   '/settings/maintenance/status/': typeof SettingsMaintenanceStatusIndexRoute
@@ -213,6 +231,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/setup'
     | '/assets/'
+    | '/team/'
     | '/appearance/navigation/'
     | '/appearance/styles/'
     | '/appearance/themes/'
@@ -221,6 +240,7 @@ export interface FileRouteTypes {
     | '/plugins/installed/'
     | '/settings/general/'
     | '/settings/seo/'
+    | '/team/members/'
     | '/settings/maintenance/audit-log/'
     | '/settings/maintenance/snapshots/'
     | '/settings/maintenance/status/'
@@ -235,6 +255,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/setup'
     | '/assets'
+    | '/team'
     | '/appearance/navigation'
     | '/appearance/styles'
     | '/appearance/themes'
@@ -243,6 +264,7 @@ export interface FileRouteTypes {
     | '/plugins/installed'
     | '/settings/general'
     | '/settings/seo'
+    | '/team/members'
     | '/settings/maintenance/audit-log'
     | '/settings/maintenance/snapshots'
     | '/settings/maintenance/status'
@@ -257,6 +279,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/setup'
     | '/assets/'
+    | '/team/'
     | '/appearance/navigation/'
     | '/appearance/styles/'
     | '/appearance/themes/'
@@ -265,6 +288,7 @@ export interface FileRouteTypes {
     | '/plugins/installed/'
     | '/settings/general/'
     | '/settings/seo/'
+    | '/team/members/'
     | '/settings/maintenance/audit-log/'
     | '/settings/maintenance/snapshots/'
     | '/settings/maintenance/status/'
@@ -280,6 +304,7 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   SetupRoute: typeof SetupRoute
   AssetsIndexRoute: typeof AssetsIndexRoute
+  TeamIndexRoute: typeof TeamIndexRoute
   AppearanceNavigationIndexRoute: typeof AppearanceNavigationIndexRoute
   AppearanceStylesIndexRoute: typeof AppearanceStylesIndexRoute
   AppearanceThemesIndexRoute: typeof AppearanceThemesIndexRoute
@@ -288,6 +313,7 @@ export interface RootRouteChildren {
   PluginsInstalledIndexRoute: typeof PluginsInstalledIndexRoute
   SettingsGeneralIndexRoute: typeof SettingsGeneralIndexRoute
   SettingsSeoIndexRoute: typeof SettingsSeoIndexRoute
+  TeamMembersIndexRoute: typeof TeamMembersIndexRoute
   SettingsMaintenanceAuditLogIndexRoute: typeof SettingsMaintenanceAuditLogIndexRoute
   SettingsMaintenanceSnapshotsIndexRoute: typeof SettingsMaintenanceSnapshotsIndexRoute
   SettingsMaintenanceStatusIndexRoute: typeof SettingsMaintenanceStatusIndexRoute
@@ -339,11 +365,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/team/': {
+      id: '/team/'
+      path: '/team'
+      fullPath: '/team/'
+      preLoaderRoute: typeof TeamIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/assets/': {
       id: '/assets/'
       path: '/assets'
       fullPath: '/assets/'
       preLoaderRoute: typeof AssetsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/team/members/': {
+      id: '/team/members/'
+      path: '/team/members'
+      fullPath: '/team/members/'
+      preLoaderRoute: typeof TeamMembersIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings/seo/': {
@@ -448,6 +488,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   SetupRoute: SetupRoute,
   AssetsIndexRoute: AssetsIndexRoute,
+  TeamIndexRoute: TeamIndexRoute,
   AppearanceNavigationIndexRoute: AppearanceNavigationIndexRoute,
   AppearanceStylesIndexRoute: AppearanceStylesIndexRoute,
   AppearanceThemesIndexRoute: AppearanceThemesIndexRoute,
@@ -456,6 +497,7 @@ const rootRouteChildren: RootRouteChildren = {
   PluginsInstalledIndexRoute: PluginsInstalledIndexRoute,
   SettingsGeneralIndexRoute: SettingsGeneralIndexRoute,
   SettingsSeoIndexRoute: SettingsSeoIndexRoute,
+  TeamMembersIndexRoute: TeamMembersIndexRoute,
   SettingsMaintenanceAuditLogIndexRoute: SettingsMaintenanceAuditLogIndexRoute,
   SettingsMaintenanceSnapshotsIndexRoute:
     SettingsMaintenanceSnapshotsIndexRoute,

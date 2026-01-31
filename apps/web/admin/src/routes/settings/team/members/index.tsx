@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { PlaceholderView } from "@/views/PlaceholderView";
+import { TeamInvitationsView } from "@/views/team/TeamInvitationsView";
 
 export const Route = createFileRoute("/settings/team/members/")({
-  component: () => <PlaceholderView titleKey="nav:NAV_SETTINGS_TEAM_MEMBERS" />,
+  component: TeamInvitationsView,
 });

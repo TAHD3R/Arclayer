@@ -106,4 +106,10 @@ CORE_PERMISSION_TEMPLATES: list[PermissionTemplate] = [
         description="Allow creating, listing, and revoking invitations in current organization.",
         default_roles=["admin"],
     ),
+    PermissionTemplate(
+        code="team:invite-links:manage",
+        name="Manage invite links",
+        description="Allow managing reusable invite links in current organization.",
+        default_roles=["admin"],
+    ),
 ]

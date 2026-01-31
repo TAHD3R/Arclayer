@@ -23,6 +23,26 @@ export interface UserProfile {
   avatar_url: string | null;
 }
 
+export interface PageData<T> {
+  items: T[];
+  total: number;
+  page: number;
+  size: number;
+  pages: number;
+  next?: number | null;
+  prev?: number | null;
+}
+
+export interface MyOrganization {
+  organization_id: string;
+  slug: string;
+  name: string;
+  logo_url: string | null;
+  is_active: boolean;
+  membership_id: string;
+  membership_status: "active" | "invited" | "disabled";
+}
+
 export interface ResetTokenPayload {
   reset_token: string;
   expires_in: number;
@@ -38,6 +58,16 @@ export async function refresh(payload: { refresh_token: string }): Promise<Token
 
 export async function me(): Promise<UserProfile> {
   return api.get<UserProfile>("/auth/me");
+}
+
+export async function meOrgs(
+  params: { page?: number; size?: number } = {},
+): Promise<PageData<MyOrganization>> {
+  const qs = new URLSearchParams();
+  qs.set("page", String(params.page ?? 1));
+  qs.set("size", String(params.size ?? 200));
+  const q = qs.toString();
+  return api.get<PageData<MyOrganization>>(`/auth/me/orgs?${q}`);
 }
 
 export async function meAuthz(): Promise<AuthzSnapshot> {

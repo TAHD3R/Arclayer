@@ -82,6 +82,10 @@ class AcceptInvitationRequest(BaseSchema):
     model_config = ConfigDict(str_strip_whitespace=True, validate_assignment=True)
 
     token: str = Field(min_length=8, max_length=512, description="Invitation token.")
+    email: EmailStr | None = Field(
+        default=None,
+        description="Email address used for registration (required for invite links that are not email-bound).",
+    )
     username: str = Field(
         min_length=6,
         max_length=18,
@@ -202,8 +206,8 @@ class UserProfile(BaseOut):
 class InvitationPreviewInvitationOut(BaseSchema):
     """Invitation summary for public preview."""
 
-    email: str = Field(..., description="Invited email address (bound to the invitation).")
-    masked_email: str = Field(..., description="Masked email address for safe display.")
+    email: str | None = Field(default=None, description="Invited email address (nullable for invite links).")
+    masked_email: str | None = Field(default=None, description="Masked email for safe display (nullable).")
     role_code: str | None = Field(default=None, description="Role code to assign when accepted.")
     expires_at: datetime | None = Field(default=None, description="Invitation expiry datetime (UTC).")
 
@@ -242,6 +246,47 @@ class InvitationPreviewResult(BaseSchema):
     inviter: InvitationPreviewInviterOut | None = Field(default=None, description="Inviter info (nullable).")
     role: InvitationPreviewRoleOut
     user_exists: bool = Field(default=False, description="Whether the invited email already has an account.")
+
+
+class MyInvitationOrganizationOut(BaseSchema):
+    """Organization info for 'my invitations' listing."""
+
+    id: UUID = Field(..., description="Organization id.")
+    name: str = Field(..., description="Organization name.")
+    slug: str = Field(..., description="Organization slug.")
+    logo_url: str | None = Field(default=None, description="Organization logo url.")
+
+
+class MyInvitationInviterOut(BaseSchema):
+    """Inviter user summary for 'my invitations' listing."""
+
+    id: UUID = Field(..., description="Inviter user id.")
+    username: str = Field(..., description="Inviter username.")
+    email: str | None = Field(default=None, description="Inviter email.")
+    display_name: str | None = Field(default=None, description="Inviter display name.")
+    avatar_url: str | None = Field(default=None, description="Inviter avatar url.")
+
+
+class MyInvitationOut(BaseOut):
+    """Invitation record visible to the current user (bound by email)."""
+
+    email: str = Field(..., description="Invited email address (should match current user's email).")
+    role_code: str | None = Field(default=None, description="Role code assigned when accepted.")
+    expires_at: datetime | None = Field(default=None, description="Expiration datetime (UTC).")
+
+    organization: MyInvitationOrganizationOut = Field(..., description="Target organization.")
+    inviter: MyInvitationInviterOut | None = Field(default=None, description="Inviter summary (if available).")
+
+    status: str = Field(..., description="Invitation status: pending/accepted.")
+    accepted_at: datetime | None = Field(default=None, description="Accepted datetime (UTC).")
+
+    created_at: datetime = Field(..., description="Created datetime (UTC).")
+    updated_at: datetime = Field(..., description="Updated datetime (UTC).")
+
+
+class MyInvitationListQuery(BaseSchema):
+    q: str | None = Field(default=None, description="Search query (organization/role).")
+    status: str | None = Field(default=None, description="Filter by status: pending/accepted.")
 
 
 class AcceptExistingInvitationRequest(BaseSchema):

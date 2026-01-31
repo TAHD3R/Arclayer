@@ -1,14 +1,4 @@
-import {
-  Avatar,
-  Button,
-  Checkbox,
-  Descriptions,
-  Divider,
-  Form,
-  Input,
-  Modal,
-  Typography,
-} from "antd";
+import { Avatar, Button, Checkbox, Divider, Form, Input, Modal, Typography } from "antd";
 import { Lock, User as UserIcon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -37,23 +27,48 @@ type JoinMode = "login" | "register";
 // Keep behavior aligned with backend PASSWORD_REGEX (apps/api/common/constants/auth.py).
 const PASSWORD_REGEX = /^(?=.*[A-Za-z])(?=.*\d)[[A-Za-z\d~!@#$%^&*()_\-+=\]{}|;:'",.<>?/]{8,128}$/;
 
-function formatUtcIso(value: string): string {
-  try {
-    const d = new Date(value);
-    return d.toISOString();
-  } catch {
-    return value;
-  }
-}
+function formatInvitationExpiresRelative(opts: {
+  t: (k: string, params?: Record<string, unknown>) => string;
+  locale: string;
+  expiresAt: string | null | undefined;
+}): string {
+  const expiresAt = (opts.expiresAt || "").trim();
+  if (!expiresAt) return opts.t("invite:INVITE_EXPIRES_RELATIVE_NEVER");
 
-function formatLocal(value: string): string {
-  try {
-    const d = new Date(value);
-    // Keep it simple and consistent; avoid introducing a new date lib for this page.
-    return d.toLocaleString();
-  } catch {
-    return value;
+  const expires = new Date(expiresAt);
+  if (Number.isNaN(expires.getTime())) return opts.t("invite:INVITE_EXPIRES_RELATIVE_UNKNOWN");
+
+  const now = Date.now();
+  const diffMs = expires.getTime() - now;
+  const absMs = Math.abs(diffMs);
+
+  const minute = 60_000;
+  const hour = 60 * minute;
+  const day = 24 * hour;
+
+  let unit: Intl.RelativeTimeFormatUnit = "day";
+  let value = 0;
+
+  if (absMs < hour) {
+    unit = "minute";
+    value = Math.round(diffMs / minute);
+  } else if (absMs < day) {
+    unit = "hour";
+    value = Math.round(diffMs / hour);
+  } else {
+    unit = "day";
+    value = Math.round(diffMs / day);
   }
+
+  // Avoid "in 0 minutes" / "0 minutes ago" for near-boundary moments.
+  if (value === 0) value = diffMs >= 0 ? 1 : -1;
+
+  const rtf = new Intl.RelativeTimeFormat(opts.locale, { numeric: "auto" });
+  const relative = rtf.format(value, unit);
+
+  return diffMs >= 0
+    ? opts.t("invite:INVITE_EXPIRES_RELATIVE_FUTURE", { relative })
+    : opts.t("invite:INVITE_EXPIRES_RELATIVE_PAST", { relative });
 }
 
 function resolveRoleText(
@@ -85,7 +100,7 @@ function resolveRoleText(
 }
 
 export function AcceptInviteView(props: { token: string | null }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const reducedMotion = usePrefersReducedMotion();
 
@@ -140,6 +155,7 @@ export function AcceptInviteView(props: { token: string | null }) {
 
   const registerAcceptMutation = useMutation({
     mutationFn: async (payload: {
+      email?: string;
       username: string;
       displayName?: string;
       password: string;
@@ -147,6 +163,7 @@ export function AcceptInviteView(props: { token: string | null }) {
     }) =>
       invitationApi.acceptInvitation({
         token,
+        email: payload.email,
         username: payload.username,
         password: payload.password,
         confirmPassword: payload.confirmPassword,
@@ -244,10 +261,21 @@ export function AcceptInviteView(props: { token: string | null }) {
     return resolveRoleText(t, roleCode, { name: role?.name, description: role?.description });
   }, [previewQuery.data?.invitation.roleCode, previewQuery.data?.role, t]);
 
+  const expiresRelativeText = useMemo(() => {
+    const expiresAt = previewQuery.data?.invitation.expiresAt;
+    return formatInvitationExpiresRelative({
+      t,
+      locale: i18n.language || "en",
+      expiresAt,
+    });
+  }, [i18n.language, previewQuery.data?.invitation.expiresAt, t]);
+
   const isLoggedIn = !!accessToken;
   const inviteEmail = (previewQuery.data?.invitation.email || "").trim().toLowerCase();
+  const hasBoundEmail = Boolean(inviteEmail);
   const myEmail = (meQuery.data?.email || "").trim().toLowerCase();
-  const emailMatches = isLoggedIn && !!inviteEmail && !!myEmail && inviteEmail === myEmail;
+  // Invite links are reusable; email match is informational only.
+  const emailMatches = Boolean(inviteEmail && myEmail && inviteEmail === myEmail);
 
   const onContinue = () => {
     if (previewQuery.isError || !previewQuery.data) return;
@@ -303,6 +331,11 @@ export function AcceptInviteView(props: { token: string | null }) {
 
   const onLoginAndJoin = async (values: { password: string; keepSession: boolean }) => {
     if (!previewQuery.data) return;
+    if (!previewQuery.data.invitation.email) {
+      // Invite link mode: the invite is not email-bound, so we can't do a "password only" login here.
+      await onBackToLogin();
+      return;
+    }
     try {
       const tokens = await loginMutation.mutateAsync({ password: values.password });
       applyLogin(tokens, { keepSession: values.keepSession });
@@ -315,6 +348,7 @@ export function AcceptInviteView(props: { token: string | null }) {
   };
 
   const onRegisterAndJoin = async (values: {
+    email?: string;
     username: string;
     displayName?: string;
     password: string;
@@ -398,83 +432,43 @@ export function AcceptInviteView(props: { token: string | null }) {
         >
           {previewQuery.data ? (
             <>
-              <Descriptions size="middle" column={1} bordered styles={{ label: { width: 120 } }}>
-                <Descriptions.Item label={t("invite:INVITE_FIELD_ORG")}>
+              <div className="">
+                <div className="flex flex-col items-center text-center">
+                  <Avatar
+                    size={80}
+                    src={previewQuery.data.organization.logoUrl || undefined}
+                    className="mb-4"
+                  >
+                    {(previewQuery.data.organization.name || "O").slice(0, 1)}
+                  </Avatar>
+
+                  <div className="text-2xl font-semibold">
+                    {t("invite:INVITE_PREVIEW_INVITED_TO_ORG", {
+                      inviter: inviterLabel || t("invite:INVITE_INVITER_UNKNOWN"),
+                      orgName: previewQuery.data.organization.name,
+                    })}
+                  </div>
+
+                  <div className="mt-2 text-(--color-muted-foreground)">
+                    {t("invite:INVITE_PREVIEW_INVITED_AS_ROLE", { roleName: roleResolved.name })}
+                  </div>
+
+                  <div className="mt-4  text-(--color-muted-foreground)">
+                    {t("invite:INVITE_SECURITY_NOTICE")}
+                  </div>
+                </div>
+
+                <div className="mt-6 flex items-center justify-between gap-3">
+                  <div className="text-(--color-muted-foreground)">{expiresRelativeText}</div>
                   <div className="flex items-center gap-2">
-                    <Avatar size={24} src={previewQuery.data.organization.logoUrl || undefined}>
-                      {(previewQuery.data.organization.name || "O").slice(0, 1)}
-                    </Avatar>
-                    <span>{previewQuery.data.organization.name}</span>
-                    <span className="text-(--color-muted-foreground) text-xs">
-                      {previewQuery.data.organization.slug
-                        ? `(${previewQuery.data.organization.slug})`
-                        : null}
-                    </span>
+                    <Button onClick={() => void onBackToLogin()}>
+                      {t("invite:INVITE_ACTION_BACK_TO_LOGIN")}
+                    </Button>
+                    <Button type="primary" onClick={onContinue}>
+                      {t("invite:INVITE_ACTION_ACCEPT_JOIN")}
+                    </Button>
                   </div>
-                </Descriptions.Item>
-
-                <Descriptions.Item label={t("invite:INVITE_FIELD_INVITER")}>
-                  {inviterLabel ? (
-                    <div className="flex items-center gap-2">
-                      <Avatar size={24} src={previewQuery.data.inviter?.avatarUrl || undefined}>
-                        {(inviterLabel || "U").slice(0, 1)}
-                      </Avatar>
-                      <span>{inviterLabel}</span>
-                    </div>
-                  ) : (
-                    <span className="text-(--color-muted-foreground)">
-                      {t("invite:INVITE_INVITER_UNKNOWN")}
-                    </span>
-                  )}
-                </Descriptions.Item>
-
-                <Descriptions.Item label={t("invite:INVITE_FIELD_EMAIL")}>
-                  <div>
-                    <div>{previewQuery.data.invitation.maskedEmail}</div>
-                    <div className="text-(--color-muted-foreground) text-xs">
-                      {t("invite:INVITE_EMAIL_BOUND_HELP")}
-                    </div>
-                  </div>
-                </Descriptions.Item>
-
-                <Descriptions.Item label={t("invite:INVITE_FIELD_ROLE")}>
-                  <div>
-                    <div>{roleResolved.name}</div>
-                    {roleResolved.description ? (
-                      <div className="text-(--color-muted-foreground) text-xs">
-                        {roleResolved.description}
-                      </div>
-                    ) : null}
-                  </div>
-                </Descriptions.Item>
-
-                <Descriptions.Item label={t("invite:INVITE_FIELD_EXPIRES")}>
-                  {previewQuery.data.invitation.expiresAt ? (
-                    <div>
-                      <div>{formatLocal(previewQuery.data.invitation.expiresAt)}</div>
-                      <div className="text-(--color-muted-foreground) text-xs">
-                        UTC: {formatUtcIso(previewQuery.data.invitation.expiresAt)}
-                      </div>
-                    </div>
-                  ) : (
-                    <span className="text-(--color-muted-foreground)">
-                      {t("invite:INVITE_EXPIRES_NEVER")}
-                    </span>
-                  )}
-                </Descriptions.Item>
-              </Descriptions>
-
-              <div className="mt-4 text-xs text-(--color-muted-foreground)">
-                {t("invite:INVITE_SECURITY_NOTICE")}
-              </div>
-
-              <div className="mt-6 flex items-center justify-between gap-3">
-                <Button onClick={() => void onBackToLogin()}>
-                  {t("invite:INVITE_ACTION_BACK_TO_LOGIN")}
-                </Button>
-                <Button type="primary" onClick={onContinue}>
-                  {t("invite:INVITE_ACTION_CONTINUE")}
-                </Button>
+                </div>
               </div>
             </>
           ) : null}
@@ -521,19 +515,23 @@ export function AcceptInviteView(props: { token: string | null }) {
             <>
               <div className="rounded-lg border p-4">
                 <Typography.Text strong>
-                  {emailMatches
-                    ? t("invite:INVITE_LOGGED_IN_MATCH")
-                    : t("invite:INVITE_LOGGED_IN_MISMATCH")}
+                  {hasBoundEmail
+                    ? emailMatches
+                      ? t("invite:INVITE_LOGGED_IN_MATCH")
+                      : t("invite:INVITE_LOGGED_IN_MISMATCH")
+                    : t("invite:INVITE_LOGGED_IN_GENERIC")}
                 </Typography.Text>
                 <div className="mt-2 text-sm">
                   <div>
                     {t("invite:INVITE_CURRENT_ACCOUNT")}{" "}
                     <strong>{meQuery.data?.email || t("invite:INVITE_EMAIL_UNKNOWN")}</strong>
                   </div>
-                  <div>
-                    {t("invite:INVITE_INVITED_EMAIL")}{" "}
-                    <strong>{previewQuery.data.invitation.maskedEmail}</strong>
-                  </div>
+                  {hasBoundEmail && previewQuery.data.invitation.maskedEmail ? (
+                    <div>
+                      {t("invite:INVITE_INVITED_EMAIL")}{" "}
+                      <strong>{previewQuery.data.invitation.maskedEmail}</strong>
+                    </div>
+                  ) : null}
                   {currentOrgId ? (
                     <div
                       className="text-xs text-(--color-muted-foreground)"
@@ -547,7 +545,12 @@ export function AcceptInviteView(props: { token: string | null }) {
 
               <div className="mt-6 flex items-center justify-between gap-3">
                 <Button onClick={() => setStep(0)}>{t("invite:INVITE_ACTION_BACK")}</Button>
-                {emailMatches ? (
+                <div className="flex items-center gap-2">
+                  {hasBoundEmail && !emailMatches ? (
+                    <Button onClick={() => void onLogoutAndSwitch()}>
+                      {t("invite:INVITE_ACTION_LOGOUT_SWITCH")}
+                    </Button>
+                  ) : null}
                   <Button
                     type="primary"
                     loading={acceptExistingMutation.isPending}
@@ -555,11 +558,7 @@ export function AcceptInviteView(props: { token: string | null }) {
                   >
                     {t("invite:INVITE_ACTION_JOIN")}
                   </Button>
-                ) : (
-                  <Button onClick={() => void onLogoutAndSwitch()}>
-                    {t("invite:INVITE_ACTION_LOGOUT_SWITCH")}
-                  </Button>
-                )}
+                </div>
               </div>
             </>
           ) : (
@@ -586,70 +585,94 @@ export function AcceptInviteView(props: { token: string | null }) {
               {mode === "login" ? (
                 <>
                   <Typography.Paragraph style={{ marginTop: 0, marginBottom: 12 }}>
-                    {t("invite:INVITE_LOGIN_HINT")}
+                    {hasBoundEmail
+                      ? t("invite:INVITE_LOGIN_HINT")
+                      : t("invite:INVITE_LOGIN_LINK_HINT")}
                   </Typography.Paragraph>
 
-                  <Form<{ password: string; keepSession: boolean }>
-                    layout="vertical"
-                    requiredMark={false}
-                    autoComplete="off"
-                    initialValues={{ keepSession }}
-                    onFinish={onLoginAndJoin}
-                    disabled={loginMutation.isPending || acceptExistingMutation.isPending}
-                  >
-                    <Form.Item label={t("invite:INVITE_FIELD_EMAIL")} style={{ marginBottom: 12 }}>
-                      <Input value={previewQuery.data.invitation.email} disabled size="large" />
-                    </Form.Item>
-
-                    <Form.Item
-                      name="password"
-                      rules={[{ required: true, message: t("auth:VALIDATION_PASSWORD_REQUIRED") }]}
+                  {hasBoundEmail ? (
+                    <Form<{ password: string; keepSession: boolean }>
+                      layout="vertical"
+                      requiredMark={false}
+                      autoComplete="off"
+                      initialValues={{ keepSession }}
+                      onFinish={onLoginAndJoin}
+                      disabled={loginMutation.isPending || acceptExistingMutation.isPending}
                     >
-                      <Input.Password
-                        autoComplete="current-password"
-                        aria-label={t("auth:FIELD_PASSWORD_LABEL")}
-                        placeholder={t("auth:FIELD_PASSWORD_PLACEHOLDER")}
-                        prefix={<Lock size={16} />}
-                        size="large"
-                      />
-                    </Form.Item>
-
-                    <div className="flex items-center justify-between mb-3">
                       <Form.Item
-                        name="keepSession"
-                        valuePropName="checked"
-                        style={{ marginBottom: 0 }}
+                        label={t("invite:INVITE_FIELD_EMAIL")}
+                        style={{ marginBottom: 12 }}
                       >
-                        <Checkbox>{t("auth:KEEP_SESSION")}</Checkbox>
+                        <Input
+                          value={previewQuery.data.invitation.email || ""}
+                          disabled
+                          size="large"
+                        />
                       </Form.Item>
-                      <Button
-                        type="link"
-                        size="small"
-                        style={{ paddingInline: 0 }}
-                        onClick={() => void onForgotPassword()}
-                        disabled={forgotPasswordMutation.isPending}
+
+                      <Form.Item
+                        name="password"
+                        rules={[
+                          { required: true, message: t("auth:VALIDATION_PASSWORD_REQUIRED") },
+                        ]}
                       >
-                        {t("auth:FORGOT_PASSWORD")}
+                        <Input.Password
+                          autoComplete="current-password"
+                          aria-label={t("auth:FIELD_PASSWORD_LABEL")}
+                          placeholder={t("auth:FIELD_PASSWORD_PLACEHOLDER")}
+                          prefix={<Lock size={16} />}
+                          size="large"
+                        />
+                      </Form.Item>
+
+                      <div className="flex items-center justify-between mb-3">
+                        <Form.Item
+                          name="keepSession"
+                          valuePropName="checked"
+                          style={{ marginBottom: 0 }}
+                        >
+                          <Checkbox>{t("auth:KEEP_SESSION")}</Checkbox>
+                        </Form.Item>
+                        <Button
+                          type="link"
+                          size="small"
+                          style={{ paddingInline: 0 }}
+                          onClick={() => void onForgotPassword()}
+                          disabled={forgotPasswordMutation.isPending}
+                        >
+                          {t("auth:FORGOT_PASSWORD")}
+                        </Button>
+                      </div>
+
+                      <Button
+                        type="primary"
+                        htmlType="submit"
+                        block
+                        size="large"
+                        loading={loginMutation.isPending || acceptExistingMutation.isPending}
+                      >
+                        {t("invite:INVITE_ACTION_LOGIN_JOIN")}
                       </Button>
-                    </div>
 
-                    <Button
-                      type="primary"
-                      htmlType="submit"
-                      block
-                      size="large"
-                      loading={loginMutation.isPending || acceptExistingMutation.isPending}
-                    >
-                      {t("invite:INVITE_ACTION_LOGIN_JOIN")}
-                    </Button>
-
-                    <div className="mt-4 flex items-center justify-between">
-                      <Button onClick={() => setStep(0)}>{t("invite:INVITE_ACTION_BACK")}</Button>
-                      <Button onClick={() => void onBackToLogin()}>
+                      <div className="mt-4 flex items-center justify-between">
+                        <Button onClick={() => setStep(0)}>{t("invite:INVITE_ACTION_BACK")}</Button>
+                        <Button onClick={() => void onBackToLogin()}>
+                          {t("invite:INVITE_ACTION_BACK_TO_LOGIN")}
+                        </Button>
+                      </div>
+                    </Form>
+                  ) : (
+                    <div className="flex flex-col gap-3">
+                      <Button
+                        type="primary"
+                        block
+                        size="large"
+                        onClick={() => void onBackToLogin()}
+                      >
                         {t("invite:INVITE_ACTION_BACK_TO_LOGIN")}
                       </Button>
                     </div>
-                  </Form>
+                  )}
                 </>
               ) : (
                 <>
@@ -658,6 +681,7 @@ export function AcceptInviteView(props: { token: string | null }) {
                   </Typography.Paragraph>
 
                   <Form<{
+                    email?: string;
                     username: string;
                     displayName?: string;
                     password: string;
@@ -669,9 +693,35 @@ export function AcceptInviteView(props: { token: string | null }) {
                     onFinish={onRegisterAndJoin}
                     disabled={registerAcceptMutation.isPending}
                   >
-                    <Form.Item label={t("invite:INVITE_FIELD_EMAIL")} style={{ marginBottom: 12 }}>
-                      <Input value={previewQuery.data.invitation.email} disabled size="large" />
-                    </Form.Item>
+                    {hasBoundEmail ? (
+                      <Form.Item
+                        label={t("invite:INVITE_FIELD_EMAIL")}
+                        style={{ marginBottom: 12 }}
+                      >
+                        <Input
+                          value={previewQuery.data.invitation.email || ""}
+                          disabled
+                          size="large"
+                        />
+                      </Form.Item>
+                    ) : (
+                      <Form.Item
+                        name="email"
+                        label={t("invite:INVITE_FIELD_EMAIL")}
+                        style={{ marginBottom: 12 }}
+                        rules={[
+                          { required: true, message: t("auth:VALIDATION_EMAIL_REQUIRED") },
+                          { type: "email", message: t("auth:VALIDATION_EMAIL_INVALID") },
+                        ]}
+                      >
+                        <Input
+                          autoComplete="email"
+                          aria-label={t("auth:FIELD_EMAIL_LABEL")}
+                          placeholder={t("auth:FIELD_EMAIL_PLACEHOLDER")}
+                          size="large"
+                        />
+                      </Form.Item>
+                    )}
 
                     <Form.Item
                       name="username"
@@ -779,17 +829,10 @@ export function AcceptInviteView(props: { token: string | null }) {
         }}
       />
 
-      <Typography.Title level={1} style={{ marginTop: 0, marginBottom: 8, fontSize: 32 }}>
+      <Typography.Title level={1} className="!mt-0 !mb-2 text-center !text-[32px]">
         {headerMeta.title}
       </Typography.Title>
-      <Typography.Paragraph
-        style={{
-          marginTop: 0,
-          marginBottom: 26,
-          color: "var(--color-muted-foreground)",
-          fontSize: 18,
-        }}
-      >
+      <Typography.Paragraph className="!mt-0 !mb-7 text-center text-(--color-muted-foreground) !text-[18px]">
         {headerMeta.description}
       </Typography.Paragraph>
 

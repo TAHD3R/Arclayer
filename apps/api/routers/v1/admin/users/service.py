@@ -8,7 +8,7 @@ from apps.api.common.schemas import AuthzSnapshot
 from apps.api.common.services import BaseService
 from apps.api.config import Settings, get_settings
 from apps.api.core.authz import get_authz_snapshot_provider
-from apps.api.core.exceptions import Conflict, NotFound, ServiceUnavailable
+from apps.api.core.exceptions import BadRequest, Conflict, NotFound, ServiceUnavailable
 from apps.api.core.http.pagination import PageData, PageParams, paginate_queryset
 from apps.api.core.i18n import t
 from apps.api.core.organization.context import get_current_org_id as get_current_org_id_ctx
@@ -101,7 +101,19 @@ class AdminUsersService(BaseService):
 
         return AdminUserDetailOut.model_validate(user, from_attributes=True)
 
-    async def set_user_status(self, *, user_id: UUID, enabled: bool) -> AdminUserDetailOut:
+    async def set_user_status(
+        self,
+        *,
+        user_id: UUID,
+        enabled: bool,
+        acting_user_id: UUID | None = None,
+    ) -> AdminUserDetailOut:
+        if acting_user_id is not None and str(acting_user_id) == str(user_id) and not enabled:
+            raise BadRequest(
+                message=t("errors", "CANNOT_DISABLE_SELF", default="不能禁用自己的账号"),
+                error="CANNOT_DISABLE_SELF",
+            )
+
         user = await self.repo.get_user(user_id=user_id)
         if user is None:
             raise NotFound(message=t("auth", "USER_NOT_FOUND", default="用户不存在"), error="NOT_FOUND")
@@ -110,6 +122,9 @@ class AdminUsersService(BaseService):
         if user.status != status:
             user.status = status
             await user.save(update_fields=["status"])
+            # Disabling an account should revoke existing tokens as a safety measure.
+            if not enabled:
+                await self.user_repo.increment_token_version(user)
 
         return AdminUserDetailOut.model_validate(user, from_attributes=True)
 

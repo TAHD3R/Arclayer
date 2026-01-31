@@ -138,6 +138,13 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
         icon: Users,
         children: [
           {
+            key: "settings.team.memberList",
+            label: "Members",
+            labelKey: "nav:NAV_SETTINGS_TEAM_MEMBER_LIST",
+            to: "/team/members",
+            icon: Users,
+          },
+          {
             key: "settings.team.members",
             label: "Member invitations",
             labelKey: "nav:NAV_SETTINGS_TEAM_MEMBERS",

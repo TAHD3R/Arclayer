@@ -18,6 +18,7 @@ from apps.api.routers.v1.admin.users.schema import (
     AdminUserUpdateRequest,
 )
 from apps.api.routers.v1.admin.users.service import AdminUsersService
+from apps.api.routers.v1.auth.deps import get_current_user_id
 
 router = APIRouter(tags=["Services: User Service"])
 
@@ -87,9 +88,10 @@ async def update_user(
 )
 async def enable_user(
     user_id: UUID,
+    acting_user_id: UUID = Depends(get_current_user_id),
     service: AdminUsersService = Depends(get_users_service),
 ) -> ResponseModel[AdminUserDetailOut]:
-    user = await service.set_user_status(user_id=user_id, enabled=True)
+    user = await service.set_user_status(user_id=user_id, enabled=True, acting_user_id=acting_user_id)
     return Response.success(data=user)
 
 
@@ -100,9 +102,10 @@ async def enable_user(
 )
 async def disable_user(
     user_id: UUID,
+    acting_user_id: UUID = Depends(get_current_user_id),
     service: AdminUsersService = Depends(get_users_service),
 ) -> ResponseModel[AdminUserDetailOut]:
-    user = await service.set_user_status(user_id=user_id, enabled=False)
+    user = await service.set_user_status(user_id=user_id, enabled=False, acting_user_id=acting_user_id)
     return Response.success(data=user)
 
 
