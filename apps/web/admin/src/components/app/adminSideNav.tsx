@@ -131,7 +131,6 @@ function NavNode({
 }: NodeProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [hovered, setHovered] = useState(false);
 
   const label = item.labelKey ? t(item.labelKey) : item.label;
   const hasChildren = Boolean(item.children?.length);
@@ -141,6 +140,7 @@ function NavNode({
   const isSectionActive = depth === 0 && hasChildren && activeKeys.has(item.key);
   const isTrailActive = activeKeys.has(item.key);
   const showActiveIndicator = depth === 0 && (isSelected || isSectionActive);
+  const itemTextSize = depth === 0 ? "text-[15px]" : "text-sm";
 
   const openSelf = () => {
     if (!hasChildren) return;
@@ -166,6 +166,7 @@ function NavNode({
             "transition-[width,height,padding,color] duration-150 ease-out",
             "text-muted-foreground! hover:text-foreground! hover:bg-transparent! active:bg-transparent!",
             "data-[active=true]:font-semibold data-[active=true]:bg-transparent! data-[active=true]:text-foreground!",
+            itemTextSize,
           )}
           style={
             {
@@ -208,14 +209,13 @@ function NavNode({
             "text-muted-foreground! hover:text-foreground! hover:bg-transparent! active:bg-transparent!",
             "data-[active=true]:font-semibold data-[active=true]:bg-transparent! data-[active=true]:text-foreground!",
             "hover:cursor-pointer",
+            itemTextSize,
           )}
           style={
             {
               paddingLeft: 24 + Math.max(0, depth - 1) * 12,
             } as CSSProperties
           }
-          onMouseEnter={() => setHovered(true)}
-          onMouseLeave={() => setHovered(false)}
           onClick={() => {
             setAnimateOpenKey(item.key);
             openSelf();
@@ -229,7 +229,6 @@ function NavNode({
           <ChevronRightIcon
             size={16}
             expanded={isOpen}
-            isHovered={hovered}
             className="ml-auto shrink-0 text-muted-foreground"
             aria-hidden="true"
           />
