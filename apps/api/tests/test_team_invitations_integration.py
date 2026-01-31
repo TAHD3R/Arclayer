@@ -115,7 +115,7 @@ async def test_team_invitation_accept_flow(prepared_db, integration_valkey_setti
             resp = await client.get("/api/v1/auth/me/orgs", headers=auth_headers)
             assert resp.status_code == 200
             orgs = resp.json()["data"]
-            assert any(item["organizationId"] == str(org.id) for item in orgs)
+            assert any(item["organizationId"] == str(org.id) for item in orgs["items"])
 
             # 5) New user can access org-scoped authz (admin:access).
             resp = await client.get(

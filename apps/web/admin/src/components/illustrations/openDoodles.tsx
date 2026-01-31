@@ -15,35 +15,33 @@ export type IllustrationProps = {
   ariaLabel?: string;
 };
 
-function injectOpenDoodlesTheme(svg: string): string {
-  // Open Doodles 的 SVG 里有大量“黑色填充/描边”以及“未声明 fill/stroke 的元素（默认黑色）”。
-  // 为了在暗黑模式下仍然可见，我们只把“黑色/默认黑色”的部分映射到 currentColor，
-  // 并让 wrapper 使用 text-foreground 作为 currentColor 来源。
-  const css = `
-    /* Normalize black/default shapes to currentColor (works for both light/dark). */
-    :is(path,circle,rect,polygon,polyline,ellipse,line)[fill="#000"],
-    :is(path,circle,rect,polygon,polyline,ellipse,line)[fill="#000000"],
-    :is(path,circle,rect,polygon,polyline,ellipse,line)[fill="black"],
-    :is(path,circle,rect,polygon,polyline,ellipse,line)[fill="rgb(0,0,0)"] { fill: currentColor; }
+function applyOpenDoodlesTheme(svg: string): string {
+  // 之前用 <style> 注入来“只改黑色”，但 inline SVG 的 <style> 会进入全局 CSS 作用域，
+  // 会误伤站内其它 icon（它们同样包含大量 <path>）。
+  // 这里改为“只改 SVG 字符串本身的属性”，确保影响域仅限当前 SVG。
 
-    :is(path,circle,rect,polygon,polyline,ellipse,line)[stroke="#000"],
-    :is(path,circle,rect,polygon,polyline,ellipse,line)[stroke="#000000"],
-    :is(path,circle,rect,polygon,polyline,ellipse,line)[stroke="black"],
-    :is(path,circle,rect,polygon,polyline,ellipse,line)[stroke="rgb(0,0,0)"] { stroke: currentColor; }
+  // 1) 把显式黑色 fill/stroke 映射为 currentColor（暗黑模式会自动变亮）
+  let out = svg
+    .replace(/fill=("|')#000000(\1)/gi, 'fill="currentColor"')
+    .replace(/fill=("|')#000(\1)/gi, 'fill="currentColor"')
+    .replace(/fill=("|')black(\1)/gi, 'fill="currentColor"')
+    .replace(/fill=("|')rgb\\(0\\s*,\\s*0\\s*,\\s*0\\)(\1)/gi, 'fill="currentColor"')
+    .replace(/stroke=("|')#000000(\1)/gi, 'stroke="currentColor"')
+    .replace(/stroke=("|')#000(\1)/gi, 'stroke="currentColor"')
+    .replace(/stroke=("|')black(\1)/gi, 'stroke="currentColor"')
+    .replace(/stroke=("|')rgb\\(0\\s*,\\s*0\\s*,\\s*0\\)(\1)/gi, 'stroke="currentColor"');
 
-    /* Elements without explicit fill default to black; map them to currentColor as well. */
-    :is(path,circle,rect,polygon,polyline,ellipse)[fill]:not([fill="none"]) { }
-    :is(path,circle,rect,polygon,polyline,ellipse):not([fill]) { fill: currentColor; }
-  `.trim();
+  // 2) Open Doodles 里不少轮廓使用“默认 fill=black”（元素未声明 fill）。
+  // 给 <svg> 根节点补一个默认 fill=currentColor，仅影响未显式声明 fill 的元素。
+  // 注意：不要添加 stroke，否则会给未设置 stroke 的形状“凭空加描边”。
+  out = out.replace(/<svg\b(?![^>]*\bfill=)/i, '<svg fill="currentColor"');
 
-  const idx = svg.indexOf(">");
-  if (idx === -1) return svg;
-  return `${svg.slice(0, idx + 1)}<style>${css}</style>${svg.slice(idx + 1)}`;
+  return out;
 }
 
 function IllustrationFromRaw(props: { svg: string } & IllustrationProps) {
   const decorative = !props.ariaLabel;
-  const themedSvg = injectOpenDoodlesTheme(props.svg);
+  const themedSvg = applyOpenDoodlesTheme(props.svg);
 
   return (
     <div
