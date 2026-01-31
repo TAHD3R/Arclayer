@@ -92,3 +92,18 @@ class NotificationRepository(BaseRepository):
         now = datetime.now(tz=UTC)
         updated = int(await queryset.update(read_at=now))
         return total, updated
+
+    async def delete_notification(
+        self,
+        *,
+        org_id: UUID,
+        recipient_user_id: UUID,
+        notification_id: UUID,
+    ) -> int:
+        return int(
+            await NotificationRecord.filter(
+                id=notification_id,
+                org_id=org_id,
+                recipient_user_id=recipient_user_id,
+            ).delete()
+        )

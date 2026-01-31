@@ -17,7 +17,8 @@ import { useAuthStore } from "@/stores/useAuthStore";
 import type { NotificationPreview } from "@/api/notifications";
 import { getUnreadNotificationPreview, markNotificationRead } from "@/api/notifications";
 import { getCoreSettings } from "@/api/settings";
-import { formatRelativeTime } from "@/lib/time/relativeTime";
+import { useNowTick } from "@/hooks/useNowTick";
+import { formatRelativeTimeAt } from "@/lib/time/relativeTime";
 import {
   Sidebar,
   SidebarContent,
@@ -136,6 +137,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
     refetchInterval: 30 * 1000,
     meta: { silent: true },
   });
+  const nowMs = useNowTick(60_000);
 
   const markPreviewItemReadOptimistic = (id: string) => {
     queryClient.setQueryData<NotificationPreview>(["notifications", "preview"], (old) => {
@@ -163,28 +165,28 @@ export function AdminLayout({ children }: PropsWithChildren) {
           } as CSSProperties
         }
       >
-        <SidebarHeader className="flex flex-col items-center gap-4 w-full px-0 pt-16 pb-8">
+        <SidebarHeader className="flex flex-col items-center gap-4 w-full px-0 py-8">
           <AdminLogo ariaLabel="Celestial" />
           <h2 className="font-bold line-clamp-2 text-center select-none max-w-2/3 wrap-break-word">
             {siteName || brandTitle}
           </h2>
         </SidebarHeader>
 
-        <SidebarContent className="pl-0 pr-4 py-8">
+        <SidebarContent className="relative z-0 pl-0 pr-4 scrollbar-none">
           <AdminSiderNav items={ADMIN_NAV_ITEMS} />
         </SidebarContent>
 
-        <SidebarFooter className="p-0">
+        <SidebarFooter className="relative z-10 isolate p-0">
           <div className="w-full bg-sidebar">
             <div className="px-4 pb-3">
               <AdminNotificationCenter
-                maxItems={3}
+                maxItems={2}
                 unreadCount={notificationsPreviewQuery.data?.unreadCount ?? 0}
                 items={(notificationsPreviewQuery.data?.items ?? []).map((n) => ({
                   id: n.id,
                   title: n.title,
                   subtitle: n.body ?? undefined,
-                  time: formatRelativeTime(n.createdAt, i18n.language),
+                  time: formatRelativeTimeAt(n.createdAt, i18n.language, nowMs),
                   to: n.targetTo,
                 }))}
                 onViewAll={() => {

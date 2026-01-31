@@ -4,30 +4,6 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
-catalogs:
-  default:
-    '@types/node':
-      specifier: ^24.10.1
-      version: 24.10.9
-    '@vitest/ui':
-      specifier: ^4.0.18
-      version: 4.0.18
-    oxfmt:
-      specifier: ^0.26.0
-      version: 0.26.0
-    oxlint:
-      specifier: ^1.41.0
-      version: 1.41.0
-    turbo:
-      specifier: ^2.8.0
-      version: 2.8.0
-    typescript:
-      specifier: ~5.9.3
-      version: 5.9.3
-    vitest:
-      specifier: ^4.0.18
-      version: 4.0.18
-
 importers:
 
   .:

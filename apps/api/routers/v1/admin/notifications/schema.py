@@ -57,3 +57,20 @@ class NotificationReadResult(BaseSchema):
 class NotificationReadAllResult(BaseSchema):
     total_count: int = Field(..., ge=0, description="Total unread notifications before operation.")
     success_count: int = Field(..., ge=0, description="Updated count (marked as read).")
+
+
+class NotificationDevSeedRequest(BaseSchema):
+    count: int = Field(
+        default=8,
+        ge=1,
+        le=50,
+        description="How many demo notifications to create (dev/test only).",
+    )
+
+
+class NotificationDevSeedResult(BaseSchema):
+    created_count: int = Field(..., ge=0, description="Created notifications count.")
+
+
+class NotificationDeleteResult(BaseSchema):
+    id: UUID = Field(..., description="Notification id.")

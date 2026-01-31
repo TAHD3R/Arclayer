@@ -88,3 +88,15 @@ export async function markAllNotificationsRead(): Promise<{
 }> {
   return api.post<{ totalCount: number; successCount: number }>(`/admin/notifications/read-all`);
 }
+
+export async function seedDemoNotifications(params?: {
+  count?: number;
+}): Promise<{ createdCount: number }> {
+  return api.post<{ createdCount: number }>(`/admin/notifications/dev/seed`, {
+    count: params?.count ?? 8,
+  });
+}
+
+export async function deleteNotification(notificationId: string): Promise<{ id: string }> {
+  return api.delete<{ id: string }>(`/admin/notifications/${notificationId}`);
+}

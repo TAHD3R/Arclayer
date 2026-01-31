@@ -162,12 +162,29 @@ async def test_admin_notifications_preview_list_and_read(
             assert read2["id"] == str(n1.id)
             assert read2["readAt"] == read1["readAt"]
 
+            # delete should remove the record entirely (hard delete in MVP)
+            resp = await client.delete(f"/api/v1/admin/notifications/{n2.id}", headers=headers)
+            assert resp.status_code == 200
+            deleted = resp.json()["data"]
+            assert deleted["id"] == str(n2.id)
+
+            resp = await client.get("/api/v1/admin/notifications/unread/preview?limit=3", headers=headers)
+            assert resp.status_code == 200
+            preview2 = resp.json()["data"]
+            assert preview2["unreadCount"] == 0
+            assert preview2["items"] == []
+
+            resp = await client.get("/api/v1/admin/notifications?status=all&page=1&size=20", headers=headers)
+            assert resp.status_code == 200
+            page_all2 = resp.json()["data"]
+            assert page_all2["total"] == 2
+
         # DB sanity: only n1 got read_at updated; n2 remains unread; other user's record untouched.
         await n1.refresh_from_db()
-        await n2.refresh_from_db()
+        n2_db = await NotificationRecord.get_or_none(id=n2.id)
         await n3.refresh_from_db()
         assert n1.read_at is not None
-        assert n2.read_at is None
+        assert n2_db is None
         assert n3.read_at is not None
 
 

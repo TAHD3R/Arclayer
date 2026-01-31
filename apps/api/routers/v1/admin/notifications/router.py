@@ -10,6 +10,9 @@ from apps.api.core.http.pagination import PageData, PageParams, get_page_params
 from apps.api.core.http.response import Response, ResponseModel
 from apps.api.core.organization.deps import get_current_org_id
 from apps.api.routers.v1.admin.notifications.schema import (
+    NotificationDeleteResult,
+    NotificationDevSeedRequest,
+    NotificationDevSeedResult,
     NotificationListQuery,
     NotificationOut,
     NotificationPreviewOut,
@@ -87,4 +90,36 @@ async def mark_all_read(
     service: NotificationService = Depends(get_notification_service),
 ) -> ResponseModel[NotificationReadAllResult]:
     out = await service.mark_all_read(org_id=org_id, user_id=user_id)
+    return Response.success(data=out)
+
+
+@router.post(
+    "/dev/seed",
+    response_model=ResponseModel[NotificationDevSeedResult],
+    dependencies=[require_permission_strict("admin:access")],
+    summary="Seed demo notifications (dev/test only)",
+)
+async def seed_demo_notifications(
+    payload: NotificationDevSeedRequest,
+    org_id: UUID = Depends(get_current_org_id),
+    user_id: UUID = Depends(get_current_user_id),
+    service: NotificationService = Depends(get_notification_service),
+) -> ResponseModel[NotificationDevSeedResult]:
+    out = await service.seed_demo_notifications(org_id=org_id, user_id=user_id, count=payload.count)
+    return Response.success(data=out)
+
+
+@router.delete(
+    "/{notification_id}",
+    response_model=ResponseModel[NotificationDeleteResult],
+    dependencies=[require_permission_strict("admin:access")],
+    summary="Delete a notification",
+)
+async def delete_notification(
+    notification_id: UUID,
+    org_id: UUID = Depends(get_current_org_id),
+    user_id: UUID = Depends(get_current_user_id),
+    service: NotificationService = Depends(get_notification_service),
+) -> ResponseModel[NotificationDeleteResult]:
+    out = await service.delete_notification(org_id=org_id, user_id=user_id, notification_id=notification_id)
     return Response.success(data=out)

@@ -6,12 +6,12 @@ function roundTowardZero(value: number): number {
   return value < 0 ? Math.ceil(value) : Math.floor(value);
 }
 
-export function formatRelativeTime(input: string | Date, locale: string): string {
+export function formatRelativeTimeAt(input: string | Date, locale: string, nowMs: number): string {
   const date = typeof input === "string" ? new Date(input) : input;
   const ms = date.getTime();
   if (!Number.isFinite(ms)) return "";
 
-  const diffMs = ms - Date.now();
+  const diffMs = ms - nowMs;
   const diffSec = diffMs / 1000;
 
   const abs = Math.abs(diffSec);
@@ -27,4 +27,8 @@ export function formatRelativeTime(input: string | Date, locale: string): string
   if (abs < 60 * 60 * 24 * 365)
     return format(roundTowardZero(diffSec / (60 * 60 * 24 * 30)), "month");
   return format(roundTowardZero(diffSec / (60 * 60 * 24 * 365)), "year");
+}
+
+export function formatRelativeTime(input: string | Date, locale: string): string {
+  return formatRelativeTimeAt(input, locale, Date.now());
 }

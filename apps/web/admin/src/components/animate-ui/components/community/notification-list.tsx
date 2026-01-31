@@ -22,11 +22,12 @@ const transition: Transition = {
 
 const getCardVariants = (i: number) => ({
   collapsed: {
-    marginTop: i === 0 ? 0 : -44,
-    scaleX: 1 - i * 0.05,
+    // Keep a subtle "stacked" feel without hiding content (readability > visual effect).
+    marginTop: i === 0 ? 0 : -80,
+    scaleX: 1 - i * 0.02,
   },
   expanded: {
-    marginTop: i === 0 ? 0 : 4,
+    marginTop: i === 0 ? 0 : 8,
     scaleX: 1,
   },
 });
@@ -117,15 +118,16 @@ function NotificationList(props: {
               ) : null}
             </div>
             {notification.time || notification.subtitle ? (
-              <div className="mt-0.5 flex min-w-0 items-start gap-1 text-xs font-medium text-sidebar-foreground/60">
+              <div className="mt-0.5 min-w-0">
                 {notification.time ? (
-                  <span className="shrink-0">
+                  <div className="text-[11px] font-medium text-sidebar-foreground/50">
                     {notification.time}
-                    {notification.subtitle ? <span aria-hidden="true">&nbsp;•</span> : null}
-                  </span>
+                  </div>
                 ) : null}
                 {notification.subtitle ? (
-                  <span className="min-w-0 block line-clamp-2">{notification.subtitle}</span>
+                  <div className="mt-0.5 min-w-0 block line-clamp-2 text-xs font-medium text-sidebar-foreground/70">
+                    {notification.subtitle}
+                  </div>
                 ) : null}
               </div>
             ) : null}
