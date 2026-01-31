@@ -1,12 +1,10 @@
-import { Alert, Button, Form } from "antd";
+import { Form } from "antd";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { getCoreSettings, patchCoreSettings } from "@/api/settings";
 import { DefaultPage } from "@/components/app/defaultPage";
-import RefreshIcon from "@/components/ui/icons/refresh-icon";
-import { LoaderOne } from "@/components/ui/loader";
 import {
   ChromeTabs,
   ChromeTabsContent,
@@ -14,6 +12,7 @@ import {
   ChromeTabsTrigger,
 } from "@/components/ui/chrome-tabs";
 import { notifyError, notifySuccessText } from "@/utils/notifications";
+import { PageState } from "@/components/app/pageState";
 
 import { buildGeneralSettingsInitialValues } from "./adapters";
 import type { GeneralSettingsPatchFn, WithSavingKeyFn } from "./context";
@@ -41,7 +40,7 @@ export function GeneralSettingsView(props: GeneralSettingsViewProps) {
     queryKey: ["settings", "core"],
     queryFn: async () => getCoreSettings(),
     staleTime: 5 * 60 * 1000,
-    retry: 1,
+    meta: { silent: true },
   });
 
   const initialValues = useMemo<GeneralSettingsFormValues>(
@@ -81,6 +80,13 @@ export function GeneralSettingsView(props: GeneralSettingsViewProps) {
   }, []);
 
   const disabled = coreQuery.isFetching || saveMutation.isPending;
+  const loadError = useMemo(() => {
+    if (coreQuery.isError) return coreQuery.error;
+    if (!coreQuery.isLoading && !coreQuery.data) {
+      return new Error(t("settings:SETTINGS_LOAD_FAILED_DESC"));
+    }
+    return null;
+  }, [coreQuery.data, coreQuery.error, coreQuery.isError, coreQuery.isLoading, t]);
 
   return (
     <DefaultPage
@@ -88,24 +94,12 @@ export function GeneralSettingsView(props: GeneralSettingsViewProps) {
       description={t("settings:SETTINGS_GENERAL_DESC")}
       width="fixed"
     >
-      {coreQuery.isLoading ? (
-        <div className="py-10 flex justify-center">
-          <LoaderOne />
-        </div>
-      ) : coreQuery.isError || !coreQuery.data ? (
-        <Alert
-          type="error"
-          showIcon
-          title={t("common:REQUEST_FAILED")}
-          description={t("settings:SETTINGS_LOAD_FAILED_DESC")}
-          action={
-            <Button onClick={() => void coreQuery.refetch()}>
-              <RefreshIcon size={16} />
-              {t("common:REFRESH")}
-            </Button>
-          }
-        />
-      ) : (
+      <PageState
+        loading={coreQuery.isLoading && !coreQuery.data}
+        loadingVariant="form"
+        error={loadError}
+        onRetry={loadError ? () => void coreQuery.refetch() : undefined}
+      >
         <Form<GeneralSettingsFormValues>
           form={form}
           layout="vertical"
@@ -171,7 +165,7 @@ export function GeneralSettingsView(props: GeneralSettingsViewProps) {
             </ChromeTabsContent>
           </ChromeTabs>
         </Form>
-      )}
+      </PageState>
     </DefaultPage>
   );
 }

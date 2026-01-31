@@ -73,7 +73,6 @@ export function AssetSharePopover(props: {
     queryFn: async () => listAdminAssetShareLinks({ assetId: props.assetId, page: 1, size: 50 }),
     enabled: open && Boolean(props.assetId),
     staleTime: 5 * 1000,
-    retry: 1,
   });
 
   const createMutation = useMutation({

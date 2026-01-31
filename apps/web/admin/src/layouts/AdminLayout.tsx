@@ -1,7 +1,7 @@
 import { Outlet } from "@tanstack/react-router";
 import { type CSSProperties, type PropsWithChildren, useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRouterState } from "@tanstack/react-router";
+import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 
 import { ADMIN_NAV_ITEMS } from "@/constants/admin-nav";
@@ -14,7 +14,10 @@ import { AdminNotificationCenter } from "@/components/app/adminNotificationCente
 import { RouteProgress } from "@/components/app/routeProgress";
 import { RouteTransition } from "@/components/app/routeTransition";
 import { useAuthStore } from "@/stores/useAuthStore";
+import type { NotificationPreview } from "@/api/notifications";
+import { getUnreadNotificationPreview, markNotificationRead } from "@/api/notifications";
 import { getCoreSettings } from "@/api/settings";
+import { formatRelativeTime } from "@/lib/time/relativeTime";
 import {
   Sidebar,
   SidebarContent,
@@ -93,8 +96,9 @@ function buildDocumentTitle(routeTitle: string | null, siteName: string | null):
 }
 
 export function AdminLayout({ children }: PropsWithChildren) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const accessToken = useAuthStore((s) => s.accessToken);
 
@@ -123,6 +127,26 @@ export function AdminLayout({ children }: PropsWithChildren) {
   }, [routeTitle, siteName]);
 
   const brandTitle = useMemo(() => (getAppConfig().title || "Celestial").trim(), []);
+
+  const notificationsPreviewQuery = useQuery({
+    queryKey: ["notifications", "preview"],
+    enabled: Boolean(accessToken),
+    queryFn: async () => getUnreadNotificationPreview({ limit: 3 }),
+    staleTime: 15 * 1000,
+    refetchInterval: 30 * 1000,
+    meta: { silent: true },
+  });
+
+  const markPreviewItemReadOptimistic = (id: string) => {
+    queryClient.setQueryData<NotificationPreview>(["notifications", "preview"], (old) => {
+      if (!old) return old;
+      return {
+        ...old,
+        unreadCount: Math.max(0, old.unreadCount - 1),
+        items: old.items.filter((x) => x.id !== id),
+      };
+    });
+  };
 
   return (
     <SidebarProvider defaultOpen className="h-screen">
@@ -153,7 +177,37 @@ export function AdminLayout({ children }: PropsWithChildren) {
         <SidebarFooter className="p-0">
           <div className="w-full bg-sidebar">
             <div className="px-4 pb-3">
-              <AdminNotificationCenter maxItems={3} />
+              <AdminNotificationCenter
+                maxItems={3}
+                unreadCount={notificationsPreviewQuery.data?.unreadCount ?? 0}
+                items={(notificationsPreviewQuery.data?.items ?? []).map((n) => ({
+                  id: n.id,
+                  title: n.title,
+                  subtitle: n.body ?? undefined,
+                  time: formatRelativeTime(n.createdAt, i18n.language),
+                  to: n.targetTo,
+                }))}
+                onViewAll={() => {
+                  void navigate({ to: "/notifications" });
+                }}
+                onItemClick={(item) => {
+                  const to = item.to;
+                  const id = String(item.id);
+                  markPreviewItemReadOptimistic(id);
+                  void markNotificationRead(id).finally(() => {
+                    // Best-effort refresh to keep badge/list in sync (handles failures/edge cases).
+                    void queryClient.invalidateQueries({ queryKey: ["notifications", "preview"] });
+                  });
+                  if (to) void navigate({ to: to as never });
+                }}
+                onDismiss={(id) => {
+                  const notificationId = String(id);
+                  markPreviewItemReadOptimistic(notificationId);
+                  void markNotificationRead(notificationId).finally(() => {
+                    void queryClient.invalidateQueries({ queryKey: ["notifications", "preview"] });
+                  });
+                }}
+              />
             </div>
             <AdminAccountMenu />
           </div>

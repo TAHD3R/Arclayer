@@ -9,5 +9,14 @@
   "CONFIRM": "确认",
   "REFRESH": "刷新",
   "LOADING": "加载中...",
-  "RETRY": "重试"
+  "RETRY": "重试",
+  "GO_HOME": "回到首页",
+  "EMPTY_TITLE": "暂无数据",
+  "EMPTY_DESC": "当前没有可显示的数据。",
+  "PAGE_FORBIDDEN_TITLE": "权限不足",
+  "PAGE_FORBIDDEN_DESC": "你没有权限访问该页面或资源。",
+  "PAGE_NOT_FOUND_TITLE": "页面不存在",
+  "PAGE_NOT_FOUND_DESC": "你访问的页面不存在或已被移动。",
+  "PAGE_SERVER_ERROR_TITLE": "服务器出错了",
+  "PAGE_SERVER_ERROR_DESC": "服务器遇到问题，请稍后重试。"
 }

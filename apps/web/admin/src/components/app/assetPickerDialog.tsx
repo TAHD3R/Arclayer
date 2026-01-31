@@ -111,7 +111,6 @@ export function AssetPickerDialog(props: {
     queryFn: async () => listAdminAssetFolders(),
     enabled: props.open && props.showFolderFilter !== false,
     staleTime: 60 * 1000,
-    retry: 1,
   });
 
   const assetsQuery = useQuery({
@@ -136,7 +135,6 @@ export function AssetPickerDialog(props: {
       }),
     enabled: props.open,
     staleTime: 10 * 1000,
-    retry: 1,
     placeholderData: (prev) => prev,
   });
 

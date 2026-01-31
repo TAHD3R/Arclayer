@@ -34,9 +34,7 @@ export function DefaultPage({
             {(title || action) && (
               <div className={styles.titleRow}>
                 <div className={styles.titleArea}>
-                  {title ? (
-                    <span className="font-bold text-[32px] leading-1.5">{title}</span>
-                  ) : null}
+                  {title ? <span className="font-bold text-4xl leading-1.5">{title}</span> : null}
                 </div>
 
                 {action ? <div className={styles.actionArea}>{action}</div> : null}

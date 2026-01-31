@@ -1,0 +1,21 @@
+import { useTranslation } from "react-i18next";
+
+import { BuiltinResultPage, type BuiltinResultVariant } from "@/views/_builtin/BuiltinResultPage";
+
+export type ServerErrorViewProps = {
+  variant?: BuiltinResultVariant;
+  details?: string | null;
+};
+
+export function ServerErrorView({ variant = "admin", details }: ServerErrorViewProps) {
+  const { t } = useTranslation();
+
+  return (
+    <BuiltinResultPage
+      variant={variant}
+      status="500"
+      title={t("common:PAGE_SERVER_ERROR_TITLE")}
+      subTitle={details || t("common:PAGE_SERVER_ERROR_DESC")}
+    />
+  );
+}

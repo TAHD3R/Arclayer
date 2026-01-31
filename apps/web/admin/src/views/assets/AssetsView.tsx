@@ -1,4 +1,4 @@
-import { Alert, Button, Dropdown, Input, Masonry } from "antd";
+import { Button, Dropdown, Input, Masonry } from "antd";
 import {
   Eye,
   FileText,
@@ -55,7 +55,8 @@ import {
   type AdminAssetSummary,
 } from "@/api/assets";
 import { getAppConfig } from "@/constants/app-config";
-import { notifyError, notifySuccessText } from "@/utils/notifications";
+import { getErrorMessage, notifyError, notifySuccessText } from "@/utils/notifications";
+import { PageState } from "@/components/app/pageState";
 import {
   AssetMasonryTile,
   AssetPreviewSheet,
@@ -452,14 +453,12 @@ export function AssetsView() {
     queryKey: ["assets", "folders"],
     queryFn: async () => listAdminAssetFolders({ size: 200 }),
     staleTime: 60 * 1000,
-    retry: 1,
   });
 
   const tagsQuery = useQuery({
     queryKey: ["assets", "tags"],
     queryFn: async () => listAdminAssetTags(),
     staleTime: 60 * 1000,
-    retry: 1,
   });
 
   const assetsQuery = useInfiniteQuery({
@@ -496,7 +495,7 @@ export function AssetsView() {
     getNextPageParam: (lastPage) => lastPage.next ?? undefined,
     placeholderData: keepPreviousData,
     staleTime: 30 * 1000,
-    retry: 1,
+    meta: { silent: true },
   });
 
   const bulkMoveMutation = useMutation({
@@ -555,10 +554,8 @@ export function AssetsView() {
     },
   });
 
-  useEffect(() => {
-    if (!assetsQuery.isError) return;
-    notifyError(assetsQuery.error);
-  }, [assetsQuery.error, assetsQuery.isError]);
+  // Note: Do not toast for initial page-load errors.
+  // PageState will render a full error UI with details + retry.
 
   useEffect(() => {
     // Filters changed => selection & active detail should not "stick" to stale items.
@@ -656,12 +653,14 @@ export function AssetsView() {
   useEffect(() => {
     const el = sentinelRef.current;
     if (!el) return;
+    if (assetsQuery.isError) return;
     if (assetsQuery.hasNextPage !== true) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
         const entry = entries[0];
         if (!entry?.isIntersecting) return;
+        if (assetsQuery.isError) return;
         if (assetsQuery.isFetchingNextPage) return;
         assetsQuery.fetchNextPage().catch(() => {});
       },
@@ -670,7 +669,12 @@ export function AssetsView() {
 
     observer.observe(el);
     return () => observer.disconnect();
-  }, [assetsQuery.hasNextPage, assetsQuery.isFetchingNextPage, assetsQuery.fetchNextPage]);
+  }, [
+    assetsQuery.hasNextPage,
+    assetsQuery.isError,
+    assetsQuery.isFetchingNextPage,
+    assetsQuery.fetchNextPage,
+  ]);
 
   useEffect(() => {
     const isTypingTarget = (target: EventTarget | null) => {
@@ -981,21 +985,22 @@ export function AssetsView() {
         }}
       />
 
-      {assetsQuery.isLoading && !assetsQuery.data ? (
-        <div className="py-10 flex justify-center">
-          <LoaderOne />
-        </div>
-      ) : assetsQuery.isError ? (
-        <Alert
-          type="error"
-          showIcon
-          message={t("common:REQUEST_FAILED")}
-          description={t("assets:ASSET_LIST_LOAD_FAILED_DESC")}
-          action={<Button onClick={() => void assetsQuery.refetch()}>{t("common:REFRESH")}</Button>}
-        />
-      ) : masonryEntries.length === 0 ? (
-        <div className="py-10 text-sm text-muted-foreground">{t("assets:ASSET_EMPTY")}</div>
-      ) : (
+      <PageState
+        loading={assetsQuery.isLoading && !assetsQuery.data}
+        loadingVariant="masonry"
+        error={assetsQuery.isError ? assetsQuery.error : null}
+        onRetry={() => void assetsQuery.refetch()}
+        errorDescription={
+          assetsQuery.isError ? (
+            <div className="space-y-1">
+              <div>{t("assets:ASSET_LIST_LOAD_FAILED_DESC")}</div>
+              <div className="text-muted-foreground">{getErrorMessage(assetsQuery.error)}</div>
+            </div>
+          ) : undefined
+        }
+        empty={masonryEntries.length === 0}
+        emptyDescription={t("assets:ASSET_EMPTY")}
+      >
         <DndContext
           sensors={sensors}
           onDragStart={onDragStart}
@@ -1107,7 +1112,7 @@ export function AssetsView() {
           >
             <Masonry
               gutter={[16, 16]}
-              columns={{ xs: 1, sm: 2, md: 3, lg: 4 }}
+              columns={{ xs: 1, sm: 2, md: 3, xl: 4, xxl: 5 }}
               fresh
               items={masonryEntries.map((it) => ({
                 key:
@@ -1392,7 +1397,7 @@ export function AssetsView() {
             </AnimatePresence>
           </DragOverlay>
         </DndContext>
-      )}
+      </PageState>
 
       {assetsQuery.hasNextPage ? (
         <div ref={sentinelRef} className="py-8 flex justify-center">

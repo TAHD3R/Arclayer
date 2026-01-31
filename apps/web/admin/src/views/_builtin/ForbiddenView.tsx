@@ -1,0 +1,21 @@
+import { useTranslation } from "react-i18next";
+
+import { BuiltinResultPage, type BuiltinResultVariant } from "@/views/_builtin/BuiltinResultPage";
+
+export type ForbiddenViewProps = {
+  variant?: BuiltinResultVariant;
+  details?: string | null;
+};
+
+export function ForbiddenView({ variant = "admin", details }: ForbiddenViewProps) {
+  const { t } = useTranslation();
+
+  return (
+    <BuiltinResultPage
+      variant={variant}
+      status="403"
+      title={t("common:PAGE_FORBIDDEN_TITLE")}
+      subTitle={details || t("common:PAGE_FORBIDDEN_DESC")}
+    />
+  );
+}

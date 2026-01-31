@@ -283,6 +283,9 @@ async def accept_invitation(
     # - create user + membership + role bindings
     # - mark invitation accepted
     # Any failure rolls back and leaves no "half-created" user behind.
+    inviter_user_id: UUID | None = None
+    accepted_user_id: UUID | None = None
+    accepted_display_name: str | None = None
     async with in_transaction() as conn:
         inv = await OrganizationInvitation.filter(token_hash=token_hash).using_db(conn).select_for_update().first()
         if inv is None:
@@ -364,5 +367,45 @@ async def accept_invitation(
         inv.accepted_at = now
         await inv.save(using_db=conn, update_fields=["accepted_by_user_id", "accepted_at"])
 
+        inviter_user_id = inv.invited_by_user_id
+        accepted_user_id = user.id
+        accepted_display_name = user.display_name or user.username
+
     tokens = await service.login(identifier=payload.username, password=payload.password)
+
+    # Best-effort: notify inviter that the invite was accepted.
+    # This must never break the onboarding flow if notification creation fails.
+    if inviter_user_id is not None and accepted_user_id is not None:
+        try:
+            from apps.api.models.notification import NotificationCategory, NotificationRecord
+
+            await NotificationRecord.create(
+                org_id=organization_id,
+                recipient_user_id=inviter_user_id,
+                actor_user_id=accepted_user_id,
+                category=NotificationCategory.TEAM,
+                title=t(
+                    "notifications",
+                    "NOTIFICATIONS_TEAM_INVITE_ACCEPTED_TITLE",
+                    default="{name} 已加入组织",
+                    name=accepted_display_name or "新成员",
+                ),
+                body=t(
+                    "notifications",
+                    "NOTIFICATIONS_TEAM_INVITE_ACCEPTED_BODY",
+                    default="对方已接受邀请并成功加入。",
+                ),
+                target_to="/settings/team/members",
+                target_meta=None,
+                event_name="team.invitation.accepted",
+                dedupe_key=f"team.invitation.accepted:{token_hash}",
+            )
+        except Exception as exc:
+            service.logger.warning(
+                "Notification create failed (invite accepted)",
+                error=str(exc),
+                org_id=str(organization_id),
+                inviter_user_id=str(inviter_user_id),
+            )
+
     return Response.success(message=t("auth", "INVITE_ACCEPTED", default="加入组织成功"), data=tokens)

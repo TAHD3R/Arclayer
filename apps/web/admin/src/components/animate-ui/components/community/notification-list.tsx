@@ -1,6 +1,6 @@
 "use client";
 
-import { RotateCcw, ArrowUpRight } from "lucide-react";
+import { RotateCcw, ArrowUpRight, X } from "lucide-react";
 import { motion, type Transition } from "motion/react";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
@@ -11,6 +11,7 @@ export type NotificationListItem = {
   subtitle?: string;
   time?: string;
   count?: number;
+  to?: string;
 };
 
 const transition: Transition = {
@@ -50,6 +51,9 @@ function NotificationList(props: {
   maxItems?: number;
   className?: string;
   onViewAll?: () => void;
+  totalCount?: number;
+  onItemClick?: (item: NotificationListItem) => void;
+  onDismiss?: (id: NotificationListItem["id"]) => void;
 }) {
   const { t } = useTranslation("notifications");
 
@@ -60,7 +64,7 @@ function NotificationList(props: {
 
   if (!items.length) return null;
 
-  const totalCount = props.items.length;
+  const totalCount = props.totalCount ?? props.items.length;
 
   return (
     <motion.div
@@ -88,6 +92,7 @@ function NotificationList(props: {
             style={{
               zIndex: items.length - i,
             }}
+            onClick={() => props.onItemClick?.(notification)}
           >
             <div className="flex items-center gap-2">
               <h1 className="min-w-0 flex-1 truncate text-sm font-medium">{notification.title}</h1>
@@ -97,6 +102,19 @@ function NotificationList(props: {
                   <span>{notification.count}</span>
                 </div>
               )}
+              {props.onDismiss ? (
+                <button
+                  type="button"
+                  aria-label={t("NOTIFICATIONS_MARK_AS_READ")}
+                  className="ml-1 inline-flex size-6 items-center justify-center rounded-md text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/20"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    props.onDismiss?.(notification.id);
+                  }}
+                >
+                  <X className="size-4" aria-hidden="true" />
+                </button>
+              ) : null}
             </div>
             {notification.time || notification.subtitle ? (
               <div className="mt-0.5 flex min-w-0 items-start gap-1 text-xs font-medium text-sidebar-foreground/60">

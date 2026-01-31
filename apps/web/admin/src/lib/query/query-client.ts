@@ -21,7 +21,10 @@ export function makeQueryClient(): QueryClient {
         staleTime: 30_000,
         gcTime: 5 * 60_000,
         refetchOnWindowFocus: false,
-        retry: 1,
+        // Only retry when user explicitly clicks "Retry" in the UI.
+        retry: false,
+        retryOnMount: false,
+        refetchOnReconnect: false,
       },
     },
   });

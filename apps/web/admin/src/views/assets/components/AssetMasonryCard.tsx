@@ -608,14 +608,12 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
     },
     enabled: Boolean(active?.id),
     staleTime: 20 * 1000,
-    retry: 1,
   });
 
   const tagsQuery = useQuery({
     queryKey: ["assets", "tags"],
     queryFn: async () => listAdminAssetTags(),
     staleTime: 60 * 1000,
-    retry: 1,
   });
 
   const initializedIdRef = useRef<string | null>(null);

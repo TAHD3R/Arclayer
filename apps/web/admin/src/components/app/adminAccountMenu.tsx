@@ -7,6 +7,7 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  Inbox,
   Languages,
   LogOut,
   Moon,
@@ -158,6 +159,7 @@ function AdminAccountPanelContent(props: {
   setLocale: (locale: "zh-CN" | "en-US") => void;
   onLogout: () => Promise<void>;
   onPersonalSettings: () => Promise<void> | void;
+  onNotifications: () => Promise<void> | void;
 }) {
   const { t } = useTranslation("account");
   const { isOpen, closeFloatingPanel } = useFloatingPanel();
@@ -319,6 +321,13 @@ function AdminAccountPanelContent(props: {
         >
           <MenuItemContent icon={<Settings />} label={t("ACCOUNT_PERSONAL_SETTINGS")} />
         </FloatingPanelButton>
+
+        <FloatingPanelButton
+          className={menuItemClassName}
+          onClick={() => onClickAndClose(props.onNotifications)}
+        >
+          <MenuItemContent icon={<Inbox />} label={t("ACCOUNT_NOTIFICATIONS")} />
+        </FloatingPanelButton>
       </div>
 
       {divider()}
@@ -413,6 +422,10 @@ export function AdminAccountMenu() {
     void navigate({ to: "/" });
   };
 
+  const onNotifications = () => {
+    void navigate({ to: "/notifications" });
+  };
+
   return (
     <FloatingPanelRoot className="w-full">
       <FloatingPanelTrigger
@@ -470,6 +483,7 @@ export function AdminAccountMenu() {
           setLocale={setLocale}
           onLogout={onLogout}
           onPersonalSettings={onPersonalSettings}
+          onNotifications={onNotifications}
         />
       </FloatingPanelContent>
     </FloatingPanelRoot>

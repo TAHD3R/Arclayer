@@ -9,5 +9,14 @@
   "CONFIRM": "Confirm",
   "REFRESH": "Refresh",
   "LOADING": "Loading...",
-  "RETRY": "Retry"
+  "RETRY": "Retry",
+  "GO_HOME": "Go Home",
+  "EMPTY_TITLE": "No data",
+  "EMPTY_DESC": "There is nothing to display yet.",
+  "PAGE_FORBIDDEN_TITLE": "Forbidden",
+  "PAGE_FORBIDDEN_DESC": "You do not have permission to access this page or resource.",
+  "PAGE_NOT_FOUND_TITLE": "Page not found",
+  "PAGE_NOT_FOUND_DESC": "The page you are looking for does not exist or has been moved.",
+  "PAGE_SERVER_ERROR_TITLE": "Something went wrong",
+  "PAGE_SERVER_ERROR_DESC": "The server encountered an error. Please try again later."
 }
