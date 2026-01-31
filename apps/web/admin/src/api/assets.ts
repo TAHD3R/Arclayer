@@ -56,6 +56,8 @@ export type AdminAssetDetail = AdminAssetSummary & {
 export type PatchAdminAssetPayload = {
   description?: string | null;
   tagIds?: string[];
+  visibility?: string;
+  purpose?: string;
 };
 
 export type ListAdminAssetsParams = {
@@ -121,6 +123,30 @@ export async function listAdminAssetFolders(
     size: params.size ?? 200,
   });
   return api.get<PageData<AdminAssetFolder>>(`/admin/asset-folders${query}`);
+}
+
+export type AdminAssetFolderCreateRequest = {
+  name: string;
+  parentId?: string | null;
+  sortOrder?: number;
+};
+
+export async function createAdminAssetFolder(
+  payload: AdminAssetFolderCreateRequest,
+): Promise<AdminAssetFolder> {
+  return api.post<AdminAssetFolder>(`/admin/asset-folders`, {
+    name: payload.name,
+    parentId: payload.parentId ?? null,
+    sortOrder: payload.sortOrder ?? 0,
+  });
+}
+
+export type AdminAssetFolderDeleteOut = {
+  id: string;
+};
+
+export async function deleteAdminAssetFolder(folderId: string): Promise<AdminAssetFolderDeleteOut> {
+  return api.delete<AdminAssetFolderDeleteOut>(`/admin/asset-folders/${folderId}`);
 }
 
 export async function listAdminAssetTags(
@@ -203,4 +229,23 @@ export async function bulkDeleteAdminAssets(
   payload: AdminAssetsBulkDeleteRequest,
 ): Promise<AdminAssetsBulkDeleteOut> {
   return api.post<AdminAssetsBulkDeleteOut>(`/admin/assets/bulk/delete`, payload);
+}
+
+export type AdminAssetsBulkUpdateRequest = {
+  assetIds: string[];
+  visibility?: string;
+  purpose?: string;
+};
+
+export type AdminAssetsBulkUpdateOut = {
+  updatedCount: number;
+  updatedAssetIds: string[];
+  visibility?: string;
+  purpose?: string;
+};
+
+export async function bulkUpdateAdminAssets(
+  payload: AdminAssetsBulkUpdateRequest,
+): Promise<AdminAssetsBulkUpdateOut> {
+  return api.put<AdminAssetsBulkUpdateOut>(`/admin/assets/bulk/update`, payload);
 }

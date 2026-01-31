@@ -11,6 +11,7 @@ def test_admin_assets_service_exposes_bulk_ops() -> None:
     # TDD guard: make sure we add explicit service APIs for bulk operations.
     assert hasattr(AdminAssetsService, "bulk_move_assets")
     assert hasattr(AdminAssetsService, "bulk_delete_assets")
+    assert hasattr(AdminAssetsService, "bulk_update_assets")
 
 
 def test_admin_assets_router_exposes_bulk_endpoints() -> None:
@@ -24,6 +25,7 @@ def test_admin_assets_router_exposes_bulk_endpoints() -> None:
 
     assert "/assets/bulk/move" in paths
     assert "/assets/bulk/delete" in paths
+    assert "/assets/bulk/update" in paths
 
 
 @pytest.mark.asyncio
@@ -82,3 +84,65 @@ async def test_bulk_delete_assets_marks_assets_deleted(monkeypatch) -> None:
 
     assert out.deleted_count == 2
     assert set(out.deleted_asset_ids) == set(ids)
+
+
+@pytest.mark.asyncio
+async def test_bulk_update_assets_requires_fields(monkeypatch) -> None:
+    # Behavior: must provide at least one of visibility/purpose.
+    from apps.api.config import get_settings
+    from apps.api.core.exceptions import BadRequest
+    from apps.api.routers.v1.admin.assets.schema import AdminAssetBulkUpdateRequest
+
+    settings = get_settings()
+    service = AdminAssetsService(settings)
+
+    class FakeRepo:
+        async def get_assets_by_ids(self, *, org_id, asset_ids):
+            return [{"id": x} for x in asset_ids]
+
+    service.repo = FakeRepo()  # type: ignore[assignment]
+
+    with pytest.raises(BadRequest) as exc:
+        await service.bulk_update_assets(  # type: ignore[attr-defined]
+            org_id=uuid4(),
+            payload=AdminAssetBulkUpdateRequest(asset_ids=[uuid4()]),
+        )
+
+    assert exc.value.error == "ASSET_BULK_UPDATE_INVALID"
+
+
+@pytest.mark.asyncio
+async def test_bulk_update_assets_updates_repo(monkeypatch) -> None:
+    # Behavior: bulk update should call repository once and return updated ids/count.
+    from apps.api.config import get_settings
+    from apps.api.models.asset import AssetVisibility
+    from apps.api.routers.v1.admin.assets.schema import AdminAssetBulkUpdateRequest
+
+    settings = get_settings()
+    service = AdminAssetsService(settings)
+
+    called: dict[str, object] = {"count": 0, "ids": [], "updates": {}}
+
+    class FakeRepo:
+        async def bulk_update_assets_fields(self, *, org_id, asset_ids, updates, updated_at):
+            called["count"] = len(asset_ids)
+            called["ids"] = list(asset_ids)
+            called["updates"] = dict(updates)
+            return len(asset_ids)
+
+        async def get_assets_by_ids(self, *, org_id, asset_ids):
+            return [{"id": x} for x in asset_ids]
+
+    service.repo = FakeRepo()  # type: ignore[assignment]
+
+    ids = [uuid4(), uuid4(), uuid4()]
+    out = await service.bulk_update_assets(  # type: ignore[attr-defined]
+        org_id=uuid4(),
+        payload=AdminAssetBulkUpdateRequest(asset_ids=ids, visibility=AssetVisibility.PRIVATE),
+    )
+
+    assert out.updated_count == 3
+    assert set(out.updated_asset_ids) == set(ids)
+    assert called["count"] == 3
+    assert set(called["ids"]) == set(ids)
+    assert called["updates"] == {"visibility": AssetVisibility.PRIVATE}

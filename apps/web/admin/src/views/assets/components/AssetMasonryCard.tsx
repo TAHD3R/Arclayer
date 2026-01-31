@@ -9,9 +9,10 @@ import {
   PencilLine,
   Plus,
   RotateCw,
+  Settings2,
 } from "lucide-react";
 import { motion } from "motion/react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -58,13 +59,14 @@ import {
   AlertDialogCancel as AlertDialogCancelPrimitive,
 } from "@/components/animate-ui/primitives/radix/alert-dialog";
 import TrashIcon from "@/components/ui/icons/trash-icon";
-import { LoaderTwo } from "@/components/ui/loader";
+import { LoaderOne } from "@/components/ui/loader";
 import { SettingActionItem } from "@/components/app/settingActionItem";
 import { notifyErrorText, notifySuccessText } from "@/utils/notifications";
 import { copyToClipboard } from "@/utils/clipboard";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { toShareableAbsoluteUrl } from "@/views/assets/utils/assetUrls";
 import { AssetSharePopover } from "@/views/assets/components/AssetSharePopover";
+import { UpdateAssetsAccessDialog } from "@/views/assets/components/UpdateAssetsAccessDialog";
 
 export type AssetMasonryItem = {
   id: string;
@@ -204,7 +206,7 @@ function LazyAssetImage(props: {
       {showLoading ? (
         <div className="absolute inset-0 grid place-items-center">
           <div className="scale-75 opacity-80">
-            <LoaderTwo />
+            <LoaderOne />
           </div>
         </div>
       ) : null}
@@ -325,104 +327,133 @@ function buildLinkSnippets(params: { url: string; filename: string; isImage: boo
   };
 }
 
-export function AssetMasonryTile(props: {
-  asset: AssetMasonryItem;
-  selected?: boolean;
-  onToggleSelected?: (id: string) => void;
-  onOpen: (asset: AssetMasonryItem) => void;
-  onAspectRatio?: (id: string, aspectRatio: number) => void;
-}) {
-  const { t } = useTranslation();
-  const aspectRatio = getSafeAspectRatio(props.asset.aspectRatio);
-  const selected = Boolean(props.selected);
-  const overlayVisible = selected;
-  const hasPreview = Boolean(props.asset.previewUrl);
+export const AssetMasonryTile = memo(
+  function AssetMasonryTile(props: {
+    asset: AssetMasonryItem;
+    selected?: boolean;
+    moving?: boolean;
+    onToggleSelected?: (id: string) => void;
+    onSelect: (e: React.MouseEvent<HTMLDivElement>) => void;
+    onOpen: (asset: AssetMasonryItem) => void;
+    onAspectRatio?: (id: string, aspectRatio: number) => void;
+    onContextMenu?: (e: React.MouseEvent<HTMLDivElement>) => void;
+    dragRef?: (node: HTMLDivElement | null) => void;
+    dragAttributes?: Record<string, unknown>;
+    dragListeners?: Record<string, unknown>;
+  }) {
+    const { t } = useTranslation();
+    const aspectRatio = getSafeAspectRatio(props.asset.aspectRatio);
+    const selected = Boolean(props.selected);
+    const overlayVisible = selected;
+    const hasPreview = Boolean(props.asset.previewUrl);
+    const moving = Boolean(props.moving);
 
-  const onKeyDown: React.KeyboardEventHandler<HTMLDivElement> = (e) => {
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      props.onOpen(props.asset);
-    }
-  };
+    const onKeyDown: React.KeyboardEventHandler<HTMLDivElement> = (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        props.onOpen(props.asset);
+      }
+    };
 
-  return (
-    <motion.div
-      className={cn(
-        "group relative w-full overflow-hidden border border-border/50 bg-card",
-        "shadow-sm transition duration-200 hover:shadow-md",
-        "cursor-pointer outline-none",
-      )}
-      role="button"
-      tabIndex={0}
-      onKeyDown={onKeyDown}
-      onClick={() => props.onOpen(props.asset)}
-    >
-      <motion.div className="relative w-full overflow-hidden" style={{ aspectRatio }}>
-        {hasPreview ? (
-          <LazyAssetImage
-            src={props.asset.previewUrl as string}
-            alt={props.asset.name}
-            fit="cover"
+    return (
+      <motion.div
+        ref={props.dragRef}
+        className={cn(
+          "group relative w-full overflow-hidden border border-border/50 bg-card",
+          "shadow-sm transition duration-200 hover:shadow-md",
+          "cursor-pointer outline-none select-none",
+          moving ? "pointer-events-none" : null,
+        )}
+        animate={{
+          opacity: moving ? 0 : 1,
+          scale: moving ? 0.985 : 1,
+        }}
+        transition={{ duration: 0.14, ease: "easeOut" }}
+        style={{ willChange: "transform, opacity" }}
+        role="button"
+        tabIndex={0}
+        data-asset-tile="true"
+        {...(props.dragAttributes as Record<string, unknown>)}
+        {...(props.dragListeners as Record<string, unknown>)}
+        onKeyDown={onKeyDown}
+        onClick={(e) => props.onSelect(e)}
+        onDoubleClick={() => props.onOpen(props.asset)}
+        onContextMenu={(e) => props.onContextMenu?.(e)}
+      >
+        <motion.div className="relative w-full overflow-hidden" style={{ aspectRatio }}>
+          {hasPreview ? (
+            <LazyAssetImage
+              src={props.asset.previewUrl as string}
+              alt={props.asset.name}
+              fit="cover"
+              className={cn(
+                "transition-transform duration-200 ease-out will-change-transform",
+                "group-hover:scale-[1.03]",
+              )}
+              showErrorOverlay
+              errorText={t("assets:ASSET_PREVIEW_LOAD_FAILED")}
+              retryText={t("common:RETRY")}
+              onLoaded={(info) => {
+                props.onAspectRatio?.(props.asset.id, info.aspectRatio);
+              }}
+            />
+          ) : (
+            <div className="absolute inset-0 grid place-items-center bg-muted/30">
+              <div className="text-xs text-muted-foreground">
+                {props.asset.mimeType?.startsWith("image/")
+                  ? t("assets:ASSET_PREVIEW_UNAVAILABLE")
+                  : props.asset.mimeType || t("assets:ASSET_FILE_GENERIC")}
+              </div>
+            </div>
+          )}
+
+          {/* Hover overlays: bottom area for filename */}
+          <div
             className={cn(
-              "transition-transform duration-200 ease-out will-change-transform",
-              "group-hover:scale-[1.03]",
+              "absolute inset-0",
+              "opacity-0 group-hover:opacity-100 transition-opacity duration-200",
+              overlayVisible ? "opacity-100" : undefined,
             )}
-            showErrorOverlay
-            errorText={t("assets:ASSET_PREVIEW_LOAD_FAILED")}
-            retryText={t("common:RETRY")}
-            onLoaded={(info) => {
-              props.onAspectRatio?.(props.asset.id, info.aspectRatio);
-            }}
-          />
-        ) : (
-          <div className="absolute inset-0 grid place-items-center bg-muted/30">
-            <div className="text-xs text-muted-foreground">
-              {props.asset.mimeType?.startsWith("image/")
-                ? t("assets:ASSET_PREVIEW_UNAVAILABLE")
-                : props.asset.mimeType || t("assets:ASSET_FILE_GENERIC")}
+          >
+            {/* Unified overlay */}
+            <div className="absolute inset-0 bg-black/35" />
+
+            {/* Checkbox: show on hover OR selected, so users can multi-select without modifier keys */}
+            <div
+              className={cn(
+                "absolute right-3 top-3 pointer-events-auto transition-opacity duration-150",
+                selected ? "opacity-100" : "opacity-0 group-hover:opacity-100",
+              )}
+            >
+              <Checkbox
+                checked={selected}
+                onClick={(e) => e.stopPropagation()}
+                onCheckedChange={() => props.onToggleSelected?.(props.asset.id)}
+              />
+            </div>
+
+            {/* Filename/description at the bottom */}
+            <div className="absolute left-3 right-3 bottom-3">
+              <motion.div
+                className={cn("font-bold text-lg text-white", "truncate py-2 pr-8")}
+                title={props.asset.name}
+              >
+                {props.asset.name}
+              </motion.div>
+              {props.asset.description ? (
+                <div className={cn("mt-1 text-sm text-white/85", "line-clamp-2")}>
+                  {props.asset.description}
+                </div>
+              ) : null}
             </div>
           </div>
-        )}
-
-        {/* Hover overlays: top area for selection, bottom area for filename */}
-        <div
-          className={cn(
-            "absolute inset-0",
-            "opacity-0 group-hover:opacity-100 transition-opacity duration-200",
-            overlayVisible ? "opacity-100" : undefined,
-          )}
-        >
-          {/* 统一整块遮罩（覆盖整个容器） */}
-          <div className="absolute inset-0 bg-black/35" />
-
-          {/* Checkbox: 右侧 */}
-          <div className="absolute right-3 top-3 pointer-events-auto">
-            <Checkbox
-              checked={selected}
-              onClick={(e) => e.stopPropagation()}
-              onCheckedChange={() => props.onToggleSelected?.(props.asset.id)}
-            />
-          </div>
-
-          {/* 文件名/描述：放底部 */}
-          <div className="absolute left-3 right-3 bottom-3">
-            <motion.div
-              className={cn("font-bold text-lg text-white", "truncate py-2 pr-8")}
-              title={props.asset.name}
-            >
-              {props.asset.name}
-            </motion.div>
-            {props.asset.description ? (
-              <div className={cn("mt-1 text-sm text-white/85", "line-clamp-2")}>
-                {props.asset.description}
-              </div>
-            ) : null}
-          </div>
-        </div>
+        </motion.div>
       </motion.div>
-    </motion.div>
-  );
-}
+    );
+  },
+  (prev, next) =>
+    prev.asset === next.asset && prev.selected === next.selected && prev.moving === next.moving,
+);
 
 function buildUploaderAndTimeText(params: {
   uploaderName?: string;
@@ -554,6 +585,7 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
   const editInputRef = useRef<InputRef>(null);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [editAccessOpen, setEditAccessOpen] = useState(false);
 
   useEffect(() => {
     // When switching assets (or reopening), reset draft states.
@@ -567,6 +599,7 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
     setEditInputValue("");
     setSaveState("idle");
     setDeleteOpen(false);
+    setEditAccessOpen(false);
 
     if (!id) {
       setDescriptionDraft("");
@@ -629,6 +662,21 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
     },
   });
 
+  const patchAccessMutation = useMutation({
+    mutationFn: async (payload: { visibility?: string; purpose?: string }) => {
+      if (!active?.id) throw new Error("missing asset id");
+      return patchAdminAsset(active.id, payload);
+    },
+    onSuccess: (updated) => {
+      notifySuccessText(t("assets:ASSET_EDIT_ACCESS_SUCCESS"));
+      queryClient.setQueryData(["assets", "detail", active?.id], updated);
+      queryClient.invalidateQueries({ queryKey: ["assets", "list"] });
+    },
+    onError: () => {
+      notifyErrorText(t("assets:ASSET_EDIT_ACCESS_FAILED"));
+    },
+  });
+
   const deleteMutation = useMutation({
     mutationFn: async () => {
       if (!active?.id) throw new Error("missing asset id");
@@ -675,6 +723,8 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
 
   const allTags = useMemo(() => tagsQuery.data?.items || [], [tagsQuery.data]);
   const detailTags = useMemo(() => detailQuery.data?.tags || [], [detailQuery.data]);
+  const displayVisibility = detailQuery.data?.visibility ?? active?.visibility;
+  const displayPurpose = detailQuery.data?.purpose ?? active?.purpose;
 
   const selectedTags = useMemo(() => {
     const byId = new Map<string, string>();
@@ -847,6 +897,16 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
+                        onSelect={(e) => {
+                          e.preventDefault();
+                          setEditAccessOpen(true);
+                        }}
+                      >
+                        <Settings2 className="size-4" />
+                        {t("assets:ASSET_ACTION_EDIT_ACCESS")}
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
                         variant="destructive"
                         onSelect={(e) => {
                           // 在 DropdownMenu 中点击会自动触发关闭；这里只需打开确认弹窗即可。
@@ -890,6 +950,18 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
                 )}
               </Typography.Paragraph>
             </SheetHeader>
+
+            <UpdateAssetsAccessDialog
+              open={editAccessOpen}
+              onOpenChange={setEditAccessOpen}
+              mode="single"
+              currentVisibility={displayVisibility}
+              currentPurpose={displayPurpose}
+              confirmLoading={patchAccessMutation.isPending}
+              onConfirm={async (value) => {
+                await patchAccessMutation.mutateAsync(value);
+              }}
+            />
 
             <div className="flex-1 overflow-auto">
               <div className="p-4">
@@ -976,7 +1048,7 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
                             {
                               key: "visibility",
                               label: t("assets:ASSET_META_VISIBILITY"),
-                              children: <Tag>{getVisibilityLabel(active.visibility, t)}</Tag>,
+                              children: <Tag>{getVisibilityLabel(displayVisibility, t)}</Tag>,
                             },
                           ]}
                         />
@@ -1148,7 +1220,7 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
                             {
                               key: "purpose",
                               label: t("assets:ASSET_META_PURPOSE"),
-                              children: <Tag>{getPurposeLabel(active.purpose, t)}</Tag>,
+                              children: <Tag>{getPurposeLabel(displayPurpose, t)}</Tag>,
                             },
                             {
                               key: "indexable",

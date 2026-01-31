@@ -127,6 +127,15 @@ class AdminAssetsRepository(BaseRepository):
     async def get_folder(self, *, org_id: UUID, folder_id: UUID) -> AssetFolderRecord | None:
         return await AssetFolderRecord.get_or_none(id=folder_id, org_id=org_id)
 
+    async def folder_has_children(self, *, org_id: UUID, folder_id: UUID) -> bool:
+        return await AssetFolderRecord.filter(org_id=org_id, parent_id=folder_id).exists()
+
+    async def folder_has_assets(self, *, org_id: UUID, folder_id: UUID) -> bool:
+        return await AssetRecord.filter(org_id=org_id, deleted_at=None, folder_id=folder_id).exists()
+
+    async def delete_folder(self, *, org_id: UUID, folder_id: UUID) -> None:
+        await AssetFolderRecord.filter(org_id=org_id, id=folder_id).delete()
+
     async def collect_descendant_folder_ids(self, *, org_id: UUID, root_folder_id: UUID) -> list[UUID]:
         # We intentionally do this in Python (single query) to keep DB/storage agnostic.
         rows = await AssetFolderRecord.filter(org_id=org_id).values("id", "parent_id")
@@ -207,6 +216,22 @@ class AdminAssetsRepository(BaseRepository):
                 updated_at=updated_at,
             )
         )
+
+    async def bulk_update_assets_fields(
+        self,
+        *,
+        org_id: UUID,
+        asset_ids: list[UUID],
+        updates: dict,
+        updated_at,
+    ) -> int:
+        if not asset_ids:
+            return 0
+        if not updates:
+            return 0
+        payload = dict(updates)
+        payload["updated_at"] = updated_at
+        return int(await AssetRecord.filter(org_id=org_id, deleted_at=None, id__in=list(asset_ids)).update(**payload))
 
 
 _ALLOWED_ASSET_ORDER_FIELDS = ADMIN_ASSET_ALLOWED_ORDER_FIELDS

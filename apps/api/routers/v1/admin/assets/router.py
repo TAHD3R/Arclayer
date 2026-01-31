@@ -15,9 +15,12 @@ from apps.api.routers.v1.admin.assets.schema import (
     AdminAssetBulkDeleteRequest,
     AdminAssetBulkMoveOut,
     AdminAssetBulkMoveRequest,
+    AdminAssetBulkUpdateOut,
+    AdminAssetBulkUpdateRequest,
     AdminAssetDeleteOut,
     AdminAssetDetailOut,
     AdminAssetFolderCreateRequest,
+    AdminAssetFolderDeleteOut,
     AdminAssetFolderOut,
     AdminAssetFolderUpdateRequest,
     AdminAssetListQuery,
@@ -140,6 +143,17 @@ async def update_asset_folder(
     return JsonResponse.success(data=updated)
 
 
+@router.delete("/asset-folders/{folder_id}", response_model=ResponseModel[AdminAssetFolderDeleteOut])
+async def delete_asset_folder(
+    folder_id: UUID,
+    org_id: UUID = Depends(get_current_org_id),
+    _user=Depends(get_current_user),
+    service: AdminAssetsService = Depends(get_admin_assets_service),
+) -> ResponseModel[AdminAssetFolderDeleteOut]:
+    deleted = await service.delete_folder(org_id=org_id, folder_id=folder_id)
+    return JsonResponse.success(data=deleted)
+
+
 @router.put("/assets/bulk/move", response_model=ResponseModel[AdminAssetBulkMoveOut])
 async def bulk_move_assets(
     payload: AdminAssetBulkMoveRequest,
@@ -174,6 +188,25 @@ async def bulk_delete_assets(
     """
 
     out = await service.bulk_delete_assets(org_id=org_id, payload=payload)
+    return JsonResponse.success(data=out)
+
+
+@router.put("/assets/bulk/update", response_model=ResponseModel[AdminAssetBulkUpdateOut])
+async def bulk_update_assets(
+    payload: AdminAssetBulkUpdateRequest,
+    org_id: UUID = Depends(get_current_org_id),
+    _user=Depends(get_current_user),
+    service: AdminAssetsService = Depends(get_admin_assets_service),
+) -> ResponseModel[AdminAssetBulkUpdateOut]:
+    """
+    Bulk update assets (currently supports visibility and purpose).
+
+    Notes:
+    - This is an org-scoped operation.
+    - At least one field must be provided (visibility/purpose).
+    """
+
+    out = await service.bulk_update_assets(org_id=org_id, payload=payload)
     return JsonResponse.success(data=out)
 
 

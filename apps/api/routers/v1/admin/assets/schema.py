@@ -6,6 +6,7 @@ from uuid import UUID
 from pydantic import Field, computed_field
 
 from apps.api.common.schemas import BaseOut, BaseSchema
+from apps.api.models.asset import AssetPurpose, AssetVisibility
 
 
 def _canonical_filename(slug: str | None, ext: str | None) -> str:
@@ -94,6 +95,10 @@ class AdminAssetFolderUpdateRequest(BaseSchema):
     sort_order: int | None = Field(default=None, description="Sort order.")
 
 
+class AdminAssetFolderDeleteOut(BaseSchema):
+    id: UUID = Field(..., description="Deleted folder id.")
+
+
 class AdminAssetMoveRequest(BaseSchema):
     folder_id: UUID | None = Field(default=None, description="Target folder id (null = move to root).")
 
@@ -118,9 +123,24 @@ class AdminAssetBulkDeleteOut(BaseSchema):
     deleted_asset_ids: list[UUID] = Field(default_factory=list, description="Deleted asset ids (deduplicated).")
 
 
+class AdminAssetBulkUpdateRequest(BaseSchema):
+    asset_ids: list[UUID] = Field(..., min_length=1, max_length=500, description="Asset ids to update.")
+    visibility: AssetVisibility | None = Field(default=None, description="Target visibility (public/private/shared).")
+    purpose: AssetPurpose | None = Field(default=None, description="Target purpose.")
+
+
+class AdminAssetBulkUpdateOut(BaseSchema):
+    updated_count: int = Field(..., ge=0, description="Updated assets count.")
+    updated_asset_ids: list[UUID] = Field(default_factory=list, description="Updated asset ids (deduplicated).")
+    visibility: AssetVisibility | None = Field(default=None, description="Applied visibility (if provided).")
+    purpose: AssetPurpose | None = Field(default=None, description="Applied purpose (if provided).")
+
+
 class AdminAssetUpdateRequest(BaseSchema):
     description: str | None = Field(default=None, max_length=4000, description="User-facing description.")
     tag_ids: list[UUID] | None = Field(default=None, description="Tag ids to set (replace existing).")
+    visibility: AssetVisibility | None = Field(default=None, description="Asset visibility.")
+    purpose: AssetPurpose | None = Field(default=None, description="Asset purpose.")
 
 
 class AdminAssetTagCreateRequest(BaseSchema):

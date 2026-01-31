@@ -19,9 +19,12 @@ from apps.api.routers.v1.admin.assets.schema import (
     AdminAssetBulkDeleteRequest,
     AdminAssetBulkMoveOut,
     AdminAssetBulkMoveRequest,
+    AdminAssetBulkUpdateOut,
+    AdminAssetBulkUpdateRequest,
     AdminAssetDeleteOut,
     AdminAssetDetailOut,
     AdminAssetFolderCreateRequest,
+    AdminAssetFolderDeleteOut,
     AdminAssetFolderOut,
     AdminAssetFolderUpdateRequest,
     AdminAssetListQuery,
@@ -168,11 +171,67 @@ class AdminAssetsService(BaseService):
                 raise BadRequest(message=_ts("ASSET_TAG_NOT_FOUND", "标签不存在"), error="ASSET_TAG_NOT_FOUND")
             await self.repo.replace_asset_tags(asset_id=asset.id, tag_ids=dedup)
 
+        if "visibility" in payload.model_fields_set:
+            if payload.visibility is None:
+                raise BadRequest(
+                    message=_ts("ASSET_VISIBILITY_INVALID", "可见性不合法"),
+                    error="ASSET_VISIBILITY_INVALID",
+                )
+            updates["visibility"] = payload.visibility
+
+        if "purpose" in payload.model_fields_set:
+            if payload.purpose is None:
+                raise BadRequest(
+                    message=_ts("ASSET_PURPOSE_INVALID", "用途不合法"),
+                    error="ASSET_PURPOSE_INVALID",
+                )
+            updates["purpose"] = payload.purpose
+
         if updates:
             asset = await self.repo.save_asset_updates(asset, updates=updates)
 
         # Reload to ensure tag_links/meta reflect latest state.
         return await self.get_asset_detail(org_id=org_id, asset_id=asset.id)
+
+    async def bulk_update_assets(
+        self,
+        *,
+        org_id: UUID,
+        payload: AdminAssetBulkUpdateRequest,
+    ) -> AdminAssetBulkUpdateOut:
+        asset_ids = list(dict.fromkeys(payload.asset_ids))
+        if not asset_ids:
+            raise BadRequest(message=_ts("ASSET_IDS_INVALID", "资源 ID 列表不合法"), error="ASSET_IDS_INVALID")
+
+        updates: dict = {}
+        if payload.visibility is not None:
+            updates["visibility"] = payload.visibility
+        if payload.purpose is not None:
+            updates["purpose"] = payload.purpose
+        if not updates:
+            raise BadRequest(
+                message=_ts("ASSET_BULK_UPDATE_INVALID", "请至少选择一个要修改的字段"),
+                error="ASSET_BULK_UPDATE_INVALID",
+            )
+
+        rows = await self.repo.get_assets_by_ids(org_id=org_id, asset_ids=asset_ids)
+        if len(rows) != len(asset_ids):
+            raise NotFound(message=_ts("ASSET_NOT_FOUND", "资源不存在"), error="ASSET_NOT_FOUND")
+
+        now = datetime.now(tz=UTC)
+        updated = await self.repo.bulk_update_assets_fields(
+            org_id=org_id,
+            asset_ids=asset_ids,
+            updates=updates,
+            updated_at=now,
+        )
+
+        return AdminAssetBulkUpdateOut(
+            updated_count=updated,
+            updated_asset_ids=asset_ids,
+            visibility=payload.visibility,
+            purpose=payload.purpose,
+        )
 
     async def delete_asset(self, *, org_id: UUID, asset_id: UUID) -> AdminAssetDeleteOut:
         asset = await self.repo.get_asset(org_id=org_id, asset_id=asset_id)
@@ -234,6 +293,26 @@ class AdminAssetsService(BaseService):
         if updates:
             folder = await self.repo.save_folder_updates(folder, updates=updates)
         return AdminAssetFolderOut.model_validate(folder, from_attributes=True)
+
+    async def delete_folder(self, *, org_id: UUID, folder_id: UUID) -> AdminAssetFolderDeleteOut:
+        folder = await self.repo.get_folder(org_id=org_id, folder_id=folder_id)
+        if folder is None:
+            raise NotFound(message=_ts("ASSET_FOLDER_NOT_FOUND", "文件夹不存在"), error="ASSET_FOLDER_NOT_FOUND")
+
+        has_children = await self.repo.folder_has_children(org_id=org_id, folder_id=folder_id)
+        if has_children:
+            raise Conflict(
+                message=_ts("ASSET_FOLDER_NOT_EMPTY", "文件夹非空，无法删除"), error="ASSET_FOLDER_NOT_EMPTY"
+            )
+
+        has_assets = await self.repo.folder_has_assets(org_id=org_id, folder_id=folder_id)
+        if has_assets:
+            raise Conflict(
+                message=_ts("ASSET_FOLDER_NOT_EMPTY", "文件夹非空，无法删除"), error="ASSET_FOLDER_NOT_EMPTY"
+            )
+
+        await self.repo.delete_folder(org_id=org_id, folder_id=folder_id)
+        return AdminAssetFolderDeleteOut(id=folder_id)
 
     async def move_asset(self, *, org_id: UUID, asset_id: UUID, payload: AdminAssetMoveRequest) -> AdminAssetSummaryOut:
         asset = await self.repo.get_asset(org_id=org_id, asset_id=asset_id)
