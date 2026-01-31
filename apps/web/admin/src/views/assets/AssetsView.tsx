@@ -12,7 +12,13 @@ import {
   Settings2,
   Trash2,
 } from "lucide-react";
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { flushSync } from "react-dom";
 import { useTranslation } from "react-i18next";
@@ -272,47 +278,6 @@ function DragSelectionOverlay(props: { count: number }) {
   );
 }
 
-function buildSvgDataUrl({ hue, aspectRatio }: { hue: number; aspectRatio: number }): string {
-  // Avoid network dependency for dev: render a simple SVG placeholder as a data URL.
-  const width = 1200;
-  const height = Math.max(1, Math.round(width / Math.max(0.2, aspectRatio)));
-  const bg = `hsl(${hue} 70% 45%)`;
-  const bg2 = `hsl(${(hue + 40) % 360} 70% 35%)`;
-
-  const svg = `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
-  <defs>
-    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="${bg}"/>
-      <stop offset="100%" stop-color="${bg2}"/>
-    </linearGradient>
-  </defs>
-  <rect width="${width}" height="${height}" fill="url(#g)"/>
-</svg>`;
-
-  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
-}
-
-function buildMockAssets(): AssetMasonryItem[] {
-  const aspectRatios = [16 / 9, 4 / 3, 1, 3 / 4, 21 / 9, 5 / 4, 2 / 3] as const;
-
-  return Array.from({ length: 28 }).map((_, idx) => {
-    const ar = aspectRatios[idx % aspectRatios.length];
-    const name = `Asset ${String(idx + 1).padStart(2, "0")}`;
-    const hue = (idx * 37) % 360;
-    return {
-      id: `mock-${idx + 1}`,
-      name,
-      description: undefined,
-      mimeType: "image/svg+xml",
-      sizeText: `${(128 + idx * 13) % 2048} KB`,
-      createdAtText: "2026-01-28",
-      aspectRatio: ar,
-      previewUrl: buildSvgDataUrl({ hue, aspectRatio: ar }),
-    };
-  });
-}
-
 function formatBytes(bytes: number | undefined | null): string | undefined {
   if (!bytes || bytes < 0) return undefined;
   const units = ["B", "KB", "MB", "GB"] as const;
@@ -344,10 +309,11 @@ function toMasonryItem(
   const canonicalThumbBasePath = `/assets/${asset.id}/thumb`;
   const canonicalDownloadPath = `/assets/${asset.id}/download`;
 
-  const thumbBaseUrl = resolvePublicAssetUrlPath(canonicalThumbBasePath);
+  const isImage = Boolean(asset.mime?.startsWith("image/"));
+  const thumbBaseUrl = isImage ? resolvePublicAssetUrlPath(canonicalThumbBasePath) : undefined;
   const publicUrl =
     asset.visibility === "public" ? resolvePublicAssetUrlPath(canonicalPublicPath) : undefined;
-  const previewUrl = thumbBaseUrl ? `${thumbBaseUrl}?w=400` : publicUrl;
+  const previewUrl = isImage ? (thumbBaseUrl ? `${thumbBaseUrl}?w=400` : publicUrl) : undefined;
   const downloadUrl =
     asset.visibility === "public" ? resolvePublicAssetUrlPath(canonicalDownloadPath) : undefined;
 
@@ -367,6 +333,7 @@ function toMasonryItem(
     name,
     description: undefined,
     mimeType: asset.mime || undefined,
+    ext: asset.ext || undefined,
     sizeText: formatBytes(asset.sizeBytes),
     createdAtText: asset.createdAt?.slice(0, 10),
     previewUrl,
@@ -472,7 +439,6 @@ export function AssetsView() {
     [t],
   );
 
-  const mockItems = useMemo(() => buildMockAssets(), []);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -528,6 +494,7 @@ export function AssetsView() {
       }),
     initialPageParam: 1,
     getNextPageParam: (lastPage) => lastPage.next ?? undefined,
+    placeholderData: keepPreviousData,
     staleTime: 30 * 1000,
     retry: 1,
   });
@@ -609,13 +576,13 @@ export function AssetsView() {
   ]);
 
   const items = useMemo<AssetMasonryItem[]>(() => {
-    if (!assetsQuery.data) return mockItems;
+    if (!assetsQuery.data) return [];
     const rows = assetsQuery.data.pages.flatMap((p) => p.items);
     const mapped = rows.map((row) =>
       toMasonryItem(row, { aspectRatioOverride: aspectRatioRef.current.get(row.id) }),
     );
     return mapped.length ? mapped : [];
-  }, [assetsQuery.data, mockItems, layoutTick]);
+  }, [assetsQuery.data, layoutTick]);
 
   const orderedAssetIds = useMemo(() => items.map((it) => it.id), [items]);
 
@@ -1105,17 +1072,25 @@ export function AssetsView() {
               ))}
             </div>
 
-            <Button
-              type="text"
-              size="small"
-              icon={<FolderPlus size={16} />}
-              onClick={() => {
-                setCreateFolderParentId(currentFolderId);
-                setCreateFolderOpen(true);
-              }}
-            >
-              {t("assets:ASSET_ACTION_CREATE_FOLDER")}
-            </Button>
+            <div className="flex items-center gap-2">
+              {assetsQuery.isFetching && !assetsQuery.isFetchingNextPage ? (
+                <div className="scale-75 opacity-75">
+                  <LoaderOne />
+                </div>
+              ) : null}
+
+              <Button
+                type="text"
+                size="small"
+                icon={<FolderPlus size={16} />}
+                onClick={() => {
+                  setCreateFolderParentId(currentFolderId);
+                  setCreateFolderOpen(true);
+                }}
+              >
+                {t("assets:ASSET_ACTION_CREATE_FOLDER")}
+              </Button>
+            </div>
           </div>
 
           <div
@@ -1419,9 +1394,9 @@ export function AssetsView() {
         </DndContext>
       )}
 
-      {assetsQuery.isFetchingNextPage || assetsQuery.hasNextPage ? (
+      {assetsQuery.hasNextPage ? (
         <div ref={sentinelRef} className="py-8 flex justify-center">
-          <LoaderOne />
+          {assetsQuery.isFetchingNextPage ? <LoaderOne /> : <div className="h-6 w-6" />}
         </div>
       ) : null}
 
@@ -1429,7 +1404,7 @@ export function AssetsView() {
         {selectedIds.size > 0 ? (
           <motion.div
             key="assets-selection-toolbar"
-            className="sticky bottom-6 z-20 mt-6 flex justify-center"
+            className="fixed bottom-6 left-1/2 z-30 -translate-x-1/2 flex justify-center"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}

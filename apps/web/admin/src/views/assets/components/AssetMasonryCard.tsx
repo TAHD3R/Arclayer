@@ -61,6 +61,19 @@ import {
 import TrashIcon from "@/components/ui/icons/trash-icon";
 import { LoaderOne } from "@/components/ui/loader";
 import { SettingActionItem } from "@/components/app/settingActionItem";
+import {
+  ExcelDocumentIcon,
+  GdocDocumentIcon,
+  HtmlDocumentIcon,
+  PdfDocumentIcon,
+  PptDocumentIcon,
+  PsdDocumentIcon,
+  TxtDocumentIcon,
+  UnknownDocumentIcon,
+  VideoDocumentIcon,
+  WordDocumentIcon,
+  ZipDocumentIcon,
+} from "@/components/ui/file-icons/document-icons";
 import { notifyErrorText, notifySuccessText } from "@/utils/notifications";
 import { copyToClipboard } from "@/utils/clipboard";
 import { useAuthStore } from "@/stores/useAuthStore";
@@ -75,6 +88,7 @@ export type AssetMasonryItem = {
   previewUrl?: string;
   thumbBaseUrl?: string;
   mimeType?: string;
+  ext?: string;
   sizeText?: string;
   createdAtText?: string;
   aspectRatio?: number;
@@ -347,6 +361,33 @@ export const AssetMasonryTile = memo(
     const overlayVisible = selected;
     const hasPreview = Boolean(props.asset.previewUrl);
     const moving = Boolean(props.moving);
+    const [previewFailed, setPreviewFailed] = useState(false);
+
+    useEffect(() => {
+      // When src changes (or tile switches), reset error state.
+      setPreviewFailed(false);
+    }, [props.asset.previewUrl]);
+
+    const fallbackIcon = useMemo(() => {
+      const mime = (props.asset.mimeType || "").toLowerCase();
+      const extRaw = (props.asset.ext || props.asset.name.split(".").pop() || "").toLowerCase();
+      const ext = extRaw.replace(/[^a-z0-9]/g, "");
+
+      if (mime === "application/pdf" || ext === "pdf") return <PdfDocumentIcon size={56} />;
+      if (mime.startsWith("video/") || ext === "mp4" || ext === "mov" || ext === "webm") {
+        return <VideoDocumentIcon size={56} />;
+      }
+      if (mime === "text/plain" || ext === "txt") return <TxtDocumentIcon size={56} />;
+      if (mime === "text/html" || ext === "html" || ext === "htm")
+        return <HtmlDocumentIcon size={56} />;
+      if (ext === "doc" || ext === "docx") return <WordDocumentIcon size={56} />;
+      if (ext === "xls" || ext === "xlsx" || ext === "csv") return <ExcelDocumentIcon size={56} />;
+      if (ext === "ppt" || ext === "pptx") return <PptDocumentIcon size={56} />;
+      if (ext === "psd") return <PsdDocumentIcon size={56} />;
+      if (ext === "zip" || ext === "7z" || ext === "rar") return <ZipDocumentIcon size={56} />;
+      if (ext === "gdoc") return <GdocDocumentIcon size={56} />;
+      return <UnknownDocumentIcon size={56} />;
+    }, [props.asset.ext, props.asset.mimeType, props.asset.name]);
 
     const onKeyDown: React.KeyboardEventHandler<HTMLDivElement> = (e) => {
       if (e.key === "Enter") {
@@ -394,15 +435,20 @@ export const AssetMasonryTile = memo(
               errorText={t("assets:ASSET_PREVIEW_LOAD_FAILED")}
               retryText={t("common:RETRY")}
               onLoaded={(info) => {
+                setPreviewFailed(false);
                 props.onAspectRatio?.(props.asset.id, info.aspectRatio);
               }}
+              onError={() => setPreviewFailed(true)}
             />
           ) : (
-            <div className="absolute inset-0 grid place-items-center bg-muted/30">
-              <div className="text-xs text-muted-foreground">
-                {props.asset.mimeType?.startsWith("image/")
-                  ? t("assets:ASSET_PREVIEW_UNAVAILABLE")
-                  : props.asset.mimeType || t("assets:ASSET_FILE_GENERIC")}
+            <div className="absolute inset-0 grid place-items-center bg-muted/20">
+              <div className="flex flex-col items-center gap-3 text-muted-foreground">
+                <div className="opacity-95">{fallbackIcon}</div>
+                <div className="text-[11px] font-medium uppercase tracking-wide opacity-80">
+                  {(props.asset.ext || props.asset.mimeType || t("assets:ASSET_FILE_GENERIC"))
+                    .toString()
+                    .replace(/^\\./, "")}
+                </div>
               </div>
             </div>
           )}
@@ -412,11 +458,12 @@ export const AssetMasonryTile = memo(
             className={cn(
               "absolute inset-0",
               "opacity-0 group-hover:opacity-100 transition-opacity duration-200",
+              "pointer-events-none",
               overlayVisible ? "opacity-100" : undefined,
             )}
           >
             {/* Unified overlay */}
-            <div className="absolute inset-0 bg-black/35" />
+            <div className={cn("absolute inset-0", previewFailed ? "bg-black/0" : "bg-black/35")} />
 
             {/* Checkbox: show on hover OR selected, so users can multi-select without modifier keys */}
             <div
@@ -433,19 +480,21 @@ export const AssetMasonryTile = memo(
             </div>
 
             {/* Filename/description at the bottom */}
-            <div className="absolute left-3 right-3 bottom-3">
-              <motion.div
-                className={cn("font-bold text-lg text-white", "truncate py-2 pr-8")}
-                title={props.asset.name}
-              >
-                {props.asset.name}
-              </motion.div>
-              {props.asset.description ? (
-                <div className={cn("mt-1 text-sm text-white/85", "line-clamp-2")}>
-                  {props.asset.description}
-                </div>
-              ) : null}
-            </div>
+            {!previewFailed ? (
+              <div className="absolute left-3 right-3 bottom-3">
+                <motion.div
+                  className={cn("font-bold text-lg text-white", "truncate py-2 pr-8")}
+                  title={props.asset.name}
+                >
+                  {props.asset.name}
+                </motion.div>
+                {props.asset.description ? (
+                  <div className={cn("mt-1 text-sm text-white/85", "line-clamp-2")}>
+                    {props.asset.description}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
           </div>
         </motion.div>
       </motion.div>
@@ -535,6 +584,7 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
   }, [active?.name, isImage, publicAbsoluteUrl]);
 
   const previewCandidates = useMemo(() => {
+    if (!isImage) return [];
     const out: string[] = [];
     if (active?.previewUrl) out.push(active.previewUrl);
     // Prefer larger thumbnails as fallback for the main preview.
