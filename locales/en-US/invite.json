@@ -34,11 +34,13 @@
 
   "INVITE_ACTION_CONTINUE": "Continue",
   "INVITE_ACTION_ACCEPT_JOIN": "Accept invitation and join",
+  "INVITE_ACTION_REJECT": "Decline invitation",
   "INVITE_ACTION_BACK": "Back",
   "INVITE_ACTION_BACK_TO_LOGIN": "Back to Login",
   "INVITE_ACTION_ENTER_TOKEN": "Enter token manually",
   "INVITE_ACTION_LOGOUT_SWITCH": "Logout and switch account",
   "INVITE_ACTION_JOIN": "Join and enter admin",
+  "INVITE_ACTION_JOIN_ANYWAY": "Join with current account anyway",
   "INVITE_ACTION_LOGIN_JOIN": "Sign in and join",
   "INVITE_ACTION_REGISTER_JOIN": "Create account and join",
   "INVITE_ACTION_SWITCH_TO_LOGIN": "Already have an account? Sign in",

@@ -23,7 +23,10 @@ import { notifyError, notifySuccessText } from "@/utils/notifications";
 type FormValues = {
   emails: string[];
   roleCode: string;
+  expiresInSeconds: number | null;
 };
+
+const DEFAULT_EXPIRES_IN_SECONDS = 7 * 24 * 60 * 60;
 
 function normalizeEmailList(input: string[]): string[] {
   // Preserve order but de-duplicate.
@@ -52,27 +55,23 @@ export function InviteMembersDialog(props: {
   const { t } = useTranslation(["team", "common"]);
 
   const schema = React.useMemo(() => {
-    const required = t("team:TEAM_INVITE_VALIDATION_TO_REQUIRED");
-
     return z.object({
-      emails: z
-        .array(z.string())
-        .min(1, required)
-        .superRefine((val, ctx) => {
-          const emails = normalizeEmailList(val);
-          // `min(1)` already covers required; here we only validate format.
-          for (const [idx, email] of emails.entries()) {
-            if (!z.string().email().safeParse(email).success) {
-              ctx.addIssue({
-                code: "custom",
-                path: [idx],
-                message: t("team:TEAM_INVITE_VALIDATION_EMAIL_INVALID", { email }),
-              });
-              return;
-            }
+      emails: z.array(z.string()).superRefine((val, ctx) => {
+        const emails = normalizeEmailList(val);
+        // Emails are optional; if provided, validate format.
+        for (const [idx, email] of emails.entries()) {
+          if (!z.string().email().safeParse(email).success) {
+            ctx.addIssue({
+              code: "custom",
+              path: [idx],
+              message: t("team:TEAM_INVITE_VALIDATION_EMAIL_INVALID", { email }),
+            });
+            return;
           }
-        }),
+        }
+      }),
       roleCode: z.string().min(1, t("team:TEAM_INVITE_VALIDATION_ROLE_REQUIRED")),
+      expiresInSeconds: z.number().int().min(60).nullable(),
     });
   }, [t]);
 
@@ -81,13 +80,14 @@ export function InviteMembersDialog(props: {
     defaultValues: {
       emails: [],
       roleCode: "",
+      expiresInSeconds: DEFAULT_EXPIRES_IN_SECONDS,
     },
     mode: "onSubmit",
   });
 
   React.useEffect(() => {
     if (!props.open) {
-      form.reset({ emails: [], roleCode: "" });
+      form.reset({ emails: [], roleCode: "", expiresInSeconds: DEFAULT_EXPIRES_IN_SECONDS });
     }
   }, [form, props.open]);
 
@@ -107,25 +107,34 @@ export function InviteMembersDialog(props: {
     mutationFn: async (values: FormValues) => {
       const emails = normalizeEmailList(values.emails);
       const roleCode = values.roleCode;
+      const expiresInSeconds = values.expiresInSeconds;
 
       const created = await createTeamInviteLink({
         roleCode,
-        expiresInSeconds: undefined,
-        emails,
+        expiresInSeconds,
+        emails: emails.length ? emails : undefined,
       });
 
       return { created, emailCount: emails.length };
     },
     onSuccess: async ({ created, emailCount }) => {
+      let copied = false;
       if (created.inviteUrl) {
         try {
           await navigator.clipboard.writeText(created.inviteUrl);
+          copied = true;
         } catch {
           // ignore clipboard failures
         }
       }
 
-      notifySuccessText(t("team:TEAM_INVITE_SUCCESS", { count: emailCount }));
+      if (emailCount > 0) {
+        notifySuccessText(t("team:TEAM_INVITE_SUCCESS", { count: emailCount }));
+      } else if (created.inviteUrl && copied) {
+        notifySuccessText(t("team:TEAM_INVITE_LINK_CREATE_SUCCESS_COPIED"));
+      } else {
+        notifySuccessText(t("team:TEAM_ACTION_SUCCESS"));
+      }
       props.onInvited?.();
       props.onOpenChange(false);
     },
@@ -143,8 +152,19 @@ export function InviteMembersDialog(props: {
     }));
   }, [props.roles]);
 
+  const expiresOptions = React.useMemo(
+    () => [
+      { label: t("team:TEAM_INVITE_LINK_EXPIRES_1_DAY"), value: 1 * 24 * 60 * 60 },
+      { label: t("team:TEAM_INVITE_LINK_EXPIRES_7_DAYS"), value: 7 * 24 * 60 * 60 },
+      { label: t("team:TEAM_INVITE_LINK_EXPIRES_30_DAYS"), value: 30 * 24 * 60 * 60 },
+      { label: t("team:TEAM_INVITE_LINK_EXPIRES_NEVER"), value: null },
+    ],
+    [t],
+  );
+
   const emailTags = form.watch("emails");
   const selectedRoleCode = form.watch("roleCode");
+  const selectedExpires = form.watch("expiresInSeconds");
 
   const invalidEmailMessageByValue = React.useMemo(() => {
     const map = new Map<string, string>();
@@ -243,6 +263,25 @@ export function InviteMembersDialog(props: {
                 {String(form.formState.errors.roleCode.message)}
               </div>
             ) : null}
+          </div>
+
+          <div className="grid gap-1.5">
+            <label className="text-muted-foreground font-semibold" htmlFor="expiresInSeconds">
+              {t("team:TEAM_INVITE_LINK_FIELD_EXPIRES")}
+            </label>
+            <Select
+              id="expiresInSeconds"
+              value={selectedExpires}
+              // antd emits `null` when selecting the "never" option.
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              onChange={(v: any) =>
+                form.setValue("expiresInSeconds", v === null ? null : Number(v), {
+                  shouldDirty: true,
+                })
+              }
+              options={expiresOptions}
+              getPopupContainer={(node) => node.parentElement ?? document.body}
+            />
           </div>
         </form>
 

@@ -148,7 +148,7 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
             key: "settings.team.members",
             label: "Member invitations",
             labelKey: "nav:NAV_SETTINGS_TEAM_MEMBERS",
-            to: "/settings/team/members",
+            to: "/team/invitations",
             icon: UserPlus,
           },
           {

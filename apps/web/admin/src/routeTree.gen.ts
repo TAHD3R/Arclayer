@@ -17,7 +17,8 @@ import { Route as AcceptInviteRouteImport } from './routes/accept-invite'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as TeamIndexRouteImport } from './routes/team/index'
 import { Route as AssetsIndexRouteImport } from './routes/assets/index'
-import { Route as TeamMembersIndexRouteImport } from './routes/team/members/index'
+import { Route as TeamMembersRouteImport } from './routes/team/members'
+import { Route as TeamInvitationsRouteImport } from './routes/team/invitations'
 import { Route as SettingsSeoIndexRouteImport } from './routes/settings/seo/index'
 import { Route as SettingsGeneralIndexRouteImport } from './routes/settings/general/index'
 import { Route as PluginsInstalledIndexRouteImport } from './routes/plugins/installed/index'
@@ -72,9 +73,14 @@ const AssetsIndexRoute = AssetsIndexRouteImport.update({
   path: '/assets/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const TeamMembersIndexRoute = TeamMembersIndexRouteImport.update({
-  id: '/team/members/',
-  path: '/team/members/',
+const TeamMembersRoute = TeamMembersRouteImport.update({
+  id: '/team/members',
+  path: '/team/members',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TeamInvitationsRoute = TeamInvitationsRouteImport.update({
+  id: '/team/invitations',
+  path: '/team/invitations',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsSeoIndexRoute = SettingsSeoIndexRouteImport.update({
@@ -155,6 +161,8 @@ export interface FileRoutesByFullPath {
   '/notifications': typeof NotificationsRoute
   '/reset-password': typeof ResetPasswordRoute
   '/setup': typeof SetupRoute
+  '/team/invitations': typeof TeamInvitationsRoute
+  '/team/members': typeof TeamMembersRoute
   '/assets/': typeof AssetsIndexRoute
   '/team/': typeof TeamIndexRoute
   '/appearance/navigation/': typeof AppearanceNavigationIndexRoute
@@ -165,7 +173,6 @@ export interface FileRoutesByFullPath {
   '/plugins/installed/': typeof PluginsInstalledIndexRoute
   '/settings/general/': typeof SettingsGeneralIndexRoute
   '/settings/seo/': typeof SettingsSeoIndexRoute
-  '/team/members/': typeof TeamMembersIndexRoute
   '/settings/maintenance/audit-log/': typeof SettingsMaintenanceAuditLogIndexRoute
   '/settings/maintenance/snapshots/': typeof SettingsMaintenanceSnapshotsIndexRoute
   '/settings/maintenance/status/': typeof SettingsMaintenanceStatusIndexRoute
@@ -179,6 +186,8 @@ export interface FileRoutesByTo {
   '/notifications': typeof NotificationsRoute
   '/reset-password': typeof ResetPasswordRoute
   '/setup': typeof SetupRoute
+  '/team/invitations': typeof TeamInvitationsRoute
+  '/team/members': typeof TeamMembersRoute
   '/assets': typeof AssetsIndexRoute
   '/team': typeof TeamIndexRoute
   '/appearance/navigation': typeof AppearanceNavigationIndexRoute
@@ -189,7 +198,6 @@ export interface FileRoutesByTo {
   '/plugins/installed': typeof PluginsInstalledIndexRoute
   '/settings/general': typeof SettingsGeneralIndexRoute
   '/settings/seo': typeof SettingsSeoIndexRoute
-  '/team/members': typeof TeamMembersIndexRoute
   '/settings/maintenance/audit-log': typeof SettingsMaintenanceAuditLogIndexRoute
   '/settings/maintenance/snapshots': typeof SettingsMaintenanceSnapshotsIndexRoute
   '/settings/maintenance/status': typeof SettingsMaintenanceStatusIndexRoute
@@ -204,6 +212,8 @@ export interface FileRoutesById {
   '/notifications': typeof NotificationsRoute
   '/reset-password': typeof ResetPasswordRoute
   '/setup': typeof SetupRoute
+  '/team/invitations': typeof TeamInvitationsRoute
+  '/team/members': typeof TeamMembersRoute
   '/assets/': typeof AssetsIndexRoute
   '/team/': typeof TeamIndexRoute
   '/appearance/navigation/': typeof AppearanceNavigationIndexRoute
@@ -214,7 +224,6 @@ export interface FileRoutesById {
   '/plugins/installed/': typeof PluginsInstalledIndexRoute
   '/settings/general/': typeof SettingsGeneralIndexRoute
   '/settings/seo/': typeof SettingsSeoIndexRoute
-  '/team/members/': typeof TeamMembersIndexRoute
   '/settings/maintenance/audit-log/': typeof SettingsMaintenanceAuditLogIndexRoute
   '/settings/maintenance/snapshots/': typeof SettingsMaintenanceSnapshotsIndexRoute
   '/settings/maintenance/status/': typeof SettingsMaintenanceStatusIndexRoute
@@ -230,6 +239,8 @@ export interface FileRouteTypes {
     | '/notifications'
     | '/reset-password'
     | '/setup'
+    | '/team/invitations'
+    | '/team/members'
     | '/assets/'
     | '/team/'
     | '/appearance/navigation/'
@@ -240,7 +251,6 @@ export interface FileRouteTypes {
     | '/plugins/installed/'
     | '/settings/general/'
     | '/settings/seo/'
-    | '/team/members/'
     | '/settings/maintenance/audit-log/'
     | '/settings/maintenance/snapshots/'
     | '/settings/maintenance/status/'
@@ -254,6 +264,8 @@ export interface FileRouteTypes {
     | '/notifications'
     | '/reset-password'
     | '/setup'
+    | '/team/invitations'
+    | '/team/members'
     | '/assets'
     | '/team'
     | '/appearance/navigation'
@@ -264,7 +276,6 @@ export interface FileRouteTypes {
     | '/plugins/installed'
     | '/settings/general'
     | '/settings/seo'
-    | '/team/members'
     | '/settings/maintenance/audit-log'
     | '/settings/maintenance/snapshots'
     | '/settings/maintenance/status'
@@ -278,6 +289,8 @@ export interface FileRouteTypes {
     | '/notifications'
     | '/reset-password'
     | '/setup'
+    | '/team/invitations'
+    | '/team/members'
     | '/assets/'
     | '/team/'
     | '/appearance/navigation/'
@@ -288,7 +301,6 @@ export interface FileRouteTypes {
     | '/plugins/installed/'
     | '/settings/general/'
     | '/settings/seo/'
-    | '/team/members/'
     | '/settings/maintenance/audit-log/'
     | '/settings/maintenance/snapshots/'
     | '/settings/maintenance/status/'
@@ -303,6 +315,8 @@ export interface RootRouteChildren {
   NotificationsRoute: typeof NotificationsRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SetupRoute: typeof SetupRoute
+  TeamInvitationsRoute: typeof TeamInvitationsRoute
+  TeamMembersRoute: typeof TeamMembersRoute
   AssetsIndexRoute: typeof AssetsIndexRoute
   TeamIndexRoute: typeof TeamIndexRoute
   AppearanceNavigationIndexRoute: typeof AppearanceNavigationIndexRoute
@@ -313,7 +327,6 @@ export interface RootRouteChildren {
   PluginsInstalledIndexRoute: typeof PluginsInstalledIndexRoute
   SettingsGeneralIndexRoute: typeof SettingsGeneralIndexRoute
   SettingsSeoIndexRoute: typeof SettingsSeoIndexRoute
-  TeamMembersIndexRoute: typeof TeamMembersIndexRoute
   SettingsMaintenanceAuditLogIndexRoute: typeof SettingsMaintenanceAuditLogIndexRoute
   SettingsMaintenanceSnapshotsIndexRoute: typeof SettingsMaintenanceSnapshotsIndexRoute
   SettingsMaintenanceStatusIndexRoute: typeof SettingsMaintenanceStatusIndexRoute
@@ -379,11 +392,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AssetsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/team/members/': {
-      id: '/team/members/'
+    '/team/members': {
+      id: '/team/members'
       path: '/team/members'
-      fullPath: '/team/members/'
-      preLoaderRoute: typeof TeamMembersIndexRouteImport
+      fullPath: '/team/members'
+      preLoaderRoute: typeof TeamMembersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/team/invitations': {
+      id: '/team/invitations'
+      path: '/team/invitations'
+      fullPath: '/team/invitations'
+      preLoaderRoute: typeof TeamInvitationsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings/seo/': {
@@ -487,6 +507,8 @@ const rootRouteChildren: RootRouteChildren = {
   NotificationsRoute: NotificationsRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SetupRoute: SetupRoute,
+  TeamInvitationsRoute: TeamInvitationsRoute,
+  TeamMembersRoute: TeamMembersRoute,
   AssetsIndexRoute: AssetsIndexRoute,
   TeamIndexRoute: TeamIndexRoute,
   AppearanceNavigationIndexRoute: AppearanceNavigationIndexRoute,
@@ -497,7 +519,6 @@ const rootRouteChildren: RootRouteChildren = {
   PluginsInstalledIndexRoute: PluginsInstalledIndexRoute,
   SettingsGeneralIndexRoute: SettingsGeneralIndexRoute,
   SettingsSeoIndexRoute: SettingsSeoIndexRoute,
-  TeamMembersIndexRoute: TeamMembersIndexRoute,
   SettingsMaintenanceAuditLogIndexRoute: SettingsMaintenanceAuditLogIndexRoute,
   SettingsMaintenanceSnapshotsIndexRoute:
     SettingsMaintenanceSnapshotsIndexRoute,

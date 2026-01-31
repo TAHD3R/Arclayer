@@ -47,7 +47,9 @@ export type TeamInvitation = {
   roleCode: string | null;
   expiresAt: string | null;
   invitedByUserId: string | null;
+  invitedBy: TeamUserRef | null;
   acceptedByUserId: string | null;
+  acceptedBy: TeamUserRef | null;
   acceptedAt: string | null;
   revokedAt: string | null;
   status: InvitationStatus;
@@ -66,6 +68,7 @@ export type ListTeamInvitationsParams = {
   size?: number;
   q?: string;
   status?: InvitationStatus;
+  mine?: boolean;
 };
 
 function toQueryString(params: Record<string, unknown>): string {
@@ -116,6 +119,7 @@ export async function listTeamInvitations(
     size: params.size ?? 10,
     q: params.q,
     status: params.status,
+    mine: params.mine ? "true" : undefined,
   });
   return api.get<PageData<TeamInvitation>>(`/admin/team/invitations${query}`);
 }

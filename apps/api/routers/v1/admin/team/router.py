@@ -106,9 +106,15 @@ async def list_invitations(
     organization_id: UUID = Depends(get_current_org_id),
     params: PageParams = Depends(get_page_params),
     filters: TeamInvitationListQuery = Depends(),
+    user_id: UUID = Depends(get_current_user_id),
     service: TeamService = Depends(get_team_service),
 ) -> ResponseModel[PageData[TeamInvitationOut]]:
-    page = await service.list_invitations(organization_id=organization_id, params=params, filters=filters)
+    page = await service.list_invitations(
+        organization_id=organization_id,
+        params=params,
+        filters=filters,
+        requesting_user_id=user_id,
+    )
     return Response.success(data=page)
 
 

@@ -1,8 +1,7 @@
 "use client";
 
-import type { MenuProps } from "antd";
-import { Avatar, Button as AntButton, Dropdown, Input, Pagination, Tag } from "antd";
-import { Copy, EllipsisVertical, Link2Off, Plus, RotateCcw, Search } from "lucide-react";
+import { Avatar, Button as AntButton, Input, Modal, Pagination, Select, Tag } from "antd";
+import { Link2Off, Plus, RotateCcw, Search } from "lucide-react";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
 import { flexRender, type ColumnDef } from "@tanstack/react-table";
@@ -10,12 +9,15 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import * as authApi from "@/api/auth";
 import { listAdminRoles } from "@/api/rbac";
-import { listMyInvitations, type MyInvitation } from "@/api/invitations";
 import {
   disableAllTeamInviteLinks,
   disableTeamInviteLink,
+  deleteTeamInvitation,
+  listTeamInvitations,
   listTeamInviteLinks,
+  renewTeamInvitation,
   renewTeamInviteLink,
+  type TeamInvitation,
   type TeamInviteLink,
 } from "@/api/team";
 import { DefaultPage } from "@/components/app/defaultPage";
@@ -39,7 +41,6 @@ import {
   AlertDialogAction as AlertDialogActionPrimitive,
   AlertDialogCancel as AlertDialogCancelPrimitive,
 } from "@/components/animate-ui/primitives/radix/alert-dialog";
-import { Button } from "@/components/ui/button";
 import { LoaderOne } from "@/components/ui/loader";
 import {
   Table,
@@ -51,7 +52,6 @@ import {
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { notifyError, notifySuccessText } from "@/utils/notifications";
-import { CreateInviteLinkDialog } from "@/views/team/components/CreateInviteLinkDialog";
 import { InviteMembersDialog } from "@/views/team/components/InviteMembersDialog";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useOrgStore } from "@/stores/useOrgStore";
@@ -113,8 +113,13 @@ export function TeamInvitationsView() {
 
   const [tab, setTab] = React.useState<TabKey>("pending");
   const [inviteOpen, setInviteOpen] = React.useState(false);
-  const [createLinkOpen, setCreateLinkOpen] = React.useState(false);
   const [disableAllOpen, setDisableAllOpen] = React.useState(false);
+
+  const [renewInvitation, setRenewInvitation] = React.useState<TeamInvitation | null>(null);
+  const [renewLink, setRenewLink] = React.useState<TeamInviteLink | null>(null);
+  const [renewExpiresInSeconds, setRenewExpiresInSeconds] = React.useState<number | null>(
+    7 * 24 * 60 * 60,
+  );
 
   const orgsQuery = useQuery({
     queryKey: ["auth", "me", "orgs"],
@@ -141,6 +146,14 @@ export function TeamInvitationsView() {
     meta: { silent: true },
   });
 
+  const roleNameByCode = React.useMemo(() => {
+    const map = new Map<string, string>();
+    for (const r of rolesQuery.data?.items ?? []) {
+      map.set(r.code, r.name || r.code);
+    }
+    return map;
+  }, [rolesQuery.data?.items]);
+
   const disableLinkMutation = useMutation({
     mutationFn: disableTeamInviteLink,
     onSuccess: () => {
@@ -151,10 +164,32 @@ export function TeamInvitationsView() {
   });
 
   const renewLinkMutation = useMutation({
-    mutationFn: async (linkId: string) => renewTeamInviteLink(linkId, {}),
+    mutationFn: async (payload: { linkId: string; expiresInSeconds: number | null }) =>
+      renewTeamInviteLink(payload.linkId, { expiresInSeconds: payload.expiresInSeconds }),
     onSuccess: () => {
       notifySuccessText(t("team:TEAM_ACTION_SUCCESS"));
       void queryClient.invalidateQueries({ queryKey: ["dataTable", "team-invite-links"] });
+      setRenewLink(null);
+    },
+    onError: (err) => notifyError(err),
+  });
+
+  const renewInvitationMutation = useMutation({
+    mutationFn: async (payload: { invitationId: string; expiresInSeconds: number | null }) =>
+      renewTeamInvitation(payload.invitationId, { expiresInSeconds: payload.expiresInSeconds }),
+    onSuccess: () => {
+      notifySuccessText(t("team:TEAM_ACTION_SUCCESS"));
+      void queryClient.invalidateQueries({ queryKey: ["dataTable", "team-invitations"] });
+      setRenewInvitation(null);
+    },
+    onError: (err) => notifyError(err),
+  });
+
+  const deleteInvitationMutation = useMutation({
+    mutationFn: deleteTeamInvitation,
+    onSuccess: () => {
+      notifySuccessText(t("team:TEAM_ACTION_SUCCESS"));
+      void queryClient.invalidateQueries({ queryKey: ["dataTable", "team-invitations"] });
     },
     onError: (err) => notifyError(err),
   });
@@ -172,43 +207,30 @@ export function TeamInvitationsView() {
   const pendingExtraQuery = React.useMemo(() => ({ status: "pending" as const }), []);
   const acceptedExtraQuery = React.useMemo(() => ({ status: "accepted" as const }), []);
 
-  const myInvitationsColumns = React.useMemo<ColumnDef<MyInvitation, unknown>[]>(() => {
+  const invitationsColumns = React.useMemo<ColumnDef<TeamInvitation, unknown>[]>(() => {
     return [
       {
-        id: "org",
-        meta: { title: t("team:TEAM_MY_INVITATIONS_COL_ORG") },
-        header: t("team:TEAM_MY_INVITATIONS_COL_ORG"),
+        id: "email",
+        meta: { title: t("team:TEAM_INVITATIONS_COL_EMAIL") },
+        header: t("team:TEAM_INVITATIONS_COL_EMAIL"),
         cell: ({ row }) => {
-          const org = row.original.organization;
-          return <span className="font-medium">{org?.name || "-"}</span>;
-        },
-      },
-      {
-        id: "inviter",
-        meta: { title: t("team:TEAM_MY_INVITATIONS_COL_INVITER") },
-        header: t("team:TEAM_MY_INVITATIONS_COL_INVITER"),
-        cell: ({ row }) => renderUserLabel(row.original.inviter),
-      },
-      {
-        accessorKey: "roleCode",
-        meta: { title: t("team:TEAM_INVITATIONS_COL_ROLE") },
-        header: t("team:TEAM_INVITATIONS_COL_ROLE"),
-        cell: ({ row }) => (
-          <span className={row.original.roleCode ? "" : "text-muted-foreground"}>
-            {row.original.roleCode || "-"}
-          </span>
-        ),
-      },
-      {
-        accessorKey: "expiresAt",
-        meta: { title: t("team:TEAM_INVITATIONS_COL_EXPIRES") },
-        header: t("team:TEAM_INVITATIONS_COL_EXPIRES"),
-        cell: ({ row }) => {
-          const formatted = formatDateTime(row.original.expiresAt);
+          const inv = row.original;
+          const inviter = inv.invitedBy;
+          const inviterLabel =
+            (inviter?.displayName || inviter?.username || inviter?.email || "").trim() || "-";
+          const roleCode = inv.roleCode || null;
+          const roleName = roleCode ? (roleNameByCode.get(roleCode) ?? roleCode) : "-";
+
           return (
-            <span className={formatted ? "" : "text-muted-foreground"}>
-              {formatted || t("team:TEAM_INVITATIONS_NEVER_EXPIRES")}
-            </span>
+            <div className="min-w-0">
+              <div className="font-medium truncate">{inv.email || "-"}</div>
+              <div className="text-xs text-muted-foreground truncate">
+                {t("team:TEAM_INVITATIONS_SENT_BY", { inviter: inviterLabel })}
+              </div>
+              <div className="text-xs text-muted-foreground truncate">
+                {t("team:TEAM_INVITATIONS_ROLE_LINE", { roleName })}
+              </div>
+            </div>
           );
         },
       },
@@ -224,22 +246,65 @@ export function TeamInvitationsView() {
         },
       },
       {
-        id: "status",
-        meta: { title: t("team:TEAM_TABLE_COL_STATUS") },
-        header: t("team:TEAM_TABLE_COL_STATUS"),
+        accessorKey: "expiresAt",
+        meta: { title: t("team:TEAM_INVITATIONS_COL_EXPIRES") },
+        header: t("team:TEAM_INVITATIONS_COL_EXPIRES"),
         cell: ({ row }) => {
-          const s = row.original.status;
+          const formatted = formatDateTime(row.original.expiresAt);
           return (
-            <Tag color={s === "accepted" ? "green" : "blue"} style={{ marginInlineEnd: 0 }}>
-              {s === "accepted"
-                ? t("team:TEAM_INVITATION_STATUS_ACCEPTED")
-                : t("team:TEAM_INVITATION_STATUS_PENDING")}
-            </Tag>
+            <span className={formatted ? "" : "text-muted-foreground"}>
+              {formatted || t("team:TEAM_INVITATIONS_NEVER_EXPIRES")}
+            </span>
+          );
+        },
+      },
+      {
+        id: "actions",
+        enableHiding: false,
+        meta: { title: t("team:TEAM_TABLE_COL_ACTIONS") },
+        header: "",
+        cell: ({ row }) => {
+          const inv = row.original;
+          const canRenew = inv.status === "pending";
+
+          return (
+            <div className="flex items-center justify-end gap-2">
+              <AntButton
+                size="small"
+                icon={<RotateCcw className="size-4" />}
+                disabled={!canRenew}
+                onClick={() => {
+                  setRenewExpiresInSeconds(7 * 24 * 60 * 60);
+                  setRenewInvitation(inv);
+                }}
+              >
+                {t("team:TEAM_ACTION_RENEW")}
+              </AntButton>
+              <AntButton
+                size="small"
+                danger
+                onClick={() => {
+                  Modal.confirm({
+                    title: t("team:TEAM_INVITATIONS_DELETE_TITLE"),
+                    content: t("team:TEAM_INVITATIONS_DELETE_DESC", { email: inv.email }),
+                    okText: t("team:TEAM_ACTION_DELETE"),
+                    cancelText: t("common:CANCEL"),
+                    okButtonProps: { danger: true },
+                    onOk: async () => {
+                      await deleteInvitationMutation.mutateAsync(inv.id);
+                    },
+                  });
+                }}
+              >
+                {t("team:TEAM_ACTION_DELETE")}
+              </AntButton>
+            </div>
           );
         },
       },
     ];
-  }, [t]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deleteInvitationMutation, roleNameByCode, t]);
 
   const inviteLinksColumns = React.useMemo<ColumnDef<TeamInviteLink, unknown>[]>(() => {
     return [
@@ -253,7 +318,23 @@ export function TeamInvitationsView() {
         accessorKey: "code",
         meta: { title: t("team:TEAM_INVITE_LINKS_COL_CODE") },
         header: t("team:TEAM_INVITE_LINKS_COL_CODE"),
-        cell: ({ row }) => <span className="font-mono text-sm">{row.original.code}</span>,
+        cell: ({ row }) => {
+          const code = row.original.code;
+          return (
+            <AntButton
+              type="link"
+              size="small"
+              className="font-mono text-sm"
+              onClick={() => {
+                void navigator.clipboard.writeText(code);
+                notifySuccessText(t("team:TEAM_ACTION_COPIED"));
+              }}
+              aria-label={t("team:TEAM_INVITE_LINKS_ACTION_COPY_CODE")}
+            >
+              {code}
+            </AntButton>
+          );
+        },
       },
       {
         id: "participant",
@@ -262,13 +343,18 @@ export function TeamInvitationsView() {
         cell: ({ row }) => {
           const uses = Number(row.original.usesCount || 0);
           const lastUsedBy = row.original.lastUsedBy;
-          if (!uses) return <span className="text-muted-foreground">-</span>;
           return (
             <div className="flex items-center gap-2 min-w-0">
               <Tag color="blue" style={{ marginInlineEnd: 0 }}>
                 {uses}
               </Tag>
-              <div className="min-w-0">{renderUserLabel(lastUsedBy)}</div>
+              <div className="min-w-0">
+                {lastUsedBy ? (
+                  renderUserLabel(lastUsedBy)
+                ) : (
+                  <span className="text-muted-foreground">-</span>
+                )}
+              </div>
             </div>
           );
         },
@@ -307,44 +393,29 @@ export function TeamInvitationsView() {
           const disabled = Boolean(link.disabledAt);
           const canManage = !disabled;
 
-          const items: MenuProps["items"] = [
-            {
-              key: "copy_code",
-              icon: <Copy className="size-4" />,
-              label: t("team:TEAM_INVITE_LINKS_ACTION_COPY_CODE"),
-              onClick: () => {
-                void navigator.clipboard.writeText(link.code);
-                notifySuccessText(t("team:TEAM_ACTION_COPIED"));
-              },
-            },
-            { type: "divider" },
-            {
-              key: "renew",
-              icon: <RotateCcw className="size-4" />,
-              label: t("team:TEAM_ACTION_RENEW"),
-              disabled: !canManage,
-              onClick: () => renewLinkMutation.mutate(link.id),
-            },
-            {
-              key: "disable",
-              icon: <Link2Off className="size-4" />,
-              label: t("team:TEAM_INVITE_LINKS_ACTION_DISABLE"),
-              disabled: !canManage,
-              danger: true,
-              onClick: () => disableLinkMutation.mutate(link.id),
-            },
-          ];
-
           return (
-            <Dropdown trigger={["click"]} menu={{ items }}>
-              <Button
-                variant="ghost"
-                className="h-8 w-8 p-0"
-                aria-label={t("team:TEAM_INVITE_LINKS_ACTIONS")}
+            <div className="flex items-center justify-end gap-2">
+              <AntButton
+                size="small"
+                icon={<RotateCcw className="size-4" />}
+                disabled={!canManage}
+                onClick={() => {
+                  setRenewExpiresInSeconds(7 * 24 * 60 * 60);
+                  setRenewLink(link);
+                }}
               >
-                <EllipsisVertical className="size-4" />
-              </Button>
-            </Dropdown>
+                {t("team:TEAM_ACTION_RENEW")}
+              </AntButton>
+              <AntButton
+                size="small"
+                danger
+                icon={<Link2Off className="size-4" />}
+                disabled={!canManage}
+                onClick={() => disableLinkMutation.mutate(link.id)}
+              >
+                {t("team:TEAM_INVITE_LINKS_ACTION_DISABLE")}
+              </AntButton>
+            </div>
           );
         },
       },
@@ -352,37 +423,44 @@ export function TeamInvitationsView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [disableLinkMutation, renewLinkMutation, t]);
 
-  const pendingTable = useDataTable<MyInvitation, { status: "pending" | "accepted" }>({
-    tableId: "my-invitations-pending",
-    columns: myInvitationsColumns,
-    extraQuery: pendingExtraQuery,
-    initialState: { pageSize: 10 },
-    fetcher: async (params) =>
-      listMyInvitations({
-        page: params.page,
-        size: params.size,
-        q: params.q,
-        status: (params.status ?? "pending") as "pending",
-      }),
-    queryOptions: {
-      enabled: tab === "pending",
-      staleTime: 20 * 1000,
-      retry: false,
-      meta: { silent: true },
+  const pendingTable = useDataTable<TeamInvitation, { status: "pending" | "accepted"; mine: true }>(
+    {
+      tableId: "team-invitations",
+      columns: invitationsColumns,
+      extraQuery: { ...pendingExtraQuery, mine: true },
+      initialState: { pageSize: 10 },
+      fetcher: async (params) =>
+        listTeamInvitations({
+          page: params.page,
+          size: params.size,
+          q: params.q,
+          status: (params.status ?? "pending") as "pending",
+          mine: params.mine,
+        }),
+      queryOptions: {
+        enabled: tab === "pending",
+        staleTime: 20 * 1000,
+        retry: false,
+        meta: { silent: true },
+      },
     },
-  });
+  );
 
-  const acceptedTable = useDataTable<MyInvitation, { status: "pending" | "accepted" }>({
-    tableId: "my-invitations-accepted",
-    columns: myInvitationsColumns,
-    extraQuery: acceptedExtraQuery,
+  const acceptedTable = useDataTable<
+    TeamInvitation,
+    { status: "pending" | "accepted"; mine: true }
+  >({
+    tableId: "team-invitations",
+    columns: invitationsColumns,
+    extraQuery: { ...acceptedExtraQuery, mine: true },
     initialState: { pageSize: 10 },
     fetcher: async (params) =>
-      listMyInvitations({
+      listTeamInvitations({
         page: params.page,
         size: params.size,
         q: params.q,
         status: (params.status ?? "accepted") as "accepted",
+        mine: params.mine,
       }),
     queryOptions: {
       enabled: tab === "accepted",
@@ -391,6 +469,16 @@ export function TeamInvitationsView() {
       meta: { silent: true },
     },
   });
+
+  const renewOptions = React.useMemo(
+    () => [
+      { label: t("team:TEAM_INVITE_LINK_EXPIRES_1_DAY"), value: 1 * 24 * 60 * 60 },
+      { label: t("team:TEAM_INVITE_LINK_EXPIRES_7_DAYS"), value: 7 * 24 * 60 * 60 },
+      { label: t("team:TEAM_INVITE_LINK_EXPIRES_30_DAYS"), value: 30 * 24 * 60 * 60 },
+      { label: t("team:TEAM_INVITE_LINK_EXPIRES_NEVER"), value: null },
+    ],
+    [t],
+  );
 
   const linksTable = useDataTable<TeamInviteLink, { mine: true }>({
     tableId: "team-invite-links",
@@ -583,15 +671,9 @@ export function TeamInvitationsView() {
 
         <ChromeTabsContent value="links" className="min-h-0 flex flex-col">
           <div className="flex items-center justify-end gap-2 pb-4">
-            <AntButton
-              type="primary"
-              icon={<Plus size={16} />}
-              onClick={() => setCreateLinkOpen(true)}
-            >
-              {t("team:TEAM_INVITE_LINKS_ACTION_CREATE")}
-            </AntButton>
             {showDisableAll ? (
               <AntButton
+                type="primary"
                 danger
                 icon={<Link2Off size={16} />}
                 onClick={() => setDisableAllOpen(true)}
@@ -606,7 +688,7 @@ export function TeamInvitationsView() {
             t("team:TEAM_INVITE_LINKS_SEARCH_PLACEHOLDER"),
             t("team:TEAM_INVITE_LINKS_EMPTY_TITLE"),
             t("team:TEAM_INVITE_LINKS_EMPTY_DESC"),
-            true,
+            false,
           )}
         </ChromeTabsContent>
       </ChromeTabs>
@@ -618,21 +700,79 @@ export function TeamInvitationsView() {
         roles={rolesQuery.data?.items ?? []}
         rolesLoading={rolesQuery.isLoading}
         onInvited={() => {
-          // Inviting members creates an invite link; refresh my links list.
+          // Inviting members may create:
+          // - invitation deliveries (email-bound invitations)
+          // - invite links (reusable join links)
+          void queryClient.invalidateQueries({ queryKey: ["dataTable", "team-invitations"] });
           void queryClient.invalidateQueries({ queryKey: ["dataTable", "team-invite-links"] });
         }}
       />
 
-      <CreateInviteLinkDialog
-        open={createLinkOpen}
-        onOpenChange={setCreateLinkOpen}
-        orgName={orgName}
-        roles={rolesQuery.data?.items ?? []}
-        rolesLoading={rolesQuery.isLoading}
-        onCreated={() => {
-          void queryClient.invalidateQueries({ queryKey: ["dataTable", "team-invite-links"] });
+      <Modal
+        open={Boolean(renewInvitation)}
+        title={t("team:TEAM_INVITATIONS_RENEW_TITLE")}
+        okText={t("team:TEAM_ACTION_RENEW")}
+        cancelText={t("common:CANCEL")}
+        confirmLoading={renewInvitationMutation.isPending}
+        onCancel={() => setRenewInvitation(null)}
+        onOk={async () => {
+          if (!renewInvitation) return;
+          await renewInvitationMutation.mutateAsync({
+            invitationId: renewInvitation.id,
+            expiresInSeconds: renewExpiresInSeconds,
+          });
         }}
-      />
+        destroyOnHidden
+      >
+        {renewInvitation ? (
+          <div className="space-y-3">
+            <div className="text-muted-foreground">
+              {t("team:TEAM_INVITATIONS_RENEW_DESC", { email: renewInvitation.email })}
+            </div>
+            <Select
+              value={renewExpiresInSeconds}
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              onChange={(v: any) => setRenewExpiresInSeconds(v === null ? null : Number(v))}
+              options={renewOptions}
+              style={{ width: "100%" }}
+              getPopupContainer={(node) => node.parentElement ?? document.body}
+            />
+          </div>
+        ) : null}
+      </Modal>
+
+      <Modal
+        open={Boolean(renewLink)}
+        title={t("team:TEAM_INVITE_LINKS_RENEW_TITLE")}
+        okText={t("team:TEAM_ACTION_RENEW")}
+        cancelText={t("common:CANCEL")}
+        confirmLoading={renewLinkMutation.isPending}
+        onCancel={() => setRenewLink(null)}
+        onOk={async () => {
+          if (!renewLink) return;
+          await renewLinkMutation.mutateAsync({
+            linkId: renewLink.id,
+            expiresInSeconds: renewExpiresInSeconds,
+          });
+        }}
+        destroyOnHidden
+      >
+        {renewLink ? (
+          <div className="space-y-3">
+            <div className="text-muted-foreground">
+              {t("team:TEAM_INVITE_LINKS_RENEW_DESC", { code: renewLink.code })}
+            </div>
+            <Select
+              value={renewExpiresInSeconds}
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              onChange={(v: any) => setRenewExpiresInSeconds(v === null ? null : Number(v))}
+              options={renewOptions}
+              style={{ width: "100%" }}
+              getPopupContainer={(node) => node.parentElement ?? document.body}
+            />
+          </div>
+        ) : null}
+      </Modal>
 
       <AlertDialog open={disableAllOpen} onOpenChange={setDisableAllOpen}>
         <AlertDialogContent>

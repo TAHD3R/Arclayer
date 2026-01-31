@@ -1,5 +1,5 @@
 import { Avatar, Button, Checkbox, Divider, Form, Input, Modal, Typography } from "antd";
-import { Lock, User as UserIcon } from "lucide-react";
+import { Lock } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -20,12 +20,10 @@ import { ApiError } from "@/lib/http";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import { PageState } from "@/components/app/pageState";
 import { InviteTokenInputDialog } from "@/views/invite/components/InviteTokenInputDialog";
+import { InviteRegisterForm } from "@/views/invite/components/InviteRegisterForm";
 
 type WizardStep = 0 | 1;
 type JoinMode = "login" | "register";
-
-// Keep behavior aligned with backend PASSWORD_REGEX (apps/api/common/constants/auth.py).
-const PASSWORD_REGEX = /^(?=.*[A-Za-z])(?=.*\d)[[A-Za-z\d~!@#$%^&*()_\-+=\]{}|;:'",.<>?/]{8,128}$/;
 
 function formatInvitationExpiresRelative(opts: {
   t: (k: string, params?: Record<string, unknown>) => string;
@@ -97,6 +95,15 @@ function resolveRoleText(
     name: backendFallback.name || code || t("invite:INVITE_ROLE_UNKNOWN"),
     description: backendFallback.description || null,
   };
+}
+
+function briefRoleDescription(description: string | null | undefined): string | null {
+  const raw = String(description || "").trim();
+  if (!raw) return null;
+  // Keep it minimal for non-technical users: prefer the first sentence/segment.
+  const parts = raw.split(/[.\u3002;；]/).map((s) => s.trim());
+  const first = parts.find((s) => s) || raw;
+  return first || null;
 }
 
 export function AcceptInviteView(props: { token: string | null }) {
@@ -198,6 +205,15 @@ export function AcceptInviteView(props: { token: string | null }) {
     await navigate({ to: "/login", search: redirect ? { redirect } : undefined, replace: true });
   };
 
+  const onRejectInvite = async () => {
+    // Provide an explicit exit when user clicked a wrong link or doesn't want to join.
+    if (accessToken) {
+      await navigate({ to: "/", replace: true });
+      return;
+    }
+    await navigate({ to: "/login", replace: true });
+  };
+
   const applyToken = async (nextToken: string) => {
     const trimmed = (nextToken || "").trim();
     if (!trimmed) return;
@@ -260,6 +276,11 @@ export function AcceptInviteView(props: { token: string | null }) {
     const roleCode = previewQuery.data?.invitation.roleCode || role?.code || null;
     return resolveRoleText(t, roleCode, { name: role?.name, description: role?.description });
   }, [previewQuery.data?.invitation.roleCode, previewQuery.data?.role, t]);
+
+  const roleBrief = useMemo(
+    () => briefRoleDescription(roleResolved.description),
+    [roleResolved.description],
+  );
 
   const expiresRelativeText = useMemo(() => {
     const expiresAt = previewQuery.data?.invitation.expiresAt;
@@ -452,6 +473,9 @@ export function AcceptInviteView(props: { token: string | null }) {
                   <div className="mt-2 text-(--color-muted-foreground)">
                     {t("invite:INVITE_PREVIEW_INVITED_AS_ROLE", { roleName: roleResolved.name })}
                   </div>
+                  {roleBrief ? (
+                    <div className="mt-1 text-xs text-(--color-muted-foreground)">{roleBrief}</div>
+                  ) : null}
 
                   <div className="mt-4  text-(--color-muted-foreground)">
                     {t("invite:INVITE_SECURITY_NOTICE")}
@@ -461,8 +485,8 @@ export function AcceptInviteView(props: { token: string | null }) {
                 <div className="mt-6 flex items-center justify-between gap-3">
                   <div className="text-(--color-muted-foreground)">{expiresRelativeText}</div>
                   <div className="flex items-center gap-2">
-                    <Button onClick={() => void onBackToLogin()}>
-                      {t("invite:INVITE_ACTION_BACK_TO_LOGIN")}
+                    <Button type="primary" danger onClick={() => void onRejectInvite()}>
+                      {t("invite:INVITE_ACTION_REJECT")}
                     </Button>
                     <Button type="primary" onClick={onContinue}>
                       {t("invite:INVITE_ACTION_ACCEPT_JOIN")}
@@ -547,16 +571,18 @@ export function AcceptInviteView(props: { token: string | null }) {
                 <Button onClick={() => setStep(0)}>{t("invite:INVITE_ACTION_BACK")}</Button>
                 <div className="flex items-center gap-2">
                   {hasBoundEmail && !emailMatches ? (
-                    <Button onClick={() => void onLogoutAndSwitch()}>
+                    <Button type="primary" onClick={() => void onLogoutAndSwitch()}>
                       {t("invite:INVITE_ACTION_LOGOUT_SWITCH")}
                     </Button>
                   ) : null}
                   <Button
-                    type="primary"
+                    type={hasBoundEmail && !emailMatches ? "default" : "primary"}
                     loading={acceptExistingMutation.isPending}
                     onClick={() => void joinAsExistingLoggedIn()}
                   >
-                    {t("invite:INVITE_ACTION_JOIN")}
+                    {hasBoundEmail && !emailMatches
+                      ? t("invite:INVITE_ACTION_JOIN_ANYWAY")
+                      : t("invite:INVITE_ACTION_JOIN")}
                   </Button>
                 </div>
               </div>
@@ -569,15 +595,15 @@ export function AcceptInviteView(props: { token: string | null }) {
                     ? t("invite:INVITE_MODE_LOGIN_DESC")
                     : t("invite:INVITE_MODE_REGISTER_DESC")}
                 </div>
-                <Button
-                  type="link"
-                  style={{ paddingInline: 0 }}
-                  onClick={() => setMode((m) => (m === "login" ? "register" : "login"))}
-                >
-                  {mode === "login"
-                    ? t("invite:INVITE_ACTION_SWITCH_TO_REGISTER")
-                    : t("invite:INVITE_ACTION_SWITCH_TO_LOGIN")}
-                </Button>
+                {mode === "login" ? (
+                  <Button
+                    type="link"
+                    style={{ paddingInline: 0 }}
+                    onClick={() => setMode("register")}
+                  >
+                    {t("invite:INVITE_ACTION_SWITCH_TO_REGISTER")}
+                  </Button>
+                ) : null}
               </div>
 
               <Divider style={{ margin: "14px 0" }} />
@@ -676,140 +702,12 @@ export function AcceptInviteView(props: { token: string | null }) {
                 </>
               ) : (
                 <>
-                  <Typography.Paragraph style={{ marginTop: 0, marginBottom: 12 }}>
-                    {t("invite:INVITE_REGISTER_HINT")}
-                  </Typography.Paragraph>
-
-                  <Form<{
-                    email?: string;
-                    username: string;
-                    displayName?: string;
-                    password: string;
-                    confirmPassword: string;
-                  }>
-                    layout="vertical"
-                    requiredMark={false}
-                    autoComplete="off"
-                    onFinish={onRegisterAndJoin}
-                    disabled={registerAcceptMutation.isPending}
-                  >
-                    {hasBoundEmail ? (
-                      <Form.Item
-                        label={t("invite:INVITE_FIELD_EMAIL")}
-                        style={{ marginBottom: 12 }}
-                      >
-                        <Input
-                          value={previewQuery.data.invitation.email || ""}
-                          disabled
-                          size="large"
-                        />
-                      </Form.Item>
-                    ) : (
-                      <Form.Item
-                        name="email"
-                        label={t("invite:INVITE_FIELD_EMAIL")}
-                        style={{ marginBottom: 12 }}
-                        rules={[
-                          { required: true, message: t("auth:VALIDATION_EMAIL_REQUIRED") },
-                          { type: "email", message: t("auth:VALIDATION_EMAIL_INVALID") },
-                        ]}
-                      >
-                        <Input
-                          autoComplete="email"
-                          aria-label={t("auth:FIELD_EMAIL_LABEL")}
-                          placeholder={t("auth:FIELD_EMAIL_PLACEHOLDER")}
-                          size="large"
-                        />
-                      </Form.Item>
-                    )}
-
-                    <Form.Item
-                      name="username"
-                      rules={[{ required: true, message: t("auth:VALIDATION_USERNAME_REQUIRED") }]}
-                    >
-                      <Input
-                        autoComplete="off"
-                        aria-label={t("auth:FIELD_USERNAME_LABEL")}
-                        placeholder={t("auth:FIELD_USERNAME_PLACEHOLDER")}
-                        prefix={<UserIcon size={16} />}
-                        size="large"
-                      />
-                    </Form.Item>
-
-                    <Form.Item
-                      name="displayName"
-                      rules={[{ max: 64, message: t("setup:SETUP_VALIDATION_DISPLAY_NAME_MAX") }]}
-                    >
-                      <Input
-                        autoComplete="off"
-                        aria-label={t("setup:SETUP_FIELD_DISPLAY_NAME_LABEL")}
-                        placeholder={t("setup:SETUP_FIELD_DISPLAY_NAME_PLACEHOLDER")}
-                        size="large"
-                      />
-                    </Form.Item>
-
-                    <Form.Item
-                      name="password"
-                      rules={[
-                        { required: true, message: t("auth:VALIDATION_PASSWORD_REQUIRED") },
-                        {
-                          validator: async (_, value) => {
-                            if (!value) return;
-                            if (PASSWORD_REGEX.test(value)) return;
-                            throw new Error(t("auth:PASSWORD_INVALID"));
-                          },
-                        },
-                      ]}
-                    >
-                      <Input.Password
-                        autoComplete="new-password"
-                        aria-label={t("auth:FIELD_PASSWORD_LABEL")}
-                        placeholder={t("auth:FIELD_PASSWORD_PLACEHOLDER")}
-                        prefix={<Lock size={16} />}
-                        size="large"
-                      />
-                    </Form.Item>
-
-                    <Form.Item
-                      name="confirmPassword"
-                      dependencies={["password"]}
-                      rules={[
-                        { required: true, message: t("auth:VALIDATION_CONFIRM_PASSWORD_REQUIRED") },
-                        ({ getFieldValue }) => ({
-                          validator: async (_, value) => {
-                            const pwd = getFieldValue("password");
-                            if (!value || value === pwd) return;
-                            throw new Error(t("auth:VALIDATION_PASSWORD_MISMATCH"));
-                          },
-                        }),
-                      ]}
-                    >
-                      <Input.Password
-                        autoComplete="new-password"
-                        aria-label={t("auth:FIELD_CONFIRM_PASSWORD_LABEL")}
-                        placeholder={t("auth:FIELD_CONFIRM_PASSWORD_PLACEHOLDER")}
-                        prefix={<Lock size={16} />}
-                        size="large"
-                      />
-                    </Form.Item>
-
-                    <Button
-                      type="primary"
-                      htmlType="submit"
-                      block
-                      size="large"
-                      loading={registerAcceptMutation.isPending}
-                    >
-                      {t("invite:INVITE_ACTION_REGISTER_JOIN")}
-                    </Button>
-
-                    <div className="mt-4 flex items-center justify-between">
-                      <Button onClick={() => setStep(0)}>{t("invite:INVITE_ACTION_BACK")}</Button>
-                      <Button onClick={() => void onBackToLogin()}>
-                        {t("invite:INVITE_ACTION_BACK_TO_LOGIN")}
-                      </Button>
-                    </div>
-                  </Form>
+                  <InviteRegisterForm
+                    emailLocked={hasBoundEmail ? previewQuery.data.invitation.email : null}
+                    loading={registerAcceptMutation.isPending}
+                    onSubmit={onRegisterAndJoin}
+                    onSwitchToLogin={() => setMode("login")}
+                  />
                 </>
               )}
             </>

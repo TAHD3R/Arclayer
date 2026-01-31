@@ -203,13 +203,17 @@ class TeamService(BaseService):
         # Keep URL consistent with reset-password links (frontend_base_url points to admin web root).
         invite_url = f"{base}/accept-invite?token={token}" if base else None
 
+        users = await self._resolve_users({invited_by_user_id})
+        invited_by = users.get(invited_by_user_id)
         out = TeamInvitationOut(
             id=inv.id,
             email=inv.email,
             role_code=inv.role_code,
             expires_at=inv.expires_at,
             invited_by_user_id=inv.invited_by_user_id,
+            invited_by=invited_by,
             accepted_by_user_id=inv.accepted_by_user_id,
+            accepted_by=None,
             accepted_at=inv.accepted_at,
             revoked_at=inv.revoked_at,
             status=self._compute_invitation_status(inv),
@@ -252,8 +256,11 @@ class TeamService(BaseService):
         organization_id: UUID,
         params: PageParams,
         filters: TeamInvitationListQuery,
+        requesting_user_id: UUID | None = None,
     ) -> PageData[TeamInvitationOut]:
         qs = self.inv_repo.query_invitations(organization_id=organization_id)
+        if filters.mine is True and requesting_user_id is not None:
+            qs = qs.filter(invited_by_user_id=requesting_user_id)
         # NOTE: BaseSchema enables `use_enum_values=True`, so `filters.status` may already be a plain string.
         status: str | None = None
         if filters.status is not None:
@@ -264,8 +271,22 @@ class TeamService(BaseService):
         pages = (total + params.size - 1) // params.size if params.size else 0
         rows = await qs.limit(params.limit).offset(params.offset).order_by("-created_at").all()
 
+        user_ids: set[UUID] = set()
+        for inv in rows:
+            if inv.invited_by_user_id:
+                user_ids.add(UUID(str(inv.invited_by_user_id)))
+            if inv.accepted_by_user_id:
+                user_ids.add(UUID(str(inv.accepted_by_user_id)))
+        users = await self._resolve_users(user_ids)
+
         items: list[TeamInvitationOut] = []
         for inv in rows:
+            invited_by = None
+            if inv.invited_by_user_id:
+                invited_by = users.get(UUID(str(inv.invited_by_user_id)))
+            accepted_by = None
+            if inv.accepted_by_user_id:
+                accepted_by = users.get(UUID(str(inv.accepted_by_user_id)))
             items.append(
                 TeamInvitationOut(
                     id=inv.id,
@@ -273,7 +294,9 @@ class TeamService(BaseService):
                     role_code=inv.role_code,
                     expires_at=inv.expires_at,
                     invited_by_user_id=inv.invited_by_user_id,
+                    invited_by=invited_by,
                     accepted_by_user_id=inv.accepted_by_user_id,
+                    accepted_by=accepted_by,
                     accepted_at=inv.accepted_at,
                     revoked_at=inv.revoked_at,
                     status=self._compute_invitation_status(inv),
@@ -340,13 +363,29 @@ class TeamService(BaseService):
             disabled_at=None,
         ).update(expires_at=inv.expires_at)
 
+        user_ids: set[UUID] = set()
+        if inv.invited_by_user_id:
+            user_ids.add(UUID(str(inv.invited_by_user_id)))
+        if inv.accepted_by_user_id:
+            user_ids.add(UUID(str(inv.accepted_by_user_id)))
+        users = await self._resolve_users(user_ids)
+
+        invited_by = None
+        if inv.invited_by_user_id:
+            invited_by = users.get(UUID(str(inv.invited_by_user_id)))
+        accepted_by = None
+        if inv.accepted_by_user_id:
+            accepted_by = users.get(UUID(str(inv.accepted_by_user_id)))
+
         return TeamInvitationOut(
             id=inv.id,
             email=inv.email,
             role_code=inv.role_code,
             expires_at=inv.expires_at,
             invited_by_user_id=inv.invited_by_user_id,
+            invited_by=invited_by,
             accepted_by_user_id=inv.accepted_by_user_id,
+            accepted_by=accepted_by,
             accepted_at=inv.accepted_at,
             revoked_at=inv.revoked_at,
             status=self._compute_invitation_status(inv),

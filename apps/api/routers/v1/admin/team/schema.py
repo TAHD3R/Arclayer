@@ -54,7 +54,9 @@ class TeamInvitationOut(BaseOut):
     expires_at: datetime | None = Field(default=None, description="Expiration datetime (UTC).")
 
     invited_by_user_id: UUID | None = Field(default=None, description="Inviter user id.")
+    invited_by: TeamUserRefOut | None = Field(default=None, description="Inviter user summary.")
     accepted_by_user_id: UUID | None = Field(default=None, description="Accepted by user id.")
+    accepted_by: TeamUserRefOut | None = Field(default=None, description="Accepted by user summary.")
     accepted_at: datetime | None = Field(default=None, description="Accepted datetime (UTC).")
     revoked_at: datetime | None = Field(default=None, description="Revoked datetime (UTC).")
 
@@ -83,6 +85,7 @@ class TeamInvitationCreateResult(BaseSchema):
 class TeamInvitationListQuery(BaseSchema):
     q: str | None = Field(default=None, description="Search query (email/role_code).")
     status: InvitationStatus | None = Field(default=None, description="Filter by invitation status.")
+    mine: bool | None = Field(default=None, description="If true, only return invitations created by me.")
 
 
 class TeamInvitationRenewRequest(BaseSchema):
