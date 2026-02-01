@@ -9,7 +9,6 @@ import {
   Tag,
 } from "antd";
 import {
-  Copy,
   KeyRound,
   MoreVertical,
   Pencil,
@@ -221,15 +220,6 @@ export function TeamMembersView() {
 
           const menuItems: MenuProps["items"] = [
             {
-              key: "copy_user_id",
-              icon: <Copy className="size-4" />,
-              label: t("team:TEAM_ACTION_COPY_USER_ID"),
-              onClick: () => {
-                void navigator.clipboard.writeText(m.userId);
-                notifySuccessText(t("team:TEAM_ACTION_COPIED"));
-              },
-            },
-            {
               key: "edit_user",
               icon: <Pencil className="size-4" />,
               label: t("team:TEAM_ACTION_EDIT_USER"),
@@ -430,6 +420,7 @@ export function TeamMembersView() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2">
             <AntInput
+              variant="borderless"
               value={tableHook.searchInput}
               onChange={(e) => tableHook.setSearchInput(e.target.value)}
               placeholder={t("team:TEAM_SEARCH_PLACEHOLDER")}
@@ -512,7 +503,6 @@ export function TeamMembersView() {
                             cell.column.id === "user"
                               ? "sticky left-0 z-10 min-w-72 w-72"
                               : undefined,
-                            cell.column.id === "user" ? stripeClass : undefined,
                           )}
                         >
                           {flexRender(cell.column.columnDef.cell, cell.getContext())}

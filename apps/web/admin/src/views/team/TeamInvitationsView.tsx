@@ -282,7 +282,7 @@ export function TeamInvitationsView() {
           return (
             <div className="flex items-center justify-end gap-2">
               <AntButton
-                size="small"
+                type="text"
                 icon={<RotateCcw className="size-4" />}
                 disabled={!canRenew}
                 onClick={() => {
@@ -293,7 +293,7 @@ export function TeamInvitationsView() {
                 {t("team:TEAM_ACTION_RENEW")}
               </AntButton>
               <AntButton
-                size="small"
+                type="text"
                 danger
                 onClick={() => {
                   Modal.confirm({
@@ -411,7 +411,7 @@ export function TeamInvitationsView() {
           return (
             <div className="flex items-center justify-end gap-2">
               <AntButton
-                size="small"
+                type="text"
                 icon={<RotateCcw className="size-4" />}
                 disabled={!canManage}
                 onClick={() => {
@@ -422,7 +422,7 @@ export function TeamInvitationsView() {
                 {t("team:TEAM_ACTION_RENEW")}
               </AntButton>
               <AntButton
-                size="small"
+                type="text"
                 danger
                 icon={<Link2Off className="size-4" />}
                 disabled={!canManage}
@@ -544,6 +544,7 @@ export function TeamInvitationsView() {
           <div className="flex items-center gap-3">
             <div className="flex-1 min-w-0">
               <Input
+                variant="borderless"
                 value={tableHook.searchInput}
                 onChange={(e) => tableHook.setSearchInput(e.target.value)}
                 placeholder={placeholder}

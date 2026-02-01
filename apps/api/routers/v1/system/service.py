@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from typing import Any
+from uuid import UUID
 
 from apps.api.common.services.base import BaseService
 from apps.api.config import Settings
@@ -77,14 +78,21 @@ class SystemSetupService(BaseService):
 
         # Persist initial core settings (including secrets) using the same validation path as admin settings.
         now = datetime.now(UTC)
-        patch: dict[str, Any] = dict(core_patch or {})
-        patch.setdefault("system", {})
-        if isinstance(patch["system"], dict):
-            patch["system"]["initialized_at"] = now.isoformat()
-            patch["system"]["master_key_fingerprint"] = fingerprint
+        raw_patch: dict[str, Any] = dict(core_patch or {})
+        # System-scoped core settings should only contain instance metadata and safe defaults.
+        # Workspace-scoped core settings should contain site identity, localization, seo, etc.
+        system_patch: dict[str, Any] = {}
+        system_patch.setdefault("system", {})
+        if isinstance(system_patch["system"], dict):
+            system_patch["system"]["initialized_at"] = now.isoformat()
+            system_patch["system"]["master_key_fingerprint"] = fingerprint
+        # Keep a global default locale as a best-effort fallback for requests without workspace context.
+        if isinstance(raw_patch.get("localization"), dict):
+            system_patch["localization"] = raw_patch["localization"]
+
         await SettingsService(self.settings, manager=self.manager).patch_namespace(
             "core",
-            patch=patch,
+            patch=system_patch,
             updated_by=user.id,
         )
 
@@ -96,9 +104,26 @@ class SystemSetupService(BaseService):
         )
 
         # v2: create default workspace and ensure owner membership.
-        await self._ensure_default_workspace(
+        workspace_id = await self._ensure_default_workspace(
             org_id=organization.id, owner_user_id=user.id, workspace_name=organization.name
         )
+        if workspace_id is not None:
+            from apps.api.routers.v1.workspaces.settings.service import WorkspaceSettingsService
+
+            workspace_patch = {k: v for k, v in raw_patch.items() if k != "system"}
+            # Best-effort: if patch fails validation, setup should still succeed.
+            try:
+                await WorkspaceSettingsService(self.settings).patch_core(
+                    workspace_id=workspace_id,
+                    patch=workspace_patch,
+                    updated_by=user.id,
+                )
+            except Exception as exc:
+                self.logger.warning(
+                    "Persist workspace core settings during setup failed",
+                    error=str(exc),
+                    workspace_id=str(workspace_id),
+                )
 
         # v2: RBAC is workspace-scoped for the admin console. We already ensure the setup user
         # has an active workspace membership and an admin role binding in `_ensure_default_workspace`.
@@ -118,7 +143,7 @@ class SystemSetupService(BaseService):
             pass
         return now, fingerprint, user, rbac_ok, organization
 
-    async def _ensure_default_workspace(self, *, org_id, owner_user_id, workspace_name: str) -> None:
+    async def _ensure_default_workspace(self, *, org_id, owner_user_id, workspace_name: str) -> UUID | None:
         """
         v2 boundary model bootstrap:
         - Ensure OrgMembership exists and marks the setup user as owner.
@@ -184,8 +209,10 @@ class SystemSetupService(BaseService):
             role_admin = await Role.get_or_none(code="admin")
             if role_admin is not None:
                 await WorkspaceMembershipRole.get_or_create(membership_id=wsm.id, role_id=role_admin.id)
+            return ws.id
         except Exception as exc:
             self.logger.warning("Ensure default workspace failed", error=str(exc), org_id=str(org_id))
+            return None
 
     async def _create_default_organization(
         self,

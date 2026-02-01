@@ -90,9 +90,9 @@ export function LocalizationSettingsTab({
       <SettingAccordionItem
         value="locale"
         title={t("setup:SETUP_FIELD_LANGUAGE_TITLE")}
-        description={t("settings:SETTINGS_LANGUAGE_DESC")}
+        description={t("settings:SETTINGS_SITE_LANGUAGE_DESC")}
         showSummary
-        summary={localeLabel || "-"}
+        summary={localeLabel}
         confirmText={t("settings:SETTINGS_SAVE")}
         onConfirm={saveLocale}
         confirmLoading={savingKey === "locale"}
@@ -118,9 +118,9 @@ export function LocalizationSettingsTab({
       <SettingAccordionItem
         value="timezone"
         title={t("setup:SETUP_FIELD_TIMEZONE_TITLE")}
-        description={t("settings:SETTINGS_TIMEZONE_DESC")}
+        description={t("settings:SETTINGS_SITE_TIMEZONE_DESC")}
         showSummary
-        summary={timezone || "-"}
+        summary={timezone}
         confirmText={t("settings:SETTINGS_SAVE")}
         onConfirm={saveTimezone}
         confirmLoading={savingKey === "timezone"}
@@ -145,9 +145,9 @@ export function LocalizationSettingsTab({
       <SettingAccordionItem
         value="dateFormat"
         title={t("setup:SETUP_FIELD_DATE_FORMAT_TITLE")}
-        description={t("settings:SETTINGS_DATE_FORMAT_DESC")}
+        description={t("settings:SETTINGS_SITE_DATE_FORMAT_DESC")}
         showSummary
-        summary={dateFormatLabel || "-"}
+        summary={dateFormatLabel}
         confirmText={t("settings:SETTINGS_SAVE")}
         onConfirm={saveDateFormat}
         confirmLoading={savingKey === "dateFormat"}

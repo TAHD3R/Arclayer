@@ -86,12 +86,19 @@ export function SettingAccordionItem(props: SettingAccordionItemProps) {
   const showChevron = props.showChevron ?? true;
   const titleColumnWidth = props.titleColumnWidth ?? 240;
 
-  const summaryNode =
-    props.summary !== undefined && props.summary !== null ? (
-      <span>{props.summary}</span>
-    ) : (
-      <span className="text-muted-foreground">{props.placeholder ?? "-"}</span>
-    );
+  const hasSummaryValue = (() => {
+    const v = props.summary;
+    if (v === undefined || v === null) return false;
+    if (typeof v === "string") {
+      const s = v.trim();
+      // Treat "-" as an "empty placeholder" to avoid noisy "Current: -" UX.
+      if (!s || s === "-") return false;
+    }
+    return true;
+  })();
+
+  const shouldRenderSummary = shouldShowSummary && hasSummaryValue;
+  const summaryNode = shouldRenderSummary ? <span>{props.summary}</span> : null;
 
   return (
     <AccordionItem value={props.value} className={props.itemClassName}>
@@ -122,14 +129,14 @@ export function SettingAccordionItem(props: SettingAccordionItemProps) {
             <div className="text-[16px] font-medium leading-snug">{props.title}</div>
             <div className="min-w-0">
               <div className="text-[16px] font-semibold leading-snug text-foreground">
-                {shouldShowSummary ? summaryNode : null}
+                {summaryNode}
               </div>
               {hasDescription ? (
                 <div className="mt-1 text-[16px] text-muted-foreground leading-snug">
                   {props.description}
                 </div>
               ) : null}
-              {shouldShowSummary && summaryPrefix ? (
+              {shouldRenderSummary && summaryPrefix ? (
                 <div className="sr-only">
                   {summaryPrefix} {summaryNode}
                 </div>
@@ -158,15 +165,15 @@ export function SettingAccordionItem(props: SettingAccordionItemProps) {
             <div className="text-lg font-bold leading-tight">
               <span className="group-hover:underline underline-offset-4">{props.title}</span>
             </div>
-            {hasDescription || shouldShowSummary ? (
+            {hasDescription || shouldRenderSummary ? (
               <div className="text-muted-foreground leading-snug no-underline font-normal">
                 {hasDescription ? props.description : null}
-                {shouldShowSummary ? (
+                {shouldRenderSummary ? (
                   <>
                     <span className={cn(hasDescription ? "ml-2" : undefined, "mr-1")}>
                       {summaryPrefix}
                     </span>
-                    <span>{props.summary ?? "-"}</span>
+                    <span>{props.summary}</span>
                   </>
                 ) : null}
               </div>

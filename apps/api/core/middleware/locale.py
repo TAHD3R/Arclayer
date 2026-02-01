@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import time
+from uuid import UUID
 
 from fastapi import Request
 from starlette.types import ASGIApp, Receive, Scope, Send
@@ -26,6 +27,7 @@ class LocaleMiddleware:
 
         request = Request(scope, receive=receive)
         # If the client doesn't specify locale, fall back to core settings (best-effort).
+        # Prefer workspace-scoped default locale when the request is workspace-scoped.
         default_locale = await _get_core_default_locale(request)
         locale = get_request_locale(request, default_locale=default_locale)
         token = set_current_locale(locale)
@@ -38,32 +40,93 @@ class LocaleMiddleware:
 async def _get_core_default_locale(request: Request) -> str | None:
     """
     Best-effort: read default locale from core settings (DB), with a tiny in-memory TTL cache.
+
+    Priority:
+    1) Workspace-scoped core settings (when URL contains /workspaces/{workspace_id}/...)
+    2) System-scoped core settings (global fallback)
     """
 
     try:
         # Use app.state to avoid global state across processes.
         state = request.app.state
         now = time.monotonic()
-        cache = getattr(state, "_core_default_locale_cache", None)
+        path = request.url.path
+
+        workspace_id = _extract_workspace_id_from_path(path)
+        if workspace_id is not None:
+            cache = getattr(state, "_workspace_default_locale_cache", None)
+            if isinstance(cache, dict):
+                entry = cache.get(str(workspace_id))
+                if isinstance(entry, dict):
+                    expires_at = entry.get("expires_at")
+                    if isinstance(expires_at, (int, float)) and expires_at > now:
+                        cached = entry.get("value")
+                        return cached if isinstance(cached, str) else None
+
+            locale_str = await _read_core_locale(scope_type="workspace", scope_id=workspace_id)
+            if not hasattr(state, "_workspace_default_locale_cache") or not isinstance(
+                getattr(state, "_workspace_default_locale_cache", None), dict
+            ):
+                state._workspace_default_locale_cache = {}
+            state._workspace_default_locale_cache[str(workspace_id)] = {
+                "value": locale_str,
+                "expires_at": now + 5.0,
+            }
+            if locale_str:
+                return locale_str
+
+        cache = getattr(state, "_system_default_locale_cache", None)
         if isinstance(cache, dict):
             expires_at = cache.get("expires_at")
             if isinstance(expires_at, (int, float)) and expires_at > now:
                 cached = cache.get("value")
                 return cached if isinstance(cached, str) else None
 
-        from apps.api.models.setting import SettingRecord
-        from apps.api.settings.scopes import SCOPE_TYPE_SYSTEM, SYSTEM_SCOPE_ID
-
-        record = await SettingRecord.get_or_none(
-            scope_type=SCOPE_TYPE_SYSTEM, scope_id=SYSTEM_SCOPE_ID, namespace="core"
-        )
-        value = record.value if record and isinstance(record.value, dict) else {}
-        section = value.get("localization") if isinstance(value, dict) else None
-        locale = section.get("locale") if isinstance(section, dict) else None
-        locale_str = locale if isinstance(locale, str) and locale else None
-
+        locale_str = await _read_core_locale(scope_type="system", scope_id=None)
         # Cache for a short TTL to reduce DB reads under load.
-        state._core_default_locale_cache = {"value": locale_str, "expires_at": now + 5.0}
+        state._system_default_locale_cache = {"value": locale_str, "expires_at": now + 5.0}
         return locale_str
     except Exception:
         return None
+
+
+def _extract_workspace_id_from_path(path: str) -> UUID | None:
+    """
+    Parse v2 workspace-scoped API URL:
+    /api/v1/workspaces/{workspace_id}/...
+    """
+
+    marker = "/workspaces/"
+    if marker not in path:
+        return None
+    try:
+        _, tail = path.split(marker, 1)
+        raw = tail.split("/", 1)[0].strip()
+        return UUID(raw)
+    except Exception:
+        return None
+
+
+async def _read_core_locale(*, scope_type: str, scope_id: UUID | None) -> str | None:
+    from apps.api.models.setting import SettingRecord
+    from apps.api.settings.scopes import SCOPE_TYPE_SYSTEM, SCOPE_TYPE_WORKSPACE, SYSTEM_SCOPE_ID
+
+    if scope_type == "workspace":
+        if scope_id is None:
+            return None
+        record = await SettingRecord.get_or_none(
+            scope_type=SCOPE_TYPE_WORKSPACE,
+            scope_id=scope_id,
+            namespace="core",
+        )
+    else:
+        record = await SettingRecord.get_or_none(
+            scope_type=SCOPE_TYPE_SYSTEM,
+            scope_id=SYSTEM_SCOPE_ID,
+            namespace="core",
+        )
+
+    value = record.value if record and isinstance(record.value, dict) else {}
+    section = value.get("localization") if isinstance(value, dict) else None
+    locale = section.get("locale") if isinstance(section, dict) else None
+    return locale if isinstance(locale, str) and locale else None

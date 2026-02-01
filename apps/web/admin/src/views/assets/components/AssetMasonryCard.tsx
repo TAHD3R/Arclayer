@@ -79,10 +79,13 @@ import {
 import { notifyErrorText, notifySuccessText } from "@/utils/notifications";
 import { copyToClipboard } from "@/utils/clipboard";
 import { useAuthStore } from "@/stores/useAuthStore";
+import { usePreferencesStore } from "@/stores/usePreferenceStore";
 import { toShareableAbsoluteUrl } from "@/views/assets/utils/assetUrls";
 import { AssetSharePopover } from "@/views/assets/components/AssetSharePopover";
 import { UpdateAssetsAccessDialog } from "@/views/assets/components/UpdateAssetsAccessDialog";
 import { useWorkspaceStore } from "@/stores/useWorkspaceStore";
+import { useWorkspaceLocalization } from "@/hooks/useWorkspaceLocalization";
+import { formatDateTimeWithPattern } from "@/lib/time/dateTime";
 
 export type AssetMasonryItem = {
   id: string;
@@ -315,18 +318,21 @@ function getIndexableLabel(
   return indexable ? t("assets:ASSET_INDEXABLE_YES") : t("assets:ASSET_INDEXABLE_NO");
 }
 
-function formatCreatedAt(iso: string | undefined, fallback: string | undefined): string {
+function formatCreatedAt(
+  iso: string | undefined,
+  fallback: string | undefined,
+  opts: { locale: string; timezone: string; dateFormat: string | undefined },
+): string {
   if (iso) {
     const d = new Date(iso);
     if (!Number.isNaN(d.getTime())) {
-      // Use user's locale/timezone; actual display formatting can be later wired to system settings.
-      return new Intl.DateTimeFormat(undefined, {
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-      }).format(d);
+      return formatDateTimeWithPattern({
+        date: d,
+        locale: opts.locale,
+        timeZone: opts.timezone,
+        dateFormat: opts.dateFormat,
+        includeTime: true,
+      });
     }
   }
   return fallback || "-";
@@ -547,6 +553,8 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
+  const uiLocale = usePreferencesStore((s) => s.locale);
+  const workspaceLocalization = useWorkspaceLocalization();
   const { token } = theme.useToken();
   const active = props.active;
   const activeAspectRatio = active ? getSafeAspectRatio(active.aspectRatio) : 4 / 3;
@@ -591,6 +599,19 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
 
   const displayVisibility = detailQuery.data?.visibility ?? active?.visibility;
   const displayPurpose = detailQuery.data?.purpose ?? active?.purpose;
+
+  const dateTime = useMemo(
+    () => ({
+      locale: uiLocale,
+      timezone: workspaceLocalization.localization.timezone ?? "Asia/Shanghai",
+      dateFormat: workspaceLocalization.localization.dateFormat,
+    }),
+    [
+      uiLocale,
+      workspaceLocalization.localization.dateFormat,
+      workspaceLocalization.localization.timezone,
+    ],
+  );
 
   const canonicalPublicPath = useMemo(() => {
     if (!active?.id) return null;
@@ -1139,7 +1160,11 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
                             {
                               key: "createdAt",
                               label: t("assets:ASSET_META_CREATED_AT"),
-                              children: formatCreatedAt(active.createdAt, active.createdAtText),
+                              children: formatCreatedAt(
+                                active.createdAt,
+                                active.createdAtText,
+                                dateTime,
+                              ),
                             },
                             {
                               key: "visibility",

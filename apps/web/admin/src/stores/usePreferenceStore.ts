@@ -23,6 +23,14 @@ interface PreferencesState {
   setThemeMode: (mode: ThemeMode) => void;
   toggleThemeMode: () => void;
   setLocale: (locale: AppLocale) => void;
+  /**
+   * Apply an effective locale from workspace/site defaults when user has no explicit preference.
+   *
+   * Notes:
+   * - Does NOT persist to localStorage.
+   * - Does NOT set localePreference, so API requests won't send X-Locale.
+   */
+  setEffectiveLocale: (locale: AppLocale) => void;
   setShowSidebarNotificationCenter: (enabled: boolean) => void;
 }
 
@@ -118,6 +126,14 @@ export const usePreferencesStore = create<PreferencesState>((set, get) => ({
     applyLocaleToDom(next);
     persistLocale(next);
     set({ locale: next, localePreference: next });
+    void i18n.changeLanguage(next);
+  },
+
+  setEffectiveLocale: (locale) => {
+    const next = normalizeLocale(locale);
+    applyLocaleToDom(next);
+    // Do not persist; do not mark as explicit preference.
+    set({ locale: next });
     void i18n.changeLanguage(next);
   },
 

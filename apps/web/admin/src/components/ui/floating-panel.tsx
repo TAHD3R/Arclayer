@@ -462,7 +462,7 @@ export function FloatingPanelButton({ children, onClick, className }: FloatingPa
   return (
     <motion.button
       className={cn(
-        "flex w-full items-center gap-2 rounded-md px-4 py-2 text-left text-sm",
+        "flex w-full items-center gap-2 rounded-none px-4 py-2 text-left text-sm",
         "hover:bg-muted",
         className,
       )}

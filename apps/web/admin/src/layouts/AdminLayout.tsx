@@ -18,7 +18,8 @@ import { usePreferencesStore } from "@/stores/usePreferenceStore";
 import { useWorkspaceStore } from "@/stores/useWorkspaceStore";
 import type { NotificationPreview } from "@/api/notifications";
 import { getUnreadNotificationPreview, markNotificationRead } from "@/api/notifications";
-import { getCoreSettings } from "@/api/settings";
+import { getWorkspaceDetail } from "@/api/workspaces";
+import { useWorkspaceLocalization } from "@/hooks/useWorkspaceLocalization";
 import { useNowTick } from "@/hooks/useNowTick";
 import { formatRelativeTimeAt } from "@/lib/time/relativeTime";
 import {
@@ -77,25 +78,16 @@ function findActiveTrailNodes(
   return bestTrail;
 }
 
-function pickCoreSiteName(value: Record<string, unknown> | undefined): string | null {
-  const site = (value?.site ?? null) as Record<string, unknown> | null;
-  const raw = site?.name;
-  if (typeof raw === "string" && raw.trim()) return raw.trim();
-  return null;
-}
-
-function buildDocumentTitle(routeTitle: string | null, siteName: string | null): string {
+function buildDocumentTitle(routeTitle: string | null, workspaceName: string | null): string {
   const brand = (getAppConfig().title || "Celestial").trim();
-  if (!siteName || !siteName.trim()) {
+  if (!workspaceName || !workspaceName.trim()) {
     return routeTitle && routeTitle.trim() ? `${routeTitle.trim()} | ${brand}` : brand;
   }
 
-  const siteBase = siteName.trim();
-  const sitePart = siteBase.toLowerCase().includes(brand.toLowerCase())
-    ? siteBase
-    : `${siteBase} | ${brand}`;
-  if (routeTitle && routeTitle.trim()) return `${routeTitle.trim()} | ${sitePart}`;
-  return sitePart;
+  const base = workspaceName.trim();
+  const part = base.toLowerCase().includes(brand.toLowerCase()) ? base : `${base} | ${brand}`;
+  if (routeTitle && routeTitle.trim()) return `${routeTitle.trim()} | ${part}`;
+  return part;
 }
 
 export function AdminLayout({ children }: PropsWithChildren) {
@@ -105,6 +97,8 @@ export function AdminLayout({ children }: PropsWithChildren) {
   const queryClient = useQueryClient();
   const accessToken = useAuthStore((s) => s.accessToken);
   const showSidebarNotificationCenter = usePreferencesStore((s) => s.showSidebarNotificationCenter);
+  const localePreference = usePreferencesStore((s) => s.localePreference);
+  const setEffectiveLocale = usePreferencesStore((s) => s.setEffectiveLocale);
   const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
 
   const workspaceBase = useMemo(() => {
@@ -138,16 +132,37 @@ export function AdminLayout({ children }: PropsWithChildren) {
 
   const [refreshing, setRefreshing] = useState(false);
 
-  const coreQuery = useQuery({
-    queryKey: ["settings", "workspace", "core", workspaceId],
+  const workspaceDetailQuery = useQuery({
+    queryKey: ["workspace", "detail", workspaceId],
     enabled: Boolean(accessToken && workspaceId),
-    queryFn: async () => getCoreSettings(String(workspaceId)),
+    queryFn: async () => getWorkspaceDetail(String(workspaceId)),
     staleTime: 5 * 60 * 1000,
     retry: false,
     meta: { silent: true },
   });
 
-  const siteName = useMemo(() => pickCoreSiteName(coreQuery.data?.value), [coreQuery.data?.value]);
+  const workspaceName = useMemo(() => {
+    const raw = workspaceDetailQuery.data?.name;
+    return typeof raw === "string" && raw.trim() ? raw.trim() : null;
+  }, [workspaceDetailQuery.data?.name]);
+
+  const workspaceLocalization = useWorkspaceLocalization();
+
+  useEffect(() => {
+    // When user has no explicit preference, apply workspace default locale as the effective UI locale.
+    // This keeps behavior consistent across sessions without persisting it as a personal choice.
+    if (!accessToken || !workspaceId) return;
+    if (localePreference) return;
+    const next = workspaceLocalization.localization.locale;
+    if (!next) return;
+    setEffectiveLocale(next);
+  }, [
+    accessToken,
+    localePreference,
+    setEffectiveLocale,
+    workspaceId,
+    workspaceLocalization.localization.locale,
+  ]);
 
   const routeTitle = useMemo(() => {
     const trail = findActiveTrailNodes(navItems as any, pathname);
@@ -157,8 +172,8 @@ export function AdminLayout({ children }: PropsWithChildren) {
   }, [navItems, pathname, t]);
 
   useEffect(() => {
-    document.title = buildDocumentTitle(routeTitle, siteName);
-  }, [routeTitle, siteName]);
+    document.title = buildDocumentTitle(routeTitle, workspaceName);
+  }, [routeTitle, workspaceName]);
 
   const brandTitle = useMemo(() => (getAppConfig().title || "Celestial").trim(), []);
 
@@ -210,7 +225,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
         <SidebarHeader className="flex flex-col items-center gap-4 w-full px-0 py-8">
           <AdminLogo ariaLabel="Celestial" />
           <h2 className="font-bold line-clamp-2 text-center select-none max-w-2/3 wrap-break-word">
-            {siteName || brandTitle}
+            {workspaceName || brandTitle}
           </h2>
         </SidebarHeader>
 

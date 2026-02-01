@@ -1123,6 +1123,7 @@ export function AssetsView() {
           <div className="flex flex-wrap items-center gap-2">
             <Input
               allowClear
+              variant="borderless"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               placeholder={t("assets:ASSET_SEARCH_PLACEHOLDER")}
@@ -1289,7 +1290,6 @@ export function AssetsView() {
                     <div className={cn("inline-flex", isOver ? "ring-1 ring-foreground/60" : null)}>
                       <Button
                         type="text"
-                        size="small"
                         onClick={() => {
                           setCurrentFolderId(null);
                           setFocusedFolderId(null);
@@ -1353,7 +1353,6 @@ export function AssetsView() {
 
               <Button
                 type="text"
-                size="small"
                 icon={<FolderPlus size={16} />}
                 onClick={() => {
                   setCreateFolderParentId(currentFolderId);
@@ -1740,7 +1739,6 @@ export function AssetsView() {
                   </div>
                   <Button
                     type="text"
-                    size="small"
                     className="!h-8 !px-2"
                     onClick={() => {
                       setSelection((prev) => clearSelection(prev));
@@ -1752,7 +1750,7 @@ export function AssetsView() {
 
                 <div className="flex flex-wrap items-center gap-2">
                   <Button
-                    size="small"
+                    type="text"
                     icon={<FolderInput size={16} />}
                     onClick={() => setMoveModalOpen(true)}
                     disabled={bulkMoveMutation.isPending}
@@ -1760,7 +1758,7 @@ export function AssetsView() {
                     {t("assets:ASSET_ACTION_MOVE")}
                   </Button>
                   <Button
-                    size="small"
+                    type="text"
                     icon={<Settings2 size={16} />}
                     onClick={() => openEditAccessDialog()}
                     disabled={bulkUpdateMutation.isPending}
@@ -1768,7 +1766,6 @@ export function AssetsView() {
                     {t("assets:ASSET_ACTION_EDIT_ACCESS")}
                   </Button>
                   <Button
-                    size="small"
                     type="primary"
                     danger
                     icon={<Trash2 size={16} />}
