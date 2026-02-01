@@ -15,6 +15,7 @@ import { RouteProgress } from "@/components/app/routeProgress";
 import { RouteTransition } from "@/components/app/routeTransition";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { usePreferencesStore } from "@/stores/usePreferenceStore";
+import { useWorkspaceStore } from "@/stores/useWorkspaceStore";
 import type { NotificationPreview } from "@/api/notifications";
 import { getUnreadNotificationPreview, markNotificationRead } from "@/api/notifications";
 import { getCoreSettings } from "@/api/settings";
@@ -104,13 +105,43 @@ export function AdminLayout({ children }: PropsWithChildren) {
   const queryClient = useQueryClient();
   const accessToken = useAuthStore((s) => s.accessToken);
   const showSidebarNotificationCenter = usePreferencesStore((s) => s.showSidebarNotificationCenter);
+  const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
+
+  const workspaceBase = useMemo(() => {
+    if (!workspaceId) return null;
+    const id = String(workspaceId).trim();
+    if (!id) return null;
+    return `/w/${id}`;
+  }, [workspaceId]);
+
+  const navItems = useMemo(() => {
+    if (!workspaceBase) return [];
+    const base = workspaceBase.endsWith("/") ? workspaceBase.slice(0, -1) : workspaceBase;
+
+    const mapItems = (items: typeof ADMIN_NAV_ITEMS): typeof ADMIN_NAV_ITEMS => {
+      return items.map((it) => {
+        const to = it.to
+          ? it.to === "/"
+            ? `${base}/`
+            : `${base}${it.to.startsWith("/") ? it.to : `/${it.to}`}`
+          : undefined;
+        return {
+          ...it,
+          ...(to ? { to } : {}),
+          ...(it.children?.length ? { children: mapItems(it.children as any) } : {}),
+        } as any;
+      });
+    };
+
+    return mapItems(ADMIN_NAV_ITEMS);
+  }, [workspaceBase]);
 
   const [refreshing, setRefreshing] = useState(false);
 
   const coreQuery = useQuery({
-    queryKey: ["settings", "core"],
-    enabled: Boolean(accessToken),
-    queryFn: async () => getCoreSettings(),
+    queryKey: ["settings", "core", workspaceId],
+    enabled: Boolean(accessToken && workspaceId),
+    queryFn: async () => getCoreSettings(String(workspaceId)),
     staleTime: 5 * 60 * 1000,
     retry: false,
     meta: { silent: true },
@@ -119,11 +150,11 @@ export function AdminLayout({ children }: PropsWithChildren) {
   const siteName = useMemo(() => pickCoreSiteName(coreQuery.data?.value), [coreQuery.data?.value]);
 
   const routeTitle = useMemo(() => {
-    const trail = findActiveTrailNodes(ADMIN_NAV_ITEMS, pathname);
+    const trail = findActiveTrailNodes(navItems as any, pathname);
     const current = trail[trail.length - 1];
     if (!current) return null;
     return current.labelKey ? t(current.labelKey) : current.label;
-  }, [pathname, t]);
+  }, [navItems, pathname, t]);
 
   useEffect(() => {
     document.title = buildDocumentTitle(routeTitle, siteName);
@@ -132,9 +163,9 @@ export function AdminLayout({ children }: PropsWithChildren) {
   const brandTitle = useMemo(() => (getAppConfig().title || "Celestial").trim(), []);
 
   const notificationsPreviewQuery = useQuery({
-    queryKey: ["notifications", "preview"],
-    enabled: Boolean(accessToken),
-    queryFn: async () => getUnreadNotificationPreview({ limit: 3 }),
+    queryKey: ["notifications", "preview", workspaceId],
+    enabled: Boolean(accessToken && workspaceId),
+    queryFn: async () => getUnreadNotificationPreview(String(workspaceId), { limit: 3 }),
     staleTime: 15 * 1000,
     refetchInterval: 30 * 1000,
     meta: { silent: true },
@@ -142,15 +173,24 @@ export function AdminLayout({ children }: PropsWithChildren) {
   const nowMs = useNowTick(60_000);
 
   const markPreviewItemReadOptimistic = (id: string) => {
-    queryClient.setQueryData<NotificationPreview>(["notifications", "preview"], (old) => {
-      if (!old) return old;
-      return {
-        ...old,
-        unreadCount: Math.max(0, old.unreadCount - 1),
-        items: old.items.filter((x) => x.id !== id),
-      };
-    });
+    queryClient.setQueryData<NotificationPreview>(
+      ["notifications", "preview", workspaceId],
+      (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          unreadCount: Math.max(0, old.unreadCount - 1),
+          items: old.items.filter((x) => x.id !== id),
+        };
+      },
+    );
   };
+
+  // When workspace is not selected (e.g. landing at "/"), render a minimal shell.
+  // The "/" route is responsible for picking a workspace and redirecting.
+  if (!workspaceBase) {
+    return <>{children ?? <Outlet />}</>;
+  }
 
   return (
     <SidebarProvider defaultOpen className="h-screen">
@@ -175,7 +215,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
         </SidebarHeader>
 
         <SidebarContent className="relative z-0 pl-0 pr-4 scrollbar-none">
-          <AdminSiderNav items={ADMIN_NAV_ITEMS} />
+          <AdminSiderNav items={navItems as any} />
         </SidebarContent>
 
         <SidebarFooter className="relative z-10 isolate p-0">
@@ -190,19 +230,19 @@ export function AdminLayout({ children }: PropsWithChildren) {
                     title: n.title,
                     subtitle: n.body ?? undefined,
                     time: formatRelativeTimeAt(n.createdAt, i18n.language, nowMs),
-                    to: n.targetTo,
+                    to: n.targetTo ? `${workspaceBase}${n.targetTo}` : undefined,
                   }))}
                   onViewAll={() => {
-                    void navigate({ to: "/notifications" });
+                    void navigate({ to: `${workspaceBase}/notifications` });
                   }}
                   onItemClick={(item) => {
                     const to = item.to;
                     const id = String(item.id);
                     markPreviewItemReadOptimistic(id);
-                    void markNotificationRead(id).finally(() => {
+                    void markNotificationRead(String(workspaceId), id).finally(() => {
                       // Best-effort refresh to keep badge/list in sync (handles failures/edge cases).
                       void queryClient.invalidateQueries({
-                        queryKey: ["notifications", "preview"],
+                        queryKey: ["notifications", "preview", workspaceId],
                       });
                     });
                     if (to) void navigate({ to: to as never });
@@ -210,9 +250,9 @@ export function AdminLayout({ children }: PropsWithChildren) {
                   onDismiss={(id) => {
                     const notificationId = String(id);
                     markPreviewItemReadOptimistic(notificationId);
-                    void markNotificationRead(notificationId).finally(() => {
+                    void markNotificationRead(String(workspaceId), notificationId).finally(() => {
                       void queryClient.invalidateQueries({
-                        queryKey: ["notifications", "preview"],
+                        queryKey: ["notifications", "preview", workspaceId],
                       });
                     });
                   }}
@@ -226,7 +266,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
 
       <SidebarInset className="w-auto flex-1 min-w-0 overflow-hidden">
         <AdminHeader
-          navItems={ADMIN_NAV_ITEMS}
+          navItems={navItems as any}
           refreshing={refreshing}
           onRefresh={async () => {
             if (refreshing) return;

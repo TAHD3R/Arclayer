@@ -1,5 +1,6 @@
 import { api } from "@/lib/http";
 import type { PageData } from "@/api/assets";
+import { workspacePath } from "@/api/_workspace";
 
 export type AdminShareCreateRequest = {
   /** 过期秒数；null 表示永不过期 */
@@ -23,16 +24,18 @@ export type AdminShareRevokeOut = {
 };
 
 export async function createAdminAssetShareLink(params: {
+  workspaceId: string;
   assetId: string;
   payload?: AdminShareCreateRequest;
 }): Promise<AdminShareLink> {
   return api.post<AdminShareLink>(
-    `/admin/assets/${params.assetId}/share-links`,
+    workspacePath(params.workspaceId, `/assets/${params.assetId}/share-links`),
     params.payload ?? { expiresInSeconds: null },
   );
 }
 
 export async function listAdminAssetShareLinks(params: {
+  workspaceId: string;
   assetId: string;
   page?: number;
   size?: number;
@@ -42,10 +45,15 @@ export async function listAdminAssetShareLinks(params: {
   query.set("size", String(params.size ?? 50));
   const qs = query.toString();
   return api.get<PageData<AdminShareLink>>(
-    `/admin/assets/${params.assetId}/share-links${qs ? `?${qs}` : ""}`,
+    workspacePath(params.workspaceId, `/assets/${params.assetId}/share-links${qs ? `?${qs}` : ""}`),
   );
 }
 
-export async function revokeAdminShareLink(linkId: string): Promise<AdminShareRevokeOut> {
-  return api.post<AdminShareRevokeOut>(`/admin/share-links/${linkId}/revoke`);
+export async function revokeAdminShareLink(params: {
+  workspaceId: string;
+  linkId: string;
+}): Promise<AdminShareRevokeOut> {
+  return api.post<AdminShareRevokeOut>(
+    workspacePath(params.workspaceId, `/share-links/${params.linkId}/revoke`),
+  );
 }

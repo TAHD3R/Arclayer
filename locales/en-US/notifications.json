@@ -6,7 +6,7 @@
   "NOTIFICATIONS_TAB_UNREAD": "Unread",
   "NOTIFICATIONS_TAB_ALL": "All",
   "NOTIFICATIONS_PAGE_TITLE": "Notifications",
-  "NOTIFICATIONS_PAGE_DESC": "Only shows notifications for the current organization.",
+  "NOTIFICATIONS_PAGE_DESC": "Only shows notifications for the current workspace.",
   "NOTIFICATIONS_PAGE_PREV": "Previous",
   "NOTIFICATIONS_PAGE_NEXT": "Next",
   "NOTIFICATIONS_PAGE_PAGINATION": "Page {page} / {pages}",
@@ -32,6 +32,6 @@
   "NOTIFICATIONS_DEMO_3_SUBTITLE": "You sent an invitation email.",
   "NOTIFICATIONS_DEMO_3_TIME": "1 hour ago",
 
-  "NOTIFICATIONS_TEAM_INVITE_ACCEPTED_TITLE": "{name} joined the organization",
+  "NOTIFICATIONS_TEAM_INVITE_ACCEPTED_TITLE": "{name} joined the workspace",
   "NOTIFICATIONS_TEAM_INVITE_ACCEPTED_BODY": "The invite has been accepted and the member is now active."
 }

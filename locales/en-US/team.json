@@ -11,7 +11,7 @@
   "TEAM_INVITE_MEMBER": "Invite member",
   "TEAM_INVITE_COMING_SOON": "Inviting members is coming soon",
 
-  "TEAM_INVITE_DIALOG_TITLE": "Invite people to join {{orgName}}",
+  "TEAM_INVITE_DIALOG_TITLE": "Invite people to join {{workspaceName}}",
   "TEAM_INVITE_DIALOG_DESC": "Invite others to help you build your workspace.",
   "TEAM_INVITE_FIELD_TO": "To: ",
   "TEAM_INVITE_FIELD_TO_PLACEHOLDER": "Enter one or more email addresses, one per line",
@@ -149,7 +149,7 @@
   "TEAM_INVITE_LINKS_RENEW_TITLE": "Renew invite link",
   "TEAM_INVITE_LINKS_RENEW_DESC": "Extend the expiration of invite link {{code}}.",
 
-  "TEAM_INVITE_LINK_CREATE_TITLE": "Create an invite link for {{orgName}}",
+  "TEAM_INVITE_LINK_CREATE_TITLE": "Create an invite link for {{workspaceName}}",
   "TEAM_INVITE_LINK_CREATE_DESC": "Invite links can be reused to let people join your workspace without email invites.",
   "TEAM_INVITE_LINK_CREATE_VALIDATION_ROLE_REQUIRED": "Please select a role",
   "TEAM_INVITE_LINK_CREATE_SUCCESS_COPIED": "Invite link created and copied to clipboard",

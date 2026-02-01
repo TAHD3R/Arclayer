@@ -3,13 +3,13 @@
 
   "INVITE_STEP1_TITLE": "Review Invitation",
   "INVITE_STEP1_DESC": "Please verify the invitation details before continuing.",
-  "INVITE_STEP2_TITLE": "Join Organization",
-  "INVITE_STEP2_DESC": "Sign in or create an account to join the organization.",
+  "INVITE_STEP2_TITLE": "Join Workspace",
+  "INVITE_STEP2_DESC": "Sign in or create an account to join the workspace.",
 
-  "INVITE_PREVIEW_INVITED_TO_ORG": "{{inviter}} invited you to join the organization \"{{orgName}}\"",
+  "INVITE_PREVIEW_INVITED_TO_ORG": "{{inviter}} invited you to join the workspace \"{{workspaceName}}\"",
   "INVITE_PREVIEW_INVITED_AS_ROLE": "you're invited as {{roleName}}",
 
-  "INVITE_FIELD_ORG": "Organization",
+  "INVITE_FIELD_ORG": "Workspace",
   "INVITE_FIELD_INVITER": "Inviter",
   "INVITE_FIELD_EMAIL": "Invited Email",
   "INVITE_FIELD_ROLE": "Role",
@@ -57,13 +57,13 @@
   "INVITE_LOGGED_IN_GENERIC": "This is a reusable invite link. You can join with your current account.",
   "INVITE_CURRENT_ACCOUNT": "Current account:",
   "INVITE_INVITED_EMAIL": "Invitation email:",
-  "INVITE_CURRENT_ORG_HINT": "Current org: {{orgId}}",
+  "INVITE_CURRENT_ORG_HINT": "Current workspace: {{workspaceId}}",
 
   "INVITE_JOIN_SUCCESS": "Joined successfully",
   "INVITE_EMAIL_EXISTS_SWITCH_TO_LOGIN": "This email already has an account. Please use “Sign in and join”.",
 
   "INVITE_CONFIRM_JOIN_TITLE": "Confirm joining",
-  "INVITE_CONFIRM_JOIN_LINE1": "You are about to join {{orgName}} as {{email}}.",
+  "INVITE_CONFIRM_JOIN_LINE1": "You are about to join {{workspaceName}} as {{email}}.",
   "INVITE_CONFIRM_JOIN_LINE2": "Your role will be: {{roleName}}.",
   "INVITE_CONFIRM_JOIN_RISK_NOTICE": "Joining grants admin console access. Ensure the inviter is trusted.",
   "INVITE_CONFIRM_JOIN_OK": "Confirm join",

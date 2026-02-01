@@ -1,4 +1,5 @@
 import { api } from "@/lib/http";
+import { workspacePath } from "@/api/_workspace";
 
 export type PageData<T> = {
   items: T[];
@@ -14,7 +15,7 @@ export type NotificationCategory = "team" | "security" | "task" | string;
 
 export type NotificationItem = {
   id: string;
-  orgId: string;
+  workspaceId: string;
   recipientUserId: string;
   actorUserId?: string | null;
 
@@ -55,14 +56,18 @@ function toQueryString(params: Record<string, unknown>): string {
   return s ? `?${s}` : "";
 }
 
-export async function getUnreadNotificationPreview(params?: {
-  limit?: number;
-}): Promise<NotificationPreview> {
+export async function getUnreadNotificationPreview(
+  workspaceId: string,
+  params?: { limit?: number },
+): Promise<NotificationPreview> {
   const qs = toQueryString({ limit: params?.limit ?? 3 });
-  return api.get<NotificationPreview>(`/admin/notifications/unread/preview${qs}`);
+  return api.get<NotificationPreview>(
+    workspacePath(workspaceId, `/notifications/unread/preview${qs}`),
+  );
 }
 
 export async function listNotifications(
+  workspaceId: string,
   params: ListNotificationsParams,
 ): Promise<PageData<NotificationItem>> {
   const qs = toQueryString({
@@ -71,32 +76,39 @@ export async function listNotifications(
     page: params.page ?? 1,
     size: params.size ?? 20,
   });
-  return api.get<PageData<NotificationItem>>(`/admin/notifications${qs}`);
+  return api.get<PageData<NotificationItem>>(workspacePath(workspaceId, `/notifications${qs}`));
 }
 
 export async function markNotificationRead(
+  workspaceId: string,
   notificationId: string,
 ): Promise<{ id: string; readAt?: string | null }> {
   return api.post<{ id: string; readAt?: string | null }>(
-    `/admin/notifications/${notificationId}/read`,
+    workspacePath(workspaceId, `/notifications/${notificationId}/read`),
   );
 }
 
-export async function markAllNotificationsRead(): Promise<{
+export async function markAllNotificationsRead(workspaceId: string): Promise<{
   totalCount: number;
   successCount: number;
 }> {
-  return api.post<{ totalCount: number; successCount: number }>(`/admin/notifications/read-all`);
+  return api.post<{ totalCount: number; successCount: number }>(
+    workspacePath(workspaceId, "/notifications/read-all"),
+  );
 }
 
-export async function seedDemoNotifications(params?: {
-  count?: number;
-}): Promise<{ createdCount: number }> {
-  return api.post<{ createdCount: number }>(`/admin/notifications/dev/seed`, {
+export async function seedDemoNotifications(
+  workspaceId: string,
+  params?: { count?: number },
+): Promise<{ createdCount: number }> {
+  return api.post<{ createdCount: number }>(workspacePath(workspaceId, "/notifications/dev/seed"), {
     count: params?.count ?? 8,
   });
 }
 
-export async function deleteNotification(notificationId: string): Promise<{ id: string }> {
-  return api.delete<{ id: string }>(`/admin/notifications/${notificationId}`);
+export async function deleteNotification(
+  workspaceId: string,
+  notificationId: string,
+): Promise<{ id: string }> {
+  return api.delete<{ id: string }>(workspacePath(workspaceId, `/notifications/${notificationId}`));
 }

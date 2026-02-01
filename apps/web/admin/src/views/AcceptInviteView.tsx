@@ -9,7 +9,7 @@ import { AnimatePresence, MotionConfig, motion } from "motion/react";
 import * as authApi from "@/api/auth";
 import * as invitationApi from "@/api/invitations";
 import { useAuthStore } from "@/stores/useAuthStore";
-import { useOrgStore } from "@/stores/useOrgStore";
+import { useWorkspaceStore } from "@/stores/useWorkspaceStore";
 import {
   getErrorMessage,
   notifyError,
@@ -116,9 +116,8 @@ export function AcceptInviteView(props: { token: string | null }) {
   const applyLogin = useAuthStore((s) => s.applyLogin);
   const clearAuth = useAuthStore((s) => s.clear);
 
-  const currentOrgId = useOrgStore((s) => s.currentOrgId);
-  const setCurrentOrgId = useOrgStore((s) => s.setCurrentOrgId);
-  const clearCurrentOrg = useOrgStore((s) => s.clearCurrentOrg);
+  const setCurrentWorkspaceId = useWorkspaceStore((s) => s.setCurrentWorkspaceId);
+  const clearWorkspace = useWorkspaceStore((s) => s.clearWorkspace);
 
   const [step, setStep] = useState<WizardStep>(0);
   const [mode, setMode] = useState<JoinMode>("login");
@@ -305,19 +304,19 @@ export function AcceptInviteView(props: { token: string | null }) {
 
   const onLogoutAndSwitch = async () => {
     clearAuth();
-    clearCurrentOrg();
+    clearWorkspace();
     await onBackToLogin();
   };
 
-  const applyJoinedOrg = async (organizationId: string) => {
-    setCurrentOrgId(organizationId);
+  const applyJoinedWorkspace = async (workspaceId: string) => {
+    setCurrentWorkspaceId(workspaceId);
     notifySuccessText(t("invite:INVITE_JOIN_SUCCESS"));
-    await navigate({ to: "/", replace: true });
+    await navigate({ to: `/w/${workspaceId}`, replace: true });
   };
 
   const joinAsExistingLoggedIn = async () => {
     if (!previewQuery.data) return;
-    const orgName = previewQuery.data.organization.name;
+    const workspaceName = previewQuery.data.workspace.name;
     const email = myEmail || inviteEmail;
     const roleName = roleResolved.name;
 
@@ -326,7 +325,7 @@ export function AcceptInviteView(props: { token: string | null }) {
       content: (
         <div>
           <div style={{ marginBottom: 6 }}>
-            {t("invite:INVITE_CONFIRM_JOIN_LINE1", { email, orgName })}
+            {t("invite:INVITE_CONFIRM_JOIN_LINE1", { email, workspaceName })}
           </div>
           <div style={{ marginBottom: 10 }}>
             {t("invite:INVITE_CONFIRM_JOIN_LINE2", { roleName })}
@@ -341,7 +340,7 @@ export function AcceptInviteView(props: { token: string | null }) {
       onOk: async () => {
         try {
           const accepted = await acceptExistingMutation.mutateAsync();
-          await applyJoinedOrg(accepted.organizationId);
+          await applyJoinedWorkspace(accepted.workspaceId);
         } catch (err) {
           notifyError(err);
           throw err;
@@ -362,7 +361,7 @@ export function AcceptInviteView(props: { token: string | null }) {
       applyLogin(tokens, { keepSession: values.keepSession });
 
       const accepted = await acceptExistingMutation.mutateAsync();
-      await applyJoinedOrg(accepted.organizationId);
+      await applyJoinedWorkspace(accepted.workspaceId);
     } catch (err) {
       notifyError(err);
     }
@@ -379,7 +378,7 @@ export function AcceptInviteView(props: { token: string | null }) {
     try {
       const tokens = await registerAcceptMutation.mutateAsync(values);
       applyLogin(tokens, { keepSession: true });
-      await applyJoinedOrg(previewQuery.data.organization.id);
+      await applyJoinedWorkspace(previewQuery.data.workspace.id);
     } catch (err) {
       // If email already exists, guide user to login flow.
       if (err instanceof ApiError && err.error === "EMAIL_EXISTS") {
@@ -460,13 +459,17 @@ export function AcceptInviteView(props: { token: string | null }) {
                     src={previewQuery.data.organization.logoUrl || undefined}
                     className="mb-4"
                   >
-                    {(previewQuery.data.organization.name || "O").slice(0, 1)}
+                    {(
+                      previewQuery.data.workspace.name ||
+                      previewQuery.data.organization.name ||
+                      "W"
+                    ).slice(0, 1)}
                   </Avatar>
 
                   <div className="text-2xl font-semibold">
                     {t("invite:INVITE_PREVIEW_INVITED_TO_ORG", {
                       inviter: inviterLabel || t("invite:INVITE_INVITER_UNKNOWN"),
-                      orgName: previewQuery.data.organization.name,
+                      workspaceName: previewQuery.data.workspace.name,
                     })}
                   </div>
 
@@ -554,14 +557,6 @@ export function AcceptInviteView(props: { token: string | null }) {
                     <div>
                       {t("invite:INVITE_INVITED_EMAIL")}{" "}
                       <strong>{previewQuery.data.invitation.maskedEmail}</strong>
-                    </div>
-                  ) : null}
-                  {currentOrgId ? (
-                    <div
-                      className="text-xs text-(--color-muted-foreground)"
-                      style={{ marginTop: 6 }}
-                    >
-                      {t("invite:INVITE_CURRENT_ORG_HINT", { orgId: currentOrgId })}
                     </div>
                   ) : null}
                 </div>

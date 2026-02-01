@@ -3,6 +3,7 @@ import { useEffect } from "react";
 
 import { GeneralSettingsView } from "@/views/settings/general/GeneralSettingsView";
 import type { GeneralSettingsTabKey } from "@/views/settings/general/types";
+import { useWorkspaceStore } from "@/stores/useWorkspaceStore";
 
 export const Route = createFileRoute("/settings/general/")({
   validateSearch: (search: Record<string, unknown>): { index?: GeneralSettingsTabKey } => {
@@ -16,6 +17,7 @@ export const Route = createFileRoute("/settings/general/")({
 
 function GeneralSettingsRoutePage() {
   const navigate = useNavigate();
+  const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
   const { index } = Route.useSearch();
   const tab: GeneralSettingsTabKey = index ?? "site";
 
@@ -25,16 +27,19 @@ function GeneralSettingsRoutePage() {
     const params = new URLSearchParams(window.location.search);
     const rawIndex = params.get("index");
     if (rawIndex && !index) {
-      void navigate({ to: "/settings/general", search: {}, replace: true });
+      if (workspaceId) {
+        void navigate({ to: `/w/${workspaceId}/settings/general`, search: {}, replace: true });
+      }
     }
-  }, [index, navigate]);
+  }, [index, navigate, workspaceId]);
 
   return (
     <GeneralSettingsView
       tab={tab}
       onTabChange={(next) => {
+        if (!workspaceId) return;
         void navigate({
-          to: "/settings/general",
+          to: `/w/${workspaceId}/settings/general`,
           search: next === "site" ? {} : { index: next },
         });
       }}

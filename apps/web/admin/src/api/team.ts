@@ -1,4 +1,5 @@
 import { api } from "@/lib/http";
+import { workspacePath } from "@/api/_workspace";
 
 export type PageData<T> = {
   items: T[];
@@ -46,8 +47,8 @@ export type TeamInvitation = {
   email: string;
   roleCode: string | null;
   expiresAt: string | null;
-  invitedByUserId: string | null;
-  invitedBy: TeamUserRef | null;
+  createdByUserId: string;
+  createdBy: TeamUserRef | null;
   acceptedByUserId: string | null;
   acceptedBy: TeamUserRef | null;
   acceptedAt: string | null;
@@ -90,6 +91,7 @@ function toQueryString(params: Record<string, unknown>): string {
 }
 
 export async function listTeamMembers(
+  workspaceId: string,
   params: ListTeamMembersParams = {},
 ): Promise<PageData<TeamMember>> {
   const query = toQueryString({
@@ -101,17 +103,63 @@ export async function listTeamMembers(
     userStatus: params.userStatus,
     ordering: params.ordering,
   });
-  return api.get<PageData<TeamMember>>(`/admin/team/members${query}`);
+  return api.get<PageData<TeamMember>>(workspacePath(workspaceId, `/team/members${query}`));
 }
 
 export async function setTeamMemberRoles(
+  workspaceId: string,
   membershipId: string,
   payload: { roleCodes: string[] },
 ): Promise<null> {
-  return api.put<null>(`/admin/team/members/${membershipId}/roles`, payload);
+  return api.put<null>(workspacePath(workspaceId, `/team/members/${membershipId}/roles`), payload);
+}
+
+export async function patchTeamMemberUser(
+  workspaceId: string,
+  membershipId: string,
+  payload: { email?: string | null; displayName?: string | null; avatarUrl?: string | null },
+): Promise<TeamMember> {
+  return api.patch<TeamMember>(
+    workspacePath(workspaceId, `/team/members/${membershipId}`),
+    payload,
+  );
+}
+
+export async function enableTeamMember(
+  workspaceId: string,
+  membershipId: string,
+): Promise<{
+  membershipId: string;
+  status: MembershipStatus;
+}> {
+  return api.post(workspacePath(workspaceId, `/team/members/${membershipId}/enable`));
+}
+
+export async function disableTeamMember(
+  workspaceId: string,
+  membershipId: string,
+): Promise<{
+  membershipId: string;
+  status: MembershipStatus;
+}> {
+  return api.post(workspacePath(workspaceId, `/team/members/${membershipId}/disable`));
+}
+
+export async function resetTeamMemberPassword(
+  workspaceId: string,
+  membershipId: string,
+  payload: { newPassword: string },
+): Promise<null> {
+  return api.post<null>(
+    workspacePath(workspaceId, `/team/members/${membershipId}/reset-password`),
+    {
+      newPassword: payload.newPassword,
+    },
+  );
 }
 
 export async function listTeamInvitations(
+  workspaceId: string,
   params: ListTeamInvitationsParams = {},
 ): Promise<PageData<TeamInvitation>> {
   const query = toQueryString({
@@ -121,37 +169,46 @@ export async function listTeamInvitations(
     status: params.status,
     mine: params.mine ? "true" : undefined,
   });
-  return api.get<PageData<TeamInvitation>>(`/admin/team/invitations${query}`);
+  return api.get<PageData<TeamInvitation>>(
+    workspacePath(workspaceId, `/team/email-invites${query}`),
+  );
 }
 
 export async function createTeamInvitation(payload: {
+  workspaceId: string;
   email: string;
   roleCode: string | null;
   expiresInSeconds?: number | null;
 }): Promise<TeamInvitationCreateResult> {
-  return api.post<TeamInvitationCreateResult>("/admin/team/invitations", {
-    email: payload.email,
-    roleCode: payload.roleCode,
-    expiresInSeconds: payload.expiresInSeconds ?? undefined,
-  });
-}
-
-export async function revokeTeamInvitation(invitationId: string): Promise<null> {
-  return api.post<null>(`/admin/team/invitations/${invitationId}/revoke`);
+  return api.post<TeamInvitationCreateResult>(
+    workspacePath(payload.workspaceId, "/team/email-invites"),
+    {
+      email: payload.email,
+      roleCode: payload.roleCode,
+      expiresInSeconds: payload.expiresInSeconds ?? undefined,
+    },
+  );
 }
 
 export async function renewTeamInvitation(
+  workspaceId: string,
   invitationId: string,
   params: { expiresInSeconds?: number | null } = {},
-): Promise<TeamInvitation> {
+): Promise<TeamInvitationCreateResult> {
   // Backend expects a JSON body; defaults are applied server-side.
   const body =
     params.expiresInSeconds === undefined ? {} : { expiresInSeconds: params.expiresInSeconds };
-  return api.post<TeamInvitation>(`/admin/team/invitations/${invitationId}/renew`, body);
+  return api.post<TeamInvitationCreateResult>(
+    workspacePath(workspaceId, `/team/email-invites/${invitationId}/renew`),
+    body,
+  );
 }
 
-export async function deleteTeamInvitation(invitationId: string): Promise<null> {
-  return api.delete<null>(`/admin/team/invitations/${invitationId}`);
+export async function deleteTeamInvitation(
+  workspaceId: string,
+  invitationId: string,
+): Promise<null> {
+  return api.delete<null>(workspacePath(workspaceId, `/team/email-invites/${invitationId}`));
 }
 
 export type TeamUserRef = {
@@ -164,15 +221,22 @@ export type TeamUserRef = {
 
 export type TeamInviteLink = {
   id: string;
-  code: string;
+  displayCode: string;
   roleCode: string | null;
   expiresAt: string | null;
   disabledAt: string | null;
+  maxUses: number | null;
+  allowedEmailDomain: string | null;
 
   createdBy: TeamUserRef | null;
   lastUsedBy: TeamUserRef | null;
   lastUsedAt: string | null;
   usesCount: number;
+
+  recentParticipants: {
+    user: TeamUserRef;
+    usedAt: string;
+  }[];
 
   createdAt: string;
   updatedAt: string;
@@ -192,6 +256,7 @@ export type ListTeamInviteLinksParams = {
 };
 
 export async function listTeamInviteLinks(
+  workspaceId: string,
   params: ListTeamInviteLinksParams = {},
 ): Promise<PageData<TeamInviteLink>> {
   const query = toQueryString({
@@ -200,34 +265,42 @@ export async function listTeamInviteLinks(
     q: params.q,
     mine: params.mine ? "true" : undefined,
   });
-  return api.get<PageData<TeamInviteLink>>(`/admin/team/invite-links${query}`);
+  return api.get<PageData<TeamInviteLink>>(
+    workspacePath(workspaceId, `/team/invite-links${query}`),
+  );
 }
 
 export async function createTeamInviteLink(payload: {
+  workspaceId: string;
   roleCode: string | null;
   expiresInSeconds?: number | null;
-  emails?: string[];
+  maxUses?: number | null;
+  allowedEmailDomain?: string | null;
 }): Promise<TeamInviteLinkCreateResult> {
-  return api.post<TeamInviteLinkCreateResult>("/admin/team/invite-links", {
-    roleCode: payload.roleCode,
-    expiresInSeconds: payload.expiresInSeconds ?? undefined,
-    emails: payload.emails?.length ? payload.emails : undefined,
-  });
+  return api.post<TeamInviteLinkCreateResult>(
+    workspacePath(payload.workspaceId, "/team/invite-links"),
+    {
+      roleCode: payload.roleCode,
+      expiresInSeconds: payload.expiresInSeconds ?? undefined,
+      maxUses: payload.maxUses ?? undefined,
+      allowedEmailDomain: payload.allowedEmailDomain ?? undefined,
+    },
+  );
 }
 
 export async function renewTeamInviteLink(
+  workspaceId: string,
   linkId: string,
   params: { expiresInSeconds?: number | null } = {},
-): Promise<TeamInviteLink> {
+): Promise<TeamInviteLinkCreateResult> {
   const body =
     params.expiresInSeconds === undefined ? {} : { expiresInSeconds: params.expiresInSeconds };
-  return api.post<TeamInviteLink>(`/admin/team/invite-links/${linkId}/renew`, body);
+  return api.post<TeamInviteLinkCreateResult>(
+    workspacePath(workspaceId, `/team/invite-links/${linkId}/renew`),
+    body,
+  );
 }
 
-export async function disableTeamInviteLink(linkId: string): Promise<null> {
-  return api.post<null>(`/admin/team/invite-links/${linkId}/disable`);
-}
-
-export async function disableAllTeamInviteLinks(): Promise<null> {
-  return api.post<null>("/admin/team/invite-links/disable-all");
+export async function disableTeamInviteLink(workspaceId: string, linkId: string): Promise<null> {
+  return api.post<null>(workspacePath(workspaceId, `/team/invite-links/${linkId}/disable`));
 }

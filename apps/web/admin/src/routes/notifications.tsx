@@ -38,6 +38,7 @@ import {
 import { useNowTick } from "@/hooks/useNowTick";
 import { formatRelativeTimeAt } from "@/lib/time/relativeTime";
 import { cn } from "@/lib/utils";
+import { useWorkspaceStore } from "@/stores/useWorkspaceStore";
 
 export const Route = createFileRoute("/notifications")({
   component: NotificationsPage,
@@ -52,10 +53,12 @@ function pickCategoryIcon(category: NotificationCategory) {
   return Wrench;
 }
 
-function NotificationsPage() {
+export function NotificationsPage() {
   const { t, i18n } = useTranslation("notifications");
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
+  const workspaceBase = workspaceId ? `/w/${workspaceId}` : "";
 
   const [status, setStatus] = useState<ListStatus>("unread");
   const pageSize = 20;
@@ -65,9 +68,10 @@ function NotificationsPage() {
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   const listQuery = useInfiniteQuery({
-    queryKey: ["notifications", "list", status, pageSize],
+    queryKey: ["notifications", "list", workspaceId, status, pageSize],
+    enabled: Boolean(workspaceId),
     queryFn: async ({ pageParam }) =>
-      listNotifications({
+      listNotifications(String(workspaceId), {
         status,
         page: typeof pageParam === "number" ? pageParam : 1,
         size: pageSize,
@@ -114,11 +118,12 @@ function NotificationsPage() {
     status === "unread" ? t("NOTIFICATIONS_EMPTY_UNREAD_DESC") : t("NOTIFICATIONS_EMPTY_ALL_DESC");
 
   const markRead = async (n: NotificationItem) => {
+    if (!workspaceId) return;
     const readAt = new Date().toISOString();
 
     // Optimistic cache update: makes the "read moves below unread" feel instant in the All tab.
     queryClient.setQueryData(
-      ["notifications", "list", status, pageSize],
+      ["notifications", "list", workspaceId, status, pageSize],
       (old: typeof listQuery.data | undefined) => {
         if (!old) return old;
         return {
@@ -135,27 +140,29 @@ function NotificationsPage() {
     );
 
     try {
-      await markNotificationRead(n.id);
+      await markNotificationRead(String(workspaceId), n.id);
     } finally {
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["notifications", "preview"] }),
-        queryClient.invalidateQueries({ queryKey: ["notifications", "list"] }),
+        queryClient.invalidateQueries({ queryKey: ["notifications", "preview", workspaceId] }),
+        queryClient.invalidateQueries({ queryKey: ["notifications", "list", workspaceId] }),
       ]);
     }
   };
 
   const markAllRead = async () => {
-    await markAllNotificationsRead();
+    if (!workspaceId) return;
+    await markAllNotificationsRead(String(workspaceId));
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ["notifications", "preview"] }),
-      queryClient.invalidateQueries({ queryKey: ["notifications", "list"] }),
+      queryClient.invalidateQueries({ queryKey: ["notifications", "preview", workspaceId] }),
+      queryClient.invalidateQueries({ queryKey: ["notifications", "list", workspaceId] }),
     ]);
   };
 
   const removeItem = async (n: NotificationItem) => {
+    if (!workspaceId) return;
     // Optimistic cache update: remove from current list immediately.
     queryClient.setQueryData(
-      ["notifications", "list", status, pageSize],
+      ["notifications", "list", workspaceId, status, pageSize],
       (old: typeof listQuery.data | undefined) => {
         if (!old) return old;
         return {
@@ -169,23 +176,24 @@ function NotificationsPage() {
     );
 
     try {
-      await deleteNotification(n.id);
+      await deleteNotification(String(workspaceId), n.id);
     } finally {
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["notifications", "preview"] }),
-        queryClient.invalidateQueries({ queryKey: ["notifications", "list"] }),
+        queryClient.invalidateQueries({ queryKey: ["notifications", "preview", workspaceId] }),
+        queryClient.invalidateQueries({ queryKey: ["notifications", "list", workspaceId] }),
       ]);
     }
   };
 
   const seedDemo = async () => {
+    if (!workspaceId) return;
     setIsSeeding(true);
     try {
-      await seedDemoNotifications({ count: 12 });
+      await seedDemoNotifications(String(workspaceId), { count: 12 });
       setStatus("unread");
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["notifications", "preview"] }),
-        queryClient.invalidateQueries({ queryKey: ["notifications", "list"] }),
+        queryClient.invalidateQueries({ queryKey: ["notifications", "preview", workspaceId] }),
+        queryClient.invalidateQueries({ queryKey: ["notifications", "list", workspaceId] }),
       ]);
     } finally {
       setIsSeeding(false);
@@ -305,11 +313,11 @@ function NotificationsPage() {
                             onKeyDown={(e) => {
                               if (e.key !== "Enter") return;
                               void markRead(n);
-                              void navigate({ to: n.targetTo as never });
+                              void navigate({ to: `${workspaceBase}${n.targetTo}` as never });
                             }}
                             onClick={() => {
                               void markRead(n);
-                              void navigate({ to: n.targetTo as never });
+                              void navigate({ to: `${workspaceBase}${n.targetTo}` as never });
                             }}
                           >
                             <ItemMedia variant="icon" className="size-12 rounded-md">
@@ -426,10 +434,10 @@ function NotificationsPage() {
                                 tabIndex={0}
                                 onKeyDown={(e) => {
                                   if (e.key !== "Enter") return;
-                                  void navigate({ to: n.targetTo as never });
+                                  void navigate({ to: `${workspaceBase}${n.targetTo}` as never });
                                 }}
                                 onClick={() => {
-                                  void navigate({ to: n.targetTo as never });
+                                  void navigate({ to: `${workspaceBase}${n.targetTo}` as never });
                                 }}
                               >
                                 <ItemMedia variant="icon" className="size-12 rounded-md">

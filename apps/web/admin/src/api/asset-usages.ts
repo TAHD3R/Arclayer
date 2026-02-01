@@ -1,5 +1,6 @@
 import { api } from "@/lib/http";
 import type { PageData } from "@/api/assets";
+import { workspacePath } from "@/api/_workspace";
 
 export type AdminAssetUsage = {
   id: string;
@@ -23,6 +24,7 @@ export type UpsertAdminAssetUsagePayload = {
 };
 
 export async function listAdminAssetUsages(params: {
+  workspaceId: string;
   assetId: string;
   page?: number;
   size?: number;
@@ -32,21 +34,24 @@ export async function listAdminAssetUsages(params: {
   query.set("size", String(params.size ?? 50));
   const qs = query.toString();
   return api.get<PageData<AdminAssetUsage>>(
-    `/admin/assets/${params.assetId}/usages${qs ? `?${qs}` : ""}`,
+    workspacePath(params.workspaceId, `/assets/${params.assetId}/usages${qs ? `?${qs}` : ""}`),
   );
 }
 
 export async function upsertAdminAssetUsage(
+  workspaceId: string,
   payload: UpsertAdminAssetUsagePayload,
 ): Promise<AdminAssetUsage> {
-  return api.put<AdminAssetUsage>(`/admin/asset-usages`, payload);
+  return api.put<AdminAssetUsage>(workspacePath(workspaceId, "/asset-usages"), payload);
 }
 
 export async function deleteAdminAssetUsageByRef(payload: {
+  workspaceId: string;
   entityType: string;
   entityId: string;
   fieldKey: string;
 }): Promise<{ deleted: boolean }> {
   // 注意：DELETE + body 在部分 fetch 封装里不好用，这里使用 POST 版本。
-  return api.post<{ deleted: boolean }>(`/admin/asset-usages/delete`, payload);
+  const { workspaceId, ...rest } = payload;
+  return api.post<{ deleted: boolean }>(workspacePath(workspaceId, "/asset-usages/delete"), rest);
 }

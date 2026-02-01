@@ -21,6 +21,7 @@ import { LocalizationSettingsTab } from "./tabs/LocalizationSettingsTab";
 import { MessagingSettingsTab } from "./tabs/MessagingSettingsTab";
 import { SiteSettingsTab } from "./tabs/SiteSettingsTab";
 import { StorageSettingsTab } from "./tabs/StorageSettingsTab";
+import { useWorkspaceStore } from "@/stores/useWorkspaceStore";
 
 type GeneralSettingsViewProps = {
   /**
@@ -36,10 +37,12 @@ export function GeneralSettingsView(props: GeneralSettingsViewProps) {
   const queryClient = useQueryClient();
   const [form] = Form.useForm<GeneralSettingsFormValues>();
   const [savingKey, setSavingKey] = useState<string | null>(null);
+  const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
 
   const coreQuery = useQuery({
-    queryKey: ["settings", "core"],
-    queryFn: async () => getCoreSettings(),
+    queryKey: ["settings", "core", workspaceId],
+    enabled: Boolean(workspaceId),
+    queryFn: async () => getCoreSettings(String(workspaceId)),
     staleTime: 5 * 60 * 1000,
     meta: { silent: true },
   });
@@ -55,10 +58,13 @@ export function GeneralSettingsView(props: GeneralSettingsViewProps) {
   }, [coreQuery.data, form, initialValues]);
 
   const saveMutation = useMutation({
-    mutationFn: async (patch: Record<string, unknown>) => patchCoreSettings(patch),
+    mutationFn: async (patch: Record<string, unknown>) =>
+      workspaceId
+        ? patchCoreSettings(String(workspaceId), patch)
+        : Promise.reject(new Error("WORKSPACE_NOT_SELECTED")),
     onSuccess: async () => {
       notifySuccessText(t("settings:SETTINGS_SAVED"));
-      await queryClient.invalidateQueries({ queryKey: ["settings", "core"] });
+      await queryClient.invalidateQueries({ queryKey: ["settings", "core", workspaceId] });
     },
     onError: (err) => notifyError(err),
   });

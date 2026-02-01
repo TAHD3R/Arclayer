@@ -8,7 +8,7 @@ import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
 
 import type { Role } from "@/api/rbac";
-import { createTeamInviteLink } from "@/api/team";
+import { createTeamInvitation, createTeamInviteLink } from "@/api/team";
 import {
   Dialog,
   DialogContent,
@@ -47,7 +47,8 @@ function normalizeEmailList(input: string[]): string[] {
 export function InviteMembersDialog(props: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  orgName: string;
+  workspaceId: string;
+  workspaceName: string;
   roles: Role[];
   rolesLoading?: boolean;
   onInvited?: () => void;
@@ -109,28 +110,63 @@ export function InviteMembersDialog(props: {
       const roleCode = values.roleCode;
       const expiresInSeconds = values.expiresInSeconds;
 
+      if (emails.length) {
+        const results = await Promise.allSettled(
+          emails.map((email) =>
+            createTeamInvitation({
+              workspaceId: props.workspaceId,
+              email,
+              roleCode,
+              expiresInSeconds,
+            }),
+          ),
+        );
+        const successCount = results.filter((r) => r.status === "fulfilled").length;
+        const failedCount = results.length - successCount;
+        return {
+          mode: "email" as const,
+          successCount,
+          failedCount,
+          firstInviteUrl: null as string | null,
+        };
+      }
+
       const created = await createTeamInviteLink({
+        workspaceId: props.workspaceId,
         roleCode,
         expiresInSeconds,
-        emails: emails.length ? emails : undefined,
       });
 
-      return { created, emailCount: emails.length };
+      return {
+        mode: "link" as const,
+        successCount: 1,
+        failedCount: 0,
+        firstInviteUrl: created.inviteUrl ?? null,
+      };
     },
-    onSuccess: async ({ created, emailCount }) => {
+    onSuccess: async (result) => {
       let copied = false;
-      if (created.inviteUrl) {
+      if (result.mode === "link" && result.firstInviteUrl) {
         try {
-          await navigator.clipboard.writeText(created.inviteUrl);
+          await navigator.clipboard.writeText(result.firstInviteUrl);
           copied = true;
         } catch {
           // ignore clipboard failures
         }
       }
 
-      if (emailCount > 0) {
-        notifySuccessText(t("team:TEAM_INVITE_SUCCESS", { count: emailCount }));
-      } else if (created.inviteUrl && copied) {
+      if (result.mode === "email") {
+        if (result.failedCount > 0) {
+          notifySuccessText(
+            t("team:TEAM_INVITE_SUCCESS_WITH_FAILURE", {
+              count: result.successCount,
+              failed: result.failedCount,
+            }),
+          );
+        } else {
+          notifySuccessText(t("team:TEAM_INVITE_SUCCESS", { count: result.successCount }));
+        }
+      } else if (result.firstInviteUrl && copied) {
         notifySuccessText(t("team:TEAM_INVITE_LINK_CREATE_SUCCESS_COPIED"));
       } else {
         notifySuccessText(t("team:TEAM_ACTION_SUCCESS"));
@@ -181,7 +217,7 @@ export function InviteMembersDialog(props: {
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>
-            {t("team:TEAM_INVITE_DIALOG_TITLE", { orgName: props.orgName })}
+            {t("team:TEAM_INVITE_DIALOG_TITLE", { workspaceName: props.workspaceName })}
           </DialogTitle>
           <DialogDescription>{t("team:TEAM_INVITE_DIALOG_DESC")}</DialogDescription>
         </DialogHeader>

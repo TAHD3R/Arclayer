@@ -2,7 +2,6 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useEffect } from "react";
-import { useState } from "react";
 
 import * as authApi from "@/api/auth";
 import { useAuthStore } from "@/stores/useAuthStore";
@@ -12,13 +11,7 @@ import {
   type RegisterFormValues,
   LoginView,
 } from "@/views/LoginView";
-import {
-  notifyError,
-  notifyErrorText,
-  notifyInfoText,
-  notifySuccessText,
-} from "@/utils/notifications";
-import { ApiError } from "@/lib/http";
+import { notifyInfoText, notifySuccessText } from "@/utils/notifications";
 
 type LoginSearch = {
   redirect?: string;
@@ -27,12 +20,10 @@ type LoginSearch = {
 
 function LoginPage() {
   const applyLogin = useAuthStore((s) => s.applyLogin);
-  const clear = useAuthStore((s) => s.clear);
   const keepSession = useAuthStore((s) => s.keepSession);
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { redirect: redirectTo, mode = "login" } = Route.useSearch();
-  const [checkingAuthz, setCheckingAuthz] = useState(false);
 
   useEffect(() => {
     // Clean up legacy/accidental recursive `redirect=/login?...` parameters to avoid URL bloat.
@@ -67,33 +58,6 @@ function LoginPage() {
       const tokens = await loginMutation.mutateAsync(values);
       applyLogin(tokens, { keepSession: values.keepSession });
 
-      // Post-login authorization check: user must have `admin:access` to enter the admin app.
-      setCheckingAuthz(true);
-      try {
-        const snapshot = await authApi.meAuthz();
-        const raw = snapshot as any;
-        const isSuper = (raw.is_superuser ?? raw.isSuperuser ?? false) as boolean;
-        const permissionCodes = (raw.permission_codes ?? raw.permissionCodes ?? []) as string[];
-        const hasAdminAccess = isSuper || permissionCodes.includes("admin:access");
-        if (!hasAdminAccess) {
-          clear();
-          notifyErrorText(t("auth:NO_ADMIN_ACCESS"));
-          await navigate({ to: "/login", search: { mode: "login" }, replace: true });
-          return;
-        }
-      } catch (err) {
-        clear();
-        if (err instanceof ApiError && err.status === 403) {
-          notifyErrorText(t("auth:NO_ADMIN_ACCESS"));
-        } else {
-          notifyError(err);
-        }
-        await navigate({ to: "/login", search: { mode: "login" }, replace: true });
-        return;
-      } finally {
-        setCheckingAuthz(false);
-      }
-
       notifySuccessText(t("auth:LOGIN_SUCCESS"));
       await navigate({ to: redirectTo || "/", replace: true });
     } catch {
@@ -125,7 +89,7 @@ function LoginPage() {
       mode={mode}
       onModeChange={onModeChange}
       onLoginSubmit={onLoginFinish}
-      loginLoading={loginMutation.isPending || checkingAuthz}
+      loginLoading={loginMutation.isPending}
       initialKeepSession={keepSession}
       onForgotPassword={onForgotPassword}
       onRegisterSubmit={onRegisterFinish}

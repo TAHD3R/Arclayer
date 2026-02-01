@@ -8,7 +8,7 @@ import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
 
 import type { TeamMember } from "@/api/team";
-import { resetAdminUserPassword } from "@/api/users";
+import { resetTeamMemberPassword } from "@/api/team";
 import {
   Dialog,
   DialogContent,
@@ -20,6 +20,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { zodResolver } from "@/lib/forms/zodResolver";
 import { notifyError, notifySuccessText } from "@/utils/notifications";
+import { useWorkspaceStore } from "@/stores/useWorkspaceStore";
 
 type FormValues = {
   newPassword: string;
@@ -33,6 +34,7 @@ export function ResetUserPasswordDialog(props: {
   onReset?: () => void;
 }) {
   const { t } = useTranslation(["team", "common"]);
+  const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
 
   const schema = React.useMemo(() => {
     return z
@@ -70,7 +72,10 @@ export function ResetUserPasswordDialog(props: {
     mutationFn: async (values: FormValues) => {
       const member = props.member;
       if (!member) return null;
-      return resetAdminUserPassword(member.userId, { newPassword: values.newPassword });
+      if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
+      return resetTeamMemberPassword(workspaceId, member.membershipId, {
+        newPassword: values.newPassword,
+      });
     },
     onSuccess: () => {
       notifySuccessText(t("team:TEAM_ACTION_SUCCESS"));

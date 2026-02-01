@@ -11,7 +11,7 @@
   "TEAM_INVITE_MEMBER": "邀请成员",
   "TEAM_INVITE_COMING_SOON": "邀请成员功能即将上线",
 
-  "TEAM_INVITE_DIALOG_TITLE": "邀请人员加入{{orgName}}",
+  "TEAM_INVITE_DIALOG_TITLE": "邀请人员加入{{workspaceName}}",
   "TEAM_INVITE_DIALOG_DESC": "邀请其他人协助你构建工作区。",
   "TEAM_INVITE_FIELD_TO": "至：",
   "TEAM_INVITE_FIELD_TO_PLACEHOLDER": "输入一个或多个邮箱地址，每行一个",
@@ -149,7 +149,7 @@
   "TEAM_INVITE_LINKS_RENEW_TITLE": "续订邀请链接",
   "TEAM_INVITE_LINKS_RENEW_DESC": "延长邀请链接 {{code}} 的有效期。",
 
-  "TEAM_INVITE_LINK_CREATE_TITLE": "创建邀请链接（{{orgName}}）",
+  "TEAM_INVITE_LINK_CREATE_TITLE": "创建邀请链接（{{workspaceName}}）",
   "TEAM_INVITE_LINK_CREATE_DESC": "创建一个可复用的邀请链接，让成员无需邮箱邀请也能加入工作区。",
   "TEAM_INVITE_LINK_CREATE_VALIDATION_ROLE_REQUIRED": "请选择一个角色",
   "TEAM_INVITE_LINK_CREATE_SUCCESS_COPIED": "邀请链接已创建并复制到剪贴板",

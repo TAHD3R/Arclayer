@@ -18,14 +18,15 @@ import { type InfiniteData, useMutation, useQuery, useQueryClient } from "@tanst
 
 import { cn } from "@/lib/utils";
 import {
-  createAdminAssetTag,
-  deleteAdminAsset,
-  getAdminAssetDetail,
-  listAdminAssetTags,
-  patchAdminAsset,
+  createAssetTag,
+  deleteAsset,
+  getAssetDetail,
+  listAssetTags,
+  patchAsset,
   type AdminAssetTag,
+  type AdminAssetSummary,
+  type PageData,
 } from "@/api/assets";
-import type { AdminAssetSummary, PageData } from "@/api/assets";
 import {
   Accordion,
   AccordionContent,
@@ -81,6 +82,7 @@ import { useAuthStore } from "@/stores/useAuthStore";
 import { toShareableAbsoluteUrl } from "@/views/assets/utils/assetUrls";
 import { AssetSharePopover } from "@/views/assets/components/AssetSharePopover";
 import { UpdateAssetsAccessDialog } from "@/views/assets/components/UpdateAssetsAccessDialog";
+import { useWorkspaceStore } from "@/stores/useWorkspaceStore";
 
 export type AssetMasonryItem = {
   id: string;
@@ -544,6 +546,7 @@ async function downloadWithAuth(params: { url: string; filename: string }) {
 export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onClose: () => void }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
   const { token } = theme.useToken();
   const active = props.active;
   const activeAspectRatio = active ? getSafeAspectRatio(active.aspectRatio) : 4 / 3;
@@ -566,18 +569,23 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
   const isImage = Boolean(active?.mimeType?.startsWith("image/"));
 
   const detailQuery = useQuery({
-    queryKey: ["assets", "detail", active?.id],
+    queryKey: ["assets", "detail", workspaceId, active?.id],
     queryFn: async () => {
       if (!active?.id) throw new Error("missing asset id");
-      return getAdminAssetDetail(active.id);
+      if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
+      return getAssetDetail(String(workspaceId), active.id);
     },
-    enabled: Boolean(active?.id),
+    enabled: Boolean(workspaceId) && Boolean(active?.id),
     staleTime: 20 * 1000,
   });
 
   const tagsQuery = useQuery({
-    queryKey: ["assets", "tags"],
-    queryFn: async () => listAdminAssetTags(),
+    queryKey: ["assets", "tags", workspaceId],
+    queryFn: async () => {
+      if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
+      return listAssetTags(String(workspaceId));
+    },
+    enabled: Boolean(workspaceId),
     staleTime: 60 * 1000,
   });
 
@@ -688,26 +696,27 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
       initializedIdRef.current = id;
       dirtyRef.current = { description: false, tags: false };
       setDescriptionDraft(detail.description || "");
-      setTagIdsDraft(detail.tags.map((x) => x.id));
+      setTagIdsDraft(detail.tags.map((x: AdminAssetTag) => x.id));
       return;
     }
 
     // If user hasn't touched a field, keep it in sync with server.
     if (!dirtyRef.current.description) setDescriptionDraft(detail.description || "");
-    if (!dirtyRef.current.tags) setTagIdsDraft(detail.tags.map((x) => x.id));
+    if (!dirtyRef.current.tags) setTagIdsDraft(detail.tags.map((x: AdminAssetTag) => x.id));
   }, [active?.id, detailQuery.data]);
 
   const patchMutation = useMutation({
     mutationFn: async (payload: { description?: string | null; tagIds?: string[] }) => {
       if (!active?.id) throw new Error("missing asset id");
-      return patchAdminAsset(active.id, payload);
+      if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
+      return patchAsset(String(workspaceId), active.id, payload);
     },
     onSuccess: (updated) => {
       setSaveState("saved");
       dirtyRef.current = { description: false, tags: false };
-      queryClient.setQueryData(["assets", "detail", active?.id], updated);
+      queryClient.setQueryData(["assets", "detail", workspaceId, active?.id], updated);
       // Lists might not include description/tags today, but keep caches consistent.
-      queryClient.invalidateQueries({ queryKey: ["assets", "list"] });
+      if (workspaceId) queryClient.invalidateQueries({ queryKey: ["assets", "list", workspaceId] });
       window.setTimeout(() => setSaveState("idle"), 1200);
     },
     onError: () => {
@@ -720,34 +729,38 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
   const patchAccessMutation = useMutation({
     mutationFn: async (payload: { visibility?: string; purpose?: string }) => {
       if (!active?.id) throw new Error("missing asset id");
-      return patchAdminAsset(active.id, payload);
+      if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
+      return patchAsset(String(workspaceId), active.id, payload);
     },
     onSuccess: (updated) => {
       notifySuccessText(t("assets:ASSET_EDIT_ACCESS_SUCCESS"));
-      queryClient.setQueryData(["assets", "detail", active?.id], updated);
+      queryClient.setQueryData(["assets", "detail", workspaceId, active?.id], updated);
       // Keep list caches in sync so the masonry tiles reflect the latest access fields immediately.
-      queryClient.setQueriesData({ queryKey: ["assets", "list"] }, (old: unknown): unknown => {
-        const data = old as InfiniteData<PageData<AdminAssetSummary>> | undefined;
-        if (!data) return old;
-        const updatedId = String(updated.id);
-        const pages = data.pages.map((page) => {
-          const items = page.items.map((row) =>
-            String(row.id) === updatedId
-              ? {
-                  ...row,
-                  visibility: updated.visibility ?? row.visibility,
-                  purpose: updated.purpose ?? row.purpose,
-                }
-              : row,
-          );
+      queryClient.setQueriesData(
+        { queryKey: workspaceId ? ["assets", "list", workspaceId] : ["assets", "list"] },
+        (old: unknown): unknown => {
+          const data = old as InfiniteData<PageData<AdminAssetSummary>> | undefined;
+          if (!data) return old;
+          const updatedId = String(updated.id);
+          const pages = data.pages.map((page) => {
+            const items = page.items.map((row) =>
+              String(row.id) === updatedId
+                ? {
+                    ...row,
+                    visibility: updated.visibility ?? row.visibility,
+                    purpose: updated.purpose ?? row.purpose,
+                  }
+                : row,
+            );
 
-          // Avoid object spread inside map (oxc no-map-spread) while keeping immutability.
-          return Object.assign({}, page, { items });
-        });
+            // Avoid object spread inside map (oxc no-map-spread) while keeping immutability.
+            return Object.assign({}, page, { items });
+          });
 
-        return Object.assign({}, data, { pages });
-      });
-      queryClient.invalidateQueries({ queryKey: ["assets", "list"] });
+          return Object.assign({}, data, { pages });
+        },
+      );
+      if (workspaceId) queryClient.invalidateQueries({ queryKey: ["assets", "list", workspaceId] });
     },
     onError: () => {
       notifyErrorText(t("assets:ASSET_EDIT_ACCESS_FAILED"));
@@ -757,11 +770,12 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
   const deleteMutation = useMutation({
     mutationFn: async () => {
       if (!active?.id) throw new Error("missing asset id");
-      return deleteAdminAsset(active.id);
+      if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
+      return deleteAsset(String(workspaceId), active.id);
     },
     onSuccess: () => {
       notifySuccessText(t("assets:ASSET_DELETE_SUCCESS"));
-      queryClient.invalidateQueries({ queryKey: ["assets", "list"] });
+      if (workspaceId) queryClient.invalidateQueries({ queryKey: ["assets", "list", workspaceId] });
       props.onClose();
     },
     onError: () => {
@@ -770,9 +784,12 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
   });
 
   const createTagMutation = useMutation({
-    mutationFn: async (name: string) => createAdminAssetTag({ name }),
+    mutationFn: async (name: string) => {
+      if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
+      return createAssetTag(String(workspaceId), { name });
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["assets", "tags"] });
+      if (workspaceId) queryClient.invalidateQueries({ queryKey: ["assets", "tags", workspaceId] });
       notifySuccessText(t("assets:ASSET_TAG_CREATED"));
     },
     onError: () => {
@@ -913,7 +930,11 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
                 </div>
 
                 <div className="shrink-0 flex items-center gap-1">
-                  <AssetSharePopover assetId={active.id} />
+                  <AssetSharePopover
+                    workspaceId={workspaceId ? String(workspaceId) : ""}
+                    assetId={active.id}
+                    disabled={!workspaceId}
+                  />
 
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>

@@ -1,10 +1,11 @@
-import { Breadcrumb, Button, Space } from "antd";
+import { Breadcrumb, Button, Select, Space } from "antd";
 import type { BreadcrumbProps } from "antd";
 import type { BreadcrumbItemProps } from "antd/es/breadcrumb/BreadcrumbItem";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Search } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 
 import type { AdminNavItem } from "@/constants/admin-nav";
 import { cn } from "@/lib/utils";
@@ -14,6 +15,10 @@ import { CommandMenu01 } from "@/components/ui/command-menu";
 import { Kbd, KbdGroup } from "@/components/ui/kbd";
 import RefreshIcon from "@/components/ui/icons/refresh-icon";
 import SettingsIcon from "@/components/ui/icons/settings-icon";
+import { listMyWorkspaces } from "@/api/workspaces";
+import { useAuthStore } from "@/stores/useAuthStore";
+import { useWorkspaceStore } from "@/stores/useWorkspaceStore";
+import { switchWorkspacePath } from "@/utils/workspaceRouting";
 
 function normalizePath(input: string): string {
   if (input.length > 1 && input.endsWith("/")) return input.slice(0, -1);
@@ -128,6 +133,27 @@ export function AdminHeader(props: {
   const [commandOpen, setCommandOpen] = useState(false);
   const [refreshHovered, setRefreshHovered] = useState(false);
   const [settingsHovered, setSettingsHovered] = useState(false);
+  const accessToken = useAuthStore((s) => s.accessToken);
+  const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
+  const setCurrentWorkspaceId = useWorkspaceStore((s) => s.setCurrentWorkspaceId);
+
+  const workspacesQuery = useQuery({
+    queryKey: ["me", "workspaces"],
+    enabled: Boolean(accessToken),
+    queryFn: async () => listMyWorkspaces(),
+    staleTime: 60 * 1000,
+    retry: false,
+    meta: { silent: true },
+  });
+
+  const workspaceOptions = useMemo(() => {
+    return (workspacesQuery.data?.items ?? []).map((w) => ({
+      label: w.name || w.slug || w.workspaceId,
+      value: w.workspaceId,
+    }));
+  }, [workspacesQuery.data?.items]);
+
+  const showWorkspaceSwitcher = Boolean(workspaceId) && workspaceOptions.length > 1;
 
   const trailNodes = useMemo(
     () => findActiveTrailNodes(props.navItems, pathname),
@@ -210,6 +236,27 @@ export function AdminHeader(props: {
 
       <div className="shrink-0">
         <Space size={6}>
+          {showWorkspaceSwitcher ? (
+            <Select
+              value={workspaceId || undefined}
+              options={workspaceOptions}
+              onChange={(next) => {
+                const nextId = String(next);
+                setCurrentWorkspaceId(nextId);
+                const nextPath = switchWorkspacePath({
+                  pathname,
+                  currentWorkspaceId: workspaceId,
+                  nextWorkspaceId: nextId,
+                });
+                void navigate({ to: nextPath as never, replace: true });
+              }}
+              style={{ width: 220 }}
+              size="middle"
+              placeholder={t("common:WORKSPACE_SELECT")}
+              getPopupContainer={(node) => node.parentElement ?? document.body}
+            />
+          ) : null}
+
           <Button
             variant="text"
             icon={<Search size={18} />}

@@ -2,7 +2,6 @@ import { ApiError } from "@/lib/http/errors";
 import { type ResponseModel } from "@/lib/http/types";
 import { getAppConfig } from "@/constants/app-config";
 import { useAuthStore } from "@/stores/useAuthStore";
-import { useOrgStore } from "@/stores/useOrgStore";
 import { usePreferencesStore } from "@/stores/usePreferenceStore";
 
 type UnauthorizedHandler = (ctx: {
@@ -73,11 +72,6 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
   headers.set("accept-language", prefs.locale);
   if (prefs.localePreference) {
     headers.set("x-locale", prefs.localePreference);
-  }
-
-  const orgId = useOrgStore.getState().currentOrgId;
-  if (orgId) {
-    headers.set("x-org-id", orgId);
   }
 
   const token = useAuthStore.getState().accessToken;

@@ -1,4 +1,5 @@
 import { api } from "@/lib/http";
+import { workspacePath } from "@/api/_workspace";
 
 export type PageData<T> = {
   items: T[];
@@ -37,12 +38,13 @@ function toQueryString(params: Record<string, unknown>): string {
   return s ? `?${s}` : "";
 }
 
-export async function listAdminRoles(
+export async function listWorkspaceRoles(
+  workspaceId: string,
   params: { page?: number; size?: number } = {},
 ): Promise<PageData<Role>> {
   const query = toQueryString({
     page: params.page ?? 1,
     size: params.size ?? 200,
   });
-  return api.get<PageData<Role>>(`/admin/rbac/roles${query}`);
+  return api.get<PageData<Role>>(workspacePath(workspaceId, `/rbac/roles${query}`));
 }

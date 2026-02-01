@@ -5,14 +5,15 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
-  listAdminAssetFolders,
-  listAdminAssets,
+  listAssetFolders,
+  listAssets,
   type AdminAssetFolder,
   type AdminAssetSummary,
 } from "@/api/assets";
 import { LoaderOne } from "@/components/ui/loader";
 import { cn } from "@/lib/utils";
 import { resolvePublicAssetUrlPath } from "@/views/assets/utils/assetUrls";
+import { useWorkspaceStore } from "@/stores/useWorkspaceStore";
 import {
   Dialog,
   DialogContent,
@@ -31,8 +32,9 @@ type PickerAsset = {
 
 function toPickerAsset(row: AdminAssetSummary): PickerAsset {
   const name = row.originalFilename?.trim() || row.title?.trim() || row.slug || row.id;
-  // 统一使用 canonical 链接：/assets/<id>/thumb，不依赖后端返回的绝对 URL。
-  const thumb = resolvePublicAssetUrlPath(`/assets/${row.id}/thumb`);
+  // Prefer authenticated content URL for private assets; fall back to public thumb when available.
+  const rawThumb = row.publicThumbUrlPath || row.contentUrlPath;
+  const thumb = resolvePublicAssetUrlPath(rawThumb);
   const thumbUrl = thumb ? `${thumb}?w=400` : undefined;
   return { id: row.id, name, thumbUrl };
 }
@@ -79,6 +81,7 @@ export function AssetPickerDialog(props: {
 }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
 
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -107,9 +110,12 @@ export function AssetPickerDialog(props: {
   }, [searchInput]);
 
   const foldersQuery = useQuery({
-    queryKey: ["assets", "folders"],
-    queryFn: async () => listAdminAssetFolders(),
-    enabled: props.open && props.showFolderFilter !== false,
+    queryKey: ["assets", "folders", workspaceId],
+    queryFn: async () =>
+      workspaceId
+        ? listAssetFolders(String(workspaceId))
+        : Promise.reject(new Error("WORKSPACE_NOT_SELECTED")),
+    enabled: props.open && props.showFolderFilter !== false && Boolean(workspaceId),
     staleTime: 60 * 1000,
   });
 
@@ -117,6 +123,7 @@ export function AssetPickerDialog(props: {
     queryKey: [
       "assets",
       "picker",
+      workspaceId,
       props.mimePrefix || "image/",
       searchQuery,
       page,
@@ -125,15 +132,17 @@ export function AssetPickerDialog(props: {
       ordering,
     ],
     queryFn: async () =>
-      listAdminAssets({
-        page,
-        size: pageSize,
-        q: searchQuery || undefined,
-        mimePrefix: props.mimePrefix || "image/",
-        folderId: folderId || null,
-        ordering,
-      }),
-    enabled: props.open,
+      workspaceId
+        ? listAssets(String(workspaceId), {
+            page,
+            size: pageSize,
+            q: searchQuery || undefined,
+            mimePrefix: props.mimePrefix || "image/",
+            folderId: folderId || null,
+            ordering,
+          })
+        : Promise.reject(new Error("WORKSPACE_NOT_SELECTED")),
+    enabled: props.open && Boolean(workspaceId),
     staleTime: 10 * 1000,
     placeholderData: (prev) => prev,
   });
@@ -346,12 +355,14 @@ export function AssetPickerDialog(props: {
       </Dialog>
 
       <AssetUploadDialog
+        workspaceId={workspaceId ? String(workspaceId) : ""}
         open={uploadOpen}
         onOpenChange={setUploadOpen}
         purpose={props.uploadPurpose}
         onUploaded={() => {
           // 上传完成后刷新 picker 列表
-          void queryClient.invalidateQueries({ queryKey: ["assets", "picker"] });
+          if (workspaceId)
+            void queryClient.invalidateQueries({ queryKey: ["assets", "picker", workspaceId] });
           setUploadOpen(false);
         }}
       />

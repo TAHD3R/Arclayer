@@ -44,6 +44,17 @@ type UploadItem = {
   assetId?: string;
 };
 
+function runSequentially<T>(
+  items: T[],
+  fn: (item: T, index: number) => Promise<void>,
+): Promise<void> {
+  // Avoid `await` inside loops (eslint no-await-in-loop) while keeping strict sequence.
+  return items.reduce<Promise<void>>(
+    (p, item, index) => p.then(() => fn(item, index)),
+    Promise.resolve(),
+  );
+}
+
 function formatBytes(bytes: number): string {
   if (!Number.isFinite(bytes) || bytes < 0) return "-";
   const units = ["B", "KB", "MB", "GB"] as const;
@@ -72,6 +83,7 @@ function nextLocalId() {
 }
 
 export function AssetUploadDialog(props: {
+  workspaceId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   defaultFolderId?: string;
@@ -130,18 +142,21 @@ export function AssetUploadDialog(props: {
   const canStart = items.some((it) => it.status === "pending" || it.status === "error");
   const hasUploading = items.some((it) => it.status === "uploading");
 
-  const abortItem = useCallback(async (item: UploadItem) => {
-    const controller = controllersRef.current.get(item.id);
-    controller?.abort();
-    controllersRef.current.delete(item.id);
-    if (item.uploadId) {
-      try {
-        await abortUpload(item.uploadId);
-      } catch {
-        // abort 本身失败不影响前端收敛；避免二次报错打扰用户。
+  const abortItem = useCallback(
+    async (item: UploadItem) => {
+      const controller = controllersRef.current.get(item.id);
+      controller?.abort();
+      controllersRef.current.delete(item.id);
+      if (item.uploadId) {
+        try {
+          if (props.workspaceId) await abortUpload(props.workspaceId, item.uploadId);
+        } catch {
+          // abort 本身失败不影响前端收敛；避免二次报错打扰用户。
+        }
       }
-    }
-  }, []);
+    },
+    [props.workspaceId],
+  );
 
   const removeItem = useCallback(
     async (id: string) => {
@@ -171,7 +186,8 @@ export function AssetUploadDialog(props: {
       });
 
       try {
-        const init = await initUpload({
+        if (!props.workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
+        const init = await initUpload(props.workspaceId, {
           purpose,
           filename: item.file.name,
           mime: item.file.type || null,
@@ -192,6 +208,7 @@ export function AssetUploadDialog(props: {
 
         const uploadChunkLocal = async (partNumber: number, chunk: Blob) => {
           await uploadPart({
+            workspaceId: props.workspaceId,
             uploadId: init.uploadId,
             partNumber,
             chunk,
@@ -200,7 +217,11 @@ export function AssetUploadDialog(props: {
         };
 
         const uploadChunkS3 = async (partNumber: number, chunk: Blob) => {
-          const presign = await presignUploadPart({ uploadId: init.uploadId, partNumber });
+          const presign = await presignUploadPart({
+            workspaceId: props.workspaceId,
+            uploadId: init.uploadId,
+            partNumber,
+          });
           const res = await fetch(presign.url, {
             method: presign.method || "PUT",
             headers: presign.headers || {},
@@ -215,6 +236,7 @@ export function AssetUploadDialog(props: {
             throw new Error(t("assets:ASSET_UPLOAD_S3_ETAG_MISSING"));
           }
           await commitUploadPart({
+            workspaceId: props.workspaceId,
             uploadId: init.uploadId,
             partNumber,
             payload: {
@@ -225,7 +247,8 @@ export function AssetUploadDialog(props: {
         };
 
         let uploadedBytes = 0;
-        for (let part = 1; part <= totalParts; part += 1) {
+        const parts = Array.from({ length: totalParts }, (_, i) => i + 1);
+        await runSequentially(parts, async (part) => {
           const start = (part - 1) * chunkSize;
           const end = Math.min(item.file.size, start + chunkSize);
           const chunk = item.file.slice(start, end);
@@ -242,9 +265,9 @@ export function AssetUploadDialog(props: {
             uploadedBytes,
             progress: Math.min(100, Math.max(0, pct)),
           });
-        }
+        });
 
-        const done = await completeUpload(init.uploadId);
+        const done = await completeUpload(props.workspaceId, init.uploadId);
         updateItem(item.id, { status: "success", progress: 100, assetId: done.assetId });
         controllersRef.current.delete(item.id);
         return done.assetId;
@@ -263,7 +286,7 @@ export function AssetUploadDialog(props: {
         controllersRef.current.delete(item.id);
       }
     },
-    [folderId, t, updateItem],
+    [folderId, props.workspaceId, purpose, t, updateItem],
   );
 
   const startUpload = useCallback(async () => {
@@ -272,11 +295,11 @@ export function AssetUploadDialog(props: {
     try {
       const assetIds: string[] = [];
       // 顺序上传：更稳，且避免同时占用过多带宽/内存。
-      for (const it of items) {
-        if (it.status !== "pending" && it.status !== "error") continue;
+      const queue = items.filter((it) => it.status === "pending" || it.status === "error");
+      await runSequentially(queue, async (it) => {
         const id = await uploadSingle(it);
         if (id) assetIds.push(id);
-      }
+      });
       if (assetIds.length) {
         notifySuccessText(t("assets:ASSET_UPLOAD_SUCCESS"));
         props.onUploaded?.(assetIds);
@@ -289,9 +312,9 @@ export function AssetUploadDialog(props: {
   const abortAllAndClose = useCallback(async () => {
     // 关闭时：尽量收敛在进行中的上传，避免“后台还在传但用户以为取消了”。
     const uploading = items.filter((x) => x.status === "uploading");
-    for (const it of uploading) {
+    await runSequentially(uploading, async (it) => {
       await abortItem(it);
-    }
+    });
     resetState();
     closeDialog();
   }, [abortItem, closeDialog, items, resetState]);

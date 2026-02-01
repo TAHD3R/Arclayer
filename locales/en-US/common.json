@@ -18,5 +18,12 @@
   "PAGE_NOT_FOUND_TITLE": "Page not found",
   "PAGE_NOT_FOUND_DESC": "The page you are looking for does not exist or has been moved.",
   "PAGE_SERVER_ERROR_TITLE": "Something went wrong",
-  "PAGE_SERVER_ERROR_DESC": "The server encountered an error. Please try again later."
+  "PAGE_SERVER_ERROR_DESC": "The server encountered an error. Please try again later.",
+
+  "WORKSPACE_SELECT": "Workspace",
+  "WORKSPACE_SELECT_TITLE": "Select a workspace",
+  "WORKSPACE_SELECT_DESC": "Select a workspace to enter the admin. You can switch workspaces anytime from the top right.",
+  "WORKSPACE_REDIRECTING": "Redirecting to workspace…",
+  "WORKSPACE_EMPTY_TITLE": "No available workspaces",
+  "WORKSPACE_EMPTY_DESC": "Your account does not have access to any workspaces yet. Contact an admin or join via an invite."
 }

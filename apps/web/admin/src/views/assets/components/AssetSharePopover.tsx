@@ -55,6 +55,7 @@ function resolveShareUrl(link: AdminShareLink): string {
 }
 
 export function AssetSharePopover(props: {
+  workspaceId: string;
   assetId: string;
   className?: string;
   triggerClassName?: string;
@@ -69,9 +70,15 @@ export function AssetSharePopover(props: {
   const [expireUnit, setExpireUnit] = useState<ExpireUnit>("days");
 
   const linksQuery = useQuery({
-    queryKey: ["assets", "shareLinks", props.assetId],
-    queryFn: async () => listAdminAssetShareLinks({ assetId: props.assetId, page: 1, size: 50 }),
-    enabled: open && Boolean(props.assetId),
+    queryKey: ["assets", "shareLinks", props.workspaceId, props.assetId],
+    queryFn: async () =>
+      listAdminAssetShareLinks({
+        workspaceId: props.workspaceId,
+        assetId: props.assetId,
+        page: 1,
+        size: 50,
+      }),
+    enabled: open && Boolean(props.workspaceId) && Boolean(props.assetId),
     staleTime: 5 * 1000,
   });
 
@@ -79,13 +86,16 @@ export function AssetSharePopover(props: {
     mutationFn: async () => {
       const expiresInSeconds = permanent ? null : toExpiresInSeconds(expireValue, expireUnit);
       return createAdminAssetShareLink({
+        workspaceId: props.workspaceId,
         assetId: props.assetId,
         payload: { expiresInSeconds },
       });
     },
     onSuccess: () => {
       notifySuccessText(t("assets:ASSET_SHARE_LINK_CREATED"));
-      queryClient.invalidateQueries({ queryKey: ["assets", "shareLinks", props.assetId] });
+      queryClient.invalidateQueries({
+        queryKey: ["assets", "shareLinks", props.workspaceId, props.assetId],
+      });
     },
     onError: (err) => {
       notifyError(err);
@@ -93,10 +103,13 @@ export function AssetSharePopover(props: {
   });
 
   const revokeMutation = useMutation({
-    mutationFn: async (linkId: string) => revokeAdminShareLink(linkId),
+    mutationFn: async (linkId: string) =>
+      revokeAdminShareLink({ workspaceId: props.workspaceId, linkId }),
     onSuccess: () => {
       notifySuccessText(t("assets:ASSET_SHARE_LINK_REVOKED"));
-      queryClient.invalidateQueries({ queryKey: ["assets", "shareLinks", props.assetId] });
+      queryClient.invalidateQueries({
+        queryKey: ["assets", "shareLinks", props.workspaceId, props.assetId],
+      });
     },
     onError: (err) => {
       notifyError(err);

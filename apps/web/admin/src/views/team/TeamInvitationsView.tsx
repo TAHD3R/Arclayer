@@ -7,10 +7,9 @@ import { useTranslation } from "react-i18next";
 import { flexRender, type ColumnDef } from "@tanstack/react-table";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import * as authApi from "@/api/auth";
-import { listAdminRoles } from "@/api/rbac";
+import { listMyWorkspaces } from "@/api/workspaces";
+import { listWorkspaceRoles } from "@/api/rbac";
 import {
-  disableAllTeamInviteLinks,
   disableTeamInviteLink,
   deleteTeamInvitation,
   listTeamInvitations,
@@ -29,18 +28,6 @@ import {
   ChromeTabsList,
   ChromeTabsTrigger,
 } from "@/components/ui/chrome-tabs";
-import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/animate-ui/components/radix/alert-dialog";
-import {
-  AlertDialogAction as AlertDialogActionPrimitive,
-  AlertDialogCancel as AlertDialogCancelPrimitive,
-} from "@/components/animate-ui/primitives/radix/alert-dialog";
 import { LoaderOne } from "@/components/ui/loader";
 import {
   Table,
@@ -54,7 +41,7 @@ import { cn } from "@/lib/utils";
 import { notifyError, notifySuccessText } from "@/utils/notifications";
 import { InviteMembersDialog } from "@/views/team/components/InviteMembersDialog";
 import { useAuthStore } from "@/stores/useAuthStore";
-import { useOrgStore } from "@/stores/useOrgStore";
+import { useWorkspaceStore } from "@/stores/useWorkspaceStore";
 
 type TabKey = "pending" | "accepted" | "links";
 
@@ -109,11 +96,10 @@ export function TeamInvitationsView() {
   const { t } = useTranslation(["team", "nav", "common"]);
   const queryClient = useQueryClient();
   const accessToken = useAuthStore((s) => s.accessToken);
-  const currentOrgId = useOrgStore((s) => s.currentOrgId);
+  const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
 
   const [tab, setTab] = React.useState<TabKey>("pending");
   const [inviteOpen, setInviteOpen] = React.useState(false);
-  const [disableAllOpen, setDisableAllOpen] = React.useState(false);
 
   const [renewInvitation, setRenewInvitation] = React.useState<TeamInvitation | null>(null);
   const [renewLink, setRenewLink] = React.useState<TeamInviteLink | null>(null);
@@ -121,26 +107,27 @@ export function TeamInvitationsView() {
     7 * 24 * 60 * 60,
   );
 
-  const orgsQuery = useQuery({
-    queryKey: ["auth", "me", "orgs"],
+  const workspacesQuery = useQuery({
+    queryKey: ["me", "workspaces"],
     enabled: Boolean(accessToken),
-    queryFn: async () => authApi.meOrgs({ size: 200 }),
+    queryFn: async () => listMyWorkspaces(),
     staleTime: 60 * 1000,
     retry: false,
     meta: { silent: true },
   });
 
-  const orgName = React.useMemo(() => {
-    const items = orgsQuery.data?.items ?? [];
-    const found = currentOrgId
-      ? items.find((o) => String(o.organization_id) === String(currentOrgId))
+  const workspaceName = React.useMemo(() => {
+    const items = workspacesQuery.data?.items ?? [];
+    const found = workspaceId
+      ? items.find((w) => String(w.workspaceId) === String(workspaceId))
       : undefined;
     return found?.name || t("team:TEAM_WORKSPACE_FALLBACK");
-  }, [currentOrgId, orgsQuery.data?.items, t]);
+  }, [t, workspaceId, workspacesQuery.data?.items]);
 
   const rolesQuery = useQuery({
-    queryKey: ["rbac", "roles", "list"],
-    queryFn: async () => listAdminRoles({ size: 200 }),
+    queryKey: ["rbac", "roles", "list", workspaceId],
+    enabled: Boolean(workspaceId),
+    queryFn: async () => listWorkspaceRoles(String(workspaceId), { size: 200 }),
     staleTime: 60 * 1000,
     retry: false,
     meta: { silent: true },
@@ -155,20 +142,37 @@ export function TeamInvitationsView() {
   }, [rolesQuery.data?.items]);
 
   const disableLinkMutation = useMutation({
-    mutationFn: disableTeamInviteLink,
+    mutationFn: async (linkId: string) =>
+      workspaceId
+        ? disableTeamInviteLink(String(workspaceId), linkId)
+        : Promise.reject(new Error("WORKSPACE_NOT_SELECTED")),
     onSuccess: () => {
       notifySuccessText(t("team:TEAM_ACTION_SUCCESS"));
-      void queryClient.invalidateQueries({ queryKey: ["dataTable", "team-invite-links"] });
+      void queryClient.invalidateQueries({
+        queryKey: [
+          "dataTable",
+          workspaceId ? `team-invite-links:${workspaceId}` : "team-invite-links",
+        ],
+      });
     },
     onError: (err) => notifyError(err),
   });
 
   const renewLinkMutation = useMutation({
     mutationFn: async (payload: { linkId: string; expiresInSeconds: number | null }) =>
-      renewTeamInviteLink(payload.linkId, { expiresInSeconds: payload.expiresInSeconds }),
+      workspaceId
+        ? renewTeamInviteLink(String(workspaceId), payload.linkId, {
+            expiresInSeconds: payload.expiresInSeconds,
+          })
+        : Promise.reject(new Error("WORKSPACE_NOT_SELECTED")),
     onSuccess: () => {
       notifySuccessText(t("team:TEAM_ACTION_SUCCESS"));
-      void queryClient.invalidateQueries({ queryKey: ["dataTable", "team-invite-links"] });
+      void queryClient.invalidateQueries({
+        queryKey: [
+          "dataTable",
+          workspaceId ? `team-invite-links:${workspaceId}` : "team-invite-links",
+        ],
+      });
       setRenewLink(null);
     },
     onError: (err) => notifyError(err),
@@ -176,30 +180,37 @@ export function TeamInvitationsView() {
 
   const renewInvitationMutation = useMutation({
     mutationFn: async (payload: { invitationId: string; expiresInSeconds: number | null }) =>
-      renewTeamInvitation(payload.invitationId, { expiresInSeconds: payload.expiresInSeconds }),
+      workspaceId
+        ? renewTeamInvitation(String(workspaceId), payload.invitationId, {
+            expiresInSeconds: payload.expiresInSeconds,
+          })
+        : Promise.reject(new Error("WORKSPACE_NOT_SELECTED")),
     onSuccess: () => {
       notifySuccessText(t("team:TEAM_ACTION_SUCCESS"));
-      void queryClient.invalidateQueries({ queryKey: ["dataTable", "team-invitations"] });
+      void queryClient.invalidateQueries({
+        queryKey: [
+          "dataTable",
+          workspaceId ? `team-invitations:${workspaceId}` : "team-invitations",
+        ],
+      });
       setRenewInvitation(null);
     },
     onError: (err) => notifyError(err),
   });
 
   const deleteInvitationMutation = useMutation({
-    mutationFn: deleteTeamInvitation,
+    mutationFn: async (invitationId: string) =>
+      workspaceId
+        ? deleteTeamInvitation(String(workspaceId), invitationId)
+        : Promise.reject(new Error("WORKSPACE_NOT_SELECTED")),
     onSuccess: () => {
       notifySuccessText(t("team:TEAM_ACTION_SUCCESS"));
-      void queryClient.invalidateQueries({ queryKey: ["dataTable", "team-invitations"] });
-    },
-    onError: (err) => notifyError(err),
-  });
-
-  const disableAllLinksMutation = useMutation({
-    mutationFn: disableAllTeamInviteLinks,
-    onSuccess: () => {
-      notifySuccessText(t("team:TEAM_ACTION_SUCCESS"));
-      void queryClient.invalidateQueries({ queryKey: ["dataTable", "team-invite-links"] });
-      setDisableAllOpen(false);
+      void queryClient.invalidateQueries({
+        queryKey: [
+          "dataTable",
+          workspaceId ? `team-invitations:${workspaceId}` : "team-invitations",
+        ],
+      });
     },
     onError: (err) => notifyError(err),
   });
@@ -215,7 +226,7 @@ export function TeamInvitationsView() {
         header: t("team:TEAM_INVITATIONS_COL_EMAIL"),
         cell: ({ row }) => {
           const inv = row.original;
-          const inviter = inv.invitedBy;
+          const inviter = inv.createdBy;
           const inviterLabel =
             (inviter?.displayName || inviter?.username || inviter?.email || "").trim() || "-";
           const roleCode = inv.roleCode || null;
@@ -319,7 +330,7 @@ export function TeamInvitationsView() {
         meta: { title: t("team:TEAM_INVITE_LINKS_COL_CODE") },
         header: t("team:TEAM_INVITE_LINKS_COL_CODE"),
         cell: ({ row }) => {
-          const code = row.original.code;
+          const code = row.original.displayCode;
           return (
             <AntButton
               type="link"
@@ -342,15 +353,17 @@ export function TeamInvitationsView() {
         header: t("team:TEAM_INVITE_LINKS_COL_PARTICIPANT"),
         cell: ({ row }) => {
           const uses = Number(row.original.usesCount || 0);
+          const participants = row.original.recentParticipants ?? [];
           const lastUsedBy = row.original.lastUsedBy;
+          const primaryUser = participants[0]?.user ?? lastUsedBy ?? null;
           return (
             <div className="flex items-center gap-2 min-w-0">
               <Tag color="blue" style={{ marginInlineEnd: 0 }}>
                 {uses}
               </Tag>
               <div className="min-w-0">
-                {lastUsedBy ? (
-                  renderUserLabel(lastUsedBy)
+                {primaryUser ? (
+                  renderUserLabel(primaryUser)
                 ) : (
                   <span className="text-muted-foreground">-</span>
                 )}
@@ -425,20 +438,22 @@ export function TeamInvitationsView() {
 
   const pendingTable = useDataTable<TeamInvitation, { status: "pending" | "accepted"; mine: true }>(
     {
-      tableId: "team-invitations",
+      tableId: workspaceId ? `team-invitations:${workspaceId}` : "team-invitations",
       columns: invitationsColumns,
       extraQuery: { ...pendingExtraQuery, mine: true },
       initialState: { pageSize: 10 },
       fetcher: async (params) =>
-        listTeamInvitations({
-          page: params.page,
-          size: params.size,
-          q: params.q,
-          status: (params.status ?? "pending") as "pending",
-          mine: params.mine,
-        }),
+        workspaceId
+          ? listTeamInvitations(String(workspaceId), {
+              page: params.page,
+              size: params.size,
+              q: params.q,
+              status: (params.status ?? "pending") as "pending",
+              mine: params.mine,
+            })
+          : Promise.reject(new Error("WORKSPACE_NOT_SELECTED")),
       queryOptions: {
-        enabled: tab === "pending",
+        enabled: Boolean(workspaceId) && tab === "pending",
         staleTime: 20 * 1000,
         retry: false,
         meta: { silent: true },
@@ -450,20 +465,22 @@ export function TeamInvitationsView() {
     TeamInvitation,
     { status: "pending" | "accepted"; mine: true }
   >({
-    tableId: "team-invitations",
+    tableId: workspaceId ? `team-invitations:${workspaceId}` : "team-invitations",
     columns: invitationsColumns,
     extraQuery: { ...acceptedExtraQuery, mine: true },
     initialState: { pageSize: 10 },
     fetcher: async (params) =>
-      listTeamInvitations({
-        page: params.page,
-        size: params.size,
-        q: params.q,
-        status: (params.status ?? "accepted") as "accepted",
-        mine: params.mine,
-      }),
+      workspaceId
+        ? listTeamInvitations(String(workspaceId), {
+            page: params.page,
+            size: params.size,
+            q: params.q,
+            status: (params.status ?? "accepted") as "accepted",
+            mine: params.mine,
+          })
+        : Promise.reject(new Error("WORKSPACE_NOT_SELECTED")),
     queryOptions: {
-      enabled: tab === "accepted",
+      enabled: Boolean(workspaceId) && tab === "accepted",
       staleTime: 20 * 1000,
       retry: false,
       meta: { silent: true },
@@ -481,19 +498,21 @@ export function TeamInvitationsView() {
   );
 
   const linksTable = useDataTable<TeamInviteLink, { mine: true }>({
-    tableId: "team-invite-links",
+    tableId: workspaceId ? `team-invite-links:${workspaceId}` : "team-invite-links",
     columns: inviteLinksColumns,
     extraQuery: { mine: true },
     initialState: { pageSize: 10 },
     fetcher: async (params) =>
-      listTeamInviteLinks({
-        page: params.page,
-        size: params.size,
-        q: params.q,
-        mine: params.mine,
-      }),
+      workspaceId
+        ? listTeamInviteLinks(String(workspaceId), {
+            page: params.page,
+            size: params.size,
+            q: params.q,
+            mine: params.mine,
+          })
+        : Promise.reject(new Error("WORKSPACE_NOT_SELECTED")),
     queryOptions: {
-      enabled: tab === "links",
+      enabled: Boolean(workspaceId) && tab === "links",
       staleTime: 20 * 1000,
       retry: false,
       meta: { silent: true },
@@ -624,9 +643,6 @@ export function TeamInvitationsView() {
     );
   };
 
-  const inviteLinksTotal = linksTable.pageData?.total ?? 0;
-  const showDisableAll = tab === "links" && inviteLinksTotal > 0;
-
   return (
     <DefaultPage
       title={t("nav:NAV_SETTINGS_TEAM_MEMBERS")}
@@ -670,19 +686,6 @@ export function TeamInvitationsView() {
         </ChromeTabsContent>
 
         <ChromeTabsContent value="links" className="min-h-0 flex flex-col">
-          <div className="flex items-center justify-end gap-2 pb-4">
-            {showDisableAll ? (
-              <AntButton
-                type="primary"
-                danger
-                icon={<Link2Off size={16} />}
-                onClick={() => setDisableAllOpen(true)}
-              >
-                {t("team:TEAM_INVITE_LINKS_ACTION_DISABLE_ALL")}
-              </AntButton>
-            ) : null}
-          </div>
-
           {renderTable(
             linksTable,
             t("team:TEAM_INVITE_LINKS_SEARCH_PLACEHOLDER"),
@@ -696,15 +699,26 @@ export function TeamInvitationsView() {
       <InviteMembersDialog
         open={inviteOpen}
         onOpenChange={setInviteOpen}
-        orgName={orgName}
+        workspaceId={String(workspaceId || "")}
+        workspaceName={workspaceName}
         roles={rolesQuery.data?.items ?? []}
         rolesLoading={rolesQuery.isLoading}
         onInvited={() => {
           // Inviting members may create:
           // - invitation deliveries (email-bound invitations)
           // - invite links (reusable join links)
-          void queryClient.invalidateQueries({ queryKey: ["dataTable", "team-invitations"] });
-          void queryClient.invalidateQueries({ queryKey: ["dataTable", "team-invite-links"] });
+          void queryClient.invalidateQueries({
+            queryKey: [
+              "dataTable",
+              workspaceId ? `team-invitations:${workspaceId}` : "team-invitations",
+            ],
+          });
+          void queryClient.invalidateQueries({
+            queryKey: [
+              "dataTable",
+              workspaceId ? `team-invite-links:${workspaceId}` : "team-invite-links",
+            ],
+          });
         }}
       />
 
@@ -760,7 +774,7 @@ export function TeamInvitationsView() {
         {renewLink ? (
           <div className="space-y-3">
             <div className="text-muted-foreground">
-              {t("team:TEAM_INVITE_LINKS_RENEW_DESC", { code: renewLink.code })}
+              {t("team:TEAM_INVITE_LINKS_RENEW_DESC", { code: renewLink.displayCode })}
             </div>
             <Select
               value={renewExpiresInSeconds}
@@ -773,36 +787,6 @@ export function TeamInvitationsView() {
           </div>
         ) : null}
       </Modal>
-
-      <AlertDialog open={disableAllOpen} onOpenChange={setDisableAllOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="font-bold! text-xl">
-              {t("team:TEAM_INVITE_LINKS_DISABLE_ALL_TITLE")}
-            </AlertDialogTitle>
-            <AlertDialogDescription className="text-base">
-              {t("team:TEAM_INVITE_LINKS_DISABLE_ALL_DESC")}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancelPrimitive asChild>
-              <AntButton type="text" disabled={disableAllLinksMutation.isPending}>
-                {t("common:CANCEL")}
-              </AntButton>
-            </AlertDialogCancelPrimitive>
-            <AlertDialogActionPrimitive asChild>
-              <AntButton
-                type="primary"
-                danger
-                loading={disableAllLinksMutation.isPending}
-                onClick={() => disableAllLinksMutation.mutate()}
-              >
-                {t("team:TEAM_INVITE_LINKS_ACTION_DISABLE_ALL")}
-              </AntButton>
-            </AlertDialogActionPrimitive>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </DefaultPage>
   );
 }

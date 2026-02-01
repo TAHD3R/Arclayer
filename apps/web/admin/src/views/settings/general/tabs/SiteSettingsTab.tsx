@@ -9,6 +9,7 @@ import { SettingAccordionItem } from "@/components/app/settingAccordionItem";
 import { AssetPickerDialog } from "@/components/app/assetPickerDialog";
 import { resolvePublicAssetUrlPath } from "@/views/assets/utils/assetUrls";
 import { deleteAdminAssetUsageByRef, upsertAdminAssetUsage } from "@/api/asset-usages";
+import { useWorkspaceStore } from "@/stores/useWorkspaceStore";
 
 import type { GeneralSettingsTabBaseProps } from "../context";
 import type { GeneralSettingsFormValues } from "../types";
@@ -32,6 +33,7 @@ export function SiteSettingsTab({
   patch,
 }: SiteSettingsTabProps) {
   const { t } = useTranslation();
+  const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
   const [logoPickerOpen, setLogoPickerOpen] = useState(false);
   const [faviconPickerOpen, setFaviconPickerOpen] = useState(false);
 
@@ -116,7 +118,8 @@ export function SiteSettingsTab({
       });
 
       if (initialValues.siteLogoAssetId) {
-        await upsertAdminAssetUsage({
+        if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
+        await upsertAdminAssetUsage(String(workspaceId), {
           assetId: initialValues.siteLogoAssetId,
           purpose: "site_logo",
           entityType: "core.settings",
@@ -124,7 +127,9 @@ export function SiteSettingsTab({
           fieldKey: "site.logo",
         });
       } else {
+        if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
         await deleteAdminAssetUsageByRef({
+          workspaceId: String(workspaceId),
           entityType: "core.settings",
           entityId: "site",
           fieldKey: "site.logo",
@@ -144,7 +149,8 @@ export function SiteSettingsTab({
       });
 
       if (initialValues.siteFaviconAssetId) {
-        await upsertAdminAssetUsage({
+        if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
+        await upsertAdminAssetUsage(String(workspaceId), {
           assetId: initialValues.siteFaviconAssetId,
           purpose: "favicon",
           entityType: "core.settings",
@@ -152,7 +158,9 @@ export function SiteSettingsTab({
           fieldKey: "site.favicon",
         });
       } else {
+        if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
         await deleteAdminAssetUsageByRef({
+          workspaceId: String(workspaceId),
           entityType: "core.settings",
           entityId: "site",
           fieldKey: "site.favicon",
@@ -208,7 +216,8 @@ export function SiteSettingsTab({
       });
 
       if (assetId) {
-        await upsertAdminAssetUsage({
+        if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
+        await upsertAdminAssetUsage(String(workspaceId), {
           assetId,
           purpose: "site_logo",
           entityType: "core.settings",
@@ -216,7 +225,9 @@ export function SiteSettingsTab({
           fieldKey: "site.logo",
         });
       } else {
+        if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
         await deleteAdminAssetUsageByRef({
+          workspaceId: String(workspaceId),
           entityType: "core.settings",
           entityId: "site",
           fieldKey: "site.logo",
@@ -235,7 +246,8 @@ export function SiteSettingsTab({
       });
 
       if (assetId) {
-        await upsertAdminAssetUsage({
+        if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
+        await upsertAdminAssetUsage(String(workspaceId), {
           assetId,
           purpose: "favicon",
           entityType: "core.settings",
@@ -243,7 +255,9 @@ export function SiteSettingsTab({
           fieldKey: "site.favicon",
         });
       } else {
+        if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
         await deleteAdminAssetUsageByRef({
+          workspaceId: String(workspaceId),
           entityType: "core.settings",
           entityId: "site",
           fieldKey: "site.favicon",

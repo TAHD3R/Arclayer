@@ -18,8 +18,10 @@ import {
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 
 import * as authApi from "@/api/auth";
+import { getMyWorkspaceAuthz } from "@/api/workspaces";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { usePreferencesStore } from "@/stores/usePreferenceStore";
+import { useWorkspaceStore } from "@/stores/useWorkspaceStore";
 import { setThemeModeWithTransition } from "@/components/ui/theme-transition";
 import {
   FloatingPanelButton,
@@ -403,6 +405,7 @@ export function AdminAccountMenu() {
   const { t } = useTranslation("account");
   const clear = useAuthStore((s) => s.clear);
   const accessToken = useAuthStore((s) => s.accessToken);
+  const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
 
   const themeMode = usePreferencesStore((s) => s.themeMode);
   const locale = usePreferencesStore((s) => s.locale);
@@ -416,9 +419,9 @@ export function AdminAccountMenu() {
   });
 
   const authzQuery = useQuery({
-    queryKey: ["auth", "meAuthz"],
-    enabled: Boolean(accessToken),
-    queryFn: async () => authApi.meAuthz(),
+    queryKey: ["workspaces", "me", "authz", workspaceId],
+    enabled: Boolean(accessToken && workspaceId),
+    queryFn: async () => getMyWorkspaceAuthz(String(workspaceId)),
     meta: { silent: true },
   });
 
@@ -455,7 +458,11 @@ export function AdminAccountMenu() {
   };
 
   const onNotifications = () => {
-    void navigate({ to: "/notifications" });
+    if (workspaceId) {
+      void navigate({ to: `/w/${workspaceId}/notifications` });
+      return;
+    }
+    void navigate({ to: "/" });
   };
 
   return (

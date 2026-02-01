@@ -245,19 +245,23 @@ UI 映射：
 
 ### 7.1 Admin 的“当前上下文”应从 org 切换为 workspace
 
-- 以 workspace 为主的路由结构：
-  - `/workspaces/:workspaceId/team`
-  - `/workspaces/:workspaceId/settings`
-- 对应 API：`/api/v1/workspaces/{workspaceId}/...`
+- 以 workspace 为主的路由结构（前端 URL 显式携带 workspaceId）：
+  - `/w/:workspaceId/...`（例如 `/w/:workspaceId/team/members`、`/w/:workspaceId/assets`、`/w/:workspaceId/settings/general`）
+- 对应 API：`/api/v1/workspaces/{workspaceId}/...`（后端治理接口全部显式 workspace scope）
 
-### 7.2 TeamMembersView 的三个 Tab 映射
+补充：**self-host 单工作区**与 **SaaS 多工作区**不做“部署模式分支”，而是基于 `GET /api/v1/me/workspaces` 返回数量自适应：
 
-以 `apps/web/admin/src/views/team/TeamMembersView.tsx` 为例：
+- 仅 1 个 workspace：登录后自动进入该 workspace（1B）
+- 多个 workspace：进入 workspace 选择页；右上角提供 workspace switcher
+
+### 7.2 Team 页（Members / Invitations / Invite links）的映射
+
+以 `apps/web/admin/src/views/team/TeamMembersView.tsx` 与 `apps/web/admin/src/views/team/TeamInvitationsView.tsx` 为例：
 
 - Members：调用 `GET /workspaces/{id}/team/members`
-- Pending：调用 `GET /workspaces/{id}/team/email-invites?status=pending`
-- Accepted：调用 `GET /workspaces/{id}/team/email-invites?status=accepted`
-- Invite links：调用 `GET /workspaces/{id}/team/invite-links`
+- Pending（待处理）：调用 `GET /workspaces/{id}/team/email-invites?status=pending`
+- Accepted（已接受）：调用 `GET /workspaces/{id}/team/email-invites?status=accepted`
+- Invite links（邀请链接）：调用 `GET /workspaces/{id}/team/invite-links`
 
 创建邀请：
 
@@ -294,14 +298,22 @@ preview 返回包含 workspace 后，accept-invite 页面应把文案从：
 - invite link disable 后 accept 403
 - `/auth/me/invitations` 返回 workspace 信息（多 workspace 必须可区分）
 
+## 8.1 测试覆盖（前端）
+
+前端不做“端到端”依赖后端环境的测试（避免 CI / 本地缺环境导致不稳定），但需要对关键路由/跳转决策做单元测试兜底：
+
+- `apps/web/admin/src/utils/workspaceRouting.test.ts`
+  - 1B：选择默认 workspace 的决策（lastWorkspaceId / 单 workspace / 多 workspace）
+  - workspace switcher 的路径替换逻辑（保持页面不变，仅替换 `/w/:workspaceId` 前缀）
+
 ---
 
 ## 9. 未完成与后续演进（明确 TODO，避免隐藏债务）
 
 以下是“边界模型已定，但尚未全量迁移为 workspace scope”的部分：
 
-1) **旧 org-scoped admin API 仍存在**（资产库/通知/用户管理等）
-   - 这些能力最终应迁移为 workspace scope，或明确为 system/org scope，并调整鉴权上下文。
+1) **仍可能存在少量“未 workspace 化”的旧接口/页面**
+   - 原则：要么迁移为 `/api/v1/workspaces/{workspace_id}/...`，要么明确为 system/org scope，并在 UI 上做出边界隔离（不要混在 workspace 管理里）。
 2) **插件 F3（org 安装 / workspace 启用）未全量落地**
    - 当前 PluginRecord 仍偏全局；未来需引入 org_id + workspace config/enable 表。
 3) **更多 settings namespace 的 workspace 化**

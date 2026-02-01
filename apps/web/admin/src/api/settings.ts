@@ -1,4 +1,5 @@
 import { api } from "@/lib/http";
+import { workspacePath } from "@/api/_workspace";
 
 export type SettingsDetail = {
   namespace: string;
@@ -7,21 +8,13 @@ export type SettingsDetail = {
   updated_at?: string | null;
 };
 
-export async function getSettingsNamespace(namespace: string): Promise<SettingsDetail> {
-  return api.get<SettingsDetail>(`/admin/settings/${namespace}`);
+export async function getCoreSettings(workspaceId: string): Promise<SettingsDetail> {
+  return api.get<SettingsDetail>(workspacePath(workspaceId, "/settings/core"));
 }
 
-export async function getCoreSettings(): Promise<SettingsDetail> {
-  return getSettingsNamespace("core");
-}
-
-export async function patchSettingsNamespace(
-  namespace: string,
+export async function patchCoreSettings(
+  workspaceId: string,
   patch: Record<string, unknown>,
 ): Promise<SettingsDetail> {
-  return api.patch<SettingsDetail>(`/admin/settings/${namespace}`, { patch });
-}
-
-export async function patchCoreSettings(patch: Record<string, unknown>): Promise<SettingsDetail> {
-  return patchSettingsNamespace("core", patch);
+  return api.patch<SettingsDetail>(workspacePath(workspaceId, "/settings/core"), { patch });
 }

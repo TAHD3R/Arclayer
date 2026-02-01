@@ -44,15 +44,15 @@ import ChevronDownIcon from "@/components/ui/icons/chevron-down";
 import { ChromeTabs, ChromeTabsList, ChromeTabsTrigger } from "@/components/ui/chrome-tabs";
 import { cn } from "@/lib/utils";
 import {
-  bulkDeleteAdminAssets,
-  bulkMoveAdminAssets,
-  bulkUpdateAdminAssets,
-  createAdminAssetFolder,
-  deleteAdminAssetFolder,
-  listAdminAssetFolders,
-  listAdminAssetTags,
-  listAdminAssets,
-  updateAdminAssetFolder,
+  bulkDeleteAssets,
+  bulkMoveAssets,
+  bulkUpdateAssets,
+  createAssetFolder,
+  deleteAssetFolder,
+  listAssetFolders,
+  listAssetTags,
+  listAssets,
+  updateAssetFolder,
   type PageData,
   type AdminAssetFolder,
   type AdminAssetTag,
@@ -87,6 +87,7 @@ import {
   type AssetSelectionState,
 } from "@/views/assets/utils/assetSelection";
 import type { MenuProps } from "antd";
+import { useWorkspaceStore } from "@/stores/useWorkspaceStore";
 
 type MasonryEntry =
   | { kind: "asset"; asset: AssetMasonryItem }
@@ -417,6 +418,7 @@ function toMasonryItem(
 export function AssetsView() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
   const [active, setActive] = useState<AssetMasonryItem | null>(null);
   const [selection, setSelection] = useState<AssetSelectionState>(() => ({
     selectedIds: new Set(),
@@ -516,14 +518,16 @@ export function AssetsView() {
   }, [searchInput]);
 
   const foldersQuery = useQuery({
-    queryKey: ["assets", "folders"],
-    queryFn: async () => listAdminAssetFolders({ size: 200 }),
+    queryKey: ["assets", "folders", workspaceId],
+    enabled: Boolean(workspaceId),
+    queryFn: async () => listAssetFolders(String(workspaceId), { size: 200 }),
     staleTime: 60 * 1000,
   });
 
   const tagsQuery = useQuery({
-    queryKey: ["assets", "tags"],
-    queryFn: async () => listAdminAssetTags(),
+    queryKey: ["assets", "tags", workspaceId],
+    enabled: Boolean(workspaceId),
+    queryFn: async () => listAssetTags(String(workspaceId)),
     staleTime: 60 * 1000,
   });
 
@@ -531,6 +535,7 @@ export function AssetsView() {
     () => [
       "assets",
       "list",
+      workspaceId,
       {
         purpose: "library",
         q: searchQuery || undefined,
@@ -553,26 +558,30 @@ export function AssetsView() {
       filters.visibility,
       ordering,
       searchQuery,
+      workspaceId,
     ],
   );
 
   const assetsQuery = useInfiniteQuery({
     queryKey: assetsListQueryKey,
     queryFn: async ({ pageParam }) =>
-      listAdminAssets({
-        page: typeof pageParam === "number" ? pageParam : 1,
-        size: 24,
-        purpose: "library",
-        q: searchQuery || undefined,
-        mimePrefix: filters.mimePrefix,
-        folderId: currentFolderId || undefined,
-        folderIsNull: currentFolderId ? undefined : true,
-        visibility: filters.visibility,
-        createdFrom: filters.createdFrom,
-        createdTo: filters.createdTo,
-        tagIds: filters.tagIds,
-        ordering,
-      }),
+      workspaceId
+        ? listAssets(String(workspaceId), {
+            page: typeof pageParam === "number" ? pageParam : 1,
+            size: 24,
+            purpose: "library",
+            q: searchQuery || undefined,
+            mimePrefix: filters.mimePrefix,
+            folderId: currentFolderId || undefined,
+            folderIsNull: currentFolderId ? undefined : true,
+            visibility: filters.visibility,
+            createdFrom: filters.createdFrom,
+            createdTo: filters.createdTo,
+            tagIds: filters.tagIds,
+            ordering,
+          })
+        : Promise.reject(new Error("WORKSPACE_NOT_SELECTED")),
+    enabled: Boolean(workspaceId),
     initialPageParam: 1,
     getNextPageParam: (lastPage) => lastPage.next ?? undefined,
     placeholderData: keepPreviousData,
@@ -581,10 +590,14 @@ export function AssetsView() {
   });
 
   const bulkMoveMutation = useMutation({
-    mutationFn: bulkMoveAdminAssets,
+    mutationFn: (payload: Parameters<typeof bulkMoveAssets>[1]) => {
+      if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
+      return bulkMoveAssets(String(workspaceId), payload);
+    },
     onSuccess: (out) => {
       notifySuccessText(t("assets:ASSET_BULK_MOVE_SUCCESS", { count: out.movedCount }));
-      void queryClient.invalidateQueries({ queryKey: ["assets", "list"] });
+      if (workspaceId)
+        void queryClient.invalidateQueries({ queryKey: ["assets", "list", workspaceId] });
     },
     onError: (err) => {
       notifyError(err);
@@ -593,10 +606,14 @@ export function AssetsView() {
   });
 
   const bulkDeleteMutation = useMutation({
-    mutationFn: bulkDeleteAdminAssets,
+    mutationFn: (payload: Parameters<typeof bulkDeleteAssets>[1]) => {
+      if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
+      return bulkDeleteAssets(String(workspaceId), payload);
+    },
     onSuccess: (out) => {
       notifySuccessText(t("assets:ASSET_BULK_DELETE_SUCCESS", { count: out.deletedCount }));
-      void queryClient.invalidateQueries({ queryKey: ["assets", "list"] });
+      if (workspaceId)
+        void queryClient.invalidateQueries({ queryKey: ["assets", "list", workspaceId] });
     },
     onError: (err) => {
       notifyError(err);
@@ -604,7 +621,10 @@ export function AssetsView() {
   });
 
   const bulkUpdateMutation = useMutation({
-    mutationFn: bulkUpdateAdminAssets,
+    mutationFn: (payload: Parameters<typeof bulkUpdateAssets>[1]) => {
+      if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
+      return bulkUpdateAssets(String(workspaceId), payload);
+    },
     onSuccess: (out) => {
       notifySuccessText(t("assets:ASSET_BULK_EDIT_ACCESS_SUCCESS", { count: out.updatedCount }));
       const updatedIds = new Set(out.updatedAssetIds.map(String));
@@ -658,8 +678,10 @@ export function AssetsView() {
           setSelection((prev) => clearSelection(prev));
         }
       }
-      void queryClient.invalidateQueries({ queryKey: ["assets", "list"] });
-      void queryClient.invalidateQueries({ queryKey: ["assets", "detail"] });
+      if (workspaceId)
+        void queryClient.invalidateQueries({ queryKey: ["assets", "list", workspaceId] });
+      if (workspaceId)
+        void queryClient.invalidateQueries({ queryKey: ["assets", "detail", workspaceId] });
     },
     onError: (err) => {
       notifyError(err);
@@ -667,9 +689,13 @@ export function AssetsView() {
   });
 
   const createFolderMutation = useMutation({
-    mutationFn: createAdminAssetFolder,
+    mutationFn: (payload: Parameters<typeof createAssetFolder>[1]) => {
+      if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
+      return createAssetFolder(String(workspaceId), payload);
+    },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["assets", "folders"] });
+      if (workspaceId)
+        void queryClient.invalidateQueries({ queryKey: ["assets", "folders", workspaceId] });
     },
     onError: (err) => {
       notifyError(err);
@@ -679,10 +705,14 @@ export function AssetsView() {
   const updateFolderMutation = useMutation({
     mutationFn: async (input: {
       folderId: string;
-      payload: Parameters<typeof updateAdminAssetFolder>[1];
-    }) => updateAdminAssetFolder(input.folderId, input.payload),
+      payload: Parameters<typeof updateAssetFolder>[2];
+    }) => {
+      if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
+      return updateAssetFolder(String(workspaceId), input.folderId, input.payload);
+    },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["assets", "folders"] });
+      if (workspaceId)
+        void queryClient.invalidateQueries({ queryKey: ["assets", "folders", workspaceId] });
     },
     onError: (err) => {
       notifyError(err);
@@ -690,10 +720,15 @@ export function AssetsView() {
   });
 
   const deleteFolderMutation = useMutation({
-    mutationFn: deleteAdminAssetFolder,
+    mutationFn: (folderId: string) => {
+      if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
+      return deleteAssetFolder(String(workspaceId), folderId);
+    },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["assets", "folders"] });
-      void queryClient.invalidateQueries({ queryKey: ["assets", "list"] });
+      if (workspaceId)
+        void queryClient.invalidateQueries({ queryKey: ["assets", "folders", workspaceId] });
+      if (workspaceId)
+        void queryClient.invalidateQueries({ queryKey: ["assets", "list", workspaceId] });
     },
     onError: (err) => {
       notifyError(err);
@@ -862,11 +897,12 @@ export function AssetsView() {
 
   const tryDeleteFolder = async (folder: AdminAssetFolder) => {
     try {
+      if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
       const folders = (foldersQuery.data?.items ?? []) as AdminAssetFolder[];
       const hasChildren = folders.some((f) => String(f.parentId || "") === String(folder.id));
 
       // We don't have counts in folder list; do a cheap existence check by fetching 1 item.
-      const page = await listAdminAssets({
+      const page = await listAssets(String(workspaceId), {
         page: 1,
         size: 1,
         folderId: String(folder.id),
@@ -1202,6 +1238,7 @@ export function AssetsView() {
         }}
       />
       <AssetUploadDialog
+        workspaceId={workspaceId ? String(workspaceId) : ""}
         open={uploadOpen}
         onOpenChange={(open) => {
           setUploadOpen(open);
@@ -1209,7 +1246,8 @@ export function AssetsView() {
         defaultFolderId={currentFolderId || undefined}
         onUploaded={() => {
           // 上传成功后刷新列表；避免 refetch 当前页导致旧的 infinite pages 不一致，直接 invalidate 最稳。
-          void queryClient.invalidateQueries({ queryKey: ["assets", "list"] });
+          if (workspaceId)
+            void queryClient.invalidateQueries({ queryKey: ["assets", "list", workspaceId] });
           setUploadOpen(false);
         }}
       />

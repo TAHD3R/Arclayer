@@ -15,6 +15,12 @@ export interface InvitationPreviewOrganization {
   logoUrl: string | null;
 }
 
+export interface InvitationPreviewWorkspace {
+  id: string;
+  name: string;
+  slug: string;
+}
+
 export interface InvitationPreviewInviter {
   id: string;
   username: string;
@@ -31,6 +37,7 @@ export interface InvitationPreviewRole {
 export interface InvitationPreviewResult {
   invitation: InvitationPreviewInvitation;
   organization: InvitationPreviewOrganization;
+  workspace: InvitationPreviewWorkspace;
   inviter: InvitationPreviewInviter | null;
   role: InvitationPreviewRole;
   userExists: boolean;
@@ -46,6 +53,7 @@ export async function previewInvitation(token: string): Promise<InvitationPrevie
 
 export interface AcceptExistingInvitationResult {
   organizationId: string;
+  workspaceId: string;
   roleCode: string | null;
 }
 
@@ -62,6 +70,12 @@ export interface MyInvitationOrganization {
   logoUrl: string | null;
 }
 
+export interface MyInvitationWorkspace {
+  id: string;
+  name: string;
+  slug: string;
+}
+
 export interface MyInvitationInviter {
   id: string;
   username: string;
@@ -76,6 +90,7 @@ export interface MyInvitation {
   roleCode: string | null;
   expiresAt: string | null;
   organization: MyInvitationOrganization;
+  workspace: MyInvitationWorkspace;
   inviter: MyInvitationInviter | null;
   status: "pending" | "accepted";
   acceptedAt: string | null;

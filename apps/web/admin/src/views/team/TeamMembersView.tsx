@@ -26,9 +26,16 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { MenuProps } from "antd";
 
 import * as authApi from "@/api/auth";
-import { listAdminRoles } from "@/api/rbac";
-import { listTeamMembers, setTeamMemberRoles, type TeamMember, type UserStatus } from "@/api/team";
-import { disableAdminUser, enableAdminUser } from "@/api/users";
+import { listMyWorkspaces } from "@/api/workspaces";
+import { listWorkspaceRoles } from "@/api/rbac";
+import {
+  disableTeamMember,
+  enableTeamMember,
+  listTeamMembers,
+  setTeamMemberRoles,
+  type TeamMember,
+  type UserStatus,
+} from "@/api/team";
 import { DefaultPage } from "@/components/app/defaultPage";
 import { PageState } from "@/components/app/pageState";
 import { useDataTable } from "@/components/customized/table";
@@ -52,7 +59,7 @@ import { useAuthStore } from "@/stores/useAuthStore";
 import { EditUserSheet } from "@/views/team/components/EditUserSheet";
 import { ResetUserPasswordDialog } from "@/views/team/components/ResetUserPasswordDialog";
 import { InviteMembersDialog } from "@/views/team/components/InviteMembersDialog";
-import { useOrgStore } from "@/stores/useOrgStore";
+import { useWorkspaceStore } from "@/stores/useWorkspaceStore";
 
 function userInitials(member: TeamMember): string {
   const label = (member.displayName || member.username || member.email || "U").trim();
@@ -77,7 +84,7 @@ export function TeamMembersView() {
 
   const queryClient = useQueryClient();
   const accessToken = useAuthStore((s) => s.accessToken);
-  const currentOrgId = useOrgStore((s) => s.currentOrgId);
+  const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
 
   const [filters, setFilters] = React.useState<{
     membershipStatus?: "active" | "invited" | "disabled";
@@ -99,26 +106,27 @@ export function TeamMembersView() {
   });
   const currentUserId = meQuery.data?.id ?? null;
 
-  const orgsQuery = useQuery({
-    queryKey: ["auth", "me", "orgs"],
+  const workspacesQuery = useQuery({
+    queryKey: ["me", "workspaces"],
     enabled: Boolean(accessToken),
-    queryFn: async () => authApi.meOrgs({ size: 200 }),
+    queryFn: async () => listMyWorkspaces(),
     staleTime: 60 * 1000,
     retry: false,
     meta: { silent: true },
   });
 
-  const orgName = React.useMemo(() => {
-    const items = orgsQuery.data?.items ?? [];
-    const found = currentOrgId
-      ? items.find((o) => String(o.organization_id) === String(currentOrgId))
+  const workspaceName = React.useMemo(() => {
+    const items = workspacesQuery.data?.items ?? [];
+    const found = workspaceId
+      ? items.find((w) => String(w.workspaceId) === String(workspaceId))
       : undefined;
     return found?.name || t("team:TEAM_WORKSPACE_FALLBACK");
-  }, [currentOrgId, orgsQuery.data?.items, t]);
+  }, [t, workspaceId, workspacesQuery.data?.items]);
 
   const rolesQuery = useQuery({
-    queryKey: ["rbac", "roles", "list"],
-    queryFn: async () => listAdminRoles({ size: 200 }),
+    queryKey: ["rbac", "roles", "list", workspaceId],
+    enabled: Boolean(workspaceId),
+    queryFn: async () => listWorkspaceRoles(String(workspaceId), { size: 200 }),
     staleTime: 60 * 1000,
     retry: false,
     meta: { silent: true },
@@ -151,29 +159,45 @@ export function TeamMembersView() {
   );
 
   const enableMutation = useMutation({
-    mutationFn: enableAdminUser,
+    mutationFn: async (membershipId: string) => {
+      if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
+      return enableTeamMember(String(workspaceId), membershipId);
+    },
     onSuccess: () => {
       notifySuccessText(t("team:TEAM_ACTION_SUCCESS"));
-      void queryClient.invalidateQueries({ queryKey: ["dataTable", "team-members"] });
+      void queryClient.invalidateQueries({
+        queryKey: ["dataTable", workspaceId ? `team-members:${workspaceId}` : "team-members"],
+      });
     },
     onError: (err) => notifyError(err),
   });
 
   const disableMutation = useMutation({
-    mutationFn: disableAdminUser,
+    mutationFn: async (membershipId: string) => {
+      if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
+      return disableTeamMember(String(workspaceId), membershipId);
+    },
     onSuccess: () => {
       notifySuccessText(t("team:TEAM_ACTION_SUCCESS"));
-      void queryClient.invalidateQueries({ queryKey: ["dataTable", "team-members"] });
+      void queryClient.invalidateQueries({
+        queryKey: ["dataTable", workspaceId ? `team-members:${workspaceId}` : "team-members"],
+      });
     },
     onError: (err) => notifyError(err),
   });
 
   const updateRolesMutation = useMutation({
     mutationFn: async (payload: { membershipId: string; roleCodes: string[] }) =>
-      setTeamMemberRoles(payload.membershipId, { roleCodes: payload.roleCodes }),
+      workspaceId
+        ? setTeamMemberRoles(String(workspaceId), payload.membershipId, {
+            roleCodes: payload.roleCodes,
+          })
+        : Promise.reject(new Error("WORKSPACE_NOT_SELECTED")),
     onSuccess: () => {
       notifySuccessText(t("team:TEAM_ACTION_SUCCESS"));
-      void queryClient.invalidateQueries({ queryKey: ["dataTable", "team-members"] });
+      void queryClient.invalidateQueries({
+        queryKey: ["dataTable", workspaceId ? `team-members:${workspaceId}` : "team-members"],
+      });
       setEditingMember(null);
       setEditingRoleCodes([]);
     },
@@ -240,7 +264,7 @@ export function TeamMembersView() {
               icon: <UserCheck className="size-4" />,
               label: t("team:TEAM_ACTION_ENABLE"),
               disabled: !canEnable,
-              onClick: () => enableMutation.mutate(m.userId),
+              onClick: () => enableMutation.mutate(m.membershipId),
             },
             {
               key: "disable",
@@ -251,7 +275,7 @@ export function TeamMembersView() {
               disabled: !canDisable || isSelf,
               onClick: () => {
                 if (isSelf) return;
-                disableMutation.mutate(m.userId);
+                disableMutation.mutate(m.membershipId);
               },
             },
           ];
@@ -362,21 +386,23 @@ export function TeamMembersView() {
     TeamMember,
     { status?: string; userStatus?: UserStatus; roleCode?: string }
   >({
-    tableId: "team-members",
+    tableId: workspaceId ? `team-members:${workspaceId}` : "team-members",
     columns,
     extraQuery,
     orderingOverride: sort,
     initialState: { pageSize: 10 },
     fetcher: async (params) =>
-      listTeamMembers({
-        page: params.page,
-        size: params.size,
-        q: params.q,
-        ordering: params.ordering,
-        status: params.status as any,
-        userStatus: params.userStatus,
-        roleCode: params.roleCode,
-      }),
+      workspaceId
+        ? listTeamMembers(String(workspaceId), {
+            page: params.page,
+            size: params.size,
+            q: params.q,
+            ordering: params.ordering,
+            status: params.status as any,
+            userStatus: params.userStatus,
+            roleCode: params.roleCode,
+          })
+        : Promise.reject(new Error("WORKSPACE_NOT_SELECTED")),
     queryOptions: {
       staleTime: 30 * 1000,
       retry: false,
@@ -581,7 +607,9 @@ export function TeamMembersView() {
           }}
           member={activeMember}
           onSaved={() =>
-            void queryClient.invalidateQueries({ queryKey: ["dataTable", "team-members"] })
+            void queryClient.invalidateQueries({
+              queryKey: ["dataTable", workspaceId ? `team-members:${workspaceId}` : "team-members"],
+            })
           }
         />
 
@@ -593,18 +621,23 @@ export function TeamMembersView() {
           }}
           member={activeMember}
           onReset={() =>
-            void queryClient.invalidateQueries({ queryKey: ["dataTable", "team-members"] })
+            void queryClient.invalidateQueries({
+              queryKey: ["dataTable", workspaceId ? `team-members:${workspaceId}` : "team-members"],
+            })
           }
         />
 
         <InviteMembersDialog
           open={inviteOpen}
           onOpenChange={setInviteOpen}
-          orgName={orgName}
+          workspaceId={String(workspaceId || "")}
+          workspaceName={workspaceName}
           roles={rolesQuery.data?.items ?? []}
           rolesLoading={rolesQuery.isLoading}
           onInvited={() =>
-            void queryClient.invalidateQueries({ queryKey: ["dataTable", "team-members"] })
+            void queryClient.invalidateQueries({
+              queryKey: ["dataTable", workspaceId ? `team-members:${workspaceId}` : "team-members"],
+            })
           }
         />
       </PageState>
