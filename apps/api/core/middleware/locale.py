@@ -127,6 +127,7 @@ async def _read_core_locale(*, scope_type: str, scope_id: UUID | None) -> str | 
         )
 
     value = record.value if record and isinstance(record.value, dict) else {}
-    section = value.get("localization") if isinstance(value, dict) else None
+    # Workspace locale controls admin/API default language.
+    section = value.get("workspace_localization") if isinstance(value, dict) else None
     locale = section.get("locale") if isinstance(section, dict) else None
     return locale if isinstance(locale, str) and locale else None

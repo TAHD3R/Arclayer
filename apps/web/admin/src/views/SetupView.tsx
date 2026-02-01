@@ -198,7 +198,15 @@ export function SetupView() {
           name: siteName,
           url: siteUrl,
         },
-        localization: {
+        // Split localization scopes:
+        // - workspace_localization: admin experience defaults
+        // - site_localization: visitor/site defaults (reserved for future portal/site runtime)
+        workspace_localization: {
+          locale: defaults.locale,
+          timezone: defaults.timezone,
+          date_format: defaults.dateFormat,
+        },
+        site_localization: {
           locale: defaults.locale,
           timezone: defaults.timezone,
           date_format: defaults.dateFormat,

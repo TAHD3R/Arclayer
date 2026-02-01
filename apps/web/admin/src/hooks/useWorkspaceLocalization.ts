@@ -19,9 +19,10 @@ export function useWorkspaceLocalization() {
   const localization = useMemo(() => {
     const value = coreQuery.data?.value;
     const locale =
-      (pickString(value, ["localization", "locale"]) as AppLocale | undefined) ?? undefined;
-    const timezone = pickString(value, ["localization", "timezone"]) ?? undefined;
-    const dateFormat = pickString(value, ["localization", "date_format"]) ?? undefined;
+      (pickString(value, ["workspace_localization", "locale"]) as AppLocale | undefined) ??
+      undefined;
+    const timezone = pickString(value, ["workspace_localization", "timezone"]) ?? undefined;
+    const dateFormat = pickString(value, ["workspace_localization", "date_format"]) ?? undefined;
     return {
       locale,
       timezone,

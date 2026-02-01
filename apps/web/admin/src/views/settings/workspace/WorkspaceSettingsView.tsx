@@ -1,8 +1,9 @@
-import { Form, Input } from "antd";
+import { Form, Input, Select, type FormInstance } from "antd";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
 
+import { getCoreSettings, patchCoreSettings } from "@/api/settings";
 import { getWorkspaceDetail, patchWorkspaceDetail } from "@/api/workspaces";
 import { DefaultPage } from "@/components/app/defaultPage";
 import { PageState } from "@/components/app/pageState";
@@ -20,6 +21,7 @@ import { SettingPanel } from "@/components/app/settingPanel";
 import { notifyError, notifySuccessText } from "@/utils/notifications";
 import { useSettingOverlays, type SettingOverlayConfig } from "@/hooks/useSettingOverlays";
 import { useWorkspaceStore } from "@/stores/useWorkspaceStore";
+import type { AppLocale } from "@/utils/i18n";
 
 type WorkspaceSettingsTabKey =
   | "basics"
@@ -31,6 +33,9 @@ type WorkspaceSettingsTabKey =
 type FormValues = {
   name: string;
   slug: string;
+  locale: AppLocale;
+  timezone: string;
+  dateFormat: string;
 };
 
 function normalizeSlug(input: string): string {
@@ -42,6 +47,97 @@ function normalizeSlug(input: string): string {
 function isValidSlug(slug: string): boolean {
   // Keep it aligned with backend: ^[a-z0-9]+(?:-[a-z0-9]+)*$
   return /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug);
+}
+
+function pickString(obj: unknown, path: readonly string[]): string | undefined {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let cur: any = obj;
+  for (const key of path) {
+    if (!cur || typeof cur !== "object") return undefined;
+    cur = cur[key];
+  }
+  return typeof cur === "string" ? cur : undefined;
+}
+
+function formatLocaleLabel(locale: AppLocale, t: (key: string) => string): string {
+  if (locale === "zh-CN") return t("account:ACCOUNT_LANGUAGE_ZH");
+  return t("account:ACCOUNT_LANGUAGE_EN");
+}
+
+const COMMON_TIMEZONES = [
+  "Asia/Shanghai",
+  "UTC",
+  "America/Los_Angeles",
+  "America/New_York",
+  "Europe/London",
+  "Europe/Berlin",
+  "Asia/Tokyo",
+] as const;
+
+const DATE_FORMAT_ITEMS = [
+  { value: "YYYY-MM-DD", label: "YYYY-MM-DD (2026-01-28)" },
+  { value: "YYYY/MM/DD", label: "YYYY/MM/DD (2026/01/28)" },
+  { value: "MM/DD/YYYY", label: "MM/DD/YYYY (01/28/2026)" },
+  { value: "DD/MM/YYYY", label: "DD/MM/YYYY (28/01/2026)" },
+] as const;
+
+function WorkspaceLocalizationOverlayContent(props: {
+  form: FormInstance<FormValues>;
+  disabled?: boolean;
+}) {
+  const { t } = useTranslation(["settings", "common"]);
+  const locale = (Form.useWatch("locale", props.form) as AppLocale | undefined) ?? "zh-CN";
+
+  return (
+    <div className="space-y-6">
+      <Form.Item
+        name="locale"
+        label={t("setup:SETUP_FIELD_LANGUAGE_TITLE")}
+        rules={[{ required: true, message: t("setup:SETUP_VALIDATION_LOCALE_REQUIRED") }]}
+        style={{ marginBottom: 0 }}
+      >
+        <Select
+          size="large"
+          options={[
+            { value: "zh-CN", label: t("account:ACCOUNT_LANGUAGE_ZH") },
+            { value: "en-US", label: t("account:ACCOUNT_LANGUAGE_EN") },
+          ]}
+        />
+      </Form.Item>
+
+      <Form.Item
+        name="timezone"
+        label={t("setup:SETUP_FIELD_TIMEZONE_TITLE")}
+        rules={[{ required: true, message: t("setup:SETUP_VALIDATION_TIMEZONE_REQUIRED") }]}
+        style={{ marginBottom: 0 }}
+      >
+        <Select
+          size="large"
+          options={COMMON_TIMEZONES.map((tz) => ({ value: tz, label: tz }))}
+          showSearch
+          optionFilterProp="label"
+        />
+      </Form.Item>
+
+      <Form.Item
+        name="dateFormat"
+        label={t("setup:SETUP_FIELD_DATE_FORMAT_TITLE")}
+        rules={[{ required: true, message: t("setup:SETUP_VALIDATION_DATE_FORMAT_REQUIRED") }]}
+        style={{ marginBottom: 0 }}
+      >
+        <Select
+          size="large"
+          options={DATE_FORMAT_ITEMS.map((it) => ({ value: it.value, label: it.label }))}
+        />
+      </Form.Item>
+
+      <div className="text-xs text-muted-foreground">
+        {t("settings:SETTINGS_WORKSPACE_LOCALIZATION_NOTE", {
+          locale: formatLocaleLabel(locale, t),
+        })}
+      </div>
+    </div>
+  );
 }
 
 export function WorkspaceSettingsView() {
@@ -58,14 +154,41 @@ export function WorkspaceSettingsView() {
     meta: { silent: true },
   });
 
+  const coreQuery = useQuery({
+    queryKey: ["settings", "workspace", "core", workspaceId],
+    enabled: Boolean(workspaceId),
+    queryFn: async () => getCoreSettings(String(workspaceId)),
+    staleTime: 5 * 60 * 1000,
+    meta: { silent: true },
+  });
+
   React.useEffect(() => {
     if (!detailQuery.data) return;
-    if (form.isFieldsTouched()) return;
+    if (form.isFieldTouched("name") || form.isFieldTouched("slug")) return;
     form.setFieldsValue({
       name: detailQuery.data.name,
       slug: detailQuery.data.slug,
     });
   }, [detailQuery.data, form]);
+
+  React.useEffect(() => {
+    if (!coreQuery.data) return;
+    if (
+      form.isFieldTouched("locale") ||
+      form.isFieldTouched("timezone") ||
+      form.isFieldTouched("dateFormat")
+    ) {
+      return;
+    }
+    const value = coreQuery.data.value;
+    form.setFieldsValue({
+      locale:
+        (pickString(value, ["workspace_localization", "locale"]) as AppLocale | undefined) ??
+        "zh-CN",
+      timezone: pickString(value, ["workspace_localization", "timezone"]) ?? "Asia/Shanghai",
+      dateFormat: pickString(value, ["workspace_localization", "date_format"]) ?? "YYYY-MM-DD",
+    });
+  }, [coreQuery.data, form]);
 
   const saveMutation = useMutation({
     mutationFn: async (values: FormValues) => {
@@ -84,9 +207,33 @@ export function WorkspaceSettingsView() {
     onError: (err) => notifyError(err),
   });
 
-  const disabled = detailQuery.isFetching || saveMutation.isPending;
+  const saveLocalizationMutation = useMutation({
+    mutationFn: async (values: Pick<FormValues, "locale" | "timezone" | "dateFormat">) => {
+      if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
+      return patchCoreSettings(String(workspaceId), {
+        workspace_localization: {
+          locale: values.locale,
+          timezone: String(values.timezone),
+          date_format: String(values.dateFormat),
+        },
+      });
+    },
+    onSuccess: async () => {
+      notifySuccessText(t("settings:SETTINGS_SAVED"));
+      await queryClient.invalidateQueries({
+        queryKey: ["settings", "workspace", "core", workspaceId],
+      });
+    },
+    onError: (err) => notifyError(err),
+  });
 
-  type OverlayKey = "basics";
+  const disabled =
+    detailQuery.isFetching ||
+    coreQuery.isFetching ||
+    saveMutation.isPending ||
+    saveLocalizationMutation.isPending;
+
+  type OverlayKey = "basics" | "localization";
 
   const saveBasics = async () => {
     const values = await form.validateFields(["name", "slug"]);
@@ -96,6 +243,23 @@ export function WorkspaceSettingsView() {
   const resetBasics = async () => {
     if (!detailQuery.data) return;
     form.setFieldsValue({ name: detailQuery.data.name, slug: detailQuery.data.slug });
+  };
+
+  const saveLocalization = async () => {
+    const values = await form.validateFields(["locale", "timezone", "dateFormat"]);
+    await saveLocalizationMutation.mutateAsync(values);
+  };
+
+  const resetLocalization = async () => {
+    const value = coreQuery.data?.value;
+    if (!value) return;
+    form.setFieldsValue({
+      locale:
+        (pickString(value, ["workspace_localization", "locale"]) as AppLocale | undefined) ??
+        "zh-CN",
+      timezone: pickString(value, ["workspace_localization", "timezone"]) ?? "Asia/Shanghai",
+      dateFormat: pickString(value, ["workspace_localization", "date_format"]) ?? "YYYY-MM-DD",
+    });
   };
 
   const overlayConfigs = React.useMemo<readonly SettingOverlayConfig<OverlayKey>[]>(() => {
@@ -155,8 +319,38 @@ export function WorkspaceSettingsView() {
           </div>
         ),
       },
+      {
+        key: "localization",
+        type: "sheet",
+        title: t("settings:SETTINGS_WORKSPACE_LOCALIZATION_EDIT_TITLE"),
+        description: t("settings:SETTINGS_WORKSPACE_LOCALIZATION_EDIT_DESC"),
+        footer: (ctx) => (
+          <SettingOverlayFooter
+            close={ctx.close}
+            backText={t("common:BACK")}
+            resetText={t("settings:SETTINGS_RESET")}
+            resetVisible
+            saveText={t("settings:SETTINGS_SAVE")}
+            saveLoading={saveLocalizationMutation.isPending}
+            disabled={disabled}
+            onReset={resetLocalization}
+            onSave={saveLocalization}
+          />
+        ),
+        content: () => <WorkspaceLocalizationOverlayContent form={form} disabled={disabled} />,
+      },
     ];
-  }, [disabled, form, saveMutation.isPending, t]);
+  }, [
+    disabled,
+    form,
+    resetBasics,
+    resetLocalization,
+    saveBasics,
+    saveLocalization,
+    saveLocalizationMutation.isPending,
+    saveMutation.isPending,
+    t,
+  ]);
 
   const overlays = useSettingOverlays(overlayConfigs);
 
@@ -184,6 +378,16 @@ export function WorkspaceSettingsView() {
           initialValues={{
             name: detailQuery.data?.name ?? "",
             slug: detailQuery.data?.slug ?? "",
+            locale:
+              (pickString(coreQuery.data?.value, ["workspace_localization", "locale"]) as
+                | AppLocale
+                | undefined) ?? "zh-CN",
+            timezone:
+              pickString(coreQuery.data?.value, ["workspace_localization", "timezone"]) ??
+              "Asia/Shanghai",
+            dateFormat:
+              pickString(coreQuery.data?.value, ["workspace_localization", "date_format"]) ??
+              "YYYY-MM-DD",
           }}
         >
           <ChromeTabs defaultValue={"basics" satisfies WorkspaceSettingsTabKey}>
@@ -227,6 +431,58 @@ export function WorkspaceSettingsView() {
                       description={t("settings:SETTINGS_WORKSPACE_SLUG_ITEM_DESC")}
                       disabled={disabled || !detailQuery.data}
                       onTrigger={() => overlays.open("basics")}
+                    />
+                  </div>
+                </SettingPanel>
+
+                <SettingPanel
+                  title={t("settings:SETTINGS_WORKSPACE_LOCALIZATION_PANEL_TITLE")}
+                  description={t("settings:SETTINGS_WORKSPACE_LOCALIZATION_PANEL_DESC")}
+                >
+                  <div className="divide-y divide-border rounded-lg border border-border">
+                    <SettingActionItem
+                      title={t("setup:SETUP_FIELD_LANGUAGE_TITLE")}
+                      summary={
+                        coreQuery.data
+                          ? formatLocaleLabel(
+                              ((pickString(coreQuery.data.value, [
+                                "workspace_localization",
+                                "locale",
+                              ]) as AppLocale | undefined) ?? "zh-CN") as AppLocale,
+                              t,
+                            )
+                          : undefined
+                      }
+                      placeholder={t("settings:SETTINGS_NOT_SET")}
+                      description={t("settings:SETTINGS_WORKSPACE_LANGUAGE_DESC")}
+                      disabled={disabled || !coreQuery.data}
+                      onTrigger={() => overlays.open("localization")}
+                    />
+                    <SettingActionItem
+                      title={t("setup:SETUP_FIELD_TIMEZONE_TITLE")}
+                      summary={
+                        (pickString(coreQuery.data?.value, [
+                          "workspace_localization",
+                          "timezone",
+                        ]) ?? "Asia/Shanghai") as string
+                      }
+                      placeholder={t("settings:SETTINGS_NOT_SET")}
+                      description={t("settings:SETTINGS_WORKSPACE_TIMEZONE_DESC")}
+                      disabled={disabled || !coreQuery.data}
+                      onTrigger={() => overlays.open("localization")}
+                    />
+                    <SettingActionItem
+                      title={t("setup:SETUP_FIELD_DATE_FORMAT_TITLE")}
+                      summary={
+                        (pickString(coreQuery.data?.value, [
+                          "workspace_localization",
+                          "date_format",
+                        ]) ?? "YYYY-MM-DD") as string
+                      }
+                      placeholder={t("settings:SETTINGS_NOT_SET")}
+                      description={t("settings:SETTINGS_WORKSPACE_DATE_FORMAT_DESC")}
+                      disabled={disabled || !coreQuery.data}
+                      onTrigger={() => overlays.open("localization")}
                     />
                   </div>
                 </SettingPanel>

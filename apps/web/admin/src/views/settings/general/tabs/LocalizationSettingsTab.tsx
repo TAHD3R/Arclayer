@@ -52,37 +52,37 @@ export function LocalizationSettingsTab({
   const resetLocale = () =>
     withSavingKey("reset:locale", async () => {
       form.setFieldValue("locale", initialValues.locale);
-      await patch({ localization: { locale: initialValues.locale } });
+      await patch({ site_localization: { locale: initialValues.locale } });
     });
 
   const resetTimezone = () =>
     withSavingKey("reset:timezone", async () => {
       form.setFieldValue("timezone", initialValues.timezone);
-      await patch({ localization: { timezone: initialValues.timezone } });
+      await patch({ site_localization: { timezone: initialValues.timezone } });
     });
 
   const resetDateFormat = () =>
     withSavingKey("reset:dateFormat", async () => {
       form.setFieldValue("dateFormat", initialValues.dateFormat);
-      await patch({ localization: { date_format: initialValues.dateFormat } });
+      await patch({ site_localization: { date_format: initialValues.dateFormat } });
     });
 
   const saveLocale = () =>
     withSavingKey("locale", async () => {
       const values = await form.validateFields(["locale"]);
-      await patch({ localization: { locale: values.locale } });
+      await patch({ site_localization: { locale: values.locale } });
     });
 
   const saveTimezone = () =>
     withSavingKey("timezone", async () => {
       const values = await form.validateFields(["timezone"]);
-      await patch({ localization: { timezone: String(values.timezone) } });
+      await patch({ site_localization: { timezone: String(values.timezone) } });
     });
 
   const saveDateFormat = () =>
     withSavingKey("dateFormat", async () => {
       const values = await form.validateFields(["dateFormat"]);
-      await patch({ localization: { date_format: String(values.dateFormat) } });
+      await patch({ site_localization: { date_format: String(values.dateFormat) } });
     });
 
   return (

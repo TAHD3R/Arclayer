@@ -86,9 +86,10 @@ class SystemSetupService(BaseService):
         if isinstance(system_patch["system"], dict):
             system_patch["system"]["initialized_at"] = now.isoformat()
             system_patch["system"]["master_key_fingerprint"] = fingerprint
-        # Keep a global default locale as a best-effort fallback for requests without workspace context.
-        if isinstance(raw_patch.get("localization"), dict):
-            system_patch["localization"] = raw_patch["localization"]
+        # Keep a global default workspace locale as a best-effort fallback for requests without workspace context.
+        # This is used by LocaleMiddleware for API i18n when the URL doesn't include a workspace id.
+        if isinstance(raw_patch.get("workspace_localization"), dict):
+            system_patch["workspace_localization"] = raw_patch["workspace_localization"]
 
         await SettingsService(self.settings, manager=self.manager).patch_namespace(
             "core",

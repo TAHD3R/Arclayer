@@ -101,7 +101,7 @@ export function SetupDefaultsStep(props: {
         <SettingAccordionItem
           value="timezone"
           title={t("setup:SETUP_FIELD_TIMEZONE_TITLE")}
-          description={t("settings:SETTINGS_SITE_TIMEZONE_DESC")}
+          description={t("setup:SETUP_TIMEZONE_DESC", { current: currentTimezoneLabel })}
           showSummary
           summary={currentTimezoneLabel}
           disabled={props.disabled}
@@ -126,7 +126,7 @@ export function SetupDefaultsStep(props: {
         <SettingAccordionItem
           value="locale"
           title={t("setup:SETUP_FIELD_LANGUAGE_TITLE")}
-          description={t("settings:SETTINGS_SITE_LANGUAGE_DESC")}
+          description={t("setup:SETUP_LANGUAGE_DESC", { current: currentLocaleLabel })}
           showSummary
           summary={currentLocaleLabel}
           disabled={props.disabled}
@@ -147,7 +147,7 @@ export function SetupDefaultsStep(props: {
         <SettingAccordionItem
           value="dateFormat"
           title={t("setup:SETUP_FIELD_DATE_FORMAT_TITLE")}
-          description={t("settings:SETTINGS_SITE_DATE_FORMAT_DESC")}
+          description={t("setup:SETUP_DATE_FORMAT_DESC", { current: currentDateFormatLabel })}
           showSummary
           summary={currentDateFormatLabel}
           disabled={props.disabled}

@@ -34,9 +34,11 @@ export function buildGeneralSettingsInitialValues(params: {
   const siteContactEmail = pickString(workspaceValue, ["site", "contact_email"]) ?? "";
 
   const locale =
-    (pickString(workspaceValue, ["localization", "locale"]) as AppLocale | undefined) ?? "zh-CN";
-  const timezone = pickString(workspaceValue, ["localization", "timezone"]) ?? "Asia/Shanghai";
-  const dateFormat = pickString(workspaceValue, ["localization", "date_format"]) ?? "YYYY-MM-DD";
+    (pickString(workspaceValue, ["site_localization", "locale"]) as AppLocale | undefined) ??
+    "zh-CN";
+  const timezone = pickString(workspaceValue, ["site_localization", "timezone"]) ?? "Asia/Shanghai";
+  const dateFormat =
+    pickString(workspaceValue, ["site_localization", "date_format"]) ?? "YYYY-MM-DD";
 
   const storageProvider =
     (pickString(systemValue, ["storage", "provider"]) as StorageProvider | undefined) ?? "local";
