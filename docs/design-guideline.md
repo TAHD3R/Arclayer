@@ -92,6 +92,33 @@ Utilize Tailwind's declarative classes to achieve Slack-style layouts:
 * **Headline:** `font-sans font-bold tracking-[-1px] text-foreground`
 * **Sidebar:** `bg-[var(--sidebar)] border-r border-border`
 
+#### 3.4 Admin UI Interaction & Typography Rules (Enforced by Convention)
+
+These rules keep the Settings experience consistent, readable, and easy to extend.
+
+**Dialog / Sheet selection**
+
+* Prefer **first-party** UI building blocks for Settings overlays (our own Sheet/Dialog implementations).
+* Use Ant Design Sheet/Dialog **only when explicitly requested** (e.g. "use Antd Modal for this").
+* When an overlay is used, it must be justified by complexity (many fields, multi-step flow, or high-risk confirmation).
+  Otherwise prefer **inline expand/edit** patterns (Accordion-style).
+
+**Typography baseline**
+
+* The project baseline font size is **16px** for admin UI copy.
+* Avoid `text-xs` / `text-sm` unless there is a clear reason (density constraints, secondary metadata, or a11y).
+  If used, the PR must include a short rationale in the change summary.
+
+**Ant Design sizing**
+
+* Avoid passing `size="small"` to Ant Design components in admin UI by default.
+  If `size="small"` is used, the PR must include a short rationale (space constraints, table/toolbars, or compact views).
+
+**Voice & tone**
+
+* Follow the "Design Philosophy & Personality" in all user-facing strings:
+  concise, confident, conversational, and never overly technical or verbose.
+* Prefer sentence-case and direct descriptions (avoid "Answer: ..." style copy).
 
 ### 4. Plugin Development Principles (Block Kit Logic)
 

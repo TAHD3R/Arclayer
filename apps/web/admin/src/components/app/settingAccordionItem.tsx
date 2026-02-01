@@ -99,6 +99,11 @@ export function SettingAccordionItem(props: SettingAccordionItemProps) {
 
   const shouldRenderSummary = shouldShowSummary && hasSummaryValue;
   const summaryNode = shouldRenderSummary ? <span>{props.summary}</span> : null;
+  const placeholderNode =
+    !shouldRenderSummary && props.placeholder !== undefined && props.placeholder !== null ? (
+      <span className="text-muted-foreground font-normal">{props.placeholder}</span>
+    ) : null;
+  const primaryValueNode = summaryNode ?? placeholderNode;
 
   return (
     <AccordionItem value={props.value} className={props.itemClassName}>
@@ -129,7 +134,7 @@ export function SettingAccordionItem(props: SettingAccordionItemProps) {
             <div className="text-[16px] font-medium leading-snug">{props.title}</div>
             <div className="min-w-0">
               <div className="text-[16px] font-semibold leading-snug text-foreground">
-                {summaryNode}
+                {primaryValueNode}
               </div>
               {hasDescription ? (
                 <div className="mt-1 text-[16px] text-muted-foreground leading-snug">
@@ -182,7 +187,7 @@ export function SettingAccordionItem(props: SettingAccordionItemProps) {
         </AccordionTrigger>
       )}
       <AccordionContent keepRendered={props.keepRendered}>
-        <div className={cn("flex flex-col gap-3", "max-w-130", props.contentClassName)}>
+        <div className={cn("flex flex-col gap-3 p-2", "max-w-130", props.contentClassName)}>
           <fieldset
             disabled={busy}
             className={cn("m-0 min-w-0 border-0 p-0", busy ? "opacity-60" : undefined)}

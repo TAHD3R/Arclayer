@@ -85,7 +85,7 @@ function buildDocumentTitle(routeTitle: string | null, workspaceName: string | n
   }
 
   const base = workspaceName.trim();
-  const part = base.toLowerCase().includes(brand.toLowerCase()) ? base : `${base} | ${brand}`;
+  const part = base.toLowerCase().includes(brand.toLowerCase()) ? base : `${base} ${brand}`;
   if (routeTitle && routeTitle.trim()) return `${routeTitle.trim()} | ${part}`;
   return part;
 }

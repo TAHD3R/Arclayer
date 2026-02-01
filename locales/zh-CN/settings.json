@@ -23,7 +23,7 @@
   "SETTINGS_WORKSPACE_LOCALIZATION_PANEL_DESC": "设置此工作区在管理端的默认语言与时间显示格式。",
   "SETTINGS_WORKSPACE_LOCALIZATION_EDIT_TITLE": "编辑工作区本地化",
   "SETTINGS_WORKSPACE_LOCALIZATION_EDIT_DESC": "修改管理端默认语言、时区与日期格式。",
-  "SETTINGS_WORKSPACE_LOCALIZATION_NOTE": "提示：成员未设置个人语言偏好时，将使用工作区默认语言（当前：{{locale}}）。",
+  "SETTINGS_WORKSPACE_LOCALIZATION_NOTE": "成员未设置个人语言偏好时，将使用工作区默认语言（当前：{{locale}}）。",
   "SETTINGS_WORKSPACE_LANGUAGE_DESC": "用于管理端默认语言与系统文案。",
   "SETTINGS_WORKSPACE_TIMEZONE_DESC": "用于管理端的时间显示与导出。",
   "SETTINGS_WORKSPACE_DATE_FORMAT_DESC": "用于管理端的日期显示与导出。",

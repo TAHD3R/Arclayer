@@ -1,4 +1,4 @@
-import { Form, Input, Select, type FormInstance } from "antd";
+import { Form, Input, Select } from "antd";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
@@ -15,11 +15,8 @@ import {
   ChromeTabsList,
   ChromeTabsTrigger,
 } from "@/components/ui/chrome-tabs";
-import { SettingActionItem } from "@/components/app/settingActionItem";
-import { SettingOverlayFooter } from "@/components/app/settingOverlayFooter";
 import { SettingPanel } from "@/components/app/settingPanel";
 import { notifyError, notifySuccessText } from "@/utils/notifications";
-import { useSettingOverlays, type SettingOverlayConfig } from "@/hooks/useSettingOverlays";
 import { useWorkspaceStore } from "@/stores/useWorkspaceStore";
 import type { AppLocale } from "@/utils/i18n";
 
@@ -81,70 +78,21 @@ const DATE_FORMAT_ITEMS = [
   { value: "DD/MM/YYYY", label: "DD/MM/YYYY (28/01/2026)" },
 ] as const;
 
-function WorkspaceLocalizationOverlayContent(props: {
-  form: FormInstance<FormValues>;
-  disabled?: boolean;
-}) {
-  const { t } = useTranslation(["settings", "common"]);
-  const locale = (Form.useWatch("locale", props.form) as AppLocale | undefined) ?? "zh-CN";
-
-  return (
-    <div className="space-y-6">
-      <Form.Item
-        name="locale"
-        label={t("setup:SETUP_FIELD_LANGUAGE_TITLE")}
-        rules={[{ required: true, message: t("setup:SETUP_VALIDATION_LOCALE_REQUIRED") }]}
-        style={{ marginBottom: 0 }}
-      >
-        <Select
-          size="large"
-          options={[
-            { value: "zh-CN", label: t("account:ACCOUNT_LANGUAGE_ZH") },
-            { value: "en-US", label: t("account:ACCOUNT_LANGUAGE_EN") },
-          ]}
-        />
-      </Form.Item>
-
-      <Form.Item
-        name="timezone"
-        label={t("setup:SETUP_FIELD_TIMEZONE_TITLE")}
-        rules={[{ required: true, message: t("setup:SETUP_VALIDATION_TIMEZONE_REQUIRED") }]}
-        style={{ marginBottom: 0 }}
-      >
-        <Select
-          size="large"
-          options={COMMON_TIMEZONES.map((tz) => ({ value: tz, label: tz }))}
-          showSearch
-          optionFilterProp="label"
-        />
-      </Form.Item>
-
-      <Form.Item
-        name="dateFormat"
-        label={t("setup:SETUP_FIELD_DATE_FORMAT_TITLE")}
-        rules={[{ required: true, message: t("setup:SETUP_VALIDATION_DATE_FORMAT_REQUIRED") }]}
-        style={{ marginBottom: 0 }}
-      >
-        <Select
-          size="large"
-          options={DATE_FORMAT_ITEMS.map((it) => ({ value: it.value, label: it.label }))}
-        />
-      </Form.Item>
-
-      <div className="text-xs text-muted-foreground">
-        {t("settings:SETTINGS_WORKSPACE_LOCALIZATION_NOTE", {
-          locale: formatLocaleLabel(locale, t),
-        })}
-      </div>
-    </div>
-  );
-}
-
 export function WorkspaceSettingsView() {
   const { t } = useTranslation(["settings", "common"]);
   const queryClient = useQueryClient();
   const [form] = Form.useForm<FormValues>();
   const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
+  const [savingKey, setSavingKey] = React.useState<string | null>(null);
+
+  const withSavingKey = React.useCallback(async (key: string, fn: () => Promise<void>) => {
+    setSavingKey(key);
+    try {
+      await fn();
+    } finally {
+      setSavingKey(null);
+    }
+  }, []);
 
   const detailQuery = useQuery({
     queryKey: ["workspace", "detail", workspaceId],
@@ -190,13 +138,10 @@ export function WorkspaceSettingsView() {
     });
   }, [coreQuery.data, form]);
 
-  const saveMutation = useMutation({
-    mutationFn: async (values: FormValues) => {
+  const patchWorkspaceMutation = useMutation({
+    mutationFn: async (patch: { name?: string; slug?: string }) => {
       if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
-      return patchWorkspaceDetail(String(workspaceId), {
-        name: String(values.name || "").trim(),
-        slug: normalizeSlug(values.slug),
-      });
+      return patchWorkspaceDetail(String(workspaceId), patch);
     },
     onSuccess: async () => {
       notifySuccessText(t("settings:SETTINGS_SAVED"));
@@ -207,16 +152,10 @@ export function WorkspaceSettingsView() {
     onError: (err) => notifyError(err),
   });
 
-  const saveLocalizationMutation = useMutation({
-    mutationFn: async (values: Pick<FormValues, "locale" | "timezone" | "dateFormat">) => {
+  const patchWorkspaceCoreMutation = useMutation({
+    mutationFn: async (patch: Record<string, unknown>) => {
       if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
-      return patchCoreSettings(String(workspaceId), {
-        workspace_localization: {
-          locale: values.locale,
-          timezone: String(values.timezone),
-          date_format: String(values.dateFormat),
-        },
-      });
+      return patchCoreSettings(String(workspaceId), patch);
     },
     onSuccess: async () => {
       notifySuccessText(t("settings:SETTINGS_SAVED"));
@@ -230,129 +169,44 @@ export function WorkspaceSettingsView() {
   const disabled =
     detailQuery.isFetching ||
     coreQuery.isFetching ||
-    saveMutation.isPending ||
-    saveLocalizationMutation.isPending;
+    patchWorkspaceMutation.isPending ||
+    patchWorkspaceCoreMutation.isPending ||
+    Boolean(savingKey);
 
-  type OverlayKey = "basics" | "localization";
+  const initialWorkspaceName = detailQuery.data?.name ?? "";
+  const initialWorkspaceSlug = detailQuery.data?.slug ?? "";
+  const currentWorkspaceName =
+    (Form.useWatch("name", form) as string | undefined) ?? initialWorkspaceName;
+  const currentWorkspaceSlug =
+    (Form.useWatch("slug", form) as string | undefined) ?? initialWorkspaceSlug;
 
-  const saveBasics = async () => {
-    const values = await form.validateFields(["name", "slug"]);
-    await saveMutation.mutateAsync(values);
-  };
+  const initialWorkspaceLocale = ((pickString(coreQuery.data?.value, [
+    "workspace_localization",
+    "locale",
+  ]) as AppLocale | undefined) ?? "zh-CN") as AppLocale;
+  const initialWorkspaceTimezone =
+    pickString(coreQuery.data?.value, ["workspace_localization", "timezone"]) ?? "Asia/Shanghai";
+  const initialWorkspaceDateFormat =
+    pickString(coreQuery.data?.value, ["workspace_localization", "date_format"]) ?? "YYYY-MM-DD";
 
-  const resetBasics = async () => {
-    if (!detailQuery.data) return;
-    form.setFieldsValue({ name: detailQuery.data.name, slug: detailQuery.data.slug });
-  };
+  const workspaceLocale =
+    (Form.useWatch("locale", form) as AppLocale | undefined) ?? initialWorkspaceLocale;
+  const workspaceTimezone =
+    (Form.useWatch("timezone", form) as string | undefined) ?? initialWorkspaceTimezone;
+  const workspaceDateFormat =
+    (Form.useWatch("dateFormat", form) as string | undefined) ?? initialWorkspaceDateFormat;
 
-  const saveLocalization = async () => {
-    const values = await form.validateFields(["locale", "timezone", "dateFormat"]);
-    await saveLocalizationMutation.mutateAsync(values);
-  };
+  const workspaceLocaleLabel = workspaceLocale ? formatLocaleLabel(workspaceLocale, t) : undefined;
+  const workspaceDateFormatLabel =
+    DATE_FORMAT_ITEMS.find((it) => it.value === workspaceDateFormat)?.label ?? workspaceDateFormat;
 
-  const resetLocalization = async () => {
-    const value = coreQuery.data?.value;
-    if (!value) return;
-    form.setFieldsValue({
-      locale:
-        (pickString(value, ["workspace_localization", "locale"]) as AppLocale | undefined) ??
-        "zh-CN",
-      timezone: pickString(value, ["workspace_localization", "timezone"]) ?? "Asia/Shanghai",
-      dateFormat: pickString(value, ["workspace_localization", "date_format"]) ?? "YYYY-MM-DD",
-    });
-  };
-
-  const overlayConfigs = React.useMemo<readonly SettingOverlayConfig<OverlayKey>[]>(() => {
-    return [
-      {
-        key: "basics",
-        type: "sheet",
-        title: t("settings:SETTINGS_WORKSPACE_BASICS_EDIT_TITLE"),
-        description: t("settings:SETTINGS_WORKSPACE_BASICS_EDIT_DESC"),
-        footer: (ctx) => (
-          <SettingOverlayFooter
-            close={ctx.close}
-            backText={t("common:BACK")}
-            resetText={t("settings:SETTINGS_RESET")}
-            resetVisible
-            saveText={t("settings:SETTINGS_SAVE")}
-            saveLoading={saveMutation.isPending}
-            disabled={disabled}
-            onReset={resetBasics}
-            onSave={saveBasics}
-          />
-        ),
-        content: () => (
-          <div className="space-y-6">
-            <Form.Item
-              name="name"
-              label={t("settings:SETTINGS_WORKSPACE_NAME_LABEL")}
-              rules={[
-                { required: true, message: t("settings:SETTINGS_WORKSPACE_NAME_REQUIRED") },
-                { max: 128, message: t("settings:SETTINGS_WORKSPACE_NAME_TOO_LONG") },
-              ]}
-              style={{ marginBottom: 0 }}
-            >
-              <Input size="large" placeholder={t("settings:SETTINGS_WORKSPACE_NAME_PLACEHOLDER")} />
-            </Form.Item>
-
-            <Form.Item
-              name="slug"
-              label={t("settings:SETTINGS_WORKSPACE_SLUG_LABEL")}
-              rules={[
-                { required: true, message: t("settings:SETTINGS_WORKSPACE_SLUG_REQUIRED") },
-                {
-                  validator: async (_rule, value) => {
-                    const slug = normalizeSlug(String(value || ""));
-                    if (!slug) throw new Error(t("settings:SETTINGS_WORKSPACE_SLUG_REQUIRED"));
-                    if (slug.length > 64)
-                      throw new Error(t("settings:SETTINGS_WORKSPACE_SLUG_TOO_LONG"));
-                    if (!isValidSlug(slug))
-                      throw new Error(t("settings:SETTINGS_WORKSPACE_SLUG_INVALID"));
-                  },
-                },
-              ]}
-              style={{ marginBottom: 0 }}
-            >
-              <Input size="large" placeholder={t("settings:SETTINGS_WORKSPACE_SLUG_PLACEHOLDER")} />
-            </Form.Item>
-          </div>
-        ),
-      },
-      {
-        key: "localization",
-        type: "sheet",
-        title: t("settings:SETTINGS_WORKSPACE_LOCALIZATION_EDIT_TITLE"),
-        description: t("settings:SETTINGS_WORKSPACE_LOCALIZATION_EDIT_DESC"),
-        footer: (ctx) => (
-          <SettingOverlayFooter
-            close={ctx.close}
-            backText={t("common:BACK")}
-            resetText={t("settings:SETTINGS_RESET")}
-            resetVisible
-            saveText={t("settings:SETTINGS_SAVE")}
-            saveLoading={saveLocalizationMutation.isPending}
-            disabled={disabled}
-            onReset={resetLocalization}
-            onSave={saveLocalization}
-          />
-        ),
-        content: () => <WorkspaceLocalizationOverlayContent form={form} disabled={disabled} />,
-      },
-    ];
-  }, [
-    disabled,
-    form,
-    resetBasics,
-    resetLocalization,
-    saveBasics,
-    saveLocalization,
-    saveLocalizationMutation.isPending,
-    saveMutation.isPending,
-    t,
-  ]);
-
-  const overlays = useSettingOverlays(overlayConfigs);
+  const isWorkspaceNameDirty = (currentWorkspaceName || "") !== (initialWorkspaceName || "");
+  const isWorkspaceSlugDirty =
+    normalizeSlug(currentWorkspaceSlug) !== normalizeSlug(initialWorkspaceSlug);
+  const isWorkspaceLocaleDirty = (workspaceLocale || "") !== (initialWorkspaceLocale || "");
+  const isWorkspaceTimezoneDirty = (workspaceTimezone || "") !== (initialWorkspaceTimezone || "");
+  const isWorkspaceDateFormatDirty =
+    (workspaceDateFormat || "") !== (initialWorkspaceDateFormat || "");
 
   return (
     <DefaultPage
@@ -366,8 +220,11 @@ export function WorkspaceSettingsView() {
         empty={!workspaceId}
         emptyTitle={t("settings:SETTINGS_WORKSPACE_NOT_SELECTED_TITLE")}
         emptyDescription={t("settings:SETTINGS_WORKSPACE_NOT_SELECTED_DESC")}
-        error={detailQuery.isError ? detailQuery.error : null}
-        onRetry={() => void detailQuery.refetch()}
+        error={detailQuery.isError ? detailQuery.error : coreQuery.isError ? coreQuery.error : null}
+        onRetry={() => {
+          void detailQuery.refetch();
+          void coreQuery.refetch();
+        }}
       >
         <Form<FormValues>
           form={form}
@@ -415,23 +272,120 @@ export function WorkspaceSettingsView() {
                   title={t("settings:SETTINGS_WORKSPACE_BASICS_PANEL_TITLE")}
                   description={t("settings:SETTINGS_WORKSPACE_BASICS_PANEL_DESC")}
                 >
-                  <div className="divide-y divide-border rounded-lg border border-border">
-                    <SettingActionItem
-                      title={t("settings:SETTINGS_WORKSPACE_NAME_LABEL")}
-                      summary={detailQuery.data?.name}
-                      placeholder={t("settings:SETTINGS_NOT_SET")}
-                      description={t("settings:SETTINGS_WORKSPACE_NAME_ITEM_DESC")}
-                      disabled={disabled || !detailQuery.data}
-                      onTrigger={() => overlays.open("basics")}
-                    />
-                    <SettingActionItem
-                      title={t("settings:SETTINGS_WORKSPACE_SLUG_LABEL")}
-                      summary={detailQuery.data?.slug}
-                      placeholder={t("settings:SETTINGS_NOT_SET")}
-                      description={t("settings:SETTINGS_WORKSPACE_SLUG_ITEM_DESC")}
-                      disabled={disabled || !detailQuery.data}
-                      onTrigger={() => overlays.open("basics")}
-                    />
+                  <div className="rounded-lg border border-border">
+                    <Accordion type="single" collapsible className="px-0">
+                      <SettingAccordionItem
+                        value="workspace_name"
+                        variant="action"
+                        title={t("settings:SETTINGS_WORKSPACE_NAME_LABEL")}
+                        description={t("settings:SETTINGS_WORKSPACE_NAME_ITEM_DESC")}
+                        showSummary
+                        summary={currentWorkspaceName}
+                        placeholder={t("settings:SETTINGS_NOT_SET")}
+                        keepRendered
+                        disabled={disabled || !detailQuery.data}
+                        confirmText={t("settings:SETTINGS_SAVE")}
+                        confirmLoading={savingKey === "workspace:name"}
+                        onConfirm={() =>
+                          void withSavingKey("workspace:name", async () => {
+                            const values = await form.validateFields(["name"]);
+                            await patchWorkspaceMutation.mutateAsync({
+                              name: String(values.name || "").trim(),
+                            });
+                          })
+                        }
+                        onReset={
+                          isWorkspaceNameDirty && detailQuery.data
+                            ? () =>
+                                void withSavingKey("reset:workspace:name", async () => {
+                                  form.setFieldValue("name", initialWorkspaceName);
+                                  await patchWorkspaceMutation.mutateAsync({
+                                    name: String(initialWorkspaceName || "").trim(),
+                                  });
+                                })
+                            : undefined
+                        }
+                        resetLoading={savingKey === "reset:workspace:name"}
+                      >
+                        <Form.Item
+                          name="name"
+                          rules={[
+                            {
+                              required: true,
+                              message: t("settings:SETTINGS_WORKSPACE_NAME_REQUIRED"),
+                            },
+                            { max: 128, message: t("settings:SETTINGS_WORKSPACE_NAME_TOO_LONG") },
+                          ]}
+                          style={{ marginBottom: 0 }}
+                        >
+                          <Input
+                            size="large"
+                            placeholder={t("settings:SETTINGS_WORKSPACE_NAME_PLACEHOLDER")}
+                          />
+                        </Form.Item>
+                      </SettingAccordionItem>
+
+                      <SettingAccordionItem
+                        value="workspace_slug"
+                        variant="action"
+                        title={t("settings:SETTINGS_WORKSPACE_SLUG_LABEL")}
+                        description={t("settings:SETTINGS_WORKSPACE_SLUG_ITEM_DESC")}
+                        showSummary
+                        summary={normalizeSlug(currentWorkspaceSlug)}
+                        placeholder={t("settings:SETTINGS_NOT_SET")}
+                        keepRendered
+                        disabled={disabled || !detailQuery.data}
+                        confirmText={t("settings:SETTINGS_SAVE")}
+                        confirmLoading={savingKey === "workspace:slug"}
+                        onConfirm={() =>
+                          void withSavingKey("workspace:slug", async () => {
+                            const values = await form.validateFields(["slug"]);
+                            const next = normalizeSlug(String(values.slug || ""));
+                            // Normalize input so users can see the final slug immediately.
+                            form.setFieldValue("slug", next);
+                            await patchWorkspaceMutation.mutateAsync({ slug: next });
+                          })
+                        }
+                        onReset={
+                          isWorkspaceSlugDirty && detailQuery.data
+                            ? () =>
+                                void withSavingKey("reset:workspace:slug", async () => {
+                                  const next = normalizeSlug(initialWorkspaceSlug);
+                                  form.setFieldValue("slug", next);
+                                  await patchWorkspaceMutation.mutateAsync({ slug: next });
+                                })
+                            : undefined
+                        }
+                        resetLoading={savingKey === "reset:workspace:slug"}
+                      >
+                        <Form.Item
+                          name="slug"
+                          rules={[
+                            {
+                              required: true,
+                              message: t("settings:SETTINGS_WORKSPACE_SLUG_REQUIRED"),
+                            },
+                            {
+                              validator: async (_rule, value) => {
+                                const slug = normalizeSlug(String(value || ""));
+                                if (!slug)
+                                  throw new Error(t("settings:SETTINGS_WORKSPACE_SLUG_REQUIRED"));
+                                if (slug.length > 64)
+                                  throw new Error(t("settings:SETTINGS_WORKSPACE_SLUG_TOO_LONG"));
+                                if (!isValidSlug(slug))
+                                  throw new Error(t("settings:SETTINGS_WORKSPACE_SLUG_INVALID"));
+                              },
+                            },
+                          ]}
+                          style={{ marginBottom: 0 }}
+                        >
+                          <Input
+                            size="large"
+                            placeholder={t("settings:SETTINGS_WORKSPACE_SLUG_PLACEHOLDER")}
+                          />
+                        </Form.Item>
+                      </SettingAccordionItem>
+                    </Accordion>
                   </div>
                 </SettingPanel>
 
@@ -439,51 +393,173 @@ export function WorkspaceSettingsView() {
                   title={t("settings:SETTINGS_WORKSPACE_LOCALIZATION_PANEL_TITLE")}
                   description={t("settings:SETTINGS_WORKSPACE_LOCALIZATION_PANEL_DESC")}
                 >
-                  <div className="divide-y divide-border rounded-lg border border-border">
-                    <SettingActionItem
-                      title={t("setup:SETUP_FIELD_LANGUAGE_TITLE")}
-                      summary={
-                        coreQuery.data
-                          ? formatLocaleLabel(
-                              ((pickString(coreQuery.data.value, [
-                                "workspace_localization",
-                                "locale",
-                              ]) as AppLocale | undefined) ?? "zh-CN") as AppLocale,
-                              t,
-                            )
-                          : undefined
-                      }
-                      placeholder={t("settings:SETTINGS_NOT_SET")}
-                      description={t("settings:SETTINGS_WORKSPACE_LANGUAGE_DESC")}
-                      disabled={disabled || !coreQuery.data}
-                      onTrigger={() => overlays.open("localization")}
-                    />
-                    <SettingActionItem
-                      title={t("setup:SETUP_FIELD_TIMEZONE_TITLE")}
-                      summary={
-                        (pickString(coreQuery.data?.value, [
-                          "workspace_localization",
-                          "timezone",
-                        ]) ?? "Asia/Shanghai") as string
-                      }
-                      placeholder={t("settings:SETTINGS_NOT_SET")}
-                      description={t("settings:SETTINGS_WORKSPACE_TIMEZONE_DESC")}
-                      disabled={disabled || !coreQuery.data}
-                      onTrigger={() => overlays.open("localization")}
-                    />
-                    <SettingActionItem
-                      title={t("setup:SETUP_FIELD_DATE_FORMAT_TITLE")}
-                      summary={
-                        (pickString(coreQuery.data?.value, [
-                          "workspace_localization",
-                          "date_format",
-                        ]) ?? "YYYY-MM-DD") as string
-                      }
-                      placeholder={t("settings:SETTINGS_NOT_SET")}
-                      description={t("settings:SETTINGS_WORKSPACE_DATE_FORMAT_DESC")}
-                      disabled={disabled || !coreQuery.data}
-                      onTrigger={() => overlays.open("localization")}
-                    />
+                  <div className="rounded-lg border border-border">
+                    <Accordion type="single" collapsible className="px-0">
+                      <SettingAccordionItem
+                        value="workspace_locale"
+                        variant="action"
+                        title={t("setup:SETUP_FIELD_LANGUAGE_TITLE")}
+                        description={t("settings:SETTINGS_WORKSPACE_LANGUAGE_DESC")}
+                        showSummary
+                        summary={workspaceLocaleLabel}
+                        placeholder={t("settings:SETTINGS_NOT_SET")}
+                        keepRendered
+                        disabled={disabled || !coreQuery.data}
+                        confirmText={t("settings:SETTINGS_SAVE")}
+                        confirmLoading={savingKey === "workspace:locale"}
+                        onConfirm={() =>
+                          void withSavingKey("workspace:locale", async () => {
+                            const values = await form.validateFields(["locale"]);
+                            await patchWorkspaceCoreMutation.mutateAsync({
+                              workspace_localization: { locale: values.locale },
+                            });
+                          })
+                        }
+                        onReset={
+                          isWorkspaceLocaleDirty && coreQuery.data
+                            ? () =>
+                                void withSavingKey("reset:workspace:locale", async () => {
+                                  form.setFieldValue("locale", initialWorkspaceLocale);
+                                  await patchWorkspaceCoreMutation.mutateAsync({
+                                    workspace_localization: { locale: initialWorkspaceLocale },
+                                  });
+                                })
+                            : undefined
+                        }
+                        resetLoading={savingKey === "reset:workspace:locale"}
+                      >
+                        <Form.Item
+                          name="locale"
+                          rules={[
+                            {
+                              required: true,
+                              message: t("setup:SETUP_VALIDATION_LOCALE_REQUIRED"),
+                            },
+                          ]}
+                          style={{ marginBottom: 0 }}
+                        >
+                          <div className="text-muted-foreground mb-4">
+                            {t("settings:SETTINGS_WORKSPACE_LOCALIZATION_NOTE", {
+                              locale: workspaceLocaleLabel ?? "-",
+                            })}
+                          </div>
+                          <Select
+                            size="large"
+                            options={[
+                              { value: "zh-CN", label: t("account:ACCOUNT_LANGUAGE_ZH") },
+                              { value: "en-US", label: t("account:ACCOUNT_LANGUAGE_EN") },
+                            ]}
+                          />
+                        </Form.Item>
+                      </SettingAccordionItem>
+
+                      <SettingAccordionItem
+                        value="workspace_timezone"
+                        variant="action"
+                        title={t("setup:SETUP_FIELD_TIMEZONE_TITLE")}
+                        description={t("settings:SETTINGS_WORKSPACE_TIMEZONE_DESC")}
+                        showSummary
+                        summary={workspaceTimezone}
+                        placeholder={t("settings:SETTINGS_NOT_SET")}
+                        keepRendered
+                        disabled={disabled || !coreQuery.data}
+                        confirmText={t("settings:SETTINGS_SAVE")}
+                        confirmLoading={savingKey === "workspace:timezone"}
+                        onConfirm={() =>
+                          void withSavingKey("workspace:timezone", async () => {
+                            const values = await form.validateFields(["timezone"]);
+                            await patchWorkspaceCoreMutation.mutateAsync({
+                              workspace_localization: { timezone: String(values.timezone) },
+                            });
+                          })
+                        }
+                        onReset={
+                          isWorkspaceTimezoneDirty && coreQuery.data
+                            ? () =>
+                                void withSavingKey("reset:workspace:timezone", async () => {
+                                  form.setFieldValue("timezone", initialWorkspaceTimezone);
+                                  await patchWorkspaceCoreMutation.mutateAsync({
+                                    workspace_localization: { timezone: initialWorkspaceTimezone },
+                                  });
+                                })
+                            : undefined
+                        }
+                        resetLoading={savingKey === "reset:workspace:timezone"}
+                      >
+                        <Form.Item
+                          name="timezone"
+                          rules={[
+                            {
+                              required: true,
+                              message: t("setup:SETUP_VALIDATION_TIMEZONE_REQUIRED"),
+                            },
+                          ]}
+                          style={{ marginBottom: 0 }}
+                        >
+                          <Select
+                            size="large"
+                            options={COMMON_TIMEZONES.map((tz) => ({ value: tz, label: tz }))}
+                            showSearch
+                            optionFilterProp="label"
+                          />
+                        </Form.Item>
+                      </SettingAccordionItem>
+
+                      <SettingAccordionItem
+                        value="workspace_date_format"
+                        variant="action"
+                        title={t("setup:SETUP_FIELD_DATE_FORMAT_TITLE")}
+                        description={t("settings:SETTINGS_WORKSPACE_DATE_FORMAT_DESC")}
+                        showSummary
+                        summary={workspaceDateFormatLabel}
+                        placeholder={t("settings:SETTINGS_NOT_SET")}
+                        keepRendered
+                        disabled={disabled || !coreQuery.data}
+                        confirmText={t("settings:SETTINGS_SAVE")}
+                        confirmLoading={savingKey === "workspace:dateFormat"}
+                        onConfirm={() =>
+                          void withSavingKey("workspace:dateFormat", async () => {
+                            const values = await form.validateFields(["dateFormat"]);
+                            await patchWorkspaceCoreMutation.mutateAsync({
+                              workspace_localization: { date_format: String(values.dateFormat) },
+                            });
+                          })
+                        }
+                        onReset={
+                          isWorkspaceDateFormatDirty && coreQuery.data
+                            ? () =>
+                                void withSavingKey("reset:workspace:dateFormat", async () => {
+                                  form.setFieldValue("dateFormat", initialWorkspaceDateFormat);
+                                  await patchWorkspaceCoreMutation.mutateAsync({
+                                    workspace_localization: {
+                                      date_format: initialWorkspaceDateFormat,
+                                    },
+                                  });
+                                })
+                            : undefined
+                        }
+                        resetLoading={savingKey === "reset:workspace:dateFormat"}
+                      >
+                        <Form.Item
+                          name="dateFormat"
+                          rules={[
+                            {
+                              required: true,
+                              message: t("setup:SETUP_VALIDATION_DATE_FORMAT_REQUIRED"),
+                            },
+                          ]}
+                          style={{ marginBottom: 0 }}
+                        >
+                          <Select
+                            size="large"
+                            options={DATE_FORMAT_ITEMS.map((it) => ({
+                              value: it.value,
+                              label: it.label,
+                            }))}
+                          />
+                        </Form.Item>
+                      </SettingAccordionItem>
+                    </Accordion>
                   </div>
                 </SettingPanel>
               </div>
@@ -561,8 +637,6 @@ export function WorkspaceSettingsView() {
               />
             </ChromeTabsContent>
           </ChromeTabs>
-
-          {overlays.renderOverlays()}
         </Form>
       </PageState>
     </DefaultPage>
@@ -577,11 +651,7 @@ function PlaceholderPoliciesPanel(props: {
   const { t } = useTranslation(["common"]);
   return (
     <SettingPanel title={props.title} description={props.description}>
-      <Accordion
-        type="single"
-        collapsible
-        className="divide-y divide-border rounded-lg border border-border"
-      >
+      <Accordion type="single" collapsible className="rounded-lg border border-border">
         {props.items.map((it, idx) => (
           <SettingAccordionItem
             key={`${it.title}-${idx}`}

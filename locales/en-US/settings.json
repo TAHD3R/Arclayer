@@ -23,7 +23,7 @@
   "SETTINGS_WORKSPACE_LOCALIZATION_PANEL_DESC": "Set default language and time formatting for the admin experience in this workspace.",
   "SETTINGS_WORKSPACE_LOCALIZATION_EDIT_TITLE": "Edit workspace localization",
   "SETTINGS_WORKSPACE_LOCALIZATION_EDIT_DESC": "Update the admin default language, timezone, and date format.",
-  "SETTINGS_WORKSPACE_LOCALIZATION_NOTE": "Tip: if a member hasn't set a personal language preference, the workspace default will be used (current: {{locale}}).",
+  "SETTINGS_WORKSPACE_LOCALIZATION_NOTE": "if a member hasn't set a personal language preference, the workspace default will be used (current: {{locale}}).",
   "SETTINGS_WORKSPACE_LANGUAGE_DESC": "Used for the admin default language and UI text.",
   "SETTINGS_WORKSPACE_TIMEZONE_DESC": "Used for timestamp display and exports in the admin UI.",
   "SETTINGS_WORKSPACE_DATE_FORMAT_DESC": "Used for date display and exports in the admin UI.",

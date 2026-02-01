@@ -41,7 +41,8 @@ function AccordionTrigger({
     <AccordionHeaderPrimitive className="flex">
       <AccordionTriggerPrimitive
         className={cn(
-          "focus-visible:border-ring focus-visible:ring-ring/50 flex flex-1 items-start justify-between gap-4 rounded-md py-4 text-left text-sm font-medium transition-all outline-none hover:underline focus-visible:ring-[3px] disabled:pointer-events-none disabled:opacity-50 [&[data-state=open]>svg]:rotate-180",
+          // Project baseline font size is 16px; avoid shrinking interactive copy without a clear reason.
+          "focus-visible:border-ring focus-visible:ring-ring/50 flex flex-1 items-start justify-between gap-4 rounded-md py-4 text-left text-[16px] font-medium transition-all outline-none hover:underline focus-visible:ring-[3px] disabled:pointer-events-none disabled:opacity-50 [&[data-state=open]>svg]:rotate-180",
           className,
         )}
         {...props}
@@ -60,7 +61,7 @@ type AccordionContentProps = AccordionContentPrimitiveProps;
 function AccordionContent({ className, children, ...props }: AccordionContentProps) {
   return (
     <AccordionContentPrimitive {...props}>
-      <div className={cn("text-sm pt-0 pb-4", className)}>{children}</div>
+      <div className={cn("text-[16px] pt-0 pb-4", className)}>{children}</div>
     </AccordionContentPrimitive>
   );
 }
