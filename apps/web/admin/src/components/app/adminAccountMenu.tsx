@@ -18,6 +18,7 @@ import {
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 
 import * as authApi from "@/api/auth";
+import { getMyOrganization } from "@/api/me";
 import { getMyWorkspaceAuthz } from "@/api/workspaces";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { usePreferencesStore } from "@/stores/usePreferenceStore";
@@ -157,12 +158,14 @@ function AdminAccountPanelContent(props: {
   displayName: string;
   avatarUrl: string | null;
   roleText: string;
+  showOrganizationSettings: boolean;
   themeMode: "light" | "dark";
   locale: "zh-CN" | "en-US";
   setLocale: (locale: "zh-CN" | "en-US") => void;
   onLogout: () => Promise<void>;
   onPersonalSettings: () => Promise<void> | void;
   onNotifications: () => Promise<void> | void;
+  onOrganizationSettings: () => Promise<void> | void;
 }) {
   const { t } = useTranslation("account");
   const { isOpen, closeFloatingPanel } = useFloatingPanel();
@@ -366,6 +369,15 @@ function AdminAccountPanelContent(props: {
           <MenuItemContent icon={<Settings />} label={t("ACCOUNT_PERSONAL_SETTINGS")} />
         </FloatingPanelButton>
 
+        {props.showOrganizationSettings ? (
+          <FloatingPanelButton
+            className={menuItemClassName}
+            onClick={() => onClickAndClose(props.onOrganizationSettings)}
+          >
+            <MenuItemContent icon={<Settings />} label={t("ACCOUNT_ORGANIZATION_SETTINGS")} />
+          </FloatingPanelButton>
+        ) : null}
+
         <FloatingPanelButton
           className={menuItemClassName}
           onClick={() => onClickAndClose(props.onNotifications)}
@@ -425,6 +437,13 @@ export function AdminAccountMenu() {
     meta: { silent: true },
   });
 
+  const myOrgQuery = useQuery({
+    queryKey: ["me", "organization"],
+    enabled: Boolean(accessToken),
+    queryFn: async () => getMyOrganization(),
+    meta: { silent: true },
+  });
+
   const rawAuthz = asRecord(authzQuery.data) ?? {};
   const isSuper = getBooleanValue(rawAuthz, ["is_superuser", "isSuperuser"]) ?? false;
   const roleCodes = getStringArrayValue(rawAuthz, ["role_codes", "roleCodes"]) ?? [];
@@ -463,6 +482,15 @@ export function AdminAccountMenu() {
       return;
     }
     void navigate({ to: "/" });
+  };
+
+  const isOrgOwner = myOrgQuery.data?.membership?.isOwner ?? false;
+  const onOrganizationSettings = () => {
+    if (workspaceId) {
+      void navigate({ to: `/w/${workspaceId}/settings/organization` });
+      return;
+    }
+    void navigate({ to: "/settings/organization" });
   };
 
   return (
@@ -517,12 +545,14 @@ export function AdminAccountMenu() {
           displayName={displayName}
           avatarUrl={profile.avatarUrl}
           roleText={roleText}
+          showOrganizationSettings={isOrgOwner}
           themeMode={themeMode}
           locale={locale}
           setLocale={setLocale}
           onLogout={onLogout}
           onPersonalSettings={onPersonalSettings}
           onNotifications={onNotifications}
+          onOrganizationSettings={onOrganizationSettings}
         />
       </FloatingPanelContent>
     </FloatingPanelRoot>

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import Field, SecretStr
 
@@ -55,4 +55,21 @@ class SystemSetupStatus(BaseSchema):
         ...,
         description="Setup access mode: local_only (no token configured) or token (token required).",
         examples=["local_only", "token"],
+    )
+
+
+class SystemRuntimeCapabilities(BaseSchema):
+    deployment_settings_enabled: bool = Field(
+        ...,
+        description="Whether instance-level deployment settings (e.g. storage/mail) are exposed to the admin UI.",
+    )
+
+
+class SystemRuntimeOut(BaseSchema):
+    deployment_mode: Literal["saas", "self_host"] = Field(
+        ...,
+        description="Deployment mode of the running backend instance.",
+    )
+    capabilities: SystemRuntimeCapabilities = Field(
+        ..., description="Runtime capabilities derived from deployment mode."
     )

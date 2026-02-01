@@ -39,26 +39,26 @@ export function buildGeneralSettingsInitialValues(params: {
   const dateFormat = pickString(workspaceValue, ["localization", "date_format"]) ?? "YYYY-MM-DD";
 
   const storageProvider =
-    (pickString(workspaceValue, ["storage", "provider"]) as StorageProvider | undefined) ?? "local";
-  const storagePublicBaseUrl = pickString(workspaceValue, ["storage", "public_base_url"]) ?? "";
+    (pickString(systemValue, ["storage", "provider"]) as StorageProvider | undefined) ?? "local";
+  const storagePublicBaseUrl = pickString(systemValue, ["storage", "public_base_url"]) ?? "";
 
-  const uploadChunkSizeMb = pickNumber(workspaceValue, ["storage", "upload_chunk_size_mb"]) ?? 8;
+  const uploadChunkSizeMb = pickNumber(systemValue, ["storage", "upload_chunk_size_mb"]) ?? 8;
   const uploadMaxFileSizeMb =
-    pickNumber(workspaceValue, ["storage", "upload_max_file_size_mb"]) ?? 2048;
+    pickNumber(systemValue, ["storage", "upload_max_file_size_mb"]) ?? 2048;
   const uploadMaxAvatarSizeMb =
-    pickNumber(workspaceValue, ["storage", "upload_max_avatar_size_mb"]) ?? 10;
+    pickNumber(systemValue, ["storage", "upload_max_avatar_size_mb"]) ?? 10;
   const uploadMaxSiteLogoSizeMb =
-    pickNumber(workspaceValue, ["storage", "upload_max_site_logo_size_mb"]) ?? 20;
+    pickNumber(systemValue, ["storage", "upload_max_site_logo_size_mb"]) ?? 20;
   const uploadMaxFaviconSizeMb =
-    pickNumber(workspaceValue, ["storage", "upload_max_favicon_size_mb"]) ?? 2;
+    pickNumber(systemValue, ["storage", "upload_max_favicon_size_mb"]) ?? 2;
 
-  const s3EndpointUrl = pickString(workspaceValue, ["storage", "s3_endpoint_url"]) ?? "";
-  const s3Region = pickString(workspaceValue, ["storage", "s3_region"]) ?? "";
-  const s3Bucket = pickString(workspaceValue, ["storage", "s3_bucket"]) ?? "";
-  const s3AccessKeyId = pickString(workspaceValue, ["storage", "s3_access_key_id"]) ?? "";
-  const s3ForcePathStyle = pickBool(workspaceValue, ["storage", "s3_force_path_style"]) ?? false;
+  const s3EndpointUrl = pickString(systemValue, ["storage", "s3_endpoint_url"]) ?? "";
+  const s3Region = pickString(systemValue, ["storage", "s3_region"]) ?? "";
+  const s3Bucket = pickString(systemValue, ["storage", "s3_bucket"]) ?? "";
+  const s3AccessKeyId = pickString(systemValue, ["storage", "s3_access_key_id"]) ?? "";
+  const s3ForcePathStyle = pickBool(systemValue, ["storage", "s3_force_path_style"]) ?? false;
   const s3PresignExpiresSeconds =
-    pickNumber(workspaceValue, ["storage", "s3_presign_expires_seconds"]) ?? 900;
+    pickNumber(systemValue, ["storage", "s3_presign_expires_seconds"]) ?? 900;
 
   const mailEnabled = pickBool(systemValue, ["mail", "enabled"]) ?? false;
   const mailServer = pickString(systemValue, ["mail", "server"]) ?? "localhost";

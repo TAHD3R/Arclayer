@@ -23,6 +23,7 @@ import { Route as TeamInvitationsRouteImport } from './routes/team/invitations'
 import { Route as WWorkspaceIdIndexRouteImport } from './routes/w/$workspaceId/index'
 import { Route as SettingsWorkspaceIndexRouteImport } from './routes/settings/workspace/index'
 import { Route as SettingsSeoIndexRouteImport } from './routes/settings/seo/index'
+import { Route as SettingsOrganizationIndexRouteImport } from './routes/settings/organization/index'
 import { Route as SettingsGeneralIndexRouteImport } from './routes/settings/general/index'
 import { Route as PluginsInstalledIndexRouteImport } from './routes/plugins/installed/index'
 import { Route as ContentPagesIndexRouteImport } from './routes/content/pages/index'
@@ -41,6 +42,7 @@ import { Route as WWorkspaceIdTeamMembersRouteImport } from './routes/w/$workspa
 import { Route as WWorkspaceIdTeamInvitationsRouteImport } from './routes/w/$workspaceId/team/invitations'
 import { Route as WWorkspaceIdSettingsWorkspaceIndexRouteImport } from './routes/w/$workspaceId/settings/workspace/index'
 import { Route as WWorkspaceIdSettingsSeoIndexRouteImport } from './routes/w/$workspaceId/settings/seo/index'
+import { Route as WWorkspaceIdSettingsOrganizationIndexRouteImport } from './routes/w/$workspaceId/settings/organization/index'
 import { Route as WWorkspaceIdSettingsGeneralIndexRouteImport } from './routes/w/$workspaceId/settings/general/index'
 import { Route as WWorkspaceIdPluginsInstalledIndexRouteImport } from './routes/w/$workspaceId/plugins/installed/index'
 import { Route as WWorkspaceIdContentPagesIndexRouteImport } from './routes/w/$workspaceId/content/pages/index'
@@ -119,6 +121,12 @@ const SettingsSeoIndexRoute = SettingsSeoIndexRouteImport.update({
   path: '/settings/seo/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SettingsOrganizationIndexRoute =
+  SettingsOrganizationIndexRouteImport.update({
+    id: '/settings/organization/',
+    path: '/settings/organization/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const SettingsGeneralIndexRoute = SettingsGeneralIndexRouteImport.update({
   id: '/settings/general/',
   path: '/settings/general/',
@@ -217,6 +225,12 @@ const WWorkspaceIdSettingsSeoIndexRoute =
     path: '/settings/seo/',
     getParentRoute: () => WWorkspaceIdRoute,
   } as any)
+const WWorkspaceIdSettingsOrganizationIndexRoute =
+  WWorkspaceIdSettingsOrganizationIndexRouteImport.update({
+    id: '/settings/organization/',
+    path: '/settings/organization/',
+    getParentRoute: () => WWorkspaceIdRoute,
+  } as any)
 const WWorkspaceIdSettingsGeneralIndexRoute =
   WWorkspaceIdSettingsGeneralIndexRouteImport.update({
     id: '/settings/general/',
@@ -279,6 +293,7 @@ export interface FileRoutesByFullPath {
   '/content/pages/': typeof ContentPagesIndexRoute
   '/plugins/installed/': typeof PluginsInstalledIndexRoute
   '/settings/general/': typeof SettingsGeneralIndexRoute
+  '/settings/organization/': typeof SettingsOrganizationIndexRoute
   '/settings/seo/': typeof SettingsSeoIndexRoute
   '/settings/workspace/': typeof SettingsWorkspaceIndexRoute
   '/w/$workspaceId/': typeof WWorkspaceIdIndexRoute
@@ -298,6 +313,7 @@ export interface FileRoutesByFullPath {
   '/w/$workspaceId/content/pages/': typeof WWorkspaceIdContentPagesIndexRoute
   '/w/$workspaceId/plugins/installed/': typeof WWorkspaceIdPluginsInstalledIndexRoute
   '/w/$workspaceId/settings/general/': typeof WWorkspaceIdSettingsGeneralIndexRoute
+  '/w/$workspaceId/settings/organization/': typeof WWorkspaceIdSettingsOrganizationIndexRoute
   '/w/$workspaceId/settings/seo/': typeof WWorkspaceIdSettingsSeoIndexRoute
   '/w/$workspaceId/settings/workspace/': typeof WWorkspaceIdSettingsWorkspaceIndexRoute
 }
@@ -319,6 +335,7 @@ export interface FileRoutesByTo {
   '/content/pages': typeof ContentPagesIndexRoute
   '/plugins/installed': typeof PluginsInstalledIndexRoute
   '/settings/general': typeof SettingsGeneralIndexRoute
+  '/settings/organization': typeof SettingsOrganizationIndexRoute
   '/settings/seo': typeof SettingsSeoIndexRoute
   '/settings/workspace': typeof SettingsWorkspaceIndexRoute
   '/w/$workspaceId': typeof WWorkspaceIdIndexRoute
@@ -338,6 +355,7 @@ export interface FileRoutesByTo {
   '/w/$workspaceId/content/pages': typeof WWorkspaceIdContentPagesIndexRoute
   '/w/$workspaceId/plugins/installed': typeof WWorkspaceIdPluginsInstalledIndexRoute
   '/w/$workspaceId/settings/general': typeof WWorkspaceIdSettingsGeneralIndexRoute
+  '/w/$workspaceId/settings/organization': typeof WWorkspaceIdSettingsOrganizationIndexRoute
   '/w/$workspaceId/settings/seo': typeof WWorkspaceIdSettingsSeoIndexRoute
   '/w/$workspaceId/settings/workspace': typeof WWorkspaceIdSettingsWorkspaceIndexRoute
 }
@@ -361,6 +379,7 @@ export interface FileRoutesById {
   '/content/pages/': typeof ContentPagesIndexRoute
   '/plugins/installed/': typeof PluginsInstalledIndexRoute
   '/settings/general/': typeof SettingsGeneralIndexRoute
+  '/settings/organization/': typeof SettingsOrganizationIndexRoute
   '/settings/seo/': typeof SettingsSeoIndexRoute
   '/settings/workspace/': typeof SettingsWorkspaceIndexRoute
   '/w/$workspaceId/': typeof WWorkspaceIdIndexRoute
@@ -380,6 +399,7 @@ export interface FileRoutesById {
   '/w/$workspaceId/content/pages/': typeof WWorkspaceIdContentPagesIndexRoute
   '/w/$workspaceId/plugins/installed/': typeof WWorkspaceIdPluginsInstalledIndexRoute
   '/w/$workspaceId/settings/general/': typeof WWorkspaceIdSettingsGeneralIndexRoute
+  '/w/$workspaceId/settings/organization/': typeof WWorkspaceIdSettingsOrganizationIndexRoute
   '/w/$workspaceId/settings/seo/': typeof WWorkspaceIdSettingsSeoIndexRoute
   '/w/$workspaceId/settings/workspace/': typeof WWorkspaceIdSettingsWorkspaceIndexRoute
 }
@@ -404,6 +424,7 @@ export interface FileRouteTypes {
     | '/content/pages/'
     | '/plugins/installed/'
     | '/settings/general/'
+    | '/settings/organization/'
     | '/settings/seo/'
     | '/settings/workspace/'
     | '/w/$workspaceId/'
@@ -423,6 +444,7 @@ export interface FileRouteTypes {
     | '/w/$workspaceId/content/pages/'
     | '/w/$workspaceId/plugins/installed/'
     | '/w/$workspaceId/settings/general/'
+    | '/w/$workspaceId/settings/organization/'
     | '/w/$workspaceId/settings/seo/'
     | '/w/$workspaceId/settings/workspace/'
   fileRoutesByTo: FileRoutesByTo
@@ -444,6 +466,7 @@ export interface FileRouteTypes {
     | '/content/pages'
     | '/plugins/installed'
     | '/settings/general'
+    | '/settings/organization'
     | '/settings/seo'
     | '/settings/workspace'
     | '/w/$workspaceId'
@@ -463,6 +486,7 @@ export interface FileRouteTypes {
     | '/w/$workspaceId/content/pages'
     | '/w/$workspaceId/plugins/installed'
     | '/w/$workspaceId/settings/general'
+    | '/w/$workspaceId/settings/organization'
     | '/w/$workspaceId/settings/seo'
     | '/w/$workspaceId/settings/workspace'
   id:
@@ -485,6 +509,7 @@ export interface FileRouteTypes {
     | '/content/pages/'
     | '/plugins/installed/'
     | '/settings/general/'
+    | '/settings/organization/'
     | '/settings/seo/'
     | '/settings/workspace/'
     | '/w/$workspaceId/'
@@ -504,6 +529,7 @@ export interface FileRouteTypes {
     | '/w/$workspaceId/content/pages/'
     | '/w/$workspaceId/plugins/installed/'
     | '/w/$workspaceId/settings/general/'
+    | '/w/$workspaceId/settings/organization/'
     | '/w/$workspaceId/settings/seo/'
     | '/w/$workspaceId/settings/workspace/'
   fileRoutesById: FileRoutesById
@@ -527,6 +553,7 @@ export interface RootRouteChildren {
   ContentPagesIndexRoute: typeof ContentPagesIndexRoute
   PluginsInstalledIndexRoute: typeof PluginsInstalledIndexRoute
   SettingsGeneralIndexRoute: typeof SettingsGeneralIndexRoute
+  SettingsOrganizationIndexRoute: typeof SettingsOrganizationIndexRoute
   SettingsSeoIndexRoute: typeof SettingsSeoIndexRoute
   SettingsWorkspaceIndexRoute: typeof SettingsWorkspaceIndexRoute
   SettingsMaintenanceAuditLogIndexRoute: typeof SettingsMaintenanceAuditLogIndexRoute
@@ -633,6 +660,13 @@ declare module '@tanstack/react-router' {
       path: '/settings/seo'
       fullPath: '/settings/seo/'
       preLoaderRoute: typeof SettingsSeoIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings/organization/': {
+      id: '/settings/organization/'
+      path: '/settings/organization'
+      fullPath: '/settings/organization/'
+      preLoaderRoute: typeof SettingsOrganizationIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings/general/': {
@@ -761,6 +795,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WWorkspaceIdSettingsSeoIndexRouteImport
       parentRoute: typeof WWorkspaceIdRoute
     }
+    '/w/$workspaceId/settings/organization/': {
+      id: '/w/$workspaceId/settings/organization/'
+      path: '/settings/organization'
+      fullPath: '/w/$workspaceId/settings/organization/'
+      preLoaderRoute: typeof WWorkspaceIdSettingsOrganizationIndexRouteImport
+      parentRoute: typeof WWorkspaceIdRoute
+    }
     '/w/$workspaceId/settings/general/': {
       id: '/w/$workspaceId/settings/general/'
       path: '/settings/general'
@@ -827,6 +868,7 @@ interface WWorkspaceIdRouteChildren {
   WWorkspaceIdContentPagesIndexRoute: typeof WWorkspaceIdContentPagesIndexRoute
   WWorkspaceIdPluginsInstalledIndexRoute: typeof WWorkspaceIdPluginsInstalledIndexRoute
   WWorkspaceIdSettingsGeneralIndexRoute: typeof WWorkspaceIdSettingsGeneralIndexRoute
+  WWorkspaceIdSettingsOrganizationIndexRoute: typeof WWorkspaceIdSettingsOrganizationIndexRoute
   WWorkspaceIdSettingsSeoIndexRoute: typeof WWorkspaceIdSettingsSeoIndexRoute
   WWorkspaceIdSettingsWorkspaceIndexRoute: typeof WWorkspaceIdSettingsWorkspaceIndexRoute
 }
@@ -849,6 +891,8 @@ const WWorkspaceIdRouteChildren: WWorkspaceIdRouteChildren = {
   WWorkspaceIdPluginsInstalledIndexRoute:
     WWorkspaceIdPluginsInstalledIndexRoute,
   WWorkspaceIdSettingsGeneralIndexRoute: WWorkspaceIdSettingsGeneralIndexRoute,
+  WWorkspaceIdSettingsOrganizationIndexRoute:
+    WWorkspaceIdSettingsOrganizationIndexRoute,
   WWorkspaceIdSettingsSeoIndexRoute: WWorkspaceIdSettingsSeoIndexRoute,
   WWorkspaceIdSettingsWorkspaceIndexRoute:
     WWorkspaceIdSettingsWorkspaceIndexRoute,
@@ -877,6 +921,7 @@ const rootRouteChildren: RootRouteChildren = {
   ContentPagesIndexRoute: ContentPagesIndexRoute,
   PluginsInstalledIndexRoute: PluginsInstalledIndexRoute,
   SettingsGeneralIndexRoute: SettingsGeneralIndexRoute,
+  SettingsOrganizationIndexRoute: SettingsOrganizationIndexRoute,
   SettingsSeoIndexRoute: SettingsSeoIndexRoute,
   SettingsWorkspaceIndexRoute: SettingsWorkspaceIndexRoute,
   SettingsMaintenanceAuditLogIndexRoute: SettingsMaintenanceAuditLogIndexRoute,

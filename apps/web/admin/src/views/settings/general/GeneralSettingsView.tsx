@@ -3,12 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import {
-  getCoreSettings,
-  getSystemCoreSettings,
-  patchCoreSettings,
-  patchSystemCoreSettings,
-} from "@/api/settings";
+import { getCoreSettings, patchCoreSettings } from "@/api/settings";
 import { DefaultPage } from "@/components/app/defaultPage";
 import {
   ChromeTabs,
@@ -23,9 +18,7 @@ import { buildGeneralSettingsInitialValues } from "./adapters";
 import type { GeneralSettingsPatchFn, WithSavingKeyFn } from "./context";
 import type { GeneralSettingsFormValues, GeneralSettingsTabKey } from "./types";
 import { LocalizationSettingsTab } from "./tabs/LocalizationSettingsTab";
-import { MessagingSettingsTab } from "./tabs/MessagingSettingsTab";
 import { SiteSettingsTab } from "./tabs/SiteSettingsTab";
-import { StorageSettingsTab } from "./tabs/StorageSettingsTab";
 import { useWorkspaceStore } from "@/stores/useWorkspaceStore";
 
 type GeneralSettingsViewProps = {
@@ -52,29 +45,20 @@ export function GeneralSettingsView(props: GeneralSettingsViewProps) {
     meta: { silent: true },
   });
 
-  const systemCoreQuery = useQuery({
-    queryKey: ["settings", "system", "core"],
-    enabled: Boolean(workspaceId),
-    queryFn: async () => getSystemCoreSettings(),
-    staleTime: 5 * 60 * 1000,
-    meta: { silent: true },
-  });
-
   const initialValues = useMemo<GeneralSettingsFormValues>(
     () =>
       buildGeneralSettingsInitialValues({
         workspace: workspaceCoreQuery.data,
-        system: systemCoreQuery.isError ? undefined : systemCoreQuery.data,
       }),
-    [systemCoreQuery.data, systemCoreQuery.isError, workspaceCoreQuery.data],
+    [workspaceCoreQuery.data],
   );
 
   useEffect(() => {
     if (!workspaceCoreQuery.data) return;
-    // Avoid overriding user edits when system scope arrives later.
+    // Avoid overriding user edits when refetching.
     if (form.isFieldsTouched()) return;
     form.setFieldsValue(initialValues);
-  }, [form, initialValues, systemCoreQuery.data, workspaceCoreQuery.data]);
+  }, [form, initialValues, workspaceCoreQuery.data]);
 
   const saveWorkspaceMutation = useMutation({
     mutationFn: async (patch: Record<string, unknown>) =>
@@ -97,22 +81,6 @@ export function GeneralSettingsView(props: GeneralSettingsViewProps) {
     [saveWorkspaceMutation],
   );
 
-  const saveSystemMutation = useMutation({
-    mutationFn: async (patch: Record<string, unknown>) => patchSystemCoreSettings(patch),
-    onSuccess: async () => {
-      notifySuccessText(t("settings:SETTINGS_SAVED"));
-      await queryClient.invalidateQueries({ queryKey: ["settings", "system", "core"] });
-    },
-    onError: (err) => notifyError(err),
-  });
-
-  const patchSystem: GeneralSettingsPatchFn = useCallback(
-    async (patchValue: Record<string, unknown>) => {
-      await saveSystemMutation.mutateAsync(patchValue);
-    },
-    [saveSystemMutation],
-  );
-
   // 统一的 savingKey 管理：解决 validateFields 抛错时 loading“卡住”的问题。
   const withSavingKey: WithSavingKeyFn = useCallback(async (key, fn) => {
     setSavingKey(key);
@@ -124,11 +92,6 @@ export function GeneralSettingsView(props: GeneralSettingsViewProps) {
   }, []);
 
   const workspaceDisabled = workspaceCoreQuery.isFetching || saveWorkspaceMutation.isPending;
-  const messagingDisabled =
-    workspaceDisabled ||
-    systemCoreQuery.isFetching ||
-    saveSystemMutation.isPending ||
-    systemCoreQuery.isError;
   const loadError = useMemo(() => {
     if (workspaceCoreQuery.isError) return workspaceCoreQuery.error;
     if (!workspaceCoreQuery.isLoading && !workspaceCoreQuery.data) {
@@ -145,8 +108,8 @@ export function GeneralSettingsView(props: GeneralSettingsViewProps) {
 
   return (
     <DefaultPage
-      title={t("settings:SETTINGS_GENERAL_TITLE")}
-      description={t("settings:SETTINGS_GENERAL_DESC")}
+      title={t("settings:SETTINGS_SITE_IDENTITY_TITLE")}
+      description={t("settings:SETTINGS_SITE_IDENTITY_DESC")}
       width="fixed"
     >
       <PageState
@@ -175,16 +138,10 @@ export function GeneralSettingsView(props: GeneralSettingsViewProps) {
           >
             <ChromeTabsList>
               <ChromeTabsTrigger value="site">
-                {t("settings:SETTINGS_GENERAL_TAB_SITE")}
+                {t("settings:SETTINGS_SITE_IDENTITY_TAB_SITE")}
               </ChromeTabsTrigger>
               <ChromeTabsTrigger value="localization">
-                {t("settings:SETTINGS_GENERAL_TAB_LOCALIZATION")}
-              </ChromeTabsTrigger>
-              <ChromeTabsTrigger value="storage">
-                {t("settings:SETTINGS_GENERAL_TAB_STORAGE")}
-              </ChromeTabsTrigger>
-              <ChromeTabsTrigger value="messaging">
-                {t("settings:SETTINGS_GENERAL_TAB_MESSAGING")}
+                {t("settings:SETTINGS_SITE_IDENTITY_TAB_LOCALIZATION")}
               </ChromeTabsTrigger>
             </ChromeTabsList>
 
@@ -207,31 +164,6 @@ export function GeneralSettingsView(props: GeneralSettingsViewProps) {
                 savingKey={savingKey}
                 withSavingKey={withSavingKey}
                 patch={patchWorkspace}
-              />
-            </ChromeTabsContent>
-
-            <ChromeTabsContent value="storage">
-              <StorageSettingsTab
-                form={form}
-                initialValues={initialValues}
-                disabled={workspaceDisabled}
-                savingKey={savingKey}
-                withSavingKey={withSavingKey}
-                patch={patchWorkspace}
-                coreSecrets={workspaceCoreQuery.data?.secrets}
-              />
-            </ChromeTabsContent>
-
-            <ChromeTabsContent value="messaging">
-              <MessagingSettingsTab
-                form={form}
-                initialValues={initialValues}
-                disabled={messagingDisabled}
-                savingKey={savingKey}
-                withSavingKey={withSavingKey}
-                patch={patchWorkspace}
-                patchSystem={patchSystem}
-                coreSecrets={systemCoreQuery.data?.secrets}
               />
             </ChromeTabsContent>
           </ChromeTabs>

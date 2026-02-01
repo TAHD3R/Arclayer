@@ -2,7 +2,7 @@ import type { AppLocale } from "@/utils/i18n";
 
 export type StorageProvider = "local" | "s3";
 
-export type GeneralSettingsTabKey = "site" | "localization" | "storage" | "messaging";
+export type GeneralSettingsTabKey = "site" | "localization";
 
 export type GeneralSettingsFormValues = {
   siteName: string;

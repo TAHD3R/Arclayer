@@ -8,7 +8,7 @@ import { useWorkspaceStore } from "@/stores/useWorkspaceStore";
 export const Route = createFileRoute("/w/$workspaceId/settings/general/")({
   validateSearch: (search: Record<string, unknown>): { index?: GeneralSettingsTabKey } => {
     const indexRaw = typeof search.index === "string" ? search.index : undefined;
-    if (indexRaw === "localization" || indexRaw === "storage") return { index: indexRaw };
+    if (indexRaw === "localization") return { index: indexRaw };
     // 默认 Tab（site）不落在 URL 里，保持链接更干净。
     return {};
   },

@@ -10,7 +10,7 @@ from apps.api.plugin.manager import PluginManager
 from apps.api.routers.v1.system.mail.router import router as system_mail_router
 from apps.api.routers.v1.system.plugins_manager.router import router as system_plugins_router
 from apps.api.routers.v1.system.rbac.router import router as system_rbac_router
-from apps.api.routers.v1.system.schema import SystemSetupRequest, SystemSetupResult, SystemSetupStatus
+from apps.api.routers.v1.system.schema import SystemRuntimeOut, SystemSetupRequest, SystemSetupResult, SystemSetupStatus
 from apps.api.routers.v1.system.service import SystemSetupService
 from apps.api.routers.v1.system.settings.router import router as system_settings_router
 
@@ -117,6 +117,32 @@ async def setup_system(
             organization_id=(str(organization.id) if organization is not None else None),
             organization_slug=(organization.slug if organization is not None else None),
             organization_name=(organization.name if organization is not None else None),
+        )
+    )
+
+
+@router.get(
+    "/runtime",
+    response_model=ResponseModel[SystemRuntimeOut],
+    summary="Get public runtime deployment capabilities",
+)
+async def get_system_runtime(
+    settings: Settings = Depends(get_settings),
+) -> ResponseModel[SystemRuntimeOut]:
+    """
+    Public, non-sensitive runtime probe endpoint.
+
+    Used by the admin frontend to decide whether instance-level deployment settings
+    (e.g. storage/mail) should be exposed in the UI.
+    """
+
+    deployment_mode = settings.application.deployment_mode
+    return Response.success(
+        data=SystemRuntimeOut(
+            deployment_mode=deployment_mode,
+            capabilities={
+                "deployment_settings_enabled": deployment_mode == "self_host",
+            },
         )
     )
 

@@ -8,6 +8,7 @@ from apps.api.core.http.pagination import PageData, PageParams, get_page_params
 from apps.api.core.http.response import Response, ResponseModel
 from apps.api.core.i18n import t
 from apps.api.core.org.deps import require_org_owner
+from apps.api.core.system.deps import require_self_host_deployment_mode
 from apps.api.plugin.manager import PluginManager
 from apps.api.routers.v1.auth.deps import get_current_user
 from apps.api.routers.v1.system.settings.schema import SettingsDetail, SettingsNamespaceSummary, SettingsPatch
@@ -15,7 +16,7 @@ from apps.api.routers.v1.system.settings.service import SettingsService
 
 router = APIRouter(
     tags=["System: Settings"],
-    dependencies=[Depends(require_org_owner)],
+    dependencies=[Depends(require_self_host_deployment_mode), Depends(require_org_owner)],
 )
 
 
