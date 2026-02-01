@@ -6,7 +6,7 @@ from fastapi import Depends
 
 from apps.api.core.exceptions import Forbidden
 from apps.api.core.i18n import t
-from apps.api.models.org_membership import OrgMembership
+from apps.api.models.org_membership import OrgMembership, OrgRole
 from apps.api.routers.v1.auth.deps import get_current_user_id
 
 
@@ -45,9 +45,28 @@ async def require_org_owner(
     - For now, org owner is the only authority allowed to change system-wide settings.
     """
 
-    if not orgm.is_owner:
+    if orgm.role != OrgRole.OWNER:
         raise Forbidden(
             message=t("errors", "PERMISSION_DENIED", default="权限不足"),
             error="ORG_OWNER_REQUIRED",
+        )
+    return orgm
+
+
+async def require_org_admin(
+    orgm: OrgMembership = Depends(get_current_org_membership),
+) -> OrgMembership:
+    """
+    Organization-level admin gate.
+
+    - OWNER implies ADMIN permissions.
+    - Used for high-impact org operations (e.g. plugin management) that should not be
+      exposed to regular members.
+    """
+
+    if orgm.role not in (OrgRole.OWNER, OrgRole.ADMIN):
+        raise Forbidden(
+            message=t("errors", "PERMISSION_DENIED", default="权限不足"),
+            error="ORG_ADMIN_REQUIRED",
         )
     return orgm

@@ -2,13 +2,12 @@ from __future__ import annotations
 
 """RBAC-related constants."""
 
-# Keep role codes stable because they are persisted in DB and referenced by defaults.
+# Workspace system roles (stable identifiers persisted in DB).
 ROLE_OWNER = "owner"
 ROLE_ADMIN = "admin"
-ROLE_ARCHITECT = "architect"
 ROLE_EDITOR = "editor"
+ROLE_DESIGNER = "designer"
 ROLE_VIEWER = "viewer"
-ROLE_USER = "user"
 
 # Marker row key for one-time admin bootstrap.
 BOOTSTRAP_KEY = "bootstrap_admin"

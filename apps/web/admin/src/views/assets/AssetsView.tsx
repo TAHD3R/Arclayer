@@ -19,6 +19,7 @@ import {
   useInfiniteQuery,
   useMutation,
   useQuery,
+  useQueries,
   useQueryClient,
 } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
@@ -82,10 +83,14 @@ import { AssetUploadDialog } from "@/views/assets/components/AssetUploadDialog";
 import {
   clearSelection,
   rangeSelect,
+  selectOrClearOnPlainClick,
   selectOnly,
   toggleSelect,
   type AssetSelectionState,
 } from "@/views/assets/utils/assetSelection";
+import { shouldClearMasonrySelectionOnMouseDown } from "@/views/assets/utils/masonryInteractions";
+import { filterFoldersByContentCheck } from "@/views/assets/utils/folderVisibility";
+import { isExplicitAssetsFilterActive } from "@/views/assets/utils/assetsFiltering";
 import type { MenuProps } from "antd";
 import { useWorkspaceStore } from "@/stores/useWorkspaceStore";
 
@@ -508,6 +513,26 @@ export function AssetsView() {
     [t],
   );
 
+  const explicitFilterActive = useMemo(
+    () =>
+      isExplicitAssetsFilterActive({
+        searchQuery,
+        mimePrefix: filters.mimePrefix,
+        visibility: filters.visibility,
+        createdFrom: filters.createdFrom,
+        createdTo: filters.createdTo,
+        tagIds: filters.tagIds,
+      }),
+    [
+      filters.createdFrom,
+      filters.createdTo,
+      filters.mimePrefix,
+      filters.tagIds,
+      filters.visibility,
+      searchQuery,
+    ],
+  );
+
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -782,7 +807,7 @@ export function AssetsView() {
     setEditAccessOpen(true);
   };
 
-  const folderEntries = useMemo<MasonryEntry[]>(() => {
+  const visibleFolders = useMemo<AdminAssetFolder[]>(() => {
     const folders = (foldersQuery.data?.items ?? []) as AdminAssetFolder[];
     const isRoot = !currentFolderId;
 
@@ -791,11 +816,83 @@ export function AssetsView() {
     );
 
     // Root shows only top-level folders; folder mode shows its immediate children.
+    return visible;
+  }, [currentFolderId, foldersQuery.data]);
+
+  const folderHasMatchQueries = useQueries({
+    queries: visibleFolders.map((folder) => ({
+      queryKey: [
+        "assets",
+        "folderHasMatch",
+        workspaceId,
+        String(folder.id),
+        {
+          purpose: "library",
+          q: searchQuery || undefined,
+          mimePrefix: filters.mimePrefix,
+          visibility: filters.visibility,
+          createdFrom: filters.createdFrom,
+          createdTo: filters.createdTo,
+          tagIds: filters.tagIds,
+        },
+      ],
+      enabled: Boolean(workspaceId) && visibleFolders.length > 0 && explicitFilterActive,
+      staleTime: 30 * 1000,
+      queryFn: async () => {
+        if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
+        // Cheap existence check: fetch 1 item only.
+        return listAssets(String(workspaceId), {
+          page: 1,
+          size: 1,
+          purpose: "library",
+          q: searchQuery || undefined,
+          mimePrefix: filters.mimePrefix,
+          visibility: filters.visibility,
+          createdFrom: filters.createdFrom,
+          createdTo: filters.createdTo,
+          tagIds: filters.tagIds,
+          folderId: String(folder.id),
+          includeChildren: true,
+        });
+      },
+    })),
+  });
+
+  const filteredVisibleFolders = useMemo(() => {
+    // Do NOT hide empty folders unless user explicitly applies search/filters.
+    // Otherwise, a newly created empty folder would disappear and users can never move assets into it.
+    if (!explicitFilterActive) return visibleFolders;
+
+    const byId = new Map<string, boolean | undefined>();
+    for (let i = 0; i < visibleFolders.length; i += 1) {
+      const folder = visibleFolders[i];
+      const q = folderHasMatchQueries[i];
+      // q 不存在基本不可能；兜底为“未知 => 先展示”。
+      if (!q) {
+        byId.set(String(folder.id), undefined);
+        continue;
+      }
+      if (q.isError) {
+        // Folder existence check is best-effort; on error we keep the folder visible to avoid hiding content incorrectly.
+        byId.set(String(folder.id), undefined);
+        continue;
+      }
+      if (!q.data) {
+        byId.set(String(folder.id), undefined);
+        continue;
+      }
+      byId.set(String(folder.id), (q.data.total || 0) > 0);
+    }
+    return filterFoldersByContentCheck(visibleFolders, byId);
+  }, [explicitFilterActive, folderHasMatchQueries, visibleFolders]);
+
+  const folderEntries = useMemo<MasonryEntry[]>(() => {
+    const isRoot = !currentFolderId;
     const out: MasonryEntry[] = [];
     if (!isRoot) out.push({ kind: "folderUp" });
-    for (const f of visible) out.push({ kind: "folder", folder: f });
+    for (const f of filteredVisibleFolders) out.push({ kind: "folder", folder: f });
     return out;
-  }, [currentFolderId, foldersQuery.data]);
+  }, [currentFolderId, filteredVisibleFolders]);
 
   const masonryEntries = useMemo<MasonryEntry[]>(() => {
     return [...folderEntries, ...items.map((asset): MasonryEntry => ({ kind: "asset", asset }))];
@@ -1267,7 +1364,33 @@ export function AssetsView() {
           ) : undefined
         }
         empty={masonryEntries.length === 0}
-        emptyDescription={t("assets:ASSET_EMPTY")}
+        emptyTitle={
+          explicitFilterActive ? t("assets:ASSET_EMPTY_SEARCH_TITLE") : t("assets:ASSET_EMPTY")
+        }
+        emptyDescription={
+          <div>
+            <p>
+              {explicitFilterActive
+                ? t("assets:ASSET_EMPTY_SEARCH_DESC")
+                : t("assets:ASSET_EMPTY_DESC")}
+            </p>
+          </div>
+        }
+        emptyExtra={
+          explicitFilterActive ? (
+            <Button
+              type="default"
+              onClick={() => {
+                setSearchInput("");
+                setSearchQuery("");
+                setFilters({ visibility: "public" });
+                setMoreOpen(false);
+              }}
+            >
+              {t("assets:ASSET_FILTER_RESET")}
+            </Button>
+          ) : null
+        }
       >
         <DndContext
           sensors={sensors}
@@ -1368,10 +1491,8 @@ export function AssetsView() {
             className="select-none"
             onMouseDown={(e) => {
               const target = e.target as HTMLElement | null;
-              if (!target) return;
               // Click blank area => clear selection & folder focus (file-manager-like UX).
-              if (target.closest("[data-asset-tile='true']")) return;
-              if (target.closest("[data-folder-tile='true']")) return;
+              if (!shouldClearMasonrySelectionOnMouseDown(target)) return;
               setSelection((prev) => clearSelection(prev));
               setFocusedFolderId(null);
             }}
@@ -1481,7 +1602,7 @@ export function AssetsView() {
                                 setSelection((prev) => toggleSelect(prev, id));
                                 return;
                               }
-                              setSelection((prev) => selectOnly(prev, id));
+                              setSelection((prev) => selectOrClearOnPlainClick(prev, id, e.detail));
                             }}
                             onToggleSelected={(id) => {
                               setFocusedFolderId(null);

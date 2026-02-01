@@ -7,7 +7,7 @@ from fastapi import Depends
 from apps.api.core.exceptions import Forbidden
 from apps.api.core.i18n import t
 from apps.api.core.workspace.deps import WorkspaceContext, require_workspace_manage_access
-from apps.api.models.rbac import Permission, Role
+from apps.api.models.rbac import Permission, PermissionScope, Role
 from apps.api.models.workspace import WorkspaceMembershipRole
 from apps.api.routers.v1.auth.deps import get_current_user_id
 
@@ -38,7 +38,8 @@ async def _ensure_creator_admin_has_admin_role(*, ctx: WorkspaceContext, user_id
         return
     if ctx.workspace_membership_id is None:
         return
-    admin_role = await Role.get_or_none(code="admin")
+    # Creator-admin gets the workspace Owner role by default.
+    admin_role = await Role.get_or_none(workspace_id=ctx.workspace_id, code="owner", is_system=True)
     if admin_role is None:
         return
     await WorkspaceMembershipRole.get_or_create(membership_id=ctx.workspace_membership_id, role_id=admin_role.id)
@@ -67,11 +68,13 @@ def require_workspace_permission(permission: str):
             )
 
         # Superuser roles implicitly have all permissions.
-        if await Role.filter(code__in=role_codes, is_superuser=True).exists():
+        if await Role.filter(workspace_id=ctx.workspace_id, code__in=role_codes, is_superuser=True).exists():
             return
 
         ok = await Permission.filter(
             code=permission,
+            scope=PermissionScope.WORKSPACE,
+            permission_roles__role__workspace_id=ctx.workspace_id,
             permission_roles__role__code__in=role_codes,
         ).exists()
         if not ok:

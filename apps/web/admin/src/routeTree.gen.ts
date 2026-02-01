@@ -50,6 +50,7 @@ import { Route as WWorkspaceIdContentLibraryIndexRouteImport } from './routes/w/
 import { Route as WWorkspaceIdAppearanceThemesIndexRouteImport } from './routes/w/$workspaceId/appearance/themes/index'
 import { Route as WWorkspaceIdAppearanceStylesIndexRouteImport } from './routes/w/$workspaceId/appearance/styles/index'
 import { Route as WWorkspaceIdAppearanceNavigationIndexRouteImport } from './routes/w/$workspaceId/appearance/navigation/index'
+import { Route as WWorkspaceIdSettingsTeamRolesIndexRouteImport } from './routes/w/$workspaceId/settings/team/roles/index'
 
 const SetupRoute = SetupRouteImport.update({
   id: '/setup',
@@ -273,6 +274,12 @@ const WWorkspaceIdAppearanceNavigationIndexRoute =
     path: '/appearance/navigation/',
     getParentRoute: () => WWorkspaceIdRoute,
   } as any)
+const WWorkspaceIdSettingsTeamRolesIndexRoute =
+  WWorkspaceIdSettingsTeamRolesIndexRouteImport.update({
+    id: '/settings/team/roles/',
+    path: '/settings/team/roles/',
+    getParentRoute: () => WWorkspaceIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -316,6 +323,7 @@ export interface FileRoutesByFullPath {
   '/w/$workspaceId/settings/organization/': typeof WWorkspaceIdSettingsOrganizationIndexRoute
   '/w/$workspaceId/settings/seo/': typeof WWorkspaceIdSettingsSeoIndexRoute
   '/w/$workspaceId/settings/workspace/': typeof WWorkspaceIdSettingsWorkspaceIndexRoute
+  '/w/$workspaceId/settings/team/roles/': typeof WWorkspaceIdSettingsTeamRolesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -358,6 +366,7 @@ export interface FileRoutesByTo {
   '/w/$workspaceId/settings/organization': typeof WWorkspaceIdSettingsOrganizationIndexRoute
   '/w/$workspaceId/settings/seo': typeof WWorkspaceIdSettingsSeoIndexRoute
   '/w/$workspaceId/settings/workspace': typeof WWorkspaceIdSettingsWorkspaceIndexRoute
+  '/w/$workspaceId/settings/team/roles': typeof WWorkspaceIdSettingsTeamRolesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -402,6 +411,7 @@ export interface FileRoutesById {
   '/w/$workspaceId/settings/organization/': typeof WWorkspaceIdSettingsOrganizationIndexRoute
   '/w/$workspaceId/settings/seo/': typeof WWorkspaceIdSettingsSeoIndexRoute
   '/w/$workspaceId/settings/workspace/': typeof WWorkspaceIdSettingsWorkspaceIndexRoute
+  '/w/$workspaceId/settings/team/roles/': typeof WWorkspaceIdSettingsTeamRolesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -447,6 +457,7 @@ export interface FileRouteTypes {
     | '/w/$workspaceId/settings/organization/'
     | '/w/$workspaceId/settings/seo/'
     | '/w/$workspaceId/settings/workspace/'
+    | '/w/$workspaceId/settings/team/roles/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -489,6 +500,7 @@ export interface FileRouteTypes {
     | '/w/$workspaceId/settings/organization'
     | '/w/$workspaceId/settings/seo'
     | '/w/$workspaceId/settings/workspace'
+    | '/w/$workspaceId/settings/team/roles'
   id:
     | '__root__'
     | '/'
@@ -532,6 +544,7 @@ export interface FileRouteTypes {
     | '/w/$workspaceId/settings/organization/'
     | '/w/$workspaceId/settings/seo/'
     | '/w/$workspaceId/settings/workspace/'
+    | '/w/$workspaceId/settings/team/roles/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -851,6 +864,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WWorkspaceIdAppearanceNavigationIndexRouteImport
       parentRoute: typeof WWorkspaceIdRoute
     }
+    '/w/$workspaceId/settings/team/roles/': {
+      id: '/w/$workspaceId/settings/team/roles/'
+      path: '/settings/team/roles'
+      fullPath: '/w/$workspaceId/settings/team/roles/'
+      preLoaderRoute: typeof WWorkspaceIdSettingsTeamRolesIndexRouteImport
+      parentRoute: typeof WWorkspaceIdRoute
+    }
   }
 }
 
@@ -871,6 +891,7 @@ interface WWorkspaceIdRouteChildren {
   WWorkspaceIdSettingsOrganizationIndexRoute: typeof WWorkspaceIdSettingsOrganizationIndexRoute
   WWorkspaceIdSettingsSeoIndexRoute: typeof WWorkspaceIdSettingsSeoIndexRoute
   WWorkspaceIdSettingsWorkspaceIndexRoute: typeof WWorkspaceIdSettingsWorkspaceIndexRoute
+  WWorkspaceIdSettingsTeamRolesIndexRoute: typeof WWorkspaceIdSettingsTeamRolesIndexRoute
 }
 
 const WWorkspaceIdRouteChildren: WWorkspaceIdRouteChildren = {
@@ -896,6 +917,8 @@ const WWorkspaceIdRouteChildren: WWorkspaceIdRouteChildren = {
   WWorkspaceIdSettingsSeoIndexRoute: WWorkspaceIdSettingsSeoIndexRoute,
   WWorkspaceIdSettingsWorkspaceIndexRoute:
     WWorkspaceIdSettingsWorkspaceIndexRoute,
+  WWorkspaceIdSettingsTeamRolesIndexRoute:
+    WWorkspaceIdSettingsTeamRolesIndexRoute,
 }
 
 const WWorkspaceIdRouteWithChildren = WWorkspaceIdRoute._addFileChildren(

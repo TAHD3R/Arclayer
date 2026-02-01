@@ -15,7 +15,7 @@ class OrganizationBriefOut(BaseOut):
 
 class OrganizationMembershipOut(BaseOut):
     organization_id: UUID = Field(..., description="Organization id.")
-    is_owner: bool = Field(..., description="Whether current user is organization owner.")
+    role: str = Field(..., description="Organization role (owner/admin/member).")
     status: str = Field(..., description="Membership status.")
 
 

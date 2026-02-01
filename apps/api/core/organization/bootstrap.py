@@ -38,7 +38,7 @@ async def ensure_organization_ready() -> None:
 
     if org is not None:
         # v2 note: org_membership is the account-level linkage (A2: single org per user).
-        from apps.api.models.org_membership import OrgMembership
+        from apps.api.models.org_membership import OrgMembership, OrgRole
         from apps.api.models.user import User
         from apps.api.models.workspace import Workspace
 
@@ -47,7 +47,7 @@ async def ensure_organization_ready() -> None:
         for user in users:
             _, created2 = await OrgMembership.get_or_create(
                 user_id=user.id,
-                defaults={"organization_id": org.id, "is_owner": False, "status": "active"},
+                defaults={"organization_id": org.id, "role": OrgRole.MEMBER, "status": "active"},
             )
             if created2:
                 created_org_memberships += 1

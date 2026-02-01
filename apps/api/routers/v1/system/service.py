@@ -155,8 +155,8 @@ class SystemSetupService(BaseService):
         """
 
         try:
-            from apps.api.models.org_membership import OrgMembership
-            from apps.api.models.rbac import Role
+            from apps.api.core.rbac.service import RBACService
+            from apps.api.models.org_membership import OrgMembership, OrgRole
             from apps.api.models.workspace import (
                 Workspace,
                 WorkspaceMembership,
@@ -166,7 +166,7 @@ class SystemSetupService(BaseService):
 
             await OrgMembership.get_or_create(
                 user_id=owner_user_id,
-                defaults={"organization_id": org_id, "is_owner": True, "status": "active"},
+                defaults={"organization_id": org_id, "role": OrgRole.OWNER, "status": "active"},
             )
             # If already exists, ensure owner + org_id match.
             orgm = await OrgMembership.get_or_none(user_id=owner_user_id)
@@ -175,14 +175,14 @@ class SystemSetupService(BaseService):
                 if str(orgm.organization_id) != str(org_id):
                     orgm.organization_id = org_id
                     changed = True
-                if not orgm.is_owner:
-                    orgm.is_owner = True
+                if orgm.role != OrgRole.OWNER:
+                    orgm.role = OrgRole.OWNER
                     changed = True
                 if orgm.status != "active":
                     orgm.status = "active"
                     changed = True
                 if changed:
-                    await orgm.save(update_fields=["organization_id", "is_owner", "status", "updated_at"])
+                    await orgm.save(update_fields=["organization_id", "role", "status", "updated_at"])
 
             ws = await Workspace.filter(organization_id=org_id).order_by("created_at").first()
             if ws is None:
@@ -206,10 +206,12 @@ class SystemSetupService(BaseService):
                 wsm.status = WorkspaceMembershipStatus.ACTIVE
                 await wsm.save(update_fields=["status", "updated_at"])
 
-            # Ensure admin role binding for owner.
-            role_admin = await Role.get_or_none(code="admin")
-            if role_admin is not None:
-                await WorkspaceMembershipRole.get_or_create(membership_id=wsm.id, role_id=role_admin.id)
+            # Ensure workspace Owner role binding for setup user.
+            rbac = RBACService(self.settings)
+            await rbac.ensure_workspace_system_roles(workspace_id=ws.id)
+            role_owner = await rbac.repo.get_role_by_code(workspace_id=ws.id, code="owner")
+            if role_owner is not None:
+                await WorkspaceMembershipRole.get_or_create(membership_id=wsm.id, role_id=role_owner.id)
             return ws.id
         except Exception as exc:
             self.logger.warning("Ensure default workspace failed", error=str(exc), org_id=str(org_id))

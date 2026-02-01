@@ -17,6 +17,7 @@ class PluginDependency(BaseSchema):
 
 class PermissionTemplate(BaseSchema):
     code: str
+    scope: str = "workspace"
     name: str
     description: str | None = None
     name_i18n: str | None = None

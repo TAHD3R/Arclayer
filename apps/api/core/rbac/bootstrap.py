@@ -26,5 +26,5 @@ async def ensure_rbac_ready(*, settings: Settings) -> None:
     """
 
     service = RBACService(settings)
-    await service.ensure_system_roles()
-    await service.sync_permissions()
+    await service.sync_permission_catalog()
+    await service.ensure_all_workspaces_ready()

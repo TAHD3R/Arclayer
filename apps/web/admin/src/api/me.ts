@@ -10,7 +10,7 @@ export interface MyOrganization {
   membership: {
     id: string;
     organizationId: string;
-    isOwner: boolean;
+    role: "owner" | "admin" | "member";
     status: string;
   };
 }

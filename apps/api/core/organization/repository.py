@@ -3,7 +3,7 @@ from __future__ import annotations
 from uuid import UUID
 
 from apps.api.common.repositories import BaseRepository
-from apps.api.models.org_membership import OrgMembership
+from apps.api.models.org_membership import OrgMembership, OrgRole
 from apps.api.models.organization import Organization
 
 
@@ -25,11 +25,11 @@ class OrganizationRepository(BaseRepository):
         *,
         user_id: UUID,
         organization_id: UUID,
-        is_owner: bool = False,
+        role: OrgRole = OrgRole.MEMBER,
     ) -> OrgMembership:
         orgm, _ = await OrgMembership.get_or_create(
             user_id=user_id,
-            defaults={"organization_id": organization_id, "is_owner": is_owner, "status": "active"},
+            defaults={"organization_id": organization_id, "role": role, "status": "active"},
         )
         # Defensive: if the user already belongs to another org, we do not auto-migrate here.
         return orgm

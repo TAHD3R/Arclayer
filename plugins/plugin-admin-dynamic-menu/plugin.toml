@@ -15,6 +15,7 @@ license = "MIT"
 
 [[permissions]]
 code = "admin:menu:read"
+scope = "workspace"
 name = "Read menus"
 description = "Allow listing and viewing menu items."
 name_i18n = "admin_menu:PERM_MENU_READ_NAME"
@@ -23,6 +24,7 @@ default_roles = ["admin"]
 
 [[permissions]]
 code = "admin:menu:write"
+scope = "workspace"
 name = "Manage menus"
 description = "Allow creating, updating, deleting and reordering menu items."
 name_i18n = "admin_menu:PERM_MENU_WRITE_NAME"

@@ -78,11 +78,11 @@ class WorkspaceTeamService(BaseService):
             role_codes=role_codes,
         )
 
-    async def _get_role_by_code(self, *, role_code: str) -> Role | None:
+    async def _get_role_by_code_in_workspace(self, *, workspace_id: UUID, role_code: str) -> Role | None:
         code = (role_code or "").strip()
         if not code:
             return None
-        return await Role.get_or_none(code=code)
+        return await Role.get_or_none(workspace_id=workspace_id, code=code)
 
     async def _list_recent_participants(
         self, *, link_id: UUID, limit: int = 3
@@ -262,7 +262,7 @@ class WorkspaceTeamService(BaseService):
             )
 
         role_codes = [c.strip() for c in (payload.role_codes or []) if c and c.strip()]
-        roles = await self.repo.get_roles_by_codes(role_codes=role_codes)
+        roles = await self.repo.get_roles_by_codes(workspace_id=workspace_id, role_codes=role_codes)
         found = {r.code for r in roles}
         missing = [c for c in role_codes if c not in found]
         if missing:
@@ -287,7 +287,7 @@ class WorkspaceTeamService(BaseService):
         expires_at = build_expires_at(expires_in_seconds=payload.expires_in_seconds)
 
         if role_code:
-            role = await self._get_role_by_code(role_code=role_code)
+            role = await self._get_role_by_code_in_workspace(workspace_id=workspace_id, role_code=role_code)
             if role is None:
                 raise BadRequest(
                     message=t("errors", "ROLE_NOT_FOUND", default="角色不存在"),
@@ -445,7 +445,7 @@ class WorkspaceTeamService(BaseService):
             allowed_domain = allowed_domain[1:] if allowed_domain.startswith("@") else allowed_domain
 
         if role_code:
-            role = await self._get_role_by_code(role_code=role_code)
+            role = await self._get_role_by_code_in_workspace(workspace_id=workspace_id, role_code=role_code)
             if role is None:
                 raise BadRequest(
                     message=t("errors", "ROLE_NOT_FOUND", default="角色不存在"),

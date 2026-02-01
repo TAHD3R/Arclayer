@@ -4,6 +4,36 @@
   "TEAM_INVITATIONS_DESC": "Review invitations sent to you and manage invite links you created.",
   "TEAM_WORKSPACE_FALLBACK": "Workspace",
 
+  "TEAM_ROLES_TITLE": "Roles & Permissions",
+  "TEAM_ROLES_DESC": "Configure access control for collaboration using a roles-permissions matrix.",
+  "TEAM_ROLES_SEARCH_PLACEHOLDER": "Search permissions / roles",
+  "TEAM_ROLES_ADD_ROLE": "Add role",
+
+  "TEAM_ROLES_ADD_ROLE_DIALOG_TITLE": "Add role",
+  "TEAM_ROLES_ADD_ROLE_DIALOG_DESC": "Create a workspace-private custom role from a template.",
+  "TEAM_ROLES_FIELD_TEMPLATE": "Template",
+  "TEAM_ROLES_FIELD_TEMPLATE_PLACEHOLDER": "Select a role template",
+  "TEAM_ROLES_TEMPLATE_NONE": "No template",
+  "TEAM_ROLES_FIELD_CODE": "Role code",
+  "TEAM_ROLES_FIELD_CODE_HELP": "Used as a stable identifier (unique within workspace). Use lowercase letters and dashes.",
+  "TEAM_ROLES_FIELD_NAME": "Role name",
+  "TEAM_ROLES_FIELD_DESC": "Role description (optional)",
+  "TEAM_ROLES_CREATE_SUCCESS": "Role created",
+  "TEAM_ROLES_DELETE_SUCCESS": "Role deleted",
+  "TEAM_ROLES_DELETE_TITLE": "Delete role?",
+  "TEAM_ROLES_DELETE_DESC": "This will unbind the role from all members and cannot be undone. Target: {{roleName}}",
+
+  "TEAM_ROLES_PERMISSION_DIALOG_TITLE": "Who can {{permissionName}}?",
+  "TEAM_ROLES_PERMISSION_DIALOG_DESC": "Select roles allowed to perform this permission (system roles are immutable).",
+  "TEAM_ROLES_PERMISSION_ACTION": "Manage permission",
+  "TEAM_ROLES_PERMISSION_SAVE_SUCCESS": "Permission updated",
+  "TEAM_ROLES_PERMISSION_SOURCE_PLUGIN": "Source: {{plugin}}",
+  "TEAM_ROLES_PERMISSION_PROVIDED_BY": "Provided by {{pluginName}}",
+
+  "TEAM_ROLES_COL_PERMISSION": "Permissions",
+
+  "TEAM_ROLES_EMPTY_SEARCH": "No matching permissions or roles found",
+
   "TEAM_INVITATIONS_TAB_PENDING": "Pending",
   "TEAM_INVITATIONS_TAB_ACCEPTED": "Accepted",
   "TEAM_INVITATIONS_TAB_LINKS": "Invite links",

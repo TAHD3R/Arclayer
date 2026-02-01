@@ -80,7 +80,7 @@ def _mask_email(email: str) -> str:
     return f"{local[:2]}***{local[-1]}@{domain}"
 
 
-async def _ensure_role_codes_have_admin_access(*, role_codes: list[str], conn) -> None:
+async def _ensure_role_codes_have_admin_access(*, workspace_id: UUID, role_codes: list[str], conn) -> None:
     """
     Defensive invariant for onboarding flows:
     user must be able to access admin console after accepting the invitation.
@@ -94,13 +94,15 @@ async def _ensure_role_codes_have_admin_access(*, role_codes: list[str], conn) -
         )
 
     # Superuser roles implicitly have all permissions.
-    if await Role.filter(code__in=codes, is_superuser=True).using_db(conn).exists():
+    if await Role.filter(workspace_id=workspace_id, code__in=codes, is_superuser=True).using_db(conn).exists():
         return
 
     ok = (
         await Permission
         .filter(
             code="admin:access",
+            scope="workspace",
+            permission_roles__role__workspace_id=workspace_id,
             permission_roles__role__code__in=codes,
         )
         .using_db(conn)
@@ -553,11 +555,13 @@ async def accept_invitation(
         await UserCredential.create(using_db=conn, user_id=user.id, password_hash=password_hash)
 
         # A2 invariant: user can only belong to one organization.
+        from apps.api.models.org_membership import OrgRole
+
         await OrgMembership.create(
             using_db=conn,
             organization_id=organization_id,
             user_id=user.id,
-            is_owner=False,
+            role=OrgRole.MEMBER,
             status="active",
         )
 
@@ -573,16 +577,18 @@ async def accept_invitation(
 
         roles: list[Role] = []
         if assigned_role_code:
-            role = await Role.get_or_none(code=assigned_role_code, using_db=conn)
+            role = await Role.get_or_none(workspace_id=workspace_id, code=assigned_role_code, using_db=conn)
             if role is not None:
                 roles = [role]
         else:
-            roles = await Role.filter(is_default=True).using_db(conn).all()
+            roles = await Role.filter(workspace_id=workspace_id, is_default=True).using_db(conn).all()
 
         for role in roles:
             await WorkspaceMembershipRole.get_or_create(using_db=conn, membership_id=wsm.id, role_id=role.id)
 
-        await _ensure_role_codes_have_admin_access(role_codes=[r.code for r in roles], conn=conn)
+        await _ensure_role_codes_have_admin_access(
+            workspace_id=workspace_id, role_codes=[r.code for r in roles], conn=conn
+        )
 
         if email_inv is not None:
             email_inv.accepted_by_user_id = user.id
@@ -748,16 +754,22 @@ async def preview_invitation(
     role_out: InvitationPreviewRoleOut | None = None
     role_obj: Role | None = None
     if role_code:
-        role_obj = await Role.get_or_none(code=role_code)
+        role_obj = await Role.get_or_none(workspace_id=ws.id, code=role_code)
     if role_obj is None:
-        role_obj = await Role.get_or_none(code="viewer")
+        role_obj = await Role.get_or_none(workspace_id=ws.id, code="viewer")
     if role_obj is None:
-        role_obj = await Role.filter(is_default=True).order_by("code").first()
+        role_obj = await Role.filter(workspace_id=ws.id, is_default=True).order_by("code").first()
     if role_obj is not None:
+        # Localize role name/description for preview UX.
+        from apps.api.core.i18n import get_current_locale
+        from apps.api.core.rbac.service import RBACService
+
+        rbac = RBACService(settings)
+        localized = rbac.localize_role(role_obj, locale=get_current_locale())
         role_out = InvitationPreviewRoleOut(
             code=role_obj.code,
-            name=role_obj.name or role_obj.code,
-            description=role_obj.description,
+            name=str(localized.get("name") or role_obj.code),
+            description=localized.get("description"),
         )
 
     user_exists = bool(invitation_email) and await User.filter(email=invitation_email).exists()
@@ -899,11 +911,13 @@ async def accept_existing_invitation(
         # A2: user can only be in one org.
         existing_orgm = await OrgMembership.filter(user_id=user.id).using_db(conn).select_for_update().first()
         if existing_orgm is None:
+            from apps.api.models.org_membership import OrgRole
+
             await OrgMembership.create(
                 using_db=conn,
                 organization_id=organization_id,
                 user_id=user.id,
-                is_owner=False,
+                role=OrgRole.MEMBER,
                 status="active",
             )
         else:
@@ -925,16 +939,18 @@ async def accept_existing_invitation(
 
         roles: list[Role] = []
         if assigned_role_code:
-            role = await Role.get_or_none(code=assigned_role_code, using_db=conn)
+            role = await Role.get_or_none(workspace_id=workspace_id, code=assigned_role_code, using_db=conn)
             if role is not None:
                 roles = [role]
         else:
-            roles = await Role.filter(is_default=True).using_db(conn).all()
+            roles = await Role.filter(workspace_id=workspace_id, is_default=True).using_db(conn).all()
 
         for role in roles:
             await WorkspaceMembershipRole.get_or_create(using_db=conn, membership_id=wsm.id, role_id=role.id)
 
-        await _ensure_role_codes_have_admin_access(role_codes=[r.code for r in roles], conn=conn)
+        await _ensure_role_codes_have_admin_access(
+            workspace_id=workspace_id, role_codes=[r.code for r in roles], conn=conn
+        )
 
         if email_inv is not None:
             email_inv.accepted_by_user_id = user.id

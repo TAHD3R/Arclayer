@@ -484,7 +484,7 @@ export function AdminAccountMenu() {
     void navigate({ to: "/" });
   };
 
-  const isOrgOwner = myOrgQuery.data?.membership?.isOwner ?? false;
+  const isOrgOwner = myOrgQuery.data?.membership?.role === "owner";
   const onOrganizationSettings = () => {
     if (workspaceId) {
       void navigate({ to: `/w/${workspaceId}/settings/organization` });

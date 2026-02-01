@@ -52,10 +52,10 @@ class WorkspaceTeamRepository(BaseRepository):
         for rid in role_ids:
             await WorkspaceMembershipRole.get_or_create(membership_id=membership_id, role_id=rid)
 
-    async def get_roles_by_codes(self, *, role_codes: list[str]) -> list[Role]:
+    async def get_roles_by_codes(self, *, workspace_id: UUID, role_codes: list[str]) -> list[Role]:
         if not role_codes:
             return []
-        return await Role.filter(code__in=role_codes).all()
+        return await Role.filter(workspace_id=workspace_id, code__in=role_codes).all()
 
 
 _ALLOWED_USER_ORDER_FIELDS = ADMIN_USERS_ALLOWED_ORDER_FIELDS

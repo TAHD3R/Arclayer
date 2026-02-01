@@ -3,7 +3,7 @@ from __future__ import annotations
 from uuid import UUID
 
 from apps.api.common.schemas import AuthzSnapshot
-from apps.api.models.rbac import Permission, Role
+from apps.api.models.rbac import Permission, PermissionScope, Role
 
 
 async def get_workspace_authz_snapshot(*, user_id: UUID, workspace_id: UUID) -> AuthzSnapshot:
@@ -32,7 +32,7 @@ async def get_workspace_authz_snapshot(*, user_id: UUID, workspace_id: UUID) -> 
 
     is_superuser = any(bool(r.is_superuser) for r in roles)
     if is_superuser:
-        perms = await Permission.all().order_by("code").all()
+        perms = await Permission.filter(scope=PermissionScope.WORKSPACE).order_by("code").all()
         permission_codes = [p.code for p in perms if p and p.code]
         return AuthzSnapshot(
             user_id=user_id,
@@ -41,7 +41,17 @@ async def get_workspace_authz_snapshot(*, user_id: UUID, workspace_id: UUID) -> 
             is_superuser=True,
         )
 
-    perms = await Permission.filter(permission_roles__role__code__in=role_codes).distinct().order_by("code").all()
+    perms = (
+        await Permission
+        .filter(
+            scope=PermissionScope.WORKSPACE,
+            permission_roles__role__workspace_id=workspace_id,
+            permission_roles__role__code__in=role_codes,
+        )
+        .distinct()
+        .order_by("code")
+        .all()
+    )
     permission_codes = [p.code for p in perms if p and p.code]
     return AuthzSnapshot(
         user_id=user_id,

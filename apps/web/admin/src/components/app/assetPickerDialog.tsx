@@ -179,7 +179,7 @@ export function AssetPickerDialog(props: {
               {props.title || t("settings:SETTINGS_ASSET_PICKER_TITLE")}
             </DialogTitle>
             {props.description ? (
-              <div className="mt-1 text-sm text-muted-foreground">{props.description}</div>
+              <div className="mt-1 text-muted-foreground">{props.description}</div>
             ) : null}
           </DialogHeader>
 

@@ -1,28 +1,56 @@
 from __future__ import annotations
 
+from enum import StrEnum
+
 from tortoise import fields
 
 from apps.api.models.base import BaseModel
 
 
+class PermissionScope(StrEnum):
+    """Permission scope boundary."""
+
+    ORG = "org"
+    WORKSPACE = "workspace"
+
+
 class Role(BaseModel):
     """
-    RBAC role.
+    Workspace-scoped RBAC role.
 
     Notes:
-    - `code` is the stable identifier (used by defaults and permission templates).
+    - Roles are workspace-private: `code` only needs to be unique within a workspace.
+    - System roles are immutable (cannot be deleted and their permissions cannot be edited).
     - `is_superuser` means "has all permissions".
     """
 
-    code = fields.CharField(max_length=64, unique=True, db_index=True)
+    workspace = fields.ForeignKeyField(
+        "models.Workspace",
+        related_name="roles",
+        on_delete=fields.CASCADE,
+        db_index=True,
+    )
+
+    code = fields.CharField(max_length=64, db_index=True)
     name = fields.CharField(max_length=128)
     description = fields.TextField(null=True)
+
+    # i18n:
+    # - System roles use `*_i18n` pointing to locale resources (e.g. "rbac:ROLE_ADMIN_NAME").
+    # - Custom roles store language maps for user-provided translations.
+    name_i18n = fields.CharField(max_length=200, null=True)
+    description_i18n = fields.CharField(max_length=200, null=True)
+    name_l10n = fields.JSONField(null=True)
+    description_l10n = fields.JSONField(null=True)
+
+    is_system = fields.BooleanField(default=False, db_index=True)
     is_default = fields.BooleanField(default=False, db_index=True)
     is_superuser = fields.BooleanField(default=False, db_index=True)
 
     class Meta(BaseModel.Meta):
         table = "roles"
         abstract = False
+        unique_together = (("workspace_id", "code"),)
 
 
 class Permission(BaseModel):
@@ -32,11 +60,15 @@ class Permission(BaseModel):
     Notes:
     - `code` is the stable identifier, typically namespaced (e.g. "admin:access").
     - `plugin_id` is used for traceability and grouping (core uses "core").
+    - `scope` controls where the permission can be granted/checked (org vs workspace).
     """
 
     code = fields.CharField(max_length=128, unique=True, db_index=True)
+    scope = fields.CharEnumField(PermissionScope, default=PermissionScope.WORKSPACE, db_index=True)
     name = fields.CharField(max_length=128)
     description = fields.TextField(null=True)
+    name_i18n = fields.CharField(max_length=200, null=True)
+    description_i18n = fields.CharField(max_length=200, null=True)
     plugin_id = fields.CharField(max_length=128, null=True, db_index=True)
 
     class Meta(BaseModel.Meta):

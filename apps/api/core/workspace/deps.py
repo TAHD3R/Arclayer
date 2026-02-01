@@ -10,7 +10,7 @@ from apps.api.common.schemas import BaseSchema
 from apps.api.core.exceptions import Forbidden, NotFound
 from apps.api.core.i18n import t
 from apps.api.core.workspace.context import set_current_workspace_context
-from apps.api.models.org_membership import OrgMembership
+from apps.api.models.org_membership import OrgMembership, OrgRole
 from apps.api.models.workspace import Workspace, WorkspaceMembership, WorkspaceMembershipStatus
 from apps.api.routers.v1.auth.deps import get_current_user_id
 
@@ -59,8 +59,8 @@ async def get_workspace_context(
     if UUID(str(orgm.organization_id)) != UUID(str(ws.organization_id)):
         raise Forbidden(message=t("errors", "PERMISSION_DENIED", default="权限不足"), error="CROSS_ORG_ACCESS_DENIED")
 
-    is_owner = bool(orgm.is_owner)
-    is_creator_admin = is_owner and (UUID(str(ws.created_by_user_id)) == UUID(str(user_id)))
+    is_owner = orgm.role == OrgRole.OWNER
+    is_creator_admin = bool(is_owner and (UUID(str(ws.created_by_user_id)) == UUID(str(user_id))))
 
     membership = await WorkspaceMembership.get_or_none(
         workspace_id=ws.id,

@@ -46,3 +46,21 @@ export function clearSelection(_state: AssetSelectionState): AssetSelectionState
     lastActiveId: null,
   };
 }
+
+/**
+ * Plain click behavior for the Masonry tiles:
+ * - First click selects the item.
+ * - Clicking again (single click, detail=1) on the ONLY selected item clears selection.
+ * - For double-click, the second click has detail=2, and we should keep selection (so it won't flicker off).
+ */
+export function selectOrClearOnPlainClick(
+  state: AssetSelectionState,
+  id: string,
+  clickDetail: number,
+): AssetSelectionState {
+  const detail = Number(clickDetail || 0);
+  if (detail <= 1 && state.selectedIds.size === 1 && state.selectedIds.has(id)) {
+    return clearSelection(state);
+  }
+  return selectOnly(state, id);
+}

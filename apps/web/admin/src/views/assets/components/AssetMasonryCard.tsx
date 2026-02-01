@@ -1,5 +1,17 @@
 import type { InputRef } from "antd";
-import { Button, Descriptions, Flex, Input, Tag, Tooltip, Typography, theme } from "antd";
+import {
+  Avatar,
+  Button,
+  Descriptions,
+  Dropdown,
+  Flex,
+  Input,
+  Tag,
+  Tooltip,
+  Typography,
+  theme,
+} from "antd";
+import type { MenuProps } from "antd";
 import {
   Check,
   Download,
@@ -34,13 +46,6 @@ import {
   AccordionTrigger,
 } from "@/components/animate-ui/components/radix/accordion";
 import { Checkbox } from "@/components/animate-ui/components/radix/checkbox";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/animate-ui/components/radix/dropdown-menu";
 import {
   Sheet,
   SheetContent,
@@ -134,6 +139,14 @@ const tagInputStyle: React.CSSProperties = {
 function getSafeAspectRatio(value: number | undefined): number {
   if (!value || Number.isNaN(value) || !Number.isFinite(value)) return 4 / 3;
   return Math.min(3, Math.max(0.5, value));
+}
+
+function initialsFromName(name: string): string {
+  const trimmed = (name || "").trim();
+  if (!trimmed) return "?";
+  const parts = trimmed.split(/\\s+/).filter(Boolean);
+  if (parts.length === 1) return parts[0].slice(0, 1).toUpperCase();
+  return `${parts[0].slice(0, 1)}${parts[parts.length - 1].slice(0, 1)}`.toUpperCase();
 }
 
 function LazyAssetImage(props: {
@@ -371,6 +384,7 @@ export const AssetMasonryTile = memo(
     const hasPreview = Boolean(props.asset.previewUrl);
     const moving = Boolean(props.moving);
     const [previewFailed, setPreviewFailed] = useState(false);
+    const uploaderLabel = props.asset.uploaderName?.trim() || t("assets:ASSET_UPLOADER_UNKNOWN");
 
     useEffect(() => {
       // When src changes (or tile switches), reset error state.
@@ -432,6 +446,28 @@ export const AssetMasonryTile = memo(
         onContextMenu={(e) => props.onContextMenu?.(e)}
       >
         <motion.div className="relative w-full overflow-hidden" style={{ aspectRatio }}>
+          {/* Top-left: uploader */}
+          <div className="absolute left-3 top-3 z-10 pointer-events-none">
+            <div
+              className={cn(
+                "inline-flex items-center gap-2 rounded-full px-2 py-1",
+                "bg-black/45 text-white backdrop-blur-sm",
+              )}
+            >
+              <Avatar
+                size={20}
+                style={{
+                  backgroundColor: "rgba(255,255,255,0.18)",
+                  color: "white",
+                  flexShrink: 0,
+                }}
+              >
+                {initialsFromName(uploaderLabel)}
+              </Avatar>
+              <span className="max-w-36 truncate text-xs font-medium">{uploaderLabel}</span>
+            </div>
+          </div>
+
           {hasPreview ? (
             <LazyAssetImage
               src={props.asset.previewUrl as string}
@@ -561,8 +597,9 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
   const [previewAspectRatio, setPreviewAspectRatio] = useState<number | null>(null);
   const [previewSrc, setPreviewSrc] = useState<string | null>(null);
   const failedPreviewRef = useRef<Set<string>>(new Set());
+  const uploaderName = active?.uploaderName?.trim() || t("assets:ASSET_UPLOADER_UNKNOWN");
   const uploaderAndTimeText = buildUploaderAndTimeText({
-    uploaderName: active?.uploaderName,
+    uploaderName,
     createdAtText: active?.createdAtText,
     t,
   });
@@ -632,6 +669,42 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
       isImage,
     });
   }, [active?.name, isImage, publicAbsoluteUrl]);
+
+  const moreMenuItems = useMemo<MenuProps["items"]>(() => {
+    return [
+      {
+        key: "download",
+        label: t("assets:ASSET_ACTION_DOWNLOAD"),
+        icon: <Download size={16} />,
+        disabled: !active?.downloadUrl && !active?.contentUrl,
+      },
+      { type: "divider" },
+      {
+        key: "copy_link",
+        label: t("assets:ASSET_ACTION_COPY_LINK"),
+        icon: <ExternalLink size={16} />,
+      },
+      {
+        key: "open_new_tab",
+        label: t("assets:ASSET_ACTION_OPEN_IN_NEW_TAB"),
+        icon: <ExternalLink size={16} />,
+        disabled: !publicAbsoluteUrl,
+      },
+      { type: "divider" },
+      {
+        key: "edit_access",
+        label: t("assets:ASSET_ACTION_EDIT_ACCESS"),
+        icon: <Settings2 size={16} />,
+      },
+      { type: "divider" },
+      {
+        key: "delete",
+        label: t("assets:ASSET_ACTION_DELETE"),
+        icon: <TrashIcon size={16} isHovered />,
+        danger: true,
+      },
+    ];
+  }, [active?.contentUrl, active?.downloadUrl, publicAbsoluteUrl, t]);
 
   const previewCandidates = useMemo(() => {
     if (!isImage) return [];
@@ -936,11 +1009,35 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
           "w-full sm:w-105 md:w-120",
           "p-0 gap-0 overflow-hidden",
         )}
+        onInteractOutside={(e) => {
+          const target = e.target as HTMLElement | null;
+          // antd Dropdown renders overlay in a Portal. Prevent Radix Sheet from treating it as "outside click".
+          if (
+            target?.closest(".ant-dropdown") ||
+            target?.closest(".ant-dropdown-menu") ||
+            target?.closest(".ant-dropdown-menu-root") ||
+            target?.closest(".ant-menu") ||
+            target?.closest(".rc-dropdown")
+          ) {
+            e.preventDefault();
+          }
+        }}
       >
         {active ? (
           <>
             <SheetHeader className="border-b border-border/60 pb-4">
               <div className="flex items-start gap-3">
+                <Avatar
+                  size={40}
+                  style={{
+                    backgroundColor: "var(--color-muted)",
+                    color: "var(--color-foreground)",
+                    flexShrink: 0,
+                  }}
+                >
+                  {initialsFromName(uploaderName)}
+                </Avatar>
+
                 <div className="min-w-0 flex-1">
                   <SheetTitle className="truncate" title={active.name}>
                     {active.name}
@@ -957,18 +1054,18 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
                     disabled={!workspaceId}
                   />
 
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        type="text"
-                        icon={<EllipsisVertical size={18} />}
-                        style={{ width: 36, height: 36, paddingInline: 0 }}
-                      />
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" sideOffset={8}>
-                      <DropdownMenuItem
-                        disabled={!active.downloadUrl && !active.contentUrl}
-                        onSelect={() => {
+                  <Dropdown
+                    trigger={["click"]}
+                    placement="bottomRight"
+                    // Match the proven pattern used in AssetSharePopover:
+                    // avoid rendering overlay into body (Portal) which can be treated as "outside interaction" by Radix.
+                    getPopupContainer={(triggerNode) => triggerNode.parentElement ?? document.body}
+                    menu={{
+                      items: moreMenuItems,
+                      onClick: ({ key, domEvent }) => {
+                        domEvent.stopPropagation();
+
+                        if (key === "download") {
                           const publicDownload = active.downloadUrl;
                           if (publicDownload) {
                             window.open(publicDownload, "_blank", "noopener,noreferrer");
@@ -981,14 +1078,10 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
                           downloadWithAuth({ url: contentUrl, filename: active.name })
                             .then(() => notifySuccessText(t("assets:ASSET_DOWNLOAD_STARTED")))
                             .catch(() => notifyErrorText(t("assets:ASSET_DOWNLOAD_FAILED")));
-                        }}
-                      >
-                        <Download className="size-4" />
-                        {t("assets:ASSET_ACTION_DOWNLOAD")}
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        onSelect={() => {
+                          return;
+                        }
+
+                        if (key === "copy_link") {
                           const url = publicAbsoluteUrl;
                           if (!url) {
                             notifyErrorText(t("assets:ASSET_SHARE_REQUIRES_PUBLIC"));
@@ -997,45 +1090,32 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
                           copyToClipboard(url)
                             .then(() => notifySuccessText(t("assets:ASSET_LINK_COPIED")))
                             .catch(() => notifyErrorText(t("assets:ASSET_COPY_LINK_FAILED")));
-                        }}
-                      >
-                        <ExternalLink className="size-4" />
-                        {t("assets:ASSET_ACTION_COPY_LINK")}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        disabled={!publicAbsoluteUrl}
-                        onSelect={() => {
+                          return;
+                        }
+
+                        if (key === "open_new_tab") {
                           if (!publicAbsoluteUrl) return;
                           window.open(publicAbsoluteUrl, "_blank", "noopener,noreferrer");
-                        }}
-                      >
-                        <ExternalLink className="size-4" />
-                        {t("assets:ASSET_ACTION_OPEN_IN_NEW_TAB")}
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        onSelect={(e) => {
-                          e.preventDefault();
+                          return;
+                        }
+
+                        if (key === "edit_access") {
                           setEditAccessOpen(true);
-                        }}
-                      >
-                        <Settings2 className="size-4" />
-                        {t("assets:ASSET_ACTION_EDIT_ACCESS")}
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        variant="destructive"
-                        onSelect={(e) => {
-                          // 在 DropdownMenu 中点击会自动触发关闭；这里只需打开确认弹窗即可。
-                          e.preventDefault();
+                          return;
+                        }
+
+                        if (key === "delete") {
                           setDeleteOpen(true);
-                        }}
-                      >
-                        <TrashIcon size={16} isHovered />
-                        {t("assets:ASSET_ACTION_DELETE")}
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                        }
+                      },
+                    }}
+                  >
+                    <Button
+                      type="text"
+                      icon={<EllipsisVertical size={18} />}
+                      style={{ width: 36, height: 36, paddingInline: 0 }}
+                    />
+                  </Dropdown>
                 </div>
               </div>
 

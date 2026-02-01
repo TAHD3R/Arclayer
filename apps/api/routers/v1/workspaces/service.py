@@ -7,7 +7,7 @@ from apps.api.common.services import BaseService
 from apps.api.config import Settings
 from apps.api.core.exceptions import BadRequest, Conflict, NotFound
 from apps.api.core.i18n import t
-from apps.api.models.org_membership import OrgMembership
+from apps.api.models.org_membership import OrgMembership, OrgRole
 from apps.api.models.workspace import Workspace, WorkspaceMembership, WorkspaceMembershipStatus
 from apps.api.routers.v1.workspaces.schema import MyWorkspaceOut, WorkspaceDetailOut, WorkspaceUpdateRequest
 
@@ -32,7 +32,7 @@ class WorkspaceService(BaseService):
         if orgm is None:
             return []
 
-        is_owner = bool(orgm.is_owner)
+        is_owner = orgm.role == OrgRole.OWNER
         org_id = UUID(str(orgm.organization_id))
 
         # Collect memberships for the current user.

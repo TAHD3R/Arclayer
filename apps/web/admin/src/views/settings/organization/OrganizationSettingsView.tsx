@@ -59,7 +59,7 @@ export function OrganizationSettingsView() {
     meta: { silent: true },
   });
 
-  const isOwner = myOrgQuery.data?.membership?.isOwner ?? false;
+  const isOwner = myOrgQuery.data?.membership?.role === "owner";
   const showDeployment = runtime.deploymentSettingsEnabled;
 
   const forbiddenError = useMemo(

@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 
 import {
   clearSelection,
+  selectOrClearOnPlainClick,
   rangeSelect,
   selectOnly,
   toggleSelect,
@@ -20,6 +21,18 @@ describe("assetSelection", () => {
     const next = selectOnly(state(["a", "b"], "b"), "c");
     expect(Array.from(next.selectedIds)).toEqual(["c"]);
     expect(next.lastActiveId).toBe("c");
+  });
+
+  test("selectOrClearOnPlainClick clears selection when clicking the only selected item (single click)", () => {
+    const next = selectOrClearOnPlainClick(state(["a"], "a"), "a", 1);
+    expect(next.selectedIds.size).toBe(0);
+    expect(next.lastActiveId).toBe(null);
+  });
+
+  test("selectOrClearOnPlainClick keeps selection on the second click of a double-click", () => {
+    const next = selectOrClearOnPlainClick(state(["a"], "a"), "a", 2);
+    expect(Array.from(next.selectedIds)).toEqual(["a"]);
+    expect(next.lastActiveId).toBe("a");
   });
 
   test("toggleSelect adds when missing and updates lastActiveId", () => {

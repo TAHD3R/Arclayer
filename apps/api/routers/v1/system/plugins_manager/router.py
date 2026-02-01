@@ -7,7 +7,7 @@ from apps.api.core.exceptions import ServiceUnavailable
 from apps.api.core.http.pagination import PageData, PageParams, get_page_params
 from apps.api.core.http.response import Response, ResponseModel
 from apps.api.core.i18n import t
-from apps.api.core.org.deps import require_org_owner
+from apps.api.core.org.deps import require_org_admin
 from apps.api.plugin.manager import PluginManager
 from apps.api.routers.v1.system.plugins_manager.schema import (
     PluginConfigUpdate,
@@ -19,7 +19,7 @@ from apps.api.routers.v1.system.plugins_manager.service import PluginService
 
 router = APIRouter(
     tags=["System: Plugins"],
-    dependencies=[Depends(require_org_owner)],
+    dependencies=[Depends(require_org_admin)],
 )
 
 
