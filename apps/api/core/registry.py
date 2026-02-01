@@ -20,7 +20,12 @@ from apps.api.core.organization.bootstrap import ensure_organization_ready
 from apps.api.core.rbac.bootstrap import ensure_rbac_ready, register_permission_templates
 from apps.api.core.routes import register_routes
 from apps.api.infra.cache.valkey import close_valkey, init_valkey
-from apps.api.infra.db.orm import close_orm, init_orm, verify_db_ready
+from apps.api.infra.db.orm import (
+    close_orm,
+    ensure_settings_schema_constraints,
+    init_orm,
+    verify_db_ready,
+)
 from apps.api.infra.limiter.limiter import close_rate_limiter, init_rate_limiter
 from apps.api.plugin.manager import PluginManager
 from apps.api.plugin.restart import start_restart_watcher, stop_restart_watcher
@@ -42,6 +47,8 @@ def _build_lifespan(settings: Settings, *, plugin_manager: PluginManager):
 
             await init_orm(settings, extra_modules=extra_models)
             await verify_db_ready(settings)
+            # Hotfix legacy DB constraint that blocks v2 workspace-scoped settings.
+            await ensure_settings_schema_constraints()
             # Register core event-driven processors (e.g. thumbnails) after DB is ready.
             from apps.api.core.assets.bootstrap import register_core_asset_processors
 
@@ -54,6 +61,8 @@ def _build_lifespan(settings: Settings, *, plugin_manager: PluginManager):
             await init_rate_limiter(app, settings)
             if settings.database.enabled and settings.plugin.enabled:
                 await plugin_manager.sync_records()
+                # Migrations may run during sync_records; run the hotfix again to be safe.
+                await ensure_settings_schema_constraints()
                 await plugin_manager.start()
             await start_restart_watcher(app, settings)
             app.state.plugin_manager = plugin_manager

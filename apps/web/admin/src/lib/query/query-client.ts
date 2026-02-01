@@ -7,12 +7,17 @@ export function makeQueryClient(): QueryClient {
     queryCache: new QueryCache({
       onError: (error, query) => {
         if (query.meta?.silent) return;
+        // If the query already defines its own onError handler, assume it owns the UX (toast/UI),
+        // and avoid double toasts triggered by the global cache handler.
+        if (typeof (query as any).options?.onError === "function") return;
         notifyError(error);
       },
     }),
     mutationCache: new MutationCache({
       onError: (error, _variables, _context, mutation) => {
         if (mutation.meta?.silent) return;
+        // Same as queries: avoid double toasts when a mutation already handles errors locally.
+        if (typeof (mutation as any).options?.onError === "function") return;
         notifyError(error);
       },
     }),

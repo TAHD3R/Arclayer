@@ -226,3 +226,44 @@ async def verify_db_ready(
             await asyncio.sleep(base_delay * attempt)
 
     raise RuntimeError("Database not ready after retries") from last_exc
+
+
+async def ensure_settings_schema_constraints() -> None:
+    """
+    Best-effort DB schema hotfix for v2 settings scoping.
+
+    Background:
+    - Early migrations created a UNIQUE constraint on `settings.namespace` (Postgres constraint name
+      typically `settings_namespace_key`).
+    - v2 introduces `(scope_type, scope_id, namespace)` as the unique key, so the legacy constraint
+      blocks storing workspace-scoped `core` settings and causes IntegrityError:
+        duplicate key value violates unique constraint "settings_namespace_key"
+
+    We do NOT want runtime DDL long-term, but keeping startup resilient is critical for self-host
+    deployments and development environments that might not re-run migrations cleanly.
+    """
+
+    if not Tortoise._inited:
+        return
+
+    conn = Tortoise.get_connection("default")
+    sql = """
+DO $$
+BEGIN
+  -- Table may not exist if migrations haven't been applied yet.
+  IF to_regclass('public.settings') IS NULL THEN
+    RETURN;
+  END IF;
+
+  -- Drop the legacy unique constraint on `namespace` if it still exists.
+  IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'settings_namespace_key') THEN
+    ALTER TABLE "settings" DROP CONSTRAINT "settings_namespace_key";
+  END IF;
+END $$;
+"""
+    try:
+        await conn.execute_script(sql)
+    except Exception:
+        # Best-effort: do not fail app startup if the DB user lacks DDL privileges.
+        # In that case, operators must fix constraints via migrations / manual SQL.
+        logger.warning("ensure_settings_schema_constraints failed (ignored)")

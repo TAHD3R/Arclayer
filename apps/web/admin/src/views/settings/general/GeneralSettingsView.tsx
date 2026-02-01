@@ -3,7 +3,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { getCoreSettings, patchCoreSettings } from "@/api/settings";
+import {
+  getCoreSettings,
+  getSystemCoreSettings,
+  patchCoreSettings,
+  patchSystemCoreSettings,
+} from "@/api/settings";
 import { DefaultPage } from "@/components/app/defaultPage";
 import {
   ChromeTabs,
@@ -39,41 +44,73 @@ export function GeneralSettingsView(props: GeneralSettingsViewProps) {
   const [savingKey, setSavingKey] = useState<string | null>(null);
   const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
 
-  const coreQuery = useQuery({
-    queryKey: ["settings", "core", workspaceId],
+  const workspaceCoreQuery = useQuery({
+    queryKey: ["settings", "workspace", "core", workspaceId],
     enabled: Boolean(workspaceId),
     queryFn: async () => getCoreSettings(String(workspaceId)),
     staleTime: 5 * 60 * 1000,
     meta: { silent: true },
   });
 
+  const systemCoreQuery = useQuery({
+    queryKey: ["settings", "system", "core"],
+    enabled: Boolean(workspaceId),
+    queryFn: async () => getSystemCoreSettings(),
+    staleTime: 5 * 60 * 1000,
+    meta: { silent: true },
+  });
+
   const initialValues = useMemo<GeneralSettingsFormValues>(
-    () => buildGeneralSettingsInitialValues(coreQuery.data),
-    [coreQuery.data],
+    () =>
+      buildGeneralSettingsInitialValues({
+        workspace: workspaceCoreQuery.data,
+        system: systemCoreQuery.isError ? undefined : systemCoreQuery.data,
+      }),
+    [systemCoreQuery.data, systemCoreQuery.isError, workspaceCoreQuery.data],
   );
 
   useEffect(() => {
-    if (!coreQuery.data) return;
+    if (!workspaceCoreQuery.data) return;
+    // Avoid overriding user edits when system scope arrives later.
+    if (form.isFieldsTouched()) return;
     form.setFieldsValue(initialValues);
-  }, [coreQuery.data, form, initialValues]);
+  }, [form, initialValues, systemCoreQuery.data, workspaceCoreQuery.data]);
 
-  const saveMutation = useMutation({
+  const saveWorkspaceMutation = useMutation({
     mutationFn: async (patch: Record<string, unknown>) =>
       workspaceId
         ? patchCoreSettings(String(workspaceId), patch)
         : Promise.reject(new Error("WORKSPACE_NOT_SELECTED")),
     onSuccess: async () => {
       notifySuccessText(t("settings:SETTINGS_SAVED"));
-      await queryClient.invalidateQueries({ queryKey: ["settings", "core", workspaceId] });
+      await queryClient.invalidateQueries({
+        queryKey: ["settings", "workspace", "core", workspaceId],
+      });
     },
     onError: (err) => notifyError(err),
   });
 
-  const patch: GeneralSettingsPatchFn = useCallback(
+  const patchWorkspace: GeneralSettingsPatchFn = useCallback(
     async (patchValue: Record<string, unknown>) => {
-      await saveMutation.mutateAsync(patchValue);
+      await saveWorkspaceMutation.mutateAsync(patchValue);
     },
-    [saveMutation],
+    [saveWorkspaceMutation],
+  );
+
+  const saveSystemMutation = useMutation({
+    mutationFn: async (patch: Record<string, unknown>) => patchSystemCoreSettings(patch),
+    onSuccess: async () => {
+      notifySuccessText(t("settings:SETTINGS_SAVED"));
+      await queryClient.invalidateQueries({ queryKey: ["settings", "system", "core"] });
+    },
+    onError: (err) => notifyError(err),
+  });
+
+  const patchSystem: GeneralSettingsPatchFn = useCallback(
+    async (patchValue: Record<string, unknown>) => {
+      await saveSystemMutation.mutateAsync(patchValue);
+    },
+    [saveSystemMutation],
   );
 
   // 统一的 savingKey 管理：解决 validateFields 抛错时 loading“卡住”的问题。
@@ -86,14 +123,25 @@ export function GeneralSettingsView(props: GeneralSettingsViewProps) {
     }
   }, []);
 
-  const disabled = coreQuery.isFetching || saveMutation.isPending;
+  const workspaceDisabled = workspaceCoreQuery.isFetching || saveWorkspaceMutation.isPending;
+  const messagingDisabled =
+    workspaceDisabled ||
+    systemCoreQuery.isFetching ||
+    saveSystemMutation.isPending ||
+    systemCoreQuery.isError;
   const loadError = useMemo(() => {
-    if (coreQuery.isError) return coreQuery.error;
-    if (!coreQuery.isLoading && !coreQuery.data) {
+    if (workspaceCoreQuery.isError) return workspaceCoreQuery.error;
+    if (!workspaceCoreQuery.isLoading && !workspaceCoreQuery.data) {
       return new Error(t("settings:SETTINGS_LOAD_FAILED_DESC"));
     }
     return null;
-  }, [coreQuery.data, coreQuery.error, coreQuery.isError, coreQuery.isLoading, t]);
+  }, [
+    t,
+    workspaceCoreQuery.data,
+    workspaceCoreQuery.error,
+    workspaceCoreQuery.isError,
+    workspaceCoreQuery.isLoading,
+  ]);
 
   return (
     <DefaultPage
@@ -102,17 +150,17 @@ export function GeneralSettingsView(props: GeneralSettingsViewProps) {
       width="fixed"
     >
       <PageState
-        loading={coreQuery.isLoading && !coreQuery.data}
+        loading={workspaceCoreQuery.isLoading && !workspaceCoreQuery.data}
         loadingVariant="form"
         error={loadError}
-        onRetry={loadError ? () => void coreQuery.refetch() : undefined}
+        onRetry={loadError ? () => void workspaceCoreQuery.refetch() : undefined}
       >
         <Form<GeneralSettingsFormValues>
           form={form}
           layout="vertical"
           requiredMark={false}
           autoComplete="off"
-          disabled={disabled}
+          disabled={workspaceDisabled}
           initialValues={initialValues}
         >
           <ChromeTabs
@@ -144,10 +192,10 @@ export function GeneralSettingsView(props: GeneralSettingsViewProps) {
               <SiteSettingsTab
                 form={form}
                 initialValues={initialValues}
-                disabled={disabled}
+                disabled={workspaceDisabled}
                 savingKey={savingKey}
                 withSavingKey={withSavingKey}
-                patch={patch}
+                patch={patchWorkspace}
               />
             </ChromeTabsContent>
 
@@ -155,10 +203,10 @@ export function GeneralSettingsView(props: GeneralSettingsViewProps) {
               <LocalizationSettingsTab
                 form={form}
                 initialValues={initialValues}
-                disabled={disabled}
+                disabled={workspaceDisabled}
                 savingKey={savingKey}
                 withSavingKey={withSavingKey}
-                patch={patch}
+                patch={patchWorkspace}
               />
             </ChromeTabsContent>
 
@@ -166,11 +214,11 @@ export function GeneralSettingsView(props: GeneralSettingsViewProps) {
               <StorageSettingsTab
                 form={form}
                 initialValues={initialValues}
-                disabled={disabled}
+                disabled={workspaceDisabled}
                 savingKey={savingKey}
                 withSavingKey={withSavingKey}
-                patch={patch}
-                coreSecrets={coreQuery.data?.secrets}
+                patch={patchWorkspace}
+                coreSecrets={workspaceCoreQuery.data?.secrets}
               />
             </ChromeTabsContent>
 
@@ -178,11 +226,12 @@ export function GeneralSettingsView(props: GeneralSettingsViewProps) {
               <MessagingSettingsTab
                 form={form}
                 initialValues={initialValues}
-                disabled={disabled}
+                disabled={messagingDisabled}
                 savingKey={savingKey}
                 withSavingKey={withSavingKey}
-                patch={patch}
-                coreSecrets={coreQuery.data?.secrets}
+                patch={patchWorkspace}
+                patchSystem={patchSystem}
+                coreSecrets={systemCoreQuery.data?.secrets}
               />
             </ChromeTabsContent>
           </ChromeTabs>

@@ -20,6 +20,13 @@ export interface AuthzSnapshot {
   isSuperuser: boolean;
 }
 
+export interface WorkspaceDetail {
+  id: string;
+  organizationId: string;
+  slug: string;
+  name: string;
+}
+
 export async function listMyWorkspaces(): Promise<MyWorkspaceListResult> {
   return api.get<MyWorkspaceListResult>("/me/workspaces");
 }
@@ -27,4 +34,17 @@ export async function listMyWorkspaces(): Promise<MyWorkspaceListResult> {
 export async function getMyWorkspaceAuthz(workspaceId: string): Promise<AuthzSnapshot> {
   const id = encodeURIComponent(String(workspaceId));
   return api.get<AuthzSnapshot>(`/workspaces/${id}/me/authz`);
+}
+
+export async function getWorkspaceDetail(workspaceId: string): Promise<WorkspaceDetail> {
+  const id = encodeURIComponent(String(workspaceId));
+  return api.get<WorkspaceDetail>(`/workspaces/${id}`);
+}
+
+export async function patchWorkspaceDetail(
+  workspaceId: string,
+  payload: { name?: string; slug?: string },
+): Promise<WorkspaceDetail> {
+  const id = encodeURIComponent(String(workspaceId));
+  return api.patch<WorkspaceDetail>(`/workspaces/${id}`, payload);
 }

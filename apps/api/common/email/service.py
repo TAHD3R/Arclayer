@@ -562,6 +562,193 @@ class EmailService:
                 error=str(exc),
             )
 
+    async def send_workspace_invitation(
+        self,
+        *,
+        recipient: str,
+        invite_url: str | None,
+        invite_token: str,
+        expires_at: datetime | None,
+        workspace_name: str | None,
+        inviter_name: str | None = None,
+        invited_by_user_id: str | None = None,
+        locale: str | None = None,
+    ) -> None:
+        """
+        Send a workspace-scoped invitation email.
+
+        Notes:
+        - We intentionally reuse the generic invitation templates (invitation.html/txt) so
+          the email rendering stays simple, while the wording is workspace-specific.
+        - Gated by the same template key as the legacy invitation flow ("registration_prompt")
+          to avoid surprising operators who configured an allowlist.
+        """
+
+        if not await self._enabled():
+            self.logger.info(
+                "Attempt to send workspace invitation email while email sending is disabled",
+                recipient=recipient,
+                type="workspace_invitation",
+                workspace_name=workspace_name,
+                invited_by_user_id=invited_by_user_id,
+            )
+            return
+        if not await self._is_template_enabled("registration_prompt"):
+            self.logger.info(
+                "Attempt to send workspace invitation email while template is disabled",
+                recipient=recipient,
+                type="workspace_invitation",
+                workspace_name=workspace_name,
+                invited_by_user_id=invited_by_user_id,
+            )
+            return
+        if not _valid_recipient(recipient):
+            self.logger.warning(
+                "Recipient email is invalid, skip sending mail",
+                recipient=recipient,
+                type="workspace_invitation",
+                workspace_name=workspace_name,
+                invited_by_user_id=invited_by_user_id,
+            )
+            return
+
+        cid = uuid4().hex
+        token_hint = f"{invite_token[:6]}...{invite_token[-4:]}" if len(invite_token) >= 10 else invite_token
+        try:
+            fm = await self._get_fast_mail()
+
+            workspace_display = (workspace_name or "workspace").strip() or "workspace"
+            inviter_display = (inviter_name or "").strip() or None
+
+            subject = t(
+                "team",
+                "TEAM_INVITE_EMAIL_SUBJECT",
+                default="邀请加入工作区 {workspace_name}",
+                locale=locale,
+                workspace_name=workspace_display,
+            )
+            title = t(
+                "team",
+                "TEAM_INVITE_EMAIL_TITLE",
+                default="你已被邀请加入工作区 {workspace_name}",
+                locale=locale,
+                workspace_name=workspace_display,
+            )
+            intro = (
+                t(
+                    "team",
+                    "TEAM_INVITE_EMAIL_INTRO_WITH_INVITER",
+                    default="{inviter} 邀请你加入工作区。",
+                    locale=locale,
+                    inviter=inviter_display,
+                )
+                if inviter_display
+                else t(
+                    "team",
+                    "TEAM_INVITE_EMAIL_INTRO",
+                    default="你已被邀请加入工作区。",
+                    locale=locale,
+                )
+            )
+            cta = t("team", "TEAM_INVITE_EMAIL_CTA", default="接受邀请", locale=locale)
+            fallback = t(
+                "team",
+                "TEAM_INVITE_EMAIL_FALLBACK",
+                default="如果按钮无法使用，你也可以使用以下 Token：",
+                locale=locale,
+            )
+
+            if expires_at is None:
+                expires_notice = t(
+                    "team",
+                    "TEAM_INVITE_EMAIL_EXPIRES_NEVER",
+                    default="该邀请链接不会过期。",
+                    locale=locale,
+                )
+            else:
+                expires_notice = t(
+                    "team",
+                    "TEAM_INVITE_EMAIL_EXPIRES_AT",
+                    default="该邀请链接将于 {expires_at} 过期（UTC）。",
+                    locale=locale,
+                    expires_at=expires_at.astimezone(UTC).isoformat(),
+                )
+
+            ignore_notice = t(
+                "team",
+                "TEAM_INVITE_EMAIL_IGNORE",
+                default="如非本人操作，请忽略本邮件。",
+                locale=locale,
+            )
+
+            if invite_url:
+                plain_body = t(
+                    "team",
+                    "TEAM_INVITE_EMAIL_PLAIN_WITH_LINK",
+                    default="工作区：{workspace_name}\n邀请链接：{invite_url}\nToken：{invite_token}\n{expires_notice}\n{ignore_notice}",
+                    locale=locale,
+                    workspace_name=workspace_display,
+                    invite_url=invite_url,
+                    invite_token=invite_token,
+                    expires_notice=expires_notice,
+                    ignore_notice=ignore_notice,
+                )
+            else:
+                plain_body = t(
+                    "team",
+                    "TEAM_INVITE_EMAIL_PLAIN",
+                    default="工作区：{workspace_name}\nToken：{invite_token}\n{expires_notice}\n{ignore_notice}",
+                    locale=locale,
+                    workspace_name=workspace_display,
+                    invite_token=invite_token,
+                    expires_notice=expires_notice,
+                    ignore_notice=ignore_notice,
+                )
+
+            message = MessageSchema(
+                subject=subject,
+                recipients=[_to_name_email(recipient)],
+                template_body={
+                    "title": title,
+                    "intro": intro,
+                    "cta": cta,
+                    "fallback": fallback,
+                    "expires_notice": expires_notice,
+                    "ignore_notice": ignore_notice,
+                    "invite_url": invite_url,
+                    "invite_token": invite_token,
+                },
+                subtype=MessageType.html,
+                alternative_body=plain_body,
+                multipart_subtype=MultipartSubtypeEnum.alternative,
+            )
+            await fm.send_message(
+                message,
+                html_template="invitation.html",
+                plain_template="invitation.txt",
+            )
+
+            self.logger.info(
+                "Successfully sent workspace invitation email",
+                recipient=recipient,
+                type="workspace_invitation",
+                cid=cid,
+                token_hint=token_hint,
+                workspace_name=workspace_display,
+                invited_by_user_id=invited_by_user_id,
+            )
+        except Exception as exc:
+            self.logger.exception(
+                "Failed to send workspace invitation email",
+                recipient=recipient,
+                type="workspace_invitation",
+                cid=cid,
+                token_hint=token_hint,
+                workspace_name=workspace_name,
+                invited_by_user_id=invited_by_user_id,
+                error=str(exc),
+            )
+
     async def send_test_email(
         self,
         *,

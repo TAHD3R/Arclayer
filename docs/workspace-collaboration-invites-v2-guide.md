@@ -193,7 +193,9 @@ UI 映射：
 
 - `POST /api/v1/workspaces/{workspace_id}/team/invite-links`（permission：`team:invite-links:manage`）
 - `GET /api/v1/workspaces/{workspace_id}/team/invite-links`（permission：`team:invite-links:manage`）
-  返回 `uses_count/last_used_*` 与 `recent_participants`。
+  返回 `uses_count/last_used_*`、`recent_participants`，并包含可直接复制分享的 `token/invite_url`（用于消费路径）。
+- `GET /api/v1/workspaces/{workspace_id}/team/invite-links/{link_id}/participants`（permission：`team:invite-links:manage`）
+  分页列出参与者（使用事件）。前端在“参与者”列中点击展开时使用，用于大规模参与者列表的搜索与分页展示。
 - `POST /api/v1/workspaces/{workspace_id}/team/invite-links/{link_id}/renew`（permission：`team:invite-links:manage`）
 - `POST /api/v1/workspaces/{workspace_id}/team/invite-links/{link_id}/disable`（permission：`team:invite-links:manage`）
 

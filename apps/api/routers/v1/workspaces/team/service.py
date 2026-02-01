@@ -493,6 +493,8 @@ class WorkspaceTeamService(BaseService):
             disabled_at=link.disabled_at,
             max_uses=link.max_uses,
             allowed_email_domain=link.allowed_email_domain,
+            token=token,
+            invite_url=invite_url,
             created_by=_user_ref(creator) if creator else None,
             last_used_by=None,
             last_used_at=link.last_used_at,
@@ -534,6 +536,8 @@ class WorkspaceTeamService(BaseService):
             disabled_at=link.disabled_at,
             max_uses=link.max_uses,
             allowed_email_domain=link.allowed_email_domain,
+            token=token,
+            invite_url=invite_url,
             created_by=_user_ref(creator) if creator else None,
             last_used_by=_user_ref(last_used) if last_used else None,
             last_used_at=link.last_used_at,
@@ -590,6 +594,9 @@ class WorkspaceTeamService(BaseService):
         for link in rows:
             creator = user_by_id.get(UUID(str(link.created_by_user_id))) if link.created_by_user_id else None
             last_used = user_by_id.get(UUID(str(link.last_used_by_user_id))) if link.last_used_by_user_id else None
+            token = build_invite_token(self.settings, code=link.code)
+            base = (self.settings.application.frontend_base_url or "").strip().rstrip("/")
+            invite_url = f"{base}/accept-invite?token={token}" if base else None
             items.append(
                 WorkspaceInviteLinkOut(
                     id=link.id,
@@ -599,6 +606,8 @@ class WorkspaceTeamService(BaseService):
                     disabled_at=link.disabled_at,
                     max_uses=link.max_uses,
                     allowed_email_domain=link.allowed_email_domain,
+                    token=token,
+                    invite_url=invite_url,
                     created_by=_user_ref(creator) if creator else None,
                     last_used_by=_user_ref(last_used) if last_used else None,
                     last_used_at=link.last_used_at,
@@ -612,6 +621,83 @@ class WorkspaceTeamService(BaseService):
         next_page = params.page + 1 if pages and params.page < pages else None
         prev_page = min(params.page - 1, pages) if pages and params.page > 1 else None
         return PageData[WorkspaceInviteLinkOut](
+            items=items,
+            total=total,
+            page=params.page,
+            size=params.size,
+            pages=pages,
+            next=next_page,
+            prev=prev_page,
+        )
+
+    async def list_invite_link_participants(
+        self,
+        *,
+        organization_id: UUID,
+        workspace_id: UUID,
+        link_id: UUID,
+        params: PageParams,
+        q: str | None,
+    ) -> PageData[WorkspaceInviteLinkParticipantOut]:
+        """
+        List invite link participants (usage events) with pagination.
+
+        Notes:
+        - We paginate events (each event corresponds to one successful join via the invite link).
+        - `used_by_user_id` is stored as UUID field (not FK), so we resolve users in a second query.
+        - Optional `q` supports searching participant by username/email/display_name.
+        """
+
+        link = await WorkspaceInviteLink.get_or_none(
+            id=link_id, organization_id=organization_id, workspace_id=workspace_id
+        )
+        if link is None:
+            raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
+
+        qs = WorkspaceInviteLinkUseEvent.filter(link_id=link.id)
+
+        if q:
+            needle = q.strip()
+            if needle:
+                user_ids = await User.filter(
+                    Q(username__icontains=needle) | Q(email__icontains=needle) | Q(display_name__icontains=needle)
+                ).values_list("id", flat=True)
+                ids = [UUID(str(x)) for x in user_ids] if user_ids else []
+                if not ids:
+                    return PageData[WorkspaceInviteLinkParticipantOut](
+                        items=[],
+                        total=0,
+                        page=params.page,
+                        size=params.size,
+                        pages=0,
+                        next=None,
+                        prev=None,
+                    )
+                qs = qs.filter(used_by_user_id__in=ids)
+
+        total = int(await qs.count())
+        pages = (total + params.size - 1) // params.size if params.size else 0
+        rows = await qs.order_by("-used_at").limit(params.limit).offset(params.offset).all()
+
+        user_ids: list[UUID] = []
+        for r in rows:
+            if r.used_by_user_id:
+                user_ids.append(UUID(str(r.used_by_user_id)))
+
+        users = await User.filter(id__in=user_ids).all() if user_ids else []
+        user_by_id = {UUID(str(u.id)): u for u in users}
+
+        items: list[WorkspaceInviteLinkParticipantOut] = []
+        for e in rows:
+            uid = UUID(str(e.used_by_user_id))
+            u = user_by_id.get(uid)
+            if u is None:
+                continue
+            items.append(WorkspaceInviteLinkParticipantOut(user=_user_ref(u), used_at=e.used_at))
+
+        next_page = params.page + 1 if pages and params.page < pages else None
+        prev_page = min(params.page - 1, pages) if pages and params.page > 1 else None
+        return PageData[WorkspaceInviteLinkParticipantOut](
             items=items,
             total=total,
             page=params.page,

@@ -1,6 +1,6 @@
 "use client";
 
-import { Avatar, Button as AntButton, Input, Modal, Pagination, Select, Tag } from "antd";
+import { Avatar, Button as AntButton, Input, Modal, Pagination, Select } from "antd";
 import { Link2Off, Plus, RotateCcw, Search } from "lucide-react";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
@@ -40,6 +40,7 @@ import {
 import { cn } from "@/lib/utils";
 import { notifyError, notifySuccessText } from "@/utils/notifications";
 import { InviteMembersDialog } from "@/views/team/components/InviteMembersDialog";
+import { InviteLinkParticipantsPopover } from "@/views/team/components/InviteLinkParticipantsPopover";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useWorkspaceStore } from "@/stores/useWorkspaceStore";
 
@@ -331,16 +332,23 @@ export function TeamInvitationsView() {
         header: t("team:TEAM_INVITE_LINKS_COL_CODE"),
         cell: ({ row }) => {
           const code = row.original.displayCode;
+          const token = row.original.token;
+          const inviteUrl =
+            row.original.inviteUrl ??
+            (typeof window !== "undefined"
+              ? `${window.location.origin}/accept-invite?token=${encodeURIComponent(token)}`
+              : null);
           return (
             <AntButton
               type="link"
               size="small"
               className="font-mono text-sm"
               onClick={() => {
-                void navigator.clipboard.writeText(code);
+                const text = inviteUrl || code;
+                void navigator.clipboard.writeText(text);
                 notifySuccessText(t("team:TEAM_ACTION_COPIED"));
               }}
-              aria-label={t("team:TEAM_INVITE_LINKS_ACTION_COPY_CODE")}
+              aria-label={t("team:TEAM_INVITE_LINKS_ACTION_COPY_LINK")}
             >
               {code}
             </AntButton>
@@ -357,18 +365,12 @@ export function TeamInvitationsView() {
           const lastUsedBy = row.original.lastUsedBy;
           const primaryUser = participants[0]?.user ?? lastUsedBy ?? null;
           return (
-            <div className="flex items-center gap-2 min-w-0">
-              <Tag color="blue" style={{ marginInlineEnd: 0 }}>
-                {uses}
-              </Tag>
-              <div className="min-w-0">
-                {primaryUser ? (
-                  renderUserLabel(primaryUser)
-                ) : (
-                  <span className="text-muted-foreground">-</span>
-                )}
-              </div>
-            </div>
+            <InviteLinkParticipantsPopover
+              workspaceId={String(workspaceId || "")}
+              linkId={row.original.id}
+              usesCount={uses}
+              primaryUser={primaryUser}
+            />
           );
         },
       },
@@ -434,7 +436,7 @@ export function TeamInvitationsView() {
       },
     ];
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [disableLinkMutation, renewLinkMutation, t]);
+  }, [disableLinkMutation, renewLinkMutation, t, workspaceId]);
 
   const pendingTable = useDataTable<TeamInvitation, { status: "pending" | "accepted"; mine: true }>(
     {
@@ -521,7 +523,7 @@ export function TeamInvitationsView() {
 
   const inviteAction = (
     <AntButton type="primary" icon={<Plus size={16} />} onClick={() => setInviteOpen(true)}>
-      {t("team:TEAM_INVITE_MEMBER")}
+      {t("team:TEAM_INVITE_CREATE_LINK_ACTION")}
     </AntButton>
   );
 
@@ -699,6 +701,7 @@ export function TeamInvitationsView() {
       <InviteMembersDialog
         open={inviteOpen}
         onOpenChange={setInviteOpen}
+        mode="link"
         workspaceId={String(workspaceId || "")}
         workspaceName={workspaceName}
         roles={rolesQuery.data?.items ?? []}

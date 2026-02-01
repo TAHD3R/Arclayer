@@ -21,6 +21,7 @@ import { Route as WWorkspaceIdRouteImport } from './routes/w/$workspaceId'
 import { Route as TeamMembersRouteImport } from './routes/team/members'
 import { Route as TeamInvitationsRouteImport } from './routes/team/invitations'
 import { Route as WWorkspaceIdIndexRouteImport } from './routes/w/$workspaceId/index'
+import { Route as SettingsWorkspaceIndexRouteImport } from './routes/settings/workspace/index'
 import { Route as SettingsSeoIndexRouteImport } from './routes/settings/seo/index'
 import { Route as SettingsGeneralIndexRouteImport } from './routes/settings/general/index'
 import { Route as PluginsInstalledIndexRouteImport } from './routes/plugins/installed/index'
@@ -38,6 +39,7 @@ import { Route as SettingsMaintenanceSnapshotsIndexRouteImport } from './routes/
 import { Route as SettingsMaintenanceAuditLogIndexRouteImport } from './routes/settings/maintenance/audit-log/index'
 import { Route as WWorkspaceIdTeamMembersRouteImport } from './routes/w/$workspaceId/team/members'
 import { Route as WWorkspaceIdTeamInvitationsRouteImport } from './routes/w/$workspaceId/team/invitations'
+import { Route as WWorkspaceIdSettingsWorkspaceIndexRouteImport } from './routes/w/$workspaceId/settings/workspace/index'
 import { Route as WWorkspaceIdSettingsSeoIndexRouteImport } from './routes/w/$workspaceId/settings/seo/index'
 import { Route as WWorkspaceIdSettingsGeneralIndexRouteImport } from './routes/w/$workspaceId/settings/general/index'
 import { Route as WWorkspaceIdPluginsInstalledIndexRouteImport } from './routes/w/$workspaceId/plugins/installed/index'
@@ -106,6 +108,11 @@ const WWorkspaceIdIndexRoute = WWorkspaceIdIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => WWorkspaceIdRoute,
+} as any)
+const SettingsWorkspaceIndexRoute = SettingsWorkspaceIndexRouteImport.update({
+  id: '/settings/workspace/',
+  path: '/settings/workspace/',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsSeoIndexRoute = SettingsSeoIndexRouteImport.update({
   id: '/settings/seo/',
@@ -198,6 +205,12 @@ const WWorkspaceIdTeamInvitationsRoute =
     path: '/team/invitations',
     getParentRoute: () => WWorkspaceIdRoute,
   } as any)
+const WWorkspaceIdSettingsWorkspaceIndexRoute =
+  WWorkspaceIdSettingsWorkspaceIndexRouteImport.update({
+    id: '/settings/workspace/',
+    path: '/settings/workspace/',
+    getParentRoute: () => WWorkspaceIdRoute,
+  } as any)
 const WWorkspaceIdSettingsSeoIndexRoute =
   WWorkspaceIdSettingsSeoIndexRouteImport.update({
     id: '/settings/seo/',
@@ -267,6 +280,7 @@ export interface FileRoutesByFullPath {
   '/plugins/installed/': typeof PluginsInstalledIndexRoute
   '/settings/general/': typeof SettingsGeneralIndexRoute
   '/settings/seo/': typeof SettingsSeoIndexRoute
+  '/settings/workspace/': typeof SettingsWorkspaceIndexRoute
   '/w/$workspaceId/': typeof WWorkspaceIdIndexRoute
   '/w/$workspaceId/team/invitations': typeof WWorkspaceIdTeamInvitationsRoute
   '/w/$workspaceId/team/members': typeof WWorkspaceIdTeamMembersRoute
@@ -285,6 +299,7 @@ export interface FileRoutesByFullPath {
   '/w/$workspaceId/plugins/installed/': typeof WWorkspaceIdPluginsInstalledIndexRoute
   '/w/$workspaceId/settings/general/': typeof WWorkspaceIdSettingsGeneralIndexRoute
   '/w/$workspaceId/settings/seo/': typeof WWorkspaceIdSettingsSeoIndexRoute
+  '/w/$workspaceId/settings/workspace/': typeof WWorkspaceIdSettingsWorkspaceIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -305,6 +320,7 @@ export interface FileRoutesByTo {
   '/plugins/installed': typeof PluginsInstalledIndexRoute
   '/settings/general': typeof SettingsGeneralIndexRoute
   '/settings/seo': typeof SettingsSeoIndexRoute
+  '/settings/workspace': typeof SettingsWorkspaceIndexRoute
   '/w/$workspaceId': typeof WWorkspaceIdIndexRoute
   '/w/$workspaceId/team/invitations': typeof WWorkspaceIdTeamInvitationsRoute
   '/w/$workspaceId/team/members': typeof WWorkspaceIdTeamMembersRoute
@@ -323,6 +339,7 @@ export interface FileRoutesByTo {
   '/w/$workspaceId/plugins/installed': typeof WWorkspaceIdPluginsInstalledIndexRoute
   '/w/$workspaceId/settings/general': typeof WWorkspaceIdSettingsGeneralIndexRoute
   '/w/$workspaceId/settings/seo': typeof WWorkspaceIdSettingsSeoIndexRoute
+  '/w/$workspaceId/settings/workspace': typeof WWorkspaceIdSettingsWorkspaceIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -345,6 +362,7 @@ export interface FileRoutesById {
   '/plugins/installed/': typeof PluginsInstalledIndexRoute
   '/settings/general/': typeof SettingsGeneralIndexRoute
   '/settings/seo/': typeof SettingsSeoIndexRoute
+  '/settings/workspace/': typeof SettingsWorkspaceIndexRoute
   '/w/$workspaceId/': typeof WWorkspaceIdIndexRoute
   '/w/$workspaceId/team/invitations': typeof WWorkspaceIdTeamInvitationsRoute
   '/w/$workspaceId/team/members': typeof WWorkspaceIdTeamMembersRoute
@@ -363,6 +381,7 @@ export interface FileRoutesById {
   '/w/$workspaceId/plugins/installed/': typeof WWorkspaceIdPluginsInstalledIndexRoute
   '/w/$workspaceId/settings/general/': typeof WWorkspaceIdSettingsGeneralIndexRoute
   '/w/$workspaceId/settings/seo/': typeof WWorkspaceIdSettingsSeoIndexRoute
+  '/w/$workspaceId/settings/workspace/': typeof WWorkspaceIdSettingsWorkspaceIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -386,6 +405,7 @@ export interface FileRouteTypes {
     | '/plugins/installed/'
     | '/settings/general/'
     | '/settings/seo/'
+    | '/settings/workspace/'
     | '/w/$workspaceId/'
     | '/w/$workspaceId/team/invitations'
     | '/w/$workspaceId/team/members'
@@ -404,6 +424,7 @@ export interface FileRouteTypes {
     | '/w/$workspaceId/plugins/installed/'
     | '/w/$workspaceId/settings/general/'
     | '/w/$workspaceId/settings/seo/'
+    | '/w/$workspaceId/settings/workspace/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -424,6 +445,7 @@ export interface FileRouteTypes {
     | '/plugins/installed'
     | '/settings/general'
     | '/settings/seo'
+    | '/settings/workspace'
     | '/w/$workspaceId'
     | '/w/$workspaceId/team/invitations'
     | '/w/$workspaceId/team/members'
@@ -442,6 +464,7 @@ export interface FileRouteTypes {
     | '/w/$workspaceId/plugins/installed'
     | '/w/$workspaceId/settings/general'
     | '/w/$workspaceId/settings/seo'
+    | '/w/$workspaceId/settings/workspace'
   id:
     | '__root__'
     | '/'
@@ -463,6 +486,7 @@ export interface FileRouteTypes {
     | '/plugins/installed/'
     | '/settings/general/'
     | '/settings/seo/'
+    | '/settings/workspace/'
     | '/w/$workspaceId/'
     | '/w/$workspaceId/team/invitations'
     | '/w/$workspaceId/team/members'
@@ -481,6 +505,7 @@ export interface FileRouteTypes {
     | '/w/$workspaceId/plugins/installed/'
     | '/w/$workspaceId/settings/general/'
     | '/w/$workspaceId/settings/seo/'
+    | '/w/$workspaceId/settings/workspace/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -503,6 +528,7 @@ export interface RootRouteChildren {
   PluginsInstalledIndexRoute: typeof PluginsInstalledIndexRoute
   SettingsGeneralIndexRoute: typeof SettingsGeneralIndexRoute
   SettingsSeoIndexRoute: typeof SettingsSeoIndexRoute
+  SettingsWorkspaceIndexRoute: typeof SettingsWorkspaceIndexRoute
   SettingsMaintenanceAuditLogIndexRoute: typeof SettingsMaintenanceAuditLogIndexRoute
   SettingsMaintenanceSnapshotsIndexRoute: typeof SettingsMaintenanceSnapshotsIndexRoute
   SettingsMaintenanceStatusIndexRoute: typeof SettingsMaintenanceStatusIndexRoute
@@ -594,6 +620,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/w/$workspaceId/'
       preLoaderRoute: typeof WWorkspaceIdIndexRouteImport
       parentRoute: typeof WWorkspaceIdRoute
+    }
+    '/settings/workspace/': {
+      id: '/settings/workspace/'
+      path: '/settings/workspace'
+      fullPath: '/settings/workspace/'
+      preLoaderRoute: typeof SettingsWorkspaceIndexRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/settings/seo/': {
       id: '/settings/seo/'
@@ -714,6 +747,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WWorkspaceIdTeamInvitationsRouteImport
       parentRoute: typeof WWorkspaceIdRoute
     }
+    '/w/$workspaceId/settings/workspace/': {
+      id: '/w/$workspaceId/settings/workspace/'
+      path: '/settings/workspace'
+      fullPath: '/w/$workspaceId/settings/workspace/'
+      preLoaderRoute: typeof WWorkspaceIdSettingsWorkspaceIndexRouteImport
+      parentRoute: typeof WWorkspaceIdRoute
+    }
     '/w/$workspaceId/settings/seo/': {
       id: '/w/$workspaceId/settings/seo/'
       path: '/settings/seo'
@@ -788,6 +828,7 @@ interface WWorkspaceIdRouteChildren {
   WWorkspaceIdPluginsInstalledIndexRoute: typeof WWorkspaceIdPluginsInstalledIndexRoute
   WWorkspaceIdSettingsGeneralIndexRoute: typeof WWorkspaceIdSettingsGeneralIndexRoute
   WWorkspaceIdSettingsSeoIndexRoute: typeof WWorkspaceIdSettingsSeoIndexRoute
+  WWorkspaceIdSettingsWorkspaceIndexRoute: typeof WWorkspaceIdSettingsWorkspaceIndexRoute
 }
 
 const WWorkspaceIdRouteChildren: WWorkspaceIdRouteChildren = {
@@ -809,6 +850,8 @@ const WWorkspaceIdRouteChildren: WWorkspaceIdRouteChildren = {
     WWorkspaceIdPluginsInstalledIndexRoute,
   WWorkspaceIdSettingsGeneralIndexRoute: WWorkspaceIdSettingsGeneralIndexRoute,
   WWorkspaceIdSettingsSeoIndexRoute: WWorkspaceIdSettingsSeoIndexRoute,
+  WWorkspaceIdSettingsWorkspaceIndexRoute:
+    WWorkspaceIdSettingsWorkspaceIndexRoute,
 }
 
 const WWorkspaceIdRouteWithChildren = WWorkspaceIdRoute._addFileChildren(
@@ -835,6 +878,7 @@ const rootRouteChildren: RootRouteChildren = {
   PluginsInstalledIndexRoute: PluginsInstalledIndexRoute,
   SettingsGeneralIndexRoute: SettingsGeneralIndexRoute,
   SettingsSeoIndexRoute: SettingsSeoIndexRoute,
+  SettingsWorkspaceIndexRoute: SettingsWorkspaceIndexRoute,
   SettingsMaintenanceAuditLogIndexRoute: SettingsMaintenanceAuditLogIndexRoute,
   SettingsMaintenanceSnapshotsIndexRoute:
     SettingsMaintenanceSnapshotsIndexRoute,

@@ -630,6 +630,7 @@ export function TeamMembersView() {
         <InviteMembersDialog
           open={inviteOpen}
           onOpenChange={setInviteOpen}
+          mode="email"
           workspaceId={String(workspaceId || "")}
           workspaceName={workspaceName}
           roles={rolesQuery.data?.items ?? []}

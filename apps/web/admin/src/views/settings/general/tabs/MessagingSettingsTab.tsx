@@ -20,6 +20,7 @@ import { normalizeOptionalString } from "../utils";
 type OverlayKey = "mailConfig";
 
 type MessagingSettingsTabProps = GeneralSettingsTabBaseProps & {
+  patchSystem: GeneralSettingsPatchFn;
   coreSecrets?: Record<string, boolean>;
 };
 
@@ -49,7 +50,7 @@ export function MessagingSettingsTab({
   disabled,
   savingKey,
   withSavingKey,
-  patch,
+  patchSystem,
   coreSecrets,
 }: MessagingSettingsTabProps) {
   const { t } = useTranslation();
@@ -91,7 +92,7 @@ export function MessagingSettingsTab({
   const setMailEnabled = (next: boolean) =>
     withSavingKey("mail.enabled", async () => {
       form.setFieldValue("mailEnabled", next);
-      await patch({ mail: { enabled: Boolean(next) } });
+      await patchSystem({ mail: { enabled: Boolean(next) } });
     });
 
   const saveMailConfig = () =>
@@ -124,7 +125,7 @@ export function MessagingSettingsTab({
         form.setFieldValue("mailPassword", "");
       }
 
-      await patch({ mail: patchValue });
+      await patchSystem({ mail: patchValue });
     });
 
   const resetMailConfig = () =>
@@ -155,7 +156,7 @@ export function MessagingSettingsTab({
   const saveMailTemplates = () =>
     withSavingKey("mail.templates", async () => {
       const values = await form.validateFields(["mailEnabledTemplates"]);
-      await patch({
+      await patchSystem({
         mail: {
           preferences: {
             enabled_templates: (values.mailEnabledTemplates || []) as string[],
@@ -167,7 +168,7 @@ export function MessagingSettingsTab({
   const resetMailTemplates = () =>
     withSavingKey("reset:mail.templates", async () => {
       form.setFieldValue("mailEnabledTemplates", initialValues.mailEnabledTemplates);
-      await patch({
+      await patchSystem({
         mail: {
           preferences: {
             enabled_templates: initialValues.mailEnabledTemplates,
@@ -179,7 +180,7 @@ export function MessagingSettingsTab({
   const saveNotificationTypes = () =>
     withSavingKey("notifications.types", async () => {
       const values = await form.validateFields(["notificationInviteEnabled"]);
-      await patch({
+      await patchSystem({
         notifications: {
           invite_enabled: Boolean(values.notificationInviteEnabled),
         },
@@ -189,7 +190,7 @@ export function MessagingSettingsTab({
   const resetNotificationTypes = () =>
     withSavingKey("reset:notifications.types", async () => {
       form.setFieldValue("notificationInviteEnabled", initialValues.notificationInviteEnabled);
-      await patch({
+      await patchSystem({
         notifications: {
           invite_enabled: Boolean(initialValues.notificationInviteEnabled),
         },

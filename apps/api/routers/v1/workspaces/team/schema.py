@@ -139,6 +139,9 @@ class WorkspaceInviteLinkOut(BaseOut):
     max_uses: int | None = Field(default=None, description="Max uses (null means unlimited).")
     allowed_email_domain: str | None = Field(default=None, description="Optional allowed email domain.")
 
+    token: str = Field(..., description="Signed invite token (safe to share).")
+    invite_url: str | None = Field(default=None, description="Frontend invite URL if configured.")
+
     created_by: WorkspaceTeamUserRefOut | None = Field(default=None, description="Creator user summary.")
     last_used_by: WorkspaceTeamUserRefOut | None = Field(default=None, description="Last used by user summary.")
     last_used_at: datetime | None = Field(default=None, description="Last used datetime (UTC).")

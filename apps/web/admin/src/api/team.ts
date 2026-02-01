@@ -228,6 +228,9 @@ export type TeamInviteLink = {
   maxUses: number | null;
   allowedEmailDomain: string | null;
 
+  token: string;
+  inviteUrl: string | null;
+
   createdBy: TeamUserRef | null;
   lastUsedBy: TeamUserRef | null;
   lastUsedAt: string | null;
@@ -253,6 +256,17 @@ export type ListTeamInviteLinksParams = {
   size?: number;
   q?: string;
   mine?: boolean;
+};
+
+export type TeamInviteLinkParticipant = {
+  user: TeamUserRef;
+  usedAt: string;
+};
+
+export type ListTeamInviteLinkParticipantsParams = {
+  page?: number;
+  size?: number;
+  q?: string;
 };
 
 export async function listTeamInviteLinks(
@@ -303,4 +317,19 @@ export async function renewTeamInviteLink(
 
 export async function disableTeamInviteLink(workspaceId: string, linkId: string): Promise<null> {
   return api.post<null>(workspacePath(workspaceId, `/team/invite-links/${linkId}/disable`));
+}
+
+export async function listTeamInviteLinkParticipants(
+  workspaceId: string,
+  linkId: string,
+  params: ListTeamInviteLinkParticipantsParams = {},
+): Promise<PageData<TeamInviteLinkParticipant>> {
+  const query = toQueryString({
+    page: params.page ?? 1,
+    size: params.size ?? 10,
+    q: params.q,
+  });
+  return api.get<PageData<TeamInviteLinkParticipant>>(
+    workspacePath(workspaceId, `/team/invite-links/${linkId}/participants${query}`),
+  );
 }

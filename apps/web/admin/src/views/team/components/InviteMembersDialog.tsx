@@ -28,6 +28,8 @@ type FormValues = {
 
 const DEFAULT_EXPIRES_IN_SECONDS = 7 * 24 * 60 * 60;
 
+export type InviteMembersDialogMode = "email" | "link";
+
 function normalizeEmailList(input: string[]): string[] {
   // Preserve order but de-duplicate.
   const seen = new Set<string>();
@@ -47,6 +49,7 @@ function normalizeEmailList(input: string[]): string[] {
 export function InviteMembersDialog(props: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  mode: InviteMembersDialogMode;
   workspaceId: string;
   workspaceName: string;
   roles: Role[];
@@ -59,7 +62,26 @@ export function InviteMembersDialog(props: {
     return z.object({
       emails: z.array(z.string()).superRefine((val, ctx) => {
         const emails = normalizeEmailList(val);
-        // Emails are optional; if provided, validate format.
+        // Mode=email: emails are required.
+        // Mode=link: emails must be empty (we intentionally avoid ambiguous behavior).
+        if (props.mode === "email" && emails.length <= 0) {
+          ctx.addIssue({
+            code: "custom",
+            path: [],
+            message: t("team:TEAM_INVITE_VALIDATION_TO_REQUIRED"),
+          });
+          return;
+        }
+        if (props.mode === "link" && emails.length > 0) {
+          ctx.addIssue({
+            code: "custom",
+            path: [],
+            message: t("team:TEAM_INVITE_LINK_MODE_NO_EMAILS"),
+          });
+          return;
+        }
+
+        // If provided, validate format.
         for (const [idx, email] of emails.entries()) {
           if (!z.string().email().safeParse(email).success) {
             ctx.addIssue({
@@ -74,7 +96,7 @@ export function InviteMembersDialog(props: {
       roleCode: z.string().min(1, t("team:TEAM_INVITE_VALIDATION_ROLE_REQUIRED")),
       expiresInSeconds: z.number().int().min(60).nullable(),
     });
-  }, [t]);
+  }, [props.mode, t]);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -110,7 +132,7 @@ export function InviteMembersDialog(props: {
       const roleCode = values.roleCode;
       const expiresInSeconds = values.expiresInSeconds;
 
-      if (emails.length) {
+      if (props.mode === "email") {
         const results = await Promise.allSettled(
           emails.map((email) =>
             createTeamInvitation({
@@ -122,12 +144,19 @@ export function InviteMembersDialog(props: {
           ),
         );
         const successCount = results.filter((r) => r.status === "fulfilled").length;
-        const failedCount = results.length - successCount;
+        const failed = results.filter((r): r is PromiseRejectedResult => r.status === "rejected");
+        const failedCount = failed.length;
+
+        // If everything failed, surface the first error to avoid "0 success" misleading toasts.
+        if (successCount === 0 && failedCount > 0) {
+          throw failed[0]?.reason;
+        }
         return {
           mode: "email" as const,
           successCount,
           failedCount,
           firstInviteUrl: null as string | null,
+          firstToken: null as string | null,
         };
       }
 
@@ -137,11 +166,18 @@ export function InviteMembersDialog(props: {
         expiresInSeconds,
       });
 
+      const url =
+        created.inviteUrl ??
+        (typeof window !== "undefined"
+          ? `${window.location.origin}/accept-invite?token=${encodeURIComponent(created.token)}`
+          : null);
+
       return {
         mode: "link" as const,
         successCount: 1,
         failedCount: 0,
-        firstInviteUrl: created.inviteUrl ?? null,
+        firstInviteUrl: url,
+        firstToken: created.token,
       };
     },
     onSuccess: async (result) => {
@@ -217,63 +253,73 @@ export function InviteMembersDialog(props: {
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>
-            {t("team:TEAM_INVITE_DIALOG_TITLE", { workspaceName: props.workspaceName })}
+            {props.mode === "link"
+              ? t("team:TEAM_INVITE_LINK_CREATE_TITLE", { workspaceName: props.workspaceName })
+              : t("team:TEAM_INVITE_DIALOG_TITLE", { workspaceName: props.workspaceName })}
           </DialogTitle>
-          <DialogDescription>{t("team:TEAM_INVITE_DIALOG_DESC")}</DialogDescription>
+          <DialogDescription>
+            {props.mode === "link"
+              ? t("team:TEAM_INVITE_LINK_CREATE_DESC")
+              : t("team:TEAM_INVITE_DIALOG_DESC")}
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={onSubmit} className="grid gap-5 py-2">
-          <div className="grid gap-1.5">
-            <label className="text-muted-foreground font-semibold" htmlFor="to">
-              {t("team:TEAM_INVITE_FIELD_TO")}
-            </label>
-            <Select
-              id="to"
-              mode="tags"
-              suffixIcon={false}
-              open={false}
-              tokenSeparators={[" ", "\n", ",", ";", "，", "；", "\t"]}
-              placeholder={t("team:TEAM_INVITE_FIELD_TO_PLACEHOLDER")}
-              value={emailTags}
-              onChange={(next) => {
-                form.setValue("emails", normalizeEmailList(next), {
-                  shouldDirty: true,
-                  shouldValidate: true,
-                });
-              }}
-              getPopupContainer={(node) => node.parentElement ?? document.body}
-              options={[]}
-              notFoundContent={null}
-              tagRender={(tagProps) => {
-                const value = String(tagProps.value || "").trim();
-                const message = invalidEmailMessageByValue.get(value) ?? null;
-                const closable = tagProps.closable;
-                const onClose = tagProps.onClose;
+          {props.mode === "email" ? (
+            <div className="grid gap-1.5">
+              <label className="text-muted-foreground font-semibold" htmlFor="to">
+                {t("team:TEAM_INVITE_FIELD_TO")}
+              </label>
+              <Select
+                id="to"
+                mode="tags"
+                suffixIcon={false}
+                open={false}
+                tokenSeparators={[" ", "\n", ",", ";", "，", "；", "\t"]}
+                placeholder={t("team:TEAM_INVITE_FIELD_TO_PLACEHOLDER")}
+                value={emailTags}
+                onChange={(next) => {
+                  form.setValue("emails", normalizeEmailList(next), {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                  });
+                }}
+                getPopupContainer={(node) => node.parentElement ?? document.body}
+                options={[]}
+                notFoundContent={null}
+                tagRender={(tagProps) => {
+                  const value = String(tagProps.value || "").trim();
+                  const message = invalidEmailMessageByValue.get(value) ?? null;
+                  const closable = tagProps.closable;
+                  const onClose = tagProps.onClose;
 
-                const tag = (
-                  <Tag
-                    color={message ? "error" : "default"}
-                    closable={closable}
-                    onClose={onClose}
-                    style={{ marginInlineEnd: 0 }}
-                  >
-                    {tagProps.label}
-                  </Tag>
-                );
+                  const tag = (
+                    <Tag
+                      color={message ? "error" : "default"}
+                      closable={closable}
+                      onClose={onClose}
+                      style={{ marginInlineEnd: 0 }}
+                    >
+                      {tagProps.label}
+                    </Tag>
+                  );
 
-                return message ? (
-                  <Tooltip title={message} placement="top">
-                    {tag}
-                  </Tooltip>
-                ) : (
-                  tag
-                );
-              }}
-            />
-            {form.formState.errors.emails?.message ? (
-              <div className="text-destructive">{String(form.formState.errors.emails.message)}</div>
-            ) : null}
-          </div>
+                  return message ? (
+                    <Tooltip title={message} placement="top">
+                      {tag}
+                    </Tooltip>
+                  ) : (
+                    tag
+                  );
+                }}
+              />
+              {form.formState.errors.emails?.message ? (
+                <div className="text-destructive">
+                  {String(form.formState.errors.emails.message)}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
 
           <div className="grid gap-1.5">
             <label className="text-muted-foreground font-semibold" htmlFor="roleCode">

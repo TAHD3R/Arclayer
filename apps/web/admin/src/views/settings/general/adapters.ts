@@ -12,58 +12,70 @@ import { pickBool, pickNumber, pickString, pickStringArray } from "./utils";
  * - 这里做的是“读模型”适配；写回后端的 patch 仍由各 Tab 自己构造，避免过度耦合。
  * - Secret 字段（如 s3_secret_access_key）由 API 掩码；UI 只允许“设置新值”，因此初始值固定为空串。
  */
-export function buildGeneralSettingsInitialValues(
-  detail: SettingsDetail | undefined,
-): GeneralSettingsFormValues {
-  const v = detail?.value;
+export function buildGeneralSettingsInitialValues(params: {
+  workspace?: SettingsDetail;
+  system?: SettingsDetail;
+}): GeneralSettingsFormValues {
+  const workspaceValue = params.workspace?.value;
+  const systemValue = params.system?.value;
 
-  const siteName = pickString(v, ["site", "name"]) ?? "Celestial CMS";
-  const siteSubtitle = pickString(v, ["site", "subtitle"]) ?? "";
-  const siteDescription = pickString(v, ["seo", "default_description"]) ?? "";
-  const siteUrl = pickString(v, ["site", "url"]) ?? "";
-  const siteLogoUrl = pickString(v, ["site", "logo_url"]) ?? "";
-  const siteLogoAssetId = pickString(v, ["site", "logo_asset_id"]) ?? "";
-  const siteFaviconUrl = pickString(v, ["site", "favicon_url"]) ?? "";
-  const siteFaviconAssetId = pickString(v, ["site", "favicon_asset_id"]) ?? "";
-  const siteAvatarPlaceholderUrl = pickString(v, ["site", "avatar_placeholder_url"]) ?? "";
-  const siteAvatarPlaceholderAssetId = pickString(v, ["site", "avatar_placeholder_asset_id"]) ?? "";
-  const siteContactEmail = pickString(v, ["site", "contact_email"]) ?? "";
+  const siteName = pickString(workspaceValue, ["site", "name"]) ?? "Celestial CMS";
+  const siteSubtitle = pickString(workspaceValue, ["site", "subtitle"]) ?? "";
+  const siteDescription = pickString(workspaceValue, ["seo", "default_description"]) ?? "";
+  const siteUrl = pickString(workspaceValue, ["site", "url"]) ?? "";
+  const siteLogoUrl = pickString(workspaceValue, ["site", "logo_url"]) ?? "";
+  const siteLogoAssetId = pickString(workspaceValue, ["site", "logo_asset_id"]) ?? "";
+  const siteFaviconUrl = pickString(workspaceValue, ["site", "favicon_url"]) ?? "";
+  const siteFaviconAssetId = pickString(workspaceValue, ["site", "favicon_asset_id"]) ?? "";
+  const siteAvatarPlaceholderUrl =
+    pickString(workspaceValue, ["site", "avatar_placeholder_url"]) ?? "";
+  const siteAvatarPlaceholderAssetId =
+    pickString(workspaceValue, ["site", "avatar_placeholder_asset_id"]) ?? "";
+  const siteContactEmail = pickString(workspaceValue, ["site", "contact_email"]) ?? "";
 
-  const locale = (pickString(v, ["localization", "locale"]) as AppLocale | undefined) ?? "zh-CN";
-  const timezone = pickString(v, ["localization", "timezone"]) ?? "Asia/Shanghai";
-  const dateFormat = pickString(v, ["localization", "date_format"]) ?? "YYYY-MM-DD";
+  const locale =
+    (pickString(workspaceValue, ["localization", "locale"]) as AppLocale | undefined) ?? "zh-CN";
+  const timezone = pickString(workspaceValue, ["localization", "timezone"]) ?? "Asia/Shanghai";
+  const dateFormat = pickString(workspaceValue, ["localization", "date_format"]) ?? "YYYY-MM-DD";
 
   const storageProvider =
-    (pickString(v, ["storage", "provider"]) as StorageProvider | undefined) ?? "local";
-  const storagePublicBaseUrl = pickString(v, ["storage", "public_base_url"]) ?? "";
+    (pickString(workspaceValue, ["storage", "provider"]) as StorageProvider | undefined) ?? "local";
+  const storagePublicBaseUrl = pickString(workspaceValue, ["storage", "public_base_url"]) ?? "";
 
-  const uploadChunkSizeMb = pickNumber(v, ["storage", "upload_chunk_size_mb"]) ?? 8;
-  const uploadMaxFileSizeMb = pickNumber(v, ["storage", "upload_max_file_size_mb"]) ?? 2048;
-  const uploadMaxAvatarSizeMb = pickNumber(v, ["storage", "upload_max_avatar_size_mb"]) ?? 10;
-  const uploadMaxSiteLogoSizeMb = pickNumber(v, ["storage", "upload_max_site_logo_size_mb"]) ?? 20;
-  const uploadMaxFaviconSizeMb = pickNumber(v, ["storage", "upload_max_favicon_size_mb"]) ?? 2;
+  const uploadChunkSizeMb = pickNumber(workspaceValue, ["storage", "upload_chunk_size_mb"]) ?? 8;
+  const uploadMaxFileSizeMb =
+    pickNumber(workspaceValue, ["storage", "upload_max_file_size_mb"]) ?? 2048;
+  const uploadMaxAvatarSizeMb =
+    pickNumber(workspaceValue, ["storage", "upload_max_avatar_size_mb"]) ?? 10;
+  const uploadMaxSiteLogoSizeMb =
+    pickNumber(workspaceValue, ["storage", "upload_max_site_logo_size_mb"]) ?? 20;
+  const uploadMaxFaviconSizeMb =
+    pickNumber(workspaceValue, ["storage", "upload_max_favicon_size_mb"]) ?? 2;
 
-  const s3EndpointUrl = pickString(v, ["storage", "s3_endpoint_url"]) ?? "";
-  const s3Region = pickString(v, ["storage", "s3_region"]) ?? "";
-  const s3Bucket = pickString(v, ["storage", "s3_bucket"]) ?? "";
-  const s3AccessKeyId = pickString(v, ["storage", "s3_access_key_id"]) ?? "";
-  const s3ForcePathStyle = pickBool(v, ["storage", "s3_force_path_style"]) ?? false;
-  const s3PresignExpiresSeconds = pickNumber(v, ["storage", "s3_presign_expires_seconds"]) ?? 900;
+  const s3EndpointUrl = pickString(workspaceValue, ["storage", "s3_endpoint_url"]) ?? "";
+  const s3Region = pickString(workspaceValue, ["storage", "s3_region"]) ?? "";
+  const s3Bucket = pickString(workspaceValue, ["storage", "s3_bucket"]) ?? "";
+  const s3AccessKeyId = pickString(workspaceValue, ["storage", "s3_access_key_id"]) ?? "";
+  const s3ForcePathStyle = pickBool(workspaceValue, ["storage", "s3_force_path_style"]) ?? false;
+  const s3PresignExpiresSeconds =
+    pickNumber(workspaceValue, ["storage", "s3_presign_expires_seconds"]) ?? 900;
 
-  const mailEnabled = pickBool(v, ["mail", "enabled"]) ?? false;
-  const mailServer = pickString(v, ["mail", "server"]) ?? "localhost";
-  const mailPort = pickNumber(v, ["mail", "port"]) ?? 587;
-  const mailUsername = pickString(v, ["mail", "username"]) ?? "";
-  const mailFrom = pickString(v, ["mail", "mail_from"]) ?? "noreply@example.com";
-  const mailFromName = pickString(v, ["mail", "mail_from_name"]) ?? "Celestial CMS";
-  const mailStarttls = pickBool(v, ["mail", "starttls"]) ?? true;
-  const mailSslTls = pickBool(v, ["mail", "ssl_tls"]) ?? false;
-  const mailEnabledTemplates = pickStringArray(v, ["mail", "preferences", "enabled_templates"]) ?? [
-    "registration_prompt",
-    "welcome_email",
-  ];
+  const mailEnabled = pickBool(systemValue, ["mail", "enabled"]) ?? false;
+  const mailServer = pickString(systemValue, ["mail", "server"]) ?? "localhost";
+  const mailPort = pickNumber(systemValue, ["mail", "port"]) ?? 587;
+  const mailUsername = pickString(systemValue, ["mail", "username"]) ?? "";
+  const mailFrom = pickString(systemValue, ["mail", "mail_from"]) ?? "noreply@example.com";
+  const mailFromName = pickString(systemValue, ["mail", "mail_from_name"]) ?? "Celestial CMS";
+  const mailStarttls = pickBool(systemValue, ["mail", "starttls"]) ?? true;
+  const mailSslTls = pickBool(systemValue, ["mail", "ssl_tls"]) ?? false;
+  const mailEnabledTemplates = pickStringArray(systemValue, [
+    "mail",
+    "preferences",
+    "enabled_templates",
+  ]) ?? ["registration_prompt", "welcome_email"];
 
-  const notificationInviteEnabled = pickBool(v, ["notifications", "invite_enabled"]) ?? true;
+  const notificationInviteEnabled =
+    pickBool(systemValue, ["notifications", "invite_enabled"]) ?? true;
 
   return {
     siteName,

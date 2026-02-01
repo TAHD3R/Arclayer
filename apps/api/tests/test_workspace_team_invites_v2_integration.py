@@ -14,6 +14,41 @@ from apps.api.routers.v1.auth.deps import get_current_user, get_current_user_id
 pytestmark = pytest.mark.integration
 
 
+async def _enable_mail_service() -> None:
+    """
+    Enable email sending via system-scoped core settings.
+
+    Notes:
+    - Workspace email invites are designed to be delivered by email; the API fails fast when mail is disabled.
+    - Tests should enable mail explicitly to avoid coupling to default bootstrap values.
+    """
+
+    from apps.api.models.setting import SettingRecord
+    from apps.api.settings.core_schema import CORE_SETTINGS_NAMESPACE
+    from apps.api.settings.scopes import SCOPE_TYPE_SYSTEM, SYSTEM_SCOPE_ID
+
+    record = await SettingRecord.get_or_none(
+        scope_type=SCOPE_TYPE_SYSTEM,
+        scope_id=SYSTEM_SCOPE_ID,
+        namespace=CORE_SETTINGS_NAMESPACE,
+    )
+    if record is None:
+        await SettingRecord.create(
+            scope_type=SCOPE_TYPE_SYSTEM,
+            scope_id=SYSTEM_SCOPE_ID,
+            namespace=CORE_SETTINGS_NAMESPACE,
+            value={"mail": {"enabled": True}},
+        )
+        return
+
+    value = record.value if isinstance(record.value, dict) else {}
+    mail = value.get("mail") if isinstance(value.get("mail"), dict) else {}
+    mail["enabled"] = True
+    value["mail"] = mail
+    record.value = value
+    await record.save(update_fields=["value", "updated_at"])
+
+
 async def test_me_workspaces_owner_can_see_all_with_visible_only(prepared_db, integration_valkey_settings) -> None:
     _ = prepared_db
     _ = integration_valkey_settings
@@ -211,6 +246,15 @@ async def test_workspace_invite_link_accept_existing_creates_use_event(
             link = page["items"][0]
             assert link["usesCount"] >= 1
             assert any(p["user"]["userId"] == str(invitee.id) for p in (link.get("recentParticipants") or []))
+
+            # 5) Participants endpoint should paginate full usage events.
+            resp = await client.get(
+                f"/api/v1/workspaces/{ws.id}/team/invite-links/{link['id']}/participants?page=1&size=10"
+            )
+            assert resp.status_code == 200
+            participants = resp.json()["data"]
+            assert participants["total"] >= 1
+            assert any(p["user"]["userId"] == str(invitee.id) for p in participants["items"])
 
 
 async def test_workspace_invite_link_max_uses_enforced(prepared_db, integration_valkey_settings) -> None:
@@ -556,7 +600,9 @@ async def test_a2_single_org_enforced_on_accept_existing(prepared_db, integratio
             assert resp.status_code == 403
 
 
-async def test_workspace_email_invite_pending_unique_and_accept(prepared_db, integration_valkey_settings) -> None:
+async def test_workspace_email_invite_pending_unique_and_accept(
+    prepared_db, integration_valkey_settings, monkeypatch
+) -> None:
     _ = prepared_db
     _ = integration_valkey_settings
 
@@ -566,6 +612,16 @@ async def test_workspace_email_invite_pending_unique_and_accept(prepared_db, int
 
     async with app.router.lifespan_context(app):
         await verify_db_ready(settings)
+        await _enable_mail_service()
+
+        class DummyMail:
+            async def send_message(self, _message, **_kwargs):  # type: ignore[no-untyped-def]
+                return None
+
+        async def _dummy_get_fast_mail(self):  # type: ignore[no-untyped-def]
+            return DummyMail()
+
+        monkeypatch.setattr("apps.api.common.email.service.EmailService._get_fast_mail", _dummy_get_fast_mail)
 
         from apps.api.core.organization.repository import OrganizationRepository
         from apps.api.models.org_membership import OrgMembership
@@ -657,7 +713,9 @@ async def test_workspace_email_invite_pending_unique_and_accept(prepared_db, int
             assert page["total"] >= 1
 
 
-async def test_workspace_email_invite_email_mismatch_rejected(prepared_db, integration_valkey_settings) -> None:
+async def test_workspace_email_invite_email_mismatch_rejected(
+    prepared_db, integration_valkey_settings, monkeypatch
+) -> None:
     _ = prepared_db
     _ = integration_valkey_settings
 
@@ -667,6 +725,16 @@ async def test_workspace_email_invite_email_mismatch_rejected(prepared_db, integ
 
     async with app.router.lifespan_context(app):
         await verify_db_ready(settings)
+        await _enable_mail_service()
+
+        class DummyMail:
+            async def send_message(self, _message, **_kwargs):  # type: ignore[no-untyped-def]
+                return None
+
+        async def _dummy_get_fast_mail(self):  # type: ignore[no-untyped-def]
+            return DummyMail()
+
+        monkeypatch.setattr("apps.api.common.email.service.EmailService._get_fast_mail", _dummy_get_fast_mail)
 
         from apps.api.core.organization.repository import OrganizationRepository
         from apps.api.models.org_membership import OrgMembership

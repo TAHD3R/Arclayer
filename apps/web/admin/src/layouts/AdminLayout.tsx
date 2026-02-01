@@ -139,7 +139,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
   const [refreshing, setRefreshing] = useState(false);
 
   const coreQuery = useQuery({
-    queryKey: ["settings", "core", workspaceId],
+    queryKey: ["settings", "workspace", "core", workspaceId],
     enabled: Boolean(accessToken && workspaceId),
     queryFn: async () => getCoreSettings(String(workspaceId)),
     staleTime: 5 * 60 * 1000,

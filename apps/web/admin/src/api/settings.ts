@@ -18,3 +18,20 @@ export async function patchCoreSettings(
 ): Promise<SettingsDetail> {
   return api.patch<SettingsDetail>(workspacePath(workspaceId, "/settings/core"), { patch });
 }
+
+/**
+ * System-scoped settings (deployment-wide).
+ *
+ * Notes:
+ * - Back-end is gated by org owner (not workspace RBAC).
+ * - Response includes extra fields (e.g. setting_schema) but we only rely on value/secrets here.
+ */
+export async function getSystemCoreSettings(): Promise<SettingsDetail> {
+  return api.get<SettingsDetail>("/system/settings/core");
+}
+
+export async function patchSystemCoreSettings(
+  patch: Record<string, unknown>,
+): Promise<SettingsDetail> {
+  return api.patch<SettingsDetail>("/system/settings/core", { patch });
+}

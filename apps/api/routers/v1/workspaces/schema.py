@@ -25,3 +25,16 @@ class MyWorkspaceOut(BaseOut):
 
 class MyWorkspaceListResult(BaseSchema):
     items: list[MyWorkspaceOut] = Field(default_factory=list, description="Workspaces visible to current user.")
+
+
+class WorkspaceDetailOut(BaseOut):
+    """Workspace metadata used by the admin workspace settings page."""
+
+    organization_id: UUID = Field(..., description="Organization id.")
+    slug: str = Field(..., description="Workspace slug.")
+    name: str = Field(..., description="Workspace name.")
+
+
+class WorkspaceUpdateRequest(BaseSchema):
+    name: str | None = Field(default=None, description="Workspace name.")
+    slug: str | None = Field(default=None, description="Workspace slug.")

@@ -118,6 +118,13 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
     icon: Settings,
     children: [
       {
+        key: "settings.workspace",
+        label: "Workspace",
+        labelKey: "nav:NAV_SETTINGS_WORKSPACE",
+        to: "/settings/workspace",
+        icon: Navigation2,
+      },
+      {
         key: "settings.general",
         label: "General",
         labelKey: "nav:NAV_SETTINGS_GENERAL",
