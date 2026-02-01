@@ -23,9 +23,9 @@ def test_admin_assets_router_exposes_bulk_endpoints() -> None:
 
     paths = {r.path for r in router.routes if isinstance(r, APIRoute)}
 
-    assert "/assets/bulk/move" in paths
-    assert "/assets/bulk/delete" in paths
-    assert "/assets/bulk/update" in paths
+    assert "/workspaces/{workspace_id}/assets/bulk/move" in paths
+    assert "/workspaces/{workspace_id}/assets/bulk/delete" in paths
+    assert "/workspaces/{workspace_id}/assets/bulk/update" in paths
 
 
 @pytest.mark.asyncio
@@ -39,14 +39,14 @@ async def test_bulk_move_assets_validates_folder_exists(monkeypatch) -> None:
     service = AdminAssetsService(settings)
 
     class FakeRepo:
-        async def get_folder(self, *, org_id, folder_id):
+        async def get_folder(self, *, workspace_id, folder_id):
             return None
 
     service.repo = FakeRepo()  # type: ignore[assignment]
 
     with pytest.raises(NotFound) as exc:
         await service.bulk_move_assets(  # type: ignore[attr-defined]
-            org_id=uuid4(),
+            workspace_id=uuid4(),
             payload=AdminAssetBulkMoveRequest(asset_ids=[uuid4()], folder_id=uuid4()),
         )
 
@@ -65,12 +65,12 @@ async def test_bulk_delete_assets_marks_assets_deleted(monkeypatch) -> None:
     deleted = {"count": 0, "ids": []}
 
     class FakeRepo:
-        async def bulk_soft_delete_assets(self, *, org_id, asset_ids, deleted_at, updated_at):
+        async def bulk_soft_delete_assets(self, *, workspace_id, asset_ids, deleted_at, updated_at):
             deleted["count"] = len(asset_ids)
             deleted["ids"] = list(asset_ids)
             return len(asset_ids)
 
-        async def get_assets_by_ids(self, *, org_id, asset_ids):
+        async def get_assets_by_ids(self, *, workspace_id, asset_ids):
             # Pretend all exist.
             return [{"id": x} for x in asset_ids]
 
@@ -78,7 +78,7 @@ async def test_bulk_delete_assets_marks_assets_deleted(monkeypatch) -> None:
 
     ids = [uuid4(), uuid4()]
     out = await service.bulk_delete_assets(  # type: ignore[attr-defined]
-        org_id=uuid4(),
+        workspace_id=uuid4(),
         payload=AdminAssetBulkDeleteRequest(asset_ids=ids),
     )
 
@@ -97,14 +97,14 @@ async def test_bulk_update_assets_requires_fields(monkeypatch) -> None:
     service = AdminAssetsService(settings)
 
     class FakeRepo:
-        async def get_assets_by_ids(self, *, org_id, asset_ids):
+        async def get_assets_by_ids(self, *, workspace_id, asset_ids):
             return [{"id": x} for x in asset_ids]
 
     service.repo = FakeRepo()  # type: ignore[assignment]
 
     with pytest.raises(BadRequest) as exc:
         await service.bulk_update_assets(  # type: ignore[attr-defined]
-            org_id=uuid4(),
+            workspace_id=uuid4(),
             payload=AdminAssetBulkUpdateRequest(asset_ids=[uuid4()]),
         )
 
@@ -124,20 +124,20 @@ async def test_bulk_update_assets_updates_repo(monkeypatch) -> None:
     called: dict[str, object] = {"count": 0, "ids": [], "updates": {}}
 
     class FakeRepo:
-        async def bulk_update_assets_fields(self, *, org_id, asset_ids, updates, updated_at):
+        async def bulk_update_assets_fields(self, *, workspace_id, asset_ids, updates, updated_at):
             called["count"] = len(asset_ids)
             called["ids"] = list(asset_ids)
             called["updates"] = dict(updates)
             return len(asset_ids)
 
-        async def get_assets_by_ids(self, *, org_id, asset_ids):
+        async def get_assets_by_ids(self, *, workspace_id, asset_ids):
             return [{"id": x} for x in asset_ids]
 
     service.repo = FakeRepo()  # type: ignore[assignment]
 
     ids = [uuid4(), uuid4(), uuid4()]
     out = await service.bulk_update_assets(  # type: ignore[attr-defined]
-        org_id=uuid4(),
+        workspace_id=uuid4(),
         payload=AdminAssetBulkUpdateRequest(asset_ids=ids, visibility=AssetVisibility.PRIVATE),
     )
 

@@ -158,7 +158,7 @@ async def bulk_move_assets(
     Bulk move assets to a folder.
 
     Notes:
-    - This is an org-scoped operation.
+    - This is a workspace-scoped operation.
     - folder_id=null means moving to root (unassigned folder).
     """
 
@@ -193,7 +193,7 @@ async def bulk_update_assets(
     Bulk update assets (currently supports visibility and purpose).
 
     Notes:
-    - This is an org-scoped operation.
+    - This is a workspace-scoped operation.
     - At least one field must be provided (visibility/purpose).
     """
 

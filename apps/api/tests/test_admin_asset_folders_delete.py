@@ -15,7 +15,7 @@ def test_admin_assets_router_exposes_folder_delete_endpoint() -> None:
     routes = [r for r in router.routes if isinstance(r, APIRoute)]
     paths = {(r.path, tuple(sorted(r.methods or []))) for r in routes}
 
-    assert ("/asset-folders/{folder_id}", ("DELETE",)) in paths
+    assert ("/workspaces/{workspace_id}/asset-folders/{folder_id}", ("DELETE",)) in paths
 
 
 @pytest.mark.asyncio
@@ -27,13 +27,13 @@ async def test_delete_folder_requires_existing_folder() -> None:
     service = AdminAssetsService(settings)
 
     class FakeRepo:
-        async def get_folder(self, *, org_id, folder_id):
+        async def get_folder(self, *, workspace_id, folder_id):
             return None
 
     service.repo = FakeRepo()  # type: ignore[assignment]
 
     with pytest.raises(NotFound) as exc:
-        await service.delete_folder(org_id=uuid4(), folder_id=uuid4())
+        await service.delete_folder(workspace_id=uuid4(), folder_id=uuid4())
 
     assert exc.value.error == "ASSET_FOLDER_NOT_FOUND"
 
@@ -47,19 +47,19 @@ async def test_delete_folder_rejects_non_empty_folder_children() -> None:
     service = AdminAssetsService(settings)
 
     class FakeRepo:
-        async def get_folder(self, *, org_id, folder_id):
+        async def get_folder(self, *, workspace_id, folder_id):
             return {"id": folder_id}
 
-        async def folder_has_children(self, *, org_id, folder_id):
+        async def folder_has_children(self, *, workspace_id, folder_id):
             return True
 
-        async def folder_has_assets(self, *, org_id, folder_id):
+        async def folder_has_assets(self, *, workspace_id, folder_id):
             return False
 
     service.repo = FakeRepo()  # type: ignore[assignment]
 
     with pytest.raises(Conflict) as exc:
-        await service.delete_folder(org_id=uuid4(), folder_id=uuid4())
+        await service.delete_folder(workspace_id=uuid4(), folder_id=uuid4())
 
     assert exc.value.error == "ASSET_FOLDER_NOT_EMPTY"
 
@@ -73,19 +73,19 @@ async def test_delete_folder_rejects_non_empty_folder_assets() -> None:
     service = AdminAssetsService(settings)
 
     class FakeRepo:
-        async def get_folder(self, *, org_id, folder_id):
+        async def get_folder(self, *, workspace_id, folder_id):
             return {"id": folder_id}
 
-        async def folder_has_children(self, *, org_id, folder_id):
+        async def folder_has_children(self, *, workspace_id, folder_id):
             return False
 
-        async def folder_has_assets(self, *, org_id, folder_id):
+        async def folder_has_assets(self, *, workspace_id, folder_id):
             return True
 
     service.repo = FakeRepo()  # type: ignore[assignment]
 
     with pytest.raises(Conflict) as exc:
-        await service.delete_folder(org_id=uuid4(), folder_id=uuid4())
+        await service.delete_folder(workspace_id=uuid4(), folder_id=uuid4())
 
     assert exc.value.error == "ASSET_FOLDER_NOT_EMPTY"
 
@@ -102,22 +102,22 @@ async def test_delete_folder_deletes_when_empty() -> None:
     folder_id = uuid4()
 
     class FakeRepo:
-        async def get_folder(self, *, org_id, folder_id):
+        async def get_folder(self, *, workspace_id, folder_id):
             return {"id": folder_id}
 
-        async def folder_has_children(self, *, org_id, folder_id):
+        async def folder_has_children(self, *, workspace_id, folder_id):
             return False
 
-        async def folder_has_assets(self, *, org_id, folder_id):
+        async def folder_has_assets(self, *, workspace_id, folder_id):
             return False
 
-        async def delete_folder(self, *, org_id, folder_id):
+        async def delete_folder(self, *, workspace_id, folder_id):
             deleted["called"] = True
             deleted["folder_id"] = folder_id
 
     service.repo = FakeRepo()  # type: ignore[assignment]
 
-    out = await service.delete_folder(org_id=uuid4(), folder_id=folder_id)
+    out = await service.delete_folder(workspace_id=uuid4(), folder_id=folder_id)
 
     assert deleted["called"] is True
     assert deleted["folder_id"] == folder_id

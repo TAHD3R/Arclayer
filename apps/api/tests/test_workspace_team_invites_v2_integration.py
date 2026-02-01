@@ -80,7 +80,11 @@ async def test_me_workspaces_owner_can_see_all_with_visible_only(prepared_db, in
         app.dependency_overrides[get_current_user] = _get_user
         app.dependency_overrides[get_current_user_id] = _get_user_id
 
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
+        async with AsyncClient(
+            transport=transport,
+            base_url="http://test",
+            headers={"X-Forwarded-For": uuid4().hex},
+        ) as client:
             resp = await client.get("/api/v1/me/workspaces")
             assert resp.status_code == 200
             items = resp.json()["data"]["items"]
@@ -163,7 +167,11 @@ async def test_workspace_invite_link_accept_existing_creates_use_event(
         role_admin = await Role.get_or_none(code="admin")
         assert role_admin is not None
 
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
+        async with AsyncClient(
+            transport=transport,
+            base_url="http://test",
+            headers={"X-Forwarded-For": uuid4().hex},
+        ) as client:
             # 1) Owner creates a reusable invite link with domain restriction.
             current_user = owner
             resp = await client.post(
@@ -268,7 +276,11 @@ async def test_workspace_invite_link_max_uses_enforced(prepared_db, integration_
         app.dependency_overrides[get_current_user] = _get_user
         app.dependency_overrides[get_current_user_id] = _get_user_id
 
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
+        async with AsyncClient(
+            transport=transport,
+            base_url="http://test",
+            headers={"X-Forwarded-For": uuid4().hex},
+        ) as client:
             current_user = owner
             resp = await client.post(
                 f"/api/v1/workspaces/{ws.id}/team/invite-links",
@@ -366,7 +378,11 @@ async def test_auth_me_invitations_includes_workspace(prepared_db, integration_v
         app.dependency_overrides[get_current_user] = _get_user
         app.dependency_overrides[get_current_user_id] = _get_user_id
 
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
+        async with AsyncClient(
+            transport=transport,
+            base_url="http://test",
+            headers={"X-Forwarded-For": uuid4().hex},
+        ) as client:
             resp = await client.get("/api/v1/auth/me/invitations?status=pending&page=1&size=20")
             assert resp.status_code == 200
             page = resp.json()["data"]
@@ -434,7 +450,11 @@ async def test_workspace_invite_link_domain_restriction_enforced(prepared_db, in
         app.dependency_overrides[get_current_user] = _get_user
         app.dependency_overrides[get_current_user_id] = _get_user_id
 
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
+        async with AsyncClient(
+            transport=transport,
+            base_url="http://test",
+            headers={"X-Forwarded-For": uuid4().hex},
+        ) as client:
             current_user = owner
             resp = await client.post(
                 f"/api/v1/workspaces/{ws.id}/team/invite-links",
@@ -513,7 +533,11 @@ async def test_a2_single_org_enforced_on_accept_existing(prepared_db, integratio
         app.dependency_overrides[get_current_user] = _get_user
         app.dependency_overrides[get_current_user_id] = _get_user_id
 
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
+        async with AsyncClient(
+            transport=transport,
+            base_url="http://test",
+            headers={"X-Forwarded-For": uuid4().hex},
+        ) as client:
             current_user = owner
             resp = await client.post(
                 f"/api/v1/workspaces/{ws.id}/team/invite-links",
@@ -591,7 +615,11 @@ async def test_workspace_email_invite_pending_unique_and_accept(prepared_db, int
         app.dependency_overrides[get_current_user] = _get_user
         app.dependency_overrides[get_current_user_id] = _get_user_id
 
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
+        async with AsyncClient(
+            transport=transport,
+            base_url="http://test",
+            headers={"X-Forwarded-For": uuid4().hex},
+        ) as client:
             current_user = owner
             resp = await client.post(
                 f"/api/v1/workspaces/{ws.id}/team/email-invites",
@@ -687,7 +715,11 @@ async def test_workspace_email_invite_email_mismatch_rejected(prepared_db, integ
         app.dependency_overrides[get_current_user] = _get_user
         app.dependency_overrides[get_current_user_id] = _get_user_id
 
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
+        async with AsyncClient(
+            transport=transport,
+            base_url="http://test",
+            headers={"X-Forwarded-For": uuid4().hex},
+        ) as client:
             current_user = owner
             resp = await client.post(
                 f"/api/v1/workspaces/{ws.id}/team/email-invites",
@@ -758,7 +790,11 @@ async def test_workspace_invite_link_disable_blocks_accept(prepared_db, integrat
         app.dependency_overrides[get_current_user] = _get_user
         app.dependency_overrides[get_current_user_id] = _get_user_id
 
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
+        async with AsyncClient(
+            transport=transport,
+            base_url="http://test",
+            headers={"X-Forwarded-For": uuid4().hex},
+        ) as client:
             current_user = owner
             resp = await client.post(
                 f"/api/v1/workspaces/{ws.id}/team/invite-links",
@@ -854,7 +890,11 @@ async def test_workspace_team_member_manage_update_disable_enable_and_reset_pass
         app.dependency_overrides[get_current_user] = _get_user
         app.dependency_overrides[get_current_user_id] = _get_user_id
 
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
+        async with AsyncClient(
+            transport=transport,
+            base_url="http://test",
+            headers={"X-Forwarded-For": uuid4().hex},
+        ) as client:
             # Owner updates member profile (workspace-scoped).
             current_user = owner
             resp = await client.patch(
