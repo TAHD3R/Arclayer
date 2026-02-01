@@ -10,10 +10,10 @@ from apps.api.models.notification import NotificationRecord
 
 
 class NotificationRepository(BaseRepository):
-    async def get_unread_count(self, *, org_id: UUID, recipient_user_id: UUID) -> int:
+    async def get_unread_count(self, *, workspace_id: UUID, recipient_user_id: UUID) -> int:
         return int(
             await NotificationRecord.filter(
-                org_id=org_id,
+                workspace_id=workspace_id,
                 recipient_user_id=recipient_user_id,
                 read_at=None,
             ).count()
@@ -22,7 +22,7 @@ class NotificationRepository(BaseRepository):
     async def list_unread_latest(
         self,
         *,
-        org_id: UUID,
+        workspace_id: UUID,
         recipient_user_id: UUID,
         limit: int,
     ) -> list[NotificationRecord]:
@@ -32,7 +32,7 @@ class NotificationRepository(BaseRepository):
         return await (
             NotificationRecord
             .filter(
-                org_id=org_id,
+                workspace_id=workspace_id,
                 recipient_user_id=recipient_user_id,
                 read_at=None,
             )
@@ -43,12 +43,12 @@ class NotificationRepository(BaseRepository):
     def build_list_queryset(
         self,
         *,
-        org_id: UUID,
+        workspace_id: UUID,
         recipient_user_id: UUID,
         unread_only: bool,
         category: str | None,
     ):
-        cond = Q(org_id=org_id) & Q(recipient_user_id=recipient_user_id)
+        cond = Q(workspace_id=workspace_id) & Q(recipient_user_id=recipient_user_id)
         if unread_only:
             cond &= Q(read_at=None)
         if category:
@@ -58,13 +58,13 @@ class NotificationRepository(BaseRepository):
     async def mark_read(
         self,
         *,
-        org_id: UUID,
+        workspace_id: UUID,
         recipient_user_id: UUID,
         notification_id: UUID,
     ) -> NotificationRecord | None:
         row = await NotificationRecord.filter(
             id=notification_id,
-            org_id=org_id,
+            workspace_id=workspace_id,
             recipient_user_id=recipient_user_id,
         ).first()
         if row is None:
@@ -78,11 +78,11 @@ class NotificationRepository(BaseRepository):
     async def mark_all_read(
         self,
         *,
-        org_id: UUID,
+        workspace_id: UUID,
         recipient_user_id: UUID,
     ) -> tuple[int, int]:
         queryset = NotificationRecord.filter(
-            org_id=org_id,
+            workspace_id=workspace_id,
             recipient_user_id=recipient_user_id,
             read_at=None,
         )
@@ -96,14 +96,14 @@ class NotificationRepository(BaseRepository):
     async def delete_notification(
         self,
         *,
-        org_id: UUID,
+        workspace_id: UUID,
         recipient_user_id: UUID,
         notification_id: UUID,
     ) -> int:
         return int(
             await NotificationRecord.filter(
                 id=notification_id,
-                org_id=org_id,
+                workspace_id=workspace_id,
                 recipient_user_id=recipient_user_id,
             ).delete()
         )

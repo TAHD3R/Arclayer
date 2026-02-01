@@ -27,24 +27,24 @@ class AdminAssetUsagesService(BaseService):
         self.repo = AdminAssetUsagesRepository()
 
     async def list_usages_by_asset(
-        self, *, org_id: UUID, asset_id: UUID, params: PageParams
+        self, *, workspace_id: UUID, asset_id: UUID, params: PageParams
     ) -> PageData[AdminAssetUsageOut]:
-        asset = await AssetRecord.get_or_none(id=asset_id, org_id=org_id)
+        asset = await AssetRecord.get_or_none(id=asset_id, workspace_id=workspace_id)
         if asset is None:
             raise NotFound(message=_ts("ASSET_NOT_FOUND", "资源不存在"), error="ASSET_NOT_FOUND")
 
-        qs = self.repo.query_usages_by_asset(org_id=org_id, asset_id=asset_id)
+        qs = self.repo.query_usages_by_asset(workspace_id=workspace_id, asset_id=asset_id)
         return await paginate_queryset(qs, params=params, out_schema=AdminAssetUsageOut)
 
     async def upsert_usage(
         self,
         *,
-        org_id: UUID,
+        workspace_id: UUID,
         actor_user_id: UUID | None,
         payload: AdminAssetUsageUpsertRequest,
     ) -> AdminAssetUsageOut:
         # Guard: the asset must belong to the current org to prevent cross-tenant references.
-        asset = await AssetRecord.get_or_none(id=payload.asset_id, org_id=org_id)
+        asset = await AssetRecord.get_or_none(id=payload.asset_id, workspace_id=workspace_id)
         if asset is None:
             raise NotFound(message=_ts("ASSET_NOT_FOUND", "资源不存在"), error="ASSET_NOT_FOUND")
 
@@ -57,7 +57,7 @@ class AdminAssetUsagesService(BaseService):
             raise BadRequest(message=_ts("USAGE_INVALID", "引用信息不完整"), error="USAGE_INVALID")
 
         row = await self.repo.upsert_usage(
-            org_id=org_id,
+            workspace_id=workspace_id,
             asset_id=payload.asset_id,
             purpose=purpose,
             entity_type=entity_type,
@@ -81,7 +81,7 @@ class AdminAssetUsagesService(BaseService):
     async def delete_usage_by_ref(
         self,
         *,
-        org_id: UUID,
+        workspace_id: UUID,
         payload: AdminAssetUsageDeleteRequest,
     ) -> AdminAssetUsageDeleteOut:
         entity_type = payload.entity_type.strip()
@@ -91,7 +91,7 @@ class AdminAssetUsagesService(BaseService):
             raise BadRequest(message=_ts("USAGE_INVALID", "引用信息不完整"), error="USAGE_INVALID")
 
         deleted = await self.repo.delete_usage_by_ref(
-            org_id=org_id,
+            workspace_id=workspace_id,
             entity_type=entity_type,
             entity_id=entity_id,
             field_key=field_key,

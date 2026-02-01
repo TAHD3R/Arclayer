@@ -14,7 +14,7 @@ class UploadsRepository(BaseRepository):
     async def create_session(
         self,
         *,
-        org_id: UUID,
+        workspace_id: UUID,
         actor_user_id: UUID,
         purpose: str,
         filename: str,
@@ -35,7 +35,7 @@ class UploadsRepository(BaseRepository):
         multipart_upload_id: str | None,
     ) -> UploadSessionRecord:
         return await UploadSessionRecord.create(
-            org_id=org_id,
+            workspace_id=workspace_id,
             actor_user_id=actor_user_id,
             purpose=purpose,
             filename=filename,
@@ -57,8 +57,8 @@ class UploadsRepository(BaseRepository):
             multipart_upload_id=multipart_upload_id,
         )
 
-    async def get_session(self, *, upload_id: UUID, org_id: UUID) -> UploadSessionRecord | None:
-        return await UploadSessionRecord.get_or_none(id=upload_id, org_id=org_id)
+    async def get_session(self, *, upload_id: UUID, workspace_id: UUID) -> UploadSessionRecord | None:
+        return await UploadSessionRecord.get_or_none(id=upload_id, workspace_id=workspace_id)
 
     def query_parts(self, *, session_id: UUID) -> QuerySet[UploadPartRecord]:
         return UploadPartRecord.filter(session_id=session_id)
@@ -104,7 +104,7 @@ class UploadsRepository(BaseRepository):
         await session.save(update_fields=["status", "asset_id", "updated_at"])
         return session
 
-    async def try_mark_completing(self, *, upload_id: UUID, org_id: UUID) -> bool:
+    async def try_mark_completing(self, *, upload_id: UUID, workspace_id: UUID) -> bool:
         """
         Atomic CAS for multi-worker correctness.
 
@@ -117,7 +117,7 @@ class UploadsRepository(BaseRepository):
         # If a worker crashes while COMPLETING, allow other workers to take over after a short TTL.
         stale_cutoff = now - timedelta(seconds=60)
 
-        base = UploadSessionRecord.filter(id=upload_id, org_id=org_id, asset_id=None)
+        base = UploadSessionRecord.filter(id=upload_id, workspace_id=workspace_id, asset_id=None)
         base = base.filter(
             Q(status__in=[UploadStatus.INITIATED, UploadStatus.UPLOADING])
             | Q(status=UploadStatus.COMPLETING, updated_at__lt=stale_cutoff)

@@ -7,7 +7,7 @@ from apps.api.models.base import BaseModel
 
 class AssetUsageRecord(BaseModel):
     """
-    Asset usage reference (org-scoped).
+    Asset usage reference (workspace-scoped in v2).
 
     Use cases:
     - Track "which business entity / field references which asset".
@@ -21,7 +21,7 @@ class AssetUsageRecord(BaseModel):
     - `field_key` should use dot paths (e.g. `site.logo`, `seo.og_image`).
     """
 
-    org_id = fields.UUIDField(db_index=True)
+    workspace_id = fields.UUIDField(db_index=True)
 
     asset = fields.ForeignKeyField(
         "models.AssetRecord",
@@ -41,4 +41,4 @@ class AssetUsageRecord(BaseModel):
     class Meta(BaseModel.Meta):
         table = "asset_usages"
         abstract = False
-        unique_together = (("org_id", "entity_type", "entity_id", "field_key"),)
+        unique_together = (("workspace_id", "entity_type", "entity_id", "field_key"),)

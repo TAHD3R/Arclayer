@@ -56,22 +56,6 @@ class RolePermission(BaseModel):
         abstract = False
 
 
-class MembershipRole(BaseModel):
-    """Membership -> Role link (many-to-many)."""
-
-    membership = fields.ForeignKeyField(
-        "models.Membership",
-        related_name="membership_roles",
-        on_delete=fields.CASCADE,
-    )
-    role = fields.ForeignKeyField("models.Role", related_name="membership_roles", on_delete=fields.CASCADE)
-
-    class Meta(BaseModel.Meta):
-        table = "membership_roles"
-        unique_together = ("membership_id", "role_id")
-        abstract = False
-
-
 class BootstrapState(BaseModel):
     """
     One-time RBAC bootstrap marker.

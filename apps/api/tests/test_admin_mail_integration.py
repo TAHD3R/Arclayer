@@ -11,26 +11,25 @@ from apps.api.core.registry import create_app
 from apps.api.infra.db.orm import verify_db_ready
 from apps.api.models.setting import SettingRecord
 from apps.api.routers.v1.auth.deps import get_current_user_id
+from apps.api.settings.scopes import SCOPE_TYPE_SYSTEM, SYSTEM_SCOPE_ID
 
 pytestmark = pytest.mark.integration
 
 
 async def _bootstrap_admin_user(app, *, org_name: str = "Test Org"):
     """
-    Create an organization + an admin user with permissions in that org.
+    Create an organization + an org owner user (v2 system scope gate).
 
     Returns (org_id, admin_user_id).
     """
 
     from apps.api.core.organization.repository import OrganizationRepository
-    from apps.api.core.rbac.constants import ROLE_ADMIN
-    from apps.api.core.rbac.repository import RBACRepository
+    from apps.api.models.org_membership import OrgMembership
     from apps.api.routers.v1.auth.repository import UserRepository
     from apps.api.routers.v1.auth.security import hash_password
 
     settings = get_settings()
     org_repo = OrganizationRepository()
-    rbac_repo = RBACRepository()
     user_repo = UserRepository()
 
     org = await org_repo.create_organization(slug=f"org_{uuid4().hex}", name=org_name)
@@ -41,11 +40,7 @@ async def _bootstrap_admin_user(app, *, org_name: str = "Test Org"):
         display_name="Admin",
         password_hash=hash_password("admin_password_123", settings.auth),
     )
-
-    role_admin = await rbac_repo.get_role_by_code(ROLE_ADMIN)
-    assert role_admin is not None
-    membership = await rbac_repo.ensure_membership(user_id=admin.id, organization_id=org.id)
-    await rbac_repo.assign_membership_role(membership_id=membership.id, role=role_admin)
+    await OrgMembership.create(organization_id=org.id, user_id=admin.id, is_owner=True, status="active")
 
     async def _current_user_id():
         return admin.id
@@ -85,24 +80,29 @@ async def test_admin_mail_test_endpoint_respects_core_mail_enabled(
         await verify_db_ready(settings)
 
         org_id, _admin_user_id = await _bootstrap_admin_user(app)
-        headers = {"X-Org-Id": str(org_id)}
+        _ = org_id
 
         # mail disabled => endpoint should return 400 and not send
-        await SettingRecord.create(namespace="core", value={"mail": {"enabled": False}})
+        await SettingRecord.create(
+            scope_type=SCOPE_TYPE_SYSTEM,
+            scope_id=SYSTEM_SCOPE_ID,
+            namespace="core",
+            value={"mail": {"enabled": False}},
+        )
 
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            resp = await client.post("/api/v1/admin/mail/test", headers=headers, json={"recipient": "to@example.com"})
+            resp = await client.post("/api/v1/system/mail/test", json={"recipient": "to@example.com"})
             assert resp.status_code == 400
             assert resp.json().get("error") == "MAIL_DISABLED"
             assert sent == []
 
         # enable mail => endpoint should send via DummyMail
-        record = await SettingRecord.get(namespace="core")
+        record = await SettingRecord.get(scope_type=SCOPE_TYPE_SYSTEM, scope_id=SYSTEM_SCOPE_ID, namespace="core")
         record.value = {"mail": {"enabled": True}}
         await record.save()
 
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            resp = await client.post("/api/v1/admin/mail/test", headers=headers, json={"recipient": "to@example.com"})
+            resp = await client.post("/api/v1/system/mail/test", json={"recipient": "to@example.com"})
             assert resp.status_code == 200
             out = resp.json()["data"]
             assert out["ok"] is True
@@ -140,6 +140,8 @@ async def test_email_service_template_gating_works(
 
         # Configure core mail as enabled, but only allow registration_prompt (disable welcome_email).
         await SettingRecord.create(
+            scope_type=SCOPE_TYPE_SYSTEM,
+            scope_id=SYSTEM_SCOPE_ID,
             namespace="core",
             value={
                 "mail": {

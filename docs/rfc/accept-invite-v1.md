@@ -1,5 +1,9 @@
 # RFC: Accept Invite (v1) - Setup-Style 2-Step Wizard + Existing Account Join + System Roles
 
+> Note (2026-01-31): This RFC is superseded by `docs/rfc/org-workspace-collaboration-and-invites-v2.md`.
+>
+> The v2 RFC changes the boundary model to **Organization → Workspaces**, and moves team collaboration and invites to the **workspace scope**.
+
 Status: Draft (Approved in discussion; pending implementation)
 
 Last Updated: 2026-01-31

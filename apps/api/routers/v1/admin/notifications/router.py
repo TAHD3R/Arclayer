@@ -5,10 +5,10 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query
 
 from apps.api.config import Settings, get_settings
-from apps.api.core.authz import require_permission_strict
 from apps.api.core.http.pagination import PageData, PageParams, get_page_params
 from apps.api.core.http.response import Response, ResponseModel
-from apps.api.core.organization.deps import get_current_org_id
+from apps.api.core.workspace.authz import require_workspace_permission
+from apps.api.core.workspace.deps import WorkspaceContext, require_workspace_manage_access
 from apps.api.routers.v1.admin.notifications.schema import (
     NotificationDeleteResult,
     NotificationDevSeedRequest,
@@ -22,7 +22,11 @@ from apps.api.routers.v1.admin.notifications.schema import (
 from apps.api.routers.v1.admin.notifications.service import NotificationService
 from apps.api.routers.v1.auth.deps import get_current_user_id
 
-router = APIRouter(tags=["Services: Notifications"])
+router = APIRouter(
+    prefix="/workspaces/{workspace_id}/notifications",
+    tags=["Workspace: Notifications"],
+    dependencies=[require_workspace_permission("admin:access")],
+)
 
 
 def get_notification_service(settings: Settings = Depends(get_settings)) -> NotificationService:
@@ -32,94 +36,92 @@ def get_notification_service(settings: Settings = Depends(get_settings)) -> Noti
 @router.get(
     "",
     response_model=ResponseModel[PageData[NotificationOut]],
-    dependencies=[require_permission_strict("admin:access")],
     summary="List notifications",
 )
 async def list_notifications(
-    org_id: UUID = Depends(get_current_org_id),
+    ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     user_id: UUID = Depends(get_current_user_id),
     params: PageParams = Depends(get_page_params),
     filters: NotificationListQuery = Depends(),
     service: NotificationService = Depends(get_notification_service),
 ) -> ResponseModel[PageData[NotificationOut]]:
-    page = await service.list_notifications(org_id=org_id, user_id=user_id, params=params, filters=filters)
+    page = await service.list_notifications(
+        workspace_id=ctx.workspace_id, user_id=user_id, params=params, filters=filters
+    )
     return Response.success(data=page)
 
 
 @router.get(
     "/unread/preview",
     response_model=ResponseModel[NotificationPreviewOut],
-    dependencies=[require_permission_strict("admin:access")],
     summary="Get unread notification preview",
 )
 async def get_unread_preview(
-    org_id: UUID = Depends(get_current_org_id),
+    ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     user_id: UUID = Depends(get_current_user_id),
     limit: int = Query(3, ge=1, le=20, description="Max unread items to return (default 3)."),
     service: NotificationService = Depends(get_notification_service),
 ) -> ResponseModel[NotificationPreviewOut]:
-    preview = await service.get_unread_preview(org_id=org_id, user_id=user_id, limit=limit)
+    preview = await service.get_unread_preview(workspace_id=ctx.workspace_id, user_id=user_id, limit=limit)
     return Response.success(data=preview)
 
 
 @router.post(
     "/{notification_id}/read",
     response_model=ResponseModel[NotificationReadResult],
-    dependencies=[require_permission_strict("admin:access")],
     summary="Mark a notification as read",
 )
 async def mark_read(
     notification_id: UUID,
-    org_id: UUID = Depends(get_current_org_id),
+    ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     user_id: UUID = Depends(get_current_user_id),
     service: NotificationService = Depends(get_notification_service),
 ) -> ResponseModel[NotificationReadResult]:
-    out = await service.mark_read(org_id=org_id, user_id=user_id, notification_id=notification_id)
+    out = await service.mark_read(workspace_id=ctx.workspace_id, user_id=user_id, notification_id=notification_id)
     return Response.success(data=out)
 
 
 @router.post(
     "/read-all",
     response_model=ResponseModel[NotificationReadAllResult],
-    dependencies=[require_permission_strict("admin:access")],
     summary="Mark all notifications as read",
 )
 async def mark_all_read(
-    org_id: UUID = Depends(get_current_org_id),
+    ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     user_id: UUID = Depends(get_current_user_id),
     service: NotificationService = Depends(get_notification_service),
 ) -> ResponseModel[NotificationReadAllResult]:
-    out = await service.mark_all_read(org_id=org_id, user_id=user_id)
+    out = await service.mark_all_read(workspace_id=ctx.workspace_id, user_id=user_id)
     return Response.success(data=out)
 
 
 @router.post(
     "/dev/seed",
     response_model=ResponseModel[NotificationDevSeedResult],
-    dependencies=[require_permission_strict("admin:access")],
     summary="Seed demo notifications (dev/test only)",
 )
 async def seed_demo_notifications(
     payload: NotificationDevSeedRequest,
-    org_id: UUID = Depends(get_current_org_id),
+    ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     user_id: UUID = Depends(get_current_user_id),
     service: NotificationService = Depends(get_notification_service),
 ) -> ResponseModel[NotificationDevSeedResult]:
-    out = await service.seed_demo_notifications(org_id=org_id, user_id=user_id, count=payload.count)
+    out = await service.seed_demo_notifications(workspace_id=ctx.workspace_id, user_id=user_id, count=payload.count)
     return Response.success(data=out)
 
 
 @router.delete(
     "/{notification_id}",
     response_model=ResponseModel[NotificationDeleteResult],
-    dependencies=[require_permission_strict("admin:access")],
     summary="Delete a notification",
 )
 async def delete_notification(
     notification_id: UUID,
-    org_id: UUID = Depends(get_current_org_id),
+    ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     user_id: UUID = Depends(get_current_user_id),
     service: NotificationService = Depends(get_notification_service),
 ) -> ResponseModel[NotificationDeleteResult]:
-    out = await service.delete_notification(org_id=org_id, user_id=user_id, notification_id=notification_id)
+    out = await service.delete_notification(
+        workspace_id=ctx.workspace_id, user_id=user_id, notification_id=notification_id
+    )
     return Response.success(data=out)

@@ -19,13 +19,13 @@ def test_slugify_falls_back_when_empty() -> None:
     assert slugify("   ") == "asset"
 
 
-def test_build_asset_object_key_contains_org_and_asset_id() -> None:
+def test_build_asset_object_key_contains_workspace_and_asset_id() -> None:
     from apps.api.common.utils.assets import build_asset_object_key
 
-    org_id = UUID("00000000-0000-0000-0000-000000000001")
+    workspace_id = UUID("00000000-0000-0000-0000-000000000001")
     asset_id = UUID("00000000-0000-0000-0000-000000000002")
-    key = build_asset_object_key(org_id=org_id, asset_id=asset_id, ext="png")
-    assert str(org_id) in key
+    key = build_asset_object_key(workspace_id=workspace_id, asset_id=asset_id, ext="png")
+    assert str(workspace_id) in key
     assert str(asset_id) in key
     assert key.endswith(".png")
 
@@ -33,11 +33,11 @@ def test_build_asset_object_key_contains_org_and_asset_id() -> None:
 def test_build_upload_part_object_key_is_stable() -> None:
     from apps.api.common.utils.assets import build_upload_part_object_key
 
-    org_id = UUID("00000000-0000-0000-0000-000000000001")
+    workspace_id = UUID("00000000-0000-0000-0000-000000000001")
     upload_id = UUID("00000000-0000-0000-0000-000000000003")
     assert (
-        build_upload_part_object_key(org_id=org_id, upload_id=upload_id, part_number=1)
-        == "org/00000000-0000-0000-0000-000000000001/uploads/00000000-0000-0000-0000-000000000003/part-000001"
+        build_upload_part_object_key(workspace_id=workspace_id, upload_id=upload_id, part_number=1)
+        == "workspaces/00000000-0000-0000-0000-000000000001/uploads/00000000-0000-0000-0000-000000000003/part-000001"
     )
 
 

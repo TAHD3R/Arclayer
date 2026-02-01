@@ -92,7 +92,7 @@ class UploadsService(BaseService):
     async def init_upload(
         self,
         *,
-        org_id: UUID,
+        workspace_id: UUID,
         actor_user_id: UUID,
         purpose: str,
         filename: str,
@@ -154,7 +154,7 @@ class UploadsService(BaseService):
         multipart_upload_id: str | None = None
         object_key: str | None = None
         if provider == "local":
-            object_key = build_asset_object_key(org_id=org_id, asset_id=reserved_asset_id, ext=ext)
+            object_key = build_asset_object_key(workspace_id=workspace_id, asset_id=reserved_asset_id, ext=ext)
         elif provider == "s3":
             # Scheme C: CDN canonical path is `/assets/{asset_id}/{slug}.{ext}`.
             # For S3, we store the object at the same path (relative, without leading slash).
@@ -184,7 +184,7 @@ class UploadsService(BaseService):
             )
 
         return await self.repo.create_session(
-            org_id=org_id,
+            workspace_id=workspace_id,
             actor_user_id=actor_user_id,
             purpose=purpose,
             filename=normalized_filename,
@@ -205,8 +205,8 @@ class UploadsService(BaseService):
             multipart_upload_id=multipart_upload_id,
         )
 
-    async def get_status(self, *, upload_id: UUID, org_id: UUID) -> tuple[UploadSessionRecord, list[int]]:
-        session = await self.repo.get_session(upload_id=upload_id, org_id=org_id)
+    async def get_status(self, *, upload_id: UUID, workspace_id: UUID) -> tuple[UploadSessionRecord, list[int]]:
+        session = await self.repo.get_session(upload_id=upload_id, workspace_id=workspace_id)
         if session is None:
             raise NotFound(message=_ts("UPLOAD_NOT_FOUND", "上传会话不存在"), error="UPLOAD_NOT_FOUND")
 
@@ -223,11 +223,11 @@ class UploadsService(BaseService):
         self,
         *,
         upload_id: UUID,
-        org_id: UUID,
+        workspace_id: UUID,
         part_number: int,
         data: bytes,
     ) -> None:
-        session, _missing = await self.get_status(upload_id=upload_id, org_id=org_id)
+        session, _missing = await self.get_status(upload_id=upload_id, workspace_id=workspace_id)
         if session.storage_provider == "s3":
             raise BadRequest(
                 message=_ts("UPLOAD_DIRECT_REQUIRED", "当前存储使用直传方式，请使用 presign 接口上传"),
@@ -251,7 +251,11 @@ class UploadsService(BaseService):
                 error="UPLOAD_CHUNK_SIZE_MISMATCH",
             )
 
-        object_key = build_upload_part_object_key(org_id=org_id, upload_id=upload_id, part_number=part_number)
+        object_key = build_upload_part_object_key(
+            workspace_id=workspace_id,
+            upload_id=upload_id,
+            part_number=part_number,
+        )
         self._tmp_provider.put_bytes(object_key=object_key, data=data)
         await self.repo.upsert_part(
             session_id=session.id,
@@ -261,8 +265,8 @@ class UploadsService(BaseService):
         )
         await self.repo.set_session_status(session, status=UploadStatus.UPLOADING)
 
-    async def presign_part(self, *, upload_id: UUID, org_id: UUID, part_number: int) -> UploadPartPresignOut:
-        session, _missing = await self.get_status(upload_id=upload_id, org_id=org_id)
+    async def presign_part(self, *, upload_id: UUID, workspace_id: UUID, part_number: int) -> UploadPartPresignOut:
+        session, _missing = await self.get_status(upload_id=upload_id, workspace_id=workspace_id)
         if session.storage_provider != "s3":
             raise BadRequest(
                 message=_ts("UPLOAD_PRESIGN_NOT_SUPPORTED", "当前存储不支持直传"),
@@ -305,12 +309,12 @@ class UploadsService(BaseService):
         self,
         *,
         upload_id: UUID,
-        org_id: UUID,
+        workspace_id: UUID,
         part_number: int,
         etag: str,
         size_bytes: int,
     ) -> None:
-        session, _missing = await self.get_status(upload_id=upload_id, org_id=org_id)
+        session, _missing = await self.get_status(upload_id=upload_id, workspace_id=workspace_id)
         if session.storage_provider != "s3":
             raise BadRequest(
                 message=_ts("UPLOAD_COMMIT_NOT_SUPPORTED", "当前存储不支持直传提交"),
@@ -350,8 +354,10 @@ class UploadsService(BaseService):
         )
         await self.repo.set_session_status(session, status=UploadStatus.UPLOADING)
 
-    async def complete(self, *, upload_id: UUID, org_id: UUID, background_tasks: BackgroundTasks | None = None) -> UUID:
-        session, missing = await self.get_status(upload_id=upload_id, org_id=org_id)
+    async def complete(
+        self, *, upload_id: UUID, workspace_id: UUID, background_tasks: BackgroundTasks | None = None
+    ) -> UUID:
+        session, missing = await self.get_status(upload_id=upload_id, workspace_id=workspace_id)
         if session.status == UploadStatus.COMPLETED and session.asset_id is not None:
             return session.asset_id
         if missing:
@@ -362,11 +368,11 @@ class UploadsService(BaseService):
             )
 
         # Multi-worker correctness: single-winner CAS for COMPLETING.
-        winner = await self.repo.try_mark_completing(upload_id=upload_id, org_id=org_id)
+        winner = await self.repo.try_mark_completing(upload_id=upload_id, workspace_id=workspace_id)
         if not winner:
             # Another worker is completing (or already completed). Wait briefly for idempotent completion.
             for _ in range(10):
-                latest = await self.repo.get_session(upload_id=upload_id, org_id=org_id)
+                latest = await self.repo.get_session(upload_id=upload_id, workspace_id=workspace_id)
                 if latest is None:
                     break
                 if latest.status == UploadStatus.COMPLETED and latest.asset_id is not None:
@@ -378,15 +384,15 @@ class UploadsService(BaseService):
             raise BadRequest(message=_ts("UPLOAD_COMPLETING", "上传正在完成中，请稍后重试"), error="UPLOAD_COMPLETING")
 
         # Reload with the latest status after CAS update.
-        session = await self.repo.get_session(upload_id=upload_id, org_id=org_id)
+        session = await self.repo.get_session(upload_id=upload_id, workspace_id=workspace_id)
         if session is None:
             raise NotFound(message=_ts("UPLOAD_NOT_FOUND", "上传会话不存在"), error="UPLOAD_NOT_FOUND")
 
         try:
             if session.storage_provider == "s3":
-                asset_id = await self._complete_s3(session=session, org_id=org_id)
+                asset_id = await self._complete_s3(session=session, workspace_id=workspace_id)
             else:
-                asset_id = await self._complete_local(session=session, org_id=org_id)
+                asset_id = await self._complete_local(session=session, workspace_id=workspace_id)
         except Exception:
             # Avoid leaving the session stuck in COMPLETING forever.
             try:
@@ -399,7 +405,7 @@ class UploadsService(BaseService):
         event = Event(
             name=ASSET_UPLOADED_EVENT,
             payload={
-                "org_id": str(org_id),
+                "workspace_id": str(workspace_id),
                 "asset_id": str(asset_id),
                 "purpose": str(session.purpose),
                 "storage_provider": str(session.storage_provider),
@@ -423,12 +429,12 @@ class UploadsService(BaseService):
 
         return asset_id
 
-    async def _complete_local(self, *, session: UploadSessionRecord, org_id: UUID) -> UUID:
+    async def _complete_local(self, *, session: UploadSessionRecord, workspace_id: UUID) -> UUID:
         filename = session.filename
         ext = (session.resolved_ext or "").lstrip(".").lower() or (Path(filename).suffix.lstrip(".") or "bin").lower()
         slug = (session.resolved_slug or "").strip() or slugify(Path(filename).stem or "asset")
         asset_id = session.reserved_asset_id or uuid7()
-        object_key = session.object_key or build_asset_object_key(org_id=org_id, asset_id=asset_id, ext=ext)
+        object_key = session.object_key or build_asset_object_key(workspace_id=workspace_id, asset_id=asset_id, ext=ext)
 
         try:
             purpose = AssetPurpose(session.purpose)
@@ -487,7 +493,7 @@ class UploadsService(BaseService):
         try:
             asset = await AssetRecord.create(
                 id=asset_id,
-                org_id=org_id,
+                workspace_id=workspace_id,
                 owner_user_id=session.actor_user_id,
                 folder_id=session.target_folder_id,
                 purpose=purpose,
@@ -523,7 +529,7 @@ class UploadsService(BaseService):
                 continue
         return asset.id
 
-    async def _complete_s3(self, *, session: UploadSessionRecord, org_id: UUID) -> UUID:
+    async def _complete_s3(self, *, session: UploadSessionRecord, workspace_id: UUID) -> UUID:
         effective = await get_effective_settings(self.settings)
         try:
             provider_impl = build_storage_provider_for(effective, provider="s3")
@@ -594,7 +600,7 @@ class UploadsService(BaseService):
         try:
             asset = await AssetRecord.create(
                 id=asset_id,
-                org_id=org_id,
+                workspace_id=workspace_id,
                 owner_user_id=session.actor_user_id,
                 folder_id=session.target_folder_id,
                 purpose=purpose,
@@ -621,8 +627,8 @@ class UploadsService(BaseService):
         await self.repo.mark_completed(session, asset_id=asset.id)
         return asset.id
 
-    async def abort(self, *, upload_id: UUID, org_id: UUID) -> UploadSessionRecord:
-        session = await self.repo.get_session(upload_id=upload_id, org_id=org_id)
+    async def abort(self, *, upload_id: UUID, workspace_id: UUID) -> UploadSessionRecord:
+        session = await self.repo.get_session(upload_id=upload_id, workspace_id=workspace_id)
         if session is None:
             raise NotFound(message=_ts("UPLOAD_NOT_FOUND", "上传会话不存在"), error="UPLOAD_NOT_FOUND")
         # Best-effort: abort multipart upload if needed.
@@ -641,10 +647,10 @@ class UploadsService(BaseService):
         await self.repo.set_session_status(session, status=UploadStatus.ABORTED)
 
         # Best-effort cleanup: remove directory under tmp if present.
-        # This is safe because we scope by org_id and upload_id in object_key.
+        # This is safe because we scope by workspace_id and upload_id in object_key.
         upload_dir = safe_object_key_to_path(
             self.settings.storage.local_tmp_dir,
-            f"org/{org_id}/uploads/{upload_id}",
+            f"workspaces/{workspace_id}/uploads/{upload_id}",
         )
         try:
             if upload_dir.is_dir():

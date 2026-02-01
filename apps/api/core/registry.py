@@ -17,7 +17,7 @@ from apps.api.core.exceptions import init_exception_handlers
 from apps.api.core.logging import configure_logging
 from apps.api.core.observability import configure_observability
 from apps.api.core.organization.bootstrap import ensure_organization_ready
-from apps.api.core.rbac.bootstrap import ensure_rbac_ready, register_core_authz_providers, register_permission_templates
+from apps.api.core.rbac.bootstrap import ensure_rbac_ready, register_permission_templates
 from apps.api.core.routes import register_routes
 from apps.api.infra.cache.valkey import close_valkey, init_valkey
 from apps.api.infra.db.orm import close_orm, init_orm, verify_db_ready
@@ -36,9 +36,6 @@ def _build_lifespan(settings: Settings, *, plugin_manager: PluginManager):
                 plugin_manager.discover()
             extra_models = plugin_manager.collect_model_modules()
 
-            # RBAC is a core capability. Register core authz providers early so
-            # request dependencies never rely on plugins to exist.
-            register_core_authz_providers(settings)
             # Collect permission templates from both core and plugins, so the DB sync
             # can grant defaults deterministically on every boot.
             register_permission_templates(plugin_manager=plugin_manager)

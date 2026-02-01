@@ -19,7 +19,7 @@ class AssetShareLinkRecord(BaseModel):
     - This bypasses Asset visibility; access is gated by the opaque token + expiration + revoked_at.
     """
 
-    org_id = fields.UUIDField(db_index=True)
+    workspace_id = fields.UUIDField(db_index=True)
     asset = fields.ForeignKeyField("models.AssetRecord", related_name="share_links", on_delete=fields.CASCADE)
 
     token = fields.CharField(max_length=64, unique=True, db_index=True)

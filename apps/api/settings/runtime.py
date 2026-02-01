@@ -10,6 +10,7 @@ from apps.api.core.logging import get_logger
 from apps.api.models.setting import SettingRecord
 from apps.api.settings.core_schema import CORE_SETTINGS_NAMESPACE, CORE_SETTINGS_SCHEMA
 from apps.api.settings.crypto import decrypt_secret, is_encrypted, load_master_key, master_key_exists
+from apps.api.settings.scopes import SCOPE_TYPE_SYSTEM, SYSTEM_SCOPE_ID
 from apps.api.settings.validation import iter_secret_field_paths
 
 logger = get_logger(__name__)
@@ -70,7 +71,11 @@ async def get_core_settings_value_cached(
         return _core_cache
 
     try:
-        record = await SettingRecord.get_or_none(namespace=CORE_SETTINGS_NAMESPACE)
+        record = await SettingRecord.get_or_none(
+            scope_type=SCOPE_TYPE_SYSTEM,
+            scope_id=SYSTEM_SCOPE_ID,
+            namespace=CORE_SETTINGS_NAMESPACE,
+        )
         raw = record.value if record and isinstance(record.value, dict) else {}
 
         # Decrypt secret fields (best-effort). If we cannot decrypt, keep the encrypted

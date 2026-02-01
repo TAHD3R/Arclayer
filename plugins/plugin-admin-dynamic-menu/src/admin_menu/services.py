@@ -8,7 +8,8 @@ from admin_menu.models import AdminMenuItem, AdminMenuItemType
 from admin_menu.repository import AdminMenuRepository, normalize_ordering
 from apps.api.common.services import BaseService
 from apps.api.config import get_settings
-from apps.api.core.authz import get_authz_snapshot_provider
+from apps.api.core.workspace.authz_snapshot import get_workspace_authz_snapshot
+from apps.api.core.workspace.context import get_current_workspace_id
 from apps.api.core.exceptions import BadRequest, Conflict, NotFound, ServiceUnavailable
 from apps.api.core.i18n import t
 from apps.api.core.http.pagination import PageData, PageParams, paginate_queryset
@@ -34,15 +35,16 @@ class AdminMenuService(BaseService):
         self.repo = AdminMenuRepository()
 
     async def get_menu(self, *, user_id: UUID) -> AdminMenuTreeOut:
-        provider = get_authz_snapshot_provider()
-        if provider is None:
+        workspace_id = get_current_workspace_id()
+        if workspace_id is None:
             raise ServiceUnavailable(
-                message=t("errors", "AUTHZ_ENGINE_UNAVAILABLE", default="鉴权引擎不可用"),
-                error="AUTHZ_ENGINE_UNAVAILABLE",
+                message=t("errors", "WORKSPACE_CONTEXT_REQUIRED", default="需要工作区上下文"),
+                error="WORKSPACE_CONTEXT_REQUIRED",
             )
-        snap = await provider.get_snapshot(user_id)
-        permission_set = set(snap.get("permission_codes") or [])
-        is_superuser = bool(snap.get("is_superuser", False))
+
+        snap = await get_workspace_authz_snapshot(user_id=user_id, workspace_id=workspace_id)
+        permission_set = set(snap.permission_codes or [])
+        is_superuser = bool(snap.is_superuser)
 
         rows = await self.repo.query_items_for_user().all().order_by("sort", "created_at")
         by_id = {row.id: row for row in rows}
@@ -59,8 +61,8 @@ class AdminMenuService(BaseService):
             if is_superuser:
                 return True
             if not item.permission_code:
-                # Per your rule 4a: null permission means "admin:access is enough".
-                return True
+                # Per rule: null permission means "admin:access is enough".
+                return "admin:access" in permission_set
             return item.permission_code in permission_set
 
         def _compute_visible(item_id: UUID) -> bool:

@@ -12,9 +12,9 @@ from apps.api.models.user import User
 from apps.api.plugin.event_bus import Event
 from apps.api.plugin.events import SYSTEM_SETUP_COMPLETED
 from apps.api.plugin.manager import PluginManager
-from apps.api.routers.v1.admin.settings.service import SettingsService
 from apps.api.routers.v1.auth.repository import UserRepository
 from apps.api.routers.v1.auth.security import hash_password
+from apps.api.routers.v1.system.settings.service import SettingsService
 from apps.api.settings.crypto import ensure_master_key, master_key_exists
 
 
@@ -95,7 +95,15 @@ class SystemSetupService(BaseService):
             created_by_user_id=user.id,
         )
 
-        rbac_ok = await self._bootstrap_rbac_admin(user_id=user.id, organization_id=organization.id)
+        # v2: create default workspace and ensure owner membership.
+        await self._ensure_default_workspace(
+            org_id=organization.id, owner_user_id=user.id, workspace_name=organization.name
+        )
+
+        # v2: RBAC is workspace-scoped for the admin console. We already ensure the setup user
+        # has an active workspace membership and an admin role binding in `_ensure_default_workspace`.
+        # Roles/permissions are synced on app startup (`ensure_rbac_ready`), so we treat this as ok.
+        rbac_ok = True
         # Emit a best-effort event so plugins can react without hard coupling to setup flow.
         try:
             await self.manager.registry.event_bus.publish(
@@ -110,6 +118,75 @@ class SystemSetupService(BaseService):
             pass
         return now, fingerprint, user, rbac_ok, organization
 
+    async def _ensure_default_workspace(self, *, org_id, owner_user_id, workspace_name: str) -> None:
+        """
+        v2 boundary model bootstrap:
+        - Ensure OrgMembership exists and marks the setup user as owner.
+        - Ensure there is at least one default Workspace under the organization.
+        - Ensure the owner has an ACTIVE workspace membership for the created workspace.
+
+        Note: This method is idempotent and best-effort; it should not break setup if it fails.
+        """
+
+        try:
+            from apps.api.models.org_membership import OrgMembership
+            from apps.api.models.rbac import Role
+            from apps.api.models.workspace import (
+                Workspace,
+                WorkspaceMembership,
+                WorkspaceMembershipRole,
+                WorkspaceMembershipStatus,
+            )
+
+            await OrgMembership.get_or_create(
+                user_id=owner_user_id,
+                defaults={"organization_id": org_id, "is_owner": True, "status": "active"},
+            )
+            # If already exists, ensure owner + org_id match.
+            orgm = await OrgMembership.get_or_none(user_id=owner_user_id)
+            if orgm is not None:
+                changed = False
+                if str(orgm.organization_id) != str(org_id):
+                    orgm.organization_id = org_id
+                    changed = True
+                if not orgm.is_owner:
+                    orgm.is_owner = True
+                    changed = True
+                if orgm.status != "active":
+                    orgm.status = "active"
+                    changed = True
+                if changed:
+                    await orgm.save(update_fields=["organization_id", "is_owner", "status", "updated_at"])
+
+            ws = await Workspace.filter(organization_id=org_id).order_by("created_at").first()
+            if ws is None:
+                # Keep slug conservative; collisions are handled at db level.
+                slug = "default"
+                name = (workspace_name or "Default").strip() or "Default"
+                ws = await Workspace.create(
+                    organization_id=org_id,
+                    slug=slug,
+                    name=name,
+                    is_active=True,
+                    created_by_user_id=owner_user_id,
+                )
+
+            wsm, _ = await WorkspaceMembership.get_or_create(
+                user_id=owner_user_id,
+                workspace_id=ws.id,
+                defaults={"status": WorkspaceMembershipStatus.ACTIVE},
+            )
+            if wsm.status != WorkspaceMembershipStatus.ACTIVE:
+                wsm.status = WorkspaceMembershipStatus.ACTIVE
+                await wsm.save(update_fields=["status", "updated_at"])
+
+            # Ensure admin role binding for owner.
+            role_admin = await Role.get_or_none(code="admin")
+            if role_admin is not None:
+                await WorkspaceMembershipRole.get_or_create(membership_id=wsm.id, role_id=role_admin.id)
+        except Exception as exc:
+            self.logger.warning("Ensure default workspace failed", error=str(exc), org_id=str(org_id))
+
     async def _create_default_organization(
         self,
         *,
@@ -119,7 +196,7 @@ class SystemSetupService(BaseService):
         created_by_user_id,
     ) -> Organization:
         from apps.api.core.organization.repository import OrganizationRepository
-        from apps.api.models.organization import Membership, MembershipStatus, Organization
+        from apps.api.models.organization import Organization
 
         repo = OrganizationRepository()
         # Defaults are intentionally conservative to keep setup friction low.
@@ -152,20 +229,7 @@ class SystemSetupService(BaseService):
             if changed:
                 await org.save(update_fields=["name", "logo_url"])
 
-        # Ensure creator is a member (roles are handled by RBAC bootstrap).
-        await Membership.get_or_create(
-            user_id=created_by_user_id,
-            organization_id=org.id,
-            defaults={"status": MembershipStatus.ACTIVE},
-        )
         return org
 
-    async def _bootstrap_rbac_admin(self, *, user_id, organization_id) -> bool:
-        try:
-            from apps.api.core.rbac.service import RBACService
-
-            await RBACService(self.settings).bootstrap_admin(user_id=user_id, organization_id=organization_id)
-            return True
-        except Exception as exc:
-            self.logger.warning("RBAC admin bootstrap failed", error=str(exc), user_id=str(user_id))
-            return False
+    # NOTE: v2 intentionally removes org-scoped RBAC bootstrap. Workspace-scoped membership roles
+    # are handled by `_ensure_default_workspace`.

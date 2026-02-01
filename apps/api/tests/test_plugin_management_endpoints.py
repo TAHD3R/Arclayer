@@ -3,17 +3,15 @@ from __future__ import annotations
 import textwrap
 import zipfile
 from pathlib import Path
-from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
 from httpx import ASGITransport, AsyncClient
 
 from apps.api.config import get_settings
-from apps.api.core.authz import AUTHZ_EXTENSION_POINT
 from apps.api.core.registry import create_app
-from apps.api.plugin.registry import registry
-from apps.api.routers.v1.auth.deps import get_current_user
+from apps.api.models.org_membership import OrgMembership
+from apps.api.routers.v1.auth.deps import get_current_user_id
 
 pytestmark = pytest.mark.integration
 
@@ -93,92 +91,76 @@ async def test_plugin_management_flow(prepared_db, plugin_root, tmp_path) -> Non
     zip_path = _build_demo_plugin_zip(tmp_path, plugin_id)
 
     app = create_app()
-    from apps.api.core.rbac.constants import CORE_PERMISSION_OWNER
-    from apps.api.core.rbac.engine import RBACAuthorizationEngine
-
-    prev = registry.get_extension(AUTHZ_EXTENSION_POINT)
-    registry.register_extension(CORE_PERMISSION_OWNER, AUTHZ_EXTENSION_POINT, _AllowAllEngine())
 
     transport = ASGITransport(app=app)
-    try:
-        async with app.router.lifespan_context(app):
-            from apps.api.core.organization.repository import OrganizationRepository
-            from apps.api.routers.v1.auth.repository import UserRepository
-            from apps.api.routers.v1.auth.security import hash_password
+    async with app.router.lifespan_context(app):
+        from apps.api.core.organization.repository import OrganizationRepository
+        from apps.api.routers.v1.auth.repository import UserRepository
+        from apps.api.routers.v1.auth.security import hash_password
 
-            settings = get_settings()
-            user_repo = UserRepository()
-            org_repo = OrganizationRepository()
+        settings = get_settings()
+        user_repo = UserRepository()
+        org_repo = OrganizationRepository()
 
-            user = await user_repo.create_user(
-                username=f"admin_{uuid4().hex}",
-                email=None,
-                display_name="Admin",
-                password_hash=hash_password("admin_password_123", settings.auth),
+        user = await user_repo.create_user(
+            username=f"admin_{uuid4().hex}",
+            email="owner@example.com",
+            display_name="Admin",
+            password_hash=hash_password("admin_password_123", settings.auth),
+        )
+        org = await org_repo.create_organization(slug=f"org_{uuid4().hex}", name="Test Org")
+        await OrgMembership.create(organization_id=org.id, user_id=user.id, is_owner=True, status="active")
+
+        async def _fake_user_id():
+            return user.id
+
+        app.dependency_overrides[get_current_user_id] = _fake_user_id
+
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            files = {"file": ("demo.zip", zip_path.read_bytes(), "application/zip")}
+            response = await client.post(
+                "/api/v1/system/plugins-manager/install",
+                data={"enable": "false"},
+                files=files,
             )
-            org = await org_repo.create_organization(slug=f"org_{uuid4().hex}", name="Test Org")
-            await org_repo.ensure_membership(user_id=user.id, organization_id=org.id)
+            assert response.status_code == 200
+            payload = response.json()
+            assert payload["data"]["plugin"]["pluginId"] == plugin_id
+            assert payload["data"]["plugin"]["slug"] == plugin_id.replace(".", "-").replace("_", "-").lower()
+            assert payload["data"]["plugin"]["status"] == "disabled"
 
-            async def _fake_user():
-                return SimpleNamespace(id=user.id)
+            response = await client.get("/api/v1/system/plugins-manager")
+            assert response.status_code == 200
+            page = response.json()["data"]
+            items = page["items"]
+            assert any(item["pluginId"] == plugin_id for item in items)
 
-            app.dependency_overrides[get_current_user] = _fake_user
+            response = await client.get(f"/api/v1/system/plugins-manager/{plugin_id}")
+            assert response.status_code == 200
+            detail = response.json()["data"]
+            assert detail["pluginId"] == plugin_id
+            slug = plugin_id.replace(".", "-").replace("_", "-").lower()
+            assert detail["slug"] == slug
+            assert detail["status"] == "disabled"
 
-            async with AsyncClient(transport=transport, base_url="http://test") as client:
-                files = {"file": ("demo.zip", zip_path.read_bytes(), "application/zip")}
-                response = await client.post(
-                    "/api/v1/admin/plugins-manager/install",
-                    data={"enable": "false"},
-                    files=files,
-                )
-                assert response.status_code == 200
-                payload = response.json()
-                assert payload["data"]["plugin"]["pluginId"] == plugin_id
-                assert payload["data"]["plugin"]["slug"] == plugin_id.replace(".", "-").replace("_", "-").lower()
-                assert payload["data"]["plugin"]["status"] == "disabled"
+            # Management endpoints accept both plugin id and slug as identifier.
+            response = await client.post(f"/api/v1/system/plugins-manager/{slug}/enable")
+            assert response.status_code == 200
+            assert response.json()["data"]["status"] == "started"
 
-                response = await client.get("/api/v1/admin/plugins-manager")
-                assert response.status_code == 200
-                page = response.json()["data"]
-                items = page["items"]
-                assert any(item["pluginId"] == plugin_id for item in items)
+            response = await client.put(
+                f"/api/v1/system/plugins-manager/{plugin_id}/config",
+                json={"config": {"general": {"enabled": True, "mode": "on"}}},
+            )
+            assert response.status_code == 200
+            config = response.json()["data"]["plugin"]["config"]
+            assert config["general"]["enabled"] is True
+            assert config["general"]["mode"] == "on"
 
-                response = await client.get(f"/api/v1/admin/plugins-manager/{plugin_id}")
-                assert response.status_code == 200
-                detail = response.json()["data"]
-                assert detail["pluginId"] == plugin_id
-                slug = plugin_id.replace(".", "-").replace("_", "-").lower()
-                assert detail["slug"] == slug
-                assert detail["status"] == "disabled"
+            response = await client.post(f"/api/v1/system/plugins-manager/{plugin_id}/disable")
+            assert response.status_code == 200
+            assert response.json()["data"]["status"] == "disabled"
 
-                # Management endpoints accept both plugin id and slug as identifier.
-                response = await client.post(f"/api/v1/admin/plugins-manager/{slug}/enable")
-                assert response.status_code == 200
-                assert response.json()["data"]["status"] == "started"
-
-                response = await client.put(
-                    f"/api/v1/admin/plugins-manager/{plugin_id}/config",
-                    json={"config": {"general": {"enabled": True, "mode": "on"}}},
-                )
-                assert response.status_code == 200
-                config = response.json()["data"]["plugin"]["config"]
-                assert config["general"]["enabled"] is True
-                assert config["general"]["mode"] == "on"
-
-                response = await client.post(f"/api/v1/admin/plugins-manager/{plugin_id}/disable")
-                assert response.status_code == 200
-                assert response.json()["data"]["status"] == "disabled"
-
-                response = await client.post(f"/api/v1/admin/plugins-manager/{plugin_id}/uninstall")
-                assert response.status_code == 200
-                assert response.json()["data"]["status"] == "disabled"
-    finally:
-        if prev is None:
-            registry.unregister_extensions(CORE_PERMISSION_OWNER, AUTHZ_EXTENSION_POINT)
-        else:
-            registry.register_extension(CORE_PERMISSION_OWNER, AUTHZ_EXTENSION_POINT, prev or RBACAuthorizationEngine())
-
-
-class _AllowAllEngine:
-    async def has_permission(self, user_id, permission: str) -> bool:
-        return True
+            response = await client.post(f"/api/v1/system/plugins-manager/{plugin_id}/uninstall")
+            assert response.status_code == 200
+            assert response.json()["data"]["status"] == "disabled"

@@ -46,12 +46,15 @@ class AdminAssetsService(BaseService):
         self.repo = AdminAssetsRepository()
 
     async def list_assets(
-        self, *, org_id: UUID, params: PageParams, filters: AdminAssetListQuery
+        self, *, workspace_id: UUID, params: PageParams, filters: AdminAssetListQuery
     ) -> PageData[AdminAssetSummaryOut]:
         folder_ids: list[UUID] | None = None
         if filters.folder_id is not None and bool(filters.include_children):
-            folder_ids = await self.repo.collect_descendant_folder_ids(org_id=org_id, root_folder_id=filters.folder_id)
-        qs = self.repo.query_assets(org_id=org_id, filters=filters, folder_ids=folder_ids)
+            folder_ids = await self.repo.collect_descendant_folder_ids(
+                workspace_id=workspace_id,
+                root_folder_id=filters.folder_id,
+            )
+        qs = self.repo.query_assets(workspace_id=workspace_id, filters=filters, folder_ids=folder_ids)
         # We implement pagination here (instead of paginate_queryset) so we can enrich uploader info
         # without changing the shared pagination utility.
         total = int(await qs.count())
@@ -97,29 +100,31 @@ class AdminAssetsService(BaseService):
             prev=prev_page,
         )
 
-    async def list_folders(self, *, org_id: UUID, params: PageParams) -> PageData[AdminAssetFolderOut]:
-        qs = self.repo.query_folders(org_id=org_id)
+    async def list_folders(self, *, workspace_id: UUID, params: PageParams) -> PageData[AdminAssetFolderOut]:
+        qs = self.repo.query_folders(workspace_id=workspace_id)
         return await paginate_queryset(qs, params=params, out_schema=AdminAssetFolderOut)
 
-    async def list_tags(self, *, org_id: UUID, params: PageParams, q: str | None = None) -> PageData[AdminAssetTagOut]:
-        qs = self.repo.query_tags(org_id=org_id, q=q)
+    async def list_tags(
+        self, *, workspace_id: UUID, params: PageParams, q: str | None = None
+    ) -> PageData[AdminAssetTagOut]:
+        qs = self.repo.query_tags(workspace_id=workspace_id, q=q)
         return await paginate_queryset(qs, params=params, out_schema=AdminAssetTagOut)
 
-    async def create_tag(self, *, org_id: UUID, payload: AdminAssetTagCreateRequest) -> AdminAssetTagOut:
+    async def create_tag(self, *, workspace_id: UUID, payload: AdminAssetTagCreateRequest) -> AdminAssetTagOut:
         name = payload.name.strip()
         if not name:
             raise BadRequest(message=_ts("ASSET_TAG_NAME_INVALID", "标签名称不合法"), error="ASSET_TAG_NAME_INVALID")
 
-        exists = await self.repo.get_tag_by_name(org_id=org_id, name=name)
+        exists = await self.repo.get_tag_by_name(workspace_id=workspace_id, name=name)
         if exists is not None:
             # Idempotent create: return existing to help UI get the id.
             return AdminAssetTagOut.model_validate(exists, from_attributes=True)
 
-        tag = await self.repo.create_tag(org_id=org_id, name=name)
+        tag = await self.repo.create_tag(workspace_id=workspace_id, name=name)
         return AdminAssetTagOut.model_validate(tag, from_attributes=True)
 
-    async def get_asset_detail(self, *, org_id: UUID, asset_id: UUID) -> AdminAssetDetailOut:
-        asset = await self.repo.get_asset_with_tags(org_id=org_id, asset_id=asset_id)
+    async def get_asset_detail(self, *, workspace_id: UUID, asset_id: UUID) -> AdminAssetDetailOut:
+        asset = await self.repo.get_asset_with_tags(workspace_id=workspace_id, asset_id=asset_id)
         if asset is None:
             raise NotFound(message=_ts("ASSET_NOT_FOUND", "资源不存在"), error="ASSET_NOT_FOUND")
 
@@ -142,9 +147,9 @@ class AdminAssetsService(BaseService):
         return detail
 
     async def update_asset(
-        self, *, org_id: UUID, asset_id: UUID, payload: AdminAssetUpdateRequest
+        self, *, workspace_id: UUID, asset_id: UUID, payload: AdminAssetUpdateRequest
     ) -> AdminAssetDetailOut:
-        asset = await self.repo.get_asset_with_tags(org_id=org_id, asset_id=asset_id)
+        asset = await self.repo.get_asset_with_tags(workspace_id=workspace_id, asset_id=asset_id)
         if asset is None:
             raise NotFound(message=_ts("ASSET_NOT_FOUND", "资源不存在"), error="ASSET_NOT_FOUND")
 
@@ -166,7 +171,7 @@ class AdminAssetsService(BaseService):
             ids = payload.tag_ids or []
             # Keep ordering stable and avoid duplicates.
             dedup: list[UUID] = list(dict.fromkeys(ids))
-            tags = await self.repo.list_tags_by_ids(org_id=org_id, tag_ids=dedup)
+            tags = await self.repo.list_tags_by_ids(workspace_id=workspace_id, tag_ids=dedup)
             if len(tags) != len(dedup):
                 raise BadRequest(message=_ts("ASSET_TAG_NOT_FOUND", "标签不存在"), error="ASSET_TAG_NOT_FOUND")
             await self.repo.replace_asset_tags(asset_id=asset.id, tag_ids=dedup)
@@ -191,12 +196,12 @@ class AdminAssetsService(BaseService):
             asset = await self.repo.save_asset_updates(asset, updates=updates)
 
         # Reload to ensure tag_links/meta reflect latest state.
-        return await self.get_asset_detail(org_id=org_id, asset_id=asset.id)
+        return await self.get_asset_detail(workspace_id=workspace_id, asset_id=asset.id)
 
     async def bulk_update_assets(
         self,
         *,
-        org_id: UUID,
+        workspace_id: UUID,
         payload: AdminAssetBulkUpdateRequest,
     ) -> AdminAssetBulkUpdateOut:
         asset_ids = list(dict.fromkeys(payload.asset_ids))
@@ -214,13 +219,13 @@ class AdminAssetsService(BaseService):
                 error="ASSET_BULK_UPDATE_INVALID",
             )
 
-        rows = await self.repo.get_assets_by_ids(org_id=org_id, asset_ids=asset_ids)
+        rows = await self.repo.get_assets_by_ids(workspace_id=workspace_id, asset_ids=asset_ids)
         if len(rows) != len(asset_ids):
             raise NotFound(message=_ts("ASSET_NOT_FOUND", "资源不存在"), error="ASSET_NOT_FOUND")
 
         now = datetime.now(tz=UTC)
         updated = await self.repo.bulk_update_assets_fields(
-            org_id=org_id,
+            workspace_id=workspace_id,
             asset_ids=asset_ids,
             updates=updates,
             updated_at=now,
@@ -233,8 +238,8 @@ class AdminAssetsService(BaseService):
             purpose=payload.purpose,
         )
 
-    async def delete_asset(self, *, org_id: UUID, asset_id: UUID) -> AdminAssetDeleteOut:
-        asset = await self.repo.get_asset(org_id=org_id, asset_id=asset_id)
+    async def delete_asset(self, *, workspace_id: UUID, asset_id: UUID) -> AdminAssetDeleteOut:
+        asset = await self.repo.get_asset(workspace_id=workspace_id, asset_id=asset_id)
         if asset is None:
             raise NotFound(message=_ts("ASSET_NOT_FOUND", "资源不存在"), error="ASSET_NOT_FOUND")
 
@@ -244,7 +249,7 @@ class AdminAssetsService(BaseService):
 
         return AdminAssetDeleteOut(id=asset.id, deleted_at=asset.deleted_at)
 
-    async def create_folder(self, *, org_id: UUID, payload: AdminAssetFolderCreateRequest) -> AdminAssetFolderOut:
+    async def create_folder(self, *, workspace_id: UUID, payload: AdminAssetFolderCreateRequest) -> AdminAssetFolderOut:
         name = payload.name.strip()
         if not name:
             raise BadRequest(
@@ -253,7 +258,7 @@ class AdminAssetsService(BaseService):
 
         parent_id = payload.parent_id
         if parent_id is not None:
-            parent = await self.repo.get_folder(org_id=org_id, folder_id=parent_id)
+            parent = await self.repo.get_folder(workspace_id=workspace_id, folder_id=parent_id)
             if parent is None:
                 raise NotFound(message=_ts("ASSET_FOLDER_NOT_FOUND", "文件夹不存在"), error="ASSET_FOLDER_NOT_FOUND")
 
@@ -261,12 +266,14 @@ class AdminAssetsService(BaseService):
         if description == "":
             description = None
 
-        exists = await self.repo.query_folders(org_id=org_id).filter(parent_id=parent_id, name=name).exists()
+        exists = (
+            await self.repo.query_folders(workspace_id=workspace_id).filter(parent_id=parent_id, name=name).exists()
+        )
         if exists:
             raise Conflict(message=_ts("ASSET_FOLDER_EXISTS", "文件夹已存在"), error="ASSET_FOLDER_EXISTS")
 
         folder = await self.repo.create_folder(
-            org_id=org_id,
+            workspace_id=workspace_id,
             name=name,
             parent_id=parent_id,
             description=description,
@@ -275,9 +282,9 @@ class AdminAssetsService(BaseService):
         return AdminAssetFolderOut.model_validate(folder, from_attributes=True)
 
     async def update_folder(
-        self, *, org_id: UUID, folder_id: UUID, payload: AdminAssetFolderUpdateRequest
+        self, *, workspace_id: UUID, folder_id: UUID, payload: AdminAssetFolderUpdateRequest
     ) -> AdminAssetFolderOut:
-        folder = await self.repo.get_folder(org_id=org_id, folder_id=folder_id)
+        folder = await self.repo.get_folder(workspace_id=workspace_id, folder_id=folder_id)
         if folder is None:
             raise NotFound(message=_ts("ASSET_FOLDER_NOT_FOUND", "文件夹不存在"), error="ASSET_FOLDER_NOT_FOUND")
 
@@ -292,7 +299,7 @@ class AdminAssetsService(BaseService):
                     error="ASSET_FOLDER_PARENT_INVALID",
                 )
             if next_parent_id is not None:
-                parent = await self.repo.get_folder(org_id=org_id, folder_id=next_parent_id)
+                parent = await self.repo.get_folder(workspace_id=workspace_id, folder_id=next_parent_id)
                 if parent is None:
                     raise NotFound(
                         message=_ts("ASSET_FOLDER_NOT_FOUND", "文件夹不存在"),
@@ -300,7 +307,9 @@ class AdminAssetsService(BaseService):
                     )
 
                 # Prevent cycles: parent cannot be this folder or any of its descendants.
-                descendants = await self.repo.collect_descendant_folder_ids(org_id=org_id, root_folder_id=folder.id)
+                descendants = await self.repo.collect_descendant_folder_ids(
+                    workspace_id=workspace_id, root_folder_id=folder.id
+                )
                 if next_parent_id in descendants:
                     raise BadRequest(
                         message=_ts("ASSET_FOLDER_PARENT_INVALID", "文件夹父级不合法"),
@@ -318,11 +327,11 @@ class AdminAssetsService(BaseService):
                 )
             updates["name"] = next_name
 
-        # Name/parent unique constraint: (org_id, parent_id, name).
+        # Name/parent unique constraint: (workspace_id, parent_id, name).
         if ("name" in updates) or ("parent_id" in updates):
             exists = (
                 await self.repo
-                .query_folders(org_id=org_id)
+                .query_folders(workspace_id=workspace_id)
                 .filter(parent_id=next_parent_id, name=next_name)
                 .exclude(id=folder.id)
                 .exists()
@@ -345,34 +354,36 @@ class AdminAssetsService(BaseService):
             folder = await self.repo.save_folder_updates(folder, updates=updates)
         return AdminAssetFolderOut.model_validate(folder, from_attributes=True)
 
-    async def delete_folder(self, *, org_id: UUID, folder_id: UUID) -> AdminAssetFolderDeleteOut:
-        folder = await self.repo.get_folder(org_id=org_id, folder_id=folder_id)
+    async def delete_folder(self, *, workspace_id: UUID, folder_id: UUID) -> AdminAssetFolderDeleteOut:
+        folder = await self.repo.get_folder(workspace_id=workspace_id, folder_id=folder_id)
         if folder is None:
             raise NotFound(message=_ts("ASSET_FOLDER_NOT_FOUND", "文件夹不存在"), error="ASSET_FOLDER_NOT_FOUND")
 
-        has_children = await self.repo.folder_has_children(org_id=org_id, folder_id=folder_id)
+        has_children = await self.repo.folder_has_children(workspace_id=workspace_id, folder_id=folder_id)
         if has_children:
             raise Conflict(
                 message=_ts("ASSET_FOLDER_NOT_EMPTY", "文件夹非空，无法删除"), error="ASSET_FOLDER_NOT_EMPTY"
             )
 
-        has_assets = await self.repo.folder_has_assets(org_id=org_id, folder_id=folder_id)
+        has_assets = await self.repo.folder_has_assets(workspace_id=workspace_id, folder_id=folder_id)
         if has_assets:
             raise Conflict(
                 message=_ts("ASSET_FOLDER_NOT_EMPTY", "文件夹非空，无法删除"), error="ASSET_FOLDER_NOT_EMPTY"
             )
 
-        await self.repo.delete_folder(org_id=org_id, folder_id=folder_id)
+        await self.repo.delete_folder(workspace_id=workspace_id, folder_id=folder_id)
         return AdminAssetFolderDeleteOut(id=folder_id)
 
-    async def move_asset(self, *, org_id: UUID, asset_id: UUID, payload: AdminAssetMoveRequest) -> AdminAssetSummaryOut:
-        asset = await self.repo.get_asset(org_id=org_id, asset_id=asset_id)
+    async def move_asset(
+        self, *, workspace_id: UUID, asset_id: UUID, payload: AdminAssetMoveRequest
+    ) -> AdminAssetSummaryOut:
+        asset = await self.repo.get_asset(workspace_id=workspace_id, asset_id=asset_id)
         if asset is None:
             raise NotFound(message=_ts("ASSET_NOT_FOUND", "资源不存在"), error="ASSET_NOT_FOUND")
 
         folder_id = payload.folder_id
         if folder_id is not None:
-            folder = await self.repo.get_folder(org_id=org_id, folder_id=folder_id)
+            folder = await self.repo.get_folder(workspace_id=workspace_id, folder_id=folder_id)
             if folder is None:
                 raise NotFound(message=_ts("ASSET_FOLDER_NOT_FOUND", "文件夹不存在"), error="ASSET_FOLDER_NOT_FOUND")
 
@@ -382,7 +393,7 @@ class AdminAssetsService(BaseService):
     async def bulk_move_assets(
         self,
         *,
-        org_id: UUID,
+        workspace_id: UUID,
         payload: AdminAssetBulkMoveRequest,
     ) -> AdminAssetBulkMoveOut:
         asset_ids = list(dict.fromkeys(payload.asset_ids))
@@ -391,17 +402,17 @@ class AdminAssetsService(BaseService):
 
         folder_id = payload.folder_id
         if folder_id is not None:
-            folder = await self.repo.get_folder(org_id=org_id, folder_id=folder_id)
+            folder = await self.repo.get_folder(workspace_id=workspace_id, folder_id=folder_id)
             if folder is None:
                 raise NotFound(message=_ts("ASSET_FOLDER_NOT_FOUND", "文件夹不存在"), error="ASSET_FOLDER_NOT_FOUND")
 
-        rows = await self.repo.get_assets_by_ids(org_id=org_id, asset_ids=asset_ids)
+        rows = await self.repo.get_assets_by_ids(workspace_id=workspace_id, asset_ids=asset_ids)
         if len(rows) != len(asset_ids):
             raise NotFound(message=_ts("ASSET_NOT_FOUND", "资源不存在"), error="ASSET_NOT_FOUND")
 
         now = datetime.now(tz=UTC)
         moved = await self.repo.bulk_update_assets_folder(
-            org_id=org_id,
+            workspace_id=workspace_id,
             asset_ids=asset_ids,
             folder_id=folder_id,
             updated_at=now,
@@ -416,20 +427,20 @@ class AdminAssetsService(BaseService):
     async def bulk_delete_assets(
         self,
         *,
-        org_id: UUID,
+        workspace_id: UUID,
         payload: AdminAssetBulkDeleteRequest,
     ) -> AdminAssetBulkDeleteOut:
         asset_ids = list(dict.fromkeys(payload.asset_ids))
         if not asset_ids:
             raise BadRequest(message=_ts("ASSET_IDS_INVALID", "资源 ID 列表不合法"), error="ASSET_IDS_INVALID")
 
-        rows = await self.repo.get_assets_by_ids(org_id=org_id, asset_ids=asset_ids)
+        rows = await self.repo.get_assets_by_ids(workspace_id=workspace_id, asset_ids=asset_ids)
         if len(rows) != len(asset_ids):
             raise NotFound(message=_ts("ASSET_NOT_FOUND", "资源不存在"), error="ASSET_NOT_FOUND")
 
         now = datetime.now(tz=UTC)
         deleted = await self.repo.bulk_soft_delete_assets(
-            org_id=org_id,
+            workspace_id=workspace_id,
             asset_ids=asset_ids,
             deleted_at=now,
             updated_at=now,
@@ -440,8 +451,8 @@ class AdminAssetsService(BaseService):
             deleted_asset_ids=asset_ids,
         )
 
-    async def stream_asset_content(self, *, org_id: UUID, asset_id: UUID, range_header: str | None):
-        asset = await self.repo.get_asset(org_id=org_id, asset_id=asset_id)
+    async def stream_asset_content(self, *, workspace_id: UUID, asset_id: UUID, range_header: str | None):
+        asset = await self.repo.get_asset(workspace_id=workspace_id, asset_id=asset_id)
         if asset is None:
             raise NotFound(message=_ts("ASSET_NOT_FOUND", "资源不存在"), error="ASSET_NOT_FOUND")
 

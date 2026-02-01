@@ -5,14 +5,21 @@ from apps.api.models.asset_folder import AssetFolderRecord
 from apps.api.models.asset_share import AssetShareLinkRecord
 from apps.api.models.asset_tag import AssetTagLinkRecord, AssetTagRecord
 from apps.api.models.asset_usage import AssetUsageRecord
-from apps.api.models.invitation import OrganizationInvitation, OrganizationInviteLink
 from apps.api.models.notification import NotificationCategory, NotificationRecord
-from apps.api.models.organization import Membership, MembershipStatus, Organization
+from apps.api.models.org_membership import OrgMembership
+from apps.api.models.organization import Organization
 from apps.api.models.plugin import PluginRecord
-from apps.api.models.rbac import BootstrapState, MembershipRole, Permission, Role, RolePermission
+from apps.api.models.rbac import BootstrapState, Permission, Role, RolePermission
 from apps.api.models.setting import SettingRecord
 from apps.api.models.upload import UploadPartRecord, UploadSessionRecord, UploadStatus
 from apps.api.models.user import User, UserCredential
+from apps.api.models.workspace import (
+    Workspace,
+    WorkspaceMembership,
+    WorkspaceMembershipRole,
+    WorkspaceMembershipStatus,
+)
+from apps.api.models.workspace_invite import WorkspaceEmailInvite, WorkspaceInviteLink, WorkspaceInviteLinkUseEvent
 
 __all__ = [
     "AssetPurpose",
@@ -24,12 +31,8 @@ __all__ = [
     "AssetUsageRecord",
     "AssetVisibility",
     "BootstrapState",
-    "MembershipRole",
-    "Membership",
-    "MembershipStatus",
+    "OrgMembership",
     "Organization",
-    "OrganizationInvitation",
-    "OrganizationInviteLink",
     "Permission",
     "PluginRecord",
     "Role",
@@ -42,4 +45,11 @@ __all__ = [
     "UserCredential",
     "NotificationCategory",
     "NotificationRecord",
+    "Workspace",
+    "WorkspaceMembership",
+    "WorkspaceMembershipRole",
+    "WorkspaceMembershipStatus",
+    "WorkspaceEmailInvite",
+    "WorkspaceInviteLink",
+    "WorkspaceInviteLinkUseEvent",
 ]

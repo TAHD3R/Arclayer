@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from apps.api.core.logging import get_logger
-from apps.api.models.organization import MembershipStatus, Organization
+from apps.api.models.organization import Organization
 from apps.api.models.user import UserStatus
 
 logger = get_logger(__name__)
@@ -13,7 +13,7 @@ async def ensure_organization_ready() -> None:
 
     Behavior:
     - If there is no organization, create a default one.
-    - Ensure every active user has an active membership in the default org.
+    - Ensure every active user has an org_membership record in the default org (v2).
 
     Notes:
     - The migration is idempotent (`get_or_create` based).
@@ -37,19 +37,34 @@ async def ensure_organization_ready() -> None:
         org = None
 
     if org is not None:
-        # Ensure every active user has a membership for the default org.
-        from apps.api.models.organization import Membership
+        # v2 note: org_membership is the account-level linkage (A2: single org per user).
+        from apps.api.models.org_membership import OrgMembership
         from apps.api.models.user import User
+        from apps.api.models.workspace import Workspace
 
         users = await User.filter(status=UserStatus.ACTIVE).all()
-        created_memberships = 0
+        created_org_memberships = 0
         for user in users:
-            _, created = await Membership.get_or_create(
+            _, created2 = await OrgMembership.get_or_create(
                 user_id=user.id,
-                organization_id=org.id,
-                defaults={"status": MembershipStatus.ACTIVE},
+                defaults={"organization_id": org.id, "is_owner": False, "status": "active"},
             )
-            if created:
-                created_memberships += 1
-        if created_memberships:
-            logger.info("Ensured default memberships", count=created_memberships, org_id=str(org.id))
+            if created2:
+                created_org_memberships += 1
+
+        # Ensure a default workspace exists for the default org (best-effort).
+        if users and await Workspace.filter(organization_id=org.id).count() == 0:
+            await Workspace.create(
+                organization_id=org.id,
+                slug="default",
+                name=org.name,
+                is_active=True,
+                created_by_user_id=users[0].id,
+            )
+
+        if created_org_memberships:
+            logger.info(
+                "Ensured default memberships",
+                org_memberships=created_org_memberships,
+                org_id=str(org.id),
+            )

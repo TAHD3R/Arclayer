@@ -30,8 +30,8 @@ class AdminSharesService(BaseService):
         super().__init__(settings)
         self.repo = AdminSharesRepository()
 
-    async def _ensure_asset_exists(self, *, org_id: UUID, asset_id: UUID) -> AssetRecord:
-        asset = await AssetRecord.get_or_none(id=asset_id, org_id=org_id, deleted_at=None)
+    async def _ensure_asset_exists(self, *, workspace_id: UUID, asset_id: UUID) -> AssetRecord:
+        asset = await AssetRecord.get_or_none(id=asset_id, workspace_id=workspace_id, deleted_at=None)
         if asset is None:
             raise NotFound(message=_ts("ASSET_NOT_FOUND", "资源不存在"), error="ASSET_NOT_FOUND")
         return asset
@@ -39,12 +39,12 @@ class AdminSharesService(BaseService):
     async def create_share_link(
         self,
         *,
-        org_id: UUID,
+        workspace_id: UUID,
         asset_id: UUID,
         created_by_user_id: UUID | None,
         expires_in_seconds: int | None,
     ) -> AssetShareLinkRecord:
-        _ = await self._ensure_asset_exists(org_id=org_id, asset_id=asset_id)
+        _ = await self._ensure_asset_exists(workspace_id=workspace_id, asset_id=asset_id)
 
         expires_at: datetime | None = None
         if expires_in_seconds is not None:
@@ -58,7 +58,7 @@ class AdminSharesService(BaseService):
             exists = await AssetShareLinkRecord.filter(token=token).exists()
             if not exists:
                 return await self.repo.create_share_link(
-                    org_id=org_id,
+                    workspace_id=workspace_id,
                     asset_id=asset_id,
                     token=token,
                     expires_at=expires_at,
@@ -70,14 +70,14 @@ class AdminSharesService(BaseService):
         )
 
     async def list_share_links(
-        self, *, org_id: UUID, asset_id: UUID, params: PageParams
+        self, *, workspace_id: UUID, asset_id: UUID, params: PageParams
     ) -> PageData[AdminShareLinkOut]:
-        _ = await self._ensure_asset_exists(org_id=org_id, asset_id=asset_id)
-        qs = self.repo.query_links(org_id=org_id, asset_id=asset_id)
+        _ = await self._ensure_asset_exists(workspace_id=workspace_id, asset_id=asset_id)
+        qs = self.repo.query_links(workspace_id=workspace_id, asset_id=asset_id)
         return await paginate_queryset(qs, params=params, out_schema=AdminShareLinkOut)
 
-    async def revoke_share_link(self, *, org_id: UUID, link_id: UUID) -> AssetShareLinkRecord:
-        link = await self.repo.get_link(org_id=org_id, link_id=link_id)
+    async def revoke_share_link(self, *, workspace_id: UUID, link_id: UUID) -> AssetShareLinkRecord:
+        link = await self.repo.get_link(workspace_id=workspace_id, link_id=link_id)
         if link is None:
             raise NotFound(message=_ts("SHARE_LINK_NOT_FOUND", "分享链接不存在"), error="SHARE_LINK_NOT_FOUND")
         return await self.repo.revoke(link, revoked_at=datetime.now(tz=UTC))

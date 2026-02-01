@@ -21,7 +21,7 @@ class UploadStatus(StrEnum):
 class UploadSessionRecord(BaseModel):
     """Upload session (supports local and S3 multipart uploads)."""
 
-    org_id = fields.UUIDField(db_index=True)
+    workspace_id = fields.UUIDField(db_index=True)
     actor_user_id = fields.UUIDField(db_index=True)
 
     purpose = fields.CharField(max_length=64, db_index=True)

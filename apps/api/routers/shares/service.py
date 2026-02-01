@@ -27,7 +27,7 @@ from apps.api.settings.runtime import get_effective_settings
 class ShareResolved(BaseSchema):
     model_config = ConfigDict(frozen=True)
 
-    org_id: UUID
+    workspace_id: UUID
     asset_id: UUID
     token: str
     expires_at: datetime | None
@@ -130,22 +130,22 @@ class SharesService:
             raise NotFound(message="Not Found", error="NOT_FOUND")
 
         return ShareResolved(
-            org_id=link.org_id,
+            workspace_id=link.workspace_id,
             asset_id=link.asset_id,
             token=link.token,
             expires_at=link.expires_at,
             revoked_at=link.revoked_at,
         )
 
-    async def _get_asset(self, *, org_id: UUID, asset_id: UUID) -> AssetRecord:
-        asset = await AssetRecord.get_or_none(id=asset_id, org_id=org_id, deleted_at=None)
+    async def _get_asset(self, *, workspace_id: UUID, asset_id: UUID) -> AssetRecord:
+        asset = await AssetRecord.get_or_none(id=asset_id, workspace_id=workspace_id, deleted_at=None)
         if asset is None:
             raise NotFound(message="Not Found", error="NOT_FOUND")
         return asset
 
     async def preview(self, *, token: str, range_header: str | None) -> Response:
         resolved = await self.resolve(token=token)
-        asset = await self._get_asset(org_id=resolved.org_id, asset_id=resolved.asset_id)
+        asset = await self._get_asset(workspace_id=resolved.workspace_id, asset_id=resolved.asset_id)
 
         media_type = asset.mime
         if not media_type:
@@ -184,7 +184,7 @@ class SharesService:
 
     async def download(self, *, token: str, range_header: str | None) -> Response:
         resolved = await self.resolve(token=token)
-        asset = await self._get_asset(org_id=resolved.org_id, asset_id=resolved.asset_id)
+        asset = await self._get_asset(workspace_id=resolved.workspace_id, asset_id=resolved.asset_id)
 
         media_type = asset.mime or "application/octet-stream"
         filename = (asset.original_filename or "").strip() or f"{asset.slug or 'asset'}.{asset.ext or 'bin'}"

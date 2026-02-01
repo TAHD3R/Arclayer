@@ -7,8 +7,9 @@ from typing import cast
 
 from fastapi import APIRouter, Depends
 
-from apps.api.core.authz import require_permission_strict
 from apps.api.core.logging import get_logger
+from apps.api.core.workspace.authz import require_workspace_permission
+from apps.api.core.workspace.deps import require_workspace_manage_access
 from apps.api.plugin.deps import require_plugin_enabled
 from apps.api.plugin.manager import PluginManager
 
@@ -19,7 +20,7 @@ def register_plugin_routers(router: APIRouter, *, plugin_manager: PluginManager)
     """
     Register plugin routers under stable slug-based paths.
 
-    - Admin scope:  /admin/plugins/{slug}/...
+    - Admin scope:  /workspaces/{workspace_id}/plugins/{slug}/...
     - Public scope: /plugins/{slug}/...
     """
 
@@ -37,7 +38,8 @@ def register_plugin_routers(router: APIRouter, *, plugin_manager: PluginManager)
             include_tags: list[str | Enum] | None = None if subrouter.tags else [tag]
             dependencies = [Depends(require_plugin_enabled(plugin_id))]
             if scope == "admin":
-                dependencies.append(require_permission_strict("admin:access"))
+                dependencies.append(Depends(require_workspace_manage_access))
+                dependencies.append(require_workspace_permission("admin:access"))
             router.include_router(
                 subrouter,
                 prefix=prefix,
@@ -48,7 +50,7 @@ def register_plugin_routers(router: APIRouter, *, plugin_manager: PluginManager)
 
 def _build_plugin_prefix(slug: str, *, scope: str) -> str:
     if scope == "admin":
-        return f"/admin/plugins/{slug}"
+        return f"/workspaces/{{workspace_id}}/plugins/{slug}"
     return f"/plugins/{slug}"
 
 

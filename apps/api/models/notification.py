@@ -22,15 +22,15 @@ class NotificationCategory(StrEnum):
 
 class NotificationRecord(BaseModel):
     """
-    Per-user notification inbox record (org-scoped).
+    Per-user notification inbox record (workspace-scoped in v2).
 
     Product decisions (MVP):
-    - Only show notifications for the current organization.
+    - Only show notifications for the current workspace.
     - Clicking a notification auto-marks it as read.
     - Closing (dismiss) also marks it as read.
     """
 
-    org_id = fields.UUIDField(db_index=True)
+    workspace_id = fields.UUIDField(db_index=True)
     recipient_user_id = fields.UUIDField(db_index=True)
 
     category = fields.CharEnumField(NotificationCategory, db_index=True)
@@ -54,4 +54,4 @@ class NotificationRecord(BaseModel):
     class Meta(BaseModel.Meta):
         table = "notifications"
         abstract = False
-        unique_together = (("org_id", "recipient_user_id", "dedupe_key"),)
+        unique_together = (("workspace_id", "recipient_user_id", "dedupe_key"),)

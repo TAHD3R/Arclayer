@@ -7,21 +7,7 @@ from uuid import UUID
 from pydantic import AliasChoices, ConfigDict, EmailStr, Field, field_validator, model_validator
 
 from apps.api.common.schemas import BaseOut, BaseSchema
-from apps.api.models.organization import MembershipStatus
 from apps.api.routers.v1.auth.constants import PASSWORD_REGEX, RESET_TOKEN_REGEX
-
-
-class MyOrganizationOut(BaseSchema):
-    """Organization membership info for the current user (used by the org picker UI)."""
-
-    organization_id: UUID = Field(..., description="Organization ID.")
-    slug: str = Field(..., description="Organization slug.")
-    name: str = Field(..., description="Organization name.")
-    logo_url: str | None = Field(default=None, description="Organization logo URL.")
-    is_active: bool = Field(default=True, description="Whether the organization is active.")
-
-    membership_id: UUID = Field(..., description="Membership ID.")
-    membership_status: MembershipStatus = Field(..., description="Membership status.")
 
 
 class LoginRequest(BaseSchema):
@@ -221,6 +207,14 @@ class InvitationPreviewOrganizationOut(BaseSchema):
     logo_url: str | None = Field(default=None, description="Organization logo url.")
 
 
+class InvitationPreviewWorkspaceOut(BaseSchema):
+    """Workspace info for invitation preview (v2)."""
+
+    id: UUID = Field(..., description="Workspace id.")
+    name: str = Field(..., description="Workspace name.")
+    slug: str = Field(..., description="Workspace slug.")
+
+
 class InvitationPreviewInviterOut(BaseSchema):
     """Inviter user info for invitation preview."""
 
@@ -243,8 +237,9 @@ class InvitationPreviewResult(BaseSchema):
 
     invitation: InvitationPreviewInvitationOut
     organization: InvitationPreviewOrganizationOut
+    workspace: InvitationPreviewWorkspaceOut
     inviter: InvitationPreviewInviterOut | None = Field(default=None, description="Inviter info (nullable).")
-    role: InvitationPreviewRoleOut
+    role: InvitationPreviewRoleOut | None = Field(default=None, description="Role semantic info (nullable).")
     user_exists: bool = Field(default=False, description="Whether the invited email already has an account.")
 
 
@@ -255,6 +250,14 @@ class MyInvitationOrganizationOut(BaseSchema):
     name: str = Field(..., description="Organization name.")
     slug: str = Field(..., description="Organization slug.")
     logo_url: str | None = Field(default=None, description="Organization logo url.")
+
+
+class MyInvitationWorkspaceOut(BaseSchema):
+    """Workspace info for 'my invitations' listing (v2)."""
+
+    id: UUID = Field(..., description="Workspace id.")
+    name: str = Field(..., description="Workspace name.")
+    slug: str = Field(..., description="Workspace slug.")
 
 
 class MyInvitationInviterOut(BaseSchema):
@@ -275,6 +278,7 @@ class MyInvitationOut(BaseOut):
     expires_at: datetime | None = Field(default=None, description="Expiration datetime (UTC).")
 
     organization: MyInvitationOrganizationOut = Field(..., description="Target organization.")
+    workspace: MyInvitationWorkspaceOut = Field(..., description="Target workspace.")
     inviter: MyInvitationInviterOut | None = Field(default=None, description="Inviter summary (if available).")
 
     status: str = Field(..., description="Invitation status: pending/accepted.")
@@ -285,7 +289,7 @@ class MyInvitationOut(BaseOut):
 
 
 class MyInvitationListQuery(BaseSchema):
-    q: str | None = Field(default=None, description="Search query (organization/role).")
+    q: str | None = Field(default=None, description="Search query (workspace/organization/role).")
     status: str | None = Field(default=None, description="Filter by status: pending/accepted.")
 
 
@@ -301,4 +305,5 @@ class AcceptExistingInvitationResult(BaseSchema):
     """Result for accepting an invitation with an existing account."""
 
     organization_id: UUID = Field(..., description="Organization id that the user joined.")
+    workspace_id: UUID = Field(..., description="Workspace id that the user joined.")
     role_code: str | None = Field(default=None, description="Role code assigned by the invitation.")

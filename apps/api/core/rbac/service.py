@@ -1,15 +1,12 @@
 from __future__ import annotations
 
 from typing import Any
-from uuid import UUID
 
-from apps.api.common.schemas.authz_schema import AuthzSnapshot
 from apps.api.common.services import BaseService
 from apps.api.config import Settings
 from apps.api.core.exceptions import BadRequest, Conflict, NotFound
 from apps.api.core.http.pagination import PageData, PageParams, paginate_queryset
 from apps.api.core.i18n import t
-from apps.api.core.organization.context import get_current_org_id as get_current_org_id_ctx
 from apps.api.core.rbac.constants import (
     CORE_PERMISSION_OWNER,
     ROLE_ADMIN,
@@ -163,101 +160,6 @@ class RBACService(BaseService):
                 meta={"missing": missing},
             )
         await self.repo.replace_role_permissions(role=role, permission_ids=[p.id for p in perms])
-
-    async def list_user_roles_paginated(
-        self, *, user_id: UUID, organization_id: UUID, params: PageParams, out_schema: type[Any]
-    ) -> PageData[Any]:
-        qs = self.repo.query_user_roles_in_org(user_id=user_id, organization_id=organization_id)
-        return await paginate_queryset(qs, params=params, out_schema=out_schema)
-
-    async def assign_role(self, *, user_id: UUID, organization_id: UUID, role_code: str) -> None:
-        role = await self.repo.get_role_by_code(role_code)
-        if role is None:
-            raise NotFound(message=_tr("ROLE_NOT_FOUND", "角色不存在"), error="ROLE_NOT_FOUND")
-        membership = await self.repo.ensure_membership(user_id=user_id, organization_id=organization_id)
-        await self.repo.assign_membership_role(membership_id=membership.id, role=role)
-
-    async def revoke_role(self, *, user_id: UUID, organization_id: UUID, role_code: str) -> None:
-        role = await self.repo.get_role_by_code(role_code)
-        if role is None:
-            raise NotFound(message=_tr("ROLE_NOT_FOUND", "角色不存在"), error="ROLE_NOT_FOUND")
-        membership = await self.repo.get_membership(user_id=user_id, organization_id=organization_id)
-        if membership is None:
-            raise NotFound(message=_tr("MEMBERSHIP_NOT_FOUND", "成员不存在"), error="MEMBERSHIP_NOT_FOUND")
-        await self.repo.revoke_membership_role(membership_id=membership.id, role=role)
-
-    async def list_effective_role_codes(self, *, user_id: UUID, organization_id: UUID) -> list[str]:
-        # Keep behavior aligned with authz engine.
-        from apps.api.core.rbac.extensions import get_role_resolvers
-
-        role_codes = set(await self.repo.list_user_role_codes_in_org(user_id=user_id, organization_id=organization_id))
-        for resolver in get_role_resolvers():
-            try:
-                extra = await resolver.get_role_codes(user_id=user_id, organization_id=organization_id)
-            except Exception:
-                continue
-            if not extra:
-                continue
-            role_codes.update(str(code) for code in extra if code)
-        return sorted(role_codes)
-
-    async def get_authz_snapshot(self, *, user_id: UUID, organization_id: UUID | None = None) -> AuthzSnapshot:
-        """
-        Return org-scoped authz snapshot.
-
-        If `organization_id` is not provided, it will try to read from request context.
-        """
-
-        org_id = organization_id or get_current_org_id_ctx()
-        if org_id is None:
-            return AuthzSnapshot(
-                user_id=user_id,
-                role_codes=[],
-                permission_codes=[],
-                is_superuser=False,
-            )
-
-        roles = await self.list_effective_role_codes(user_id=user_id, organization_id=org_id)
-        is_superuser = await self.repo.role_codes_is_superuser(role_codes=roles)
-        if is_superuser:
-            perms = await self.repo.list_permissions()
-            permission_codes = [p.code for p in perms]
-        else:
-            permission_codes = await self.repo.list_permission_codes_for_role_codes(role_codes=roles)
-        return AuthzSnapshot(
-            user_id=user_id,
-            role_codes=roles,
-            permission_codes=permission_codes,
-            is_superuser=is_superuser,
-        )
-
-    async def bootstrap_admin(self, *, user_id: UUID, organization_id: UUID) -> dict[str, Any]:
-        """
-        One-time bootstrap: assign admin role to the given user when no admin exists.
-
-        This is primarily used by the system setup flow.
-        """
-
-        state = await self.repo.get_bootstrap_state()
-        if state.done:
-            raise Conflict(message=_tr("BOOTSTRAP_DONE", "管理员初始化已完成"), error="BOOTSTRAP_DONE")
-        if await self.repo.admin_binding_exists():
-            raise Conflict(message=_tr("ADMIN_EXISTS", "已存在管理员"), error="ADMIN_EXISTS")
-
-        await self.ensure_system_roles()
-        admin_role = await self.repo.get_role_by_code(ROLE_ADMIN)
-        if admin_role is None:
-            raise BadRequest(message=_tr("ROLE_NOT_READY", "管理员角色未就绪"), error="ROLE_NOT_READY")
-
-        membership = await self.repo.ensure_membership(user_id=user_id, organization_id=organization_id)
-        await self.repo.assign_membership_role(membership_id=membership.id, role=admin_role)
-        state = await self.repo.mark_bootstrap_done()
-        return {
-            "user_id": user_id,
-            "organization_id": organization_id,
-            "role_code": ROLE_ADMIN,
-            "done_at": state.done_at,
-        }
 
     async def sync_permissions(self) -> dict[str, Any]:
         """

@@ -12,7 +12,7 @@ from apps.api.models.notification import NotificationCategory
 
 
 class NotificationOut(BaseOut):
-    org_id: UUID = Field(..., description="Organization id.")
+    workspace_id: UUID = Field(..., description="Workspace id.")
     recipient_user_id: UUID = Field(..., description="Recipient user id.")
     actor_user_id: UUID | None = Field(default=None, description="Actor user id (best-effort).")
 
@@ -32,7 +32,9 @@ class NotificationOut(BaseOut):
 
 
 class NotificationPreviewOut(BaseSchema):
-    unread_count: int = Field(..., ge=0, description="Total unread notifications for current user in current org.")
+    unread_count: int = Field(
+        ..., ge=0, description="Total unread notifications for current user in current workspace."
+    )
     items: list[NotificationOut] = Field(default_factory=list, description="Latest unread notifications.")
 
 

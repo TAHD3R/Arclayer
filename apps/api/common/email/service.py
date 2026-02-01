@@ -14,6 +14,7 @@ from apps.api.core.logging import get_logger
 from apps.api.models.setting import SettingRecord
 from apps.api.settings.core_schema import CORE_SETTINGS_NAMESPACE
 from apps.api.settings.crypto import decrypt_secret, ensure_master_key, is_encrypted, master_key_exists
+from apps.api.settings.scopes import SCOPE_TYPE_SYSTEM, SYSTEM_SCOPE_ID
 
 _EMAIL_ADAPTER = TypeAdapter(EmailStr)
 
@@ -82,7 +83,11 @@ class EmailService:
         return await self._enabled()
 
     async def _get_core_mail_config(self) -> dict:
-        record = await SettingRecord.get_or_none(namespace=CORE_SETTINGS_NAMESPACE)
+        record = await SettingRecord.get_or_none(
+            scope_type=SCOPE_TYPE_SYSTEM,
+            scope_id=SYSTEM_SCOPE_ID,
+            namespace=CORE_SETTINGS_NAMESPACE,
+        )
         value = record.value if record and isinstance(record.value, dict) else {}
         mail = value.get("mail")
         return mail if isinstance(mail, dict) else {}

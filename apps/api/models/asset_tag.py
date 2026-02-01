@@ -7,18 +7,18 @@ from apps.api.models.base import BaseModel
 
 class AssetTagRecord(BaseModel):
     """
-    Simple asset tag (org-scoped).
+    Simple asset tag (workspace-scoped in v2).
 
     Kept minimal for now; we can extend with color/slug later.
     """
 
-    org_id = fields.UUIDField(db_index=True)
+    workspace_id = fields.UUIDField(db_index=True)
     name = fields.CharField(max_length=64)
 
     class Meta(BaseModel.Meta):
         table = "asset_tags"
         abstract = False
-        unique_together = (("org_id", "name"),)
+        unique_together = (("workspace_id", "name"),)
 
 
 class AssetTagLinkRecord(BaseModel):

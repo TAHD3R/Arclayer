@@ -27,15 +27,15 @@ def slugify(value: str) -> str:
     return raw or "asset"
 
 
-def build_asset_object_key(*, org_id: UUID, asset_id: UUID, ext: str) -> str:
+def build_asset_object_key(*, workspace_id: UUID, asset_id: UUID, ext: str) -> str:
     safe_ext = (ext or "").lstrip(".").lower() or "bin"
-    return f"org/{org_id}/assets/{asset_id}.{safe_ext}"
+    return f"workspaces/{workspace_id}/assets/{asset_id}.{safe_ext}"
 
 
-def build_upload_part_object_key(*, org_id: UUID, upload_id: UUID, part_number: int) -> str:
+def build_upload_part_object_key(*, workspace_id: UUID, upload_id: UUID, part_number: int) -> str:
     if part_number <= 0:
         raise ValueError("part_number must be >= 1")
-    return f"org/{org_id}/uploads/{upload_id}/part-{part_number:06d}"
+    return f"workspaces/{workspace_id}/uploads/{upload_id}/part-{part_number:06d}"
 
 
 def compute_total_parts(*, size_bytes: int, chunk_size_bytes: int) -> int:

@@ -35,7 +35,7 @@ class AssetRecord(BaseModel):
     - Physical deletion is handled by the recycle bin retention policy (default: 90 days).
     """
 
-    org_id = fields.UUIDField(db_index=True)
+    workspace_id = fields.UUIDField(db_index=True)
     owner_user_id = fields.UUIDField(null=True, db_index=True)
     folder = fields.ForeignKeyField(
         "models.AssetFolderRecord",
@@ -64,6 +64,7 @@ class AssetRecord(BaseModel):
 
     deleted_at = fields.DatetimeField(null=True, db_index=True)
 
-    class Meta(BaseModel.Meta):
-        table = "assets"
-        abstract = False
+
+class Meta(BaseModel.Meta):
+    table = "assets"
+    abstract = False

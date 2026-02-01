@@ -17,20 +17,19 @@ pytestmark = pytest.mark.integration
 
 async def _bootstrap_admin_user(app, *, org_name: str = "Test Org"):
     """
-    Create an organization + an admin user with admin:access in that org.
+    Create an organization + an org owner user + a workspace (v2 scope).
 
-    Returns (org_id, admin_user_id).
+    Returns (workspace_id, admin_user_id).
     """
 
     from apps.api.core.organization.repository import OrganizationRepository
-    from apps.api.core.rbac.constants import ROLE_ADMIN
-    from apps.api.core.rbac.repository import RBACRepository
+    from apps.api.models.org_membership import OrgMembership
+    from apps.api.models.workspace import Workspace
     from apps.api.routers.v1.auth.repository import UserRepository
     from apps.api.routers.v1.auth.security import hash_password
 
     settings = get_settings()
     org_repo = OrganizationRepository()
-    rbac_repo = RBACRepository()
     user_repo = UserRepository()
 
     org = await org_repo.create_organization(slug=f"org_{uuid4().hex}", name=org_name)
@@ -41,17 +40,20 @@ async def _bootstrap_admin_user(app, *, org_name: str = "Test Org"):
         display_name="Admin",
         password_hash=hash_password("admin_password_123", settings.auth),
     )
-
-    role_admin = await rbac_repo.get_role_by_code(ROLE_ADMIN)
-    assert role_admin is not None
-    membership = await rbac_repo.ensure_membership(user_id=admin.id, organization_id=org.id)
-    await rbac_repo.assign_membership_role(membership_id=membership.id, role=role_admin)
+    await OrgMembership.create(organization_id=org.id, user_id=admin.id, is_owner=True, status="active")
+    ws = await Workspace.create(
+        organization_id=org.id,
+        slug=f"ws_{uuid4().hex[:8]}",
+        name="Site",
+        is_active=True,
+        created_by_user_id=admin.id,
+    )
 
     async def _current_user_id():
         return admin.id
 
     app.dependency_overrides[get_current_user_id] = _current_user_id
-    return org.id, admin.id
+    return ws.id, admin.id
 
 
 async def test_admin_notifications_preview_list_and_read(
@@ -68,12 +70,11 @@ async def test_admin_notifications_preview_list_and_read(
     async with app.router.lifespan_context(app):
         await verify_db_ready(settings)
 
-        org_id, admin_user_id = await _bootstrap_admin_user(app)
-        headers = {"X-Org-Id": str(org_id)}
+        workspace_id, admin_user_id = await _bootstrap_admin_user(app)
 
         # Seed data: 2 unread, 1 read, and 1 unread for another user.
         n1 = await NotificationRecord.create(
-            org_id=org_id,
+            workspace_id=workspace_id,
             recipient_user_id=admin_user_id,
             category=NotificationCategory.SECURITY,
             title="Security notice",
@@ -86,7 +87,7 @@ async def test_admin_notifications_preview_list_and_read(
             read_at=None,
         )
         n2 = await NotificationRecord.create(
-            org_id=org_id,
+            workspace_id=workspace_id,
             recipient_user_id=admin_user_id,
             category=NotificationCategory.TEAM,
             title="Team notice",
@@ -99,7 +100,7 @@ async def test_admin_notifications_preview_list_and_read(
             read_at=None,
         )
         n3 = await NotificationRecord.create(
-            org_id=org_id,
+            workspace_id=workspace_id,
             recipient_user_id=admin_user_id,
             category=NotificationCategory.TASK,
             title="Read notice",
@@ -113,7 +114,7 @@ async def test_admin_notifications_preview_list_and_read(
         )
         other_user_id = uuid4()
         _n4 = await NotificationRecord.create(
-            org_id=org_id,
+            workspace_id=workspace_id,
             recipient_user_id=other_user_id,
             category=NotificationCategory.TEAM,
             title="Other user notice",
@@ -127,7 +128,7 @@ async def test_admin_notifications_preview_list_and_read(
         )
 
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            resp = await client.get("/api/v1/admin/notifications/unread/preview?limit=3", headers=headers)
+            resp = await client.get(f"/api/v1/workspaces/{workspace_id}/notifications/unread/preview?limit=3")
             assert resp.status_code == 200
             preview = resp.json()["data"]
             assert preview["unreadCount"] == 2
@@ -136,45 +137,45 @@ async def test_admin_notifications_preview_list_and_read(
             assert all(item.get("readAt") is None for item in preview["items"])
 
             # list unread only
-            resp = await client.get("/api/v1/admin/notifications?status=unread&page=1&size=20", headers=headers)
+            resp = await client.get(f"/api/v1/workspaces/{workspace_id}/notifications?status=unread&page=1&size=20")
             assert resp.status_code == 200
             page = resp.json()["data"]
             assert page["total"] == 2
             assert {item["id"] for item in page["items"]} == {str(n1.id), str(n2.id)}
 
             # list all should include read ones (but still only for the current user)
-            resp = await client.get("/api/v1/admin/notifications?status=all&page=1&size=20", headers=headers)
+            resp = await client.get(f"/api/v1/workspaces/{workspace_id}/notifications?status=all&page=1&size=20")
             assert resp.status_code == 200
             page_all = resp.json()["data"]
             assert page_all["total"] == 3
             assert {item["id"] for item in page_all["items"]} == {str(n1.id), str(n2.id), str(n3.id)}
 
             # mark read should be idempotent
-            resp = await client.post(f"/api/v1/admin/notifications/{n1.id}/read", headers=headers)
+            resp = await client.post(f"/api/v1/workspaces/{workspace_id}/notifications/{n1.id}/read")
             assert resp.status_code == 200
             read1 = resp.json()["data"]
             assert read1["id"] == str(n1.id)
             assert read1["readAt"] is not None
 
-            resp = await client.post(f"/api/v1/admin/notifications/{n1.id}/read", headers=headers)
+            resp = await client.post(f"/api/v1/workspaces/{workspace_id}/notifications/{n1.id}/read")
             assert resp.status_code == 200
             read2 = resp.json()["data"]
             assert read2["id"] == str(n1.id)
             assert read2["readAt"] == read1["readAt"]
 
             # delete should remove the record entirely (hard delete in MVP)
-            resp = await client.delete(f"/api/v1/admin/notifications/{n2.id}", headers=headers)
+            resp = await client.delete(f"/api/v1/workspaces/{workspace_id}/notifications/{n2.id}")
             assert resp.status_code == 200
             deleted = resp.json()["data"]
             assert deleted["id"] == str(n2.id)
 
-            resp = await client.get("/api/v1/admin/notifications/unread/preview?limit=3", headers=headers)
+            resp = await client.get(f"/api/v1/workspaces/{workspace_id}/notifications/unread/preview?limit=3")
             assert resp.status_code == 200
             preview2 = resp.json()["data"]
             assert preview2["unreadCount"] == 0
             assert preview2["items"] == []
 
-            resp = await client.get("/api/v1/admin/notifications?status=all&page=1&size=20", headers=headers)
+            resp = await client.get(f"/api/v1/workspaces/{workspace_id}/notifications?status=all&page=1&size=20")
             assert resp.status_code == 200
             page_all2 = resp.json()["data"]
             assert page_all2["total"] == 2
@@ -202,11 +203,10 @@ async def test_admin_notifications_mark_all_read(
     async with app.router.lifespan_context(app):
         await verify_db_ready(settings)
 
-        org_id, admin_user_id = await _bootstrap_admin_user(app)
-        headers = {"X-Org-Id": str(org_id)}
+        workspace_id, admin_user_id = await _bootstrap_admin_user(app)
 
         unread_1 = await NotificationRecord.create(
-            org_id=org_id,
+            workspace_id=workspace_id,
             recipient_user_id=admin_user_id,
             category=NotificationCategory.TEAM,
             title="Unread 1",
@@ -219,7 +219,7 @@ async def test_admin_notifications_mark_all_read(
             read_at=None,
         )
         unread_2 = await NotificationRecord.create(
-            org_id=org_id,
+            workspace_id=workspace_id,
             recipient_user_id=admin_user_id,
             category=NotificationCategory.SECURITY,
             title="Unread 2",
@@ -232,7 +232,7 @@ async def test_admin_notifications_mark_all_read(
             read_at=None,
         )
         _read = await NotificationRecord.create(
-            org_id=org_id,
+            workspace_id=workspace_id,
             recipient_user_id=admin_user_id,
             category=NotificationCategory.TASK,
             title="Read",
@@ -246,7 +246,7 @@ async def test_admin_notifications_mark_all_read(
         )
 
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            resp = await client.post("/api/v1/admin/notifications/read-all", headers=headers)
+            resp = await client.post(f"/api/v1/workspaces/{workspace_id}/notifications/read-all")
             assert resp.status_code == 200
             out = resp.json()["data"]
             assert out["totalCount"] == 2
@@ -258,57 +258,6 @@ async def test_admin_notifications_mark_all_read(
         assert unread_2.read_at is not None
 
 
-async def test_invite_accept_creates_notification_for_inviter(
-    prepared_db,
-    integration_valkey_settings,
-) -> None:
-    _ = prepared_db
-    _ = integration_valkey_settings
-
-    settings = get_settings()
-    app = create_app()
-    transport = ASGITransport(app=app)
-
-    async with app.router.lifespan_context(app):
-        await verify_db_ready(settings)
-
-        org_id, admin_user_id = await _bootstrap_admin_user(app)
-        headers = {"X-Org-Id": str(org_id)}
-
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
-            # Admin creates an invitation.
-            invite_email = f"{uuid4().hex}@example.com"
-            resp = await client.post(
-                "/api/v1/admin/team/invitations",
-                headers=headers,
-                json={"email": invite_email, "roleCode": "admin", "expiresInSeconds": 3600},
-            )
-            assert resp.status_code == 200
-            created = resp.json()["data"]
-            token = created["token"]
-
-            # Invitee accepts.
-            username = f"user{uuid4().hex[:10]}"
-            password = "user_password_123"
-            resp = await client.post(
-                "/api/v1/auth/invitations/accept",
-                json={
-                    "token": token,
-                    "username": username,
-                    "password": password,
-                    "confirmPassword": password,
-                    "displayName": "Invited User",
-                },
-            )
-            assert resp.status_code == 200
-
-            # Inviter should see an unread notification pointing to team members list.
-            resp = await client.get("/api/v1/admin/notifications/unread/preview?limit=3", headers=headers)
-            assert resp.status_code == 200
-            preview = resp.json()["data"]
-            assert preview["unreadCount"] == 1
-            assert len(preview["items"]) == 1
-            item = preview["items"][0]
-            assert item["recipientUserId"] == str(admin_user_id)
-            assert item["targetTo"] == "/settings/team/members"
-            assert item.get("eventName") == "team.invitation.accepted"
+# NOTE(2026-01-31): v1 org-scoped team invitation routes were removed during the v2 refactor
+# (Organization -> Workspaces). The notification integration is reworked in v2 and covered by
+# workspace invite tests.

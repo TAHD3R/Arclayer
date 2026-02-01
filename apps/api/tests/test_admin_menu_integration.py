@@ -45,30 +45,33 @@ async def test_admin_menu_filtered_for_user(prepared_db) -> None:
 
     async with app.router.lifespan_context(app):
         from apps.api.core.organization.repository import OrganizationRepository
-        from apps.api.core.rbac.constants import ROLE_ADMIN
-        from apps.api.core.rbac.repository import RBACRepository
         from apps.api.core.rbac.service import RBACService
+        from apps.api.models.org_membership import OrgMembership
+        from apps.api.models.workspace import Workspace, WorkspaceMembership, WorkspaceMembershipRole
         from apps.api.routers.v1.auth.repository import UserRepository
         from apps.api.routers.v1.auth.security import hash_password
 
         user_repo = UserRepository()
         org_repo = OrganizationRepository()
-        rbac_repo = RBACRepository()
         rbac_service = RBACService(settings)
 
         org = await org_repo.create_organization(slug=f"org_{uuid4().hex}", name="Test Org")
 
-        # Admin user (superuser) used to configure menu items.
+        # Admin user (org owner + workspace creator) used to configure menu items.
         admin_user = await user_repo.create_user(
             username=f"admin_{uuid4().hex}",
             email=None,
             display_name="Admin",
             password_hash=hash_password("admin_password_123", settings.auth),
         )
-        admin_role = await rbac_repo.get_role_by_code(ROLE_ADMIN)
-        assert admin_role is not None
-        admin_membership = await rbac_repo.ensure_membership(user_id=admin_user.id, organization_id=org.id)
-        await rbac_repo.assign_membership_role(membership_id=admin_membership.id, role=admin_role)
+        await OrgMembership.create(organization_id=org.id, user_id=admin_user.id, is_owner=True, status="active")
+        ws = await Workspace.create(
+            organization_id=org.id,
+            slug=f"ws_{uuid4().hex[:8]}",
+            name="Site",
+            is_active=True,
+            created_by_user_id=admin_user.id,
+        )
 
         # Limited admin: has admin:access + system:plugins:read only.
         limited_user = await user_repo.create_user(
@@ -76,6 +79,13 @@ async def test_admin_menu_filtered_for_user(prepared_db) -> None:
             email=None,
             display_name="Staff",
             password_hash=hash_password("staff_password_123", settings.auth),
+        )
+        await OrgMembership.create(organization_id=org.id, user_id=limited_user.id, is_owner=False, status="active")
+        limited_wsm = await WorkspaceMembership.create(
+            workspace_id=ws.id,
+            user_id=limited_user.id,
+            status="active",
+            invited_by_user_id=admin_user.id,
         )
 
         role_code = f"staff_role_{uuid4().hex}"
@@ -93,8 +103,7 @@ async def test_admin_menu_filtered_for_user(prepared_db) -> None:
                 "system:plugins:read",
             ],
         )
-        limited_membership = await rbac_repo.ensure_membership(user_id=limited_user.id, organization_id=org.id)
-        await rbac_repo.assign_membership_role(membership_id=limited_membership.id, role=role)
+        await WorkspaceMembershipRole.create(membership_id=limited_wsm.id, role_id=role.id)
 
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             # Configure menu items as admin.
@@ -105,7 +114,7 @@ async def test_admin_menu_filtered_for_user(prepared_db) -> None:
 
             # Root: Dashboard (no permission_code -> visible to any admin:access user).
             resp = await client.post(
-                "/api/v1/admin/menus",
+                f"/api/v1/workspaces/{ws.id}/menus",
                 json={
                     "code": f"dashboard_{uuid4().hex}",
                     "parentId": None,
@@ -124,7 +133,7 @@ async def test_admin_menu_filtered_for_user(prepared_db) -> None:
 
             # Root group: System
             resp = await client.post(
-                "/api/v1/admin/menus",
+                f"/api/v1/workspaces/{ws.id}/menus",
                 json={
                     "code": f"system_{uuid4().hex}",
                     "parentId": None,
@@ -139,7 +148,7 @@ async def test_admin_menu_filtered_for_user(prepared_db) -> None:
 
             # Child: Plugins (read)
             resp = await client.post(
-                "/api/v1/admin/menus",
+                f"/api/v1/workspaces/{ws.id}/menus",
                 json={
                     "code": f"plugins_read_{uuid4().hex}",
                     "parentId": system_group_id,
@@ -157,7 +166,7 @@ async def test_admin_menu_filtered_for_user(prepared_db) -> None:
 
             # Child: Plugins Manage (write)
             resp = await client.post(
-                "/api/v1/admin/menus",
+                f"/api/v1/workspaces/{ws.id}/menus",
                 json={
                     "code": f"plugins_manage_{uuid4().hex}",
                     "parentId": system_group_id,
@@ -179,7 +188,7 @@ async def test_admin_menu_filtered_for_user(prepared_db) -> None:
 
             app.dependency_overrides[get_current_user_id] = _as_limited
 
-            resp = await client.get("/api/v1/admin/menus/me")
+            resp = await client.get(f"/api/v1/workspaces/{ws.id}/menus/me")
             assert resp.status_code == 200
             tree = resp.json()["data"]["items"]
 

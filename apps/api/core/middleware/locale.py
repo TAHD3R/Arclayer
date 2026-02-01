@@ -52,8 +52,11 @@ async def _get_core_default_locale(request: Request) -> str | None:
                 return cached if isinstance(cached, str) else None
 
         from apps.api.models.setting import SettingRecord
+        from apps.api.settings.scopes import SCOPE_TYPE_SYSTEM, SYSTEM_SCOPE_ID
 
-        record = await SettingRecord.get_or_none(namespace="core")
+        record = await SettingRecord.get_or_none(
+            scope_type=SCOPE_TYPE_SYSTEM, scope_id=SYSTEM_SCOPE_ID, namespace="core"
+        )
         value = record.value if record and isinstance(record.value, dict) else {}
         section = value.get("localization") if isinstance(value, dict) else None
         locale = section.get("locale") if isinstance(section, dict) else None

@@ -9,11 +9,12 @@ from apps.api.common.schemas.base import BaseSchema
 
 class AuthzSnapshot(BaseSchema):
     """
-    Authorization snapshot for current org context.
+    Authorization snapshot for current scope context.
 
     Notes:
-    - `role_codes` and `permission_codes` are org-scoped.
-    - `is_superuser` means the user effectively has all permissions in the current org.
+    - v1: org-scoped (legacy).
+    - v2: workspace-scoped for admin governance.
+    - `is_superuser` means the user effectively has all permissions in the current scope.
     """
 
     user_id: UUID = Field(..., description="User id.")

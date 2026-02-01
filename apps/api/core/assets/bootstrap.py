@@ -33,13 +33,13 @@ async def register_core_asset_processors(registry: ExtensionRegistry, settings: 
         # Thumbnails are a performance optimization; always best-effort.
         try:
             raw_asset_id = (event.payload or {}).get("asset_id")
-            raw_org_id = (event.payload or {}).get("org_id")
-            if not raw_asset_id or not raw_org_id:
+            raw_workspace_id = (event.payload or {}).get("workspace_id")
+            if not raw_asset_id or not raw_workspace_id:
                 return
 
             asset_id = UUID(str(raw_asset_id))
-            org_id = UUID(str(raw_org_id))
-            asset = await AssetRecord.get_or_none(id=asset_id, org_id=org_id, deleted_at=None)
+            workspace_id = UUID(str(raw_workspace_id))
+            asset = await AssetRecord.get_or_none(id=asset_id, workspace_id=workspace_id, deleted_at=None)
             if asset is None:
                 return
 
@@ -58,7 +58,7 @@ async def register_core_asset_processors(registry: ExtensionRegistry, settings: 
 
                 def _out_path_for_width(width: int, *, alpha: bool) -> tuple[Path, str]:
                     out_ext = "png" if alpha else "jpg"
-                    key = f"org/{org_id}/assets/{asset_id}/thumb-{width}.{out_ext}"
+                    key = f"workspaces/{workspace_id}/assets/{asset_id}/thumb-{width}.{out_ext}"
                     return safe_object_key_to_path(settings.storage.local_root_dir, key), key
 
                 variants_payload, meta_payload = await asyncio.to_thread(
@@ -78,7 +78,7 @@ async def register_core_asset_processors(registry: ExtensionRegistry, settings: 
                     return
 
                 # Download source image into tmp (processor needs local file access).
-                source_key = f"thumbs/{org_id}/{asset_id}/source.{ext or 'bin'}"
+                source_key = f"thumbs/{workspace_id}/{asset_id}/source.{ext or 'bin'}"
                 in_path = safe_object_key_to_path(settings.storage.local_tmp_dir, source_key)
                 try:
                     await provider.download_object_to_path(object_key=asset.object_key, out_path=in_path)
@@ -91,7 +91,7 @@ async def register_core_asset_processors(registry: ExtensionRegistry, settings: 
                     out_ext = "png" if alpha else "jpg"
                     # Scheme C: thumbnails are public-facing under `/assets/{asset_id}/thumb-*.{ext}`.
                     object_key = f"assets/{asset_id}/thumb-{width}.{out_ext}"
-                    local_key = f"thumbs/{org_id}/{asset_id}/thumb-{width}.{out_ext}"
+                    local_key = f"thumbs/{workspace_id}/{asset_id}/thumb-{width}.{out_ext}"
                     out_path = safe_object_key_to_path(settings.storage.local_tmp_dir, local_key)
                     out_paths[object_key] = out_path
                     return out_path, object_key

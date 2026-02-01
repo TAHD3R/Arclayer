@@ -7,8 +7,12 @@ from apps.api.core.exceptions import Forbidden, ServiceUnavailable
 from apps.api.core.http.response import Response, ResponseModel
 from apps.api.core.i18n import t
 from apps.api.plugin.manager import PluginManager
+from apps.api.routers.v1.system.mail.router import router as system_mail_router
+from apps.api.routers.v1.system.plugins_manager.router import router as system_plugins_router
+from apps.api.routers.v1.system.rbac.router import router as system_rbac_router
 from apps.api.routers.v1.system.schema import SystemSetupRequest, SystemSetupResult, SystemSetupStatus
 from apps.api.routers.v1.system.service import SystemSetupService
+from apps.api.routers.v1.system.settings.router import router as system_settings_router
 
 router = APIRouter(tags=["System: Core Settings"])
 
@@ -115,3 +119,12 @@ async def setup_system(
             organization_name=(organization.name if organization is not None else None),
         )
     )
+
+
+# System-scoped administration endpoints (v2).
+# Note: they are placed under `/api/v1/system/*` and guarded by Org owner,
+# not the legacy org-scoped RBAC engine.
+router.include_router(system_settings_router, prefix="/settings")
+router.include_router(system_mail_router, prefix="/mail")
+router.include_router(system_plugins_router, prefix="/plugins-manager")
+router.include_router(system_rbac_router, prefix="/rbac")

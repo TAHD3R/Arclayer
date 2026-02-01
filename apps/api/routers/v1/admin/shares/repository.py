@@ -13,14 +13,14 @@ class AdminSharesRepository(BaseRepository):
     async def create_share_link(
         self,
         *,
-        org_id: UUID,
+        workspace_id: UUID,
         asset_id: UUID,
         token: str,
         expires_at: datetime | None,
         created_by_user_id: UUID | None,
     ) -> AssetShareLinkRecord:
         return await AssetShareLinkRecord.create(
-            org_id=org_id,
+            workspace_id=workspace_id,
             asset_id=asset_id,
             token=token,
             expires_at=expires_at,
@@ -28,11 +28,11 @@ class AdminSharesRepository(BaseRepository):
             created_by_user_id=created_by_user_id,
         )
 
-    async def get_link(self, *, org_id: UUID, link_id: UUID) -> AssetShareLinkRecord | None:
-        return await AssetShareLinkRecord.get_or_none(id=link_id, org_id=org_id)
+    async def get_link(self, *, workspace_id: UUID, link_id: UUID) -> AssetShareLinkRecord | None:
+        return await AssetShareLinkRecord.get_or_none(id=link_id, workspace_id=workspace_id)
 
-    def query_links(self, *, org_id: UUID, asset_id: UUID) -> QuerySet[AssetShareLinkRecord]:
-        return AssetShareLinkRecord.filter(org_id=org_id, asset_id=asset_id).order_by("-created_at")
+    def query_links(self, *, workspace_id: UUID, asset_id: UUID) -> QuerySet[AssetShareLinkRecord]:
+        return AssetShareLinkRecord.filter(workspace_id=workspace_id, asset_id=asset_id).order_by("-created_at")
 
     async def revoke(self, link: AssetShareLinkRecord, *, revoked_at: datetime) -> AssetShareLinkRecord:
         if link.revoked_at is None:

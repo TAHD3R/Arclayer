@@ -9,6 +9,7 @@ from apps.api.config import get_settings
 from apps.api.core.registry import create_app
 from apps.api.infra.db.orm import verify_db_ready
 from apps.api.models.setting import SettingRecord
+from apps.api.settings.scopes import SCOPE_TYPE_SYSTEM, SYSTEM_SCOPE_ID
 
 pytestmark = pytest.mark.integration
 
@@ -42,7 +43,12 @@ async def test_forgot_password_fails_fast_when_mail_disabled(
         await verify_db_ready(settings)
 
         # No matter whether the account exists, we should fail fast to avoid "fake success".
-        await SettingRecord.create(namespace="core", value={"mail": {"enabled": False}})
+        await SettingRecord.create(
+            scope_type=SCOPE_TYPE_SYSTEM,
+            scope_id=SYSTEM_SCOPE_ID,
+            namespace="core",
+            value={"mail": {"enabled": False}},
+        )
 
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             resp = await client.post("/api/v1/auth/forgot-password", json={"identifier": "any@example.com"})
@@ -80,7 +86,12 @@ async def test_forgot_password_works_when_mail_enabled(
     async with app.router.lifespan_context(app):
         await verify_db_ready(settings)
 
-        await SettingRecord.create(namespace="core", value={"mail": {"enabled": True}})
+        await SettingRecord.create(
+            scope_type=SCOPE_TYPE_SYSTEM,
+            scope_id=SYSTEM_SCOPE_ID,
+            namespace="core",
+            value={"mail": {"enabled": True}},
+        )
         await _create_user_with_email(email="user@example.com")
 
         async with AsyncClient(transport=transport, base_url="http://test") as client:

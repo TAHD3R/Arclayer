@@ -1,14 +1,12 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from uuid import UUID
 
 from tortoise.queryset import QuerySet
 
 from apps.api.common.repositories import BaseRepository
-from apps.api.core.rbac.constants import BOOTSTRAP_KEY, ROLE_ADMIN
-from apps.api.models.organization import Membership, MembershipStatus
-from apps.api.models.rbac import BootstrapState, MembershipRole, Permission, Role, RolePermission
+from apps.api.core.rbac.constants import BOOTSTRAP_KEY
+from apps.api.models.rbac import BootstrapState, Permission, Role, RolePermission
 
 
 class RBACRepository(BaseRepository):
@@ -142,47 +140,6 @@ class RBACRepository(BaseRepository):
             await permission.save()
         return changed
 
-    async def ensure_membership(self, *, user_id: UUID, organization_id: UUID) -> Membership:
-        membership, _ = await Membership.get_or_create(
-            user_id=user_id,
-            organization_id=organization_id,
-            defaults={"status": MembershipStatus.ACTIVE},
-        )
-        return membership
-
-    async def get_membership(self, *, user_id: UUID, organization_id: UUID) -> Membership | None:
-        return await Membership.get_or_none(
-            user_id=user_id,
-            organization_id=organization_id,
-            status=MembershipStatus.ACTIVE,
-        )
-
-    async def assign_membership_role(self, *, membership_id: UUID, role: Role) -> None:
-        await MembershipRole.get_or_create(membership_id=membership_id, role=role)
-
-    async def revoke_membership_role(self, *, membership_id: UUID, role: Role) -> int:
-        return await MembershipRole.filter(membership_id=membership_id, role=role).delete()
-
-    def query_user_roles_in_org(self, *, user_id: UUID, organization_id: UUID) -> QuerySet[Role]:
-        return (
-            Role
-            .filter(
-                membership_roles__membership__user_id=user_id,
-                membership_roles__membership__organization_id=organization_id,
-                membership_roles__membership__status=MembershipStatus.ACTIVE,
-            )
-            .order_by("code")
-            .distinct()
-        )
-
-    async def list_user_role_codes_in_org(self, *, user_id: UUID, organization_id: UUID) -> list[str]:
-        raw_rows = await self.query_user_roles_in_org(user_id=user_id, organization_id=organization_id).values_list(
-            "code", flat=True
-        )
-        # Tortoise typing for values_list(flat=True) is not always precise; normalize defensively.
-        codes = [str(r[0] if isinstance(r, tuple) else r) for r in raw_rows if r is not None]
-        return sorted(set(codes))
-
     async def list_permission_codes_for_role_codes(self, *, role_codes: list[str]) -> list[str]:
         if not role_codes:
             return []
@@ -206,10 +163,6 @@ class RBACRepository(BaseRepository):
     async def ensure_role_permission(self, *, role: Role, permission: Permission) -> bool:
         _, created = await RolePermission.get_or_create(role=role, permission=permission)
         return created
-
-    async def admin_binding_exists(self) -> bool:
-        # Any admin role binding in any org counts as initialized.
-        return await MembershipRole.filter(role__code=ROLE_ADMIN).exists()
 
     async def get_bootstrap_state(self) -> BootstrapState:
         state, _ = await BootstrapState.get_or_create(

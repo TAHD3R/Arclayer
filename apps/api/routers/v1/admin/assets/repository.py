@@ -17,11 +17,11 @@ class AdminAssetsRepository(BaseRepository):
     def query_assets(
         self,
         *,
-        org_id: UUID,
+        workspace_id: UUID,
         filters: AdminAssetListQuery,
         folder_ids: list[UUID] | None = None,
     ) -> QuerySet[AssetRecord]:
-        qs = AssetRecord.filter(org_id=org_id, deleted_at=None)
+        qs = AssetRecord.filter(workspace_id=workspace_id, deleted_at=None)
 
         if folder_ids is not None:
             qs = qs.filter(folder_id__in=folder_ids)
@@ -69,43 +69,43 @@ class AdminAssetsRepository(BaseRepository):
 
         return qs
 
-    async def get_asset(self, *, org_id: UUID, asset_id: UUID) -> AssetRecord | None:
-        return await AssetRecord.get_or_none(id=asset_id, org_id=org_id, deleted_at=None)
+    async def get_asset(self, *, workspace_id: UUID, asset_id: UUID) -> AssetRecord | None:
+        return await AssetRecord.get_or_none(id=asset_id, workspace_id=workspace_id, deleted_at=None)
 
-    async def get_assets_by_ids(self, *, org_id: UUID, asset_ids: list[UUID]) -> list[AssetRecord]:
+    async def get_assets_by_ids(self, *, workspace_id: UUID, asset_ids: list[UUID]) -> list[AssetRecord]:
         if not asset_ids:
             return []
-        return await AssetRecord.filter(org_id=org_id, deleted_at=None, id__in=list(asset_ids)).all()
+        return await AssetRecord.filter(workspace_id=workspace_id, deleted_at=None, id__in=list(asset_ids)).all()
 
-    async def get_asset_with_tags(self, *, org_id: UUID, asset_id: UUID) -> AssetRecord | None:
+    async def get_asset_with_tags(self, *, workspace_id: UUID, asset_id: UUID) -> AssetRecord | None:
         return (
             await AssetRecord
-            .filter(id=asset_id, org_id=org_id, deleted_at=None)
+            .filter(id=asset_id, workspace_id=workspace_id, deleted_at=None)
             .prefetch_related("tag_links__tag")
             .first()
         )
 
-    def query_folders(self, *, org_id: UUID) -> QuerySet[AssetFolderRecord]:
-        return AssetFolderRecord.filter(org_id=org_id).order_by("sort_order", "name")
+    def query_folders(self, *, workspace_id: UUID) -> QuerySet[AssetFolderRecord]:
+        return AssetFolderRecord.filter(workspace_id=workspace_id).order_by("sort_order", "name")
 
-    def query_tags(self, *, org_id: UUID, q: str | None = None) -> QuerySet[AssetTagRecord]:
-        qs = AssetTagRecord.filter(org_id=org_id)
+    def query_tags(self, *, workspace_id: UUID, q: str | None = None) -> QuerySet[AssetTagRecord]:
+        qs = AssetTagRecord.filter(workspace_id=workspace_id)
         if q:
             needle = q.strip()
             if needle:
                 qs = qs.filter(name__icontains=needle)
         return qs.order_by("name")
 
-    async def get_tag_by_name(self, *, org_id: UUID, name: str) -> AssetTagRecord | None:
-        return await AssetTagRecord.get_or_none(org_id=org_id, name=name)
+    async def get_tag_by_name(self, *, workspace_id: UUID, name: str) -> AssetTagRecord | None:
+        return await AssetTagRecord.get_or_none(workspace_id=workspace_id, name=name)
 
-    async def create_tag(self, *, org_id: UUID, name: str) -> AssetTagRecord:
-        return await AssetTagRecord.create(org_id=org_id, name=name)
+    async def create_tag(self, *, workspace_id: UUID, name: str) -> AssetTagRecord:
+        return await AssetTagRecord.create(workspace_id=workspace_id, name=name)
 
-    async def list_tags_by_ids(self, *, org_id: UUID, tag_ids: list[UUID]) -> list[AssetTagRecord]:
+    async def list_tags_by_ids(self, *, workspace_id: UUID, tag_ids: list[UUID]) -> list[AssetTagRecord]:
         if not tag_ids:
             return []
-        return await AssetTagRecord.filter(org_id=org_id, id__in=tag_ids).all()
+        return await AssetTagRecord.filter(workspace_id=workspace_id, id__in=tag_ids).all()
 
     async def replace_asset_tags(self, *, asset_id: UUID, tag_ids: list[UUID]) -> None:
         # Replace links with the given set (idempotent).
@@ -126,21 +126,21 @@ class AdminAssetsRepository(BaseRepository):
         for tag_id in to_add:
             await AssetTagLinkRecord.create(asset_id=asset_id, tag_id=tag_id)
 
-    async def get_folder(self, *, org_id: UUID, folder_id: UUID) -> AssetFolderRecord | None:
-        return await AssetFolderRecord.get_or_none(id=folder_id, org_id=org_id)
+    async def get_folder(self, *, workspace_id: UUID, folder_id: UUID) -> AssetFolderRecord | None:
+        return await AssetFolderRecord.get_or_none(id=folder_id, workspace_id=workspace_id)
 
-    async def folder_has_children(self, *, org_id: UUID, folder_id: UUID) -> bool:
-        return await AssetFolderRecord.filter(org_id=org_id, parent_id=folder_id).exists()
+    async def folder_has_children(self, *, workspace_id: UUID, folder_id: UUID) -> bool:
+        return await AssetFolderRecord.filter(workspace_id=workspace_id, parent_id=folder_id).exists()
 
-    async def folder_has_assets(self, *, org_id: UUID, folder_id: UUID) -> bool:
-        return await AssetRecord.filter(org_id=org_id, deleted_at=None, folder_id=folder_id).exists()
+    async def folder_has_assets(self, *, workspace_id: UUID, folder_id: UUID) -> bool:
+        return await AssetRecord.filter(workspace_id=workspace_id, deleted_at=None, folder_id=folder_id).exists()
 
-    async def delete_folder(self, *, org_id: UUID, folder_id: UUID) -> None:
-        await AssetFolderRecord.filter(org_id=org_id, id=folder_id).delete()
+    async def delete_folder(self, *, workspace_id: UUID, folder_id: UUID) -> None:
+        await AssetFolderRecord.filter(workspace_id=workspace_id, id=folder_id).delete()
 
-    async def collect_descendant_folder_ids(self, *, org_id: UUID, root_folder_id: UUID) -> list[UUID]:
+    async def collect_descendant_folder_ids(self, *, workspace_id: UUID, root_folder_id: UUID) -> list[UUID]:
         # We intentionally do this in Python (single query) to keep DB/storage agnostic.
-        rows = await AssetFolderRecord.filter(org_id=org_id).values("id", "parent_id")
+        rows = await AssetFolderRecord.filter(workspace_id=workspace_id).values("id", "parent_id")
         children: dict[UUID, list[UUID]] = {}
         for r in rows:
             fid = r.get("id")
@@ -166,14 +166,14 @@ class AdminAssetsRepository(BaseRepository):
     async def create_folder(
         self,
         *,
-        org_id: UUID,
+        workspace_id: UUID,
         name: str,
         parent_id: UUID | None,
         description: str | None,
         sort_order: int,
     ) -> AssetFolderRecord:
         return await AssetFolderRecord.create(
-            org_id=org_id,
+            workspace_id=workspace_id,
             name=name,
             parent_id=parent_id,
             description=description,
@@ -195,7 +195,7 @@ class AdminAssetsRepository(BaseRepository):
     async def bulk_update_assets_folder(
         self,
         *,
-        org_id: UUID,
+        workspace_id: UUID,
         asset_ids: list[UUID],
         folder_id: UUID | None,
         updated_at,
@@ -203,7 +203,7 @@ class AdminAssetsRepository(BaseRepository):
         if not asset_ids:
             return 0
         return int(
-            await AssetRecord.filter(org_id=org_id, deleted_at=None, id__in=list(asset_ids)).update(
+            await AssetRecord.filter(workspace_id=workspace_id, deleted_at=None, id__in=list(asset_ids)).update(
                 folder_id=folder_id,
                 updated_at=updated_at,
             )
@@ -212,7 +212,7 @@ class AdminAssetsRepository(BaseRepository):
     async def bulk_soft_delete_assets(
         self,
         *,
-        org_id: UUID,
+        workspace_id: UUID,
         asset_ids: list[UUID],
         deleted_at,
         updated_at,
@@ -220,7 +220,7 @@ class AdminAssetsRepository(BaseRepository):
         if not asset_ids:
             return 0
         return int(
-            await AssetRecord.filter(org_id=org_id, deleted_at=None, id__in=list(asset_ids)).update(
+            await AssetRecord.filter(workspace_id=workspace_id, deleted_at=None, id__in=list(asset_ids)).update(
                 deleted_at=deleted_at,
                 updated_at=updated_at,
             )
@@ -229,7 +229,7 @@ class AdminAssetsRepository(BaseRepository):
     async def bulk_update_assets_fields(
         self,
         *,
-        org_id: UUID,
+        workspace_id: UUID,
         asset_ids: list[UUID],
         updates: dict,
         updated_at,
@@ -240,7 +240,11 @@ class AdminAssetsRepository(BaseRepository):
             return 0
         payload = dict(updates)
         payload["updated_at"] = updated_at
-        return int(await AssetRecord.filter(org_id=org_id, deleted_at=None, id__in=list(asset_ids)).update(**payload))
+        return int(
+            await AssetRecord.filter(workspace_id=workspace_id, deleted_at=None, id__in=list(asset_ids)).update(
+                **payload
+            )
+        )
 
 
 _ALLOWED_ASSET_ORDER_FIELDS = ADMIN_ASSET_ALLOWED_ORDER_FIELDS

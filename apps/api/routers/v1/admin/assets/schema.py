@@ -37,6 +37,7 @@ class AdminAssetListQuery(BaseSchema):
 
 
 class AdminAssetSummaryOut(BaseOut):
+    workspace_id: UUID = Field(..., description="Workspace id.")
     owner_user_id: UUID | None = Field(default=None, description="Uploader (owner) user id.")
     uploader_name: str | None = Field(default=None, description="Uploader display name (best-effort).")
     purpose: str = Field(..., description="Asset purpose.")
@@ -56,7 +57,7 @@ class AdminAssetSummaryOut(BaseOut):
     @property
     def content_url_path(self) -> str:
         # Admin-authenticated streaming endpoint (supports Range).
-        return f"/api/v1/admin/assets/{self.id}/content"
+        return f"/api/v1/workspaces/{self.workspace_id}/assets/{self.id}/content"
 
     @computed_field
     @property

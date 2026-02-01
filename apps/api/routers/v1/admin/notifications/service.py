@@ -28,12 +28,12 @@ class NotificationService(BaseService):
     async def get_unread_preview(
         self,
         *,
-        org_id: UUID,
+        workspace_id: UUID,
         user_id: UUID,
         limit: int = 3,
     ) -> NotificationPreviewOut:
-        unread_count = await self.repo.get_unread_count(org_id=org_id, recipient_user_id=user_id)
-        items = await self.repo.list_unread_latest(org_id=org_id, recipient_user_id=user_id, limit=limit)
+        unread_count = await self.repo.get_unread_count(workspace_id=workspace_id, recipient_user_id=user_id)
+        items = await self.repo.list_unread_latest(workspace_id=workspace_id, recipient_user_id=user_id, limit=limit)
         return NotificationPreviewOut(
             unread_count=unread_count,
             items=[NotificationOut.model_validate(x, from_attributes=True) for x in items],
@@ -42,7 +42,7 @@ class NotificationService(BaseService):
     async def list_notifications(
         self,
         *,
-        org_id: UUID,
+        workspace_id: UUID,
         user_id: UUID,
         params: PageParams,
         filters: NotificationListQuery,
@@ -50,7 +50,7 @@ class NotificationService(BaseService):
         unread_only = filters.status == NotificationListStatus.UNREAD
         category = filters.category.value if filters.category else None
         queryset = self.repo.build_list_queryset(
-            org_id=org_id,
+            workspace_id=workspace_id,
             recipient_user_id=user_id,
             unread_only=unread_only,
             category=category,
@@ -60,11 +60,13 @@ class NotificationService(BaseService):
     async def mark_read(
         self,
         *,
-        org_id: UUID,
+        workspace_id: UUID,
         user_id: UUID,
         notification_id: UUID,
     ) -> NotificationReadResult:
-        row = await self.repo.mark_read(org_id=org_id, recipient_user_id=user_id, notification_id=notification_id)
+        row = await self.repo.mark_read(
+            workspace_id=workspace_id, recipient_user_id=user_id, notification_id=notification_id
+        )
         if row is None:
             raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
         return NotificationReadResult(id=row.id, read_at=row.read_at)
@@ -72,16 +74,16 @@ class NotificationService(BaseService):
     async def mark_all_read(
         self,
         *,
-        org_id: UUID,
+        workspace_id: UUID,
         user_id: UUID,
     ) -> NotificationReadAllResult:
-        total, updated = await self.repo.mark_all_read(org_id=org_id, recipient_user_id=user_id)
+        total, updated = await self.repo.mark_all_read(workspace_id=workspace_id, recipient_user_id=user_id)
         return NotificationReadAllResult(total_count=total, success_count=updated)
 
     async def seed_demo_notifications(
         self,
         *,
-        org_id: UUID,
+        workspace_id: UUID,
         user_id: UUID,
         count: int = 8,
     ) -> NotificationDevSeedResult:
@@ -141,7 +143,7 @@ class NotificationService(BaseService):
             # Make dedupe_key unique to avoid collisions with existing records.
             dedupe_key = f"dev.seed:{user_id}:{i}:{uuid4().hex}"
             await NotificationRecord.create(
-                org_id=org_id,
+                workspace_id=workspace_id,
                 recipient_user_id=user_id,
                 actor_user_id=user_id,
                 category=tpl["category"],  # type: ignore[arg-type]
@@ -159,12 +161,12 @@ class NotificationService(BaseService):
     async def delete_notification(
         self,
         *,
-        org_id: UUID,
+        workspace_id: UUID,
         user_id: UUID,
         notification_id: UUID,
     ) -> NotificationDeleteResult:
         deleted = await self.repo.delete_notification(
-            org_id=org_id,
+            workspace_id=workspace_id,
             recipient_user_id=user_id,
             notification_id=notification_id,
         )

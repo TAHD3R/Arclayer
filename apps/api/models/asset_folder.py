@@ -10,14 +10,14 @@ from apps.api.models.base import BaseModel
 
 class AssetFolderRecord(BaseModel):
     """
-    Asset folder (org-scoped).
+    Asset folder (workspace-scoped in v2).
 
     Notes:
     - This is a logical organization layer for the asset library.
-    - For SaaS, folder data stays tenant-scoped via org_id.
+    - v2: asset library is part of workspace governance, so all folder data is scoped by workspace_id.
     """
 
-    org_id = fields.UUIDField(db_index=True)
+    workspace_id = fields.UUIDField(db_index=True)
     parent = fields.ForeignKeyField(
         "models.AssetFolderRecord",
         related_name="children",
@@ -34,4 +34,4 @@ class AssetFolderRecord(BaseModel):
     class Meta(BaseModel.Meta):
         table = "asset_folders"
         abstract = False
-        unique_together = (("org_id", "parent_id", "name"),)
+        unique_together = (("workspace_id", "parent_id", "name"),)

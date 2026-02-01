@@ -7,21 +7,20 @@ from fastapi import APIRouter, BackgroundTasks, Depends, Query, Request
 from tortoise.expressions import Q
 from tortoise.transactions import in_transaction
 
-from apps.api.common.schemas import AuthzSnapshot
 from apps.api.config import Settings, get_settings
-from apps.api.core.authz import get_authz_snapshot_provider, require_permission_strict
 from apps.api.core.exceptions import BadRequest, Conflict, Forbidden, NotFound, ServiceUnavailable
-from apps.api.core.http.pagination import PageData, PageParams, get_page_params, paginate_items
+from apps.api.core.http.pagination import PageData, PageParams, get_page_params
 from apps.api.core.http.response import Response, ResponseModel
 from apps.api.core.i18n import get_current_locale, t
-from apps.api.core.organization.invitations import hash_invite_token
-from apps.api.core.organization.repository import OrganizationRepository
+from apps.api.core.invitations.tokens import verify_invite_token
 from apps.api.infra.cache.valkey import get_valkey
 from apps.api.infra.limiter.limiter import rate_limit
-from apps.api.models.invitation import OrganizationInvitation, OrganizationInviteLink
-from apps.api.models.organization import Membership, MembershipStatus, Organization
-from apps.api.models.rbac import MembershipRole, Permission, Role
+from apps.api.models.org_membership import OrgMembership
+from apps.api.models.organization import Organization
+from apps.api.models.rbac import Permission, Role
 from apps.api.models.user import User, UserCredential, UserStatus
+from apps.api.models.workspace import Workspace, WorkspaceMembership, WorkspaceMembershipRole, WorkspaceMembershipStatus
+from apps.api.models.workspace_invite import WorkspaceEmailInvite, WorkspaceInviteLink, WorkspaceInviteLinkUseEvent
 from apps.api.routers.v1.auth.constants import (
     FORGOT_PASSWORD_RATE_LIMIT,
     LOGIN_RATE_LIMIT,
@@ -41,13 +40,14 @@ from apps.api.routers.v1.auth.schema import (
     InvitationPreviewOrganizationOut,
     InvitationPreviewResult,
     InvitationPreviewRoleOut,
+    InvitationPreviewWorkspaceOut,
     LoginRequest,
     LogoutRequest,
     MyInvitationInviterOut,
     MyInvitationListQuery,
     MyInvitationOrganizationOut,
     MyInvitationOut,
-    MyOrganizationOut,
+    MyInvitationWorkspaceOut,
     RefreshRequest,
     RegisterRequest,
     ResetPasswordRequest,
@@ -282,36 +282,6 @@ async def me(
     return Response.success(data=profile)
 
 
-@router.get("/me/orgs", response_model=ResponseModel[PageData[MyOrganizationOut]])
-async def me_orgs(
-    user: User = Depends(get_current_user),
-    params: PageParams = Depends(get_page_params),
-) -> ResponseModel[PageData[MyOrganizationOut]]:
-    """
-    List organizations the current user belongs to.
-
-    This endpoint is primarily used by the admin frontend to implement org selection (strategy B).
-    """
-
-    repo = OrganizationRepository()
-    memberships = await repo.list_user_memberships_with_org(user_id=user.id)
-    items: list[MyOrganizationOut] = []
-    for membership in memberships:
-        org = membership.organization
-        items.append(
-            MyOrganizationOut(
-                organization_id=org.id,
-                slug=org.slug,
-                name=org.name,
-                logo_url=org.logo_url,
-                is_active=org.is_active,
-                membership_id=membership.id,
-                membership_status=membership.status,
-            )
-        )
-    return Response.success(data=paginate_items(items, params=params))
-
-
 @router.get("/me/invitations", response_model=ResponseModel[PageData[MyInvitationOut]])
 async def me_invitations(
     user: User = Depends(get_current_user),
@@ -342,7 +312,7 @@ async def me_invitations(
 
     now = datetime.now(UTC)
 
-    qs = OrganizationInvitation.filter(email=email).select_related("organization")
+    qs = WorkspaceEmailInvite.filter(email=email).select_related("organization", "workspace")
 
     status = (filters.status or "").strip().lower() if filters.status else ""
     if status == "accepted":
@@ -359,13 +329,17 @@ async def me_invitations(
     if filters.q:
         needle = filters.q.strip()
         if needle:
-            qs = qs.filter(Q(role_code__icontains=needle) | Q(organization__name__icontains=needle))
+            qs = qs.filter(
+                Q(role_code__icontains=needle)
+                | Q(organization__name__icontains=needle)
+                | Q(workspace__name__icontains=needle)
+            )
 
     total = int(await qs.count())
     pages = (total + params.size - 1) // params.size if params.size else 0
     rows = await qs.limit(params.limit).offset(params.offset).all()
 
-    inviter_ids = {UUID(str(inv.invited_by_user_id)) for inv in rows if inv.invited_by_user_id is not None}
+    inviter_ids = {UUID(str(inv.created_by_user_id)) for inv in rows if inv.created_by_user_id is not None}
     inviter_map: dict[UUID, MyInvitationInviterOut] = {}
     if inviter_ids:
         inviter_rows = await User.filter(id__in=list(inviter_ids)).all()
@@ -387,9 +361,14 @@ async def me_invitations(
             slug=org.slug,
             logo_url=org.logo_url,
         )
+        ws = inv.workspace
+        ws_out = MyInvitationWorkspaceOut(
+            id=ws.id,
+            name=ws.name,
+            slug=ws.slug,
+        )
         inviter = None
-        if inv.invited_by_user_id is not None:
-            inviter = inviter_map.get(UUID(str(inv.invited_by_user_id)))
+        inviter = inviter_map.get(UUID(str(inv.created_by_user_id))) if inv.created_by_user_id is not None else None
 
         is_accepted = inv.accepted_at is not None and str(inv.accepted_by_user_id) == str(user.id)
         out_status = "accepted" if is_accepted else "pending"
@@ -401,6 +380,7 @@ async def me_invitations(
                 role_code=inv.role_code,
                 expires_at=inv.expires_at,
                 organization=org_out,
+                workspace=ws_out,
                 inviter=inviter,
                 status=out_status,
                 accepted_at=inv.accepted_at,
@@ -425,24 +405,6 @@ async def me_invitations(
     )
 
 
-@router.get(
-    "/me/authz",
-    response_model=ResponseModel[AuthzSnapshot],
-    dependencies=[require_permission_strict("admin:access")],
-)
-async def me_authz(
-    user: User = Depends(get_current_user),
-) -> ResponseModel[AuthzSnapshot]:
-    provider = get_authz_snapshot_provider()
-    if provider is None:
-        raise ServiceUnavailable(
-            message=t("errors", "AUTHZ_ENGINE_UNAVAILABLE", default="鉴权引擎不可用"),
-            error="AUTHZ_ENGINE_UNAVAILABLE",
-        )
-    payload = await provider.get_snapshot(user.id)
-    return Response.success(data=AuthzSnapshot.model_validate(payload))
-
-
 @router.post(
     "/invitations/accept",
     response_model=ResponseModel[TokenPair],
@@ -461,56 +423,107 @@ async def accept_invitation(
             message=t("auth", "INVITE_TOKEN_INVALID", default="邀请 Token 无效"), error="INVITE_TOKEN_INVALID"
         )
 
-    now = datetime.now(UTC)
-    token_hash = hash_invite_token(token)
+    code = verify_invite_token(service.settings, token=token)
+    if code is None:
+        raise BadRequest(
+            message=t("auth", "INVITE_TOKEN_INVALID", default="邀请 Token 无效"), error="INVITE_TOKEN_INVALID"
+        )
 
-    # Make invitation acceptance atomic:
-    # - lock invitation row (FOR UPDATE)
-    # - create user + membership + role bindings
-    # - mark invitation accepted
-    # Any failure rolls back and leaves no "half-created" user behind.
+    now = datetime.now(UTC)
+
     inviter_user_id: UUID | None = None
     accepted_user_id: UUID | None = None
     accepted_display_name: str | None = None
+    organization_id: UUID | None = None
+    workspace_id: UUID | None = None
+
     async with in_transaction() as conn:
-        link = await OrganizationInviteLink.filter(token_hash=token_hash).using_db(conn).select_for_update().first()
-        inv = await OrganizationInvitation.filter(token_hash=token_hash).using_db(conn).select_for_update().first()
-        if link is None and inv is None:
+        assigned_role_code: str | None = None
+        invite_email: str | None = None
+        invite_link: WorkspaceInviteLink | None = None
+        email_inv: WorkspaceEmailInvite | None = None
+
+        if code.startswith("il_"):
+            invite_link = await WorkspaceInviteLink.filter(code=code).using_db(conn).select_for_update().first()
+            if invite_link is None:
+                raise NotFound(message=t("auth", "INVITE_NOT_FOUND", default="邀请不存在"), error="INVITE_NOT_FOUND")
+            if invite_link.disabled_at is not None:
+                raise Forbidden(message=t("auth", "INVITE_REVOKED", default="邀请已被撤销"), error="INVITE_REVOKED")
+            if invite_link.expires_at is not None and invite_link.expires_at <= now:
+                raise Forbidden(message=t("auth", "INVITE_EXPIRED", default="邀请已过期"), error="INVITE_EXPIRED")
+            if invite_link.max_uses is not None and int(invite_link.uses_count or 0) >= int(invite_link.max_uses):
+                raise Forbidden(
+                    message=t("auth", "INVITE_REVOKED", default="邀请不可用"), error="INVITE_MAX_USES_REACHED"
+                )
+
+            organization_id = UUID(str(invite_link.organization_id))
+            workspace_id = UUID(str(invite_link.workspace_id))
+            inviter_user_id = invite_link.created_by_user_id
+            assigned_role_code = invite_link.role_code
+
+            invite_email = (payload.email or "").strip().lower()
+            if not invite_email:
+                raise BadRequest(message=t("auth", "EMAIL_REQUIRED", default="邮箱不能为空"), error="EMAIL_REQUIRED")
+
+            allowed_domain = (invite_link.allowed_email_domain or "").strip().lower()
+            if allowed_domain:
+                allowed_domain = allowed_domain[1:] if allowed_domain.startswith("@") else allowed_domain
+                if "@" not in invite_email:
+                    raise Forbidden(
+                        message=t("auth", "INVITE_EMAIL_MISMATCH", default="邮箱不符合要求"),
+                        error="INVITE_EMAIL_DOMAIN_FORBIDDEN",
+                    )
+                domain = invite_email.split("@", 1)[1].strip().lower()
+                if domain != allowed_domain:
+                    raise Forbidden(
+                        message=t("auth", "INVITE_EMAIL_MISMATCH", default="邮箱不符合要求"),
+                        error="INVITE_EMAIL_DOMAIN_FORBIDDEN",
+                    )
+        elif code.startswith("ei_"):
+            email_inv = await WorkspaceEmailInvite.filter(code=code).using_db(conn).select_for_update().first()
+            if email_inv is None:
+                raise NotFound(message=t("auth", "INVITE_NOT_FOUND", default="邀请不存在"), error="INVITE_NOT_FOUND")
+            if email_inv.revoked_at is not None:
+                raise Forbidden(message=t("auth", "INVITE_REVOKED", default="邀请已被撤销"), error="INVITE_REVOKED")
+            if email_inv.accepted_at is not None:
+                raise Conflict(
+                    message=t("auth", "INVITE_REVOKED", default="邀请不可用"), error="INVITE_ALREADY_ACCEPTED"
+                )
+            if email_inv.expires_at is not None and email_inv.expires_at <= now:
+                raise Forbidden(message=t("auth", "INVITE_EXPIRED", default="邀请已过期"), error="INVITE_EXPIRED")
+
+            organization_id = UUID(str(email_inv.organization_id))
+            workspace_id = UUID(str(email_inv.workspace_id))
+            inviter_user_id = email_inv.created_by_user_id
+            assigned_role_code = email_inv.role_code
+
+            invite_email = (email_inv.email or "").strip().lower()
+            if payload.email is not None:
+                provided = str(payload.email).strip().lower()
+                if provided and provided != invite_email:
+                    raise Forbidden(
+                        message=t("auth", "INVITE_EMAIL_MISMATCH", default="邀请邮箱不匹配"),
+                        error="INVITE_EMAIL_MISMATCH",
+                    )
+        else:
             raise NotFound(message=t("auth", "INVITE_NOT_FOUND", default="邀请不存在"), error="INVITE_NOT_FOUND")
 
-        # NOTE: avoid `select_related("organization")` here because it can introduce an OUTER JOIN.
-        # Postgres forbids applying `FOR UPDATE` to the nullable side of an outer join.
-        if link is not None:
-            if link.disabled_at is not None:
-                raise Forbidden(message=t("auth", "INVITE_REVOKED", default="邀请已被撤销"), error="INVITE_REVOKED")
-            if link.expires_at is not None and link.expires_at <= now:
-                raise Forbidden(message=t("auth", "INVITE_EXPIRED", default="邀请已过期"), error="INVITE_EXPIRED")
-            organization_id = UUID(str(link.organization_id))
-            inviter_user_id = link.created_by_user_id
-            assigned_role_code = link.role_code
-        else:
-            assert inv is not None
-            if inv.revoked_at is not None:
-                raise Forbidden(message=t("auth", "INVITE_REVOKED", default="邀请已被撤销"), error="INVITE_REVOKED")
-            if inv.expires_at is not None and inv.expires_at <= now:
-                raise Forbidden(message=t("auth", "INVITE_EXPIRED", default="邀请已过期"), error="INVITE_EXPIRED")
-            organization_id = UUID(str(inv.organization_id))
-            inviter_user_id = inv.invited_by_user_id
-            assigned_role_code = inv.role_code
+        if organization_id is None or workspace_id is None:
+            raise NotFound(message=t("auth", "INVITE_NOT_FOUND", default="邀请不存在"), error="INVITE_NOT_FOUND")
 
         org = await Organization.get_or_none(id=organization_id, using_db=conn)
         if org is None or not org.is_active:
             raise Forbidden(message=t("auth", "ORG_INACTIVE", default="组织不可用"), error="ORG_INACTIVE")
+        ws = await Workspace.get_or_none(id=workspace_id, using_db=conn)
+        if ws is None or not ws.is_active:
+            raise Forbidden(message=t("errors", "NOT_FOUND", default="资源不存在"), error="WORKSPACE_INACTIVE")
+        if UUID(str(ws.organization_id)) != organization_id:
+            raise Forbidden(
+                message=t("errors", "PERMISSION_DENIED", default="权限不足"), error="CROSS_ORG_ACCESS_DENIED"
+            )
 
         username = payload.username.strip()
-        # Unified semantics:
-        # - Invite links are NOT email-bound, so we must take email from payload.
-        # - Legacy invitations (token only exists in OrganizationInvitation) remain email-bound.
-        email = (
-            (payload.email or "").strip().lower()
-            if link is not None
-            else ((inv.email if inv is not None else "") or "").strip().lower()
-        )
+        email = (invite_email or "").strip().lower()
         display_name = payload.display_name.strip() if payload.display_name else None
 
         if not username:
@@ -520,7 +533,6 @@ async def accept_invitation(
         if not email:
             raise BadRequest(message=t("auth", "EMAIL_REQUIRED", default="邮箱不能为空"), error="EMAIL_REQUIRED")
 
-        # Enforce uniqueness inside the same transaction to avoid races.
         if await User.filter(username=username).using_db(conn).exists():
             raise Conflict(message=t("auth", "USERNAME_EXISTS", default="用户名已存在"), error="USERNAME_EXISTS")
         if await User.filter(email=email).using_db(conn).exists():
@@ -540,19 +552,25 @@ async def accept_invitation(
         )
         await UserCredential.create(using_db=conn, user_id=user.id, password_hash=password_hash)
 
-        membership, _created = await Membership.get_or_create(
+        # A2 invariant: user can only belong to one organization.
+        await OrgMembership.create(
+            using_db=conn,
+            organization_id=organization_id,
+            user_id=user.id,
+            is_owner=False,
+            status="active",
+        )
+
+        wsm, _created = await WorkspaceMembership.get_or_create(
             using_db=conn,
             user_id=user.id,
-            organization_id=org.id,
-            defaults={"status": MembershipStatus.ACTIVE, "invited_by_user_id": inviter_user_id},
+            workspace_id=workspace_id,
+            defaults={"status": WorkspaceMembershipStatus.ACTIVE, "invited_by_user_id": inviter_user_id},
         )
-        if membership.status != MembershipStatus.ACTIVE:
-            membership.status = MembershipStatus.ACTIVE
-            await membership.save(using_db=conn, update_fields=["status"])
+        if wsm.status != WorkspaceMembershipStatus.ACTIVE:
+            wsm.status = WorkspaceMembershipStatus.ACTIVE
+            await wsm.save(using_db=conn, update_fields=["status"])
 
-        # Role binding strategy:
-        # - If invite provides a role_code, bind it.
-        # - Otherwise, bind all default roles (is_default=True).
         roles: list[Role] = []
         if assigned_role_code:
             role = await Role.get_or_none(code=assigned_role_code, using_db=conn)
@@ -562,38 +580,27 @@ async def accept_invitation(
             roles = await Role.filter(is_default=True).using_db(conn).all()
 
         for role in roles:
-            await MembershipRole.get_or_create(using_db=conn, membership_id=membership.id, role_id=role.id)
+            await WorkspaceMembershipRole.get_or_create(using_db=conn, membership_id=wsm.id, role_id=role.id)
 
         await _ensure_role_codes_have_admin_access(role_codes=[r.code for r in roles], conn=conn)
 
-        if link is not None:
-            # Best-effort: mark the delivery record for this email as accepted (if any).
-            # Invite links are reusable, so this should never block onboarding.
-            if email:
-                await (
-                    OrganizationInvitation
-                    .filter(
-                        organization_id=organization_id,
-                        token_hash=token_hash,
-                        email=email,
-                        revoked_at=None,
-                        accepted_at=None,
-                    )
-                    .using_db(conn)
-                    .update(accepted_by_user_id=user.id, accepted_at=now)
-                )
-        else:
-            # Legacy email-bound invitation flow: keep original semantics.
-            if inv is not None and inv.accepted_at is None and inv.revoked_at is None:
-                inv.accepted_by_user_id = user.id
-                inv.accepted_at = now
-                await inv.save(using_db=conn, update_fields=["accepted_by_user_id", "accepted_at"])
+        if email_inv is not None:
+            email_inv.accepted_by_user_id = user.id
+            email_inv.accepted_at = now
+            await email_inv.save(using_db=conn, update_fields=["accepted_by_user_id", "accepted_at"])
 
-        if link is not None:
-            link.uses_count = int(link.uses_count or 0) + 1
-            link.last_used_by_user_id = user.id
-            link.last_used_at = now
-            await link.save(using_db=conn, update_fields=["uses_count", "last_used_by_user_id", "last_used_at"])
+        if invite_link is not None:
+            invite_link.uses_count = int(invite_link.uses_count or 0) + 1
+            invite_link.last_used_by_user_id = user.id
+            invite_link.last_used_at = now
+            await invite_link.save(using_db=conn, update_fields=["uses_count", "last_used_by_user_id", "last_used_at"])
+            await WorkspaceInviteLinkUseEvent.create(
+                using_db=conn,
+                link_id=invite_link.id,
+                used_by_user_id=user.id,
+                used_at=now,
+                joined_membership_id=wsm.id,
+            )
 
         accepted_user_id = user.id
         accepted_display_name = user.display_name or user.username
@@ -606,10 +613,13 @@ async def accept_invitation(
         try:
             from apps.api.models.notification import NotificationCategory, NotificationRecord
             from apps.api.models.setting import SettingRecord
+            from apps.api.settings.scopes import SCOPE_TYPE_SYSTEM, SYSTEM_SCOPE_ID
 
             # Optional gate: allow disabling invite-related in-app notifications.
             try:
-                core = await SettingRecord.get_or_none(namespace="core")
+                core = await SettingRecord.get_or_none(
+                    scope_type=SCOPE_TYPE_SYSTEM, scope_id=SYSTEM_SCOPE_ID, namespace="core"
+                )
                 v = core.value if core and isinstance(core.value, dict) else {}
                 notifications_cfg = v.get("notifications")
                 invite_enabled = True
@@ -620,14 +630,14 @@ async def accept_invitation(
 
             if invite_enabled:
                 await NotificationRecord.create(
-                    org_id=organization_id,
+                    workspace_id=workspace_id,
                     recipient_user_id=inviter_user_id,
                     actor_user_id=accepted_user_id,
                     category=NotificationCategory.TEAM,
                     title=t(
                         "notifications",
                         "NOTIFICATIONS_TEAM_INVITE_ACCEPTED_TITLE",
-                        default="{name} 已加入组织",
+                        default="{name} 已加入工作区",
                         name=accepted_display_name or "新成员",
                     ),
                     body=t(
@@ -638,7 +648,7 @@ async def accept_invitation(
                     target_to="/settings/team/members",
                     target_meta=None,
                     event_name="team.invitation.accepted",
-                    dedupe_key=f"team.invitation.accepted:{token_hash}",
+                    dedupe_key=f"workspace.invitation.accepted:{code}",
                 )
         except Exception as exc:
             service.logger.warning(
@@ -648,7 +658,7 @@ async def accept_invitation(
                 inviter_user_id=str(inviter_user_id),
             )
 
-    return Response.success(message=t("auth", "INVITE_ACCEPTED", default="加入组织成功"), data=tokens)
+    return Response.success(message=t("auth", "INVITE_ACCEPTED", default="加入工作区成功"), data=tokens)
 
 
 @router.get(
@@ -658,6 +668,7 @@ async def accept_invitation(
 )
 async def preview_invitation(
     token: str = Query(..., min_length=8, max_length=512, description="Invitation token."),
+    settings: Settings = Depends(get_settings),
 ) -> ResponseModel[InvitationPreviewResult]:
     token = (token or "").strip()
     if not token:
@@ -667,43 +678,61 @@ async def preview_invitation(
         )
 
     now = datetime.now(UTC)
-    token_hash = hash_invite_token(token)
+    code = verify_invite_token(settings, token=token)
+    if code is None:
+        raise BadRequest(
+            message=t("auth", "INVITE_TOKEN_INVALID", default="邀请 Token 无效"), error="INVITE_TOKEN_INVALID"
+        )
 
-    # Unified semantics:
-    # - Prefer reusable invite links (OrganizationInviteLink).
-    # - Fall back to legacy email-bound invitations (OrganizationInvitation) if needed.
-    link = await OrganizationInviteLink.get_or_none(token_hash=token_hash).select_related("organization")
-    if link is not None:
+    inviter_user_id: UUID | None = None
+    role_code: str | None = None
+    expires_at: datetime | None = None
+    invitation_email: str | None = None
+
+    org: Organization | None = None
+    ws: Workspace | None = None
+
+    if code.startswith("il_"):
+        link = await WorkspaceInviteLink.get_or_none(code=code).select_related("organization", "workspace")
+        if link is None:
+            raise NotFound(message=t("auth", "INVITE_NOT_FOUND", default="邀请不存在"), error="INVITE_NOT_FOUND")
         if link.disabled_at is not None:
             raise Forbidden(message=t("auth", "INVITE_REVOKED", default="邀请已被撤销"), error="INVITE_REVOKED")
         if link.expires_at is not None and link.expires_at <= now:
             raise Forbidden(message=t("auth", "INVITE_EXPIRED", default="邀请已过期"), error="INVITE_EXPIRED")
+        if link.max_uses is not None and int(link.uses_count or 0) >= int(link.max_uses):
+            raise Forbidden(message=t("auth", "INVITE_REVOKED", default="邀请不可用"), error="INVITE_MAX_USES_REACHED")
+
         org = link.organization
+        ws = link.workspace
         role_code = link.role_code
         inviter_user_id = link.created_by_user_id
         expires_at = link.expires_at
-    else:
-        # Legacy flow: treat invitation token as a reusable link.
-        inv = (
-            await OrganizationInvitation
-            .filter(token_hash=token_hash)
-            .select_related("organization")
-            .order_by("-created_at")
-            .first()
-        )
+        invitation_email = None
+    elif code.startswith("ei_"):
+        inv = await WorkspaceEmailInvite.get_or_none(code=code).select_related("organization", "workspace")
         if inv is None:
             raise NotFound(message=t("auth", "INVITE_NOT_FOUND", default="邀请不存在"), error="INVITE_NOT_FOUND")
         if inv.revoked_at is not None:
             raise Forbidden(message=t("auth", "INVITE_REVOKED", default="邀请已被撤销"), error="INVITE_REVOKED")
+        if inv.accepted_at is not None:
+            raise Conflict(message=t("auth", "INVITE_REVOKED", default="邀请不可用"), error="INVITE_ALREADY_ACCEPTED")
         if inv.expires_at is not None and inv.expires_at <= now:
             raise Forbidden(message=t("auth", "INVITE_EXPIRED", default="邀请已过期"), error="INVITE_EXPIRED")
+
         org = inv.organization
+        ws = inv.workspace
         role_code = inv.role_code
-        inviter_user_id = inv.invited_by_user_id
+        inviter_user_id = inv.created_by_user_id
         expires_at = inv.expires_at
+        invitation_email = inv.email
+    else:
+        raise NotFound(message=t("auth", "INVITE_NOT_FOUND", default="邀请不存在"), error="INVITE_NOT_FOUND")
 
     if org is None or not org.is_active:
         raise Forbidden(message=t("auth", "ORG_INACTIVE", default="组织不可用"), error="ORG_INACTIVE")
+    if ws is None or not ws.is_active:
+        raise Forbidden(message=t("errors", "NOT_FOUND", default="资源不存在"), error="WORKSPACE_INACTIVE")
 
     inviter: InvitationPreviewInviterOut | None = None
     if inviter_user_id is not None:
@@ -716,7 +745,7 @@ async def preview_invitation(
                 avatar_url=u.avatar_url,
             )
 
-    # Role semantic info (prefer link role_code; fall back to system default role).
+    role_out: InvitationPreviewRoleOut | None = None
     role_obj: Role | None = None
     if role_code:
         role_obj = await Role.get_or_none(code=role_code)
@@ -724,15 +753,13 @@ async def preview_invitation(
         role_obj = await Role.get_or_none(code="viewer")
     if role_obj is None:
         role_obj = await Role.filter(is_default=True).order_by("code").first()
+    if role_obj is not None:
+        role_out = InvitationPreviewRoleOut(
+            code=role_obj.code,
+            name=role_obj.name or role_obj.code,
+            description=role_obj.description,
+        )
 
-    role_out = InvitationPreviewRoleOut(
-        code=role_obj.code if role_obj is not None else (role_code or "viewer"),
-        name=role_obj.name if role_obj is not None else (role_code or "viewer"),
-        description=role_obj.description if role_obj is not None else None,
-    )
-
-    # Invite links are reusable and not email-bound; hide recipient email in preview to avoid confusion.
-    invitation_email = None if link is not None else (inv.email if inv is not None else None)
     user_exists = bool(invitation_email) and await User.filter(email=invitation_email).exists()
 
     out = InvitationPreviewResult(
@@ -747,6 +774,11 @@ async def preview_invitation(
             name=org.name,
             slug=org.slug,
             logo_url=org.logo_url,
+        ),
+        workspace=InvitationPreviewWorkspaceOut(
+            id=ws.id,
+            name=ws.name,
+            slug=ws.slug,
         ),
         inviter=inviter,
         role=role_out,
@@ -768,55 +800,128 @@ async def accept_existing_invitation(
     token = (payload.token or "").strip()
     if not token:
         raise BadRequest(
-            message=t("auth", "INVITE_TOKEN_INVALID", default="邀请 Token 无效"),
-            error="INVITE_TOKEN_INVALID",
+            message=t("auth", "INVITE_TOKEN_INVALID", default="邀请 Token 无效"), error="INVITE_TOKEN_INVALID"
+        )
+
+    code = verify_invite_token(service.settings, token=token)
+    if code is None:
+        raise BadRequest(
+            message=t("auth", "INVITE_TOKEN_INVALID", default="邀请 Token 无效"), error="INVITE_TOKEN_INVALID"
         )
 
     now = datetime.now(UTC)
-    token_hash = hash_invite_token(token)
 
     inviter_user_id: UUID | None = None
     organization_id: UUID | None = None
+    workspace_id: UUID | None = None
     assigned_role_code: str | None = None
 
     async with in_transaction() as conn:
-        link = await OrganizationInviteLink.filter(token_hash=token_hash).using_db(conn).select_for_update().first()
-        inv = await OrganizationInvitation.filter(token_hash=token_hash).using_db(conn).select_for_update().first()
+        invite_link: WorkspaceInviteLink | None = None
+        email_inv: WorkspaceEmailInvite | None = None
 
-        if link is None and inv is None:
+        if code.startswith("il_"):
+            invite_link = await WorkspaceInviteLink.filter(code=code).using_db(conn).select_for_update().first()
+            if invite_link is None:
+                raise NotFound(message=t("auth", "INVITE_NOT_FOUND", default="邀请不存在"), error="INVITE_NOT_FOUND")
+            if invite_link.disabled_at is not None:
+                raise Forbidden(message=t("auth", "INVITE_REVOKED", default="邀请已被撤销"), error="INVITE_REVOKED")
+            if invite_link.expires_at is not None and invite_link.expires_at <= now:
+                raise Forbidden(message=t("auth", "INVITE_EXPIRED", default="邀请已过期"), error="INVITE_EXPIRED")
+            if invite_link.max_uses is not None and int(invite_link.uses_count or 0) >= int(invite_link.max_uses):
+                raise Forbidden(
+                    message=t("auth", "INVITE_REVOKED", default="邀请不可用"), error="INVITE_MAX_USES_REACHED"
+                )
+
+            organization_id = UUID(str(invite_link.organization_id))
+            workspace_id = UUID(str(invite_link.workspace_id))
+            inviter_user_id = invite_link.created_by_user_id
+            assigned_role_code = invite_link.role_code
+
+            user_email = (user.email or "").strip().lower()
+            if not user_email:
+                raise Forbidden(message=t("auth", "EMAIL_REQUIRED", default="邮箱不能为空"), error="EMAIL_REQUIRED")
+            allowed_domain = (invite_link.allowed_email_domain or "").strip().lower()
+            if allowed_domain:
+                allowed_domain = allowed_domain[1:] if allowed_domain.startswith("@") else allowed_domain
+                if "@" not in user_email:
+                    raise Forbidden(
+                        message=t("auth", "INVITE_EMAIL_MISMATCH", default="邮箱不符合要求"),
+                        error="INVITE_EMAIL_DOMAIN_FORBIDDEN",
+                    )
+                domain = user_email.split("@", 1)[1].strip().lower()
+                if domain != allowed_domain:
+                    raise Forbidden(
+                        message=t("auth", "INVITE_EMAIL_MISMATCH", default="邮箱不符合要求"),
+                        error="INVITE_EMAIL_DOMAIN_FORBIDDEN",
+                    )
+        elif code.startswith("ei_"):
+            email_inv = await WorkspaceEmailInvite.filter(code=code).using_db(conn).select_for_update().first()
+            if email_inv is None:
+                raise NotFound(message=t("auth", "INVITE_NOT_FOUND", default="邀请不存在"), error="INVITE_NOT_FOUND")
+            if email_inv.revoked_at is not None:
+                raise Forbidden(message=t("auth", "INVITE_REVOKED", default="邀请已被撤销"), error="INVITE_REVOKED")
+            if email_inv.accepted_at is not None:
+                raise Conflict(
+                    message=t("auth", "INVITE_REVOKED", default="邀请不可用"), error="INVITE_ALREADY_ACCEPTED"
+                )
+            if email_inv.expires_at is not None and email_inv.expires_at <= now:
+                raise Forbidden(message=t("auth", "INVITE_EXPIRED", default="邀请已过期"), error="INVITE_EXPIRED")
+
+            organization_id = UUID(str(email_inv.organization_id))
+            workspace_id = UUID(str(email_inv.workspace_id))
+            inviter_user_id = email_inv.created_by_user_id
+            assigned_role_code = email_inv.role_code
+
+            user_email = (user.email or "").strip().lower()
+            invite_email = (email_inv.email or "").strip().lower()
+            if not user_email or user_email != invite_email:
+                raise Forbidden(
+                    message=t("auth", "INVITE_EMAIL_MISMATCH", default="邀请邮箱不匹配"), error="INVITE_EMAIL_MISMATCH"
+                )
+        else:
             raise NotFound(message=t("auth", "INVITE_NOT_FOUND", default="邀请不存在"), error="INVITE_NOT_FOUND")
 
-        if link is not None:
-            if link.disabled_at is not None:
-                raise Forbidden(message=t("auth", "INVITE_REVOKED", default="邀请已被撤销"), error="INVITE_REVOKED")
-            if link.expires_at is not None and link.expires_at <= now:
-                raise Forbidden(message=t("auth", "INVITE_EXPIRED", default="邀请已过期"), error="INVITE_EXPIRED")
-            organization_id = UUID(str(link.organization_id))
-            inviter_user_id = link.created_by_user_id
-            assigned_role_code = link.role_code
-        else:
-            assert inv is not None
-            if inv.revoked_at is not None:
-                raise Forbidden(message=t("auth", "INVITE_REVOKED", default="邀请已被撤销"), error="INVITE_REVOKED")
-            if inv.expires_at is not None and inv.expires_at <= now:
-                raise Forbidden(message=t("auth", "INVITE_EXPIRED", default="邀请已过期"), error="INVITE_EXPIRED")
-            organization_id = UUID(str(inv.organization_id))
-            inviter_user_id = inv.invited_by_user_id
-            assigned_role_code = inv.role_code
+        if organization_id is None or workspace_id is None:
+            raise NotFound(message=t("auth", "INVITE_NOT_FOUND", default="邀请不存在"), error="INVITE_NOT_FOUND")
 
         org = await Organization.get_or_none(id=organization_id, using_db=conn)
         if org is None or not org.is_active:
             raise Forbidden(message=t("auth", "ORG_INACTIVE", default="组织不可用"), error="ORG_INACTIVE")
+        ws = await Workspace.get_or_none(id=workspace_id, using_db=conn)
+        if ws is None or not ws.is_active:
+            raise Forbidden(message=t("errors", "NOT_FOUND", default="资源不存在"), error="WORKSPACE_INACTIVE")
+        if UUID(str(ws.organization_id)) != organization_id:
+            raise Forbidden(
+                message=t("errors", "PERMISSION_DENIED", default="权限不足"), error="CROSS_ORG_ACCESS_DENIED"
+            )
 
-        membership, _created = await Membership.get_or_create(
+        # A2: user can only be in one org.
+        existing_orgm = await OrgMembership.filter(user_id=user.id).using_db(conn).select_for_update().first()
+        if existing_orgm is None:
+            await OrgMembership.create(
+                using_db=conn,
+                organization_id=organization_id,
+                user_id=user.id,
+                is_owner=False,
+                status="active",
+            )
+        else:
+            if UUID(str(existing_orgm.organization_id)) != organization_id:
+                raise Forbidden(
+                    message=t("errors", "PERMISSION_DENIED", default="权限不足"),
+                    error="CROSS_ORG_ACCESS_DENIED",
+                )
+
+        wsm, _created = await WorkspaceMembership.get_or_create(
             using_db=conn,
             user_id=user.id,
-            organization_id=org.id,
-            defaults={"status": MembershipStatus.ACTIVE, "invited_by_user_id": inviter_user_id},
+            workspace_id=workspace_id,
+            defaults={"status": WorkspaceMembershipStatus.ACTIVE, "invited_by_user_id": inviter_user_id},
         )
-        if membership.status != MembershipStatus.ACTIVE:
-            membership.status = MembershipStatus.ACTIVE
-            await membership.save(using_db=conn, update_fields=["status"])
+        if wsm.status != WorkspaceMembershipStatus.ACTIVE:
+            wsm.status = WorkspaceMembershipStatus.ACTIVE
+            await wsm.save(using_db=conn, update_fields=["status"])
 
         roles: list[Role] = []
         if assigned_role_code:
@@ -827,54 +932,44 @@ async def accept_existing_invitation(
             roles = await Role.filter(is_default=True).using_db(conn).all()
 
         for role in roles:
-            await MembershipRole.get_or_create(using_db=conn, membership_id=membership.id, role_id=role.id)
+            await WorkspaceMembershipRole.get_or_create(using_db=conn, membership_id=wsm.id, role_id=role.id)
 
         await _ensure_role_codes_have_admin_access(role_codes=[r.code for r in roles], conn=conn)
 
-        # Best-effort: mark the delivery record for my email as accepted (if any).
-        # Invite links are reusable, so we do NOT invalidate the token.
-        user_email = (user.email or "").strip().lower()
-        if user_email:
-            await (
-                OrganizationInvitation
-                .filter(
-                    organization_id=organization_id,
-                    token_hash=token_hash,
-                    email=user_email,
-                    revoked_at=None,
-                    accepted_at=None,
-                )
-                .using_db(conn)
-                .update(
-                    accepted_by_user_id=user.id,
-                    accepted_at=now,
-                )
-            )
+        if email_inv is not None:
+            email_inv.accepted_by_user_id = user.id
+            email_inv.accepted_at = now
+            await email_inv.save(using_db=conn, update_fields=["accepted_by_user_id", "accepted_at"])
 
-        if link is not None:
-            link.uses_count = int(link.uses_count or 0) + 1
-            link.last_used_by_user_id = user.id
-            link.last_used_at = now
-            await link.save(using_db=conn, update_fields=["uses_count", "last_used_by_user_id", "last_used_at"])
+        if invite_link is not None:
+            invite_link.uses_count = int(invite_link.uses_count or 0) + 1
+            invite_link.last_used_by_user_id = user.id
+            invite_link.last_used_at = now
+            await invite_link.save(using_db=conn, update_fields=["uses_count", "last_used_by_user_id", "last_used_at"])
+            await WorkspaceInviteLinkUseEvent.create(
+                using_db=conn,
+                link_id=invite_link.id,
+                used_by_user_id=user.id,
+                used_at=now,
+                joined_membership_id=wsm.id,
+            )
 
         assigned_role_code = assigned_role_code or (roles[0].code if roles else None)
 
-    # Best-effort: notify inviter that the invite was accepted.
-    # This must never break the onboarding flow if notification creation fails.
     if inviter_user_id is not None and organization_id is not None:
         try:
             from apps.api.models.notification import NotificationCategory, NotificationRecord
 
             accepted_display_name = user.display_name or user.username
             await NotificationRecord.create(
-                org_id=organization_id,
+                workspace_id=workspace_id,
                 recipient_user_id=inviter_user_id,
                 actor_user_id=user.id,
                 category=NotificationCategory.TEAM,
                 title=t(
                     "notifications",
                     "NOTIFICATIONS_TEAM_INVITE_ACCEPTED_TITLE",
-                    default="{name} 已加入组织",
+                    default="{name} 已加入工作区",
                     name=accepted_display_name or "新成员",
                 ),
                 body=t(
@@ -884,8 +979,8 @@ async def accept_existing_invitation(
                 ),
                 target_to="/settings/team/members",
                 target_meta=None,
-                event_name="team.invitation.accepted",
-                dedupe_key=f"team.invitation.accepted:{token_hash}",
+                event_name="workspace.invitation.accepted",
+                dedupe_key=f"workspace.invitation.accepted:{code}",
             )
         except Exception as exc:
             service.logger.warning(
@@ -895,14 +990,14 @@ async def accept_existing_invitation(
                 inviter_user_id=str(inviter_user_id),
             )
 
-    if organization_id is None:
-        # Should never happen, but keep response stable.
+    if organization_id is None or workspace_id is None:
         raise ServiceUnavailable(
-            message=t("errors", "SERVICE_UNAVAILABLE", default="服务不可用"),
-            error="SERVICE_UNAVAILABLE",
+            message=t("errors", "SERVICE_UNAVAILABLE", default="服务不可用"), error="SERVICE_UNAVAILABLE"
         )
 
     return Response.success(
-        message=t("auth", "INVITE_ACCEPTED", default="加入组织成功"),
-        data=AcceptExistingInvitationResult(organization_id=organization_id, role_code=assigned_role_code),
+        message=t("auth", "INVITE_ACCEPTED", default="加入工作区成功"),
+        data=AcceptExistingInvitationResult(
+            organization_id=organization_id, workspace_id=workspace_id, role_code=assigned_role_code
+        ),
     )

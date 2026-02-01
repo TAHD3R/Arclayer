@@ -9,7 +9,7 @@ from apps.api.models.asset_share import AssetShareLinkRecord
 
 
 class ShareLinkRow(BaseSchema):
-    org_id: UUID
+    workspace_id: UUID
     asset_id: UUID
     token: str
     expires_at: datetime | None
@@ -19,7 +19,7 @@ class ShareLinkRow(BaseSchema):
 class ShareLinksRepository(BaseRepository):
     async def get_by_token(self, *, token: str) -> ShareLinkRow | None:
         rows = await AssetShareLinkRecord.filter(token=token).values(
-            "org_id",
+            "workspace_id",
             "asset_id",
             "token",
             "expires_at",

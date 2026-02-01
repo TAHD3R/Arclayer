@@ -8,22 +8,22 @@ from apps.api.models.asset_usage import AssetUsageRecord
 
 
 class AdminAssetUsagesRepository:
-    def query_usages_by_asset(self, *, org_id: UUID, asset_id: UUID) -> QuerySet[AssetUsageRecord]:
-        return AssetUsageRecord.filter(org_id=org_id, asset_id=asset_id).order_by("-created_at")
+    def query_usages_by_asset(self, *, workspace_id: UUID, asset_id: UUID) -> QuerySet[AssetUsageRecord]:
+        return AssetUsageRecord.filter(workspace_id=workspace_id, asset_id=asset_id).order_by("-created_at")
 
-    async def list_usages_by_asset(self, *, org_id: UUID, asset_id: UUID) -> list[AssetUsageRecord]:
-        return await self.query_usages_by_asset(org_id=org_id, asset_id=asset_id).all()
+    async def list_usages_by_asset(self, *, workspace_id: UUID, asset_id: UUID) -> list[AssetUsageRecord]:
+        return await self.query_usages_by_asset(workspace_id=workspace_id, asset_id=asset_id).all()
 
     async def get_usage_by_ref(
         self,
         *,
-        org_id: UUID,
+        workspace_id: UUID,
         entity_type: str,
         entity_id: str,
         field_key: str,
     ) -> AssetUsageRecord | None:
         return await AssetUsageRecord.get_or_none(
-            org_id=org_id,
+            workspace_id=workspace_id,
             entity_type=entity_type,
             entity_id=entity_id,
             field_key=field_key,
@@ -32,7 +32,7 @@ class AdminAssetUsagesRepository:
     async def upsert_usage(
         self,
         *,
-        org_id: UUID,
+        workspace_id: UUID,
         asset_id: UUID,
         purpose: str,
         entity_type: str,
@@ -41,14 +41,14 @@ class AdminAssetUsagesRepository:
         created_by_user_id: UUID | None,
     ) -> AssetUsageRecord:
         existing = await self.get_usage_by_ref(
-            org_id=org_id,
+            workspace_id=workspace_id,
             entity_type=entity_type,
             entity_id=entity_id,
             field_key=field_key,
         )
         if existing is None:
             return await AssetUsageRecord.create(
-                org_id=org_id,
+                workspace_id=workspace_id,
                 asset_id=asset_id,
                 purpose=purpose,
                 entity_type=entity_type,
@@ -74,13 +74,13 @@ class AdminAssetUsagesRepository:
     async def delete_usage_by_ref(
         self,
         *,
-        org_id: UUID,
+        workspace_id: UUID,
         entity_type: str,
         entity_id: str,
         field_key: str,
     ) -> bool:
         deleted = await AssetUsageRecord.filter(
-            org_id=org_id,
+            workspace_id=workspace_id,
             entity_type=entity_type,
             entity_id=entity_id,
             field_key=field_key,
