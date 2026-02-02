@@ -3,7 +3,9 @@
 
 > 本文是下一阶段“站点能力”核心功能的工程落地清单，目标是在不引入 Next.js/Astro 的前提下，基于 **Vite SSR + TanStack Router** 构建可维护、可扩展、可商业化的现代 CMS 站点系统。
 >
-> 现状前置：已完成工作区治理（Workspace Settings / Site Identity 基础占位 / Members & Invites / Roles & Permissions 矩阵）。Portal 端尚未启动（`apps/web/portal` 为空）。
+> 现状前置（2026-02-02 更新）：已完成工作区治理（Workspace Settings / Members & Invites / Roles & Permissions 矩阵），并已落地 Portal（Vike SSR + TanStack Router）与后端基础闭环（resolve/runtime/routes/resolve、draft/publish、presence、sitemap）。
+>
+> 后续执行文档（以服务端能力补全为优先，Admin 可视化编辑后置）：见 `docs/plans/2026-02-02-sprint3-backend-completion-execution.md`。
 
 ---
 
@@ -62,7 +64,7 @@
 - `packages/site-renderer-core`（新增）
   - 唯一渲染内核：输入 `SiteRuntimeConfig + DocumentRevision(IR) + ViewerContext`，输出 React 树
   - Theme registry：根据主题选择具体渲染器集合
-- `packages/site-block-registry`（新增）
+- `packages/site-block-registry`（待实现）
   - Block 类型注册表：schema + 默认值 + 编辑器表单元数据（不含渲染实现）
 - `packages/site-theme-default`（新增，第一方主题）
   - 提供 Header/Footer + 基础 blocks 外观（作为 v1 基准）

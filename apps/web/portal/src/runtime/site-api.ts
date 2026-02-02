@@ -12,9 +12,12 @@ export function getPortalApiPrefix(): string {
   return raw && raw.startsWith("/") ? raw : "/api/v1";
 }
 
-export function getPortalFallbackSiteId(): string {
-  // Sprint 1: keep it deterministic for local dev. Multi-site resolution is done via /sites/resolve.
-  return import.meta.env.VITE_PORTAL_SITE_ID || "00000000-0000-0000-0000-000000000001";
+export function getPortalSiteIdFromEnv(): string {
+  const raw = (import.meta.env.VITE_PORTAL_SITE_ID || "").trim();
+  if (!raw) {
+    throw new Error("Missing VITE_PORTAL_SITE_ID (Portal requires backend site context).");
+  }
+  return raw;
 }
 
 export type PortalSiteContext = {

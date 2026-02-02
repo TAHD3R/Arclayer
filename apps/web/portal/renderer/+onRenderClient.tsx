@@ -4,7 +4,6 @@ import { hydrateRoot } from "react-dom/client";
 import { PageShell } from "./PageShell";
 import { createPortalRouter } from "@/router";
 import { DEFAULT_FALLBACK_LOCALE, detectBrowserLocale } from "@celestial/web-core/i18n";
-import { getPortalFallbackSiteId } from "@/runtime/site-api";
 
 export { onRenderClient };
 
@@ -18,11 +17,10 @@ async function onRenderClient(pageContext: {
     fallbackLocale: DEFAULT_FALLBACK_LOCALE,
   };
 
-  const siteCtx = pageContext.siteCtx ?? {
-    siteId: getPortalFallbackSiteId(),
-    defaultLocale: "zh-CN",
-    fallbackLocale: DEFAULT_FALLBACK_LOCALE,
-  };
+  if (!pageContext.siteCtx) {
+    throw new Error("Missing siteCtx from SSR (Portal requires backend site context).");
+  }
+  const siteCtx = pageContext.siteCtx;
 
   const router = createPortalRouter({
     kind: "client",

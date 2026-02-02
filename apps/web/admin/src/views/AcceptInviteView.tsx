@@ -473,25 +473,31 @@ export function AcceptInviteView(props: { token: string | null }) {
                     })}
                   </div>
 
-                  <div className="mt-2 text-(--color-muted-foreground)">
+                  <div className="mt-4 text-(--color-muted-foreground)">
                     {t("invite:INVITE_PREVIEW_INVITED_AS_ROLE", { roleName: roleResolved.name })}
                   </div>
                   {roleBrief ? (
-                    <div className="mt-1 text-xs text-(--color-muted-foreground)">{roleBrief}</div>
+                    <div className="mt-1 text-(--color-muted-foreground)">{roleBrief}</div>
                   ) : null}
 
-                  <div className="mt-4  text-(--color-muted-foreground)">
+                  <div className="mt-4 text-(--color-muted-foreground)">
                     {t("invite:INVITE_SECURITY_NOTICE")}
                   </div>
+                  <div className="text-(--color-muted-foreground)">{expiresRelativeText}</div>
                 </div>
 
-                <div className="mt-6 flex items-center justify-between gap-3">
-                  <div className="text-(--color-muted-foreground)">{expiresRelativeText}</div>
-                  <div className="flex items-center gap-2">
-                    <Button type="primary" danger onClick={() => void onRejectInvite()}>
+                <div className="mt-6 flex items-center justify-center gap-3">
+                  <div className="flex flex-col items-center gap-4">
+                    <Button
+                      block
+                      size="large"
+                      type="primary"
+                      danger
+                      onClick={() => void onRejectInvite()}
+                    >
                       {t("invite:INVITE_ACTION_REJECT")}
                     </Button>
-                    <Button type="primary" onClick={onContinue}>
+                    <Button block size="large" type="primary" onClick={onContinue}>
                       {t("invite:INVITE_ACTION_ACCEPT_JOIN")}
                     </Button>
                   </div>

@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from typing import Literal, cast
 from uuid import UUID
 
+from tortoise.exceptions import IntegrityError
 from tortoise.transactions import in_transaction
 
 from apps.api.common.utils.tortoise_protocols import RouteTemplateIds, SettingUpdatedBy
@@ -66,10 +67,9 @@ class _RouteTemplateCache:
     In-process route template cache.
 
     Sprint 3:
-    - We keep it conservative and TTL-based because there is no Admin UI to update templates yet.
-    - Later (when RouteTemplate becomes editable), we should add invalidation based on:
-      - `updated_at` watermark per site
-      - or an explicit "site resolver version" key stored in DB/Valkey.
+    - Default path: TTL-based caching for read-mostly workloads.
+    - When route templates become editable, writers should explicitly invalidate
+      this cache (per-site) after successful create/update/delete operations.
     """
 
     _TTL_MS = 5_000
@@ -91,6 +91,9 @@ class _RouteTemplateCache:
             compiled = await loader()
             self._by_site[site_id] = (now_ms + self._TTL_MS, compiled)
             return compiled
+
+    def invalidate(self, *, site_id: str) -> None:
+        self._by_site.pop(site_id, None)
 
 
 _route_template_cache = _RouteTemplateCache()
@@ -151,14 +154,171 @@ class SitesRepository:
         pathname = normalize_path(path)
         return await SitePageRecord.get_or_none(site_id=site_id, path=pathname)
 
+    async def list_pages_by_site(self, *, site_id: str) -> list[SitePageRecord]:
+        # Keep ordering deterministic so tree building stays stable.
+        return await SitePageRecord.filter(site_id=site_id).order_by("sort_order", "path").all()
+
+    async def create_page(
+        self,
+        *,
+        site_id: str,
+        path: str,
+        parent_id: UUID | None,
+        sort_order: int,
+        visibility: str,
+        created_by_user_id: UUID | None,
+    ) -> SitePageRecord:
+        pathname = normalize_path(path)
+        if not pathname.startswith("/"):
+            raise Conflict("Invalid path", error="PAGE_PATH_INVALID")
+
+        try:
+            vis = SitePageVisibility(visibility)
+        except Exception:
+            raise Conflict("Invalid visibility", error="PAGE_VISIBILITY_INVALID") from None
+
+        try:
+            return await SitePageRecord.create(
+                site_id=site_id,
+                path=pathname,
+                parent_id=parent_id,
+                sort_order=int(sort_order or 0),
+                visibility=vis,
+                draft_rev=0,
+                published_rev=None,
+                created_by_user_id=created_by_user_id,
+            )
+        except IntegrityError:
+            raise Conflict("Page path already exists", error="PAGE_PATH_CONFLICT") from None
+
+    async def update_page(
+        self,
+        *,
+        site_id: str,
+        page_id: UUID,
+        path: str,
+        parent_id: UUID | None,
+        sort_order: int,
+        visibility: str,
+    ) -> SitePageRecord:
+        pathname = normalize_path(path)
+        if not pathname.startswith("/"):
+            raise Conflict("Invalid path", error="PAGE_PATH_INVALID")
+
+        try:
+            vis = SitePageVisibility(visibility)
+        except Exception:
+            raise Conflict("Invalid visibility", error="PAGE_VISIBILITY_INVALID") from None
+
+        async with in_transaction() as conn:
+            page = await SitePageRecord.filter(id=page_id, site_id=site_id).using_db(conn).select_for_update().first()
+            if page is None:
+                raise NotFound("Page not found", error="PAGE_NOT_FOUND")
+
+            page.path = pathname
+            page.parent_id = parent_id
+            page.sort_order = int(sort_order or 0)
+            page.visibility = vis
+
+            try:
+                await page.save(update_fields=["path", "parent_id", "sort_order", "visibility"], using_db=conn)
+            except IntegrityError:
+                raise Conflict("Page path already exists", error="PAGE_PATH_CONFLICT") from None
+
+        return page
+
+    async def page_has_children(self, *, site_id: str, page_id: UUID) -> bool:
+        return await SitePageRecord.filter(site_id=site_id, parent_id=page_id).exists()
+
+    async def delete_page(self, *, site_id: str, page_id: UUID) -> None:
+        deleted = await SitePageRecord.filter(site_id=site_id, id=page_id).delete()
+        if not deleted:
+            raise NotFound("Page not found", error="PAGE_NOT_FOUND")
+
     async def get_page_revision(self, *, page_id: UUID, rev: int) -> SitePageRevisionRecord | None:
         return await SitePageRevisionRecord.get_or_none(page_id=page_id, rev=rev)
+
+    async def get_page_revision_by_id(self, *, site_id: str, revision_id: UUID) -> SitePageRevisionRecord | None:
+        # Ensure the revision belongs to the given site via page relationship.
+        return (
+            await SitePageRevisionRecord.filter(id=revision_id, page__site_id=site_id).prefetch_related("page").first()
+        )
+
+    async def rollback_page_revision_pointer(
+        self,
+        *,
+        site_id: str,
+        page_id: UUID,
+        target: Literal["draft", "published"],
+        revision: int,
+    ) -> tuple[int | None, int, int]:
+        """
+        Rollback a page revision pointer by setting `draft_rev` or `published_rev`.
+
+        Returns: (from_revision, to_revision, rolled_back_at_ms).
+        """
+
+        now_ms = int(time.time() * 1000)
+        async with in_transaction() as conn:
+            page = await SitePageRecord.filter(site_id=site_id, id=page_id).using_db(conn).select_for_update().first()
+            if page is None:
+                raise NotFound("Page not found", error="PAGE_NOT_FOUND")
+
+            exists = await SitePageRevisionRecord.filter(page_id=page.id, rev=revision).using_db(conn).exists()
+            if not exists:
+                raise NotFound("Revision not found", error="REVISION_NOT_FOUND")
+
+            if target == "draft":
+                from_rev = int(page.draft_rev or 0) or None
+                page.draft_rev = int(revision)
+                await page.save(update_fields=["draft_rev"], using_db=conn)
+                return from_rev, int(revision), now_ms
+
+            from_rev = int(page.published_rev or 0) or None
+            page.published_rev = int(revision)
+            await page.save(update_fields=["published_rev"], using_db=conn)
+            return from_rev, int(revision), now_ms
 
     async def get_entry_by_id(self, *, site_id: str, entry_id: UUID) -> EntryRecord | None:
         return await EntryRecord.get_or_none(id=entry_id, site_id=site_id)
 
     async def get_entry_revision(self, *, entry_id: UUID, rev: int) -> EntryRevisionRecord | None:
         return await EntryRevisionRecord.get_or_none(entry_id=entry_id, rev=rev)
+
+    async def rollback_entry_revision_pointer(
+        self,
+        *,
+        site_id: str,
+        entry_id: UUID,
+        target: Literal["draft", "published"],
+        revision: int,
+    ) -> tuple[int | None, int, int]:
+        """
+        Rollback an entry revision pointer by setting `draft_rev` or `published_rev`.
+
+        Returns: (from_revision, to_revision, rolled_back_at_ms).
+        """
+
+        now_ms = int(time.time() * 1000)
+        async with in_transaction() as conn:
+            entry = await EntryRecord.filter(site_id=site_id, id=entry_id).using_db(conn).select_for_update().first()
+            if entry is None:
+                raise NotFound("Entry not found", error="ENTRY_NOT_FOUND")
+
+            exists = await EntryRevisionRecord.filter(entry_id=entry.id, rev=revision).using_db(conn).exists()
+            if not exists:
+                raise NotFound("Revision not found", error="REVISION_NOT_FOUND")
+
+            if target == "draft":
+                from_rev = int(entry.draft_rev or 0) or None
+                entry.draft_rev = int(revision)
+                await entry.save(update_fields=["draft_rev"], using_db=conn)
+                return from_rev, int(revision), now_ms
+
+            from_rev = int(entry.published_rev or 0) or None
+            entry.published_rev = int(revision)
+            await entry.save(update_fields=["published_rev"], using_db=conn)
+            return from_rev, int(revision), now_ms
 
     async def get_entry_type_by_code(self, *, site_id: str, code: str) -> EntryTypeRecord:
         c = (code or "").strip()
@@ -168,6 +328,139 @@ class SitesRepository:
         if et is None:
             raise NotFound("Entry type not found", error="ENTRY_TYPE_NOT_FOUND")
         return et
+
+    async def get_entry_type_by_id(self, *, site_id: str, entry_type_id: UUID) -> EntryTypeRecord | None:
+        return await EntryTypeRecord.get_or_none(id=entry_type_id, site_id=site_id)
+
+    async def list_entry_types(self, *, site_id: str) -> list[EntryTypeRecord]:
+        return await EntryTypeRecord.filter(site_id=site_id).order_by("code").all()
+
+    async def create_entry_type(
+        self,
+        *,
+        site_id: str,
+        code: str,
+        name: str,
+        fields_schema: dict | None,
+    ) -> EntryTypeRecord:
+        c = (code or "").strip()
+        n = (name or "").strip()
+        if not c:
+            raise Conflict("Invalid entry type code", error="ENTRY_TYPE_CODE_INVALID")
+        if not n:
+            raise Conflict("Invalid entry type name", error="ENTRY_TYPE_NAME_INVALID")
+        try:
+            return await EntryTypeRecord.create(site_id=site_id, code=c, name=n, fields_schema=fields_schema)
+        except IntegrityError:
+            raise Conflict("Entry type already exists", error="ENTRY_TYPE_CONFLICT") from None
+
+    async def update_entry_type(
+        self,
+        *,
+        site_id: str,
+        entry_type_id: UUID,
+        name: str,
+        fields_schema: dict | None,
+    ) -> EntryTypeRecord:
+        async with in_transaction() as conn:
+            rec = (
+                await EntryTypeRecord
+                .filter(id=entry_type_id, site_id=site_id)
+                .using_db(conn)
+                .select_for_update()
+                .first()
+            )
+            if rec is None:
+                raise NotFound("Entry type not found", error="ENTRY_TYPE_NOT_FOUND")
+            rec.name = (name or "").strip()
+            rec.fields_schema = fields_schema
+            await rec.save(update_fields=["name", "fields_schema"], using_db=conn)
+            return rec
+
+    async def delete_entry_type(self, *, site_id: str, entry_type_id: UUID) -> None:
+        # Prevent deleting entry types in use.
+        used = await EntryRecord.filter(site_id=site_id, entry_type_id=entry_type_id).exists()
+        if used:
+            raise Conflict("Entry type is in use", error="ENTRY_TYPE_IN_USE")
+        deleted = await EntryTypeRecord.filter(site_id=site_id, id=entry_type_id).delete()
+        if not deleted:
+            raise NotFound("Entry type not found", error="ENTRY_TYPE_NOT_FOUND")
+
+    async def list_entries(self, *, site_id: str, entry_type_id: UUID | None = None) -> list[EntryRecord]:
+        qs = EntryRecord.filter(site_id=site_id)
+        if entry_type_id is not None:
+            qs = qs.filter(entry_type_id=entry_type_id)
+        return await qs.prefetch_related("entry_type").order_by("slug").all()
+
+    async def create_entry(
+        self, *, site_id: str, entry_type_id: UUID, slug: str, created_by_user_id: UUID | None
+    ) -> EntryRecord:
+        s = (slug or "").strip()
+        if not s or "/" in s:
+            raise Conflict("Invalid slug", error="ENTRY_SLUG_INVALID")
+        try:
+            return await EntryRecord.create(
+                site_id=site_id,
+                entry_type_id=entry_type_id,
+                slug=s,
+                draft_rev=0,
+                published_rev=None,
+                created_by_user_id=created_by_user_id,
+            )
+        except IntegrityError:
+            raise Conflict("Entry already exists", error="ENTRY_CONFLICT") from None
+
+    async def update_entry_slug(self, *, site_id: str, entry_id: UUID, slug: str) -> EntryRecord:
+        s = (slug or "").strip()
+        if not s or "/" in s:
+            raise Conflict("Invalid slug", error="ENTRY_SLUG_INVALID")
+        async with in_transaction() as conn:
+            entry = await EntryRecord.filter(id=entry_id, site_id=site_id).using_db(conn).select_for_update().first()
+            if entry is None:
+                raise NotFound("Entry not found", error="ENTRY_NOT_FOUND")
+            entry.slug = s
+            try:
+                await entry.save(update_fields=["slug"], using_db=conn)
+            except IntegrityError:
+                raise Conflict("Entry slug already exists", error="ENTRY_SLUG_CONFLICT") from None
+            return entry
+
+    async def unpublish_entry_by_slug(
+        self,
+        *,
+        site_id: str,
+        entry_type_id: UUID,
+        slug: str,
+    ) -> tuple[UUID, int]:
+        s = (slug or "").strip()
+        if not s or "/" in s:
+            raise Conflict("Invalid slug", error="ENTRY_SLUG_INVALID")
+
+        now_ms = int(time.time() * 1000)
+        async with in_transaction() as conn:
+            entry = (
+                await EntryRecord
+                .filter(site_id=site_id, entry_type_id=entry_type_id, slug=s)
+                .using_db(conn)
+                .select_for_update()
+                .first()
+            )
+            if entry is None:
+                raise NotFound("Entry not found", error="ENTRY_NOT_FOUND")
+            if entry.published_rev is None:
+                raise Conflict("Entry is not published", error="ENTRY_NOT_PUBLISHED")
+            entry.published_rev = None
+            await entry.save(update_fields=["published_rev"], using_db=conn)
+        return UUID(str(entry.id)), now_ms
+
+    async def delete_entry(self, *, site_id: str, entry_id: UUID) -> None:
+        async with in_transaction() as conn:
+            entry = await EntryRecord.filter(site_id=site_id, id=entry_id).using_db(conn).select_for_update().first()
+            if entry is None:
+                raise NotFound("Entry not found", error="ENTRY_NOT_FOUND")
+            if entry.published_rev is not None:
+                raise Conflict("Entry must be unpublished before delete", error="ENTRY_MUST_UNPUBLISH")
+            await EntryRecord.filter(site_id=site_id, id=entry_id).using_db(conn).delete()
 
     async def save_entry_draft_by_slug(
         self,
@@ -415,6 +708,95 @@ class SitesRepository:
             .prefetch_related("entry_type", "template_page_revision")
             .all()
         )
+
+    async def list_route_templates_all(self, *, site_id: str) -> list[RouteTemplateRecord]:
+        return (
+            await RouteTemplateRecord
+            .filter(site_id=site_id)
+            .prefetch_related("entry_type", "template_page_revision")
+            .order_by("path_pattern")
+            .all()
+        )
+
+    async def get_route_template_by_id(self, *, site_id: str, template_id: UUID) -> RouteTemplateRecord | None:
+        return (
+            await RouteTemplateRecord
+            .filter(id=template_id, site_id=site_id)
+            .prefetch_related("entry_type", "template_page_revision")
+            .first()
+        )
+
+    async def create_route_template(
+        self,
+        *,
+        site_id: str,
+        path_pattern: str,
+        entry_type_id: UUID,
+        template_page_revision_id: UUID | None,
+        is_active: bool,
+    ) -> RouteTemplateRecord:
+        try:
+            rec = await RouteTemplateRecord.create(
+                site_id=site_id,
+                path_pattern=path_pattern,
+                entry_type_id=entry_type_id,
+                template_page_revision_id=template_page_revision_id,
+                is_active=bool(is_active),
+            )
+        except IntegrityError:
+            raise Conflict("Route template already exists", error="ROUTE_TEMPLATE_CONFLICT") from None
+
+        await rec.fetch_related("entry_type", "template_page_revision")
+        return rec
+
+    async def update_route_template(
+        self,
+        *,
+        site_id: str,
+        template_id: UUID,
+        path_pattern: str,
+        entry_type_id: UUID,
+        template_page_revision_id: UUID | None,
+        is_active: bool,
+    ) -> RouteTemplateRecord:
+        async with in_transaction() as conn:
+            rec = (
+                await RouteTemplateRecord
+                .filter(id=template_id, site_id=site_id)
+                .using_db(conn)
+                .select_for_update()
+                .first()
+            )
+            if rec is None:
+                raise NotFound("Route template not found", error="ROUTE_TEMPLATE_NOT_FOUND")
+
+            rec.path_pattern = path_pattern
+            rec.entry_type_id = entry_type_id
+            rec.template_page_revision_id = template_page_revision_id
+            rec.is_active = bool(is_active)
+            try:
+                await rec.save(
+                    update_fields=[
+                        "path_pattern",
+                        "entry_type_id",
+                        "template_page_revision_id",
+                        "is_active",
+                    ],
+                    using_db=conn,
+                )
+            except IntegrityError:
+                raise Conflict("Route template already exists", error="ROUTE_TEMPLATE_CONFLICT") from None
+
+        await rec.fetch_related("entry_type", "template_page_revision")
+        return rec
+
+    async def delete_route_template(self, *, site_id: str, template_id: UUID) -> None:
+        deleted = await RouteTemplateRecord.filter(site_id=site_id, id=template_id).delete()
+        if not deleted:
+            raise NotFound("Route template not found", error="ROUTE_TEMPLATE_NOT_FOUND")
+
+    def invalidate_route_template_cache(self, *, site_id: str) -> None:
+        _route_template_cache.invalidate(site_id=site_id)
 
     async def match_route_template(self, *, site_id: str, pathname: str) -> RouteTemplateMatch | None:
         path = normalize_path(pathname)

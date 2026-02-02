@@ -4,18 +4,39 @@ from typing import Annotated, Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Body, Depends, Query, Request, status
+from fastapi import Response as FastAPIResponse
 from fastapi.responses import Response as RawResponse
 
 from apps.api.config import Settings, get_settings
+from apps.api.core.http.pagination import PageData, PageParams, get_page_params
 from apps.api.core.http.response import Response, ResponseModel
 from apps.api.infra.cache.valkey import get_valkey
 from apps.api.routers.v1.sites.schema import (
+    SiteEntryCreateIn,
+    SiteEntryDeleteOut,
     SiteEntryDraftSaveIn,
     SiteEntryDraftSaveOut,
+    SiteEntryOut,
     SiteEntryPublishIn,
     SiteEntryPublishOut,
     SiteEntryRevisionOut,
+    SiteEntryRollbackIn,
+    SiteEntryRollbackOut,
+    SiteEntryTypeCreateIn,
+    SiteEntryTypeDeleteOut,
+    SiteEntryTypeOut,
+    SiteEntryTypeUpdateIn,
+    SiteEntryUnpublishIn,
+    SiteEntryUnpublishOut,
+    SiteEntryUpdateIn,
+    SitePageCreateIn,
+    SitePageDeleteOut,
+    SitePageMoveIn,
     SitePageRevisionOut,
+    SitePageRollbackIn,
+    SitePageRollbackOut,
+    SitePageTreeNodeOut,
+    SitePageUpdateIn,
     SitePresenceHeartbeatIn,
     SitePresenceHeartbeatOut,
     SitePresenceListOut,
@@ -27,6 +48,10 @@ from apps.api.routers.v1.sites.schema import (
     SiteRoutePublishIn,
     SiteRoutePublishOut,
     SiteRouteResolveOut,
+    SiteRouteTemplateCreateIn,
+    SiteRouteTemplateDeleteOut,
+    SiteRouteTemplateOut,
+    SiteRouteTemplateUpdateIn,
     SiteRuntimeOut,
     SiteSettingGetOut,
     SiteSettingUpsertIn,
@@ -55,8 +80,11 @@ def get_site_service(
 )
 async def resolve_site(
     host: Annotated[str, Query(..., description="Request host (e.g. example.com).")],
+    raw_response: FastAPIResponse,
     service: Annotated[SiteService, Depends(get_site_service)],
 ) -> ResponseModel[SiteResolveOut]:
+    # Low-frequency mapping, safe to cache briefly.
+    raw_response.headers["cache-control"] = "public, max-age=300, stale-while-revalidate=600"
     data = await service.resolve_site(host=host)
     return Response.success(data=data)
 
@@ -69,11 +97,15 @@ async def resolve_site(
 )
 async def get_site_runtime(
     site_id: str,
+    raw_response: FastAPIResponse,
     service: Annotated[SiteService, Depends(get_site_service)],
     mode: Annotated[Literal["public", "preview"], Query(description="Runtime mode.")] = "public",
     token: Annotated[str | None, Query(description="Preview token (required when mode=preview).")] = None,
 ) -> ResponseModel[SiteRuntimeOut]:
     await service.assert_preview_access_async(site_id=site_id, mode=mode, token=token)
+    raw_response.headers["cache-control"] = (
+        "no-store" if mode == "preview" else "public, max-age=300, stale-while-revalidate=3600"
+    )
     data = await service.get_runtime(site_id=site_id, mode=mode)
     return Response.success(data=data)
 
@@ -87,11 +119,15 @@ async def get_site_runtime(
 async def resolve_site_route(
     site_id: str,
     path: Annotated[str, Query(..., description="Request pathname (e.g. /blog/hello).")],
+    raw_response: FastAPIResponse,
     service: Annotated[SiteService, Depends(get_site_service)],
     mode: Annotated[Literal["public", "preview"], Query(description="Runtime mode.")] = "public",
     token: Annotated[str | None, Query(description="Preview token (required when mode=preview).")] = None,
 ) -> ResponseModel[SiteRouteResolveOut]:
     await service.assert_preview_access_async(site_id=site_id, mode=mode, token=token)
+    raw_response.headers["cache-control"] = (
+        "no-store" if mode == "preview" else "public, max-age=60, stale-while-revalidate=300"
+    )
     data = await service.resolve_route(site_id=site_id, path=path, mode=mode)
     return Response.success(data=data)
 
@@ -198,6 +234,26 @@ async def publish_site_entry(
 
 
 @router.post(
+    "/sites/{site_id}/entries/unpublish",
+    response_model=ResponseModel[SiteEntryUnpublishOut],
+    response_model_exclude_none=True,
+    summary="Unpublish an entry (published -> draft-only)",
+)
+async def unpublish_site_entry(
+    site_id: str,
+    payload: Annotated[
+        SiteEntryUnpublishIn,
+        Body(description="Entry unpublish payload."),
+    ],
+    service: Annotated[SiteService, Depends(get_site_service)],
+    token: Annotated[str, Query(..., description="Preview token (required).")],
+) -> ResponseModel[SiteEntryUnpublishOut]:
+    await service.assert_preview_access_async(site_id=site_id, mode="preview", token=token)
+    data = await service.unpublish_entry(site_id=site_id, payload=payload)
+    return Response.success(data=data)
+
+
+@router.post(
     "/sites/{site_id}/presence/heartbeat",
     response_model=ResponseModel[SitePresenceHeartbeatOut],
     response_model_exclude_none=True,
@@ -283,6 +339,346 @@ async def upsert_site_setting(
 ) -> ResponseModel[SiteSettingGetOut]:
     await service.assert_preview_access_async(site_id=site_id, mode="preview", token=token)
     data = await service.upsert_site_setting(site_id=site_id, namespace=namespace, payload=payload)
+    return Response.success(data=data)
+
+
+@router.get(
+    "/sites/{site_id}/pages",
+    response_model=ResponseModel[PageData[SitePageTreeNodeOut]],
+    response_model_exclude_none=True,
+    summary="List site pages as a tree (preview token required)",
+)
+async def list_site_pages_tree(
+    site_id: str,
+    service: Annotated[SiteService, Depends(get_site_service)],
+    token: Annotated[str, Query(..., description="Preview token (required).")],
+) -> ResponseModel[PageData[SitePageTreeNodeOut]]:
+    await service.assert_preview_access_async(site_id=site_id, mode="preview", token=token)
+    data = await service.list_pages_tree(site_id=site_id)
+    return Response.success(data=data)
+
+
+@router.post(
+    "/sites/{site_id}/pages",
+    response_model=ResponseModel[SitePageTreeNodeOut],
+    response_model_exclude_none=True,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a site page (preview token required)",
+)
+async def create_site_page(
+    site_id: str,
+    payload: Annotated[SitePageCreateIn, Body(description="Create payload.")],
+    service: Annotated[SiteService, Depends(get_site_service)],
+    token: Annotated[str, Query(..., description="Preview token (required).")],
+) -> ResponseModel[SitePageTreeNodeOut]:
+    await service.assert_preview_access_async(site_id=site_id, mode="preview", token=token)
+    data = await service.create_page(site_id=site_id, payload=payload)
+    return Response.success(data=data)
+
+
+@router.patch(
+    "/sites/{site_id}/pages/{page_id}",
+    response_model=ResponseModel[SitePageTreeNodeOut],
+    response_model_exclude_none=True,
+    summary="Update a site page (preview token required)",
+)
+async def update_site_page(
+    site_id: str,
+    page_id: UUID,
+    payload: Annotated[SitePageUpdateIn, Body(description="Update payload.")],
+    service: Annotated[SiteService, Depends(get_site_service)],
+    token: Annotated[str, Query(..., description="Preview token (required).")],
+) -> ResponseModel[SitePageTreeNodeOut]:
+    await service.assert_preview_access_async(site_id=site_id, mode="preview", token=token)
+    data = await service.update_page(site_id=site_id, page_id=page_id, payload=payload)
+    return Response.success(data=data)
+
+
+@router.post(
+    "/sites/{site_id}/pages/{page_id}/move",
+    response_model=ResponseModel[SitePageTreeNodeOut],
+    response_model_exclude_none=True,
+    summary="Move/reorder a site page within the tree (preview token required)",
+)
+async def move_site_page(
+    site_id: str,
+    page_id: UUID,
+    payload: Annotated[SitePageMoveIn, Body(description="Move payload.")],
+    service: Annotated[SiteService, Depends(get_site_service)],
+    token: Annotated[str, Query(..., description="Preview token (required).")],
+) -> ResponseModel[SitePageTreeNodeOut]:
+    await service.assert_preview_access_async(site_id=site_id, mode="preview", token=token)
+    data = await service.move_page(site_id=site_id, page_id=page_id, payload=payload)
+    return Response.success(data=data)
+
+
+@router.delete(
+    "/sites/{site_id}/pages/{page_id}",
+    response_model=ResponseModel[SitePageDeleteOut],
+    response_model_exclude_none=True,
+    summary="Delete a site page (preview token required)",
+)
+async def delete_site_page(
+    site_id: str,
+    page_id: UUID,
+    service: Annotated[SiteService, Depends(get_site_service)],
+    token: Annotated[str, Query(..., description="Preview token (required).")],
+) -> ResponseModel[SitePageDeleteOut]:
+    await service.assert_preview_access_async(site_id=site_id, mode="preview", token=token)
+    data = await service.delete_page(site_id=site_id, page_id=page_id)
+    return Response.success(data=data)
+
+
+@router.get(
+    "/sites/{site_id}/route-templates",
+    response_model=ResponseModel[PageData[SiteRouteTemplateOut]],
+    response_model_exclude_none=True,
+    summary="List route templates (preview token required)",
+)
+async def list_site_route_templates(
+    site_id: str,
+    service: Annotated[SiteService, Depends(get_site_service)],
+    token: Annotated[str, Query(..., description="Preview token (required).")],
+    params: PageParams = Depends(get_page_params),
+) -> ResponseModel[PageData[SiteRouteTemplateOut]]:
+    await service.assert_preview_access_async(site_id=site_id, mode="preview", token=token)
+    data = await service.list_route_templates_paginated(site_id=site_id, params=params)
+    return Response.success(data=data)
+
+
+@router.post(
+    "/sites/{site_id}/route-templates",
+    response_model=ResponseModel[SiteRouteTemplateOut],
+    response_model_exclude_none=True,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a route template (preview token required)",
+)
+async def create_site_route_template(
+    site_id: str,
+    payload: Annotated[SiteRouteTemplateCreateIn, Body(description="Create payload.")],
+    service: Annotated[SiteService, Depends(get_site_service)],
+    token: Annotated[str, Query(..., description="Preview token (required).")],
+) -> ResponseModel[SiteRouteTemplateOut]:
+    await service.assert_preview_access_async(site_id=site_id, mode="preview", token=token)
+    data = await service.create_route_template(site_id=site_id, payload=payload)
+    return Response.success(data=data)
+
+
+@router.patch(
+    "/sites/{site_id}/route-templates/{template_id}",
+    response_model=ResponseModel[SiteRouteTemplateOut],
+    response_model_exclude_none=True,
+    summary="Update a route template (preview token required)",
+)
+async def update_site_route_template(
+    site_id: str,
+    template_id: UUID,
+    payload: Annotated[SiteRouteTemplateUpdateIn, Body(description="Update payload.")],
+    service: Annotated[SiteService, Depends(get_site_service)],
+    token: Annotated[str, Query(..., description="Preview token (required).")],
+) -> ResponseModel[SiteRouteTemplateOut]:
+    await service.assert_preview_access_async(site_id=site_id, mode="preview", token=token)
+    data = await service.update_route_template(site_id=site_id, template_id=template_id, payload=payload)
+    return Response.success(data=data)
+
+
+@router.delete(
+    "/sites/{site_id}/route-templates/{template_id}",
+    response_model=ResponseModel[SiteRouteTemplateDeleteOut],
+    response_model_exclude_none=True,
+    summary="Delete a route template (preview token required)",
+)
+async def delete_site_route_template(
+    site_id: str,
+    template_id: UUID,
+    service: Annotated[SiteService, Depends(get_site_service)],
+    token: Annotated[str, Query(..., description="Preview token (required).")],
+) -> ResponseModel[SiteRouteTemplateDeleteOut]:
+    await service.assert_preview_access_async(site_id=site_id, mode="preview", token=token)
+    data = await service.delete_route_template(site_id=site_id, template_id=template_id)
+    return Response.success(data=data)
+
+
+@router.get(
+    "/sites/{site_id}/entry-types",
+    response_model=ResponseModel[PageData[SiteEntryTypeOut]],
+    response_model_exclude_none=True,
+    summary="List entry types (preview token required)",
+)
+async def list_entry_types(
+    site_id: str,
+    service: Annotated[SiteService, Depends(get_site_service)],
+    token: Annotated[str, Query(..., description="Preview token (required).")],
+    params: PageParams = Depends(get_page_params),
+) -> ResponseModel[PageData[SiteEntryTypeOut]]:
+    await service.assert_preview_access_async(site_id=site_id, mode="preview", token=token)
+    data = await service.list_entry_types_paginated(site_id=site_id, params=params)
+    return Response.success(data=data)
+
+
+@router.post(
+    "/sites/{site_id}/entry-types",
+    response_model=ResponseModel[SiteEntryTypeOut],
+    response_model_exclude_none=True,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create an entry type (preview token required)",
+)
+async def create_entry_type(
+    site_id: str,
+    payload: Annotated[SiteEntryTypeCreateIn, Body(description="Create payload.")],
+    service: Annotated[SiteService, Depends(get_site_service)],
+    token: Annotated[str, Query(..., description="Preview token (required).")],
+) -> ResponseModel[SiteEntryTypeOut]:
+    await service.assert_preview_access_async(site_id=site_id, mode="preview", token=token)
+    data = await service.create_entry_type(site_id=site_id, payload=payload)
+    return Response.success(data=data)
+
+
+@router.patch(
+    "/sites/{site_id}/entry-types/{entry_type_id}",
+    response_model=ResponseModel[SiteEntryTypeOut],
+    response_model_exclude_none=True,
+    summary="Update an entry type (preview token required)",
+)
+async def update_entry_type(
+    site_id: str,
+    entry_type_id: UUID,
+    payload: Annotated[SiteEntryTypeUpdateIn, Body(description="Update payload.")],
+    service: Annotated[SiteService, Depends(get_site_service)],
+    token: Annotated[str, Query(..., description="Preview token (required).")],
+) -> ResponseModel[SiteEntryTypeOut]:
+    await service.assert_preview_access_async(site_id=site_id, mode="preview", token=token)
+    data = await service.update_entry_type(site_id=site_id, entry_type_id=entry_type_id, payload=payload)
+    return Response.success(data=data)
+
+
+@router.delete(
+    "/sites/{site_id}/entry-types/{entry_type_id}",
+    response_model=ResponseModel[SiteEntryTypeDeleteOut],
+    response_model_exclude_none=True,
+    summary="Delete an entry type (preview token required)",
+)
+async def delete_entry_type(
+    site_id: str,
+    entry_type_id: UUID,
+    service: Annotated[SiteService, Depends(get_site_service)],
+    token: Annotated[str, Query(..., description="Preview token (required).")],
+) -> ResponseModel[SiteEntryTypeDeleteOut]:
+    await service.assert_preview_access_async(site_id=site_id, mode="preview", token=token)
+    data = await service.delete_entry_type(site_id=site_id, entry_type_id=entry_type_id)
+    return Response.success(data=data)
+
+
+@router.get(
+    "/sites/{site_id}/entries",
+    response_model=ResponseModel[PageData[SiteEntryOut]],
+    response_model_exclude_none=True,
+    summary="List entries (preview token required)",
+)
+async def list_entries(
+    site_id: str,
+    service: Annotated[SiteService, Depends(get_site_service)],
+    token: Annotated[str, Query(..., description="Preview token (required).")],
+    params: PageParams = Depends(get_page_params),
+    entry_type_code: Annotated[
+        str | None,
+        Query(
+            alias="entryTypeCode",
+            description="Optional entry type code filter (e.g. blog_post).",
+        ),
+    ] = None,
+) -> ResponseModel[PageData[SiteEntryOut]]:
+    await service.assert_preview_access_async(site_id=site_id, mode="preview", token=token)
+    data = await service.list_entries_paginated(site_id=site_id, params=params, entry_type_code=entry_type_code)
+    return Response.success(data=data)
+
+
+@router.post(
+    "/sites/{site_id}/entries",
+    response_model=ResponseModel[SiteEntryOut],
+    response_model_exclude_none=True,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create an entry (preview token required)",
+)
+async def create_entry(
+    site_id: str,
+    payload: Annotated[SiteEntryCreateIn, Body(description="Create payload.")],
+    service: Annotated[SiteService, Depends(get_site_service)],
+    token: Annotated[str, Query(..., description="Preview token (required).")],
+) -> ResponseModel[SiteEntryOut]:
+    await service.assert_preview_access_async(site_id=site_id, mode="preview", token=token)
+    data = await service.create_entry(site_id=site_id, payload=payload)
+    return Response.success(data=data)
+
+
+@router.patch(
+    "/sites/{site_id}/entries/{entry_id}",
+    response_model=ResponseModel[SiteEntryOut],
+    response_model_exclude_none=True,
+    summary="Update an entry (preview token required)",
+)
+async def update_entry(
+    site_id: str,
+    entry_id: UUID,
+    payload: Annotated[SiteEntryUpdateIn, Body(description="Update payload.")],
+    service: Annotated[SiteService, Depends(get_site_service)],
+    token: Annotated[str, Query(..., description="Preview token (required).")],
+) -> ResponseModel[SiteEntryOut]:
+    await service.assert_preview_access_async(site_id=site_id, mode="preview", token=token)
+    data = await service.update_entry(site_id=site_id, entry_id=entry_id, payload=payload)
+    return Response.success(data=data)
+
+
+@router.delete(
+    "/sites/{site_id}/entries/{entry_id}",
+    response_model=ResponseModel[SiteEntryDeleteOut],
+    response_model_exclude_none=True,
+    summary="Delete an entry (must unpublish first; preview token required)",
+)
+async def delete_entry(
+    site_id: str,
+    entry_id: UUID,
+    service: Annotated[SiteService, Depends(get_site_service)],
+    token: Annotated[str, Query(..., description="Preview token (required).")],
+) -> ResponseModel[SiteEntryDeleteOut]:
+    await service.assert_preview_access_async(site_id=site_id, mode="preview", token=token)
+    data = await service.delete_entry(site_id=site_id, entry_id=entry_id)
+    return Response.success(data=data)
+
+
+@router.post(
+    "/sites/{site_id}/pages/{page_id}/revisions/rollback",
+    response_model=ResponseModel[SitePageRollbackOut],
+    response_model_exclude_none=True,
+    summary="Rollback a page revision pointer (draft or published; preview token required)",
+)
+async def rollback_page_revision(
+    site_id: str,
+    page_id: UUID,
+    payload: Annotated[SitePageRollbackIn, Body(description="Rollback payload.")],
+    service: Annotated[SiteService, Depends(get_site_service)],
+    token: Annotated[str, Query(..., description="Preview token (required).")],
+) -> ResponseModel[SitePageRollbackOut]:
+    await service.assert_preview_access_async(site_id=site_id, mode="preview", token=token)
+    data = await service.rollback_page_revision(site_id=site_id, page_id=page_id, payload=payload)
+    return Response.success(data=data)
+
+
+@router.post(
+    "/sites/{site_id}/entries/{entry_id}/revisions/rollback",
+    response_model=ResponseModel[SiteEntryRollbackOut],
+    response_model_exclude_none=True,
+    summary="Rollback an entry revision pointer (draft or published; preview token required)",
+)
+async def rollback_entry_revision(
+    site_id: str,
+    entry_id: UUID,
+    payload: Annotated[SiteEntryRollbackIn, Body(description="Rollback payload.")],
+    service: Annotated[SiteService, Depends(get_site_service)],
+    token: Annotated[str, Query(..., description="Preview token (required).")],
+) -> ResponseModel[SiteEntryRollbackOut]:
+    await service.assert_preview_access_async(site_id=site_id, mode="preview", token=token)
+    data = await service.rollback_entry_revision(site_id=site_id, entry_id=entry_id, payload=payload)
     return Response.success(data=data)
 
 

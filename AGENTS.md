@@ -299,3 +299,6 @@ UV_CACHE_DIR=../../.uv-cache PYTHONPATH=../.. uv run pyright
    - 优先检查运行命令的 cwd 是否正确、`PYTHONPATH` 是否指向仓库根；
    - 确认 uv/venv 环境是否完整（依赖未安装会导致 pyright 无法解析第三方包）；
    - 不要通过新增 `pyrightconfig.json` 绕过问题，应回到 `pyproject.toml` 与执行方式排查根因。
+
+3. 若出现执行`pnpm api:test`等指令超时：
+   - 在 apps/api 目录直接执行 UV_CACHE_DIR=../../.uv-cache PYTHONPATH=../.. PYTHONUNBUFFERED=1 uv run pytest -vv -s（避免 turbo/pnpm 缓冲并确保实时输出）。

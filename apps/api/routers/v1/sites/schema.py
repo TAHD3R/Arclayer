@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Annotated, Any, Literal
+from uuid import UUID
 
 from pydantic import AliasChoices, ConfigDict, Field
 
@@ -213,9 +214,9 @@ class SiteRouteDraftSaveIn(BaseSchema):
     document: DocumentIR = Field(..., description="Draft document payload.")
     expected_revision: int | None = Field(
         default=None,
-        ge=1,
-        description="Optional optimistic lock revision (stub-only).",
-        examples=[1],
+        ge=0,
+        description="Optional optimistic lock revision. If provided, must match current draft revision.",
+        examples=[0],
     )
 
 
@@ -305,6 +306,100 @@ class SiteSettingUpsertIn(BaseSchema):
     value: dict[str, Any] | None = Field(default=None, description="Setting value (JSON).")
 
 
+class SitePageTreeNodeOut(BaseSchema):
+    """
+    Site page tree node (IA structure).
+
+    Notes:
+    - This is a tree node output schema, not an ORM schema. We build it explicitly in service layer.
+    - Keep it stable and minimal to avoid coupling Admin UI to internal DB fields.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    id: UUID = Field(..., description="Page id.")
+    path: str = Field(..., description="Resolved unique pathname (e.g. /about).")
+    parent_id: UUID | None = Field(default=None, description="Parent page id (null for root).")
+    sort_order: int = Field(default=0, description="Sort order within siblings.")
+    visibility: Literal["public", "private"] = Field(..., description="Page visibility.")
+    draft_revision: int = Field(default=0, ge=0, description="Current draft revision pointer.")
+    published_revision: int | None = Field(default=None, ge=0, description="Current published revision pointer.")
+    children: list[SitePageTreeNodeOut] = Field(default_factory=list, description="Child pages.")
+
+
+class SitePageCreateIn(BaseSchema):
+    model_config = ConfigDict(extra="forbid")
+
+    path: str = Field(..., description="Unique pathname (e.g. /about).", examples=["/about"])
+    parent_id: UUID | None = Field(default=None, description="Optional parent page id.")
+    sort_order: int = Field(default=0, description="Sort order within siblings.")
+    visibility: Literal["public", "private"] = Field(default="public", description="Page visibility.")
+
+
+class SitePageUpdateIn(BaseSchema):
+    model_config = ConfigDict(extra="forbid")
+
+    path: str | None = Field(default=None, description="Unique pathname (e.g. /about).", examples=["/about"])
+    parent_id: UUID | None = Field(default=None, description="Parent page id (null for root).")
+    sort_order: int | None = Field(default=None, description="Sort order within siblings.")
+    visibility: Literal["public", "private"] | None = Field(default=None, description="Page visibility.")
+
+
+class SitePageMoveIn(BaseSchema):
+    model_config = ConfigDict(extra="forbid")
+
+    parent_id: UUID | None = Field(default=None, description="New parent page id (null for root).")
+    sort_order: int = Field(default=0, description="New sort order within siblings.")
+
+
+class SitePageDeleteOut(BaseSchema):
+    model_config = ConfigDict(extra="forbid")
+
+    page_id: str = Field(..., description="Deleted page id.")
+
+
+class SiteRouteTemplateOut(BaseSchema):
+    model_config = ConfigDict(extra="forbid")
+
+    id: UUID = Field(..., description="Route template id.")
+    site_id: str = Field(..., description="Site id.")
+    path_pattern: str = Field(..., description="Path pattern (e.g. /blog/:slug).")
+    entry_type_id: str = Field(..., description="Entry type id.")
+    entry_type_code: str = Field(..., description="Entry type code (e.g. blog_post).")
+    template_page_revision_id: str | None = Field(
+        default=None, description="Optional template page revision id used as layout skeleton."
+    )
+    is_active: bool = Field(default=True, description="Whether the template is active.")
+
+
+class SiteRouteTemplateCreateIn(BaseSchema):
+    model_config = ConfigDict(extra="forbid")
+
+    path_pattern: str = Field(..., description="Path pattern (e.g. /blog/:slug).", examples=["/blog/:slug"])
+    entry_type_code: str = Field(..., min_length=1, max_length=64, description="Entry type code (e.g. blog_post).")
+    template_page_revision_id: UUID | None = Field(
+        default=None, description="Optional template page revision id used as layout skeleton."
+    )
+    is_active: bool = Field(default=True, description="Whether the template is active.")
+
+
+class SiteRouteTemplateUpdateIn(BaseSchema):
+    model_config = ConfigDict(extra="forbid")
+
+    path_pattern: str | None = Field(default=None, description="Path pattern (e.g. /blog/:slug).")
+    entry_type_code: str | None = Field(default=None, min_length=1, max_length=64, description="Entry type code.")
+    template_page_revision_id: UUID | None = Field(
+        default=None, description="Optional template page revision id used as layout skeleton."
+    )
+    is_active: bool | None = Field(default=None, description="Whether the template is active.")
+
+
+class SiteRouteTemplateDeleteOut(BaseSchema):
+    model_config = ConfigDict(extra="forbid")
+
+    template_id: str = Field(..., description="Deleted route template id.")
+
+
 class SitePageRevisionOut(BaseSchema):
     model_config = ConfigDict(extra="forbid")
 
@@ -313,6 +408,23 @@ class SitePageRevisionOut(BaseSchema):
     revision: int = Field(..., ge=1, description="Revision number.")
     created_at_ms: int = Field(..., description="Revision created timestamp in milliseconds (UTC).")
     document: DocumentIR = Field(..., description="DocumentIR payload.")
+
+
+class SitePageRollbackIn(BaseSchema):
+    model_config = ConfigDict(extra="forbid")
+
+    revision: int = Field(..., ge=1, description="Target revision number to rollback to.")
+    target: Literal["draft", "published"] = Field(..., description="Which revision pointer to rollback.")
+
+
+class SitePageRollbackOut(BaseSchema):
+    model_config = ConfigDict(extra="forbid")
+
+    page_id: str = Field(..., description="Page id.")
+    target: Literal["draft", "published"] = Field(..., description="Which revision pointer was rolled back.")
+    from_revision: int | None = Field(default=None, ge=1, description="Previous revision pointer value (if any).")
+    to_revision: int = Field(..., ge=1, description="New revision pointer value.")
+    rolled_back_at_ms: int = Field(..., description="Rollback timestamp in milliseconds (UTC).")
 
 
 class SiteEntryRevisionOut(BaseSchema):
@@ -324,6 +436,23 @@ class SiteEntryRevisionOut(BaseSchema):
     created_at_ms: int = Field(..., description="Revision created timestamp in milliseconds (UTC).")
     document: DocumentIR | None = Field(default=None, description="Optional DocumentIR payload.")
     data: dict[str, Any] | None = Field(default=None, description="Optional entry data payload (JSON).")
+
+
+class SiteEntryRollbackIn(BaseSchema):
+    model_config = ConfigDict(extra="forbid")
+
+    revision: int = Field(..., ge=1, description="Target revision number to rollback to.")
+    target: Literal["draft", "published"] = Field(..., description="Which revision pointer to rollback.")
+
+
+class SiteEntryRollbackOut(BaseSchema):
+    model_config = ConfigDict(extra="forbid")
+
+    entry_id: str = Field(..., description="Entry id.")
+    target: Literal["draft", "published"] = Field(..., description="Which revision pointer was rolled back.")
+    from_revision: int | None = Field(default=None, ge=1, description="Previous revision pointer value (if any).")
+    to_revision: int = Field(..., ge=1, description="New revision pointer value.")
+    rolled_back_at_ms: int = Field(..., description="Rollback timestamp in milliseconds (UTC).")
 
 
 class SiteEntryDraftSaveIn(BaseSchema):
@@ -374,5 +503,85 @@ class SiteEntryPublishOut(BaseSchema):
     published_at_ms: int = Field(..., description="Published timestamp in milliseconds (UTC).")
 
 
+class SiteEntryUnpublishIn(BaseSchema):
+    model_config = ConfigDict(extra="forbid")
+
+    entry_type_code: str = Field(..., min_length=1, max_length=64, description="Entry type code (e.g. blog_post).")
+    slug: str = Field(..., min_length=1, max_length=256, description="Entry slug (unique within entry type).")
+
+
+class SiteEntryUnpublishOut(BaseSchema):
+    model_config = ConfigDict(extra="forbid")
+
+    site_id: str = Field(..., description="Site id.")
+    entry_id: str = Field(..., description="Entry id.")
+    entry_type_code: str = Field(..., description="Entry type code.")
+    slug: str = Field(..., description="Entry slug.")
+    unpublished_at_ms: int = Field(..., description="Unpublished timestamp in milliseconds (UTC).")
+
+
+class SiteEntryTypeOut(BaseSchema):
+    model_config = ConfigDict(extra="forbid")
+
+    id: UUID = Field(..., description="Entry type id.")
+    site_id: str = Field(..., description="Site id.")
+    code: str = Field(..., description="Entry type code.")
+    name: str = Field(..., description="Entry type display name.")
+    fields_schema: dict[str, Any] | None = Field(default=None, description="Entry field schema (JSON).")
+
+
+class SiteEntryTypeCreateIn(BaseSchema):
+    model_config = ConfigDict(extra="forbid")
+
+    code: str = Field(..., min_length=1, max_length=64, description="Entry type code (e.g. blog_post).")
+    name: str = Field(..., min_length=1, max_length=128, description="Entry type display name.")
+    fields_schema: dict[str, Any] | None = Field(default=None, description="Entry field schema (JSON).")
+
+
+class SiteEntryTypeUpdateIn(BaseSchema):
+    model_config = ConfigDict(extra="forbid")
+
+    name: str | None = Field(default=None, min_length=1, max_length=128, description="Entry type display name.")
+    fields_schema: dict[str, Any] | None = Field(default=None, description="Entry field schema (JSON).")
+
+
+class SiteEntryTypeDeleteOut(BaseSchema):
+    model_config = ConfigDict(extra="forbid")
+
+    entry_type_id: str = Field(..., description="Deleted entry type id.")
+
+
+class SiteEntryOut(BaseSchema):
+    model_config = ConfigDict(extra="forbid")
+
+    id: UUID = Field(..., description="Entry id.")
+    site_id: str = Field(..., description="Site id.")
+    entry_type_id: str = Field(..., description="Entry type id.")
+    entry_type_code: str = Field(..., description="Entry type code.")
+    slug: str = Field(..., description="Entry slug.")
+    draft_revision: int = Field(default=0, ge=0, description="Current draft revision pointer.")
+    published_revision: int | None = Field(default=None, ge=1, description="Current published revision pointer.")
+
+
+class SiteEntryCreateIn(BaseSchema):
+    model_config = ConfigDict(extra="forbid")
+
+    entry_type_code: str = Field(..., min_length=1, max_length=64, description="Entry type code (e.g. blog_post).")
+    slug: str = Field(..., min_length=1, max_length=256, description="Entry slug (unique within entry type).")
+
+
+class SiteEntryUpdateIn(BaseSchema):
+    model_config = ConfigDict(extra="forbid")
+
+    slug: str | None = Field(default=None, min_length=1, max_length=256, description="Entry slug (unique).")
+
+
+class SiteEntryDeleteOut(BaseSchema):
+    model_config = ConfigDict(extra="forbid")
+
+    entry_id: str = Field(..., description="Deleted entry id.")
+
+
 ContainerBlock.model_rebuild()
 DocumentIR.model_rebuild()
+SitePageTreeNodeOut.model_rebuild()

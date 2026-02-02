@@ -2,32 +2,44 @@ from __future__ import annotations
 
 import secrets
 import time
-from typing import Literal, TypedDict
+from typing import Literal
 from uuid import UUID
 from xml.sax.saxutils import escape as xml_escape
 
 from apps.api.common.services.base import BaseService
 from apps.api.core.exceptions import Conflict, Forbidden, NotFound, ServiceUnavailable
+from apps.api.core.http.pagination import PageData, PageParams, paginate_items
 from apps.api.infra.cache.valkey import ValkeyClientLike
 from apps.api.routers.v1.sites.repository import SitesRepository
+from apps.api.routers.v1.sites.repository import normalize_path as normalize_site_path
 from apps.api.routers.v1.sites.schema import (
-    ContainerBlock,
-    ContainerBlockProps,
-    DividerBlock,
-    DividerBlockProps,
     DocumentIR,
-    DocumentMeta,
-    HeadingBlock,
-    HeadingBlockProps,
-    ParagraphBlock,
-    ParagraphBlockProps,
+    SiteEntryCreateIn,
+    SiteEntryDeleteOut,
     SiteEntryDraftSaveIn,
     SiteEntryDraftSaveOut,
+    SiteEntryOut,
     SiteEntryPublishIn,
     SiteEntryPublishOut,
     SiteEntryRevisionOut,
+    SiteEntryRollbackIn,
+    SiteEntryRollbackOut,
+    SiteEntryTypeCreateIn,
+    SiteEntryTypeDeleteOut,
+    SiteEntryTypeOut,
+    SiteEntryTypeUpdateIn,
+    SiteEntryUnpublishIn,
+    SiteEntryUnpublishOut,
+    SiteEntryUpdateIn,
     SiteFontOut,
+    SitePageCreateIn,
+    SitePageDeleteOut,
+    SitePageMoveIn,
     SitePageRevisionOut,
+    SitePageRollbackIn,
+    SitePageRollbackOut,
+    SitePageTreeNodeOut,
+    SitePageUpdateIn,
     SitePresenceHeartbeatIn,
     SitePresenceHeartbeatOut,
     SitePresenceListOut,
@@ -40,48 +52,202 @@ from apps.api.routers.v1.sites.schema import (
     SiteRoutePublishIn,
     SiteRoutePublishOut,
     SiteRouteResolveOut,
+    SiteRouteTemplateCreateIn,
+    SiteRouteTemplateDeleteOut,
+    SiteRouteTemplateOut,
+    SiteRouteTemplateUpdateIn,
     SiteRuntimeOut,
     SiteSettingGetOut,
     SiteSettingUpsertIn,
     SiteThemeOut,
 )
 
-DEMO_SITE_ID = "00000000-0000-0000-0000-000000000001"
-# TODO(sprint-3): Replace in-memory stub state with bounded storage:
-# - Add TTL cleanup (tokens/drafts) or persist to DB.
-# - Add a max size / LRU policy to avoid unbounded memory growth during long-lived dev sessions.
-DEMO_PREVIEW_TOKENS = {"demo"}
-
-
-class RouteDraftRecord(TypedDict):
-    revision: int
-    saved_at_ms: int
-    document: DocumentIR
-
-
-DEMO_ROUTE_DRAFTS: dict[tuple[str, str], RouteDraftRecord] = {}
-
 RUNTIME_SETTING_NAMESPACE = "site.runtime"
+
+
+def _validate_page_pathname(path: str) -> str:
+    """
+    Validate and normalize a site page pathname.
+
+    Notes:
+    - Page paths are used as public URLs and must be stable.
+    - Keep it conservative to prevent path traversal, control characters, and ambiguous routing.
+    """
+
+    pathname = normalize_site_path(path)
+
+    if "?" in pathname or "#" in pathname:
+        raise Conflict("Invalid path", error="PAGE_PATH_INVALID")
+    if "\\" in pathname:
+        raise Conflict("Invalid path", error="PAGE_PATH_INVALID")
+    # Control characters should never appear in a pathname.
+    if any(ord(ch) < 32 or ord(ch) == 127 for ch in pathname):
+        raise Conflict("Invalid path", error="PAGE_PATH_INVALID")
+
+    if pathname == "/":
+        return "/"
+
+    # Avoid ambiguous routing and traversal.
+    if "//" in pathname:
+        raise Conflict("Invalid path", error="PAGE_PATH_INVALID")
+    segments = pathname.split("/")[1:]
+    for seg in segments:
+        if not seg:
+            raise Conflict("Invalid path", error="PAGE_PATH_INVALID")
+        if seg in (".", ".."):
+            raise Conflict("Invalid path", error="PAGE_PATH_INVALID")
+    return pathname
+
+
+def _validate_route_template_pattern(path_pattern: str) -> str:
+    """
+    Validate and normalize a RouteTemplate path pattern.
+
+    Sprint 3 rules:
+    - Only allow single-segment `:param` placeholders.
+    - No splat, no optional segments.
+    """
+
+    pattern = normalize_site_path(path_pattern)
+    if "?" in pattern or "#" in pattern or "\\" in pattern:
+        raise Conflict("Invalid path pattern", error="ROUTE_TEMPLATE_PATTERN_INVALID")
+    if any(ord(ch) < 32 or ord(ch) == 127 for ch in pattern):
+        raise Conflict("Invalid path pattern", error="ROUTE_TEMPLATE_PATTERN_INVALID")
+    if pattern == "/":
+        raise Conflict("Invalid path pattern", error="ROUTE_TEMPLATE_PATTERN_INVALID")
+    if "//" in pattern:
+        raise Conflict("Invalid path pattern", error="ROUTE_TEMPLATE_PATTERN_INVALID")
+
+    segments = pattern.split("/")[1:]
+    for seg in segments:
+        if not seg:
+            raise Conflict("Invalid path pattern", error="ROUTE_TEMPLATE_PATTERN_INVALID")
+        if seg in (".", ".."):
+            raise Conflict("Invalid path pattern", error="ROUTE_TEMPLATE_PATTERN_INVALID")
+        # No splat / wildcard segments in Sprint 3 (e.g. "/blog/*").
+        if "*" in seg:
+            raise Conflict("Invalid path pattern", error="ROUTE_TEMPLATE_PATTERN_INVALID")
+        if ":" in seg:
+            # Only allow a full param segment like ":slug".
+            if not seg.startswith(":"):
+                raise Conflict("Invalid path pattern", error="ROUTE_TEMPLATE_PATTERN_INVALID")
+            if seg.count(":") != 1:
+                raise Conflict("Invalid path pattern", error="ROUTE_TEMPLATE_PATTERN_INVALID")
+            name = seg[1:]
+            if not name:
+                raise Conflict("Invalid path pattern", error="ROUTE_TEMPLATE_PATTERN_INVALID")
+            if not (name[0].isalpha() or name[0] == "_"):
+                raise Conflict("Invalid path pattern", error="ROUTE_TEMPLATE_PATTERN_INVALID")
+            if not all(ch.isalnum() or ch == "_" for ch in name):
+                raise Conflict("Invalid path pattern", error="ROUTE_TEMPLATE_PATTERN_INVALID")
+    return pattern
+
+
+def _validate_entry_type_code(code: str) -> str:
+    """
+    Validate a stable entry type code (e.g. blog_post).
+
+    Notes:
+    - Keep it conservative because it becomes part of API paths/filters and plugin integrations.
+    """
+
+    c = (code or "").strip()
+    if not c:
+        raise Conflict("Invalid entry type code", error="ENTRY_TYPE_CODE_INVALID")
+    if len(c) > 64:
+        raise Conflict("Invalid entry type code", error="ENTRY_TYPE_CODE_INVALID")
+    if not (c[0].isalpha() or c[0] == "_"):
+        raise Conflict("Invalid entry type code", error="ENTRY_TYPE_CODE_INVALID")
+    if not all(ch.isalnum() or ch == "_" for ch in c):
+        raise Conflict("Invalid entry type code", error="ENTRY_TYPE_CODE_INVALID")
+    return c
+
+
+def _is_descendant_or_self(
+    *,
+    node_id: UUID,
+    candidate_parent_id: UUID,
+    parent_by_id: dict[UUID, UUID | None],
+) -> bool:
+    """
+    Returns True if candidate_parent_id is node_id itself or a descendant of node_id.
+
+    Used to prevent cycles when updating the page tree.
+    """
+
+    cur: UUID | None = candidate_parent_id
+    visited: set[UUID] = set()
+    while cur is not None:
+        if cur == node_id:
+            return True
+        if cur in visited:
+            # Defensive: corrupted tree should not cause infinite loops.
+            return True
+        visited.add(cur)
+        cur = parent_by_id.get(cur)
+    return False
+
+
+def _build_pages_tree(rows: list[dict[str, object]]) -> list[SitePageTreeNodeOut]:
+    """
+    Build a deterministic page tree from flat rows.
+
+    Expected row keys:
+    - id (UUID), path (str), parent_id (UUID|None), sort_order (int),
+      visibility (str), draft_rev (int), published_rev (int|None)
+    """
+
+    nodes_by_id: dict[UUID, SitePageTreeNodeOut] = {}
+    children_by_parent: dict[UUID | None, list[UUID]] = {}
+
+    for rec in rows:
+        page_id = rec.get("id")
+        if not isinstance(page_id, UUID):
+            continue
+
+        node = SitePageTreeNodeOut(
+            id=page_id,
+            path=str(rec.get("path") or "/"),
+            parent_id=rec.get("parent_id") if isinstance(rec.get("parent_id"), UUID) else None,
+            sort_order=int(rec.get("sort_order") or 0),
+            visibility=str(rec.get("visibility") or "public"),
+            draft_revision=int(rec.get("draft_rev") or 0),
+            published_revision=(int(rec.get("published_rev")) if isinstance(rec.get("published_rev"), int) else None),
+            children=[],
+        )
+        nodes_by_id[page_id] = node
+
+    # Build parent -> children adjacency.
+    for node in nodes_by_id.values():
+        parent_id = node.parent_id
+        # Orphan nodes (missing parent) are treated as roots to keep tree resilient.
+        if parent_id is not None and parent_id not in nodes_by_id:
+            parent_id = None
+            node.parent_id = None
+        children_by_parent.setdefault(parent_id, []).append(node.id)
+
+    def sort_key(n: SitePageTreeNodeOut) -> tuple[int, str, str]:
+        return (int(n.sort_order or 0), n.path, str(n.id))
+
+    def build(parent_id: UUID | None) -> list[SitePageTreeNodeOut]:
+        ids = children_by_parent.get(parent_id, [])
+        nodes = [nodes_by_id[i] for i in ids if i in nodes_by_id]
+        nodes.sort(key=sort_key)
+        for n in nodes:
+            n.children = build(n.id)
+        return nodes
+
+    return build(None)
 
 
 class SiteService(BaseService):
     """
-    Stub-only Site service (no persistence, no database).
+    Sites service (Portal consumption + editor/management APIs).
 
-    This is intentionally minimal to validate protocol shape and SSR integration
-    before implementing the actual RouteTemplate resolver and revision storage.
+    Notes:
+    - Portal should not run as a standalone app without backend dependencies.
+    - Preview token and presence are Valkey-backed (TTL).
     """
-
-    def assert_preview_access(self, *, mode: Literal["public", "preview"], token: str | None) -> None:
-        # NOTE: This method is intentionally sync-like (no I/O) so routers can call it inline.
-        # DB-backed preview tokens are validated via `assert_preview_access_async()`.
-        if mode != "preview":
-            return
-        if token is None or not token.strip():
-            raise Forbidden("Preview token required", error="PREVIEW_TOKEN_REQUIRED")
-        if token not in DEMO_PREVIEW_TOKENS:
-            # In Sprint 3, the canonical store is Valkey (TTL). Keep demo token as a dev fallback.
-            raise Forbidden("Invalid preview token", error="PREVIEW_TOKEN_INVALID")
 
     async def assert_preview_access_async(
         self, *, site_id: str, mode: Literal["public", "preview"], token: str | None
@@ -90,10 +256,8 @@ class SiteService(BaseService):
             return
         if token is None or not token.strip():
             raise Forbidden("Preview token required", error="PREVIEW_TOKEN_REQUIRED")
-        if token in DEMO_PREVIEW_TOKENS:
-            return
         if self._preview_tokens is None:
-            raise Forbidden("Invalid preview token", error="PREVIEW_TOKEN_INVALID")
+            raise ServiceUnavailable("Preview token store unavailable", error="PREVIEW_TOKEN_STORE_UNAVAILABLE")
         ok = await self._preview_tokens.validate(site_id=site_id, token=token)
         if not ok:
             raise Forbidden("Invalid preview token", error="PREVIEW_TOKEN_INVALID")
@@ -106,16 +270,15 @@ class SiteService(BaseService):
 
     async def create_preview_token(self, *, site_id: str, ttl_seconds: int = 600) -> SitePreviewTokenOut:
         """
-        Stub-only token issuer.
-
-        Sprint 2:
-        - No persistence.
-        - Tokens are stored in memory and lost on server restart.
-        - Suitable for local dev and protocol validation only.
+        Create a preview token (Valkey TTL).
         """
-        # Ensure the site exists when DB is enabled (avoid issuing tokens for unknown tenants).
-        if self.settings.database.enabled:
-            await self._repo.get_site_by_id(site_id=site_id)
+        if not self.settings.database.enabled:
+            raise Conflict("Preview tokens require database storage", error="PREVIEW_TOKEN_DB_REQUIRED")
+        if self._preview_tokens is None:
+            raise ServiceUnavailable("Preview token store unavailable", error="PREVIEW_TOKEN_STORE_UNAVAILABLE")
+
+        # Ensure the site exists (avoid issuing tokens for unknown tenants).
+        await self._repo.get_site_by_id(site_id=site_id)
 
         ttl = int(ttl_seconds)
         if ttl < 60:
@@ -124,26 +287,18 @@ class SiteService(BaseService):
             ttl = 60 * 60
 
         token = secrets.token_urlsafe(24)
-        DEMO_PREVIEW_TOKENS.add(token)
 
         expires_at_ms = int((time.time() + ttl) * 1000)
-        if self._preview_tokens is not None:
-            await self._preview_tokens.issue(site_id=site_id, token=token, ttl_seconds=ttl, expires_at_ms=expires_at_ms)
-        # Note: we return the input `site_id` so the protocol remains consistent with the URL.
-        # The stub storage is still global (not per-site) until Sprint 3 introduces proper persistence.
+        await self._preview_tokens.issue(site_id=site_id, token=token, ttl_seconds=ttl, expires_at_ms=expires_at_ms)
         return SitePreviewTokenOut(site_id=site_id, token=token, expires_at_ms=expires_at_ms)
 
     async def resolve_site(self, *, host: str) -> SiteResolveOut:
         if not self.settings.database.enabled:
-            # Fallback to deterministic demo behavior for local dev without DB.
-            _ = host
-            return SiteResolveOut(site_id=DEMO_SITE_ID, default_locale="zh-CN", fallback_locale="en-US")
+            raise Conflict("Site resolution requires database storage", error="SITE_RESOLVE_DB_REQUIRED")
 
         site = await self._repo.get_site_by_host(host=host)
         if site is None:
-            # Dev-friendly fallback: if a demo site exists, return it.
-            demo = await self._repo.get_site_by_id(site_id=DEMO_SITE_ID)
-            site = demo
+            raise NotFound("Site not found", error="SITE_NOT_FOUND")
 
         return SiteResolveOut(
             site_id=str(site.id),
@@ -161,12 +316,7 @@ class SiteService(BaseService):
         }
 
         if not self.settings.database.enabled:
-            return SiteRuntimeOut(
-                site_id=site_id,
-                mode=mode,
-                theme=SiteThemeOut(css_vars=default_css_vars),
-                fonts=[],
-            )
+            raise Conflict("Site runtime requires database storage", error="SITE_RUNTIME_DB_REQUIRED")
 
         await self._repo.get_site_by_id(site_id=site_id)
 
@@ -234,6 +384,598 @@ class SiteService(BaseService):
         )
         value = rec.value if isinstance(rec.value, dict) else None
         return SiteSettingGetOut(namespace=namespace, value=value)
+
+    async def list_pages_tree(self, *, site_id: str) -> PageData[SitePageTreeNodeOut]:
+        """
+        List pages as a deterministic tree (root -> children).
+
+        Notes:
+        - This endpoint is currently intended for Admin/editor use, so it is gated behind preview token.
+        - We return a PageData wrapper for consistency with other list endpoints, but the data itself
+          is a full tree (no pagination applied in v1).
+        """
+
+        if not self.settings.database.enabled:
+            raise Conflict("Site pages require database storage", error="PAGES_DB_REQUIRED")
+
+        await self._repo.get_site_by_id(site_id=site_id)
+        pages = await self._repo.list_pages_by_site(site_id=site_id)
+
+        rows: list[dict[str, object]] = []
+        for p in pages:
+            rows.append({
+                "id": UUID(str(p.id)),
+                "path": p.path,
+                "parent_id": (UUID(str(p.parent_id)) if p.parent_id is not None else None),
+                "sort_order": int(p.sort_order or 0),
+                "visibility": str(p.visibility),
+                "draft_rev": int(p.draft_rev or 0),
+                "published_rev": (int(p.published_rev) if p.published_rev is not None else None),
+            })
+
+        tree = _build_pages_tree(rows)
+        total = int(len(pages))
+        size = max(total, 1)
+        return PageData[SitePageTreeNodeOut](
+            items=tree,
+            total=total,
+            page=1,
+            size=size,
+            pages=(1 if total > 0 else 0),
+            next=None,
+            prev=None,
+        )
+
+    async def create_page(self, *, site_id: str, payload: SitePageCreateIn) -> SitePageTreeNodeOut:
+        if not self.settings.database.enabled:
+            raise Conflict("Site pages require database storage", error="PAGES_DB_REQUIRED")
+
+        await self._repo.get_site_by_id(site_id=site_id)
+
+        path = _validate_page_pathname(payload.path)
+        parent_id = payload.parent_id
+        if parent_id is not None:
+            parent = await self._repo.get_page_by_id(site_id=site_id, page_id=parent_id)
+            if parent is None:
+                raise NotFound("Parent page not found", error="PARENT_PAGE_NOT_FOUND")
+
+        page = await self._repo.create_page(
+            site_id=site_id,
+            path=path,
+            parent_id=parent_id,
+            sort_order=int(payload.sort_order or 0),
+            visibility=payload.visibility,
+            created_by_user_id=None,
+        )
+
+        return SitePageTreeNodeOut(
+            id=UUID(str(page.id)),
+            path=page.path,
+            parent_id=(UUID(str(page.parent_id)) if page.parent_id is not None else None),
+            sort_order=int(page.sort_order or 0),
+            visibility=str(page.visibility),
+            draft_revision=int(page.draft_rev or 0),
+            published_revision=(int(page.published_rev) if page.published_rev is not None else None),
+            children=[],
+        )
+
+    async def update_page(self, *, site_id: str, page_id: UUID, payload: SitePageUpdateIn) -> SitePageTreeNodeOut:
+        if not self.settings.database.enabled:
+            raise Conflict("Site pages require database storage", error="PAGES_DB_REQUIRED")
+
+        await self._repo.get_site_by_id(site_id=site_id)
+
+        page = await self._repo.get_page_by_id(site_id=site_id, page_id=page_id)
+        if page is None:
+            raise NotFound("Page not found", error="PAGE_NOT_FOUND")
+
+        # Pydantic v2 lets us detect whether fields were provided vs omitted.
+        fields_set = payload.model_fields_set
+
+        new_path = page.path
+        if "path" in fields_set and payload.path is not None:
+            new_path = _validate_page_pathname(payload.path)
+
+        new_parent_id: UUID | None = UUID(str(page.parent_id)) if page.parent_id is not None else None
+        if "parent_id" in fields_set:
+            new_parent_id = payload.parent_id
+            if new_parent_id is not None:
+                parent = await self._repo.get_page_by_id(site_id=site_id, page_id=new_parent_id)
+                if parent is None:
+                    raise NotFound("Parent page not found", error="PARENT_PAGE_NOT_FOUND")
+
+                pages = await self._repo.list_pages_by_site(site_id=site_id)
+                parent_by_id = {UUID(str(p.id)): (UUID(str(p.parent_id)) if p.parent_id else None) for p in pages}
+                if _is_descendant_or_self(
+                    node_id=UUID(str(page.id)),
+                    candidate_parent_id=new_parent_id,
+                    parent_by_id=parent_by_id,
+                ):
+                    raise Conflict("Invalid parent: cycle detected", error="PAGE_TREE_CYCLE")
+
+        new_sort_order = int(page.sort_order or 0)
+        if "sort_order" in fields_set and payload.sort_order is not None:
+            new_sort_order = int(payload.sort_order)
+
+        new_visibility = str(page.visibility)
+        if "visibility" in fields_set and payload.visibility is not None:
+            new_visibility = payload.visibility
+
+        updated = await self._repo.update_page(
+            site_id=site_id,
+            page_id=UUID(str(page.id)),
+            path=new_path,
+            parent_id=new_parent_id,
+            sort_order=new_sort_order,
+            visibility=new_visibility,
+        )
+
+        return SitePageTreeNodeOut(
+            id=UUID(str(updated.id)),
+            path=updated.path,
+            parent_id=(UUID(str(updated.parent_id)) if updated.parent_id is not None else None),
+            sort_order=int(updated.sort_order or 0),
+            visibility=str(updated.visibility),
+            draft_revision=int(updated.draft_rev or 0),
+            published_revision=(int(updated.published_rev) if updated.published_rev is not None else None),
+            children=[],
+        )
+
+    async def move_page(self, *, site_id: str, page_id: UUID, payload: SitePageMoveIn) -> SitePageTreeNodeOut:
+        if not self.settings.database.enabled:
+            raise Conflict("Site pages require database storage", error="PAGES_DB_REQUIRED")
+
+        await self._repo.get_site_by_id(site_id=site_id)
+        page = await self._repo.get_page_by_id(site_id=site_id, page_id=page_id)
+        if page is None:
+            raise NotFound("Page not found", error="PAGE_NOT_FOUND")
+
+        new_parent_id = payload.parent_id
+        if new_parent_id is not None:
+            parent = await self._repo.get_page_by_id(site_id=site_id, page_id=new_parent_id)
+            if parent is None:
+                raise NotFound("Parent page not found", error="PARENT_PAGE_NOT_FOUND")
+
+            pages = await self._repo.list_pages_by_site(site_id=site_id)
+            parent_by_id = {UUID(str(p.id)): (UUID(str(p.parent_id)) if p.parent_id else None) for p in pages}
+            if _is_descendant_or_self(
+                node_id=UUID(str(page.id)),
+                candidate_parent_id=new_parent_id,
+                parent_by_id=parent_by_id,
+            ):
+                raise Conflict("Invalid parent: cycle detected", error="PAGE_TREE_CYCLE")
+
+        updated = await self._repo.update_page(
+            site_id=site_id,
+            page_id=UUID(str(page.id)),
+            path=page.path,
+            parent_id=new_parent_id,
+            sort_order=int(payload.sort_order or 0),
+            visibility=str(page.visibility),
+        )
+
+        return SitePageTreeNodeOut(
+            id=UUID(str(updated.id)),
+            path=updated.path,
+            parent_id=(UUID(str(updated.parent_id)) if updated.parent_id is not None else None),
+            sort_order=int(updated.sort_order or 0),
+            visibility=str(updated.visibility),
+            draft_revision=int(updated.draft_rev or 0),
+            published_revision=(int(updated.published_rev) if updated.published_rev is not None else None),
+            children=[],
+        )
+
+    async def delete_page(self, *, site_id: str, page_id: UUID) -> SitePageDeleteOut:
+        if not self.settings.database.enabled:
+            raise Conflict("Site pages require database storage", error="PAGES_DB_REQUIRED")
+
+        await self._repo.get_site_by_id(site_id=site_id)
+        page = await self._repo.get_page_by_id(site_id=site_id, page_id=page_id)
+        if page is None:
+            raise NotFound("Page not found", error="PAGE_NOT_FOUND")
+
+        has_children = await self._repo.page_has_children(site_id=site_id, page_id=UUID(str(page.id)))
+        if has_children:
+            raise Conflict("Page has children", error="PAGE_HAS_CHILDREN")
+
+        await self._repo.delete_page(site_id=site_id, page_id=UUID(str(page.id)))
+        return SitePageDeleteOut(page_id=str(page.id))
+
+    async def list_route_templates_paginated(
+        self, *, site_id: str, params: PageParams
+    ) -> PageData[SiteRouteTemplateOut]:
+        if not self.settings.database.enabled:
+            raise Conflict("Route templates require database storage", error="ROUTE_TEMPLATE_DB_REQUIRED")
+
+        await self._repo.get_site_by_id(site_id=site_id)
+        templates = await self._repo.list_route_templates_all(site_id=site_id)
+
+        items: list[SiteRouteTemplateOut] = []
+        for tm in templates:
+            entry_type_code = getattr(tm.entry_type, "code", "") if getattr(tm, "entry_type", None) is not None else ""
+            items.append(
+                SiteRouteTemplateOut(
+                    id=UUID(str(tm.id)),
+                    site_id=str(site_id),
+                    path_pattern=tm.path_pattern,
+                    entry_type_id=str(tm.entry_type_id),
+                    entry_type_code=str(entry_type_code),
+                    template_page_revision_id=(
+                        str(tm.template_page_revision_id) if tm.template_page_revision_id is not None else None
+                    ),
+                    is_active=bool(tm.is_active),
+                )
+            )
+
+        return paginate_items(items, params=params)
+
+    async def create_route_template(self, *, site_id: str, payload: SiteRouteTemplateCreateIn) -> SiteRouteTemplateOut:
+        if not self.settings.database.enabled:
+            raise Conflict("Route templates require database storage", error="ROUTE_TEMPLATE_DB_REQUIRED")
+
+        await self._repo.get_site_by_id(site_id=site_id)
+        path_pattern = _validate_route_template_pattern(payload.path_pattern)
+        et = await self._repo.get_entry_type_by_code(site_id=site_id, code=payload.entry_type_code)
+
+        tpl_rev_id: UUID | None = payload.template_page_revision_id
+        if tpl_rev_id is not None:
+            rev = await self._repo.get_page_revision_by_id(site_id=site_id, revision_id=tpl_rev_id)
+            if rev is None:
+                raise NotFound("Template page revision not found", error="TEMPLATE_REVISION_NOT_FOUND")
+
+        rec = await self._repo.create_route_template(
+            site_id=site_id,
+            path_pattern=path_pattern,
+            entry_type_id=UUID(str(et.id)),
+            template_page_revision_id=tpl_rev_id,
+            is_active=bool(payload.is_active),
+        )
+        self._repo.invalidate_route_template_cache(site_id=site_id)
+
+        entry_type_code = getattr(rec.entry_type, "code", "")
+        return SiteRouteTemplateOut(
+            id=UUID(str(rec.id)),
+            site_id=str(site_id),
+            path_pattern=rec.path_pattern,
+            entry_type_id=str(rec.entry_type_id),
+            entry_type_code=str(entry_type_code),
+            template_page_revision_id=(
+                str(rec.template_page_revision_id) if rec.template_page_revision_id is not None else None
+            ),
+            is_active=bool(rec.is_active),
+        )
+
+    async def update_route_template(
+        self, *, site_id: str, template_id: UUID, payload: SiteRouteTemplateUpdateIn
+    ) -> SiteRouteTemplateOut:
+        if not self.settings.database.enabled:
+            raise Conflict("Route templates require database storage", error="ROUTE_TEMPLATE_DB_REQUIRED")
+
+        await self._repo.get_site_by_id(site_id=site_id)
+
+        rec = await self._repo.get_route_template_by_id(site_id=site_id, template_id=template_id)
+        if rec is None:
+            raise NotFound("Route template not found", error="ROUTE_TEMPLATE_NOT_FOUND")
+
+        fields_set = payload.model_fields_set
+
+        path_pattern = rec.path_pattern
+        if "path_pattern" in fields_set and payload.path_pattern is not None:
+            path_pattern = _validate_route_template_pattern(payload.path_pattern)
+
+        entry_type_id = UUID(str(rec.entry_type_id))
+        entry_type_code = getattr(rec.entry_type, "code", "")
+        if "entry_type_code" in fields_set and payload.entry_type_code is not None:
+            et = await self._repo.get_entry_type_by_code(site_id=site_id, code=payload.entry_type_code)
+            entry_type_id = UUID(str(et.id))
+            entry_type_code = payload.entry_type_code
+
+        tpl_rev_id: UUID | None = UUID(str(rec.template_page_revision_id)) if rec.template_page_revision_id else None
+        if "template_page_revision_id" in fields_set:
+            tpl_rev_id = payload.template_page_revision_id
+            if tpl_rev_id is not None:
+                rev = await self._repo.get_page_revision_by_id(site_id=site_id, revision_id=tpl_rev_id)
+                if rev is None:
+                    raise NotFound("Template page revision not found", error="TEMPLATE_REVISION_NOT_FOUND")
+
+        is_active = bool(rec.is_active)
+        if "is_active" in fields_set and payload.is_active is not None:
+            is_active = bool(payload.is_active)
+
+        updated = await self._repo.update_route_template(
+            site_id=site_id,
+            template_id=UUID(str(rec.id)),
+            path_pattern=path_pattern,
+            entry_type_id=entry_type_id,
+            template_page_revision_id=tpl_rev_id,
+            is_active=is_active,
+        )
+        self._repo.invalidate_route_template_cache(site_id=site_id)
+
+        entry_type_code2 = getattr(updated.entry_type, "code", "") or entry_type_code
+        return SiteRouteTemplateOut(
+            id=UUID(str(updated.id)),
+            site_id=str(site_id),
+            path_pattern=updated.path_pattern,
+            entry_type_id=str(updated.entry_type_id),
+            entry_type_code=str(entry_type_code2),
+            template_page_revision_id=(
+                str(updated.template_page_revision_id) if updated.template_page_revision_id is not None else None
+            ),
+            is_active=bool(updated.is_active),
+        )
+
+    async def delete_route_template(self, *, site_id: str, template_id: UUID) -> SiteRouteTemplateDeleteOut:
+        if not self.settings.database.enabled:
+            raise Conflict("Route templates require database storage", error="ROUTE_TEMPLATE_DB_REQUIRED")
+
+        await self._repo.get_site_by_id(site_id=site_id)
+        await self._repo.delete_route_template(site_id=site_id, template_id=template_id)
+        self._repo.invalidate_route_template_cache(site_id=site_id)
+        return SiteRouteTemplateDeleteOut(template_id=str(template_id))
+
+    async def list_entry_types_paginated(self, *, site_id: str, params: PageParams) -> PageData[SiteEntryTypeOut]:
+        if not self.settings.database.enabled:
+            raise Conflict("Entry types require database storage", error="ENTRY_TYPE_DB_REQUIRED")
+        await self._repo.get_site_by_id(site_id=site_id)
+
+        items = [
+            SiteEntryTypeOut(
+                id=UUID(str(et.id)),
+                site_id=str(site_id),
+                code=str(et.code),
+                name=str(et.name),
+                fields_schema=(et.fields_schema if isinstance(et.fields_schema, dict) else None),
+            )
+            for et in await self._repo.list_entry_types(site_id=site_id)
+        ]
+        return paginate_items(items, params=params)
+
+    async def create_entry_type(self, *, site_id: str, payload: SiteEntryTypeCreateIn) -> SiteEntryTypeOut:
+        if not self.settings.database.enabled:
+            raise Conflict("Entry types require database storage", error="ENTRY_TYPE_DB_REQUIRED")
+        await self._repo.get_site_by_id(site_id=site_id)
+
+        code = _validate_entry_type_code(payload.code)
+        name = (payload.name or "").strip()
+        if not name:
+            raise Conflict("Invalid entry type name", error="ENTRY_TYPE_NAME_INVALID")
+
+        rec = await self._repo.create_entry_type(
+            site_id=site_id,
+            code=code,
+            name=name,
+            fields_schema=(payload.fields_schema if isinstance(payload.fields_schema, dict) else None),
+        )
+        return SiteEntryTypeOut(
+            id=UUID(str(rec.id)),
+            site_id=str(site_id),
+            code=str(rec.code),
+            name=str(rec.name),
+            fields_schema=(rec.fields_schema if isinstance(rec.fields_schema, dict) else None),
+        )
+
+    async def update_entry_type(
+        self,
+        *,
+        site_id: str,
+        entry_type_id: UUID,
+        payload: SiteEntryTypeUpdateIn,
+    ) -> SiteEntryTypeOut:
+        if not self.settings.database.enabled:
+            raise Conflict("Entry types require database storage", error="ENTRY_TYPE_DB_REQUIRED")
+        await self._repo.get_site_by_id(site_id=site_id)
+
+        # v1: allow partial update (name/fields_schema).
+        fields_set = payload.model_fields_set
+        if "name" not in fields_set and "fields_schema" not in fields_set:
+            raise Conflict("No fields to update", error="NO_UPDATES")
+
+        existing = await self._repo.get_entry_type_by_id(site_id=site_id, entry_type_id=entry_type_id)
+        if existing is None:
+            raise NotFound("Entry type not found", error="ENTRY_TYPE_NOT_FOUND")
+
+        name = str(existing.name)
+        if "name" in fields_set and payload.name is not None:
+            name = (payload.name or "").strip()
+            if not name:
+                raise Conflict("Invalid entry type name", error="ENTRY_TYPE_NAME_INVALID")
+
+        fields_schema = existing.fields_schema if isinstance(existing.fields_schema, dict) else None
+        if "fields_schema" in fields_set:
+            fields_schema = payload.fields_schema if isinstance(payload.fields_schema, dict) else None
+
+        updated = await self._repo.update_entry_type(
+            site_id=site_id,
+            entry_type_id=entry_type_id,
+            name=name,
+            fields_schema=(fields_schema if isinstance(fields_schema, dict) else None),
+        )
+        return SiteEntryTypeOut(
+            id=UUID(str(updated.id)),
+            site_id=str(site_id),
+            code=str(updated.code),
+            name=str(updated.name),
+            fields_schema=(updated.fields_schema if isinstance(updated.fields_schema, dict) else None),
+        )
+
+    async def delete_entry_type(self, *, site_id: str, entry_type_id: UUID) -> SiteEntryTypeDeleteOut:
+        if not self.settings.database.enabled:
+            raise Conflict("Entry types require database storage", error="ENTRY_TYPE_DB_REQUIRED")
+        await self._repo.get_site_by_id(site_id=site_id)
+        await self._repo.delete_entry_type(site_id=site_id, entry_type_id=entry_type_id)
+        return SiteEntryTypeDeleteOut(entry_type_id=str(entry_type_id))
+
+    async def list_entries_paginated(
+        self,
+        *,
+        site_id: str,
+        params: PageParams,
+        entry_type_code: str | None,
+    ) -> PageData[SiteEntryOut]:
+        if not self.settings.database.enabled:
+            raise Conflict("Entries require database storage", error="ENTRY_DB_REQUIRED")
+        await self._repo.get_site_by_id(site_id=site_id)
+
+        entry_type_id: UUID | None = None
+        if entry_type_code is not None:
+            et = await self._repo.get_entry_type_by_code(site_id=site_id, code=entry_type_code)
+            entry_type_id = UUID(str(et.id))
+
+        entries = await self._repo.list_entries(site_id=site_id, entry_type_id=entry_type_id)
+        items: list[SiteEntryOut] = []
+        for e in entries:
+            et_code = getattr(e.entry_type, "code", "") if getattr(e, "entry_type", None) is not None else ""
+            items.append(
+                SiteEntryOut(
+                    id=UUID(str(e.id)),
+                    site_id=str(site_id),
+                    entry_type_id=str(e.entry_type_id),
+                    entry_type_code=str(et_code),
+                    slug=str(e.slug),
+                    draft_revision=int(e.draft_rev or 0),
+                    published_revision=(int(e.published_rev) if e.published_rev is not None else None),
+                )
+            )
+        return paginate_items(items, params=params)
+
+    async def create_entry(self, *, site_id: str, payload: SiteEntryCreateIn) -> SiteEntryOut:
+        if not self.settings.database.enabled:
+            raise Conflict("Entries require database storage", error="ENTRY_DB_REQUIRED")
+        await self._repo.get_site_by_id(site_id=site_id)
+
+        et = await self._repo.get_entry_type_by_code(site_id=site_id, code=payload.entry_type_code)
+        entry = await self._repo.create_entry(
+            site_id=site_id,
+            entry_type_id=UUID(str(et.id)),
+            slug=payload.slug,
+            created_by_user_id=None,
+        )
+        return SiteEntryOut(
+            id=UUID(str(entry.id)),
+            site_id=str(site_id),
+            entry_type_id=str(entry.entry_type_id),
+            entry_type_code=str(payload.entry_type_code),
+            slug=str(entry.slug),
+            draft_revision=int(entry.draft_rev or 0),
+            published_revision=(int(entry.published_rev) if entry.published_rev is not None else None),
+        )
+
+    async def update_entry(self, *, site_id: str, entry_id: UUID, payload: SiteEntryUpdateIn) -> SiteEntryOut:
+        if not self.settings.database.enabled:
+            raise Conflict("Entries require database storage", error="ENTRY_DB_REQUIRED")
+        await self._repo.get_site_by_id(site_id=site_id)
+
+        fields_set = payload.model_fields_set
+        if "slug" not in fields_set or payload.slug is None:
+            raise Conflict("No fields to update", error="NO_UPDATES")
+
+        updated = await self._repo.update_entry_slug(site_id=site_id, entry_id=entry_id, slug=payload.slug)
+        et = await self._repo.get_entry_type_by_id(site_id=site_id, entry_type_id=UUID(str(updated.entry_type_id)))
+        if et is None:
+            raise NotFound("Entry type not found", error="ENTRY_TYPE_NOT_FOUND")
+        return SiteEntryOut(
+            id=UUID(str(updated.id)),
+            site_id=str(site_id),
+            entry_type_id=str(updated.entry_type_id),
+            entry_type_code=str(et.code),
+            slug=str(updated.slug),
+            draft_revision=int(updated.draft_rev or 0),
+            published_revision=(int(updated.published_rev) if updated.published_rev is not None else None),
+        )
+
+    async def unpublish_entry(self, *, site_id: str, payload: SiteEntryUnpublishIn) -> SiteEntryUnpublishOut:
+        if not self.settings.database.enabled:
+            raise Conflict("Publishing requires database storage", error="PUBLISH_DB_REQUIRED")
+
+        await self._repo.get_site_by_id(site_id=site_id)
+        et = await self._repo.get_entry_type_by_code(site_id=site_id, code=payload.entry_type_code)
+        entry_id, now_ms = await self._repo.unpublish_entry_by_slug(
+            site_id=site_id,
+            entry_type_id=UUID(str(et.id)),
+            slug=payload.slug,
+        )
+        return SiteEntryUnpublishOut(
+            site_id=site_id,
+            entry_id=str(entry_id),
+            entry_type_code=payload.entry_type_code,
+            slug=(payload.slug or "").strip(),
+            unpublished_at_ms=now_ms,
+        )
+
+    async def delete_entry(self, *, site_id: str, entry_id: UUID) -> SiteEntryDeleteOut:
+        if not self.settings.database.enabled:
+            raise Conflict("Entries require database storage", error="ENTRY_DB_REQUIRED")
+        await self._repo.get_site_by_id(site_id=site_id)
+        await self._repo.delete_entry(site_id=site_id, entry_id=entry_id)
+        return SiteEntryDeleteOut(entry_id=str(entry_id))
+
+    async def rollback_page_revision(
+        self,
+        *,
+        site_id: str,
+        page_id: UUID,
+        payload: SitePageRollbackIn,
+    ) -> SitePageRollbackOut:
+        if not self.settings.database.enabled:
+            raise Conflict("Page revisions require database storage", error="PAGE_REVISION_DB_REQUIRED")
+        await self._repo.get_site_by_id(site_id=site_id)
+
+        from_rev, to_rev, rolled_back_at_ms = await self._repo.rollback_page_revision_pointer(
+            site_id=site_id,
+            page_id=page_id,
+            target=payload.target,
+            revision=payload.revision,
+        )
+        # Minimal audit trail via structured log (full audit log table is planned for later milestones).
+        self.logger.info(
+            "Rolled back page revision pointer",
+            site_id=str(site_id),
+            page_id=str(page_id),
+            target=str(payload.target),
+            from_revision=from_rev,
+            to_revision=to_rev,
+        )
+        return SitePageRollbackOut(
+            page_id=str(page_id),
+            target=payload.target,
+            from_revision=from_rev,
+            to_revision=to_rev,
+            rolled_back_at_ms=rolled_back_at_ms,
+        )
+
+    async def rollback_entry_revision(
+        self,
+        *,
+        site_id: str,
+        entry_id: UUID,
+        payload: SiteEntryRollbackIn,
+    ) -> SiteEntryRollbackOut:
+        if not self.settings.database.enabled:
+            raise Conflict("Entry revisions require database storage", error="ENTRY_REVISION_DB_REQUIRED")
+        await self._repo.get_site_by_id(site_id=site_id)
+
+        from_rev, to_rev, rolled_back_at_ms = await self._repo.rollback_entry_revision_pointer(
+            site_id=site_id,
+            entry_id=entry_id,
+            target=payload.target,
+            revision=payload.revision,
+        )
+        self.logger.info(
+            "Rolled back entry revision pointer",
+            site_id=str(site_id),
+            entry_id=str(entry_id),
+            target=str(payload.target),
+            from_revision=from_rev,
+            to_revision=to_rev,
+        )
+        return SiteEntryRollbackOut(
+            entry_id=str(entry_id),
+            target=payload.target,
+            from_revision=from_rev,
+            to_revision=to_rev,
+            rolled_back_at_ms=rolled_back_at_ms,
+        )
 
     async def get_page_revision(
         self,
@@ -372,39 +1114,10 @@ class SiteService(BaseService):
         path: str,
         mode: Literal["public", "preview"],
     ) -> SiteRouteResolveOut:
-        pathname = normalize_path(path)
+        pathname = normalize_site_path(path)
 
         if not self.settings.database.enabled:
-            # Legacy in-memory stub path (Sprint 1/2 compatibility).
-            if mode == "preview":
-                draft = DEMO_ROUTE_DRAFTS.get((DEMO_SITE_ID, pathname))
-                if draft:
-                    return SiteRouteResolveOut(
-                        match=SiteRouteMatchOut(kind="page", params={}),
-                        document=draft["document"],
-                    )
-
-            if pathname == "/old-about":
-                return SiteRouteResolveOut(
-                    match=SiteRouteMatchOut(kind="redirect", params={}, redirect_to="/about", redirect_status=301),
-                    document=None,
-                )
-
-            if pathname == "/":
-                return SiteRouteResolveOut(match=SiteRouteMatchOut(kind="page"), document=build_home_document())
-
-            if pathname == "/about":
-                return SiteRouteResolveOut(match=SiteRouteMatchOut(kind="page"), document=build_about_document())
-
-            blog = match_blog_route(pathname)
-            if blog is not None:
-                slug = blog["slug"]
-                return SiteRouteResolveOut(
-                    match=SiteRouteMatchOut(kind="route_template", params={"slug": slug}),
-                    document=build_blog_document(slug=slug),
-                )
-
-            return SiteRouteResolveOut(match=SiteRouteMatchOut(kind="not_found"), document=None)
+            raise Conflict("Route resolution requires database storage", error="ROUTE_RESOLVE_DB_REQUIRED")
 
         # Ensure site exists.
         await self._repo.get_site_by_id(site_id=site_id)
@@ -485,33 +1198,13 @@ class SiteService(BaseService):
         payload: SiteRouteDraftSaveIn,
     ) -> SiteRouteDraftSaveOut:
         """
-        Stub-only draft save.
-
-        Sprint 2:
-        - No DB persistence.
-        - Save is stored in memory and lost on server restart.
-        - Optional optimistic lock via `expected_revision` to validate the 409 flow early.
+        Save a page draft by pathname (editor helper).
         """
-        pathname = normalize_path(payload.path)
+        pathname = normalize_site_path(payload.path)
         now_ms = int(time.time() * 1000)
 
         if not self.settings.database.enabled:
-            key = (DEMO_SITE_ID, pathname)
-            existing = DEMO_ROUTE_DRAFTS.get(key)
-            existing_rev = existing["revision"] if existing else 0
-            if payload.expected_revision is not None and payload.expected_revision != existing_rev:
-                raise Conflict(
-                    "Draft revision mismatch",
-                    error="DRAFT_REVISION_MISMATCH",
-                    meta={"expectedRevision": payload.expected_revision, "currentRevision": existing_rev},
-                )
-            next_rev = existing_rev + 1 if existing_rev else 1
-            DEMO_ROUTE_DRAFTS[key] = {
-                "revision": next_rev,
-                "saved_at_ms": now_ms,
-                "document": payload.document,
-            }
-            return SiteRouteDraftSaveOut(site_id=DEMO_SITE_ID, path=pathname, revision=next_rev, saved_at_ms=now_ms)
+            raise Conflict("Route drafts require database storage", error="ROUTE_DRAFT_DB_REQUIRED")
 
         await self._repo.get_site_by_id(site_id=site_id)
 
@@ -533,11 +1226,10 @@ class SiteService(BaseService):
         site_id: str,
         payload: SiteRoutePublishIn,
     ) -> SiteRoutePublishOut:
-        pathname = normalize_path(payload.path)
+        pathname = normalize_site_path(payload.path)
         now_ms = int(time.time() * 1000)
 
         if not self.settings.database.enabled:
-            # Sprint 3: publishing requires persistence; keep legacy stub minimal.
             raise Conflict("Publishing requires database storage", error="PUBLISH_DB_REQUIRED")
 
         await self._repo.get_site_by_id(site_id=site_id)
@@ -603,149 +1295,11 @@ class SiteService(BaseService):
         return "\n".join(lines) + "\n"
 
 
-def normalize_path(path: str) -> str:
-    if not path:
-        return "/"
-    pathname = path if path.startswith("/") else f"/{path}"
-    if pathname == "/":
-        return "/"
-    return pathname[:-1] if pathname.endswith("/") else pathname
-
-
-def match_blog_route(pathname: str) -> dict[str, str] | None:
-    if not pathname.startswith("/blog/"):
-        return None
-    slug = pathname[len("/blog/") :]
-    if not slug or "/" in slug:
-        return None
-    return {"slug": slug}
-
-
-def build_home_document() -> DocumentIR:
-    return DocumentIR(
-        version=1,
-        meta=DocumentMeta(
-            title={"zh-CN": "Celestial Portal", "en-US": "Celestial Portal"},
-            description={
-                "zh-CN": "后端 stub：验证 sites/routes/resolve 协议与 Portal SSR 集成。",
-                "en-US": "Backend stub: validate sites/routes/resolve protocol and Portal SSR integration.",
-            },
-        ),
-        blocks=[
-            ContainerBlock(
-                id="b1",
-                type="container",
-                props=ContainerBlockProps(as_tag="section"),
-                children=[
-                    HeadingBlock(
-                        id="b1-h1",
-                        type="heading",
-                        props=HeadingBlockProps(
-                            level=1,
-                            text={"zh-CN": "来自 API 的首页", "en-US": "Home from API"},
-                        ),
-                    ),
-                    ParagraphBlock(
-                        id="b1-p1",
-                        type="paragraph",
-                        props=ParagraphBlockProps(
-                            text={
-                                "zh-CN": "该页面数据来自 /api/v1/sites/{siteId}/routes/resolve（stub）。",
-                                "en-US": "This page is served from /api/v1/sites/{siteId}/routes/resolve (stub).",
-                            }
-                        ),
-                    ),
-                    DividerBlock(
-                        id="b1-div",
-                        type="divider",
-                        props=DividerBlockProps(variant="subtle"),
-                    ),
-                ],
-            )
-        ],
-    )
-
-
-def build_about_document() -> DocumentIR:
-    return DocumentIR(
-        version=1,
-        meta=DocumentMeta(
-            title={"zh-CN": "关于 Celestial", "en-US": "About Celestial"},
-            description={
-                "zh-CN": "后端 stub：/about 页面。",
-                "en-US": "Backend stub: /about page.",
-            },
-        ),
-        blocks=[
-            ContainerBlock(
-                id="about",
-                type="container",
-                props=ContainerBlockProps(as_tag="section"),
-                children=[
-                    HeadingBlock(
-                        id="about-h1",
-                        type="heading",
-                        props=HeadingBlockProps(level=1, text={"zh-CN": "关于（API）", "en-US": "About (API)"}),
-                    ),
-                    ParagraphBlock(
-                        id="about-p1",
-                        type="paragraph",
-                        props=ParagraphBlockProps(
-                            text={
-                                "zh-CN": "该页面用于验证「路径 -> route resolver -> DocumentIR」的后端协议。",
-                                "en-US": "This page validates the backend protocol for route resolution.",
-                            }
-                        ),
-                    ),
-                ],
-            )
-        ],
-    )
-
-
-def build_blog_document(*, slug: str) -> DocumentIR:
-    return DocumentIR(
-        version=1,
-        meta=DocumentMeta(
-            title={"zh-CN": f"博客：{slug}", "en-US": f"Blog: {slug}"},
-            description={
-                "zh-CN": "后端 stub：RouteTemplate 示例 /blog/:slug。",
-                "en-US": "Backend stub: RouteTemplate example /blog/:slug.",
-            },
-        ),
-        blocks=[
-            ContainerBlock(
-                id="blog",
-                type="container",
-                props=ContainerBlockProps(as_tag="article"),
-                children=[
-                    HeadingBlock(
-                        id="blog-h1",
-                        type="heading",
-                        props=HeadingBlockProps(level=1, text={"zh-CN": f"博客文章：{slug}", "en-US": f"Blog: {slug}"}),
-                    ),
-                    ParagraphBlock(
-                        id="blog-p1",
-                        type="paragraph",
-                        props=ParagraphBlockProps(
-                            text={
-                                "zh-CN": "该内容来自后端 stub，用于模拟未来 RouteTemplate resolver 输出。",
-                                "en-US": "This content is from backend stub to simulate future RouteTemplate resolver output.",
-                            }
-                        ),
-                    ),
-                ],
-            )
-        ],
-    )
-
-
 class PreviewTokenStore:
     """
     Preview token store backed by Valkey (TTL-based).
 
     Notes:
-    - In-memory demo token fallback is kept in `DEMO_PREVIEW_TOKENS`.
     - For Sprint 3, we only validate token existence and TTL; binding to user/session
       will be added once the editor has real authentication and permission checks.
     """

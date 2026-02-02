@@ -12,7 +12,7 @@ import { resolveLocalizedValue, serializeCssVarsToStyleText } from "@celestial/s
 import type { LocalizedString, ViewerContext } from "@celestial/site-renderer-core";
 import { HttpError } from "@/router/routerFallbacks";
 import { DEFAULT_FALLBACK_LOCALE, detectRequestLocaleFromHeaders } from "@celestial/web-core/i18n";
-import { getPortalFallbackSiteId, resolveSiteFromApi } from "@/runtime/site-api";
+import { resolveSiteFromApi } from "@/runtime/site-api";
 
 export { onRenderHtml };
 
@@ -34,18 +34,9 @@ async function onRenderHtml(pageContext: VikePageContextLike) {
   const req = parsePortalRequest(pageContext.urlOriginal);
 
   // Resolve site context (host -> siteId + locale defaults).
-  // If backend is temporarily unavailable, we keep a deterministic fallback but the loaders will still surface 503.
   let siteCtx = pageContext.siteCtx;
   if (!siteCtx) {
-    try {
-      siteCtx = await resolveSiteFromApi(host);
-    } catch {
-      siteCtx = {
-        siteId: getPortalFallbackSiteId(),
-        defaultLocale: "zh-CN",
-        fallbackLocale: DEFAULT_FALLBACK_LOCALE,
-      };
-    }
+    siteCtx = await resolveSiteFromApi(host);
   }
   pageContext.siteCtx = siteCtx;
 

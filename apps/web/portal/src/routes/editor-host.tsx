@@ -18,7 +18,7 @@ import type {
 import { getHardcodedDocument } from "@/runtime/hardcoded-document";
 import {
   getPortalApiPrefix,
-  getPortalFallbackSiteId,
+  getPortalSiteIdFromEnv,
   resolveRouteFromApi,
 } from "@/runtime/site-api";
 
@@ -28,14 +28,15 @@ export const Route = createFileRoute("/editor-host")({
 
 function EditorHostPage() {
   const iframeRef = React.useRef<HTMLIFrameElement | null>(null);
-  const siteId = React.useMemo(() => getPortalFallbackSiteId(), []);
+  const siteId = React.useMemo(() => getPortalSiteIdFromEnv(), []);
   const [overlayMode, setOverlayMode] = React.useState<EditorOverlayMode>("inspect");
   const overlayModeRef = React.useRef<EditorOverlayMode>("inspect");
   const [selectedBlockId, setSelectedBlockId] = React.useState<string | null>(null);
   const [lastPingRttMs, setLastPingRttMs] = React.useState<number | null>(null);
   const [lastPingError, setLastPingError] = React.useState<string | null>(null);
-  const [previewToken, setPreviewToken] = React.useState<string>("demo");
-  const previewTokenRef = React.useRef<string>("demo");
+  const [previewToken, setPreviewToken] = React.useState<string>("");
+  const previewTokenRef = React.useRef<string>("");
+  const [previewTokenError, setPreviewTokenError] = React.useState<string | null>(null);
   const presenceClientIdRef = React.useRef<string>("");
   const lastPresenceHeartbeatAtRef = React.useRef<number>(0);
   const [pathname, setPathname] = React.useState<string>("/");
@@ -167,6 +168,7 @@ function EditorHostPage() {
             setSaveStatus("saving");
             setSaveError(null);
             const token = previewTokenRef.current;
+            if (!token) throw new Error("Missing preview token");
             const keyPathname = normalizePathname(pathname);
             const expectedRevision = draftRevisionsRef.current.get(keyPathname) ?? null;
             const payload = await saveRouteDraftToApi({
@@ -227,6 +229,7 @@ function EditorHostPage() {
 
     void (async () => {
       try {
+        setPreviewTokenError(null);
         const res = await fetch(
           `${getPortalApiPrefix()}/sites/${encodeURIComponent(siteId)}/preview-tokens`,
           {
@@ -241,9 +244,9 @@ function EditorHostPage() {
         if (!mounted) return;
         setPreviewToken(token);
       } catch {
-        // Best-effort: local harness should work even if backend isn't running.
         if (!mounted) return;
-        setPreviewToken("demo");
+        setPreviewToken("");
+        setPreviewTokenError("Failed to issue preview token. Ensure backend + Valkey are running.");
       }
     })();
 
@@ -256,6 +259,7 @@ function EditorHostPage() {
     // Initialize optimistic-lock pointers from the backend resolver so the first save after a refresh
     // doesn't accidentally bypass optimistic locking (pages), or hit a 409 (entries defaulting to 0).
     const token = previewToken;
+    if (!token) return;
     const normalizedPathname = normalizePathname(pathname);
     const seq = ++resolveSeqRef.current;
 
@@ -385,6 +389,14 @@ function EditorHostPage() {
             {lastPingRttMs !== null ? `${lastPingRttMs}ms` : lastPingError ? "error" : "n/a"}
           </code>
         </span>
+        <span className="portal-editor-host-meta">
+          Token: <code>{previewToken ? `${previewToken.slice(0, 6)}...` : "n/a"}</code>
+        </span>
+        {previewTokenError ? (
+          <span className="portal-editor-host-meta">
+            Token error: <code>{previewTokenError}</code>
+          </span>
+        ) : null}
         {lastPingError ? (
           <span className="portal-editor-host-meta">
             Ping error: <code>{lastPingError}</code>
@@ -509,6 +521,7 @@ function EditorHostPage() {
                 setEntrySaveStatus("saving");
                 setEntrySaveError(null);
                 const token = previewTokenRef.current;
+                if (!token) throw new Error("Missing preview token");
                 const slug = activeEntrySlug ?? "world";
                 const expectedRevision = entryDraftRevisionsRef.current.get(slug) ?? 0;
                 const payload = await saveEntryDraftToApi({
@@ -551,6 +564,7 @@ function EditorHostPage() {
                 setEntrySaveStatus("saving");
                 setEntrySaveError(null);
                 const token = previewTokenRef.current;
+                if (!token) throw new Error("Missing preview token");
                 const slug = activeEntrySlug ?? "world";
                 const revision = entryDraftRevisionsRef.current.get(slug) ?? null;
                 const ok = await publishEntryToApi({
@@ -576,7 +590,11 @@ function EditorHostPage() {
       <iframe
         ref={iframeRef}
         title="portal-editor-host"
-        src={buildEditorIframeHref({ siteId: "demo", pathname, token: previewToken })}
+        src={
+          previewToken
+            ? buildEditorIframeHref({ siteId, pathname, token: previewToken })
+            : "about:blank"
+        }
         className="portal-editor-host-iframe"
       />
     </div>
