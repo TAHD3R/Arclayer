@@ -25,6 +25,9 @@ Sprint 2 (work in progress)
 - Shared editor bridge lives in `packages/site-editor-bridge` (used by both Portal and Admin)
 - Admin debug host page (iframe shell): `/debug/portal-editor`
 - Preview mode routes live under `/__preview/*?token=...` (Sprint 1/2 protocol scaffolding)
+- Editor mode requires a preview token by default:
+  - `http://localhost:3100/__editor/site/demo?token=demo`
+  - Optional dev escape hatch: `VITE_PORTAL_DEV_ALLOW_EDITOR_NO_TOKEN=1` will auto-inject `VITE_PORTAL_DEV_PREVIEW_TOKEN`
 
 Optional: API-backed route resolver (stub, for local dev)
 
@@ -40,3 +43,9 @@ Local commands
 
 - Start dev server: `pnpm -C apps/web/portal dev`
 - Start production-like server (local): `pnpm -C apps/web/portal start:local`
+
+Preview token (stub)
+
+- Issue a token (stub): `POST /api/v1/sites/{siteId}/preview-tokens`
+- Example:
+  - `curl -s -X POST http://127.0.0.1:8000/api/v1/sites/00000000-0000-0000-0000-000000000001/preview-tokens`

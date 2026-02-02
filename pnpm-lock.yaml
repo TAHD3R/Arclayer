@@ -42,6 +42,9 @@ catalogs:
     oxlint:
       specifier: ^1.41.0
       version: 1.41.0
+    penpal:
+      specifier: ^6.2.2
+      version: 6.2.2
     react:
       specifier: 19.2.3
       version: 19.2.3
@@ -343,6 +346,9 @@ importers:
       '@celestial/site-editor-protocol':
         specifier: workspace:*
         version: link:../site-editor-protocol
+      penpal:
+        specifier: 'catalog:'
+        version: 6.2.2
 
   packages/site-editor-protocol:
     dependencies:
@@ -3260,6 +3266,9 @@ packages:
 
   pathe@2.0.3:
     resolution: {integrity: sha512-WUjGcAqP1gQacoQe+OBJsFA7Ld4DyXuUIjZ5cc75cLHvJ7dtNsTugphxIADwspS+AraAUePCKrSVtPLFj/F88w==}
+
+  penpal@6.2.2:
+    resolution: {integrity: sha512-RQD7hTx14/LY7QoS3tQYO3/fzVtwvZI+JeS5udgsu7FPaEDjlvfK9HBcme9/ipzSPKnrxSgacI9PI7154W62YQ==}
 
   perfect-debounce@2.1.0:
     resolution: {integrity: sha512-LjgdTytVFXeUgtHZr9WYViYSM/g8MkcTPYDlPa3cDqMirHjKiSZPYd6DoL7pK8AJQr+uWkQvCjHNdiMqsrJs+g==}
@@ -6664,6 +6673,8 @@ snapshots:
       entities: 6.0.1
 
   pathe@2.0.3: {}
+
+  penpal@6.2.2: {}
 
   perfect-debounce@2.1.0: {}
 

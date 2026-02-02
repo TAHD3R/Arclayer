@@ -21,6 +21,7 @@ catalogs:
     antd: "6.2.1"
     vike: "0.4.221"
     "@iconify/react": "6.0.2"
+    penpal: "^6.2.2"
     oxfmt: "^0.26.0"
     oxlint: "^1.41.0"
     turbo: "^2.8.0"

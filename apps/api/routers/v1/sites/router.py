@@ -2,11 +2,17 @@ from __future__ import annotations
 
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Body, Depends, Query, status
 
 from apps.api.config import Settings, get_settings
 from apps.api.core.http.response import Response, ResponseModel
-from apps.api.routers.v1.sites.schema import SiteResolveOut, SiteRouteResolveOut, SiteRuntimeOut
+from apps.api.routers.v1.sites.schema import (
+    SitePreviewTokenCreateIn,
+    SitePreviewTokenOut,
+    SiteResolveOut,
+    SiteRouteResolveOut,
+    SiteRuntimeOut,
+)
 from apps.api.routers.v1.sites.service import SiteService
 
 router = APIRouter(tags=["Sites"])
@@ -62,4 +68,23 @@ async def resolve_site_route(
 ) -> ResponseModel[SiteRouteResolveOut]:
     service.assert_preview_access(mode=mode, token=token)
     data = await service.resolve_route(site_id=site_id, path=path, mode=mode)
+    return Response.success(data=data)
+
+
+@router.post(
+    "/sites/{site_id}/preview-tokens",
+    response_model=ResponseModel[SitePreviewTokenOut],
+    response_model_exclude_none=True,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a preview token (stub)",
+)
+async def create_preview_token(
+    site_id: str,
+    service: Annotated[SiteService, Depends(get_site_service)],
+    payload: Annotated[
+        SitePreviewTokenCreateIn,
+        Body(description="Preview token request."),
+    ] = SitePreviewTokenCreateIn(),
+) -> ResponseModel[SitePreviewTokenOut]:
+    data = await service.create_preview_token(site_id=site_id, ttl_seconds=payload.ttl_seconds)
     return Response.success(data=data)

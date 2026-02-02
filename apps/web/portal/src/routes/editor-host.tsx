@@ -1,14 +1,9 @@
 import React from "react";
 import { createFileRoute } from "@tanstack/react-router";
 
-import type { HostToPortalMessage } from "@celestial/site-editor-protocol";
 import type { EditorOverlayMode } from "@celestial/site-editor-protocol";
 import type { CoreDocumentIR } from "@celestial/site-renderer-core";
-import {
-  createEditorPostMessageBridge,
-  createEditorRpcClient,
-  isPortalToHostMessage,
-} from "@celestial/site-editor-bridge";
+import { connectEditorHostToPortal } from "@celestial/site-editor-bridge";
 
 import { getHardcodedDocument } from "@/runtime/hardcoded-document";
 
@@ -22,27 +17,26 @@ function EditorHostPage() {
   const [selectedBlockId, setSelectedBlockId] = React.useState<string | null>(null);
   const [lastPingRttMs, setLastPingRttMs] = React.useState<number | null>(null);
   const [lastPingError, setLastPingError] = React.useState<string | null>(null);
+  const [previewToken, setPreviewToken] = React.useState<string>("demo");
 
-  const postToIframeRaw = React.useCallback((msg: HostToPortalMessage) => {
-    const iframe = iframeRef.current;
-    if (!iframe) return;
-    iframe.contentWindow?.postMessage(msg, window.location.origin);
-  }, []);
-
-  const rpcRef = React.useRef<ReturnType<typeof createEditorRpcClient> | null>(null);
+  const portalRef = React.useRef<
+    Awaited<ReturnType<typeof connectEditorHostToPortal>>["portal"] | null
+  >(null);
+  const destroyRef = React.useRef<(() => void) | null>(null);
 
   const pingSeqRef = React.useRef(0);
 
   const sendPing = React.useCallback(async (opts?: { silent?: boolean }) => {
-    const rpc = rpcRef.current;
-    if (!rpc) return;
+    const portal = portalRef.current;
+    if (!portal) return;
     const seq = ++pingSeqRef.current;
     try {
       if (!opts?.silent) setLastPingError(null);
-      const { rttMs } = await rpc.ping();
+      const sentAt = Date.now();
+      await portal.ping({ sentAt });
       // Guard against older concurrent pings overwriting newer results.
       if (seq !== pingSeqRef.current) return;
-      setLastPingRttMs(rttMs);
+      setLastPingRttMs(Date.now() - sentAt);
     } catch (err) {
       if (seq !== pingSeqRef.current) return;
       if (opts?.silent) return;
@@ -51,82 +45,99 @@ function EditorHostPage() {
     }
   }, []);
 
-  const postToIframe = React.useCallback(
-    (msg: HostToPortalMessage) => {
-      postToIframeRaw(msg);
-    },
-    [postToIframeRaw],
-  );
+  const pushDraft = React.useCallback((document: CoreDocumentIR) => {
+    void portalRef.current?.pushDraftDocument({ document, pathname: "/" });
+  }, []);
 
-  const pushDraft = React.useCallback(
-    (document: CoreDocumentIR) => {
-      postToIframe({ version: 1, type: "PUSH_DRAFT_DOCUMENT", payload: { document } });
-    },
-    [postToIframe],
-  );
+  const selectBlock = React.useCallback((blockId: string | null) => {
+    setSelectedBlockId(blockId);
+    void portalRef.current?.selectBlock({ blockId });
+  }, []);
 
-  const selectBlock = React.useCallback(
-    (blockId: string | null) => {
-      setSelectedBlockId(blockId);
-      postToIframe({ version: 1, type: "SELECT_BLOCK", payload: { blockId } });
-    },
-    [postToIframe],
-  );
-
-  const setChildOverlayMode = React.useCallback(
-    (mode: EditorOverlayMode) => {
-      setOverlayMode(mode);
-      postToIframe({ version: 1, type: "SET_OVERLAY_MODE", payload: { mode } });
-      if (mode === "off") {
-        // Keep host UI consistent with iframe behavior.
-        setSelectedBlockId(null);
-      }
-    },
-    [postToIframe],
-  );
+  const setChildOverlayMode = React.useCallback((mode: EditorOverlayMode) => {
+    setOverlayMode(mode);
+    void portalRef.current?.setOverlayMode({ mode });
+    if (mode === "off") {
+      // Keep host UI consistent with iframe behavior.
+      setSelectedBlockId(null);
+    }
+  }, []);
 
   React.useEffect(() => {
     const iframe = iframeRef.current;
     if (!iframe) return;
 
-    rpcRef.current = createEditorRpcClient({
-      postMessage: postToIframeRaw,
-    });
+    let mounted = true;
+    void (async () => {
+      const conn = await connectEditorHostToPortal({
+        iframe,
+        childOrigin: window.location.origin,
+        methods: {
+          ready: ({ readyAt }) => {
+            // eslint-disable-next-line no-console
+            console.log("[portal editor host] ready:", { readyAt });
+            // We also ping/apply overlay after the portal proxy is available.
+          },
+          selectionChanged: ({ blockId }) => {
+            setSelectedBlockId(blockId);
+          },
+        },
+      });
 
-    const bridge = createEditorPostMessageBridge({
-      expectedOrigin: window.location.origin,
-      targetOrigin: window.location.origin,
-      getTargetWindow: () => iframeRef.current?.contentWindow ?? null,
-    });
-
-    const unsubscribe = bridge.onMessage((msg) => {
-      if (!isPortalToHostMessage(msg)) return;
-      const portalMsg = msg;
-
-      rpcRef.current?.onPortalMessage(portalMsg);
-      // Intentionally minimal: this page is only for validating the postMessage transport.
-      // eslint-disable-next-line no-console
-      console.log("[portal editor host] message:", portalMsg);
-
-      // The iframe may load fast enough that the `load` event is missed.
-      // We ping again when we receive READY to make the handshake deterministic.
-      if (portalMsg.type === "READY") {
-        sendPing();
-        // Ensure overlay mode is applied even if the iframe refreshes.
-        postToIframe({ version: 1, type: "SET_OVERLAY_MODE", payload: { mode: overlayMode } });
+      if (!mounted) {
+        conn.destroy();
+        return;
       }
-
-      if (portalMsg.type === "SELECTION_CHANGED") {
-        setSelectedBlockId(portalMsg.payload.blockId);
+      const version = await conn.portal.getProtocolVersion();
+      if (version !== 1) {
+        // eslint-disable-next-line no-console
+        console.error("[portal editor host] Unsupported protocol version:", version);
+        conn.destroy();
+        return;
       }
-    });
+      portalRef.current = conn.portal;
+      destroyRef.current = conn.destroy;
+
+      // Make the initial handshake deterministic even if READY races with the proxy setup.
+      void sendPing({ silent: true });
+      void conn.portal.setOverlayMode({ mode: overlayMode });
+    })();
 
     return () => {
-      unsubscribe();
-      rpcRef.current?.dispose();
-      rpcRef.current = null;
+      mounted = false;
+      portalRef.current = null;
+      destroyRef.current?.();
+      destroyRef.current = null;
     };
-  }, [overlayMode, postToIframe, postToIframeRaw, sendPing]);
+  }, [overlayMode, sendPing]);
+
+  React.useEffect(() => {
+    let mounted = true;
+
+    void (async () => {
+      try {
+        const siteId = "00000000-0000-0000-0000-000000000001";
+        const res = await fetch(`/api/v1/sites/${siteId}/preview-tokens`, {
+          method: "POST",
+          headers: { accept: "application/json" },
+        });
+        if (!res.ok) throw new Error(`Failed to issue preview token (${res.status})`);
+        const payload = (await res.json()) as any;
+        const token = String(payload?.data?.token ?? "").trim();
+        if (!token) throw new Error("Invalid preview token response");
+        if (!mounted) return;
+        setPreviewToken(token);
+      } catch {
+        // Best-effort: local harness should work even if backend isn't running.
+        if (!mounted) return;
+        setPreviewToken("demo");
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   React.useEffect(() => {
     const iframe = iframeRef.current;
@@ -255,7 +266,7 @@ function EditorHostPage() {
       <iframe
         ref={iframeRef}
         title="portal-editor-host"
-        src="/__editor/site/demo"
+        src={`/__editor/site/demo?token=${encodeURIComponent(previewToken)}`}
         className="portal-editor-host-iframe"
       />
     </div>

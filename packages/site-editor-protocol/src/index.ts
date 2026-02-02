@@ -64,3 +64,29 @@ export type PortalToHostMessage =
     >;
 
 export type AnyEditorMessage = HostToPortalMessage | PortalToHostMessage;
+
+/**
+ * Penpal RPC APIs (Sprint 2+).
+ *
+ * We keep the message-based protocol for debugging and low-level transports,
+ * but prefer method-based RPC between Admin(host) and Portal(iframe) for readability.
+ */
+export type PortalEditorRpcApi = {
+  getProtocolVersion: () => EditorProtocolVersion;
+  ping: (args: { sentAt: number }) => { receivedAt: number };
+  setOverlayMode: (args: { mode: EditorOverlayMode }) => void;
+  selectBlock: (args: { blockId: BlockId | null }) => void;
+  /**
+   * Push a draft document override for instant preview.
+   *
+   * When `pathname` is provided, the portal editor mode may ignore the update
+   * if it doesn't match the currently rendered route. This prevents accidental
+   * cross-page draft overwrites when the host shell navigates quickly.
+   */
+  pushDraftDocument: (args: { document: DocumentIR; pathname?: string }) => void;
+};
+
+export type HostEditorRpcApi = {
+  ready: (args: { readyAt: number }) => void;
+  selectionChanged: (args: { blockId: BlockId | null }) => void;
+};

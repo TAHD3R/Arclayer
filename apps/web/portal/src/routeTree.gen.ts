@@ -17,7 +17,8 @@ import { Route as EditorIndexRouteImport } from './routes/editor/index'
 import { Route as PreviewSplatRouteImport } from './routes/preview/$'
 import { Route as Debug500RouteImport } from './routes/debug/500'
 import { Route as Debug403RouteImport } from './routes/debug/403'
-import { Route as EditorSiteSiteIdRouteImport } from './routes/editor/site/$siteId'
+import { Route as EditorSiteSiteIdIndexRouteImport } from './routes/editor/site/$siteId/index'
+import { Route as EditorSiteSiteIdSplatRouteImport } from './routes/editor/site/$siteId/$'
 
 const EditorHostRoute = EditorHostRouteImport.update({
   id: '/editor-host',
@@ -59,9 +60,14 @@ const Debug403Route = Debug403RouteImport.update({
   path: '/debug/403',
   getParentRoute: () => rootRouteImport,
 } as any)
-const EditorSiteSiteIdRoute = EditorSiteSiteIdRouteImport.update({
-  id: '/editor/site/$siteId',
-  path: '/editor/site/$siteId',
+const EditorSiteSiteIdIndexRoute = EditorSiteSiteIdIndexRouteImport.update({
+  id: '/editor/site/$siteId/',
+  path: '/editor/site/$siteId/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EditorSiteSiteIdSplatRoute = EditorSiteSiteIdSplatRouteImport.update({
+  id: '/editor/site/$siteId/$',
+  path: '/editor/site/$siteId/$',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -74,7 +80,8 @@ export interface FileRoutesByFullPath {
   '/preview/$': typeof PreviewSplatRoute
   '/editor/': typeof EditorIndexRoute
   '/preview/': typeof PreviewIndexRoute
-  '/editor/site/$siteId': typeof EditorSiteSiteIdRoute
+  '/editor/site/$siteId/$': typeof EditorSiteSiteIdSplatRoute
+  '/editor/site/$siteId/': typeof EditorSiteSiteIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -85,7 +92,8 @@ export interface FileRoutesByTo {
   '/preview/$': typeof PreviewSplatRoute
   '/editor': typeof EditorIndexRoute
   '/preview': typeof PreviewIndexRoute
-  '/editor/site/$siteId': typeof EditorSiteSiteIdRoute
+  '/editor/site/$siteId/$': typeof EditorSiteSiteIdSplatRoute
+  '/editor/site/$siteId': typeof EditorSiteSiteIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -97,7 +105,8 @@ export interface FileRoutesById {
   '/preview/$': typeof PreviewSplatRoute
   '/editor/': typeof EditorIndexRoute
   '/preview/': typeof PreviewIndexRoute
-  '/editor/site/$siteId': typeof EditorSiteSiteIdRoute
+  '/editor/site/$siteId/$': typeof EditorSiteSiteIdSplatRoute
+  '/editor/site/$siteId/': typeof EditorSiteSiteIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -110,7 +119,8 @@ export interface FileRouteTypes {
     | '/preview/$'
     | '/editor/'
     | '/preview/'
-    | '/editor/site/$siteId'
+    | '/editor/site/$siteId/$'
+    | '/editor/site/$siteId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -121,6 +131,7 @@ export interface FileRouteTypes {
     | '/preview/$'
     | '/editor'
     | '/preview'
+    | '/editor/site/$siteId/$'
     | '/editor/site/$siteId'
   id:
     | '__root__'
@@ -132,7 +143,8 @@ export interface FileRouteTypes {
     | '/preview/$'
     | '/editor/'
     | '/preview/'
-    | '/editor/site/$siteId'
+    | '/editor/site/$siteId/$'
+    | '/editor/site/$siteId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -144,7 +156,8 @@ export interface RootRouteChildren {
   PreviewSplatRoute: typeof PreviewSplatRoute
   EditorIndexRoute: typeof EditorIndexRoute
   PreviewIndexRoute: typeof PreviewIndexRoute
-  EditorSiteSiteIdRoute: typeof EditorSiteSiteIdRoute
+  EditorSiteSiteIdSplatRoute: typeof EditorSiteSiteIdSplatRoute
+  EditorSiteSiteIdIndexRoute: typeof EditorSiteSiteIdIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -205,11 +218,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Debug403RouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/editor/site/$siteId': {
-      id: '/editor/site/$siteId'
+    '/editor/site/$siteId/': {
+      id: '/editor/site/$siteId/'
       path: '/editor/site/$siteId'
-      fullPath: '/editor/site/$siteId'
-      preLoaderRoute: typeof EditorSiteSiteIdRouteImport
+      fullPath: '/editor/site/$siteId/'
+      preLoaderRoute: typeof EditorSiteSiteIdIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/editor/site/$siteId/$': {
+      id: '/editor/site/$siteId/$'
+      path: '/editor/site/$siteId/$'
+      fullPath: '/editor/site/$siteId/$'
+      preLoaderRoute: typeof EditorSiteSiteIdSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -224,7 +244,8 @@ const rootRouteChildren: RootRouteChildren = {
   PreviewSplatRoute: PreviewSplatRoute,
   EditorIndexRoute: EditorIndexRoute,
   PreviewIndexRoute: PreviewIndexRoute,
-  EditorSiteSiteIdRoute: EditorSiteSiteIdRoute,
+  EditorSiteSiteIdSplatRoute: EditorSiteSiteIdSplatRoute,
+  EditorSiteSiteIdIndexRoute: EditorSiteSiteIdIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

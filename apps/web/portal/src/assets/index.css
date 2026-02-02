@@ -27,6 +27,27 @@ body {
   position: fixed;
   inset: 0;
   pointer-events: none;
+  z-index: 50;
+}
+
+[data-editor-overlay="selection"] {
+  position: absolute;
+  top: 0;
+  left: 0;
+  box-sizing: border-box;
+  border: 2px solid var(--color-primary, #1677ff);
+  border-radius: 8px;
+  background: rgba(22, 119, 255, 0.06);
+}
+
+[data-editor-overlay="hover"] {
+  position: absolute;
+  top: 0;
+  left: 0;
+  box-sizing: border-box;
+  border: 1px dashed rgba(22, 119, 255, 0.85);
+  border-radius: 8px;
+  background: rgba(22, 119, 255, 0.03);
 }
 
 .portal-editor-host-iframe {

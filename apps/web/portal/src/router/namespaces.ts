@@ -24,6 +24,15 @@ export function isPreviewPathname(pathname: string): boolean {
   );
 }
 
+export function isEditorPathname(pathname: string): boolean {
+  return (
+    pathname === PORTAL_NAMESPACES.editor.external ||
+    pathname.startsWith(PORTAL_NAMESPACES.editor.external + "/") ||
+    pathname === PORTAL_NAMESPACES.editor.internal ||
+    pathname.startsWith(PORTAL_NAMESPACES.editor.internal + "/")
+  );
+}
+
 export function parsePortalRequest(urlOriginal: string): { mode: PortalMode; token?: string } {
   let url: URL;
   try {
@@ -33,9 +42,14 @@ export function parsePortalRequest(urlOriginal: string): { mode: PortalMode; tok
   }
 
   const pathname = url.pathname;
-  const token = url.searchParams.get("token") || undefined;
+  const tokenRaw = url.searchParams.get("token") || undefined;
 
-  if (isPreviewPathname(pathname)) {
+  // Both `/__preview/*` and `/__editor/*` require preview authorization.
+  if (isPreviewPathname(pathname) || isEditorPathname(pathname)) {
+    // Dev-only escape hatch is only for editor mode (keep preview strict).
+    const token = isEditorPathname(pathname)
+      ? (tokenRaw ?? getDevFallbackPreviewTokenIfAllowed(tokenRaw))
+      : tokenRaw;
     // With exactOptionalPropertyTypes, we omit the key if token is missing.
     return token ? { mode: "preview", token } : { mode: "preview" };
   }
@@ -47,6 +61,14 @@ export function getTokenFromLocationSearch(search: unknown): string | undefined 
   const s = search as { token?: unknown } | undefined;
   const token = typeof s?.token === "string" ? s.token.trim() : "";
   return token ? token : undefined;
+}
+
+export function getEditorTokenOrThrow(search: unknown): string {
+  const tokenRaw = getTokenFromLocationSearch(search);
+  const token = tokenRaw ?? getDevFallbackPreviewTokenIfAllowed(tokenRaw);
+  if (token) return token;
+  // Editor mode is private by default: require a preview token.
+  throw new Error("Missing editor token");
 }
 
 export function toExternalPreviewHref(pathnameRaw: string, token: string | undefined): string {
@@ -69,4 +91,19 @@ function normalizePathname(pathnameRaw: string): string {
   if (pathname === "/") return "/";
   // Normalize trailing slash for deterministic matching.
   return pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
+}
+
+function getDevFallbackPreviewTokenIfAllowed(currentToken: string | undefined): string | undefined {
+  if (currentToken) return currentToken;
+  if (!import.meta.env.DEV) return undefined;
+
+  // Dev-only escape hatch: allow omitting token for local testing by auto-injecting a known stub token.
+  // This is gated by an explicit env var so it doesn't accidentally hide auth issues during development.
+  const allowMissingToken = String(
+    import.meta.env.VITE_PORTAL_DEV_ALLOW_EDITOR_NO_TOKEN || "",
+  ).toLowerCase();
+  if (allowMissingToken !== "1" && allowMissingToken !== "true") return undefined;
+
+  const token = String(import.meta.env.VITE_PORTAL_DEV_PREVIEW_TOKEN || "").trim();
+  return token || "demo";
 }

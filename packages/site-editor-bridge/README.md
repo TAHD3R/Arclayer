@@ -1,12 +1,16 @@
 # @celestial/site-editor-bridge
 
-Shared postMessage + minimal RPC helpers for the Portal editor iframe and the Admin host shell.
+Shared iframe transport helpers for the Portal editor iframe and the Admin host shell.
 
 Goals:
 - Keep the Admin <-> Portal iframe transport small and reusable (monorepo-friendly).
-- Enforce strict `origin` checks (allowlist).
-- Provide a minimal requestId-based ping/pong RPC used by local debug harness pages.
+- Prefer a readable RPC-style API (Penpal) while keeping the underlying protocol typed and versioned.
+- Keep origin/security concerns explicit (local dev allowlists via `parentOrigin`, plus transport-level checks).
 
 Non-goals (for now):
 - Full-featured RPC (retries, batching, schema validation)
-- Introducing external dependencies (e.g. penpal) before the protocol stabilizes
+- Building a general-purpose RPC framework (keep it CMS/editor focused)
+
+Notes:
+- The message-based postMessage helpers are still available for low-level debugging.
+- Sprint 2+ uses Penpal for the actual Admin <-> Portal editor integration.

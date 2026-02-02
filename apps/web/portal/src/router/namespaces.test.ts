@@ -20,6 +20,14 @@ describe("router/namespaces", () => {
     });
   });
 
+  test("parsePortalRequest() treats editor namespace as preview mode", () => {
+    expect(parsePortalRequest("http://localhost/__editor/site/demo")).toEqual({ mode: "preview" });
+    expect(parsePortalRequest("http://localhost/__editor/site/demo?token=demo")).toEqual({
+      mode: "preview",
+      token: "demo",
+    });
+  });
+
   test("parsePortalRequest() detects preview mode (internal namespace)", () => {
     expect(parsePortalRequest("http://localhost/preview/about?token=demo")).toEqual({
       mode: "preview",

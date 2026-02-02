@@ -6,3 +6,11 @@ export { createEditorPostMessageBridge, isHostToPortalMessage, isPortalToHostMes
 
 export type { EditorRpcClient, EditorRpcClientOptions } from "./rpc";
 export { createEditorRpcClient } from "./rpc";
+
+export type {
+  EditorHostPenpalConnection,
+  EditorHostPenpalOptions,
+  EditorPortalPenpalConnection,
+  EditorPortalPenpalOptions,
+} from "./penpal";
+export { connectEditorHostToPortal, connectEditorPortalToHost } from "./penpal";

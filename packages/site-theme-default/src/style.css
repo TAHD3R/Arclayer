@@ -10,10 +10,26 @@
   color: var(--color-foreground, #111827);
 }
 
+[data-block-type="heading"][data-align="center"] {
+  text-align: center;
+}
+
+[data-block-type="heading"][data-align="right"] {
+  text-align: right;
+}
+
 [data-block-type="paragraph"] {
   margin: 0 0 12px;
   line-height: 1.6;
   color: var(--color-foreground, #111827);
+}
+
+[data-block-type="paragraph"][data-align="center"] {
+  text-align: center;
+}
+
+[data-block-type="paragraph"][data-align="right"] {
+  text-align: right;
 }
 
 [data-block-type="divider"] {

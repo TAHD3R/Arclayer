@@ -83,7 +83,7 @@ function renderCoreBlockUnsafe(node: CoreBlockNode, ctx: ViewerContext): React.R
         <Tag
           data-block-type={node.type}
           data-block-id={node.id}
-          style={node.props.align ? { textAlign: node.props.align } : undefined}
+          data-align={node.props.align ?? "left"}
         >
           {text}
         </Tag>
@@ -95,7 +95,7 @@ function renderCoreBlockUnsafe(node: CoreBlockNode, ctx: ViewerContext): React.R
         <p
           data-block-type={node.type}
           data-block-id={node.id}
-          style={node.props.align ? { textAlign: node.props.align } : undefined}
+          data-align={node.props.align ?? "left"}
         >
           {text}
         </p>

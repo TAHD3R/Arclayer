@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import secrets
+import time
 from typing import Literal
 
 from apps.api.common.services.base import BaseService
@@ -15,6 +17,7 @@ from apps.api.routers.v1.sites.schema import (
     HeadingBlockProps,
     ParagraphBlock,
     ParagraphBlockProps,
+    SitePreviewTokenOut,
     SiteResolveOut,
     SiteRouteMatchOut,
     SiteRouteResolveOut,
@@ -41,6 +44,29 @@ class SiteService(BaseService):
             raise Forbidden("Preview token required", error="PREVIEW_TOKEN_REQUIRED")
         if token not in DEMO_PREVIEW_TOKENS:
             raise Forbidden("Invalid preview token", error="PREVIEW_TOKEN_INVALID")
+
+    async def create_preview_token(self, *, site_id: str, ttl_seconds: int = 600) -> SitePreviewTokenOut:
+        """
+        Stub-only token issuer.
+
+        Sprint 2:
+        - No persistence.
+        - Tokens are stored in memory and lost on server restart.
+        - Suitable for local dev and protocol validation only.
+        """
+        _ = site_id
+
+        ttl = int(ttl_seconds)
+        if ttl < 60:
+            ttl = 60
+        if ttl > 60 * 60:
+            ttl = 60 * 60
+
+        token = secrets.token_urlsafe(24)
+        DEMO_PREVIEW_TOKENS.add(token)
+
+        expires_at_ms = int((time.time() + ttl) * 1000)
+        return SitePreviewTokenOut(site_id=DEMO_SITE_ID, token=token, expires_at_ms=expires_at_ms)
 
     async def resolve_site(self, *, host: str) -> SiteResolveOut:
         # Sprint 2/3: host -> siteId mapping will be backed by DB and domain verification.
