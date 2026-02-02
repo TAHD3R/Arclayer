@@ -1,3 +1,3 @@
 export default {
-  passToClient: ["urlOriginal"],
+  passToClient: ["urlOriginal", "viewerCtx"],
 };

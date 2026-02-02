@@ -18,3 +18,8 @@ Notes
 
 - Vike page entry is a catch-all route at `pages/app/+route.ts` to ensure any URL can be SSR-rendered.
 - TanStack Router does the actual routing inside the React shell (see `src/routes/**` and `src/router.ts`).
+
+Sprint 2 (work in progress)
+
+- Editor mode routes live under `/__editor/*` (portal-side only)
+- A local `postMessage` test harness is available at `/__editor-host`

@@ -16,6 +16,7 @@ export type {
   CoreBlockPropsByType,
 } from "./internal/core-blocks";
 export { DocumentRenderer } from "./internal/DocumentRenderer";
+export { isCoreBlockNode, isCoreDocumentIR } from "./internal/guards";
 
 export type { CssVarMap } from "./internal/theme/css-vars";
 export { serializeCssVarsToStyleText } from "./internal/theme/css-vars";

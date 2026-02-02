@@ -1,9 +1,10 @@
 import React from "react";
-import { createRootRoute, Outlet } from "@tanstack/react-router";
+import { createRootRouteWithContext, Outlet } from "@tanstack/react-router";
 
 import "@/assets/index.css";
+import type { PortalRouteContext } from "@/router";
 
-export const Route = createRootRoute({
+export const Route = createRootRouteWithContext<PortalRouteContext>()({
   component: RootLayout,
 });
 

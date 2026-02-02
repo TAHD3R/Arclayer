@@ -9,13 +9,32 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as EditorHostRouteImport } from './routes/editor-host'
+import { Route as SplatRouteImport } from './routes/$'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as EditorIndexRouteImport } from './routes/editor/index'
 import { Route as Debug500RouteImport } from './routes/debug/500'
 import { Route as Debug403RouteImport } from './routes/debug/403'
+import { Route as EditorSiteSiteIdRouteImport } from './routes/editor/site/$siteId'
 
+const EditorHostRoute = EditorHostRouteImport.update({
+  id: '/editor-host',
+  path: '/editor-host',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SplatRoute = SplatRouteImport.update({
+  id: '/$',
+  path: '/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EditorIndexRoute = EditorIndexRouteImport.update({
+  id: '/editor/',
+  path: '/editor/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const Debug500Route = Debug500RouteImport.update({
@@ -28,44 +47,108 @@ const Debug403Route = Debug403RouteImport.update({
   path: '/debug/403',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EditorSiteSiteIdRoute = EditorSiteSiteIdRouteImport.update({
+  id: '/editor/site/$siteId',
+  path: '/editor/site/$siteId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/$': typeof SplatRoute
+  '/editor-host': typeof EditorHostRoute
   '/debug/403': typeof Debug403Route
   '/debug/500': typeof Debug500Route
+  '/editor/': typeof EditorIndexRoute
+  '/editor/site/$siteId': typeof EditorSiteSiteIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/$': typeof SplatRoute
+  '/editor-host': typeof EditorHostRoute
   '/debug/403': typeof Debug403Route
   '/debug/500': typeof Debug500Route
+  '/editor': typeof EditorIndexRoute
+  '/editor/site/$siteId': typeof EditorSiteSiteIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/$': typeof SplatRoute
+  '/editor-host': typeof EditorHostRoute
   '/debug/403': typeof Debug403Route
   '/debug/500': typeof Debug500Route
+  '/editor/': typeof EditorIndexRoute
+  '/editor/site/$siteId': typeof EditorSiteSiteIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/debug/403' | '/debug/500'
+  fullPaths:
+    | '/'
+    | '/$'
+    | '/editor-host'
+    | '/debug/403'
+    | '/debug/500'
+    | '/editor/'
+    | '/editor/site/$siteId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/debug/403' | '/debug/500'
-  id: '__root__' | '/' | '/debug/403' | '/debug/500'
+  to:
+    | '/'
+    | '/$'
+    | '/editor-host'
+    | '/debug/403'
+    | '/debug/500'
+    | '/editor'
+    | '/editor/site/$siteId'
+  id:
+    | '__root__'
+    | '/'
+    | '/$'
+    | '/editor-host'
+    | '/debug/403'
+    | '/debug/500'
+    | '/editor/'
+    | '/editor/site/$siteId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  SplatRoute: typeof SplatRoute
+  EditorHostRoute: typeof EditorHostRoute
   Debug403Route: typeof Debug403Route
   Debug500Route: typeof Debug500Route
+  EditorIndexRoute: typeof EditorIndexRoute
+  EditorSiteSiteIdRoute: typeof EditorSiteSiteIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/editor-host': {
+      id: '/editor-host'
+      path: '/editor-host'
+      fullPath: '/editor-host'
+      preLoaderRoute: typeof EditorHostRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/$': {
+      id: '/$'
+      path: '/$'
+      fullPath: '/$'
+      preLoaderRoute: typeof SplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/editor/': {
+      id: '/editor/'
+      path: '/editor'
+      fullPath: '/editor/'
+      preLoaderRoute: typeof EditorIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/debug/500': {
@@ -82,13 +165,24 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Debug403RouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/editor/site/$siteId': {
+      id: '/editor/site/$siteId'
+      path: '/editor/site/$siteId'
+      fullPath: '/editor/site/$siteId'
+      preLoaderRoute: typeof EditorSiteSiteIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  SplatRoute: SplatRoute,
+  EditorHostRoute: EditorHostRoute,
   Debug403Route: Debug403Route,
   Debug500Route: Debug500Route,
+  EditorIndexRoute: EditorIndexRoute,
+  EditorSiteSiteIdRoute: EditorSiteSiteIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

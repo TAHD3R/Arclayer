@@ -10,6 +10,12 @@ export function getHardcodedDocument(): CoreDocumentIR {
     version: 1,
     meta: {
       title: { "zh-CN": "Celestial Portal", "en-US": "Celestial Portal" },
+      description: {
+        "zh-CN":
+          "Portal 端 Sprint 1：验证 vike SSR + TanStack Router + DocumentIR + CSS Variables。",
+        "en-US":
+          "Portal Sprint 1: validate vike SSR + TanStack Router + DocumentIR + CSS Variables.",
+      },
     },
     blocks: [
       {

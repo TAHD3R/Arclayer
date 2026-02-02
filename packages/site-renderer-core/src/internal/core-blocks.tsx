@@ -53,13 +53,25 @@ export interface CoreDocumentIR extends Omit<DocumentIR, "blocks"> {
 }
 
 export function renderCoreBlock(node: CoreBlockNode, ctx: ViewerContext): React.ReactNode {
+  try {
+    return renderCoreBlockUnsafe(node, ctx);
+  } catch (err) {
+    return renderBlockError(node, err);
+  }
+}
+
+function resolveText(value: LocalizedString, ctx: ViewerContext): string {
+  return resolveLocalizedValue(value, ctx) ?? "";
+}
+
+function renderCoreBlockUnsafe(node: CoreBlockNode, ctx: ViewerContext): React.ReactNode {
   switch (node.type) {
     case "container": {
       const Tag = node.props.as ?? "section";
       return (
         <Tag data-block-type={node.type} data-block-id={node.id} className={node.props.className}>
           {node.children?.map((child) => (
-            <React.Fragment key={child.id}>{renderUnknown(child, ctx)}</React.Fragment>
+            <React.Fragment key={child.id}>{renderCoreBlock(child, ctx)}</React.Fragment>
           ))}
         </Tag>
       );
@@ -103,15 +115,15 @@ export function renderCoreBlock(node: CoreBlockNode, ctx: ViewerContext): React.
   return assertUnreachable(node);
 }
 
-function resolveText(value: LocalizedString, ctx: ViewerContext): string {
-  return resolveLocalizedValue(value, ctx) ?? "";
-}
-
-function renderUnknown(node: CoreBlockNode, ctx: ViewerContext) {
-  // In Sprint 1 we only render core blocks. Unknown blocks should still be visible for debugging.
-  return renderCoreBlock(node, ctx);
-}
-
 function assertUnreachable(_value: never): never {
   throw new Error("Unreachable core block type");
+}
+
+function renderBlockError(node: CoreBlockNode, err: unknown): React.ReactNode {
+  const message = err instanceof Error ? err.message : String(err);
+  return (
+    <pre data-block-error="true" data-block-type={node.type} data-block-id={node.id}>
+      Block render error: {message}
+    </pre>
+  );
 }

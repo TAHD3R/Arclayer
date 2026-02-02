@@ -14,8 +14,9 @@ export function RouterDefaultError(props: ErrorComponentProps) {
   const err = props.error;
 
   const status = err instanceof HttpError ? err.status : 500;
-  const title = status === 403 ? "403" : "500";
-  const desc = status === 403 ? "Forbidden." : "Internal Server Error.";
+  const title = status === 403 ? "403" : status === 404 ? "404" : "500";
+  const desc =
+    status === 403 ? "Forbidden." : status === 404 ? "Page not found." : "Internal Server Error.";
 
   return (
     <div className="portal-error">
