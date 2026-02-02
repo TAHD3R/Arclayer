@@ -162,8 +162,8 @@ export function initializePreferences() {
   try {
     const stored = window.localStorage.getItem(STORAGE_KEYS.locale);
     if (stored) {
-      localePreference = normalizeLocale(stored);
-      initialLocale = localePreference;
+      initialLocale = normalizeLocale(stored);
+      localePreference = initialLocale;
     } else {
       initialLocale = getInitialLocale();
     }

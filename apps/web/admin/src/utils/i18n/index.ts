@@ -3,24 +3,15 @@ import { initReactI18next } from "react-i18next";
 
 import { STORAGE_KEYS } from "@/constants/storage";
 import { type AppLocale, I18N_NAMESPACES, i18nResources } from "@/utils/i18n/resources";
+import {
+  DEFAULT_LOCALE,
+  SUPPORTED_LOCALES,
+  detectBrowserLocale,
+  normalizeLocale,
+} from "@celestial/web-core/i18n";
 
 export type { AppLocale } from "@/utils/i18n/resources";
-
-export const SUPPORTED_LOCALES = ["zh-CN", "en-US"] as const satisfies readonly AppLocale[];
-export const DEFAULT_LOCALE: AppLocale = "zh-CN";
-
-export function normalizeLocale(input: unknown): AppLocale {
-  if (input === "zh-CN" || input === "en-US") return input;
-  return DEFAULT_LOCALE;
-}
-
-export function detectBrowserLocale(): AppLocale {
-  if (typeof navigator === "undefined") return DEFAULT_LOCALE;
-
-  const lang = (navigator.language || "").toLowerCase();
-  if (lang.startsWith("zh")) return "zh-CN";
-  return "en-US";
-}
+export { DEFAULT_LOCALE, SUPPORTED_LOCALES, detectBrowserLocale, normalizeLocale };
 
 export function getInitialLocale(): AppLocale {
   if (typeof window === "undefined") return DEFAULT_LOCALE;

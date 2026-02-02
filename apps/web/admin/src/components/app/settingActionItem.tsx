@@ -105,7 +105,13 @@ export function SettingActionItem(props: SettingActionItemProps) {
       <div
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
-        className={cn("w-full text-left", "transition-colors", "hover:bg-muted", props.className)}
+        className={cn(
+          "w-full text-left",
+          "transition-colors",
+          "hover:bg-muted",
+          "first:rounded-t-lg last:rounded-b-lg",
+          props.className,
+        )}
       >
         {inner}
       </div>
@@ -123,6 +129,7 @@ export function SettingActionItem(props: SettingActionItemProps) {
         "w-full text-left",
         "transition-colors",
         "hover:bg-muted",
+        "first:rounded-t-lg last:rounded-b-lg",
         "active:bg-muted/70 active:translate-y-px",
         "disabled:pointer-events-none disabled:opacity-60",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0",

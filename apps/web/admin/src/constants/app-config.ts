@@ -1,12 +1,7 @@
-export interface AppConfig {
-  title: string;
-  apiBaseUrl: string;
-  apiPrefix: string;
-}
+import { readRuntimeConfig, type AppConfig } from "@celestial/web-core/config";
 
 declare global {
   interface Window {
-    __APP_CONFIG__?: Partial<AppConfig>;
     __hideAppLoading?: () => void;
   }
 }
@@ -18,6 +13,5 @@ const DEFAULTS: AppConfig = {
 };
 
 export function getAppConfig(): AppConfig {
-  const runtime = typeof window !== "undefined" ? window.__APP_CONFIG__ : undefined;
-  return runtime ? { ...DEFAULTS, ...runtime } : DEFAULTS;
+  return readRuntimeConfig(DEFAULTS);
 }

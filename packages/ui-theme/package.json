@@ -10,8 +10,8 @@
     "./antd": "./src/antd-theme.ts"
   },
   "devDependencies": {
-    "antd": "^6.2.1",
-    "tailwindcss": "^4.1.18"
+    "antd": "catalog:",
+    "tailwindcss": "catalog:"
   },
   "peerDependencies": {
     "antd": "^6.2.1",

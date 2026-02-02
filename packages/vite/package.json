@@ -10,7 +10,7 @@
     "./inject-loading-screen": "./src/inject-loading-screen.ts"
   },
   "devDependencies": {
-    "vite": "^7.0.0"
+    "vite": "catalog:"
   },
   "peerDependencies": {
     "vite": "^7.0.0"

@@ -2,6 +2,13 @@
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "plugins": ["unicorn", "typescript", "oxc"],
   "categories": {},
+  "ignorePatterns": [
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/src/routeTree.gen.ts",
+    "**/auto-imports.d.ts",
+    "static/spotlight*/**"
+  ],
   "rules": {
     "constructor-super": "warn",
     "for-direction": "warn",
@@ -139,12 +146,5 @@
   "env": {
     "builtin": true
   },
-  "globals": {},
-  "ignorePatterns": [
-    "**/node_modules/**",
-    "**/dist/**",
-    "**/src/routeTree.gen.ts",
-    "**/auto-imports.d.ts",
-    "static/spotlight*/**"
-  ]
+  "globals": {}
 }

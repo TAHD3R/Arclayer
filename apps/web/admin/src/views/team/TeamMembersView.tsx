@@ -79,6 +79,12 @@ function userStatusTagColor(status: UserStatus): string {
   return "gold";
 }
 
+function membershipStatusTagColor(status: TeamMember["membershipStatus"]): string {
+  if (status === "active") return "green";
+  if (status === "invited") return "blue";
+  return "red";
+}
+
 export function TeamMembersView() {
   const { t } = useTranslation(["team", "common"]);
 
@@ -214,8 +220,8 @@ export function TeamMembersView() {
           const m = row.original;
           const primary = (m.displayName || m.username || m.email || "-").trim() || "-";
           const secondary = m.email || m.username || "";
-          const canEnable = m.userStatus !== "active";
-          const canDisable = m.userStatus === "active";
+          const canEnable = m.membershipStatus === "disabled";
+          const canDisable = m.membershipStatus === "active";
           const isSelf = currentUserId ? String(currentUserId) === String(m.userId) : false;
           const canEditMemberRoles = m.membershipStatus === "active";
 
@@ -344,15 +350,25 @@ export function TeamMembersView() {
         meta: { title: t("team:TEAM_TABLE_COL_STATUS") },
         header: t("team:TEAM_TABLE_COL_STATUS"),
         cell: ({ row }) => {
-          const s = row.original.userStatus;
+          const membership = row.original.membershipStatus;
+          const user = row.original.userStatus;
           return (
-            <Tag color={userStatusTagColor(s)} style={{ marginInlineEnd: 0 }}>
-              {s === "active"
-                ? t("team:TEAM_USER_STATUS_ACTIVE")
-                : s === "disabled"
-                  ? t("team:TEAM_USER_STATUS_DISABLED")
-                  : t("team:TEAM_USER_STATUS_LOCKED")}
-            </Tag>
+            <div className="flex flex-wrap items-center gap-1">
+              <Tag color={membershipStatusTagColor(membership)} style={{ marginInlineEnd: 0 }}>
+                {membership === "active"
+                  ? t("team:TEAM_MEMBERSHIP_STATUS_ACTIVE")
+                  : membership === "invited"
+                    ? t("team:TEAM_MEMBERSHIP_STATUS_INVITED")
+                    : t("team:TEAM_MEMBERSHIP_STATUS_DISABLED")}
+              </Tag>
+              <Tag color={userStatusTagColor(user)} style={{ marginInlineEnd: 0 }}>
+                {user === "active"
+                  ? t("team:TEAM_USER_STATUS_ACTIVE")
+                  : user === "disabled"
+                    ? t("team:TEAM_USER_STATUS_DISABLED")
+                    : t("team:TEAM_USER_STATUS_LOCKED")}
+              </Tag>
+            </div>
           );
         },
       },

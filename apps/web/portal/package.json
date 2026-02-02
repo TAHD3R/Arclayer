@@ -1,0 +1,30 @@
+{
+  "name": "@celestial/portal",
+  "version": "2026.02.02-dev",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node server/index.mjs",
+    "build": "vite build",
+    "typecheck": "tsc --noEmit --skipLibCheck",
+    "lint": "oxlint -c ./node_modules/@celestial/ox-config/.oxlintrc.json .",
+    "format": "oxfmt -c ./node_modules/@celestial/ox-config/.oxfmtrc.json ."
+  },
+  "dependencies": {
+    "@celestial/site-block-protocol": "workspace:*",
+    "@celestial/site-renderer-core": "workspace:*",
+    "@tanstack/react-router": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:"
+  },
+  "devDependencies": {
+    "@celestial/ox-config": "workspace:*",
+    "@celestial/vite": "workspace:*",
+    "@tanstack/router-plugin": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@vitejs/plugin-react-swc": "catalog:",
+    "vike": "catalog:",
+    "vite": "catalog:"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "@celestial/web-core",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./config": "./src/config/index.ts",
+    "./http": "./src/http/index.ts",
+    "./i18n": "./src/i18n/index.ts",
+    "./storage": "./src/storage/index.ts"
+  }
+}

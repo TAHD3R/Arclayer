@@ -20,7 +20,7 @@ import { getSetupStatus, setupSystem } from "@/api/system";
 import { notifyError, notifyErrorText, notifySuccessText } from "@/utils/notifications";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 
-const MAX_STEP: SetupWizardStep = 2;
+const MAX_STEP: SetupWizardStep = 3;
 
 export function SetupView() {
   const { t } = useTranslation();
@@ -78,7 +78,7 @@ export function SetupView() {
 
   // When entering Step 2 for the first time, seed sensible defaults.
   useEffect(() => {
-    if (step !== 1) return;
+    if (step !== 2) return;
 
     const username = (adminDraft.username || "").trim() || "admin";
 
@@ -108,7 +108,7 @@ export function SetupView() {
 
   // When entering Step 3 for the first time, seed sensible defaults.
   useEffect(() => {
-    if (step !== 2) return;
+    if (step !== 3) return;
 
     const preferredLocale = usePreferencesStore.getState().locale;
     // Product default: Asia/Shanghai. Keep it stable and predictable in setup.
@@ -134,11 +134,17 @@ export function SetupView() {
   const stageMeta = useMemo(() => {
     if (step === 0) {
       return {
+        title: t("setup:SETUP_STAGE_WELCOME_TITLE"),
+        description: t("setup:SETUP_STAGE_WELCOME_DESC"),
+      };
+    }
+    if (step === 1) {
+      return {
         title: t("setup:SETUP_STAGE_ADMIN_TITLE"),
         description: t("setup:SETUP_STAGE_ADMIN_DESC"),
       };
     }
-    if (step === 1) {
+    if (step === 2) {
       return {
         title: t("setup:SETUP_STAGE_SITE_TITLE"),
         description: t("setup:SETUP_STAGE_SITE_DESC"),
@@ -157,10 +163,10 @@ export function SetupView() {
 
   const onNext = async () => {
     // Gate step transitions on current step validation.
-    if (step === 0) {
+    if (step === 1) {
       await adminForm.validateFields();
     }
-    if (step === 1) {
+    if (step === 2) {
       await siteForm.validateFields();
     }
     const next = Math.min(MAX_STEP, step + 1) as SetupWizardStep;
@@ -250,100 +256,63 @@ export function SetupView() {
     }
   };
 
-  return (
-    <div className="w-full">
-      <Typography.Title level={1} style={{ marginTop: 0, marginBottom: 8, fontSize: 32 }}>
-        {stageMeta.title}
-      </Typography.Title>
-      <Typography.Paragraph
-        style={{
-          marginTop: 0,
-          marginBottom: 26,
-          color: "var(--color-muted-foreground)",
-          fontSize: 18,
-        }}
-      >
-        {stageMeta.description}
-      </Typography.Paragraph>
-
-      {setupEnabled === false ? (
-        <Alert
-          type="warning"
-          showIcon
-          message={t("setup:SETUP_DISABLED_TITLE")}
-          description={t("setup:SETUP_DISABLED_DESC")}
-          style={{ marginBottom: 12 }}
-        />
-      ) : null}
-
-      {access === "token" ? (
-        <Alert
-          type="info"
-          showIcon
-          message={t("setup:SETUP_TOKEN_HINT_TITLE")}
-          description={t("setup:SETUP_TOKEN_HINT_DESC")}
-          style={{ marginBottom: 12 }}
-        />
-      ) : null}
-
-      <Divider style={{ margin: "16px 0" }} />
-
-      {/* Step content */}
-      <MotionConfig transition={transition}>
-        <AnimatePresence mode="wait" initial={false}>
+  const welcomeStep = (
+    <MotionConfig transition={transition}>
+      <div className="min-h-[380px] flex flex-col items-center justify-center text-center">
+        <div className="w-full max-w-xl">
           <motion.div
-            key={step}
-            style={{ willChange: "transform, opacity" }}
-            initial={reducedMotion ? { opacity: 1 } : { opacity: 0, x: enterOffsetX }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={reducedMotion ? { opacity: 1 } : { opacity: 0, x: exitOffsetX }}
+            initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
           >
-            {step === 0 ? (
-              <SetupAdminStep
-                form={adminForm}
-                disabled={setupEnabled === false}
-                onValuesChange={(_changed, values) => {
-                  // Keep draft in store so it can be recalled across steps and used for final submission.
-                  patchAdmin(values);
-                }}
-              />
-            ) : step === 1 ? (
-              <SetupSiteStep
-                form={siteForm}
-                disabled={setupEnabled === false}
-                onValuesChange={(_changed, values) => patchSite(values)}
-              />
-            ) : (
-              <SetupDefaultsStep
-                form={defaultsForm}
-                disabled={setupEnabled === false}
-                onValuesChange={(_changed, values) => patchDefaults(values)}
-              />
-            )}
+            <div className="text-3xl font-semibold tracking-tight">
+              {t("setup:SETUP_STAGE_WELCOME_TITLE")}
+            </div>
           </motion.div>
-        </AnimatePresence>
-      </MotionConfig>
 
-      {step === 2 && access === "token" ? (
-        <div style={{ marginTop: 16 }}>
-          <Form.Item
-            label={t("setup:SETUP_FIELD_SETUP_TOKEN_LABEL")}
-            help={t("setup:SETUP_FIELD_SETUP_TOKEN_HELP")}
-            required
-            style={{ marginBottom: 0 }}
+          <motion.div
+            initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={reducedMotion ? undefined : { delay: 0.08 }}
           >
-            <Input.Password
-              value={setupToken}
-              onChange={(e) => setSetupToken(e.target.value)}
-              placeholder={t("setup:SETUP_FIELD_SETUP_TOKEN_PLACEHOLDER")}
-              autoComplete="off"
-              disabled={submitting}
-              size="large"
-            />
-          </Form.Item>
-        </div>
-      ) : null}
+            <div className="mt-3 text-base leading-relaxed text-muted-foreground">
+              {t("setup:SETUP_STAGE_WELCOME_DESC")}
+            </div>
+          </motion.div>
 
+          <motion.div
+            initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={reducedMotion ? undefined : { delay: 0.16 }}
+          >
+            <button
+              type="button"
+              disabled={setupEnabled === false || submitting}
+              onClick={() => setStep(1)}
+              className={[
+                "mt-8 w-full max-w-sm",
+                "inline-flex items-center justify-center",
+                "h-12 px-6 rounded-xl",
+                "bg-primary text-primary-foreground",
+                "font-semibold text-base",
+                "shadow-sm",
+                "transition-colors",
+                "hover:bg-primary/90",
+                "active:translate-y-px",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0",
+                "disabled:pointer-events-none disabled:opacity-60",
+              ].join(" ")}
+              aria-label={t("setup:SETUP_WELCOME_PRIMARY_ACTION")}
+            >
+              {t("setup:SETUP_WELCOME_PRIMARY_ACTION")}
+            </button>
+          </motion.div>
+        </div>
+      </div>
+    </MotionConfig>
+  );
+
+  const footer =
+    step === 0 ? null : (
       <div className="flex gap-2 justify-end" style={{ marginTop: 16 }}>
         <Button disabled={step <= 0 || submitting} onClick={onPrev}>
           {t("setup:SETUP_PREV")}
@@ -367,6 +336,109 @@ export function SetupView() {
           </Button>
         )}
       </div>
+    );
+
+  return (
+    <div className="w-full">
+      {step !== 0 ? (
+        <>
+          <Typography.Title level={1} style={{ marginTop: 0, marginBottom: 8, fontSize: 32 }}>
+            {stageMeta.title}
+          </Typography.Title>
+          <Typography.Paragraph
+            style={{
+              marginTop: 0,
+              marginBottom: 26,
+              color: "var(--color-muted-foreground)",
+              fontSize: 18,
+            }}
+          >
+            {stageMeta.description}
+          </Typography.Paragraph>
+
+          {setupEnabled === false ? (
+            <Alert
+              type="warning"
+              showIcon
+              message={t("setup:SETUP_DISABLED_TITLE")}
+              description={t("setup:SETUP_DISABLED_DESC")}
+              style={{ marginBottom: 12 }}
+            />
+          ) : null}
+
+          {access === "token" ? (
+            <Alert
+              type="info"
+              showIcon
+              message={t("setup:SETUP_TOKEN_HINT_TITLE")}
+              description={t("setup:SETUP_TOKEN_HINT_DESC")}
+              style={{ marginBottom: 12 }}
+            />
+          ) : null}
+
+          <Divider style={{ margin: "16px 0" }} />
+        </>
+      ) : null}
+
+      {/* Step content */}
+      <MotionConfig transition={transition}>
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={step}
+            style={{ willChange: "transform, opacity" }}
+            initial={reducedMotion ? { opacity: 1 } : { opacity: 0, x: enterOffsetX }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={reducedMotion ? { opacity: 1 } : { opacity: 0, x: exitOffsetX }}
+          >
+            {step === 0 ? (
+              welcomeStep
+            ) : step === 1 ? (
+              <SetupAdminStep
+                form={adminForm}
+                disabled={setupEnabled === false}
+                onValuesChange={(_changed, values) => {
+                  // Keep draft in store so it can be recalled across steps and used for final submission.
+                  patchAdmin(values);
+                }}
+              />
+            ) : step === 2 ? (
+              <SetupSiteStep
+                form={siteForm}
+                disabled={setupEnabled === false}
+                onValuesChange={(_changed, values) => patchSite(values)}
+              />
+            ) : (
+              <SetupDefaultsStep
+                form={defaultsForm}
+                disabled={setupEnabled === false}
+                onValuesChange={(_changed, values) => patchDefaults(values)}
+              />
+            )}
+          </motion.div>
+        </AnimatePresence>
+      </MotionConfig>
+
+      {step === MAX_STEP && access === "token" ? (
+        <div style={{ marginTop: 16 }}>
+          <Form.Item
+            label={t("setup:SETUP_FIELD_SETUP_TOKEN_LABEL")}
+            help={t("setup:SETUP_FIELD_SETUP_TOKEN_HELP")}
+            required
+            style={{ marginBottom: 0 }}
+          >
+            <Input.Password
+              value={setupToken}
+              onChange={(e) => setSetupToken(e.target.value)}
+              placeholder={t("setup:SETUP_FIELD_SETUP_TOKEN_PLACEHOLDER")}
+              autoComplete="off"
+              disabled={submitting}
+              size="large"
+            />
+          </Form.Item>
+        </div>
+      ) : null}
+
+      {footer}
     </div>
   );
 }

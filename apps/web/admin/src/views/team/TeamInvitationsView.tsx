@@ -1,6 +1,6 @@
 "use client";
 
-import { Avatar, Button as AntButton, Input, Modal, Pagination, Select } from "antd";
+import { Avatar, Button as AntButton, Input, Pagination, Select } from "antd";
 import { Link2Off, Plus, RotateCcw, Search } from "lucide-react";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
@@ -29,6 +29,14 @@ import {
   ChromeTabsTrigger,
 } from "@/components/ui/chrome-tabs";
 import { LoaderOne } from "@/components/ui/loader";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/animate-ui/components/radix/dialog";
 import {
   Table,
   TableBody,
@@ -103,6 +111,7 @@ export function TeamInvitationsView() {
   const [tab, setTab] = React.useState<TabKey>("pending");
   const [inviteOpen, setInviteOpen] = React.useState(false);
 
+  const [deleteInvitation, setDeleteInvitation] = React.useState<TeamInvitation | null>(null);
   const [renewInvitation, setRenewInvitation] = React.useState<TeamInvitation | null>(null);
   const [renewLink, setRenewLink] = React.useState<TeamInviteLink | null>(null);
   const [renewExpiresInSeconds, setRenewExpiresInSeconds] = React.useState<number | null>(
@@ -297,16 +306,7 @@ export function TeamInvitationsView() {
                 type="text"
                 danger
                 onClick={() => {
-                  Modal.confirm({
-                    title: t("team:TEAM_INVITATIONS_DELETE_TITLE"),
-                    content: t("team:TEAM_INVITATIONS_DELETE_DESC", { email: inv.email }),
-                    okText: t("team:TEAM_ACTION_DELETE"),
-                    cancelText: t("common:CANCEL"),
-                    okButtonProps: { danger: true },
-                    onOk: async () => {
-                      await deleteInvitationMutation.mutateAsync(inv.id);
-                    },
-                  });
+                  setDeleteInvitation(inv);
                 }}
               >
                 {t("team:TEAM_ACTION_DELETE")}
@@ -512,7 +512,10 @@ export function TeamInvitationsView() {
             size: params.size,
             q: params.q,
             mine: params.mine,
-          })
+          }).then((data) => ({
+            ...data,
+            items: (data.items ?? []).filter((it) => !it.disabledAt),
+          }))
         : Promise.reject(new Error("WORKSPACE_NOT_SELECTED")),
     queryOptions: {
       enabled: Boolean(workspaceId) && tab === "links",
@@ -727,71 +730,150 @@ export function TeamInvitationsView() {
         }}
       />
 
-      <Modal
-        open={Boolean(renewInvitation)}
-        title={t("team:TEAM_INVITATIONS_RENEW_TITLE")}
-        okText={t("team:TEAM_ACTION_RENEW")}
-        cancelText={t("common:CANCEL")}
-        confirmLoading={renewInvitationMutation.isPending}
-        onCancel={() => setRenewInvitation(null)}
-        onOk={async () => {
-          if (!renewInvitation) return;
-          await renewInvitationMutation.mutateAsync({
-            invitationId: renewInvitation.id,
-            expiresInSeconds: renewExpiresInSeconds,
-          });
-        }}
-        destroyOnHidden
+      <Dialog
+        open={Boolean(deleteInvitation)}
+        onOpenChange={(open) => (!open ? setDeleteInvitation(null) : null)}
       >
-        {renewInvitation ? (
-          <div className="space-y-3">
-            <div className="text-muted-foreground">
-              {t("team:TEAM_INVITATIONS_RENEW_DESC", { email: renewInvitation.email })}
-            </div>
-            <Select
-              value={renewExpiresInSeconds}
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              onChange={(v: any) => setRenewExpiresInSeconds(v === null ? null : Number(v))}
-              options={renewOptions}
-              style={{ width: "100%" }}
-              getPopupContainer={(node) => node.parentElement ?? document.body}
-            />
-          </div>
-        ) : null}
-      </Modal>
+        <DialogContent className="sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>{t("team:TEAM_INVITATIONS_DELETE_TITLE")}</DialogTitle>
+            <DialogDescription>
+              {deleteInvitation
+                ? t("team:TEAM_INVITATIONS_DELETE_DESC", { email: deleteInvitation.email })
+                : null}
+            </DialogDescription>
+          </DialogHeader>
 
-      <Modal
-        open={Boolean(renewLink)}
-        title={t("team:TEAM_INVITE_LINKS_RENEW_TITLE")}
-        okText={t("team:TEAM_ACTION_RENEW")}
-        cancelText={t("common:CANCEL")}
-        confirmLoading={renewLinkMutation.isPending}
-        onCancel={() => setRenewLink(null)}
-        onOk={async () => {
-          if (!renewLink) return;
-          await renewLinkMutation.mutateAsync({
-            linkId: renewLink.id,
-            expiresInSeconds: renewExpiresInSeconds,
-          });
-        }}
-        destroyOnHidden
+          <DialogFooter>
+            <AntButton
+              onClick={() => setDeleteInvitation(null)}
+              disabled={deleteInvitationMutation.isPending}
+            >
+              {t("common:CANCEL")}
+            </AntButton>
+            <AntButton
+              type="primary"
+              danger
+              loading={deleteInvitationMutation.isPending}
+              onClick={() => {
+                const inv = deleteInvitation;
+                if (!inv) return;
+                void deleteInvitationMutation
+                  .mutateAsync(inv.id)
+                  .then(() => setDeleteInvitation(null))
+                  .catch(() => undefined);
+              }}
+            >
+              {t("team:TEAM_ACTION_DELETE")}
+            </AntButton>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={Boolean(renewInvitation)}
+        onOpenChange={(open) => (!open ? setRenewInvitation(null) : null)}
       >
-        {renewLink ? (
-          <div className="space-y-3">
-            <div className="text-muted-foreground">
-              {t("team:TEAM_INVITE_LINKS_RENEW_DESC", { code: renewLink.displayCode })}
+        <DialogContent className="sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>{t("team:TEAM_INVITATIONS_RENEW_TITLE")}</DialogTitle>
+            <DialogDescription>
+              {renewInvitation
+                ? t("team:TEAM_INVITATIONS_RENEW_DESC", { email: renewInvitation.email })
+                : null}
+            </DialogDescription>
+          </DialogHeader>
+
+          {renewInvitation ? (
+            <div className="space-y-3 py-2">
+              <Select
+                value={renewExpiresInSeconds}
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                onChange={(v: any) => setRenewExpiresInSeconds(v === null ? null : Number(v))}
+                options={renewOptions}
+                style={{ width: "100%" }}
+                getPopupContainer={(node) => node.parentElement ?? document.body}
+              />
             </div>
-            <Select
-              value={renewExpiresInSeconds}
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              onChange={(v: any) => setRenewExpiresInSeconds(v === null ? null : Number(v))}
-              options={renewOptions}
-              style={{ width: "100%" }}
-              getPopupContainer={(node) => node.parentElement ?? document.body}
-            />
-          </div>
-        ) : null}
-      </Modal>
+          ) : null}
+
+          <DialogFooter>
+            <AntButton
+              onClick={() => setRenewInvitation(null)}
+              disabled={renewInvitationMutation.isPending}
+            >
+              {t("common:CANCEL")}
+            </AntButton>
+            <AntButton
+              type="primary"
+              loading={renewInvitationMutation.isPending}
+              onClick={() => {
+                const inv = renewInvitation;
+                if (!inv) return;
+                void renewInvitationMutation
+                  .mutateAsync({
+                    invitationId: inv.id,
+                    expiresInSeconds: renewExpiresInSeconds,
+                  })
+                  .catch(() => undefined);
+              }}
+            >
+              {t("team:TEAM_ACTION_RENEW")}
+            </AntButton>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={Boolean(renewLink)}
+        onOpenChange={(open) => (!open ? setRenewLink(null) : null)}
+      >
+        <DialogContent className="sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>{t("team:TEAM_INVITE_LINKS_RENEW_TITLE")}</DialogTitle>
+            <DialogDescription>
+              {renewLink
+                ? t("team:TEAM_INVITE_LINKS_RENEW_DESC", { code: renewLink.displayCode })
+                : null}
+            </DialogDescription>
+          </DialogHeader>
+
+          {renewLink ? (
+            <div className="space-y-3 py-2">
+              <Select
+                value={renewExpiresInSeconds}
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                onChange={(v: any) => setRenewExpiresInSeconds(v === null ? null : Number(v))}
+                options={renewOptions}
+                style={{ width: "100%" }}
+                getPopupContainer={(node) => node.parentElement ?? document.body}
+              />
+            </div>
+          ) : null}
+
+          <DialogFooter>
+            <AntButton onClick={() => setRenewLink(null)} disabled={renewLinkMutation.isPending}>
+              {t("common:CANCEL")}
+            </AntButton>
+            <AntButton
+              type="primary"
+              loading={renewLinkMutation.isPending}
+              onClick={() => {
+                const link = renewLink;
+                if (!link) return;
+                void renewLinkMutation
+                  .mutateAsync({
+                    linkId: link.id,
+                    expiresInSeconds: renewExpiresInSeconds,
+                  })
+                  .catch(() => undefined);
+              }}
+            >
+              {t("team:TEAM_ACTION_RENEW")}
+            </AntButton>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DefaultPage>
   );
 }

@@ -7,7 +7,7 @@ import { type AppLocale } from "@/utils/i18n";
  * - Should never be persisted to localStorage
  */
 
-export type SetupWizardStep = 0 | 1 | 2;
+export type SetupWizardStep = 0 | 1 | 2 | 3;
 
 export type SetupAccessMode = "local_only" | "token";
 
