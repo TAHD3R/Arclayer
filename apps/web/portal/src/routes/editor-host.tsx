@@ -1,13 +1,16 @@
 import React from "react";
 import { createFileRoute } from "@tanstack/react-router";
 
-import type { PortalToHostMessage } from "@celestial/site-editor-protocol";
 import type { HostToPortalMessage } from "@celestial/site-editor-protocol";
 import type { EditorOverlayMode } from "@celestial/site-editor-protocol";
 import type { CoreDocumentIR } from "@celestial/site-renderer-core";
+import {
+  createEditorPostMessageBridge,
+  createEditorRpcClient,
+  isPortalToHostMessage,
+} from "@celestial/site-editor-bridge";
 
 import { getHardcodedDocument } from "@/runtime/hardcoded-document";
-import { createEditorRpcClient } from "@/editor/rpc";
 
 export const Route = createFileRoute("/editor-host")({
   component: EditorHostPage,
@@ -87,38 +90,39 @@ function EditorHostPage() {
     if (!iframe) return;
 
     rpcRef.current = createEditorRpcClient({
-      expectedOrigin: window.location.origin,
       postMessage: postToIframeRaw,
     });
 
-    const handler = (ev: MessageEvent) => {
-      // Same-origin test harness only.
-      if (ev.origin !== window.location.origin) return;
-      const msg = ev.data as PortalToHostMessage;
-      if (!msg || typeof msg !== "object") return;
-      if (msg.version !== 1) return;
+    const bridge = createEditorPostMessageBridge({
+      expectedOrigin: window.location.origin,
+      targetOrigin: window.location.origin,
+      getTargetWindow: () => iframeRef.current?.contentWindow ?? null,
+    });
 
-      rpcRef.current?.onMessage(msg);
+    const unsubscribe = bridge.onMessage((msg) => {
+      if (!isPortalToHostMessage(msg)) return;
+      const portalMsg = msg;
+
+      rpcRef.current?.onPortalMessage(portalMsg);
       // Intentionally minimal: this page is only for validating the postMessage transport.
       // eslint-disable-next-line no-console
-      console.log("[portal editor host] message:", msg);
+      console.log("[portal editor host] message:", portalMsg);
 
       // The iframe may load fast enough that the `load` event is missed.
       // We ping again when we receive READY to make the handshake deterministic.
-      if (msg.type === "READY") {
+      if (portalMsg.type === "READY") {
         sendPing();
         // Ensure overlay mode is applied even if the iframe refreshes.
         postToIframe({ version: 1, type: "SET_OVERLAY_MODE", payload: { mode: overlayMode } });
       }
 
-      if (msg.type === "SELECTION_CHANGED") {
-        setSelectedBlockId(msg.payload.blockId);
+      if (portalMsg.type === "SELECTION_CHANGED") {
+        setSelectedBlockId(portalMsg.payload.blockId);
       }
-    };
+    });
 
-    window.addEventListener("message", handler);
     return () => {
-      window.removeEventListener("message", handler);
+      unsubscribe();
       rpcRef.current?.dispose();
       rpcRef.current = null;
     };

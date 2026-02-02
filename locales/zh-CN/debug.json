@@ -1,0 +1,20 @@
+{
+  "PORTAL_EDITOR_DEBUG_TITLE": "Portal 编辑器联调",
+  "PORTAL_ORIGIN": "Portal 地址",
+  "OVERLAY": "覆盖层",
+  "OVERLAY_OFF": "关闭覆盖层",
+  "OVERLAY_INSPECT": "检查模式",
+  "OVERLAY_EDIT": "编辑模式",
+  "PING": "Ping",
+  "PING_BUTTON": "Ping",
+  "PING_ERROR": "Ping 错误",
+  "PING_STATUS_ERROR": "错误",
+  "PING_STATUS_NA": "暂无",
+  "SELECTED": "选中",
+  "VALUE_NULL": "空",
+  "RESET_DRAFT": "重置草稿",
+  "PUSH_DRAFT_1": "推送草稿 #1",
+  "SELECT_B1_H1": "选中 b1-h1",
+  "SELECT_B1_P1": "选中 b1-p1",
+  "CLEAR_SELECTION": "取消选中"
+}

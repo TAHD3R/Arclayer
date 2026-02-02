@@ -1,0 +1,27 @@
+/* Default theme (v1 baseline).
+ *
+ * Keep this file focused on stable, reusable styling shared across Portal modes.
+ * App-specific UI (debug tools, admin shells) should live in the app layer.
+ */
+
+/* Core blocks (rendered by @celestial/site-renderer-core) */
+[data-block-type="heading"] {
+  margin: 0 0 12px;
+  color: var(--color-foreground, #111827);
+}
+
+[data-block-type="paragraph"] {
+  margin: 0 0 12px;
+  line-height: 1.6;
+  color: var(--color-foreground, #111827);
+}
+
+[data-block-type="divider"] {
+  border: 0;
+  border-top: 1px solid var(--color-border, rgba(17, 24, 39, 0.16));
+  margin: 24px 0;
+}
+
+[data-block-type="divider"][data-variant="subtle"] {
+  border-top-color: rgba(17, 24, 39, 0.1);
+}

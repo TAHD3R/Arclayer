@@ -5,31 +5,27 @@ import type {
 } from "@celestial/site-editor-protocol";
 
 export type EditorRpcClientOptions = {
-  expectedOrigin: string;
   postMessage: (msg: HostToPortalMessage) => void;
 };
 
 export type EditorRpcClient = {
-  ping: () => Promise<{ rttMs: number }>;
+  ping: (opts?: { timeoutMs?: number }) => Promise<{ rttMs: number }>;
   dispose: () => void;
-  onMessage: (msg: PortalToHostMessage) => void;
+  onPortalMessage: (msg: PortalToHostMessage) => void;
 };
 
 /**
- * Minimal RPC helper for Sprint 2 local harness.
+ * Minimal RPC helper for Sprint 2:
+ * - Deterministic "PING -> PONG" roundtrip, matching by requestId.
  *
- * Goals:
- * - Deterministic "PING -> PONG" roundtrip, matching by requestId
- * - No dependency on penpal yet
- *
- * Non-goals (Sprint 2):
- * - General request/response mapping for every message type
- * - Retry/backoff
+ * Note:
+ * - This is not a general-purpose RPC framework.
+ * - It exists so we can evolve the protocol without copying infra code between apps.
  */
 export function createEditorRpcClient(opts: EditorRpcClientOptions): EditorRpcClient {
   const pending = new Map<RpcRequestId, { sentAt: number; resolve: (rttMs: number) => void }>();
 
-  function onMessage(msg: PortalToHostMessage) {
+  function onPortalMessage(msg: PortalToHostMessage) {
     if (msg.version !== 1) return;
     if (msg.type !== "PONG") return;
     if (!msg.requestId) return;
@@ -40,7 +36,7 @@ export function createEditorRpcClient(opts: EditorRpcClientOptions): EditorRpcCl
     entry.resolve(Date.now() - entry.sentAt);
   }
 
-  async function ping(): Promise<{ rttMs: number }> {
+  async function ping(optsPing?: { timeoutMs?: number }): Promise<{ rttMs: number }> {
     const requestId = createRequestId();
     const sentAt = Date.now();
 
@@ -55,7 +51,7 @@ export function createEditorRpcClient(opts: EditorRpcClientOptions): EditorRpcCl
       payload: { sentAt },
     });
 
-    const rttMs = await withTimeout(p, 1500);
+    const rttMs = await withTimeout(p, optsPing?.timeoutMs ?? 1500);
     return { rttMs };
   }
 
@@ -63,7 +59,7 @@ export function createEditorRpcClient(opts: EditorRpcClientOptions): EditorRpcCl
     pending.clear();
   }
 
-  return { ping, dispose, onMessage };
+  return { ping, dispose, onPortalMessage };
 }
 
 function createRequestId(): RpcRequestId {

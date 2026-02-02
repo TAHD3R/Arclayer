@@ -5,7 +5,7 @@ import type { CoreDocumentIR } from "@celestial/site-renderer-core";
 import { isCoreDocumentIR } from "@celestial/site-renderer-core";
 
 import { getHardcodedDocument } from "@/runtime/hardcoded-document";
-import { createEditorPostMessageBridge } from "@/editor/postMessageBridge";
+import { createEditorPostMessageBridge, isHttpOrigin } from "@celestial/site-editor-bridge";
 import type { BlockId } from "@celestial/site-editor-protocol";
 import type { EditorOverlayMode } from "@celestial/site-editor-protocol";
 
@@ -31,9 +31,19 @@ function EditorSitePage() {
   }, [overlayMode]);
 
   React.useEffect(() => {
-    const bridge = createEditorPostMessageBridge({ expectedOrigin: window.location.origin });
+    const expectedOrigin = getParentOriginFromSearch() ?? window.location.origin;
+
+    const bridge = createEditorPostMessageBridge({
+      expectedOrigin,
+      targetOrigin: expectedOrigin,
+      getTargetWindow: () => {
+        if (typeof window === "undefined") return null;
+        if (!window.parent || window.parent === window) return null;
+        return window.parent;
+      },
+    });
     bridgeRef.current = bridge;
-    bridge.postToParent({ version: 1, type: "READY", payload: { readyAt: Date.now() } });
+    bridge.post({ version: 1, type: "READY", payload: { readyAt: Date.now() } });
     const unsubscribe = bridge.onMessage((msg, helpers) => {
       if (msg.type === "PING") {
         const pongBase = {
@@ -71,7 +81,7 @@ function EditorSitePage() {
   }, []);
 
   React.useEffect(() => {
-    bridgeRef.current?.postToParent({
+    bridgeRef.current?.post({
       version: 1,
       type: "SELECTION_CHANGED",
       payload: { blockId: selectedBlockId },
@@ -107,4 +117,15 @@ function escapeCssAttr(value: string): string {
   // Minimal escaping for CSS attribute selector usage inside a <style> tag.
   // We keep it small because block IDs are controlled by our system.
   return value.replaceAll("\\", "\\\\").replaceAll('"', '\\"').replaceAll("</style", "<\\/style");
+}
+
+function getParentOriginFromSearch(): string | null {
+  // Sprint 2: Admin and Portal can be cross-origin in local dev.
+  // The host passes its origin explicitly via query string: `?parentOrigin=...`.
+  // This makes the allowlist deterministic and avoids guessing via document.referrer.
+  if (typeof window === "undefined") return null;
+  const raw = new URLSearchParams(window.location.search).get("parentOrigin");
+  if (!raw) return null;
+  if (!isHttpOrigin(raw)) return null;
+  return raw;
 }

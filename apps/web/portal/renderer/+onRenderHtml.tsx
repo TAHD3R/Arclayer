@@ -1,15 +1,17 @@
 import React from "react";
 import ReactDOMServer from "react-dom/server";
 import { escapeInject, dangerouslySkipEscape } from "vike/server";
+import { redirect as vikeRedirect } from "vike/abort";
 
 import { PageShell } from "./PageShell";
 import { createPortalRouter } from "@/router";
 import { rewritePortalInputPathname } from "@/router/rewrite";
-import { getPortalRuntimeConfig } from "@/runtime/runtime-config";
+import { getPortalRuntimeConfigForSite } from "@/runtime/runtime-config";
 import { resolveLocalizedValue, serializeCssVarsToStyleText } from "@celestial/site-renderer-core";
 import type { LocalizedString, ViewerContext } from "@celestial/site-renderer-core";
 import { HttpError } from "@/router/routerFallbacks";
 import { DEFAULT_FALLBACK_LOCALE, detectRequestLocaleFromHeaders } from "@celestial/web-core/i18n";
+import { getPortalFallbackSiteId, resolveSiteFromApi } from "@/runtime/site-api";
 
 export { onRenderHtml };
 
@@ -23,12 +25,32 @@ type VikePageContextLike = {
   headers?: Record<string, string> | null;
   // Passed to the client via passToClient.
   viewerCtx?: { locale: "zh-CN" | "en-US"; fallbackLocale?: "zh-CN" | "en-US" };
+  siteCtx?: { siteId: string; defaultLocale: "zh-CN" | "en-US"; fallbackLocale: "zh-CN" | "en-US" };
 };
 
 async function onRenderHtml(pageContext: VikePageContextLike) {
+  const host = pageContext.headers?.host || "localhost";
+  const req = parsePortalRequest(pageContext.urlOriginal);
+
+  // Resolve site context (host -> siteId + locale defaults).
+  // If backend is temporarily unavailable, we keep a deterministic fallback but the loaders will still surface 503.
+  let siteCtx = pageContext.siteCtx;
+  if (!siteCtx) {
+    try {
+      siteCtx = await resolveSiteFromApi(host);
+    } catch {
+      siteCtx = {
+        siteId: getPortalFallbackSiteId(),
+        defaultLocale: "zh-CN",
+        fallbackLocale: DEFAULT_FALLBACK_LOCALE,
+      };
+    }
+  }
+  pageContext.siteCtx = siteCtx;
+
   const viewerCtx = pageContext.viewerCtx ?? {
     locale: detectRequestLocaleFromHeaders(pageContext.headers),
-    fallbackLocale: DEFAULT_FALLBACK_LOCALE,
+    fallbackLocale: siteCtx.fallbackLocale ?? DEFAULT_FALLBACK_LOCALE,
   };
   // Keep SSR/CSR consistent by serializing viewer context to the client.
   pageContext.viewerCtx = viewerCtx;
@@ -37,9 +59,17 @@ async function onRenderHtml(pageContext: VikePageContextLike) {
     kind: "server",
     url: pageContext.urlOriginal,
     viewerCtx,
+    siteCtx,
   });
 
   await router.load();
+
+  // If TanStack Router triggers a redirect during SSR (via loader throws),
+  // we must translate it to a real HTTP redirect response.
+  const redirectInfo = getRedirectFromRouter(router);
+  if (redirectInfo) {
+    throw vikeRedirect(redirectInfo.url, redirectInfo.statusCode);
+  }
 
   // Sync TanStack Router status to HTTP status code (SSR).
   // We mutate the pageContext because Vike computes `httpResponse.statusCode` from `pageContext.abortStatusCode`.
@@ -48,7 +78,10 @@ async function onRenderHtml(pageContext: VikePageContextLike) {
     pageContext.abortStatusCode = abortStatusCode;
   }
 
-  const runtimeConfig = getPortalRuntimeConfig();
+  const runtimeConfig = await getPortalRuntimeConfigForSite(siteCtx.siteId, {
+    mode: req.mode,
+    token: req.token,
+  });
   const cssVarStyleText = serializeCssVarsToStyleText(runtimeConfig.theme.cssVars);
   const fontFaceStyleText = serializeFontFacesToStyleText(runtimeConfig);
 
@@ -80,6 +113,53 @@ async function onRenderHtml(pageContext: VikePageContextLike) {
     </html>`;
 
   return { documentHtml };
+}
+
+function parsePortalRequest(urlOriginal: string): { mode: "public" | "preview"; token?: string } {
+  let url: URL;
+  try {
+    url = new URL(urlOriginal, "http://localhost");
+  } catch {
+    return { mode: "public" };
+  }
+
+  const pathname = url.pathname;
+  const token = url.searchParams.get("token") || undefined;
+
+  if (
+    pathname === "/__preview" ||
+    pathname.startsWith("/__preview/") ||
+    pathname === "/preview" ||
+    pathname.startsWith("/preview/")
+  ) {
+    return token ? { mode: "preview", token } : { mode: "preview" };
+  }
+  return { mode: "public" };
+}
+
+function getRedirectFromRouter(router: unknown): { url: string; statusCode: 301 | 302 } | null {
+  const r = router as { state?: unknown };
+  const state = r.state as { redirect?: unknown } | undefined;
+  const redirect = state?.redirect as any;
+  if (!redirect) return null;
+
+  // TanStack Router redirect is a Response with a Location header.
+  const headers = redirect.headers as unknown;
+  const getHeader =
+    headers && typeof headers === "object" && typeof (headers as any).get === "function"
+      ? (name: string) => String((headers as any).get(name) ?? "")
+      : null;
+
+  const locationFromHeader = getHeader ? getHeader("Location") : "";
+  const locationFromOptions =
+    typeof redirect.options?.href === "string" ? redirect.options.href : "";
+  const locationFromTo = typeof redirect.options?.to === "string" ? redirect.options.to : "";
+  const location = locationFromHeader || locationFromOptions || locationFromTo;
+  if (!location) return null;
+
+  const statusRaw = redirect.status as unknown;
+  const status = statusRaw === 301 ? 301 : 302;
+  return { url: location, statusCode: status };
 }
 
 function getSeoFromRouter(router: unknown): {

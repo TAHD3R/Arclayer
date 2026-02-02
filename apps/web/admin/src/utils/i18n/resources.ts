@@ -11,6 +11,7 @@ import zhAuth from "@locales/zh-CN/auth.json";
 import zhPlugin from "@locales/zh-CN/plugin.json";
 import zhInvite from "@locales/zh-CN/invite.json";
 import zhTeam from "@locales/zh-CN/team.json";
+import zhDebug from "@locales/zh-CN/debug.json";
 
 import enCommon from "@locales/en-US/common.json";
 import enNav from "@locales/en-US/nav.json";
@@ -25,6 +26,7 @@ import enAuth from "@locales/en-US/auth.json";
 import enPlugin from "@locales/en-US/plugin.json";
 import enInvite from "@locales/en-US/invite.json";
 import enTeam from "@locales/en-US/team.json";
+import enDebug from "@locales/en-US/debug.json";
 
 export const I18N_NAMESPACES = [
   "common",
@@ -32,6 +34,7 @@ export const I18N_NAMESPACES = [
   "setup",
   "invite",
   "team",
+  "debug",
   "settings",
   "account",
   "notifications",
@@ -49,6 +52,7 @@ export const i18nResources = {
     setup: zhSetup,
     invite: zhInvite,
     team: zhTeam,
+    debug: zhDebug,
     settings: zhSettings,
     account: zhAccount,
     notifications: zhNotifications,
@@ -64,6 +68,7 @@ export const i18nResources = {
     setup: enSetup,
     invite: enInvite,
     team: enTeam,
+    debug: enDebug,
     settings: enSettings,
     account: enAccount,
     notifications: enNotifications,

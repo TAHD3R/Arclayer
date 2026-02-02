@@ -12,7 +12,9 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as EditorHostRouteImport } from './routes/editor-host'
 import { Route as SplatRouteImport } from './routes/$'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as PreviewIndexRouteImport } from './routes/preview/index'
 import { Route as EditorIndexRouteImport } from './routes/editor/index'
+import { Route as PreviewSplatRouteImport } from './routes/preview/$'
 import { Route as Debug500RouteImport } from './routes/debug/500'
 import { Route as Debug403RouteImport } from './routes/debug/403'
 import { Route as EditorSiteSiteIdRouteImport } from './routes/editor/site/$siteId'
@@ -32,9 +34,19 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PreviewIndexRoute = PreviewIndexRouteImport.update({
+  id: '/preview/',
+  path: '/preview/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const EditorIndexRoute = EditorIndexRouteImport.update({
   id: '/editor/',
   path: '/editor/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PreviewSplatRoute = PreviewSplatRouteImport.update({
+  id: '/preview/$',
+  path: '/preview/$',
   getParentRoute: () => rootRouteImport,
 } as any)
 const Debug500Route = Debug500RouteImport.update({
@@ -59,7 +71,9 @@ export interface FileRoutesByFullPath {
   '/editor-host': typeof EditorHostRoute
   '/debug/403': typeof Debug403Route
   '/debug/500': typeof Debug500Route
+  '/preview/$': typeof PreviewSplatRoute
   '/editor/': typeof EditorIndexRoute
+  '/preview/': typeof PreviewIndexRoute
   '/editor/site/$siteId': typeof EditorSiteSiteIdRoute
 }
 export interface FileRoutesByTo {
@@ -68,7 +82,9 @@ export interface FileRoutesByTo {
   '/editor-host': typeof EditorHostRoute
   '/debug/403': typeof Debug403Route
   '/debug/500': typeof Debug500Route
+  '/preview/$': typeof PreviewSplatRoute
   '/editor': typeof EditorIndexRoute
+  '/preview': typeof PreviewIndexRoute
   '/editor/site/$siteId': typeof EditorSiteSiteIdRoute
 }
 export interface FileRoutesById {
@@ -78,7 +94,9 @@ export interface FileRoutesById {
   '/editor-host': typeof EditorHostRoute
   '/debug/403': typeof Debug403Route
   '/debug/500': typeof Debug500Route
+  '/preview/$': typeof PreviewSplatRoute
   '/editor/': typeof EditorIndexRoute
+  '/preview/': typeof PreviewIndexRoute
   '/editor/site/$siteId': typeof EditorSiteSiteIdRoute
 }
 export interface FileRouteTypes {
@@ -89,7 +107,9 @@ export interface FileRouteTypes {
     | '/editor-host'
     | '/debug/403'
     | '/debug/500'
+    | '/preview/$'
     | '/editor/'
+    | '/preview/'
     | '/editor/site/$siteId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -98,7 +118,9 @@ export interface FileRouteTypes {
     | '/editor-host'
     | '/debug/403'
     | '/debug/500'
+    | '/preview/$'
     | '/editor'
+    | '/preview'
     | '/editor/site/$siteId'
   id:
     | '__root__'
@@ -107,7 +129,9 @@ export interface FileRouteTypes {
     | '/editor-host'
     | '/debug/403'
     | '/debug/500'
+    | '/preview/$'
     | '/editor/'
+    | '/preview/'
     | '/editor/site/$siteId'
   fileRoutesById: FileRoutesById
 }
@@ -117,7 +141,9 @@ export interface RootRouteChildren {
   EditorHostRoute: typeof EditorHostRoute
   Debug403Route: typeof Debug403Route
   Debug500Route: typeof Debug500Route
+  PreviewSplatRoute: typeof PreviewSplatRoute
   EditorIndexRoute: typeof EditorIndexRoute
+  PreviewIndexRoute: typeof PreviewIndexRoute
   EditorSiteSiteIdRoute: typeof EditorSiteSiteIdRoute
 }
 
@@ -144,11 +170,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/preview/': {
+      id: '/preview/'
+      path: '/preview'
+      fullPath: '/preview/'
+      preLoaderRoute: typeof PreviewIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/editor/': {
       id: '/editor/'
       path: '/editor'
       fullPath: '/editor/'
       preLoaderRoute: typeof EditorIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/preview/$': {
+      id: '/preview/$'
+      path: '/preview/$'
+      fullPath: '/preview/$'
+      preLoaderRoute: typeof PreviewSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/debug/500': {
@@ -181,7 +221,9 @@ const rootRouteChildren: RootRouteChildren = {
   EditorHostRoute: EditorHostRoute,
   Debug403Route: Debug403Route,
   Debug500Route: Debug500Route,
+  PreviewSplatRoute: PreviewSplatRoute,
   EditorIndexRoute: EditorIndexRoute,
+  PreviewIndexRoute: PreviewIndexRoute,
   EditorSiteSiteIdRoute: EditorSiteSiteIdRoute,
 }
 export const routeTree = rootRouteImport

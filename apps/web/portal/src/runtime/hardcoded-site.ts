@@ -1,8 +1,16 @@
 import type { CoreDocumentIR } from "@celestial/site-renderer-core";
 
 import { getHardcodedDocument } from "./hardcoded-document";
+import { resolveRouteFromApi } from "./site-api";
+
+type ResolvedPublicRoute =
+  | { kind: "page"; document: CoreDocumentIR }
+  | { kind: "redirect"; to: string; status: 301 | 302 }
+  | { kind: "not_found" };
 
 type ResolvedHardcodedRoute = { kind: "page"; document: CoreDocumentIR } | { kind: "not_found" };
+
+export type PortalResolveMode = "public" | "preview";
 
 /**
  * Sprint 1/2: a deterministic, hardcoded route resolver.
@@ -114,6 +122,14 @@ export function resolveHardcodedPublicRoute(pathnameRaw: string): ResolvedHardco
   }
 
   return { kind: "not_found" };
+}
+
+export async function resolvePortalRoute(
+  pathnameRaw: string,
+  args: { siteId: string; mode: PortalResolveMode; token?: string },
+): Promise<ResolvedPublicRoute> {
+  const pathname = normalizePathname(pathnameRaw);
+  return await resolveRouteFromApi(pathname, args.siteId, { mode: args.mode, token: args.token });
 }
 
 function normalizePathname(pathnameRaw: string): string {

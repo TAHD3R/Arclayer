@@ -1,5 +1,17 @@
 # React + TypeScript + Vite
 
+## Portal Editor Debug (Sprint 2)
+
+This repo uses the Portal (SSR) as the source of truth for site rendering, and the Admin app hosts the Portal editor mode via an iframe.
+
+Debug route (requires login):
+
+- `/debug/portal-editor`
+
+Configure Portal origin in local dev:
+
+- `VITE_PORTAL_ORIGIN=http://localhost:3100`
+
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:

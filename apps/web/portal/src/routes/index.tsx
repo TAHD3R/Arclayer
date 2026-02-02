@@ -1,18 +1,25 @@
 import React from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { DocumentRenderer } from "@celestial/site-renderer-core";
 
-import { resolveHardcodedPublicRoute } from "@/runtime/hardcoded-site";
+import { resolvePortalRoute } from "@/runtime/hardcoded-site";
 import { HydrationStatus } from "@/components/HydrationStatus";
+import { HttpError } from "@/router/routerFallbacks";
 
 export const Route = createFileRoute("/")({
-  loader: () => {
-    // Sprint 1/2: hardcoded route resolver. Later replaced by backend route resolver.
-    const resolved = resolveHardcodedPublicRoute("/");
-    if (resolved.kind !== "page") {
-      // "/" is always expected to exist for the portal.
-      throw new Error("Invariant: home route must resolve to a page");
+  loader: async ({ context }) => {
+    // Sprint 1/2: route resolver (hardcoded by default; API-backed when enabled).
+    let resolved;
+    try {
+      resolved = await resolvePortalRoute("/", { siteId: context.siteCtx.siteId, mode: "public" });
+    } catch (err) {
+      throw new HttpError(503, err instanceof Error ? err.message : "Backend unavailable");
     }
+    if (resolved.kind === "redirect") {
+      // Use `href` so TanStack Router sets the Location header (needed for SSR -> real HTTP redirect).
+      throw redirect({ href: resolved.to, statusCode: resolved.status });
+    }
+    if (resolved.kind !== "page") throw new Error("Invariant: home route must resolve to a page");
     return { document: resolved.document };
   },
   component: IndexPage,

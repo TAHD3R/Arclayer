@@ -17,12 +17,13 @@ export function RouterDefaultError(props: ErrorComponentProps) {
   const title = status === 403 ? "403" : status === 404 ? "404" : "500";
   const desc =
     status === 403 ? "Forbidden." : status === 404 ? "Page not found." : "Internal Server Error.";
+  const isDev = import.meta.env.DEV;
 
   return (
     <div className="portal-error">
       <h1>{title}</h1>
       <p>{desc}</p>
-      <pre>{String(err instanceof Error ? err.message : err)}</pre>
+      {isDev ? <pre>{String(err instanceof Error ? err.message : err)}</pre> : null}
     </div>
   );
 }

@@ -15,10 +15,9 @@ export interface PortalRuntimeConfig {
 }
 
 /**
- * Sprint 1: hardcode runtime config to validate SSR head injection.
- * Future: fetch from API, domain resolver, or preview token.
+ * Default runtime config (used as a deterministic fallback).
  */
-export function getPortalRuntimeConfig(): PortalRuntimeConfig {
+function getDefaultPortalRuntimeConfig(): PortalRuntimeConfig {
   return {
     theme: {
       cssVars: {
@@ -35,4 +34,39 @@ export function getPortalRuntimeConfig(): PortalRuntimeConfig {
     // - then add a font entry here and include the family in --font-sans
     fonts: [],
   };
+}
+
+/**
+ * Portal is API-first (and API-only for content). Runtime theming should also come from API.
+ *
+ * We keep a deterministic fallback for resilience (theme tokens only; content still comes from API).
+ */
+export async function getPortalRuntimeConfig(): Promise<PortalRuntimeConfig> {
+  const { fetchRuntimeConfigFromApi, getPortalFallbackSiteId } = await import("./site-api");
+  try {
+    const siteId = getPortalFallbackSiteId();
+    const cfg = await fetchRuntimeConfigFromApi(siteId, { mode: "public" });
+    return {
+      theme: { cssVars: cfg.theme.cssVars },
+      fonts: cfg.fonts,
+    };
+  } catch {
+    return getDefaultPortalRuntimeConfig();
+  }
+}
+
+export async function getPortalRuntimeConfigForSite(
+  siteId: string,
+  opts: { mode: "public" | "preview"; token?: string },
+): Promise<PortalRuntimeConfig> {
+  const { fetchRuntimeConfigFromApi } = await import("./site-api");
+  try {
+    const cfg = await fetchRuntimeConfigFromApi(siteId, opts);
+    return {
+      theme: { cssVars: cfg.theme.cssVars },
+      fonts: cfg.fonts,
+    };
+  } catch {
+    return getDefaultPortalRuntimeConfig();
+  }
 }

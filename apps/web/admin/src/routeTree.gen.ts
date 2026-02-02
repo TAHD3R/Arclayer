@@ -20,6 +20,7 @@ import { Route as AssetsIndexRouteImport } from './routes/assets/index'
 import { Route as WWorkspaceIdRouteImport } from './routes/w/$workspaceId'
 import { Route as TeamMembersRouteImport } from './routes/team/members'
 import { Route as TeamInvitationsRouteImport } from './routes/team/invitations'
+import { Route as DebugPortalEditorRouteImport } from './routes/debug/portal-editor'
 import { Route as WWorkspaceIdIndexRouteImport } from './routes/w/$workspaceId/index'
 import { Route as SettingsWorkspaceIndexRouteImport } from './routes/settings/workspace/index'
 import { Route as SettingsSeoIndexRouteImport } from './routes/settings/seo/index'
@@ -105,6 +106,11 @@ const TeamMembersRoute = TeamMembersRouteImport.update({
 const TeamInvitationsRoute = TeamInvitationsRouteImport.update({
   id: '/team/invitations',
   path: '/team/invitations',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DebugPortalEditorRoute = DebugPortalEditorRouteImport.update({
+  id: '/debug/portal-editor',
+  path: '/debug/portal-editor',
   getParentRoute: () => rootRouteImport,
 } as any)
 const WWorkspaceIdIndexRoute = WWorkspaceIdIndexRouteImport.update({
@@ -288,6 +294,7 @@ export interface FileRoutesByFullPath {
   '/notifications': typeof NotificationsRoute
   '/reset-password': typeof ResetPasswordRoute
   '/setup': typeof SetupRoute
+  '/debug/portal-editor': typeof DebugPortalEditorRoute
   '/team/invitations': typeof TeamInvitationsRoute
   '/team/members': typeof TeamMembersRoute
   '/w/$workspaceId': typeof WWorkspaceIdRouteWithChildren
@@ -332,6 +339,7 @@ export interface FileRoutesByTo {
   '/notifications': typeof NotificationsRoute
   '/reset-password': typeof ResetPasswordRoute
   '/setup': typeof SetupRoute
+  '/debug/portal-editor': typeof DebugPortalEditorRoute
   '/team/invitations': typeof TeamInvitationsRoute
   '/team/members': typeof TeamMembersRoute
   '/assets': typeof AssetsIndexRoute
@@ -376,6 +384,7 @@ export interface FileRoutesById {
   '/notifications': typeof NotificationsRoute
   '/reset-password': typeof ResetPasswordRoute
   '/setup': typeof SetupRoute
+  '/debug/portal-editor': typeof DebugPortalEditorRoute
   '/team/invitations': typeof TeamInvitationsRoute
   '/team/members': typeof TeamMembersRoute
   '/w/$workspaceId': typeof WWorkspaceIdRouteWithChildren
@@ -422,6 +431,7 @@ export interface FileRouteTypes {
     | '/notifications'
     | '/reset-password'
     | '/setup'
+    | '/debug/portal-editor'
     | '/team/invitations'
     | '/team/members'
     | '/w/$workspaceId'
@@ -466,6 +476,7 @@ export interface FileRouteTypes {
     | '/notifications'
     | '/reset-password'
     | '/setup'
+    | '/debug/portal-editor'
     | '/team/invitations'
     | '/team/members'
     | '/assets'
@@ -509,6 +520,7 @@ export interface FileRouteTypes {
     | '/notifications'
     | '/reset-password'
     | '/setup'
+    | '/debug/portal-editor'
     | '/team/invitations'
     | '/team/members'
     | '/w/$workspaceId'
@@ -554,6 +566,7 @@ export interface RootRouteChildren {
   NotificationsRoute: typeof NotificationsRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SetupRoute: typeof SetupRoute
+  DebugPortalEditorRoute: typeof DebugPortalEditorRoute
   TeamInvitationsRoute: typeof TeamInvitationsRoute
   TeamMembersRoute: typeof TeamMembersRoute
   WWorkspaceIdRoute: typeof WWorkspaceIdRouteWithChildren
@@ -652,6 +665,13 @@ declare module '@tanstack/react-router' {
       path: '/team/invitations'
       fullPath: '/team/invitations'
       preLoaderRoute: typeof TeamInvitationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/debug/portal-editor': {
+      id: '/debug/portal-editor'
+      path: '/debug/portal-editor'
+      fullPath: '/debug/portal-editor'
+      preLoaderRoute: typeof DebugPortalEditorRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/w/$workspaceId/': {
@@ -932,6 +952,7 @@ const rootRouteChildren: RootRouteChildren = {
   NotificationsRoute: NotificationsRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SetupRoute: SetupRoute,
+  DebugPortalEditorRoute: DebugPortalEditorRoute,
   TeamInvitationsRoute: TeamInvitationsRoute,
   TeamMembersRoute: TeamMembersRoute,
   WWorkspaceIdRoute: WWorkspaceIdRouteWithChildren,

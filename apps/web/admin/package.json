@@ -18,6 +18,9 @@
   },
   "dependencies": {
     "@bprogress/react": "^1.2.7",
+    "@celestial/site-block-protocol": "workspace:*",
+    "@celestial/site-editor-bridge": "workspace:*",
+    "@celestial/site-editor-protocol": "workspace:*",
     "@celestial/ui-theme": "workspace:*",
     "@celestial/web-core": "workspace:*",
     "@dnd-kit/core": "^6.3.1",

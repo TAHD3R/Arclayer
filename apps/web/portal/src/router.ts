@@ -3,6 +3,7 @@ import { createMemoryHistory, createRouter } from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";
 import { RouterDefaultError, RouterDefaultNotFound } from "./router/routerFallbacks";
 import { rewritePortalInputPathname, rewritePortalOutputPathname } from "./router/rewrite";
+import type { PortalSiteContext } from "@/runtime/site-api";
 
 export type PortalRouter = ReturnType<typeof createPortalRouter>;
 
@@ -13,12 +14,14 @@ export type PortalViewerContext = {
 
 export type PortalRouteContext = {
   viewerCtx: PortalViewerContext;
+  siteCtx: PortalSiteContext;
 };
 
 export function createPortalRouter(args: {
   kind: "server" | "client";
   url: string;
   viewerCtx: PortalViewerContext;
+  siteCtx: PortalSiteContext;
 }) {
   const isServer = args.kind === "server";
 
@@ -26,6 +29,7 @@ export function createPortalRouter(args: {
     routeTree,
     context: {
       viewerCtx: args.viewerCtx,
+      siteCtx: args.siteCtx,
     } satisfies PortalRouteContext,
     rewrite: {
       // Sprint 2+ (editor mode): keep `/__editor/*` as a public namespace while our file-based routes
@@ -54,6 +58,7 @@ export function createPortalRouter(args: {
       history,
       context: {
         viewerCtx: args.viewerCtx,
+        siteCtx: args.siteCtx,
       },
     });
   }

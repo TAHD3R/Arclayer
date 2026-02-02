@@ -1,4 +1,5 @@
 import http from "node:http";
+import https from "node:https";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -6,6 +7,11 @@ import { createDevMiddleware, renderPage } from "vike/server";
 
 const PORT = Number.parseInt(process.env.PORT || "3100", 10);
 const isProd = process.env.NODE_ENV === "production";
+// Keep env naming consistent with Admin:
+// - VITE_API_PROXY_TARGET is shared across apps
+// - PORTAL_API_PROXY_TARGET is kept as a backwards-compatible fallback
+const apiProxyTarget =
+  process.env.VITE_API_PROXY_TARGET || process.env.PORTAL_API_PROXY_TARGET || "";
 
 start().catch((err) => {
   console.error(err);
@@ -23,6 +29,13 @@ async function start() {
       if (!req.url) {
         res.statusCode = 400;
         res.end("Bad Request");
+        return;
+      }
+
+      // Optional: proxy API calls to the FastAPI backend so browser requests remain same-origin.
+      // This is intentionally opt-in to avoid surprises in production deployments.
+      if (apiProxyTarget && req.url.startsWith("/api/")) {
+        await proxyHttpRequest(req, res, apiProxyTarget);
         return;
       }
 
@@ -151,4 +164,49 @@ function guessContentType(filePath) {
     default:
       return "application/octet-stream";
   }
+}
+
+async function proxyHttpRequest(req, res, targetOrigin) {
+  // Minimal proxy to keep local dev flows smooth (Portal SSR + API on different ports).
+  // For production deployments, prefer a real reverse proxy (nginx/caddy) instead.
+  let target;
+  try {
+    target = new URL(targetOrigin);
+  } catch {
+    res.statusCode = 500;
+    res.end("Invalid VITE_API_PROXY_TARGET");
+    return;
+  }
+
+  const isHttps = target.protocol === "https:";
+  const lib = isHttps ? https : http;
+
+  const url = new URL(req.url, target);
+  const headers = { ...req.headers };
+  headers.host = target.host;
+
+  const proxyReq = lib.request(
+    {
+      protocol: target.protocol,
+      hostname: target.hostname,
+      port: target.port || (isHttps ? 443 : 80),
+      method: req.method,
+      path: url.pathname + url.search,
+      headers,
+    },
+    (proxyRes) => {
+      res.statusCode = proxyRes.statusCode || 502;
+      for (const [k, v] of Object.entries(proxyRes.headers)) {
+        if (v !== undefined) res.setHeader(k, v);
+      }
+      proxyRes.pipe(res);
+    },
+  );
+
+  proxyReq.on("error", () => {
+    res.statusCode = 502;
+    res.end("Bad Gateway");
+  });
+
+  req.pipe(proxyReq);
 }

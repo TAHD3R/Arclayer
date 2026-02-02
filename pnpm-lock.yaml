@@ -100,6 +100,15 @@ importers:
       '@bprogress/react':
         specifier: ^1.2.7
         version: 1.2.7(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      '@celestial/site-block-protocol':
+        specifier: workspace:*
+        version: link:../../../packages/site-block-protocol
+      '@celestial/site-editor-bridge':
+        specifier: workspace:*
+        version: link:../../../packages/site-editor-bridge
+      '@celestial/site-editor-protocol':
+        specifier: workspace:*
+        version: link:../../../packages/site-editor-protocol
       '@celestial/ui-theme':
         specifier: workspace:*
         version: link:../../../packages/ui-theme
@@ -275,12 +284,18 @@ importers:
       '@celestial/site-block-protocol':
         specifier: workspace:*
         version: link:../../../packages/site-block-protocol
+      '@celestial/site-editor-bridge':
+        specifier: workspace:*
+        version: link:../../../packages/site-editor-bridge
       '@celestial/site-editor-protocol':
         specifier: workspace:*
         version: link:../../../packages/site-editor-protocol
       '@celestial/site-renderer-core':
         specifier: workspace:*
         version: link:../../../packages/site-renderer-core
+      '@celestial/site-theme-default':
+        specifier: workspace:*
+        version: link:../../../packages/site-theme-default
       '@celestial/web-core':
         specifier: workspace:*
         version: link:../../../packages/web-core
@@ -323,6 +338,12 @@ importers:
 
   packages/site-block-protocol: {}
 
+  packages/site-editor-bridge:
+    dependencies:
+      '@celestial/site-editor-protocol':
+        specifier: workspace:*
+        version: link:../site-editor-protocol
+
   packages/site-editor-protocol:
     dependencies:
       '@celestial/site-block-protocol':
@@ -344,6 +365,8 @@ importers:
       '@types/react-dom':
         specifier: 'catalog:'
         version: 19.2.3(@types/react@19.2.9)
+
+  packages/site-theme-default: {}
 
   packages/ui-theme:
     devDependencies:

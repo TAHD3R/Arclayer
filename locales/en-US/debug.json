@@ -1,0 +1,20 @@
+{
+  "PORTAL_EDITOR_DEBUG_TITLE": "Portal Editor Debug",
+  "PORTAL_ORIGIN": "Portal origin",
+  "OVERLAY": "Overlay",
+  "OVERLAY_OFF": "Overlay off",
+  "OVERLAY_INSPECT": "Inspect",
+  "OVERLAY_EDIT": "Edit",
+  "PING": "Ping",
+  "PING_BUTTON": "Ping",
+  "PING_ERROR": "Ping error",
+  "PING_STATUS_ERROR": "error",
+  "PING_STATUS_NA": "n/a",
+  "SELECTED": "Selected",
+  "VALUE_NULL": "null",
+  "RESET_DRAFT": "Reset draft",
+  "PUSH_DRAFT_1": "Push draft #1",
+  "SELECT_B1_H1": "Select b1-h1",
+  "SELECT_B1_P1": "Select b1-p1",
+  "CLEAR_SELECTION": "Clear selection"
+}
