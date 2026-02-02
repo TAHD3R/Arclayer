@@ -4,7 +4,17 @@ import { useTranslation } from "react-i18next";
 
 import type { DocumentIR } from "@celestial/site-block-protocol";
 import type { EditorOverlayMode } from "@celestial/site-editor-protocol";
-import { connectEditorHostToPortal, isHttpOrigin } from "@celestial/site-editor-bridge";
+import {
+  buildEditorIframeHref,
+  createEditorHostConnector,
+  isHttpOrigin,
+  normalizePathname,
+} from "@celestial/site-editor-bridge";
+import type {
+  EditorHostConnector,
+  EditorHostPenpalConnection,
+} from "@celestial/site-editor-bridge";
+import { ApiError } from "@celestial/web-core/http";
 
 import { api } from "@/lib/http/client";
 
@@ -47,15 +57,16 @@ function PortalEditorDebugPage() {
 
   const iframeSrc = React.useMemo(() => {
     if (!hostOrigin) return `${portalOrigin}/__editor/site/demo`;
-    const url = new URL(
-      `${portalOrigin}/__editor/site/demo${normalizePathname(pathname) === "/" ? "" : normalizePathname(pathname)}`,
-    );
     // Token is required for editor mode; allow overriding via debug page query (?token=...).
     const tokenFromUrl = new URLSearchParams(window.location.search).get("token");
     const token = tokenFromUrl || previewToken || "demo";
-    url.searchParams.set("token", token);
-    url.searchParams.set("parentOrigin", hostOrigin);
-    return url.toString();
+    return buildEditorIframeHref({
+      portalOrigin,
+      siteId: "demo",
+      pathname,
+      token,
+      parentOrigin: hostOrigin,
+    });
   }, [hostOrigin, pathname, portalOrigin, previewToken]);
 
   React.useEffect(() => {
@@ -107,11 +118,17 @@ function PortalEditorDebugPage() {
     overlayModeRef.current = overlayMode;
   }, [overlayMode]);
 
-  const portalRef = React.useRef<
-    Awaited<ReturnType<typeof connectEditorHostToPortal>>["portal"] | null
-  >(null);
-  const destroyRef = React.useRef<(() => void) | null>(null);
+  const portalRef = React.useRef<EditorHostPenpalConnection["portal"] | null>(null);
+  const connectorRef = React.useRef<EditorHostConnector | null>(null);
   const pingSeqRef = React.useRef(0);
+
+  React.useEffect(() => {
+    return () => {
+      portalRef.current = null;
+      connectorRef.current?.disconnect();
+      connectorRef.current = null;
+    };
+  }, []);
 
   const sendPing = React.useCallback(async (opts?: { silent?: boolean }) => {
     const portal = portalRef.current;
@@ -145,108 +162,96 @@ function PortalEditorDebugPage() {
   const baseDoc = React.useMemo(() => buildDebugBaseDocument(), []);
   const draftDoc1 = React.useMemo(() => buildDebugDraftDocument1(), []);
 
-  const pushDraft = React.useCallback((document: DocumentIR) => {
-    void portalRef.current?.pushDraftDocument({ document, pathname: "/" });
-  }, []);
-
-  React.useEffect(() => {
-    const iframe = iframeRef.current;
-    if (!iframe) return;
-
-    let mounted = true;
-
-    void (async () => {
-      const conn = await connectEditorHostToPortal({
-        iframe,
-        methods: {
-          ready: ({ readyAt }) => {
-            // eslint-disable-next-line no-console
-            console.log("[admin portal-editor] ready:", { readyAt });
-          },
-          selectionChanged: ({ blockId }) => {
-            setSelectedBlockId(blockId);
-          },
-          requestSave: ({ siteId, pathname, document }) => {
-            void (async () => {
-              try {
-                setSaveStatus("saving");
-                setSaveError(null);
-                const tokenFromUrl = new URLSearchParams(window.location.search).get("token");
-                const token = tokenFromUrl || previewTokenRef.current || "demo";
-                const expectedRevision = draftRevisionsRef.current.get(pathname) ?? null;
-                const out = await api.post<{ path: string; revision: number; savedAtMs: number }>(
-                  `/sites/${encodeURIComponent(siteId)}/routes/draft?token=${encodeURIComponent(token)}`,
-                  {
-                    path: pathname,
-                    document,
-                    ...(expectedRevision ? { expectedRevision } : {}),
-                  },
-                );
-                setLastSave({
-                  pathname: out.path,
-                  revision: out.revision,
-                  savedAtMs: out.savedAtMs,
-                });
-                draftRevisionsRef.current.set(out.path, out.revision);
-                setSaveStatus("idle");
-              } catch (err) {
-                setSaveStatus("error");
-                setSaveError(err instanceof Error ? err.message : String(err));
-              }
-            })();
-          },
-          reportPresence: ({ presence }) => {
-            setLastPresence({
-              pathname: presence.pathname,
-              overlayMode: presence.overlayMode,
-              selectedBlockId: presence.selectedBlockId,
-              hasDraftOverride: presence.hasDraftOverride,
-              updatedAtMs: presence.updatedAtMs,
-            });
-          },
-        },
-        childOrigin: portalOrigin,
+  const pushDraft = React.useCallback(
+    (document: DocumentIR) => {
+      void portalRef.current?.pushDraftDocument({
+        document,
+        pathname: normalizePathname(pathname),
       });
-
-      if (!mounted) {
-        conn.destroy();
-        return;
-      }
-      const version = await conn.portal.getProtocolVersion();
-      if (version !== 1) {
-        // eslint-disable-next-line no-console
-        console.error("[admin portal-editor] Unsupported protocol version:", version);
-        conn.destroy();
-        return;
-      }
-      portalRef.current = conn.portal;
-      destroyRef.current = conn.destroy;
-
-      void sendPing({ silent: true });
-      void conn.portal.setOverlayMode({ mode: overlayModeRef.current });
-    })();
-
-    return () => {
-      mounted = false;
-      portalRef.current = null;
-      destroyRef.current?.();
-      destroyRef.current = null;
-    };
-  }, [portalOrigin, sendPing]);
+    },
+    [pathname],
+  );
 
   React.useEffect(() => {
     const iframe = iframeRef.current;
     if (!iframe) return;
+
+    const connector = createEditorHostConnector({
+      iframe,
+      childOrigin: portalOrigin,
+      methods: {
+        ready: ({ readyAt }) => {
+          // eslint-disable-next-line no-console
+          console.log("[admin portal-editor] ready:", { readyAt });
+        },
+        selectionChanged: ({ blockId }) => {
+          setSelectedBlockId(blockId);
+        },
+        requestSave: ({ siteId, pathname, document }) => {
+          void (async () => {
+            try {
+              setSaveStatus("saving");
+              setSaveError(null);
+              const tokenFromUrl = new URLSearchParams(window.location.search).get("token");
+              const token = tokenFromUrl || previewTokenRef.current || "demo";
+              const expectedRevision = draftRevisionsRef.current.get(pathname) ?? null;
+              const out = await api.post<{ path: string; revision: number; savedAtMs: number }>(
+                `/sites/${encodeURIComponent(siteId)}/routes/draft?token=${encodeURIComponent(token)}`,
+                {
+                  path: pathname,
+                  document,
+                  ...(expectedRevision ? { expectedRevision } : {}),
+                },
+              );
+              setLastSave({
+                pathname: out.path,
+                revision: out.revision,
+                savedAtMs: out.savedAtMs,
+              });
+              draftRevisionsRef.current.set(out.path, out.revision);
+              setSaveStatus("idle");
+            } catch (err) {
+              setSaveStatus("error");
+              setSaveError(formatSaveError(err, t));
+            }
+          })();
+        },
+        reportPresence: ({ presence }) => {
+          setLastPresence({
+            pathname: presence.pathname,
+            overlayMode: presence.overlayMode,
+            selectedBlockId: presence.selectedBlockId,
+            hasDraftOverride: presence.hasDraftOverride,
+            updatedAtMs: presence.updatedAtMs,
+          });
+        },
+      },
+      onConnected: async (portal) => {
+        portalRef.current = portal;
+        void sendPing({ silent: true });
+        await portal.setOverlayMode({ mode: overlayModeRef.current });
+      },
+    });
+
+    connectorRef.current = connector;
     const onLoad = () => {
-      void sendPing({ silent: true });
+      portalRef.current = null;
+      void connector.connect({ silent: true });
     };
     iframe.addEventListener("load", onLoad);
-    const timer = window.setTimeout(() => void sendPing({ silent: true }), 0);
+    const timer = window.setTimeout(() => {
+      portalRef.current = null;
+      void connector.connect({ silent: true });
+    }, 0);
+
     return () => {
       iframe.removeEventListener("load", onLoad);
       window.clearTimeout(timer);
+      portalRef.current = null;
+      connector.disconnect();
+      if (connectorRef.current === connector) connectorRef.current = null;
     };
-  }, [sendPing]);
+  }, [portalOrigin, sendPing]);
 
   return (
     <div className="flex h-dvh w-full flex-col">
@@ -277,32 +282,32 @@ function PortalEditorDebugPage() {
           {t("SELECTED")}: <code>{selectedBlockId ?? t("VALUE_NULL")}</code>
         </div>
         <div className="text-gray-600">
-          Path: <code>{normalizePathname(pathname)}</code>
+          {t("PATH_LABEL")}: <code>{normalizePathname(pathname)}</code>
         </div>
         <div className="text-gray-600">
-          Save:{" "}
+          {t("SAVE_LABEL")}:{" "}
           <code>
             {saveStatus === "saving"
-              ? "saving"
+              ? t("SAVE_STATUS_SAVING")
               : saveStatus === "error"
-                ? "error"
+                ? t("SAVE_STATUS_ERROR")
                 : lastSave
                   ? `rev ${lastSave.revision}`
-                  : "n/a"}
+                  : t("SAVE_STATUS_NA")}
           </code>
         </div>
         {saveError ? (
           <div className="text-red-600">
-            Save error: <code>{saveError}</code>
+            {t("SAVE_ERROR_LABEL")}: <code>{saveError}</code>
           </div>
         ) : null}
         {lastPresence ? (
           <div className="text-gray-600">
-            Presence:{" "}
+            {t("PRESENCE_LABEL")}:{" "}
             <code>
               {lastPresence.pathname} / {String(lastPresence.overlayMode)} /{" "}
-              {lastPresence.selectedBlockId ?? "null"} /{" "}
-              {lastPresence.hasDraftOverride ? "draft" : "base"}
+              {lastPresence.selectedBlockId ?? t("VALUE_NULL")} /{" "}
+              {lastPresence.hasDraftOverride ? t("PRESENCE_VALUE_DRAFT") : t("PRESENCE_VALUE_BASE")}
             </code>
           </div>
         ) : null}
@@ -310,28 +315,28 @@ function PortalEditorDebugPage() {
         <div className="mx-2 h-4 w-px bg-gray-200" aria-hidden="true" />
 
         <button className="rounded border px-2 py-1" type="button" onClick={() => setPathname("/")}>
-          Go /
+          {t("NAV_GO_HOME")}
         </button>
         <button
           className="rounded border px-2 py-1"
           type="button"
           onClick={() => setPathname("/about")}
         >
-          Go /about
+          {t("NAV_GO_ABOUT")}
         </button>
         <button
           className="rounded border px-2 py-1"
           type="button"
           onClick={() => setPathname("/blog/hello")}
         >
-          Go /blog/hello
+          {t("NAV_GO_BLOG_HELLO")}
         </button>
         <button
           className="rounded border px-2 py-1"
           type="button"
           onClick={() => setPathname("/old-about")}
         >
-          Go /old-about
+          {t("NAV_GO_OLD_ABOUT")}
         </button>
 
         <div className="mx-2 h-4 w-px bg-gray-200" aria-hidden="true" />
@@ -416,6 +421,25 @@ function PortalEditorDebugPage() {
   );
 }
 
+function formatSaveError(
+  err: unknown,
+  t: (key: string, vars?: Record<string, unknown>) => string,
+): string {
+  if (err instanceof ApiError && err.status === 409) {
+    const meta = err.meta;
+    if (meta && typeof meta === "object") {
+      const rec = meta as Record<string, unknown>;
+      const expected = rec.expectedRevision;
+      const current = rec.currentRevision;
+      if (typeof expected === "number" && typeof current === "number") {
+        return t("DRAFT_CONFLICT", { expected, current });
+      }
+    }
+    return t("DRAFT_CONFLICT_GENERIC");
+  }
+  return err instanceof Error ? err.message : String(err);
+}
+
 function buildDebugBaseDocument(): DocumentIR {
   return {
     version: 1,
@@ -484,8 +508,4 @@ function buildDebugDraftDocument1(): DocumentIR {
   };
 }
 
-function normalizePathname(pathnameRaw: string): string {
-  const pathname = pathnameRaw.startsWith("/") ? pathnameRaw : `/${pathnameRaw}`;
-  if (pathname === "/") return "/";
-  return pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
-}
+// normalizePathname is provided by @celestial/site-editor-bridge

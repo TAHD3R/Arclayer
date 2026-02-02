@@ -23,7 +23,7 @@ body {
 }
 
 [data-editor-overlay="true"] {
-  /* Sprint 2: overlay placeholder (no visible UI yet). */
+  /* Sprint 2: editor overlay layer (selection/hover rectangles). */
   position: fixed;
   inset: 0;
   pointer-events: none;
@@ -38,6 +38,49 @@ body {
   border: 2px solid var(--color-primary, #1677ff);
   border-radius: 8px;
   background: rgba(22, 119, 255, 0.06);
+}
+
+[data-editor-overlay-handle] {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--color-primary, #1677ff);
+  border: 2px solid var(--color-background, #ffffff);
+  box-sizing: border-box;
+}
+
+[data-editor-overlay-handle="nw"] {
+  top: -6px;
+  left: -6px;
+}
+[data-editor-overlay-handle="ne"] {
+  top: -6px;
+  right: -6px;
+}
+[data-editor-overlay-handle="sw"] {
+  bottom: -6px;
+  left: -6px;
+}
+[data-editor-overlay-handle="se"] {
+  bottom: -6px;
+  right: -6px;
+}
+
+[data-editor-overlay-label] {
+  position: absolute;
+  top: -24px;
+  left: 0;
+  padding: 3px 6px;
+  font-size: 11px;
+  line-height: 1;
+  color: #ffffff;
+  background: var(--color-primary, #1677ff);
+  border-radius: 6px;
+  white-space: nowrap;
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 [data-editor-overlay="hover"] {

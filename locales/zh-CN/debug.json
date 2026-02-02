@@ -17,4 +17,20 @@
   "SELECT_B1_H1": "选中 b1-h1",
   "SELECT_B1_P1": "选中 b1-p1",
   "CLEAR_SELECTION": "取消选中"
+  ,
+  "PATH_LABEL": "路径",
+  "SAVE_LABEL": "保存",
+  "SAVE_STATUS_SAVING": "保存中",
+  "SAVE_STATUS_ERROR": "错误",
+  "SAVE_STATUS_NA": "暂无",
+  "SAVE_ERROR_LABEL": "保存错误",
+  "PRESENCE_LABEL": "在线状态",
+  "PRESENCE_VALUE_DRAFT": "草稿",
+  "PRESENCE_VALUE_BASE": "基础",
+  "NAV_GO_HOME": "去 /",
+  "NAV_GO_ABOUT": "去 /about",
+  "NAV_GO_BLOG_HELLO": "去 /blog/hello",
+  "NAV_GO_OLD_ABOUT": "去 /old-about",
+  "DRAFT_CONFLICT": "草稿冲突：期望 {{expected}}，当前 {{current}}",
+  "DRAFT_CONFLICT_GENERIC": "草稿冲突（409）"
 }

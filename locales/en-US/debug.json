@@ -17,4 +17,20 @@
   "SELECT_B1_H1": "Select b1-h1",
   "SELECT_B1_P1": "Select b1-p1",
   "CLEAR_SELECTION": "Clear selection"
+  ,
+  "PATH_LABEL": "Path",
+  "SAVE_LABEL": "Save",
+  "SAVE_STATUS_SAVING": "saving",
+  "SAVE_STATUS_ERROR": "error",
+  "SAVE_STATUS_NA": "n/a",
+  "SAVE_ERROR_LABEL": "Save error",
+  "PRESENCE_LABEL": "Presence",
+  "PRESENCE_VALUE_DRAFT": "draft",
+  "PRESENCE_VALUE_BASE": "base",
+  "NAV_GO_HOME": "Go /",
+  "NAV_GO_ABOUT": "Go /about",
+  "NAV_GO_BLOG_HELLO": "Go /blog/hello",
+  "NAV_GO_OLD_ABOUT": "Go /old-about",
+  "DRAFT_CONFLICT": "Draft conflict: expected {{expected}}, current {{current}}",
+  "DRAFT_CONFLICT_GENERIC": "Draft conflict (409)"
 }

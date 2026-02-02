@@ -14,3 +14,5 @@ Non-goals (for now):
 Notes:
 - The message-based postMessage helpers are still available for low-level debugging.
 - Sprint 2+ uses Penpal for the actual Admin <-> Portal editor integration.
+- `url.ts` provides small URL helpers (pathname normalization, editor iframe href building) to avoid duplication.
+- `host-connector.ts` provides a tiny connection manager with reconnection-friendly semantics.

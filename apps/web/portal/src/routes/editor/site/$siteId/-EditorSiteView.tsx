@@ -314,7 +314,13 @@ export function EditorSiteView(props: EditorSiteViewProps) {
               width: `${selectedRect.width}px`,
               height: `${selectedRect.height}px`,
             }}
-          />
+          >
+            <div data-editor-overlay-handle="nw" />
+            <div data-editor-overlay-handle="ne" />
+            <div data-editor-overlay-handle="sw" />
+            <div data-editor-overlay-handle="se" />
+            {selectedBlockId ? <div data-editor-overlay-label>{selectedBlockId}</div> : null}
+          </div>
         ) : null}
       </div>
     </div>

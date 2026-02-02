@@ -14,9 +14,15 @@ export function RouterDefaultError(props: ErrorComponentProps) {
   const err = props.error;
 
   const status = err instanceof HttpError ? err.status : 500;
-  const title = status === 403 ? "403" : status === 404 ? "404" : "500";
+  const title = String(status);
   const desc =
-    status === 403 ? "Forbidden." : status === 404 ? "Page not found." : "Internal Server Error.";
+    status === 403
+      ? "Forbidden."
+      : status === 404
+        ? "Page not found."
+        : status === 500
+          ? "Internal Server Error."
+          : "Request failed.";
   const isDev = import.meta.env.DEV;
 
   return (

@@ -2,9 +2,18 @@ import React from "react";
 import { createFileRoute } from "@tanstack/react-router";
 
 import type { EditorOverlayMode } from "@celestial/site-editor-protocol";
+import type { EditorPresence, HostEditorRpcApi } from "@celestial/site-editor-protocol";
 import type { DocumentIR } from "@celestial/site-block-protocol";
 import type { CoreDocumentIR } from "@celestial/site-renderer-core";
-import { connectEditorHostToPortal } from "@celestial/site-editor-bridge";
+import {
+  buildEditorIframeHref,
+  createEditorHostConnector,
+  normalizePathname,
+} from "@celestial/site-editor-bridge";
+import type {
+  EditorHostConnector,
+  EditorHostPenpalConnection,
+} from "@celestial/site-editor-bridge";
 
 import { getHardcodedDocument } from "@/runtime/hardcoded-document";
 
@@ -15,6 +24,7 @@ export const Route = createFileRoute("/editor-host")({
 function EditorHostPage() {
   const iframeRef = React.useRef<HTMLIFrameElement | null>(null);
   const [overlayMode, setOverlayMode] = React.useState<EditorOverlayMode>("inspect");
+  const overlayModeRef = React.useRef<EditorOverlayMode>("inspect");
   const [selectedBlockId, setSelectedBlockId] = React.useState<string | null>(null);
   const [lastPingRttMs, setLastPingRttMs] = React.useState<number | null>(null);
   const [lastPingError, setLastPingError] = React.useState<string | null>(null);
@@ -37,16 +47,26 @@ function EditorHostPage() {
   const [saveError, setSaveError] = React.useState<string | null>(null);
   const draftRevisionsRef = React.useRef<Map<string, number>>(new Map());
 
-  const portalRef = React.useRef<
-    Awaited<ReturnType<typeof connectEditorHostToPortal>>["portal"] | null
-  >(null);
-  const destroyRef = React.useRef<(() => void) | null>(null);
+  const portalRef = React.useRef<EditorHostPenpalConnection["portal"] | null>(null);
+  const connectorRef = React.useRef<EditorHostConnector | null>(null);
 
   const pingSeqRef = React.useRef(0);
 
   React.useEffect(() => {
     previewTokenRef.current = previewToken;
   }, [previewToken]);
+
+  React.useEffect(() => {
+    overlayModeRef.current = overlayMode;
+  }, [overlayMode]);
+
+  React.useEffect(() => {
+    return () => {
+      portalRef.current = null;
+      connectorRef.current?.disconnect();
+      connectorRef.current = null;
+    };
+  }, []);
 
   const sendPing = React.useCallback(async (opts?: { silent?: boolean }) => {
     const portal = portalRef.current;
@@ -91,90 +111,56 @@ function EditorHostPage() {
     }
   }, []);
 
-  React.useEffect(() => {
-    const iframe = iframeRef.current;
-    if (!iframe) return;
-
-    let mounted = true;
-    void (async () => {
-      const conn = await connectEditorHostToPortal({
-        iframe,
-        childOrigin: window.location.origin,
-        methods: {
-          ready: ({ readyAt }) => {
-            // eslint-disable-next-line no-console
-            console.log("[portal editor host] ready:", { readyAt });
-            // We also ping/apply overlay after the portal proxy is available.
-          },
-          selectionChanged: ({ blockId }) => {
-            setSelectedBlockId(blockId);
-          },
-          requestSave: ({ siteId, pathname, document }) => {
-            void (async () => {
-              try {
-                setSaveStatus("saving");
-                setSaveError(null);
-                const token = previewTokenRef.current;
-                const expectedRevision = draftRevisionsRef.current.get(pathname) ?? null;
-                const payload = await saveRouteDraftToApi({
-                  siteId,
-                  pathname,
-                  token,
-                  document,
-                  expectedRevision,
-                });
-                if (!payload) throw new Error("Invalid save response");
-                setLastSave({
-                  pathname: payload.path,
-                  revision: payload.revision,
-                  savedAtMs: payload.savedAtMs,
-                });
-                draftRevisionsRef.current.set(payload.path, payload.revision);
-                setSaveStatus("idle");
-              } catch (err) {
-                setSaveStatus("error");
-                setSaveError(err instanceof Error ? err.message : String(err));
-              }
-            })();
-          },
-          reportPresence: ({ presence }) => {
-            setLastPresence({
-              pathname: presence.pathname,
-              overlayMode: presence.overlayMode,
-              selectedBlockId: presence.selectedBlockId,
-              hasDraftOverride: presence.hasDraftOverride,
-              updatedAtMs: presence.updatedAtMs,
-            });
-          },
-        },
-      });
-
-      if (!mounted) {
-        conn.destroy();
-        return;
-      }
-      const version = await conn.portal.getProtocolVersion();
-      if (version !== 1) {
+  const hostMethods = React.useMemo<HostEditorRpcApi>(
+    () => ({
+      ready: ({ readyAt }) => {
         // eslint-disable-next-line no-console
-        console.error("[portal editor host] Unsupported protocol version:", version);
-        conn.destroy();
-        return;
-      }
-      portalRef.current = conn.portal;
-      destroyRef.current = conn.destroy;
-
-      // Make the initial handshake deterministic even if READY races with the proxy setup.
-      void sendPing({ silent: true });
-      void conn.portal.setOverlayMode({ mode: overlayMode });
-    })();
-
-    return () => {
-      mounted = false;
-      portalRef.current = null;
-      destroyRef.current?.();
-      destroyRef.current = null;
-    };
-  }, [overlayMode, sendPing]);
+        console.log("[portal editor host] ready:", { readyAt });
+      },
+      selectionChanged: ({ blockId }) => {
+        setSelectedBlockId(blockId);
+      },
+      requestSave: ({ siteId, pathname, document }) => {
+        void (async () => {
+          try {
+            setSaveStatus("saving");
+            setSaveError(null);
+            const token = previewTokenRef.current;
+            const expectedRevision = draftRevisionsRef.current.get(pathname) ?? null;
+            const payload = await saveRouteDraftToApi({
+              siteId,
+              pathname,
+              token,
+              document,
+              expectedRevision,
+            });
+            if (!payload) throw new Error("Invalid save response");
+            setLastSave({
+              pathname: payload.path,
+              revision: payload.revision,
+              savedAtMs: payload.savedAtMs,
+            });
+            draftRevisionsRef.current.set(payload.path, payload.revision);
+            setSaveStatus("idle");
+          } catch (err) {
+            setSaveStatus("error");
+            setSaveError(err instanceof Error ? err.message : String(err));
+          }
+        })();
+      },
+      reportPresence: ({ presence }) => {
+        const p: EditorPresence = presence;
+        setLastPresence({
+          pathname: p.pathname,
+          overlayMode: p.overlayMode,
+          selectedBlockId: p.selectedBlockId,
+          hasDraftOverride: p.hasDraftOverride,
+          updatedAtMs: p.updatedAtMs,
+        });
+      },
+    }),
+    [],
+  );
 
   React.useEffect(() => {
     let mounted = true;
@@ -208,25 +194,38 @@ function EditorHostPage() {
     const iframe = iframeRef.current;
     if (!iframe) return;
 
-    const onLoad = () => {
-      // Best-effort ping: do not show timeout error if we race with READY/listeners during initial load.
-      void sendPing({ silent: true });
-    };
+    const connector = createEditorHostConnector({
+      iframe,
+      childOrigin: window.location.origin,
+      methods: hostMethods,
+      onConnected: async (portal) => {
+        portalRef.current = portal;
+        void sendPing({ silent: true });
+        await portal.setOverlayMode({ mode: overlayModeRef.current });
+      },
+    });
+    connectorRef.current = connector;
 
-    // Ensure the iframe is loaded before sending.
+    const onLoad = () => {
+      portalRef.current = null;
+      void connector.connect({ silent: true });
+    };
     iframe.addEventListener("load", onLoad);
 
-    // If the iframe is already loaded (or loads before the listener is attached), send a ping anyway.
-    // This is only for the local test harness and doesn't affect production editor mode behavior.
+    // Initial connect: we don't rely on load events.
     const timer = window.setTimeout(() => {
-      void sendPing({ silent: true });
+      portalRef.current = null;
+      void connector.connect({ silent: true });
     }, 0);
 
     return () => {
       iframe.removeEventListener("load", onLoad);
       window.clearTimeout(timer);
+      portalRef.current = null;
+      connector.disconnect();
+      if (connectorRef.current === connector) connectorRef.current = null;
     };
-  }, [sendPing]);
+  }, [hostMethods, sendPing]);
 
   const baseDoc = React.useMemo(() => getHardcodedDocument(), []);
   const draftDoc1 = React.useMemo<CoreDocumentIR>(() => {
@@ -242,23 +241,20 @@ function EditorHostPage() {
     next.blocks = baseDoc.blocks.map((b) => {
       if (b.type !== "container") return b;
       if (!b.children) return b;
-      return {
-        ...b,
+      return Object.assign({}, b, {
         children: b.children.map((c) => {
           if (c.type !== "heading") return c;
           if (c.id !== "b1-h1") return c;
-          return {
-            ...c,
-            props: {
-              ...c.props,
+          return Object.assign({}, c, {
+            props: Object.assign({}, c.props, {
               text: {
                 "zh-CN": "这是 Draft 标题（来自 Host）",
                 "en-US": "Draft heading (from host)",
               },
-            },
-          };
+            }),
+          });
         }),
-      };
+      });
     });
 
     return next;
@@ -372,7 +368,7 @@ function EditorHostPage() {
       <iframe
         ref={iframeRef}
         title="portal-editor-host"
-        src={toEditorHref({ siteId: "demo", pathname, token: previewToken })}
+        src={buildEditorIframeHref({ siteId: "demo", pathname, token: previewToken })}
         className="portal-editor-host-iframe"
       />
     </div>
@@ -452,19 +448,4 @@ function parseConflictMeta(
   if (typeof expectedRevision !== "number" || typeof currentRevision !== "number") return null;
   if (!Number.isFinite(expectedRevision) || !Number.isFinite(currentRevision)) return null;
   return { expectedRevision, currentRevision };
-}
-
-function normalizePathname(pathnameRaw: string): string {
-  const pathname = pathnameRaw.startsWith("/") ? pathnameRaw : `/${pathnameRaw}`;
-  if (pathname === "/") return "/";
-  return pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
-}
-
-function toEditorHref(args: { siteId: string; pathname: string; token: string }): string {
-  const pathname = normalizePathname(args.pathname);
-  const base = `/__editor/site/${encodeURIComponent(args.siteId)}`;
-  const pathPart = pathname === "/" ? "" : pathname;
-  const url = new URL(base + pathPart, "http://localhost");
-  url.searchParams.set("token", args.token);
-  return url.pathname + url.search;
 }
