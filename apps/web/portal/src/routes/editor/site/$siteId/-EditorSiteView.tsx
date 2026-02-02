@@ -3,6 +3,7 @@ import { DocumentRenderer } from "@celestial/site-renderer-core";
 import type { CoreDocumentIR } from "@celestial/site-renderer-core";
 import { isCoreDocumentIR } from "@celestial/site-renderer-core";
 
+import type { ViewerContext } from "@celestial/site-block-protocol";
 import type {
   BlockId,
   EditorOverlayMode,
@@ -13,14 +14,16 @@ import { connectEditorPortalToHost, isHttpOrigin } from "@celestial/site-editor-
 
 export interface EditorSiteViewProps {
   initialDocument: unknown;
-  viewerCtx: unknown;
+  viewerCtx: ViewerContext;
   pathname: string;
+  siteId: string;
 }
 
 export function EditorSiteView(props: EditorSiteViewProps) {
   const { initialDocument: initialDocumentUnknown } = props;
   const pathname = props.pathname;
-  const viewerCtx = props.viewerCtx as any;
+  const siteId = props.siteId;
+  const viewerCtx = props.viewerCtx;
 
   if (!isCoreDocumentIR(initialDocumentUnknown)) {
     // If we ever loosen the API schema, keep editor mode strict to avoid accepting arbitrary JSON.
@@ -38,6 +41,9 @@ export function EditorSiteView(props: EditorSiteViewProps) {
   const [hoveredBlockId, setHoveredBlockId] = React.useState<BlockId | null>(null);
   const hostRef = React.useRef<EditorPortalPenpalConnection["host"] | null>(null);
   const overlayModeRef = React.useRef<EditorOverlayMode>("inspect");
+  const pathnameRef = React.useRef<string>(pathname);
+  const hoverRafRef = React.useRef<number | null>(null);
+  const pendingHoverRef = React.useRef<BlockId | null>(null);
   const [selectedRect, setSelectedRect] = React.useState<{
     top: number;
     left: number;
@@ -56,6 +62,19 @@ export function EditorSiteView(props: EditorSiteViewProps) {
   }, [overlayMode]);
 
   React.useEffect(() => {
+    return () => {
+      if (hoverRafRef.current) {
+        window.cancelAnimationFrame(hoverRafRef.current);
+        hoverRafRef.current = null;
+      }
+    };
+  }, []);
+
+  React.useEffect(() => {
+    pathnameRef.current = pathname;
+  }, [pathname]);
+
+  React.useEffect(() => {
     // Route changed -> clear host overrides so we don't accidentally show a draft from another page.
     setDraftOverride(null);
     setSelectedBlockId(null);
@@ -63,6 +82,26 @@ export function EditorSiteView(props: EditorSiteViewProps) {
   }, [pathname]);
 
   const renderDocument = draftOverride ?? baseDocument;
+
+  React.useEffect(() => {
+    if (overlayMode === "off") return;
+
+    const onKeyDown = (ev: KeyboardEvent) => {
+      const isSave = (ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === "s";
+      if (!isSave) return;
+      ev.preventDefault();
+      ev.stopPropagation();
+
+      void hostRef.current?.requestSave({
+        siteId,
+        pathname,
+        document: renderDocument,
+      });
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [overlayMode, pathname, renderDocument, siteId]);
 
   React.useEffect(() => {
     let mounted = true;
@@ -95,7 +134,7 @@ export function EditorSiteView(props: EditorSiteViewProps) {
         // Host shells may pass `pathname` to prevent accidental cross-route overwrites.
         // We keep it strict: if pathname is provided and doesn't match, ignore.
         // (Normalize trailing slash at the resolver layer.)
-        if (incomingPathname && incomingPathname !== pathname) {
+        if (incomingPathname && incomingPathname !== pathnameRef.current) {
           return;
         }
         if (isCoreDocumentIR(document)) {
@@ -125,6 +164,22 @@ export function EditorSiteView(props: EditorSiteViewProps) {
   React.useEffect(() => {
     void hostRef.current?.selectionChanged({ blockId: selectedBlockId });
   }, [selectedBlockId]);
+
+  React.useEffect(() => {
+    const presence = {
+      siteId,
+      pathname,
+      overlayMode,
+      selectedBlockId,
+      hasDraftOverride: Boolean(draftOverride),
+      updatedAtMs: Date.now(),
+    };
+    // Throttle presence updates to avoid noisy iframe chatter.
+    const timer = window.setTimeout(() => {
+      void hostRef.current?.reportPresence({ presence });
+    }, 100);
+    return () => window.clearTimeout(timer);
+  }, [draftOverride, overlayMode, pathname, selectedBlockId, siteId]);
 
   React.useEffect(() => {
     if (overlayMode !== "inspect") {
@@ -222,9 +277,19 @@ export function EditorSiteView(props: EditorSiteViewProps) {
           const target = ev.target as HTMLElement | null;
           const el = target?.closest?.("[data-block-id]") as HTMLElement | null;
           const blockId = (el?.getAttribute("data-block-id") ?? null) as BlockId | null;
-          setHoveredBlockId(blockId);
+          pendingHoverRef.current = blockId;
+          if (hoverRafRef.current) return;
+          hoverRafRef.current = window.requestAnimationFrame(() => {
+            hoverRafRef.current = null;
+            setHoveredBlockId(pendingHoverRef.current);
+          });
         }}
         onMouseLeave={() => {
+          pendingHoverRef.current = null;
+          if (hoverRafRef.current) {
+            window.cancelAnimationFrame(hoverRafRef.current);
+            hoverRafRef.current = null;
+          }
           setHoveredBlockId(null);
         }}
       >
@@ -261,9 +326,8 @@ function getBlockElement(blockId: string): HTMLElement | null {
 
   // Prefer standard CSS.escape when available.
   const esc =
-    typeof (globalThis as any).CSS !== "undefined" &&
-    typeof (globalThis as any).CSS.escape === "function"
-      ? (globalThis as any).CSS.escape.bind((globalThis as any).CSS)
+    typeof CSS !== "undefined" && typeof CSS.escape === "function"
+      ? CSS.escape.bind(CSS)
       : (value: string) => value.replaceAll('"', '\\"');
 
   return document.querySelector(`[data-block-id="${esc(blockId)}"]`);

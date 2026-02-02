@@ -1,4 +1,4 @@
-import { getTokenFromLocationSearch } from "@/router/namespaces";
+import { getEditorTokenOrThrow } from "@/router/namespaces";
 import { HttpError } from "@/router/routerFallbacks";
 import { resolvePortalRoute } from "@/runtime/portal-route-resolver";
 
@@ -7,24 +7,17 @@ export async function resolveEditorDocument(args: {
   context: { siteCtx: { siteId: string } };
   locationSearch: unknown;
 }): Promise<{ document: unknown; pathname: string }> {
-  const token = getTokenFromLocationSearch(args.locationSearch);
-  const tokenFinal =
-    token ??
-    (import.meta.env.DEV &&
-    ["1", "true"].includes(
-      String(import.meta.env.VITE_PORTAL_DEV_ALLOW_EDITOR_NO_TOKEN || "").toLowerCase(),
-    )
-      ? String(import.meta.env.VITE_PORTAL_DEV_PREVIEW_TOKEN || "").trim() || "demo"
-      : undefined);
-
-  if (!tokenFinal) {
+  let token: string;
+  try {
+    token = getEditorTokenOrThrow(args.locationSearch);
+  } catch {
     throw new HttpError(403, "Preview token required");
   }
 
   const resolved = await resolvePortalRoute(args.pathname, {
     siteId: args.context.siteCtx.siteId,
     mode: "preview",
-    token: tokenFinal,
+    token,
   });
 
   if (resolved.kind === "redirect") {

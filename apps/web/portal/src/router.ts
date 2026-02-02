@@ -3,24 +3,20 @@ import { createMemoryHistory, createRouter } from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";
 import { RouterDefaultError, RouterDefaultNotFound } from "./router/routerFallbacks";
 import { rewritePortalInputPathname, rewritePortalOutputPathname } from "./router/rewrite";
+import type { ViewerContext } from "@celestial/site-block-protocol";
 import type { PortalSiteContext } from "@/runtime/site-api";
 
 export type PortalRouter = ReturnType<typeof createPortalRouter>;
 
-export type PortalViewerContext = {
-  locale: "zh-CN" | "en-US";
-  fallbackLocale?: "zh-CN" | "en-US";
-};
-
 export type PortalRouteContext = {
-  viewerCtx: PortalViewerContext;
+  viewerCtx: ViewerContext;
   siteCtx: PortalSiteContext;
 };
 
 export function createPortalRouter(args: {
   kind: "server" | "client";
   url: string;
-  viewerCtx: PortalViewerContext;
+  viewerCtx: ViewerContext;
   siteCtx: PortalSiteContext;
 }) {
   const isServer = args.kind === "server";

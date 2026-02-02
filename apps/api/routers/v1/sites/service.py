@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import secrets
 import time
-from typing import Literal
+from typing import Literal, TypedDict
 
 from apps.api.common.services.base import BaseService
-from apps.api.core.exceptions import Forbidden
+from apps.api.core.exceptions import Conflict, Forbidden
 from apps.api.routers.v1.sites.schema import (
     ContainerBlock,
     ContainerBlockProps,
@@ -19,6 +19,8 @@ from apps.api.routers.v1.sites.schema import (
     ParagraphBlockProps,
     SitePreviewTokenOut,
     SiteResolveOut,
+    SiteRouteDraftSaveIn,
+    SiteRouteDraftSaveOut,
     SiteRouteMatchOut,
     SiteRouteResolveOut,
     SiteRuntimeOut,
@@ -27,6 +29,15 @@ from apps.api.routers.v1.sites.schema import (
 
 DEMO_SITE_ID = "00000000-0000-0000-0000-000000000001"
 DEMO_PREVIEW_TOKENS = {"demo"}
+
+
+class RouteDraftRecord(TypedDict):
+    revision: int
+    saved_at_ms: int
+    document: DocumentIR
+
+
+DEMO_ROUTE_DRAFTS: dict[tuple[str, str], RouteDraftRecord] = {}
 
 
 class SiteService(BaseService):
@@ -100,8 +111,15 @@ class SiteService(BaseService):
         mode: Literal["public", "preview"],
     ) -> SiteRouteResolveOut:
         _ = site_id
-        _ = mode
         pathname = normalize_path(path)
+
+        if mode == "preview":
+            draft = DEMO_ROUTE_DRAFTS.get((DEMO_SITE_ID, pathname))
+            if draft:
+                return SiteRouteResolveOut(
+                    match=SiteRouteMatchOut(kind="page", params={}),
+                    document=draft["document"],
+                )
 
         # Redirect stub: validate redirect protocol and SSR integration.
         # Sprint 2/3: redirects will be driven by RouteTemplate resolver / site settings.
@@ -131,6 +149,50 @@ class SiteService(BaseService):
             )
 
         return SiteRouteResolveOut(match=SiteRouteMatchOut(kind="not_found"), document=None)
+
+    async def save_route_draft(
+        self,
+        *,
+        site_id: str,
+        payload: SiteRouteDraftSaveIn,
+    ) -> SiteRouteDraftSaveOut:
+        """
+        Stub-only draft save.
+
+        Sprint 2:
+        - No DB persistence.
+        - Save is stored in memory and lost on server restart.
+        - Optional optimistic lock via `expected_revision` to validate the 409 flow early.
+        """
+        _ = site_id
+
+        pathname = normalize_path(payload.path)
+        key = (DEMO_SITE_ID, pathname)
+        now_ms = int(time.time() * 1000)
+
+        existing = DEMO_ROUTE_DRAFTS.get(key)
+        existing_rev = existing["revision"] if existing else 0
+
+        if payload.expected_revision is not None and payload.expected_revision != existing_rev:
+            raise Conflict(
+                "Draft revision mismatch",
+                error="DRAFT_REVISION_MISMATCH",
+                meta={"expectedRevision": payload.expected_revision, "currentRevision": existing_rev},
+            )
+
+        next_rev = existing_rev + 1 if existing_rev else 1
+        DEMO_ROUTE_DRAFTS[key] = {
+            "revision": next_rev,
+            "saved_at_ms": now_ms,
+            "document": payload.document,
+        }
+
+        return SiteRouteDraftSaveOut(
+            site_id=DEMO_SITE_ID,
+            path=pathname,
+            revision=next_rev,
+            saved_at_ms=now_ms,
+        )
 
 
 def normalize_path(path: str) -> str:

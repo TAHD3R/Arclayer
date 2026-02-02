@@ -184,5 +184,27 @@ class SitePreviewTokenOut(BaseSchema):
     expires_at_ms: int = Field(..., description="Expiration timestamp in milliseconds (UTC).")
 
 
+class SiteRouteDraftSaveIn(BaseSchema):
+    model_config = ConfigDict(extra="forbid")
+
+    path: str = Field(..., description="Route pathname to save (e.g. /about).", examples=["/about"])
+    document: DocumentIR = Field(..., description="Draft document payload.")
+    expected_revision: int | None = Field(
+        default=None,
+        ge=1,
+        description="Optional optimistic lock revision (stub-only).",
+        examples=[1],
+    )
+
+
+class SiteRouteDraftSaveOut(BaseSchema):
+    model_config = ConfigDict(extra="forbid")
+
+    site_id: str = Field(..., description="Site id.")
+    path: str = Field(..., description="Saved pathname.")
+    revision: int = Field(..., ge=1, description="Draft revision number (stub-only).")
+    saved_at_ms: int = Field(..., description="Saved timestamp in milliseconds (UTC).")
+
+
 ContainerBlock.model_rebuild()
 DocumentIR.model_rebuild()

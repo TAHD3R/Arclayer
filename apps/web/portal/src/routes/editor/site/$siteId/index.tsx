@@ -13,7 +13,15 @@ export const Route = createFileRoute("/editor/site/$siteId/")({
 });
 
 function EditorSiteIndexPage() {
+  const params = Route.useParams();
   const { document, pathname } = Route.useLoaderData();
   const { viewerCtx } = Route.useRouteContext();
-  return <EditorSiteView initialDocument={document} viewerCtx={viewerCtx} pathname={pathname} />;
+  return (
+    <EditorSiteView
+      initialDocument={document}
+      viewerCtx={viewerCtx}
+      pathname={pathname}
+      siteId={params.siteId}
+    />
+  );
 }

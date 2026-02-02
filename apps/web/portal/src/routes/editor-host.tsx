@@ -2,6 +2,7 @@ import React from "react";
 import { createFileRoute } from "@tanstack/react-router";
 
 import type { EditorOverlayMode } from "@celestial/site-editor-protocol";
+import type { DocumentIR } from "@celestial/site-block-protocol";
 import type { CoreDocumentIR } from "@celestial/site-renderer-core";
 import { connectEditorHostToPortal } from "@celestial/site-editor-bridge";
 
@@ -18,6 +19,23 @@ function EditorHostPage() {
   const [lastPingRttMs, setLastPingRttMs] = React.useState<number | null>(null);
   const [lastPingError, setLastPingError] = React.useState<string | null>(null);
   const [previewToken, setPreviewToken] = React.useState<string>("demo");
+  const previewTokenRef = React.useRef<string>("demo");
+  const [pathname, setPathname] = React.useState<string>("/");
+  const [lastPresence, setLastPresence] = React.useState<{
+    pathname: string;
+    overlayMode: EditorOverlayMode;
+    selectedBlockId: string | null;
+    hasDraftOverride: boolean;
+    updatedAtMs: number;
+  } | null>(null);
+  const [lastSave, setLastSave] = React.useState<{
+    pathname: string;
+    revision: number;
+    savedAtMs: number;
+  } | null>(null);
+  const [saveStatus, setSaveStatus] = React.useState<"idle" | "saving" | "error">("idle");
+  const [saveError, setSaveError] = React.useState<string | null>(null);
+  const draftRevisionsRef = React.useRef<Map<string, number>>(new Map());
 
   const portalRef = React.useRef<
     Awaited<ReturnType<typeof connectEditorHostToPortal>>["portal"] | null
@@ -25,6 +43,10 @@ function EditorHostPage() {
   const destroyRef = React.useRef<(() => void) | null>(null);
 
   const pingSeqRef = React.useRef(0);
+
+  React.useEffect(() => {
+    previewTokenRef.current = previewToken;
+  }, [previewToken]);
 
   const sendPing = React.useCallback(async (opts?: { silent?: boolean }) => {
     const portal = portalRef.current;
@@ -45,9 +67,15 @@ function EditorHostPage() {
     }
   }, []);
 
-  const pushDraft = React.useCallback((document: CoreDocumentIR) => {
-    void portalRef.current?.pushDraftDocument({ document, pathname: "/" });
-  }, []);
+  const pushDraft = React.useCallback(
+    (document: CoreDocumentIR) => {
+      void portalRef.current?.pushDraftDocument({
+        document,
+        pathname: normalizePathname(pathname),
+      });
+    },
+    [pathname],
+  );
 
   const selectBlock = React.useCallback((blockId: string | null) => {
     setSelectedBlockId(blockId);
@@ -80,6 +108,43 @@ function EditorHostPage() {
           },
           selectionChanged: ({ blockId }) => {
             setSelectedBlockId(blockId);
+          },
+          requestSave: ({ siteId, pathname, document }) => {
+            void (async () => {
+              try {
+                setSaveStatus("saving");
+                setSaveError(null);
+                const token = previewTokenRef.current;
+                const expectedRevision = draftRevisionsRef.current.get(pathname) ?? null;
+                const payload = await saveRouteDraftToApi({
+                  siteId,
+                  pathname,
+                  token,
+                  document,
+                  expectedRevision,
+                });
+                if (!payload) throw new Error("Invalid save response");
+                setLastSave({
+                  pathname: payload.path,
+                  revision: payload.revision,
+                  savedAtMs: payload.savedAtMs,
+                });
+                draftRevisionsRef.current.set(payload.path, payload.revision);
+                setSaveStatus("idle");
+              } catch (err) {
+                setSaveStatus("error");
+                setSaveError(err instanceof Error ? err.message : String(err));
+              }
+            })();
+          },
+          reportPresence: ({ presence }) => {
+            setLastPresence({
+              pathname: presence.pathname,
+              overlayMode: presence.overlayMode,
+              selectedBlockId: presence.selectedBlockId,
+              hasDraftOverride: presence.hasDraftOverride,
+              updatedAtMs: presence.updatedAtMs,
+            });
           },
         },
       });
@@ -122,8 +187,8 @@ function EditorHostPage() {
           headers: { accept: "application/json" },
         });
         if (!res.ok) throw new Error(`Failed to issue preview token (${res.status})`);
-        const payload = (await res.json()) as any;
-        const token = String(payload?.data?.token ?? "").trim();
+        const payload: unknown = await res.json();
+        const token = parsePreviewToken(payload);
         if (!token) throw new Error("Invalid preview token response");
         if (!mounted) return;
         setPreviewToken(token);
@@ -262,13 +327,144 @@ function EditorHostPage() {
         <span className="portal-editor-host-meta">
           Selected: <code>{selectedBlockId ?? "null"}</code>
         </span>
+        <span className="portal-editor-host-meta">
+          Path: <code>{normalizePathname(pathname)}</code>
+        </span>
+        {lastPresence ? (
+          <span className="portal-editor-host-meta">
+            Presence: <code>{lastPresence.pathname}</code>{" "}
+            <code>{String(lastPresence.overlayMode)}</code>{" "}
+            <code>{lastPresence.selectedBlockId ?? "null"}</code>{" "}
+            <code>{lastPresence.hasDraftOverride ? "draft" : "base"}</code>
+          </span>
+        ) : null}
+        <span className="portal-editor-host-meta">
+          Save:{" "}
+          <code>
+            {saveStatus === "saving"
+              ? "saving"
+              : saveStatus === "error"
+                ? "error"
+                : lastSave
+                  ? `rev ${lastSave.revision}`
+                  : "n/a"}
+          </code>
+        </span>
+        {saveError ? (
+          <span className="portal-editor-host-meta">
+            Save error: <code>{saveError}</code>
+          </span>
+        ) : null}
+        <span className="portal-editor-host-sep" aria-hidden="true" />
+        <button type="button" onClick={() => setPathname("/")}>
+          Go /
+        </button>
+        <button type="button" onClick={() => setPathname("/about")}>
+          Go /about
+        </button>
+        <button type="button" onClick={() => setPathname("/blog/hello")}>
+          Go /blog/hello
+        </button>
+        <button type="button" onClick={() => setPathname("/old-about")}>
+          Go /old-about
+        </button>
       </div>
       <iframe
         ref={iframeRef}
         title="portal-editor-host"
-        src={`/__editor/site/demo?token=${encodeURIComponent(previewToken)}`}
+        src={toEditorHref({ siteId: "demo", pathname, token: previewToken })}
         className="portal-editor-host-iframe"
       />
     </div>
   );
+}
+
+function parsePreviewToken(payload: unknown): string | null {
+  if (!payload || typeof payload !== "object") return null;
+  const data = (payload as { data?: unknown }).data;
+  if (!data || typeof data !== "object") return null;
+  const token = (data as { token?: unknown }).token;
+  if (typeof token !== "string") return null;
+  const trimmed = token.trim();
+  return trimmed ? trimmed : null;
+}
+
+async function saveRouteDraftToApi(args: {
+  siteId: string;
+  pathname: string;
+  token: string;
+  document: DocumentIR;
+  expectedRevision: number | null;
+}): Promise<{ path: string; revision: number; savedAtMs: number } | null> {
+  const url = `/api/v1/sites/${encodeURIComponent(args.siteId)}/routes/draft?token=${encodeURIComponent(
+    args.token,
+  )}`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { accept: "application/json", "content-type": "application/json" },
+    body: JSON.stringify({
+      path: args.pathname,
+      document: args.document,
+      ...(args.expectedRevision ? { expectedRevision: args.expectedRevision } : {}),
+    }),
+  });
+  if (!res.ok) {
+    const maybe = await res.json().catch(() => null);
+    if (res.status === 409) {
+      const details = parseConflictMeta(maybe);
+      throw new Error(
+        details
+          ? `Draft conflict: expected ${details.expectedRevision}, current ${details.currentRevision}`
+          : "Draft conflict (409)",
+      );
+    }
+    throw new Error(`Save failed (${res.status})`);
+  }
+  const payload: unknown = await res.json();
+  return parseDraftSaveOut(payload);
+}
+
+function parseDraftSaveOut(
+  payload: unknown,
+): { path: string; revision: number; savedAtMs: number } | null {
+  if (!payload || typeof payload !== "object") return null;
+  const data = (payload as { data?: unknown }).data;
+  if (!data || typeof data !== "object") return null;
+  const rec = data as Record<string, unknown>;
+  const path = rec.path;
+  const revision = rec.revision;
+  const savedAtMs = rec.savedAtMs ?? rec.saved_at_ms;
+  if (typeof path !== "string" || !path.startsWith("/")) return null;
+  if (typeof revision !== "number" || !Number.isFinite(revision)) return null;
+  if (typeof savedAtMs !== "number" || !Number.isFinite(savedAtMs)) return null;
+  return { path, revision, savedAtMs };
+}
+
+function parseConflictMeta(
+  payload: unknown,
+): { expectedRevision: number; currentRevision: number } | null {
+  if (!payload || typeof payload !== "object") return null;
+  const meta = (payload as { meta?: unknown }).meta;
+  if (!meta || typeof meta !== "object") return null;
+  const rec = meta as Record<string, unknown>;
+  const expectedRevision = rec.expectedRevision;
+  const currentRevision = rec.currentRevision;
+  if (typeof expectedRevision !== "number" || typeof currentRevision !== "number") return null;
+  if (!Number.isFinite(expectedRevision) || !Number.isFinite(currentRevision)) return null;
+  return { expectedRevision, currentRevision };
+}
+
+function normalizePathname(pathnameRaw: string): string {
+  const pathname = pathnameRaw.startsWith("/") ? pathnameRaw : `/${pathnameRaw}`;
+  if (pathname === "/") return "/";
+  return pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
+}
+
+function toEditorHref(args: { siteId: string; pathname: string; token: string }): string {
+  const pathname = normalizePathname(args.pathname);
+  const base = `/__editor/site/${encodeURIComponent(args.siteId)}`;
+  const pathPart = pathname === "/" ? "" : pathname;
+  const url = new URL(base + pathPart, "http://localhost");
+  url.searchParams.set("token", args.token);
+  return url.pathname + url.search;
 }

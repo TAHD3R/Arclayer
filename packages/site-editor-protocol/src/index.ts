@@ -8,6 +8,15 @@ export type BlockId = string;
 
 export type RpcRequestId = string;
 
+export type EditorPresence = {
+  siteId: string;
+  pathname: string;
+  overlayMode: EditorOverlayMode;
+  selectedBlockId: BlockId | null;
+  hasDraftOverride: boolean;
+  updatedAtMs: number;
+};
+
 export type PortalEditorMessageEnvelope<T extends string, Payload> = {
   version: EditorProtocolVersion;
   type: T;
@@ -89,4 +98,17 @@ export type PortalEditorRpcApi = {
 export type HostEditorRpcApi = {
   ready: (args: { readyAt: number }) => void;
   selectionChanged: (args: { blockId: BlockId | null }) => void;
+
+  /**
+   * Portal notifies the host that a save should happen (e.g. Cmd+S inside the iframe).
+   *
+   * Sprint 2: stub-only. The host decides what "save" means.
+   */
+  requestSave: (args: { siteId: string; pathname: string; document: DocumentIR }) => void;
+
+  /**
+   * Presence channel (stub): allow the portal iframe to report editor presence
+   * without coupling the host UI to portal internals.
+   */
+  reportPresence: (args: { presence: EditorPresence }) => void;
 };

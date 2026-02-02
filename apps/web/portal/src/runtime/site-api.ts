@@ -37,14 +37,14 @@ export async function resolveSiteFromApi(host: string): Promise<PortalSiteContex
   const res = await fetch(input, { headers: { Accept: "application/json" } });
   if (!res.ok) throw await toApiError(res, `Failed to resolve site (${res.status})`);
 
-  const payload = (await res.json()) as { data?: unknown };
-  const data = (payload as any)?.data as any;
+  const payload: unknown = await res.json();
+  const data = getResponseData(payload);
 
-  const siteId = (data?.siteId ?? data?.site_id) as unknown;
-  const defaultLocale = (data?.defaultLocale ?? data?.default_locale) as unknown;
-  const fallbackLocale = (data?.fallbackLocale ?? data?.fallback_locale) as unknown;
+  const siteId = getStringField(data, ["siteId", "site_id"]);
+  const defaultLocale = getStringField(data, ["defaultLocale", "default_locale"]);
+  const fallbackLocale = getStringField(data, ["fallbackLocale", "fallback_locale"]);
 
-  if (typeof siteId !== "string" || !siteId) throw new Error("Invalid siteId returned by API");
+  if (!siteId) throw new Error("Invalid siteId returned by API");
   if (defaultLocale !== "zh-CN" && defaultLocale !== "en-US") {
     throw new Error("Invalid defaultLocale returned by API");
   }
@@ -84,28 +84,29 @@ export async function resolveRouteFromApi(
     throw await toApiError(res, `Failed to resolve route (${res.status})`);
   }
 
-  const payload = (await res.json()) as { data?: unknown };
-  const data = (payload as any)?.data as any;
-  const match = data?.match as any;
-  const matchKind = match?.kind as unknown;
+  const payload: unknown = await res.json();
+  const data = getResponseData(payload);
+  const match = getRecordField(data, "match");
+  const matchKind = getStringField(match, ["kind"]);
   if (matchKind === "not_found") {
     return { kind: "not_found" };
   }
   if (matchKind === "redirect") {
     // Backend outputs camelCase by default (BaseSchema alias_generator=to_camel).
     // Be tolerant with snake_case for local fixtures.
-    const to = (match?.redirectTo ?? match?.redirect_to) as unknown;
-    const status = (match?.redirectStatus ?? match?.redirect_status) as unknown;
-    if (typeof to !== "string" || !to.startsWith("/")) {
+    const to = getStringField(match, ["redirectTo", "redirect_to"]);
+    const statusRaw = getNumberField(match, ["redirectStatus", "redirect_status"]);
+    const status = statusRaw === 301 || statusRaw === 302 ? statusRaw : null;
+    if (!to || !to.startsWith("/")) {
       throw new Error("Invalid redirect target returned by API");
     }
-    if (status !== 301 && status !== 302) {
+    if (!status) {
       throw new Error("Invalid redirect status returned by API");
     }
     return { kind: "redirect", to, status };
   }
 
-  const document = data?.document as unknown;
+  const document = getRecordField(data, "document");
   if (!isCoreDocumentIR(document)) {
     throw new Error("Invalid DocumentIR returned by API");
   }
@@ -144,18 +145,30 @@ export async function fetchRuntimeConfigFromApi(
   const res = await fetch(input, { headers: { Accept: "application/json" } });
   if (!res.ok) throw await toApiError(res, `Failed to fetch runtime (${res.status})`);
 
-  const payload = (await res.json()) as { data?: unknown };
-  const data = (payload as any)?.data as any;
-  const cssVars = (data?.theme?.cssVars ?? {}) as Record<string, string>;
-  const fonts = (Array.isArray(data?.fonts) ? data.fonts : []) as any[];
+  const payload: unknown = await res.json();
+  const data = getResponseData(payload);
+  const theme = getRecordField(data, "theme");
+  const cssVarsUnknown = getRecordField(theme, "cssVars");
+  const cssVars = toStringRecord(cssVarsUnknown);
+  const fontsUnknown = getUnknownField(data, "fonts");
+  const fonts = Array.isArray(fontsUnknown) ? fontsUnknown : [];
 
   return {
     theme: { cssVars },
-    fonts: fonts.map((f) => ({
-      family: String(f.family ?? ""),
-      display: f.display,
-      sources: Array.isArray(f.sources) ? f.sources : [],
-    })),
+    fonts: fonts
+      .map((f) => {
+        const family = (getStringField(f, ["family"]) ?? "").trim();
+        if (!family) return null;
+
+        const display = parseFontDisplay(getUnknownField(f, "display"));
+        const sourcesInput = getUnknownField(f, "sources");
+        const sources = Array.isArray(sourcesInput)
+          ? sourcesInput.map(parseFontSource).filter((x): x is NonNullable<typeof x> => Boolean(x))
+          : [];
+
+        return Object.assign({ family }, display ? { display } : {}, { sources });
+      })
+      .filter((x): x is NonNullable<typeof x> => Boolean(x)),
   };
 }
 
@@ -178,15 +191,20 @@ async function toApiError(res: Response, fallbackMessage: string): Promise<ApiEr
   let meta: unknown;
 
   try {
-    const payload = (await res.json()) as any;
-    if (typeof payload?.message === "string" && payload.message.trim()) {
-      message = payload.message;
+    const payload: unknown = await res.json();
+    if (
+      typeof getStringField(payload, ["message"]) === "string" &&
+      (getStringField(payload, ["message"]) ?? "").trim()
+    ) {
+      message = (getStringField(payload, ["message"]) ?? fallbackMessage).trim();
     }
-    if (typeof payload?.error === "string" && payload.error.trim()) {
-      error = payload.error;
+    const errStr = getStringField(payload, ["error"]);
+    if (typeof errStr === "string" && errStr.trim()) {
+      error = errStr.trim();
     }
-    if (payload?.meta !== undefined) {
-      meta = payload.meta;
+    const metaVal = getUnknownField(payload, "meta");
+    if (metaVal !== undefined) {
+      meta = metaVal;
     }
   } catch {
     // Ignore JSON parsing errors: keep fallbackMessage.
@@ -200,4 +218,99 @@ async function toApiError(res: Response, fallbackMessage: string): Promise<ApiEr
   if (error) args.error = error;
   if (meta !== undefined) args.meta = meta;
   return new ApiError(args);
+}
+
+function getRecord(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== "object") return null;
+  return value as Record<string, unknown>;
+}
+
+function getUnknownField(obj: unknown, key: string): unknown {
+  const rec = getRecord(obj);
+  if (!rec) return undefined;
+  return rec[key];
+}
+
+function getRecordField(obj: unknown, key: string): unknown {
+  const value = getUnknownField(obj, key);
+  return value;
+}
+
+function getStringField(obj: unknown, keys: string[]): string | null {
+  const rec = getRecord(obj);
+  if (!rec) return null;
+  for (const key of keys) {
+    const v = rec[key];
+    if (typeof v === "string") return v;
+  }
+  return null;
+}
+
+function getNumberField(obj: unknown, keys: string[]): number | null {
+  const rec = getRecord(obj);
+  if (!rec) return null;
+  for (const key of keys) {
+    const v = rec[key];
+    if (typeof v === "number" && Number.isFinite(v)) return v;
+  }
+  return null;
+}
+
+function getResponseData(payload: unknown): unknown {
+  const rec = getRecord(payload);
+  if (!rec) return null;
+  return rec.data;
+}
+
+function toStringRecord(input: unknown): Record<string, string> {
+  const rec = getRecord(input);
+  if (!rec) return {};
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(rec)) {
+    if (typeof v === "string") out[k] = v;
+  }
+  return out;
+}
+
+function parseFontDisplay(
+  input: unknown,
+): "auto" | "block" | "swap" | "fallback" | "optional" | null {
+  if (input === "auto") return "auto";
+  if (input === "block") return "block";
+  if (input === "swap") return "swap";
+  if (input === "fallback") return "fallback";
+  if (input === "optional") return "optional";
+  return null;
+}
+
+function parseFontSource(input: unknown): {
+  url: string;
+  format?: "woff2" | "woff" | "truetype" | "opentype";
+  weight?: string;
+  style?: "normal" | "italic" | "oblique";
+} | null {
+  const rec = getRecord(input);
+  if (!rec) return null;
+  const url = rec.url;
+  if (typeof url !== "string" || !url.trim()) return null;
+
+  const out: {
+    url: string;
+    format?: "woff2" | "woff" | "truetype" | "opentype";
+    weight?: string;
+    style?: "normal" | "italic" | "oblique";
+  } = { url: url.trim() };
+
+  const format = rec.format;
+  if (format === "woff2" || format === "woff" || format === "truetype" || format === "opentype") {
+    out.format = format;
+  }
+
+  const weight = rec.weight;
+  if (typeof weight === "string" && weight.trim()) out.weight = weight.trim();
+
+  const style = rec.style;
+  if (style === "normal" || style === "italic" || style === "oblique") out.style = style;
+
+  return out;
 }

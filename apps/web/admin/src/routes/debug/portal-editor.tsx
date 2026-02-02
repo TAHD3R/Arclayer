@@ -22,6 +22,23 @@ function PortalEditorDebugPage() {
   }, []);
 
   const [previewToken, setPreviewToken] = React.useState<string | null>(null);
+  const previewTokenRef = React.useRef<string | null>(null);
+  const [pathname, setPathname] = React.useState<string>("/");
+  const [lastPresence, setLastPresence] = React.useState<{
+    pathname: string;
+    overlayMode: EditorOverlayMode;
+    selectedBlockId: string | null;
+    hasDraftOverride: boolean;
+    updatedAtMs: number;
+  } | null>(null);
+  const [lastSave, setLastSave] = React.useState<{
+    pathname: string;
+    revision: number;
+    savedAtMs: number;
+  } | null>(null);
+  const [saveStatus, setSaveStatus] = React.useState<"idle" | "saving" | "error">("idle");
+  const [saveError, setSaveError] = React.useState<string | null>(null);
+  const draftRevisionsRef = React.useRef<Map<string, number>>(new Map());
 
   const hostOrigin = React.useMemo(() => {
     if (typeof window === "undefined") return "";
@@ -30,14 +47,20 @@ function PortalEditorDebugPage() {
 
   const iframeSrc = React.useMemo(() => {
     if (!hostOrigin) return `${portalOrigin}/__editor/site/demo`;
-    const url = new URL(`${portalOrigin}/__editor/site/demo`);
+    const url = new URL(
+      `${portalOrigin}/__editor/site/demo${normalizePathname(pathname) === "/" ? "" : normalizePathname(pathname)}`,
+    );
     // Token is required for editor mode; allow overriding via debug page query (?token=...).
     const tokenFromUrl = new URLSearchParams(window.location.search).get("token");
     const token = tokenFromUrl || previewToken || "demo";
     url.searchParams.set("token", token);
     url.searchParams.set("parentOrigin", hostOrigin);
     return url.toString();
-  }, [hostOrigin, portalOrigin, previewToken]);
+  }, [hostOrigin, pathname, portalOrigin, previewToken]);
+
+  React.useEffect(() => {
+    previewTokenRef.current = previewToken;
+  }, [previewToken]);
 
   React.useEffect(() => {
     let mounted = true;
@@ -54,9 +77,12 @@ function PortalEditorDebugPage() {
     void (async () => {
       try {
         const siteId = "00000000-0000-0000-0000-000000000001";
-        const out = await api.post<{ token: string }>(`/sites/${siteId}/preview-tokens`, {
-          ttlSeconds: 600,
-        });
+        const out = await api.post<{ token: string; expiresAtMs: number }>(
+          `/sites/${siteId}/preview-tokens`,
+          {
+            ttlSeconds: 600,
+          },
+        );
         if (!mounted) return;
         setPreviewToken(out.token);
       } catch {
@@ -140,6 +166,44 @@ function PortalEditorDebugPage() {
           selectionChanged: ({ blockId }) => {
             setSelectedBlockId(blockId);
           },
+          requestSave: ({ siteId, pathname, document }) => {
+            void (async () => {
+              try {
+                setSaveStatus("saving");
+                setSaveError(null);
+                const tokenFromUrl = new URLSearchParams(window.location.search).get("token");
+                const token = tokenFromUrl || previewTokenRef.current || "demo";
+                const expectedRevision = draftRevisionsRef.current.get(pathname) ?? null;
+                const out = await api.post<{ path: string; revision: number; savedAtMs: number }>(
+                  `/sites/${encodeURIComponent(siteId)}/routes/draft?token=${encodeURIComponent(token)}`,
+                  {
+                    path: pathname,
+                    document,
+                    ...(expectedRevision ? { expectedRevision } : {}),
+                  },
+                );
+                setLastSave({
+                  pathname: out.path,
+                  revision: out.revision,
+                  savedAtMs: out.savedAtMs,
+                });
+                draftRevisionsRef.current.set(out.path, out.revision);
+                setSaveStatus("idle");
+              } catch (err) {
+                setSaveStatus("error");
+                setSaveError(err instanceof Error ? err.message : String(err));
+              }
+            })();
+          },
+          reportPresence: ({ presence }) => {
+            setLastPresence({
+              pathname: presence.pathname,
+              overlayMode: presence.overlayMode,
+              selectedBlockId: presence.selectedBlockId,
+              hasDraftOverride: presence.hasDraftOverride,
+              updatedAtMs: presence.updatedAtMs,
+            });
+          },
         },
         childOrigin: portalOrigin,
       });
@@ -212,6 +276,63 @@ function PortalEditorDebugPage() {
         <div className="text-gray-600">
           {t("SELECTED")}: <code>{selectedBlockId ?? t("VALUE_NULL")}</code>
         </div>
+        <div className="text-gray-600">
+          Path: <code>{normalizePathname(pathname)}</code>
+        </div>
+        <div className="text-gray-600">
+          Save:{" "}
+          <code>
+            {saveStatus === "saving"
+              ? "saving"
+              : saveStatus === "error"
+                ? "error"
+                : lastSave
+                  ? `rev ${lastSave.revision}`
+                  : "n/a"}
+          </code>
+        </div>
+        {saveError ? (
+          <div className="text-red-600">
+            Save error: <code>{saveError}</code>
+          </div>
+        ) : null}
+        {lastPresence ? (
+          <div className="text-gray-600">
+            Presence:{" "}
+            <code>
+              {lastPresence.pathname} / {String(lastPresence.overlayMode)} /{" "}
+              {lastPresence.selectedBlockId ?? "null"} /{" "}
+              {lastPresence.hasDraftOverride ? "draft" : "base"}
+            </code>
+          </div>
+        ) : null}
+
+        <div className="mx-2 h-4 w-px bg-gray-200" aria-hidden="true" />
+
+        <button className="rounded border px-2 py-1" type="button" onClick={() => setPathname("/")}>
+          Go /
+        </button>
+        <button
+          className="rounded border px-2 py-1"
+          type="button"
+          onClick={() => setPathname("/about")}
+        >
+          Go /about
+        </button>
+        <button
+          className="rounded border px-2 py-1"
+          type="button"
+          onClick={() => setPathname("/blog/hello")}
+        >
+          Go /blog/hello
+        </button>
+        <button
+          className="rounded border px-2 py-1"
+          type="button"
+          onClick={() => setPathname("/old-about")}
+        >
+          Go /old-about
+        </button>
 
         <div className="mx-2 h-4 w-px bg-gray-200" aria-hidden="true" />
 
@@ -346,18 +467,25 @@ function buildDebugDraftDocument1(): DocumentIR {
     },
     blocks: base.blocks.map((b) => {
       if (b.type !== "container" || !b.children) return b;
-
-      b.children = b.children.map((c) => {
-        if (c.id !== "b1-h1") return c;
-
-        (c.props as Record<string, unknown>).text = {
-          "zh-CN": "这是 Draft #1（来自 Admin）",
-          "en-US": "This is Draft #1 (from Admin)",
-        };
-        return c;
+      return Object.assign({}, b, {
+        children: b.children.map((c) => {
+          if (c.id !== "b1-h1") return c;
+          return Object.assign({}, c, {
+            props: Object.assign({}, c.props, {
+              text: {
+                "zh-CN": "这是 Draft #1（来自 Admin）",
+                "en-US": "This is Draft #1 (from Admin)",
+              },
+            }),
+          });
+        }),
       });
-
-      return b;
     }),
   };
+}
+
+function normalizePathname(pathnameRaw: string): string {
+  const pathname = pathnameRaw.startsWith("/") ? pathnameRaw : `/${pathnameRaw}`;
+  if (pathname === "/") return "/";
+  return pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
 }

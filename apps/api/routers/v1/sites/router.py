@@ -10,6 +10,8 @@ from apps.api.routers.v1.sites.schema import (
     SitePreviewTokenCreateIn,
     SitePreviewTokenOut,
     SiteResolveOut,
+    SiteRouteDraftSaveIn,
+    SiteRouteDraftSaveOut,
     SiteRouteResolveOut,
     SiteRuntimeOut,
 )
@@ -87,4 +89,25 @@ async def create_preview_token(
     ] = SitePreviewTokenCreateIn(),
 ) -> ResponseModel[SitePreviewTokenOut]:
     data = await service.create_preview_token(site_id=site_id, ttl_seconds=payload.ttl_seconds)
+    return Response.success(data=data)
+
+
+@router.post(
+    "/sites/{site_id}/routes/draft",
+    response_model=ResponseModel[SiteRouteDraftSaveOut],
+    response_model_exclude_none=True,
+    status_code=status.HTTP_201_CREATED,
+    summary="Save a draft document for a route (stub)",
+)
+async def save_site_route_draft(
+    site_id: str,
+    payload: Annotated[
+        SiteRouteDraftSaveIn,
+        Body(description="Draft save payload."),
+    ],
+    service: Annotated[SiteService, Depends(get_site_service)],
+    token: Annotated[str, Query(..., description="Preview token (required).")],
+) -> ResponseModel[SiteRouteDraftSaveOut]:
+    service.assert_preview_access(mode="preview", token=token)
+    data = await service.save_route_draft(site_id=site_id, payload=payload)
     return Response.success(data=data)
