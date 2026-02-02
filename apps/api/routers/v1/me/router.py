@@ -39,8 +39,7 @@ async def get_my_organization(
     )
     membership = OrganizationMembershipOut(
         id=orgm.id,
-        organization_id=orgm.organization_id,
-        role=str(orgm.role),
+        is_owner=bool(getattr(orgm, "is_owner", False)),
         status=orgm.status,
     )
     return Response.success(data=MyOrganizationOut(organization=organization, membership=membership))

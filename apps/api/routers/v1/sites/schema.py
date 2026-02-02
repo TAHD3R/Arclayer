@@ -202,8 +202,72 @@ class SiteRouteDraftSaveOut(BaseSchema):
 
     site_id: str = Field(..., description="Site id.")
     path: str = Field(..., description="Saved pathname.")
-    revision: int = Field(..., ge=1, description="Draft revision number (stub-only).")
+    revision: int = Field(..., ge=1, description="Draft revision number.")
     saved_at_ms: int = Field(..., description="Saved timestamp in milliseconds (UTC).")
+
+
+class SiteRoutePublishIn(BaseSchema):
+    model_config = ConfigDict(extra="forbid")
+
+    path: str = Field(..., description="Route pathname to publish (e.g. /about).", examples=["/about"])
+    revision: int | None = Field(
+        default=None,
+        ge=1,
+        description="Draft revision number to publish. If omitted, publish the latest draft revision.",
+        examples=[1],
+    )
+
+
+class SiteRoutePublishOut(BaseSchema):
+    model_config = ConfigDict(extra="forbid")
+
+    site_id: str = Field(..., description="Site id.")
+    path: str = Field(..., description="Published pathname.")
+    revision: int = Field(..., ge=1, description="Published revision number.")
+    published_at_ms: int = Field(..., description="Published timestamp in milliseconds (UTC).")
+
+
+class SitePresenceHeartbeatIn(BaseSchema):
+    model_config = ConfigDict(extra="forbid")
+
+    doc_key: str = Field(
+        ...,
+        description="Document key (e.g. 'route:/about' or 'page:<uuid>').",
+        examples=["route:/about"],
+    )
+    client_id: str = Field(
+        ...,
+        min_length=6,
+        max_length=128,
+        description="Client instance id (random, stable within a browser tab).",
+        examples=["c_123456"],
+    )
+    actor: dict[str, str] | None = Field(
+        default=None,
+        description="Optional actor metadata (e.g. displayName).",
+        examples=[{"displayName": "Alice"}],
+    )
+
+
+class SitePresenceHeartbeatOut(BaseSchema):
+    model_config = ConfigDict(extra="forbid")
+
+    expires_at_ms: int = Field(..., description="Presence TTL expiration timestamp in milliseconds (UTC).")
+
+
+class SitePresenceRecordOut(BaseSchema):
+    model_config = ConfigDict(extra="forbid")
+
+    client_id: str = Field(..., description="Client instance id.")
+    updated_at_ms: int = Field(..., description="Last heartbeat timestamp in milliseconds (UTC).")
+    actor: dict[str, str] | None = Field(default=None, description="Actor metadata (optional).")
+
+
+class SitePresenceListOut(BaseSchema):
+    model_config = ConfigDict(extra="forbid")
+
+    doc_key: str = Field(..., description="Document key.")
+    items: list[SitePresenceRecordOut] = Field(default_factory=list, description="Presence records.")
 
 
 ContainerBlock.model_rebuild()

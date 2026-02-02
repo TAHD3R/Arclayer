@@ -4,10 +4,10 @@ from uuid import UUID
 
 from fastapi import Depends
 
+from apps.api.core.auth.deps import get_current_user_id
 from apps.api.core.exceptions import Forbidden
 from apps.api.core.i18n import t
 from apps.api.models.org_membership import OrgMembership, OrgRole
-from apps.api.routers.v1.auth.deps import get_current_user_id
 
 
 async def get_current_org_membership(

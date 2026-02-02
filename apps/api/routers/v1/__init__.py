@@ -4,15 +4,17 @@ from fastapi import APIRouter
 
 from apps.api.config import Settings
 from apps.api.plugin.manager import PluginManager
-from apps.api.plugin.routes import register_plugin_routers
-from apps.api.routers.v1.me import router as me_router
-from apps.api.routers.v1.public import router as public_router
-from apps.api.routers.v1.sites.router import router as sites_router
-from apps.api.routers.v1.system import router as system_router
-from apps.api.routers.v1.workspaces.router import router as workspaces_router
 
 
 def build_v1_router(settings: Settings, *, plugin_manager: PluginManager) -> APIRouter:
+    # Import routers lazily to avoid circular imports during app startup and tests.
+    from apps.api.plugin.routes import register_plugin_routers
+    from apps.api.routers.v1.me import router as me_router
+    from apps.api.routers.v1.public import router as public_router
+    from apps.api.routers.v1.sites.router import router as sites_router
+    from apps.api.routers.v1.system import router as system_router
+    from apps.api.routers.v1.workspaces.router import router as workspaces_router
+
     api_prefix = settings.application.api_prefix.rstrip("/")
     version_prefix = settings.application.api_version_prefix
     if not version_prefix.startswith("/"):

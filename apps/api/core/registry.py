@@ -19,6 +19,7 @@ from apps.api.core.observability import configure_observability
 from apps.api.core.organization.bootstrap import ensure_organization_ready
 from apps.api.core.rbac.bootstrap import ensure_rbac_ready, register_permission_templates
 from apps.api.core.routes import register_routes
+from apps.api.core.sites.bootstrap import ensure_demo_site_ready
 from apps.api.infra.cache.valkey import close_valkey, init_valkey
 from apps.api.infra.db.orm import (
     close_orm,
@@ -56,6 +57,9 @@ def _build_lifespan(settings: Settings, *, plugin_manager: PluginManager):
             if settings.database.enabled:
                 await ensure_organization_ready()
                 await ensure_rbac_ready(settings=settings)
+                # Dev-only bootstrap for Portal SSR integration (do not run in production).
+                if settings.app_env != "production":
+                    await ensure_demo_site_ready()
             await init_valkey(app, settings)
             plugin_manager.bind_valkey(getattr(app.state, "valkey", None))
             await init_rate_limiter(app, settings)

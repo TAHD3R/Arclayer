@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from uuid import UUID
-
 from pydantic import Field
 
 from apps.api.common.schemas import BaseOut, BaseSchema
@@ -14,8 +12,7 @@ class OrganizationBriefOut(BaseOut):
 
 
 class OrganizationMembershipOut(BaseOut):
-    organization_id: UUID = Field(..., description="Organization id.")
-    role: str = Field(..., description="Organization role (owner/admin/member).")
+    is_owner: bool = Field(..., description="Whether current user is the organization owner.")
     status: str = Field(..., description="Membership status.")
 
 

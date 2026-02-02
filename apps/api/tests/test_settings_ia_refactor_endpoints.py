@@ -101,6 +101,11 @@ def test_system_endpoints_disabled_in_saas_mode(monkeypatch) -> None:
     get_settings.cache_clear()
 
     app = FastAPI()
+    # The production app installs exception handlers via the app factory; for this
+    # dependency-light test we install them explicitly so APIError -> HTTP responses.
+    from apps.api.core.exceptions import init_exception_handlers
+
+    init_exception_handlers(app, get_settings())
     app.include_router(system_router, prefix="/api/v1/system")
 
     # In SaaS mode we should be blocked before any plugin/DB dependencies are evaluated,

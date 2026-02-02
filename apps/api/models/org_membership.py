@@ -40,6 +40,32 @@ class OrgMembership(BaseModel):
     role = fields.CharEnumField(OrgRole, default=OrgRole.MEMBER, db_index=True)
     status = fields.CharField(max_length=16, default="active", db_index=True)
 
+    @property
+    def is_owner(self) -> bool:
+        """
+        Backward-compatible convenience flag.
+
+        Historically, tests and some call sites used `is_owner` rather than `role`.
+        In v2 we model org authority via `role`, but keeping this property avoids
+        duplicating "role == owner" checks everywhere.
+        """
+
+        return str(self.role) == str(OrgRole.OWNER)
+
+    @classmethod
+    async def create(cls, **kwargs):  # type: ignore[override]
+        """
+        Backward-compatible `create()` shim.
+
+        Allow callers (especially tests) to pass `is_owner=...` while the persisted
+        schema uses `role`. This keeps DB schema stable and avoids test-only hacks.
+        """
+
+        is_owner = kwargs.pop("is_owner", None)
+        if is_owner is not None and "role" not in kwargs:
+            kwargs["role"] = OrgRole.OWNER if bool(is_owner) else OrgRole.MEMBER
+        return await super().create(**kwargs)
+
     class Meta(BaseModel.Meta):
         table = "org_memberships"
         abstract = False

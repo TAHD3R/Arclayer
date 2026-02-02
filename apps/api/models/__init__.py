@@ -11,6 +11,10 @@ from apps.api.models.organization import Organization
 from apps.api.models.plugin import PluginRecord
 from apps.api.models.rbac import BootstrapState, Permission, Role, RolePermission
 from apps.api.models.setting import SettingRecord
+from apps.api.models.site import SiteRecord
+from apps.api.models.site_entry import EntryRecord, EntryRevisionRecord, EntryTypeRecord
+from apps.api.models.site_page import SitePageRecord, SitePageRevisionRecord, SitePageVisibility
+from apps.api.models.site_route_template import RouteTemplateRecord
 from apps.api.models.upload import UploadPartRecord, UploadSessionRecord, UploadStatus
 from apps.api.models.user import User, UserCredential
 from apps.api.models.workspace import (
@@ -38,6 +42,14 @@ __all__ = [
     "Role",
     "RolePermission",
     "SettingRecord",
+    "SiteRecord",
+    "SitePageRecord",
+    "SitePageRevisionRecord",
+    "SitePageVisibility",
+    "EntryTypeRecord",
+    "EntryRecord",
+    "EntryRevisionRecord",
+    "RouteTemplateRecord",
     "UploadPartRecord",
     "UploadSessionRecord",
     "UploadStatus",

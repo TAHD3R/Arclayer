@@ -7,12 +7,12 @@ from pydantic import Field
 from structlog.contextvars import bind_contextvars
 
 from apps.api.common.schemas import BaseSchema
+from apps.api.core.auth.deps import get_current_user_id
 from apps.api.core.exceptions import Forbidden, NotFound
 from apps.api.core.i18n import t
 from apps.api.core.workspace.context import set_current_workspace_context
 from apps.api.models.org_membership import OrgMembership, OrgRole
 from apps.api.models.workspace import Workspace, WorkspaceMembership, WorkspaceMembershipStatus
-from apps.api.routers.v1.auth.deps import get_current_user_id
 
 
 class WorkspaceContext(BaseSchema):

@@ -30,6 +30,8 @@ function EditorHostPage() {
   const [lastPingError, setLastPingError] = React.useState<string | null>(null);
   const [previewToken, setPreviewToken] = React.useState<string>("demo");
   const previewTokenRef = React.useRef<string>("demo");
+  const presenceClientIdRef = React.useRef<string>("");
+  const lastPresenceHeartbeatAtRef = React.useRef<number>(0);
   const [pathname, setPathname] = React.useState<string>("/");
   const [lastPresence, setLastPresence] = React.useState<{
     pathname: string;
@@ -55,6 +57,28 @@ function EditorHostPage() {
   React.useEffect(() => {
     previewTokenRef.current = previewToken;
   }, [previewToken]);
+
+  React.useEffect(() => {
+    // Client-only: presence client id should be stable within a browser tab.
+    const storageKey = "portal:presenceClientId";
+    try {
+      const existing = window.sessionStorage.getItem(storageKey);
+      if (existing && existing.length >= 6) {
+        presenceClientIdRef.current = existing;
+        return;
+      }
+      const raw =
+        typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : `${Date.now()}_${Math.random()}`;
+      const next = `c_${String(raw).replace(/[^a-zA-Z0-9]/g, "")}`.slice(0, 64);
+      window.sessionStorage.setItem(storageKey, next);
+      presenceClientIdRef.current = next;
+    } catch {
+      // Best-effort: if storage is unavailable, keep an in-memory id.
+      presenceClientIdRef.current = `c_${String(Date.now())}`.slice(0, 64);
+    }
+  }, []);
 
   React.useEffect(() => {
     overlayModeRef.current = overlayMode;
@@ -156,6 +180,24 @@ function EditorHostPage() {
           selectedBlockId: p.selectedBlockId,
           hasDraftOverride: p.hasDraftOverride,
           updatedAtMs: p.updatedAtMs,
+        });
+
+        // Best-effort heartbeat: presence is a collaboration primitive (TTL-based).
+        // Keep it low-frequency to avoid noisy network traffic from iframe chatter.
+        const token = previewTokenRef.current;
+        const clientId = presenceClientIdRef.current;
+        if (!token || !clientId) return;
+        const now = Date.now();
+        if (now - lastPresenceHeartbeatAtRef.current < 5000) return;
+        lastPresenceHeartbeatAtRef.current = now;
+        void heartbeatPresenceToApi({
+          siteId: "00000000-0000-0000-0000-000000000001",
+          token,
+          docKey: `route:${p.pathname}`,
+          clientId,
+          actor: { displayName: "Dev Editor" },
+        }).catch(() => {
+          // Presence is non-critical; errors should not break the editor harness.
         });
       },
     }),
@@ -418,6 +460,34 @@ async function saveRouteDraftToApi(args: {
   }
   const payload: unknown = await res.json();
   return parseDraftSaveOut(payload);
+}
+
+async function heartbeatPresenceToApi(args: {
+  siteId: string;
+  token: string;
+  docKey: string;
+  clientId: string;
+  actor: Record<string, string> | null;
+}): Promise<number | null> {
+  const url = `/api/v1/sites/${encodeURIComponent(args.siteId)}/presence/heartbeat?token=${encodeURIComponent(
+    args.token,
+  )}`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { accept: "application/json", "content-type": "application/json" },
+    body: JSON.stringify({
+      docKey: args.docKey,
+      clientId: args.clientId,
+      actor: args.actor,
+    }),
+  });
+  if (!res.ok) return null;
+  const payload: unknown = await res.json().catch(() => null);
+  if (!payload || typeof payload !== "object") return null;
+  const data = (payload as { data?: unknown }).data;
+  if (!data || typeof data !== "object") return null;
+  const expiresAtMs = (data as { expiresAtMs?: unknown }).expiresAtMs;
+  return typeof expiresAtMs === "number" && Number.isFinite(expiresAtMs) ? expiresAtMs : null;
 }
 
 function parseDraftSaveOut(
