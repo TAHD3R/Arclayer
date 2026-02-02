@@ -2,7 +2,6 @@ import { Button, Dropdown, Input, Masonry } from "antd";
 import {
   Eye,
   FileText,
-  Folder,
   FolderInput,
   FolderPlus,
   Music,
@@ -13,15 +12,7 @@ import {
   Settings2,
   Trash2,
 } from "lucide-react";
-import {
-  keepPreviousData,
-  type InfiniteData,
-  useInfiniteQuery,
-  useMutation,
-  useQuery,
-  useQueries,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { type InfiniteData, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { flushSync } from "react-dom";
 import { useTranslation } from "react-i18next";
@@ -50,8 +41,6 @@ import {
   bulkUpdateAssets,
   createAssetFolder,
   deleteAssetFolder,
-  listAssetFolders,
-  listAssetTags,
   listAssets,
   updateAssetFolder,
   type PageData,
@@ -59,7 +48,6 @@ import {
   type AdminAssetTag,
   type AdminAssetSummary,
 } from "@/api/assets";
-import { getAppConfig } from "@/constants/app-config";
 import { getErrorMessage, notifyError, notifySuccessText } from "@/utils/notifications";
 import { PageState } from "@/components/app/pageState";
 import {
@@ -67,6 +55,12 @@ import {
   AssetPreviewSheet,
   type AssetMasonryItem,
 } from "@/views/assets/components/AssetMasonryCard";
+import {
+  AssetsExplorerFolderDragOverlay,
+  AssetsExplorerFolderTile,
+  AssetsExplorerFolderUpTile,
+} from "@/views/assets/explorer/components/AssetsExplorerFolderTiles";
+import type { AssetsExplorerEntry } from "@/views/assets/explorer/types";
 import { BulkDeleteAssetsDialog } from "@/views/assets/components/BulkDeleteAssetsDialog";
 import { CreateAssetFolderDialog } from "@/views/assets/components/CreateAssetFolderDialog";
 import { FolderNotEmptyDialog } from "@/views/assets/components/FolderNotEmptyDialog";
@@ -74,11 +68,7 @@ import { MoveAssetsToFolderModal } from "@/views/assets/components/MoveAssetsToF
 import { MoveFolderModal } from "@/views/assets/components/MoveFolderModal";
 import { UpdateAssetsAccessDialog } from "@/views/assets/components/UpdateAssetsAccessDialog";
 import { UpdateAssetFolderDialog } from "@/views/assets/components/UpdateAssetFolderDialog";
-import { resolvePublicAssetUrlPath } from "@/views/assets/utils/assetUrls";
-import {
-  AssetsFilterPopover,
-  type AssetsFilters,
-} from "@/views/assets/components/AssetsFilterPopover";
+import { AssetsFilterPopover } from "@/views/assets/components/AssetsFilterPopover";
 import { AssetUploadDialog } from "@/views/assets/components/AssetUploadDialog";
 import {
   clearSelection,
@@ -89,15 +79,11 @@ import {
   type AssetSelectionState,
 } from "@/views/assets/utils/assetSelection";
 import { shouldClearMasonrySelectionOnMouseDown } from "@/views/assets/utils/masonryInteractions";
-import { filterFoldersByContentCheck } from "@/views/assets/utils/folderVisibility";
-import { isExplicitAssetsFilterActive } from "@/views/assets/utils/assetsFiltering";
 import type { MenuProps } from "antd";
 import { useWorkspaceStore } from "@/stores/useWorkspaceStore";
+import { useAssetsExplorerController } from "@/views/assets/explorer/useAssetsExplorerController";
 
-type MasonryEntry =
-  | { kind: "asset"; asset: AssetMasonryItem }
-  | { kind: "folder"; folder: AdminAssetFolder }
-  | { kind: "folderUp" };
+type MasonryEntry = AssetsExplorerEntry;
 
 const DND_ASSET_PREFIX = "asset:";
 const DND_FOLDER_PREFIX = "folder:";
@@ -318,108 +304,6 @@ function DragSelectionOverlay(props: { count: number }) {
   );
 }
 
-function DragFolderOverlay(props: { folderName: string; folderLabel: string }) {
-  return (
-    <motion.div
-      className="relative inline-block pointer-events-none select-none"
-      initial={{ opacity: 0, scale: 0.98 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.98 }}
-      transition={{ duration: 0.12, ease: "easeOut" }}
-      style={{ willChange: "transform", width: 156, height: 104 }}
-    >
-      <div className="absolute inset-0 overflow-hidden rounded-lg border border-border bg-card">
-        <div className="absolute inset-0 bg-muted/10" />
-        <div className="relative flex h-full flex-col justify-between p-3">
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Folder size={18} className="opacity-80" />
-            <span className="text-sm tracking-wide">{props.folderLabel}</span>
-          </div>
-          <div className="min-w-0">
-            <div className="font-semibold truncate" title={props.folderName}>
-              {props.folderName}
-            </div>
-          </div>
-        </div>
-      </div>
-    </motion.div>
-  );
-}
-
-function formatBytes(bytes: number | undefined | null): string | undefined {
-  if (!bytes || bytes < 0) return undefined;
-  const units = ["B", "KB", "MB", "GB"] as const;
-  let v = bytes;
-  let idx = 0;
-  while (v >= 1024 && idx < units.length - 1) {
-    v /= 1024;
-    idx += 1;
-  }
-  const n = idx === 0 ? String(Math.round(v)) : v.toFixed(v < 10 ? 1 : 0);
-  return `${n} ${units[idx]}`;
-}
-
-function toMasonryItem(
-  asset: AdminAssetSummary,
-  opts?: { aspectRatioOverride?: number },
-): AssetMasonryItem {
-  const name =
-    asset.originalFilename?.trim() ||
-    asset.title?.trim() ||
-    (asset.slug && asset.ext ? `${asset.slug}.${asset.ext}` : asset.id);
-
-  // Prefer thumbnails for waterfall view to save bandwidth.
-  // 注意：public `/assets/*` 在 dev 下不应再通过 Vite 代理；这里直接拼出后端绝对 URL。
-  // 重要：不要使用后端拼出来的“真实文件名链接”，统一走 canonical 路由：
-  // - /assets/<id>（后端会 301 到 /assets/<id>/<slug>.<ext>）
-  // - /assets/<id>/thumb?w=xxx
-  const canonicalPublicPath = `/assets/${asset.id}`;
-  const canonicalThumbBasePath = `/assets/${asset.id}/thumb`;
-  const canonicalDownloadPath = `/assets/${asset.id}/download`;
-
-  const isImage = Boolean(asset.mime?.startsWith("image/"));
-  const thumbBaseUrl = isImage ? resolvePublicAssetUrlPath(canonicalThumbBasePath) : undefined;
-  const publicUrl =
-    asset.visibility === "public" ? resolvePublicAssetUrlPath(canonicalPublicPath) : undefined;
-  const previewUrl = isImage ? (thumbBaseUrl ? `${thumbBaseUrl}?w=400` : publicUrl) : undefined;
-  const downloadUrl =
-    asset.visibility === "public" ? resolvePublicAssetUrlPath(canonicalDownloadPath) : undefined;
-
-  // Admin content endpoint 走 apiPrefix（可能依赖 Vite proxy 绕过 CORS），所以这里只拼 apiBaseUrl。
-  const { apiBaseUrl } = getAppConfig();
-  const joinApiBaseUrl = (path: string) => {
-    const b = (apiBaseUrl || "").trim();
-    if (!b) return path;
-    const base = b.endsWith("/") ? b.slice(0, -1) : b;
-    const p = path.startsWith("/") ? path : `/${path}`;
-    return `${base}${p}`;
-  };
-  const contentUrl = asset.contentUrlPath ? joinApiBaseUrl(asset.contentUrlPath) : undefined;
-
-  return {
-    id: asset.id,
-    name,
-    description: undefined,
-    mimeType: asset.mime || undefined,
-    ext: asset.ext || undefined,
-    sizeText: formatBytes(asset.sizeBytes),
-    createdAtText: asset.createdAt?.slice(0, 10),
-    previewUrl,
-    thumbBaseUrl,
-    createdAt: asset.createdAt,
-    sizeBytes: asset.sizeBytes,
-    checksumSha256: asset.checksumSha256 || undefined,
-    visibility: asset.visibility,
-    purpose: asset.purpose,
-    indexable: asset.indexable,
-    publicUrl,
-    downloadUrl,
-    contentUrl,
-    uploaderName: asset.uploaderName || undefined,
-    aspectRatio: opts?.aspectRatioOverride,
-  };
-}
-
 export function AssetsView() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -461,17 +345,43 @@ export function AssetsView() {
     nonce: number;
   } | null>(null);
 
-  // Search / filters / ordering
-  const [searchInput, setSearchInput] = useState("");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
-  const [focusedFolderId, setFocusedFolderId] = useState<string | null>(null);
-  const [filters, setFilters] = useState<AssetsFilters>(() => ({
+  const explorer = useAssetsExplorerController({
+    workspaceId,
+    pagination: "infinite",
+    purpose: "library",
     // 默认只看 public：瀑布流需要 thumb/public url 才能稳定预览；
     // 其他可见性可通过筛选器切换，但可能只显示“无预览”占位。
-    visibility: "public",
-  }));
-  const [ordering, setOrdering] = useState<string>("-created_at");
+    defaultVisibility: "public",
+    defaultOrdering: "-created_at",
+    aspectRatioById: aspectRatioRef.current,
+    layoutTick,
+  });
+
+  const {
+    searchInput,
+    setSearchInput,
+    searchQuery,
+    setSearchQuery,
+    currentFolderId,
+    setCurrentFolderId,
+    focusedFolderId,
+    setFocusedFolderId,
+    filters,
+    setFilters,
+    ordering,
+    setOrdering,
+    explicitFilterActive,
+    foldersQuery,
+    tagsQuery,
+    assetsListQueryKey,
+    infiniteAssetsQuery: assetsQuery,
+    items,
+    orderedAssetIds,
+    masonryEntries,
+    folderById,
+    folderPath,
+  } = explorer;
+
   const [moreOpen, setMoreOpen] = useState(false);
   const [moreHovered, setMoreHovered] = useState(false);
 
@@ -513,106 +423,7 @@ export function AssetsView() {
     [t],
   );
 
-  const explicitFilterActive = useMemo(
-    () =>
-      isExplicitAssetsFilterActive({
-        searchQuery,
-        mimePrefix: filters.mimePrefix,
-        visibility: filters.visibility,
-        createdFrom: filters.createdFrom,
-        createdTo: filters.createdTo,
-        tagIds: filters.tagIds,
-      }),
-    [
-      filters.createdFrom,
-      filters.createdTo,
-      filters.mimePrefix,
-      filters.tagIds,
-      filters.visibility,
-      searchQuery,
-    ],
-  );
-
   const sentinelRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    const handle = window.setTimeout(() => {
-      setSearchQuery(searchInput.trim());
-    }, 350);
-    return () => window.clearTimeout(handle);
-  }, [searchInput]);
-
-  const foldersQuery = useQuery({
-    queryKey: ["assets", "folders", workspaceId],
-    enabled: Boolean(workspaceId),
-    queryFn: async () => listAssetFolders(String(workspaceId), { size: 200 }),
-    staleTime: 60 * 1000,
-  });
-
-  const tagsQuery = useQuery({
-    queryKey: ["assets", "tags", workspaceId],
-    enabled: Boolean(workspaceId),
-    queryFn: async () => listAssetTags(String(workspaceId)),
-    staleTime: 60 * 1000,
-  });
-
-  const assetsListQueryKey = useMemo(
-    () => [
-      "assets",
-      "list",
-      workspaceId,
-      {
-        purpose: "library",
-        q: searchQuery || undefined,
-        mimePrefix: filters.mimePrefix,
-        folderId: currentFolderId || undefined,
-        folderIsNull: currentFolderId ? undefined : true,
-        visibility: filters.visibility,
-        createdFrom: filters.createdFrom,
-        createdTo: filters.createdTo,
-        tagIds: filters.tagIds,
-        ordering,
-      },
-    ],
-    [
-      currentFolderId,
-      filters.createdFrom,
-      filters.createdTo,
-      filters.mimePrefix,
-      filters.tagIds,
-      filters.visibility,
-      ordering,
-      searchQuery,
-      workspaceId,
-    ],
-  );
-
-  const assetsQuery = useInfiniteQuery({
-    queryKey: assetsListQueryKey,
-    queryFn: async ({ pageParam }) =>
-      workspaceId
-        ? listAssets(String(workspaceId), {
-            page: typeof pageParam === "number" ? pageParam : 1,
-            size: 24,
-            purpose: "library",
-            q: searchQuery || undefined,
-            mimePrefix: filters.mimePrefix,
-            folderId: currentFolderId || undefined,
-            folderIsNull: currentFolderId ? undefined : true,
-            visibility: filters.visibility,
-            createdFrom: filters.createdFrom,
-            createdTo: filters.createdTo,
-            tagIds: filters.tagIds,
-            ordering,
-          })
-        : Promise.reject(new Error("WORKSPACE_NOT_SELECTED")),
-    enabled: Boolean(workspaceId),
-    initialPageParam: 1,
-    getNextPageParam: (lastPage) => lastPage.next ?? undefined,
-    placeholderData: keepPreviousData,
-    staleTime: 30 * 1000,
-    meta: { silent: true },
-  });
 
   const bulkMoveMutation = useMutation({
     mutationFn: (payload: Parameters<typeof bulkMoveAssets>[1]) => {
@@ -778,17 +589,6 @@ export function AssetsView() {
     ordering,
   ]);
 
-  const items = useMemo<AssetMasonryItem[]>(() => {
-    if (!assetsQuery.data) return [];
-    const rows = assetsQuery.data.pages.flatMap((p) => p.items);
-    const mapped = rows.map((row) =>
-      toMasonryItem(row, { aspectRatioOverride: aspectRatioRef.current.get(row.id) }),
-    );
-    return mapped.length ? mapped : [];
-  }, [assetsQuery.data, layoutTick]);
-
-  const orderedAssetIds = useMemo(() => items.map((it) => it.id), [items]);
-
   const openEditAccessDialog = () => {
     const ids = Array.from(selectedIds);
     if (ids.length <= 0) return;
@@ -806,121 +606,6 @@ export function AssetsView() {
     }
     setEditAccessOpen(true);
   };
-
-  const visibleFolders = useMemo<AdminAssetFolder[]>(() => {
-    const folders = (foldersQuery.data?.items ?? []) as AdminAssetFolder[];
-    const isRoot = !currentFolderId;
-
-    const visible = folders.filter((f) =>
-      isRoot ? !f.parentId : String(f.parentId || "") === String(currentFolderId),
-    );
-
-    // Root shows only top-level folders; folder mode shows its immediate children.
-    return visible;
-  }, [currentFolderId, foldersQuery.data]);
-
-  const folderHasMatchQueries = useQueries({
-    queries: visibleFolders.map((folder) => ({
-      queryKey: [
-        "assets",
-        "folderHasMatch",
-        workspaceId,
-        String(folder.id),
-        {
-          purpose: "library",
-          q: searchQuery || undefined,
-          mimePrefix: filters.mimePrefix,
-          visibility: filters.visibility,
-          createdFrom: filters.createdFrom,
-          createdTo: filters.createdTo,
-          tagIds: filters.tagIds,
-        },
-      ],
-      enabled: Boolean(workspaceId) && visibleFolders.length > 0 && explicitFilterActive,
-      staleTime: 30 * 1000,
-      queryFn: async () => {
-        if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
-        // Cheap existence check: fetch 1 item only.
-        return listAssets(String(workspaceId), {
-          page: 1,
-          size: 1,
-          purpose: "library",
-          q: searchQuery || undefined,
-          mimePrefix: filters.mimePrefix,
-          visibility: filters.visibility,
-          createdFrom: filters.createdFrom,
-          createdTo: filters.createdTo,
-          tagIds: filters.tagIds,
-          folderId: String(folder.id),
-          includeChildren: true,
-        });
-      },
-    })),
-  });
-
-  const filteredVisibleFolders = useMemo(() => {
-    // Do NOT hide empty folders unless user explicitly applies search/filters.
-    // Otherwise, a newly created empty folder would disappear and users can never move assets into it.
-    if (!explicitFilterActive) return visibleFolders;
-
-    const byId = new Map<string, boolean | undefined>();
-    for (let i = 0; i < visibleFolders.length; i += 1) {
-      const folder = visibleFolders[i];
-      const q = folderHasMatchQueries[i];
-      // q 不存在基本不可能；兜底为“未知 => 先展示”。
-      if (!q) {
-        byId.set(String(folder.id), undefined);
-        continue;
-      }
-      if (q.isError) {
-        // Folder existence check is best-effort; on error we keep the folder visible to avoid hiding content incorrectly.
-        byId.set(String(folder.id), undefined);
-        continue;
-      }
-      if (!q.data) {
-        byId.set(String(folder.id), undefined);
-        continue;
-      }
-      byId.set(String(folder.id), (q.data.total || 0) > 0);
-    }
-    return filterFoldersByContentCheck(visibleFolders, byId);
-  }, [explicitFilterActive, folderHasMatchQueries, visibleFolders]);
-
-  const folderEntries = useMemo<MasonryEntry[]>(() => {
-    const isRoot = !currentFolderId;
-    const out: MasonryEntry[] = [];
-    if (!isRoot) out.push({ kind: "folderUp" });
-    for (const f of filteredVisibleFolders) out.push({ kind: "folder", folder: f });
-    return out;
-  }, [currentFolderId, filteredVisibleFolders]);
-
-  const masonryEntries = useMemo<MasonryEntry[]>(() => {
-    return [...folderEntries, ...items.map((asset): MasonryEntry => ({ kind: "asset", asset }))];
-  }, [folderEntries, items]);
-
-  const folderPath = useMemo(() => {
-    const folders = (foldersQuery.data?.items ?? []) as AdminAssetFolder[];
-    const byId = new Map<string, AdminAssetFolder>();
-    for (const f of folders) byId.set(String(f.id), f);
-
-    if (!currentFolderId) return [] as AdminAssetFolder[];
-    const out: AdminAssetFolder[] = [];
-    let cur = byId.get(String(currentFolderId));
-    // Cap to 10 levels to avoid infinite loops if parentId data is malformed.
-    for (let i = 0; i < 10 && cur; i += 1) {
-      out.unshift(cur);
-      const pid = cur.parentId ? String(cur.parentId) : "";
-      cur = pid ? byId.get(pid) : undefined;
-    }
-    return out;
-  }, [currentFolderId, foldersQuery.data]);
-
-  const folderById = useMemo(() => {
-    const folders = (foldersQuery.data?.items ?? []) as AdminAssetFolder[];
-    const mp = new Map<string, AdminAssetFolder>();
-    for (const f of folders) mp.set(String(f.id), f);
-    return mp;
-  }, [foldersQuery.data]);
 
   const createParentLabel = useMemo(() => {
     const pid = createFolderParentId ?? currentFolderId;
@@ -1623,15 +1308,8 @@ export function AssetsView() {
                     )}
                   </AssetDraggableProvider>
                 ) : entry.kind === "folderUp" ? (
-                  <div
-                    role="button"
-                    tabIndex={0}
-                    data-folder-tile="true"
-                    className={cn(
-                      "group relative w-full overflow-hidden border border-border/50 bg-card",
-                      "rounded-lg shadow-sm transition duration-200 hover:shadow-md",
-                      "cursor-pointer outline-none select-none",
-                    )}
+                  <AssetsExplorerFolderUpTile
+                    label={t("assets:ASSET_FOLDER_UP")}
                     onClick={() => {
                       setFocusedFolderId("__up__");
                       setSelection((prev) => clearSelection(prev));
@@ -1642,21 +1320,7 @@ export function AssetsView() {
                       const cur = folders.find((f) => f.id === currentFolderId);
                       setCurrentFolderId(cur?.parentId ? String(cur.parentId) : null);
                     }}
-                    onKeyDown={(e) => {
-                      if (e.key !== "Enter") return;
-                      const folders = (foldersQuery.data?.items ?? []) as AdminAssetFolder[];
-                      const cur = folders.find((f) => f.id === currentFolderId);
-                      setCurrentFolderId(cur?.parentId ? String(cur.parentId) : null);
-                    }}
-                  >
-                    <div className="relative w-full overflow-hidden" style={{ aspectRatio: 4 / 3 }}>
-                      <div className="absolute inset-0 grid place-items-center bg-linear-to-b from-primary/25 via-transparent to-transparent">
-                        <div className="font-bold text-muted-foreground">
-                          {t("assets:ASSET_FOLDER_UP")}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                  />
                 ) : (
                   <FolderDraggableProvider folderId={String(entry.folder.id)}>
                     {(drag) => (
@@ -1738,23 +1402,20 @@ export function AssetsView() {
                                   e.preventDefault();
                                 }}
                               >
-                                <div
-                                  ref={drag.setNodeRef}
-                                  role="button"
-                                  tabIndex={0}
-                                  data-folder-tile="true"
-                                  className={cn(
-                                    "group relative w-full overflow-hidden border border-border/50 bg-card",
-                                    "rounded-lg shadow-sm transition duration-200 hover:shadow-md",
-                                    "cursor-pointer outline-none",
-                                    "select-none",
-                                    focusedFolderId === entry.folder.id
-                                      ? "ring-1 ring-foreground/60"
-                                      : null,
-                                    isOver ? "ring-1 ring-foreground/60" : null,
-                                  )}
-                                  {...(drag.attributes as Record<string, unknown>)}
-                                  {...(drag.listeners as Record<string, unknown>)}
+                                <AssetsExplorerFolderTile
+                                  ref={
+                                    drag.setNodeRef as unknown as (
+                                      node: HTMLDivElement | null,
+                                    ) => void
+                                  }
+                                  folder={entry.folder}
+                                  folderLabel={t("assets:ASSET_FOLDER")}
+                                  focused={focusedFolderId === entry.folder.id}
+                                  isOver={isOver}
+                                  rootProps={{
+                                    ...(drag.attributes as unknown as Record<string, unknown>),
+                                    ...(drag.listeners as unknown as Record<string, unknown>),
+                                  }}
                                   onClick={() => {
                                     setFocusedFolderId(entry.folder.id);
                                     setSelection((prev) => clearSelection(prev));
@@ -1764,45 +1425,7 @@ export function AssetsView() {
                                     setCurrentFolderId(entry.folder.id);
                                     setFocusedFolderId(null);
                                   }}
-                                  onKeyDown={(e) => {
-                                    if (e.key !== "Enter") return;
-                                    setCurrentFolderId(entry.folder.id);
-                                    setFocusedFolderId(null);
-                                  }}
-                                >
-                                  <div
-                                    className="relative w-full overflow-hidden"
-                                    style={{ aspectRatio: 4 / 3 }}
-                                  >
-                                    <div className="absolute inset-0 bg-muted/10">
-                                      <div className="absolute inset-0 bg-linear-to-b from-primary/25 via-transparent to-transparent" />
-                                      <div className="relative flex h-full flex-col justify-between p-4">
-                                        <div className="flex items-center gap-2 ">
-                                          <Folder size={18} className="opacity-80" />
-                                          <span className="font-bold text-lg tracking-wide">
-                                            {t("assets:ASSET_FOLDER")}
-                                          </span>
-                                        </div>
-                                        <div className="min-w-0">
-                                          <div
-                                            className="font-semibold truncate"
-                                            title={entry.folder.name}
-                                          >
-                                            {entry.folder.name}
-                                          </div>
-                                          {entry.folder.description ? (
-                                            <div
-                                              className="mt-1 line-clamp-2 text-sm leading-snug text-muted-foreground/80"
-                                              title={entry.folder.description}
-                                            >
-                                              {entry.folder.description}
-                                            </div>
-                                          ) : null}
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
+                                />
                               </div>
                             </Dropdown>
                           </DroppablePulse>
@@ -1823,7 +1446,7 @@ export function AssetsView() {
                   key="drag-selection-overlay"
                 />
               ) : draggingFolderId ? (
-                <DragFolderOverlay
+                <AssetsExplorerFolderDragOverlay
                   key="drag-folder-overlay"
                   folderLabel={t("assets:ASSET_FOLDER")}
                   folderName={

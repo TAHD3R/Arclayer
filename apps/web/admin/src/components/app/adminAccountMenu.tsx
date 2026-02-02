@@ -32,6 +32,7 @@ import {
   useFloatingPanel,
 } from "@/components/ui/floating-panel";
 import { cn } from "@/lib/utils";
+import { resolveAssetRefToPublicUrlPath } from "@/views/assets/utils/assetUrls";
 
 type JwtClaims = Record<string, unknown>;
 
@@ -133,16 +134,18 @@ function normalizeUserProfile(raw: unknown): {
   email: string | null;
   displayName: string | null;
   avatarUrl: string | null;
+  avatarAssetId: string | null;
 } {
   const data = asRecord(raw);
   if (!data) {
-    return { username: null, email: null, displayName: null, avatarUrl: null };
+    return { username: null, email: null, displayName: null, avatarUrl: null, avatarAssetId: null };
   }
   return {
     username: getStringValue(data, ["username"]),
     email: getStringValue(data, ["email"]),
     displayName: getStringValue(data, ["display_name", "displayName"]),
     avatarUrl: getStringValue(data, ["avatar_url", "avatarUrl"]),
+    avatarAssetId: getStringValue(data, ["avatar_asset_id", "avatarAssetId"]),
   };
 }
 
@@ -331,7 +334,7 @@ function AdminAccountPanelContent(props: {
         <div className="flex items-center gap-3">
           <Avatar
             size={48}
-            src={props.avatarUrl ?? undefined}
+            src={resolveAssetRefToPublicUrlPath(props.avatarUrl) ?? undefined}
             shape="square"
             style={{
               backgroundColor: "var(--color-muted)",
@@ -512,7 +515,9 @@ export function AdminAccountMenu() {
         <Avatar
           size={40}
           shape="square"
-          src={profile.avatarUrl ?? undefined}
+          src={
+            resolveAssetRefToPublicUrlPath(profile.avatarUrl ?? profile.avatarAssetId) ?? undefined
+          }
           style={{
             backgroundColor: "var(--card-muted)",
             color: "var(--color-foreground)",
@@ -543,7 +548,7 @@ export function AdminAccountMenu() {
       <FloatingPanelContent placement="auto" showTitle={false} className="p-0">
         <AdminAccountPanelContent
           displayName={displayName}
-          avatarUrl={profile.avatarUrl}
+          avatarUrl={profile.avatarUrl ?? profile.avatarAssetId}
           roleText={roleText}
           showOrganizationSettings={isOrgOwner}
           themeMode={themeMode}

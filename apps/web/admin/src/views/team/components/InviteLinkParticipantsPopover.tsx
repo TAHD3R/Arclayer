@@ -9,6 +9,7 @@ import {
   type TeamUserRef,
 } from "@/api/team";
 import { notifyError } from "@/utils/notifications";
+import { resolveAssetRefToPublicUrlPath } from "@/views/assets/utils/assetUrls";
 
 function userInitials(label: string | null | undefined): string {
   const v = String(label || "U").trim();
@@ -24,7 +25,7 @@ function renderUserLabel(user: TeamUserRef | null): React.ReactNode {
       <Avatar
         size={24}
         shape="square"
-        src={user.avatarUrl || undefined}
+        src={resolveAssetRefToPublicUrlPath(user.avatarUrl) || undefined}
         style={{
           backgroundColor: "var(--color-muted)",
           color: "var(--color-foreground)",

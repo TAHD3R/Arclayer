@@ -68,3 +68,23 @@ export function toShareableAbsoluteUrl(urlOrPath: string): string {
   if (typeof window === "undefined") return raw;
   return new URL(raw, window.location.origin).toString();
 }
+
+function isUuidLike(value: string): boolean {
+  // Accept UUIDs with hyphens; keep it strict to avoid accidental matches.
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+}
+
+/**
+ * Resolve an "asset reference" to a public URL.
+ *
+ * Supported inputs:
+ * - absolute URL: https://...
+ * - relative path: /assets/<id>...
+ * - bare asset id (uuid): <id>
+ */
+export function resolveAssetRefToPublicUrlPath(ref: string | null | undefined): string | undefined {
+  const raw = (ref || "").trim();
+  if (!raw) return undefined;
+  if (isUuidLike(raw)) return resolvePublicAssetUrlPath(`/assets/${raw}`);
+  return resolvePublicAssetUrlPath(raw);
+}

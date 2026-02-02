@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Button, Input, Modal, Select } from "antd";
+import { Button, Input, Select } from "antd";
 import { z } from "zod";
 import { Controller, useForm } from "react-hook-form";
 import { Check, MoreVertical, Plus, Search, Trash2 } from "lucide-react";
@@ -18,14 +18,7 @@ import {
 import { DefaultPage } from "@/components/app/defaultPage";
 import { PageState } from "@/components/app/pageState";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   Dialog,
   DialogContent,
@@ -78,6 +71,10 @@ export function TeamRolesView() {
   const needle = React.useMemo(() => normalizeNeedle(search), [search]);
 
   const [createOpen, setCreateOpen] = React.useState(false);
+  const [deleteOpen, setDeleteOpen] = React.useState(false);
+  const [deleteTarget, setDeleteTarget] = React.useState<{ code: string; name: string } | null>(
+    null,
+  );
 
   const [permissionDialogOpen, setPermissionDialogOpen] = React.useState(false);
   const [activePermission, setActivePermission] = React.useState<RbacMatrixPermissionRow | null>(
@@ -103,25 +100,33 @@ export function TeamRolesView() {
   const topScrollRef = React.useRef<HTMLDivElement | null>(null);
   const mainScrollRef = React.useRef<HTMLDivElement | null>(null);
   const scrollSpacerRef = React.useRef<HTMLDivElement | null>(null);
+  const tableRef = React.useRef<HTMLTableElement | null>(null);
   const syncingRef = React.useRef<"top" | "main" | null>(null);
 
   React.useEffect(() => {
     const main = mainScrollRef.current;
     const spacer = scrollSpacerRef.current;
+    const table = tableRef.current;
     if (!main || !spacer) return;
 
     const updateWidth = () => {
       // Match the scrollable content width so the top scrollbar reflects horizontal overflow.
-      spacer.style.width = `${main.scrollWidth}px`;
-      setShowTopScrollbar(main.scrollWidth > main.clientWidth + 1);
+      const contentWidth = table?.scrollWidth ?? main.scrollWidth;
+      spacer.style.width = `${contentWidth}px`;
+      setShowTopScrollbar(contentWidth > main.clientWidth + 1);
     };
 
     updateWidth();
 
     const ro = new ResizeObserver(() => updateWidth());
     ro.observe(main);
-    return () => ro.disconnect();
-  }, [matrixQuery.data?.roles?.length, matrixQuery.data?.permissions?.length]);
+    if (table) ro.observe(table);
+    window.addEventListener("resize", updateWidth);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", updateWidth);
+    };
+  }, [roles.length, permissions.length, needle]);
 
   const onTopScroll = React.useCallback(() => {
     const top = topScrollRef.current;
@@ -388,7 +393,10 @@ export function TeamRolesView() {
             ) : null}
 
             <div ref={mainScrollRef} onScroll={onMainScroll} className="max-h-[64vh] overflow-auto">
-              <Table className="min-w-max [&_th]:whitespace-nowrap">
+              <table
+                ref={tableRef}
+                className="w-full min-w-max caption-bottom text-sm [&_th]:whitespace-nowrap"
+              >
                 <TableHeader className="sticky top-0 z-20 bg-card">
                   <TableRow>
                     <TableHead className="sticky left-0 z-30 w-[360px] bg-card text-center">
@@ -417,18 +425,8 @@ export function TeamRolesView() {
                                   <DropdownMenuItem
                                     className="text-destructive focus:text-destructive"
                                     onClick={() => {
-                                      Modal.confirm({
-                                        title: t("team:TEAM_ROLES_DELETE_TITLE"),
-                                        content: t("team:TEAM_ROLES_DELETE_DESC", {
-                                          roleName: role.name,
-                                        }),
-                                        okText: t("team:TEAM_ACTION_DELETE"),
-                                        cancelText: t("common:CANCEL"),
-                                        okButtonProps: { danger: true },
-                                        onOk: async () => {
-                                          await deleteRoleMutation.mutateAsync(role.code);
-                                        },
-                                      });
+                                      setDeleteTarget({ code: role.code, name: role.name });
+                                      setDeleteOpen(true);
                                     }}
                                     disabled={deleteRoleMutation.isPending}
                                   >
@@ -447,17 +445,19 @@ export function TeamRolesView() {
                 <TableBody>
                   {filteredPermissions.map((perm) => (
                     <TableRow key={perm.code}>
-                      <TableCell className="sticky left-0 z-10 w-[360px] bg-card">
+                      <TableCell className="sticky left-0 z-10 w-90 bg-card">
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
-                            <div className="truncate font-medium text-foreground">{perm.name}</div>
+                            <div className="truncate font-semibold text-foreground">
+                              {perm.name}
+                            </div>
                             {perm.description ? (
-                              <div className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
+                              <div className="mt-0.5 line-clamp-2 text-muted-foreground">
                                 {perm.description}
                               </div>
                             ) : null}
                             {perm.pluginId && perm.pluginId !== "core" ? (
-                              <div className="mt-1 text-xs text-muted-foreground">
+                              <div className="mt-1 text-xs text-muted-foreground bg-background border border-border p-1 rounded-md select-none">
                                 {t("team:TEAM_ROLES_PERMISSION_PROVIDED_BY", {
                                   pluginName: perm.pluginName || perm.pluginId,
                                 })}
@@ -491,11 +491,47 @@ export function TeamRolesView() {
                     </TableRow>
                   ))}
                 </TableBody>
-              </Table>
+              </table>
             </div>
           </div>
         )}
       </div>
+
+      {/* Delete role dialog (use the same Dialog system as "create role") */}
+      <Dialog
+        open={deleteOpen}
+        onOpenChange={(open) => {
+          setDeleteOpen(open);
+          if (!open) setDeleteTarget(null);
+        }}
+      >
+        <DialogContent className="max-w-[520px]">
+          <DialogHeader>
+            <DialogTitle>{t("team:TEAM_ROLES_DELETE_TITLE")}</DialogTitle>
+            <DialogDescription>
+              {t("team:TEAM_ROLES_DELETE_DESC", { roleName: deleteTarget?.name ?? "" })}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={() => setDeleteOpen(false)} disabled={deleteRoleMutation.isPending}>
+              {t("common:CANCEL")}
+            </Button>
+            <Button
+              danger
+              type="primary"
+              loading={deleteRoleMutation.isPending}
+              onClick={async () => {
+                if (!deleteTarget?.code) return;
+                await deleteRoleMutation.mutateAsync(deleteTarget.code);
+                setDeleteOpen(false);
+                setDeleteTarget(null);
+              }}
+            >
+              {t("team:TEAM_ACTION_DELETE")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Permission dialog */}
       <Dialog open={permissionDialogOpen} onOpenChange={setPermissionDialogOpen}>
@@ -528,10 +564,10 @@ export function TeamRolesView() {
                   />
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="truncate font-medium text-foreground">{role.name}</span>
+                      <span className="truncate font-semibold text-foreground">{role.name}</span>
                     </div>
                     {role.description ? (
-                      <div className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
+                      <div className="mt-0.5 line-clamp-2  text-muted-foreground">
                         {role.description}
                       </div>
                     ) : null}
@@ -572,7 +608,7 @@ export function TeamRolesView() {
             onSubmit={createForm.handleSubmit((values) => createRoleMutation.mutate(values))}
           >
             <div className="grid gap-2">
-              <label className="text-sm font-medium text-foreground">
+              <label className="font-semibold text-foreground">
                 {t("team:TEAM_ROLES_FIELD_TEMPLATE")}
               </label>
               <Controller
@@ -600,7 +636,7 @@ export function TeamRolesView() {
             </div>
 
             <div className="grid gap-2">
-              <label className="text-sm font-medium text-foreground">
+              <label className="font-semibold text-foreground">
                 {t("team:TEAM_ROLES_FIELD_NAME")}
               </label>
               <Controller
@@ -616,7 +652,7 @@ export function TeamRolesView() {
             </div>
 
             <div className="grid gap-2">
-              <label className="text-sm font-medium text-foreground">
+              <label className="font-semibold text-foreground">
                 {t("team:TEAM_ROLES_FIELD_DESC")}
               </label>
               <Controller

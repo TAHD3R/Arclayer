@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 
 import {
   clearSelection,
+  orderSelectedIds,
   selectOrClearOnPlainClick,
   rangeSelect,
   selectOnly,
@@ -33,6 +34,12 @@ describe("assetSelection", () => {
     const next = selectOrClearOnPlainClick(state(["a"], "a"), "a", 2);
     expect(Array.from(next.selectedIds)).toEqual(["a"]);
     expect(next.lastActiveId).toBe("a");
+  });
+
+  test("orderSelectedIds returns selected ids in orderedIds order, then appends unknown ids deterministically", () => {
+    const selectedIds = new Set(["c", "a", "z"]);
+    const ordered = ["a", "b", "c", "d"];
+    expect(orderSelectedIds(selectedIds, ordered)).toEqual(["a", "c", "z"]);
   });
 
   test("toggleSelect adds when missing and updates lastActiveId", () => {

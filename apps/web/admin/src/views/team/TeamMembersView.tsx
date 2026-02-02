@@ -58,6 +58,7 @@ import { useAuthStore } from "@/stores/useAuthStore";
 import { EditUserSheet } from "@/views/team/components/EditUserSheet";
 import { ResetUserPasswordDialog } from "@/views/team/components/ResetUserPasswordDialog";
 import { InviteMembersDialog } from "@/views/team/components/InviteMembersDialog";
+import { resolveAssetRefToPublicUrlPath } from "@/views/assets/utils/assetUrls";
 import { useWorkspaceStore } from "@/stores/useWorkspaceStore";
 
 function userInitials(member: TeamMember): string {
@@ -275,7 +276,7 @@ export function TeamMembersView() {
               <Avatar
                 size={28}
                 shape="square"
-                src={m.avatarUrl || undefined}
+                src={resolveAssetRefToPublicUrlPath(m.avatarUrl) || undefined}
                 style={{
                   backgroundColor: "var(--color-muted)",
                   color: "var(--color-foreground)",

@@ -48,6 +48,23 @@ export function clearSelection(_state: AssetSelectionState): AssetSelectionState
 }
 
 /**
+ * Convert a selection set into a stable array ordered by the current visible list order.
+ *
+ * This is useful for picker scenarios where we want deterministic output (e.g. insert multiple images
+ * into a Markdown editor in the same order as they appear on screen).
+ */
+export function orderSelectedIds(selectedIds: ReadonlySet<string>, orderedIds: string[]): string[] {
+  const out: string[] = [];
+  for (const id of orderedIds) {
+    if (selectedIds.has(id)) out.push(id);
+  }
+  const extra = Array.from(selectedIds).filter((id) => !orderedIds.includes(id));
+  extra.sort();
+  out.push(...extra);
+  return out;
+}
+
+/**
  * Plain click behavior for the Masonry tiles:
  * - First click selects the item.
  * - Clicking again (single click, detail=1) on the ONLY selected item clears selection.

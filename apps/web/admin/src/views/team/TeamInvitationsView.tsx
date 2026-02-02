@@ -43,6 +43,7 @@ import { InviteMembersDialog } from "@/views/team/components/InviteMembersDialog
 import { InviteLinkParticipantsPopover } from "@/views/team/components/InviteLinkParticipantsPopover";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useWorkspaceStore } from "@/stores/useWorkspaceStore";
+import { resolveAssetRefToPublicUrlPath } from "@/views/assets/utils/assetUrls";
 
 type TabKey = "pending" | "accepted" | "links";
 
@@ -74,7 +75,7 @@ function renderUserLabel(
       <Avatar
         size={24}
         shape="square"
-        src={user.avatarUrl || undefined}
+        src={resolveAssetRefToPublicUrlPath(user.avatarUrl) || undefined}
         style={{
           backgroundColor: "var(--color-muted)",
           color: "var(--color-foreground)",

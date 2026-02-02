@@ -17,6 +17,15 @@ import { formatSummaryText, isValidHttpUrlOrAbsolutePath, normalizeOptionalStrin
 
 type SiteSettingsTabProps = GeneralSettingsTabBaseProps;
 
+const SETTINGS_IMAGE_FALLBACK_DATA_URI = `data:image/svg+xml;utf8,${encodeURIComponent(
+  `<svg xmlns="http://www.w3.org/2000/svg" width="112" height="112" viewBox="0 0 112 112">
+    <rect width="112" height="112" rx="16" fill="#F1F5F9"/>
+    <rect x="20" y="26" width="72" height="60" rx="10" fill="#E2E8F0"/>
+    <path d="M34 72l14-16 11 12 7-8 12 12H34z" fill="#CBD5E1"/>
+    <circle cx="44" cy="44" r="6" fill="#CBD5E1"/>
+  </svg>`,
+)}`;
+
 function useSiteField(
   form: FormInstance<GeneralSettingsFormValues>,
   name: keyof GeneralSettingsFormValues,
@@ -426,6 +435,7 @@ export function SiteSettingsTab({
                 width={56}
                 height={56}
                 src={siteLogoPreviewUrl}
+                fallback={SETTINGS_IMAGE_FALLBACK_DATA_URI}
                 preview={false}
                 className="rounded-md border border-border/60 bg-muted/20"
               />
@@ -442,10 +452,8 @@ export function SiteSettingsTab({
             </div>
           </div>
           <div className="shrink-0 flex items-center gap-2">
-            <Button onClick={() => setLogoPickerOpen(true)}>
-              {t("settings:SETTINGS_ASSET_PICKER_SELECT")}
-            </Button>
             <Button
+              type="text"
               danger
               disabled={!siteLogoAssetId && !siteLogoUrl}
               onClick={() => {
@@ -454,6 +462,9 @@ export function SiteSettingsTab({
               }}
             >
               {t("settings:SETTINGS_ASSET_PICKER_CLEAR")}
+            </Button>
+            <Button type="primary" onClick={() => setLogoPickerOpen(true)}>
+              {t("settings:SETTINGS_ASSET_PICKER_SELECT")}
             </Button>
           </div>
         </div>
@@ -483,11 +494,13 @@ export function SiteSettingsTab({
         <AssetPickerDialog
           open={logoPickerOpen}
           onOpenChange={setLogoPickerOpen}
-          value={{ assetId: siteLogoAssetId || null }}
+          mode="single"
+          value={{ assetIds: siteLogoAssetId ? [siteLogoAssetId] : [] }}
           uploadPurpose="site_logo"
           title={t("settings:SETTINGS_SITE_LOGO_PICKER_TITLE")}
           description={t("settings:SETTINGS_SITE_LOGO_PICKER_DESC")}
-          onConfirm={({ assetId }) => {
+          onConfirm={({ assetIds }) => {
+            const assetId = assetIds[0];
             if (!assetId) return;
             form.setFieldValue("siteLogoAssetId", assetId);
             form.setFieldValue("siteLogoUrl", `/assets/${assetId}`);
@@ -517,14 +530,15 @@ export function SiteSettingsTab({
           <div className="shrink-0">
             {siteFaviconPreviewUrl ? (
               <Image
-                width={40}
-                height={40}
+                width={56}
+                height={56}
                 src={siteFaviconPreviewUrl}
+                fallback={SETTINGS_IMAGE_FALLBACK_DATA_URI}
                 preview={false}
                 className="rounded-md border border-border/60 bg-muted/20"
               />
             ) : (
-              <div className="h-10 w-10 rounded-md border border-border/60 bg-muted/20 grid place-items-center text-xs text-muted-foreground">
+              <div className="h-14 w-14 rounded-md border border-border/60 bg-muted/20 grid place-items-center text-xs text-muted-foreground">
                 {t("settings:SETTINGS_NOT_SET")}
               </div>
             )}
@@ -538,10 +552,8 @@ export function SiteSettingsTab({
             </div>
           </div>
           <div className="shrink-0 flex items-center gap-2">
-            <Button onClick={() => setFaviconPickerOpen(true)}>
-              {t("settings:SETTINGS_ASSET_PICKER_SELECT")}
-            </Button>
             <Button
+              type="text"
               danger
               disabled={!siteFaviconAssetId && !siteFaviconUrl}
               onClick={() => {
@@ -550,6 +562,9 @@ export function SiteSettingsTab({
               }}
             >
               {t("settings:SETTINGS_ASSET_PICKER_CLEAR")}
+            </Button>
+            <Button type="primary" onClick={() => setFaviconPickerOpen(true)}>
+              {t("settings:SETTINGS_ASSET_PICKER_SELECT")}
             </Button>
           </div>
         </div>
@@ -567,7 +582,7 @@ export function SiteSettingsTab({
               },
             },
           ]}
-          style={{ marginBottom: 0 }}
+          style={{ marginBottom: 0, marginTop: 12 }}
         >
           <Input
             size="large"
@@ -579,11 +594,13 @@ export function SiteSettingsTab({
         <AssetPickerDialog
           open={faviconPickerOpen}
           onOpenChange={setFaviconPickerOpen}
-          value={{ assetId: siteFaviconAssetId || null }}
+          mode="single"
+          value={{ assetIds: siteFaviconAssetId ? [siteFaviconAssetId] : [] }}
           uploadPurpose="favicon"
           title={t("settings:SETTINGS_SITE_FAVICON_PICKER_TITLE")}
           description={t("settings:SETTINGS_SITE_FAVICON_PICKER_DESC")}
-          onConfirm={({ assetId }) => {
+          onConfirm={({ assetIds }) => {
+            const assetId = assetIds[0];
             if (!assetId) return;
             form.setFieldValue("siteFaviconAssetId", assetId);
             form.setFieldValue("siteFaviconUrl", `/assets/${assetId}`);

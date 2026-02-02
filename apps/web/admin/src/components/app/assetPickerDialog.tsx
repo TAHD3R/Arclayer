@@ -1,19 +1,30 @@
-import { Button, Input, Pagination, Select } from "antd";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, ImageOff, Search, UploadCloud } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import type { InputRef } from "antd";
+import { Button, Input, Masonry, Pagination } from "antd";
+import { useQueryClient } from "@tanstack/react-query";
+import { Search, UploadCloud } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import {
-  listAssetFolders,
-  listAssets,
-  type AdminAssetFolder,
-  type AdminAssetSummary,
-} from "@/api/assets";
-import { LoaderOne } from "@/components/ui/loader";
 import { cn } from "@/lib/utils";
-import { resolvePublicAssetUrlPath } from "@/views/assets/utils/assetUrls";
-import { useWorkspaceStore } from "@/stores/useWorkspaceStore";
+import { LoaderOne } from "@/components/ui/loader";
+import { AssetUploadDialog } from "@/views/assets/components/AssetUploadDialog";
+import {
+  AssetsExplorerFolderTile,
+  AssetsExplorerFolderUpTile,
+} from "@/views/assets/explorer/components/AssetsExplorerFolderTiles";
+import { useAssetsExplorerController } from "@/views/assets/explorer/useAssetsExplorerController";
+import {
+  clearSelection,
+  orderSelectedIds,
+  rangeSelect,
+  selectOrClearOnPlainClick,
+  toggleSelect,
+  type AssetSelectionState,
+} from "@/views/assets/utils/assetSelection";
+import {
+  AssetMasonryTile,
+  type AssetMasonryItem,
+} from "@/views/assets/components/AssetMasonryCard";
 import {
   Dialog,
   DialogContent,
@@ -21,61 +32,60 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/animate-ui/components/radix/dialog";
-
-import { AssetUploadDialog } from "@/views/assets/components/AssetUploadDialog";
-
-type PickerAsset = {
-  id: string;
-  name: string;
-  thumbUrl?: string;
-};
-
-function toPickerAsset(row: AdminAssetSummary): PickerAsset {
-  const name = row.originalFilename?.trim() || row.title?.trim() || row.slug || row.id;
-  // Prefer authenticated content URL for private assets; fall back to public thumb when available.
-  const rawThumb = row.publicThumbUrlPath || row.contentUrlPath;
-  const thumb = resolvePublicAssetUrlPath(rawThumb);
-  const thumbUrl = thumb ? `${thumb}?w=400` : undefined;
-  return { id: row.id, name, thumbUrl };
-}
+import {
+  AssetsFilterPopover,
+  type AssetsFilters,
+} from "@/views/assets/components/AssetsFilterPopover";
+import { useWorkspaceStore } from "@/stores/useWorkspaceStore";
 
 export type AssetPickerDialogValue = {
-  assetId: string | null;
+  assetIds: string[];
 };
+
+type AssetPickerDialogMode = "single" | "multiple";
 
 export function AssetPickerDialog(props: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+
   /**
-   * 当前值（受控）。弹窗内部会维护一份草稿选择，仅在“确认”时提交。
+   * Select behavior. Default: single.
+   */
+  mode?: AssetPickerDialogMode;
+
+  /**
+   * Controlled value. The dialog keeps a draft selection and only commits on confirm/double-click.
    */
   value?: AssetPickerDialogValue;
-  /**
-   * 用户点击确认后的提交回调。
-   */
   onConfirm: (next: AssetPickerDialogValue) => void;
+
   /**
-   * 是否允许清空选择（在 footer 中提供“清除”按钮）。
+   * Allow clearing selection (provide "Clear" action in footer).
+   * Default: false (callers can provide their own clear UX outside).
    */
   allowClear?: boolean;
+
   /**
-   * 上传用途：用于从该入口上传时套用后端策略（例如 favicon/site_logo 强制 public/noindex）。
+   * Upload purpose: used by upload dialog for server-side policies.
    */
   uploadPurpose?: string;
+
   /**
-   * 仅展示某类资源（默认 image/）。
+   * Default mime filter for the explorer (e.g. "image/").
+   * Can still be adjusted via filter popover if enabled in that component.
    */
   mimePrefix?: string;
+
   /**
-   * 是否展示“文件夹”筛选。
-   * - 对资源量较大的站点有用
-   * - 对初次用户保持无感，可由调用方按场景关闭
+   * Show upload entry in toolbar. Default: true (as per current product decision).
    */
-  showFolderFilter?: boolean;
+  allowUpload?: boolean;
+
   /**
-   * 默认页大小。
+   * Page size for the paged list. Default: 24.
    */
   pageSize?: number;
+
   title?: string;
   description?: string;
 }) {
@@ -83,84 +93,152 @@ export function AssetPickerDialog(props: {
   const queryClient = useQueryClient();
   const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
 
-  const [searchInput, setSearchInput] = useState("");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [uploadOpen, setUploadOpen] = useState(false);
-  const [draftPickedId, setDraftPickedId] = useState<string | null>(props.value?.assetId ?? null);
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(props.pageSize ?? 24);
-  const [folderId, setFolderId] = useState<string | null>(null);
-  const [ordering, setOrdering] = useState<string>("-created_at");
+  const mode: AssetPickerDialogMode = props.mode ?? "single";
+  const allowUpload = props.allowUpload !== false;
 
+  const explorer = useAssetsExplorerController({
+    workspaceId,
+    pagination: "paged",
+    // In picker scenarios we should NOT force purpose=library:
+    // - logo/favicon upload may create purpose=site_logo/favicon assets
+    // - other future pickers may select non-library assets
+    purpose: undefined,
+    defaultVisibility: "public",
+    defaultOrdering: "-created_at",
+    initialPageSize: props.pageSize ?? 12,
+    initialFilters: {
+      mimePrefix: props.mimePrefix ?? "image/",
+    },
+  });
+
+  const {
+    searchInput,
+    setSearchInput,
+    searchQuery,
+    setSearchQuery,
+    currentFolderId,
+    setCurrentFolderId,
+    focusedFolderId,
+    setFocusedFolderId,
+    filters,
+    setFilters,
+    ordering,
+    setOrdering,
+    tagsQuery,
+    assetsListQueryKey,
+    pagedAssetsQuery,
+    items,
+    masonryEntries,
+    folderById,
+    folderPath,
+    page,
+    pageSize,
+    setPage,
+    setPageSize,
+    total,
+  } = explorer;
+
+  const [uploadOpen, setUploadOpen] = useState(false);
+
+  const [selection, setSelection] = useState<AssetSelectionState>(() => ({
+    selectedIds: new Set(),
+    lastActiveId: null,
+  }));
+  const selectedIds = selection.selectedIds;
+
+  // Reset draft state on open.
   useEffect(() => {
     if (!props.open) return;
-    // 打开时重置草稿选择与分页，避免“上一次 picker 状态”污染新会话。
-    setDraftPickedId(props.value?.assetId ?? null);
-    setPage(1);
+    const init = props.value?.assetIds ?? [];
+    setSelection({
+      selectedIds: new Set(init),
+      lastActiveId: init.length ? init[init.length - 1] : null,
+    });
     setSearchInput("");
     setSearchQuery("");
-  }, [props.open, props.value?.assetId]);
+    setCurrentFolderId(null);
+    setFocusedFolderId(null);
+    setPage(1);
+    // Ensure mime filter stays consistent with caller expectations when reopening.
+    setFilters((prev) => ({
+      ...prev,
+      visibility: prev.visibility ?? "public",
+      mimePrefix: props.mimePrefix ?? prev.mimePrefix ?? "image/",
+    }));
+  }, [
+    props.mimePrefix,
+    props.open,
+    props.value?.assetIds,
+    setCurrentFolderId,
+    setFilters,
+    setFocusedFolderId,
+    setPage,
+    setSearchInput,
+    setSearchQuery,
+  ]);
 
+  // Filters changed => selection should not "stick" to stale items.
   useEffect(() => {
-    const timer = window.setTimeout(() => {
-      setSearchQuery(searchInput.trim());
-      setPage(1);
-    }, 250);
-    return () => window.clearTimeout(timer);
-  }, [searchInput]);
+    if (!props.open) return;
+    setSelection((prev) => clearSelection(prev));
+  }, [
+    props.open,
+    currentFolderId,
+    searchQuery,
+    filters.mimePrefix,
+    filters.visibility,
+    filters.createdFrom,
+    filters.createdTo,
+    filters.tagIds,
+    ordering,
+  ]);
 
-  const foldersQuery = useQuery({
-    queryKey: ["assets", "folders", workspaceId],
-    queryFn: async () =>
-      workspaceId
-        ? listAssetFolders(String(workspaceId))
-        : Promise.reject(new Error("WORKSPACE_NOT_SELECTED")),
-    enabled: props.open && props.showFolderFilter !== false && Boolean(workspaceId),
-    staleTime: 60 * 1000,
-  });
+  const orderedAssetIds = useMemo(() => items.map((it) => it.id), [items]);
 
-  const assetsQuery = useQuery({
-    queryKey: [
-      "assets",
-      "picker",
-      workspaceId,
-      props.mimePrefix || "image/",
-      searchQuery,
-      page,
-      pageSize,
-      folderId,
-      ordering,
-    ],
-    queryFn: async () =>
-      workspaceId
-        ? listAssets(String(workspaceId), {
-            page,
-            size: pageSize,
-            q: searchQuery || undefined,
-            mimePrefix: props.mimePrefix || "image/",
-            folderId: folderId || null,
-            ordering,
-          })
-        : Promise.reject(new Error("WORKSPACE_NOT_SELECTED")),
-    enabled: props.open && Boolean(workspaceId),
-    staleTime: 10 * 1000,
-    placeholderData: (prev) => prev,
-  });
+  const confirmSelectionAndClose = (selectedOverride?: ReadonlySet<string>) => {
+    const picked = selectedOverride ?? selectedIds;
+    const ordered = orderSelectedIds(picked, orderedAssetIds);
+    if (mode === "single") {
+      const first = ordered[0];
+      props.onConfirm({ assetIds: first ? [first] : [] });
+      props.onOpenChange(false);
+      return;
+    }
+    props.onConfirm({ assetIds: ordered });
+    props.onOpenChange(false);
+  };
 
-  const items = useMemo<PickerAsset[]>(() => {
-    const rows = assetsQuery.data?.items || [];
-    return rows.map(toPickerAsset);
-  }, [assetsQuery.data]);
+  const handleAssetDoubleClick = (asset: AssetMasonryItem) => {
+    if (mode === "single") {
+      confirmSelectionAndClose(new Set([asset.id]));
+      return;
+    }
 
-  const total = assetsQuery.data?.total ?? 0;
+    if (selectedIds.size > 0) {
+      confirmSelectionAndClose();
+      return;
+    }
+    confirmSelectionAndClose(new Set([asset.id]));
+  };
 
-  const folderOptions = useMemo(() => {
-    const rows = (foldersQuery.data?.items || []) as AdminAssetFolder[];
-    return [
-      { value: "__all__", label: t("assets:ASSET_FILTER_FOLDER_ALL") },
-      ...rows.map((f) => ({ value: f.id, label: f.name })),
-    ];
-  }, [foldersQuery.data, t]);
+  const searchInputRef = useRef<InputRef>(null);
+  useEffect(() => {
+    if (!props.open) return;
+    // Focus search input for faster workflows (especially in editor insertion).
+    window.setTimeout(() => {
+      searchInputRef.current?.focus?.();
+    }, 50);
+  }, [props.open]);
+
+  const isLoading = pagedAssetsQuery.isLoading && !pagedAssetsQuery.data;
+  const isFetching = pagedAssetsQuery.isFetching;
+
+  const parentIdForUp = useMemo(() => {
+    if (!currentFolderId) return null;
+    return folderById.get(String(currentFolderId))?.parentId
+      ? String(folderById.get(String(currentFolderId))?.parentId)
+      : null;
+  }, [currentFolderId, folderById]);
 
   return (
     <>
@@ -168,10 +246,9 @@ export function AssetPickerDialog(props: {
         <DialogContent
           showCloseButton
           className={cn(
-            // Dialog 形式：header + toolbar + grid + pagination + footer
             "!p-0 !flex !flex-col overflow-hidden",
             "max-h-[calc(100vh-2rem)]",
-            "w-[min(980px,calc(100vw-2rem))] sm:w-[min(980px,calc(100vw-2rem))] sm:max-w-none",
+            "w-[min(1080px,calc(100vw-2rem))] sm:w-[min(1080px,calc(100vw-2rem))] sm:max-w-none",
           )}
         >
           <DialogHeader className="px-6 pt-5 pb-4 border-b">
@@ -184,130 +261,200 @@ export function AssetPickerDialog(props: {
           </DialogHeader>
 
           <div className="flex-1 min-h-0 flex flex-col">
-            {/* Toolbar：搜索 + 筛选器（左） / 上传按钮（右） */}
-            <div className="px-6 py-4 border-b flex flex-wrap items-center justify-between gap-3">
-              <Input
-                allowClear
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                placeholder={t("settings:SETTINGS_ASSET_PICKER_SEARCH_PLACEHOLDER")}
-                prefix={<Search size={16} className="text-muted-foreground" />}
-                style={{ width: 320, maxWidth: "100%" }}
-              />
+            {/* Toolbar: search + filters + upload */}
+            <div className="px-6 py-4 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex gap-2">
+                <Input
+                  variant="borderless"
+                  ref={searchInputRef}
+                  allowClear
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  placeholder={t("settings:SETTINGS_ASSET_PICKER_SEARCH_PLACEHOLDER")}
+                  prefix={<Search size={16} className="text-muted-foreground" />}
+                  style={{ width: 320, maxWidth: "100%" }}
+                />
 
-              <div className="flex items-center gap-2">
-                {props.showFolderFilter !== false ? (
-                  <Select
-                    value={folderId || "__all__"}
-                    style={{ width: 220 }}
-                    options={folderOptions}
-                    loading={foldersQuery.isLoading}
-                    onChange={(v) => {
-                      setFolderId(v === "__all__" ? null : String(v));
+                <div className="flex items-center gap-2">
+                  <AssetsFilterPopover
+                    value={filters}
+                    onChange={(next: AssetsFilters) => {
+                      setFilters(next);
+                    }}
+                    ordering={ordering}
+                    onOrderingChange={(next) => {
+                      setOrdering(next);
                       setPage(1);
                     }}
+                    defaultOrdering="-created_at"
+                    tags={(tagsQuery.data?.items ?? []) as any}
+                    tagsLoading={tagsQuery.isLoading}
                   />
-                ) : null}
-
-                <Select
-                  value={ordering}
-                  style={{ width: 160 }}
-                  options={[
-                    { value: "-created_at", label: t("assets:ASSET_SORT_NEWEST") },
-                    { value: "created_at", label: t("assets:ASSET_SORT_OLDEST") },
-                    { value: "-size_bytes", label: t("assets:ASSET_SORT_SIZE_LARGE") },
-                    { value: "size_bytes", label: t("assets:ASSET_SORT_SIZE_SMALL") },
-                  ]}
-                  onChange={(v) => {
-                    setOrdering(String(v));
-                    setPage(1);
-                  }}
-                />
+                </div>
               </div>
 
               <div className="flex items-center gap-2">
-                <Button
-                  icon={<UploadCloud size={16} />}
-                  onClick={() => setUploadOpen(true)}
-                  disabled={assetsQuery.isFetching}
-                >
-                  {t("assets:ASSET_ACTION_UPLOAD")}
-                </Button>
+                {allowUpload ? (
+                  <Button
+                    type="primary"
+                    icon={<UploadCloud size={16} />}
+                    onClick={() => setUploadOpen(true)}
+                    disabled={isFetching}
+                  >
+                    {t("assets:ASSET_ACTION_UPLOAD")}
+                  </Button>
+                ) : null}
               </div>
             </div>
 
-            {/* Grid：中间图片区，独立滚动 */}
-            <div className="flex-1 min-h-0 overflow-auto px-6 py-5">
-              {assetsQuery.isLoading && !assetsQuery.data ? (
+            {/* Breadcrumbs */}
+            <div className="px-6 flex flex-wrap items-center gap-2 text-sm">
+              <Button
+                type="text"
+                onClick={() => {
+                  setCurrentFolderId(null);
+                  setFocusedFolderId(null);
+                }}
+              >
+                {t("assets:ASSET_BREADCRUMB_ROOT")}
+              </Button>
+              {folderPath.map((f) => (
+                <div key={String(f.id)} className="flex items-center gap-2">
+                  <span className="text-muted-foreground">/</span>
+                  <Button
+                    type="text"
+                    size="small"
+                    onClick={() => {
+                      setCurrentFolderId(String(f.id));
+                      setFocusedFolderId(null);
+                    }}
+                  >
+                    {f.name}
+                  </Button>
+                </div>
+              ))}
+            </div>
+
+            {/* Content */}
+            <div
+              className="flex-1 min-h-0 overflow-auto px-6 py-5 select-none"
+              onMouseDown={(e) => {
+                const target = e.target as HTMLElement | null;
+                if (!target) return;
+                // Click blank area => clear selection & folder focus (file-manager-like UX).
+                if (target.closest("[data-asset-tile='true']")) return;
+                if (target.closest("[data-folder-tile='true']")) return;
+                setSelection((prev) => clearSelection(prev));
+                setFocusedFolderId(null);
+              }}
+            >
+              {isLoading ? (
                 <div className="py-10 flex justify-center">
                   <LoaderOne />
                 </div>
-              ) : items.length === 0 ? (
-                <div className="py-10 text-sm text-muted-foreground">{t("assets:ASSET_EMPTY")}</div>
-              ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                  {items.map((it) => {
-                    const selected = it.id === draftPickedId;
-                    return (
-                      <button
-                        key={it.id}
-                        type="button"
-                        className={cn(
-                          "group relative w-full rounded-xl overflow-hidden border bg-card",
-                          "shadow-sm transition hover:shadow-md",
-                          selected
-                            ? "border-primary ring-2 ring-primary/30"
-                            : "border-border/60 hover:border-border",
-                          "text-left",
-                        )}
-                        onClick={() => setDraftPickedId(it.id)}
-                      >
-                        <div className="relative w-full aspect-square bg-muted/20">
-                          {it.thumbUrl ? (
-                            <img
-                              src={it.thumbUrl}
-                              alt={it.name}
-                              draggable={false}
-                              className={cn(
-                                "absolute inset-0 h-full w-full object-cover",
-                                "transition-transform duration-200 will-change-transform",
-                                "group-hover:scale-[1.02]",
-                              )}
-                            />
-                          ) : (
-                            <div className="absolute inset-0 grid place-items-center text-xs text-muted-foreground">
-                              <div className="flex flex-col items-center gap-2">
-                                <div className="rounded-full bg-background/70 p-2 shadow-sm">
-                                  <ImageOff className="size-4" />
-                                </div>
-                                {t("assets:ASSET_PREVIEW_UNAVAILABLE")}
-                              </div>
-                            </div>
-                          )}
-
-                          {selected ? (
-                            <div className="absolute right-2 top-2 rounded-full bg-primary text-primary-foreground p-1.5 shadow-sm">
-                              <Check size={14} />
-                            </div>
-                          ) : null}
-                        </div>
-
-                        <div className="px-3 py-2">
-                          <div className="text-sm font-medium truncate" title={it.name}>
-                            {it.name}
-                          </div>
-                        </div>
-                      </button>
-                    );
-                  })}
+              ) : masonryEntries.length === 0 ? (
+                <div className="py-10 text-sm text-muted-foreground">
+                  {t("assets:ASSET_EMPTY_SEARCH_DESC")}
                 </div>
+              ) : (
+                <Masonry
+                  gutter={[16, 16]}
+                  columns={{ xs: 1, sm: 2, md: 3, xl: 4, xxl: 5 }}
+                  fresh
+                  items={masonryEntries.map((it) => ({
+                    key:
+                      it.kind === "asset"
+                        ? it.asset.id
+                        : it.kind === "folder"
+                          ? `folder:${it.folder.id}`
+                          : "folder:__up__",
+                    data: it,
+                  }))}
+                  itemRender={(info) => {
+                    const entry = info.data as any;
+                    if (entry.kind === "folderUp") {
+                      return (
+                        <AssetsExplorerFolderUpTile
+                          label={t("assets:ASSET_FOLDER_UP")}
+                          onClick={() => {
+                            setFocusedFolderId("__up__");
+                            setSelection((prev) => clearSelection(prev));
+                          }}
+                          onDoubleClick={() => {
+                            setCurrentFolderId(parentIdForUp);
+                            setFocusedFolderId(null);
+                          }}
+                        />
+                      );
+                    }
+
+                    if (entry.kind === "folder") {
+                      return (
+                        <AssetsExplorerFolderTile
+                          folder={entry.folder}
+                          folderLabel={t("assets:ASSET_FOLDER")}
+                          focused={focusedFolderId === entry.folder.id}
+                          onClick={() => {
+                            setFocusedFolderId(entry.folder.id);
+                            setSelection((prev) => clearSelection(prev));
+                          }}
+                          onDoubleClick={() => {
+                            setCurrentFolderId(String(entry.folder.id));
+                            setFocusedFolderId(null);
+                          }}
+                        />
+                      );
+                    }
+
+                    const asset = entry.asset as AssetMasonryItem;
+                    const isSelected = selectedIds.has(asset.id);
+
+                    return (
+                      <AssetMasonryTile
+                        asset={asset}
+                        selected={isSelected}
+                        onSelect={(e) => {
+                          if (mode === "single") {
+                            setSelection((prev) =>
+                              selectOrClearOnPlainClick(prev, asset.id, e.detail),
+                            );
+                            setFocusedFolderId(null);
+                            return;
+                          }
+
+                          setFocusedFolderId(null);
+                          if (e.shiftKey) {
+                            setSelection((prev) => rangeSelect(prev, asset.id, orderedAssetIds));
+                            return;
+                          }
+                          if (e.metaKey || e.ctrlKey) {
+                            setSelection((prev) => toggleSelect(prev, asset.id));
+                            return;
+                          }
+                          setSelection((prev) =>
+                            selectOrClearOnPlainClick(prev, asset.id, e.detail),
+                          );
+                        }}
+                        onToggleSelected={() => {
+                          setFocusedFolderId(null);
+                          if (mode === "single") {
+                            setSelection((prev) => selectOrClearOnPlainClick(prev, asset.id, 1));
+                            return;
+                          }
+                          setSelection((prev) => toggleSelect(prev, asset.id));
+                        }}
+                        onOpen={handleAssetDoubleClick}
+                      />
+                    );
+                  }}
+                />
               )}
             </div>
 
-            {/* Pagination：固定在内容底部（不随 grid 滚动） */}
+            {/* Pagination */}
             <div className="px-6 py-3 border-t flex items-center justify-between gap-3">
               <div className="text-xs text-muted-foreground">
-                {assetsQuery.isFetching ? t("common:LOADING") : null}
+                {isFetching ? t("common:LOADING") : null}
               </div>
               <Pagination
                 size="small"
@@ -332,7 +479,7 @@ export function AssetPickerDialog(props: {
               <Button
                 danger
                 onClick={() => {
-                  props.onConfirm({ assetId: null });
+                  props.onConfirm({ assetIds: [] });
                   props.onOpenChange(false);
                 }}
               >
@@ -342,11 +489,8 @@ export function AssetPickerDialog(props: {
             <Button onClick={() => props.onOpenChange(false)}>{t("common:CANCEL")}</Button>
             <Button
               type="primary"
-              disabled={!draftPickedId}
-              onClick={() => {
-                props.onConfirm({ assetId: draftPickedId });
-                props.onOpenChange(false);
-              }}
+              disabled={selectedIds.size <= 0}
+              onClick={() => confirmSelectionAndClose()}
             >
               {t("common:CONFIRM")}
             </Button>
@@ -360,9 +504,18 @@ export function AssetPickerDialog(props: {
         onOpenChange={setUploadOpen}
         purpose={props.uploadPurpose}
         onUploaded={() => {
-          // 上传完成后刷新 picker 列表
-          if (workspaceId)
-            void queryClient.invalidateQueries({ queryKey: ["assets", "picker", workspaceId] });
+          if (workspaceId) {
+            void queryClient.invalidateQueries({
+              queryKey: ["assets", "folders", String(workspaceId)],
+            });
+            void queryClient.invalidateQueries({
+              queryKey: ["assets", "paged", String(workspaceId)],
+            });
+            void queryClient.invalidateQueries({
+              queryKey: ["assets", "folderHasMatch", String(workspaceId)],
+            });
+            void queryClient.invalidateQueries({ queryKey: assetsListQueryKey });
+          }
           setUploadOpen(false);
         }}
       />

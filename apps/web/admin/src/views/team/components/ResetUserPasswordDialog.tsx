@@ -1,6 +1,6 @@
 "use client";
 
-import { Button as AntButton, Divider } from "antd";
+import { Button as AntButton, Input } from "antd";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
 import { useForm } from "react-hook-form";
@@ -17,7 +17,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/animate-ui/components/radix/dialog";
-import { Input } from "@/components/ui/input";
 import { zodResolver } from "@/lib/forms/zodResolver";
 import { notifyError, notifySuccessText } from "@/utils/notifications";
 import { useWorkspaceStore } from "@/stores/useWorkspaceStore";
@@ -100,8 +99,6 @@ export function ResetUserPasswordDialog(props: {
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{t("team:TEAM_RESET_PASSWORD_DESC")}</DialogDescription>
         </DialogHeader>
-
-        <Divider className="my-0" />
 
         <form onSubmit={onSubmit} className="grid gap-4 py-2">
           <div className="grid gap-1.5">

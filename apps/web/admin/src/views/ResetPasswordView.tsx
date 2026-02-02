@@ -1,4 +1,4 @@
-import { Button, Form, Input, Typography } from "antd";
+import { Button as AntButton, Form, Input, Typography } from "antd";
 import { Lock, KeyRound } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -107,7 +107,7 @@ export function ResetPasswordView({
           />
         </Form.Item>
 
-        <Button
+        <AntButton
           type="primary"
           htmlType="submit"
           block
@@ -116,12 +116,12 @@ export function ResetPasswordView({
           disabled={loading}
         >
           {t("auth:RESET_PASSWORD_BUTTON")}
-        </Button>
+        </AntButton>
 
         <div className="mt-4 text-center">
-          <Button type="link" style={{ paddingInline: 0 }} onClick={onBackToLogin}>
+          <AntButton type="link" style={{ paddingInline: 0 }} onClick={onBackToLogin}>
             {t("auth:BACK_TO_LOGIN")}
-          </Button>
+          </AntButton>
         </div>
       </Form>
     </div>
