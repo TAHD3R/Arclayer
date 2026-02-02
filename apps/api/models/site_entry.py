@@ -60,7 +60,7 @@ class EntryRecord(BaseModel):
 
 
 class EntryRevisionRecord(BaseModel):
-    """Immutable entry revision snapshot (data + optional DocumentIR JSON)."""
+    """Immutable entry revision snapshot (data/document + metadata/style/deps)."""
 
     entry = fields.ForeignKeyField(
         "models.EntryRecord",
@@ -72,6 +72,12 @@ class EntryRevisionRecord(BaseModel):
 
     data = fields.JSONField(null=True)
     document = fields.JSONField(null=True)
+
+    # M2: layered revision payload (nullable for backward compatibility).
+    meta = fields.JSONField(null=True)
+    style_overrides = fields.JSONField(null=True)
+    variant_id = fields.CharField(max_length=128, null=True)
+    deps = fields.JSONField(null=True)
 
     created_by_user_id = fields.UUIDField(null=True, db_index=True)
 

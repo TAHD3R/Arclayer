@@ -12,6 +12,7 @@ from tortoise.transactions import in_transaction
 
 from apps.api.common.utils.tortoise_protocols import RouteTemplateIds, SettingUpdatedBy
 from apps.api.core.exceptions import Conflict, NotFound
+from apps.api.models.asset import AssetRecord
 from apps.api.models.setting import SettingRecord
 from apps.api.models.site import SiteRecord
 from apps.api.models.site_entry import EntryRecord, EntryRevisionRecord, EntryTypeRecord
@@ -100,6 +101,86 @@ _route_template_cache = _RouteTemplateCache()
 
 
 class SitesRepository:
+    async def _list_missing_assets(
+        self,
+        *,
+        workspace_id: UUID,
+        asset_ids: list[UUID],
+        conn,
+    ) -> list[str]:
+        """
+        Best-effort deps validator for v0 (assets only).
+
+        Returns missing asset id strings (UUID).
+        """
+
+        if not asset_ids:
+            return []
+
+        rows = (
+            await AssetRecord
+            .filter(
+                id__in=asset_ids,
+                workspace_id=workspace_id,
+                deleted_at=None,
+            )
+            .using_db(conn)
+            .values_list("id", flat=True)
+        )
+        existing = {UUID(str(x)) for x in rows}
+        missing = [str(aid) for aid in asset_ids if aid not in existing]
+        return missing
+
+    async def _validate_revision_deps_assets(
+        self,
+        *,
+        site_id: str,
+        deps: dict | None,
+        conn,
+    ) -> None:
+        """
+        Validate revision deps before publishing/rollback (v0: assets only).
+
+        Contract:
+        - deps.assetIds: list[str] of AssetRecord ids.
+        """
+
+        if not deps or not isinstance(deps, dict):
+            return
+        asset_ids_raw = deps.get("assetIds")
+        if not isinstance(asset_ids_raw, list) or not asset_ids_raw:
+            return
+
+        parsed: list[UUID] = []
+        invalid: list[str] = []
+        for x in asset_ids_raw:
+            if not isinstance(x, str) or not x.strip():
+                invalid.append(str(x))
+                continue
+            try:
+                parsed.append(UUID(x))
+            except Exception:
+                invalid.append(x)
+
+        if not parsed and not invalid:
+            return
+
+        site = await SiteRecord.get_or_none(id=site_id).using_db(conn)
+        if site is None:
+            raise NotFound("Site not found", error="SITE_NOT_FOUND")
+
+        missing = await self._list_missing_assets(
+            workspace_id=UUID(str(site.workspace_id)),
+            asset_ids=parsed,
+            conn=conn,
+        )
+        if invalid or missing:
+            raise Conflict(
+                "Revision deps validation failed",
+                error="REVISION_DEPS_MISSING",
+                meta={"missingAssets": [*invalid, *missing]},
+            )
+
     async def get_site_by_id(self, *, site_id: str) -> SiteRecord:
         site = await SiteRecord.get_or_none(id=site_id)
         if site is None:
@@ -264,9 +345,15 @@ class SitesRepository:
             if page is None:
                 raise NotFound("Page not found", error="PAGE_NOT_FOUND")
 
-            exists = await SitePageRevisionRecord.filter(page_id=page.id, rev=revision).using_db(conn).exists()
-            if not exists:
+            rec = await SitePageRevisionRecord.filter(page_id=page.id, rev=revision).using_db(conn).first()
+            if rec is None:
                 raise NotFound("Revision not found", error="REVISION_NOT_FOUND")
+
+            await self._validate_revision_deps_assets(
+                site_id=site_id,
+                deps=(rec.deps if isinstance(rec.deps, dict) else None),
+                conn=conn,
+            )
 
             if target == "draft":
                 from_rev = int(page.draft_rev or 0) or None
@@ -305,9 +392,15 @@ class SitesRepository:
             if entry is None:
                 raise NotFound("Entry not found", error="ENTRY_NOT_FOUND")
 
-            exists = await EntryRevisionRecord.filter(entry_id=entry.id, rev=revision).using_db(conn).exists()
-            if not exists:
+            rec = await EntryRevisionRecord.filter(entry_id=entry.id, rev=revision).using_db(conn).first()
+            if rec is None:
                 raise NotFound("Revision not found", error="REVISION_NOT_FOUND")
+
+            await self._validate_revision_deps_assets(
+                site_id=site_id,
+                deps=(rec.deps if isinstance(rec.deps, dict) else None),
+                conn=conn,
+            )
 
             if target == "draft":
                 from_rev = int(entry.draft_rev or 0) or None
@@ -470,6 +563,10 @@ class SitesRepository:
         slug: str,
         document: DocumentIR | None,
         data: dict | None,
+        meta: dict | None,
+        style_overrides: dict | None,
+        variant_id: str | None,
+        deps: dict | None,
         expected_revision: int | None,
         created_by_user_id: UUID | None,
     ) -> tuple[UUID, int, int]:
@@ -518,6 +615,10 @@ class SitesRepository:
                 rev=next_rev,
                 data=data,
                 document=(document.model_dump(by_alias=True) if document is not None else None),
+                meta=meta,
+                style_overrides=style_overrides,
+                variant_id=variant_id,
+                deps=deps,
                 created_by_user_id=created_by_user_id,
                 using_db=conn,
             )
@@ -561,9 +662,15 @@ class SitesRepository:
             if not target_rev:
                 raise Conflict("No draft revision to publish", error="NO_DRAFT_TO_PUBLISH")
 
-            exists = await EntryRevisionRecord.filter(entry_id=entry.id, rev=target_rev).using_db(conn).exists()
-            if not exists:
+            rec = await EntryRevisionRecord.filter(entry_id=entry.id, rev=target_rev).using_db(conn).first()
+            if rec is None:
                 raise NotFound("Revision not found", error="REVISION_NOT_FOUND")
+
+            await self._validate_revision_deps_assets(
+                site_id=site_id,
+                deps=(rec.deps if isinstance(rec.deps, dict) else None),
+                conn=conn,
+            )
 
             entry.published_rev = target_rev
             await entry.save(update_fields=["published_rev"], using_db=conn)
@@ -576,6 +683,10 @@ class SitesRepository:
         site_id: str,
         path: str,
         document: DocumentIR,
+        meta: dict | None,
+        style_overrides: dict | None,
+        variant_id: str | None,
+        deps: dict | None,
         expected_revision: int | None,
         created_by_user_id: UUID | None,
     ) -> tuple[int, int]:
@@ -618,6 +729,10 @@ class SitesRepository:
                 page_id=page.id,
                 rev=next_rev,
                 document=document.model_dump(by_alias=True),
+                meta=meta,
+                style_overrides=style_overrides,
+                variant_id=variant_id,
+                deps=deps,
                 created_by_user_id=created_by_user_id,
                 using_db=conn,
             )
@@ -653,9 +768,15 @@ class SitesRepository:
             if not target_rev:
                 raise Conflict("No draft revision to publish", error="NO_DRAFT_TO_PUBLISH")
 
-            exists = await SitePageRevisionRecord.filter(page_id=page.id, rev=target_rev).using_db(conn).exists()
-            if not exists:
+            rec = await SitePageRevisionRecord.filter(page_id=page.id, rev=target_rev).using_db(conn).first()
+            if rec is None:
                 raise NotFound("Revision not found", error="REVISION_NOT_FOUND")
+
+            await self._validate_revision_deps_assets(
+                site_id=site_id,
+                deps=(rec.deps if isinstance(rec.deps, dict) else None),
+                conn=conn,
+            )
 
             page.published_rev = target_rev
             await page.save(update_fields=["published_rev"], using_db=conn)

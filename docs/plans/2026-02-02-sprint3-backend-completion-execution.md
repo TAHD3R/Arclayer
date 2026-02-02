@@ -82,6 +82,24 @@
   - 最小审计：通过结构化日志记录 rollback 行为（完整操作日志表后置到“操作记录日志”里程碑）
   - 集成测试（需 `RUN_INTEGRATION_TESTS=1`）：`apps/api/tests/test_sites_rollbacks_integration.py`
 
+- 2026-02-03：开始推进 M2（Revision 分层落库）：
+  - revision 表字段扩展（nullable，向后兼容）：
+    - `site_page_revisions`：新增 `meta/style_overrides/variant_id/deps`
+    - `entry_revisions`：新增 `meta/style_overrides/variant_id/deps`
+  - draft 保存输入扩展（向后兼容）：
+    - `POST /api/v1/sites/{siteId}/routes/draft`
+    - `POST /api/v1/sites/{siteId}/entries/draft`
+  - revision snapshot 输出扩展（向后兼容）：
+    - `GET /api/v1/sites/{siteId}/pages/{pageId}/revisions/draft|published`
+    - `GET /api/v1/sites/{siteId}/entries/{entryId}/revisions/draft|published`
+  - deps v0 校验（assets only）：
+    - publish/rollback 指针切换前校验 `deps.assetIds`，缺失返回 409 `REVISION_DEPS_MISSING`，meta 带 `missingAssets`
+  - 迁移文件（Aerich）：
+    - `apps/api/migrations/models/2_20260203070558_plugin_plugin_admin_dynamic_menu.py`
+    - `apps/api/migrations/models/3_20260203070605_plugin_plugin_admin_dynamic_menu.py`
+  - 集成测试（需 `RUN_INTEGRATION_TESTS=1`）：
+    - `apps/api/tests/test_sites_revision_deps_integration.py`
+
 ### 1.2 当前差距（后端视角）
 
 - IA 管理面（API）不完整：缺少 Page Tree / EntryType / Entry / RouteTemplate 的全套 CRUD 与约束校验。
@@ -251,30 +269,109 @@ rollback/publish 时：
 
 ## 5. 主题包机制（后端契约面）
 
-### 5.1 Theme Manifest（建议）
+### 5.1 Goals (Theme Contract v0)
 
-主题必须声明（manifest）：
+Theme must be a **portable, distributable artifact** (import/export/download) that can be installed per workspace.
 
-- `theme_id`、`version`
-- 支持的 `page_variants`（id/name/description/default）
-- 需要的 `vars_schema`（主题变量 schema：类型、默认值、范围、是否必填）
-- 需要的 `config_schema`（主题专用配置项 schema）
+Sprint 3 scope (v0):
 
-### 5.2 站点绑定与 runtime 输出
+- Theme Package **MUST be a zip** that contains metadata + static resources only.
+- Theme Package v0 **MUST NOT contain executable code** (`.js/.ts/.mjs/.cjs/.wasm` are forbidden).
+- `themeId` adopts **npm-like naming** (e.g. `@celestial/theme-modern` or `celestial-theme-modern`).
+- `variants/*.json` reuses the **PageRevision subset** (document + meta + style_overrides + deps), to keep one source of truth for validation and editor/runtime flows.
 
-- 站点通过 `SiteSettings` 绑定主题：
-  - `theme.active`：当前主题
-  - `theme.vars`：主题变量值
-  - `theme.config`：主题专用配置
-- runtime 输出必须包含：
-  - 主题 css vars（已有）
-  - 主题 id/version
-  -（可选）vars/config 的摘要（避免把敏感配置暴露给 public）
+Non-goals (explicitly out of Sprint 3):
 
-### 5.3 Page Variants（与 revision 绑定）
+- No “theme runtime code” / React components shipped in theme packages.
+- No complex Admin UI; only API contract and minimal persistence.
 
-- `SitePageRevision.variant_id` 指向主题 manifest 的 variant
-- resolver 把 variant 注入 ViewerContext，供 renderer 决定布局/渲染变体
+Minimum APIs (workspace-scoped governance):
+
+- `GET /api/v1/workspaces/{workspaceId}/themes` (list installed packages)
+- `POST /api/v1/workspaces/{workspaceId}/themes/import` (import from an uploaded zip asset)
+- `GET /api/v1/workspaces/{workspaceId}/themes/{themeId}/{version}` (detail)
+- `DELETE /api/v1/workspaces/{workspaceId}/themes/{themeId}/{version}` (uninstall; must not be in use)
+- `GET /api/v1/workspaces/{workspaceId}/themes/{themeId}/{version}/download` (admin-only artifact download)
+
+### 5.2 Terminology (must not be mixed)
+
+- Theme Package (artifact): an immutable zip file developers can distribute.
+- Theme Config (site-scoped): end-user values configured per site (form-driven, mutable).
+- Global Styles:
+  - Kernel global styles: portal/core baseline (stability).
+  - Theme global styles: theme tokens/base CSS (appearance).
+- Style Overrides: page/block-level exceptions, versioned with revisions.
+
+### 5.3 Layering / Precedence (low -> high)
+
+1) Kernel base CSS (Portal/core)
+2) Theme package `tokens.css` / `base.css` (theme global styles)
+3) Site theme vars (from `theme.vars`) -> injected as CSS variables
+4) PageRevision `style_overrides` -> injected as CSS variables
+5) Block-level overrides (future)
+
+Rule of thumb: **theme defines defaults; content defines exceptions**.
+
+### 5.4 Theme Package format (zip) and `manifest.json`
+
+Theme package structure (recommended):
+
+- `manifest.json` (required)
+- `styles/tokens.css` (required) - CSS variables (theme tokens)
+- `styles/base.css` (optional) - minimal global CSS, keep conservative
+- `preview.png` (optional)
+- `presets/*.json` (optional) - predefined config bundles
+- `variants/*.json` (optional) - default page templates using PageRevision subset
+- `assets/**` (optional) - static resources (images/fonts, etc.)
+- `locales/*.json` (optional, future)
+
+`manifest.json` must declare:
+
+- `themeId` (npm-like)
+- `version` (semver)
+- `entrypoints.tokensCss` (path)
+- optional `entrypoints.baseCss`, `entrypoints.previewImage`
+- optional `configSchema` (typed site config requirements)
+- optional `presets[]` (id/name/path)
+- optional `variants[]` (variantId/name/path)
+- optional `compat` (`cmsMin`, etc.)
+
+Security requirements for import:
+
+- Forbid executable extensions: `.js`, `.ts`, `.mjs`, `.cjs`, `.wasm`.
+- Forbid absolute paths and path traversal in zip entries.
+- Forbid external CSS `@import` is recommended (v0 may implement as a validator or post-import linter).
+
+### 5.5 Site binding via SiteSettings (namespaces)
+
+We bind theme to a site via `SettingRecord` (scope=site):
+
+- `theme.active`
+  - `{ "themeId": "...", "version": "...", "presetId"?: "..." }`
+- `theme.vars`
+  - `{ "cssVars": { "--color-primary": "#1677ff", ... } }`
+- `theme.config`
+  - `{ ... }` (freeform JSON that should conform to the theme manifest schema; validation can be phased in)
+
+Note: `site.runtime` (existing) is a separate namespace for runtime bootstrap tokens/fonts. During v0 migration we keep it
+backward-compatible, but runtime response should be able to emit theme package information based on the above namespaces.
+
+### 5.6 Runtime output contract (public/preview)
+
+`GET /sites/{siteId}/runtime` must be able to include (backward-compatible):
+
+- `theme.cssVars` (existing, derived from defaults + `theme.vars.cssVars`)
+- `theme.themeId`, `theme.version` (from `theme.active`)
+- `theme.tokensCssUrl` (derived from the installed ThemePackageRecord entrypoint)
+- `theme.baseCssUrl` (optional)
+- `theme.config` (optional; avoid leaking sensitive values to public mode if required by product policy)
+
+### 5.7 Page Variants and revisions
+
+- `SitePageRevision.variant_id` refers to a theme manifest `variants[].variantId`.
+- Variant JSON (`variants/*.json`) uses the PageRevision subset:
+  - `{ "document": { "version": 1, "meta"?: ..., "blocks": [...] }, "meta"?: {...}, "style_overrides"?: {...}, "deps"?: {...}, "variant_id"?: "..." }`
+- Resolver injects `variant_id` into ViewerContext (renderer can switch layouts/variants deterministically).
 
 ---
 
@@ -295,7 +392,7 @@ rollback/publish 时：
 - presence 是非关键路径：
   - Valkey 不可用 → heartbeat/list 返回可解释的降级输出（或空列表），不影响页面 resolve/save/publish
 - preview token：
-  - v1 可用 Valkey TTL，但必须有明确的错误码与 fallback 策略（本地开发可允许 demo token）
+  - v1 使用 Valkey TTL，但必须有明确的错误码；Portal 不支持无后端/无 Valkey 的 fallback（避免产生错误的运行假设）
 
 ### 6.3 观测与审计（最小可用）
 

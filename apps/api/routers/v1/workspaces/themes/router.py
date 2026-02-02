@@ -1,0 +1,98 @@
+from __future__ import annotations
+
+from uuid import UUID
+
+from fastapi import APIRouter, Depends
+
+from apps.api.config import Settings, get_settings
+from apps.api.core.http.response import Response, ResponseModel
+from apps.api.core.workspace.authz import require_workspace_permission
+from apps.api.core.workspace.deps import WorkspaceContext, require_workspace_manage_access
+from apps.api.routers.v1.auth.deps import get_current_user_id
+from apps.api.routers.v1.workspaces.themes.schema import (
+    WorkspaceThemeImportIn,
+    WorkspaceThemeListOut,
+    WorkspaceThemeOut,
+)
+from apps.api.routers.v1.workspaces.themes.service import WorkspaceThemesService
+
+router = APIRouter(
+    prefix="/workspaces/{workspace_id}",
+    tags=["Workspace: Themes"],
+    dependencies=[require_workspace_permission("admin:access")],
+)
+
+
+def get_themes_service(settings: Settings = Depends(get_settings)) -> WorkspaceThemesService:
+    return WorkspaceThemesService(settings)
+
+
+@router.get("/themes", response_model=ResponseModel[WorkspaceThemeListOut], summary="List installed themes")
+async def list_themes(
+    ctx: WorkspaceContext = Depends(require_workspace_manage_access),
+    _user_id=Depends(get_current_user_id),
+    service: WorkspaceThemesService = Depends(get_themes_service),
+) -> ResponseModel[WorkspaceThemeListOut]:
+    items = await service.list_themes(workspace_id=ctx.workspace_id)
+    return Response.success(data=WorkspaceThemeListOut(items=items))
+
+
+@router.post("/themes/import", response_model=ResponseModel[WorkspaceThemeOut], summary="Import a theme package (zip)")
+async def import_theme(
+    payload: WorkspaceThemeImportIn,
+    ctx: WorkspaceContext = Depends(require_workspace_manage_access),
+    user_id: UUID = Depends(get_current_user_id),
+    service: WorkspaceThemesService = Depends(get_themes_service),
+) -> ResponseModel[WorkspaceThemeOut]:
+    out = await service.import_theme_from_asset(
+        workspace_id=ctx.workspace_id,
+        actor_user_id=user_id,
+        asset_id=payload.asset_id,
+    )
+    return Response.success(data=out)
+
+
+@router.get(
+    "/themes/{theme_id}/{version}",
+    response_model=ResponseModel[WorkspaceThemeOut],
+    summary="Get theme package detail",
+)
+async def get_theme(
+    theme_id: str,
+    version: str,
+    ctx: WorkspaceContext = Depends(require_workspace_manage_access),
+    _user_id=Depends(get_current_user_id),
+    service: WorkspaceThemesService = Depends(get_themes_service),
+) -> ResponseModel[WorkspaceThemeOut]:
+    out = await service.get_theme(workspace_id=ctx.workspace_id, theme_id=theme_id, version=version)
+    return Response.success(data=out)
+
+
+@router.delete(
+    "/themes/{theme_id}/{version}",
+    response_model=ResponseModel[None],
+    summary="Uninstall a theme package",
+)
+async def delete_theme(
+    theme_id: str,
+    version: str,
+    ctx: WorkspaceContext = Depends(require_workspace_manage_access),
+    _user_id=Depends(get_current_user_id),
+    service: WorkspaceThemesService = Depends(get_themes_service),
+) -> ResponseModel[None]:
+    await service.delete_theme(workspace_id=ctx.workspace_id, theme_id=theme_id, version=version)
+    return Response.success(data=None)
+
+
+@router.get(
+    "/themes/{theme_id}/{version}/download",
+    include_in_schema=False,
+)
+async def download_theme(
+    theme_id: str,
+    version: str,
+    ctx: WorkspaceContext = Depends(require_workspace_manage_access),
+    _user_id=Depends(get_current_user_id),
+    service: WorkspaceThemesService = Depends(get_themes_service),
+):
+    return await service.download_theme_artifact(workspace_id=ctx.workspace_id, theme_id=theme_id, version=version)

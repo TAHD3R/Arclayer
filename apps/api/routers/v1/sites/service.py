@@ -63,6 +63,9 @@ from apps.api.routers.v1.sites.schema import (
 )
 
 RUNTIME_SETTING_NAMESPACE = "site.runtime"
+THEME_ACTIVE_NAMESPACE = "theme.active"
+THEME_VARS_NAMESPACE = "theme.vars"
+THEME_CONFIG_NAMESPACE = "theme.config"
 
 
 def _validate_page_pathname(path: str) -> str:
@@ -318,34 +321,53 @@ class SiteService(BaseService):
         if not self.settings.database.enabled:
             raise Conflict("Site runtime requires database storage", error="SITE_RUNTIME_DB_REQUIRED")
 
-        await self._repo.get_site_by_id(site_id=site_id)
+        site = await self._repo.get_site_by_id(site_id=site_id)
 
-        # Sprint 3: read runtime tokens/fonts from site-scoped settings.
-        # Keep strict validation + fallback to defaults to avoid breaking SSR.
-        setting = await self._repo.get_site_setting(site_id=site_id, namespace=RUNTIME_SETTING_NAMESPACE)
-        if not setting or not isinstance(setting.value, dict):
-            return SiteRuntimeOut(
-                site_id=site_id,
-                mode=mode,
-                theme=SiteThemeOut(css_vars=default_css_vars),
-                fonts=[],
-            )
+        # Theme contract v0:
+        # - theme.vars provides site-scoped CSS vars (overrides)
+        # - theme.active references an installed theme package (entrypoint CSS URLs)
+        # - theme.config is optional site-scoped JSON (future renderer consumption)
+        theme_active = await self._repo.get_site_setting(site_id=site_id, namespace=THEME_ACTIVE_NAMESPACE)
+        theme_vars = await self._repo.get_site_setting(site_id=site_id, namespace=THEME_VARS_NAMESPACE)
+        theme_config = await self._repo.get_site_setting(site_id=site_id, namespace=THEME_CONFIG_NAMESPACE)
 
-        raw_theme = setting.value.get("theme")
-        raw_fonts = setting.value.get("fonts")
+        active_theme_id = None
+        active_version = None
+        active_preset_id = None
+        if theme_active and isinstance(theme_active.value, dict):
+            active_theme_id = str(theme_active.value.get("themeId") or "").strip() or None
+            active_version = str(theme_active.value.get("version") or "").strip() or None
+            active_preset_id = str(theme_active.value.get("presetId") or "").strip() or None
 
-        css_vars: dict[str, str] = default_css_vars
-        if isinstance(raw_theme, dict) and isinstance(raw_theme.get("cssVars"), dict):
-            maybe_vars = raw_theme.get("cssVars") or {}
+        css_vars: dict[str, str] = dict(default_css_vars)
+        if theme_vars and isinstance(theme_vars.value, dict) and isinstance(theme_vars.value.get("cssVars"), dict):
+            maybe_vars = theme_vars.value.get("cssVars") or {}
             parsed = {
                 str(k): str(v)
                 for k, v in maybe_vars.items()
                 if isinstance(k, str) and isinstance(v, (str, int, float)) and str(k).startswith("--")
             }
-            if parsed:
-                merged = dict(default_css_vars)
-                merged.update(parsed)
-                css_vars = merged
+            css_vars.update(parsed)
+        else:
+            # Backward-compatible fallback to legacy `site.runtime.theme.cssVars`.
+            # Keep strict validation + fallback to defaults to avoid breaking SSR.
+            setting = await self._repo.get_site_setting(site_id=site_id, namespace=RUNTIME_SETTING_NAMESPACE)
+            if setting and isinstance(setting.value, dict):
+                raw_theme = setting.value.get("theme")
+                if isinstance(raw_theme, dict) and isinstance(raw_theme.get("cssVars"), dict):
+                    maybe_vars = raw_theme.get("cssVars") or {}
+                    parsed = {
+                        str(k): str(v)
+                        for k, v in maybe_vars.items()
+                        if isinstance(k, str) and isinstance(v, (str, int, float)) and str(k).startswith("--")
+                    }
+                    css_vars.update(parsed)
+
+        # Fonts remain in `site.runtime` for now (Sprint 3).
+        fonts_setting = await self._repo.get_site_setting(site_id=site_id, namespace=RUNTIME_SETTING_NAMESPACE)
+        raw_fonts = (
+            fonts_setting.value.get("fonts") if fonts_setting and isinstance(fonts_setting.value, dict) else None
+        )
 
         fonts_out: list[SiteFontOut] = []
         if isinstance(raw_fonts, list):
@@ -358,10 +380,36 @@ class SiteService(BaseService):
                     # Ignore invalid font entries to keep SSR resilient.
                     continue
 
+        tokens_css_url = None
+        base_css_url = None
+        if active_theme_id and active_version:
+            # Workspace-scoped theme packages: look up the installed theme by (theme_id, version).
+            from apps.api.models.theme_package import ThemePackageRecord
+
+            theme_pkg = await ThemePackageRecord.get_or_none(
+                workspace_id=site.workspace_id,
+                theme_id=active_theme_id,
+                version=active_version,
+            )
+            if theme_pkg is not None:
+                tokens_css_url = f"/assets/{theme_pkg.tokens_css_asset_id}"
+                if theme_pkg.base_css_asset_id:
+                    base_css_url = f"/assets/{theme_pkg.base_css_asset_id}"
+
+        config_out = theme_config.value if theme_config and isinstance(theme_config.value, dict) else None
+
         return SiteRuntimeOut(
             site_id=site_id,
             mode=mode,
-            theme=SiteThemeOut(css_vars=css_vars),
+            theme=SiteThemeOut(
+                css_vars=css_vars,
+                theme_id=active_theme_id,
+                version=active_version,
+                tokens_css_url=tokens_css_url,
+                base_css_url=base_css_url,
+                preset_id=active_preset_id,
+                config=config_out,
+            ),
             fonts=fonts_out,
         )
 
@@ -1008,6 +1056,10 @@ class SiteService(BaseService):
             revision=rev,
             created_at_ms=created_at_ms,
             document=doc,
+            meta=(rec.meta if isinstance(rec.meta, dict) else None),
+            style_overrides=(rec.style_overrides if isinstance(rec.style_overrides, dict) else None),
+            variant_id=(str(rec.variant_id) if rec.variant_id else None),
+            deps=(rec.deps if isinstance(rec.deps, dict) else None),
         )
 
     async def get_entry_revision(
@@ -1043,6 +1095,10 @@ class SiteService(BaseService):
             created_at_ms=created_at_ms,
             document=doc,
             data=data,
+            meta=(rec.meta if isinstance(rec.meta, dict) else None),
+            style_overrides=(rec.style_overrides if isinstance(rec.style_overrides, dict) else None),
+            variant_id=(str(rec.variant_id) if rec.variant_id else None),
+            deps=(rec.deps if isinstance(rec.deps, dict) else None),
         )
 
     async def save_entry_draft(
@@ -1066,6 +1122,14 @@ class SiteService(BaseService):
             slug=slug,
             document=payload.document,
             data=(payload.data if isinstance(payload.data, dict) else None),
+            meta=(payload.meta if isinstance(payload.meta, dict) else None),
+            style_overrides=(payload.style_overrides if isinstance(payload.style_overrides, dict) else None),
+            variant_id=(
+                payload.variant_id.strip()
+                if isinstance(payload.variant_id, str) and payload.variant_id.strip()
+                else None
+            ),
+            deps=(payload.deps if isinstance(payload.deps, dict) else None),
             expected_revision=payload.expected_revision,
             created_by_user_id=None,
         )
@@ -1212,6 +1276,14 @@ class SiteService(BaseService):
             site_id=site_id,
             path=pathname,
             document=payload.document,
+            meta=(payload.meta if isinstance(payload.meta, dict) else None),
+            style_overrides=(payload.style_overrides if isinstance(payload.style_overrides, dict) else None),
+            variant_id=(
+                payload.variant_id.strip()
+                if isinstance(payload.variant_id, str) and payload.variant_id.strip()
+                else None
+            ),
+            deps=(payload.deps if isinstance(payload.deps, dict) else None),
             expected_revision=payload.expected_revision,
             created_by_user_id=None,
         )

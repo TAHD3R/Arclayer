@@ -15,6 +15,7 @@ from apps.api.models.site import SiteRecord
 from apps.api.models.site_entry import EntryRecord, EntryRevisionRecord, EntryTypeRecord
 from apps.api.models.site_page import SitePageRecord, SitePageRevisionRecord, SitePageVisibility
 from apps.api.models.site_route_template import RouteTemplateRecord
+from apps.api.models.theme_package import ThemePackageRecord
 from apps.api.models.upload import UploadPartRecord, UploadSessionRecord, UploadStatus
 from apps.api.models.user import User, UserCredential
 from apps.api.models.workspace import (
@@ -50,6 +51,7 @@ __all__ = [
     "EntryRecord",
     "EntryRevisionRecord",
     "RouteTemplateRecord",
+    "ThemePackageRecord",
     "UploadPartRecord",
     "UploadSessionRecord",
     "UploadStatus",

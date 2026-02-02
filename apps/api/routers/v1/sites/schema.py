@@ -120,6 +120,18 @@ class SiteThemeOut(BaseSchema):
         default_factory=dict,
         description="Theme tokens as CSS variables (e.g. {'--color-primary': '#1677ff'}).",
     )
+    theme_id: str | None = Field(default=None, description="Active theme id (npm-like).")
+    version: str | None = Field(default=None, description="Active theme package version (semver).")
+    tokens_css_url: str | None = Field(
+        default=None,
+        description="Theme tokens CSS URL (typically a public asset URL).",
+    )
+    base_css_url: str | None = Field(
+        default=None,
+        description="Optional theme base CSS URL (typically a public asset URL).",
+    )
+    preset_id: str | None = Field(default=None, description="Optional active preset id (theme-scoped).")
+    config: dict[str, Any] | None = Field(default=None, description="Optional theme config (site-scoped, JSON).")
 
 
 class SiteFontSourceOut(BaseSchema):
@@ -212,6 +224,10 @@ class SiteRouteDraftSaveIn(BaseSchema):
 
     path: str = Field(..., description="Route pathname to save (e.g. /about).", examples=["/about"])
     document: DocumentIR = Field(..., description="Draft document payload.")
+    meta: dict[str, Any] | None = Field(default=None, description="Optional metadata payload (JSON).")
+    style_overrides: dict[str, Any] | None = Field(default=None, description="Optional style overrides payload (JSON).")
+    variant_id: str | None = Field(default=None, description="Optional theme variant id.")
+    deps: dict[str, Any] | None = Field(default=None, description="Optional dependency snapshot payload (JSON).")
     expected_revision: int | None = Field(
         default=None,
         ge=0,
@@ -408,6 +424,10 @@ class SitePageRevisionOut(BaseSchema):
     revision: int = Field(..., ge=1, description="Revision number.")
     created_at_ms: int = Field(..., description="Revision created timestamp in milliseconds (UTC).")
     document: DocumentIR = Field(..., description="DocumentIR payload.")
+    meta: dict[str, Any] | None = Field(default=None, description="Optional metadata payload (JSON).")
+    style_overrides: dict[str, Any] | None = Field(default=None, description="Optional style overrides payload (JSON).")
+    variant_id: str | None = Field(default=None, description="Optional theme variant id.")
+    deps: dict[str, Any] | None = Field(default=None, description="Optional dependency snapshot payload (JSON).")
 
 
 class SitePageRollbackIn(BaseSchema):
@@ -436,6 +456,10 @@ class SiteEntryRevisionOut(BaseSchema):
     created_at_ms: int = Field(..., description="Revision created timestamp in milliseconds (UTC).")
     document: DocumentIR | None = Field(default=None, description="Optional DocumentIR payload.")
     data: dict[str, Any] | None = Field(default=None, description="Optional entry data payload (JSON).")
+    meta: dict[str, Any] | None = Field(default=None, description="Optional metadata payload (JSON).")
+    style_overrides: dict[str, Any] | None = Field(default=None, description="Optional style overrides payload (JSON).")
+    variant_id: str | None = Field(default=None, description="Optional theme variant id.")
+    deps: dict[str, Any] | None = Field(default=None, description="Optional dependency snapshot payload (JSON).")
 
 
 class SiteEntryRollbackIn(BaseSchema):
@@ -462,6 +486,10 @@ class SiteEntryDraftSaveIn(BaseSchema):
     slug: str = Field(..., min_length=1, max_length=256, description="Entry slug (unique within entry type).")
     document: DocumentIR | None = Field(default=None, description="Optional DocumentIR payload.")
     data: dict[str, Any] | None = Field(default=None, description="Optional entry data payload (JSON).")
+    meta: dict[str, Any] | None = Field(default=None, description="Optional metadata payload (JSON).")
+    style_overrides: dict[str, Any] | None = Field(default=None, description="Optional style overrides payload (JSON).")
+    variant_id: str | None = Field(default=None, description="Optional theme variant id.")
+    deps: dict[str, Any] | None = Field(default=None, description="Optional dependency snapshot payload (JSON).")
     expected_revision: int | None = Field(
         default=None,
         ge=0,

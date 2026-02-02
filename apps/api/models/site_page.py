@@ -53,7 +53,7 @@ class SitePageRecord(BaseModel):
 
 
 class SitePageRevisionRecord(BaseModel):
-    """Immutable page revision snapshot (DocumentIR JSON payload)."""
+    """Immutable page revision snapshot (DocumentIR + metadata/style/deps)."""
 
     page = fields.ForeignKeyField(
         "models.SitePageRecord",
@@ -63,6 +63,12 @@ class SitePageRevisionRecord(BaseModel):
 
     rev = fields.IntField()
     document = fields.JSONField()
+
+    # M2: layered revision payload (nullable for backward compatibility).
+    meta = fields.JSONField(null=True)
+    style_overrides = fields.JSONField(null=True)
+    variant_id = fields.CharField(max_length=128, null=True)
+    deps = fields.JSONField(null=True)
 
     created_by_user_id = fields.UUIDField(null=True, db_index=True)
 

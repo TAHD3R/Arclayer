@@ -372,6 +372,13 @@ v1 Presence 推荐落地为“编辑占用 + 心跳”即可：
 - 安装后需要重启/重建 portal（同仓构建的自然代价）
 - 后续可引入签名与版本约束（避免供应链风险）
 
+补充（对齐 Sprint 3 后端执行文档的 Theme Contract v0）：
+
+- Theme Package v0 视为**纯静态工件**（zip），仅允许 manifest + JSON/CSS/静态资源；**禁止**打包 JS/TS/WASM（安全与可控性）。
+- `themeId` 采用 npm-like 命名（例如 `@celestial/theme-modern`）。
+- `variants/*.json` 复用 PageRevision 的结构子集（document/meta/style_overrides/deps），避免产生第二套页面模板协议。
+- 详细契约与落库/API 以 `docs/plans/2026-02-02-sprint3-backend-completion-execution.md` 为准。
+
 ---
 
 ## 8. 迁移与第三方集成（预埋）

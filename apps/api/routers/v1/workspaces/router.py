@@ -19,6 +19,7 @@ from apps.api.routers.v1.workspaces.schema import MyWorkspaceListResult, Workspa
 from apps.api.routers.v1.workspaces.service import WorkspaceService
 from apps.api.routers.v1.workspaces.settings import router as workspace_settings_router
 from apps.api.routers.v1.workspaces.team import router as workspace_team_router
+from apps.api.routers.v1.workspaces.themes.router import router as workspace_themes_router
 
 router = APIRouter(tags=["Workspaces"])
 router.include_router(workspace_team_router)
@@ -31,6 +32,7 @@ router.include_router(workspace_shares_router)
 router.include_router(workspace_usages_router)
 router.include_router(workspace_notifications_router)
 router.include_router(workspace_menus_router)
+router.include_router(workspace_themes_router)
 
 
 @router.get(
