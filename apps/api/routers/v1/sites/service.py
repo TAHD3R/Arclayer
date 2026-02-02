@@ -28,6 +28,9 @@ from apps.api.routers.v1.sites.schema import (
 )
 
 DEMO_SITE_ID = "00000000-0000-0000-0000-000000000001"
+# TODO(sprint-3): Replace in-memory stub state with bounded storage:
+# - Add TTL cleanup (tokens/drafts) or persist to DB.
+# - Add a max size / LRU policy to avoid unbounded memory growth during long-lived dev sessions.
 DEMO_PREVIEW_TOKENS = {"demo"}
 
 
@@ -65,8 +68,6 @@ class SiteService(BaseService):
         - Tokens are stored in memory and lost on server restart.
         - Suitable for local dev and protocol validation only.
         """
-        _ = site_id
-
         ttl = int(ttl_seconds)
         if ttl < 60:
             ttl = 60
@@ -77,7 +78,9 @@ class SiteService(BaseService):
         DEMO_PREVIEW_TOKENS.add(token)
 
         expires_at_ms = int((time.time() + ttl) * 1000)
-        return SitePreviewTokenOut(site_id=DEMO_SITE_ID, token=token, expires_at_ms=expires_at_ms)
+        # Note: we return the input `site_id` so the protocol remains consistent with the URL.
+        # The stub storage is still global (not per-site) until Sprint 3 introduces proper persistence.
+        return SitePreviewTokenOut(site_id=site_id, token=token, expires_at_ms=expires_at_ms)
 
     async def resolve_site(self, *, host: str) -> SiteResolveOut:
         # Sprint 2/3: host -> siteId mapping will be backed by DB and domain verification.

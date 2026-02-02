@@ -4,6 +4,16 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object";
 }
 
+// We intentionally restrict block ids to a conservative ASCII subset:
+// - used as `data-block-id` attribute value
+// - used by editor overlay selectors and postMessage transports
+// This prevents CSS selector escaping quirks and avoids surprising characters in debug UIs.
+const CORE_BLOCK_ID_RE = /^[A-Za-z0-9][A-Za-z0-9:_-]*$/;
+
+function isSafeCoreBlockId(value: string): boolean {
+  return CORE_BLOCK_ID_RE.test(value);
+}
+
 function hasOnlyAllowedKeys(obj: Record<string, unknown>, allowedKeys: readonly string[]): boolean {
   for (const key of Object.keys(obj)) {
     if (!allowedKeys.includes(key)) return false;
@@ -23,6 +33,7 @@ function isLocalizedString(value: unknown): value is Record<string, string> {
 export function isCoreBlockNode(value: unknown): value is CoreBlockNode {
   if (!isRecord(value)) return false;
   if (typeof value.id !== "string") return false;
+  if (!isSafeCoreBlockId(value.id)) return false;
   if (typeof value.type !== "string") return false;
   if (!isRecord(value.props)) return false;
 

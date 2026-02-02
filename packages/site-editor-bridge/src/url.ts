@@ -12,6 +12,43 @@ export function normalizePathname(pathnameRaw: string): string {
   return pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
 }
 
+function assertSafePathnameForEditorEmbedding(pathname: string): void {
+  // We don't allow query/hash fragments as part of pathname: the caller should pass them separately.
+  if (pathname.includes("?") || pathname.includes("#")) {
+    throw new Error("Invalid pathname: must not contain '?' or '#'");
+  }
+  // Avoid Windows path separators and other oddities.
+  if (pathname.includes("\\")) {
+    throw new Error("Invalid pathname: must not contain backslashes");
+  }
+  // Control characters should never appear in a pathname.
+  // eslint-disable-next-line no-control-regex
+  if (/[\u0000-\u001F\u007F]/.test(pathname)) {
+    throw new Error("Invalid pathname: contains control characters");
+  }
+}
+
+function encodePathnameForEditorEmbedding(pathnameRaw: string): string {
+  const pathname = normalizePathname(pathnameRaw);
+  assertSafePathnameForEditorEmbedding(pathname);
+
+  if (pathname === "/") return "/";
+
+  // Ensure path traversal is impossible regardless of the caller input.
+  // Also reject double slashes to avoid ambiguous matching between host and iframe.
+  const segments = pathname.split("/").slice(1);
+  for (const seg of segments) {
+    if (!seg) {
+      throw new Error("Invalid pathname: must not contain empty segments ('//')");
+    }
+    if (seg === "." || seg === "..") {
+      throw new Error("Invalid pathname: dot segments are not allowed");
+    }
+  }
+
+  return `/${segments.map((seg) => encodeURIComponent(seg)).join("/")}`;
+}
+
 export function buildEditorIframeHref(args: {
   /**
    * External Portal origin (e.g. http://localhost:3100). If omitted, the href is relative.
@@ -34,7 +71,7 @@ export function buildEditorIframeHref(args: {
    */
   parentOrigin?: string;
 }): string {
-  const pathname = normalizePathname(args.pathname);
+  const pathname = encodePathnameForEditorEmbedding(args.pathname);
   const basePath = `/__editor/site/${encodeURIComponent(args.siteId)}`;
   const pathPart = pathname === "/" ? "" : pathname;
 

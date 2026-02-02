@@ -44,18 +44,6 @@ export function EditorSiteView(props: EditorSiteViewProps) {
   const pathnameRef = React.useRef<string>(pathname);
   const hoverRafRef = React.useRef<number | null>(null);
   const pendingHoverRef = React.useRef<BlockId | null>(null);
-  const [selectedRect, setSelectedRect] = React.useState<{
-    top: number;
-    left: number;
-    width: number;
-    height: number;
-  } | null>(null);
-  const [hoveredRect, setHoveredRect] = React.useState<{
-    top: number;
-    left: number;
-    width: number;
-    height: number;
-  } | null>(null);
 
   React.useEffect(() => {
     overlayModeRef.current = overlayMode;
@@ -82,6 +70,18 @@ export function EditorSiteView(props: EditorSiteViewProps) {
   }, [pathname]);
 
   const renderDocument = draftOverride ?? baseDocument;
+
+  const hoveredRect = useObservedBlockRect({
+    enabled: overlayMode === "inspect",
+    blockId: hoveredBlockId,
+    onMissing: () => setHoveredBlockId(null),
+  });
+
+  const selectedRect = useObservedBlockRect({
+    enabled: overlayMode !== "off",
+    blockId: selectedBlockId,
+    onMissing: () => setSelectedBlockId(null),
+  });
 
   React.useEffect(() => {
     if (overlayMode === "off") return;
@@ -187,81 +187,6 @@ export function EditorSiteView(props: EditorSiteViewProps) {
     }
   }, [overlayMode]);
 
-  React.useEffect(() => {
-    if (overlayMode !== "inspect" || !hoveredBlockId) {
-      setHoveredRect(null);
-      return;
-    }
-
-    let raf = 0;
-    const update = () => {
-      raf = window.requestAnimationFrame(() => {
-        const el = getBlockElement(hoveredBlockId);
-        if (!el) {
-          setHoveredRect(null);
-          setHoveredBlockId(null);
-          return;
-        }
-        const rect = el.getBoundingClientRect();
-        setHoveredRect({
-          top: rect.top,
-          left: rect.left,
-          width: rect.width,
-          height: rect.height,
-        });
-      });
-    };
-
-    update();
-    window.addEventListener("resize", update);
-    window.addEventListener("scroll", update, true);
-    return () => {
-      window.removeEventListener("resize", update);
-      window.removeEventListener("scroll", update, true);
-      window.cancelAnimationFrame(raf);
-    };
-  }, [overlayMode, hoveredBlockId, renderDocument]);
-
-  React.useEffect(() => {
-    if (overlayMode === "off" || !selectedBlockId) {
-      setSelectedRect(null);
-      return;
-    }
-
-    let raf = 0;
-
-    const update = () => {
-      // Wait for layout to settle (after document / draft updates).
-      raf = window.requestAnimationFrame(() => {
-        const el = getBlockElement(selectedBlockId);
-        if (!el) {
-          setSelectedRect(null);
-          setSelectedBlockId(null);
-          return;
-        }
-        const rect = el.getBoundingClientRect();
-        setSelectedRect({
-          top: rect.top,
-          left: rect.left,
-          width: rect.width,
-          height: rect.height,
-        });
-      });
-    };
-
-    update();
-
-    // Update on scroll/resize since the overlay is viewport-fixed.
-    window.addEventListener("resize", update);
-    window.addEventListener("scroll", update, true);
-
-    return () => {
-      window.removeEventListener("resize", update);
-      window.removeEventListener("scroll", update, true);
-      window.cancelAnimationFrame(raf);
-    };
-  }, [overlayMode, selectedBlockId, renderDocument]);
-
   return (
     <div data-portal-mode="editor">
       <div
@@ -329,14 +254,8 @@ export function EditorSiteView(props: EditorSiteViewProps) {
 
 function getBlockElement(blockId: string): HTMLElement | null {
   if (typeof document === "undefined") return null;
-
-  // Prefer standard CSS.escape when available.
-  const esc =
-    typeof CSS !== "undefined" && typeof CSS.escape === "function"
-      ? CSS.escape.bind(CSS)
-      : (value: string) => value.replaceAll('"', '\\"');
-
-  return document.querySelector(`[data-block-id="${esc(blockId)}"]`);
+  if (!isSafeEditorBlockId(blockId)) return null;
+  return document.querySelector(`[data-block-id="${blockId}"]`);
 }
 
 function getParentOriginFromSearch(): string | null {
@@ -344,4 +263,137 @@ function getParentOriginFromSearch(): string | null {
   if (!raw) return null;
   if (!isHttpOrigin(raw)) return null;
   return raw;
+}
+
+type ObservedBlockRect = {
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+};
+
+// Must match the guard in @celestial/site-renderer-core (Sprint 2 security hardening).
+const SAFE_BLOCK_ID_RE = /^[A-Za-z0-9][A-Za-z0-9:_-]*$/;
+
+function isSafeEditorBlockId(value: string): boolean {
+  return SAFE_BLOCK_ID_RE.test(value);
+}
+
+function useObservedBlockRect(args: {
+  enabled: boolean;
+  blockId: BlockId | null;
+  onMissing: () => void;
+}): ObservedBlockRect | null {
+  const [rect, setRect] = React.useState<ObservedBlockRect | null>(null);
+
+  const onMissingRef = React.useRef(args.onMissing);
+  React.useEffect(() => {
+    onMissingRef.current = args.onMissing;
+  }, [args.onMissing]);
+
+  React.useEffect(() => {
+    if (!args.enabled || !args.blockId) {
+      setRect(null);
+      return;
+    }
+
+    let disposed = false;
+    let rafLoop: number | null = null;
+    let isIntersecting = true;
+    let last: ObservedBlockRect | null = null;
+
+    const readAndSet = () => {
+      const el = getBlockElement(args.blockId as string);
+      if (!el) {
+        setRect(null);
+        onMissingRef.current();
+        return;
+      }
+      const r = el.getBoundingClientRect();
+      const next: ObservedBlockRect = {
+        top: r.top,
+        left: r.left,
+        width: r.width,
+        height: r.height,
+      };
+      if (
+        last &&
+        last.top === next.top &&
+        last.left === next.left &&
+        last.width === next.width &&
+        last.height === next.height
+      ) {
+        return;
+      }
+      last = next;
+      setRect(next);
+    };
+
+    const startLoop = () => {
+      if (rafLoop) return;
+      const tick = () => {
+        rafLoop = window.requestAnimationFrame(() => {
+          rafLoop = null;
+          if (disposed) return;
+          if (!isIntersecting) return;
+          readAndSet();
+          startLoop();
+        });
+      };
+      tick();
+    };
+
+    const stopLoop = () => {
+      if (!rafLoop) return;
+      window.cancelAnimationFrame(rafLoop);
+      rafLoop = null;
+    };
+
+    const el = getBlockElement(args.blockId);
+    if (!el) {
+      setRect(null);
+      onMissingRef.current();
+      return;
+    }
+
+    const resizeObserver = new ResizeObserver(() => {
+      if (disposed) return;
+      readAndSet();
+    });
+    resizeObserver.observe(el);
+
+    const intersectionObserver = new IntersectionObserver(
+      (entries) => {
+        if (disposed) return;
+        const entry = entries[0];
+        if (!entry) return;
+        isIntersecting = Boolean(entry.isIntersecting);
+        if (!isIntersecting) {
+          stopLoop();
+          setRect(null);
+          return;
+        }
+        readAndSet();
+        startLoop();
+      },
+      {
+        root: null,
+        threshold: [0],
+      },
+    );
+    intersectionObserver.observe(el);
+
+    // Initial rect.
+    readAndSet();
+    startLoop();
+
+    return () => {
+      disposed = true;
+      stopLoop();
+      resizeObserver.disconnect();
+      intersectionObserver.disconnect();
+    };
+  }, [args.blockId, args.enabled]);
+
+  return rect;
 }
