@@ -8,7 +8,7 @@ from apps.api.core.auth.deps import get_current_user_id
 from apps.api.core.exceptions import Forbidden
 from apps.api.core.i18n import t
 from apps.api.core.workspace.deps import WorkspaceContext, require_workspace_manage_access
-from apps.api.models.rbac import Permission, PermissionScope, Role
+from apps.api.models.rbac import Permission, PermissionScope, Role, RolePermission
 from apps.api.models.workspace import WorkspaceMembershipRole
 
 
@@ -58,6 +58,26 @@ def require_workspace_permission(permission: str):
         user_id: UUID = Depends(get_current_user_id),
         ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     ) -> None:
+        # New workspaces can be created after app startup. In that case, RBAC bootstrap
+        # (system roles + grants) may not have run for the workspace yet, and all
+        # permission checks would incorrectly return 403.
+        #
+        # We ensure the workspace is RBAC-ready lazily here, before any role-based checks.
+        # 1) Ensure system roles exist for this workspace (new workspaces can be created at runtime).
+        # 2) Ensure system role grants exist as well (older bootstraps or test-created workspaces may have
+        #    roles but no RolePermission edges yet).
+        if (
+            not await Role.filter(workspace_id=ctx.workspace_id, is_system=True).exists()
+            or not await RolePermission.filter(
+                role__workspace_id=ctx.workspace_id,
+                role__is_system=True,
+            ).exists()
+        ):
+            from apps.api.config import get_settings
+            from apps.api.core.rbac.service import RBACService
+
+            await RBACService(get_settings()).ensure_workspace_system_role_grants(workspace_id=ctx.workspace_id)
+
         await _ensure_creator_admin_has_admin_role(ctx=ctx, user_id=user_id)
 
         role_codes = await _list_user_role_codes_in_workspace(user_id=user_id, workspace_id=ctx.workspace_id)

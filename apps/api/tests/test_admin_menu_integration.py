@@ -89,19 +89,26 @@ async def test_admin_menu_filtered_for_user(prepared_db) -> None:
         )
 
         role_code = f"staff_role_{uuid4().hex}"
-        role = await rbac_service.create_role(
+        # Ensure the new workspace has system roles + grants before we create custom roles.
+        await rbac_service.ensure_workspace_system_role_grants(workspace_id=ws.id)
+
+        role = await rbac_service.create_custom_role(
+            workspace_id=ws.id,
             code=role_code,
-            name="Staff Role",
-            description=None,
-            is_default=False,
-            is_superuser=False,
+            name_l10n={"en-US": "Staff Role"},
+            description_l10n=None,
+            template_role_code=None,
         )
-        await rbac_service.set_role_permissions(
-            role_code=role_code,
-            permission_codes=[
-                "admin:access",
-                "system:plugins:read",
-            ],
+        # Grant only the required permissions to this custom role.
+        await rbac_service.set_permission_custom_roles(
+            workspace_id=ws.id,
+            permission_code="admin:access",
+            role_codes=[role_code],
+        )
+        await rbac_service.set_permission_custom_roles(
+            workspace_id=ws.id,
+            permission_code="system:plugins:read",
+            role_codes=[role_code],
         )
         await WorkspaceMembershipRole.create(membership_id=limited_wsm.id, role_id=role.id)
 
