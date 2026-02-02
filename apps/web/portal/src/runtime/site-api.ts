@@ -1,5 +1,6 @@
 import { isCoreDocumentIR } from "@celestial/site-renderer-core";
 import type { CoreDocumentIR } from "@celestial/site-renderer-core";
+import { ApiError } from "@celestial/web-core/http";
 
 export function getPortalApiPrefix(): string {
   // Use a relative prefix so it works in both SSR and browser via the Portal server proxy.
@@ -34,7 +35,7 @@ export async function resolveSiteFromApi(host: string): Promise<PortalSiteContex
       : url.pathname + url.search;
 
   const res = await fetch(input, { headers: { Accept: "application/json" } });
-  if (!res.ok) throw new Error(`Failed to resolve site (${res.status})`);
+  if (!res.ok) throw await toApiError(res, `Failed to resolve site (${res.status})`);
 
   const payload = (await res.json()) as { data?: unknown };
   const data = (payload as any)?.data as any;
@@ -80,8 +81,7 @@ export async function resolveRouteFromApi(
 
   const res = await fetch(input, { headers: { Accept: "application/json" } });
   if (!res.ok) {
-    // Keep error deterministic for SSR.
-    throw new Error(`Failed to resolve route (${res.status})`);
+    throw await toApiError(res, `Failed to resolve route (${res.status})`);
   }
 
   const payload = (await res.json()) as { data?: unknown };
@@ -142,7 +142,7 @@ export async function fetchRuntimeConfigFromApi(
       : url.pathname + url.search;
 
   const res = await fetch(input, { headers: { Accept: "application/json" } });
-  if (!res.ok) throw new Error(`Failed to fetch runtime (${res.status})`);
+  if (!res.ok) throw await toApiError(res, `Failed to fetch runtime (${res.status})`);
 
   const payload = (await res.json()) as { data?: unknown };
   const data = (payload as any)?.data as any;
@@ -170,4 +170,27 @@ function getPortalApiOriginForSsr(): string {
     throw new Error("Missing VITE_API_PROXY_TARGET for SSR API route source.");
   }
   return raw;
+}
+
+async function toApiError(res: Response, fallbackMessage: string): Promise<ApiError> {
+  let message = fallbackMessage;
+  let error: string | undefined;
+  let meta: unknown;
+
+  try {
+    const payload = (await res.json()) as any;
+    if (typeof payload?.message === "string" && payload.message.trim()) {
+      message = payload.message;
+    }
+    if (typeof payload?.error === "string" && payload.error.trim()) {
+      error = payload.error;
+    }
+    if (payload?.meta !== undefined) {
+      meta = payload.meta;
+    }
+  } catch {
+    // Ignore JSON parsing errors: keep fallbackMessage.
+  }
+
+  return new ApiError({ status: res.status, message, error, meta });
 }

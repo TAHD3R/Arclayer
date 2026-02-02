@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Literal
 
 from apps.api.common.services.base import BaseService
+from apps.api.core.exceptions import Forbidden
 from apps.api.routers.v1.sites.schema import (
     ContainerBlock,
     ContainerBlockProps,
@@ -22,6 +23,7 @@ from apps.api.routers.v1.sites.schema import (
 )
 
 DEMO_SITE_ID = "00000000-0000-0000-0000-000000000001"
+DEMO_PREVIEW_TOKENS = {"demo"}
 
 
 class SiteService(BaseService):
@@ -31,6 +33,14 @@ class SiteService(BaseService):
     This is intentionally minimal to validate protocol shape and SSR integration
     before implementing the actual RouteTemplate resolver and revision storage.
     """
+
+    def assert_preview_access(self, *, mode: Literal["public", "preview"], token: str | None) -> None:
+        if mode != "preview":
+            return
+        if token is None or not token.strip():
+            raise Forbidden("Preview token required", error="PREVIEW_TOKEN_REQUIRED")
+        if token not in DEMO_PREVIEW_TOKENS:
+            raise Forbidden("Invalid preview token", error="PREVIEW_TOKEN_INVALID")
 
     async def resolve_site(self, *, host: str) -> SiteResolveOut:
         # Sprint 2/3: host -> siteId mapping will be backed by DB and domain verification.

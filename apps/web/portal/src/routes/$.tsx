@@ -4,6 +4,7 @@ import { DocumentRenderer } from "@celestial/site-renderer-core";
 
 import { HttpError } from "@/router/routerFallbacks";
 import { resolvePortalRoute } from "@/runtime/hardcoded-site";
+import { ApiError } from "@celestial/web-core/http";
 
 export const Route = createFileRoute("/$")({
   loader: async ({ params, context }) => {
@@ -17,6 +18,8 @@ export const Route = createFileRoute("/$")({
         mode: "public",
       });
     } catch (err) {
+      if (err instanceof HttpError) throw err;
+      if (err instanceof ApiError) throw new HttpError(err.status, err.message);
       throw new HttpError(503, err instanceof Error ? err.message : "Backend unavailable");
     }
     if (resolved.kind === "redirect") {

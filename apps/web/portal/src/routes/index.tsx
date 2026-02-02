@@ -5,6 +5,7 @@ import { DocumentRenderer } from "@celestial/site-renderer-core";
 import { resolvePortalRoute } from "@/runtime/hardcoded-site";
 import { HydrationStatus } from "@/components/HydrationStatus";
 import { HttpError } from "@/router/routerFallbacks";
+import { ApiError } from "@celestial/web-core/http";
 
 export const Route = createFileRoute("/")({
   loader: async ({ context }) => {
@@ -13,6 +14,8 @@ export const Route = createFileRoute("/")({
     try {
       resolved = await resolvePortalRoute("/", { siteId: context.siteCtx.siteId, mode: "public" });
     } catch (err) {
+      if (err instanceof HttpError) throw err;
+      if (err instanceof ApiError) throw new HttpError(err.status, err.message);
       throw new HttpError(503, err instanceof Error ? err.message : "Backend unavailable");
     }
     if (resolved.kind === "redirect") {

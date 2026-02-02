@@ -42,7 +42,7 @@ async def get_site_runtime(
     mode: Annotated[Literal["public", "preview"], Query(description="Runtime mode.")] = "public",
     token: Annotated[str | None, Query(description="Preview token (required when mode=preview).")] = None,
 ) -> ResponseModel[SiteRuntimeOut]:
-    _ = token
+    service.assert_preview_access(mode=mode, token=token)
     data = await service.get_runtime(site_id=site_id, mode=mode)
     return Response.success(data=data)
 
@@ -60,6 +60,6 @@ async def resolve_site_route(
     mode: Annotated[Literal["public", "preview"], Query(description="Runtime mode.")] = "public",
     token: Annotated[str | None, Query(description="Preview token (required when mode=preview).")] = None,
 ) -> ResponseModel[SiteRouteResolveOut]:
-    _ = token
+    service.assert_preview_access(mode=mode, token=token)
     data = await service.resolve_route(site_id=site_id, path=path, mode=mode)
     return Response.success(data=data)
