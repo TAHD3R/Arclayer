@@ -51,7 +51,6 @@ class SiteService(BaseService):
     async def get_runtime(self, *, site_id: str, mode: Literal["public", "preview"]) -> SiteRuntimeOut:
         # Sprint 2/3: runtime config will be fetched from SiteSettings namespaces.
         _ = site_id
-        _ = mode
         return SiteRuntimeOut(
             site_id=DEMO_SITE_ID,
             mode=mode,

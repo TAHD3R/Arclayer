@@ -192,5 +192,12 @@ async function toApiError(res: Response, fallbackMessage: string): Promise<ApiEr
     // Ignore JSON parsing errors: keep fallbackMessage.
   }
 
-  return new ApiError({ status: res.status, message, error, meta });
+  // With `exactOptionalPropertyTypes`, omit optional keys instead of passing `undefined`.
+  const args: { status: number; message: string; error?: string; meta?: unknown } = {
+    status: res.status,
+    message,
+  };
+  if (error) args.error = error;
+  if (meta !== undefined) args.meta = meta;
+  return new ApiError(args);
 }

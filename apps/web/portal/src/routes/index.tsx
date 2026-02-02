@@ -2,22 +2,15 @@ import React from "react";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { DocumentRenderer } from "@celestial/site-renderer-core";
 
-import { resolvePortalRoute } from "@/runtime/hardcoded-site";
+import { resolvePortalRoute } from "@/runtime/portal-route-resolver";
 import { HydrationStatus } from "@/components/HydrationStatus";
-import { HttpError } from "@/router/routerFallbacks";
-import { ApiError } from "@celestial/web-core/http";
 
 export const Route = createFileRoute("/")({
   loader: async ({ context }) => {
-    // Sprint 1/2: route resolver (hardcoded by default; API-backed when enabled).
-    let resolved;
-    try {
-      resolved = await resolvePortalRoute("/", { siteId: context.siteCtx.siteId, mode: "public" });
-    } catch (err) {
-      if (err instanceof HttpError) throw err;
-      if (err instanceof ApiError) throw new HttpError(err.status, err.message);
-      throw new HttpError(503, err instanceof Error ? err.message : "Backend unavailable");
-    }
+    const resolved = await resolvePortalRoute("/", {
+      siteId: context.siteCtx.siteId,
+      mode: "public",
+    });
     if (resolved.kind === "redirect") {
       // Use `href` so TanStack Router sets the Location header (needed for SSR -> real HTTP redirect).
       throw redirect({ href: resolved.to, statusCode: resolved.status });

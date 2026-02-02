@@ -8,6 +8,8 @@
     "build": "vike build",
     "start": "NODE_ENV=production node server/index.mjs",
     "start:local": "NODE_ENV=production node --env-file=.env.development server/index.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "typecheck": "tsc --noEmit --skipLibCheck",
     "lint": "oxlint -c ./node_modules/@celestial/ox-config/.oxlintrc.json .",
     "format": "oxfmt -c ./node_modules/@celestial/ox-config/.oxfmtrc.json ."

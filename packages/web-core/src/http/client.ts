@@ -58,8 +58,9 @@ export function createApiClient(opts: ApiClientOptions): ApiClient {
   let refreshInFlight: Promise<boolean> | null = null;
 
   async function request<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
+    const { auth, body: bodyInput, ...requestInit } = options;
     const url = buildApiUrl(path, opts);
-    const headers = toHeaders(options.headers);
+    const headers = toHeaders(requestInit.headers);
     headers.set("accept", "application/json");
 
     const localeHeaders = opts.getLocaleHeaders?.();
@@ -70,15 +71,17 @@ export function createApiClient(opts: ApiClientOptions): ApiClient {
     const hadAccessToken = !!token;
     if (token) headers.set("authorization", normalizeToken(token));
 
-    const body = normalizeBody(options.body, headers);
+    const body = normalizeBody(bodyInput, headers);
 
     const doFetch = async (): Promise<Response> => {
       try {
-        return await fetch(url, {
-          ...options,
+        // With `exactOptionalPropertyTypes`, we must not set `body: undefined`.
+        const init: RequestInit = {
+          ...requestInit,
           headers,
-          body,
-        });
+          ...(body !== undefined ? { body } : {}),
+        };
+        return await fetch(url, init);
       } catch (err) {
         throw new ApiError({
           status: 0,
@@ -94,12 +97,13 @@ export function createApiClient(opts: ApiClientOptions): ApiClient {
       if (parsed && typeof parsed === "object" && "timestamp" in parsed && "message" in parsed) {
         const payload = parsed as ResponseModel<T>;
         if (payload.error) {
-          throw new ApiError({
+          const errArgs: { status: number; message: string; error?: string; meta?: unknown } = {
             status: res.status,
             message: payload.message || "Request failed",
-            error: payload.error,
-            meta: payload.meta,
-          });
+          };
+          if (payload.error) errArgs.error = payload.error;
+          if (payload.meta !== undefined) errArgs.meta = payload.meta;
+          throw new ApiError(errArgs);
         }
         return payload.data as T;
       }
@@ -107,8 +111,8 @@ export function createApiClient(opts: ApiClientOptions): ApiClient {
     }
 
     const attemptRefresh = async (): Promise<boolean> => {
-      if (options.auth?.skipRefresh) return false;
-      if (options.auth?.retried) return false;
+      if (auth?.skipRefresh) return false;
+      if (auth?.retried) return false;
       const refreshToken = opts.getRefreshToken();
       if (!refreshToken) return false;
 
@@ -125,7 +129,7 @@ export function createApiClient(opts: ApiClientOptions): ApiClient {
       if (refreshed) {
         return request<T>(path, {
           ...options,
-          auth: { ...options.auth, retried: true },
+          auth: { ...auth, retried: true },
         });
       }
     }
@@ -136,15 +140,20 @@ export function createApiClient(opts: ApiClientOptions): ApiClient {
       const error = payload.error;
 
       if (res.status === 401 && hadAccessToken) {
-        opts.onUnauthorized?.({ url, status: res.status, error, message });
+        if (error) {
+          opts.onUnauthorized?.({ url, status: res.status, error, message });
+        } else {
+          opts.onUnauthorized?.({ url, status: res.status, message });
+        }
       }
 
-      throw new ApiError({
+      const errArgs: { status: number; message: string; error?: string; meta?: unknown } = {
         status: res.status,
         message,
-        error,
-        meta: payload.meta,
-      });
+      };
+      if (error) errArgs.error = error;
+      if (payload.meta !== undefined) errArgs.meta = payload.meta;
+      throw new ApiError(errArgs);
     }
 
     if (res.status === 401 && hadAccessToken) {

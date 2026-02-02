@@ -5,6 +5,7 @@ import { redirect as vikeRedirect } from "vike/abort";
 
 import { PageShell } from "./PageShell";
 import { createPortalRouter } from "@/router";
+import { parsePortalRequest } from "@/router/namespaces";
 import { rewritePortalInputPathname } from "@/router/rewrite";
 import { getPortalRuntimeConfigForSite } from "@/runtime/runtime-config";
 import { resolveLocalizedValue, serializeCssVarsToStyleText } from "@celestial/site-renderer-core";
@@ -78,10 +79,10 @@ async function onRenderHtml(pageContext: VikePageContextLike) {
     pageContext.abortStatusCode = abortStatusCode;
   }
 
-  const runtimeConfig = await getPortalRuntimeConfigForSite(siteCtx.siteId, {
-    mode: req.mode,
-    token: req.token,
-  });
+  const runtimeConfig = await getPortalRuntimeConfigForSite(
+    siteCtx.siteId,
+    req.token ? { mode: req.mode, token: req.token } : { mode: req.mode },
+  );
   const cssVarStyleText = serializeCssVarsToStyleText(runtimeConfig.theme.cssVars);
   const fontFaceStyleText = serializeFontFacesToStyleText(runtimeConfig);
 
@@ -113,28 +114,6 @@ async function onRenderHtml(pageContext: VikePageContextLike) {
     </html>`;
 
   return { documentHtml };
-}
-
-function parsePortalRequest(urlOriginal: string): { mode: "public" | "preview"; token?: string } {
-  let url: URL;
-  try {
-    url = new URL(urlOriginal, "http://localhost");
-  } catch {
-    return { mode: "public" };
-  }
-
-  const pathname = url.pathname;
-  const token = url.searchParams.get("token") || undefined;
-
-  if (
-    pathname === "/__preview" ||
-    pathname.startsWith("/__preview/") ||
-    pathname === "/preview" ||
-    pathname.startsWith("/preview/")
-  ) {
-    return token ? { mode: "preview", token } : { mode: "preview" };
-  }
-  return { mode: "public" };
 }
 
 function getRedirectFromRouter(router: unknown): { url: string; statusCode: 301 | 302 } | null {

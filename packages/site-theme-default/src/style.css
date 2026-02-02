@@ -25,3 +25,31 @@
 [data-block-type="divider"][data-variant="subtle"] {
   border-top-color: rgba(17, 24, 39, 0.1);
 }
+
+/* Block error boundary (rendered by @celestial/site-renderer-core).
+ * Keep styling minimal and themeable via CSS variables.
+ */
+[data-celestial="block-error"] {
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  background: rgba(239, 68, 68, 0.06);
+  color: #991b1b;
+  padding: 12px;
+  border-radius: 8px;
+  margin: 12px 0;
+  font-family: var(--font-sans, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif);
+}
+
+[data-celestial="block-error-title"] {
+  font-weight: 600;
+}
+
+[data-celestial="block-error-meta"] {
+  font-size: 12px;
+  opacity: 0.9;
+}
+
+[data-celestial="block-error-message"] {
+  margin-top: 8px;
+  font-size: 12px;
+  white-space: pre-wrap;
+}

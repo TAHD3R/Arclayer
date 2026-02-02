@@ -52,14 +52,26 @@ class BlockErrorBoundary extends React.Component<BlockErrorBoundaryProps, BlockE
 
   override componentDidCatch(error: unknown): void {
     // Keep errors visible during development without breaking the whole page.
-    // Avoid logging sensitive information in production.
-    if (typeof console !== "undefined" && typeof console.error === "function") {
+    // In production, avoid logging the raw error object to reduce risk of leaking sensitive data.
+    const isProd =
+      typeof globalThis !== "undefined" &&
+      typeof (globalThis as any).process !== "undefined" &&
+      (globalThis as any).process?.env?.NODE_ENV === "production";
+
+    if (typeof console === "undefined" || typeof console.error !== "function") return;
+    if (isProd) {
       console.error("[site-renderer-core] Block render failed", {
         blockId: this.props.blockId,
         blockType: this.props.blockType,
-        error,
       });
+      return;
     }
+
+    console.error("[site-renderer-core] Block render failed", {
+      blockId: this.props.blockId,
+      blockType: this.props.blockType,
+      error,
+    });
   }
 
   override render(): ReactNode {
@@ -69,28 +81,20 @@ class BlockErrorBoundary extends React.Component<BlockErrorBoundaryProps, BlockE
       typeof globalThis !== "undefined" &&
       typeof (globalThis as any).process !== "undefined" &&
       (globalThis as any).process?.env?.NODE_ENV === "production";
+
     return (
       <div
         role="alert"
         data-celestial="block-error"
         data-block-id={this.props.blockId}
         data-block-type={this.props.blockType}
-        style={{
-          border: "1px solid rgba(239, 68, 68, 0.4)",
-          background: "rgba(239, 68, 68, 0.06)",
-          color: "#991b1b",
-          padding: 12,
-          borderRadius: 8,
-          margin: "12px 0",
-          fontFamily: "var(--font-sans, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif)",
-        }}
       >
-        <div style={{ fontWeight: 600 }}>Block render error</div>
-        <div style={{ fontSize: 12, opacity: 0.9 }}>
+        <div data-celestial="block-error-title">Block render error</div>
+        <div data-celestial="block-error-meta">
           {this.props.blockType}#{this.props.blockId}
         </div>
         {!isProd && this.state.message ? (
-          <pre style={{ marginTop: 8, fontSize: 12, whiteSpace: "pre-wrap" }}>{this.state.message}</pre>
+          <pre data-celestial="block-error-message">{this.state.message}</pre>
         ) : null}
       </div>
     );
