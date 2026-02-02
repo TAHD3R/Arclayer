@@ -7,7 +7,7 @@ from uuid import UUID
 from xml.sax.saxutils import escape as xml_escape
 
 from apps.api.common.services.base import BaseService
-from apps.api.core.exceptions import Conflict, Forbidden, ServiceUnavailable
+from apps.api.core.exceptions import Conflict, Forbidden, NotFound, ServiceUnavailable
 from apps.api.infra.cache.valkey import ValkeyClientLike
 from apps.api.routers.v1.sites.repository import SitesRepository
 from apps.api.routers.v1.sites.schema import (
@@ -21,6 +21,13 @@ from apps.api.routers.v1.sites.schema import (
     HeadingBlockProps,
     ParagraphBlock,
     ParagraphBlockProps,
+    SiteEntryDraftSaveIn,
+    SiteEntryDraftSaveOut,
+    SiteEntryPublishIn,
+    SiteEntryPublishOut,
+    SiteEntryRevisionOut,
+    SiteFontOut,
+    SitePageRevisionOut,
     SitePresenceHeartbeatIn,
     SitePresenceHeartbeatOut,
     SitePresenceListOut,
@@ -34,6 +41,8 @@ from apps.api.routers.v1.sites.schema import (
     SiteRoutePublishOut,
     SiteRouteResolveOut,
     SiteRuntimeOut,
+    SiteSettingGetOut,
+    SiteSettingUpsertIn,
     SiteThemeOut,
 )
 
@@ -51,6 +60,8 @@ class RouteDraftRecord(TypedDict):
 
 
 DEMO_ROUTE_DRAFTS: dict[tuple[str, str], RouteDraftRecord] = {}
+
+RUNTIME_SETTING_NAMESPACE = "site.runtime"
 
 
 class SiteService(BaseService):
@@ -72,7 +83,9 @@ class SiteService(BaseService):
             # In Sprint 3, the canonical store is Valkey (TTL). Keep demo token as a dev fallback.
             raise Forbidden("Invalid preview token", error="PREVIEW_TOKEN_INVALID")
 
-    async def assert_preview_access_async(self, *, site_id: str, mode: Literal["public", "preview"], token: str | None) -> None:
+    async def assert_preview_access_async(
+        self, *, site_id: str, mode: Literal["public", "preview"], token: str | None
+    ) -> None:
         if mode != "preview":
             return
         if token is None or not token.strip():
@@ -139,24 +152,217 @@ class SiteService(BaseService):
         )
 
     async def get_runtime(self, *, site_id: str, mode: Literal["public", "preview"]) -> SiteRuntimeOut:
-        # Sprint 3: runtime config will be fetched from site-scoped SettingRecord namespaces.
-        # For now keep deterministic tokens for end-to-end validation.
-        if self.settings.database.enabled:
-            await self._repo.get_site_by_id(site_id=site_id)
+        default_css_vars: dict[str, str] = {
+            "--color-primary": "#1677ff",
+            "--color-background": "#ffffff",
+            "--color-foreground": "#111827",
+            "--color-border": "rgba(17, 24, 39, 0.12)",
+            "--font-sans": "system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif",
+        }
+
+        if not self.settings.database.enabled:
+            return SiteRuntimeOut(
+                site_id=site_id,
+                mode=mode,
+                theme=SiteThemeOut(css_vars=default_css_vars),
+                fonts=[],
+            )
+
+        await self._repo.get_site_by_id(site_id=site_id)
+
+        # Sprint 3: read runtime tokens/fonts from site-scoped settings.
+        # Keep strict validation + fallback to defaults to avoid breaking SSR.
+        setting = await self._repo.get_site_setting(site_id=site_id, namespace=RUNTIME_SETTING_NAMESPACE)
+        if not setting or not isinstance(setting.value, dict):
+            return SiteRuntimeOut(
+                site_id=site_id,
+                mode=mode,
+                theme=SiteThemeOut(css_vars=default_css_vars),
+                fonts=[],
+            )
+
+        raw_theme = setting.value.get("theme")
+        raw_fonts = setting.value.get("fonts")
+
+        css_vars: dict[str, str] = default_css_vars
+        if isinstance(raw_theme, dict) and isinstance(raw_theme.get("cssVars"), dict):
+            maybe_vars = raw_theme.get("cssVars") or {}
+            parsed = {
+                str(k): str(v)
+                for k, v in maybe_vars.items()
+                if isinstance(k, str) and isinstance(v, (str, int, float)) and str(k).startswith("--")
+            }
+            if parsed:
+                merged = dict(default_css_vars)
+                merged.update(parsed)
+                css_vars = merged
+
+        fonts_out: list[SiteFontOut] = []
+        if isinstance(raw_fonts, list):
+            for item in raw_fonts:
+                if not isinstance(item, dict):
+                    continue
+                try:
+                    fonts_out.append(SiteFontOut.model_validate(item))
+                except Exception:
+                    # Ignore invalid font entries to keep SSR resilient.
+                    continue
 
         return SiteRuntimeOut(
             site_id=site_id,
             mode=mode,
-            theme=SiteThemeOut(
-                css_vars={
-                    "--color-primary": "#1677ff",
-                    "--color-background": "#ffffff",
-                    "--color-foreground": "#111827",
-                    "--color-border": "rgba(17, 24, 39, 0.12)",
-                    "--font-sans": "system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif",
-                }
-            ),
-            fonts=[],
+            theme=SiteThemeOut(css_vars=css_vars),
+            fonts=fonts_out,
+        )
+
+    async def get_site_setting(self, *, site_id: str, namespace: str) -> SiteSettingGetOut:
+        if not self.settings.database.enabled:
+            raise Conflict("Site settings require database storage", error="SETTINGS_DB_REQUIRED")
+        await self._repo.get_site_by_id(site_id=site_id)
+        rec = await self._repo.get_site_setting(site_id=site_id, namespace=namespace)
+        value = rec.value if rec and isinstance(rec.value, dict) else None
+        return SiteSettingGetOut(namespace=namespace, value=value)
+
+    async def upsert_site_setting(
+        self, *, site_id: str, namespace: str, payload: SiteSettingUpsertIn
+    ) -> SiteSettingGetOut:
+        if not self.settings.database.enabled:
+            raise Conflict("Site settings require database storage", error="SETTINGS_DB_REQUIRED")
+        await self._repo.get_site_by_id(site_id=site_id)
+        rec = await self._repo.upsert_site_setting(
+            site_id=site_id, namespace=namespace, value=payload.value, updated_by=None
+        )
+        value = rec.value if isinstance(rec.value, dict) else None
+        return SiteSettingGetOut(namespace=namespace, value=value)
+
+    async def get_page_revision(
+        self,
+        *,
+        site_id: str,
+        page_id: UUID,
+        state: Literal["draft", "published"],
+    ) -> SitePageRevisionOut:
+        if not self.settings.database.enabled:
+            raise Conflict("Page revisions require database storage", error="PAGE_REVISION_DB_REQUIRED")
+        await self._repo.get_site_by_id(site_id=site_id)
+
+        page = await self._repo.get_page_by_id(site_id=site_id, page_id=page_id)
+        if page is None:
+            raise NotFound("Page not found", error="PAGE_NOT_FOUND")
+
+        rev = int(page.draft_rev or 0) if state == "draft" else int(page.published_rev or 0)
+        if rev <= 0:
+            raise NotFound("Revision not found", error="REVISION_NOT_FOUND")
+
+        rec = await self._repo.get_page_revision(page_id=page_id, rev=rev)
+        if rec is None:
+            raise NotFound("Revision not found", error="REVISION_NOT_FOUND")
+
+        doc = DocumentIR.model_validate(rec.document)
+        created_at_ms = int(rec.created_at.timestamp() * 1000)
+        return SitePageRevisionOut(
+            page_id=str(page.id),
+            state=state,
+            revision=rev,
+            created_at_ms=created_at_ms,
+            document=doc,
+        )
+
+    async def get_entry_revision(
+        self,
+        *,
+        site_id: str,
+        entry_id: UUID,
+        state: Literal["draft", "published"],
+    ) -> SiteEntryRevisionOut:
+        if not self.settings.database.enabled:
+            raise Conflict("Entry revisions require database storage", error="ENTRY_REVISION_DB_REQUIRED")
+        await self._repo.get_site_by_id(site_id=site_id)
+
+        entry = await self._repo.get_entry_by_id(site_id=site_id, entry_id=entry_id)
+        if entry is None:
+            raise NotFound("Entry not found", error="ENTRY_NOT_FOUND")
+
+        rev = int(entry.draft_rev or 0) if state == "draft" else int(entry.published_rev or 0)
+        if rev <= 0:
+            raise NotFound("Revision not found", error="REVISION_NOT_FOUND")
+
+        rec = await self._repo.get_entry_revision(entry_id=entry_id, rev=rev)
+        if rec is None:
+            raise NotFound("Revision not found", error="REVISION_NOT_FOUND")
+
+        doc = DocumentIR.model_validate(rec.document) if rec.document is not None else None
+        data = rec.data if isinstance(rec.data, dict) else None
+        created_at_ms = int(rec.created_at.timestamp() * 1000)
+        return SiteEntryRevisionOut(
+            entry_id=str(entry.id),
+            state=state,
+            revision=rev,
+            created_at_ms=created_at_ms,
+            document=doc,
+            data=data,
+        )
+
+    async def save_entry_draft(
+        self,
+        *,
+        site_id: str,
+        payload: SiteEntryDraftSaveIn,
+    ) -> SiteEntryDraftSaveOut:
+        slug = (payload.slug or "").strip()
+        now_ms = int(time.time() * 1000)
+
+        if not self.settings.database.enabled:
+            raise Conflict("Entry drafts require database storage", error="ENTRY_DRAFT_DB_REQUIRED")
+
+        await self._repo.get_site_by_id(site_id=site_id)
+        et = await self._repo.get_entry_type_by_code(site_id=site_id, code=payload.entry_type_code)
+
+        entry_id, rev, saved_at_ms = await self._repo.save_entry_draft_by_slug(
+            site_id=site_id,
+            entry_type_id=UUID(str(et.id)),
+            slug=slug,
+            document=payload.document,
+            data=(payload.data if isinstance(payload.data, dict) else None),
+            expected_revision=payload.expected_revision,
+            created_by_user_id=None,
+        )
+        return SiteEntryDraftSaveOut(
+            site_id=site_id,
+            entry_id=str(entry_id),
+            entry_type_code=payload.entry_type_code,
+            slug=slug,
+            revision=rev,
+            saved_at_ms=saved_at_ms or now_ms,
+        )
+
+    async def publish_entry(
+        self,
+        *,
+        site_id: str,
+        payload: SiteEntryPublishIn,
+    ) -> SiteEntryPublishOut:
+        slug = (payload.slug or "").strip()
+        now_ms = int(time.time() * 1000)
+
+        if not self.settings.database.enabled:
+            raise Conflict("Publishing requires database storage", error="PUBLISH_DB_REQUIRED")
+
+        await self._repo.get_site_by_id(site_id=site_id)
+        et = await self._repo.get_entry_type_by_code(site_id=site_id, code=payload.entry_type_code)
+        entry_id, rev, published_at_ms = await self._repo.publish_entry_by_slug(
+            site_id=site_id,
+            entry_type_id=UUID(str(et.id)),
+            slug=slug,
+            revision=payload.revision,
+        )
+        return SiteEntryPublishOut(
+            site_id=site_id,
+            entry_id=str(entry_id),
+            entry_type_code=payload.entry_type_code,
+            slug=slug,
+            revision=rev,
+            published_at_ms=published_at_ms or now_ms,
         )
 
     async def resolve_route(
@@ -293,7 +499,9 @@ class SiteService(BaseService):
             created_by_user_id=None,
         )
 
-        return SiteRouteDraftSaveOut(site_id=site_id, path=pathname, revision=next_rev, saved_at_ms=saved_at_ms or now_ms)
+        return SiteRouteDraftSaveOut(
+            site_id=site_id, path=pathname, revision=next_rev, saved_at_ms=saved_at_ms or now_ms
+        )
 
     async def publish_route(
         self,
@@ -331,7 +539,9 @@ class SiteService(BaseService):
             # Presence is a collaboration feature backed by Valkey TTL keys.
             raise ServiceUnavailable("Presence requires Valkey", error="PRESENCE_VALKEY_REQUIRED")
         await self._repo.get_site_by_id(site_id=site_id)
-        expires_at_ms = await self._presence.heartbeat(site_id=site_id, doc_key=payload.doc_key, client_id=payload.client_id, actor=payload.actor)
+        expires_at_ms = await self._presence.heartbeat(
+            site_id=site_id, doc_key=payload.doc_key, client_id=payload.client_id, actor=payload.actor
+        )
         return SitePresenceHeartbeatOut(expires_at_ms=expires_at_ms)
 
     async def list_presence(self, *, site_id: str, doc_key: str) -> SitePresenceListOut:

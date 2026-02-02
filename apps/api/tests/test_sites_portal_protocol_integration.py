@@ -12,12 +12,14 @@ from apps.api.core.registry import create_app
 from apps.api.infra.db.orm import close_orm, init_orm
 from apps.api.models.org_membership import OrgMembership, OrgRole
 from apps.api.models.organization import Organization
+from apps.api.models.setting import SettingRecord
 from apps.api.models.site import SiteRecord
 from apps.api.models.site_entry import EntryRecord, EntryRevisionRecord, EntryTypeRecord
 from apps.api.models.site_page import SitePageRecord, SitePageRevisionRecord, SitePageVisibility
 from apps.api.models.site_route_template import RouteTemplateRecord
 from apps.api.models.user import User, UserCredential, UserStatus
 from apps.api.models.workspace import Workspace
+from apps.api.settings.scopes import SCOPE_TYPE_SITE
 from apps.api.tests.utils.tortoise import reset_postgres_schema
 
 pytestmark = pytest.mark.integration
@@ -88,6 +90,18 @@ async def test_sites_public_preview_draft_publish_flow(prepared_schema) -> None:
             created_by_user_id=user.id,
         )
 
+        # DB-backed runtime config should override defaults.
+        await SettingRecord.create(
+            scope_type=SCOPE_TYPE_SITE,
+            scope_id=site.id,
+            namespace="site.runtime",
+            value={
+                "theme": {"cssVars": {"--color-primary": "#ff0000"}},
+                "fonts": [],
+            },
+            updated_by=None,
+        )
+
         # Static page (/about) with published rev=1.
         about = await SitePageRecord.create(
             site_id=site.id,
@@ -99,7 +113,9 @@ async def test_sites_public_preview_draft_publish_flow(prepared_schema) -> None:
             published_rev=1,
             created_by_user_id=user.id,
         )
-        await SitePageRevisionRecord.create(page_id=about.id, rev=1, document=_doc("About v1"), created_by_user_id=user.id)
+        await SitePageRevisionRecord.create(
+            page_id=about.id, rev=1, document=_doc("About v1"), created_by_user_id=user.id
+        )
 
         # Static page for /blog/hello (to test static priority over template match).
         blog_hello = await SitePageRecord.create(
@@ -166,6 +182,10 @@ async def test_sites_public_preview_draft_publish_flow(prepared_schema) -> None:
             assert resp.status_code == 200
             assert resp.json()["data"]["siteId"] == str(site.id)
 
+            resp = await client.get(f"/api/v1/sites/{site.id}/runtime", params={"mode": "public"})
+            assert resp.status_code == 200
+            assert resp.json()["data"]["theme"]["cssVars"]["--color-primary"] == "#ff0000"
+
             # Preview token required for preview runtime.
             resp = await client.get(f"/api/v1/sites/{site.id}/runtime", params={"mode": "preview"})
             assert resp.status_code == 403
@@ -176,6 +196,35 @@ async def test_sites_public_preview_draft_publish_flow(prepared_schema) -> None:
             token = resp.json()["data"]["token"]
             assert isinstance(token, str) and token
 
+            # Entry draft + publish flow (v1).
+            resp = await client.post(
+                f"/api/v1/sites/{site.id}/entries/draft",
+                params={"token": token},
+                json={
+                    "entryTypeCode": "blog_post",
+                    "slug": "world",
+                    "document": _doc("Entry world v2 (draft)"),
+                    "expectedRevision": 1,
+                },
+            )
+            assert resp.status_code == 201
+            assert resp.json()["data"]["revision"] == 2
+
+            resp = await client.post(
+                f"/api/v1/sites/{site.id}/entries/publish",
+                params={"token": token},
+                json={"entryTypeCode": "blog_post", "slug": "world", "revision": 2},
+            )
+            assert resp.status_code == 200
+            assert resp.json()["data"]["revision"] == 2
+
+            resp = await client.get(
+                f"/api/v1/sites/{site.id}/routes/resolve",
+                params={"path": "/blog/world", "mode": "public"},
+            )
+            assert resp.status_code == 200
+            assert resp.json()["data"]["document"]["meta"]["title"]["en-US"] == "Entry world v2 (draft)"
+
             # Public sitemap should include published + public pages and entries.
             resp = await client.get(f"/api/v1/sites/{site.id}/sitemap.xml")
             assert resp.status_code == 200
@@ -183,6 +232,19 @@ async def test_sites_public_preview_draft_publish_flow(prepared_schema) -> None:
             assert "https://example.test/about" in xml
             assert "https://example.test/blog/hello" in xml  # static page
             assert "https://example.test/blog/world" in xml  # dynamic entry (no static override)
+
+            # Page revisions: published is public, draft requires token.
+            resp = await client.get(f"/api/v1/sites/{site.id}/pages/{about.id}/revisions/published")
+            assert resp.status_code == 200
+            assert resp.json()["data"]["revision"] == 1
+            assert resp.json()["data"]["document"]["meta"]["title"]["en-US"] == "About v1"
+
+            resp = await client.get(
+                f"/api/v1/sites/{site.id}/pages/{about.id}/revisions/draft",
+                params={"token": token},
+            )
+            assert resp.status_code == 200
+            assert resp.json()["data"]["revision"] == 1
 
             # Static route should win over template match (/blog/hello).
             resp = await client.get(
@@ -202,6 +264,14 @@ async def test_sites_public_preview_draft_publish_flow(prepared_schema) -> None:
             )
             assert resp.status_code == 201
             assert resp.json()["data"]["revision"] == 2
+
+            resp = await client.get(
+                f"/api/v1/sites/{site.id}/pages/{about.id}/revisions/draft",
+                params={"token": token},
+            )
+            assert resp.status_code == 200
+            assert resp.json()["data"]["revision"] == 2
+            assert resp.json()["data"]["document"]["meta"]["title"]["en-US"] == "About v2 (draft)"
 
             # Public mode still sees published v1.
             resp = await client.get(
@@ -235,6 +305,10 @@ async def test_sites_public_preview_draft_publish_flow(prepared_schema) -> None:
             assert resp.status_code == 200
             assert resp.json()["data"]["document"]["meta"]["title"]["en-US"] == "About v2 (draft)"
 
+            resp = await client.get(f"/api/v1/sites/{site.id}/pages/{about.id}/revisions/published")
+            assert resp.status_code == 200
+            assert resp.json()["data"]["revision"] == 2
+
             # Optimistic lock mismatch -> 409 Conflict.
             resp = await client.post(
                 f"/api/v1/sites/{site.id}/routes/draft",
@@ -242,3 +316,9 @@ async def test_sites_public_preview_draft_publish_flow(prepared_schema) -> None:
                 json={"path": "/about", "document": _doc("About v3"), "expectedRevision": 1},
             )
             assert resp.status_code == 409
+
+            # Entry revisions: ensure published snapshot is accessible.
+            resp = await client.get(f"/api/v1/sites/{site.id}/entries/{entry.id}/revisions/published")
+            assert resp.status_code == 200
+            assert resp.json()["data"]["revision"] == 1
+            assert resp.json()["data"]["document"]["meta"]["title"]["en-US"] == "Entry /blog/:slug hello"

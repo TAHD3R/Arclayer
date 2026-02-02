@@ -5,6 +5,7 @@ from uuid import UUID
 from tortoise.transactions import in_transaction
 
 from apps.api.core.logging import get_logger
+from apps.api.models.setting import SettingRecord
 from apps.api.models.site import SiteRecord
 from apps.api.models.site_entry import EntryRecord, EntryRevisionRecord, EntryTypeRecord
 from apps.api.models.site_page import SitePageRecord, SitePageRevisionRecord, SitePageVisibility
@@ -22,10 +23,12 @@ from apps.api.routers.v1.sites.schema import (
     ParagraphBlock,
     ParagraphBlockProps,
 )
+from apps.api.settings.scopes import SCOPE_TYPE_SITE
 
 logger = get_logger(__name__)
 
 DEMO_SITE_ID = UUID("00000000-0000-0000-0000-000000000001")
+RUNTIME_SETTING_NAMESPACE = "site.runtime"
 
 
 async def ensure_demo_site_ready() -> None:
@@ -66,6 +69,30 @@ async def ensure_demo_site_ready() -> None:
         # Upsert minimal pages (/) and (/about) with an initial published revision.
         await _ensure_page(conn=conn, site_id=site.id, path="/", document=_build_home_document())
         await _ensure_page(conn=conn, site_id=site.id, path="/about", document=_build_about_document())
+
+        # Upsert runtime settings (theme tokens) for Portal SSR head injection.
+        # This keeps runtime config DB-backed even before Admin UI exists.
+        await SettingRecord.get_or_create(
+            scope_type=SCOPE_TYPE_SITE,
+            scope_id=site.id,
+            namespace=RUNTIME_SETTING_NAMESPACE,
+            defaults={
+                "value": {
+                    "theme": {
+                        "cssVars": {
+                            "--color-primary": "#1677ff",
+                            "--color-background": "#ffffff",
+                            "--color-foreground": "#111827",
+                            "--color-border": "rgba(17, 24, 39, 0.12)",
+                            "--font-sans": "system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif",
+                        }
+                    },
+                    "fonts": [],
+                },
+                "updated_by": None,
+            },
+            using_db=conn,
+        )
 
         # Upsert a minimal entry type + one entry for /blog/:slug.
         et, _ = await EntryTypeRecord.get_or_create(

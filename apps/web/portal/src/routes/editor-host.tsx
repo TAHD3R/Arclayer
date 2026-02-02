@@ -16,6 +16,7 @@ import type {
 } from "@celestial/site-editor-bridge";
 
 import { getHardcodedDocument } from "@/runtime/hardcoded-document";
+import { getPortalApiPrefix } from "@/runtime/site-api";
 
 export const Route = createFileRoute("/editor-host")({
   component: EditorHostPage,
@@ -210,7 +211,7 @@ function EditorHostPage() {
     void (async () => {
       try {
         const siteId = "00000000-0000-0000-0000-000000000001";
-        const res = await fetch(`/api/v1/sites/${siteId}/preview-tokens`, {
+        const res = await fetch(`${getPortalApiPrefix()}/sites/${siteId}/preview-tokens`, {
           method: "POST",
           headers: { accept: "application/json" },
         });
@@ -434,7 +435,7 @@ async function saveRouteDraftToApi(args: {
   document: DocumentIR;
   expectedRevision: number | null;
 }): Promise<{ path: string; revision: number; savedAtMs: number } | null> {
-  const url = `/api/v1/sites/${encodeURIComponent(args.siteId)}/routes/draft?token=${encodeURIComponent(
+  const url = `${getPortalApiPrefix()}/sites/${encodeURIComponent(args.siteId)}/routes/draft?token=${encodeURIComponent(
     args.token,
   )}`;
   const res = await fetch(url, {
@@ -469,7 +470,7 @@ async function heartbeatPresenceToApi(args: {
   clientId: string;
   actor: Record<string, string> | null;
 }): Promise<number | null> {
-  const url = `/api/v1/sites/${encodeURIComponent(args.siteId)}/presence/heartbeat?token=${encodeURIComponent(
+  const url = `${getPortalApiPrefix()}/sites/${encodeURIComponent(args.siteId)}/presence/heartbeat?token=${encodeURIComponent(
     args.token,
   )}`;
   const res = await fetch(url, {

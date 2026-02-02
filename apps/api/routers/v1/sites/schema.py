@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import ConfigDict, Field
 
@@ -268,6 +268,88 @@ class SitePresenceListOut(BaseSchema):
 
     doc_key: str = Field(..., description="Document key.")
     items: list[SitePresenceRecordOut] = Field(default_factory=list, description="Presence records.")
+
+
+class SiteSettingGetOut(BaseSchema):
+    model_config = ConfigDict(extra="forbid")
+
+    namespace: str = Field(..., description="Setting namespace.")
+    value: dict[str, Any] | None = Field(default=None, description="Setting value (JSON).")
+
+
+class SiteSettingUpsertIn(BaseSchema):
+    model_config = ConfigDict(extra="forbid")
+
+    value: dict[str, Any] | None = Field(default=None, description="Setting value (JSON).")
+
+
+class SitePageRevisionOut(BaseSchema):
+    model_config = ConfigDict(extra="forbid")
+
+    page_id: str = Field(..., description="Page id.")
+    state: Literal["draft", "published"] = Field(..., description="Revision state.")
+    revision: int = Field(..., ge=1, description="Revision number.")
+    created_at_ms: int = Field(..., description="Revision created timestamp in milliseconds (UTC).")
+    document: DocumentIR = Field(..., description="DocumentIR payload.")
+
+
+class SiteEntryRevisionOut(BaseSchema):
+    model_config = ConfigDict(extra="forbid")
+
+    entry_id: str = Field(..., description="Entry id.")
+    state: Literal["draft", "published"] = Field(..., description="Revision state.")
+    revision: int = Field(..., ge=1, description="Revision number.")
+    created_at_ms: int = Field(..., description="Revision created timestamp in milliseconds (UTC).")
+    document: DocumentIR | None = Field(default=None, description="Optional DocumentIR payload.")
+    data: dict[str, Any] | None = Field(default=None, description="Optional entry data payload (JSON).")
+
+
+class SiteEntryDraftSaveIn(BaseSchema):
+    model_config = ConfigDict(extra="forbid")
+
+    entry_type_code: str = Field(..., min_length=1, max_length=64, description="Entry type code (e.g. blog_post).")
+    slug: str = Field(..., min_length=1, max_length=256, description="Entry slug (unique within entry type).")
+    document: DocumentIR | None = Field(default=None, description="Optional DocumentIR payload.")
+    data: dict[str, Any] | None = Field(default=None, description="Optional entry data payload (JSON).")
+    expected_revision: int | None = Field(
+        default=None,
+        ge=0,
+        description="Optional optimistic lock revision. If provided, must match current draft revision.",
+    )
+
+
+class SiteEntryDraftSaveOut(BaseSchema):
+    model_config = ConfigDict(extra="forbid")
+
+    site_id: str = Field(..., description="Site id.")
+    entry_id: str = Field(..., description="Entry id.")
+    entry_type_code: str = Field(..., description="Entry type code.")
+    slug: str = Field(..., description="Entry slug.")
+    revision: int = Field(..., ge=1, description="Draft revision number.")
+    saved_at_ms: int = Field(..., description="Saved timestamp in milliseconds (UTC).")
+
+
+class SiteEntryPublishIn(BaseSchema):
+    model_config = ConfigDict(extra="forbid")
+
+    entry_type_code: str = Field(..., min_length=1, max_length=64, description="Entry type code (e.g. blog_post).")
+    slug: str = Field(..., min_length=1, max_length=256, description="Entry slug (unique within entry type).")
+    revision: int | None = Field(
+        default=None,
+        ge=1,
+        description="Draft revision number to publish. If omitted, publish the latest draft revision.",
+    )
+
+
+class SiteEntryPublishOut(BaseSchema):
+    model_config = ConfigDict(extra="forbid")
+
+    site_id: str = Field(..., description="Site id.")
+    entry_id: str = Field(..., description="Entry id.")
+    entry_type_code: str = Field(..., description="Entry type code.")
+    slug: str = Field(..., description="Entry slug.")
+    revision: int = Field(..., ge=1, description="Published revision number.")
+    published_at_ms: int = Field(..., description="Published timestamp in milliseconds (UTC).")
 
 
 ContainerBlock.model_rebuild()
