@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Annotated, Any, Literal
 
-from pydantic import ConfigDict, Field
+from pydantic import AliasChoices, ConfigDict, Field
 
 from apps.api.common.schemas import BaseSchema
 
@@ -24,9 +24,10 @@ class DocumentMeta(BaseSchema):
 class ContainerBlockProps(BaseSchema):
     model_config = ConfigDict(extra="forbid")
 
-    as_: Literal["div", "section", "article"] | None = Field(
+    as_tag: Literal["div", "section", "article"] | None = Field(
         default=None,
-        alias="as",
+        validation_alias=AliasChoices("as", "asTag", "as_tag"),
+        serialization_alias="as",
         description="Semantic HTML wrapper tag.",
     )
     class_name: str | None = Field(default=None, alias="className", description="Optional CSS class name.")
@@ -155,6 +156,27 @@ class SiteRouteMatchOut(BaseSchema):
     params: dict[str, str] = Field(default_factory=dict, description="Route params (e.g. {'slug': 'hello'}).")
     redirect_to: str | None = Field(default=None, description="Redirect target pathname (internal only).")
     redirect_status: Literal[301, 302] | None = Field(default=None, description="Redirect status code.")
+    page_id: str | None = Field(default=None, description="Matched page id (kind=page only).")
+    entry_id: str | None = Field(default=None, description="Matched entry id (kind=route_template only).")
+    revision: int | None = Field(
+        default=None,
+        ge=1,
+        description="Revision used to render the returned document (if any).",
+    )
+    revision_state: Literal["draft", "published"] | None = Field(
+        default=None,
+        description="Revision state used to render the returned document (if any).",
+    )
+    draft_revision: int | None = Field(
+        default=None,
+        ge=0,
+        description="Current draft revision pointer for this document (if available).",
+    )
+    published_revision: int | None = Field(
+        default=None,
+        ge=0,
+        description="Current published revision pointer for this document (if available).",
+    )
 
 
 class SiteRouteResolveOut(BaseSchema):

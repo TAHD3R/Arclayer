@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from typing import cast
 from uuid import UUID
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Query, Request
 from tortoise.expressions import Q
 from tortoise.transactions import in_transaction
 
+from apps.api.common.utils.tortoise_protocols import HasOrganizationId, HasWorkspaceId
 from apps.api.config import Settings, get_settings
 from apps.api.core.exceptions import BadRequest, Conflict, Forbidden, NotFound, ServiceUnavailable
 from apps.api.core.http.pagination import PageData, PageParams, get_page_params
@@ -458,8 +460,8 @@ async def accept_invitation(
                     message=t("auth", "INVITE_REVOKED", default="邀请不可用"), error="INVITE_MAX_USES_REACHED"
                 )
 
-            organization_id = UUID(str(invite_link.organization_id))
-            workspace_id = UUID(str(invite_link.workspace_id))
+            organization_id = UUID(str(cast(HasOrganizationId, invite_link).organization_id))
+            workspace_id = UUID(str(cast(HasWorkspaceId, invite_link).workspace_id))
             inviter_user_id = invite_link.created_by_user_id
             assigned_role_code = invite_link.role_code
 
@@ -494,8 +496,8 @@ async def accept_invitation(
             if email_inv.expires_at is not None and email_inv.expires_at <= now:
                 raise Forbidden(message=t("auth", "INVITE_EXPIRED", default="邀请已过期"), error="INVITE_EXPIRED")
 
-            organization_id = UUID(str(email_inv.organization_id))
-            workspace_id = UUID(str(email_inv.workspace_id))
+            organization_id = UUID(str(cast(HasOrganizationId, email_inv).organization_id))
+            workspace_id = UUID(str(cast(HasWorkspaceId, email_inv).workspace_id))
             inviter_user_id = email_inv.created_by_user_id
             assigned_role_code = email_inv.role_code
 
@@ -519,7 +521,7 @@ async def accept_invitation(
         ws = await Workspace.get_or_none(id=workspace_id, using_db=conn)
         if ws is None or not ws.is_active:
             raise Forbidden(message=t("errors", "NOT_FOUND", default="资源不存在"), error="WORKSPACE_INACTIVE")
-        if UUID(str(ws.organization_id)) != organization_id:
+        if UUID(str(cast(HasOrganizationId, ws).organization_id)) != organization_id:
             raise Forbidden(
                 message=t("errors", "PERMISSION_DENIED", default="权限不足"), error="CROSS_ORG_ACCESS_DENIED"
             )
@@ -845,8 +847,8 @@ async def accept_existing_invitation(
                     message=t("auth", "INVITE_REVOKED", default="邀请不可用"), error="INVITE_MAX_USES_REACHED"
                 )
 
-            organization_id = UUID(str(invite_link.organization_id))
-            workspace_id = UUID(str(invite_link.workspace_id))
+            organization_id = UUID(str(cast(HasOrganizationId, invite_link).organization_id))
+            workspace_id = UUID(str(cast(HasWorkspaceId, invite_link).workspace_id))
             inviter_user_id = invite_link.created_by_user_id
             assigned_role_code = invite_link.role_code
 
@@ -880,8 +882,8 @@ async def accept_existing_invitation(
             if email_inv.expires_at is not None and email_inv.expires_at <= now:
                 raise Forbidden(message=t("auth", "INVITE_EXPIRED", default="邀请已过期"), error="INVITE_EXPIRED")
 
-            organization_id = UUID(str(email_inv.organization_id))
-            workspace_id = UUID(str(email_inv.workspace_id))
+            organization_id = UUID(str(cast(HasOrganizationId, email_inv).organization_id))
+            workspace_id = UUID(str(cast(HasWorkspaceId, email_inv).workspace_id))
             inviter_user_id = email_inv.created_by_user_id
             assigned_role_code = email_inv.role_code
 
@@ -903,7 +905,7 @@ async def accept_existing_invitation(
         ws = await Workspace.get_or_none(id=workspace_id, using_db=conn)
         if ws is None or not ws.is_active:
             raise Forbidden(message=t("errors", "NOT_FOUND", default="资源不存在"), error="WORKSPACE_INACTIVE")
-        if UUID(str(ws.organization_id)) != organization_id:
+        if UUID(str(cast(HasOrganizationId, ws).organization_id)) != organization_id:
             raise Forbidden(
                 message=t("errors", "PERMISSION_DENIED", default="权限不足"), error="CROSS_ORG_ACCESS_DENIED"
             )
@@ -921,7 +923,7 @@ async def accept_existing_invitation(
                 status="active",
             )
         else:
-            if UUID(str(existing_orgm.organization_id)) != organization_id:
+            if UUID(str(cast(HasOrganizationId, existing_orgm).organization_id)) != organization_id:
                 raise Forbidden(
                     message=t("errors", "PERMISSION_DENIED", default="权限不足"),
                     error="CROSS_ORG_ACCESS_DENIED",

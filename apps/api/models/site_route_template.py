@@ -41,4 +41,3 @@ class RouteTemplateRecord(BaseModel):
         table = "route_templates"
         abstract = False
         unique_together = (("site_id", "path_pattern"),)
-

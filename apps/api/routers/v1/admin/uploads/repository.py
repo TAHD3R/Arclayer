@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+from typing import cast
 from uuid import UUID
 
 from tortoise.expressions import Q
 from tortoise.queryset import QuerySet
 
 from apps.api.common.repositories import BaseRepository
+from apps.api.common.utils.tortoise_protocols import UploadPartMutableFields
 from apps.api.models.upload import UploadPartRecord, UploadSessionRecord, UploadStatus
 
 
@@ -84,10 +86,11 @@ class UploadsRepository(BaseRepository):
                 etag=etag,
                 stored=True,
             )
+        part_like = cast(UploadPartMutableFields, part)
         part.object_key = object_key
         part.size_bytes = size_bytes
-        part.checksum_sha256 = checksum_sha256
-        part.etag = etag
+        part_like.checksum_sha256 = checksum_sha256
+        part_like.etag = etag
         part.stored = True
         await part.save(update_fields=["object_key", "size_bytes", "checksum_sha256", "etag", "stored", "updated_at"])
         return part

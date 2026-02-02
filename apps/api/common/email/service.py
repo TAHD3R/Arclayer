@@ -34,10 +34,14 @@ def build_mail_config(settings: EmailSettings) -> ConnectionConfig:
 
     # fastapi-mail expects SecretStr for MAIL_PASSWORD. Keep it typed and only unwrap when needed.
     password: SecretStr = settings.password if settings.password is not None else SecretStr("")
+    try:
+        mail_from = _EMAIL_ADAPTER.validate_python(settings.mail_from)
+    except ValidationError as exc:
+        raise ValueError("invalid mail_from") from exc
     return ConnectionConfig(
         MAIL_USERNAME=settings.username or "",
         MAIL_PASSWORD=password,
-        MAIL_FROM=settings.mail_from,
+        MAIL_FROM=mail_from,
         MAIL_FROM_NAME=settings.mail_from_name,
         MAIL_PORT=settings.port,
         MAIL_SERVER=settings.server,
@@ -66,6 +70,18 @@ def _to_name_email(email: str) -> NameEmail:
     # fastapi-mail expects `recipients: list[NameEmail]` which requires a `name`.
     local_part = email.split("@", 1)[0].strip()
     return NameEmail(name=local_part or email, email=email)
+
+
+def _pick_str(value: object, fallback: str) -> str:
+    return value if isinstance(value, str) else fallback
+
+
+def _pick_int(value: object, fallback: int) -> int:
+    return value if isinstance(value, int) else fallback
+
+
+def _pick_bool(value: object, fallback: bool) -> bool:
+    return value if isinstance(value, bool) else fallback
 
 
 class EmailService:
@@ -128,15 +144,19 @@ class EmailService:
         mail = await self._get_core_mail_config()
 
         # Prefer DB config (core.mail.*) when present; fall back to env settings.
-        server = mail.get("server") if isinstance(mail.get("server"), str) else base.server
-        port = mail.get("port") if isinstance(mail.get("port"), int) else base.port
-        username = mail.get("username") if isinstance(mail.get("username"), str) else (base.username or "")
-        mail_from = mail.get("mail_from") if isinstance(mail.get("mail_from"), str) else base.mail_from
-        mail_from_name = (
-            mail.get("mail_from_name") if isinstance(mail.get("mail_from_name"), str) else base.mail_from_name
-        )
-        starttls = mail.get("starttls") if isinstance(mail.get("starttls"), bool) else base.starttls
-        ssl_tls = mail.get("ssl_tls") if isinstance(mail.get("ssl_tls"), bool) else base.ssl_tls
+        server = _pick_str(mail.get("server"), base.server)
+        port = _pick_int(mail.get("port"), base.port)
+        username = _pick_str(mail.get("username"), base.username or "")
+        mail_from_raw = _pick_str(mail.get("mail_from"), base.mail_from)
+        mail_from_name = _pick_str(mail.get("mail_from_name"), base.mail_from_name)
+        starttls = _pick_bool(mail.get("starttls"), base.starttls)
+        ssl_tls = _pick_bool(mail.get("ssl_tls"), base.ssl_tls)
+
+        # fastapi-mail expects EmailStr for MAIL_FROM, validate here so failures are explicit.
+        try:
+            mail_from = _EMAIL_ADAPTER.validate_python(mail_from_raw)
+        except ValidationError as exc:
+            raise ValueError("invalid mail_from") from exc
 
         password_raw = mail.get("password")
         password_secret: SecretStr | None = base.password

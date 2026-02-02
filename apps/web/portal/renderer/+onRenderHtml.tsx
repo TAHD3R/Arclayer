@@ -93,6 +93,7 @@ async function onRenderHtml(pageContext: VikePageContextLike) {
   const lang = seo.viewerCtx?.locale ?? "en";
   const title = seo.title ?? "Celestial Portal";
   const description = seo.description;
+  const isPreviewMode = req.mode === "preview";
 
   const documentHtml = escapeInject`<!DOCTYPE html>
     <html lang="${lang}">
@@ -101,6 +102,11 @@ async function onRenderHtml(pageContext: VikePageContextLike) {
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>${title}</title>
         ${description ? escapeInject`<meta name="description" content="${description}" />` : ""}
+        ${isPreviewMode ? escapeInject`<meta name="robots" content="noindex, nofollow, noarchive" />` : ""}
+        <meta property="og:title" content="${title}" />
+        ${description ? escapeInject`<meta property="og:description" content="${description}" />` : ""}
+        <meta property="og:type" content="website" />
+        <meta property="og:locale" content="${lang}" />
         ${
           fontFaceStyleText
             ? escapeInject`<style id="portal-font-faces">${fontFaceStyleText}</style>`

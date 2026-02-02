@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, cast
 from uuid import UUID
 
 from apps.api.common.services.base import BaseService
+from apps.api.common.utils.tortoise_protocols import HasOrganizationId, OrganizationLogoUrlMutableFields
 from apps.api.config import Settings
 from apps.api.core.exceptions import BadRequest, Conflict, ServiceUnavailable
 from apps.api.core.i18n import t
@@ -171,9 +172,10 @@ class SystemSetupService(BaseService):
             # If already exists, ensure owner + org_id match.
             orgm = await OrgMembership.get_or_none(user_id=owner_user_id)
             if orgm is not None:
+                orgm_like = cast(HasOrganizationId, orgm)
                 changed = False
-                if str(orgm.organization_id) != str(org_id):
-                    orgm.organization_id = org_id
+                if str(orgm_like.organization_id) != str(org_id):
+                    orgm_like.organization_id = org_id
                     changed = True
                 if orgm.role != OrgRole.OWNER:
                     orgm.role = OrgRole.OWNER
@@ -243,7 +245,7 @@ class SystemSetupService(BaseService):
                 org = existing[0]
                 org.slug = org_slug
                 org.name = org_name
-                org.logo_url = logo_url
+                cast(OrganizationLogoUrlMutableFields, org).logo_url = logo_url
                 await org.save(update_fields=["slug", "name", "logo_url"])
             else:
                 org = await repo.create_organization(slug=org_slug, name=org_name, logo_url=logo_url)
@@ -254,7 +256,7 @@ class SystemSetupService(BaseService):
                 org.name = org_name
                 changed = True
             if org.logo_url != logo_url:
-                org.logo_url = logo_url
+                cast(OrganizationLogoUrlMutableFields, org).logo_url = logo_url
                 changed = True
             if changed:
                 await org.save(update_fields=["name", "logo_url"])

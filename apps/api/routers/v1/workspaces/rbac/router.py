@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from uuid import UUID
+
 from fastapi import APIRouter, Depends
 
 from apps.api.config import Settings, get_settings
@@ -128,7 +130,7 @@ async def list_permissions(
         pid = lp.get("plugin_id")
         items.append(
             WorkspacePermissionOut(
-                id=str(lp["id"]),
+                id=UUID(str(lp["id"])),
                 code=str(lp["code"]),
                 name=str(lp["name"]),
                 description=lp.get("description"),

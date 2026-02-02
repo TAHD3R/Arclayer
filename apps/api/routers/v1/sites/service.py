@@ -425,12 +425,28 @@ class SiteService(BaseService):
         # 1) Static page path match (exact) has priority.
         page = await self._repo.get_page_by_path(site_id=site_id, path=pathname)
         if page is not None:
-            rev = page.published_rev if mode == "public" else page.draft_rev or page.published_rev
-            if rev:
-                rec = await self._repo.get_page_revision(page_id=UUID(str(page.id)), rev=int(rev))
+            draft_rev = int(page.draft_rev or 0)
+            published_rev = int(page.published_rev or 0)
+            use_rev = published_rev if mode == "public" else (draft_rev or published_rev)
+            state: Literal["draft", "published"] | None = None
+            if use_rev:
+                state = "published" if mode == "public" else ("draft" if draft_rev else "published")
+            if use_rev:
+                rec = await self._repo.get_page_revision(page_id=UUID(str(page.id)), rev=int(use_rev))
                 if rec is not None:
                     doc = DocumentIR.model_validate(rec.document)
-                    return SiteRouteResolveOut(match=SiteRouteMatchOut(kind="page", params={}), document=doc)
+                    return SiteRouteResolveOut(
+                        match=SiteRouteMatchOut(
+                            kind="page",
+                            params={},
+                            page_id=str(page.id),
+                            revision=int(use_rev),
+                            revision_state=state,
+                            draft_revision=draft_rev,
+                            published_revision=(published_rev if published_rev else None),
+                        ),
+                        document=doc,
+                    )
 
             # No published revision in public mode -> treat as not found.
             return SiteRouteResolveOut(match=SiteRouteMatchOut(kind="not_found"), document=None)
@@ -440,16 +456,24 @@ class SiteService(BaseService):
         if tm is not None:
             slug = tm.params.get("slug")
             if slug:
-                doc = await self._repo.resolve_entry_by_slug(
+                resolved = await self._repo.resolve_entry_by_slug(
                     site_id=site_id,
                     entry_type_id=tm.entry_type_id,
                     slug=slug,
                     mode=mode,
                 )
-                if doc is not None:
+                if resolved is not None:
                     return SiteRouteResolveOut(
-                        match=SiteRouteMatchOut(kind="route_template", params=tm.params),
-                        document=doc,
+                        match=SiteRouteMatchOut(
+                            kind="route_template",
+                            params=tm.params,
+                            entry_id=str(resolved.entry_id),
+                            revision=resolved.revision,
+                            revision_state=resolved.revision_state,
+                            draft_revision=resolved.draft_rev,
+                            published_revision=(resolved.published_rev if resolved.published_rev else None),
+                        ),
+                        document=resolved.document,
                     )
 
         return SiteRouteResolveOut(match=SiteRouteMatchOut(kind="not_found"), document=None)
@@ -611,7 +635,7 @@ def build_home_document() -> DocumentIR:
             ContainerBlock(
                 id="b1",
                 type="container",
-                props=ContainerBlockProps(as_="section"),
+                props=ContainerBlockProps(as_tag="section"),
                 children=[
                     HeadingBlock(
                         id="b1-h1",
@@ -656,7 +680,7 @@ def build_about_document() -> DocumentIR:
             ContainerBlock(
                 id="about",
                 type="container",
-                props=ContainerBlockProps(as_="section"),
+                props=ContainerBlockProps(as_tag="section"),
                 children=[
                     HeadingBlock(
                         id="about-h1",
@@ -693,7 +717,7 @@ def build_blog_document(*, slug: str) -> DocumentIR:
             ContainerBlock(
                 id="blog",
                 type="container",
-                props=ContainerBlockProps(as_="article"),
+                props=ContainerBlockProps(as_tag="article"),
                 children=[
                     HeadingBlock(
                         id="blog-h1",

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 
@@ -121,13 +121,16 @@ async def test_bulk_update_assets_updates_repo(monkeypatch) -> None:
     settings = get_settings()
     service = AdminAssetsService(settings)
 
-    called: dict[str, object] = {"count": 0, "ids": [], "updates": {}}
+    called_count = 0
+    called_ids: list[UUID] = []
+    called_updates: dict[str, object] = {}
 
     class FakeRepo:
         async def bulk_update_assets_fields(self, *, workspace_id, asset_ids, updates, updated_at):
-            called["count"] = len(asset_ids)
-            called["ids"] = list(asset_ids)
-            called["updates"] = dict(updates)
+            nonlocal called_count, called_ids, called_updates
+            called_count = len(asset_ids)
+            called_ids = list(asset_ids)
+            called_updates = dict(updates)
             return len(asset_ids)
 
         async def get_assets_by_ids(self, *, workspace_id, asset_ids):
@@ -143,6 +146,6 @@ async def test_bulk_update_assets_updates_repo(monkeypatch) -> None:
 
     assert out.updated_count == 3
     assert set(out.updated_asset_ids) == set(ids)
-    assert called["count"] == 3
-    assert set(called["ids"]) == set(ids)
-    assert called["updates"] == {"visibility": AssetVisibility.PRIVATE}
+    assert called_count == 3
+    assert set(called_ids) == set(ids)
+    assert called_updates == {"visibility": AssetVisibility.PRIVATE}

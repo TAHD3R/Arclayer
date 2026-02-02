@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+from typing import cast
+
 from tortoise.queryset import QuerySet
 
 from apps.api.common.repositories import BaseRepository
+from apps.api.common.utils.tortoise_protocols import PluginRecordMutableFields
 from apps.api.models.plugin import PluginRecord
 from apps.api.plugin.types import PluginStatus
 
@@ -85,24 +88,25 @@ class PluginRepository(BaseRepository):
         package_checksum: str | None,
         package_size: int | None,
     ) -> PluginRecord:
+        record_like = cast(PluginRecordMutableFields, record)
         record.name = name
-        record.description = description
+        record_like.description = description
         record.author = author
         record.version = version
         record.requires = requires
         record.entrypoint = entrypoint
-        record.website = website
-        record.repository = repository
-        record.issues = issues
-        record.license = license_name
+        record_like.website = website
+        record_like.repository = repository
+        record_like.issues = issues
+        record_like.license = license_name
         record.status = status
         record.storage_path = storage_path
         record.permissions = permissions
         record.config_schema = config_schema
         record.config = config
-        record.package_filename = package_filename
-        record.package_checksum = package_checksum
-        record.package_size = package_size
+        record_like.package_filename = package_filename
+        record_like.package_checksum = package_checksum
+        record_like.package_size = package_size
         await record.save()
         return record
 

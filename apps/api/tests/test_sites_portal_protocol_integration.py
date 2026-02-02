@@ -225,6 +225,62 @@ async def test_sites_public_preview_draft_publish_flow(prepared_schema) -> None:
             assert resp.status_code == 200
             assert resp.json()["data"]["document"]["meta"]["title"]["en-US"] == "Entry world v2 (draft)"
 
+            # Creating a new entry from scratch should allow expectedRevision=0.
+            resp = await client.post(
+                f"/api/v1/sites/{site.id}/entries/draft",
+                params={"token": token},
+                json={
+                    "entryTypeCode": "blog_post",
+                    "slug": "new",
+                    "document": _doc("Entry new v1 (draft)"),
+                    "expectedRevision": 0,
+                },
+            )
+            assert resp.status_code == 201
+            assert resp.json()["data"]["revision"] == 1
+
+            # Wrong expectedRevision should return 409 conflict.
+            resp = await client.post(
+                f"/api/v1/sites/{site.id}/entries/draft",
+                params={"token": token},
+                json={
+                    "entryTypeCode": "blog_post",
+                    "slug": "new",
+                    "document": _doc("Entry new v2 (draft)"),
+                    "expectedRevision": 0,
+                },
+            )
+            assert resp.status_code == 409
+
+            resp = await client.post(
+                f"/api/v1/sites/{site.id}/entries/publish",
+                params={"token": token},
+                json={"entryTypeCode": "blog_post", "slug": "new", "revision": 1},
+            )
+            assert resp.status_code == 200
+            assert resp.json()["data"]["revision"] == 1
+
+            # Publishing an unknown slug should return 404.
+            resp = await client.post(
+                f"/api/v1/sites/{site.id}/entries/publish",
+                params={"token": token},
+                json={"entryTypeCode": "blog_post", "slug": "missing", "revision": 1},
+            )
+            assert resp.status_code == 404
+
+            # Unknown entry type should return 404.
+            resp = await client.post(
+                f"/api/v1/sites/{site.id}/entries/draft",
+                params={"token": token},
+                json={
+                    "entryTypeCode": "missing_type",
+                    "slug": "x",
+                    "document": _doc("Entry x"),
+                    "expectedRevision": 0,
+                },
+            )
+            assert resp.status_code == 404
+
             # Public sitemap should include published + public pages and entries.
             resp = await client.get(f"/api/v1/sites/{site.id}/sitemap.xml")
             assert resp.status_code == 200

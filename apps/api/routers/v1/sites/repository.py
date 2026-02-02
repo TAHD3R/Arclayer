@@ -4,11 +4,12 @@ import asyncio
 import re
 import time
 from dataclasses import dataclass
-from typing import Literal
+from typing import Literal, cast
 from uuid import UUID
 
 from tortoise.transactions import in_transaction
 
+from apps.api.common.utils.tortoise_protocols import RouteTemplateIds, SettingUpdatedBy
 from apps.api.core.exceptions import Conflict, NotFound
 from apps.api.models.setting import SettingRecord
 from apps.api.models.site import SiteRecord
@@ -34,6 +35,16 @@ class RouteTemplateMatch:
     entry_type_id: UUID
     params: dict[str, str]
     template_page_revision_id: UUID | None
+
+
+@dataclass(frozen=True)
+class ResolvedEntryDocument:
+    entry_id: UUID
+    draft_rev: int
+    published_rev: int
+    revision: int
+    revision_state: Literal["draft", "published"]
+    document: DocumentIR
 
 
 @dataclass(frozen=True)
@@ -129,7 +140,7 @@ class SitesRepository:
             return rec
 
         rec.value = value
-        rec.updated_by = updated_by
+        cast(SettingUpdatedBy, rec).updated_by = updated_by
         await rec.save(update_fields=["value", "updated_by"])
         return rec
 
@@ -365,20 +376,37 @@ class SitesRepository:
         entry_type_id: UUID,
         slug: str,
         mode: Literal["public", "preview"],
-    ) -> DocumentIR | None:
+    ) -> ResolvedEntryDocument | None:
         entry = await EntryRecord.get_or_none(site_id=site_id, entry_type_id=entry_type_id, slug=slug)
         if entry is None:
             return None
 
-        rev = entry.published_rev if mode == "public" else entry.draft_rev or entry.published_rev
-        if not rev:
+        draft_rev = int(entry.draft_rev or 0)
+        published_rev = int(entry.published_rev or 0)
+
+        revision = published_rev if mode == "public" else (draft_rev or published_rev)
+        if revision <= 0:
             return None
 
-        rec = await EntryRevisionRecord.get_or_none(entry_id=entry.id, rev=rev)
+        revision_state: Literal["draft", "published"]
+        if mode == "public":
+            revision_state = "published"
+        else:
+            revision_state = "draft" if draft_rev else "published"
+
+        rec = await EntryRevisionRecord.get_or_none(entry_id=entry.id, rev=revision)
         if rec is None or rec.document is None:
             return None
 
-        return DocumentIR.model_validate(rec.document)
+        doc = DocumentIR.model_validate(rec.document)
+        return ResolvedEntryDocument(
+            entry_id=UUID(str(entry.id)),
+            draft_rev=draft_rev,
+            published_rev=published_rev,
+            revision=revision,
+            revision_state=revision_state,
+            document=doc,
+        )
 
     async def list_route_templates(self, *, site_id: str) -> list[RouteTemplateRecord]:
         return (
@@ -395,12 +423,13 @@ class SitesRepository:
             templates = await self.list_route_templates(site_id=site_id)
             compiled: list[_CompiledRouteTemplate] = []
             for t in templates:
+                t_like = cast(RouteTemplateIds, t)
                 ct = _compile_path_pattern(
                     t.path_pattern,
                     template_id=UUID(str(t.id)),
-                    entry_type_id=UUID(str(t.entry_type_id)),
-                    template_page_revision_id=UUID(str(t.template_page_revision_id))
-                    if t.template_page_revision_id
+                    entry_type_id=UUID(str(t_like.entry_type_id)),
+                    template_page_revision_id=UUID(str(t_like.template_page_revision_id))
+                    if t_like.template_page_revision_id
                     else None,
                 )
                 if ct is None:
@@ -444,12 +473,13 @@ class SitesRepository:
         templates = await RouteTemplateRecord.filter(site_id=site_id, is_active=True).all()
         entry_paths: set[str] = set()
         for t in templates:
+            t_like = cast(RouteTemplateIds, t)
             ct = _compile_path_pattern(
                 t.path_pattern,
                 template_id=UUID(str(t.id)),
-                entry_type_id=UUID(str(t.entry_type_id)),
-                template_page_revision_id=UUID(str(t.template_page_revision_id))
-                if t.template_page_revision_id
+                entry_type_id=UUID(str(t_like.entry_type_id)),
+                template_page_revision_id=UUID(str(t_like.template_page_revision_id))
+                if t_like.template_page_revision_id
                 else None,
             )
             if ct is None:

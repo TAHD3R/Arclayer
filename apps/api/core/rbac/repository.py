@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from typing import cast
 from uuid import UUID
 
 from tortoise.queryset import QuerySet
 
 from apps.api.common.repositories import BaseRepository
+from apps.api.common.utils.tortoise_protocols import PermissionMutableFields
 from apps.api.core.rbac.constants import BOOTSTRAP_KEY
 from apps.api.models.rbac import BootstrapState, Permission, PermissionScope, Role, RolePermission
 
@@ -106,6 +108,7 @@ class RBACRepository(BaseRepository):
         description_i18n: str | None,
         plugin_id: str | None,
     ) -> bool:
+        perm_like = cast(PermissionMutableFields, permission)
         changed = False
         if permission.scope != scope:
             permission.scope = scope
@@ -114,16 +117,16 @@ class RBACRepository(BaseRepository):
             permission.name = name
             changed = True
         if permission.description != description:
-            permission.description = description
+            perm_like.description = description
             changed = True
         if permission.name_i18n != name_i18n:
-            permission.name_i18n = name_i18n
+            perm_like.name_i18n = name_i18n
             changed = True
         if permission.description_i18n != description_i18n:
-            permission.description_i18n = description_i18n
+            perm_like.description_i18n = description_i18n
             changed = True
         if permission.plugin_id != plugin_id:
-            permission.plugin_id = plugin_id
+            perm_like.plugin_id = plugin_id
             changed = True
         if changed:
             await permission.save()

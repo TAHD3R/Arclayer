@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 from uuid import UUID
 
 from apps.api.common.services import BaseService
+from apps.api.common.utils.tortoise_protocols import SettingUpdatedBy
 from apps.api.core.exceptions import ServiceUnavailable
 from apps.api.models.setting import SettingRecord
 from apps.api.routers.v1.workspaces.settings.schema import WorkspaceSettingsDetail
@@ -59,7 +60,7 @@ class WorkspaceSettingsService(BaseService):
             )
         else:
             record.value = merged or None
-            record.updated_by = updated_by
+            cast(SettingUpdatedBy, record).updated_by = updated_by
             await record.save(update_fields=["value", "updated_by", "updated_at"])
             saved = record
 

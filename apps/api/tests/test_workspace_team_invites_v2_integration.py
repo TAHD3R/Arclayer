@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from typing import Protocol, cast
 from uuid import uuid4
 
 import pytest
@@ -12,6 +13,15 @@ from apps.api.infra.db.orm import verify_db_ready
 from apps.api.routers.v1.auth.deps import get_current_user, get_current_user_id
 
 pytestmark = pytest.mark.integration
+
+
+class _CredentialWithHash(Protocol):
+    password_hash: str
+
+
+class _UserWithCredential(Protocol):
+    credential: _CredentialWithHash | None
+    token_version: int | None
 
 
 async def _enable_mail_service() -> None:
@@ -42,9 +52,10 @@ async def _enable_mail_service() -> None:
         return
 
     value = record.value if isinstance(record.value, dict) else {}
-    mail = value.get("mail") if isinstance(value.get("mail"), dict) else {}
-    mail["enabled"] = True
-    value["mail"] = mail
+    mail_raw = value.get("mail")
+    mail_cfg = mail_raw if isinstance(mail_raw, dict) else {}
+    mail_cfg["enabled"] = True
+    value["mail"] = mail_cfg
     record.value = value
     await record.save(update_fields=["value", "updated_at"])
 
@@ -996,8 +1007,9 @@ async def test_workspace_team_member_manage_update_disable_enable_and_reset_pass
             # Reset password should update credential and bump token_version.
             before = await user_repo.get_by_id_with_credential(member.id)
             assert before is not None
-            before_hash = before.credential.password_hash if before.credential else None
-            before_ver = int(before.token_version or 0)
+            before_like = cast(_UserWithCredential, before)
+            before_hash = before_like.credential.password_hash if before_like.credential else None
+            before_ver = int(before_like.token_version or 0)
 
             resp = await client.post(
                 f"/api/v1/workspaces/{ws.id}/team/members/{member_m.id}/reset-password",
@@ -1007,10 +1019,11 @@ async def test_workspace_team_member_manage_update_disable_enable_and_reset_pass
 
             after = await user_repo.get_by_id_with_credential(member.id)
             assert after is not None
-            after_hash = after.credential.password_hash if after.credential else None
+            after_like = cast(_UserWithCredential, after)
+            after_hash = after_like.credential.password_hash if after_like.credential else None
             assert after_hash is not None
             assert after_hash != before_hash
-            assert int(after.token_version or 0) == before_ver + 1
+            assert int(after_like.token_version or 0) == before_ver + 1
 
             # Disabling self should be rejected.
             resp = await client.post(f"/api/v1/workspaces/{ws.id}/team/members/{owner_m.id}/disable")

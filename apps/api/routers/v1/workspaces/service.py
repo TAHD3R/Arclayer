@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import re
+from typing import cast
 from uuid import UUID
 
 from apps.api.common.services import BaseService
+from apps.api.common.utils.tortoise_protocols import HasOrganizationId, HasWorkspaceId
 from apps.api.config import Settings
 from apps.api.core.exceptions import BadRequest, Conflict, NotFound
 from apps.api.core.i18n import t
@@ -33,14 +35,15 @@ class WorkspaceService(BaseService):
             return []
 
         is_owner = orgm.role == OrgRole.OWNER
-        org_id = UUID(str(orgm.organization_id))
+        orgm_like = cast(HasOrganizationId, orgm)
+        org_id = UUID(str(orgm_like.organization_id))
 
         # Collect memberships for the current user.
         memberships = await WorkspaceMembership.filter(
             user_id=user_id,
             status=WorkspaceMembershipStatus.ACTIVE,
         ).all()
-        membership_by_workspace_id = {UUID(str(m.workspace_id)): m for m in memberships}
+        membership_by_workspace_id = {UUID(str(cast(HasWorkspaceId, m).workspace_id)): m for m in memberships}
 
         workspaces: list[Workspace]
         if is_owner:
@@ -77,7 +80,7 @@ class WorkspaceService(BaseService):
             raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
         return WorkspaceDetailOut(
             id=ws.id,
-            organization_id=UUID(str(ws.organization_id)),
+            organization_id=UUID(str(cast(HasOrganizationId, ws).organization_id)),
             slug=ws.slug,
             name=ws.name,
         )
@@ -123,7 +126,7 @@ class WorkspaceService(BaseService):
 
         return WorkspaceDetailOut(
             id=ws.id,
-            organization_id=UUID(str(ws.organization_id)),
+            organization_id=UUID(str(cast(HasOrganizationId, ws).organization_id)),
             slug=ws.slug,
             name=ws.name,
         )

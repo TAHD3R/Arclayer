@@ -24,6 +24,18 @@ describe("resolveEditorDocument()", () => {
     vi.mocked(resolvePortalRoute).mockResolvedValueOnce({
       kind: "page",
       document: { version: 1, blocks: [] },
+      match: {
+        kind: "page",
+        params: {},
+        redirectTo: null,
+        redirectStatus: null,
+        pageId: null,
+        entryId: null,
+        revision: 1,
+        revisionState: "draft",
+        draftRevision: 1,
+        publishedRevision: 1,
+      },
     });
 
     const out = await resolveEditorDocument({

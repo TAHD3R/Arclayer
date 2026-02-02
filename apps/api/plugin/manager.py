@@ -18,6 +18,7 @@ from packaging.version import InvalidVersion, Version
 from pydantic import ValidationError
 
 from apps.api.common.constants.plugin import MIGRATION_LOCK_KEY, PROTECTED_PLUGINS
+from apps.api.common.utils.tortoise_protocols import PluginRecordMutableFields
 from apps.api.config import Settings
 from apps.api.core.i18n import register_locale_path
 from apps.api.core.logging import get_logger
@@ -150,16 +151,17 @@ class PluginManager:
             )
 
             if not created:
+                record_like = cast(PluginRecordMutableFields, record)
                 record.name = manifest.plugin.name
-                record.description = manifest.plugin.description
+                record_like.description = manifest.plugin.description
                 record.author = manifest.plugin.author
                 record.version = manifest.plugin.version
                 record.requires = manifest.plugin.requires
                 record.entrypoint = manifest.plugin.entrypoint
-                record.website = manifest.plugin.website
-                record.repository = manifest.plugin.repository
-                record.issues = manifest.plugin.issues
-                record.license = manifest.plugin.license
+                record_like.website = manifest.plugin.website
+                record_like.repository = manifest.plugin.repository
+                record_like.issues = manifest.plugin.issues
+                record_like.license = manifest.plugin.license
                 record.storage_path = str(descriptor.path)
                 record.permissions = [p.model_dump() for p in manifest.permissions]
                 record.config_schema = manifest.config_schema.model_dump() if manifest.config_schema else None
@@ -225,7 +227,7 @@ class PluginManager:
 
         if record.status == PluginStatus.DISABLED:
             record.status = PluginStatus.INSTALLED
-            record.started_at = None
+            cast(PluginRecordMutableFields, record).started_at = None
             await record.save()
 
         if plugin_id in self.instances:
@@ -276,7 +278,7 @@ class PluginManager:
             await self._stop_plugin(plugin_id, instance)
 
         record.status = PluginStatus.DISABLED
-        record.started_at = None
+        cast(PluginRecordMutableFields, record).started_at = None
         await record.save()
 
         if self._requires_restart(descriptor):

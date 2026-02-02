@@ -181,7 +181,7 @@ def _build_home_document() -> DocumentIR:
             ContainerBlock(
                 id="b1",
                 type="container",
-                props=ContainerBlockProps(as_="section"),
+                props=ContainerBlockProps(as_tag="section"),
                 children=[
                     HeadingBlock(
                         id="b1-h1",
@@ -216,7 +216,7 @@ def _build_about_document() -> DocumentIR:
             ContainerBlock(
                 id="about",
                 type="container",
-                props=ContainerBlockProps(as_="section"),
+                props=ContainerBlockProps(as_tag="section"),
                 children=[
                     HeadingBlock(
                         id="about-h1",
@@ -250,7 +250,7 @@ def _build_blog_document(*, slug: str) -> DocumentIR:
             ContainerBlock(
                 id="blog",
                 type="container",
-                props=ContainerBlockProps(as_="article"),
+                props=ContainerBlockProps(as_tag="article"),
                 children=[
                     HeadingBlock(
                         id="blog-h1",

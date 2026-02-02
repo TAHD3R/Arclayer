@@ -60,7 +60,7 @@ export async function resolveRouteFromApi(
   siteId: string,
   opts: { mode: "public" | "preview"; token?: string },
 ): Promise<
-  | { kind: "page"; document: CoreDocumentIR }
+  | { kind: "page"; document: CoreDocumentIR; match: PortalRouteMatch }
   | { kind: "redirect"; to: string; status: 301 | 302 }
   | { kind: "not_found" }
 > {
@@ -87,15 +87,16 @@ export async function resolveRouteFromApi(
   const payload: unknown = await res.json();
   const data = getResponseData(payload);
   const match = getRecordField(data, "match");
-  const matchKind = getStringField(match, ["kind"]);
+  const parsedMatch = parsePortalRouteMatch(match);
+  const matchKind = parsedMatch.kind;
   if (matchKind === "not_found") {
     return { kind: "not_found" };
   }
   if (matchKind === "redirect") {
     // Backend outputs camelCase by default (BaseSchema alias_generator=to_camel).
     // Be tolerant with snake_case for local fixtures.
-    const to = getStringField(match, ["redirectTo", "redirect_to"]);
-    const statusRaw = getNumberField(match, ["redirectStatus", "redirect_status"]);
+    const to = parsedMatch.redirectTo;
+    const statusRaw = parsedMatch.redirectStatus;
     const status = statusRaw === 301 || statusRaw === 302 ? statusRaw : null;
     if (!to || !to.startsWith("/")) {
       throw new Error("Invalid redirect target returned by API");
@@ -111,7 +112,9 @@ export async function resolveRouteFromApi(
     throw new Error("Invalid DocumentIR returned by API");
   }
 
-  return { kind: "page", document };
+  // Both "page" and "route_template" are rendered as a "page" at runtime. We keep the
+  // original match kind/pointers so editor host shells can initialize optimistic lock state.
+  return { kind: "page", document, match: parsedMatch };
 }
 
 export async function fetchRuntimeConfigFromApi(
@@ -218,6 +221,55 @@ async function toApiError(res: Response, fallbackMessage: string): Promise<ApiEr
   if (error) args.error = error;
   if (meta !== undefined) args.meta = meta;
   return new ApiError(args);
+}
+
+export type PortalRouteMatch = {
+  kind: "page" | "route_template" | "redirect" | "not_found";
+  params: Record<string, string>;
+  redirectTo: string | null;
+  redirectStatus: 301 | 302 | null;
+  pageId: string | null;
+  entryId: string | null;
+  revision: number | null;
+  revisionState: "draft" | "published" | null;
+  draftRevision: number | null;
+  publishedRevision: number | null;
+};
+
+function parsePortalRouteMatch(input: unknown): PortalRouteMatch {
+  const kindRaw = (getStringField(input, ["kind"]) ?? "").trim();
+  const kind: PortalRouteMatch["kind"] =
+    kindRaw === "page" ||
+    kindRaw === "route_template" ||
+    kindRaw === "redirect" ||
+    kindRaw === "not_found"
+      ? kindRaw
+      : "not_found";
+
+  const params = toStringRecord(getUnknownField(input, "params"));
+
+  const redirectTo = getStringField(input, ["redirectTo", "redirect_to"]);
+  const redirectStatus = getNumberField(input, ["redirectStatus", "redirect_status"]);
+  const pageId = getStringField(input, ["pageId", "page_id"]);
+  const entryId = getStringField(input, ["entryId", "entry_id"]);
+  const revision = getNumberField(input, ["revision"]);
+  const revisionState = getStringField(input, ["revisionState", "revision_state"]);
+  const draftRevision = getNumberField(input, ["draftRevision", "draft_revision"]);
+  const publishedRevision = getNumberField(input, ["publishedRevision", "published_revision"]);
+
+  return {
+    kind,
+    params,
+    redirectTo: typeof redirectTo === "string" && redirectTo.trim() ? redirectTo.trim() : null,
+    redirectStatus: redirectStatus === 301 || redirectStatus === 302 ? redirectStatus : null,
+    pageId: typeof pageId === "string" && pageId.trim() ? pageId.trim() : null,
+    entryId: typeof entryId === "string" && entryId.trim() ? entryId.trim() : null,
+    revision: typeof revision === "number" ? revision : null,
+    revisionState:
+      revisionState === "draft" || revisionState === "published" ? revisionState : null,
+    draftRevision: typeof draftRevision === "number" ? draftRevision : null,
+    publishedRevision: typeof publishedRevision === "number" ? publishedRevision : null,
+  };
 }
 
 function getRecord(value: unknown): Record<string, unknown> | null {

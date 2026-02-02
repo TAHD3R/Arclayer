@@ -16,7 +16,11 @@ import type {
 } from "@celestial/site-editor-bridge";
 
 import { getHardcodedDocument } from "@/runtime/hardcoded-document";
-import { getPortalApiPrefix } from "@/runtime/site-api";
+import {
+  getPortalApiPrefix,
+  getPortalFallbackSiteId,
+  resolveRouteFromApi,
+} from "@/runtime/site-api";
 
 export const Route = createFileRoute("/editor-host")({
   component: EditorHostPage,
@@ -24,6 +28,7 @@ export const Route = createFileRoute("/editor-host")({
 
 function EditorHostPage() {
   const iframeRef = React.useRef<HTMLIFrameElement | null>(null);
+  const siteId = React.useMemo(() => getPortalFallbackSiteId(), []);
   const [overlayMode, setOverlayMode] = React.useState<EditorOverlayMode>("inspect");
   const overlayModeRef = React.useRef<EditorOverlayMode>("inspect");
   const [selectedBlockId, setSelectedBlockId] = React.useState<string | null>(null);
@@ -50,10 +55,21 @@ function EditorHostPage() {
   const [saveError, setSaveError] = React.useState<string | null>(null);
   const draftRevisionsRef = React.useRef<Map<string, number>>(new Map());
 
+  const [entrySaveStatus, setEntrySaveStatus] = React.useState<"idle" | "saving" | "error">("idle");
+  const [entrySaveError, setEntrySaveError] = React.useState<string | null>(null);
+  const [lastEntrySave, setLastEntrySave] = React.useState<{
+    slug: string;
+    entryId: string;
+    revision: number;
+    savedAtMs: number;
+  } | null>(null);
+  const entryDraftRevisionsRef = React.useRef<Map<string, number>>(new Map());
+
   const portalRef = React.useRef<EditorHostPenpalConnection["portal"] | null>(null);
   const connectorRef = React.useRef<EditorHostConnector | null>(null);
 
   const pingSeqRef = React.useRef(0);
+  const resolveSeqRef = React.useRef(0);
 
   React.useEffect(() => {
     previewTokenRef.current = previewToken;
@@ -151,10 +167,11 @@ function EditorHostPage() {
             setSaveStatus("saving");
             setSaveError(null);
             const token = previewTokenRef.current;
-            const expectedRevision = draftRevisionsRef.current.get(pathname) ?? null;
+            const keyPathname = normalizePathname(pathname);
+            const expectedRevision = draftRevisionsRef.current.get(keyPathname) ?? null;
             const payload = await saveRouteDraftToApi({
               siteId,
-              pathname,
+              pathname: keyPathname,
               token,
               document,
               expectedRevision,
@@ -192,7 +209,7 @@ function EditorHostPage() {
         if (now - lastPresenceHeartbeatAtRef.current < 5000) return;
         lastPresenceHeartbeatAtRef.current = now;
         void heartbeatPresenceToApi({
-          siteId: "00000000-0000-0000-0000-000000000001",
+          siteId,
           token,
           docKey: `route:${p.pathname}`,
           clientId,
@@ -210,11 +227,13 @@ function EditorHostPage() {
 
     void (async () => {
       try {
-        const siteId = "00000000-0000-0000-0000-000000000001";
-        const res = await fetch(`${getPortalApiPrefix()}/sites/${siteId}/preview-tokens`, {
-          method: "POST",
-          headers: { accept: "application/json" },
-        });
+        const res = await fetch(
+          `${getPortalApiPrefix()}/sites/${encodeURIComponent(siteId)}/preview-tokens`,
+          {
+            method: "POST",
+            headers: { accept: "application/json" },
+          },
+        );
         if (!res.ok) throw new Error(`Failed to issue preview token (${res.status})`);
         const payload: unknown = await res.json();
         const token = parsePreviewToken(payload);
@@ -231,7 +250,52 @@ function EditorHostPage() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [siteId]);
+
+  React.useEffect(() => {
+    // Initialize optimistic-lock pointers from the backend resolver so the first save after a refresh
+    // doesn't accidentally bypass optimistic locking (pages), or hit a 409 (entries defaulting to 0).
+    const token = previewToken;
+    const normalizedPathname = normalizePathname(pathname);
+    const seq = ++resolveSeqRef.current;
+
+    void (async () => {
+      try {
+        const resolved = await resolveRouteFromApi(normalizedPathname, siteId, {
+          mode: "preview",
+          token,
+        });
+        if (seq !== resolveSeqRef.current) return;
+        if (resolved.kind !== "page") return;
+
+        const match = resolved.match;
+
+        // Page draft optimistic lock.
+        if (
+          typeof match.draftRevision === "number" &&
+          Number.isFinite(match.draftRevision) &&
+          match.draftRevision >= 1
+        ) {
+          draftRevisionsRef.current.set(normalizedPathname, match.draftRevision);
+        } else {
+          draftRevisionsRef.current.delete(normalizedPathname);
+        }
+
+        // Entry draft optimistic lock (route_template only).
+        if (match.kind === "route_template") {
+          const slug = match.params.slug;
+          if (typeof slug === "string" && slug.trim()) {
+            const draftRev = match.draftRevision;
+            if (typeof draftRev === "number" && Number.isFinite(draftRev) && draftRev >= 0) {
+              entryDraftRevisionsRef.current.set(slug, draftRev);
+            }
+          }
+        }
+      } catch {
+        // Best-effort: local harness should work even if backend isn't running.
+      }
+    })();
+  }, [pathname, previewToken, siteId]);
 
   React.useEffect(() => {
     const iframe = iframeRef.current;
@@ -303,6 +367,12 @@ function EditorHostPage() {
     return next;
   }, [baseDoc]);
 
+  const activeEntrySlug = React.useMemo(() => {
+    const normalized = normalizePathname(pathname);
+    const m = /^\/blog\/([^/]+)$/.exec(normalized);
+    return m?.[1] ?? null;
+  }, [pathname]);
+
   return (
     <div className="portal-editor-host">
       <div className="portal-editor-host-toolbar">
@@ -369,6 +439,9 @@ function EditorHostPage() {
         <span className="portal-editor-host-meta">
           Path: <code>{normalizePathname(pathname)}</code>
         </span>
+        <span className="portal-editor-host-meta">
+          Entry slug: <code>{activeEntrySlug ?? "n/a"}</code>
+        </span>
         {lastPresence ? (
           <span className="portal-editor-host-meta">
             Presence: <code>{lastPresence.pathname}</code>{" "}
@@ -394,6 +467,23 @@ function EditorHostPage() {
             Save error: <code>{saveError}</code>
           </span>
         ) : null}
+        <span className="portal-editor-host-meta">
+          Entry(world):{" "}
+          <code>
+            {entrySaveStatus === "saving"
+              ? "saving"
+              : entrySaveStatus === "error"
+                ? "error"
+                : lastEntrySave
+                  ? `rev ${lastEntrySave.revision}`
+                  : "n/a"}
+          </code>
+        </span>
+        {entrySaveError ? (
+          <span className="portal-editor-host-meta">
+            Entry error: <code>{entrySaveError}</code>
+          </span>
+        ) : null}
         <span className="portal-editor-host-sep" aria-hidden="true" />
         <button type="button" onClick={() => setPathname("/")}>
           Go /
@@ -404,8 +494,83 @@ function EditorHostPage() {
         <button type="button" onClick={() => setPathname("/blog/hello")}>
           Go /blog/hello
         </button>
+        <button type="button" onClick={() => setPathname("/blog/world")}>
+          Go /blog/world
+        </button>
         <button type="button" onClick={() => setPathname("/old-about")}>
           Go /old-about
+        </button>
+        <span className="portal-editor-host-sep" aria-hidden="true" />
+        <button
+          type="button"
+          onClick={() => {
+            void (async () => {
+              try {
+                setEntrySaveStatus("saving");
+                setEntrySaveError(null);
+                const token = previewTokenRef.current;
+                const slug = activeEntrySlug ?? "world";
+                const expectedRevision = entryDraftRevisionsRef.current.get(slug) ?? 0;
+                const payload = await saveEntryDraftToApi({
+                  siteId,
+                  token,
+                  entryTypeCode: "blog_post",
+                  slug,
+                  document: {
+                    version: 1,
+                    meta: { title: { "en-US": `Entry ${slug} (draft)` } },
+                    blocks: [
+                      {
+                        id: "h1",
+                        type: "heading",
+                        props: { level: 1, text: { "en-US": `Entry ${slug} (draft)` } },
+                      },
+                    ],
+                  },
+                  expectedRevision,
+                });
+                if (!payload) throw new Error("Invalid entry save response");
+                setLastEntrySave(payload);
+                entryDraftRevisionsRef.current.set(slug, payload.revision);
+                setEntrySaveStatus("idle");
+              } catch (err) {
+                setEntrySaveStatus("error");
+                setEntrySaveError(err instanceof Error ? err.message : String(err));
+              }
+            })();
+          }}
+          disabled={!activeEntrySlug}
+        >
+          Save Entry({activeEntrySlug ?? "n/a"})
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            void (async () => {
+              try {
+                setEntrySaveStatus("saving");
+                setEntrySaveError(null);
+                const token = previewTokenRef.current;
+                const slug = activeEntrySlug ?? "world";
+                const revision = entryDraftRevisionsRef.current.get(slug) ?? null;
+                const ok = await publishEntryToApi({
+                  siteId,
+                  token,
+                  entryTypeCode: "blog_post",
+                  slug,
+                  revision,
+                });
+                if (!ok) throw new Error("Invalid entry publish response");
+                setEntrySaveStatus("idle");
+              } catch (err) {
+                setEntrySaveStatus("error");
+                setEntrySaveError(err instanceof Error ? err.message : String(err));
+              }
+            })();
+          }}
+          disabled={!activeEntrySlug}
+        >
+          Publish Entry({activeEntrySlug ?? "n/a"})
         </button>
       </div>
       <iframe
@@ -444,7 +609,7 @@ async function saveRouteDraftToApi(args: {
     body: JSON.stringify({
       path: args.pathname,
       document: args.document,
-      ...(args.expectedRevision ? { expectedRevision: args.expectedRevision } : {}),
+      ...(args.expectedRevision !== null ? { expectedRevision: args.expectedRevision } : {}),
     }),
   });
   if (!res.ok) {
@@ -461,6 +626,69 @@ async function saveRouteDraftToApi(args: {
   }
   const payload: unknown = await res.json();
   return parseDraftSaveOut(payload);
+}
+
+async function saveEntryDraftToApi(args: {
+  siteId: string;
+  token: string;
+  entryTypeCode: string;
+  slug: string;
+  document: DocumentIR;
+  expectedRevision: number;
+}): Promise<{ slug: string; entryId: string; revision: number; savedAtMs: number } | null> {
+  const url = `${getPortalApiPrefix()}/sites/${encodeURIComponent(args.siteId)}/entries/draft?token=${encodeURIComponent(
+    args.token,
+  )}`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { accept: "application/json", "content-type": "application/json" },
+    body: JSON.stringify({
+      entryTypeCode: args.entryTypeCode,
+      slug: args.slug,
+      document: args.document,
+      expectedRevision: args.expectedRevision,
+    }),
+  });
+  if (!res.ok) {
+    const maybe = await res.json().catch(() => null);
+    if (res.status === 409) {
+      const details = parseConflictMeta(maybe);
+      throw new Error(
+        details
+          ? `Entry draft conflict: expected ${details.expectedRevision}, current ${details.currentRevision}`
+          : "Entry draft conflict (409)",
+      );
+    }
+    throw new Error(`Entry save failed (${res.status})`);
+  }
+  const payload: unknown = await res.json();
+  return parseEntryDraftSaveOut(payload);
+}
+
+async function publishEntryToApi(args: {
+  siteId: string;
+  token: string;
+  entryTypeCode: string;
+  slug: string;
+  revision: number | null;
+}): Promise<boolean> {
+  const url = `${getPortalApiPrefix()}/sites/${encodeURIComponent(args.siteId)}/entries/publish?token=${encodeURIComponent(
+    args.token,
+  )}`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { accept: "application/json", "content-type": "application/json" },
+    body: JSON.stringify({
+      entryTypeCode: args.entryTypeCode,
+      slug: args.slug,
+      ...(args.revision !== null ? { revision: args.revision } : {}),
+    }),
+  });
+  if (!res.ok) throw new Error(`Entry publish failed (${res.status})`);
+  const payload: unknown = await res.json().catch(() => null);
+  if (!payload || typeof payload !== "object") return false;
+  const data = (payload as { data?: unknown }).data;
+  return Boolean(data && typeof data === "object");
 }
 
 async function heartbeatPresenceToApi(args: {
@@ -505,6 +733,24 @@ function parseDraftSaveOut(
   if (typeof revision !== "number" || !Number.isFinite(revision)) return null;
   if (typeof savedAtMs !== "number" || !Number.isFinite(savedAtMs)) return null;
   return { path, revision, savedAtMs };
+}
+
+function parseEntryDraftSaveOut(
+  payload: unknown,
+): { slug: string; entryId: string; revision: number; savedAtMs: number } | null {
+  if (!payload || typeof payload !== "object") return null;
+  const data = (payload as { data?: unknown }).data;
+  if (!data || typeof data !== "object") return null;
+  const rec = data as Record<string, unknown>;
+  const slug = rec.slug;
+  const entryId = rec.entryId ?? rec.entry_id;
+  const revision = rec.revision;
+  const savedAtMs = rec.savedAtMs ?? rec.saved_at_ms;
+  if (typeof slug !== "string" || !slug.trim()) return null;
+  if (typeof entryId !== "string" || !entryId.trim()) return null;
+  if (typeof revision !== "number" || !Number.isFinite(revision)) return null;
+  if (typeof savedAtMs !== "number" || !Number.isFinite(savedAtMs)) return null;
+  return { slug, entryId, revision, savedAtMs };
 }
 
 function parseConflictMeta(

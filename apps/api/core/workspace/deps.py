@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import cast
 from uuid import UUID
 
 from fastapi import Depends, Path
@@ -7,6 +8,7 @@ from pydantic import Field
 from structlog.contextvars import bind_contextvars
 
 from apps.api.common.schemas import BaseSchema
+from apps.api.common.utils.tortoise_protocols import HasOrganizationId
 from apps.api.core.auth.deps import get_current_user_id
 from apps.api.core.exceptions import Forbidden, NotFound
 from apps.api.core.i18n import t
@@ -56,7 +58,10 @@ async def get_workspace_context(
     if orgm is None:
         raise Forbidden(message=t("errors", "PERMISSION_DENIED", default="权限不足"), error="ORG_MEMBERSHIP_REQUIRED")
 
-    if UUID(str(orgm.organization_id)) != UUID(str(ws.organization_id)):
+    orgm_like = cast(HasOrganizationId, orgm)
+    ws_like = cast(HasOrganizationId, ws)
+    ws_org_id = UUID(str(ws_like.organization_id))
+    if UUID(str(orgm_like.organization_id)) != ws_org_id:
         raise Forbidden(message=t("errors", "PERMISSION_DENIED", default="权限不足"), error="CROSS_ORG_ACCESS_DENIED")
 
     is_owner = orgm.role == OrgRole.OWNER
@@ -81,18 +86,18 @@ async def get_workspace_context(
     visible_only = bool(is_owner and membership is None and not is_creator_admin)
 
     # Bind to logging context and request ContextVars used by authz/menu providers.
-    bind_contextvars(workspace_id=str(ws.id), organization_id=str(ws.organization_id))
+    bind_contextvars(workspace_id=str(ws.id), organization_id=str(ws_org_id))
     if membership is not None:
         bind_contextvars(workspace_membership_id=str(membership.id))
     set_current_workspace_context(
         workspace_id=ws.id,
         workspace_membership_id=(membership.id if membership else None),
-        organization_id=UUID(str(ws.organization_id)),
+        organization_id=ws_org_id,
     )
 
     return WorkspaceContext(
         workspace_id=ws.id,
-        organization_id=UUID(str(ws.organization_id)),
+        organization_id=ws_org_id,
         org_membership_id=orgm.id,
         is_org_owner=is_owner,
         workspace_membership_id=(membership.id if membership else None),

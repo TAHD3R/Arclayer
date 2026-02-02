@@ -200,7 +200,7 @@ function PortalEditorDebugPage() {
                 {
                   path: pathname,
                   document,
-                  ...(expectedRevision ? { expectedRevision } : {}),
+                  ...(expectedRevision !== null ? { expectedRevision } : {}),
                 },
               );
               setLastSave({

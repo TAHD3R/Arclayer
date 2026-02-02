@@ -70,4 +70,3 @@ class SitePageRevisionRecord(BaseModel):
         table = "site_page_revisions"
         abstract = False
         unique_together = (("page_id", "rev"),)
-

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import secrets
 from datetime import UTC, datetime
+from typing import cast
 from uuid import UUID
 
 from tortoise.exceptions import IntegrityError
@@ -10,6 +11,11 @@ from tortoise.transactions import in_transaction
 
 from apps.api.common.email.service import EmailService
 from apps.api.common.services import BaseService
+from apps.api.common.utils.tortoise_protocols import (
+    HasUserId,
+    WorkspaceEmailInviteMutableFields,
+    WorkspaceInviteLinkMutableFields,
+)
 from apps.api.config import Settings
 from apps.api.core.exceptions import BadRequest, Conflict, NotFound
 from apps.api.core.http.pagination import PageData, PageParams
@@ -205,7 +211,8 @@ class WorkspaceTeamService(BaseService):
         if membership is None:
             raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
 
-        if str(membership.user_id) == str(acting_user_id) and not enabled:
+        membership_user_id = UUID(str(cast(HasUserId, membership).user_id))
+        if membership_user_id == acting_user_id and not enabled:
             raise BadRequest(
                 message=t("errors", "CANNOT_DISABLE_SELF", default="不能禁用自己的账号"),
                 error="CANNOT_DISABLE_SELF",
@@ -236,7 +243,8 @@ class WorkspaceTeamService(BaseService):
         if membership is None:
             raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
 
-        user = await self.user_repo.get_by_id_with_credential(UUID(str(membership.user_id)))
+        membership_user_id = UUID(str(cast(HasUserId, membership).user_id))
+        user = await self.user_repo.get_by_id_with_credential(membership_user_id)
         if user is None:
             raise NotFound(message=t("auth", "USER_NOT_FOUND", default="用户不存在"), error="NOT_FOUND")
 
@@ -322,8 +330,9 @@ class WorkspaceTeamService(BaseService):
                     created_by_user_id=invited_by_user_id,
                 )
             else:
-                existing.role_code = role_code
-                existing.expires_at = expires_at
+                existing_like = cast(WorkspaceEmailInviteMutableFields, existing)
+                existing_like.role_code = role_code
+                existing_like.expires_at = expires_at
                 await existing.save(using_db=conn, update_fields=["role_code", "expires_at", "updated_at"])
                 inv = existing
 
@@ -376,7 +385,7 @@ class WorkspaceTeamService(BaseService):
             raise BadRequest(message=t("errors", "BAD_REQUEST", default="邀请已被撤销"), error="INVITE_REVOKED")
 
         # Q1: only extend expires_at (do not rotate code).
-        inv.expires_at = expires_at
+        cast(WorkspaceEmailInviteMutableFields, inv).expires_at = expires_at
         await inv.save(update_fields=["expires_at", "updated_at"])
 
         token = build_invite_token(self.settings, code=inv.code)
@@ -519,7 +528,7 @@ class WorkspaceTeamService(BaseService):
         )
         if link is None:
             raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
-        link.expires_at = expires_at
+        cast(WorkspaceInviteLinkMutableFields, link).expires_at = expires_at
         await link.save(update_fields=["expires_at", "updated_at"])
 
         token = build_invite_token(self.settings, code=link.code)
@@ -659,10 +668,10 @@ class WorkspaceTeamService(BaseService):
         if q:
             needle = q.strip()
             if needle:
-                user_ids = await User.filter(
+                raw_ids = await User.filter(
                     Q(username__icontains=needle) | Q(email__icontains=needle) | Q(display_name__icontains=needle)
                 ).values_list("id", flat=True)
-                ids = [UUID(str(x)) for x in user_ids] if user_ids else []
+                ids = [UUID(str(x)) for x in raw_ids] if raw_ids else []
                 if not ids:
                     return PageData[WorkspaceInviteLinkParticipantOut](
                         items=[],

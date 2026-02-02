@@ -79,4 +79,3 @@ class EntryRevisionRecord(BaseModel):
         table = "entry_revisions"
         abstract = False
         unique_together = (("entry_id", "rev"),)
-

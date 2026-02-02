@@ -2,12 +2,13 @@ import { ApiError } from "@celestial/web-core/http";
 import type { CoreDocumentIR } from "@celestial/site-renderer-core";
 
 import { HttpError } from "@/router/routerFallbacks";
+import type { PortalRouteMatch } from "./site-api";
 import { resolveRouteFromApi } from "./site-api";
 
 export type PortalResolveMode = "public" | "preview";
 
 export type ResolvedPortalRoute =
-  | { kind: "page"; document: CoreDocumentIR }
+  | { kind: "page"; document: CoreDocumentIR; match: PortalRouteMatch }
   | { kind: "redirect"; to: string; status: 301 | 302 }
   | { kind: "not_found" };
 

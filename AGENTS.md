@@ -220,3 +220,82 @@
 - **严禁**在 `useEffect` 中处理复杂的业务数据转换逻辑（应移至 `useMemo` 或 `Service` 层）。
 - **严禁**手动操作 DOM（除非是集成第三方非 React 库）。
 - **严禁**直接在根组件注入全局样式，必须通过 CSS 变量或 Tailwind 类名扩展。
+
+---
+
+## 服务端 Typecheck（Pyright）修复策略（Tortoise ORM 场景）
+
+本节用于约束并沉淀“pyright 类型检查”在 Tortoise ORM 场景下的修复方法，避免为了消除报错而引入不可维护/破坏功能的补丁。
+
+### 总原则
+
+1. **pyright 规则统一由 `pyproject.toml` 维护**：禁止新增 `pyrightconfig.json` 作为额外配置源，避免 monorepo 下配置发现漂移。
+2. **禁止在 Tortoise ORM 模型类上添加字段类型注解来“修复”类型问题**：
+   - 例如 `id: UUID = fields.UUIDField(...)` 这类写法既不可靠，也容易造成误导。
+3. **禁止在模型类中通过 `if TYPE_CHECKING:` 影子属性做类型兜底**：
+   - 该方式会把类型问题“分散”进模型层，长期维护成本高，且容易与真实 schema 漂移。
+4. **拒绝 Workaround**：
+   - 不允许通过 `type: ignore`、大范围 `Any`、随意 `cast(Any, ...)` 来“糊过检查”。
+5. **允许且推荐的方式：Protocol + cast（只在使用点收敛类型）**：
+   - 只描述“当前函数需要的最小字段集合”，把 ORM 运行时真实存在的字段契约显式化。
+   - cast 后应尽量配合运行时转换（例如 `UUID(str(...))`）让逻辑本身更健壮，而不是仅为了通过类型检查。
+
+### 推荐实现模式：最小化 Protocol 集中管理
+
+将 Tortoise ORM 静态类型收敛用的协议统一放在：
+
+- `apps/api/common/utils/tortoise_protocols.py`
+
+协议只做“字段契约声明”，不影响运行时。例如：
+
+- `HasOrganizationId`：声明 `organization_id: UUID | str`
+- `PermissionMutableFields`：声明 `description/name_i18n/...: str | None`
+- `SettingUpdatedBy`：声明 `updated_by: UUID | None`
+
+### 使用点修复范式（示例）
+
+1) 访问 ORM 动态字段（pyright 报 `Attribute ... is unknown`）
+
+```py
+from typing import cast
+from uuid import UUID
+
+from apps.api.common.utils.tortoise_protocols import HasOrganizationId
+
+orgm_like = cast(HasOrganizationId, orgm)
+org_id = UUID(str(orgm_like.organization_id))
+```
+
+2) 可空字段赋值（pyright 报 `str | None -> str` / `datetime | None -> datetime`）
+
+```py
+from typing import cast
+
+from apps.api.common.utils.tortoise_protocols import PermissionMutableFields
+
+perm_like = cast(PermissionMutableFields, permission)
+perm_like.description = description  # description: str | None
+```
+
+3) 设置/系统配置类字段（例如 `updated_by` 允许为 None）
+
+```py
+from typing import cast
+
+from apps.api.common.utils.tortoise_protocols import SettingUpdatedBy
+
+cast(SettingUpdatedBy, record).updated_by = updated_by  # updated_by: UUID | None
+```
+
+### 执行与排错建议
+
+1. **monorepo 下运行 typecheck 推荐保持统一入口与环境变量**（避免 import resolution 漂移）：
+
+```bash
+UV_CACHE_DIR=../../.uv-cache PYTHONPATH=../.. uv run pyright
+```
+
+2. 若出现大量 `reportMissingImports`：
+   - 优先检查运行命令的 cwd 是否正确、`PYTHONPATH` 是否指向仓库根；
+   - 确认 uv/venv 环境是否完整（依赖未安装会导致 pyright 无法解析第三方包）；
+   - 不要通过新增 `pyrightconfig.json` 绕过问题，应回到 `pyproject.toml` 与执行方式排查根因。

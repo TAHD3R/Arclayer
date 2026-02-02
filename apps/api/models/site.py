@@ -37,4 +37,3 @@ class SiteRecord(BaseModel):
         table = "sites"
         abstract = False
         unique_together = (("workspace_id", "slug"),)
-

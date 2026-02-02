@@ -120,4 +120,3 @@ async def test_sites_presence_heartbeat_and_list(prepared_schema) -> None:
             assert resp.status_code == 200
             assert resp.json()["data"]["items"] == []
             assert client_id not in await app.state.valkey.smembers(set_key)
-

@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+from typing import cast
 from uuid import UUID
 
 from fastapi import Depends
 
+from apps.api.common.utils.tortoise_protocols import HasOrganizationId
 from apps.api.core.auth.deps import get_current_user_id
 from apps.api.core.exceptions import Forbidden
 from apps.api.core.i18n import t
@@ -31,7 +33,8 @@ async def get_current_org_membership(
 async def get_current_org_id_v2(
     orgm: OrgMembership = Depends(get_current_org_membership),
 ) -> UUID:
-    return UUID(str(orgm.organization_id))
+    orgm_like = cast(HasOrganizationId, orgm)
+    return UUID(str(orgm_like.organization_id))
 
 
 async def require_org_owner(
