@@ -33,7 +33,11 @@ def get_uploads_service(settings: Settings = Depends(get_settings)) -> UploadsSe
     return UploadsService(settings)
 
 
-@router.post("/uploads/init", response_model=ResponseModel[UploadInitOut])
+@router.post(
+    "/uploads/init",
+    response_model=ResponseModel[UploadInitOut],
+    summary="Initialize upload session",
+)
 async def init_upload(
     payload: UploadInitRequest,
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
@@ -65,7 +69,11 @@ async def init_upload(
     )
 
 
-@router.get("/uploads/{upload_id}", response_model=ResponseModel[UploadStatusOut])
+@router.get(
+    "/uploads/{upload_id}",
+    response_model=ResponseModel[UploadStatusOut],
+    summary="Get upload status",
+)
 async def get_upload_status(
     upload_id: UUID,
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
@@ -84,7 +92,11 @@ async def get_upload_status(
     )
 
 
-@router.put("/uploads/{upload_id}/parts/{part_number}", response_model=ResponseModel[None])
+@router.put(
+    "/uploads/{upload_id}/parts/{part_number}",
+    response_model=ResponseModel[None],
+    summary="Upload a part",
+)
 async def upload_part(
     request: Request,
     upload_id: UUID,
@@ -106,7 +118,11 @@ async def upload_part(
     return Response.success(data=None)
 
 
-@router.post("/uploads/{upload_id}/complete", response_model=ResponseModel[UploadCompleteOut])
+@router.post(
+    "/uploads/{upload_id}/complete",
+    response_model=ResponseModel[UploadCompleteOut],
+    summary="Complete upload",
+)
 async def complete_upload(
     background_tasks: BackgroundTasks,
     upload_id: UUID,
@@ -120,7 +136,11 @@ async def complete_upload(
     return Response.success(data=UploadCompleteOut(asset_id=asset_id))
 
 
-@router.post("/uploads/{upload_id}/abort", response_model=ResponseModel[UploadAbortOut])
+@router.post(
+    "/uploads/{upload_id}/abort",
+    response_model=ResponseModel[UploadAbortOut],
+    summary="Abort upload",
+)
 async def abort_upload(
     upload_id: UUID,
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
@@ -131,7 +151,11 @@ async def abort_upload(
     return Response.success(data=UploadAbortOut(upload_id=session.id, status=str(session.status)))
 
 
-@router.post("/uploads/{upload_id}/parts/{part_number}/presign", response_model=ResponseModel[UploadPartPresignOut])
+@router.post(
+    "/uploads/{upload_id}/parts/{part_number}/presign",
+    response_model=ResponseModel[UploadPartPresignOut],
+    summary="Presign upload part",
+)
 async def presign_upload_part(
     upload_id: UUID,
     part_number: int,
@@ -143,7 +167,11 @@ async def presign_upload_part(
     return Response.success(data=out)
 
 
-@router.post("/uploads/{upload_id}/parts/{part_number}/commit", response_model=ResponseModel[None])
+@router.post(
+    "/uploads/{upload_id}/parts/{part_number}/commit",
+    response_model=ResponseModel[None],
+    summary="Commit upload part",
+)
 async def commit_upload_part(
     upload_id: UUID,
     part_number: int,

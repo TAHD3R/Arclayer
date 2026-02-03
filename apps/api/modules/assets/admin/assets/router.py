@@ -44,7 +44,11 @@ def get_admin_assets_service(settings: Settings = Depends(get_settings)) -> Admi
     return AdminAssetsService(settings)
 
 
-@router.get("/assets", response_model=ResponseModel[PageData[AdminAssetSummaryOut]])
+@router.get(
+    "/assets",
+    response_model=ResponseModel[PageData[AdminAssetSummaryOut]],
+    summary="List assets",
+)
 async def list_assets(
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     params: PageParams = Depends(get_page_params),
@@ -55,7 +59,11 @@ async def list_assets(
     return JsonResponse.success(data=page)
 
 
-@router.get("/asset-folders", response_model=ResponseModel[PageData[AdminAssetFolderOut]])
+@router.get(
+    "/asset-folders",
+    response_model=ResponseModel[PageData[AdminAssetFolderOut]],
+    summary="List asset folders",
+)
 async def list_asset_folders(
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     params: PageParams = Depends(get_page_params),
@@ -65,7 +73,11 @@ async def list_asset_folders(
     return JsonResponse.success(data=page)
 
 
-@router.get("/asset-tags", response_model=ResponseModel[PageData[AdminAssetTagOut]])
+@router.get(
+    "/asset-tags",
+    response_model=ResponseModel[PageData[AdminAssetTagOut]],
+    summary="List asset tags",
+)
 async def list_asset_tags(
     q: str | None = None,
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
@@ -76,7 +88,11 @@ async def list_asset_tags(
     return JsonResponse.success(data=page)
 
 
-@router.post("/asset-tags", response_model=ResponseModel[AdminAssetTagOut])
+@router.post(
+    "/asset-tags",
+    response_model=ResponseModel[AdminAssetTagOut],
+    summary="Create asset tag",
+)
 async def create_asset_tag(
     payload: AdminAssetTagCreateRequest,
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
@@ -86,7 +102,11 @@ async def create_asset_tag(
     return JsonResponse.success(data=created)
 
 
-@router.get("/assets/{asset_id}", response_model=ResponseModel[AdminAssetDetailOut])
+@router.get(
+    "/assets/{asset_id}",
+    response_model=ResponseModel[AdminAssetDetailOut],
+    summary="Get asset detail",
+)
 async def get_asset_detail(
     asset_id: UUID,
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
@@ -96,7 +116,11 @@ async def get_asset_detail(
     return JsonResponse.success(data=detail)
 
 
-@router.patch("/assets/{asset_id}", response_model=ResponseModel[AdminAssetDetailOut])
+@router.patch(
+    "/assets/{asset_id}",
+    response_model=ResponseModel[AdminAssetDetailOut],
+    summary="Update asset",
+)
 async def patch_asset(
     asset_id: UUID,
     payload: AdminAssetUpdateRequest,
@@ -107,7 +131,11 @@ async def patch_asset(
     return JsonResponse.success(data=updated)
 
 
-@router.delete("/assets/{asset_id}", response_model=ResponseModel[AdminAssetDeleteOut])
+@router.delete(
+    "/assets/{asset_id}",
+    response_model=ResponseModel[AdminAssetDeleteOut],
+    summary="Delete asset",
+)
 async def delete_asset(
     asset_id: UUID,
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
@@ -117,7 +145,11 @@ async def delete_asset(
     return JsonResponse.success(data=deleted)
 
 
-@router.post("/asset-folders", response_model=ResponseModel[AdminAssetFolderOut])
+@router.post(
+    "/asset-folders",
+    response_model=ResponseModel[AdminAssetFolderOut],
+    summary="Create asset folder",
+)
 async def create_asset_folder(
     payload: AdminAssetFolderCreateRequest,
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
@@ -127,7 +159,11 @@ async def create_asset_folder(
     return JsonResponse.success(data=created)
 
 
-@router.put("/asset-folders/{folder_id}", response_model=ResponseModel[AdminAssetFolderOut])
+@router.put(
+    "/asset-folders/{folder_id}",
+    response_model=ResponseModel[AdminAssetFolderOut],
+    summary="Update asset folder",
+)
 async def update_asset_folder(
     folder_id: UUID,
     payload: AdminAssetFolderUpdateRequest,
@@ -138,7 +174,11 @@ async def update_asset_folder(
     return JsonResponse.success(data=updated)
 
 
-@router.delete("/asset-folders/{folder_id}", response_model=ResponseModel[AdminAssetFolderDeleteOut])
+@router.delete(
+    "/asset-folders/{folder_id}",
+    response_model=ResponseModel[AdminAssetFolderDeleteOut],
+    summary="Delete asset folder",
+)
 async def delete_asset_folder(
     folder_id: UUID,
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
@@ -148,7 +188,11 @@ async def delete_asset_folder(
     return JsonResponse.success(data=deleted)
 
 
-@router.put("/assets/bulk/move", response_model=ResponseModel[AdminAssetBulkMoveOut])
+@router.put(
+    "/assets/bulk/move",
+    response_model=ResponseModel[AdminAssetBulkMoveOut],
+    summary="Bulk move assets",
+)
 async def bulk_move_assets(
     payload: AdminAssetBulkMoveRequest,
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
@@ -166,7 +210,11 @@ async def bulk_move_assets(
     return JsonResponse.success(data=out)
 
 
-@router.post("/assets/bulk/delete", response_model=ResponseModel[AdminAssetBulkDeleteOut])
+@router.post(
+    "/assets/bulk/delete",
+    response_model=ResponseModel[AdminAssetBulkDeleteOut],
+    summary="Bulk delete assets",
+)
 async def bulk_delete_assets(
     payload: AdminAssetBulkDeleteRequest,
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
@@ -183,7 +231,11 @@ async def bulk_delete_assets(
     return JsonResponse.success(data=out)
 
 
-@router.put("/assets/bulk/update", response_model=ResponseModel[AdminAssetBulkUpdateOut])
+@router.put(
+    "/assets/bulk/update",
+    response_model=ResponseModel[AdminAssetBulkUpdateOut],
+    summary="Bulk update assets",
+)
 async def bulk_update_assets(
     payload: AdminAssetBulkUpdateRequest,
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
@@ -201,7 +253,11 @@ async def bulk_update_assets(
     return JsonResponse.success(data=out)
 
 
-@router.put("/assets/{asset_id}/move", response_model=ResponseModel[AdminAssetSummaryOut])
+@router.put(
+    "/assets/{asset_id}/move",
+    response_model=ResponseModel[AdminAssetSummaryOut],
+    summary="Move asset",
+)
 async def move_asset(
     asset_id: UUID,
     payload: AdminAssetMoveRequest,
@@ -212,7 +268,11 @@ async def move_asset(
     return JsonResponse.success(data=updated)
 
 
-@router.get("/assets/{asset_id}/content", include_in_schema=False)
+@router.get(
+    "/assets/{asset_id}/content",
+    include_in_schema=False,
+    summary="Stream asset content",
+)
 async def stream_asset_content(
     asset_id: UUID,
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),

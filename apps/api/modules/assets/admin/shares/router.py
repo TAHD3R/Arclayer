@@ -24,7 +24,11 @@ def get_admin_shares_service(settings: Settings = Depends(get_settings)) -> Admi
     return AdminSharesService(settings)
 
 
-@router.get("/assets/{asset_id}/share-links", response_model=ResponseModel[PageData[AdminShareLinkOut]])
+@router.get(
+    "/assets/{asset_id}/share-links",
+    response_model=ResponseModel[PageData[AdminShareLinkOut]],
+    summary="List share links for asset",
+)
 async def list_share_links(
     asset_id: UUID,
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
@@ -36,7 +40,11 @@ async def list_share_links(
     return Response.success(data=page)
 
 
-@router.post("/assets/{asset_id}/share-links", response_model=ResponseModel[AdminShareLinkOut])
+@router.post(
+    "/assets/{asset_id}/share-links",
+    response_model=ResponseModel[AdminShareLinkOut],
+    summary="Create share link for asset",
+)
 async def create_share_link(
     asset_id: UUID,
     payload: AdminShareCreateRequest,
@@ -53,7 +61,11 @@ async def create_share_link(
     return Response.success(data=AdminShareLinkOut.model_validate(link, from_attributes=True))
 
 
-@router.post("/share-links/{link_id}/revoke", response_model=ResponseModel[AdminShareRevokeOut])
+@router.post(
+    "/share-links/{link_id}/revoke",
+    response_model=ResponseModel[AdminShareRevokeOut],
+    summary="Revoke share link",
+)
 async def revoke_share_link(
     link_id: UUID,
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),

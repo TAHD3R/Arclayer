@@ -37,7 +37,11 @@ def get_settings_service(
     return SettingsService(settings, manager=manager)
 
 
-@router.get("", response_model=ResponseModel[PageData[SettingsNamespaceSummary]])
+@router.get(
+    "",
+    response_model=ResponseModel[PageData[SettingsNamespaceSummary]],
+    summary="List settings namespaces",
+)
 async def list_namespaces(
     service: SettingsService = Depends(get_settings_service),
     _user=Depends(get_current_user),
@@ -47,7 +51,11 @@ async def list_namespaces(
     return Response.success(data=page)
 
 
-@router.get("/{namespace}", response_model=ResponseModel[SettingsDetail])
+@router.get(
+    "/{namespace}",
+    response_model=ResponseModel[SettingsDetail],
+    summary="Get settings namespace detail",
+)
 async def get_namespace(
     namespace: str,
     service: SettingsService = Depends(get_settings_service),
@@ -60,6 +68,7 @@ async def get_namespace(
 @router.patch(
     "/{namespace}",
     response_model=ResponseModel[SettingsDetail],
+    summary="Patch settings namespace",
 )
 async def patch_namespace(
     namespace: str,

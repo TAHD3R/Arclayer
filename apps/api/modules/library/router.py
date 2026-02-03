@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Request
+from starlette.responses import Response
 
 from apps.api.config import Settings, get_settings
 from apps.api.modules.library.schema import PublicLibraryListQuery, PublicLibraryPageOut
@@ -13,13 +14,18 @@ def get_library_service(settings: Settings = Depends(get_settings)) -> PublicLib
     return PublicLibraryService(settings)
 
 
-@router.get("/o/{org_slug}/library", response_model=PublicLibraryPageOut, include_in_schema=False)
+@router.get(
+    "/o/{org_slug}/library",
+    response_model=PublicLibraryPageOut,
+    include_in_schema=False,
+    summary="Public asset library (HTML or JSON)",
+)
 async def public_library(
     request: Request,
     org_slug: str,
     query: PublicLibraryListQuery = Depends(),
     service: PublicLibraryService = Depends(get_library_service),
-):
+) -> Response | PublicLibraryPageOut:
     # Content negotiation:
     # - If client Accepts text/html, returns minimal HTML for indexing.
     # - Else returns JSON (PublicLibraryPageOut).

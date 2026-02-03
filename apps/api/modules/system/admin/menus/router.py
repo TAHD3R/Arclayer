@@ -41,6 +41,7 @@ def _require_provider():
 @router.get(
     "/me",
     response_model=ResponseModel[AdminMenuTreeOut],
+    summary="Get current user's admin menu",
 )
 async def get_my_menu(
     _ctx: WorkspaceContext = Depends(require_workspace_manage_access),
@@ -55,6 +56,7 @@ async def get_my_menu(
     "",
     response_model=ResponseModel[PageData[AdminMenuItemOut]],
     dependencies=[require_workspace_permission("admin:menu:read")],
+    summary="List admin menu items",
 )
 async def list_menu_items(
     _ctx: WorkspaceContext = Depends(require_workspace_manage_access),
@@ -70,6 +72,7 @@ async def list_menu_items(
     "/{item_id}",
     response_model=ResponseModel[AdminMenuItemOut],
     dependencies=[require_workspace_permission("admin:menu:read")],
+    summary="Get admin menu item",
 )
 async def get_menu_item(
     item_id: UUID,
@@ -84,6 +87,7 @@ async def get_menu_item(
     "",
     response_model=ResponseModel[AdminMenuItemOut],
     dependencies=[require_workspace_permission("admin:menu:write")],
+    summary="Create admin menu item",
 )
 async def create_menu_item(
     body: AdminMenuCreateRequest,
@@ -98,6 +102,7 @@ async def create_menu_item(
     "/{item_id}",
     response_model=ResponseModel[AdminMenuItemOut],
     dependencies=[require_workspace_permission("admin:menu:write")],
+    summary="Update admin menu item",
 )
 async def update_menu_item(
     item_id: UUID,
@@ -113,6 +118,7 @@ async def update_menu_item(
     "/{item_id}",
     response_model=ResponseModel[None],
     dependencies=[require_workspace_permission("admin:menu:write")],
+    summary="Delete admin menu item",
 )
 async def delete_menu_item(
     item_id: UUID,
@@ -127,6 +133,7 @@ async def delete_menu_item(
     "/{item_id}/restore",
     response_model=ResponseModel[AdminMenuItemOut],
     dependencies=[require_workspace_permission("admin:menu:write")],
+    summary="Restore admin menu item",
 )
 async def restore_menu_item(
     item_id: UUID,
@@ -141,6 +148,7 @@ async def restore_menu_item(
     "/reorder",
     response_model=ResponseModel[None],
     dependencies=[require_workspace_permission("admin:menu:write")],
+    summary="Reorder admin menu items",
 )
 async def reorder_menu_items(
     body: AdminMenuReorderRequest,

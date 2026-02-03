@@ -40,7 +40,11 @@ def get_plugin_service(
     return PluginService(settings, manager=manager)
 
 
-@router.get("", response_model=ResponseModel[PageData[PluginSummary]])
+@router.get(
+    "",
+    response_model=ResponseModel[PageData[PluginSummary]],
+    summary="List installed plugins",
+)
 async def list_plugins(
     params: PageParams = Depends(get_page_params),
     service: PluginService = Depends(get_plugin_service),
@@ -49,7 +53,11 @@ async def list_plugins(
     return Response.success(data=page)
 
 
-@router.get("/{plugin_ref}", response_model=ResponseModel[PluginDetail])
+@router.get(
+    "/{plugin_ref}",
+    response_model=ResponseModel[PluginDetail],
+    summary="Get plugin detail",
+)
 async def get_plugin(
     plugin_ref: str,
     service: PluginService = Depends(get_plugin_service),
@@ -59,7 +67,11 @@ async def get_plugin(
     return Response.success(data=service.to_detail(record))
 
 
-@router.post("/install", response_model=ResponseModel[PluginInstallResult])
+@router.post(
+    "/install",
+    response_model=ResponseModel[PluginInstallResult],
+    summary="Install a plugin package",
+)
 async def install_plugin(
     file: UploadFile = File(...),
     checksum: str | None = Form(default=None),
@@ -75,7 +87,11 @@ async def install_plugin(
     return Response.success(data=result)
 
 
-@router.post("/{plugin_ref}/enable", response_model=ResponseModel[PluginDetail])
+@router.post(
+    "/{plugin_ref}/enable",
+    response_model=ResponseModel[PluginDetail],
+    summary="Enable a plugin",
+)
 async def enable_plugin(
     plugin_ref: str,
     service: PluginService = Depends(get_plugin_service),
@@ -85,7 +101,11 @@ async def enable_plugin(
     return Response.success(data=service.to_detail(record))
 
 
-@router.post("/{plugin_ref}/disable", response_model=ResponseModel[PluginDetail])
+@router.post(
+    "/{plugin_ref}/disable",
+    response_model=ResponseModel[PluginDetail],
+    summary="Disable a plugin",
+)
 async def disable_plugin(
     plugin_ref: str,
     service: PluginService = Depends(get_plugin_service),
@@ -95,7 +115,11 @@ async def disable_plugin(
     return Response.success(data=service.to_detail(record))
 
 
-@router.post("/{plugin_ref}/uninstall", response_model=ResponseModel[PluginDetail])
+@router.post(
+    "/{plugin_ref}/uninstall",
+    response_model=ResponseModel[PluginDetail],
+    summary="Uninstall a plugin",
+)
 async def uninstall_plugin(
     plugin_ref: str,
     service: PluginService = Depends(get_plugin_service),
@@ -105,7 +129,11 @@ async def uninstall_plugin(
     return Response.success(data=service.to_detail(record))
 
 
-@router.put("/{plugin_ref}/config", response_model=ResponseModel[PluginInstallResult])
+@router.put(
+    "/{plugin_ref}/config",
+    response_model=ResponseModel[PluginInstallResult],
+    summary="Update plugin config",
+)
 async def update_config(
     plugin_ref: str,
     payload: PluginConfigUpdate,

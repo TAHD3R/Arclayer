@@ -4,6 +4,7 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends
+from starlette.responses import Response as StarletteResponse
 
 from apps.api.config import Settings, get_settings
 from apps.api.core.http.response import Response, ResponseModel
@@ -88,6 +89,7 @@ async def delete_theme(
 @router.get(
     "/themes/{theme_id}/{version}/download",
     include_in_schema=False,
+    summary="Download theme package",
 )
 async def download_theme(
     theme_id: str,
@@ -95,5 +97,5 @@ async def download_theme(
     ctx: Annotated[WorkspaceContext, Depends(require_workspace_manage_access)],
     _user_id: Annotated[UUID, Depends(get_current_user_id)],
     service: Annotated[WorkspaceThemesService, Depends(get_themes_service)],
-):
+) -> StarletteResponse:
     return await service.download_theme_artifact(workspace_id=ctx.workspace_id, theme_id=theme_id, version=version)

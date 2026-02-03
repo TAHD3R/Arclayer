@@ -30,7 +30,11 @@ def get_admin_asset_usages_service(settings: Settings = Depends(get_settings)) -
     return AdminAssetUsagesService(settings)
 
 
-@router.get("/assets/{asset_id}/usages", response_model=ResponseModel[PageData[AdminAssetUsageOut]])
+@router.get(
+    "/assets/{asset_id}/usages",
+    response_model=ResponseModel[PageData[AdminAssetUsageOut]],
+    summary="List asset usages",
+)
 async def list_asset_usages(
     asset_id: UUID,
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
@@ -42,7 +46,11 @@ async def list_asset_usages(
     return JsonResponse.success(data=page)
 
 
-@router.put("/asset-usages", response_model=ResponseModel[AdminAssetUsageOut])
+@router.put(
+    "/asset-usages",
+    response_model=ResponseModel[AdminAssetUsageOut],
+    summary="Upsert asset usage",
+)
 async def upsert_asset_usage(
     payload: AdminAssetUsageUpsertRequest,
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
@@ -53,7 +61,11 @@ async def upsert_asset_usage(
     return JsonResponse.success(data=created)
 
 
-@router.post("/asset-usages/delete", response_model=ResponseModel[AdminAssetUsageDeleteOut])
+@router.post(
+    "/asset-usages/delete",
+    response_model=ResponseModel[AdminAssetUsageDeleteOut],
+    summary="Delete asset usage by ref",
+)
 async def delete_asset_usage_by_ref(
     payload: AdminAssetUsageDeleteRequest,
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
@@ -65,7 +77,11 @@ async def delete_asset_usage_by_ref(
 
 
 # Compatibility: some clients do not support DELETE bodies; keep a semantic-equivalent DELETE endpoint.
-@router.delete("/asset-usages", response_model=ResponseModel[AdminAssetUsageDeleteOut])
+@router.delete(
+    "/asset-usages",
+    response_model=ResponseModel[AdminAssetUsageDeleteOut],
+    summary="Delete asset usage by ref (compat)",
+)
 async def delete_asset_usage_by_ref_delete(
     payload: AdminAssetUsageDeleteRequest,
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
