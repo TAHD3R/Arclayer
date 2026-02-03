@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from apps.api.core.exceptions import Forbidden
 from apps.api.core.i18n import t
-from apps.api.models.plugin import PluginRecord
+from apps.api.modules.system.models.plugin import PluginRecord
 from apps.api.plugin.types import PluginStatus
 
 

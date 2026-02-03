@@ -13,8 +13,8 @@ from apps.api.core.auth.deps import get_current_user_id
 from apps.api.core.exceptions import Forbidden, NotFound
 from apps.api.core.i18n import t
 from apps.api.core.workspace.context import set_current_workspace_context
-from apps.api.models.org_membership import OrgMembership, OrgRole
-from apps.api.models.workspace import Workspace, WorkspaceMembership, WorkspaceMembershipStatus
+from apps.api.modules.organization.models.org_membership import OrgMembership, OrgRole
+from apps.api.modules.workspaces.models.workspace import Workspace, WorkspaceMembership, WorkspaceMembershipStatus
 
 
 class WorkspaceContext(BaseSchema):

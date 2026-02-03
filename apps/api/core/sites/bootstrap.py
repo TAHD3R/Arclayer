@@ -5,13 +5,11 @@ from uuid import UUID
 from tortoise.transactions import in_transaction
 
 from apps.api.core.logging import get_logger
-from apps.api.models.setting import SettingRecord
-from apps.api.models.site import SiteRecord
-from apps.api.models.site_entry import EntryRecord, EntryRevisionRecord, EntryTypeRecord
-from apps.api.models.site_page import SitePageRecord, SitePageRevisionRecord, SitePageVisibility
-from apps.api.models.site_route_template import RouteTemplateRecord
-from apps.api.models.workspace import Workspace
-from apps.api.routers.v1.sites.schema import (
+from apps.api.modules.sites.models.site import SiteRecord
+from apps.api.modules.sites.models.site_entry import EntryRecord, EntryRevisionRecord, EntryTypeRecord
+from apps.api.modules.sites.models.site_page import SitePageRecord, SitePageRevisionRecord, SitePageVisibility
+from apps.api.modules.sites.models.site_route_template import RouteTemplateRecord
+from apps.api.modules.sites.schema import (
     ContainerBlock,
     ContainerBlockProps,
     DividerBlock,
@@ -23,6 +21,8 @@ from apps.api.routers.v1.sites.schema import (
     ParagraphBlock,
     ParagraphBlockProps,
 )
+from apps.api.modules.system.models.setting import SettingRecord
+from apps.api.modules.workspaces.models.workspace import Workspace
 from apps.api.settings.scopes import SCOPE_TYPE_SITE
 
 logger = get_logger(__name__)

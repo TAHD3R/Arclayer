@@ -9,9 +9,9 @@ from structlog.contextvars import bind_contextvars
 from apps.api.config import Settings, get_settings
 from apps.api.core.exceptions import Forbidden, Unauthorized
 from apps.api.core.i18n import t
-from apps.api.models.user import User
-from apps.api.routers.v1.auth.repository import UserRepository
-from apps.api.routers.v1.auth.security import TOKEN_TYPE_ACCESS, decode_token
+from apps.api.modules.auth.repository import UserRepository
+from apps.api.modules.auth.security import TOKEN_TYPE_ACCESS, decode_token
+from apps.api.modules.organization.models.user import User
 
 bearer_scheme = HTTPBearer(auto_error=False)
 

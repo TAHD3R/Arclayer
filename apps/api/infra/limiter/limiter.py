@@ -63,7 +63,9 @@ async def init_rate_limiter(app: FastAPI, settings: Settings) -> None:
 
     client = getattr(app.state, "valkey", None)
     if client is None:
-        raise RuntimeError("Valkey client is not initialized")
+        raise RuntimeError(
+            "Rate limiter requires Valkey client. Ensure VALKEY__ENABLED=true and VALKEY__LIMITER_ENABLED=true."
+        )
 
     await FastAPILimiter.init(
         client.raw,

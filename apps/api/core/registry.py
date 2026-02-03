@@ -13,6 +13,12 @@ from starlette.responses import HTMLResponse
 from starlette.routing import Mount
 
 from apps.api.config import Settings, get_settings
+from apps.api.core.database.orm import (
+    close_orm,
+    ensure_settings_schema_constraints,
+    init_orm,
+    verify_db_ready,
+)
 from apps.api.core.exceptions import init_exception_handlers
 from apps.api.core.logging import configure_logging
 from apps.api.core.observability import configure_observability
@@ -21,12 +27,6 @@ from apps.api.core.rbac.bootstrap import ensure_rbac_ready, register_permission_
 from apps.api.core.routes import register_routes
 from apps.api.core.sites.bootstrap import ensure_demo_site_ready
 from apps.api.infra.cache.valkey import close_valkey, init_valkey
-from apps.api.infra.db.orm import (
-    close_orm,
-    ensure_settings_schema_constraints,
-    init_orm,
-    verify_db_ready,
-)
 from apps.api.infra.limiter.limiter import close_rate_limiter, init_rate_limiter
 from apps.api.plugin.manager import PluginManager
 from apps.api.plugin.restart import start_restart_watcher, stop_restart_watcher

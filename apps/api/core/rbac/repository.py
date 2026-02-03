@@ -9,7 +9,7 @@ from tortoise.queryset import QuerySet
 from apps.api.common.repositories import BaseRepository
 from apps.api.common.utils.tortoise_protocols import PermissionMutableFields
 from apps.api.core.rbac.constants import BOOTSTRAP_KEY
-from apps.api.models.rbac import BootstrapState, Permission, PermissionScope, Role, RolePermission
+from apps.api.modules.system.models.rbac import BootstrapState, Permission, PermissionScope, Role, RolePermission
 
 
 class RBACRepository(BaseRepository):

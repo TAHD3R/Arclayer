@@ -9,7 +9,7 @@ from apps.api.common.utils.tortoise_protocols import HasOrganizationId
 from apps.api.core.auth.deps import get_current_user_id
 from apps.api.core.exceptions import Forbidden
 from apps.api.core.i18n import t
-from apps.api.models.org_membership import OrgMembership, OrgRole
+from apps.api.modules.organization.models.org_membership import OrgMembership, OrgRole
 
 
 async def get_current_org_membership(

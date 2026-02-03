@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from apps.api.core.logging import get_logger
-from apps.api.models.organization import Organization
-from apps.api.models.user import UserStatus
+from apps.api.modules.organization.models.organization import Organization
+from apps.api.modules.organization.models.user import UserStatus
 
 logger = get_logger(__name__)
 
@@ -38,9 +38,9 @@ async def ensure_organization_ready() -> None:
 
     if org is not None:
         # v2 note: org_membership is the account-level linkage (A2: single org per user).
-        from apps.api.models.org_membership import OrgMembership, OrgRole
-        from apps.api.models.user import User
-        from apps.api.models.workspace import Workspace
+        from apps.api.modules.organization.models.org_membership import OrgMembership, OrgRole
+        from apps.api.modules.organization.models.user import User
+        from apps.api.modules.workspaces.models.workspace import Workspace
 
         users = await User.filter(status=UserStatus.ACTIVE).all()
         created_org_memberships = 0

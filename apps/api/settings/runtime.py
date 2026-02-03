@@ -7,7 +7,7 @@ from pydantic import SecretStr
 
 from apps.api.config import Settings
 from apps.api.core.logging import get_logger
-from apps.api.models.setting import SettingRecord
+from apps.api.modules.system.models.setting import SettingRecord
 from apps.api.settings.core_schema import CORE_SETTINGS_NAMESPACE, CORE_SETTINGS_SCHEMA
 from apps.api.settings.crypto import decrypt_secret, is_encrypted, load_master_key, master_key_exists
 from apps.api.settings.scopes import SCOPE_TYPE_SYSTEM, SYSTEM_SCOPE_ID

@@ -345,7 +345,7 @@ class DatabaseSettings(BaseSettings):
     use_tz: bool = Field(default=True, validation_alias=AliasChoices("DB_USE_TZ", "DATABASE_USE_TZ"))
     timezone: str = Field(default="UTC", validation_alias=AliasChoices("DB_TIMEZONE", "DATABASE_TIMEZONE"))
     core_models: list[str] = Field(
-        default_factory=lambda: ["apps.api.models"],
+        default_factory=lambda: ["apps.api.modules"],
         validation_alias=AliasChoices("DB_CORE_MODELS", "DATABASE_CORE_MODELS"),
     )
     plugin_packages: list[str] = Field(

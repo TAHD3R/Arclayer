@@ -23,7 +23,7 @@ from apps.api.config import Settings
 from apps.api.core.i18n import register_locale_path
 from apps.api.core.logging import get_logger
 from apps.api.infra.cache.valkey import ValkeyClient
-from apps.api.models.plugin import PluginRecord
+from apps.api.modules.system.models.plugin import PluginRecord
 from apps.api.plugin.event_bus import Event
 from apps.api.plugin.events import PLUGIN_DISABLED, PLUGIN_ENABLED
 from apps.api.plugin.manifest import build_default_config, load_plugin_manifest
@@ -578,7 +578,7 @@ class PluginManager:
 
     async def _run_aerich(self, *args: str) -> None:
         # Convention: API runtime dotenv files (e.g. `.env`) live under `apps/api`.
-        # Aerich runs in a subprocess and imports `apps.api.infra.db.orm.TORTOISE_ORM`, which calls `get_settings()`.
+        # Aerich runs in a subprocess and imports `apps.api.core.database.orm.TORTOISE_ORM`, which calls `get_settings()`.
         # Set cwd to `apps/api` so the subprocess reads the same dotenv files as the main process,
         # avoiding mismatched DB configuration.
         pyproject = self.project_root / "apps" / "api" / "pyproject.toml"

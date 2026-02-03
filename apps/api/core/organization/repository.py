@@ -3,8 +3,8 @@ from __future__ import annotations
 from uuid import UUID
 
 from apps.api.common.repositories import BaseRepository
-from apps.api.models.org_membership import OrgMembership, OrgRole
-from apps.api.models.organization import Organization
+from apps.api.modules.organization.models.org_membership import OrgMembership, OrgRole
+from apps.api.modules.organization.models.organization import Organization
 
 
 class OrganizationRepository(BaseRepository):

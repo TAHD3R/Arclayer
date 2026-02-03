@@ -19,8 +19,8 @@ from apps.api.core.rbac.constants import (
     ROLE_VIEWER,
 )
 from apps.api.core.rbac.repository import RBACRepository
-from apps.api.models.rbac import Permission, PermissionScope, Role
-from apps.api.models.workspace import Workspace
+from apps.api.modules.system.models.rbac import Permission, PermissionScope, Role
+from apps.api.modules.workspaces.models.workspace import Workspace
 from apps.api.plugin.registry import registry
 
 

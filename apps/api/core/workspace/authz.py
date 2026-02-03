@@ -8,8 +8,8 @@ from apps.api.core.auth.deps import get_current_user_id
 from apps.api.core.exceptions import Forbidden
 from apps.api.core.i18n import t
 from apps.api.core.workspace.deps import WorkspaceContext, require_workspace_manage_access
-from apps.api.models.rbac import Permission, PermissionScope, Role, RolePermission
-from apps.api.models.workspace import WorkspaceMembershipRole
+from apps.api.modules.system.models.rbac import Permission, PermissionScope, Role, RolePermission
+from apps.api.modules.workspaces.models.workspace import WorkspaceMembershipRole
 
 
 async def _list_user_role_codes_in_workspace(*, user_id: UUID, workspace_id: UUID) -> list[str]:

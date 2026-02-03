@@ -19,8 +19,8 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from apps.api.config import get_settings
+from apps.api.core.database.orm import close_orm, init_orm, verify_db_ready
 from apps.api.infra.cache.valkey import ValkeyClient, close_valkey, init_valkey
-from apps.api.infra.db.orm import close_orm, init_orm, verify_db_ready
 from apps.api.tests.utils.tortoise import reset_postgres_schema
 
 

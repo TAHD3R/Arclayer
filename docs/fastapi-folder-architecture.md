@@ -22,19 +22,23 @@ This document defines the directory organization, responsibility boundaries, and
 * Cross-cutting concerns: Logging, Observability, i18n engine, Authz strategies, Middleware, and Global Exception Handlers.
 
 
-* **Out-of-Scope**: Infrastructure implementation details (e.g., DB pool instances), HTTP response envelopes, or plugin extension contracts.
+* **Out-of-Scope**: External service adapters (storage, cache, email), HTTP response envelopes, or plugin extension contracts.
+
+### `core/database/` (ORM Lifecycle)
+
+**Role**: Database initialization, health checks, and lifecycle management for Tortoise ORM.
 
 ### `infra/` (Infrastructure & External Integrations)
 
 **Role**: Encapsulation of technical details and external drivers.
 
 * **In-Scope**:
-* `db/`: ORM initialization/cleanup, DB health checks.
 * `cache/`: Valkey/Redis client wrappers.
 * `limiter/`: Rate limiter storage and adapter integration.
+* `storage/` and `email/`: External service adapters.
 
 
-* **Rule**: `core/` may call `infra/`, but `infra/` must **never** depend on `routers/`.
+* **Rule**: `core/` may call `infra/`, but `infra/` must **never** depend on `modules/` or `api/`.
 
 ### `core/http/` (HTTP Communication Contracts)
 
@@ -46,7 +50,7 @@ This document defines the directory organization, responsibility boundaries, and
 
 
 
-### `routers/` (API Surface / Domain Logic)
+### `modules/` (Domain Modules)
 
 **Role**: Domain-specific modules following the **Router-Service-Repository** pattern.
 Internal structure for each domain module:
@@ -55,6 +59,10 @@ Internal structure for each domain module:
 * `service.py`: Core business logic, validation, and workflow orchestration.
 * `repository.py`: Data persistence logic; the only layer directly interacting with Models/DB.
 * `schema.py`: Pydantic V2 models for input validation and output serialization.
+
+### `api/` (API Aggregation & Versioning)
+
+**Role**: Route aggregation only. Provides versioned entrypoints (e.g. `api/v1`) and mirrors domain routers without owning business logic.
 
 ### `plugin/` (Plugin System Core)
 
@@ -80,11 +88,12 @@ To maintain a clean architecture, the following **Unidirectional Flow** is manda
 
 | Layer Initiating Call | Allowed Dependencies |
 | --- | --- |
-| **`routers/`** | `http/`, `core/` (cross-cutting), `common/`, `plugin/`, local service/repo/schema |
+| **`api/`** | `modules/`, `core/` (mounting), `plugin/` |
+| **`modules/`** | `http/`, `core/` (cross-cutting), `common/`, `plugin/`, local service/repo/schema |
 | **`service/`** | `repository/`, `common/`, `core/exceptions`, `core/i18n` |
-| **`repository/`** | `infra/`, `models/` |
-| **`core/`** | `infra/`, `plugin/`, `routers/` (only for mounting) |
-| **`plugin/`** | `common/`, `http/` (contracts only), **Strictly NO `routers/**` |
+| **`repository/`** | `infra/`, local `models/` |
+| **`core/`** | `infra/`, `plugin/`, `api/` (only for mounting) |
+| **`plugin/`** | `common/`, `http/` (contracts only), **Strictly NO `modules/**` |
 
 > [!CAUTION]
 > **Circular Dependency Warning**: If Layer A needs B and B needs A, your boundaries are likely blurred. Extract the shared logic to `common/` or use a `plugin` extension point to decouple them.

@@ -52,7 +52,7 @@ url = "https://pypi.tuna.tsinghua.edu.cn/simple"
 default = true
 
 [tool.aerich]
-tortoise_orm = "apps.api.infra.db.orm.TORTOISE_ORM"
+tortoise_orm = "apps.api.core.database.orm.TORTOISE_ORM"
 location = "./migrations"
 src_folder = "../.."
 app = "models"

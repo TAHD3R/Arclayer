@@ -13,7 +13,7 @@ from apps.api.core.workspace.context import get_current_workspace_id
 from apps.api.core.exceptions import BadRequest, Conflict, NotFound, ServiceUnavailable
 from apps.api.core.i18n import t
 from apps.api.core.http.pagination import PageData, PageParams, paginate_queryset
-from apps.api.routers.v1.admin.menus.schema import (
+from apps.api.modules.system.admin.menus.schema import (
     AdminMenuCreateRequest,
     AdminMenuItemOut,
     AdminMenuListQuery,

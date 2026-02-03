@@ -108,7 +108,7 @@ def _extract_workspace_id_from_path(path: str) -> UUID | None:
 
 
 async def _read_core_locale(*, scope_type: str, scope_id: UUID | None) -> str | None:
-    from apps.api.models.setting import SettingRecord
+    from apps.api.modules.system.models.setting import SettingRecord
     from apps.api.settings.scopes import SCOPE_TYPE_SYSTEM, SCOPE_TYPE_WORKSPACE, SYSTEM_SCOPE_ID
 
     if scope_type == "workspace":

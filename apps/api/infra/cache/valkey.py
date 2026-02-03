@@ -71,6 +71,11 @@ def _json_loads(data: bytes | str | None) -> Any:
     return (_orjson or json).loads(data)
 
 
+def _valkey_dsn_hint(settings: ValkeySettings) -> str:
+    user = f"{settings.username}@" if settings.username else ""
+    return f"redis://{user}{settings.host}:{settings.port}/{settings.db}"
+
+
 class ValkeyClient:
     __slots__ = ("_r", "_prefix", "_default_ttl")
 
@@ -261,8 +266,15 @@ async def init_valkey(app: FastAPI, settings: Settings) -> None:
         logger.info("Valkey init skipped (disabled)")
         return
 
-    client = build_valkey(settings.valkey)
-    await verify_valkey_ready(client)
+    hint = _valkey_dsn_hint(settings.valkey)
+    try:
+        client = build_valkey(settings.valkey)
+        await verify_valkey_ready(client)
+    except Exception as exc:
+        logger.error("Valkey init failed", hint=hint, error=repr(exc))
+        detail = str(exc)
+        suffix = f" Detail: {detail}" if detail else ""
+        raise RuntimeError(f"Valkey init failed. Check VALKEY__* settings and connectivity to {hint}.{suffix}") from exc
     app.state.valkey = ValkeyClient(
         client,
         prefix=settings.valkey.prefix,
