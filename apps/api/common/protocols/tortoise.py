@@ -22,6 +22,14 @@ class HasUserId(Protocol):
     user_id: UUID | str
 
 
+class HasParentId(Protocol):
+    parent_id: UUID | str | None
+
+
+class HasEntryTypeId(Protocol):
+    entry_type_id: UUID | str
+
+
 class WorkspaceMembershipIds(Protocol):
     workspace_id: UUID | str
     user_id: UUID | str
@@ -34,6 +42,14 @@ class AssetUsageHasAssetId(Protocol):
 class RouteTemplateIds(Protocol):
     entry_type_id: UUID | str
     template_page_revision_id: UUID | str | None
+
+
+class EntryRecordMutableFields(Protocol):
+    published_rev: int | None
+
+
+class AdminMenuItemMutableFields(Protocol):
+    deleted_at: datetime | None
 
 
 class SettingUpdatedBy(Protocol):

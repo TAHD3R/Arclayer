@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import secrets
 import time
-from typing import Literal
+from typing import Literal, cast
 from uuid import UUID
 from xml.sax.saxutils import escape as xml_escape
 
+from apps.api.common.protocols.tortoise import HasEntryTypeId, HasParentId, HasWorkspaceId, RouteTemplateIds
 from apps.api.common.services.base import BaseService
 from apps.api.core.exceptions import Conflict, Forbidden, NotFound, ServiceUnavailable
 from apps.api.core.http.pagination import PageData, PageParams, paginate_items
@@ -82,6 +83,25 @@ from apps.api.modules.sites.utils import (
 from apps.api.modules.sites.utils import (
     normalize_path as normalize_site_path,
 )
+
+
+def _as_visibility(value: str) -> Literal["public", "private"]:
+    return cast(Literal["public", "private"], value)
+
+
+def _get_parent_id(value: object) -> UUID | None:
+    raw = cast(HasParentId, value).parent_id
+    return UUID(str(raw)) if raw is not None else None
+
+
+def _get_entry_type_id(value: object) -> UUID:
+    raw = cast(HasEntryTypeId, value).entry_type_id
+    return UUID(str(raw))
+
+
+def _get_template_page_revision_id(value: object) -> UUID | None:
+    raw = cast(RouteTemplateIds, value).template_page_revision_id
+    return UUID(str(raw)) if raw is not None else None
 
 
 class SiteService(BaseService):
@@ -164,6 +184,7 @@ class SiteService(BaseService):
             raise Conflict("Site runtime requires database storage", error="SITE_RUNTIME_DB_REQUIRED")
 
         site = await self._repo.get_site_by_id(site_id=site_id)
+        workspace_id = UUID(str(cast(HasWorkspaceId, site).workspace_id))
 
         # Theme contract v0:
         # - theme.vars provides site-scoped CSS vars (overrides)
@@ -229,7 +250,7 @@ class SiteService(BaseService):
             from apps.api.modules.workspaces.models.theme_package import ThemePackageRecord
 
             theme_pkg = await ThemePackageRecord.get_or_none(
-                workspace_id=site.workspace_id,
+                workspace_id=workspace_id,
                 theme_id=active_theme_id,
                 version=active_version,
             )
@@ -239,7 +260,7 @@ class SiteService(BaseService):
 
                 tokens_asset = await AssetRecord.get_or_none(
                     id=theme_pkg.tokens_css_asset_id,
-                    workspace_id=site.workspace_id,
+                    workspace_id=workspace_id,
                     deleted_at=None,
                 )
                 if tokens_asset is not None:
@@ -250,7 +271,7 @@ class SiteService(BaseService):
                 if theme_pkg.base_css_asset_id:
                     base_asset = await AssetRecord.get_or_none(
                         id=theme_pkg.base_css_asset_id,
-                        workspace_id=site.workspace_id,
+                        workspace_id=workspace_id,
                         deleted_at=None,
                     )
                     if base_asset is not None:
@@ -321,9 +342,9 @@ class SiteService(BaseService):
             SitePageTreeNodeOut(
                 id=UUID(str(p.id)),
                 path=p.path,
-                parent_id=(UUID(str(p.parent_id)) if p.parent_id is not None else None),
+                parent_id=_get_parent_id(p),
                 sort_order=int(p.sort_order or 0),
-                visibility=str(p.visibility),
+                visibility=_as_visibility(str(p.visibility)),
                 draft_revision=int(p.draft_rev or 0),
                 published_revision=(int(p.published_rev) if p.published_rev is not None else None),
                 children=[],
@@ -369,9 +390,9 @@ class SiteService(BaseService):
         return SitePageTreeNodeOut(
             id=UUID(str(page.id)),
             path=page.path,
-            parent_id=(UUID(str(page.parent_id)) if page.parent_id is not None else None),
+            parent_id=_get_parent_id(page),
             sort_order=int(page.sort_order or 0),
-            visibility=str(page.visibility),
+            visibility=_as_visibility(str(page.visibility)),
             draft_revision=int(page.draft_rev or 0),
             published_revision=(int(page.published_rev) if page.published_rev is not None else None),
             children=[],
@@ -394,7 +415,7 @@ class SiteService(BaseService):
         if "path" in fields_set and payload.path is not None:
             new_path = validate_page_pathname(payload.path)
 
-        new_parent_id: UUID | None = UUID(str(page.parent_id)) if page.parent_id is not None else None
+        new_parent_id: UUID | None = _get_parent_id(page)
         if "parent_id" in fields_set:
             new_parent_id = payload.parent_id
             if new_parent_id is not None:
@@ -403,7 +424,7 @@ class SiteService(BaseService):
                     raise NotFound("Parent page not found", error="PARENT_PAGE_NOT_FOUND")
 
                 pages = await self._repo.list_pages_by_site(site_id=site_id)
-                parent_by_id = {UUID(str(p.id)): (UUID(str(p.parent_id)) if p.parent_id else None) for p in pages}
+                parent_by_id = {UUID(str(p.id)): _get_parent_id(p) for p in pages}
                 if is_descendant_or_self(
                     node_id=UUID(str(page.id)),
                     candidate_parent_id=new_parent_id,
@@ -415,7 +436,7 @@ class SiteService(BaseService):
         if "sort_order" in fields_set and payload.sort_order is not None:
             new_sort_order = int(payload.sort_order)
 
-        new_visibility = str(page.visibility)
+        new_visibility: Literal["public", "private"] = _as_visibility(str(page.visibility))
         if "visibility" in fields_set and payload.visibility is not None:
             new_visibility = payload.visibility
 
@@ -431,9 +452,9 @@ class SiteService(BaseService):
         return SitePageTreeNodeOut(
             id=UUID(str(updated.id)),
             path=updated.path,
-            parent_id=(UUID(str(updated.parent_id)) if updated.parent_id is not None else None),
+            parent_id=_get_parent_id(updated),
             sort_order=int(updated.sort_order or 0),
-            visibility=str(updated.visibility),
+            visibility=_as_visibility(str(updated.visibility)),
             draft_revision=int(updated.draft_rev or 0),
             published_revision=(int(updated.published_rev) if updated.published_rev is not None else None),
             children=[],
@@ -455,7 +476,7 @@ class SiteService(BaseService):
                 raise NotFound("Parent page not found", error="PARENT_PAGE_NOT_FOUND")
 
             pages = await self._repo.list_pages_by_site(site_id=site_id)
-            parent_by_id = {UUID(str(p.id)): (UUID(str(p.parent_id)) if p.parent_id else None) for p in pages}
+            parent_by_id = {UUID(str(p.id)): _get_parent_id(p) for p in pages}
             if is_descendant_or_self(
                 node_id=UUID(str(page.id)),
                 candidate_parent_id=new_parent_id,
@@ -475,9 +496,9 @@ class SiteService(BaseService):
         return SitePageTreeNodeOut(
             id=UUID(str(updated.id)),
             path=updated.path,
-            parent_id=(UUID(str(updated.parent_id)) if updated.parent_id is not None else None),
+            parent_id=_get_parent_id(updated),
             sort_order=int(updated.sort_order or 0),
-            visibility=str(updated.visibility),
+            visibility=_as_visibility(str(updated.visibility)),
             draft_revision=int(updated.draft_rev or 0),
             published_revision=(int(updated.published_rev) if updated.published_rev is not None else None),
             children=[],
@@ -510,17 +531,17 @@ class SiteService(BaseService):
 
         items: list[SiteRouteTemplateOut] = []
         for tm in templates:
+            tm_like = cast(RouteTemplateIds, tm)
             entry_type_code = getattr(tm.entry_type, "code", "") if getattr(tm, "entry_type", None) is not None else ""
+            tpl_rev_id = tm_like.template_page_revision_id
             items.append(
                 SiteRouteTemplateOut(
                     id=UUID(str(tm.id)),
                     site_id=str(site_id),
                     path_pattern=tm.path_pattern,
-                    entry_type_id=str(tm.entry_type_id),
+                    entry_type_id=str(tm_like.entry_type_id),
                     entry_type_code=str(entry_type_code),
-                    template_page_revision_id=(
-                        str(tm.template_page_revision_id) if tm.template_page_revision_id is not None else None
-                    ),
+                    template_page_revision_id=(str(tpl_rev_id) if tpl_rev_id is not None else None),
                     is_active=bool(tm.is_active),
                 )
             )
@@ -621,14 +642,15 @@ class SiteService(BaseService):
         self._repo.invalidate_route_template_cache(site_id=site_id)
 
         entry_type_code = getattr(rec.entry_type, "code", "")
+        rec_like = cast(RouteTemplateIds, rec)
         return SiteRouteTemplateOut(
             id=UUID(str(rec.id)),
             site_id=str(site_id),
             path_pattern=rec.path_pattern,
-            entry_type_id=str(rec.entry_type_id),
+            entry_type_id=str(rec_like.entry_type_id),
             entry_type_code=str(entry_type_code),
             template_page_revision_id=(
-                str(rec.template_page_revision_id) if rec.template_page_revision_id is not None else None
+                str(rec_like.template_page_revision_id) if rec_like.template_page_revision_id is not None else None
             ),
             is_active=bool(rec.is_active),
         )
@@ -651,14 +673,14 @@ class SiteService(BaseService):
         if "path_pattern" in fields_set and payload.path_pattern is not None:
             path_pattern = validate_route_template_pattern(payload.path_pattern)
 
-        entry_type_id = UUID(str(rec.entry_type_id))
+        entry_type_id = _get_entry_type_id(rec)
         entry_type_code = getattr(rec.entry_type, "code", "")
         if "entry_type_code" in fields_set and payload.entry_type_code is not None:
             et = await self._repo.get_entry_type_by_code(site_id=site_id, code=payload.entry_type_code)
             entry_type_id = UUID(str(et.id))
             entry_type_code = payload.entry_type_code
 
-        tpl_rev_id: UUID | None = UUID(str(rec.template_page_revision_id)) if rec.template_page_revision_id else None
+        tpl_rev_id: UUID | None = _get_template_page_revision_id(rec)
         if "template_page_revision_id" in fields_set:
             tpl_rev_id = payload.template_page_revision_id
             if tpl_rev_id is not None:
@@ -682,14 +704,17 @@ class SiteService(BaseService):
         self._repo.invalidate_route_template_cache(site_id=site_id)
 
         entry_type_code2 = getattr(updated.entry_type, "code", "") or entry_type_code
+        updated_like = cast(RouteTemplateIds, updated)
         return SiteRouteTemplateOut(
             id=UUID(str(updated.id)),
             site_id=str(site_id),
             path_pattern=updated.path_pattern,
-            entry_type_id=str(updated.entry_type_id),
+            entry_type_id=str(updated_like.entry_type_id),
             entry_type_code=str(entry_type_code2),
             template_page_revision_id=(
-                str(updated.template_page_revision_id) if updated.template_page_revision_id is not None else None
+                str(updated_like.template_page_revision_id)
+                if updated_like.template_page_revision_id is not None
+                else None
             ),
             is_active=bool(updated.is_active),
         )
@@ -816,11 +841,12 @@ class SiteService(BaseService):
         items: list[SiteEntryOut] = []
         for e in entries:
             et_code = getattr(e.entry_type, "code", "") if getattr(e, "entry_type", None) is not None else ""
+            entry_type_id_value = _get_entry_type_id(e)
             items.append(
                 SiteEntryOut(
                     id=UUID(str(e.id)),
                     site_id=str(site_id),
-                    entry_type_id=str(e.entry_type_id),
+                    entry_type_id=str(entry_type_id_value),
                     entry_type_code=str(et_code),
                     slug=str(e.slug),
                     draft_revision=int(e.draft_rev or 0),
@@ -841,10 +867,11 @@ class SiteService(BaseService):
             slug=payload.slug,
             created_by_user_id=None,
         )
+        entry_type_id_value = _get_entry_type_id(entry)
         return SiteEntryOut(
             id=UUID(str(entry.id)),
             site_id=str(site_id),
-            entry_type_id=str(entry.entry_type_id),
+            entry_type_id=str(entry_type_id_value),
             entry_type_code=str(payload.entry_type_code),
             slug=str(entry.slug),
             draft_revision=int(entry.draft_rev or 0),
@@ -861,13 +888,14 @@ class SiteService(BaseService):
             raise Conflict("No fields to update", error="NO_UPDATES")
 
         updated = await self._repo.update_entry_slug(site_id=site_id, entry_id=entry_id, slug=payload.slug)
-        et = await self._repo.get_entry_type_by_id(site_id=site_id, entry_type_id=UUID(str(updated.entry_type_id)))
+        entry_type_id_value = _get_entry_type_id(updated)
+        et = await self._repo.get_entry_type_by_id(site_id=site_id, entry_type_id=entry_type_id_value)
         if et is None:
             raise NotFound("Entry type not found", error="ENTRY_TYPE_NOT_FOUND")
         return SiteEntryOut(
             id=UUID(str(updated.id)),
             site_id=str(site_id),
-            entry_type_id=str(updated.entry_type_id),
+            entry_type_id=str(entry_type_id_value),
             entry_type_code=str(et.code),
             slug=str(updated.slug),
             draft_revision=int(updated.draft_rev or 0),
@@ -1417,7 +1445,20 @@ class SiteService(BaseService):
             raise ServiceUnavailable("Presence requires Valkey", error="PRESENCE_VALKEY_REQUIRED")
         await self._repo.get_site_by_id(site_id=site_id)
         items = await self._presence.list(site_id=site_id, doc_key=doc_key)
-        return SitePresenceListOut(doc_key=doc_key, items=[SitePresenceRecordOut(**rec) for rec in items])
+        records: list[SitePresenceRecordOut] = []
+        for rec in items:
+            raw_actor = rec.get("actor")
+            actor = {str(k): str(v) for k, v in raw_actor.items()} if isinstance(raw_actor, dict) else None
+            raw_updated = rec.get("updated_at_ms")
+            updated_at_ms = int(raw_updated) if isinstance(raw_updated, (int, str)) else 0
+            records.append(
+                SitePresenceRecordOut(
+                    client_id=str(rec.get("client_id") or ""),
+                    updated_at_ms=updated_at_ms,
+                    actor=actor,
+                )
+            )
+        return SitePresenceListOut(doc_key=doc_key, items=records)
 
     async def get_sitemap_xml(self, *, site_id: str) -> str:
         """

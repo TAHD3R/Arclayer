@@ -9,7 +9,12 @@ from uuid import UUID
 from tortoise.exceptions import IntegrityError
 from tortoise.transactions import in_transaction
 
-from apps.api.common.protocols.tortoise import RouteTemplateIds, SettingUpdatedBy
+from apps.api.common.protocols.tortoise import (
+    EntryRecordMutableFields,
+    HasWorkspaceId,
+    RouteTemplateIds,
+    SettingUpdatedBy,
+)
 from apps.api.common.repositories.base import BaseRepository
 from apps.api.core.exceptions import Conflict, NotFound
 from apps.api.modules.assets.models.asset import AssetRecord
@@ -262,12 +267,15 @@ class SitesRepository(BaseRepository):
         if not parsed and not invalid:
             return
 
-        site = await SiteRecord.get_or_none(id=site_id).using_db(conn)
+        site_qs = SiteRecord.filter(id=site_id)
+        if conn is not None:
+            site_qs = site_qs.using_db(conn)
+        site = await site_qs.first()
         if site is None:
             raise NotFound("Site not found", error="SITE_NOT_FOUND")
 
         missing = await self._list_missing_assets(
-            workspace_id=UUID(str(site.workspace_id)),
+            workspace_id=UUID(str(cast(HasWorkspaceId, site).workspace_id)),
             asset_ids=parsed,
             conn=conn,
         )
@@ -670,7 +678,7 @@ class SitesRepository(BaseRepository):
                 raise NotFound("Entry not found", error="ENTRY_NOT_FOUND")
             if entry.published_rev is None:
                 raise Conflict("Entry is not published", error="ENTRY_NOT_PUBLISHED")
-            entry.published_rev = None
+            cast(EntryRecordMutableFields, entry).published_rev = None
             await entry.save(update_fields=["published_rev"], using_db=conn)
         return UUID(str(entry.id)), now_ms
 

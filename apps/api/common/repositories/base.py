@@ -24,8 +24,12 @@ class BaseRepository:
             return qs
         return qs.using_db(conn)
 
-    async def get_by_id(
-        self, model: type[Model], obj_id: UUID, *, conn: BaseDBAsyncClient | None = None
+    async def get_record_by_id(
+        self,
+        model: type[Model],
+        obj_id: UUID,
+        *,
+        conn: BaseDBAsyncClient | None = None,
     ) -> Model | None:
         qs = model.filter(id=obj_id)
         return await self.using_db(qs, conn).first()
@@ -46,7 +50,10 @@ class BaseRepository:
             return instance
         for key, value in fields.items():
             setattr(instance, key, value)
-        await instance.save(update_fields=list(fields.keys()), **self._using_db_kwargs(conn))
+        if conn is None:
+            await instance.save(update_fields=list(fields.keys()))
+        else:
+            await instance.save(update_fields=list(fields.keys()), using_db=conn)
         return instance
 
     async def delete_by_id(
