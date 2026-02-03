@@ -39,10 +39,10 @@ async def test_uploads_resumable_flow(prepared_db, plugin_root, tmp_path: Path, 
 
     transport = ASGITransport(app=app)
     async with app.router.lifespan_context(app):
-        from apps.api.core.organization.repository import OrganizationRepository
         from apps.api.modules.auth.repository import UserRepository
         from apps.api.modules.auth.security import hash_password
         from apps.api.modules.organization.models.org_membership import OrgMembership
+        from apps.api.modules.organization.repository import OrganizationRepository
         from apps.api.modules.workspaces.models.workspace import Workspace
 
         settings = get_settings()
@@ -132,8 +132,8 @@ async def test_uploads_resumable_flow(prepared_db, plugin_root, tmp_path: Path, 
         assert asset.owner_user_id == user.id
 
         # Verify file content on disk (local provider).
-        from apps.api.common.utils.assets import build_asset_object_key
         from apps.api.infra.storage.local import safe_object_key_to_path
+        from apps.api.modules.assets.utils import build_asset_object_key
 
         key = build_asset_object_key(workspace_id=ws.id, asset_id=UUID(asset_id), ext="png")
         out_path = safe_object_key_to_path(root, key)

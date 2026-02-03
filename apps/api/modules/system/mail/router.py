@@ -5,8 +5,8 @@ from fastapi import APIRouter, Depends
 from apps.api.config import Settings, get_settings
 from apps.api.core.http.response import Response, ResponseModel
 from apps.api.core.i18n import get_current_locale
-from apps.api.core.org.deps import require_org_owner
-from apps.api.core.system.deps import require_self_host_deployment_mode
+from apps.api.modules.organization.deps import require_org_owner
+from apps.api.modules.system.deps import require_self_host_deployment_mode
 from apps.api.modules.system.mail.schema import MailTestRequest, MailTestResult
 from apps.api.modules.system.mail.service import AdminMailService
 

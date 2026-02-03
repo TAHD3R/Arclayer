@@ -22,12 +22,12 @@ from apps.api.core.database.orm import (
 from apps.api.core.exceptions import init_exception_handlers
 from apps.api.core.logging import configure_logging
 from apps.api.core.observability import configure_observability
-from apps.api.core.organization.bootstrap import ensure_organization_ready
-from apps.api.core.rbac.bootstrap import ensure_rbac_ready, register_permission_templates
 from apps.api.core.routes import register_routes
-from apps.api.core.sites.bootstrap import ensure_demo_site_ready
 from apps.api.infra.cache.valkey import close_valkey, init_valkey
 from apps.api.infra.limiter.limiter import close_rate_limiter, init_rate_limiter
+from apps.api.modules.organization.bootstrap import ensure_organization_ready
+from apps.api.modules.sites.bootstrap import ensure_demo_site_ready
+from apps.api.modules.system.rbac.bootstrap import ensure_rbac_ready, register_permission_templates
 from apps.api.plugin.manager import PluginManager
 from apps.api.plugin.restart import start_restart_watcher, stop_restart_watcher
 
@@ -51,7 +51,7 @@ def _build_lifespan(settings: Settings, *, plugin_manager: PluginManager):
             # Hotfix legacy DB constraint that blocks v2 workspace-scoped settings.
             await ensure_settings_schema_constraints()
             # Register core event-driven processors (e.g. thumbnails) after DB is ready.
-            from apps.api.core.assets.bootstrap import register_core_asset_processors
+            from apps.api.modules.assets.bootstrap import register_core_asset_processors
 
             await register_core_asset_processors(plugin_manager.registry, settings)
             if settings.database.enabled:
@@ -209,7 +209,7 @@ class AppFactory:
                 token_bytes=middleware.csrf_token_bytes,
             )
 
-        from apps.api.core.middleware.locale import LocaleMiddleware
+        from apps.api.modules.system.middleware.locale import LocaleMiddleware
 
         self.app.add_middleware(LocaleMiddleware)
         from apps.api.core.middleware.request_log import RequestLogMiddleware

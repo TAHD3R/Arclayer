@@ -5,9 +5,9 @@ from fastapi import APIRouter, Depends
 from apps.api.common.schemas import AuthzSnapshot
 from apps.api.config import Settings, get_settings
 from apps.api.core.http.response import Response, ResponseModel
-from apps.api.core.workspace.authz_snapshot import get_workspace_authz_snapshot
-from apps.api.core.workspace.deps import WorkspaceContext, require_workspace_manage_access
 from apps.api.modules.auth.deps import get_current_user_id
+from apps.api.modules.workspaces.authz_snapshot import get_workspace_authz_snapshot
+from apps.api.modules.workspaces.deps import WorkspaceContext, require_workspace_manage_access
 
 router = APIRouter(prefix="/workspaces/{workspace_id}", tags=["Workspace Authz"])
 

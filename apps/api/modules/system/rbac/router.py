@@ -5,9 +5,9 @@ from fastapi import APIRouter, Depends
 from apps.api.config import Settings, get_settings
 from apps.api.core.http.pagination import PageData, PageParams, get_page_params, paginate_items
 from apps.api.core.http.response import Response, ResponseModel
-from apps.api.core.org.deps import require_org_admin
-from apps.api.core.rbac.service import RBACService
+from apps.api.modules.organization.deps import require_org_admin
 from apps.api.modules.system.rbac.schema import PermissionOut, PermissionSyncResult
+from apps.api.modules.system.rbac.service import RBACService
 
 router = APIRouter(tags=["System: RBAC"], dependencies=[Depends(require_org_admin)])
 

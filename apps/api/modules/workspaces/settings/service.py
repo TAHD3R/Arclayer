@@ -3,8 +3,8 @@ from __future__ import annotations
 from typing import Any, cast
 from uuid import UUID
 
+from apps.api.common.protocols.tortoise import SettingUpdatedBy
 from apps.api.common.services import BaseService
-from apps.api.common.utils.tortoise_protocols import SettingUpdatedBy
 from apps.api.core.exceptions import ServiceUnavailable
 from apps.api.modules.system.models.setting import SettingRecord
 from apps.api.modules.workspaces.settings.schema import WorkspaceSettingsDetail

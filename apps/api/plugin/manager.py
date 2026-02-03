@@ -18,7 +18,7 @@ from packaging.version import InvalidVersion, Version
 from pydantic import ValidationError
 
 from apps.api.common.constants.plugin import MIGRATION_LOCK_KEY, PROTECTED_PLUGINS
-from apps.api.common.utils.tortoise_protocols import PluginRecordMutableFields
+from apps.api.common.protocols.tortoise import PluginRecordMutableFields
 from apps.api.config import Settings
 from apps.api.core.i18n import register_locale_path
 from apps.api.core.logging import get_logger

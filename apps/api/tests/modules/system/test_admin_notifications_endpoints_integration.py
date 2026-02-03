@@ -22,10 +22,10 @@ async def _bootstrap_admin_user(app, *, org_name: str = "Test Org"):
     Returns (workspace_id, admin_user_id).
     """
 
-    from apps.api.core.organization.repository import OrganizationRepository
     from apps.api.modules.auth.repository import UserRepository
     from apps.api.modules.auth.security import hash_password
     from apps.api.modules.organization.models.org_membership import OrgMembership
+    from apps.api.modules.organization.repository import OrganizationRepository
     from apps.api.modules.workspaces.models.workspace import Workspace
 
     settings = get_settings()

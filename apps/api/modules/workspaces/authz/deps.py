@@ -4,11 +4,11 @@ from uuid import UUID
 
 from fastapi import Depends
 
-from apps.api.core.auth.deps import get_current_user_id
 from apps.api.core.exceptions import Forbidden
 from apps.api.core.i18n import t
-from apps.api.core.workspace.deps import WorkspaceContext, require_workspace_manage_access
+from apps.api.modules.auth.deps import get_current_user_id
 from apps.api.modules.system.models.rbac import Permission, PermissionScope, Role, RolePermission
+from apps.api.modules.workspaces.deps import WorkspaceContext, require_workspace_manage_access
 from apps.api.modules.workspaces.models.workspace import WorkspaceMembershipRole
 
 
@@ -74,7 +74,7 @@ def require_workspace_permission(permission: str):
             ).exists()
         ):
             from apps.api.config import get_settings
-            from apps.api.core.rbac.service import RBACService
+            from apps.api.modules.system.rbac.service import RBACService
 
             await RBACService(get_settings()).ensure_workspace_system_role_grants(workspace_id=ctx.workspace_id)
 

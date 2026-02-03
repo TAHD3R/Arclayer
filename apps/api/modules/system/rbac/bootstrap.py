@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 from apps.api.config import Settings
-from apps.api.core.rbac.constants import CORE_PERMISSION_OWNER
-from apps.api.core.rbac.permissions import CORE_PERMISSION_TEMPLATES
-from apps.api.core.rbac.service import RBACService
+from apps.api.modules.system.rbac.constants import CORE_PERMISSION_OWNER
+from apps.api.modules.system.rbac.permissions import CORE_PERMISSION_TEMPLATES
+from apps.api.modules.system.rbac.service import RBACService
 from apps.api.plugin.manager import PluginManager
 from apps.api.plugin.registry import registry
 

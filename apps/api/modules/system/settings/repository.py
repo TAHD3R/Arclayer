@@ -3,8 +3,8 @@ from __future__ import annotations
 from typing import Any, cast
 from uuid import UUID
 
+from apps.api.common.protocols.tortoise import SettingUpdatedBy
 from apps.api.common.repositories.base import BaseRepository
-from apps.api.common.utils.tortoise_protocols import SettingUpdatedBy
 from apps.api.modules.system.models.setting import SettingRecord
 from apps.api.settings.scopes import SCOPE_TYPE_SYSTEM, SYSTEM_SCOPE_ID
 

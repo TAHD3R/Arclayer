@@ -7,8 +7,8 @@ from uuid import UUID
 from tortoise.expressions import Q
 from tortoise.queryset import QuerySet
 
+from apps.api.common.protocols.tortoise import UploadPartMutableFields
 from apps.api.common.repositories import BaseRepository
-from apps.api.common.utils.tortoise_protocols import UploadPartMutableFields
 from apps.api.modules.assets.models.upload import UploadPartRecord, UploadSessionRecord, UploadStatus
 
 

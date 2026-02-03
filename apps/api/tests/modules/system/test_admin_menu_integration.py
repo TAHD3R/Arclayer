@@ -44,11 +44,11 @@ async def test_admin_menu_filtered_for_user(prepared_db) -> None:
     transport = ASGITransport(app=app)
 
     async with app.router.lifespan_context(app):
-        from apps.api.core.organization.repository import OrganizationRepository
-        from apps.api.core.rbac.service import RBACService
         from apps.api.modules.auth.repository import UserRepository
         from apps.api.modules.auth.security import hash_password
         from apps.api.modules.organization.models.org_membership import OrgMembership
+        from apps.api.modules.organization.repository import OrganizationRepository
+        from apps.api.modules.system.rbac.service import RBACService
         from apps.api.modules.workspaces.models.workspace import Workspace, WorkspaceMembership, WorkspaceMembershipRole
 
         user_repo = UserRepository()

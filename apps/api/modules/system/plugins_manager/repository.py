@@ -4,8 +4,8 @@ from typing import cast
 
 from tortoise.queryset import QuerySet
 
+from apps.api.common.protocols.tortoise import PluginRecordMutableFields
 from apps.api.common.repositories import BaseRepository
-from apps.api.common.utils.tortoise_protocols import PluginRecordMutableFields
 from apps.api.modules.system.models.plugin import PluginRecord
 from apps.api.plugin.types import PluginStatus
 

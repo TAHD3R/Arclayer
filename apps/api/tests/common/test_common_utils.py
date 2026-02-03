@@ -3,13 +3,7 @@ from __future__ import annotations
 import pytest
 from fastapi import FastAPI
 
-from apps.api.common.utils import (
-    ensure_unique_route_names,
-    hash_password,
-    redact,
-    simplify_operation_ids,
-    verify_password,
-)
+from apps.api.common.utils import ensure_unique_route_names, redact, simplify_operation_ids
 
 
 def test_redact_dict_and_list() -> None:
@@ -26,12 +20,6 @@ def test_redact_dict_and_list() -> None:
     assert redacted["profile"]["phone"] == "***"
     assert redacted["profile"]["name"] == "ok"
     assert len(redacted["items"]) == 100
-
-
-def test_password_hash_and_verify() -> None:
-    hashed = hash_password("hello")
-    assert verify_password("hello", hashed) is True
-    assert verify_password("bad", hashed) is False
 
 
 def test_ensure_unique_route_names() -> None:

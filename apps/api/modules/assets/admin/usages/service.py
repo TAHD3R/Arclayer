@@ -3,8 +3,8 @@ from __future__ import annotations
 from typing import cast
 from uuid import UUID
 
+from apps.api.common.protocols.tortoise import AssetUsageHasAssetId
 from apps.api.common.services import BaseService
-from apps.api.common.utils.tortoise_protocols import AssetUsageHasAssetId
 from apps.api.config import Settings
 from apps.api.core.exceptions import BadRequest, NotFound
 from apps.api.core.http.pagination import PageData, PageParams, paginate_queryset

@@ -4,8 +4,8 @@ from datetime import UTC, datetime
 from typing import Any, cast
 from uuid import UUID
 
+from apps.api.common.protocols.tortoise import HasOrganizationId, OrganizationLogoUrlMutableFields
 from apps.api.common.services.base import BaseService
-from apps.api.common.utils.tortoise_protocols import HasOrganizationId, OrganizationLogoUrlMutableFields
 from apps.api.config import Settings
 from apps.api.core.exceptions import BadRequest, Conflict, ServiceUnavailable
 from apps.api.core.i18n import t
@@ -156,8 +156,8 @@ class SystemSetupService(BaseService):
         """
 
         try:
-            from apps.api.core.rbac.service import RBACService
             from apps.api.modules.organization.models.org_membership import OrgMembership, OrgRole
+            from apps.api.modules.system.rbac.service import RBACService
             from apps.api.modules.workspaces.models.workspace import (
                 Workspace,
                 WorkspaceMembership,
@@ -227,8 +227,8 @@ class SystemSetupService(BaseService):
         logo_url: str | None,
         created_by_user_id,
     ) -> Organization:
-        from apps.api.core.organization.repository import OrganizationRepository
         from apps.api.modules.organization.models.organization import Organization
+        from apps.api.modules.organization.repository import OrganizationRepository
 
         repo = OrganizationRepository()
         # Defaults are intentionally conservative to keep setup friction low.

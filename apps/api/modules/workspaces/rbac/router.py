@@ -8,11 +8,11 @@ from apps.api.config import Settings, get_settings
 from apps.api.core.http.pagination import PageData, PageParams, get_page_params, paginate_items
 from apps.api.core.http.response import Response, ResponseModel
 from apps.api.core.i18n import get_current_locale, t
-from apps.api.core.rbac.service import RBACService
-from apps.api.core.workspace.authz import require_workspace_permission
-from apps.api.core.workspace.deps import WorkspaceContext, require_workspace_manage_access
 from apps.api.modules.system.models.plugin import PluginRecord
 from apps.api.modules.system.models.rbac import PermissionScope
+from apps.api.modules.system.rbac.service import RBACService
+from apps.api.modules.workspaces.authz.deps import require_workspace_permission
+from apps.api.modules.workspaces.deps import WorkspaceContext, require_workspace_manage_access
 from apps.api.modules.workspaces.rbac.schema import (
     PermissionRoleSetRequest,
     RoleCreateFromTemplateRequest,

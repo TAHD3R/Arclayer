@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends
 from apps.api.core.exceptions import NotFound
 from apps.api.core.http.response import Response, ResponseModel
 from apps.api.core.i18n import t
-from apps.api.core.org.deps import get_current_org_membership
+from apps.api.modules.organization.deps import get_current_org_membership
 from apps.api.modules.organization.models.org_membership import OrgMembership
 from apps.api.modules.organization.schema import MyOrganizationOut, OrganizationBriefOut, OrganizationMembershipOut
 

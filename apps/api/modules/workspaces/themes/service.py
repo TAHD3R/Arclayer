@@ -11,7 +11,6 @@ from uuid import UUID
 from starlette.responses import RedirectResponse, Response
 
 from apps.api.common.services.base import BaseService
-from apps.api.common.utils.assets import build_asset_object_key, slugify
 from apps.api.config import Settings
 from apps.api.core.exceptions import BadRequest, Conflict, NotFound
 from apps.api.core.http.content_disposition import build_attachment_content_disposition
@@ -20,6 +19,7 @@ from apps.api.infra.storage.factory import build_storage_provider, build_storage
 from apps.api.infra.storage.local import LocalStorageProvider, safe_object_key_to_path
 from apps.api.infra.storage.s3 import S3StorageProvider
 from apps.api.modules.assets.models.asset import AssetPurpose, AssetRecord, AssetVisibility
+from apps.api.modules.assets.utils import build_asset_object_key, slugify
 from apps.api.modules.system.models.setting import SettingRecord
 from apps.api.modules.workspaces.themes.repository import WorkspaceThemesRepository
 from apps.api.modules.workspaces.themes.schema import (

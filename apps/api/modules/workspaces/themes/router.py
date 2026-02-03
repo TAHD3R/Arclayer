@@ -7,9 +7,9 @@ from fastapi import APIRouter, Depends
 
 from apps.api.config import Settings, get_settings
 from apps.api.core.http.response import Response, ResponseModel
-from apps.api.core.workspace.authz import require_workspace_permission
-from apps.api.core.workspace.deps import WorkspaceContext, require_workspace_manage_access
 from apps.api.modules.auth.deps import get_current_user_id
+from apps.api.modules.workspaces.authz.deps import require_workspace_permission
+from apps.api.modules.workspaces.deps import WorkspaceContext, require_workspace_manage_access
 from apps.api.modules.workspaces.themes.schema import (
     WorkspaceThemeImportIn,
     WorkspaceThemeListOut,

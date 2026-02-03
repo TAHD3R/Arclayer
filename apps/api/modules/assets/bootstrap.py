@@ -5,12 +5,12 @@ from pathlib import Path
 from uuid import UUID
 
 from apps.api.config import Settings
-from apps.api.core.assets.events import ASSET_UPLOADED_EVENT
 from apps.api.core.logging import get_logger
 from apps.api.infra.assets.thumbnails import generate_image_thumbnails
 from apps.api.infra.storage.factory import build_storage_provider_for
 from apps.api.infra.storage.local import safe_object_key_to_path
 from apps.api.infra.storage.s3 import S3StorageProvider
+from apps.api.modules.assets.events import ASSET_UPLOADED_EVENT
 from apps.api.modules.assets.models.asset import AssetRecord
 from apps.api.plugin.event_bus import Event
 from apps.api.plugin.registry import ExtensionRegistry

@@ -4,8 +4,6 @@ from fastapi import APIRouter, Depends
 
 from apps.api.config import Settings, get_settings
 from apps.api.core.http.response import Response, ResponseModel
-from apps.api.core.workspace.authz import require_workspace_permission
-from apps.api.core.workspace.deps import WorkspaceContext, require_workspace_manage_access
 from apps.api.modules.assets.admin.assets.router import router as workspace_assets_router
 from apps.api.modules.assets.admin.shares.router import router as workspace_shares_router
 from apps.api.modules.assets.admin.uploads.router import router as workspace_uploads_router
@@ -13,7 +11,9 @@ from apps.api.modules.assets.admin.usages.router import router as workspace_usag
 from apps.api.modules.auth.deps import get_current_user_id
 from apps.api.modules.system.admin.menus.router import router as workspace_menus_router
 from apps.api.modules.system.admin.notifications.router import router as workspace_notifications_router
+from apps.api.modules.workspaces.authz.deps import require_workspace_permission
 from apps.api.modules.workspaces.authz.router import router as workspace_authz_router
+from apps.api.modules.workspaces.deps import WorkspaceContext, require_workspace_manage_access
 from apps.api.modules.workspaces.rbac.router import router as workspace_rbac_router
 from apps.api.modules.workspaces.schema import MyWorkspaceListResult, WorkspaceDetailOut, WorkspaceUpdateRequest
 from apps.api.modules.workspaces.service import WorkspaceService

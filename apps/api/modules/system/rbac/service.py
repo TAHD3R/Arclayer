@@ -10,7 +10,8 @@ from apps.api.config import Settings
 from apps.api.core.exceptions import BadRequest, Conflict, NotFound
 from apps.api.core.http.pagination import PageData, PageParams, paginate_queryset
 from apps.api.core.i18n import t
-from apps.api.core.rbac.constants import (
+from apps.api.modules.system.models.rbac import Permission, PermissionScope, Role
+from apps.api.modules.system.rbac.constants import (
     CORE_PERMISSION_OWNER,
     ROLE_ADMIN,
     ROLE_DESIGNER,
@@ -18,8 +19,7 @@ from apps.api.core.rbac.constants import (
     ROLE_OWNER,
     ROLE_VIEWER,
 )
-from apps.api.core.rbac.repository import RBACRepository
-from apps.api.modules.system.models.rbac import Permission, PermissionScope, Role
+from apps.api.modules.system.rbac.repository import RBACRepository
 from apps.api.modules.workspaces.models.workspace import Workspace
 from apps.api.plugin.registry import registry
 

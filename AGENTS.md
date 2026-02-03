@@ -244,7 +244,7 @@
 
 将 Tortoise ORM 静态类型收敛用的协议统一放在：
 
-- `apps/api/common/utils/tortoise_protocols.py`
+- `apps/api/common/protocols/tortoise.py`
 
 协议只做“字段契约声明”，不影响运行时。例如：
 
@@ -260,7 +260,7 @@
 from typing import cast
 from uuid import UUID
 
-from apps.api.common.utils.tortoise_protocols import HasOrganizationId
+from apps.api.common.protocols.tortoise import HasOrganizationId
 
 orgm_like = cast(HasOrganizationId, orgm)
 org_id = UUID(str(orgm_like.organization_id))
@@ -271,7 +271,7 @@ org_id = UUID(str(orgm_like.organization_id))
 ```py
 from typing import cast
 
-from apps.api.common.utils.tortoise_protocols import PermissionMutableFields
+from apps.api.common.protocols.tortoise import PermissionMutableFields
 
 perm_like = cast(PermissionMutableFields, permission)
 perm_like.description = description  # description: str | None
@@ -282,7 +282,7 @@ perm_like.description = description  # description: str | None
 ```py
 from typing import cast
 
-from apps.api.common.utils.tortoise_protocols import SettingUpdatedBy
+from apps.api.common.protocols.tortoise import SettingUpdatedBy
 
 cast(SettingUpdatedBy, record).updated_by = updated_by  # updated_by: UUID | None
 ```

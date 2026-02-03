@@ -88,11 +88,11 @@ async def test_plugin_admin_alias_route(prepared_db, plugin_root) -> None:
     app = create_app()
     transport = ASGITransport(app=app)
     async with app.router.lifespan_context(app):
-        from apps.api.core.organization.repository import OrganizationRepository
         from apps.api.modules.auth.repository import UserRepository
         from apps.api.modules.auth.security import hash_password
         from apps.api.modules.organization.models.org_membership import OrgMembership
         from apps.api.modules.organization.models.user import User
+        from apps.api.modules.organization.repository import OrganizationRepository
         from apps.api.modules.workspaces.models.workspace import Workspace
 
         user_repo = UserRepository()

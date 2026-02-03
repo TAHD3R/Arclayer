@@ -62,11 +62,11 @@ async def test_core_domain_short_paths(prepared_db_with_repo_plugins_auto_migrat
 
     transport = ASGITransport(app=app)
     async with app.router.lifespan_context(app):
-        from apps.api.core.organization.repository import OrganizationRepository
         from apps.api.modules.auth.repository import UserRepository
         from apps.api.modules.auth.security import hash_password
         from apps.api.modules.organization.models.org_membership import OrgMembership
         from apps.api.modules.organization.models.user import User
+        from apps.api.modules.organization.repository import OrganizationRepository
         from apps.api.modules.workspaces.models.workspace import Workspace
 
         settings = get_settings()

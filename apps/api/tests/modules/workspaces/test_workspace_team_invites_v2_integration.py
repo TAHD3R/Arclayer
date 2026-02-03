@@ -71,11 +71,11 @@ async def test_me_workspaces_owner_can_see_all_with_visible_only(prepared_db, in
     async with app.router.lifespan_context(app):
         await verify_db_ready(settings)
 
-        from apps.api.core.organization.repository import OrganizationRepository
         from apps.api.modules.auth.repository import UserRepository
         from apps.api.modules.auth.security import hash_password
         from apps.api.modules.organization.models.org_membership import OrgMembership
         from apps.api.modules.organization.models.user import User
+        from apps.api.modules.organization.repository import OrganizationRepository
         from apps.api.modules.workspaces.models.workspace import Workspace
 
         org_repo = OrganizationRepository()
@@ -157,11 +157,11 @@ async def test_workspace_invite_link_accept_existing_creates_use_event(
     async with app.router.lifespan_context(app):
         await verify_db_ready(settings)
 
-        from apps.api.core.organization.repository import OrganizationRepository
         from apps.api.modules.auth.repository import UserRepository
         from apps.api.modules.auth.security import hash_password
         from apps.api.modules.organization.models.org_membership import OrgMembership
         from apps.api.modules.organization.models.user import User
+        from apps.api.modules.organization.repository import OrganizationRepository
         from apps.api.modules.system.models.rbac import Role
         from apps.api.modules.workspaces.models.workspace import Workspace
         from apps.api.modules.workspaces.models.workspace_invite import WorkspaceInviteLinkUseEvent
@@ -279,11 +279,11 @@ async def test_workspace_invite_link_max_uses_enforced(prepared_db, integration_
     async with app.router.lifespan_context(app):
         await verify_db_ready(settings)
 
-        from apps.api.core.organization.repository import OrganizationRepository
         from apps.api.modules.auth.repository import UserRepository
         from apps.api.modules.auth.security import hash_password
         from apps.api.modules.organization.models.org_membership import OrgMembership
         from apps.api.modules.organization.models.user import User
+        from apps.api.modules.organization.repository import OrganizationRepository
         from apps.api.modules.workspaces.models.workspace import Workspace
 
         org_repo = OrganizationRepository()
@@ -374,12 +374,12 @@ async def test_auth_me_invitations_includes_workspace(prepared_db, integration_v
     async with app.router.lifespan_context(app):
         await verify_db_ready(settings)
 
-        from apps.api.core.invitations.tokens import generate_invite_code
-        from apps.api.core.organization.repository import OrganizationRepository
         from apps.api.modules.auth.repository import UserRepository
         from apps.api.modules.auth.security import hash_password
         from apps.api.modules.organization.models.org_membership import OrgMembership
         from apps.api.modules.organization.models.user import User
+        from apps.api.modules.organization.repository import OrganizationRepository
+        from apps.api.modules.workspaces.invitations.tokens import generate_invite_code
         from apps.api.modules.workspaces.models.workspace import Workspace
         from apps.api.modules.workspaces.models.workspace_invite import WorkspaceEmailInvite
 
@@ -459,11 +459,11 @@ async def test_workspace_invite_link_domain_restriction_enforced(prepared_db, in
     async with app.router.lifespan_context(app):
         await verify_db_ready(settings)
 
-        from apps.api.core.organization.repository import OrganizationRepository
         from apps.api.modules.auth.repository import UserRepository
         from apps.api.modules.auth.security import hash_password
         from apps.api.modules.organization.models.org_membership import OrgMembership
         from apps.api.modules.organization.models.user import User
+        from apps.api.modules.organization.repository import OrganizationRepository
         from apps.api.modules.workspaces.models.workspace import Workspace
 
         org_repo = OrganizationRepository()
@@ -539,11 +539,11 @@ async def test_a2_single_org_enforced_on_accept_existing(prepared_db, integratio
     async with app.router.lifespan_context(app):
         await verify_db_ready(settings)
 
-        from apps.api.core.organization.repository import OrganizationRepository
         from apps.api.modules.auth.repository import UserRepository
         from apps.api.modules.auth.security import hash_password
         from apps.api.modules.organization.models.org_membership import OrgMembership
         from apps.api.modules.organization.models.user import User
+        from apps.api.modules.organization.repository import OrganizationRepository
         from apps.api.modules.workspaces.models.workspace import Workspace
 
         org_repo = OrganizationRepository()
@@ -634,11 +634,11 @@ async def test_workspace_email_invite_pending_unique_and_accept(
 
         monkeypatch.setattr("apps.api.common.email.service.EmailService._get_fast_mail", _dummy_get_fast_mail)
 
-        from apps.api.core.organization.repository import OrganizationRepository
         from apps.api.modules.auth.repository import UserRepository
         from apps.api.modules.auth.security import hash_password
         from apps.api.modules.organization.models.org_membership import OrgMembership
         from apps.api.modules.organization.models.user import User
+        from apps.api.modules.organization.repository import OrganizationRepository
         from apps.api.modules.workspaces.models.workspace import Workspace
         from apps.api.modules.workspaces.models.workspace_invite import WorkspaceEmailInvite
 
@@ -747,11 +747,11 @@ async def test_workspace_email_invite_email_mismatch_rejected(
 
         monkeypatch.setattr("apps.api.common.email.service.EmailService._get_fast_mail", _dummy_get_fast_mail)
 
-        from apps.api.core.organization.repository import OrganizationRepository
         from apps.api.modules.auth.repository import UserRepository
         from apps.api.modules.auth.security import hash_password
         from apps.api.modules.organization.models.org_membership import OrgMembership
         from apps.api.modules.organization.models.user import User
+        from apps.api.modules.organization.repository import OrganizationRepository
         from apps.api.modules.workspaces.models.workspace import Workspace
 
         org_repo = OrganizationRepository()
@@ -823,11 +823,11 @@ async def test_workspace_invite_link_disable_blocks_accept(prepared_db, integrat
     async with app.router.lifespan_context(app):
         await verify_db_ready(settings)
 
-        from apps.api.core.organization.repository import OrganizationRepository
         from apps.api.modules.auth.repository import UserRepository
         from apps.api.modules.auth.security import hash_password
         from apps.api.modules.organization.models.org_membership import OrgMembership
         from apps.api.modules.organization.models.user import User
+        from apps.api.modules.organization.repository import OrganizationRepository
         from apps.api.modules.workspaces.models.workspace import Workspace
 
         org_repo = OrganizationRepository()
@@ -906,11 +906,11 @@ async def test_workspace_team_member_manage_update_disable_enable_and_reset_pass
     async with app.router.lifespan_context(app):
         await verify_db_ready(settings)
 
-        from apps.api.core.organization.repository import OrganizationRepository
         from apps.api.modules.auth.repository import UserRepository
         from apps.api.modules.auth.security import hash_password
         from apps.api.modules.organization.models.org_membership import OrgMembership
         from apps.api.modules.organization.models.user import User
+        from apps.api.modules.organization.repository import OrganizationRepository
         from apps.api.modules.workspaces.models.workspace import Workspace, WorkspaceMembership
 
         org_repo = OrganizationRepository()

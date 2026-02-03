@@ -24,11 +24,11 @@ async def test_workspace_metadata_get_and_patch(prepared_db, integration_valkey_
     async with app.router.lifespan_context(app):
         await verify_db_ready(settings)
 
-        from apps.api.core.organization.repository import OrganizationRepository
         from apps.api.modules.auth.repository import UserRepository
         from apps.api.modules.auth.security import hash_password
         from apps.api.modules.organization.models.org_membership import OrgMembership
         from apps.api.modules.organization.models.user import User
+        from apps.api.modules.organization.repository import OrganizationRepository
         from apps.api.modules.workspaces.models.workspace import Workspace
 
         org_repo = OrganizationRepository()

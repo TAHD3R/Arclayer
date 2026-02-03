@@ -94,9 +94,9 @@ async def test_plugin_management_flow(prepared_db, plugin_root, tmp_path) -> Non
 
     transport = ASGITransport(app=app)
     async with app.router.lifespan_context(app):
-        from apps.api.core.organization.repository import OrganizationRepository
         from apps.api.modules.auth.repository import UserRepository
         from apps.api.modules.auth.security import hash_password
+        from apps.api.modules.organization.repository import OrganizationRepository
 
         settings = get_settings()
         user_repo = UserRepository()

@@ -10,22 +10,22 @@ from tortoise.expressions import Q
 from tortoise.transactions import in_transaction
 
 from apps.api.common.email.service import EmailService
-from apps.api.common.services import BaseService
-from apps.api.common.utils.tortoise_protocols import (
+from apps.api.common.protocols.tortoise import (
     HasUserId,
     WorkspaceEmailInviteMutableFields,
     WorkspaceInviteLinkMutableFields,
 )
+from apps.api.common.services import BaseService
 from apps.api.config import Settings
 from apps.api.core.exceptions import BadRequest, Conflict, NotFound
 from apps.api.core.http.pagination import PageData, PageParams
 from apps.api.core.i18n import t
-from apps.api.core.invitations.expiry import build_expires_at
-from apps.api.core.invitations.tokens import build_invite_token, generate_invite_code
 from apps.api.modules.auth.repository import UserRepository
 from apps.api.modules.auth.security import hash_password
 from apps.api.modules.organization.models.user import User
 from apps.api.modules.system.models.rbac import Role
+from apps.api.modules.workspaces.invitations.expiry import build_expires_at
+from apps.api.modules.workspaces.invitations.tokens import build_invite_token, generate_invite_code
 from apps.api.modules.workspaces.models.workspace import WorkspaceMembership, WorkspaceMembershipStatus
 from apps.api.modules.workspaces.models.workspace_invite import (
     WorkspaceEmailInvite,

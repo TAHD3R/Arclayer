@@ -9,15 +9,8 @@ from fastapi import BackgroundTasks
 from tortoise.exceptions import IntegrityError
 
 from apps.api.common.services import BaseService
-from apps.api.common.utils.assets import (
-    build_asset_object_key,
-    build_upload_part_object_key,
-    compute_total_parts,
-    slugify,
-)
 from apps.api.common.utils.ids import uuid7
 from apps.api.config import Settings
-from apps.api.core.assets.events import ASSET_UPLOADED_EVENT
 from apps.api.core.exceptions import BadRequest, NotFound
 from apps.api.core.i18n import t
 from apps.api.core.logging import get_logger
@@ -33,8 +26,15 @@ from apps.api.modules.assets.admin.uploads.policy import (
 )
 from apps.api.modules.assets.admin.uploads.repository import UploadsRepository
 from apps.api.modules.assets.admin.uploads.schema import UploadPartPresignOut
+from apps.api.modules.assets.events import ASSET_UPLOADED_EVENT
 from apps.api.modules.assets.models.asset import AssetPurpose, AssetRecord, AssetVisibility
 from apps.api.modules.assets.models.upload import UploadSessionRecord, UploadStatus
+from apps.api.modules.assets.utils import (
+    build_asset_object_key,
+    build_upload_part_object_key,
+    compute_total_parts,
+    slugify,
+)
 from apps.api.plugin.event_bus import Event
 from apps.api.plugin.registry import registry as plugin_registry
 from apps.api.settings.runtime import get_effective_settings

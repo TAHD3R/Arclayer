@@ -10,7 +10,7 @@ from uuid import UUID
 from tortoise.exceptions import IntegrityError
 from tortoise.transactions import in_transaction
 
-from apps.api.common.utils.tortoise_protocols import RouteTemplateIds, SettingUpdatedBy
+from apps.api.common.protocols.tortoise import RouteTemplateIds, SettingUpdatedBy
 from apps.api.core.exceptions import Conflict, NotFound
 from apps.api.modules.assets.models.asset import AssetRecord
 from apps.api.modules.sites.models.site import SiteRecord

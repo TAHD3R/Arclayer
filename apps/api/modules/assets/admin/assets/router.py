@@ -9,8 +9,6 @@ from apps.api.config import Settings, get_settings
 from apps.api.core.http.pagination import PageData, PageParams, get_page_params
 from apps.api.core.http.response import Response as JsonResponse
 from apps.api.core.http.response import ResponseModel
-from apps.api.core.workspace.authz import require_workspace_permission
-from apps.api.core.workspace.deps import WorkspaceContext, require_workspace_manage_access
 from apps.api.modules.assets.admin.assets.schema import (
     AdminAssetBulkDeleteOut,
     AdminAssetBulkDeleteRequest,
@@ -32,6 +30,8 @@ from apps.api.modules.assets.admin.assets.schema import (
     AdminAssetUpdateRequest,
 )
 from apps.api.modules.assets.admin.assets.service import AdminAssetsService
+from apps.api.modules.workspaces.authz.deps import require_workspace_permission
+from apps.api.modules.workspaces.deps import WorkspaceContext, require_workspace_manage_access
 
 router = APIRouter(
     prefix="/workspaces/{workspace_id}",

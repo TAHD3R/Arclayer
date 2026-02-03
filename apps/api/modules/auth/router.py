@@ -8,13 +8,12 @@ from fastapi import APIRouter, BackgroundTasks, Depends, Query, Request
 from tortoise.expressions import Q
 from tortoise.transactions import in_transaction
 
-from apps.api.common.utils.tortoise_protocols import HasOrganizationId, HasWorkspaceId
+from apps.api.common.protocols.tortoise import HasOrganizationId, HasWorkspaceId
 from apps.api.config import Settings, get_settings
 from apps.api.core.exceptions import BadRequest, Conflict, Forbidden, NotFound, ServiceUnavailable
 from apps.api.core.http.pagination import PageData, PageParams, get_page_params
 from apps.api.core.http.response import Response, ResponseModel
 from apps.api.core.i18n import get_current_locale, t
-from apps.api.core.invitations.tokens import verify_invite_token
 from apps.api.infra.cache.valkey import get_valkey
 from apps.api.infra.limiter.limiter import rate_limit
 from apps.api.modules.auth.constants import (
@@ -56,6 +55,7 @@ from apps.api.modules.organization.models.org_membership import OrgMembership
 from apps.api.modules.organization.models.organization import Organization
 from apps.api.modules.organization.models.user import User, UserCredential, UserStatus
 from apps.api.modules.system.models.rbac import Permission, Role
+from apps.api.modules.workspaces.invitations.tokens import verify_invite_token
 from apps.api.modules.workspaces.models.workspace import (
     Workspace,
     WorkspaceMembership,
@@ -773,7 +773,7 @@ async def preview_invitation(
     if role_obj is not None:
         # Localize role name/description for preview UX.
         from apps.api.core.i18n import get_current_locale
-        from apps.api.core.rbac.service import RBACService
+        from apps.api.modules.system.rbac.service import RBACService
 
         rbac = RBACService(settings)
         localized = rbac.localize_role(role_obj, locale=get_current_locale())

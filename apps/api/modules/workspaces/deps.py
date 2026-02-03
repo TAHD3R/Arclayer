@@ -7,13 +7,13 @@ from fastapi import Depends, Path
 from pydantic import Field
 from structlog.contextvars import bind_contextvars
 
+from apps.api.common.protocols.tortoise import HasOrganizationId
 from apps.api.common.schemas import BaseSchema
-from apps.api.common.utils.tortoise_protocols import HasOrganizationId
-from apps.api.core.auth.deps import get_current_user_id
 from apps.api.core.exceptions import Forbidden, NotFound
 from apps.api.core.i18n import t
-from apps.api.core.workspace.context import set_current_workspace_context
+from apps.api.modules.auth.deps import get_current_user_id
 from apps.api.modules.organization.models.org_membership import OrgMembership, OrgRole
+from apps.api.modules.workspaces.context import set_current_workspace_context
 from apps.api.modules.workspaces.models.workspace import Workspace, WorkspaceMembership, WorkspaceMembershipStatus
 
 

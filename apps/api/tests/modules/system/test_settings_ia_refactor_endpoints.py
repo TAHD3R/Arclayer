@@ -8,8 +8,8 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from apps.api.config import get_settings
-from apps.api.core.org.deps import require_org_owner
 from apps.api.modules.auth.deps import get_current_user
+from apps.api.modules.organization.deps import require_org_owner
 from apps.api.modules.organization.router import router as me_router
 from apps.api.modules.system.router import router as system_router
 
@@ -80,7 +80,7 @@ def test_me_organization_owner_flag() -> None:
     app = FastAPI()
     app.include_router(me_router, prefix="/api/v1")
     # Override the dependency used by `/me/organization` to bypass auth and DB.
-    from apps.api.core.org.deps import get_current_org_membership
+    from apps.api.modules.organization.deps import get_current_org_membership
 
     app.dependency_overrides[get_current_org_membership] = _get_orgm_owner_override
 

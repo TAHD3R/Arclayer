@@ -62,14 +62,14 @@ async def _bootstrap_workspace_system_roles(  # type: ignore[no-untyped-def]
 
     from apps.api.core.exceptions import Conflict
     from apps.api.core.i18n import t
-    from apps.api.core.rbac.constants import (
+    from apps.api.modules.system.models.rbac import Role
+    from apps.api.modules.system.rbac.constants import (
         ROLE_ADMIN,
         ROLE_DESIGNER,
         ROLE_EDITOR,
         ROLE_OWNER,
         ROLE_VIEWER,
     )
-    from apps.api.modules.system.models.rbac import Role
 
     # Fast path: already has any system role -> assume bootstrapped.
     if await Role.filter(workspace_id=instance.id, is_system=True).using_db(using_db).exists():

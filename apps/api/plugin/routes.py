@@ -8,8 +8,8 @@ from typing import cast
 from fastapi import APIRouter, Depends
 
 from apps.api.core.logging import get_logger
-from apps.api.core.workspace.authz import require_workspace_permission
-from apps.api.core.workspace.deps import require_workspace_manage_access
+from apps.api.modules.workspaces.authz.deps import require_workspace_permission
+from apps.api.modules.workspaces.deps import require_workspace_manage_access
 from apps.api.plugin.deps import require_plugin_enabled
 from apps.api.plugin.manager import PluginManager
 

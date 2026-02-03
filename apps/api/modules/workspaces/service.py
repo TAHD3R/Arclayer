@@ -4,8 +4,8 @@ import re
 from typing import cast
 from uuid import UUID
 
+from apps.api.common.protocols.tortoise import HasOrganizationId, HasWorkspaceId
 from apps.api.common.services import BaseService
-from apps.api.common.utils.tortoise_protocols import HasOrganizationId, HasWorkspaceId
 from apps.api.config import Settings
 from apps.api.core.exceptions import BadRequest, Conflict, NotFound
 from apps.api.core.i18n import t

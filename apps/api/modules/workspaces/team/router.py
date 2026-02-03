@@ -9,9 +9,9 @@ from apps.api.core.exceptions import BadRequest, NotFound
 from apps.api.core.http.pagination import PageData, get_page_params
 from apps.api.core.http.response import Response, ResponseModel
 from apps.api.core.i18n import get_current_locale, t
-from apps.api.core.workspace.authz import require_workspace_permission
-from apps.api.core.workspace.deps import WorkspaceContext, require_workspace_manage_access
 from apps.api.modules.auth.deps import get_current_user_id
+from apps.api.modules.workspaces.authz.deps import require_workspace_permission
+from apps.api.modules.workspaces.deps import WorkspaceContext, require_workspace_manage_access
 from apps.api.modules.workspaces.models.workspace import Workspace
 from apps.api.modules.workspaces.team.schema import (
     WorkspaceEmailInviteCreateRequest,

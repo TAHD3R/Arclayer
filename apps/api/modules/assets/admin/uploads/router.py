@@ -8,8 +8,6 @@ from apps.api.config import Settings, get_settings
 from apps.api.core.exceptions import BadRequest
 from apps.api.core.http.response import Response, ResponseModel
 from apps.api.core.i18n import t
-from apps.api.core.workspace.authz import require_workspace_permission
-from apps.api.core.workspace.deps import WorkspaceContext, require_workspace_manage_access
 from apps.api.modules.assets.admin.uploads.schema import (
     UploadAbortOut,
     UploadCompleteOut,
@@ -21,6 +19,8 @@ from apps.api.modules.assets.admin.uploads.schema import (
 )
 from apps.api.modules.assets.admin.uploads.service import UploadsService
 from apps.api.modules.auth.deps import get_current_user
+from apps.api.modules.workspaces.authz.deps import require_workspace_permission
+from apps.api.modules.workspaces.deps import WorkspaceContext, require_workspace_manage_access
 
 router = APIRouter(
     prefix="/workspaces/{workspace_id}",

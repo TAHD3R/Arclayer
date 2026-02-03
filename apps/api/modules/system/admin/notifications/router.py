@@ -7,8 +7,6 @@ from fastapi import APIRouter, Depends, Query
 from apps.api.config import Settings, get_settings
 from apps.api.core.http.pagination import PageData, PageParams, get_page_params
 from apps.api.core.http.response import Response, ResponseModel
-from apps.api.core.workspace.authz import require_workspace_permission
-from apps.api.core.workspace.deps import WorkspaceContext, require_workspace_manage_access
 from apps.api.modules.auth.deps import get_current_user_id
 from apps.api.modules.system.admin.notifications.schema import (
     NotificationDeleteResult,
@@ -21,6 +19,8 @@ from apps.api.modules.system.admin.notifications.schema import (
     NotificationReadResult,
 )
 from apps.api.modules.system.admin.notifications.service import NotificationService
+from apps.api.modules.workspaces.authz.deps import require_workspace_permission
+from apps.api.modules.workspaces.deps import WorkspaceContext, require_workspace_manage_access
 
 router = APIRouter(
     prefix="/workspaces/{workspace_id}/notifications",

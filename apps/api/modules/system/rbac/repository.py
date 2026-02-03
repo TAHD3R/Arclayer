@@ -6,10 +6,10 @@ from uuid import UUID
 
 from tortoise.queryset import QuerySet
 
+from apps.api.common.protocols.tortoise import PermissionMutableFields
 from apps.api.common.repositories import BaseRepository
-from apps.api.common.utils.tortoise_protocols import PermissionMutableFields
-from apps.api.core.rbac.constants import BOOTSTRAP_KEY
 from apps.api.modules.system.models.rbac import BootstrapState, Permission, PermissionScope, Role, RolePermission
+from apps.api.modules.system.rbac.constants import BOOTSTRAP_KEY
 
 
 class RBACRepository(BaseRepository):

@@ -7,7 +7,7 @@ from apps.api.core.exceptions import ServiceUnavailable
 from apps.api.core.http.pagination import PageData, PageParams, get_page_params
 from apps.api.core.http.response import Response, ResponseModel
 from apps.api.core.i18n import t
-from apps.api.core.org.deps import require_org_admin
+from apps.api.modules.organization.deps import require_org_admin
 from apps.api.modules.system.plugins_manager.schema import (
     PluginConfigUpdate,
     PluginDetail,

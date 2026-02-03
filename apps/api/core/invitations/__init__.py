@@ -1,1 +1,0 @@
-"""Invitation helpers (v2)."""
