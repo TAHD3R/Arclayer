@@ -31,7 +31,11 @@ from apps.api.routers.v1.sites.schema import (
     SiteEntryUpdateIn,
     SitePageCreateIn,
     SitePageDeleteOut,
+    SitePageDraftSaveIn,
+    SitePageDraftSaveOut,
     SitePageMoveIn,
+    SitePagePublishIn,
+    SitePagePublishOut,
     SitePageRevisionOut,
     SitePageRollbackIn,
     SitePageRollbackOut,
@@ -711,6 +715,43 @@ async def get_draft_page_revision(
 ) -> ResponseModel[SitePageRevisionOut]:
     await service.assert_preview_access_async(site_id=site_id, mode="preview", token=token)
     data = await service.get_page_revision(site_id=site_id, page_id=page_id, state="draft")
+    return Response.success(data=data)
+
+
+@router.post(
+    "/sites/{site_id}/pages/{page_id}/revisions/draft",
+    response_model=ResponseModel[SitePageDraftSaveOut],
+    response_model_exclude_none=True,
+    status_code=status.HTTP_201_CREATED,
+    summary="Save a draft page revision (preview token required)",
+)
+async def save_page_revision_draft(
+    site_id: str,
+    page_id: UUID,
+    payload: Annotated[SitePageDraftSaveIn, Body(description="Page draft save payload.")],
+    service: Annotated[SiteService, Depends(get_site_service)],
+    token: Annotated[str, Query(..., description="Preview token (required).")],
+) -> ResponseModel[SitePageDraftSaveOut]:
+    await service.assert_preview_access_async(site_id=site_id, mode="preview", token=token)
+    data = await service.save_page_draft(site_id=site_id, page_id=page_id, payload=payload)
+    return Response.success(data=data)
+
+
+@router.post(
+    "/sites/{site_id}/pages/{page_id}/revisions/publish",
+    response_model=ResponseModel[SitePagePublishOut],
+    response_model_exclude_none=True,
+    summary="Publish a page revision (draft -> public; preview token required)",
+)
+async def publish_page_revision(
+    site_id: str,
+    page_id: UUID,
+    payload: Annotated[SitePagePublishIn, Body(description="Page publish payload.")],
+    service: Annotated[SiteService, Depends(get_site_service)],
+    token: Annotated[str, Query(..., description="Preview token (required).")],
+) -> ResponseModel[SitePagePublishOut]:
+    await service.assert_preview_access_async(site_id=site_id, mode="preview", token=token)
+    data = await service.publish_page(site_id=site_id, page_id=page_id, payload=payload)
     return Response.success(data=data)
 
 

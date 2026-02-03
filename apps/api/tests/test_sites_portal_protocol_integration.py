@@ -373,6 +373,41 @@ async def test_sites_public_preview_draft_publish_flow(prepared_schema) -> None:
             )
             assert resp.status_code == 409
 
+            # Preferred editor entrypoints: save/publish by pageId.
+            resp = await client.post(
+                f"/api/v1/sites/{site.id}/pages/{about.id}/revisions/draft",
+                params={"token": token},
+                json={
+                    "document": _doc("About v3 (draft by id)"),
+                    "expectedRevision": 2,
+                },
+            )
+            assert resp.status_code == 201
+            assert resp.json()["data"]["pageId"] == str(about.id)
+            assert resp.json()["data"]["revision"] == 3
+
+            resp = await client.get(
+                f"/api/v1/sites/{site.id}/routes/resolve",
+                params={"path": "/about", "mode": "preview", "token": token},
+            )
+            assert resp.status_code == 200
+            assert resp.json()["data"]["document"]["meta"]["title"]["en-US"] == "About v3 (draft by id)"
+
+            resp = await client.post(
+                f"/api/v1/sites/{site.id}/pages/{about.id}/revisions/publish",
+                params={"token": token},
+                json={"revision": 3},
+            )
+            assert resp.status_code == 200
+            assert resp.json()["data"]["revision"] == 3
+
+            resp = await client.get(
+                f"/api/v1/sites/{site.id}/routes/resolve",
+                params={"path": "/about", "mode": "public"},
+            )
+            assert resp.status_code == 200
+            assert resp.json()["data"]["document"]["meta"]["title"]["en-US"] == "About v3 (draft by id)"
+
             # Entry revisions: ensure published snapshot is accessible.
             resp = await client.get(f"/api/v1/sites/{site.id}/entries/{entry.id}/revisions/published")
             assert resp.status_code == 200

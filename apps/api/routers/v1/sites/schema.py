@@ -171,6 +171,10 @@ class SiteRouteMatchOut(BaseSchema):
     redirect_status: Literal[301, 302] | None = Field(default=None, description="Redirect status code.")
     page_id: str | None = Field(default=None, description="Matched page id (kind=page only).")
     entry_id: str | None = Field(default=None, description="Matched entry id (kind=route_template only).")
+    variant_id: str | None = Field(
+        default=None,
+        description="Optional theme variant id used by the resolved revision (if any).",
+    )
     revision: int | None = Field(
         default=None,
         ge=1,
@@ -262,6 +266,53 @@ class SiteRoutePublishOut(BaseSchema):
 
     site_id: str = Field(..., description="Site id.")
     path: str = Field(..., description="Published pathname.")
+    revision: int = Field(..., ge=1, description="Published revision number.")
+    published_at_ms: int = Field(..., description="Published timestamp in milliseconds (UTC).")
+
+
+class SitePageDraftSaveIn(BaseSchema):
+    model_config = ConfigDict(extra="forbid")
+
+    document: DocumentIR = Field(..., description="Draft document payload.")
+    meta: dict[str, Any] | None = Field(default=None, description="Optional metadata payload (JSON).")
+    style_overrides: dict[str, Any] | None = Field(default=None, description="Optional style overrides payload (JSON).")
+    variant_id: str | None = Field(default=None, description="Optional theme variant id.")
+    deps: dict[str, Any] | None = Field(default=None, description="Optional dependency snapshot payload (JSON).")
+    expected_revision: int | None = Field(
+        default=None,
+        ge=0,
+        description="Optional optimistic lock revision. If provided, must match current draft revision.",
+        examples=[0],
+    )
+
+
+class SitePageDraftSaveOut(BaseSchema):
+    model_config = ConfigDict(extra="forbid")
+
+    site_id: str = Field(..., description="Site id.")
+    page_id: str = Field(..., description="Page id.")
+    path: str = Field(..., description="Page pathname (stable public URL).")
+    revision: int = Field(..., ge=1, description="Draft revision number.")
+    saved_at_ms: int = Field(..., description="Saved timestamp in milliseconds (UTC).")
+
+
+class SitePagePublishIn(BaseSchema):
+    model_config = ConfigDict(extra="forbid")
+
+    revision: int | None = Field(
+        default=None,
+        ge=1,
+        description="Draft revision number to publish. If omitted, publish the latest draft revision.",
+        examples=[1],
+    )
+
+
+class SitePagePublishOut(BaseSchema):
+    model_config = ConfigDict(extra="forbid")
+
+    site_id: str = Field(..., description="Site id.")
+    page_id: str = Field(..., description="Page id.")
+    path: str = Field(..., description="Page pathname (stable public URL).")
     revision: int = Field(..., ge=1, description="Published revision number.")
     published_at_ms: int = Field(..., description="Published timestamp in milliseconds (UTC).")
 

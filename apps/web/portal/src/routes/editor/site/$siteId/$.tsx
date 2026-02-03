@@ -14,8 +14,17 @@ export const Route = createFileRoute("/editor/site/$siteId/$")({
 
 function EditorSiteSplatPage() {
   const params = Route.useParams();
-  const { document, pathname } = Route.useLoaderData();
-  const { viewerCtx } = Route.useRouteContext();
+  const { document, pathname, match } = Route.useLoaderData();
+  const { viewerCtx: baseViewerCtx } = Route.useRouteContext();
+
+  const viewerCtx = React.useMemo(
+    () => ({
+      ...baseViewerCtx,
+      routeParams: match.params,
+      variantId: match.variantId,
+    }),
+    [baseViewerCtx, match.params, match.variantId],
+  );
   return (
     <EditorSiteView
       initialDocument={document}

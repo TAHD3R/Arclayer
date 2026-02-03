@@ -26,13 +26,23 @@ export const Route = createFileRoute("/preview/")({
       throw new HttpError(404, "Preview page not found.");
     }
 
-    return { document: resolved.document };
+    return { document: resolved.document, match: resolved.match };
   },
   component: PreviewIndexPage,
 });
 
 function PreviewIndexPage() {
-  const { document } = Route.useLoaderData();
-  const { viewerCtx } = Route.useRouteContext();
+  const { document, match } = Route.useLoaderData();
+  const { viewerCtx: baseViewerCtx } = Route.useRouteContext();
+
+  const viewerCtx = React.useMemo(
+    () => ({
+      ...baseViewerCtx,
+      routeParams: match.params,
+      variantId: match.variantId,
+    }),
+    [baseViewerCtx, match.params, match.variantId],
+  );
+
   return <DocumentRenderer document={document} ctx={viewerCtx} />;
 }

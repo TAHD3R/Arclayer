@@ -31,6 +31,7 @@ describe("resolveEditorDocument()", () => {
         redirectStatus: null,
         pageId: null,
         entryId: null,
+        variantId: null,
         revision: 1,
         revisionState: "draft",
         draftRevision: 1,

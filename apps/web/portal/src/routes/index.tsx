@@ -16,14 +16,23 @@ export const Route = createFileRoute("/")({
       throw redirect({ href: resolved.to, statusCode: resolved.status });
     }
     if (resolved.kind !== "page") throw new Error("Invariant: home route must resolve to a page");
-    return { document: resolved.document };
+    return { document: resolved.document, match: resolved.match };
   },
   component: IndexPage,
 });
 
 function IndexPage() {
-  const { document } = Route.useLoaderData();
-  const { viewerCtx } = Route.useRouteContext();
+  const { document, match } = Route.useLoaderData();
+  const { viewerCtx: baseViewerCtx } = Route.useRouteContext();
+
+  const viewerCtx = React.useMemo(
+    () => ({
+      ...baseViewerCtx,
+      routeParams: match.params,
+      variantId: match.variantId,
+    }),
+    [baseViewerCtx, match.params, match.variantId],
+  );
 
   return (
     <>

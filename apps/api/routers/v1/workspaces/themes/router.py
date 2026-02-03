@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends
@@ -29,9 +30,9 @@ def get_themes_service(settings: Settings = Depends(get_settings)) -> WorkspaceT
 
 @router.get("/themes", response_model=ResponseModel[WorkspaceThemeListOut], summary="List installed themes")
 async def list_themes(
-    ctx: WorkspaceContext = Depends(require_workspace_manage_access),
-    _user_id=Depends(get_current_user_id),
-    service: WorkspaceThemesService = Depends(get_themes_service),
+    ctx: Annotated[WorkspaceContext, Depends(require_workspace_manage_access)],
+    _user_id: Annotated[UUID, Depends(get_current_user_id)],
+    service: Annotated[WorkspaceThemesService, Depends(get_themes_service)],
 ) -> ResponseModel[WorkspaceThemeListOut]:
     items = await service.list_themes(workspace_id=ctx.workspace_id)
     return Response.success(data=WorkspaceThemeListOut(items=items))
@@ -40,9 +41,9 @@ async def list_themes(
 @router.post("/themes/import", response_model=ResponseModel[WorkspaceThemeOut], summary="Import a theme package (zip)")
 async def import_theme(
     payload: WorkspaceThemeImportIn,
-    ctx: WorkspaceContext = Depends(require_workspace_manage_access),
-    user_id: UUID = Depends(get_current_user_id),
-    service: WorkspaceThemesService = Depends(get_themes_service),
+    ctx: Annotated[WorkspaceContext, Depends(require_workspace_manage_access)],
+    user_id: Annotated[UUID, Depends(get_current_user_id)],
+    service: Annotated[WorkspaceThemesService, Depends(get_themes_service)],
 ) -> ResponseModel[WorkspaceThemeOut]:
     out = await service.import_theme_from_asset(
         workspace_id=ctx.workspace_id,
@@ -60,9 +61,9 @@ async def import_theme(
 async def get_theme(
     theme_id: str,
     version: str,
-    ctx: WorkspaceContext = Depends(require_workspace_manage_access),
-    _user_id=Depends(get_current_user_id),
-    service: WorkspaceThemesService = Depends(get_themes_service),
+    ctx: Annotated[WorkspaceContext, Depends(require_workspace_manage_access)],
+    _user_id: Annotated[UUID, Depends(get_current_user_id)],
+    service: Annotated[WorkspaceThemesService, Depends(get_themes_service)],
 ) -> ResponseModel[WorkspaceThemeOut]:
     out = await service.get_theme(workspace_id=ctx.workspace_id, theme_id=theme_id, version=version)
     return Response.success(data=out)
@@ -76,9 +77,9 @@ async def get_theme(
 async def delete_theme(
     theme_id: str,
     version: str,
-    ctx: WorkspaceContext = Depends(require_workspace_manage_access),
-    _user_id=Depends(get_current_user_id),
-    service: WorkspaceThemesService = Depends(get_themes_service),
+    ctx: Annotated[WorkspaceContext, Depends(require_workspace_manage_access)],
+    _user_id: Annotated[UUID, Depends(get_current_user_id)],
+    service: Annotated[WorkspaceThemesService, Depends(get_themes_service)],
 ) -> ResponseModel[None]:
     await service.delete_theme(workspace_id=ctx.workspace_id, theme_id=theme_id, version=version)
     return Response.success(data=None)
@@ -91,8 +92,8 @@ async def delete_theme(
 async def download_theme(
     theme_id: str,
     version: str,
-    ctx: WorkspaceContext = Depends(require_workspace_manage_access),
-    _user_id=Depends(get_current_user_id),
-    service: WorkspaceThemesService = Depends(get_themes_service),
+    ctx: Annotated[WorkspaceContext, Depends(require_workspace_manage_access)],
+    _user_id: Annotated[UUID, Depends(get_current_user_id)],
+    service: Annotated[WorkspaceThemesService, Depends(get_themes_service)],
 ):
     return await service.download_theme_artifact(workspace_id=ctx.workspace_id, theme_id=theme_id, version=version)

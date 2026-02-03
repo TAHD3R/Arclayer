@@ -1,12 +1,13 @@
 import { getEditorTokenOrThrow } from "@/router/namespaces";
 import { HttpError } from "@/router/routerFallbacks";
 import { resolvePortalRoute } from "@/runtime/portal-route-resolver";
+import type { PortalRouteMatch } from "@/runtime/site-api";
 
 export async function resolveEditorDocument(args: {
   pathname: string;
   context: { siteCtx: { siteId: string } };
   locationSearch: unknown;
-}): Promise<{ document: unknown; pathname: string }> {
+}): Promise<{ document: unknown; pathname: string; match: PortalRouteMatch }> {
   let token: string;
   try {
     token = getEditorTokenOrThrow(args.locationSearch);
@@ -29,5 +30,5 @@ export async function resolveEditorDocument(args: {
     throw new HttpError(404, `Editor page not found: ${args.pathname}`);
   }
 
-  return { document: resolved.document, pathname: args.pathname };
+  return { document: resolved.document, pathname: args.pathname, match: resolved.match };
 }

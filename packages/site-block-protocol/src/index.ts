@@ -40,6 +40,16 @@ export interface DocumentIR {
 export interface ViewerContext {
   locale: LocaleCode;
   fallbackLocale?: LocaleCode;
+  /**
+   * Route params injected by the Portal runtime (e.g. from RouteTemplate matcher).
+   * Keys/values are always strings.
+   */
+  routeParams?: Record<string, string>;
+  /**
+   * Optional page variant id selected by backend.
+   * Variants are theme-scoped and defined by theme packages.
+   */
+  variantId?: string | null;
 }
 
 export function resolveLocalizedValue<T>(

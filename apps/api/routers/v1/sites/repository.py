@@ -46,6 +46,7 @@ class ResolvedEntryDocument:
     published_rev: int
     revision: int
     revision_state: Literal["draft", "published"]
+    variant_id: str | None
     document: DocumentIR
 
 
@@ -76,25 +77,30 @@ class _RouteTemplateCache:
     _TTL_MS = 5_000
 
     def __init__(self) -> None:
-        self._by_site: dict[str, tuple[int, list[_CompiledRouteTemplate]]] = {}
+        # Keyed by (site_id, version). Version is used for cross-instance invalidation.
+        self._by_key: dict[tuple[str, int], tuple[int, list[_CompiledRouteTemplate]]] = {}
         self._lock = asyncio.Lock()
 
-    async def get(self, *, site_id: str, loader) -> list[_CompiledRouteTemplate]:
+    async def get(self, *, site_id: str, version: int, loader) -> list[_CompiledRouteTemplate]:
         now_ms = int(time.time() * 1000)
-        cached = self._by_site.get(site_id)
+        key = (site_id, int(version or 0))
+        cached = self._by_key.get(key)
         if cached and cached[0] > now_ms:
             return cached[1]
 
         async with self._lock:
-            cached2 = self._by_site.get(site_id)
+            cached2 = self._by_key.get(key)
             if cached2 and cached2[0] > now_ms:
                 return cached2[1]
             compiled = await loader()
-            self._by_site[site_id] = (now_ms + self._TTL_MS, compiled)
+            self._by_key[key] = (now_ms + self._TTL_MS, compiled)
             return compiled
 
     def invalidate(self, *, site_id: str) -> None:
-        self._by_site.pop(site_id, None)
+        # Remove all cached versions for a site (writers call this after mutations).
+        for key in list(self._by_key.keys()):
+            if key[0] == site_id:
+                self._by_key.pop(key, None)
 
 
 _route_template_cache = _RouteTemplateCache()
@@ -227,6 +233,37 @@ class SitesRepository:
         cast(SettingUpdatedBy, rec).updated_by = updated_by
         await rec.save(update_fields=["value", "updated_by"])
         return rec
+
+    async def get_site_settings_snapshot(self, *, site_id: str, namespaces: list[str]) -> dict[str, int]:
+        """
+        Build a minimal settings snapshot for deps (v1).
+
+        We use per-namespace `updated_at` timestamps as a lightweight "version":
+        - Changing a setting updates its `updated_at`.
+        - Revisions can store this snapshot to help debugging and rollback safety analysis.
+        """
+
+        norm = [str(ns).strip() for ns in namespaces if isinstance(ns, str) and str(ns).strip()]
+        if not norm:
+            return {}
+
+        rows = await SettingRecord.filter(
+            scope_type=SCOPE_TYPE_SITE,
+            scope_id=site_id,
+            namespace__in=norm,
+        ).all()
+
+        out: dict[str, int] = {}
+        for r in rows:
+            try:
+                out[str(r.namespace)] = int(r.updated_at.timestamp() * 1000)
+            except Exception:
+                out[str(r.namespace)] = 0
+
+        # Keep the shape stable: always include requested namespaces.
+        for ns in norm:
+            out.setdefault(ns, 0)
+        return out
 
     async def get_page_by_id(self, *, site_id: str, page_id: UUID) -> SitePageRecord | None:
         return await SitePageRecord.get_or_none(id=page_id, site_id=site_id)
@@ -741,6 +778,57 @@ class SitesRepository:
 
         return next_rev, now_ms
 
+    async def save_page_draft_by_id(
+        self,
+        *,
+        site_id: str,
+        page_id: UUID,
+        document: DocumentIR,
+        meta: dict | None,
+        style_overrides: dict | None,
+        variant_id: str | None,
+        deps: dict | None,
+        expected_revision: int | None,
+        created_by_user_id: UUID | None,
+    ) -> tuple[str, int, int]:
+        """
+        Save a page draft by page id.
+
+        Returns: (path, revision, saved_at_ms).
+        """
+
+        now_ms = int(time.time() * 1000)
+
+        async with in_transaction() as conn:
+            page = await SitePageRecord.filter(site_id=site_id, id=page_id).using_db(conn).select_for_update().first()
+            if page is None:
+                raise NotFound("Page not found", error="PAGE_NOT_FOUND")
+
+            current_rev = int(page.draft_rev or 0)
+            if expected_revision is not None and expected_revision != current_rev:
+                raise Conflict(
+                    "Draft revision mismatch",
+                    error="DRAFT_REVISION_MISMATCH",
+                    meta={"expectedRevision": expected_revision, "currentRevision": current_rev},
+                )
+
+            next_rev = current_rev + 1 if current_rev else 1
+            await SitePageRevisionRecord.create(
+                page_id=page.id,
+                rev=next_rev,
+                document=document.model_dump(by_alias=True),
+                meta=meta,
+                style_overrides=style_overrides,
+                variant_id=variant_id,
+                deps=deps,
+                created_by_user_id=created_by_user_id,
+                using_db=conn,
+            )
+            page.draft_rev = next_rev
+            await page.save(update_fields=["draft_rev"], using_db=conn)
+
+        return normalize_path(str(page.path)), next_rev, now_ms
+
     async def publish_page_by_path(
         self,
         *,
@@ -783,6 +871,45 @@ class SitesRepository:
 
         return target_rev, now_ms
 
+    async def publish_page_by_id(
+        self,
+        *,
+        site_id: str,
+        page_id: UUID,
+        revision: int | None,
+    ) -> tuple[str, int, int]:
+        """
+        Publish a page revision by page id.
+
+        Returns: (path, published_revision, published_at_ms).
+        """
+
+        now_ms = int(time.time() * 1000)
+
+        async with in_transaction() as conn:
+            page = await SitePageRecord.filter(site_id=site_id, id=page_id).using_db(conn).select_for_update().first()
+            if page is None:
+                raise NotFound("Page not found", error="PAGE_NOT_FOUND")
+
+            target_rev = int(revision) if revision is not None else int(page.draft_rev or 0)
+            if not target_rev:
+                raise Conflict("No draft revision to publish", error="NO_DRAFT_TO_PUBLISH")
+
+            rec = await SitePageRevisionRecord.filter(page_id=page.id, rev=target_rev).using_db(conn).first()
+            if rec is None:
+                raise NotFound("Revision not found", error="REVISION_NOT_FOUND")
+
+            await self._validate_revision_deps_assets(
+                site_id=site_id,
+                deps=(rec.deps if isinstance(rec.deps, dict) else None),
+                conn=conn,
+            )
+
+            page.published_rev = target_rev
+            await page.save(update_fields=["published_rev"], using_db=conn)
+
+        return normalize_path(str(page.path)), target_rev, now_ms
+
     async def resolve_entry_by_slug(
         self,
         *,
@@ -819,6 +946,7 @@ class SitesRepository:
             published_rev=published_rev,
             revision=revision,
             revision_state=revision_state,
+            variant_id=(str(rec.variant_id) if rec.variant_id else None),
             document=doc,
         )
 
@@ -919,7 +1047,13 @@ class SitesRepository:
     def invalidate_route_template_cache(self, *, site_id: str) -> None:
         _route_template_cache.invalidate(site_id=site_id)
 
-    async def match_route_template(self, *, site_id: str, pathname: str) -> RouteTemplateMatch | None:
+    async def match_route_template(
+        self,
+        *,
+        site_id: str,
+        pathname: str,
+        cache_version: int = 0,
+    ) -> RouteTemplateMatch | None:
         path = normalize_path(pathname)
 
         async def _load() -> list[_CompiledRouteTemplate]:
@@ -943,7 +1077,7 @@ class SitesRepository:
             compiled.sort(key=lambda x: x.sort_key, reverse=True)
             return compiled
 
-        compiled = await _route_template_cache.get(site_id=site_id, loader=_load)
+        compiled = await _route_template_cache.get(site_id=site_id, version=int(cache_version or 0), loader=_load)
 
         for ct in compiled:
             params = _match_compiled(ct, path)

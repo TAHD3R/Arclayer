@@ -55,6 +55,8 @@ function EditorHostPage() {
   const [saveStatus, setSaveStatus] = React.useState<"idle" | "saving" | "error">("idle");
   const [saveError, setSaveError] = React.useState<string | null>(null);
   const draftRevisionsRef = React.useRef<Map<string, number>>(new Map());
+  const draftPageIdsRef = React.useRef<Map<string, string>>(new Map());
+  const [routeResolveError, setRouteResolveError] = React.useState<string | null>(null);
 
   const [entrySaveStatus, setEntrySaveStatus] = React.useState<"idle" | "saving" | "error">("idle");
   const [entrySaveError, setEntrySaveError] = React.useState<string | null>(null);
@@ -171,13 +173,23 @@ function EditorHostPage() {
             if (!token) throw new Error("Missing preview token");
             const keyPathname = normalizePathname(pathname);
             const expectedRevision = draftRevisionsRef.current.get(keyPathname) ?? null;
-            const payload = await saveRouteDraftToApi({
-              siteId,
-              pathname: keyPathname,
-              token,
-              document,
-              expectedRevision,
-            });
+            const pageId = draftPageIdsRef.current.get(keyPathname) ?? null;
+
+            const payload = pageId
+              ? await savePageDraftToApi({
+                  siteId,
+                  pageId,
+                  token,
+                  document,
+                  expectedRevision,
+                })
+              : await saveRouteDraftToApi({
+                  siteId,
+                  pathname: keyPathname,
+                  token,
+                  document,
+                  expectedRevision,
+                });
             if (!payload) throw new Error("Invalid save response");
             setLastSave({
               pathname: payload.path,
@@ -185,6 +197,23 @@ function EditorHostPage() {
               savedAtMs: payload.savedAtMs,
             });
             draftRevisionsRef.current.set(payload.path, payload.revision);
+            if (payload.pageId) {
+              draftPageIdsRef.current.set(payload.path, payload.pageId);
+            }
+
+            // If we saved by path (no pageId available yet), resolve again once to discover pageId.
+            if (!payload.pageId) {
+              const resolved = await resolveRouteFromApi(payload.path, siteId, {
+                mode: "preview",
+                token,
+              });
+              if (resolved.kind === "page") {
+                const id = resolved.match.pageId;
+                if (typeof id === "string" && id.trim()) {
+                  draftPageIdsRef.current.set(payload.path, id);
+                }
+              }
+            }
             setSaveStatus("idle");
           } catch (err) {
             setSaveStatus("error");
@@ -265,6 +294,7 @@ function EditorHostPage() {
 
     void (async () => {
       try {
+        setRouteResolveError(null);
         const resolved = await resolveRouteFromApi(normalizedPathname, siteId, {
           mode: "preview",
           token,
@@ -275,14 +305,17 @@ function EditorHostPage() {
         const match = resolved.match;
 
         // Page draft optimistic lock.
-        if (
-          typeof match.draftRevision === "number" &&
-          Number.isFinite(match.draftRevision) &&
-          match.draftRevision >= 1
-        ) {
-          draftRevisionsRef.current.set(normalizedPathname, match.draftRevision);
+        if (typeof match.draftRevision === "number" && Number.isFinite(match.draftRevision)) {
+          // 0 is a valid "no draft yet" pointer and should be used as expectedRevision=0.
+          draftRevisionsRef.current.set(normalizedPathname, Math.max(0, match.draftRevision));
         } else {
           draftRevisionsRef.current.delete(normalizedPathname);
+        }
+
+        if (typeof match.pageId === "string" && match.pageId.trim()) {
+          draftPageIdsRef.current.set(normalizedPathname, match.pageId);
+        } else {
+          draftPageIdsRef.current.delete(normalizedPathname);
         }
 
         // Entry draft optimistic lock (route_template only).
@@ -295,8 +328,9 @@ function EditorHostPage() {
             }
           }
         }
-      } catch {
-        // Best-effort: local harness should work even if backend isn't running.
+      } catch (err) {
+        if (seq !== resolveSeqRef.current) return;
+        setRouteResolveError(err instanceof Error ? err.message : String(err));
       }
     })();
   }, [pathname, previewToken, siteId]);
@@ -451,6 +485,11 @@ function EditorHostPage() {
         <span className="portal-editor-host-meta">
           Path: <code>{normalizePathname(pathname)}</code>
         </span>
+        {routeResolveError ? (
+          <span className="portal-editor-host-meta">
+            Resolve error: <code>{routeResolveError}</code>
+          </span>
+        ) : null}
         <span className="portal-editor-host-meta">
           Entry slug: <code>{activeEntrySlug ?? "n/a"}</code>
         </span>
@@ -617,7 +656,7 @@ async function saveRouteDraftToApi(args: {
   token: string;
   document: DocumentIR;
   expectedRevision: number | null;
-}): Promise<{ path: string; revision: number; savedAtMs: number } | null> {
+}): Promise<{ path: string; revision: number; savedAtMs: number; pageId?: string } | null> {
   const url = `${getPortalApiPrefix()}/sites/${encodeURIComponent(args.siteId)}/routes/draft?token=${encodeURIComponent(
     args.token,
   )}`;
@@ -644,6 +683,40 @@ async function saveRouteDraftToApi(args: {
   }
   const payload: unknown = await res.json();
   return parseDraftSaveOut(payload);
+}
+
+async function savePageDraftToApi(args: {
+  siteId: string;
+  pageId: string;
+  token: string;
+  document: DocumentIR;
+  expectedRevision: number | null;
+}): Promise<{ path: string; revision: number; savedAtMs: number; pageId?: string } | null> {
+  const url = `${getPortalApiPrefix()}/sites/${encodeURIComponent(
+    args.siteId,
+  )}/pages/${encodeURIComponent(args.pageId)}/revisions/draft?token=${encodeURIComponent(args.token)}`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { accept: "application/json", "content-type": "application/json" },
+    body: JSON.stringify({
+      document: args.document,
+      ...(args.expectedRevision !== null ? { expectedRevision: args.expectedRevision } : {}),
+    }),
+  });
+  if (!res.ok) {
+    const maybe = await res.json().catch(() => null);
+    if (res.status === 409) {
+      const details = parseConflictMeta(maybe);
+      throw new Error(
+        details
+          ? `Draft conflict: expected ${details.expectedRevision}, current ${details.currentRevision}`
+          : "Draft conflict (409)",
+      );
+    }
+    throw new Error(`Save failed (${res.status})`);
+  }
+  const payload: unknown = await res.json();
+  return parsePageDraftSaveOut(payload);
 }
 
 async function saveEntryDraftToApi(args: {
@@ -751,6 +824,22 @@ function parseDraftSaveOut(
   if (typeof revision !== "number" || !Number.isFinite(revision)) return null;
   if (typeof savedAtMs !== "number" || !Number.isFinite(savedAtMs)) return null;
   return { path, revision, savedAtMs };
+}
+
+function parsePageDraftSaveOut(
+  payload: unknown,
+): { path: string; revision: number; savedAtMs: number; pageId?: string } | null {
+  const base = parseDraftSaveOut(payload);
+  if (!base) return null;
+  if (!payload || typeof payload !== "object") return null;
+  const data = (payload as { data?: unknown }).data;
+  if (!data || typeof data !== "object") return null;
+  const rec = data as Record<string, unknown>;
+  const pageId = rec.pageId ?? rec.page_id;
+  if (typeof pageId === "string" && pageId.trim()) {
+    return { ...base, pageId: pageId.trim() };
+  }
+  return base;
 }
 
 function parseEntryDraftSaveOut(

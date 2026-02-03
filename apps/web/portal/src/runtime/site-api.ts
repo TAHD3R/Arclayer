@@ -260,6 +260,7 @@ export type PortalRouteMatch = {
   redirectStatus: 301 | 302 | null;
   pageId: string | null;
   entryId: string | null;
+  variantId: string | null;
   revision: number | null;
   revisionState: "draft" | "published" | null;
   draftRevision: number | null;
@@ -282,6 +283,7 @@ function parsePortalRouteMatch(input: unknown): PortalRouteMatch {
   const redirectStatus = getNumberField(input, ["redirectStatus", "redirect_status"]);
   const pageId = getStringField(input, ["pageId", "page_id"]);
   const entryId = getStringField(input, ["entryId", "entry_id"]);
+  const variantId = getStringField(input, ["variantId", "variant_id"]);
   const revision = getNumberField(input, ["revision"]);
   const revisionState = getStringField(input, ["revisionState", "revision_state"]);
   const draftRevision = getNumberField(input, ["draftRevision", "draft_revision"]);
@@ -294,6 +296,7 @@ function parsePortalRouteMatch(input: unknown): PortalRouteMatch {
     redirectStatus: redirectStatus === 301 || redirectStatus === 302 ? redirectStatus : null,
     pageId: typeof pageId === "string" && pageId.trim() ? pageId.trim() : null,
     entryId: typeof entryId === "string" && entryId.trim() ? entryId.trim() : null,
+    variantId: typeof variantId === "string" && variantId.trim() ? variantId.trim() : null,
     revision: typeof revision === "number" ? revision : null,
     revisionState:
       revisionState === "draft" || revisionState === "published" ? revisionState : null,

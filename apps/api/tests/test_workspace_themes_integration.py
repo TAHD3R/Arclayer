@@ -187,6 +187,13 @@ async def test_workspace_theme_import_and_site_runtime_output(
             )
             assert resp.status_code == 200, resp.text
 
+            resp = await client.put(
+                f"/api/v1/sites/{site.id}/settings",
+                params={"namespace": "theme.config", "token": token},
+                json={"value": {"secretToken": "should-not-leak", "radius": 12}},
+            )
+            assert resp.status_code == 200, resp.text
+
             # Runtime should include theme metadata + entrypoint URLs.
             resp = await client.get(f"/api/v1/sites/{site.id}/runtime", params={"mode": "public"})
             assert resp.status_code == 200, resp.text
@@ -197,3 +204,15 @@ async def test_workspace_theme_import_and_site_runtime_output(
             assert theme["cssVars"]["--color-primary"] == "#123456"
             assert isinstance(theme.get("tokensCssUrl"), str) and theme["tokensCssUrl"].startswith("/assets/")
             assert theme["tokensCssUrl"].endswith(".css")
+            assert theme.get("config") is None
+
+            # Preview runtime can include theme.config (permission-protected by preview token).
+            resp = await client.get(
+                f"/api/v1/sites/{site.id}/runtime",
+                params={"mode": "preview", "token": token},
+            )
+            assert resp.status_code == 200, resp.text
+            runtime = resp.json()["data"]
+            theme = runtime["theme"]
+            assert isinstance(theme.get("config"), dict)
+            assert theme["config"]["secretToken"] == "should-not-leak"

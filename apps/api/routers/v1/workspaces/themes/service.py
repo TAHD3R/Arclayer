@@ -12,6 +12,7 @@ from starlette.responses import RedirectResponse, Response
 
 from apps.api.common.services.base import BaseService
 from apps.api.common.utils.assets import build_asset_object_key, slugify
+from apps.api.config import Settings
 from apps.api.core.exceptions import BadRequest, Conflict, NotFound
 from apps.api.core.http.content_disposition import build_attachment_content_disposition
 from apps.api.core.http.file_stream import stream_file_response
@@ -106,7 +107,7 @@ class _ExtractedEntrypoints:
 
 
 class WorkspaceThemesService(BaseService):
-    def __init__(self, settings) -> None:
+    def __init__(self, settings: Settings) -> None:
         super().__init__(settings)
         self.repo = WorkspaceThemesRepository()
 
@@ -560,7 +561,7 @@ class WorkspaceThemesService(BaseService):
     async def _put_bytes(
         self,
         *,
-        provider: Any,
+        provider: LocalStorageProvider | S3StorageProvider,
         object_key: str,
         data: bytes,
         content_type: str | None,
@@ -579,6 +580,7 @@ class WorkspaceThemesService(BaseService):
                 cache_control=cache_control,
             )
             return
+        # Defensive: build_storage_provider() should only return core providers.
         raise RuntimeError("unknown storage provider")
 
 
