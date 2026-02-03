@@ -59,7 +59,8 @@ export function OrganizationSettingsView() {
     meta: { silent: true },
   });
 
-  const isOwner = myOrgQuery.data?.membership?.role === "owner";
+  const canManageOrganization =
+    myOrgQuery.data?.membership?.role === "owner" || myOrgQuery.data?.membership?.role === "admin";
   const showDeployment = runtime.deploymentSettingsEnabled;
 
   const forbiddenError = useMemo(
@@ -67,7 +68,7 @@ export function OrganizationSettingsView() {
       new ApiError({
         status: 403,
         message: t("common:PAGE_FORBIDDEN_DESC"),
-        error: "ORG_OWNER_REQUIRED",
+        error: "ORG_ADMIN_REQUIRED",
       }),
     [t],
   );
@@ -115,7 +116,7 @@ export function OrganizationSettingsView() {
     );
   }
 
-  if (!isOwner) {
+  if (!canManageOrganization) {
     return (
       <DefaultPage
         title={t("settings:SETTINGS_ORG_TITLE")}

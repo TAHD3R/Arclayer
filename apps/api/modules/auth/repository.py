@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from typing import Any, cast
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from tortoise.expressions import Q
 
 from apps.api.common.repositories import BaseRepository
+from apps.api.common.utils.ids import uuid7
 from apps.api.config import AuthSettings
 from apps.api.infra.cache.valkey import ValkeyClientLike
 from apps.api.modules.auth.constants import (
@@ -160,7 +161,7 @@ class PasswordResetStore:
         if existing:
             await self._client.delete(self._token_key(existing))
 
-        token = uuid4().hex
+        token = uuid7().hex
         now_ts = int(datetime.now(UTC).timestamp())
         record = {
             "user_id": str(user_id),

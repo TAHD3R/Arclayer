@@ -1,11 +1,9 @@
 from __future__ import annotations
 
-from typing import cast
 from uuid import UUID
 
 from fastapi import Depends
 
-from apps.api.common.protocols.tortoise import HasOrganizationId
 from apps.api.core.exceptions import Forbidden
 from apps.api.core.i18n import t
 from apps.api.modules.auth.deps import get_current_user_id
@@ -15,11 +13,7 @@ from apps.api.modules.organization.models.org_membership import OrgMembership, O
 async def get_current_org_membership(
     user_id: UUID = Depends(get_current_user_id),
 ) -> OrgMembership:
-    """
-    v2 org membership resolver (A2: single org per user).
-
-    Unlike the legacy org selection dependency, this does NOT use X-Org-Id.
-    """
+    """Resolve current org membership for the authenticated user."""
 
     orgm = await OrgMembership.get_or_none(user_id=user_id)
     if orgm is None:
@@ -28,13 +22,6 @@ async def get_current_org_membership(
             error="ORG_MEMBERSHIP_REQUIRED",
         )
     return orgm
-
-
-async def get_current_org_id_v2(
-    orgm: OrgMembership = Depends(get_current_org_membership),
-) -> UUID:
-    orgm_like = cast(HasOrganizationId, orgm)
-    return UUID(str(orgm_like.organization_id))
 
 
 async def require_org_owner(

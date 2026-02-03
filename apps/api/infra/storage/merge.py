@@ -4,7 +4,8 @@ import hashlib
 import os
 from collections.abc import Iterable
 from pathlib import Path
-from uuid import uuid4
+
+from apps.api.common.utils.ids import uuid7
 
 
 def merge_parts_to_file(*, part_paths: Iterable[Path], out_path: Path, chunk_size: int = 1024 * 1024) -> str:
@@ -18,7 +19,7 @@ def merge_parts_to_file(*, part_paths: Iterable[Path], out_path: Path, chunk_siz
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
-    tmp_path = out_path.with_name(f".partial.{out_path.name}.{uuid4().hex}")
+    tmp_path = out_path.with_name(f".partial.{out_path.name}.{uuid7().hex}")
     hasher = hashlib.sha256()
     try:
         with open(tmp_path, "wb") as out:

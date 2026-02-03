@@ -6,12 +6,12 @@ import zipfile
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
-from uuid import uuid4
 
 import tomllib
 from fastapi import UploadFile
 
 from apps.api.common.services import BaseService
+from apps.api.common.utils.ids import uuid7
 from apps.api.config import Settings
 from apps.api.core.exceptions import BadRequest, NotFound, ServiceUnavailable
 from apps.api.core.http.pagination import PageData, PageParams
@@ -124,7 +124,7 @@ class PluginService(BaseService):
                 error="PLUGIN_PACKAGE_INVALID",
             )
 
-        staging_dir = self.root_dir / ".staging" / uuid4().hex
+        staging_dir = self.root_dir / ".staging" / uuid7().hex
         staging_dir.mkdir(parents=True, exist_ok=True)
         zip_path = staging_dir / file.filename
 

@@ -487,7 +487,8 @@ export function AdminAccountMenu() {
     void navigate({ to: "/" });
   };
 
-  const isOrgOwner = myOrgQuery.data?.membership?.role === "owner";
+  const canManageOrganization =
+    myOrgQuery.data?.membership?.role === "owner" || myOrgQuery.data?.membership?.role === "admin";
   const onOrganizationSettings = () => {
     if (workspaceId) {
       void navigate({ to: `/w/${workspaceId}/settings/organization` });
@@ -550,7 +551,7 @@ export function AdminAccountMenu() {
           displayName={displayName}
           avatarUrl={profile.avatarUrl ?? profile.avatarAssetId}
           roleText={roleText}
-          showOrganizationSettings={isOrgOwner}
+          showOrganizationSettings={canManageOrganization}
           themeMode={themeMode}
           locale={locale}
           setLocale={setLocale}

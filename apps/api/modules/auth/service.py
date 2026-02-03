@@ -781,7 +781,7 @@ class AuthService(BaseService):
             )
             await UserCredential.create(using_db=conn, user_id=user.id, password_hash=password_hash)
 
-            # A2 invariant: user can only belong to one organization.
+            # One user can only belong to one organization.
             from apps.api.modules.organization.models.org_membership import OrgRole
 
             await OrgMembership.create(
@@ -1140,7 +1140,7 @@ class AuthService(BaseService):
                     error="CROSS_ORG_ACCESS_DENIED",
                 )
 
-            # A2: user can only be in one org.
+            # One user can only be in one organization.
             existing_orgm = await OrgMembership.filter(user_id=user.id).using_db(conn).select_for_update().first()
             if existing_orgm is None:
                 from apps.api.modules.organization.models.org_membership import OrgRole

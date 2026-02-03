@@ -9,10 +9,9 @@ from apps.api.modules.organization.models.organization import Organization
 
 class OrganizationRepository(BaseRepository):
     """
-    Organization repository (v2).
+    Organization repository.
 
     Notes:
-    - A2: a user belongs to exactly one organization (enforced by OrgMembership.user unique).
     - We intentionally removed org selection (no X-Org-Id), so this repository does not expose
       "list my orgs" helpers anymore.
     """

@@ -22,7 +22,7 @@ async def test_admin_menu_filtered_for_user(prepared_db) -> None:
     async with app.router.lifespan_context(app):
         from apps.api.modules.auth.repository import UserRepository
         from apps.api.modules.auth.security import hash_password
-        from apps.api.modules.organization.models.org_membership import OrgMembership
+        from apps.api.modules.organization.models.org_membership import OrgMembership, OrgRole
         from apps.api.modules.organization.repository import OrganizationRepository
         from apps.api.modules.system.rbac.service import RBACService
         from apps.api.modules.workspaces.models.workspace import Workspace, WorkspaceMembership, WorkspaceMembershipRole
@@ -40,7 +40,7 @@ async def test_admin_menu_filtered_for_user(prepared_db) -> None:
             display_name="Admin",
             password_hash=hash_password("admin_password_123", settings.auth),
         )
-        await OrgMembership.create(organization_id=org.id, user_id=admin_user.id, is_owner=True, status="active")
+        await OrgMembership.create(organization_id=org.id, user_id=admin_user.id, role=OrgRole.OWNER, status="active")
         ws = await Workspace.create(
             organization_id=org.id,
             slug=f"ws_{uuid4().hex[:8]}",
@@ -56,7 +56,9 @@ async def test_admin_menu_filtered_for_user(prepared_db) -> None:
             display_name="Staff",
             password_hash=hash_password("staff_password_123", settings.auth),
         )
-        await OrgMembership.create(organization_id=org.id, user_id=limited_user.id, is_owner=False, status="active")
+        await OrgMembership.create(
+            organization_id=org.id, user_id=limited_user.id, role=OrgRole.MEMBER, status="active"
+        )
         limited_wsm = await WorkspaceMembership.create(
             workspace_id=ws.id,
             user_id=limited_user.id,
@@ -71,8 +73,8 @@ async def test_admin_menu_filtered_for_user(prepared_db) -> None:
         role = await rbac_service.create_custom_role(
             workspace_id=ws.id,
             code=role_code,
-            name_l10n={"en-US": "Staff Role"},
-            description_l10n=None,
+            name="Staff Role",
+            description=None,
             template_role_code=None,
         )
         # Grant only the required permissions to this custom role.

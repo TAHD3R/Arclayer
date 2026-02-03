@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from pathlib import Path
-from uuid import uuid4
 
 from fastapi_mail import ConnectionConfig, FastMail, MessageSchema, MessageType
 from fastapi_mail.schemas import MultipartSubtypeEnum
 from pydantic import EmailStr, NameEmail, SecretStr, TypeAdapter, ValidationError
 
+from apps.api.common.utils.ids import uuid7
 from apps.api.config import EmailSettings, Settings
 from apps.api.core.i18n import t
 from apps.api.core.logging import get_logger
@@ -224,7 +224,7 @@ class EmailService:
                 user_id=user_id,
             )
             return
-        cid = uuid4().hex
+        cid = uuid7().hex
         token_hint = f"{reset_token[:6]}...{reset_token[-4:]}" if len(reset_token) >= 10 else reset_token
         try:
             fm = await self._get_fast_mail()
@@ -353,7 +353,7 @@ class EmailService:
                 user_id=user_id,
             )
             return
-        cid = uuid4().hex
+        cid = uuid7().hex
         try:
             fm = await self._get_fast_mail()
             subject = t(
@@ -451,7 +451,7 @@ class EmailService:
             )
             return
 
-        cid = uuid4().hex
+        cid = uuid7().hex
         token_hint = f"{invite_token[:6]}...{invite_token[-4:]}" if len(invite_token) >= 10 else invite_token
         try:
             fm = await self._get_fast_mail()
@@ -632,7 +632,7 @@ class EmailService:
             )
             return
 
-        cid = uuid4().hex
+        cid = uuid7().hex
         token_hint = f"{invite_token[:6]}...{invite_token[-4:]}" if len(invite_token) >= 10 else invite_token
         try:
             fm = await self._get_fast_mail()

@@ -10,6 +10,7 @@ from fastapi.testclient import TestClient
 from apps.api.config import get_settings
 from apps.api.modules.auth.deps import get_current_user
 from apps.api.modules.organization.deps import require_org_owner
+from apps.api.modules.organization.models.org_membership import OrgRole
 from apps.api.modules.organization.router import router as me_router
 from apps.api.modules.system.router import router as system_router
 
@@ -55,14 +56,14 @@ def test_me_organization_owner_flag() -> None:
     class DummyOrgMembership:
         id: UUID
         organization_id: UUID
-        is_owner: bool
+        role: OrgRole
         status: str
         organization: DummyOrg | None
 
-        def __init__(self, *, is_owner: bool) -> None:
+        def __init__(self, *, role: OrgRole) -> None:
             self.id = orgm_id
             self.organization_id = org_id
-            self.is_owner = is_owner
+            self.role = role
             self.status = "active"
             self.organization = DummyOrg(
                 id=org_id,
@@ -75,7 +76,7 @@ def test_me_organization_owner_flag() -> None:
             return None
 
     async def _get_orgm_owner_override() -> DummyOrgMembership:
-        return DummyOrgMembership(is_owner=True)
+        return DummyOrgMembership(role=OrgRole.OWNER)
 
     app = FastAPI()
     app.include_router(me_router, prefix="/api/v1")
@@ -90,7 +91,7 @@ def test_me_organization_owner_flag() -> None:
     assert res.status_code == 200
     data = res.json().get("data") or {}
     membership = data.get("membership") or {}
-    assert membership.get("isOwner") is True
+    assert membership.get("role") == "owner"
     assert membership.get("status") == "active"
     organization = data.get("organization") or {}
     assert organization.get("slug") == "demo"
@@ -112,10 +113,10 @@ def test_system_endpoints_disabled_in_saas_mode(monkeypatch) -> None:
     # but still override owner/user deps to keep the test robust.
     @dataclass
     class DummyOrgMembership:
-        is_owner: bool = True
+        role: OrgRole = OrgRole.OWNER
 
     async def _org_owner_override() -> DummyOrgMembership:
-        return DummyOrgMembership(is_owner=True)
+        return DummyOrgMembership(role=OrgRole.OWNER)
 
     async def _user_override() -> object:
         return object()

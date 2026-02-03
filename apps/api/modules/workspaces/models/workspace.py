@@ -143,8 +143,6 @@ async def _bootstrap_workspace_system_roles(  # type: ignore[no-untyped-def]
             description=d["description"],
             name_i18n=d["name_i18n"],
             description_i18n=d["description_i18n"],
-            name_l10n=None,
-            description_l10n=None,
             is_system=True,
             is_default=bool(d["is_default"]),
             is_superuser=bool(d["is_superuser"]),

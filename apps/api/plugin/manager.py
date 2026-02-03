@@ -7,7 +7,6 @@ import re
 import signal
 import sys
 import time
-import uuid
 from asyncio.subprocess import PIPE
 from datetime import UTC, datetime
 from pathlib import Path
@@ -19,6 +18,7 @@ from pydantic import ValidationError
 
 from apps.api.common.constants.plugin import MIGRATION_LOCK_KEY, PROTECTED_PLUGINS
 from apps.api.common.protocols.tortoise import PluginRecordMutableFields
+from apps.api.common.utils.ids import uuid7
 from apps.api.config import Settings
 from apps.api.core.i18n import register_locale_path
 from apps.api.core.logging import get_logger
@@ -549,7 +549,7 @@ class PluginManager:
         if self.valkey is None:
             logger.warning("Plugin migration lock skipped (valkey not ready)")
             return None
-        token = uuid.uuid4().hex
+        token = uuid7().hex
         ttl = self.settings.plugin.migration_lock_ttl_seconds
         timeout = self.settings.plugin.migration_lock_timeout_seconds
         deadline = time.monotonic() + max(timeout, 0)

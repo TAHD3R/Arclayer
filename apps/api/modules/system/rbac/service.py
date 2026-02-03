@@ -6,6 +6,7 @@ from uuid import UUID
 from tortoise.transactions import in_transaction
 
 from apps.api.common.services import BaseService
+from apps.api.common.utils.ids import uuid7
 from apps.api.config import Settings
 from apps.api.core.exceptions import BadRequest, Conflict, NotFound
 from apps.api.core.http.pagination import PageData, PageParams, paginate_queryset
@@ -58,22 +59,6 @@ def _localize_i18n_ref(value: str | None, *, default: str) -> str:
         return default
     ns, key = ref
     return t(ns, key, default=default)
-
-
-def _pick_l10n_text(payload: dict[str, Any] | None, *, locale: str, fallback: str | None = None) -> str | None:
-    if not payload:
-        return fallback
-    raw = payload.get(locale)
-    if isinstance(raw, str) and raw.strip():
-        return raw.strip()
-    # fallback to default locale if present
-    raw2 = payload.get("zh-CN")
-    if isinstance(raw2, str) and raw2.strip():
-        return raw2.strip()
-    raw3 = payload.get("en-US")
-    if isinstance(raw3, str) and raw3.strip():
-        return raw3.strip()
-    return fallback
 
 
 class RBACService(BaseService):
@@ -212,8 +197,6 @@ class RBACService(BaseService):
                     description=d["description"],
                     name_i18n=d["name_i18n"],
                     description_i18n=d["description_i18n"],
-                    name_l10n=None,
-                    description_l10n=None,
                     is_system=True,
                     is_default=bool(d["is_default"]),
                     is_superuser=bool(d["is_superuser"]),
@@ -233,10 +216,6 @@ class RBACService(BaseService):
             for k in ("name", "description", "name_i18n", "description_i18n", "is_default", "is_superuser"):
                 if getattr(existing, k) != d[k]:
                     updates[k] = d[k]
-            if existing.name_l10n is not None:
-                updates["name_l10n"] = None
-            if existing.description_l10n is not None:
-                updates["description_l10n"] = None
             if not existing.is_system:
                 updates["is_system"] = True
             if updates:
@@ -356,12 +335,12 @@ class RBACService(BaseService):
         *,
         workspace_id: UUID,
         code: str | None,
-        name_l10n: dict[str, str],
-        description_l10n: dict[str, str] | None,
+        name: str,
+        description: str | None,
         template_role_code: str | None,
     ) -> Role:
-        # Ensure l10n maps have at least one valid value.
-        if not any(str(v).strip() for v in (name_l10n or {}).values()):
+        clean_name = str(name or "").strip()
+        if not clean_name:
             raise BadRequest(message=_tr("ROLE_NAME_REQUIRED", "角色名称不能为空"), error="ROLE_NAME_REQUIRED")
 
         # Validate template role (optional).
@@ -387,12 +366,10 @@ class RBACService(BaseService):
             if existing is not None:
                 raise Conflict(message=_tr("ROLE_EXISTS", "角色编码已存在"), error="ROLE_EXISTS")
         else:
-            from uuid import uuid4
-
             # Avoid Chinese slugify: generate role-<shortid>.
             # Keep it deterministic and human-friendly for diagnostics/logs.
             for _ in range(20):
-                shortid = uuid4().hex[:8]
+                shortid = uuid7().hex[:8]
                 candidate = f"role-{shortid}"
                 if len(candidate) > 64:
                     candidate = candidate[:64]
@@ -405,23 +382,13 @@ class RBACService(BaseService):
                     error="ROLE_CODE_GENERATE_FAILED",
                 )
 
-        # Store a stable fallback name for older clients/logs.
-        fallback_name = (
-            _pick_l10n_text(name_l10n, locale="zh-CN")
-            or _pick_l10n_text(name_l10n, locale="en-US")
-            or next((str(v).strip() for v in name_l10n.values() if str(v).strip()), role_code)
-        )
-        fallback_desc = _pick_l10n_text(description_l10n, locale="zh-CN") if description_l10n else None
-
         role = await self.repo.create_role(
             workspace_id=workspace_id,
             code=role_code,
-            name=fallback_name,
-            description=fallback_desc,
+            name=clean_name,
+            description=description,
             name_i18n=None,
             description_i18n=None,
-            name_l10n=dict(name_l10n),
-            description_l10n=dict(description_l10n or {}),
             is_system=False,
             is_default=False,
             is_superuser=False,
@@ -436,8 +403,8 @@ class RBACService(BaseService):
         *,
         workspace_id: UUID,
         role_code: str,
-        name_l10n: dict[str, str] | None,
-        description_l10n: dict[str, str] | None,
+        name: str | None,
+        description: str | None,
     ) -> Role:
         code = (role_code or "").strip()
         role = await self.repo.get_role_by_code(workspace_id=workspace_id, code=code)
@@ -447,29 +414,13 @@ class RBACService(BaseService):
             raise BadRequest(message=_tr("ROLE_UPDATE_INVALID", "不允许修改系统角色"), error="ROLE_UPDATE_INVALID")
 
         updates: dict[str, Any] = {}
-        if name_l10n is not None:
-            # Merge-patch semantics: keep existing translations unless explicitly overwritten.
-            merged: dict[str, str] = {}
-            if isinstance(role.name_l10n, dict):
-                merged.update({str(k): str(v) for k, v in role.name_l10n.items() if v})
-            merged.update({str(k): str(v) for k, v in dict(name_l10n).items() if v})
-            updates["name_l10n"] = merged or None
-
-            # Keep fallback stable (prefer zh-CN, then en-US, then existing name).
-            fallback_name = _pick_l10n_text(merged or None, locale="zh-CN", fallback=role.name) or role.name
-            updates["name"] = fallback_name
-        if description_l10n is not None:
-            merged_desc: dict[str, str] = {}
-            if isinstance(role.description_l10n, dict):
-                merged_desc.update({str(k): str(v) for k, v in role.description_l10n.items() if v})
-            merged_desc.update({str(k): str(v) for k, v in dict(description_l10n).items() if v})
-            updates["description_l10n"] = merged_desc or None
-            fallback_desc = _pick_l10n_text(
-                merged_desc or None,
-                locale="zh-CN",
-                fallback=role.description,  # type: ignore[arg-type]
-            )
-            updates["description"] = fallback_desc
+        if name is not None:
+            clean_name = str(name).strip()
+            if not clean_name:
+                raise BadRequest(message=_tr("ROLE_NAME_REQUIRED", "角色名称不能为空"), error="ROLE_NAME_REQUIRED")
+            updates["name"] = clean_name
+        if description is not None:
+            updates["description"] = description
 
         if not updates:
             return role
@@ -536,8 +487,8 @@ class RBACService(BaseService):
             name = _localize_i18n_ref(role.name_i18n, default=role.name)
             desc = _localize_i18n_ref(role.description_i18n, default=role.description or "")
         else:
-            name = _pick_l10n_text(role.name_l10n, locale=locale, fallback=role.name) or role.name
-            desc = _pick_l10n_text(role.description_l10n, locale=locale, fallback=role.description or "") or ""
+            name = role.name
+            desc = role.description or ""
 
         return {
             "id": role.id,

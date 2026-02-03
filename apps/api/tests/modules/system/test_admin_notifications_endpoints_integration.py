@@ -24,7 +24,7 @@ async def _bootstrap_admin_user(app, *, org_name: str = "Test Org"):
 
     from apps.api.modules.auth.repository import UserRepository
     from apps.api.modules.auth.security import hash_password
-    from apps.api.modules.organization.models.org_membership import OrgMembership
+    from apps.api.modules.organization.models.org_membership import OrgMembership, OrgRole
     from apps.api.modules.organization.repository import OrganizationRepository
     from apps.api.modules.workspaces.models.workspace import Workspace
 
@@ -40,7 +40,7 @@ async def _bootstrap_admin_user(app, *, org_name: str = "Test Org"):
         display_name="Admin",
         password_hash=hash_password("admin_password_123", settings.auth),
     )
-    await OrgMembership.create(organization_id=org.id, user_id=admin.id, is_owner=True, status="active")
+    await OrgMembership.create(organization_id=org.id, user_id=admin.id, role=OrgRole.OWNER, status="active")
     ws = await Workspace.create(
         organization_id=org.id,
         slug=f"ws_{uuid4().hex[:8]}",

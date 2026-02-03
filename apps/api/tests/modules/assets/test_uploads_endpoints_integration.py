@@ -41,7 +41,7 @@ async def test_uploads_resumable_flow(prepared_db, plugin_root, tmp_path: Path, 
     async with app.router.lifespan_context(app):
         from apps.api.modules.auth.repository import UserRepository
         from apps.api.modules.auth.security import hash_password
-        from apps.api.modules.organization.models.org_membership import OrgMembership
+        from apps.api.modules.organization.models.org_membership import OrgMembership, OrgRole
         from apps.api.modules.organization.repository import OrganizationRepository
         from apps.api.modules.workspaces.models.workspace import Workspace
 
@@ -56,7 +56,7 @@ async def test_uploads_resumable_flow(prepared_db, plugin_root, tmp_path: Path, 
             password_hash=hash_password("password_123", settings.auth),
         )
         org = await org_repo.create_organization(slug=f"org_{uuid4().hex}", name="Test Org")
-        await OrgMembership.create(organization_id=org.id, user_id=user.id, is_owner=True, status="active")
+        await OrgMembership.create(organization_id=org.id, user_id=user.id, role=OrgRole.OWNER, status="active")
         ws = await Workspace.create(
             organization_id=org.id,
             slug=f"ws_{uuid4().hex[:8]}",

@@ -73,7 +73,7 @@ async def test_me_workspaces_owner_can_see_all_with_visible_only(prepared_db, in
 
         from apps.api.modules.auth.repository import UserRepository
         from apps.api.modules.auth.security import hash_password
-        from apps.api.modules.organization.models.org_membership import OrgMembership
+        from apps.api.modules.organization.models.org_membership import OrgMembership, OrgRole
         from apps.api.modules.organization.models.user import User
         from apps.api.modules.organization.repository import OrganizationRepository
         from apps.api.modules.workspaces.models.workspace import Workspace
@@ -95,8 +95,8 @@ async def test_me_workspaces_owner_can_see_all_with_visible_only(prepared_db, in
             password_hash=hash_password("other_password_123", settings.auth),
         )
 
-        await OrgMembership.create(organization_id=org.id, user_id=owner.id, is_owner=True, status="active")
-        await OrgMembership.create(organization_id=org.id, user_id=other.id, is_owner=False, status="active")
+        await OrgMembership.create(organization_id=org.id, user_id=owner.id, role=OrgRole.OWNER, status="active")
+        await OrgMembership.create(organization_id=org.id, user_id=other.id, role=OrgRole.MEMBER, status="active")
 
         ws1 = await Workspace.create(
             organization_id=org.id,
@@ -159,7 +159,7 @@ async def test_workspace_invite_link_accept_existing_creates_use_event(
 
         from apps.api.modules.auth.repository import UserRepository
         from apps.api.modules.auth.security import hash_password
-        from apps.api.modules.organization.models.org_membership import OrgMembership
+        from apps.api.modules.organization.models.org_membership import OrgMembership, OrgRole
         from apps.api.modules.organization.models.user import User
         from apps.api.modules.organization.repository import OrganizationRepository
         from apps.api.modules.system.models.rbac import Role
@@ -178,7 +178,7 @@ async def test_workspace_invite_link_accept_existing_creates_use_event(
             display_name="Owner",
             password_hash=hash_password("owner_password_123", settings.auth),
         )
-        await OrgMembership.create(organization_id=org.id, user_id=owner.id, is_owner=True, status="active")
+        await OrgMembership.create(organization_id=org.id, user_id=owner.id, role=OrgRole.OWNER, status="active")
 
         ws = await Workspace.create(
             organization_id=org.id,
@@ -281,7 +281,7 @@ async def test_workspace_invite_link_max_uses_enforced(prepared_db, integration_
 
         from apps.api.modules.auth.repository import UserRepository
         from apps.api.modules.auth.security import hash_password
-        from apps.api.modules.organization.models.org_membership import OrgMembership
+        from apps.api.modules.organization.models.org_membership import OrgMembership, OrgRole
         from apps.api.modules.organization.models.user import User
         from apps.api.modules.organization.repository import OrganizationRepository
         from apps.api.modules.workspaces.models.workspace import Workspace
@@ -296,7 +296,7 @@ async def test_workspace_invite_link_max_uses_enforced(prepared_db, integration_
             display_name="Owner",
             password_hash=hash_password("owner_password_123", settings.auth),
         )
-        await OrgMembership.create(organization_id=org.id, user_id=owner.id, is_owner=True, status="active")
+        await OrgMembership.create(organization_id=org.id, user_id=owner.id, role=OrgRole.OWNER, status="active")
         ws = await Workspace.create(
             organization_id=org.id,
             slug=f"ws_{uuid4().hex[:8]}",
@@ -376,7 +376,7 @@ async def test_auth_me_invitations_includes_workspace(prepared_db, integration_v
 
         from apps.api.modules.auth.repository import UserRepository
         from apps.api.modules.auth.security import hash_password
-        from apps.api.modules.organization.models.org_membership import OrgMembership
+        from apps.api.modules.organization.models.org_membership import OrgMembership, OrgRole
         from apps.api.modules.organization.models.user import User
         from apps.api.modules.organization.repository import OrganizationRepository
         from apps.api.modules.workspaces.invitations.tokens import generate_invite_code
@@ -393,7 +393,7 @@ async def test_auth_me_invitations_includes_workspace(prepared_db, integration_v
             display_name="Owner",
             password_hash=hash_password("owner_password_123", settings.auth),
         )
-        await OrgMembership.create(organization_id=org.id, user_id=owner.id, is_owner=True, status="active")
+        await OrgMembership.create(organization_id=org.id, user_id=owner.id, role=OrgRole.OWNER, status="active")
 
         ws = await Workspace.create(
             organization_id=org.id,
@@ -461,7 +461,7 @@ async def test_workspace_invite_link_domain_restriction_enforced(prepared_db, in
 
         from apps.api.modules.auth.repository import UserRepository
         from apps.api.modules.auth.security import hash_password
-        from apps.api.modules.organization.models.org_membership import OrgMembership
+        from apps.api.modules.organization.models.org_membership import OrgMembership, OrgRole
         from apps.api.modules.organization.models.user import User
         from apps.api.modules.organization.repository import OrganizationRepository
         from apps.api.modules.workspaces.models.workspace import Workspace
@@ -476,7 +476,7 @@ async def test_workspace_invite_link_domain_restriction_enforced(prepared_db, in
             display_name="Owner",
             password_hash=hash_password("owner_password_123", settings.auth),
         )
-        await OrgMembership.create(organization_id=org.id, user_id=owner.id, is_owner=True, status="active")
+        await OrgMembership.create(organization_id=org.id, user_id=owner.id, role=OrgRole.OWNER, status="active")
         ws = await Workspace.create(
             organization_id=org.id,
             slug=f"ws_{uuid4().hex[:8]}",
@@ -541,7 +541,7 @@ async def test_a2_single_org_enforced_on_accept_existing(prepared_db, integratio
 
         from apps.api.modules.auth.repository import UserRepository
         from apps.api.modules.auth.security import hash_password
-        from apps.api.modules.organization.models.org_membership import OrgMembership
+        from apps.api.modules.organization.models.org_membership import OrgMembership, OrgRole
         from apps.api.modules.organization.models.user import User
         from apps.api.modules.organization.repository import OrganizationRepository
         from apps.api.modules.workspaces.models.workspace import Workspace
@@ -558,7 +558,7 @@ async def test_a2_single_org_enforced_on_accept_existing(prepared_db, integratio
             display_name="Owner",
             password_hash=hash_password("owner_password_123", settings.auth),
         )
-        await OrgMembership.create(organization_id=org1.id, user_id=owner.id, is_owner=True, status="active")
+        await OrgMembership.create(organization_id=org1.id, user_id=owner.id, role=OrgRole.OWNER, status="active")
         ws = await Workspace.create(
             organization_id=org1.id,
             slug=f"ws_{uuid4().hex[:8]}",
@@ -573,7 +573,9 @@ async def test_a2_single_org_enforced_on_accept_existing(prepared_db, integratio
             display_name="User",
             password_hash=hash_password("user_password_123", settings.auth),
         )
-        await OrgMembership.create(organization_id=org2.id, user_id=user_in_org2.id, is_owner=False, status="active")
+        await OrgMembership.create(
+            organization_id=org2.id, user_id=user_in_org2.id, role=OrgRole.MEMBER, status="active"
+        )
 
         current_user: User | None = None
 
@@ -636,7 +638,7 @@ async def test_workspace_email_invite_pending_unique_and_accept(
 
         from apps.api.modules.auth.repository import UserRepository
         from apps.api.modules.auth.security import hash_password
-        from apps.api.modules.organization.models.org_membership import OrgMembership
+        from apps.api.modules.organization.models.org_membership import OrgMembership, OrgRole
         from apps.api.modules.organization.models.user import User
         from apps.api.modules.organization.repository import OrganizationRepository
         from apps.api.modules.workspaces.models.workspace import Workspace
@@ -652,7 +654,7 @@ async def test_workspace_email_invite_pending_unique_and_accept(
             display_name="Owner",
             password_hash=hash_password("owner_password_123", settings.auth),
         )
-        await OrgMembership.create(organization_id=org.id, user_id=owner.id, is_owner=True, status="active")
+        await OrgMembership.create(organization_id=org.id, user_id=owner.id, role=OrgRole.OWNER, status="active")
         ws = await Workspace.create(
             organization_id=org.id,
             slug=f"ws_{uuid4().hex[:8]}",
@@ -749,7 +751,7 @@ async def test_workspace_email_invite_email_mismatch_rejected(
 
         from apps.api.modules.auth.repository import UserRepository
         from apps.api.modules.auth.security import hash_password
-        from apps.api.modules.organization.models.org_membership import OrgMembership
+        from apps.api.modules.organization.models.org_membership import OrgMembership, OrgRole
         from apps.api.modules.organization.models.user import User
         from apps.api.modules.organization.repository import OrganizationRepository
         from apps.api.modules.workspaces.models.workspace import Workspace
@@ -764,7 +766,7 @@ async def test_workspace_email_invite_email_mismatch_rejected(
             display_name="Owner",
             password_hash=hash_password("owner_password_123", settings.auth),
         )
-        await OrgMembership.create(organization_id=org.id, user_id=owner.id, is_owner=True, status="active")
+        await OrgMembership.create(organization_id=org.id, user_id=owner.id, role=OrgRole.OWNER, status="active")
         ws = await Workspace.create(
             organization_id=org.id,
             slug=f"ws_{uuid4().hex[:8]}",
@@ -825,7 +827,7 @@ async def test_workspace_invite_link_disable_blocks_accept(prepared_db, integrat
 
         from apps.api.modules.auth.repository import UserRepository
         from apps.api.modules.auth.security import hash_password
-        from apps.api.modules.organization.models.org_membership import OrgMembership
+        from apps.api.modules.organization.models.org_membership import OrgMembership, OrgRole
         from apps.api.modules.organization.models.user import User
         from apps.api.modules.organization.repository import OrganizationRepository
         from apps.api.modules.workspaces.models.workspace import Workspace
@@ -840,7 +842,7 @@ async def test_workspace_invite_link_disable_blocks_accept(prepared_db, integrat
             display_name="Owner",
             password_hash=hash_password("owner_password_123", settings.auth),
         )
-        await OrgMembership.create(organization_id=org.id, user_id=owner.id, is_owner=True, status="active")
+        await OrgMembership.create(organization_id=org.id, user_id=owner.id, role=OrgRole.OWNER, status="active")
         ws = await Workspace.create(
             organization_id=org.id,
             slug=f"ws_{uuid4().hex[:8]}",
@@ -908,7 +910,7 @@ async def test_workspace_team_member_manage_update_disable_enable_and_reset_pass
 
         from apps.api.modules.auth.repository import UserRepository
         from apps.api.modules.auth.security import hash_password
-        from apps.api.modules.organization.models.org_membership import OrgMembership
+        from apps.api.modules.organization.models.org_membership import OrgMembership, OrgRole
         from apps.api.modules.organization.models.user import User
         from apps.api.modules.organization.repository import OrganizationRepository
         from apps.api.modules.workspaces.models.workspace import Workspace, WorkspaceMembership
@@ -937,9 +939,9 @@ async def test_workspace_team_member_manage_update_disable_enable_and_reset_pass
             password_hash=hash_password("other_password_123", settings.auth),
         )
 
-        await OrgMembership.create(organization_id=org.id, user_id=owner.id, is_owner=True, status="active")
-        await OrgMembership.create(organization_id=org.id, user_id=member.id, is_owner=False, status="active")
-        await OrgMembership.create(organization_id=org.id, user_id=other.id, is_owner=False, status="active")
+        await OrgMembership.create(organization_id=org.id, user_id=owner.id, role=OrgRole.OWNER, status="active")
+        await OrgMembership.create(organization_id=org.id, user_id=member.id, role=OrgRole.MEMBER, status="active")
+        await OrgMembership.create(organization_id=org.id, user_id=other.id, role=OrgRole.MEMBER, status="active")
 
         ws = await Workspace.create(
             organization_id=org.id,
