@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from pathlib import Path
 from uuid import UUID, uuid4
 
 import pytest
@@ -11,29 +10,6 @@ from apps.api.core.registry import create_app
 from apps.api.modules.auth.deps import get_current_user_id
 
 pytestmark = pytest.mark.integration
-
-
-@pytest.fixture
-def plugin_root(integration_db_settings, monkeypatch) -> Path:
-    """
-    Override the default `plugin_root` (from tests/conftest.py) for this module:
-    we want to run integration tests with repository plugins enabled so the
-    dynamic admin menu plugin models/permissions exist.
-
-    Note:
-    - In test env, we rely on `Tortoise.generate_schemas()` (not Aerich) for schema setup.
-      Keeping AUTO_MIGRATE disabled avoids flaky subprocess behavior.
-    """
-
-    _ = integration_db_settings
-    repo_root = Path(__file__).resolve().parents[3]
-    root = repo_root / "plugins"
-    monkeypatch.setenv("PLUGIN__ENABLED", "1")
-    monkeypatch.setenv("PLUGIN__ROOT_DIR", str(root))
-    monkeypatch.setenv("PLUGIN__AUTO_MIGRATE", "0")
-    monkeypatch.setenv("PLUGIN__AUTO_RESTART", "0")
-    get_settings.cache_clear()
-    return root
 
 
 async def test_admin_menu_filtered_for_user(prepared_db) -> None:

@@ -21,6 +21,7 @@ if str(REPO_ROOT) not in sys.path:
 from apps.api.config import get_settings
 from apps.api.core.database.orm import close_orm, init_orm, verify_db_ready
 from apps.api.infra.cache.valkey import ValkeyClient, close_valkey, init_valkey
+from apps.api.tests.utils.plugins import collect_test_plugin_models
 from apps.api.tests.utils.tortoise import reset_postgres_schema
 
 
@@ -105,8 +106,9 @@ async def db(integration_db_settings) -> AsyncGenerator[None, None]:
 @pytest_asyncio.fixture
 async def prepared_db(integration_db_settings, plugin_root) -> AsyncGenerator[None, None]:
     settings = get_settings()
+    extra_models = collect_test_plugin_models(settings)
     await _ensure_test_database(settings)
-    await init_orm(settings)
+    await init_orm(settings, extra_modules=extra_models)
     await reset_postgres_schema()
     await Tortoise.generate_schemas(safe=True)
     await close_orm()

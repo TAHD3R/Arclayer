@@ -4,10 +4,8 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends
 
-from apps.api.core.exceptions import ServiceUnavailable
 from apps.api.core.http.pagination import PageData, PageParams, get_page_params
 from apps.api.core.http.response import Response, ResponseModel
-from apps.api.core.i18n import t
 from apps.api.modules.auth.deps import get_current_user_id
 from apps.api.modules.system.admin.menus.schema import (
     AdminMenuCreateRequest,
@@ -17,9 +15,9 @@ from apps.api.modules.system.admin.menus.schema import (
     AdminMenuTreeOut,
     AdminMenuUpdateRequest,
 )
+from apps.api.modules.system.admin.menus.service import AdminMenuService
 from apps.api.modules.workspaces.authz.deps import require_workspace_permission
 from apps.api.modules.workspaces.deps import WorkspaceContext, require_workspace_manage_access
-from apps.api.plugin.extension_points.admin_menu import get_admin_menu_provider
 
 router = APIRouter(
     prefix="/workspaces/{workspace_id}/menus",
@@ -28,14 +26,8 @@ router = APIRouter(
 )
 
 
-def _require_provider():
-    provider = get_admin_menu_provider()
-    if provider is None:
-        raise ServiceUnavailable(
-            message=t("errors", "ADMIN_MENU_PROVIDER_UNAVAILABLE", default="菜单服务不可用"),
-            error="ADMIN_MENU_PROVIDER_UNAVAILABLE",
-        )
-    return provider
+def _get_service() -> AdminMenuService:
+    return AdminMenuService()
 
 
 @router.get(
@@ -47,8 +39,8 @@ async def get_my_menu(
     _ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     user_id: UUID = Depends(get_current_user_id),
 ) -> ResponseModel[AdminMenuTreeOut]:
-    provider = _require_provider()
-    data = await provider.get_menu(user_id=user_id)
+    service = _get_service()
+    data = await service.get_menu(user_id=user_id)
     return Response.success(data=data)
 
 
@@ -63,8 +55,8 @@ async def list_menu_items(
     params: PageParams = Depends(get_page_params),
     filters: AdminMenuListQuery = Depends(),
 ) -> ResponseModel[PageData[AdminMenuItemOut]]:
-    provider = _require_provider()
-    page = await provider.list_items(params=params, filters=filters)
+    service = _get_service()
+    page = await service.list_items(params=params, filters=filters)
     return Response.success(data=page)
 
 
@@ -78,8 +70,8 @@ async def get_menu_item(
     item_id: UUID,
     _ctx: WorkspaceContext = Depends(require_workspace_manage_access),
 ) -> ResponseModel[AdminMenuItemOut]:
-    provider = _require_provider()
-    item = await provider.get_item(item_id=item_id)
+    service = _get_service()
+    item = await service.get_item(item_id=item_id)
     return Response.success(data=item)
 
 
@@ -93,8 +85,8 @@ async def create_menu_item(
     body: AdminMenuCreateRequest,
     _ctx: WorkspaceContext = Depends(require_workspace_manage_access),
 ) -> ResponseModel[AdminMenuItemOut]:
-    provider = _require_provider()
-    item = await provider.create_item(payload=body)
+    service = _get_service()
+    item = await service.create_item(payload=body)
     return Response.success(data=item)
 
 
@@ -109,8 +101,8 @@ async def update_menu_item(
     body: AdminMenuUpdateRequest,
     _ctx: WorkspaceContext = Depends(require_workspace_manage_access),
 ) -> ResponseModel[AdminMenuItemOut]:
-    provider = _require_provider()
-    item = await provider.update_item(item_id=item_id, payload=body)
+    service = _get_service()
+    item = await service.update_item(item_id=item_id, payload=body)
     return Response.success(data=item)
 
 
@@ -124,8 +116,8 @@ async def delete_menu_item(
     item_id: UUID,
     _ctx: WorkspaceContext = Depends(require_workspace_manage_access),
 ) -> ResponseModel[None]:
-    provider = _require_provider()
-    await provider.delete_item(item_id=item_id)
+    service = _get_service()
+    await service.delete_item(item_id=item_id)
     return Response.success()
 
 
@@ -139,8 +131,8 @@ async def restore_menu_item(
     item_id: UUID,
     _ctx: WorkspaceContext = Depends(require_workspace_manage_access),
 ) -> ResponseModel[AdminMenuItemOut]:
-    provider = _require_provider()
-    item = await provider.restore_item(item_id=item_id)
+    service = _get_service()
+    item = await service.restore_item(item_id=item_id)
     return Response.success(data=item)
 
 
@@ -154,6 +146,6 @@ async def reorder_menu_items(
     body: AdminMenuReorderRequest,
     _ctx: WorkspaceContext = Depends(require_workspace_manage_access),
 ) -> ResponseModel[None]:
-    provider = _require_provider()
-    await provider.reorder(payload=body)
+    service = _get_service()
+    await service.reorder(payload=body)
     return Response.success()

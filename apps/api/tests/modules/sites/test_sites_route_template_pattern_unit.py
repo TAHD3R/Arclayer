@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 
 from apps.api.core.exceptions import Conflict
-from apps.api.modules.sites.service import _validate_route_template_pattern
+from apps.api.modules.sites.utils import validate_route_template_pattern
 
 
 @pytest.mark.parametrize(
@@ -16,7 +16,7 @@ from apps.api.modules.sites.service import _validate_route_template_pattern
     ],
 )
 def test_validate_route_template_pattern_accepts_valid_patterns(pattern: str) -> None:
-    out = _validate_route_template_pattern(pattern)
+    out = validate_route_template_pattern(pattern)
     assert out.startswith("/")
     assert "?" not in out
     assert "#" not in out
@@ -36,4 +36,4 @@ def test_validate_route_template_pattern_accepts_valid_patterns(pattern: str) ->
 )
 def test_validate_route_template_pattern_rejects_invalid_patterns(pattern: str) -> None:
     with pytest.raises(Conflict):
-        _validate_route_template_pattern(pattern)
+        validate_route_template_pattern(pattern)

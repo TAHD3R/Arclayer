@@ -353,7 +353,7 @@ class DatabaseSettings(BaseSettings):
         validation_alias=AliasChoices("DB_PLUGIN_PACKAGES", "DATABASE_PLUGIN_PACKAGES"),
     )
     models_max_depth: int | None = Field(
-        default=3,
+        default=4,
         validation_alias=AliasChoices("DB_MODELS_MAX_DEPTH", "DATABASE_MODELS_MAX_DEPTH"),
     )
 
