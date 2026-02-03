@@ -5,14 +5,13 @@ from uuid import UUID
 from fastapi import APIRouter, BackgroundTasks, Depends, Query
 
 from apps.api.config import Settings, get_settings
-from apps.api.core.exceptions import BadRequest, NotFound
+from apps.api.core.exceptions import BadRequest
 from apps.api.core.http.pagination import PageData, get_page_params
 from apps.api.core.http.response import Response, ResponseModel
 from apps.api.core.i18n import get_current_locale, t
 from apps.api.modules.auth.deps import get_current_user_id
 from apps.api.modules.workspaces.authz.deps import require_workspace_permission
 from apps.api.modules.workspaces.deps import WorkspaceContext, require_workspace_manage_access
-from apps.api.modules.workspaces.models.workspace import Workspace
 from apps.api.modules.workspaces.team.schema import (
     WorkspaceEmailInviteCreateRequest,
     WorkspaceEmailInviteCreateResult,
@@ -176,9 +175,7 @@ async def create_email_invite(
 
     # Deliver the invite email asynchronously (best-effort). If SMTP is misconfigured,
     # EmailService will log details but the invite record remains useful for copying the token/url.
-    ws = await Workspace.get_or_none(id=ctx.workspace_id)
-    if ws is None:
-        raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
+    workspace_name = await service.get_workspace_name(workspace_id=ctx.workspace_id)
 
     inviter = out.invitation.created_by
     inviter_name = None
@@ -192,7 +189,7 @@ async def create_email_invite(
         invite_url=out.invite_url,
         invite_token=out.token,
         expires_at=out.invitation.expires_at,
-        workspace_name=ws.name,
+        workspace_name=workspace_name,
         inviter_name=inviter_name,
         invited_by_user_id=str(user_id),
         locale=locale,

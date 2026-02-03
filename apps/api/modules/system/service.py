@@ -7,12 +7,13 @@ from uuid import UUID
 from apps.api.common.protocols.tortoise import HasOrganizationId, OrganizationLogoUrlMutableFields
 from apps.api.common.services.base import BaseService
 from apps.api.config import Settings
-from apps.api.core.exceptions import BadRequest, Conflict, ServiceUnavailable
+from apps.api.core.exceptions import BadRequest, Conflict, Forbidden, ServiceUnavailable
 from apps.api.core.i18n import t
 from apps.api.modules.auth.repository import UserRepository
 from apps.api.modules.auth.security import hash_password
 from apps.api.modules.organization.models.organization import Organization
 from apps.api.modules.organization.models.user import User
+from apps.api.modules.system.schema import SystemSetupRequest, SystemSetupResult, SystemSetupStatus
 from apps.api.modules.system.settings.service import SettingsService
 from apps.api.plugin.event_bus import Event
 from apps.api.plugin.events import SYSTEM_SETUP_COMPLETED
@@ -29,6 +30,67 @@ class SystemSetupService(BaseService):
         super().__init__(settings)
         self.manager = manager
         self.user_repo = UserRepository()
+
+    @staticmethod
+    def _is_local_host(host: str | None) -> bool:
+        return host in {"127.0.0.1", "::1", "localhost"}
+
+    async def get_setup_status(self) -> SystemSetupStatus:
+        initialized = await self.is_initialized()
+        expected = self.settings.setup.token.get_secret_value() if self.settings.setup.token is not None else ""
+        access = "token" if expected else "local_only"
+        return SystemSetupStatus(
+            initialized=initialized,
+            setup_enabled=self.settings.setup.enabled,
+            access=access,
+        )
+
+    def validate_setup_access(self, *, client_host: str | None, setup_token: str | None) -> None:
+        if not self.settings.setup.enabled:
+            raise ServiceUnavailable(
+                message=_ts("SETUP_DISABLED", "系统初始化接口已关闭"),
+                error="SETUP_DISABLED",
+            )
+
+        expected = self.settings.setup.token.get_secret_value() if self.settings.setup.token is not None else ""
+        if expected:
+            if not setup_token or setup_token != expected:
+                raise Forbidden(
+                    message=_ts("SETUP_TOKEN_INVALID", "初始化令牌无效"),
+                    error="SETUP_TOKEN_INVALID",
+                )
+        else:
+            if not self._is_local_host(client_host):
+                raise Forbidden(
+                    message=_ts("SETUP_LOCAL_ONLY", "初始化接口仅允许本机访问"),
+                    error="SETUP_LOCAL_ONLY",
+                )
+
+    async def run_setup(self, *, payload: SystemSetupRequest) -> SystemSetupResult:
+        admin = payload.admin
+        org = payload.organization
+        master_key_b64 = payload.master_key.get_secret_value() if payload.master_key is not None else None
+        now, fp, user, rbac_ok, organization = await self.setup(
+            admin_username=admin.username,
+            admin_password=admin.password.get_secret_value(),
+            admin_email=admin.email,
+            admin_display_name=admin.display_name,
+            organization_name=(org.name if org is not None else None),
+            organization_slug=(org.slug if org is not None else None),
+            organization_logo_url=(org.logo_url if org is not None else None),
+            master_key_b64=master_key_b64,
+            core_patch=payload.core_patch,
+        )
+        return SystemSetupResult(
+            initialized_at=now,
+            master_key_fingerprint=fp,
+            admin_user_id=str(user.id),
+            admin_username=user.username,
+            rbac_bootstrapped=rbac_ok,
+            organization_id=(str(organization.id) if organization is not None else None),
+            organization_slug=(organization.slug if organization is not None else None),
+            organization_name=(organization.name if organization is not None else None),
+        )
 
     async def is_initialized(self) -> bool:
         if master_key_exists(self.settings.setup.master_key_path):

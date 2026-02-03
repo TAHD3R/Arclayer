@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from apps.api.common.schemas import AuthzSnapshot
 from apps.api.modules.system.models.rbac import Permission, PermissionScope, Role
+from apps.api.modules.workspaces.authz.schema import AuthzSnapshot
 
 
 async def get_workspace_authz_snapshot(*, user_id: UUID, workspace_id: UUID) -> AuthzSnapshot:

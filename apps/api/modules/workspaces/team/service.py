@@ -26,7 +26,7 @@ from apps.api.modules.organization.models.user import User
 from apps.api.modules.system.models.rbac import Role
 from apps.api.modules.workspaces.invitations.expiry import build_expires_at
 from apps.api.modules.workspaces.invitations.tokens import build_invite_token, generate_invite_code
-from apps.api.modules.workspaces.models.workspace import WorkspaceMembership, WorkspaceMembershipStatus
+from apps.api.modules.workspaces.models.workspace import Workspace, WorkspaceMembership, WorkspaceMembershipStatus
 from apps.api.modules.workspaces.models.workspace_invite import (
     WorkspaceEmailInvite,
     WorkspaceInviteLink,
@@ -110,6 +110,12 @@ class WorkspaceTeamService(BaseService):
                 continue
             out.append(WorkspaceInviteLinkParticipantOut(user=_user_ref(u), used_at=e.used_at))
         return out
+
+    async def get_workspace_name(self, *, workspace_id: UUID) -> str:
+        ws = await Workspace.get_or_none(id=workspace_id)
+        if ws is None:
+            raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
+        return ws.name
 
     def _compute_invite_status(
         self, *, accepted_at: datetime | None, revoked_at: datetime | None, expires_at: datetime | None

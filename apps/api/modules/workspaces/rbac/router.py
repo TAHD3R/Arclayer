@@ -7,10 +7,8 @@ from fastapi import APIRouter, Depends
 from apps.api.config import Settings, get_settings
 from apps.api.core.http.pagination import PageData, PageParams, get_page_params, paginate_items
 from apps.api.core.http.response import Response, ResponseModel
-from apps.api.core.i18n import get_current_locale, t
-from apps.api.modules.system.models.plugin import PluginRecord
+from apps.api.core.i18n import get_current_locale
 from apps.api.modules.system.models.rbac import PermissionScope
-from apps.api.modules.system.rbac.service import RBACService
 from apps.api.modules.workspaces.authz.deps import require_workspace_permission
 from apps.api.modules.workspaces.deps import WorkspaceContext, require_workspace_manage_access
 from apps.api.modules.workspaces.rbac.schema import (
@@ -22,73 +20,13 @@ from apps.api.modules.workspaces.rbac.schema import (
     WorkspaceRBACMatrixPermissionRowOut,
     WorkspaceRoleOut,
 )
-from apps.api.plugin.manifest import load_plugin_manifest
+from apps.api.modules.workspaces.rbac.service import WorkspaceRBACService
 
 router = APIRouter(prefix="/workspaces/{workspace_id}/rbac", tags=["Workspace RBAC"])
 
 
-def _translate_ref(ref: str | None, default: str | None) -> str | None:
-    """
-    Translate a "namespace:key" reference using current locale resources.
-
-    Notes:
-    - Mirrors the plugin module behavior but avoids importing PluginService here.
-    """
-
-    if not ref:
-        return default
-    trimmed = str(ref).strip()
-    if not trimmed:
-        return default
-    if ":" in trimmed:
-        namespace, key = trimmed.split(":", 1)
-    elif "." in trimmed:
-        namespace, key = trimmed.split(".", 1)
-    else:
-        namespace, key = "plugin", trimmed
-    namespace = namespace.strip()
-    key = key.strip()
-    if not namespace or not key:
-        return default
-    return t(namespace, key, default=default)
-
-
-async def _get_plugin_name_map(*, plugin_ids: set[str]) -> dict[str, str]:
-    """
-    Best-effort plugin display name map for matrix rendering.
-
-    We intentionally do NOT require org-level permissions: RBAC matrix is workspace-scoped.
-    """
-
-    if not plugin_ids:
-        return {}
-
-    rows = await PluginRecord.filter(plugin_id__in=list(plugin_ids)).all()
-    by_id = {str(r.plugin_id): r for r in rows if r.plugin_id}
-
-    out: dict[str, str] = {}
-    for pid in plugin_ids:
-        record = by_id.get(pid)
-        if record is None:
-            continue
-        name = record.name
-        # Try manifest-backed localized name if available.
-        try:
-            from pathlib import Path
-
-            manifest_path = Path(record.storage_path) / "plugin.toml"
-            if manifest_path.is_file():
-                manifest = load_plugin_manifest(manifest_path)
-                name = _translate_ref(manifest.plugin.name_i18n, manifest.plugin.name) or name
-        except Exception:
-            pass
-        if name:
-            out[pid] = name
-    return out
-
-
-def get_rbac_service(settings: Settings = Depends(get_settings)) -> RBACService:
-    return RBACService(settings)
+def get_rbac_service(settings: Settings = Depends(get_settings)) -> WorkspaceRBACService:
+    return WorkspaceRBACService(settings)
 
 
 @router.get(
@@ -100,7 +38,7 @@ def get_rbac_service(settings: Settings = Depends(get_settings)) -> RBACService:
 async def list_roles(
     params: PageParams = Depends(get_page_params),
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
-    service: RBACService = Depends(get_rbac_service),
+    service: WorkspaceRBACService = Depends(get_rbac_service),
 ) -> ResponseModel[PageData[WorkspaceRoleOut]]:
     # Role counts are typically small; do in-memory pagination so we can localize deterministically.
     roles = await service.repo.list_roles(workspace_id=ctx.workspace_id)
@@ -119,11 +57,11 @@ async def list_roles(
 async def list_permissions(
     params: PageParams = Depends(get_page_params),
     _ctx: WorkspaceContext = Depends(require_workspace_manage_access),
-    service: RBACService = Depends(get_rbac_service),
+    service: WorkspaceRBACService = Depends(get_rbac_service),
 ) -> ResponseModel[PageData[WorkspacePermissionOut]]:
     perms = await service.repo.list_permissions(scope=PermissionScope.WORKSPACE)
     plugin_ids = {str(p.plugin_id) for p in perms if p.plugin_id and str(p.plugin_id) != "core"}
-    plugin_names = await _get_plugin_name_map(plugin_ids=plugin_ids)
+    plugin_names = await service.get_plugin_name_map(plugin_ids=plugin_ids)
     items: list[WorkspacePermissionOut] = []
     for p in perms:
         lp = service.localize_permission(p)
@@ -150,18 +88,18 @@ async def list_permissions(
 )
 async def get_matrix(
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
-    service: RBACService = Depends(get_rbac_service),
+    service: WorkspaceRBACService = Depends(get_rbac_service),
 ) -> ResponseModel[WorkspaceRBACMatrixOut]:
     payload = await service.get_matrix(workspace_id=ctx.workspace_id)
-    roles = payload["roles"]
-    permissions = payload["permissions"]
-    grants = payload["grants"]
+    roles = payload.roles
+    permissions = payload.permissions
+    grants = payload.grants
 
     # Localize outputs.
     locale = get_current_locale()
     localized_roles = [WorkspaceRoleOut.model_validate(service.localize_role(r, locale=locale)) for r in roles]
     plugin_ids = {str(p.plugin_id) for p in permissions if p.plugin_id and str(p.plugin_id) != "core"}
-    plugin_names = await _get_plugin_name_map(plugin_ids=plugin_ids)
+    plugin_names = await service.get_plugin_name_map(plugin_ids=plugin_ids)
     localized_perm_rows: list[WorkspaceRBACMatrixPermissionRowOut] = []
     for p in permissions:
         lp = service.localize_permission(p)
@@ -190,7 +128,7 @@ async def get_matrix(
 async def create_role(
     body: RoleCreateFromTemplateRequest,
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
-    service: RBACService = Depends(get_rbac_service),
+    service: WorkspaceRBACService = Depends(get_rbac_service),
 ) -> ResponseModel[WorkspaceRoleOut]:
     locale = get_current_locale()
     name_l10n = body.name_l10n
@@ -222,7 +160,7 @@ async def update_role(
     role_code: str,
     body: RoleUpdateRequest,
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
-    service: RBACService = Depends(get_rbac_service),
+    service: WorkspaceRBACService = Depends(get_rbac_service),
 ) -> ResponseModel[WorkspaceRoleOut]:
     locale = get_current_locale()
     name_l10n = body.name_l10n
@@ -251,7 +189,7 @@ async def update_role(
 async def delete_role(
     role_code: str,
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
-    service: RBACService = Depends(get_rbac_service),
+    service: WorkspaceRBACService = Depends(get_rbac_service),
 ) -> ResponseModel[None]:
     await service.delete_custom_role(workspace_id=ctx.workspace_id, role_code=role_code)
     return Response.success()
@@ -267,7 +205,7 @@ async def set_permission_roles(
     permission_code: str,
     body: PermissionRoleSetRequest,
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
-    service: RBACService = Depends(get_rbac_service),
+    service: WorkspaceRBACService = Depends(get_rbac_service),
 ) -> ResponseModel[None]:
     await service.set_permission_custom_roles(
         workspace_id=ctx.workspace_id,

@@ -20,6 +20,12 @@ from apps.api.modules.system.rbac.constants import (
     ROLE_VIEWER,
 )
 from apps.api.modules.system.rbac.repository import RBACRepository
+from apps.api.modules.system.rbac.schema import (
+    PermissionCatalogSyncResult,
+    PermissionSyncResult,
+    RBACMatrixPayload,
+    WorkspacesSyncResult,
+)
 from apps.api.modules.workspaces.models.workspace import Workspace
 from apps.api.plugin.registry import registry
 
@@ -82,7 +88,7 @@ class RBACService(BaseService):
     # -----------------------------
     # Permission catalog (global)
     # -----------------------------
-    async def sync_permission_catalog(self) -> dict[str, Any]:
+    async def sync_permission_catalog(self) -> PermissionCatalogSyncResult:
         """
         Sync permission templates (core + plugins) into DB.
 
@@ -137,7 +143,7 @@ class RBACService(BaseService):
         known_codes = set(templates.keys())
         await Permission.exclude(code__in=list(known_codes)).delete()
 
-        return {"total": len(templates), "created": created, "updated": updated}
+        return PermissionCatalogSyncResult(total=len(templates), created=created, updated=updated)
 
     # -----------------------------
     # Workspace roles (system + custom)
@@ -277,7 +283,7 @@ class RBACService(BaseService):
             perm_ids = [UUID(str(p.id)) for p in perms]
             await self.repo.replace_role_permissions(role=role, permission_ids=perm_ids)
 
-    async def ensure_all_workspaces_ready(self) -> dict[str, Any]:
+    async def ensure_all_workspaces_ready(self) -> WorkspacesSyncResult:
         """
         Ensure all workspaces have system roles and reconciled grants.
 
@@ -289,7 +295,17 @@ class RBACService(BaseService):
         for ws_id in workspaces:
             total += 1
             await self.ensure_workspace_system_role_grants(workspace_id=UUID(str(ws_id)))
-        return {"workspaces": total}
+        return WorkspacesSyncResult(workspaces=total)
+
+    async def sync_permissions_with_workspaces(self) -> PermissionSyncResult:
+        catalog = await self.sync_permission_catalog()
+        workspaces = await self.ensure_all_workspaces_ready()
+        return PermissionSyncResult(
+            total=catalog.total,
+            created=catalog.created,
+            updated=catalog.updated,
+            workspaces=workspaces.workspaces,
+        )
 
     # -----------------------------
     # Query helpers (workspace)
@@ -306,7 +322,7 @@ class RBACService(BaseService):
         qs = self.repo.query_permissions(scope=scope)
         return await paginate_queryset(qs, params=params, out_schema=out_schema)
 
-    async def get_matrix(self, *, workspace_id: UUID) -> dict[str, Any]:
+    async def get_matrix(self, *, workspace_id: UUID) -> RBACMatrixPayload:
         """
         Matrix payload: roles + permissions + permission->role grants.
         """
@@ -326,11 +342,11 @@ class RBACService(BaseService):
             for p in permissions:
                 grants.setdefault(p.code, set()).update(superuser_codes)
 
-        return {
-            "roles": roles,
-            "permissions": permissions,
-            "grants": {k: sorted(v) for k, v in grants.items()},
-        }
+        return RBACMatrixPayload(
+            roles=list(roles),
+            permissions=list(permissions),
+            grants={k: sorted(v) for k, v in grants.items()},
+        )
 
     # -----------------------------
     # Custom role lifecycle (workspace)

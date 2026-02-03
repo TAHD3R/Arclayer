@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends
 
-from apps.api.common.schemas import AuthzSnapshot
 from apps.api.config import Settings, get_settings
 from apps.api.core.http.response import Response, ResponseModel
 from apps.api.modules.auth.deps import get_current_user_id
+from apps.api.modules.workspaces.authz.schema import AuthzSnapshot
 from apps.api.modules.workspaces.authz_snapshot import get_workspace_authz_snapshot
 from apps.api.modules.workspaces.deps import WorkspaceContext, require_workspace_manage_access
 

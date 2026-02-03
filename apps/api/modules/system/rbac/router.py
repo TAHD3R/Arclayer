@@ -39,6 +39,5 @@ async def list_permissions(
 async def sync_permissions(
     service: RBACService = Depends(get_rbac_service),
 ) -> ResponseModel[PermissionSyncResult]:
-    sync = await service.sync_permission_catalog()
-    ws = await service.ensure_all_workspaces_ready()
-    return Response.success(data=PermissionSyncResult.model_validate({**sync, **ws}))
+    result = await service.sync_permissions_with_workspaces()
+    return Response.success(data=result)

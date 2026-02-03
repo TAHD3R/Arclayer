@@ -6,6 +6,7 @@ from uuid import UUID
 from pydantic import Field, computed_field
 
 from apps.api.common.schemas import BaseOut, BaseSchema
+from apps.api.core.http.pagination import PageData
 
 
 def _canonical_filename(slug: str | None, ext: str | None) -> str:
@@ -54,12 +55,5 @@ class PublicLibraryAssetOut(BaseOut):
         return f"/assets/{self.id}/download"
 
 
-class PublicLibraryPageOut(BaseSchema):
+class PublicLibraryPageOut(PageData[PublicLibraryAssetOut]):
     org: PublicLibraryOrgOut = Field(..., description="Organization.")
-    items: list[PublicLibraryAssetOut] = Field(default_factory=list, description="Assets.")
-    total: int = Field(..., ge=0, description="Total count.")
-    page: int = Field(..., ge=1, description="Current page.")
-    size: int = Field(..., ge=1, description="Page size.")
-    pages: int = Field(..., ge=0, description="Total pages.")
-    next: int | None = Field(default=None, description="Next page.")
-    prev: int | None = Field(default=None, description="Prev page.")

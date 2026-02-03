@@ -46,13 +46,7 @@ class PublicLibraryService:
 
         payload = PublicLibraryPageOut(
             org=PublicLibraryOrgOut(id=org.id, slug=org.slug, name=org.name),
-            items=list(page.items),
-            total=page.total,
-            page=page.page,
-            size=page.size,
-            pages=page.pages,
-            next=page.next,
-            prev=page.prev,
+            **page.model_dump(),
         )
 
         if _wants_html(request):

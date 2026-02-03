@@ -3,10 +3,8 @@ from __future__ import annotations
 import mimetypes
 from uuid import UUID
 
-from pydantic import ConfigDict
 from starlette.responses import RedirectResponse, Response
 
-from apps.api.common.schemas import BaseSchema
 from apps.api.config import Settings
 from apps.api.core.exceptions import NotFound
 from apps.api.core.http.content_disposition import build_attachment_content_disposition
@@ -15,22 +13,8 @@ from apps.api.infra.storage.factory import build_storage_provider_for
 from apps.api.infra.storage.local import safe_object_key_to_path
 from apps.api.infra.storage.s3 import S3StorageProvider
 from apps.api.modules.assets.repository import AssetsRepository
+from apps.api.modules.assets.schema import AssetPublicView
 from apps.api.settings.runtime import get_effective_settings
-
-
-class AssetPublicView(BaseSchema):
-    model_config = ConfigDict(frozen=True)
-
-    id: UUID
-    slug: str
-    ext: str
-    mime: str | None
-    checksum_sha256: str | None
-    original_filename: str | None
-    object_key: str
-    indexable: bool
-    variants: dict | None
-    storage_provider: str
 
 
 def canonical_asset_filename(*, slug: str, ext: str) -> str:

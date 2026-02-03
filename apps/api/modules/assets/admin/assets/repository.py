@@ -247,9 +247,6 @@ class AdminAssetsRepository(BaseRepository):
         )
 
 
-_ALLOWED_ASSET_ORDER_FIELDS = ADMIN_ASSET_ALLOWED_ORDER_FIELDS
-
-
 def _normalize_asset_ordering(value: str) -> list[str]:
     fields: list[str] = []
     for part in value.split(","):
@@ -258,7 +255,7 @@ def _normalize_asset_ordering(value: str) -> list[str]:
             continue
         desc = raw.startswith("-")
         name = raw[1:] if desc else raw
-        if name not in _ALLOWED_ASSET_ORDER_FIELDS:
+        if name not in ADMIN_ASSET_ALLOWED_ORDER_FIELDS:
             continue
         fields.append(f"-{name}" if desc else name)
     return fields or ["-created_at"]

@@ -58,9 +58,6 @@ class WorkspaceTeamRepository(BaseRepository):
         return await Role.filter(workspace_id=workspace_id, code__in=role_codes).all()
 
 
-_ALLOWED_USER_ORDER_FIELDS = ADMIN_USERS_ALLOWED_ORDER_FIELDS
-
-
 def _normalize_team_member_ordering(value: str) -> list[str]:
     fields: list[str] = []
     for part in value.split(","):
@@ -76,7 +73,7 @@ def _normalize_team_member_ordering(value: str) -> list[str]:
 
         if name.startswith("user__"):
             suffix = name.removeprefix("user__")
-            if suffix in _ALLOWED_USER_ORDER_FIELDS:
+            if suffix in ADMIN_USERS_ALLOWED_ORDER_FIELDS:
                 fields.append(f"-{name}" if desc else name)
 
     return fields or ["-created_at"]
