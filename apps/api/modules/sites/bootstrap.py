@@ -2,13 +2,8 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from tortoise.transactions import in_transaction
-
 from apps.api.core.logging import get_logger
-from apps.api.modules.sites.models.site import SiteRecord
-from apps.api.modules.sites.models.site_entry import EntryRecord, EntryRevisionRecord, EntryTypeRecord
-from apps.api.modules.sites.models.site_page import SitePageRecord, SitePageRevisionRecord, SitePageVisibility
-from apps.api.modules.sites.models.site_route_template import RouteTemplateRecord
+from apps.api.modules.sites.repository import SitesRepository
 from apps.api.modules.sites.schema import (
     ContainerBlock,
     ContainerBlockProps,
@@ -21,14 +16,11 @@ from apps.api.modules.sites.schema import (
     ParagraphBlock,
     ParagraphBlockProps,
 )
-from apps.api.modules.system.models.setting import SettingRecord
 from apps.api.modules.workspaces.models.workspace import Workspace
-from apps.api.settings.scopes import SCOPE_TYPE_SITE
 
 logger = get_logger(__name__)
 
 DEMO_SITE_ID = UUID("00000000-0000-0000-0000-000000000001")
-RUNTIME_SETTING_NAMESPACE = "site.runtime"
 
 
 async def ensure_demo_site_ready() -> None:
@@ -50,121 +42,15 @@ async def ensure_demo_site_ready() -> None:
         logger.warning("Demo site bootstrap skipped: no default workspace found")
         return
 
-    async with in_transaction() as conn:
-        site = await SiteRecord.filter(id=DEMO_SITE_ID).using_db(conn).first()
-        if site is None:
-            site = await SiteRecord.create(
-                id=DEMO_SITE_ID,
-                workspace_id=ws.id,
-                slug="demo",
-                name="Celestial Demo",
-                default_locale="zh-CN",
-                fallback_locale="en-US",
-                primary_host="localhost",
-                is_active=True,
-                created_by_user_id=None,
-            )
-            logger.info("Created demo site", site_id=str(site.id), workspace_id=str(ws.id))
-
-        # Upsert minimal pages (/) and (/about) with an initial published revision.
-        await _ensure_page(conn=conn, site_id=site.id, path="/", document=_build_home_document())
-        await _ensure_page(conn=conn, site_id=site.id, path="/about", document=_build_about_document())
-
-        # Upsert runtime settings (theme tokens) for Portal SSR head injection.
-        # This keeps runtime config DB-backed even before Admin UI exists.
-        await SettingRecord.get_or_create(
-            scope_type=SCOPE_TYPE_SITE,
-            scope_id=site.id,
-            namespace=RUNTIME_SETTING_NAMESPACE,
-            defaults={
-                "value": {
-                    "theme": {
-                        "cssVars": {
-                            "--color-primary": "#1677ff",
-                            "--color-background": "#ffffff",
-                            "--color-foreground": "#111827",
-                            "--color-border": "rgba(17, 24, 39, 0.12)",
-                            "--font-sans": "system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif",
-                        }
-                    },
-                    "fonts": [],
-                },
-                "updated_by": None,
-            },
-            using_db=conn,
-        )
-
-        # Upsert a minimal entry type + one entry for /blog/:slug.
-        et, _ = await EntryTypeRecord.get_or_create(
-            site_id=site.id,
-            code="blog_post",
-            defaults={"name": "Blog Post", "fields_schema": None},
-            using_db=conn,
-        )
-
-        entry, created_entry = await EntryRecord.get_or_create(
-            site_id=site.id,
-            entry_type_id=et.id,
-            slug="hello",
-            defaults={"draft_rev": 0, "published_rev": None, "created_by_user_id": None},
-            using_db=conn,
-        )
-        if created_entry or not entry.published_rev:
-            rev = 1
-            await EntryRevisionRecord.create(
-                entry_id=entry.id,
-                rev=rev,
-                data=None,
-                document=_build_blog_document(slug=entry.slug).model_dump(by_alias=True),
-                created_by_user_id=None,
-                using_db=conn,
-            )
-            entry.draft_rev = rev
-            entry.published_rev = rev
-            await entry.save(update_fields=["draft_rev", "published_rev"], using_db=conn)
-
-        # RouteTemplate: /blog/:slug -> blog_post
-        await RouteTemplateRecord.get_or_create(
-            site_id=site.id,
-            path_pattern="/blog/:slug",
-            defaults={
-                "entry_type_id": et.id,
-                "template_page_revision_id": None,
-                "is_active": True,
-            },
-            using_db=conn,
-        )
-
-
-async def _ensure_page(*, conn, site_id: UUID, path: str, document: DocumentIR) -> None:
-    page = await SitePageRecord.filter(site_id=site_id, path=path).using_db(conn).first()
-    if page is None:
-        page = await SitePageRecord.create(
-            site_id=site_id,
-            path=path,
-            parent_id=None,
-            sort_order=0,
-            visibility=SitePageVisibility.PUBLIC,
-            draft_rev=0,
-            published_rev=None,
-            created_by_user_id=None,
-            using_db=conn,
-        )
-
-    if page.published_rev:
-        return
-
-    rev = 1
-    await SitePageRevisionRecord.create(
-        page_id=page.id,
-        rev=rev,
-        document=document.model_dump(by_alias=True),
-        created_by_user_id=None,
-        using_db=conn,
+    repo = SitesRepository()
+    await repo.ensure_demo_site_ready(
+        workspace_id=UUID(str(ws.id)),
+        site_id=DEMO_SITE_ID,
+        primary_host="localhost",
+        home_document=_build_home_document(),
+        about_document=_build_about_document(),
+        blog_document=_build_blog_document(slug="hello"),
     )
-    page.draft_rev = rev
-    page.published_rev = rev
-    await page.save(update_fields=["draft_rev", "published_rev"], using_db=conn)
 
 
 def _build_home_document() -> DocumentIR:

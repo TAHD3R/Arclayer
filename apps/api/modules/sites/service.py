@@ -10,8 +10,14 @@ from apps.api.common.services.base import BaseService
 from apps.api.core.exceptions import Conflict, Forbidden, NotFound, ServiceUnavailable
 from apps.api.core.http.pagination import PageData, PageParams, paginate_items
 from apps.api.infra.cache.valkey import ValkeyClientLike
+from apps.api.modules.sites.constants import (
+    ROUTE_TEMPLATES_VERSION_NAMESPACE,
+    RUNTIME_SETTING_NAMESPACE,
+    THEME_ACTIVE_NAMESPACE,
+    THEME_CONFIG_NAMESPACE,
+    THEME_VARS_NAMESPACE,
+)
 from apps.api.modules.sites.repository import SitesRepository
-from apps.api.modules.sites.repository import normalize_path as normalize_site_path
 from apps.api.modules.sites.schema import (
     DocumentIR,
     SiteEntryCreateIn,
@@ -65,187 +71,17 @@ from apps.api.modules.sites.schema import (
     SiteSettingUpsertIn,
     SiteThemeOut,
 )
-
-RUNTIME_SETTING_NAMESPACE = "site.runtime"
-THEME_ACTIVE_NAMESPACE = "theme.active"
-THEME_VARS_NAMESPACE = "theme.vars"
-THEME_CONFIG_NAMESPACE = "theme.config"
-ROUTE_TEMPLATES_VERSION_NAMESPACE = "site.route_templates.version"
-
-
-def _validate_page_pathname(path: str) -> str:
-    """
-    Validate and normalize a site page pathname.
-
-    Notes:
-    - Page paths are used as public URLs and must be stable.
-    - Keep it conservative to prevent path traversal, control characters, and ambiguous routing.
-    """
-
-    pathname = normalize_site_path(path)
-
-    if "?" in pathname or "#" in pathname:
-        raise Conflict("Invalid path", error="PAGE_PATH_INVALID")
-    if "\\" in pathname:
-        raise Conflict("Invalid path", error="PAGE_PATH_INVALID")
-    # Control characters should never appear in a pathname.
-    if any(ord(ch) < 32 or ord(ch) == 127 for ch in pathname):
-        raise Conflict("Invalid path", error="PAGE_PATH_INVALID")
-
-    if pathname == "/":
-        return "/"
-
-    # Avoid ambiguous routing and traversal.
-    if "//" in pathname:
-        raise Conflict("Invalid path", error="PAGE_PATH_INVALID")
-    segments = pathname.split("/")[1:]
-    for seg in segments:
-        if not seg:
-            raise Conflict("Invalid path", error="PAGE_PATH_INVALID")
-        if seg in (".", ".."):
-            raise Conflict("Invalid path", error="PAGE_PATH_INVALID")
-    return pathname
-
-
-def _validate_route_template_pattern(path_pattern: str) -> str:
-    """
-    Validate and normalize a RouteTemplate path pattern.
-
-    Sprint 3 rules:
-    - Only allow single-segment `:param` placeholders.
-    - No splat, no optional segments.
-    """
-
-    pattern = normalize_site_path(path_pattern)
-    if "?" in pattern or "#" in pattern or "\\" in pattern:
-        raise Conflict("Invalid path pattern", error="ROUTE_TEMPLATE_PATTERN_INVALID")
-    if any(ord(ch) < 32 or ord(ch) == 127 for ch in pattern):
-        raise Conflict("Invalid path pattern", error="ROUTE_TEMPLATE_PATTERN_INVALID")
-    if pattern == "/":
-        raise Conflict("Invalid path pattern", error="ROUTE_TEMPLATE_PATTERN_INVALID")
-    if "//" in pattern:
-        raise Conflict("Invalid path pattern", error="ROUTE_TEMPLATE_PATTERN_INVALID")
-
-    segments = pattern.split("/")[1:]
-    for seg in segments:
-        if not seg:
-            raise Conflict("Invalid path pattern", error="ROUTE_TEMPLATE_PATTERN_INVALID")
-        if seg in (".", ".."):
-            raise Conflict("Invalid path pattern", error="ROUTE_TEMPLATE_PATTERN_INVALID")
-        # No splat / wildcard segments in Sprint 3 (e.g. "/blog/*").
-        if "*" in seg:
-            raise Conflict("Invalid path pattern", error="ROUTE_TEMPLATE_PATTERN_INVALID")
-        if ":" in seg:
-            # Only allow a full param segment like ":slug".
-            if not seg.startswith(":"):
-                raise Conflict("Invalid path pattern", error="ROUTE_TEMPLATE_PATTERN_INVALID")
-            if seg.count(":") != 1:
-                raise Conflict("Invalid path pattern", error="ROUTE_TEMPLATE_PATTERN_INVALID")
-            name = seg[1:]
-            if not name:
-                raise Conflict("Invalid path pattern", error="ROUTE_TEMPLATE_PATTERN_INVALID")
-            if not (name[0].isalpha() or name[0] == "_"):
-                raise Conflict("Invalid path pattern", error="ROUTE_TEMPLATE_PATTERN_INVALID")
-            if not all(ch.isalnum() or ch == "_" for ch in name):
-                raise Conflict("Invalid path pattern", error="ROUTE_TEMPLATE_PATTERN_INVALID")
-    return pattern
-
-
-def _validate_entry_type_code(code: str) -> str:
-    """
-    Validate a stable entry type code (e.g. blog_post).
-
-    Notes:
-    - Keep it conservative because it becomes part of API paths/filters and plugin integrations.
-    """
-
-    c = (code or "").strip()
-    if not c:
-        raise Conflict("Invalid entry type code", error="ENTRY_TYPE_CODE_INVALID")
-    if len(c) > 64:
-        raise Conflict("Invalid entry type code", error="ENTRY_TYPE_CODE_INVALID")
-    if not (c[0].isalpha() or c[0] == "_"):
-        raise Conflict("Invalid entry type code", error="ENTRY_TYPE_CODE_INVALID")
-    if not all(ch.isalnum() or ch == "_" for ch in c):
-        raise Conflict("Invalid entry type code", error="ENTRY_TYPE_CODE_INVALID")
-    return c
-
-
-def _is_descendant_or_self(
-    *,
-    node_id: UUID,
-    candidate_parent_id: UUID,
-    parent_by_id: dict[UUID, UUID | None],
-) -> bool:
-    """
-    Returns True if candidate_parent_id is node_id itself or a descendant of node_id.
-
-    Used to prevent cycles when updating the page tree.
-    """
-
-    cur: UUID | None = candidate_parent_id
-    visited: set[UUID] = set()
-    while cur is not None:
-        if cur == node_id:
-            return True
-        if cur in visited:
-            # Defensive: corrupted tree should not cause infinite loops.
-            return True
-        visited.add(cur)
-        cur = parent_by_id.get(cur)
-    return False
-
-
-def _build_pages_tree(rows: list[dict[str, object]]) -> list[SitePageTreeNodeOut]:
-    """
-    Build a deterministic page tree from flat rows.
-
-    Expected row keys:
-    - id (UUID), path (str), parent_id (UUID|None), sort_order (int),
-      visibility (str), draft_rev (int), published_rev (int|None)
-    """
-
-    nodes_by_id: dict[UUID, SitePageTreeNodeOut] = {}
-    children_by_parent: dict[UUID | None, list[UUID]] = {}
-
-    for rec in rows:
-        page_id = rec.get("id")
-        if not isinstance(page_id, UUID):
-            continue
-
-        node = SitePageTreeNodeOut(
-            id=page_id,
-            path=str(rec.get("path") or "/"),
-            parent_id=rec.get("parent_id") if isinstance(rec.get("parent_id"), UUID) else None,
-            sort_order=int(rec.get("sort_order") or 0),
-            visibility=str(rec.get("visibility") or "public"),
-            draft_revision=int(rec.get("draft_rev") or 0),
-            published_revision=(int(rec.get("published_rev")) if isinstance(rec.get("published_rev"), int) else None),
-            children=[],
-        )
-        nodes_by_id[page_id] = node
-
-    # Build parent -> children adjacency.
-    for node in nodes_by_id.values():
-        parent_id = node.parent_id
-        # Orphan nodes (missing parent) are treated as roots to keep tree resilient.
-        if parent_id is not None and parent_id not in nodes_by_id:
-            parent_id = None
-            node.parent_id = None
-        children_by_parent.setdefault(parent_id, []).append(node.id)
-
-    def sort_key(n: SitePageTreeNodeOut) -> tuple[int, str, str]:
-        return (int(n.sort_order or 0), n.path, str(n.id))
-
-    def build(parent_id: UUID | None) -> list[SitePageTreeNodeOut]:
-        ids = children_by_parent.get(parent_id, [])
-        nodes = [nodes_by_id[i] for i in ids if i in nodes_by_id]
-        nodes.sort(key=sort_key)
-        for n in nodes:
-            n.children = build(n.id)
-        return nodes
-
-    return build(None)
+from apps.api.modules.sites.stores import PresenceStore, PreviewTokenStore, RouteTemplateVersionStore
+from apps.api.modules.sites.utils import (
+    build_pages_tree,
+    is_descendant_or_self,
+    validate_entry_type_code,
+    validate_page_pathname,
+    validate_route_template_pattern,
+)
+from apps.api.modules.sites.utils import (
+    normalize_path as normalize_site_path,
+)
 
 
 class SiteService(BaseService):
@@ -481,19 +317,21 @@ class SiteService(BaseService):
         await self._repo.get_site_by_id(site_id=site_id)
         pages = await self._repo.list_pages_by_site(site_id=site_id)
 
-        rows: list[dict[str, object]] = []
-        for p in pages:
-            rows.append({
-                "id": UUID(str(p.id)),
-                "path": p.path,
-                "parent_id": (UUID(str(p.parent_id)) if p.parent_id is not None else None),
-                "sort_order": int(p.sort_order or 0),
-                "visibility": str(p.visibility),
-                "draft_rev": int(p.draft_rev or 0),
-                "published_rev": (int(p.published_rev) if p.published_rev is not None else None),
-            })
+        nodes = [
+            SitePageTreeNodeOut(
+                id=UUID(str(p.id)),
+                path=p.path,
+                parent_id=(UUID(str(p.parent_id)) if p.parent_id is not None else None),
+                sort_order=int(p.sort_order or 0),
+                visibility=str(p.visibility),
+                draft_revision=int(p.draft_rev or 0),
+                published_revision=(int(p.published_rev) if p.published_rev is not None else None),
+                children=[],
+            )
+            for p in pages
+        ]
 
-        tree = _build_pages_tree(rows)
+        tree = build_pages_tree(nodes)
         total = int(len(pages))
         size = max(total, 1)
         return PageData[SitePageTreeNodeOut](
@@ -512,7 +350,7 @@ class SiteService(BaseService):
 
         await self._repo.get_site_by_id(site_id=site_id)
 
-        path = _validate_page_pathname(payload.path)
+        path = validate_page_pathname(payload.path)
         parent_id = payload.parent_id
         if parent_id is not None:
             parent = await self._repo.get_page_by_id(site_id=site_id, page_id=parent_id)
@@ -554,7 +392,7 @@ class SiteService(BaseService):
 
         new_path = page.path
         if "path" in fields_set and payload.path is not None:
-            new_path = _validate_page_pathname(payload.path)
+            new_path = validate_page_pathname(payload.path)
 
         new_parent_id: UUID | None = UUID(str(page.parent_id)) if page.parent_id is not None else None
         if "parent_id" in fields_set:
@@ -566,7 +404,7 @@ class SiteService(BaseService):
 
                 pages = await self._repo.list_pages_by_site(site_id=site_id)
                 parent_by_id = {UUID(str(p.id)): (UUID(str(p.parent_id)) if p.parent_id else None) for p in pages}
-                if _is_descendant_or_self(
+                if is_descendant_or_self(
                     node_id=UUID(str(page.id)),
                     candidate_parent_id=new_parent_id,
                     parent_by_id=parent_by_id,
@@ -618,7 +456,7 @@ class SiteService(BaseService):
 
             pages = await self._repo.list_pages_by_site(site_id=site_id)
             parent_by_id = {UUID(str(p.id)): (UUID(str(p.parent_id)) if p.parent_id else None) for p in pages}
-            if _is_descendant_or_self(
+            if is_descendant_or_self(
                 node_id=UUID(str(page.id)),
                 candidate_parent_id=new_parent_id,
                 parent_by_id=parent_by_id,
@@ -763,7 +601,7 @@ class SiteService(BaseService):
             raise Conflict("Route templates require database storage", error="ROUTE_TEMPLATE_DB_REQUIRED")
 
         await self._repo.get_site_by_id(site_id=site_id)
-        path_pattern = _validate_route_template_pattern(payload.path_pattern)
+        path_pattern = validate_route_template_pattern(payload.path_pattern)
         et = await self._repo.get_entry_type_by_code(site_id=site_id, code=payload.entry_type_code)
 
         tpl_rev_id: UUID | None = payload.template_page_revision_id
@@ -811,7 +649,7 @@ class SiteService(BaseService):
 
         path_pattern = rec.path_pattern
         if "path_pattern" in fields_set and payload.path_pattern is not None:
-            path_pattern = _validate_route_template_pattern(payload.path_pattern)
+            path_pattern = validate_route_template_pattern(payload.path_pattern)
 
         entry_type_id = UUID(str(rec.entry_type_id))
         entry_type_code = getattr(rec.entry_type, "code", "")
@@ -888,7 +726,7 @@ class SiteService(BaseService):
             raise Conflict("Entry types require database storage", error="ENTRY_TYPE_DB_REQUIRED")
         await self._repo.get_site_by_id(site_id=site_id)
 
-        code = _validate_entry_type_code(payload.code)
+        code = validate_entry_type_code(payload.code)
         name = (payload.name or "").strip()
         if not name:
             raise Conflict("Invalid entry type name", error="ENTRY_TYPE_NAME_INVALID")
@@ -1607,128 +1445,3 @@ class SiteService(BaseService):
             lines.append(f"  <url><loc>{loc}</loc></url>")
         lines.append("</urlset>")
         return "\n".join(lines) + "\n"
-
-
-class PreviewTokenStore:
-    """
-    Preview token store backed by Valkey (TTL-based).
-
-    Notes:
-    - For Sprint 3, we only validate token existence and TTL; binding to user/session
-      will be added once the editor has real authentication and permission checks.
-    """
-
-    def __init__(self, client: ValkeyClientLike) -> None:
-        self._client = client
-
-    def _key(self, *, site_id: str, token: str) -> str:
-        return f"sites:preview:{site_id}:{token}"
-
-    async def issue(self, *, site_id: str, token: str, ttl_seconds: int, expires_at_ms: int) -> None:
-        record = {"siteId": site_id, "token": token, "expiresAtMs": expires_at_ms}
-        await self._client.set_json(self._key(site_id=site_id, token=token), record, ex=ttl_seconds)
-
-    async def validate(self, *, site_id: str, token: str) -> bool:
-        if not token.strip():
-            return False
-        data = await self._client.get_json(self._key(site_id=site_id, token=token))
-        return isinstance(data, dict) and data.get("token") == token
-
-
-class PresenceStore:
-    """
-    Presence store backed by Valkey (TTL-based).
-
-    Storage model:
-    - A presence set per document: `sites:presence:<siteId>:<docKey>:clients` (set of clientIds)
-    - A record per clientId: `sites:presence:<siteId>:<docKey>:client:<clientId>` (json)
-    """
-
-    _TTL_SECONDS = 20
-
-    def __init__(self, client: ValkeyClientLike) -> None:
-        self._client = client
-
-    def _set_key(self, *, site_id: str, doc_key: str) -> str:
-        return f"sites:presence:{site_id}:{doc_key}:clients"
-
-    def _record_key(self, *, site_id: str, doc_key: str, client_id: str) -> str:
-        return f"sites:presence:{site_id}:{doc_key}:client:{client_id}"
-
-    async def heartbeat(
-        self,
-        *,
-        site_id: str,
-        doc_key: str,
-        client_id: str,
-        actor: dict[str, str] | None,
-    ) -> int:
-        now_ms = int(time.time() * 1000)
-        expires_at_ms = now_ms + self._TTL_SECONDS * 1000
-
-        # Track client ids for listing.
-        await self._client.sadd(self._set_key(site_id=site_id, doc_key=doc_key), client_id)
-        await self._client.expire(self._set_key(site_id=site_id, doc_key=doc_key), self._TTL_SECONDS)
-
-        record = {"client_id": client_id, "updated_at_ms": now_ms, "actor": actor}
-        await self._client.set_json(
-            self._record_key(site_id=site_id, doc_key=doc_key, client_id=client_id),
-            record,
-            ex=self._TTL_SECONDS,
-        )
-        return expires_at_ms
-
-    async def list(self, *, site_id: str, doc_key: str) -> list[dict]:
-        key = self._set_key(site_id=site_id, doc_key=doc_key)
-        client_ids = sorted(await self._client.smembers(key))
-        results: list[dict] = []
-        stale: list[str] = []
-        for cid in client_ids:
-            data = await self._client.get_json(self._record_key(site_id=site_id, doc_key=doc_key, client_id=cid))
-            if not isinstance(data, dict):
-                stale.append(cid)
-                continue
-            # Defensive shaping: keep contract stable.
-            rec = {
-                "client_id": str(data.get("client_id") or cid),
-                "updated_at_ms": int(data.get("updated_at_ms") or 0),
-                "actor": data.get("actor") if isinstance(data.get("actor"), dict) else None,
-            }
-            results.append(rec)
-
-        if stale:
-            await self._client.srem(key, *stale)
-
-        return results
-
-
-class RouteTemplateVersionStore:
-    """
-    Cross-instance route template cache version store.
-
-    Storage model:
-    - `sites:route-templates:<siteId>:version` => int (as string)
-
-    Notes:
-    - We intentionally use a simple get/set surface area to stay compatible with ValkeyClientLike.
-    - Version value does not have to be sequential; it only needs to change on mutations.
-    """
-
-    def __init__(self, client: ValkeyClientLike) -> None:
-        self._client = client
-
-    def _key(self, *, site_id: str) -> str:
-        return f"sites:route-templates:{site_id}:version"
-
-    async def get(self, *, site_id: str) -> int | None:
-        raw = await self._client.get(self._key(site_id=site_id))
-        if raw is None:
-            return None
-        try:
-            v = int(raw)
-        except Exception:
-            return None
-        return v if v >= 0 else None
-
-    async def set(self, *, site_id: str, version: int) -> None:
-        await self._client.set(self._key(site_id=site_id), str(int(version)))

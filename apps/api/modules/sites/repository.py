@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 import re
 import time
-from dataclasses import dataclass
 from typing import Literal, cast
 from uuid import UUID
 
@@ -11,57 +10,19 @@ from tortoise.exceptions import IntegrityError
 from tortoise.transactions import in_transaction
 
 from apps.api.common.protocols.tortoise import RouteTemplateIds, SettingUpdatedBy
+from apps.api.common.repositories.base import BaseRepository
 from apps.api.core.exceptions import Conflict, NotFound
 from apps.api.modules.assets.models.asset import AssetRecord
+from apps.api.modules.sites.constants import RUNTIME_SETTING_NAMESPACE
 from apps.api.modules.sites.models.site import SiteRecord
 from apps.api.modules.sites.models.site_entry import EntryRecord, EntryRevisionRecord, EntryTypeRecord
 from apps.api.modules.sites.models.site_page import SitePageRecord, SitePageRevisionRecord, SitePageVisibility
 from apps.api.modules.sites.models.site_route_template import RouteTemplateRecord
 from apps.api.modules.sites.schema import DocumentIR
+from apps.api.modules.sites.types import ResolvedEntryDocument, RouteTemplateMatch, _CompiledRouteTemplate
+from apps.api.modules.sites.utils import normalize_path
 from apps.api.modules.system.models.setting import SettingRecord
 from apps.api.settings.scopes import SCOPE_TYPE_SITE
-
-
-def normalize_path(path: str) -> str:
-    if not path:
-        return "/"
-    pathname = path if path.startswith("/") else f"/{path}"
-    if pathname == "/":
-        return "/"
-    return pathname[:-1] if pathname.endswith("/") else pathname
-
-
-@dataclass(frozen=True)
-class RouteTemplateMatch:
-    template_id: UUID
-    entry_type_id: UUID
-    params: dict[str, str]
-    template_page_revision_id: UUID | None
-
-
-@dataclass(frozen=True)
-class ResolvedEntryDocument:
-    entry_id: UUID
-    draft_rev: int
-    published_rev: int
-    revision: int
-    revision_state: Literal["draft", "published"]
-    variant_id: str | None
-    document: DocumentIR
-
-
-@dataclass(frozen=True)
-class _CompiledRouteTemplate:
-    template_id: UUID
-    entry_type_id: UUID
-    template_page_revision_id: UUID | None
-    path_pattern: str
-    segments: tuple[tuple[str, str], ...]
-    # Specificity is purely a function of pattern itself:
-    # - more static segments => more specific
-    # - ties are broken deterministically by (segment_count, path_pattern)
-    specificity: int
-    sort_key: tuple[int, int, str]
 
 
 class _RouteTemplateCache:
@@ -106,7 +67,137 @@ class _RouteTemplateCache:
 _route_template_cache = _RouteTemplateCache()
 
 
-class SitesRepository:
+class SitesRepository(BaseRepository):
+    async def ensure_demo_site_ready(
+        self,
+        *,
+        workspace_id: UUID,
+        site_id: UUID,
+        primary_host: str,
+        home_document: DocumentIR,
+        about_document: DocumentIR,
+        blog_document: DocumentIR,
+    ) -> None:
+        async with in_transaction() as conn:
+            site = await SiteRecord.filter(id=site_id).using_db(conn).first()
+            if site is None:
+                site = await SiteRecord.create(
+                    id=site_id,
+                    workspace_id=workspace_id,
+                    slug="demo",
+                    name="Celestial Demo",
+                    default_locale="zh-CN",
+                    fallback_locale="en-US",
+                    primary_host=primary_host,
+                    is_active=True,
+                    created_by_user_id=None,
+                    using_db=conn,
+                )
+                self.logger.info(
+                    "Created demo site",
+                    site_id=str(site.id),
+                    workspace_id=str(workspace_id),
+                )
+
+            # Upsert minimal pages (/) and (/about) with an initial published revision.
+            await self._ensure_page(conn=conn, site_id=site.id, path="/", document=home_document)
+            await self._ensure_page(conn=conn, site_id=site.id, path="/about", document=about_document)
+
+            # Upsert runtime settings (theme tokens) for Portal SSR head injection.
+            # This keeps runtime config DB-backed even before Admin UI exists.
+            await SettingRecord.get_or_create(
+                scope_type=SCOPE_TYPE_SITE,
+                scope_id=site.id,
+                namespace=RUNTIME_SETTING_NAMESPACE,
+                defaults={
+                    "value": {
+                        "theme": {
+                            "cssVars": {
+                                "--color-primary": "#1677ff",
+                                "--color-background": "#ffffff",
+                                "--color-foreground": "#111827",
+                                "--color-border": "rgba(17, 24, 39, 0.12)",
+                                "--font-sans": "system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif",
+                            }
+                        },
+                        "fonts": [],
+                    },
+                    "updated_by": None,
+                },
+                using_db=conn,
+            )
+
+            # Upsert a minimal entry type + one entry for /blog/:slug.
+            et, _ = await EntryTypeRecord.get_or_create(
+                site_id=site.id,
+                code="blog_post",
+                defaults={"name": "Blog Post", "fields_schema": None},
+                using_db=conn,
+            )
+
+            entry, created_entry = await EntryRecord.get_or_create(
+                site_id=site.id,
+                entry_type_id=et.id,
+                slug="hello",
+                defaults={"draft_rev": 0, "published_rev": None, "created_by_user_id": None},
+                using_db=conn,
+            )
+            if created_entry or not entry.published_rev:
+                rev = 1
+                await EntryRevisionRecord.create(
+                    entry_id=entry.id,
+                    rev=rev,
+                    data=None,
+                    document=blog_document.model_dump(by_alias=True),
+                    created_by_user_id=None,
+                    using_db=conn,
+                )
+                entry.draft_rev = rev
+                entry.published_rev = rev
+                await entry.save(update_fields=["draft_rev", "published_rev"], using_db=conn)
+
+            # RouteTemplate: /blog/:slug -> blog_post
+            await RouteTemplateRecord.get_or_create(
+                site_id=site.id,
+                path_pattern="/blog/:slug",
+                defaults={
+                    "entry_type_id": et.id,
+                    "template_page_revision_id": None,
+                    "is_active": True,
+                },
+                using_db=conn,
+            )
+
+    async def _ensure_page(self, *, conn, site_id: UUID, path: str, document: DocumentIR) -> None:
+        page = await SitePageRecord.filter(site_id=site_id, path=path).using_db(conn).first()
+        if page is None:
+            page = await SitePageRecord.create(
+                site_id=site_id,
+                path=path,
+                parent_id=None,
+                sort_order=0,
+                visibility=SitePageVisibility.PUBLIC,
+                draft_rev=0,
+                published_rev=None,
+                created_by_user_id=None,
+                using_db=conn,
+            )
+
+        if page.published_rev:
+            return
+
+        rev = 1
+        await SitePageRevisionRecord.create(
+            page_id=page.id,
+            rev=rev,
+            document=document.model_dump(by_alias=True),
+            created_by_user_id=None,
+            using_db=conn,
+        )
+        page.draft_rev = rev
+        page.published_rev = rev
+        await page.save(update_fields=["draft_rev", "published_rev"], using_db=conn)
+
     async def _list_missing_assets(
         self,
         *,
