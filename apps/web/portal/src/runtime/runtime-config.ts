@@ -1,6 +1,12 @@
 export interface PortalRuntimeConfig {
   theme: {
     cssVars: Record<string, string>;
+    themeId?: string;
+    version?: string;
+    tokensCssUrl?: string;
+    baseCssUrl?: string;
+    presetId?: string;
+    config?: Record<string, unknown>;
   };
   fonts?: Array<{
     family: string;
@@ -21,7 +27,7 @@ export async function getPortalRuntimeConfigForSite(
   const { fetchRuntimeConfigFromApi } = await import("./site-api");
   const cfg = await fetchRuntimeConfigFromApi(siteId, opts);
   return {
-    theme: { cssVars: cfg.theme.cssVars },
+    theme: cfg.theme,
     fonts: cfg.fonts,
   };
 }

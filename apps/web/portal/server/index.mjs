@@ -34,7 +34,7 @@ async function start() {
 
       // Optional: proxy API calls to the FastAPI backend so browser requests remain same-origin.
       // This is intentionally opt-in to avoid surprises in production deployments.
-      if (apiProxyTarget && req.url.startsWith("/api/")) {
+      if (apiProxyTarget && (req.url.startsWith("/api/") || req.url.startsWith("/assets/"))) {
         await proxyHttpRequest(req, res, apiProxyTarget);
         return;
       }

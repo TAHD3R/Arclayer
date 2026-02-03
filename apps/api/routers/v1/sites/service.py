@@ -392,9 +392,29 @@ class SiteService(BaseService):
                 version=active_version,
             )
             if theme_pkg is not None:
-                tokens_css_url = f"/assets/{theme_pkg.tokens_css_asset_id}"
+                # Prefer canonical asset URLs to avoid extra redirects in SSR <link> usage.
+                from apps.api.models.asset import AssetRecord
+
+                tokens_asset = await AssetRecord.get_or_none(
+                    id=theme_pkg.tokens_css_asset_id,
+                    workspace_id=site.workspace_id,
+                    deleted_at=None,
+                )
+                if tokens_asset is not None:
+                    slug = (tokens_asset.slug or "asset").strip() or "asset"
+                    ext = (tokens_asset.ext or "css").lstrip(".").lower() or "css"
+                    tokens_css_url = f"/assets/{tokens_asset.id}/{slug}.{ext}"
+
                 if theme_pkg.base_css_asset_id:
-                    base_css_url = f"/assets/{theme_pkg.base_css_asset_id}"
+                    base_asset = await AssetRecord.get_or_none(
+                        id=theme_pkg.base_css_asset_id,
+                        workspace_id=site.workspace_id,
+                        deleted_at=None,
+                    )
+                    if base_asset is not None:
+                        slug = (base_asset.slug or "asset").strip() or "asset"
+                        ext = (base_asset.ext or "css").lstrip(".").lower() or "css"
+                        base_css_url = f"/assets/{base_asset.id}/{slug}.{ext}"
 
         config_out = theme_config.value if theme_config and isinstance(theme_config.value, dict) else None
 

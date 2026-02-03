@@ -87,6 +87,9 @@ describe("runtime/site-api (parsing)", () => {
                   "--color-primary": "#1677ff",
                   "--bad": 123,
                 },
+                themeId: "@celestial/theme-modern",
+                version: "0.1.0",
+                tokensCssUrl: "/assets/00000000-0000-0000-0000-000000000001/theme.css",
               },
               fonts: [
                 {
@@ -107,6 +110,9 @@ describe("runtime/site-api (parsing)", () => {
     const out = await fetchRuntimeConfigFromApi("s1", { mode: "public" });
     expect(out.theme.cssVars["--color-primary"]).toBe("#1677ff");
     expect(out.theme.cssVars["--bad"]).toBeUndefined();
+    expect(out.theme.themeId).toBe("@celestial/theme-modern");
+    expect(out.theme.version).toBe("0.1.0");
+    expect(out.theme.tokensCssUrl).toBe("/assets/00000000-0000-0000-0000-000000000001/theme.css");
     expect(out.fonts).toHaveLength(1);
     expect(out.fonts[0]?.family).toBe("Inter");
     expect(out.fonts[0]?.display).toBe("swap");

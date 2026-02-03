@@ -40,16 +40,21 @@ class WorkspaceThemesRepository(BaseRepository):
         created_by: UUID | None,
     ) -> ThemePackageRecord:
         async with in_transaction() as conn:
-            existing = await ThemePackageRecord.get_or_none(
-                workspace_id=workspace_id,
-                theme_id=theme_id,
-                version=version,
-            ).using_db(conn)
+            existing = (
+                await ThemePackageRecord
+                .filter(
+                    workspace_id=workspace_id,
+                    theme_id=theme_id,
+                    version=version,
+                )
+                .using_db(conn)
+                .first()
+            )
             if existing is not None:
                 # Service layer decides the error code; keep repo pure.
                 return existing
 
-            rec = await ThemePackageRecord.create(
+            rec = ThemePackageRecord(
                 workspace_id=workspace_id,
                 theme_id=theme_id,
                 version=version,
@@ -65,7 +70,8 @@ class WorkspaceThemesRepository(BaseRepository):
                 presets=presets,
                 variants=variants,
                 created_by=created_by,
-            ).using_db(conn)
+            )
+            await rec.save(using_db=conn)
             return rec
 
     async def delete_theme_package(self, *, workspace_id: UUID, theme_id: str, version: str) -> int:

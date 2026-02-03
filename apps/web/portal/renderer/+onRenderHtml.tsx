@@ -76,6 +76,8 @@ async function onRenderHtml(pageContext: VikePageContextLike) {
   );
   const cssVarStyleText = serializeCssVarsToStyleText(runtimeConfig.theme.cssVars);
   const fontFaceStyleText = serializeFontFacesToStyleText(runtimeConfig);
+  const themeTokensCssUrl = runtimeConfig.theme.tokensCssUrl;
+  const themeBaseCssUrl = runtimeConfig.theme.baseCssUrl;
 
   const appHtml = ReactDOMServer.renderToString(<PageShell router={router} />);
 
@@ -98,6 +100,8 @@ async function onRenderHtml(pageContext: VikePageContextLike) {
         ${description ? escapeInject`<meta property="og:description" content="${description}" />` : ""}
         <meta property="og:type" content="website" />
         <meta property="og:locale" content="${lang}" />
+        ${themeTokensCssUrl ? escapeInject`<link rel="stylesheet" href="${themeTokensCssUrl}" />` : ""}
+        ${themeBaseCssUrl ? escapeInject`<link rel="stylesheet" href="${themeBaseCssUrl}" />` : ""}
         ${
           fontFaceStyleText
             ? escapeInject`<style id="portal-font-faces">${fontFaceStyleText}</style>`

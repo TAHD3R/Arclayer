@@ -124,7 +124,15 @@ export async function fetchRuntimeConfigFromApi(
   siteId: string,
   opts: { mode: "public" | "preview"; token?: string },
 ): Promise<{
-  theme: { cssVars: Record<string, string> };
+  theme: {
+    cssVars: Record<string, string>;
+    themeId?: string;
+    version?: string;
+    tokensCssUrl?: string;
+    baseCssUrl?: string;
+    presetId?: string;
+    config?: Record<string, unknown>;
+  };
   fonts: Array<{
     family: string;
     display?: "auto" | "block" | "swap" | "fallback" | "optional";
@@ -156,11 +164,30 @@ export async function fetchRuntimeConfigFromApi(
   const theme = getRecordField(data, "theme");
   const cssVarsUnknown = getRecordField(theme, "cssVars");
   const cssVars = toStringRecord(cssVarsUnknown);
+  const themeId = getStringField(theme, ["themeId", "theme_id"])?.trim() || undefined;
+  const version = getStringField(theme, ["version"])?.trim() || undefined;
+  const tokensCssUrl =
+    getStringField(theme, ["tokensCssUrl", "tokens_css_url"])?.trim() || undefined;
+  const baseCssUrl = getStringField(theme, ["baseCssUrl", "base_css_url"])?.trim() || undefined;
+  const presetId = getStringField(theme, ["presetId", "preset_id"])?.trim() || undefined;
+  const configUnknown = getUnknownField(theme, "config");
+  const config =
+    configUnknown && typeof configUnknown === "object" && !Array.isArray(configUnknown)
+      ? (configUnknown as Record<string, unknown>)
+      : undefined;
   const fontsUnknown = getUnknownField(data, "fonts");
   const fonts = Array.isArray(fontsUnknown) ? fontsUnknown : [];
 
   return {
-    theme: { cssVars },
+    theme: Object.assign(
+      { cssVars },
+      themeId ? { themeId } : {},
+      version ? { version } : {},
+      tokensCssUrl ? { tokensCssUrl } : {},
+      baseCssUrl ? { baseCssUrl } : {},
+      presetId ? { presetId } : {},
+      config ? { config } : {},
+    ),
     fonts: fonts
       .map((f) => {
         const family = (getStringField(f, ["family"]) ?? "").trim();
