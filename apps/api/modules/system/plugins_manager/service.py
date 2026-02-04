@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import shutil
 import stat
 import zipfile
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Protocol
@@ -44,6 +46,28 @@ def _tp(key: str, default: str) -> str:
     return t("plugin", key, default=default)
 
 
+@dataclass(frozen=True)
+class _InstallLockEntry:
+    loop_id: int
+    lock: asyncio.Lock
+
+
+_INSTALL_LOCKS: dict[str, _InstallLockEntry] = {}
+
+
+def _get_install_lock(plugin_id: str) -> asyncio.Lock:
+    # Keep locking per-event-loop to avoid cross-loop asyncio.Lock reuse in tests.
+    loop = asyncio.get_running_loop()
+    loop_id = id(loop)
+    key = str(plugin_id)
+    entry = _INSTALL_LOCKS.get(key)
+    if entry is None or entry.loop_id != loop_id:
+        lock = asyncio.Lock()
+        _INSTALL_LOCKS[key] = _InstallLockEntry(loop_id=loop_id, lock=lock)
+        return lock
+    return entry.lock
+
+
 class _UploadLike(Protocol):
     filename: str | None
 
@@ -58,6 +82,29 @@ class PluginService(BaseService):
         self.repo = PluginRepository()
         self.manager = manager
         self.root_dir = Path(settings.plugin.root_dir)
+
+    def _sanitize_upload_filename(self, raw_filename: str) -> str:
+        """
+        Sanitize an upload filename to a safe basename.
+
+        We treat both "/" and "\\" as separators and reject traversal segments ("..").
+        """
+
+        normalized = (raw_filename or "").replace("\\", "/")
+        if ".." in Path(normalized).parts:
+            raise BadRequest(
+                message=_tp("PLUGIN_PACKAGE_INVALID", "插件包文件名不合法"),
+                error="PLUGIN_PACKAGE_INVALID",
+                details={"filename": raw_filename},
+            )
+        filename = Path(normalized).name
+        if not filename or filename in {".", ".."}:
+            raise BadRequest(
+                message=_tp("PLUGIN_PACKAGE_INVALID", "插件包文件名不合法"),
+                error="PLUGIN_PACKAGE_INVALID",
+                details={"filename": raw_filename},
+            )
+        return filename
 
     async def list_plugins(self) -> list[PluginRecord]:
         return await self.repo.list_plugins()
@@ -129,7 +176,9 @@ class PluginService(BaseService):
     ) -> tuple[PluginRecord, bool]:
         if not file.filename:
             raise BadRequest(message=_tp("PLUGIN_PACKAGE_REQUIRED", "缺少插件包文件"), error="PLUGIN_PACKAGE_REQUIRED")
-        if not file.filename.endswith(".zip"):
+        raw_filename = file.filename
+        filename = self._sanitize_upload_filename(raw_filename)
+        if not filename.endswith(".zip"):
             raise BadRequest(
                 message=_tp("PLUGIN_PACKAGE_INVALID", "插件包必须为 zip 格式"),
                 error="PLUGIN_PACKAGE_INVALID",
@@ -137,7 +186,17 @@ class PluginService(BaseService):
 
         staging_dir = self.root_dir / ".staging" / uuid7().hex
         staging_dir.mkdir(parents=True, exist_ok=True)
-        zip_path = staging_dir / file.filename
+        zip_path = staging_dir / filename
+
+        manifest: PluginManifest | None = None
+        plugin_id: str | None = None
+        slug: str | None = None
+        sha256: str | None = None
+        size: int | None = None
+        target_dir: Path | None = None
+        backup_dir: Path | None = None
+        disabled_existing = False
+        existing: PluginRecord | None = None
 
         try:
             sha256, size = await self._save_upload(file, zip_path, max_bytes=self.settings.plugin.package_max_zip_bytes)
@@ -151,22 +210,6 @@ class PluginService(BaseService):
             plugin_id = manifest.plugin.id
             slug = manifest.plugin.slug
             self._assert_safe_plugin_target_dir(plugin_id)
-
-            # Hard fail on slug conflicts.
-            if self.manager is not None:
-                if not self.manager.descriptors:
-                    self.manager.discover()
-                existing = self.manager.slug_to_id.get(slug)
-                if existing and existing != plugin_id:
-                    raise BadRequest(
-                        message=_tp("PLUGIN_SLUG_CONFLICT", "插件 slug 冲突"),
-                        error="PLUGIN_SLUG_CONFLICT",
-                        details=f"slug={slug} conflicts with {existing}",
-                    )
-
-            existing = await self.repo.get_plugin(plugin_id)
-            if existing and existing.status == PluginStatus.STARTED and self.manager is not None:
-                await self.manager.disable(plugin_id)
 
             payload_dir = staging_dir / "payload"
             payload_dir.mkdir(parents=True, exist_ok=True)
@@ -185,111 +228,188 @@ class PluginService(BaseService):
                     error="PLUGIN_PACKAGE_MISSING",
                 )
 
-            target_dir = self.root_dir / plugin_id
-            backup_dir = None
-            if target_dir.exists():
-                backup_dir = self._backup_plugin_dir(plugin_id, target_dir)
+            # Installation is a high-impact admin action; serialize to avoid racy slug checks,
+            # concurrent directory swaps, and inconsistent manager state.
+            install_lock = _get_install_lock("__install__")
+            async with install_lock:
+                # Re-check slug conflicts inside lock (avoids racy installs of two plugins with the same slug).
+                if self.manager is not None:
+                    if not self.manager.descriptors:
+                        self.manager.discover()
+                    existing_owner = self.manager.slug_to_id.get(slug)
+                    if existing_owner and existing_owner != plugin_id:
+                        raise BadRequest(
+                            message=_tp("PLUGIN_SLUG_CONFLICT", "插件 slug 冲突"),
+                            error="PLUGIN_SLUG_CONFLICT",
+                            details=f"slug={slug} conflicts with {existing_owner}",
+                        )
 
-            try:
-                self.root_dir.mkdir(parents=True, exist_ok=True)
-                shutil.move(str(payload_dir), str(target_dir))
-            except Exception as exc:
-                if backup_dir and not target_dir.exists() and backup_dir.exists():
-                    shutil.move(str(backup_dir), str(target_dir))
-                raise BadRequest(
-                    message=_tp("PLUGIN_INSTALL_FAILED", "插件包安装失败"),
-                    error="PLUGIN_INSTALL_FAILED",
-                    details=str(exc),
-                ) from exc
+                existing = await self.repo.get_plugin(plugin_id)
+                was_started = bool(existing and existing.status == PluginStatus.STARTED and self.manager is not None)
+
+                target_dir = self.root_dir / plugin_id
+
+                # Only stop a running plugin after we've fully validated/extracted the new package.
+                # This avoids unnecessary downtime if validation fails.
+                if was_started and self.manager is not None:
+                    try:
+                        await self.manager.disable(plugin_id)
+                        disabled_existing = True
+                    except Exception as exc:
+                        raise BadRequest(
+                            message=_tp("PLUGIN_INSTALL_FAILED", "插件包安装失败"),
+                            error="PLUGIN_INSTALL_FAILED",
+                            details=f"failed to stop running plugin: {exc}",
+                        ) from exc
+
+                # Swap plugin directory.
+                try:
+                    backup_dir = None
+                    if target_dir.exists():
+                        backup_dir = self._backup_plugin_dir(plugin_id, target_dir)
+                    self.root_dir.mkdir(parents=True, exist_ok=True)
+                    shutil.move(str(payload_dir), str(target_dir))
+                except Exception as exc:
+                    # Restore previous version if we created a backup.
+                    try:
+                        if backup_dir and not target_dir.exists() and backup_dir.exists():
+                            shutil.move(str(backup_dir), str(target_dir))
+                    except Exception as restore_exc:
+                        logger.warning(
+                            "Plugin install rollback failed (restore backup)",
+                            plugin_id=plugin_id,
+                            error=str(restore_exc),
+                        )
+                    # Best-effort re-enable if we stopped it.
+                    if disabled_existing and self.manager is not None:
+                        try:
+                            await self.manager.enable(plugin_id)
+                        except Exception:
+                            pass
+                    raise BadRequest(
+                        message=_tp("PLUGIN_INSTALL_FAILED", "插件包安装失败"),
+                        error="PLUGIN_INSTALL_FAILED",
+                        details=str(exc),
+                    ) from exc
+
+                config_schema = manifest.config_schema.model_dump() if manifest.config_schema else None
+                permissions = [perm.model_dump() for perm in manifest.permissions]
+                defaults = build_default_config(manifest)
+                status = PluginStatus.INSTALLED if enable else PluginStatus.DISABLED
+
+                # Update DB record. If this fails, rollback filesystem swap.
+                try:
+                    if existing is None:
+                        record = await self.repo.create_plugin(
+                            plugin_id=plugin_id,
+                            name=manifest.plugin.name,
+                            description=manifest.plugin.description,
+                            author=manifest.plugin.author,
+                            version=manifest.plugin.version,
+                            requires=manifest.plugin.requires,
+                            entrypoint=manifest.plugin.entrypoint,
+                            website=manifest.plugin.website,
+                            repository=manifest.plugin.repository,
+                            issues=manifest.plugin.issues,
+                            license_name=manifest.plugin.license,
+                            status=status,
+                            storage_path=str(target_dir),
+                            permissions=permissions,
+                            config_schema=config_schema,
+                            config=defaults or None,
+                            package_filename=filename,
+                            package_checksum=sha256,
+                            package_size=size,
+                        )
+                    else:
+                        config = self._merge_config(existing.config or {}, defaults)
+                        record = await self.repo.update_plugin(
+                            existing,
+                            name=manifest.plugin.name,
+                            description=manifest.plugin.description,
+                            author=manifest.plugin.author,
+                            version=manifest.plugin.version,
+                            requires=manifest.plugin.requires,
+                            entrypoint=manifest.plugin.entrypoint,
+                            website=manifest.plugin.website,
+                            repository=manifest.plugin.repository,
+                            issues=manifest.plugin.issues,
+                            license_name=manifest.plugin.license,
+                            status=status,
+                            storage_path=str(target_dir),
+                            permissions=permissions,
+                            config_schema=config_schema,
+                            config=config or None,
+                            package_filename=filename,
+                            package_checksum=sha256,
+                            package_size=size,
+                        )
+                except Exception as exc:
+                    # Remove newly installed version.
+                    try:
+                        if target_dir.exists():
+                            shutil.rmtree(target_dir, ignore_errors=True)
+                    except Exception:
+                        pass
+                    # Restore previous version if we created a backup.
+                    try:
+                        if backup_dir and not target_dir.exists() and backup_dir.exists():
+                            shutil.move(str(backup_dir), str(target_dir))
+                    except Exception as restore_exc:
+                        logger.warning(
+                            "Plugin install rollback failed (restore backup after DB error)",
+                            plugin_id=plugin_id,
+                            error=str(restore_exc),
+                        )
+                    # Best-effort re-enable if we stopped it.
+                    if disabled_existing and self.manager is not None:
+                        try:
+                            await self.manager.enable(plugin_id)
+                        except Exception:
+                            pass
+                    raise BadRequest(
+                        message=_tp("PLUGIN_INSTALL_FAILED", "插件包安装失败"),
+                        error="PLUGIN_INSTALL_FAILED",
+                        details=str(exc),
+                    ) from exc
+
+                requires_restart = True
+
+                # Best-effort: seed admin menu entries declared by the plugin manifest.
+                try:
+                    seeds = list(getattr(manifest, "admin_menu", None) or [])
+                    if seeds:
+                        await AdminMenuSeedService(self.settings).ensure_seeds(
+                            owner_plugin_id=plugin_id,
+                            seeds=seeds,
+                            update_existing=False,
+                            restore_deleted=True,
+                        )
+                except Exception as exc:
+                    logger.warning("Plugin admin menu seed failed", plugin_id=plugin_id, error=str(exc))
+
+                await self._request_restart(plugin_id, reason="install")
+                # Fire an event so other parts (e.g. UI/menu/diagnostics) can react without hard coupling.
+                try:
+                    if self.manager is not None:
+                        await self.manager.host.event_bus.publish(
+                            Event(
+                                name=PLUGIN_INSTALLED,
+                                payload={
+                                    "plugin_id": plugin_id,
+                                    "slug": slug,
+                                    "version": manifest.plugin.version,
+                                    "status": str(record.status),
+                                    "requires_restart": requires_restart,
+                                },
+                                source="core",
+                            )
+                        )
+                except Exception:
+                    pass
+                return record, requires_restart
         finally:
             shutil.rmtree(staging_dir, ignore_errors=True)
-
-        config_schema = manifest.config_schema.model_dump() if manifest.config_schema else None
-        permissions = [perm.model_dump() for perm in manifest.permissions]
-        defaults = build_default_config(manifest)
-        status = PluginStatus.INSTALLED if enable else PluginStatus.DISABLED
-
-        if existing is None:
-            record = await self.repo.create_plugin(
-                plugin_id=plugin_id,
-                name=manifest.plugin.name,
-                description=manifest.plugin.description,
-                author=manifest.plugin.author,
-                version=manifest.plugin.version,
-                requires=manifest.plugin.requires,
-                entrypoint=manifest.plugin.entrypoint,
-                website=manifest.plugin.website,
-                repository=manifest.plugin.repository,
-                issues=manifest.plugin.issues,
-                license_name=manifest.plugin.license,
-                status=status,
-                storage_path=str(target_dir),
-                permissions=permissions,
-                config_schema=config_schema,
-                config=defaults or None,
-                package_filename=file.filename,
-                package_checksum=sha256,
-                package_size=size,
-            )
-        else:
-            config = self._merge_config(existing.config or {}, defaults)
-            record = await self.repo.update_plugin(
-                existing,
-                name=manifest.plugin.name,
-                description=manifest.plugin.description,
-                author=manifest.plugin.author,
-                version=manifest.plugin.version,
-                requires=manifest.plugin.requires,
-                entrypoint=manifest.plugin.entrypoint,
-                website=manifest.plugin.website,
-                repository=manifest.plugin.repository,
-                issues=manifest.plugin.issues,
-                license_name=manifest.plugin.license,
-                status=status,
-                storage_path=str(target_dir),
-                permissions=permissions,
-                config_schema=config_schema,
-                config=config or None,
-                package_filename=file.filename,
-                package_checksum=sha256,
-                package_size=size,
-            )
-
-        requires_restart = True
-
-        # Best-effort: seed admin menu entries declared by the plugin manifest.
-        try:
-            seeds = list(getattr(manifest, "admin_menu", None) or [])
-            if seeds:
-                await AdminMenuSeedService(self.settings).ensure_seeds(
-                    owner_plugin_id=plugin_id,
-                    seeds=seeds,
-                    update_existing=False,
-                    restore_deleted=True,
-                )
-        except Exception as exc:
-            logger.warning("Plugin admin menu seed failed", plugin_id=plugin_id, error=str(exc))
-
-        await self._request_restart(plugin_id, reason="install")
-        # Fire an event so other parts (e.g. UI/menu/diagnostics) can react without hard coupling.
-        try:
-            if self.manager is not None:
-                await self.manager.host.event_bus.publish(
-                    Event(
-                        name=PLUGIN_INSTALLED,
-                        payload={
-                            "plugin_id": plugin_id,
-                            "slug": slug,
-                            "version": manifest.plugin.version,
-                            "status": str(record.status),
-                            "requires_restart": requires_restart,
-                        },
-                        source="core",
-                    )
-                )
-        except Exception:
-            pass
-        return record, requires_restart
 
     async def enable_plugin(self, plugin_id: str) -> PluginRecord:
         record = await self.get_plugin(plugin_id)
@@ -660,10 +780,11 @@ class PluginService(BaseService):
             return mode == stat.S_IFLNK
 
         for member in zf.infolist():
-            name = member.filename
+            raw_name = member.filename
+            name = raw_name.replace("\\", "/")
             if not name:
                 continue
-            if name.startswith("/") or name.startswith("\\"):
+            if name.startswith("/"):
                 raise BadRequest(
                     message=_tp("PLUGIN_PACKAGE_INVALID", "插件包路径非法"),
                     error="PLUGIN_PACKAGE_INVALID",
@@ -706,7 +827,7 @@ class PluginService(BaseService):
                 raise BadRequest(
                     message=_tp("PLUGIN_PACKAGE_FILE_TOO_LARGE", "插件包文件过大"),
                     error="PLUGIN_PACKAGE_FILE_TOO_LARGE",
-                    details={"max_bytes": max_single, "size": file_size, "path": name},
+                    details={"max_bytes": max_single, "size": file_size, "path": raw_name},
                 )
 
             total_uncompressed += file_size
@@ -732,7 +853,7 @@ class PluginService(BaseService):
                         raise BadRequest(
                             message=_tp("PLUGIN_PACKAGE_FILE_TOO_LARGE", "插件包文件过大"),
                             error="PLUGIN_PACKAGE_FILE_TOO_LARGE",
-                            details={"max_bytes": max_single, "size": written, "path": name},
+                            details={"max_bytes": max_single, "size": written, "path": raw_name},
                         )
                     if max_total and total_written > max_total:
                         raise BadRequest(

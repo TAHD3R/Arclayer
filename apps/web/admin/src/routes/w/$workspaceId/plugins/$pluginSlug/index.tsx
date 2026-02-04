@@ -9,7 +9,7 @@ export const Route = createFileRoute("/w/$workspaceId/plugins/$pluginSlug/")({
 });
 
 function PluginSlugPage() {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["nav", "common"]);
   const { pluginSlug } = Route.useParams();
 
   return (

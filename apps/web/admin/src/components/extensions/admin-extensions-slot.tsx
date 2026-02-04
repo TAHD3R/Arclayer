@@ -12,13 +12,15 @@ export type AdminExtensionsSlotProps = {
   title?: string;
 };
 
-function buildLabel(ext: AdminUIExtension, t: (key: string) => string): string {
-  if (ext.titleI18n) return t(ext.titleI18n);
+type _TFunction = (key: string, options?: { defaultValue?: string }) => string;
+
+function buildLabel(ext: AdminUIExtension, t: _TFunction): string {
+  if (ext.titleI18n) return t(ext.titleI18n, { defaultValue: ext.title || ext.id });
   return ext.title || ext.id;
 }
 
 export function AdminExtensionsSlot(props: AdminExtensionsSlotProps) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["common"]);
   const navigate = useNavigate();
   const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
 
@@ -55,6 +57,10 @@ export function AdminExtensionsSlot(props: AdminExtensionsSlotProps) {
                 disabled={!to}
                 onClick={() => {
                   if (!to) return;
+                  if (/^https?:\/\//.test(to)) {
+                    window.open(to, "_blank", "noopener,noreferrer");
+                    return;
+                  }
                   void navigate({ to: to as never });
                 }}
               >

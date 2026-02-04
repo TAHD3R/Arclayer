@@ -9,7 +9,7 @@ export const Route = createFileRoute("/plugins/$pluginSlug/")({
 });
 
 function PluginSlugPage() {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["nav", "common"]);
   const { pluginSlug } = Route.useParams();
 
   return (

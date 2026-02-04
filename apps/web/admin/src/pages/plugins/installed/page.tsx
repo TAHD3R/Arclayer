@@ -1,10 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { Card, Modal, Switch, Tag, Typography } from "antd";
 import { MoreVertical, Package, Upload } from "lucide-react";
+import { z } from "zod";
 
 import { DefaultPage } from "@/components/common/default-page";
 import { PageState } from "@/components/common/page-state";
@@ -25,6 +27,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
+import { zodResolver } from "@/lib/forms/zod-resolver";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { getMyWorkspaceAuthz } from "@/api/workspaces";
 import type { WorkspacePluginItem } from "@/api/workspace-plugins";
@@ -43,14 +46,19 @@ function normalizeStatus(value: unknown): string {
     .toLowerCase();
 }
 
-function statusColor(status: string): string {
+function statusColor(status: string): string | undefined {
   const s = normalizeStatus(status);
   if (s === "started") return "green";
   if (s === "installed") return "blue";
-  if (s === "disabled") return "default";
+  if (s === "disabled") return undefined;
   if (s === "failed") return "red";
-  return "default";
+  return undefined;
 }
+
+type InstallFormValues = {
+  file: File | null;
+  enableInWorkspace: boolean;
+};
 
 export function PluginsInstalledView() {
   const { t } = useTranslation(["plugin", "nav", "common", "settings"]);
@@ -59,9 +67,36 @@ export function PluginsInstalledView() {
   const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
 
   const [installOpen, setInstallOpen] = useState(false);
-  const [installFile, setInstallFile] = useState<File | null>(null);
-  const [enableInWorkspace, setEnableInWorkspace] = useState(true);
   const [restartHint, setRestartHint] = useState(false);
+
+  const installSchema = useMemo((): z.ZodType<InstallFormValues> => {
+    return z
+      .object({
+        file: z.instanceof(File).nullable(),
+        enableInWorkspace: z.boolean(),
+      })
+      .superRefine((values, ctx) => {
+        if (!values.file) {
+          ctx.addIssue({
+            code: "custom",
+            path: ["file"],
+            message: t("plugin:PLUGIN_CENTER_FILE_REQUIRED"),
+          });
+        }
+      });
+  }, [t]);
+
+  const installForm = useForm<InstallFormValues>({
+    resolver: zodResolver(installSchema),
+    defaultValues: { file: null, enableInWorkspace: true },
+    mode: "onSubmit",
+  });
+
+  useEffect(() => {
+    if (!installOpen) {
+      installForm.reset({ file: null, enableInWorkspace: true });
+    }
+  }, [installForm, installOpen]);
 
   const authzQuery = useQuery({
     queryKey: ["workspace", "authz", workspaceId],
@@ -107,18 +142,18 @@ export function PluginsInstalledView() {
   });
 
   const installMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (values: InstallFormValues) => {
       if (!workspaceId) throw new Error("workspaceId is required");
-      if (!installFile) throw new Error("file is required");
+      const file = values.file;
+      if (!file) throw new Error("file is required");
       return installWorkspacePlugin({
         workspaceId,
-        file: installFile,
-        enableInWorkspace,
+        file,
+        enableInWorkspace: values.enableInWorkspace,
       });
     },
     onSuccess: async (res) => {
       setInstallOpen(false);
-      setInstallFile(null);
       setRestartHint(Boolean(res.requiresRestart));
       notifySuccessText(t("plugin:PLUGIN_CENTER_INSTALL_SUCCESS"));
       await queryClient.invalidateQueries({
@@ -335,23 +370,47 @@ export function PluginsInstalledView() {
             <div className="rounded-md border p-3">
               <div className="text-sm font-medium">{t("plugin:PLUGIN_CENTER_FILE_LABEL")}</div>
               <div className="mt-2 flex items-center gap-2">
-                <input
-                  type="file"
-                  accept=".zip"
-                  onChange={(e) => {
-                    const f = e.target.files?.[0] ?? null;
-                    setInstallFile(f);
+                <Controller
+                  control={installForm.control}
+                  name="file"
+                  render={({ field }) => {
+                    return (
+                      <input
+                        type="file"
+                        accept=".zip"
+                        onChange={(e) => {
+                          const f = e.target.files?.[0] ?? null;
+                          field.onChange(f);
+                        }}
+                      />
+                    );
                   }}
                 />
               </div>
               <div className="mt-2 text-xs text-muted-foreground">
-                {installFile ? installFile.name : t("plugin:PLUGIN_CENTER_FILE_EMPTY")}
+                {installForm.watch("file")?.name ?? t("plugin:PLUGIN_CENTER_FILE_EMPTY")}
               </div>
+              {installForm.formState.errors.file?.message ? (
+                <div className="mt-1 text-xs text-destructive">
+                  {String(installForm.formState.errors.file.message)}
+                </div>
+              ) : null}
             </div>
 
             <div className="flex items-center justify-between rounded-md border p-3">
               <div className="text-sm">{t("plugin:PLUGIN_CENTER_ENABLE_AFTER_INSTALL")}</div>
-              <Switch checked={enableInWorkspace} onChange={setEnableInWorkspace} />
+              <Controller
+                control={installForm.control}
+                name="enableInWorkspace"
+                render={({ field }) => {
+                  return (
+                    <Switch
+                      checked={field.value}
+                      onChange={(val) => field.onChange(Boolean(val))}
+                    />
+                  );
+                }}
+              />
             </div>
           </div>
 
@@ -364,8 +423,10 @@ export function PluginsInstalledView() {
               {t("common:CANCEL")}
             </Button>
             <Button
-              onClick={() => installMutation.mutate()}
-              disabled={!installFile || installMutation.isPending}
+              onClick={() =>
+                void installForm.handleSubmit((values) => installMutation.mutate(values))()
+              }
+              disabled={!installForm.watch("file") || installMutation.isPending}
             >
               <Upload className="size-4" />
               {t("plugin:PLUGIN_CENTER_INSTALL_CONFIRM")}

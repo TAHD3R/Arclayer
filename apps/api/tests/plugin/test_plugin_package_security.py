@@ -33,6 +33,20 @@ def _minimal_plugin_toml(*, plugin_id: str, slug: str, entrypoint: str) -> bytes
     ]).encode("utf-8")
 
 
+def test_plugin_upload_filename_sanitization_accepts_windows_fakepath(tmp_path) -> None:
+    settings = get_settings()
+    service = PluginService(settings, manager=None)
+    assert service._sanitize_upload_filename(r"C:\fakepath\demo.zip") == "demo.zip"
+
+
+def test_plugin_upload_filename_sanitization_rejects_traversal(tmp_path) -> None:
+    settings = get_settings()
+    service = PluginService(settings, manager=None)
+    with pytest.raises(BadRequest) as exc:
+        service._sanitize_upload_filename("../../evil.zip")
+    assert exc.value.error == "PLUGIN_PACKAGE_INVALID"
+
+
 def test_plugin_manifest_rejects_invalid_id(tmp_path) -> None:
     zip_path = tmp_path / "bad.zip"
     plugin_toml = _minimal_plugin_toml(
@@ -169,6 +183,31 @@ def test_plugin_zip_rejects_symlink_entries(tmp_path) -> None:
         with pytest.raises(BadRequest) as exc:
             service._safe_extract(zf, extract_dir)
     assert exc.value.error == "PLUGIN_PACKAGE_HAS_SYMLINK"
+
+
+def test_plugin_zip_rejects_backslash_traversal_paths(tmp_path) -> None:
+    settings = get_settings()
+    service = PluginService(settings, manager=None)
+
+    zip_path = tmp_path / "demo.zip"
+    plugin_toml = _minimal_plugin_toml(
+        plugin_id="demo-backslash-traversal",
+        slug="demo-backslash-traversal",
+        entrypoint="demo.plugin:DemoPlugin",
+    )
+    _write_zip(
+        zip_path,
+        {
+            "plugin.toml": plugin_toml,
+            "a\\..\\evil.txt": b"evil",
+        },
+    )
+
+    extract_dir = tmp_path / "payload"
+    with zipfile.ZipFile(zip_path) as zf:
+        with pytest.raises(BadRequest) as exc:
+            service._safe_extract(zf, extract_dir)
+    assert exc.value.error == "PLUGIN_PACKAGE_INVALID"
 
 
 @pytest.mark.asyncio

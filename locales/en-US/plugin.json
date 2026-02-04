@@ -5,6 +5,7 @@
   "PLUGIN_CENTER_INSTALL_DIALOG_TITLE": "Install a plugin",
   "PLUGIN_CENTER_FILE_LABEL": "Plugin package (.zip)",
   "PLUGIN_CENTER_FILE_EMPTY": "No file selected",
+  "PLUGIN_CENTER_FILE_REQUIRED": "Please select a plugin package file",
   "PLUGIN_CENTER_ENABLE_AFTER_INSTALL": "Enable in current workspace after install",
   "PLUGIN_CENTER_INSTALL_CONFIRM": "Install",
   "PLUGIN_CENTER_INSTALL_SUCCESS": "Plugin installed",
