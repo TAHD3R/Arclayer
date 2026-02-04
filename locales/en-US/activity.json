@@ -8,6 +8,9 @@
   "ACTIVITY_FILTER_ACTOR": "Select actor",
   "ACTIVITY_FILTER_SUBJECT": "Select subject",
   "ACTIVITY_FILTER_ACTOR_NEED_WORKSPACE": "Select a workspace first",
+  "ACTIVITY_FILTER_TITLE": "Filters",
+  "ACTIVITY_FILTER_RESET": "Reset",
+  "ACTIVITY_FILTER_DONE": "Done",
 
   "ACTIVITY_FIELD_OCCURRED_AT": "Occurred at",
   "ACTIVITY_TABLE_TIME": "Time",
@@ -17,6 +20,7 @@
   "ACTIVITY_TABLE_ENTITY": "Entity",
 
   "ACTIVITY_ACTION_VIEW_DETAIL": "View",
+  "ACTIVITY_ACTION_IMPORT_EXPORT": "Import / Export",
 
   "ACTIVITY_EMPTY_TITLE": "No activity",
   "ACTIVITY_EMPTY_DESC": "Try adjusting the time range or filters.",

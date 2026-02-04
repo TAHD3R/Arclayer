@@ -51,14 +51,14 @@ export type ActivityEvent = {
 export type ListActivityParams = {
   page?: number;
   size?: number;
-  from?: string;
-  to?: string;
-  event_name?: string;
-  workspace_id?: string;
-  actor_user_id?: string;
-  subject_user_id?: string;
-  entity_type?: string;
-  entity_id?: string;
+  occurredFrom?: string;
+  occurredTo?: string;
+  eventName?: string;
+  workspaceId?: string;
+  actorUserId?: string;
+  subjectUserId?: string;
+  entityType?: string;
+  entityId?: string;
 };
 
 function toQueryString(params: Record<string, unknown>): string {
@@ -85,14 +85,14 @@ export async function listSystemActivity(
   const query = toQueryString({
     page: params.page ?? 1,
     size: params.size ?? 20,
-    from: params.from,
-    to: params.to,
-    event_name: params.event_name,
-    workspace_id: params.workspace_id,
-    actor_user_id: params.actor_user_id,
-    subject_user_id: params.subject_user_id,
-    entity_type: params.entity_type,
-    entity_id: params.entity_id,
+    occurredFrom: params.occurredFrom,
+    occurredTo: params.occurredTo,
+    eventName: params.eventName,
+    workspaceId: params.workspaceId,
+    actorUserId: params.actorUserId,
+    subjectUserId: params.subjectUserId,
+    entityType: params.entityType,
+    entityId: params.entityId,
   });
   return api.get<PageData<ActivityEvent>>(`/system/activity${query}`);
 }
@@ -108,13 +108,13 @@ export async function listWorkspaceActivity(
   const query = toQueryString({
     page: params.page ?? 1,
     size: params.size ?? 20,
-    from: params.from,
-    to: params.to,
-    event_name: params.event_name,
-    actor_user_id: params.actor_user_id,
-    subject_user_id: params.subject_user_id,
-    entity_type: params.entity_type,
-    entity_id: params.entity_id,
+    occurredFrom: params.occurredFrom,
+    occurredTo: params.occurredTo,
+    eventName: params.eventName,
+    actorUserId: params.actorUserId,
+    subjectUserId: params.subjectUserId,
+    entityType: params.entityType,
+    entityId: params.entityId,
   });
   return api.get<PageData<ActivityEvent>>(workspacePath(workspaceId, `/activity${query}`));
 }
