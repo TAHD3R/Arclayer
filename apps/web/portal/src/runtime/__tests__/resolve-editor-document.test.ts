@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { resolveEditorDocument } from "@/routes/editor/site/-resolveEditorDocument";
+import { resolveEditorDocument } from "@/runtime/route-entry";
 import { resolvePortalRoute } from "@/runtime/portal-route-resolver";
 
 vi.mock("@/runtime/portal-route-resolver", () => {
@@ -14,8 +14,7 @@ describe("resolveEditorDocument()", () => {
     await expect(
       resolveEditorDocument({
         pathname: "/",
-        context: { siteCtx: { siteId: "s1" } },
-        locationSearch: {},
+        siteId: "s1",
       }),
     ).rejects.toMatchObject({ name: "HttpError", status: 403 });
   });
@@ -41,8 +40,8 @@ describe("resolveEditorDocument()", () => {
 
     const out = await resolveEditorDocument({
       pathname: "/",
-      context: { siteCtx: { siteId: "s1" } },
-      locationSearch: { token: "demo" },
+      siteId: "s1",
+      token: "demo",
     });
 
     expect(out.pathname).toBe("/");
@@ -59,8 +58,8 @@ describe("resolveEditorDocument()", () => {
     await expect(
       resolveEditorDocument({
         pathname: "/old-about",
-        context: { siteCtx: { siteId: "s1" } },
-        locationSearch: { token: "demo" },
+        siteId: "s1",
+        token: "demo",
       }),
     ).rejects.toMatchObject({ name: "HttpError", status: 409 });
   });
@@ -73,8 +72,8 @@ describe("resolveEditorDocument()", () => {
     await expect(
       resolveEditorDocument({
         pathname: "/missing",
-        context: { siteCtx: { siteId: "s1" } },
-        locationSearch: { token: "demo" },
+        siteId: "s1",
+        token: "demo",
       }),
     ).rejects.toMatchObject({ name: "HttpError", status: 404 });
   });

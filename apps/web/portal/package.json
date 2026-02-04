@@ -22,14 +22,12 @@
     "@celestial/site-theme-default": "workspace:*",
     "@celestial/web-core": "workspace:*",
     "@celestial/web-types": "workspace:*",
-    "@tanstack/react-router": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:"
   },
   "devDependencies": {
     "@celestial/ox-config": "workspace:*",
     "@celestial/vite": "workspace:*",
-    "@tanstack/router-plugin": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "@vitejs/plugin-react-swc": "catalog:",

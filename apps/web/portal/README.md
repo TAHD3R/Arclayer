@@ -1,51 +1,39 @@
-# Portal (apps/web/portal)
+# Portal（apps/web/portal）
 
-Sprint 1 scope
+## 范围
 
-- Vite SSR pipeline based on **vike**
-- Vike uses **V1 design** (+files) from day 1 (avoid legacy _.page._ files)
-- Routing powered by **TanStack Router**
-- API-backed `DocumentIR` rendered on the server and hydrated on the client (stub API in Sprint 1)
-- CSS variables injected into SSR `<head>` from runtime config (API-first)
+- 以 Vike（vite-plugin-ssr）作为唯一路由主控，使用 Filesystem Routing（`+Page` / `+route`）。
+- API 驱动的 `DocumentIR` 在服务端渲染并在客户端水合。
+- SSR `<head>` 注入运行时主题 CSS 变量与字体。
 
-Non-goals (Sprint 1)
+## 路由约定
 
-- No Admin UI
-- No realtime OT/CRDT
+- 公共站点：`/` 与非 preview/editor/debug 的所有路径（由 `pages/public/+route.ts` 过滤）。
+- 预览模式：`/preview/*?token=...`
+- 编辑器 iframe：`/editor/site/:siteId/*?token=...`
+- 编辑器 host：`/editor-host`
+- Debug：`/debug/403`、`/debug/500`
 
-Notes
+## 共享桥接
 
-- Vike page entry is a catch-all route at `pages/app/+route.ts` to ensure any URL can be SSR-rendered.
-- TanStack Router does the actual routing inside the React shell (see `src/routes/**` and `src/router.ts`).
+- Portal 与 Admin 共享的编辑器 URL 与通信协议位于 `packages/site-editor-bridge`。
+- Admin 调试入口（iframe 容器）为 `/debug/portal-editor`。
 
-Sprint 2 (work in progress)
+## API 路由解析（本地）
 
-- Editor mode routes live under `/__editor/*` (portal-side only)
-- A local `postMessage` test harness is available at `/__editor-host`
-- Shared editor bridge lives in `packages/site-editor-bridge` (used by both Portal and Admin)
-- Admin debug host page (iframe shell): `/debug/portal-editor`
-- Preview mode routes live under `/__preview/*?token=...` (Sprint 1/2 protocol scaffolding)
-- Editor mode requires a preview token by default:
-  - `http://localhost:3100/__editor/site/demo?token=demo`
-  - Optional dev escape hatch: `VITE_PORTAL_DEV_ALLOW_EDITOR_NO_TOKEN=1` will auto-inject `VITE_PORTAL_DEV_PREVIEW_TOKEN`
+- Portal 通过 `/api/*` 代理到 FastAPI。
+  - 配置位于 `apps/web/portal/.env.development`。
+  - 开发脚本通过 Node `--env-file` 加载（Node >= 20）。
+  - 浏览器保持同源请求，SSR 保持确定性。
+  - `VITE_API_PROXY_TARGET` 与 Admin 保持一致。
 
-Optional: API-backed route resolver (stub, for local dev)
+## 本地命令
 
-Portal is API-only for route resolution (and content). For local dev:
+- `pnpm -C apps/web/portal dev`
+- `pnpm -C apps/web/portal start:local`
 
-- Portal server proxies `/api/*` to FastAPI.
-  - Config lives at `apps/web/portal/.env.development`.
-  - The dev script loads env via Node's `--env-file` (Node >= 20).
-  - This keeps browser requests same-origin (no CORS needed) and keeps SSR deterministic.
-  - Shared env naming: `VITE_API_PROXY_TARGET` matches the Admin app.
+## 预览 Token（stub）
 
-Local commands
-
-- Start dev server: `pnpm -C apps/web/portal dev`
-- Start production-like server (local): `pnpm -C apps/web/portal start:local`
-
-Preview token (stub)
-
-- Issue a token (stub): `POST /api/v1/sites/{siteId}/preview-tokens`
-- Example:
+- `POST /api/v1/sites/{siteId}/preview-tokens`
+- 示例：
   - `curl -s -X POST http://127.0.0.1:8000/api/v1/sites/00000000-0000-0000-0000-000000000001/preview-tokens`

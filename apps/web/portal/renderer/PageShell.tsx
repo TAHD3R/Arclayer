@@ -1,8 +1,15 @@
 import React from "react";
-import { RouterProvider } from "@tanstack/react-router";
 
-import type { PortalRouter } from "@/router";
+import "@/assets/index.css";
 
-export function PageShell(props: { router: PortalRouter }) {
-  return <RouterProvider router={props.router} />;
+type PageShellProps = {
+  pageContext: {
+    Page: React.ComponentType<any>;
+    pageProps?: Record<string, unknown>;
+  };
+};
+
+export function PageShell({ pageContext }: PageShellProps) {
+  const { Page, pageProps } = pageContext;
+  return <Page {...pageProps} />;
 }

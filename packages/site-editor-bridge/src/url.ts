@@ -55,7 +55,7 @@ export function buildEditorIframeHref(args: {
    */
   portalOrigin?: string;
   /**
-   * Site id used in the editor URL segment: /__editor/site/:siteId
+   * Site id used in the editor URL segment: /editor/site/:siteId
    */
   siteId: string;
   /**
@@ -72,7 +72,7 @@ export function buildEditorIframeHref(args: {
   parentOrigin?: string;
 }): string {
   const pathname = encodePathnameForEditorEmbedding(args.pathname);
-  const basePath = `/__editor/site/${encodeURIComponent(args.siteId)}`;
+  const basePath = `/editor/site/${encodeURIComponent(args.siteId)}`;
   const pathPart = pathname === "/" ? "" : pathname;
 
   const url = new URL(basePath + pathPart, args.portalOrigin ?? "http://localhost");

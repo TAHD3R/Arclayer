@@ -188,3 +188,110 @@ packages/web-types            # admin/portal 共用类型
 - portal 端按同样规范对齐（分阶段迁移）。
 - 引入 OpenAPI Generator 自动生成前端类型。
 - 持续优化性能指标与组件库维护成本。
+
+---
+
+# Portal 端重构收敛补充（2026-02-04）
+
+范围：`apps/web/portal`
+目标：移除 Vike/TanStack 双路由冲突，统一由 Vike Filesystem Routing 处理 URL；将 Portal 的“站点渲染”与“编辑支持”分层；集中路由判定入口；清理旧通配符与多路由实现。
+
+---
+
+## 15. 背景与问题（Portal）
+
+- 同时存在 Vike 与 TanStack Router 路由入口，URL 控制权冲突。
+- Portal 既承担站点渲染，又承担编辑器 iframe 支持，路由混杂。
+- 路由判定逻辑分散在 `src/router/rewrite.ts` 与 `renderer/+onRenderHtml.tsx`。
+- `src/routes/$.tsx` 通配符模式与 Vike Filesystem Routing 冲突。
+
+---
+
+## 16. 域名模型与路由语义（Portal）
+
+Portal 端不采用 `pages/@siteId/+Page.tsx` 路由结构，原因是**域名即租户与站点入口**：
+
+- 系统拥有一级域名；
+- 申请工作区获得二级域名；
+- 每个用户独立拥有一个域名；
+- 自托管模式下使用本机某端口作为 Portal 域名入口；
+- SSR/CSR 均通过 `host -> resolveSiteFromApi(host)` 获取 `siteId` 与默认语言配置。
+
+---
+
+## 17. 路由主控切换与结构收敛（Portal）
+
+### 17.1 删除与清理
+
+- 删除 TanStack Router 相关文件：
+  - `src/routes/**`
+  - `src/router/**`
+  - `src/routeTree.gen.ts`
+- `vite.config.ts` 移除 `@tanstack/router-plugin`。
+- `package.json` 移除 `@tanstack/react-router` 与 `@tanstack/router-plugin` 依赖。
+- 不保留 `__preview/__editor/__editor-host` 兼容重定向。
+
+### 17.2 Vike Filesystem Routing 目录
+
+```
+apps/web/portal/pages
+├── public/+route.ts          # 排除 preview/editor/editor-host/debug
+├── public/+Page.tsx          # 站点渲染
+├── preview/+route.ts         # /preview/*
+├── preview/+Page.tsx         # 预览渲染
+├── editor/+route.ts          # /editor/site/:siteId/*
+├── editor/+Page.tsx          # Editor iframe 页面
+├── editor-host/+Page.tsx     # Editor Host
+├── debug/403/+Page.tsx
+├── debug/500/+Page.tsx
+└── _error/+Page.tsx
+```
+
+---
+
+## 18. 统一路由入口（route-entry）
+
+新增：`src/runtime/route-entry.ts`
+
+统一职责：
+
+- `parseModeFromUrl(urlOriginal)`：解析 `mode` / `token` / `pathname`；
+- `normalizePathname(pathname)`：统一路径规范化；
+- `resolvePublicDocument` / `resolvePreviewDocument` / `resolveEditorDocument`；
+- Page 仅负责调用入口并进行 `render/redirect`（不再在 Page 内部散落判定逻辑）。
+
+---
+
+## 19. SSR / CSR 渲染管线（Portal）
+
+- `renderer/+onRenderHtml.tsx` 仅负责：
+  - siteCtx / viewerCtx 解析；
+  - runtime config 拉取；
+  - SEO 与 head 注入；
+  - `PageShell` 渲染；
+- `PageShell` 仅渲染 `pageContext.Page`，不注入 RouterProvider。
+
+---
+
+## 20. 外部 URL 规范（Portal）
+
+- Public：`/` 与非 preview/editor/debug 的所有路径
+- Preview：`/preview/*?token=...`
+- Editor iframe：`/editor/site/:siteId/*?token=...`
+- Editor Host：`/editor-host`
+- Debug：`/debug/403`、`/debug/500`
+- 不保留旧 `__preview` / `__editor` 兼容路径
+
+---
+
+## 21. 验收标准（Portal）
+
+- `pnpm -C apps/web/portal lint` 通过
+- `pnpm -C apps/web/portal typecheck` 通过
+- `pnpm -C apps/web/portal test` 通过
+- 手动回归：
+  - `/` 与任意站点路径
+  - `/preview/*?token=...`
+  - `/editor/site/demo?token=demo`
+  - `/editor-host`
+  - `/debug/403`、`/debug/500`

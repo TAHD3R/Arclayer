@@ -15,7 +15,7 @@ describe("site-editor-bridge url helpers (imported via Portal)", () => {
       pathname: "/about",
       token: "t1",
     });
-    expect(href).toBe("/__editor/site/demo/about?token=t1");
+    expect(href).toBe("/editor/site/demo/about?token=t1");
   });
 
   it("buildEditorIframeHref() encodes path segments (zero-trust)", () => {
@@ -24,7 +24,7 @@ describe("site-editor-bridge url helpers (imported via Portal)", () => {
       pathname: "/a b",
       token: "t1",
     });
-    expect(href).toBe("/__editor/site/demo/a%20b?token=t1");
+    expect(href).toBe("/editor/site/demo/a%20b?token=t1");
   });
 
   it("buildEditorIframeHref() rejects query/hash injection in pathname", () => {
@@ -72,7 +72,7 @@ describe("site-editor-bridge url helpers (imported via Portal)", () => {
       parentOrigin: "http://localhost:5173",
     });
     expect(href).toBe(
-      "http://localhost:3100/__editor/site/demo?token=t1&parentOrigin=http%3A%2F%2Flocalhost%3A5173",
+      "http://localhost:3100/editor/site/demo?token=t1&parentOrigin=http%3A%2F%2Flocalhost%3A5173",
     );
   });
 
@@ -82,6 +82,6 @@ describe("site-editor-bridge url helpers (imported via Portal)", () => {
       pathname: "/a%2Fb",
       token: "t1",
     });
-    expect(href).toBe("/__editor/site/demo/a%252Fb?token=t1");
+    expect(href).toBe("/editor/site/demo/a%252Fb?token=t1");
   });
 });

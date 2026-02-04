@@ -1,22 +1,17 @@
-import { getEditorTokenOrThrow } from "@/router/namespaces";
-import { HttpError } from "@/router/routerFallbacks";
 import { resolvePortalRoute } from "@/runtime/portal-route-resolver";
+import { HttpError } from "@/runtime/http-error";
 import type { PortalRouteMatch } from "@celestial/web-types";
 
 export async function resolveEditorDocument(args: {
   pathname: string;
-  context: { siteCtx: { siteId: string } };
-  locationSearch: unknown;
+  siteId: string;
+  token?: string;
 }): Promise<{ document: unknown; pathname: string; match: PortalRouteMatch }> {
-  let token: string;
-  try {
-    token = getEditorTokenOrThrow(args.locationSearch);
-  } catch {
-    throw new HttpError(403, "Preview token required");
-  }
+  const token = args.token;
+  if (!token) throw new HttpError(403, "Preview token required");
 
   const resolved = await resolvePortalRoute(args.pathname, {
-    siteId: args.context.siteCtx.siteId,
+    siteId: args.siteId,
     mode: "preview",
     token,
   });

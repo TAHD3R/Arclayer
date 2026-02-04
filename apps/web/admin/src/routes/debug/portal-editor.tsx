@@ -56,7 +56,7 @@ function PortalEditorDebugPage() {
   }, []);
 
   const iframeSrc = React.useMemo(() => {
-    if (!hostOrigin) return `${portalOrigin}/__editor/site/demo`;
+    if (!hostOrigin) return `${portalOrigin}/editor/site/demo`;
     // Token is required for editor mode; allow overriding via debug page query (?token=...).
     const tokenFromUrl = new URLSearchParams(window.location.search).get("token");
     const token = tokenFromUrl || previewToken || "demo";

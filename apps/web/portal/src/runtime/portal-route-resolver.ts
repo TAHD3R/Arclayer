@@ -2,7 +2,7 @@ import { ApiError } from "@celestial/web-core/http";
 import type { CoreDocumentIR } from "@celestial/site-renderer-core";
 import type { PortalResolveMode, PortalRouteMatch } from "@celestial/web-types";
 
-import { HttpError } from "@/router/routerFallbacks";
+import { HttpError } from "@/runtime/http-error";
 import { resolveRouteFromApi } from "./site-api";
 
 export type ResolvedPortalRoute =

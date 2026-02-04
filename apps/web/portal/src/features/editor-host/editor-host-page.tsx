@@ -1,5 +1,4 @@
 import React from "react";
-import { createFileRoute } from "@tanstack/react-router";
 
 import type { EditorOverlayMode } from "@celestial/site-editor-protocol";
 import type { EditorPresence, HostEditorRpcApi } from "@celestial/site-editor-protocol";
@@ -21,10 +20,6 @@ import {
   getPortalSiteIdFromEnv,
   resolveRouteFromApi,
 } from "@/runtime/site-api";
-
-export const Route = createFileRoute("/editor-host")({
-  component: EditorHostPage,
-});
 
 function EditorHostPage() {
   const iframeRef = React.useRef<HTMLIFrameElement | null>(null);
@@ -639,6 +634,8 @@ function EditorHostPage() {
     </div>
   );
 }
+
+export { EditorHostPage };
 
 function parsePreviewToken(payload: unknown): string | null {
   if (!payload || typeof payload !== "object") return null;
