@@ -20,7 +20,6 @@ export function AdminThemeModeToggle(props: { className?: string }) {
       type="text"
       size="large"
       className={props.className}
-      style={{ width: 44, height: 44, paddingInline: 0 }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       onClick={() => {

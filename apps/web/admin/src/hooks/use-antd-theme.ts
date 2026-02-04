@@ -17,18 +17,7 @@ export function useAntdTheme() {
         },
         components: {
           Button: {
-            fontWeight: 500,
-            paddingInline: 14,
-            controlHeight: 40,
-            controlHeightLG: 44,
-            controlHeightSM: 28,
-            paddingInlineLG: 19,
-          },
-          Select: {
-            controlHeight: 40,
-          },
-          DatePicker: {
-            controlHeight: 40,
+            fontWeight: 600,
           },
         },
       }),

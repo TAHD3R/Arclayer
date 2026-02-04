@@ -1,4 +1,4 @@
-import { Breadcrumb, Button, Select, Space } from "antd";
+import { Breadcrumb, Button, Divider, Select, Space } from "antd";
 import type { BreadcrumbProps } from "antd";
 import type { BreadcrumbItemProps } from "antd/es/breadcrumb/BreadcrumbItem";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
@@ -14,7 +14,6 @@ import { AdminThemeModeToggle } from "@/components/common/admin-toggle-theme";
 import { CommandMenu01 } from "@/components/ui/command-menu";
 import { Kbd, KbdGroup } from "@/components/ui/kbd";
 import RefreshIcon from "@/components/ui/icons/refresh-icon";
-import SettingsIcon from "@/components/ui/icons/settings-icon";
 import { listMyWorkspaces } from "@/api/workspaces";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
@@ -132,7 +131,6 @@ export function AdminHeader(props: {
   const { t } = useTranslation();
   const [commandOpen, setCommandOpen] = useState(false);
   const [refreshHovered, setRefreshHovered] = useState(false);
-  const [settingsHovered, setSettingsHovered] = useState(false);
   const accessToken = useAuthStore((s) => s.accessToken);
   const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
   const setCurrentWorkspaceId = useWorkspaceStore((s) => s.setCurrentWorkspaceId);
@@ -214,10 +212,9 @@ export function AdminHeader(props: {
     >
       <div className="min-w-0 flex-1 flex items-center gap-2">
         <Button
+          size="large"
           aria-label={t("common:REFRESH")}
           type="text"
-          size="large"
-          style={{ width: 44, height: 44, paddingInline: 0 }}
           disabled={!props.onRefresh || props.refreshing}
           onMouseEnter={() => setRefreshHovered(true)}
           onMouseLeave={() => setRefreshHovered(false)}
@@ -256,35 +253,23 @@ export function AdminHeader(props: {
               getPopupContainer={(node) => node.parentElement ?? document.body}
             />
           ) : null}
-
+          <AdminLocaleToggle />
+          <AdminThemeModeToggle />
+          <Divider vertical />
           <Button
             variant="text"
             icon={<Search size={18} />}
             onClick={() => setCommandOpen(true)}
-            className="h-9"
+            className="h-8 w-50"
           >
-            <span>{t("command:CMD_SEARCH")}</span>
-            <KbdGroup className="ml-2">
-              <Kbd>Ctrl</Kbd>
-              <Kbd>K</Kbd>
-            </KbdGroup>
+            <section className="flex justify-between">
+              <span className="text-muted-foreground">{t("command:CMD_SEARCH")}</span>
+              <KbdGroup className="ml-2">
+                <Kbd>Ctrl</Kbd>
+                <Kbd>K</Kbd>
+              </KbdGroup>
+            </section>
           </Button>
-
-          <AdminLocaleToggle />
-          <AdminThemeModeToggle />
-
-          <Button
-            aria-label={t("account:ACCOUNT_PERSONAL_SETTINGS")}
-            type="text"
-            size="large"
-            style={{ width: 44, height: 44, paddingInline: 0 }}
-            onMouseEnter={() => setSettingsHovered(true)}
-            onMouseLeave={() => setSettingsHovered(false)}
-            icon={<SettingsIcon size={18} isHovered={settingsHovered} className="text-current" />}
-            onClick={() => {
-              // TODO: route not implemented yet; wire to settings page when available.
-            }}
-          />
         </Space>
       </div>
 

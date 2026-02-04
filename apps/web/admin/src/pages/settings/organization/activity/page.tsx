@@ -228,7 +228,6 @@ export function OrganizationActivityPage() {
               style={{ width: 320, maxWidth: "100%" }}
             >
               <AntInput
-                size="large"
                 allowClear
                 onFocus={() => setEventNameOpen(true)}
                 prefix={<Search className="size-4 text-muted-foreground" />}

@@ -52,7 +52,6 @@ export function AdminLocaleToggle(props: { className?: string }) {
         type="text"
         size="large"
         className={props.className}
-        style={{ width: 44, height: 44, paddingInline: 0 }}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
         icon={<LanguagesIcon size={18} isHovered={hovered} className="text-current" />}

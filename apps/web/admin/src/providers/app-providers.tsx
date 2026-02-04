@@ -33,8 +33,8 @@ export function AppProviders({ children }: PropsWithChildren) {
   const [queryClient] = useState(() => makeQueryClient());
 
   return (
-    <ProgressProvider color="var(--primary)" height="2px" spinnerPosition="top-right">
-      <ConfigProvider theme={theme} locale={antdLocale} componentSize="middle">
+    <ProgressProvider color="var(--primary)" height="2px">
+      <ConfigProvider theme={theme} locale={antdLocale}>
         <App message={{ maxCount: 3 }} notification={{ maxCount: 3 }}>
           <AntdMessageBridge>
             <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
