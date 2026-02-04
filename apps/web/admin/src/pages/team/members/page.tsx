@@ -1,13 +1,4 @@
-import {
-  Avatar,
-  Dropdown,
-  Button as AntButton,
-  Input as AntInput,
-  Modal,
-  Pagination,
-  Select,
-  Tag,
-} from "antd";
+import { Avatar, Dropdown, Button as AntButton, Input as AntInput, Pagination, Tag } from "antd";
 import {
   KeyRound,
   MoreVertical,
@@ -60,17 +51,12 @@ import { ResetUserPasswordDialog } from "@/components/common/team/reset-user-pas
 import { InviteMembersDialog } from "@/components/common/team/invite-members-dialog";
 import { resolveAssetRefToPublicUrlPath } from "@/lib/assets/asset-urls";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
+import { EditMemberRolesDialog } from "@/components/common/team/edit-member-roles-dialog";
+import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";
 
 function userInitials(member: TeamMember): string {
   const label = (member.displayName || member.username || member.email || "U").trim();
   return label.slice(0, 1).toUpperCase();
-}
-
-function formatLastLogin(value: string | null | undefined): string | null {
-  if (!value) return null;
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return null;
-  return d.toLocaleString();
 }
 
 function userStatusTagColor(status: UserStatus): string {
@@ -148,7 +134,7 @@ export function TeamMembersView() {
   }, [rolesQuery.data?.items]);
 
   const [editingMember, setEditingMember] = React.useState<TeamMember | null>(null);
-  const [editingRoleCodes, setEditingRoleCodes] = React.useState<string[]>([]);
+  const [editingRoleCode, setEditingRoleCode] = React.useState<string | null>(null);
   const canEditRoles = Boolean(editingMember) && editingMember?.membershipStatus === "active";
 
   const [editUserOpen, setEditUserOpen] = React.useState(false);
@@ -205,10 +191,12 @@ export function TeamMembersView() {
         queryKey: ["dataTable", workspaceId ? `team-members:${workspaceId}` : "team-members"],
       });
       setEditingMember(null);
-      setEditingRoleCodes([]);
+      setEditingRoleCode(null);
     },
     onError: (err) => notifyError(err),
   });
+
+  const dateTime = useWorkspaceDateTimeFormatter();
 
   const columns = React.useMemo<ColumnDef<TeamMember, unknown>[]>(() => {
     const cols: ColumnDef<TeamMember, unknown>[] = [
@@ -252,7 +240,7 @@ export function TeamMembersView() {
               disabled: !canEditMemberRoles || rolesQueryFailed,
               onClick: () => {
                 setEditingMember(m);
-                setEditingRoleCodes(m.roleCodes ?? []);
+                setEditingRoleCode(m.roleCodes?.[0] ?? null);
               },
             },
             { type: "divider" },
@@ -377,7 +365,7 @@ export function TeamMembersView() {
         meta: { title: t("team:TEAM_TABLE_COL_LAST_LOGIN") },
         header: t("team:TEAM_TABLE_COL_LAST_LOGIN"),
         cell: ({ row }) => {
-          const formatted = formatLastLogin(row.original.lastLoginAt);
+          const formatted = dateTime.formatDateTimeOrNull(row.original.lastLoginAt);
           return (
             <span className={formatted ? "" : "text-muted-foreground"}>
               {formatted || t("team:TEAM_LAST_LOGIN_NEVER")}
@@ -387,7 +375,7 @@ export function TeamMembersView() {
       },
     ];
     return cols;
-  }, [currentUserId, roleNameByCode, rolesQueryFailed, t]);
+  }, [currentUserId, dateTime, roleNameByCode, rolesQueryFailed, t]);
 
   const tableHook = useDataTable<
     TeamMember,
@@ -542,41 +530,30 @@ export function TeamMembersView() {
           </Table>
         </div>
 
-        <Modal
-          title={t("team:TEAM_EDIT_ROLES_TITLE")}
+        <EditMemberRolesDialog
           open={Boolean(editingMember)}
-          okButtonProps={{ disabled: !canEditRoles, loading: updateRolesMutation.isPending }}
-          onCancel={() => {
-            setEditingMember(null);
-            setEditingRoleCodes([]);
+          onOpenChange={(open) => {
+            if (!open) {
+              setEditingMember(null);
+              setEditingRoleCode(null);
+            }
           }}
-          onOk={() => {
+          member={editingMember}
+          roles={rolesQuery.data?.items ?? []}
+          rolesLoading={rolesQuery.isLoading}
+          value={editingRoleCode}
+          onChange={setEditingRoleCode}
+          confirmLoading={updateRolesMutation.isPending}
+          confirmDisabled={!canEditRoles}
+          onConfirm={() => {
             if (!editingMember) return;
             if (!canEditRoles) return;
             updateRolesMutation.mutate({
               membershipId: editingMember.membershipId,
-              roleCodes: editingRoleCodes,
+              roleCodes: editingRoleCode ? [editingRoleCode] : [],
             });
           }}
-        >
-          <div className="grid grid-cols-1 gap-2">
-            <div className="text-sm text-muted-foreground">{t("team:TEAM_EDIT_ROLES_DESC")}</div>
-            <Select
-              mode="multiple"
-              allowClear
-              placeholder={t("team:TEAM_EDIT_ROLES_PLACEHOLDER")}
-              loading={rolesQuery.isLoading}
-              value={editingRoleCodes}
-              onChange={(next) => setEditingRoleCodes(next)}
-              options={(rolesQuery.data?.items ?? []).map((r) => ({
-                label: r.name || r.code,
-                value: r.code,
-              }))}
-              showSearch
-              optionFilterProp="label"
-            />
-          </div>
-        </Modal>
+        />
 
         {pageData ? (
           <div className="flex flex-wrap items-center justify-between gap-3 pt-4">

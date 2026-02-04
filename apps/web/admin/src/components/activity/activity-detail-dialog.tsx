@@ -6,7 +6,7 @@ import { SettingDialog } from "@/components/common/setting-dialog";
 import { formatDateTimeWithPattern } from "@/lib/time/date-time";
 import { resolveCatalogEntry } from "@/components/activity/event-catalog";
 import { ActivityUserPill } from "@/components/activity/activity-user-pill";
-import { usePreferencesStore } from "@/stores/use-preference-store";
+import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";
 
 function safeJsonStringify(value: unknown): string {
   try {
@@ -38,11 +38,10 @@ export function ActivityDetailDialog(props: {
   workspaceLabelById?: Record<string, string>;
 }) {
   const { t } = useTranslation(["activity"]);
-  const prefs = usePreferencesStore();
+  const dateTime = useWorkspaceDateTimeFormatter();
 
   const event = props.event;
   const hideMetaBlocks = event?.eventName === "workspace.member.roles.updated";
-  const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
 
   const occurredAtText = React.useMemo(() => {
     if (!event?.occurredAt) return "-";
@@ -50,12 +49,17 @@ export function ActivityDetailDialog(props: {
     if (Number.isNaN(d.getTime())) return "-";
     return formatDateTimeWithPattern({
       date: d,
-      locale: prefs.locale,
-      timeZone,
-      dateFormat: undefined,
+      locale: dateTime.localization.locale,
+      timeZone: dateTime.localization.timeZone,
+      dateFormat: dateTime.localization.dateFormat,
       includeTime: true,
     });
-  }, [event?.occurredAt, prefs.locale, timeZone]);
+  }, [
+    dateTime.localization.dateFormat,
+    dateTime.localization.locale,
+    dateTime.localization.timeZone,
+    event?.occurredAt,
+  ]);
 
   const workspaceLabel = React.useMemo(() => {
     const id = (event?.workspaceId || "").trim();

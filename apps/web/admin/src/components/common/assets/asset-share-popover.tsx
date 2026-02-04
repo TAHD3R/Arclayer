@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { copyToClipboard } from "@/lib/clipboard";
 import { notifyError, notifyErrorText, notifySuccessText } from "@/lib/notifications";
 import { toShareableAbsoluteUrl } from "@/lib/assets/asset-urls";
+import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";
 
 type ExpireUnit = "minutes" | "hours" | "days";
 
@@ -32,19 +33,6 @@ function isExpired(expiresAt: string | null | undefined): boolean {
   return t <= Date.now();
 }
 
-function formatIsoDateTime(value: string | null | undefined): string {
-  if (!value) return "-";
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return value;
-  return new Intl.DateTimeFormat(undefined, {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(d);
-}
-
 function resolveShareUrl(link: AdminShareLink): string {
   // 后端返回的是 path（/s/<token>），这里统一转成可复制/可访问的绝对 URL。
   return toShareableAbsoluteUrl(link.previewUrlPath);
@@ -58,6 +46,7 @@ export function AssetSharePopover(props: {
   disabled?: boolean;
 }) {
   const { t } = useTranslation();
+  const dateTime = useWorkspaceDateTimeFormatter({ workspaceId: props.workspaceId });
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
 
@@ -282,12 +271,13 @@ export function AssetSharePopover(props: {
 
                       <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
                         <div>
-                          {t("assets:ASSET_SHARE_CREATED_AT")}: {formatIsoDateTime(link.createdAt)}
+                          {t("assets:ASSET_SHARE_CREATED_AT")}:{" "}
+                          {dateTime.formatDateTime(link.createdAt, { emptyValue: "-" })}
                         </div>
                         <div>
                           {t("assets:ASSET_SHARE_EXPIRES_AT")}:{" "}
                           {link.expiresAt
-                            ? formatIsoDateTime(link.expiresAt)
+                            ? dateTime.formatDateTime(link.expiresAt, { emptyValue: "-" })
                             : t("assets:ASSET_SHARE_NEVER_EXPIRES")}
                         </div>
                       </div>

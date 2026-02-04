@@ -10,6 +10,7 @@ import {
 } from "@/api/team";
 import { notifyError } from "@/lib/notifications";
 import { resolveAssetRefToPublicUrlPath } from "@/lib/assets/asset-urls";
+import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";
 
 function userInitials(label: string | null | undefined): string {
   const v = String(label || "U").trim();
@@ -44,13 +45,6 @@ function renderUserLabel(user: TeamUserRef | null): React.ReactNode {
   );
 }
 
-function formatDateTime(value: string | null | undefined): string {
-  if (!value) return "-";
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return "-";
-  return d.toLocaleString();
-}
-
 function normalizeQuery(input: string): string {
   return String(input || "").trim();
 }
@@ -62,6 +56,7 @@ export function InviteLinkParticipantsPopover(props: {
   primaryUser: TeamUserRef | null;
 }) {
   const { t } = useTranslation(["team", "common"]);
+  const dateTime = useWorkspaceDateTimeFormatter({ workspaceId: props.workspaceId || undefined });
   const [open, setOpen] = React.useState(false);
   const [page, setPage] = React.useState(1);
   const [rawQ, setRawQ] = React.useState("");
@@ -138,7 +133,7 @@ export function InviteLinkParticipantsPopover(props: {
                     <div className="flex items-center justify-between gap-3 w-full min-w-0">
                       <div className="min-w-0">{renderUserLabel(item.user)}</div>
                       <div className="text-xs text-muted-foreground whitespace-nowrap">
-                        {formatDateTime(item.usedAt)}
+                        {dateTime.formatDateTime(item.usedAt, { emptyValue: "-" })}
                       </div>
                     </div>
                   </List.Item>
@@ -164,7 +159,7 @@ export function InviteLinkParticipantsPopover(props: {
     </div>
   );
 
-  if (props.usesCount <= 0) return <span className="text-muted-foreground">-</span>;
+  if (props.usesCount <= 0) return <span className="text-muted-foreground">{t("common:NA")}</span>;
 
   return (
     <Popover

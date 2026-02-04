@@ -7,8 +7,8 @@ import type { ActivityEvent } from "@/api/activity";
 import { resolveCatalogEntry } from "@/components/activity/event-catalog";
 import { formatDateTimeWithPattern } from "@/lib/time/date-time";
 import { cn } from "@/lib/utils";
-import { usePreferencesStore } from "@/stores/use-preference-store";
 import { ActivityUserPill } from "@/components/activity/activity-user-pill";
+import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";
 
 type ActivityTimelineProps = {
   items: ActivityEvent[];
@@ -46,6 +46,7 @@ function groupByDay(params: {
   items: ActivityEvent[];
   locale: string;
   timeZone: string;
+  dateFormat: string | undefined;
   t: (key: string) => string;
 }): DayGroup[] {
   const map = new Map<string, { items: ActivityEvent[]; sampleDate: Date | null }>();
@@ -86,19 +87,21 @@ function groupByDay(params: {
   }
 
   const groups: DayGroup[] = [];
-  const dateFormatter = new Intl.DateTimeFormat(params.locale || undefined, {
-    timeZone: params.timeZone || undefined,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
 
   for (const [key, group] of map.entries()) {
     const label = (() => {
       if (key === "unknown") return "-";
       if (key === todayKey) return params.t("activity:ACTIVITY_DAY_TODAY");
       if (key === yesterdayKey) return params.t("activity:ACTIVITY_DAY_YESTERDAY");
-      return group.sampleDate ? dateFormatter.format(group.sampleDate) : key;
+      return group.sampleDate
+        ? formatDateTimeWithPattern({
+            date: group.sampleDate,
+            locale: params.locale,
+            timeZone: params.timeZone,
+            dateFormat: params.dateFormat,
+            includeTime: false,
+          })
+        : key;
     })();
 
     groups.push({
@@ -114,8 +117,7 @@ function groupByDay(params: {
 
 export function ActivityTimeline(props: ActivityTimelineProps) {
   const { t } = useTranslation(["activity"]);
-  const prefs = usePreferencesStore();
-  const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+  const dateTime = useWorkspaceDateTimeFormatter();
 
   const titleSpan = props.titleSpan ?? 4;
   const reverse = props.reverse ?? false;
@@ -124,11 +126,18 @@ export function ActivityTimeline(props: ActivityTimelineProps) {
     () =>
       groupByDay({
         items: props.items,
-        locale: prefs.locale,
-        timeZone,
+        locale: dateTime.localization.locale,
+        timeZone: dateTime.localization.timeZone,
+        dateFormat: dateTime.localization.dateFormat,
         t: (key) => t(key),
       }),
-    [prefs.locale, props.items, t, timeZone],
+    [
+      dateTime.localization.dateFormat,
+      dateTime.localization.locale,
+      dateTime.localization.timeZone,
+      props.items,
+      t,
+    ],
   );
 
   return (
@@ -150,7 +159,11 @@ export function ActivityTimeline(props: ActivityTimelineProps) {
                 ...group.items.map((event) => {
                   const d = safeDate(event.occurredAt);
                   const timeText = d
-                    ? formatTimeHHmm({ date: d, locale: prefs.locale, timeZone })
+                    ? formatTimeHHmm({
+                        date: d,
+                        locale: dateTime.localization.locale,
+                        timeZone: dateTime.localization.timeZone,
+                      })
                     : "-";
 
                   const catalog = resolveCatalogEntry(event.eventName);
@@ -198,9 +211,9 @@ export function ActivityTimeline(props: ActivityTimelineProps) {
                           d
                             ? formatDateTimeWithPattern({
                                 date: d,
-                                locale: prefs.locale,
-                                timeZone,
-                                dateFormat: "YYYY-MM-DD",
+                                locale: dateTime.localization.locale,
+                                timeZone: dateTime.localization.timeZone,
+                                dateFormat: dateTime.localization.dateFormat,
                                 includeTime: true,
                               })
                             : undefined

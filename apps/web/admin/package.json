@@ -75,6 +75,7 @@
     "@types/react-dom": "catalog:",
     "@types/three": "^0.182.0",
     "@vitejs/plugin-react-swc": "catalog:",
+    "dayjs": "catalog:",
     "jsdom": "^26.1.0",
     "tailwindcss": "catalog:",
     "tailwindcss-animate": "^1.0.7",

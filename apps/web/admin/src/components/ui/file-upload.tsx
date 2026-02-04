@@ -4,6 +4,8 @@ import { motion } from "motion/react";
 import { IconUpload } from "@tabler/icons-react";
 import { useDropzone } from "react-dropzone";
 
+import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";
+
 const mainVariant = {
   initial: {
     x: 0,
@@ -28,6 +30,7 @@ const secondaryVariant = {
 export const FileUpload = ({ onChange }: { onChange?: (files: File[]) => void }) => {
   const [files, setFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const dateTime = useWorkspaceDateTimeFormatter();
 
   const handleFileChange = (newFiles: File[]) => {
     setFiles((prevFiles) => [...prevFiles, ...newFiles]);
@@ -112,7 +115,11 @@ export const FileUpload = ({ onChange }: { onChange?: (files: File[]) => void })
                     </motion.p>
 
                     <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} layout>
-                      modified {new Date(file.lastModified).toLocaleDateString()}
+                      modified{" "}
+                      {dateTime.formatFromDate(new Date(file.lastModified), {
+                        includeTime: false,
+                        emptyValue: "-",
+                      })}
                     </motion.p>
                   </div>
                 </motion.div>

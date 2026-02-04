@@ -1,6 +1,6 @@
 "use client";
 
-import { Input, Modal } from "antd";
+import { Button as AntButton } from "antd";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
 import { useForm } from "react-hook-form";
@@ -9,6 +9,15 @@ import { useMutation } from "@tanstack/react-query";
 
 import type { TeamMember } from "@/api/team";
 import { resetTeamMemberPassword } from "@/api/team";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { zodResolver } from "@/lib/forms/zod-resolver";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
@@ -85,60 +94,63 @@ export function ResetUserPasswordDialog(props: {
     : t("team:TEAM_RESET_PASSWORD_TITLE_FALLBACK");
 
   return (
-    <Modal
-      open={props.open}
-      title={title}
-      okText={t("common:CONFIRM")}
-      cancelText={t("common:CANCEL")}
-      okButtonProps={{
-        loading: mutation.isPending,
-        disabled: mutation.isPending || !props.member,
-      }}
-      cancelButtonProps={{ disabled: mutation.isPending }}
-      onOk={() => void onSubmit()}
-      onCancel={() => props.onOpenChange(false)}
-      destroyOnHidden
-      centered
-    >
-      <div className="text-muted-foreground">{t("team:TEAM_RESET_PASSWORD_DESC")}</div>
+    <Dialog open={props.open} onOpenChange={props.onOpenChange}>
+      <DialogContent className="sm:max-w-xl">
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{t("team:TEAM_RESET_PASSWORD_DESC")}</DialogDescription>
+        </DialogHeader>
 
-      <form onSubmit={onSubmit} className="grid gap-4 pt-4">
-        <div className="grid gap-1.5">
-          <label className="text-sm text-muted-foreground" htmlFor="newPassword">
-            {t("team:TEAM_FIELD_NEW_PASSWORD")}
-          </label>
-          <Input
-            id="newPassword"
-            type="password"
-            disabled={mutation.isPending}
-            {...form.register("newPassword")}
-          />
-          {form.formState.errors.newPassword?.message ? (
-            <div className="text-sm text-destructive">
-              {String(form.formState.errors.newPassword.message)}
-            </div>
-          ) : null}
-        </div>
+        <form onSubmit={onSubmit} className="grid gap-4 py-2">
+          <div className="grid gap-1.5">
+            <label className="text-sm text-muted-foreground" htmlFor="newPassword">
+              {t("team:TEAM_FIELD_NEW_PASSWORD")}
+            </label>
+            <Input
+              id="newPassword"
+              type="password"
+              disabled={mutation.isPending}
+              {...form.register("newPassword")}
+            />
+            {form.formState.errors.newPassword?.message ? (
+              <div className="text-sm text-destructive">
+                {String(form.formState.errors.newPassword.message)}
+              </div>
+            ) : null}
+          </div>
 
-        <div className="grid gap-1.5">
-          <label className="text-sm text-muted-foreground" htmlFor="confirmPassword">
-            {t("team:TEAM_FIELD_CONFIRM_PASSWORD")}
-          </label>
-          <Input
-            id="confirmPassword"
-            type="password"
-            disabled={mutation.isPending}
-            {...form.register("confirmPassword")}
-          />
-          {form.formState.errors.confirmPassword?.message ? (
-            <div className="text-sm text-destructive">
-              {String(form.formState.errors.confirmPassword.message)}
-            </div>
-          ) : null}
-        </div>
+          <div className="grid gap-1.5">
+            <label className="text-sm text-muted-foreground" htmlFor="confirmPassword">
+              {t("team:TEAM_FIELD_CONFIRM_PASSWORD")}
+            </label>
+            <Input
+              id="confirmPassword"
+              type="password"
+              disabled={mutation.isPending}
+              {...form.register("confirmPassword")}
+            />
+            {form.formState.errors.confirmPassword?.message ? (
+              <div className="text-sm text-destructive">
+                {String(form.formState.errors.confirmPassword.message)}
+              </div>
+            ) : null}
+          </div>
 
-        <button type="submit" className="hidden" aria-hidden="true" tabIndex={-1} />
-      </form>
-    </Modal>
+          <DialogFooter>
+            <AntButton onClick={() => props.onOpenChange(false)} disabled={mutation.isPending}>
+              {t("common:CANCEL")}
+            </AntButton>
+            <AntButton
+              type="primary"
+              htmlType="submit"
+              loading={mutation.isPending}
+              disabled={mutation.isPending || !props.member}
+            >
+              {t("common:CONFIRM")}
+            </AntButton>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { Avatar, Button as AntButton, Input, Pagination, Select } from "antd";
+import { Avatar, Button as AntButton, Input, Pagination, Select, Tag } from "antd";
 import { Link2Off, Plus, RotateCcw, Search } from "lucide-react";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
@@ -52,15 +52,9 @@ import { InviteLinkParticipantsPopover } from "@/components/common/team/invite-l
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { resolveAssetRefToPublicUrlPath } from "@/lib/assets/asset-urls";
+import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";
 
 type TabKey = "pending" | "accepted" | "links";
-
-function formatDateTime(value: string | null | undefined): string | null {
-  if (!value) return null;
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return null;
-  return d.toLocaleString();
-}
 
 function userInitials(label: string | null | undefined): string {
   const v = String(label || "U").trim();
@@ -107,6 +101,7 @@ export function TeamInvitationsView() {
   const queryClient = useQueryClient();
   const accessToken = useAuthStore((s) => s.accessToken);
   const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
+  const dateTime = useWorkspaceDateTimeFormatter();
 
   const [tab, setTab] = React.useState<TabKey>("pending");
   const [inviteOpen, setInviteOpen] = React.useState(false);
@@ -229,6 +224,17 @@ export function TeamInvitationsView() {
   const pendingExtraQuery = React.useMemo(() => ({ status: "pending" as const }), []);
   const acceptedExtraQuery = React.useMemo(() => ({ status: "accepted" as const }), []);
 
+  const renderInvitationStatus = React.useCallback(
+    (status: TeamInvitation["status"] | null | undefined): string => {
+      if (status === "pending") return t("team:TEAM_INVITATION_STATUS_PENDING");
+      if (status === "accepted") return t("team:TEAM_INVITATION_STATUS_ACCEPTED");
+      if (status === "revoked") return t("team:TEAM_INVITATION_STATUS_REVOKED");
+      if (status === "expired") return t("team:TEAM_INVITATION_STATUS_EXPIRED");
+      return t("common:NA");
+    },
+    [t],
+  );
+
   const invitationsColumns = React.useMemo<ColumnDef<TeamInvitation, unknown>[]>(() => {
     return [
       {
@@ -241,7 +247,7 @@ export function TeamInvitationsView() {
           const inviterLabel =
             (inviter?.displayName || inviter?.username || inviter?.email || "").trim() || "-";
           const roleCode = inv.roleCode || null;
-          const roleName = roleCode ? (roleNameByCode.get(roleCode) ?? roleCode) : "-";
+          const roleName = roleCode ? (roleNameByCode.get(roleCode) ?? roleCode) : null;
 
           return (
             <div className="min-w-0">
@@ -249,8 +255,8 @@ export function TeamInvitationsView() {
               <div className="text-xs text-muted-foreground truncate">
                 {t("team:TEAM_INVITATIONS_SENT_BY", { inviter: inviterLabel })}
               </div>
-              <div className="text-xs text-muted-foreground truncate">
-                {t("team:TEAM_INVITATIONS_ROLE_LINE", { roleName })}
+              <div className="mt-1">
+                <Tag style={{ marginInlineEnd: 0 }}>{roleName || t("common:NA")}</Tag>
               </div>
             </div>
           );
@@ -261,10 +267,22 @@ export function TeamInvitationsView() {
         meta: { title: t("team:TEAM_INVITATIONS_COL_CREATED") },
         header: t("team:TEAM_INVITATIONS_COL_CREATED"),
         cell: ({ row }) => {
-          const formatted = formatDateTime(row.original.createdAt);
+          const formatted = dateTime.formatDate(row.original.createdAt, { emptyValue: "" });
+          const datetime = formatted || "-";
           return (
-            <span className={formatted ? "" : "text-muted-foreground"}>{formatted || "-"}</span>
+            <span className={formatted ? "" : "text-muted-foreground"}>
+              {t("team:TEAM_INVITATIONS_SENT_AT", { datetime })}
+            </span>
           );
+        },
+      },
+      {
+        accessorKey: "status",
+        meta: { title: t("team:TEAM_INVITATIONS_COL_STATUS") },
+        header: t("team:TEAM_INVITATIONS_COL_STATUS"),
+        cell: ({ row }) => {
+          const inv = row.original;
+          return <span>{renderInvitationStatus(inv.status)}</span>;
         },
       },
       {
@@ -272,7 +290,7 @@ export function TeamInvitationsView() {
         meta: { title: t("team:TEAM_INVITATIONS_COL_EXPIRES") },
         header: t("team:TEAM_INVITATIONS_COL_EXPIRES"),
         cell: ({ row }) => {
-          const formatted = formatDateTime(row.original.expiresAt);
+          const formatted = dateTime.formatDate(row.original.expiresAt, { emptyValue: "" });
           return (
             <span className={formatted ? "" : "text-muted-foreground"}>
               {formatted || t("team:TEAM_INVITATIONS_NEVER_EXPIRES")}
@@ -317,7 +335,7 @@ export function TeamInvitationsView() {
       },
     ];
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [deleteInvitationMutation, roleNameByCode, t]);
+  }, [dateTime, deleteInvitationMutation, renderInvitationStatus, roleNameByCode, t]);
 
   const inviteLinksColumns = React.useMemo<ColumnDef<TeamInviteLink, unknown>[]>(() => {
     return [
@@ -380,7 +398,7 @@ export function TeamInvitationsView() {
         meta: { title: t("team:TEAM_INVITE_LINKS_COL_CREATED") },
         header: t("team:TEAM_INVITE_LINKS_COL_CREATED"),
         cell: ({ row }) => {
-          const formatted = formatDateTime(row.original.createdAt);
+          const formatted = dateTime.formatDate(row.original.createdAt, { emptyValue: "" });
           return (
             <span className={formatted ? "" : "text-muted-foreground"}>{formatted || "-"}</span>
           );
@@ -391,7 +409,7 @@ export function TeamInvitationsView() {
         meta: { title: t("team:TEAM_INVITE_LINKS_COL_EXPIRES") },
         header: t("team:TEAM_INVITE_LINKS_COL_EXPIRES"),
         cell: ({ row }) => {
-          const formatted = formatDateTime(row.original.expiresAt);
+          const formatted = dateTime.formatDate(row.original.expiresAt, { emptyValue: "" });
           return (
             <span className={formatted ? "" : "text-muted-foreground"}>
               {formatted || t("team:TEAM_INVITATIONS_NEVER_EXPIRES")}
@@ -437,7 +455,7 @@ export function TeamInvitationsView() {
       },
     ];
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [disableLinkMutation, renewLinkMutation, t, workspaceId]);
+  }, [dateTime, disableLinkMutation, renewLinkMutation, t, workspaceId]);
 
   const pendingTable = useDataTable<TeamInvitation, { status: "pending" | "accepted"; mine: true }>(
     {

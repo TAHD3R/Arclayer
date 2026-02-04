@@ -39,6 +39,9 @@ catalogs:
     antd:
       specifier: 6.2.1
       version: 6.2.1
+    dayjs:
+      specifier: ^1.11.19
+      version: 1.11.19
     lodash:
       specifier: ^4.17.21
       version: 4.17.23
@@ -278,6 +281,9 @@ importers:
       '@vitejs/plugin-react-swc':
         specifier: 'catalog:'
         version: 4.2.2(@swc/helpers@0.5.18)(vite@7.3.1(@types/node@24.10.9)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0))
+      dayjs:
+        specifier: 'catalog:'
+        version: 1.11.19
       jsdom:
         specifier: ^26.1.0
         version: 26.1.0
