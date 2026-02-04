@@ -82,7 +82,7 @@ async def test_plugin_admin_alias_route(prepared_db, plugin_root) -> None:
     _ = prepared_db
     settings = get_settings()
 
-    plugin_id = f"demo_alias_{uuid4().hex}"
+    plugin_id = f"demo-alias-{uuid4().hex}"
     slug = _write_demo_plugin_with_admin_router(plugin_root, plugin_id=plugin_id)
 
     app = create_app()

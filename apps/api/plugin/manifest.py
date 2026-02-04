@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Any
 
 import tomllib
-from pydantic import Field
+from pydantic import Field, field_validator
 
 from apps.api.common.schemas import BaseSchema
 
@@ -49,7 +49,12 @@ class ConfigSchema(BaseSchema):
 
 
 class PluginMeta(BaseSchema):
-    id: str
+    id: str = Field(
+        ...,
+        description="Plugin identifier (used for installation directory name and DB primary identifier).",
+        max_length=128,
+        pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$",
+    )
     slug: str = Field(
         ...,
         description="Plugin URL slug used for routing (lowercase, kebab-case).",
@@ -67,6 +72,18 @@ class PluginMeta(BaseSchema):
     repository: str | None = None
     issues: str | None = None
     license: str | None = None
+
+    @field_validator("id", mode="after")
+    @classmethod
+    def _validate_id(cls, value: str) -> str:
+        trimmed = (value or "").strip()
+        # Keep reserved names out of the plugin namespace. These could conflict with
+        # internal directories under PLUGIN__ROOT_DIR (e.g. ".staging", ".backup") or core ids.
+        reserved = {"core", ".staging", ".backup", ".cache"}
+        if trimmed in reserved:
+            # Use a stable marker string so callers can map this to a dedicated API error code.
+            raise ValueError("PLUGIN_ID_RESERVED")
+        return trimmed
 
 
 class PluginManifest(BaseSchema):

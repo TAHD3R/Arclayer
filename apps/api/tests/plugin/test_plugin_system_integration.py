@@ -108,7 +108,7 @@ def _format_deps(deps: list[dict] | None) -> str:
 
 async def test_plugin_manager_enable_disable(tmp_path, monkeypatch, db_schema) -> None:
     _ = db_schema
-    plugin_id = f"demo_{uuid.uuid4().hex}"
+    plugin_id = f"demo-{uuid.uuid4().hex}"
     _write_demo_plugin(tmp_path, plugin_id)
 
     monkeypatch.setenv("PLUGIN__ENABLED", "1")
@@ -141,9 +141,9 @@ async def test_plugin_manager_enable_disable(tmp_path, monkeypatch, db_schema) -
 
 async def test_plugin_manager_dependency_enforcement(tmp_path, monkeypatch, db_schema) -> None:
     _ = db_schema
-    dep_id = f"demo_dep_{uuid.uuid4().hex}"
-    main_id = f"demo_main_{uuid.uuid4().hex}"
-    missing_dep_id = f"demo_missing_{uuid.uuid4().hex}"
+    dep_id = f"demo-dep-{uuid.uuid4().hex}"
+    main_id = f"demo-main-{uuid.uuid4().hex}"
+    missing_dep_id = f"demo-missing-{uuid.uuid4().hex}"
 
     _write_demo_plugin_with_deps(tmp_path, dep_id, deps=None)
     _write_demo_plugin_with_deps(
@@ -153,7 +153,7 @@ async def test_plugin_manager_dependency_enforcement(tmp_path, monkeypatch, db_s
     )
     _write_demo_plugin_with_deps(
         tmp_path,
-        f"demo_broken_{uuid.uuid4().hex}",
+        f"demo-broken-{uuid.uuid4().hex}",
         deps=[{"id": missing_dep_id, "version": ">=0.1.0", "optional": False}],
     )
 
@@ -176,7 +176,7 @@ async def test_plugin_manager_dependency_enforcement(tmp_path, monkeypatch, db_s
         await manager.disable(main_id)
         await manager.disable(dep_id)
 
-        broken_id = next(pid for pid in manager.descriptors if pid.startswith("demo_broken_"))
+        broken_id = next(pid for pid in manager.descriptors if pid.startswith("demo-broken-"))
         with pytest.raises(ValueError):
             await manager.enable(broken_id)
     finally:

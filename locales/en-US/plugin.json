@@ -39,5 +39,14 @@
   "PLUGIN_CONFIG_ITEM_INVALID": "Plugin configuration item is invalid",
   "PLUGIN_CONFIG_TYPE_INVALID": "Plugin configuration type is invalid",
   "PLUGIN_DISABLED": "Plugin is not enabled",
-  "PLUGIN_DEPENDENCY_ERROR": "Plugin dependency error"
+  "PLUGIN_DEPENDENCY_ERROR": "Plugin dependency error",
+
+  "PLUGIN_ID_INVALID": "Plugin id is invalid",
+  "PLUGIN_ID_RESERVED": "Plugin id is reserved",
+  "PLUGIN_MANIFEST_INVALID": "Plugin manifest is invalid",
+  "PLUGIN_PACKAGE_TOO_LARGE": "Plugin package is too large",
+  "PLUGIN_PACKAGE_TOO_MANY_FILES": "Plugin package contains too many files",
+  "PLUGIN_PACKAGE_UNCOMPRESSED_TOO_LARGE": "Plugin package is too large after extraction",
+  "PLUGIN_PACKAGE_FILE_TOO_LARGE": "A file in the plugin package is too large",
+  "PLUGIN_PACKAGE_HAS_SYMLINK": "Plugin package contains unsafe symlink entries"
 }

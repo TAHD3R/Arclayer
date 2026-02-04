@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 from uuid import UUID
 
+from apps.api.common.protocols.tortoise import HasWorkspaceId
 from apps.api.common.services import BaseService
 from apps.api.config import Settings
 from apps.api.modules.sites.portal_extensions.schema import PortalExtensionOut
@@ -47,7 +48,8 @@ class PortalExtensionsService(BaseService):
             return []
 
         site = await self._repo.get_site_by_id(site_id=site_id)
-        workspace_id = UUID(str(site.workspace_id))
+        site_like = cast(HasWorkspaceId, site)
+        workspace_id = UUID(str(site_like.workspace_id))
 
         enabled_plugin_ids = await self._get_enabled_plugin_ids(workspace_id=workspace_id)
 

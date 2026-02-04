@@ -104,7 +104,8 @@ def _collect_plugin_jobs() -> tuple[list[Any], list[CronJob]]:
         # Functions
         try:
             maybe = getattr(inst, "arq_functions", None)
-            declared = maybe() if callable(maybe) else []
+            declared_raw = maybe() if callable(maybe) else []
+            declared = declared_raw if isinstance(declared_raw, list) else []
         except Exception as exc:
             logger.warning("Plugin arq_functions failed", plugin_id=pid, error=str(exc))
             declared = []
@@ -123,7 +124,8 @@ def _collect_plugin_jobs() -> tuple[list[Any], list[CronJob]]:
         # Cron jobs
         try:
             maybe_cron = getattr(inst, "arq_cron_jobs", None)
-            declared_crons = maybe_cron() if callable(maybe_cron) else []
+            declared_crons_raw = maybe_cron() if callable(maybe_cron) else []
+            declared_crons = declared_crons_raw if isinstance(declared_crons_raw, list) else []
         except Exception as exc:
             logger.warning("Plugin arq_cron_jobs failed", plugin_id=pid, error=str(exc))
             declared_crons = []

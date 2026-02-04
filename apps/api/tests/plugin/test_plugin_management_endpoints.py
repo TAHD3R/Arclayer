@@ -87,7 +87,7 @@ def _build_demo_plugin_zip(tmp_path: Path, plugin_id: str) -> Path:
 
 async def test_plugin_management_flow(prepared_db, plugin_root, tmp_path) -> None:
     _ = prepared_db
-    plugin_id = f"demo_{uuid4().hex}"
+    plugin_id = f"demo-{uuid4().hex}"
     zip_path = _build_demo_plugin_zip(tmp_path, plugin_id)
 
     app = create_app()
@@ -126,7 +126,7 @@ async def test_plugin_management_flow(prepared_db, plugin_root, tmp_path) -> Non
             assert response.status_code == 200
             payload = response.json()
             assert payload["data"]["plugin"]["pluginId"] == plugin_id
-            assert payload["data"]["plugin"]["slug"] == plugin_id.replace(".", "-").replace("_", "-").lower()
+            assert payload["data"]["plugin"]["slug"] == plugin_id.lower()
             assert payload["data"]["plugin"]["status"] == "disabled"
 
             response = await client.get("/api/v1/system/plugins-manager")

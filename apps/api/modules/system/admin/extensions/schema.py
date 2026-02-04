@@ -19,3 +19,7 @@ class AdminUIExtensionOut(BaseSchema):
         default=None, description="Workspace permission required to see this extension."
     )
     meta: dict[str, Any] | None = Field(default=None, description="Arbitrary extension payload.")
+
+
+class AdminUIExtensionListOut(BaseSchema):
+    items: list[AdminUIExtensionOut] = Field(default_factory=list, description="Admin UI extensions list.")

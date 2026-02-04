@@ -12,6 +12,10 @@ export type AdminUIExtension = {
   meta?: Record<string, unknown> | null;
 };
 
+type AdminUIExtensionListOut = {
+  items: AdminUIExtension[];
+};
+
 export async function listAdminUIExtensions(
   workspaceId: string,
   opts: { slot?: string | null } = {},
@@ -20,5 +24,8 @@ export async function listAdminUIExtensions(
   const params = new URLSearchParams();
   if (opts.slot) params.set("slot", String(opts.slot));
   const qs = params.toString();
-  return api.get<AdminUIExtension[]>(`/workspaces/${id}/extensions/admin${qs ? `?${qs}` : ""}`);
+  const out = await api.get<AdminUIExtensionListOut>(
+    `/workspaces/${id}/extensions/admin${qs ? `?${qs}` : ""}`,
+  );
+  return Array.isArray(out.items) ? out.items : [];
 }

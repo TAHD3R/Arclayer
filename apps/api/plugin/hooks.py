@@ -30,6 +30,7 @@ class CelestialHooks:
         - provider: str
         - build(settings) -> provider instance
         """
+        raise NotImplementedError
 
     @hookspec
     def rbac_role_resolvers(self) -> list[Any]:
@@ -39,15 +40,18 @@ class CelestialHooks:
         Each resolver must expose:
         - async get_role_codes(user_id, organization_id) -> list[str]
         """
+        raise NotImplementedError
 
     @hookspec
     def arq_functions(self) -> list[Any]:
         """
         Return Arq job functions to be registered in the worker.
         """
+        raise NotImplementedError
 
     @hookspec
     def arq_cron_jobs(self) -> list[Any]:
         """
         Return Arq cron job declarations to be registered in the worker.
         """
+        raise NotImplementedError

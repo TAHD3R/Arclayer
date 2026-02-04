@@ -9,7 +9,7 @@ from apps.api.core.exceptions import ServiceUnavailable
 from apps.api.core.http.response import Response, ResponseModel
 from apps.api.core.i18n import t
 from apps.api.modules.auth.deps import get_current_user_id
-from apps.api.modules.system.admin.extensions.schema import AdminUIExtensionOut
+from apps.api.modules.system.admin.extensions.schema import AdminUIExtensionListOut
 from apps.api.modules.system.admin.extensions.service import AdminExtensionsService
 from apps.api.modules.workspaces.authz.deps import require_workspace_permission
 from apps.api.modules.workspaces.deps import require_workspace_manage_access
@@ -44,13 +44,13 @@ def get_service(
 
 @router.get(
     "",
-    response_model=ResponseModel[list[AdminUIExtensionOut]],
+    response_model=ResponseModel[AdminUIExtensionListOut],
     summary="List admin UI extensions from enabled plugins",
 )
 async def list_admin_extensions(
     slot: str | None = None,
     user_id: UUID = Depends(get_current_user_id),
     service: AdminExtensionsService = Depends(get_service),
-) -> ResponseModel[list[AdminUIExtensionOut]]:
+) -> ResponseModel[AdminUIExtensionListOut]:
     items = await service.list_admin_extensions(user_id=user_id, slot=slot)
-    return Response.success(data=items)
+    return Response.success(data=AdminUIExtensionListOut(items=items))

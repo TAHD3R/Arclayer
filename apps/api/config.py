@@ -821,6 +821,16 @@ class PluginSettings(BaseSettings):
     root_dir: Path = Field(default=Path(__file__).resolve().parents[2] / "plugins")
     auto_migrate: bool = Field(default=True)
     auto_restart: bool = Field(default=True)
+    package_max_files: int = Field(default=2000, description="Max number of files allowed in a plugin zip package.")
+    package_max_total_uncompressed_bytes: int = Field(
+        default=200 * 1024 * 1024,
+        description="Max total uncompressed bytes allowed when extracting a plugin zip package.",
+    )
+    package_max_single_file_bytes: int = Field(
+        default=50 * 1024 * 1024,
+        description="Max uncompressed size for a single file in a plugin zip package.",
+    )
+    package_max_zip_bytes: int = Field(default=50 * 1024 * 1024, description="Max allowed zip upload bytes.")
     watch_enabled: bool = Field(default=False, description="Enable dev-only file watchers (watchfiles).")
     watch_debounce_ms: int = Field(default=300, description="Debounce window for watch events.")
     watch_locales: bool = Field(default=True, description="Watch locale JSON files and clear i18n cache.")

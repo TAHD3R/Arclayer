@@ -132,7 +132,7 @@ class WorkspacePluginCenterService(BaseService):
 
         # Validate payload using the same rules as global plugin config.
         # We store workspace-scoped config as "only overrides"; defaults come from schema.
-        self.plugin_service._validate_config(schema, updates)  # type: ignore[attr-defined]
+        self.plugin_service.validate_config_payload(schema, updates)
         await self.repo.set_config(workspace_id=workspace_id, plugin_id=plugin_id, config=updates)
 
         summary = self.plugin_service.to_summary(record)

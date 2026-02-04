@@ -2,13 +2,15 @@ from __future__ import annotations
 
 import hashlib
 import shutil
+import stat
 import zipfile
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Protocol
 
 import tomllib
 from fastapi import UploadFile
+from pydantic import ValidationError
 
 from apps.api.common.services import BaseService
 from apps.api.common.utils.ids import uuid7
@@ -40,6 +42,14 @@ logger = get_logger(__name__)
 
 def _tp(key: str, default: str) -> str:
     return t("plugin", key, default=default)
+
+
+class _UploadLike(Protocol):
+    filename: str | None
+
+    async def read(self, size: int = -1) -> bytes: ...
+
+    async def close(self) -> None: ...
 
 
 class PluginService(BaseService):
@@ -130,7 +140,7 @@ class PluginService(BaseService):
         zip_path = staging_dir / file.filename
 
         try:
-            sha256, size = await self._save_upload(file, zip_path)
+            sha256, size = await self._save_upload(file, zip_path, max_bytes=self.settings.plugin.package_max_zip_bytes)
             if checksum and checksum.lower() != sha256:
                 raise BadRequest(
                     message=_tp("PLUGIN_CHECKSUM_MISMATCH", "插件包校验失败"),
@@ -140,6 +150,7 @@ class PluginService(BaseService):
             manifest = self._validate_zip(zip_path)
             plugin_id = manifest.plugin.id
             slug = manifest.plugin.slug
+            self._assert_safe_plugin_target_dir(plugin_id)
 
             # Hard fail on slug conflicts.
             if self.manager is not None:
@@ -538,32 +549,75 @@ class PluginService(BaseService):
             return "plugin", trimmed
         return namespace.strip(), key.strip()
 
-    async def _save_upload(self, file: UploadFile, dest: Path) -> tuple[str, int]:
+    async def _save_upload(self, file: _UploadLike, dest: Path, *, max_bytes: int | None = None) -> tuple[str, int]:
         digest = hashlib.sha256()
         size = 0
-        with dest.open("wb") as handle:
-            while True:
-                chunk = await file.read(1024 * 1024)
-                if not chunk:
-                    break
-                handle.write(chunk)
-                digest.update(chunk)
-                size += len(chunk)
-        await file.close()
+        # Always close the UploadFile even if we fail part-way through.
+        try:
+            with dest.open("wb") as handle:
+                while True:
+                    chunk = await file.read(1024 * 1024)
+                    if not chunk:
+                        break
+                    handle.write(chunk)
+                    digest.update(chunk)
+                    size += len(chunk)
+                    if max_bytes is not None and max_bytes > 0 and size > max_bytes:
+                        raise BadRequest(
+                            message=_tp("PLUGIN_PACKAGE_TOO_LARGE", "插件包过大"),
+                            error="PLUGIN_PACKAGE_TOO_LARGE",
+                            details={"max_bytes": int(max_bytes), "size": int(size)},
+                        )
+        finally:
+            await file.close()
         return digest.hexdigest(), size
 
     def _validate_zip(self, zip_path: Path) -> PluginManifest:
-        with zipfile.ZipFile(zip_path) as zf:
-            names = zf.namelist()
-            if "plugin.toml" not in names:
-                raise BadRequest(
-                    message=_tp("PLUGIN_TOML_MISSING", "插件包缺少 plugin.toml"),
-                    error="PLUGIN_TOML_MISSING",
-                )
+        try:
+            with zipfile.ZipFile(zip_path) as zf:
+                names = zf.namelist()
+                if "plugin.toml" not in names:
+                    raise BadRequest(
+                        message=_tp("PLUGIN_TOML_MISSING", "插件包缺少 plugin.toml"),
+                        error="PLUGIN_TOML_MISSING",
+                    )
 
-            manifest = self._load_manifest_from_zip(zf)
-            self._validate_manifest(manifest)
-            return manifest
+                try:
+                    manifest = self._load_manifest_from_zip(zf)
+                    self._validate_manifest(manifest)
+                    return manifest
+                except BadRequest:
+                    raise
+                except ValidationError as exc:
+                    error = "PLUGIN_MANIFEST_INVALID"
+                    default = "插件清单不合法"
+                    # Provide stable error codes for common manifest failures.
+                    for err in exc.errors():
+                        loc = tuple(err.get("loc") or ())
+                        msg = str(err.get("msg") or "")
+                        if loc[:2] == ("plugin", "id"):
+                            if "PLUGIN_ID_RESERVED" in msg:
+                                error = "PLUGIN_ID_RESERVED"
+                                default = "插件 ID 被保留"
+                            else:
+                                error = "PLUGIN_ID_INVALID"
+                                default = "插件 ID 不合法"
+                            break
+                    raise BadRequest(
+                        message=_tp(error, default), error=error, details={"errors": exc.errors()}
+                    ) from exc
+                except (tomllib.TOMLDecodeError, UnicodeDecodeError, OSError) as exc:
+                    raise BadRequest(
+                        message=_tp("PLUGIN_MANIFEST_INVALID", "插件清单不合法"),
+                        error="PLUGIN_MANIFEST_INVALID",
+                        details=str(exc),
+                    ) from exc
+        except zipfile.BadZipFile as exc:
+            raise BadRequest(
+                message=_tp("PLUGIN_PACKAGE_INVALID", "插件包必须为 zip 格式"),
+                error="PLUGIN_PACKAGE_INVALID",
+                details=str(exc),
+            ) from exc
 
     def _load_manifest_from_zip(self, zf: zipfile.ZipFile) -> PluginManifest:
         raw = zf.read("plugin.toml")
@@ -585,26 +639,107 @@ class PluginService(BaseService):
         return entry_root
 
     def _safe_extract(self, zf: zipfile.ZipFile, target: Path) -> None:
+        max_files = int(getattr(self.settings.plugin, "package_max_files", 0) or 0)
+        max_total = int(getattr(self.settings.plugin, "package_max_total_uncompressed_bytes", 0) or 0)
+        max_single = int(getattr(self.settings.plugin, "package_max_single_file_bytes", 0) or 0)
+
+        target_resolved = target.resolve()
+        total_uncompressed = 0
+        file_count = 0
+        total_written = 0
+
+        def _is_relative_to(path: Path, base: Path) -> bool:
+            try:
+                return path.is_relative_to(base)
+            except AttributeError:
+                return str(path).startswith(str(base))
+
+        def _is_symlink(info: zipfile.ZipInfo) -> bool:
+            # ZipInfo.external_attr carries the unix mode in the upper 16 bits when present.
+            mode = (info.external_attr >> 16) & 0o170000
+            return mode == stat.S_IFLNK
+
         for member in zf.infolist():
             name = member.filename
+            if not name:
+                continue
             if name.startswith("/") or name.startswith("\\"):
                 raise BadRequest(
                     message=_tp("PLUGIN_PACKAGE_INVALID", "插件包路径非法"),
                     error="PLUGIN_PACKAGE_INVALID",
                 )
+
             normalized = Path(name)
             if ".." in normalized.parts:
                 raise BadRequest(
                     message=_tp("PLUGIN_PACKAGE_INVALID", "插件包路径非法"),
                     error="PLUGIN_PACKAGE_INVALID",
                 )
+
             resolved = (target / normalized).resolve()
-            if not str(resolved).startswith(str(target.resolve())):
+            if not _is_relative_to(resolved, target_resolved):
                 raise BadRequest(
                     message=_tp("PLUGIN_PACKAGE_INVALID", "插件包路径非法"),
                     error="PLUGIN_PACKAGE_INVALID",
                 )
-        zf.extractall(target)
+
+            if member.is_dir():
+                resolved.mkdir(parents=True, exist_ok=True)
+                continue
+
+            if _is_symlink(member):
+                raise BadRequest(
+                    message=_tp("PLUGIN_PACKAGE_HAS_SYMLINK", "插件包包含不安全的符号链接"),
+                    error="PLUGIN_PACKAGE_HAS_SYMLINK",
+                )
+
+            file_count += 1
+            if max_files and file_count > max_files:
+                raise BadRequest(
+                    message=_tp("PLUGIN_PACKAGE_TOO_MANY_FILES", "插件包文件过多"),
+                    error="PLUGIN_PACKAGE_TOO_MANY_FILES",
+                    details={"max_files": max_files, "files": file_count},
+                )
+
+            file_size = int(getattr(member, "file_size", 0) or 0)
+            if max_single and file_size > max_single:
+                raise BadRequest(
+                    message=_tp("PLUGIN_PACKAGE_FILE_TOO_LARGE", "插件包文件过大"),
+                    error="PLUGIN_PACKAGE_FILE_TOO_LARGE",
+                    details={"max_bytes": max_single, "size": file_size, "path": name},
+                )
+
+            total_uncompressed += file_size
+            if max_total and total_uncompressed > max_total:
+                raise BadRequest(
+                    message=_tp("PLUGIN_PACKAGE_UNCOMPRESSED_TOO_LARGE", "插件包解压后体积过大"),
+                    error="PLUGIN_PACKAGE_UNCOMPRESSED_TOO_LARGE",
+                    details={"max_bytes": max_total, "size": total_uncompressed},
+                )
+
+            resolved.parent.mkdir(parents=True, exist_ok=True)
+            written = 0
+            with zf.open(member, "r") as src, resolved.open("wb") as dst:
+                while True:
+                    chunk = src.read(1024 * 1024)
+                    if not chunk:
+                        break
+                    dst.write(chunk)
+                    written += len(chunk)
+                    total_written += len(chunk)
+                    # Enforce limits on actual written bytes too (defense in depth against malformed zip metadata).
+                    if max_single and written > max_single:
+                        raise BadRequest(
+                            message=_tp("PLUGIN_PACKAGE_FILE_TOO_LARGE", "插件包文件过大"),
+                            error="PLUGIN_PACKAGE_FILE_TOO_LARGE",
+                            details={"max_bytes": max_single, "size": written, "path": name},
+                        )
+                    if max_total and total_written > max_total:
+                        raise BadRequest(
+                            message=_tp("PLUGIN_PACKAGE_UNCOMPRESSED_TOO_LARGE", "插件包解压后体积过大"),
+                            error="PLUGIN_PACKAGE_UNCOMPRESSED_TOO_LARGE",
+                            details={"max_bytes": max_total, "size": total_written},
+                        )
 
     def _backup_plugin_dir(self, plugin_id: str, target_dir: Path) -> Path:
         timestamp = datetime.now(UTC).strftime("%Y%m%d%H%M%S")
@@ -670,6 +805,38 @@ class PluginService(BaseService):
         if self.manager is None:
             return
         await self.manager.request_restart(plugin_id, reason=reason)
+
+    def validate_config_payload(self, schema: ConfigSchema, config: dict[str, Any]) -> None:
+        """
+        Validate a config payload against a plugin config schema.
+
+        Notes:
+        - This is a public API for other modules (e.g. workspace plugin center).
+        - It preserves the same validation rules as global plugin config updates.
+        """
+
+        self._validate_config(schema, config)
+
+    def _assert_safe_plugin_target_dir(self, plugin_id: str) -> None:
+        """
+        Second safety gate: ensure the plugin installation target directory is inside PLUGIN__ROOT_DIR.
+        """
+
+        root = self.root_dir.resolve()
+        target = (self.root_dir / str(plugin_id)).resolve()
+        try:
+            if not target.is_relative_to(root):
+                raise BadRequest(
+                    message=_tp("PLUGIN_ID_INVALID", "插件 ID 不合法"),
+                    error="PLUGIN_ID_INVALID",
+                )
+        except AttributeError:
+            # Python < 3.9 compatibility (should not happen in this repo, but keep defensive).
+            if not str(target).startswith(str(root)):
+                raise BadRequest(
+                    message=_tp("PLUGIN_ID_INVALID", "插件 ID 不合法"),
+                    error="PLUGIN_ID_INVALID",
+                )
 
 
 def _flatten_patch_paths(patch: dict[str, Any], *, _prefix: str = "") -> list[str]:

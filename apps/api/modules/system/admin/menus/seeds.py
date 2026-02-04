@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
+from apps.api.common.protocols.tortoise import AdminMenuItemMutableFields
 from apps.api.common.services import BaseService
 from apps.api.config import Settings
 from apps.api.core.logging import get_logger
@@ -113,13 +114,15 @@ class AdminMenuSeedService(BaseService):
             if not update_existing and owner == owner_plugin_id:
                 # Do not overwrite, but allow restore if requested.
                 if restore_deleted and existing_item.deleted_at is not None:
-                    existing_item.deleted_at = None
+                    item_like = cast(AdminMenuItemMutableFields, existing_item)
+                    item_like.deleted_at = None
                     existing_item.is_active = bool(seed.is_active)
                     await existing_item.save(update_fields=["deleted_at", "is_active"])
                 continue
 
             # Upsert allowed (core/system seeds).
             item_type = _normalize_type(seed.type)
+            item_like = cast(AdminMenuItemMutableFields, existing_item)
             next_meta: dict[str, Any] = {}
             if isinstance(meta, dict):
                 next_meta.update(meta)
@@ -129,17 +132,17 @@ class AdminMenuSeedService(BaseService):
 
             existing_item.parent_id = parent_id
             existing_item.title = seed.title
-            existing_item.title_i18n = seed.title_i18n
-            existing_item.icon = seed.icon
+            item_like.title_i18n = seed.title_i18n
+            item_like.icon = seed.icon
             existing_item.type = item_type
-            existing_item.path = seed.path if item_type == AdminMenuItemType.ITEM else None
-            existing_item.name = seed.name if item_type == AdminMenuItemType.ITEM else None
-            existing_item.component_key = seed.component_key
-            existing_item.redirect = seed.redirect
+            item_like.path = seed.path if item_type == AdminMenuItemType.ITEM else None
+            item_like.name = seed.name if item_type == AdminMenuItemType.ITEM else None
+            item_like.component_key = seed.component_key
+            item_like.redirect = seed.redirect
             existing_item.sort = int(seed.sort or 0)
             existing_item.is_active = bool(seed.is_active)
-            existing_item.permission_code = seed.permission_code
+            item_like.permission_code = seed.permission_code
             existing_item.meta = next_meta or None
             if restore_deleted:
-                existing_item.deleted_at = None
+                item_like.deleted_at = None
             await existing_item.save()
