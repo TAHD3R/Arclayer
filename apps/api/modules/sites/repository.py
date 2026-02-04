@@ -1024,7 +1024,7 @@ class SitesRepository(BaseRepository):
                 raise NotFound("Page not found", error="PAGE_NOT_FOUND")
 
             # Idempotent: if already unpublished, keep it as is.
-            page.published_rev = None
+            cast(EntryRecordMutableFields, page).published_rev = None
             await page.save(update_fields=["published_rev"], using_db=conn)
 
         return normalize_path(str(page.path)), now_ms

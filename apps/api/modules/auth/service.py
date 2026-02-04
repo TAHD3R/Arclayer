@@ -191,7 +191,7 @@ class AuthService(BaseService):
             from apps.api.plugin.registry import registry as plugin_registry
 
             orgm = await OrgMembership.get_or_none(user_id=user_id)
-            org_id = UUID(str(orgm.organization_id)) if orgm is not None else None
+            org_id = UUID(str(cast(HasOrganizationId, orgm).organization_id)) if orgm is not None else None
 
             await plugin_registry.event_bus.publish(
                 Event(
@@ -388,7 +388,7 @@ class AuthService(BaseService):
             from apps.api.plugin.registry import registry as plugin_registry
 
             orgm = await OrgMembership.get_or_none(user_id=user_id)
-            org_id = UUID(str(orgm.organization_id)) if orgm is not None else None
+            org_id = UUID(str(cast(HasOrganizationId, orgm).organization_id)) if orgm is not None else None
 
             await plugin_registry.event_bus.publish(
                 Event(
@@ -478,7 +478,7 @@ class AuthService(BaseService):
             from apps.api.plugin.registry import registry as plugin_registry
 
             orgm = await OrgMembership.get_or_none(user_id=user_id)
-            org_id = UUID(str(orgm.organization_id)) if orgm is not None else None
+            org_id = UUID(str(cast(HasOrganizationId, orgm).organization_id)) if orgm is not None else None
 
             await plugin_registry.event_bus.publish(
                 Event(

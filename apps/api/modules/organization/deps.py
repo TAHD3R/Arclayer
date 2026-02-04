@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+from typing import cast
 from uuid import UUID
 
 from fastapi import Depends
 from structlog.contextvars import bind_contextvars
 
+from apps.api.common.protocols.tortoise import HasOrganizationId
 from apps.api.core.exceptions import Forbidden
 from apps.api.core.i18n import t
 from apps.api.modules.auth.deps import get_current_user_id
@@ -24,7 +26,7 @@ async def get_current_org_membership(
         )
     # Bind org context for downstream logs and audit events in this request.
     try:
-        bind_contextvars(organization_id=str(orgm.organization_id))
+        bind_contextvars(organization_id=str(cast(HasOrganizationId, orgm).organization_id))
     except Exception:
         pass
     return orgm

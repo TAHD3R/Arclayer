@@ -81,14 +81,14 @@ async def get_workspace_site(
     service = WorkspaceSiteService(settings)
     site = await service.get_or_create_site_for_workspace(workspace_id=ctx.workspace_id, actor_user_id=user_id)
     out = WorkspaceSiteOut(
-        site_id=str(site.id),
-        workspace_id=str(ctx.workspace_id),
+        siteId=str(site.id),
+        workspaceId=str(ctx.workspace_id),
         slug=str(site.slug),
         name=str(site.name),
-        default_locale=str(site.default_locale),
-        fallback_locale=str(site.fallback_locale),
-        primary_host=(str(site.primary_host) if site.primary_host else None),
-        is_active=bool(site.is_active),
+        defaultLocale=str(site.default_locale),
+        fallbackLocale=str(site.fallback_locale),
+        primaryHost=(str(site.primary_host) if site.primary_host else None),
+        isActive=bool(site.is_active),
     )
     return Response.success(data=out)
 

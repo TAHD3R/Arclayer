@@ -9,10 +9,10 @@ from apps.api.config import get_settings
 from apps.api.core.database.orm import verify_db_ready
 from apps.api.core.registry import create_app
 from apps.api.modules.auth.deps import get_current_user, get_current_user_id
+from apps.api.modules.auth.repository import UserRepository
 from apps.api.modules.organization.models.org_membership import OrgMembership, OrgRole
 from apps.api.modules.organization.models.user import User
 from apps.api.modules.organization.repository import OrganizationRepository
-from apps.api.modules.organization.user_repository import UserRepository
 from apps.api.modules.workspaces.models.workspace import Workspace
 
 pytestmark = pytest.mark.integration

@@ -64,7 +64,7 @@ def sanitize_properties(
     if value is None:
         return None
 
-    if isinstance(value, bool | int | float):
+    if isinstance(value, (bool, int, float)):
         return value
 
     if isinstance(value, str):
@@ -72,9 +72,9 @@ def sanitize_properties(
 
     if isinstance(value, list):
         # Keep list length bounded to avoid large payloads.
-        out: list[Any] = []
+        out_list: list[Any] = []
         for item in value[:max_keys]:
-            out.append(
+            out_list.append(
                 sanitize_properties(
                     item,
                     max_keys=max_keys,
@@ -82,27 +82,27 @@ def sanitize_properties(
                     max_depth=max_depth - 1,
                 )
             )
-        return out
+        return out_list
 
     if isinstance(value, dict):
-        out: dict[str, Any] = {}
+        out_dict: dict[str, Any] = {}
         count = 0
         for k, v in value.items():
             if count >= max_keys:
-                out["__truncated__"] = True
+                out_dict["__truncated__"] = True
                 break
             if not isinstance(k, str):
                 continue
             if _is_sensitive_key(k):
                 continue
-            out[k] = sanitize_properties(
+            out_dict[k] = sanitize_properties(
                 v,
                 max_keys=max_keys,
                 max_string_length=max_string_length,
                 max_depth=max_depth - 1,
             )
             count += 1
-        return out
+        return out_dict
 
     # Fallback: only keep a safe string representation.
     return _truncate_string(str(value), max_len=max_string_length)
