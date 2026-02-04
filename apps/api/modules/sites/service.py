@@ -50,6 +50,7 @@ from apps.api.modules.sites.schema import (
     SitePageRollbackIn,
     SitePageRollbackOut,
     SitePageTreeNodeOut,
+    SitePageUnpublishOut,
     SitePageUpdateIn,
     SitePresenceHeartbeatIn,
     SitePresenceHeartbeatOut,
@@ -279,13 +280,11 @@ class SiteService(BaseService):
                         ext = (base_asset.ext or "css").lstrip(".").lower() or "css"
                         base_css_url = f"/assets/{base_asset.id}/{slug}.{ext}"
 
-        # Do not expose theme config in public runtime by default. It can contain
-        # non-public values (future: tokens, integration keys, etc.).
-        config_out = (
-            (theme_config.value if theme_config and isinstance(theme_config.value, dict) else None)
-            if mode == "preview"
-            else None
-        )
+        # Theme config v0:
+        # - Stored under site settings namespace `theme.config`.
+        # - Treated as public-safe configuration that affects SSR output (e.g. list limits).
+        # - Secrets must NOT be stored here; use secret-capable settings namespaces instead.
+        config_out = theme_config.value if theme_config and isinstance(theme_config.value, dict) else None
 
         return SiteRuntimeOut(
             site_id=site_id,
@@ -457,6 +456,26 @@ class SiteService(BaseService):
             visibility=_as_visibility(str(updated.visibility)),
             draft_revision=int(updated.draft_rev or 0),
             published_revision=(int(updated.published_rev) if updated.published_rev is not None else None),
+            children=[],
+        )
+
+    async def get_page(self, *, site_id: str, page_id: UUID) -> SitePageTreeNodeOut:
+        if not self.settings.database.enabled:
+            raise Conflict("Site pages require database storage", error="PAGES_DB_REQUIRED")
+
+        await self._repo.get_site_by_id(site_id=site_id)
+        page = await self._repo.get_page_by_id(site_id=site_id, page_id=page_id)
+        if page is None:
+            raise NotFound("Page not found", error="PAGE_NOT_FOUND")
+
+        return SitePageTreeNodeOut(
+            id=UUID(str(page.id)),
+            path=str(page.path),
+            parent_id=_get_parent_id(page),
+            sort_order=int(page.sort_order or 0),
+            visibility=_as_visibility(str(page.visibility)),
+            draft_revision=int(page.draft_rev or 0),
+            published_revision=(int(page.published_rev) if page.published_rev is not None else None),
             children=[],
         )
 
@@ -1423,6 +1442,37 @@ class SiteService(BaseService):
             path=path,
             revision=revision,
             published_at_ms=published_at_ms or now_ms,
+        )
+
+    async def unpublish_page(self, *, site_id: str, page_id: UUID) -> SitePageUnpublishOut:
+        """
+        Unpublish a page (published -> draft-only).
+
+        Notes:
+        - Idempotent: calling unpublish on an already-unpublished page is safe.
+        - Does not modify draft pointer or create a new revision.
+        """
+
+        now_ms = int(time.time() * 1000)
+
+        if not self.settings.database.enabled:
+            raise Conflict("Publishing requires database storage", error="PUBLISH_DB_REQUIRED")
+
+        await self._repo.get_site_by_id(site_id=site_id)
+        path, unpublished_at_ms = await self._repo.unpublish_page_by_id(site_id=site_id, page_id=page_id)
+
+        self.logger.info(
+            "Unpublished page",
+            site_id=str(site_id),
+            page_id=str(page_id),
+            path=str(path),
+        )
+
+        return SitePageUnpublishOut(
+            site_id=site_id,
+            page_id=str(page_id),
+            path=path,
+            unpublished_at_ms=unpublished_at_ms or now_ms,
         )
 
     async def heartbeat_presence(

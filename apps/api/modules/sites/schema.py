@@ -317,6 +317,15 @@ class SitePagePublishOut(BaseSchema):
     published_at_ms: int = Field(..., description="Published timestamp in milliseconds (UTC).")
 
 
+class SitePageUnpublishOut(BaseSchema):
+    model_config = ConfigDict(extra="forbid")
+
+    site_id: str = Field(..., description="Site id.")
+    page_id: str = Field(..., description="Page id.")
+    path: str = Field(..., description="Page pathname (stable public URL).")
+    unpublished_at_ms: int = Field(..., description="Unpublished timestamp in milliseconds (UTC).")
+
+
 class SitePresenceHeartbeatIn(BaseSchema):
     model_config = ConfigDict(extra="forbid")
 

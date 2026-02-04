@@ -1,0 +1,9 @@
+{
+  "THEME_CONFIG_TITLE": "Theme configuration",
+  "THEME_CONFIG_DESC": "Edit site-scoped theme configuration (theme.config).",
+  "THEME_CONFIG_FIELD_LABEL": "theme.config (JSON)",
+  "THEME_CONFIG_FIELD_HELP": "This JSON is stored under site settings namespace theme.config. Keep it small and deterministic.",
+  "THEME_CONFIG_ACTION_SAVE": "Save",
+  "THEME_CONFIG_ACTION_RELOAD": "Reload",
+  "THEME_CONFIG_JSON_INVALID": "Invalid JSON"
+}

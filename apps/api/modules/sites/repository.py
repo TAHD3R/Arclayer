@@ -1009,6 +1009,26 @@ class SitesRepository(BaseRepository):
 
         return normalize_path(str(page.path)), target_rev, now_ms
 
+    async def unpublish_page_by_id(self, *, site_id: str, page_id: UUID) -> tuple[str, int]:
+        """
+        Unpublish a page (published -> draft-only).
+
+        Returns: (path, unpublished_at_ms).
+        """
+
+        now_ms = int(time.time() * 1000)
+
+        async with in_transaction() as conn:
+            page = await SitePageRecord.filter(site_id=site_id, id=page_id).using_db(conn).select_for_update().first()
+            if page is None:
+                raise NotFound("Page not found", error="PAGE_NOT_FOUND")
+
+            # Idempotent: if already unpublished, keep it as is.
+            page.published_rev = None
+            await page.save(update_fields=["published_rev"], using_db=conn)
+
+        return normalize_path(str(page.path)), now_ms
+
     async def resolve_entry_by_slug(
         self,
         *,

@@ -13,6 +13,8 @@ import zhInvite from "@locales/zh-CN/invite.json";
 import zhTeam from "@locales/zh-CN/team.json";
 import zhDebug from "@locales/zh-CN/debug.json";
 import zhActivity from "@locales/zh-CN/activity.json";
+import zhContentPages from "@locales/zh-CN/content_pages.json";
+import zhAppearance from "@locales/zh-CN/appearance.json";
 
 import enCommon from "@locales/en-US/common.json";
 import enNav from "@locales/en-US/nav.json";
@@ -29,6 +31,8 @@ import enInvite from "@locales/en-US/invite.json";
 import enTeam from "@locales/en-US/team.json";
 import enDebug from "@locales/en-US/debug.json";
 import enActivity from "@locales/en-US/activity.json";
+import enContentPages from "@locales/en-US/content_pages.json";
+import enAppearance from "@locales/en-US/appearance.json";
 
 export const I18N_NAMESPACES = [
   "common",
@@ -38,6 +42,8 @@ export const I18N_NAMESPACES = [
   "team",
   "debug",
   "activity",
+  "content_pages",
+  "appearance",
   "settings",
   "account",
   "notifications",
@@ -57,6 +63,8 @@ export const i18nResources = {
     team: zhTeam,
     debug: zhDebug,
     activity: zhActivity,
+    content_pages: zhContentPages,
+    appearance: zhAppearance,
     settings: zhSettings,
     account: zhAccount,
     notifications: zhNotifications,
@@ -74,6 +82,8 @@ export const i18nResources = {
     team: enTeam,
     debug: enDebug,
     activity: enActivity,
+    content_pages: enContentPages,
+    appearance: enAppearance,
     settings: enSettings,
     account: enAccount,
     notifications: enNotifications,

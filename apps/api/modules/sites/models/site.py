@@ -36,4 +36,6 @@ class SiteRecord(BaseModel):
     class Meta(BaseModel.Meta):
         table = "sites"
         abstract = False
-        unique_together = (("workspace_id", "slug"),)
+        # Enforce 1:1 between workspace and site (single-site workspace model).
+        # Slug is kept for forward compatibility, but is not part of the uniqueness contract.
+        unique_together = (("workspace_id",),)

@@ -1,0 +1,9 @@
+{
+  "THEME_CONFIG_TITLE": "主题配置",
+  "THEME_CONFIG_DESC": "编辑站点级主题配置（theme.config）。",
+  "THEME_CONFIG_FIELD_LABEL": "theme.config（JSON）",
+  "THEME_CONFIG_FIELD_HELP": "该 JSON 将存储在站点设置命名空间 theme.config 中，请保持结构稳定且体积尽量小。",
+  "THEME_CONFIG_ACTION_SAVE": "保存",
+  "THEME_CONFIG_ACTION_RELOAD": "刷新",
+  "THEME_CONFIG_JSON_INVALID": "JSON 格式不正确"
+}

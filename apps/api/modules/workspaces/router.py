@@ -19,6 +19,7 @@ from apps.api.modules.workspaces.rbac.router import router as workspace_rbac_rou
 from apps.api.modules.workspaces.schema import MyWorkspaceListResult, WorkspaceDetailOut, WorkspaceUpdateRequest
 from apps.api.modules.workspaces.service import WorkspaceService
 from apps.api.modules.workspaces.settings.router import router as workspace_settings_router
+from apps.api.modules.workspaces.site.router import router as workspace_site_router
 from apps.api.modules.workspaces.team.router import router as workspace_team_router
 from apps.api.modules.workspaces.themes.router import router as workspace_themes_router
 
@@ -34,6 +35,7 @@ router.include_router(workspace_usages_router)
 router.include_router(workspace_notifications_router)
 router.include_router(workspace_menus_router)
 router.include_router(workspace_themes_router)
+router.include_router(workspace_site_router)
 router.include_router(workspace_activity_router)
 
 
