@@ -56,6 +56,7 @@ export type ListActivityParams = {
   event_name?: string;
   workspace_id?: string;
   actor_user_id?: string;
+  subject_user_id?: string;
   entity_type?: string;
   entity_id?: string;
 };
@@ -89,6 +90,7 @@ export async function listSystemActivity(
     event_name: params.event_name,
     workspace_id: params.workspace_id,
     actor_user_id: params.actor_user_id,
+    subject_user_id: params.subject_user_id,
     entity_type: params.entity_type,
     entity_id: params.entity_id,
   });
@@ -110,6 +112,7 @@ export async function listWorkspaceActivity(
     to: params.to,
     event_name: params.event_name,
     actor_user_id: params.actor_user_id,
+    subject_user_id: params.subject_user_id,
     entity_type: params.entity_type,
     entity_id: params.entity_id,
   });

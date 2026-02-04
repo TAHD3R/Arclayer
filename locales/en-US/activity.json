@@ -6,6 +6,7 @@
   "ACTIVITY_FILTER_EVENT_NAME_PLACEHOLDER": "Type an event name (e.g. auth.login.succeeded)",
   "ACTIVITY_FILTER_WORKSPACE": "Select workspace",
   "ACTIVITY_FILTER_ACTOR": "Select actor",
+  "ACTIVITY_FILTER_SUBJECT": "Select subject",
   "ACTIVITY_FILTER_ACTOR_NEED_WORKSPACE": "Select a workspace first",
 
   "ACTIVITY_FIELD_OCCURRED_AT": "Occurred at",
@@ -29,6 +30,8 @@
   "ACTIVITY_FIELD_SUBJECT": "Subject",
   "ACTIVITY_FIELD_PROPERTIES": "Properties"
   ,
+  "ACTIVITY_DAY_TODAY": "Today",
+  "ACTIVITY_DAY_YESTERDAY": "Yesterday",
   "ACTIVITY_EVENT_AUTH_LOGIN_SUCCEEDED_TITLE": "Login succeeded",
   "ACTIVITY_EVENT_AUTH_LOGIN_SUCCEEDED_DESC": "The user signed in successfully.",
   "ACTIVITY_EVENT_AUTH_PASSWORD_RESET_REQUESTED_TITLE": "Password reset requested",

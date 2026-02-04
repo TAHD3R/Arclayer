@@ -1,5 +1,5 @@
-import { AutoComplete, DatePicker, Input as AntInput, Pagination } from "antd";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { AutoComplete, DatePicker, Input as AntInput } from "antd";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { Search } from "lucide-react";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
@@ -21,6 +21,7 @@ type ActivityFilters = {
   eventName?: string;
   workspaceId?: string;
   actorUserId?: string;
+  subjectUserId?: string;
 };
 
 function stableStringify(value: unknown): string {
@@ -29,6 +30,22 @@ function stableStringify(value: unknown): string {
   } catch {
     return String(value);
   }
+}
+
+function normalizeFilters(filters: ActivityFilters): ActivityFilters {
+  const trimOrUndef = (v: string | undefined) => {
+    const s = String(v || "").trim();
+    return s ? s : undefined;
+  };
+
+  return {
+    occurredFrom: trimOrUndef(filters.occurredFrom),
+    occurredTo: trimOrUndef(filters.occurredTo),
+    eventName: trimOrUndef(filters.eventName),
+    workspaceId: trimOrUndef(filters.workspaceId),
+    actorUserId: trimOrUndef(filters.actorUserId),
+    subjectUserId: trimOrUndef(filters.subjectUserId),
+  };
 }
 
 export function OrganizationActivityPage() {
@@ -55,15 +72,20 @@ export function OrganizationActivityPage() {
     undefined,
   );
   const [actorOption, setActorOption] = React.useState<DebounceSelectOption | undefined>(undefined);
+  const [subjectOption, setSubjectOption] = React.useState<DebounceSelectOption | undefined>(
+    undefined,
+  );
 
   const selectedWorkspaceId = (filters.workspaceId || "").trim() || null;
 
-  const [page, setPage] = React.useState<number>(1);
-  const [size, setSize] = React.useState<number>(20);
+  const pageSize = 20;
+  const scrollRef = React.useRef<HTMLDivElement | null>(null);
+  const sentinelRef = React.useRef<HTMLDivElement | null>(null);
 
-  const filtersKey = stableStringify(filters);
+  const normalizedFilters = React.useMemo(() => normalizeFilters(filters), [filters]);
+  const filtersKey = stableStringify(normalizedFilters);
   React.useEffect(() => {
-    setPage(1);
+    scrollRef.current?.scrollTo({ top: 0 });
   }, [filtersKey]);
 
   const workspacesQuery = useQuery({
@@ -83,25 +105,57 @@ export function OrganizationActivityPage() {
     return map;
   }, [workspaceItems]);
 
-  const listQuery = useQuery({
-    queryKey: ["activity", "org", page, size, filters] as const,
-    placeholderData: keepPreviousData,
+  const listQuery = useInfiniteQuery({
+    queryKey: ["activity", "org", pageSize, filtersKey] as const,
     retry: false,
     meta: { silent: true },
-    queryFn: async () =>
+    initialPageParam: 1,
+    queryFn: async ({ pageParam }) =>
       activityApi.listSystemActivity({
-        page,
-        size,
-        from: filters.occurredFrom,
-        to: filters.occurredTo,
-        event_name: filters.eventName,
-        workspace_id: filters.workspaceId,
-        actor_user_id: filters.actorUserId,
+        page: Number(pageParam) || 1,
+        size: pageSize,
+        from: normalizedFilters.occurredFrom,
+        to: normalizedFilters.occurredTo,
+        event_name: normalizedFilters.eventName,
+        workspace_id: normalizedFilters.workspaceId,
+        actor_user_id: normalizedFilters.actorUserId,
+        subject_user_id: normalizedFilters.subjectUserId,
       }),
+    getNextPageParam: (lastPage) => lastPage.next ?? undefined,
   });
 
-  const items = listQuery.data?.items ?? [];
+  const items = React.useMemo(() => {
+    const pages = listQuery.data?.pages ?? [];
+    return pages.flatMap((p) => p.items ?? []);
+  }, [listQuery.data?.pages]);
+
   const empty = items.length === 0;
+
+  React.useEffect(() => {
+    const root = scrollRef.current;
+    const target = sentinelRef.current;
+    if (!root || !target) return;
+    if (!listQuery.hasNextPage) return;
+    if (listQuery.isFetchingNextPage) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (!entry?.isIntersecting) return;
+        if (!listQuery.hasNextPage) return;
+        if (listQuery.isFetchingNextPage) return;
+        void listQuery.fetchNextPage();
+      },
+      {
+        root,
+        rootMargin: "200px",
+        threshold: 0,
+      },
+    );
+
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [listQuery.fetchNextPage, listQuery.hasNextPage, listQuery.isFetchingNextPage, items.length]);
 
   const [selected, setSelected] = React.useState<activityApi.ActivityEvent | null>(null);
 
@@ -174,6 +228,7 @@ export function OrganizationActivityPage() {
               style={{ width: 320, maxWidth: "100%" }}
             >
               <AntInput
+                size="large"
                 allowClear
                 onFocus={() => setEventNameOpen(true)}
                 prefix={<Search className="size-4 text-muted-foreground" />}
@@ -220,8 +275,10 @@ export function OrganizationActivityPage() {
                   workspaceId: v ? String(v) : undefined,
                   // workspace 变化时，操作者筛选需要重置（避免跨 workspace 误筛）
                   actorUserId: undefined,
+                  subjectUserId: undefined,
                 }));
                 setActorOption(undefined);
+                setSubjectOption(undefined);
               }}
             />
 
@@ -267,6 +324,48 @@ export function OrganizationActivityPage() {
                 setFilters((prev) => ({ ...prev, actorUserId: v ? String(v) : undefined }));
               }}
             />
+
+            <DebounceSelect
+              labelInValue
+              value={
+                filters.subjectUserId
+                  ? (subjectOption ?? {
+                      value: filters.subjectUserId,
+                      label: filters.subjectUserId,
+                    })
+                  : undefined
+              }
+              allowClear
+              disabled={!selectedWorkspaceId}
+              placeholder={t("activity:ACTIVITY_FILTER_SUBJECT")}
+              style={{ width: 260, maxWidth: "100%" }}
+              fetchOptions={async (search) => {
+                if (!selectedWorkspaceId) return [];
+                const pageData = await listTeamUserOptions(selectedWorkspaceId, {
+                  q: search,
+                  page: 1,
+                  size: 20,
+                });
+                return (pageData.items ?? []).map((u) => ({
+                  value: u.value,
+                  label: u.label,
+                  avatarUrl: u.avatarUrl ?? null,
+                }));
+              }}
+              onChange={(value) => {
+                const v = (value as any)?.value ?? null;
+                const label = (value as any)?.label ?? null;
+                if (v) {
+                  setSubjectOption({
+                    value: String(v),
+                    label: String(label || v),
+                  });
+                } else {
+                  setSubjectOption(undefined);
+                }
+                setFilters((prev) => ({ ...prev, subjectUserId: v ? String(v) : undefined }));
+              }}
+            />
           </div>
 
           {listQuery.isFetching && !listQuery.isLoading ? <LoaderOne /> : null}
@@ -286,25 +385,17 @@ export function OrganizationActivityPage() {
         emptyDescription={t("activity:ACTIVITY_EMPTY_DESC")}
         className="flex-1 min-h-0"
       >
-        <div className="rounded-md border p-4 overflow-auto flex-1 min-h-0">
-          <ActivityTimeline
-            items={items}
-            onViewDetail={(e) => setSelected(e)}
-            workspaceLabelById={workspaceLabelById}
-          />
-        </div>
+        <div ref={scrollRef} className="flex-1 min-h-0 overflow-auto px-4">
+          <div className="py-4">
+            <ActivityTimeline
+              items={items}
+              onSelect={(e) => setSelected(e)}
+              loading={listQuery.isFetchingNextPage}
+              titleSpan={4}
+            />
 
-        <div className="flex items-center justify-end pt-4">
-          <Pagination
-            current={listQuery.data?.page ?? page}
-            pageSize={listQuery.data?.size ?? size}
-            total={listQuery.data?.total ?? 0}
-            showSizeChanger
-            onChange={(nextPage, nextSize) => {
-              setPage(nextPage);
-              setSize(nextSize);
-            }}
-          />
+            <div ref={sentinelRef} className="h-10" />
+          </div>
         </div>
       </PageState>
 

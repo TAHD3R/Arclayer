@@ -27,12 +27,20 @@ class AuditEventRepository(BaseRepository):
             qs = qs.filter(workspace_id=filters.workspace_id)
         if filters.actor_user_id is not None:
             qs = qs.filter(actor_user_id=filters.actor_user_id)
+        if filters.subject_user_id is not None:
+            qs = qs.filter(subject_user_id=filters.subject_user_id)
         if filters.entity_type is not None:
             qs = qs.filter(entity_type=filters.entity_type)
         if filters.entity_id is not None:
             qs = qs.filter(entity_id=filters.entity_id)
         if filters.event_name is not None:
-            qs = qs.filter(event_name=filters.event_name)
+            needle = (filters.event_name or "").strip()
+            if needle:
+                # Product behavior: treat as a search term (partial match) instead of strict equality.
+                # Notes:
+                # - This may not fully leverage the btree index, but keeps the UX intuitive.
+                # - If we need indexed prefix search later, we can add a dedicated param like `event_name_prefix`.
+                qs = qs.filter(event_name__icontains=needle)
 
         occurred_from: datetime | None = filters.occurred_from
         occurred_to: datetime | None = filters.occurred_to

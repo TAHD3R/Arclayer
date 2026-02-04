@@ -57,8 +57,9 @@ class AuditEventListQuery(BaseSchema):
         description="Filter: occurred_at <= this timestamp (UTC).",
         validation_alias="to",
     )
-    event_name: str | None = Field(default=None, description="Filter: event name (exact match).")
+    event_name: str | None = Field(default=None, description="Filter: event name (contains).")
     workspace_id: UUID | None = Field(default=None, description="Filter: workspace id.")
     actor_user_id: UUID | None = Field(default=None, description="Filter: actor user id.")
+    subject_user_id: UUID | None = Field(default=None, description="Filter: subject user id.")
     entity_type: str | None = Field(default=None, description="Filter: entity type.")
     entity_id: UUID | None = Field(default=None, description="Filter: entity id.")

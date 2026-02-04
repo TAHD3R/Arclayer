@@ -1,4 +1,3 @@
-import { Tag } from "antd";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
 
@@ -42,6 +41,7 @@ export function ActivityDetailDialog(props: {
   const prefs = usePreferencesStore();
 
   const event = props.event;
+  const hideMetaBlocks = event?.eventName === "workspace.member.roles.updated";
   const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
 
   const occurredAtText = React.useMemo(() => {
@@ -83,11 +83,34 @@ export function ActivityDetailDialog(props: {
     >
       {!event ? null : (
         <div className="space-y-4">
-          <div className="flex flex-wrap gap-2">
-            <Tag color="blue">{event.eventName}</Tag>
-            {event.source ? <Tag>{event.source}</Tag> : null}
-            {event.workspaceId ? <Tag>{workspaceLabel}</Tag> : null}
-          </div>
+          {!hideMetaBlocks ? (
+            <>
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                <div className="rounded-md border bg-muted/30 p-3">
+                  <div className="text-xs text-muted-foreground">
+                    {t("activity:ACTIVITY_FIELD_EVENT_NAME")}
+                  </div>
+                  <div className="mt-1 font-mono text-xs break-words">{event.eventName || "-"}</div>
+                </div>
+
+                <div className="rounded-md border bg-muted/30 p-3">
+                  <div className="text-xs text-muted-foreground">
+                    {t("activity:ACTIVITY_FIELD_SOURCE")}
+                  </div>
+                  <div className="mt-1 text-sm break-words">{event.source || "-"}</div>
+                </div>
+              </div>
+
+              {event.workspaceId ? (
+                <div className="rounded-md border bg-muted/30 p-3">
+                  <div className="text-xs text-muted-foreground">
+                    {t("activity:ACTIVITY_TABLE_WORKSPACE")}
+                  </div>
+                  <div className="mt-1 text-sm break-words">{workspaceLabel || "-"}</div>
+                </div>
+              ) : null}
+            </>
+          ) : null}
 
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <div className="rounded-md border bg-muted/30 p-3">
