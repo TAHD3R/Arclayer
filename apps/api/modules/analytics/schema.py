@@ -9,6 +9,21 @@ from pydantic import Field
 from apps.api.common.schemas import BaseOut, BaseSchema, TimestampMixin
 
 
+class ActivityUserSummaryOut(BaseSchema):
+    """
+    Lightweight user summary for Activity rendering.
+
+    Notes:
+    - Keep it stable and minimal for UI.
+    - Do not include sensitive fields.
+    """
+
+    id: UUID = Field(..., description="User id.")
+    username: str | None = Field(default=None, description="Username.")
+    display_name: str | None = Field(default=None, description="Display name.")
+    avatar_url: str | None = Field(default=None, description="Avatar URL.")
+
+
 class AuditEventOut(BaseOut, TimestampMixin):
     occurred_at: datetime = Field(..., description="Event time (UTC).")
     event_name: str = Field(..., description="Event name.")
@@ -18,6 +33,9 @@ class AuditEventOut(BaseOut, TimestampMixin):
 
     actor_user_id: UUID | None = Field(default=None, description="Actor user id.")
     subject_user_id: UUID | None = Field(default=None, description="Subject user id.")
+
+    actor: ActivityUserSummaryOut | None = Field(default=None, description="Actor user summary (best-effort).")
+    subject: ActivityUserSummaryOut | None = Field(default=None, description="Subject user summary (best-effort).")
 
     entity_type: str | None = Field(default=None, description="Entity type.")
     entity_id: UUID | None = Field(default=None, description="Entity id.")

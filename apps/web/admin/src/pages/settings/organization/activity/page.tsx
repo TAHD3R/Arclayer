@@ -1,26 +1,16 @@
-import { DatePicker, Input as AntInput, Modal, Pagination, Tag } from "antd";
+import { AutoComplete, DatePicker, Input as AntInput, Pagination } from "antd";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Search } from "lucide-react";
 import * as React from "react";
-import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { flexRender, type ColumnDef } from "@tanstack/react-table";
 
 import { DefaultPage } from "@/components/common/default-page";
 import { PageState } from "@/components/common/page-state";
+import { ActivityDetailDialog } from "@/components/activity/activity-detail-dialog";
+import { ActivityTimeline } from "@/components/activity/activity-timeline";
+import { listCatalogEventNames, resolveCatalogEntry } from "@/components/activity/event-catalog";
 import { DebounceSelect, type DebounceSelectOption } from "@/components/inputs/debounce-select";
-import { useDataTable } from "@/components/data-table";
 import { LoaderOne } from "@/components/ui/loader";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { cn } from "@/lib/utils";
-import { formatDateTimeWithPattern } from "@/lib/time/date-time";
-import { usePreferencesStore } from "@/stores/use-preference-store";
 import { listMyWorkspaces } from "@/api/workspaces";
 import * as activityApi from "@/api/activity";
 import { listTeamUserOptions } from "@/api/team";
@@ -33,9 +23,9 @@ type ActivityFilters = {
   actorUserId?: string;
 };
 
-function safeJsonStringify(value: unknown): string {
+function stableStringify(value: unknown): string {
   try {
-    return JSON.stringify(value, null, 2);
+    return JSON.stringify(value);
   } catch {
     return String(value);
   }
@@ -43,7 +33,6 @@ function safeJsonStringify(value: unknown): string {
 
 export function OrganizationActivityPage() {
   const { t } = useTranslation(["nav", "activity"]);
-  const prefs = usePreferencesStore();
 
   const [filters, setFilters] = React.useState<ActivityFilters>(() => {
     const to = new Date();
@@ -56,12 +45,26 @@ export function OrganizationActivityPage() {
 
   const [rangeValue, setRangeValue] = React.useState<any[] | null>(null);
   React.useEffect(() => {
-    if (!filters.occurredFrom && !filters.occurredTo) {
-      setRangeValue(null);
-    }
+    if (!filters.occurredFrom && !filters.occurredTo) setRangeValue(null);
   }, [filters.occurredFrom, filters.occurredTo]);
 
-  const [selected, setSelected] = React.useState<activityApi.ActivityEvent | null>(null);
+  const [eventNameInput, setEventNameInput] = React.useState<string>(() => filters.eventName ?? "");
+  const [eventNameOpen, setEventNameOpen] = React.useState<boolean>(false);
+
+  const [workspaceOption, setWorkspaceOption] = React.useState<DebounceSelectOption | undefined>(
+    undefined,
+  );
+  const [actorOption, setActorOption] = React.useState<DebounceSelectOption | undefined>(undefined);
+
+  const selectedWorkspaceId = (filters.workspaceId || "").trim() || null;
+
+  const [page, setPage] = React.useState<number>(1);
+  const [size, setSize] = React.useState<number>(20);
+
+  const filtersKey = stableStringify(filters);
+  React.useEffect(() => {
+    setPage(1);
+  }, [filtersKey]);
 
   const workspacesQuery = useQuery({
     queryKey: ["me", "workspaces"],
@@ -70,128 +73,59 @@ export function OrganizationActivityPage() {
     retry: false,
     meta: { silent: true },
   });
-
   const workspaceItems = workspacesQuery.data?.items ?? [];
 
-  const columns = React.useMemo<ColumnDef<activityApi.ActivityEvent>[]>(
-    () => [
-      {
-        id: "occurredAt",
-        header: t("activity:ACTIVITY_TABLE_TIME"),
-        cell: ({ row }) => {
-          const value = row.original.occurredAt;
-          const date = value ? new Date(value) : null;
-          if (!date) return <span className="text-muted-foreground">-</span>;
-          const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
-          return (
-            <span className="whitespace-nowrap">
-              {formatDateTimeWithPattern({
-                date,
-                locale: prefs.locale,
-                timeZone,
-                dateFormat: "YYYY-MM-DD",
-                includeTime: true,
-              })}
-            </span>
-          );
-        },
-      },
-      {
-        id: "eventName",
-        header: t("activity:ACTIVITY_TABLE_EVENT"),
-        cell: ({ row }) => (
-          <div className="min-w-56">
-            <div className="font-mono text-xs">{row.original.eventName}</div>
-            {row.original.source ? (
-              <div className="mt-1 text-xs text-muted-foreground">
-                {t("activity:ACTIVITY_FIELD_SOURCE")}: {row.original.source}
-              </div>
-            ) : null}
-          </div>
-        ),
-      },
-      {
-        id: "actor",
-        header: t("activity:ACTIVITY_TABLE_ACTOR"),
-        cell: ({ row }) => {
-          const actor = row.original.actorUserId;
-          return actor ? (
-            <span className="font-mono text-xs">{actor}</span>
-          ) : (
-            <span className="text-muted-foreground">-</span>
-          );
-        },
-      },
-      {
-        id: "workspace",
-        header: t("activity:ACTIVITY_TABLE_WORKSPACE"),
-        cell: ({ row }) => {
-          const ws = row.original.workspaceId;
-          return ws ? (
-            <span className="font-mono text-xs">{ws}</span>
-          ) : (
-            <span className="text-muted-foreground">-</span>
-          );
-        },
-      },
-      {
-        id: "entity",
-        header: t("activity:ACTIVITY_TABLE_ENTITY"),
-        cell: ({ row }) => {
-          const entityType = row.original.entityType;
-          const entityId = row.original.entityId;
-          if (!entityType && !entityId) return <span className="text-muted-foreground">-</span>;
-          return (
-            <div className="min-w-48">
-              <div className="font-mono text-xs">{entityType ?? "-"}</div>
-              <div className="mt-1 font-mono text-xs text-muted-foreground">{entityId ?? "-"}</div>
-            </div>
-          );
-        },
-      },
-      {
-        id: "actions",
-        header: "",
-        cell: ({ row }) => (
-          <div className="flex items-center justify-end">
-            <button
-              type="button"
-              className={cn(
-                "inline-flex items-center gap-2 rounded-md px-2 py-1 text-xs",
-                "hover:bg-muted text-muted-foreground hover:text-foreground",
-              )}
-              onClick={() => setSelected(row.original)}
-            >
-              {t("activity:ACTIVITY_ACTION_VIEW_DETAIL")}
-            </button>
-          </div>
-        ),
-      },
-    ],
-    [prefs.locale, t],
-  );
+  const workspaceLabelById = React.useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const w of workspaceItems) {
+      map[String(w.workspaceId)] = w.name || w.slug || w.workspaceId;
+    }
+    return map;
+  }, [workspaceItems]);
 
-  const tableHook = useDataTable<activityApi.ActivityEvent, activityApi.ListActivityParams>({
-    tableId: "org-activity",
-    columns,
-    extraQuery: {
-      from: filters.occurredFrom,
-      to: filters.occurredTo,
-      event_name: filters.eventName,
-      workspace_id: filters.workspaceId,
-      actor_user_id: filters.actorUserId,
-    },
-    fetcher: (params) => activityApi.listSystemActivity(params),
-    search: { debounceMs: 350 },
-    initialState: { pageSize: 20, q: "" },
+  const listQuery = useQuery({
+    queryKey: ["activity", "org", page, size, filters] as const,
+    placeholderData: keepPreviousData,
+    retry: false,
+    meta: { silent: true },
+    queryFn: async () =>
+      activityApi.listSystemActivity({
+        page,
+        size,
+        from: filters.occurredFrom,
+        to: filters.occurredTo,
+        event_name: filters.eventName,
+        workspace_id: filters.workspaceId,
+        actor_user_id: filters.actorUserId,
+      }),
   });
 
-  const table = tableHook.table;
-  const empty = (tableHook.pageData?.items?.length ?? 0) === 0;
+  const items = listQuery.data?.items ?? [];
+  const empty = items.length === 0;
 
-  const selectedWorkspaceId = (filters.workspaceId || "").trim() || null;
-  const currentPage = tableHook.pageData?.page ?? 1;
-  const currentSize = tableHook.pageData?.size ?? 20;
+  const [selected, setSelected] = React.useState<activityApi.ActivityEvent | null>(null);
+
+  const eventNameOptions = React.useMemo(() => {
+    const needle = eventNameInput.trim().toLowerCase();
+    const names = listCatalogEventNames();
+    const filtered = needle
+      ? names.filter((n) => n.toLowerCase().includes(needle)).slice(0, 20)
+      : names.slice(0, 20);
+
+    return filtered.map((name) => {
+      const meta = resolveCatalogEntry(name);
+      const title = meta ? t(`activity:${meta.titleKey}`) : name;
+      return {
+        value: name,
+        label: (
+          <div className="min-w-0">
+            <div className="text-sm font-medium truncate">{title}</div>
+            <div className="text-xs text-muted-foreground font-mono truncate">{name}</div>
+          </div>
+        ),
+      };
+    });
+  }, [eventNameInput, t]);
 
   return (
     <DefaultPage
@@ -220,29 +154,43 @@ export function OrganizationActivityPage() {
               }}
             />
 
-            <AntInput
-              variant="borderless"
-              value={filters.eventName ?? ""}
-              onChange={(e) =>
-                setFilters((prev) => ({ ...prev, eventName: e.target.value || undefined }))
-              }
-              placeholder={t("activity:ACTIVITY_FILTER_EVENT_NAME")}
-              allowClear
-              prefix={<Search className="size-4 text-muted-foreground" />}
-              style={{ width: 280, maxWidth: "100%" }}
-            />
+            <AutoComplete
+              value={eventNameInput}
+              open={eventNameOpen}
+              onDropdownVisibleChange={(open) => setEventNameOpen(open)}
+              options={eventNameOptions as any}
+              onChange={(next) => {
+                const v = String(next || "");
+                setEventNameInput(v);
+                setEventNameOpen(true);
+                setFilters((prev) => ({ ...prev, eventName: v.trim() ? v : undefined }));
+              }}
+              onSelect={(v) => {
+                const s = String(v || "");
+                setEventNameInput(s);
+                setEventNameOpen(false);
+                setFilters((prev) => ({ ...prev, eventName: s.trim() ? s : undefined }));
+              }}
+              style={{ width: 320, maxWidth: "100%" }}
+            >
+              <AntInput
+                allowClear
+                onFocus={() => setEventNameOpen(true)}
+                prefix={<Search className="size-4 text-muted-foreground" />}
+                placeholder={t("activity:ACTIVITY_FILTER_EVENT_NAME_PLACEHOLDER")}
+                aria-label={t("activity:ACTIVITY_FILTER_EVENT_NAME")}
+              />
+            </AutoComplete>
 
             <DebounceSelect
               labelInValue
               value={
                 selectedWorkspaceId
-                  ? ({
-                      value: selectedWorkspaceId,
-                      label: selectedWorkspaceId,
-                    } as DebounceSelectOption)
+                  ? (workspaceOption ?? { value: selectedWorkspaceId, label: selectedWorkspaceId })
                   : undefined
               }
               allowClear
+              disabled={workspacesQuery.isLoading}
               placeholder={t("activity:ACTIVITY_FILTER_WORKSPACE")}
               style={{ width: 260, maxWidth: "100%" }}
               fetchOptions={async (search) => {
@@ -260,13 +208,20 @@ export function OrganizationActivityPage() {
                 }));
               }}
               onChange={(value) => {
-                const next = (value as any)?.value ? String((value as any).value) : undefined;
+                const v = (value as any)?.value ?? null;
+                const label = (value as any)?.label ?? null;
+                if (v) {
+                  setWorkspaceOption({ value: String(v), label: String(label || v) });
+                } else {
+                  setWorkspaceOption(undefined);
+                }
                 setFilters((prev) => ({
                   ...prev,
-                  workspaceId: next,
+                  workspaceId: v ? String(v) : undefined,
                   // workspace 变化时，操作者筛选需要重置（避免跨 workspace 误筛）
                   actorUserId: undefined,
                 }));
+                setActorOption(undefined);
               }}
             />
 
@@ -274,10 +229,7 @@ export function OrganizationActivityPage() {
               labelInValue
               value={
                 filters.actorUserId
-                  ? ({
-                      value: filters.actorUserId,
-                      label: filters.actorUserId,
-                    } as DebounceSelectOption)
+                  ? (actorOption ?? { value: filters.actorUserId, label: filters.actorUserId })
                   : undefined
               }
               allowClear
@@ -290,12 +242,12 @@ export function OrganizationActivityPage() {
               style={{ width: 260, maxWidth: "100%" }}
               fetchOptions={async (search) => {
                 if (!selectedWorkspaceId) return [];
-                const page = await listTeamUserOptions(selectedWorkspaceId, {
+                const pageData = await listTeamUserOptions(selectedWorkspaceId, {
                   q: search,
                   page: 1,
                   size: 20,
                 });
-                return (page.items ?? []).map((u) => ({
+                return (pageData.items ?? []).map((u) => ({
                   value: u.value,
                   label: u.label,
                   avatarUrl: u.avatarUrl ?? null,
@@ -303,108 +255,67 @@ export function OrganizationActivityPage() {
               }}
               onChange={(value) => {
                 const v = (value as any)?.value ?? null;
+                const label = (value as any)?.label ?? null;
+                if (v) {
+                  setActorOption({
+                    value: String(v),
+                    label: String(label || v),
+                  });
+                } else {
+                  setActorOption(undefined);
+                }
                 setFilters((prev) => ({ ...prev, actorUserId: v ? String(v) : undefined }));
               }}
             />
           </div>
 
-          {tableHook.isFetching && !tableHook.isLoading ? <LoaderOne /> : null}
+          {listQuery.isFetching && !listQuery.isLoading ? <LoaderOne /> : null}
         </div>
       }
     >
       <PageState
-        loading={tableHook.isLoading}
-        error={tableHook.error}
-        onRetry={() => void tableHook.refetch()}
+        loading={listQuery.isLoading || workspacesQuery.isLoading}
+        error={listQuery.error || workspacesQuery.error}
+        onRetry={() => {
+          void workspacesQuery.refetch();
+          void listQuery.refetch();
+        }}
         empty={empty}
         loadingVariant="table"
         emptyTitle={t("activity:ACTIVITY_EMPTY_TITLE")}
         emptyDescription={t("activity:ACTIVITY_EMPTY_DESC")}
         className="flex-1 min-h-0"
       >
-        <div className="rounded-md border overflow-auto flex-1 min-h-0">
-          <Table>
-            <TableHeader className="sticky top-0 z-20 bg-card">
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => (
-                    <TableHead key={header.id}>
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(header.column.columnDef.header, header.getContext())}
-                    </TableHead>
-                  ))}
-                </TableRow>
-              ))}
-            </TableHeader>
-            <TableBody>
-              {table.getRowModel().rows.length ? (
-                table.getRowModel().rows.map((row) => (
-                  <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id}>
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={columns.length} className="h-24 text-center">
-                    {t("activity:ACTIVITY_EMPTY_TABLE")}
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+        <div className="rounded-md border p-4 overflow-auto flex-1 min-h-0">
+          <ActivityTimeline
+            items={items}
+            onViewDetail={(e) => setSelected(e)}
+            workspaceLabelById={workspaceLabelById}
+          />
         </div>
 
         <div className="flex items-center justify-end pt-4">
           <Pagination
-            current={currentPage}
-            pageSize={currentSize}
-            total={tableHook.pageData?.total ?? 0}
+            current={listQuery.data?.page ?? page}
+            pageSize={listQuery.data?.size ?? size}
+            total={listQuery.data?.total ?? 0}
             showSizeChanger
-            onChange={(page, pageSize) => {
-              tableHook.table.setPageIndex(Math.max(0, page - 1));
-              tableHook.table.setPageSize(pageSize);
+            onChange={(nextPage, nextSize) => {
+              setPage(nextPage);
+              setSize(nextSize);
             }}
           />
         </div>
       </PageState>
 
-      <Modal
+      <ActivityDetailDialog
         open={Boolean(selected)}
-        title={t("activity:ACTIVITY_DETAIL_TITLE")}
-        onCancel={() => setSelected(null)}
-        footer={null}
-        width={760}
-      >
-        {selected ? (
-          <div className="space-y-3">
-            <div className="flex flex-wrap gap-2">
-              <Tag color="blue">{selected.eventName}</Tag>
-              {selected.source ? <Tag>{selected.source}</Tag> : null}
-            </div>
-
-            <div className="rounded-md border bg-muted/30 p-3">
-              <div className="text-xs text-muted-foreground">
-                {t("activity:ACTIVITY_FIELD_EVENT_NAME")}
-              </div>
-              <div className="mt-1 font-mono text-xs">{selected.eventName}</div>
-            </div>
-
-            <div className="rounded-md border bg-muted/30 p-3">
-              <div className="text-xs text-muted-foreground">
-                {t("activity:ACTIVITY_FIELD_PROPERTIES")}
-              </div>
-              <pre className="mt-2 max-h-80 overflow-auto whitespace-pre-wrap break-words text-xs">
-                {safeJsonStringify(selected.properties)}
-              </pre>
-            </div>
-          </div>
-        ) : null}
-      </Modal>
+        onOpenChange={(open) => {
+          if (!open) setSelected(null);
+        }}
+        event={selected}
+        workspaceLabelById={workspaceLabelById}
+      />
     </DefaultPage>
   );
 }

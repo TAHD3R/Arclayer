@@ -25,6 +25,20 @@ export type ActivityEvent = {
   actorUserId: string | null;
   subjectUserId: string | null;
 
+  actor: {
+    id: string;
+    username: string | null;
+    displayName: string | null;
+    avatarUrl: string | null;
+  } | null;
+
+  subject: {
+    id: string;
+    username: string | null;
+    displayName: string | null;
+    avatarUrl: string | null;
+  } | null;
+
   entityType: string | null;
   entityId: string | null;
 
