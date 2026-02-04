@@ -78,8 +78,8 @@
   "SETTINGS_ORG_SECURITY_AUDIT_DESC": "Manage sign-in policies, SSO and audit logs.",
   "SETTINGS_ORG_SSO_TITLE": "SSO / Identity providers",
   "SETTINGS_ORG_SSO_DESC": "Configure SAML/OIDC sign-in for enterprise (placeholder).",
-  "SETTINGS_ORG_AUDIT_LOG_TITLE": "Audit logs",
-  "SETTINGS_ORG_AUDIT_LOG_DESC": "Review security events and critical operations (placeholder).",
+  "SETTINGS_ORG_ACTIVITY_TITLE": "Activity",
+  "SETTINGS_ORG_ACTIVITY_DESC": "Review organization-level activity for governance and security.",
 
   "SETTINGS_ORG_DEVELOPER_TITLE": "Developer",
   "SETTINGS_ORG_DEVELOPER_DESC": "Manage API keys, webhooks and developer integrations.",

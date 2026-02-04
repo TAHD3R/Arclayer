@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 from typing import cast
 from uuid import UUID
 
+from asgi_correlation_id import correlation_id
 from tortoise.expressions import Q
 from tortoise.transactions import in_transaction
 
@@ -184,6 +185,28 @@ class AuthService(BaseService):
         await store.store(record, ttl=refresh_ttl)
         await self.user_repo.update_last_login(user)
 
+        # Best-effort: emit audit-worthy login event (do not block auth flow).
+        try:
+            from apps.api.plugin.event_bus import Event
+            from apps.api.plugin.registry import registry as plugin_registry
+
+            orgm = await OrgMembership.get_or_none(user_id=user_id)
+            org_id = UUID(str(orgm.organization_id)) if orgm is not None else None
+
+            await plugin_registry.event_bus.publish(
+                Event(
+                    name="auth.login.succeeded",
+                    payload={
+                        "organization_id": str(org_id) if org_id else None,
+                    },
+                    source="api",
+                    trace_id=correlation_id.get(None),
+                    actor_user_id=str(user_id),
+                )
+            )
+        except Exception:
+            pass
+
         return TokenPair(
             access_token=access_token,
             refresh_token=refresh_token,
@@ -358,6 +381,30 @@ class AuthService(BaseService):
             return None
         user_id = self._coerce_user_id(user)
         token, ttl = await store.issue(user_id)
+
+        # Best-effort: record password reset request for investigation (do not leak data in payload).
+        try:
+            from apps.api.plugin.event_bus import Event
+            from apps.api.plugin.registry import registry as plugin_registry
+
+            orgm = await OrgMembership.get_or_none(user_id=user_id)
+            org_id = UUID(str(orgm.organization_id)) if orgm is not None else None
+
+            await plugin_registry.event_bus.publish(
+                Event(
+                    name="auth.password.reset.requested",
+                    payload={
+                        "organization_id": str(org_id) if org_id else None,
+                        "subject_user_id": str(user_id),
+                    },
+                    source="api",
+                    trace_id=correlation_id.get(None),
+                    actor_user_id=None,
+                )
+            )
+        except Exception:
+            pass
+
         return token, ttl, email, user_id
 
     async def send_reset_email(
@@ -424,6 +471,29 @@ class AuthService(BaseService):
         await self.user_repo.increment_token_version(user)
         if self.refresh_store is not None:
             await self.refresh_store.revoke_all(self._coerce_user_id(user))
+
+        # Best-effort: record password reset completion.
+        try:
+            from apps.api.plugin.event_bus import Event
+            from apps.api.plugin.registry import registry as plugin_registry
+
+            orgm = await OrgMembership.get_or_none(user_id=user_id)
+            org_id = UUID(str(orgm.organization_id)) if orgm is not None else None
+
+            await plugin_registry.event_bus.publish(
+                Event(
+                    name="auth.password.reset.completed",
+                    payload={
+                        "organization_id": str(org_id) if org_id else None,
+                        "subject_user_id": str(user_id),
+                    },
+                    source="api",
+                    trace_id=correlation_id.get(None),
+                    actor_user_id=str(user_id),
+                )
+            )
+        except Exception:
+            pass
 
     @staticmethod
     def build_user_profile(user: UserLike) -> UserProfile:
@@ -895,6 +965,29 @@ class AuthService(BaseService):
                     org_id=str(organization_id),
                     inviter_user_id=str(inviter_user_id),
                 )
+
+        # Best-effort: emit audit event for invite acceptance.
+        if organization_id is not None and workspace_id is not None and accepted_user_id is not None:
+            try:
+                from apps.api.plugin.event_bus import Event
+                from apps.api.plugin.registry import registry as plugin_registry
+
+                await plugin_registry.event_bus.publish(
+                    Event(
+                        name="workspace.invite.accepted",
+                        payload={
+                            "organization_id": str(organization_id),
+                            "workspace_id": str(workspace_id),
+                            "inviter_user_id": str(inviter_user_id) if inviter_user_id else None,
+                            "invite_kind": "link" if code.startswith("il_") else "email",
+                        },
+                        source="api",
+                        trace_id=correlation_id.get(None),
+                        actor_user_id=str(accepted_user_id),
+                    )
+                )
+            except Exception:
+                pass
 
         return tokens
 

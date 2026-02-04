@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { TeamRolesView } from "@/pages/team/roles/page";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
-export const Route = createFileRoute("/settings/team/roles/")({
+export const Route = createFileRoute("/team/roles")({
   component: TeamRolesRoutePage,
 });
 
@@ -14,7 +14,7 @@ function TeamRolesRoutePage() {
 
   useEffect(() => {
     if (!workspaceId) return;
-    void navigate({ to: `/w/${workspaceId}/settings/team/roles`, replace: true });
+    void navigate({ to: `/w/${workspaceId}/team/roles`, replace: true });
   }, [navigate, workspaceId]);
 
   // Fallback: if workspace isn't selected yet, still render the view and let it show an empty state.

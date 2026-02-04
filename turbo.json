@@ -1,6 +1,5 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "ui": "tui",
   "globalDependencies": [
     "package.json",
     "pnpm-lock.yaml",
@@ -50,6 +49,10 @@
     "db:upgrade": {
       "cache": false,
       "interactive": true
+    },
+    "jobs:worker": {
+      "cache": false,
+      "persistent": true
     }
   }
 }

@@ -109,7 +109,7 @@ class NotificationService(BaseService):
                 "category": NotificationCategory.SECURITY,
                 "title_key": "NOTIFICATIONS_DEMO_2_TITLE",
                 "body_key": "NOTIFICATIONS_DEMO_2_SUBTITLE",
-                "target_to": "/settings/maintenance/audit-log",
+                "target_to": "/settings/maintenance/activity",
             },
             {
                 "category": NotificationCategory.TEAM,

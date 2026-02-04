@@ -490,10 +490,6 @@ export function AdminAccountMenu() {
   const canManageOrganization =
     myOrgQuery.data?.membership?.role === "owner" || myOrgQuery.data?.membership?.role === "admin";
   const onOrganizationSettings = () => {
-    if (workspaceId) {
-      void navigate({ to: `/w/${workspaceId}/settings/organization` });
-      return;
-    }
     void navigate({ to: "/settings/organization" });
   };
 

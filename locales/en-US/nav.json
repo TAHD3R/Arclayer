@@ -18,8 +18,11 @@
   "NAV_SETTINGS_TEAM_MEMBER_LIST": "Members",
   "NAV_SETTINGS_TEAM_MEMBERS": "Member invitations",
   "NAV_SETTINGS_TEAM_ROLES": "Roles & permissions",
+  "NAV_ORG": "Organization",
+  "NAV_ORG_SETTINGS": "Organization settings",
+  "NAV_ORG_ACTIVITY": "Organization activity",
   "NAV_SETTINGS_MAINTENANCE": "Maintenance",
   "NAV_SETTINGS_MAINTENANCE_SNAPSHOTS": "Backups & rollback",
-  "NAV_SETTINGS_MAINTENANCE_AUDIT_LOG": "Audit log",
+  "NAV_SETTINGS_MAINTENANCE_ACTIVITY": "Activity",
   "NAV_SETTINGS_MAINTENANCE_STATUS": "System status"
 }

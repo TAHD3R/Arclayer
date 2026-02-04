@@ -6,6 +6,7 @@ export interface AntdThemeOptions {
   mode: ThemeMode;
   zIndexPopupBase?: number;
   token?: Record<string, unknown>;
+  components?: Record<string, unknown>;
 }
 
 function readCssVar(el: HTMLElement, name: string): string {
@@ -43,7 +44,11 @@ export function readAntdTokensFromCssVars(
     colorBgBase: readColor(el, "--background"),
     colorBgContainer: readColor(el, "--card"),
     colorBgElevated: readColor(el, "--popover"),
-    colorBgLayout: readColor(el, "--background-deep", readColor(el, "--background")),
+    colorBgLayout: readColor(
+      el,
+      "--background-deep",
+      readColor(el, "--background"),
+    ),
     colorBgMask: readColor(
       el,
       "--overlay",
@@ -54,22 +59,38 @@ export function readAntdTokensFromCssVars(
     colorError: readColor(el, "--destructive"),
     colorInfo: colorPrimary,
     colorPrimary,
-    colorSuccess: readColor(el, "--success", readColor(el, "--chart-2", "#52c41a")),
+    colorSuccess: readColor(
+      el,
+      "--success",
+      readColor(el, "--chart-2", "#52c41a"),
+    ),
     colorTextBase: readColor(el, "--foreground"),
-    colorWarning: readColor(el, "--warning", readColor(el, "--chart-3", "#faad14")),
+    colorWarning: readColor(
+      el,
+      "--warning",
+      readColor(el, "--chart-3", "#faad14"),
+    ),
   } as const;
 }
 
 export function createAntdTheme(options: AntdThemeOptions) {
-  const { mode, zIndexPopupBase = 2000, token: tokenOverrides } = options;
+  const {
+    mode,
+    zIndexPopupBase = 2000,
+    token: tokenOverrides,
+    components: componentOverrides,
+  } = options;
   const baseTokens = readAntdTokensFromCssVars(document.documentElement, mode);
 
   const token = tokenOverrides
     ? { ...baseTokens, zIndexPopupBase, ...tokenOverrides }
     : { ...baseTokens, zIndexPopupBase };
 
+  const components = componentOverrides ? { ...componentOverrides } : {};
+
   return {
     algorithm: mode === "dark" ? theme.darkAlgorithm : theme.defaultAlgorithm,
     token,
+    components,
   } as const;
 }

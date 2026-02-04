@@ -11,10 +11,11 @@
     "dev": "UV_CACHE_DIR=../../.uv-cache PYTHONPATH=../.. uv run uvicorn apps.api.main:app --reload",
     "lint": "UV_CACHE_DIR=../../.uv-cache PYTHONPATH=../.. uv run ruff check .",
     "format": "UV_CACHE_DIR=../../.uv-cache PYTHONPATH=../.. uv run ruff format .",
-    "typecheck": "UV_CACHE_DIR=../../.uv-cache PYTHONPATH=../.. uv run pyright",
+    "typecheck": "UV_CACHE_DIR=../../.uv-cache PYTHONPATH=../.. uv run pyright --project ../..",
     "test": "UV_CACHE_DIR=../../.uv-cache PYTHONPATH=../.. uv run pytest --cov=.",
     "test:integration": "RUN_INTEGRATION_TESTS=1 UV_CACHE_DIR=../../.uv-cache PYTHONPATH=../.. uv run pytest -m integration --cov=.",
     "db:migrate": "UV_CACHE_DIR=../../.uv-cache PYTHONPATH=../.. uv run aerich migrate",
-    "db:upgrade": "UV_CACHE_DIR=../../.uv-cache PYTHONPATH=../.. uv run aerich upgrade"
+    "db:upgrade": "UV_CACHE_DIR=../../.uv-cache PYTHONPATH=../.. uv run aerich upgrade",
+    "jobs:worker": "UV_CACHE_DIR=../../.uv-cache PYTHONPATH=../.. uv run arq apps.api.infra.jobs.worker.WorkerSettings"
   }
 }

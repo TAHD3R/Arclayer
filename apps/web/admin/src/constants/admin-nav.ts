@@ -112,6 +112,35 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
     ],
   },
   {
+    key: "settings.team",
+    label: "Team",
+    labelKey: "nav:NAV_SETTINGS_TEAM",
+    icon: Users,
+    children: [
+      {
+        key: "settings.team.memberList",
+        label: "Members",
+        labelKey: "nav:NAV_SETTINGS_TEAM_MEMBER_LIST",
+        to: "/team/members",
+        icon: Users,
+      },
+      {
+        key: "settings.team.members",
+        label: "Member invitations",
+        labelKey: "nav:NAV_SETTINGS_TEAM_MEMBERS",
+        to: "/team/invitations",
+        icon: UserPlus,
+      },
+      {
+        key: "settings.team.roles",
+        label: "Roles & permissions",
+        labelKey: "nav:NAV_SETTINGS_TEAM_ROLES",
+        to: "/team/roles",
+        icon: ShieldCheck,
+      },
+    ],
+  },
+  {
     key: "settings",
     label: "Settings",
     labelKey: "nav:NAV_SETTINGS",
@@ -139,35 +168,6 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
         icon: Search,
       },
       {
-        key: "settings.team",
-        label: "Team",
-        labelKey: "nav:NAV_SETTINGS_TEAM",
-        icon: Users,
-        children: [
-          {
-            key: "settings.team.memberList",
-            label: "Members",
-            labelKey: "nav:NAV_SETTINGS_TEAM_MEMBER_LIST",
-            to: "/team/members",
-            icon: Users,
-          },
-          {
-            key: "settings.team.members",
-            label: "Member invitations",
-            labelKey: "nav:NAV_SETTINGS_TEAM_MEMBERS",
-            to: "/team/invitations",
-            icon: UserPlus,
-          },
-          {
-            key: "settings.team.roles",
-            label: "Roles & permissions",
-            labelKey: "nav:NAV_SETTINGS_TEAM_ROLES",
-            to: "/settings/team/roles",
-            icon: ShieldCheck,
-          },
-        ],
-      },
-      {
         key: "settings.maintenance",
         label: "Maintenance",
         labelKey: "nav:NAV_SETTINGS_MAINTENANCE",
@@ -181,10 +181,10 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
             icon: HardDrive,
           },
           {
-            key: "settings.maintenance.auditLog",
-            label: "Audit log",
-            labelKey: "nav:NAV_SETTINGS_MAINTENANCE_AUDIT_LOG",
-            to: "/settings/maintenance/audit-log",
+            key: "settings.maintenance.activity",
+            label: "Activity",
+            labelKey: "nav:NAV_SETTINGS_MAINTENANCE_ACTIVITY",
+            to: "/settings/maintenance/activity",
             icon: History,
           },
           {

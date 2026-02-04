@@ -25,6 +25,7 @@ from apps.api.core.observability import configure_observability
 from apps.api.core.routes import register_routes
 from apps.api.infra.cache.valkey import close_valkey, init_valkey
 from apps.api.infra.limiter.limiter import close_rate_limiter, init_rate_limiter
+from apps.api.modules.analytics.bootstrap import close_activity, init_activity
 from apps.api.modules.organization.bootstrap import ensure_organization_ready
 from apps.api.modules.sites.bootstrap import ensure_demo_site_ready
 from apps.api.modules.system.rbac.bootstrap import ensure_rbac_ready, register_permission_templates
@@ -50,6 +51,8 @@ def _build_lifespan(settings: Settings, *, plugin_manager: PluginManager):
             await verify_db_ready(settings)
             # Hotfix legacy DB constraint that blocks v2 workspace-scoped settings.
             await ensure_settings_schema_constraints()
+            # Start audit log ingestion (best-effort, non-blocking).
+            await init_activity(app, settings, event_bus=plugin_manager.registry.event_bus)
             # Register core event-driven processors (e.g. thumbnails) after DB is ready.
             from apps.api.modules.assets.bootstrap import register_core_asset_processors
 
@@ -74,6 +77,10 @@ def _build_lifespan(settings: Settings, *, plugin_manager: PluginManager):
         finally:
             await stop_restart_watcher(app)
             await plugin_manager.stop()
+            try:
+                await close_activity(app, event_bus=plugin_manager.registry.event_bus)
+            except Exception:
+                pass
             try:
                 await plugin_manager.registry.event_bus.aclose()
             except Exception:

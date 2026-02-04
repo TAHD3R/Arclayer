@@ -78,8 +78,8 @@
   "SETTINGS_ORG_SECURITY_AUDIT_DESC": "管理登录安全策略、单点登录与审计日志。",
   "SETTINGS_ORG_SSO_TITLE": "SSO / 身份提供方",
   "SETTINGS_ORG_SSO_DESC": "配置 SAML/OIDC 等企业登录方式（占位）。",
-  "SETTINGS_ORG_AUDIT_LOG_TITLE": "审计日志",
-  "SETTINGS_ORG_AUDIT_LOG_DESC": "查看关键操作与安全事件日志（占位）。",
+  "SETTINGS_ORG_ACTIVITY_TITLE": "操作记录",
+  "SETTINGS_ORG_ACTIVITY_DESC": "查看组织级关键操作与安全事件记录。",
 
   "SETTINGS_ORG_DEVELOPER_TITLE": "开发者",
   "SETTINGS_ORG_DEVELOPER_DESC": "管理 API Keys、Webhook 与开发者集成。",

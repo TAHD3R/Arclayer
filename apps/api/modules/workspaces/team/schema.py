@@ -19,6 +19,19 @@ class WorkspaceTeamUserRefOut(BaseSchema):
     avatar_url: str | None = Field(default=None, description="Avatar URL.")
 
 
+class WorkspaceTeamUserOptionOut(BaseSchema):
+    """
+    Lightweight user option for Select components.
+
+    Notes:
+    - Keep payload minimal and stable (value/label/avatar) for UI consumption.
+    """
+
+    value: UUID = Field(..., description="User id (value).")
+    label: str = Field(..., description="User display label.")
+    avatar_url: str | None = Field(default=None, description="Avatar URL.")
+
+
 class WorkspaceTeamMemberOut(BaseOut):
     membership_id: UUID = Field(..., description="Workspace membership id.")
     membership_status: WorkspaceMembershipStatus = Field(..., description="Workspace membership status.")

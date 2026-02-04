@@ -1,0 +1,71 @@
+{
+  "ACTIVITY_DESC_ORG": "Review organization-level activity for investigation and troubleshooting.",
+  "ACTIVITY_DESC_WORKSPACE": "Review workspace-level activity for investigation and troubleshooting.",
+
+  "ACTIVITY_FILTER_EVENT_NAME": "Event name (search/select, exact match)",
+  "ACTIVITY_FILTER_EVENT_NAME_PLACEHOLDER": "Type an event name (e.g. auth.login.succeeded)",
+  "ACTIVITY_FILTER_WORKSPACE": "Select workspace",
+  "ACTIVITY_FILTER_ACTOR": "Select actor",
+  "ACTIVITY_FILTER_SUBJECT": "Select subject",
+  "ACTIVITY_FILTER_ACTOR_NEED_WORKSPACE": "Select a workspace first",
+
+  "ACTIVITY_FIELD_OCCURRED_AT": "Occurred at",
+  "ACTIVITY_TABLE_TIME": "Time",
+  "ACTIVITY_TABLE_EVENT": "Event",
+  "ACTIVITY_TABLE_ACTOR": "Actor",
+  "ACTIVITY_TABLE_WORKSPACE": "Workspace",
+  "ACTIVITY_TABLE_ENTITY": "Entity",
+
+  "ACTIVITY_ACTION_VIEW_DETAIL": "View",
+
+  "ACTIVITY_EMPTY_TITLE": "No activity",
+  "ACTIVITY_EMPTY_DESC": "Try adjusting the time range or filters.",
+  "ACTIVITY_EMPTY_TABLE": "No data",
+
+  "ACTIVITY_DETAIL_TITLE": "Activity Detail",
+  "ACTIVITY_FIELD_EVENT_NAME": "Event name",
+  "ACTIVITY_FIELD_SOURCE": "Source",
+  "ACTIVITY_FIELD_TRACE_ID": "Trace ID",
+  "ACTIVITY_FIELD_ACTOR": "Actor",
+  "ACTIVITY_FIELD_SUBJECT": "Subject",
+  "ACTIVITY_FIELD_PROPERTIES": "Properties"
+  ,
+  "ACTIVITY_DAY_TODAY": "Today",
+  "ACTIVITY_DAY_YESTERDAY": "Yesterday",
+  "ACTIVITY_EVENT_AUTH_LOGIN_SUCCEEDED_TITLE": "Login succeeded",
+  "ACTIVITY_EVENT_AUTH_LOGIN_SUCCEEDED_DESC": "The user signed in successfully.",
+  "ACTIVITY_EVENT_AUTH_PASSWORD_RESET_REQUESTED_TITLE": "Password reset requested",
+  "ACTIVITY_EVENT_AUTH_PASSWORD_RESET_REQUESTED_DESC": "A password reset request was issued (no sensitive data).",
+  "ACTIVITY_EVENT_AUTH_PASSWORD_RESET_COMPLETED_TITLE": "Password reset completed",
+  "ACTIVITY_EVENT_AUTH_PASSWORD_RESET_COMPLETED_DESC": "The user completed the password reset flow.",
+
+  "ACTIVITY_EVENT_WORKSPACE_MEMBER_STATUS_UPDATED_TITLE": "Member status updated",
+  "ACTIVITY_EVENT_WORKSPACE_MEMBER_STATUS_UPDATED_DESC": "A workspace member was enabled or disabled.",
+  "ACTIVITY_EVENT_WORKSPACE_MEMBER_ROLES_UPDATED_TITLE": "Member roles updated",
+  "ACTIVITY_EVENT_WORKSPACE_MEMBER_ROLES_UPDATED_DESC": "A workspace member's roles were updated.",
+
+  "ACTIVITY_EVENT_WORKSPACE_INVITE_EMAIL_CREATED_TITLE": "Email invite created",
+  "ACTIVITY_EVENT_WORKSPACE_INVITE_EMAIL_CREATED_DESC": "An email invite was created for a workspace.",
+  "ACTIVITY_EVENT_WORKSPACE_INVITE_EMAIL_UPDATED_TITLE": "Email invite updated",
+  "ACTIVITY_EVENT_WORKSPACE_INVITE_EMAIL_UPDATED_DESC": "An existing email invite was updated (e.g. role/expiry).",
+  "ACTIVITY_EVENT_WORKSPACE_INVITE_EMAIL_RENEWED_TITLE": "Email invite renewed",
+  "ACTIVITY_EVENT_WORKSPACE_INVITE_EMAIL_RENEWED_DESC": "The expiry of an email invite was extended.",
+  "ACTIVITY_EVENT_WORKSPACE_INVITE_EMAIL_REVOKED_TITLE": "Email invite revoked",
+  "ACTIVITY_EVENT_WORKSPACE_INVITE_EMAIL_REVOKED_DESC": "An email invite was revoked.",
+
+  "ACTIVITY_EVENT_WORKSPACE_INVITE_LINK_CREATED_TITLE": "Invite link created",
+  "ACTIVITY_EVENT_WORKSPACE_INVITE_LINK_CREATED_DESC": "A shareable invite link was created for a workspace.",
+  "ACTIVITY_EVENT_WORKSPACE_INVITE_LINK_RENEWED_TITLE": "Invite link renewed",
+  "ACTIVITY_EVENT_WORKSPACE_INVITE_LINK_RENEWED_DESC": "The expiry of an invite link was extended.",
+  "ACTIVITY_EVENT_WORKSPACE_INVITE_LINK_DISABLED_TITLE": "Invite link disabled",
+  "ACTIVITY_EVENT_WORKSPACE_INVITE_LINK_DISABLED_DESC": "An invite link was disabled and can no longer be used.",
+
+  "ACTIVITY_EVENT_RBAC_ROLE_CREATED_TITLE": "Role created",
+  "ACTIVITY_EVENT_RBAC_ROLE_CREATED_DESC": "A new RBAC role was created in the workspace.",
+  "ACTIVITY_EVENT_RBAC_ROLE_UPDATED_TITLE": "Role updated",
+  "ACTIVITY_EVENT_RBAC_ROLE_UPDATED_DESC": "An RBAC role was updated.",
+  "ACTIVITY_EVENT_RBAC_ROLE_DELETED_TITLE": "Role deleted",
+  "ACTIVITY_EVENT_RBAC_ROLE_DELETED_DESC": "An RBAC role was deleted.",
+  "ACTIVITY_EVENT_RBAC_PERMISSION_ROLES_SET_TITLE": "Permission roles updated",
+  "ACTIVITY_EVENT_RBAC_PERMISSION_ROLES_SET_DESC": "The roles associated with a permission were updated."
+}

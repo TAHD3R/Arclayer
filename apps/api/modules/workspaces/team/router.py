@@ -6,7 +6,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, Query
 
 from apps.api.config import Settings, get_settings
 from apps.api.core.exceptions import BadRequest
-from apps.api.core.http.pagination import PageData, get_page_params
+from apps.api.core.http.pagination import PageData, PageParams, get_page_params
 from apps.api.core.http.response import Response, ResponseModel
 from apps.api.core.i18n import get_current_locale, t
 from apps.api.modules.auth.deps import get_current_user_id
@@ -27,11 +27,29 @@ from apps.api.modules.workspaces.team.schema import (
     WorkspaceTeamMemberRoleSetRequest,
     WorkspaceTeamMemberStatusResult,
     WorkspaceTeamResetPasswordRequest,
+    WorkspaceTeamUserOptionOut,
     WorkspaceTeamUserUpdateRequest,
 )
 from apps.api.modules.workspaces.team.service import WorkspaceTeamService
 
 router = APIRouter(prefix="/workspaces/{workspace_id}/team", tags=["Workspace Team"])
+
+
+@router.get(
+    "/users/options",
+    response_model=ResponseModel[PageData[WorkspaceTeamUserOptionOut]],
+    summary="Search workspace users for Select options (pagination)",
+    dependencies=[require_workspace_permission("team:members:read")],
+)
+async def list_user_options(
+    q: str | None = Query(default=None, description="Search query (username/email/display_name)."),
+    params: PageParams = Depends(get_page_params),
+    ctx: WorkspaceContext = Depends(require_workspace_manage_access),
+    settings: Settings = Depends(get_settings),
+) -> ResponseModel[PageData[WorkspaceTeamUserOptionOut]]:
+    service = WorkspaceTeamService(settings)
+    page = await service.list_user_options(workspace_id=ctx.workspace_id, params=params, q=q)
+    return Response.success(data=page)
 
 
 @router.get(
@@ -61,10 +79,16 @@ async def set_member_roles(
     membership_id: UUID,
     payload: WorkspaceTeamMemberRoleSetRequest,
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
+    user_id: UUID = Depends(get_current_user_id),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[None]:
     service = WorkspaceTeamService(settings)
-    await service.set_member_roles(workspace_id=ctx.workspace_id, membership_id=membership_id, payload=payload)
+    await service.set_member_roles(
+        workspace_id=ctx.workspace_id,
+        membership_id=membership_id,
+        payload=payload,
+        acting_user_id=user_id,
+    )
     return Response.success()
 
 
@@ -353,6 +377,7 @@ async def renew_invite_link(
     link_id: UUID,
     payload: WorkspaceInviteLinkRenewRequest,
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
+    user_id: UUID = Depends(get_current_user_id),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[WorkspaceInviteLinkCreateResult]:
     service = WorkspaceTeamService(settings)
@@ -361,6 +386,7 @@ async def renew_invite_link(
         workspace_id=ctx.workspace_id,
         link_id=link_id,
         payload=payload,
+        renewed_by_user_id=user_id,
     )
     return Response.success(data=out)
 
@@ -374,10 +400,14 @@ async def renew_invite_link(
 async def disable_invite_link(
     link_id: UUID,
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
+    user_id: UUID = Depends(get_current_user_id),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[None]:
     service = WorkspaceTeamService(settings)
     await service.disable_invite_link(
-        organization_id=ctx.organization_id, workspace_id=ctx.workspace_id, link_id=link_id
+        organization_id=ctx.organization_id,
+        workspace_id=ctx.workspace_id,
+        link_id=link_id,
+        disabled_by_user_id=user_id,
     )
     return Response.success()
