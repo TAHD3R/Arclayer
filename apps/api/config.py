@@ -308,6 +308,11 @@ class LoggingSettings(BaseSettings):
         ],
         validation_alias=AliasChoices("REQUEST_LOG_OMIT_PATH_PREFIXES"),
     )
+    watchfiles_level: str = Field(
+        default="INFO",
+        validation_alias=AliasChoices("WATCHFILES_LEVEL"),
+        description="Python logging level for watchfiles.* loggers (kept higher to avoid dev console spam).",
+    )
 
     @field_validator("log_dir", mode="after")
     @classmethod
@@ -816,6 +821,10 @@ class PluginSettings(BaseSettings):
     root_dir: Path = Field(default=Path(__file__).resolve().parents[2] / "plugins")
     auto_migrate: bool = Field(default=True)
     auto_restart: bool = Field(default=True)
+    watch_enabled: bool = Field(default=False, description="Enable dev-only file watchers (watchfiles).")
+    watch_debounce_ms: int = Field(default=300, description="Debounce window for watch events.")
+    watch_locales: bool = Field(default=True, description="Watch locale JSON files and clear i18n cache.")
+    watch_plugins: bool = Field(default=True, description="Watch plugin directory changes and request restart.")
     migration_lock_ttl_seconds: int = Field(default=300)
     migration_lock_timeout_seconds: int = Field(default=60)
     restart_poll_interval_seconds: float = Field(default=2.0)

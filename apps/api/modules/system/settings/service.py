@@ -195,7 +195,7 @@ class SettingsService(BaseService):
             secret_paths = set(iter_secret_field_paths(schema))
             changed_paths = _flatten_patch_paths(patch)
             contains_secrets = any((p in secret_paths) or _is_secret_descendant(p, secret_paths) for p in changed_paths)
-            await self.manager.registry.event_bus.publish(
+            await self.manager.host.event_bus.publish(
                 Event(
                     name=SETTINGS_UPDATED,
                     payload={

@@ -195,7 +195,7 @@ class SystemSetupService(BaseService):
         rbac_ok = True
         # Emit a best-effort event so plugins can react without hard coupling to setup flow.
         try:
-            await self.manager.registry.event_bus.publish(
+            await self.manager.host.event_bus.publish(
                 Event(
                     name=SYSTEM_SETUP_COMPLETED,
                     payload={"admin_user_id": str(user.id), "admin_username": user.username},

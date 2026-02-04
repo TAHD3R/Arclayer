@@ -5,6 +5,7 @@ import { escapeInject, dangerouslySkipEscape } from "vike/server";
 import { PageShell } from "./PageShell";
 import { ensurePortalRequestContext } from "@/runtime/request-context";
 import { getPortalRuntimeConfigForSite } from "@/runtime/runtime-config";
+import { fetchPortalExtensionsFromApi, type PortalExtension } from "@/runtime/site-api";
 import { resolveLocalizedValue, serializeCssVarsToStyleText } from "@celestial/site-renderer-core";
 import type { LocalizedString, ViewerContext } from "@celestial/site-renderer-core";
 
@@ -30,6 +31,12 @@ async function onRenderHtml(pageContext: VikePageContextLike) {
     siteCtx.siteId,
     token ? { mode: resolveMode, token } : { mode: resolveMode },
   );
+
+  const portalExtensions = await fetchPortalExtensionsFromApi(
+    siteCtx.siteId,
+    token ? { mode: resolveMode, token } : { mode: resolveMode },
+  );
+  const portalHeadExtensionsHtml = serializePortalExtensionsToHeadHtml(portalExtensions.items);
 
   const cssVarStyleText = serializeCssVarsToStyleText(runtimeConfig.theme.cssVars);
   const fontFaceStyleText = serializeFontFacesToStyleText(runtimeConfig);
@@ -60,6 +67,7 @@ async function onRenderHtml(pageContext: VikePageContextLike) {
         ${themeBaseCssUrl ? escapeInject`<link rel="stylesheet" href="${themeBaseCssUrl}" />` : ""}
         ${fontFaceStyleText ? escapeInject`<style id="portal-font-faces">${fontFaceStyleText}</style>` : ""}
         <style id="portal-css-vars">${cssVarStyleText}</style>
+        ${portalHeadExtensionsHtml ? dangerouslySkipEscape(portalHeadExtensionsHtml) : ""}
       </head>
       <body>
         <div id="page-view">${dangerouslySkipEscape(appHtml)}</div>
@@ -136,6 +144,73 @@ function serializeFontFacesToStyleText(runtimeConfig: unknown): string {
     if (style) lines.push(`  font-style: ${style};`);
     if (display) lines.push(`  font-display: ${display};`);
     lines.push("}");
+  }
+
+  return lines.join("\n");
+}
+
+function escapeHtmlAttr(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;");
+}
+
+function isSafeUrl(url: string): boolean {
+  const u = url.trim();
+  if (!u) return false;
+  // Allow relative asset paths served by backend (e.g. /assets/..).
+  if (u.startsWith("/")) return true;
+  // Allow explicit http(s) URLs.
+  return u.startsWith("https://") || u.startsWith("http://");
+}
+
+function serializePortalExtensionsToHeadHtml(items: PortalExtension[]): string {
+  if (!items.length) return "";
+
+  const lines: string[] = [];
+  for (const item of items) {
+    const kind = item.kind;
+    const meta = item.meta ?? {};
+
+    if (kind === "head_link") {
+      const href = typeof meta.href === "string" ? meta.href.trim() : "";
+      if (!isSafeUrl(href)) continue;
+      const rel = typeof meta.rel === "string" ? meta.rel.trim() : "stylesheet";
+      const asAttr = typeof meta.as === "string" ? meta.as.trim() : "";
+      const typeAttr = typeof meta.type === "string" ? meta.type.trim() : "";
+
+      const attrs = [`rel="${escapeHtmlAttr(rel)}"`, `href="${escapeHtmlAttr(href)}"`];
+      if (asAttr) attrs.push(`as="${escapeHtmlAttr(asAttr)}"`);
+      if (typeAttr) attrs.push(`type="${escapeHtmlAttr(typeAttr)}"`);
+      lines.push(`<link ${attrs.join(" ")} />`);
+      continue;
+    }
+
+    if (kind === "head_script") {
+      const src = typeof meta.src === "string" ? meta.src.trim() : "";
+      if (!isSafeUrl(src)) continue;
+      const typeAttr = typeof meta.type === "string" ? meta.type.trim() : "";
+      const defer = meta.defer === false ? false : true;
+      const asyncAttr = meta.async === true;
+
+      const attrs = [`src="${escapeHtmlAttr(src)}"`];
+      if (typeAttr) attrs.push(`type="${escapeHtmlAttr(typeAttr)}"`);
+      if (defer) attrs.push("defer");
+      if (asyncAttr) attrs.push("async");
+      lines.push(`<script ${attrs.join(" ")}></script>`);
+      continue;
+    }
+
+    if (kind === "style") {
+      const text = typeof meta.text === "string" ? meta.text : "";
+      if (!text.trim()) continue;
+      // Prevent accidental HTML injection through a closing </style> sequence.
+      const safeText = text.replaceAll("</style", "<\\/style");
+      lines.push(`<style data-plugin-id="${escapeHtmlAttr(item.pluginId)}">${safeText}</style>`);
+      continue;
+    }
   }
 
   return lines.join("\n");

@@ -15,6 +15,7 @@ from apps.api.modules.workspaces.deps import WorkspaceContext, require_workspace
 from apps.api.modules.workspaces.rbac.schema import (
     PermissionRoleSetRequest,
     RoleCreateFromTemplateRequest,
+    RolePermissionSetRequest,
     RoleUpdateRequest,
     WorkspacePermissionOut,
     WorkspaceRBACMatrixOut,
@@ -144,9 +145,9 @@ async def create_role(
         from asgi_correlation_id import correlation_id
 
         from apps.api.plugin.event_bus import Event
-        from apps.api.plugin.registry import registry as plugin_registry
+        from apps.api.plugin.host import host as plugin_host
 
-        await plugin_registry.event_bus.publish(
+        await plugin_host.event_bus.publish(
             Event(
                 name="rbac.role.created",
                 payload={"workspace_id": str(ctx.workspace_id), "role_code": role.code, "role_id": str(role.id)},
@@ -184,9 +185,9 @@ async def update_role(
         from asgi_correlation_id import correlation_id
 
         from apps.api.plugin.event_bus import Event
-        from apps.api.plugin.registry import registry as plugin_registry
+        from apps.api.plugin.host import host as plugin_host
 
-        await plugin_registry.event_bus.publish(
+        await plugin_host.event_bus.publish(
             Event(
                 name="rbac.role.updated",
                 payload={"workspace_id": str(ctx.workspace_id), "role_code": role.code, "role_id": str(role.id)},
@@ -217,9 +218,9 @@ async def delete_role(
         from asgi_correlation_id import correlation_id
 
         from apps.api.plugin.event_bus import Event
-        from apps.api.plugin.registry import registry as plugin_registry
+        from apps.api.plugin.host import host as plugin_host
 
-        await plugin_registry.event_bus.publish(
+        await plugin_host.event_bus.publish(
             Event(
                 name="rbac.role.deleted",
                 payload={"workspace_id": str(ctx.workspace_id), "role_code": str(role_code)},
@@ -255,15 +256,59 @@ async def set_permission_roles(
         from asgi_correlation_id import correlation_id
 
         from apps.api.plugin.event_bus import Event
-        from apps.api.plugin.registry import registry as plugin_registry
+        from apps.api.plugin.host import host as plugin_host
 
-        await plugin_registry.event_bus.publish(
+        await plugin_host.event_bus.publish(
             Event(
                 name="rbac.permission.roles_set",
                 payload={
                     "workspace_id": str(ctx.workspace_id),
                     "permission_code": str(permission_code),
                     "role_codes": sorted({str(x).strip() for x in (body.role_codes or []) if x and str(x).strip()}),
+                },
+                source="api",
+                trace_id=correlation_id.get(None),
+                actor_user_id=str(user_id),
+            )
+        )
+    except Exception:
+        pass
+    return Response.success()
+
+
+@router.put(
+    "/roles/{role_code}/permissions",
+    response_model=ResponseModel[None],
+    summary="Replace permissions granted to a custom role (system roles are immutable)",
+    dependencies=[require_workspace_permission("rbac:roles:write")],
+)
+async def set_role_permissions(
+    role_code: str,
+    body: RolePermissionSetRequest,
+    ctx: WorkspaceContext = Depends(require_workspace_manage_access),
+    user_id=Depends(get_current_user_id),
+    service: WorkspaceRBACService = Depends(get_rbac_service),
+) -> ResponseModel[None]:
+    await service.set_custom_role_permissions(
+        workspace_id=ctx.workspace_id,
+        role_code=role_code,
+        permission_codes=body.permission_codes,
+    )
+    try:
+        from asgi_correlation_id import correlation_id
+
+        from apps.api.plugin.event_bus import Event
+        from apps.api.plugin.host import host as plugin_host
+
+        await plugin_host.event_bus.publish(
+            Event(
+                name="rbac.role.permissions_set",
+                payload={
+                    "workspace_id": str(ctx.workspace_id),
+                    "role_code": str(role_code),
+                    "permission_codes": sorted({
+                        str(x).strip() for x in (body.permission_codes or []) if x and str(x).strip()
+                    }),
                 },
                 source="api",
                 trace_id=correlation_id.get(None),

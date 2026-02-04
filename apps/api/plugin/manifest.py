@@ -75,6 +75,46 @@ class PluginManifest(BaseSchema):
     permissions: list[PermissionTemplate] = Field(default_factory=list)
     config_schema: ConfigSchema | None = None
     models: list[str] = Field(default_factory=list)
+    admin_menu: list[AdminMenuSeedItem] = Field(default_factory=list)
+    admin_ui_extensions: list[AdminUIExtensionDecl] = Field(default_factory=list)
+    portal_extensions: list[PortalExtensionDecl] = Field(default_factory=list)
+
+
+class AdminMenuSeedItem(BaseSchema):
+    code: str
+    parent_code: str | None = None
+    title: str
+    title_i18n: str | None = None
+    icon: str | None = None
+    type: str = "item"
+    path: str | None = None
+    name: str | None = None
+    component_key: str | None = None
+    redirect: str | None = None
+    sort: int = 0
+    is_active: bool = True
+    permission_code: str | None = None
+    meta: dict[str, Any] | None = None
+
+
+class AdminUIExtensionDecl(BaseSchema):
+    id: str
+    slot: str
+    title: str
+    title_i18n: str | None = None
+    kind: str = "action"
+    icon: str | None = None
+    permission_code: str | None = None
+    meta: dict[str, Any] | None = None
+
+
+class PortalExtensionDecl(BaseSchema):
+    id: str
+    kind: str
+    title: str
+    title_i18n: str | None = None
+    permission_code: str | None = None
+    meta: dict[str, Any] | None = None
 
 
 def load_plugin_manifest(path: Path) -> PluginManifest:
@@ -96,3 +136,7 @@ def build_default_config(manifest: PluginManifest) -> dict[str, Any]:
         if section_values:
             config[section.id] = section_values
     return config
+
+
+# Ensure forward refs are resolved (Pydantic v2).
+PluginManifest.model_rebuild()

@@ -53,6 +53,19 @@ class AdminMenuService(BaseService):
         permission_set = set(snap.permission_codes or [])
         is_superuser = bool(snap.is_superuser)
 
+        # Workspace-scoped plugin enable state: plugin-owned menus should only show up
+        # when the plugin is enabled in current workspace.
+        enabled_plugin_ids: set[str] = set()
+        try:
+            from apps.api.modules.workspaces.plugins_center.models import WorkspacePluginState
+
+            rows = await WorkspacePluginState.filter(workspace_id=workspace_id, enabled=True).values_list(
+                "plugin_id", flat=True
+            )
+            enabled_plugin_ids = {str(x) for x in rows if x}
+        except Exception:
+            enabled_plugin_ids = set()
+
         rows = await self.repo.query_items_for_user().all().order_by("sort", "created_at")
         by_id = {row.id: row for row in rows}
         children: dict[UUID | None, list[AdminMenuItem]] = {}
@@ -65,6 +78,11 @@ class AdminMenuService(BaseService):
         visible: set[UUID] = set()
 
         def _allowed(item: AdminMenuItem) -> bool:
+            meta = item.meta if isinstance(item.meta, dict) else {}
+            owner_plugin_id = str(meta.get("plugin_id") or "").strip() if meta else ""
+            if owner_plugin_id and owner_plugin_id != "core":
+                if owner_plugin_id not in enabled_plugin_ids:
+                    return False
             if is_superuser:
                 return True
             if not item.permission_code:
@@ -105,6 +123,7 @@ class AdminMenuService(BaseService):
                 component_key=item.component_key,
                 redirect=item.redirect,
                 sort=item.sort,
+                permission_code=item.permission_code,
                 meta=item.meta if isinstance(item.meta, dict) else None,
                 children=[],
             )
@@ -119,6 +138,56 @@ class AdminMenuService(BaseService):
             built = _build_node(row)
             if built is not None:
                 tree.append(built)
+        return AdminMenuTreeOut(items=tree)
+
+    async def get_catalog(self) -> AdminMenuTreeOut:
+        """
+        Return the full active admin menu tree (no per-user permission filtering).
+
+        Used by admin governance pages (e.g. role menu scope configuration) to render
+        the canonical menu catalog.
+        """
+
+        workspace_id = get_current_workspace_id()
+        if workspace_id is None:
+            raise ServiceUnavailable(
+                message=t("errors", "WORKSPACE_CONTEXT_REQUIRED", default="需要工作区上下文"),
+                error="WORKSPACE_CONTEXT_REQUIRED",
+            )
+
+        rows = await self.repo.query_items_for_user().all().order_by("sort", "created_at")
+        by_id = {row.id: row for row in rows}
+        children: dict[UUID | None, list[AdminMenuItem]] = {}
+        for row in rows:
+            children.setdefault(_get_parent_id(row), []).append(row)
+
+        for items in children.values():
+            items.sort(key=lambda r: (r.sort, r.created_at, str(r.id)))
+
+        def _build_node(item: AdminMenuItem) -> AdminMenuNode:
+            node = AdminMenuNode(
+                id=item.id,
+                code=item.code,
+                title=item.title,
+                title_i18n=item.title_i18n,
+                icon=item.icon,
+                path=item.path,
+                name=item.name,
+                component_key=item.component_key,
+                redirect=item.redirect,
+                sort=item.sort,
+                permission_code=item.permission_code,
+                meta=item.meta if isinstance(item.meta, dict) else None,
+                children=[],
+            )
+            for child in children.get(item.id, []):
+                if child.id not in by_id:
+                    continue
+                node.children.append(_build_node(child))
+            return node
+
+        roots = children.get(None, [])
+        tree = [_build_node(r) for r in roots if r.id in by_id]
         return AdminMenuTreeOut(items=tree)
 
     async def list_items(self, *, params: PageParams, filters: AdminMenuListQuery) -> PageData[AdminMenuItemOut]:

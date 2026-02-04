@@ -12,14 +12,13 @@ from apps.api.infra.storage.local import safe_object_key_to_path
 from apps.api.infra.storage.s3 import S3StorageProvider
 from apps.api.modules.assets.events import ASSET_UPLOADED_EVENT
 from apps.api.modules.assets.models.asset import AssetRecord
-from apps.api.plugin.event_bus import Event
-from apps.api.plugin.registry import ExtensionRegistry
+from apps.api.plugin.event_bus import Event, EventBus
 from apps.api.settings.runtime import get_effective_settings
 
 logger = get_logger(__name__)
 
 
-async def register_core_asset_processors(registry: ExtensionRegistry, settings: Settings) -> None:
+async def register_core_asset_processors(event_bus: EventBus, settings: Settings) -> None:
     """
     Register core asset processors on the in-process EventBus.
 
@@ -155,7 +154,7 @@ async def register_core_asset_processors(registry: ExtensionRegistry, settings: 
             logger.warning("Core asset processor failed", error_event=ASSET_UPLOADED_EVENT, error=str(exc))
 
     # Subscribe as "core". If the app hot-reloads, duplicate subscriptions may happen;
-    await registry.event_bus.subscribe(
+    await event_bus.subscribe(
         plugin_id="core",
         event_name=ASSET_UPLOADED_EVENT,
         handler=_on_asset_uploaded,

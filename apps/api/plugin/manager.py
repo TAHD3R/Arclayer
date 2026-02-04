@@ -26,8 +26,8 @@ from apps.api.infra.cache.valkey import ValkeyClient
 from apps.api.modules.system.models.plugin import PluginRecord
 from apps.api.plugin.event_bus import Event
 from apps.api.plugin.events import PLUGIN_DISABLED, PLUGIN_ENABLED
+from apps.api.plugin.host import PluginHost, host
 from apps.api.plugin.manifest import build_default_config, load_plugin_manifest
-from apps.api.plugin.registry import ExtensionRegistry, registry
 from apps.api.plugin.restart import request_restart
 from apps.api.plugin.types import BasePlugin, PluginDescriptor, PluginStatus
 
@@ -39,11 +39,11 @@ class _AsyncEval(Protocol):
 
 
 class PluginManager:
-    def __init__(self, settings: Settings, *, extension_registry: ExtensionRegistry | None = None) -> None:
+    def __init__(self, settings: Settings, *, plugin_host: PluginHost | None = None) -> None:
         self.settings = settings
         self.root_dir = Path(settings.plugin.root_dir)
         self.project_root = Path(__file__).resolve().parents[3]
-        self.registry = extension_registry or registry
+        self.host = plugin_host or host
         self.descriptors: dict[str, PluginDescriptor] = {}
         # Slugs used for URL routing are declared in plugin manifests; keep bidirectional indexes
         # for resolution and validation.
@@ -177,9 +177,6 @@ class PluginManager:
             descriptor.config = record.config or defaults
 
     async def start(self) -> None:
-        for descriptor in self.descriptors.values():
-            self.registry.register_permissions(descriptor.plugin_id, descriptor.manifest.permissions)
-
         for plugin_id in self._resolve_start_order():
             descriptor = self.descriptors[plugin_id]
             record = self.records.get(plugin_id)
@@ -291,7 +288,7 @@ class PluginManager:
         # Best-effort: never break plugin lifecycle operations.
         try:
             desc = self.descriptors.get(plugin_id)
-            await self.registry.event_bus.publish(
+            await self.host.event_bus.publish(
                 Event(
                     name=event_name,
                     payload={
@@ -469,9 +466,14 @@ class PluginManager:
     async def _start_plugin(self, descriptor: PluginDescriptor, record: PluginRecord | None) -> None:
         try:
             plugin_class = _load_plugin_class(descriptor.entrypoint)
-            instance = plugin_class(descriptor, self.registry)
+            instance = plugin_class(descriptor, self.host)
+            # Register into pluggy so hooks become available immediately.
+            try:
+                self.host.unregister(name=descriptor.plugin_id)
+            except Exception:
+                pass
+            self.host.register(instance, name=descriptor.plugin_id)
             instance.on_load()
-            self.registry.register_permissions(descriptor.plugin_id, descriptor.manifest.permissions)
             await instance.on_start()
             instance.started = True
             self.instances[descriptor.plugin_id] = instance
@@ -486,12 +488,14 @@ class PluginManager:
             logger.exception("Plugin start failed", plugin_id=descriptor.plugin_id, error=str(exc))
             # Ensure partially-registered extensions don't leak across app lifecycles/tests.
             try:
-                await self.registry.event_bus.unsubscribe_all(descriptor.plugin_id)
+                await self.host.event_bus.unsubscribe_all(descriptor.plugin_id)
             except Exception:
                 # Keep cleanup best-effort.
                 pass
-            self.registry.unregister_extensions(descriptor.plugin_id)
-            self.registry.unregister_permissions(descriptor.plugin_id)
+            try:
+                self.host.unregister(name=descriptor.plugin_id)
+            except Exception:
+                pass
             self.instances.pop(descriptor.plugin_id, None)
             if record:
                 record.status = PluginStatus.FAILED
@@ -508,11 +512,13 @@ class PluginManager:
         finally:
             # Plugins may forget to unregister their contributions; enforce cleanup here.
             try:
-                await self.registry.event_bus.unsubscribe_all(plugin_id)
+                await self.host.event_bus.unsubscribe_all(plugin_id)
             except Exception:
                 pass
-            self.registry.unregister_extensions(plugin_id)
-            self.registry.unregister_permissions(plugin_id)
+            try:
+                self.host.unregister(name=plugin_id)
+            except Exception:
+                pass
             record = self.records.get(plugin_id)
             if record and stop_ok:
                 record.status = PluginStatus.STOPPED

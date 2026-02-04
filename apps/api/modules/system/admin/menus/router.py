@@ -45,6 +45,20 @@ async def get_my_menu(
 
 
 @router.get(
+    "/catalog",
+    response_model=ResponseModel[AdminMenuTreeOut],
+    summary="Get admin menu catalog (no per-user filtering)",
+    dependencies=[require_workspace_permission("rbac:roles:write")],
+)
+async def get_menu_catalog(
+    _ctx: WorkspaceContext = Depends(require_workspace_manage_access),
+) -> ResponseModel[AdminMenuTreeOut]:
+    service = _get_service()
+    data = await service.get_catalog()
+    return Response.success(data=data)
+
+
+@router.get(
     "",
     response_model=ResponseModel[PageData[AdminMenuItemOut]],
     dependencies=[require_workspace_permission("admin:menu:read")],

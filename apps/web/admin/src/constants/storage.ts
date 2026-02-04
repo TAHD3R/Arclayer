@@ -3,6 +3,7 @@ export const STORAGE_KEYS = {
   locale: "celestial:admin:locale",
   auth: "celestial:admin:auth",
   workspace: "celestial:admin:workspace",
+  workspaceLocaleCache: "celestial:admin:workspaceLocaleCache",
   sidebarNotificationCenter: "celestial:admin:sidebarNotificationCenter",
   dataTableVisibility: "celestial:admin:dataTable:visibility",
 } as const;

@@ -31,6 +31,14 @@ interface PreferencesState {
    * - Does NOT set localePreference, so API requests won't send X-Locale.
    */
   setEffectiveLocale: (locale: AppLocale) => void;
+  /**
+   * Persist a workspace's default locale for faster bootstrapping on refresh.
+   *
+   * Notes:
+   * - Does NOT change localePreference.
+   * - Used to avoid "flash to browser language" before workspace settings are loaded.
+   */
+  cacheWorkspaceLocale: (workspaceId: string, locale: AppLocale) => void;
   setShowSidebarNotificationCenter: (enabled: boolean) => void;
 }
 
@@ -89,6 +97,47 @@ function persistSidebarNotificationCenter(enabled: boolean) {
   }
 }
 
+type WorkspaceLocaleCache = Record<string, AppLocale | undefined>;
+
+function readWorkspaceLocaleCache(): WorkspaceLocaleCache {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEYS.workspaceLocaleCache);
+    if (!raw) return {};
+    const parsed: unknown = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return {};
+    return parsed as WorkspaceLocaleCache;
+  } catch {
+    return {};
+  }
+}
+
+function writeWorkspaceLocaleCache(next: WorkspaceLocaleCache) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(STORAGE_KEYS.workspaceLocaleCache, JSON.stringify(next));
+  } catch {
+    // ignore storage errors
+  }
+}
+
+function readPersistedLastWorkspaceId(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEYS.workspace);
+    if (!raw) return null;
+    const parsed: unknown = JSON.parse(raw);
+    // zustand persist stores { state: {...}, version: n }
+    if (!parsed || typeof parsed !== "object") return null;
+    const state = (parsed as any).state;
+    const last = state?.lastWorkspaceId;
+    const s = typeof last === "string" ? last.trim() : "";
+    return s ? s : null;
+  } catch {
+    return null;
+  }
+}
+
 function getInitialSidebarNotificationCenterEnabled(): boolean {
   if (typeof window === "undefined") return true;
   try {
@@ -137,6 +186,16 @@ export const usePreferencesStore = create<PreferencesState>((set, get) => ({
     void i18n.changeLanguage(next);
   },
 
+  cacheWorkspaceLocale: (workspaceId, locale) => {
+    const wid = String(workspaceId || "").trim();
+    if (!wid) return;
+    const nextLocale = normalizeLocale(locale);
+    const current = readWorkspaceLocaleCache();
+    if (current[wid] === nextLocale) return;
+    current[wid] = nextLocale;
+    writeWorkspaceLocaleCache(current);
+  },
+
   setShowSidebarNotificationCenter: (enabled) => {
     persistSidebarNotificationCenter(enabled);
     set({ showSidebarNotificationCenter: enabled });
@@ -165,7 +224,19 @@ export function initializePreferences() {
       initialLocale = normalizeLocale(stored);
       localePreference = initialLocale;
     } else {
-      initialLocale = getInitialLocale();
+      // No explicit user preference -> try cached workspace default first.
+      const lastWorkspaceId = readPersistedLastWorkspaceId();
+      if (lastWorkspaceId) {
+        const cache = readWorkspaceLocaleCache();
+        const cached = cache[lastWorkspaceId];
+        if (cached) {
+          initialLocale = normalizeLocale(cached);
+        } else {
+          initialLocale = getInitialLocale();
+        }
+      } else {
+        initialLocale = getInitialLocale();
+      }
     }
   } catch {
     initialLocale = getInitialLocale();

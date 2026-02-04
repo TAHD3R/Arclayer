@@ -28,9 +28,10 @@ from apps.api.infra.limiter.limiter import close_rate_limiter, init_rate_limiter
 from apps.api.modules.analytics.bootstrap import close_activity, init_activity
 from apps.api.modules.organization.bootstrap import ensure_organization_ready
 from apps.api.modules.sites.bootstrap import ensure_demo_site_ready
-from apps.api.modules.system.rbac.bootstrap import ensure_rbac_ready, register_permission_templates
+from apps.api.modules.system.rbac.bootstrap import ensure_rbac_ready
 from apps.api.plugin.manager import PluginManager
 from apps.api.plugin.restart import start_restart_watcher, stop_restart_watcher
+from apps.api.plugin.watch import start_plugin_watchers, stop_plugin_watchers
 
 
 def _build_lifespan(settings: Settings, *, plugin_manager: PluginManager):
@@ -43,23 +44,41 @@ def _build_lifespan(settings: Settings, *, plugin_manager: PluginManager):
                 plugin_manager.discover()
             extra_models = plugin_manager.collect_model_modules()
 
-            # Collect permission templates from both core and plugins, so the DB sync
-            # can grant defaults deterministically on every boot.
-            register_permission_templates(plugin_manager=plugin_manager)
-
             await init_orm(settings, extra_modules=extra_models)
             await verify_db_ready(settings)
             # Hotfix legacy DB constraint that blocks v2 workspace-scoped settings.
             await ensure_settings_schema_constraints()
             # Start audit log ingestion (best-effort, non-blocking).
-            await init_activity(app, settings, event_bus=plugin_manager.registry.event_bus)
+            await init_activity(app, settings, event_bus=plugin_manager.host.event_bus)
             # Register core event-driven processors (e.g. thumbnails) after DB is ready.
             from apps.api.modules.assets.bootstrap import register_core_asset_processors
 
-            await register_core_asset_processors(plugin_manager.registry, settings)
+            await register_core_asset_processors(plugin_manager.host.event_bus, settings)
             if settings.database.enabled:
                 await ensure_organization_ready()
-                await ensure_rbac_ready(settings=settings)
+                await ensure_rbac_ready(settings=settings, plugin_manager=plugin_manager)
+                from apps.api.modules.system.admin.menus.bootstrap import ensure_core_admin_menus_ready
+
+                await ensure_core_admin_menus_ready(settings=settings)
+                # Best-effort: ensure plugin-declared admin menus exist (create missing, restore deleted).
+                try:
+                    from apps.api.modules.system.admin.menus.seeds import AdminMenuSeedService
+
+                    seeder = AdminMenuSeedService(settings)
+                    if not plugin_manager.descriptors:
+                        plugin_manager.discover()
+                    for desc in plugin_manager.descriptors.values():
+                        seeds = list(getattr(desc.manifest, "admin_menu", None) or [])
+                        if not seeds:
+                            continue
+                        await seeder.ensure_seeds(
+                            owner_plugin_id=desc.plugin_id,
+                            seeds=seeds,
+                            update_existing=False,
+                            restore_deleted=True,
+                        )
+                except Exception:
+                    pass
                 # Dev-only bootstrap for Portal SSR integration (do not run in production).
                 if settings.app_env != "production":
                     await ensure_demo_site_ready()
@@ -71,18 +90,20 @@ def _build_lifespan(settings: Settings, *, plugin_manager: PluginManager):
                 # Migrations may run during sync_records; run the hotfix again to be safe.
                 await ensure_settings_schema_constraints()
                 await plugin_manager.start()
+            await start_plugin_watchers(app, settings, plugin_manager=plugin_manager)
             await start_restart_watcher(app, settings)
             app.state.plugin_manager = plugin_manager
             yield
         finally:
             await stop_restart_watcher(app)
+            await stop_plugin_watchers(app)
             await plugin_manager.stop()
             try:
-                await close_activity(app, event_bus=plugin_manager.registry.event_bus)
+                await close_activity(app, event_bus=plugin_manager.host.event_bus)
             except Exception:
                 pass
             try:
-                await plugin_manager.registry.event_bus.aclose()
+                await plugin_manager.host.event_bus.aclose()
             except Exception:
                 pass
             await close_rate_limiter(app)
@@ -253,11 +274,6 @@ class AppFactory:
         return self
 
     def build(self) -> FastAPI:
-        # Register extension points before plugin discovery starts (lifespan),
-        # so plugins can safely register their implementations.
-        from apps.api.plugin.extension_points import init_extension_points
-
-        init_extension_points()
         register_routes(self.app, self.settings, plugin_manager=self.plugin_manager)
         return self.app
 

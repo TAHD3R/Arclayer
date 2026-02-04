@@ -131,3 +131,15 @@ export async function setWorkspacePermissionRoles(input: {
     { roleCodes },
   );
 }
+
+export async function setWorkspaceRolePermissions(input: {
+  workspaceId: string;
+  roleCode: string;
+  permissionCodes: string[];
+}): Promise<void> {
+  const { workspaceId, roleCode, permissionCodes } = input;
+  await api.put<null>(
+    workspacePath(workspaceId, `/rbac/roles/${encodeURIComponent(roleCode)}/permissions`),
+    { permissionCodes },
+  );
+}

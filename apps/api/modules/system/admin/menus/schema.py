@@ -27,6 +27,10 @@ class AdminMenuNode(BaseSchema):
     component_key: str | None = Field(default=None, description="Frontend component key for dynamic route.")
     redirect: str | None = Field(default=None, description="Optional redirect path.")
     sort: int = Field(default=0, description="Sort order.")
+    permission_code: str | None = Field(
+        default=None,
+        description="Required permission code (null means admin:access only).",
+    )
     meta: dict[str, Any] | None = Field(default=None, description="Route meta.")
     children: list[AdminMenuNode] = Field(default_factory=list, description="Child nodes.")
 

@@ -96,9 +96,9 @@ class WorkspaceTeamService(BaseService):
             from asgi_correlation_id import correlation_id
 
             from apps.api.plugin.event_bus import Event
-            from apps.api.plugin.registry import registry as plugin_registry
+            from apps.api.plugin.host import host as plugin_host
 
-            await plugin_registry.event_bus.publish(
+            await plugin_host.event_bus.publish(
                 Event(
                     name=name,
                     payload=payload,

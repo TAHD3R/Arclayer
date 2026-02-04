@@ -200,6 +200,78 @@ export async function fetchRuntimeConfigFromApi(
   };
 }
 
+export type PortalExtension = {
+  pluginId: string;
+  id: string;
+  kind: "head_link" | "head_script" | "style" | "unknown";
+  title: string;
+  titleI18n?: string | null;
+  permissionCode?: string | null;
+  meta?: Record<string, unknown> | null;
+};
+
+export async function fetchPortalExtensionsFromApi(
+  siteId: string,
+  opts: { mode: PortalResolveMode; token?: string },
+): Promise<{ items: PortalExtension[] }> {
+  const apiPrefix = getPortalApiPrefix();
+  const requestPath = `${apiPrefix}/sites/${encodeURIComponent(siteId)}/extensions/portal`;
+  const url = new URL(requestPath, "http://localhost");
+  url.searchParams.set("mode", opts.mode);
+  if (opts.token) url.searchParams.set("token", opts.token);
+
+  const input =
+    typeof window === "undefined"
+      ? new URL(url.pathname + url.search, getPortalApiOriginForSsr()).toString()
+      : url.pathname + url.search;
+
+  const res = await fetch(input, { headers: { Accept: "application/json" } });
+  if (!res.ok) {
+    throw await toApiError(res, `Failed to fetch portal extensions (${res.status})`);
+  }
+
+  const payload: unknown = await res.json();
+  const data = getResponseData(payload);
+  const itemsUnknown = getUnknownField(data, "items");
+  const items = Array.isArray(itemsUnknown) ? itemsUnknown : [];
+
+  const parsed = items
+    .map((raw) => {
+      if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+      const pluginId = (getStringField(raw, ["pluginId", "plugin_id"]) ?? "").trim();
+      const id = (getStringField(raw, ["id"]) ?? "").trim();
+      const kindRaw = (getStringField(raw, ["kind"]) ?? "").trim();
+      const title = (getStringField(raw, ["title"]) ?? "").trim();
+      if (!pluginId || !id || !title) return null;
+
+      const kind =
+        kindRaw === "head_link" || kindRaw === "head_script" || kindRaw === "style"
+          ? kindRaw
+          : "unknown";
+
+      const titleI18n = getStringField(raw, ["titleI18n", "title_i18n"]);
+      const permissionCode = getStringField(raw, ["permissionCode", "permission_code"]);
+      const metaUnknown = getUnknownField(raw, "meta");
+      const meta =
+        metaUnknown && typeof metaUnknown === "object" && !Array.isArray(metaUnknown)
+          ? (metaUnknown as Record<string, unknown>)
+          : null;
+
+      return {
+        pluginId,
+        id,
+        kind,
+        title,
+        titleI18n: titleI18n ?? null,
+        permissionCode: permissionCode ?? null,
+        meta,
+      } satisfies PortalExtension;
+    })
+    .filter((x): x is NonNullable<typeof x> => Boolean(x));
+
+  return { items: parsed };
+}
+
 function getPortalApiOriginForSsr(): string {
   const raw = (
     process.env.VITE_API_PROXY_TARGET ||

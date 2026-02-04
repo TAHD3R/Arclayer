@@ -28,6 +28,7 @@ import { Route as SettingsSeoIndexRouteImport } from './routes/settings/seo/inde
 import { Route as SettingsOrganizationIndexRouteImport } from './routes/settings/organization/index'
 import { Route as SettingsGeneralIndexRouteImport } from './routes/settings/general/index'
 import { Route as PluginsInstalledIndexRouteImport } from './routes/plugins/installed/index'
+import { Route as PluginsPluginSlugIndexRouteImport } from './routes/plugins/$pluginSlug/index'
 import { Route as ContentPagesIndexRouteImport } from './routes/content/pages/index'
 import { Route as ContentLibraryIndexRouteImport } from './routes/content/library/index'
 import { Route as AppearanceThemesIndexRouteImport } from './routes/appearance/themes/index'
@@ -48,6 +49,7 @@ import { Route as WWorkspaceIdSettingsSeoIndexRouteImport } from './routes/w/$wo
 import { Route as WWorkspaceIdSettingsOrganizationIndexRouteImport } from './routes/w/$workspaceId/settings/organization/index'
 import { Route as WWorkspaceIdSettingsGeneralIndexRouteImport } from './routes/w/$workspaceId/settings/general/index'
 import { Route as WWorkspaceIdPluginsInstalledIndexRouteImport } from './routes/w/$workspaceId/plugins/installed/index'
+import { Route as WWorkspaceIdPluginsPluginSlugIndexRouteImport } from './routes/w/$workspaceId/plugins/$pluginSlug/index'
 import { Route as WWorkspaceIdContentPagesIndexRouteImport } from './routes/w/$workspaceId/content/pages/index'
 import { Route as WWorkspaceIdContentLibraryIndexRouteImport } from './routes/w/$workspaceId/content/library/index'
 import { Route as WWorkspaceIdAppearanceThemesIndexRouteImport } from './routes/w/$workspaceId/appearance/themes/index'
@@ -152,6 +154,11 @@ const SettingsGeneralIndexRoute = SettingsGeneralIndexRouteImport.update({
 const PluginsInstalledIndexRoute = PluginsInstalledIndexRouteImport.update({
   id: '/plugins/installed/',
   path: '/plugins/installed/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PluginsPluginSlugIndexRoute = PluginsPluginSlugIndexRouteImport.update({
+  id: '/plugins/$pluginSlug/',
+  path: '/plugins/$pluginSlug/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ContentPagesIndexRoute = ContentPagesIndexRouteImport.update({
@@ -266,6 +273,12 @@ const WWorkspaceIdPluginsInstalledIndexRoute =
     path: '/plugins/installed/',
     getParentRoute: () => WWorkspaceIdRoute,
   } as any)
+const WWorkspaceIdPluginsPluginSlugIndexRoute =
+  WWorkspaceIdPluginsPluginSlugIndexRouteImport.update({
+    id: '/plugins/$pluginSlug/',
+    path: '/plugins/$pluginSlug/',
+    getParentRoute: () => WWorkspaceIdRoute,
+  } as any)
 const WWorkspaceIdContentPagesIndexRoute =
   WWorkspaceIdContentPagesIndexRouteImport.update({
     id: '/content/pages/',
@@ -340,6 +353,7 @@ export interface FileRoutesByFullPath {
   '/appearance/themes/': typeof AppearanceThemesIndexRoute
   '/content/library/': typeof ContentLibraryIndexRoute
   '/content/pages/': typeof ContentPagesIndexRoute
+  '/plugins/$pluginSlug/': typeof PluginsPluginSlugIndexRoute
   '/plugins/installed/': typeof PluginsInstalledIndexRoute
   '/settings/general/': typeof SettingsGeneralIndexRoute
   '/settings/organization/': typeof SettingsOrganizationIndexRoute
@@ -361,6 +375,7 @@ export interface FileRoutesByFullPath {
   '/w/$workspaceId/appearance/themes/': typeof WWorkspaceIdAppearanceThemesIndexRoute
   '/w/$workspaceId/content/library/': typeof WWorkspaceIdContentLibraryIndexRoute
   '/w/$workspaceId/content/pages/': typeof WWorkspaceIdContentPagesIndexRoute
+  '/w/$workspaceId/plugins/$pluginSlug/': typeof WWorkspaceIdPluginsPluginSlugIndexRoute
   '/w/$workspaceId/plugins/installed/': typeof WWorkspaceIdPluginsInstalledIndexRoute
   '/w/$workspaceId/settings/general/': typeof WWorkspaceIdSettingsGeneralIndexRoute
   '/w/$workspaceId/settings/organization/': typeof WWorkspaceIdSettingsOrganizationIndexRoute
@@ -389,6 +404,7 @@ export interface FileRoutesByTo {
   '/appearance/themes': typeof AppearanceThemesIndexRoute
   '/content/library': typeof ContentLibraryIndexRoute
   '/content/pages': typeof ContentPagesIndexRoute
+  '/plugins/$pluginSlug': typeof PluginsPluginSlugIndexRoute
   '/plugins/installed': typeof PluginsInstalledIndexRoute
   '/settings/general': typeof SettingsGeneralIndexRoute
   '/settings/organization': typeof SettingsOrganizationIndexRoute
@@ -410,6 +426,7 @@ export interface FileRoutesByTo {
   '/w/$workspaceId/appearance/themes': typeof WWorkspaceIdAppearanceThemesIndexRoute
   '/w/$workspaceId/content/library': typeof WWorkspaceIdContentLibraryIndexRoute
   '/w/$workspaceId/content/pages': typeof WWorkspaceIdContentPagesIndexRoute
+  '/w/$workspaceId/plugins/$pluginSlug': typeof WWorkspaceIdPluginsPluginSlugIndexRoute
   '/w/$workspaceId/plugins/installed': typeof WWorkspaceIdPluginsInstalledIndexRoute
   '/w/$workspaceId/settings/general': typeof WWorkspaceIdSettingsGeneralIndexRoute
   '/w/$workspaceId/settings/organization': typeof WWorkspaceIdSettingsOrganizationIndexRoute
@@ -440,6 +457,7 @@ export interface FileRoutesById {
   '/appearance/themes/': typeof AppearanceThemesIndexRoute
   '/content/library/': typeof ContentLibraryIndexRoute
   '/content/pages/': typeof ContentPagesIndexRoute
+  '/plugins/$pluginSlug/': typeof PluginsPluginSlugIndexRoute
   '/plugins/installed/': typeof PluginsInstalledIndexRoute
   '/settings/general/': typeof SettingsGeneralIndexRoute
   '/settings/organization/': typeof SettingsOrganizationIndexRoute
@@ -461,6 +479,7 @@ export interface FileRoutesById {
   '/w/$workspaceId/appearance/themes/': typeof WWorkspaceIdAppearanceThemesIndexRoute
   '/w/$workspaceId/content/library/': typeof WWorkspaceIdContentLibraryIndexRoute
   '/w/$workspaceId/content/pages/': typeof WWorkspaceIdContentPagesIndexRoute
+  '/w/$workspaceId/plugins/$pluginSlug/': typeof WWorkspaceIdPluginsPluginSlugIndexRoute
   '/w/$workspaceId/plugins/installed/': typeof WWorkspaceIdPluginsInstalledIndexRoute
   '/w/$workspaceId/settings/general/': typeof WWorkspaceIdSettingsGeneralIndexRoute
   '/w/$workspaceId/settings/organization/': typeof WWorkspaceIdSettingsOrganizationIndexRoute
@@ -492,6 +511,7 @@ export interface FileRouteTypes {
     | '/appearance/themes/'
     | '/content/library/'
     | '/content/pages/'
+    | '/plugins/$pluginSlug/'
     | '/plugins/installed/'
     | '/settings/general/'
     | '/settings/organization/'
@@ -513,6 +533,7 @@ export interface FileRouteTypes {
     | '/w/$workspaceId/appearance/themes/'
     | '/w/$workspaceId/content/library/'
     | '/w/$workspaceId/content/pages/'
+    | '/w/$workspaceId/plugins/$pluginSlug/'
     | '/w/$workspaceId/plugins/installed/'
     | '/w/$workspaceId/settings/general/'
     | '/w/$workspaceId/settings/organization/'
@@ -541,6 +562,7 @@ export interface FileRouteTypes {
     | '/appearance/themes'
     | '/content/library'
     | '/content/pages'
+    | '/plugins/$pluginSlug'
     | '/plugins/installed'
     | '/settings/general'
     | '/settings/organization'
@@ -562,6 +584,7 @@ export interface FileRouteTypes {
     | '/w/$workspaceId/appearance/themes'
     | '/w/$workspaceId/content/library'
     | '/w/$workspaceId/content/pages'
+    | '/w/$workspaceId/plugins/$pluginSlug'
     | '/w/$workspaceId/plugins/installed'
     | '/w/$workspaceId/settings/general'
     | '/w/$workspaceId/settings/organization'
@@ -591,6 +614,7 @@ export interface FileRouteTypes {
     | '/appearance/themes/'
     | '/content/library/'
     | '/content/pages/'
+    | '/plugins/$pluginSlug/'
     | '/plugins/installed/'
     | '/settings/general/'
     | '/settings/organization/'
@@ -612,6 +636,7 @@ export interface FileRouteTypes {
     | '/w/$workspaceId/appearance/themes/'
     | '/w/$workspaceId/content/library/'
     | '/w/$workspaceId/content/pages/'
+    | '/w/$workspaceId/plugins/$pluginSlug/'
     | '/w/$workspaceId/plugins/installed/'
     | '/w/$workspaceId/settings/general/'
     | '/w/$workspaceId/settings/organization/'
@@ -642,6 +667,7 @@ export interface RootRouteChildren {
   AppearanceThemesIndexRoute: typeof AppearanceThemesIndexRoute
   ContentLibraryIndexRoute: typeof ContentLibraryIndexRoute
   ContentPagesIndexRoute: typeof ContentPagesIndexRoute
+  PluginsPluginSlugIndexRoute: typeof PluginsPluginSlugIndexRoute
   PluginsInstalledIndexRoute: typeof PluginsInstalledIndexRoute
   SettingsGeneralIndexRoute: typeof SettingsGeneralIndexRoute
   SettingsOrganizationIndexRoute: typeof SettingsOrganizationIndexRoute
@@ -788,6 +814,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PluginsInstalledIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/plugins/$pluginSlug/': {
+      id: '/plugins/$pluginSlug/'
+      path: '/plugins/$pluginSlug'
+      fullPath: '/plugins/$pluginSlug/'
+      preLoaderRoute: typeof PluginsPluginSlugIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/content/pages/': {
       id: '/content/pages/'
       path: '/content/pages'
@@ -928,6 +961,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WWorkspaceIdPluginsInstalledIndexRouteImport
       parentRoute: typeof WWorkspaceIdRoute
     }
+    '/w/$workspaceId/plugins/$pluginSlug/': {
+      id: '/w/$workspaceId/plugins/$pluginSlug/'
+      path: '/plugins/$pluginSlug'
+      fullPath: '/w/$workspaceId/plugins/$pluginSlug/'
+      preLoaderRoute: typeof WWorkspaceIdPluginsPluginSlugIndexRouteImport
+      parentRoute: typeof WWorkspaceIdRoute
+    }
     '/w/$workspaceId/content/pages/': {
       id: '/w/$workspaceId/content/pages/'
       path: '/content/pages'
@@ -1007,6 +1047,7 @@ interface WWorkspaceIdRouteChildren {
   WWorkspaceIdAppearanceThemesIndexRoute: typeof WWorkspaceIdAppearanceThemesIndexRoute
   WWorkspaceIdContentLibraryIndexRoute: typeof WWorkspaceIdContentLibraryIndexRoute
   WWorkspaceIdContentPagesIndexRoute: typeof WWorkspaceIdContentPagesIndexRoute
+  WWorkspaceIdPluginsPluginSlugIndexRoute: typeof WWorkspaceIdPluginsPluginSlugIndexRoute
   WWorkspaceIdPluginsInstalledIndexRoute: typeof WWorkspaceIdPluginsInstalledIndexRoute
   WWorkspaceIdSettingsGeneralIndexRoute: typeof WWorkspaceIdSettingsGeneralIndexRoute
   WWorkspaceIdSettingsOrganizationIndexRoute: typeof WWorkspaceIdSettingsOrganizationIndexRoute
@@ -1034,6 +1075,8 @@ const WWorkspaceIdRouteChildren: WWorkspaceIdRouteChildren = {
     WWorkspaceIdAppearanceThemesIndexRoute,
   WWorkspaceIdContentLibraryIndexRoute: WWorkspaceIdContentLibraryIndexRoute,
   WWorkspaceIdContentPagesIndexRoute: WWorkspaceIdContentPagesIndexRoute,
+  WWorkspaceIdPluginsPluginSlugIndexRoute:
+    WWorkspaceIdPluginsPluginSlugIndexRoute,
   WWorkspaceIdPluginsInstalledIndexRoute:
     WWorkspaceIdPluginsInstalledIndexRoute,
   WWorkspaceIdSettingsGeneralIndexRoute: WWorkspaceIdSettingsGeneralIndexRoute,
@@ -1075,6 +1118,7 @@ const rootRouteChildren: RootRouteChildren = {
   AppearanceThemesIndexRoute: AppearanceThemesIndexRoute,
   ContentLibraryIndexRoute: ContentLibraryIndexRoute,
   ContentPagesIndexRoute: ContentPagesIndexRoute,
+  PluginsPluginSlugIndexRoute: PluginsPluginSlugIndexRoute,
   PluginsInstalledIndexRoute: PluginsInstalledIndexRoute,
   SettingsGeneralIndexRoute: SettingsGeneralIndexRoute,
   SettingsOrganizationIndexRoute: SettingsOrganizationIndexRoute,

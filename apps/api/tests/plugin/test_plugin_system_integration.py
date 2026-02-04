@@ -31,8 +31,8 @@ def _write_demo_plugin_with_deps(root, plugin_id: str, *, deps: list[dict] | Non
 
 
             class DemoPlugin(BasePlugin):
-                def __init__(self, descriptor, registry):
-                    super().__init__(descriptor, registry)
+                def __init__(self, descriptor, host):
+                    super().__init__(descriptor, host)
                     self.started = False
 
                 async def on_start(self) -> None:

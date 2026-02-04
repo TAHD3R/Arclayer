@@ -13,8 +13,11 @@ import {
   createWorkspaceRoleFromTemplate,
   deleteWorkspaceRole,
   getWorkspaceRbacMatrix,
+  setWorkspaceRolePermissions,
   setWorkspacePermissionRoles,
 } from "@/api/rbac";
+import type { AdminMenuNode } from "@/api/admin-menus";
+import { getAdminMenuCatalog } from "@/api/admin-menus";
 import { DefaultPage } from "@/components/common/default-page";
 import { PageState } from "@/components/common/page-state";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -54,6 +57,35 @@ function sortByName(roles: Role[]): Role[] {
   return [...roles].sort((a, b) => a.name.localeCompare(b.name));
 }
 
+function normalizePermissionCode(input: unknown): string | null {
+  const s = typeof input === "string" ? input.trim() : "";
+  return s ? s : null;
+}
+
+function collectMenuPermissionCodes(nodes: AdminMenuNode[] | undefined | null): Set<string> {
+  const out = new Set<string>();
+  const walk = (items: AdminMenuNode[]) => {
+    for (const n of items) {
+      const code = normalizePermissionCode(n.permissionCode);
+      if (code) out.add(code);
+      if (n.children?.length) walk(n.children);
+    }
+  };
+  if (nodes?.length) walk(nodes);
+  return out;
+}
+
+function collectDescendantPermissionCodes(node: AdminMenuNode): Set<string> {
+  const out = new Set<string>();
+  const walk = (n: AdminMenuNode) => {
+    const code = normalizePermissionCode(n.permissionCode);
+    if (code) out.add(code);
+    for (const ch of n.children ?? []) walk(ch);
+  };
+  walk(node);
+  return out;
+}
+
 type CreateRoleFormValues = {
   templateRoleCode: string;
   name: string;
@@ -82,6 +114,10 @@ export function TeamRolesView() {
   );
   const [permissionDraft, setPermissionDraft] = React.useState<Record<string, boolean>>({});
 
+  const [menuScopeOpen, setMenuScopeOpen] = React.useState(false);
+  const [menuScopeRoleCode, setMenuScopeRoleCode] = React.useState<string | null>(null);
+  const [menuScopeDraft, setMenuScopeDraft] = React.useState<Record<string, boolean>>({});
+
   const matrixQuery = useQuery({
     queryKey: ["rbac", "matrix", workspaceId],
     enabled: Boolean(accessToken && workspaceId),
@@ -91,6 +127,18 @@ export function TeamRolesView() {
     },
     staleTime: 30 * 1000,
     retry: false,
+  });
+
+  const menuCatalogQuery = useQuery({
+    queryKey: ["workspace", "adminMenuCatalog", workspaceId],
+    enabled: Boolean(accessToken && workspaceId && menuScopeOpen),
+    queryFn: async () => {
+      if (!workspaceId) throw new Error("workspaceId is required");
+      return getAdminMenuCatalog(workspaceId);
+    },
+    staleTime: 30 * 1000,
+    retry: false,
+    meta: { silent: true },
   });
 
   const roles = React.useMemo(() => sortByName(matrixQuery.data?.roles ?? []), [matrixQuery.data]);
@@ -209,6 +257,47 @@ export function TeamRolesView() {
     }
   }, [permissionDialogOpen]);
 
+  const customRoles = React.useMemo(() => roles.filter((r) => !r.isSystem), [roles]);
+
+  const menuPermissionCodes = React.useMemo(() => {
+    return collectMenuPermissionCodes(menuCatalogQuery.data?.items);
+  }, [menuCatalogQuery.data?.items]);
+
+  const currentRolePermissionSet = React.useMemo(() => {
+    const roleCode = menuScopeRoleCode;
+    if (!roleCode) return new Set<string>();
+    const granted = permissions
+      .filter((p) => (p.grantedRoleCodes ?? []).includes(roleCode))
+      .map((p) => p.code);
+    return new Set(granted);
+  }, [menuScopeRoleCode, permissions]);
+
+  React.useEffect(() => {
+    if (!menuScopeOpen) {
+      setMenuScopeRoleCode(null);
+      setMenuScopeDraft({});
+      return;
+    }
+    if (!menuScopeRoleCode && customRoles.length) {
+      setMenuScopeRoleCode(customRoles[0].code);
+    }
+  }, [customRoles, menuScopeOpen, menuScopeRoleCode]);
+
+  React.useEffect(() => {
+    if (!menuScopeOpen) return;
+    if (!menuScopeRoleCode) return;
+    if (!menuPermissionCodes.size) {
+      setMenuScopeDraft({});
+      return;
+    }
+
+    const draft: Record<string, boolean> = {};
+    for (const code of menuPermissionCodes) {
+      draft[code] = currentRolePermissionSet.has(code);
+    }
+    setMenuScopeDraft(draft);
+  }, [currentRolePermissionSet, menuPermissionCodes, menuScopeOpen, menuScopeRoleCode]);
+
   const savePermissionMutation = useMutation({
     mutationFn: async () => {
       if (!workspaceId) throw new Error("workspaceId is required");
@@ -231,6 +320,36 @@ export function TeamRolesView() {
     onSuccess: async () => {
       notifySuccessText(t("team:TEAM_ROLES_PERMISSION_SAVE_SUCCESS"));
       setPermissionDialogOpen(false);
+      await queryClient.invalidateQueries({ queryKey: ["rbac", "matrix", workspaceId] });
+    },
+    onError: (err) => notifyError(err),
+  });
+
+  const saveMenuScopeMutation = useMutation({
+    mutationFn: async () => {
+      if (!workspaceId) throw new Error("workspaceId is required");
+      if (!menuScopeRoleCode) throw new Error("roleCode is required");
+
+      // Keep non-menu permissions unchanged; only replace the subset that appears in menu catalog.
+      const selectedMenuPerms = Object.entries(menuScopeDraft)
+        .filter(([, checked]) => Boolean(checked))
+        .map(([code]) => code);
+
+      const next = new Set<string>();
+      for (const code of currentRolePermissionSet) {
+        if (!menuPermissionCodes.has(code)) next.add(code);
+      }
+      for (const code of selectedMenuPerms) next.add(code);
+
+      await setWorkspaceRolePermissions({
+        workspaceId,
+        roleCode: menuScopeRoleCode,
+        permissionCodes: Array.from(next),
+      });
+    },
+    onSuccess: async () => {
+      notifySuccessText(t("team:TEAM_ROLES_MENU_SCOPE_SAVE_SUCCESS"));
+      setMenuScopeOpen(false);
       await queryClient.invalidateQueries({ queryKey: ["rbac", "matrix", workspaceId] });
     },
     onError: (err) => notifyError(err),
@@ -368,13 +487,18 @@ export function TeamRolesView() {
             />
           </div>
 
-          <Button
-            type="primary"
-            icon={<Plus className="h-4 w-4" />}
-            onClick={() => setCreateOpen(true)}
-          >
-            {t("team:TEAM_ROLES_ADD_ROLE")}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button onClick={() => setMenuScopeOpen(true)}>
+              {t("team:TEAM_ROLES_MENU_SCOPE_ACTION")}
+            </Button>
+            <Button
+              type="primary"
+              icon={<Plus className="h-4 w-4" />}
+              onClick={() => setCreateOpen(true)}
+            >
+              {t("team:TEAM_ROLES_ADD_ROLE")}
+            </Button>
+          </div>
         </div>
 
         {hasEmptySearch ? (
@@ -528,6 +652,133 @@ export function TeamRolesView() {
               }}
             >
               {t("team:TEAM_ACTION_DELETE")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Role menu scope dialog (custom roles only) */}
+      <Dialog open={menuScopeOpen} onOpenChange={setMenuScopeOpen}>
+        <DialogContent className="max-w-[860px]">
+          <DialogHeader>
+            <DialogTitle>{t("team:TEAM_ROLES_MENU_SCOPE_TITLE")}</DialogTitle>
+            <DialogDescription>{t("team:TEAM_ROLES_MENU_SCOPE_DESC")}</DialogDescription>
+          </DialogHeader>
+
+          {customRoles.length ? (
+            <div className="grid gap-2">
+              <label className="font-semibold text-foreground">
+                {t("team:TEAM_ROLES_MENU_SCOPE_ROLE_LABEL")}
+              </label>
+              <Select
+                value={menuScopeRoleCode || undefined}
+                onChange={(v) => setMenuScopeRoleCode(String(v))}
+                placeholder={t("team:TEAM_ROLES_MENU_SCOPE_ROLE_PLACEHOLDER")}
+                getPopupContainer={(node) => node.parentElement ?? document.body}
+                dropdownStyle={{ zIndex: 3000 }}
+                options={customRoles.map((r) => ({ value: r.code, label: r.name }))}
+              />
+              <p className="text-xs text-muted-foreground">
+                {t("team:TEAM_ROLES_MENU_SCOPE_NOTE")}
+              </p>
+            </div>
+          ) : (
+            <div className="rounded-md border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+              {t("team:TEAM_ROLES_MENU_SCOPE_NO_CUSTOM_ROLE")}
+            </div>
+          )}
+
+          <div className="max-h-[420px] overflow-auto rounded-md border bg-card">
+            {menuCatalogQuery.isLoading && !menuCatalogQuery.data ? (
+              <div className="p-4">
+                <PageState loading loadingVariant="form" />
+              </div>
+            ) : menuCatalogQuery.isError ? (
+              <div className="p-4">
+                <PageState
+                  loading={false}
+                  error={menuCatalogQuery.error}
+                  onRetry={() => void menuCatalogQuery.refetch()}
+                />
+              </div>
+            ) : (
+              <div className="flex flex-col gap-1 p-2">
+                {(menuCatalogQuery.data?.items ?? []).map((root) => {
+                  const renderNode = (n: AdminMenuNode, depth: number): React.ReactNode => {
+                    const permSet = collectDescendantPermissionCodes(n);
+                    const permCodes = Array.from(permSet);
+                    const selectedCount = permCodes.filter((c) =>
+                      Boolean(menuScopeDraft[c]),
+                    ).length;
+                    const checkedState =
+                      permCodes.length === 0
+                        ? false
+                        : selectedCount === 0
+                          ? false
+                          : selectedCount === permCodes.length
+                            ? true
+                            : "indeterminate";
+
+                    const label = n.titleI18n ? t(n.titleI18n) : n.title;
+                    const directPerm = normalizePermissionCode(n.permissionCode);
+
+                    return (
+                      <div key={n.code}>
+                        <div
+                          className="flex items-start gap-3 rounded-md px-2 py-2 hover:bg-muted/30"
+                          style={{ paddingLeft: 8 + depth * 16 }}
+                        >
+                          <Checkbox
+                            checked={checkedState as any}
+                            disabled={!menuScopeRoleCode || permCodes.length === 0}
+                            onCheckedChange={(v) => {
+                              const nextChecked = Boolean(v);
+                              const target = collectDescendantPermissionCodes(n);
+                              setMenuScopeDraft((prev) => {
+                                const next = { ...prev };
+                                for (const code of target) next[code] = nextChecked;
+                                return next;
+                              });
+                            }}
+                          />
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="truncate font-medium text-foreground">{label}</span>
+                              {directPerm ? (
+                                <span className="text-xs text-muted-foreground">{directPerm}</span>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">
+                                  {t("team:TEAM_ROLES_MENU_SCOPE_BASE_ACCESS")}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        {(n.children ?? []).map((ch) => renderNode(ch, depth + 1))}
+                      </div>
+                    );
+                  };
+
+                  return renderNode(root, 0);
+                })}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              onClick={() => setMenuScopeOpen(false)}
+              disabled={saveMenuScopeMutation.isPending}
+            >
+              {t("common:CANCEL")}
+            </Button>
+            <Button
+              type="primary"
+              onClick={() => saveMenuScopeMutation.mutate()}
+              loading={saveMenuScopeMutation.isPending}
+              disabled={!menuScopeRoleCode || !customRoles.length}
+            >
+              {t("common:CONFIRM")}
             </Button>
           </DialogFooter>
         </DialogContent>

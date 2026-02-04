@@ -3,8 +3,31 @@ import { type CSSProperties, type PropsWithChildren, useEffect, useMemo, useStat
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
+import type { LucideIcon } from "lucide-react";
+import {
+  Activity,
+  File,
+  FileText,
+  Gauge,
+  HardDrive,
+  History,
+  Images,
+  LibraryBig,
+  Navigation2,
+  Package,
+  Paintbrush,
+  Palette,
+  Search,
+  Settings,
+  ShieldCheck,
+  SlidersHorizontal,
+  UserPlus,
+  Users,
+  Wrench,
+} from "lucide-react";
 
 import { ADMIN_NAV_ITEMS } from "@/constants/admin-nav";
+import type { AdminNavItem } from "@/constants/admin-nav";
 import { ORG_NAV_ITEMS } from "@/constants/org-nav";
 import { getAppConfig } from "@/constants/app-config";
 import { AdminSiderNav } from "@/components/common/admin-side-nav";
@@ -19,6 +42,8 @@ import { usePreferencesStore } from "@/stores/use-preference-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import type { NotificationPreview } from "@/api/notifications";
 import { getUnreadNotificationPreview, markNotificationRead } from "@/api/notifications";
+import type { AdminMenuNode } from "@/api/admin-menus";
+import { getMyAdminMenu } from "@/api/admin-menus";
 import { getWorkspaceDetail } from "@/api/workspaces";
 import { useWorkspaceLocalization } from "@/hooks/use-workspace-localization";
 import { useNowTick } from "@/hooks/use-now-tick";
@@ -31,6 +56,49 @@ import {
   SidebarInset,
   SidebarProvider,
 } from "@/components/ui/sidebar";
+
+const ICON_MAP: Record<string, LucideIcon> = {
+  Gauge,
+  FileText,
+  File,
+  LibraryBig,
+  Images,
+  Palette,
+  Paintbrush,
+  Navigation2,
+  Package,
+  Users,
+  UserPlus,
+  ShieldCheck,
+  Settings,
+  SlidersHorizontal,
+  Search,
+  Wrench,
+  HardDrive,
+  History,
+  Activity,
+} as const;
+
+function resolveLucideIcon(name?: string | null): LucideIcon {
+  const key = String(name || "").trim();
+  return ICON_MAP[key] ?? Package;
+}
+
+function buildNavItemsFromMenuNodes(nodes: AdminMenuNode[]): AdminNavItem[] {
+  const walk = (n: AdminMenuNode): AdminNavItem => {
+    const children = (n.children ?? []).map(walk);
+    return {
+      key: n.code,
+      label: n.title,
+      ...(n.titleI18n ? { labelKey: n.titleI18n } : {}),
+      ...(n.path ? { to: n.path } : {}),
+      icon: resolveLucideIcon(n.icon),
+      ...(children.length ? { children } : {}),
+    };
+  };
+
+  return (nodes ?? []).map(walk);
+}
 
 function normalizePath(input: string): string {
   if (input.length > 1 && input.endsWith("/")) return input.slice(0, -1);
@@ -50,14 +118,11 @@ function isPrefixMatch(to: string, pathname: string): boolean {
   return p === t || p.startsWith(`${t}/`);
 }
 
-function findActiveTrailNodes(
-  items: typeof ADMIN_NAV_ITEMS,
-  pathname: string,
-): (typeof ADMIN_NAV_ITEMS)[number][] {
+function findActiveTrailNodes(items: AdminNavItem[], pathname: string): AdminNavItem[] {
   let bestScore = -1;
-  let bestTrail: (typeof ADMIN_NAV_ITEMS)[number][] = [];
+  let bestTrail: AdminNavItem[] = [];
 
-  const dfs = (nodes: any[], parents: any[]) => {
+  const dfs = (nodes: AdminNavItem[], parents: AdminNavItem[]) => {
     for (const node of nodes) {
       const nextParents = [...parents, node];
 
@@ -75,7 +140,7 @@ function findActiveTrailNodes(
     }
   };
 
-  dfs(items as any[], []);
+  dfs(items, []);
   return bestTrail;
 }
 
@@ -100,6 +165,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
   const showSidebarNotificationCenter = usePreferencesStore((s) => s.showSidebarNotificationCenter);
   const localePreference = usePreferencesStore((s) => s.localePreference);
   const setEffectiveLocale = usePreferencesStore((s) => s.setEffectiveLocale);
+  const cacheWorkspaceLocale = usePreferencesStore((s) => s.cacheWorkspaceLocale);
   const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
 
   const isOrgScopeRoute = useMemo(() => {
@@ -114,12 +180,25 @@ export function AdminLayout({ children }: PropsWithChildren) {
     return `/w/${id}`;
   }, [workspaceId]);
 
+  const workspaceMenuQuery = useQuery({
+    queryKey: ["workspace", "adminMenu", workspaceId],
+    enabled: Boolean(accessToken && workspaceId && !isOrgScopeRoute),
+    queryFn: async () => getMyAdminMenu(String(workspaceId)),
+    staleTime: 60 * 1000,
+    retry: false,
+    meta: { silent: true },
+  });
+
   const navItems = useMemo(() => {
     if (isOrgScopeRoute) return ORG_NAV_ITEMS;
     if (!workspaceBase) return [];
     const base = workspaceBase.endsWith("/") ? workspaceBase.slice(0, -1) : workspaceBase;
 
-    const mapItems = (items: typeof ADMIN_NAV_ITEMS): typeof ADMIN_NAV_ITEMS => {
+    const baseItems: AdminNavItem[] = workspaceMenuQuery.data?.items?.length
+      ? buildNavItemsFromMenuNodes(workspaceMenuQuery.data.items)
+      : ADMIN_NAV_ITEMS;
+
+    const mapItems = (items: AdminNavItem[]): AdminNavItem[] => {
       return items.map((it) => {
         const to = it.to
           ? it.to === "/"
@@ -129,13 +208,13 @@ export function AdminLayout({ children }: PropsWithChildren) {
         return {
           ...it,
           ...(to ? { to } : {}),
-          ...(it.children?.length ? { children: mapItems(it.children as any) } : {}),
-        } as any;
+          ...(it.children?.length ? { children: mapItems(it.children) } : {}),
+        };
       });
     };
 
-    return mapItems(ADMIN_NAV_ITEMS);
-  }, [isOrgScopeRoute, workspaceBase]);
+    return mapItems(baseItems);
+  }, [isOrgScopeRoute, workspaceBase, workspaceMenuQuery.data?.items]);
 
   const [refreshing, setRefreshing] = useState(false);
 
@@ -159,12 +238,15 @@ export function AdminLayout({ children }: PropsWithChildren) {
     // When user has no explicit preference, apply workspace default locale as the effective UI locale.
     // This keeps behavior consistent across sessions without persisting it as a personal choice.
     if (!accessToken || !workspaceId) return;
-    if (localePreference) return;
     const next = workspaceLocalization.localization.locale;
     if (!next) return;
+    // Always cache workspace default locale for smoother refresh bootstrapping.
+    cacheWorkspaceLocale(String(workspaceId), next);
+    if (localePreference) return;
     setEffectiveLocale(next);
   }, [
     accessToken,
+    cacheWorkspaceLocale,
     localePreference,
     setEffectiveLocale,
     workspaceId,
@@ -172,7 +254,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
   ]);
 
   const routeTitle = useMemo(() => {
-    const trail = findActiveTrailNodes(navItems as any, pathname);
+    const trail = findActiveTrailNodes(navItems, pathname);
     const current = trail[trail.length - 1];
     if (!current) return null;
     return current.labelKey ? t(current.labelKey) : current.label;

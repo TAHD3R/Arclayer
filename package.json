@@ -15,8 +15,6 @@
     "portal:check": "turbo run lint format typecheck --filter=@celestial/portal",
     "api": "turbo run dev --filter=@celestial/api",
     "api:test": "turbo run test --filter=@celestial/api  --ui=tui",
-    "api:migrate": "turbo run db:migrate --filter=@celestial/api --ui=tui",
-    "api:upgrade": "turbo run db:upgrade --filter=@celestial/api --ui=tui",
     "api:check": "turbo run lint format typecheck test --filter=@celestial/api"
   },
   "devDependencies": {

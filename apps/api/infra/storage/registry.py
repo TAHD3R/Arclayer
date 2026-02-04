@@ -2,9 +2,7 @@ from __future__ import annotations
 
 from typing import Protocol
 
-from apps.api.common.constants.storage import STORAGE_PROVIDER_FACTORY_EXTENSION_POINT
 from apps.api.config import Settings
-from apps.api.plugin.registry import ExtensionPointType, registry
 
 
 class StorageProvider(Protocol):
@@ -24,14 +22,3 @@ class StorageProviderFactory(Protocol):
     provider: str
 
     def build(self, settings: Settings) -> StorageProvider: ...
-
-
-def _register_extension_point() -> None:
-    registry.register_extension_point(
-        STORAGE_PROVIDER_FACTORY_EXTENSION_POINT,
-        ExtensionPointType.MULTI_INSTANCE,
-        description="Storage provider factories (core and plugins).",
-    )
-
-
-_register_extension_point()

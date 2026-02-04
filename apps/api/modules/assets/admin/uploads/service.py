@@ -36,7 +36,7 @@ from apps.api.modules.assets.utils import (
     slugify,
 )
 from apps.api.plugin.event_bus import Event
-from apps.api.plugin.registry import registry as plugin_registry
+from apps.api.plugin.host import host as plugin_host
 from apps.api.settings.runtime import get_effective_settings
 
 logger = get_logger(__name__)
@@ -418,7 +418,7 @@ class UploadsService(BaseService):
 
         async def _publish() -> None:
             try:
-                await plugin_registry.event_bus.publish(event)
+                await plugin_host.event_bus.publish(event)
             except Exception:
                 return
 

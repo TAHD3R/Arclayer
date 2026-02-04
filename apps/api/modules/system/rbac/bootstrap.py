@@ -1,30 +1,19 @@
 from __future__ import annotations
 
 from apps.api.config import Settings
-from apps.api.modules.system.rbac.constants import CORE_PERMISSION_OWNER
-from apps.api.modules.system.rbac.permissions import CORE_PERMISSION_TEMPLATES
 from apps.api.modules.system.rbac.service import RBACService
 from apps.api.plugin.manager import PluginManager
-from apps.api.plugin.registry import registry
 
 
-def register_permission_templates(*, plugin_manager: PluginManager) -> None:
-    """
-    Register permission templates for both core and plugins into the in-memory registry.
-    """
-
-    registry.register_permissions(CORE_PERMISSION_OWNER, CORE_PERMISSION_TEMPLATES)
-    for desc in plugin_manager.descriptors.values():
-        registry.register_permissions(desc.plugin_id, desc.manifest.permissions)
-
-
-async def ensure_rbac_ready(*, settings: Settings) -> None:
+async def ensure_rbac_ready(*, settings: Settings, plugin_manager: PluginManager) -> None:
     """
     Ensure roles + permissions are consistent in DB.
 
-    This should be called after DB is initialized.
+    Notes:
+    - This should be called after DB is initialized.
+    - Permission templates are collected from both core and plugin manifests.
     """
 
-    service = RBACService(settings)
+    service = RBACService(settings, plugin_manager=plugin_manager)
     await service.sync_permission_catalog()
     await service.ensure_all_workspaces_ready()

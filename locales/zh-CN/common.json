@@ -21,6 +21,8 @@
   "PAGE_SERVER_ERROR_TITLE": "服务器出错了",
   "PAGE_SERVER_ERROR_DESC": "服务器遇到问题，请稍后重试。",
 
+  "EXTENSIONS": "扩展",
+
   "WORKSPACE_SELECT": "工作区",
   "WORKSPACE_SELECT_TITLE": "选择工作区",
   "WORKSPACE_SELECT_DESC": "请选择一个工作区进入后台，你可以在右上角随时切换。",

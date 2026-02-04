@@ -7,8 +7,8 @@ from typing import Any
 from pydantic import Field
 
 from apps.api.common.schemas import BaseSchema
+from apps.api.plugin.host import PluginHost
 from apps.api.plugin.manifest import PluginManifest
-from apps.api.plugin.registry import ExtensionRegistry
 
 
 class PluginStatus(StrEnum):
@@ -34,9 +34,9 @@ class PluginDescriptor(BaseSchema):
 
 
 class BasePlugin:
-    def __init__(self, descriptor: PluginDescriptor, registry: ExtensionRegistry) -> None:
+    def __init__(self, descriptor: PluginDescriptor, host: PluginHost) -> None:
         self.descriptor = descriptor
-        self.registry = registry
+        self.host = host
         self.started: bool = False
 
     @property

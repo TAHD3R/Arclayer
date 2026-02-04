@@ -21,6 +21,8 @@
   "PAGE_SERVER_ERROR_TITLE": "Something went wrong",
   "PAGE_SERVER_ERROR_DESC": "The server encountered an error. Please try again later.",
 
+  "EXTENSIONS": "Extensions",
+
   "WORKSPACE_SELECT": "Workspace",
   "WORKSPACE_SELECT_TITLE": "Select a workspace",
   "WORKSPACE_SELECT_DESC": "Select a workspace to enter the admin. You can switch workspaces anytime from the top right.",

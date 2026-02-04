@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
+from pathlib import Path
 from typing import Any
 from uuid import UUID
 
+from pydantic import ValidationError
 from tortoise.transactions import in_transaction
 
 from apps.api.common.services import BaseService
@@ -20,6 +23,7 @@ from apps.api.modules.system.rbac.constants import (
     ROLE_OWNER,
     ROLE_VIEWER,
 )
+from apps.api.modules.system.rbac.permissions import CORE_PERMISSION_TEMPLATES
 from apps.api.modules.system.rbac.repository import RBACRepository
 from apps.api.modules.system.rbac.schema import (
     PermissionCatalogSyncResult,
@@ -28,7 +32,8 @@ from apps.api.modules.system.rbac.schema import (
     WorkspacesSyncResult,
 )
 from apps.api.modules.workspaces.models.workspace import Workspace
-from apps.api.plugin.registry import registry
+from apps.api.plugin.manager import PluginManager
+from apps.api.plugin.manifest import PermissionTemplate, load_plugin_manifest
 
 
 def _tr(key: str, default: str) -> str:
@@ -66,9 +71,45 @@ class RBACService(BaseService):
     Workspace-scoped RBAC service + global permission catalog sync.
     """
 
-    def __init__(self, settings: Settings) -> None:
+    def __init__(self, settings: Settings, *, plugin_manager: PluginManager | None = None) -> None:
         super().__init__(settings)
         self.repo = RBACRepository()
+        self.plugin_manager = plugin_manager
+
+    def _iter_permission_entries(self) -> Iterable[tuple[str, PermissionTemplate]]:
+        """
+        Iterate permission templates from core + plugins.
+
+        Notes:
+        - Prefer PluginManager descriptors when available (already validated and locale paths registered).
+        - Fall back to scanning PLUGIN__ROOT_DIR on-demand for call sites that don't have app.state.
+        """
+
+        for tpl in CORE_PERMISSION_TEMPLATES:
+            yield (CORE_PERMISSION_OWNER, tpl)
+
+        if not self.settings.plugin.enabled:
+            return
+
+        if self.plugin_manager is not None:
+            if not self.plugin_manager.descriptors:
+                self.plugin_manager.discover()
+            for desc in self.plugin_manager.descriptors.values():
+                for tpl in desc.manifest.permissions or []:
+                    yield (desc.plugin_id, tpl)
+            return
+
+        root = Path(self.settings.plugin.root_dir)
+        if not root.exists():
+            return
+        for manifest_path in root.glob("*/plugin.toml"):
+            try:
+                manifest = load_plugin_manifest(manifest_path)
+            except (OSError, ValidationError):
+                continue
+            plugin_id = manifest.plugin.id
+            for tpl in manifest.permissions or []:
+                yield (plugin_id, tpl)
 
     # -----------------------------
     # Permission catalog (global)
@@ -85,18 +126,18 @@ class RBACService(BaseService):
         created = 0
         updated = 0
 
-        templates: dict[str, Any] = {}
-        for entry in registry.permissions:
-            code = entry.template.code
-            if code in templates:
+        # Deduplicate by permission code. First-seen wins deterministically:
+        # core templates are yielded first, then plugins in stable discovery order.
+        templates: dict[str, tuple[str, PermissionTemplate]] = {}
+        for plugin_id, tpl in self._iter_permission_entries():
+            code = tpl.code
+            if not code or code in templates:
                 continue
-            templates[code] = entry
+            templates[code] = (plugin_id, tpl)
 
         # Upsert known permissions
         for code in sorted(templates.keys()):
-            entry = templates[code]
-            plugin_id = entry.plugin_id or CORE_PERMISSION_OWNER
-            tpl = entry.template
+            plugin_id, tpl = templates[code]
 
             raw_scope = (getattr(tpl, "scope", None) or "workspace").strip().lower()
             scope = PermissionScope.ORG if raw_scope == "org" else PermissionScope.WORKSPACE
@@ -237,15 +278,14 @@ class RBACService(BaseService):
 
         # Build desired permission codes per system role.
         desired_by_role: dict[str, set[str]] = {code: set() for code in system_roles.keys()}
-        templates: dict[str, Any] = {}
-        for entry in registry.permissions:
-            code = entry.template.code
-            if code in templates:
+        templates: dict[str, PermissionTemplate] = {}
+        for _plugin_id, tpl in self._iter_permission_entries():
+            code = tpl.code
+            if not code or code in templates:
                 continue
-            templates[code] = entry
+            templates[code] = tpl
 
-        for perm_code, entry in templates.items():
-            tpl = entry.template
+        for perm_code, tpl in templates.items():
             raw_scope = (getattr(tpl, "scope", None) or "workspace").strip().lower()
             if raw_scope != "workspace":
                 continue
@@ -478,6 +518,56 @@ class RBACService(BaseService):
                     await self.repo.ensure_role_permission(role=role, permission=perm)
                 else:
                     await self.repo.delete_role_permission(role_id=UUID(str(role.id)), permission_id=UUID(str(perm.id)))
+
+    async def set_custom_role_permissions(
+        self,
+        *,
+        workspace_id: UUID,
+        role_code: str,
+        permission_codes: list[str],
+    ) -> None:
+        """
+        Replace a custom role's permission set.
+
+        Notes:
+        - Only custom roles are editable (system roles are immutable).
+        - Only workspace-scoped permissions are allowed.
+        """
+
+        code = (role_code or "").strip()
+        role = await self.repo.get_role_by_code(workspace_id=workspace_id, code=code)
+        if role is None:
+            raise NotFound(message=_tr("ROLE_NOT_FOUND", "角色不存在"), error="ROLE_NOT_FOUND")
+        if role.is_system:
+            raise BadRequest(
+                message=_tr("ROLE_SYSTEM_IMMUTABLE", "系统角色权限不可编辑"), error="ROLE_SYSTEM_IMMUTABLE"
+            )
+
+        desired = sorted({str(x).strip() for x in (permission_codes or []) if x and str(x).strip()})
+        if not desired:
+            await self.repo.replace_role_permissions(role=role, permission_ids=[])
+            return
+
+        perms = await self.repo.list_permissions_by_codes(codes=desired)
+        by_code = {p.code: p for p in perms if p and p.code}
+        missing = [c for c in desired if c not in by_code]
+        if missing:
+            raise BadRequest(
+                message=_tr("PERMISSION_NOT_FOUND", "权限不存在"),
+                error="PERMISSION_NOT_FOUND",
+                meta={"missing": missing},
+            )
+
+        invalid = [p.code for p in by_code.values() if p.scope != PermissionScope.WORKSPACE]
+        if invalid:
+            raise BadRequest(
+                message=_tr("PERMISSION_SCOPE_INVALID", "权限作用域不合法"),
+                error="PERMISSION_SCOPE_INVALID",
+                meta={"invalid": sorted(set(invalid))},
+            )
+
+        perm_ids = [UUID(str(by_code[c].id)) for c in desired if c in by_code]
+        await self.repo.replace_role_permissions(role=role, permission_ids=perm_ids)
 
     # -----------------------------
     # Localization helpers (API adapters)

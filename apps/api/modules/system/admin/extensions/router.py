@@ -1,0 +1,56 @@
+from __future__ import annotations
+
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, Request
+
+from apps.api.config import Settings, get_settings
+from apps.api.core.exceptions import ServiceUnavailable
+from apps.api.core.http.response import Response, ResponseModel
+from apps.api.core.i18n import t
+from apps.api.modules.auth.deps import get_current_user_id
+from apps.api.modules.system.admin.extensions.schema import AdminUIExtensionOut
+from apps.api.modules.system.admin.extensions.service import AdminExtensionsService
+from apps.api.modules.workspaces.authz.deps import require_workspace_permission
+from apps.api.modules.workspaces.deps import require_workspace_manage_access
+from apps.api.plugin.manager import PluginManager
+
+router = APIRouter(
+    prefix="/workspaces/{workspace_id}/extensions/admin",
+    tags=["Workspace: Admin Extensions"],
+    dependencies=[
+        Depends(require_workspace_manage_access),
+        require_workspace_permission("admin:access"),
+    ],
+)
+
+
+def get_plugin_manager(request: Request) -> PluginManager:
+    manager = getattr(request.app.state, "plugin_manager", None)
+    if manager is None:
+        raise ServiceUnavailable(
+            message=t("plugin", "PLUGIN_MANAGER_UNAVAILABLE", default="插件管理器不可用"),
+            error="PLUGIN_MANAGER_UNAVAILABLE",
+        )
+    return manager
+
+
+def get_service(
+    settings: Settings = Depends(get_settings),
+    manager: PluginManager = Depends(get_plugin_manager),
+) -> AdminExtensionsService:
+    return AdminExtensionsService(settings, plugin_manager=manager)
+
+
+@router.get(
+    "",
+    response_model=ResponseModel[list[AdminUIExtensionOut]],
+    summary="List admin UI extensions from enabled plugins",
+)
+async def list_admin_extensions(
+    slot: str | None = None,
+    user_id: UUID = Depends(get_current_user_id),
+    service: AdminExtensionsService = Depends(get_service),
+) -> ResponseModel[list[AdminUIExtensionOut]]:
+    items = await service.list_admin_extensions(user_id=user_id, slot=slot)
+    return Response.success(data=items)

@@ -71,3 +71,10 @@ class RoleUpdateRequest(BaseSchema):
 
 class PermissionRoleSetRequest(BaseSchema):
     role_codes: list[str] = Field(default_factory=list, description="Custom role codes to grant this permission.")
+
+
+class RolePermissionSetRequest(BaseSchema):
+    permission_codes: list[str] = Field(
+        default_factory=list,
+        description="Workspace permission codes to grant to the custom role (system roles are immutable).",
+    )

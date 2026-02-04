@@ -371,6 +371,20 @@ def configure_logging(settings: Settings) -> None:
         tortoise_logger.propagate = True
         tortoise_logger.disabled = False
 
+    # watchfiles can be extremely noisy (debug spam) in WSL/Docker bind mounts.
+    # Keep root logger behavior unchanged; only raise watchfiles.* logger levels.
+    try:
+        watchfiles_level_name = str(settings.logging.watchfiles_level or "INFO").strip().upper()
+        watchfiles_level = logging._nameToLevel.get(watchfiles_level_name, logging.INFO)
+        for name in ("watchfiles", "watchfiles.main"):
+            wf_logger = logging.getLogger(name)
+            wf_logger.setLevel(watchfiles_level)
+            wf_logger.handlers = []
+            wf_logger.propagate = True
+    except Exception:
+        # Best-effort; never break app startup due to logger config.
+        pass
+
     structlog.configure(
         processors=processors,
         logger_factory=LoggerFactory(),

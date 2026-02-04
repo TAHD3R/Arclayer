@@ -11,6 +11,7 @@ from apps.api.config import Settings, get_settings
 from apps.api.core.http.pagination import PageData, PageParams, get_page_params
 from apps.api.core.http.response import Response, ResponseModel
 from apps.api.infra.cache.valkey import get_valkey
+from apps.api.modules.sites.portal_extensions.router import router as portal_extensions_router
 from apps.api.modules.sites.schema import (
     SiteEntryCreateIn,
     SiteEntryDeleteOut,
@@ -63,6 +64,7 @@ from apps.api.modules.sites.schema import (
 from apps.api.modules.sites.service import SiteService
 
 router = APIRouter(tags=["Sites"])
+router.include_router(portal_extensions_router)
 
 
 def get_site_service(

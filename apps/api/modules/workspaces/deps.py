@@ -83,6 +83,23 @@ async def get_workspace_context(
             invited_by_user_id=None,
         )
 
+    # Ensure creator-admin has an explicit Owner role binding as early as possible.
+    #
+    # Why:
+    # - Menu visibility is permission-filtered by roles; creator-admin is expected to have full access.
+    # - Some endpoints may not hit `require_workspace_permission()` early enough to perform lazy binding.
+    if membership is not None and is_creator_admin:
+        try:
+            from apps.api.modules.system.models.rbac import Role
+            from apps.api.modules.workspaces.models.workspace import WorkspaceMembershipRole
+
+            owner_role = await Role.get_or_none(workspace_id=ws.id, code="owner", is_system=True)
+            if owner_role is not None:
+                await WorkspaceMembershipRole.get_or_create(membership_id=membership.id, role_id=owner_role.id)
+        except Exception:
+            # Best-effort; do not block request context resolution.
+            pass
+
     visible_only = bool(is_owner and membership is None and not is_creator_admin)
 
     # Bind to logging context and request ContextVars used by authz/menu providers.

@@ -188,12 +188,12 @@ class AuthService(BaseService):
         # Best-effort: emit audit-worthy login event (do not block auth flow).
         try:
             from apps.api.plugin.event_bus import Event
-            from apps.api.plugin.registry import registry as plugin_registry
+            from apps.api.plugin.host import host as plugin_host
 
             orgm = await OrgMembership.get_or_none(user_id=user_id)
             org_id = UUID(str(cast(HasOrganizationId, orgm).organization_id)) if orgm is not None else None
 
-            await plugin_registry.event_bus.publish(
+            await plugin_host.event_bus.publish(
                 Event(
                     name="auth.login.succeeded",
                     payload={
@@ -385,12 +385,12 @@ class AuthService(BaseService):
         # Best-effort: record password reset request for investigation (do not leak data in payload).
         try:
             from apps.api.plugin.event_bus import Event
-            from apps.api.plugin.registry import registry as plugin_registry
+            from apps.api.plugin.host import host as plugin_host
 
             orgm = await OrgMembership.get_or_none(user_id=user_id)
             org_id = UUID(str(cast(HasOrganizationId, orgm).organization_id)) if orgm is not None else None
 
-            await plugin_registry.event_bus.publish(
+            await plugin_host.event_bus.publish(
                 Event(
                     name="auth.password.reset.requested",
                     payload={
@@ -475,12 +475,12 @@ class AuthService(BaseService):
         # Best-effort: record password reset completion.
         try:
             from apps.api.plugin.event_bus import Event
-            from apps.api.plugin.registry import registry as plugin_registry
+            from apps.api.plugin.host import host as plugin_host
 
             orgm = await OrgMembership.get_or_none(user_id=user_id)
             org_id = UUID(str(cast(HasOrganizationId, orgm).organization_id)) if orgm is not None else None
 
-            await plugin_registry.event_bus.publish(
+            await plugin_host.event_bus.publish(
                 Event(
                     name="auth.password.reset.completed",
                     payload={
@@ -970,9 +970,9 @@ class AuthService(BaseService):
         if organization_id is not None and workspace_id is not None and accepted_user_id is not None:
             try:
                 from apps.api.plugin.event_bus import Event
-                from apps.api.plugin.registry import registry as plugin_registry
+                from apps.api.plugin.host import host as plugin_host
 
-                await plugin_registry.event_bus.publish(
+                await plugin_host.event_bus.publish(
                     Event(
                         name="workspace.invite.accepted",
                         payload={

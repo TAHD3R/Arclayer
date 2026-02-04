@@ -97,6 +97,16 @@ def register_locale_path(path: Path) -> None:
         _load_locale.cache_clear()
 
 
+def clear_locale_cache() -> None:
+    """
+    Clear the in-process i18n JSON cache.
+
+    Intended for development hot-reload and diagnostics endpoints.
+    """
+
+    _load_locale.cache_clear()
+
+
 def _normalize_locale(value: str | None) -> str:
     if not value:
         return DEFAULT_LOCALE

@@ -17,6 +17,7 @@ from apps.api.core.exceptions import BadRequest, NotFound, ServiceUnavailable
 from apps.api.core.http.pagination import PageData, PageParams
 from apps.api.core.i18n import t
 from apps.api.core.logging import get_logger
+from apps.api.modules.system.admin.menus.seeds import AdminMenuSeedService
 from apps.api.modules.system.models.plugin import PluginRecord
 from apps.api.modules.system.plugins_manager.repository import PluginRepository
 from apps.api.modules.system.plugins_manager.schema import (
@@ -244,11 +245,25 @@ class PluginService(BaseService):
             )
 
         requires_restart = True
+
+        # Best-effort: seed admin menu entries declared by the plugin manifest.
+        try:
+            seeds = list(getattr(manifest, "admin_menu", None) or [])
+            if seeds:
+                await AdminMenuSeedService(self.settings).ensure_seeds(
+                    owner_plugin_id=plugin_id,
+                    seeds=seeds,
+                    update_existing=False,
+                    restore_deleted=True,
+                )
+        except Exception as exc:
+            logger.warning("Plugin admin menu seed failed", plugin_id=plugin_id, error=str(exc))
+
         await self._request_restart(plugin_id, reason="install")
         # Fire an event so other parts (e.g. UI/menu/diagnostics) can react without hard coupling.
         try:
             if self.manager is not None:
-                await self.manager.registry.event_bus.publish(
+                await self.manager.host.event_bus.publish(
                     Event(
                         name=PLUGIN_INSTALLED,
                         payload={
@@ -279,6 +294,19 @@ class PluginService(BaseService):
         except KeyError as exc:
             raise NotFound(message=_tp("PLUGIN_NOT_FOUND", "插件未安装"), error="PLUGIN_NOT_FOUND") from exc
         await record.refresh_from_db()
+        # Best-effort: ensure plugin menu seeds exist after enabling.
+        try:
+            manifest = self._load_manifest(record)
+            seeds = list(getattr(manifest, "admin_menu", None) or []) if manifest is not None else []
+            if seeds:
+                await AdminMenuSeedService(self.settings).ensure_seeds(
+                    owner_plugin_id=plugin_id,
+                    seeds=seeds,
+                    update_existing=False,
+                    restore_deleted=True,
+                )
+        except Exception as exc:
+            logger.warning("Plugin admin menu seed failed on enable", plugin_id=plugin_id, error=str(exc))
         return record
 
     async def disable_plugin(self, plugin_id: str) -> PluginRecord:
@@ -329,7 +357,7 @@ class PluginService(BaseService):
             desc = None
             if self.manager is not None:
                 desc = self.manager.descriptors.get(plugin_id)
-                await self.manager.registry.event_bus.publish(
+                await self.manager.host.event_bus.publish(
                     Event(
                         name=SETTINGS_UPDATED,
                         payload={
