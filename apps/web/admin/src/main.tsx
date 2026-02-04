@@ -2,16 +2,16 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "antd/dist/reset.css";
 import "./assets/index.css";
-import App from "./App";
+import App from "./app";
 
-import { initI18n } from "@/utils/i18n";
+import { initI18n } from "@/lib/i18n";
 import { router } from "@/routes/-router";
 import { setUnauthorizedHandler } from "@/lib/http/client";
-import { useAuthStore } from "@/stores/useAuthStore";
-import { initializePreferences, usePreferencesStore } from "@/stores/usePreferenceStore";
+import { useAuthStore } from "@/stores/use-auth-store";
+import { initializePreferences, usePreferencesStore } from "@/stores/use-preference-store";
 import { getSetupStatus } from "@/api/system";
-import { useSetupWizardStore } from "@/stores/useSetupWizardStore";
-import { useWorkspaceStore } from "@/stores/useWorkspaceStore";
+import { useSetupWizardStore } from "@/stores/use-setup-wizard-store";
+import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
 async function bootstrap() {
   initializePreferences();

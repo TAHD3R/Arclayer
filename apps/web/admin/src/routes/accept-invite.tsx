@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { AcceptInviteView } from "@/views/AcceptInviteView";
+import { AcceptInviteView } from "@/pages/accept-invite/page";
 
 type AcceptInviteSearch = {
   token?: string;

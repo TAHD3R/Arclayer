@@ -5,8 +5,8 @@ import {
 } from "@celestial/web-core/http";
 
 import { getAppConfig } from "@/constants/app-config";
-import { useAuthStore } from "@/stores/useAuthStore";
-import { usePreferencesStore } from "@/stores/usePreferenceStore";
+import { useAuthStore } from "@/stores/use-auth-store";
+import { usePreferencesStore } from "@/stores/use-preference-store";
 
 let unauthorizedHandler: UnauthorizedHandler | null = null;
 

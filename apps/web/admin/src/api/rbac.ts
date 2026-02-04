@@ -1,5 +1,5 @@
 import { api } from "@/lib/http";
-import { workspacePath } from "@/api/_workspace";
+import { workspacePath } from "@/api/workspace-path";
 
 export type PageData<T> = {
   items: T[];

@@ -7,13 +7,13 @@
  * But TanStack Router reserves `__` for special file names (e.g. `__root`), therefore our
  * internal route tree uses non-`__` pathnames (e.g. `/preview/*`) and we rewrite at the edge.
  */
+import type { PortalMode } from "@celestial/web-types";
+
 export const PORTAL_NAMESPACES = {
   editorHost: { external: "/__editor-host", internal: "/editor-host" },
   editor: { external: "/__editor", internal: "/editor" },
   preview: { external: "/__preview", internal: "/preview" },
 } as const;
-
-export type PortalMode = "public" | "preview";
 
 export function isPreviewPathname(pathname: string): boolean {
   return (

@@ -15,8 +15,8 @@ import {
   type NotificationCategory,
   type NotificationItem,
 } from "@/api/notifications";
-import { DefaultPage } from "@/components/app/defaultPage";
-import { PageState } from "@/components/app/pageState";
+import { DefaultPage } from "@/components/common/default-page";
+import { PageState } from "@/components/common/page-state";
 import {
   ChromeTabs,
   ChromeTabsContent,
@@ -35,10 +35,10 @@ import {
   ItemSeparator,
   ItemTitle,
 } from "@/components/ui/item";
-import { useNowTick } from "@/hooks/useNowTick";
-import { formatRelativeTimeAt } from "@/lib/time/relativeTime";
+import { useNowTick } from "@/hooks/use-now-tick";
+import { formatRelativeTimeAt } from "@/lib/time/relative-time";
 import { cn } from "@/lib/utils";
-import { useWorkspaceStore } from "@/stores/useWorkspaceStore";
+import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
 export const Route = createFileRoute("/notifications")({
   component: NotificationsPage,

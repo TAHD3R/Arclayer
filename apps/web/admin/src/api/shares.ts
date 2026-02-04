@@ -1,6 +1,6 @@
 import { api } from "@/lib/http";
 import type { PageData } from "@/api/assets";
-import { workspacePath } from "@/api/_workspace";
+import { workspacePath } from "@/api/workspace-path";
 
 export type AdminShareCreateRequest = {
   /** 过期秒数；null 表示永不过期 */

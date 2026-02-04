@@ -118,6 +118,9 @@ importers:
       '@celestial/web-core':
         specifier: workspace:*
         version: link:../../../packages/web-core
+      '@celestial/web-types':
+        specifier: workspace:*
+        version: link:../../../packages/web-types
       '@dnd-kit/core':
         specifier: ^6.3.1
         version: 6.3.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -302,6 +305,9 @@ importers:
       '@celestial/web-core':
         specifier: workspace:*
         version: link:../../../packages/web-core
+      '@celestial/web-types':
+        specifier: workspace:*
+        version: link:../../../packages/web-types
       '@tanstack/react-router':
         specifier: 'catalog:'
         version: 1.157.5(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -390,6 +396,8 @@ importers:
         version: 7.3.1(@types/node@24.10.9)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)
 
   packages/web-core: {}
+
+  packages/web-types: {}
 
 packages:
 

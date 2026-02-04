@@ -4,14 +4,14 @@ import { useTranslation } from "react-i18next";
 import { useEffect } from "react";
 
 import * as authApi from "@/api/auth";
-import { useAuthStore } from "@/stores/useAuthStore";
+import { useAuthStore } from "@/stores/use-auth-store";
 import {
   type AuthMode,
   type LoginFormValues,
   type RegisterFormValues,
   LoginView,
-} from "@/views/LoginView";
-import { notifyInfoText, notifySuccessText } from "@/utils/notifications";
+} from "@/pages/login/page";
+import { notifyInfoText, notifySuccessText } from "@/lib/notifications";
 
 type LoginSearch = {
   redirect?: string;

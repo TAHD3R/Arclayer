@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion, type SVGMotionProps, type Easing } from "motion/react";
 
-import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
+import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 
 interface LanguagesIconProps extends Omit<SVGMotionProps<SVGSVGElement>, "strokeWidth"> {
   size?: number;

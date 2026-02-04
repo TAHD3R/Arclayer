@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion, type Easing, type SVGMotionProps } from "motion/react";
 
-import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
+import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 
 interface ChevronDownIconProps extends Omit<SVGMotionProps<SVGSVGElement>, "strokeWidth"> {
   size?: number;

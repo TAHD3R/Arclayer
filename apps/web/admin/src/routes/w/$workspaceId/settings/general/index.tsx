@@ -1,9 +1,9 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 
-import { GeneralSettingsView } from "@/views/settings/general/GeneralSettingsView";
-import type { GeneralSettingsTabKey } from "@/views/settings/general/types";
-import { useWorkspaceStore } from "@/stores/useWorkspaceStore";
+import { GeneralSettingsView } from "@/pages/settings/general/page";
+import type { GeneralSettingsTabKey } from "@/types/settings-general";
+import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
 export const Route = createFileRoute("/w/$workspaceId/settings/general/")({
   validateSearch: (search: Record<string, unknown>): { index?: GeneralSettingsTabKey } => {

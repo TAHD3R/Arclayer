@@ -7,11 +7,11 @@ import { useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
 import { listMyWorkspaces } from "@/api/workspaces";
-import { PageState } from "@/components/app/pageState";
-import { DefaultPage } from "@/components/app/defaultPage";
-import { useAuthStore } from "@/stores/useAuthStore";
-import { useWorkspaceStore } from "@/stores/useWorkspaceStore";
-import { pickDefaultWorkspaceId, workspaceHomePath } from "@/utils/workspaceRouting";
+import { PageState } from "@/components/common/page-state";
+import { DefaultPage } from "@/components/common/default-page";
+import { useAuthStore } from "@/stores/use-auth-store";
+import { useWorkspaceStore } from "@/stores/use-workspace-store";
+import { pickDefaultWorkspaceId, workspaceHomePath } from "@/lib/workspace-routing";
 
 export const Route = createFileRoute("/")({
   component: WorkspaceEntryPage,

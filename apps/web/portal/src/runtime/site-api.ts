@@ -1,6 +1,7 @@
 import { isCoreDocumentIR } from "@celestial/site-renderer-core";
 import type { CoreDocumentIR } from "@celestial/site-renderer-core";
 import { ApiError } from "@celestial/web-core/http";
+import type { PortalResolveMode, PortalRouteMatch, PortalSiteContext } from "@celestial/web-types";
 
 export function getPortalApiPrefix(): string {
   // Use a relative prefix so it works in both SSR and browser via the Portal server proxy.
@@ -19,12 +20,6 @@ export function getPortalSiteIdFromEnv(): string {
   }
   return raw;
 }
-
-export type PortalSiteContext = {
-  siteId: string;
-  defaultLocale: "zh-CN" | "en-US";
-  fallbackLocale: "zh-CN" | "en-US";
-};
 
 export async function resolveSiteFromApi(host: string): Promise<PortalSiteContext> {
   const apiPrefix = getPortalApiPrefix();
@@ -61,7 +56,7 @@ export async function resolveSiteFromApi(host: string): Promise<PortalSiteContex
 export async function resolveRouteFromApi(
   pathname: string,
   siteId: string,
-  opts: { mode: "public" | "preview"; token?: string },
+  opts: { mode: PortalResolveMode; token?: string },
 ): Promise<
   | { kind: "page"; document: CoreDocumentIR; match: PortalRouteMatch }
   | { kind: "redirect"; to: string; status: 301 | 302 }
@@ -122,7 +117,7 @@ export async function resolveRouteFromApi(
 
 export async function fetchRuntimeConfigFromApi(
   siteId: string,
-  opts: { mode: "public" | "preview"; token?: string },
+  opts: { mode: PortalResolveMode; token?: string },
 ): Promise<{
   theme: {
     cssVars: Record<string, string>;
@@ -252,20 +247,6 @@ async function toApiError(res: Response, fallbackMessage: string): Promise<ApiEr
   if (meta !== undefined) args.meta = meta;
   return new ApiError(args);
 }
-
-export type PortalRouteMatch = {
-  kind: "page" | "route_template" | "redirect" | "not_found";
-  params: Record<string, string>;
-  redirectTo: string | null;
-  redirectStatus: 301 | 302 | null;
-  pageId: string | null;
-  entryId: string | null;
-  variantId: string | null;
-  revision: number | null;
-  revisionState: "draft" | "published" | null;
-  draftRevision: number | null;
-  publishedRevision: number | null;
-};
 
 function parsePortalRouteMatch(input: unknown): PortalRouteMatch {
   const kindRaw = (getStringField(input, ["kind"]) ?? "").trim();

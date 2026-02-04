@@ -21,6 +21,7 @@
     "@celestial/site-renderer-core": "workspace:*",
     "@celestial/site-theme-default": "workspace:*",
     "@celestial/web-core": "workspace:*",
+    "@celestial/web-types": "workspace:*",
     "@tanstack/react-router": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:"

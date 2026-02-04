@@ -1,12 +1,12 @@
 import { createRootRoute, Outlet, redirect, useRouterState } from "@tanstack/react-router";
 import { useLayoutEffect, useRef } from "react";
 
-import { AdminLayout } from "@/layouts/AdminLayout";
-import { AuthLayout } from "@/layouts/AuthLayout";
-import { SetupLayout } from "@/layouts/SetupLayout";
-import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
-import { useAuthStore } from "@/stores/useAuthStore";
-import { useSetupWizardStore } from "@/stores/useSetupWizardStore";
+import { AdminLayout } from "@/layouts/admin-layout";
+import { AuthLayout } from "@/layouts/auth-layout";
+import { SetupLayout } from "@/layouts/setup-layout";
+import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
+import { useAuthStore } from "@/stores/use-auth-store";
+import { useSetupWizardStore } from "@/stores/use-setup-wizard-store";
 
 function isDevSetupOverrideEnabled(searchStr: string): boolean {
   if (!import.meta.env.DEV) return false;

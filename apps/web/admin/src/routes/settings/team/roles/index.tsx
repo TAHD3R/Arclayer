@@ -1,8 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 
-import { TeamRolesView } from "@/views/team/TeamRolesView";
-import { useWorkspaceStore } from "@/stores/useWorkspaceStore";
+import { TeamRolesView } from "@/pages/team/roles/page";
+import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
 export const Route = createFileRoute("/settings/team/roles/")({
   component: TeamRolesRoutePage,

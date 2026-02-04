@@ -4,7 +4,7 @@ import { routeTree } from "./routeTree.gen";
 import { RouterDefaultError, RouterDefaultNotFound } from "./router/routerFallbacks";
 import { rewritePortalInputPathname, rewritePortalOutputPathname } from "./router/rewrite";
 import type { ViewerContext } from "@celestial/site-block-protocol";
-import type { PortalSiteContext } from "@/runtime/site-api";
+import type { PortalSiteContext } from "@celestial/web-types";
 
 export type PortalRouter = ReturnType<typeof createPortalRouter>;
 

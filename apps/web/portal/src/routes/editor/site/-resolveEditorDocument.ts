@@ -1,7 +1,7 @@
 import { getEditorTokenOrThrow } from "@/router/namespaces";
 import { HttpError } from "@/router/routerFallbacks";
 import { resolvePortalRoute } from "@/runtime/portal-route-resolver";
-import type { PortalRouteMatch } from "@/runtime/site-api";
+import type { PortalRouteMatch } from "@celestial/web-types";
 
 export async function resolveEditorDocument(args: {
   pathname: string;

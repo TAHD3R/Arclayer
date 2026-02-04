@@ -1,11 +1,9 @@
 import { ApiError } from "@celestial/web-core/http";
 import type { CoreDocumentIR } from "@celestial/site-renderer-core";
+import type { PortalResolveMode, PortalRouteMatch } from "@celestial/web-types";
 
 import { HttpError } from "@/router/routerFallbacks";
-import type { PortalRouteMatch } from "./site-api";
 import { resolveRouteFromApi } from "./site-api";
-
-export type PortalResolveMode = "public" | "preview";
 
 export type ResolvedPortalRoute =
   | { kind: "page"; document: CoreDocumentIR; match: PortalRouteMatch }

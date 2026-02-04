@@ -3,8 +3,8 @@ import { useMutation } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 
 import * as authApi from "@/api/auth";
-import { notifySuccessText } from "@/utils/notifications";
-import { ResetPasswordView } from "@/views/ResetPasswordView";
+import { notifySuccessText } from "@/lib/notifications";
+import { ResetPasswordView } from "@/pages/reset-password/page";
 
 type ResetPasswordSearch = {
   token?: string;

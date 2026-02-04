@@ -1,6 +1,6 @@
 import { api } from "@/lib/http";
 import type { PageData } from "@/api/assets";
-import { workspacePath } from "@/api/_workspace";
+import { workspacePath } from "@/api/workspace-path";
 
 export type AdminAssetUsage = {
   id: string;

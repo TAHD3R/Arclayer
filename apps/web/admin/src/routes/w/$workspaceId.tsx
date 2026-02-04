@@ -1,6 +1,6 @@
 import { Outlet, createFileRoute } from "@tanstack/react-router";
 
-import { useWorkspaceStore } from "@/stores/useWorkspaceStore";
+import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
 export const Route = createFileRoute("/w/$workspaceId")({
   beforeLoad: ({ params }) => {

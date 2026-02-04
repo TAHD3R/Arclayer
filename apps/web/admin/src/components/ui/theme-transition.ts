@@ -1,6 +1,6 @@
 import { flushSync } from "react-dom";
 
-import { usePreferencesStore } from "@/stores/usePreferenceStore";
+import { usePreferencesStore } from "@/stores/use-preference-store";
 import type { ThemeMode } from "@celestial/ui-theme/antd";
 
 export type ThemeTransitionDirection = "btt" | "ttb" | "ltr" | "rtl";
