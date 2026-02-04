@@ -1,0 +1,26 @@
+{
+  "ACTIVITY_DESC_ORG": "查看组织级操作记录（可按工作区/操作者筛选），用于追踪关键行为与排障。",
+  "ACTIVITY_DESC_WORKSPACE": "查看当前工作区操作记录，用于追踪关键行为与排障。",
+
+  "ACTIVITY_FILTER_EVENT_NAME": "事件名（如 auth.login.succeeded）",
+  "ACTIVITY_FILTER_WORKSPACE": "选择工作区",
+  "ACTIVITY_FILTER_ACTOR": "选择操作者",
+  "ACTIVITY_FILTER_ACTOR_NEED_WORKSPACE": "请先选择工作区再选择操作者",
+
+  "ACTIVITY_TABLE_TIME": "时间",
+  "ACTIVITY_TABLE_EVENT": "事件",
+  "ACTIVITY_TABLE_ACTOR": "操作者",
+  "ACTIVITY_TABLE_WORKSPACE": "工作区",
+  "ACTIVITY_TABLE_ENTITY": "实体",
+
+  "ACTIVITY_ACTION_VIEW_DETAIL": "查看详情",
+
+  "ACTIVITY_EMPTY_TITLE": "暂无操作记录",
+  "ACTIVITY_EMPTY_DESC": "尝试调整时间范围或筛选条件。",
+  "ACTIVITY_EMPTY_TABLE": "暂无数据",
+
+  "ACTIVITY_DETAIL_TITLE": "操作记录详情",
+  "ACTIVITY_FIELD_EVENT_NAME": "事件名",
+  "ACTIVITY_FIELD_SOURCE": "来源",
+  "ACTIVITY_FIELD_PROPERTIES": "属性"
+}

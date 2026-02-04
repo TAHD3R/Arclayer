@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends
 
 from apps.api.config import Settings, get_settings
 from apps.api.core.http.response import Response, ResponseModel
+from apps.api.modules.analytics.workspaces.router import router as workspace_activity_router
 from apps.api.modules.assets.admin.assets.router import router as workspace_assets_router
 from apps.api.modules.assets.admin.shares.router import router as workspace_shares_router
 from apps.api.modules.assets.admin.uploads.router import router as workspace_uploads_router
@@ -33,6 +34,7 @@ router.include_router(workspace_usages_router)
 router.include_router(workspace_notifications_router)
 router.include_router(workspace_menus_router)
 router.include_router(workspace_themes_router)
+router.include_router(workspace_activity_router)
 
 
 @router.get(

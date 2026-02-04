@@ -1,0 +1,26 @@
+{
+  "ACTIVITY_DESC_ORG": "Review organization-level activity for investigation and troubleshooting.",
+  "ACTIVITY_DESC_WORKSPACE": "Review workspace-level activity for investigation and troubleshooting.",
+
+  "ACTIVITY_FILTER_EVENT_NAME": "Event name (e.g. auth.login.succeeded)",
+  "ACTIVITY_FILTER_WORKSPACE": "Select workspace",
+  "ACTIVITY_FILTER_ACTOR": "Select actor",
+  "ACTIVITY_FILTER_ACTOR_NEED_WORKSPACE": "Select a workspace first",
+
+  "ACTIVITY_TABLE_TIME": "Time",
+  "ACTIVITY_TABLE_EVENT": "Event",
+  "ACTIVITY_TABLE_ACTOR": "Actor",
+  "ACTIVITY_TABLE_WORKSPACE": "Workspace",
+  "ACTIVITY_TABLE_ENTITY": "Entity",
+
+  "ACTIVITY_ACTION_VIEW_DETAIL": "View",
+
+  "ACTIVITY_EMPTY_TITLE": "No activity",
+  "ACTIVITY_EMPTY_DESC": "Try adjusting the time range or filters.",
+  "ACTIVITY_EMPTY_TABLE": "No data",
+
+  "ACTIVITY_DETAIL_TITLE": "Activity Detail",
+  "ACTIVITY_FIELD_EVENT_NAME": "Event name",
+  "ACTIVITY_FIELD_SOURCE": "Source",
+  "ACTIVITY_FIELD_PROPERTIES": "Properties"
+}

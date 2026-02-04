@@ -8,6 +8,7 @@ from apps.api.config import Settings, get_settings
 from apps.api.core.http.pagination import PageData, PageParams, get_page_params, paginate_items
 from apps.api.core.http.response import Response, ResponseModel
 from apps.api.core.i18n import get_current_locale
+from apps.api.modules.auth.deps import get_current_user_id
 from apps.api.modules.system.models.rbac import PermissionScope
 from apps.api.modules.workspaces.authz.deps import require_workspace_permission
 from apps.api.modules.workspaces.deps import WorkspaceContext, require_workspace_manage_access
@@ -128,6 +129,7 @@ async def get_matrix(
 async def create_role(
     body: RoleCreateFromTemplateRequest,
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
+    user_id=Depends(get_current_user_id),
     service: WorkspaceRBACService = Depends(get_rbac_service),
 ) -> ResponseModel[WorkspaceRoleOut]:
     locale = get_current_locale()
@@ -138,6 +140,23 @@ async def create_role(
         description=body.description,
         template_role_code=body.template_role_code,
     )
+    try:
+        from asgi_correlation_id import correlation_id
+
+        from apps.api.plugin.event_bus import Event
+        from apps.api.plugin.registry import registry as plugin_registry
+
+        await plugin_registry.event_bus.publish(
+            Event(
+                name="rbac.role.created",
+                payload={"workspace_id": str(ctx.workspace_id), "role_code": role.code, "role_id": str(role.id)},
+                source="api",
+                trace_id=correlation_id.get(None),
+                actor_user_id=str(user_id),
+            )
+        )
+    except Exception:
+        pass
     return Response.success(data=WorkspaceRoleOut.model_validate(service.localize_role(role, locale=locale)))
 
 
@@ -151,6 +170,7 @@ async def update_role(
     role_code: str,
     body: RoleUpdateRequest,
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
+    user_id=Depends(get_current_user_id),
     service: WorkspaceRBACService = Depends(get_rbac_service),
 ) -> ResponseModel[WorkspaceRoleOut]:
     locale = get_current_locale()
@@ -160,6 +180,23 @@ async def update_role(
         name=body.name,
         description=body.description,
     )
+    try:
+        from asgi_correlation_id import correlation_id
+
+        from apps.api.plugin.event_bus import Event
+        from apps.api.plugin.registry import registry as plugin_registry
+
+        await plugin_registry.event_bus.publish(
+            Event(
+                name="rbac.role.updated",
+                payload={"workspace_id": str(ctx.workspace_id), "role_code": role.code, "role_id": str(role.id)},
+                source="api",
+                trace_id=correlation_id.get(None),
+                actor_user_id=str(user_id),
+            )
+        )
+    except Exception:
+        pass
     return Response.success(data=WorkspaceRoleOut.model_validate(service.localize_role(role, locale=locale)))
 
 
@@ -172,9 +209,27 @@ async def update_role(
 async def delete_role(
     role_code: str,
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
+    user_id=Depends(get_current_user_id),
     service: WorkspaceRBACService = Depends(get_rbac_service),
 ) -> ResponseModel[None]:
     await service.delete_custom_role(workspace_id=ctx.workspace_id, role_code=role_code)
+    try:
+        from asgi_correlation_id import correlation_id
+
+        from apps.api.plugin.event_bus import Event
+        from apps.api.plugin.registry import registry as plugin_registry
+
+        await plugin_registry.event_bus.publish(
+            Event(
+                name="rbac.role.deleted",
+                payload={"workspace_id": str(ctx.workspace_id), "role_code": str(role_code)},
+                source="api",
+                trace_id=correlation_id.get(None),
+                actor_user_id=str(user_id),
+            )
+        )
+    except Exception:
+        pass
     return Response.success()
 
 
@@ -188,6 +243,7 @@ async def set_permission_roles(
     permission_code: str,
     body: PermissionRoleSetRequest,
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
+    user_id=Depends(get_current_user_id),
     service: WorkspaceRBACService = Depends(get_rbac_service),
 ) -> ResponseModel[None]:
     await service.set_permission_custom_roles(
@@ -195,4 +251,25 @@ async def set_permission_roles(
         permission_code=permission_code,
         role_codes=body.role_codes,
     )
+    try:
+        from asgi_correlation_id import correlation_id
+
+        from apps.api.plugin.event_bus import Event
+        from apps.api.plugin.registry import registry as plugin_registry
+
+        await plugin_registry.event_bus.publish(
+            Event(
+                name="rbac.permission.roles_set",
+                payload={
+                    "workspace_id": str(ctx.workspace_id),
+                    "permission_code": str(permission_code),
+                    "role_codes": sorted({str(x).strip() for x in (body.role_codes or []) if x and str(x).strip()}),
+                },
+                source="api",
+                trace_id=correlation_id.get(None),
+                actor_user_id=str(user_id),
+            )
+        )
+    except Exception:
+        pass
     return Response.success()

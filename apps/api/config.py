@@ -403,6 +403,100 @@ class ValkeySettings(BaseSettings):
         return f"redis://{auth}{self.host}:{self.port}/{self.db}"
 
 
+class AnalyticsAuditLogSettings(BaseSettings):
+    """
+    Analytics audit log settings.
+
+    Notes:
+    - Audit log writes are best-effort and should never block the main request path.
+    - Retention cleanup is handled by arq jobs (not in-process coroutines).
+    """
+
+    model_config = SettingsConfigDict(
+        env_prefix="ANALYTICS__AUDIT_LOG__",
+        env_file_encoding="utf-8",
+        env_nested_delimiter="__",
+        extra="ignore",
+        case_sensitive=False,
+        populate_by_name=True,
+        validate_default=True,
+    )
+
+    enabled: bool = Field(default=True)
+
+    # In-process ingestion queue (protects request path by allowing drops when full).
+    queue_maxsize: int = Field(default=5000, ge=1, le=200_000)
+    flush_batch_size: int = Field(default=200, ge=1, le=10_000)
+    flush_interval_ms: int = Field(default=200, ge=10, le=60_000)
+
+    # Payload sanitization guardrails.
+    max_property_keys: int = Field(default=50, ge=1, le=500)
+    max_string_length: int = Field(default=512, ge=16, le=16_384)
+    max_depth: int = Field(default=5, ge=1, le=20)
+
+    # Retention (days). Cleanup is executed by arq cron jobs.
+    retention_enabled: bool = Field(default=True)
+    retention_days: int = Field(default=90, ge=1, le=3650)
+    retention_batch_size: int = Field(default=2000, ge=100, le=100_000)
+    retention_max_delete_per_run: int = Field(default=20_000, ge=100, le=10_000_000)
+
+    # Allowlist for events to store as audit logs.
+    # Supports exact match and fnmatch-style globs.
+    event_allowlist: list[str] = Field(
+        default_factory=lambda: [
+            "auth.*",
+            "workspace.*",
+            "rbac.*",
+            "system.*",
+            "settings.updated",
+            "plugin.*",
+            "asset.*",
+        ]
+    )
+
+
+class AnalyticsSettings(BaseSettings):
+    """Analytics settings."""
+
+    model_config = SettingsConfigDict(
+        env_prefix="ANALYTICS__",
+        env_file_encoding="utf-8",
+        env_nested_delimiter="__",
+        extra="ignore",
+        case_sensitive=False,
+        populate_by_name=True,
+        validate_default=True,
+    )
+
+    enabled: bool = Field(default=True)
+    audit_log: AnalyticsAuditLogSettings = Field(default_factory=AnalyticsAuditLogSettings)
+
+
+class ArqSettings(BaseSettings):
+    """
+    arq worker settings.
+
+    Notes:
+    - arq requires Redis-compatible storage (Valkey is supported).
+    - We run arq as a separate worker process for periodic maintenance jobs
+      (e.g. analytics retention cleanup).
+    """
+
+    model_config = SettingsConfigDict(
+        env_prefix="ARQ__",
+        env_file_encoding="utf-8",
+        env_nested_delimiter="__",
+        extra="ignore",
+        case_sensitive=False,
+        populate_by_name=True,
+        validate_default=True,
+    )
+
+    enabled: bool = Field(default=False)
+    queue_name: str = Field(default="celestial:arq")
+    redis_dsn: str | None = Field(default=None)
+
+
 class TestingSettings(BaseSettings):
     """
     Testing settings for integration tests.
@@ -803,6 +897,8 @@ class Settings(BaseSettings):
     logging: LoggingSettings = Field(default_factory=LoggingSettings)
     database: DatabaseSettings = Field(default_factory=DatabaseSettings)
     valkey: ValkeySettings = Field(default_factory=ValkeySettings)
+    analytics: AnalyticsSettings = Field(default_factory=AnalyticsSettings)
+    arq: ArqSettings = Field(default_factory=ArqSettings)
     observability: ObservabilitySettings = Field(default_factory=ObservabilitySettings)
     middleware: MiddlewareSettings = Field(default_factory=MiddlewareSettings)
     auth: AuthSettings = Field(default_factory=AuthSettings)
@@ -873,6 +969,14 @@ class Settings(BaseSettings):
         self.valkey = _merge_settings(
             self.valkey,
             _build_settings_from_env_file(ValkeySettings, env_file=env_file, env_file_encoding=env_file_encoding),
+        )
+        self.analytics = _merge_settings(
+            self.analytics,
+            _build_settings_from_env_file(AnalyticsSettings, env_file=env_file, env_file_encoding=env_file_encoding),
+        )
+        self.arq = _merge_settings(
+            self.arq,
+            _build_settings_from_env_file(ArqSettings, env_file=env_file, env_file_encoding=env_file_encoding),
         )
         self.observability = _merge_settings(
             self.observability,

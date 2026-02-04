@@ -5,6 +5,7 @@ import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 
 import { ADMIN_NAV_ITEMS } from "@/constants/admin-nav";
+import { ORG_NAV_ITEMS } from "@/constants/org-nav";
 import { getAppConfig } from "@/constants/app-config";
 import { AdminSiderNav } from "@/components/common/admin-side-nav";
 import { AdminLogo } from "@/components/common/admin-logo";
@@ -101,6 +102,11 @@ export function AdminLayout({ children }: PropsWithChildren) {
   const setEffectiveLocale = usePreferencesStore((s) => s.setEffectiveLocale);
   const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
 
+  const isOrgScopeRoute = useMemo(() => {
+    const p = pathname || "/";
+    return p === "/settings/organization" || p.startsWith("/settings/organization/");
+  }, [pathname]);
+
   const workspaceBase = useMemo(() => {
     if (!workspaceId) return null;
     const id = String(workspaceId).trim();
@@ -109,6 +115,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
   }, [workspaceId]);
 
   const navItems = useMemo(() => {
+    if (isOrgScopeRoute) return ORG_NAV_ITEMS;
     if (!workspaceBase) return [];
     const base = workspaceBase.endsWith("/") ? workspaceBase.slice(0, -1) : workspaceBase;
 
@@ -128,13 +135,13 @@ export function AdminLayout({ children }: PropsWithChildren) {
     };
 
     return mapItems(ADMIN_NAV_ITEMS);
-  }, [workspaceBase]);
+  }, [isOrgScopeRoute, workspaceBase]);
 
   const [refreshing, setRefreshing] = useState(false);
 
   const workspaceDetailQuery = useQuery({
     queryKey: ["workspace", "detail", workspaceId],
-    enabled: Boolean(accessToken && workspaceId),
+    enabled: Boolean(accessToken && workspaceId && !isOrgScopeRoute),
     queryFn: async () => getWorkspaceDetail(String(workspaceId)),
     staleTime: 5 * 60 * 1000,
     retry: false,
@@ -179,7 +186,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
 
   const notificationsPreviewQuery = useQuery({
     queryKey: ["notifications", "preview", workspaceId],
-    enabled: Boolean(accessToken && workspaceId),
+    enabled: Boolean(accessToken && workspaceId && !isOrgScopeRoute),
     queryFn: async () => getUnreadNotificationPreview(String(workspaceId), { limit: 3 }),
     staleTime: 15 * 1000,
     refetchInterval: 30 * 1000,
@@ -225,7 +232,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
         <SidebarHeader className="flex flex-col items-center gap-4 w-full px-0 py-8">
           <AdminLogo ariaLabel="Celestial" />
           <h2 className="font-bold line-clamp-2 text-center select-none max-w-2/3 wrap-break-word">
-            {workspaceName || brandTitle}
+            {isOrgScopeRoute ? brandTitle : workspaceName || brandTitle}
           </h2>
         </SidebarHeader>
 
@@ -236,7 +243,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
         <SidebarFooter className="relative z-10 isolate p-0">
           <div className="w-full bg-sidebar">
             <div className="px-4 pb-3">
-              {showSidebarNotificationCenter ? (
+              {showSidebarNotificationCenter && !isOrgScopeRoute && workspaceBase ? (
                 <AdminNotificationCenter
                   maxItems={2}
                   unreadCount={notificationsPreviewQuery.data?.unreadCount ?? 0}

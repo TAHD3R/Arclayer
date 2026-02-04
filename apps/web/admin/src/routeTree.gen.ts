@@ -18,6 +18,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as TeamIndexRouteImport } from './routes/team/index'
 import { Route as AssetsIndexRouteImport } from './routes/assets/index'
 import { Route as WWorkspaceIdRouteImport } from './routes/w/$workspaceId'
+import { Route as TeamRolesRouteImport } from './routes/team/roles'
 import { Route as TeamMembersRouteImport } from './routes/team/members'
 import { Route as TeamInvitationsRouteImport } from './routes/team/invitations'
 import { Route as DebugPortalEditorRouteImport } from './routes/debug/portal-editor'
@@ -35,10 +36,11 @@ import { Route as AppearanceNavigationIndexRouteImport } from './routes/appearan
 import { Route as WWorkspaceIdTeamIndexRouteImport } from './routes/w/$workspaceId/team/index'
 import { Route as WWorkspaceIdNotificationsIndexRouteImport } from './routes/w/$workspaceId/notifications/index'
 import { Route as WWorkspaceIdAssetsIndexRouteImport } from './routes/w/$workspaceId/assets/index'
-import { Route as SettingsTeamRolesIndexRouteImport } from './routes/settings/team/roles/index'
+import { Route as SettingsOrganizationActivityIndexRouteImport } from './routes/settings/organization/activity/index'
 import { Route as SettingsMaintenanceStatusIndexRouteImport } from './routes/settings/maintenance/status/index'
 import { Route as SettingsMaintenanceSnapshotsIndexRouteImport } from './routes/settings/maintenance/snapshots/index'
-import { Route as SettingsMaintenanceAuditLogIndexRouteImport } from './routes/settings/maintenance/audit-log/index'
+import { Route as SettingsMaintenanceActivityIndexRouteImport } from './routes/settings/maintenance/activity/index'
+import { Route as WWorkspaceIdTeamRolesRouteImport } from './routes/w/$workspaceId/team/roles'
 import { Route as WWorkspaceIdTeamMembersRouteImport } from './routes/w/$workspaceId/team/members'
 import { Route as WWorkspaceIdTeamInvitationsRouteImport } from './routes/w/$workspaceId/team/invitations'
 import { Route as WWorkspaceIdSettingsWorkspaceIndexRouteImport } from './routes/w/$workspaceId/settings/workspace/index'
@@ -51,7 +53,9 @@ import { Route as WWorkspaceIdContentLibraryIndexRouteImport } from './routes/w/
 import { Route as WWorkspaceIdAppearanceThemesIndexRouteImport } from './routes/w/$workspaceId/appearance/themes/index'
 import { Route as WWorkspaceIdAppearanceStylesIndexRouteImport } from './routes/w/$workspaceId/appearance/styles/index'
 import { Route as WWorkspaceIdAppearanceNavigationIndexRouteImport } from './routes/w/$workspaceId/appearance/navigation/index'
-import { Route as WWorkspaceIdSettingsTeamRolesIndexRouteImport } from './routes/w/$workspaceId/settings/team/roles/index'
+import { Route as WWorkspaceIdSettingsMaintenanceStatusIndexRouteImport } from './routes/w/$workspaceId/settings/maintenance/status/index'
+import { Route as WWorkspaceIdSettingsMaintenanceSnapshotsIndexRouteImport } from './routes/w/$workspaceId/settings/maintenance/snapshots/index'
+import { Route as WWorkspaceIdSettingsMaintenanceActivityIndexRouteImport } from './routes/w/$workspaceId/settings/maintenance/activity/index'
 
 const SetupRoute = SetupRouteImport.update({
   id: '/setup',
@@ -96,6 +100,11 @@ const AssetsIndexRoute = AssetsIndexRouteImport.update({
 const WWorkspaceIdRoute = WWorkspaceIdRouteImport.update({
   id: '/w/$workspaceId',
   path: '/w/$workspaceId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TeamRolesRoute = TeamRolesRouteImport.update({
+  id: '/team/roles',
+  path: '/team/roles',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TeamMembersRoute = TeamMembersRouteImport.update({
@@ -186,11 +195,12 @@ const WWorkspaceIdAssetsIndexRoute = WWorkspaceIdAssetsIndexRouteImport.update({
   path: '/assets/',
   getParentRoute: () => WWorkspaceIdRoute,
 } as any)
-const SettingsTeamRolesIndexRoute = SettingsTeamRolesIndexRouteImport.update({
-  id: '/settings/team/roles/',
-  path: '/settings/team/roles/',
-  getParentRoute: () => rootRouteImport,
-} as any)
+const SettingsOrganizationActivityIndexRoute =
+  SettingsOrganizationActivityIndexRouteImport.update({
+    id: '/settings/organization/activity/',
+    path: '/settings/organization/activity/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const SettingsMaintenanceStatusIndexRoute =
   SettingsMaintenanceStatusIndexRouteImport.update({
     id: '/settings/maintenance/status/',
@@ -203,12 +213,17 @@ const SettingsMaintenanceSnapshotsIndexRoute =
     path: '/settings/maintenance/snapshots/',
     getParentRoute: () => rootRouteImport,
   } as any)
-const SettingsMaintenanceAuditLogIndexRoute =
-  SettingsMaintenanceAuditLogIndexRouteImport.update({
-    id: '/settings/maintenance/audit-log/',
-    path: '/settings/maintenance/audit-log/',
+const SettingsMaintenanceActivityIndexRoute =
+  SettingsMaintenanceActivityIndexRouteImport.update({
+    id: '/settings/maintenance/activity/',
+    path: '/settings/maintenance/activity/',
     getParentRoute: () => rootRouteImport,
   } as any)
+const WWorkspaceIdTeamRolesRoute = WWorkspaceIdTeamRolesRouteImport.update({
+  id: '/team/roles',
+  path: '/team/roles',
+  getParentRoute: () => WWorkspaceIdRoute,
+} as any)
 const WWorkspaceIdTeamMembersRoute = WWorkspaceIdTeamMembersRouteImport.update({
   id: '/team/members',
   path: '/team/members',
@@ -280,10 +295,22 @@ const WWorkspaceIdAppearanceNavigationIndexRoute =
     path: '/appearance/navigation/',
     getParentRoute: () => WWorkspaceIdRoute,
   } as any)
-const WWorkspaceIdSettingsTeamRolesIndexRoute =
-  WWorkspaceIdSettingsTeamRolesIndexRouteImport.update({
-    id: '/settings/team/roles/',
-    path: '/settings/team/roles/',
+const WWorkspaceIdSettingsMaintenanceStatusIndexRoute =
+  WWorkspaceIdSettingsMaintenanceStatusIndexRouteImport.update({
+    id: '/settings/maintenance/status/',
+    path: '/settings/maintenance/status/',
+    getParentRoute: () => WWorkspaceIdRoute,
+  } as any)
+const WWorkspaceIdSettingsMaintenanceSnapshotsIndexRoute =
+  WWorkspaceIdSettingsMaintenanceSnapshotsIndexRouteImport.update({
+    id: '/settings/maintenance/snapshots/',
+    path: '/settings/maintenance/snapshots/',
+    getParentRoute: () => WWorkspaceIdRoute,
+  } as any)
+const WWorkspaceIdSettingsMaintenanceActivityIndexRoute =
+  WWorkspaceIdSettingsMaintenanceActivityIndexRouteImport.update({
+    id: '/settings/maintenance/activity/',
+    path: '/settings/maintenance/activity/',
     getParentRoute: () => WWorkspaceIdRoute,
   } as any)
 
@@ -297,6 +324,7 @@ export interface FileRoutesByFullPath {
   '/debug/portal-editor': typeof DebugPortalEditorRoute
   '/team/invitations': typeof TeamInvitationsRoute
   '/team/members': typeof TeamMembersRoute
+  '/team/roles': typeof TeamRolesRoute
   '/w/$workspaceId': typeof WWorkspaceIdRouteWithChildren
   '/assets/': typeof AssetsIndexRoute
   '/team/': typeof TeamIndexRoute
@@ -313,10 +341,11 @@ export interface FileRoutesByFullPath {
   '/w/$workspaceId/': typeof WWorkspaceIdIndexRoute
   '/w/$workspaceId/team/invitations': typeof WWorkspaceIdTeamInvitationsRoute
   '/w/$workspaceId/team/members': typeof WWorkspaceIdTeamMembersRoute
-  '/settings/maintenance/audit-log/': typeof SettingsMaintenanceAuditLogIndexRoute
+  '/w/$workspaceId/team/roles': typeof WWorkspaceIdTeamRolesRoute
+  '/settings/maintenance/activity/': typeof SettingsMaintenanceActivityIndexRoute
   '/settings/maintenance/snapshots/': typeof SettingsMaintenanceSnapshotsIndexRoute
   '/settings/maintenance/status/': typeof SettingsMaintenanceStatusIndexRoute
-  '/settings/team/roles/': typeof SettingsTeamRolesIndexRoute
+  '/settings/organization/activity/': typeof SettingsOrganizationActivityIndexRoute
   '/w/$workspaceId/assets/': typeof WWorkspaceIdAssetsIndexRoute
   '/w/$workspaceId/notifications/': typeof WWorkspaceIdNotificationsIndexRoute
   '/w/$workspaceId/team/': typeof WWorkspaceIdTeamIndexRoute
@@ -330,7 +359,9 @@ export interface FileRoutesByFullPath {
   '/w/$workspaceId/settings/organization/': typeof WWorkspaceIdSettingsOrganizationIndexRoute
   '/w/$workspaceId/settings/seo/': typeof WWorkspaceIdSettingsSeoIndexRoute
   '/w/$workspaceId/settings/workspace/': typeof WWorkspaceIdSettingsWorkspaceIndexRoute
-  '/w/$workspaceId/settings/team/roles/': typeof WWorkspaceIdSettingsTeamRolesIndexRoute
+  '/w/$workspaceId/settings/maintenance/activity/': typeof WWorkspaceIdSettingsMaintenanceActivityIndexRoute
+  '/w/$workspaceId/settings/maintenance/snapshots/': typeof WWorkspaceIdSettingsMaintenanceSnapshotsIndexRoute
+  '/w/$workspaceId/settings/maintenance/status/': typeof WWorkspaceIdSettingsMaintenanceStatusIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -342,6 +373,7 @@ export interface FileRoutesByTo {
   '/debug/portal-editor': typeof DebugPortalEditorRoute
   '/team/invitations': typeof TeamInvitationsRoute
   '/team/members': typeof TeamMembersRoute
+  '/team/roles': typeof TeamRolesRoute
   '/assets': typeof AssetsIndexRoute
   '/team': typeof TeamIndexRoute
   '/appearance/navigation': typeof AppearanceNavigationIndexRoute
@@ -357,10 +389,11 @@ export interface FileRoutesByTo {
   '/w/$workspaceId': typeof WWorkspaceIdIndexRoute
   '/w/$workspaceId/team/invitations': typeof WWorkspaceIdTeamInvitationsRoute
   '/w/$workspaceId/team/members': typeof WWorkspaceIdTeamMembersRoute
-  '/settings/maintenance/audit-log': typeof SettingsMaintenanceAuditLogIndexRoute
+  '/w/$workspaceId/team/roles': typeof WWorkspaceIdTeamRolesRoute
+  '/settings/maintenance/activity': typeof SettingsMaintenanceActivityIndexRoute
   '/settings/maintenance/snapshots': typeof SettingsMaintenanceSnapshotsIndexRoute
   '/settings/maintenance/status': typeof SettingsMaintenanceStatusIndexRoute
-  '/settings/team/roles': typeof SettingsTeamRolesIndexRoute
+  '/settings/organization/activity': typeof SettingsOrganizationActivityIndexRoute
   '/w/$workspaceId/assets': typeof WWorkspaceIdAssetsIndexRoute
   '/w/$workspaceId/notifications': typeof WWorkspaceIdNotificationsIndexRoute
   '/w/$workspaceId/team': typeof WWorkspaceIdTeamIndexRoute
@@ -374,7 +407,9 @@ export interface FileRoutesByTo {
   '/w/$workspaceId/settings/organization': typeof WWorkspaceIdSettingsOrganizationIndexRoute
   '/w/$workspaceId/settings/seo': typeof WWorkspaceIdSettingsSeoIndexRoute
   '/w/$workspaceId/settings/workspace': typeof WWorkspaceIdSettingsWorkspaceIndexRoute
-  '/w/$workspaceId/settings/team/roles': typeof WWorkspaceIdSettingsTeamRolesIndexRoute
+  '/w/$workspaceId/settings/maintenance/activity': typeof WWorkspaceIdSettingsMaintenanceActivityIndexRoute
+  '/w/$workspaceId/settings/maintenance/snapshots': typeof WWorkspaceIdSettingsMaintenanceSnapshotsIndexRoute
+  '/w/$workspaceId/settings/maintenance/status': typeof WWorkspaceIdSettingsMaintenanceStatusIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -387,6 +422,7 @@ export interface FileRoutesById {
   '/debug/portal-editor': typeof DebugPortalEditorRoute
   '/team/invitations': typeof TeamInvitationsRoute
   '/team/members': typeof TeamMembersRoute
+  '/team/roles': typeof TeamRolesRoute
   '/w/$workspaceId': typeof WWorkspaceIdRouteWithChildren
   '/assets/': typeof AssetsIndexRoute
   '/team/': typeof TeamIndexRoute
@@ -403,10 +439,11 @@ export interface FileRoutesById {
   '/w/$workspaceId/': typeof WWorkspaceIdIndexRoute
   '/w/$workspaceId/team/invitations': typeof WWorkspaceIdTeamInvitationsRoute
   '/w/$workspaceId/team/members': typeof WWorkspaceIdTeamMembersRoute
-  '/settings/maintenance/audit-log/': typeof SettingsMaintenanceAuditLogIndexRoute
+  '/w/$workspaceId/team/roles': typeof WWorkspaceIdTeamRolesRoute
+  '/settings/maintenance/activity/': typeof SettingsMaintenanceActivityIndexRoute
   '/settings/maintenance/snapshots/': typeof SettingsMaintenanceSnapshotsIndexRoute
   '/settings/maintenance/status/': typeof SettingsMaintenanceStatusIndexRoute
-  '/settings/team/roles/': typeof SettingsTeamRolesIndexRoute
+  '/settings/organization/activity/': typeof SettingsOrganizationActivityIndexRoute
   '/w/$workspaceId/assets/': typeof WWorkspaceIdAssetsIndexRoute
   '/w/$workspaceId/notifications/': typeof WWorkspaceIdNotificationsIndexRoute
   '/w/$workspaceId/team/': typeof WWorkspaceIdTeamIndexRoute
@@ -420,7 +457,9 @@ export interface FileRoutesById {
   '/w/$workspaceId/settings/organization/': typeof WWorkspaceIdSettingsOrganizationIndexRoute
   '/w/$workspaceId/settings/seo/': typeof WWorkspaceIdSettingsSeoIndexRoute
   '/w/$workspaceId/settings/workspace/': typeof WWorkspaceIdSettingsWorkspaceIndexRoute
-  '/w/$workspaceId/settings/team/roles/': typeof WWorkspaceIdSettingsTeamRolesIndexRoute
+  '/w/$workspaceId/settings/maintenance/activity/': typeof WWorkspaceIdSettingsMaintenanceActivityIndexRoute
+  '/w/$workspaceId/settings/maintenance/snapshots/': typeof WWorkspaceIdSettingsMaintenanceSnapshotsIndexRoute
+  '/w/$workspaceId/settings/maintenance/status/': typeof WWorkspaceIdSettingsMaintenanceStatusIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -434,6 +473,7 @@ export interface FileRouteTypes {
     | '/debug/portal-editor'
     | '/team/invitations'
     | '/team/members'
+    | '/team/roles'
     | '/w/$workspaceId'
     | '/assets/'
     | '/team/'
@@ -450,10 +490,11 @@ export interface FileRouteTypes {
     | '/w/$workspaceId/'
     | '/w/$workspaceId/team/invitations'
     | '/w/$workspaceId/team/members'
-    | '/settings/maintenance/audit-log/'
+    | '/w/$workspaceId/team/roles'
+    | '/settings/maintenance/activity/'
     | '/settings/maintenance/snapshots/'
     | '/settings/maintenance/status/'
-    | '/settings/team/roles/'
+    | '/settings/organization/activity/'
     | '/w/$workspaceId/assets/'
     | '/w/$workspaceId/notifications/'
     | '/w/$workspaceId/team/'
@@ -467,7 +508,9 @@ export interface FileRouteTypes {
     | '/w/$workspaceId/settings/organization/'
     | '/w/$workspaceId/settings/seo/'
     | '/w/$workspaceId/settings/workspace/'
-    | '/w/$workspaceId/settings/team/roles/'
+    | '/w/$workspaceId/settings/maintenance/activity/'
+    | '/w/$workspaceId/settings/maintenance/snapshots/'
+    | '/w/$workspaceId/settings/maintenance/status/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -479,6 +522,7 @@ export interface FileRouteTypes {
     | '/debug/portal-editor'
     | '/team/invitations'
     | '/team/members'
+    | '/team/roles'
     | '/assets'
     | '/team'
     | '/appearance/navigation'
@@ -494,10 +538,11 @@ export interface FileRouteTypes {
     | '/w/$workspaceId'
     | '/w/$workspaceId/team/invitations'
     | '/w/$workspaceId/team/members'
-    | '/settings/maintenance/audit-log'
+    | '/w/$workspaceId/team/roles'
+    | '/settings/maintenance/activity'
     | '/settings/maintenance/snapshots'
     | '/settings/maintenance/status'
-    | '/settings/team/roles'
+    | '/settings/organization/activity'
     | '/w/$workspaceId/assets'
     | '/w/$workspaceId/notifications'
     | '/w/$workspaceId/team'
@@ -511,7 +556,9 @@ export interface FileRouteTypes {
     | '/w/$workspaceId/settings/organization'
     | '/w/$workspaceId/settings/seo'
     | '/w/$workspaceId/settings/workspace'
-    | '/w/$workspaceId/settings/team/roles'
+    | '/w/$workspaceId/settings/maintenance/activity'
+    | '/w/$workspaceId/settings/maintenance/snapshots'
+    | '/w/$workspaceId/settings/maintenance/status'
   id:
     | '__root__'
     | '/'
@@ -523,6 +570,7 @@ export interface FileRouteTypes {
     | '/debug/portal-editor'
     | '/team/invitations'
     | '/team/members'
+    | '/team/roles'
     | '/w/$workspaceId'
     | '/assets/'
     | '/team/'
@@ -539,10 +587,11 @@ export interface FileRouteTypes {
     | '/w/$workspaceId/'
     | '/w/$workspaceId/team/invitations'
     | '/w/$workspaceId/team/members'
-    | '/settings/maintenance/audit-log/'
+    | '/w/$workspaceId/team/roles'
+    | '/settings/maintenance/activity/'
     | '/settings/maintenance/snapshots/'
     | '/settings/maintenance/status/'
-    | '/settings/team/roles/'
+    | '/settings/organization/activity/'
     | '/w/$workspaceId/assets/'
     | '/w/$workspaceId/notifications/'
     | '/w/$workspaceId/team/'
@@ -556,7 +605,9 @@ export interface FileRouteTypes {
     | '/w/$workspaceId/settings/organization/'
     | '/w/$workspaceId/settings/seo/'
     | '/w/$workspaceId/settings/workspace/'
-    | '/w/$workspaceId/settings/team/roles/'
+    | '/w/$workspaceId/settings/maintenance/activity/'
+    | '/w/$workspaceId/settings/maintenance/snapshots/'
+    | '/w/$workspaceId/settings/maintenance/status/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -569,6 +620,7 @@ export interface RootRouteChildren {
   DebugPortalEditorRoute: typeof DebugPortalEditorRoute
   TeamInvitationsRoute: typeof TeamInvitationsRoute
   TeamMembersRoute: typeof TeamMembersRoute
+  TeamRolesRoute: typeof TeamRolesRoute
   WWorkspaceIdRoute: typeof WWorkspaceIdRouteWithChildren
   AssetsIndexRoute: typeof AssetsIndexRoute
   TeamIndexRoute: typeof TeamIndexRoute
@@ -582,10 +634,10 @@ export interface RootRouteChildren {
   SettingsOrganizationIndexRoute: typeof SettingsOrganizationIndexRoute
   SettingsSeoIndexRoute: typeof SettingsSeoIndexRoute
   SettingsWorkspaceIndexRoute: typeof SettingsWorkspaceIndexRoute
-  SettingsMaintenanceAuditLogIndexRoute: typeof SettingsMaintenanceAuditLogIndexRoute
+  SettingsMaintenanceActivityIndexRoute: typeof SettingsMaintenanceActivityIndexRoute
   SettingsMaintenanceSnapshotsIndexRoute: typeof SettingsMaintenanceSnapshotsIndexRoute
   SettingsMaintenanceStatusIndexRoute: typeof SettingsMaintenanceStatusIndexRoute
-  SettingsTeamRolesIndexRoute: typeof SettingsTeamRolesIndexRoute
+  SettingsOrganizationActivityIndexRoute: typeof SettingsOrganizationActivityIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -651,6 +703,13 @@ declare module '@tanstack/react-router' {
       path: '/w/$workspaceId'
       fullPath: '/w/$workspaceId'
       preLoaderRoute: typeof WWorkspaceIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/team/roles': {
+      id: '/team/roles'
+      path: '/team/roles'
+      fullPath: '/team/roles'
+      preLoaderRoute: typeof TeamRolesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/team/members': {
@@ -772,11 +831,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WWorkspaceIdAssetsIndexRouteImport
       parentRoute: typeof WWorkspaceIdRoute
     }
-    '/settings/team/roles/': {
-      id: '/settings/team/roles/'
-      path: '/settings/team/roles'
-      fullPath: '/settings/team/roles/'
-      preLoaderRoute: typeof SettingsTeamRolesIndexRouteImport
+    '/settings/organization/activity/': {
+      id: '/settings/organization/activity/'
+      path: '/settings/organization/activity'
+      fullPath: '/settings/organization/activity/'
+      preLoaderRoute: typeof SettingsOrganizationActivityIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings/maintenance/status/': {
@@ -793,12 +852,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsMaintenanceSnapshotsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/settings/maintenance/audit-log/': {
-      id: '/settings/maintenance/audit-log/'
-      path: '/settings/maintenance/audit-log'
-      fullPath: '/settings/maintenance/audit-log/'
-      preLoaderRoute: typeof SettingsMaintenanceAuditLogIndexRouteImport
+    '/settings/maintenance/activity/': {
+      id: '/settings/maintenance/activity/'
+      path: '/settings/maintenance/activity'
+      fullPath: '/settings/maintenance/activity/'
+      preLoaderRoute: typeof SettingsMaintenanceActivityIndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/w/$workspaceId/team/roles': {
+      id: '/w/$workspaceId/team/roles'
+      path: '/team/roles'
+      fullPath: '/w/$workspaceId/team/roles'
+      preLoaderRoute: typeof WWorkspaceIdTeamRolesRouteImport
+      parentRoute: typeof WWorkspaceIdRoute
     }
     '/w/$workspaceId/team/members': {
       id: '/w/$workspaceId/team/members'
@@ -884,11 +950,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WWorkspaceIdAppearanceNavigationIndexRouteImport
       parentRoute: typeof WWorkspaceIdRoute
     }
-    '/w/$workspaceId/settings/team/roles/': {
-      id: '/w/$workspaceId/settings/team/roles/'
-      path: '/settings/team/roles'
-      fullPath: '/w/$workspaceId/settings/team/roles/'
-      preLoaderRoute: typeof WWorkspaceIdSettingsTeamRolesIndexRouteImport
+    '/w/$workspaceId/settings/maintenance/status/': {
+      id: '/w/$workspaceId/settings/maintenance/status/'
+      path: '/settings/maintenance/status'
+      fullPath: '/w/$workspaceId/settings/maintenance/status/'
+      preLoaderRoute: typeof WWorkspaceIdSettingsMaintenanceStatusIndexRouteImport
+      parentRoute: typeof WWorkspaceIdRoute
+    }
+    '/w/$workspaceId/settings/maintenance/snapshots/': {
+      id: '/w/$workspaceId/settings/maintenance/snapshots/'
+      path: '/settings/maintenance/snapshots'
+      fullPath: '/w/$workspaceId/settings/maintenance/snapshots/'
+      preLoaderRoute: typeof WWorkspaceIdSettingsMaintenanceSnapshotsIndexRouteImport
+      parentRoute: typeof WWorkspaceIdRoute
+    }
+    '/w/$workspaceId/settings/maintenance/activity/': {
+      id: '/w/$workspaceId/settings/maintenance/activity/'
+      path: '/settings/maintenance/activity'
+      fullPath: '/w/$workspaceId/settings/maintenance/activity/'
+      preLoaderRoute: typeof WWorkspaceIdSettingsMaintenanceActivityIndexRouteImport
       parentRoute: typeof WWorkspaceIdRoute
     }
   }
@@ -898,6 +978,7 @@ interface WWorkspaceIdRouteChildren {
   WWorkspaceIdIndexRoute: typeof WWorkspaceIdIndexRoute
   WWorkspaceIdTeamInvitationsRoute: typeof WWorkspaceIdTeamInvitationsRoute
   WWorkspaceIdTeamMembersRoute: typeof WWorkspaceIdTeamMembersRoute
+  WWorkspaceIdTeamRolesRoute: typeof WWorkspaceIdTeamRolesRoute
   WWorkspaceIdAssetsIndexRoute: typeof WWorkspaceIdAssetsIndexRoute
   WWorkspaceIdNotificationsIndexRoute: typeof WWorkspaceIdNotificationsIndexRoute
   WWorkspaceIdTeamIndexRoute: typeof WWorkspaceIdTeamIndexRoute
@@ -911,13 +992,16 @@ interface WWorkspaceIdRouteChildren {
   WWorkspaceIdSettingsOrganizationIndexRoute: typeof WWorkspaceIdSettingsOrganizationIndexRoute
   WWorkspaceIdSettingsSeoIndexRoute: typeof WWorkspaceIdSettingsSeoIndexRoute
   WWorkspaceIdSettingsWorkspaceIndexRoute: typeof WWorkspaceIdSettingsWorkspaceIndexRoute
-  WWorkspaceIdSettingsTeamRolesIndexRoute: typeof WWorkspaceIdSettingsTeamRolesIndexRoute
+  WWorkspaceIdSettingsMaintenanceActivityIndexRoute: typeof WWorkspaceIdSettingsMaintenanceActivityIndexRoute
+  WWorkspaceIdSettingsMaintenanceSnapshotsIndexRoute: typeof WWorkspaceIdSettingsMaintenanceSnapshotsIndexRoute
+  WWorkspaceIdSettingsMaintenanceStatusIndexRoute: typeof WWorkspaceIdSettingsMaintenanceStatusIndexRoute
 }
 
 const WWorkspaceIdRouteChildren: WWorkspaceIdRouteChildren = {
   WWorkspaceIdIndexRoute: WWorkspaceIdIndexRoute,
   WWorkspaceIdTeamInvitationsRoute: WWorkspaceIdTeamInvitationsRoute,
   WWorkspaceIdTeamMembersRoute: WWorkspaceIdTeamMembersRoute,
+  WWorkspaceIdTeamRolesRoute: WWorkspaceIdTeamRolesRoute,
   WWorkspaceIdAssetsIndexRoute: WWorkspaceIdAssetsIndexRoute,
   WWorkspaceIdNotificationsIndexRoute: WWorkspaceIdNotificationsIndexRoute,
   WWorkspaceIdTeamIndexRoute: WWorkspaceIdTeamIndexRoute,
@@ -937,8 +1021,12 @@ const WWorkspaceIdRouteChildren: WWorkspaceIdRouteChildren = {
   WWorkspaceIdSettingsSeoIndexRoute: WWorkspaceIdSettingsSeoIndexRoute,
   WWorkspaceIdSettingsWorkspaceIndexRoute:
     WWorkspaceIdSettingsWorkspaceIndexRoute,
-  WWorkspaceIdSettingsTeamRolesIndexRoute:
-    WWorkspaceIdSettingsTeamRolesIndexRoute,
+  WWorkspaceIdSettingsMaintenanceActivityIndexRoute:
+    WWorkspaceIdSettingsMaintenanceActivityIndexRoute,
+  WWorkspaceIdSettingsMaintenanceSnapshotsIndexRoute:
+    WWorkspaceIdSettingsMaintenanceSnapshotsIndexRoute,
+  WWorkspaceIdSettingsMaintenanceStatusIndexRoute:
+    WWorkspaceIdSettingsMaintenanceStatusIndexRoute,
 }
 
 const WWorkspaceIdRouteWithChildren = WWorkspaceIdRoute._addFileChildren(
@@ -955,6 +1043,7 @@ const rootRouteChildren: RootRouteChildren = {
   DebugPortalEditorRoute: DebugPortalEditorRoute,
   TeamInvitationsRoute: TeamInvitationsRoute,
   TeamMembersRoute: TeamMembersRoute,
+  TeamRolesRoute: TeamRolesRoute,
   WWorkspaceIdRoute: WWorkspaceIdRouteWithChildren,
   AssetsIndexRoute: AssetsIndexRoute,
   TeamIndexRoute: TeamIndexRoute,
@@ -968,11 +1057,12 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsOrganizationIndexRoute: SettingsOrganizationIndexRoute,
   SettingsSeoIndexRoute: SettingsSeoIndexRoute,
   SettingsWorkspaceIndexRoute: SettingsWorkspaceIndexRoute,
-  SettingsMaintenanceAuditLogIndexRoute: SettingsMaintenanceAuditLogIndexRoute,
+  SettingsMaintenanceActivityIndexRoute: SettingsMaintenanceActivityIndexRoute,
   SettingsMaintenanceSnapshotsIndexRoute:
     SettingsMaintenanceSnapshotsIndexRoute,
   SettingsMaintenanceStatusIndexRoute: SettingsMaintenanceStatusIndexRoute,
-  SettingsTeamRolesIndexRoute: SettingsTeamRolesIndexRoute,
+  SettingsOrganizationActivityIndexRoute:
+    SettingsOrganizationActivityIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

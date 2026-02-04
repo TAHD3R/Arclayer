@@ -6,6 +6,7 @@ from apps.api.config import Settings, get_settings
 from apps.api.core.exceptions import ServiceUnavailable
 from apps.api.core.http.response import Response, ResponseModel
 from apps.api.core.i18n import t
+from apps.api.modules.analytics.system.router import router as system_activity_router
 from apps.api.modules.system.mail.router import router as system_mail_router
 from apps.api.modules.system.plugins_manager.router import router as system_plugins_router
 from apps.api.modules.system.rbac.router import router as system_rbac_router
@@ -106,3 +107,4 @@ router.include_router(system_settings_router, prefix="/settings")
 router.include_router(system_mail_router, prefix="/mail")
 router.include_router(system_plugins_router, prefix="/plugins-manager")
 router.include_router(system_rbac_router, prefix="/rbac")
+router.include_router(system_activity_router, prefix="/activity")

@@ -26,7 +26,12 @@ from apps.api.modules.organization.models.user import User
 from apps.api.modules.system.models.rbac import Role
 from apps.api.modules.workspaces.invitations.expiry import build_expires_at
 from apps.api.modules.workspaces.invitations.tokens import build_invite_token, generate_invite_code
-from apps.api.modules.workspaces.models.workspace import Workspace, WorkspaceMembership, WorkspaceMembershipStatus
+from apps.api.modules.workspaces.models.workspace import (
+    Workspace,
+    WorkspaceMembership,
+    WorkspaceMembershipRole,
+    WorkspaceMembershipStatus,
+)
 from apps.api.modules.workspaces.models.workspace_invite import (
     WorkspaceEmailInvite,
     WorkspaceInviteLink,
@@ -48,6 +53,7 @@ from apps.api.modules.workspaces.team.schema import (
     WorkspaceTeamMemberRoleSetRequest,
     WorkspaceTeamMemberStatusResult,
     WorkspaceTeamResetPasswordRequest,
+    WorkspaceTeamUserOptionOut,
     WorkspaceTeamUserRefOut,
     WorkspaceTeamUserUpdateRequest,
 )
@@ -69,6 +75,41 @@ class WorkspaceTeamService(BaseService):
         self.repo = WorkspaceTeamRepository()
         self.user_repo = UserRepository()
         self.email_service = EmailService(settings)
+
+    async def _publish_activity_event(
+        self,
+        *,
+        name: str,
+        actor_user_id: UUID | None,
+        payload: dict,
+        source: str = "api",
+    ) -> None:
+        """
+        Best-effort publish of in-process events for Activity ingestion.
+
+        Notes:
+        - Must never break the main request flow.
+        - Keep payload minimal; ingestion layer will sanitize again.
+        """
+
+        try:
+            from asgi_correlation_id import correlation_id
+
+            from apps.api.plugin.event_bus import Event
+            from apps.api.plugin.registry import registry as plugin_registry
+
+            await plugin_registry.event_bus.publish(
+                Event(
+                    name=name,
+                    payload=payload,
+                    source=source,
+                    trace_id=correlation_id.get(None),
+                    actor_user_id=str(actor_user_id) if actor_user_id else None,
+                )
+            )
+        except Exception:
+            # Best-effort only.
+            return
 
     def _build_member_out(self, *, membership: WorkspaceMembership) -> WorkspaceTeamMemberOut:
         membership_roles = getattr(membership, "membership_roles", None) or []
@@ -156,6 +197,67 @@ class WorkspaceTeamService(BaseService):
             prev=prev_page,
         )
 
+    async def list_user_options(
+        self,
+        *,
+        workspace_id: UUID,
+        params: PageParams,
+        q: str | None,
+    ) -> PageData[WorkspaceTeamUserOptionOut]:
+        """
+        List lightweight user options within a workspace, for Select components.
+
+        Notes:
+        - Scope boundary is strict: only users who have a membership record in the workspace.
+        - We include both ACTIVE and DISABLED members so historical actors remain discoverable.
+        """
+
+        qs = (
+            WorkspaceMembership
+            .filter(workspace_id=workspace_id)
+            .filter(status__in=[WorkspaceMembershipStatus.ACTIVE, WorkspaceMembershipStatus.DISABLED])
+            .select_related("user")
+        )
+
+        if q:
+            needle = q.strip()
+            if needle:
+                qs = qs.filter(
+                    Q(user__username__icontains=needle)
+                    | Q(user__email__icontains=needle)
+                    | Q(user__display_name__icontains=needle)
+                )
+
+        total = int(await qs.count())
+        pages = (total + params.size - 1) // params.size if params.size else 0
+        rows = (
+            await qs.order_by("-user__last_login_at", "user__username").limit(params.limit).offset(params.offset).all()
+        )
+
+        items: list[WorkspaceTeamUserOptionOut] = []
+        for m in rows:
+            user = m.user
+            label = (user.display_name or user.username or user.email or "").strip() or str(user.id)
+            items.append(
+                WorkspaceTeamUserOptionOut(
+                    value=UUID(str(user.id)),
+                    label=label,
+                    avatar_url=user.avatar_url,
+                )
+            )
+
+        next_page = params.page + 1 if pages and params.page < pages else None
+        prev_page = min(params.page - 1, pages) if pages and params.page > 1 else None
+        return PageData[WorkspaceTeamUserOptionOut](
+            items=items,
+            total=total,
+            page=params.page,
+            size=params.size,
+            pages=pages,
+            next=next_page,
+            prev=prev_page,
+        )
+
     async def update_member_user(
         self,
         *,
@@ -233,6 +335,22 @@ class WorkspaceTeamService(BaseService):
             membership.status = target
             await membership.save(update_fields=["status", "updated_at"])
 
+        # Emit activity event (best-effort).
+        try:
+            subject_user_id = UUID(str(cast(HasUserId, membership).user_id))
+        except Exception:
+            subject_user_id = None
+        await self._publish_activity_event(
+            name="workspace.member.status.updated",
+            actor_user_id=acting_user_id,
+            payload={
+                "workspace_id": str(workspace_id),
+                "membership_id": str(membership.id),
+                "subject_user_id": str(subject_user_id) if subject_user_id else None,
+                "enabled": bool(enabled),
+            },
+        )
+
         return WorkspaceTeamMemberStatusResult(membership_id=membership.id, status=membership.status)
 
     async def reset_member_password(
@@ -268,6 +386,7 @@ class WorkspaceTeamService(BaseService):
         workspace_id: UUID,
         membership_id: UUID,
         payload: WorkspaceTeamMemberRoleSetRequest,
+        acting_user_id: UUID,
     ) -> None:
         membership = await self.repo.get_membership(membership_id=membership_id, workspace_id=workspace_id)
         if membership is None:
@@ -290,7 +409,32 @@ class WorkspaceTeamService(BaseService):
                 meta={"missing": missing},
             )
 
+        # Capture current roles (best-effort; for Activity diff display).
+        before_codes: list[str] = []
+        try:
+            rows = await WorkspaceMembershipRole.filter(membership_id=membership.id).prefetch_related("role").all()
+            before_codes = sorted({r.role.code for r in rows if getattr(r, "role", None)})
+        except Exception:
+            before_codes = []
+
         await self.repo.replace_membership_roles(membership_id=membership.id, role_ids=[r.id for r in roles])
+
+        # Emit activity event (best-effort).
+        try:
+            subject_user_id = UUID(str(cast(HasUserId, membership).user_id))
+        except Exception:
+            subject_user_id = None
+        await self._publish_activity_event(
+            name="workspace.member.roles.updated",
+            actor_user_id=acting_user_id,
+            payload={
+                "workspace_id": str(workspace_id),
+                "membership_id": str(membership.id),
+                "subject_user_id": str(subject_user_id) if subject_user_id else None,
+                "role_codes_before": before_codes,
+                "role_codes_after": sorted({r.code for r in roles}),
+            },
+        )
 
     async def create_or_update_email_invite(
         self,
@@ -313,6 +457,7 @@ class WorkspaceTeamService(BaseService):
                     meta={"missing": [role_code]},
                 )
 
+        is_update = False
         async with in_transaction() as conn:
             # Q2: only one active invite per (workspace, email). We enforce this by locking the existing row (if any).
             existing = (
@@ -340,6 +485,7 @@ class WorkspaceTeamService(BaseService):
                     created_by_user_id=invited_by_user_id,
                 )
             else:
+                is_update = True
                 existing_like = cast(WorkspaceEmailInviteMutableFields, existing)
                 existing_like.role_code = role_code
                 existing_like.expires_at = expires_at
@@ -368,6 +514,28 @@ class WorkspaceTeamService(BaseService):
             ),
             created_at=inv.created_at,
             updated_at=inv.updated_at,
+        )
+
+        def _mask_email(value: str) -> str:
+            trimmed = (value or "").strip().lower()
+            if "@" not in trimmed:
+                return trimmed[:2] + "***" if trimmed else ""
+            local, domain = trimmed.split("@", 1)
+            safe_local = (local[:2] + "***") if local else "***"
+            safe_domain = domain if domain else "***"
+            return f"{safe_local}@{safe_domain}"
+
+        await self._publish_activity_event(
+            name="workspace.invite.email.created" if not is_update else "workspace.invite.email.updated",
+            actor_user_id=invited_by_user_id,
+            payload={
+                "organization_id": str(organization_id),
+                "workspace_id": str(workspace_id),
+                "invite_id": str(inv.id),
+                "email_hint": _mask_email(inv.email),
+                "role_code": inv.role_code,
+                "expires_at": inv.expires_at.isoformat() if inv.expires_at else None,
+            },
         )
         return WorkspaceEmailInviteCreateResult(invitation=out, token=token, invite_url=invite_url)
 
@@ -420,7 +588,17 @@ class WorkspaceTeamService(BaseService):
             created_at=inv.created_at,
             updated_at=inv.updated_at,
         )
-        _ = renewed_by_user_id  # reserved for audit extensions
+        await self._publish_activity_event(
+            name="workspace.invite.email.renewed",
+            actor_user_id=renewed_by_user_id,
+            payload={
+                "organization_id": str(organization_id),
+                "workspace_id": str(workspace_id),
+                "invite_id": str(inv.id),
+                "role_code": inv.role_code,
+                "expires_at": inv.expires_at.isoformat() if inv.expires_at else None,
+            },
+        )
         return WorkspaceEmailInviteCreateResult(invitation=out, token=token, invite_url=invite_url)
 
     async def revoke_email_invite(
@@ -445,6 +623,17 @@ class WorkspaceTeamService(BaseService):
         inv.revoked_at = datetime.now(UTC)
         inv.revoked_by_user_id = revoked_by_user_id
         await inv.save(update_fields=["revoked_at", "revoked_by_user_id", "updated_at"])
+
+        await self._publish_activity_event(
+            name="workspace.invite.email.revoked",
+            actor_user_id=revoked_by_user_id,
+            payload={
+                "organization_id": str(organization_id),
+                "workspace_id": str(workspace_id),
+                "invite_id": str(inv.id),
+                "role_code": inv.role_code,
+            },
+        )
 
     async def create_invite_link(
         self,
@@ -522,6 +711,21 @@ class WorkspaceTeamService(BaseService):
             created_at=link.created_at,
             updated_at=link.updated_at,
         )
+
+        await self._publish_activity_event(
+            name="workspace.invite.link.created",
+            actor_user_id=created_by_user_id,
+            payload={
+                "organization_id": str(organization_id),
+                "workspace_id": str(workspace_id),
+                "link_id": str(link.id),
+                "display_code": link.display_code,
+                "role_code": link.role_code,
+                "expires_at": link.expires_at.isoformat() if link.expires_at else None,
+                "max_uses": int(link.max_uses) if link.max_uses is not None else None,
+                "allowed_email_domain": link.allowed_email_domain,
+            },
+        )
         return WorkspaceInviteLinkCreateResult(link=out, token=token, invite_url=invite_url)
 
     async def renew_invite_link(
@@ -531,6 +735,7 @@ class WorkspaceTeamService(BaseService):
         workspace_id: UUID,
         link_id: UUID,
         payload: WorkspaceInviteLinkRenewRequest,
+        renewed_by_user_id: UUID,
     ) -> WorkspaceInviteLinkCreateResult:
         expires_at = build_expires_at(expires_in_seconds=payload.expires_in_seconds)
         link = await WorkspaceInviteLink.get_or_none(
@@ -565,9 +770,29 @@ class WorkspaceTeamService(BaseService):
             created_at=link.created_at,
             updated_at=link.updated_at,
         )
+
+        await self._publish_activity_event(
+            name="workspace.invite.link.renewed",
+            actor_user_id=renewed_by_user_id,
+            payload={
+                "organization_id": str(organization_id),
+                "workspace_id": str(workspace_id),
+                "link_id": str(link.id),
+                "display_code": link.display_code,
+                "role_code": link.role_code,
+                "expires_at": link.expires_at.isoformat() if link.expires_at else None,
+            },
+        )
         return WorkspaceInviteLinkCreateResult(link=out, token=token, invite_url=invite_url)
 
-    async def disable_invite_link(self, *, organization_id: UUID, workspace_id: UUID, link_id: UUID) -> None:
+    async def disable_invite_link(
+        self,
+        *,
+        organization_id: UUID,
+        workspace_id: UUID,
+        link_id: UUID,
+        disabled_by_user_id: UUID,
+    ) -> None:
         link = await WorkspaceInviteLink.get_or_none(
             id=link_id, organization_id=organization_id, workspace_id=workspace_id
         )
@@ -577,6 +802,18 @@ class WorkspaceTeamService(BaseService):
             return
         link.disabled_at = datetime.now(UTC)
         await link.save(update_fields=["disabled_at", "updated_at"])
+
+        await self._publish_activity_event(
+            name="workspace.invite.link.disabled",
+            actor_user_id=disabled_by_user_id,
+            payload={
+                "organization_id": str(organization_id),
+                "workspace_id": str(workspace_id),
+                "link_id": str(link.id),
+                "display_code": link.display_code,
+                "role_code": link.role_code,
+            },
+        )
 
     async def list_invite_links(
         self,

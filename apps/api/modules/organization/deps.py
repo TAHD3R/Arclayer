@@ -3,6 +3,7 @@ from __future__ import annotations
 from uuid import UUID
 
 from fastapi import Depends
+from structlog.contextvars import bind_contextvars
 
 from apps.api.core.exceptions import Forbidden
 from apps.api.core.i18n import t
@@ -21,6 +22,11 @@ async def get_current_org_membership(
             message=t("errors", "PERMISSION_DENIED", default="权限不足"),
             error="ORG_MEMBERSHIP_REQUIRED",
         )
+    # Bind org context for downstream logs and audit events in this request.
+    try:
+        bind_contextvars(organization_id=str(orgm.organization_id))
+    except Exception:
+        pass
     return orgm
 
 

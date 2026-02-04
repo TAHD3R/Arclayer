@@ -190,8 +190,8 @@ export function OrganizationSettingsView() {
                 description: t("settings:SETTINGS_ORG_SSO_DESC"),
               },
               {
-                title: t("settings:SETTINGS_ORG_AUDIT_LOG_TITLE"),
-                description: t("settings:SETTINGS_ORG_AUDIT_LOG_DESC"),
+                title: t("settings:SETTINGS_ORG_ACTIVITY_TITLE"),
+                description: t("settings:SETTINGS_ORG_ACTIVITY_DESC"),
               },
             ]}
           />

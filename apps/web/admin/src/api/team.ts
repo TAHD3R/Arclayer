@@ -30,6 +30,12 @@ export type TeamMember = {
   roleCodes: string[];
 };
 
+export type TeamUserOption = {
+  value: string;
+  label: string;
+  avatarUrl?: string | null;
+};
+
 export type ListTeamMembersParams = {
   page?: number;
   size?: number;
@@ -104,6 +110,20 @@ export async function listTeamMembers(
     ordering: params.ordering,
   });
   return api.get<PageData<TeamMember>>(workspacePath(workspaceId, `/team/members${query}`));
+}
+
+export async function listTeamUserOptions(
+  workspaceId: string,
+  params: { page?: number; size?: number; q?: string } = {},
+): Promise<PageData<TeamUserOption>> {
+  const query = toQueryString({
+    page: params.page ?? 1,
+    size: params.size ?? 20,
+    q: params.q,
+  });
+  return api.get<PageData<TeamUserOption>>(
+    workspacePath(workspaceId, `/team/users/options${query}`),
+  );
 }
 
 export async function setTeamMemberRoles(
