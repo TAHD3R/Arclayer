@@ -198,7 +198,7 @@ class AuthService(BaseService):
         password: str,
         email: str | None = None,
         display_name: str | None = None,
-    ):
+    ) -> UserLike:
         username = username.strip()
         email = email.strip() if email else None
         display_name = display_name.strip() if display_name else None
@@ -426,7 +426,7 @@ class AuthService(BaseService):
             await self.refresh_store.revoke_all(self._coerce_user_id(user))
 
     @staticmethod
-    def build_user_profile(user: User) -> UserProfile:
+    def build_user_profile(user: UserLike) -> UserProfile:
         return UserProfile(
             id=user.id,
             username=user.username,
@@ -496,7 +496,7 @@ class AuthService(BaseService):
         password: str,
         email: str | None = None,
         display_name: str | None = None,
-    ) -> User:
+    ) -> UserLike:
         if not self.settings.auth.allow_public_register:
             # Hide the endpoint by default to enforce invitation-only onboarding.
             raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
@@ -781,7 +781,7 @@ class AuthService(BaseService):
             )
             await UserCredential.create(using_db=conn, user_id=user.id, password_hash=password_hash)
 
-            # A2 invariant: user can only belong to one organization.
+            # One user can only belong to one organization.
             from apps.api.modules.organization.models.org_membership import OrgRole
 
             await OrgMembership.create(
@@ -1140,7 +1140,7 @@ class AuthService(BaseService):
                     error="CROSS_ORG_ACCESS_DENIED",
                 )
 
-            # A2: user can only be in one org.
+            # One user can only be in one organization.
             existing_orgm = await OrgMembership.filter(user_id=user.id).using_db(conn).select_for_update().first()
             if existing_orgm is None:
                 from apps.api.modules.organization.models.org_membership import OrgRole

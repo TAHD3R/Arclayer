@@ -5,7 +5,7 @@ import mimetypes
 import zipfile
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 from uuid import UUID
 
 from starlette.responses import RedirectResponse, Response
@@ -487,7 +487,7 @@ class WorkspaceThemesService(BaseService):
         asset_id = uuid7()
         object_key = build_asset_object_key(workspace_id=workspace_id, asset_id=asset_id, ext=ext)
 
-        provider = build_storage_provider(self.settings)
+        provider = cast(LocalStorageProvider | S3StorageProvider, build_storage_provider(self.settings))
         await self._put_bytes(
             provider=provider,
             object_key=object_key,
@@ -527,7 +527,7 @@ class WorkspaceThemesService(BaseService):
         asset_id = uuid7()
         object_key = build_asset_object_key(workspace_id=workspace_id, asset_id=asset_id, ext="zip")
         data = src_zip_path.read_bytes()
-        provider = build_storage_provider(self.settings)
+        provider = cast(LocalStorageProvider | S3StorageProvider, build_storage_provider(self.settings))
         await self._put_bytes(
             provider=provider,
             object_key=object_key,

@@ -11,7 +11,7 @@ from httpx import ASGITransport, AsyncClient
 from apps.api.config import get_settings
 from apps.api.core.registry import create_app
 from apps.api.modules.auth.deps import get_current_user_id
-from apps.api.modules.organization.models.org_membership import OrgMembership
+from apps.api.modules.organization.models.org_membership import OrgMembership, OrgRole
 
 pytestmark = pytest.mark.integration
 
@@ -109,7 +109,7 @@ async def test_plugin_management_flow(prepared_db, plugin_root, tmp_path) -> Non
             password_hash=hash_password("admin_password_123", settings.auth),
         )
         org = await org_repo.create_organization(slug=f"org_{uuid4().hex}", name="Test Org")
-        await OrgMembership.create(organization_id=org.id, user_id=user.id, is_owner=True, status="active")
+        await OrgMembership.create(organization_id=org.id, user_id=user.id, role=OrgRole.OWNER, status="active")
 
         async def _fake_user_id():
             return user.id

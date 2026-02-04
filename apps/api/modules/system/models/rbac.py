@@ -37,11 +37,8 @@ class Role(BaseModel):
 
     # i18n:
     # - System roles use `*_i18n` pointing to locale resources (e.g. "rbac:ROLE_ADMIN_NAME").
-    # - Custom roles store language maps for user-provided translations.
     name_i18n = fields.CharField(max_length=200, null=True)
     description_i18n = fields.CharField(max_length=200, null=True)
-    name_l10n = fields.JSONField(null=True)
-    description_l10n = fields.JSONField(null=True)
 
     is_system = fields.BooleanField(default=False, db_index=True)
     is_default = fields.BooleanField(default=False, db_index=True)

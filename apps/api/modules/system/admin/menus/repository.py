@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from typing import cast
 from uuid import UUID
 
 from tortoise.queryset import QuerySet
 
+from apps.api.common.protocols.tortoise import AdminMenuItemMutableFields
 from apps.api.common.repositories import BaseRepository
 from apps.api.modules.system.admin.menus.models import AdminMenuItem
 
@@ -20,7 +22,7 @@ class AdminMenuRepository(BaseRepository):
         # Only active + not deleted items are visible candidates.
         return AdminMenuItem.filter(deleted_at__isnull=True, is_active=True)
 
-    async def get_by_id(self, *, item_id: UUID, include_deleted: bool = False) -> AdminMenuItem | None:
+    async def get_item_by_id(self, *, item_id: UUID, include_deleted: bool = False) -> AdminMenuItem | None:
         return await self.query_items(include_deleted=include_deleted).get_or_none(id=item_id)
 
     async def get_by_code(self, *, code: str) -> AdminMenuItem | None:
@@ -40,13 +42,13 @@ class AdminMenuRepository(BaseRepository):
 
     async def soft_delete(self, item: AdminMenuItem) -> AdminMenuItem:
         if item.deleted_at is None:
-            item.deleted_at = datetime.now(UTC)
+            cast(AdminMenuItemMutableFields, item).deleted_at = datetime.now(UTC)
         item.is_active = False
         await item.save(update_fields=["deleted_at", "is_active"])
         return item
 
     async def restore(self, item: AdminMenuItem) -> AdminMenuItem:
-        item.deleted_at = None
+        cast(AdminMenuItemMutableFields, item).deleted_at = None
         item.is_active = True
         await item.save(update_fields=["deleted_at", "is_active"])
         return item

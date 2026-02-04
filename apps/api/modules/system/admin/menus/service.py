@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+from typing import cast
 from uuid import UUID
 
 from tortoise.expressions import Q
 
+from apps.api.common.protocols.tortoise import HasParentId
 from apps.api.common.services import BaseService
 from apps.api.config import get_settings
 from apps.api.core.exceptions import BadRequest, Conflict, NotFound, ServiceUnavailable
@@ -28,6 +30,11 @@ def _tr(key: str, default: str) -> str:
     return t("admin_menu", key, default=default)
 
 
+def _get_parent_id(item: AdminMenuItem) -> UUID | None:
+    raw = cast(HasParentId, item).parent_id
+    return UUID(str(raw)) if raw is not None else None
+
+
 class AdminMenuService(BaseService):
     def __init__(self) -> None:
         settings = get_settings()
@@ -50,7 +57,7 @@ class AdminMenuService(BaseService):
         by_id = {row.id: row for row in rows}
         children: dict[UUID | None, list[AdminMenuItem]] = {}
         for row in rows:
-            children.setdefault(row.parent_id, []).append(row)
+            children.setdefault(_get_parent_id(row), []).append(row)
 
         for items in children.values():
             items.sort(key=lambda r: (r.sort, r.created_at, str(r.id)))
@@ -142,7 +149,7 @@ class AdminMenuService(BaseService):
         return await paginate_queryset(qs, params=params, out_schema=AdminMenuItemOut)
 
     async def get_item(self, *, item_id: UUID) -> AdminMenuItemOut:
-        item = await self.repo.get_by_id(item_id=item_id, include_deleted=True)
+        item = await self.repo.get_item_by_id(item_id=item_id, include_deleted=True)
         if item is None:
             raise NotFound(message=_tr("ITEM_NOT_FOUND", "菜单项不存在"), error="ITEM_NOT_FOUND")
         return AdminMenuItemOut.model_validate(item, from_attributes=True)
@@ -154,7 +161,7 @@ class AdminMenuService(BaseService):
 
         parent_id = payload.parent_id
         if parent_id is not None:
-            parent = await self.repo.get_by_id(item_id=parent_id, include_deleted=False)
+            parent = await self.repo.get_item_by_id(item_id=parent_id, include_deleted=False)
             if parent is None:
                 raise BadRequest(message=_tr("INVALID_PARENT", "父菜单不合法"), error="INVALID_PARENT")
 
@@ -192,7 +199,7 @@ class AdminMenuService(BaseService):
         return AdminMenuItemOut.model_validate(item, from_attributes=True)
 
     async def update_item(self, *, item_id: UUID, payload: AdminMenuUpdateRequest) -> AdminMenuItemOut:
-        item = await self.repo.get_by_id(item_id=item_id, include_deleted=True)
+        item = await self.repo.get_item_by_id(item_id=item_id, include_deleted=True)
         if item is None:
             raise NotFound(message=_tr("ITEM_NOT_FOUND", "菜单项不存在"), error="ITEM_NOT_FOUND")
 
@@ -205,7 +212,7 @@ class AdminMenuService(BaseService):
             if new_parent_id == item.id:
                 raise BadRequest(message=_tr("INVALID_PARENT", "父菜单不合法"), error="INVALID_PARENT")
             if new_parent_id is not None:
-                parent = await self.repo.get_by_id(item_id=new_parent_id, include_deleted=False)
+                parent = await self.repo.get_item_by_id(item_id=new_parent_id, include_deleted=False)
                 if parent is None:
                     raise BadRequest(message=_tr("INVALID_PARENT", "父菜单不合法"), error="INVALID_PARENT")
                 if await self._is_descendant(candidate_id=new_parent_id, ancestor_id=item.id):
@@ -236,7 +243,7 @@ class AdminMenuService(BaseService):
         return AdminMenuItemOut.model_validate(item, from_attributes=True)
 
     async def delete_item(self, *, item_id: UUID) -> None:
-        item = await self.repo.get_by_id(item_id=item_id, include_deleted=False)
+        item = await self.repo.get_item_by_id(item_id=item_id, include_deleted=False)
         if item is None:
             raise NotFound(message=_tr("ITEM_NOT_FOUND", "菜单项不存在"), error="ITEM_NOT_FOUND")
         if await self.repo.has_children(item_id=item_id):
@@ -244,13 +251,14 @@ class AdminMenuService(BaseService):
         await self.repo.soft_delete(item)
 
     async def restore_item(self, *, item_id: UUID) -> AdminMenuItemOut:
-        item = await self.repo.get_by_id(item_id=item_id, include_deleted=True)
+        item = await self.repo.get_item_by_id(item_id=item_id, include_deleted=True)
         if item is None:
             raise NotFound(message=_tr("ITEM_NOT_FOUND", "菜单项不存在"), error="ITEM_NOT_FOUND")
         if item.deleted_at is None:
             return AdminMenuItemOut.model_validate(item, from_attributes=True)
-        if item.parent_id is not None:
-            parent = await self.repo.get_by_id(item_id=item.parent_id, include_deleted=False)
+        parent_id = _get_parent_id(item)
+        if parent_id is not None:
+            parent = await self.repo.get_item_by_id(item_id=parent_id, include_deleted=False)
             if parent is None:
                 raise BadRequest(message=_tr("INVALID_PARENT", "父菜单不合法"), error="INVALID_PARENT")
         item = await self.repo.restore(item)
@@ -265,7 +273,7 @@ class AdminMenuService(BaseService):
                 message=_tr("ITEM_NOT_FOUND", "菜单项不存在"), error="ITEM_NOT_FOUND", details={"missing": missing}
             )
 
-        parent_ids = {r.parent_id for r in rows}
+        parent_ids = {_get_parent_id(r) for r in rows}
         if len(parent_ids) != 1 or next(iter(parent_ids)) != payload.parent_id:
             raise BadRequest(message="parentId 不一致", error="BAD_REQUEST")
 
@@ -276,11 +284,14 @@ class AdminMenuService(BaseService):
         # Walk parent chain (menu depth should be small).
         current = await AdminMenuItem.get_or_none(id=candidate_id)
         seen: set[UUID] = set()
-        while current is not None and current.parent_id is not None:
-            if current.parent_id == ancestor_id:
+        while current is not None:
+            parent_id = _get_parent_id(current)
+            if parent_id is None:
+                break
+            if parent_id == ancestor_id:
                 return True
-            if current.parent_id in seen:
+            if parent_id in seen:
                 return True
-            seen.add(current.parent_id)
-            current = await AdminMenuItem.get_or_none(id=current.parent_id)
+            seen.add(parent_id)
+            current = await AdminMenuItem.get_or_none(id=parent_id)
         return False

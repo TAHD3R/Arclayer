@@ -94,8 +94,6 @@ export async function createWorkspaceRoleFromTemplate(input: {
   templateRoleCode?: string | null;
   name?: string;
   description?: string | null;
-  nameL10n?: Record<string, string> | null;
-  descriptionL10n?: Record<string, string> | null;
 }): Promise<Role> {
   const { workspaceId, ...body } = input;
   return api.post<Role>(workspacePath(workspaceId, "/rbac/roles"), body);
@@ -104,8 +102,8 @@ export async function createWorkspaceRoleFromTemplate(input: {
 export async function updateWorkspaceRole(input: {
   workspaceId: string;
   roleCode: string;
-  nameL10n?: Record<string, string> | null;
-  descriptionL10n?: Record<string, string> | null;
+  name?: string | null;
+  description?: string | null;
 }): Promise<Role> {
   const { workspaceId, roleCode, ...body } = input;
   return api.patch<Role>(

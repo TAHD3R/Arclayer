@@ -26,7 +26,7 @@ async def test_workspace_metadata_get_and_patch(prepared_db, integration_valkey_
 
         from apps.api.modules.auth.repository import UserRepository
         from apps.api.modules.auth.security import hash_password
-        from apps.api.modules.organization.models.org_membership import OrgMembership
+        from apps.api.modules.organization.models.org_membership import OrgMembership, OrgRole
         from apps.api.modules.organization.models.user import User
         from apps.api.modules.organization.repository import OrganizationRepository
         from apps.api.modules.workspaces.models.workspace import Workspace
@@ -41,7 +41,7 @@ async def test_workspace_metadata_get_and_patch(prepared_db, integration_valkey_
             display_name="Owner",
             password_hash=hash_password("owner_password_123", settings.auth),
         )
-        await OrgMembership.create(organization_id=org.id, user_id=owner.id, is_owner=True, status="active")
+        await OrgMembership.create(organization_id=org.id, user_id=owner.id, role=OrgRole.OWNER, status="active")
         ws = await Workspace.create(
             organization_id=org.id,
             slug="default",

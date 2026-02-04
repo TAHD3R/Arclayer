@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 from typing import Any
-from uuid import UUID, uuid4
+from uuid import UUID
 
 import jwt
 
 from apps.api.common.constants.auth import TOKEN_TYPE_ACCESS, TOKEN_TYPE_REFRESH
+from apps.api.common.utils.ids import uuid7
 from apps.api.config import AuthSettings
 from apps.api.core.exceptions import ServiceUnavailable, Unauthorized
 from apps.api.core.i18n import t
@@ -67,7 +68,7 @@ def build_access_token(*, user_id: UUID, token_version: int, settings: AuthSetti
 def build_refresh_token(*, user_id: UUID, token_version: int, settings: AuthSettings) -> tuple[str, str, int]:
     ttl = max(settings.refresh_token_ttl_seconds, 1)
     now = _now()
-    jti = uuid4().hex
+    jti = uuid7().hex
     payload = {
         "sub": str(user_id),
         "typ": TOKEN_TYPE_REFRESH,

@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from apps.api.common.services import BaseService
+from apps.api.common.utils.ids import uuid7
 from apps.api.config import Settings
 from apps.api.core.exceptions import NotFound
 from apps.api.core.http.pagination import PageData, PageParams, paginate_queryset
@@ -141,7 +142,7 @@ class NotificationService(BaseService):
                 default="This is a demo notification for UI testing.",
             )
             # Make dedupe_key unique to avoid collisions with existing records.
-            dedupe_key = f"dev.seed:{user_id}:{i}:{uuid4().hex}"
+            dedupe_key = f"dev.seed:{user_id}:{i}:{uuid7().hex}"
             await NotificationRecord.create(
                 workspace_id=workspace_id,
                 recipient_user_id=user_id,

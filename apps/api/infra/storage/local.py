@@ -3,7 +3,8 @@ from __future__ import annotations
 import os
 import re
 from pathlib import Path
-from uuid import uuid4
+
+from apps.api.common.utils.ids import uuid7
 
 _SAFE_SEGMENT_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 
@@ -76,7 +77,7 @@ class LocalStorageProvider:
         path.parent.mkdir(parents=True, exist_ok=True)
 
         # Write to a temp file in the same directory, then replace atomically.
-        tmp = path.with_name(f".partial.{path.name}.{uuid4().hex}")
+        tmp = path.with_name(f".partial.{path.name}.{uuid7().hex}")
         try:
             with open(tmp, "wb") as f:
                 f.write(data)

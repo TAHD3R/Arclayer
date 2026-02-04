@@ -21,7 +21,7 @@ class WorkspaceContext(BaseSchema):
     workspace_id: UUID = Field(..., description="Workspace id.")
     organization_id: UUID = Field(..., description="Organization id for this workspace.")
 
-    org_membership_id: UUID = Field(..., description="Org membership id (A2: unique by user).")
+    org_membership_id: UUID = Field(..., description="Org membership id.")
     is_org_owner: bool = Field(default=False, description="Whether current user is the org owner.")
 
     workspace_membership_id: UUID | None = Field(default=None, description="Workspace membership id (if any).")
@@ -40,7 +40,7 @@ async def get_workspace_context(
     user_id: UUID = Depends(get_current_user_id),
 ) -> WorkspaceContext:
     """
-    Resolve current workspace and enforce org boundary (A2).
+    Resolve current workspace and enforce org boundary.
 
     Behavior:
     - The user must belong to exactly one organization (OrgMembership).

@@ -37,7 +37,7 @@ async def ensure_organization_ready() -> None:
         org = None
 
     if org is not None:
-        # v2 note: org_membership is the account-level linkage (A2: single org per user).
+        # Org membership is the account-level linkage (single org per user).
         from apps.api.modules.organization.models.org_membership import OrgMembership, OrgRole
         from apps.api.modules.organization.models.user import User
         from apps.api.modules.workspaces.models.workspace import Workspace

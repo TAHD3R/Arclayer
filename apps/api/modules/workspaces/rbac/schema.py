@@ -44,40 +44,27 @@ class RoleCreateFromTemplateRequest(BaseSchema):
         max_length=64,
         description="Template role code to clone (optional).",
     )
-    # For custom roles, we keep i18n-capable storage in DB, but the API can accept a simple
-    # single-locale payload (name/description) to keep UX lightweight.
     name: str | None = Field(default=None, min_length=1, max_length=128, description="Role name (current locale).")
     description: str | None = Field(
         default=None,
         max_length=2000,
         description="Role description (current locale, optional).",
     )
-    name_l10n: dict[str, str] | None = Field(
-        default=None,
-        description="Role name translations, e.g. {'zh-CN': '内容编辑', 'en-US': 'Content Editor'} (optional).",
-    )
-    description_l10n: dict[str, str] | None = Field(
-        default=None, description="Role description translations (optional)."
-    )
 
     @model_validator(mode="after")
-    def _validate_either_name_or_l10n(self) -> RoleCreateFromTemplateRequest:
-        if not self.name and not self.name_l10n:
-            raise ValueError("name or name_l10n is required")
+    def _validate_name_required(self) -> RoleCreateFromTemplateRequest:
+        if not self.name:
+            raise ValueError("name is required")
         return self
 
 
 class RoleUpdateRequest(BaseSchema):
     name: str | None = Field(default=None, min_length=1, max_length=128, description="Role name (current locale).")
     description: str | None = Field(default=None, max_length=2000, description="Role description (current locale).")
-    name_l10n: dict[str, str] | None = Field(default=None, description="Role name translations (optional).")
-    description_l10n: dict[str, str] | None = Field(
-        default=None, description="Role description translations (optional)."
-    )
 
     @model_validator(mode="after")
     def _validate_any_update(self) -> RoleUpdateRequest:
-        if self.name is None and self.description is None and self.name_l10n is None and self.description_l10n is None:
+        if self.name is None and self.description is None:
             raise ValueError("At least one field is required")
         return self
 

@@ -131,20 +131,11 @@ async def create_role(
     service: WorkspaceRBACService = Depends(get_rbac_service),
 ) -> ResponseModel[WorkspaceRoleOut]:
     locale = get_current_locale()
-    name_l10n = body.name_l10n
-    if name_l10n is None:
-        # Single-locale UX: store the provided name under current locale.
-        name_l10n = {locale: body.name or ""}
-
-    description_l10n = body.description_l10n
-    if description_l10n is None and body.description is not None:
-        description_l10n = {locale: body.description}
-
     role = await service.create_custom_role(
         workspace_id=ctx.workspace_id,
         code=body.code,
-        name_l10n=name_l10n,
-        description_l10n=description_l10n,
+        name=str(body.name or "").strip(),
+        description=body.description,
         template_role_code=body.template_role_code,
     )
     return Response.success(data=WorkspaceRoleOut.model_validate(service.localize_role(role, locale=locale)))
@@ -153,7 +144,7 @@ async def create_role(
 @router.patch(
     "/roles/{role_code}",
     response_model=ResponseModel[WorkspaceRoleOut],
-    summary="Update a custom role (i18n fields)",
+    summary="Update a custom role",
     dependencies=[require_workspace_permission("rbac:roles:write")],
 )
 async def update_role(
@@ -163,19 +154,11 @@ async def update_role(
     service: WorkspaceRBACService = Depends(get_rbac_service),
 ) -> ResponseModel[WorkspaceRoleOut]:
     locale = get_current_locale()
-    name_l10n = body.name_l10n
-    if name_l10n is None and body.name is not None:
-        name_l10n = {locale: body.name}
-
-    description_l10n = body.description_l10n
-    if description_l10n is None and body.description is not None:
-        description_l10n = {locale: body.description}
-
     role = await service.update_custom_role(
         workspace_id=ctx.workspace_id,
         role_code=role_code,
-        name_l10n=name_l10n,
-        description_l10n=description_l10n,
+        name=body.name,
+        description=body.description,
     )
     return Response.success(data=WorkspaceRoleOut.model_validate(service.localize_role(role, locale=locale)))
 
