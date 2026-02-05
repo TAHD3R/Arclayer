@@ -4,6 +4,7 @@ import { useLayoutEffect, useRef } from "react";
 import { AdminLayout } from "@/layouts/admin-layout";
 import { AuthLayout } from "@/layouts/auth-layout";
 import { SetupLayout } from "@/layouts/setup-layout";
+import { RouterDefaultError, RouterDefaultNotFound } from "@/pages/builtin/router-fallbacks";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useSetupWizardStore } from "@/stores/use-setup-wizard-store";
@@ -159,4 +160,6 @@ export const Route = createRootRoute({
     }
   },
   component: RootLayout,
+  errorComponent: RouterDefaultError,
+  notFoundComponent: RouterDefaultNotFound,
 });

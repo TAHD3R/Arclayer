@@ -19,7 +19,9 @@ import { SettingPanel } from "@/components/common/setting-panel";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { formatLocaleLabel, pickString } from "@/lib/settings/general/utils";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
+import { usePreferencesStore } from "@/stores/use-preference-store";
 import type { AppLocale } from "@/lib/i18n";
+import { normalizeLocale } from "@/lib/i18n";
 import { COMMON_TIMEZONES, DATE_FORMAT_ITEMS } from "@/constants/settings-general";
 
 type WorkspaceSettingsTabKey =
@@ -53,6 +55,9 @@ export function WorkspaceSettingsView() {
   const queryClient = useQueryClient();
   const [form] = Form.useForm<FormValues>();
   const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
+  const localePreference = usePreferencesStore((s) => s.localePreference);
+  const setEffectiveLocale = usePreferencesStore((s) => s.setEffectiveLocale);
+  const cacheWorkspaceLocale = usePreferencesStore((s) => s.cacheWorkspaceLocale);
   const [savingKey, setSavingKey] = React.useState<string | null>(null);
 
   const withSavingKey = React.useCallback(async (key: string, fn: () => Promise<void>) => {
@@ -100,9 +105,7 @@ export function WorkspaceSettingsView() {
     }
     const value = coreQuery.data.value;
     form.setFieldsValue({
-      locale:
-        (pickString(value, ["workspace_localization", "locale"]) as AppLocale | undefined) ??
-        "zh-CN",
+      locale: normalizeLocale(pickString(value, ["workspace_localization", "locale"]) ?? "zh-CN"),
       timezone: pickString(value, ["workspace_localization", "timezone"]) ?? "Asia/Shanghai",
       dateFormat: pickString(value, ["workspace_localization", "date_format"]) ?? "YYYY-MM-DD",
     });
@@ -150,17 +153,18 @@ export function WorkspaceSettingsView() {
   const currentWorkspaceSlug =
     (Form.useWatch("slug", form) as string | undefined) ?? initialWorkspaceSlug;
 
-  const initialWorkspaceLocale = ((pickString(coreQuery.data?.value, [
+  const initialWorkspaceLocale = (pickString(coreQuery.data?.value, [
     "workspace_localization",
     "locale",
-  ]) as AppLocale | undefined) ?? "zh-CN") as AppLocale;
+  ]) ?? "zh-CN") as string as string;
+  const initialWorkspaceLocaleNormalized = normalizeLocale(initialWorkspaceLocale) as AppLocale;
   const initialWorkspaceTimezone =
     pickString(coreQuery.data?.value, ["workspace_localization", "timezone"]) ?? "Asia/Shanghai";
   const initialWorkspaceDateFormat =
     pickString(coreQuery.data?.value, ["workspace_localization", "date_format"]) ?? "YYYY-MM-DD";
 
   const workspaceLocale =
-    (Form.useWatch("locale", form) as AppLocale | undefined) ?? initialWorkspaceLocale;
+    (Form.useWatch("locale", form) as AppLocale | undefined) ?? initialWorkspaceLocaleNormalized;
   const workspaceTimezone =
     (Form.useWatch("timezone", form) as string | undefined) ?? initialWorkspaceTimezone;
   const workspaceDateFormat =
@@ -173,7 +177,8 @@ export function WorkspaceSettingsView() {
   const isWorkspaceNameDirty = (currentWorkspaceName || "") !== (initialWorkspaceName || "");
   const isWorkspaceSlugDirty =
     normalizeSlug(currentWorkspaceSlug) !== normalizeSlug(initialWorkspaceSlug);
-  const isWorkspaceLocaleDirty = (workspaceLocale || "") !== (initialWorkspaceLocale || "");
+  const isWorkspaceLocaleDirty =
+    (workspaceLocale || "") !== (initialWorkspaceLocaleNormalized || "");
   const isWorkspaceTimezoneDirty = (workspaceTimezone || "") !== (initialWorkspaceTimezone || "");
   const isWorkspaceDateFormatDirty =
     (workspaceDateFormat || "") !== (initialWorkspaceDateFormat || "");
@@ -205,10 +210,9 @@ export function WorkspaceSettingsView() {
           initialValues={{
             name: detailQuery.data?.name ?? "",
             slug: detailQuery.data?.slug ?? "",
-            locale:
-              (pickString(coreQuery.data?.value, ["workspace_localization", "locale"]) as
-                | AppLocale
-                | undefined) ?? "zh-CN",
+            locale: normalizeLocale(
+              pickString(coreQuery.data?.value, ["workspace_localization", "locale"]) ?? "zh-CN",
+            ),
             timezone:
               pickString(coreQuery.data?.value, ["workspace_localization", "timezone"]) ??
               "Asia/Shanghai",
@@ -380,24 +384,54 @@ export function WorkspaceSettingsView() {
                         onConfirm={() =>
                           void withSavingKey("workspace:locale", async () => {
                             const values = await form.validateFields(["locale"]);
+                            const nextLocale = normalizeLocale(values.locale);
                             await patchWorkspaceCoreMutation.mutateAsync({
-                              workspace_localization: { locale: values.locale },
+                              workspace_localization: { locale: nextLocale },
                             });
+                            if (workspaceId) {
+                              await queryClient.invalidateQueries({
+                                queryKey: ["workspace", "adminMenu", workspaceId],
+                              });
+                              cacheWorkspaceLocale(String(workspaceId), nextLocale);
+                            }
+                            // Workspace default locale is only applied when user has no explicit preference.
+                            if (!localePreference) {
+                              setEffectiveLocale(nextLocale);
+                            }
                           })
                         }
                         onReset={
                           isWorkspaceLocaleDirty && coreQuery.data
                             ? () =>
                                 void withSavingKey("reset:workspace:locale", async () => {
-                                  form.setFieldValue("locale", initialWorkspaceLocale);
+                                  form.setFieldValue("locale", initialWorkspaceLocaleNormalized);
                                   await patchWorkspaceCoreMutation.mutateAsync({
-                                    workspace_localization: { locale: initialWorkspaceLocale },
+                                    workspace_localization: {
+                                      locale: initialWorkspaceLocaleNormalized,
+                                    },
                                   });
+                                  if (workspaceId) {
+                                    await queryClient.invalidateQueries({
+                                      queryKey: ["workspace", "adminMenu", workspaceId],
+                                    });
+                                    cacheWorkspaceLocale(
+                                      String(workspaceId),
+                                      initialWorkspaceLocaleNormalized,
+                                    );
+                                  }
+                                  if (!localePreference) {
+                                    setEffectiveLocale(initialWorkspaceLocaleNormalized);
+                                  }
                                 })
                             : undefined
                         }
                         resetLoading={savingKey === "reset:workspace:locale"}
                       >
+                        <div className="text-muted-foreground mb-4">
+                          {t("settings:SETTINGS_WORKSPACE_LOCALIZATION_NOTE", {
+                            locale: workspaceLocaleLabel ?? "-",
+                          })}
+                        </div>
                         <Form.Item
                           name="locale"
                           rules={[
@@ -408,11 +442,6 @@ export function WorkspaceSettingsView() {
                           ]}
                           style={{ marginBottom: 0 }}
                         >
-                          <div className="text-muted-foreground mb-4">
-                            {t("settings:SETTINGS_WORKSPACE_LOCALIZATION_NOTE", {
-                              locale: workspaceLocaleLabel ?? "-",
-                            })}
-                          </div>
                           <Select
                             size="large"
                             options={[

@@ -16,9 +16,17 @@ export function RouterDefaultNotFound(_props: NotFoundRouteProps) {
 export function RouterDefaultError(props: ErrorComponentProps) {
   const accessToken = useAuthStore((s) => s.accessToken);
   const variant = accessToken ? "admin" : "fullscreen";
-
   const err = props.error;
   const details = getErrorMessage(err);
+
+  if (!accessToken) {
+    if (err instanceof ApiError) {
+      if (err.status === 403) {
+        return <ForbiddenView variant="fullscreen" details={details} />;
+      }
+    }
+    return <ServerErrorView variant="fullscreen" details={details} />;
+  }
 
   if (err instanceof ApiError) {
     if (err.status === 403) {

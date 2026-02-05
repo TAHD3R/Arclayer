@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from functools import lru_cache
 from typing import cast
 from uuid import UUID
 
@@ -30,9 +31,84 @@ def _tr(key: str, default: str) -> str:
     return t("admin_menu", key, default=default)
 
 
+def _localize_menu_title(*, title: str, title_i18n: str | None) -> str:
+    """
+    Localize menu title based on current request locale context.
+
+    Notes:
+    - `title_i18n` is stored as `namespace:key` (e.g. "nav:NAV_DASHBOARD").
+    - We still return `title_i18n` to the client for optional client-side translation/diagnostics.
+    """
+
+    default = (title or "").strip() or title or ""
+    raw = (title_i18n or "").strip()
+    if not raw:
+        return default
+
+    if ":" in raw:
+        ns, key = raw.split(":", 1)
+        ns = ns.strip()
+        key = key.strip()
+        if ns and key:
+            return t(ns, key, default=default)
+
+    # Fallback: treat the whole string as a key in admin_menu namespace.
+    return t("admin_menu", raw, default=default)
+
+
+@lru_cache(maxsize=1)
+def _core_menu_codes() -> set[str]:
+    """
+    Best-effort: derive core menu codes from bootstrap seeds.
+
+    Why this exists:
+    - Legacy databases can contain polluted `meta.plugin_id` for core menu codes.
+    - We must not hide core navigation just because the owner marker is wrong.
+    """
+
+    try:
+        from apps.api.modules.system.admin.menus.bootstrap import _core_seeds
+
+        return {str(s.code).strip() for s in _core_seeds() if getattr(s, "code", None)}
+    except Exception:
+        return set()
+
+
 def _get_parent_id(item: AdminMenuItem) -> UUID | None:
     raw = cast(HasParentId, item).parent_id
     return UUID(str(raw)) if raw is not None else None
+
+
+def _collect_roots(
+    *, children: dict[UUID | None, list[AdminMenuItem]], by_id: dict[UUID, AdminMenuItem]
+) -> list[AdminMenuItem]:
+    """
+    Collect root nodes for building a tree.
+
+    Why this exists:
+    - Legacy data can contain "orphan" items whose parent_id points to a missing record.
+      If we only start from parent_id=None, those items will be dropped from the tree entirely.
+    - We treat orphan subtrees as additional roots (best-effort) so menus remain discoverable,
+      and seeds/migrations can later heal parent links.
+    """
+
+    roots: list[AdminMenuItem] = []
+    roots.extend(children.get(None, []))
+    for parent_id, items in children.items():
+        if parent_id is None:
+            continue
+        if parent_id in by_id:
+            continue
+        roots.extend(items)
+
+    seen: set[UUID] = set()
+    deduped: list[AdminMenuItem] = []
+    for item in roots:
+        if item.id in seen:
+            continue
+        seen.add(item.id)
+        deduped.append(item)
+    return deduped
 
 
 class AdminMenuService(BaseService):
@@ -78,13 +154,15 @@ class AdminMenuService(BaseService):
         visible: set[UUID] = set()
 
         def _allowed(item: AdminMenuItem) -> bool:
+            if is_superuser:
+                return True
             meta = item.meta if isinstance(item.meta, dict) else {}
             owner_plugin_id = str(meta.get("plugin_id") or "").strip() if meta else ""
             if owner_plugin_id and owner_plugin_id != "core":
-                if owner_plugin_id not in enabled_plugin_ids:
+                # Do not let a polluted owner marker hide core navigation.
+                # (Core seeds will try to heal it, but this makes runtime behavior resilient.)
+                if item.code not in _core_menu_codes() and owner_plugin_id not in enabled_plugin_ids:
                     return False
-            if is_superuser:
-                return True
             if not item.permission_code:
                 # Per rule: null permission means "admin:access is enough".
                 return "admin:access" in permission_set
@@ -105,7 +183,7 @@ class AdminMenuService(BaseService):
                 visible.add(item.id)
             return allowed
 
-        roots = children.get(None, [])
+        roots = _collect_roots(children=children, by_id=by_id)
         for row in roots:
             _compute_visible(row.id)
 
@@ -115,7 +193,7 @@ class AdminMenuService(BaseService):
             node = AdminMenuNode(
                 id=item.id,
                 code=item.code,
-                title=item.title,
+                title=_localize_menu_title(title=item.title, title_i18n=item.title_i18n),
                 title_i18n=item.title_i18n,
                 icon=item.icon,
                 path=item.path,
@@ -168,7 +246,7 @@ class AdminMenuService(BaseService):
             node = AdminMenuNode(
                 id=item.id,
                 code=item.code,
-                title=item.title,
+                title=_localize_menu_title(title=item.title, title_i18n=item.title_i18n),
                 title_i18n=item.title_i18n,
                 icon=item.icon,
                 path=item.path,
@@ -186,7 +264,7 @@ class AdminMenuService(BaseService):
                 node.children.append(_build_node(child))
             return node
 
-        roots = children.get(None, [])
+        roots = _collect_roots(children=children, by_id=by_id)
         tree = [_build_node(r) for r in roots if r.id in by_id]
         return AdminMenuTreeOut(items=tree)
 

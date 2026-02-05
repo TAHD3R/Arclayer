@@ -37,6 +37,7 @@ import { AdminHeader } from "@/components/common/admin-header";
 import { AdminNotificationCenter } from "@/components/common/admin-notification-center";
 import { RouteProgress } from "@/components/common/route-progress";
 import { RouteTransition } from "@/components/common/route-transition";
+import { PageState } from "@/components/common/page-state";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
@@ -48,12 +49,17 @@ import { getWorkspaceDetail } from "@/api/workspaces";
 import { useWorkspaceLocalization } from "@/hooks/use-workspace-localization";
 import { useNowTick } from "@/hooks/use-now-tick";
 import { formatRelativeTimeAt } from "@/lib/time/relative-time";
+import { ForbiddenView } from "@/pages/builtin/forbidden-page";
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
   SidebarInset,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarMenu,
+  SidebarMenuSkeleton,
   SidebarProvider,
 } from "@/components/ui/sidebar";
 
@@ -144,6 +150,39 @@ function findActiveTrailNodes(items: AdminNavItem[], pathname: string): AdminNav
   return bestTrail;
 }
 
+function collectAllowedWorkspacePathPrefixes(
+  items: AdminNavItem[],
+  workspaceBase: string,
+): string[] {
+  const base = normalizePath(workspaceBase);
+  const prefixes = new Set<string>();
+
+  prefixes.add(base);
+  prefixes.add(normalizePath(`${base}/notifications`));
+  // This route immediately redirects to the canonical org-scope path, but guard it as allowed
+  // so the redirect can happen without being blocked.
+  prefixes.add(normalizePath(`${base}/settings/organization`));
+
+  const walk = (nodes: AdminNavItem[]) => {
+    for (const n of nodes) {
+      if (n.to) prefixes.add(normalizePath(n.to));
+      if (n.children?.length) walk(n.children);
+    }
+  };
+  walk(items);
+
+  // Alias routes that are implemented as "index" pages but not necessarily present in seeds.
+  // Only enable them when the corresponding module is visible in the menu.
+  const hasTeam = Array.from(prefixes).some((p) => p.startsWith(normalizePath(`${base}/team/`)));
+  if (hasTeam) prefixes.add(normalizePath(`${base}/team`));
+  const hasPlugins = Array.from(prefixes).some((p) =>
+    p.startsWith(normalizePath(`${base}/plugins/`)),
+  );
+  if (hasPlugins) prefixes.add(normalizePath(`${base}/plugins`));
+
+  return Array.from(prefixes);
+}
+
 function buildDocumentTitle(routeTitle: string | null, workspaceName: string | null): string {
   const brand = (getAppConfig().title || "Celestial").trim();
   if (!workspaceName || !workspaceName.trim()) {
@@ -163,6 +202,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
   const queryClient = useQueryClient();
   const accessToken = useAuthStore((s) => s.accessToken);
   const showSidebarNotificationCenter = usePreferencesStore((s) => s.showSidebarNotificationCenter);
+  const effectiveLocale = usePreferencesStore((s) => s.locale);
   const localePreference = usePreferencesStore((s) => s.localePreference);
   const setEffectiveLocale = usePreferencesStore((s) => s.setEffectiveLocale);
   const cacheWorkspaceLocale = usePreferencesStore((s) => s.cacheWorkspaceLocale);
@@ -181,7 +221,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
   }, [workspaceId]);
 
   const workspaceMenuQuery = useQuery({
-    queryKey: ["workspace", "adminMenu", workspaceId],
+    queryKey: ["workspace", "adminMenu", workspaceId, effectiveLocale],
     enabled: Boolean(accessToken && workspaceId && !isOrgScopeRoute),
     queryFn: async () => getMyAdminMenu(String(workspaceId)),
     staleTime: 60 * 1000,
@@ -189,14 +229,31 @@ export function AdminLayout({ children }: PropsWithChildren) {
     meta: { silent: true },
   });
 
+  const isWorkspaceScopeRoute = useMemo(() => {
+    if (!workspaceBase) return false;
+    return normalizePath(pathname).startsWith(normalizePath(workspaceBase));
+  }, [pathname, workspaceBase]);
+
+  const menuBootstrapping = Boolean(
+    accessToken &&
+    workspaceId &&
+    !isOrgScopeRoute &&
+    isWorkspaceScopeRoute &&
+    workspaceMenuQuery.isLoading,
+  );
+
   const navItems = useMemo(() => {
     if (isOrgScopeRoute) return ORG_NAV_ITEMS;
-    if (!workspaceBase) return [];
+    // When workspace is not selected (or currentWorkspaceId is temporarily unavailable),
+    // keep a stable shell so error/not-found pages don't "drop" the layout.
+    if (!workspaceBase) return ORG_NAV_ITEMS;
     const base = workspaceBase.endsWith("/") ? workspaceBase.slice(0, -1) : workspaceBase;
 
     const baseItems: AdminNavItem[] = workspaceMenuQuery.data?.items?.length
       ? buildNavItemsFromMenuNodes(workspaceMenuQuery.data.items)
-      : ADMIN_NAV_ITEMS;
+      : workspaceMenuQuery.isError
+        ? ADMIN_NAV_ITEMS
+        : [];
 
     const mapItems = (items: AdminNavItem[]): AdminNavItem[] => {
       return items.map((it) => {
@@ -214,7 +271,30 @@ export function AdminLayout({ children }: PropsWithChildren) {
     };
 
     return mapItems(baseItems);
-  }, [isOrgScopeRoute, workspaceBase, workspaceMenuQuery.data?.items]);
+  }, [isOrgScopeRoute, workspaceBase, workspaceMenuQuery.data?.items, workspaceMenuQuery.isError]);
+
+  const workspaceRouteGuard = useMemo(() => {
+    if (isOrgScopeRoute) return { kind: "skip" as const };
+    if (!workspaceBase || !isWorkspaceScopeRoute) return { kind: "skip" as const };
+    if (workspaceMenuQuery.isLoading && !workspaceMenuQuery.data)
+      return { kind: "loading" as const };
+    if (workspaceMenuQuery.isError)
+      return { kind: "error" as const, error: workspaceMenuQuery.error };
+
+    const allowedPrefixes = collectAllowedWorkspacePathPrefixes(navItems, workspaceBase);
+    const ok = allowedPrefixes.some((p) => isPrefixMatch(p, pathname));
+    return ok ? { kind: "ok" as const } : { kind: "forbidden" as const };
+  }, [
+    isOrgScopeRoute,
+    isWorkspaceScopeRoute,
+    navItems,
+    pathname,
+    workspaceBase,
+    workspaceMenuQuery.data,
+    workspaceMenuQuery.error,
+    workspaceMenuQuery.isError,
+    workspaceMenuQuery.isLoading,
+  ]);
 
   const [refreshing, setRefreshing] = useState(false);
 
@@ -292,7 +372,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
 
   // When workspace is not selected (e.g. landing at "/"), render a minimal shell.
   // The "/" route is responsible for picking a workspace and redirecting.
-  if (!workspaceBase) {
+  if (!workspaceBase && normalizePath(pathname) === "/") {
     return <>{children ?? <Outlet />}</>;
   }
 
@@ -319,7 +399,21 @@ export function AdminLayout({ children }: PropsWithChildren) {
         </SidebarHeader>
 
         <SidebarContent className="relative z-0 pl-0 pr-4 scrollbar-none">
-          <AdminSiderNav items={navItems as any} />
+          {isOrgScopeRoute ? (
+            <AdminSiderNav items={navItems as any} />
+          ) : menuBootstrapping ? (
+            <SidebarGroup>
+              <SidebarGroupContent>
+                <SidebarMenu className="gap-1.5">
+                  {Array.from({ length: 12 }).map((_, i) => (
+                    <SidebarMenuSkeleton key={i} showIcon />
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          ) : (
+            <AdminSiderNav items={navItems as any} />
+          )}
         </SidebarContent>
 
         <SidebarFooter className="relative z-10 isolate p-0">
@@ -384,7 +478,24 @@ export function AdminLayout({ children }: PropsWithChildren) {
           }}
         />
         <div className="flex-1 min-h-0 overflow-auto">
-          <RouteTransition className="w-full">{children ?? <Outlet />}</RouteTransition>
+          <PageState
+            loading={workspaceRouteGuard.kind === "loading"}
+            error={workspaceRouteGuard.kind === "error" ? workspaceRouteGuard.error : null}
+            onRetry={
+              workspaceRouteGuard.kind === "error"
+                ? () => {
+                    void workspaceMenuQuery.refetch();
+                  }
+                : undefined
+            }
+            loadingVariant="form"
+          >
+            {workspaceRouteGuard.kind === "forbidden" ? (
+              <ForbiddenView variant="admin" />
+            ) : (
+              <RouteTransition className="w-full">{children ?? <Outlet />}</RouteTransition>
+            )}
+          </PageState>
         </div>
       </SidebarInset>
     </SidebarProvider>

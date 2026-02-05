@@ -37,7 +37,9 @@ class AdminMenuSeedService(BaseService):
 
         # Resolve parent codes in a best-effort manner.
         code_to_id: dict[str, Any] = {}
-        existing = await AdminMenuItem.all().values_list("id", "code")
+        # Prefer active tree anchors when resolving parent codes. Deleted items can exist in legacy DBs,
+        # and using them as parent anchors would make the new items "orphaned" (parent not visible).
+        existing = await AdminMenuItem.filter(deleted_at__isnull=True).values_list("id", "code")
         for row_id, code in existing:
             if code:
                 code_to_id[str(code)] = row_id
@@ -98,16 +100,29 @@ class AdminMenuSeedService(BaseService):
                 code_to_id[code] = created.id
                 continue
 
+            # Always prefer the resolved row for subsequent child seeds in this same run.
+            # This avoids parent_id drift when legacy DB contains inconsistent anchors.
+            code_to_id[code] = existing_item.id
+
             meta = existing_item.meta if isinstance(existing_item.meta, dict) else {}
             owner = str(meta.get("plugin_id") or "").strip() if meta else ""
             if owner and owner != owner_plugin_id:
+                if owner_plugin_id != "core":
+                    logger.warning(
+                        "Admin menu seed collision (owned by another plugin), skip",
+                        code=code,
+                        owner=owner,
+                        plugin_id=owner_plugin_id,
+                    )
+                    continue
+                # Core navigation is product-owned. If legacy data or a plugin accidentally
+                # claimed a core code, core must take it back to keep menu/RBAC stable.
                 logger.warning(
-                    "Admin menu seed collision (owned by another plugin), skip",
+                    "Admin menu seed collision (core takeover)",
                     code=code,
-                    owner=owner,
+                    previous_owner=owner,
                     plugin_id=owner_plugin_id,
                 )
-                continue
             if not update_existing and not owner:
                 # Respect user-created items (no plugin owner marker).
                 continue
@@ -118,6 +133,7 @@ class AdminMenuSeedService(BaseService):
                     item_like.deleted_at = None
                     existing_item.is_active = bool(seed.is_active)
                     await existing_item.save(update_fields=["deleted_at", "is_active"])
+                    code_to_id[code] = existing_item.id
                 continue
 
             # Upsert allowed (core/system seeds).
@@ -146,3 +162,4 @@ class AdminMenuSeedService(BaseService):
             if restore_deleted:
                 item_like.deleted_at = None
             await existing_item.save()
+            code_to_id[code] = existing_item.id
