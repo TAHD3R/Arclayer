@@ -405,7 +405,7 @@ export function PluginsInstalledView() {
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2 min-w-0">
                             <div className="font-semibold truncate">{p.name}</div>
-                            <Tag style={{ marginInlineEnd: 0 }}>{p.version}</Tag>
+
                           </div>
                           <div className="mt-2 flex items-center gap-2">
                             <Tag
@@ -419,16 +419,11 @@ export function PluginsInstalledView() {
                                 {statusLabel}
                               </Tag>
                             ) : null}
+                            <Tag style={{ marginInlineEnd: 0 }}>{p.version}</Tag>
                           </div>
                         </div>
 
                         <div className="shrink-0 flex items-center gap-2">
-                          <Switch
-                            checked={Boolean(p.enabled)}
-                            disabled={!canManage || enableMutation.isPending}
-                            aria-label={t("plugin:PLUGIN_CENTER_TOGGLE_ARIA", { name: p.name })}
-                            onChange={() => enableMutation.mutate(p)}
-                          />
                           <Dropdown trigger={["click"]} menu={{ items: menuItems }}>
                             <Button
                               type="text"
@@ -437,6 +432,12 @@ export function PluginsInstalledView() {
                               aria-label={t("plugin:PLUGIN_CENTER_MORE")}
                             />
                           </Dropdown>
+                          <Switch
+                            checked={Boolean(p.enabled)}
+                            disabled={!canManage || enableMutation.isPending}
+                            aria-label={t("plugin:PLUGIN_CENTER_TOGGLE_ARIA", { name: p.name })}
+                            onChange={() => enableMutation.mutate(p)}
+                          />
                         </div>
                       </div>
                     </div>
