@@ -20,7 +20,14 @@ class PluginConfigFieldItem(BaseSchema):
     type: str = Field(..., description="Config field type.")
     default: Any | None = Field(default=None, description="Default value.")
     secret: bool = Field(default=False, description="Whether this field is secret/sensitive.")
+    options: list[PluginConfigOptionItem] = Field(default_factory=list, description="Optional select options.")
     ui: dict[str, Any] | None = Field(default=None, description="UI rendering hints (optional).")
+    label: str | None = Field(default=None, description="Localized label.")
+    description: str | None = Field(default=None, description="Localized description.")
+
+
+class PluginConfigOptionItem(BaseSchema):
+    value: Any = Field(..., description="Option value.")
     label: str | None = Field(default=None, description="Localized label.")
     description: str | None = Field(default=None, description="Localized description.")
 

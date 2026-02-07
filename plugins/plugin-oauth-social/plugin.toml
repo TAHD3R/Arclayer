@@ -13,6 +13,7 @@ requires = ">=2026.01.18-dev"
 entrypoint = "oauth_social.plugin:OAuthSocialPlugin"
 license = "MIT"
 icon = "assets/logo.svg"
+category = "data_integration"
 
 [config_schema]
   [[config_schema.sections]]

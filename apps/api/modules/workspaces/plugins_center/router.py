@@ -18,6 +18,10 @@ from apps.api.modules.workspaces.plugins_center.schema import (
     WorkspacePluginListOut,
     WorkspacePluginSummary,
 )
+from apps.api.modules.workspaces.plugins_center.schema_validate import (
+    WorkspacePluginInstallValidatedIn,
+    WorkspacePluginPackageValidateOut,
+)
 from apps.api.modules.workspaces.plugins_center.service import WorkspacePluginCenterService
 from apps.api.plugin.manager import PluginManager
 
@@ -80,6 +84,43 @@ async def install_plugin(
         file=file,
         checksum=checksum,
         enable_in_workspace=enable_in_workspace,
+    )
+    return Response.success(data=WorkspacePluginInstallResult(plugin=plugin, requires_restart=requires_restart))
+
+
+@router.post(
+    "/validate",
+    response_model=ResponseModel[WorkspacePluginPackageValidateOut],
+    summary="Upload and validate a plugin package (no install yet)",
+    dependencies=[require_workspace_permission("system:plugins:manage")],
+)
+async def validate_plugin_package(
+    _ctx: WorkspaceContext = Depends(require_workspace_manage_access),
+    file: UploadFile = File(...),
+    checksum: str | None = Form(default=None),
+    service: WorkspacePluginCenterService = Depends(get_center_service),
+) -> ResponseModel[WorkspacePluginPackageValidateOut]:
+    token, sha256, size_bytes, meta = await service.validate_plugin_package(file=file, checksum=checksum)
+    return Response.success(
+        data=WorkspacePluginPackageValidateOut(token=token, sha256=sha256, size_bytes=size_bytes, meta=meta)
+    )
+
+
+@router.post(
+    "/install-validated",
+    response_model=ResponseModel[WorkspacePluginInstallResult],
+    summary="Install a previously validated plugin package by token",
+    dependencies=[require_workspace_permission("system:plugins:manage")],
+)
+async def install_validated_plugin(
+    payload: WorkspacePluginInstallValidatedIn,
+    ctx: WorkspaceContext = Depends(require_workspace_manage_access),
+    service: WorkspacePluginCenterService = Depends(get_center_service),
+) -> ResponseModel[WorkspacePluginInstallResult]:
+    plugin, requires_restart = await service.install_validated(
+        workspace_id=ctx.workspace_id,
+        token=payload.token,
+        enable_in_workspace=payload.enable_in_workspace,
     )
     return Response.success(data=WorkspacePluginInstallResult(plugin=plugin, requires_restart=requires_restart))
 

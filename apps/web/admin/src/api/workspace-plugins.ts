@@ -9,6 +9,7 @@ export type WorkspacePluginItem = {
   version: string;
   author: string;
   status: string;
+  category?: string | null;
   iconUrl?: string | null;
   enabled: boolean;
   config?: Record<string, unknown> | null;
@@ -23,8 +24,57 @@ export type WorkspacePluginInstallResult = {
   requiresRestart: boolean;
 };
 
+export type WorkspacePluginPackageMeta = {
+  pluginId: string;
+  slug: string;
+  name: string;
+  description?: string | null;
+  author: string;
+  version: string;
+  requires: string;
+  category?: string | null;
+  icon?: string | null;
+  hasConfigSchema: boolean;
+  permissionsCount: number;
+  modelsCount: number;
+};
+
+export type WorkspacePluginPackageValidateOut = {
+  token: string;
+  sha256: string;
+  sizeBytes: number;
+  meta: WorkspacePluginPackageMeta;
+};
+
 export async function listWorkspacePlugins(workspaceId: string): Promise<WorkspacePluginList> {
   return api.get<WorkspacePluginList>(workspacePath(workspaceId, "/plugins-center"));
+}
+
+export async function validateWorkspacePluginPackage(input: {
+  workspaceId: string;
+  file: File;
+  checksum?: string | null;
+}): Promise<WorkspacePluginPackageValidateOut> {
+  const { workspaceId, file, checksum } = input;
+  const fd = new FormData();
+  fd.set("file", file);
+  if (checksum) fd.set("checksum", checksum);
+  return api.post<WorkspacePluginPackageValidateOut>(
+    workspacePath(workspaceId, "/plugins-center/validate"),
+    fd,
+  );
+}
+
+export async function installValidatedWorkspacePlugin(input: {
+  workspaceId: string;
+  token: string;
+  enableInWorkspace?: boolean;
+}): Promise<WorkspacePluginInstallResult> {
+  const { workspaceId, token, enableInWorkspace } = input;
+  return api.post<WorkspacePluginInstallResult>(
+    workspacePath(workspaceId, "/plugins-center/install-validated"),
+    { token, enable_in_workspace: Boolean(enableInWorkspace ?? true) },
+  );
 }
 
 export async function installWorkspacePlugin(input: {

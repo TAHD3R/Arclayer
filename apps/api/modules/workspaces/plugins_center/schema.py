@@ -25,6 +25,7 @@ class WorkspacePluginSummary(BaseSchema):
     version: str = Field(..., description="Plugin version.")
     author: str = Field(..., description="Plugin author.")
     status: str = Field(..., description="Global plugin status (installed/started/disabled/failed).")
+    category: str | None = Field(default=None, description="Optional plugin category code.")
 
     icon_url: str | None = Field(
         default=None,

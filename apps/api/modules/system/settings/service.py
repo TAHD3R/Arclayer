@@ -13,6 +13,7 @@ from apps.api.modules.system.settings.schema import (
     SettingsDetail,
     SettingsFieldItem,
     SettingsNamespaceSummary,
+    SettingsOptionItem,
     SettingsSchemaItem,
     SettingsSectionItem,
 )
@@ -331,12 +332,25 @@ class SettingsService(BaseService):
         for section in schema.sections:
             fields: list[SettingsFieldItem] = []
             for field in section.fields:
+                options: list[SettingsOptionItem] = []
+                for opt in getattr(field, "options", []) or []:
+                    options.append(
+                        SettingsOptionItem(
+                            value=getattr(opt, "value", None),
+                            label=self._translate_ref(getattr(opt, "label_i18n", None), getattr(opt, "label", None)),
+                            description=self._translate_ref(
+                                getattr(opt, "description_i18n", None),
+                                getattr(opt, "description", None),
+                            ),
+                        )
+                    )
                 fields.append(
                     SettingsFieldItem(
                         key=field.key,
                         type=field.type,
                         default=field.default,
                         secret=bool(getattr(field, "secret", False)),
+                        options=options,
                         ui=getattr(field, "ui", None),
                         label=self._translate_ref(field.label_i18n, field.label),
                         description=self._translate_ref(field.description_i18n, field.description),

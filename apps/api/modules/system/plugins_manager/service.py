@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import json
 import shutil
 import stat
+import time
 import zipfile
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -28,6 +30,7 @@ from apps.api.modules.system.plugins_manager.schema import (
     PluginConfigFieldItem,
     PluginConfigSchemaItem,
     PluginConfigSectionItem,
+    PluginConfigOptionItem,
     PluginDependencyItem,
     PluginDetail,
     PluginPermissionItem,
@@ -170,7 +173,7 @@ class PluginService(BaseService):
     async def install_plugin(
         self,
         *,
-        file: UploadFile,
+        file: _UploadLike,
         checksum: str | None,
         enable: bool,
     ) -> tuple[PluginRecord, bool]:
@@ -411,6 +414,168 @@ class PluginService(BaseService):
         finally:
             shutil.rmtree(staging_dir, ignore_errors=True)
 
+    async def validate_upload_to_staging(
+        self,
+        *,
+        file: UploadFile,
+        checksum: str | None,
+        ttl_seconds: int = 10 * 60,
+    ) -> tuple[str, str, int, PluginManifest]:
+        """
+        Upload and validate a plugin zip into a short-lived staging area.
+
+        Returns: (token, sha256, size_bytes, manifest)
+        """
+
+        if not file.filename:
+            raise BadRequest(message=_tp("PLUGIN_PACKAGE_REQUIRED", "缺少插件包文件"), error="PLUGIN_PACKAGE_REQUIRED")
+        raw_filename = file.filename
+        filename = self._sanitize_upload_filename(raw_filename)
+        if not filename.endswith(".zip"):
+            raise BadRequest(
+                message=_tp("PLUGIN_PACKAGE_INVALID", "插件包必须为 zip 格式"),
+                error="PLUGIN_PACKAGE_INVALID",
+            )
+
+        token = uuid7().hex
+        staging_dir = self.root_dir / ".staging" / "validate" / token
+        staging_dir.mkdir(parents=True, exist_ok=True)
+        zip_path = staging_dir / filename
+
+        sha256, size = await self._save_upload(file, zip_path, max_bytes=self.settings.plugin.package_max_zip_bytes)
+        if checksum and checksum.lower() != sha256:
+            raise BadRequest(
+                message=_tp("PLUGIN_CHECKSUM_MISMATCH", "插件包校验失败"),
+                error="PLUGIN_CHECKSUM_MISMATCH",
+            )
+
+        manifest = self._validate_zip(zip_path)
+        self._assert_safe_plugin_target_dir(manifest.plugin.id)
+
+        # Validate the package contains the entry root directory (same rule as install).
+        entry_root = self._get_entry_root(manifest)
+        try:
+            with zipfile.ZipFile(zip_path) as zf:
+                names = [n.replace("\\", "/") for n in zf.namelist() if n]
+        except zipfile.BadZipFile as exc:
+            raise BadRequest(
+                message=_tp("PLUGIN_PACKAGE_INVALID", "插件包必须为 zip 格式"),
+                error="PLUGIN_PACKAGE_INVALID",
+                details=str(exc),
+            ) from exc
+
+        has_entry = any(n.startswith(f"{entry_root}/") for n in names) or any(
+            n.startswith(f"src/{entry_root}/") for n in names
+        )
+        if not has_entry:
+            raise BadRequest(
+                message=_tp("PLUGIN_PACKAGE_MISSING", "插件包缺少主包目录"),
+                error="PLUGIN_PACKAGE_MISSING",
+            )
+
+        # Early detect slug conflicts to avoid a "validate ok -> install fail" UX.
+        if self.manager is not None:
+            if not self.manager.descriptors:
+                self.manager.discover()
+            slug = manifest.plugin.slug
+            owner = self.manager.slug_to_id.get(slug)
+            if owner and owner != manifest.plugin.id:
+                raise BadRequest(
+                    message=_tp("PLUGIN_SLUG_CONFLICT", "插件 slug 冲突"),
+                    error="PLUGIN_SLUG_CONFLICT",
+                    details={"slug": slug, "conflicts_with": owner},
+                )
+
+        meta = {
+            "token": token,
+            "filename": filename,
+            "sha256": sha256,
+            "size": int(size),
+            "created_at": int(time.time()),
+            "ttl_seconds": int(ttl_seconds),
+        }
+        try:
+            (staging_dir / "validate.json").write_text(json.dumps(meta, ensure_ascii=False), encoding="utf-8")
+        except Exception:
+            # Best-effort: validation result can still be used.
+            pass
+
+        return token, sha256, int(size), manifest
+
+    async def install_from_staging_token(
+        self,
+        *,
+        token: str,
+        enable: bool,
+    ) -> tuple[PluginRecord, bool]:
+        """
+        Install a previously validated plugin package by token.
+
+        Notes:
+        - This does NOT re-upload from the client; it reads the staged zip from disk.
+        - The staged zip is re-validated by the standard install flow.
+        """
+
+        raw = (token or "").strip().lower()
+        if not raw or any(c not in "0123456789abcdef" for c in raw):
+            raise BadRequest(
+                message=_tp("PLUGIN_VALIDATE_TOKEN_INVALID", "校验令牌无效"),
+                error="PLUGIN_VALIDATE_TOKEN_INVALID",
+            )
+
+        staging_dir = self.root_dir / ".staging" / "validate" / raw
+        if not staging_dir.is_dir():
+            raise BadRequest(
+                message=_tp("PLUGIN_VALIDATE_TOKEN_INVALID", "校验令牌无效"),
+                error="PLUGIN_VALIDATE_TOKEN_INVALID",
+            )
+
+        meta_path = staging_dir / "validate.json"
+        try:
+            meta = json.loads(meta_path.read_text(encoding="utf-8")) if meta_path.is_file() else {}
+        except Exception:
+            meta = {}
+
+        created_at = int(meta.get("created_at") or 0) if isinstance(meta, dict) else 0
+        ttl = int(meta.get("ttl_seconds") or 0) if isinstance(meta, dict) else 0
+        if created_at and ttl and int(time.time()) > created_at + ttl:
+            shutil.rmtree(staging_dir, ignore_errors=True)
+            raise BadRequest(
+                message=_tp("PLUGIN_VALIDATE_TOKEN_EXPIRED", "校验令牌已过期"),
+                error="PLUGIN_VALIDATE_TOKEN_EXPIRED",
+            )
+
+        filename = str(meta.get("filename") or "") if isinstance(meta, dict) else ""
+        sha256 = str(meta.get("sha256") or "") if isinstance(meta, dict) else ""
+
+        zips = sorted(staging_dir.glob("*.zip"))
+        zip_path = zips[0] if zips else None
+        if zip_path is None or not zip_path.is_file():
+            raise BadRequest(
+                message=_tp("PLUGIN_VALIDATE_TOKEN_INVALID", "校验令牌无效"),
+                error="PLUGIN_VALIDATE_TOKEN_INVALID",
+            )
+
+        class _PathUpload:
+            filename: str | None
+
+            def __init__(self, path: Path, *, filename_override: str | None) -> None:
+                self.filename = filename_override or path.name
+                self._path = path
+                self._handle = path.open("rb")
+
+            async def read(self, size: int = -1) -> bytes:
+                return await asyncio.to_thread(self._handle.read, size)
+
+            async def close(self) -> None:
+                await asyncio.to_thread(self._handle.close)
+
+        upload = _PathUpload(zip_path, filename_override=filename if filename else None)
+        try:
+            return await self.install_plugin(file=upload, checksum=sha256 or None, enable=enable)
+        finally:
+            shutil.rmtree(staging_dir, ignore_errors=True)
+
     async def enable_plugin(self, plugin_id: str) -> PluginRecord:
         record = await self.get_plugin(plugin_id)
         manager = self._require_manager()
@@ -630,12 +795,25 @@ class PluginService(BaseService):
         for section in schema.sections:
             fields: list[PluginConfigFieldItem] = []
             for field in section.fields:
+                options: list[PluginConfigOptionItem] = []
+                for opt in getattr(field, "options", []) or []:
+                    options.append(
+                        PluginConfigOptionItem(
+                            value=getattr(opt, "value", None),
+                            label=self._translate_ref(getattr(opt, "label_i18n", None), getattr(opt, "label", None)),
+                            description=self._translate_ref(
+                                getattr(opt, "description_i18n", None),
+                                getattr(opt, "description", None),
+                            ),
+                        )
+                    )
                 fields.append(
                     PluginConfigFieldItem(
                         key=field.key,
                         type=field.type,
                         default=field.default,
                         secret=bool(getattr(field, "secret", False)),
+                        options=options,
                         ui=getattr(field, "ui", None),
                         label=self._translate_ref(field.label_i18n, field.label),
                         description=self._translate_ref(field.description_i18n, field.description),

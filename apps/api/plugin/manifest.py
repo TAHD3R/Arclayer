@@ -7,6 +7,7 @@ import tomllib
 from pydantic import Field, field_validator
 
 from apps.api.common.schemas import BaseSchema
+from apps.api.common.constants.plugin import PLUGIN_CATEGORY_CODES
 
 
 class PluginDependency(BaseSchema):
@@ -25,12 +26,21 @@ class PermissionTemplate(BaseSchema):
     default_roles: list[str] = Field(default_factory=list)
 
 
+class ConfigOption(BaseSchema):
+    value: Any = Field(..., description="Option value.")
+    label: str | None = Field(default=None, description="Option label.")
+    description: str | None = Field(default=None, description="Option description.")
+    label_i18n: str | None = Field(default=None, description="i18n ref for label.")
+    description_i18n: str | None = Field(default=None, description="i18n ref for description.")
+
+
 class ConfigField(BaseSchema):
     key: str
     type: str
     default: Any | None = None
     secret: bool = False
     ui: dict[str, Any] | None = None
+    options: list[ConfigOption] = Field(default_factory=list, description="Optional select options for UI.")
     label: str | None = None
     description: str | None = None
     label_i18n: str | None = None
@@ -60,6 +70,10 @@ class PluginMeta(BaseSchema):
         description="Plugin URL slug used for routing (lowercase, kebab-case).",
         pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$",
     )
+    category: str | None = Field(
+        default=None,
+        description="Optional plugin category code (used by admin plugin center filtering).",
+    )
     icon: str | None = Field(
         default=None,
         description="Optional plugin icon path (relative to plugin root) or an absolute URL.",
@@ -87,6 +101,16 @@ class PluginMeta(BaseSchema):
         if trimmed in reserved:
             # Use a stable marker string so callers can map this to a dedicated API error code.
             raise ValueError("PLUGIN_ID_RESERVED")
+        return trimmed
+
+    @field_validator("category", mode="after")
+    @classmethod
+    def _validate_category(cls, value: str | None) -> str | None:
+        trimmed = (value or "").strip().lower()
+        if not trimmed:
+            return None
+        if trimmed not in PLUGIN_CATEGORY_CODES:
+            raise ValueError("PLUGIN_CATEGORY_INVALID")
         return trimmed
 
 

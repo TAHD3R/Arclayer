@@ -1,12 +1,13 @@
-import { Card, Input, Switch, Typography } from "antd";
+import { Card, Input, Select, Switch, Typography } from "antd";
 import { useEffect, useMemo } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
+import type { ReactNode } from "react";
 
 import { zodResolver } from "@/lib/forms/zod-resolver";
 import { Button } from "@/components/ui/button";
-import type { SystemSettingsDetail, SettingsSchemaItem } from "@/api/settings";
+import type { SettingsOptionItem, SystemSettingsDetail, SettingsSchemaItem } from "@/api/settings";
 
 type FormValues = Record<string, unknown>;
 
@@ -20,9 +21,19 @@ function zodForFieldType(type: string): z.ZodTypeAny {
   return z.unknown().optional();
 }
 
-function buildZodSchema(schema: SettingsSchemaItem): z.ZodType<FormValues> {
+function buildZodSchema(
+  schema: SettingsSchemaItem,
+  opts?: {
+    sectionId?: string;
+  },
+): z.ZodType<FormValues> {
   const shape: Record<string, z.ZodTypeAny> = {};
-  for (const section of schema.sections || []) {
+  const sectionId = opts?.sectionId;
+  const sections =
+    sectionId && sectionId.trim()
+      ? (schema.sections || []).filter((s) => String(s.id || "").trim() === sectionId.trim())
+      : schema.sections || [];
+  for (const section of sections) {
     const sectionShape: Record<string, z.ZodTypeAny> = {};
     for (const field of section.fields || []) {
       sectionShape[field.key] = zodForFieldType(field.type);
@@ -32,10 +43,31 @@ function buildZodSchema(schema: SettingsSchemaItem): z.ZodType<FormValues> {
   return z.object(shape).partial();
 }
 
-function buildInitialValues(detail: SystemSettingsDetail): FormValues {
+function optionLabel(opt: SettingsOptionItem): string {
+  const label = typeof opt.label === "string" ? opt.label.trim() : "";
+  if (label) return label;
+  return String(opt.value ?? "");
+}
+
+type SelectOptionRenderArg = {
+  label?: ReactNode;
+  data?: unknown;
+};
+
+function buildInitialValues(
+  detail: SystemSettingsDetail,
+  opts?: {
+    sectionId?: string;
+  },
+): FormValues {
   const value = detail.value || {};
   const out: Record<string, Record<string, unknown>> = {};
-  for (const section of detail.setting_schema.sections || []) {
+  const sectionId = opts?.sectionId;
+  const sections =
+    sectionId && sectionId.trim()
+      ? (detail.setting_schema.sections || []).filter((s) => String(s.id || "").trim() === sectionId.trim())
+      : detail.setting_schema.sections || [];
+  for (const section of sections) {
     const sectionValue = (value as Record<string, unknown>)[section.id];
     out[section.id] = {};
     for (const field of section.fields || []) {
@@ -58,6 +90,8 @@ export interface PluginSettingsFormProps {
   detail: SystemSettingsDetail;
   disabled?: boolean;
   saving?: boolean;
+  sectionId?: string;
+  submitText?: string;
   onSubmitPatch: (patch: Record<string, unknown>) => Promise<void>;
 }
 
@@ -65,12 +99,20 @@ export function PluginSettingsForm({
   detail,
   disabled = false,
   saving = false,
+  sectionId,
+  submitText,
   onSubmitPatch,
 }: PluginSettingsFormProps) {
   const { t } = useTranslation(["common", "settings", "plugin"]);
 
-  const zodSchema = useMemo(() => buildZodSchema(detail.setting_schema), [detail.setting_schema]);
-  const initialValues = useMemo(() => buildInitialValues(detail), [detail]);
+  const zodSchema = useMemo(
+    () => buildZodSchema(detail.setting_schema, { sectionId }),
+    [detail.setting_schema, sectionId],
+  );
+  const initialValues = useMemo(
+    () => buildInitialValues(detail, { sectionId }),
+    [detail, sectionId],
+  );
 
   const form = useForm<FormValues>({
     resolver: zodResolver(zodSchema),
@@ -88,7 +130,11 @@ export function PluginSettingsForm({
     // Build a minimal patch (omit empty secret inputs).
     const patch: Record<string, unknown> = {};
 
-    for (const section of detail.setting_schema.sections || []) {
+    const sections =
+      sectionId && sectionId.trim()
+        ? (detail.setting_schema.sections || []).filter((s) => String(s.id || "").trim() === sectionId.trim())
+        : detail.setting_schema.sections || [];
+    for (const section of sections) {
       const sectionPatch: Record<string, unknown> = {};
       const sectionValues = (values?.[section.id] as Record<string, unknown> | undefined) || {};
 
@@ -113,7 +159,7 @@ export function PluginSettingsForm({
 
     await onSubmitPatch(patch);
     // After saving, keep the form clean; caller should invalidate/refetch detail.
-    form.reset(buildInitialValues(detail));
+    form.reset(buildInitialValues(detail, { sectionId }));
   });
 
   const secrets = detail.secrets || {};
@@ -121,7 +167,10 @@ export function PluginSettingsForm({
   return (
     <form onSubmit={onSubmit}>
       <div className="flex flex-col gap-4">
-        {(detail.setting_schema.sections || []).map((section) => (
+        {(sectionId
+          ? (detail.setting_schema.sections || []).filter((s) => String(s.id || "").trim() === String(sectionId || "").trim())
+          : detail.setting_schema.sections || []
+        ).map((section) => (
           <Card key={section.id} size="small" title={section.title || section.id}>
             <div className="flex flex-col gap-3">
               {(section.fields || []).map((field) => {
@@ -153,6 +202,7 @@ export function PluginSettingsForm({
                 }
 
                 const isPassword = Boolean(field.secret) || field.ui?.input === "password";
+                const hasOptions = Array.isArray(field.options) && field.options.length > 0;
 
                 return (
                   <div key={field.key} className="flex flex-col gap-1">
@@ -171,7 +221,34 @@ export function PluginSettingsForm({
                       control={form.control}
                       name={`${section.id}.${field.key}`}
                       render={({ field: rhfField }) =>
-                        isPassword ? (
+                        hasOptions ? (
+                          <Select
+                            value={rhfField.value as unknown}
+                            onChange={(v) => rhfField.onChange(v)}
+                            options={(field.options || []).map((opt) => ({
+                              value: opt.value,
+                              label: optionLabel(opt),
+                              meta: opt,
+                            }))}
+                            optionRender={(option: SelectOptionRenderArg) => {
+                              const data = option.data as { meta?: SettingsOptionItem } | undefined;
+                              const meta = data?.meta;
+                              const desc =
+                                meta && typeof meta.description === "string" ? meta.description.trim() : "";
+                              return (
+                                <div className="py-1">
+                                  <div className="font-medium">{String(option.label || "")}</div>
+                                  {desc ? (
+                                    <div className="text-xs text-muted-foreground">{desc}</div>
+                                  ) : null}
+                                </div>
+                              );
+                            }}
+                            showSearch
+                            allowClear
+                            disabled={disabled || saving}
+                          />
+                        ) : isPassword ? (
                           <Input.Password
                             value={String(rhfField.value || "")}
                             onChange={(e) => rhfField.onChange(e.target.value)}
@@ -198,7 +275,7 @@ export function PluginSettingsForm({
 
         <div className="flex justify-end gap-2">
           <Button type="submit" disabled={disabled || saving}>
-            {t("settings:SETTINGS_SAVE")}
+            {submitText || t("settings:SETTINGS_SAVE")}
           </Button>
         </div>
       </div>

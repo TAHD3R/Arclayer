@@ -13,7 +13,14 @@ export type SettingsFieldItem = {
   type: string;
   default?: unknown;
   secret?: boolean;
+  options?: SettingsOptionItem[];
   ui?: Record<string, unknown> | null;
+  label?: string | null;
+  description?: string | null;
+};
+
+export type SettingsOptionItem = {
+  value: unknown;
   label?: string | null;
   description?: string | null;
 };

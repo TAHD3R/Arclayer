@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Card, Switch, Typography } from "antd";
-import { useMemo } from "react";
+import { Button, Card, Descriptions, Switch, Tag, Typography } from "antd";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 
@@ -11,17 +11,41 @@ import { getSystemRuntime } from "@/api/system";
 import { getSystemSettingsNamespace, patchSystemSettingsNamespace } from "@/api/settings";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { PluginSettingsForm } from "@/components/plugins/plugin-settings-form";
-import { Button } from "@/components/ui/button";
+import { ChromeTabs, ChromeTabsContent, ChromeTabsList, ChromeTabsTrigger } from "@/components/ui/chrome-tabs";
+import { PluginIcon } from "@/components/plugins/plugin-icon";
 
 export const Route = createFileRoute("/w/$workspaceId/plugins/$pluginSlug/")({
   component: WorkspacePluginDetailPage,
 });
+
+function normalizeStatus(value: unknown): string {
+  return String(value || "")
+    .trim()
+    .toLowerCase();
+}
+
+function statusColor(status: string): string | undefined {
+  const s = normalizeStatus(status);
+  if (s === "started") return "green";
+  if (s === "installed") return "blue";
+  if (s === "disabled") return undefined;
+  if (s === "failed") return "red";
+  return undefined;
+}
+
+function categoryLabel(t: (key: string, opts?: { defaultValue?: string }) => string, code: string | null | undefined): string {
+  const c = String(code || "").trim().toLowerCase();
+  if (!c) return t("common:NA");
+  const key = `plugin:PLUGIN_CATEGORY_${c.toUpperCase()}` as const;
+  return t(key, { defaultValue: c });
+}
 
 function WorkspacePluginDetailPage() {
   const { t } = useTranslation(["nav", "plugin", "common", "settings"]);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { workspaceId, pluginSlug } = Route.useParams();
+  const [tab, setTab] = useState<string>("details");
 
   const runtimeQuery = useQuery({
     queryKey: ["system", "runtime"],
@@ -90,15 +114,46 @@ function WorkspacePluginDetailPage() {
   const loading = pluginsQuery.isLoading && !pluginsQuery.data;
   const loadError = pluginsQuery.isError ? pluginsQuery.error : null;
 
+  const configSections = useMemo(() => {
+    const sections = settingsQuery.data?.setting_schema?.sections || [];
+    return sections.filter((s) => (s.fields || []).length > 0);
+  }, [settingsQuery.data?.setting_schema?.sections]);
+
+  const status = normalizeStatus(plugin?.status);
+  const statusLabel = plugin
+    ? t(`plugin:PLUGIN_STATUS_${status.toUpperCase()}`, { defaultValue: plugin.status })
+    : null;
+  const availableTabs = useMemo(() => {
+    const keys = ["details"];
+    if (configSections.length > 0) {
+      for (const s of configSections) keys.push(`system:${s.id}`);
+    }
+    return keys;
+  }, [configSections]);
+
+  useEffect(() => {
+    if (!availableTabs.includes(tab)) setTab("details");
+  }, [availableTabs, tab]);
+
   return (
     <DefaultPage
-      title={`${t("nav:NAV_PLUGINS")} / ${pluginSlug}`}
-      description={t("plugin:PLUGIN_CENTER_DESC")}
+      title={plugin ? plugin.name : `${t("nav:NAV_PLUGINS")} / ${pluginSlug}`}
+      description={plugin?.description || t("common:NA")}
       width="fixed"
       action={
-        <Button variant="secondary" onClick={() => void navigate({ to: `/w/${workspaceId}/plugins/installed` })}>
-          {t("common:BACK")}
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button onClick={() => void navigate({ to: `/w/${workspaceId}/plugins/installed` })}>
+            {t("common:BACK")}
+          </Button>
+          {plugin ? (
+            <Switch
+              checked={plugin.enabled}
+              aria-label={t("plugin:PLUGIN_CENTER_TOGGLE_ARIA", { name: plugin.name })}
+              onChange={(checked) => void toggleMutation.mutateAsync(checked)}
+              loading={toggleMutation.isPending}
+            />
+          ) : null}
+        </div>
       }
     >
       <PageState
@@ -107,59 +162,85 @@ function WorkspacePluginDetailPage() {
         onRetry={loadError ? () => void pluginsQuery.refetch() : undefined}
       >
         {plugin ? (
-          <div className="flex flex-col gap-4">
-            <Card>
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <Typography.Title level={4} style={{ marginTop: 0, marginBottom: 4 }}>
-                    {plugin.name}
-                  </Typography.Title>
-                  <Typography.Paragraph style={{ marginBottom: 0 }}>
-                    {plugin.description || t("common:NA")}
-                  </Typography.Paragraph>
-                  <div className="text-sm text-muted-foreground mt-2">
-                    {t("plugin:PLUGIN_CENTER_VERSION", { version: plugin.version })}
-                  </div>
-                </div>
-                <div className="shrink-0 flex items-center gap-2">
-                  <Switch
-                    checked={plugin.enabled}
-                    onChange={(checked) => void toggleMutation.mutateAsync(checked)}
-                    loading={toggleMutation.isPending}
-                  />
-                </div>
-              </div>
-            </Card>
+          <ChromeTabs value={tab} onValueChange={(v) => setTab(String(v))}>
+            <ChromeTabsList>
+              <ChromeTabsTrigger value="details">{t("plugin:PLUGIN_TAB_DETAILS")}</ChromeTabsTrigger>
+              {configSections.length
+                ? configSections.map((s) => (
+                    <ChromeTabsTrigger key={s.id} value={`system:${s.id}`}>
+                      {s.title || s.id}
+                    </ChromeTabsTrigger>
+                  ))
+                : null}
+            </ChromeTabsList>
 
-            <Card title={t("settings:SETTINGS_SAVE")} size="small">
-              {!systemSettingsEnabled || systemDeploymentMode === "saas" ? (
-                <Typography.Paragraph style={{ marginBottom: 0 }}>
-                  {t("plugin:PLUGIN_SETTINGS_MANAGED_BY_PLATFORM")}
-                </Typography.Paragraph>
-              ) : settingsQuery.isLoading && !settingsQuery.data ? (
-                <PageState loading loadingVariant="form" />
-              ) : settingsQuery.isError ? (
-                <PageState
-                  loading={false}
-                  error={settingsQuery.error}
-                  onRetry={() => void settingsQuery.refetch()}
-                />
-              ) : settingsQuery.data ? (
-                <PluginSettingsForm
-                  detail={settingsQuery.data}
-                  disabled={patchMutation.isPending}
-                  saving={patchMutation.isPending}
-                  onSubmitPatch={async (patch) => {
-                    await patchMutation.mutateAsync(patch);
-                  }}
-                />
-              ) : (
-                <Typography.Paragraph style={{ marginBottom: 0 }}>
-                  {t("plugin:PLUGIN_CONFIG_NOT_SUPPORTED")}
-                </Typography.Paragraph>
-              )}
-            </Card>
-          </div>
+            <ChromeTabsContent value="details">
+              <div className="flex flex-col gap-4">
+
+                <Card size="small" type="inner" title={t("plugin:PLUGIN_TAB_DETAILS")}>
+                  <Descriptions size="small" column={1} bordered>
+                    <Descriptions.Item label={t("plugin:PLUGIN_META_ID")}>
+                      <Typography.Text code>{plugin.pluginId}</Typography.Text>
+                    </Descriptions.Item>
+                    <Descriptions.Item label={t("plugin:PLUGIN_META_SLUG")}>
+                      <Typography.Text code>{plugin.slug || t("common:NA")}</Typography.Text>
+                    </Descriptions.Item>
+                    <Descriptions.Item label={t("plugin:PLUGIN_META_VERSION")}>
+                      {plugin.version}
+                    </Descriptions.Item>
+                    <Descriptions.Item label={t("plugin:PLUGIN_META_AUTHOR")}>
+                      {plugin.author || t("common:NA")}
+                    </Descriptions.Item>
+                    <Descriptions.Item label={t("plugin:PLUGIN_META_STATUS")}>
+                      {statusLabel || t("common:NA")}
+                    </Descriptions.Item>
+                    <Descriptions.Item label={t("plugin:PLUGIN_META_CATEGORY")}>
+                      {plugin.category ? categoryLabel(t, plugin.category) : t("common:NA")}
+                    </Descriptions.Item>
+                    <Descriptions.Item label={t("plugin:PLUGIN_META_ENABLED")}>
+                      {plugin.enabled ? t("plugin:PLUGIN_ENABLED_TRUE") : t("plugin:PLUGIN_ENABLED_FALSE")}
+                    </Descriptions.Item>
+                  </Descriptions>
+                </Card>
+              </div>
+            </ChromeTabsContent>
+
+            {configSections.length
+              ? configSections.map((section) => (
+                  <ChromeTabsContent key={section.id} value={`system:${section.id}`}>
+                    <Card size="small" title={section.title || section.id}>
+                      {!systemSettingsEnabled || systemDeploymentMode === "saas" ? (
+                        <Typography.Paragraph style={{ marginBottom: 0 }}>
+                          {t("plugin:PLUGIN_SETTINGS_MANAGED_BY_PLATFORM")}
+                        </Typography.Paragraph>
+                      ) : settingsQuery.isLoading && !settingsQuery.data ? (
+                        <PageState loading loadingVariant="form" />
+                      ) : settingsQuery.isError ? (
+                        <PageState
+                          loading={false}
+                          error={settingsQuery.error}
+                          onRetry={() => void settingsQuery.refetch()}
+                        />
+                      ) : settingsQuery.data ? (
+                        <PluginSettingsForm
+                          detail={settingsQuery.data}
+                          sectionId={section.id}
+                          disabled={patchMutation.isPending}
+                          saving={patchMutation.isPending}
+                          onSubmitPatch={async (patch) => {
+                            await patchMutation.mutateAsync(patch);
+                          }}
+                        />
+                      ) : (
+                        <Typography.Paragraph style={{ marginBottom: 0 }}>
+                          {t("plugin:PLUGIN_CONFIG_NOT_SUPPORTED")}
+                        </Typography.Paragraph>
+                      )}
+                    </Card>
+                  </ChromeTabsContent>
+                ))
+              : null}
+          </ChromeTabs>
         ) : (
           <PageState
             loading={false}

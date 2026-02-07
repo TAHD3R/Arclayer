@@ -8,7 +8,7 @@
   "CANCEL": "取消",
   "CONFIRM": "确认",
   "REFRESH": "刷新",
-  "LOADING": "加载中...",
+  "LOADING": "加载中…",
   "RETRY": "重试",
   "GO_HOME": "回到首页",
   "EMPTY_TITLE": "暂无数据",
@@ -28,5 +28,8 @@
   "WORKSPACE_SELECT_DESC": "请选择一个工作区进入后台，你可以在右上角随时切换。",
   "WORKSPACE_REDIRECTING": "正在进入工作区…",
   "WORKSPACE_EMPTY_TITLE": "暂无可用工作区",
-  "WORKSPACE_EMPTY_DESC": "你的账号当前没有可访问的工作区，请联系管理员或通过邀请加入。"
+  "WORKSPACE_EMPTY_DESC": "你的账号当前没有可访问的工作区，请联系管理员或通过邀请加入。",
+
+  "TABS_SCROLL_LEFT": "向左滚动标签",
+  "TABS_SCROLL_RIGHT": "向右滚动标签"
 }

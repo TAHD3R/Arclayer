@@ -8,7 +8,7 @@
   "CANCEL": "Cancel",
   "CONFIRM": "Confirm",
   "REFRESH": "Refresh",
-  "LOADING": "Loading...",
+  "LOADING": "Loading…",
   "RETRY": "Retry",
   "GO_HOME": "Go Home",
   "EMPTY_TITLE": "No data",
@@ -28,5 +28,8 @@
   "WORKSPACE_SELECT_DESC": "Select a workspace to enter the admin. You can switch workspaces anytime from the top right.",
   "WORKSPACE_REDIRECTING": "Redirecting to workspace…",
   "WORKSPACE_EMPTY_TITLE": "No available workspaces",
-  "WORKSPACE_EMPTY_DESC": "Your account does not have access to any workspaces yet. Contact an admin or join via an invite."
+  "WORKSPACE_EMPTY_DESC": "Your account does not have access to any workspaces yet. Contact an admin or join via an invite.",
+
+  "TABS_SCROLL_LEFT": "Scroll tabs left",
+  "TABS_SCROLL_RIGHT": "Scroll tabs right"
 }

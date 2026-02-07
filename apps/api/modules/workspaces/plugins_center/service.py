@@ -13,6 +13,7 @@ from apps.api.modules.system.models.plugin import PluginRecord
 from apps.api.modules.system.plugins_manager.service import PluginService
 from apps.api.modules.workspaces.plugins_center.repository import WorkspacePluginRepository
 from apps.api.modules.workspaces.plugins_center.schema import WorkspacePluginSummary
+from apps.api.modules.workspaces.plugins_center.schema_validate import PluginPackageMeta
 from apps.api.plugin.manifest import ConfigSchema
 
 
@@ -30,6 +31,13 @@ class WorkspacePluginCenterService(BaseService):
         items: list[WorkspacePluginSummary] = []
         for record in rows:
             summary = self.plugin_service.to_summary(record)
+            category: str | None = None
+            manager = getattr(self.plugin_service, "manager", None)
+            if manager is not None:
+                if not getattr(manager, "descriptors", None):
+                    manager.discover()
+                desc = manager.descriptors.get(str(summary.plugin_id))
+                category = (desc.manifest.plugin.category if desc is not None else None) or None
             state = state_by_id.get(str(record.plugin_id))
             icon_url = self._build_workspace_plugin_icon_url(
                 workspace_id=workspace_id,
@@ -45,6 +53,7 @@ class WorkspacePluginCenterService(BaseService):
                     version=str(summary.version),
                     author=str(summary.author),
                     status=str(summary.status),
+                    category=category,
                     icon_url=icon_url,
                     enabled=bool(state.enabled) if state is not None else False,
                     config=(state.config if state is not None and isinstance(state.config, dict) else None),
@@ -75,6 +84,13 @@ class WorkspacePluginCenterService(BaseService):
 
         # Rebuild summary view.
         summary = self.plugin_service.to_summary(record)
+        category: str | None = None
+        manager = getattr(self.plugin_service, "manager", None)
+        if manager is not None:
+            if not getattr(manager, "descriptors", None):
+                manager.discover()
+            desc = manager.descriptors.get(str(summary.plugin_id))
+            category = (desc.manifest.plugin.category if desc is not None else None) or None
         state = await self.repo.get_state(workspace_id=workspace_id, plugin_id=record.plugin_id)
         icon_url = self._build_workspace_plugin_icon_url(
             workspace_id=workspace_id,
@@ -89,6 +105,76 @@ class WorkspacePluginCenterService(BaseService):
             version=str(summary.version),
             author=str(summary.author),
             status=str(summary.status),
+            category=category,
+            icon_url=icon_url,
+            enabled=bool(state.enabled) if state is not None else False,
+            config=(state.config if state is not None and isinstance(state.config, dict) else None),
+        )
+        return out, requires_restart
+
+    async def validate_plugin_package(
+        self,
+        *,
+        file: UploadFile,
+        checksum: str | None,
+    ) -> tuple[str, str, int, PluginPackageMeta]:
+        token, sha256, size_bytes, manifest = await self.plugin_service.validate_upload_to_staging(
+            file=file, checksum=checksum
+        )
+        meta = PluginPackageMeta(
+            plugin_id=manifest.plugin.id,
+            slug=manifest.plugin.slug,
+            name=manifest.plugin.name,
+            description=manifest.plugin.description,
+            author=manifest.plugin.author,
+            version=manifest.plugin.version,
+            requires=manifest.plugin.requires,
+            category=manifest.plugin.category,
+            icon=manifest.plugin.icon,
+            has_config_schema=manifest.config_schema is not None,
+            permissions_count=len(getattr(manifest, "permissions", None) or []),
+            models_count=len(getattr(manifest, "models", None) or []),
+        )
+        return token, sha256, size_bytes, meta
+
+    async def install_validated(
+        self,
+        *,
+        workspace_id: UUID,
+        token: str,
+        enable_in_workspace: bool,
+    ) -> tuple[WorkspacePluginSummary, bool]:
+        record, requires_restart = await self.plugin_service.install_from_staging_token(token=token, enable=True)
+
+        await self.repo.set_enabled(
+            workspace_id=workspace_id,
+            plugin_id=record.plugin_id,
+            enabled=bool(enable_in_workspace),
+        )
+
+        summary = self.plugin_service.to_summary(record)
+        category: str | None = None
+        manager = getattr(self.plugin_service, "manager", None)
+        if manager is not None:
+            if not getattr(manager, "descriptors", None):
+                manager.discover()
+            desc = manager.descriptors.get(str(summary.plugin_id))
+            category = (desc.manifest.plugin.category if desc is not None else None) or None
+        state = await self.repo.get_state(workspace_id=workspace_id, plugin_id=record.plugin_id)
+        icon_url = self._build_workspace_plugin_icon_url(
+            workspace_id=workspace_id,
+            plugin_id=str(record.plugin_id),
+            plugin_slug=summary.slug,
+        )
+        out = WorkspacePluginSummary(
+            plugin_id=str(summary.plugin_id),
+            slug=summary.slug,
+            name=str(summary.name),
+            description=summary.description,
+            version=str(summary.version),
+            author=str(summary.author),
+            status=str(summary.status),
+            category=category,
             icon_url=icon_url,
             enabled=bool(state.enabled) if state is not None else False,
             config=(state.config if state is not None and isinstance(state.config, dict) else None),
@@ -103,6 +189,13 @@ class WorkspacePluginCenterService(BaseService):
         await self.repo.set_enabled(workspace_id=workspace_id, plugin_id=plugin_id, enabled=enabled)
         state = await self.repo.get_state(workspace_id=workspace_id, plugin_id=plugin_id)
         summary = self.plugin_service.to_summary(record)
+        category: str | None = None
+        manager = getattr(self.plugin_service, "manager", None)
+        if manager is not None:
+            if not getattr(manager, "descriptors", None):
+                manager.discover()
+            desc = manager.descriptors.get(str(summary.plugin_id))
+            category = (desc.manifest.plugin.category if desc is not None else None) or None
         icon_url = self._build_workspace_plugin_icon_url(
             workspace_id=workspace_id,
             plugin_id=str(record.plugin_id),
@@ -116,6 +209,7 @@ class WorkspacePluginCenterService(BaseService):
             version=str(summary.version),
             author=str(summary.author),
             status=str(summary.status),
+            category=category,
             icon_url=icon_url,
             enabled=bool(state.enabled) if state is not None else False,
             config=(state.config if state is not None and isinstance(state.config, dict) else None),
@@ -154,6 +248,13 @@ class WorkspacePluginCenterService(BaseService):
         await self.repo.set_config(workspace_id=workspace_id, plugin_id=plugin_id, config=updates)
 
         summary = self.plugin_service.to_summary(record)
+        category: str | None = None
+        manager = getattr(self.plugin_service, "manager", None)
+        if manager is not None:
+            if not getattr(manager, "descriptors", None):
+                manager.discover()
+            desc = manager.descriptors.get(str(summary.plugin_id))
+            category = (desc.manifest.plugin.category if desc is not None else None) or None
         state = await self.repo.get_state(workspace_id=workspace_id, plugin_id=plugin_id)
         icon_url = self._build_workspace_plugin_icon_url(
             workspace_id=workspace_id,
@@ -168,6 +269,7 @@ class WorkspacePluginCenterService(BaseService):
             version=str(summary.version),
             author=str(summary.author),
             status=str(summary.status),
+            category=category,
             icon_url=icon_url,
             enabled=bool(state.enabled) if state is not None else False,
             config=(state.config if state is not None and isinstance(state.config, dict) else None),
@@ -206,4 +308,7 @@ class WorkspacePluginCenterService(BaseService):
         if icon.startswith("http://") or icon.startswith("https://"):
             return icon
         ref = plugin_slug or plugin_id
-        return f"/workspaces/{workspace_id}/plugins-center/{ref}/icon"
+        # Workspace routes use PublicUUID (nanoid-like) rather than raw UUID.
+        from apps.api.common.utils.public_ids import encode_uuid
+
+        return f"/workspaces/{encode_uuid(workspace_id)}/plugins-center/{ref}/icon"

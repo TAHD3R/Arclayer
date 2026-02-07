@@ -2,43 +2,29 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { Card, Modal, Switch, Tag, Typography } from "antd";
-import { MoreVertical, Package, Upload } from "lucide-react";
-import { z } from "zod";
+import type { MenuProps } from "antd";
+import { Button, Card, Dropdown, Modal, Pagination, Select, Switch, Tag, Typography } from "antd";
+import { MoreVertical, RotateCcw, Settings2, Trash2, Upload } from "lucide-react";
 
 import { DefaultPage } from "@/components/common/default-page";
 import { PageState } from "@/components/common/page-state";
 import { AdminExtensionsSlot } from "@/components/extensions/admin-extensions-slot";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { ChromeTabs, ChromeTabsBar, ChromeTabsList, ChromeTabsTrigger } from "@/components/ui/chrome-tabs";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
-import { zodResolver } from "@/lib/forms/zod-resolver";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { getMyWorkspaceAuthz } from "@/api/workspaces";
 import type { WorkspacePluginItem } from "@/api/workspace-plugins";
 import {
   disableWorkspacePlugin,
   enableWorkspacePlugin,
-  installWorkspacePlugin,
   listWorkspacePlugins,
   resetWorkspacePluginConfig,
   uninstallWorkspacePlugin,
 } from "@/api/workspace-plugins";
+import { PluginInstallDialog } from "@/components/plugins/plugin-install-dialog";
+import { PluginIcon } from "@/components/plugins/plugin-icon";
 
 function normalizeStatus(value: unknown): string {
   return String(value || "")
@@ -55,11 +41,6 @@ function statusColor(status: string): string | undefined {
   return undefined;
 }
 
-type InstallFormValues = {
-  file: File | null;
-  enableInWorkspace: boolean;
-};
-
 export function PluginsInstalledView() {
   const { t } = useTranslation(["plugin", "nav", "common", "settings"]);
   const queryClient = useQueryClient();
@@ -68,35 +49,10 @@ export function PluginsInstalledView() {
 
   const [installOpen, setInstallOpen] = useState(false);
   const [restartHint, setRestartHint] = useState(false);
-
-  const installSchema = useMemo((): z.ZodType<InstallFormValues> => {
-    return z
-      .object({
-        file: z.instanceof(File).nullable(),
-        enableInWorkspace: z.boolean(),
-      })
-      .superRefine((values, ctx) => {
-        if (!values.file) {
-          ctx.addIssue({
-            code: "custom",
-            path: ["file"],
-            message: t("plugin:PLUGIN_CENTER_FILE_REQUIRED"),
-          });
-        }
-      });
-  }, [t]);
-
-  const installForm = useForm<InstallFormValues>({
-    resolver: zodResolver(installSchema),
-    defaultValues: { file: null, enableInWorkspace: true },
-    mode: "onSubmit",
-  });
-
-  useEffect(() => {
-    if (!installOpen) {
-      installForm.reset({ file: null, enableInWorkspace: true });
-    }
-  }, [installForm, installOpen]);
+  const [category, setCategory] = useState<string>("all");
+  const [selectedPluginRef, setSelectedPluginRef] = useState<string | null>(null);
+  const [page, setPage] = useState<number>(1);
+  const pageSize = 12;
 
   const authzQuery = useQuery({
     queryKey: ["workspace", "authz", workspaceId],
@@ -141,28 +97,6 @@ export function PluginsInstalledView() {
     onError: (err) => notifyError(err),
   });
 
-  const installMutation = useMutation({
-    mutationFn: async (values: InstallFormValues) => {
-      if (!workspaceId) throw new Error("workspaceId is required");
-      const file = values.file;
-      if (!file) throw new Error("file is required");
-      return installWorkspacePlugin({
-        workspaceId,
-        file,
-        enableInWorkspace: values.enableInWorkspace,
-      });
-    },
-    onSuccess: async (res) => {
-      setInstallOpen(false);
-      setRestartHint(Boolean(res.requiresRestart));
-      notifySuccessText(t("plugin:PLUGIN_CENTER_INSTALL_SUCCESS"));
-      await queryClient.invalidateQueries({
-        queryKey: ["workspace", "pluginsCenter", workspaceId],
-      });
-    },
-    onError: (err) => notifyError(err),
-  });
-
   const uninstallMutation = useMutation({
     mutationFn: async (plugin: WorkspacePluginItem) => {
       if (!workspaceId) throw new Error("workspaceId is required");
@@ -190,6 +124,65 @@ export function PluginsInstalledView() {
     },
     onError: (err) => notifyError(err),
   });
+
+  const items = listQuery.data?.items ?? [];
+  const normalizedCategory = String(category || "").trim().toLowerCase() || "all";
+
+  type PluginSearchOption = {
+    value: string;
+    label: string;
+    description?: string | null;
+    iconUrl?: string | null;
+  };
+
+  const searchOptions: PluginSearchOption[] = useMemo(
+    () =>
+      items.map((p) => ({
+        value: String(p.slug || p.pluginId),
+        label: p.name,
+        description: p.description,
+        iconUrl: p.iconUrl,
+      })),
+    [items],
+  );
+
+  const filtered = useMemo(() => {
+    let out = items;
+    if (normalizedCategory !== "all") {
+      out = out.filter((p) => String(p.category || "").trim().toLowerCase() === normalizedCategory);
+    }
+    if (selectedPluginRef) {
+      const ref = String(selectedPluginRef || "").trim().toLowerCase();
+      out = out.filter((p) => String(p.slug || p.pluginId).trim().toLowerCase() === ref);
+    }
+    return out;
+  }, [items, normalizedCategory, selectedPluginRef]);
+
+  const total = filtered.length;
+  const pageItems = useMemo(() => {
+    const start = (Math.max(1, page) - 1) * pageSize;
+    return filtered.slice(start, start + pageSize);
+  }, [filtered, page, pageSize]);
+
+  useEffect(() => {
+    // Reset page when filters change.
+    setPage(1);
+  }, [category, selectedPluginRef]);
+
+  const categoryTabs = useMemo(
+    () => [
+      { key: "all", label: t("plugin:PLUGIN_CATEGORY_ALL") },
+      { key: "content_creation", label: t("plugin:PLUGIN_CATEGORY_CONTENT_CREATION") },
+      { key: "media_management", label: t("plugin:PLUGIN_CATEGORY_MEDIA_MANAGEMENT") },
+      { key: "seo_marketing", label: t("plugin:PLUGIN_CATEGORY_SEO_MARKETING") },
+      { key: "system_security", label: t("plugin:PLUGIN_CATEGORY_SYSTEM_SECURITY") },
+      { key: "performance_optimization", label: t("plugin:PLUGIN_CATEGORY_PERFORMANCE_OPTIMIZATION") },
+      { key: "user_interaction", label: t("plugin:PLUGIN_CATEGORY_USER_INTERACTION") },
+      { key: "data_integration", label: t("plugin:PLUGIN_CATEGORY_DATA_INTEGRATION") },
+      { key: "data_analytics", label: t("plugin:PLUGIN_CATEGORY_DATA_ANALYTICS") },
+    ],
+    [t],
+  );
 
   if (!workspaceId) {
     return (
@@ -233,23 +226,78 @@ export function PluginsInstalledView() {
     );
   }
 
-  const items = listQuery.data?.items ?? [];
-
   return (
     <DefaultPage
       title={t("nav:NAV_PLUGINS_INSTALLED")}
       description={t("plugin:PLUGIN_CENTER_DESC")}
-    >
-      <div className="flex items-start justify-between gap-3 mb-4">
-        <div className="min-w-0">
-          <div className="text-sm text-muted-foreground">{t("plugin:PLUGIN_CENTER_HINT")}</div>
-        </div>
-        <Button disabled={!canManage} onClick={() => setInstallOpen(true)} className="shrink-0">
-          <Upload className="size-4" />
+      action={
+        <Button
+          type="primary"
+          icon={<Upload className="size-4" />}
+          disabled={!canManage}
+          onClick={() => setInstallOpen(true)}
+        >
           {t("plugin:PLUGIN_CENTER_INSTALL_ACTION")}
         </Button>
-      </div>
-
+      }
+      extra={
+        <div className="flex flex-col gap-3">
+          <ChromeTabs value={category} onValueChange={(v) => setCategory(String(v))}>
+            <ChromeTabsBar
+              left={
+                <ChromeTabsList>
+                  {categoryTabs.map((c) => (
+                    <ChromeTabsTrigger key={c.key} value={c.key}>
+                      {c.label}
+                    </ChromeTabsTrigger>
+                  ))}
+                </ChromeTabsList>
+              }
+              right={
+                <Select
+                  allowClear
+                  showSearch
+                  placeholder={t("plugin:PLUGIN_CENTER_SEARCH_PLACEHOLDER")}
+                  value={selectedPluginRef}
+                  style={{ width: 320 }}
+                  options={searchOptions}
+                  popupRender={(menu) => <div className="p-2">{menu}</div>}
+                  optionRender={(opt) => {
+                    const data = opt.data as unknown as PluginSearchOption;
+                    return (
+                      <div className="flex items-center gap-3 py-1">
+                        <PluginIcon
+                          name={data.label}
+                          iconUrl={data.iconUrl}
+                          size={32}
+                          fallbackIconClassName="size-4"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="text-sm font-medium truncate">{data.label}</div>
+                          {data.description ? (
+                            <div className="text-xs text-muted-foreground line-clamp-1">
+                              {data.description}
+                            </div>
+                          ) : null}
+                        </div>
+                      </div>
+                    );
+                  }}
+                  filterOption={(input, option) => {
+                    const q = String(input || "").trim().toLowerCase();
+                    if (!q) return true;
+                    const label = String(option?.label || "").toLowerCase();
+                    const desc = String((option as unknown as PluginSearchOption).description || "").toLowerCase();
+                    return label.includes(q) || desc.includes(q);
+                  }}
+                  onChange={(v) => setSelectedPluginRef(v ? String(v) : null)}
+                />
+              }
+            />
+          </ChromeTabs>
+        </div>
+      }
+    >
       {restartHint ? (
         <Card style={{ marginBottom: 16 }}>
           <Typography.Paragraph style={{ marginBottom: 0 }}>
@@ -258,182 +306,150 @@ export function PluginsInstalledView() {
         </Card>
       ) : null}
 
-      {items.length === 0 ? (
-        <Card>
-          <Typography.Paragraph style={{ marginBottom: 0 }}>
-            {t("plugin:PLUGIN_CENTER_EMPTY")}
-          </Typography.Paragraph>
-        </Card>
+      {filtered.length === 0 ? (
+        <PageState
+          loading={false}
+          empty
+          emptyTitle={t("common:EMPTY_TITLE")}
+          emptyDescription={t("plugin:PLUGIN_CENTER_EMPTY")}
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {items.map((p) => {
+          {pageItems.map((p) => {
             const status = normalizeStatus(p.status);
             const statusLabel = t(`plugin:PLUGIN_STATUS_${status.toUpperCase()}`, {
               defaultValue: p.status,
             });
 
+            const pluginRef = p.slug || p.pluginId;
+            const configureHref = `/w/${workspaceId}/plugins/${encodeURIComponent(pluginRef)}`;
+
+            const menuItems: MenuProps["items"] = [
+              {
+                key: "configure",
+                label: (
+                  <a href={configureHref} className="block">
+                    {t("plugin:PLUGIN_CENTER_CONFIGURE_ACTION")}
+                  </a>
+                ),
+                icon: <Settings2 className="size-4" />,
+              },
+              { type: "divider" },
+              {
+                key: "reset",
+                label: t("plugin:PLUGIN_CENTER_RESET_ACTION"),
+                icon: <RotateCcw className="size-4" />,
+                disabled: !canManage,
+                danger: true,
+                onClick: () => {
+                  Modal.confirm({
+                    title: t("plugin:PLUGIN_CENTER_RESET_CONFIRM_TITLE"),
+                    content: t("plugin:PLUGIN_CENTER_RESET_CONFIRM_DESC", { name: p.name }),
+                    okText: t("common:CONFIRM"),
+                    cancelText: t("common:CANCEL"),
+                    okButtonProps: { danger: true },
+                    onOk: async () => resetMutation.mutateAsync(p),
+                  });
+                },
+              },
+              {
+                key: "detach",
+                label: t("plugin:PLUGIN_CENTER_UNINSTALL_ACTION"),
+                icon: <Trash2 className="size-4" />,
+                disabled: !canManage,
+                danger: true,
+                onClick: () => {
+                  Modal.confirm({
+                    title: t("plugin:PLUGIN_CENTER_UNINSTALL_CONFIRM_TITLE"),
+                    content: t("plugin:PLUGIN_CENTER_UNINSTALL_CONFIRM_DESC", { name: p.name }),
+                    okText: t("common:CONFIRM"),
+                    cancelText: t("common:CANCEL"),
+                    okButtonProps: { danger: true },
+                    onOk: async () => uninstallMutation.mutateAsync(p),
+                  });
+                },
+              },
+            ];
+
             return (
-              <Card key={p.pluginId} className="h-full">
-                <div className="flex items-start gap-3">
-                  <div className="size-10 rounded-md bg-muted flex items-center justify-center shrink-0">
-                    <Package className="size-5 text-muted-foreground" />
-                  </div>
-
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <div className="font-semibold truncate">{p.name}</div>
-                      <Tag color={statusColor(status)} style={{ marginInlineEnd: 0 }}>
-                        {statusLabel}
-                      </Tag>
-                    </div>
-                    <div className="mt-1 text-xs text-muted-foreground">
-                      {t("plugin:PLUGIN_CENTER_VERSION", { version: p.version })}
-                    </div>
-                    {p.description ? (
-                      <div className="mt-2 text-sm text-muted-foreground line-clamp-2">
-                        {p.description}
-                      </div>
-                    ) : null}
-                  </div>
-
-                  <div className="flex flex-col items-end gap-2 shrink-0">
+              <Card
+                key={p.pluginId}
+                className="h-full"
+                loading={Boolean(listQuery.isFetching && !listQuery.isLoading)}
+                actions={[
+                  <div key="switch" className="flex items-center justify-center">
                     <Switch
                       checked={Boolean(p.enabled)}
                       disabled={!canManage || enableMutation.isPending}
+                      aria-label={t("plugin:PLUGIN_CENTER_TOGGLE_ARIA", { name: p.name })}
                       onChange={() => enableMutation.mutate(p)}
                     />
-
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <button
-                          type="button"
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
-                          aria-label={t("plugin:PLUGIN_CENTER_MORE")}
-                        >
-                          <MoreVertical className="size-4" />
-                        </button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          disabled={!canManage}
-                          onClick={() => {
-                            Modal.confirm({
-                              title: t("plugin:PLUGIN_CENTER_RESET_CONFIRM_TITLE"),
-                              content: t("plugin:PLUGIN_CENTER_RESET_CONFIRM_DESC", {
-                                name: p.name,
-                              }),
-                              okText: t("common:CONFIRM"),
-                              cancelText: t("common:CANCEL"),
-                              onOk: async () => resetMutation.mutateAsync(p),
-                            });
-                          }}
-                        >
-                          {t("plugin:PLUGIN_CENTER_RESET_ACTION")}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          disabled={!canManage}
-                          onClick={() => {
-                            Modal.confirm({
-                              title: t("plugin:PLUGIN_CENTER_UNINSTALL_CONFIRM_TITLE"),
-                              content: t("plugin:PLUGIN_CENTER_UNINSTALL_CONFIRM_DESC", {
-                                name: p.name,
-                              }),
-                              okText: t("common:CONFIRM"),
-                              cancelText: t("common:CANCEL"),
-                              onOk: async () => uninstallMutation.mutateAsync(p),
-                            });
-                          }}
-                        >
-                          {t("plugin:PLUGIN_CENTER_UNINSTALL_ACTION")}
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </div>
+                  </div>,
+                  <Dropdown key="more" trigger={["click"]} menu={{ items: menuItems }}>
+                    <Button
+                      type="text"
+                      icon={<MoreVertical className="size-4" />}
+                      aria-label={t("plugin:PLUGIN_CENTER_MORE")}
+                    />
+                  </Dropdown>,
+                ]}
+              >
+                <Card.Meta
+                  avatar={<PluginIcon name={p.name} iconUrl={p.iconUrl} size={40} />}
+                  title={
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="font-semibold truncate">{p.name}</div>
+                        <Tag style={{ marginInlineEnd: 0 }}>{p.version}</Tag>
+                      </div>
+                      <div className="mt-2 flex items-center gap-2">
+                        <Tag color={statusColor(status)} style={{ marginInlineEnd: 0 }}>
+                          {statusLabel}
+                        </Tag>
+                      </div>
+                    </div>
+                  }
+                  description={
+                    p.description ? (
+                      <div className="text-sm text-muted-foreground line-clamp-2">{p.description}</div>
+                    ) : (
+                      <div className="text-sm text-muted-foreground">{t("common:NA")}</div>
+                    )
+                  }
+                />
               </Card>
             );
           })}
         </div>
       )}
 
+      {total > 0 ? (
+        <div className="mt-6 flex justify-end">
+          <Pagination
+            current={page}
+            pageSize={pageSize}
+            total={total}
+            onChange={(p) => setPage(p)}
+            showSizeChanger={false}
+            showTotal={(total) => t("plugin:PLUGIN_CENTER_PAGINATION_TOTAL", { total })}
+          />
+        </div>
+      ) : null}
+
       <div className="mt-6">
         <AdminExtensionsSlot slot="admin.plugins.center.cards" title={t("nav:NAV_PLUGINS")} />
       </div>
 
-      <Dialog open={installOpen} onOpenChange={setInstallOpen}>
-        <DialogContent className="max-w-[560px]">
-          <DialogHeader>
-            <DialogTitle>{t("plugin:PLUGIN_CENTER_INSTALL_DIALOG_TITLE")}</DialogTitle>
-          </DialogHeader>
-
-          <div className="flex flex-col gap-3">
-            <div className="rounded-md border p-3">
-              <div className="text-sm font-medium">{t("plugin:PLUGIN_CENTER_FILE_LABEL")}</div>
-              <div className="mt-2 flex items-center gap-2">
-                <Controller
-                  control={installForm.control}
-                  name="file"
-                  render={({ field }) => {
-                    return (
-                      <input
-                        type="file"
-                        accept=".zip"
-                        onChange={(e) => {
-                          const f = e.target.files?.[0] ?? null;
-                          field.onChange(f);
-                        }}
-                      />
-                    );
-                  }}
-                />
-              </div>
-              <div className="mt-2 text-xs text-muted-foreground">
-                {installForm.watch("file")?.name ?? t("plugin:PLUGIN_CENTER_FILE_EMPTY")}
-              </div>
-              {installForm.formState.errors.file?.message ? (
-                <div className="mt-1 text-xs text-destructive">
-                  {String(installForm.formState.errors.file.message)}
-                </div>
-              ) : null}
-            </div>
-
-            <div className="flex items-center justify-between rounded-md border p-3">
-              <div className="text-sm">{t("plugin:PLUGIN_CENTER_ENABLE_AFTER_INSTALL")}</div>
-              <Controller
-                control={installForm.control}
-                name="enableInWorkspace"
-                render={({ field }) => {
-                  return (
-                    <Switch
-                      checked={field.value}
-                      onChange={(val) => field.onChange(Boolean(val))}
-                    />
-                  );
-                }}
-              />
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button
-              variant="ghost"
-              onClick={() => setInstallOpen(false)}
-              disabled={installMutation.isPending}
-            >
-              {t("common:CANCEL")}
-            </Button>
-            <Button
-              onClick={() =>
-                void installForm.handleSubmit((values) => installMutation.mutate(values))()
-              }
-              disabled={!installForm.watch("file") || installMutation.isPending}
-            >
-              <Upload className="size-4" />
-              {t("plugin:PLUGIN_CENTER_INSTALL_CONFIRM")}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <PluginInstallDialog
+        workspaceId={workspaceId}
+        open={installOpen}
+        onOpenChange={setInstallOpen}
+        disabled={!canManage}
+        onInstalled={({ requiresRestart }) => {
+          setRestartHint(Boolean(requiresRestart));
+          void queryClient.invalidateQueries({ queryKey: ["workspace", "pluginsCenter", workspaceId] });
+        }}
+      />
     </DefaultPage>
   );
 }
