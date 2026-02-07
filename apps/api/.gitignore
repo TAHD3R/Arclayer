@@ -4,3 +4,4 @@ logs/
 .coverage
 data/
 static/
+migrations/models

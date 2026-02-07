@@ -3,7 +3,7 @@ name = "Celestial"
 version = "2026.01.18-dev"
 description = "Celestial is a light-weight, modular plugin-based ASGI python framework based on FastAPI."
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.12"
 authors = [{ name = "Jassar Ayiken", email = "aspj6771@gmail.com" }]
 dependencies = [
   "aerich[toml]>=0.9.2",

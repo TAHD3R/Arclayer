@@ -268,7 +268,7 @@ class LoggingSettings(BaseSettings):
 
     level: str = Field(default="INFO", validation_alias=AliasChoices("LOG_LEVEL", "APP_LOG_LEVEL"))
     json_logs: bool | None = Field(
-        default=None,
+        default=False,
         validation_alias=AliasChoices("LOG_JSON", "APP_LOG_JSON"),
     )
     log_dir: Path = Field(
@@ -394,7 +394,7 @@ class ValkeySettings(BaseSettings):
     )
     prefix: str = Field(default="", validation_alias=AliasChoices("VALKEY_PREFIX", "CACHE_PREFIX"))
     default_ttl: int | None = Field(
-        default=None, validation_alias=AliasChoices("VALKEY_DEFAULT_TTL", "CACHE_DEFAULT_TTL")
+        default=180, validation_alias=AliasChoices("VALKEY_DEFAULT_TTL", "CACHE_DEFAULT_TTL")
     )
     limiter_enabled: bool = Field(default=False)
     limiter_prefix: str = Field(default="fastapi-limiter")
