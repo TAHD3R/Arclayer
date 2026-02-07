@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 from datetime import datetime
-from uuid import UUID
 
 from pydantic import Field
 
 from apps.api.common.schemas import BaseSchema
+from apps.api.common.types.public_uuid import PublicUUID
 
 
 class UploadInitRequest(BaseSchema):
@@ -16,21 +16,21 @@ class UploadInitRequest(BaseSchema):
     expected_sha256: str | None = Field(default=None, min_length=64, max_length=64, description="Expected SHA-256.")
     visibility: str | None = Field(default=None, description="Requested visibility: public/private/shared.")
     indexable: bool | None = Field(default=None, description="Whether the asset is indexable by search engines.")
-    folder_id: UUID | None = Field(default=None, description="Target folder id (optional).")
+    folder_id: PublicUUID | None = Field(default=None, description="Target folder id (optional).")
 
 
 class UploadInitOut(BaseSchema):
-    upload_id: UUID = Field(..., description="Upload session id.")
+    upload_id: PublicUUID = Field(..., description="Upload session id.")
     chunk_size: int = Field(..., ge=1, description="Chunk size in bytes.")
     total_parts: int = Field(..., ge=1, description="Total part count.")
     expires_at: datetime = Field(..., description="Session expiration time.")
     method: str | None = Field(default=None, description="Upload method: local | s3_multipart.")
-    reserved_asset_id: UUID | None = Field(default=None, description="Reserved asset id (for S3 direct upload).")
+    reserved_asset_id: PublicUUID | None = Field(default=None, description="Reserved asset id (for S3 direct upload).")
     object_key: str | None = Field(default=None, description="Target object key (for S3 direct upload).")
 
 
 class UploadStatusOut(BaseSchema):
-    upload_id: UUID = Field(..., description="Upload session id.")
+    upload_id: PublicUUID = Field(..., description="Upload session id.")
     status: str = Field(..., description="Current session status.")
     missing_parts: list[int] = Field(default_factory=list, description="Missing part numbers (1-based).")
     uploaded_parts: int = Field(..., ge=0, description="Count of uploaded parts.")
@@ -38,11 +38,11 @@ class UploadStatusOut(BaseSchema):
 
 
 class UploadCompleteOut(BaseSchema):
-    asset_id: UUID = Field(..., description="Created asset id.")
+    asset_id: PublicUUID = Field(..., description="Created asset id.")
 
 
 class UploadAbortOut(BaseSchema):
-    upload_id: UUID = Field(..., description="Upload session id.")
+    upload_id: PublicUUID = Field(..., description="Upload session id.")
     status: str = Field(..., description="Final session status.")
 
 

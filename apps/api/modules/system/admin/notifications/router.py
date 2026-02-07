@@ -4,6 +4,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query
 
+from apps.api.common.types.public_uuid import PublicUUID
 from apps.api.config import Settings, get_settings
 from apps.api.core.http.pagination import PageData, PageParams, get_page_params
 from apps.api.core.http.response import Response, ResponseModel
@@ -72,7 +73,7 @@ async def get_unread_preview(
     summary="Mark a notification as read",
 )
 async def mark_read(
-    notification_id: UUID,
+    notification_id: PublicUUID,
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     user_id: UUID = Depends(get_current_user_id),
     service: NotificationService = Depends(get_notification_service),
@@ -116,7 +117,7 @@ async def seed_demo_notifications(
     summary="Delete a notification",
 )
 async def delete_notification(
-    notification_id: UUID,
+    notification_id: PublicUUID,
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     user_id: UUID = Depends(get_current_user_id),
     service: NotificationService = Depends(get_notification_service),

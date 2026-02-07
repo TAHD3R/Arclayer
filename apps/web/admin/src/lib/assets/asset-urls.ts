@@ -74,17 +74,23 @@ function isUuidLike(value: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 }
 
+function isPublicIdLike(value: string): boolean {
+  // Public ids are base64url of 16 bytes => 22 chars without padding.
+  return /^[A-Za-z0-9_-]{22}$/.test(value);
+}
+
 /**
  * Resolve an "asset reference" to a public URL.
  *
  * Supported inputs:
  * - absolute URL: https://...
  * - relative path: /assets/<id>...
- * - bare asset id (uuid): <id>
+ * - bare asset id (public id or uuid): <id>
  */
 export function resolveAssetRefToPublicUrlPath(ref: string | null | undefined): string | undefined {
   const raw = (ref || "").trim();
   if (!raw) return undefined;
   if (isUuidLike(raw)) return resolvePublicAssetUrlPath(`/assets/${raw}`);
+  if (isPublicIdLike(raw)) return resolvePublicAssetUrlPath(`/assets/${raw}`);
   return resolvePublicAssetUrlPath(raw);
 }

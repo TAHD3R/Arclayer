@@ -18,6 +18,7 @@ def test_create_app_docs_enabled_in_test_env(monkeypatch) -> None:
 
 def test_create_app_docs_disabled_in_production(monkeypatch) -> None:
     monkeypatch.setenv("APP_ENV", "production")
+    monkeypatch.setenv("PUBLIC_ID__SECRET", "test-public-id-secret")
 
     app = create_app()
 

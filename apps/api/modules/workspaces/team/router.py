@@ -4,6 +4,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Query
 
+from apps.api.common.types.public_uuid import PublicUUID
 from apps.api.config import Settings, get_settings
 from apps.api.core.exceptions import BadRequest
 from apps.api.core.http.pagination import PageData, PageParams, get_page_params
@@ -76,7 +77,7 @@ async def list_members(
     dependencies=[require_workspace_permission("team:members:roles:manage")],
 )
 async def set_member_roles(
-    membership_id: UUID,
+    membership_id: PublicUUID,
     payload: WorkspaceTeamMemberRoleSetRequest,
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     user_id: UUID = Depends(get_current_user_id),
@@ -99,7 +100,7 @@ async def set_member_roles(
     dependencies=[require_workspace_permission("team:members:manage")],
 )
 async def update_member_user(
-    membership_id: UUID,
+    membership_id: PublicUUID,
     payload: WorkspaceTeamUserUpdateRequest,
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     settings: Settings = Depends(get_settings),
@@ -116,7 +117,7 @@ async def update_member_user(
     dependencies=[require_workspace_permission("team:members:manage")],
 )
 async def enable_member(
-    membership_id: UUID,
+    membership_id: PublicUUID,
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     user_id: UUID = Depends(get_current_user_id),
     settings: Settings = Depends(get_settings),
@@ -138,7 +139,7 @@ async def enable_member(
     dependencies=[require_workspace_permission("team:members:manage")],
 )
 async def disable_member(
-    membership_id: UUID,
+    membership_id: PublicUUID,
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     user_id: UUID = Depends(get_current_user_id),
     settings: Settings = Depends(get_settings),
@@ -160,7 +161,7 @@ async def disable_member(
     dependencies=[require_workspace_permission("team:members:reset-password")],
 )
 async def reset_member_password(
-    membership_id: UUID,
+    membership_id: PublicUUID,
     payload: WorkspaceTeamResetPasswordRequest,
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     settings: Settings = Depends(get_settings),
@@ -256,7 +257,7 @@ async def list_email_invites(
     dependencies=[require_workspace_permission("team:invitations:manage")],
 )
 async def renew_email_invite(
-    invite_id: UUID,
+    invite_id: PublicUUID,
     payload: WorkspaceEmailInviteRenewRequest,
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     user_id: UUID = Depends(get_current_user_id),
@@ -280,7 +281,7 @@ async def renew_email_invite(
     dependencies=[require_workspace_permission("team:invitations:manage")],
 )
 async def revoke_email_invite(
-    invite_id: UUID,
+    invite_id: PublicUUID,
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     user_id: UUID = Depends(get_current_user_id),
     settings: Settings = Depends(get_settings),
@@ -350,7 +351,7 @@ async def list_invite_links(
     dependencies=[require_workspace_permission("team:invite-links:manage")],
 )
 async def list_invite_link_participants(
-    link_id: UUID,
+    link_id: PublicUUID,
     q: str | None = Query(default=None, description="Search query (username/email/display_name)."),
     params=Depends(get_page_params),
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
@@ -374,7 +375,7 @@ async def list_invite_link_participants(
     dependencies=[require_workspace_permission("team:invite-links:manage")],
 )
 async def renew_invite_link(
-    link_id: UUID,
+    link_id: PublicUUID,
     payload: WorkspaceInviteLinkRenewRequest,
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     user_id: UUID = Depends(get_current_user_id),
@@ -398,7 +399,7 @@ async def renew_invite_link(
     dependencies=[require_workspace_permission("team:invite-links:manage")],
 )
 async def disable_invite_link(
-    link_id: UUID,
+    link_id: PublicUUID,
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     user_id: UUID = Depends(get_current_user_id),
     settings: Settings = Depends(get_settings),

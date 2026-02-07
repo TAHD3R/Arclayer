@@ -6,6 +6,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends
 
 from apps.api.common.protocols.tortoise import HasOrganizationId
+from apps.api.common.types.public_uuid import PublicUUID
 from apps.api.config import Settings, get_settings
 from apps.api.core.http.pagination import PageData, PageParams, get_page_params
 from apps.api.core.http.response import Response, ResponseModel
@@ -46,7 +47,7 @@ async def list_activity(
     summary="Get activity event detail (org-scoped)",
 )
 async def get_activity_detail(
-    event_id: UUID,
+    event_id: PublicUUID,
     settings: Settings = Depends(get_settings),
     orgm=Depends(require_org_admin),
     _user=Depends(get_current_user),

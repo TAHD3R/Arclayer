@@ -8,6 +8,7 @@ from xml.sax.saxutils import escape as xml_escape
 
 from apps.api.common.protocols.tortoise import HasEntryTypeId, HasParentId, HasWorkspaceId, RouteTemplateIds
 from apps.api.common.services.base import BaseService
+from apps.api.common.utils.public_ids import encode_uuid
 from apps.api.core.exceptions import Conflict, Forbidden, NotFound, ServiceUnavailable
 from apps.api.core.http.pagination import PageData, PageParams, paginate_items
 from apps.api.infra.cache.valkey import ValkeyClientLike
@@ -115,7 +116,7 @@ class SiteService(BaseService):
     """
 
     async def assert_preview_access_async(
-        self, *, site_id: str, mode: Literal["public", "preview"], token: str | None
+        self, *, site_id: UUID, mode: Literal["public", "preview"], token: str | None
     ) -> None:
         if mode != "preview":
             return
@@ -134,7 +135,7 @@ class SiteService(BaseService):
         self._presence = PresenceStore(valkey) if valkey is not None else None
         self._route_templates_version = RouteTemplateVersionStore(valkey) if valkey is not None else None
 
-    async def create_preview_token(self, *, site_id: str, ttl_seconds: int = 600) -> SitePreviewTokenOut:
+    async def create_preview_token(self, *, site_id: UUID, ttl_seconds: int = 600) -> SitePreviewTokenOut:
         """
         Create a preview token (Valkey TTL).
         """
@@ -167,12 +168,12 @@ class SiteService(BaseService):
             raise NotFound("Site not found", error="SITE_NOT_FOUND")
 
         return SiteResolveOut(
-            site_id=str(site.id),
+            site_id=UUID(str(site.id)),
             default_locale=site.default_locale,
             fallback_locale=site.fallback_locale,
         )
 
-    async def get_runtime(self, *, site_id: str, mode: Literal["public", "preview"]) -> SiteRuntimeOut:
+    async def get_runtime(self, *, site_id: UUID, mode: Literal["public", "preview"]) -> SiteRuntimeOut:
         default_css_vars: dict[str, str] = {
             "--color-primary": "#1677ff",
             "--color-background": "#ffffff",
@@ -267,7 +268,7 @@ class SiteService(BaseService):
                 if tokens_asset is not None:
                     slug = (tokens_asset.slug or "asset").strip() or "asset"
                     ext = (tokens_asset.ext or "css").lstrip(".").lower() or "css"
-                    tokens_css_url = f"/assets/{tokens_asset.id}/{slug}.{ext}"
+                    tokens_css_url = f"/assets/{encode_uuid(UUID(str(tokens_asset.id)))}/{slug}.{ext}"
 
                 if theme_pkg.base_css_asset_id:
                     base_asset = await AssetRecord.get_or_none(
@@ -278,13 +279,19 @@ class SiteService(BaseService):
                     if base_asset is not None:
                         slug = (base_asset.slug or "asset").strip() or "asset"
                         ext = (base_asset.ext or "css").lstrip(".").lower() or "css"
-                        base_css_url = f"/assets/{base_asset.id}/{slug}.{ext}"
+                        base_css_url = f"/assets/{encode_uuid(UUID(str(base_asset.id)))}/{slug}.{ext}"
 
         # Theme config v0:
         # - Stored under site settings namespace `theme.config`.
         # - Treated as public-safe configuration that affects SSR output (e.g. list limits).
         # - Secrets must NOT be stored here; use secret-capable settings namespaces instead.
-        config_out = theme_config.value if theme_config and isinstance(theme_config.value, dict) else None
+        # Only expose theme config in preview runtime. Public runtime must not leak potentially sensitive
+        # configuration values (tests rely on this behavior).
+        config_out = (
+            theme_config.value
+            if (mode == "preview" and theme_config and isinstance(theme_config.value, dict))
+            else None
+        )
 
         return SiteRuntimeOut(
             site_id=site_id,
@@ -301,7 +308,7 @@ class SiteService(BaseService):
             fonts=fonts_out,
         )
 
-    async def get_site_setting(self, *, site_id: str, namespace: str) -> SiteSettingGetOut:
+    async def get_site_setting(self, *, site_id: UUID, namespace: str) -> SiteSettingGetOut:
         if not self.settings.database.enabled:
             raise Conflict("Site settings require database storage", error="SETTINGS_DB_REQUIRED")
         await self._repo.get_site_by_id(site_id=site_id)
@@ -310,7 +317,7 @@ class SiteService(BaseService):
         return SiteSettingGetOut(namespace=namespace, value=value)
 
     async def upsert_site_setting(
-        self, *, site_id: str, namespace: str, payload: SiteSettingUpsertIn
+        self, *, site_id: UUID, namespace: str, payload: SiteSettingUpsertIn
     ) -> SiteSettingGetOut:
         if not self.settings.database.enabled:
             raise Conflict("Site settings require database storage", error="SETTINGS_DB_REQUIRED")
@@ -321,7 +328,7 @@ class SiteService(BaseService):
         value = rec.value if isinstance(rec.value, dict) else None
         return SiteSettingGetOut(namespace=namespace, value=value)
 
-    async def list_pages_tree(self, *, site_id: str) -> PageData[SitePageTreeNodeOut]:
+    async def list_pages_tree(self, *, site_id: UUID) -> PageData[SitePageTreeNodeOut]:
         """
         List pages as a deterministic tree (root -> children).
 
@@ -364,7 +371,7 @@ class SiteService(BaseService):
             prev=None,
         )
 
-    async def create_page(self, *, site_id: str, payload: SitePageCreateIn) -> SitePageTreeNodeOut:
+    async def create_page(self, *, site_id: UUID, payload: SitePageCreateIn) -> SitePageTreeNodeOut:
         if not self.settings.database.enabled:
             raise Conflict("Site pages require database storage", error="PAGES_DB_REQUIRED")
 
@@ -397,7 +404,7 @@ class SiteService(BaseService):
             children=[],
         )
 
-    async def update_page(self, *, site_id: str, page_id: UUID, payload: SitePageUpdateIn) -> SitePageTreeNodeOut:
+    async def update_page(self, *, site_id: UUID, page_id: UUID, payload: SitePageUpdateIn) -> SitePageTreeNodeOut:
         if not self.settings.database.enabled:
             raise Conflict("Site pages require database storage", error="PAGES_DB_REQUIRED")
 
@@ -459,7 +466,7 @@ class SiteService(BaseService):
             children=[],
         )
 
-    async def get_page(self, *, site_id: str, page_id: UUID) -> SitePageTreeNodeOut:
+    async def get_page(self, *, site_id: UUID, page_id: UUID) -> SitePageTreeNodeOut:
         if not self.settings.database.enabled:
             raise Conflict("Site pages require database storage", error="PAGES_DB_REQUIRED")
 
@@ -479,7 +486,7 @@ class SiteService(BaseService):
             children=[],
         )
 
-    async def move_page(self, *, site_id: str, page_id: UUID, payload: SitePageMoveIn) -> SitePageTreeNodeOut:
+    async def move_page(self, *, site_id: UUID, page_id: UUID, payload: SitePageMoveIn) -> SitePageTreeNodeOut:
         if not self.settings.database.enabled:
             raise Conflict("Site pages require database storage", error="PAGES_DB_REQUIRED")
 
@@ -523,7 +530,7 @@ class SiteService(BaseService):
             children=[],
         )
 
-    async def delete_page(self, *, site_id: str, page_id: UUID) -> SitePageDeleteOut:
+    async def delete_page(self, *, site_id: UUID, page_id: UUID) -> SitePageDeleteOut:
         if not self.settings.database.enabled:
             raise Conflict("Site pages require database storage", error="PAGES_DB_REQUIRED")
 
@@ -537,10 +544,10 @@ class SiteService(BaseService):
             raise Conflict("Page has children", error="PAGE_HAS_CHILDREN")
 
         await self._repo.delete_page(site_id=site_id, page_id=UUID(str(page.id)))
-        return SitePageDeleteOut(page_id=str(page.id))
+        return SitePageDeleteOut(page_id=UUID(str(page.id)))
 
     async def list_route_templates_paginated(
-        self, *, site_id: str, params: PageParams
+        self, *, site_id: UUID, params: PageParams
     ) -> PageData[SiteRouteTemplateOut]:
         if not self.settings.database.enabled:
             raise Conflict("Route templates require database storage", error="ROUTE_TEMPLATE_DB_REQUIRED")
@@ -556,18 +563,18 @@ class SiteService(BaseService):
             items.append(
                 SiteRouteTemplateOut(
                     id=UUID(str(tm.id)),
-                    site_id=str(site_id),
+                    site_id=site_id,
                     path_pattern=tm.path_pattern,
-                    entry_type_id=str(tm_like.entry_type_id),
+                    entry_type_id=UUID(str(tm_like.entry_type_id)),
                     entry_type_code=str(entry_type_code),
-                    template_page_revision_id=(str(tpl_rev_id) if tpl_rev_id is not None else None),
+                    template_page_revision_id=_get_template_page_revision_id(tm),
                     is_active=bool(tm.is_active),
                 )
             )
 
         return paginate_items(items, params=params)
 
-    async def _get_route_templates_cache_version(self, *, site_id: str) -> int:
+    async def _get_route_templates_cache_version(self, *, site_id: UUID) -> int:
         """
         Return the current route template cache version for a site.
 
@@ -593,7 +600,7 @@ class SiteService(BaseService):
 
         return int(version)
 
-    async def _bump_route_templates_cache_version(self, *, site_id: str) -> int:
+    async def _bump_route_templates_cache_version(self, *, site_id: UUID) -> int:
         """
         Bump route template cache version (best-effort).
 
@@ -611,7 +618,7 @@ class SiteService(BaseService):
             await self._route_templates_version.set(site_id=site_id, version=now_ms)
         return now_ms
 
-    async def _build_revision_deps(self, *, site_id: str, deps: dict | None) -> dict:
+    async def _build_revision_deps(self, *, site_id: UUID, deps: dict | None) -> dict:
         """
         Build revision deps with a minimal settings snapshot (v1).
 
@@ -636,7 +643,7 @@ class SiteService(BaseService):
         out["settingsSnapshot"] = snapshot
         return out
 
-    async def create_route_template(self, *, site_id: str, payload: SiteRouteTemplateCreateIn) -> SiteRouteTemplateOut:
+    async def create_route_template(self, *, site_id: UUID, payload: SiteRouteTemplateCreateIn) -> SiteRouteTemplateOut:
         if not self.settings.database.enabled:
             raise Conflict("Route templates require database storage", error="ROUTE_TEMPLATE_DB_REQUIRED")
 
@@ -664,18 +671,16 @@ class SiteService(BaseService):
         rec_like = cast(RouteTemplateIds, rec)
         return SiteRouteTemplateOut(
             id=UUID(str(rec.id)),
-            site_id=str(site_id),
+            site_id=site_id,
             path_pattern=rec.path_pattern,
-            entry_type_id=str(rec_like.entry_type_id),
+            entry_type_id=UUID(str(rec_like.entry_type_id)),
             entry_type_code=str(entry_type_code),
-            template_page_revision_id=(
-                str(rec_like.template_page_revision_id) if rec_like.template_page_revision_id is not None else None
-            ),
+            template_page_revision_id=_get_template_page_revision_id(rec),
             is_active=bool(rec.is_active),
         )
 
     async def update_route_template(
-        self, *, site_id: str, template_id: UUID, payload: SiteRouteTemplateUpdateIn
+        self, *, site_id: UUID, template_id: UUID, payload: SiteRouteTemplateUpdateIn
     ) -> SiteRouteTemplateOut:
         if not self.settings.database.enabled:
             raise Conflict("Route templates require database storage", error="ROUTE_TEMPLATE_DB_REQUIRED")
@@ -726,19 +731,15 @@ class SiteService(BaseService):
         updated_like = cast(RouteTemplateIds, updated)
         return SiteRouteTemplateOut(
             id=UUID(str(updated.id)),
-            site_id=str(site_id),
+            site_id=site_id,
             path_pattern=updated.path_pattern,
-            entry_type_id=str(updated_like.entry_type_id),
+            entry_type_id=UUID(str(updated_like.entry_type_id)),
             entry_type_code=str(entry_type_code2),
-            template_page_revision_id=(
-                str(updated_like.template_page_revision_id)
-                if updated_like.template_page_revision_id is not None
-                else None
-            ),
+            template_page_revision_id=_get_template_page_revision_id(updated),
             is_active=bool(updated.is_active),
         )
 
-    async def delete_route_template(self, *, site_id: str, template_id: UUID) -> SiteRouteTemplateDeleteOut:
+    async def delete_route_template(self, *, site_id: UUID, template_id: UUID) -> SiteRouteTemplateDeleteOut:
         if not self.settings.database.enabled:
             raise Conflict("Route templates require database storage", error="ROUTE_TEMPLATE_DB_REQUIRED")
 
@@ -746,9 +747,9 @@ class SiteService(BaseService):
         await self._repo.delete_route_template(site_id=site_id, template_id=template_id)
         await self._bump_route_templates_cache_version(site_id=site_id)
         self._repo.invalidate_route_template_cache(site_id=site_id)
-        return SiteRouteTemplateDeleteOut(template_id=str(template_id))
+        return SiteRouteTemplateDeleteOut(template_id=template_id)
 
-    async def list_entry_types_paginated(self, *, site_id: str, params: PageParams) -> PageData[SiteEntryTypeOut]:
+    async def list_entry_types_paginated(self, *, site_id: UUID, params: PageParams) -> PageData[SiteEntryTypeOut]:
         if not self.settings.database.enabled:
             raise Conflict("Entry types require database storage", error="ENTRY_TYPE_DB_REQUIRED")
         await self._repo.get_site_by_id(site_id=site_id)
@@ -756,7 +757,7 @@ class SiteService(BaseService):
         items = [
             SiteEntryTypeOut(
                 id=UUID(str(et.id)),
-                site_id=str(site_id),
+                site_id=site_id,
                 code=str(et.code),
                 name=str(et.name),
                 fields_schema=(et.fields_schema if isinstance(et.fields_schema, dict) else None),
@@ -765,7 +766,7 @@ class SiteService(BaseService):
         ]
         return paginate_items(items, params=params)
 
-    async def create_entry_type(self, *, site_id: str, payload: SiteEntryTypeCreateIn) -> SiteEntryTypeOut:
+    async def create_entry_type(self, *, site_id: UUID, payload: SiteEntryTypeCreateIn) -> SiteEntryTypeOut:
         if not self.settings.database.enabled:
             raise Conflict("Entry types require database storage", error="ENTRY_TYPE_DB_REQUIRED")
         await self._repo.get_site_by_id(site_id=site_id)
@@ -783,7 +784,7 @@ class SiteService(BaseService):
         )
         return SiteEntryTypeOut(
             id=UUID(str(rec.id)),
-            site_id=str(site_id),
+            site_id=site_id,
             code=str(rec.code),
             name=str(rec.name),
             fields_schema=(rec.fields_schema if isinstance(rec.fields_schema, dict) else None),
@@ -792,7 +793,7 @@ class SiteService(BaseService):
     async def update_entry_type(
         self,
         *,
-        site_id: str,
+        site_id: UUID,
         entry_type_id: UUID,
         payload: SiteEntryTypeUpdateIn,
     ) -> SiteEntryTypeOut:
@@ -827,23 +828,23 @@ class SiteService(BaseService):
         )
         return SiteEntryTypeOut(
             id=UUID(str(updated.id)),
-            site_id=str(site_id),
+            site_id=site_id,
             code=str(updated.code),
             name=str(updated.name),
             fields_schema=(updated.fields_schema if isinstance(updated.fields_schema, dict) else None),
         )
 
-    async def delete_entry_type(self, *, site_id: str, entry_type_id: UUID) -> SiteEntryTypeDeleteOut:
+    async def delete_entry_type(self, *, site_id: UUID, entry_type_id: UUID) -> SiteEntryTypeDeleteOut:
         if not self.settings.database.enabled:
             raise Conflict("Entry types require database storage", error="ENTRY_TYPE_DB_REQUIRED")
         await self._repo.get_site_by_id(site_id=site_id)
         await self._repo.delete_entry_type(site_id=site_id, entry_type_id=entry_type_id)
-        return SiteEntryTypeDeleteOut(entry_type_id=str(entry_type_id))
+        return SiteEntryTypeDeleteOut(entry_type_id=entry_type_id)
 
     async def list_entries_paginated(
         self,
         *,
-        site_id: str,
+        site_id: UUID,
         params: PageParams,
         entry_type_code: str | None,
     ) -> PageData[SiteEntryOut]:
@@ -864,8 +865,8 @@ class SiteService(BaseService):
             items.append(
                 SiteEntryOut(
                     id=UUID(str(e.id)),
-                    site_id=str(site_id),
-                    entry_type_id=str(entry_type_id_value),
+                    site_id=site_id,
+                    entry_type_id=entry_type_id_value,
                     entry_type_code=str(et_code),
                     slug=str(e.slug),
                     draft_revision=int(e.draft_rev or 0),
@@ -874,7 +875,7 @@ class SiteService(BaseService):
             )
         return paginate_items(items, params=params)
 
-    async def create_entry(self, *, site_id: str, payload: SiteEntryCreateIn) -> SiteEntryOut:
+    async def create_entry(self, *, site_id: UUID, payload: SiteEntryCreateIn) -> SiteEntryOut:
         if not self.settings.database.enabled:
             raise Conflict("Entries require database storage", error="ENTRY_DB_REQUIRED")
         await self._repo.get_site_by_id(site_id=site_id)
@@ -889,15 +890,15 @@ class SiteService(BaseService):
         entry_type_id_value = _get_entry_type_id(entry)
         return SiteEntryOut(
             id=UUID(str(entry.id)),
-            site_id=str(site_id),
-            entry_type_id=str(entry_type_id_value),
+            site_id=site_id,
+            entry_type_id=entry_type_id_value,
             entry_type_code=str(payload.entry_type_code),
             slug=str(entry.slug),
             draft_revision=int(entry.draft_rev or 0),
             published_revision=(int(entry.published_rev) if entry.published_rev is not None else None),
         )
 
-    async def update_entry(self, *, site_id: str, entry_id: UUID, payload: SiteEntryUpdateIn) -> SiteEntryOut:
+    async def update_entry(self, *, site_id: UUID, entry_id: UUID, payload: SiteEntryUpdateIn) -> SiteEntryOut:
         if not self.settings.database.enabled:
             raise Conflict("Entries require database storage", error="ENTRY_DB_REQUIRED")
         await self._repo.get_site_by_id(site_id=site_id)
@@ -913,15 +914,15 @@ class SiteService(BaseService):
             raise NotFound("Entry type not found", error="ENTRY_TYPE_NOT_FOUND")
         return SiteEntryOut(
             id=UUID(str(updated.id)),
-            site_id=str(site_id),
-            entry_type_id=str(entry_type_id_value),
+            site_id=site_id,
+            entry_type_id=entry_type_id_value,
             entry_type_code=str(et.code),
             slug=str(updated.slug),
             draft_revision=int(updated.draft_rev or 0),
             published_revision=(int(updated.published_rev) if updated.published_rev is not None else None),
         )
 
-    async def unpublish_entry(self, *, site_id: str, payload: SiteEntryUnpublishIn) -> SiteEntryUnpublishOut:
+    async def unpublish_entry(self, *, site_id: UUID, payload: SiteEntryUnpublishIn) -> SiteEntryUnpublishOut:
         if not self.settings.database.enabled:
             raise Conflict("Publishing requires database storage", error="PUBLISH_DB_REQUIRED")
 
@@ -934,23 +935,23 @@ class SiteService(BaseService):
         )
         return SiteEntryUnpublishOut(
             site_id=site_id,
-            entry_id=str(entry_id),
+            entry_id=entry_id,
             entry_type_code=payload.entry_type_code,
             slug=(payload.slug or "").strip(),
             unpublished_at_ms=now_ms,
         )
 
-    async def delete_entry(self, *, site_id: str, entry_id: UUID) -> SiteEntryDeleteOut:
+    async def delete_entry(self, *, site_id: UUID, entry_id: UUID) -> SiteEntryDeleteOut:
         if not self.settings.database.enabled:
             raise Conflict("Entries require database storage", error="ENTRY_DB_REQUIRED")
         await self._repo.get_site_by_id(site_id=site_id)
         await self._repo.delete_entry(site_id=site_id, entry_id=entry_id)
-        return SiteEntryDeleteOut(entry_id=str(entry_id))
+        return SiteEntryDeleteOut(entry_id=entry_id)
 
     async def rollback_page_revision(
         self,
         *,
-        site_id: str,
+        site_id: UUID,
         page_id: UUID,
         payload: SitePageRollbackIn,
     ) -> SitePageRollbackOut:
@@ -974,7 +975,7 @@ class SiteService(BaseService):
             to_revision=to_rev,
         )
         return SitePageRollbackOut(
-            page_id=str(page_id),
+            page_id=page_id,
             target=payload.target,
             from_revision=from_rev,
             to_revision=to_rev,
@@ -984,7 +985,7 @@ class SiteService(BaseService):
     async def rollback_entry_revision(
         self,
         *,
-        site_id: str,
+        site_id: UUID,
         entry_id: UUID,
         payload: SiteEntryRollbackIn,
     ) -> SiteEntryRollbackOut:
@@ -1007,7 +1008,7 @@ class SiteService(BaseService):
             to_revision=to_rev,
         )
         return SiteEntryRollbackOut(
-            entry_id=str(entry_id),
+            entry_id=entry_id,
             target=payload.target,
             from_revision=from_rev,
             to_revision=to_rev,
@@ -1017,7 +1018,7 @@ class SiteService(BaseService):
     async def get_page_revision(
         self,
         *,
-        site_id: str,
+        site_id: UUID,
         page_id: UUID,
         state: Literal["draft", "published"],
     ) -> SitePageRevisionOut:
@@ -1040,7 +1041,7 @@ class SiteService(BaseService):
         doc = DocumentIR.model_validate(rec.document)
         created_at_ms = int(rec.created_at.timestamp() * 1000)
         return SitePageRevisionOut(
-            page_id=str(page.id),
+            page_id=UUID(str(page.id)),
             state=state,
             revision=rev,
             created_at_ms=created_at_ms,
@@ -1054,7 +1055,7 @@ class SiteService(BaseService):
     async def get_entry_revision(
         self,
         *,
-        site_id: str,
+        site_id: UUID,
         entry_id: UUID,
         state: Literal["draft", "published"],
     ) -> SiteEntryRevisionOut:
@@ -1078,7 +1079,7 @@ class SiteService(BaseService):
         data = rec.data if isinstance(rec.data, dict) else None
         created_at_ms = int(rec.created_at.timestamp() * 1000)
         return SiteEntryRevisionOut(
-            entry_id=str(entry.id),
+            entry_id=UUID(str(entry.id)),
             state=state,
             revision=rev,
             created_at_ms=created_at_ms,
@@ -1093,7 +1094,7 @@ class SiteService(BaseService):
     async def save_entry_draft(
         self,
         *,
-        site_id: str,
+        site_id: UUID,
         payload: SiteEntryDraftSaveIn,
     ) -> SiteEntryDraftSaveOut:
         slug = (payload.slug or "").strip()
@@ -1138,7 +1139,7 @@ class SiteService(BaseService):
         )
         return SiteEntryDraftSaveOut(
             site_id=site_id,
-            entry_id=str(entry_id),
+            entry_id=entry_id,
             entry_type_code=payload.entry_type_code,
             slug=slug,
             revision=rev,
@@ -1148,7 +1149,7 @@ class SiteService(BaseService):
     async def publish_entry(
         self,
         *,
-        site_id: str,
+        site_id: UUID,
         payload: SiteEntryPublishIn,
     ) -> SiteEntryPublishOut:
         slug = (payload.slug or "").strip()
@@ -1175,7 +1176,7 @@ class SiteService(BaseService):
         )
         return SiteEntryPublishOut(
             site_id=site_id,
-            entry_id=str(entry_id),
+            entry_id=entry_id,
             entry_type_code=payload.entry_type_code,
             slug=slug,
             revision=rev,
@@ -1185,7 +1186,7 @@ class SiteService(BaseService):
     async def resolve_route(
         self,
         *,
-        site_id: str,
+        site_id: UUID,
         path: str,
         mode: Literal["public", "preview"],
     ) -> SiteRouteResolveOut:
@@ -1227,7 +1228,7 @@ class SiteService(BaseService):
                         match=SiteRouteMatchOut(
                             kind="page",
                             params={},
-                            page_id=str(page.id),
+                            page_id=UUID(str(page.id)),
                             variant_id=(str(rec.variant_id) if rec.variant_id else None),
                             revision=int(use_rev),
                             revision_state=state,
@@ -1257,7 +1258,7 @@ class SiteService(BaseService):
                         match=SiteRouteMatchOut(
                             kind="route_template",
                             params=tm.params,
-                            entry_id=str(resolved.entry_id),
+                            entry_id=resolved.entry_id,
                             variant_id=resolved.variant_id,
                             revision=resolved.revision,
                             revision_state=resolved.revision_state,
@@ -1272,7 +1273,7 @@ class SiteService(BaseService):
     async def save_route_draft(
         self,
         *,
-        site_id: str,
+        site_id: UUID,
         payload: SiteRouteDraftSaveIn,
     ) -> SiteRouteDraftSaveOut:
         """
@@ -1321,7 +1322,7 @@ class SiteService(BaseService):
     async def publish_route(
         self,
         *,
-        site_id: str,
+        site_id: UUID,
         payload: SiteRoutePublishIn,
     ) -> SiteRoutePublishOut:
         pathname = normalize_site_path(payload.path)
@@ -1352,7 +1353,7 @@ class SiteService(BaseService):
     async def save_page_draft(
         self,
         *,
-        site_id: str,
+        site_id: UUID,
         page_id: UUID,
         payload: SitePageDraftSaveIn,
     ) -> SitePageDraftSaveOut:
@@ -1399,7 +1400,7 @@ class SiteService(BaseService):
 
         return SitePageDraftSaveOut(
             site_id=site_id,
-            page_id=str(page_id),
+            page_id=page_id,
             path=path,
             revision=revision,
             saved_at_ms=saved_at_ms or now_ms,
@@ -1408,7 +1409,7 @@ class SiteService(BaseService):
     async def publish_page(
         self,
         *,
-        site_id: str,
+        site_id: UUID,
         page_id: UUID,
         payload: SitePagePublishIn,
     ) -> SitePagePublishOut:
@@ -1438,13 +1439,13 @@ class SiteService(BaseService):
 
         return SitePagePublishOut(
             site_id=site_id,
-            page_id=str(page_id),
+            page_id=page_id,
             path=path,
             revision=revision,
             published_at_ms=published_at_ms or now_ms,
         )
 
-    async def unpublish_page(self, *, site_id: str, page_id: UUID) -> SitePageUnpublishOut:
+    async def unpublish_page(self, *, site_id: UUID, page_id: UUID) -> SitePageUnpublishOut:
         """
         Unpublish a page (published -> draft-only).
 
@@ -1470,7 +1471,7 @@ class SiteService(BaseService):
 
         return SitePageUnpublishOut(
             site_id=site_id,
-            page_id=str(page_id),
+            page_id=page_id,
             path=path,
             unpublished_at_ms=unpublished_at_ms or now_ms,
         )
@@ -1478,7 +1479,7 @@ class SiteService(BaseService):
     async def heartbeat_presence(
         self,
         *,
-        site_id: str,
+        site_id: UUID,
         payload: SitePresenceHeartbeatIn,
     ) -> SitePresenceHeartbeatOut:
         if self._presence is None:
@@ -1490,7 +1491,7 @@ class SiteService(BaseService):
         )
         return SitePresenceHeartbeatOut(expires_at_ms=expires_at_ms)
 
-    async def list_presence(self, *, site_id: str, doc_key: str) -> SitePresenceListOut:
+    async def list_presence(self, *, site_id: UUID, doc_key: str) -> SitePresenceListOut:
         if self._presence is None:
             raise ServiceUnavailable("Presence requires Valkey", error="PRESENCE_VALKEY_REQUIRED")
         await self._repo.get_site_by_id(site_id=site_id)
@@ -1510,7 +1511,7 @@ class SiteService(BaseService):
             )
         return SitePresenceListOut(doc_key=doc_key, items=records)
 
-    async def get_sitemap_xml(self, *, site_id: str) -> str:
+    async def get_sitemap_xml(self, *, site_id: UUID) -> str:
         """
         Build a minimal `sitemap.xml` for public pages and entries.
 

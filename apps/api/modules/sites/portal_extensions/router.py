@@ -4,6 +4,7 @@ from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, Query, Request
 
+from apps.api.common.types.public_uuid import PublicUUID
 from apps.api.config import Settings, get_settings
 from apps.api.core.exceptions import ServiceUnavailable
 from apps.api.core.http.response import Response, ResponseModel
@@ -51,7 +52,7 @@ def get_service(
     summary="List portal extensions declared by enabled plugins (public boundary)",
 )
 async def list_portal_extensions(
-    site_id: str,
+    site_id: PublicUUID,
     service: Annotated[PortalExtensionsService, Depends(get_service)],
     site_service: Annotated[SiteService, Depends(get_site_service)],
     plugin_manager: Annotated[PluginManager, Depends(get_plugin_manager)],

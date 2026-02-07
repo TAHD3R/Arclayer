@@ -40,7 +40,7 @@ class PortalExtensionsService(BaseService):
     async def list_portal_extensions_for_site(
         self,
         *,
-        site_id: str,
+        site_id: UUID,
         mode: str,
         plugin_manager: PluginManager,
     ) -> list[PortalExtensionOut]:

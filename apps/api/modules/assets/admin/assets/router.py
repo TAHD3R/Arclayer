@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from uuid import UUID
-
 from fastapi import APIRouter, Depends, Header
 from starlette.responses import Response
 
+from apps.api.common.types.public_uuid import PublicUUID
 from apps.api.config import Settings, get_settings
 from apps.api.core.http.pagination import PageData, PageParams, get_page_params
 from apps.api.core.http.response import Response as JsonResponse
@@ -108,7 +107,7 @@ async def create_asset_tag(
     summary="Get asset detail",
 )
 async def get_asset_detail(
-    asset_id: UUID,
+    asset_id: PublicUUID,
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     service: AdminAssetsService = Depends(get_admin_assets_service),
 ) -> ResponseModel[AdminAssetDetailOut]:
@@ -122,7 +121,7 @@ async def get_asset_detail(
     summary="Update asset",
 )
 async def patch_asset(
-    asset_id: UUID,
+    asset_id: PublicUUID,
     payload: AdminAssetUpdateRequest,
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     service: AdminAssetsService = Depends(get_admin_assets_service),
@@ -137,7 +136,7 @@ async def patch_asset(
     summary="Delete asset",
 )
 async def delete_asset(
-    asset_id: UUID,
+    asset_id: PublicUUID,
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     service: AdminAssetsService = Depends(get_admin_assets_service),
 ) -> ResponseModel[AdminAssetDeleteOut]:
@@ -165,7 +164,7 @@ async def create_asset_folder(
     summary="Update asset folder",
 )
 async def update_asset_folder(
-    folder_id: UUID,
+    folder_id: PublicUUID,
     payload: AdminAssetFolderUpdateRequest,
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     service: AdminAssetsService = Depends(get_admin_assets_service),
@@ -180,7 +179,7 @@ async def update_asset_folder(
     summary="Delete asset folder",
 )
 async def delete_asset_folder(
-    folder_id: UUID,
+    folder_id: PublicUUID,
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     service: AdminAssetsService = Depends(get_admin_assets_service),
 ) -> ResponseModel[AdminAssetFolderDeleteOut]:
@@ -259,7 +258,7 @@ async def bulk_update_assets(
     summary="Move asset",
 )
 async def move_asset(
-    asset_id: UUID,
+    asset_id: PublicUUID,
     payload: AdminAssetMoveRequest,
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     service: AdminAssetsService = Depends(get_admin_assets_service),
@@ -274,7 +273,7 @@ async def move_asset(
     summary="Stream asset content",
 )
 async def stream_asset_content(
-    asset_id: UUID,
+    asset_id: PublicUUID,
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     service: AdminAssetsService = Depends(get_admin_assets_service),
     range_header: str | None = Header(default=None, alias="Range"),

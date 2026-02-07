@@ -1,16 +1,15 @@
 from __future__ import annotations
 
-from uuid import UUID
-
 from pydantic import ConfigDict
 
 from apps.api.common.schemas import BaseSchema
+from apps.api.common.types.public_uuid import PublicUUID
 
 
 class AssetPublicView(BaseSchema):
     model_config = ConfigDict(frozen=True)
 
-    id: UUID
+    id: PublicUUID
     slug: str
     ext: str
     mime: str | None

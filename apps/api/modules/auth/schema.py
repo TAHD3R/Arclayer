@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import re
 from datetime import datetime
-from uuid import UUID
 
 from pydantic import AliasChoices, ConfigDict, EmailStr, Field, field_validator, model_validator
 
 from apps.api.common.schemas import BaseOut, BaseSchema
+from apps.api.common.types.public_uuid import PublicUUID
 from apps.api.modules.auth.constants import PASSWORD_REGEX, RESET_TOKEN_REGEX
 
 
@@ -201,7 +201,7 @@ class InvitationPreviewInvitationOut(BaseSchema):
 class InvitationPreviewOrganizationOut(BaseSchema):
     """Organization info for invitation preview."""
 
-    id: UUID = Field(..., description="Organization id.")
+    id: PublicUUID = Field(..., description="Organization id.")
     name: str = Field(..., description="Organization name.")
     slug: str = Field(..., description="Organization slug.")
     logo_url: str | None = Field(default=None, description="Organization logo url.")
@@ -210,7 +210,7 @@ class InvitationPreviewOrganizationOut(BaseSchema):
 class InvitationPreviewWorkspaceOut(BaseSchema):
     """Workspace info for invitation preview (v2)."""
 
-    id: UUID = Field(..., description="Workspace id.")
+    id: PublicUUID = Field(..., description="Workspace id.")
     name: str = Field(..., description="Workspace name.")
     slug: str = Field(..., description="Workspace slug.")
 
@@ -218,7 +218,7 @@ class InvitationPreviewWorkspaceOut(BaseSchema):
 class InvitationPreviewInviterOut(BaseSchema):
     """Inviter user info for invitation preview."""
 
-    id: UUID = Field(..., description="Inviter user id.")
+    id: PublicUUID = Field(..., description="Inviter user id.")
     username: str = Field(..., description="Inviter username.")
     display_name: str | None = Field(default=None, description="Inviter display name.")
     avatar_url: str | None = Field(default=None, description="Inviter avatar url.")
@@ -246,7 +246,7 @@ class InvitationPreviewResult(BaseSchema):
 class MyInvitationOrganizationOut(BaseSchema):
     """Organization info for 'my invitations' listing."""
 
-    id: UUID = Field(..., description="Organization id.")
+    id: PublicUUID = Field(..., description="Organization id.")
     name: str = Field(..., description="Organization name.")
     slug: str = Field(..., description="Organization slug.")
     logo_url: str | None = Field(default=None, description="Organization logo url.")
@@ -255,7 +255,7 @@ class MyInvitationOrganizationOut(BaseSchema):
 class MyInvitationWorkspaceOut(BaseSchema):
     """Workspace info for 'my invitations' listing (v2)."""
 
-    id: UUID = Field(..., description="Workspace id.")
+    id: PublicUUID = Field(..., description="Workspace id.")
     name: str = Field(..., description="Workspace name.")
     slug: str = Field(..., description="Workspace slug.")
 
@@ -263,7 +263,7 @@ class MyInvitationWorkspaceOut(BaseSchema):
 class MyInvitationInviterOut(BaseSchema):
     """Inviter user summary for 'my invitations' listing."""
 
-    id: UUID = Field(..., description="Inviter user id.")
+    id: PublicUUID = Field(..., description="Inviter user id.")
     username: str = Field(..., description="Inviter username.")
     email: str | None = Field(default=None, description="Inviter email.")
     display_name: str | None = Field(default=None, description="Inviter display name.")
@@ -304,6 +304,6 @@ class AcceptExistingInvitationRequest(BaseSchema):
 class AcceptExistingInvitationResult(BaseSchema):
     """Result for accepting an invitation with an existing account."""
 
-    organization_id: UUID = Field(..., description="Organization id that the user joined.")
-    workspace_id: UUID = Field(..., description="Workspace id that the user joined.")
+    organization_id: PublicUUID = Field(..., description="Organization id that the user joined.")
+    workspace_id: PublicUUID = Field(..., description="Workspace id that the user joined.")
     role_code: str | None = Field(default=None, description="Role code assigned by the invitation.")

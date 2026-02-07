@@ -17,6 +17,7 @@ def test_settings_defaults(monkeypatch) -> None:
 def test_settings_env_overrides(monkeypatch) -> None:
     monkeypatch.setenv("APP_ENV", "production")
     monkeypatch.setenv("APP_NAME", "Celestial Framework API (Prod)")
+    monkeypatch.setenv("PUBLIC_ID__SECRET", "test-public-id-secret")
 
     settings = get_settings()
 

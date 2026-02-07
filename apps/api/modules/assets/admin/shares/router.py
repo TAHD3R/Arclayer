@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-from uuid import UUID
-
 from fastapi import APIRouter, Depends
 
+from apps.api.common.types.public_uuid import PublicUUID
 from apps.api.config import Settings, get_settings
 from apps.api.core.http.pagination import PageData, PageParams, get_page_params
 from apps.api.core.http.response import Response, ResponseModel
@@ -30,7 +29,7 @@ def get_admin_shares_service(settings: Settings = Depends(get_settings)) -> Admi
     summary="List share links for asset",
 )
 async def list_share_links(
-    asset_id: UUID,
+    asset_id: PublicUUID,
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     _user=Depends(get_current_user),
     params: PageParams = Depends(get_page_params),
@@ -46,7 +45,7 @@ async def list_share_links(
     summary="Create share link for asset",
 )
 async def create_share_link(
-    asset_id: UUID,
+    asset_id: PublicUUID,
     payload: AdminShareCreateRequest,
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     user=Depends(get_current_user),
@@ -67,7 +66,7 @@ async def create_share_link(
     summary="Revoke share link",
 )
 async def revoke_share_link(
-    link_id: UUID,
+    link_id: PublicUUID,
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     _user=Depends(get_current_user),
     service: AdminSharesService = Depends(get_admin_shares_service),

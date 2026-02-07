@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 from typing import Annotated, Literal
-from uuid import UUID
-
 from fastapi import APIRouter, Body, Depends, Query, Request, status
 from fastapi import Response as FastAPIResponse
 from fastapi.responses import Response as RawResponse
 
+from apps.api.common.types.public_uuid import PublicUUID
 from apps.api.config import Settings, get_settings
 from apps.api.core.http.pagination import PageData, PageParams, get_page_params
 from apps.api.core.http.response import Response, ResponseModel
@@ -102,7 +101,7 @@ async def resolve_site(
     summary="Get site runtime config (theme tokens, fonts)",
 )
 async def get_site_runtime(
-    site_id: str,
+    site_id: PublicUUID,
     raw_response: FastAPIResponse,
     service: Annotated[SiteService, Depends(get_site_service)],
     mode: Annotated[Literal["public", "preview"], Query(description="Runtime mode.")] = "public",
@@ -123,7 +122,7 @@ async def get_site_runtime(
     summary="Resolve site route (pathname -> document)",
 )
 async def resolve_site_route(
-    site_id: str,
+    site_id: PublicUUID,
     path: Annotated[str, Query(..., description="Request pathname (e.g. /blog/hello).")],
     raw_response: FastAPIResponse,
     service: Annotated[SiteService, Depends(get_site_service)],
@@ -146,7 +145,7 @@ async def resolve_site_route(
     summary="Create a preview token (stub)",
 )
 async def create_preview_token(
-    site_id: str,
+    site_id: PublicUUID,
     service: Annotated[SiteService, Depends(get_site_service)],
     payload: Annotated[
         SitePreviewTokenCreateIn,
@@ -165,7 +164,7 @@ async def create_preview_token(
     summary="Save a draft document for a route (stub)",
 )
 async def save_site_route_draft(
-    site_id: str,
+    site_id: PublicUUID,
     payload: Annotated[
         SiteRouteDraftSaveIn,
         Body(description="Draft save payload."),
@@ -185,7 +184,7 @@ async def save_site_route_draft(
     summary="Publish a route (draft -> public)",
 )
 async def publish_site_route(
-    site_id: str,
+    site_id: PublicUUID,
     payload: Annotated[
         SiteRoutePublishIn,
         Body(description="Publish payload."),
@@ -206,7 +205,7 @@ async def publish_site_route(
     summary="Save a draft entry revision (v1)",
 )
 async def save_site_entry_draft(
-    site_id: str,
+    site_id: PublicUUID,
     payload: Annotated[
         SiteEntryDraftSaveIn,
         Body(description="Entry draft save payload."),
@@ -226,7 +225,7 @@ async def save_site_entry_draft(
     summary="Publish an entry (draft -> public)",
 )
 async def publish_site_entry(
-    site_id: str,
+    site_id: PublicUUID,
     payload: Annotated[
         SiteEntryPublishIn,
         Body(description="Entry publish payload."),
@@ -246,7 +245,7 @@ async def publish_site_entry(
     summary="Unpublish an entry (published -> draft-only)",
 )
 async def unpublish_site_entry(
-    site_id: str,
+    site_id: PublicUUID,
     payload: Annotated[
         SiteEntryUnpublishIn,
         Body(description="Entry unpublish payload."),
@@ -266,7 +265,7 @@ async def unpublish_site_entry(
     summary="Presence heartbeat (v1: TTL-based, Valkey-backed)",
 )
 async def heartbeat_presence(
-    site_id: str,
+    site_id: PublicUUID,
     payload: Annotated[
         SitePresenceHeartbeatIn,
         Body(description="Presence heartbeat payload."),
@@ -286,7 +285,7 @@ async def heartbeat_presence(
     summary="List presence records for a document (v1)",
 )
 async def list_presence(
-    site_id: str,
+    site_id: PublicUUID,
     doc_key: Annotated[str, Query(..., alias="docKey", description="Document key (e.g. route:/about).")],
     service: Annotated[SiteService, Depends(get_site_service)],
     token: Annotated[str, Query(..., description="Preview token (required).")],
@@ -302,7 +301,7 @@ async def list_presence(
     summary="Get sitemap.xml (public)",
 )
 async def get_sitemap_xml(
-    site_id: str,
+    site_id: PublicUUID,
     service: Annotated[SiteService, Depends(get_site_service)],
 ) -> RawResponse:
     xml = await service.get_sitemap_xml(site_id=site_id)
@@ -320,7 +319,7 @@ async def get_sitemap_xml(
     summary="Get a site setting (namespace-scoped)",
 )
 async def get_site_setting(
-    site_id: str,
+    site_id: PublicUUID,
     namespace: Annotated[str, Query(..., description="Setting namespace (e.g. site.runtime).")],
     service: Annotated[SiteService, Depends(get_site_service)],
     token: Annotated[str, Query(..., description="Preview token (required).")],
@@ -337,7 +336,7 @@ async def get_site_setting(
     summary="Upsert a site setting (namespace-scoped)",
 )
 async def upsert_site_setting(
-    site_id: str,
+    site_id: PublicUUID,
     namespace: Annotated[str, Query(..., description="Setting namespace (e.g. site.runtime).")],
     payload: Annotated[SiteSettingUpsertIn, Body(description="Upsert payload.")],
     service: Annotated[SiteService, Depends(get_site_service)],
@@ -355,7 +354,7 @@ async def upsert_site_setting(
     summary="List site pages as a tree (preview token required)",
 )
 async def list_site_pages_tree(
-    site_id: str,
+    site_id: PublicUUID,
     service: Annotated[SiteService, Depends(get_site_service)],
     token: Annotated[str, Query(..., description="Preview token (required).")],
 ) -> ResponseModel[PageData[SitePageTreeNodeOut]]:
@@ -372,7 +371,7 @@ async def list_site_pages_tree(
     summary="Create a site page (preview token required)",
 )
 async def create_site_page(
-    site_id: str,
+    site_id: PublicUUID,
     payload: Annotated[SitePageCreateIn, Body(description="Create payload.")],
     service: Annotated[SiteService, Depends(get_site_service)],
     token: Annotated[str, Query(..., description="Preview token (required).")],
@@ -389,8 +388,8 @@ async def create_site_page(
     summary="Update a site page (preview token required)",
 )
 async def update_site_page(
-    site_id: str,
-    page_id: UUID,
+    site_id: PublicUUID,
+    page_id: PublicUUID,
     payload: Annotated[SitePageUpdateIn, Body(description="Update payload.")],
     service: Annotated[SiteService, Depends(get_site_service)],
     token: Annotated[str, Query(..., description="Preview token (required).")],
@@ -407,8 +406,8 @@ async def update_site_page(
     summary="Move/reorder a site page within the tree (preview token required)",
 )
 async def move_site_page(
-    site_id: str,
-    page_id: UUID,
+    site_id: PublicUUID,
+    page_id: PublicUUID,
     payload: Annotated[SitePageMoveIn, Body(description="Move payload.")],
     service: Annotated[SiteService, Depends(get_site_service)],
     token: Annotated[str, Query(..., description="Preview token (required).")],
@@ -425,8 +424,8 @@ async def move_site_page(
     summary="Delete a site page (preview token required)",
 )
 async def delete_site_page(
-    site_id: str,
-    page_id: UUID,
+    site_id: PublicUUID,
+    page_id: PublicUUID,
     service: Annotated[SiteService, Depends(get_site_service)],
     token: Annotated[str, Query(..., description="Preview token (required).")],
 ) -> ResponseModel[SitePageDeleteOut]:
@@ -442,7 +441,7 @@ async def delete_site_page(
     summary="List route templates (preview token required)",
 )
 async def list_site_route_templates(
-    site_id: str,
+    site_id: PublicUUID,
     service: Annotated[SiteService, Depends(get_site_service)],
     token: Annotated[str, Query(..., description="Preview token (required).")],
     params: PageParams = Depends(get_page_params),
@@ -460,7 +459,7 @@ async def list_site_route_templates(
     summary="Create a route template (preview token required)",
 )
 async def create_site_route_template(
-    site_id: str,
+    site_id: PublicUUID,
     payload: Annotated[SiteRouteTemplateCreateIn, Body(description="Create payload.")],
     service: Annotated[SiteService, Depends(get_site_service)],
     token: Annotated[str, Query(..., description="Preview token (required).")],
@@ -477,8 +476,8 @@ async def create_site_route_template(
     summary="Update a route template (preview token required)",
 )
 async def update_site_route_template(
-    site_id: str,
-    template_id: UUID,
+    site_id: PublicUUID,
+    template_id: PublicUUID,
     payload: Annotated[SiteRouteTemplateUpdateIn, Body(description="Update payload.")],
     service: Annotated[SiteService, Depends(get_site_service)],
     token: Annotated[str, Query(..., description="Preview token (required).")],
@@ -495,8 +494,8 @@ async def update_site_route_template(
     summary="Delete a route template (preview token required)",
 )
 async def delete_site_route_template(
-    site_id: str,
-    template_id: UUID,
+    site_id: PublicUUID,
+    template_id: PublicUUID,
     service: Annotated[SiteService, Depends(get_site_service)],
     token: Annotated[str, Query(..., description="Preview token (required).")],
 ) -> ResponseModel[SiteRouteTemplateDeleteOut]:
@@ -512,7 +511,7 @@ async def delete_site_route_template(
     summary="List entry types (preview token required)",
 )
 async def list_entry_types(
-    site_id: str,
+    site_id: PublicUUID,
     service: Annotated[SiteService, Depends(get_site_service)],
     token: Annotated[str, Query(..., description="Preview token (required).")],
     params: PageParams = Depends(get_page_params),
@@ -530,7 +529,7 @@ async def list_entry_types(
     summary="Create an entry type (preview token required)",
 )
 async def create_entry_type(
-    site_id: str,
+    site_id: PublicUUID,
     payload: Annotated[SiteEntryTypeCreateIn, Body(description="Create payload.")],
     service: Annotated[SiteService, Depends(get_site_service)],
     token: Annotated[str, Query(..., description="Preview token (required).")],
@@ -547,8 +546,8 @@ async def create_entry_type(
     summary="Update an entry type (preview token required)",
 )
 async def update_entry_type(
-    site_id: str,
-    entry_type_id: UUID,
+    site_id: PublicUUID,
+    entry_type_id: PublicUUID,
     payload: Annotated[SiteEntryTypeUpdateIn, Body(description="Update payload.")],
     service: Annotated[SiteService, Depends(get_site_service)],
     token: Annotated[str, Query(..., description="Preview token (required).")],
@@ -565,8 +564,8 @@ async def update_entry_type(
     summary="Delete an entry type (preview token required)",
 )
 async def delete_entry_type(
-    site_id: str,
-    entry_type_id: UUID,
+    site_id: PublicUUID,
+    entry_type_id: PublicUUID,
     service: Annotated[SiteService, Depends(get_site_service)],
     token: Annotated[str, Query(..., description="Preview token (required).")],
 ) -> ResponseModel[SiteEntryTypeDeleteOut]:
@@ -582,7 +581,7 @@ async def delete_entry_type(
     summary="List entries (preview token required)",
 )
 async def list_entries(
-    site_id: str,
+    site_id: PublicUUID,
     service: Annotated[SiteService, Depends(get_site_service)],
     token: Annotated[str, Query(..., description="Preview token (required).")],
     params: PageParams = Depends(get_page_params),
@@ -607,7 +606,7 @@ async def list_entries(
     summary="Create an entry (preview token required)",
 )
 async def create_entry(
-    site_id: str,
+    site_id: PublicUUID,
     payload: Annotated[SiteEntryCreateIn, Body(description="Create payload.")],
     service: Annotated[SiteService, Depends(get_site_service)],
     token: Annotated[str, Query(..., description="Preview token (required).")],
@@ -624,8 +623,8 @@ async def create_entry(
     summary="Update an entry (preview token required)",
 )
 async def update_entry(
-    site_id: str,
-    entry_id: UUID,
+    site_id: PublicUUID,
+    entry_id: PublicUUID,
     payload: Annotated[SiteEntryUpdateIn, Body(description="Update payload.")],
     service: Annotated[SiteService, Depends(get_site_service)],
     token: Annotated[str, Query(..., description="Preview token (required).")],
@@ -642,8 +641,8 @@ async def update_entry(
     summary="Delete an entry (must unpublish first; preview token required)",
 )
 async def delete_entry(
-    site_id: str,
-    entry_id: UUID,
+    site_id: PublicUUID,
+    entry_id: PublicUUID,
     service: Annotated[SiteService, Depends(get_site_service)],
     token: Annotated[str, Query(..., description="Preview token (required).")],
 ) -> ResponseModel[SiteEntryDeleteOut]:
@@ -659,8 +658,8 @@ async def delete_entry(
     summary="Rollback a page revision pointer (draft or published; preview token required)",
 )
 async def rollback_page_revision(
-    site_id: str,
-    page_id: UUID,
+    site_id: PublicUUID,
+    page_id: PublicUUID,
     payload: Annotated[SitePageRollbackIn, Body(description="Rollback payload.")],
     service: Annotated[SiteService, Depends(get_site_service)],
     token: Annotated[str, Query(..., description="Preview token (required).")],
@@ -677,8 +676,8 @@ async def rollback_page_revision(
     summary="Rollback an entry revision pointer (draft or published; preview token required)",
 )
 async def rollback_entry_revision(
-    site_id: str,
-    entry_id: UUID,
+    site_id: PublicUUID,
+    entry_id: PublicUUID,
     payload: Annotated[SiteEntryRollbackIn, Body(description="Rollback payload.")],
     service: Annotated[SiteService, Depends(get_site_service)],
     token: Annotated[str, Query(..., description="Preview token (required).")],
@@ -695,8 +694,8 @@ async def rollback_entry_revision(
     summary="Get a published page revision snapshot",
 )
 async def get_published_page_revision(
-    site_id: str,
-    page_id: UUID,
+    site_id: PublicUUID,
+    page_id: PublicUUID,
     service: Annotated[SiteService, Depends(get_site_service)],
 ) -> ResponseModel[SitePageRevisionOut]:
     data = await service.get_page_revision(site_id=site_id, page_id=page_id, state="published")
@@ -710,8 +709,8 @@ async def get_published_page_revision(
     summary="Get a draft page revision snapshot (preview token required)",
 )
 async def get_draft_page_revision(
-    site_id: str,
-    page_id: UUID,
+    site_id: PublicUUID,
+    page_id: PublicUUID,
     service: Annotated[SiteService, Depends(get_site_service)],
     token: Annotated[str, Query(..., description="Preview token (required).")],
 ) -> ResponseModel[SitePageRevisionOut]:
@@ -728,8 +727,8 @@ async def get_draft_page_revision(
     summary="Save a draft page revision (preview token required)",
 )
 async def save_page_revision_draft(
-    site_id: str,
-    page_id: UUID,
+    site_id: PublicUUID,
+    page_id: PublicUUID,
     payload: Annotated[SitePageDraftSaveIn, Body(description="Page draft save payload.")],
     service: Annotated[SiteService, Depends(get_site_service)],
     token: Annotated[str, Query(..., description="Preview token (required).")],
@@ -746,8 +745,8 @@ async def save_page_revision_draft(
     summary="Publish a page revision (draft -> public; preview token required)",
 )
 async def publish_page_revision(
-    site_id: str,
-    page_id: UUID,
+    site_id: PublicUUID,
+    page_id: PublicUUID,
     payload: Annotated[SitePagePublishIn, Body(description="Page publish payload.")],
     service: Annotated[SiteService, Depends(get_site_service)],
     token: Annotated[str, Query(..., description="Preview token (required).")],
@@ -764,8 +763,8 @@ async def publish_page_revision(
     summary="Get a published entry revision snapshot",
 )
 async def get_published_entry_revision(
-    site_id: str,
-    entry_id: UUID,
+    site_id: PublicUUID,
+    entry_id: PublicUUID,
     service: Annotated[SiteService, Depends(get_site_service)],
 ) -> ResponseModel[SiteEntryRevisionOut]:
     data = await service.get_entry_revision(site_id=site_id, entry_id=entry_id, state="published")
@@ -779,8 +778,8 @@ async def get_published_entry_revision(
     summary="Get a draft entry revision snapshot (preview token required)",
 )
 async def get_draft_entry_revision(
-    site_id: str,
-    entry_id: UUID,
+    site_id: PublicUUID,
+    entry_id: PublicUUID,
     service: Annotated[SiteService, Depends(get_site_service)],
     token: Annotated[str, Query(..., description="Preview token (required).")],
 ) -> ResponseModel[SiteEntryRevisionOut]:

@@ -9,6 +9,7 @@ from uuid import uuid4
 import pytest
 from httpx import ASGITransport, AsyncClient
 
+from apps.api.common.utils.public_ids import encode_uuid
 from apps.api.config import get_settings
 from apps.api.core.database.orm import verify_db_ready
 from apps.api.core.registry import create_app
@@ -156,10 +157,14 @@ async def test_workspace_theme_import_and_site_runtime_output(
         )
 
         async with AsyncClient(transport=transport, base_url="http://test") as client:
+            ws_pid = encode_uuid(ws.id)
+            site_pid = encode_uuid(site.id)
+            zip_asset_pid = encode_uuid(zip_asset_id)
+
             # Import theme package from uploaded zip asset.
             resp = await client.post(
-                f"/api/v1/workspaces/{ws.id}/themes/import",
-                json={"assetId": str(zip_asset_id)},
+                f"/api/v1/workspaces/{ws_pid}/themes/import",
+                json={"assetId": zip_asset_pid},
             )
             assert resp.status_code == 200, resp.text
             data = resp.json()["data"]
@@ -168,34 +173,34 @@ async def test_workspace_theme_import_and_site_runtime_output(
             assert isinstance(data["tokensCssAssetId"], str) and data["tokensCssAssetId"]
 
             # Create preview token so we can write site settings.
-            resp = await client.post(f"/api/v1/sites/{site.id}/preview-tokens", json={"ttl_seconds": 600})
+            resp = await client.post(f"/api/v1/sites/{site_pid}/preview-tokens", json={"ttlSeconds": 600})
             assert resp.status_code == 201, resp.text
             token = resp.json()["data"]["token"]
 
             # Bind theme to site via SiteSettings namespaces.
             resp = await client.put(
-                f"/api/v1/sites/{site.id}/settings",
+                f"/api/v1/sites/{site_pid}/settings",
                 params={"namespace": "theme.active", "token": token},
                 json={"value": {"themeId": "@celestial/theme-modern", "version": "0.1.0"}},
             )
             assert resp.status_code == 200, resp.text
 
             resp = await client.put(
-                f"/api/v1/sites/{site.id}/settings",
+                f"/api/v1/sites/{site_pid}/settings",
                 params={"namespace": "theme.vars", "token": token},
                 json={"value": {"cssVars": {"--color-primary": "#123456"}}},
             )
             assert resp.status_code == 200, resp.text
 
             resp = await client.put(
-                f"/api/v1/sites/{site.id}/settings",
+                f"/api/v1/sites/{site_pid}/settings",
                 params={"namespace": "theme.config", "token": token},
                 json={"value": {"secretToken": "should-not-leak", "radius": 12}},
             )
             assert resp.status_code == 200, resp.text
 
             # Runtime should include theme metadata + entrypoint URLs.
-            resp = await client.get(f"/api/v1/sites/{site.id}/runtime", params={"mode": "public"})
+            resp = await client.get(f"/api/v1/sites/{site_pid}/runtime", params={"mode": "public"})
             assert resp.status_code == 200, resp.text
             runtime = resp.json()["data"]
             theme = runtime["theme"]
@@ -208,7 +213,7 @@ async def test_workspace_theme_import_and_site_runtime_output(
 
             # Preview runtime can include theme.config (permission-protected by preview token).
             resp = await client.get(
-                f"/api/v1/sites/{site.id}/runtime",
+                f"/api/v1/sites/{site_pid}/runtime",
                 params={"mode": "preview", "token": token},
             )
             assert resp.status_code == 200, resp.text

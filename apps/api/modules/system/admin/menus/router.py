@@ -4,6 +4,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends
 
+from apps.api.common.types.public_uuid import PublicUUID
 from apps.api.core.http.pagination import PageData, PageParams, get_page_params
 from apps.api.core.http.response import Response, ResponseModel
 from apps.api.modules.auth.deps import get_current_user_id
@@ -96,7 +97,7 @@ async def list_menu_items(
     summary="Get admin menu item",
 )
 async def get_menu_item(
-    item_id: UUID,
+    item_id: PublicUUID,
     _ctx: WorkspaceContext = Depends(require_workspace_manage_access),
 ) -> ResponseModel[AdminMenuItemOut]:
     service = _get_service()
@@ -126,7 +127,7 @@ async def create_menu_item(
     summary="Update admin menu item",
 )
 async def update_menu_item(
-    item_id: UUID,
+    item_id: PublicUUID,
     body: AdminMenuUpdateRequest,
     _ctx: WorkspaceContext = Depends(require_workspace_manage_access),
 ) -> ResponseModel[AdminMenuItemOut]:
@@ -142,7 +143,7 @@ async def update_menu_item(
     summary="Delete admin menu item",
 )
 async def delete_menu_item(
-    item_id: UUID,
+    item_id: PublicUUID,
     _ctx: WorkspaceContext = Depends(require_workspace_manage_access),
 ) -> ResponseModel[None]:
     service = _get_service()
@@ -157,7 +158,7 @@ async def delete_menu_item(
     summary="Restore admin menu item",
 )
 async def restore_menu_item(
-    item_id: UUID,
+    item_id: PublicUUID,
     _ctx: WorkspaceContext = Depends(require_workspace_manage_access),
 ) -> ResponseModel[AdminMenuItemOut]:
     service = _get_service()

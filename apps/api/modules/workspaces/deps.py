@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import cast
+from typing import Annotated, cast
 from uuid import UUID
 
 from fastapi import Depends, Path
@@ -8,6 +8,7 @@ from pydantic import Field
 from structlog.contextvars import bind_contextvars
 
 from apps.api.common.protocols.tortoise import HasOrganizationId
+from apps.api.common.types.public_uuid import PublicUUID
 from apps.api.common.schemas import BaseSchema
 from apps.api.core.exceptions import Forbidden, NotFound
 from apps.api.core.i18n import t
@@ -36,7 +37,7 @@ class WorkspaceContext(BaseSchema):
 
 
 async def get_workspace_context(
-    workspace_id: UUID = Path(..., description="Workspace ID."),
+    workspace_id: Annotated[PublicUUID, Path(..., description="Workspace ID.")],
     user_id: UUID = Depends(get_current_user_id),
 ) -> WorkspaceContext:
     """

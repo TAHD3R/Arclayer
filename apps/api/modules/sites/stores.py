@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import time
+from uuid import UUID
 
 from apps.api.infra.cache.valkey import ValkeyClientLike
 
@@ -17,14 +18,14 @@ class PreviewTokenStore:
     def __init__(self, client: ValkeyClientLike) -> None:
         self._client = client
 
-    def _key(self, *, site_id: str, token: str) -> str:
+    def _key(self, *, site_id: UUID, token: str) -> str:
         return f"sites:preview:{site_id}:{token}"
 
-    async def issue(self, *, site_id: str, token: str, ttl_seconds: int, expires_at_ms: int) -> None:
-        record = {"siteId": site_id, "token": token, "expiresAtMs": expires_at_ms}
+    async def issue(self, *, site_id: UUID, token: str, ttl_seconds: int, expires_at_ms: int) -> None:
+        record = {"siteId": str(site_id), "token": token, "expiresAtMs": expires_at_ms}
         await self._client.set_json(self._key(site_id=site_id, token=token), record, ex=ttl_seconds)
 
-    async def validate(self, *, site_id: str, token: str) -> bool:
+    async def validate(self, *, site_id: UUID, token: str) -> bool:
         if not token.strip():
             return False
         data = await self._client.get_json(self._key(site_id=site_id, token=token))
@@ -45,16 +46,16 @@ class PresenceStore:
     def __init__(self, client: ValkeyClientLike) -> None:
         self._client = client
 
-    def _set_key(self, *, site_id: str, doc_key: str) -> str:
+    def _set_key(self, *, site_id: UUID, doc_key: str) -> str:
         return f"sites:presence:{site_id}:{doc_key}:clients"
 
-    def _record_key(self, *, site_id: str, doc_key: str, client_id: str) -> str:
+    def _record_key(self, *, site_id: UUID, doc_key: str, client_id: str) -> str:
         return f"sites:presence:{site_id}:{doc_key}:client:{client_id}"
 
     async def heartbeat(
         self,
         *,
-        site_id: str,
+        site_id: UUID,
         doc_key: str,
         client_id: str,
         actor: dict[str, str] | None,
@@ -74,7 +75,7 @@ class PresenceStore:
         )
         return expires_at_ms
 
-    async def list(self, *, site_id: str, doc_key: str) -> list[dict[str, object]]:
+    async def list(self, *, site_id: UUID, doc_key: str) -> list[dict[str, object]]:
         key = self._set_key(site_id=site_id, doc_key=doc_key)
         client_ids = sorted(await self._client.smembers(key))
         results: list[dict[str, object]] = []
@@ -113,10 +114,10 @@ class RouteTemplateVersionStore:
     def __init__(self, client: ValkeyClientLike) -> None:
         self._client = client
 
-    def _key(self, *, site_id: str) -> str:
+    def _key(self, *, site_id: UUID) -> str:
         return f"sites:route-templates:{site_id}:version"
 
-    async def get(self, *, site_id: str) -> int | None:
+    async def get(self, *, site_id: UUID) -> int | None:
         raw = await self._client.get(self._key(site_id=site_id))
         if raw is None:
             return None
@@ -126,5 +127,5 @@ class RouteTemplateVersionStore:
             return None
         return v if v >= 0 else None
 
-    async def set(self, *, site_id: str, version: int) -> None:
+    async def set(self, *, site_id: UUID, version: int) -> None:
         await self._client.set(self._key(site_id=site_id), str(int(version)))

@@ -6,6 +6,7 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 
 from apps.api.config import get_settings
+from apps.api.common.utils.public_ids import encode_uuid
 from apps.api.core.database.orm import verify_db_ready
 from apps.api.core.registry import create_app
 from apps.api.modules.organization.models.organization import Organization
@@ -32,7 +33,7 @@ async def _bootstrap_site() -> str:
         is_active=True,
         created_by_user_id=uuid4(),
     )
-    return str(site.id)
+    return encode_uuid(site.id)
 
 
 async def _create_preview_token(client: AsyncClient, *, site_id: str) -> str:
@@ -67,7 +68,7 @@ async def test_page_publish_fails_when_deps_assets_missing(prepared_db, integrat
         await verify_db_ready(settings)
 
         site_id = await _bootstrap_site()
-        missing_asset_id = str(uuid4())
+        missing_asset_id = encode_uuid(uuid4())
 
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             token = await _create_preview_token(client, site_id=site_id)
@@ -106,7 +107,7 @@ async def test_entry_publish_fails_when_deps_assets_missing(prepared_db, integra
         await verify_db_ready(settings)
 
         site_id = await _bootstrap_site()
-        missing_asset_id = str(uuid4())
+        missing_asset_id = encode_uuid(uuid4())
 
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             token = await _create_preview_token(client, site_id=site_id)
@@ -157,7 +158,7 @@ async def test_page_rollback_fails_when_deps_assets_missing(prepared_db, integra
         await verify_db_ready(settings)
 
         site_id = await _bootstrap_site()
-        missing_asset_id = str(uuid4())
+        missing_asset_id = encode_uuid(uuid4())
 
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             token = await _create_preview_token(client, site_id=site_id)

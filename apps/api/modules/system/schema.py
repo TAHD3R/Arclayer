@@ -6,6 +6,7 @@ from typing import Any, Literal
 from pydantic import Field, SecretStr
 
 from apps.api.common.schemas import BaseSchema
+from apps.api.common.types.public_uuid import PublicUUID
 
 
 class SetupAdmin(BaseSchema):
@@ -40,10 +41,10 @@ class SystemSetupRequest(BaseSchema):
 class SystemSetupResult(BaseSchema):
     initialized_at: datetime = Field(..., description="Initialization time.")
     master_key_fingerprint: str = Field(..., description="SHA-256 fingerprint of the master key.")
-    admin_user_id: str = Field(..., description="Created admin user id.")
+    admin_user_id: PublicUUID = Field(..., description="Created admin user id.")
     admin_username: str = Field(..., description="Created admin username.")
     rbac_bootstrapped: bool = Field(..., description="Whether RBAC admin bootstrap succeeded.")
-    organization_id: str | None = Field(default=None, description="Created organization id (if any).")
+    organization_id: PublicUUID | None = Field(default=None, description="Created organization id (if any).")
     organization_slug: str | None = Field(default=None, description="Created organization slug (if any).")
     organization_name: str | None = Field(default=None, description="Created organization name (if any).")
 

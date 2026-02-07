@@ -7,7 +7,7 @@ This module provides the base Pydantic models and common mixins used across the 
 from __future__ import annotations
 
 from datetime import datetime
-from uuid import UUID
+from apps.api.common.types.public_uuid import PublicUUID
 
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
@@ -28,7 +28,7 @@ class BaseSchema(BaseModel):
 class IdMixin(BaseSchema):
     """Mixin that provides an `id` field."""
 
-    id: UUID = Field(..., description="ID")
+    id: PublicUUID = Field(..., description="ID")
 
 
 class TimestampMixin(BaseSchema):
@@ -54,7 +54,7 @@ class BaseOut(IdMixin, BaseSchema):
 class BulkOperationSchema(BaseSchema):
     """Bulk operation request schema."""
 
-    ids: list[UUID] = Field(..., min_length=1, description="Target object ID list.")
+    ids: list[PublicUUID] = Field(..., min_length=1, description="Target object ID list.")
 
 
 class BulkOperationResponseSchema(BaseSchema):
@@ -63,7 +63,7 @@ class BulkOperationResponseSchema(BaseSchema):
     total_count: int = Field(..., ge=0, description="Total items.")
     success_count: int = Field(..., ge=0, description="Succeeded items.")
     failed_count: int = Field(..., ge=0, description="Failed items.")
-    failed_items: list[UUID | str] | None = Field(
+    failed_items: list[PublicUUID | str] | None = Field(
         default_factory=list,
         description="Failed items (IDs or other identifiable references such as codes).",
     )
