@@ -26,6 +26,10 @@ class WorkspacePluginSummary(BaseSchema):
     author: str = Field(..., description="Plugin author.")
     status: str = Field(..., description="Global plugin status (installed/started/disabled/failed).")
 
+    icon_url: str | None = Field(
+        default=None,
+        description="Optional plugin icon URL or API path (workspace-scoped) for rendering in admin UI.",
+    )
     enabled: bool = Field(default=False, description="Whether the plugin is enabled in this workspace.")
     config: dict[str, Any] | None = Field(default=None, description="Workspace-scoped plugin config.")
 

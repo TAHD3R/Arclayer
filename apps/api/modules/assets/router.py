@@ -3,8 +3,8 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, Header, Query
 from starlette.responses import Response
 
-from apps.api.config import Settings, get_settings
 from apps.api.common.types.public_uuid import PublicUUID
+from apps.api.config import Settings, get_settings
 from apps.api.modules.assets.service import AssetsService
 
 router = APIRouter(tags=["Public: Assets"])

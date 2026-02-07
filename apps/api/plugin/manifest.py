@@ -60,6 +60,10 @@ class PluginMeta(BaseSchema):
         description="Plugin URL slug used for routing (lowercase, kebab-case).",
         pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$",
     )
+    icon: str | None = Field(
+        default=None,
+        description="Optional plugin icon path (relative to plugin root) or an absolute URL.",
+    )
     name: str
     description: str | None = None
     name_i18n: str | None = None

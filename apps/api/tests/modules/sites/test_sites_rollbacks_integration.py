@@ -5,8 +5,8 @@ from uuid import uuid4
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-from apps.api.config import get_settings
 from apps.api.common.utils.public_ids import encode_uuid
+from apps.api.config import get_settings
 from apps.api.core.database.orm import verify_db_ready
 from apps.api.core.registry import create_app
 from apps.api.modules.organization.models.organization import Organization

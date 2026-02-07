@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pydantic import ConfigDict, Field
+from pydantic import Field
 
 from apps.api.common.schemas import BaseSchema
 from apps.api.common.types.public_uuid import PublicUUID

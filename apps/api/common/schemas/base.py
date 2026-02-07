@@ -7,10 +7,11 @@ This module provides the base Pydantic models and common mixins used across the 
 from __future__ import annotations
 
 from datetime import datetime
-from apps.api.common.types.public_uuid import PublicUUID
 
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
+
+from apps.api.common.types.public_uuid import PublicUUID
 
 
 class BaseSchema(BaseModel):

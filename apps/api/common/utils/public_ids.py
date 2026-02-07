@@ -8,7 +8,6 @@ from dataclasses import dataclass
 from typing import Final
 from uuid import RFC_4122, UUID
 
-
 _PUBLIC_ID_RE: Final[re.Pattern[str]] = re.compile(r"^[A-Za-z0-9_-]{22}$")
 
 

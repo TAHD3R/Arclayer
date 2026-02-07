@@ -35,6 +35,7 @@ from apps.api.modules.auth.schema import (
     UserProfile,
 )
 from apps.api.modules.auth.service import AuthService
+from apps.api.modules.auth.sso.router import router as auth_sso_router
 from apps.api.modules.organization.models.user import User
 
 router = APIRouter(tags=["Services: Auth Service"])
@@ -264,3 +265,7 @@ async def accept_existing_invitation(
         message=t("auth", "INVITE_ACCEPTED", default="加入工作区成功"),
         data=result,
     )
+
+
+# Social login / SSO extensions (provided by plugins).
+router.include_router(auth_sso_router)

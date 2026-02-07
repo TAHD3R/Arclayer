@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import mimetypes
+
 from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
+from starlette.responses import FileResponse, RedirectResponse
 
 from apps.api.config import Settings, get_settings
 from apps.api.core.exceptions import ServiceUnavailable
@@ -167,3 +170,76 @@ async def update_workspace_config(
         workspace_id=ctx.workspace_id, plugin_id=plugin_id, payload=body.model_dump()
     )
     return Response.success(data=out)
+
+
+@router.get(
+    "/{plugin_ref}/icon",
+    response_model=None,
+    summary="Get plugin icon (workspace scoped path resolver)",
+    dependencies=[require_workspace_permission("system:plugins:read")],
+)
+async def get_plugin_icon(
+    plugin_ref: str,
+    _ctx: WorkspaceContext = Depends(require_workspace_manage_access),
+    plugin_manager: PluginManager = Depends(get_plugin_manager),
+    plugin_service: PluginService = Depends(get_plugin_service),
+):
+    """
+    Return plugin icon as a binary response.
+
+    Notes:
+    - If manifest icon is an absolute URL, we redirect to it.
+    - If manifest icon is a relative path, we read it from the plugin directory with strict path validation.
+    - When no icon is declared, callers should fallback to a default icon.
+    """
+
+    plugin_id = plugin_service.resolve_plugin_id(plugin_ref)
+    if not plugin_manager.descriptors:
+        plugin_manager.discover()
+    descriptor = plugin_manager.descriptors.get(plugin_id)
+    if descriptor is None:
+        # Should not happen if resolve succeeded; keep safe.
+        raise ServiceUnavailable(
+            message=t("plugin", "PLUGIN_NOT_FOUND", default="插件不存在"),
+            error="PLUGIN_NOT_FOUND",
+        )
+
+    icon = (descriptor.manifest.plugin.icon or "").strip()
+    if not icon:
+        # Use 404 so <img> can fallback without parsing JSON.
+        from apps.api.core.exceptions import NotFound
+
+        raise NotFound(
+            message=t("plugin", "PLUGIN_ICON_NOT_FOUND", default="插件图标不存在"), error="PLUGIN_ICON_NOT_FOUND"
+        )
+
+    if icon.startswith("http://") or icon.startswith("https://"):
+        return RedirectResponse(url=icon, status_code=302)
+
+    root = descriptor.path.resolve()
+    icon_path = (descriptor.path / icon).resolve()
+    if root not in icon_path.parents and icon_path != root:
+        from apps.api.core.exceptions import BadRequest
+
+        raise BadRequest(
+            message=t("plugin", "PLUGIN_ICON_INVALID", default="插件图标路径不合法"),
+            error="PLUGIN_ICON_INVALID",
+        )
+    if not icon_path.is_file():
+        from apps.api.core.exceptions import NotFound
+
+        raise NotFound(
+            message=t("plugin", "PLUGIN_ICON_NOT_FOUND", default="插件图标不存在"), error="PLUGIN_ICON_NOT_FOUND"
+        )
+
+    suffix = icon_path.suffix.lower()
+    if suffix not in {".svg", ".png", ".jpg", ".jpeg", ".webp"}:
+        from apps.api.core.exceptions import BadRequest
+
+        raise BadRequest(
+            message=t("plugin", "PLUGIN_ICON_INVALID", default="插件图标类型不支持"),
+            error="PLUGIN_ICON_INVALID",
+        )
+
+    media_type, _enc = mimetypes.guess_type(str(icon_path))
+    return FileResponse(path=str(icon_path), media_type=media_type or "application/octet-stream")

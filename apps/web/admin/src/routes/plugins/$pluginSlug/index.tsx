@@ -1,8 +1,10 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Card, Typography } from "antd";
 import { useTranslation } from "react-i18next";
+import { useEffect } from "react";
 
 import { DefaultPage } from "@/components/common/default-page";
+import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
 export const Route = createFileRoute("/plugins/$pluginSlug/")({
   component: PluginSlugPage,
@@ -10,7 +12,14 @@ export const Route = createFileRoute("/plugins/$pluginSlug/")({
 
 function PluginSlugPage() {
   const { t } = useTranslation(["nav", "common"]);
+  const navigate = useNavigate();
+  const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
   const { pluginSlug } = Route.useParams();
+
+  useEffect(() => {
+    if (!workspaceId) return;
+    void navigate({ to: `/w/${workspaceId}/plugins/${pluginSlug}`, replace: true });
+  }, [navigate, pluginSlug, workspaceId]);
 
   return (
     <DefaultPage
@@ -19,7 +28,7 @@ function PluginSlugPage() {
     >
       <Card>
         <Typography.Paragraph style={{ marginBottom: 0 }}>
-          {t("common:PAGE_COMING_SOON")}
+          {workspaceId ? t("common:WORKSPACE_REDIRECTING") : t("common:WORKSPACE_SELECT_DESC")}
         </Typography.Paragraph>
       </Card>
     </DefaultPage>

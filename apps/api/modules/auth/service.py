@@ -214,6 +214,78 @@ class AuthService(BaseService):
             refresh_expires_in=refresh_ttl,
         )
 
+    async def issue_token_pair_for_user(self, user_id: UUID) -> TokenPair:
+        """
+        Issue a TokenPair for a user without password verification.
+
+        Used by SSO/OAuth flows where the user has already been authenticated by an upstream provider.
+        """
+
+        store = self._require_refresh_store()
+        user = await self.user_repo.get_by_id(user_id)
+        if user is None:
+            raise Unauthorized(
+                message=self._ta("INVALID_CREDENTIALS", "账号或密码错误"),
+                error="INVALID_CREDENTIALS",
+            )
+        if not self.user_repo.is_active(user):
+            raise Forbidden(message=self._ta("USER_DISABLED", "账号不可用"), error="USER_DISABLED")
+
+        resolved_user_id = self._coerce_user_id(user)
+        token_version = self._coerce_token_version(user)
+
+        access_token, access_ttl = build_access_token(
+            user_id=resolved_user_id,
+            token_version=token_version,
+            settings=self.settings.auth,
+        )
+        refresh_token, jti, refresh_ttl = build_refresh_token(
+            user_id=resolved_user_id,
+            token_version=token_version,
+            settings=self.settings.auth,
+        )
+
+        now_ts = int(datetime.now(UTC).timestamp())
+        record = {
+            "jti": jti,
+            "user_id": str(resolved_user_id),
+            "token_version": token_version,
+            "status": REFRESH_STATUS_ACTIVE,
+            "issued_at": now_ts,
+            "expires_at": now_ts + refresh_ttl,
+        }
+        await store.store(record, ttl=refresh_ttl)
+        await self.user_repo.update_last_login(user)
+
+        # Best-effort: emit audit-worthy login event (do not block auth flow).
+        try:
+            from apps.api.plugin.event_bus import Event
+            from apps.api.plugin.host import host as plugin_host
+
+            orgm = await OrgMembership.get_or_none(user_id=resolved_user_id)
+            org_id = UUID(str(cast(HasOrganizationId, orgm).organization_id)) if orgm is not None else None
+
+            await plugin_host.event_bus.publish(
+                Event(
+                    name="auth.login.succeeded",
+                    payload={
+                        "organization_id": str(org_id) if org_id else None,
+                    },
+                    source="api",
+                    trace_id=correlation_id.get(None),
+                    actor_user_id=str(resolved_user_id),
+                )
+            )
+        except Exception:
+            pass
+
+        return TokenPair(
+            access_token=access_token,
+            refresh_token=refresh_token,
+            expires_in=access_ttl,
+            refresh_expires_in=refresh_ttl,
+        )
+
     async def register(
         self,
         *,

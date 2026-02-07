@@ -24,4 +24,10 @@ __all__ = [
     "REGISTER_RATE_LIMIT",
     "RESET_PASSWORD_RATE_LIMIT",
     "RESET_TOKEN_REGEX",
+    "SSO_PROVIDERS_RATE_LIMIT",
+    "SSO_EXCHANGE_RATE_LIMIT",
 ]
+
+# Public SSO probe/exchange endpoints are hot paths; keep them reasonably limited.
+SSO_PROVIDERS_RATE_LIMIT = (30, 60)
+SSO_EXCHANGE_RATE_LIMIT = (10, 60)

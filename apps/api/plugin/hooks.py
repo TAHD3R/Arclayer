@@ -55,3 +55,15 @@ class CelestialHooks:
         Return Arq cron job declarations to be registered in the worker.
         """
         raise NotImplementedError
+
+    @hookspec
+    def auth_sso_providers(self) -> list[Any]:
+        """
+        Return additional auth SSO provider declarations (e.g. OAuth / OIDC buttons).
+
+        Each declaration should be a lightweight object with enough metadata for the host to:
+        - decide whether the provider is enabled (based on plugin settings),
+        - build a start URL/path that the frontend can navigate to,
+        - render a label/icon on the login page.
+        """
+        raise NotImplementedError

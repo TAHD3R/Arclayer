@@ -8,8 +8,8 @@ from pydantic import Field
 from structlog.contextvars import bind_contextvars
 
 from apps.api.common.protocols.tortoise import HasOrganizationId
-from apps.api.common.types.public_uuid import PublicUUID
 from apps.api.common.schemas import BaseSchema
+from apps.api.common.types.public_uuid import PublicUUID
 from apps.api.core.exceptions import Forbidden, NotFound
 from apps.api.core.i18n import t
 from apps.api.modules.auth.deps import get_current_user_id

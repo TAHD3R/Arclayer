@@ -7,8 +7,8 @@ import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from tortoise import Tortoise
 
-from apps.api.config import get_settings
 from apps.api.common.utils.public_ids import encode_uuid
+from apps.api.config import get_settings
 from apps.api.core.database.orm import close_orm, init_orm
 from apps.api.core.registry import create_app
 from apps.api.modules.organization.models.org_membership import OrgMembership, OrgRole

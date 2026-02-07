@@ -15,8 +15,8 @@ from apps.api.common.protocols.tortoise import (
     RouteTemplateIds,
     SettingUpdatedBy,
 )
-from apps.api.common.utils.public_ids import decode_public_id, encode_uuid, is_public_id
 from apps.api.common.repositories.base import BaseRepository
+from apps.api.common.utils.public_ids import decode_public_id, encode_uuid, is_public_id
 from apps.api.core.exceptions import Conflict, NotFound
 from apps.api.modules.assets.models.asset import AssetRecord
 from apps.api.modules.sites.constants import RUNTIME_SETTING_NAMESPACE

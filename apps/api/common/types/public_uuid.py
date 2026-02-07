@@ -39,4 +39,3 @@ PublicUUID = Annotated[
     PlainSerializer(_serialize_public_uuid, return_type=str),
     WithJsonSchema({"type": "string", "pattern": "^[A-Za-z0-9_-]{22}$", "examples": ["1jz6k6rWQdK2nZk3fD3d1Q"]}),
 ]
-

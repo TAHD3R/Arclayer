@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from pydantic import ConfigDict, Field, field_validator
+from pydantic import Field, field_validator
 
 from apps.api.common.schemas import BaseSchema
 from apps.api.common.types.public_uuid import PublicUUID
@@ -117,6 +117,4 @@ class WorkspaceThemeOut(BaseSchema):
 
 
 class WorkspaceThemeListOut(BaseSchema):
-
-
     items: list[WorkspaceThemeOut] = Field(default_factory=list)

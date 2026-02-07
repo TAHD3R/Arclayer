@@ -49,5 +49,10 @@
   "PLUGIN_PACKAGE_TOO_MANY_FILES": "插件包文件过多",
   "PLUGIN_PACKAGE_UNCOMPRESSED_TOO_LARGE": "插件包解压后体积过大",
   "PLUGIN_PACKAGE_FILE_TOO_LARGE": "插件包文件过大",
-  "PLUGIN_PACKAGE_HAS_SYMLINK": "插件包包含不安全的符号链接"
+  "PLUGIN_PACKAGE_HAS_SYMLINK": "插件包包含不安全的符号链接",
+
+  "PLUGIN_SECRET_SET": "已设置",
+  "PLUGIN_SECRET_NOT_SET": "未设置",
+  "PLUGIN_SECRET_PLACEHOLDER": "留空则保持不变",
+  "PLUGIN_SETTINGS_MANAGED_BY_PLATFORM": "该插件为实例级配置，SaaS 模式下由平台统一维护，租户不可编辑。"
 }

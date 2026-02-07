@@ -22,6 +22,7 @@ from apps.api.plugin.manager import PluginManager
 from apps.api.plugin.manifest import ConfigSchema, build_default_config
 from apps.api.settings.core_schema import CORE_SETTINGS_NAMESPACE, CORE_SETTINGS_SCHEMA
 from apps.api.settings.crypto import encrypt_secret, ensure_master_key, is_encrypted, master_key_exists
+from apps.api.settings.scopes import SCOPE_TYPE_SYSTEM, SYSTEM_SCOPE_ID
 from apps.api.settings.validation import iter_secret_field_paths, merge_deep, validate_config_schema
 
 
@@ -84,15 +85,29 @@ class SettingsService(BaseService):
                     message=_ts("PLUGIN_CONFIG_NOT_SUPPORTED", "插件不支持配置"),
                     error="SETTINGS_NOT_SUPPORTED",
                 )
-            record = await PluginRecord.get_or_none(plugin_id=plugin_id)
-            raw = record.config if record and isinstance(record.config, dict) else build_default_config(desc.manifest)
+
+            # Prefer the scoped settings store (encrypted secrets, masked output).
+            settings_record = await self.repo.get_by_namespace(namespace)
+            if settings_record and isinstance(settings_record.value, dict):
+                raw = settings_record.value
+                updated_at = settings_record.updated_at
+            else:
+                # Compatibility: older versions stored plugin config in PluginRecord.config.
+                plugin_record = await PluginRecord.get_or_none(plugin_id=plugin_id)
+                raw = (
+                    plugin_record.config
+                    if plugin_record and isinstance(plugin_record.config, dict)
+                    else build_default_config(desc.manifest)
+                )
+                updated_at = plugin_record.updated_at if plugin_record else None
+
             masked, secrets = self._mask_secrets(schema, raw)
             return SettingsDetail(
                 namespace=namespace,
                 setting_schema=self._to_schema_item(schema),
                 value=masked,
                 secrets=secrets,
-                updated_at=record.updated_at if record else None,
+                updated_at=updated_at,
             )
 
         raise NotFound(message=_ts("NAMESPACE_NOT_FOUND", "配置域不存在"), error="SETTINGS_NAMESPACE_NOT_FOUND")
@@ -140,18 +155,27 @@ class SettingsService(BaseService):
                     message=_ts("PLUGIN_CONFIG_NOT_SUPPORTED", "插件不支持配置"),
                     error="SETTINGS_NOT_SUPPORTED",
                 )
-            record = await PluginRecord.get_or_none(plugin_id=plugin_id)
-            current = (
-                record.config if record and isinstance(record.config, dict) else build_default_config(desc.manifest)
-            )
+            record = await self.repo.get_by_namespace(namespace)
+            if record and isinstance(record.value, dict):
+                current = record.value
+            else:
+                # Compatibility: read legacy PluginRecord.config if settings are missing.
+                legacy = await PluginRecord.get_or_none(plugin_id=plugin_id)
+                current = (
+                    legacy.config if legacy and isinstance(legacy.config, dict) else build_default_config(desc.manifest)
+                )
+
             merged = merge_deep(current, patch)
             validate_config_schema(schema, merged, allow_unknown=True)
-            if record is None:
-                raise NotFound(message=_ts("PLUGIN_NOT_INSTALLED", "插件未安装"), error="PLUGIN_NOT_FOUND")
+            merged = await self._encrypt_plugin_secrets(
+                schema,
+                merged,
+                namespace=namespace,
+                scope_type=SCOPE_TYPE_SYSTEM,
+                scope_id=SYSTEM_SCOPE_ID,
+            )
 
-            record.config = merged or None
-            await record.save(update_fields=["config", "updated_at"])
-            await self.manager.request_restart(plugin_id, reason="settings")
+            saved = await self.repo.upsert(namespace=namespace, value=merged, updated_by=updated_by)
             await self._emit_settings_updated(
                 namespace=namespace,
                 schema=schema,
@@ -167,7 +191,7 @@ class SettingsService(BaseService):
                 setting_schema=self._to_schema_item(schema),
                 value=masked,
                 secrets=secrets,
-                updated_at=record.updated_at,
+                updated_at=saved.updated_at,
             )
 
         raise NotFound(message=_ts("NAMESPACE_NOT_FOUND", "配置域不存在"), error="SETTINGS_NAMESPACE_NOT_FOUND")
@@ -236,6 +260,49 @@ class SettingsService(BaseService):
             if is_encrypted(raw):
                 continue
             aad = f"{CORE_SETTINGS_NAMESPACE}:{path}"
+            section[field_key] = encrypt_secret(raw, key=key, aad=aad)
+
+        return config
+
+    async def _encrypt_plugin_secrets(
+        self,
+        schema: ConfigSchema,
+        config: dict[str, Any],
+        *,
+        namespace: str,
+        scope_type: str,
+        scope_id: Any,
+    ) -> dict[str, Any]:
+        """
+        Encrypt plugin secrets at-rest using the system master key.
+
+        AAD format (must remain stable across versions):
+        - "{scope_type}:{scope_id}:{namespace}:{path}"
+        - path is "section.key"
+        """
+
+        key_path = self.settings.setup.master_key_path
+        if not master_key_exists(key_path):
+            raise ServiceUnavailable(
+                message=_ts("MASTER_KEY_MISSING", "系统密钥未初始化"),
+                error="MASTER_KEY_MISSING",
+            )
+        key, _fp = ensure_master_key(key_path)
+
+        secret_paths = iter_secret_field_paths(schema)
+        for path in secret_paths:
+            section_id, field_key = path.split(".", 1)
+            section = config.get(section_id)
+            if not isinstance(section, dict):
+                continue
+            raw = section.get(field_key)
+            if raw is None:
+                continue
+            if not isinstance(raw, str):
+                continue
+            if is_encrypted(raw):
+                continue
+            aad = f"{scope_type}:{scope_id}:{namespace}:{path}"
             section[field_key] = encrypt_secret(raw, key=key, aad=aad)
 
         return config

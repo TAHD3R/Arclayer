@@ -31,3 +31,7 @@ class CoreHookImpl:
     @hookimpl
     def arq_cron_jobs(self):  # type: ignore[no-untyped-def]
         return []
+
+    @hookimpl
+    def auth_sso_providers(self):  # type: ignore[no-untyped-def]
+        return []

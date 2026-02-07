@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Annotated, Literal
+
 from fastapi import APIRouter, Body, Depends, Query, Request, status
 from fastapi import Response as FastAPIResponse
 from fastapi.responses import Response as RawResponse

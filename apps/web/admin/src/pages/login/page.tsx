@@ -1,4 +1,4 @@
-import { Alert, Button, Checkbox, Divider, Form, Input, Modal, Typography } from "antd";
+import { Alert, Button, Checkbox, Form, Input, Modal, Typography } from "antd";
 import { Lock, Mail, User } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "@tanstack/react-router";
@@ -29,6 +29,7 @@ export interface LoginViewProps {
   onLoginSubmit: (values: LoginFormValues) => void;
   loginLoading?: boolean;
   initialKeepSession?: boolean;
+  redirect?: string | undefined;
   onForgotPassword: (identifier: string) => Promise<void>;
   onRegisterSubmit: (values: RegisterFormValues) => void;
 }
@@ -39,6 +40,7 @@ export function LoginView({
   onLoginSubmit,
   loginLoading = false,
   initialKeepSession = false,
+  redirect,
   onForgotPassword,
   onRegisterSubmit,
 }: LoginViewProps) {
@@ -140,9 +142,7 @@ export function LoginView({
           {t("auth:LOGIN_BUTTON")}
         </Button>
 
-        <Divider style={{ margin: "18px 0" }}>{t("auth:OAUTH_DIVIDER")}</Divider>
-
-        <AuthOauthButtons disabled />
+        <AuthOauthButtons disabled={loginLoading} redirect={redirect} />
       </Form>
 
       <div className="mt-4 text-center">
@@ -247,9 +247,7 @@ export function LoginView({
           {t("auth:REGISTER_BUTTON")}
         </Button>
 
-        <Divider style={{ margin: "18px 0" }}>{t("auth:OAUTH_DIVIDER")}</Divider>
-
-        <AuthOauthButtons disabled />
+        <AuthOauthButtons disabled={false} redirect={redirect} />
       </Form>
 
       <div className="mt-4 text-center">

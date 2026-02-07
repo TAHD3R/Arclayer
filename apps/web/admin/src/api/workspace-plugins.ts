@@ -9,6 +9,7 @@ export type WorkspacePluginItem = {
   version: string;
   author: string;
   status: string;
+  iconUrl?: string | null;
   enabled: boolean;
   config?: Record<string, unknown> | null;
 };

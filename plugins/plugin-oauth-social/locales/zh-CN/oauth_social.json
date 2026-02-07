@@ -1,0 +1,19 @@
+{
+  "PLUGIN_NAME": "社交登录（OAuth）",
+  "PLUGIN_DESCRIPTION": "为后台提供 Google/GitHub 社交登录能力。",
+
+  "SECTION_GOOGLE": "Google",
+  "FIELD_GOOGLE_ENABLED_LABEL": "启用 Google 登录",
+  "FIELD_GOOGLE_CLIENT_ID_LABEL": "Google Client ID",
+  "FIELD_GOOGLE_CLIENT_SECRET_LABEL": "Google Client Secret",
+
+  "SECTION_GITHUB": "GitHub",
+  "FIELD_GITHUB_ENABLED_LABEL": "启用 GitHub 登录",
+  "FIELD_GITHUB_CLIENT_ID_LABEL": "GitHub Client ID",
+  "FIELD_GITHUB_CLIENT_SECRET_LABEL": "GitHub Client Secret",
+
+  "SECTION_PROVISIONING": "账号策略",
+  "FIELD_AUTO_PROVISION_ENABLED_LABEL": "允许自动创建账号",
+  "FIELD_AUTO_ACCEPT_EMAIL_INVITES_LABEL": "自动接受邮箱邀请"
+}
+
