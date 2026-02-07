@@ -14,6 +14,9 @@ def _configure(monkeypatch, log_dir: Path, *, app_env: str, log_json: bool | Non
     monkeypatch.setenv("LOG_LEVEL", "INFO")
     monkeypatch.setenv("LOG_DIR", str(log_dir))
     monkeypatch.setenv("LOG_ASYNC", "0")
+    if app_env == "production":
+        # Production settings require a stable public-id secret; provide a test-only value.
+        monkeypatch.setenv("PUBLIC_ID__SECRET", "test-public-id-secret")
     if log_json is not None:
         monkeypatch.setenv("LOG_JSON", "1" if log_json else "0")
     settings = get_settings()

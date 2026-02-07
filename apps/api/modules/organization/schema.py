@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from uuid import UUID
-
 from pydantic import Field
 
 from apps.api.common.schemas import BaseOut, BaseSchema
+from apps.api.common.types.public_uuid import PublicUUID
 from apps.api.modules.organization.models.org_membership import OrgRole
 
 
@@ -15,7 +14,7 @@ class OrganizationBriefOut(BaseOut):
 
 
 class OrganizationMembershipOut(BaseOut):
-    organization_id: UUID = Field(..., description="Organization id.")
+    organization_id: PublicUUID = Field(..., description="Organization id.")
     role: OrgRole = Field(..., description="Organization role.")
     status: str = Field(..., description="Membership status.")
 

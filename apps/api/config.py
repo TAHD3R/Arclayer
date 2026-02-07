@@ -754,6 +754,45 @@ class AuthSettings(BaseSettings):
     )
 
 
+class PublicIdSettings(BaseSettings):
+    """
+    Public ID encoding settings.
+
+    Notes:
+    - The API stores and processes internal identifiers as UUIDs (uuid7/uuid4).
+    - For external surfaces (URLs / JSON), we encode UUIDs into URL-safe short strings.
+    - The encoding is reversible and requires a stable secret.
+    """
+
+    model_config = SettingsConfigDict(
+        env_prefix="PUBLIC_ID__",
+        env_file_encoding="utf-8",
+        env_nested_delimiter="__",
+        extra="ignore",
+        case_sensitive=False,
+        populate_by_name=True,
+        validate_default=True,
+    )
+
+    secret: SecretStr = Field(
+        default=SecretStr(""),
+        validation_alias=AliasChoices("SECRET", "APP_PUBLIC_ID_SECRET"),
+        description="Secret used to encode/decode public ids. Must be stable across deploys.",
+    )
+    rounds: int = Field(
+        default=8,
+        ge=4,
+        le=16,
+        validation_alias=AliasChoices("ROUNDS", "APP_PUBLIC_ID_ROUNDS"),
+        description="Feistel rounds for the public id permutation (4-16).",
+    )
+    accept_raw_uuid_input: bool = Field(
+        default=True,
+        validation_alias=AliasChoices("ACCEPT_RAW_UUID_INPUT", "APP_ACCEPT_RAW_UUID_INPUT"),
+        description="If true, API accepts raw UUID strings as inputs in addition to public ids (dev/test convenience).",
+    )
+
+
 class EmailSettings(BaseSettings):
     """
     Email settings for the API application.
@@ -898,6 +937,16 @@ class Settings(BaseSettings):
         self._apply_env_overrides()
         self._apply_test_mode_overrides()
 
+        # In production, default to a hard cut-over: accept only public ids as inputs
+        # unless explicitly enabled by environment configuration.
+        if self.app_env == "production" and "accept_raw_uuid_input" not in self.public_id.model_fields_set:
+            self.public_id = self.public_id.model_copy(update={"accept_raw_uuid_input": False})
+
+        # Fail fast in production if the public id secret is missing. Without a stable secret, URLs
+        # are either trivially reversible or unstable across deploys, both of which are unsafe.
+        if self.app_env == "production" and not self.public_id.secret.get_secret_value():
+            raise ValueError("PUBLIC_ID__SECRET is required when APP_ENV=production")
+
     model_config = SettingsConfigDict(
         env_file_encoding="utf-8",
         env_nested_delimiter="__",
@@ -921,6 +970,7 @@ class Settings(BaseSettings):
     observability: ObservabilitySettings = Field(default_factory=ObservabilitySettings)
     middleware: MiddlewareSettings = Field(default_factory=MiddlewareSettings)
     auth: AuthSettings = Field(default_factory=AuthSettings)
+    public_id: PublicIdSettings = Field(default_factory=PublicIdSettings)
     email: EmailSettings = Field(default_factory=EmailSettings)
     plugin: PluginSettings = Field(default_factory=PluginSettings)
     setup: SetupSettings = Field(default_factory=SetupSettings)
@@ -1010,6 +1060,10 @@ class Settings(BaseSettings):
         self.auth = _merge_settings(
             self.auth,
             _build_settings_from_env_file(AuthSettings, env_file=env_file, env_file_encoding=env_file_encoding),
+        )
+        self.public_id = _merge_settings(
+            self.public_id,
+            _build_settings_from_env_file(PublicIdSettings, env_file=env_file, env_file_encoding=env_file_encoding),
         )
         self.email = _merge_settings(
             self.email,

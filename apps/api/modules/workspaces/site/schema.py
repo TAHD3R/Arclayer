@@ -3,6 +3,7 @@ from __future__ import annotations
 from pydantic import ConfigDict, Field
 
 from apps.api.common.schemas import BaseSchema
+from apps.api.common.types.public_uuid import PublicUUID
 
 
 class WorkspaceSiteOut(BaseSchema):
@@ -14,10 +15,8 @@ class WorkspaceSiteOut(BaseSchema):
     - Admin UI uses this endpoint to discover `site_id` for Portal editor URLs.
     """
 
-    model_config = ConfigDict(extra="forbid")
-
-    site_id: str = Field(..., alias="siteId", description="Resolved site id for the workspace.")
-    workspace_id: str = Field(..., alias="workspaceId", description="Workspace id.")
+    site_id: PublicUUID = Field(..., alias="siteId", description="Resolved site id for the workspace.")
+    workspace_id: PublicUUID = Field(..., alias="workspaceId", description="Workspace id.")
 
     slug: str = Field(..., description="Site slug (kept for compatibility/future).")
     name: str = Field(..., description="Site display name.")

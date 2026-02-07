@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 from datetime import datetime
-from uuid import UUID
 
 from pydantic import Field, computed_field
 
 from apps.api.common.schemas import BaseOut, BaseSchema
+from apps.api.common.types.public_uuid import PublicUUID
 
 
 class AdminShareCreateRequest(BaseSchema):
@@ -18,7 +18,7 @@ class AdminShareCreateRequest(BaseSchema):
 
 
 class AdminShareLinkOut(BaseOut):
-    asset_id: UUID = Field(..., description="Asset id.")
+    asset_id: PublicUUID = Field(..., description="Asset id.")
     token: str = Field(..., description="Opaque share token.")
     expires_at: datetime | None = Field(default=None, description="Expiration time.")
     revoked_at: datetime | None = Field(default=None, description="Revoked time.")
@@ -36,5 +36,5 @@ class AdminShareLinkOut(BaseOut):
 
 
 class AdminShareRevokeOut(BaseSchema):
-    id: UUID = Field(..., description="Share link id.")
+    id: PublicUUID = Field(..., description="Share link id.")
     revoked_at: datetime = Field(..., description="Revoked time.")

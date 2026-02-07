@@ -3,18 +3,18 @@ from __future__ import annotations
 from datetime import datetime
 from enum import StrEnum
 from typing import Any
-from uuid import UUID
 
 from pydantic import Field
 
 from apps.api.common.schemas import BaseOut, BaseSchema
+from apps.api.common.types.public_uuid import PublicUUID
 from apps.api.modules.system.models.notification import NotificationCategory
 
 
 class NotificationOut(BaseOut):
-    workspace_id: UUID = Field(..., description="Workspace id.")
-    recipient_user_id: UUID = Field(..., description="Recipient user id.")
-    actor_user_id: UUID | None = Field(default=None, description="Actor user id (best-effort).")
+    workspace_id: PublicUUID = Field(..., description="Workspace id.")
+    recipient_user_id: PublicUUID = Field(..., description="Recipient user id.")
+    actor_user_id: PublicUUID | None = Field(default=None, description="Actor user id (best-effort).")
 
     category: NotificationCategory = Field(..., description="Notification category.")
     title: str = Field(..., description="Short title.")
@@ -52,7 +52,7 @@ class NotificationListQuery(BaseSchema):
 
 
 class NotificationReadResult(BaseSchema):
-    id: UUID = Field(..., description="Notification id.")
+    id: PublicUUID = Field(..., description="Notification id.")
     read_at: datetime | None = Field(default=None, description="Read datetime (UTC).")
 
 
@@ -75,4 +75,4 @@ class NotificationDevSeedResult(BaseSchema):
 
 
 class NotificationDeleteResult(BaseSchema):
-    id: UUID = Field(..., description="Notification id.")
+    id: PublicUUID = Field(..., description="Notification id.")

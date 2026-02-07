@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from datetime import datetime
 from typing import Any
-from uuid import UUID
 
 from pydantic import Field
 
 from apps.api.common.schemas import BaseOut, BaseSchema, TimestampMixin
+from apps.api.common.types.public_uuid import PublicUUID
 
 
 class ActivityUserSummaryOut(BaseSchema):
@@ -18,7 +18,7 @@ class ActivityUserSummaryOut(BaseSchema):
     - Do not include sensitive fields.
     """
 
-    id: UUID = Field(..., description="User id.")
+    id: PublicUUID = Field(..., description="User id.")
     username: str | None = Field(default=None, description="Username.")
     display_name: str | None = Field(default=None, description="Display name.")
     avatar_url: str | None = Field(default=None, description="Avatar URL.")
@@ -28,17 +28,17 @@ class AuditEventOut(BaseOut, TimestampMixin):
     occurred_at: datetime = Field(..., description="Event time (UTC).")
     event_name: str = Field(..., description="Event name.")
 
-    organization_id: UUID | None = Field(default=None, description="Organization id.")
-    workspace_id: UUID | None = Field(default=None, description="Workspace id.")
+    organization_id: PublicUUID | None = Field(default=None, description="Organization id.")
+    workspace_id: PublicUUID | None = Field(default=None, description="Workspace id.")
 
-    actor_user_id: UUID | None = Field(default=None, description="Actor user id.")
-    subject_user_id: UUID | None = Field(default=None, description="Subject user id.")
+    actor_user_id: PublicUUID | None = Field(default=None, description="Actor user id.")
+    subject_user_id: PublicUUID | None = Field(default=None, description="Subject user id.")
 
     actor: ActivityUserSummaryOut | None = Field(default=None, description="Actor user summary (best-effort).")
     subject: ActivityUserSummaryOut | None = Field(default=None, description="Subject user summary (best-effort).")
 
     entity_type: str | None = Field(default=None, description="Entity type.")
-    entity_id: UUID | None = Field(default=None, description="Entity id.")
+    entity_id: PublicUUID | None = Field(default=None, description="Entity id.")
 
     trace_id: str | None = Field(default=None, description="Request trace id (best-effort).")
     source: str | None = Field(default=None, description="Event source.")
@@ -58,8 +58,8 @@ class AuditEventListQuery(BaseSchema):
         validation_alias="to",
     )
     event_name: str | None = Field(default=None, description="Filter: event name (contains).")
-    workspace_id: UUID | None = Field(default=None, description="Filter: workspace id.")
-    actor_user_id: UUID | None = Field(default=None, description="Filter: actor user id.")
-    subject_user_id: UUID | None = Field(default=None, description="Filter: subject user id.")
+    workspace_id: PublicUUID | None = Field(default=None, description="Filter: workspace id.")
+    actor_user_id: PublicUUID | None = Field(default=None, description="Filter: actor user id.")
+    subject_user_id: PublicUUID | None = Field(default=None, description="Filter: subject user id.")
     entity_type: str | None = Field(default=None, description="Filter: entity type.")
-    entity_id: UUID | None = Field(default=None, description="Filter: entity id.")
+    entity_id: PublicUUID | None = Field(default=None, description="Filter: entity id.")

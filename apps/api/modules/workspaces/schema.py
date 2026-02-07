@@ -1,15 +1,14 @@
 from __future__ import annotations
 
-from uuid import UUID
-
 from pydantic import Field
 
 from apps.api.common.schemas import BaseOut, BaseSchema
+from apps.api.common.types.public_uuid import PublicUUID
 
 
 class MyWorkspaceOut(BaseOut):
-    workspace_id: UUID = Field(..., description="Workspace id.")
-    organization_id: UUID = Field(..., description="Organization id.")
+    workspace_id: PublicUUID = Field(..., description="Workspace id.")
+    organization_id: PublicUUID = Field(..., description="Organization id.")
     slug: str = Field(..., description="Workspace slug.")
     name: str = Field(..., description="Workspace name.")
 
@@ -30,7 +29,7 @@ class MyWorkspaceListResult(BaseSchema):
 class WorkspaceDetailOut(BaseOut):
     """Workspace metadata used by the admin workspace settings page."""
 
-    organization_id: UUID = Field(..., description="Organization id.")
+    organization_id: PublicUUID = Field(..., description="Organization id.")
     slug: str = Field(..., description="Workspace slug.")
     name: str = Field(..., description="Workspace name.")
 

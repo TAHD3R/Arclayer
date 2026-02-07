@@ -7,6 +7,7 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 
 from apps.api.config import get_settings
+from apps.api.common.utils.public_ids import encode_uuid
 from apps.api.core.database.orm import verify_db_ready
 from apps.api.core.registry import create_app
 from apps.api.modules.auth.deps import get_current_user_id
@@ -128,54 +129,59 @@ async def test_admin_notifications_preview_list_and_read(
         )
 
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            resp = await client.get(f"/api/v1/workspaces/{workspace_id}/notifications/unread/preview?limit=3")
+            ws_pid = encode_uuid(workspace_id)
+            n1_pid = encode_uuid(n1.id)
+            n2_pid = encode_uuid(n2.id)
+            n3_pid = encode_uuid(n3.id)
+
+            resp = await client.get(f"/api/v1/workspaces/{ws_pid}/notifications/unread/preview?limit=3")
             assert resp.status_code == 200
             preview = resp.json()["data"]
             assert preview["unreadCount"] == 2
             assert len(preview["items"]) == 2
-            assert {item["id"] for item in preview["items"]} == {str(n1.id), str(n2.id)}
+            assert {item["id"] for item in preview["items"]} == {n1_pid, n2_pid}
             assert all(item.get("readAt") is None for item in preview["items"])
 
             # list unread only
-            resp = await client.get(f"/api/v1/workspaces/{workspace_id}/notifications?status=unread&page=1&size=20")
+            resp = await client.get(f"/api/v1/workspaces/{ws_pid}/notifications?status=unread&page=1&size=20")
             assert resp.status_code == 200
             page = resp.json()["data"]
             assert page["total"] == 2
-            assert {item["id"] for item in page["items"]} == {str(n1.id), str(n2.id)}
+            assert {item["id"] for item in page["items"]} == {n1_pid, n2_pid}
 
             # list all should include read ones (but still only for the current user)
-            resp = await client.get(f"/api/v1/workspaces/{workspace_id}/notifications?status=all&page=1&size=20")
+            resp = await client.get(f"/api/v1/workspaces/{ws_pid}/notifications?status=all&page=1&size=20")
             assert resp.status_code == 200
             page_all = resp.json()["data"]
             assert page_all["total"] == 3
-            assert {item["id"] for item in page_all["items"]} == {str(n1.id), str(n2.id), str(n3.id)}
+            assert {item["id"] for item in page_all["items"]} == {n1_pid, n2_pid, n3_pid}
 
             # mark read should be idempotent
-            resp = await client.post(f"/api/v1/workspaces/{workspace_id}/notifications/{n1.id}/read")
+            resp = await client.post(f"/api/v1/workspaces/{ws_pid}/notifications/{n1_pid}/read")
             assert resp.status_code == 200
             read1 = resp.json()["data"]
-            assert read1["id"] == str(n1.id)
+            assert read1["id"] == n1_pid
             assert read1["readAt"] is not None
 
-            resp = await client.post(f"/api/v1/workspaces/{workspace_id}/notifications/{n1.id}/read")
+            resp = await client.post(f"/api/v1/workspaces/{ws_pid}/notifications/{n1_pid}/read")
             assert resp.status_code == 200
             read2 = resp.json()["data"]
-            assert read2["id"] == str(n1.id)
+            assert read2["id"] == n1_pid
             assert read2["readAt"] == read1["readAt"]
 
             # delete should remove the record entirely (hard delete in MVP)
-            resp = await client.delete(f"/api/v1/workspaces/{workspace_id}/notifications/{n2.id}")
+            resp = await client.delete(f"/api/v1/workspaces/{ws_pid}/notifications/{n2_pid}")
             assert resp.status_code == 200
             deleted = resp.json()["data"]
-            assert deleted["id"] == str(n2.id)
+            assert deleted["id"] == n2_pid
 
-            resp = await client.get(f"/api/v1/workspaces/{workspace_id}/notifications/unread/preview?limit=3")
+            resp = await client.get(f"/api/v1/workspaces/{ws_pid}/notifications/unread/preview?limit=3")
             assert resp.status_code == 200
             preview2 = resp.json()["data"]
             assert preview2["unreadCount"] == 0
             assert preview2["items"] == []
 
-            resp = await client.get(f"/api/v1/workspaces/{workspace_id}/notifications?status=all&page=1&size=20")
+            resp = await client.get(f"/api/v1/workspaces/{ws_pid}/notifications?status=all&page=1&size=20")
             assert resp.status_code == 200
             page_all2 = resp.json()["data"]
             assert page_all2["total"] == 2
@@ -246,7 +252,7 @@ async def test_admin_notifications_mark_all_read(
         )
 
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            resp = await client.post(f"/api/v1/workspaces/{workspace_id}/notifications/read-all")
+            resp = await client.post(f"/api/v1/workspaces/{encode_uuid(workspace_id)}/notifications/read-all")
             assert resp.status_code == 200
             out = resp.json()["data"]
             assert out["totalCount"] == 2

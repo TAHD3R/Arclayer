@@ -7,6 +7,7 @@ from uuid import uuid4
 import pytest
 from httpx import ASGITransport, AsyncClient
 
+from apps.api.common.utils.public_ids import encode_uuid
 from apps.api.config import get_settings
 from apps.api.core.database.orm import verify_db_ready
 from apps.api.core.registry import create_app
@@ -135,13 +136,15 @@ async def test_me_workspaces_owner_can_see_all_with_visible_only(prepared_db, in
             assert resp.status_code == 200
             items = resp.json()["data"]["items"]
             ids = {i["workspaceId"] for i in items}
-            assert ids == {str(ws1.id), str(ws2.id)}
+            ws1_pid = encode_uuid(ws1.id)
+            ws2_pid = encode_uuid(ws2.id)
+            assert ids == {ws1_pid, ws2_pid}
 
             by_id = {i["workspaceId"]: i for i in items}
-            assert by_id[str(ws1.id)]["isCreatorAdmin"] is True
-            assert by_id[str(ws1.id)]["visibleOnly"] is False
-            assert by_id[str(ws2.id)]["isCreatorAdmin"] is False
-            assert by_id[str(ws2.id)]["visibleOnly"] is True
+            assert by_id[ws1_pid]["isCreatorAdmin"] is True
+            assert by_id[ws1_pid]["visibleOnly"] is False
+            assert by_id[ws2_pid]["isCreatorAdmin"] is False
+            assert by_id[ws2_pid]["visibleOnly"] is True
 
 
 async def test_workspace_invite_link_accept_existing_creates_use_event(
@@ -218,10 +221,13 @@ async def test_workspace_invite_link_accept_existing_creates_use_event(
             base_url="http://test",
             headers={"X-Forwarded-For": uuid4().hex},
         ) as client:
+            ws_pid = encode_uuid(ws.id)
+            invitee_pid = encode_uuid(invitee.id)
+
             # 1) Owner creates a reusable invite link with domain restriction.
             current_user = owner
             resp = await client.post(
-                f"/api/v1/workspaces/{ws.id}/team/invite-links",
+                f"/api/v1/workspaces/{ws_pid}/team/invite-links",
                 json={
                     "roleCode": "admin",
                     "expiresInSeconds": 3600,
@@ -242,30 +248,30 @@ async def test_workspace_invite_link_accept_existing_creates_use_event(
             )
             assert resp.status_code == 200
             data = resp.json()["data"]
-            assert data["organizationId"] == str(org.id)
-            assert data["workspaceId"] == str(ws.id)
+            assert data["organizationId"] == encode_uuid(org.id)
+            assert data["workspaceId"] == ws_pid
 
             # 3) Link use event should be created.
             assert await WorkspaceInviteLinkUseEvent.filter(used_by_user_id=invitee.id).exists()
 
             # 4) Owner can list links and see participants.
             current_user = owner
-            resp = await client.get(f"/api/v1/workspaces/{ws.id}/team/invite-links?page=1&size=10")
+            resp = await client.get(f"/api/v1/workspaces/{ws_pid}/team/invite-links?page=1&size=10")
             assert resp.status_code == 200
             page = resp.json()["data"]
             assert page["total"] >= 1
             link = page["items"][0]
             assert link["usesCount"] >= 1
-            assert any(p["user"]["userId"] == str(invitee.id) for p in (link.get("recentParticipants") or []))
+            assert any(p["user"]["userId"] == invitee_pid for p in (link.get("recentParticipants") or []))
 
             # 5) Participants endpoint should paginate full usage events.
             resp = await client.get(
-                f"/api/v1/workspaces/{ws.id}/team/invite-links/{link['id']}/participants?page=1&size=10"
+                f"/api/v1/workspaces/{ws_pid}/team/invite-links/{link['id']}/participants?page=1&size=10"
             )
             assert resp.status_code == 200
             participants = resp.json()["data"]
             assert participants["total"] >= 1
-            assert any(p["user"]["userId"] == str(invitee.id) for p in participants["items"])
+            assert any(p["user"]["userId"] == invitee_pid for p in participants["items"])
 
 
 async def test_workspace_invite_link_max_uses_enforced(prepared_db, integration_valkey_settings) -> None:
@@ -336,9 +342,10 @@ async def test_workspace_invite_link_max_uses_enforced(prepared_db, integration_
             base_url="http://test",
             headers={"X-Forwarded-For": uuid4().hex},
         ) as client:
+            ws_pid = encode_uuid(ws.id)
             current_user = owner
             resp = await client.post(
-                f"/api/v1/workspaces/{ws.id}/team/invite-links",
+                f"/api/v1/workspaces/{ws_pid}/team/invite-links",
                 json={
                     "roleCode": "admin",
                     "expiresInSeconds": 3600,
@@ -438,13 +445,14 @@ async def test_auth_me_invitations_includes_workspace(prepared_db, integration_v
             base_url="http://test",
             headers={"X-Forwarded-For": uuid4().hex},
         ) as client:
+            ws_pid = encode_uuid(ws.id)
             resp = await client.get("/api/v1/auth/me/invitations?status=pending&page=1&size=20")
             assert resp.status_code == 200
             page = resp.json()["data"]
             assert page["total"] >= 1
             item = page["items"][0]
             assert item["email"] == invitee.email
-            assert item["workspace"]["id"] == str(ws.id)
+            assert item["workspace"]["id"] == ws_pid
             assert item["workspace"]["name"] == ws.name
 
 
@@ -510,9 +518,10 @@ async def test_workspace_invite_link_domain_restriction_enforced(prepared_db, in
             base_url="http://test",
             headers={"X-Forwarded-For": uuid4().hex},
         ) as client:
+            ws_pid = encode_uuid(ws.id)
             current_user = owner
             resp = await client.post(
-                f"/api/v1/workspaces/{ws.id}/team/invite-links",
+                f"/api/v1/workspaces/{ws_pid}/team/invite-links",
                 json={
                     "roleCode": "admin",
                     "expiresInSeconds": 3600,
@@ -595,9 +604,10 @@ async def test_a2_single_org_enforced_on_accept_existing(prepared_db, integratio
             base_url="http://test",
             headers={"X-Forwarded-For": uuid4().hex},
         ) as client:
+            ws_pid = encode_uuid(ws.id)
             current_user = owner
             resp = await client.post(
-                f"/api/v1/workspaces/{ws.id}/team/invite-links",
+                f"/api/v1/workspaces/{ws_pid}/team/invite-links",
                 json={
                     "roleCode": "admin",
                     "expiresInSeconds": 3600,
@@ -689,9 +699,10 @@ async def test_workspace_email_invite_pending_unique_and_accept(
             base_url="http://test",
             headers={"X-Forwarded-For": uuid4().hex},
         ) as client:
+            ws_pid = encode_uuid(ws.id)
             current_user = owner
             resp = await client.post(
-                f"/api/v1/workspaces/{ws.id}/team/email-invites",
+                f"/api/v1/workspaces/{ws_pid}/team/email-invites",
                 json={"email": invite_email, "roleCode": "admin", "expiresInSeconds": 3600},
             )
             assert resp.status_code == 200
@@ -699,7 +710,7 @@ async def test_workspace_email_invite_pending_unique_and_accept(
 
             # Q2: create again should update existing (still one active invite).
             resp = await client.post(
-                f"/api/v1/workspaces/{ws.id}/team/email-invites",
+                f"/api/v1/workspaces/{ws_pid}/team/email-invites",
                 json={"email": invite_email, "roleCode": "admin", "expiresInSeconds": 7200},
             )
             assert resp.status_code == 200
@@ -720,7 +731,7 @@ async def test_workspace_email_invite_pending_unique_and_accept(
 
             # Accepted list should include it.
             current_user = owner
-            resp = await client.get(f"/api/v1/workspaces/{ws.id}/team/email-invites?status=accepted&page=1&size=10")
+            resp = await client.get(f"/api/v1/workspaces/{ws_pid}/team/email-invites?status=accepted&page=1&size=10")
             assert resp.status_code == 200
             page = resp.json()["data"]
             assert page["total"] >= 1
@@ -801,9 +812,10 @@ async def test_workspace_email_invite_email_mismatch_rejected(
             base_url="http://test",
             headers={"X-Forwarded-For": uuid4().hex},
         ) as client:
+            ws_pid = encode_uuid(ws.id)
             current_user = owner
             resp = await client.post(
-                f"/api/v1/workspaces/{ws.id}/team/email-invites",
+                f"/api/v1/workspaces/{ws_pid}/team/email-invites",
                 json={"email": "invited@example.com", "roleCode": "admin", "expiresInSeconds": 3600},
             )
             assert resp.status_code == 200
@@ -876,9 +888,10 @@ async def test_workspace_invite_link_disable_blocks_accept(prepared_db, integrat
             base_url="http://test",
             headers={"X-Forwarded-For": uuid4().hex},
         ) as client:
+            ws_pid = encode_uuid(ws.id)
             current_user = owner
             resp = await client.post(
-                f"/api/v1/workspaces/{ws.id}/team/invite-links",
+                f"/api/v1/workspaces/{ws_pid}/team/invite-links",
                 json={"roleCode": "admin", "expiresInSeconds": 3600, "maxUses": None, "allowedEmailDomain": None},
             )
             assert resp.status_code == 200
@@ -886,7 +899,7 @@ async def test_workspace_invite_link_disable_blocks_accept(prepared_db, integrat
             link_id = resp.json()["data"]["link"]["id"]
 
             # Disable the link.
-            resp = await client.post(f"/api/v1/workspaces/{ws.id}/team/invite-links/{link_id}/disable")
+            resp = await client.post(f"/api/v1/workspaces/{ws_pid}/team/invite-links/{link_id}/disable")
             assert resp.status_code == 200
 
             # Accept should fail.
@@ -976,33 +989,37 @@ async def test_workspace_team_member_manage_update_disable_enable_and_reset_pass
             base_url="http://test",
             headers={"X-Forwarded-For": uuid4().hex},
         ) as client:
+            ws_pid = encode_uuid(ws.id)
+            member_m_pid = encode_uuid(member_m.id)
+            owner_m_pid = encode_uuid(owner_m.id)
+
             # Owner updates member profile (workspace-scoped).
             current_user = owner
             resp = await client.patch(
-                f"/api/v1/workspaces/{ws.id}/team/members/{member_m.id}",
+                f"/api/v1/workspaces/{ws_pid}/team/members/{member_m_pid}",
                 json={"displayName": "Member Renamed", "email": "member2@example.com"},
             )
             assert resp.status_code == 200
             out = resp.json()["data"]
-            assert out["membershipId"] == str(member_m.id)
+            assert out["membershipId"] == member_m_pid
             assert out["displayName"] == "Member Renamed"
             assert out["email"] == "member2@example.com"
 
             # Email conflict should be rejected.
             resp = await client.patch(
-                f"/api/v1/workspaces/{ws.id}/team/members/{member_m.id}",
+                f"/api/v1/workspaces/{ws_pid}/team/members/{member_m_pid}",
                 json={"email": "other@example.com"},
             )
             assert resp.status_code == 409
 
             # Disable member.
-            resp = await client.post(f"/api/v1/workspaces/{ws.id}/team/members/{member_m.id}/disable")
+            resp = await client.post(f"/api/v1/workspaces/{ws_pid}/team/members/{member_m_pid}/disable")
             assert resp.status_code == 200
-            assert resp.json()["data"]["membershipId"] == str(member_m.id)
+            assert resp.json()["data"]["membershipId"] == member_m_pid
             assert resp.json()["data"]["status"] == "disabled"
 
             # Enable member.
-            resp = await client.post(f"/api/v1/workspaces/{ws.id}/team/members/{member_m.id}/enable")
+            resp = await client.post(f"/api/v1/workspaces/{ws_pid}/team/members/{member_m_pid}/enable")
             assert resp.status_code == 200
             assert resp.json()["data"]["status"] == "active"
 
@@ -1014,7 +1031,7 @@ async def test_workspace_team_member_manage_update_disable_enable_and_reset_pass
             before_ver = int(before_like.token_version or 0)
 
             resp = await client.post(
-                f"/api/v1/workspaces/{ws.id}/team/members/{member_m.id}/reset-password",
+                f"/api/v1/workspaces/{ws_pid}/team/members/{member_m_pid}/reset-password",
                 json={"newPassword": "new_password_1234"},
             )
             assert resp.status_code == 200
@@ -1028,5 +1045,5 @@ async def test_workspace_team_member_manage_update_disable_enable_and_reset_pass
             assert int(after_like.token_version or 0) == before_ver + 1
 
             # Disabling self should be rejected.
-            resp = await client.post(f"/api/v1/workspaces/{ws.id}/team/members/{owner_m.id}/disable")
+            resp = await client.post(f"/api/v1/workspaces/{ws_pid}/team/members/{owner_m_pid}/disable")
             assert resp.status_code == 400

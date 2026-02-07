@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-from uuid import UUID
-
 from fastapi import APIRouter, Depends
 
+from apps.api.common.types.public_uuid import PublicUUID
 from apps.api.config import Settings, get_settings
 from apps.api.core.http.pagination import PageData, PageParams, get_page_params
 from apps.api.core.http.response import Response as JsonResponse
@@ -36,7 +35,7 @@ def get_admin_asset_usages_service(settings: Settings = Depends(get_settings)) -
     summary="List asset usages",
 )
 async def list_asset_usages(
-    asset_id: UUID,
+    asset_id: PublicUUID,
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     _user=Depends(get_current_user),
     params: PageParams = Depends(get_page_params),

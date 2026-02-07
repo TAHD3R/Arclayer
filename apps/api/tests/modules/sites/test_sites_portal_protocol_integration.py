@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 import pytest
 import pytest_asyncio
@@ -8,6 +8,7 @@ from httpx import ASGITransport, AsyncClient
 from tortoise import Tortoise
 
 from apps.api.config import get_settings
+from apps.api.common.utils.public_ids import encode_uuid
 from apps.api.core.database.orm import close_orm, init_orm
 from apps.api.core.registry import create_app
 from apps.api.modules.organization.models.org_membership import OrgMembership, OrgRole
@@ -77,9 +78,7 @@ async def test_sites_public_preview_draft_publish_flow(prepared_schema) -> None:
             created_by_user_id=user.id,
         )
 
-        site_id = UUID("00000000-0000-0000-0000-000000000001")
         site = await SiteRecord.create(
-            id=site_id,
             workspace_id=ws.id,
             slug="demo",
             name="Demo",
@@ -89,6 +88,7 @@ async def test_sites_public_preview_draft_publish_flow(prepared_schema) -> None:
             is_active=True,
             created_by_user_id=user.id,
         )
+        site_pid = encode_uuid(site.id)
 
         # DB-backed runtime config should override defaults.
         await SettingRecord.create(
@@ -180,25 +180,25 @@ async def test_sites_public_preview_draft_publish_flow(prepared_schema) -> None:
             # Host resolution strips the port.
             resp = await client.get("/api/v1/sites/resolve", params={"host": "example.test:3100"})
             assert resp.status_code == 200
-            assert resp.json()["data"]["siteId"] == str(site.id)
+            assert resp.json()["data"]["siteId"] == site_pid
 
-            resp = await client.get(f"/api/v1/sites/{site.id}/runtime", params={"mode": "public"})
+            resp = await client.get(f"/api/v1/sites/{site_pid}/runtime", params={"mode": "public"})
             assert resp.status_code == 200
             assert resp.json()["data"]["theme"]["cssVars"]["--color-primary"] == "#ff0000"
 
             # Preview token required for preview runtime.
-            resp = await client.get(f"/api/v1/sites/{site.id}/runtime", params={"mode": "preview"})
+            resp = await client.get(f"/api/v1/sites/{site_pid}/runtime", params={"mode": "preview"})
             assert resp.status_code == 403
 
             # Issue preview token (stored in Valkey with TTL).
-            resp = await client.post(f"/api/v1/sites/{site.id}/preview-tokens", json={"ttlSeconds": 600})
+            resp = await client.post(f"/api/v1/sites/{site_pid}/preview-tokens", json={"ttlSeconds": 600})
             assert resp.status_code == 201
             token = resp.json()["data"]["token"]
             assert isinstance(token, str) and token
 
             # Entry draft + publish flow (v1).
             resp = await client.post(
-                f"/api/v1/sites/{site.id}/entries/draft",
+                f"/api/v1/sites/{site_pid}/entries/draft",
                 params={"token": token},
                 json={
                     "entryTypeCode": "blog_post",
@@ -211,7 +211,7 @@ async def test_sites_public_preview_draft_publish_flow(prepared_schema) -> None:
             assert resp.json()["data"]["revision"] == 2
 
             resp = await client.post(
-                f"/api/v1/sites/{site.id}/entries/publish",
+                f"/api/v1/sites/{site_pid}/entries/publish",
                 params={"token": token},
                 json={"entryTypeCode": "blog_post", "slug": "world", "revision": 2},
             )
@@ -219,7 +219,7 @@ async def test_sites_public_preview_draft_publish_flow(prepared_schema) -> None:
             assert resp.json()["data"]["revision"] == 2
 
             resp = await client.get(
-                f"/api/v1/sites/{site.id}/routes/resolve",
+                f"/api/v1/sites/{site_pid}/routes/resolve",
                 params={"path": "/blog/world", "mode": "public"},
             )
             assert resp.status_code == 200
@@ -227,7 +227,7 @@ async def test_sites_public_preview_draft_publish_flow(prepared_schema) -> None:
 
             # Creating a new entry from scratch should allow expectedRevision=0.
             resp = await client.post(
-                f"/api/v1/sites/{site.id}/entries/draft",
+                f"/api/v1/sites/{site_pid}/entries/draft",
                 params={"token": token},
                 json={
                     "entryTypeCode": "blog_post",
@@ -241,7 +241,7 @@ async def test_sites_public_preview_draft_publish_flow(prepared_schema) -> None:
 
             # Wrong expectedRevision should return 409 conflict.
             resp = await client.post(
-                f"/api/v1/sites/{site.id}/entries/draft",
+                f"/api/v1/sites/{site_pid}/entries/draft",
                 params={"token": token},
                 json={
                     "entryTypeCode": "blog_post",
@@ -253,7 +253,7 @@ async def test_sites_public_preview_draft_publish_flow(prepared_schema) -> None:
             assert resp.status_code == 409
 
             resp = await client.post(
-                f"/api/v1/sites/{site.id}/entries/publish",
+                f"/api/v1/sites/{site_pid}/entries/publish",
                 params={"token": token},
                 json={"entryTypeCode": "blog_post", "slug": "new", "revision": 1},
             )
@@ -262,7 +262,7 @@ async def test_sites_public_preview_draft_publish_flow(prepared_schema) -> None:
 
             # Publishing an unknown slug should return 404.
             resp = await client.post(
-                f"/api/v1/sites/{site.id}/entries/publish",
+                f"/api/v1/sites/{site_pid}/entries/publish",
                 params={"token": token},
                 json={"entryTypeCode": "blog_post", "slug": "missing", "revision": 1},
             )
@@ -270,7 +270,7 @@ async def test_sites_public_preview_draft_publish_flow(prepared_schema) -> None:
 
             # Unknown entry type should return 404.
             resp = await client.post(
-                f"/api/v1/sites/{site.id}/entries/draft",
+                f"/api/v1/sites/{site_pid}/entries/draft",
                 params={"token": token},
                 json={
                     "entryTypeCode": "missing_type",
@@ -282,7 +282,7 @@ async def test_sites_public_preview_draft_publish_flow(prepared_schema) -> None:
             assert resp.status_code == 404
 
             # Public sitemap should include published + public pages and entries.
-            resp = await client.get(f"/api/v1/sites/{site.id}/sitemap.xml")
+            resp = await client.get(f"/api/v1/sites/{site_pid}/sitemap.xml")
             assert resp.status_code == 200
             xml = resp.text
             assert "https://example.test/about" in xml
@@ -290,13 +290,13 @@ async def test_sites_public_preview_draft_publish_flow(prepared_schema) -> None:
             assert "https://example.test/blog/world" in xml  # dynamic entry (no static override)
 
             # Page revisions: published is public, draft requires token.
-            resp = await client.get(f"/api/v1/sites/{site.id}/pages/{about.id}/revisions/published")
+            resp = await client.get(f"/api/v1/sites/{site_pid}/pages/{encode_uuid(about.id)}/revisions/published")
             assert resp.status_code == 200
             assert resp.json()["data"]["revision"] == 1
             assert resp.json()["data"]["document"]["meta"]["title"]["en-US"] == "About v1"
 
             resp = await client.get(
-                f"/api/v1/sites/{site.id}/pages/{about.id}/revisions/draft",
+                f"/api/v1/sites/{site_pid}/pages/{encode_uuid(about.id)}/revisions/draft",
                 params={"token": token},
             )
             assert resp.status_code == 200
@@ -304,7 +304,7 @@ async def test_sites_public_preview_draft_publish_flow(prepared_schema) -> None:
 
             # Static route should win over template match (/blog/hello).
             resp = await client.get(
-                f"/api/v1/sites/{site.id}/routes/resolve",
+                f"/api/v1/sites/{site_pid}/routes/resolve",
                 params={"path": "/blog/hello", "mode": "public"},
             )
             assert resp.status_code == 200
@@ -314,7 +314,7 @@ async def test_sites_public_preview_draft_publish_flow(prepared_schema) -> None:
 
             # Save a draft for /about (rev=2).
             resp = await client.post(
-                f"/api/v1/sites/{site.id}/routes/draft",
+                f"/api/v1/sites/{site_pid}/routes/draft",
                 params={"token": token},
                 json={"path": "/about", "document": _doc("About v2 (draft)"), "expectedRevision": 1},
             )
@@ -322,7 +322,7 @@ async def test_sites_public_preview_draft_publish_flow(prepared_schema) -> None:
             assert resp.json()["data"]["revision"] == 2
 
             resp = await client.get(
-                f"/api/v1/sites/{site.id}/pages/{about.id}/revisions/draft",
+                f"/api/v1/sites/{site_pid}/pages/{encode_uuid(about.id)}/revisions/draft",
                 params={"token": token},
             )
             assert resp.status_code == 200
@@ -331,7 +331,7 @@ async def test_sites_public_preview_draft_publish_flow(prepared_schema) -> None:
 
             # Public mode still sees published v1.
             resp = await client.get(
-                f"/api/v1/sites/{site.id}/routes/resolve",
+                f"/api/v1/sites/{site_pid}/routes/resolve",
                 params={"path": "/about", "mode": "public"},
             )
             assert resp.status_code == 200
@@ -339,7 +339,7 @@ async def test_sites_public_preview_draft_publish_flow(prepared_schema) -> None:
 
             # Preview mode sees latest draft v2.
             resp = await client.get(
-                f"/api/v1/sites/{site.id}/routes/resolve",
+                f"/api/v1/sites/{site_pid}/routes/resolve",
                 params={"path": "/about", "mode": "preview", "token": token},
             )
             assert resp.status_code == 200
@@ -347,7 +347,7 @@ async def test_sites_public_preview_draft_publish_flow(prepared_schema) -> None:
 
             # Publishing makes v2 visible to public.
             resp = await client.post(
-                f"/api/v1/sites/{site.id}/routes/publish",
+                f"/api/v1/sites/{site_pid}/routes/publish",
                 params={"token": token},
                 json={"path": "/about", "revision": 2},
             )
@@ -355,19 +355,19 @@ async def test_sites_public_preview_draft_publish_flow(prepared_schema) -> None:
             assert resp.json()["data"]["revision"] == 2
 
             resp = await client.get(
-                f"/api/v1/sites/{site.id}/routes/resolve",
+                f"/api/v1/sites/{site_pid}/routes/resolve",
                 params={"path": "/about", "mode": "public"},
             )
             assert resp.status_code == 200
             assert resp.json()["data"]["document"]["meta"]["title"]["en-US"] == "About v2 (draft)"
 
-            resp = await client.get(f"/api/v1/sites/{site.id}/pages/{about.id}/revisions/published")
+            resp = await client.get(f"/api/v1/sites/{site_pid}/pages/{encode_uuid(about.id)}/revisions/published")
             assert resp.status_code == 200
             assert resp.json()["data"]["revision"] == 2
 
             # Optimistic lock mismatch -> 409 Conflict.
             resp = await client.post(
-                f"/api/v1/sites/{site.id}/routes/draft",
+                f"/api/v1/sites/{site_pid}/routes/draft",
                 params={"token": token},
                 json={"path": "/about", "document": _doc("About v3"), "expectedRevision": 1},
             )
@@ -375,7 +375,7 @@ async def test_sites_public_preview_draft_publish_flow(prepared_schema) -> None:
 
             # Preferred editor entrypoints: save/publish by pageId.
             resp = await client.post(
-                f"/api/v1/sites/{site.id}/pages/{about.id}/revisions/draft",
+                f"/api/v1/sites/{site_pid}/pages/{encode_uuid(about.id)}/revisions/draft",
                 params={"token": token},
                 json={
                     "document": _doc("About v3 (draft by id)"),
@@ -383,18 +383,18 @@ async def test_sites_public_preview_draft_publish_flow(prepared_schema) -> None:
                 },
             )
             assert resp.status_code == 201
-            assert resp.json()["data"]["pageId"] == str(about.id)
+            assert resp.json()["data"]["pageId"] == encode_uuid(about.id)
             assert resp.json()["data"]["revision"] == 3
 
             resp = await client.get(
-                f"/api/v1/sites/{site.id}/routes/resolve",
+                f"/api/v1/sites/{site_pid}/routes/resolve",
                 params={"path": "/about", "mode": "preview", "token": token},
             )
             assert resp.status_code == 200
             assert resp.json()["data"]["document"]["meta"]["title"]["en-US"] == "About v3 (draft by id)"
 
             resp = await client.post(
-                f"/api/v1/sites/{site.id}/pages/{about.id}/revisions/publish",
+                f"/api/v1/sites/{site_pid}/pages/{encode_uuid(about.id)}/revisions/publish",
                 params={"token": token},
                 json={"revision": 3},
             )
@@ -402,14 +402,14 @@ async def test_sites_public_preview_draft_publish_flow(prepared_schema) -> None:
             assert resp.json()["data"]["revision"] == 3
 
             resp = await client.get(
-                f"/api/v1/sites/{site.id}/routes/resolve",
+                f"/api/v1/sites/{site_pid}/routes/resolve",
                 params={"path": "/about", "mode": "public"},
             )
             assert resp.status_code == 200
             assert resp.json()["data"]["document"]["meta"]["title"]["en-US"] == "About v3 (draft by id)"
 
             # Entry revisions: ensure published snapshot is accessible.
-            resp = await client.get(f"/api/v1/sites/{site.id}/entries/{entry.id}/revisions/published")
+            resp = await client.get(f"/api/v1/sites/{site_pid}/entries/{encode_uuid(entry.id)}/revisions/published")
             assert resp.status_code == 200
             assert resp.json()["data"]["revision"] == 1
             assert resp.json()["data"]["document"]["meta"]["title"]["en-US"] == "Entry /blog/:slug hello"

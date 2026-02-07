@@ -5,6 +5,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Body, Depends, Query, Request, status
 
+from apps.api.common.types.public_uuid import PublicUUID
 from apps.api.config import Settings, get_settings
 from apps.api.core.http.pagination import PageData
 from apps.api.core.http.response import Response, ResponseModel
@@ -61,10 +62,10 @@ async def _resolve_site_id(
     ctx: Annotated[WorkspaceContext, Depends(require_workspace_manage_access)],
     user_id: Annotated[UUID, Depends(get_current_user_id)],
     settings: Settings = Depends(get_settings),
-) -> str:
+) -> UUID:
     service = WorkspaceSiteService(settings)
     site = await service.get_or_create_site_for_workspace(workspace_id=ctx.workspace_id, actor_user_id=user_id)
-    return str(site.id)
+    return site.id
 
 
 @router.get(
@@ -81,8 +82,8 @@ async def get_workspace_site(
     service = WorkspaceSiteService(settings)
     site = await service.get_or_create_site_for_workspace(workspace_id=ctx.workspace_id, actor_user_id=user_id)
     out = WorkspaceSiteOut(
-        siteId=str(site.id),
-        workspaceId=str(ctx.workspace_id),
+        siteId=site.id,
+        workspaceId=ctx.workspace_id,
         slug=str(site.slug),
         name=str(site.name),
         defaultLocale=str(site.default_locale),
@@ -102,7 +103,7 @@ async def get_workspace_site(
 )
 async def create_workspace_site_preview_token(
     payload: Annotated[SitePreviewTokenCreateIn, Body(description="Preview token request.")],
-    site_id: Annotated[str, Depends(_resolve_site_id)],
+    site_id: Annotated[UUID, Depends(_resolve_site_id)],
     service: Annotated[SiteService, Depends(get_site_service)],
 ) -> ResponseModel[SitePreviewTokenOut]:
     data = await service.create_preview_token(site_id=site_id, ttl_seconds=payload.ttl_seconds)
@@ -117,7 +118,7 @@ async def create_workspace_site_preview_token(
 )
 async def get_workspace_site_setting(
     namespace: Annotated[str, Query(..., description="Setting namespace (e.g. theme.config).")],
-    site_id: Annotated[str, Depends(_resolve_site_id)],
+    site_id: Annotated[UUID, Depends(_resolve_site_id)],
     service: Annotated[SiteService, Depends(get_site_service)],
 ) -> ResponseModel[SiteSettingGetOut]:
     data = await service.get_site_setting(site_id=site_id, namespace=namespace)
@@ -133,7 +134,7 @@ async def get_workspace_site_setting(
 async def upsert_workspace_site_setting(
     namespace: Annotated[str, Query(..., description="Setting namespace (e.g. theme.config).")],
     payload: Annotated[SiteSettingUpsertIn, Body(description="Upsert payload.")],
-    site_id: Annotated[str, Depends(_resolve_site_id)],
+    site_id: Annotated[UUID, Depends(_resolve_site_id)],
     service: Annotated[SiteService, Depends(get_site_service)],
 ) -> ResponseModel[SiteSettingGetOut]:
     data = await service.upsert_site_setting(site_id=site_id, namespace=namespace, payload=payload)
@@ -147,7 +148,7 @@ async def upsert_workspace_site_setting(
     summary="List pages as a tree (workspace RBAC protected)",
 )
 async def list_workspace_site_pages_tree(
-    site_id: Annotated[str, Depends(_resolve_site_id)],
+    site_id: Annotated[UUID, Depends(_resolve_site_id)],
     service: Annotated[SiteService, Depends(get_site_service)],
 ) -> ResponseModel[PageData[SitePageTreeNodeOut]]:
     data = await service.list_pages_tree(site_id=site_id)
@@ -161,8 +162,8 @@ async def list_workspace_site_pages_tree(
     summary="Get a page (workspace RBAC protected)",
 )
 async def get_workspace_site_page(
-    page_id: UUID,
-    site_id: Annotated[str, Depends(_resolve_site_id)],
+    page_id: PublicUUID,
+    site_id: Annotated[UUID, Depends(_resolve_site_id)],
     service: Annotated[SiteService, Depends(get_site_service)],
 ) -> ResponseModel[SitePageTreeNodeOut]:
     data = await service.get_page(site_id=site_id, page_id=page_id)
@@ -178,7 +179,7 @@ async def get_workspace_site_page(
 )
 async def create_workspace_site_page(
     payload: Annotated[SitePageCreateIn, Body(description="Create payload.")],
-    site_id: Annotated[str, Depends(_resolve_site_id)],
+    site_id: Annotated[UUID, Depends(_resolve_site_id)],
     service: Annotated[SiteService, Depends(get_site_service)],
 ) -> ResponseModel[SitePageTreeNodeOut]:
     data = await service.create_page(site_id=site_id, payload=payload)
@@ -192,9 +193,9 @@ async def create_workspace_site_page(
     summary="Update a page (workspace RBAC protected)",
 )
 async def update_workspace_site_page(
-    page_id: UUID,
+    page_id: PublicUUID,
     payload: Annotated[SitePageUpdateIn, Body(description="Update payload.")],
-    site_id: Annotated[str, Depends(_resolve_site_id)],
+    site_id: Annotated[UUID, Depends(_resolve_site_id)],
     service: Annotated[SiteService, Depends(get_site_service)],
 ) -> ResponseModel[SitePageTreeNodeOut]:
     data = await service.update_page(site_id=site_id, page_id=page_id, payload=payload)
@@ -208,9 +209,9 @@ async def update_workspace_site_page(
     summary="Move/reorder a page (workspace RBAC protected)",
 )
 async def move_workspace_site_page(
-    page_id: UUID,
+    page_id: PublicUUID,
     payload: Annotated[SitePageMoveIn, Body(description="Move payload.")],
-    site_id: Annotated[str, Depends(_resolve_site_id)],
+    site_id: Annotated[UUID, Depends(_resolve_site_id)],
     service: Annotated[SiteService, Depends(get_site_service)],
 ) -> ResponseModel[SitePageTreeNodeOut]:
     data = await service.move_page(site_id=site_id, page_id=page_id, payload=payload)
@@ -224,8 +225,8 @@ async def move_workspace_site_page(
     summary="Delete a page (workspace RBAC protected)",
 )
 async def delete_workspace_site_page(
-    page_id: UUID,
-    site_id: Annotated[str, Depends(_resolve_site_id)],
+    page_id: PublicUUID,
+    site_id: Annotated[UUID, Depends(_resolve_site_id)],
     service: Annotated[SiteService, Depends(get_site_service)],
 ) -> ResponseModel[None]:
     await service.delete_page(site_id=site_id, page_id=page_id)
@@ -239,8 +240,8 @@ async def delete_workspace_site_page(
     summary="Get a published page revision snapshot (workspace RBAC protected)",
 )
 async def get_workspace_site_published_page_revision(
-    page_id: UUID,
-    site_id: Annotated[str, Depends(_resolve_site_id)],
+    page_id: PublicUUID,
+    site_id: Annotated[UUID, Depends(_resolve_site_id)],
     service: Annotated[SiteService, Depends(get_site_service)],
 ) -> ResponseModel[SitePageRevisionOut]:
     data = await service.get_page_revision(site_id=site_id, page_id=page_id, state="published")
@@ -254,8 +255,8 @@ async def get_workspace_site_published_page_revision(
     summary="Get a draft page revision snapshot (workspace RBAC protected)",
 )
 async def get_workspace_site_draft_page_revision(
-    page_id: UUID,
-    site_id: Annotated[str, Depends(_resolve_site_id)],
+    page_id: PublicUUID,
+    site_id: Annotated[UUID, Depends(_resolve_site_id)],
     service: Annotated[SiteService, Depends(get_site_service)],
 ) -> ResponseModel[SitePageRevisionOut]:
     data = await service.get_page_revision(site_id=site_id, page_id=page_id, state="draft")
@@ -270,9 +271,9 @@ async def get_workspace_site_draft_page_revision(
     summary="Save a draft page revision (workspace RBAC protected)",
 )
 async def save_workspace_site_page_draft_revision(
-    page_id: UUID,
+    page_id: PublicUUID,
     payload: Annotated[SitePageDraftSaveIn, Body(description="Page draft save payload.")],
-    site_id: Annotated[str, Depends(_resolve_site_id)],
+    site_id: Annotated[UUID, Depends(_resolve_site_id)],
     service: Annotated[SiteService, Depends(get_site_service)],
 ) -> ResponseModel[SitePageDraftSaveOut]:
     data = await service.save_page_draft(site_id=site_id, page_id=page_id, payload=payload)
@@ -286,9 +287,9 @@ async def save_workspace_site_page_draft_revision(
     summary="Publish a page revision (workspace RBAC protected)",
 )
 async def publish_workspace_site_page_revision(
-    page_id: UUID,
+    page_id: PublicUUID,
     payload: Annotated[SitePagePublishIn, Body(description="Page publish payload.")],
-    site_id: Annotated[str, Depends(_resolve_site_id)],
+    site_id: Annotated[UUID, Depends(_resolve_site_id)],
     service: Annotated[SiteService, Depends(get_site_service)],
 ) -> ResponseModel[SitePagePublishOut]:
     data = await service.publish_page(site_id=site_id, page_id=page_id, payload=payload)
@@ -302,8 +303,8 @@ async def publish_workspace_site_page_revision(
     summary="Unpublish a page (workspace RBAC protected)",
 )
 async def unpublish_workspace_site_page(
-    page_id: UUID,
-    site_id: Annotated[str, Depends(_resolve_site_id)],
+    page_id: PublicUUID,
+    site_id: Annotated[UUID, Depends(_resolve_site_id)],
     service: Annotated[SiteService, Depends(get_site_service)],
 ) -> ResponseModel[SitePageUnpublishOut]:
     data = await service.unpublish_page(site_id=site_id, page_id=page_id)
@@ -317,9 +318,9 @@ async def unpublish_workspace_site_page(
     summary="Rollback a page revision pointer (draft or published; workspace RBAC protected)",
 )
 async def rollback_workspace_site_page_revision(
-    page_id: UUID,
+    page_id: PublicUUID,
     payload: Annotated[SitePageRollbackIn, Body(description="Rollback payload.")],
-    site_id: Annotated[str, Depends(_resolve_site_id)],
+    site_id: Annotated[UUID, Depends(_resolve_site_id)],
     service: Annotated[SiteService, Depends(get_site_service)],
 ) -> ResponseModel[SitePageRollbackOut]:
     data = await service.rollback_page_revision(site_id=site_id, page_id=page_id, payload=payload)

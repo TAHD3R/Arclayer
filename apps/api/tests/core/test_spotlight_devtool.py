@@ -34,6 +34,8 @@ async def test_spotlight_disabled_in_production() -> None:
     settings = Settings(
         app_env="production",
         application=ApplicationSettings(static_enabled=False),
+        # Production settings require a stable public-id secret; provide a test-only value.
+        public_id={"secret": "test-public-id-secret"},
     )
     app = AppFactory(settings).with_spotlight_docs().app
 

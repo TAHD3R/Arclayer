@@ -2,17 +2,17 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import StrEnum
-from uuid import UUID
 
 from pydantic import EmailStr, Field
 
 from apps.api.common.schemas import BaseOut, BaseSchema
+from apps.api.common.types.public_uuid import PublicUUID
 from apps.api.modules.organization.models.user import UserStatus
 from apps.api.modules.workspaces.models.workspace import WorkspaceMembershipStatus
 
 
 class WorkspaceTeamUserRefOut(BaseSchema):
-    user_id: UUID = Field(..., description="User id.")
+    user_id: PublicUUID = Field(..., description="User id.")
     username: str = Field(..., description="Username.")
     email: str | None = Field(default=None, description="Email.")
     display_name: str | None = Field(default=None, description="Display name.")
@@ -27,16 +27,16 @@ class WorkspaceTeamUserOptionOut(BaseSchema):
     - Keep payload minimal and stable (value/label/avatar) for UI consumption.
     """
 
-    value: UUID = Field(..., description="User id (value).")
+    value: PublicUUID = Field(..., description="User id (value).")
     label: str = Field(..., description="User display label.")
     avatar_url: str | None = Field(default=None, description="Avatar URL.")
 
 
 class WorkspaceTeamMemberOut(BaseOut):
-    membership_id: UUID = Field(..., description="Workspace membership id.")
+    membership_id: PublicUUID = Field(..., description="Workspace membership id.")
     membership_status: WorkspaceMembershipStatus = Field(..., description="Workspace membership status.")
 
-    user_id: UUID = Field(..., description="User id.")
+    user_id: PublicUUID = Field(..., description="User id.")
     username: str = Field(..., description="Username.")
     email: str | None = Field(default=None, description="Email.")
     display_name: str | None = Field(default=None, description="Display name.")
@@ -78,7 +78,7 @@ class WorkspaceTeamResetPasswordRequest(BaseSchema):
 
 
 class WorkspaceTeamMemberStatusResult(BaseSchema):
-    membership_id: UUID = Field(..., description="Workspace membership id.")
+    membership_id: PublicUUID = Field(..., description="Workspace membership id.")
     status: WorkspaceMembershipStatus = Field(..., description="Updated membership status.")
 
 
@@ -94,10 +94,10 @@ class WorkspaceEmailInviteOut(BaseOut):
     role_code: str | None = Field(default=None, description="Role code to assign when accepted.")
     expires_at: datetime | None = Field(default=None, description="Expiration datetime (UTC).")
 
-    created_by_user_id: UUID = Field(..., description="Inviter user id.")
+    created_by_user_id: PublicUUID = Field(..., description="Inviter user id.")
     created_by: WorkspaceTeamUserRefOut | None = Field(default=None, description="Inviter user summary.")
 
-    accepted_by_user_id: UUID | None = Field(default=None, description="Accepted by user id.")
+    accepted_by_user_id: PublicUUID | None = Field(default=None, description="Accepted by user id.")
     accepted_by: WorkspaceTeamUserRefOut | None = Field(default=None, description="Accepted by user summary.")
     accepted_at: datetime | None = Field(default=None, description="Accepted datetime (UTC).")
 

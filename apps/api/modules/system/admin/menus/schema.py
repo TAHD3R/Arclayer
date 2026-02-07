@@ -3,11 +3,11 @@ from __future__ import annotations
 from datetime import datetime
 from enum import StrEnum
 from typing import Any
-from uuid import UUID
 
 from pydantic import Field
 
 from apps.api.common.schemas import BaseOut, BaseSchema
+from apps.api.common.types.public_uuid import PublicUUID
 
 
 class AdminMenuNode(BaseSchema):
@@ -18,7 +18,7 @@ class AdminMenuNode(BaseSchema):
     - meta is a free-form JSON dict for route meta.
     """
 
-    id: UUID = Field(..., description="Menu item id.")
+    id: PublicUUID = Field(..., description="Menu item id.")
     code: str = Field(..., description="Stable code (immutable).")
     title: str = Field(..., description="Display title (already localized if needed).")
     title_i18n: str | None = Field(default=None, description="Optional i18n ref, e.g. 'org:MENU_ORG'.")
@@ -61,7 +61,7 @@ class AdminMenuNodeEffective(BaseSchema):
     - `blocked_reason` explains why it is not allowed (if applicable).
     """
 
-    id: UUID = Field(..., description="Menu item id.")
+    id: PublicUUID = Field(..., description="Menu item id.")
     code: str = Field(..., description="Stable code (immutable).")
     title: str = Field(..., description="Display title (already localized if needed).")
     title_i18n: str | None = Field(default=None, description="Optional i18n ref, e.g. 'nav:NAV_CONTENT'.")
@@ -91,7 +91,7 @@ class AdminMenuTreeEffectiveOut(BaseSchema):
 
 class AdminMenuItemOut(BaseOut):
     code: str = Field(..., description="Stable code (immutable).")
-    parent_id: UUID | None = Field(default=None, description="Parent menu item id.")
+    parent_id: PublicUUID | None = Field(default=None, description="Parent menu item id.")
     title: str = Field(..., description="Title.")
     title_i18n: str | None = Field(default=None, description="I18n ref.")
     icon: str | None = Field(default=None, description="Icon key.")
@@ -112,14 +112,14 @@ class AdminMenuItemOut(BaseOut):
 class AdminMenuListQuery(BaseSchema):
     q: str | None = Field(default=None, description="Search by title/code/path/name.")
     include_deleted: bool = Field(default=False, description="Include deleted items.")
-    parent_id: UUID | None = Field(default=None, description="Filter by parent id.")
+    parent_id: PublicUUID | None = Field(default=None, description="Filter by parent id.")
     permission_code: str | None = Field(default=None, description="Filter by permission code.")
     ordering: str | None = Field(default=None, description="Ordering, e.g. 'sort,-created_at'.")
 
 
 class AdminMenuCreateRequest(BaseSchema):
     code: str = Field(..., min_length=1, max_length=64, description="Stable code (immutable after create).")
-    parent_id: UUID | None = Field(default=None, description="Parent id.")
+    parent_id: PublicUUID | None = Field(default=None, description="Parent id.")
     title: str = Field(..., min_length=1, max_length=128, description="Title.")
     title_i18n: str | None = Field(default=None, max_length=128, description="I18n ref.")
     icon: str | None = Field(default=None, max_length=64, description="Icon key.")
@@ -136,7 +136,7 @@ class AdminMenuCreateRequest(BaseSchema):
 
 class AdminMenuUpdateRequest(BaseSchema):
     # code is intentionally excluded: immutable.
-    parent_id: UUID | None = Field(default=None, description="Parent id.")
+    parent_id: PublicUUID | None = Field(default=None, description="Parent id.")
     title: str | None = Field(default=None, min_length=1, max_length=128, description="Title.")
     title_i18n: str | None = Field(default=None, max_length=128, description="I18n ref.")
     icon: str | None = Field(default=None, max_length=64, description="Icon key.")
@@ -152,5 +152,5 @@ class AdminMenuUpdateRequest(BaseSchema):
 
 
 class AdminMenuReorderRequest(BaseSchema):
-    parent_id: UUID | None = Field(default=None, description="Parent id (null for root).")
-    ordered_ids: list[UUID] = Field(..., min_length=1, description="Ids in desired order.")
+    parent_id: PublicUUID | None = Field(default=None, description="Parent id (null for root).")
+    ordered_ids: list[PublicUUID] = Field(..., min_length=1, description="Ids in desired order.")

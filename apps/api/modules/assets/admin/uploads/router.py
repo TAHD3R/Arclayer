@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-from uuid import UUID
-
 from fastapi import APIRouter, BackgroundTasks, Depends, Header, Request
 
+from apps.api.common.types.public_uuid import PublicUUID
 from apps.api.config import Settings, get_settings
 from apps.api.core.exceptions import BadRequest
 from apps.api.core.http.response import Response, ResponseModel
@@ -75,7 +74,7 @@ async def init_upload(
     summary="Get upload status",
 )
 async def get_upload_status(
-    upload_id: UUID,
+    upload_id: PublicUUID,
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     _user=Depends(get_current_user),
     service: UploadsService = Depends(get_uploads_service),
@@ -99,7 +98,7 @@ async def get_upload_status(
 )
 async def upload_part(
     request: Request,
-    upload_id: UUID,
+    upload_id: PublicUUID,
     part_number: int,
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     _user=Depends(get_current_user),
@@ -125,7 +124,7 @@ async def upload_part(
 )
 async def complete_upload(
     background_tasks: BackgroundTasks,
-    upload_id: UUID,
+    upload_id: PublicUUID,
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     _user=Depends(get_current_user),
     service: UploadsService = Depends(get_uploads_service),
@@ -142,7 +141,7 @@ async def complete_upload(
     summary="Abort upload",
 )
 async def abort_upload(
-    upload_id: UUID,
+    upload_id: PublicUUID,
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     _user=Depends(get_current_user),
     service: UploadsService = Depends(get_uploads_service),
@@ -157,7 +156,7 @@ async def abort_upload(
     summary="Presign upload part",
 )
 async def presign_upload_part(
-    upload_id: UUID,
+    upload_id: PublicUUID,
     part_number: int,
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     _user=Depends(get_current_user),
@@ -173,7 +172,7 @@ async def presign_upload_part(
     summary="Commit upload part",
 )
 async def commit_upload_part(
-    upload_id: UUID,
+    upload_id: PublicUUID,
     part_number: int,
     payload: UploadPartCommitRequest,
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),

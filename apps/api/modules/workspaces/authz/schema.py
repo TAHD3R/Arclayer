@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from uuid import UUID
-
 from pydantic import Field
 
 from apps.api.common.schemas import BaseSchema
+from apps.api.common.types.public_uuid import PublicUUID
 
 
 class AuthzSnapshot(BaseSchema):
@@ -17,7 +16,7 @@ class AuthzSnapshot(BaseSchema):
     - `is_superuser` means the user effectively has all permissions in the current scope.
     """
 
-    user_id: UUID = Field(..., description="User id.")
+    user_id: PublicUUID = Field(..., description="User id.")
     role_codes: list[str] = Field(default_factory=list, description="Effective role codes.")
     permission_codes: list[str] = Field(default_factory=list, description="Effective permission codes.")
     is_superuser: bool = Field(default=False, description="Whether user is a superuser.")

@@ -15,6 +15,7 @@ from apps.api.common.protocols.tortoise import (
     RouteTemplateIds,
     SettingUpdatedBy,
 )
+from apps.api.common.utils.public_ids import decode_public_id, encode_uuid, is_public_id
 from apps.api.common.repositories.base import BaseRepository
 from apps.api.core.exceptions import Conflict, NotFound
 from apps.api.modules.assets.models.asset import AssetRecord
@@ -44,10 +45,10 @@ class _RouteTemplateCache:
 
     def __init__(self) -> None:
         # Keyed by (site_id, version). Version is used for cross-instance invalidation.
-        self._by_key: dict[tuple[str, int], tuple[int, list[_CompiledRouteTemplate]]] = {}
+        self._by_key: dict[tuple[UUID, int], tuple[int, list[_CompiledRouteTemplate]]] = {}
         self._lock = asyncio.Lock()
 
-    async def get(self, *, site_id: str, version: int, loader) -> list[_CompiledRouteTemplate]:
+    async def get(self, *, site_id: UUID, version: int, loader) -> list[_CompiledRouteTemplate]:
         now_ms = int(time.time() * 1000)
         key = (site_id, int(version or 0))
         cached = self._by_key.get(key)
@@ -62,7 +63,7 @@ class _RouteTemplateCache:
             self._by_key[key] = (now_ms + self._TTL_MS, compiled)
             return compiled
 
-    def invalidate(self, *, site_id: str) -> None:
+    def invalidate(self, *, site_id: UUID) -> None:
         # Remove all cached versions for a site (writers call this after mutations).
         for key in list(self._by_key.keys()):
             if key[0] == site_id:
@@ -230,13 +231,13 @@ class SitesRepository(BaseRepository):
             .values_list("id", flat=True)
         )
         existing = {UUID(str(x)) for x in rows}
-        missing = [str(aid) for aid in asset_ids if aid not in existing]
+        missing = [encode_uuid(aid) for aid in asset_ids if aid not in existing]
         return missing
 
     async def _validate_revision_deps_assets(
         self,
         *,
-        site_id: str,
+        site_id: UUID,
         deps: dict | None,
         conn,
     ) -> None:
@@ -259,10 +260,25 @@ class SitesRepository(BaseRepository):
             if not isinstance(x, str) or not x.strip():
                 invalid.append(str(x))
                 continue
+            raw = x.strip()
+            if is_public_id(raw):
+                try:
+                    parsed.append(decode_public_id(raw))
+                except Exception:
+                    invalid.append(raw)
+                continue
+
+            # Optional compatibility: allow raw UUID strings in dev/test (configurable).
+            from apps.api.config import get_settings
+
+            if not get_settings().public_id.accept_raw_uuid_input:
+                invalid.append(raw)
+                continue
+
             try:
-                parsed.append(UUID(x))
+                parsed.append(UUID(raw))
             except Exception:
-                invalid.append(x)
+                invalid.append(raw)
 
         if not parsed and not invalid:
             return
@@ -286,7 +302,7 @@ class SitesRepository(BaseRepository):
                 meta={"missingAssets": [*invalid, *missing]},
             )
 
-    async def get_site_by_id(self, *, site_id: str) -> SiteRecord:
+    async def get_site_by_id(self, *, site_id: UUID) -> SiteRecord:
         site = await SiteRecord.get_or_none(id=site_id)
         if site is None:
             raise NotFound("Site not found", error="SITE_NOT_FOUND")
@@ -301,7 +317,7 @@ class SitesRepository(BaseRepository):
             raw = raw.split(":", 1)[0]
         return await SiteRecord.get_or_none(primary_host=raw)
 
-    async def get_site_setting(self, *, site_id: str, namespace: str) -> SettingRecord | None:
+    async def get_site_setting(self, *, site_id: UUID, namespace: str) -> SettingRecord | None:
         ns = (namespace or "").strip()
         if not ns:
             return None
@@ -310,7 +326,7 @@ class SitesRepository(BaseRepository):
     async def upsert_site_setting(
         self,
         *,
-        site_id: str,
+        site_id: UUID,
         namespace: str,
         value: dict | None,
         updated_by: UUID | None,
@@ -333,7 +349,7 @@ class SitesRepository(BaseRepository):
         await rec.save(update_fields=["value", "updated_by"])
         return rec
 
-    async def get_site_settings_snapshot(self, *, site_id: str, namespaces: list[str]) -> dict[str, int]:
+    async def get_site_settings_snapshot(self, *, site_id: UUID, namespaces: list[str]) -> dict[str, int]:
         """
         Build a minimal settings snapshot for deps (v1).
 
@@ -364,21 +380,21 @@ class SitesRepository(BaseRepository):
             out.setdefault(ns, 0)
         return out
 
-    async def get_page_by_id(self, *, site_id: str, page_id: UUID) -> SitePageRecord | None:
+    async def get_page_by_id(self, *, site_id: UUID, page_id: UUID) -> SitePageRecord | None:
         return await SitePageRecord.get_or_none(id=page_id, site_id=site_id)
 
-    async def get_page_by_path(self, *, site_id: str, path: str) -> SitePageRecord | None:
+    async def get_page_by_path(self, *, site_id: UUID, path: str) -> SitePageRecord | None:
         pathname = normalize_path(path)
         return await SitePageRecord.get_or_none(site_id=site_id, path=pathname)
 
-    async def list_pages_by_site(self, *, site_id: str) -> list[SitePageRecord]:
+    async def list_pages_by_site(self, *, site_id: UUID) -> list[SitePageRecord]:
         # Keep ordering deterministic so tree building stays stable.
         return await SitePageRecord.filter(site_id=site_id).order_by("sort_order", "path").all()
 
     async def create_page(
         self,
         *,
-        site_id: str,
+        site_id: UUID,
         path: str,
         parent_id: UUID | None,
         sort_order: int,
@@ -411,7 +427,7 @@ class SitesRepository(BaseRepository):
     async def update_page(
         self,
         *,
-        site_id: str,
+        site_id: UUID,
         page_id: UUID,
         path: str,
         parent_id: UUID | None,
@@ -444,10 +460,10 @@ class SitesRepository(BaseRepository):
 
         return page
 
-    async def page_has_children(self, *, site_id: str, page_id: UUID) -> bool:
+    async def page_has_children(self, *, site_id: UUID, page_id: UUID) -> bool:
         return await SitePageRecord.filter(site_id=site_id, parent_id=page_id).exists()
 
-    async def delete_page(self, *, site_id: str, page_id: UUID) -> None:
+    async def delete_page(self, *, site_id: UUID, page_id: UUID) -> None:
         deleted = await SitePageRecord.filter(site_id=site_id, id=page_id).delete()
         if not deleted:
             raise NotFound("Page not found", error="PAGE_NOT_FOUND")
@@ -455,7 +471,7 @@ class SitesRepository(BaseRepository):
     async def get_page_revision(self, *, page_id: UUID, rev: int) -> SitePageRevisionRecord | None:
         return await SitePageRevisionRecord.get_or_none(page_id=page_id, rev=rev)
 
-    async def get_page_revision_by_id(self, *, site_id: str, revision_id: UUID) -> SitePageRevisionRecord | None:
+    async def get_page_revision_by_id(self, *, site_id: UUID, revision_id: UUID) -> SitePageRevisionRecord | None:
         # Ensure the revision belongs to the given site via page relationship.
         return (
             await SitePageRevisionRecord.filter(id=revision_id, page__site_id=site_id).prefetch_related("page").first()
@@ -464,7 +480,7 @@ class SitesRepository(BaseRepository):
     async def rollback_page_revision_pointer(
         self,
         *,
-        site_id: str,
+        site_id: UUID,
         page_id: UUID,
         target: Literal["draft", "published"],
         revision: int,
@@ -502,7 +518,7 @@ class SitesRepository(BaseRepository):
             await page.save(update_fields=["published_rev"], using_db=conn)
             return from_rev, int(revision), now_ms
 
-    async def get_entry_by_id(self, *, site_id: str, entry_id: UUID) -> EntryRecord | None:
+    async def get_entry_by_id(self, *, site_id: UUID, entry_id: UUID) -> EntryRecord | None:
         return await EntryRecord.get_or_none(id=entry_id, site_id=site_id)
 
     async def get_entry_revision(self, *, entry_id: UUID, rev: int) -> EntryRevisionRecord | None:
@@ -511,7 +527,7 @@ class SitesRepository(BaseRepository):
     async def rollback_entry_revision_pointer(
         self,
         *,
-        site_id: str,
+        site_id: UUID,
         entry_id: UUID,
         target: Literal["draft", "published"],
         revision: int,
@@ -549,7 +565,7 @@ class SitesRepository(BaseRepository):
             await entry.save(update_fields=["published_rev"], using_db=conn)
             return from_rev, int(revision), now_ms
 
-    async def get_entry_type_by_code(self, *, site_id: str, code: str) -> EntryTypeRecord:
+    async def get_entry_type_by_code(self, *, site_id: UUID, code: str) -> EntryTypeRecord:
         c = (code or "").strip()
         if not c:
             raise NotFound("Entry type not found", error="ENTRY_TYPE_NOT_FOUND")
@@ -558,16 +574,16 @@ class SitesRepository(BaseRepository):
             raise NotFound("Entry type not found", error="ENTRY_TYPE_NOT_FOUND")
         return et
 
-    async def get_entry_type_by_id(self, *, site_id: str, entry_type_id: UUID) -> EntryTypeRecord | None:
+    async def get_entry_type_by_id(self, *, site_id: UUID, entry_type_id: UUID) -> EntryTypeRecord | None:
         return await EntryTypeRecord.get_or_none(id=entry_type_id, site_id=site_id)
 
-    async def list_entry_types(self, *, site_id: str) -> list[EntryTypeRecord]:
+    async def list_entry_types(self, *, site_id: UUID) -> list[EntryTypeRecord]:
         return await EntryTypeRecord.filter(site_id=site_id).order_by("code").all()
 
     async def create_entry_type(
         self,
         *,
-        site_id: str,
+        site_id: UUID,
         code: str,
         name: str,
         fields_schema: dict | None,
@@ -586,7 +602,7 @@ class SitesRepository(BaseRepository):
     async def update_entry_type(
         self,
         *,
-        site_id: str,
+        site_id: UUID,
         entry_type_id: UUID,
         name: str,
         fields_schema: dict | None,
@@ -606,7 +622,7 @@ class SitesRepository(BaseRepository):
             await rec.save(update_fields=["name", "fields_schema"], using_db=conn)
             return rec
 
-    async def delete_entry_type(self, *, site_id: str, entry_type_id: UUID) -> None:
+    async def delete_entry_type(self, *, site_id: UUID, entry_type_id: UUID) -> None:
         # Prevent deleting entry types in use.
         used = await EntryRecord.filter(site_id=site_id, entry_type_id=entry_type_id).exists()
         if used:
@@ -615,14 +631,14 @@ class SitesRepository(BaseRepository):
         if not deleted:
             raise NotFound("Entry type not found", error="ENTRY_TYPE_NOT_FOUND")
 
-    async def list_entries(self, *, site_id: str, entry_type_id: UUID | None = None) -> list[EntryRecord]:
+    async def list_entries(self, *, site_id: UUID, entry_type_id: UUID | None = None) -> list[EntryRecord]:
         qs = EntryRecord.filter(site_id=site_id)
         if entry_type_id is not None:
             qs = qs.filter(entry_type_id=entry_type_id)
         return await qs.prefetch_related("entry_type").order_by("slug").all()
 
     async def create_entry(
-        self, *, site_id: str, entry_type_id: UUID, slug: str, created_by_user_id: UUID | None
+        self, *, site_id: UUID, entry_type_id: UUID, slug: str, created_by_user_id: UUID | None
     ) -> EntryRecord:
         s = (slug or "").strip()
         if not s or "/" in s:
@@ -639,7 +655,7 @@ class SitesRepository(BaseRepository):
         except IntegrityError:
             raise Conflict("Entry already exists", error="ENTRY_CONFLICT") from None
 
-    async def update_entry_slug(self, *, site_id: str, entry_id: UUID, slug: str) -> EntryRecord:
+    async def update_entry_slug(self, *, site_id: UUID, entry_id: UUID, slug: str) -> EntryRecord:
         s = (slug or "").strip()
         if not s or "/" in s:
             raise Conflict("Invalid slug", error="ENTRY_SLUG_INVALID")
@@ -657,7 +673,7 @@ class SitesRepository(BaseRepository):
     async def unpublish_entry_by_slug(
         self,
         *,
-        site_id: str,
+        site_id: UUID,
         entry_type_id: UUID,
         slug: str,
     ) -> tuple[UUID, int]:
@@ -682,7 +698,7 @@ class SitesRepository(BaseRepository):
             await entry.save(update_fields=["published_rev"], using_db=conn)
         return UUID(str(entry.id)), now_ms
 
-    async def delete_entry(self, *, site_id: str, entry_id: UUID) -> None:
+    async def delete_entry(self, *, site_id: UUID, entry_id: UUID) -> None:
         async with in_transaction() as conn:
             entry = await EntryRecord.filter(site_id=site_id, id=entry_id).using_db(conn).select_for_update().first()
             if entry is None:
@@ -694,7 +710,7 @@ class SitesRepository(BaseRepository):
     async def save_entry_draft_by_slug(
         self,
         *,
-        site_id: str,
+        site_id: UUID,
         entry_type_id: UUID,
         slug: str,
         document: DocumentIR | None,
@@ -766,7 +782,7 @@ class SitesRepository(BaseRepository):
     async def publish_entry_by_slug(
         self,
         *,
-        site_id: str,
+        site_id: UUID,
         entry_type_id: UUID,
         slug: str,
         revision: int | None,
@@ -816,7 +832,7 @@ class SitesRepository(BaseRepository):
     async def save_page_draft_by_path(
         self,
         *,
-        site_id: str,
+        site_id: UUID,
         path: str,
         document: DocumentIR,
         meta: dict | None,
@@ -880,7 +896,7 @@ class SitesRepository(BaseRepository):
     async def save_page_draft_by_id(
         self,
         *,
-        site_id: str,
+        site_id: UUID,
         page_id: UUID,
         document: DocumentIR,
         meta: dict | None,
@@ -931,7 +947,7 @@ class SitesRepository(BaseRepository):
     async def publish_page_by_path(
         self,
         *,
-        site_id: str,
+        site_id: UUID,
         path: str,
         revision: int | None,
     ) -> tuple[int, int]:
@@ -973,7 +989,7 @@ class SitesRepository(BaseRepository):
     async def publish_page_by_id(
         self,
         *,
-        site_id: str,
+        site_id: UUID,
         page_id: UUID,
         revision: int | None,
     ) -> tuple[str, int, int]:
@@ -1009,7 +1025,7 @@ class SitesRepository(BaseRepository):
 
         return normalize_path(str(page.path)), target_rev, now_ms
 
-    async def unpublish_page_by_id(self, *, site_id: str, page_id: UUID) -> tuple[str, int]:
+    async def unpublish_page_by_id(self, *, site_id: UUID, page_id: UUID) -> tuple[str, int]:
         """
         Unpublish a page (published -> draft-only).
 
@@ -1032,7 +1048,7 @@ class SitesRepository(BaseRepository):
     async def resolve_entry_by_slug(
         self,
         *,
-        site_id: str,
+        site_id: UUID,
         entry_type_id: UUID,
         slug: str,
         mode: Literal["public", "preview"],
@@ -1069,7 +1085,7 @@ class SitesRepository(BaseRepository):
             document=doc,
         )
 
-    async def list_route_templates(self, *, site_id: str) -> list[RouteTemplateRecord]:
+    async def list_route_templates(self, *, site_id: UUID) -> list[RouteTemplateRecord]:
         return (
             await RouteTemplateRecord
             .filter(site_id=site_id, is_active=True)
@@ -1077,7 +1093,7 @@ class SitesRepository(BaseRepository):
             .all()
         )
 
-    async def list_route_templates_all(self, *, site_id: str) -> list[RouteTemplateRecord]:
+    async def list_route_templates_all(self, *, site_id: UUID) -> list[RouteTemplateRecord]:
         return (
             await RouteTemplateRecord
             .filter(site_id=site_id)
@@ -1086,7 +1102,7 @@ class SitesRepository(BaseRepository):
             .all()
         )
 
-    async def get_route_template_by_id(self, *, site_id: str, template_id: UUID) -> RouteTemplateRecord | None:
+    async def get_route_template_by_id(self, *, site_id: UUID, template_id: UUID) -> RouteTemplateRecord | None:
         return (
             await RouteTemplateRecord
             .filter(id=template_id, site_id=site_id)
@@ -1097,7 +1113,7 @@ class SitesRepository(BaseRepository):
     async def create_route_template(
         self,
         *,
-        site_id: str,
+        site_id: UUID,
         path_pattern: str,
         entry_type_id: UUID,
         template_page_revision_id: UUID | None,
@@ -1120,7 +1136,7 @@ class SitesRepository(BaseRepository):
     async def update_route_template(
         self,
         *,
-        site_id: str,
+        site_id: UUID,
         template_id: UUID,
         path_pattern: str,
         entry_type_id: UUID,
@@ -1158,18 +1174,18 @@ class SitesRepository(BaseRepository):
         await rec.fetch_related("entry_type", "template_page_revision")
         return rec
 
-    async def delete_route_template(self, *, site_id: str, template_id: UUID) -> None:
+    async def delete_route_template(self, *, site_id: UUID, template_id: UUID) -> None:
         deleted = await RouteTemplateRecord.filter(site_id=site_id, id=template_id).delete()
         if not deleted:
             raise NotFound("Route template not found", error="ROUTE_TEMPLATE_NOT_FOUND")
 
-    def invalidate_route_template_cache(self, *, site_id: str) -> None:
+    def invalidate_route_template_cache(self, *, site_id: UUID) -> None:
         _route_template_cache.invalidate(site_id=site_id)
 
     async def match_route_template(
         self,
         *,
-        site_id: str,
+        site_id: UUID,
         pathname: str,
         cache_version: int = 0,
     ) -> RouteTemplateMatch | None:
@@ -1210,7 +1226,7 @@ class SitesRepository(BaseRepository):
             )
         return None
 
-    async def list_public_sitemap_paths(self, *, site_id: str) -> list[str]:
+    async def list_public_sitemap_paths(self, *, site_id: UUID) -> list[str]:
         """
         List public sitemap paths for a site.
 

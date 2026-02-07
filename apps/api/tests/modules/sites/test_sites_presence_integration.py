@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 import pytest
 import pytest_asyncio
@@ -8,6 +8,7 @@ from httpx import ASGITransport, AsyncClient
 from tortoise import Tortoise
 
 from apps.api.config import get_settings
+from apps.api.common.utils.public_ids import encode_uuid
 from apps.api.core.database.orm import close_orm, init_orm
 from apps.api.core.registry import create_app
 from apps.api.modules.organization.models.org_membership import OrgMembership, OrgRole
@@ -64,9 +65,7 @@ async def test_sites_presence_heartbeat_and_list(prepared_schema) -> None:
             created_by_user_id=user.id,
         )
 
-        site_id = UUID("00000000-0000-0000-0000-000000000001")
         site = await SiteRecord.create(
-            id=site_id,
             workspace_id=ws.id,
             slug="demo",
             name="Demo",
@@ -76,10 +75,11 @@ async def test_sites_presence_heartbeat_and_list(prepared_schema) -> None:
             is_active=True,
             created_by_user_id=user.id,
         )
+        site_pid = encode_uuid(site.id)
 
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             # Issue preview token (stored in Valkey with TTL).
-            resp = await client.post(f"/api/v1/sites/{site.id}/preview-tokens", json={"ttlSeconds": 600})
+            resp = await client.post(f"/api/v1/sites/{site_pid}/preview-tokens", json={"ttlSeconds": 600})
             assert resp.status_code == 201
             token = resp.json()["data"]["token"]
             assert isinstance(token, str) and token
@@ -88,7 +88,7 @@ async def test_sites_presence_heartbeat_and_list(prepared_schema) -> None:
             doc_key = "route:/about"
             client_id = "c_123456"
             resp = await client.post(
-                f"/api/v1/sites/{site.id}/presence/heartbeat",
+                f"/api/v1/sites/{site_pid}/presence/heartbeat",
                 params={"token": token},
                 json={"docKey": doc_key, "clientId": client_id, "actor": {"displayName": "Alice"}},
             )
@@ -98,7 +98,7 @@ async def test_sites_presence_heartbeat_and_list(prepared_schema) -> None:
 
             # Listing returns the active record.
             resp = await client.get(
-                f"/api/v1/sites/{site.id}/presence",
+                f"/api/v1/sites/{site_pid}/presence",
                 params={"token": token, "docKey": doc_key},
             )
             assert resp.status_code == 200
@@ -114,7 +114,7 @@ async def test_sites_presence_heartbeat_and_list(prepared_schema) -> None:
             await app.state.valkey.delete(record_key)
 
             resp = await client.get(
-                f"/api/v1/sites/{site.id}/presence",
+                f"/api/v1/sites/{site_pid}/presence",
                 params={"token": token, "docKey": doc_key},
             )
             assert resp.status_code == 200

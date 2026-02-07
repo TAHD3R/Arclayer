@@ -84,10 +84,10 @@ class SystemSetupService(BaseService):
         return SystemSetupResult(
             initialized_at=now,
             master_key_fingerprint=fp,
-            admin_user_id=str(user.id),
+            admin_user_id=user.id,
             admin_username=user.username,
             rbac_bootstrapped=rbac_ok,
-            organization_id=(str(organization.id) if organization is not None else None),
+            organization_id=(organization.id if organization is not None else None),
             organization_slug=(organization.slug if organization is not None else None),
             organization_name=(organization.name if organization is not None else None),
         )

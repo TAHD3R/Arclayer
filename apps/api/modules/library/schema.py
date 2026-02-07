@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 from datetime import datetime
-from uuid import UUID
 
 from pydantic import Field, computed_field
 
 from apps.api.common.schemas import BaseOut, BaseSchema
+from apps.api.common.types.public_uuid import PublicUUID
+from apps.api.common.utils.public_ids import encode_uuid
 from apps.api.core.http.pagination import PageData
 
 
@@ -24,7 +25,7 @@ class PublicLibraryListQuery(BaseSchema):
 
 
 class PublicLibraryOrgOut(BaseSchema):
-    id: UUID = Field(..., description="Organization id.")
+    id: PublicUUID = Field(..., description="Organization id.")
     slug: str = Field(..., description="Organization slug.")
     name: str = Field(..., description="Organization name.")
 
@@ -42,17 +43,17 @@ class PublicLibraryAssetOut(BaseOut):
     @property
     def public_url_path(self) -> str:
         name = _canonical_filename(self.slug, self.ext)
-        return f"/assets/{self.id}/{name}"
+        return f"/assets/{encode_uuid(self.id)}/{name}"
 
     @computed_field
     @property
     def public_thumb_url_path(self) -> str:
-        return f"/assets/{self.id}/thumb?w=320"
+        return f"/assets/{encode_uuid(self.id)}/thumb?w=320"
 
     @computed_field
     @property
     def public_download_url_path(self) -> str:
-        return f"/assets/{self.id}/download"
+        return f"/assets/{encode_uuid(self.id)}/download"
 
 
 class PublicLibraryPageOut(PageData[PublicLibraryAssetOut]):

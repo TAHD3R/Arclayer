@@ -92,6 +92,7 @@ def test_https_redirect_only_production(monkeypatch, tmp_path: Path) -> None:
     assert response_dev.status_code == 200
 
     monkeypatch.setenv("APP_ENV", "production")
+    monkeypatch.setenv("PUBLIC_ID__SECRET", "test-public-id-secret")
     get_settings.cache_clear()
     app_prod = create_app()
 

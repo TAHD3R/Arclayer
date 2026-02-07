@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-from uuid import UUID
-
 from fastapi import APIRouter, Depends, Header, Query
 from starlette.responses import Response
 
 from apps.api.config import Settings, get_settings
+from apps.api.common.types.public_uuid import PublicUUID
 from apps.api.modules.assets.service import AssetsService
 
 router = APIRouter(tags=["Public: Assets"])
@@ -17,7 +16,7 @@ def get_assets_service(settings: Settings = Depends(get_settings)) -> AssetsServ
 
 @router.get("/assets/{asset_id}", include_in_schema=False, summary="Redirect to canonical asset URL")
 async def asset_redirect(
-    asset_id: UUID,
+    asset_id: PublicUUID,
     service: AssetsService = Depends(get_assets_service),
 ) -> Response:
     return await service.redirect_to_canonical(asset_id=asset_id)
@@ -25,7 +24,7 @@ async def asset_redirect(
 
 @router.get("/assets/{asset_id}/download", include_in_schema=False, summary="Download asset file")
 async def asset_download(
-    asset_id: UUID,
+    asset_id: PublicUUID,
     range: str | None = Header(default=None, alias="Range"),
     service: AssetsService = Depends(get_assets_service),
 ) -> Response:
@@ -34,7 +33,7 @@ async def asset_download(
 
 @router.get("/assets/{asset_id}/thumb", include_in_schema=False, summary="Serve asset thumbnail")
 async def asset_thumbnail(
-    asset_id: UUID,
+    asset_id: PublicUUID,
     w: int | None = Query(default=None, ge=1, le=4096, description="Preferred width (px)."),
     range: str | None = Header(default=None, alias="Range"),
     service: AssetsService = Depends(get_assets_service),
@@ -44,7 +43,7 @@ async def asset_thumbnail(
 
 @router.get("/assets/{asset_id}/{filename}", include_in_schema=False, summary="Serve asset content")
 async def asset_serve(
-    asset_id: UUID,
+    asset_id: PublicUUID,
     filename: str,
     range: str | None = Header(default=None, alias="Range"),
     service: AssetsService = Depends(get_assets_service),

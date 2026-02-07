@@ -9,6 +9,7 @@ from apps.api.config import Settings
 from apps.api.core.exceptions import NotFound
 from apps.api.core.http.content_disposition import build_attachment_content_disposition
 from apps.api.core.http.file_stream import stream_file_response
+from apps.api.common.utils.public_ids import encode_uuid
 from apps.api.infra.storage.factory import build_storage_provider_for
 from apps.api.infra.storage.local import safe_object_key_to_path
 from apps.api.infra.storage.s3 import S3StorageProvider
@@ -71,7 +72,7 @@ class AssetsService:
     async def redirect_to_canonical(self, *, asset_id: UUID) -> RedirectResponse:
         view = await self._get_public_view(asset_id=asset_id)
         name = canonical_asset_filename(slug=view.slug, ext=view.ext)
-        return RedirectResponse(url=f"/assets/{view.id}/{name}", status_code=301)
+        return RedirectResponse(url=f"/assets/{encode_uuid(view.id)}/{name}", status_code=301)
 
     async def serve(
         self,
@@ -83,7 +84,7 @@ class AssetsService:
         view = await self._get_public_view(asset_id=asset_id)
         canonical = canonical_asset_filename(slug=view.slug, ext=view.ext)
         if filename != canonical:
-            return RedirectResponse(url=f"/assets/{view.id}/{canonical}", status_code=301)
+            return RedirectResponse(url=f"/assets/{encode_uuid(view.id)}/{canonical}", status_code=301)
 
         if view.storage_provider == "s3":
             effective = await get_effective_settings(self.settings)
@@ -177,7 +178,7 @@ class AssetsService:
 
         if not isinstance(thumbs, list) or not thumbs:
             canonical = canonical_asset_filename(slug=view.slug, ext=view.ext)
-            return RedirectResponse(url=f"/assets/{view.id}/{canonical}", status_code=302)
+            return RedirectResponse(url=f"/assets/{encode_uuid(view.id)}/{canonical}", status_code=302)
 
         ordered = sorted(
             [t for t in thumbs if isinstance(t, dict) and isinstance(t.get("width"), int)],
@@ -185,7 +186,7 @@ class AssetsService:
         )
         if not ordered:
             canonical = canonical_asset_filename(slug=view.slug, ext=view.ext)
-            return RedirectResponse(url=f"/assets/{view.id}/{canonical}", status_code=302)
+            return RedirectResponse(url=f"/assets/{encode_uuid(view.id)}/{canonical}", status_code=302)
 
         picked = None
         if width is None:
@@ -200,7 +201,7 @@ class AssetsService:
         object_key = str((picked or {}).get("object_key") or "")
         if not object_key:
             canonical = canonical_asset_filename(slug=view.slug, ext=view.ext)
-            return RedirectResponse(url=f"/assets/{view.id}/{canonical}", status_code=302)
+            return RedirectResponse(url=f"/assets/{encode_uuid(view.id)}/{canonical}", status_code=302)
 
         if view.storage_provider == "s3":
             effective = await get_effective_settings(self.settings)
@@ -221,12 +222,12 @@ class AssetsService:
                 return RedirectResponse(url=presigned, status_code=302, headers=build_asset_headers(view))
 
             canonical = canonical_asset_filename(slug=view.slug, ext=view.ext)
-            return RedirectResponse(url=f"/assets/{view.id}/{canonical}", status_code=302)
+            return RedirectResponse(url=f"/assets/{encode_uuid(view.id)}/{canonical}", status_code=302)
 
         path = safe_object_key_to_path(self.settings.storage.local_root_dir, object_key)
         if not path.is_file():
             canonical = canonical_asset_filename(slug=view.slug, ext=view.ext)
-            return RedirectResponse(url=f"/assets/{view.id}/{canonical}", status_code=302)
+            return RedirectResponse(url=f"/assets/{encode_uuid(view.id)}/{canonical}", status_code=302)
 
         media_type = str((picked or {}).get("mime") or "") or "application/octet-stream"
         headers = build_asset_headers(view)

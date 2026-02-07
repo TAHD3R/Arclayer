@@ -8,6 +8,7 @@ import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 
+from apps.api.common.utils.public_ids import encode_uuid
 from apps.api.modules.analytics.models.audit_event import AuditEvent
 from apps.api.modules.auth.deps import get_current_user
 from apps.api.modules.organization.deps import require_org_admin
@@ -61,4 +62,4 @@ async def test_system_activity_list_returns_events(db_schema) -> None:
     items = data.get("items") or []
     assert len(items) == 1
     assert items[0].get("eventName") == "auth.login.succeeded"
-    assert items[0].get("organizationId") == str(org_id)
+    assert items[0].get("organizationId") == encode_uuid(org_id)

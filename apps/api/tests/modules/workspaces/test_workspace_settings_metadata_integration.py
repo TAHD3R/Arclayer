@@ -5,6 +5,7 @@ from uuid import uuid4
 import pytest
 from httpx import ASGITransport, AsyncClient
 
+from apps.api.common.utils.public_ids import encode_uuid
 from apps.api.config import get_settings
 from apps.api.core.database.orm import verify_db_ready
 from apps.api.core.registry import create_app
@@ -63,21 +64,23 @@ async def test_workspace_metadata_get_and_patch(prepared_db, integration_valkey_
         app.dependency_overrides[get_current_user] = _get_user
         app.dependency_overrides[get_current_user_id] = _get_user_id
 
+        ws_pid = encode_uuid(ws.id)
+
         async with AsyncClient(
             transport=transport,
             base_url="http://test",
             headers={"X-Forwarded-For": uuid4().hex},
         ) as client:
-            resp = await client.get(f"/api/v1/workspaces/{ws.id}")
+            resp = await client.get(f"/api/v1/workspaces/{ws_pid}")
             assert resp.status_code == 200
             data = resp.json()["data"]
-            assert data["id"] == str(ws.id)
-            assert data["organizationId"] == str(org.id)
+            assert data["id"] == ws_pid
+            assert data["organizationId"] == encode_uuid(org.id)
             assert data["name"] == "Default"
             assert data["slug"] == "default"
 
             resp = await client.patch(
-                f"/api/v1/workspaces/{ws.id}",
+                f"/api/v1/workspaces/{ws_pid}",
                 json={"name": "My Blog", "slug": "my-blog"},
             )
             assert resp.status_code == 200
@@ -87,7 +90,7 @@ async def test_workspace_metadata_get_and_patch(prepared_db, integration_valkey_
 
             # Invalid slug should be rejected.
             resp = await client.patch(
-                f"/api/v1/workspaces/{ws.id}",
+                f"/api/v1/workspaces/{ws_pid}",
                 json={"slug": "Bad Slug"},
             )
             assert resp.status_code == 400
