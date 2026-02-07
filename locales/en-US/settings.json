@@ -5,7 +5,6 @@
   "SETTINGS_SITE_IDENTITY_DESC": "Manage site name, brand assets, and default localization settings.",
   "SETTINGS_SITE_IDENTITY_TAB_SITE": "Site",
   "SETTINGS_SITE_IDENTITY_TAB_LOCALIZATION": "Site localization",
-
   "SETTINGS_WORKSPACE_TITLE": "Workspace settings",
   "SETTINGS_WORKSPACE_DESC": "Manage workspace basics and working policies.",
   "SETTINGS_WORKSPACE_TAB_BASICS": "Basics",
@@ -50,7 +49,6 @@
   "SETTINGS_WORKSPACE_RESOURCE_IMAGE_PROCESSING_DESC": "Image sizes, formats and compression policy (placeholder).",
   "SETTINGS_WORKSPACE_RESOURCE_CDN_PREFIX_TITLE": "CDN prefix override",
   "SETTINGS_WORKSPACE_RESOURCE_CDN_PREFIX_DESC": "Override default asset host/prefix for faster delivery (placeholder).",
-
   "SETTINGS_ORG_TITLE": "Organization settings",
   "SETTINGS_ORG_DESC": "Manage org-level capabilities (people, billing, security, developer). Only org owners can access.",
   "SETTINGS_ORG_TAB_MEMBERS_ACCESS": "Members & Access",
@@ -58,28 +56,24 @@
   "SETTINGS_ORG_TAB_SECURITY_AUDIT": "Security & Audit",
   "SETTINGS_ORG_TAB_DEVELOPER": "Developer",
   "SETTINGS_ORG_TAB_DEPLOYMENT": "Deployment",
-
   "SETTINGS_ORG_MEMBERS_ACCESS_TITLE": "Members & Access",
   "SETTINGS_ORG_MEMBERS_ACCESS_DESC": "Manage organization members, access control and global permission model.",
   "SETTINGS_ORG_MEMBERS_DIRECTORY_TITLE": "Members directory",
   "SETTINGS_ORG_MEMBERS_DIRECTORY_DESC": "View and manage members, invitations and account ownership (placeholder).",
   "SETTINGS_ORG_ROLES_TITLE": "Roles & permissions",
   "SETTINGS_ORG_ROLES_DESC": "Define org-level role templates for cross-workspace governance (placeholder).",
-
   "SETTINGS_ORG_BILLING_ASSETS_TITLE": "Billing & Assets",
   "SETTINGS_ORG_BILLING_ASSETS_DESC": "Manage subscription, invoices and organization brand assets.",
   "SETTINGS_ORG_BILLING_TITLE": "Subscription & billing",
   "SETTINGS_ORG_BILLING_DESC": "View plan, usage and billing details (placeholder).",
   "SETTINGS_ORG_BRANDING_TITLE": "Brand assets",
   "SETTINGS_ORG_BRANDING_DESC": "Configure org logo/brand colors for portal experience (placeholder).",
-
   "SETTINGS_ORG_SECURITY_AUDIT_TITLE": "Security & Audit",
   "SETTINGS_ORG_SECURITY_AUDIT_DESC": "Manage sign-in policies, SSO and audit logs.",
   "SETTINGS_ORG_SSO_TITLE": "SSO / Identity providers",
   "SETTINGS_ORG_SSO_DESC": "Configure SAML/OIDC sign-in for enterprise (placeholder).",
   "SETTINGS_ORG_ACTIVITY_TITLE": "Activity",
   "SETTINGS_ORG_ACTIVITY_DESC": "Review organization-level activity for governance and security.",
-
   "SETTINGS_ORG_DEVELOPER_TITLE": "Developer",
   "SETTINGS_ORG_DEVELOPER_DESC": "Manage API keys, webhooks and developer integrations.",
   "SETTINGS_ORG_API_KEYS_TITLE": "API keys",
@@ -97,7 +91,6 @@
   "SETTINGS_MESSAGING_ENABLED": "Enabled",
   "SETTINGS_MESSAGING_DISABLED": "Disabled",
   "SETTINGS_MESSAGING_SELECTED_COUNT": "{{count}} selected",
-
   "SETTINGS_MESSAGING_MAIL_PANEL_TITLE": "Email",
   "SETTINGS_MESSAGING_MAIL_PANEL_DESC": "Configure email delivery and what gets sent.",
   "SETTINGS_MESSAGING_MAIL_ENABLED_TITLE": "Email service",
@@ -117,20 +110,17 @@
   "SETTINGS_MESSAGING_MAIL_FROM_NAME": "From name",
   "SETTINGS_MESSAGING_MAIL_STARTTLS": "STARTTLS",
   "SETTINGS_MESSAGING_MAIL_SSL_TLS": "SSL/TLS",
-
   "SETTINGS_MESSAGING_MAIL_TEMPLATES_TITLE": "Email types",
   "SETTINGS_MESSAGING_MAIL_TEMPLATES_DESC": "Choose which system emails are sent.",
   "SETTINGS_MESSAGING_MAIL_TEMPLATE_REG_PROMPT_TITLE": "Registration prompt",
   "SETTINGS_MESSAGING_MAIL_TEMPLATE_REG_PROMPT_DESC": "Send a registration prompt when an invited member hasn't registered yet.",
   "SETTINGS_MESSAGING_MAIL_TEMPLATE_WELCOME_TITLE": "Welcome email",
   "SETTINGS_MESSAGING_MAIL_TEMPLATE_WELCOME_DESC": "Send a welcome email after a user signs up or an account is created.",
-
   "SETTINGS_MESSAGING_MAIL_TEST_TITLE": "Test email",
   "SETTINGS_MESSAGING_MAIL_TEST_DESC": "Send a test email to verify your SMTP configuration.",
   "SETTINGS_MESSAGING_MAIL_TEST_PLACEHOLDER": "test@example.com",
   "SETTINGS_MESSAGING_MAIL_TEST_ACTION": "Send test email",
   "SETTINGS_MESSAGING_MAIL_TEST_SUCCESS": "Test email sent. If you don't see it, check spam and verify your SMTP settings.",
-
   "SETTINGS_MESSAGING_NOTIFICATION_PANEL_TITLE": "Notifications",
   "SETTINGS_MESSAGING_NOTIFICATION_PANEL_DESC": "Configure which in-app notifications are delivered.",
   "SETTINGS_MESSAGING_NOTIFICATION_SIDENAV_TITLE": "Sidebar notification preview",

@@ -3,6 +3,7 @@ import { workspacePath } from "@/api/workspace-path";
 
 export type WorkspacePluginItem = {
   pluginId: string;
+  managementScope?: "workspace" | "organization" | (string & {});
   slug?: string | null;
   name: string;
   description?: string | null;

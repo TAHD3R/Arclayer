@@ -60,6 +60,7 @@ class PluginSummary(BaseSchema):
     )
 
     plugin_id: str = Field(..., description="Plugin identifier.")
+    management_scope: str = Field(default="workspace", description="Plugin management scope.")
     slug: str | None = Field(default=None, description="Plugin slug used for routing.")
     name: str = Field(..., description="Plugin name.")
     description: str | None = Field(default=None, description="Plugin description.")

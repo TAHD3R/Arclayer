@@ -23,10 +23,12 @@ from apps.api.infra.cache.valkey import ValkeyClientLike
 from apps.api.modules.auth.service import AuthService
 from apps.api.modules.auth.sso.exchange_store import issue_exchange_code
 from apps.api.modules.auth.sso.schema import AuthSSOExchangePayload
+from apps.api.modules.organization.models.org_plugin_state import OrganizationPluginState
+from apps.api.modules.organization.runtime import get_single_organization_id
 from apps.api.modules.workspaces.invitations.tokens import build_invite_token
 from apps.api.plugin.manifest import PluginManifest, build_default_config
 from apps.api.settings.runtime import get_core_settings_value_cached
-from apps.api.settings.runtime_plugins import get_system_plugin_settings_decrypted
+from apps.api.settings.runtime_plugins import get_org_plugin_settings_decrypted
 
 from oauth_social.repository import OAuthSocialRepository
 from oauth_social.schema import (
@@ -101,16 +103,7 @@ class OAuthSocialService(BaseService):
                 error="SSO_PROVIDER_INVALID",
             )
 
-        schema = self.manifest.config_schema
-        if schema is None:
-            raise ServiceUnavailable(message=t("plugin", "PLUGIN_CONFIG_NOT_SUPPORTED", default="插件不支持配置"))
-        defaults = build_default_config(self.manifest)
-        config = await get_system_plugin_settings_decrypted(
-            self.settings,
-            plugin_id=self.manifest.plugin.id,
-            schema=schema,
-            defaults=defaults,
-        )
+        config = await self._load_org_plugin_config(require_enabled=True)
 
         state = secrets.token_urlsafe(32)
         code_verifier = secrets.token_urlsafe(64)
@@ -195,16 +188,10 @@ class OAuthSocialService(BaseService):
             payload = OAuthStatePayload.model_validate_json(payload_raw)
             redirect = payload.redirect if _is_safe_redirect(payload.redirect) else None
 
-            schema = self.manifest.config_schema
-            if schema is None:
+            try:
+                config = await self._load_org_plugin_config(require_enabled=True)
+            except Exception:
                 return self._redirect_to_login_error(frontend_base, error="oauth_failed", redirect=redirect)
-            defaults = build_default_config(self.manifest)
-            config = await get_system_plugin_settings_decrypted(
-                self.settings,
-                plugin_id=self.manifest.plugin.id,
-                schema=schema,
-                defaults=defaults,
-            )
 
             subject: str | None = None
             email: str | None = None
@@ -397,6 +384,35 @@ class OAuthSocialService(BaseService):
                     continue
         except Exception:
             return
+
+    async def _load_org_plugin_config(self, *, require_enabled: bool) -> dict[str, Any]:
+        schema = self.manifest.config_schema
+        if schema is None:
+            raise ServiceUnavailable(message=t("plugin", "PLUGIN_CONFIG_NOT_SUPPORTED", default="插件不支持配置"))
+
+        organization_id = await get_single_organization_id()
+        if organization_id is None:
+            raise ServiceUnavailable(message=t("auth", "SSO_UNAVAILABLE", default="SSO 不可用"), error="SSO_UNAVAILABLE")
+
+        if require_enabled:
+            try:
+                state = await OrganizationPluginState.get_or_none(
+                    organization_id=organization_id,
+                    plugin_id=self.manifest.plugin.id,
+                )
+            except Exception:
+                state = None
+            if state is None or not bool(state.enabled):
+                raise Forbidden(message=t("auth", "SSO_UNAVAILABLE", default="SSO 不可用"), error="SSO_UNAVAILABLE")
+
+        defaults = build_default_config(self.manifest)
+        return await get_org_plugin_settings_decrypted(
+            self.settings,
+            organization_id=organization_id,
+            plugin_id=self.manifest.plugin.id,
+            schema=schema,
+            defaults=defaults,
+        )
 
     async def _resolve_frontend_base_url(self) -> str:
         """

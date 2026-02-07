@@ -3,6 +3,7 @@ models = ["oauth_social.models"]
 [plugin]
 id = "plugin-oauth-social"
 slug = "oauth"
+management_scope = "organization"
 name = "OAuth Social Login"
 description = "Provide Google/GitHub social login for the admin console."
 name_i18n = "oauth_social:PLUGIN_NAME"

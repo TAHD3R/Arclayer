@@ -19,6 +19,7 @@ class WorkspacePluginSummary(BaseSchema):
     model_config = ConfigDict(from_attributes=True, str_strip_whitespace=True, validate_default=True)
 
     plugin_id: str = Field(..., description="Plugin identifier.")
+    management_scope: str = Field(default="workspace", description="Plugin management scope.")
     slug: str | None = Field(default=None, description="Plugin slug used for routing.")
     name: str = Field(..., description="Plugin display name (localized if possible).")
     description: str | None = Field(default=None, description="Plugin description (localized if possible).")

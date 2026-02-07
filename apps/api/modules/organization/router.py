@@ -7,9 +7,12 @@ from apps.api.core.http.response import Response, ResponseModel
 from apps.api.core.i18n import t
 from apps.api.modules.organization.deps import get_current_org_membership
 from apps.api.modules.organization.models.org_membership import OrgMembership
+from apps.api.modules.organization.plugins.router import router as organization_plugins_router
 from apps.api.modules.organization.schema import MyOrganizationOut, OrganizationBriefOut, OrganizationMembershipOut
 
 router = APIRouter(tags=["Me"])
+
+router.include_router(organization_plugins_router)
 
 
 @router.get(

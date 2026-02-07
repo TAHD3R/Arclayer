@@ -56,7 +56,8 @@ export function PluginIcon(props: PluginIconProps) {
   const [failed, setFailed] = useState(false);
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
   const iconUrl = (props.iconUrl || "").trim();
-  const size = Number.isFinite(props.size) && (props.size as number) > 0 ? (props.size as number) : null;
+  const size =
+    Number.isFinite(props.size) && (props.size as number) > 0 ? (props.size as number) : null;
   const accessToken = useAuthStore((s) => s.accessToken);
 
   const resolved = useMemo(() => {
@@ -85,7 +86,9 @@ export function PluginIcon(props: PluginIconProps) {
           method: "GET",
           headers: {
             // Authorization is required because plugin icon endpoint is workspace-RBAC protected.
-            authorization: accessToken.startsWith("Bearer ") ? accessToken : `Bearer ${accessToken}`,
+            authorization: accessToken.startsWith("Bearer ")
+              ? accessToken
+              : `Bearer ${accessToken}`,
             accept: "image/*",
           },
           signal: ctrl.signal,

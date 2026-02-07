@@ -28,9 +28,9 @@ from apps.api.modules.system.models.plugin import PluginRecord
 from apps.api.modules.system.plugins_manager.repository import PluginRepository
 from apps.api.modules.system.plugins_manager.schema import (
     PluginConfigFieldItem,
+    PluginConfigOptionItem,
     PluginConfigSchemaItem,
     PluginConfigSectionItem,
-    PluginConfigOptionItem,
     PluginDependencyItem,
     PluginDetail,
     PluginPermissionItem,
@@ -675,6 +675,7 @@ class PluginService(BaseService):
         if manifest is None:
             return detail
         update = self._localized_fields(manifest)
+        update["management_scope"] = manifest.plugin.management_scope
         update["slug"] = manifest.plugin.slug
         update["dependencies"] = self._build_dependency_report(manifest)
         return detail.model_copy(update=update)
@@ -685,6 +686,7 @@ class PluginService(BaseService):
         if manifest is None:
             return summary
         update = self._localized_fields(manifest, include_schema=False)
+        update["management_scope"] = manifest.plugin.management_scope
         update["slug"] = manifest.plugin.slug
         return summary.model_copy(update=update)
 

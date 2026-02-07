@@ -28,8 +28,13 @@ function formatBytes(bytes: number): string {
 
 type Step = "pick" | "validating" | "validated" | "installing" | "error";
 
-function categoryLabel(t: (key: string, opts?: { defaultValue?: string }) => string, code: string | null | undefined): string {
-  const c = String(code || "").trim().toLowerCase();
+function categoryLabel(
+  t: (key: string, opts?: { defaultValue?: string }) => string,
+  code: string | null | undefined,
+): string {
+  const c = String(code || "")
+    .trim()
+    .toLowerCase();
   if (!c) return t("common:NA");
   const key = `plugin:PLUGIN_CATEGORY_${c.toUpperCase()}` as const;
   return t(key, { defaultValue: c });
@@ -88,7 +93,10 @@ export function PluginInstallDialog({
     accept: { "application/zip": [".zip"] },
   });
 
-  const canValidate = useMemo(() => Boolean(file && !disabled && step !== "validating" && step !== "installing"), [file, disabled, step]);
+  const canValidate = useMemo(
+    () => Boolean(file && !disabled && step !== "validating" && step !== "installing"),
+    [file, disabled, step],
+  );
 
   const validateNow = useCallback(async () => {
     if (!file) return;
@@ -122,7 +130,9 @@ export function PluginInstallDialog({
       onInstalled?.({ requiresRestart: Boolean(res.requiresRestart) });
     } catch (err) {
       setStep("error");
-      setErrorText(err instanceof Error ? err.message : t("plugin:PLUGIN_CENTER_INSTALL_FAILED_GENERIC"));
+      setErrorText(
+        err instanceof Error ? err.message : t("plugin:PLUGIN_CENTER_INSTALL_FAILED_GENERIC"),
+      );
       notifyError(err);
     }
   }, [onInstalled, onOpenChange, t, validated, workspaceId]);
@@ -131,10 +141,15 @@ export function PluginInstallDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         showCloseButton
-        className={cn("p-0", "max-w-[min(920px,calc(100vw-2rem))] sm:max-w-[min(920px,calc(100vw-2rem))]")}
+        className={cn(
+          "p-0",
+          "max-w-[min(920px,calc(100vw-2rem))] sm:max-w-[min(920px,calc(100vw-2rem))]",
+        )}
       >
         <DialogHeader className="px-5 pt-4 pb-2 border-b">
-          <DialogTitle className="font-bold!">{t("plugin:PLUGIN_CENTER_INSTALL_DIALOG_TITLE")}</DialogTitle>
+          <DialogTitle className="font-bold!">
+            {t("plugin:PLUGIN_CENTER_INSTALL_DIALOG_TITLE")}
+          </DialogTitle>
         </DialogHeader>
 
         <div className="px-5 pt-4 pb-5">
@@ -151,9 +166,15 @@ export function PluginInstallDialog({
             <input {...getInputProps()} />
 
             <div className="flex flex-col items-center text-center">
-              <CloudUpload className={cn("size-10", isDragActive ? "text-primary" : "text-muted-foreground")} />
-              <div className="mt-3 text-base font-medium">{t("plugin:PLUGIN_CENTER_DROP_TITLE")}</div>
-              <div className="mt-1 text-sm text-muted-foreground">{t("plugin:PLUGIN_CENTER_DROP_DESC")}</div>
+              <CloudUpload
+                className={cn("size-10", isDragActive ? "text-primary" : "text-muted-foreground")}
+              />
+              <div className="mt-3 text-base font-medium">
+                {t("plugin:PLUGIN_CENTER_DROP_TITLE")}
+              </div>
+              <div className="mt-1 text-sm text-muted-foreground">
+                {t("plugin:PLUGIN_CENTER_DROP_DESC")}
+              </div>
 
               <div className="mt-4 flex flex-col items-center gap-3">
                 <div className="flex items-center gap-2">
@@ -165,13 +186,19 @@ export function PluginInstallDialog({
                   >
                     {t("plugin:PLUGIN_CENTER_PICK_FILE")}
                   </Button>
-                  <Button disabled={!canValidate} loading={step === "validating"} onClick={() => void validateNow()}>
+                  <Button
+                    disabled={!canValidate}
+                    loading={step === "validating"}
+                    onClick={() => void validateNow()}
+                  >
                     {t("plugin:PLUGIN_CENTER_VALIDATE_ACTION")}
                   </Button>
                 </div>
 
                 <div className="text-sm text-muted-foreground">
-                  {file ? `${file.name} (${formatBytes(file.size)})` : t("plugin:PLUGIN_CENTER_FILE_EMPTY")}
+                  {file
+                    ? `${file.name} (${formatBytes(file.size)})`
+                    : t("plugin:PLUGIN_CENTER_FILE_EMPTY")}
                 </div>
               </div>
             </div>
@@ -191,17 +218,33 @@ export function PluginInstallDialog({
               </Typography.Title>
 
               <Descriptions bordered size="small" column={1}>
-                <Descriptions.Item label={t("plugin:PLUGIN_META_NAME")}>{validated.meta.name}</Descriptions.Item>
-                <Descriptions.Item label={t("plugin:PLUGIN_META_VERSION")}>{validated.meta.version}</Descriptions.Item>
-                <Descriptions.Item label={t("plugin:PLUGIN_META_AUTHOR")}>{validated.meta.author}</Descriptions.Item>
-                <Descriptions.Item label={t("plugin:PLUGIN_META_ID")}>{validated.meta.pluginId}</Descriptions.Item>
-                <Descriptions.Item label={t("plugin:PLUGIN_META_SLUG")}>{validated.meta.slug}</Descriptions.Item>
-                <Descriptions.Item label={t("plugin:PLUGIN_META_REQUIRES")}>{validated.meta.requires}</Descriptions.Item>
+                <Descriptions.Item label={t("plugin:PLUGIN_META_NAME")}>
+                  {validated.meta.name}
+                </Descriptions.Item>
+                <Descriptions.Item label={t("plugin:PLUGIN_META_VERSION")}>
+                  {validated.meta.version}
+                </Descriptions.Item>
+                <Descriptions.Item label={t("plugin:PLUGIN_META_AUTHOR")}>
+                  {validated.meta.author}
+                </Descriptions.Item>
+                <Descriptions.Item label={t("plugin:PLUGIN_META_ID")}>
+                  {validated.meta.pluginId}
+                </Descriptions.Item>
+                <Descriptions.Item label={t("plugin:PLUGIN_META_SLUG")}>
+                  {validated.meta.slug}
+                </Descriptions.Item>
+                <Descriptions.Item label={t("plugin:PLUGIN_META_REQUIRES")}>
+                  {validated.meta.requires}
+                </Descriptions.Item>
                 <Descriptions.Item label={t("plugin:PLUGIN_META_CATEGORY")}>
                   {categoryLabel(t, validated.meta.category)}
                 </Descriptions.Item>
-                <Descriptions.Item label={t("plugin:PLUGIN_META_SHA256")}>{validated.sha256}</Descriptions.Item>
-                <Descriptions.Item label={t("plugin:PLUGIN_META_SIZE")}>{formatBytes(validated.sizeBytes)}</Descriptions.Item>
+                <Descriptions.Item label={t("plugin:PLUGIN_META_SHA256")}>
+                  {validated.sha256}
+                </Descriptions.Item>
+                <Descriptions.Item label={t("plugin:PLUGIN_META_SIZE")}>
+                  {formatBytes(validated.sizeBytes)}
+                </Descriptions.Item>
               </Descriptions>
 
               {step === "installing" ? (
@@ -234,7 +277,12 @@ export function PluginInstallDialog({
                 title={t("plugin:PLUGIN_CENTER_OPERATION_FAILED")}
                 subTitle={errorText || t("plugin:PLUGIN_CENTER_INSTALL_FAILED_GENERIC")}
                 extra={[
-                  <Button key="retry" type="primary" disabled={!file || disabled} onClick={() => void validateNow()}>
+                  <Button
+                    key="retry"
+                    type="primary"
+                    disabled={!file || disabled}
+                    onClick={() => void validateNow()}
+                  >
                     {t("common:RETRY")}
                   </Button>,
                 ]}

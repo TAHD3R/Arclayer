@@ -165,7 +165,9 @@ async def test_auth_sso_exchange_code_is_one_time() -> None:
     service = AuthSSOService(settings, manager=manager, valkey=valkey, auth_service=auth)
 
     user_id = uuid4()
-    code = await issue_exchange_code(valkey, payload=AuthSSOExchangePayload(user_id=user_id, redirect="/"), ttl_seconds=60)
+    code = await issue_exchange_code(
+        valkey, payload=AuthSSOExchangePayload(user_id=user_id, redirect="/"), ttl_seconds=60
+    )
 
     tokens = await service.exchange(code=code)
     assert tokens.access_token == "access"

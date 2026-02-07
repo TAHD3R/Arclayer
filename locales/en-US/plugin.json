@@ -1,5 +1,6 @@
 {
   "PLUGIN_CENTER_DESC": "Manage plugins in this workspace: enable/disable, install, and reset.",
+  "PLUGIN_CENTER_ORG_DESC": "Manage organization-scoped plugins: enable/disable and configure provider settings.",
   "PLUGIN_CENTER_HINT": "Install and manage plugins available in this workspace.",
   "PLUGIN_CENTER_INSTALL_ACTION": "Install plugin",
   "PLUGIN_CENTER_INSTALL_DIALOG_TITLE": "Install a plugin",
@@ -27,6 +28,7 @@
   "PLUGIN_CENTER_MORE": "More actions",
   "PLUGIN_CENTER_TOGGLE_ARIA": "Toggle {{name}}",
   "PLUGIN_CENTER_CONFIGURE_ACTION": "Configure",
+  "PLUGIN_CENTER_CONFIG_TITLE": "Configure {{name}}",
   "PLUGIN_CENTER_SEARCH_PLACEHOLDER": "Search plugins…",
   "PLUGIN_CENTER_RESET_ACTION": "Reset config",
   "PLUGIN_CENTER_UNINSTALL_ACTION": "Uninstall from workspace",

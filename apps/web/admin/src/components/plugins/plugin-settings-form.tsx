@@ -11,7 +11,9 @@ import type { SettingsOptionItem, SystemSettingsDetail, SettingsSchemaItem } fro
 type FormValues = Record<string, unknown>;
 
 function zodForFieldType(type: string): z.ZodTypeAny {
-  const t = String(type || "").trim().toLowerCase();
+  const t = String(type || "")
+    .trim()
+    .toLowerCase();
   if (t === "bool") return z.boolean().optional();
   if (t === "int") return z.number().int().optional();
   if (t === "float") return z.number().optional();
@@ -64,7 +66,9 @@ function buildInitialValues(
   const sectionId = opts?.sectionId;
   const sections =
     sectionId && sectionId.trim()
-      ? (detail.settingSchema.sections || []).filter((s) => String(s.id || "").trim() === sectionId.trim())
+      ? (detail.settingSchema.sections || []).filter(
+          (s) => String(s.id || "").trim() === sectionId.trim(),
+        )
       : detail.settingSchema.sections || [];
   for (const section of sections) {
     const sectionValue = (value as Record<string, unknown>)[section.id];
@@ -131,7 +135,9 @@ export function PluginSettingsForm({
 
     const sections =
       sectionId && sectionId.trim()
-        ? (detail.settingSchema.sections || []).filter((s) => String(s.id || "").trim() === sectionId.trim())
+        ? (detail.settingSchema.sections || []).filter(
+            (s) => String(s.id || "").trim() === sectionId.trim(),
+          )
         : detail.settingSchema.sections || [];
     for (const section of sections) {
       const sectionPatch: Record<string, unknown> = {};
@@ -193,7 +199,10 @@ export function PluginSettingsForm({
                 return (
                   <div
                     key={field.key}
-                    className={["grid gap-3 py-3 border-b border-border/60 last:border-b-0", "grid-cols-1 sm:grid-cols-[240px_minmax(0,1fr)]"].join(" ")}
+                    className={[
+                      "grid gap-3 py-3 border-b border-border/60 last:border-b-0",
+                      "grid-cols-1 sm:grid-cols-[240px_minmax(0,1fr)]",
+                    ].join(" ")}
                   >
                     <div className="min-w-0">
                       <div className="flex items-center justify-between gap-2">
@@ -202,12 +211,16 @@ export function PluginSettingsForm({
                         </Typography.Text>
                         {field.secret ? (
                           <Typography.Text type="secondary">
-                            {alreadySet ? t("plugin:PLUGIN_SECRET_SET") : t("plugin:PLUGIN_SECRET_NOT_SET")}
+                            {alreadySet
+                              ? t("plugin:PLUGIN_SECRET_SET")
+                              : t("plugin:PLUGIN_SECRET_NOT_SET")}
                           </Typography.Text>
                         ) : null}
                       </div>
                       {field.description ? (
-                        <div className="mt-1 text-sm text-muted-foreground">{field.description}</div>
+                        <div className="mt-1 text-sm text-muted-foreground">
+                          {field.description}
+                        </div>
                       ) : null}
                     </div>
 
@@ -239,14 +252,22 @@ export function PluginSettingsForm({
                                   meta: opt,
                                 }))}
                                 optionRender={(option: SelectOptionRenderArg) => {
-                                  const data = option.data as { meta?: SettingsOptionItem } | undefined;
+                                  const data = option.data as
+                                    | { meta?: SettingsOptionItem }
+                                    | undefined;
                                   const meta = data?.meta;
                                   const desc =
-                                    meta && typeof meta.description === "string" ? meta.description.trim() : "";
+                                    meta && typeof meta.description === "string"
+                                      ? meta.description.trim()
+                                      : "";
                                   return (
                                     <div className="py-1">
-                                      <div className="font-medium">{String(option.label || "")}</div>
-                                      {desc ? <div className="text-xs text-muted-foreground">{desc}</div> : null}
+                                      <div className="font-medium">
+                                        {String(option.label || "")}
+                                      </div>
+                                      {desc ? (
+                                        <div className="text-xs text-muted-foreground">{desc}</div>
+                                      ) : null}
                                     </div>
                                   );
                                 }}
@@ -258,13 +279,19 @@ export function PluginSettingsForm({
                               <Input.Password
                                 value={String(rhfField.value || "")}
                                 onChange={(e) => rhfField.onChange(e.target.value)}
-                                placeholder={field.secret ? t("plugin:PLUGIN_SECRET_PLACEHOLDER") : undefined}
+                                placeholder={
+                                  field.secret ? t("plugin:PLUGIN_SECRET_PLACEHOLDER") : undefined
+                                }
                                 disabled={disabled || saving}
                                 autoComplete="off"
                               />
                             ) : (
                               <Input
-                                value={typeof rhfField.value === "string" ? rhfField.value : String(rhfField.value || "")}
+                                value={
+                                  typeof rhfField.value === "string"
+                                    ? rhfField.value
+                                    : String(rhfField.value || "")
+                                }
                                 onChange={(e) => rhfField.onChange(e.target.value)}
                                 disabled={disabled || saving}
                                 autoComplete="off"

@@ -98,4 +98,3 @@ async def consume_exchange_payload(
         return AuthSSOExchangePayload.model_validate_json(payload_raw)
     except Exception:
         return None
-

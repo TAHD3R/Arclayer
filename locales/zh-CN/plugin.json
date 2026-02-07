@@ -1,5 +1,6 @@
 {
   "PLUGIN_CENTER_DESC": "管理当前工作区的插件：启用/禁用、安装与重置。",
+  "PLUGIN_CENTER_ORG_DESC": "管理组织级插件：启用/禁用并配置认证提供方参数。",
   "PLUGIN_CENTER_HINT": "安装并管理当前工作区可用的插件。",
   "PLUGIN_CENTER_INSTALL_ACTION": "安装插件",
   "PLUGIN_CENTER_INSTALL_DIALOG_TITLE": "安装插件",
@@ -27,6 +28,7 @@
   "PLUGIN_CENTER_MORE": "更多操作",
   "PLUGIN_CENTER_TOGGLE_ARIA": "切换 {{name}} 启用状态",
   "PLUGIN_CENTER_CONFIGURE_ACTION": "插件配置",
+  "PLUGIN_CENTER_CONFIG_TITLE": "配置 {{name}}",
   "PLUGIN_CENTER_SEARCH_PLACEHOLDER": "搜索插件…",
   "PLUGIN_CENTER_RESET_ACTION": "重置配置",
   "PLUGIN_CENTER_UNINSTALL_ACTION": "从工作区卸载",

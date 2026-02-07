@@ -31,4 +31,3 @@ class WorkspacePluginPackageValidateOut(BaseSchema):
 class WorkspacePluginInstallValidatedIn(BaseSchema):
     token: str = Field(..., min_length=16, max_length=128, description="Validation token.")
     enable_in_workspace: bool = Field(default=True, description="Enable in workspace after install.")
-

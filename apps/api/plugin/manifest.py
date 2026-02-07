@@ -6,8 +6,8 @@ from typing import Any
 import tomllib
 from pydantic import Field, field_validator
 
-from apps.api.common.schemas import BaseSchema
 from apps.api.common.constants.plugin import PLUGIN_CATEGORY_CODES
+from apps.api.common.schemas import BaseSchema
 
 
 class PluginDependency(BaseSchema):
@@ -59,6 +59,10 @@ class ConfigSchema(BaseSchema):
 
 
 class PluginMeta(BaseSchema):
+    management_scope: str = Field(
+        default="workspace",
+        description="Plugin management scope (workspace/organization).",
+    )
     id: str = Field(
         ...,
         description="Plugin identifier (used for installation directory name and DB primary identifier).",
@@ -112,6 +116,16 @@ class PluginMeta(BaseSchema):
         if trimmed not in PLUGIN_CATEGORY_CODES:
             raise ValueError("PLUGIN_CATEGORY_INVALID")
         return trimmed
+
+    @field_validator("management_scope", mode="after")
+    @classmethod
+    def _validate_management_scope(cls, value: str) -> str:
+        scope = (value or "").strip().lower()
+        if not scope:
+            return "workspace"
+        if scope not in {"workspace", "organization"}:
+            raise ValueError("PLUGIN_SCOPE_INVALID")
+        return scope
 
 
 class PluginManifest(BaseSchema):

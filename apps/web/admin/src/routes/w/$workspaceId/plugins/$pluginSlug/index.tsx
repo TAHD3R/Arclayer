@@ -6,12 +6,21 @@ import { useTranslation } from "react-i18next";
 
 import { DefaultPage } from "@/components/common/default-page";
 import { PageState } from "@/components/common/page-state";
-import { listWorkspacePlugins, enableWorkspacePlugin, disableWorkspacePlugin } from "@/api/workspace-plugins";
+import {
+  listWorkspacePlugins,
+  enableWorkspacePlugin,
+  disableWorkspacePlugin,
+} from "@/api/workspace-plugins";
 import { getSystemRuntime } from "@/api/system";
 import { getSystemSettingsNamespace, patchSystemSettingsNamespace } from "@/api/settings";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { PluginSettingsForm } from "@/components/plugins/plugin-settings-form";
-import { ChromeTabs, ChromeTabsContent, ChromeTabsList, ChromeTabsTrigger } from "@/components/ui/chrome-tabs";
+import {
+  ChromeTabs,
+  ChromeTabsContent,
+  ChromeTabsList,
+  ChromeTabsTrigger,
+} from "@/components/ui/chrome-tabs";
 
 export const Route = createFileRoute("/w/$workspaceId/plugins/$pluginSlug/")({
   component: WorkspacePluginDetailPage,
@@ -23,8 +32,13 @@ function normalizeStatus(value: unknown): string {
     .toLowerCase();
 }
 
-function categoryLabel(t: (key: string, opts?: { defaultValue?: string }) => string, code: string | null | undefined): string {
-  const c = String(code || "").trim().toLowerCase();
+function categoryLabel(
+  t: (key: string, opts?: { defaultValue?: string }) => string,
+  code: string | null | undefined,
+): string {
+  const c = String(code || "")
+    .trim()
+    .toLowerCase();
   if (!c) return t("common:NA");
   const key = `plugin:PLUGIN_CATEGORY_${c.toUpperCase()}` as const;
   return t(key, { defaultValue: c });
@@ -54,8 +68,17 @@ function WorkspacePluginDetailPage() {
 
   const plugin = useMemo(() => {
     const items = pluginsQuery.data?.items ?? [];
-    const normalized = String(pluginSlug || "").trim().toLowerCase();
-    return items.find((p) => String(p.slug || p.pluginId).trim().toLowerCase() === normalized) ?? null;
+    const normalized = String(pluginSlug || "")
+      .trim()
+      .toLowerCase();
+    return (
+      items.find(
+        (p) =>
+          String(p.slug || p.pluginId)
+            .trim()
+            .toLowerCase() === normalized,
+      ) ?? null
+    );
   }, [pluginSlug, pluginsQuery.data?.items]);
 
   const toggleMutation = useMutation({
@@ -67,7 +90,9 @@ function WorkspacePluginDetailPage() {
         : disableWorkspacePlugin(workspaceId, ref);
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["workspace", "pluginsCenter", workspaceId] });
+      await queryClient.invalidateQueries({
+        queryKey: ["workspace", "pluginsCenter", workspaceId],
+      });
       notifySuccessText(t("settings:SETTINGS_SAVED"));
     },
     onError: (err) => notifyError(err),
@@ -156,21 +181,24 @@ function WorkspacePluginDetailPage() {
         {plugin ? (
           <ChromeTabs value={tab} onValueChange={(v) => setTab(String(v))}>
             <ChromeTabsList>
-              <ChromeTabsTrigger value="details">{t("plugin:PLUGIN_TAB_DETAILS")}</ChromeTabsTrigger>
-              {configSections.length
-                ? configSections.map((s) => (
-                    <ChromeTabsTrigger key={s.id} value={`system:${s.id}`}>
-                      {s.title || s.id}
-                    </ChromeTabsTrigger>
-                  ))
-                : Boolean(plugin.hasConfigSchema) ? (
-                    <ChromeTabsTrigger value="system:config">{t("plugin:PLUGIN_TAB_CONFIG")}</ChromeTabsTrigger>
-                  ) : null}
+              <ChromeTabsTrigger value="details">
+                {t("plugin:PLUGIN_TAB_DETAILS")}
+              </ChromeTabsTrigger>
+              {configSections.length ? (
+                configSections.map((s) => (
+                  <ChromeTabsTrigger key={s.id} value={`system:${s.id}`}>
+                    {s.title || s.id}
+                  </ChromeTabsTrigger>
+                ))
+              ) : Boolean(plugin.hasConfigSchema) ? (
+                <ChromeTabsTrigger value="system:config">
+                  {t("plugin:PLUGIN_TAB_CONFIG")}
+                </ChromeTabsTrigger>
+              ) : null}
             </ChromeTabsList>
 
             <ChromeTabsContent value="details">
               <div className="flex flex-col gap-4">
-
                 <Card size="small" type="inner" title={t("plugin:PLUGIN_TAB_DETAILS")}>
                   <Descriptions size="small" column={1} bordered>
                     <Descriptions.Item label={t("plugin:PLUGIN_META_ID")}>
@@ -198,7 +226,9 @@ function WorkspacePluginDetailPage() {
                       {plugin.category ? categoryLabel(t, plugin.category) : t("common:NA")}
                     </Descriptions.Item>
                     <Descriptions.Item label={t("plugin:PLUGIN_META_ENABLED")}>
-                      {plugin.enabled ? t("plugin:PLUGIN_ENABLED_TRUE") : t("plugin:PLUGIN_ENABLED_FALSE")}
+                      {plugin.enabled
+                        ? t("plugin:PLUGIN_ENABLED_TRUE")
+                        : t("plugin:PLUGIN_ENABLED_FALSE")}
                     </Descriptions.Item>
                   </Descriptions>
                 </Card>

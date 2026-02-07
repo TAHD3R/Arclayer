@@ -26,8 +26,12 @@ function LoginPage() {
   const keepSession = useAuthStore((s) => s.keepSession);
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const { redirect: redirectTo, mode = "login", oauth_code: oauthCode, oauth_error: oauthError } =
-    Route.useSearch();
+  const {
+    redirect: redirectTo,
+    mode = "login",
+    oauth_code: oauthCode,
+    oauth_error: oauthError,
+  } = Route.useSearch();
 
   useEffect(() => {
     // Clean up legacy/accidental recursive `redirect=/login?...` parameters to avoid URL bloat.
@@ -75,7 +79,8 @@ function LoginPage() {
 
     const msg = (() => {
       if (oauthError === "email_not_verified") return t("auth:OAUTH_ERROR_EMAIL_NOT_VERIFIED");
-      if (oauthError === "provisioning_disabled") return t("auth:OAUTH_ERROR_PROVISIONING_DISABLED");
+      if (oauthError === "provisioning_disabled")
+        return t("auth:OAUTH_ERROR_PROVISIONING_DISABLED");
       return t("auth:OAUTH_ERROR_GENERIC");
     })();
 

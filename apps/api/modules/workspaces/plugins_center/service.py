@@ -30,6 +30,8 @@ class WorkspacePluginCenterService(BaseService):
 
         items: list[WorkspacePluginSummary] = []
         for record in rows:
+            if not self._is_workspace_scope(record):
+                continue
             summary = self.plugin_service.to_summary(record)
             category: str | None = None
             manager = getattr(self.plugin_service, "manager", None)
@@ -54,6 +56,7 @@ class WorkspacePluginCenterService(BaseService):
             items.append(
                 WorkspacePluginSummary(
                     plugin_id=str(summary.plugin_id),
+                    management_scope=str(summary.management_scope),
                     slug=summary.slug,
                     name=str(summary.name),
                     description=summary.description,
@@ -86,6 +89,7 @@ class WorkspacePluginCenterService(BaseService):
             checksum=checksum,
             enable=True,
         )
+        self._assert_workspace_scope(record)
 
         if enable_in_workspace:
             await self.repo.set_enabled(workspace_id=workspace_id, plugin_id=record.plugin_id, enabled=True)
@@ -116,6 +120,7 @@ class WorkspacePluginCenterService(BaseService):
         )
         out = WorkspacePluginSummary(
             plugin_id=str(summary.plugin_id),
+            management_scope=str(summary.management_scope),
             slug=summary.slug,
             name=str(summary.name),
             description=summary.description,
@@ -141,6 +146,7 @@ class WorkspacePluginCenterService(BaseService):
         token, sha256, size_bytes, manifest = await self.plugin_service.validate_upload_to_staging(
             file=file, checksum=checksum
         )
+        self._assert_workspace_manifest_scope(str(manifest.plugin.management_scope or "workspace"))
         meta = PluginPackageMeta(
             plugin_id=manifest.plugin.id,
             slug=manifest.plugin.slug,
@@ -165,6 +171,7 @@ class WorkspacePluginCenterService(BaseService):
         enable_in_workspace: bool,
     ) -> tuple[WorkspacePluginSummary, bool]:
         record, requires_restart = await self.plugin_service.install_from_staging_token(token=token, enable=True)
+        self._assert_workspace_scope(record)
 
         await self.repo.set_enabled(
             workspace_id=workspace_id,
@@ -195,6 +202,7 @@ class WorkspacePluginCenterService(BaseService):
         )
         out = WorkspacePluginSummary(
             plugin_id=str(summary.plugin_id),
+            management_scope=str(summary.management_scope),
             slug=summary.slug,
             name=str(summary.name),
             description=summary.description,
@@ -215,6 +223,7 @@ class WorkspacePluginCenterService(BaseService):
         record = await PluginRecord.get_or_none(plugin_id=plugin_id)
         if record is None:
             raise NotFound(message=t("plugin", "PLUGIN_NOT_FOUND", default="插件不存在"), error="PLUGIN_NOT_FOUND")
+        self._assert_workspace_scope(record)
 
         await self.repo.set_enabled(workspace_id=workspace_id, plugin_id=plugin_id, enabled=enabled)
         state = await self.repo.get_state(workspace_id=workspace_id, plugin_id=plugin_id)
@@ -240,6 +249,7 @@ class WorkspacePluginCenterService(BaseService):
         )
         return WorkspacePluginSummary(
             plugin_id=str(summary.plugin_id),
+            management_scope=str(summary.management_scope),
             slug=summary.slug,
             name=str(summary.name),
             description=summary.description,
@@ -257,9 +267,17 @@ class WorkspacePluginCenterService(BaseService):
 
     async def uninstall_from_workspace(self, *, workspace_id: UUID, plugin_id: str) -> None:
         # Workspace uninstall is a "detach" operation: keep global installation.
+        record = await PluginRecord.get_or_none(plugin_id=plugin_id)
+        if record is None:
+            raise NotFound(message=t("plugin", "PLUGIN_NOT_FOUND", default="插件不存在"), error="PLUGIN_NOT_FOUND")
+        self._assert_workspace_scope(record)
         await self.repo.clear_state(workspace_id=workspace_id, plugin_id=plugin_id)
 
     async def reset_workspace_config(self, *, workspace_id: UUID, plugin_id: str) -> None:
+        record = await PluginRecord.get_or_none(plugin_id=plugin_id)
+        if record is None:
+            raise NotFound(message=t("plugin", "PLUGIN_NOT_FOUND", default="插件不存在"), error="PLUGIN_NOT_FOUND")
+        self._assert_workspace_scope(record)
         await self.repo.set_config(workspace_id=workspace_id, plugin_id=plugin_id, config=None)
 
     async def update_workspace_config(
@@ -268,6 +286,7 @@ class WorkspacePluginCenterService(BaseService):
         record = await PluginRecord.get_or_none(plugin_id=plugin_id)
         if record is None:
             raise NotFound(message=t("plugin", "PLUGIN_NOT_FOUND", default="插件不存在"), error="PLUGIN_NOT_FOUND")
+        self._assert_workspace_scope(record)
         if not record.config_schema:
             raise BadRequest(
                 message=t("plugin", "PLUGIN_CONFIG_NOT_SUPPORTED", default="插件不支持配置"),
@@ -310,6 +329,7 @@ class WorkspacePluginCenterService(BaseService):
         )
         return WorkspacePluginSummary(
             plugin_id=str(summary.plugin_id),
+            management_scope=str(summary.management_scope),
             slug=summary.slug,
             name=str(summary.name),
             description=summary.description,
@@ -329,6 +349,32 @@ class WorkspacePluginCenterService(BaseService):
         from apps.api.modules.workspaces.plugins_center.models import WorkspacePluginState
 
         return await WorkspacePluginState.filter(workspace_id=workspace_id).all()
+
+    def _is_workspace_scope(self, record: PluginRecord) -> bool:
+        scope = self._resolve_management_scope(plugin_id=str(record.plugin_id))
+        return scope == "workspace"
+
+    def _assert_workspace_scope(self, record: PluginRecord) -> None:
+        if self._is_workspace_scope(record):
+            return
+        raise BadRequest(
+            message=t("plugin", "PLUGIN_SCOPE_MISMATCH", default="插件作用域与当前管理入口不匹配"),
+            error="PLUGIN_SCOPE_MISMATCH",
+            details={
+                "management_scope": self._resolve_management_scope(plugin_id=str(record.plugin_id)),
+                "expected_scope": "workspace",
+            },
+        )
+
+    def _assert_workspace_manifest_scope(self, scope: str) -> None:
+        normalized = (scope or "workspace").strip().lower()
+        if normalized == "workspace":
+            return
+        raise BadRequest(
+            message=t("plugin", "PLUGIN_SCOPE_MISMATCH", default="插件作用域与当前管理入口不匹配"),
+            error="PLUGIN_SCOPE_MISMATCH",
+            details={"management_scope": normalized, "expected_scope": "workspace"},
+        )
 
     def _build_workspace_plugin_icon_url(
         self,
@@ -362,3 +408,14 @@ class WorkspacePluginCenterService(BaseService):
         from apps.api.common.utils.public_ids import encode_uuid
 
         return f"/workspaces/{encode_uuid(workspace_id)}/plugins-center/{ref}/icon"
+
+    def _resolve_management_scope(self, *, plugin_id: str) -> str:
+        manager = getattr(self.plugin_service, "manager", None)
+        if manager is None:
+            return "workspace"
+        if not getattr(manager, "descriptors", None):
+            manager.discover()
+        descriptor = manager.descriptors.get(str(plugin_id))
+        if descriptor is None:
+            return "workspace"
+        return (descriptor.manifest.plugin.management_scope or "workspace").strip().lower()

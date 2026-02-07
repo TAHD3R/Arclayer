@@ -14,11 +14,13 @@ from apps.api.core.i18n import t
 from apps.api.infra.cache.valkey import ValkeyClientLike
 from apps.api.modules.auth.service import AuthService
 from apps.api.modules.auth.sso.exchange_store import consume_exchange_payload
+from apps.api.modules.organization.models.org_plugin_state import OrganizationPluginState
+from apps.api.modules.organization.runtime import get_single_organization_id
 from apps.api.modules.system.models.plugin import PluginRecord
 from apps.api.plugin.manager import PluginManager
 from apps.api.plugin.manifest import build_default_config
 from apps.api.plugin.types import PluginStatus
-from apps.api.settings.runtime_plugins import get_system_plugin_settings_decrypted
+from apps.api.settings.runtime_plugins import get_org_plugin_settings_decrypted
 
 
 def _ta(key: str, default: str) -> str:
@@ -70,6 +72,10 @@ class AuthSSOService(BaseService):
         if not self.manager.descriptors:
             self.manager.discover()
 
+        organization_id = await get_single_organization_id()
+        if organization_id is None:
+            return []
+
         raw = self.manager.host.hook.auth_sso_providers()
         decls = _flatten_hook_results(raw)
 
@@ -95,11 +101,23 @@ class AuthSSOService(BaseService):
             desc = self.manager.descriptors.get(plugin_id)
             if desc is None:
                 continue
+            if (desc.manifest.plugin.management_scope or "workspace").strip().lower() != "organization":
+                continue
+
+            try:
+                state = await OrganizationPluginState.get_or_none(organization_id=organization_id, plugin_id=plugin_id)
+            except Exception:
+                # Rollout compatibility: treat missing org plugin state storage as disabled.
+                continue
+            if state is None or not bool(state.enabled):
+                continue
+
             schema = desc.manifest.config_schema
             defaults = build_default_config(desc.manifest)
             config = (
-                await get_system_plugin_settings_decrypted(
+                await get_org_plugin_settings_decrypted(
                     self.settings,
+                    organization_id=organization_id,
                     plugin_id=plugin_id,
                     schema=schema,
                     defaults=defaults,

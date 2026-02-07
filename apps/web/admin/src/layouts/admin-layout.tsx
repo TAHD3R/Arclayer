@@ -216,7 +216,12 @@ export function AdminLayout({ children }: PropsWithChildren) {
 
   const isOrgScopeRoute = useMemo(() => {
     const p = pathname || "/";
-    return p === "/settings/organization" || p.startsWith("/settings/organization/");
+    return (
+      p === "/settings/organization" ||
+      p.startsWith("/settings/organization/") ||
+      p === "/plugins" ||
+      p.startsWith("/plugins/")
+    );
   }, [pathname]);
 
   const workspaceBase = useMemo(() => {

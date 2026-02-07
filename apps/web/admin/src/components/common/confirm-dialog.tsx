@@ -53,4 +53,3 @@ export function ConfirmDialog(props: ConfirmDialogProps) {
     </Dialog>
   );
 }
-

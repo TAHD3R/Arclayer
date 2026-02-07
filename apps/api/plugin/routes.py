@@ -36,7 +36,14 @@ def register_plugin_routers(router: APIRouter, *, plugin_manager: PluginManager)
             # FastAPI's type hint expects `list[str | Enum]`, but `list[str]` is invariant.
             tag = cast(str | Enum, f"plugin:{plugin_id}")
             include_tags: list[str | Enum] | None = None if subrouter.tags else [tag]
-            dependencies = [Depends(require_plugin_enabled(plugin_id))]
+            dependencies = [
+                Depends(
+                    require_plugin_enabled(
+                        plugin_id,
+                        management_scope=descriptor.manifest.plugin.management_scope,
+                    )
+                )
+            ]
             if scope == "admin":
                 dependencies.append(Depends(require_workspace_manage_access))
                 dependencies.append(require_workspace_permission("admin:access"))

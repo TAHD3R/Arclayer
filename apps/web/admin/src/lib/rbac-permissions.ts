@@ -40,4 +40,3 @@ export function resolvePermissionNameI18nKey(permissionCode: string): string | n
   if (!code) return null;
   return PERMISSION_NAME_I18N_KEY_BY_CODE[code] ?? null;
 }
-

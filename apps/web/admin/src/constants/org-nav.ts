@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { History, Settings } from "lucide-react";
+import { History, Package, Settings } from "lucide-react";
 
 import type { AdminNavItem } from "@/constants/admin-nav";
 
@@ -28,6 +28,13 @@ export const ORG_NAV_ITEMS: AdminNavItem[] = [
     icon: Settings,
     children: [
       {
+        key: "org.activity",
+        label: "Activity",
+        labelKey: "nav:NAV_ORG_ACTIVITY",
+        to: "/settings/organization/activity",
+        icon: History,
+      },
+      {
         key: "org.settings",
         label: "Organization settings",
         labelKey: "nav:NAV_ORG_SETTINGS",
@@ -35,11 +42,19 @@ export const ORG_NAV_ITEMS: AdminNavItem[] = [
         icon: Settings,
       },
       {
-        key: "org.activity",
-        label: "Activity",
-        labelKey: "nav:NAV_ORG_ACTIVITY",
-        to: "/settings/organization/activity",
-        icon: History,
+        key: "org.plugins",
+        label: "Plugins",
+        labelKey: "nav:NAV_ORG_PLUGIN_CENTER",
+        icon: Package,
+        children: [
+          {
+            key: "org.plugins.installed",
+            label: "Installed",
+            labelKey: "nav:NAV_PLUGINS_INSTALLED",
+            to: "/plugins/installed",
+            icon: Package,
+          },
+        ],
       },
     ],
   },

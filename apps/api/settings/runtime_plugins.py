@@ -6,7 +6,7 @@ from apps.api.config import Settings
 from apps.api.modules.system.models.setting import SettingRecord
 from apps.api.plugin.manifest import ConfigSchema
 from apps.api.settings.crypto import decrypt_secret, is_encrypted, load_master_key, master_key_exists
-from apps.api.settings.scopes import SCOPE_TYPE_SYSTEM, SYSTEM_SCOPE_ID
+from apps.api.settings.scopes import SCOPE_TYPE_ORG, SCOPE_TYPE_SYSTEM, SYSTEM_SCOPE_ID
 from apps.api.settings.validation import iter_secret_field_paths
 
 
@@ -17,8 +17,45 @@ async def get_system_plugin_settings_decrypted(
     schema: ConfigSchema,
     defaults: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    return await get_scoped_plugin_settings_decrypted(
+        settings,
+        plugin_id=plugin_id,
+        schema=schema,
+        scope_type=SCOPE_TYPE_SYSTEM,
+        scope_id=SYSTEM_SCOPE_ID,
+        defaults=defaults,
+    )
+
+
+async def get_org_plugin_settings_decrypted(
+    settings: Settings,
+    *,
+    organization_id: Any,
+    plugin_id: str,
+    schema: ConfigSchema,
+    defaults: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    return await get_scoped_plugin_settings_decrypted(
+        settings,
+        plugin_id=plugin_id,
+        schema=schema,
+        scope_type=SCOPE_TYPE_ORG,
+        scope_id=organization_id,
+        defaults=defaults,
+    )
+
+
+async def get_scoped_plugin_settings_decrypted(
+    settings: Settings,
+    *,
+    plugin_id: str,
+    schema: ConfigSchema,
+    scope_type: str,
+    scope_id: Any,
+    defaults: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     """
-    Load system-scoped plugin settings (namespace=plugin:<plugin_id>), decrypting secret fields in-memory.
+    Load scoped plugin settings (namespace=plugin:<plugin_id>), decrypting secret fields in-memory.
 
     Notes:
     - Best-effort: when DB isn't ready or record is missing, returns defaults (or {}).
@@ -34,8 +71,8 @@ async def get_system_plugin_settings_decrypted(
 
     try:
         record = await SettingRecord.get_or_none(
-            scope_type=SCOPE_TYPE_SYSTEM,
-            scope_id=SYSTEM_SCOPE_ID,
+            scope_type=scope_type,
+            scope_id=scope_id,
             namespace=namespace,
         )
         raw = record.value if record and isinstance(record.value, dict) else None
@@ -73,7 +110,7 @@ async def get_system_plugin_settings_decrypted(
             continue
 
         try:
-            aad = f"{SCOPE_TYPE_SYSTEM}:{SYSTEM_SCOPE_ID}:{namespace}:{path}"
+            aad = f"{scope_type}:{scope_id}:{namespace}:{path}"
             section[field_key] = decrypt_secret(val, key=key, aad=aad)
         except Exception:
             section[field_key] = None
@@ -81,4 +118,8 @@ async def get_system_plugin_settings_decrypted(
     return base
 
 
-__all__ = ["get_system_plugin_settings_decrypted"]
+__all__ = [
+    "get_org_plugin_settings_decrypted",
+    "get_scoped_plugin_settings_decrypted",
+    "get_system_plugin_settings_decrypted",
+]

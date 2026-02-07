@@ -10,7 +10,7 @@
     "uv": "UV_CACHE_DIR=../../.uv-cache PYTHONPATH=../.. uv run",
     "install": "UV_CACHE_DIR=../../.uv-cache PYTHONPATH=../.. uv sync",
     "dev": "UV_CACHE_DIR=../../.uv-cache PYTHONPATH=../.. uv run uvicorn apps.api.main:app --reload",
-    "lint": "UV_CACHE_DIR=../../.uv-cache PYTHONPATH=../.. uv run ruff check .",
+    "lint": "UV_CACHE_DIR=../../.uv-cache PYTHONPATH=../.. uv run ruff check . --fix",
     "format": "UV_CACHE_DIR=../../.uv-cache PYTHONPATH=../.. uv run ruff format .",
     "typecheck": "UV_CACHE_DIR=../../.uv-cache PYTHONPATH=../.. uv run pyright",
     "test": "UV_CACHE_DIR=../../.uv-cache PYTHONPATH=../.. uv run pytest --cov=.",

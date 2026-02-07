@@ -7,18 +7,16 @@ from __future__ import annotations
 # Notes:
 # - Codes must be stable because they are used in manifests and stored in plugin packages.
 # - Admin UI maps codes to localized labels via i18n.
-PLUGIN_CATEGORY_CODES: frozenset[str] = frozenset(
-    {
-        "content_creation",
-        "media_management",
-        "seo_marketing",
-        "system_security",
-        "performance_optimization",
-        "user_interaction",
-        "data_integration",
-        "data_analytics",
-    }
-)
+PLUGIN_CATEGORY_CODES: frozenset[str] = frozenset({
+    "content_creation",
+    "media_management",
+    "seo_marketing",
+    "system_security",
+    "performance_optimization",
+    "user_interaction",
+    "data_integration",
+    "data_analytics",
+})
 
 # Core event names (string constants). Keep names stable and version payloads as needed.
 SYSTEM_SETUP_COMPLETED = "system.setup.completed"

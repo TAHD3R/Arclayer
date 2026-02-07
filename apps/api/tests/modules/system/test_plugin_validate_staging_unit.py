@@ -18,19 +18,17 @@ def _build_minimal_plugin_zip_bytes(*, plugin_id: str, slug: str, entry_root: st
     with zipfile.ZipFile(buf, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
         zf.writestr(
             "plugin.toml",
-            "\n".join(
-                [
-                    "[plugin]",
-                    f'id = "{plugin_id}"',
-                    f'slug = "{slug}"',
-                    'name = "Demo"',
-                    'author = "Test"',
-                    'version = "0.0.1"',
-                    'requires = ">=2026.01.18-dev"',
-                    f'entrypoint = "{entry_root}.plugin:Plugin"',
-                    "",
-                ]
-            ).encode("utf-8"),
+            "\n".join([
+                "[plugin]",
+                f'id = "{plugin_id}"',
+                f'slug = "{slug}"',
+                'name = "Demo"',
+                'author = "Test"',
+                'version = "0.0.1"',
+                'requires = ">=2026.01.18-dev"',
+                f'entrypoint = "{entry_root}.plugin:Plugin"',
+                "",
+            ]).encode("utf-8"),
         )
         zf.writestr(f"{entry_root}/__init__.py", b"")
         zf.writestr(f"{entry_root}/plugin.py", b"class Plugin: pass\n")
@@ -94,4 +92,3 @@ async def test_install_from_staging_token_rejects_expired_token(plugin_root) -> 
         await service.install_from_staging_token(token=token, enable=True)
     assert exc.value.error == "PLUGIN_VALIDATE_TOKEN_EXPIRED"
     assert not validate_dir.exists()
-

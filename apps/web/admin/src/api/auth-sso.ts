@@ -13,17 +13,14 @@ export type AuthSSOProvidersOut = {
   providers: AuthSSOProvider[];
 };
 
-export async function listSSOProviders(input?: { redirect?: string }): Promise<AuthSSOProvidersOut> {
+export async function listSSOProviders(input?: {
+  redirect?: string;
+}): Promise<AuthSSOProvidersOut> {
   const redirect = input?.redirect;
   const qs = redirect ? `?redirect=${encodeURIComponent(redirect)}` : "";
   return api.get<AuthSSOProvidersOut>(`/auth/sso/providers${qs}`, { auth: { skipRefresh: true } });
 }
 
 export async function exchangeSSOCode(code: string): Promise<TokenPair> {
-  return api.post<TokenPair>(
-    "/auth/sso/exchange",
-    { code },
-    { auth: { skipRefresh: true } },
-  );
+  return api.post<TokenPair>("/auth/sso/exchange", { code }, { auth: { skipRefresh: true } });
 }
-

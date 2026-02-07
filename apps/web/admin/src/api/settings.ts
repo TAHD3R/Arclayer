@@ -79,5 +79,7 @@ export async function patchSystemSettingsNamespace(
   namespace: string,
   patch: Record<string, unknown>,
 ): Promise<SystemSettingsDetail> {
-  return api.patch<SystemSettingsDetail>(`/system/settings/${encodeURIComponent(namespace)}`, { patch });
+  return api.patch<SystemSettingsDetail>(`/system/settings/${encodeURIComponent(namespace)}`, {
+    patch,
+  });
 }
