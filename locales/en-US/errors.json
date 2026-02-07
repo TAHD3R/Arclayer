@@ -5,6 +5,7 @@
   "PERMISSION_DENIED": "Permission denied",
   "NOT_FOUND": "Resource not found",
   "CONFLICT": "Conflict",
+  "WORKSPACE_SLUG_IMMUTABLE": "Workspace slug cannot be changed",
   "VALIDATION_ERROR": "Validation failed",
   "TOO_MANY_REQUESTS": "Too many requests",
   "RATE_LIMITED": "Too many requests",

@@ -75,7 +75,7 @@ async def get_workspace_detail(
 @router.patch(
     "/workspaces/{workspace_id}",
     response_model=ResponseModel[WorkspaceDetailOut],
-    summary="Update workspace metadata (name/slug)",
+    summary="Update workspace metadata (name)",
     dependencies=[require_workspace_permission("system:settings:manage")],
 )
 async def update_workspace(

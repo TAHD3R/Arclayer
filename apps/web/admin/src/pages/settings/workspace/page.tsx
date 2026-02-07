@@ -1,5 +1,5 @@
-import { Form, Input, Select } from "antd";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Form, Input, Select } from "antd";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
 
@@ -33,22 +33,10 @@ type WorkspaceSettingsTabKey =
 
 type FormValues = {
   name: string;
-  slug: string;
   locale: AppLocale;
   timezone: string;
   dateFormat: string;
 };
-
-function normalizeSlug(input: string): string {
-  return String(input || "")
-    .trim()
-    .toLowerCase();
-}
-
-function isValidSlug(slug: string): boolean {
-  // Keep it aligned with backend: ^[a-z0-9]+(?:-[a-z0-9]+)*$
-  return /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug);
-}
 
 export function WorkspaceSettingsView() {
   const { t } = useTranslation(["settings", "common"]);
@@ -87,10 +75,9 @@ export function WorkspaceSettingsView() {
 
   React.useEffect(() => {
     if (!detailQuery.data) return;
-    if (form.isFieldTouched("name") || form.isFieldTouched("slug")) return;
+    if (form.isFieldTouched("name")) return;
     form.setFieldsValue({
       name: detailQuery.data.name,
-      slug: detailQuery.data.slug,
     });
   }, [detailQuery.data, form]);
 
@@ -112,7 +99,7 @@ export function WorkspaceSettingsView() {
   }, [coreQuery.data, form]);
 
   const patchWorkspaceMutation = useMutation({
-    mutationFn: async (patch: { name?: string; slug?: string }) => {
+    mutationFn: async (patch: { name?: string }) => {
       if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
       return patchWorkspaceDetail(String(workspaceId), patch);
     },
@@ -147,11 +134,8 @@ export function WorkspaceSettingsView() {
     Boolean(savingKey);
 
   const initialWorkspaceName = detailQuery.data?.name ?? "";
-  const initialWorkspaceSlug = detailQuery.data?.slug ?? "";
   const currentWorkspaceName =
     (Form.useWatch("name", form) as string | undefined) ?? initialWorkspaceName;
-  const currentWorkspaceSlug =
-    (Form.useWatch("slug", form) as string | undefined) ?? initialWorkspaceSlug;
 
   const initialWorkspaceLocale = (pickString(coreQuery.data?.value, [
     "workspace_localization",
@@ -175,8 +159,6 @@ export function WorkspaceSettingsView() {
     DATE_FORMAT_ITEMS.find((it) => it.value === workspaceDateFormat)?.label ?? workspaceDateFormat;
 
   const isWorkspaceNameDirty = (currentWorkspaceName || "") !== (initialWorkspaceName || "");
-  const isWorkspaceSlugDirty =
-    normalizeSlug(currentWorkspaceSlug) !== normalizeSlug(initialWorkspaceSlug);
   const isWorkspaceLocaleDirty =
     (workspaceLocale || "") !== (initialWorkspaceLocaleNormalized || "");
   const isWorkspaceTimezoneDirty = (workspaceTimezone || "") !== (initialWorkspaceTimezone || "");
@@ -209,7 +191,6 @@ export function WorkspaceSettingsView() {
           disabled={disabled}
           initialValues={{
             name: detailQuery.data?.name ?? "",
-            slug: detailQuery.data?.slug ?? "",
             locale: normalizeLocale(
               pickString(coreQuery.data?.value, ["workspace_localization", "locale"]) ?? "zh-CN",
             ),
@@ -295,67 +276,6 @@ export function WorkspaceSettingsView() {
                           <Input
                             size="large"
                             placeholder={t("settings:SETTINGS_WORKSPACE_NAME_PLACEHOLDER")}
-                          />
-                        </Form.Item>
-                      </SettingAccordionItem>
-
-                      <SettingAccordionItem
-                        value="workspace_slug"
-                        variant="action"
-                        title={t("settings:SETTINGS_WORKSPACE_SLUG_LABEL")}
-                        description={t("settings:SETTINGS_WORKSPACE_SLUG_ITEM_DESC")}
-                        showSummary
-                        summary={normalizeSlug(currentWorkspaceSlug)}
-                        placeholder={t("settings:SETTINGS_NOT_SET")}
-                        keepRendered
-                        disabled={disabled || !detailQuery.data}
-                        confirmText={t("settings:SETTINGS_SAVE")}
-                        confirmLoading={savingKey === "workspace:slug"}
-                        onConfirm={() =>
-                          void withSavingKey("workspace:slug", async () => {
-                            const values = await form.validateFields(["slug"]);
-                            const next = normalizeSlug(String(values.slug || ""));
-                            // Normalize input so users can see the final slug immediately.
-                            form.setFieldValue("slug", next);
-                            await patchWorkspaceMutation.mutateAsync({ slug: next });
-                          })
-                        }
-                        onReset={
-                          isWorkspaceSlugDirty && detailQuery.data
-                            ? () =>
-                                void withSavingKey("reset:workspace:slug", async () => {
-                                  const next = normalizeSlug(initialWorkspaceSlug);
-                                  form.setFieldValue("slug", next);
-                                  await patchWorkspaceMutation.mutateAsync({ slug: next });
-                                })
-                            : undefined
-                        }
-                        resetLoading={savingKey === "reset:workspace:slug"}
-                      >
-                        <Form.Item
-                          name="slug"
-                          rules={[
-                            {
-                              required: true,
-                              message: t("settings:SETTINGS_WORKSPACE_SLUG_REQUIRED"),
-                            },
-                            {
-                              validator: async (_rule, value) => {
-                                const slug = normalizeSlug(String(value || ""));
-                                if (!slug)
-                                  throw new Error(t("settings:SETTINGS_WORKSPACE_SLUG_REQUIRED"));
-                                if (slug.length > 64)
-                                  throw new Error(t("settings:SETTINGS_WORKSPACE_SLUG_TOO_LONG"));
-                                if (!isValidSlug(slug))
-                                  throw new Error(t("settings:SETTINGS_WORKSPACE_SLUG_INVALID"));
-                              },
-                            },
-                          ]}
-                          style={{ marginBottom: 0 }}
-                        >
-                          <Input
-                            size="large"
-                            placeholder={t("settings:SETTINGS_WORKSPACE_SLUG_PLACEHOLDER")}
                           />
                         </Form.Item>
                       </SettingAccordionItem>

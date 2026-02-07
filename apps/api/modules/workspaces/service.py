@@ -1,19 +1,16 @@
 from __future__ import annotations
 
-import re
 from typing import cast
 from uuid import UUID
 
 from apps.api.common.protocols.tortoise import HasOrganizationId, HasWorkspaceId
 from apps.api.common.services import BaseService
 from apps.api.config import Settings
-from apps.api.core.exceptions import BadRequest, Conflict, NotFound
+from apps.api.core.exceptions import BadRequest, NotFound
 from apps.api.core.i18n import t
 from apps.api.modules.organization.models.org_membership import OrgMembership, OrgRole
 from apps.api.modules.workspaces.models.workspace import Workspace, WorkspaceMembership, WorkspaceMembershipStatus
 from apps.api.modules.workspaces.schema import MyWorkspaceOut, WorkspaceDetailOut, WorkspaceUpdateRequest
-
-_WORKSPACE_SLUG_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 
 
 class WorkspaceService(BaseService):
@@ -96,6 +93,12 @@ class WorkspaceService(BaseService):
         if ws is None:
             raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
 
+        if "slug" in payload.model_fields_set:
+            raise BadRequest(
+                message=t("errors", "WORKSPACE_SLUG_IMMUTABLE", default="Workspace slug cannot be changed"),
+                error="WORKSPACE_SLUG_IMMUTABLE",
+            )
+
         updates: dict[str, str] = {}
         if payload.name is not None:
             name = str(payload.name).strip()
@@ -104,20 +107,6 @@ class WorkspaceService(BaseService):
             if len(name) > 128:
                 raise BadRequest(message=t("errors", "BAD_REQUEST", default="参数错误"), error="INVALID_WORKSPACE_NAME")
             updates["name"] = name
-
-        if payload.slug is not None:
-            slug = str(payload.slug).strip().lower()
-            if not slug:
-                raise BadRequest(message=t("errors", "BAD_REQUEST", default="参数错误"), error="INVALID_WORKSPACE_SLUG")
-            if len(slug) > 64:
-                raise BadRequest(message=t("errors", "BAD_REQUEST", default="参数错误"), error="INVALID_WORKSPACE_SLUG")
-            if not _WORKSPACE_SLUG_RE.match(slug):
-                raise BadRequest(message=t("errors", "BAD_REQUEST", default="参数错误"), error="INVALID_WORKSPACE_SLUG")
-
-            exists = await Workspace.filter(organization_id=organization_id, slug=slug).exclude(id=ws.id).exists()
-            if exists:
-                raise Conflict(message=t("errors", "CONFLICT", default="资源冲突"), error="WORKSPACE_SLUG_EXISTS")
-            updates["slug"] = slug
 
         if updates:
             for k, v in updates.items():

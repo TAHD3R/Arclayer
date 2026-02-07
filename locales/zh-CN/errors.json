@@ -5,6 +5,7 @@
   "PERMISSION_DENIED": "权限不足",
   "NOT_FOUND": "资源不存在",
   "CONFLICT": "请求冲突",
+  "WORKSPACE_SLUG_IMMUTABLE": "工作区标识不可修改",
   "VALIDATION_ERROR": "参数校验失败",
   "TOO_MANY_REQUESTS": "请求过于频繁",
   "RATE_LIMITED": "请求过于频繁",
