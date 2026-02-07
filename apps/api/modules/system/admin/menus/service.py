@@ -15,11 +15,14 @@ from apps.api.core.i18n import t
 from apps.api.modules.system.admin.menus.models import AdminMenuItem, AdminMenuItemType
 from apps.api.modules.system.admin.menus.repository import AdminMenuRepository, normalize_ordering
 from apps.api.modules.system.admin.menus.schema import (
+    AdminMenuBlockedReason,
     AdminMenuCreateRequest,
     AdminMenuItemOut,
     AdminMenuListQuery,
     AdminMenuNode,
+    AdminMenuNodeEffective,
     AdminMenuReorderRequest,
+    AdminMenuTreeEffectiveOut,
     AdminMenuTreeOut,
     AdminMenuUpdateRequest,
 )
@@ -74,6 +77,9 @@ def _core_menu_codes() -> set[str]:
         return set()
 
 
+_CORE_MENU_HEAL_LAST_AT: float = 0.0
+
+
 def _get_parent_id(item: AdminMenuItem) -> UUID | None:
     raw = cast(HasParentId, item).parent_id
     return UUID(str(raw)) if raw is not None else None
@@ -124,6 +130,8 @@ class AdminMenuService(BaseService):
                 message=t("errors", "WORKSPACE_CONTEXT_REQUIRED", default="需要工作区上下文"),
                 error="WORKSPACE_CONTEXT_REQUIRED",
             )
+
+        await self._maybe_heal_core_menus(workspace_id=workspace_id)
 
         snap = await get_workspace_authz_snapshot(user_id=user_id, workspace_id=workspace_id)
         permission_set = set(snap.permission_codes or [])
@@ -233,6 +241,8 @@ class AdminMenuService(BaseService):
                 error="WORKSPACE_CONTEXT_REQUIRED",
             )
 
+        await self._maybe_heal_core_menus(workspace_id=workspace_id)
+
         rows = await self.repo.query_items_for_user().all().order_by("sort", "created_at")
         by_id = {row.id: row for row in rows}
         children: dict[UUID | None, list[AdminMenuItem]] = {}
@@ -267,6 +277,161 @@ class AdminMenuService(BaseService):
         roots = _collect_roots(children=children, by_id=by_id)
         tree = [_build_node(r) for r in roots if r.id in by_id]
         return AdminMenuTreeOut(items=tree)
+
+    async def get_catalog_effective(self, *, user_id: UUID) -> AdminMenuTreeEffectiveOut:
+        """
+        Return the full active admin menu tree with per-user accessibility flags.
+
+        This is designed for navigation UI:
+        - UI can render all menu nodes, but disable nodes the user cannot access.
+        - Security is still enforced by backend endpoint permissions.
+        """
+
+        workspace_id = get_current_workspace_id()
+        if workspace_id is None:
+            raise ServiceUnavailable(
+                message=t("errors", "WORKSPACE_CONTEXT_REQUIRED", default="需要工作区上下文"),
+                error="WORKSPACE_CONTEXT_REQUIRED",
+            )
+
+        await self._maybe_heal_core_menus(workspace_id=workspace_id)
+
+        snap = await get_workspace_authz_snapshot(user_id=user_id, workspace_id=workspace_id)
+        permission_set = set(snap.permission_codes or [])
+        is_superuser = bool(snap.is_superuser)
+
+        enabled_plugin_ids: set[str] = set()
+        try:
+            from apps.api.modules.workspaces.plugins_center.models import WorkspacePluginState
+
+            rows = await WorkspacePluginState.filter(workspace_id=workspace_id, enabled=True).values_list(
+                "plugin_id", flat=True
+            )
+            enabled_plugin_ids = {str(x) for x in rows if x}
+        except Exception:
+            enabled_plugin_ids = set()
+
+        rows = await self.repo.query_items_for_user().all().order_by("sort", "created_at")
+        by_id = {row.id: row for row in rows}
+        children: dict[UUID | None, list[AdminMenuItem]] = {}
+        for row in rows:
+            children.setdefault(_get_parent_id(row), []).append(row)
+        for items in children.values():
+            items.sort(key=lambda r: (r.sort, r.created_at, str(r.id)))
+
+        core_codes = _core_menu_codes()
+
+        def _derive_owner_plugin_id(item: AdminMenuItem) -> str | None:
+            meta = item.meta if isinstance(item.meta, dict) else {}
+            owner = str(meta.get("plugin_id") or "").strip() if meta else ""
+            return owner or None
+
+        def _compute_self_access(item: AdminMenuItem) -> tuple[bool, AdminMenuBlockedReason | None, str | None]:
+            """
+            Compute access for this node itself (ignoring children).
+            """
+
+            owner_plugin_id = _derive_owner_plugin_id(item)
+            if owner_plugin_id and owner_plugin_id != "core":
+                # Do not let polluted owner markers hide core navigation.
+                if item.code not in core_codes and owner_plugin_id not in enabled_plugin_ids:
+                    return False, AdminMenuBlockedReason.PLUGIN_DISABLED, item.permission_code or "admin:access"
+
+            # Permission gate
+            if is_superuser:
+                return True, None, item.permission_code or "admin:access"
+
+            required = item.permission_code or "admin:access"
+            if required == "admin:access":
+                ok = "admin:access" in permission_set
+            else:
+                ok = required in permission_set
+            return (ok, None, required) if ok else (False, AdminMenuBlockedReason.MISSING_PERMISSION, required)
+
+        def _build_node(item: AdminMenuItem) -> AdminMenuNodeEffective:
+            self_allowed, reason, required = _compute_self_access(item)
+
+            node = AdminMenuNodeEffective(
+                id=item.id,
+                code=item.code,
+                title=_localize_menu_title(title=item.title, title_i18n=item.title_i18n),
+                title_i18n=item.title_i18n,
+                icon=item.icon,
+                path=item.path,
+                name=item.name,
+                component_key=item.component_key,
+                redirect=item.redirect,
+                sort=item.sort,
+                permission_code=item.permission_code,
+                meta=item.meta if isinstance(item.meta, dict) else None,
+                allowed=self_allowed,
+                blocked_reason=reason,
+                required_permission=required,
+                owner_plugin_id=_derive_owner_plugin_id(item),
+                children=[],
+            )
+
+            # Children
+            for child in children.get(item.id, []):
+                node.children.append(_build_node(child))
+
+            # Group nodes can be effectively allowed if any child is allowed.
+            if item.type == AdminMenuItemType.GROUP and node.children:
+                any_child_allowed = any(c.allowed for c in node.children)
+                if any_child_allowed and not node.allowed:
+                    node.allowed = True
+                    node.blocked_reason = None
+                    node.required_permission = None
+
+            return node
+
+        roots = _collect_roots(children=children, by_id=by_id)
+        tree = [_build_node(r) for r in roots if r.id in by_id]
+        return AdminMenuTreeEffectiveOut(items=tree)
+
+    async def _maybe_heal_core_menus(self, *, workspace_id: UUID) -> None:
+        """
+        Best-effort self-heal for core navigation drift in legacy DBs.
+
+        Why:
+        - Core menus are product-owned; they should not disappear due to soft deletes or bad migrations.
+        - Startup seeding should handle this, but we also heal on-demand (throttled) to improve reliability
+          during iterative development and when deployments miss a restart step.
+        """
+
+        global _CORE_MENU_HEAL_LAST_AT
+        import time
+
+        now = time.monotonic()
+        # Throttle to avoid doing DB writes on every request under load.
+        if now - _CORE_MENU_HEAL_LAST_AT < 10.0:
+            return
+
+        core_codes = _core_menu_codes()
+        if not core_codes:
+            return
+
+        # Detect inconsistent core records (missing / soft-deleted / inactive).
+        try:
+            rows = await AdminMenuItem.filter(code__in=list(core_codes)).values("code", "deleted_at", "is_active")
+            found = {str(r.get("code")) for r in rows if r.get("code")}
+            missing = core_codes - found
+            inconsistent = any(r.get("deleted_at") is not None or not bool(r.get("is_active")) for r in rows)
+            if not missing and not inconsistent:
+                _CORE_MENU_HEAL_LAST_AT = now
+                return
+        except Exception:
+            # If the check fails, do not block requests.
+            return
+
+        try:
+            from apps.api.modules.system.admin.menus.bootstrap import ensure_core_admin_menus_ready
+
+            await ensure_core_admin_menus_ready(settings=self.settings)
+            _CORE_MENU_HEAL_LAST_AT = now
+        except Exception:
+            # Best-effort only.
+            return
 
     async def list_items(self, *, params: PageParams, filters: AdminMenuListQuery) -> PageData[AdminMenuItemOut]:
         qs = self.repo.query_items(include_deleted=bool(filters.include_deleted))

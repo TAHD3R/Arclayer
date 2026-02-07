@@ -8,5 +8,8 @@
   "ITEM_NOT_FOUND": "菜单项不存在",
   "ITEM_CODE_EXISTS": "菜单编码已存在",
   "ITEM_HAS_CHILDREN": "菜单项下存在子项，无法删除",
-  "INVALID_PARENT": "父菜单不合法"
+  "INVALID_PARENT": "父菜单不合法",
+  "MENU_BLOCKED_PLUGIN_DISABLED": "该菜单依赖的插件未在当前工作区启用。",
+  "MENU_BLOCKED_MISSING_PERMISSION": "你没有权限访问该页面（需要：{{permission}}）。",
+  "MENU_BLOCKED_GENERIC": "该菜单在当前访问范围内不可用。"
 }

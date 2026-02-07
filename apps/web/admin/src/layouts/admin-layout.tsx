@@ -43,8 +43,8 @@ import { usePreferencesStore } from "@/stores/use-preference-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import type { NotificationPreview } from "@/api/notifications";
 import { getUnreadNotificationPreview, markNotificationRead } from "@/api/notifications";
-import type { AdminMenuNode } from "@/api/admin-menus";
-import { getMyAdminMenu } from "@/api/admin-menus";
+import type { AdminMenuNodeEffective } from "@/api/admin-menus";
+import { getAdminMenuCatalogEffective } from "@/api/admin-menus";
 import { getWorkspaceDetail } from "@/api/workspaces";
 import { useWorkspaceLocalization } from "@/hooks/use-workspace-localization";
 import { useNowTick } from "@/hooks/use-now-tick";
@@ -90,8 +90,8 @@ function resolveLucideIcon(name?: string | null): LucideIcon {
   return ICON_MAP[key] ?? Package;
 }
 
-function buildNavItemsFromMenuNodes(nodes: AdminMenuNode[]): AdminNavItem[] {
-  const walk = (n: AdminMenuNode): AdminNavItem => {
+function buildNavItemsFromMenuNodes(nodes: AdminMenuNodeEffective[]): AdminNavItem[] {
+  const walk = (n: AdminMenuNodeEffective): AdminNavItem => {
     const children = (n.children ?? []).map(walk);
     return {
       key: n.code,
@@ -99,6 +99,10 @@ function buildNavItemsFromMenuNodes(nodes: AdminMenuNode[]): AdminNavItem[] {
       ...(n.titleI18n ? { labelKey: n.titleI18n } : {}),
       ...(n.path ? { to: n.path } : {}),
       icon: resolveLucideIcon(n.icon),
+      disabled: !n.allowed,
+      blockedReason: n.blockedReason ?? null,
+      requiredPermission: n.requiredPermission ?? null,
+      ownerPluginId: n.ownerPluginId ?? null,
       ...(children.length ? { children } : {}),
     };
   };
@@ -165,7 +169,8 @@ function collectAllowedWorkspacePathPrefixes(
 
   const walk = (nodes: AdminNavItem[]) => {
     for (const n of nodes) {
-      if (n.to) prefixes.add(normalizePath(n.to));
+      // Route guard must not treat disabled items as allowed.
+      if (n.to && !n.disabled) prefixes.add(normalizePath(n.to));
       if (n.children?.length) walk(n.children);
     }
   };
@@ -223,7 +228,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
   const workspaceMenuQuery = useQuery({
     queryKey: ["workspace", "adminMenu", workspaceId, effectiveLocale],
     enabled: Boolean(accessToken && workspaceId && !isOrgScopeRoute),
-    queryFn: async () => getMyAdminMenu(String(workspaceId)),
+    queryFn: async () => getAdminMenuCatalogEffective(String(workspaceId)),
     staleTime: 60 * 1000,
     retry: false,
     meta: { silent: true },

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from enum import StrEnum
 from typing import Any
 from uuid import UUID
 
@@ -37,6 +38,55 @@ class AdminMenuNode(BaseSchema):
 
 class AdminMenuTreeOut(BaseSchema):
     items: list[AdminMenuNode] = Field(default_factory=list, description="Menu tree roots.")
+
+
+class AdminMenuBlockedReason(StrEnum):
+    """
+    Reason why the current user cannot access the menu item.
+
+    Notes:
+    - This is intended for UI (disabled menu tooltip), not for security enforcement.
+    - Security is still enforced by backend endpoint permissions.
+    """
+
+    MISSING_PERMISSION = "missing_permission"
+    PLUGIN_DISABLED = "plugin_disabled"
+
+
+class AdminMenuNodeEffective(BaseSchema):
+    """
+    Menu node for rendering a full navigation tree with per-user accessibility.
+
+    - `allowed` indicates whether the current user can access this node.
+    - `blocked_reason` explains why it is not allowed (if applicable).
+    """
+
+    id: UUID = Field(..., description="Menu item id.")
+    code: str = Field(..., description="Stable code (immutable).")
+    title: str = Field(..., description="Display title (already localized if needed).")
+    title_i18n: str | None = Field(default=None, description="Optional i18n ref, e.g. 'nav:NAV_CONTENT'.")
+    icon: str | None = Field(default=None, description="Icon key.")
+    path: str | None = Field(default=None, description="Route path.")
+    name: str | None = Field(default=None, description="Route name.")
+    component_key: str | None = Field(default=None, description="Frontend component key for dynamic route.")
+    redirect: str | None = Field(default=None, description="Optional redirect path.")
+    sort: int = Field(default=0, description="Sort order.")
+    permission_code: str | None = Field(
+        default=None,
+        description="Required permission code (null means admin:access only).",
+    )
+    meta: dict[str, Any] | None = Field(default=None, description="Route meta.")
+
+    allowed: bool = Field(..., description="Whether current user can access this node.")
+    blocked_reason: AdminMenuBlockedReason | None = Field(default=None, description="Blocked reason for UI.")
+    required_permission: str | None = Field(default=None, description="Effective permission required for access.")
+    owner_plugin_id: str | None = Field(default=None, description="Owner plugin id derived from meta.plugin_id.")
+
+    children: list[AdminMenuNodeEffective] = Field(default_factory=list, description="Child nodes.")
+
+
+class AdminMenuTreeEffectiveOut(BaseSchema):
+    items: list[AdminMenuNodeEffective] = Field(default_factory=list, description="Menu tree roots.")
 
 
 class AdminMenuItemOut(BaseOut):

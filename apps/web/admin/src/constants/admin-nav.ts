@@ -27,6 +27,17 @@ export type AdminNavItem = {
   labelKey?: string;
   to?: string;
   icon: LucideIcon;
+  /**
+   * When true, the item is rendered but should not be navigable (UI will show a blocked/disabled state).
+   *
+   * Notes:
+   * - This is a UI hint; backend APIs must still enforce permissions.
+   * - Workspace route guard should NOT treat disabled items as allowed.
+   */
+  disabled?: boolean;
+  blockedReason?: "missing_permission" | "plugin_disabled" | null;
+  requiredPermission?: string | null;
+  ownerPluginId?: string | null;
   children?: AdminNavItem[];
 };
 

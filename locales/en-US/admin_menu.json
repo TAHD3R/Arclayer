@@ -8,5 +8,8 @@
   "ITEM_NOT_FOUND": "Menu item not found",
   "ITEM_CODE_EXISTS": "Menu code already exists",
   "ITEM_HAS_CHILDREN": "Menu item has children",
-  "INVALID_PARENT": "Invalid parent menu item"
+  "INVALID_PARENT": "Invalid parent menu item",
+  "MENU_BLOCKED_PLUGIN_DISABLED": "This menu requires an enabled plugin in the current workspace.",
+  "MENU_BLOCKED_MISSING_PERMISSION": "You don't have permission to access this page (required: {{permission}}).",
+  "MENU_BLOCKED_GENERIC": "This menu is not available for your current access scope."
 }

@@ -1,5 +1,5 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useState, type CSSProperties, type ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 import { motion } from "motion/react";
 
@@ -13,6 +13,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 function normalizePath(input: string): string {
@@ -34,13 +35,38 @@ function isPrefixMatch(to: string, pathname: string): boolean {
 }
 
 function getFirstDescendantTo(item: AdminNavItem): string | null {
-  if (item.to) return item.to;
+  if (item.to && !item.disabled) return item.to;
   if (!item.children?.length) return null;
   for (const child of item.children) {
     const found = getFirstDescendantTo(child);
     if (found) return found;
   }
   return null;
+}
+
+function getBlockedTooltipText(
+  item: AdminNavItem,
+  t: (key: string, opts?: Record<string, unknown>) => string,
+): string | null {
+  if (!item.disabled) return null;
+  if (item.blockedReason === "plugin_disabled") {
+    return t("admin_menu:MENU_BLOCKED_PLUGIN_DISABLED");
+  }
+  if (item.blockedReason === "missing_permission") {
+    const perm = item.requiredPermission || "admin:access";
+    return t("admin_menu:MENU_BLOCKED_MISSING_PERMISSION", { permission: perm });
+  }
+  return t("admin_menu:MENU_BLOCKED_GENERIC");
+}
+
+function WithBlockedTooltip(props: { tooltip: string | null; children: ReactElement }) {
+  if (!props.tooltip) return props.children;
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>{props.children}</TooltipTrigger>
+      <TooltipContent>{props.tooltip}</TooltipContent>
+    </Tooltip>
+  );
 }
 
 function findActiveTrail(items: AdminNavItem[], pathname: string): string[] {
@@ -129,7 +155,7 @@ function NavNode({
   animateOpenKey,
   setAnimateOpenKey,
 }: NodeProps) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["admin_menu"]);
   const navigate = useNavigate();
 
   const label = item.labelKey ? t(item.labelKey) : item.label;
@@ -141,6 +167,7 @@ function NavNode({
   const isTrailActive = activeKeys.has(item.key);
   const showActiveIndicator = depth === 0 && (isSelected || isSectionActive);
   const itemTextSize = depth === 0 ? "text-[15px]" : "text-sm";
+  const blockedTooltip = getBlockedTooltipText(item, t);
 
   const openSelf = () => {
     if (!hasChildren) return;
@@ -158,31 +185,48 @@ function NavNode({
             transition={{ duration: 0.22, ease: [0.2, 0, 0, 1] }}
           />
         ) : null}
-        <SidebarMenuButton
-          asChild
-          isActive={isSelected}
-          className={cn(
-            "rounded-none relative z-10",
-            "transition-[width,height,padding,color] duration-150 ease-out",
-            "text-muted-foreground! hover:text-foreground! hover:bg-transparent! active:bg-transparent!",
-            "data-[active=true]:font-semibold data-[active=true]:bg-transparent! data-[active=true]:text-foreground!",
-            itemTextSize,
-          )}
-          style={
-            {
-              paddingLeft: 24 + Math.max(0, depth - 1) * 12,
-            } as CSSProperties
-          }
-        >
-          <Link
-            to={item.to!}
-            aria-current={isSelected ? "page" : undefined}
-            onClick={() => openChainForKey(item.key)}
+        <WithBlockedTooltip tooltip={blockedTooltip}>
+          <SidebarMenuButton
+            asChild
+            isActive={isSelected}
+            aria-disabled={item.disabled ? "true" : undefined}
+            className={cn(
+              "rounded-none relative z-10",
+              "transition-[width,height,padding,color] duration-150 ease-out",
+              "text-muted-foreground! hover:text-foreground! hover:bg-transparent! active:bg-transparent!",
+              "data-[active=true]:font-semibold data-[active=true]:bg-transparent! data-[active=true]:text-foreground!",
+              itemTextSize,
+              item.disabled
+                ? cn(
+                    "opacity-60",
+                    "hover:text-muted-foreground!",
+                    "cursor-not-allowed",
+                    // Override SidebarMenuButton's default aria-disabled pointer-events-none so tooltip still works.
+                    "aria-disabled:pointer-events-auto",
+                  )
+                : null,
+            )}
+            style={
+              {
+                paddingLeft: 24 + Math.max(0, depth - 1) * 12,
+              } as CSSProperties
+            }
           >
-            {iconSlot(depth, Icon)}
-            <span className="min-w-0 flex-1 truncate">{label}</span>
-          </Link>
-        </SidebarMenuButton>
+            <Link
+              to={item.to!}
+              aria-current={isSelected ? "page" : undefined}
+              onClick={(e) => {
+                openChainForKey(item.key);
+                if (!item.disabled) return;
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+            >
+              {iconSlot(depth, Icon)}
+              <span className="min-w-0 flex-1 truncate">{label}</span>
+            </Link>
+          </SidebarMenuButton>
+        </WithBlockedTooltip>
       </SidebarMenuItem>
     );
   }
@@ -201,38 +245,49 @@ function NavNode({
             transition={{ duration: 0.22, ease: [0.2, 0, 0, 1] }}
           />
         ) : null}
-        <SidebarMenuButton
-          isActive={isTrailActive}
-          className={cn(
-            "rounded-none relative z-10",
-            "transition-[width,height,padding,color] duration-150 ease-out",
-            "text-muted-foreground! hover:text-foreground! hover:bg-transparent! active:bg-transparent!",
-            "data-[active=true]:font-semibold data-[active=true]:bg-transparent! data-[active=true]:text-foreground!",
-            "hover:cursor-pointer",
-            itemTextSize,
-          )}
-          style={
-            {
-              paddingLeft: 24 + Math.max(0, depth - 1) * 12,
-            } as CSSProperties
-          }
-          onClick={() => {
-            setAnimateOpenKey(item.key);
-            openSelf();
-            if (navTarget) {
-              navigate({ to: navTarget });
+        <WithBlockedTooltip tooltip={blockedTooltip}>
+          <SidebarMenuButton
+            isActive={isTrailActive}
+            aria-disabled={item.disabled ? "true" : undefined}
+            className={cn(
+              "rounded-none relative z-10",
+              "transition-[width,height,padding,color] duration-150 ease-out",
+              "text-muted-foreground! hover:text-foreground! hover:bg-transparent! active:bg-transparent!",
+              "data-[active=true]:font-semibold data-[active=true]:bg-transparent! data-[active=true]:text-foreground!",
+              itemTextSize,
+              item.disabled
+                ? cn(
+                    "opacity-60",
+                    "hover:text-muted-foreground!",
+                    "cursor-not-allowed",
+                    "aria-disabled:pointer-events-auto",
+                  )
+                : "hover:cursor-pointer",
+            )}
+            style={
+              {
+                paddingLeft: 24 + Math.max(0, depth - 1) * 12,
+              } as CSSProperties
             }
-          }}
-        >
-          {iconSlot(depth, Icon)}
-          <span className="min-w-0 flex-1 truncate">{label}</span>
-          <ChevronRightIcon
-            size={16}
-            expanded={isOpen}
-            className="ml-auto shrink-0 text-muted-foreground"
-            aria-hidden="true"
-          />
-        </SidebarMenuButton>
+            onClick={() => {
+              setAnimateOpenKey(item.key);
+              openSelf();
+              if (item.disabled) return;
+              if (navTarget) {
+                navigate({ to: navTarget });
+              }
+            }}
+          >
+            {iconSlot(depth, Icon)}
+            <span className="min-w-0 flex-1 truncate">{label}</span>
+            <ChevronRightIcon
+              size={16}
+              expanded={isOpen}
+              className="ml-auto shrink-0 text-muted-foreground"
+              aria-hidden="true"
+            />
+          </SidebarMenuButton>
+        </WithBlockedTooltip>
 
         <CollapsibleContent>
           <motion.div

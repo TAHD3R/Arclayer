@@ -12,6 +12,7 @@ from apps.api.modules.system.admin.menus.schema import (
     AdminMenuItemOut,
     AdminMenuListQuery,
     AdminMenuReorderRequest,
+    AdminMenuTreeEffectiveOut,
     AdminMenuTreeOut,
     AdminMenuUpdateRequest,
 )
@@ -41,6 +42,20 @@ async def get_my_menu(
 ) -> ResponseModel[AdminMenuTreeOut]:
     service = _get_service()
     data = await service.get_menu(user_id=user_id)
+    return Response.success(data=data)
+
+
+@router.get(
+    "/catalog-effective",
+    response_model=ResponseModel[AdminMenuTreeEffectiveOut],
+    summary="Get admin menu catalog with per-user access flags (for navigation UI)",
+)
+async def get_menu_catalog_effective(
+    _ctx: WorkspaceContext = Depends(require_workspace_manage_access),
+    user_id: UUID = Depends(get_current_user_id),
+) -> ResponseModel[AdminMenuTreeEffectiveOut]:
+    service = _get_service()
+    data = await service.get_catalog_effective(user_id=user_id)
     return Response.success(data=data)
 
 
