@@ -11,7 +11,9 @@ from apps.api.core.exceptions import BadRequest
 from apps.api.infra.cache.valkey import ValkeyClientLike
 from apps.api.modules.auth.schema import TokenPair
 from apps.api.modules.auth.service import AuthService
-from apps.api.modules.auth.sso.service import AuthSSOService, _valkey_getdel_best_effort
+from apps.api.modules.auth.sso.exchange_store import _valkey_getdel_best_effort, issue_exchange_code
+from apps.api.modules.auth.sso.schema import AuthSSOExchangePayload
+from apps.api.modules.auth.sso.service import AuthSSOService
 from apps.api.plugin.manager import PluginManager
 
 
@@ -162,13 +164,8 @@ async def test_auth_sso_exchange_code_is_one_time() -> None:
     auth = cast(AuthService, _FakeAuthService())
     service = AuthSSOService(settings, manager=manager, valkey=valkey, auth_service=auth)
 
-    code = "code123456"
     user_id = uuid4()
-    await valkey.set(
-        f"oauth:social:exchange:{code}",
-        json.dumps({"user_id": str(user_id), "redirect": "/"}),
-        ex=60,
-    )
+    code = await issue_exchange_code(valkey, payload=AuthSSOExchangePayload(user_id=user_id, redirect="/"), ttl_seconds=60)
 
     tokens = await service.exchange(code=code)
     assert tokens.access_token == "access"

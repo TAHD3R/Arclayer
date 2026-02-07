@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from uuid import UUID
+
 from pydantic import Field
 
 from apps.api.common.schemas import BaseSchema
@@ -18,3 +20,15 @@ class AuthSSOProvidersOut(BaseSchema):
 
 class AuthSSOExchangeIn(BaseSchema):
     code: str = Field(..., min_length=8, max_length=512, description="One-time exchange code.")
+
+
+class AuthSSOExchangePayload(BaseSchema):
+    """
+    One-time exchange payload stored in Valkey and consumed by the host.
+
+    Notes:
+    - This is a host-level contract that plugins can reuse.
+    """
+
+    user_id: UUID = Field(..., description="Resolved local user id.")
+    redirect: str | None = Field(default=None, description="Optional safe redirect path after login.")

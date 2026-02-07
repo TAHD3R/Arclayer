@@ -21,6 +21,8 @@ from apps.api.core.exceptions import BadRequest, Forbidden, ServiceUnavailable
 from apps.api.core.i18n import t
 from apps.api.infra.cache.valkey import ValkeyClientLike
 from apps.api.modules.auth.service import AuthService
+from apps.api.modules.auth.sso.exchange_store import issue_exchange_code
+from apps.api.modules.auth.sso.schema import AuthSSOExchangePayload
 from apps.api.modules.workspaces.invitations.tokens import build_invite_token
 from apps.api.plugin.manifest import PluginManifest, build_default_config
 from apps.api.settings.runtime import get_core_settings_value_cached
@@ -31,7 +33,6 @@ from oauth_social.schema import (
     GitHubEmailItem,
     GitHubUser,
     GoogleUserInfo,
-    OAuthExchangePayload,
     OAuthStatePayload,
 )
 
@@ -361,12 +362,9 @@ class OAuthSocialService(BaseService):
                 await self._auto_accept_email_invites(user_id=user_id, email=email)
 
             # Issue exchange code (one-time).
-            exchange_code = secrets.token_urlsafe(24)
-            exchange_payload = OAuthExchangePayload(user_id=str(user_id), redirect=redirect)
-            await self.valkey.set(
-                f"oauth:social:exchange:{exchange_code}",
-                exchange_payload.model_dump_json(),
-                ex=60,
+            exchange_code = await issue_exchange_code(
+                self.valkey,
+                payload=AuthSSOExchangePayload(user_id=user_id, redirect=redirect),
             )
 
             return self._redirect_to_frontend_login(frontend_base, oauth_code=exchange_code, redirect=redirect)

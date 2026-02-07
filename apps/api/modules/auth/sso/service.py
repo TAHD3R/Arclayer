@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-import inspect
-import json
-from collections.abc import Awaitable, Callable
 from typing import Any, cast
 from urllib.parse import urlencode
 from uuid import UUID
@@ -16,6 +13,7 @@ from apps.api.core.exceptions import BadRequest, ServiceUnavailable
 from apps.api.core.i18n import t
 from apps.api.infra.cache.valkey import ValkeyClientLike
 from apps.api.modules.auth.service import AuthService
+from apps.api.modules.auth.sso.exchange_store import consume_exchange_payload
 from apps.api.modules.system.models.plugin import PluginRecord
 from apps.api.plugin.manager import PluginManager
 from apps.api.plugin.manifest import build_default_config
@@ -52,35 +50,6 @@ def _is_safe_redirect(value: str | None) -> bool:
     if pathname in {"/login", "/reset-password"}:
         return False
     return True
-
-
-async def _valkey_getdel_best_effort(client: ValkeyClientLike, key: str) -> str | None:
-    """
-    Best-effort atomic get+delete.
-
-    - ValkeyClient implements `getdel`, but some fakes in unit tests do not.
-    """
-
-    getdel = getattr(client, "getdel", None)
-    if callable(getdel):
-        # `ValkeyClientLike` intentionally doesn't require `getdel()` since some fakes
-        # in unit tests don't implement it. When present, prefer it.
-        #
-        # We also guard against an incorrectly-typed sync `getdel` (e.g. in a fake)
-        # to avoid runtime TypeError from `await`.
-        fn = cast(Callable[[str], Any], getdel)
-        result = fn(key)
-        if inspect.isawaitable(result):
-            return await cast(Awaitable[str | None], result)
-        if result is None or isinstance(result, str):
-            # Best-effort delete in case a sync getdel implementation didn't.
-            await client.delete(key)
-            return result
-    value = await client.get(key)
-    if value is None:
-        return None
-    await client.delete(key)
-    return value
 
 
 class AuthSSOService(BaseService):
@@ -171,28 +140,13 @@ class AuthSSOService(BaseService):
         if not raw_code:
             raise BadRequest(message=_ta("SSO_CODE_INVALID", "登录码无效"), error="SSO_CODE_INVALID")
 
-        key = f"oauth:social:exchange:{raw_code}"
-        payload_raw = await _valkey_getdel_best_effort(self.valkey, key)
-        if not payload_raw:
-            raise BadRequest(
-                message=_ta("SSO_CODE_INVALID", "登录码无效"),
-                error="SSO_CODE_INVALID",
-            )
-        try:
-            payload = json.loads(payload_raw)
-        except Exception:
-            payload = None
-        if not isinstance(payload, dict):
-            raise BadRequest(
-                message=_ta("SSO_CODE_INVALID", "登录码无效"),
-                error="SSO_CODE_INVALID",
-            )
-
-        user_id = payload.get("user_id")
-        if not user_id:
+        payload = await consume_exchange_payload(self.valkey, code=raw_code)
+        if payload is None:
             raise BadRequest(message=_ta("SSO_CODE_INVALID", "登录码无效"), error="SSO_CODE_INVALID")
+
+        # Keep defensive parsing: plugin implementations may still pass string IDs.
         try:
-            user_uuid = UUID(str(user_id))
+            user_uuid = UUID(str(payload.user_id))
         except Exception:
             raise BadRequest(message=_ta("SSO_CODE_INVALID", "登录码无效"), error="SSO_CODE_INVALID")
 
