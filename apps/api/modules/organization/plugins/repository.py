@@ -25,3 +25,6 @@ class OrganizationPluginRepository(BaseRepository):
         row.enabled = enabled
         await row.save(update_fields=["enabled"])
         return row
+
+    async def clear_state(self, *, organization_id: UUID, plugin_id: str) -> None:
+        await OrganizationPluginState.filter(organization_id=organization_id, plugin_id=plugin_id).delete()

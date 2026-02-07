@@ -136,3 +136,37 @@ async def patch_org_plugin_settings(
         updated_by=user_id,
     )
     return Response.success(data=detail)
+
+
+@router.post(
+    "/{plugin_ref}/reset",
+    response_model=ResponseModel[None],
+    summary="Reset organization-scoped plugin config",
+)
+async def reset_org_plugin_settings(
+    plugin_ref: str,
+    orgm: Annotated[OrgMembership, Depends(require_org_admin)],
+    plugin_service: Annotated[PluginService, Depends(get_plugin_service)],
+    service: Annotated[OrganizationPluginService, Depends(get_org_plugin_service)],
+) -> ResponseModel[None]:
+    organization_id = UUID(str(cast(HasOrganizationId, orgm).organization_id))
+    plugin_id = plugin_service.resolve_plugin_id(plugin_ref)
+    await service.reset_plugin_settings(organization_id=organization_id, plugin_id=plugin_id)
+    return Response.success()
+
+
+@router.post(
+    "/{plugin_ref}/uninstall",
+    response_model=ResponseModel[None],
+    summary="Detach organization-scoped plugin and clear org config",
+)
+async def uninstall_org_plugin(
+    plugin_ref: str,
+    orgm: Annotated[OrgMembership, Depends(require_org_admin)],
+    plugin_service: Annotated[PluginService, Depends(get_plugin_service)],
+    service: Annotated[OrganizationPluginService, Depends(get_org_plugin_service)],
+) -> ResponseModel[None]:
+    organization_id = UUID(str(cast(HasOrganizationId, orgm).organization_id))
+    plugin_id = plugin_service.resolve_plugin_id(plugin_ref)
+    await service.uninstall_from_organization(organization_id=organization_id, plugin_id=plugin_id)
+    return Response.success()

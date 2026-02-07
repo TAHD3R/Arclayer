@@ -5,7 +5,8 @@ import type { TokenPair } from "@/api/auth";
 export type AuthSSOProvider = {
   provider: "google" | "github" | (string & {});
   label: string;
-  start_url: string;
+  startUrl?: string;
+  start_url?: string;
   icon_key?: string | null;
 };
 

@@ -11,9 +11,9 @@ import { getMyOrganization } from "@/api/me";
 import {
   disableOrganizationPlugin,
   enableOrganizationPlugin,
-  getOrganizationPluginSettings,
   listOrganizationPlugins,
-  patchOrganizationPluginSettings,
+  resetOrganizationPluginConfig,
+  uninstallOrganizationPlugin,
   type OrganizationPluginItem,
 } from "@/api/org-plugins";
 import { getMyWorkspaceAuthz } from "@/api/workspaces";
@@ -31,7 +31,6 @@ import { PageState } from "@/components/common/page-state";
 import { AdminExtensionsSlot } from "@/components/extensions/admin-extensions-slot";
 import { PluginIcon } from "@/components/plugins/plugin-icon";
 import { PluginInstallDialog } from "@/components/plugins/plugin-install-dialog";
-import { PluginSettingsForm } from "@/components/plugins/plugin-settings-form";
 import {
   ChromeTabs,
   ChromeTabsBar,
@@ -79,12 +78,11 @@ export function PluginsInstalledView({ scope = "workspace" }: PluginsInstalledVi
   const [restartHint, setRestartHint] = useState(false);
   const [category, setCategory] = useState<string>("all");
   const [selectedPluginRef, setSelectedPluginRef] = useState<string | null>(null);
-  const [configPluginRef, setConfigPluginRef] = useState<string | null>(null);
   const [page, setPage] = useState<number>(1);
   const [confirm, setConfirm] = useState<{
     open: boolean;
     type: "reset" | "uninstall" | null;
-    plugin: WorkspacePluginItem | null;
+    plugin: InstalledPluginItem | null;
   }>({ open: false, type: null, plugin: null });
   const pageSize = 12;
 
@@ -176,29 +174,43 @@ export function PluginsInstalledView({ scope = "workspace" }: PluginsInstalledVi
   });
 
   const uninstallMutation = useMutation({
-    mutationFn: async (plugin: WorkspacePluginItem) => {
+    mutationFn: async (plugin: InstalledPluginItem) => {
+      const pluginRef = getPluginRef(plugin);
+      if (isOrganizationScope) {
+        await uninstallOrganizationPlugin(pluginRef);
+        return;
+      }
       if (!workspaceId) throw new Error("workspaceId is required");
-      await uninstallWorkspacePlugin(workspaceId, getPluginRef(plugin));
+      await uninstallWorkspacePlugin(workspaceId, pluginRef);
     },
     onSuccess: async () => {
-      notifySuccessText(t("plugin:PLUGIN_CENTER_UNINSTALL_SUCCESS"));
-      await queryClient.invalidateQueries({
-        queryKey: ["workspace", "pluginsCenter", workspaceId],
-      });
+      notifySuccessText(
+        isOrganizationScope
+          ? t("plugin:PLUGIN_CENTER_ORG_UNINSTALL_SUCCESS")
+          : t("plugin:PLUGIN_CENTER_UNINSTALL_SUCCESS"),
+      );
+      await queryClient.invalidateQueries({ queryKey: listQueryKey });
     },
     onError: (err) => notifyError(err),
   });
 
   const resetMutation = useMutation({
-    mutationFn: async (plugin: WorkspacePluginItem) => {
+    mutationFn: async (plugin: InstalledPluginItem) => {
+      const pluginRef = getPluginRef(plugin);
+      if (isOrganizationScope) {
+        await resetOrganizationPluginConfig(pluginRef);
+        return;
+      }
       if (!workspaceId) throw new Error("workspaceId is required");
-      await resetWorkspacePluginConfig(workspaceId, getPluginRef(plugin));
+      await resetWorkspacePluginConfig(workspaceId, pluginRef);
     },
     onSuccess: async () => {
-      notifySuccessText(t("plugin:PLUGIN_CENTER_RESET_SUCCESS"));
-      await queryClient.invalidateQueries({
-        queryKey: ["workspace", "pluginsCenter", workspaceId],
-      });
+      notifySuccessText(
+        isOrganizationScope
+          ? t("plugin:PLUGIN_CENTER_ORG_RESET_SUCCESS")
+          : t("plugin:PLUGIN_CENTER_RESET_SUCCESS"),
+      );
+      await queryClient.invalidateQueries({ queryKey: listQueryKey });
     },
     onError: (err) => notifyError(err),
   });
@@ -207,48 +219,6 @@ export function PluginsInstalledView({ scope = "workspace" }: PluginsInstalledVi
     () => (listQuery.data?.items ?? []) as InstalledPluginItem[],
     [listQuery.data?.items],
   );
-
-  const selectedConfigPlugin = useMemo(() => {
-    if (!isOrganizationScope || !configPluginRef) return null;
-    const target = configPluginRef.trim().toLowerCase();
-    return (
-      items.find((p) => getPluginRef(p).trim().toLowerCase() === target && Boolean(p.hasConfigSchema)) ??
-      null
-    );
-  }, [configPluginRef, isOrganizationScope, items]);
-
-  useEffect(() => {
-    if (!isOrganizationScope) return;
-    if (!selectedConfigPlugin && configPluginRef) {
-      setConfigPluginRef(null);
-    }
-  }, [configPluginRef, isOrganizationScope, selectedConfigPlugin]);
-
-  const settingsQuery = useQuery({
-    queryKey: ["organization", "plugins", configPluginRef, "settings"],
-    enabled: Boolean(isOrganizationScope && selectedConfigPlugin),
-    queryFn: async () => {
-      if (!selectedConfigPlugin) throw new Error("plugin is required");
-      return getOrganizationPluginSettings(getPluginRef(selectedConfigPlugin));
-    },
-    staleTime: 15 * 1000,
-    retry: false,
-    meta: { silent: true },
-  });
-
-  const patchMutation = useMutation({
-    mutationFn: async (patch: Record<string, unknown>) => {
-      if (!selectedConfigPlugin) throw new Error("plugin is required");
-      return patchOrganizationPluginSettings(getPluginRef(selectedConfigPlugin), patch);
-    },
-    onSuccess: async () => {
-      notifySuccessText(t("settings:SETTINGS_SAVED"));
-      await queryClient.invalidateQueries({
-        queryKey: ["organization", "plugins", configPluginRef, "settings"],
-      });
-    },
-    onError: (err) => notifyError(err),
-  });
 
   const normalizedCategory =
     String(category || "")
@@ -426,9 +396,9 @@ export function PluginsInstalledView({ scope = "workspace" }: PluginsInstalledVi
                           fallbackIconClassName="size-4"
                         />
                         <div className="min-w-0 flex-1">
-                          <div className="text-sm font-medium truncate">{data.label}</div>
+                          <div className="font-medium truncate">{data.label}</div>
                           {data.description ? (
-                            <div className="text-xs text-muted-foreground line-clamp-1">
+                            <div className="text-sm text-muted-foreground truncate">
                               {data.description}
                             </div>
                           ) : null}
@@ -479,24 +449,13 @@ export function PluginsInstalledView({ scope = "workspace" }: PluginsInstalledVi
             });
 
             const pluginRef = getPluginRef(p);
-            const configureHref = workspaceId
-              ? `/w/${workspaceId}/plugins/${encodeURIComponent(pluginRef)}`
-              : null;
+            const configureHref = isOrganizationScope
+              ? `/plugins/${encodeURIComponent(pluginRef)}`
+              : workspaceId
+                ? `/w/${workspaceId}/plugins/${encodeURIComponent(pluginRef)}`
+                : null;
 
-            const orgItems: MenuProps["items"] =
-              isOrganizationScope && p.hasConfigSchema
-                ? [
-                    {
-                      key: "configure",
-                      label: t("plugin:PLUGIN_CENTER_CONFIGURE_ACTION"),
-                      icon: <Settings2 className="size-4" />,
-                      disabled: !canManage,
-                      onClick: () => setConfigPluginRef(pluginRef),
-                    },
-                  ]
-                : [];
-
-            const workspaceItems: MenuProps["items"] = configureHref
+            const menuItems: MenuProps["items"] = configureHref
               ? [
                   {
                     key: "configure",
@@ -515,24 +474,23 @@ export function PluginsInstalledView({ scope = "workspace" }: PluginsInstalledVi
                     disabled: !canManage,
                     danger: true,
                     onClick: () => {
-                      setConfirm({ open: true, type: "reset", plugin: p as WorkspacePluginItem });
+                      setConfirm({ open: true, type: "reset", plugin: p });
                     },
                   },
                   {
                     key: "detach",
-                    label: t("plugin:PLUGIN_CENTER_UNINSTALL_ACTION"),
+                    label: isOrganizationScope
+                      ? t("plugin:PLUGIN_CENTER_ORG_UNINSTALL_ACTION")
+                      : t("plugin:PLUGIN_CENTER_UNINSTALL_ACTION"),
                     icon: <Trash2 className="size-4" />,
                     disabled: !canManage,
                     danger: true,
                     onClick: () => {
-                      setConfirm({ open: true, type: "uninstall", plugin: p as WorkspacePluginItem });
+                      setConfirm({ open: true, type: "uninstall", plugin: p });
                     },
                   },
                 ]
               : [];
-
-            const menuItems: MenuProps["items"] = isOrganizationScope ? orgItems : workspaceItems;
-            const hasMenuActions = menuItems.length > 0;
 
             return (
               <Card
@@ -569,15 +527,13 @@ export function PluginsInstalledView({ scope = "workspace" }: PluginsInstalledVi
                         </div>
 
                         <div className="shrink-0 flex items-center gap-2">
-                          {hasMenuActions ? (
-                            <Dropdown trigger={["click"]} menu={{ items: menuItems }}>
-                              <Button
-                                type="text"
-                                icon={<MoreVertical className="size-4" />}
-                                aria-label={t("plugin:PLUGIN_CENTER_MORE")}
-                              />
-                            </Dropdown>
-                          ) : null}
+                          <Dropdown trigger={["click"]} menu={{ items: menuItems }}>
+                            <Button
+                              type="text"
+                              icon={<MoreVertical className="size-4" />}
+                              aria-label={t("plugin:PLUGIN_CENTER_MORE")}
+                            />
+                          </Dropdown>
                           <Switch
                             checked={Boolean(p.enabled)}
                             disabled={!canManage || enableMutation.isPending}
@@ -617,89 +573,73 @@ export function PluginsInstalledView({ scope = "workspace" }: PluginsInstalledVi
         </div>
       ) : null}
 
-      {isOrganizationScope && selectedConfigPlugin ? (
-        <Card
-          size="small"
-          type="inner"
-          className="mt-6"
-          title={t("plugin:PLUGIN_CENTER_CONFIG_TITLE", { name: selectedConfigPlugin.name })}
-        >
-          {settingsQuery.isLoading && !settingsQuery.data ? (
-            <PageState loading loadingVariant="form" />
-          ) : settingsQuery.isError ? (
-            <PageState
-              loading={false}
-              error={settingsQuery.error}
-              onRetry={() => void settingsQuery.refetch()}
-            />
-          ) : settingsQuery.data ? (
-            <PluginSettingsForm
-              detail={settingsQuery.data}
-              disabled={patchMutation.isPending}
-              saving={patchMutation.isPending}
-              onSubmitPatch={async (patch) => {
-                await patchMutation.mutateAsync(patch);
-              }}
-            />
-          ) : null}
-        </Card>
-      ) : null}
-
       <div className="mt-6">
         <AdminExtensionsSlot slot="admin.plugins.center.cards" title={t("nav:NAV_PLUGINS")} />
       </div>
 
       {!isOrganizationScope ? (
-        <>
-          <PluginInstallDialog
-            workspaceId={workspaceId as string}
-            open={installOpen}
-            onOpenChange={setInstallOpen}
-            disabled={!canManage}
-            onInstalled={({ requiresRestart }) => {
-              setRestartHint(Boolean(requiresRestart));
-              void queryClient.invalidateQueries({
-                queryKey: ["workspace", "pluginsCenter", workspaceId],
-              });
-            }}
-          />
-
-          <ConfirmDialog
-            open={confirm.open}
-            onOpenChange={(open) =>
-              setConfirm((prev) =>
-                open ? { ...prev, open: true } : { open: false, type: null, plugin: null },
-              )
-            }
-            title={
-              confirm.type === "reset"
-                ? t("plugin:PLUGIN_CENTER_RESET_CONFIRM_TITLE")
-                : t("plugin:PLUGIN_CENTER_UNINSTALL_CONFIRM_TITLE")
-            }
-            description={
-              confirm.type === "reset"
-                ? t("plugin:PLUGIN_CENTER_RESET_CONFIRM_DESC", { name: confirm.plugin?.name || "" })
-                : t("plugin:PLUGIN_CENTER_UNINSTALL_CONFIRM_DESC", {
-                    name: confirm.plugin?.name || "",
-                  })
-            }
-            cancelText={t("common:CANCEL")}
-            confirmText={t("common:CONFIRM")}
-            danger
-            loading={resetMutation.isPending || uninstallMutation.isPending}
-            onConfirm={async () => {
-              const p = confirm.plugin;
-              if (!p || !confirm.type) return;
-              if (confirm.type === "reset") {
-                await resetMutation.mutateAsync(p);
-              } else {
-                await uninstallMutation.mutateAsync(p);
-              }
-              setConfirm({ open: false, type: null, plugin: null });
-            }}
-          />
-        </>
+        <PluginInstallDialog
+          workspaceId={workspaceId as string}
+          open={installOpen}
+          onOpenChange={setInstallOpen}
+          disabled={!canManage}
+          onInstalled={({ requiresRestart }) => {
+            setRestartHint(Boolean(requiresRestart));
+            void queryClient.invalidateQueries({
+              queryKey: ["workspace", "pluginsCenter", workspaceId],
+            });
+          }}
+        />
       ) : null}
+
+      <ConfirmDialog
+        open={confirm.open}
+        onOpenChange={(open) =>
+          setConfirm((prev) =>
+            open ? { ...prev, open: true } : { open: false, type: null, plugin: null },
+          )
+        }
+        title={
+          confirm.type === "reset"
+            ? isOrganizationScope
+              ? t("plugin:PLUGIN_CENTER_ORG_RESET_CONFIRM_TITLE")
+              : t("plugin:PLUGIN_CENTER_RESET_CONFIRM_TITLE")
+            : isOrganizationScope
+              ? t("plugin:PLUGIN_CENTER_ORG_UNINSTALL_CONFIRM_TITLE")
+              : t("plugin:PLUGIN_CENTER_UNINSTALL_CONFIRM_TITLE")
+        }
+        description={
+          confirm.type === "reset"
+            ? isOrganizationScope
+              ? t("plugin:PLUGIN_CENTER_ORG_RESET_CONFIRM_DESC", {
+                  name: confirm.plugin?.name || "",
+                })
+              : t("plugin:PLUGIN_CENTER_RESET_CONFIRM_DESC", {
+                  name: confirm.plugin?.name || "",
+                })
+            : isOrganizationScope
+              ? t("plugin:PLUGIN_CENTER_ORG_UNINSTALL_CONFIRM_DESC", {
+                  name: confirm.plugin?.name || "",
+                })
+              : t("plugin:PLUGIN_CENTER_UNINSTALL_CONFIRM_DESC", {
+                  name: confirm.plugin?.name || "",
+                })
+        }
+        cancelText={t("common:CANCEL")}
+        confirmText={t("common:CONFIRM")}
+        danger
+        loading={resetMutation.isPending || uninstallMutation.isPending}
+        onConfirm={async () => {
+          const p = confirm.plugin;
+          if (!p || !confirm.type) return;
+          if (confirm.type === "reset") {
+            await resetMutation.mutateAsync(p);
+          } else {
+            await uninstallMutation.mutateAsync(p);
+          }
+          setConfirm({ open: false, type: null, plugin: null });
+        }}
+      />
     </DefaultPage>
   );
 }

@@ -54,3 +54,11 @@ export async function patchOrganizationPluginSettings(
 ): Promise<SystemSettingsDetail> {
   return api.patch<SystemSettingsDetail>(`${orgPluginPath(pluginRef)}/settings`, { patch });
 }
+
+export async function resetOrganizationPluginConfig(pluginRef: string): Promise<void> {
+  await api.post<null>(`${orgPluginPath(pluginRef)}/reset`);
+}
+
+export async function uninstallOrganizationPlugin(pluginRef: string): Promise<void> {
+  await api.post<null>(`${orgPluginPath(pluginRef)}/uninstall`);
+}

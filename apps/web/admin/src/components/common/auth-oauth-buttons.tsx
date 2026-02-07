@@ -7,6 +7,7 @@ import { listSSOProviders } from "@/api/auth-sso";
 import GoogleIcon from "@/components/ui/icons/google-icon";
 import GitHubDarkIcon from "@/components/ui/icons/github-dark-icon";
 import GitHubLightIcon from "@/components/ui/icons/github-light-icon";
+import { notifyErrorText } from "@/lib/notifications";
 
 export interface AuthOauthButtonsProps {
   disabled?: boolean;
@@ -37,7 +38,7 @@ export function AuthOauthButtons({ disabled = false, redirect }: AuthOauthButton
   const providers = providersQuery.data?.providers ?? [];
   const normalized = providers.map((p) => ({
     provider: normalizeProvider(p.provider),
-    startUrl: String(p.start_url || ""),
+    startUrl: String(p.startUrl || p.start_url || ""),
   }));
 
   const google = normalized.find((p) => p.provider === "google");
@@ -57,7 +58,10 @@ export function AuthOauthButtons({ disabled = false, redirect }: AuthOauthButton
             disabled={disabled || providersQuery.isLoading}
             aria-label={t("auth:OAUTH_GOOGLE")}
             onClick={() => {
-              if (!google.startUrl) return;
+              if (!google.startUrl) {
+                notifyErrorText(t("auth:OAUTH_ERROR_GENERIC"));
+                return;
+              }
               window.location.assign(google.startUrl);
             }}
           >
@@ -73,7 +77,10 @@ export function AuthOauthButtons({ disabled = false, redirect }: AuthOauthButton
             disabled={disabled || providersQuery.isLoading}
             aria-label={t("auth:OAUTH_GITHUB")}
             onClick={() => {
-              if (!github.startUrl) return;
+              if (!github.startUrl) {
+                notifyErrorText(t("auth:OAUTH_ERROR_GENERIC"));
+                return;
+              }
               window.location.assign(github.startUrl);
             }}
           >

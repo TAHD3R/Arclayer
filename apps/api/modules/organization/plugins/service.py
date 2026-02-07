@@ -223,6 +223,33 @@ class OrganizationPluginService(BaseService):
             updated_at=setting.updated_at,
         )
 
+    async def reset_plugin_settings(self, *, organization_id: UUID, plugin_id: str) -> None:
+        record = await PluginRecord.get_or_none(plugin_id=plugin_id)
+        if record is None:
+            raise NotFound(message=t("plugin", "PLUGIN_NOT_FOUND", default="插件不存在"), error="PLUGIN_NOT_FOUND")
+        self._assert_org_scope(record)
+
+        namespace = f"plugin:{plugin_id}"
+        await SettingRecord.filter(
+            scope_type=SCOPE_TYPE_ORG,
+            scope_id=organization_id,
+            namespace=namespace,
+        ).delete()
+
+    async def uninstall_from_organization(self, *, organization_id: UUID, plugin_id: str) -> None:
+        record = await PluginRecord.get_or_none(plugin_id=plugin_id)
+        if record is None:
+            raise NotFound(message=t("plugin", "PLUGIN_NOT_FOUND", default="插件不存在"), error="PLUGIN_NOT_FOUND")
+        self._assert_org_scope(record)
+
+        namespace = f"plugin:{plugin_id}"
+        await self.repo.clear_state(organization_id=organization_id, plugin_id=plugin_id)
+        await SettingRecord.filter(
+            scope_type=SCOPE_TYPE_ORG,
+            scope_id=organization_id,
+            namespace=namespace,
+        ).delete()
+
     def _resolve_manifest_meta(self, record: PluginRecord) -> tuple[str | None, str | None, str | None, bool]:
         manager = getattr(self.plugin_service, "manager", None)
         if manager is not None:

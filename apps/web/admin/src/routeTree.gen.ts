@@ -27,6 +27,7 @@ import { Route as SettingsWorkspaceIndexRouteImport } from './routes/settings/wo
 import { Route as SettingsSeoIndexRouteImport } from './routes/settings/seo/index'
 import { Route as SettingsOrganizationIndexRouteImport } from './routes/settings/organization/index'
 import { Route as SettingsGeneralIndexRouteImport } from './routes/settings/general/index'
+import { Route as PluginsMarketplaceIndexRouteImport } from './routes/plugins/marketplace/index'
 import { Route as PluginsInstalledIndexRouteImport } from './routes/plugins/installed/index'
 import { Route as PluginsPluginSlugIndexRouteImport } from './routes/plugins/$pluginSlug/index'
 import { Route as ContentPagesIndexRouteImport } from './routes/content/pages/index'
@@ -149,6 +150,11 @@ const SettingsOrganizationIndexRoute =
 const SettingsGeneralIndexRoute = SettingsGeneralIndexRouteImport.update({
   id: '/settings/general/',
   path: '/settings/general/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PluginsMarketplaceIndexRoute = PluginsMarketplaceIndexRouteImport.update({
+  id: '/plugins/marketplace/',
+  path: '/plugins/marketplace/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PluginsInstalledIndexRoute = PluginsInstalledIndexRouteImport.update({
@@ -355,6 +361,7 @@ export interface FileRoutesByFullPath {
   '/content/pages/': typeof ContentPagesIndexRoute
   '/plugins/$pluginSlug/': typeof PluginsPluginSlugIndexRoute
   '/plugins/installed/': typeof PluginsInstalledIndexRoute
+  '/plugins/marketplace/': typeof PluginsMarketplaceIndexRoute
   '/settings/general/': typeof SettingsGeneralIndexRoute
   '/settings/organization/': typeof SettingsOrganizationIndexRoute
   '/settings/seo/': typeof SettingsSeoIndexRoute
@@ -406,6 +413,7 @@ export interface FileRoutesByTo {
   '/content/pages': typeof ContentPagesIndexRoute
   '/plugins/$pluginSlug': typeof PluginsPluginSlugIndexRoute
   '/plugins/installed': typeof PluginsInstalledIndexRoute
+  '/plugins/marketplace': typeof PluginsMarketplaceIndexRoute
   '/settings/general': typeof SettingsGeneralIndexRoute
   '/settings/organization': typeof SettingsOrganizationIndexRoute
   '/settings/seo': typeof SettingsSeoIndexRoute
@@ -459,6 +467,7 @@ export interface FileRoutesById {
   '/content/pages/': typeof ContentPagesIndexRoute
   '/plugins/$pluginSlug/': typeof PluginsPluginSlugIndexRoute
   '/plugins/installed/': typeof PluginsInstalledIndexRoute
+  '/plugins/marketplace/': typeof PluginsMarketplaceIndexRoute
   '/settings/general/': typeof SettingsGeneralIndexRoute
   '/settings/organization/': typeof SettingsOrganizationIndexRoute
   '/settings/seo/': typeof SettingsSeoIndexRoute
@@ -513,6 +522,7 @@ export interface FileRouteTypes {
     | '/content/pages/'
     | '/plugins/$pluginSlug/'
     | '/plugins/installed/'
+    | '/plugins/marketplace/'
     | '/settings/general/'
     | '/settings/organization/'
     | '/settings/seo/'
@@ -564,6 +574,7 @@ export interface FileRouteTypes {
     | '/content/pages'
     | '/plugins/$pluginSlug'
     | '/plugins/installed'
+    | '/plugins/marketplace'
     | '/settings/general'
     | '/settings/organization'
     | '/settings/seo'
@@ -616,6 +627,7 @@ export interface FileRouteTypes {
     | '/content/pages/'
     | '/plugins/$pluginSlug/'
     | '/plugins/installed/'
+    | '/plugins/marketplace/'
     | '/settings/general/'
     | '/settings/organization/'
     | '/settings/seo/'
@@ -669,6 +681,7 @@ export interface RootRouteChildren {
   ContentPagesIndexRoute: typeof ContentPagesIndexRoute
   PluginsPluginSlugIndexRoute: typeof PluginsPluginSlugIndexRoute
   PluginsInstalledIndexRoute: typeof PluginsInstalledIndexRoute
+  PluginsMarketplaceIndexRoute: typeof PluginsMarketplaceIndexRoute
   SettingsGeneralIndexRoute: typeof SettingsGeneralIndexRoute
   SettingsOrganizationIndexRoute: typeof SettingsOrganizationIndexRoute
   SettingsSeoIndexRoute: typeof SettingsSeoIndexRoute
@@ -805,6 +818,13 @@ declare module '@tanstack/react-router' {
       path: '/settings/general'
       fullPath: '/settings/general/'
       preLoaderRoute: typeof SettingsGeneralIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/plugins/marketplace/': {
+      id: '/plugins/marketplace/'
+      path: '/plugins/marketplace'
+      fullPath: '/plugins/marketplace/'
+      preLoaderRoute: typeof PluginsMarketplaceIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/plugins/installed/': {
@@ -1120,6 +1140,7 @@ const rootRouteChildren: RootRouteChildren = {
   ContentPagesIndexRoute: ContentPagesIndexRoute,
   PluginsPluginSlugIndexRoute: PluginsPluginSlugIndexRoute,
   PluginsInstalledIndexRoute: PluginsInstalledIndexRoute,
+  PluginsMarketplaceIndexRoute: PluginsMarketplaceIndexRoute,
   SettingsGeneralIndexRoute: SettingsGeneralIndexRoute,
   SettingsOrganizationIndexRoute: SettingsOrganizationIndexRoute,
   SettingsSeoIndexRoute: SettingsSeoIndexRoute,
