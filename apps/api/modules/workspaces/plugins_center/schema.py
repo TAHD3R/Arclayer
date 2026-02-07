@@ -23,9 +23,12 @@ class WorkspacePluginSummary(BaseSchema):
     name: str = Field(..., description="Plugin display name (localized if possible).")
     description: str | None = Field(default=None, description="Plugin description (localized if possible).")
     version: str = Field(..., description="Plugin version.")
+    requires: str | None = Field(default=None, description="Host version requirement specifier.")
     author: str = Field(..., description="Plugin author.")
+    license: str | None = Field(default=None, description="Plugin license.")
     status: str = Field(..., description="Global plugin status (installed/started/disabled/failed).")
     category: str | None = Field(default=None, description="Optional plugin category code.")
+    has_config_schema: bool = Field(default=False, description="Whether plugin declares a config schema.")
 
     icon_url: str | None = Field(
         default=None,

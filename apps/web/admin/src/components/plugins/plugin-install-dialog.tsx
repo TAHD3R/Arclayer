@@ -1,4 +1,4 @@
-import { Button, Descriptions, Result, Spin, Switch, Typography } from "antd";
+import { Button, Descriptions, Result, Spin, Typography } from "antd";
 import { CloudUpload, Upload } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useDropzone } from "react-dropzone";
@@ -40,7 +40,6 @@ export interface PluginInstallDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   disabled?: boolean;
-  defaultEnableInWorkspace?: boolean;
   onInstalled?: (result: { requiresRestart: boolean }) => void;
 }
 
@@ -49,24 +48,21 @@ export function PluginInstallDialog({
   open,
   onOpenChange,
   disabled = false,
-  defaultEnableInWorkspace = true,
   onInstalled,
 }: PluginInstallDialogProps) {
   const { t } = useTranslation(["plugin", "common"]);
 
   const [file, setFile] = useState<File | null>(null);
-  const [enableInWorkspace, setEnableInWorkspace] = useState<boolean>(defaultEnableInWorkspace);
   const [step, setStep] = useState<Step>("pick");
   const [validated, setValidated] = useState<WorkspacePluginPackageValidateOut | null>(null);
   const [errorText, setErrorText] = useState<string | null>(null);
 
   const resetState = useCallback(() => {
     setFile(null);
-    setEnableInWorkspace(defaultEnableInWorkspace);
     setStep("pick");
     setValidated(null);
     setErrorText(null);
-  }, [defaultEnableInWorkspace]);
+  }, []);
 
   useEffect(() => {
     if (!open) resetState();
@@ -119,7 +115,7 @@ export function PluginInstallDialog({
       const res = await installValidatedWorkspacePlugin({
         workspaceId,
         token: validated.token,
-        enableInWorkspace,
+        enableInWorkspace: true,
       });
       notifySuccessText(t("plugin:PLUGIN_CENTER_INSTALL_SUCCESS"));
       onOpenChange(false);
@@ -129,7 +125,7 @@ export function PluginInstallDialog({
       setErrorText(err instanceof Error ? err.message : t("plugin:PLUGIN_CENTER_INSTALL_FAILED_GENERIC"));
       notifyError(err);
     }
-  }, [enableInWorkspace, onInstalled, onOpenChange, t, validated, workspaceId]);
+  }, [onInstalled, onOpenChange, t, validated, workspaceId]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -159,36 +155,26 @@ export function PluginInstallDialog({
               <div className="mt-3 text-base font-medium">{t("plugin:PLUGIN_CENTER_DROP_TITLE")}</div>
               <div className="mt-1 text-sm text-muted-foreground">{t("plugin:PLUGIN_CENTER_DROP_DESC")}</div>
 
-              <div className="mt-4">
-                <Button type="primary" disabled={disabled} icon={<Upload className="size-4" />} onClick={() => openFileDialog()}>
-                  {t("plugin:PLUGIN_CENTER_PICK_FILE")}
-                </Button>
+              <div className="mt-4 flex flex-col items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="primary"
+                    disabled={disabled}
+                    icon={<Upload className="size-4" />}
+                    onClick={() => openFileDialog()}
+                  >
+                    {t("plugin:PLUGIN_CENTER_PICK_FILE")}
+                  </Button>
+                  <Button disabled={!canValidate} loading={step === "validating"} onClick={() => void validateNow()}>
+                    {t("plugin:PLUGIN_CENTER_VALIDATE_ACTION")}
+                  </Button>
+                </div>
+
+                <div className="text-sm text-muted-foreground">
+                  {file ? `${file.name} (${formatBytes(file.size)})` : t("plugin:PLUGIN_CENTER_FILE_EMPTY")}
+                </div>
               </div>
             </div>
-          </div>
-
-          <div className="mt-4 flex items-start justify-between gap-3 rounded-md border p-3">
-            <div className="min-w-0">
-              <div className="text-sm font-medium">{t("plugin:PLUGIN_CENTER_FILE_LABEL")}</div>
-              <div className="mt-1 text-sm text-muted-foreground">
-                {file ? `${file.name} (${formatBytes(file.size)})` : t("plugin:PLUGIN_CENTER_FILE_EMPTY")}
-              </div>
-            </div>
-            <div className="shrink-0">
-              <Button disabled={!canValidate} loading={step === "validating"} onClick={() => void validateNow()}>
-                {t("plugin:PLUGIN_CENTER_VALIDATE_ACTION")}
-              </Button>
-            </div>
-          </div>
-
-          <div className="mt-3 flex items-center justify-between rounded-md border p-3">
-            <div className="text-sm">{t("plugin:PLUGIN_CENTER_ENABLE_AFTER_INSTALL")}</div>
-            <Switch
-              checked={enableInWorkspace}
-              aria-label={t("plugin:PLUGIN_CENTER_ENABLE_AFTER_INSTALL")}
-              onChange={setEnableInWorkspace}
-              disabled={disabled || step === "installing" || step === "validating"}
-            />
           </div>
 
           {step === "validating" ? (

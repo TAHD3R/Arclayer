@@ -38,6 +38,13 @@ class WorkspacePluginCenterService(BaseService):
                     manager.discover()
                 desc = manager.descriptors.get(str(summary.plugin_id))
                 category = (desc.manifest.plugin.category if desc is not None else None) or None
+                requires = (desc.manifest.plugin.requires if desc is not None else None) or None
+                license_name = (desc.manifest.plugin.license if desc is not None else None) or None
+                has_config_schema = bool(getattr(desc.manifest, "config_schema", None))
+            else:
+                requires = None
+                license_name = None
+                has_config_schema = False
             state = state_by_id.get(str(record.plugin_id))
             icon_url = self._build_workspace_plugin_icon_url(
                 workspace_id=workspace_id,
@@ -51,9 +58,12 @@ class WorkspacePluginCenterService(BaseService):
                     name=str(summary.name),
                     description=summary.description,
                     version=str(summary.version),
+                    requires=requires,
                     author=str(summary.author),
+                    license=license_name,
                     status=str(summary.status),
                     category=category,
+                    has_config_schema=has_config_schema,
                     icon_url=icon_url,
                     enabled=bool(state.enabled) if state is not None else False,
                     config=(state.config if state is not None and isinstance(state.config, dict) else None),
@@ -91,6 +101,13 @@ class WorkspacePluginCenterService(BaseService):
                 manager.discover()
             desc = manager.descriptors.get(str(summary.plugin_id))
             category = (desc.manifest.plugin.category if desc is not None else None) or None
+            requires = (desc.manifest.plugin.requires if desc is not None else None) or None
+            license_name = (desc.manifest.plugin.license if desc is not None else None) or None
+            has_config_schema = bool(getattr(desc.manifest, "config_schema", None))
+        else:
+            requires = None
+            license_name = None
+            has_config_schema = False
         state = await self.repo.get_state(workspace_id=workspace_id, plugin_id=record.plugin_id)
         icon_url = self._build_workspace_plugin_icon_url(
             workspace_id=workspace_id,
@@ -103,9 +120,12 @@ class WorkspacePluginCenterService(BaseService):
             name=str(summary.name),
             description=summary.description,
             version=str(summary.version),
+            requires=requires,
             author=str(summary.author),
+            license=license_name,
             status=str(summary.status),
             category=category,
+            has_config_schema=has_config_schema,
             icon_url=icon_url,
             enabled=bool(state.enabled) if state is not None else False,
             config=(state.config if state is not None and isinstance(state.config, dict) else None),
@@ -160,6 +180,13 @@ class WorkspacePluginCenterService(BaseService):
                 manager.discover()
             desc = manager.descriptors.get(str(summary.plugin_id))
             category = (desc.manifest.plugin.category if desc is not None else None) or None
+            requires = (desc.manifest.plugin.requires if desc is not None else None) or None
+            license_name = (desc.manifest.plugin.license if desc is not None else None) or None
+            has_config_schema = bool(getattr(desc.manifest, "config_schema", None))
+        else:
+            requires = None
+            license_name = None
+            has_config_schema = False
         state = await self.repo.get_state(workspace_id=workspace_id, plugin_id=record.plugin_id)
         icon_url = self._build_workspace_plugin_icon_url(
             workspace_id=workspace_id,
@@ -172,9 +199,12 @@ class WorkspacePluginCenterService(BaseService):
             name=str(summary.name),
             description=summary.description,
             version=str(summary.version),
+            requires=requires,
             author=str(summary.author),
+            license=license_name,
             status=str(summary.status),
             category=category,
+            has_config_schema=has_config_schema,
             icon_url=icon_url,
             enabled=bool(state.enabled) if state is not None else False,
             config=(state.config if state is not None and isinstance(state.config, dict) else None),
@@ -196,6 +226,13 @@ class WorkspacePluginCenterService(BaseService):
                 manager.discover()
             desc = manager.descriptors.get(str(summary.plugin_id))
             category = (desc.manifest.plugin.category if desc is not None else None) or None
+            requires = (desc.manifest.plugin.requires if desc is not None else None) or None
+            license_name = (desc.manifest.plugin.license if desc is not None else None) or None
+            has_config_schema = bool(getattr(desc.manifest, "config_schema", None))
+        else:
+            requires = None
+            license_name = None
+            has_config_schema = False
         icon_url = self._build_workspace_plugin_icon_url(
             workspace_id=workspace_id,
             plugin_id=str(record.plugin_id),
@@ -207,9 +244,12 @@ class WorkspacePluginCenterService(BaseService):
             name=str(summary.name),
             description=summary.description,
             version=str(summary.version),
+            requires=requires,
             author=str(summary.author),
+            license=license_name,
             status=str(summary.status),
             category=category,
+            has_config_schema=has_config_schema,
             icon_url=icon_url,
             enabled=bool(state.enabled) if state is not None else False,
             config=(state.config if state is not None and isinstance(state.config, dict) else None),
@@ -255,6 +295,13 @@ class WorkspacePluginCenterService(BaseService):
                 manager.discover()
             desc = manager.descriptors.get(str(summary.plugin_id))
             category = (desc.manifest.plugin.category if desc is not None else None) or None
+            requires = (desc.manifest.plugin.requires if desc is not None else None) or None
+            license_name = (desc.manifest.plugin.license if desc is not None else None) or None
+            has_config_schema = bool(getattr(desc.manifest, "config_schema", None))
+        else:
+            requires = None
+            license_name = None
+            has_config_schema = False
         state = await self.repo.get_state(workspace_id=workspace_id, plugin_id=plugin_id)
         icon_url = self._build_workspace_plugin_icon_url(
             workspace_id=workspace_id,
@@ -267,9 +314,12 @@ class WorkspacePluginCenterService(BaseService):
             name=str(summary.name),
             description=summary.description,
             version=str(summary.version),
+            requires=requires,
             author=str(summary.author),
+            license=license_name,
             status=str(summary.status),
             category=category,
+            has_config_schema=has_config_schema,
             icon_url=icon_url,
             enabled=bool(state.enabled) if state is not None else False,
             config=(state.config if state is not None and isinstance(state.config, dict) else None),

@@ -26,11 +26,13 @@ category = "data_integration"
     type = "bool"
     default = false
     label_i18n = "oauth_social:FIELD_GOOGLE_ENABLED_LABEL"
+    description_i18n = "oauth_social:FIELD_GOOGLE_ENABLED_DESC"
 
     [[config_schema.sections.fields]]
     key = "client_id"
     type = "str"
     label_i18n = "oauth_social:FIELD_GOOGLE_CLIENT_ID_LABEL"
+    description_i18n = "oauth_social:FIELD_GOOGLE_CLIENT_ID_DESC"
 
     [[config_schema.sections.fields]]
     key = "client_secret"
@@ -38,6 +40,7 @@ category = "data_integration"
     secret = true
     ui = { input = "password" }
     label_i18n = "oauth_social:FIELD_GOOGLE_CLIENT_SECRET_LABEL"
+    description_i18n = "oauth_social:FIELD_GOOGLE_CLIENT_SECRET_DESC"
 
   [[config_schema.sections]]
   id = "github"
@@ -49,11 +52,13 @@ category = "data_integration"
     type = "bool"
     default = false
     label_i18n = "oauth_social:FIELD_GITHUB_ENABLED_LABEL"
+    description_i18n = "oauth_social:FIELD_GITHUB_ENABLED_DESC"
 
     [[config_schema.sections.fields]]
     key = "client_id"
     type = "str"
     label_i18n = "oauth_social:FIELD_GITHUB_CLIENT_ID_LABEL"
+    description_i18n = "oauth_social:FIELD_GITHUB_CLIENT_ID_DESC"
 
     [[config_schema.sections.fields]]
     key = "client_secret"
@@ -61,6 +66,7 @@ category = "data_integration"
     secret = true
     ui = { input = "password" }
     label_i18n = "oauth_social:FIELD_GITHUB_CLIENT_SECRET_LABEL"
+    description_i18n = "oauth_social:FIELD_GITHUB_CLIENT_SECRET_DESC"
 
   [[config_schema.sections]]
   id = "provisioning"
@@ -72,9 +78,11 @@ category = "data_integration"
     type = "bool"
     default = false
     label_i18n = "oauth_social:FIELD_AUTO_PROVISION_ENABLED_LABEL"
+    description_i18n = "oauth_social:FIELD_AUTO_PROVISION_ENABLED_DESC"
 
     [[config_schema.sections.fields]]
     key = "auto_accept_email_invites"
     type = "bool"
     default = false
     label_i18n = "oauth_social:FIELD_AUTO_ACCEPT_EMAIL_INVITES_LABEL"
+    description_i18n = "oauth_social:FIELD_AUTO_ACCEPT_EMAIL_INVITES_DESC"

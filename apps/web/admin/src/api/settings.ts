@@ -5,7 +5,7 @@ export type SettingsDetail = {
   namespace: string;
   value: Record<string, unknown>;
   secrets?: Record<string, boolean>;
-  updated_at?: string | null;
+  updatedAt?: string | null;
 };
 
 export type SettingsFieldItem = {
@@ -37,10 +37,10 @@ export type SettingsSchemaItem = {
 
 export type SystemSettingsDetail = {
   namespace: string;
-  setting_schema: SettingsSchemaItem;
+  settingSchema: SettingsSchemaItem;
   value: Record<string, unknown>;
   secrets: Record<string, boolean>;
-  updated_at?: string | null;
+  updatedAt?: string | null;
 };
 
 export async function getCoreSettings(workspaceId: string): Promise<SettingsDetail> {
@@ -59,7 +59,7 @@ export async function patchCoreSettings(
  *
  * Notes:
  * - Back-end is gated by org owner (not workspace RBAC).
- * - Response includes extra fields (e.g. setting_schema) but we only rely on value/secrets here.
+ * - Response includes extra fields (e.g. settingSchema) but we only rely on value/secrets here.
  */
 export async function getSystemCoreSettings(): Promise<SettingsDetail> {
   return api.get<SettingsDetail>("/system/settings/core");

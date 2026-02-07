@@ -4,9 +4,10 @@ import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import type { MenuProps } from "antd";
-import { Button, Card, Dropdown, Modal, Pagination, Select, Switch, Tag, Typography } from "antd";
+import { Button, Card, Dropdown, Pagination, Select, Switch, Tag, Typography } from "antd";
 import { MoreVertical, RotateCcw, Settings2, Trash2, Upload } from "lucide-react";
 
+import { ConfirmDialog } from "@/components/common/confirm-dialog";
 import { DefaultPage } from "@/components/common/default-page";
 import { PageState } from "@/components/common/page-state";
 import { AdminExtensionsSlot } from "@/components/extensions/admin-extensions-slot";
@@ -52,6 +53,11 @@ export function PluginsInstalledView() {
   const [category, setCategory] = useState<string>("all");
   const [selectedPluginRef, setSelectedPluginRef] = useState<string | null>(null);
   const [page, setPage] = useState<number>(1);
+  const [confirm, setConfirm] = useState<{
+    open: boolean;
+    type: "reset" | "uninstall" | null;
+    plugin: WorkspacePluginItem | null;
+  }>({ open: false, type: null, plugin: null });
   const pageSize = 12;
 
   const authzQuery = useQuery({
@@ -89,7 +95,17 @@ export function PluginsInstalledView() {
         ? disableWorkspacePlugin(workspaceId, plugin.slug || plugin.pluginId)
         : enableWorkspacePlugin(workspaceId, plugin.slug || plugin.pluginId);
     },
-    onSuccess: async () => {
+    onSuccess: async (updated) => {
+      // Optimistic-ish: immediately update list to reflect toggle changes (tags/switch),
+      // then refetch to stay consistent with server state.
+      queryClient.setQueryData(
+        ["workspace", "pluginsCenter", workspaceId],
+        (prev: { items: WorkspacePluginItem[] } | undefined) => {
+          if (!prev) return prev;
+          const nextItems = prev.items.map((it) => (it.pluginId === updated.pluginId ? updated : it));
+          return { ...prev, items: nextItems };
+        },
+      );
       await queryClient.invalidateQueries({
         queryKey: ["workspace", "pluginsCenter", workspaceId],
       });
@@ -169,9 +185,8 @@ export function PluginsInstalledView() {
     setPage(1);
   }, [category, selectedPluginRef]);
 
-  const categoryTabs = useMemo(
-    () => [
-      { key: "all", label: t("plugin:PLUGIN_CATEGORY_ALL") },
+  const categoryTabs = useMemo(() => {
+    const defs = [
       { key: "content_creation", label: t("plugin:PLUGIN_CATEGORY_CONTENT_CREATION") },
       { key: "media_management", label: t("plugin:PLUGIN_CATEGORY_MEDIA_MANAGEMENT") },
       { key: "seo_marketing", label: t("plugin:PLUGIN_CATEGORY_SEO_MARKETING") },
@@ -180,9 +195,27 @@ export function PluginsInstalledView() {
       { key: "user_interaction", label: t("plugin:PLUGIN_CATEGORY_USER_INTERACTION") },
       { key: "data_integration", label: t("plugin:PLUGIN_CATEGORY_DATA_INTEGRATION") },
       { key: "data_analytics", label: t("plugin:PLUGIN_CATEGORY_DATA_ANALYTICS") },
-    ],
-    [t],
-  );
+    ];
+
+    const counts = new Map<string, number>();
+    for (const p of items) {
+      const c = String(p.category || "").trim().toLowerCase();
+      if (!c) continue;
+      counts.set(c, (counts.get(c) || 0) + 1);
+    }
+
+    const tabs: { key: string; label: string }[] = [{ key: "all", label: t("plugin:PLUGIN_CATEGORY_ALL") }];
+    for (const def of defs) {
+      if ((counts.get(def.key) || 0) > 0) tabs.push(def);
+    }
+    return tabs;
+  }, [items, t]);
+
+  useEffect(() => {
+    // If a category becomes empty (e.g. after uninstall), keep UI stable by resetting to "all".
+    if (categoryTabs.some((c) => c.key === category)) return;
+    setCategory("all");
+  }, [category, categoryTabs]);
 
   if (!workspaceId) {
     return (
@@ -342,14 +375,7 @@ export function PluginsInstalledView() {
                 disabled: !canManage,
                 danger: true,
                 onClick: () => {
-                  Modal.confirm({
-                    title: t("plugin:PLUGIN_CENTER_RESET_CONFIRM_TITLE"),
-                    content: t("plugin:PLUGIN_CENTER_RESET_CONFIRM_DESC", { name: p.name }),
-                    okText: t("common:CONFIRM"),
-                    cancelText: t("common:CANCEL"),
-                    okButtonProps: { danger: true },
-                    onOk: async () => resetMutation.mutateAsync(p),
-                  });
+                  setConfirm({ open: true, type: "reset", plugin: p });
                 },
               },
               {
@@ -359,53 +385,59 @@ export function PluginsInstalledView() {
                 disabled: !canManage,
                 danger: true,
                 onClick: () => {
-                  Modal.confirm({
-                    title: t("plugin:PLUGIN_CENTER_UNINSTALL_CONFIRM_TITLE"),
-                    content: t("plugin:PLUGIN_CENTER_UNINSTALL_CONFIRM_DESC", { name: p.name }),
-                    okText: t("common:CONFIRM"),
-                    cancelText: t("common:CANCEL"),
-                    okButtonProps: { danger: true },
-                    onOk: async () => uninstallMutation.mutateAsync(p),
-                  });
+                  setConfirm({ open: true, type: "uninstall", plugin: p });
                 },
               },
             ];
 
             return (
               <Card
+                size="small"
+                type="inner"
                 key={p.pluginId}
-                className="h-full"
                 loading={Boolean(listQuery.isFetching && !listQuery.isLoading)}
-                actions={[
-                  <div key="switch" className="flex items-center justify-center">
-                    <Switch
-                      checked={Boolean(p.enabled)}
-                      disabled={!canManage || enableMutation.isPending}
-                      aria-label={t("plugin:PLUGIN_CENTER_TOGGLE_ARIA", { name: p.name })}
-                      onChange={() => enableMutation.mutate(p)}
-                    />
-                  </div>,
-                  <Dropdown key="more" trigger={["click"]} menu={{ items: menuItems }}>
-                    <Button
-                      type="text"
-                      icon={<MoreVertical className="size-4" />}
-                      aria-label={t("plugin:PLUGIN_CENTER_MORE")}
-                    />
-                  </Dropdown>,
-                ]}
               >
                 <Card.Meta
                   avatar={<PluginIcon name={p.name} iconUrl={p.iconUrl} size={40} />}
                   title={
                     <div className="min-w-0">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <div className="font-semibold truncate">{p.name}</div>
-                        <Tag style={{ marginInlineEnd: 0 }}>{p.version}</Tag>
-                      </div>
-                      <div className="mt-2 flex items-center gap-2">
-                        <Tag color={statusColor(status)} style={{ marginInlineEnd: 0 }}>
-                          {statusLabel}
-                        </Tag>
+                      <div className="flex items-start gap-3">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div className="font-semibold truncate">{p.name}</div>
+                            <Tag style={{ marginInlineEnd: 0 }}>{p.version}</Tag>
+                          </div>
+                          <div className="mt-2 flex items-center gap-2">
+                            <Tag
+                              color={p.enabled ? "green" : undefined}
+                              style={{ marginInlineEnd: 0 }}
+                            >
+                              {p.enabled ? t("plugin:PLUGIN_ENABLED_TRUE") : t("plugin:PLUGIN_ENABLED_FALSE")}
+                            </Tag>
+                            {normalizeStatus(p.status) !== "started" ? (
+                              <Tag color={statusColor(status)} style={{ marginInlineEnd: 0 }}>
+                                {statusLabel}
+                              </Tag>
+                            ) : null}
+                          </div>
+                        </div>
+
+                        <div className="shrink-0 flex items-center gap-2">
+                          <Switch
+                            checked={Boolean(p.enabled)}
+                            disabled={!canManage || enableMutation.isPending}
+                            aria-label={t("plugin:PLUGIN_CENTER_TOGGLE_ARIA", { name: p.name })}
+                            onChange={() => enableMutation.mutate(p)}
+                          />
+                          <Dropdown trigger={["click"]} menu={{ items: menuItems }}>
+                            <Button
+                              type="text"
+
+                              icon={<MoreVertical className="size-4" />}
+                              aria-label={t("plugin:PLUGIN_CENTER_MORE")}
+                            />
+                          </Dropdown>
+                        </div>
                       </div>
                     </div>
                   }
@@ -448,6 +480,37 @@ export function PluginsInstalledView() {
         onInstalled={({ requiresRestart }) => {
           setRestartHint(Boolean(requiresRestart));
           void queryClient.invalidateQueries({ queryKey: ["workspace", "pluginsCenter", workspaceId] });
+        }}
+      />
+
+      <ConfirmDialog
+        open={confirm.open}
+        onOpenChange={(open) =>
+          setConfirm((prev) => (open ? { ...prev, open: true } : { open: false, type: null, plugin: null }))
+        }
+        title={
+          confirm.type === "reset"
+            ? t("plugin:PLUGIN_CENTER_RESET_CONFIRM_TITLE")
+            : t("plugin:PLUGIN_CENTER_UNINSTALL_CONFIRM_TITLE")
+        }
+        description={
+          confirm.type === "reset"
+            ? t("plugin:PLUGIN_CENTER_RESET_CONFIRM_DESC", { name: confirm.plugin?.name || "" })
+            : t("plugin:PLUGIN_CENTER_UNINSTALL_CONFIRM_DESC", { name: confirm.plugin?.name || "" })
+        }
+        cancelText={t("common:CANCEL")}
+        confirmText={t("common:CONFIRM")}
+        danger
+        loading={resetMutation.isPending || uninstallMutation.isPending}
+        onConfirm={async () => {
+          const p = confirm.plugin;
+          if (!p || !confirm.type) return;
+          if (confirm.type === "reset") {
+            await resetMutation.mutateAsync(p);
+          } else {
+            await uninstallMutation.mutateAsync(p);
+          }
+          setConfirm({ open: false, type: null, plugin: null });
         }}
       />
     </DefaultPage>

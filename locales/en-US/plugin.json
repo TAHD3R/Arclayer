@@ -44,6 +44,7 @@
   "PLUGIN_META_ID": "Plugin ID",
   "PLUGIN_META_SLUG": "Slug",
   "PLUGIN_META_REQUIRES": "Requires",
+  "PLUGIN_META_LICENSE": "License",
   "PLUGIN_META_CATEGORY": "Category",
   "PLUGIN_META_STATUS": "Status",
   "PLUGIN_META_ENABLED": "Enabled",

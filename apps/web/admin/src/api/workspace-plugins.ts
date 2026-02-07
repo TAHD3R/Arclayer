@@ -7,9 +7,12 @@ export type WorkspacePluginItem = {
   name: string;
   description?: string | null;
   version: string;
+  requires?: string | null;
   author: string;
+  license?: string | null;
   status: string;
   category?: string | null;
+  hasConfigSchema?: boolean;
   iconUrl?: string | null;
   enabled: boolean;
   config?: Record<string, unknown> | null;

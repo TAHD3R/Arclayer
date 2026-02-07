@@ -44,6 +44,7 @@
   "PLUGIN_META_ID": "插件 ID",
   "PLUGIN_META_SLUG": "Slug",
   "PLUGIN_META_REQUIRES": "依赖版本",
+  "PLUGIN_META_LICENSE": "许可证",
   "PLUGIN_META_CATEGORY": "分类",
   "PLUGIN_META_STATUS": "状态",
   "PLUGIN_META_ENABLED": "启用状态",

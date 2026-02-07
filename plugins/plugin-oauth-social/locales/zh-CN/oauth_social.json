@@ -4,16 +4,23 @@
 
   "SECTION_GOOGLE": "Google",
   "FIELD_GOOGLE_ENABLED_LABEL": "启用 Google 登录",
+  "FIELD_GOOGLE_ENABLED_DESC": "启用后，管理员可使用 Google 账号登录后台。",
   "FIELD_GOOGLE_CLIENT_ID_LABEL": "Google Client ID",
+  "FIELD_GOOGLE_CLIENT_ID_DESC": "从 Google Cloud Console 获取 OAuth Client ID。",
   "FIELD_GOOGLE_CLIENT_SECRET_LABEL": "Google Client Secret",
+  "FIELD_GOOGLE_CLIENT_SECRET_DESC": "从 Google Cloud Console 获取 OAuth Client Secret，请妥善保管。",
 
   "SECTION_GITHUB": "GitHub",
   "FIELD_GITHUB_ENABLED_LABEL": "启用 GitHub 登录",
+  "FIELD_GITHUB_ENABLED_DESC": "启用后，管理员可使用 GitHub 账号登录后台。",
   "FIELD_GITHUB_CLIENT_ID_LABEL": "GitHub Client ID",
+  "FIELD_GITHUB_CLIENT_ID_DESC": "从 GitHub OAuth App 设置获取 Client ID。",
   "FIELD_GITHUB_CLIENT_SECRET_LABEL": "GitHub Client Secret",
+  "FIELD_GITHUB_CLIENT_SECRET_DESC": "从 GitHub OAuth App 设置获取 Client Secret，请妥善保管。",
 
   "SECTION_PROVISIONING": "账号策略",
   "FIELD_AUTO_PROVISION_ENABLED_LABEL": "允许自动创建账号",
-  "FIELD_AUTO_ACCEPT_EMAIL_INVITES_LABEL": "自动接受邮箱邀请"
+  "FIELD_AUTO_PROVISION_ENABLED_DESC": "启用后，社交登录成功时可自动创建新账号。",
+  "FIELD_AUTO_ACCEPT_EMAIL_INVITES_LABEL": "自动接受邮箱邀请",
+  "FIELD_AUTO_ACCEPT_EMAIL_INVITES_DESC": "启用后，登录成功时可自动接受待处理的邮箱邀请。"
 }
-

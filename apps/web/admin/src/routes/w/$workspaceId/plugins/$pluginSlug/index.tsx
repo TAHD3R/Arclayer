@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Button, Card, Descriptions, Switch, Tag, Typography } from "antd";
+import { Button, Card, Descriptions, Switch, Typography } from "antd";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
@@ -12,7 +12,6 @@ import { getSystemSettingsNamespace, patchSystemSettingsNamespace } from "@/api/
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { PluginSettingsForm } from "@/components/plugins/plugin-settings-form";
 import { ChromeTabs, ChromeTabsContent, ChromeTabsList, ChromeTabsTrigger } from "@/components/ui/chrome-tabs";
-import { PluginIcon } from "@/components/plugins/plugin-icon";
 
 export const Route = createFileRoute("/w/$workspaceId/plugins/$pluginSlug/")({
   component: WorkspacePluginDetailPage,
@@ -22,15 +21,6 @@ function normalizeStatus(value: unknown): string {
   return String(value || "")
     .trim()
     .toLowerCase();
-}
-
-function statusColor(status: string): string | undefined {
-  const s = normalizeStatus(status);
-  if (s === "started") return "green";
-  if (s === "installed") return "blue";
-  if (s === "disabled") return undefined;
-  if (s === "failed") return "red";
-  return undefined;
 }
 
 function categoryLabel(t: (key: string, opts?: { defaultValue?: string }) => string, code: string | null | undefined): string {
@@ -83,13 +73,13 @@ function WorkspacePluginDetailPage() {
     onError: (err) => notifyError(err),
   });
 
-  const systemSettingsEnabled = Boolean(runtimeQuery.data?.capabilities?.deploymentSettingsEnabled);
   const systemDeploymentMode = runtimeQuery.data?.deploymentMode;
+  const platformManaged = systemDeploymentMode === "saas";
 
   const namespace = plugin ? `plugin:${plugin.pluginId}` : null;
   const settingsQuery = useQuery({
     queryKey: ["settings", "system", namespace],
-    enabled: Boolean(systemSettingsEnabled && namespace),
+    enabled: Boolean(namespace),
     queryFn: async () => {
       if (!namespace) throw new Error("namespace is required");
       return getSystemSettingsNamespace(namespace);
@@ -115,9 +105,9 @@ function WorkspacePluginDetailPage() {
   const loadError = pluginsQuery.isError ? pluginsQuery.error : null;
 
   const configSections = useMemo(() => {
-    const sections = settingsQuery.data?.setting_schema?.sections || [];
+    const sections = settingsQuery.data?.settingSchema?.sections || [];
     return sections.filter((s) => (s.fields || []).length > 0);
-  }, [settingsQuery.data?.setting_schema?.sections]);
+  }, [settingsQuery.data?.settingSchema?.sections]);
 
   const status = normalizeStatus(plugin?.status);
   const statusLabel = plugin
@@ -127,9 +117,11 @@ function WorkspacePluginDetailPage() {
     const keys = ["details"];
     if (configSections.length > 0) {
       for (const s of configSections) keys.push(`system:${s.id}`);
+    } else if (Boolean(plugin?.hasConfigSchema)) {
+      keys.push("system:config");
     }
     return keys;
-  }, [configSections]);
+  }, [configSections, plugin?.hasConfigSchema]);
 
   useEffect(() => {
     if (!availableTabs.includes(tab)) setTab("details");
@@ -171,7 +163,9 @@ function WorkspacePluginDetailPage() {
                       {s.title || s.id}
                     </ChromeTabsTrigger>
                   ))
-                : null}
+                : Boolean(plugin.hasConfigSchema) ? (
+                    <ChromeTabsTrigger value="system:config">{t("plugin:PLUGIN_TAB_CONFIG")}</ChromeTabsTrigger>
+                  ) : null}
             </ChromeTabsList>
 
             <ChromeTabsContent value="details">
@@ -188,8 +182,14 @@ function WorkspacePluginDetailPage() {
                     <Descriptions.Item label={t("plugin:PLUGIN_META_VERSION")}>
                       {plugin.version}
                     </Descriptions.Item>
+                    <Descriptions.Item label={t("plugin:PLUGIN_META_REQUIRES")}>
+                      {plugin.requires || t("common:NA")}
+                    </Descriptions.Item>
                     <Descriptions.Item label={t("plugin:PLUGIN_META_AUTHOR")}>
                       {plugin.author || t("common:NA")}
+                    </Descriptions.Item>
+                    <Descriptions.Item label={t("plugin:PLUGIN_META_LICENSE")}>
+                      {plugin.license || t("common:NA")}
                     </Descriptions.Item>
                     <Descriptions.Item label={t("plugin:PLUGIN_META_STATUS")}>
                       {statusLabel || t("common:NA")}
@@ -208,38 +208,67 @@ function WorkspacePluginDetailPage() {
             {configSections.length
               ? configSections.map((section) => (
                   <ChromeTabsContent key={section.id} value={`system:${section.id}`}>
-                    <Card size="small" title={section.title || section.id}>
-                      {!systemSettingsEnabled || systemDeploymentMode === "saas" ? (
-                        <Typography.Paragraph style={{ marginBottom: 0 }}>
-                          {t("plugin:PLUGIN_SETTINGS_MANAGED_BY_PLATFORM")}
-                        </Typography.Paragraph>
-                      ) : settingsQuery.isLoading && !settingsQuery.data ? (
-                        <PageState loading loadingVariant="form" />
-                      ) : settingsQuery.isError ? (
-                        <PageState
-                          loading={false}
-                          error={settingsQuery.error}
-                          onRetry={() => void settingsQuery.refetch()}
-                        />
-                      ) : settingsQuery.data ? (
-                        <PluginSettingsForm
-                          detail={settingsQuery.data}
-                          sectionId={section.id}
-                          disabled={patchMutation.isPending}
-                          saving={patchMutation.isPending}
-                          onSubmitPatch={async (patch) => {
-                            await patchMutation.mutateAsync(patch);
-                          }}
-                        />
-                      ) : (
-                        <Typography.Paragraph style={{ marginBottom: 0 }}>
-                          {t("plugin:PLUGIN_CONFIG_NOT_SUPPORTED")}
-                        </Typography.Paragraph>
-                      )}
-                    </Card>
+                    {platformManaged ? (
+                      <Typography.Paragraph style={{ marginBottom: 0 }}>
+                        {t("plugin:PLUGIN_SETTINGS_MANAGED_BY_PLATFORM")}
+                      </Typography.Paragraph>
+                    ) : settingsQuery.isLoading && !settingsQuery.data ? (
+                      <PageState loading loadingVariant="form" />
+                    ) : settingsQuery.isError ? (
+                      <PageState
+                        loading={false}
+                        error={settingsQuery.error}
+                        onRetry={() => void settingsQuery.refetch()}
+                      />
+                    ) : settingsQuery.data ? (
+                      <PluginSettingsForm
+                        detail={settingsQuery.data}
+                        sectionId={section.id}
+                        disabled={patchMutation.isPending || platformManaged}
+                        saving={patchMutation.isPending}
+                        onSubmitPatch={async (patch) => {
+                          await patchMutation.mutateAsync(patch);
+                        }}
+                      />
+                    ) : (
+                      <Typography.Paragraph style={{ marginBottom: 0 }}>
+                        {t("plugin:PLUGIN_CONFIG_NOT_SUPPORTED")}
+                      </Typography.Paragraph>
+                    )}
                   </ChromeTabsContent>
                 ))
               : null}
+
+            {Boolean(plugin.hasConfigSchema) ? (
+              <ChromeTabsContent value="system:config">
+                {platformManaged ? (
+                  <Typography.Paragraph style={{ marginBottom: 0 }}>
+                    {t("plugin:PLUGIN_SETTINGS_MANAGED_BY_PLATFORM")}
+                  </Typography.Paragraph>
+                ) : settingsQuery.isLoading && !settingsQuery.data ? (
+                  <PageState loading loadingVariant="form" />
+                ) : settingsQuery.isError ? (
+                  <PageState
+                    loading={false}
+                    error={settingsQuery.error}
+                    onRetry={() => void settingsQuery.refetch()}
+                  />
+                ) : settingsQuery.data ? (
+                  <PluginSettingsForm
+                    detail={settingsQuery.data}
+                    disabled={patchMutation.isPending || platformManaged}
+                    saving={patchMutation.isPending}
+                    onSubmitPatch={async (patch) => {
+                      await patchMutation.mutateAsync(patch);
+                    }}
+                  />
+                ) : (
+                  <Typography.Paragraph style={{ marginBottom: 0 }}>
+                    {t("plugin:PLUGIN_CONFIG_NOT_SUPPORTED")}
+                  </Typography.Paragraph>
+                )}
+              </ChromeTabsContent>
+            ) : null}
           </ChromeTabs>
         ) : (
           <PageState
