@@ -2,6 +2,7 @@ import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type CSSProperties, type ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 import { motion } from "motion/react";
+import { Tooltip as AntdTooltip } from "antd";
 
 import type { AdminNavItem } from "@/constants/admin-nav";
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
@@ -13,7 +14,6 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 function normalizePath(input: string): string {
@@ -47,14 +47,19 @@ function getFirstDescendantTo(item: AdminNavItem): string | null {
 function getBlockedTooltipText(
   item: AdminNavItem,
   t: (key: string, opts?: Record<string, unknown>) => string,
+  resolvePermissionName: ((code: string) => string | null) | undefined,
 ): string | null {
   if (!item.disabled) return null;
   if (item.blockedReason === "plugin_disabled") {
     return t("admin_menu:MENU_BLOCKED_PLUGIN_DISABLED");
   }
   if (item.blockedReason === "missing_permission") {
-    const perm = item.requiredPermission || "admin:access";
-    return t("admin_menu:MENU_BLOCKED_MISSING_PERMISSION", { permission: perm });
+    const permCode = item.requiredPermission || "admin:access";
+    const permissionName = resolvePermissionName?.(permCode) ?? null;
+    if (permissionName) {
+      return t("admin_menu:MENU_BLOCKED_MISSING_PERMISSION", { permissionName });
+    }
+    return t("admin_menu:MENU_BLOCKED_MISSING_PERMISSION_FALLBACK");
   }
   return t("admin_menu:MENU_BLOCKED_GENERIC");
 }
@@ -62,10 +67,9 @@ function getBlockedTooltipText(
 function WithBlockedTooltip(props: { tooltip: string | null; children: ReactElement }) {
   if (!props.tooltip) return props.children;
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>{props.children}</TooltipTrigger>
-      <TooltipContent>{props.tooltip}</TooltipContent>
-    </Tooltip>
+    <AntdTooltip title={props.tooltip} placement="top">
+      <span className="block w-full">{props.children}</span>
+    </AntdTooltip>
   );
 }
 
@@ -142,6 +146,7 @@ type NodeProps = {
   openChainForKey: (key: string) => void;
   animateOpenKey: string | null;
   setAnimateOpenKey: (key: string | null) => void;
+  resolvePermissionName?: (code: string) => string | null;
 };
 
 function NavNode({
@@ -154,23 +159,25 @@ function NavNode({
   openChainForKey,
   animateOpenKey,
   setAnimateOpenKey,
+  resolvePermissionName,
 }: NodeProps) {
   const { t } = useTranslation(["admin_menu"]);
   const navigate = useNavigate();
 
   const label = item.labelKey ? t(item.labelKey) : item.label;
   const hasChildren = Boolean(item.children?.length);
-  const isOpen = hasChildren && openByParent[parentKey] === item.key;
+  const isOpen = hasChildren && !item.disabled && openByParent[parentKey] === item.key;
   const isSelected = Boolean(item.to && isExactMatch(item.to, pathname));
   const Icon = item.icon;
   const isSectionActive = depth === 0 && hasChildren && activeKeys.has(item.key);
   const isTrailActive = activeKeys.has(item.key);
   const showActiveIndicator = depth === 0 && (isSelected || isSectionActive);
   const itemTextSize = depth === 0 ? "text-[15px]" : "text-sm";
-  const blockedTooltip = getBlockedTooltipText(item, t);
+  const blockedTooltip = getBlockedTooltipText(item, t, resolvePermissionName);
 
   const openSelf = () => {
     if (!hasChildren) return;
+    if (item.disabled) return;
     openChainForKey(item.key);
   };
 
@@ -270,9 +277,9 @@ function NavNode({
               } as CSSProperties
             }
             onClick={() => {
+              if (item.disabled) return;
               setAnimateOpenKey(item.key);
               openSelf();
-              if (item.disabled) return;
               if (navTarget) {
                 navigate({ to: navTarget });
               }
@@ -316,6 +323,7 @@ function NavNode({
                   openChainForKey={openChainForKey}
                   animateOpenKey={animateOpenKey}
                   setAnimateOpenKey={setAnimateOpenKey}
+                  resolvePermissionName={resolvePermissionName}
                 />
               ))}
             </SidebarMenu>
@@ -326,7 +334,10 @@ function NavNode({
   );
 }
 
-export function AdminSiderNav(props: { items: AdminNavItem[] }) {
+export function AdminSiderNav(props: {
+  items: AdminNavItem[];
+  resolvePermissionName?: (code: string) => string | null;
+}) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navIndex = useMemo(() => buildNavIndex(props.items), [props.items]);
   const activeTrail = useMemo(
@@ -383,6 +394,7 @@ export function AdminSiderNav(props: { items: AdminNavItem[] }) {
               openChainForKey={openChainForKey}
               animateOpenKey={animateOpenKey}
               setAnimateOpenKey={setAnimateOpenKey}
+              resolvePermissionName={props.resolvePermissionName}
             />
           ))}
         </SidebarMenu>

@@ -49,6 +49,7 @@ import { getWorkspaceDetail } from "@/api/workspaces";
 import { useWorkspaceLocalization } from "@/hooks/use-workspace-localization";
 import { useNowTick } from "@/hooks/use-now-tick";
 import { formatRelativeTimeAt } from "@/lib/time/relative-time";
+import { resolvePermissionNameI18nKey } from "@/lib/rbac-permissions";
 import { ForbiddenView } from "@/pages/builtin/forbidden-page";
 import {
   Sidebar,
@@ -234,6 +235,17 @@ export function AdminLayout({ children }: PropsWithChildren) {
     meta: { silent: true },
   });
 
+  const resolvePermissionName = useMemo(() => {
+    return (code: string) => {
+      const i18nKey = resolvePermissionNameI18nKey(code);
+      if (!i18nKey) return null;
+      // i18next returns the key itself when missing; treat that as "unmapped".
+      const text = t(i18nKey);
+      if (!text || text === i18nKey) return null;
+      return text;
+    };
+  }, [t]);
+
   const isWorkspaceScopeRoute = useMemo(() => {
     if (!workspaceBase) return false;
     return normalizePath(pathname).startsWith(normalizePath(workspaceBase));
@@ -405,7 +417,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
 
         <SidebarContent className="relative z-0 pl-0 pr-4 scrollbar-none">
           {isOrgScopeRoute ? (
-            <AdminSiderNav items={navItems as any} />
+            <AdminSiderNav items={navItems as any} resolvePermissionName={resolvePermissionName} />
           ) : menuBootstrapping ? (
             <SidebarGroup>
               <SidebarGroupContent>
@@ -417,7 +429,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
               </SidebarGroupContent>
             </SidebarGroup>
           ) : (
-            <AdminSiderNav items={navItems as any} />
+            <AdminSiderNav items={navItems as any} resolvePermissionName={resolvePermissionName} />
           )}
         </SidebarContent>
 

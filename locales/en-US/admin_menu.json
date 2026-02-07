@@ -10,6 +10,7 @@
   "ITEM_HAS_CHILDREN": "Menu item has children",
   "INVALID_PARENT": "Invalid parent menu item",
   "MENU_BLOCKED_PLUGIN_DISABLED": "This menu requires an enabled plugin in the current workspace.",
-  "MENU_BLOCKED_MISSING_PERMISSION": "You don't have permission to access this page (required: {{permission}}).",
+  "MENU_BLOCKED_MISSING_PERMISSION": "Access restricted. Please ask an admin to enable [{{permissionName}}] access.",
+  "MENU_BLOCKED_MISSING_PERMISSION_FALLBACK": "Access restricted. Please ask an admin to enable access.",
   "MENU_BLOCKED_GENERIC": "This menu is not available for your current access scope."
 }

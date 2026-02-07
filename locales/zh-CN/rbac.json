@@ -49,6 +49,6 @@
 
   "RBAC_PERM_PLUGINS_READ_NAME": "查看插件",
   "RBAC_PERM_PLUGINS_READ_DESC": "允许查看插件列表与插件详情。",
-  "RBAC_PERM_PLUGINS_MANAGE_NAME": "管理插件",
+  "RBAC_PERM_PLUGINS_MANAGE_NAME": "插件管理",
   "RBAC_PERM_PLUGINS_MANAGE_DESC": "允许安装、启用、禁用与配置插件。"
 }
