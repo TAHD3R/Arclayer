@@ -9,10 +9,14 @@ and implementation standards.
 
 Current guidelines:
 
+- `api-contract-guideline.md`
+- `backend-folder-architecture.md`
 - `design-guideline.md`
-- `fastapi-folder-architecture.md`
 - `frontend-folder-architecture.md`
 - `i18n.md`
+- `plugin-development-guideline.md`
+- `security-and-data-handling.md`
+- `testing-and-quality-gates.md`
 
 ## Maintenance
 

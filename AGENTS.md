@@ -54,10 +54,15 @@
 
 ### 进一步说明文档
 
+- Guideline 索引：`docs/guidelines/README.md`
+- API 契约规范：`docs/guidelines/api-contract-guideline.md`
 - i18n 详细说明：`docs/guidelines/i18n.md`
 - FastAPI 目录架构：`docs/guidelines/backend-folder-architecture.md`
 - 前端目录架构：`docs/guidelines/frontend-folder-architecture.md`
 - 前端设计规范：`docs/guidelines/design-guideline.md`
+- 插件开发规范：`docs/guidelines/plugin-development-guideline.md`
+- 安全与数据处理规范：`docs/guidelines/security-and-data-handling.md`
+- 测试与质量门禁：`docs/guidelines/testing-and-quality-gates.md`
 
 ---
 
