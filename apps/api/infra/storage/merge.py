@@ -39,5 +39,5 @@ def merge_parts_to_file(*, part_paths: Iterable[Path], out_path: Path, chunk_siz
         try:
             if tmp_path.exists():
                 tmp_path.unlink()
-        except Exception:
+        except OSError:
             pass

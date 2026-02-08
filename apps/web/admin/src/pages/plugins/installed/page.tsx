@@ -14,10 +14,8 @@ import {
   listOrganizationPlugins,
   resetOrganizationPluginConfig,
   uninstallOrganizationPlugin,
-  type OrganizationPluginItem,
 } from "@/api/org-plugins";
 import { getMyWorkspaceAuthz } from "@/api/workspaces";
-import type { WorkspacePluginItem } from "@/api/workspace-plugins";
 import {
   disableWorkspacePlugin,
   enableWorkspacePlugin,
@@ -40,32 +38,19 @@ import {
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
-
-function normalizeStatus(value: unknown): string {
-  return String(value || "")
-    .trim()
-    .toLowerCase();
-}
-
-function statusColor(status: string): string | undefined {
-  const s = normalizeStatus(status);
-  if (s === "started") return "green";
-  if (s === "installed") return "blue";
-  if (s === "disabled") return undefined;
-  if (s === "failed") return "red";
-  return undefined;
-}
-
-type PluginScope = "workspace" | "organization";
-type InstalledPluginItem = WorkspacePluginItem | OrganizationPluginItem;
+import {
+  buildCategoryTabs,
+  getPluginRef,
+  normalizeStatus,
+  statusColor,
+  type InstalledPluginItem,
+  type PluginScope,
+  type PluginSearchOption,
+} from "./helpers";
 
 type PluginsInstalledViewProps = {
   scope?: PluginScope;
 };
-
-function getPluginRef(plugin: InstalledPluginItem): string {
-  return String(plugin.slug || plugin.pluginId);
-}
 
 export function PluginsInstalledView({ scope = "workspace" }: PluginsInstalledViewProps) {
   const { t } = useTranslation(["plugin", "nav", "common", "settings"]);
@@ -225,13 +210,6 @@ export function PluginsInstalledView({ scope = "workspace" }: PluginsInstalledVi
       .trim()
       .toLowerCase() || "all";
 
-  type PluginSearchOption = {
-    value: string;
-    label: string;
-    description?: string | null;
-    iconUrl?: string | null;
-  };
-
   const searchOptions: PluginSearchOption[] = useMemo(
     () =>
       items.map((p) => ({
@@ -272,38 +250,10 @@ export function PluginsInstalledView({ scope = "workspace" }: PluginsInstalledVi
     setPage(1);
   }, [category, selectedPluginRef]);
 
-  const categoryTabs = useMemo(() => {
-    const defs = [
-      { key: "content_creation", label: t("plugin:PLUGIN_CATEGORY_CONTENT_CREATION") },
-      { key: "media_management", label: t("plugin:PLUGIN_CATEGORY_MEDIA_MANAGEMENT") },
-      { key: "seo_marketing", label: t("plugin:PLUGIN_CATEGORY_SEO_MARKETING") },
-      { key: "system_security", label: t("plugin:PLUGIN_CATEGORY_SYSTEM_SECURITY") },
-      {
-        key: "performance_optimization",
-        label: t("plugin:PLUGIN_CATEGORY_PERFORMANCE_OPTIMIZATION"),
-      },
-      { key: "user_interaction", label: t("plugin:PLUGIN_CATEGORY_USER_INTERACTION") },
-      { key: "data_integration", label: t("plugin:PLUGIN_CATEGORY_DATA_INTEGRATION") },
-      { key: "data_analytics", label: t("plugin:PLUGIN_CATEGORY_DATA_ANALYTICS") },
-    ];
-
-    const counts = new Map<string, number>();
-    for (const p of items) {
-      const c = String(p.category || "")
-        .trim()
-        .toLowerCase();
-      if (!c) continue;
-      counts.set(c, (counts.get(c) || 0) + 1);
-    }
-
-    const tabs: { key: string; label: string }[] = [
-      { key: "all", label: t("plugin:PLUGIN_CATEGORY_ALL") },
-    ];
-    for (const def of defs) {
-      if ((counts.get(def.key) || 0) > 0) tabs.push(def);
-    }
-    return tabs;
-  }, [items, t]);
+  const categoryTabs = useMemo(
+    () => buildCategoryTabs(items, (key) => t(`plugin:${key}`)),
+    [items, t],
+  );
 
   useEffect(() => {
     if (categoryTabs.some((c) => c.key === category)) return;

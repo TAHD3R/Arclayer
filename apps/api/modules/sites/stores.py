@@ -123,7 +123,7 @@ class RouteTemplateVersionStore:
             return None
         try:
             v = int(raw)
-        except Exception:
+        except (TypeError, ValueError):
             return None
         return v if v >= 0 else None
 

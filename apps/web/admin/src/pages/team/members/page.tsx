@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
-import { flexRender, type ColumnDef } from "@tanstack/react-table";
+import { type ColumnDef } from "@tanstack/react-table";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { MenuProps } from "antd";
 
@@ -30,16 +30,7 @@ import { DefaultPage } from "@/components/common/default-page";
 import { PageState } from "@/components/common/page-state";
 import { useDataTable } from "@/components/data-table";
 import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { LoaderOne } from "@/components/ui/loader";
-import { cn } from "@/lib/utils";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import {
   TeamMembersFilterPopover,
@@ -53,23 +44,18 @@ import { resolveAssetRefToPublicUrlPath } from "@/lib/assets/asset-urls";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { EditMemberRolesDialog } from "@/components/common/team/edit-member-roles-dialog";
 import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";
-
-function userInitials(member: TeamMember): string {
-  const label = (member.displayName || member.username || member.email || "U").trim();
-  return label.slice(0, 1).toUpperCase();
-}
-
-function userStatusTagColor(status: UserStatus): string {
-  if (status === "active") return "green";
-  if (status === "disabled") return "red";
-  return "gold";
-}
-
-function membershipStatusTagColor(status: TeamMember["membershipStatus"]): string {
-  if (status === "active") return "green";
-  if (status === "invited") return "blue";
-  return "red";
-}
+import { TeamMembersDataTable } from "./members-data-table";
+import {
+  membershipStatusTagColor,
+  teamMembersQueryKey,
+  teamMembersTableId,
+  buildTeamMemberExtraQuery,
+  resolveWorkspaceName,
+  type TeamMemberExtraQuery,
+  type TeamMemberFilters,
+  userInitials,
+  userStatusTagColor,
+} from "./helpers";
 
 export function TeamMembersView() {
   const { t } = useTranslation(["team", "common"]);
@@ -78,11 +64,7 @@ export function TeamMembersView() {
   const accessToken = useAuthStore((s) => s.accessToken);
   const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
 
-  const [filters, setFilters] = React.useState<{
-    membershipStatus?: "active" | "invited" | "disabled";
-    userStatus?: UserStatus;
-    roleCode?: string;
-  }>({});
+  const [filters, setFilters] = React.useState<TeamMemberFilters>({});
 
   const [sort, setSort] = React.useState<TeamMemberSort>("-created_at");
 
@@ -107,13 +89,15 @@ export function TeamMembersView() {
     meta: { silent: true },
   });
 
-  const workspaceName = React.useMemo(() => {
-    const items = workspacesQuery.data?.items ?? [];
-    const found = workspaceId
-      ? items.find((w) => String(w.workspaceId) === String(workspaceId))
-      : undefined;
-    return found?.name || t("team:TEAM_WORKSPACE_FALLBACK");
-  }, [t, workspaceId, workspacesQuery.data?.items]);
+  const workspaceName = React.useMemo(
+    () =>
+      resolveWorkspaceName(
+        workspacesQuery.data?.items,
+        workspaceId ? String(workspaceId) : null,
+        t("team:TEAM_WORKSPACE_FALLBACK"),
+      ),
+    [t, workspaceId, workspacesQuery.data?.items],
+  );
 
   const rolesQuery = useQuery({
     queryKey: ["rbac", "roles", "list", workspaceId],
@@ -141,12 +125,8 @@ export function TeamMembersView() {
   const [resetPasswordOpen, setResetPasswordOpen] = React.useState(false);
   const [activeMember, setActiveMember] = React.useState<TeamMember | null>(null);
 
-  const extraQuery = React.useMemo(
-    () => ({
-      status: filters.membershipStatus,
-      userStatus: filters.userStatus,
-      roleCode: filters.roleCode,
-    }),
+  const extraQuery = React.useMemo<TeamMemberExtraQuery>(
+    () => buildTeamMemberExtraQuery(filters),
     [filters.membershipStatus, filters.roleCode, filters.userStatus],
   );
 
@@ -158,7 +138,7 @@ export function TeamMembersView() {
     onSuccess: () => {
       notifySuccessText(t("team:TEAM_ACTION_SUCCESS"));
       void queryClient.invalidateQueries({
-        queryKey: ["dataTable", workspaceId ? `team-members:${workspaceId}` : "team-members"],
+        queryKey: teamMembersQueryKey(workspaceId ? String(workspaceId) : null),
       });
     },
     onError: (err) => notifyError(err),
@@ -172,7 +152,7 @@ export function TeamMembersView() {
     onSuccess: () => {
       notifySuccessText(t("team:TEAM_ACTION_SUCCESS"));
       void queryClient.invalidateQueries({
-        queryKey: ["dataTable", workspaceId ? `team-members:${workspaceId}` : "team-members"],
+        queryKey: teamMembersQueryKey(workspaceId ? String(workspaceId) : null),
       });
     },
     onError: (err) => notifyError(err),
@@ -188,7 +168,7 @@ export function TeamMembersView() {
     onSuccess: () => {
       notifySuccessText(t("team:TEAM_ACTION_SUCCESS"));
       void queryClient.invalidateQueries({
-        queryKey: ["dataTable", workspaceId ? `team-members:${workspaceId}` : "team-members"],
+        queryKey: teamMembersQueryKey(workspaceId ? String(workspaceId) : null),
       });
       setEditingMember(null);
       setEditingRoleCode(null);
@@ -381,7 +361,7 @@ export function TeamMembersView() {
     TeamMember,
     { status?: TeamMember["membershipStatus"]; userStatus?: UserStatus; roleCode?: string }
   >({
-    tableId: workspaceId ? `team-members:${workspaceId}` : "team-members",
+    tableId: teamMembersTableId(workspaceId ? String(workspaceId) : null),
     columns,
     extraQuery,
     orderingOverride: sort,
@@ -469,66 +449,11 @@ export function TeamMembersView() {
         emptyDescription={t("team:TEAM_EMPTY_DESC")}
         className="flex-1 min-h-0"
       >
-        <div className="rounded-md border overflow-auto flex-1 min-h-0">
-          <Table>
-            <TableHeader>
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => (
-                    <TableHead
-                      key={header.id}
-                      className={cn(
-                        header.column.id === "user"
-                          ? "sticky left-0 z-20 bg-background min-w-72 w-72"
-                          : undefined,
-                      )}
-                    >
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(header.column.columnDef.header, header.getContext())}
-                    </TableHead>
-                  ))}
-                </TableRow>
-              ))}
-            </TableHeader>
-
-            <TableBody>
-              {table.getRowModel().rows.length ? (
-                table.getRowModel().rows.map((row, rowIndex) => {
-                  const stripeClass = rowIndex % 2 === 1 ? "bg-muted/20" : "bg-background";
-                  return (
-                    <TableRow
-                      key={row.id}
-                      className={cn(stripeClass, "hover:bg-muted/40 transition-colors")}
-                    >
-                      {row.getVisibleCells().map((cell) => (
-                        <TableCell
-                          key={cell.id}
-                          className={cn(
-                            cell.column.id === "user"
-                              ? "sticky left-0 z-10 min-w-72 w-72"
-                              : undefined,
-                          )}
-                        >
-                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  );
-                })
-              ) : (
-                <TableRow>
-                  <TableCell
-                    className="h-24 text-center text-muted-foreground"
-                    colSpan={columns.length}
-                  >
-                    {t("team:TEAM_EMPTY_TABLE")}
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
+        <TeamMembersDataTable
+          table={table}
+          columns={columns}
+          emptyText={t("team:TEAM_EMPTY_TABLE")}
+        />
 
         <EditMemberRolesDialog
           open={Boolean(editingMember)}
@@ -592,7 +517,7 @@ export function TeamMembersView() {
           member={activeMember}
           onSaved={() =>
             void queryClient.invalidateQueries({
-              queryKey: ["dataTable", workspaceId ? `team-members:${workspaceId}` : "team-members"],
+              queryKey: teamMembersQueryKey(workspaceId ? String(workspaceId) : null),
             })
           }
         />
@@ -606,7 +531,7 @@ export function TeamMembersView() {
           member={activeMember}
           onReset={() =>
             void queryClient.invalidateQueries({
-              queryKey: ["dataTable", workspaceId ? `team-members:${workspaceId}` : "team-members"],
+              queryKey: teamMembersQueryKey(workspaceId ? String(workspaceId) : null),
             })
           }
         />
@@ -621,7 +546,7 @@ export function TeamMembersView() {
           rolesLoading={rolesQuery.isLoading}
           onInvited={() =>
             void queryClient.invalidateQueries({
-              queryKey: ["dataTable", workspaceId ? `team-members:${workspaceId}` : "team-members"],
+              queryKey: teamMembersQueryKey(workspaceId ? String(workspaceId) : null),
             })
           }
         />

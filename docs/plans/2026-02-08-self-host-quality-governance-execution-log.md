@@ -610,3 +610,50 @@
 1. Continue WP-4 tail on core/common/plugin runtime files (`core/logging.py`, `core/middleware/locale.py`, `common/utils/public_ids.py`, `plugin/routes.py`, `plugin/watch.py`).
 2. Start WP-2 P0 large-file拆分: `apps/web/admin/src/pages/assets/page.tsx` and `apps/web/admin/src/components/common/assets/asset-masonry-card.tsx`.
 3. Land governance guardrails for PublicUUID outbound consistency and semantic activity event naming taxonomy.
+
+## 2026-02-08 - WP-2/WP-4 Compression Batch (15 -> 6 findings)
+
+### Completed
+
+1. Closed residual architecture dependency:
+   - `apps/api/core/middleware/locale.py` no longer imports module-layer models directly.
+   - Added `apps/api/settings/locale_runtime.py` as settings-layer locale reader abstraction.
+2. Reduced backend large-file hotspots:
+   - `apps/api/common/email/service.py` extracted shared helpers to `apps/api/common/email/helpers.py` and dropped below budget (`746`).
+   - `apps/api/config.py` split runtime/security settings to `apps/api/config_runtime.py` and dropped below budget (`787`).
+3. Split oversized integration test file:
+   - `apps/api/tests/modules/workspaces/test_workspace_team_invites_v2_integration.py` -> `623` lines.
+   - Added `apps/api/tests/modules/workspaces/test_workspace_team_invites_v2_members_integration.py` (`487` lines).
+4. Reduced frontend near-threshold hotspots below budget:
+   - `apps/web/admin/src/components/common/settings/general/tabs/site-settings-tab.tsx` (`505`) + extracted `site-settings-asset-field.tsx`.
+   - `apps/web/admin/src/pages/plugins/installed/page.tsx` (`595`) + extracted `installed/helpers.ts`.
+   - `apps/web/admin/src/pages/team/members/page.tsx` (`556`) + extracted `members/helpers.ts` and `members-data-table.tsx`.
+   - `apps/web/admin/src/components/ui/sidebar.tsx` (`576`) + extracted `sidebar-menu.tsx`.
+   - `apps/web/admin/src/pages/accept-invite/page.tsx` (`580`) + extracted `accept-invite/utils.ts` and `accept-invite/login-join-form.tsx`.
+
+### Verification
+
+- `pnpm --filter @celestial/api exec uv run ruff check ...` => passed
+- `pnpm --filter @celestial/api typecheck` => `0 errors`
+- `pnpm --filter @celestial/api test` => `190 passed / 42 skipped`
+- `pnpm --filter @celestial/admin typecheck` => passed
+- `pnpm --filter @celestial/admin lint` => `0 warnings / 0 errors`
+- `pnpm audit:quality` => total findings `6` (`large_file` `6`, `broad_exception` `0`)
+
+### Tracking updates
+
+- `docs/audit/2026-02-08-issue-register.csv`
+  - `ISS-0023` marked `done` (workspace invite integration test file split)
+  - `ISS-0028` marked `done` (email service under budget)
+- `docs/audit/latest-quality-report.md` regenerated (`2026-02-08 19:50:54 UTC`).
+
+### Next
+
+1. Continue WP-2 final six large-file decompositions:
+   - `apps/web/admin/src/pages/assets/page.tsx`
+   - `apps/web/admin/src/components/common/assets/asset-masonry-card.tsx`
+   - `apps/web/admin/src/pages/team/roles/page.tsx`
+   - `apps/web/admin/src/pages/team/invitations/page.tsx`
+   - `apps/web/portal/src/features/editor-host/editor-host-page.tsx`
+   - `apps/api/modules/workspaces/team/service.py`
+2. Keep PublicUUID/event-taxonomy governance (`ISS-0030`, `ISS-0031`) as non-regression checks during each split batch.

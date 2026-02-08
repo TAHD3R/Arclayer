@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import binascii
 import hashlib
 import hmac
 import re
@@ -101,7 +102,7 @@ def decode_public_id(value: str) -> UUID:
     pad = "=" * (-len(raw) % 4)
     try:
         data = base64.urlsafe_b64decode(raw + pad)
-    except Exception as e:  # pragma: no cover
+    except (binascii.Error, ValueError, TypeError) as e:  # pragma: no cover
         raise PublicIdDecodeError() from e
 
     if len(data) != 16:
@@ -113,7 +114,7 @@ def decode_public_id(value: str) -> UUID:
 
     try:
         u = UUID(bytes=plain)
-    except Exception as e:  # pragma: no cover
+    except (binascii.Error, ValueError, TypeError) as e:  # pragma: no cover
         raise PublicIdDecodeError() from e
 
     # Basic plausibility checks: RFC4122 variant + allow only v4/v7 to reduce random collisions.

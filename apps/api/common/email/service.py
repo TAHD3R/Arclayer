@@ -1,16 +1,24 @@
 from __future__ import annotations
 
-import asyncio
 from datetime import UTC, datetime
 from pathlib import Path
 
-from cryptography.exceptions import InvalidTag
 from fastapi_mail import ConnectionConfig, FastMail, MessageSchema, MessageType
 from fastapi_mail.schemas import MultipartSubtypeEnum
-from pydantic import EmailStr, NameEmail, SecretStr, TypeAdapter, ValidationError
+from pydantic import EmailStr, SecretStr, TypeAdapter, ValidationError
 
+from apps.api.common.email.helpers import (
+    MAIL_PASSWORD_DECRYPT_ERRORS,
+    default_template_dir,
+    pick_bool,
+    pick_int,
+    pick_str,
+    raise_if_fatal,
+    to_name_email,
+    valid_recipient,
+)
 from apps.api.common.utils.ids import uuid7
-from apps.api.config import EmailSettings, Settings
+from apps.api.config import Settings
 from apps.api.core.i18n import t
 from apps.api.core.logging import get_logger
 from apps.api.modules.system.models.setting import SettingRecord
@@ -19,83 +27,6 @@ from apps.api.settings.crypto import decrypt_secret, ensure_master_key, is_encry
 from apps.api.settings.scopes import SCOPE_TYPE_SYSTEM, SYSTEM_SCOPE_ID
 
 _EMAIL_ADAPTER = TypeAdapter(EmailStr)
-MAIL_PASSWORD_DECRYPT_ERRORS = (OSError, ValueError, TypeError, UnicodeError, InvalidTag)
-_FATAL_EMAIL_ERRORS: tuple[type[BaseException], ...] = (
-    asyncio.CancelledError,
-    GeneratorExit,
-    KeyboardInterrupt,
-    SystemExit,
-)
-
-
-def _raise_if_fatal(exc: BaseException) -> None:
-    if isinstance(exc, _FATAL_EMAIL_ERRORS):
-        raise exc
-
-
-def _default_template_dir() -> Path:
-    current = Path(__file__).resolve()
-    for parent in current.parents:
-        if (parent / "pyproject.toml").exists():
-            return parent / "static" / "templates" / "emails"
-    return current.parents[5] / "static" / "templates" / "emails"
-
-
-def build_mail_config(settings: EmailSettings) -> ConnectionConfig:
-    template_dir: Path | None = settings.template_dir
-    if template_dir is None:
-        template_dir = _default_template_dir()
-
-    # fastapi-mail expects SecretStr for MAIL_PASSWORD. Keep it typed and only unwrap when needed.
-    password: SecretStr = settings.password if settings.password is not None else SecretStr("")
-    try:
-        mail_from = _EMAIL_ADAPTER.validate_python(settings.mail_from)
-    except ValidationError as exc:
-        raise ValueError("invalid mail_from") from exc
-    return ConnectionConfig(
-        MAIL_USERNAME=settings.username or "",
-        MAIL_PASSWORD=password,
-        MAIL_FROM=mail_from,
-        MAIL_FROM_NAME=settings.mail_from_name,
-        MAIL_PORT=settings.port,
-        MAIL_SERVER=settings.server,
-        MAIL_STARTTLS=settings.starttls,
-        MAIL_SSL_TLS=settings.ssl_tls,
-        USE_CREDENTIALS=settings.use_credentials,
-        VALIDATE_CERTS=settings.validate_certs,
-        SUPPRESS_SEND=settings.suppress_send,
-        TEMPLATE_FOLDER=template_dir,
-    )
-
-
-def get_fast_mail(settings: EmailSettings) -> FastMail:
-    return FastMail(build_mail_config(settings))
-
-
-def _valid_recipient(recipient: str) -> bool:
-    try:
-        _EMAIL_ADAPTER.validate_python(recipient)
-        return True
-    except ValidationError:
-        return False
-
-
-def _to_name_email(email: str) -> NameEmail:
-    # fastapi-mail expects `recipients: list[NameEmail]` which requires a `name`.
-    local_part = email.split("@", 1)[0].strip()
-    return NameEmail(name=local_part or email, email=email)
-
-
-def _pick_str(value: object, fallback: str) -> str:
-    return value if isinstance(value, str) else fallback
-
-
-def _pick_int(value: object, fallback: int) -> int:
-    return value if isinstance(value, int) else fallback
-
-
-def _pick_bool(value: object, fallback: bool) -> bool:
-    return value if isinstance(value, bool) else fallback
 
 
 class EmailService:
@@ -158,13 +89,13 @@ class EmailService:
         mail = await self._get_core_mail_config()
 
         # Prefer DB config (core.mail.*) when present; fall back to env settings.
-        server = _pick_str(mail.get("server"), base.server)
-        port = _pick_int(mail.get("port"), base.port)
-        username = _pick_str(mail.get("username"), base.username or "")
-        mail_from_raw = _pick_str(mail.get("mail_from"), base.mail_from)
-        mail_from_name = _pick_str(mail.get("mail_from_name"), base.mail_from_name)
-        starttls = _pick_bool(mail.get("starttls"), base.starttls)
-        ssl_tls = _pick_bool(mail.get("ssl_tls"), base.ssl_tls)
+        server = pick_str(mail.get("server"), base.server)
+        port = pick_int(mail.get("port"), base.port)
+        username = pick_str(mail.get("username"), base.username or "")
+        mail_from_raw = pick_str(mail.get("mail_from"), base.mail_from)
+        mail_from_name = pick_str(mail.get("mail_from_name"), base.mail_from_name)
+        starttls = pick_bool(mail.get("starttls"), base.starttls)
+        ssl_tls = pick_bool(mail.get("ssl_tls"), base.ssl_tls)
 
         # fastapi-mail expects EmailStr for MAIL_FROM, validate here so failures are explicit.
         try:
@@ -193,7 +124,7 @@ class EmailService:
 
         template_dir: Path | None = base.template_dir
         if template_dir is None:
-            template_dir = _default_template_dir()
+            template_dir = default_template_dir()
 
         return ConnectionConfig(
             MAIL_USERNAME=username or "",
@@ -230,7 +161,7 @@ class EmailService:
                 user_id=user_id,
             )
             return
-        if not _valid_recipient(recipient):
+        if not valid_recipient(recipient):
             self.logger.warning(
                 "Recipient email is invalid, skip sending mail",
                 recipient=recipient,
@@ -296,7 +227,7 @@ class EmailService:
             )
             message = MessageSchema(
                 subject=subject,
-                recipients=[_to_name_email(recipient)],
+                recipients=[to_name_email(recipient)],
                 template_body={
                     "title": title,
                     "intro": intro,
@@ -326,7 +257,7 @@ class EmailService:
                 user_id=user_id,
             )
         except BaseException as exc:
-            _raise_if_fatal(exc)
+            raise_if_fatal(exc)
             self.logger.exception(
                 "Failed to send reset password email",
                 recipient=recipient,
@@ -360,7 +291,7 @@ class EmailService:
                 user_id=user_id,
             )
             return
-        if not _valid_recipient(recipient):
+        if not valid_recipient(recipient):
             self.logger.warning(
                 "Recipient email is invalid, skip sending mail",
                 recipient=recipient,
@@ -399,7 +330,7 @@ class EmailService:
             )
             message = MessageSchema(
                 subject=subject,
-                recipients=[_to_name_email(recipient)],
+                recipients=[to_name_email(recipient)],
                 template_body={"username": username, "title": title, "intro": intro},
                 subtype=MessageType.html,
                 alternative_body=plain_body,
@@ -418,7 +349,7 @@ class EmailService:
                 user_id=user_id,
             )
         except BaseException as exc:
-            _raise_if_fatal(exc)
+            raise_if_fatal(exc)
             self.logger.exception(
                 "Failed to send welcome email",
                 recipient=recipient,
@@ -457,7 +388,7 @@ class EmailService:
                 invited_by_user_id=invited_by_user_id,
             )
             return
-        if not _valid_recipient(recipient):
+        if not valid_recipient(recipient):
             self.logger.warning(
                 "Recipient email is invalid, skip sending mail",
                 recipient=recipient,
@@ -555,7 +486,7 @@ class EmailService:
 
             message = MessageSchema(
                 subject=subject,
-                recipients=[_to_name_email(recipient)],
+                recipients=[to_name_email(recipient)],
                 template_body={
                     "title": title,
                     "intro": intro,
@@ -587,7 +518,7 @@ class EmailService:
                 invited_by_user_id=invited_by_user_id,
             )
         except BaseException as exc:
-            _raise_if_fatal(exc)
+            raise_if_fatal(exc)
             self.logger.exception(
                 "Failed to send invitation email",
                 recipient=recipient,
@@ -639,7 +570,7 @@ class EmailService:
                 invited_by_user_id=invited_by_user_id,
             )
             return
-        if not _valid_recipient(recipient):
+        if not valid_recipient(recipient):
             self.logger.warning(
                 "Recipient email is invalid, skip sending mail",
                 recipient=recipient,
@@ -744,7 +675,7 @@ class EmailService:
 
             message = MessageSchema(
                 subject=subject,
-                recipients=[_to_name_email(recipient)],
+                recipients=[to_name_email(recipient)],
                 template_body={
                     "title": title,
                     "intro": intro,
@@ -775,7 +706,7 @@ class EmailService:
                 invited_by_user_id=invited_by_user_id,
             )
         except BaseException as exc:
-            _raise_if_fatal(exc)
+            raise_if_fatal(exc)
             self.logger.exception(
                 "Failed to send workspace invitation email",
                 recipient=recipient,
@@ -795,7 +726,7 @@ class EmailService:
     ) -> None:
         if not await self._enabled():
             raise RuntimeError("MAIL_DISABLED")
-        if not _valid_recipient(recipient):
+        if not valid_recipient(recipient):
             raise ValueError("INVALID_EMAIL")
 
         fm = await self._get_fast_mail()
@@ -808,7 +739,7 @@ class EmailService:
         )
         message = MessageSchema(
             subject=subject,
-            recipients=[_to_name_email(recipient)],
+            recipients=[to_name_email(recipient)],
             subtype=MessageType.plain,
             body=plain_body,
         )

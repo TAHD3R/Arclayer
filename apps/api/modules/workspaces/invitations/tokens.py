@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import binascii
 import hmac
 import secrets
 from hashlib import sha256
@@ -84,7 +85,7 @@ def verify_invite_token(settings: Settings, *, token: str) -> str | None:
     padding = "=" * (-len(sig_b64) % 4)
     try:
         sig = base64.urlsafe_b64decode((sig_b64 + padding).encode("ascii"))
-    except Exception:
+    except (binascii.Error, ValueError):
         return None
 
     expected = _sign_code(settings, code=code)

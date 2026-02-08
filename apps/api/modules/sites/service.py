@@ -5,6 +5,8 @@ import time
 from typing import Literal, cast
 from uuid import UUID
 
+from pydantic import ValidationError
+
 from apps.api.common.protocols.tortoise import HasWorkspaceId
 from apps.api.common.services.base import BaseService
 from apps.api.common.utils.public_ids import encode_uuid
@@ -220,7 +222,7 @@ class SiteService(BaseService):
                     continue
                 try:
                     fonts_out.append(SiteFontOut.model_validate(item))
-                except Exception:
+                except ValidationError:
                     # Ignore invalid font entries to keep SSR resilient.
                     continue
 

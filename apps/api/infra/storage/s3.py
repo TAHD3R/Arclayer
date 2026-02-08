@@ -134,7 +134,7 @@ class S3StorageProvider:
             finally:
                 try:
                     body.close()
-                except Exception:
+                except (OSError, RuntimeError, TypeError, ValueError):
                     pass
 
             return S3HeadObject(

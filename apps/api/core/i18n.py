@@ -57,7 +57,7 @@ def t(
     if kwargs:
         try:
             text = text.format_map(kwargs)
-        except Exception:
+        except (AttributeError, KeyError, ValueError):
             return text
     return text
 

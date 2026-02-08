@@ -88,6 +88,6 @@ class LocalStorageProvider:
             try:
                 if tmp.exists():
                     tmp.unlink()
-            except Exception:
+            except OSError:
                 # Best-effort cleanup; leaving a .partial file is acceptable and can be GC'd later.
                 pass

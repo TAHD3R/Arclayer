@@ -32,7 +32,7 @@ class ResponseModel[T](BaseModel):
         if callable(mr):
             try:
                 mr(force=True)
-            except Exception:
+            except (RuntimeError, TypeError, ValueError):
                 logger.warning(f"Failed to rebuild model for {specialized}")
         return specialized
 

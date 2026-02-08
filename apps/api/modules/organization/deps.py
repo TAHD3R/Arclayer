@@ -27,7 +27,7 @@ async def get_current_org_membership(
     # Bind org context for downstream logs and audit events in this request.
     try:
         bind_contextvars(organization_id=str(cast(HasOrganizationId, orgm).organization_id))
-    except Exception:
+    except (RuntimeError, TypeError, ValueError):
         pass
     return orgm
 

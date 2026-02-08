@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from uuid import UUID
 
+from tortoise.exceptions import ConfigurationError, OperationalError
+
 from apps.api.modules.organization.models.organization import Organization
 
 
@@ -14,7 +16,7 @@ async def get_single_organization_id() -> UUID | None:
 
     try:
         org = await Organization.all().order_by("created_at").first()
-    except Exception:
+    except (ConfigurationError, OperationalError, RuntimeError, TypeError, ValueError):
         return None
     if org is None:
         return None

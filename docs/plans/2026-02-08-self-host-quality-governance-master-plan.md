@@ -275,3 +275,24 @@
 - `core_modules_dependency`：**1**（按当前决策暂不作为本轮阻塞项）
 
 优先顺序：继续收敛 broad exception 长尾（core/common 基础层与 plugin runtime 边缘路径），并并行推进 WP-2 大文件拆分（`assets/page.tsx`、`asset-masonry-card.tsx`、`team/roles/page.tsx`）。
+
+---
+
+## 9. Latest Checkpoint (2026-02-08 19:50 UTC)
+
+Latest audited status (`pnpm audit:quality`):
+
+- Total findings: **6**
+- `large_file`: **6**
+- `broad_exception`: **0**
+- `frontend_any`: **0**
+- `core_modules_dependency`: **0**
+
+Remaining P0 queue (must close for 0/0 target):
+
+1. `apps/web/admin/src/pages/assets/page.tsx`
+2. `apps/web/admin/src/components/common/assets/asset-masonry-card.tsx`
+3. `apps/web/admin/src/pages/team/roles/page.tsx`
+4. `apps/web/admin/src/pages/team/invitations/page.tsx`
+5. `apps/web/portal/src/features/editor-host/editor-host-page.tsx`
+6. `apps/api/modules/workspaces/team/service.py`

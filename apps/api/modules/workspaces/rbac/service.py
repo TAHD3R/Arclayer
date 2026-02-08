@@ -63,7 +63,7 @@ class WorkspaceRBACService(RBACService):
                 if manifest_path.is_file():
                     manifest = load_plugin_manifest(manifest_path)
                     name = self._translate_ref(manifest.plugin.name_i18n, manifest.plugin.name) or name
-            except Exception:
+            except (OSError, RuntimeError, TypeError, ValueError):
                 pass
             if name:
                 out[pid] = name

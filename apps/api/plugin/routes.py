@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import importlib
 from collections.abc import Iterable
 from enum import Enum
@@ -14,6 +15,17 @@ from apps.api.plugin.deps import require_plugin_enabled
 from apps.api.plugin.manager import PluginManager
 
 logger = get_logger(__name__)
+_FATAL_PLUGIN_ROUTE_ERRORS: tuple[type[BaseException], ...] = (
+    asyncio.CancelledError,
+    GeneratorExit,
+    KeyboardInterrupt,
+    SystemExit,
+)
+
+
+def _raise_if_fatal(exc: BaseException) -> None:
+    if isinstance(exc, _FATAL_PLUGIN_ROUTE_ERRORS):
+        raise exc
 
 
 def register_plugin_routers(router: APIRouter, *, plugin_manager: PluginManager) -> None:
@@ -68,8 +80,9 @@ def _load_plugin_routers(entrypoint: str) -> Iterable[tuple[str, APIRouter]]:
         module = importlib.import_module(f"{root}.routers")
     except ModuleNotFoundError:
         return []
-    except Exception as exc:
-        logger.warning("Plugin router import failed", entrypoint=entrypoint, error=str(exc))
+    except BaseException as exc:
+        _raise_if_fatal(exc)
+        logger.warning("Plugin router import failed", entrypoint=entrypoint, action="load_plugin_routers", error=str(exc))
         return []
 
     routers: list[tuple[str, APIRouter]] = []

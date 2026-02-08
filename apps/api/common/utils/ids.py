@@ -4,7 +4,7 @@ from uuid import UUID, uuid4
 
 try:
     from uuid6 import uuid7 as _uuid7
-except Exception:  # pragma: no cover
+except ImportError:  # pragma: no cover
     _uuid7 = None
 
 

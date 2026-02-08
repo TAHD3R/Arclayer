@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+
 from fastapi import FastAPI
 
 from apps.api.config import Settings
@@ -8,6 +10,17 @@ from apps.api.modules.analytics.ingest import ActivityIngestor
 from apps.api.plugin.event_bus import EventBus
 
 logger = get_logger(__name__)
+_FATAL_ACTIVITY_BOOTSTRAP_ERRORS: tuple[type[BaseException], ...] = (
+    asyncio.CancelledError,
+    GeneratorExit,
+    KeyboardInterrupt,
+    SystemExit,
+)
+
+
+def _raise_if_fatal(exc: BaseException) -> None:
+    if isinstance(exc, _FATAL_ACTIVITY_BOOTSTRAP_ERRORS):
+        raise exc
 
 
 async def init_activity(app: FastAPI, settings: Settings, *, event_bus: EventBus) -> None:
@@ -23,8 +36,9 @@ async def init_activity(app: FastAPI, settings: Settings, *, event_bus: EventBus
     app.state.activity_ingestor = ingestor
     try:
         await ingestor.start(event_bus=event_bus)
-    except Exception as exc:
-        logger.warning("Activity ingestor init failed (ignored)", error=str(exc))
+    except BaseException as exc:
+        _raise_if_fatal(exc)
+        logger.warning("Activity ingestor init failed (ignored)", action="init_activity_ingestor", error=str(exc))
 
 
 async def close_activity(app: FastAPI, *, event_bus: EventBus) -> None:
@@ -33,5 +47,6 @@ async def close_activity(app: FastAPI, *, event_bus: EventBus) -> None:
         return
     try:
         await ingestor.stop(event_bus=event_bus)
-    except Exception as exc:
-        logger.warning("Activity ingestor shutdown failed (ignored)", error=str(exc))
+    except BaseException as exc:
+        _raise_if_fatal(exc)
+        logger.warning("Activity ingestor shutdown failed (ignored)", action="close_activity_ingestor", error=str(exc))

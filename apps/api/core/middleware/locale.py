@@ -5,8 +5,10 @@ from uuid import UUID
 
 from fastapi import Request
 from starlette.types import ASGIApp, Receive, Scope, Send
+from tortoise.exceptions import ConfigurationError, OperationalError
 
 from apps.api.core.i18n import get_request_locale, reset_current_locale, set_current_locale
+from apps.api.settings.locale_runtime import read_core_default_locale
 
 
 class LocaleMiddleware:
@@ -86,7 +88,7 @@ async def _get_core_default_locale(request: Request) -> str | None:
         # Cache for a short TTL to reduce DB reads under load.
         state._system_default_locale_cache = {"value": locale_str, "expires_at": now + 5.0}
         return locale_str
-    except Exception:
+    except (AttributeError, ConfigurationError, OperationalError, RuntimeError, TypeError, ValueError):
         return None
 
 
@@ -103,31 +105,11 @@ def _extract_workspace_id_from_path(path: str) -> UUID | None:
         _, tail = path.split(marker, 1)
         raw = tail.split("/", 1)[0].strip()
         return UUID(raw)
-    except Exception:
+    except (IndexError, ValueError):
         return None
 
 
 async def _read_core_locale(*, scope_type: str, scope_id: UUID | None) -> str | None:
-    from apps.api.modules.system.models.setting import SettingRecord
-    from apps.api.settings.scopes import SCOPE_TYPE_SYSTEM, SCOPE_TYPE_WORKSPACE, SYSTEM_SCOPE_ID
-
     if scope_type == "workspace":
-        if scope_id is None:
-            return None
-        record = await SettingRecord.get_or_none(
-            scope_type=SCOPE_TYPE_WORKSPACE,
-            scope_id=scope_id,
-            namespace="core",
-        )
-    else:
-        record = await SettingRecord.get_or_none(
-            scope_type=SCOPE_TYPE_SYSTEM,
-            scope_id=SYSTEM_SCOPE_ID,
-            namespace="core",
-        )
-
-    value = record.value if record and isinstance(record.value, dict) else {}
-    # Workspace locale controls admin/API default language.
-    section = value.get("workspace_localization") if isinstance(value, dict) else None
-    locale = section.get("locale") if isinstance(section, dict) else None
-    return locale if isinstance(locale, str) and locale else None
+        return await read_core_default_locale(scope_type="workspace", scope_id=scope_id)
+    return await read_core_default_locale(scope_type="system", scope_id=None)

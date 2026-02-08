@@ -25,5 +25,5 @@ def redact(obj: Any, max_len: int = 2048) -> Any:
         if isinstance(obj, str):
             return obj[:max_len]
         return obj
-    except Exception:
+    except (AttributeError, RecursionError, TypeError, ValueError):
         return None

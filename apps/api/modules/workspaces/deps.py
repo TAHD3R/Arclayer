@@ -97,7 +97,7 @@ async def get_workspace_context(
             owner_role = await Role.get_or_none(workspace_id=ws.id, code="owner", is_system=True)
             if owner_role is not None:
                 await WorkspaceMembershipRole.get_or_create(membership_id=membership.id, role_id=owner_role.id)
-        except Exception:
+        except (ImportError, RuntimeError, TypeError, ValueError):
             # Best-effort; do not block request context resolution.
             pass
 

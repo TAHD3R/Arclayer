@@ -23,7 +23,7 @@ def _parse_public_uuid(value: Any) -> UUID:
         if get_settings().public_id.accept_raw_uuid_input:
             try:
                 return UUID(raw)
-            except Exception:
+            except (TypeError, ValueError):
                 pass
 
     raise ValueError("Invalid id")

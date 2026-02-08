@@ -13,6 +13,16 @@ from apps.api.core.logging import get_logger
 from apps.api.plugin.manager import PluginManager
 
 logger = get_logger(__name__)
+_FATAL_PLUGIN_WATCH_ERRORS: tuple[type[BaseException], ...] = (
+    GeneratorExit,
+    KeyboardInterrupt,
+    SystemExit,
+)
+
+
+def _raise_if_fatal(exc: BaseException) -> None:
+    if isinstance(exc, _FATAL_PLUGIN_WATCH_ERRORS):
+        raise exc
 
 
 def _is_locale_json(path: Path) -> bool:
@@ -98,6 +108,7 @@ async def _watch_loop(paths: list[Path], *, plugin_manager: PluginManager, debou
                     logger.warning("restart requested (watchfiles)")
         except asyncio.CancelledError:
             return
-        except Exception as exc:
-            logger.warning("watchfiles loop error", error=str(exc))
+        except BaseException as exc:
+            _raise_if_fatal(exc)
+            logger.warning("watchfiles loop error", action="plugin_watch_loop", error=str(exc))
             await asyncio.sleep(1.0)

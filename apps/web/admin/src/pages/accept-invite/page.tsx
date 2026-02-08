@@ -1,5 +1,4 @@
-import { Avatar, Button, Checkbox, Divider, Form, Input, Modal, Typography } from "antd";
-import { Lock } from "lucide-react";
+import { Avatar, Button, Divider, Modal, Typography } from "antd";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -21,118 +20,33 @@ import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import { PageState } from "@/components/common/page-state";
 import { InviteTokenInputDialog } from "@/components/common/invite/invite-token-input-dialog";
 import { InviteRegisterForm } from "@/components/common/invite/invite-register-form";
+import { InviteLoginJoinForm } from "./login-join-form";
+import { briefRoleDescription, formatInvitationExpiresRelative, resolveRoleText } from "./utils";
 
 type WizardStep = 0 | 1;
 type JoinMode = "login" | "register";
-
-function formatInvitationExpiresRelative(opts: {
-  t: (k: string, params?: Record<string, unknown>) => string;
-  locale: string;
-  expiresAt: string | null | undefined;
-}): string {
-  const expiresAt = (opts.expiresAt || "").trim();
-  if (!expiresAt) return opts.t("invite:INVITE_EXPIRES_RELATIVE_NEVER");
-
-  const expires = new Date(expiresAt);
-  if (Number.isNaN(expires.getTime())) return opts.t("invite:INVITE_EXPIRES_RELATIVE_UNKNOWN");
-
-  const now = Date.now();
-  const diffMs = expires.getTime() - now;
-  const absMs = Math.abs(diffMs);
-
-  const minute = 60_000;
-  const hour = 60 * minute;
-  const day = 24 * hour;
-
-  let unit: Intl.RelativeTimeFormatUnit = "day";
-  let value = 0;
-
-  if (absMs < hour) {
-    unit = "minute";
-    value = Math.round(diffMs / minute);
-  } else if (absMs < day) {
-    unit = "hour";
-    value = Math.round(diffMs / hour);
-  } else {
-    unit = "day";
-    value = Math.round(diffMs / day);
-  }
-
-  // Avoid "in 0 minutes" / "0 minutes ago" for near-boundary moments.
-  if (value === 0) value = diffMs >= 0 ? 1 : -1;
-
-  const rtf = new Intl.RelativeTimeFormat(opts.locale, { numeric: "auto" });
-  const relative = rtf.format(value, unit);
-
-  return diffMs >= 0
-    ? opts.t("invite:INVITE_EXPIRES_RELATIVE_FUTURE", { relative })
-    : opts.t("invite:INVITE_EXPIRES_RELATIVE_PAST", { relative });
-}
-
-function resolveRoleText(
-  t: (k: string, opts?: Record<string, unknown>) => string,
-  roleCode: string | null | undefined,
-  backendFallback: { name?: string | null; description?: string | null },
-): { name: string; description: string | null } {
-  const code = (roleCode || "").trim().toLowerCase();
-  const known =
-    code === "owner" ||
-    code === "admin" ||
-    code === "architect" ||
-    code === "editor" ||
-    code === "viewer";
-  if (known) {
-    const nameKey = `invite:ROLE_${code.toUpperCase()}_NAME`;
-    const descKey = `invite:ROLE_${code.toUpperCase()}_DESC`;
-    const name = t(nameKey);
-    const desc = t(descKey);
-    return {
-      name: name && name !== nameKey ? name : backendFallback.name || code,
-      description: desc && desc !== descKey ? desc : backendFallback.description || null,
-    };
-  }
-  return {
-    name: backendFallback.name || code || t("invite:INVITE_ROLE_UNKNOWN"),
-    description: backendFallback.description || null,
-  };
-}
-
-function briefRoleDescription(description: string | null | undefined): string | null {
-  const raw = String(description || "").trim();
-  if (!raw) return null;
-  // Keep it minimal for non-technical users: prefer the first sentence/segment.
-  const parts = raw.split(/[.\u3002;；]/).map((s) => s.trim());
-  const first = parts.find((s) => s) || raw;
-  return first || null;
-}
 
 export function AcceptInviteView(props: { token: string | null }) {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const reducedMotion = usePrefersReducedMotion();
-
   const accessToken = useAuthStore((s) => s.accessToken);
   const keepSession = useAuthStore((s) => s.keepSession);
   const applyLogin = useAuthStore((s) => s.applyLogin);
   const clearAuth = useAuthStore((s) => s.clear);
-
   const setCurrentWorkspaceId = useWorkspaceStore((s) => s.setCurrentWorkspaceId);
   const clearWorkspace = useWorkspaceStore((s) => s.clearWorkspace);
-
   const [step, setStep] = useState<WizardStep>(0);
   const [mode, setMode] = useState<JoinMode>("login");
   const modeInitializedRef = useRef(false);
   const [tokenDialogOpen, setTokenDialogOpen] = useState(false);
-
   const prevStepRef = useRef(step);
   const stepDirection = step === prevStepRef.current ? 0 : step > prevStepRef.current ? 1 : -1;
   const enterOffsetX = stepDirection > 0 ? 14 : stepDirection < 0 ? -14 : 0;
   const exitOffsetX = stepDirection > 0 ? -14 : stepDirection < 0 ? 14 : 0;
-
   const transition = reducedMotion
     ? ({ duration: 0.01 } as const)
     : ({ duration: 0.18, ease: [0.2, 0, 0, 1] as const } as const);
-
   const token = (props.token || "").trim();
 
   useEffect(() => {
@@ -140,25 +54,21 @@ export function AcceptInviteView(props: { token: string | null }) {
     setStep(0);
     modeInitializedRef.current = false;
   }, [token]);
-
   const previewQuery = useQuery({
     queryKey: ["invitePreview", token],
     enabled: !!token,
     queryFn: async () => invitationApi.previewInvitation(token),
     retry: false,
   });
-
   const meQuery = useQuery({
     queryKey: ["me"],
     enabled: !!accessToken,
     queryFn: async () => authApi.me(),
     retry: false,
   });
-
   const acceptExistingMutation = useMutation({
     mutationFn: async () => invitationApi.acceptExistingInvitation(token),
   });
-
   const registerAcceptMutation = useMutation({
     mutationFn: async (payload: {
       email?: string;
@@ -176,14 +86,12 @@ export function AcceptInviteView(props: { token: string | null }) {
         displayName: payload.displayName,
       }),
   });
-
   const loginMutation = useMutation({
     mutationFn: async (payload: { password: string }) => {
       const email = previewQuery.data?.invitation.email || "";
       return authApi.login({ identifier: email, password: payload.password });
     },
   });
-
   const forgotPasswordMutation = useMutation({
     mutationFn: async () => {
       const email = previewQuery.data?.invitation.email || "";
@@ -198,12 +106,10 @@ export function AcceptInviteView(props: { token: string | null }) {
     modeInitializedRef.current = true;
     setMode(previewQuery.data.userExists ? "login" : "register");
   }, [previewQuery.data]);
-
   const onBackToLogin = async () => {
     const redirect = token ? `/accept-invite?token=${encodeURIComponent(token)}` : undefined;
     await navigate({ to: "/login", search: redirect ? { redirect } : undefined, replace: true });
   };
-
   const onRejectInvite = async () => {
     // Provide an explicit exit when user clicked a wrong link or doesn't want to join.
     if (accessToken) {
@@ -212,13 +118,11 @@ export function AcceptInviteView(props: { token: string | null }) {
     }
     await navigate({ to: "/login", replace: true });
   };
-
   const applyToken = async (nextToken: string) => {
     const trimmed = (nextToken || "").trim();
     if (!trimmed) return;
     await navigate({ to: "/accept-invite", search: { token: trimmed }, replace: true });
   };
-
   const inviteBusinessFailure = useMemo(() => {
     if (!previewQuery.isError) return null;
     const err = previewQuery.error;
@@ -238,7 +142,6 @@ export function AcceptInviteView(props: { token: string | null }) {
       description: t("invite:INVITE_INVALID_HELP"),
     };
   }, [previewQuery.error, previewQuery.isError, t]);
-
   const tokenActions = (
     <div className="flex flex-col gap-3 w-full">
       <Button type="primary" block onClick={() => setTokenDialogOpen(true)}>
@@ -249,7 +152,6 @@ export function AcceptInviteView(props: { token: string | null }) {
       </Button>
     </div>
   );
-
   const tokenActionsWithRetry = (
     <div className="flex flex-col gap-3 w-full">
       <Button type="primary" block onClick={() => void previewQuery.refetch()}>
@@ -263,24 +165,20 @@ export function AcceptInviteView(props: { token: string | null }) {
       </Button>
     </div>
   );
-
   const inviterLabel = useMemo(() => {
     const inviter = previewQuery.data?.inviter;
     if (!inviter) return null;
     return inviter.displayName?.trim() || inviter.username;
   }, [previewQuery.data?.inviter]);
-
   const roleResolved = useMemo(() => {
     const role = previewQuery.data?.role;
     const roleCode = previewQuery.data?.invitation.roleCode || role?.code || null;
     return resolveRoleText(t, roleCode, { name: role?.name, description: role?.description });
   }, [previewQuery.data?.invitation.roleCode, previewQuery.data?.role, t]);
-
   const roleBrief = useMemo(
     () => briefRoleDescription(roleResolved.description),
     [roleResolved.description],
   );
-
   const expiresRelativeText = useMemo(() => {
     const expiresAt = previewQuery.data?.invitation.expiresAt;
     return formatInvitationExpiresRelative({
@@ -289,31 +187,26 @@ export function AcceptInviteView(props: { token: string | null }) {
       expiresAt,
     });
   }, [i18n.language, previewQuery.data?.invitation.expiresAt, t]);
-
   const isLoggedIn = !!accessToken;
   const inviteEmail = (previewQuery.data?.invitation.email || "").trim().toLowerCase();
   const hasBoundEmail = Boolean(inviteEmail);
   const myEmail = (meQuery.data?.email || "").trim().toLowerCase();
   // Invite links are reusable; email match is informational only.
   const emailMatches = Boolean(inviteEmail && myEmail && inviteEmail === myEmail);
-
   const onContinue = () => {
     if (previewQuery.isError || !previewQuery.data) return;
     setStep(1);
   };
-
   const onLogoutAndSwitch = async () => {
     clearAuth();
     clearWorkspace();
     await onBackToLogin();
   };
-
   const applyJoinedWorkspace = async (workspaceId: string) => {
     setCurrentWorkspaceId(workspaceId);
     notifySuccessText(t("invite:INVITE_JOIN_SUCCESS"));
     await navigate({ to: `/w/${workspaceId}`, replace: true });
   };
-
   const joinAsExistingLoggedIn = async () => {
     if (!previewQuery.data) return;
     const workspaceName = previewQuery.data.workspace.name;
@@ -348,7 +241,6 @@ export function AcceptInviteView(props: { token: string | null }) {
       },
     });
   };
-
   const onLoginAndJoin = async (values: { password: string; keepSession: boolean }) => {
     if (!previewQuery.data) return;
     if (!previewQuery.data.invitation.email) {
@@ -366,7 +258,6 @@ export function AcceptInviteView(props: { token: string | null }) {
       notifyError(err);
     }
   };
-
   const onRegisterAndJoin = async (values: {
     email?: string;
     username: string;
@@ -390,7 +281,6 @@ export function AcceptInviteView(props: { token: string | null }) {
       notifyError(err);
     }
   };
-
   const onForgotPassword = async () => {
     try {
       const payload = await forgotPasswordMutation.mutateAsync();
@@ -402,7 +292,6 @@ export function AcceptInviteView(props: { token: string | null }) {
       notifyError(err);
     }
   };
-
   const headerMeta = useMemo(() => {
     if (step === 0) {
       return {
@@ -415,7 +304,6 @@ export function AcceptInviteView(props: { token: string | null }) {
       description: t("invite:INVITE_STEP2_DESC"),
     };
   }, [step, t]);
-
   const previewPane = (
     <div className="w-full">
       {!token ? (
@@ -509,7 +397,6 @@ export function AcceptInviteView(props: { token: string | null }) {
       )}
     </div>
   );
-
   const joinPane = (
     <div className="w-full">
       {!token ? (
@@ -618,76 +505,17 @@ export function AcceptInviteView(props: { token: string | null }) {
                   </Typography.Paragraph>
 
                   {hasBoundEmail ? (
-                    <Form<{ password: string; keepSession: boolean }>
-                      layout="vertical"
-                      requiredMark={false}
-                      autoComplete="off"
-                      initialValues={{ keepSession }}
-                      onFinish={onLoginAndJoin}
-                      disabled={loginMutation.isPending || acceptExistingMutation.isPending}
-                    >
-                      <Form.Item
-                        label={t("invite:INVITE_FIELD_EMAIL")}
-                        style={{ marginBottom: 12 }}
-                      >
-                        <Input
-                          value={previewQuery.data.invitation.email || ""}
-                          disabled
-                          size="large"
-                        />
-                      </Form.Item>
-
-                      <Form.Item
-                        name="password"
-                        rules={[
-                          { required: true, message: t("auth:VALIDATION_PASSWORD_REQUIRED") },
-                        ]}
-                      >
-                        <Input.Password
-                          autoComplete="current-password"
-                          aria-label={t("auth:FIELD_PASSWORD_LABEL")}
-                          placeholder={t("auth:FIELD_PASSWORD_PLACEHOLDER")}
-                          prefix={<Lock size={16} />}
-                          size="large"
-                        />
-                      </Form.Item>
-
-                      <div className="flex items-center justify-between mb-3">
-                        <Form.Item
-                          name="keepSession"
-                          valuePropName="checked"
-                          style={{ marginBottom: 0 }}
-                        >
-                          <Checkbox>{t("auth:KEEP_SESSION")}</Checkbox>
-                        </Form.Item>
-                        <Button
-                          type="link"
-                          size="small"
-                          style={{ paddingInline: 0 }}
-                          onClick={() => void onForgotPassword()}
-                          disabled={forgotPasswordMutation.isPending}
-                        >
-                          {t("auth:FORGOT_PASSWORD")}
-                        </Button>
-                      </div>
-
-                      <Button
-                        type="primary"
-                        htmlType="submit"
-                        block
-                        size="large"
-                        loading={loginMutation.isPending || acceptExistingMutation.isPending}
-                      >
-                        {t("invite:INVITE_ACTION_LOGIN_JOIN")}
-                      </Button>
-
-                      <div className="mt-4 flex items-center justify-between">
-                        <Button onClick={() => setStep(0)}>{t("invite:INVITE_ACTION_BACK")}</Button>
-                        <Button onClick={() => void onBackToLogin()}>
-                          {t("invite:INVITE_ACTION_BACK_TO_LOGIN")}
-                        </Button>
-                      </div>
-                    </Form>
+                    <InviteLoginJoinForm
+                      t={t}
+                      email={previewQuery.data.invitation.email || ""}
+                      keepSession={keepSession}
+                      loading={loginMutation.isPending || acceptExistingMutation.isPending}
+                      forgotLoading={forgotPasswordMutation.isPending}
+                      onSubmit={onLoginAndJoin}
+                      onForgotPassword={onForgotPassword}
+                      onBack={() => setStep(0)}
+                      onBackToLogin={onBackToLogin}
+                    />
                   ) : (
                     <div className="flex flex-col gap-3">
                       <Button

@@ -34,7 +34,7 @@ def _has_alpha(img) -> bool:  # type: ignore[no-untyped-def]
             return True
         if img.mode == "P" and "transparency" in (img.info or {}):
             return True
-    except Exception:
+    except (AttributeError, KeyError, TypeError, ValueError):
         return False
     return False
 

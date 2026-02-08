@@ -1,3 +1,4 @@
+import asyncio
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -21,7 +22,7 @@ from apps.api.core.database.orm import (
     verify_db_ready,
 )
 from apps.api.core.exceptions import init_exception_handlers
-from apps.api.core.logging import configure_logging
+from apps.api.core.logging import configure_logging, get_logger
 from apps.api.core.observability import configure_observability
 from apps.api.core.routes import register_routes
 from apps.api.infra.cache.valkey import close_valkey, init_valkey
@@ -29,6 +30,19 @@ from apps.api.infra.limiter.limiter import close_rate_limiter, init_rate_limiter
 from apps.api.plugin.manager import PluginManager
 from apps.api.plugin.restart import start_restart_watcher, stop_restart_watcher
 from apps.api.plugin.watch import start_plugin_watchers, stop_plugin_watchers
+
+logger = get_logger(__name__)
+_FATAL_REGISTRY_ERRORS: tuple[type[BaseException], ...] = (
+    asyncio.CancelledError,
+    GeneratorExit,
+    KeyboardInterrupt,
+    SystemExit,
+)
+
+
+def _raise_if_fatal(exc: BaseException) -> None:
+    if isinstance(exc, _FATAL_REGISTRY_ERRORS):
+        raise exc
 
 
 def _build_lifespan(settings: Settings, *, plugin_manager: PluginManager):
@@ -65,8 +79,9 @@ def _build_lifespan(settings: Settings, *, plugin_manager: PluginManager):
             await close_domain_bootstrap(app, plugin_manager=plugin_manager)
             try:
                 await plugin_manager.host.event_bus.aclose()
-            except Exception:
-                pass
+            except BaseException as exc:
+                _raise_if_fatal(exc)
+                logger.warning("Plugin event bus close failed", action="close_plugin_event_bus", error=str(exc))
             await close_rate_limiter(app)
             await close_orm()
             await close_valkey(app)

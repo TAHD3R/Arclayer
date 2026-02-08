@@ -190,7 +190,7 @@ def _add_exc_info_from_record(logger: WrappedLogger, method_name: str, event_dic
         stack_info = getattr(record, "stack_info", None)
         if stack_info and "stack_info" not in payload:
             payload["stack_info"] = stack_info
-    except Exception:
+    except (AttributeError, TypeError, ValueError):
         return payload
     return payload
 
@@ -381,7 +381,7 @@ def configure_logging(settings: Settings) -> None:
             wf_logger.setLevel(watchfiles_level)
             wf_logger.handlers = []
             wf_logger.propagate = True
-    except Exception:
+    except (AttributeError, TypeError, ValueError):
         # Best-effort; never break app startup due to logger config.
         pass
 

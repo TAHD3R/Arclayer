@@ -1,46 +1,20 @@
 "use client";
 
 import * as React from "react";
-import { AnimatePresence, motion, type Transition } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 
 import { cn } from "@/lib/utils";
 
-type HighlightMode = "children" | "parent";
-
-type Bounds = {
-  top: number;
-  left: number;
-  width: number;
-  height: number;
-};
-
-const DEFAULT_BOUNDS_OFFSET: Bounds = {
-  top: 0,
-  left: 0,
-  width: 0,
-  height: 0,
-};
-
-type HighlightContextType<T extends string> = {
-  as?: keyof HTMLElementTagNameMap;
-  mode: HighlightMode;
-  activeValue: T | null;
-  setActiveValue: (value: T | null) => void;
-  setBounds: (bounds: DOMRect) => void;
-  clearBounds: () => void;
-  id: string;
-  hover: boolean;
-  click: boolean;
-  className?: string;
-  style?: React.CSSProperties;
-  activeClassName?: string;
-  setActiveClassName: (className: string) => void;
-  transition?: Transition;
-  disabled?: boolean;
-  enabled?: boolean;
-  exitDelay?: number;
-  forceUpdateBounds?: boolean;
-};
+import {
+  DEFAULT_BOUNDS_OFFSET,
+  getNonOverridingDataAttributes,
+  type Bounds,
+  type ExtendedChildProps,
+  type HighlightContextType,
+  type HighlightItemProps,
+  type HighlightProps,
+  type ParentModeHighlightProps,
+} from "./effect-highlight.shared";
 
 const HighlightContext = React.createContext<HighlightContextType<string> | undefined>(undefined);
 
@@ -51,67 +25,6 @@ function useHighlight<T extends string>(): HighlightContextType<T> {
   }
   return context as unknown as HighlightContextType<T>;
 }
-
-type BaseHighlightProps<T extends React.ElementType = "div"> = {
-  as?: T;
-  ref?: React.Ref<HTMLDivElement>;
-  mode?: HighlightMode;
-  value?: string | null;
-  defaultValue?: string | null;
-  onValueChange?: (value: string | null) => void;
-  className?: string;
-  style?: React.CSSProperties;
-  transition?: Transition;
-  hover?: boolean;
-  click?: boolean;
-  disabled?: boolean;
-  enabled?: boolean;
-  exitDelay?: number;
-};
-
-type ParentModeHighlightProps = {
-  boundsOffset?: Partial<Bounds>;
-  containerClassName?: string;
-  forceUpdateBounds?: boolean;
-};
-
-type ControlledParentModeHighlightProps<T extends React.ElementType = "div"> =
-  BaseHighlightProps<T> &
-    ParentModeHighlightProps & {
-      mode: "parent";
-      controlledItems: true;
-      children: React.ReactNode;
-    };
-
-type ControlledChildrenModeHighlightProps<T extends React.ElementType = "div"> =
-  BaseHighlightProps<T> & {
-    mode?: "children" | undefined;
-    controlledItems: true;
-    children: React.ReactNode;
-  };
-
-type UncontrolledParentModeHighlightProps<T extends React.ElementType = "div"> =
-  BaseHighlightProps<T> &
-    ParentModeHighlightProps & {
-      mode: "parent";
-      controlledItems?: false;
-      itemsClassName?: string;
-      children: React.ReactElement | React.ReactElement[];
-    };
-
-type UncontrolledChildrenModeHighlightProps<T extends React.ElementType = "div"> =
-  BaseHighlightProps<T> & {
-    mode?: "children";
-    controlledItems?: false;
-    itemsClassName?: string;
-    children: React.ReactElement | React.ReactElement[];
-  };
-
-type HighlightProps<T extends React.ElementType = "div"> =
-  | ControlledParentModeHighlightProps<T>
-  | ControlledChildrenModeHighlightProps<T>
-  | UncontrolledParentModeHighlightProps<T>
-  | UncontrolledChildrenModeHighlightProps<T>;
 
 function Highlight<T extends React.ElementType = "div">({ ref, ...props }: HighlightProps<T>) {
   const {
@@ -320,43 +233,6 @@ function Highlight<T extends React.ElementType = "div">({ ref, ...props }: Highl
     </HighlightContext.Provider>
   );
 }
-
-function getNonOverridingDataAttributes(
-  element: React.ReactElement,
-  dataAttributes: Record<string, unknown>,
-): Record<string, unknown> {
-  return Object.keys(dataAttributes).reduce<Record<string, unknown>>((acc, key) => {
-    if ((element.props as Record<string, unknown>)[key] === undefined) {
-      acc[key] = dataAttributes[key];
-    }
-    return acc;
-  }, {});
-}
-
-type ExtendedChildProps = React.ComponentProps<"div"> & {
-  id?: string;
-  ref?: React.Ref<HTMLElement>;
-  "data-active"?: string;
-  "data-value"?: string;
-  "data-disabled"?: boolean;
-  "data-highlight"?: boolean;
-  "data-slot"?: string;
-};
-
-type HighlightItemProps<T extends React.ElementType = "div"> = React.ComponentProps<T> & {
-  as?: T;
-  children: React.ReactElement;
-  id?: string;
-  value?: string;
-  className?: string;
-  style?: React.CSSProperties;
-  transition?: Transition;
-  activeClassName?: string;
-  disabled?: boolean;
-  exitDelay?: number;
-  asChild?: boolean;
-  forceUpdateBounds?: boolean;
-};
 
 function HighlightItem<T extends React.ElementType>({
   ref,

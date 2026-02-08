@@ -14,6 +14,16 @@ from apps.api.core.logging import get_logger
 from apps.api.infra.cache.valkey import ValkeyClient
 
 logger = get_logger(__name__)
+_FATAL_RESTART_WATCHER_ERRORS: tuple[type[BaseException], ...] = (
+    GeneratorExit,
+    KeyboardInterrupt,
+    SystemExit,
+)
+
+
+def _raise_if_fatal(exc: BaseException) -> None:
+    if isinstance(exc, _FATAL_RESTART_WATCHER_ERRORS):
+        raise exc
 
 
 def _parse_epoch(value: str | bytes | None) -> int:
@@ -90,5 +100,6 @@ async def _restart_watch_loop(app: FastAPI, settings: Settings, valkey: ValkeyCl
             return
         except asyncio.CancelledError:
             return
-        except Exception as exc:
-            logger.warning("Plugin restart watcher error", error=str(exc))
+        except BaseException as exc:
+            _raise_if_fatal(exc)
+            logger.warning("Plugin restart watcher error", action="plugin_restart_watch_loop", error=str(exc))

@@ -5,6 +5,8 @@ import secrets
 from collections.abc import Awaitable, Callable
 from typing import Any, cast
 
+from pydantic import ValidationError
+
 from apps.api.infra.cache.valkey import ValkeyClientLike
 from apps.api.modules.auth.sso.schema import AuthSSOExchangePayload
 
@@ -96,5 +98,5 @@ async def consume_exchange_payload(
 
     try:
         return AuthSSOExchangePayload.model_validate_json(payload_raw)
-    except Exception:
+    except (TypeError, ValueError, ValidationError):
         return None

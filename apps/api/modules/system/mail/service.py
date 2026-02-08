@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import smtplib
+
 from apps.api.common.email.service import EmailService
 from apps.api.common.services.base import BaseService
 from apps.api.config import Settings
@@ -32,7 +34,7 @@ class AdminMailService(BaseService):
                 message=t("settings", "MAIL_INVALID_RECIPIENT", default="收件人邮箱无效"),
                 error="MAIL_INVALID_RECIPIENT",
             )
-        except Exception:
+        except (ConnectionError, OSError, TimeoutError, smtplib.SMTPException):
             raise ServiceUnavailable(
                 message=t("settings", "MAIL_SEND_FAILED", default="发送失败，请检查邮箱配置与网络连接"),
                 error="MAIL_SEND_FAILED",

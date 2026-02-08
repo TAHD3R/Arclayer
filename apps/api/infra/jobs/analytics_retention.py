@@ -63,7 +63,7 @@ async def _release_lock() -> None:
     conn = Tortoise.get_connection("default")
     try:
         await conn.execute_query(f"SELECT pg_advisory_unlock({_RETENTION_LOCK_KEY})")
-    except Exception:
+    except (RuntimeError, TypeError, ValueError):
         return
 
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 
 from apps.api.common.services.base import BaseService
@@ -29,6 +30,19 @@ from apps.api.settings.validation import iter_secret_field_paths, merge_deep, va
 
 def _ts(key: str, default: str) -> str:
     return t("settings", key, default=default)
+
+
+_FATAL_SETTINGS_SERVICE_ERRORS: tuple[type[BaseException], ...] = (
+    asyncio.CancelledError,
+    GeneratorExit,
+    KeyboardInterrupt,
+    SystemExit,
+)
+
+
+def _raise_if_fatal(exc: BaseException) -> None:
+    if isinstance(exc, _FATAL_SETTINGS_SERVICE_ERRORS):
+        raise exc
 
 
 class SettingsService(BaseService):
@@ -234,7 +248,16 @@ class SettingsService(BaseService):
                     actor_user_id=actor_user_id,
                 )
             )
-        except Exception:
+        except BaseException as exc:
+            _raise_if_fatal(exc)
+            self.logger.warning(
+                "Settings updated event publish failed",
+                action="emit_settings_updated_event",
+                namespace=namespace,
+                plugin_id=plugin_id,
+                event_name=SETTINGS_UPDATED,
+                error=str(exc),
+            )
             return
 
     async def _encrypt_core_secrets(self, schema: ConfigSchema, config: dict[str, Any]) -> dict[str, Any]:
