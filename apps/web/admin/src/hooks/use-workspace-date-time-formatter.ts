@@ -3,19 +3,10 @@ import { useQuery } from "@tanstack/react-query";
 
 import { getCoreSettings } from "@/api/settings";
 import type { AppLocale } from "@/lib/i18n";
+import { pickString } from "@/lib/settings/general/utils";
 import { formatDateTimeWithPattern } from "@/lib/time/date-time";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
-
-function pickString(obj: unknown, path: readonly string[]): string | undefined {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let cur: any = obj;
-  for (const key of path) {
-    if (!cur || typeof cur !== "object") return undefined;
-    cur = cur[key];
-  }
-  return typeof cur === "string" ? cur : undefined;
-}
 
 function getBrowserTimeZone(): string {
   try {

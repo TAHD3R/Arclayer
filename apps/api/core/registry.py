@@ -13,7 +13,6 @@ from starlette.responses import HTMLResponse
 from starlette.routing import Mount
 
 from apps.api.bootstrap import close_domain_bootstrap, init_domain_bootstrap
-from apps.api.app_middleware import get_locale_middleware
 from apps.api.config import Settings, get_settings
 from apps.api.core.database.orm import (
     close_orm,

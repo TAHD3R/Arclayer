@@ -5,6 +5,14 @@ import type { ThemeMode } from "@celestial/ui-theme/antd";
 
 export type ThemeTransitionDirection = "btt" | "ttb" | "ltr" | "rtl";
 
+type DocumentWithViewTransition = Document & {
+  startViewTransition?: (callback: () => void) => { ready: Promise<void> };
+};
+
+type ViewTransitionAnimationOptions = KeyframeAnimationOptions & {
+  pseudoElement?: string;
+};
+
 function prefersReducedMotion(): boolean {
   if (typeof window === "undefined") return false;
   return window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ?? false;
@@ -128,9 +136,9 @@ async function runThemeViewTransition(options: {
 
   // Some browsers require `document` as the invocation receiver; calling an unbound function
   // can throw "Illegal invocation".
-  const startViewTransition = (document as any).startViewTransition?.bind(document) as
-    | undefined
-    | ((cb: () => void) => { ready: Promise<void> });
+  const startViewTransition = (document as DocumentWithViewTransition).startViewTransition?.bind(
+    document,
+  );
 
   if (!startViewTransition) {
     await runThemeOverlayTransition(options);
@@ -151,11 +159,12 @@ async function runThemeViewTransition(options: {
   await transition.ready;
 
   // Note: `pseudoElement` is part of the View Transitions API.
-  document.documentElement.animate({ clipPath: [fromClip, toClip] }, {
+  const animationOptions: ViewTransitionAnimationOptions = {
     duration: 700,
     easing: "ease-in-out",
     pseudoElement: "::view-transition-new(root)",
-  } as any);
+  };
+  document.documentElement.animate({ clipPath: [fromClip, toClip] }, animationOptions);
 }
 
 export async function setThemeModeWithTransition(

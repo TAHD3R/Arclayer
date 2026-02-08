@@ -1,5 +1,5 @@
-import type { ReactNode } from "react";
 import React from "react";
+import type { ReactNode } from "react";
 
 import type { ViewerContext } from "@celestial/site-block-protocol";
 import type { CoreBlockNode, CoreDocumentIR } from "./core-blocks";
@@ -8,6 +8,22 @@ import { renderCoreBlock } from "./core-blocks";
 export interface DocumentRendererProps {
   document: CoreDocumentIR;
   ctx: ViewerContext;
+}
+
+type ProcessLike = {
+  env?: {
+    NODE_ENV?: string;
+  };
+};
+
+function isProductionEnv(): boolean {
+  if (typeof globalThis === "undefined") return false;
+
+  const processLike = (globalThis as typeof globalThis & { process?: unknown }).process;
+  if (!processLike || typeof processLike !== "object") return false;
+
+  const env = (processLike as ProcessLike).env;
+  return env?.NODE_ENV === "production";
 }
 
 export function DocumentRenderer(props: DocumentRendererProps) {
@@ -53,10 +69,7 @@ class BlockErrorBoundary extends React.Component<BlockErrorBoundaryProps, BlockE
   override componentDidCatch(error: unknown): void {
     // Keep errors visible during development without breaking the whole page.
     // In production, avoid logging the raw error object to reduce risk of leaking sensitive data.
-    const isProd =
-      typeof globalThis !== "undefined" &&
-      typeof (globalThis as any).process !== "undefined" &&
-      (globalThis as any).process?.env?.NODE_ENV === "production";
+    const isProd = isProductionEnv();
 
     if (typeof console === "undefined" || typeof console.error !== "function") return;
     if (isProd) {
@@ -77,10 +90,7 @@ class BlockErrorBoundary extends React.Component<BlockErrorBoundaryProps, BlockE
   override render(): ReactNode {
     if (!this.state.hasError) return this.props.children;
 
-    const isProd =
-      typeof globalThis !== "undefined" &&
-      typeof (globalThis as any).process !== "undefined" &&
-      (globalThis as any).process?.env?.NODE_ENV === "production";
+    const isProd = isProductionEnv();
 
     return (
       <div

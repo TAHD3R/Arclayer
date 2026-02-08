@@ -2,6 +2,14 @@ import type { Config } from "tailwindcss";
 
 type PartialConfig = Partial<Config>;
 
+function getThemeExtend(theme: Config["theme"] | undefined): Record<string, unknown> {
+  if (!theme || typeof theme !== "object") return {};
+
+  const extend = Reflect.get(theme as object, "extend");
+  if (!extend || typeof extend !== "object") return {};
+  return extend as Record<string, unknown>;
+}
+
 function mergeTailwindConfig(base: Config, overrides?: PartialConfig): Config {
   if (!overrides) return base;
 
@@ -13,8 +21,8 @@ function mergeTailwindConfig(base: Config, overrides?: PartialConfig): Config {
     ...base.theme,
     ...overrides.theme,
     extend: {
-      ...(base.theme as any)?.extend,
-      ...(overrides.theme as any)?.extend,
+      ...getThemeExtend(base.theme),
+      ...getThemeExtend(overrides.theme),
     },
   } satisfies Config["theme"];
 

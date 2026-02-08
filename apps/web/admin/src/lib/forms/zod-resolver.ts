@@ -1,20 +1,25 @@
 import type { FieldErrors, FieldValues, Resolver } from "react-hook-form";
 import type { z } from "zod";
 
-function setPathError(errors: FieldErrors, path: readonly (string | number)[], message: string) {
+type MutableErrorTree = Record<string, unknown>;
+
+function setPathError(errors: MutableErrorTree, path: readonly (string | number)[], message: string) {
   if (!path.length) return;
 
   const [head, ...rest] = path;
   const key = String(head);
 
   if (!rest.length) {
-    // `type` is required by react-hook-form; keep it stable for custom errors.
-    (errors as any)[key] = { type: "zod", message };
+    errors[key] = { type: "zod", message };
     return;
   }
 
-  const next = ((errors as any)[key] ??= {});
-  setPathError(next, rest, message);
+  const next = errors[key];
+  if (!next || typeof next !== "object") {
+    errors[key] = {};
+  }
+
+  setPathError(errors[key] as MutableErrorTree, rest, message);
 }
 
 /**
@@ -32,16 +37,18 @@ export function zodResolver<TSchema extends z.ZodType<FieldValues>>(
     }
 
     const errors: FieldErrors<z.infer<TSchema>> = {};
+    const mutableErrors = errors as MutableErrorTree;
+
     for (const issue of parsed.error.issues) {
-      // zod's issue.path can technically contain symbols; react-hook-form paths only accept string/number.
+      // zod issue.path can technically contain symbols; react-hook-form paths only accept string/number.
       const path = issue.path.filter(
-        (k): k is string | number => typeof k === "string" || typeof k === "number",
+        (key): key is string | number => typeof key === "string" || typeof key === "number",
       );
-      setPathError(errors, path, issue.message);
+      setPathError(mutableErrors, path, issue.message);
     }
 
     return {
-      values: {} as any,
+      values: {} as Record<string, never>,
       errors,
     };
   };

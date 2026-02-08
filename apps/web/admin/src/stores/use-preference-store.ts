@@ -129,10 +129,11 @@ function readPersistedLastWorkspaceId(): string | null {
     const parsed: unknown = JSON.parse(raw);
     // zustand persist stores { state: {...}, version: n }
     if (!parsed || typeof parsed !== "object") return null;
-    const state = (parsed as any).state;
-    const last = state?.lastWorkspaceId;
-    const s = typeof last === "string" ? last.trim() : "";
-    return s ? s : null;
+    const stateCandidate = (parsed as { state?: unknown }).state;
+    if (!stateCandidate || typeof stateCandidate !== "object") return null;
+    const lastWorkspaceId = (stateCandidate as { lastWorkspaceId?: unknown }).lastWorkspaceId;
+    const normalized = typeof lastWorkspaceId === "string" ? lastWorkspaceId.trim() : "";
+    return normalized ? normalized : null;
   } catch {
     return null;
   }

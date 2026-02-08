@@ -32,10 +32,10 @@ export function SetupDefaultsStep(props: {
   );
 
   const timezoneItems = useMemo(() => {
-    const base = [...COMMON_TIMEZONES];
+    const base: string[] = [...COMMON_TIMEZONES];
     // If the detected/stored timezone isn't in our common list, prepend it so it can be selected.
-    if (timezone && !base.includes(timezone as any)) {
-      base.unshift(timezone as any);
+    if (timezone && !base.includes(timezone)) {
+      base.unshift(timezone);
     }
     return base.map((v) => ({ value: v, label: v }));
   }, [timezone]);

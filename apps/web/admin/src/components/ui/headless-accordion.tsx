@@ -1,14 +1,14 @@
 import * as React from "react";
-import { motion } from "motion/react";
 import { ChevronDownIcon } from "lucide-react";
+import { motion } from "motion/react";
 
 import {
   Disclosure as DisclosurePrimitive,
   DisclosureButton as DisclosureButtonPrimitive,
   DisclosurePanel as DisclosurePanelPrimitive,
-  type DisclosureProps as DisclosurePrimitiveProps,
   type DisclosureButtonProps as DisclosureButtonPrimitiveProps,
   type DisclosurePanelProps as DisclosurePanelPrimitiveProps,
+  type DisclosureProps as DisclosurePrimitiveProps,
 } from "@/components/ui/headless-disclosure";
 import { cn } from "@/lib/utils";
 
@@ -72,33 +72,29 @@ function AccordionButton({
   );
 }
 
-type AccordionPanelProps<TTag extends React.ElementType = typeof motion.div> =
-  DisclosurePanelPrimitiveProps<TTag>;
+type AccordionPanelProps = DisclosurePanelPrimitiveProps<typeof motion.div>;
 
-function AccordionPanel<TTag extends React.ElementType = typeof motion.div>({
-  className,
-  children,
-  ...props
-}: AccordionPanelProps<TTag>) {
+function AccordionPanel({ className, children, ...props }: AccordionPanelProps) {
   return (
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    <DisclosurePanelPrimitive<any> {...props}>
-      {(bag) => (
-        <div className={cn("text-sm pt-0 pb-4", className)}>
-          {typeof children === "function" ? children(bag) : children}
-        </div>
-      )}
+    <DisclosurePanelPrimitive {...props}>
+      {(bag) => {
+        const content =
+          typeof children === "function"
+            ? (children as (renderBag: typeof bag) => React.ReactNode)(bag)
+            : children;
+        return <div className={cn("text-sm pt-0 pb-4", className)}>{content}</div>;
+      }}
     </DisclosurePanelPrimitive>
   );
 }
 
 export {
   Accordion,
-  AccordionItem,
   AccordionButton,
+  AccordionItem,
   AccordionPanel,
-  type AccordionProps,
-  type AccordionItemProps,
   type AccordionButtonProps,
+  type AccordionItemProps,
   type AccordionPanelProps,
+  type AccordionProps,
 };

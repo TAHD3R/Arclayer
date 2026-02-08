@@ -6,7 +6,7 @@ from pathlib import Path
 from uuid import UUID
 
 from fastapi import BackgroundTasks
-from tortoise.exceptions import IntegrityError
+from tortoise.exceptions import IntegrityError, OperationalError
 
 from apps.api.common.services import BaseService
 from apps.api.common.utils.ids import uuid7
@@ -41,6 +41,43 @@ from apps.api.settings.runtime import get_effective_settings
 
 logger = get_logger(__name__)
 
+UPLOAD_COMPLETION_ERRORS = (
+    BadRequest,
+    NotFound,
+    IntegrityError,
+    OperationalError,
+    OSError,
+    RuntimeError,
+    TimeoutError,
+    TypeError,
+    ValueError,
+)
+UPLOAD_STATUS_RESET_ERRORS = (
+    OperationalError,
+    OSError,
+    RuntimeError,
+    TimeoutError,
+    TypeError,
+    ValueError,
+)
+UPLOAD_EVENT_PUBLISH_ERRORS = (
+    AttributeError,
+    KeyError,
+    OSError,
+    RuntimeError,
+    TimeoutError,
+    TypeError,
+    ValueError,
+)
+UPLOAD_ABORT_ERRORS = (
+    AttributeError,
+    KeyError,
+    OSError,
+    RuntimeError,
+    TimeoutError,
+    TypeError,
+    ValueError,
+)
 
 def _ts(key: str, default: str) -> str:
     return t("errors", key, default=default)
@@ -88,6 +125,37 @@ class UploadsService(BaseService):
 
     def _expires_at(self) -> datetime:
         return datetime.now(tz=UTC) + timedelta(seconds=self.settings.storage.upload_session_ttl_seconds)
+
+    def _build_s3_provider(
+        self,
+        *,
+        effective: Settings,
+        workspace_id: UUID,
+        action: str,
+        upload_id: UUID | None = None,
+        part_number: int | None = None,
+    ) -> S3StorageProvider:
+        try:
+            provider_impl = build_storage_provider_for(effective, provider="s3")
+        except (TypeError, ValueError) as exc:
+            logger.warning(
+                "Storage provider build failed",
+                workspace_id=str(workspace_id),
+                upload_id=str(upload_id) if upload_id is not None else None,
+                part_number=part_number,
+                action=action,
+                error=str(exc),
+            )
+            raise BadRequest(
+                message=_ts("STORAGE_PROVIDER_INVALID", "存储配置不正确"),
+                error="STORAGE_PROVIDER_INVALID",
+            ) from exc
+        if not isinstance(provider_impl, S3StorageProvider):
+            raise BadRequest(
+                message=_ts("STORAGE_PROVIDER_INVALID", "存储配置不正确"),
+                error="STORAGE_PROVIDER_INVALID",
+            )
+        return provider_impl
 
     async def init_upload(
         self,
@@ -160,25 +228,11 @@ class UploadsService(BaseService):
             # For S3, we store the object at the same path (relative, without leading slash).
             object_key = f"assets/{reserved_asset_id}/{slug}.{ext}"
 
-            try:
-                provider_impl = build_storage_provider_for(effective, provider="s3")
-            except Exception as exc:
-                logger.warning(
-                    "Storage provider build failed during upload init",
-                    workspace_id=str(workspace_id),
-                    action="init_upload_build_storage_provider",
-                    storage_provider=provider,
-                    error=str(exc),
-                )
-                raise BadRequest(
-                    message=_ts("STORAGE_PROVIDER_INVALID", "存储配置不正确"),
-                    error="STORAGE_PROVIDER_INVALID",
-                ) from exc
-            if not isinstance(provider_impl, S3StorageProvider):
-                raise BadRequest(
-                    message=_ts("STORAGE_PROVIDER_INVALID", "存储配置不正确"),
-                    error="STORAGE_PROVIDER_INVALID",
-                )
+            provider_impl = self._build_s3_provider(
+                effective=effective,
+                workspace_id=workspace_id,
+                action="init_upload_build_storage_provider",
+            )
             multipart_upload_id = await provider_impl.create_multipart_upload(
                 object_key=object_key,
                 content_type=mime,
@@ -287,24 +341,13 @@ class UploadsService(BaseService):
             raise BadRequest(message=_ts("UPLOAD_SESSION_INVALID", "上传会话不完整"), error="UPLOAD_SESSION_INVALID")
 
         effective = await get_effective_settings(self.settings)
-        try:
-            provider_impl = build_storage_provider_for(effective, provider="s3")
-        except Exception as exc:
-            logger.warning(
-                "Storage provider build failed during part presign",
-                workspace_id=str(workspace_id),
-                upload_id=str(upload_id),
-                part_number=part_number,
-                action="presign_part_build_storage_provider",
-                error=str(exc),
-            )
-            raise BadRequest(
-                message=_ts("STORAGE_PROVIDER_INVALID", "存储配置不正确"), error="STORAGE_PROVIDER_INVALID"
-            ) from exc
-        if not isinstance(provider_impl, S3StorageProvider):
-            raise BadRequest(
-                message=_ts("STORAGE_PROVIDER_INVALID", "存储配置不正确"), error="STORAGE_PROVIDER_INVALID"
-            )
+        provider_impl = self._build_s3_provider(
+            effective=effective,
+            workspace_id=workspace_id,
+            upload_id=upload_id,
+            part_number=part_number,
+            action="presign_part_build_storage_provider",
+        )
 
         presign = await provider_impl.presign_upload_part(
             object_key=str(session.object_key),
@@ -408,7 +451,7 @@ class UploadsService(BaseService):
                 asset_id = await self._complete_s3(session=session, workspace_id=workspace_id)
             else:
                 asset_id = await self._complete_local(session=session, workspace_id=workspace_id)
-        except Exception as exc:
+        except UPLOAD_COMPLETION_ERRORS as exc:
             # Avoid leaving the session stuck in COMPLETING forever.
             logger.warning(
                 "Upload completion failed",
@@ -420,7 +463,7 @@ class UploadsService(BaseService):
             )
             try:
                 await self.repo.set_session_status(session, status=UploadStatus.UPLOADING)
-            except Exception as status_exc:
+            except UPLOAD_STATUS_RESET_ERRORS as status_exc:
                 logger.warning(
                     "Upload status reset failed after completion error",
                     workspace_id=str(workspace_id),
@@ -448,7 +491,7 @@ class UploadsService(BaseService):
         async def _publish() -> None:
             try:
                 await plugin_host.event_bus.publish(event)
-            except Exception as exc:
+            except UPLOAD_EVENT_PUBLISH_ERRORS as exc:
                 logger.warning(
                     "Asset uploaded event publish failed",
                     workspace_id=str(workspace_id),
@@ -501,10 +544,10 @@ class UploadsService(BaseService):
         out_path = safe_object_key_to_path(self.settings.storage.local_root_dir, object_key)
         try:
             digest = merge_parts_to_file(part_paths=part_paths, out_path=out_path)
-        except Exception as exc:
+        except OSError as exc:
             try:
                 out_path.unlink(missing_ok=True)
-            except Exception as cleanup_exc:
+            except OSError as cleanup_exc:
                 logger.warning(
                     "Upload output cleanup failed after merge error",
                     workspace_id=str(workspace_id),
@@ -520,7 +563,7 @@ class UploadsService(BaseService):
         if session.expected_sha256 and digest.lower() != str(session.expected_sha256).lower():
             try:
                 out_path.unlink(missing_ok=True)
-            except Exception as cleanup_exc:
+            except OSError as cleanup_exc:
                 logger.warning(
                     "Upload output cleanup failed after SHA256 mismatch",
                     workspace_id=str(workspace_id),
@@ -578,7 +621,7 @@ class UploadsService(BaseService):
         for p in part_paths:
             try:
                 p.unlink(missing_ok=True)
-            except Exception as cleanup_exc:
+            except OSError as cleanup_exc:
                 logger.warning(
                     "Upload part cleanup failed after local completion",
                     workspace_id=str(workspace_id),
@@ -593,23 +636,12 @@ class UploadsService(BaseService):
 
     async def _complete_s3(self, *, session: UploadSessionRecord, workspace_id: UUID) -> UUID:
         effective = await get_effective_settings(self.settings)
-        try:
-            provider_impl = build_storage_provider_for(effective, provider="s3")
-        except Exception as exc:
-            logger.warning(
-                "Storage provider build failed during S3 completion",
-                workspace_id=str(workspace_id),
-                upload_id=str(session.id),
-                action="complete_s3_build_storage_provider",
-                error=str(exc),
-            )
-            raise BadRequest(
-                message=_ts("STORAGE_PROVIDER_INVALID", "存储配置不正确"), error="STORAGE_PROVIDER_INVALID"
-            ) from exc
-        if not isinstance(provider_impl, S3StorageProvider):
-            raise BadRequest(
-                message=_ts("STORAGE_PROVIDER_INVALID", "存储配置不正确"), error="STORAGE_PROVIDER_INVALID"
-            )
+        provider_impl = self._build_s3_provider(
+            effective=effective,
+            workspace_id=workspace_id,
+            upload_id=session.id,
+            action="complete_s3_build_storage_provider",
+        )
         if not session.reserved_asset_id or not session.object_key or not session.multipart_upload_id:
             await self.repo.set_session_status(session, status=UploadStatus.UPLOADING)
             raise BadRequest(message=_ts("UPLOAD_SESSION_INVALID", "上传会话不完整"), error="UPLOAD_SESSION_INVALID")
@@ -704,13 +736,20 @@ class UploadsService(BaseService):
         if session.storage_provider == "s3" and session.object_key and session.multipart_upload_id:
             try:
                 effective = await get_effective_settings(self.settings)
-                provider_impl = build_storage_provider_for(effective, provider="s3")
-                if isinstance(provider_impl, S3StorageProvider):
-                    await provider_impl.abort_multipart_upload(
-                        object_key=str(session.object_key),
-                        upload_id=str(session.multipart_upload_id),
-                    )
-            except Exception as exc:
+                provider_impl = self._build_s3_provider(
+                    effective=effective,
+                    workspace_id=workspace_id,
+                    upload_id=upload_id,
+                    action="abort_multipart_upload_build_storage_provider",
+                )
+                await provider_impl.abort_multipart_upload(
+                    object_key=str(session.object_key),
+                    upload_id=str(session.multipart_upload_id),
+                )
+            except BadRequest:
+                # Best-effort cleanup path: keep abort endpoint idempotent even when provider config is invalid.
+                pass
+            except UPLOAD_ABORT_ERRORS as exc:
                 logger.warning(
                     "Abort multipart upload failed",
                     workspace_id=str(workspace_id),
@@ -737,7 +776,7 @@ class UploadsService(BaseService):
                     if child.is_dir():
                         child.rmdir()
                 upload_dir.rmdir()
-        except Exception as exc:
+        except OSError as exc:
             logger.warning(
                 "Upload temp directory cleanup failed on abort",
                 workspace_id=str(workspace_id),

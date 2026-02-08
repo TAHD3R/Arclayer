@@ -16,6 +16,7 @@ from typing import Any, Protocol
 import tomllib
 from fastapi import UploadFile
 from pydantic import ValidationError
+from tortoise.exceptions import IntegrityError, OperationalError
 
 from apps.api.common.services import BaseService
 from apps.api.common.utils.ids import uuid7
@@ -34,19 +35,19 @@ from apps.api.plugin.types import PluginStatus
 
 logger = get_logger(__name__)
 
-
+LIFECYCLE_RECOVERY_ERRORS = (IntegrityError, KeyError, OperationalError, OSError, RuntimeError, TypeError, ValueError)
+PERSISTENCE_ERRORS = (IntegrityError, OperationalError, TypeError, ValidationError, ValueError)
+MENU_SEED_ERRORS = (IntegrityError, OperationalError, OSError, RuntimeError, TypeError, ValidationError, ValueError)
+EVENT_PUBLISH_ERRORS = (KeyError, OSError, RuntimeError, TypeError, ValueError)
 def _tp(key: str, default: str) -> str:
     return t("plugin", key, default=default)
-
 
 @dataclass(frozen=True)
 class _InstallLockEntry:
     loop_id: int
     lock: asyncio.Lock
 
-
 _INSTALL_LOCKS: dict[str, _InstallLockEntry] = {}
-
 
 def _get_install_lock(plugin_id: str) -> asyncio.Lock:
     # Keep locking per-event-loop to avoid cross-loop asyncio.Lock reuse in tests.
@@ -60,14 +61,12 @@ def _get_install_lock(plugin_id: str) -> asyncio.Lock:
         return lock
     return entry.lock
 
-
 class UploadLike(Protocol):
     filename: str | None
 
     async def read(self, size: int = -1) -> bytes: ...
 
     async def close(self) -> None: ...
-
 
 class PluginInstallService(BaseService):
     def __init__(
@@ -107,7 +106,6 @@ class PluginInstallService(BaseService):
                 details={"filename": raw_filename},
             )
         return filename
-
 
     async def install_plugin(
         self,
@@ -197,7 +195,7 @@ class PluginInstallService(BaseService):
                     try:
                         await self.manager.disable(plugin_id)
                         disabled_existing = True
-                    except Exception as exc:
+                    except LIFECYCLE_RECOVERY_ERRORS as exc:
                         raise BadRequest(
                             message=_tp("PLUGIN_INSTALL_FAILED", "插件包安装失败"),
                             error="PLUGIN_INSTALL_FAILED",
@@ -211,29 +209,18 @@ class PluginInstallService(BaseService):
                         backup_dir = self._backup_plugin_dir(plugin_id, target_dir)
                     self.root_dir.mkdir(parents=True, exist_ok=True)
                     shutil.move(str(payload_dir), str(target_dir))
-                except Exception as exc:
-                    # Restore previous version if we created a backup.
-                    try:
-                        if backup_dir and not target_dir.exists() and backup_dir.exists():
-                            shutil.move(str(backup_dir), str(target_dir))
-                    except Exception as restore_exc:
-                        logger.warning(
-                            "Plugin install rollback failed (restore backup)",
+                except (OSError, shutil.Error) as exc:
+                    self._restore_backup_dir(
+                        plugin_id=plugin_id,
+                        target_dir=target_dir,
+                        backup_dir=backup_dir,
+                        action="install_rollback_restore_backup",
+                    )
+                    if disabled_existing:
+                        await self._reenable_plugin_after_failure(
                             plugin_id=plugin_id,
-                            action="install_rollback_restore_backup",
-                            error=str(restore_exc),
+                            action="install_rollback_reenable",
                         )
-                    # Best-effort re-enable if we stopped it.
-                    if disabled_existing and self.manager is not None:
-                        try:
-                            await self.manager.enable(plugin_id)
-                        except Exception as enable_exc:
-                            logger.warning(
-                                "Plugin re-enable failed after install rollback",
-                                plugin_id=plugin_id,
-                                action="install_rollback_reenable",
-                                error=str(enable_exc),
-                            )
                     raise BadRequest(
                         message=_tp("PLUGIN_INSTALL_FAILED", "插件包安装失败"),
                         error="PLUGIN_INSTALL_FAILED",
@@ -292,40 +279,23 @@ class PluginInstallService(BaseService):
                             package_checksum=sha256,
                             package_size=size,
                         )
-                except Exception as exc:
-                    # Remove newly installed version.
-                    try:
-                        if target_dir.exists():
-                            shutil.rmtree(target_dir, ignore_errors=True)
-                    except Exception as cleanup_exc:
-                        logger.warning(
-                            "Plugin install cleanup failed after DB error",
+                except PERSISTENCE_ERRORS as exc:
+                    self._cleanup_target_dir(
+                        plugin_id=plugin_id,
+                        target_dir=target_dir,
+                        action="install_db_error_cleanup_target_dir",
+                    )
+                    self._restore_backup_dir(
+                        plugin_id=plugin_id,
+                        target_dir=target_dir,
+                        backup_dir=backup_dir,
+                        action="install_db_error_restore_backup",
+                    )
+                    if disabled_existing:
+                        await self._reenable_plugin_after_failure(
                             plugin_id=plugin_id,
-                            action="install_db_error_cleanup_target_dir",
-                            error=str(cleanup_exc),
+                            action="install_db_error_reenable",
                         )
-                    # Restore previous version if we created a backup.
-                    try:
-                        if backup_dir and not target_dir.exists() and backup_dir.exists():
-                            shutil.move(str(backup_dir), str(target_dir))
-                    except Exception as restore_exc:
-                        logger.warning(
-                            "Plugin install rollback failed (restore backup after DB error)",
-                            plugin_id=plugin_id,
-                            action="install_db_error_restore_backup",
-                            error=str(restore_exc),
-                        )
-                    # Best-effort re-enable if we stopped it.
-                    if disabled_existing and self.manager is not None:
-                        try:
-                            await self.manager.enable(plugin_id)
-                        except Exception as enable_exc:
-                            logger.warning(
-                                "Plugin re-enable failed after DB rollback",
-                                plugin_id=plugin_id,
-                                action="install_db_error_reenable",
-                                error=str(enable_exc),
-                            )
                     raise BadRequest(
                         message=_tp("PLUGIN_INSTALL_FAILED", "插件包安装失败"),
                         error="PLUGIN_INSTALL_FAILED",
@@ -344,7 +314,7 @@ class PluginInstallService(BaseService):
                             update_existing=False,
                             restore_deleted=True,
                         )
-                except Exception as exc:
+                except MENU_SEED_ERRORS as exc:
                     logger.warning(
                         "Plugin admin menu seed failed",
                         plugin_id=plugin_id,
@@ -369,7 +339,7 @@ class PluginInstallService(BaseService):
                                 source="core",
                             )
                         )
-                except Exception as exc:
+                except EVENT_PUBLISH_ERRORS as exc:
                     logger.warning(
                         "Plugin installed event publish failed",
                         plugin_id=plugin_id,
@@ -555,7 +525,6 @@ class PluginInstallService(BaseService):
             return await self.install_plugin(file=upload, checksum=sha256 or None, enable=enable)
         finally:
             shutil.rmtree(staging_dir, ignore_errors=True)
-
 
     async def _save_upload(self, file: UploadLike, dest: Path, *, max_bytes: int | None = None) -> tuple[str, int]:
         digest = hashlib.sha256()
@@ -757,12 +726,57 @@ class PluginInstallService(BaseService):
         shutil.move(str(target_dir), str(backup_root))
         return backup_root
 
+    def _cleanup_target_dir(self, *, plugin_id: str, target_dir: Path, action: str) -> None:
+        try:
+            if target_dir.exists():
+                shutil.rmtree(target_dir, ignore_errors=True)
+        except OSError as exc:
+            logger.warning(
+                "Plugin install cleanup failed",
+                plugin_id=plugin_id,
+                action=action,
+                error=str(exc),
+            )
+
+    def _restore_backup_dir(
+        self,
+        *,
+        plugin_id: str,
+        target_dir: Path,
+        backup_dir: Path | None,
+        action: str,
+    ) -> None:
+        if backup_dir is None:
+            return
+        if target_dir.exists() or not backup_dir.exists():
+            return
+        try:
+            shutil.move(str(backup_dir), str(target_dir))
+        except (OSError, shutil.Error) as exc:
+            logger.warning(
+                "Plugin install rollback restore failed",
+                plugin_id=plugin_id,
+                action=action,
+                error=str(exc),
+            )
+
+    async def _reenable_plugin_after_failure(self, *, plugin_id: str, action: str) -> None:
+        if self.manager is None:
+            return
+        try:
+            await self.manager.enable(plugin_id)
+        except LIFECYCLE_RECOVERY_ERRORS as exc:
+            logger.warning(
+                "Plugin re-enable failed after rollback",
+                plugin_id=plugin_id,
+                action=action,
+                error=str(exc),
+            )
 
     async def _request_restart(self, plugin_id: str, *, reason: str) -> None:
         if self.manager is None:
             return
         await self.manager.request_restart(plugin_id, reason=reason)
-
 
     def _assert_safe_plugin_target_dir(self, plugin_id: str) -> None:
         """
@@ -784,6 +798,3 @@ class PluginInstallService(BaseService):
                     message=_tp("PLUGIN_ID_INVALID", "插件 ID 不合法"),
                     error="PLUGIN_ID_INVALID",
                 )
-
-
-

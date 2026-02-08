@@ -1,5 +1,14 @@
 import type { AppLocale } from "@/lib/i18n";
 
+function walkPath(obj: unknown, path: readonly string[]): unknown {
+  let current: unknown = obj;
+  for (const key of path) {
+    if (!current || typeof current !== "object") return undefined;
+    current = (current as Record<string, unknown>)[key];
+  }
+  return current;
+}
+
 export function normalizeOptionalString(value: string | undefined): string | null {
   const raw = (value || "").trim();
   return raw ? raw : null;
@@ -25,51 +34,29 @@ export function formatSummaryText(value: string | undefined, maxLen = 48): strin
 }
 
 export function pickString(obj: unknown, path: readonly string[]): string | undefined {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let cur: any = obj;
-  for (const key of path) {
-    if (!cur || typeof cur !== "object") return undefined;
-    cur = cur[key];
-  }
-  return typeof cur === "string" ? cur : undefined;
+  const value = walkPath(obj, path);
+  return typeof value === "string" ? value : undefined;
 }
 
 export function pickNumber(obj: unknown, path: readonly string[]): number | undefined {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let cur: any = obj;
-  for (const key of path) {
-    if (!cur || typeof cur !== "object") return undefined;
-    cur = cur[key];
-  }
-  if (typeof cur === "number" && Number.isFinite(cur)) return cur;
-  if (typeof cur === "string" && cur.trim()) {
-    const n = Number(cur);
+  const value = walkPath(obj, path);
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim()) {
+    const n = Number(value);
     if (Number.isFinite(n)) return n;
   }
   return undefined;
 }
 
 export function pickBool(obj: unknown, path: readonly string[]): boolean | undefined {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let cur: any = obj;
-  for (const key of path) {
-    if (!cur || typeof cur !== "object") return undefined;
-    cur = cur[key];
-  }
-  return typeof cur === "boolean" ? cur : undefined;
+  const value = walkPath(obj, path);
+  return typeof value === "boolean" ? value : undefined;
 }
 
 export function pickStringArray(obj: unknown, path: readonly string[]): string[] | undefined {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let cur: any = obj;
-  for (const key of path) {
-    if (!cur || typeof cur !== "object") return undefined;
-    cur = cur[key];
-  }
-
-  if (!Array.isArray(cur)) return undefined;
-  const items = cur.filter((x) => typeof x === "string" && x.trim()) as string[];
-  return items;
+  const value = walkPath(obj, path);
+  if (!Array.isArray(value)) return undefined;
+  return value.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
 }
 
 export function formatLocaleLabel(locale: AppLocale, t: (key: string) => string): string {

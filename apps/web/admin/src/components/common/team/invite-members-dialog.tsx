@@ -29,6 +29,7 @@ type FormValues = {
 const DEFAULT_EXPIRES_IN_SECONDS = 7 * 24 * 60 * 60;
 
 export type InviteMembersDialogMode = "email" | "link";
+type ExpiresInSecondsValue = number | null;
 
 function normalizeEmailList(input: string[]): string[] {
   // Preserve order but de-duplicate.
@@ -224,7 +225,7 @@ export function InviteMembersDialog(props: {
     }));
   }, [props.roles]);
 
-  const expiresOptions = React.useMemo(
+  const expiresOptions = React.useMemo<Array<{ label: string; value: ExpiresInSecondsValue }>>(
     () => [
       { label: t("team:TEAM_INVITE_LINK_EXPIRES_1_DAY"), value: 1 * 24 * 60 * 60 },
       { label: t("team:TEAM_INVITE_LINK_EXPIRES_7_DAYS"), value: 7 * 24 * 60 * 60 },
@@ -351,13 +352,12 @@ export function InviteMembersDialog(props: {
             <label className="text-muted-foreground font-semibold" htmlFor="expiresInSeconds">
               {t("team:TEAM_INVITE_LINK_FIELD_EXPIRES")}
             </label>
-            <Select
+            <Select<ExpiresInSecondsValue>
               id="expiresInSeconds"
               value={selectedExpires}
               // antd emits `null` when selecting the "never" option.
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              onChange={(v: any) =>
-                form.setValue("expiresInSeconds", v === null ? null : Number(v), {
+              onChange={(v) =>
+                form.setValue("expiresInSeconds", v, {
                   shouldDirty: true,
                 })
               }

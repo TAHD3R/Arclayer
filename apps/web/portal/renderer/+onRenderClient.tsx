@@ -5,9 +5,11 @@ import { PageShell } from "./PageShell";
 
 export { onRenderClient };
 
-async function onRenderClient(pageContext: {
-  Page: React.ComponentType<any>;
+type PortalPageContext = {
+  Page: React.ComponentType<Record<string, unknown>>;
   pageProps?: Record<string, unknown>;
-}) {
+};
+
+async function onRenderClient(pageContext: PortalPageContext) {
   hydrateRoot(document.getElementById("page-view")!, <PageShell pageContext={pageContext} />);
 }

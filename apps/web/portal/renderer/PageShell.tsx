@@ -4,7 +4,7 @@ import "@/assets/index.css";
 
 type PageShellProps = {
   pageContext: {
-    Page: React.ComponentType<any>;
+    Page: React.ComponentType<Record<string, unknown>>;
     pageProps?: Record<string, unknown>;
   };
 };

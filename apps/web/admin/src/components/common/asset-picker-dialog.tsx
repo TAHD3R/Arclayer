@@ -233,6 +233,9 @@ export function AssetPickerDialog(props: {
   const isLoading = pagedAssetsQuery.isLoading && !pagedAssetsQuery.data;
   const isFetching = pagedAssetsQuery.isFetching;
 
+
+  type PickerMasonryEntry = (typeof masonryEntries)[number];
+
   const parentIdForUp = useMemo(() => {
     if (!currentFolderId) return null;
     return folderById.get(String(currentFolderId))?.parentId
@@ -287,7 +290,7 @@ export function AssetPickerDialog(props: {
                       setPage(1);
                     }}
                     defaultOrdering="-created_at"
-                    tags={(tagsQuery.data?.items ?? []) as any}
+                    tags={tagsQuery.data?.items ?? []}
                     tagsLoading={tagsQuery.isLoading}
                   />
                 </div>
@@ -371,7 +374,7 @@ export function AssetPickerDialog(props: {
                     data: it,
                   }))}
                   itemRender={(info) => {
-                    const entry = info.data as any;
+                    const entry = info.data as PickerMasonryEntry;
                     if (entry.kind === "folderUp") {
                       return (
                         <AssetsExplorerFolderUpTile

@@ -997,7 +997,7 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
   return (
     <Sheet
       open={Boolean(active)}
-      onOpenChange={(isOpen: any) => {
+      onOpenChange={(isOpen: boolean) => {
         if (!isOpen) props.onClose();
       }}
     >

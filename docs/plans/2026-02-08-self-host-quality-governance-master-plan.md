@@ -266,11 +266,12 @@
   - 已移除多处 silent swallow，但 residual broad catches 仍需继续压降
 - ISS-0026（public-id 篡改测试不稳定）已完成修复，full API suite 已恢复 green baseline
 
-最新审查基线（2026-02-08 晚间）：
+最新审查基线（2026-02-08 17:15 UTC）：
 
-- Total findings：**234**（相对初始 279 已下降）
-- `frontend_any`：**51**（持续下降）
-- `broad_exception`：**169**（持续下降）
-- `core_modules_dependency`：0
+- Total findings：**162**（相对初始 279 已下降）
+- `frontend_any`：**0**（portal/runtime + renderer 长尾已清零）
+- `broad_exception`：**147**（uploads/install_service residual 已清零，进入长尾治理）
+- `large_file`：**14**
+- `core_modules_dependency`：**1**（按当前决策暂不作为本轮阻塞项）
 
-优先顺序：继续收敛 residual broad exception 与 frontend any，再推进开放平台能力基建。
+优先顺序：继续收敛 broad exception 长尾（auth/plugin 等核心路径），并并行推进开放平台能力基建。

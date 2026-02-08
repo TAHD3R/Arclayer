@@ -1,18 +1,33 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { createEditorHostConnector } from "@celestial/site-editor-bridge";
+import {
+  createEditorHostConnector,
+  type EditorHostPenpalConnection,
+  type EditorHostPenpalOptions,
+} from "@celestial/site-editor-bridge";
+import type { EditorProtocolVersion, HostEditorRpcApi } from "@celestial/site-editor-protocol";
+
+function createPortalStub(): EditorHostPenpalConnection["portal"] {
+  return {
+    getProtocolVersion: vi.fn(async () => 1 as EditorProtocolVersion),
+  } as unknown as EditorHostPenpalConnection["portal"];
+}
+
+function createHostMethodsStub(): HostEditorRpcApi {
+  return {} as unknown as HostEditorRpcApi;
+}
 
 describe("site-editor-bridge/host-connector (imported via Portal)", () => {
   it("connect() calls onConnected and exposes portal proxy", async () => {
     const destroy = vi.fn();
-    const portal = { getProtocolVersion: vi.fn(async () => 1 as const) } as any;
+    const portal = createPortalStub();
 
-    const connectImpl = vi.fn(async () => ({ portal, destroy }));
+    const connectImpl = vi.fn(async (): Promise<EditorHostPenpalConnection> => ({ portal, destroy }));
     const onConnected = vi.fn();
 
     const connector = createEditorHostConnector({
-      iframe: {} as any,
-      methods: {} as any,
+      iframe: {} as unknown as HTMLIFrameElement,
+      methods: createHostMethodsStub(),
       connectImpl,
       onConnected,
     });
@@ -26,17 +41,19 @@ describe("site-editor-bridge/host-connector (imported via Portal)", () => {
   it("connect() destroys previous connection when called again", async () => {
     const destroy1 = vi.fn();
     const destroy2 = vi.fn();
-    const portal1 = { getProtocolVersion: vi.fn(async () => 1 as const) } as any;
-    const portal2 = { getProtocolVersion: vi.fn(async () => 1 as const) } as any;
+    const portal1 = createPortalStub();
+    const portal2 = createPortalStub();
 
     const connectImpl = vi
-      .fn()
+      .fn<
+        (args: EditorHostPenpalOptions) => Promise<EditorHostPenpalConnection>
+      >()
       .mockResolvedValueOnce({ portal: portal1, destroy: destroy1 })
       .mockResolvedValueOnce({ portal: portal2, destroy: destroy2 });
 
     const connector = createEditorHostConnector({
-      iframe: {} as any,
-      methods: {} as any,
+      iframe: {} as unknown as HTMLIFrameElement,
+      methods: createHostMethodsStub(),
       connectImpl,
     });
 
@@ -48,13 +65,13 @@ describe("site-editor-bridge/host-connector (imported via Portal)", () => {
 
   it("connect() ignores protocol mismatch", async () => {
     const destroy = vi.fn();
-    const portal = { getProtocolVersion: vi.fn(async () => 1 as const) } as any;
-    const connectImpl = vi.fn(async () => ({ portal, destroy }));
+    const portal = createPortalStub();
+    const connectImpl = vi.fn(async (): Promise<EditorHostPenpalConnection> => ({ portal, destroy }));
 
     const connector = createEditorHostConnector({
-      iframe: {} as any,
-      methods: {} as any,
-      expectedProtocolVersion: 999 as any,
+      iframe: {} as unknown as HTMLIFrameElement,
+      methods: createHostMethodsStub(),
+      expectedProtocolVersion: 999 as unknown as EditorProtocolVersion,
       connectImpl,
     });
 
@@ -65,13 +82,13 @@ describe("site-editor-bridge/host-connector (imported via Portal)", () => {
 
   it("connect({silent:true}) suppresses onError", async () => {
     const onError = vi.fn();
-    const connectImpl = vi.fn(async () => {
+    const connectImpl = vi.fn(async (): Promise<EditorHostPenpalConnection> => {
       throw new Error("boom");
     });
 
     const connector = createEditorHostConnector({
-      iframe: {} as any,
-      methods: {} as any,
+      iframe: {} as unknown as HTMLIFrameElement,
+      methods: createHostMethodsStub(),
       connectImpl,
       onError,
     });

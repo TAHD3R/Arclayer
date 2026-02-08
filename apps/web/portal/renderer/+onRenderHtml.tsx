@@ -17,7 +17,7 @@ type VikePageContextLike = {
   viewerCtx?: { locale: "zh-CN" | "en-US"; fallbackLocale?: "zh-CN" | "en-US" };
   siteCtx?: { siteId: string; defaultLocale: "zh-CN" | "en-US"; fallbackLocale: "zh-CN" | "en-US" };
   pageProps?: { mode?: string; token?: string; document?: unknown };
-  Page: React.ComponentType<any>;
+  Page: React.ComponentType<Record<string, unknown>>;
 };
 
 async function onRenderHtml(pageContext: VikePageContextLike) {

@@ -67,9 +67,8 @@ function useSceneRevealTransition(sceneKey: string) {
     // Fall back to a quick fade if clip-path isn't supported.
     const supportsClip =
       typeof CSS !== "undefined" &&
-      typeof (CSS as any).supports === "function" &&
-      ((CSS as any).supports("clip-path", "inset(0 0 0 0)") ||
-        (CSS as any).supports("-webkit-clip-path", "inset(0 0 0 0)"));
+      (CSS.supports("clip-path", "inset(0 0 0 0)") ||
+        CSS.supports("-webkit-clip-path", "inset(0 0 0 0)"));
 
     if (!supportsClip || typeof overlay.animate !== "function") {
       overlay.style.opacity = "1";

@@ -42,10 +42,7 @@ type HighlightContextType<T extends string> = {
   forceUpdateBounds?: boolean;
 };
 
-const HighlightContext = React.createContext<
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  HighlightContextType<any> | undefined
->(undefined);
+const HighlightContext = React.createContext<HighlightContextType<string> | undefined>(undefined);
 
 function useHighlight<T extends string>(): HighlightContextType<T> {
   const context = React.useContext(HighlightContext);

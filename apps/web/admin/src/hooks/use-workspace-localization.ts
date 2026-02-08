@@ -1,17 +1,8 @@
 import { useMemo } from "react";
 
-import type { AppLocale } from "@/lib/i18n";
 import { useWorkspaceCoreSettings } from "@/hooks/use-workspace-core-settings";
-
-function pickString(obj: unknown, path: readonly string[]): string | undefined {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let cur: any = obj;
-  for (const key of path) {
-    if (!cur || typeof cur !== "object") return undefined;
-    cur = cur[key];
-  }
-  return typeof cur === "string" ? cur : undefined;
-}
+import type { AppLocale } from "@/lib/i18n";
+import { pickString } from "@/lib/settings/general/utils";
 
 export function useWorkspaceLocalization() {
   const coreQuery = useWorkspaceCoreSettings();

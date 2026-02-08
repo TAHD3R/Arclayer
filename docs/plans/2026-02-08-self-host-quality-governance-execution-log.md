@@ -271,3 +271,130 @@
 1. Continue WP-4: reduce residual broad exceptions in `uploads/service.py` and `plugins_manager/install_service.py` by splitting cleanup/recovery helpers and narrowing catch classes where safe.
 2. Continue WP-3: eliminate remaining frontend any findings (`51` -> target continuous decline) with focus on team/assets clusters.
 3. Start WP-5 overlap cleanup for duplicated plugin-detail presentation after WP-4 residual risk is lowered.
+
+## 2026-02-08 - WP-4 Residual Exception Compression + WP-3 Team/Assets Any + WP-5 Plugin Detail Dedup
+
+### Completed
+
+1. Continued WP-4 residual exception治理（uploads/install_service优先）:
+   - `apps/api/modules/assets/admin/uploads/service.py`
+     - Extracted reusable `_build_s3_provider(...)` to集中 provider build failure handling with structured context.
+     - Reused helper in `init_upload` / `presign_part` / `_complete_s3` / `abort` to reduce duplicated broad catches.
+     - Narrowed local filesystem cleanup catches to `OSError` in merge/hash mismatch/part cleanup/abort tmp cleanup paths.
+   - `apps/api/modules/system/plugins_manager/install_service.py`
+     - Extracted rollback helpers (`_cleanup_target_dir`, `_restore_backup_dir`, `_reenable_plugin_after_failure`) to simplify install failure recovery flow.
+     - Narrowed filesystem swap/restore catches from broad `Exception` to `OSError | shutil.Error` where safe.
+     - Kept best-effort plugin runtime recovery with structured context logs.
+2. Continued WP-3 long-tail frontend typing cleanup（team/assets优先）:
+   - `apps/web/admin/src/components/common/assets/asset-masonry-card.tsx`
+   - `apps/web/admin/src/components/common/team/invite-members-dialog.tsx`
+   Removed remaining target `any` usage in these hotspots.
+3. Completed WP-5 plugin detail dedup:
+   - Added shared presentation module: `apps/web/admin/src/components/plugins/plugin-detail-page.tsx`.
+   - Refactored both containers to reuse shared rendering:
+     - `apps/web/admin/src/pages/plugins/organization-plugin-detail/page.tsx`
+     - `apps/web/admin/src/routes/w/$workspaceId/plugins/$pluginSlug/index.tsx`
+4. Restored API baseline check break caused by stale import:
+   - Removed unused `apps.api.app_middleware` import from `apps/api/core/registry.py`.
+
+### Verification
+
+- `pnpm --filter @celestial/admin typecheck` => passed
+- `pnpm --filter @celestial/admin lint` => 0 warnings / 0 errors
+- `pnpm --filter @celestial/api exec uv run ruff check modules/system/plugins_manager/install_service.py modules/assets/admin/uploads/service.py modules/system/plugins_manager/service.py modules/auth/service.py core/registry.py` => passed
+- `pnpm --filter @celestial/api typecheck` => 0 errors
+- `pnpm --filter @celestial/api test` => 190 passed / 42 skipped
+- `pnpm audit:quality` => total findings `222` (`broad_exception` `158`, `frontend_any` `49`, `large_file` `14`)
+
+### Tracking updates
+
+- `docs/audit/2026-02-08-issue-register.csv`
+  - `ISS-0015` remains `in_progress` with updated scope/location (auth residual broad exception cleanup)
+  - `ISS-0016` remains `in_progress` with updated scope/location (uploads residual broad exception cleanup)
+  - `ISS-0024` marked `done` (workspace/org plugin detail dedup completed)
+
+### Next
+
+1. Continue WP-4: further narrow remaining broad catches in `uploads/service.py` and `plugins_manager/install_service.py` (event publish + fail-safe rollback paths).
+2. Continue WP-3: move from team/assets hotspots to remaining admin infra hotspots (`settings/utils`, `zod-resolver`, root route runtime hooks).
+3. Start Phase 2 prep doc for API Keys/Webhooks/Integrations domain decomposition and delivery slices.
+
+## 2026-02-08 - WP-4 Narrowing Pass + WP-3 Admin Any Zeroing
+
+### Completed
+
+1. Continued WP-4 narrowing for residual exception hotspots:
+   - `apps/api/modules/assets/admin/uploads/service.py`
+     - Narrowed S3 provider build catch to `TypeError | ValueError` in `_build_s3_provider`.
+     - Narrowed local merge failure catch to `OSError`.
+   - `apps/api/modules/system/plugins_manager/install_service.py`
+     - Removed remaining broad `except Exception` handlers.
+     - Narrowed lifecycle/install persistence/best-effort paths to explicit exception sets (`IntegrityError`, `OperationalError`, `ValidationError`, etc.).
+2. Continued WP-3 typing cleanup across admin long-tail hotspots and removed all admin-scoped audit `frontend_any` findings:
+   - assets/setup/ui/runtime helpers cleaned (`asset-picker-dialog`, `setup-defaults-step`, `animate-slot`, `color-bends`, `effect-highlight`, `headless-accordion`, `theme-transition`).
+   - hooks/forms/query/settings/store routing helpers cleaned (`use-workspace-*`, `zod-resolver`, `query-client`, `settings/general/utils`, `__root`, `use-preference-store`, `accept-invite`).
+3. Regenerated audit artifacts and refreshed governance plan baseline block.
+
+### Verification
+
+- `pnpm --filter @celestial/admin typecheck` => passed
+- `pnpm --filter @celestial/admin lint` => 0 warnings / 0 errors
+- `pnpm --filter @celestial/api exec uv run ruff check modules/assets/admin/uploads/service.py modules/system/plugins_manager/install_service.py core/registry.py` => passed
+- `pnpm --filter @celestial/api typecheck` => 0 errors
+- `pnpm --filter @celestial/api test` => 190 passed / 42 skipped
+- `pnpm audit:quality` => total findings `188` (`broad_exception` `151`, `frontend_any` `22`, `large_file` `14`, `core_modules_dependency` `1`)
+
+### Tracking updates
+
+- `docs/audit/2026-02-08-issue-register.csv`
+  - `ISS-0016` scope/location updated for residual uploads broad-exception envelope.
+  - `ISS-0027` added to track remaining portal/runtime frontend-any cluster.
+- `docs/plans/2026-02-08-self-host-quality-governance-master-plan.md`
+  - latest baseline section synced to current audit numbers and next-focus priorities.
+
+### Next
+
+1. Continue WP-4 on residual broad catches in `uploads/service.py` (completion/status-reset/event publish envelopes) and auth/plugin long-tail.
+2. Continue WP-3 on the remaining 22 findings in portal/runtime/site-renderer packages.
+3. Tackle remaining `core_modules_dependency` in `apps/api/core/middleware/locale.py` to reopen Phase-1 gate.
+
+## 2026-02-08 - WP-4 Uploads Residual Broad-Catch Closure + WP-3 Portal/Renderer Any Closure
+
+### Completed
+
+1. Closed WP-4 residual broad catches in uploads completion/event/abort envelopes:
+   - `apps/api/modules/assets/admin/uploads/service.py`
+     - Added explicit exception envelopes (`UPLOAD_COMPLETION_ERRORS`, `UPLOAD_STATUS_RESET_ERRORS`, `UPLOAD_EVENT_PUBLISH_ERRORS`, `UPLOAD_ABORT_ERRORS`).
+     - Replaced remaining `except Exception` handlers in `complete()` and `abort()` best-effort paths with narrowed exception sets while preserving structured logs and idempotent behavior.
+2. Closed WP-3 remaining frontend-any cluster in portal/runtime/renderer packages:
+   - `apps/web/portal/renderer/+onRenderClient.tsx`
+   - `apps/web/portal/renderer/+onRenderHtml.tsx`
+   - `apps/web/portal/renderer/PageShell.tsx`
+   - `apps/web/portal/src/runtime/__tests__/host-connector.test.ts`
+   - `packages/site-renderer-core/src/internal/DocumentRenderer.tsx`
+   - `packages/ui-theme/src/tailwind-preset.ts`
+3. Synced governance artifacts after this batch.
+
+### Verification
+
+- `pnpm --filter @celestial/portal typecheck` => passed
+- `pnpm --filter @celestial/portal lint` => 0 warnings / 0 errors
+- `pnpm --filter @celestial/portal test -- host-connector.test.ts` => passed
+- `pnpm --filter @celestial/api exec uv run ruff check modules/assets/admin/uploads/service.py` => passed
+- `pnpm --filter @celestial/api typecheck` => 0 errors
+- `pnpm --filter @celestial/api test` => 190 passed / 42 skipped
+- `pnpm audit:quality` => total findings `162` (`broad_exception` `147`, `frontend_any` `0`, `large_file` `14`, `core_modules_dependency` `1`)
+
+### Tracking updates
+
+- `docs/audit/2026-02-08-issue-register.csv`
+  - `ISS-0016` marked `done` (uploads residual broad catches removed)
+  - `ISS-0027` marked `done` (portal/runtime renderer any cluster removed)
+- `docs/plans/2026-02-08-self-host-quality-governance-master-plan.md`
+  - latest baseline and next-focus updated to reflect `frontend_any=0` and uploads residual closure.
+
+### Next
+
+1. Continue WP-4 broad-exception long-tail reduction in auth/plugin hotspots.
+2. Continue WP-2 large-file decomposition queue (`assets/page`, `asset-masonry-card`, `team/*` pages).
+3. Keep locale-middleware core-dependency item out of this execution lane per current direction.

@@ -70,7 +70,7 @@ function formatInvitationExpiresRelative(opts: {
 }
 
 function resolveRoleText(
-  t: (k: string, opts?: any) => string,
+  t: (k: string, opts?: Record<string, unknown>) => string,
   roleCode: string | null | undefined,
   backendFallback: { name?: string | null; description?: string | null },
 ): { name: string; description: string | null } {
