@@ -159,7 +159,9 @@ export function OrganizationPluginDetailView({ pluginSlug }: OrganizationPluginD
       width="fixed"
       action={
         <div className="flex items-center gap-3">
-          <Button onClick={() => void navigate({ to: "/plugins/installed" })}>{t("common:BACK")}</Button>
+          <Button onClick={() => void navigate({ to: "/plugins/installed" })}>
+            {t("common:BACK")}
+          </Button>
           {plugin ? (
             <Switch
               checked={plugin.enabled}
@@ -181,7 +183,9 @@ export function OrganizationPluginDetailView({ pluginSlug }: OrganizationPluginD
         {plugin ? (
           <ChromeTabs value={tab} onValueChange={(v) => setTab(String(v))}>
             <ChromeTabsList>
-              <ChromeTabsTrigger value="details">{t("plugin:PLUGIN_TAB_DETAILS")}</ChromeTabsTrigger>
+              <ChromeTabsTrigger value="details">
+                {t("plugin:PLUGIN_TAB_DETAILS")}
+              </ChromeTabsTrigger>
               {configSections.length ? (
                 configSections.map((s) => (
                   <ChromeTabsTrigger key={s.id} value={`org:${s.id}`}>
@@ -189,7 +193,9 @@ export function OrganizationPluginDetailView({ pluginSlug }: OrganizationPluginD
                   </ChromeTabsTrigger>
                 ))
               ) : Boolean(plugin.hasConfigSchema) ? (
-                <ChromeTabsTrigger value="org:config">{t("plugin:PLUGIN_TAB_CONFIG")}</ChromeTabsTrigger>
+                <ChromeTabsTrigger value="org:config">
+                  {t("plugin:PLUGIN_TAB_CONFIG")}
+                </ChromeTabsTrigger>
               ) : null}
             </ChromeTabsList>
 
@@ -221,7 +227,9 @@ export function OrganizationPluginDetailView({ pluginSlug }: OrganizationPluginD
                     {plugin.category ? categoryLabel(t, plugin.category) : t("common:NA")}
                   </Descriptions.Item>
                   <Descriptions.Item label={t("plugin:PLUGIN_META_ENABLED")}>
-                    {plugin.enabled ? t("plugin:PLUGIN_ENABLED_TRUE") : t("plugin:PLUGIN_ENABLED_FALSE")}
+                    {plugin.enabled
+                      ? t("plugin:PLUGIN_ENABLED_TRUE")
+                      : t("plugin:PLUGIN_ENABLED_FALSE")}
                   </Descriptions.Item>
                 </Descriptions>
               </Card>

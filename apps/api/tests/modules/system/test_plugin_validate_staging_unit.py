@@ -43,7 +43,7 @@ async def test_validate_upload_to_staging_returns_token_and_manifest(plugin_root
     raw = _build_minimal_plugin_zip_bytes(plugin_id="plugin-demo", slug="demo", entry_root="demo")
     upload = UploadFile(file=io.BytesIO(raw), filename="demo.zip")
 
-    token, sha256, size_bytes, manifest = await service.validate_upload_to_staging(file=upload, checksum=None)
+    token, sha256, size_bytes, manifest = await service.validate_upload_to_staging(file=upload, checksum=None)  # type: ignore
     assert token
     assert len(sha256) == 64
     assert size_bytes > 0
