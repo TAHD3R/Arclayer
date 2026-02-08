@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import re
 from datetime import UTC, datetime
 from typing import cast
@@ -40,6 +41,18 @@ from apps.api.modules.auth.security import (
 )
 from apps.api.modules.organization.models.org_membership import OrgMembership
 from apps.api.modules.organization.models.user import User
+
+_FATAL_AUTH_EVENT_ERRORS: tuple[type[BaseException], ...] = (
+    asyncio.CancelledError,
+    GeneratorExit,
+    KeyboardInterrupt,
+    SystemExit,
+)
+
+
+def _raise_if_fatal(exc: BaseException) -> None:
+    if isinstance(exc, _FATAL_AUTH_EVENT_ERRORS):
+        raise exc
 
 
 class AuthService(BaseService):
@@ -189,7 +202,8 @@ class AuthService(BaseService):
                     actor_user_id=str(user_id),
                 )
             )
-        except Exception as exc:
+        except BaseException as exc:
+            _raise_if_fatal(exc)
             self.logger.warning(
                 "Auth login event publish failed",
                 user_id=str(user_id),
@@ -267,7 +281,8 @@ class AuthService(BaseService):
                     actor_user_id=str(resolved_user_id),
                 )
             )
-        except Exception as exc:
+        except BaseException as exc:
+            _raise_if_fatal(exc)
             self.logger.warning(
                 "Auth token issue event publish failed",
                 user_id=str(resolved_user_id),
@@ -471,7 +486,8 @@ class AuthService(BaseService):
                     actor_user_id=None,
                 )
             )
-        except Exception as exc:
+        except BaseException as exc:
+            _raise_if_fatal(exc)
             self.logger.warning(
                 "Password reset requested event publish failed",
                 user_id=str(user_id),
@@ -567,7 +583,8 @@ class AuthService(BaseService):
                     actor_user_id=str(user_id),
                 )
             )
-        except Exception as exc:
+        except BaseException as exc:
+            _raise_if_fatal(exc)
             self.logger.warning(
                 "Password reset completed event publish failed",
                 user_id=str(user_id),

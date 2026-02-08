@@ -16,12 +16,26 @@ from apps.api.core.exceptions import NotFound
 from apps.api.core.http.content_disposition import build_attachment_content_disposition
 from apps.api.core.http.file_stream import stream_file_response
 from apps.api.core.http.range import parse_range_header
+from apps.api.core.logging import get_logger
 from apps.api.infra.storage.factory import build_storage_provider_for
 from apps.api.infra.storage.local import safe_object_key_to_path
 from apps.api.infra.storage.s3 import S3StorageProvider
 from apps.api.modules.assets.models.asset import AssetRecord
 from apps.api.modules.shares.repository import ShareLinksRepository
 from apps.api.settings.runtime import get_effective_settings
+
+logger = get_logger(__name__)
+_FATAL_SHARE_SERVICE_ERRORS: tuple[type[BaseException], ...] = (
+    asyncio.CancelledError,
+    GeneratorExit,
+    KeyboardInterrupt,
+    SystemExit,
+)
+
+
+def _raise_if_fatal(exc: BaseException) -> None:
+    if isinstance(exc, _FATAL_SHARE_SERVICE_ERRORS):
+        raise exc
 
 
 class ShareResolved(BaseSchema):
@@ -63,9 +77,20 @@ class SharesService:
         effective = await get_effective_settings(self.settings)
         try:
             provider = build_storage_provider_for(effective, provider="s3")
-        except Exception:
+        except BaseException as exc:
+            _raise_if_fatal(exc)
+            logger.warning(
+                "Build S3 provider for share failed",
+                action="build_share_s3_provider",
+                error=str(exc),
+            )
             raise NotFound(message="Not Found", error="NOT_FOUND")
         if not isinstance(provider, S3StorageProvider):
+            logger.warning(
+                "Unexpected S3 provider type for share",
+                action="build_share_s3_provider",
+                provider_type=type(provider).__name__,
+            )
             raise NotFound(message="Not Found", error="NOT_FOUND")
         return provider
 
@@ -118,7 +143,7 @@ class SharesService:
             finally:
                 try:
                     await asyncio.to_thread(body.close)
-                except Exception:
+                except (OSError, RuntimeError, TypeError, ValueError):
                     pass
 
         return StreamingResponse(_iter_body(), status_code=status_code, media_type=content_type, headers=headers)

@@ -18,6 +18,20 @@ from apps.api.plugin.event_bus import Event, EventBus
 
 logger = get_logger(__name__)
 
+ACTIVITY_CONTEXT_ERRORS = (LookupError, RuntimeError, ValueError, TypeError)
+_FATAL_ACTIVITY_INGEST_ERRORS: tuple[type[BaseException], ...] = (
+    asyncio.CancelledError,
+    GeneratorExit,
+    KeyboardInterrupt,
+    SystemExit,
+)
+
+
+def _raise_if_fatal(exc: BaseException) -> None:
+    if isinstance(exc, _FATAL_ACTIVITY_INGEST_ERRORS):
+        raise exc
+
+
 SENSITIVE_KEY_PARTS: tuple[str, ...] = (
     "password",
     "passwd",
@@ -184,8 +198,14 @@ class ActivityIngestor:
 
         try:
             await event_bus.unsubscribe(plugin_id="core.analytics", event_name="*", handler=self._event_handler)
-        except Exception:
-            pass
+        except BaseException as exc:
+            _raise_if_fatal(exc)
+            logger.warning(
+                "Activity ingestor unsubscribe failed",
+                plugin_id="core.analytics",
+                event_name="*",
+                error=str(exc),
+            )
 
         task = self._flush_task
         self._flush_task = None
@@ -197,14 +217,16 @@ class ActivityIngestor:
                 await task
             except asyncio.CancelledError:
                 pass
-            except Exception as exc:
+            except BaseException as exc:
+                _raise_if_fatal(exc)
                 logger.warning("Activity flush loop failed during shutdown", error=str(exc))
 
         # Best-effort final flush (bounded).
         try:
             await self._flush_once(max_batch=self.settings.analytics.audit_log.flush_batch_size)
-        except Exception:
-            pass
+        except BaseException as exc:
+            _raise_if_fatal(exc)
+            logger.warning("Activity final flush failed during shutdown", error=str(exc))
 
         logger.info("Activity ingestor stopped", dropped=self._dropped)
 
@@ -219,7 +241,7 @@ class ActivityIngestor:
         ctx = {}
         try:
             ctx = get_contextvars()
-        except Exception:
+        except ACTIVITY_CONTEXT_ERRORS:
             ctx = {}
 
         org_id = _coerce_uuid(payload.get("organization_id") or payload.get("org_id") or ctx.get("organization_id"))
@@ -334,7 +356,8 @@ class ActivityIngestor:
             started = time.perf_counter()
             try:
                 await self.repo.create_many(rows=batch)
-            except Exception as exc:
+            except BaseException as exc:
+                _raise_if_fatal(exc)
                 # Best-effort: do not crash the loop, but log for operators.
                 logger.exception("Audit log flush failed", error=str(exc))
             finally:

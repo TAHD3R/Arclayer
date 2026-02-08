@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import fnmatch
 import sys
 from collections.abc import Iterable
@@ -8,6 +9,7 @@ from importlib.util import find_spec
 from pathlib import Path
 from typing import Final
 
+from pydantic import ValidationError
 from tortoise import Tortoise
 
 from apps.api.config import Settings, get_settings
@@ -17,6 +19,19 @@ from apps.api.plugin.manifest import load_plugin_manifest
 EXCLUDE_NAMES = ("tests", "base", "migrations", "__pycache__", "__init__")
 
 logger = get_logger(__name__)
+
+MANIFEST_PARSE_ERRORS = (OSError, ValidationError)
+_FATAL_ORM_ERRORS: tuple[type[BaseException], ...] = (
+    asyncio.CancelledError,
+    GeneratorExit,
+    KeyboardInterrupt,
+    SystemExit,
+)
+
+
+def _raise_if_fatal(exc: BaseException) -> None:
+    if isinstance(exc, _FATAL_ORM_ERRORS):
+        raise exc
 
 
 def _db_dsn_hint(settings: Settings) -> str:
@@ -195,7 +210,7 @@ def _collect_manifest_models(settings: Settings) -> set[str]:
                 sys.path.insert(0, src_root_str)
         try:
             manifest = load_plugin_manifest(manifest_path)
-        except Exception as exc:
+        except MANIFEST_PARSE_ERRORS as exc:
             logger.warning("Plugin manifest parse failed", path=str(manifest_path), error=str(exc))
             continue
         for module in manifest.models:
@@ -217,7 +232,8 @@ async def init_orm(
         return
     try:
         await Tortoise.init(config=build_tortoise_config(settings, extra_pkgs=extra_pkgs, extra_modules=extra_modules))
-    except Exception as exc:
+    except BaseException as exc:
+        _raise_if_fatal(exc)
         hint = _db_dsn_hint(settings)
         logger.error("Database init failed", hint=hint, error=repr(exc))
         raise RuntimeError(f"Database init failed. Check DATABASE__* settings and connectivity to {hint}.") from exc
@@ -232,9 +248,10 @@ async def close_orm() -> None:
     await Tortoise.close_connections()
     try:
         await Tortoise._reset_apps()
-    except Exception:
+    except BaseException as exc:
+        _raise_if_fatal(exc)
         # Best-effort: do not mask shutdown errors in production.
-        pass
+        logger.warning("Tortoise app reset failed during close", error=str(exc))
     Tortoise._inited = False
 
 
@@ -247,16 +264,15 @@ async def verify_db_ready(
     if not settings.database.enabled:
         return
 
-    import asyncio
-
     hint = _db_dsn_hint(settings)
-    last_exc: Exception | None = None
+    last_exc: BaseException | None = None
     for attempt in range(1, attempts + 1):
         try:
             await Tortoise.get_connection("default").execute_query("SELECT 1")
             logger.info("Database connectivity OK")
             return
-        except Exception as exc:
+        except BaseException as exc:
+            _raise_if_fatal(exc)
             last_exc = exc
             await asyncio.sleep(base_delay * attempt)
 
@@ -299,7 +315,8 @@ END $$;
 """
     try:
         await conn.execute_script(sql)
-    except Exception:
+    except BaseException as exc:
+        _raise_if_fatal(exc)
         # Best-effort: do not fail app startup if the DB user lacks DDL privileges.
         # In that case, operators must fix constraints via migrations / manual SQL.
-        logger.warning("ensure_settings_schema_constraints failed (ignored)")
+        logger.warning("ensure_settings_schema_constraints failed (ignored)", error=str(exc))

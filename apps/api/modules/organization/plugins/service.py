@@ -3,6 +3,8 @@ from __future__ import annotations
 from typing import Any, cast
 from uuid import UUID
 
+from tortoise.exceptions import OperationalError
+
 from apps.api.common.protocols.tortoise import SettingUpdatedBy
 from apps.api.common.services import BaseService
 from apps.api.config import Settings
@@ -20,6 +22,8 @@ from apps.api.settings.runtime_plugins import get_org_plugin_settings_decrypted
 from apps.api.settings.scopes import SCOPE_TYPE_ORG
 from apps.api.settings.validation import iter_secret_field_paths, merge_deep
 
+_ORG_PLUGIN_STATE_ERRORS = (OperationalError, RuntimeError, ValueError, TypeError)
+
 
 class OrganizationPluginService(BaseService):
     def __init__(self, settings: Settings, *, plugin_service: PluginService) -> None:
@@ -31,7 +35,7 @@ class OrganizationPluginService(BaseService):
         rows = await PluginRecord.all().order_by("created_at").all()
         try:
             state_rows = await self.repo.list_states(organization_id=organization_id)
-        except Exception as exc:
+        except _ORG_PLUGIN_STATE_ERRORS as exc:
             raise ServiceUnavailable(
                 message=t("plugin", "PLUGIN_DISABLED", default="组织插件状态不可用"),
                 error="ORG_PLUGIN_STATE_UNAVAILABLE",
@@ -81,7 +85,7 @@ class OrganizationPluginService(BaseService):
 
         try:
             state = await self.repo.set_enabled(organization_id=organization_id, plugin_id=plugin_id, enabled=enabled)
-        except Exception as exc:
+        except _ORG_PLUGIN_STATE_ERRORS as exc:
             raise ServiceUnavailable(
                 message=t("plugin", "PLUGIN_DISABLED", default="组织插件状态不可用"),
                 error="ORG_PLUGIN_STATE_UNAVAILABLE",

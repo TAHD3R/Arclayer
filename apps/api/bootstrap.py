@@ -1,9 +1,25 @@
 from __future__ import annotations
 
+import asyncio
+
 from fastapi import FastAPI
 
 from apps.api.config import Settings
+from apps.api.core.logging import get_logger
 from apps.api.plugin.manager import PluginManager
+
+logger = get_logger(__name__)
+_FATAL_BOOTSTRAP_ERRORS: tuple[type[BaseException], ...] = (
+    asyncio.CancelledError,
+    GeneratorExit,
+    KeyboardInterrupt,
+    SystemExit,
+)
+
+
+def _raise_if_fatal(exc: BaseException) -> None:
+    if isinstance(exc, _FATAL_BOOTSTRAP_ERRORS):
+        raise exc
 
 
 async def init_domain_bootstrap(app: FastAPI, settings: Settings, *, plugin_manager: PluginManager) -> None:
@@ -54,8 +70,13 @@ async def init_domain_bootstrap(app: FastAPI, settings: Settings, *, plugin_mana
                 update_existing=False,
                 restore_deleted=True,
             )
-    except Exception:
-        pass
+    except BaseException as exc:
+        _raise_if_fatal(exc)
+        logger.warning(
+            "Plugin admin menu bootstrap failed",
+            action="bootstrap_plugin_admin_menus",
+            error=str(exc),
+        )
 
     # Dev-only bootstrap for Portal SSR integration (do not run in production).
     if settings.app_env != "production":
@@ -73,5 +94,10 @@ async def close_domain_bootstrap(app: FastAPI, *, plugin_manager: PluginManager)
 
     try:
         await close_activity(app, event_bus=plugin_manager.host.event_bus)
-    except Exception:
-        pass
+    except BaseException as exc:
+        _raise_if_fatal(exc)
+        logger.warning(
+            "Activity bootstrap close failed",
+            action="close_activity_bootstrap",
+            error=str(exc),
+        )

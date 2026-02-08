@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import inspect
 from typing import Any
 
@@ -7,6 +8,7 @@ from arq import cron
 from arq.connections import RedisSettings
 from arq.cron import CronJob
 from arq.worker import func as arq_func
+from tortoise.exceptions import OperationalError
 
 from apps.api.config import get_settings
 from apps.api.core.database.orm import close_orm, init_orm, verify_db_ready
@@ -17,6 +19,18 @@ from apps.api.plugin.manager import PluginManager, _load_plugin_class
 from apps.api.plugin.types import PluginStatus
 
 logger = get_logger(__name__)
+_FATAL_WORKER_ERRORS: tuple[type[BaseException], ...] = (
+    asyncio.CancelledError,
+    GeneratorExit,
+    KeyboardInterrupt,
+    SystemExit,
+)
+PLUGIN_STATUS_LOOKUP_ERRORS = (OperationalError, RuntimeError, ValueError, TypeError)
+
+
+def _raise_if_fatal(exc: BaseException) -> None:
+    if isinstance(exc, _FATAL_WORKER_ERRORS):
+        raise exc
 
 
 def _build_redis_settings() -> RedisSettings:
@@ -41,7 +55,8 @@ async def startup(ctx: dict[str, Any]) -> None:
         manager = PluginManager(settings)
         manager.discover()
         extra_models = manager.collect_model_modules()
-    except Exception as exc:
+    except BaseException as exc:
+        _raise_if_fatal(exc)
         logger.warning("Plugin discovery failed for arq worker ORM init", error=str(exc))
 
     await init_orm(settings, extra_modules=extra_models)
@@ -67,7 +82,8 @@ def _collect_plugin_jobs() -> tuple[list[Any], list[CronJob]]:
     manager = PluginManager(settings)
     try:
         manager.discover()
-    except Exception as exc:
+    except BaseException as exc:
+        _raise_if_fatal(exc)
         logger.warning("Plugin discovery failed for arq worker", error=str(exc))
         return ([], [])
 
@@ -79,7 +95,8 @@ def _collect_plugin_jobs() -> tuple[list[Any], list[CronJob]]:
             manager.host.register(instance, name=desc.plugin_id)
             instance.on_load()
             instances.append(instance)
-        except Exception as exc:
+        except BaseException as exc:
+            _raise_if_fatal(exc)
             logger.warning("Plugin load failed for arq worker", plugin_id=desc.plugin_id, error=str(exc))
             continue
 
@@ -89,7 +106,7 @@ def _collect_plugin_jobs() -> tuple[list[Any], list[CronJob]]:
             if rec is None:
                 return False
             return rec.status != PluginStatus.DISABLED
-        except Exception:
+        except PLUGIN_STATUS_LOOKUP_ERRORS:
             return False
 
     functions: list[Any] = []
@@ -106,7 +123,8 @@ def _collect_plugin_jobs() -> tuple[list[Any], list[CronJob]]:
             maybe = getattr(inst, "arq_functions", None)
             declared_raw = maybe() if callable(maybe) else []
             declared = declared_raw if isinstance(declared_raw, list) else []
-        except Exception as exc:
+        except BaseException as exc:
+            _raise_if_fatal(exc)
             logger.warning("Plugin arq_functions failed", plugin_id=pid, error=str(exc))
             declared = []
         for fn in declared or []:
@@ -126,7 +144,8 @@ def _collect_plugin_jobs() -> tuple[list[Any], list[CronJob]]:
             maybe_cron = getattr(inst, "arq_cron_jobs", None)
             declared_crons_raw = maybe_cron() if callable(maybe_cron) else []
             declared_crons = declared_crons_raw if isinstance(declared_crons_raw, list) else []
-        except Exception as exc:
+        except BaseException as exc:
+            _raise_if_fatal(exc)
             logger.warning("Plugin arq_cron_jobs failed", plugin_id=pid, error=str(exc))
             declared_crons = []
         for job in declared_crons or []:

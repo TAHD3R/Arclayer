@@ -14,10 +14,21 @@ from apps.api.core.logging import get_logger
 logger = get_logger(__name__)
 
 NON_RETRYABLE = (redis_exc.AuthenticationError, redis_exc.ResponseError)
+_FATAL_VALKEY_ERRORS: tuple[type[BaseException], ...] = (
+    asyncio.CancelledError,
+    GeneratorExit,
+    KeyboardInterrupt,
+    SystemExit,
+)
+
+
+def _raise_if_fatal(exc: BaseException) -> None:
+    if isinstance(exc, _FATAL_VALKEY_ERRORS):
+        raise exc
 
 try:
     import orjson as _orjson
-except Exception:
+except ImportError:
     _orjson = None
 
 
@@ -244,7 +255,7 @@ async def verify_valkey_ready(
     attempts: int = 5,
     base_delay: float = 0.5,
 ) -> None:
-    last_exc: Exception | None = None
+    last_exc: BaseException | None = None
     for attempt in range(1, attempts + 1):
         try:
             await client.ping()
@@ -252,9 +263,8 @@ async def verify_valkey_ready(
             return
         except NON_RETRYABLE as exc:
             raise RuntimeError(f"Valkey auth error: {exc}") from exc
-        except asyncio.CancelledError:
-            raise
-        except Exception as exc:
+        except BaseException as exc:
+            _raise_if_fatal(exc)
             last_exc = exc
             await asyncio.sleep(base_delay * attempt)
 
@@ -270,7 +280,8 @@ async def init_valkey(app: FastAPI, settings: Settings) -> None:
     try:
         client = build_valkey(settings.valkey)
         await verify_valkey_ready(client)
-    except Exception as exc:
+    except BaseException as exc:
+        _raise_if_fatal(exc)
         logger.error("Valkey init failed", hint=hint, error=repr(exc))
         detail = str(exc)
         suffix = f" Detail: {detail}" if detail else ""
@@ -290,7 +301,8 @@ async def close_valkey(app: FastAPI) -> None:
     try:
         await client.raw.aclose()
         logger.info("Valkey connection closed")
-    except Exception as exc:
+    except BaseException as exc:
+        _raise_if_fatal(exc)
         logger.warning("Valkey close error", error=repr(exc))
 
 

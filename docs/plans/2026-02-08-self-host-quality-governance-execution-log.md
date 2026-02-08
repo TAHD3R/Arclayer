@@ -398,3 +398,215 @@
 1. Continue WP-4 broad-exception long-tail reduction in auth/plugin hotspots.
 2. Continue WP-2 large-file decomposition queue (`assets/page`, `asset-masonry-card`, `team/*` pages).
 3. Keep locale-middleware core-dependency item out of this execution lane per current direction.
+
+## 2026-02-08 - WP-4 P0 Broad-Exception Sweep (plugin/themes/oauth/worker/assets/auth)
+
+### Completed
+
+1. Cleared the highest WP-4 hotspot `apps/api/plugin/manager.py` broad-exception cluster:
+   - Replaced migration/version fallback `except Exception` with explicit envelopes.
+   - Introduced fatal-error guard (`CancelledError`/system-exit path rethrow) for plugin lifecycle best-effort blocks.
+   - Added structured warning logs for event publish and cleanup failure paths.
+2. Closed workspace themes exception tails:
+   - `apps/api/modules/workspaces/themes/service.py`
+   - Replaced broad import/JSON/schema/provider catches with explicit typed envelopes (`ValidationError`, JSON parse errors, storage provider build errors).
+3. Closed plugin ecosystem/auth/runtime long-tail hotspots:
+   - `plugins/plugin-oauth-social/src/oauth_social/service.py`
+   - `apps/api/infra/jobs/worker.py`
+   - `apps/api/modules/assets/bootstrap.py`
+   - `apps/api/modules/auth/service.py`
+   - `apps/api/modules/auth/invitation_acceptance_service.py`
+   - All residual `except Exception` in the above targets were removed and replaced by fatal-guarded best-effort handlers + contextual logs.
+4. Regenerated repository audit artifacts after remediation batch.
+
+### Verification
+
+- `pnpm --filter @celestial/api exec uv run ruff check plugin/manager.py modules/workspaces/themes/service.py infra/jobs/worker.py modules/assets/bootstrap.py modules/auth/service.py modules/auth/invitation_acceptance_service.py ../../plugins/plugin-oauth-social/src/oauth_social/service.py` => passed
+- `pnpm --filter @celestial/api typecheck` => 0 errors
+- `pnpm --filter @celestial/api test` => 190 passed / 42 skipped
+- `pnpm audit:quality` => total findings `115` (`broad_exception` `100`, `frontend_any` `0`, `large_file` `14`, `core_modules_dependency` `1`)
+
+### Tracking updates
+
+- `docs/audit/2026-02-08-issue-register.csv`
+  - `ISS-0015` marked `done`
+  - `ISS-0017` marked `done`
+- `docs/plans/2026-02-08-self-host-quality-governance-master-plan.md`
+  - latest baseline section synced from `162/147` to `115/100`.
+
+### Next
+
+1. Continue WP-4 P0 by attacking remaining top broad-exception density paths (`workspaces/team/service.py`, `core/database/orm.py`, `common/email/service.py`).
+2. Resume WP-2 P0 large-file decomposition queue (`apps/web/admin/src/pages/assets/page.tsx`, `asset-masonry-card.tsx`, `team/roles/page.tsx`).
+3. In upcoming batches, enforce the additional governance rules explicitly in code reviews/checks:
+   - external-facing identifiers follow PublicUUID policy consistently;
+   - activity/audit events use semantic event names and meaningful descriptions.
+
+## 2026-02-08 - WP-4 P0 Continuation (team/orm/email/analytics)
+
+### Completed
+
+1. Continued WP-4 broad-exception reduction on the next top-density cluster:
+   - `apps/api/modules/workspaces/team/service.py`
+     - Replaced residual broad catches with typed/fatal-guarded handlers in activity publish, member-role snapshot, and subject id coercion paths.
+   - `apps/api/core/database/orm.py`
+     - Narrowed manifest parse fallback to explicit parse errors.
+     - Replaced init/close/readiness/schema-fix broad catches with fatal-guarded envelopes and structured logs.
+   - `apps/api/common/email/service.py`
+     - Narrowed encrypted mail password decrypt fallback to explicit crypto/IO errors.
+     - Replaced send-flow broad catches with fatal-guarded structured exception logs.
+   - `apps/api/modules/analytics/ingest.py`
+     - Replaced stop/flush loop broad catches with fatal-guarded best-effort logging and typed contextvars fallback.
+2. Kept semantic activity event names unchanged and preserved existing best-effort delivery behavior.
+3. Regenerated audit report after remediation batch.
+
+### Verification
+
+- `pnpm --filter @celestial/api exec uv run ruff check common/email/service.py core/database/orm.py infra/jobs/worker.py modules/analytics/ingest.py modules/assets/bootstrap.py modules/auth/invitation_acceptance_service.py modules/auth/service.py modules/workspaces/team/service.py modules/workspaces/themes/service.py plugin/manager.py ../../plugins/plugin-oauth-social/src/oauth_social/service.py` => passed
+- `pnpm --filter @celestial/api typecheck` => 0 errors
+- `pnpm --filter @celestial/api test` => 190 passed / 42 skipped
+- `pnpm audit:quality` => total findings `97` (`broad_exception` `81`, `frontend_any` `0`, `large_file` `15`, `core_modules_dependency` `1`)
+
+### Tracking updates
+
+- `docs/audit/2026-02-08-issue-register.csv`
+  - Added `ISS-0028` (email service file-budget overflow)
+  - Added `ISS-0029` (workspace team service file-budget overflow)
+- `docs/plans/2026-02-08-self-host-quality-governance-master-plan.md`
+  - baseline synced to `97` findings / `81` broad exceptions.
+
+### Next
+
+1. Continue WP-4 P0 tail on `apps/api/modules/workspaces/rbac/router.py` and `apps/api/modules/system/admin/menus/service.py`.
+2. Resume WP-2 P0 frontend large-file decomposition (`assets/page.tsx`, `asset-masonry-card.tsx`, `team/roles/page.tsx`).
+3. Start backend large-file decomposition follow-up for new tracked hotspots (`ISS-0028`, `ISS-0029`) after frontend P0 queue stabilizes.
+
+## 2026-02-08 - WP-4 P0 Continuation (rbac router + admin menus)
+
+### Completed
+
+1. Continued WP-4 long-tail reduction on the next two highest-density targets:
+   - `apps/api/modules/workspaces/rbac/router.py`
+     - Replaced five duplicated broad event-publish catches with a shared `_publish_rbac_event(...)` helper.
+     - Added fatal cancellation propagation guard and contextual warning logs (`workspace_id`, `actor_user_id`, `event_name`).
+   - `apps/api/modules/system/admin/menus/service.py`
+     - Replaced plugin-state/core-heal broad catches with fatal-guarded best-effort handlers.
+     - Added structured warning context for plugin-state loading and core-menu consistency/heal checks.
+2. Preserved semantic activity/audit event names (no generic event-name regressions).
+3. Regenerated quality audit artifacts.
+
+### Verification
+
+- `pnpm --filter @celestial/api exec uv run ruff check modules/workspaces/rbac/router.py modules/system/admin/menus/service.py` => passed
+- `pnpm --filter @celestial/api typecheck` => 0 errors
+- `pnpm --filter @celestial/api test` => 190 passed / 42 skipped
+- `pnpm audit:quality` => total findings `87` (`broad_exception` `71`, `frontend_any` `0`, `large_file` `15`, `core_modules_dependency` `1`)
+
+### Tracking updates
+
+- `docs/plans/2026-02-08-self-host-quality-governance-master-plan.md`
+  - baseline synced to `87` findings / `71` broad exceptions.
+
+### Next
+
+1. Continue WP-4 tail on `apps/api/infra/cache/valkey.py` and `apps/api/settings/runtime_plugins.py`.
+2. Continue WP-4 on `apps/api/modules/auth/sso/service.py` and `apps/api/modules/system/service.py`.
+3. Keep WP-2 P0 decomposition lane active (`apps/web/admin/src/pages/assets/page.tsx`, `asset-masonry-card.tsx`, `team/roles/page.tsx`) and then address backend large-file tail (`ISS-0028`, `ISS-0029`).
+
+## 2026-02-08 - WP-4 P0 Continuation (auth-sso/sites/system/assets/plugin/runtime/bootstrap)
+
+### Completed
+
+1. Continued WP-4 broad-exception long-tail reduction on current top-density backend hotspots:
+   - `apps/api/modules/auth/sso/service.py`
+     - Replaced broad state lookup catch with typed envelope and contextual logs.
+     - Added fatal-error guard for provider hook execution and retained fail-safe provider filtering.
+   - `apps/api/modules/sites/repository.py`
+     - Removed broad catches in settings snapshot and page visibility parsing.
+     - Switched to typed visibility parse (`ValueError`) and deterministic timestamp fallback logic.
+   - `apps/api/modules/system/service.py`
+     - Removed broad catches in workspace core patch/event publish/default workspace bootstrap.
+     - Added fatal cancellation propagation + structured warning context (`action`, `user_id`, `org_id`).
+   - `apps/api/modules/system/plugins_manager/service.py`
+     - Removed residual broad catches in enable-seed and plugin settings event publish envelopes.
+     - Added fatal guard with contextual warning metadata.
+   - `apps/api/modules/assets/service.py`
+     - Removed broad S3 provider build catches in serve/download/thumbnail paths.
+     - Extracted `_try_build_s3_provider(...)` recovery helper with fatal guard + structured logs.
+   - `apps/api/bootstrap.py`
+     - Removed silent broad catches in startup/shutdown best-effort hooks.
+     - Added fatal guard + structured bootstrap warning logs.
+   - `apps/api/settings/runtime.py`
+     - Replaced broad runtime load/decrypt catches with typed envelopes and contextual warnings.
+   - `apps/api/plugin/deps.py`
+     - Removed broad plugin state catches in org/workspace dependency guards.
+     - Added fail-closed typed envelopes with structured logs.
+   - `apps/api/plugin/event_bus.py`
+     - Replaced broad event handler/task catches with fatal-guarded envelopes.
+2. Continued WP-3 long-tail typing cleanup:
+   - `apps/web/admin/src/hooks/use-controlled-state.tsx`
+     - Replaced `Rest extends any[]` with `Rest extends unknown[]` and removed explicit-any suppression.
+3. Regenerated quality audit artifacts after this batch.
+
+### Verification
+
+- `pnpm --filter @celestial/api exec uv run ruff check modules/auth/sso/service.py modules/sites/repository.py modules/system/service.py modules/system/plugins_manager/service.py bootstrap.py settings/runtime.py modules/assets/service.py plugin/deps.py plugin/event_bus.py` => passed
+- `pnpm --filter @celestial/api typecheck` => 0 errors
+- `pnpm --filter @celestial/api test` => 190 passed / 42 skipped
+- `pnpm --filter @celestial/admin typecheck` => passed
+- `pnpm audit:quality` => total findings `58` (`broad_exception` `42`, `large_file` `15`, `core_modules_dependency` `1`)
+
+### Tracking updates
+
+- `docs/plans/2026-02-08-self-host-quality-governance-master-plan.md`
+  - latest baseline synced to `58` findings / `42` broad exceptions.
+- `docs/audit/2026-02-08-issue-register.csv`
+  - added governance tracking items for PublicUUID consistency and semantic activity event taxonomy.
+
+### Next
+
+1. Continue WP-4 tail on next dense files: `modules/organization/plugins/service.py`, `modules/shares/service.py`, `modules/sites/repository_publishing.py`, `modules/sites/portal_extensions/service.py`.
+2. Execute WP-2 P0 decomposition lane: `apps/web/admin/src/pages/assets/page.tsx`, `apps/web/admin/src/components/common/assets/asset-masonry-card.tsx`, `apps/web/admin/src/pages/team/roles/page.tsx`.
+3. Add enforceable quality guards for:
+   - external-facing UUID uses PublicUUID consistently;
+   - activity/event naming uses semantic taxonomy (ban generic `*.updated` style names).
+
+
+## 2026-02-08 - WP-4 P0 Continuation (organization/shares/sites-publishing/admin-extensions)
+
+### Completed
+
+1. Continued WP-4 long-tail reduction on secondary-density backend lanes:
+   - `apps/api/modules/organization/plugins/service.py`
+     - Replaced broad org plugin-state persistence catches with typed envelopes (`OperationalError`, runtime/type errors).
+   - `apps/api/modules/shares/service.py`
+     - Removed broad S3 provider fallback catches via fatal-guarded provider construction and structured warnings.
+     - Narrowed body close cleanup catch to typed IO/runtime errors.
+   - `apps/api/modules/sites/repository_publishing.py`
+     - Replaced broad deps parse catches with typed `ValueError` envelopes.
+   - `apps/api/modules/sites/portal_extensions/service.py`
+     - Replaced broad workspace-state/sync catches with typed + fatal-guarded envelopes and contextual logs.
+   - `apps/api/modules/system/admin/extensions/service.py`
+     - Replaced broad workspace-state/sync catches with typed + fatal-guarded envelopes and contextual logs.
+2. Preserved fail-safe behavior and plugin compatibility semantics while removing `except Exception` handlers.
+3. Regenerated quality audit artifacts.
+
+### Verification
+
+- `pnpm --filter @celestial/api exec uv run ruff check modules/organization/plugins/service.py modules/shares/service.py modules/sites/repository_publishing.py modules/sites/portal_extensions/service.py modules/system/admin/extensions/service.py modules/auth/sso/service.py modules/sites/repository.py modules/system/service.py modules/system/plugins_manager/service.py bootstrap.py settings/runtime.py modules/assets/service.py plugin/deps.py plugin/event_bus.py` => passed
+- `pnpm --filter @celestial/api typecheck` => 0 errors
+- `pnpm --filter @celestial/api test` => 190 passed / 42 skipped
+- `pnpm audit:quality` => total findings `48` (`broad_exception` `32`, `large_file` `15`, `core_modules_dependency` `1`)
+
+### Tracking updates
+
+- `docs/plans/2026-02-08-self-host-quality-governance-master-plan.md`
+  - baseline synced from `58/42` to `48/32`.
+- `docs/audit/latest-quality-report.md`
+  - regenerated at `2026-02-08 18:53:45 UTC`.
+
+### Next
+
+1. Continue WP-4 tail on core/common/plugin runtime files (`core/logging.py`, `core/middleware/locale.py`, `common/utils/public_ids.py`, `plugin/routes.py`, `plugin/watch.py`).
+2. Start WP-2 P0 large-file拆分: `apps/web/admin/src/pages/assets/page.tsx` and `apps/web/admin/src/components/common/assets/asset-masonry-card.tsx`.
+3. Land governance guardrails for PublicUUID outbound consistency and semantic activity event naming taxonomy.

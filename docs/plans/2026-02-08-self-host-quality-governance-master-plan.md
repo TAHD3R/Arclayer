@@ -266,12 +266,12 @@
   - 已移除多处 silent swallow，但 residual broad catches 仍需继续压降
 - ISS-0026（public-id 篡改测试不稳定）已完成修复，full API suite 已恢复 green baseline
 
-最新审查基线（2026-02-08 17:15 UTC）：
+最新审查基线（2026-02-08 18:53 UTC）：
 
-- Total findings：**162**（相对初始 279 已下降）
-- `frontend_any`：**0**（portal/runtime + renderer 长尾已清零）
-- `broad_exception`：**147**（uploads/install_service residual 已清零，进入长尾治理）
-- `large_file`：**14**
+- Total findings：**48**（相对初始 279 持续下降）
+- `frontend_any`：**0**（保持清零）
+- `broad_exception`：**32**（本轮完成 organization/plugins、shares、sites-publishing、portal/admin extensions 聚集项压降）
+- `large_file`：**15**（当前主要压力仍在 WP-2 大文件拆分）
 - `core_modules_dependency`：**1**（按当前决策暂不作为本轮阻塞项）
 
-优先顺序：继续收敛 broad exception 长尾（auth/plugin 等核心路径），并并行推进开放平台能力基建。
+优先顺序：继续收敛 broad exception 长尾（core/common 基础层与 plugin runtime 边缘路径），并并行推进 WP-2 大文件拆分（`assets/page.tsx`、`asset-masonry-card.tsx`、`team/roles/page.tsx`）。

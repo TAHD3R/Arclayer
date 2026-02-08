@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import asyncio
 from datetime import UTC, datetime
 from pathlib import Path
 
+from cryptography.exceptions import InvalidTag
 from fastapi_mail import ConnectionConfig, FastMail, MessageSchema, MessageType
 from fastapi_mail.schemas import MultipartSubtypeEnum
 from pydantic import EmailStr, NameEmail, SecretStr, TypeAdapter, ValidationError
@@ -17,6 +19,18 @@ from apps.api.settings.crypto import decrypt_secret, ensure_master_key, is_encry
 from apps.api.settings.scopes import SCOPE_TYPE_SYSTEM, SYSTEM_SCOPE_ID
 
 _EMAIL_ADAPTER = TypeAdapter(EmailStr)
+MAIL_PASSWORD_DECRYPT_ERRORS = (OSError, ValueError, TypeError, UnicodeError, InvalidTag)
+_FATAL_EMAIL_ERRORS: tuple[type[BaseException], ...] = (
+    asyncio.CancelledError,
+    GeneratorExit,
+    KeyboardInterrupt,
+    SystemExit,
+)
+
+
+def _raise_if_fatal(exc: BaseException) -> None:
+    if isinstance(exc, _FATAL_EMAIL_ERRORS):
+        raise exc
 
 
 def _default_template_dir() -> Path:
@@ -169,7 +183,7 @@ class EmailService:
                     key, _fp = ensure_master_key(key_path)
                     aad = f"{CORE_SETTINGS_NAMESPACE}:mail.password"
                     password_secret = SecretStr(decrypt_secret(password_raw, key=key, aad=aad))
-                except Exception as exc:
+                except MAIL_PASSWORD_DECRYPT_ERRORS as exc:
                     self.logger.warning(
                         "Failed to decrypt mail password from core settings, fallback to env password",
                         error=str(exc),
@@ -311,7 +325,8 @@ class EmailService:
                 token_hint=token_hint,
                 user_id=user_id,
             )
-        except Exception as exc:
+        except BaseException as exc:
+            _raise_if_fatal(exc)
             self.logger.exception(
                 "Failed to send reset password email",
                 recipient=recipient,
@@ -402,7 +417,8 @@ class EmailService:
                 cid=cid,
                 user_id=user_id,
             )
-        except Exception as exc:
+        except BaseException as exc:
+            _raise_if_fatal(exc)
             self.logger.exception(
                 "Failed to send welcome email",
                 recipient=recipient,
@@ -570,7 +586,8 @@ class EmailService:
                 organization_name=org_display,
                 invited_by_user_id=invited_by_user_id,
             )
-        except Exception as exc:
+        except BaseException as exc:
+            _raise_if_fatal(exc)
             self.logger.exception(
                 "Failed to send invitation email",
                 recipient=recipient,
@@ -757,7 +774,8 @@ class EmailService:
                 workspace_name=workspace_display,
                 invited_by_user_id=invited_by_user_id,
             )
-        except Exception as exc:
+        except BaseException as exc:
+            _raise_if_fatal(exc)
             self.logger.exception(
                 "Failed to send workspace invitation email",
                 recipient=recipient,

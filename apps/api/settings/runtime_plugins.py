@@ -1,13 +1,23 @@
 from __future__ import annotations
 
+import binascii
 from typing import Any
 
+from cryptography.exceptions import InvalidTag
+from tortoise.exceptions import OperationalError
+
 from apps.api.config import Settings
+from apps.api.core.logging import get_logger
 from apps.api.modules.system.models.setting import SettingRecord
 from apps.api.plugin.manifest import ConfigSchema
 from apps.api.settings.crypto import decrypt_secret, is_encrypted, load_master_key, master_key_exists
 from apps.api.settings.scopes import SCOPE_TYPE_ORG, SCOPE_TYPE_SYSTEM, SYSTEM_SCOPE_ID
 from apps.api.settings.validation import iter_secret_field_paths
+
+logger = get_logger(__name__)
+_SCOPED_PLUGIN_SETTINGS_LOAD_ERRORS = (OperationalError, RuntimeError, ValueError, TypeError, OSError)
+_MASTER_KEY_LOAD_ERRORS = (binascii.Error, RuntimeError, ValueError, TypeError, OSError, UnicodeError)
+_SECRET_DECRYPT_ERRORS = (binascii.Error, RuntimeError, ValueError, TypeError, OSError, UnicodeError, InvalidTag)
 
 
 async def get_system_plugin_settings_decrypted(
@@ -78,15 +88,31 @@ async def get_scoped_plugin_settings_decrypted(
         raw = record.value if record and isinstance(record.value, dict) else None
         if isinstance(raw, dict):
             base = dict(raw)
-    except Exception:
+    except _SCOPED_PLUGIN_SETTINGS_LOAD_ERRORS as exc:
         # Best-effort: do not break auth flows if DB is not ready.
+        logger.warning(
+            "Plugin scoped settings load failed",
+            action="load_scoped_plugin_settings",
+            plugin_id=plugin_id,
+            scope_type=scope_type,
+            scope_id=str(scope_id),
+            error=str(exc),
+        )
         return base
 
     # Decrypt secret fields (best-effort).
     if master_key_exists(settings.setup.master_key_path):
         try:
             key = load_master_key(settings.setup.master_key_path)
-        except Exception:
+        except _MASTER_KEY_LOAD_ERRORS as exc:
+            logger.warning(
+                "Plugin settings master key load failed",
+                action="load_plugin_master_key",
+                plugin_id=plugin_id,
+                scope_type=scope_type,
+                scope_id=str(scope_id),
+                error=str(exc),
+            )
             key = None
     else:
         key = None
@@ -112,7 +138,16 @@ async def get_scoped_plugin_settings_decrypted(
         try:
             aad = f"{scope_type}:{scope_id}:{namespace}:{path}"
             section[field_key] = decrypt_secret(val, key=key, aad=aad)
-        except Exception:
+        except _SECRET_DECRYPT_ERRORS as exc:
+            logger.warning(
+                "Plugin settings secret decrypt failed",
+                action="decrypt_plugin_secret",
+                plugin_id=plugin_id,
+                scope_type=scope_type,
+                scope_id=str(scope_id),
+                secret_path=path,
+                error=str(exc),
+            )
             section[field_key] = None
 
     return base

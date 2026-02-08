@@ -1,11 +1,17 @@
 from __future__ import annotations
 
+from tortoise.exceptions import OperationalError
+
 from apps.api.core.exceptions import Forbidden
 from apps.api.core.i18n import t
+from apps.api.core.logging import get_logger
 from apps.api.modules.organization.runtime import get_single_organization_id
 from apps.api.modules.system.models.plugin import PluginRecord
 from apps.api.modules.workspaces.context import get_current_workspace_id
 from apps.api.plugin.types import PluginStatus
+
+logger = get_logger(__name__)
+_PLUGIN_STATE_LOAD_ERRORS = (ImportError, OperationalError, RuntimeError, ValueError, TypeError)
 
 
 def require_plugin_enabled(plugin_id: str, *, management_scope: str = "workspace"):
@@ -36,7 +42,14 @@ def require_plugin_enabled(plugin_id: str, *, management_scope: str = "workspace
                     )
             except Forbidden:
                 raise
-            except Exception:
+            except _PLUGIN_STATE_LOAD_ERRORS as exc:
+                logger.warning(
+                    "Organization plugin state check failed",
+                    action="check_org_plugin_state",
+                    plugin_id=plugin_id,
+                    organization_id=str(organization_id),
+                    error=str(exc),
+                )
                 raise Forbidden(
                     message=t("plugin", "PLUGIN_DISABLED", default="插件未启用"),
                     error="PLUGIN_DISABLED",
@@ -58,8 +71,15 @@ def require_plugin_enabled(plugin_id: str, *, management_scope: str = "workspace
                 )
         except Forbidden:
             raise
-        except Exception:
-            # Fail closed: if state can't be loaded, block plugin routes for safety.
+        except _PLUGIN_STATE_LOAD_ERRORS as exc:
+            # Fail closed: if state cannot be loaded, block plugin routes for safety.
+            logger.warning(
+                "Workspace plugin state check failed",
+                action="check_workspace_plugin_state",
+                plugin_id=plugin_id,
+                workspace_id=str(workspace_id),
+                error=str(exc),
+            )
             raise Forbidden(
                 message=t("plugin", "PLUGIN_DISABLED", default="插件未启用"),
                 error="PLUGIN_DISABLED",

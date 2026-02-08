@@ -89,7 +89,7 @@ class SitePublishingRepository(BaseRepository):
             if is_public_id(raw):
                 try:
                     parsed.append(decode_public_id(raw))
-                except Exception:
+                except ValueError:
                     invalid.append(raw)
                 continue
 
@@ -102,7 +102,7 @@ class SitePublishingRepository(BaseRepository):
 
             try:
                 parsed.append(UUID(raw))
-            except Exception:
+            except ValueError:
                 invalid.append(raw)
 
         if not parsed and not invalid:

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime
 from typing import cast
@@ -36,6 +37,18 @@ from apps.api.modules.workspaces.models.workspace_invite import (
     WorkspaceInviteLink,
     WorkspaceInviteLinkUseEvent,
 )
+
+_FATAL_INVITATION_FLOW_ERRORS: tuple[type[BaseException], ...] = (
+    asyncio.CancelledError,
+    GeneratorExit,
+    KeyboardInterrupt,
+    SystemExit,
+)
+
+
+def _raise_if_fatal(exc: BaseException) -> None:
+    if isinstance(exc, _FATAL_INVITATION_FLOW_ERRORS):
+        raise exc
 
 
 class AuthInvitationAcceptanceService(BaseService):
@@ -276,8 +289,16 @@ class AuthInvitationAcceptanceService(BaseService):
                         notifications_cfg.get("invite_enabled"), bool
                     ):
                         invite_enabled = bool(notifications_cfg.get("invite_enabled"))
-                except Exception:
+                except BaseException as exc:
+                    _raise_if_fatal(exc)
                     invite_enabled = True
+                    self.logger.warning(
+                        "Invite notification switch resolve failed",
+                        action="resolve_invite_notification_switch",
+                        org_id=str(organization_id),
+                        inviter_user_id=str(inviter_user_id),
+                        error=str(exc),
+                    )
 
                 if invite_enabled:
                     await NotificationRecord.create(
@@ -301,7 +322,8 @@ class AuthInvitationAcceptanceService(BaseService):
                         event_name="team.invitation.accepted",
                         dedupe_key=f"workspace.invitation.accepted:{code}",
                     )
-            except Exception as exc:
+            except BaseException as exc:
+                _raise_if_fatal(exc)
                 self.logger.warning(
                     "Notification create failed (invite accepted)",
                     error=str(exc),
@@ -329,8 +351,18 @@ class AuthInvitationAcceptanceService(BaseService):
                         actor_user_id=str(accepted_user_id),
                     )
                 )
-            except Exception:
-                pass
+            except BaseException as exc:
+                _raise_if_fatal(exc)
+                self.logger.warning(
+                    "Invite acceptance event publish failed",
+                    action="publish_workspace_invite_accepted_event",
+                    event_name="workspace.invite.accepted",
+                    org_id=str(organization_id),
+                    workspace_id=str(workspace_id),
+                    inviter_user_id=str(inviter_user_id) if inviter_user_id else None,
+                    actor_user_id=str(accepted_user_id),
+                    error=str(exc),
+                )
 
         return tokens
 
@@ -543,7 +575,8 @@ class AuthInvitationAcceptanceService(BaseService):
                     event_name="workspace.invitation.accepted",
                     dedupe_key=f"workspace.invitation.accepted:{code}",
                 )
-            except Exception as exc:
+            except BaseException as exc:
+                _raise_if_fatal(exc)
                 self.logger.warning(
                     "Notification create failed (invite accepted existing)",
                     error=str(exc),

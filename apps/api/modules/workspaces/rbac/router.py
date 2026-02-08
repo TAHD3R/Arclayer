@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from uuid import UUID
 
 from fastapi import APIRouter, Depends
@@ -8,6 +9,7 @@ from apps.api.config import Settings, get_settings
 from apps.api.core.http.pagination import PageData, PageParams, get_page_params, paginate_items
 from apps.api.core.http.response import Response, ResponseModel
 from apps.api.core.i18n import get_current_locale
+from apps.api.core.logging import get_logger
 from apps.api.modules.auth.deps import get_current_user_id
 from apps.api.modules.system.models.rbac import PermissionScope
 from apps.api.modules.workspaces.authz.deps import require_workspace_permission
@@ -25,6 +27,46 @@ from apps.api.modules.workspaces.rbac.schema import (
 from apps.api.modules.workspaces.rbac.service import WorkspaceRBACService
 
 router = APIRouter(prefix="/workspaces/{workspace_id}/rbac", tags=["Workspace RBAC"])
+logger = get_logger(__name__)
+_FATAL_RBAC_EVENT_ERRORS: tuple[type[BaseException], ...] = (
+    asyncio.CancelledError,
+    GeneratorExit,
+    KeyboardInterrupt,
+    SystemExit,
+)
+
+
+def _raise_if_fatal(exc: BaseException) -> None:
+    if isinstance(exc, _FATAL_RBAC_EVENT_ERRORS):
+        raise exc
+
+
+async def _publish_rbac_event(*, event_name: str, payload: dict[str, str | list[str] | None], actor_user_id: UUID) -> None:
+    try:
+        from asgi_correlation_id import correlation_id
+
+        from apps.api.plugin.event_bus import Event
+        from apps.api.plugin.host import host as plugin_host
+
+        await plugin_host.event_bus.publish(
+            Event(
+                name=event_name,
+                payload=payload,
+                source="api",
+                trace_id=correlation_id.get(None),
+                actor_user_id=str(actor_user_id),
+            )
+        )
+    except BaseException as exc:
+        _raise_if_fatal(exc)
+        logger.warning(
+            "Workspace RBAC event publish failed",
+            action="publish_workspace_rbac_event",
+            event_name=event_name,
+            workspace_id=str(payload.get("workspace_id") or ""),
+            actor_user_id=str(actor_user_id),
+            error=str(exc),
+        )
 
 
 def get_rbac_service(settings: Settings = Depends(get_settings)) -> WorkspaceRBACService:
@@ -141,23 +183,11 @@ async def create_role(
         description=body.description,
         template_role_code=body.template_role_code,
     )
-    try:
-        from asgi_correlation_id import correlation_id
-
-        from apps.api.plugin.event_bus import Event
-        from apps.api.plugin.host import host as plugin_host
-
-        await plugin_host.event_bus.publish(
-            Event(
-                name="rbac.role.created",
-                payload={"workspace_id": str(ctx.workspace_id), "role_code": role.code, "role_id": str(role.id)},
-                source="api",
-                trace_id=correlation_id.get(None),
-                actor_user_id=str(user_id),
-            )
-        )
-    except Exception:
-        pass
+    await _publish_rbac_event(
+        event_name="rbac.role.created",
+        payload={"workspace_id": str(ctx.workspace_id), "role_code": role.code, "role_id": str(role.id)},
+        actor_user_id=user_id,
+    )
     return Response.success(data=WorkspaceRoleOut.model_validate(service.localize_role(role, locale=locale)))
 
 
@@ -181,23 +211,11 @@ async def update_role(
         name=body.name,
         description=body.description,
     )
-    try:
-        from asgi_correlation_id import correlation_id
-
-        from apps.api.plugin.event_bus import Event
-        from apps.api.plugin.host import host as plugin_host
-
-        await plugin_host.event_bus.publish(
-            Event(
-                name="rbac.role.updated",
-                payload={"workspace_id": str(ctx.workspace_id), "role_code": role.code, "role_id": str(role.id)},
-                source="api",
-                trace_id=correlation_id.get(None),
-                actor_user_id=str(user_id),
-            )
-        )
-    except Exception:
-        pass
+    await _publish_rbac_event(
+        event_name="rbac.role.updated",
+        payload={"workspace_id": str(ctx.workspace_id), "role_code": role.code, "role_id": str(role.id)},
+        actor_user_id=user_id,
+    )
     return Response.success(data=WorkspaceRoleOut.model_validate(service.localize_role(role, locale=locale)))
 
 
@@ -214,23 +232,11 @@ async def delete_role(
     service: WorkspaceRBACService = Depends(get_rbac_service),
 ) -> ResponseModel[None]:
     await service.delete_custom_role(workspace_id=ctx.workspace_id, role_code=role_code)
-    try:
-        from asgi_correlation_id import correlation_id
-
-        from apps.api.plugin.event_bus import Event
-        from apps.api.plugin.host import host as plugin_host
-
-        await plugin_host.event_bus.publish(
-            Event(
-                name="rbac.role.deleted",
-                payload={"workspace_id": str(ctx.workspace_id), "role_code": str(role_code)},
-                source="api",
-                trace_id=correlation_id.get(None),
-                actor_user_id=str(user_id),
-            )
-        )
-    except Exception:
-        pass
+    await _publish_rbac_event(
+        event_name="rbac.role.deleted",
+        payload={"workspace_id": str(ctx.workspace_id), "role_code": str(role_code)},
+        actor_user_id=user_id,
+    )
     return Response.success()
 
 
@@ -252,27 +258,15 @@ async def set_permission_roles(
         permission_code=permission_code,
         role_codes=body.role_codes,
     )
-    try:
-        from asgi_correlation_id import correlation_id
-
-        from apps.api.plugin.event_bus import Event
-        from apps.api.plugin.host import host as plugin_host
-
-        await plugin_host.event_bus.publish(
-            Event(
-                name="rbac.permission.roles_set",
-                payload={
-                    "workspace_id": str(ctx.workspace_id),
-                    "permission_code": str(permission_code),
-                    "role_codes": sorted({str(x).strip() for x in (body.role_codes or []) if x and str(x).strip()}),
-                },
-                source="api",
-                trace_id=correlation_id.get(None),
-                actor_user_id=str(user_id),
-            )
-        )
-    except Exception:
-        pass
+    await _publish_rbac_event(
+        event_name="rbac.permission.roles_set",
+        payload={
+            "workspace_id": str(ctx.workspace_id),
+            "permission_code": str(permission_code),
+            "role_codes": sorted({str(x).strip() for x in (body.role_codes or []) if x and str(x).strip()}),
+        },
+        actor_user_id=user_id,
+    )
     return Response.success()
 
 
@@ -294,27 +288,15 @@ async def set_role_permissions(
         role_code=role_code,
         permission_codes=body.permission_codes,
     )
-    try:
-        from asgi_correlation_id import correlation_id
-
-        from apps.api.plugin.event_bus import Event
-        from apps.api.plugin.host import host as plugin_host
-
-        await plugin_host.event_bus.publish(
-            Event(
-                name="rbac.role.permissions_set",
-                payload={
-                    "workspace_id": str(ctx.workspace_id),
-                    "role_code": str(role_code),
-                    "permission_codes": sorted({
-                        str(x).strip() for x in (body.permission_codes or []) if x and str(x).strip()
-                    }),
-                },
-                source="api",
-                trace_id=correlation_id.get(None),
-                actor_user_id=str(user_id),
-            )
-        )
-    except Exception:
-        pass
+    await _publish_rbac_event(
+        event_name="rbac.role.permissions_set",
+        payload={
+            "workspace_id": str(ctx.workspace_id),
+            "role_code": str(role_code),
+            "permission_codes": sorted({
+                str(x).strip() for x in (body.permission_codes or []) if x and str(x).strip()
+            }),
+        },
+        actor_user_id=user_id,
+    )
     return Response.success()

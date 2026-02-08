@@ -1,15 +1,33 @@
 from __future__ import annotations
 
+import asyncio
 from typing import Any, cast
 from uuid import UUID
+
+from tortoise.exceptions import OperationalError
 
 from apps.api.common.protocols.tortoise import HasWorkspaceId
 from apps.api.common.services import BaseService
 from apps.api.config import Settings
+from apps.api.core.logging import get_logger
 from apps.api.modules.sites.portal_extensions.schema import PortalExtensionOut
 from apps.api.modules.sites.repository import SitesRepository
 from apps.api.plugin.manager import PluginManager
 from apps.api.plugin.types import PluginStatus
+
+logger = get_logger(__name__)
+_FATAL_PORTAL_EXTENSION_ERRORS: tuple[type[BaseException], ...] = (
+    asyncio.CancelledError,
+    GeneratorExit,
+    KeyboardInterrupt,
+    SystemExit,
+)
+_WORKSPACE_PLUGIN_STATE_LOOKUP_ERRORS = (OperationalError, RuntimeError, ValueError, TypeError)
+
+
+def _raise_if_fatal(exc: BaseException) -> None:
+    if isinstance(exc, _FATAL_PORTAL_EXTENSION_ERRORS):
+        raise exc
 
 
 class PortalExtensionsService(BaseService):
@@ -33,8 +51,14 @@ class PortalExtensionsService(BaseService):
                 "plugin_id", flat=True
             )
             return {str(x) for x in rows if x}
-        except Exception:
+        except _WORKSPACE_PLUGIN_STATE_LOOKUP_ERRORS as exc:
             # Compatibility: during rollout, the workspace_plugins table may not exist yet.
+            logger.warning(
+                "Portal extension workspace plugin state lookup failed",
+                action="list_portal_extensions_workspace_state",
+                workspace_id=str(workspace_id),
+                error=str(exc),
+            )
             return None
 
     async def list_portal_extensions_for_site(
@@ -59,8 +83,13 @@ class PortalExtensionsService(BaseService):
         if self.settings.database.enabled and not plugin_manager.records:
             try:
                 await plugin_manager.sync_records()
-            except Exception:
-                pass
+            except BaseException as exc:
+                _raise_if_fatal(exc)
+                logger.warning(
+                    "Portal extension plugin record sync failed",
+                    action="list_portal_extensions_sync_records",
+                    error=str(exc),
+                )
 
         want_mode = (mode or "").strip().lower() or "public"
 

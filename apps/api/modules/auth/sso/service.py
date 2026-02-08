@@ -1,16 +1,19 @@
 from __future__ import annotations
 
+import asyncio
 from typing import Any, cast
 from urllib.parse import urlencode
 from uuid import UUID
 
 from fastapi import Request
+from tortoise.exceptions import OperationalError
 
 from apps.api.common.protocols.auth_sso import AuthSSOProviderDecl
 from apps.api.common.services.base import BaseService
 from apps.api.config import Settings
 from apps.api.core.exceptions import BadRequest, ServiceUnavailable
 from apps.api.core.i18n import t
+from apps.api.core.logging import get_logger
 from apps.api.infra.cache.valkey import ValkeyClientLike
 from apps.api.modules.auth.service import AuthService
 from apps.api.modules.auth.sso.exchange_store import consume_exchange_payload
@@ -21,6 +24,20 @@ from apps.api.plugin.manager import PluginManager
 from apps.api.plugin.manifest import build_default_config
 from apps.api.plugin.types import PluginStatus
 from apps.api.settings.runtime_plugins import get_org_plugin_settings_decrypted
+
+logger = get_logger(__name__)
+_FATAL_SSO_ERRORS: tuple[type[BaseException], ...] = (
+    asyncio.CancelledError,
+    GeneratorExit,
+    KeyboardInterrupt,
+    SystemExit,
+)
+_SSO_STATE_LOOKUP_ERRORS = (OperationalError, RuntimeError, TypeError, ValueError)
+
+
+def _raise_if_fatal(exc: BaseException) -> None:
+    if isinstance(exc, _FATAL_SSO_ERRORS):
+        raise exc
 
 
 def _ta(key: str, default: str) -> str:
@@ -106,8 +123,15 @@ class AuthSSOService(BaseService):
 
             try:
                 state = await OrganizationPluginState.get_or_none(organization_id=organization_id, plugin_id=plugin_id)
-            except Exception:
+            except _SSO_STATE_LOOKUP_ERRORS as exc:
                 # Rollout compatibility: treat missing org plugin state storage as disabled.
+                logger.warning(
+                    "SSO provider org plugin state lookup failed",
+                    plugin_id=plugin_id,
+                    organization_id=str(organization_id),
+                    action="sso_provider_state_lookup",
+                    error=str(exc),
+                )
                 continue
             if state is None or not bool(state.enabled):
                 continue
@@ -128,7 +152,14 @@ class AuthSSOService(BaseService):
 
             try:
                 enabled = bool(decl.is_enabled(plugin_config=config))
-            except Exception:
+            except BaseException as exc:
+                _raise_if_fatal(exc)
+                logger.warning(
+                    "SSO provider availability check failed",
+                    plugin_id=plugin_id,
+                    action="sso_provider_enabled_check",
+                    error=str(exc),
+                )
                 enabled = False
             if not enabled:
                 continue
@@ -165,7 +196,7 @@ class AuthSSOService(BaseService):
         # Keep defensive parsing: plugin implementations may still pass string IDs.
         try:
             user_uuid = UUID(str(payload.user_id))
-        except Exception:
+        except (TypeError, ValueError):
             raise BadRequest(message=_ta("SSO_CODE_INVALID", "登录码无效"), error="SSO_CODE_INVALID")
 
         tokens = await self.auth_service.issue_token_pair_for_user(user_uuid)

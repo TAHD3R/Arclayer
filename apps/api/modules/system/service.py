@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from datetime import UTC, datetime
 from typing import Any, cast
 from uuid import UUID
@@ -23,6 +24,19 @@ from apps.api.settings.crypto import ensure_master_key, master_key_exists
 
 def _ts(key: str, default: str) -> str:
     return t("setup", key, default=default)
+
+
+_FATAL_SYSTEM_SETUP_ERRORS: tuple[type[BaseException], ...] = (
+    asyncio.CancelledError,
+    GeneratorExit,
+    KeyboardInterrupt,
+    SystemExit,
+)
+
+
+def _raise_if_fatal(exc: BaseException) -> None:
+    if isinstance(exc, _FATAL_SYSTEM_SETUP_ERRORS):
+        raise exc
 
 
 class SystemSetupService(BaseService):
@@ -182,11 +196,14 @@ class SystemSetupService(BaseService):
                     patch=workspace_patch,
                     updated_by=user.id,
                 )
-            except Exception as exc:
+            except BaseException as exc:
+                _raise_if_fatal(exc)
                 self.logger.warning(
                     "Persist workspace core settings during setup failed",
+                    action="setup_patch_workspace_core_settings",
                     error=str(exc),
                     workspace_id=str(workspace_id),
+                    user_id=str(user.id),
                 )
 
         # v2: RBAC is workspace-scoped for the admin console. We already ensure the setup user
@@ -203,8 +220,15 @@ class SystemSetupService(BaseService):
                     actor_user_id=str(user.id),
                 )
             )
-        except Exception:
-            pass
+        except BaseException as exc:
+            _raise_if_fatal(exc)
+            self.logger.warning(
+                "System setup completion event publish failed",
+                action="publish_system_setup_completed_event",
+                event_name=SYSTEM_SETUP_COMPLETED,
+                user_id=str(user.id),
+                error=str(exc),
+            )
         return now, fingerprint, user, rbac_ok, organization
 
     async def _ensure_default_workspace(self, *, org_id, owner_user_id, workspace_name: str) -> UUID | None:
@@ -277,8 +301,15 @@ class SystemSetupService(BaseService):
             if role_owner is not None:
                 await WorkspaceMembershipRole.get_or_create(membership_id=wsm.id, role_id=role_owner.id)
             return ws.id
-        except Exception as exc:
-            self.logger.warning("Ensure default workspace failed", error=str(exc), org_id=str(org_id))
+        except BaseException as exc:
+            _raise_if_fatal(exc)
+            self.logger.warning(
+                "Ensure default workspace failed",
+                action="ensure_default_workspace",
+                error=str(exc),
+                org_id=str(org_id),
+                user_id=str(owner_user_id),
+            )
             return None
 
     async def _create_default_organization(

@@ -12,6 +12,17 @@ from apps.api.common.schemas import BaseSchema
 from apps.api.core.logging import get_logger
 
 logger = get_logger(__name__)
+_FATAL_EVENT_BUS_ERRORS: tuple[type[BaseException], ...] = (
+    GeneratorExit,
+    KeyboardInterrupt,
+    SystemExit,
+)
+
+
+def _raise_if_fatal(exc: BaseException) -> None:
+    if isinstance(exc, _FATAL_EVENT_BUS_ERRORS):
+        raise exc
+
 
 EventHandler = Callable[["Event"], Awaitable[None]]
 
@@ -170,7 +181,8 @@ class EventBus:
             await sub.handler(event)
         except asyncio.CancelledError:
             raise
-        except Exception as exc:
+        except BaseException as exc:
+            _raise_if_fatal(exc)
             logger.exception(
                 "Event handler failed",
                 event_name=event.name,
@@ -201,7 +213,8 @@ class EventBus:
                 _ = t.result()
             except asyncio.CancelledError:
                 return
-            except Exception as exc:  # pragma: no cover
+            except BaseException as exc:  # pragma: no cover
+                _raise_if_fatal(exc)
                 # _run_handler already logs exceptions; this is a last resort.
                 logger.warning("Event task failed", error=str(exc))
 

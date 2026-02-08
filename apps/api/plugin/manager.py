@@ -33,6 +33,21 @@ from apps.api.plugin.types import BasePlugin, PluginDescriptor, PluginStatus
 
 logger = get_logger(__name__)
 
+PLUGIN_MIGRATION_ERRORS = (RuntimeError, OSError, ValueError)
+MIGRATION_LOCK_RELEASE_ERRORS = (RuntimeError, OSError, ValueError, TypeError)
+VERSION_COMPARISON_ERRORS = (TypeError, ValueError)
+_FATAL_PLUGIN_ERRORS: tuple[type[BaseException], ...] = (
+    asyncio.CancelledError,
+    GeneratorExit,
+    KeyboardInterrupt,
+    SystemExit,
+)
+
+
+def _raise_if_fatal(exc: BaseException) -> None:
+    if isinstance(exc, _FATAL_PLUGIN_ERRORS):
+        raise exc
+
 
 class _AsyncEval(Protocol):
     async def eval(self, script: str, numkeys: int, *keys_and_args: Any) -> Any: ...
@@ -202,7 +217,7 @@ class PluginManager:
             ):
                 try:
                     await self._run_migrations(plugin_id)
-                except Exception as exc:
+                except PLUGIN_MIGRATION_ERRORS as exc:
                     if record:
                         record.status = PluginStatus.FAILED
                         await record.save()
@@ -244,7 +259,7 @@ class PluginManager:
             if self.settings.plugin.auto_migrate:
                 try:
                     await self._run_migrations(plugin_id)
-                except Exception as exc:
+                except PLUGIN_MIGRATION_ERRORS as exc:
                     record.status = PluginStatus.FAILED
                     await record.save()
                     logger.exception("Plugin migration failed", plugin_id=plugin_id, error=str(exc))
@@ -298,7 +313,14 @@ class PluginManager:
                     source="core",
                 )
             )
-        except Exception:
+        except BaseException as exc:
+            _raise_if_fatal(exc)
+            logger.warning(
+                "Plugin event publish failed",
+                event_name=event_name,
+                plugin_id=plugin_id,
+                error=str(exc),
+            )
             return
 
     async def request_restart(self, plugin_id: str | None, *, reason: str) -> None:
@@ -470,8 +492,13 @@ class PluginManager:
             # Register into pluggy so hooks become available immediately.
             try:
                 self.host.unregister(name=descriptor.plugin_id)
-            except Exception:
-                pass
+            except BaseException as exc:
+                _raise_if_fatal(exc)
+                logger.debug(
+                    "Plugin unregister before start failed",
+                    plugin_id=descriptor.plugin_id,
+                    error=str(exc),
+                )
             self.host.register(instance, name=descriptor.plugin_id)
             instance.on_load()
             await instance.on_start()
@@ -484,18 +511,29 @@ class PluginManager:
                 await record.save()
 
             logger.info("Plugin started", plugin_id=descriptor.plugin_id)
-        except Exception as exc:
+        except BaseException as exc:
+            _raise_if_fatal(exc)
             logger.exception("Plugin start failed", plugin_id=descriptor.plugin_id, error=str(exc))
             # Ensure partially-registered extensions don't leak across app lifecycles/tests.
             try:
                 await self.host.event_bus.unsubscribe_all(descriptor.plugin_id)
-            except Exception:
+            except BaseException as cleanup_exc:
+                _raise_if_fatal(cleanup_exc)
                 # Keep cleanup best-effort.
-                pass
+                logger.warning(
+                    "Plugin cleanup unsubscribe failed",
+                    plugin_id=descriptor.plugin_id,
+                    error=str(cleanup_exc),
+                )
             try:
                 self.host.unregister(name=descriptor.plugin_id)
-            except Exception:
-                pass
+            except BaseException as cleanup_exc:
+                _raise_if_fatal(cleanup_exc)
+                logger.warning(
+                    "Plugin cleanup unregister failed",
+                    plugin_id=descriptor.plugin_id,
+                    error=str(cleanup_exc),
+                )
             self.instances.pop(descriptor.plugin_id, None)
             if record:
                 record.status = PluginStatus.FAILED
@@ -507,18 +545,29 @@ class PluginManager:
             await instance.on_stop()
             instance.started = False
             stop_ok = True
-        except Exception as exc:
+        except BaseException as exc:
+            _raise_if_fatal(exc)
             logger.exception("Plugin stop failed", plugin_id=plugin_id, error=str(exc))
         finally:
             # Plugins may forget to unregister their contributions; enforce cleanup here.
             try:
                 await self.host.event_bus.unsubscribe_all(plugin_id)
-            except Exception:
-                pass
+            except BaseException as cleanup_exc:
+                _raise_if_fatal(cleanup_exc)
+                logger.warning(
+                    "Plugin stop cleanup unsubscribe failed",
+                    plugin_id=plugin_id,
+                    error=str(cleanup_exc),
+                )
             try:
                 self.host.unregister(name=plugin_id)
-            except Exception:
-                pass
+            except BaseException as cleanup_exc:
+                _raise_if_fatal(cleanup_exc)
+                logger.warning(
+                    "Plugin stop cleanup unregister failed",
+                    plugin_id=plugin_id,
+                    error=str(cleanup_exc),
+                )
             record = self.records.get(plugin_id)
             if record and stop_ok:
                 record.status = PluginStatus.STOPPED
@@ -579,7 +628,7 @@ class PluginManager:
         try:
             redis = cast(_AsyncEval, self.valkey.raw)
             await redis.eval(script, 1, key, token)
-        except Exception as exc:
+        except MIGRATION_LOCK_RELEASE_ERRORS as exc:
             logger.warning("Plugin migration lock release failed", error=str(exc))
 
     async def _run_aerich(self, *args: str) -> None:
@@ -654,7 +703,7 @@ def _satisfies_version(installed: str, spec: str) -> bool:
         return Version(installed) in SpecifierSet(spec)
     except InvalidVersion:
         return False
-    except Exception:
+    except VERSION_COMPARISON_ERRORS:
         return False
 
 

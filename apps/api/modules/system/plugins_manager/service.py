@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import zipfile
 from pathlib import Path
 from typing import Any
@@ -35,6 +36,18 @@ from apps.api.plugin.manifest import ConfigSchema, PluginManifest, load_plugin_m
 from apps.api.plugin.types import PluginStatus
 
 logger = get_logger(__name__)
+
+_FATAL_PLUGIN_SERVICE_ERRORS: tuple[type[BaseException], ...] = (
+    asyncio.CancelledError,
+    GeneratorExit,
+    KeyboardInterrupt,
+    SystemExit,
+)
+
+
+def _raise_if_fatal(exc: BaseException) -> None:
+    if isinstance(exc, _FATAL_PLUGIN_SERVICE_ERRORS):
+        raise exc
 
 
 def _tp(key: str, default: str) -> str:
@@ -189,7 +202,8 @@ class PluginService(BaseService):
                     update_existing=False,
                     restore_deleted=True,
                 )
-        except Exception as exc:
+        except BaseException as exc:
+            _raise_if_fatal(exc)
             logger.warning(
                 "Plugin admin menu seed failed on enable",
                 plugin_id=plugin_id,
@@ -258,11 +272,13 @@ class PluginService(BaseService):
                         source="core",
                     )
                 )
-        except Exception as exc:
+        except BaseException as exc:
+            _raise_if_fatal(exc)
             logger.warning(
                 "Plugin settings update event publish failed",
                 plugin_id=plugin_id,
                 action="publish_plugin_settings_updated_event",
+                event_name=SETTINGS_UPDATED,
                 error=str(exc),
             )
         return record, requires_restart

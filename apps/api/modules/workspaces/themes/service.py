@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any, cast
 from uuid import UUID
 
+from pydantic import ValidationError
 from starlette.responses import RedirectResponse, Response
 
 from apps.api.common.services.base import BaseService
@@ -31,6 +32,16 @@ from apps.api.settings.runtime import get_effective_settings
 from apps.api.settings.scopes import SCOPE_TYPE_SITE
 
 THEME_ACTIVE_NAMESPACE = "theme.active"
+THEME_IMPORT_VALIDATION_ERRORS = (
+    zipfile.BadZipFile,
+    OSError,
+    ValueError,
+    json.JSONDecodeError,
+    UnicodeDecodeError,
+    ValidationError,
+)
+THEME_STORAGE_PROVIDER_BUILD_ERRORS = (RuntimeError, ValueError, TypeError, OSError)
+THEME_JSON_PARSE_ERRORS = (json.JSONDecodeError, UnicodeDecodeError)
 
 _FORBIDDEN_EXTS = {
     # Explicit v0 contract: theme packages must be static artifacts.
@@ -140,7 +151,7 @@ class WorkspaceThemesService(BaseService):
             manifest, variants_payload, presets_payload, entrypoints = self._read_and_validate_theme_zip(zip_path)
         except BadRequest:
             raise
-        except Exception as exc:
+        except THEME_IMPORT_VALIDATION_ERRORS as exc:
             # Keep the external error stable; log the details.
             self.logger.warning("theme_import_failed", extra={"asset_id": str(asset_id), "error": str(exc)})
             raise BadRequest(message="Invalid theme package", error="THEME_IMPORT_INVALID") from None
@@ -253,7 +264,7 @@ class WorkspaceThemesService(BaseService):
             effective = await get_effective_settings(self.settings)
             try:
                 provider = build_storage_provider_for(effective, provider="s3")
-            except Exception:
+            except THEME_STORAGE_PROVIDER_BUILD_ERRORS:
                 raise NotFound(message="Theme artifact not found", error="THEME_ARTIFACT_NOT_FOUND")
             if not isinstance(provider, S3StorageProvider):
                 raise NotFound(message="Theme artifact not found", error="THEME_ARTIFACT_NOT_FOUND")
@@ -303,7 +314,7 @@ class WorkspaceThemesService(BaseService):
             effective = await get_effective_settings(self.settings)
             try:
                 provider = build_storage_provider_for(effective, provider="s3")
-            except Exception:
+            except THEME_STORAGE_PROVIDER_BUILD_ERRORS:
                 raise NotFound(message="Theme import asset not accessible", error="THEME_IMPORT_STORAGE_UNAVAILABLE")
             if not isinstance(provider, S3StorageProvider):
                 raise NotFound(message="Theme import asset not accessible", error="THEME_IMPORT_STORAGE_UNAVAILABLE")
@@ -352,12 +363,12 @@ class WorkspaceThemesService(BaseService):
             manifest_raw = zf.read(manifest_path)
             try:
                 manifest_obj = json.loads(manifest_raw.decode("utf-8"))
-            except Exception:
+            except THEME_JSON_PARSE_ERRORS:
                 raise BadRequest(message="manifest.json must be valid JSON", error="THEME_IMPORT_MANIFEST_INVALID")
 
             try:
                 manifest = ThemeManifestIn.model_validate(manifest_obj)
-            except Exception as exc:
+            except ValidationError as exc:
                 raise BadRequest(
                     message="manifest.json validation failed",
                     error="THEME_IMPORT_MANIFEST_VALIDATION_FAILED",
@@ -412,7 +423,7 @@ class WorkspaceThemesService(BaseService):
                         )
                     try:
                         var_obj = json.loads(zf.read(var_path).decode("utf-8"))
-                    except Exception:
+                    except THEME_JSON_PARSE_ERRORS:
                         raise BadRequest(
                             message="Variant JSON must be valid",
                             error="THEME_IMPORT_VARIANT_JSON_INVALID",
@@ -420,7 +431,7 @@ class WorkspaceThemesService(BaseService):
                         )
                     try:
                         payload = ThemeVariantPayloadIn.model_validate(var_obj)
-                    except Exception as exc:
+                    except ValidationError as exc:
                         raise BadRequest(
                             message="Variant payload validation failed",
                             error="THEME_IMPORT_VARIANT_VALIDATION_FAILED",
@@ -450,7 +461,7 @@ class WorkspaceThemesService(BaseService):
                         )
                     try:
                         obj = json.loads(zf.read(p_path).decode("utf-8"))
-                    except Exception:
+                    except THEME_JSON_PARSE_ERRORS:
                         raise BadRequest(
                             message="Preset JSON must be valid",
                             error="THEME_IMPORT_PRESET_JSON_INVALID",

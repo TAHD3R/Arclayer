@@ -1,17 +1,19 @@
 from __future__ import annotations
 
+import asyncio
 import base64
 import hashlib
 import inspect
 import secrets
-from datetime import UTC, datetime
 from collections.abc import Awaitable, Callable
+from datetime import UTC, datetime
 from typing import Any, cast
 from urllib.parse import urlencode
 from uuid import UUID
 
 import httpx
 from fastapi import Request
+from pydantic import ValidationError
 from starlette.responses import RedirectResponse
 from tortoise.expressions import Q
 
@@ -29,7 +31,6 @@ from apps.api.modules.workspaces.invitations.tokens import build_invite_token
 from apps.api.plugin.manifest import PluginManifest, build_default_config
 from apps.api.settings.runtime import get_core_settings_value_cached
 from apps.api.settings.runtime_plugins import get_org_plugin_settings_decrypted
-
 from oauth_social.repository import OAuthSocialRepository
 from oauth_social.schema import (
     GitHubEmailItem,
@@ -37,6 +38,18 @@ from oauth_social.schema import (
     GoogleUserInfo,
     OAuthStatePayload,
 )
+
+_FATAL_OAUTH_SOCIAL_ERRORS: tuple[type[BaseException], ...] = (
+    asyncio.CancelledError,
+    GeneratorExit,
+    KeyboardInterrupt,
+    SystemExit,
+)
+
+
+def _raise_if_fatal(exc: BaseException) -> None:
+    if isinstance(exc, _FATAL_OAUTH_SOCIAL_ERRORS):
+        raise exc
 
 
 def _to_b64url(raw: bytes) -> str:
@@ -190,7 +203,14 @@ class OAuthSocialService(BaseService):
 
             try:
                 config = await self._load_org_plugin_config(require_enabled=True)
-            except Exception:
+            except BaseException as exc:
+                _raise_if_fatal(exc)
+                self.logger.warning(
+                    "OAuth config load failed during callback",
+                    action="load_org_plugin_config",
+                    provider=provider,
+                    error=str(exc),
+                )
                 return self._redirect_to_login_error(frontend_base, error="oauth_failed", redirect=redirect)
 
             subject: str | None = None
@@ -294,7 +314,7 @@ class OAuthSocialService(BaseService):
                         for row in emails_payload:
                             try:
                                 emails.append(GitHubEmailItem.model_validate(row))
-                            except Exception:
+                            except ValidationError:
                                 continue
                     chosen = None
                     for item in emails:
@@ -355,13 +375,20 @@ class OAuthSocialService(BaseService):
             )
 
             return self._redirect_to_frontend_login(frontend_base, oauth_code=exchange_code, redirect=redirect)
-        except Exception:
+        except BaseException as exc:
+            _raise_if_fatal(exc)
+            self.logger.warning(
+                "OAuth callback flow failed",
+                action="oauth_callback",
+                provider=provider,
+                error=str(exc),
+            )
             return self._redirect_to_login_error(frontend_base, error="oauth_failed", redirect=None)
 
     async def _auto_accept_email_invites(self, *, user_id: UUID, email: str) -> None:
         try:
-            from apps.api.modules.workspaces.models.workspace_invite import WorkspaceEmailInvite
             from apps.api.modules.organization.models.user import User
+            from apps.api.modules.workspaces.models.workspace_invite import WorkspaceEmailInvite
 
             user = await User.get_or_none(id=user_id)
             if user is None:
@@ -380,9 +407,26 @@ class OAuthSocialService(BaseService):
                         payload=AcceptExistingInvitationRequest(token=token),
                         user=user,
                     )
-                except Exception:
+                except BaseException as exc:
+                    _raise_if_fatal(exc)
+                    self.logger.warning(
+                        "OAuth auto-accept invite failed",
+                        action="auto_accept_single_invite",
+                        user_id=str(user_id),
+                        email=email,
+                        invite_code=str(inv.code),
+                        error=str(exc),
+                    )
                     continue
-        except Exception:
+        except BaseException as exc:
+            _raise_if_fatal(exc)
+            self.logger.warning(
+                "OAuth auto-accept invite flow failed",
+                action="auto_accept_invites",
+                user_id=str(user_id),
+                email=email,
+                error=str(exc),
+            )
             return
 
     async def _load_org_plugin_config(self, *, require_enabled: bool) -> dict[str, Any]:
@@ -400,7 +444,15 @@ class OAuthSocialService(BaseService):
                     organization_id=organization_id,
                     plugin_id=self.manifest.plugin.id,
                 )
-            except Exception:
+            except BaseException as exc:
+                _raise_if_fatal(exc)
+                self.logger.warning(
+                    "OAuth plugin state lookup failed",
+                    action="load_org_plugin_state",
+                    plugin_id=self.manifest.plugin.id,
+                    organization_id=str(organization_id),
+                    error=str(exc),
+                )
                 state = None
             if state is None or not bool(state.enabled):
                 raise Forbidden(message=t("auth", "SSO_UNAVAILABLE", default="SSO 不可用"), error="SSO_UNAVAILABLE")
@@ -434,8 +486,13 @@ class OAuthSocialService(BaseService):
             url = site.get("url") if isinstance(site, dict) else None
             if isinstance(url, str) and url.strip():
                 return url.strip().rstrip("/")
-        except Exception:
-            pass
+        except BaseException as exc:
+            _raise_if_fatal(exc)
+            self.logger.warning(
+                "OAuth frontend base resolve failed",
+                action="resolve_frontend_base_url",
+                error=str(exc),
+            )
         return ""
 
     def _redirect_to_frontend_login(self, base: str, *, oauth_code: str, redirect: str | None) -> RedirectResponse:

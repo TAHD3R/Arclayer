@@ -1,14 +1,33 @@
 from __future__ import annotations
 
+import asyncio
+
+from tortoise.exceptions import OperationalError
+
 from apps.api.common.services import BaseService
 from apps.api.config import Settings
 from apps.api.core.exceptions import ServiceUnavailable
 from apps.api.core.i18n import t
+from apps.api.core.logging import get_logger
 from apps.api.modules.system.admin.extensions.schema import AdminUIExtensionOut
 from apps.api.modules.workspaces.authz_snapshot import get_workspace_authz_snapshot
 from apps.api.modules.workspaces.context import get_current_workspace_id
 from apps.api.plugin.manager import PluginManager
 from apps.api.plugin.types import PluginStatus
+
+logger = get_logger(__name__)
+_FATAL_ADMIN_EXTENSION_ERRORS: tuple[type[BaseException], ...] = (
+    asyncio.CancelledError,
+    GeneratorExit,
+    KeyboardInterrupt,
+    SystemExit,
+)
+_WORKSPACE_PLUGIN_STATE_LOAD_ERRORS = (OperationalError, RuntimeError, ValueError, TypeError)
+
+
+def _raise_if_fatal(exc: BaseException) -> None:
+    if isinstance(exc, _FATAL_ADMIN_EXTENSION_ERRORS):
+        raise exc
 
 
 class AdminExtensionsService(BaseService):
@@ -41,7 +60,13 @@ class AdminExtensionsService(BaseService):
                 "plugin_id", flat=True
             )
             enabled_plugin_ids = {str(x) for x in rows if x}
-        except Exception:
+        except _WORKSPACE_PLUGIN_STATE_LOAD_ERRORS as exc:
+            logger.warning(
+                "Admin extension workspace plugin state lookup failed",
+                action="list_admin_extensions_workspace_state",
+                workspace_id=str(workspace_id),
+                error=str(exc),
+            )
             enabled_plugin_ids = set()
 
         want_slot = (slot or "").strip() or None
@@ -54,8 +79,13 @@ class AdminExtensionsService(BaseService):
             # Fallback to skipping DB status filtering in that case.
             try:
                 await self.plugin_manager.sync_records()
-            except Exception:
-                pass
+            except BaseException as exc:
+                _raise_if_fatal(exc)
+                logger.warning(
+                    "Admin extension plugin record sync failed",
+                    action="list_admin_extensions_sync_records",
+                    error=str(exc),
+                )
 
         items: list[AdminUIExtensionOut] = []
         for plugin_id, desc in self.plugin_manager.descriptors.items():

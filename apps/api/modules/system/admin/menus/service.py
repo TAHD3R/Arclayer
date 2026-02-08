@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from functools import lru_cache
 from typing import cast
 from uuid import UUID
@@ -12,6 +13,7 @@ from apps.api.config import get_settings
 from apps.api.core.exceptions import BadRequest, Conflict, NotFound, ServiceUnavailable
 from apps.api.core.http.pagination import PageData, PageParams, paginate_queryset
 from apps.api.core.i18n import t
+from apps.api.core.logging import get_logger
 from apps.api.modules.system.admin.menus.models import AdminMenuItem, AdminMenuItemType
 from apps.api.modules.system.admin.menus.repository import AdminMenuRepository, normalize_ordering
 from apps.api.modules.system.admin.menus.schema import (
@@ -28,6 +30,19 @@ from apps.api.modules.system.admin.menus.schema import (
 )
 from apps.api.modules.workspaces.authz_snapshot import get_workspace_authz_snapshot
 from apps.api.modules.workspaces.context import get_current_workspace_id
+
+logger = get_logger(__name__)
+_FATAL_ADMIN_MENU_ERRORS: tuple[type[BaseException], ...] = (
+    asyncio.CancelledError,
+    GeneratorExit,
+    KeyboardInterrupt,
+    SystemExit,
+)
+
+
+def _raise_if_fatal(exc: BaseException) -> None:
+    if isinstance(exc, _FATAL_ADMIN_MENU_ERRORS):
+        raise exc
 
 
 def _tr(key: str, default: str) -> str:
@@ -73,7 +88,13 @@ def _core_menu_codes() -> set[str]:
         from apps.api.modules.system.admin.menus.bootstrap import _core_seeds
 
         return {str(s.code).strip() for s in _core_seeds() if getattr(s, "code", None)}
-    except Exception:
+    except BaseException as exc:
+        _raise_if_fatal(exc)
+        logger.warning(
+            "Admin core menu seed lookup failed",
+            action="resolve_core_menu_codes",
+            error=str(exc),
+        )
         return set()
 
 
@@ -147,8 +168,15 @@ class AdminMenuService(BaseService):
                 "plugin_id", flat=True
             )
             enabled_plugin_ids = {str(x) for x in rows if x}
-        except Exception:
+        except BaseException as exc:
+            _raise_if_fatal(exc)
             enabled_plugin_ids = set()
+            logger.warning(
+                "Admin menu workspace plugin state load failed",
+                action="load_workspace_plugin_states",
+                workspace_id=str(workspace_id),
+                error=str(exc),
+            )
 
         rows = await self.repo.query_items_for_user().all().order_by("sort", "created_at")
         by_id = {row.id: row for row in rows}
@@ -308,8 +336,15 @@ class AdminMenuService(BaseService):
                 "plugin_id", flat=True
             )
             enabled_plugin_ids = {str(x) for x in rows if x}
-        except Exception:
+        except BaseException as exc:
+            _raise_if_fatal(exc)
             enabled_plugin_ids = set()
+            logger.warning(
+                "Admin menu workspace plugin state load failed",
+                action="load_workspace_plugin_states_effective",
+                workspace_id=str(workspace_id),
+                error=str(exc),
+            )
 
         rows = await self.repo.query_items_for_user().all().order_by("sort", "created_at")
         by_id = {row.id: row for row in rows}
@@ -420,8 +455,15 @@ class AdminMenuService(BaseService):
             if not missing and not inconsistent:
                 _CORE_MENU_HEAL_LAST_AT = now
                 return
-        except Exception:
+        except BaseException as exc:
+            _raise_if_fatal(exc)
             # If the check fails, do not block requests.
+            logger.warning(
+                "Admin core menu consistency check failed",
+                action="check_core_menu_consistency",
+                workspace_id=str(workspace_id),
+                error=str(exc),
+            )
             return
 
         try:
@@ -429,8 +471,15 @@ class AdminMenuService(BaseService):
 
             await ensure_core_admin_menus_ready(settings=self.settings)
             _CORE_MENU_HEAL_LAST_AT = now
-        except Exception:
+        except BaseException as exc:
+            _raise_if_fatal(exc)
             # Best-effort only.
+            logger.warning(
+                "Admin core menu heal failed",
+                action="heal_core_admin_menus",
+                workspace_id=str(workspace_id),
+                error=str(exc),
+            )
             return
 
     async def list_items(self, *, params: PageParams, filters: AdminMenuListQuery) -> PageData[AdminMenuItemOut]:

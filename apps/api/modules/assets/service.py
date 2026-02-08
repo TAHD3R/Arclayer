@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import mimetypes
 from uuid import UUID
 
@@ -10,12 +11,26 @@ from apps.api.config import Settings
 from apps.api.core.exceptions import NotFound
 from apps.api.core.http.content_disposition import build_attachment_content_disposition
 from apps.api.core.http.file_stream import stream_file_response
+from apps.api.core.logging import get_logger
 from apps.api.infra.storage.factory import build_storage_provider_for
 from apps.api.infra.storage.local import safe_object_key_to_path
 from apps.api.infra.storage.s3 import S3StorageProvider
 from apps.api.modules.assets.repository import AssetsRepository
 from apps.api.modules.assets.schema import AssetPublicView
 from apps.api.settings.runtime import get_effective_settings
+
+logger = get_logger(__name__)
+_FATAL_ASSETS_SERVICE_ERRORS: tuple[type[BaseException], ...] = (
+    asyncio.CancelledError,
+    GeneratorExit,
+    KeyboardInterrupt,
+    SystemExit,
+)
+
+
+def _raise_if_fatal(exc: BaseException) -> None:
+    if isinstance(exc, _FATAL_ASSETS_SERVICE_ERRORS):
+        raise exc
 
 
 def canonical_asset_filename(*, slug: str, ext: str) -> str:
@@ -69,6 +84,30 @@ class AssetsService:
             storage_provider=str(asset.storage_provider),
         )
 
+    def _try_build_s3_provider(self, *, effective: Settings, object_key: str) -> S3StorageProvider | None:
+        try:
+            provider = build_storage_provider_for(effective, provider="s3")
+        except BaseException as exc:
+            _raise_if_fatal(exc)
+            logger.warning(
+                "Build S3 storage provider failed",
+                action="build_s3_storage_provider",
+                object_key=object_key,
+                error=str(exc),
+            )
+            return None
+
+        if not isinstance(provider, S3StorageProvider):
+            logger.warning(
+                "Unexpected S3 storage provider type",
+                action="build_s3_storage_provider",
+                object_key=object_key,
+                provider_type=type(provider).__name__,
+            )
+            return None
+
+        return provider
+
     async def redirect_to_canonical(self, *, asset_id: UUID) -> RedirectResponse:
         view = await self._get_public_view(asset_id=asset_id)
         name = canonical_asset_filename(slug=view.slug, ext=view.ext)
@@ -93,11 +132,8 @@ class AssetsService:
                 return RedirectResponse(url=url, status_code=302, headers=build_asset_headers(view))
 
             # Dev / no-CDN fallback: presigned GET.
-            try:
-                provider = build_storage_provider_for(effective, provider="s3")
-            except Exception:
-                raise NotFound(message="Not Found", error="NOT_FOUND")
-            if not isinstance(provider, S3StorageProvider):
+            provider = self._try_build_s3_provider(effective=effective, object_key=view.object_key)
+            if provider is None:
                 raise NotFound(message="Not Found", error="NOT_FOUND")
             presigned = await provider.presign_get_object(
                 object_key=view.object_key,
@@ -135,11 +171,8 @@ class AssetsService:
 
         if view.storage_provider == "s3":
             effective = await get_effective_settings(self.settings)
-            try:
-                provider = build_storage_provider_for(effective, provider="s3")
-            except Exception:
-                raise NotFound(message="Not Found", error="NOT_FOUND")
-            if not isinstance(provider, S3StorageProvider):
+            provider = self._try_build_s3_provider(effective=effective, object_key=view.object_key)
+            if provider is None:
                 raise NotFound(message="Not Found", error="NOT_FOUND")
             url = await provider.presign_get_object(
                 object_key=view.object_key,
@@ -209,11 +242,8 @@ class AssetsService:
             if url:
                 return RedirectResponse(url=url, status_code=302, headers=build_asset_headers(view))
 
-            try:
-                provider = build_storage_provider_for(effective, provider="s3")
-            except Exception:
-                provider = None
-            if isinstance(provider, S3StorageProvider):
+            provider = self._try_build_s3_provider(effective=effective, object_key=object_key)
+            if provider is not None:
                 presigned = await provider.presign_get_object(
                     object_key=object_key,
                     expires_in=900,

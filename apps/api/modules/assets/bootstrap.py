@@ -16,6 +16,17 @@ from apps.api.plugin.event_bus import Event, EventBus
 from apps.api.settings.runtime import get_effective_settings
 
 logger = get_logger(__name__)
+_FATAL_ASSET_PROCESSOR_ERRORS: tuple[type[BaseException], ...] = (
+    asyncio.CancelledError,
+    GeneratorExit,
+    KeyboardInterrupt,
+    SystemExit,
+)
+
+
+def _raise_if_fatal(exc: BaseException) -> None:
+    if isinstance(exc, _FATAL_ASSET_PROCESSOR_ERRORS):
+        raise exc
 
 
 async def register_core_asset_processors(event_bus: EventBus, settings: Settings) -> None:
@@ -71,7 +82,15 @@ async def register_core_asset_processors(event_bus: EventBus, settings: Settings
                 effective = await get_effective_settings(settings)
                 try:
                     provider = build_storage_provider_for(effective, provider="s3")
-                except Exception:
+                except BaseException as exc:
+                    _raise_if_fatal(exc)
+                    logger.warning(
+                        "Asset processor storage provider init failed",
+                        action="build_s3_provider",
+                        workspace_id=str(workspace_id),
+                        asset_id=str(asset_id),
+                        error=str(exc),
+                    )
                     return
                 if not isinstance(provider, S3StorageProvider):
                     return
@@ -81,7 +100,16 @@ async def register_core_asset_processors(event_bus: EventBus, settings: Settings
                 in_path = safe_object_key_to_path(settings.storage.local_tmp_dir, source_key)
                 try:
                     await provider.download_object_to_path(object_key=asset.object_key, out_path=in_path)
-                except Exception:
+                except BaseException as exc:
+                    _raise_if_fatal(exc)
+                    logger.warning(
+                        "Asset processor source download failed",
+                        action="download_source",
+                        workspace_id=str(workspace_id),
+                        asset_id=str(asset_id),
+                        object_key=asset.object_key,
+                        error=str(exc),
+                    )
                     return
 
                 out_paths: dict[str, Path] = {}
@@ -124,18 +152,44 @@ async def register_core_asset_processors(event_bus: EventBus, settings: Settings
                                 public_read=public_read,
                                 cache_control="public, max-age=31536000, immutable",
                             )
-                        except Exception:
+                        except BaseException as exc:
+                            _raise_if_fatal(exc)
+                            logger.warning(
+                                "Asset processor thumbnail upload failed",
+                                action="upload_thumbnail",
+                                workspace_id=str(workspace_id),
+                                asset_id=str(asset_id),
+                                object_key=object_key,
+                                error=str(exc),
+                            )
                             continue
 
                 # Cleanup tmp files (best-effort).
                 try:
                     in_path.unlink(missing_ok=True)
-                except Exception:
-                    pass
+                except BaseException as cleanup_exc:
+                    _raise_if_fatal(cleanup_exc)
+                    logger.warning(
+                        "Asset processor temp file cleanup failed",
+                        action="cleanup_source",
+                        workspace_id=str(workspace_id),
+                        asset_id=str(asset_id),
+                        path=str(in_path),
+                        error=str(cleanup_exc),
+                    )
                 for p in out_paths.values():
                     try:
                         p.unlink(missing_ok=True)
-                    except Exception:
+                    except BaseException as cleanup_exc:
+                        _raise_if_fatal(cleanup_exc)
+                        logger.warning(
+                            "Asset processor temp thumbnail cleanup failed",
+                            action="cleanup_thumbnail",
+                            workspace_id=str(workspace_id),
+                            asset_id=str(asset_id),
+                            path=str(p),
+                            error=str(cleanup_exc),
+                        )
                         continue
 
             else:
@@ -150,8 +204,14 @@ async def register_core_asset_processors(event_bus: EventBus, settings: Settings
             asset.variants = variants
             asset.meta = meta
             await asset.save(update_fields=["variants", "meta", "updated_at"])
-        except Exception as exc:
-            logger.warning("Core asset processor failed", error_event=ASSET_UPLOADED_EVENT, error=str(exc))
+        except BaseException as exc:
+            _raise_if_fatal(exc)
+            logger.warning(
+                "Core asset processor failed",
+                action="process_asset_upload",
+                error_event=ASSET_UPLOADED_EVENT,
+                error=str(exc),
+            )
 
     # Subscribe as "core". If the app hot-reloads, duplicate subscriptions may happen;
     await event_bus.subscribe(

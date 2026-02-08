@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import time
+from datetime import datetime
 from typing import Literal, cast
 from uuid import UUID
 
@@ -238,10 +239,8 @@ class SitesRepository(BaseRepository):
 
         out: dict[str, int] = {}
         for r in rows:
-            try:
-                out[str(r.namespace)] = int(r.updated_at.timestamp() * 1000)
-            except Exception:
-                out[str(r.namespace)] = 0
+            updated_at = getattr(r, "updated_at", None)
+            out[str(r.namespace)] = int(updated_at.timestamp() * 1000) if isinstance(updated_at, datetime) else 0
 
         # Keep the shape stable: always include requested namespaces.
         for ns in norm:
@@ -275,7 +274,7 @@ class SitesRepository(BaseRepository):
 
         try:
             vis = SitePageVisibility(visibility)
-        except Exception:
+        except ValueError:
             raise Conflict("Invalid visibility", error="PAGE_VISIBILITY_INVALID") from None
 
         try:
@@ -308,7 +307,7 @@ class SitesRepository(BaseRepository):
 
         try:
             vis = SitePageVisibility(visibility)
-        except Exception:
+        except ValueError:
             raise Conflict("Invalid visibility", error="PAGE_VISIBILITY_INVALID") from None
 
         async with in_transaction() as conn:

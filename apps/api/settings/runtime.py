@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import binascii
 import time
 from typing import Any
 
+from cryptography.exceptions import InvalidTag
 from pydantic import SecretStr
+from tortoise.exceptions import OperationalError
 
 from apps.api.config import Settings
 from apps.api.core.logging import get_logger
@@ -14,6 +17,8 @@ from apps.api.settings.scopes import SCOPE_TYPE_SYSTEM, SYSTEM_SCOPE_ID
 from apps.api.settings.validation import iter_secret_field_paths
 
 logger = get_logger(__name__)
+_CORE_SETTINGS_LOAD_ERRORS = (OperationalError, RuntimeError, ValueError, TypeError, OSError)
+_CORE_SECRET_DECRYPT_ERRORS = (binascii.Error, RuntimeError, ValueError, TypeError, OSError, UnicodeError, InvalidTag)
 
 # Per-process cache (each worker has its own memory space).
 _core_cache: dict[str, Any] | None = None
@@ -98,7 +103,13 @@ async def get_core_settings_value_cached(
                 try:
                     aad = f"{CORE_SETTINGS_NAMESPACE}:{path}"
                     section[field_key] = decrypt_secret(val, key=key, aad=aad)
-                except Exception:
+                except _CORE_SECRET_DECRYPT_ERRORS as exc:
+                    logger.warning(
+                        "Core settings secret decrypt failed",
+                        action="decrypt_core_secret",
+                        secret_path=path,
+                        error=str(exc),
+                    )
                     section[field_key] = None
         else:
             if not _warned_missing_master_key:
@@ -118,8 +129,13 @@ async def get_core_settings_value_cached(
         _core_cache = decrypted
         _core_cache_expires_at = now + ttl_seconds
         return _core_cache
-    except Exception:
+    except _CORE_SETTINGS_LOAD_ERRORS as exc:
         # Best-effort: do not break requests if DB isn't ready.
+        logger.warning(
+            "Core settings load failed",
+            action="load_core_settings_runtime",
+            error=str(exc),
+        )
         _core_cache = {}
         _core_cache_expires_at = now + min(ttl_seconds, 1.0)
         return _core_cache

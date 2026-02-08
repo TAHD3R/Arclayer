@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import secrets
 from datetime import UTC, datetime
 from typing import cast
@@ -58,6 +59,18 @@ from apps.api.modules.workspaces.team.schema import (
     WorkspaceTeamUserUpdateRequest,
 )
 
+_FATAL_TEAM_ACTIVITY_ERRORS: tuple[type[BaseException], ...] = (
+    asyncio.CancelledError,
+    GeneratorExit,
+    KeyboardInterrupt,
+    SystemExit,
+)
+
+
+def _raise_if_fatal(exc: BaseException) -> None:
+    if isinstance(exc, _FATAL_TEAM_ACTIVITY_ERRORS):
+        raise exc
+
 
 def _user_ref(user: User) -> WorkspaceTeamUserRefOut:
     return WorkspaceTeamUserRefOut(
@@ -107,7 +120,15 @@ class WorkspaceTeamService(BaseService):
                     actor_user_id=str(actor_user_id) if actor_user_id else None,
                 )
             )
-        except Exception:
+        except BaseException as exc:
+            _raise_if_fatal(exc)
+            self.logger.warning(
+                "Workspace team activity event publish failed",
+                action="publish_workspace_team_activity",
+                event_name=name,
+                actor_user_id=str(actor_user_id) if actor_user_id else None,
+                error=str(exc),
+            )
             # Best-effort only.
             return
 
@@ -338,7 +359,7 @@ class WorkspaceTeamService(BaseService):
         # Emit activity event (best-effort).
         try:
             subject_user_id = UUID(str(cast(HasUserId, membership).user_id))
-        except Exception:
+        except (TypeError, ValueError):
             subject_user_id = None
         await self._publish_activity_event(
             name="workspace.member.status.updated",
@@ -414,15 +435,23 @@ class WorkspaceTeamService(BaseService):
         try:
             rows = await WorkspaceMembershipRole.filter(membership_id=membership.id).prefetch_related("role").all()
             before_codes = sorted({r.role.code for r in rows if getattr(r, "role", None)})
-        except Exception:
+        except BaseException as exc:
+            _raise_if_fatal(exc)
             before_codes = []
+            self.logger.warning(
+                "Workspace member role snapshot failed",
+                action="snapshot_member_roles",
+                workspace_id=str(workspace_id),
+                membership_id=str(membership.id),
+                error=str(exc),
+            )
 
         await self.repo.replace_membership_roles(membership_id=membership.id, role_ids=[r.id for r in roles])
 
         # Emit activity event (best-effort).
         try:
             subject_user_id = UUID(str(cast(HasUserId, membership).user_id))
-        except Exception:
+        except (TypeError, ValueError):
             subject_user_id = None
         await self._publish_activity_event(
             name="workspace.member.roles.updated",
