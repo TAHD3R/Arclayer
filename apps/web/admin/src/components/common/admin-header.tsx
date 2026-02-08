@@ -37,11 +37,11 @@ function isPrefixMatch(to: string, pathname: string): boolean {
   return p === t || p.startsWith(`${t}/`);
 }
 
-function findActiveTrailNodes(items: AdminNavItem[], pathname: string): AdminNavItem[] {
+function findActiveTrailNodes(items: readonly AdminNavItem[], pathname: string): AdminNavItem[] {
   let bestScore = -1;
   let bestTrail: AdminNavItem[] = [];
 
-  const dfs = (nodes: AdminNavItem[], parents: AdminNavItem[]) => {
+  const dfs = (nodes: readonly AdminNavItem[], parents: AdminNavItem[]) => {
     for (const node of nodes) {
       const nextParents = [...parents, node];
 
@@ -121,7 +121,7 @@ function buildBreadcrumbMenuItems(
 }
 
 export function AdminHeader(props: {
-  navItems: AdminNavItem[];
+  navItems: readonly AdminNavItem[];
   className?: string;
   onRefresh?: () => Promise<void> | void;
   refreshing?: boolean;

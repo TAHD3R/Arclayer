@@ -379,7 +379,7 @@ export function TeamMembersView() {
 
   const tableHook = useDataTable<
     TeamMember,
-    { status?: string; userStatus?: UserStatus; roleCode?: string }
+    { status?: TeamMember["membershipStatus"]; userStatus?: UserStatus; roleCode?: string }
   >({
     tableId: workspaceId ? `team-members:${workspaceId}` : "team-members",
     columns,
@@ -393,7 +393,7 @@ export function TeamMembersView() {
             size: params.size,
             q: params.q,
             ordering: params.ordering,
-            status: params.status as any,
+            status: params.status,
             userStatus: params.userStatus,
             roleCode: params.roleCode,
           })

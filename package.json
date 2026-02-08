@@ -7,6 +7,8 @@
     "build": "turbo run build --filter=@celestial/admin --filter=@celestial/portal",
     "format": "turbo run format --filter=@celestial/admin --filter=@celestial/api --filter=@celestial/portal",
     "check": "turbo run lint format typecheck test --filter=@celestial/admin --filter=@celestial/api --filter=@celestial/portal",
+    "audit:quality": "python3 scripts/quality/audit_repo.py --repo-root . --out-md docs/audit/latest-quality-report.md",
+    "audit:quality:strict": "python3 scripts/quality/audit_repo.py --repo-root . --out-md docs/audit/latest-quality-report.md --fail-on-findings",
     "admin": "turbo run dev --filter=@celestial/admin",
     "admin:build": "turbo run build --filter=@celestial/admin",
     "admin:check": "turbo run lint format typecheck test --filter=@celestial/admin",

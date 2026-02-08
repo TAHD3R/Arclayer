@@ -422,7 +422,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
 
         <SidebarContent className="relative z-0 pl-0 pr-4 scrollbar-none">
           {isOrgScopeRoute ? (
-            <AdminSiderNav items={navItems as any} resolvePermissionName={resolvePermissionName} />
+            <AdminSiderNav items={navItems} resolvePermissionName={resolvePermissionName} />
           ) : menuBootstrapping ? (
             <SidebarGroup>
               <SidebarGroupContent>
@@ -434,7 +434,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
               </SidebarGroupContent>
             </SidebarGroup>
           ) : (
-            <AdminSiderNav items={navItems as any} resolvePermissionName={resolvePermissionName} />
+            <AdminSiderNav items={navItems} resolvePermissionName={resolvePermissionName} />
           )}
         </SidebarContent>
 
@@ -486,7 +486,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
 
       <SidebarInset className="w-auto flex-1 min-w-0 overflow-hidden">
         <AdminHeader
-          navItems={navItems as any}
+          navItems={navItems}
           refreshing={refreshing}
           onRefresh={async () => {
             if (refreshing) return;

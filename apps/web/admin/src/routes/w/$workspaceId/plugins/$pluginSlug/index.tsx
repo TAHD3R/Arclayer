@@ -104,7 +104,7 @@ function WorkspacePluginDetailPage() {
   const namespace = plugin ? `plugin:${plugin.pluginId}` : null;
   const settingsQuery = useQuery({
     queryKey: ["settings", "system", namespace],
-    enabled: Boolean(namespace),
+    enabled: namespace !== null,
     queryFn: async () => {
       if (!namespace) throw new Error("namespace is required");
       return getSystemSettingsNamespace(namespace);
@@ -135,6 +135,7 @@ function WorkspacePluginDetailPage() {
   }, [settingsQuery.data?.settingSchema?.sections]);
 
   const status = normalizeStatus(plugin?.status);
+  const hasConfigSchema = plugin?.hasConfigSchema ?? false;
   const statusLabel = plugin
     ? t(`plugin:PLUGIN_STATUS_${status.toUpperCase()}`, { defaultValue: plugin.status })
     : null;
@@ -142,11 +143,11 @@ function WorkspacePluginDetailPage() {
     const keys = ["details"];
     if (configSections.length > 0) {
       for (const s of configSections) keys.push(`system:${s.id}`);
-    } else if (Boolean(plugin?.hasConfigSchema)) {
+    } else if (hasConfigSchema) {
       keys.push("system:config");
     }
     return keys;
-  }, [configSections, plugin?.hasConfigSchema]);
+  }, [configSections, hasConfigSchema]);
 
   useEffect(() => {
     if (!availableTabs.includes(tab)) setTab("details");
@@ -190,7 +191,7 @@ function WorkspacePluginDetailPage() {
                     {s.title || s.id}
                   </ChromeTabsTrigger>
                 ))
-              ) : Boolean(plugin.hasConfigSchema) ? (
+              ) : hasConfigSchema ? (
                 <ChromeTabsTrigger value="system:config">
                   {t("plugin:PLUGIN_TAB_CONFIG")}
                 </ChromeTabsTrigger>
@@ -269,7 +270,7 @@ function WorkspacePluginDetailPage() {
                 ))
               : null}
 
-            {Boolean(plugin.hasConfigSchema) ? (
+            {hasConfigSchema ? (
               <ChromeTabsContent value="system:config">
                 {platformManaged ? (
                   <Typography.Paragraph style={{ marginBottom: 0 }}>

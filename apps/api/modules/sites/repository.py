@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import asyncio
-import re
 import time
 from typing import Literal, cast
 from uuid import UUID
@@ -11,19 +9,25 @@ from tortoise.transactions import in_transaction
 
 from apps.api.common.protocols.tortoise import (
     EntryRecordMutableFields,
-    HasWorkspaceId,
-    RouteTemplateIds,
     SettingUpdatedBy,
 )
 from apps.api.common.repositories.base import BaseRepository
-from apps.api.common.utils.public_ids import decode_public_id, encode_uuid, is_public_id
 from apps.api.core.exceptions import Conflict, NotFound
-from apps.api.modules.assets.models.asset import AssetRecord
 from apps.api.modules.sites.constants import RUNTIME_SETTING_NAMESPACE
 from apps.api.modules.sites.models.site import SiteRecord
 from apps.api.modules.sites.models.site_entry import EntryRecord, EntryRevisionRecord, EntryTypeRecord
 from apps.api.modules.sites.models.site_page import SitePageRecord, SitePageRevisionRecord, SitePageVisibility
 from apps.api.modules.sites.models.site_route_template import RouteTemplateRecord
+from apps.api.modules.sites.repository_publishing import SitePublishingRepository
+from apps.api.modules.sites.repository_routing import (
+    _compile_path_pattern as _routing_compile_path_pattern,
+)
+from apps.api.modules.sites.repository_routing import (
+    _match_compiled as _routing_match_compiled,
+)
+from apps.api.modules.sites.repository_routing import (
+    _match_path_pattern as _routing_match_path_pattern,
+)
 from apps.api.modules.sites.schema import DocumentIR
 from apps.api.modules.sites.types import ResolvedEntryDocument, RouteTemplateMatch, _CompiledRouteTemplate
 from apps.api.modules.sites.utils import normalize_path
@@ -31,49 +35,11 @@ from apps.api.modules.system.models.setting import SettingRecord
 from apps.api.settings.scopes import SCOPE_TYPE_SITE
 
 
-class _RouteTemplateCache:
-    """
-    In-process route template cache.
-
-    Sprint 3:
-    - Default path: TTL-based caching for read-mostly workloads.
-    - When route templates become editable, writers should explicitly invalidate
-      this cache (per-site) after successful create/update/delete operations.
-    """
-
-    _TTL_MS = 5_000
-
-    def __init__(self) -> None:
-        # Keyed by (site_id, version). Version is used for cross-instance invalidation.
-        self._by_key: dict[tuple[UUID, int], tuple[int, list[_CompiledRouteTemplate]]] = {}
-        self._lock = asyncio.Lock()
-
-    async def get(self, *, site_id: UUID, version: int, loader) -> list[_CompiledRouteTemplate]:
-        now_ms = int(time.time() * 1000)
-        key = (site_id, int(version or 0))
-        cached = self._by_key.get(key)
-        if cached and cached[0] > now_ms:
-            return cached[1]
-
-        async with self._lock:
-            cached2 = self._by_key.get(key)
-            if cached2 and cached2[0] > now_ms:
-                return cached2[1]
-            compiled = await loader()
-            self._by_key[key] = (now_ms + self._TTL_MS, compiled)
-            return compiled
-
-    def invalidate(self, *, site_id: UUID) -> None:
-        # Remove all cached versions for a site (writers call this after mutations).
-        for key in list(self._by_key.keys()):
-            if key[0] == site_id:
-                self._by_key.pop(key, None)
-
-
-_route_template_cache = _RouteTemplateCache()
-
-
 class SitesRepository(BaseRepository):
+    def __init__(self) -> None:
+        super().__init__()
+        self._publishing_repo = SitePublishingRepository()
+
     async def ensure_demo_site_ready(
         self,
         *,
@@ -203,104 +169,6 @@ class SitesRepository(BaseRepository):
         page.draft_rev = rev
         page.published_rev = rev
         await page.save(update_fields=["draft_rev", "published_rev"], using_db=conn)
-
-    async def _list_missing_assets(
-        self,
-        *,
-        workspace_id: UUID,
-        asset_ids: list[UUID],
-        conn,
-    ) -> list[str]:
-        """
-        Best-effort deps validator for v0 (assets only).
-
-        Returns missing asset id strings (UUID).
-        """
-
-        if not asset_ids:
-            return []
-
-        rows = (
-            await AssetRecord
-            .filter(
-                id__in=asset_ids,
-                workspace_id=workspace_id,
-                deleted_at=None,
-            )
-            .using_db(conn)
-            .values_list("id", flat=True)
-        )
-        existing = {UUID(str(x)) for x in rows}
-        missing = [encode_uuid(aid) for aid in asset_ids if aid not in existing]
-        return missing
-
-    async def _validate_revision_deps_assets(
-        self,
-        *,
-        site_id: UUID,
-        deps: dict | None,
-        conn,
-    ) -> None:
-        """
-        Validate revision deps before publishing/rollback (v0: assets only).
-
-        Contract:
-        - deps.assetIds: list[str] of AssetRecord ids.
-        """
-
-        if not deps or not isinstance(deps, dict):
-            return
-        asset_ids_raw = deps.get("assetIds")
-        if not isinstance(asset_ids_raw, list) or not asset_ids_raw:
-            return
-
-        parsed: list[UUID] = []
-        invalid: list[str] = []
-        for x in asset_ids_raw:
-            if not isinstance(x, str) or not x.strip():
-                invalid.append(str(x))
-                continue
-            raw = x.strip()
-            if is_public_id(raw):
-                try:
-                    parsed.append(decode_public_id(raw))
-                except Exception:
-                    invalid.append(raw)
-                continue
-
-            # Optional compatibility: allow raw UUID strings in dev/test (configurable).
-            from apps.api.config import get_settings
-
-            if not get_settings().public_id.accept_raw_uuid_input:
-                invalid.append(raw)
-                continue
-
-            try:
-                parsed.append(UUID(raw))
-            except Exception:
-                invalid.append(raw)
-
-        if not parsed and not invalid:
-            return
-
-        site_qs = SiteRecord.filter(id=site_id)
-        if conn is not None:
-            site_qs = site_qs.using_db(conn)
-        site = await site_qs.first()
-        if site is None:
-            raise NotFound("Site not found", error="SITE_NOT_FOUND")
-
-        missing = await self._list_missing_assets(
-            workspace_id=UUID(str(cast(HasWorkspaceId, site).workspace_id)),
-            asset_ids=parsed,
-            conn=conn,
-        )
-        if invalid or missing:
-            raise Conflict(
-                "Revision deps validation failed",
-                error="REVISION_DEPS_MISSING",
-                meta={"missingAssets": [*invalid, *missing]},
-            )
 
     async def get_site_by_id(self, *, site_id: UUID) -> SiteRecord:
         site = await SiteRecord.get_or_none(id=site_id)
@@ -485,44 +353,12 @@ class SitesRepository(BaseRepository):
         target: Literal["draft", "published"],
         revision: int,
     ) -> tuple[int | None, int, int]:
-        """
-        Rollback a page revision pointer by setting `draft_rev` or `published_rev`.
-
-        Returns: (from_revision, to_revision, rolled_back_at_ms).
-        """
-
-        now_ms = int(time.time() * 1000)
-        async with in_transaction() as conn:
-            page = await SitePageRecord.filter(site_id=site_id, id=page_id).using_db(conn).select_for_update().first()
-            if page is None:
-                raise NotFound("Page not found", error="PAGE_NOT_FOUND")
-
-            rec = await SitePageRevisionRecord.filter(page_id=page.id, rev=revision).using_db(conn).first()
-            if rec is None:
-                raise NotFound("Revision not found", error="REVISION_NOT_FOUND")
-
-            await self._validate_revision_deps_assets(
-                site_id=site_id,
-                deps=(rec.deps if isinstance(rec.deps, dict) else None),
-                conn=conn,
-            )
-
-            if target == "draft":
-                from_rev = int(page.draft_rev or 0) or None
-                page.draft_rev = int(revision)
-                await page.save(update_fields=["draft_rev"], using_db=conn)
-                return from_rev, int(revision), now_ms
-
-            from_rev = int(page.published_rev or 0) or None
-            page.published_rev = int(revision)
-            await page.save(update_fields=["published_rev"], using_db=conn)
-            return from_rev, int(revision), now_ms
-
-    async def get_entry_by_id(self, *, site_id: UUID, entry_id: UUID) -> EntryRecord | None:
-        return await EntryRecord.get_or_none(id=entry_id, site_id=site_id)
-
-    async def get_entry_revision(self, *, entry_id: UUID, rev: int) -> EntryRevisionRecord | None:
-        return await EntryRevisionRecord.get_or_none(entry_id=entry_id, rev=rev)
+        return await self._publishing_repo.rollback_page_revision_pointer(
+            site_id=site_id,
+            page_id=page_id,
+            target=target,
+            revision=revision,
+        )
 
     async def rollback_entry_revision_pointer(
         self,
@@ -532,38 +368,18 @@ class SitesRepository(BaseRepository):
         target: Literal["draft", "published"],
         revision: int,
     ) -> tuple[int | None, int, int]:
-        """
-        Rollback an entry revision pointer by setting `draft_rev` or `published_rev`.
+        return await self._publishing_repo.rollback_entry_revision_pointer(
+            site_id=site_id,
+            entry_id=entry_id,
+            target=target,
+            revision=revision,
+        )
 
-        Returns: (from_revision, to_revision, rolled_back_at_ms).
-        """
+    async def get_entry_by_id(self, *, site_id: UUID, entry_id: UUID) -> EntryRecord | None:
+        return await self._publishing_repo.get_entry_by_id(site_id=site_id, entry_id=entry_id)
 
-        now_ms = int(time.time() * 1000)
-        async with in_transaction() as conn:
-            entry = await EntryRecord.filter(site_id=site_id, id=entry_id).using_db(conn).select_for_update().first()
-            if entry is None:
-                raise NotFound("Entry not found", error="ENTRY_NOT_FOUND")
-
-            rec = await EntryRevisionRecord.filter(entry_id=entry.id, rev=revision).using_db(conn).first()
-            if rec is None:
-                raise NotFound("Revision not found", error="REVISION_NOT_FOUND")
-
-            await self._validate_revision_deps_assets(
-                site_id=site_id,
-                deps=(rec.deps if isinstance(rec.deps, dict) else None),
-                conn=conn,
-            )
-
-            if target == "draft":
-                from_rev = int(entry.draft_rev or 0) or None
-                entry.draft_rev = int(revision)
-                await entry.save(update_fields=["draft_rev"], using_db=conn)
-                return from_rev, int(revision), now_ms
-
-            from_rev = int(entry.published_rev or 0) or None
-            entry.published_rev = int(revision)
-            await entry.save(update_fields=["published_rev"], using_db=conn)
-            return from_rev, int(revision), now_ms
+    async def get_entry_revision(self, *, entry_id: UUID, rev: int) -> EntryRevisionRecord | None:
+        return await self._publishing_repo.get_entry_revision(entry_id=entry_id, rev=rev)
 
     async def get_entry_type_by_code(self, *, site_id: UUID, code: str) -> EntryTypeRecord:
         c = (code or "").strip()
@@ -713,8 +529,8 @@ class SitesRepository(BaseRepository):
         site_id: UUID,
         entry_type_id: UUID,
         slug: str,
-        document: DocumentIR | None,
         data: dict | None,
+        document: DocumentIR | None,
         meta: dict | None,
         style_overrides: dict | None,
         variant_id: str | None,
@@ -722,62 +538,19 @@ class SitesRepository(BaseRepository):
         expected_revision: int | None,
         created_by_user_id: UUID | None,
     ) -> tuple[UUID, int, int]:
-        """
-        Save an entry draft by (entry_type_id, slug).
-
-        Returns: (entry_id, revision, saved_at_ms).
-        """
-
-        s = (slug or "").strip()
-        if not s or "/" in s:
-            raise Conflict("Invalid slug", error="ENTRY_SLUG_INVALID")
-
-        now_ms = int(time.time() * 1000)
-
-        async with in_transaction() as conn:
-            entry = (
-                await EntryRecord
-                .filter(site_id=site_id, entry_type_id=entry_type_id, slug=s)
-                .using_db(conn)
-                .select_for_update()
-                .first()
-            )
-            if entry is None:
-                entry = await EntryRecord.create(
-                    site_id=site_id,
-                    entry_type_id=entry_type_id,
-                    slug=s,
-                    draft_rev=0,
-                    published_rev=None,
-                    created_by_user_id=created_by_user_id,
-                    using_db=conn,
-                )
-
-            current_rev = int(entry.draft_rev or 0)
-            if expected_revision is not None and expected_revision != current_rev:
-                raise Conflict(
-                    "Draft revision mismatch",
-                    error="DRAFT_REVISION_MISMATCH",
-                    meta={"expectedRevision": expected_revision, "currentRevision": current_rev},
-                )
-
-            next_rev = current_rev + 1 if current_rev else 1
-            await EntryRevisionRecord.create(
-                entry_id=entry.id,
-                rev=next_rev,
-                data=data,
-                document=(document.model_dump(by_alias=True) if document is not None else None),
-                meta=meta,
-                style_overrides=style_overrides,
-                variant_id=variant_id,
-                deps=deps,
-                created_by_user_id=created_by_user_id,
-                using_db=conn,
-            )
-            entry.draft_rev = next_rev
-            await entry.save(update_fields=["draft_rev"], using_db=conn)
-
-        return UUID(str(entry.id)), next_rev, now_ms
+        return await self._publishing_repo.save_entry_draft_by_slug(
+            site_id=site_id,
+            entry_type_id=entry_type_id,
+            slug=slug,
+            data=data,
+            document=document,
+            meta=meta,
+            style_overrides=style_overrides,
+            variant_id=variant_id,
+            deps=deps,
+            expected_revision=expected_revision,
+            created_by_user_id=created_by_user_id,
+        )
 
     async def publish_entry_by_slug(
         self,
@@ -787,47 +560,12 @@ class SitesRepository(BaseRepository):
         slug: str,
         revision: int | None,
     ) -> tuple[UUID, int, int]:
-        """
-        Publish an entry revision by (entry_type_id, slug).
-
-        Returns: (entry_id, published_revision, published_at_ms).
-        """
-
-        s = (slug or "").strip()
-        if not s or "/" in s:
-            raise Conflict("Invalid slug", error="ENTRY_SLUG_INVALID")
-
-        now_ms = int(time.time() * 1000)
-
-        async with in_transaction() as conn:
-            entry = (
-                await EntryRecord
-                .filter(site_id=site_id, entry_type_id=entry_type_id, slug=s)
-                .using_db(conn)
-                .select_for_update()
-                .first()
-            )
-            if entry is None:
-                raise NotFound("Entry not found", error="ENTRY_NOT_FOUND")
-
-            target_rev = int(revision) if revision is not None else int(entry.draft_rev or 0)
-            if not target_rev:
-                raise Conflict("No draft revision to publish", error="NO_DRAFT_TO_PUBLISH")
-
-            rec = await EntryRevisionRecord.filter(entry_id=entry.id, rev=target_rev).using_db(conn).first()
-            if rec is None:
-                raise NotFound("Revision not found", error="REVISION_NOT_FOUND")
-
-            await self._validate_revision_deps_assets(
-                site_id=site_id,
-                deps=(rec.deps if isinstance(rec.deps, dict) else None),
-                conn=conn,
-            )
-
-            entry.published_rev = target_rev
-            await entry.save(update_fields=["published_rev"], using_db=conn)
-
-        return UUID(str(entry.id)), target_rev, now_ms
+        return await self._publishing_repo.publish_entry_by_slug(
+            site_id=site_id,
+            entry_type_id=entry_type_id,
+            slug=slug,
+            revision=revision,
+        )
 
     async def save_page_draft_by_path(
         self,
@@ -842,56 +580,17 @@ class SitesRepository(BaseRepository):
         expected_revision: int | None,
         created_by_user_id: UUID | None,
     ) -> tuple[int, int]:
-        """
-        Save a page draft by pathname (helper for editor mode).
-
-        Returns: (revision, saved_at_ms).
-        """
-
-        pathname = normalize_path(path)
-        now_ms = int(time.time() * 1000)
-
-        async with in_transaction() as conn:
-            page = (
-                await SitePageRecord.filter(site_id=site_id, path=pathname).using_db(conn).select_for_update().first()
-            )
-            if page is None:
-                page = await SitePageRecord.create(
-                    site_id=site_id,
-                    path=pathname,
-                    parent_id=None,
-                    sort_order=0,
-                    visibility=SitePageVisibility.PUBLIC,
-                    draft_rev=0,
-                    published_rev=None,
-                    created_by_user_id=created_by_user_id,
-                    using_db=conn,
-                )
-
-            current_rev = int(page.draft_rev or 0)
-            if expected_revision is not None and expected_revision != current_rev:
-                raise Conflict(
-                    "Draft revision mismatch",
-                    error="DRAFT_REVISION_MISMATCH",
-                    meta={"expectedRevision": expected_revision, "currentRevision": current_rev},
-                )
-
-            next_rev = current_rev + 1 if current_rev else 1
-            await SitePageRevisionRecord.create(
-                page_id=page.id,
-                rev=next_rev,
-                document=document.model_dump(by_alias=True),
-                meta=meta,
-                style_overrides=style_overrides,
-                variant_id=variant_id,
-                deps=deps,
-                created_by_user_id=created_by_user_id,
-                using_db=conn,
-            )
-            page.draft_rev = next_rev
-            await page.save(update_fields=["draft_rev"], using_db=conn)
-
-        return next_rev, now_ms
+        return await self._publishing_repo.save_page_draft_by_path(
+            site_id=site_id,
+            path=path,
+            document=document,
+            meta=meta,
+            style_overrides=style_overrides,
+            variant_id=variant_id,
+            deps=deps,
+            expected_revision=expected_revision,
+            created_by_user_id=created_by_user_id,
+        )
 
     async def save_page_draft_by_id(
         self,
@@ -906,43 +605,17 @@ class SitesRepository(BaseRepository):
         expected_revision: int | None,
         created_by_user_id: UUID | None,
     ) -> tuple[str, int, int]:
-        """
-        Save a page draft by page id.
-
-        Returns: (path, revision, saved_at_ms).
-        """
-
-        now_ms = int(time.time() * 1000)
-
-        async with in_transaction() as conn:
-            page = await SitePageRecord.filter(site_id=site_id, id=page_id).using_db(conn).select_for_update().first()
-            if page is None:
-                raise NotFound("Page not found", error="PAGE_NOT_FOUND")
-
-            current_rev = int(page.draft_rev or 0)
-            if expected_revision is not None and expected_revision != current_rev:
-                raise Conflict(
-                    "Draft revision mismatch",
-                    error="DRAFT_REVISION_MISMATCH",
-                    meta={"expectedRevision": expected_revision, "currentRevision": current_rev},
-                )
-
-            next_rev = current_rev + 1 if current_rev else 1
-            await SitePageRevisionRecord.create(
-                page_id=page.id,
-                rev=next_rev,
-                document=document.model_dump(by_alias=True),
-                meta=meta,
-                style_overrides=style_overrides,
-                variant_id=variant_id,
-                deps=deps,
-                created_by_user_id=created_by_user_id,
-                using_db=conn,
-            )
-            page.draft_rev = next_rev
-            await page.save(update_fields=["draft_rev"], using_db=conn)
-
-        return normalize_path(str(page.path)), next_rev, now_ms
+        return await self._publishing_repo.save_page_draft_by_id(
+            site_id=site_id,
+            page_id=page_id,
+            document=document,
+            meta=meta,
+            style_overrides=style_overrides,
+            variant_id=variant_id,
+            deps=deps,
+            expected_revision=expected_revision,
+            created_by_user_id=created_by_user_id,
+        )
 
     async def publish_page_by_path(
         self,
@@ -951,40 +624,11 @@ class SitesRepository(BaseRepository):
         path: str,
         revision: int | None,
     ) -> tuple[int, int]:
-        """
-        Publish a page revision by pathname.
-
-        Returns: (published_revision, published_at_ms).
-        """
-
-        pathname = normalize_path(path)
-        now_ms = int(time.time() * 1000)
-
-        async with in_transaction() as conn:
-            page = (
-                await SitePageRecord.filter(site_id=site_id, path=pathname).using_db(conn).select_for_update().first()
-            )
-            if page is None:
-                raise NotFound("Page not found", error="PAGE_NOT_FOUND")
-
-            target_rev = int(revision) if revision is not None else int(page.draft_rev or 0)
-            if not target_rev:
-                raise Conflict("No draft revision to publish", error="NO_DRAFT_TO_PUBLISH")
-
-            rec = await SitePageRevisionRecord.filter(page_id=page.id, rev=target_rev).using_db(conn).first()
-            if rec is None:
-                raise NotFound("Revision not found", error="REVISION_NOT_FOUND")
-
-            await self._validate_revision_deps_assets(
-                site_id=site_id,
-                deps=(rec.deps if isinstance(rec.deps, dict) else None),
-                conn=conn,
-            )
-
-            page.published_rev = target_rev
-            await page.save(update_fields=["published_rev"], using_db=conn)
-
-        return target_rev, now_ms
+        return await self._publishing_repo.publish_page_by_path(
+            site_id=site_id,
+            path=path,
+            revision=revision,
+        )
 
     async def publish_page_by_id(
         self,
@@ -993,57 +637,14 @@ class SitesRepository(BaseRepository):
         page_id: UUID,
         revision: int | None,
     ) -> tuple[str, int, int]:
-        """
-        Publish a page revision by page id.
-
-        Returns: (path, published_revision, published_at_ms).
-        """
-
-        now_ms = int(time.time() * 1000)
-
-        async with in_transaction() as conn:
-            page = await SitePageRecord.filter(site_id=site_id, id=page_id).using_db(conn).select_for_update().first()
-            if page is None:
-                raise NotFound("Page not found", error="PAGE_NOT_FOUND")
-
-            target_rev = int(revision) if revision is not None else int(page.draft_rev or 0)
-            if not target_rev:
-                raise Conflict("No draft revision to publish", error="NO_DRAFT_TO_PUBLISH")
-
-            rec = await SitePageRevisionRecord.filter(page_id=page.id, rev=target_rev).using_db(conn).first()
-            if rec is None:
-                raise NotFound("Revision not found", error="REVISION_NOT_FOUND")
-
-            await self._validate_revision_deps_assets(
-                site_id=site_id,
-                deps=(rec.deps if isinstance(rec.deps, dict) else None),
-                conn=conn,
-            )
-
-            page.published_rev = target_rev
-            await page.save(update_fields=["published_rev"], using_db=conn)
-
-        return normalize_path(str(page.path)), target_rev, now_ms
+        return await self._publishing_repo.publish_page_by_id(
+            site_id=site_id,
+            page_id=page_id,
+            revision=revision,
+        )
 
     async def unpublish_page_by_id(self, *, site_id: UUID, page_id: UUID) -> tuple[str, int]:
-        """
-        Unpublish a page (published -> draft-only).
-
-        Returns: (path, unpublished_at_ms).
-        """
-
-        now_ms = int(time.time() * 1000)
-
-        async with in_transaction() as conn:
-            page = await SitePageRecord.filter(site_id=site_id, id=page_id).using_db(conn).select_for_update().first()
-            if page is None:
-                raise NotFound("Page not found", error="PAGE_NOT_FOUND")
-
-            # Idempotent: if already unpublished, keep it as is.
-            cast(EntryRecordMutableFields, page).published_rev = None
-            await page.save(update_fields=["published_rev"], using_db=conn)
-
-        return normalize_path(str(page.path)), now_ms
+        return await self._publishing_repo.unpublish_page_by_id(site_id=site_id, page_id=page_id)
 
     async def resolve_entry_by_slug(
         self,
@@ -1053,62 +654,21 @@ class SitesRepository(BaseRepository):
         slug: str,
         mode: Literal["public", "preview"],
     ) -> ResolvedEntryDocument | None:
-        entry = await EntryRecord.get_or_none(site_id=site_id, entry_type_id=entry_type_id, slug=slug)
-        if entry is None:
-            return None
-
-        draft_rev = int(entry.draft_rev or 0)
-        published_rev = int(entry.published_rev or 0)
-
-        revision = published_rev if mode == "public" else (draft_rev or published_rev)
-        if revision <= 0:
-            return None
-
-        revision_state: Literal["draft", "published"]
-        if mode == "public":
-            revision_state = "published"
-        else:
-            revision_state = "draft" if draft_rev else "published"
-
-        rec = await EntryRevisionRecord.get_or_none(entry_id=entry.id, rev=revision)
-        if rec is None or rec.document is None:
-            return None
-
-        doc = DocumentIR.model_validate(rec.document)
-        return ResolvedEntryDocument(
-            entry_id=UUID(str(entry.id)),
-            draft_rev=draft_rev,
-            published_rev=published_rev,
-            revision=revision,
-            revision_state=revision_state,
-            variant_id=(str(rec.variant_id) if rec.variant_id else None),
-            document=doc,
+        return await self._publishing_repo.resolve_entry_by_slug(
+            site_id=site_id,
+            entry_type_id=entry_type_id,
+            slug=slug,
+            mode=mode,
         )
 
     async def list_route_templates(self, *, site_id: UUID) -> list[RouteTemplateRecord]:
-        return (
-            await RouteTemplateRecord
-            .filter(site_id=site_id, is_active=True)
-            .prefetch_related("entry_type", "template_page_revision")
-            .all()
-        )
+        return await self._publishing_repo.list_route_templates(site_id=site_id)
 
     async def list_route_templates_all(self, *, site_id: UUID) -> list[RouteTemplateRecord]:
-        return (
-            await RouteTemplateRecord
-            .filter(site_id=site_id)
-            .prefetch_related("entry_type", "template_page_revision")
-            .order_by("path_pattern")
-            .all()
-        )
+        return await self._publishing_repo.list_route_templates_all(site_id=site_id)
 
     async def get_route_template_by_id(self, *, site_id: UUID, template_id: UUID) -> RouteTemplateRecord | None:
-        return (
-            await RouteTemplateRecord
-            .filter(id=template_id, site_id=site_id)
-            .prefetch_related("entry_type", "template_page_revision")
-            .first()
-        )
+        return await self._publishing_repo.get_route_template_by_id(site_id=site_id, template_id=template_id)
 
     async def create_route_template(
         self,
@@ -1119,19 +679,13 @@ class SitesRepository(BaseRepository):
         template_page_revision_id: UUID | None,
         is_active: bool,
     ) -> RouteTemplateRecord:
-        try:
-            rec = await RouteTemplateRecord.create(
-                site_id=site_id,
-                path_pattern=path_pattern,
-                entry_type_id=entry_type_id,
-                template_page_revision_id=template_page_revision_id,
-                is_active=bool(is_active),
-            )
-        except IntegrityError:
-            raise Conflict("Route template already exists", error="ROUTE_TEMPLATE_CONFLICT") from None
-
-        await rec.fetch_related("entry_type", "template_page_revision")
-        return rec
+        return await self._publishing_repo.create_route_template(
+            site_id=site_id,
+            path_pattern=path_pattern,
+            entry_type_id=entry_type_id,
+            template_page_revision_id=template_page_revision_id,
+            is_active=is_active,
+        )
 
     async def update_route_template(
         self,
@@ -1143,44 +697,20 @@ class SitesRepository(BaseRepository):
         template_page_revision_id: UUID | None,
         is_active: bool,
     ) -> RouteTemplateRecord:
-        async with in_transaction() as conn:
-            rec = (
-                await RouteTemplateRecord
-                .filter(id=template_id, site_id=site_id)
-                .using_db(conn)
-                .select_for_update()
-                .first()
-            )
-            if rec is None:
-                raise NotFound("Route template not found", error="ROUTE_TEMPLATE_NOT_FOUND")
-
-            rec.path_pattern = path_pattern
-            rec.entry_type_id = entry_type_id
-            rec.template_page_revision_id = template_page_revision_id
-            rec.is_active = bool(is_active)
-            try:
-                await rec.save(
-                    update_fields=[
-                        "path_pattern",
-                        "entry_type_id",
-                        "template_page_revision_id",
-                        "is_active",
-                    ],
-                    using_db=conn,
-                )
-            except IntegrityError:
-                raise Conflict("Route template already exists", error="ROUTE_TEMPLATE_CONFLICT") from None
-
-        await rec.fetch_related("entry_type", "template_page_revision")
-        return rec
+        return await self._publishing_repo.update_route_template(
+            site_id=site_id,
+            template_id=template_id,
+            path_pattern=path_pattern,
+            entry_type_id=entry_type_id,
+            template_page_revision_id=template_page_revision_id,
+            is_active=is_active,
+        )
 
     async def delete_route_template(self, *, site_id: UUID, template_id: UUID) -> None:
-        deleted = await RouteTemplateRecord.filter(site_id=site_id, id=template_id).delete()
-        if not deleted:
-            raise NotFound("Route template not found", error="ROUTE_TEMPLATE_NOT_FOUND")
+        await self._publishing_repo.delete_route_template(site_id=site_id, template_id=template_id)
 
     def invalidate_route_template_cache(self, *, site_id: UUID) -> None:
-        _route_template_cache.invalidate(site_id=site_id)
+        self._publishing_repo.invalidate_route_template_cache(site_id=site_id)
 
     async def match_route_template(
         self,
@@ -1189,109 +719,16 @@ class SitesRepository(BaseRepository):
         pathname: str,
         cache_version: int = 0,
     ) -> RouteTemplateMatch | None:
-        path = normalize_path(pathname)
-
-        async def _load() -> list[_CompiledRouteTemplate]:
-            templates = await self.list_route_templates(site_id=site_id)
-            compiled: list[_CompiledRouteTemplate] = []
-            for t in templates:
-                t_like = cast(RouteTemplateIds, t)
-                ct = _compile_path_pattern(
-                    t.path_pattern,
-                    template_id=UUID(str(t.id)),
-                    entry_type_id=UUID(str(t_like.entry_type_id)),
-                    template_page_revision_id=UUID(str(t_like.template_page_revision_id))
-                    if t_like.template_page_revision_id
-                    else None,
-                )
-                if ct is None:
-                    continue
-                compiled.append(ct)
-
-            # Deterministic order: most specific first.
-            compiled.sort(key=lambda x: x.sort_key, reverse=True)
-            return compiled
-
-        compiled = await _route_template_cache.get(site_id=site_id, version=int(cache_version or 0), loader=_load)
-
-        for ct in compiled:
-            params = _match_compiled(ct, path)
-            if params is None:
-                continue
-            return RouteTemplateMatch(
-                template_id=ct.template_id,
-                entry_type_id=ct.entry_type_id,
-                params=params,
-                template_page_revision_id=ct.template_page_revision_id,
-            )
-        return None
+        return await self._publishing_repo.match_route_template(
+            site_id=site_id,
+            pathname=pathname,
+            cache_version=cache_version,
+        )
 
     async def list_public_sitemap_paths(self, *, site_id: UUID) -> list[str]:
-        """
-        List public sitemap paths for a site.
-
-        Sprint 3:
-        - Pages: include only `visibility=public` and `published_rev` present.
-        - Entries: include published entries for templates that have a single `:slug` param.
-        """
-
-        page_paths = await SitePageRecord.filter(
-            site_id=site_id,
-            visibility=SitePageVisibility.PUBLIC,
-            published_rev__not_isnull=True,
-        ).values_list("path", flat=True)
-        page_set = {normalize_path(p) for p in page_paths if isinstance(p, str) and p}
-
-        templates = await RouteTemplateRecord.filter(site_id=site_id, is_active=True).all()
-        entry_paths: set[str] = set()
-        for t in templates:
-            t_like = cast(RouteTemplateIds, t)
-            ct = _compile_path_pattern(
-                t.path_pattern,
-                template_id=UUID(str(t.id)),
-                entry_type_id=UUID(str(t_like.entry_type_id)),
-                template_page_revision_id=UUID(str(t_like.template_page_revision_id))
-                if t_like.template_page_revision_id
-                else None,
-            )
-            if ct is None:
-                continue
-
-            param_names = {name for kind, name in ct.segments if kind == "param"}
-            if param_names != {"slug"}:
-                continue
-
-            slugs = await EntryRecord.filter(
-                site_id=site_id,
-                entry_type_id=ct.entry_type_id,
-                published_rev__not_isnull=True,
-            ).values_list("slug", flat=True)
-            for slug in slugs:
-                if not isinstance(slug, str):
-                    continue
-                s = slug.strip()
-                if not s or "/" in s:
-                    continue
-                parts: list[str] = []
-                for kind, name in ct.segments:
-                    if kind == "static":
-                        parts.append(name)
-                    else:
-                        parts.append(s)
-                path = normalize_path("/" + "/".join(parts))
-                if path in page_set:
-                    continue
-                entry_paths.add(path)
-
-        paths = sorted(page_set | entry_paths)
-        # Ensure homepage is first (handy for debugging, doesn't matter for consumers).
-        if "/" in paths:
-            paths.remove("/")
-            paths.insert(0, "/")
-        return paths
+        return await self._publishing_repo.list_public_sitemap_paths(site_id=site_id)
 
 
-_PARAM_RE = re.compile(r"^:([A-Za-z][A-Za-z0-9_]*)$")
 
 
 def _compile_path_pattern(
@@ -1301,84 +738,17 @@ def _compile_path_pattern(
     entry_type_id: UUID,
     template_page_revision_id: UUID | None,
 ) -> _CompiledRouteTemplate | None:
-    if not path_pattern or not path_pattern.startswith("/"):
-        return None
-
-    pat = normalize_path(path_pattern)
-    if pat == "/":
-        # Reserved for the site root; dynamic templates shouldn't use it.
-        return None
-
-    pat_segs = pat.split("/")[1:]
-    if not pat_segs or any(not s for s in pat_segs):
-        return None
-
-    segments: list[tuple[str, str]] = []
-    static_count = 0
-    seen_params: set[str] = set()
-    for seg in pat_segs:
-        m = _PARAM_RE.match(seg)
-        if m:
-            name = m.group(1)
-            if name in seen_params:
-                return None
-            seen_params.add(name)
-            segments.append(("param", name))
-            continue
-        segments.append(("static", seg))
-        static_count += 1
-
-    sort_key = (static_count, len(segments), pat)
-    return _CompiledRouteTemplate(
+    return _routing_compile_path_pattern(
+        path_pattern,
         template_id=template_id,
         entry_type_id=entry_type_id,
         template_page_revision_id=template_page_revision_id,
-        path_pattern=pat,
-        segments=tuple(segments),
-        specificity=static_count,
-        sort_key=sort_key,
     )
 
 
 def _match_compiled(compiled: _CompiledRouteTemplate, pathname: str) -> dict[str, str] | None:
-    path = normalize_path(pathname)
-    path_segs = path.split("/")[1:]
-    if len(path_segs) != len(compiled.segments):
-        return None
-
-    params: dict[str, str] = {}
-    for (kind, value), seg in zip(compiled.segments, path_segs, strict=True):
-        if kind == "static":
-            if seg != value:
-                return None
-            continue
-        # param
-        params[value] = seg
-
-    return params
+    return _routing_match_compiled(compiled, pathname)
 
 
 def _match_path_pattern(path_pattern: str, pathname: str) -> tuple[dict[str, str], int] | None:
-    """
-    Match a simplified path pattern against a pathname.
-
-    Rules (Sprint 3):
-    - Pattern and pathname are both absolute paths (start with '/').
-    - Only `:param` single-segment parameters are supported.
-    - No splat/optional segments.
-
-    Returns: (params, specificityScore) where specificityScore favors static matches.
-    """
-
-    # Kept for tests and for documenting Sprint 3 behavior.
-    # Internally we prefer compile+match to support caching.
-    ct = _compile_path_pattern(
-        path_pattern,
-        template_id=UUID(int=0),
-        entry_type_id=UUID(int=0),
-        template_page_revision_id=None,
-    )
-    if ct is None:
-        return None
-    params = _match_compiled(ct, pathname)
-    return (params, ct.specificity) if params is not None else None
+    return _routing_match_path_pattern(path_pattern, pathname)

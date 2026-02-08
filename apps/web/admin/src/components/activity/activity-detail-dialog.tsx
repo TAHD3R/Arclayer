@@ -16,13 +16,15 @@ function safeJsonStringify(value: unknown): string {
   }
 }
 
-function buildTitle(t: (key: string, options?: any) => string, event: ActivityEvent): string {
+type ActivityTranslator = (key: string, options?: Record<string, unknown>) => string;
+
+function buildTitle(t: ActivityTranslator, event: ActivityEvent): string {
   const entry = resolveCatalogEntry(event.eventName);
   if (!entry) return t("activity:ACTIVITY_DETAIL_TITLE");
   return t(`activity:${entry.titleKey}`);
 }
 
-function buildDescription(t: (key: string, options?: any) => string, event: ActivityEvent): string {
+function buildDescription(t: ActivityTranslator, event: ActivityEvent): string {
   const entry = resolveCatalogEntry(event.eventName);
   const rawName = (event.eventName || "").trim() || "-";
   const parts: string[] = [];

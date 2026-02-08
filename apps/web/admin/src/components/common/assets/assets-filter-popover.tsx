@@ -1,6 +1,6 @@
 import { Button, DatePicker, Select } from "antd";
 import { Filter } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { type ComponentProps, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -13,8 +13,22 @@ export type AssetsFilters = {
   createdTo?: string;
   tagIds?: string[];
 
-  // 预留：当后端支持后，再扩展更多过滤维度
+  // Reserved for future backend filtering dimensions.
 };
+
+type RangePickerValue = NonNullable<ComponentProps<typeof DatePicker.RangePicker>["value"]>;
+
+function toIsoRangeBoundary(value: unknown): string | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  if ("toDate" in value && typeof value.toDate === "function") {
+    const dateValue = value.toDate() as Date;
+    return dateValue.toISOString();
+  }
+  if ("toISOString" in value && typeof value.toISOString === "function") {
+    return value.toISOString() as string;
+  }
+  return undefined;
+}
 
 export function AssetsFilterPopover(props: {
   value: AssetsFilters;
@@ -26,10 +40,10 @@ export function AssetsFilterPopover(props: {
   tagsLoading?: boolean;
 }) {
   const { t } = useTranslation();
-  const [rangeValue, setRangeValue] = useState<any[] | null>(null);
+  const [rangeValue, setRangeValue] = useState<RangePickerValue | null>(null);
 
   useEffect(() => {
-    // 当外部清空筛选时，内部也要同步清空 RangePicker 的展示。
+    // Keep RangePicker state in sync when parent clears filters.
     if (!props.value.createdFrom && !props.value.createdTo) {
       setRangeValue(null);
     }
@@ -98,15 +112,13 @@ export function AssetsFilterPopover(props: {
             <DatePicker.RangePicker
               showTime
               allowClear
-              value={rangeValue as any}
+              value={rangeValue}
               onChange={(values) => {
-                setRangeValue((values as any) ?? null);
-                const start = (values as any)?.[0];
-                const end = (values as any)?.[1];
-                const createdFrom = start?.toDate
-                  ? start.toDate().toISOString()
-                  : start?.toISOString?.();
-                const createdTo = end?.toDate ? end.toDate().toISOString() : end?.toISOString?.();
+                setRangeValue(values ?? null);
+                const start = values?.[0];
+                const end = values?.[1];
+                const createdFrom = toIsoRangeBoundary(start);
+                const createdTo = toIsoRangeBoundary(end);
                 props.onChange({
                   ...props.value,
                   createdFrom: createdFrom || undefined,

@@ -55,6 +55,7 @@ import { resolveAssetRefToPublicUrlPath } from "@/lib/assets/asset-urls";
 import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";
 
 type TabKey = "pending" | "accepted" | "links";
+type RenewExpiresInSeconds = number | null;
 
 function userInitials(label: string | null | undefined): string {
   const v = String(label || "U").trim();
@@ -109,7 +110,7 @@ export function TeamInvitationsView() {
   const [deleteInvitation, setDeleteInvitation] = React.useState<TeamInvitation | null>(null);
   const [renewInvitation, setRenewInvitation] = React.useState<TeamInvitation | null>(null);
   const [renewLink, setRenewLink] = React.useState<TeamInviteLink | null>(null);
-  const [renewExpiresInSeconds, setRenewExpiresInSeconds] = React.useState<number | null>(
+  const [renewExpiresInSeconds, setRenewExpiresInSeconds] = React.useState<RenewExpiresInSeconds>(
     7 * 24 * 60 * 60,
   );
 
@@ -508,7 +509,7 @@ export function TeamInvitationsView() {
     },
   });
 
-  const renewOptions = React.useMemo(
+  const renewOptions = React.useMemo<Array<{ label: string; value: RenewExpiresInSeconds }>>(
     () => [
       { label: t("team:TEAM_INVITE_LINK_EXPIRES_1_DAY"), value: 1 * 24 * 60 * 60 },
       { label: t("team:TEAM_INVITE_LINK_EXPIRES_7_DAYS"), value: 7 * 24 * 60 * 60 },
@@ -804,10 +805,9 @@ export function TeamInvitationsView() {
 
           {renewInvitation ? (
             <div className="space-y-3 py-2">
-              <Select
+              <Select<RenewExpiresInSeconds>
                 value={renewExpiresInSeconds}
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                onChange={(v: any) => setRenewExpiresInSeconds(v === null ? null : Number(v))}
+                onChange={(v) => setRenewExpiresInSeconds(v)}
                 options={renewOptions}
                 style={{ width: "100%" }}
                 getPopupContainer={(node) => node.parentElement ?? document.body}
@@ -858,10 +858,9 @@ export function TeamInvitationsView() {
 
           {renewLink ? (
             <div className="space-y-3 py-2">
-              <Select
+              <Select<RenewExpiresInSeconds>
                 value={renewExpiresInSeconds}
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                onChange={(v: any) => setRenewExpiresInSeconds(v === null ? null : Number(v))}
+                onChange={(v) => setRenewExpiresInSeconds(v)}
                 options={renewOptions}
                 style={{ width: "100%" }}
                 getPopupContainer={(node) => node.parentElement ?? document.body}

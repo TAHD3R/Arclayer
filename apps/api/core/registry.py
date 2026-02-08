@@ -12,6 +12,8 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 from starlette.responses import HTMLResponse
 from starlette.routing import Mount
 
+from apps.api.bootstrap import close_domain_bootstrap, init_domain_bootstrap
+from apps.api.app_middleware import get_locale_middleware
 from apps.api.config import Settings, get_settings
 from apps.api.core.database.orm import (
     close_orm,
@@ -25,10 +27,6 @@ from apps.api.core.observability import configure_observability
 from apps.api.core.routes import register_routes
 from apps.api.infra.cache.valkey import close_valkey, init_valkey
 from apps.api.infra.limiter.limiter import close_rate_limiter, init_rate_limiter
-from apps.api.modules.analytics.bootstrap import close_activity, init_activity
-from apps.api.modules.organization.bootstrap import ensure_organization_ready
-from apps.api.modules.sites.bootstrap import ensure_demo_site_ready
-from apps.api.modules.system.rbac.bootstrap import ensure_rbac_ready
 from apps.api.plugin.manager import PluginManager
 from apps.api.plugin.restart import start_restart_watcher, stop_restart_watcher
 from apps.api.plugin.watch import start_plugin_watchers, stop_plugin_watchers
@@ -48,40 +46,7 @@ def _build_lifespan(settings: Settings, *, plugin_manager: PluginManager):
             await verify_db_ready(settings)
             # Hotfix legacy DB constraint that blocks v2 workspace-scoped settings.
             await ensure_settings_schema_constraints()
-            # Start audit log ingestion (best-effort, non-blocking).
-            await init_activity(app, settings, event_bus=plugin_manager.host.event_bus)
-            # Register core event-driven processors (e.g. thumbnails) after DB is ready.
-            from apps.api.modules.assets.bootstrap import register_core_asset_processors
-
-            await register_core_asset_processors(plugin_manager.host.event_bus, settings)
-            if settings.database.enabled:
-                await ensure_organization_ready()
-                await ensure_rbac_ready(settings=settings, plugin_manager=plugin_manager)
-                from apps.api.modules.system.admin.menus.bootstrap import ensure_core_admin_menus_ready
-
-                await ensure_core_admin_menus_ready(settings=settings)
-                # Best-effort: ensure plugin-declared admin menus exist (create missing, restore deleted).
-                try:
-                    from apps.api.modules.system.admin.menus.seeds import AdminMenuSeedService
-
-                    seeder = AdminMenuSeedService(settings)
-                    if not plugin_manager.descriptors:
-                        plugin_manager.discover()
-                    for desc in plugin_manager.descriptors.values():
-                        seeds = list(getattr(desc.manifest, "admin_menu", None) or [])
-                        if not seeds:
-                            continue
-                        await seeder.ensure_seeds(
-                            owner_plugin_id=desc.plugin_id,
-                            seeds=seeds,
-                            update_existing=False,
-                            restore_deleted=True,
-                        )
-                except Exception:
-                    pass
-                # Dev-only bootstrap for Portal SSR integration (do not run in production).
-                if settings.app_env != "production":
-                    await ensure_demo_site_ready()
+            await init_domain_bootstrap(app, settings, plugin_manager=plugin_manager)
             await init_valkey(app, settings)
             plugin_manager.bind_valkey(getattr(app.state, "valkey", None))
             await init_rate_limiter(app, settings)
@@ -98,10 +63,7 @@ def _build_lifespan(settings: Settings, *, plugin_manager: PluginManager):
             await stop_restart_watcher(app)
             await stop_plugin_watchers(app)
             await plugin_manager.stop()
-            try:
-                await close_activity(app, event_bus=plugin_manager.host.event_bus)
-            except Exception:
-                pass
+            await close_domain_bootstrap(app, plugin_manager=plugin_manager)
             try:
                 await plugin_manager.host.event_bus.aclose()
             except Exception:
@@ -236,8 +198,7 @@ class AppFactory:
                 cookie_samesite=middleware.csrf_cookie_samesite,
                 token_bytes=middleware.csrf_token_bytes,
             )
-
-        from apps.api.modules.system.middleware.locale import LocaleMiddleware
+        from apps.api.core.middleware.locale import LocaleMiddleware
 
         self.app.add_middleware(LocaleMiddleware)
         from apps.api.core.middleware.request_log import RequestLogMiddleware

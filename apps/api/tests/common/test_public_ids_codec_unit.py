@@ -36,8 +36,9 @@ def test_public_id_tamper_never_decodes_to_original_uuid() -> None:
     u = uuid4()
     pid = encode_uuid(u)
     assert len(pid) == 22
-    # Flip last character to another valid base64url char.
-    flipped = pid[:-1] + ("A" if pid[-1] != "A" else "B")
+    # Flip the first character to another valid base64url char.
+    # (Flipping the tail can keep the same bytes because trailing bits are padding-derived.)
+    flipped = ("A" if pid[0] != "A" else "B") + pid[1:]
     try:
         decoded = decode_public_id(flipped)
     except PublicIdDecodeError:

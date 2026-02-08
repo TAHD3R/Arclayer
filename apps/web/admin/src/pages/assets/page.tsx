@@ -13,7 +13,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { type InfiniteData, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ComponentProps, type ReactNode } from "react";
 import { flushSync } from "react-dom";
 import { useTranslation } from "react-i18next";
 import {
@@ -121,8 +121,41 @@ function parseFolderItemDndId(id: string): string | null {
   return raw;
 }
 
-const snapOverlayCenterToPointer = (args: any) => {
-  const { transform, activeNodeRect, overlayNodeRect, activatorEvent } = args;
+type DragOverlayModifier = NonNullable<ComponentProps<typeof DragOverlay>["modifiers"]>[number];
+
+type PointerActivatorEvent = { clientX: number; clientY: number };
+type TouchActivatorEvent = { touches: Array<PointerActivatorEvent> };
+
+function getPointerActivatorPosition(event: unknown): PointerActivatorEvent | null {
+  if (!event || typeof event !== "object") return null;
+
+  if ("clientX" in event && "clientY" in event) {
+    const pointerEvent = event as PointerActivatorEvent;
+    return {
+      clientX: Number(pointerEvent.clientX),
+      clientY: Number(pointerEvent.clientY),
+    };
+  }
+
+  if ("touches" in event) {
+    const touchEvent = event as TouchActivatorEvent;
+    const firstTouch = touchEvent.touches?.[0];
+    if (!firstTouch) return null;
+    return {
+      clientX: Number(firstTouch.clientX),
+      clientY: Number(firstTouch.clientY),
+    };
+  }
+
+  return null;
+}
+
+const snapOverlayCenterToPointer: DragOverlayModifier = ({
+  transform,
+  activeNodeRect,
+  overlayNodeRect,
+  activatorEvent,
+}) => {
   const base = {
     x: Number(transform?.x || 0),
     y: Number(transform?.y || 0),
@@ -134,23 +167,10 @@ const snapOverlayCenterToPointer = (args: any) => {
 
   // We only need the initial pointer position to compute a constant offset, so the overlay
   // stays centered under the cursor during the whole drag.
-  let clientX: number | null = null;
-  let clientY: number | null = null;
+  const pointerPosition = getPointerActivatorPosition(activatorEvent);
+  if (!pointerPosition) return base;
 
-  const evt = activatorEvent as unknown;
-  if (typeof evt === "object" && evt && "clientX" in (evt as Record<string, unknown>)) {
-    clientX = Number((evt as { clientX: number }).clientX);
-    clientY = Number((evt as { clientY: number }).clientY);
-  } else if (typeof evt === "object" && evt && "touches" in (evt as Record<string, unknown>)) {
-    const touches = (evt as { touches: Array<{ clientX: number; clientY: number }> }).touches;
-    const t0 = touches?.[0];
-    if (t0) {
-      clientX = Number(t0.clientX);
-      clientY = Number(t0.clientY);
-    }
-  }
-
-  if (clientX === null || clientY === null) return base;
+  const { clientX, clientY } = pointerPosition;
   if (!Number.isFinite(clientX) || !Number.isFinite(clientY)) return base;
 
   const grabOffsetX = clientX - activeNodeRect.left;

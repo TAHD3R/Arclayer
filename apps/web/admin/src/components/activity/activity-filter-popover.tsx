@@ -32,6 +32,35 @@ function normalizeFilters(filters: ActivityFilters): ActivityFilters {
   };
 }
 
+type RangePickerValue = NonNullable<React.ComponentProps<typeof DatePicker.RangePicker>["value"]>;
+
+type SelectLikeOption = {
+  value: string | number;
+  label?: React.ReactNode;
+  avatarUrl?: string | null;
+  data?: { avatarUrl?: string | null };
+};
+
+function toSelectLikeOption(value: unknown): SelectLikeOption | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  if (!("value" in value)) return null;
+  const option = value as SelectLikeOption;
+  if (typeof option.value !== "string" && typeof option.value !== "number") return null;
+  return option;
+}
+
+function toIsoRangeBoundary(value: unknown): string | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  if ("toDate" in value && typeof value.toDate === "function") {
+    const dateValue = value.toDate() as Date;
+    return dateValue.toISOString();
+  }
+  if ("toISOString" in value && typeof value.toISOString === "function") {
+    return value.toISOString() as string;
+  }
+  return undefined;
+}
+
 export function ActivityFilterPopover(props: {
   scope: "workspace" | "org";
   /**
@@ -51,7 +80,7 @@ export function ActivityFilterPopover(props: {
   const [open, setOpen] = React.useState(false);
   const [draft, setDraft] = React.useState<ActivityFilters>(() => props.value);
 
-  const [rangeValue, setRangeValue] = React.useState<any[] | null>(null);
+  const [rangeValue, setRangeValue] = React.useState<RangePickerValue | null>(null);
   React.useEffect(() => {
     if (!draft.occurredFrom && !draft.occurredTo) setRangeValue(null);
   }, [draft.occurredFrom, draft.occurredTo]);
@@ -129,15 +158,13 @@ export function ActivityFilterPopover(props: {
             <DatePicker.RangePicker
               showTime
               allowClear
-              value={rangeValue as any}
+              value={rangeValue}
               onChange={(values) => {
-                setRangeValue((values as any) ?? null);
-                const start = (values as any)?.[0];
-                const end = (values as any)?.[1];
-                const occurredFrom = start?.toDate
-                  ? start.toDate().toISOString()
-                  : start?.toISOString?.();
-                const occurredTo = end?.toDate ? end.toDate().toISOString() : end?.toISOString?.();
+                setRangeValue(values ?? null);
+                const start = values?.[0];
+                const end = values?.[1];
+                const occurredFrom = toIsoRangeBoundary(start);
+                const occurredTo = toIsoRangeBoundary(end);
                 setDraft((prev) => ({
                   ...prev,
                   occurredFrom: occurredFrom || undefined,
@@ -156,7 +183,7 @@ export function ActivityFilterPopover(props: {
               value={eventNameInput}
               open={eventNameOpen}
               onDropdownVisibleChange={(nextOpen) => setEventNameOpen(nextOpen)}
-              options={eventNameOptions as any}
+              options={eventNameOptions}
               onChange={(next) => {
                 const v = String(next || "");
                 setEventNameInput(v);
@@ -213,8 +240,9 @@ export function ActivityFilterPopover(props: {
                   }));
                 }}
                 onChange={(value) => {
-                  const v = (value as any)?.value ?? null;
-                  const label = (value as any)?.label ?? null;
+                  const option = toSelectLikeOption(value);
+                  const v = option?.value ?? null;
+                  const label = option?.label ?? null;
                   if (v) {
                     setWorkspaceOption({ value: String(v), label: String(label || v) });
                   } else {
@@ -258,10 +286,10 @@ export function ActivityFilterPopover(props: {
                 return props.fetchUserOptions(selectedWorkspaceId, search);
               }}
               onChange={(value) => {
-                const v = (value as any)?.value ?? null;
-                const label = (value as any)?.label ?? null;
-                const avatarUrl =
-                  (value as any)?.avatarUrl ?? (value as any)?.data?.avatarUrl ?? null;
+                const option = toSelectLikeOption(value);
+                const v = option?.value ?? null;
+                const label = option?.label ?? null;
+                const avatarUrl = option?.avatarUrl ?? option?.data?.avatarUrl ?? null;
                 if (v) {
                   setActorOption({ value: String(v), label: String(label || v), avatarUrl });
                 } else {
@@ -291,10 +319,10 @@ export function ActivityFilterPopover(props: {
                 return props.fetchUserOptions(selectedWorkspaceId, search);
               }}
               onChange={(value) => {
-                const v = (value as any)?.value ?? null;
-                const label = (value as any)?.label ?? null;
-                const avatarUrl =
-                  (value as any)?.avatarUrl ?? (value as any)?.data?.avatarUrl ?? null;
+                const option = toSelectLikeOption(value);
+                const v = option?.value ?? null;
+                const label = option?.label ?? null;
+                const avatarUrl = option?.avatarUrl ?? option?.data?.avatarUrl ?? null;
                 if (v) {
                   setSubjectOption({ value: String(v), label: String(label || v), avatarUrl });
                 } else {

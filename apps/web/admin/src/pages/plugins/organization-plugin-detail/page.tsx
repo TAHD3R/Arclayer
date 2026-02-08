@@ -102,7 +102,7 @@ export function OrganizationPluginDetailView({ pluginSlug }: OrganizationPluginD
 
   const settingsQuery = useQuery({
     queryKey: ["organization", "plugins", plugin?.slug || plugin?.pluginId || "", "settings"],
-    enabled: Boolean(plugin?.hasConfigSchema),
+    enabled: plugin?.hasConfigSchema ?? false,
     queryFn: async () => {
       if (!plugin) throw new Error("plugin is required");
       return getOrganizationPluginSettings(String(plugin.slug || plugin.pluginId));
@@ -135,6 +135,7 @@ export function OrganizationPluginDetailView({ pluginSlug }: OrganizationPluginD
   }, [settingsQuery.data?.settingSchema?.sections]);
 
   const status = normalizeStatus(plugin?.status);
+  const hasConfigSchema = plugin?.hasConfigSchema ?? false;
   const statusLabel = plugin
     ? t(`plugin:PLUGIN_STATUS_${status.toUpperCase()}`, { defaultValue: plugin.status })
     : null;
@@ -142,11 +143,11 @@ export function OrganizationPluginDetailView({ pluginSlug }: OrganizationPluginD
     const keys = ["details"];
     if (configSections.length > 0) {
       for (const s of configSections) keys.push(`org:${s.id}`);
-    } else if (Boolean(plugin?.hasConfigSchema)) {
+    } else if (hasConfigSchema) {
       keys.push("org:config");
     }
     return keys;
-  }, [configSections, plugin?.hasConfigSchema]);
+  }, [configSections, hasConfigSchema]);
 
   useEffect(() => {
     if (!availableTabs.includes(tab)) setTab("details");
@@ -192,7 +193,7 @@ export function OrganizationPluginDetailView({ pluginSlug }: OrganizationPluginD
                     {s.title || s.id}
                   </ChromeTabsTrigger>
                 ))
-              ) : Boolean(plugin.hasConfigSchema) ? (
+              ) : hasConfigSchema ? (
                 <ChromeTabsTrigger value="org:config">
                   {t("plugin:PLUGIN_TAB_CONFIG")}
                 </ChromeTabsTrigger>
@@ -265,7 +266,7 @@ export function OrganizationPluginDetailView({ pluginSlug }: OrganizationPluginD
                 ))
               : null}
 
-            {Boolean(plugin.hasConfigSchema) ? (
+            {hasConfigSchema ? (
               <ChromeTabsContent value="org:config">
                 {settingsQuery.isLoading && !settingsQuery.data ? (
                   <PageState loading loadingVariant="form" />

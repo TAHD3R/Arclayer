@@ -86,6 +86,8 @@ function collectDescendantPermissionCodes(node: AdminMenuNode): Set<string> {
   return out;
 }
 
+type MenuScopeCheckedState = NonNullable<React.ComponentProps<typeof Checkbox>["checked"]>;
+
 type CreateRoleFormValues = {
   templateRoleCode: string;
   name: string;
@@ -710,7 +712,7 @@ export function TeamRolesView() {
                     const selectedCount = permCodes.filter((c) =>
                       Boolean(menuScopeDraft[c]),
                     ).length;
-                    const checkedState =
+                    const checkedState: MenuScopeCheckedState =
                       permCodes.length === 0
                         ? false
                         : selectedCount === 0
@@ -729,7 +731,7 @@ export function TeamRolesView() {
                           style={{ paddingLeft: 8 + depth * 16 }}
                         >
                           <Checkbox
-                            checked={checkedState as any}
+                            checked={checkedState}
                             disabled={!menuScopeRoleCode || permCodes.length === 0}
                             onCheckedChange={(v) => {
                               const nextChecked = Boolean(v);

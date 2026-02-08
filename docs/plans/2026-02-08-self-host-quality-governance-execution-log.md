@@ -1,0 +1,273 @@
+# Self-host Quality Governance Execution Log
+
+> Master Plan: `docs/plans/2026-02-08-self-host-quality-governance-master-plan.md`
+
+## 2026-02-08 - Kickoff
+
+### Completed
+
+1. Saved and finalized the master plan in docs.
+2. Established audit governance artifacts and machine reports.
+3. Started Phase 1 remediation with a low-risk frontend quality patch:
+   - Removed redundant boolean casts in plugin detail pages.
+   - Verified admin lint is now clean.
+
+### Evidence
+
+- `apps/web/admin/src/routes/w/$workspaceId/plugins/$pluginSlug/index.tsx`
+- `apps/web/admin/src/pages/plugins/organization-plugin-detail/page.tsx`
+- `docs/audit/latest-quality-report.md`
+
+### Verification
+
+- `pnpm --filter @celestial/admin lint` => 0 warnings / 0 errors
+- `pnpm audit:quality` => report regenerated
+
+### Next
+
+1. Phase 1 / WP-1: remove `core -> modules` direct imports in startup path.
+2. Phase 1 / WP-2: begin backend large-file decomposition (auth/sites).
+
+
+## 2026-02-08 - WP-1 Core Boundary Refactor
+
+### Completed
+
+1. Removed direct `apps.api.modules.*` imports from `apps/api/core/registry.py`.
+2. Introduced an application-level bootstrap boundary:
+   - `apps/api/app_bootstrap.py`
+   - `apps/api/app_middleware.py`
+3. Kept startup/shutdown behavior equivalent (activity ingest, seed sync, demo site bootstrap, locale middleware resolution).
+
+### Verification
+
+- `pnpm --filter @celestial/api typecheck` => 0 errors
+- `pnpm --filter @celestial/api exec uv run ruff check app_bootstrap.py app_middleware.py core/registry.py` => passed
+- `pnpm --filter @celestial/api test` => 190 passed / 42 skipped
+- `pnpm audit:quality` => findings reduced from 279 to 271
+- `core_modules_dependency` category removed from report
+
+### Tracking updates
+
+- `docs/audit/2026-02-08-issue-register.csv`: `ISS-0003` marked as `done`.
+
+### Next
+
+1. Phase 1 / WP-2: split backend large files (auth/sites/plugins_manager).
+2. Phase 1 / WP-3: start highest-frequency frontend `any` cleanup cluster.
+
+
+## 2026-02-08 - WP-2 Auth Decomposition (Invitation Domain)
+
+### Completed
+
+1. Continued auth service拆分，邀请相关逻辑从 `AuthService` 进一步下沉：
+   - `apps/api/modules/auth/invitation_service.py` 负责 invitation query/preview + policy。
+   - `apps/api/modules/auth/invitation_acceptance_service.py` 新增，承载 invitation acceptance flow。
+2. `apps/api/modules/auth/service.py` 保持 orchestrator 职责，通过组合方式委托 invitation 子服务。
+3. 修复审查脚本跨环境兼容性：
+   - `scripts/quality/audit_repo.py` 从 `datetime.UTC` 改为 `timezone.utc`，兼容系统 Python 3.9。
+
+### Verification
+
+- `pnpm --filter @celestial/api exec uv run ruff check app_bootstrap.py app_middleware.py core/registry.py modules/auth/service.py modules/auth/invitation_service.py modules/auth/invitation_acceptance_service.py` => passed
+- `pnpm --filter @celestial/api typecheck` => 0 errors
+- `pnpm --filter @celestial/api exec uv run pytest tests/modules/auth -q` => passed (with expected integration skips)
+- `pnpm --filter @celestial/api test` => 190 passed / 42 skipped (one run observed flaky failure in `test_public_id_tamper_never_decodes_to_original_uuid`, rerun passed)
+- `pnpm audit:quality` => findings reduced from 271 to 270
+
+### Tracking updates
+
+- `docs/audit/2026-02-08-issue-register.csv`
+  - `ISS-0004` marked `done` (auth service file-budget target met)
+  - `ISS-0026` added (probabilistic tamper test flakiness)
+
+### Next
+
+1. Phase 1 / WP-2: continue large-file split for `sites/service.py`, `sites/repository.py`, `plugins_manager/service.py`.
+2. Phase 1 / WP-3: continue frontend `any` hotspot reduction.
+3. Phase 1 / WP-4: start replacing broad exception blocks in auth/assets/plugin flows with structured, contextual logging.
+
+
+## 2026-02-08 - WP-2 Sites Service Decomposition (Publishing/Resolve)
+
+### Completed
+
+1. Split publishing + revision + route resolve + presence + sitemap responsibilities out of `SiteService`:
+   - Added `apps/api/modules/sites/publishing_service.py`.
+   - `apps/api/modules/sites/service.py` now delegates those responsibilities to `SitePublishingService`.
+2. Kept external API contracts unchanged (router/service method signatures remain stable).
+3. Reduced `apps/api/modules/sites/service.py` size significantly:
+   - `1539` -> `1010` lines.
+
+### Verification
+
+- `pnpm --filter @celestial/api exec uv run ruff check modules/sites/service.py modules/sites/publishing_service.py` => passed
+- `pnpm --filter @celestial/api typecheck` => 0 errors
+- `pnpm --filter @celestial/api exec uv run pytest tests/modules/sites -q` => passed (integration skips expected)
+- `pnpm --filter @celestial/api test` => 190 passed / 42 skipped
+- `pnpm audit:quality` => report regenerated, total findings `270`
+
+### Tracking updates
+
+- `docs/audit/2026-02-08-issue-register.csv`
+  - `ISS-0005` updated to reflect partial decomposition progress (still open, still above budget).
+
+### Next
+
+1. Continue Phase 1 / WP-2 on `apps/api/modules/sites/repository.py`.
+2. Then proceed with `apps/api/modules/system/plugins_manager/service.py` decomposition.
+3. Keep Phase 1 / WP-3 frontend `any` reduction in parallel.
+
+
+## 2026-02-08 - WP-2 Sites Repository Decomposition (Publishing/Routing)
+
+### Completed
+
+1. Split monolithic sites repository into focused components:
+   - Added `apps/api/modules/sites/repository_publishing.py` for revision publish/rollback and deps validation.
+   - Added `apps/api/modules/sites/repository_routing.py` for route-template matcher/cache and sitemap path resolution.
+   - `apps/api/modules/sites/repository.py` now acts as a thin façade and keeps compatibility exports for matcher helper tests.
+2. Reduced repository file size:
+   - `apps/api/modules/sites/repository.py`: `1384` -> `722` lines (now within budget).
+
+### Verification
+
+- `pnpm --filter @celestial/api exec uv run ruff check modules/sites/repository.py modules/sites/repository_publishing.py modules/sites/repository_routing.py modules/sites/service.py modules/sites/publishing_service.py` => passed
+- `pnpm --filter @celestial/api typecheck` => 0 errors
+- `pnpm --filter @celestial/api exec uv run pytest tests/modules/sites -q` => passed (integration skips expected)
+- `pnpm --filter @celestial/api test` => 190 passed / 42 skipped
+- `pnpm audit:quality` => total findings `269`, large_file `16`
+
+### Tracking updates
+
+- `docs/audit/2026-02-08-issue-register.csv`
+  - `ISS-0006` marked `done`.
+
+### Next
+
+1. Continue Phase 1 / WP-2 on `apps/api/modules/sites/service.py` (still above budget at `1010` lines).
+2. Then proceed with `apps/api/modules/system/plugins_manager/service.py` decomposition.
+3. Continue Phase 1 / WP-3 frontend `any` reduction in parallel.
+
+
+## 2026-02-08 - WP-2 Sites Service Decomposition (Content Domain)
+
+### Completed
+
+1. Continued sites domain decomposition by extracting content-management responsibilities into a dedicated service:
+   - Added `apps/api/modules/sites/content_service.py`.
+   - Moved page/entry/route-template CRUD and cache-version bump logic out of `SiteService`.
+2. Kept `apps/api/modules/sites/service.py` as orchestration façade:
+   - Delegates content operations to `SiteContentService`.
+   - Delegates publishing/revision/resolve/presence/sitemap operations to `SitePublishingService`.
+3. Reduced sites service file size to budget:
+   - `apps/api/modules/sites/service.py`: `1010` -> `500` lines.
+
+### Verification
+
+- `pnpm --filter @celestial/api exec uv run ruff check modules/sites/service.py modules/sites/content_service.py` => passed
+- `pnpm --filter @celestial/api typecheck` => 0 errors
+- `pnpm --filter @celestial/api exec uv run pytest tests/modules/sites -q` => passed (integration skips expected)
+- `pnpm --filter @celestial/api test` => failed on existing `tests/common/test_public_ids_codec_unit.py::test_public_id_tamper_never_decodes_to_original_uuid` (tracked in issue register, unrelated to sites refactor)
+- `pnpm audit:quality` => total findings `268`, `large_file` reduced to `15`
+
+### Tracking updates
+
+- `docs/audit/2026-02-08-issue-register.csv`
+  - `ISS-0005` marked `done` (sites service file-budget target met).
+
+### Next
+
+1. Continue Phase 1 / WP-2 on `apps/api/modules/system/plugins_manager/service.py` decomposition.
+2. Continue Phase 1 / WP-3 frontend `any` hotspot reduction.
+3. Address `ISS-0026` test instability to restore full-suite green baseline.
+
+
+## 2026-02-08 - WP-2 Plugins Manager Decomposition + WP-3 Any Cleanup + ISS-0026 Stabilization
+
+### Completed
+
+1. Decomposed plugin manager service by extracting install/staging/zip-security flow:
+   - Added `apps/api/modules/system/plugins_manager/install_service.py`.
+   - `apps/api/modules/system/plugins_manager/service.py` now keeps orchestration/detail/config concerns and delegates installation flow.
+   - Preserved compatibility wrappers for test-facing helper methods (`_validate_zip`, `_safe_extract`, `_save_upload`, etc.).
+2. Reduced plugin manager service file size to budget:
+   - `apps/api/modules/system/plugins_manager/service.py`: `1154` -> `518` lines.
+3. Cleaned frontend `any` hotspots in the targeted cluster:
+   - `apps/web/admin/src/layouts/admin-layout.tsx`
+   - `apps/web/admin/src/pages/assets/page.tsx`
+   - `apps/web/admin/src/components/activity/activity-filter-popover.tsx`
+   - plus readonly-nav type plumbing in nav/header/command menu components.
+4. Fixed flaky test `ISS-0026`:
+   - Updated tamper test to mutate a deterministic non-padding base64url position.
+   - `tests/common/test_public_ids_codec_unit.py` no longer fails intermittently on unchanged UUID decode edge-case.
+
+### Verification
+
+- `pnpm --filter @celestial/api exec uv run ruff check modules/system/plugins_manager/service.py modules/system/plugins_manager/install_service.py modules/sites/service.py modules/sites/content_service.py tests/common/test_public_ids_codec_unit.py` => passed
+- `pnpm --filter @celestial/api typecheck` => 0 errors
+- `pnpm --filter @celestial/api exec uv run pytest tests/plugin/test_plugin_package_security.py tests/modules/system/test_plugin_validate_staging_unit.py tests/common/test_public_ids_codec_unit.py -q` => passed
+- `pnpm --filter @celestial/api test` => 190 passed / 42 skipped
+- `pnpm --filter @celestial/admin typecheck` => passed
+- `pnpm --filter @celestial/admin lint` => 0 warnings / 0 errors
+- `pnpm audit:quality` => total findings `248`, `frontend_any` `61`, `large_file` `14`
+
+### Tracking updates
+
+- `docs/audit/2026-02-08-issue-register.csv`
+  - `ISS-0007` marked `done` (plugins manager file-budget target met)
+  - `ISS-0011` / `ISS-0012` / `ISS-0013` marked `done` (targeted frontend any hotspots resolved)
+  - `ISS-0026` marked `done` (flaky test stabilized)
+
+### Next
+
+1. Continue Phase 1 / WP-4: reduce broad exception density in plugin/assets/auth hotspots with structured context logging.
+2. Continue Phase 1 / WP-3: clean remaining frontend any hotspots (assets/team/activity long-tail).
+3. Start preparing Phase 2 architecture docs for API Keys/Webhooks/Integrations implementation sequence.
+
+## 2026-02-08 - WP-4 Broad Exception Hardening (plugin/assets/auth) + WP-3 Long-tail Any Cleanup
+
+### Completed
+
+1. Continued WP-4 hardening with structured contextual logging in high-frequency best-effort paths:
+   - `apps/api/modules/system/plugins_manager/service.py`
+     - Added contextual warning logs for plugin settings event publish failures.
+     - Narrowed dependency comparison fallback from `(InvalidVersion, Exception)` to explicit version/specifier parsing errors.
+     - Narrowed manifest load fallback to explicit IO/decode/validation exceptions with path context.
+   - `apps/api/modules/system/plugins_manager/install_service.py`
+     - Replaced silent rollback/metadata catch blocks with structured warning logs (`plugin_id`, `token`, `action`, `error`).
+   - `apps/api/modules/assets/admin/uploads/service.py`
+     - Added contextual warning logs for complete/abort/publish/cleanup best-effort paths.
+     - Preserved graceful degradation while removing silent exception swallowing.
+   - `apps/api/modules/auth/service.py`
+     - Narrowed token-version coercion fallback to `TypeError/ValueError`.
+     - Replaced silent auth event publish catches with contextual warning logs.
+2. Continued WP-3 long-tail frontend typing cleanup (removed remaining targeted `any` usage):
+   - `apps/web/admin/src/components/common/assets/assets-filter-popover.tsx`
+   - `apps/web/admin/src/pages/team/invitations/page.tsx`
+   - `apps/web/admin/src/pages/team/roles/page.tsx`
+   - `apps/web/admin/src/pages/team/members/page.tsx`
+   - `apps/web/admin/src/components/activity/activity-detail-dialog.tsx`
+3. Regenerated repository quality report after this batch.
+
+### Verification
+
+- `pnpm --filter @celestial/admin lint` => 0 warnings / 0 errors
+- `pnpm --filter @celestial/admin typecheck` => passed
+- `pnpm --filter @celestial/api exec uv run ruff check modules/system/plugins_manager/service.py modules/system/plugins_manager/install_service.py modules/assets/admin/uploads/service.py modules/auth/service.py` => passed
+- `pnpm --filter @celestial/api typecheck` => 0 errors
+- `pnpm --filter @celestial/api test` => 190 passed / 42 skipped
+- `pnpm audit:quality` => total findings `234` (`frontend_any` `51`, `broad_exception` `169`, `large_file` `14`)
+
+### Tracking updates
+
+- `docs/audit/2026-02-08-issue-register.csv`
+  - `ISS-0015` updated to `in_progress` (auth broad-exception remediation progressed with structured context logging)
+  - `ISS-0016` updated to `in_progress` (uploads broad-exception remediation progressed with structured context logging)
+
+### Next
+
+1. Continue WP-4: reduce residual broad exceptions in `uploads/service.py` and `plugins_manager/install_service.py` by splitting cleanup/recovery helpers and narrowing catch classes where safe.
+2. Continue WP-3: eliminate remaining frontend any findings (`51` -> target continuous decline) with focus on team/assets clusters.
+3. Start WP-5 overlap cleanup for duplicated plugin-detail presentation after WP-4 residual risk is lowered.

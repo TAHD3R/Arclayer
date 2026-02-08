@@ -27,10 +27,10 @@ type RouteEntry = {
   icon: AdminNavItem["icon"];
 };
 
-function flattenRoutes(items: AdminNavItem[], t: (key: string) => string): RouteEntry[] {
+function flattenRoutes(items: readonly AdminNavItem[], t: (key: string) => string): RouteEntry[] {
   const out: RouteEntry[] = [];
 
-  const walk = (nodes: AdminNavItem[]) => {
+  const walk = (nodes: readonly AdminNavItem[]) => {
     for (const node of nodes) {
       const label = node.labelKey ? t(node.labelKey) : node.label;
       if (node.to) out.push({ to: node.to, label, icon: node.icon });
@@ -46,7 +46,7 @@ export function CommandMenu01(props: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   enableHotkey?: boolean;
-  navItems: AdminNavItem[];
+  navItems: readonly AdminNavItem[];
 }) {
   const enableHotkey = props.enableHotkey ?? true;
   const { t } = useTranslation("command");

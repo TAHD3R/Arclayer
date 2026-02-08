@@ -163,6 +163,13 @@ class UploadsService(BaseService):
             try:
                 provider_impl = build_storage_provider_for(effective, provider="s3")
             except Exception as exc:
+                logger.warning(
+                    "Storage provider build failed during upload init",
+                    workspace_id=str(workspace_id),
+                    action="init_upload_build_storage_provider",
+                    storage_provider=provider,
+                    error=str(exc),
+                )
                 raise BadRequest(
                     message=_ts("STORAGE_PROVIDER_INVALID", "存储配置不正确"),
                     error="STORAGE_PROVIDER_INVALID",
@@ -283,6 +290,14 @@ class UploadsService(BaseService):
         try:
             provider_impl = build_storage_provider_for(effective, provider="s3")
         except Exception as exc:
+            logger.warning(
+                "Storage provider build failed during part presign",
+                workspace_id=str(workspace_id),
+                upload_id=str(upload_id),
+                part_number=part_number,
+                action="presign_part_build_storage_provider",
+                error=str(exc),
+            )
             raise BadRequest(
                 message=_ts("STORAGE_PROVIDER_INVALID", "存储配置不正确"), error="STORAGE_PROVIDER_INVALID"
             ) from exc
@@ -393,12 +408,26 @@ class UploadsService(BaseService):
                 asset_id = await self._complete_s3(session=session, workspace_id=workspace_id)
             else:
                 asset_id = await self._complete_local(session=session, workspace_id=workspace_id)
-        except Exception:
+        except Exception as exc:
             # Avoid leaving the session stuck in COMPLETING forever.
+            logger.warning(
+                "Upload completion failed",
+                workspace_id=str(workspace_id),
+                upload_id=str(upload_id),
+                storage_provider=str(session.storage_provider),
+                action="complete_upload",
+                error=str(exc),
+            )
             try:
                 await self.repo.set_session_status(session, status=UploadStatus.UPLOADING)
-            except Exception:
-                pass
+            except Exception as status_exc:
+                logger.warning(
+                    "Upload status reset failed after completion error",
+                    workspace_id=str(workspace_id),
+                    upload_id=str(upload_id),
+                    action="reset_upload_status_after_complete_error",
+                    error=str(status_exc),
+                )
             raise
 
         # Emit post-upload event for plugin processors (best-effort).
@@ -419,7 +448,15 @@ class UploadsService(BaseService):
         async def _publish() -> None:
             try:
                 await plugin_host.event_bus.publish(event)
-            except Exception:
+            except Exception as exc:
+                logger.warning(
+                    "Asset uploaded event publish failed",
+                    workspace_id=str(workspace_id),
+                    upload_id=str(upload_id),
+                    asset_id=str(asset_id),
+                    action="publish_asset_uploaded_event",
+                    error=str(exc),
+                )
                 return
 
         if background_tasks is not None:
@@ -467,16 +504,32 @@ class UploadsService(BaseService):
         except Exception as exc:
             try:
                 out_path.unlink(missing_ok=True)
-            except Exception:
-                pass
+            except Exception as cleanup_exc:
+                logger.warning(
+                    "Upload output cleanup failed after merge error",
+                    workspace_id=str(workspace_id),
+                    upload_id=str(session.id),
+                    asset_id=str(asset_id),
+                    output_path=str(out_path),
+                    action="complete_local_cleanup_output_on_merge_error",
+                    error=str(cleanup_exc),
+                )
             await self.repo.set_session_status(session, status=UploadStatus.UPLOADING)
             raise BadRequest(message=_ts("UPLOAD_MERGE_FAILED", "合并分片失败"), error="UPLOAD_MERGE_FAILED") from exc
 
         if session.expected_sha256 and digest.lower() != str(session.expected_sha256).lower():
             try:
                 out_path.unlink(missing_ok=True)
-            except Exception:
-                pass
+            except Exception as cleanup_exc:
+                logger.warning(
+                    "Upload output cleanup failed after SHA256 mismatch",
+                    workspace_id=str(workspace_id),
+                    upload_id=str(session.id),
+                    asset_id=str(asset_id),
+                    output_path=str(out_path),
+                    action="complete_local_cleanup_output_on_hash_mismatch",
+                    error=str(cleanup_exc),
+                )
             await self.repo.set_session_status(session, status=UploadStatus.UPLOADING)
             raise BadRequest(
                 message=_ts("UPLOAD_SHA256_MISMATCH", "文件校验失败"),
@@ -525,7 +578,16 @@ class UploadsService(BaseService):
         for p in part_paths:
             try:
                 p.unlink(missing_ok=True)
-            except Exception:
+            except Exception as cleanup_exc:
+                logger.warning(
+                    "Upload part cleanup failed after local completion",
+                    workspace_id=str(workspace_id),
+                    upload_id=str(session.id),
+                    asset_id=str(asset.id),
+                    part_path=str(p),
+                    action="complete_local_cleanup_part",
+                    error=str(cleanup_exc),
+                )
                 continue
         return asset.id
 
@@ -534,6 +596,13 @@ class UploadsService(BaseService):
         try:
             provider_impl = build_storage_provider_for(effective, provider="s3")
         except Exception as exc:
+            logger.warning(
+                "Storage provider build failed during S3 completion",
+                workspace_id=str(workspace_id),
+                upload_id=str(session.id),
+                action="complete_s3_build_storage_provider",
+                error=str(exc),
+            )
             raise BadRequest(
                 message=_ts("STORAGE_PROVIDER_INVALID", "存储配置不正确"), error="STORAGE_PROVIDER_INVALID"
             ) from exc
@@ -641,8 +710,15 @@ class UploadsService(BaseService):
                         object_key=str(session.object_key),
                         upload_id=str(session.multipart_upload_id),
                     )
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.warning(
+                    "Abort multipart upload failed",
+                    workspace_id=str(workspace_id),
+                    upload_id=str(upload_id),
+                    storage_provider="s3",
+                    action="abort_multipart_upload",
+                    error=str(exc),
+                )
 
         await self.repo.set_session_status(session, status=UploadStatus.ABORTED)
 
@@ -661,6 +737,13 @@ class UploadsService(BaseService):
                     if child.is_dir():
                         child.rmdir()
                 upload_dir.rmdir()
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.warning(
+                "Upload temp directory cleanup failed on abort",
+                workspace_id=str(workspace_id),
+                upload_id=str(upload_id),
+                upload_dir=str(upload_dir),
+                action="abort_cleanup_upload_temp_dir",
+                error=str(exc),
+            )
         return session

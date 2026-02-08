@@ -73,11 +73,11 @@ function WithBlockedTooltip(props: { tooltip: string | null; children: ReactElem
   );
 }
 
-function findActiveTrail(items: AdminNavItem[], pathname: string): string[] {
+function findActiveTrail(items: readonly AdminNavItem[], pathname: string): string[] {
   let bestScore = -1;
   let bestKeys: string[] = [];
 
-  const dfs = (nodes: AdminNavItem[], parents: string[]) => {
+  const dfs = (nodes: readonly AdminNavItem[], parents: string[]) => {
     for (const node of nodes) {
       const nextParents = [...parents, node.key];
 
@@ -105,10 +105,10 @@ type NavIndexEntry = {
   isGroup: boolean;
 };
 
-function buildNavIndex(items: AdminNavItem[]): Map<string, NavIndexEntry> {
+function buildNavIndex(items: readonly AdminNavItem[]): Map<string, NavIndexEntry> {
   const index = new Map<string, NavIndexEntry>();
 
-  const walk = (nodes: AdminNavItem[], parentKey: string) => {
+  const walk = (nodes: readonly AdminNavItem[], parentKey: string) => {
     for (const node of nodes) {
       index.set(node.key, {
         key: node.key,
@@ -335,7 +335,7 @@ function NavNode({
 }
 
 export function AdminSiderNav(props: {
-  items: AdminNavItem[];
+  items: readonly AdminNavItem[];
   resolvePermissionName?: (code: string) => string | null;
 }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
