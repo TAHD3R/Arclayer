@@ -1,7 +1,1 @@
 id,severity,category,path,line,message
-AUD-0001,high,large_file,apps/api/modules/workspaces/team/service.py,1,1073 lines exceeds budget 800
-AUD-0002,high,large_file,apps/web/admin/src/components/common/assets/asset-masonry-card.tsx,1,1492 lines exceeds budget 600
-AUD-0003,high,large_file,apps/web/admin/src/pages/assets/page.tsx,1,1549 lines exceeds budget 600
-AUD-0004,high,large_file,apps/web/admin/src/pages/team/invitations/page.tsx,1,896 lines exceeds budget 600
-AUD-0005,high,large_file,apps/web/admin/src/pages/team/roles/page.tsx,1,937 lines exceeds budget 600
-AUD-0006,high,large_file,apps/web/portal/src/features/editor-host/editor-host-page.tsx,1,872 lines exceeds budget 600

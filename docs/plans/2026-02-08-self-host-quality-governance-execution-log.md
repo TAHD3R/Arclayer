@@ -657,3 +657,60 @@
    - `apps/web/portal/src/features/editor-host/editor-host-page.tsx`
    - `apps/api/modules/workspaces/team/service.py`
 2. Keep PublicUUID/event-taxonomy governance (`ISS-0030`, `ISS-0031`) as non-regression checks during each split batch.
+
+## 2026-02-08 - WP-2 Final large_file zeroing (6 -> 0)
+
+### Completed
+
+1. Finished remaining frontend large-file decompositions and stabilized the assets view split:
+   - `apps/web/admin/src/pages/assets/page.tsx`
+     - Migrated view composition to focused submodules and removed dead local bindings after controller extraction.
+   - `apps/web/admin/src/components/common/assets/asset-masonry-card.tsx`
+     - Converted to a barrel entry; rendering logic moved to dedicated modules:
+       - `apps/web/admin/src/components/common/assets/asset-masonry-tile.tsx`
+       - `apps/web/admin/src/components/common/assets/asset-preview-sheet.tsx`
+       - `apps/web/admin/src/components/common/assets/asset-preview-sheet-controller.tsx`
+   - Added/settled assets page submodules:
+       - `apps/web/admin/src/pages/assets/use-assets-view-controller.tsx`
+       - `apps/web/admin/src/pages/assets/assets-view-dnd.tsx`
+       - `apps/web/admin/src/pages/assets/assets-view-header.tsx`
+       - `apps/web/admin/src/pages/assets/assets-view-overlays.tsx`
+       - `apps/web/admin/src/pages/assets/assets-view-masonry-section.tsx`
+2. Completed remaining target-file decompositions from this batch (already split in same execution window and revalidated here):
+   - `apps/web/admin/src/pages/team/roles/page.tsx` + extracted `roles-utils.ts` / `roles-dialogs.tsx`
+   - `apps/web/admin/src/pages/team/invitations/page.tsx` + extracted invitations helper/table/dialog modules
+   - `apps/web/portal/src/features/editor-host/editor-host-page.tsx` + extracted `editor-host-api.ts` / `editor-host-toolbar.tsx`
+   - `apps/api/modules/workspaces/team/service.py` + extracted invite mixin `apps/api/modules/workspaces/team/service_invites.py`
+3. Preserved behavior and governance constraints:
+   - no API contract changes introduced,
+   - no `any`/`type: ignore` workaround introduced,
+   - no broad exception regression,
+   - no core->modules dependency regression,
+   - PublicUUID / semantic activity-event guardrails unchanged.
+4. Updated tracking artifacts:
+   - `docs/audit/latest-quality-report.md`
+   - `docs/audit/latest-quality-report.csv`
+   - `docs/audit/2026-02-08-issue-register.csv` (`ISS-0008`, `ISS-0009`, `ISS-0010`, `ISS-0029` -> `done`)
+
+### Verification
+
+- `pnpm --filter @celestial/admin typecheck` => passed
+- `pnpm --filter @celestial/admin lint` => passed (`0 warnings / 0 errors`)
+- `pnpm --filter @celestial/api exec uv run ruff check modules/workspaces/team/service.py modules/workspaces/team/service_invites.py` => passed
+- `pnpm --filter @celestial/api typecheck` => passed (`0 errors`)
+  - note: sandbox run hit uv panic; rerun with escalation passed
+- `pnpm --filter @celestial/api test` => passed (`190 passed / 42 skipped`)
+  - note: sandbox run hit uv panic; rerun with escalation passed
+- `pnpm audit:quality` => passed (`Total findings: 0`)
+
+### Latest quality counters
+
+- `broad_exception`: `0`
+- `core_modules_dependency`: `0`
+- `frontend_any`: `0`
+- `large_file`: `0`
+
+### Next
+
+1. Keep governance in maintenance mode: prevent regressions via per-PR quality audit checks.
+2. Continue Phase 1 non-large-file open items (`ISS-0014`, `ISS-0030`, `ISS-0031`).

@@ -1,12 +1,10 @@
 "use client";
-
-import { Avatar, Button as AntButton, Input, Pagination, Select, Tag } from "antd";
-import { Link2Off, Plus, RotateCcw, Search } from "lucide-react";
+import { Button as AntButton, Tag } from "antd";
+import { Link2Off, Plus, RotateCcw } from "lucide-react";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
-import { flexRender, type ColumnDef } from "@tanstack/react-table";
+import { type ColumnDef } from "@tanstack/react-table";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-
 import { listMyWorkspaces } from "@/api/workspaces";
 import { listWorkspaceRoles } from "@/api/rbac";
 import {
@@ -20,7 +18,6 @@ import {
   type TeamInviteLink,
 } from "@/api/team";
 import { DefaultPage } from "@/components/common/default-page";
-import { PageState } from "@/components/common/page-state";
 import { useDataTable } from "@/components/data-table";
 import {
   ChromeTabs,
@@ -28,92 +25,30 @@ import {
   ChromeTabsList,
   ChromeTabsTrigger,
 } from "@/components/ui/chrome-tabs";
-import { LoaderOne } from "@/components/ui/loader";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { cn } from "@/lib/utils";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { InviteMembersDialog } from "@/components/common/team/invite-members-dialog";
 import { InviteLinkParticipantsPopover } from "@/components/common/team/invite-link-participants-popover";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
-import { resolveAssetRefToPublicUrlPath } from "@/lib/assets/asset-urls";
 import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";
-
-type TabKey = "pending" | "accepted" | "links";
-type RenewExpiresInSeconds = number | null;
-
-function userInitials(label: string | null | undefined): string {
-  const v = String(label || "U").trim();
-  return v.slice(0, 1).toUpperCase();
-}
-
-function renderUserLabel(
-  user: {
-    username: string;
-    email: string | null;
-    displayName: string | null;
-    avatarUrl: string | null;
-  } | null,
-): React.ReactNode {
-  if (!user) return <span className="text-muted-foreground">-</span>;
-  const primary = (user.displayName || user.username || user.email || "-").trim() || "-";
-  const secondary = user.email || user.username || "";
-  return (
-    <div className="flex items-center gap-2 min-w-0">
-      <Avatar
-        size={24}
-        shape="square"
-        src={resolveAssetRefToPublicUrlPath(user.avatarUrl) || undefined}
-        style={{
-          backgroundColor: "var(--color-muted)",
-          color: "var(--color-foreground)",
-          flexShrink: 0,
-        }}
-      >
-        {userInitials(primary)}
-      </Avatar>
-      <div className="min-w-0">
-        <div className="text-sm font-medium truncate">{primary}</div>
-        {secondary ? (
-          <div className="text-xs text-muted-foreground truncate">{secondary}</div>
-        ) : null}
-      </div>
-    </div>
-  );
-}
-
+import { renderUserLabel } from "./invitations-helpers";
+import type { RenewExpiresInSeconds, TabKey } from "./invitations-helpers";
+import { TeamInvitationsTableSection } from "./invitations-table-section";
+import { TeamInvitationsDialogs } from "./invitations-dialogs";
 export function TeamInvitationsView() {
   const { t } = useTranslation(["team", "nav", "common"]);
   const queryClient = useQueryClient();
   const accessToken = useAuthStore((s) => s.accessToken);
   const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
   const dateTime = useWorkspaceDateTimeFormatter();
-
   const [tab, setTab] = React.useState<TabKey>("pending");
   const [inviteOpen, setInviteOpen] = React.useState(false);
-
   const [deleteInvitation, setDeleteInvitation] = React.useState<TeamInvitation | null>(null);
   const [renewInvitation, setRenewInvitation] = React.useState<TeamInvitation | null>(null);
   const [renewLink, setRenewLink] = React.useState<TeamInviteLink | null>(null);
   const [renewExpiresInSeconds, setRenewExpiresInSeconds] = React.useState<RenewExpiresInSeconds>(
     7 * 24 * 60 * 60,
   );
-
   const workspacesQuery = useQuery({
     queryKey: ["me", "workspaces"],
     enabled: Boolean(accessToken),
@@ -122,7 +57,6 @@ export function TeamInvitationsView() {
     retry: false,
     meta: { silent: true },
   });
-
   const workspaceName = React.useMemo(() => {
     const items = workspacesQuery.data?.items ?? [];
     const found = workspaceId
@@ -130,7 +64,6 @@ export function TeamInvitationsView() {
       : undefined;
     return found?.name || t("team:TEAM_WORKSPACE_FALLBACK");
   }, [t, workspaceId, workspacesQuery.data?.items]);
-
   const rolesQuery = useQuery({
     queryKey: ["rbac", "roles", "list", workspaceId],
     enabled: Boolean(workspaceId),
@@ -139,7 +72,6 @@ export function TeamInvitationsView() {
     retry: false,
     meta: { silent: true },
   });
-
   const roleNameByCode = React.useMemo(() => {
     const map = new Map<string, string>();
     for (const r of rolesQuery.data?.items ?? []) {
@@ -147,7 +79,6 @@ export function TeamInvitationsView() {
     }
     return map;
   }, [rolesQuery.data?.items]);
-
   const disableLinkMutation = useMutation({
     mutationFn: async (linkId: string) =>
       workspaceId
@@ -164,7 +95,6 @@ export function TeamInvitationsView() {
     },
     onError: (err) => notifyError(err),
   });
-
   const renewLinkMutation = useMutation({
     mutationFn: async (payload: { linkId: string; expiresInSeconds: number | null }) =>
       workspaceId
@@ -184,7 +114,6 @@ export function TeamInvitationsView() {
     },
     onError: (err) => notifyError(err),
   });
-
   const renewInvitationMutation = useMutation({
     mutationFn: async (payload: { invitationId: string; expiresInSeconds: number | null }) =>
       workspaceId
@@ -204,7 +133,6 @@ export function TeamInvitationsView() {
     },
     onError: (err) => notifyError(err),
   });
-
   const deleteInvitationMutation = useMutation({
     mutationFn: async (invitationId: string) =>
       workspaceId
@@ -221,10 +149,8 @@ export function TeamInvitationsView() {
     },
     onError: (err) => notifyError(err),
   });
-
   const pendingExtraQuery = React.useMemo(() => ({ status: "pending" as const }), []);
   const acceptedExtraQuery = React.useMemo(() => ({ status: "accepted" as const }), []);
-
   const renderInvitationStatus = React.useCallback(
     (status: TeamInvitation["status"] | null | undefined): string => {
       if (status === "pending") return t("team:TEAM_INVITATION_STATUS_PENDING");
@@ -235,7 +161,6 @@ export function TeamInvitationsView() {
     },
     [t],
   );
-
   const invitationsColumns = React.useMemo<ColumnDef<TeamInvitation, unknown>[]>(() => {
     return [
       {
@@ -249,7 +174,6 @@ export function TeamInvitationsView() {
             (inviter?.displayName || inviter?.username || inviter?.email || "").trim() || "-";
           const roleCode = inv.roleCode || null;
           const roleName = roleCode ? (roleNameByCode.get(roleCode) ?? roleCode) : null;
-
           return (
             <div className="min-w-0">
               <div className="font-medium truncate">{inv.email || "-"}</div>
@@ -307,7 +231,6 @@ export function TeamInvitationsView() {
         cell: ({ row }) => {
           const inv = row.original;
           const canRenew = inv.status === "pending";
-
           return (
             <div className="flex items-center justify-end gap-2">
               <AntButton
@@ -337,7 +260,6 @@ export function TeamInvitationsView() {
     ];
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dateTime, deleteInvitationMutation, renderInvitationStatus, roleNameByCode, t]);
-
   const inviteLinksColumns = React.useMemo<ColumnDef<TeamInviteLink, unknown>[]>(() => {
     return [
       {
@@ -427,7 +349,6 @@ export function TeamInvitationsView() {
           const link = row.original;
           const disabled = Boolean(link.disabledAt);
           const canManage = !disabled;
-
           return (
             <div className="flex items-center justify-end gap-2">
               <AntButton
@@ -457,7 +378,6 @@ export function TeamInvitationsView() {
     ];
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dateTime, disableLinkMutation, renewLinkMutation, t, workspaceId]);
-
   const pendingTable = useDataTable<TeamInvitation, { status: "pending" | "accepted"; mine: true }>(
     {
       tableId: workspaceId ? `team-invitations:${workspaceId}` : "team-invitations",
@@ -482,7 +402,6 @@ export function TeamInvitationsView() {
       },
     },
   );
-
   const acceptedTable = useDataTable<
     TeamInvitation,
     { status: "pending" | "accepted"; mine: true }
@@ -508,7 +427,6 @@ export function TeamInvitationsView() {
       meta: { silent: true },
     },
   });
-
   const renewOptions = React.useMemo<Array<{ label: string; value: RenewExpiresInSeconds }>>(
     () => [
       { label: t("team:TEAM_INVITE_LINK_EXPIRES_1_DAY"), value: 1 * 24 * 60 * 60 },
@@ -518,7 +436,6 @@ export function TeamInvitationsView() {
     ],
     [t],
   );
-
   const linksTable = useDataTable<TeamInviteLink, { mine: true }>({
     tableId: workspaceId ? `team-invite-links:${workspaceId}` : "team-invite-links",
     columns: inviteLinksColumns,
@@ -543,132 +460,11 @@ export function TeamInvitationsView() {
       meta: { silent: true },
     },
   });
-
   const inviteAction = (
     <AntButton type="primary" icon={<Plus size={16} />} onClick={() => setInviteOpen(true)}>
       {t("team:TEAM_INVITE_CREATE_LINK_ACTION")}
     </AntButton>
   );
-
-  const renderTable = <TRow,>(
-    tableHook: ReturnType<typeof useDataTable<TRow>>,
-    placeholder: string,
-    emptyTitle: string,
-    emptyDescription: string,
-    showSearch: boolean,
-  ) => {
-    const empty = !tableHook.isLoading && tableHook.items.length === 0;
-    const table = tableHook.table;
-    const pageData = tableHook.pageData;
-
-    return (
-      <div className="min-h-0 flex flex-col gap-4">
-        {showSearch ? (
-          <div className="flex items-center gap-3">
-            <div className="flex-1 min-w-0">
-              <Input
-                variant="borderless"
-                value={tableHook.searchInput}
-                onChange={(e) => tableHook.setSearchInput(e.target.value)}
-                placeholder={placeholder}
-                allowClear
-                prefix={<Search className="size-4 text-muted-foreground" />}
-                style={{ width: "100%" }}
-              />
-            </div>
-            {tableHook.isFetching && !tableHook.isLoading ? <LoaderOne /> : null}
-          </div>
-        ) : null}
-
-        <PageState
-          loading={tableHook.isLoading}
-          error={tableHook.error}
-          onRetry={() => void tableHook.refetch()}
-          empty={empty}
-          loadingVariant="table"
-          emptyTitle={emptyTitle}
-          emptyDescription={emptyDescription}
-          className="flex-1 min-h-0"
-        >
-          <div className="rounded-md border overflow-auto flex-1 min-h-0">
-            <Table>
-              <TableHeader>
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => (
-                      <TableHead key={header.id}>
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(header.column.columnDef.header, header.getContext())}
-                      </TableHead>
-                    ))}
-                  </TableRow>
-                ))}
-              </TableHeader>
-
-              <TableBody>
-                {table.getRowModel().rows.length ? (
-                  table.getRowModel().rows.map((row, rowIndex) => {
-                    const stripeClass = rowIndex % 2 === 1 ? "bg-muted/20" : "bg-background";
-                    return (
-                      <TableRow
-                        key={row.id}
-                        className={cn(stripeClass, "hover:bg-muted/40 transition-colors")}
-                      >
-                        {row.getVisibleCells().map((cell) => (
-                          <TableCell key={cell.id}>
-                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                    );
-                  })
-                ) : (
-                  <TableRow>
-                    <TableCell
-                      className="h-24 text-center text-muted-foreground"
-                      colSpan={table.getVisibleLeafColumns().length}
-                    >
-                      {t("team:TEAM_EMPTY_TABLE")}
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-
-          {pageData ? (
-            <div className="flex flex-wrap items-center justify-between gap-3 pt-4">
-              <div className="text-muted-foreground text-sm">
-                {t("team:TEAM_PAGINATION_TOTAL", {
-                  total: pageData.total,
-                  from: pageData.total ? (pageData.page - 1) * pageData.size + 1 : 0,
-                  to: Math.min(pageData.page * pageData.size, pageData.total),
-                })}
-              </div>
-              <Pagination
-                current={pageData.page}
-                pageSize={pageData.size}
-                total={pageData.total}
-                showSizeChanger
-                pageSizeOptions={[10, 20, 50, 100]}
-                onChange={(nextPage, nextSize) => {
-                  if (
-                    typeof nextSize === "number" &&
-                    nextSize !== table.getState().pagination.pageSize
-                  ) {
-                    table.setPageSize(nextSize);
-                  }
-                  table.setPageIndex(Math.max(0, nextPage - 1));
-                }}
-              />
-            </div>
-          ) : null}
-        </PageState>
-      </div>
-    );
-  };
-
   return (
     <DefaultPage
       title={t("nav:NAV_SETTINGS_TEAM_MEMBERS")}
@@ -690,38 +486,37 @@ export function TeamInvitationsView() {
             {t("team:TEAM_INVITATIONS_TAB_LINKS")}
           </ChromeTabsTrigger>
         </ChromeTabsList>
-
         <ChromeTabsContent value="pending" className="min-h-0 flex flex-col">
-          {renderTable(
-            pendingTable,
-            t("team:TEAM_INVITATIONS_SEARCH_PENDING_PLACEHOLDER"),
-            t("team:TEAM_INVITATIONS_EMPTY_TITLE"),
-            t("team:TEAM_INVITATIONS_EMPTY_DESC"),
-            true,
-          )}
+          <TeamInvitationsTableSection
+            tableHook={pendingTable}
+            placeholder={t("team:TEAM_INVITATIONS_SEARCH_PENDING_PLACEHOLDER")}
+            emptyTitle={t("team:TEAM_INVITATIONS_EMPTY_TITLE")}
+            emptyDescription={t("team:TEAM_INVITATIONS_EMPTY_DESC")}
+            showSearch
+            t={t}
+          />
         </ChromeTabsContent>
-
         <ChromeTabsContent value="accepted" className="min-h-0 flex flex-col">
-          {renderTable(
-            acceptedTable,
-            t("team:TEAM_INVITATIONS_SEARCH_ACCEPTED_PLACEHOLDER"),
-            t("team:TEAM_INVITATIONS_EMPTY_TITLE"),
-            t("team:TEAM_INVITATIONS_EMPTY_DESC"),
-            true,
-          )}
+          <TeamInvitationsTableSection
+            tableHook={acceptedTable}
+            placeholder={t("team:TEAM_INVITATIONS_SEARCH_ACCEPTED_PLACEHOLDER")}
+            emptyTitle={t("team:TEAM_INVITATIONS_EMPTY_TITLE")}
+            emptyDescription={t("team:TEAM_INVITATIONS_EMPTY_DESC")}
+            showSearch
+            t={t}
+          />
         </ChromeTabsContent>
-
         <ChromeTabsContent value="links" className="min-h-0 flex flex-col">
-          {renderTable(
-            linksTable,
-            t("team:TEAM_INVITE_LINKS_SEARCH_PLACEHOLDER"),
-            t("team:TEAM_INVITE_LINKS_EMPTY_TITLE"),
-            t("team:TEAM_INVITE_LINKS_EMPTY_DESC"),
-            false,
-          )}
+          <TeamInvitationsTableSection
+            tableHook={linksTable}
+            placeholder={t("team:TEAM_INVITE_LINKS_SEARCH_PLACEHOLDER")}
+            emptyTitle={t("team:TEAM_INVITE_LINKS_EMPTY_TITLE")}
+            emptyDescription={t("team:TEAM_INVITE_LINKS_EMPTY_DESC")}
+            showSearch={false}
+            t={t}
+          />
         </ChromeTabsContent>
       </ChromeTabs>
-
       <InviteMembersDialog
         open={inviteOpen}
         onOpenChange={setInviteOpen}
@@ -748,149 +543,24 @@ export function TeamInvitationsView() {
           });
         }}
       />
-
-      <Dialog
-        open={Boolean(deleteInvitation)}
-        onOpenChange={(open) => (!open ? setDeleteInvitation(null) : null)}
-      >
-        <DialogContent className="sm:max-w-xl">
-          <DialogHeader>
-            <DialogTitle>{t("team:TEAM_INVITATIONS_DELETE_TITLE")}</DialogTitle>
-            <DialogDescription>
-              {deleteInvitation
-                ? t("team:TEAM_INVITATIONS_DELETE_DESC", { email: deleteInvitation.email })
-                : null}
-            </DialogDescription>
-          </DialogHeader>
-
-          <DialogFooter>
-            <AntButton
-              onClick={() => setDeleteInvitation(null)}
-              disabled={deleteInvitationMutation.isPending}
-            >
-              {t("common:CANCEL")}
-            </AntButton>
-            <AntButton
-              type="primary"
-              danger
-              loading={deleteInvitationMutation.isPending}
-              onClick={() => {
-                const inv = deleteInvitation;
-                if (!inv) return;
-                void deleteInvitationMutation
-                  .mutateAsync(inv.id)
-                  .then(() => setDeleteInvitation(null))
-                  .catch(() => undefined);
-              }}
-            >
-              {t("team:TEAM_ACTION_DELETE")}
-            </AntButton>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog
-        open={Boolean(renewInvitation)}
-        onOpenChange={(open) => (!open ? setRenewInvitation(null) : null)}
-      >
-        <DialogContent className="sm:max-w-xl">
-          <DialogHeader>
-            <DialogTitle>{t("team:TEAM_INVITATIONS_RENEW_TITLE")}</DialogTitle>
-            <DialogDescription>
-              {renewInvitation
-                ? t("team:TEAM_INVITATIONS_RENEW_DESC", { email: renewInvitation.email })
-                : null}
-            </DialogDescription>
-          </DialogHeader>
-
-          {renewInvitation ? (
-            <div className="space-y-3 py-2">
-              <Select<RenewExpiresInSeconds>
-                value={renewExpiresInSeconds}
-                onChange={(v) => setRenewExpiresInSeconds(v)}
-                options={renewOptions}
-                style={{ width: "100%" }}
-                getPopupContainer={(node) => node.parentElement ?? document.body}
-              />
-            </div>
-          ) : null}
-
-          <DialogFooter>
-            <AntButton
-              onClick={() => setRenewInvitation(null)}
-              disabled={renewInvitationMutation.isPending}
-            >
-              {t("common:CANCEL")}
-            </AntButton>
-            <AntButton
-              type="primary"
-              loading={renewInvitationMutation.isPending}
-              onClick={() => {
-                const inv = renewInvitation;
-                if (!inv) return;
-                void renewInvitationMutation
-                  .mutateAsync({
-                    invitationId: inv.id,
-                    expiresInSeconds: renewExpiresInSeconds,
-                  })
-                  .catch(() => undefined);
-              }}
-            >
-              {t("team:TEAM_ACTION_RENEW")}
-            </AntButton>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog
-        open={Boolean(renewLink)}
-        onOpenChange={(open) => (!open ? setRenewLink(null) : null)}
-      >
-        <DialogContent className="sm:max-w-xl">
-          <DialogHeader>
-            <DialogTitle>{t("team:TEAM_INVITE_LINKS_RENEW_TITLE")}</DialogTitle>
-            <DialogDescription>
-              {renewLink
-                ? t("team:TEAM_INVITE_LINKS_RENEW_DESC", { code: renewLink.displayCode })
-                : null}
-            </DialogDescription>
-          </DialogHeader>
-
-          {renewLink ? (
-            <div className="space-y-3 py-2">
-              <Select<RenewExpiresInSeconds>
-                value={renewExpiresInSeconds}
-                onChange={(v) => setRenewExpiresInSeconds(v)}
-                options={renewOptions}
-                style={{ width: "100%" }}
-                getPopupContainer={(node) => node.parentElement ?? document.body}
-              />
-            </div>
-          ) : null}
-
-          <DialogFooter>
-            <AntButton onClick={() => setRenewLink(null)} disabled={renewLinkMutation.isPending}>
-              {t("common:CANCEL")}
-            </AntButton>
-            <AntButton
-              type="primary"
-              loading={renewLinkMutation.isPending}
-              onClick={() => {
-                const link = renewLink;
-                if (!link) return;
-                void renewLinkMutation
-                  .mutateAsync({
-                    linkId: link.id,
-                    expiresInSeconds: renewExpiresInSeconds,
-                  })
-                  .catch(() => undefined);
-              }}
-            >
-              {t("team:TEAM_ACTION_RENEW")}
-            </AntButton>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <TeamInvitationsDialogs
+        t={t}
+        deleteInvitation={deleteInvitation}
+        setDeleteInvitation={setDeleteInvitation}
+        deleteInvitationPending={deleteInvitationMutation.isPending}
+        onDeleteInvitation={(invitationId) => deleteInvitationMutation.mutateAsync(invitationId)}
+        renewInvitation={renewInvitation}
+        setRenewInvitation={setRenewInvitation}
+        renewInvitationPending={renewInvitationMutation.isPending}
+        onRenewInvitation={(payload) => renewInvitationMutation.mutateAsync(payload)}
+        renewLink={renewLink}
+        setRenewLink={setRenewLink}
+        renewLinkPending={renewLinkMutation.isPending}
+        onRenewLink={(payload) => renewLinkMutation.mutateAsync(payload)}
+        renewExpiresInSeconds={renewExpiresInSeconds}
+        setRenewExpiresInSeconds={setRenewExpiresInSeconds}
+        renewOptions={renewOptions}
+      />
     </DefaultPage>
   );
 }

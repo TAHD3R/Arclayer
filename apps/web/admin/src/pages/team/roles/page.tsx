@@ -1,14 +1,12 @@
 "use client";
-
 import * as React from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Button, Input, Select } from "antd";
+import { Button, Input } from "antd";
 import { z } from "zod";
-import { Controller, useForm } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { Check, MoreVertical, Plus, Search, Trash2 } from "lucide-react";
-
-import type { Role, RbacMatrixPermissionRow } from "@/api/rbac";
+import type { RbacMatrixPermissionRow } from "@/api/rbac";
 import {
   createWorkspaceRoleFromTemplate,
   deleteWorkspaceRole,
@@ -16,20 +14,10 @@ import {
   setWorkspaceRolePermissions,
   setWorkspacePermissionRoles,
 } from "@/api/rbac";
-import type { AdminMenuNode } from "@/api/admin-menus";
 import { getAdminMenuCatalog } from "@/api/admin-menus";
 import { DefaultPage } from "@/components/common/default-page";
 import { PageState } from "@/components/common/page-state";
-import { Checkbox } from "@/components/ui/checkbox";
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,86 +28,34 @@ import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { zodResolver } from "@/lib/forms/zod-resolver";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
-
-function normalizeNeedle(input: string): string {
-  return String(input || "")
-    .trim()
-    .toLowerCase();
-}
-
-function includesText(haystack: string | null | undefined, needle: string): boolean {
-  if (!needle) return true;
-  const s = String(haystack || "").toLowerCase();
-  return s.includes(needle);
-}
-
-function sortByName(roles: Role[]): Role[] {
-  return [...roles].sort((a, b) => a.name.localeCompare(b.name));
-}
-
-function normalizePermissionCode(input: unknown): string | null {
-  const s = typeof input === "string" ? input.trim() : "";
-  return s ? s : null;
-}
-
-function collectMenuPermissionCodes(nodes: AdminMenuNode[] | undefined | null): Set<string> {
-  const out = new Set<string>();
-  const walk = (items: AdminMenuNode[]) => {
-    for (const n of items) {
-      const code = normalizePermissionCode(n.permissionCode);
-      if (code) out.add(code);
-      if (n.children?.length) walk(n.children);
-    }
-  };
-  if (nodes?.length) walk(nodes);
-  return out;
-}
-
-function collectDescendantPermissionCodes(node: AdminMenuNode): Set<string> {
-  const out = new Set<string>();
-  const walk = (n: AdminMenuNode) => {
-    const code = normalizePermissionCode(n.permissionCode);
-    if (code) out.add(code);
-    for (const ch of n.children ?? []) walk(ch);
-  };
-  walk(node);
-  return out;
-}
-
-type MenuScopeCheckedState = NonNullable<React.ComponentProps<typeof Checkbox>["checked"]>;
-
-type CreateRoleFormValues = {
-  templateRoleCode: string;
-  name: string;
-  description: string;
-};
-
+import { TeamRolesDialogs } from "./roles-dialogs";
+import {
+  collectMenuPermissionCodes,
+  includesText,
+  normalizeNeedle,
+  sortByName,
+} from "./roles-utils";
+import type { CreateRoleFormValues } from "./roles-utils";
 export function TeamRolesView() {
   const { t } = useTranslation(["team", "common", "settings"]);
-
   const queryClient = useQueryClient();
   const accessToken = useAuthStore((s) => s.accessToken);
   const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
-
   const [search, setSearch] = React.useState("");
   const needle = React.useMemo(() => normalizeNeedle(search), [search]);
-
   const [createOpen, setCreateOpen] = React.useState(false);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
   const [deleteTarget, setDeleteTarget] = React.useState<{ code: string; name: string } | null>(
     null,
   );
-
   const [permissionDialogOpen, setPermissionDialogOpen] = React.useState(false);
   const [activePermission, setActivePermission] = React.useState<RbacMatrixPermissionRow | null>(
     null,
   );
   const [permissionDraft, setPermissionDraft] = React.useState<Record<string, boolean>>({});
-
   const [menuScopeOpen, setMenuScopeOpen] = React.useState(false);
   const [menuScopeRoleCode, setMenuScopeRoleCode] = React.useState<string | null>(null);
   const [menuScopeDraft, setMenuScopeDraft] = React.useState<Record<string, boolean>>({});
-
   const matrixQuery = useQuery({
     queryKey: ["rbac", "matrix", workspaceId],
     enabled: Boolean(accessToken && workspaceId),
@@ -130,7 +66,6 @@ export function TeamRolesView() {
     staleTime: 30 * 1000,
     retry: false,
   });
-
   const menuCatalogQuery = useQuery({
     queryKey: ["workspace", "adminMenuCatalog", workspaceId],
     enabled: Boolean(accessToken && workspaceId && menuScopeOpen),
@@ -142,32 +77,26 @@ export function TeamRolesView() {
     retry: false,
     meta: { silent: true },
   });
-
   const roles = React.useMemo(() => sortByName(matrixQuery.data?.roles ?? []), [matrixQuery.data]);
   const permissions = React.useMemo(() => matrixQuery.data?.permissions ?? [], [matrixQuery.data]);
-
   const [showTopScrollbar, setShowTopScrollbar] = React.useState(false);
   const topScrollRef = React.useRef<HTMLDivElement | null>(null);
   const mainScrollRef = React.useRef<HTMLDivElement | null>(null);
   const scrollSpacerRef = React.useRef<HTMLDivElement | null>(null);
   const tableRef = React.useRef<HTMLTableElement | null>(null);
   const syncingRef = React.useRef<"top" | "main" | null>(null);
-
   React.useEffect(() => {
     const main = mainScrollRef.current;
     const spacer = scrollSpacerRef.current;
     const table = tableRef.current;
     if (!main || !spacer) return;
-
     const updateWidth = () => {
       // Match the scrollable content width so the top scrollbar reflects horizontal overflow.
       const contentWidth = table?.scrollWidth ?? main.scrollWidth;
       spacer.style.width = `${contentWidth}px`;
       setShowTopScrollbar(contentWidth > main.clientWidth + 1);
     };
-
     updateWidth();
-
     const ro = new ResizeObserver(() => updateWidth());
     ro.observe(main);
     if (table) ro.observe(table);
@@ -177,7 +106,6 @@ export function TeamRolesView() {
       window.removeEventListener("resize", updateWidth);
     };
   }, [roles.length, permissions.length, needle]);
-
   const onTopScroll = React.useCallback(() => {
     const top = topScrollRef.current;
     const main = mainScrollRef.current;
@@ -189,7 +117,6 @@ export function TeamRolesView() {
       if (syncingRef.current === "top") syncingRef.current = null;
     });
   }, []);
-
   const onMainScroll = React.useCallback(() => {
     const top = topScrollRef.current;
     const main = mainScrollRef.current;
@@ -201,7 +128,6 @@ export function TeamRolesView() {
       if (syncingRef.current === "main") syncingRef.current = null;
     });
   }, []);
-
   // Search logic (smart filtering):
   // - If needle matches roles only: filter columns (roles) and keep all permission rows.
   // - If needle matches permissions only: filter rows (permissions) and keep all roles.
@@ -211,13 +137,11 @@ export function TeamRolesView() {
     const hits = roles.filter((r) => includesText(r.name, needle));
     return hits;
   }, [needle, roles]);
-
   const matchedPermissions = React.useMemo(() => {
     if (!needle) return permissions;
     const hits = permissions.filter((p) => includesText(p.name, needle));
     return hits;
   }, [needle, permissions]);
-
   const filteredRoles = React.useMemo(() => {
     if (!needle) return roles;
     const hasRoleHits = matchedRoles.length > 0;
@@ -227,7 +151,6 @@ export function TeamRolesView() {
     if (hasRoleHits && hasPermHits) return matchedRoles;
     return [];
   }, [matchedPermissions.length, matchedRoles, needle, roles]);
-
   const filteredPermissions = React.useMemo(() => {
     if (!needle) return permissions;
     const hasRoleHits = matchedRoles.length > 0;
@@ -237,7 +160,6 @@ export function TeamRolesView() {
     if (hasPermHits && hasRoleHits) return matchedPermissions;
     return [];
   }, [matchedPermissions, matchedRoles.length, needle, permissions]);
-
   const openPermissionDialog = React.useCallback(
     (permission: RbacMatrixPermissionRow) => {
       setActivePermission(permission);
@@ -251,20 +173,16 @@ export function TeamRolesView() {
     },
     [roles],
   );
-
   React.useEffect(() => {
     if (!permissionDialogOpen) {
       setActivePermission(null);
       setPermissionDraft({});
     }
   }, [permissionDialogOpen]);
-
   const customRoles = React.useMemo(() => roles.filter((r) => !r.isSystem), [roles]);
-
   const menuPermissionCodes = React.useMemo(() => {
     return collectMenuPermissionCodes(menuCatalogQuery.data?.items);
   }, [menuCatalogQuery.data?.items]);
-
   const currentRolePermissionSet = React.useMemo(() => {
     const roleCode = menuScopeRoleCode;
     if (!roleCode) return new Set<string>();
@@ -273,7 +191,6 @@ export function TeamRolesView() {
       .map((p) => p.code);
     return new Set(granted);
   }, [menuScopeRoleCode, permissions]);
-
   React.useEffect(() => {
     if (!menuScopeOpen) {
       setMenuScopeRoleCode(null);
@@ -284,7 +201,6 @@ export function TeamRolesView() {
       setMenuScopeRoleCode(customRoles[0].code);
     }
   }, [customRoles, menuScopeOpen, menuScopeRoleCode]);
-
   React.useEffect(() => {
     if (!menuScopeOpen) return;
     if (!menuScopeRoleCode) return;
@@ -292,27 +208,22 @@ export function TeamRolesView() {
       setMenuScopeDraft({});
       return;
     }
-
     const draft: Record<string, boolean> = {};
     for (const code of menuPermissionCodes) {
       draft[code] = currentRolePermissionSet.has(code);
     }
     setMenuScopeDraft(draft);
   }, [currentRolePermissionSet, menuPermissionCodes, menuScopeOpen, menuScopeRoleCode]);
-
   const savePermissionMutation = useMutation({
     mutationFn: async () => {
       if (!workspaceId) throw new Error("workspaceId is required");
       if (!activePermission) throw new Error("permission is required");
-
       const selected = Object.entries(permissionDraft)
         .filter(([, checked]) => Boolean(checked))
         .map(([code]) => code);
-
       // Only send custom roles; system roles are immutable.
       const customRoleCodes = new Set(roles.filter((r) => !r.isSystem).map((r) => r.code));
       const selectedCustom = selected.filter((code) => customRoleCodes.has(code));
-
       await setWorkspacePermissionRoles({
         workspaceId,
         permissionCode: activePermission.code,
@@ -326,23 +237,19 @@ export function TeamRolesView() {
     },
     onError: (err) => notifyError(err),
   });
-
   const saveMenuScopeMutation = useMutation({
     mutationFn: async () => {
       if (!workspaceId) throw new Error("workspaceId is required");
       if (!menuScopeRoleCode) throw new Error("roleCode is required");
-
       // Keep non-menu permissions unchanged; only replace the subset that appears in menu catalog.
       const selectedMenuPerms = Object.entries(menuScopeDraft)
         .filter(([, checked]) => Boolean(checked))
         .map(([code]) => code);
-
       const next = new Set<string>();
       for (const code of currentRolePermissionSet) {
         if (!menuPermissionCodes.has(code)) next.add(code);
       }
       for (const code of selectedMenuPerms) next.add(code);
-
       await setWorkspaceRolePermissions({
         workspaceId,
         roleCode: menuScopeRoleCode,
@@ -356,7 +263,6 @@ export function TeamRolesView() {
     },
     onError: (err) => notifyError(err),
   });
-
   const deleteRoleMutation = useMutation({
     mutationFn: async (roleCode: string) => {
       if (!workspaceId) throw new Error("workspaceId is required");
@@ -368,7 +274,6 @@ export function TeamRolesView() {
     },
     onError: (err) => notifyError(err),
   });
-
   const createSchema = React.useMemo(() => {
     return z
       .object({
@@ -378,7 +283,6 @@ export function TeamRolesView() {
       })
       .strict();
   }, [t]);
-
   const createForm = useForm<CreateRoleFormValues>({
     resolver: zodResolver(createSchema),
     defaultValues: {
@@ -389,7 +293,6 @@ export function TeamRolesView() {
     mode: "onSubmit",
   });
   const createErrors = createForm.formState.errors;
-
   React.useEffect(() => {
     if (!createOpen) {
       createForm.reset({
@@ -403,7 +306,6 @@ export function TeamRolesView() {
     const current = createForm.getValues("templateRoleCode");
     if (!current) createForm.setValue("templateRoleCode", "__none__", { shouldDirty: false });
   }, [createForm, createOpen, roles]);
-
   const createRoleMutation = useMutation({
     mutationFn: async (values: CreateRoleFormValues) => {
       if (!workspaceId) throw new Error("workspaceId is required");
@@ -422,7 +324,6 @@ export function TeamRolesView() {
     },
     onError: (err) => notifyError(err),
   });
-
   if (!workspaceId) {
     return (
       <DefaultPage
@@ -439,7 +340,6 @@ export function TeamRolesView() {
       </DefaultPage>
     );
   }
-
   if (matrixQuery.isLoading && !matrixQuery.data) {
     return (
       <DefaultPage
@@ -451,7 +351,6 @@ export function TeamRolesView() {
       </DefaultPage>
     );
   }
-
   if (matrixQuery.isError) {
     return (
       <DefaultPage
@@ -467,9 +366,7 @@ export function TeamRolesView() {
       </DefaultPage>
     );
   }
-
   const hasEmptySearch = Boolean(needle) && (!filteredRoles.length || !filteredPermissions.length);
-
   return (
     <DefaultPage
       title={t("team:TEAM_ROLES_TITLE")}
@@ -488,7 +385,6 @@ export function TeamRolesView() {
               prefix={<Search className="h-4 w-4 text-muted-foreground" />}
             />
           </div>
-
           <div className="flex items-center gap-2">
             <Button onClick={() => setMenuScopeOpen(true)}>
               {t("team:TEAM_ROLES_MENU_SCOPE_ACTION")}
@@ -502,7 +398,6 @@ export function TeamRolesView() {
             </Button>
           </div>
         </div>
-
         {hasEmptySearch ? (
           <PageState loading={false} empty emptyTitle={t("team:TEAM_ROLES_EMPTY_SEARCH")} />
         ) : (
@@ -517,7 +412,6 @@ export function TeamRolesView() {
                 <div ref={scrollSpacerRef} className="h-1" />
               </div>
             ) : null}
-
             <div ref={mainScrollRef} onScroll={onMainScroll} className="max-h-[64vh] overflow-auto">
               <table
                 ref={tableRef}
@@ -622,316 +516,43 @@ export function TeamRolesView() {
           </div>
         )}
       </div>
-
-      {/* Delete role dialog (use the same Dialog system as "create role") */}
-      <Dialog
-        open={deleteOpen}
-        onOpenChange={(open) => {
-          setDeleteOpen(open);
-          if (!open) setDeleteTarget(null);
-        }}
-      >
-        <DialogContent className="max-w-[520px]">
-          <DialogHeader>
-            <DialogTitle>{t("team:TEAM_ROLES_DELETE_TITLE")}</DialogTitle>
-            <DialogDescription>
-              {t("team:TEAM_ROLES_DELETE_DESC", { roleName: deleteTarget?.name ?? "" })}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button onClick={() => setDeleteOpen(false)} disabled={deleteRoleMutation.isPending}>
-              {t("common:CANCEL")}
-            </Button>
-            <Button
-              danger
-              type="primary"
-              loading={deleteRoleMutation.isPending}
-              onClick={async () => {
-                if (!deleteTarget?.code) return;
-                await deleteRoleMutation.mutateAsync(deleteTarget.code);
-                setDeleteOpen(false);
-                setDeleteTarget(null);
-              }}
-            >
-              {t("team:TEAM_ACTION_DELETE")}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Role menu scope dialog (custom roles only) */}
-      <Dialog open={menuScopeOpen} onOpenChange={setMenuScopeOpen}>
-        <DialogContent className="max-w-[860px]">
-          <DialogHeader>
-            <DialogTitle>{t("team:TEAM_ROLES_MENU_SCOPE_TITLE")}</DialogTitle>
-            <DialogDescription>{t("team:TEAM_ROLES_MENU_SCOPE_DESC")}</DialogDescription>
-          </DialogHeader>
-
-          {customRoles.length ? (
-            <div className="grid gap-2">
-              <label className="font-semibold text-foreground">
-                {t("team:TEAM_ROLES_MENU_SCOPE_ROLE_LABEL")}
-              </label>
-              <Select
-                value={menuScopeRoleCode || undefined}
-                onChange={(v) => setMenuScopeRoleCode(String(v))}
-                placeholder={t("team:TEAM_ROLES_MENU_SCOPE_ROLE_PLACEHOLDER")}
-                getPopupContainer={(node) => node.parentElement ?? document.body}
-                dropdownStyle={{ zIndex: 3000 }}
-                options={customRoles.map((r) => ({ value: r.code, label: r.name }))}
-              />
-              <p className="text-xs text-muted-foreground">
-                {t("team:TEAM_ROLES_MENU_SCOPE_NOTE")}
-              </p>
-            </div>
-          ) : (
-            <div className="rounded-md border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
-              {t("team:TEAM_ROLES_MENU_SCOPE_NO_CUSTOM_ROLE")}
-            </div>
-          )}
-
-          <div className="max-h-[420px] overflow-auto rounded-md border bg-card">
-            {menuCatalogQuery.isLoading && !menuCatalogQuery.data ? (
-              <div className="p-4">
-                <PageState loading loadingVariant="form" />
-              </div>
-            ) : menuCatalogQuery.isError ? (
-              <div className="p-4">
-                <PageState
-                  loading={false}
-                  error={menuCatalogQuery.error}
-                  onRetry={() => void menuCatalogQuery.refetch()}
-                />
-              </div>
-            ) : (
-              <div className="flex flex-col gap-1 p-2">
-                {(menuCatalogQuery.data?.items ?? []).map((root) => {
-                  const renderNode = (n: AdminMenuNode, depth: number): React.ReactNode => {
-                    const permSet = collectDescendantPermissionCodes(n);
-                    const permCodes = Array.from(permSet);
-                    const selectedCount = permCodes.filter((c) =>
-                      Boolean(menuScopeDraft[c]),
-                    ).length;
-                    const checkedState: MenuScopeCheckedState =
-                      permCodes.length === 0
-                        ? false
-                        : selectedCount === 0
-                          ? false
-                          : selectedCount === permCodes.length
-                            ? true
-                            : "indeterminate";
-
-                    const label = n.titleI18n ? t(n.titleI18n) : n.title;
-                    const directPerm = normalizePermissionCode(n.permissionCode);
-
-                    return (
-                      <div key={n.code}>
-                        <div
-                          className="flex items-start gap-3 rounded-md px-2 py-2 hover:bg-muted/30"
-                          style={{ paddingLeft: 8 + depth * 16 }}
-                        >
-                          <Checkbox
-                            checked={checkedState}
-                            disabled={!menuScopeRoleCode || permCodes.length === 0}
-                            onCheckedChange={(v) => {
-                              const nextChecked = Boolean(v);
-                              const target = collectDescendantPermissionCodes(n);
-                              setMenuScopeDraft((prev) => {
-                                const next = { ...prev };
-                                for (const code of target) next[code] = nextChecked;
-                                return next;
-                              });
-                            }}
-                          />
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2">
-                              <span className="truncate font-medium text-foreground">{label}</span>
-                              {directPerm ? (
-                                <span className="text-xs text-muted-foreground">{directPerm}</span>
-                              ) : (
-                                <span className="text-xs text-muted-foreground">
-                                  {t("team:TEAM_ROLES_MENU_SCOPE_BASE_ACCESS")}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                        {(n.children ?? []).map((ch) => renderNode(ch, depth + 1))}
-                      </div>
-                    );
-                  };
-
-                  return renderNode(root, 0);
-                })}
-              </div>
-            )}
-          </div>
-
-          <DialogFooter>
-            <Button
-              onClick={() => setMenuScopeOpen(false)}
-              disabled={saveMenuScopeMutation.isPending}
-            >
-              {t("common:CANCEL")}
-            </Button>
-            <Button
-              type="primary"
-              onClick={() => saveMenuScopeMutation.mutate()}
-              loading={saveMenuScopeMutation.isPending}
-              disabled={!menuScopeRoleCode || !customRoles.length}
-            >
-              {t("common:CONFIRM")}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Permission dialog */}
-      <Dialog open={permissionDialogOpen} onOpenChange={setPermissionDialogOpen}>
-        <DialogContent className="max-w-[560px]">
-          <DialogHeader>
-            <DialogTitle>
-              {t("team:TEAM_ROLES_PERMISSION_DIALOG_TITLE", {
-                permissionName: activePermission?.name ?? "",
-              })}
-            </DialogTitle>
-            <DialogDescription>{t("team:TEAM_ROLES_PERMISSION_DIALOG_DESC")}</DialogDescription>
-          </DialogHeader>
-
-          <div className="flex max-h-[420px] flex-col gap-2 overflow-auto py-2">
-            {roles.map((role) => {
-              const checked = Boolean(permissionDraft[role.code]);
-              const disabled = role.isSystem;
-              return (
-                <label
-                  key={role.code}
-                  className="flex cursor-pointer items-start gap-3 rounded-md px-2 py-2 hover:bg-muted/50 data-[disabled=true]:cursor-not-allowed data-[disabled=true]:opacity-70"
-                  data-disabled={disabled}
-                >
-                  <Checkbox
-                    checked={checked}
-                    disabled={disabled}
-                    onCheckedChange={(v) => {
-                      setPermissionDraft((prev) => ({ ...prev, [role.code]: Boolean(v) }));
-                    }}
-                  />
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="truncate font-semibold text-foreground">{role.name}</span>
-                    </div>
-                    {role.description ? (
-                      <div className="mt-0.5 line-clamp-2  text-muted-foreground">
-                        {role.description}
-                      </div>
-                    ) : null}
-                  </div>
-                </label>
-              );
-            })}
-          </div>
-
-          <DialogFooter>
-            <Button
-              onClick={() => setPermissionDialogOpen(false)}
-              disabled={savePermissionMutation.isPending}
-            >
-              {t("common:CANCEL")}
-            </Button>
-            <Button
-              type="primary"
-              onClick={() => savePermissionMutation.mutate()}
-              loading={savePermissionMutation.isPending}
-            >
-              {t("common:CONFIRM")}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Create role dialog */}
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="max-w-[640px]">
-          <DialogHeader>
-            <DialogTitle>{t("team:TEAM_ROLES_ADD_ROLE_DIALOG_TITLE")}</DialogTitle>
-            <DialogDescription>{t("team:TEAM_ROLES_ADD_ROLE_DIALOG_DESC")}</DialogDescription>
-          </DialogHeader>
-
-          <form
-            className="flex flex-col gap-4"
-            onSubmit={createForm.handleSubmit((values) => createRoleMutation.mutate(values))}
-          >
-            <div className="grid gap-2">
-              <label className="font-semibold text-foreground">
-                {t("team:TEAM_ROLES_FIELD_TEMPLATE")}
-              </label>
-              <Controller
-                name="templateRoleCode"
-                control={createForm.control}
-                render={({ field }) => (
-                  <Select
-                    value={field.value || undefined}
-                    onChange={(v) => field.onChange(v)}
-                    placeholder={t("team:TEAM_ROLES_FIELD_TEMPLATE_PLACEHOLDER")}
-                    getPopupContainer={(node) => node.parentElement ?? document.body}
-                    dropdownStyle={{ zIndex: 3000 }}
-                    options={[
-                      { value: "__none__", label: t("team:TEAM_ROLES_TEMPLATE_NONE") },
-                      ...roles.map((r) => ({ value: r.code, label: r.name })),
-                    ]}
-                  />
-                )}
-              />
-              {createErrors.templateRoleCode?.message ? (
-                <p className="text-xs text-destructive">
-                  {String(createErrors.templateRoleCode.message)}
-                </p>
-              ) : null}
-            </div>
-
-            <div className="grid gap-2">
-              <label className="font-semibold text-foreground">
-                {t("team:TEAM_ROLES_FIELD_NAME")}
-              </label>
-              <Controller
-                name="name"
-                control={createForm.control}
-                render={({ field }) => (
-                  <Input value={field.value} onChange={(e) => field.onChange(e.target.value)} />
-                )}
-              />
-              {createErrors.name?.message ? (
-                <p className="text-xs text-destructive">{String(createErrors.name.message)}</p>
-              ) : null}
-            </div>
-
-            <div className="grid gap-2">
-              <label className="font-semibold text-foreground">
-                {t("team:TEAM_ROLES_FIELD_DESC")}
-              </label>
-              <Controller
-                name="description"
-                control={createForm.control}
-                render={({ field }) => (
-                  <Input.TextArea
-                    autoSize={{ minRows: 3, maxRows: 6 }}
-                    value={field.value}
-                    onChange={(e) => field.onChange(e.target.value)}
-                  />
-                )}
-              />
-            </div>
-
-            <DialogFooter>
-              <Button onClick={() => setCreateOpen(false)} disabled={createRoleMutation.isPending}>
-                {t("common:CANCEL")}
-              </Button>
-              <Button type="primary" htmlType="submit" loading={createRoleMutation.isPending}>
-                {t("common:CONFIRM")}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <TeamRolesDialogs
+        t={t}
+        deleteOpen={deleteOpen}
+        setDeleteOpen={setDeleteOpen}
+        deleteTarget={deleteTarget}
+        setDeleteTarget={setDeleteTarget}
+        deleteRolePending={deleteRoleMutation.isPending}
+        onDeleteRoleConfirm={(roleCode) => deleteRoleMutation.mutateAsync(roleCode)}
+        menuScopeOpen={menuScopeOpen}
+        setMenuScopeOpen={setMenuScopeOpen}
+        customRoles={customRoles}
+        menuScopeRoleCode={menuScopeRoleCode}
+        setMenuScopeRoleCode={setMenuScopeRoleCode}
+        menuCatalogItems={menuCatalogQuery.data?.items ?? []}
+        menuCatalogLoading={menuCatalogQuery.isLoading && !menuCatalogQuery.data}
+        menuCatalogError={menuCatalogQuery.error}
+        menuCatalogIsError={menuCatalogQuery.isError}
+        onMenuCatalogRetry={() => void menuCatalogQuery.refetch()}
+        menuScopeDraft={menuScopeDraft}
+        setMenuScopeDraft={setMenuScopeDraft}
+        saveMenuScopePending={saveMenuScopeMutation.isPending}
+        onSaveMenuScope={() => saveMenuScopeMutation.mutate()}
+        permissionDialogOpen={permissionDialogOpen}
+        setPermissionDialogOpen={setPermissionDialogOpen}
+        activePermission={activePermission}
+        roles={roles}
+        permissionDraft={permissionDraft}
+        setPermissionDraft={setPermissionDraft}
+        savePermissionPending={savePermissionMutation.isPending}
+        onSavePermission={() => savePermissionMutation.mutate()}
+        createOpen={createOpen}
+        setCreateOpen={setCreateOpen}
+        createForm={createForm}
+        createErrors={createErrors}
+        createRolePending={createRoleMutation.isPending}
+        onCreateRoleSubmit={(values) => createRoleMutation.mutate(values)}
+      />
     </DefaultPage>
   );
 }

@@ -6,9 +6,9 @@ ISS-0004,high,complexity,apps/api/modules/auth/service.py:1,Auth service split i
 ISS-0005,high,complexity,apps/api/modules/sites/service.py:1,Sites service decomposed into publishing/content services and reduced below file budget,done,Phase 1
 ISS-0006,high,complexity,apps/api/modules/sites/repository.py:1,Sites repository decomposed into publishing/routing repositories and reduced below budget,done,Phase 1
 ISS-0007,high,complexity,apps/api/modules/system/plugins_manager/service.py:1,Plugin manager service decomposed with install flow extracted and file budget met,done,Phase 1
-ISS-0008,high,quality,apps/web/admin/src/pages/assets/page.tsx:1,Assets page exceeds frontend file budget significantly,open,Phase 1
-ISS-0009,high,quality,apps/web/admin/src/components/common/assets/asset-masonry-card.tsx:1,Asset masonry card component exceeds file budget,open,Phase 1
-ISS-0010,high,quality,apps/web/admin/src/pages/team/roles/page.tsx:1,Team roles page exceeds file budget,open,Phase 1
+ISS-0008,high,quality,apps/web/admin/src/pages/assets/page.tsx:1,Assets page decomposed into focused view modules and reduced below frontend file budget,done,Phase 1
+ISS-0009,high,quality,apps/web/admin/src/components/common/assets/asset-masonry-card.tsx:1,Asset masonry card split into tile/preview modules and reduced below frontend file budget,done,Phase 1
+ISS-0010,high,quality,apps/web/admin/src/pages/team/roles/page.tsx:1,Team roles page split into dialogs/utils modules and reduced below frontend file budget,done,Phase 1
 ISS-0011,medium,typing,apps/web/admin/src/layouts/admin-layout.tsx:425,Removed admin layout nav any-casts via readonly nav contract,done,Phase 1
 ISS-0012,medium,typing,apps/web/admin/src/pages/assets/page.tsx:124,Replaced drag-overlay transform any-typed modifier with typed adapter,done,Phase 1
 ISS-0013,medium,typing,apps/web/admin/src/components/activity/activity-filter-popover.tsx:54,Activity filter popover any-casts removed with typed range/select helpers,done,Phase 1
@@ -27,6 +27,6 @@ ISS-0025,medium,open-platform,docs/plans/2026-02-02-portal-ssr-site-builder-and-
 ISS-0026,medium,tests,apps/api/tests/common/test_public_ids_codec_unit.py:48,Public ID tamper test made deterministic to eliminate intermittent false failures,done,Phase 1
 ISS-0027,medium,typing,apps/web/portal/src/runtime/__tests__/host-connector.test.ts:1,Portal/renderer frontend any findings eliminated via typed page context and runtime test stubs,done,Phase 1
 ISS-0028,high,complexity,apps/api/common/email/service.py:1,Email service decomposed by extracting reusable mail helpers and reduced below backend file budget,done,Phase 1
-ISS-0029,high,complexity,apps/api/modules/workspaces/team/service.py:1,Workspace team service exceeds backend file budget and should be split into member/invite/activity sub-services,open,Phase 1
+ISS-0029,high,complexity,apps/api/modules/workspaces/team/service.py:1,Workspace team service split with invite mixin module and reduced below backend file budget,done,Phase 1
 ISS-0030,high,governance,apps/api/common/types/public_uuid.py:1,Enforce PublicUUID consistency for all external-facing identifiers across API schemas/routes and reject raw UUID leakage,open,Phase 1
 ISS-0031,high,governance,apps/api/plugin/events.py:1,Define and enforce semantic activity/event naming taxonomy to prevent generic event names (for example settings.updated),open,Phase 1
