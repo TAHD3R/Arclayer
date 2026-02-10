@@ -24,7 +24,7 @@ describe("bootstrap-routing", () => {
     mocked.listMyWorkspaces.mockReset();
   });
 
-  test("returns bootstrap path when state is ready", async () => {
+  test("lands on organization overview when bootstrap is ready", async () => {
     mocked.getBootstrapState.mockResolvedValue({
       ready: true,
       repairRequired: false,
@@ -36,13 +36,13 @@ describe("bootstrap-routing", () => {
     });
 
     const decision = await resolvePostAuthRoute({ lastWorkspaceId: null, attemptRepair: true });
-    expect(decision.path).toBe("/w/w1");
-    expect(decision.workspaceId).toBe("w1");
+    expect(decision.path).toBe("/");
+    expect(decision.workspaceId).toBeNull();
     expect(decision.repaired).toBe(false);
     expect(mocked.repairBootstrapState).not.toHaveBeenCalled();
   });
 
-  test("attempts repair when bootstrap requires repair", async () => {
+  test("attempts repair and still lands on organization overview", async () => {
     mocked.getBootstrapState
       .mockResolvedValueOnce({
         ready: false,
@@ -70,23 +70,20 @@ describe("bootstrap-routing", () => {
 
     const decision = await resolvePostAuthRoute({ lastWorkspaceId: null, attemptRepair: true });
     expect(mocked.repairBootstrapState).toHaveBeenCalledTimes(1);
-    expect(decision.path).toBe("/w/w2");
-    expect(decision.workspaceId).toBe("w2");
+    expect(decision.path).toBe("/");
+    expect(decision.workspaceId).toBeNull();
     expect(decision.repaired).toBe(true);
   });
 
-  test("falls back to workspace list when bootstrap endpoint fails", async () => {
+  test("falls back to organization overview when bootstrap endpoint fails but workspaces exist", async () => {
     mocked.getBootstrapState.mockRejectedValue(new Error("network"));
     mocked.listMyWorkspaces.mockResolvedValue({
-      items: [
-        { workspaceId: "w-a", name: "A" },
-        { workspaceId: "w-b", name: "B" },
-      ],
+      items: [{ workspaceId: "w-a", name: "A" }],
     });
 
-    const decision = await resolvePostAuthRoute({ lastWorkspaceId: "w-b", attemptRepair: true });
-    expect(decision.path).toBe("/w/w-b");
-    expect(decision.workspaceId).toBe("w-b");
+    const decision = await resolvePostAuthRoute({ lastWorkspaceId: "w-a", attemptRepair: true });
+    expect(decision.path).toBe("/");
+    expect(decision.workspaceId).toBeNull();
     expect(decision.repaired).toBe(false);
   });
 

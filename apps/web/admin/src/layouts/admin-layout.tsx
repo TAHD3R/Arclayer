@@ -217,6 +217,9 @@ export function AdminLayout({ children }: PropsWithChildren) {
   const isOrgScopeRoute = useMemo(() => {
     const p = pathname || "/";
     return (
+      p === "/" ||
+      p === "/organization" ||
+      p.startsWith("/organization/") ||
       p === "/settings/organization" ||
       p.startsWith("/settings/organization/") ||
       p === "/plugins" ||
@@ -391,12 +394,6 @@ export function AdminLayout({ children }: PropsWithChildren) {
       },
     );
   };
-
-  // When workspace is not selected (e.g. landing at "/"), render a minimal shell.
-  // The "/" route is responsible for picking a workspace and redirecting.
-  if (!workspaceBase && normalizePath(pathname) === "/") {
-    return <>{children ?? <Outlet />}</>;
-  }
 
   return (
     <SidebarProvider defaultOpen className="h-screen">

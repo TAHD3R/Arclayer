@@ -6,19 +6,23 @@ from apps.api.core.exceptions import NotFound
 from apps.api.core.http.response import Response, ResponseModel
 from apps.api.core.i18n import t
 from apps.api.modules.organization.deps import get_current_org_membership
+from apps.api.modules.organization.members.router import router as organization_members_router
 from apps.api.modules.organization.models.org_membership import OrgMembership
 from apps.api.modules.organization.plugins.router import router as organization_plugins_router
 from apps.api.modules.organization.schema import MyOrganizationOut, OrganizationBriefOut, OrganizationMembershipOut
+from apps.api.modules.organization.workspaces.router import router as organization_workspaces_router
 
 router = APIRouter(tags=["Me"])
 
 router.include_router(organization_plugins_router)
+router.include_router(organization_workspaces_router)
+router.include_router(organization_members_router)
 
 
 @router.get(
     "/me/organization",
     response_model=ResponseModel[MyOrganizationOut],
-    summary="Get current user's organization and membership",
+    summary="Get current user organization and membership",
 )
 async def get_my_organization(
     orgm: OrgMembership = Depends(get_current_org_membership),

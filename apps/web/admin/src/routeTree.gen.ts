@@ -31,6 +31,9 @@ import { Route as SettingsGeneralIndexRouteImport } from './routes/settings/gene
 import { Route as PluginsMarketplaceIndexRouteImport } from './routes/plugins/marketplace/index'
 import { Route as PluginsInstalledIndexRouteImport } from './routes/plugins/installed/index'
 import { Route as PluginsPluginSlugIndexRouteImport } from './routes/plugins/$pluginSlug/index'
+import { Route as OrganizationWorkspacesIndexRouteImport } from './routes/organization/workspaces/index'
+import { Route as OrganizationMembersIndexRouteImport } from './routes/organization/members/index'
+import { Route as OrganizationActivityIndexRouteImport } from './routes/organization/activity/index'
 import { Route as ContentPagesIndexRouteImport } from './routes/content/pages/index'
 import { Route as ContentLibraryIndexRouteImport } from './routes/content/library/index'
 import { Route as AppearanceThemesIndexRouteImport } from './routes/appearance/themes/index'
@@ -173,6 +176,24 @@ const PluginsPluginSlugIndexRoute = PluginsPluginSlugIndexRouteImport.update({
   path: '/plugins/$pluginSlug/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OrganizationWorkspacesIndexRoute =
+  OrganizationWorkspacesIndexRouteImport.update({
+    id: '/organization/workspaces/',
+    path: '/organization/workspaces/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const OrganizationMembersIndexRoute =
+  OrganizationMembersIndexRouteImport.update({
+    id: '/organization/members/',
+    path: '/organization/members/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const OrganizationActivityIndexRoute =
+  OrganizationActivityIndexRouteImport.update({
+    id: '/organization/activity/',
+    path: '/organization/activity/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ContentPagesIndexRoute = ContentPagesIndexRouteImport.update({
   id: '/content/pages/',
   path: '/content/pages/',
@@ -366,6 +387,9 @@ export interface FileRoutesByFullPath {
   '/appearance/themes/': typeof AppearanceThemesIndexRoute
   '/content/library/': typeof ContentLibraryIndexRoute
   '/content/pages/': typeof ContentPagesIndexRoute
+  '/organization/activity/': typeof OrganizationActivityIndexRoute
+  '/organization/members/': typeof OrganizationMembersIndexRoute
+  '/organization/workspaces/': typeof OrganizationWorkspacesIndexRoute
   '/plugins/$pluginSlug/': typeof PluginsPluginSlugIndexRoute
   '/plugins/installed/': typeof PluginsInstalledIndexRoute
   '/plugins/marketplace/': typeof PluginsMarketplaceIndexRoute
@@ -419,6 +443,9 @@ export interface FileRoutesByTo {
   '/appearance/themes': typeof AppearanceThemesIndexRoute
   '/content/library': typeof ContentLibraryIndexRoute
   '/content/pages': typeof ContentPagesIndexRoute
+  '/organization/activity': typeof OrganizationActivityIndexRoute
+  '/organization/members': typeof OrganizationMembersIndexRoute
+  '/organization/workspaces': typeof OrganizationWorkspacesIndexRoute
   '/plugins/$pluginSlug': typeof PluginsPluginSlugIndexRoute
   '/plugins/installed': typeof PluginsInstalledIndexRoute
   '/plugins/marketplace': typeof PluginsMarketplaceIndexRoute
@@ -474,6 +501,9 @@ export interface FileRoutesById {
   '/appearance/themes/': typeof AppearanceThemesIndexRoute
   '/content/library/': typeof ContentLibraryIndexRoute
   '/content/pages/': typeof ContentPagesIndexRoute
+  '/organization/activity/': typeof OrganizationActivityIndexRoute
+  '/organization/members/': typeof OrganizationMembersIndexRoute
+  '/organization/workspaces/': typeof OrganizationWorkspacesIndexRoute
   '/plugins/$pluginSlug/': typeof PluginsPluginSlugIndexRoute
   '/plugins/installed/': typeof PluginsInstalledIndexRoute
   '/plugins/marketplace/': typeof PluginsMarketplaceIndexRoute
@@ -530,6 +560,9 @@ export interface FileRouteTypes {
     | '/appearance/themes/'
     | '/content/library/'
     | '/content/pages/'
+    | '/organization/activity/'
+    | '/organization/members/'
+    | '/organization/workspaces/'
     | '/plugins/$pluginSlug/'
     | '/plugins/installed/'
     | '/plugins/marketplace/'
@@ -583,6 +616,9 @@ export interface FileRouteTypes {
     | '/appearance/themes'
     | '/content/library'
     | '/content/pages'
+    | '/organization/activity'
+    | '/organization/members'
+    | '/organization/workspaces'
     | '/plugins/$pluginSlug'
     | '/plugins/installed'
     | '/plugins/marketplace'
@@ -637,6 +673,9 @@ export interface FileRouteTypes {
     | '/appearance/themes/'
     | '/content/library/'
     | '/content/pages/'
+    | '/organization/activity/'
+    | '/organization/members/'
+    | '/organization/workspaces/'
     | '/plugins/$pluginSlug/'
     | '/plugins/installed/'
     | '/plugins/marketplace/'
@@ -692,6 +731,9 @@ export interface RootRouteChildren {
   AppearanceThemesIndexRoute: typeof AppearanceThemesIndexRoute
   ContentLibraryIndexRoute: typeof ContentLibraryIndexRoute
   ContentPagesIndexRoute: typeof ContentPagesIndexRoute
+  OrganizationActivityIndexRoute: typeof OrganizationActivityIndexRoute
+  OrganizationMembersIndexRoute: typeof OrganizationMembersIndexRoute
+  OrganizationWorkspacesIndexRoute: typeof OrganizationWorkspacesIndexRoute
   PluginsPluginSlugIndexRoute: typeof PluginsPluginSlugIndexRoute
   PluginsInstalledIndexRoute: typeof PluginsInstalledIndexRoute
   PluginsMarketplaceIndexRoute: typeof PluginsMarketplaceIndexRoute
@@ -859,6 +901,27 @@ declare module '@tanstack/react-router' {
       path: '/plugins/$pluginSlug'
       fullPath: '/plugins/$pluginSlug/'
       preLoaderRoute: typeof PluginsPluginSlugIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/organization/workspaces/': {
+      id: '/organization/workspaces/'
+      path: '/organization/workspaces'
+      fullPath: '/organization/workspaces/'
+      preLoaderRoute: typeof OrganizationWorkspacesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/organization/members/': {
+      id: '/organization/members/'
+      path: '/organization/members'
+      fullPath: '/organization/members/'
+      preLoaderRoute: typeof OrganizationMembersIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/organization/activity/': {
+      id: '/organization/activity/'
+      path: '/organization/activity'
+      fullPath: '/organization/activity/'
+      preLoaderRoute: typeof OrganizationActivityIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/content/pages/': {
@@ -1159,6 +1222,9 @@ const rootRouteChildren: RootRouteChildren = {
   AppearanceThemesIndexRoute: AppearanceThemesIndexRoute,
   ContentLibraryIndexRoute: ContentLibraryIndexRoute,
   ContentPagesIndexRoute: ContentPagesIndexRoute,
+  OrganizationActivityIndexRoute: OrganizationActivityIndexRoute,
+  OrganizationMembersIndexRoute: OrganizationMembersIndexRoute,
+  OrganizationWorkspacesIndexRoute: OrganizationWorkspacesIndexRoute,
   PluginsPluginSlugIndexRoute: PluginsPluginSlugIndexRoute,
   PluginsInstalledIndexRoute: PluginsInstalledIndexRoute,
   PluginsMarketplaceIndexRoute: PluginsMarketplaceIndexRoute,

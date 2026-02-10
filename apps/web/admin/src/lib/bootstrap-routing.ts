@@ -1,6 +1,5 @@
 import { getBootstrapState, repairBootstrapState } from "@/api/bootstrap";
 import { listMyWorkspaces } from "@/api/workspaces";
-import { pickDefaultWorkspaceId, workspaceHomePath } from "@/lib/workspace-routing";
 
 export interface PostAuthRouteDecision {
   path: string;
@@ -8,18 +7,18 @@ export interface PostAuthRouteDecision {
   repaired: boolean;
 }
 
-function normalizePath(path: string | null | undefined): string {
-  const raw = String(path || "").trim();
-  if (!raw) return "/";
-  if (!raw.startsWith("/")) return "/";
-  return raw;
-}
-
+/**
+ * Post-auth routing policy (org-first):
+ * - Ready bootstrap -> land on organization overview (`/`).
+ * - Not ready but user has at least one workspace -> land on `/`.
+ * - No resolvable workspace -> `/onboarding`.
+ */
 export async function resolvePostAuthRoute(params: {
   lastWorkspaceId: string | null;
   attemptRepair?: boolean;
 }): Promise<PostAuthRouteDecision> {
   const { lastWorkspaceId, attemptRepair = true } = params;
+  void lastWorkspaceId;
 
   let repaired = false;
   let state = await getBootstrapState().catch(() => null);
@@ -29,23 +28,19 @@ export async function resolvePostAuthRoute(params: {
     state = await getBootstrapState().catch(() => state);
   }
 
-  if (state?.workspaceId) {
+  if (state?.ready) {
     return {
-      path: normalizePath(state.nextPath) || workspaceHomePath(String(state.workspaceId)),
-      workspaceId: String(state.workspaceId),
+      path: "/",
+      workspaceId: null,
       repaired,
     };
   }
 
   const workspaces = await listMyWorkspaces().catch(() => ({ items: [] }));
-  const fallbackWorkspaceId = pickDefaultWorkspaceId({
-    workspaces: workspaces.items,
-    lastWorkspaceId,
-  });
-  if (fallbackWorkspaceId) {
+  if ((workspaces.items ?? []).length > 0) {
     return {
-      path: workspaceHomePath(String(fallbackWorkspaceId)),
-      workspaceId: String(fallbackWorkspaceId),
+      path: "/",
+      workspaceId: null,
       repaired,
     };
   }

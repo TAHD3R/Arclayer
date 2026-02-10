@@ -391,7 +391,7 @@ export function PluginsInstalledView({ scope = "workspace" }: PluginsInstalledVi
           emptyDescription={t("plugin:PLUGIN_CENTER_EMPTY")}
         />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div className={isOrganizationScope ? "grid grid-cols-1 lg:grid-cols-2 gap-4" : "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"}>
           {pageItems.map((p) => {
             const status = normalizeStatus(p.status);
             const statusLabel = t(`plugin:PLUGIN_STATUS_${status.toUpperCase()}`, {
