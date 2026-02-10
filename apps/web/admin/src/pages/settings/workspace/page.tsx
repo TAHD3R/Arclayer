@@ -17,12 +17,20 @@ import {
 } from "@/components/ui/chrome-tabs";
 import { SettingPanel } from "@/components/common/setting-panel";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
-import { formatLocaleLabel, pickString } from "@/lib/settings/general/utils";
+import {
+  buildDateFormatOptions,
+  buildLocaleOptions,
+  buildTimezoneOptions,
+  DEFAULT_DATE_FORMAT,
+  DEFAULT_LOCALE,
+  DEFAULT_TIMEZONE,
+  resolveDateFormatLabel,
+} from "@/lib/settings/general/localization-options";
+import { pickString } from "@/lib/settings/general/utils";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 import type { AppLocale } from "@/lib/i18n";
 import { normalizeLocale } from "@/lib/i18n";
-import { COMMON_TIMEZONES, DATE_FORMAT_ITEMS } from "@/constants/settings-general";
 
 type WorkspaceSettingsTabKey =
   | "basics"
@@ -92,9 +100,9 @@ export function WorkspaceSettingsView() {
     }
     const value = coreQuery.data.value;
     form.setFieldsValue({
-      locale: normalizeLocale(pickString(value, ["workspace_localization", "locale"]) ?? "zh-CN"),
-      timezone: pickString(value, ["workspace_localization", "timezone"]) ?? "Asia/Shanghai",
-      dateFormat: pickString(value, ["workspace_localization", "date_format"]) ?? "YYYY-MM-DD",
+      locale: normalizeLocale(pickString(value, ["workspace_localization", "locale"]) ?? DEFAULT_LOCALE),
+      timezone: pickString(value, ["workspace_localization", "timezone"]) ?? DEFAULT_TIMEZONE,
+      dateFormat: pickString(value, ["workspace_localization", "date_format"]) ?? DEFAULT_DATE_FORMAT,
     });
   }, [coreQuery.data, form]);
 
@@ -137,30 +145,34 @@ export function WorkspaceSettingsView() {
   const currentWorkspaceName =
     (Form.useWatch("name", form) as string | undefined) ?? initialWorkspaceName;
 
-  const initialWorkspaceLocale = (pickString(coreQuery.data?.value, [
-    "workspace_localization",
-    "locale",
-  ]) ?? "zh-CN") as string as string;
-  const initialWorkspaceLocaleNormalized = normalizeLocale(initialWorkspaceLocale) as AppLocale;
+  const initialWorkspaceLocale = normalizeLocale(
+    pickString(coreQuery.data?.value, ["workspace_localization", "locale"]) ?? DEFAULT_LOCALE,
+  ) as AppLocale;
   const initialWorkspaceTimezone =
-    pickString(coreQuery.data?.value, ["workspace_localization", "timezone"]) ?? "Asia/Shanghai";
+    pickString(coreQuery.data?.value, ["workspace_localization", "timezone"]) ?? DEFAULT_TIMEZONE;
   const initialWorkspaceDateFormat =
-    pickString(coreQuery.data?.value, ["workspace_localization", "date_format"]) ?? "YYYY-MM-DD";
+    pickString(coreQuery.data?.value, ["workspace_localization", "date_format"]) ?? DEFAULT_DATE_FORMAT;
 
   const workspaceLocale =
-    (Form.useWatch("locale", form) as AppLocale | undefined) ?? initialWorkspaceLocaleNormalized;
+    (Form.useWatch("locale", form) as AppLocale | undefined) ?? initialWorkspaceLocale;
   const workspaceTimezone =
     (Form.useWatch("timezone", form) as string | undefined) ?? initialWorkspaceTimezone;
   const workspaceDateFormat =
     (Form.useWatch("dateFormat", form) as string | undefined) ?? initialWorkspaceDateFormat;
 
-  const workspaceLocaleLabel = workspaceLocale ? formatLocaleLabel(workspaceLocale, t) : undefined;
-  const workspaceDateFormatLabel =
-    DATE_FORMAT_ITEMS.find((it) => it.value === workspaceDateFormat)?.label ?? workspaceDateFormat;
+  const localeOptions = React.useMemo(() => buildLocaleOptions(t), [t]);
+  const timezoneOptions = React.useMemo(
+    () => buildTimezoneOptions(workspaceTimezone),
+    [workspaceTimezone],
+  );
+  const dateFormatOptions = React.useMemo(() => buildDateFormatOptions(), []);
+
+  const workspaceLocaleLabel =
+    localeOptions.find((item) => item.value === workspaceLocale)?.label ?? workspaceLocale;
+  const workspaceDateFormatLabel = resolveDateFormatLabel(workspaceDateFormat);
 
   const isWorkspaceNameDirty = (currentWorkspaceName || "") !== (initialWorkspaceName || "");
-  const isWorkspaceLocaleDirty =
-    (workspaceLocale || "") !== (initialWorkspaceLocaleNormalized || "");
+  const isWorkspaceLocaleDirty = (workspaceLocale || "") !== (initialWorkspaceLocale || "");
   const isWorkspaceTimezoneDirty = (workspaceTimezone || "") !== (initialWorkspaceTimezone || "");
   const isWorkspaceDateFormatDirty =
     (workspaceDateFormat || "") !== (initialWorkspaceDateFormat || "");
@@ -192,14 +204,14 @@ export function WorkspaceSettingsView() {
           initialValues={{
             name: detailQuery.data?.name ?? "",
             locale: normalizeLocale(
-              pickString(coreQuery.data?.value, ["workspace_localization", "locale"]) ?? "zh-CN",
+              pickString(coreQuery.data?.value, ["workspace_localization", "locale"]) ?? DEFAULT_LOCALE,
             ),
             timezone:
               pickString(coreQuery.data?.value, ["workspace_localization", "timezone"]) ??
-              "Asia/Shanghai",
+              DEFAULT_TIMEZONE,
             dateFormat:
               pickString(coreQuery.data?.value, ["workspace_localization", "date_format"]) ??
-              "YYYY-MM-DD",
+              DEFAULT_DATE_FORMAT,
           }}
         >
           <ChromeTabs defaultValue={"basics" satisfies WorkspaceSettingsTabKey}>
@@ -324,10 +336,10 @@ export function WorkspaceSettingsView() {
                           isWorkspaceLocaleDirty && coreQuery.data
                             ? () =>
                                 void withSavingKey("reset:workspace:locale", async () => {
-                                  form.setFieldValue("locale", initialWorkspaceLocaleNormalized);
+                                  form.setFieldValue("locale", initialWorkspaceLocale);
                                   await patchWorkspaceCoreMutation.mutateAsync({
                                     workspace_localization: {
-                                      locale: initialWorkspaceLocaleNormalized,
+                                      locale: initialWorkspaceLocale,
                                     },
                                   });
                                   if (workspaceId) {
@@ -336,11 +348,11 @@ export function WorkspaceSettingsView() {
                                     });
                                     cacheWorkspaceLocale(
                                       String(workspaceId),
-                                      initialWorkspaceLocaleNormalized,
+                                      initialWorkspaceLocale,
                                     );
                                   }
                                   if (!localePreference) {
-                                    setEffectiveLocale(initialWorkspaceLocaleNormalized);
+                                    setEffectiveLocale(initialWorkspaceLocale);
                                   }
                                 })
                             : undefined
@@ -364,10 +376,7 @@ export function WorkspaceSettingsView() {
                         >
                           <Select
                             size="large"
-                            options={[
-                              { value: "zh-CN", label: t("account:ACCOUNT_LANGUAGE_ZH") },
-                              { value: "en-US", label: t("account:ACCOUNT_LANGUAGE_EN") },
-                            ]}
+                            options={localeOptions}
                           />
                         </Form.Item>
                       </SettingAccordionItem>
@@ -417,7 +426,7 @@ export function WorkspaceSettingsView() {
                         >
                           <Select
                             size="large"
-                            options={COMMON_TIMEZONES.map((tz) => ({ value: tz, label: tz }))}
+                            options={timezoneOptions}
                             showSearch
                             optionFilterProp="label"
                           />
@@ -471,10 +480,7 @@ export function WorkspaceSettingsView() {
                         >
                           <Select
                             size="large"
-                            options={DATE_FORMAT_ITEMS.map((it) => ({
-                              value: it.value,
-                              label: it.label,
-                            }))}
+                            options={dateFormatOptions}
                           />
                         </Form.Item>
                       </SettingAccordionItem>

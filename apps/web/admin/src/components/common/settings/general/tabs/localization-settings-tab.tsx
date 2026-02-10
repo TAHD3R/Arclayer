@@ -6,10 +6,14 @@ import { Accordion } from "@/components/ui/accordion";
 import { SettingAccordionItem } from "@/components/common/setting-accordion-item";
 import type { AppLocale } from "@/lib/i18n";
 
-import { COMMON_TIMEZONES, DATE_FORMAT_ITEMS } from "@/constants/settings-general";
+import {
+  buildDateFormatOptions,
+  buildLocaleOptions,
+  buildTimezoneOptions,
+  resolveDateFormatLabel,
+} from "@/lib/settings/general/localization-options";
 import type { GeneralSettingsTabBaseProps } from "@/types/settings-general";
 import type { GeneralSettingsFormValues } from "@/types/settings-general";
-import { formatLocaleLabel } from "@/lib/settings/general/utils";
 
 type LocalizationSettingsTabProps = GeneralSettingsTabBaseProps;
 
@@ -37,9 +41,12 @@ export function LocalizationSettingsTab({
   const dateFormat =
     (useLocalizationField(form, "dateFormat") as string | undefined) ?? initialValues.dateFormat;
 
-  const localeLabel = locale ? formatLocaleLabel(locale, t) : undefined;
-  const dateFormatLabel =
-    DATE_FORMAT_ITEMS.find((it) => it.value === dateFormat)?.label ?? dateFormat;
+  const localeOptions = buildLocaleOptions(t);
+  const timezoneOptions = buildTimezoneOptions(timezone);
+  const dateFormatOptions = buildDateFormatOptions();
+
+  const localeLabel = localeOptions.find((item) => item.value === locale)?.label ?? locale;
+  const dateFormatLabel = resolveDateFormatLabel(dateFormat);
 
   const isLocaleDirty = (locale || "") !== (initialValues.locale || "");
   const isTimezoneDirty = (timezone || "") !== (initialValues.timezone || "");
@@ -107,10 +114,7 @@ export function LocalizationSettingsTab({
         >
           <Select
             size="large"
-            options={[
-              { value: "zh-CN", label: t("account:ACCOUNT_LANGUAGE_ZH") },
-              { value: "en-US", label: t("account:ACCOUNT_LANGUAGE_EN") },
-            ]}
+            options={localeOptions}
           />
         </Form.Item>
       </SettingAccordionItem>
@@ -135,7 +139,7 @@ export function LocalizationSettingsTab({
         >
           <Select
             size="large"
-            options={COMMON_TIMEZONES.map((tz) => ({ value: tz, label: tz }))}
+            options={timezoneOptions}
             showSearch
             optionFilterProp="label"
           />
@@ -167,7 +171,7 @@ export function LocalizationSettingsTab({
         >
           <Select
             size="large"
-            options={DATE_FORMAT_ITEMS.map((it) => ({ value: it.value, label: it.label }))}
+            options={dateFormatOptions}
           />
         </Form.Item>
       </SettingAccordionItem>

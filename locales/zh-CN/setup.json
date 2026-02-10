@@ -112,5 +112,14 @@
   "SETUP_FIELD_SITE_URL_DESC": "用于生成链接与外部集成的站点标准地址。",
   "SETUP_FIELD_SITE_DESC_DESC": "当页面未单独配置 SEO 描述时使用的默认摘要。",
   "SETUP_FIELD_TEMPLATE_DESC": "选择预设模板初始化首个工作区，并在下方继续自定义配置。",
-  "SETUP_INITIALIZING_LABEL": "正在初始化系统..."
+  "SETUP_INITIALIZING_LABEL": "正在初始化系统...",
+  "SETUP_PROGRESS_STAGE_PRECHECK": "检查运行环境",
+  "SETUP_PROGRESS_STAGE_ADMIN": "创建管理员账号",
+  "SETUP_PROGRESS_STAGE_PROVISION": "创建组织与工作区",
+  "SETUP_PROGRESS_STAGE_WORKSPACE": "写入工作区默认配置",
+  "SETUP_PROGRESS_STAGE_FINALIZE": "完成初始化收尾",
+  "SETUP_PROGRESS_STEP_INDICATOR": "第 {{current}} / {{total}} 步",
+  "SETUP_PROGRESS_TIMEOUT": "初始化超时，请检查系统状态后重试。",
+  "SETUP_PROGRESS_FAILED": "初始化失败，请检查配置后重试。",
+  "SETUP_SUCCESS_WITH_WARNINGS": "初始化完成，但存在可忽略的警告。"
 }

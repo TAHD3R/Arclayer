@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Header, Request
+from fastapi import APIRouter, Depends, Header, Query, Request
 
+from apps.api.common.types.public_uuid import PublicUUID
 from apps.api.config import Settings, get_settings
 from apps.api.core.exceptions import ServiceUnavailable
 from apps.api.core.http.response import Response, ResponseModel
@@ -13,8 +14,9 @@ from apps.api.modules.system.rbac.router import router as system_rbac_router
 from apps.api.modules.system.schema import (
     SystemRuntimeCapabilities,
     SystemRuntimeOut,
+    SystemSetupJobOut,
+    SystemSetupJobStatusOut,
     SystemSetupRequest,
-    SystemSetupResult,
     SystemSetupStatus,
 )
 from apps.api.modules.system.service import SystemSetupService
@@ -61,19 +63,37 @@ async def setup_status(
 
 @router.post(
     "/setup",
-    response_model=ResponseModel[SystemSetupResult],
-    summary="Initialize system (one-time)",
+    response_model=ResponseModel[SystemSetupJobOut],
+    summary="Start system initialization job",
 )
 async def setup_system(
     request: Request,
     payload: SystemSetupRequest,
     x_setup_token: str | None = Header(default=None, alias="X-Setup-Token"),
+    dev_setup: bool = Query(default=False, alias="__dev_setup", include_in_schema=False),
     service: SystemSetupService = Depends(get_setup_service),
-) -> ResponseModel[SystemSetupResult]:
+) -> ResponseModel[SystemSetupJobOut]:
     host = getattr(getattr(request, "client", None), "host", None)
     service.validate_setup_access(client_host=host, setup_token=x_setup_token)
-    result = await service.run_setup(payload=payload)
-    return Response.success(data=result)
+    job = await service.start_setup_job(payload=payload, dry_run=dev_setup)
+    return Response.success(data=job)
+
+
+@router.get(
+    "/setup/jobs/{job_id}",
+    response_model=ResponseModel[SystemSetupJobStatusOut],
+    summary="Get setup job status",
+)
+async def get_setup_job_status(
+    request: Request,
+    job_id: PublicUUID,
+    x_setup_token: str | None = Header(default=None, alias="X-Setup-Token"),
+    service: SystemSetupService = Depends(get_setup_service),
+) -> ResponseModel[SystemSetupJobStatusOut]:
+    host = getattr(getattr(request, "client", None), "host", None)
+    service.validate_setup_access(client_host=host, setup_token=x_setup_token)
+    job = await service.get_setup_job_status(job_id=job_id)
+    return Response.success(data=job)
 
 
 @router.get(

@@ -41,12 +41,44 @@ export interface SystemSetupResult {
   organization_name?: string | null;
 }
 
+export type SystemSetupJobStatus = "pending" | "running" | "succeeded" | "failed";
+export type SystemSetupJobStage = "precheck" | "admin" | "provision" | "workspace" | "finalize";
+
+export interface SystemSetupJob {
+  jobId: string;
+  status: SystemSetupJobStatus;
+  stage: SystemSetupJobStage;
+  percent: number;
+  createdAt: string;
+}
+
+export interface SystemSetupJobStatusPayload extends SystemSetupJob {
+  startedAt?: string | null;
+  finishedAt?: string | null;
+  warnings: string[];
+  errorCode?: string | null;
+  errorMessage?: string | null;
+  result?: SystemSetupResult | null;
+}
+
 export async function setupSystem(
   payload: SystemSetupRequest,
-  opts?: { setupToken?: string },
-): Promise<SystemSetupResult> {
+  opts?: { setupToken?: string; devSetup?: boolean },
+): Promise<SystemSetupJob> {
   const headers = opts?.setupToken ? { "X-Setup-Token": opts.setupToken } : undefined;
-  return api.post<SystemSetupResult>("/system/setup", payload, {
+  const query = opts?.devSetup ? "?__dev_setup=1" : "";
+  return api.post<SystemSetupJob>(`/system/setup${query}`, payload, {
+    headers,
+    auth: { skipRefresh: true },
+  });
+}
+
+export async function getSetupJobStatus(
+  jobId: string,
+  opts?: { setupToken?: string },
+): Promise<SystemSetupJobStatusPayload> {
+  const headers = opts?.setupToken ? { "X-Setup-Token": opts.setupToken } : undefined;
+  return api.get<SystemSetupJobStatusPayload>(`/system/setup/jobs/${jobId}`, {
     headers,
     auth: { skipRefresh: true },
   });

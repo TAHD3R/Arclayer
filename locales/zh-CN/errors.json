@@ -24,6 +24,16 @@
   "ADMIN_RBAC_ORG_PROVIDER_UNAVAILABLE": "RBAC 组织桥接服务不可用",
   "CANNOT_DISABLE_SELF": "不能禁用自己的账号",
 
+  "SETUP_ALREADY_DONE": "系统已初始化",
+  "SETUP_JOB_RUNNING": "系统初始化任务正在执行中",
+  "SETUP_TOKEN_INVALID": "初始化令牌无效",
+  "SETUP_DISABLED": "系统初始化接口已关闭",
+  "SETUP_LOCAL_ONLY": "初始化接口仅允许本机访问",
+  "SETUP_JOB_NOT_FOUND": "初始化任务不存在",
+  "MASTER_KEY_INVALID": "系统密钥不合法",
+  "DEV_SETUP_ONLY": "仅开发或测试环境支持 dry-run 初始化",
+  "DATABASE_DISABLED": "当前实例未启用数据库",
+
   "INVITE_TOKEN_INVALID": "邀请 Token 无效",
   "INVITE_NOT_FOUND": "邀请不存在",
   "INVITE_REVOKED": "邀请已被撤销",

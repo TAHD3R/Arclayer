@@ -24,6 +24,16 @@
   "ADMIN_RBAC_ORG_PROVIDER_UNAVAILABLE": "Admin RBAC-Org provider unavailable",
   "CANNOT_DISABLE_SELF": "You can't disable your own account",
 
+  "SETUP_ALREADY_DONE": "System is already initialized",
+  "SETUP_JOB_RUNNING": "A setup job is already running",
+  "SETUP_TOKEN_INVALID": "Invalid setup token",
+  "SETUP_DISABLED": "Setup endpoint is disabled",
+  "SETUP_LOCAL_ONLY": "Setup endpoint is only available from localhost",
+  "SETUP_JOB_NOT_FOUND": "Setup job not found",
+  "MASTER_KEY_INVALID": "Invalid master key",
+  "DEV_SETUP_ONLY": "Dry-run setup is only available in development or test environments",
+  "DATABASE_DISABLED": "Database is disabled for this instance",
+
   "INVITE_TOKEN_INVALID": "Invalid invitation token",
   "INVITE_NOT_FOUND": "Invitation not found",
   "INVITE_REVOKED": "Invitation revoked",

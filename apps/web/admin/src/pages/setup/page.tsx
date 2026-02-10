@@ -5,7 +5,13 @@ import { useNavigate } from "@tanstack/react-router";
 import { AnimatePresence, MotionConfig, motion } from "motion/react";
 import { Sparkles } from "lucide-react";
 
-import { getSetupStatus, setupSystem } from "@/api/system";
+import {
+  getSetupJobStatus,
+  getSetupStatus,
+  setupSystem,
+  type SystemSetupJobStage,
+  type SystemSetupJobStatusPayload,
+} from "@/api/system";
 import { SetupAdminStep } from "@/components/common/setup/setup-admin-step";
 import { SetupDefaultsStep } from "@/components/common/setup/setup-defaults-step";
 import { SetupOrganizationStep } from "@/components/common/setup/setup-organization-step";
@@ -17,7 +23,7 @@ import {
 } from "@/components/ui/expandable-screen";
 import ColorBends from "@/components/ui/color-bends";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
-import { notifyError, notifyErrorText, notifySuccessText } from "@/lib/notifications";
+import { notifyError, notifyErrorText, notifyInfoText, notifySuccessText } from "@/lib/notifications";
 import { applyWorkspaceTemplatePreset } from "@/lib/setup-template";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";
@@ -42,11 +48,30 @@ const WORKSPACE_FIELDS: Array<keyof SetupSiteDraft> = [
   "siteDescription",
 ];
 
+const SETUP_PROGRESS_STAGE_ORDER: SystemSetupJobStage[] = [
+  "precheck",
+  "admin",
+  "provision",
+  "workspace",
+  "finalize",
+];
+const SETUP_JOB_POLL_INTERVAL_MS = 650;
+const SETUP_JOB_MAX_POLLS = 180;
+
 function resolveWindowOrigin(): string {
   try {
     return window.location.origin;
   } catch {
     return "";
+  }
+}
+
+function resolveSetupDryRunFlag(): boolean {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("__dev_setup") === "1";
+  } catch {
+    return false;
   }
 }
 
@@ -86,6 +111,12 @@ function resolvePrimaryBendColor(): string {
   }
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
+}
+
 export function SetupView() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -115,6 +146,8 @@ export function SetupView() {
   const deploymentMode = useSetupWizardStore((s) => s.deploymentMode);
   const themeMode = usePreferencesStore((s) => s.themeMode);
 
+  const setupDryRunEnabled = useMemo(() => resolveSetupDryRunFlag(), []);
+
   const [adminForm] = Form.useForm<SetupAdminDraft>();
   const [siteForm] = Form.useForm<SetupSiteDraft>();
   const [defaultsForm] = Form.useForm<SetupDefaultsDraft>();
@@ -122,8 +155,9 @@ export function SetupView() {
   const [submitting, setSubmitting] = useState(false);
   const [isLauncherExpanded, setLauncherExpanded] = useState(false);
   const [setupProgress, setSetupProgress] = useState<number | null>(null);
+  const [setupProgressStage, setSetupProgressStage] = useState<SystemSetupJobStage | null>(null);
 
-  const progressTimerRef = useRef<number | null>(null);
+  const pollingCancelledRef = useRef(false);
 
   const reducedMotion = usePrefersReducedMotion();
   const prevStepRef = useRef(step);
@@ -135,9 +169,7 @@ export function SetupView() {
 
   useEffect(() => {
     return () => {
-      if (progressTimerRef.current !== null) {
-        window.clearInterval(progressTimerRef.current);
-      }
+      pollingCancelledRef.current = true;
     };
   }, []);
 
@@ -261,6 +293,21 @@ export function SetupView() {
     [t],
   );
 
+  const setupProgressStageLabels = useMemo<Record<SystemSetupJobStage, string>>(
+    () => ({
+      precheck: t("setup:SETUP_PROGRESS_STAGE_PRECHECK"),
+      admin: t("setup:SETUP_PROGRESS_STAGE_ADMIN"),
+      provision: t("setup:SETUP_PROGRESS_STAGE_PROVISION"),
+      workspace: t("setup:SETUP_PROGRESS_STAGE_WORKSPACE"),
+      finalize: t("setup:SETUP_PROGRESS_STAGE_FINALIZE"),
+    }),
+    [t],
+  );
+
+  const setupProgressStep = setupProgressStage
+    ? Math.max(1, SETUP_PROGRESS_STAGE_ORDER.indexOf(setupProgressStage) + 1)
+    : 1;
+
   const onTemplateSelect = (templateKey: SetupWorkspaceTemplate) => {
     const current = siteForm.getFieldsValue(true) as SetupSiteDraft;
     const organizationName = (current.organizationName || "").trim();
@@ -294,6 +341,30 @@ export function SetupView() {
 
     const next = Math.min(MAX_STEP, step + 1) as SetupWizardStep;
     setStep(next);
+  };
+
+  const waitForSetupJob = async (jobId: string): Promise<SystemSetupJobStatusPayload> => {
+    for (let attempt = 0; attempt < SETUP_JOB_MAX_POLLS; attempt += 1) {
+      if (pollingCancelledRef.current) {
+        throw new Error("SETUP_POLLING_CANCELLED");
+      }
+
+      const status = await getSetupJobStatus(
+        jobId,
+        access === "token" ? { setupToken: setupToken.trim() } : undefined,
+      );
+
+      setSetupProgress(Math.max(1, status.percent));
+      setSetupProgressStage(status.stage);
+
+      if (status.status === "succeeded" || status.status === "failed") {
+        return status;
+      }
+
+      await sleep(SETUP_JOB_POLL_INTERVAL_MS);
+    }
+
+    throw new Error(t("setup:SETUP_PROGRESS_TIMEOUT"));
   };
 
   const onFinish = async () => {
@@ -353,20 +424,16 @@ export function SetupView() {
       }
 
       setLauncherExpanded(false);
-      setSetupProgress(12);
+      setSetupProgress(10);
+      setSetupProgressStage("precheck");
+      pollingCancelledRef.current = false;
 
-      if (progressTimerRef.current !== null) {
-        window.clearInterval(progressTimerRef.current);
-      }
-      progressTimerRef.current = window.setInterval(() => {
-        setSetupProgress((value) => {
-          const current = value ?? 12;
-          if (current >= 90) return current;
-          return current + 4;
-        });
-      }, 260);
+      const setupOptions = {
+        ...(access === "token" ? { setupToken: setupToken.trim() } : {}),
+        ...(setupDryRunEnabled ? { devSetup: true } : {}),
+      };
 
-      await setupSystem(
+      const job = await setupSystem(
         {
           admin: {
             username: admin.username.trim(),
@@ -379,10 +446,23 @@ export function SetupView() {
           },
           core_patch: corePatch,
         },
-        access === "token" ? { setupToken: setupToken.trim() } : undefined,
+        Object.keys(setupOptions).length > 0 ? setupOptions : undefined,
       );
 
+      setSetupProgress(Math.max(1, job.percent));
+      setSetupProgressStage(job.stage);
+
+      const finalStatus = await waitForSetupJob(job.jobId);
+      if (finalStatus.status === "failed") {
+        throw new Error(finalStatus.errorMessage || t("setup:SETUP_PROGRESS_FAILED"));
+      }
+
+      if (finalStatus.warnings.length > 0) {
+        notifyInfoText(t("setup:SETUP_SUCCESS_WITH_WARNINGS"));
+      }
+
       setSetupProgress(100);
+      setSetupProgressStage("finalize");
       completed = true;
 
       const status = await getSetupStatus().catch(() => null);
@@ -399,16 +479,15 @@ export function SetupView() {
       }
       await navigate({ to: "/login" });
     } catch (err) {
-      notifyError(err);
+      if (!(err instanceof Error && err.message === "SETUP_POLLING_CANCELLED")) {
+        notifyError(err);
+      }
       setSetupProgress(null);
     } finally {
-      if (progressTimerRef.current !== null) {
-        window.clearInterval(progressTimerRef.current);
-        progressTimerRef.current = null;
-      }
       setSubmitting(false);
       if (!completed) {
         setSetupProgress(null);
+        setSetupProgressStage(null);
       }
     }
   };
@@ -496,16 +575,27 @@ export function SetupView() {
         ) : null}
 
         {setupProgress !== null ? (
-          <div className="inline-flex flex-col items-center gap-3" aria-live="polite">
+          <div className="mx-auto w-full max-w-xl px-2" aria-live="polite">
             <Progress
-              type="circle"
-              size={72}
+              className="[&_.ant-progress-steps-item]:h-3 [&_.ant-progress-steps-item]:rounded-sm"
               percent={Math.round(setupProgress)}
+              steps={SETUP_PROGRESS_STAGE_ORDER.length}
+              strokeWidth={16}
+              showInfo={false}
               status={setupProgress >= 100 ? "success" : "active"}
-              strokeColor="var(--color-primary)"
-              trailColor="var(--color-muted)"
             />
-            <span className="text-sm text-(--color-muted-foreground)">{t("setup:SETUP_INITIALIZING_LABEL")}</span>
+            <div className="mt-2 flex items-center justify-between text-xs text-(--color-muted-foreground)">
+              <span>{t("setup:SETUP_INITIALIZING_LABEL")}</span>
+              <span>
+                {t("setup:SETUP_PROGRESS_STEP_INDICATOR", {
+                  current: setupProgressStep,
+                  total: SETUP_PROGRESS_STAGE_ORDER.length,
+                })}
+              </span>
+            </div>
+            {setupProgressStage ? (
+              <div className="mt-1 text-sm text-(--color-foreground)">{setupProgressStageLabels[setupProgressStage]}</div>
+            ) : null}
           </div>
         ) : setupEnabled === false ? (
           <Button

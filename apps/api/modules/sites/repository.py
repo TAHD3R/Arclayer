@@ -10,6 +10,7 @@ from tortoise.transactions import in_transaction
 
 from apps.api.common.protocols.tortoise import (
     EntryRecordMutableFields,
+    HasWorkspaceId,
     SettingUpdatedBy,
 )
 from apps.api.common.repositories.base import BaseRepository
@@ -52,20 +53,53 @@ class SitesRepository(BaseRepository):
         blog_document: DocumentIR,
     ) -> None:
         async with in_transaction() as conn:
-            site = await SiteRecord.filter(id=site_id).using_db(conn).first()
+            site = (
+                await SiteRecord.filter(workspace_id=workspace_id)
+                .using_db(conn)
+                .order_by("created_at", "id")
+                .first()
+            )
             if site is None:
-                site = await SiteRecord.create(
-                    id=site_id,
-                    workspace_id=workspace_id,
-                    slug="demo",
-                    name="Celestial Demo",
-                    default_locale="zh-CN",
-                    fallback_locale="en-US",
-                    primary_host=primary_host,
-                    is_active=True,
-                    created_by_user_id=None,
-                    using_db=conn,
-                )
+                demo_site = await SiteRecord.filter(id=site_id).using_db(conn).first()
+                if demo_site is not None:
+                    demo_site_like = cast(HasWorkspaceId, demo_site)
+                    if str(demo_site_like.workspace_id) == str(workspace_id):
+                        site = demo_site
+                    else:
+                        self.logger.warning(
+                            "Demo site id already used by another workspace",
+                            action="ensure_demo_site_ready",
+                            site_id=str(site_id),
+                            expected_workspace_id=str(workspace_id),
+                            actual_workspace_id=str(demo_site_like.workspace_id),
+                        )
+
+            if site is None:
+                create_kwargs: dict[str, object] = {
+                    "workspace_id": workspace_id,
+                    "slug": "demo",
+                    "name": "Celestial Demo",
+                    "default_locale": "zh-CN",
+                    "fallback_locale": "en-US",
+                    "primary_host": primary_host,
+                    "is_active": True,
+                    "created_by_user_id": None,
+                }
+                if not await SiteRecord.filter(id=site_id).using_db(conn).exists():
+                    create_kwargs["id"] = site_id
+
+                try:
+                    site = await SiteRecord.create(using_db=conn, **create_kwargs)
+                except IntegrityError:
+                    site = (
+                        await SiteRecord.filter(workspace_id=workspace_id)
+                        .using_db(conn)
+                        .order_by("created_at", "id")
+                        .first()
+                    )
+                    if site is None:
+                        raise
+
                 self.logger.info(
                     "Created demo site",
                     site_id=str(site.id),

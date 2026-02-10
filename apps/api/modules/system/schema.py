@@ -59,6 +59,27 @@ class SystemSetupStatus(BaseSchema):
     )
 
 
+SystemSetupJobStatus = Literal["pending", "running", "succeeded", "failed"]
+SystemSetupJobStage = Literal["precheck", "admin", "provision", "workspace", "finalize"]
+
+
+class SystemSetupJobOut(BaseSchema):
+    job_id: PublicUUID = Field(..., description="Setup job identifier.")
+    status: SystemSetupJobStatus = Field(..., description="Current setup job status.")
+    stage: SystemSetupJobStage = Field(..., description="Current setup stage.")
+    percent: int = Field(..., ge=0, le=100, description="Overall setup progress (0-100).")
+    created_at: datetime = Field(..., description="Job creation time.")
+
+
+class SystemSetupJobStatusOut(SystemSetupJobOut):
+    started_at: datetime | None = Field(default=None, description="Job execution start time.")
+    finished_at: datetime | None = Field(default=None, description="Job execution completion time.")
+    warnings: list[str] = Field(default_factory=list, description="Non-fatal warnings produced during setup.")
+    error_code: str | None = Field(default=None, description="Failure code when status is failed.")
+    error_message: str | None = Field(default=None, description="Failure message when status is failed.")
+    result: SystemSetupResult | None = Field(default=None, description="Final setup result when status is succeeded.")
+
+
 class SystemRuntimeCapabilities(BaseSchema):
     deployment_settings_enabled: bool = Field(
         ...,

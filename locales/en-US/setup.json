@@ -112,5 +112,14 @@
   "SETUP_FIELD_SITE_URL_DESC": "Canonical URL for generated links and integrations.",
   "SETUP_FIELD_SITE_DESC_DESC": "Default summary used when SEO metadata is not explicitly set.",
   "SETUP_FIELD_TEMPLATE_DESC": "Pick a preset to bootstrap your first workspace and then customize it below.",
-  "SETUP_INITIALIZING_LABEL": "Initializing system..."
+  "SETUP_INITIALIZING_LABEL": "Initializing system...",
+  "SETUP_PROGRESS_STAGE_PRECHECK": "Checking prerequisites",
+  "SETUP_PROGRESS_STAGE_ADMIN": "Creating admin account",
+  "SETUP_PROGRESS_STAGE_PROVISION": "Provisioning organization and workspace",
+  "SETUP_PROGRESS_STAGE_WORKSPACE": "Applying workspace defaults",
+  "SETUP_PROGRESS_STAGE_FINALIZE": "Finalizing setup",
+  "SETUP_PROGRESS_STEP_INDICATOR": "Step {{current}} / {{total}}",
+  "SETUP_PROGRESS_TIMEOUT": "Setup timed out. Please retry after checking system status.",
+  "SETUP_PROGRESS_FAILED": "Setup failed. Please review your configuration and try again.",
+  "SETUP_SUCCESS_WITH_WARNINGS": "Setup completed with non-blocking warnings."
 }
