@@ -34,6 +34,7 @@ def test_system_runtime_public_endpoint(monkeypatch) -> None:
     assert data.get("deploymentMode") == "self_host"
     caps = data.get("capabilities") or {}
     assert caps.get("deploymentSettingsEnabled") is True
+    assert caps.get("publicRegisterEnabled") is False
 
 
 def test_me_organization_owner_flag() -> None:

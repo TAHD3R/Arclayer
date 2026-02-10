@@ -21,8 +21,20 @@ export interface ResetTokenPayload {
   expires_in: number;
 }
 
+export interface RegisterPayload {
+  username: string;
+  email?: string;
+  password: string;
+  confirm_password: string;
+  display_name?: string;
+}
+
 export async function login(payload: { identifier: string; password: string }): Promise<TokenPair> {
   return api.post<TokenPair>("/auth/login", payload, { auth: { skipRefresh: true } });
+}
+
+export async function register(payload: RegisterPayload): Promise<UserProfile> {
+  return api.post<UserProfile>("/auth/register", payload, { auth: { skipRefresh: true } });
 }
 
 export async function refresh(payload: { refresh_token: string }): Promise<TokenPair> {

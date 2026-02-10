@@ -625,12 +625,37 @@ class AuthService(BaseService):
         if not self.settings.auth.allow_public_register:
             # Hide the endpoint by default to enforce invitation-only onboarding.
             raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
-        return await self.register(
+        user = await self.register(
             username=username,
             password=password,
             email=email,
             display_name=display_name,
         )
+
+        # Public registration should always land in an operable bootstrap state.
+        # Keep it idempotent and recoverable by using the shared provisioning orchestrator.
+        try:
+            from apps.api.modules.provision.service import TenantProvisioningService
+
+            provisioning = TenantProvisioningService(self.settings)
+            await provisioning.ensure_user_bootstrap(
+                user_id=self._coerce_user_id(user),
+                source="register",
+            )
+        except BaseException as exc:
+            _raise_if_fatal(exc)
+            self.logger.error(
+                "Public register bootstrap failed",
+                action="register_public_bootstrap",
+                user_id=str(getattr(user, "id", "")),
+                error=str(exc),
+            )
+            raise ServiceUnavailable(
+                message=self._ta("REGISTER_BOOTSTRAP_FAILED", "Registration bootstrap failed"),
+                error="REGISTER_BOOTSTRAP_FAILED",
+            ) from exc
+
+        return user
 
     async def request_password_reset(
         self,

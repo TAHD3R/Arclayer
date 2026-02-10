@@ -52,6 +52,7 @@ export interface SystemRuntime {
   deploymentMode: DeploymentMode;
   capabilities: {
     deploymentSettingsEnabled: boolean;
+    publicRegisterEnabled: boolean;
   };
 }
 

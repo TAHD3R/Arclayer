@@ -1,18 +1,22 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 
 import * as authApi from "@/api/auth";
 import * as authSsoApi from "@/api/auth-sso";
-import { useAuthStore } from "@/stores/use-auth-store";
+import { useSystemRuntime } from "@/hooks/use-system-runtime";
+import { resolveLoginMode } from "@/lib/auth-mode";
+import { resolvePostAuthRoute } from "@/lib/bootstrap-routing";
+import { notifyErrorText, notifyInfoText, notifySuccessText } from "@/lib/notifications";
 import {
   type AuthMode,
   type LoginFormValues,
-  type RegisterFormValues,
   LoginView,
+  type RegisterFormValues,
 } from "@/pages/login/page";
-import { notifyErrorText, notifyInfoText, notifySuccessText } from "@/lib/notifications";
+import { useAuthStore } from "@/stores/use-auth-store";
+import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
 type LoginSearch = {
   redirect?: string;
@@ -24,14 +28,19 @@ type LoginSearch = {
 function LoginPage() {
   const applyLogin = useAuthStore((s) => s.applyLogin);
   const keepSession = useAuthStore((s) => s.keepSession);
+  const lastWorkspaceId = useWorkspaceStore((s) => s.lastWorkspaceId);
+  const setCurrentWorkspaceId = useWorkspaceStore((s) => s.setCurrentWorkspaceId);
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const runtime = useSystemRuntime();
   const {
     redirect: redirectTo,
     mode = "login",
     oauth_code: oauthCode,
     oauth_error: oauthError,
   } = Route.useSearch();
+  const publicRegisterEnabled = runtime.publicRegisterEnabled;
+  const effectiveMode = resolveLoginMode(mode, publicRegisterEnabled);
 
   useEffect(() => {
     // Clean up legacy/accidental recursive `redirect=/login?...` parameters to avoid URL bloat.
@@ -41,13 +50,33 @@ function LoginPage() {
 
     // If `validateSearch` dropped the redirect, it means it's unsafe; remove it from the URL.
     if (!redirectTo) {
-      void navigate({ to: "/login", search: { mode }, replace: true });
+      void navigate({ to: "/login", search: { mode: effectiveMode }, replace: true });
     }
-  }, [mode, navigate, redirectTo]);
+  }, [effectiveMode, navigate, redirectTo]);
+
+  useEffect(() => {
+    if (mode !== "register" || publicRegisterEnabled) return;
+
+    void navigate({
+      to: "/login",
+      search: { ...(redirectTo ? { redirect: redirectTo } : {}), mode: "login" },
+      replace: true,
+    });
+  }, [mode, navigate, publicRegisterEnabled, redirectTo]);
 
   const loginMutation = useMutation({
     mutationFn: async (values: LoginFormValues) =>
       authApi.login({ identifier: values.account, password: values.password }),
+  });
+
+  const registerMutation = useMutation({
+    mutationFn: async (values: RegisterFormValues) =>
+      authApi.register({
+        username: values.username,
+        email: values.email,
+        password: values.password,
+        confirm_password: values.confirmPassword,
+      }),
   });
 
   const ssoExchangeMutation = useMutation({
@@ -55,6 +84,19 @@ function LoginPage() {
     retry: false,
     meta: { silent: true },
   });
+
+  const navigateAfterAuth = useCallback(async () => {
+    if (redirectTo) {
+      await navigate({ to: redirectTo, replace: true });
+      return;
+    }
+
+    const decision = await resolvePostAuthRoute({ lastWorkspaceId, attemptRepair: true });
+    if (decision.workspaceId) {
+      setCurrentWorkspaceId(decision.workspaceId);
+    }
+    await navigate({ to: decision.path, replace: true });
+  }, [lastWorkspaceId, navigate, redirectTo, setCurrentWorkspaceId]);
 
   useEffect(() => {
     if (!oauthCode) return;
@@ -64,15 +106,24 @@ function LoginPage() {
         const tokens = await ssoExchangeMutation.mutateAsync(oauthCode);
         // SSO login is always a short-lived action; respect the user's existing keepSession preference.
         applyLogin(tokens, { keepSession });
-        await navigate({ to: redirectTo || "/", replace: true });
+        await navigateAfterAuth();
       } catch {
         // Error toast is handled globally by TanStack Query's MutationCache onError.
-        void navigate({ to: "/login", search: { redirect: redirectTo, mode }, replace: true });
+        void navigate({ to: "/login", search: { redirect: redirectTo, mode: effectiveMode }, replace: true });
       }
     };
 
     void run();
-  }, [applyLogin, keepSession, mode, navigate, oauthCode, redirectTo, ssoExchangeMutation]);
+  }, [
+    applyLogin,
+    keepSession,
+    effectiveMode,
+    navigate,
+    oauthCode,
+    redirectTo,
+    navigateAfterAuth,
+    ssoExchangeMutation,
+  ]);
 
   useEffect(() => {
     if (!oauthError) return;
@@ -85,17 +136,18 @@ function LoginPage() {
     })();
 
     notifyErrorText(msg);
-    void navigate({ to: "/login", search: { redirect: redirectTo, mode }, replace: true });
-  }, [mode, navigate, oauthError, redirectTo, t]);
+    void navigate({ to: "/login", search: { redirect: redirectTo, mode: effectiveMode }, replace: true });
+  }, [effectiveMode, navigate, oauthError, redirectTo, t]);
 
   const forgotPasswordMutation = useMutation({
     mutationFn: async (identifier: string) => authApi.forgotPassword({ identifier }),
   });
 
   const onModeChange = (next: AuthMode) => {
+    const nextMode = resolveLoginMode(next, publicRegisterEnabled);
     void navigate({
       to: "/login",
-      search: { redirect: redirectTo, mode: next },
+      search: { redirect: redirectTo, mode: nextMode },
     });
   };
 
@@ -105,7 +157,7 @@ function LoginPage() {
       applyLogin(tokens, { keepSession: values.keepSession });
 
       notifySuccessText(t("auth:LOGIN_SUCCESS"));
-      await navigate({ to: redirectTo || "/", replace: true });
+      await navigateAfterAuth();
     } catch {
       // Error toast is handled globally by TanStack Query's MutationCache onError.
     }
@@ -124,22 +176,38 @@ function LoginPage() {
     }
   };
 
-  const onRegisterFinish = (_values: RegisterFormValues) => {
-    // Static UI for now; backend wiring will come next.
-    // Keep the user in the auth flow without pretending the register call succeeded.
-    notifyInfoText(t("auth:REGISTER_COMING_SOON"));
+  const onRegisterFinish = async (values: RegisterFormValues) => {
+    if (!publicRegisterEnabled) return;
+
+    try {
+      await registerMutation.mutateAsync(values);
+
+      const tokens = await loginMutation.mutateAsync({
+        account: values.email || values.username,
+        password: values.password,
+        keepSession: true,
+      });
+      applyLogin(tokens, { keepSession: true });
+
+      notifySuccessText(t("auth:REGISTER_SUCCESS"));
+      await navigateAfterAuth();
+    } catch {
+      // Error toast is handled globally by TanStack Query's MutationCache onError.
+    }
   };
 
   return (
     <LoginView
-      mode={mode}
+      mode={effectiveMode}
       onModeChange={onModeChange}
       onLoginSubmit={onLoginFinish}
-      loginLoading={loginMutation.isPending}
+      loginLoading={loginMutation.isPending || ssoExchangeMutation.isPending}
       initialKeepSession={keepSession}
       redirect={redirectTo}
       onForgotPassword={onForgotPassword}
       onRegisterSubmit={onRegisterFinish}
+      registerLoading={registerMutation.isPending}
+      publicRegisterEnabled={publicRegisterEnabled}
     />
   );
 }

@@ -4,7 +4,7 @@ import { getSystemRuntime, type SystemRuntime } from "@/api/system";
 
 const FALLBACK_RUNTIME: SystemRuntime = {
   deploymentMode: "saas",
-  capabilities: { deploymentSettingsEnabled: false },
+  capabilities: { deploymentSettingsEnabled: false, publicRegisterEnabled: false },
 };
 
 export function useSystemRuntime() {
@@ -26,5 +26,6 @@ export function useSystemRuntime() {
       safeRuntime.deploymentMode === "self_host" &&
       safeRuntime.capabilities.deploymentSettingsEnabled,
     ),
+    publicRegisterEnabled: Boolean(safeRuntime.capabilities.publicRegisterEnabled),
   } as const;
 }

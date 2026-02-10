@@ -14,6 +14,7 @@ from apps.api.modules.auth.repository import UserRepository
 from apps.api.modules.auth.security import hash_password
 from apps.api.modules.organization.models.organization import Organization
 from apps.api.modules.organization.models.user import User
+from apps.api.modules.provision.service import TenantProvisioningService
 from apps.api.modules.system.schema import SystemSetupRequest, SystemSetupResult, SystemSetupStatus
 from apps.api.modules.system.settings.service import SettingsService
 from apps.api.plugin.event_bus import Event
@@ -174,17 +175,21 @@ class SystemSetupService(BaseService):
             updated_by=user.id,
         )
 
-        organization = await self._create_default_organization(
-            name=organization_name,
-            slug=organization_slug,
-            logo_url=organization_logo_url,
-            created_by_user_id=user.id,
+        provisioning = TenantProvisioningService(self.settings)
+        provisioned = await provisioning.ensure_user_bootstrap(
+            user_id=user.id,
+            source="setup",
+            organization_name=organization_name,
+            organization_slug=organization_slug,
+            organization_logo_url=organization_logo_url,
+            workspace_name=organization_name,
         )
 
-        # v2: create default workspace and ensure owner membership.
-        workspace_id = await self._ensure_default_workspace(
-            org_id=organization.id, owner_user_id=user.id, workspace_name=organization.name
-        )
+        organization = None
+        if provisioned.organization_id is not None:
+            organization = await Organization.get_or_none(id=provisioned.organization_id)
+
+        workspace_id = provisioned.workspace_id
         if workspace_id is not None:
             from apps.api.modules.workspaces.settings.service import WorkspaceSettingsService
 
@@ -206,8 +211,8 @@ class SystemSetupService(BaseService):
                     user_id=str(user.id),
                 )
 
-        # v2: RBAC is workspace-scoped for the admin console. We already ensure the setup user
-        # has an active workspace membership and an admin role binding in `_ensure_default_workspace`.
+        # v2: RBAC is workspace-scoped for the admin console.
+        # `TenantProvisioningService` ensures membership and baseline role binding.
         # Roles/permissions are synced on app startup (`ensure_rbac_ready`), so we treat this as ok.
         rbac_ok = True
         # Emit a best-effort event so plugins can react without hard coupling to setup flow.

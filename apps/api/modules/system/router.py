@@ -95,7 +95,10 @@ async def get_system_runtime(
     return Response.success(
         data=SystemRuntimeOut(
             deployment_mode=deployment_mode,
-            capabilities=SystemRuntimeCapabilities(deployment_settings_enabled=deployment_mode == "self_host"),
+            capabilities=SystemRuntimeCapabilities(
+                deployment_settings_enabled=deployment_mode == "self_host",
+                public_register_enabled=settings.auth.allow_public_register,
+            ),
         )
     )
 

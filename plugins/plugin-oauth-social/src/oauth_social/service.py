@@ -346,11 +346,32 @@ class OAuthSocialService(BaseService):
                 if existing_user is not None:
                     user_id = UUID(str(existing_user.id))
                 else:
+                    if not self.settings.auth.allow_public_register:
+                        org_id = await self._resolve_organization_id_for_logs()
+                        self.logger.info(
+                            "OAuth provisioning blocked by global register policy",
+                            action="oauth_provisioning_blocked",
+                            reason="public_register_disabled",
+                            provider=provider,
+                            organization_id=org_id,
+                        )
+                        return self._redirect_to_login_error(
+                            frontend_base, error="provisioning_disabled", redirect=redirect
+                        )
+
                     provisioning = config.get("provisioning") if isinstance(config, dict) else None
                     auto_provision = (
                         bool(provisioning.get("auto_provision_enabled")) if isinstance(provisioning, dict) else False
                     )
                     if not auto_provision:
+                        org_id = await self._resolve_organization_id_for_logs()
+                        self.logger.info(
+                            "OAuth provisioning blocked by plugin auto-provision policy",
+                            action="oauth_provisioning_blocked",
+                            reason="plugin_auto_provision_disabled",
+                            provider=provider,
+                            organization_id=org_id,
+                        )
                         return self._redirect_to_login_error(
                             frontend_base, error="provisioning_disabled", redirect=redirect
                         )
@@ -465,6 +486,14 @@ class OAuthSocialService(BaseService):
             schema=schema,
             defaults=defaults,
         )
+
+    async def _resolve_organization_id_for_logs(self) -> str | None:
+        try:
+            organization_id = await get_single_organization_id()
+        except BaseException as exc:
+            _raise_if_fatal(exc)
+            return None
+        return str(organization_id) if organization_id is not None else None
 
     async def _resolve_frontend_base_url(self) -> str:
         """

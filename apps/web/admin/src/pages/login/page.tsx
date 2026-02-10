@@ -32,6 +32,8 @@ export interface LoginViewProps {
   redirect?: string | undefined;
   onForgotPassword: (identifier: string) => Promise<void>;
   onRegisterSubmit: (values: RegisterFormValues) => void;
+  registerLoading?: boolean;
+  publicRegisterEnabled?: boolean;
 }
 
 export function LoginView({
@@ -43,6 +45,8 @@ export function LoginView({
   redirect,
   onForgotPassword,
   onRegisterSubmit,
+  registerLoading = false,
+  publicRegisterEnabled = true,
 }: LoginViewProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -67,6 +71,8 @@ export function LoginView({
   const transition = reducedMotion
     ? ({ duration: 0.01 } as const)
     : ({ duration: 0.18, ease: [0.2, 0, 0, 1] as const } as const);
+
+  const resolvedMode: AuthMode = publicRegisterEnabled ? mode : "login";
 
   const loginPane = (
     <>
@@ -145,14 +151,16 @@ export function LoginView({
         <AuthOauthButtons disabled={loginLoading} redirect={redirect} />
       </Form>
 
-      <div className="mt-4 text-center">
-        <Typography.Text style={{ color: "var(--color-muted-foreground)" }}>
-          {t("auth:NO_ACCOUNT")}{" "}
-          <Button type="link" style={{ paddingInline: 0 }} onClick={() => onModeChange("register")}>
-            {t("auth:CREATE_ACCOUNT")}
-          </Button>
-        </Typography.Text>
-      </div>
+      {publicRegisterEnabled ? (
+        <div className="mt-4 text-center">
+          <Typography.Text style={{ color: "var(--color-muted-foreground)" }}>
+            {t("auth:NO_ACCOUNT")}{" "}
+            <Button type="link" style={{ paddingInline: 0 }} onClick={() => onModeChange("register")}>
+              {t("auth:CREATE_ACCOUNT")}
+            </Button>
+          </Typography.Text>
+        </div>
+      ) : null}
     </>
   );
 
@@ -177,6 +185,7 @@ export function LoginView({
         onFinish={onRegisterSubmit}
         requiredMark={false}
         autoComplete="off"
+        disabled={registerLoading}
       >
         <Form.Item<RegisterFormValues>
           name="email"
@@ -243,11 +252,11 @@ export function LoginView({
           />
         </Form.Item>
 
-        <Button type="primary" htmlType="submit" block size="large">
+        <Button type="primary" htmlType="submit" block size="large" loading={registerLoading}>
           {t("auth:REGISTER_BUTTON")}
         </Button>
 
-        <AuthOauthButtons disabled={false} redirect={redirect} />
+        <AuthOauthButtons disabled={registerLoading} redirect={redirect} />
       </Form>
 
       <div className="mt-4 text-center">
@@ -332,12 +341,12 @@ export function LoginView({
         <div className="relative">
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
-              key={mode}
+              key={resolvedMode}
               initial={reducedMotion ? { opacity: 1 } : { opacity: 0, x: enterOffsetX }}
               animate={{ opacity: 1, x: 0 }}
               exit={reducedMotion ? { opacity: 1 } : { opacity: 0, x: exitOffsetX }}
             >
-              {mode === "login" ? loginPane : registerPane}
+              {resolvedMode === "login" ? loginPane : registerPane}
             </motion.div>
           </AnimatePresence>
         </div>

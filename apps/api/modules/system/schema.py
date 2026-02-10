@@ -64,6 +64,10 @@ class SystemRuntimeCapabilities(BaseSchema):
         ...,
         description="Whether instance-level deployment settings (e.g. storage/mail) are exposed to the admin UI.",
     )
+    public_register_enabled: bool = Field(
+        ...,
+        description="Whether public account registration is enabled for this deployment.",
+    )
 
 
 class SystemRuntimeOut(BaseSchema):

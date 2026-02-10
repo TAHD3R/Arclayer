@@ -10,6 +10,7 @@ def build_v1_router(settings: Settings, *, plugin_manager: PluginManager) -> API
     # Import routers lazily to avoid circular imports during app startup and tests.
     from apps.api.api.v1.auth import router as auth_router
     from apps.api.api.v1.organization import router as organization_router
+    from apps.api.api.v1.provision import router as provision_router
     from apps.api.api.v1.sites import router as sites_router
     from apps.api.api.v1.system import router as system_router
     from apps.api.api.v1.workspaces import router as workspaces_router
@@ -25,6 +26,7 @@ def build_v1_router(settings: Settings, *, plugin_manager: PluginManager) -> API
     root.include_router(sites_router)
     root.include_router(system_router)
     root.include_router(organization_router)
+    root.include_router(provision_router)
     # Workspace-scoped admin governance (v2).
     root.include_router(workspaces_router)
     register_plugin_routers(root, plugin_manager=plugin_manager)

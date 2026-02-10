@@ -1,17 +1,18 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useNavigate } from "@tanstack/react-router";
 import { useRouterState } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button, Card, Typography } from "antd";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 
+import { getBootstrapState, repairBootstrapState } from "@/api/bootstrap";
 import { listMyWorkspaces } from "@/api/workspaces";
-import { PageState } from "@/components/common/page-state";
 import { DefaultPage } from "@/components/common/default-page";
+import { PageState } from "@/components/common/page-state";
+import { workspaceHomePath } from "@/lib/workspace-routing";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
-import { pickDefaultWorkspaceId, workspaceHomePath } from "@/lib/workspace-routing";
 
 export const Route = createFileRoute("/")({
   component: WorkspaceEntryPage,
@@ -20,11 +21,20 @@ export const Route = createFileRoute("/")({
 function WorkspaceEntryPage() {
   const { t } = useTranslation(["common"]);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const searchStr = useRouterState({ select: (s) => s.location.searchStr });
 
   const accessToken = useAuthStore((s) => s.accessToken);
-  const lastWorkspaceId = useWorkspaceStore((s) => s.lastWorkspaceId);
   const setCurrentWorkspaceId = useWorkspaceStore((s) => s.setCurrentWorkspaceId);
+
+  const bootstrapQuery = useQuery({
+    queryKey: ["me", "bootstrapState"],
+    enabled: Boolean(accessToken),
+    queryFn: async () => getBootstrapState(),
+    staleTime: 30 * 1000,
+    retry: false,
+    meta: { silent: true },
+  });
 
   const workspacesQuery = useQuery({
     queryKey: ["me", "workspaces"],
@@ -37,11 +47,6 @@ function WorkspaceEntryPage() {
 
   const items = workspacesQuery.data?.items ?? [];
 
-  const defaultWorkspaceId = useMemo(
-    () => pickDefaultWorkspaceId({ workspaces: items, lastWorkspaceId }),
-    [items, lastWorkspaceId],
-  );
-
   const devSetupOverride = useMemo(() => {
     if (!import.meta.env.DEV) return false;
     try {
@@ -52,24 +57,60 @@ function WorkspaceEntryPage() {
     }
   }, [searchStr]);
 
+  const didRepairRef = useRef(false);
   useEffect(() => {
-    if (!defaultWorkspaceId) return;
+    if (!accessToken) return;
     if (devSetupOverride) return;
-    setCurrentWorkspaceId(defaultWorkspaceId);
-    void navigate({ to: workspaceHomePath(defaultWorkspaceId), replace: true });
-  }, [defaultWorkspaceId, devSetupOverride, navigate, setCurrentWorkspaceId]);
+    if (didRepairRef.current) return;
+    if (!bootstrapQuery.data) return;
+    if (bootstrapQuery.data.ready) return;
+    if (!bootstrapQuery.data.repairRequired) return;
+
+    didRepairRef.current = true;
+    void (async () => {
+      const repaired = await repairBootstrapState().catch(() => null);
+      if (!repaired?.ready) return;
+      await queryClient.invalidateQueries({ queryKey: ["me", "bootstrapState"] });
+      await queryClient.invalidateQueries({ queryKey: ["me", "workspaces"] });
+    })();
+  }, [accessToken, bootstrapQuery.data, devSetupOverride, queryClient]);
+
+  const nextWorkspaceId = useMemo(() => {
+    if (bootstrapQuery.data?.workspaceId) return String(bootstrapQuery.data.workspaceId);
+    if (items.length === 1) return String(items[0]?.workspaceId || "").trim() || null;
+    return null;
+  }, [bootstrapQuery.data?.workspaceId, items]);
+
+  useEffect(() => {
+    if (!nextWorkspaceId) return;
+    if (devSetupOverride) return;
+    setCurrentWorkspaceId(nextWorkspaceId);
+    void navigate({ to: workspaceHomePath(nextWorkspaceId), replace: true });
+  }, [devSetupOverride, navigate, nextWorkspaceId, setCurrentWorkspaceId]);
 
   const onSelectWorkspace = async (workspaceId: string) => {
     setCurrentWorkspaceId(workspaceId);
     await navigate({ to: workspaceHomePath(workspaceId), replace: true });
   };
 
+  const loading =
+    (bootstrapQuery.isLoading && !bootstrapQuery.data) ||
+    (workspacesQuery.isLoading && !workspacesQuery.data);
+  const error = (bootstrapQuery.isError ? bootstrapQuery.error : null) || (workspacesQuery.isError ? workspacesQuery.error : null);
+
   return (
     <DefaultPage title={t("common:WORKSPACE_SELECT_TITLE")}>
       <PageState
-        loading={workspacesQuery.isLoading && !workspacesQuery.data}
-        error={workspacesQuery.isError ? workspacesQuery.error : null}
-        onRetry={workspacesQuery.isError ? () => void workspacesQuery.refetch() : undefined}
+        loading={loading}
+        error={error}
+        onRetry={
+          error
+            ? () => {
+                void bootstrapQuery.refetch();
+                void workspacesQuery.refetch();
+              }
+            : undefined
+        }
       >
         {items.length > 1 || (devSetupOverride && items.length === 1) ? (
           <Card>
