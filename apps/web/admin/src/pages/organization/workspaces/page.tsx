@@ -377,7 +377,7 @@ export function OrganizationWorkspacesPage() {
               ];
 
           return (
-            <div className="flex min-w-0 items-start gap-3">
+            <div className="flex min-w-0 justify-center items-center gap-3">
               <Avatar shape="square" size={42} src={item.iconUrl ?? undefined}>
                 {item.name.slice(0, 1).toUpperCase()}
               </Avatar>
