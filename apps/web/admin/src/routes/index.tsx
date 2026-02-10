@@ -3,7 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useRouterState } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button, Card, Typography } from "antd";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { getBootstrapState, repairBootstrapState } from "@/api/bootstrap";
@@ -18,7 +18,7 @@ export const Route = createFileRoute("/")({
   component: WorkspaceEntryPage,
 });
 
-function WorkspaceEntryPage() {
+export function WorkspaceEntryPage() {
   const { t } = useTranslation(["common"]);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -58,6 +58,7 @@ function WorkspaceEntryPage() {
   }, [searchStr]);
 
   const didRepairRef = useRef(false);
+  const [repairing, setRepairing] = useState(false);
   useEffect(() => {
     if (!accessToken) return;
     if (devSetupOverride) return;
@@ -67,12 +68,22 @@ function WorkspaceEntryPage() {
     if (!bootstrapQuery.data.repairRequired) return;
 
     didRepairRef.current = true;
+    let cancelled = false;
     void (async () => {
-      const repaired = await repairBootstrapState().catch(() => null);
-      if (!repaired?.ready) return;
-      await queryClient.invalidateQueries({ queryKey: ["me", "bootstrapState"] });
-      await queryClient.invalidateQueries({ queryKey: ["me", "workspaces"] });
+      setRepairing(true);
+      try {
+        const repaired = await repairBootstrapState().catch(() => null);
+        if (!repaired?.ready) return;
+        await queryClient.invalidateQueries({ queryKey: ["me", "bootstrapState"] });
+        await queryClient.invalidateQueries({ queryKey: ["me", "workspaces"] });
+      } finally {
+        if (!cancelled) setRepairing(false);
+      }
     })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [accessToken, bootstrapQuery.data, devSetupOverride, queryClient]);
 
   const nextWorkspaceId = useMemo(() => {
@@ -97,6 +108,27 @@ function WorkspaceEntryPage() {
     (bootstrapQuery.isLoading && !bootstrapQuery.data) ||
     (workspacesQuery.isLoading && !workspacesQuery.data);
   const error = (bootstrapQuery.isError ? bootstrapQuery.error : null) || (workspacesQuery.isError ? workspacesQuery.error : null);
+
+  useEffect(() => {
+    if (!accessToken) return;
+    if (devSetupOverride) return;
+    if (nextWorkspaceId) return;
+    if (items.length > 0) return;
+    if (error) return;
+    if (repairing || bootstrapQuery.isFetching || workspacesQuery.isFetching) return;
+
+    void navigate({ to: "/onboarding", replace: true });
+  }, [
+    accessToken,
+    bootstrapQuery.isFetching,
+    devSetupOverride,
+    error,
+    items.length,
+    navigate,
+    nextWorkspaceId,
+    repairing,
+    workspacesQuery.isFetching,
+  ]);
 
   return (
     <DefaultPage title={t("common:WORKSPACE_SELECT_TITLE")}>

@@ -51,7 +51,7 @@ export async function resolvePostAuthRoute(params: {
   }
 
   return {
-    path: "/",
+    path: "/onboarding",
     workspaceId: null,
     repaired,
   };

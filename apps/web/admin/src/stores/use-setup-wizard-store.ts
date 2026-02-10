@@ -1,4 +1,6 @@
 import { create } from "zustand";
+
+import type { DeploymentMode } from "@/api/system";
 import { type AppLocale } from "@/lib/i18n";
 
 /**
@@ -7,9 +9,11 @@ import { type AppLocale } from "@/lib/i18n";
  * - Should never be persisted to localStorage
  */
 
-export type SetupWizardStep = 0 | 1 | 2 | 3;
+export type SetupWizardStep = 0 | 1 | 2;
 
 export type SetupAccessMode = "local_only" | "token";
+
+export type SetupWorkspaceTemplate = "blog" | "website" | "blank";
 
 export type SetupAdminDraft = {
   username: string;
@@ -22,6 +26,9 @@ export type SetupAdminDraft = {
 export type SetupAdminDraftPartial = Partial<SetupAdminDraft>;
 
 export type SetupSiteDraft = {
+  organizationName: string;
+  templateKey: SetupWorkspaceTemplate;
+  workspaceName: string;
   siteName: string;
   siteUrl: string;
   siteDescription?: string;
@@ -41,6 +48,7 @@ interface SetupWizardState {
   initialized: boolean | null;
   setupEnabled: boolean | null;
   access: SetupAccessMode | null;
+  deploymentMode: DeploymentMode | null;
 
   // Security inputs for setup access (in-memory only).
   setupToken: string;
@@ -57,6 +65,7 @@ interface SetupWizardState {
       access: SetupAccessMode;
     } | null,
   ) => void;
+  setDeploymentMode: (mode: DeploymentMode | null) => void;
 
   setStep: (step: SetupWizardStep) => void;
   setSetupToken: (token: string) => void;
@@ -75,6 +84,7 @@ export const useSetupWizardStore = create<SetupWizardState>((set, get) => ({
   initialized: null,
   setupEnabled: null,
   access: null,
+  deploymentMode: null,
 
   setupToken: "",
 
@@ -94,6 +104,7 @@ export const useSetupWizardStore = create<SetupWizardState>((set, get) => ({
       access: status.access,
     });
   },
+  setDeploymentMode: (mode) => set({ deploymentMode: mode }),
 
   setStep: (step) => set({ step }),
   setSetupToken: (token) => set({ setupToken: token }),

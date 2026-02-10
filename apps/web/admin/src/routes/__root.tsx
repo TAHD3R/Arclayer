@@ -4,8 +4,9 @@ import { useLayoutEffect, useRef } from "react";
 import { AdminLayout } from "@/layouts/admin-layout";
 import { AuthLayout } from "@/layouts/auth-layout";
 import { SetupLayout } from "@/layouts/setup-layout";
-import { RouterDefaultError, RouterDefaultNotFound } from "@/pages/builtin/router-fallbacks";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
+import { isOnboardingScenePath, resolveSetupGateRedirect } from "@/lib/setup-routing";
+import { RouterDefaultError, RouterDefaultNotFound } from "@/pages/builtin/router-fallbacks";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useSetupWizardStore } from "@/stores/use-setup-wizard-store";
 
@@ -42,7 +43,7 @@ function useSceneRevealTransition(sceneKey: string) {
     prevSceneRef.current = sceneKey;
     if (prevScene === sceneKey) return;
 
-    // Remove any previous overlay (e.g. rapid redirects).
+    // Remove any previous overlay (for example rapid redirects).
     overlayRef.current?.remove();
     overlayRef.current = null;
 
@@ -63,8 +64,8 @@ function useSceneRevealTransition(sceneKey: string) {
       if (overlayRef.current === overlay) overlayRef.current = null;
     };
 
-    // Prefer a subtle LTR "reveal" so layout swaps (auth <-> admin) feel less abrupt.
-    // Fall back to a quick fade if clip-path isn't supported.
+    // Prefer a subtle LTR reveal so layout swaps (auth to admin) feel less abrupt.
+    // Fall back to a quick fade if clip-path is unsupported.
     const supportsClip =
       typeof CSS !== "undefined" &&
       (CSS.supports("clip-path", "inset(0 0 0 0)") ||
@@ -94,9 +95,7 @@ function useSceneRevealTransition(sceneKey: string) {
 
 function RootLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const isSetupRoute = pathname === "/setup" || pathname.startsWith("/setup/");
-  const isAcceptInviteRoute = pathname === "/accept-invite";
-  const isOnboardingRoute = isSetupRoute || isAcceptInviteRoute;
+  const isOnboardingRoute = isOnboardingScenePath(pathname);
   const isAuthRoute = pathname === "/login" || pathname === "/reset-password";
 
   const sceneKey = isOnboardingRoute ? "setup" : isAuthRoute ? "auth" : "admin";
@@ -120,22 +119,16 @@ function RootLayout() {
 export const Route = createRootRoute({
   beforeLoad: ({ location }) => {
     const setup = useSetupWizardStore.getState();
-    const setupKnown = setup.initialized !== null;
-    const isSetupRoute = location.pathname === "/setup" || location.pathname.startsWith("/setup/");
-    const isAcceptInviteRoute = location.pathname === "/accept-invite";
-    const isOnboardingRoute = isSetupRoute || isAcceptInviteRoute;
     const devAllowSetup = isDevSetupOverrideEnabled(location.searchStr);
 
-    if (setupKnown) {
-      // Setup flow has higher priority than auth:
-      // - If not initialized, the user must finish /setup before they can access /login or admin routes.
-      if (setup.initialized === false && !isOnboardingRoute) {
-        throw redirect({ to: "/setup" });
-      }
-      // - If initialized, /setup should be inaccessible.
-      if (setup.initialized === true && isSetupRoute && !devAllowSetup) {
-        throw redirect({ to: "/login" });
-      }
+    const setupRedirect = resolveSetupGateRedirect({
+      deploymentMode: setup.deploymentMode,
+      initialized: setup.initialized,
+      pathname: location.pathname,
+      devAllowSetup,
+    });
+    if (setupRedirect) {
+      throw redirect({ to: setupRedirect });
     }
 
     const token = useAuthStore.getState().accessToken;
@@ -149,7 +142,7 @@ export const Route = createRootRoute({
     if (!token && !isPublic) {
       throw redirect({
         to: "/login",
-        // `location.search` is an object; use `searchStr` to keep it stable.
+        // location.search is an object; use searchStr to keep it stable.
         search: { redirect: `${location.pathname}${location.searchStr}` },
       });
     }

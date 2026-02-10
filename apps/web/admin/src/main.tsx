@@ -9,7 +9,7 @@ import { router } from "@/routes/-router";
 import { setUnauthorizedHandler } from "@/lib/http/client";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { initializePreferences, usePreferencesStore } from "@/stores/use-preference-store";
-import { getSetupStatus } from "@/api/system";
+import { getSetupStatus, getSystemRuntime } from "@/api/system";
 import { useSetupWizardStore } from "@/stores/use-setup-wizard-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
@@ -21,20 +21,33 @@ async function bootstrap() {
   const { locale } = usePreferencesStore.getState();
   await initI18n(locale);
 
-  // Setup status is needed for the global route guard. Fetch it before rendering so
-  // `__root.beforeLoad` can synchronously read the result and avoid redirect flicker.
-  try {
-    const status = await getSetupStatus();
+  // Runtime mode + setup status are needed by the global route guard.
+  // Fetch both before rendering so `__root.beforeLoad` can synchronously evaluate redirects.
+  const [setupStatusResult, runtimeResult] = await Promise.allSettled([
+    getSetupStatus(),
+    getSystemRuntime(),
+  ]);
+
+  if (setupStatusResult.status === "fulfilled") {
+    const status = setupStatusResult.value;
     useSetupWizardStore.getState().setSystemStatus(status);
-    // When system is not initialized (fresh DB), any persisted auth tokens are guaranteed to be stale.
-    // Clearing them avoids confusing redirects and noisy 401s.
-    if (status.initialized === false) {
+
+    const deploymentMode =
+      runtimeResult.status === "fulfilled" ? runtimeResult.value.deploymentMode : null;
+    // Only self-host requires first-run setup gating. Avoid clearing SaaS sessions.
+    if (status.initialized === false && deploymentMode !== "saas") {
       useAuthStore.getState().clear();
       useWorkspaceStore.getState().clearWorkspace();
     }
-  } catch {
+  } else {
     // Degrade gracefully: when API is unreachable, keep status unknown and let auth guard handle routing.
     useSetupWizardStore.getState().setSystemStatus(null);
+  }
+
+  if (runtimeResult.status === "fulfilled") {
+    useSetupWizardStore.getState().setDeploymentMode(runtimeResult.value.deploymentMode);
+  } else {
+    useSetupWizardStore.getState().setDeploymentMode(null);
   }
 
   setUnauthorizedHandler(() => {

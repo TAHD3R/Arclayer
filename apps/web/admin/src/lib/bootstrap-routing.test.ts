@@ -89,4 +89,21 @@ describe("bootstrap-routing", () => {
     expect(decision.workspaceId).toBe("w-b");
     expect(decision.repaired).toBe(false);
   });
+
+  test("routes to onboarding when no workspace can be resolved", async () => {
+    mocked.getBootstrapState.mockResolvedValue({
+      ready: false,
+      repairRequired: false,
+      organizationId: "o1",
+      workspaceId: null,
+      siteId: null,
+      nextPath: "/",
+      reason: "WORKSPACE_MEMBERSHIP_MISSING",
+    });
+    mocked.listMyWorkspaces.mockResolvedValue({ items: [] });
+
+    const decision = await resolvePostAuthRoute({ lastWorkspaceId: null, attemptRepair: false });
+    expect(decision.path).toBe("/onboarding");
+    expect(decision.workspaceId).toBeNull();
+  });
 });

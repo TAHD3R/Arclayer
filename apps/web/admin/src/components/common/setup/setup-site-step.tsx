@@ -21,6 +21,19 @@ export function SetupSiteStep(props: {
       onValuesChange={props.onValuesChange}
     >
       <Form.Item<SetupSiteDraft>
+        name="workspaceName"
+        label={t("setup:SETUP_FIELD_WORKSPACE_NAME_LABEL")}
+        rules={[{ required: true, message: t("setup:SETUP_VALIDATION_WORKSPACE_NAME_REQUIRED") }]}
+      >
+        <Input
+          autoComplete="off"
+          aria-label={t("setup:SETUP_FIELD_WORKSPACE_NAME_LABEL")}
+          placeholder={t("setup:SETUP_FIELD_WORKSPACE_NAME_PLACEHOLDER")}
+          size="large"
+        />
+      </Form.Item>
+
+      <Form.Item<SetupSiteDraft>
         name="siteName"
         label={t("setup:SETUP_FIELD_SITE_NAME_LABEL")}
         rules={[{ required: true, message: t("setup:SETUP_VALIDATION_SITE_NAME_REQUIRED") }]}
@@ -46,7 +59,7 @@ export function SetupSiteStep(props: {
               try {
                 const url = new URL(raw);
                 if (url.protocol !== "http:" && url.protocol !== "https:") {
-                  throw new Error("invalid protocol");
+                  throw new Error("protocol");
                 }
               } catch {
                 throw new Error(t("setup:SETUP_VALIDATION_SITE_URL_INVALID"));

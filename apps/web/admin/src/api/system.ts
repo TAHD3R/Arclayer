@@ -19,7 +19,13 @@ export interface SystemSetupRequest {
     email: string;
     display_name: string;
   };
-  organization?: null;
+  organization?:
+    | {
+        name: string;
+        slug?: string | null;
+        logo_url?: string | null;
+      }
+    | null;
   master_key?: string;
   core_patch: Record<string, unknown>;
 }

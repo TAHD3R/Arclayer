@@ -1,118 +1,231 @@
-import { Alert, Button, Divider, Form, Input, Typography } from "antd";
+import { Alert, Button, Form, Input, Progress, Typography } from "antd";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "@tanstack/react-router";
 import { AnimatePresence, MotionConfig, motion } from "motion/react";
+import { Sparkles } from "lucide-react";
 
-import { usePreferencesStore } from "@/stores/use-preference-store";
-import { useAuthStore } from "@/stores/use-auth-store";
+import { getSetupStatus, setupSystem } from "@/api/system";
+import { SetupAdminStep } from "@/components/common/setup/setup-admin-step";
+import { SetupDefaultsStep } from "@/components/common/setup/setup-defaults-step";
+import { SetupOrganizationStep } from "@/components/common/setup/setup-organization-step";
+import { SetupWorkspaceTemplateStep } from "@/components/common/setup/setup-workspace-template-step";
 import {
-  useSetupWizardStore,
+  ExpandableScreen,
+  ExpandableScreenContent,
+  ExpandableScreenTrigger,
+} from "@/components/ui/expandable-screen";
+import ColorBends from "@/components/ui/color-bends";
+import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
+import { notifyError, notifyErrorText, notifySuccessText } from "@/lib/notifications";
+import { applyWorkspaceTemplatePreset } from "@/lib/setup-template";
+import { useAuthStore } from "@/stores/use-auth-store";
+import { usePreferencesStore } from "@/stores/use-preference-store";
+import {
   type SetupAdminDraft,
   type SetupDefaultsDraft,
   type SetupSiteDraft,
   type SetupWizardStep,
+  type SetupWorkspaceTemplate,
+  useSetupWizardStore,
 } from "@/stores/use-setup-wizard-store";
-import { SetupAdminStep } from "@/components/common/setup/setup-admin-step";
-import { SetupDefaultsStep } from "@/components/common/setup/setup-defaults-step";
-import { SetupSiteStep } from "@/components/common/setup/setup-site-step";
-import { getSetupStatus, setupSystem } from "@/api/system";
-import { notifyError, notifyErrorText, notifySuccessText } from "@/lib/notifications";
-import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 
-const MAX_STEP: SetupWizardStep = 3;
+const MAX_STEP: SetupWizardStep = 2;
+const FALLBACK_PRIMARY_BEND_COLOR = "#3b82f6";
+
+const ORG_FIELDS: Array<keyof SetupSiteDraft> = ["organizationName"];
+const WORKSPACE_FIELDS: Array<keyof SetupSiteDraft> = [
+  "templateKey",
+  "workspaceName",
+  "siteName",
+  "siteUrl",
+  "siteDescription",
+];
+
+function resolveWindowOrigin(): string {
+  try {
+    return window.location.origin;
+  } catch {
+    return "";
+  }
+}
+
+function toHex(value: number): string {
+  const safe = Math.max(0, Math.min(255, Math.round(value)));
+  return safe.toString(16).padStart(2, "0");
+}
+
+function resolvePrimaryBendColor(): string {
+  if (typeof document === "undefined") {
+    return FALLBACK_PRIMARY_BEND_COLOR;
+  }
+
+  const probe = document.createElement("span");
+  probe.className = "text-primary";
+  probe.style.position = "absolute";
+  probe.style.opacity = "0";
+  probe.style.pointerEvents = "none";
+  probe.textContent = ".";
+  document.body.appendChild(probe);
+
+  try {
+    const color = getComputedStyle(probe).color;
+    const values = color.match(/[\d.]+/g);
+    if (!values || values.length < 3) {
+      return FALLBACK_PRIMARY_BEND_COLOR;
+    }
+
+    const [r, g, b] = values.slice(0, 3).map((v) => Number(v));
+    if ([r, g, b].some((v) => Number.isNaN(v))) {
+      return FALLBACK_PRIMARY_BEND_COLOR;
+    }
+
+    return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+  } finally {
+    probe.remove();
+  }
+}
 
 export function SetupView() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+
   const clearAuth = useAuthStore((s) => s.clear);
+
   const step = useSetupWizardStore((s) => s.step);
   const setStep = useSetupWizardStore((s) => s.setStep);
+
   const adminDraft = useSetupWizardStore((s) => s.admin);
   const patchAdmin = useSetupWizardStore((s) => s.patchAdmin);
+
   const siteDraft = useSetupWizardStore((s) => s.site);
   const patchSite = useSetupWizardStore((s) => s.patchSite);
+
   const defaultsDraft = useSetupWizardStore((s) => s.defaults);
   const patchDefaults = useSetupWizardStore((s) => s.patchDefaults);
+
   const setupToken = useSetupWizardStore((s) => s.setupToken);
   const setSetupToken = useSetupWizardStore((s) => s.setSetupToken);
+
   const setSystemStatus = useSetupWizardStore((s) => s.setSystemStatus);
   const resetWizard = useSetupWizardStore((s) => s.resetWizard);
+
+  const setupEnabled = useSetupWizardStore((s) => s.setupEnabled);
+  const access = useSetupWizardStore((s) => s.access);
+  const deploymentMode = useSetupWizardStore((s) => s.deploymentMode);
+  const themeMode = usePreferencesStore((s) => s.themeMode);
 
   const [adminForm] = Form.useForm<SetupAdminDraft>();
   const [siteForm] = Form.useForm<SetupSiteDraft>();
   const [defaultsForm] = Form.useForm<SetupDefaultsDraft>();
 
-  const setupEnabled = useSetupWizardStore((s) => s.setupEnabled);
-  const access = useSetupWizardStore((s) => s.access);
-
   const [submitting, setSubmitting] = useState(false);
+  const [isLauncherExpanded, setLauncherExpanded] = useState(false);
+  const [setupProgress, setSetupProgress] = useState<number | null>(null);
+
+  const progressTimerRef = useRef<number | null>(null);
+
   const reducedMotion = usePrefersReducedMotion();
   const prevStepRef = useRef(step);
   const stepDirection = step === prevStepRef.current ? 0 : step > prevStepRef.current ? 1 : -1;
   const enterOffsetX = stepDirection > 0 ? 14 : stepDirection < 0 ? -14 : 0;
   const exitOffsetX = stepDirection > 0 ? -14 : stepDirection < 0 ? 14 : 0;
 
+  const primaryBendColor = useMemo(() => resolvePrimaryBendColor(), [themeMode]);
+
+  useEffect(() => {
+    return () => {
+      if (progressTimerRef.current !== null) {
+        window.clearInterval(progressTimerRef.current);
+      }
+    };
+  }, []);
+
   useEffect(() => {
     prevStepRef.current = step;
   }, [step]);
+
+  useEffect(() => {
+    if (deploymentMode !== "saas") return;
+    void navigate({ to: "/login", replace: true });
+  }, [deploymentMode, navigate]);
 
   const transition = reducedMotion
     ? ({ duration: 0.01 } as const)
     : ({ duration: 0.18, ease: [0.2, 0, 0, 1] as const } as const);
 
-  // Rehydrate Step 1 form from store so values can be recalled across steps.
   useEffect(() => {
     adminForm.setFieldsValue(adminDraft);
   }, [adminDraft, adminForm]);
 
-  // Rehydrate Step 2 form from store so values can be recalled across steps.
   useEffect(() => {
     siteForm.setFieldsValue(siteDraft);
   }, [siteDraft, siteForm]);
 
-  // Rehydrate Step 3 form from store so values can be recalled across steps.
   useEffect(() => {
     defaultsForm.setFieldsValue(defaultsDraft);
   }, [defaultsDraft, defaultsForm]);
 
-  // When entering Step 2 for the first time, seed sensible defaults.
   useEffect(() => {
-    if (step !== 2) return;
-
     const username = (adminDraft.username || "").trim() || "admin";
-
     const next: Partial<SetupSiteDraft> = {};
-    // Seed only when the field is still untouched (undefined) to avoid fighting user edits.
-    if (siteDraft.siteName === undefined) {
-      next.siteName = t("setup:SETUP_DEFAULT_SITE_NAME", { username });
-    }
-    const effectiveSiteName = (next.siteName || siteDraft.siteName || "").trim();
-    if (siteDraft.siteDescription === undefined) {
-      next.siteDescription = t("setup:SETUP_DEFAULT_SITE_DESC", {
-        siteName: effectiveSiteName || t("setup:SETUP_DEFAULT_SITE_NAME", { username }),
-      });
-    }
-    if (siteDraft.siteUrl === undefined) {
-      try {
-        next.siteUrl = window.location.origin;
-      } catch {
-        next.siteUrl = "";
-      }
+
+    if (siteDraft.organizationName === undefined) {
+      next.organizationName = t("setup:SETUP_DEFAULT_ORGANIZATION_NAME", { username });
     }
 
     if (Object.keys(next).length > 0) {
       patchSite(next);
     }
-  }, [adminDraft.username, patchSite, siteDraft, step, t]);
+  }, [adminDraft.username, patchSite, siteDraft.organizationName, t]);
 
-  // When entering Step 3 for the first time, seed sensible defaults.
   useEffect(() => {
-    if (step !== 3) return;
+    if (step !== 1) return;
+
+    const templateKey: SetupWorkspaceTemplate = siteDraft.templateKey || "blank";
+    const siteUrl = siteDraft.siteUrl ?? resolveWindowOrigin();
+    const organizationName = (siteDraft.organizationName || "").trim();
+
+    const preset = applyWorkspaceTemplatePreset({
+      templateKey,
+      organizationName,
+      siteUrl,
+      t,
+    });
+
+    const next: Partial<SetupSiteDraft> = {};
+    if (siteDraft.templateKey === undefined) next.templateKey = templateKey;
+    if (siteDraft.workspaceName === undefined) next.workspaceName = preset.workspaceName;
+    if (siteDraft.siteName === undefined) next.siteName = preset.siteName;
+    if (siteDraft.siteDescription === undefined) next.siteDescription = preset.siteDescription;
+    if (siteDraft.siteUrl === undefined) next.siteUrl = siteUrl;
+
+    if (Object.keys(next).length > 0) {
+      patchSite(next);
+    }
+  }, [
+    patchSite,
+    siteDraft.organizationName,
+    siteDraft.siteDescription,
+    siteDraft.siteName,
+    siteDraft.siteUrl,
+    siteDraft.templateKey,
+    siteDraft.workspaceName,
+    step,
+    t,
+  ]);
+
+  useEffect(() => {
+    if (step !== 2) return;
 
     const preferredLocale = usePreferencesStore.getState().locale;
-    // Product default: Asia/Shanghai. Keep it stable and predictable in setup.
-    const detectedTz = "Asia/Shanghai";
+    const detectedTz = (() => {
+      try {
+        return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+      } catch {
+        return "UTC";
+      }
+    })();
 
     const next: Partial<SetupDefaultsDraft> = {};
     if (defaultsDraft.locale === undefined) {
@@ -122,7 +235,6 @@ export function SetupView() {
       next.timezone = detectedTz;
     }
     if (defaultsDraft.dateFormat === undefined) {
-      // Keep default choice simple and predictable.
       next.dateFormat = preferredLocale === "en-US" ? "MM/DD/YYYY" : "YYYY-MM-DD";
     }
 
@@ -131,30 +243,39 @@ export function SetupView() {
     }
   }, [defaultsDraft.dateFormat, defaultsDraft.locale, defaultsDraft.timezone, patchDefaults, step]);
 
-  const stageMeta = useMemo(() => {
-    if (step === 0) {
-      return {
-        title: t("setup:SETUP_STAGE_WELCOME_TITLE"),
-        description: t("setup:SETUP_STAGE_WELCOME_DESC"),
-      };
-    }
-    if (step === 1) {
-      return {
+  const stageMeta = useMemo(
+    () => [
+      {
         title: t("setup:SETUP_STAGE_ADMIN_TITLE"),
         description: t("setup:SETUP_STAGE_ADMIN_DESC"),
-      };
-    }
-    if (step === 2) {
-      return {
-        title: t("setup:SETUP_STAGE_SITE_TITLE"),
-        description: t("setup:SETUP_STAGE_SITE_DESC"),
-      };
-    }
-    return {
-      title: t("setup:SETUP_STAGE_DEFAULTS_TITLE"),
-      description: t("setup:SETUP_STAGE_DEFAULTS_DESC"),
-    };
-  }, [step, t]);
+      },
+      {
+        title: t("setup:SETUP_STAGE_WORKSPACE_TITLE"),
+        description: t("setup:SETUP_STAGE_WORKSPACE_DESC"),
+      },
+      {
+        title: t("setup:SETUP_STAGE_DEFAULTS_TITLE"),
+        description: t("setup:SETUP_STAGE_DEFAULTS_DESC"),
+      },
+    ],
+    [t],
+  );
+
+  const onTemplateSelect = (templateKey: SetupWorkspaceTemplate) => {
+    const current = siteForm.getFieldsValue(true) as SetupSiteDraft;
+    const organizationName = (current.organizationName || "").trim();
+    const siteUrl = (current.siteUrl || "").trim() || resolveWindowOrigin();
+
+    const preset = applyWorkspaceTemplatePreset({
+      templateKey,
+      organizationName,
+      siteUrl,
+      t,
+    });
+
+    siteForm.setFieldsValue(preset);
+    patchSite(preset);
+  };
 
   const onPrev = () => {
     const next = Math.max(0, step - 1) as SetupWizardStep;
@@ -162,13 +283,15 @@ export function SetupView() {
   };
 
   const onNext = async () => {
-    // Gate step transitions on current step validation.
-    if (step === 1) {
+    if (step === 0) {
       await adminForm.validateFields();
+      await siteForm.validateFields(ORG_FIELDS as string[]);
     }
-    if (step === 2) {
-      await siteForm.validateFields();
+
+    if (step === 1) {
+      await siteForm.validateFields(WORKSPACE_FIELDS as string[]);
     }
+
     const next = Math.min(MAX_STEP, step + 1) as SetupWizardStep;
     setStep(next);
   };
@@ -177,24 +300,27 @@ export function SetupView() {
     if (submitting) return;
     if (setupEnabled === false) return;
 
-    // Require setup token only when backend enforces it.
     if (access === "token" && !setupToken.trim()) {
       notifyErrorText(t("setup:SETUP_VALIDATION_SETUP_TOKEN_REQUIRED"));
       return;
     }
 
+    let completed = false;
+
     try {
       setSubmitting(true);
 
-      // Validate all steps before submission (users may go back and edit fields).
       await adminForm.validateFields();
-      await siteForm.validateFields();
+      await siteForm.validateFields([...ORG_FIELDS, ...WORKSPACE_FIELDS] as string[]);
       await defaultsForm.validateFields();
 
       const admin = adminForm.getFieldsValue(true) as SetupAdminDraft;
       const site = siteForm.getFieldsValue(true) as SetupSiteDraft;
       const defaults = defaultsForm.getFieldsValue(true) as SetupDefaultsDraft;
 
+      const organizationName = (site.organizationName || "").trim();
+      const templateKey = site.templateKey || "blank";
+      const workspaceName = (site.workspaceName || "").trim();
       const siteName = (site.siteName || "").trim();
       const siteUrl = (site.siteUrl || "").trim();
       const siteDescription = (site.siteDescription || "").trim();
@@ -202,11 +328,14 @@ export function SetupView() {
       const corePatch: Record<string, unknown> = {
         site: {
           name: siteName,
+          subtitle: workspaceName || null,
           url: siteUrl,
+          kind: templateKey,
         },
-        // Split localization scopes:
-        // - workspace_localization: admin experience defaults
-        // - site_localization: visitor/site defaults (reserved for future portal/site runtime)
+        workspace: {
+          name: workspaceName || organizationName,
+          template: templateKey,
+        },
         workspace_localization: {
           locale: defaults.locale,
           timezone: defaults.timezone,
@@ -218,10 +347,24 @@ export function SetupView() {
           date_format: defaults.dateFormat,
         },
       };
-      // In setup, we keep it minimal: name/url/description.
+
       if (siteDescription) {
         corePatch.seo = { default_description: siteDescription };
       }
+
+      setLauncherExpanded(false);
+      setSetupProgress(12);
+
+      if (progressTimerRef.current !== null) {
+        window.clearInterval(progressTimerRef.current);
+      }
+      progressTimerRef.current = window.setInterval(() => {
+        setSetupProgress((value) => {
+          const current = value ?? 12;
+          if (current >= 90) return current;
+          return current + 4;
+        });
+      }, 260);
 
       await setupSystem(
         {
@@ -231,214 +374,285 @@ export function SetupView() {
             email: admin.email.trim(),
             display_name: admin.displayName.trim(),
           },
-          organization: null,
+          organization: {
+            name: organizationName,
+          },
           core_patch: corePatch,
         },
         access === "token" ? { setupToken: setupToken.trim() } : undefined,
       );
 
-      // Refresh status so route guard can redirect away from /setup.
+      setSetupProgress(100);
+      completed = true;
+
       const status = await getSetupStatus().catch(() => null);
       if (status) setSystemStatus(status);
 
-      // Drop any stale session tokens (common when DB is reset during dev).
       clearAuth();
-
-      // Clear sensitive in-memory drafts.
       resetWizard();
 
       notifySuccessText(t("setup:SETUP_SUCCESS"));
+      if (!reducedMotion) {
+        await new Promise<void>((resolve) => {
+          window.setTimeout(resolve, 280);
+        });
+      }
       await navigate({ to: "/login" });
     } catch (err) {
       notifyError(err);
+      setSetupProgress(null);
     } finally {
+      if (progressTimerRef.current !== null) {
+        window.clearInterval(progressTimerRef.current);
+        progressTimerRef.current = null;
+      }
       setSubmitting(false);
+      if (!completed) {
+        setSetupProgress(null);
+      }
     }
   };
 
-  const welcomeStep = (
-    <MotionConfig transition={transition}>
-      <div className="min-h-[380px] flex flex-col items-center justify-center text-center">
-        <div className="w-full max-w-xl">
-          <motion.div
-            initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            <div className="text-3xl font-semibold tracking-tight">
-              {t("setup:SETUP_STAGE_WELCOME_TITLE")}
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={reducedMotion ? undefined : { delay: 0.08 }}
-          >
-            <div className="mt-3 text-base leading-relaxed text-muted-foreground">
-              {t("setup:SETUP_STAGE_WELCOME_DESC")}
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={reducedMotion ? undefined : { delay: 0.16 }}
-          >
-            <button
-              type="button"
-              disabled={setupEnabled === false || submitting}
-              onClick={() => setStep(1)}
-              className={[
-                "mt-8 w-full max-w-sm",
-                "inline-flex items-center justify-center",
-                "h-12 px-6 rounded-xl",
-                "bg-primary text-primary-foreground",
-                "font-semibold text-base",
-                "shadow-sm",
-                "transition-colors",
-                "hover:bg-primary/90",
-                "active:translate-y-px",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0",
-                "disabled:pointer-events-none disabled:opacity-60",
-              ].join(" ")}
-              aria-label={t("setup:SETUP_WELCOME_PRIMARY_ACTION")}
-            >
-              {t("setup:SETUP_WELCOME_PRIMARY_ACTION")}
-            </button>
-          </motion.div>
-        </div>
-      </div>
-    </MotionConfig>
-  );
-
-  const footer =
-    step === 0 ? null : (
-      <div className="flex gap-2 justify-end" style={{ marginTop: 16 }}>
-        <Button disabled={step <= 0 || submitting} onClick={onPrev}>
-          {t("setup:SETUP_PREV")}
-        </Button>
-        {step < MAX_STEP ? (
-          <Button
-            type="primary"
-            disabled={setupEnabled === false || submitting}
-            onClick={() => void onNext()}
-          >
-            {t("setup:SETUP_NEXT")}
-          </Button>
-        ) : (
-          <Button
-            type="primary"
-            loading={submitting}
+  const renderStep = () => {
+    if (step === 0) {
+      return (
+        <div className="space-y-6">
+          <SetupAdminStep
+            form={adminForm}
             disabled={setupEnabled === false}
-            onClick={() => void onFinish()}
-          >
-            {t("setup:SETUP_FINISH")}
-          </Button>
-        )}
-      </div>
+            onValuesChange={(_changed, values) => patchAdmin(values)}
+          />
+
+          <SetupOrganizationStep
+            form={siteForm}
+            disabled={setupEnabled === false}
+            onValuesChange={(_changed, values) => patchSite(values)}
+          />
+        </div>
+      );
+    }
+
+    if (step === 1) {
+      return (
+        <SetupWorkspaceTemplateStep
+          form={siteForm}
+          disabled={setupEnabled === false}
+          onValuesChange={(_changed, values) => patchSite(values)}
+          onTemplateSelect={onTemplateSelect}
+        />
+      );
+    }
+
+    return (
+      <SetupDefaultsStep
+        form={defaultsForm}
+        disabled={setupEnabled === false}
+        onValuesChange={(_changed, values) => patchDefaults(values)}
+      />
     );
+  };
 
   return (
-    <div className="w-full">
-      {step !== 0 ? (
-        <>
-          <Typography.Title level={1} style={{ marginTop: 0, marginBottom: 8, fontSize: 32 }}>
-            {stageMeta.title}
-          </Typography.Title>
-          <Typography.Paragraph
-            style={{
-              marginTop: 0,
-              marginBottom: 26,
-              color: "var(--color-muted-foreground)",
-              fontSize: 18,
-            }}
-          >
-            {stageMeta.description}
-          </Typography.Paragraph>
+    <ExpandableScreen
+      layoutId="setup-launcher"
+      triggerRadius="999px"
+      contentRadius="24px"
+      animationDuration={reducedMotion ? 0.01 : 0.22}
+      overlayZIndexClassName="z-[2400]"
+      expanded={isLauncherExpanded}
+      onExpandChange={setLauncherExpanded}
+    >
+      <div className="mx-auto w-full max-w-3xl px-2 py-8 text-center sm:px-8 sm:py-10">
+        <img
+          src="/logo.svg"
+          width={96}
+          height={96}
+          className="mx-auto h-20 w-20 sm:h-24 sm:w-24"
+          alt={t("setup:SETUP_BRAND_LOGO_ALT")}
+        />
 
-          {setupEnabled === false ? (
-            <Alert
-              type="warning"
-              showIcon
-              message={t("setup:SETUP_DISABLED_TITLE")}
-              description={t("setup:SETUP_DISABLED_DESC")}
-              style={{ marginBottom: 12 }}
+        <Typography.Title level={1} style={{ marginTop: 20, marginBottom: 10, fontSize: 36 }}>
+          {t("setup:SETUP_WELCOME_TITLE")}
+        </Typography.Title>
+        <Typography.Paragraph
+          style={{
+            marginTop: 0,
+            marginBottom: 22,
+            color: "var(--color-muted-foreground)",
+            fontSize: 18,
+          }}
+        >
+          {t("setup:SETUP_WELCOME_DESC")}
+        </Typography.Paragraph>
+
+        {setupEnabled === false ? (
+          <Alert
+            type="warning"
+            showIcon
+            message={t("setup:SETUP_DISABLED_TITLE")}
+            description={t("setup:SETUP_DISABLED_DESC")}
+            style={{ textAlign: "left", marginBottom: 16 }}
+          />
+        ) : null}
+
+        {setupProgress !== null ? (
+          <div className="inline-flex flex-col items-center gap-3" aria-live="polite">
+            <Progress
+              type="circle"
+              size={72}
+              percent={Math.round(setupProgress)}
+              status={setupProgress >= 100 ? "success" : "active"}
+              strokeColor="var(--color-primary)"
+              trailColor="var(--color-muted)"
             />
-          ) : null}
-
-          {access === "token" ? (
-            <Alert
-              type="info"
-              showIcon
-              message={t("setup:SETUP_TOKEN_HINT_TITLE")}
-              description={t("setup:SETUP_TOKEN_HINT_DESC")}
-              style={{ marginBottom: 12 }}
-            />
-          ) : null}
-
-          <Divider style={{ margin: "16px 0" }} />
-        </>
-      ) : null}
-
-      {/* Step content */}
-      <MotionConfig transition={transition}>
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.div
-            key={step}
-            style={{ willChange: "transform, opacity" }}
-            initial={reducedMotion ? { opacity: 1 } : { opacity: 0, x: enterOffsetX }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={reducedMotion ? { opacity: 1 } : { opacity: 0, x: exitOffsetX }}
-          >
-            {step === 0 ? (
-              welcomeStep
-            ) : step === 1 ? (
-              <SetupAdminStep
-                form={adminForm}
-                disabled={setupEnabled === false}
-                onValuesChange={(_changed, values) => {
-                  // Keep draft in store so it can be recalled across steps and used for final submission.
-                  patchAdmin(values);
-                }}
-              />
-            ) : step === 2 ? (
-              <SetupSiteStep
-                form={siteForm}
-                disabled={setupEnabled === false}
-                onValuesChange={(_changed, values) => patchSite(values)}
-              />
-            ) : (
-              <SetupDefaultsStep
-                form={defaultsForm}
-                disabled={setupEnabled === false}
-                onValuesChange={(_changed, values) => patchDefaults(values)}
-              />
-            )}
-          </motion.div>
-        </AnimatePresence>
-      </MotionConfig>
-
-      {step === MAX_STEP && access === "token" ? (
-        <div style={{ marginTop: 16 }}>
-          <Form.Item
-            label={t("setup:SETUP_FIELD_SETUP_TOKEN_LABEL")}
-            help={t("setup:SETUP_FIELD_SETUP_TOKEN_HELP")}
-            required
-            style={{ marginBottom: 0 }}
-          >
-            <Input.Password
-              value={setupToken}
-              onChange={(e) => setSetupToken(e.target.value)}
-              placeholder={t("setup:SETUP_FIELD_SETUP_TOKEN_PLACEHOLDER")}
-              autoComplete="off"
+            <span className="text-sm text-(--color-muted-foreground)">{t("setup:SETUP_INITIALIZING_LABEL")}</span>
+          </div>
+        ) : setupEnabled === false ? (
+          <Button
+            type="primary"
+            shape="circle"
+            size="large"
+            icon={<Sparkles size={18} />}
+            disabled
+            aria-label={t("setup:SETUP_START_BUTTON")}
+          />
+        ) : (
+          <ExpandableScreenTrigger>
+            <button
+              type="button"
+              className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-primary text-primary-foreground transition-colors duration-200 hover:bg-primary/90"
+              aria-label={t("setup:SETUP_START_BUTTON")}
               disabled={submitting}
-              size="large"
-            />
-          </Form.Item>
-        </div>
-      ) : null}
+            >
+              <Sparkles size={20} />
+            </button>
+          </ExpandableScreenTrigger>
+        )}
+      </div>
 
-      {footer}
-    </div>
+      <ExpandableScreenContent
+        className="border border-border/60 bg-(--color-background) shadow-2xl"
+        closeButtonClassName="bg-(--color-muted)/70 text-(--color-foreground) hover:bg-(--color-muted)"
+      >
+        <div className="grid h-full min-h-0 grid-cols-1 lg:grid-cols-3">
+          <aside className="relative hidden overflow-hidden border-r border-border/70 lg:block">
+            <div className="pointer-events-none absolute inset-0">
+              <ColorBends
+                className="h-full w-full"
+                colors={[primaryBendColor]}
+                rotation={0}
+                speed={0.2}
+                scale={1}
+                frequency={1}
+                warpStrength={1}
+                mouseInfluence={1}
+                parallax={0.5}
+                noise={0.1}
+                transparent
+              />
+              <div className="absolute inset-0 bg-(--color-background)/72" />
+            </div>
+
+            <div className="relative z-10 flex h-full min-h-[220px] items-end p-6 sm:p-8">
+              <div className="max-w-110 select-none">
+                <h2 className="text-[34px] font-bold leading-tight tracking-tight text-(--color-foreground)">
+                  {t("auth:SLOGAN_TITLE")}
+                </h2>
+                <p className="mt-4 text-[18px] leading-relaxed text-(--color-muted-foreground)">
+                  {t("auth:SLOGAN_SUBTITLE")}
+                </p>
+              </div>
+            </div>
+          </aside>
+
+          <section className="flex min-h-0 flex-col lg:col-span-2">
+            <div className="border-b border-border/70 px-4 py-4 sm:px-6 sm:py-5">
+              <MotionConfig transition={transition}>
+                <AnimatePresence mode="wait" initial={false}>
+                  <motion.div
+                    key={`stage-${step}`}
+                    initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={reducedMotion ? { opacity: 1 } : { opacity: 0, y: -8 }}
+                  >
+                    <h2 className="text-[32px] font-bold leading-tight tracking-tight text-(--color-foreground)">
+                      {stageMeta[step].title}
+                    </h2>
+                    <p className="mt-3 text-[18px] leading-relaxed text-(--color-muted-foreground)">
+                      {stageMeta[step].description}
+                    </p>
+                  </motion.div>
+                </AnimatePresence>
+              </MotionConfig>
+            </div>
+
+            <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-6">
+              <MotionConfig transition={transition}>
+                <AnimatePresence mode="wait" initial={false}>
+                  <motion.div
+                    key={step}
+                    style={{ willChange: "transform, opacity" }}
+                    initial={reducedMotion ? { opacity: 1 } : { opacity: 0, x: enterOffsetX }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={reducedMotion ? { opacity: 1 } : { opacity: 0, x: exitOffsetX }}
+                  >
+                    {renderStep()}
+                  </motion.div>
+                </AnimatePresence>
+              </MotionConfig>
+            </div>
+
+            <div className="border-t border-border/70 bg-(--color-background)/95 px-4 py-3 sm:px-6">
+              {step === MAX_STEP && access === "token" ? (
+                <div style={{ marginBottom: 12 }}>
+                  <Form.Item
+                    label={t("setup:SETUP_FIELD_SETUP_TOKEN_LABEL")}
+                    help={t("setup:SETUP_FIELD_SETUP_TOKEN_HELP")}
+                    required
+                    style={{ marginBottom: 0 }}
+                  >
+                    <Input.Password
+                      value={setupToken}
+                      onChange={(e) => setSetupToken(e.target.value)}
+                      placeholder={t("setup:SETUP_FIELD_SETUP_TOKEN_PLACEHOLDER")}
+                      autoComplete="off"
+                      disabled={submitting}
+                      size="large"
+                    />
+                  </Form.Item>
+                </div>
+              ) : null}
+
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <Button size="large" disabled={step <= 0 || submitting} onClick={onPrev}>
+                  {t("setup:SETUP_PREV")}
+                </Button>
+
+                {step < MAX_STEP ? (
+                  <Button
+                    type="primary"
+                    size="large"
+                    disabled={setupEnabled === false || submitting}
+                    onClick={() => void onNext()}
+                  >
+                    {t("setup:SETUP_NEXT")}
+                  </Button>
+                ) : (
+                  <Button
+                    type="primary"
+                    size="large"
+                    loading={submitting}
+                    disabled={setupEnabled === false}
+                    onClick={() => void onFinish()}
+                  >
+                    {t("setup:SETUP_FINISH")}
+                  </Button>
+                )}
+              </div>
+            </div>
+          </section>
+        </div>
+      </ExpandableScreenContent>
+    </ExpandableScreen>
   );
 }

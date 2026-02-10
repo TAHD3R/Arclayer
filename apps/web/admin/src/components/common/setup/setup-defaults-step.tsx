@@ -2,8 +2,8 @@ import { Form, Input, Select } from "antd";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
-import { Accordion } from "@/components/ui/accordion";
 import { SettingAccordionItem } from "@/components/common/setting-accordion-item";
+import { Accordion } from "@/components/ui/accordion";
 import { COMMON_TIMEZONES, DATE_FORMAT_ITEMS } from "@/constants/settings-general";
 import { type AppLocale } from "@/lib/i18n";
 import { formatLocaleLabel } from "@/lib/settings/general/utils";
@@ -33,7 +33,7 @@ export function SetupDefaultsStep(props: {
 
   const timezoneItems = useMemo(() => {
     const base: string[] = [...COMMON_TIMEZONES];
-    // If the detected/stored timezone isn't in our common list, prepend it so it can be selected.
+    // If the detected or stored timezone is not in our common list, prepend it so it can be selected.
     if (timezone && !base.includes(timezone)) {
       base.unshift(timezone);
     }
@@ -81,7 +81,7 @@ export function SetupDefaultsStep(props: {
         <SettingAccordionItem
           value="timezone"
           title={t("setup:SETUP_FIELD_TIMEZONE_TITLE")}
-          description={t("setup:SETUP_TIMEZONE_DESC", { current: currentTimezoneLabel })}
+          description={t("setup:SETUP_TIMEZONE_DESC")}
           showSummary
           summary={currentTimezoneLabel}
           disabled={props.disabled}
@@ -106,7 +106,7 @@ export function SetupDefaultsStep(props: {
         <SettingAccordionItem
           value="locale"
           title={t("setup:SETUP_FIELD_LANGUAGE_TITLE")}
-          description={t("setup:SETUP_LANGUAGE_DESC", { current: currentLocaleLabel })}
+          description={t("setup:SETUP_LANGUAGE_DESC")}
           showSummary
           summary={currentLocaleLabel}
           disabled={props.disabled}
@@ -127,7 +127,7 @@ export function SetupDefaultsStep(props: {
         <SettingAccordionItem
           value="dateFormat"
           title={t("setup:SETUP_FIELD_DATE_FORMAT_TITLE")}
-          description={t("setup:SETUP_DATE_FORMAT_DESC", { current: currentDateFormatLabel })}
+          description={t("setup:SETUP_DATE_FORMAT_DESC")}
           showSummary
           summary={currentDateFormatLabel}
           disabled={props.disabled}

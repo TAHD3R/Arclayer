@@ -1,13 +1,11 @@
-import { Card, Space, Typography } from "antd";
+import { Space } from "antd";
 import { lazy, Suspense, type PropsWithChildren, useEffect } from "react";
 import { Trans, useTranslation } from "react-i18next";
 import { useRouterState } from "@tanstack/react-router";
 
 import { getAppConfig } from "@/constants/app-config";
-import { usePreferencesStore } from "@/stores/use-preference-store";
 import { AdminLocaleToggle } from "@/components/common/admin-toggle-locales";
 import { AdminThemeModeToggle } from "@/components/common/admin-toggle-theme";
-import { AdminLogo } from "@/components/common/admin-logo";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 
 const ColorBendsLazy = lazy(() => import("@/components/ui/color-bends"));
@@ -16,8 +14,7 @@ const SETUP_BEND_COLORS = ["#3b82f6"] as const;
 export function SetupLayout({ children }: PropsWithChildren) {
   const { t } = useTranslation();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const themeMode = usePreferencesStore((s) => s.themeMode);
-  const isDark = themeMode === "dark";
+  const isOnboardingPath = pathname === "/onboarding" || pathname.startsWith("/onboarding/");
   const reducedMotion = usePrefersReducedMotion();
 
   // Setup pages should behave like auth pages: full-viewport scene, no document scrolling.
@@ -37,9 +34,13 @@ export function SetupLayout({ children }: PropsWithChildren) {
   useEffect(() => {
     const brand = (getAppConfig().title || "Celestial").trim();
     const pageTitle =
-      pathname === "/accept-invite" ? t("invite:INVITE_PAGE_TITLE") : t("setup:SETUP_TITLE");
+      pathname === "/accept-invite"
+        ? t("invite:INVITE_PAGE_TITLE")
+        : isOnboardingPath
+          ? t("onboarding:ONBOARDING_TITLE")
+          : t("setup:SETUP_TITLE");
     document.title = `${pageTitle} | ${brand}`;
-  }, [pathname, t]);
+  }, [isOnboardingPath, pathname, t]);
 
   return (
     <div className="fixed inset-0 w-full overflow-hidden bg-(--color-background) text-(--color-foreground)">
@@ -67,7 +68,6 @@ export function SetupLayout({ children }: PropsWithChildren) {
       </div>
 
       {/* Top-right toggles */}
-      {/* Keep this above the center content layer; otherwise the full-screen container can "eat" clicks. */}
       <div className="absolute top-0 right-0 p-4 z-30">
         <Space size={6}>
           <AdminLocaleToggle />
@@ -75,54 +75,11 @@ export function SetupLayout({ children }: PropsWithChildren) {
         </Space>
       </div>
 
-      {/* Left-bottom intro text */}
-      <div className="absolute left-0 bottom-0 p-10 z-20 hidden lg:block">
-        <div className="max-w-120 select-none">
-          <Typography.Title
-            level={1}
-            style={{
-              margin: 0,
-              color: isDark ? "rgba(255,255,255,0.96)" : "rgba(20,20,20,0.96)",
-              fontSize: 52,
-              fontWeight: 700,
-              lineHeight: 1.05,
-              letterSpacing: -0.6,
-              textShadow: isDark ? "0 18px 60px rgba(0,0,0,0.35)" : "0 18px 60px rgba(0,0,0,0.45)",
-            }}
-          >
-            {t("auth:SLOGAN_TITLE")}
-          </Typography.Title>
-          <Typography.Paragraph
-            style={{
-              marginTop: 14,
-              marginBottom: 0,
-              color: isDark ? "rgba(255,255,255,0.78)" : "rgba(20,20,20,0.78)",
-              fontSize: 20,
-              lineHeight: 1.6,
-              textShadow: isDark ? "0 18px 60px rgba(0,0,0,0.35)" : "0 18px 60px rgba(0,0,0,0.45)",
-            }}
-          >
-            {t("auth:SLOGAN_SUBTITLE")}
-          </Typography.Paragraph>
-        </div>
-      </div>
-
-      {/* Center content */}
       <div className="relative z-10 h-full w-full flex flex-col min-h-0">
-        <div className="pt-10 pb-4 flex justify-center">
-          <AdminLogo
-            to={pathname === "/accept-invite" ? "/accept-invite" : "/setup"}
-            ariaLabel={pathname === "/accept-invite" ? "Celestial Invite" : "Celestial Setup"}
-          />
+        <div className="flex-1 min-h-0 flex items-center justify-center p-4 sm:p-6 overflow-hidden">
+          <div className="w-full max-w-6xl max-h-full overflow-auto">{children}</div>
         </div>
 
-        <div className="flex-1 min-h-0 flex items-start justify-center p-6 pt-2 overflow-hidden">
-          <div className="w-full max-w-140 max-h-full overflow-auto">
-            <Card>{children}</Card>
-          </div>
-        </div>
-
-        {/* Bottom-center copyright */}
         <div className="pb-6 text-center text-xs text-(--color-muted-foreground) select-none">
           <Trans
             i18nKey="auth:FOOTER_COPYRIGHT"
