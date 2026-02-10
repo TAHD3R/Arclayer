@@ -42,6 +42,7 @@ export type PageStateProps = {
 function pickErrorTitle(err: unknown, t: (key: string) => string): string {
   if (err instanceof ApiError) {
     if (err.status === 403) return t("common:PAGE_FORBIDDEN_TITLE");
+    if (err.status === 404) return t("common:PAGE_NOT_FOUND_TITLE");
     if (err.status >= 500) return t("common:PAGE_SERVER_ERROR_TITLE");
   }
   return t("common:REQUEST_FAILED");
@@ -50,6 +51,7 @@ function pickErrorTitle(err: unknown, t: (key: string) => string): string {
 function pickErrorIllustration(err: unknown) {
   if (err instanceof ApiError) {
     if (err.status === 403) return OpenDoodlesHouseplant;
+    if (err.status === 404) return OpenDoodlesChilling;
     if (err.status >= 500) return OpenDoodlesClumsy;
   }
   return OpenDoodlesClumsy;
@@ -74,7 +76,7 @@ export function PageState(props: PageStateProps) {
         {t("common:RETRY")}
       </Button>
     );
-  }, [props.onRetry, t]);
+  }, [props.onRetry, t, props.hideRetry]);
 
   if (props.loading) {
     return (

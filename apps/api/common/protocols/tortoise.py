@@ -98,3 +98,8 @@ class WorkspaceInviteLinkMutableFields(Protocol):
 
 class OrganizationLogoUrlMutableFields(Protocol):
     logo_url: str | None
+
+
+class WorkspaceArchiveMutableFields(Protocol):
+    archived_at: datetime | None
+    archived_by_user_id: UUID | None

@@ -15,13 +15,20 @@ from apps.api.modules.auth.security import hash_password
 from apps.api.modules.organization.models.org_membership import OrgMembership, OrgRole
 from apps.api.modules.organization.models.user import User
 from apps.api.modules.organization.repository import OrganizationRepository
-from apps.api.modules.workspaces.models.workspace import Workspace
+from apps.api.modules.workspaces.models.workspace import (
+    Workspace,
+    WorkspaceMembership,
+    WorkspaceMembershipStatus,
+)
 
 pytestmark = pytest.mark.integration
 
 
 @pytest.mark.asyncio
-async def test_org_workspace_endpoints_list_create_delete(prepared_db, integration_valkey_settings) -> None:
+async def test_org_workspace_endpoints_list_create_archive_delete_and_guards(
+    prepared_db,
+    integration_valkey_settings,
+) -> None:
     _ = prepared_db
     _ = integration_valkey_settings
 
@@ -42,14 +49,33 @@ async def test_org_workspace_endpoints_list_create_delete(prepared_db, integrati
             display_name="Owner",
             password_hash=hash_password("owner_pass_123", settings.auth),
         )
+        admin = await user_repo.create_user(
+            username=f"admin_{uuid4().hex[:8]}",
+            email=f"admin_{uuid4().hex[:8]}@example.com",
+            display_name="Admin",
+            password_hash=hash_password("admin_pass_123", settings.auth),
+        )
         await OrgMembership.create(organization_id=org.id, user_id=owner.id, role=OrgRole.OWNER, status="active")
+        await OrgMembership.create(organization_id=org.id, user_id=admin.id, role=OrgRole.ADMIN, status="active")
 
-        ws = await Workspace.create(
+        default_workspace = await Workspace.create(
             organization_id=org.id,
             slug="default",
             name="Default",
             is_active=True,
             created_by_user_id=owner.id,
+        )
+        await WorkspaceMembership.create(
+            workspace_id=default_workspace.id,
+            user_id=owner.id,
+            status=WorkspaceMembershipStatus.ACTIVE,
+            invited_by_user_id=None,
+        )
+        await WorkspaceMembership.create(
+            workspace_id=default_workspace.id,
+            user_id=admin.id,
+            status=WorkspaceMembershipStatus.ACTIVE,
+            invited_by_user_id=owner.id,
         )
 
         current_user: User | None = owner
@@ -70,26 +96,89 @@ async def test_org_workspace_endpoints_list_create_delete(prepared_db, integrati
             assert list_resp.status_code == 200, list_resp.text
             listed = list_resp.json()["data"]
             assert listed["total"] == 1
-            assert listed["items"][0]["workspaceId"] == encode_uuid(ws.id)
+            assert listed["items"][0]["workspaceId"] == encode_uuid(default_workspace.id)
+            assert listed["items"][0]["isArchived"] is False
 
             create_resp = await client.post(
                 "/api/v1/organizations/me/workspaces",
-                json={"name": "Blog Team", "template": "blog"},
+                json={"name": "Blog Team", "description": "Marketing and content", "template": "blog"},
             )
             assert create_resp.status_code == 200, create_resp.text
             created = create_resp.json()["data"]
             created_workspace_id = created["workspaceId"]
             assert created["name"] == "Blog Team"
+            assert created["description"] == "Marketing and content"
 
-            delete_resp = await client.delete(f"/api/v1/organizations/me/workspaces/{encode_uuid(ws.id)}")
+            archive_resp = await client.post(
+                f"/api/v1/organizations/me/workspaces/{created_workspace_id}/archive"
+            )
+            assert archive_resp.status_code == 200, archive_resp.text
+            assert archive_resp.json()["data"]["isArchived"] is True
+
+            post_archive_list = await client.get("/api/v1/organizations/me/workspaces")
+            assert post_archive_list.status_code == 200, post_archive_list.text
+            post_archive_items = post_archive_list.json()["data"]["items"]
+            assert len(post_archive_items) == 2
+            assert post_archive_items[0]["isArchived"] is False
+            assert post_archive_items[-1]["workspaceId"] == created_workspace_id
+            assert post_archive_items[-1]["isArchived"] is True
+
+            members_resp = await client.get(
+                f"/api/v1/organizations/me/workspaces/{encode_uuid(default_workspace.id)}/members"
+            )
+            assert members_resp.status_code == 200, members_resp.text
+            members_payload = members_resp.json()["data"]
+            assert members_payload["total"] == 2
+            assert len(members_payload["items"]) == 2
+
+            search_resp = await client.get(
+                f"/api/v1/organizations/me/workspaces/{encode_uuid(default_workspace.id)}/members",
+                params={"q": admin.username},
+            )
+            assert search_resp.status_code == 200, search_resp.text
+            assert search_resp.json()["data"]["total"] == 1
+
+            unarchive_resp = await client.post(
+                f"/api/v1/organizations/me/workspaces/{created_workspace_id}/unarchive"
+            )
+            assert unarchive_resp.status_code == 200, unarchive_resp.text
+            assert unarchive_resp.json()["data"]["isArchived"] is False
+
+            current_user = admin
+            delete_as_admin = await client.delete(
+                f"/api/v1/organizations/me/workspaces/{created_workspace_id}",
+                params={"confirmName": "Blog Team"},
+            )
+            assert delete_as_admin.status_code == 403, delete_as_admin.text
+            assert delete_as_admin.json().get("error") == "ORG_OWNER_REQUIRED"
+
+            current_user = owner
+            delete_missing_confirm = await client.delete(
+                f"/api/v1/organizations/me/workspaces/{created_workspace_id}"
+            )
+            assert delete_missing_confirm.status_code == 400, delete_missing_confirm.text
+            assert delete_missing_confirm.json().get("error") == "WORKSPACE_DELETE_CONFIRM_NAME_MISMATCH"
+
+            delete_wrong_confirm = await client.delete(
+                f"/api/v1/organizations/me/workspaces/{created_workspace_id}",
+                params={"confirmName": "wrong name"},
+            )
+            assert delete_wrong_confirm.status_code == 400, delete_wrong_confirm.text
+            assert delete_wrong_confirm.json().get("error") == "WORKSPACE_DELETE_CONFIRM_NAME_MISMATCH"
+
+            delete_resp = await client.delete(
+                f"/api/v1/organizations/me/workspaces/{created_workspace_id}",
+                params={"confirmName": "Blog Team"},
+            )
             assert delete_resp.status_code == 200, delete_resp.text
             assert delete_resp.json()["data"]["deleted"] is True
 
             delete_last_resp = await client.delete(
-                f"/api/v1/organizations/me/workspaces/{created_workspace_id}"
+                f"/api/v1/organizations/me/workspaces/{encode_uuid(default_workspace.id)}",
+                params={"confirmName": "Default"},
             )
             assert delete_last_resp.status_code == 400, delete_last_resp.text
-            assert delete_last_resp.json().get("error") == "LAST_WORKSPACE_NOT_DELETABLE"
+            assert delete_last_resp.json().get("error") == "LAST_ACTIVE_WORKSPACE_NOT_DELETABLE"
 
 
 @pytest.mark.asyncio

@@ -3,6 +3,8 @@ from __future__ import annotations
 from collections.abc import Sequence
 from uuid import UUID
 
+from tortoise.expressions import Q
+
 from apps.api.common.repositories import BaseRepository
 from apps.api.modules.organization.models.user import User
 from apps.api.modules.workspaces.models.workspace import Workspace, WorkspaceMembership, WorkspaceMembershipStatus
@@ -34,6 +36,15 @@ class OrganizationWorkspaceRepository(BaseRepository):
     async def count_active_workspaces(self, *, organization_id: UUID) -> int:
         return int(await Workspace.filter(organization_id=organization_id, is_active=True).count())
 
+    async def count_active_non_archived_workspaces(self, *, organization_id: UUID) -> int:
+        return int(
+            await Workspace.filter(
+                organization_id=organization_id,
+                is_active=True,
+                archived_at__isnull=True,
+            ).count()
+        )
+
     async def slug_exists(self, *, organization_id: UUID, slug: str) -> bool:
         return await Workspace.filter(organization_id=organization_id, is_active=True, slug=slug).exists()
 
@@ -43,12 +54,14 @@ class OrganizationWorkspaceRepository(BaseRepository):
         organization_id: UUID,
         slug: str,
         name: str,
+        description: str | None,
         created_by_user_id: UUID,
     ) -> Workspace:
         return await Workspace.create(
             organization_id=organization_id,
             slug=slug,
             name=name,
+            description=description,
             is_active=True,
             created_by_user_id=created_by_user_id,
         )
@@ -69,6 +82,31 @@ class OrganizationWorkspaceRepository(BaseRepository):
         if not user_ids:
             return []
         return await User.filter(id__in=list(user_ids)).all()
+
+    async def list_workspace_members(
+        self,
+        *,
+        workspace_id: UUID,
+        q: str | None,
+        offset: int,
+        limit: int,
+    ) -> tuple[int, list[WorkspaceMembership]]:
+        query = WorkspaceMembership.filter(
+            workspace_id=workspace_id,
+            status=WorkspaceMembershipStatus.ACTIVE,
+        ).select_related("user")
+
+        needle = str(q or "").strip()
+        if needle:
+            query = query.filter(
+                Q(user__username__icontains=needle)
+                | Q(user__display_name__icontains=needle)
+                | Q(user__email__icontains=needle)
+            )
+
+        total = int(await query.count())
+        rows = await query.order_by("created_at").offset(offset).limit(limit).all()
+        return total, rows
 
     async def ensure_active_membership(self, *, workspace_id: UUID, user_id: UUID) -> WorkspaceMembership:
         membership, _created = await WorkspaceMembership.get_or_create(

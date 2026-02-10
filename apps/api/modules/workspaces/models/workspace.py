@@ -26,7 +26,11 @@ class Workspace(BaseModel):
     )
     slug = fields.CharField(max_length=64, db_index=True)
     name = fields.CharField(max_length=128)
+    description = fields.CharField(max_length=256, null=True)
+    icon_url = fields.CharField(max_length=1024, null=True)
     is_active = fields.BooleanField(default=True, db_index=True)
+    archived_at = fields.DatetimeField(null=True, db_index=True)
+    archived_by_user_id = fields.UUIDField(null=True, db_index=True)
 
     created_by_user_id = fields.UUIDField(db_index=True)
 

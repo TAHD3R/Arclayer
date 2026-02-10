@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from datetime import UTC, datetime
+from math import ceil
 from typing import cast
 from uuid import UUID, uuid4
 
-from apps.api.common.protocols.tortoise import HasUserId, HasWorkspaceId
+from apps.api.common.protocols.tortoise import HasUserId, HasWorkspaceId, WorkspaceArchiveMutableFields
 from apps.api.common.services import BaseService
 from apps.api.config import Settings
 from apps.api.core.exceptions import BadRequest, Forbidden, NotFound
@@ -12,17 +14,20 @@ from apps.api.core.http.pagination import PageData, PageParams, paginate_items
 from apps.api.core.i18n import t
 from apps.api.modules.assets.utils import slugify
 from apps.api.modules.organization.models.org_membership import OrgRole
+from apps.api.modules.organization.models.user import User
 from apps.api.modules.organization.workspaces.repository import OrganizationWorkspaceRepository
 from apps.api.modules.organization.workspaces.schema import (
+    OrganizationWorkspaceArchiveResult,
     OrganizationWorkspaceCreateRequest,
     OrganizationWorkspaceDeleteResult,
+    OrganizationWorkspaceMemberOut,
     OrganizationWorkspaceMemberPreviewOut,
     OrganizationWorkspaceOut,
 )
 from apps.api.modules.system.models.rbac import Role
 from apps.api.modules.system.rbac.constants import ROLE_ADMIN, ROLE_OWNER
 from apps.api.modules.system.rbac.service import RBACService
-from apps.api.modules.workspaces.models.workspace import WorkspaceMembershipRole
+from apps.api.modules.workspaces.models.workspace import Workspace, WorkspaceMembershipRole
 from apps.api.modules.workspaces.site.service import WorkspaceSiteService
 
 
@@ -40,6 +45,7 @@ class OrganizationWorkspaceService(BaseService):
         org_role: OrgRole,
         params: PageParams,
         q: str | None,
+        archived: bool | None,
     ) -> PageData[OrganizationWorkspaceOut]:
         if org_role in (OrgRole.OWNER, OrgRole.ADMIN):
             rows = await self.repo.list_active_workspaces_for_org(organization_id=organization_id)
@@ -54,8 +60,19 @@ class OrganizationWorkspaceService(BaseService):
             rows = [
                 ws
                 for ws in rows
-                if needle in str(ws.name or "").lower() or needle in str(ws.slug or "").lower()
+                if needle in str(ws.name or "").lower()
+                or needle in str(ws.slug or "").lower()
+                or needle in str(ws.description or "").lower()
             ]
+
+        if archived is True:
+            rows = [ws for ws in rows if ws.archived_at is not None]
+            rows = sorted(rows, key=lambda ws: ws.created_at)
+        elif archived is False:
+            rows = [ws for ws in rows if ws.archived_at is None]
+            rows = sorted(rows, key=lambda ws: ws.created_at)
+        else:
+            rows = sorted(rows, key=lambda ws: (ws.archived_at is not None, ws.created_at))
 
         workspace_ids = [UUID(str(ws.id)) for ws in rows]
         memberships = await self.repo.list_active_memberships(workspace_ids=workspace_ids)
@@ -91,21 +108,84 @@ class OrganizationWorkspaceService(BaseService):
                 )
 
             out_items.append(
-                OrganizationWorkspaceOut(
-                    id=ws.id,
-                    workspace_id=ws.id,
+                self._build_workspace_out(
                     organization_id=organization_id,
-                    slug=ws.slug,
-                    name=ws.name,
-                    description=None,
-                    icon_url=None,
+                    workspace=ws,
                     member_count=len(member_ids),
                     members_preview=preview,
-                    created_at=ws.created_at,
                 )
             )
 
         return paginate_items(out_items, params=params)
+
+    async def list_workspace_members(
+        self,
+        *,
+        organization_id: UUID,
+        workspace_id: UUID,
+        user_id: UUID,
+        org_role: OrgRole,
+        params: PageParams,
+        q: str | None,
+    ) -> PageData[OrganizationWorkspaceMemberOut]:
+        if org_role in (OrgRole.OWNER, OrgRole.ADMIN):
+            workspace = await self.repo.get_active_workspace(
+                organization_id=organization_id,
+                workspace_id=workspace_id,
+            )
+            if workspace is None:
+                raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
+        else:
+            visible = await self.repo.list_active_workspaces_for_member(
+                organization_id=organization_id,
+                user_id=user_id,
+            )
+            visible_ids = {UUID(str(item.id)) for item in visible}
+            if workspace_id not in visible_ids:
+                raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
+
+        total, rows = await self.repo.list_workspace_members(
+            workspace_id=workspace_id,
+            q=q,
+            offset=params.offset,
+            limit=params.limit,
+        )
+
+        items: list[OrganizationWorkspaceMemberOut] = []
+        for membership in rows:
+            user_ref = cast(User | None, getattr(membership, "user", None))
+            if user_ref is None:
+                continue
+            items.append(
+                OrganizationWorkspaceMemberOut(
+                    membership_id=membership.id,
+                    user_id=user_ref.id,
+                    username=user_ref.username,
+                    display_name=user_ref.display_name,
+                    email=user_ref.email,
+                    avatar_url=user_ref.avatar_url,
+                    joined_at=membership.created_at,
+                )
+            )
+
+        pages = ceil(total / params.size) if params.size else 0
+        next_page: int | None = None
+        prev_page: int | None = None
+        if pages > 0:
+            if params.page < pages:
+                next_page = params.page + 1
+            if params.page > 1:
+                prev_page = min(params.page - 1, pages)
+
+        return PageData[OrganizationWorkspaceMemberOut](
+            items=items,
+            total=total,
+            page=params.page,
+            size=params.size,
+            pages=pages,
+            next=next_page,
+            prev=prev_page,
+        )
 
     async def create_workspace(
         self,
@@ -125,6 +205,8 @@ class OrganizationWorkspaceService(BaseService):
         if not name:
             raise BadRequest(message=t("errors", "BAD_REQUEST", default="参数错误"), error="INVALID_WORKSPACE_NAME")
 
+        description = str(payload.description or "").strip() or None
+
         slug = await self._next_available_workspace_slug(
             organization_id=organization_id,
             base_slug=slugify(name) or "workspace",
@@ -134,6 +216,7 @@ class OrganizationWorkspaceService(BaseService):
             organization_id=organization_id,
             slug=slug,
             name=name[:128],
+            description=description,
             created_by_user_id=user_id,
         )
 
@@ -173,17 +256,88 @@ class OrganizationWorkspaceService(BaseService):
             else []
         )
 
-        return OrganizationWorkspaceOut(
-            id=ws.id,
-            workspace_id=ws.id,
+        return self._build_workspace_out(
             organization_id=organization_id,
-            slug=ws.slug,
-            name=ws.name,
-            description=None,
-            icon_url=None,
+            workspace=ws,
             member_count=1 if preview else 0,
             members_preview=preview,
-            created_at=ws.created_at,
+        )
+
+    async def archive_workspace(
+        self,
+        *,
+        organization_id: UUID,
+        workspace_id: UUID,
+        user_id: UUID,
+        org_role: OrgRole,
+    ) -> OrganizationWorkspaceArchiveResult:
+        if org_role not in (OrgRole.OWNER, OrgRole.ADMIN):
+            raise Forbidden(
+                message=t("errors", "PERMISSION_DENIED", default="权限不足"),
+                error="ORG_ADMIN_REQUIRED",
+            )
+
+        workspace = await self.repo.get_active_workspace(organization_id=organization_id, workspace_id=workspace_id)
+        if workspace is None:
+            raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
+
+        if workspace.archived_at is None:
+            workspace.archived_at = datetime.now(UTC)
+            workspace.archived_by_user_id = user_id
+            await workspace.save(update_fields=["archived_at", "archived_by_user_id", "updated_at"])
+
+        self.logger.info(
+            "Organization workspace archived",
+            action="organization_workspace_archive",
+            organization_id=str(organization_id),
+            workspace_id=str(workspace_id),
+            user_id=str(user_id),
+        )
+
+        return OrganizationWorkspaceArchiveResult(
+            workspace_id=workspace.id,
+            is_archived=workspace.archived_at is not None,
+            archived_at=workspace.archived_at,
+            archived_by_user_id=workspace.archived_by_user_id,
+        )
+
+    async def unarchive_workspace(
+        self,
+        *,
+        organization_id: UUID,
+        workspace_id: UUID,
+        user_id: UUID,
+        org_role: OrgRole,
+    ) -> OrganizationWorkspaceArchiveResult:
+        if org_role not in (OrgRole.OWNER, OrgRole.ADMIN):
+            raise Forbidden(
+                message=t("errors", "PERMISSION_DENIED", default="权限不足"),
+                error="ORG_ADMIN_REQUIRED",
+            )
+
+        workspace = await self.repo.get_active_workspace(organization_id=organization_id, workspace_id=workspace_id)
+        if workspace is None:
+            raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
+
+        if workspace.archived_at is not None or workspace.archived_by_user_id is not None:
+            mutable_workspace = cast(WorkspaceArchiveMutableFields, workspace)
+            mutable_workspace.archived_at = None
+            mutable_workspace.archived_by_user_id = None
+            await workspace.save(update_fields=["archived_at", "archived_by_user_id", "updated_at"])
+
+        self.logger.info(
+            "Organization workspace unarchived",
+            action="organization_workspace_unarchive",
+            organization_id=str(organization_id),
+            workspace_id=str(workspace_id),
+            user_id=str(user_id),
+        )
+
+        return OrganizationWorkspaceArchiveResult(
+            workspace_id=workspace.id,
+            is_archived=False,
+            archived_at=None,
+            archived_by_user_id=None,
         )
 
     async def delete_workspace(
@@ -193,29 +347,37 @@ class OrganizationWorkspaceService(BaseService):
         workspace_id: UUID,
         user_id: UUID,
         org_role: OrgRole,
+        confirm_name: str,
     ) -> OrganizationWorkspaceDeleteResult:
-        if org_role not in (OrgRole.OWNER, OrgRole.ADMIN):
+        if org_role != OrgRole.OWNER:
             raise Forbidden(
                 message=t("errors", "PERMISSION_DENIED", default="权限不足"),
-                error="ORG_ADMIN_REQUIRED",
+                error="ORG_OWNER_REQUIRED",
             )
 
-        ws = await self.repo.get_active_workspace(organization_id=organization_id, workspace_id=workspace_id)
-        if ws is None:
+        workspace = await self.repo.get_active_workspace(organization_id=organization_id, workspace_id=workspace_id)
+        if workspace is None:
             raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
 
-        active_count = await self.repo.count_active_workspaces(organization_id=organization_id)
-        if active_count <= 1:
+        normalized_confirm_name = str(confirm_name or "").strip()
+        if normalized_confirm_name != str(workspace.name):
             raise BadRequest(
                 message=t("errors", "BAD_REQUEST", default="参数错误"),
-                error="LAST_WORKSPACE_NOT_DELETABLE",
+                error="WORKSPACE_DELETE_CONFIRM_NAME_MISMATCH",
             )
 
-        ws.is_active = False
-        await ws.save(update_fields=["is_active", "updated_at"])
+        if workspace.archived_at is None:
+            active_count = await self.repo.count_active_non_archived_workspaces(organization_id=organization_id)
+            if active_count <= 1:
+                raise BadRequest(
+                    message=t("errors", "BAD_REQUEST", default="参数错误"),
+                    error="LAST_ACTIVE_WORKSPACE_NOT_DELETABLE",
+                )
+
+        await workspace.delete()
 
         self.logger.info(
-            "Organization workspace deleted",
+            "Organization workspace hard deleted",
             action="organization_workspace_delete",
             organization_id=str(organization_id),
             workspace_id=str(workspace_id),
@@ -249,3 +411,27 @@ class OrganizationWorkspaceService(BaseService):
         if role is None:
             return
         await WorkspaceMembershipRole.get_or_create(membership_id=membership_id, role_id=role.id)
+
+    def _build_workspace_out(
+        self,
+        *,
+        organization_id: UUID,
+        workspace: Workspace,
+        member_count: int,
+        members_preview: list[OrganizationWorkspaceMemberPreviewOut],
+    ) -> OrganizationWorkspaceOut:
+        return OrganizationWorkspaceOut(
+            id=workspace.id,
+            workspace_id=workspace.id,
+            organization_id=organization_id,
+            slug=workspace.slug,
+            name=workspace.name,
+            description=workspace.description,
+            icon_url=workspace.icon_url,
+            is_archived=workspace.archived_at is not None,
+            archived_at=workspace.archived_at,
+            archived_by_user_id=workspace.archived_by_user_id,
+            member_count=member_count,
+            members_preview=members_preview,
+            created_at=workspace.created_at,
+        )
