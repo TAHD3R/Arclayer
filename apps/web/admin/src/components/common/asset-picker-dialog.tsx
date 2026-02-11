@@ -28,6 +28,7 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -233,7 +234,6 @@ export function AssetPickerDialog(props: {
   const isLoading = pagedAssetsQuery.isLoading && !pagedAssetsQuery.data;
   const isFetching = pagedAssetsQuery.isFetching;
 
-
   type PickerMasonryEntry = (typeof masonryEntries)[number];
 
   const parentIdForUp = useMemo(() => {
@@ -258,9 +258,9 @@ export function AssetPickerDialog(props: {
             <DialogTitle className="font-bold!">
               {props.title || t("settings:SETTINGS_ASSET_PICKER_TITLE")}
             </DialogTitle>
-            {props.description ? (
-              <div className="mt-1 text-muted-foreground">{props.description}</div>
-            ) : null}
+            <DialogDescription>
+              {props.description || t("settings:SETTINGS_ASSET_PICKER_DESC")}
+            </DialogDescription>
           </DialogHeader>
 
           <div className="flex-1 min-h-0 flex flex-col">

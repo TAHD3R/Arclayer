@@ -4,7 +4,13 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { useTranslation } from "react-i18next";
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import type { WorkspacePluginPackageValidateOut } from "@/api/workspace-plugins";
@@ -146,10 +152,11 @@ export function PluginInstallDialog({
           "max-w-[min(920px,calc(100vw-2rem))] sm:max-w-[min(920px,calc(100vw-2rem))]",
         )}
       >
-        <DialogHeader className="px-5 pt-4 pb-2 border-b">
+        <DialogHeader className="px-5 pt-4 pb-2">
           <DialogTitle className="font-bold!">
             {t("plugin:PLUGIN_CENTER_INSTALL_DIALOG_TITLE")}
           </DialogTitle>
+          <DialogDescription>{t("plugin:PLUGIN_CENTER_DROP_DESC")}</DialogDescription>
         </DialogHeader>
 
         <div className="px-5 pt-4 pb-5">

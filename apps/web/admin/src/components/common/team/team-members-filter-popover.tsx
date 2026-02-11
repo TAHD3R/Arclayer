@@ -2,11 +2,11 @@ import { Button, Select } from "antd";
 import { Filter } from "lucide-react";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 
 import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { Role } from "@/api/rbac";
 import type { MembershipStatus, UserStatus } from "@/api/team";
-
 export type TeamMembersFilters = {
   membershipStatus?: MembershipStatus;
   userStatus?: UserStatus;
@@ -72,8 +72,7 @@ export function TeamMembersFilterPopover(props: {
           type="text"
           icon={<Filter size={18} />}
           title={t("team:TEAM_FILTER_TITLE")}
-          style={{ height: 40 }}
-          className="!bg-transparent hover:!bg-accent/40"
+          className="!h-10 !bg-transparent hover:!bg-accent/40"
         >
           {t("team:TEAM_FILTER_TITLE")}
         </Button>
@@ -87,6 +86,7 @@ export function TeamMembersFilterPopover(props: {
             <Select
               value={props.sort}
               onChange={props.onSortChange}
+              getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
               options={[
                 { label: t("team:TEAM_SORT_NEWEST"), value: "-created_at" },
                 { label: t("team:TEAM_SORT_USERNAME_AZ"), value: "user__username" },
@@ -114,6 +114,7 @@ export function TeamMembersFilterPopover(props: {
                 const next = v === "all" ? undefined : (v as MembershipStatus);
                 props.onChange({ ...props.value, membershipStatus: next });
               }}
+              getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
               options={membershipStatusOptions}
             />
           </div>
@@ -128,6 +129,7 @@ export function TeamMembersFilterPopover(props: {
                 const next = v === "all" ? undefined : (v as UserStatus);
                 props.onChange({ ...props.value, userStatus: next });
               }}
+              getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
               options={userStatusOptions}
             />
           </div>
@@ -138,6 +140,7 @@ export function TeamMembersFilterPopover(props: {
               showSearch
               optionFilterProp="label"
               loading={props.rolesLoading}
+              getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
               value={props.value.roleCode ?? "all"}
               onChange={(v) =>
                 props.onChange({ ...props.value, roleCode: v === "all" ? undefined : v })

@@ -3,6 +3,7 @@ import { Copy, ExternalLink, Link2, Plus, Share2, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 
 import {
   createAdminAssetShareLink,
@@ -185,7 +186,7 @@ export function AssetSharePopover(props: {
                   onChange={(v) => setExpireUnit(v)}
                   // 默认 Portal 到 body 在 Radix Popover 里会被当成 “outside”，导致无法选择。
                   // 这里显式把 dropdown 挂在当前触发节点附近，避免关闭/遮挡问题。
-                  getPopupContainer={(triggerNode) => triggerNode.parentElement ?? document.body}
+                  getPopupContainer={(triggerNode) => getPopupContainerWithinOverlay(triggerNode)}
                   options={[
                     { value: "minutes", label: t("assets:ASSET_SHARE_UNIT_MINUTES") },
                     { value: "hours", label: t("assets:ASSET_SHARE_UNIT_HOURS") },

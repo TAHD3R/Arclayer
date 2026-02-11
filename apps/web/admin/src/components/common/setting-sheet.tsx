@@ -37,7 +37,7 @@ export function SettingSheet({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className={cn("w-130 max-w-[92vw] p-0 gap-0", contentClassName)}>
-        <SheetHeader className="border-b">
+        <SheetHeader>
           <SheetTitle className="font-bold!">{title}</SheetTitle>
           {description ? (
             <SheetDescription className="text-[16px]!">{description}</SheetDescription>
@@ -46,7 +46,7 @@ export function SettingSheet({
 
         <div className="flex-1 overflow-auto p-4">{children}</div>
 
-        {footer ? <SheetFooter className="border-t">{footer}</SheetFooter> : null}
+        {footer ? <SheetFooter>{footer}</SheetFooter> : null}
       </SheetContent>
     </Sheet>
   );

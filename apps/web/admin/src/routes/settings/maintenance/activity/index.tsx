@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 
-import { WorkspaceActivityPage } from "@/pages/settings/maintenance/activity/page";
+import { WorkspaceActivityPage } from "@/pages/workspaces/settings/maintenance/activity/page";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
 export const Route = createFileRoute("/settings/maintenance/activity/")({

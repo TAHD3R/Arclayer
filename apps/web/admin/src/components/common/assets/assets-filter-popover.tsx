@@ -2,10 +2,10 @@ import { Button, DatePicker, Select } from "antd";
 import { Filter } from "lucide-react";
 import { type ComponentProps, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 
 import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { AdminAssetTag } from "@/api/assets";
-
 export type AssetsFilters = {
   mimePrefix?: string;
   visibility?: string;
@@ -66,8 +66,7 @@ export function AssetsFilterPopover(props: {
           type="text"
           icon={<Filter size={18} />}
           title={t("assets:ASSET_FILTER_TITLE")}
-          style={{ height: 40 }}
-          className="!bg-transparent hover:!bg-accent/40"
+          className="!h-10 !bg-transparent hover:!bg-accent/40"
         >
           {t("assets:ASSET_FILTER_TITLE")}
         </Button>
@@ -83,6 +82,7 @@ export function AssetsFilterPopover(props: {
             <Select
               value={props.ordering}
               onChange={props.onOrderingChange}
+              getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
               options={[
                 { label: t("assets:ASSET_SORT_NEWEST"), value: "-created_at" },
                 { label: t("assets:ASSET_SORT_OLDEST"), value: "created_at" },
@@ -98,6 +98,7 @@ export function AssetsFilterPopover(props: {
             </div>
             <Select
               value={props.value.visibility ?? "all"}
+              getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
               onChange={(v) =>
                 props.onChange({ ...props.value, visibility: v === "all" ? undefined : v })
               }
@@ -136,6 +137,7 @@ export function AssetsFilterPopover(props: {
               mode="multiple"
               allowClear
               loading={props.tagsLoading}
+              getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
               value={props.value.tagIds ?? []}
               onChange={(tagIds) => props.onChange({ ...props.value, tagIds })}
               placeholder={t("assets:ASSET_FILTER_TAGS_PLACEHOLDER")}

@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { flexRender, type ColumnDef } from "@tanstack/react-table";
-import { Avatar, Button as AntButton, Form, Input, Modal, Select, Tag } from "antd";
-import { Plus, Trash2 } from "lucide-react";
+import { flexRender } from "@tanstack/react-table";
+import { Button as AntButton, Input } from "antd";
+import { Plus } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -10,12 +10,11 @@ import {
   inviteOrganizationMember,
   listOrganizationMembers,
   patchOrganizationMemberRole,
-  type OrgRole,
   type OrganizationMember,
 } from "@/api/organization-members";
+import { ConfirmDialog } from "@/components/common/confirm-dialog";
 import { DefaultPage } from "@/components/common/default-page";
 import { PageState } from "@/components/common/page-state";
-import { ConfirmDialog } from "@/components/common/confirm-dialog";
 import { useDataTable } from "@/components/data-table";
 import {
   Table,
@@ -27,25 +26,20 @@ import {
 } from "@/components/ui/table";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 
-function formatDateTime(value: string | null): string {
-  if (!value) return "-";
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return "-";
-  return d.toLocaleString();
-}
+import { InviteOrganizationMemberDialog } from "./invite-organization-member-dialog";
+import { createOrganizationMembersColumns, ORG_ROLE_OPTIONS } from "./members-columns";
 
-const ROLE_OPTIONS: OrgRole[] = ["owner", "admin", "member"];
+const TABLE_QUERY_KEY = ["dataTable", "organization-members"] as const;
 
 export function OrganizationMembersPage() {
   const { t } = useTranslation(["nav", "common", "team"]);
   const queryClient = useQueryClient();
 
   const [inviteOpen, setInviteOpen] = useState(false);
-  const [inviteForm] = Form.useForm<{ email: string; role: OrgRole }>();
   const [pendingRemove, setPendingRemove] = useState<OrganizationMember | null>(null);
 
   const inviteMutation = useMutation({
-    mutationFn: async (payload: { email: string; role: OrgRole }) =>
+    mutationFn: async (payload: { email: string; role: "owner" | "admin" | "member" }) =>
       inviteOrganizationMember({
         email: payload.email,
         roleCode: payload.role,
@@ -53,20 +47,19 @@ export function OrganizationMembersPage() {
     onSuccess: async () => {
       notifySuccessText(t("team:TEAM_INVITE_SUCCESS"));
       setInviteOpen(false);
-      inviteForm.resetFields();
-      await queryClient.invalidateQueries({ queryKey: ["dataTable", "organization-members"] });
+      await queryClient.invalidateQueries({ queryKey: TABLE_QUERY_KEY });
     },
-    onError: (err) => notifyError(err),
+    onError: (error) => notifyError(error),
   });
 
   const roleMutation = useMutation({
-    mutationFn: async (payload: { memberId: string; role: OrgRole }) =>
+    mutationFn: async (payload: { memberId: string; role: "owner" | "admin" | "member" }) =>
       patchOrganizationMemberRole(payload.memberId, { role: payload.role }),
     onSuccess: async () => {
       notifySuccessText(t("common:ACTION_SUCCESS"));
-      await queryClient.invalidateQueries({ queryKey: ["dataTable", "organization-members"] });
+      await queryClient.invalidateQueries({ queryKey: TABLE_QUERY_KEY });
     },
-    onError: (err) => notifyError(err),
+    onError: (error) => notifyError(error),
   });
 
   const removeMutation = useMutation({
@@ -74,95 +67,36 @@ export function OrganizationMembersPage() {
     onSuccess: async () => {
       notifySuccessText(t("common:ACTION_SUCCESS"));
       setPendingRemove(null);
-      await queryClient.invalidateQueries({ queryKey: ["dataTable", "organization-members"] });
+      await queryClient.invalidateQueries({ queryKey: TABLE_QUERY_KEY });
     },
-    onError: (err) => notifyError(err),
+    onError: (error) => notifyError(error),
   });
 
-  const columns = useMemo<Array<ColumnDef<OrganizationMember, unknown>>>(
-    () => [
-      {
-        id: "member",
-        header: t("common:ORG_MEMBERS_TABLE_MEMBER"),
-        cell: ({ row }) => {
-          const item = row.original;
-          const primary = item.displayName || item.username;
-          return (
-            <div className="flex min-w-0 items-center gap-3">
-              <Avatar src={item.avatarUrl ?? undefined}>
-                {primary.slice(0, 1).toUpperCase()}
-              </Avatar>
-              <div className="min-w-0">
-                <div className="truncate font-medium">{primary}</div>
-                <div className="truncate text-xs text-muted-foreground">{item.email || "-"}</div>
-              </div>
-            </div>
-          );
+  const roleOptions = useMemo(
+    () =>
+      ORG_ROLE_OPTIONS.map((role) => ({
+        value: role,
+        label: t(`common:ORG_ROLE_${role.toUpperCase()}`),
+      })),
+    [t],
+  );
+
+  const defaultRole = roleOptions.some((option) => option.value === "member")
+    ? "member"
+    : (roleOptions[0]?.value ?? "member");
+
+  const columns = useMemo(
+    () =>
+      createOrganizationMembersColumns({
+        t,
+        roleOptions,
+        roleUpdating: roleMutation.isPending,
+        onRoleChange: ({ memberId, role }) => {
+          void roleMutation.mutateAsync({ memberId, role });
         },
-      },
-      {
-        id: "role",
-        header: t("common:ORG_MEMBERS_TABLE_ROLE"),
-        cell: ({ row }) => {
-          const item = row.original;
-          return (
-            <Select
-              value={item.role}
-              style={{ width: 140 }}
-              options={ROLE_OPTIONS.map((option) => ({
-                value: option,
-                label: t(`common:ORG_ROLE_${option.toUpperCase()}`),
-              }))}
-              onChange={(next) => {
-                void roleMutation.mutateAsync({ memberId: item.membershipId, role: next as OrgRole });
-              }}
-              disabled={roleMutation.isPending}
-            />
-          );
-        },
-      },
-      {
-        id: "status",
-        header: t("common:ORG_MEMBERS_TABLE_STATUS"),
-        cell: ({ row }) => {
-          const item = row.original;
-          return (
-            <Tag color={item.status === "active" ? "green" : "default"} style={{ marginInlineEnd: 0 }}>
-              {item.status}
-            </Tag>
-          );
-        },
-      },
-      {
-        id: "joined",
-        header: t("common:ORG_MEMBERS_TABLE_JOINED_AT"),
-        cell: ({ row }) => (
-          <span className="text-sm text-muted-foreground">{formatDateTime(row.original.joinedAt)}</span>
-        ),
-      },
-      {
-        id: "lastLogin",
-        header: t("common:ORG_MEMBERS_TABLE_LAST_LOGIN"),
-        cell: ({ row }) => (
-          <span className="text-sm text-muted-foreground">{formatDateTime(row.original.lastLoginAt)}</span>
-        ),
-      },
-      {
-        id: "actions",
-        header: t("common:ORG_MEMBERS_TABLE_ACTIONS"),
-        cell: ({ row }) => (
-          <AntButton
-            type="text"
-            danger
-            icon={<Trash2 className="size-4" />}
-            onClick={() => setPendingRemove(row.original)}
-          >
-            {t("common:DELETE")}
-          </AntButton>
-        ),
-      },
-    ],
-    [roleMutation, t],
+        onRemove: (member) => setPendingRemove(member),
+      }),
+    [roleMutation, roleOptions, t],
   );
 
   const tableHook = useDataTable<OrganizationMember>({
@@ -194,21 +128,18 @@ export function OrganizationMembersPage() {
         <AntButton
           type="primary"
           icon={<Plus size={16} />}
-          onClick={() => {
-            inviteForm.setFieldsValue({ role: "member" });
-            setInviteOpen(true);
-          }}
+          onClick={() => setInviteOpen(true)}
         >
           {t("common:ORG_MEMBERS_INVITE")}
         </AntButton>
       }
       extra={
         <Input.Search
+          className="max-w-[360px]"
           value={tableHook.searchInput}
-          onChange={(e) => tableHook.setSearchInput(e.target.value)}
+          onChange={(event) => tableHook.setSearchInput(event.target.value)}
           placeholder={t("common:ORG_MEMBERS_SEARCH_PLACEHOLDER")}
           allowClear
-          style={{ maxWidth: 360 }}
         />
       }
     >
@@ -217,7 +148,7 @@ export function OrganizationMembersPage() {
         error={tableHook.error}
         onRetry={() => void tableHook.refetch()}
       >
-        <div className="rounded-md border overflow-auto">
+        <div className="overflow-auto rounded-md border">
           <Table>
             <TableHeader>
               {table.getHeaderGroups().map((headerGroup) => (
@@ -245,7 +176,10 @@ export function OrganizationMembersPage() {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell className="h-24 text-center text-muted-foreground" colSpan={columns.length}>
+                  <TableCell
+                    className="h-24 text-center text-muted-foreground"
+                    colSpan={columns.length}
+                  >
                     {t("common:EMPTY_DESC")}
                   </TableCell>
                 </TableRow>
@@ -255,46 +189,17 @@ export function OrganizationMembersPage() {
         </div>
       </PageState>
 
-      <Modal
+      <InviteOrganizationMemberDialog
         open={inviteOpen}
-        title={t("common:ORG_MEMBERS_INVITE")}
-        okText={t("common:CONFIRM")}
-        cancelText={t("common:CANCEL")}
-        confirmLoading={inviteMutation.isPending}
-        onCancel={() => {
-          if (!inviteMutation.isPending) setInviteOpen(false);
-        }}
-        onOk={async () => {
-          const values = await inviteForm.validateFields();
+        loading={inviteMutation.isPending}
+        defaultRole={defaultRole}
+        roleOptions={roleOptions}
+        t={t}
+        onClose={() => setInviteOpen(false)}
+        onSubmit={async (values) => {
           await inviteMutation.mutateAsync(values);
         }}
-      >
-        <Form form={inviteForm} layout="vertical" requiredMark={false}>
-          <Form.Item
-            name="email"
-            label={t("common:ORG_MEMBERS_INVITE_EMAIL")}
-            rules={[
-              { required: true, message: t("common:ORG_MEMBERS_INVITE_EMAIL_REQUIRED") },
-              { type: "email", message: t("team:TEAM_INVITE_VALIDATION_EMAIL_INVALID") },
-            ]}
-          >
-            <Input placeholder={t("common:ORG_MEMBERS_INVITE_EMAIL_PLACEHOLDER")} />
-          </Form.Item>
-
-          <Form.Item
-            name="role"
-            label={t("common:ORG_MEMBERS_INVITE_ROLE")}
-            rules={[{ required: true, message: t("common:ORG_MEMBERS_INVITE_ROLE_REQUIRED") }]}
-          >
-            <Select
-              options={ROLE_OPTIONS.map((option) => ({
-                value: option,
-                label: t(`common:ORG_ROLE_${option.toUpperCase()}`),
-              }))}
-            />
-          </Form.Item>
-        </Form>
-      </Modal>
+      />
 
       <ConfirmDialog
         open={Boolean(pendingRemove)}

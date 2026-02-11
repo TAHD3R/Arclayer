@@ -3,6 +3,7 @@
 import { Button as AntButton, Select } from "antd";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
+import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 
 import type { Role } from "@/api/rbac";
 import type { TeamMember } from "@/api/team";
@@ -58,7 +59,7 @@ export function EditMemberRolesDialog(props: {
             options={options}
             showSearch
             optionFilterProp="label"
-            getPopupContainer={(node) => node.parentElement ?? document.body}
+            getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
           />
         </div>
 

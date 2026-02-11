@@ -4,12 +4,12 @@ import zhCN from "antd/locale/zh_CN";
 import { ProgressProvider } from "@bprogress/react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { type PropsWithChildren, useLayoutEffect, useState } from "react";
+import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 
 import { useAntdTheme } from "@/hooks/use-antd-theme";
 import { makeQueryClient } from "@/lib/query/query-client";
 import { setMessageApi } from "@/lib/notifications";
 import { usePreferencesStore } from "@/stores/use-preference-store";
-
 function AntdMessageBridge({ children }: PropsWithChildren) {
   const [messageApi, contextHolder] = message.useMessage();
 
@@ -34,7 +34,11 @@ export function AppProviders({ children }: PropsWithChildren) {
 
   return (
     <ProgressProvider color="var(--primary)" height="2px">
-      <ConfigProvider theme={theme} locale={antdLocale}>
+      <ConfigProvider
+        theme={theme}
+        locale={antdLocale}
+        getPopupContainer={(triggerNode) => getPopupContainerWithinOverlay(triggerNode)}
+      >
         <App message={{ maxCount: 3 }} notification={{ maxCount: 3 }}>
           <AntdMessageBridge>
             <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>

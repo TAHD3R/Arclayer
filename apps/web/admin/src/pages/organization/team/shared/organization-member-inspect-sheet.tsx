@@ -1,10 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react";
 import { Avatar, Button as AntButton, Tag, Tooltip } from "antd";
-import { Check, Minus } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import { listSystemActivity, type ActivityEvent } from "@/api/activity";
+import type { ActivityEvent } from "@/api/activity";
 import type {
   OrgRole,
   OrgUserStatus,
@@ -13,9 +11,6 @@ import type {
 } from "@/api/organization-members";
 import type { OrganizationRbacMatrixPermissionRow } from "@/api/organization-rbac";
 import { ActivityDetailDialog } from "@/components/activity/activity-detail-dialog";
-import { ActivityTimeline } from "@/components/activity/activity-timeline";
-import { PageSkeleton } from "@/components/common/page-skeleton";
-import { PageState } from "@/components/common/page-state";
 import {
   ChromeTabs,
   ChromeTabsContent,
@@ -30,7 +25,12 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { type ResolvedMemberWorkspace, OrganizationMemberWorkspaceList } from "./organization-member-workspace-list";
+
+import { OrganizationMemberInspectActivityTab } from "./organization-member-inspect-activity-tab";
+import { OrganizationMemberInspectRoleTab } from "./organization-member-inspect-role-tab";
+import { OrganizationMemberInspectWorkspacesTab } from "./organization-member-inspect-workspaces-tab";
+import type { ResolvedMemberWorkspace } from "./organization-member-workspace-list";
+import { useOrganizationMemberInspectActivity } from "./use-organization-member-inspect-activity";
 
 type InspectTab = "role" | "workspaces" | "activity";
 
@@ -104,12 +104,9 @@ export function OrganizationMemberInspectSheet({
   onAdjustRole,
   onRemoveMember,
 }: OrganizationMemberInspectSheetProps) {
-  const { t } = useTranslation(["common", "team", "activity"]);
+  const { t } = useTranslation(["common", "team"]);
   const [tab, setTab] = useState<InspectTab>("role");
   const [selectedActivity, setSelectedActivity] = useState<ActivityEvent | null>(null);
-
-  const activityScrollRef = useRef<HTMLDivElement | null>(null);
-  const activitySentinelRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!open) {
@@ -117,111 +114,23 @@ export function OrganizationMemberInspectSheet({
       setSelectedActivity(null);
       return;
     }
+
     setTab("role");
     setSelectedActivity(null);
   }, [member?.membershipId, open]);
 
-  const activityFrom = useMemo(() => {
-    return new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-  }, []);
-
-  const actorActivityQuery = useInfiniteQuery({
-    queryKey: ["organization-member-inspect-activity", "actor", member?.userId, activityFrom],
-    enabled: open && tab === "activity" && Boolean(member?.userId),
-    queryFn: async ({ pageParam }) =>
-      listSystemActivity({
-        page: Number(pageParam) || 1,
-        size: 20,
-        actorUserId: member?.userId,
-        occurredFrom: activityFrom,
-      }),
-    initialPageParam: 1,
-    getNextPageParam: (lastPage) => lastPage.next ?? undefined,
-    staleTime: 30 * 1000,
-    retry: false,
-    meta: { silent: true },
+  const {
+    activityItems,
+    activityLoading,
+    activityError,
+    isFetchingNextActivityPage,
+    activityScrollRef,
+    activitySentinelRef,
+    refetchActivity,
+  } = useOrganizationMemberInspectActivity({
+    enabled: open && tab === "activity",
+    userId: member?.userId ?? null,
   });
-
-  const subjectActivityQuery = useInfiniteQuery({
-    queryKey: ["organization-member-inspect-activity", "subject", member?.userId, activityFrom],
-    enabled: open && tab === "activity" && Boolean(member?.userId),
-    queryFn: async ({ pageParam }) =>
-      listSystemActivity({
-        page: Number(pageParam) || 1,
-        size: 20,
-        subjectUserId: member?.userId,
-        occurredFrom: activityFrom,
-      }),
-    initialPageParam: 1,
-    getNextPageParam: (lastPage) => lastPage.next ?? undefined,
-    staleTime: 30 * 1000,
-    retry: false,
-    meta: { silent: true },
-  });
-
-  const fetchNextActivityPage = useCallback(() => {
-    if (actorActivityQuery.hasNextPage && !actorActivityQuery.isFetchingNextPage) {
-      void actorActivityQuery.fetchNextPage();
-    }
-    if (subjectActivityQuery.hasNextPage && !subjectActivityQuery.isFetchingNextPage) {
-      void subjectActivityQuery.fetchNextPage();
-    }
-  }, [
-    actorActivityQuery.fetchNextPage,
-    actorActivityQuery.hasNextPage,
-    actorActivityQuery.isFetchingNextPage,
-    subjectActivityQuery.fetchNextPage,
-    subjectActivityQuery.hasNextPage,
-    subjectActivityQuery.isFetchingNextPage,
-  ]);
-
-  const hasMoreActivity = Boolean(actorActivityQuery.hasNextPage || subjectActivityQuery.hasNextPage);
-  const isFetchingNextActivityPage =
-    actorActivityQuery.isFetchingNextPage || subjectActivityQuery.isFetchingNextPage;
-
-  useEffect(() => {
-    if (!open || tab !== "activity") return;
-    const root = activityScrollRef.current;
-    const target = activitySentinelRef.current;
-    if (!root || !target) return;
-    if (!hasMoreActivity || isFetchingNextActivityPage) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const entry = entries[0];
-        if (!entry?.isIntersecting) return;
-        if (!hasMoreActivity || isFetchingNextActivityPage) return;
-        fetchNextActivityPage();
-      },
-      {
-        root,
-        rootMargin: "160px",
-        threshold: 0,
-      },
-    );
-
-    observer.observe(target);
-    return () => observer.disconnect();
-  }, [fetchNextActivityPage, hasMoreActivity, isFetchingNextActivityPage, open, tab]);
-
-  const activityItems = useMemo(() => {
-    const map = new Map<string, ActivityEvent>();
-    for (const page of actorActivityQuery.data?.pages ?? []) {
-      for (const event of page.items ?? []) {
-        map.set(event.id, event);
-      }
-    }
-    for (const page of subjectActivityQuery.data?.pages ?? []) {
-      for (const event of page.items ?? []) {
-        map.set(event.id, event);
-      }
-    }
-    return Array.from(map.values()).sort((a, b) => String(b.occurredAt).localeCompare(String(a.occurredAt)));
-  }, [actorActivityQuery.data?.pages, subjectActivityQuery.data?.pages]);
-
-  const activityLoading = actorActivityQuery.isLoading || subjectActivityQuery.isLoading;
-  const activityError =
-    activityItems.length === 0 ? actorActivityQuery.error || subjectActivityQuery.error : null;
 
   const resolvedWorkspaces = useMemo(() => {
     if (!member) return [];
@@ -230,6 +139,7 @@ export function OrganizationMemberInspectSheet({
 
   const roleDetail = useMemo<RoleDisplay | null>(() => {
     if (!member) return null;
+
     const fromMap = roleDetailsByCode.get(member.roleCode);
     if (fromMap?.name) return fromMap;
 
@@ -251,9 +161,12 @@ export function OrganizationMemberInspectSheet({
 
   const rolePermissions = useMemo(() => {
     if (!member) return [];
+
     const roleCode = member.roleCode || member.role;
     return permissions.map((permission) => ({
-      ...permission,
+      code: permission.code,
+      displayName: permission.displayName,
+      displayDescription: permission.displayDescription,
       granted: permission.grantedRoleCodes.includes(roleCode),
     }));
   }, [member, permissions]);
@@ -294,11 +207,7 @@ export function OrganizationMemberInspectSheet({
                     size={64}
                     shape="square"
                     src={member.avatarUrl ?? undefined}
-                    style={{
-                      backgroundColor: "var(--color-muted)",
-                      color: "var(--color-foreground)",
-                      flexShrink: 0,
-                    }}
+                    className="shrink-0 bg-muted text-foreground"
                   >
                     {primary.slice(0, 1).toUpperCase()}
                   </Avatar>
@@ -309,10 +218,10 @@ export function OrganizationMemberInspectSheet({
                   </div>
 
                   <div className="flex flex-wrap justify-end gap-1">
-                    <Tag color={roleTagColor(member.role)} style={{ marginInlineEnd: 0 }}>
+                    <Tag color={roleTagColor(member.role)} className="!mr-0">
                       {roleDetail?.name || t(`common:ORG_ROLE_${member.role.toUpperCase()}`)}
                     </Tag>
-                    <Tag color={userTagColor(member.userStatus)} style={{ marginInlineEnd: 0 }}>
+                    <Tag color={userTagColor(member.userStatus)} className="!mr-0">
                       {userStatusLabel(t, member.userStatus)}
                     </Tag>
                   </div>
@@ -327,131 +236,55 @@ export function OrganizationMemberInspectSheet({
                 className="flex h-full min-h-0 flex-col"
               >
                 <ChromeTabsList className="w-auto shrink-0">
-                  <ChromeTabsTrigger value="role">{t("common:ORG_MEMBERS_INSPECT_TAB_ROLE")}</ChromeTabsTrigger>
+                  <ChromeTabsTrigger value="role">
+                    {t("common:ORG_MEMBERS_INSPECT_TAB_ROLE")}
+                  </ChromeTabsTrigger>
                   <ChromeTabsTrigger value="workspaces">
                     {t("common:ORG_MEMBERS_INSPECT_TAB_WORKSPACES")}
                   </ChromeTabsTrigger>
-                  <ChromeTabsTrigger value="activity">{t("common:ORG_MEMBERS_INSPECT_TAB_ACTIVITY")}</ChromeTabsTrigger>
+                  <ChromeTabsTrigger value="activity">
+                    {t("common:ORG_MEMBERS_INSPECT_TAB_ACTIVITY")}
+                  </ChromeTabsTrigger>
                 </ChromeTabsList>
 
                 <ChromeTabsContent value="role" className="flex min-h-0 flex-1 flex-col pt-3">
                   <div className="flex min-h-0 flex-1 flex-col">
-                    {rolesLoading || permissionsLoading ? (
-                      <PageSkeleton variant="form" />
-                    ) : (
-                      <PageState
-                        loading={false}
-                        error={
-                          roleDetail?.name
-                            ? permissionsError && rolePermissions.length === 0
-                              ? permissionsError
-                              : null
-                            : rolesError || permissionsError
-                        }
-                        empty={!roleDetail?.name}
-                        emptyTitle={t("common:ORG_MEMBERS_INSPECT_ROLE_EMPTY_TITLE")}
-                        emptyDescription={t("common:ORG_MEMBERS_INSPECT_ROLE_EMPTY_DESC")}
-                        variant="compact"
-                        className="py-4"
-                      >
-                        <div className="flex min-h-0 flex-1 flex-col px-8">
-                          <div className="text-lg font-semibold">{roleDetail?.name || "-"}</div>
-
-                          <p className="text-muted-foreground">
-                            {roleDetail?.description || t("common:ORG_MEMBERS_INSPECT_ROLE_DESC_EMPTY")}
-                          </p>
-
-                          <div className="flex min-h-0 flex-1 flex-col">
-                            <div className="mb-2 text-lg font-medium">{t("team:TEAM_ROLES_COL_PERMISSION")}</div>
-                            <div className="min-h-0 flex-1 divide-y overflow-auto rounded-md border">
-                              {rolePermissions.map((permission) => (
-                                <div key={permission.code} className="grid grid-cols-[1fr_auto] gap-3 px-3 py-2">
-                                  <div className="min-w-0">
-                                    <div className="truncate font-medium">{permission.displayName}</div>
-                                    {permission.displayDescription ? (
-                                      <p className="mt-0.5 line-clamp-2 text-muted-foreground">
-                                        {permission.displayDescription}
-                                      </p>
-                                    ) : null}
-                                  </div>
-                                  <div className="pt-1">
-                                    {permission.granted ? (
-                                      <Check className="size-4 text-emerald-600" />
-                                    ) : (
-                                      <Minus className="size-4 text-muted-foreground" />
-                                    )}
-                                  </div>
-                                </div>
-                              ))}
-
-                              {!rolePermissions.length ? (
-                                <div className="px-3 py-6 text-center text-muted-foreground">
-                                  {t("common:ORG_MEMBERS_INSPECT_ROLE_PERMISSIONS_EMPTY")}
-                                </div>
-                              ) : null}
-                            </div>
-                          </div>
-                        </div>
-                      </PageState>
-                    )}
+                    <OrganizationMemberInspectRoleTab
+                      roleName={roleDetail?.name ?? null}
+                      roleDescription={roleDetail?.description ?? null}
+                      permissions={rolePermissions}
+                      rolesLoading={rolesLoading}
+                      permissionsLoading={permissionsLoading}
+                      rolesError={rolesError}
+                      permissionsError={permissionsError}
+                    />
                   </div>
                 </ChromeTabsContent>
 
                 <ChromeTabsContent value="workspaces" className="min-h-0 pt-3">
                   <div className="min-h-[360px]">
-                    {workspaceDataLoading ? (
-                      <PageSkeleton variant="table" />
-                    ) : (
-                      <PageState
-                        loading={false}
-                        error={workspaceDataError && resolvedWorkspaces.length === 0 ? workspaceDataError : null}
-                        empty={resolvedWorkspaces.length === 0}
-                        emptyTitle={t("common:ORG_MEMBERS_INSPECT_WORKSPACES_EMPTY_TITLE")}
-                        emptyDescription={t("common:ORG_MEMBERS_INSPECT_WORKSPACES_EMPTY_DESC")}
-                        variant="compact"
-                        className="py-4"
-                      >
-                        <div className="px-8">
-                          <OrganizationMemberWorkspaceList
-                            workspaces={resolvedWorkspaces}
-                            roleNameByCode={roleNameByCode}
-                            onEnterWorkspace={onEnterWorkspace}
-                            searchable
-                          />
-                        </div>
-                      </PageState>
-                    )}
+                    <OrganizationMemberInspectWorkspacesTab
+                      workspaces={resolvedWorkspaces}
+                      roleNameByCode={roleNameByCode}
+                      workspaceDataLoading={workspaceDataLoading}
+                      workspaceDataError={workspaceDataError}
+                      onEnterWorkspace={onEnterWorkspace}
+                    />
                   </div>
                 </ChromeTabsContent>
 
                 <ChromeTabsContent value="activity" className="flex min-h-0 flex-1 flex-col pt-3">
                   <div className="flex min-h-0 flex-1 flex-col">
-                    {activityLoading ? (
-                      <PageSkeleton variant="table" />
-                    ) : (
-                      <PageState
-                        loading={false}
-                        error={activityError}
-                        onRetry={() => {
-                          void actorActivityQuery.refetch();
-                          void subjectActivityQuery.refetch();
-                        }}
-                        empty={activityItems.length === 0}
-                        emptyTitle={t("activity:ACTIVITY_EMPTY_TITLE")}
-                        emptyDescription={t("activity:ACTIVITY_EMPTY_DESC")}
-                        variant="compact"
-                      >
-                        <div ref={activityScrollRef} className="min-h-0 flex-1 overflow-auto px-8">
-                            <ActivityTimeline
-                              items={activityItems}
-                              onSelect={(event) => setSelectedActivity(event)}
-                              loading={isFetchingNextActivityPage}
-                              titleSpan={4}
-                            />
-                            <div ref={activitySentinelRef} className="h-10" />
-                        </div>
-                      </PageState>
-                    )}
+                    <OrganizationMemberInspectActivityTab
+                      items={activityItems}
+                      loading={activityLoading}
+                      error={activityError}
+                      isFetchingNextPage={isFetchingNextActivityPage}
+                      onRetry={refetchActivity}
+                      onSelect={(event) => setSelectedActivity(event)}
+                      scrollRef={activityScrollRef}
+                      sentinelRef={activitySentinelRef}
+                    />
                   </div>
                 </ChromeTabsContent>
               </ChromeTabs>

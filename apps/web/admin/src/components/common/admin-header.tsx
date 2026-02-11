@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Search } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 
 import type { AdminNavItem } from "@/constants/admin-nav";
 import { cn } from "@/lib/utils";
@@ -18,7 +19,6 @@ import { listMyWorkspaces } from "@/api/workspaces";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { switchWorkspacePath } from "@/lib/workspace-routing";
-
 function normalizePath(input: string): string {
   if (input.length > 1 && input.endsWith("/")) return input.slice(0, -1);
   return input;
@@ -250,7 +250,7 @@ export function AdminHeader(props: {
               style={{ width: 220 }}
               size="middle"
               placeholder={t("common:WORKSPACE_SELECT")}
-              getPopupContainer={(node) => node.parentElement ?? document.body}
+              getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
             />
           ) : null}
           <AdminLocaleToggle />

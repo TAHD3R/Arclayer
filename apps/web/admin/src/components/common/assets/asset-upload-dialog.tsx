@@ -24,7 +24,13 @@ import {
   uploadPart,
 } from "@/api/uploads";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 type UploadItemStatus = "pending" | "uploading" | "success" | "error" | "canceled";
 
@@ -341,8 +347,9 @@ export function AssetUploadDialog(props: {
           "max-w-[min(920px,calc(100vw-2rem))] sm:max-w-[min(920px,calc(100vw-2rem))]",
         )}
       >
-        <DialogHeader className="px-5 pt-4 pb-2 border-b">
+        <DialogHeader className="px-5 pt-4 pb-2">
           <DialogTitle className="font-bold!">{t("assets:ASSET_UPLOAD_DIALOG_TITLE")}</DialogTitle>
+          <DialogDescription>{t("assets:ASSET_UPLOAD_DIALOG_DESC")}</DialogDescription>
         </DialogHeader>
 
         <div className="px-5 pt-4">

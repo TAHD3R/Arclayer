@@ -31,7 +31,9 @@ function roleSummary(roleNameByCode: Map<string, string>, roleCodes: string[]): 
 }
 
 function normalizeSearch(input: string): string {
-  return String(input || "").trim().toLowerCase();
+  return String(input || "")
+    .trim()
+    .toLowerCase();
 }
 
 export function OrganizationMemberWorkspaceList({
@@ -60,7 +62,7 @@ export function OrganizationMemberWorkspaceList({
     <div className={cn("space-y-3", className)}>
       {searchable ? (
         <Input
-        variant="borderless"
+          variant="borderless"
           value={searchInput}
           onChange={(event) => setSearchInput(event.target.value)}
           placeholder={t("common:ORG_MEMBERS_WORKSPACE_SEARCH_PLACEHOLDER")}
@@ -100,11 +102,7 @@ export function OrganizationMemberWorkspaceList({
                     size={34}
                     shape="square"
                     src={workspace.iconUrl ?? undefined}
-                    style={{
-                      backgroundColor: "var(--color-muted)",
-                      color: "var(--color-foreground)",
-                      flexShrink: 0,
-                    }}
+                    className="shrink-0 bg-muted text-foreground"
                   >
                     {title.slice(0, 1).toUpperCase()}
                   </Avatar>
@@ -112,7 +110,9 @@ export function OrganizationMemberWorkspaceList({
                   <div className="min-w-0">
                     <div className="flex items-center justify-between gap-2">
                       <div className="truncate font-medium">{title}</div>
-                      <Tag style={{ marginInlineEnd: 0 }}>{roleSummary(roleNameByCode, workspace.roleCodes)}</Tag>
+                      <Tag className="!mr-0">
+                        {roleSummary(roleNameByCode, workspace.roleCodes)}
+                      </Tag>
                     </div>
 
                     <div className="mt-0.5 truncate text-muted-foreground">{desc}</div>

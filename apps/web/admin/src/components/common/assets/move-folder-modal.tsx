@@ -1,6 +1,7 @@
 import { Button, Select } from "antd";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 
 import type { AdminAssetFolder } from "@/api/assets";
 import {
@@ -136,11 +137,12 @@ export function MoveFolderModal(props: MoveFolderModalProps) {
         <div className="mt-4">
           <Select
             showSearch
-            style={{ width: "100%" }}
+            className="w-full"
             loading={props.foldersLoading}
             options={options}
             value={target}
             onChange={(v) => setTarget(String(v))}
+            getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
             placeholder={t("assets:ASSET_FOLDER_MOVE_PLACEHOLDER")}
             optionFilterProp="label"
             listHeight={320}

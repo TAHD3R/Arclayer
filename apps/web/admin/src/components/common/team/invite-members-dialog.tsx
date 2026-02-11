@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
+import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 
 import type { Role } from "@/api/rbac";
 import { createTeamInvitation, createTeamInviteLink } from "@/api/team";
@@ -285,7 +286,7 @@ export function InviteMembersDialog(props: {
                     shouldValidate: true,
                   });
                 }}
-                getPopupContainer={(node) => node.parentElement ?? document.body}
+                getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
                 options={[]}
                 notFoundContent={null}
                 tagRender={(tagProps) => {
@@ -338,7 +339,7 @@ export function InviteMembersDialog(props: {
               options={roleOptions}
               placeholder={t("team:TEAM_INVITE_FIELD_ROLE_PLACEHOLDER")}
               // Keep dropdown inside the dialog; otherwise Radix overlay may block item clicks.
-              getPopupContainer={(node) => node.parentElement ?? document.body}
+              getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
             />
             <div className="text-muted-foreground">{t("team:TEAM_INVITE_ROLE_HELP")}</div>
             {form.formState.errors.roleCode?.message ? (
@@ -362,7 +363,7 @@ export function InviteMembersDialog(props: {
                 })
               }
               options={expiresOptions}
-              getPopupContainer={(node) => node.parentElement ?? document.body}
+              getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
             />
           </div>
         </form>

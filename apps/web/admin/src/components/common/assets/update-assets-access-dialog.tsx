@@ -1,6 +1,7 @@
 import { Button, Select } from "antd";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 
 import {
   Dialog,
@@ -102,10 +103,11 @@ export function UpdateAssetsAccessDialog(props: UpdateAssetsAccessDialogProps) {
           <div className="space-y-1">
             <div className="text-sm text-foreground/80">{t("assets:ASSET_META_VISIBILITY")}</div>
             <Select
-              style={{ width: "100%" }}
+              className="w-full"
               value={visibility}
               options={visibilityOptions}
               onChange={(v) => setVisibility(String(v))}
+              getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
               disabled={disabled}
             />
           </div>
@@ -113,10 +115,11 @@ export function UpdateAssetsAccessDialog(props: UpdateAssetsAccessDialogProps) {
           <div className="space-y-1">
             <div className="text-sm text-foreground/80">{t("assets:ASSET_META_PURPOSE")}</div>
             <Select
-              style={{ width: "100%" }}
+              className="w-full"
               value={purpose}
               options={purposeOptions}
               onChange={(v) => setPurpose(String(v))}
+              getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
               disabled={disabled}
             />
           </div>

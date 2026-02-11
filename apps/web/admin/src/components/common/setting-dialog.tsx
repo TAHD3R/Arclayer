@@ -1,13 +1,7 @@
 import type { ReactNode } from "react";
 
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { StandardDialogLayout } from "@/components/common/dialog/standard-dialog-layout";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
 type SettingDialogProps = {
@@ -37,16 +31,15 @@ export function SettingDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className={cn("p-0", contentClassName)}>
-        <DialogHeader className="px-6 pt-4 border-b">
-          <DialogTitle className="font-bold!">{title}</DialogTitle>
-          {description ? (
-            <DialogDescription className="text-[16px]">{description}</DialogDescription>
-          ) : null}
-        </DialogHeader>
-
-        <div className="px-6 py-4">{children}</div>
-
-        {footer ? <DialogFooter className="border-t px-6 py-4 ">{footer}</DialogFooter> : null}
+        <StandardDialogLayout
+          title={title}
+          description={description}
+          footer={footer}
+          headerClassName="text-left"
+          bodyClassName="py-4"
+        >
+          {children}
+        </StandardDialogLayout>
       </DialogContent>
     </Dialog>
   );

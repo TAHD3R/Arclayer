@@ -159,6 +159,7 @@
   "SETTINGS_SITE_AVATAR_PLACEHOLDER_PICKER_TITLE": "Select default avatar placeholder",
   "SETTINGS_SITE_AVATAR_PLACEHOLDER_PICKER_DESC": "Pick or upload a default avatar placeholder from the asset library.",
   "SETTINGS_ASSET_PICKER_TITLE": "Select asset",
+  "SETTINGS_ASSET_PICKER_DESC": "Choose an asset from the library or upload a new one.",
   "SETTINGS_ASSET_PICKER_SEARCH_PLACEHOLDER": "Search by filename/title",
   "SETTINGS_ASSET_PICKER_LOAD_MORE": "Load more",
   "SETTINGS_ASSET_PICKER_SELECT": "Select from asset library",

@@ -55,6 +55,7 @@ import {
   tagInputStyle,
 } from "./asset-masonry-tile";
 import { useAssetPreviewSheetController } from "./asset-preview-sheet-controller";
+import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onClose: () => void }) {
   const {
     t,
@@ -163,7 +164,7 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
                     placement="bottomRight"
                     // Match the proven pattern used in AssetSharePopover:
                     // avoid rendering overlay into body (Portal) which can be treated as "outside interaction" by Radix.
-                    getPopupContainer={(triggerNode) => triggerNode.parentElement ?? document.body}
+                    getPopupContainer={(triggerNode) => getPopupContainerWithinOverlay(triggerNode)}
                     menu={{
                       items: moreMenuItems,
                       onClick: ({ key, domEvent }) => {

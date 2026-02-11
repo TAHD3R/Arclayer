@@ -3,6 +3,7 @@ import { Button as AntButton, Form, Select, Tag, Tooltip } from "antd";
 import { useTranslation } from "react-i18next";
 import { useMemo } from "react";
 import { z } from "zod";
+import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 
 import {
   Dialog,
@@ -107,7 +108,8 @@ export function InviteOrganizationMemberDialog(props: {
   const selectedRoleCode = form.watch("roleCode");
   const emailTags = form.watch("emails");
   const emailFieldError = form.formState.errors.emails;
-  const emailError = typeof emailFieldError?.message === "string" ? emailFieldError.message : undefined;
+  const emailError =
+    typeof emailFieldError?.message === "string" ? emailFieldError.message : undefined;
   const emailHasError =
     Boolean(emailError) ||
     (Array.isArray(emailFieldError) && emailFieldError.some((item) => Boolean(item?.message)));
@@ -155,7 +157,12 @@ export function InviteOrganizationMemberDialog(props: {
           <DialogDescription>{t("common:ORG_INVITATIONS_DIALOG_DESC")}</DialogDescription>
         </DialogHeader>
 
-        <Form layout="vertical" requiredMark={false} className="py-1" onFinish={() => void onSubmit()}>
+        <Form
+          layout="vertical"
+          requiredMark={false}
+          className="py-1"
+          onFinish={() => void onSubmit()}
+        >
           <Form.Item
             label={t("common:ORG_MEMBERS_INVITE_EMAIL")}
             validateStatus={emailHasError ? "error" : undefined}
@@ -184,7 +191,7 @@ export function InviteOrganizationMemberDialog(props: {
                       },
                     );
                   }}
-                  getPopupContainer={(node) => node.parentElement ?? document.body}
+                  getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
                   options={[]}
                   notFoundContent={null}
                   disabled={props.loading}
@@ -197,7 +204,7 @@ export function InviteOrganizationMemberDialog(props: {
                         color={message ? "error" : "default"}
                         closable={tagProps.closable}
                         onClose={tagProps.onClose}
-                        style={{ marginInlineEnd: 0 }}
+                        className="!mr-0"
                       >
                         {tagProps.label}
                       </Tag>
@@ -235,9 +242,9 @@ export function InviteOrganizationMemberDialog(props: {
                   onChange={(next) => field.onChange(String(next))}
                   options={props.roleOptions}
                   placeholder={t("team:TEAM_INVITE_FIELD_ROLE_PLACEHOLDER")}
-                  getPopupContainer={(node) => node.parentElement ?? document.body}
+                  getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
                   disabled={props.loading}
-                  style={{ width: "100%" }}
+                  className="w-full"
                 />
               )}
             />
@@ -257,9 +264,9 @@ export function InviteOrganizationMemberDialog(props: {
                   value={field.value}
                   onChange={(next) => field.onChange(next)}
                   options={expiresOptions}
-                  getPopupContainer={(node) => node.parentElement ?? document.body}
+                  getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
                   disabled={props.loading}
-                  style={{ width: "100%" }}
+                  className="w-full"
                 />
               )}
             />

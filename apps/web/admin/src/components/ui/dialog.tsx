@@ -89,7 +89,7 @@ type DialogHeaderProps = DialogHeaderPrimitiveProps;
 function DialogHeader({ className, ...props }: DialogHeaderProps) {
   return (
     <DialogHeaderPrimitive
-      className={cn("flex flex-col  text-center sm:text-left", className)}
+      className={cn("flex flex-col gap-2 border-b pb-4 text-center sm:text-left", className)}
       {...props}
     />
   );
@@ -100,7 +100,10 @@ type DialogFooterProps = DialogFooterPrimitiveProps;
 function DialogFooter({ className, ...props }: DialogFooterProps) {
   return (
     <DialogFooterPrimitive
-      className={cn("flex flex-col-reverse gap-2 pt-3 sm:flex-row sm:justify-end", className)}
+      className={cn(
+        "mt-6 flex flex-col-reverse gap-2 border-t pt-4 sm:flex-row sm:justify-end",
+        className,
+      )}
       {...props}
     />
   );

@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 
-import { GeneralSettingsView } from "@/pages/settings/general/page";
+import { GeneralSettingsView } from "@/pages/workspaces/settings/general/page";
 import type { GeneralSettingsTabKey } from "@/types/settings-general";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 

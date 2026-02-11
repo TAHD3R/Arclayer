@@ -36,7 +36,7 @@ export function ConfirmDialog(props: ConfirmDialogProps) {
           ) : null}
         </DialogHeader>
 
-        <DialogFooter className="mt-6">
+        <DialogFooter className="mt-0">
           <Button onClick={() => props.onOpenChange(false)} disabled={props.loading}>
             {props.cancelText}
           </Button>
