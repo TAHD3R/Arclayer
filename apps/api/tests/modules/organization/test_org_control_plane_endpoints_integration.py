@@ -211,7 +211,12 @@ async def test_org_members_endpoints_invite_and_role_update(prepared_db, integra
             password_hash=hash_password("member_pass_123", settings.auth),
         )
 
-        await OrgMembership.create(organization_id=org.id, user_id=owner.id, role=OrgRole.OWNER, status="active")
+        owner_orgm = await OrgMembership.create(
+            organization_id=org.id,
+            user_id=owner.id,
+            role=OrgRole.OWNER,
+            status="active",
+        )
         member_orgm = await OrgMembership.create(
             organization_id=org.id,
             user_id=member.id,
@@ -225,6 +230,19 @@ async def test_org_members_endpoints_invite_and_role_update(prepared_db, integra
             name="Default",
             is_active=True,
             created_by_user_id=owner.id,
+        )
+
+        await WorkspaceMembership.create(
+            workspace_id=ws.id,
+            user_id=owner.id,
+            status=WorkspaceMembershipStatus.ACTIVE,
+            invited_by_user_id=None,
+        )
+        await WorkspaceMembership.create(
+            workspace_id=ws.id,
+            user_id=member.id,
+            status=WorkspaceMembershipStatus.ACTIVE,
+            invited_by_user_id=owner.id,
         )
 
         current_user: User | None = owner
@@ -254,6 +272,10 @@ async def test_org_members_endpoints_invite_and_role_update(prepared_db, integra
             assert list_members.status_code == 200, list_members.text
             payload = list_members.json()["data"]
             assert payload["total"] == 2
+            member_row = next((row for row in payload["items"] if row["membershipId"] == encode_uuid(member_orgm.id)), None)
+            assert member_row is not None
+            assert member_row["workspaceCount"] == 1
+            assert len(member_row["workspaces"]) == 1
 
             role_update = await client.patch(
                 f"/api/v1/organizations/me/members/{encode_uuid(member_orgm.id)}/role",
@@ -262,12 +284,104 @@ async def test_org_members_endpoints_invite_and_role_update(prepared_db, integra
             assert role_update.status_code == 200, role_update.text
             assert role_update.json()["data"]["role"] == "admin"
 
+            create_custom_role = await client.post(
+                "/api/v1/organizations/me/rbac/roles",
+                json={
+                    "name": "Ops Manager",
+                    "code": "ops_manager",
+                    "templateRoleCode": "member",
+                },
+            )
+            assert create_custom_role.status_code == 200, create_custom_role.text
+            assert create_custom_role.json()["data"]["code"] == "ops_manager"
+
+            grant_create_invite = await client.put(
+                "/api/v1/organizations/me/rbac/permissions/org.invitations.create/roles",
+                json={"roleCodes": ["ops_manager"]},
+            )
+            assert grant_create_invite.status_code == 200, grant_create_invite.text
+
+            set_member_custom_role = await client.patch(
+                f"/api/v1/organizations/me/members/{encode_uuid(member_orgm.id)}/role",
+                json={"roleCode": "ops_manager"},
+            )
+            assert set_member_custom_role.status_code == 200, set_member_custom_role.text
+            assert set_member_custom_role.json()["data"]["role"] == "member"
+            assert set_member_custom_role.json()["data"]["roleCode"] == "ops_manager"
+
+            current_user = member
+            custom_role_invite_resp = await client.post(
+                "/api/v1/organizations/me/invitations",
+                json={"email": f"custom_{uuid4().hex[:8]}@example.com", "roleCode": "member"},
+            )
+            assert custom_role_invite_resp.status_code == 200, custom_role_invite_resp.text
+
+            member_write_roles_denied = await client.post(
+                "/api/v1/organizations/me/rbac/roles",
+                json={"name": "Blocked", "code": "blocked_role"},
+            )
+            assert member_write_roles_denied.status_code == 403, member_write_roles_denied.text
+            assert member_write_roles_denied.json().get("error") == "ORG_ROLES_WRITE_REQUIRED"
+
+            current_user = owner
+
             invite_resp = await client.post(
                 "/api/v1/organizations/me/invitations",
-                json={"email": f"invite_{uuid4().hex[:8]}@example.com", "role": "member"},
+                json={"email": f"invite_{uuid4().hex[:8]}@example.com", "roleCode": "member"},
             )
             assert invite_resp.status_code == 200, invite_resp.text
             invite_payload = invite_resp.json()["data"]
-            assert invite_payload["workspaceId"] == encode_uuid(ws.id)
+            assert invite_payload["roleCode"] == "member"
             assert invite_payload["token"]
             assert invite_payload["email"].endswith("@example.com")
+
+            list_invites_resp = await client.get("/api/v1/organizations/me/invitations")
+            assert list_invites_resp.status_code == 200, list_invites_resp.text
+            list_invites_payload = list_invites_resp.json()["data"]
+            assert list_invites_payload["total"] >= 1
+            assert list_invites_payload["items"][0]["invitationType"] == "email"
+            invitation_id = invite_payload["invitationId"]
+
+            create_link_resp = await client.post(
+                "/api/v1/organizations/me/invitations/links",
+                json={"roleCode": "member", "maxUses": 3},
+            )
+            assert create_link_resp.status_code == 200, create_link_resp.text
+            link_payload = create_link_resp.json()["data"]
+            assert link_payload["link"]["displayCode"]
+            assert link_payload["token"]
+
+            list_links_resp = await client.get("/api/v1/organizations/me/invitations/links")
+            assert list_links_resp.status_code == 200, list_links_resp.text
+            assert list_links_resp.json()["data"]["total"] >= 1
+
+            link_id = link_payload["link"]["id"]
+            renew_link_resp = await client.post(
+                f"/api/v1/organizations/me/invitations/links/{link_id}/renew",
+                json={"expiresInSeconds": 24 * 60 * 60},
+            )
+            assert renew_link_resp.status_code == 200, renew_link_resp.text
+
+            disable_link_resp = await client.post(
+                f"/api/v1/organizations/me/invitations/links/{link_id}/disable",
+            )
+            assert disable_link_resp.status_code == 200, disable_link_resp.text
+
+            renew_resp = await client.post(
+                f"/api/v1/organizations/me/invitations/{invitation_id}/renew",
+                json={"expiresInSeconds": 24 * 60 * 60},
+            )
+            assert renew_resp.status_code == 200, renew_resp.text
+            assert renew_resp.json()["data"]["token"]
+
+            revoke_resp = await client.post(
+                f"/api/v1/organizations/me/invitations/{invitation_id}/revoke",
+            )
+            assert revoke_resp.status_code == 200, revoke_resp.text
+            assert revoke_resp.json()["data"]["revoked"] is True
+
+            owner_self_remove = await client.delete(
+                f"/api/v1/organizations/me/members/{encode_uuid(owner_orgm.id)}"
+            )
+            assert owner_self_remove.status_code == 403, owner_self_remove.text
+            assert owner_self_remove.json().get("error") == "ORG_OWNER_SELF_REMOVE_FORBIDDEN"

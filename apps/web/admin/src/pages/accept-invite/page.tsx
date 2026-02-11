@@ -202,14 +202,22 @@ export function AcceptInviteView(props: { token: string | null }) {
     clearWorkspace();
     await onBackToLogin();
   };
-  const applyJoinedWorkspace = async (workspaceId: string) => {
+  const applyJoinedWorkspace = async (workspaceId: string | null | undefined) => {
+    if (!workspaceId) {
+      notifySuccessText(t("invite:INVITE_JOIN_SUCCESS"));
+      await navigate({ to: "/organization/team/members", replace: true });
+      return;
+    }
     setCurrentWorkspaceId(workspaceId);
     notifySuccessText(t("invite:INVITE_JOIN_SUCCESS"));
     await navigate({ to: `/w/${workspaceId}`, replace: true });
   };
   const joinAsExistingLoggedIn = async () => {
     if (!previewQuery.data) return;
-    const workspaceName = previewQuery.data.workspace.name;
+    const workspaceName =
+      previewQuery.data.workspace?.name ||
+      previewQuery.data.organization.name ||
+      t("invite:INVITE_WORKSPACE_FALLBACK");
     const email = myEmail || inviteEmail;
     const roleName = roleResolved.name;
 
@@ -269,7 +277,7 @@ export function AcceptInviteView(props: { token: string | null }) {
     try {
       const tokens = await registerAcceptMutation.mutateAsync(values);
       applyLogin(tokens, { keepSession: true });
-      await applyJoinedWorkspace(previewQuery.data.workspace.id);
+      await applyJoinedWorkspace(previewQuery.data.workspace?.id);
     } catch (err) {
       // If email already exists, guide user to login flow.
       if (err instanceof ApiError && err.error === "EMAIL_EXISTS") {
@@ -348,7 +356,7 @@ export function AcceptInviteView(props: { token: string | null }) {
                     className="mb-4"
                   >
                     {(
-                      previewQuery.data.workspace.name ||
+                      previewQuery.data.workspace?.name ||
                       previewQuery.data.organization.name ||
                       "W"
                     ).slice(0, 1)}
@@ -357,7 +365,10 @@ export function AcceptInviteView(props: { token: string | null }) {
                   <div className="text-2xl font-semibold">
                     {t("invite:INVITE_PREVIEW_INVITED_TO_ORG", {
                       inviter: inviterLabel || t("invite:INVITE_INVITER_UNKNOWN"),
-                      workspaceName: previewQuery.data.workspace.name,
+                      workspaceName:
+                        previewQuery.data.workspace?.name ||
+                        previewQuery.data.organization.name ||
+                        t("invite:INVITE_WORKSPACE_FALLBACK"),
                     })}
                   </div>
 

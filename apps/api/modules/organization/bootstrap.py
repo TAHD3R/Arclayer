@@ -47,7 +47,12 @@ async def ensure_organization_ready() -> None:
         for user in users:
             _, created2 = await OrgMembership.get_or_create(
                 user_id=user.id,
-                defaults={"organization_id": org.id, "role": OrgRole.MEMBER, "status": "active"},
+                defaults={
+                    "organization_id": org.id,
+                    "role": OrgRole.MEMBER,
+                    "role_code": OrgRole.MEMBER.value,
+                    "status": "active",
+                },
             )
             if created2:
                 created_org_memberships += 1

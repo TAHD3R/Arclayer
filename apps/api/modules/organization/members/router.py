@@ -1,17 +1,27 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Annotated, cast
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query
 
-from apps.api.common.protocols.tortoise import HasOrganizationId, HasUserId
+from apps.api.common.protocols.tortoise import HasOrganizationId
 from apps.api.common.types.public_uuid import PublicUUID
 from apps.api.config import Settings, get_settings
 from apps.api.core.http.pagination import DependsPagination, PageData, PageParams
 from apps.api.core.http.response import Response, ResponseModel
 from apps.api.modules.organization.deps import get_current_org_membership
 from apps.api.modules.organization.members.schema import (
+    OrganizationInvitationOut,
+    OrganizationInvitationRenewRequest,
+    OrganizationInvitationRenewResult,
+    OrganizationInvitationRevokeResult,
+    OrganizationInviteLinkCreateRequest,
+    OrganizationInviteLinkCreateResult,
+    OrganizationInviteLinkOut,
+    OrganizationInviteLinkParticipantOut,
+    OrganizationInviteLinkRenewResult,
     OrganizationMemberDeleteResult,
     OrganizationMemberInviteRequest,
     OrganizationMemberInviteResult,
@@ -19,7 +29,8 @@ from apps.api.modules.organization.members.schema import (
     OrganizationMemberRoleUpdateRequest,
 )
 from apps.api.modules.organization.members.service import OrganizationMemberService
-from apps.api.modules.organization.models.org_membership import OrgMembership
+from apps.api.modules.organization.models.org_membership import OrgMembership, OrgRole
+from apps.api.modules.organization.models.user import UserStatus
 
 router = APIRouter(prefix="/organizations/me", tags=["Organization"])
 
@@ -33,13 +44,58 @@ async def list_organization_members(
     orgm: Annotated[OrgMembership, Depends(get_current_org_membership)],
     params: PageParams = DependsPagination,
     q: str | None = Query(default=None, description="Search query by username/email/display name."),
+    role: OrgRole | None = Query(default=None, description="Filter by organization role."),
+    membership_status: str | None = Query(
+        default=None,
+        alias="membershipStatus",
+        description="Filter by organization membership status.",
+    ),
+    user_status: UserStatus | None = Query(
+        default=None,
+        alias="userStatus",
+        description="Filter by user account status.",
+    ),
+    has_workspace: bool | None = Query(
+        default=None,
+        alias="hasWorkspace",
+        description="Filter by whether user is associated with workspaces.",
+    ),
+    joined_from: datetime | None = Query(
+        default=None,
+        alias="joinedFrom",
+        description="Filter members joined at or after this ISO datetime.",
+    ),
+    joined_to: datetime | None = Query(
+        default=None,
+        alias="joinedTo",
+        description="Filter members joined at or before this ISO datetime.",
+    ),
+    last_login_from: datetime | None = Query(
+        default=None,
+        alias="lastLoginFrom",
+        description="Filter members with last login at or after this ISO datetime.",
+    ),
+    last_login_to: datetime | None = Query(
+        default=None,
+        alias="lastLoginTo",
+        description="Filter members with last login at or before this ISO datetime.",
+    ),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[PageData[OrganizationMemberOut]]:
     service = OrganizationMemberService(settings)
     out = await service.list_members(
         organization_id=UUID(str(cast(HasOrganizationId, orgm).organization_id)),
+        actor_membership=orgm,
         params=params,
         q=q,
+        role=role,
+        membership_status=membership_status,
+        user_status=user_status,
+        has_workspace=has_workspace,
+        joined_from=joined_from,
+        joined_to=joined_to,
+        last_login_from=last_login_from,
+        last_login_to=last_login_to,
     )
     return Response.success(data=out)
 
@@ -57,20 +113,189 @@ async def invite_organization_member(
     service = OrganizationMemberService(settings)
     out = await service.invite_member(
         organization_id=UUID(str(cast(HasOrganizationId, orgm).organization_id)),
-        actor_user_id=UUID(str(cast(HasUserId, orgm).user_id)),
-        actor_role=orgm.role,
+        actor_membership=orgm,
         payload=payload,
     )
     return Response.success(data=out)
 
 
+@router.get(
+    "/invitations",
+    response_model=ResponseModel[PageData[OrganizationInvitationOut]],
+    summary="List organization invitations",
+)
+async def list_organization_invitations(
+    orgm: Annotated[OrgMembership, Depends(get_current_org_membership)],
+    params: PageParams = DependsPagination,
+    q: str | None = Query(default=None, description="Search query by email/role."),
+    status: str | None = Query(default=None, description="Filter by invitation status."),
+    mine: bool | None = Query(default=None, description="If true, only invitations created by me."),
+    settings: Settings = Depends(get_settings),
+) -> ResponseModel[PageData[OrganizationInvitationOut]]:
+    service = OrganizationMemberService(settings)
+    out = await service.list_invitations(
+        organization_id=UUID(str(cast(HasOrganizationId, orgm).organization_id)),
+        actor_membership=orgm,
+        params=params,
+        q=q,
+        status=status,
+        mine=mine,
+    )
+    return Response.success(data=out)
+
+
+@router.post(
+    "/invitations/{invitation_id}/renew",
+    response_model=ResponseModel[OrganizationInvitationRenewResult],
+    summary="Renew organization invitation",
+)
+async def renew_organization_invitation(
+    invitation_id: PublicUUID,
+    payload: OrganizationInvitationRenewRequest,
+    orgm: Annotated[OrgMembership, Depends(get_current_org_membership)],
+    settings: Settings = Depends(get_settings),
+) -> ResponseModel[OrganizationInvitationRenewResult]:
+    service = OrganizationMemberService(settings)
+    out = await service.renew_invitation(
+        organization_id=UUID(str(cast(HasOrganizationId, orgm).organization_id)),
+        actor_membership=orgm,
+        invitation_id=UUID(str(invitation_id)),
+        expires_in_seconds=payload.expires_in_seconds,
+    )
+    return Response.success(data=out)
+
+
+@router.post(
+    "/invitations/{invitation_id}/revoke",
+    response_model=ResponseModel[OrganizationInvitationRevokeResult],
+    summary="Revoke organization invitation",
+)
+async def revoke_organization_invitation(
+    invitation_id: PublicUUID,
+    orgm: Annotated[OrgMembership, Depends(get_current_org_membership)],
+    settings: Settings = Depends(get_settings),
+) -> ResponseModel[OrganizationInvitationRevokeResult]:
+    service = OrganizationMemberService(settings)
+    revoked = await service.revoke_invitation(
+        organization_id=UUID(str(cast(HasOrganizationId, orgm).organization_id)),
+        actor_membership=orgm,
+        invitation_id=UUID(str(invitation_id)),
+    )
+    return Response.success(
+        data=OrganizationInvitationRevokeResult(invitation_id=UUID(str(invitation_id)), revoked=revoked)
+    )
+
+
+@router.post(
+    "/invitations/links",
+    response_model=ResponseModel[OrganizationInviteLinkCreateResult],
+    summary="Create organization invite link",
+)
+async def create_organization_invite_link(
+    payload: OrganizationInviteLinkCreateRequest,
+    orgm: Annotated[OrgMembership, Depends(get_current_org_membership)],
+    settings: Settings = Depends(get_settings),
+) -> ResponseModel[OrganizationInviteLinkCreateResult]:
+    service = OrganizationMemberService(settings)
+    out = await service.create_invite_link(
+        organization_id=UUID(str(cast(HasOrganizationId, orgm).organization_id)),
+        actor_membership=orgm,
+        payload=payload,
+    )
+    return Response.success(data=out)
+
+
+@router.get(
+    "/invitations/links",
+    response_model=ResponseModel[PageData[OrganizationInviteLinkOut]],
+    summary="List organization invite links",
+)
+async def list_organization_invite_links(
+    orgm: Annotated[OrgMembership, Depends(get_current_org_membership)],
+    params: PageParams = DependsPagination,
+    q: str | None = Query(default=None, description="Search query by code/domain/role."),
+    mine: bool | None = Query(default=None, description="If true, only links created by me."),
+    settings: Settings = Depends(get_settings),
+) -> ResponseModel[PageData[OrganizationInviteLinkOut]]:
+    service = OrganizationMemberService(settings)
+    out = await service.list_invite_links(
+        organization_id=UUID(str(cast(HasOrganizationId, orgm).organization_id)),
+        actor_membership=orgm,
+        params=params,
+        q=q,
+        mine=mine,
+    )
+    return Response.success(data=out)
+
+
+@router.post(
+    "/invitations/links/{link_id}/renew",
+    response_model=ResponseModel[OrganizationInviteLinkRenewResult],
+    summary="Renew organization invite link",
+)
+async def renew_organization_invite_link(
+    link_id: PublicUUID,
+    payload: OrganizationInvitationRenewRequest,
+    orgm: Annotated[OrgMembership, Depends(get_current_org_membership)],
+    settings: Settings = Depends(get_settings),
+) -> ResponseModel[OrganizationInviteLinkRenewResult]:
+    service = OrganizationMemberService(settings)
+    out = await service.renew_invite_link(
+        organization_id=UUID(str(cast(HasOrganizationId, orgm).organization_id)),
+        actor_membership=orgm,
+        link_id=UUID(str(link_id)),
+        expires_in_seconds=payload.expires_in_seconds,
+    )
+    return Response.success(data=out)
+
+
+@router.post(
+    "/invitations/links/{link_id}/disable",
+    response_model=ResponseModel[OrganizationInvitationRevokeResult],
+    summary="Disable organization invite link",
+)
+async def disable_organization_invite_link(
+    link_id: PublicUUID,
+    orgm: Annotated[OrgMembership, Depends(get_current_org_membership)],
+    settings: Settings = Depends(get_settings),
+) -> ResponseModel[OrganizationInvitationRevokeResult]:
+    service = OrganizationMemberService(settings)
+    revoked = await service.disable_invite_link(
+        organization_id=UUID(str(cast(HasOrganizationId, orgm).organization_id)),
+        actor_membership=orgm,
+        link_id=UUID(str(link_id)),
+    )
+    return Response.success(data=OrganizationInvitationRevokeResult(invitation_id=UUID(str(link_id)), revoked=revoked))
+
+
+@router.get(
+    "/invitations/links/{link_id}/participants",
+    response_model=ResponseModel[PageData[OrganizationInviteLinkParticipantOut]],
+    summary="List organization invite-link participants",
+)
+async def list_organization_invite_link_participants(
+    link_id: PublicUUID,
+    orgm: Annotated[OrgMembership, Depends(get_current_org_membership)],
+    params: PageParams = DependsPagination,
+    settings: Settings = Depends(get_settings),
+) -> ResponseModel[PageData[OrganizationInviteLinkParticipantOut]]:
+    service = OrganizationMemberService(settings)
+    out = await service.list_invite_link_participants(
+        organization_id=UUID(str(cast(HasOrganizationId, orgm).organization_id)),
+        actor_membership=orgm,
+        link_id=UUID(str(link_id)),
+        params=params,
+    )
+    return Response.success(data=out)
+
+
 @router.patch(
-    "/members/{member_id}/role",
+    "/members/{membership_id}/role",
     response_model=ResponseModel[OrganizationMemberOut],
     summary="Update organization member role",
 )
 async def patch_organization_member_role(
-    member_id: PublicUUID,
+    membership_id: PublicUUID,
     payload: OrganizationMemberRoleUpdateRequest,
     orgm: Annotated[OrgMembership, Depends(get_current_org_membership)],
     settings: Settings = Depends(get_settings),
@@ -79,19 +304,19 @@ async def patch_organization_member_role(
     out = await service.update_member_role(
         organization_id=UUID(str(cast(HasOrganizationId, orgm).organization_id)),
         actor_membership=orgm,
-        target_membership_id=UUID(str(member_id)),
-        role=payload.role,
+        target_membership_id=UUID(str(membership_id)),
+        role_code=str(payload.role_code),
     )
     return Response.success(data=out)
 
 
 @router.delete(
-    "/members/{member_id}",
+    "/members/{membership_id}",
     response_model=ResponseModel[OrganizationMemberDeleteResult],
     summary="Remove organization member",
 )
 async def delete_organization_member(
-    member_id: PublicUUID,
+    membership_id: PublicUUID,
     orgm: Annotated[OrgMembership, Depends(get_current_org_membership)],
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[OrganizationMemberDeleteResult]:
@@ -99,6 +324,6 @@ async def delete_organization_member(
     out = await service.remove_member(
         organization_id=UUID(str(cast(HasOrganizationId, orgm).organization_id)),
         actor_membership=orgm,
-        target_membership_id=UUID(str(member_id)),
+        target_membership_id=UUID(str(membership_id)),
     )
     return Response.success(data=out)

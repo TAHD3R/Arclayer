@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from typing import cast
+import secrets
+from datetime import UTC, datetime
+from typing import Protocol, cast
 from uuid import UUID
 
 from apps.api.common.protocols.tortoise import HasUserId
@@ -11,127 +13,582 @@ from apps.api.core.http.pagination import PageData, PageParams, paginate_items
 from apps.api.core.i18n import t
 from apps.api.modules.organization.members.repository import OrganizationMemberRepository
 from apps.api.modules.organization.members.schema import (
+    OrganizationInvitationOut,
+    OrganizationInvitationRenewResult,
+    OrganizationInvitationUserRefOut,
+    OrganizationInviteLinkCreateRequest,
+    OrganizationInviteLinkCreateResult,
+    OrganizationInviteLinkOut,
+    OrganizationInviteLinkParticipantOut,
+    OrganizationInviteLinkRenewResult,
     OrganizationMemberDeleteResult,
     OrganizationMemberInviteRequest,
     OrganizationMemberInviteResult,
     OrganizationMemberOut,
+    OrganizationMemberWorkspaceOut,
+)
+from apps.api.modules.organization.models.org_invitation import (
+    OrganizationEmailInvite,
+    OrganizationInviteLink,
 )
 from apps.api.modules.organization.models.org_membership import OrgMembership, OrgRole
-from apps.api.modules.workspaces.team.schema import WorkspaceEmailInviteCreateRequest
-from apps.api.modules.workspaces.team.service import WorkspaceTeamService
+from apps.api.modules.organization.models.user import User
+from apps.api.modules.organization.rbac.service import OrganizationRBACService
+from apps.api.modules.workspaces.invitations.expiry import build_expires_at
+from apps.api.modules.workspaces.invitations.tokens import build_invite_token, generate_invite_code
+from apps.api.modules.workspaces.models.workspace import WorkspaceMembership
+
+
+class _RoleCodeRef(Protocol):
+    code: str
+
+
+class _MembershipRoleRef(Protocol):
+    role: _RoleCodeRef
+
+
+class _WorkspaceRef(Protocol):
+    id: UUID | str
+    name: str
+    slug: str
+
+
+class _WorkspaceMembershipWithRelations(Protocol):
+    workspace: _WorkspaceRef | None
+    membership_roles: list[_MembershipRoleRef] | None
+
+
+class _HasNullableExpiresAt(Protocol):
+    expires_at: datetime | None
 
 
 class OrganizationMemberService(BaseService):
     def __init__(self, settings: Settings) -> None:
         super().__init__(settings)
         self.repo = OrganizationMemberRepository()
+        self.rbac = OrganizationRBACService(settings)
 
     async def list_members(
         self,
         *,
         organization_id: UUID,
+        actor_membership: OrgMembership,
         params: PageParams,
         q: str | None,
+        role: OrgRole | None,
+        membership_status: str | None,
+        user_status: str | None,
+        has_workspace: bool | None,
+        joined_from: datetime | None,
+        joined_to: datetime | None,
+        last_login_from: datetime | None,
+        last_login_to: datetime | None,
     ) -> PageData[OrganizationMemberOut]:
+        await self._ensure_permission(
+            organization_id=organization_id,
+            actor_membership=actor_membership,
+            permission_code="org.members.read",
+        )
+
         rows = await self.repo.list_memberships(organization_id=organization_id)
+        user_ids = [UUID(str(row.user.id)) for row in rows]
+        workspace_rows = await self.repo.list_workspace_memberships_for_user_ids(
+            organization_id=organization_id,
+            user_ids=user_ids,
+        )
+        workspace_map = self._build_workspace_map(workspace_rows)
 
         needle = str(q or "").strip().lower()
-        if needle:
-            rows = [
-                row
-                for row in rows
-                if needle in str(row.user.username or "").lower()
-                or needle in str(row.user.email or "").lower()
-                or needle in str(row.user.display_name or "").lower()
-            ]
+        normalized_membership_status = str(membership_status or "").strip().lower() or None
+        normalized_user_status = str(user_status or "").strip().lower() or None
 
-        items = [
-            OrganizationMemberOut(
-                id=row.id,
-                membership_id=row.id,
-                organization_id=organization_id,
-                role=row.role,
-                status=row.status,
-                user_id=row.user.id,
-                username=row.user.username,
-                display_name=row.user.display_name,
-                email=row.user.email,
-                avatar_url=row.user.avatar_url,
-                last_login_at=row.user.last_login_at,
-                joined_at=row.created_at,
+        items: list[OrganizationMemberOut] = []
+        for row in rows:
+            if role is not None and row.role != role:
+                continue
+
+            if normalized_membership_status and str(row.status).lower() != normalized_membership_status:
+                continue
+
+            member_user_status = str(row.user.status).lower()
+            if normalized_user_status and member_user_status != normalized_user_status:
+                continue
+
+            member_joined_at = row.created_at
+            if joined_from and member_joined_at < joined_from:
+                continue
+            if joined_to and member_joined_at > joined_to:
+                continue
+
+            last_login_at = row.user.last_login_at
+            if last_login_from and (last_login_at is None or last_login_at < last_login_from):
+                continue
+            if last_login_to and (last_login_at is None or last_login_at > last_login_to):
+                continue
+
+            if needle:
+                if (
+                    needle not in str(row.user.username or "").lower()
+                    and needle not in str(row.user.email or "").lower()
+                    and needle not in str(row.user.display_name or "").lower()
+                ):
+                    continue
+
+            workspace_items = workspace_map.get(UUID(str(row.user.id)), [])
+            workspace_count = len(workspace_items)
+
+            if has_workspace is True and workspace_count <= 0:
+                continue
+            if has_workspace is False and workspace_count > 0:
+                continue
+
+            items.append(
+                OrganizationMemberOut(
+                    id=row.id,
+                    membership_id=row.id,
+                    organization_id=organization_id,
+                    role=row.role,
+                    role_code=str(getattr(row, "role_code", row.role.value)),
+                    status=row.status,
+                    user_id=row.user.id,
+                    username=row.user.username,
+                    display_name=row.user.display_name,
+                    email=row.user.email,
+                    avatar_url=row.user.avatar_url,
+                    user_status=row.user.status,
+                    last_login_at=row.user.last_login_at,
+                    joined_at=row.created_at,
+                    workspace_count=workspace_count,
+                    workspaces=workspace_items,
+                )
             )
-            for row in rows
-        ]
+
         return paginate_items(items, params=params)
 
     async def invite_member(
         self,
         *,
         organization_id: UUID,
-        actor_user_id: UUID,
-        actor_role: OrgRole,
+        actor_membership: OrgMembership,
         payload: OrganizationMemberInviteRequest,
     ) -> OrganizationMemberInviteResult:
-        self._ensure_org_admin(actor_role=actor_role)
+        await self._ensure_permission(
+            organization_id=organization_id,
+            actor_membership=actor_membership,
+            permission_code="org.invitations.create",
+            error_code="ORG_INVITATIONS_CREATE_REQUIRED",
+        )
+
+        actor_user_id = UUID(str(cast(HasUserId, actor_membership).user_id))
 
         email = str(payload.email or "").strip().lower()
         if not email or "@" not in email:
-            raise BadRequest(message=t("errors", "BAD_REQUEST", default="参数错误"), error="INVALID_EMAIL")
+            raise BadRequest(message=t("errors", "BAD_REQUEST", default="Invalid request"), error="INVALID_EMAIL")
 
         existing = await self.repo.find_user_membership_by_email(organization_id=organization_id, email=email)
         if existing is not None:
             raise Conflict(
-                message=t("errors", "CONFLICT", default="资源冲突"),
+                message=t("errors", "CONFLICT", default="Resource conflict"),
                 error="ORG_MEMBER_ALREADY_EXISTS",
             )
 
-        workspace = await self.repo.first_active_workspace(organization_id=organization_id)
-        if workspace is None:
-            raise BadRequest(
-                message=t("errors", "BAD_REQUEST", default="参数错误"),
-                error="ORG_WORKSPACE_REQUIRED",
-            )
-
-        if await self.repo.has_pending_invite(
-            organization_id=organization_id,
-            workspace_id=UUID(str(workspace.id)),
-            email=email,
-        ):
+        if await self.repo.has_pending_email_invite(organization_id=organization_id, email=email):
             raise Conflict(
-                message=t("errors", "CONFLICT", default="资源冲突"),
+                message=t("errors", "CONFLICT", default="Resource conflict"),
                 error="ORG_MEMBER_INVITE_ALREADY_PENDING",
             )
 
-        # Reuse the workspace invitation flow so accept-invite remains the single onboarding path.
-        team_service = WorkspaceTeamService(self.settings)
-        created = await team_service.create_or_update_email_invite(
+        role_code = await self._normalize_and_validate_role_code(
             organization_id=organization_id,
-            workspace_id=UUID(str(workspace.id)),
-            invited_by_user_id=actor_user_id,
-            payload=WorkspaceEmailInviteCreateRequest(
-                email=email,
-                role_code=None,
-                expires_in_seconds=payload.expires_in_seconds,
-            ),
+            role_code=payload.role_code,
         )
+
+        invite = await OrganizationEmailInvite.create(
+            organization_id=organization_id,
+            email=email,
+            role_code=role_code,
+            code=generate_invite_code(prefix="oi"),
+            expires_at=build_expires_at(expires_in_seconds=payload.expires_in_seconds),
+            created_by_user_id=actor_user_id,
+        )
+
+        token = build_invite_token(self.settings, code=invite.code)
+        invite_url = self._build_invite_url(token)
 
         self.logger.info(
             "Organization member invited",
             action="organization_member_invite",
             organization_id=str(organization_id),
             actor_user_id=str(actor_user_id),
-            workspace_id=str(workspace.id),
             email=email,
-            requested_role=str(payload.role),
+            requested_role_code=role_code,
         )
 
         return OrganizationMemberInviteResult(
-            invitation_id=created.invitation.id,
-            email=created.invitation.email,
-            role=payload.role,
-            workspace_id=workspace.id,
-            token=created.token,
-            invite_url=created.invite_url,
+            invitation_id=invite.id,
+            email=invite.email,
+            role_code=role_code,
+            token=token,
+            invite_url=invite_url,
+        )
+
+    async def list_invitations(
+        self,
+        *,
+        organization_id: UUID,
+        actor_membership: OrgMembership,
+        params: PageParams,
+        q: str | None,
+        status: str | None,
+        mine: bool | None,
+    ) -> PageData[OrganizationInvitationOut]:
+        actor_user_id = UUID(str(cast(HasUserId, actor_membership).user_id))
+        await self._ensure_permission(
+            organization_id=organization_id,
+            actor_membership=actor_membership,
+            permission_code="org.invitations.read",
+            error_code="ORG_INVITATIONS_READ_REQUIRED",
+        )
+
+        total, rows = await self.repo.list_email_invites(
+            organization_id=organization_id,
+            params=params,
+            q=q,
+            status=status,
+            mine=mine,
+            current_user_id=actor_user_id,
+        )
+
+        user_ids: set[UUID] = set()
+        for invite in rows:
+            if invite.created_by_user_id is not None:
+                user_ids.add(UUID(str(invite.created_by_user_id)))
+            if invite.accepted_by_user_id is not None:
+                user_ids.add(UUID(str(invite.accepted_by_user_id)))
+            if invite.revoked_by_user_id is not None:
+                user_ids.add(UUID(str(invite.revoked_by_user_id)))
+        users_map = await self.repo.get_users_map(user_ids=list(user_ids))
+
+        items = [self._to_email_invitation_out(invite, users_map=users_map) for invite in rows]
+
+        pages = (total + params.size - 1) // params.size if params.size else 0
+        next_page = params.page + 1 if pages and params.page < pages else None
+        prev_page = min(params.page - 1, pages) if pages and params.page > 1 else None
+
+        return PageData[OrganizationInvitationOut](
+            items=items,
+            total=total,
+            page=params.page,
+            size=params.size,
+            pages=pages,
+            next=next_page,
+            prev=prev_page,
+        )
+
+    async def renew_invitation(
+        self,
+        *,
+        organization_id: UUID,
+        actor_membership: OrgMembership,
+        invitation_id: UUID,
+        expires_in_seconds: int | None,
+    ) -> OrganizationInvitationRenewResult:
+        actor_user_id = UUID(str(cast(HasUserId, actor_membership).user_id))
+        await self._ensure_permission(
+            organization_id=organization_id,
+            actor_membership=actor_membership,
+            permission_code="org.invitations.revoke",
+            error_code="ORG_INVITATIONS_REVOKE_REQUIRED",
+        )
+
+        invite = await self.repo.get_email_invite(organization_id=organization_id, invitation_id=invitation_id)
+        if invite is None:
+            raise NotFound(message=t("errors", "NOT_FOUND", default="Not found"), error="NOT_FOUND")
+
+        if invite.accepted_at is not None:
+            raise BadRequest(
+                message=t("errors", "BAD_REQUEST", default="Invite already accepted"),
+                error="INVITE_ALREADY_ACCEPTED",
+            )
+
+        if invite.revoked_at is not None:
+            raise BadRequest(
+                message=t("errors", "BAD_REQUEST", default="Invite already revoked"),
+                error="INVITE_REVOKED",
+            )
+
+        invite_expires_at = cast(_HasNullableExpiresAt, invite)
+        invite_expires_at.expires_at = build_expires_at(expires_in_seconds=expires_in_seconds)
+        await invite.save(update_fields=["expires_at", "updated_at"])
+
+        token = build_invite_token(self.settings, code=invite.code)
+        invite_url = self._build_invite_url(token)
+
+        users_map = await self.repo.get_users_map(
+            user_ids=[
+                UUID(str(invite.created_by_user_id)),
+                UUID(str(invite.accepted_by_user_id)) if invite.accepted_by_user_id else actor_user_id,
+                UUID(str(invite.revoked_by_user_id)) if invite.revoked_by_user_id else actor_user_id,
+            ]
+        )
+
+        self.logger.info(
+            "Organization invitation renewed",
+            action="organization_member_invitation_renew",
+            organization_id=str(organization_id),
+            actor_user_id=str(actor_user_id),
+            invitation_id=str(invite.id),
+        )
+
+        return OrganizationInvitationRenewResult(
+            invitation=self._to_email_invitation_out(invite, users_map=users_map),
+            token=token,
+            invite_url=invite_url,
+        )
+
+    async def revoke_invitation(
+        self,
+        *,
+        organization_id: UUID,
+        actor_membership: OrgMembership,
+        invitation_id: UUID,
+    ) -> bool:
+        actor_user_id = UUID(str(cast(HasUserId, actor_membership).user_id))
+        await self._ensure_permission(
+            organization_id=organization_id,
+            actor_membership=actor_membership,
+            permission_code="org.invitations.revoke",
+            error_code="ORG_INVITATIONS_REVOKE_REQUIRED",
+        )
+
+        invite = await self.repo.get_email_invite(organization_id=organization_id, invitation_id=invitation_id)
+        if invite is None:
+            raise NotFound(message=t("errors", "NOT_FOUND", default="Not found"), error="NOT_FOUND")
+
+        if invite.accepted_at is not None:
+            raise BadRequest(
+                message=t("errors", "BAD_REQUEST", default="Invite already accepted"),
+                error="INVITE_ALREADY_ACCEPTED",
+            )
+
+        if invite.revoked_at is not None:
+            return True
+
+        invite.revoked_at = datetime.now(UTC)
+        invite.revoked_by_user_id = actor_user_id
+        await invite.save(update_fields=["revoked_at", "revoked_by_user_id", "updated_at"])
+
+        self.logger.info(
+            "Organization invitation revoked",
+            action="organization_member_invitation_revoke",
+            organization_id=str(organization_id),
+            actor_user_id=str(actor_user_id),
+            invitation_id=str(invite.id),
+        )
+
+        return True
+
+    async def create_invite_link(
+        self,
+        *,
+        organization_id: UUID,
+        actor_membership: OrgMembership,
+        payload: OrganizationInviteLinkCreateRequest,
+    ) -> OrganizationInviteLinkCreateResult:
+        actor_user_id = UUID(str(cast(HasUserId, actor_membership).user_id))
+        await self._ensure_permission(
+            organization_id=organization_id,
+            actor_membership=actor_membership,
+            permission_code="org.invitations.create",
+            error_code="ORG_INVITATIONS_CREATE_REQUIRED",
+        )
+
+        role_code = await self._normalize_and_validate_role_code(
+            organization_id=organization_id,
+            role_code=payload.role_code,
+        )
+
+        domain = str(payload.allowed_email_domain or "").strip().lower() or None
+        if domain and "@" in domain:
+            raise BadRequest(message="Domain must not contain @", error="INVALID_EMAIL_DOMAIN")
+
+        link = await OrganizationInviteLink.create(
+            organization_id=organization_id,
+            role_code=role_code,
+            code=generate_invite_code(prefix="ol"),
+            display_code=self._build_display_code(),
+            expires_at=build_expires_at(expires_in_seconds=payload.expires_in_seconds),
+            max_uses=payload.max_uses,
+            allowed_email_domain=domain,
+            created_by_user_id=actor_user_id,
+        )
+
+        token = build_invite_token(self.settings, code=link.code)
+        invite_url = self._build_invite_url(token)
+        users_map = await self.repo.get_users_map(user_ids=[actor_user_id])
+
+        out = self._to_invite_link_out(link, users_map=users_map)
+        return OrganizationInviteLinkCreateResult(link=out, token=token, invite_url=invite_url)
+
+    async def list_invite_links(
+        self,
+        *,
+        organization_id: UUID,
+        actor_membership: OrgMembership,
+        params: PageParams,
+        q: str | None,
+        mine: bool | None,
+    ) -> PageData[OrganizationInviteLinkOut]:
+        actor_user_id = UUID(str(cast(HasUserId, actor_membership).user_id))
+        await self._ensure_permission(
+            organization_id=organization_id,
+            actor_membership=actor_membership,
+            permission_code="org.invitations.read",
+            error_code="ORG_INVITATIONS_READ_REQUIRED",
+        )
+
+        total, rows = await self.repo.list_invite_links(
+            organization_id=organization_id,
+            params=params,
+            q=q,
+            mine=mine,
+            current_user_id=actor_user_id,
+        )
+
+        user_ids: set[UUID] = set()
+        for link in rows:
+            if link.created_by_user_id is not None:
+                user_ids.add(UUID(str(link.created_by_user_id)))
+            if link.last_used_by_user_id is not None:
+                user_ids.add(UUID(str(link.last_used_by_user_id)))
+        users_map = await self.repo.get_users_map(user_ids=list(user_ids))
+
+        items = [self._to_invite_link_out(link, users_map=users_map) for link in rows]
+
+        pages = (total + params.size - 1) // params.size if params.size else 0
+        next_page = params.page + 1 if pages and params.page < pages else None
+        prev_page = min(params.page - 1, pages) if pages and params.page > 1 else None
+        return PageData[OrganizationInviteLinkOut](
+            items=items,
+            total=total,
+            page=params.page,
+            size=params.size,
+            pages=pages,
+            next=next_page,
+            prev=prev_page,
+        )
+
+    async def renew_invite_link(
+        self,
+        *,
+        organization_id: UUID,
+        actor_membership: OrgMembership,
+        link_id: UUID,
+        expires_in_seconds: int | None,
+    ) -> OrganizationInviteLinkRenewResult:
+        actor_user_id = UUID(str(cast(HasUserId, actor_membership).user_id))
+        await self._ensure_permission(
+            organization_id=organization_id,
+            actor_membership=actor_membership,
+            permission_code="org.invitations.revoke",
+            error_code="ORG_INVITATIONS_REVOKE_REQUIRED",
+        )
+
+        link = await self.repo.get_invite_link(organization_id=organization_id, link_id=link_id)
+        if link is None:
+            raise NotFound(message=t("errors", "NOT_FOUND", default="Not found"), error="NOT_FOUND")
+        if link.disabled_at is not None:
+            raise BadRequest(message="Invite link disabled", error="INVITE_LINK_DISABLED")
+
+        link_expires_at = cast(_HasNullableExpiresAt, link)
+        link_expires_at.expires_at = build_expires_at(expires_in_seconds=expires_in_seconds)
+        await link.save(update_fields=["expires_at", "updated_at"])
+
+        token = build_invite_token(self.settings, code=link.code)
+        invite_url = self._build_invite_url(token)
+        users_map = await self.repo.get_users_map(
+            user_ids=[
+                UUID(str(link.created_by_user_id)) if link.created_by_user_id else actor_user_id,
+                UUID(str(link.last_used_by_user_id)) if link.last_used_by_user_id else actor_user_id,
+            ]
+        )
+        return OrganizationInviteLinkRenewResult(
+            link=self._to_invite_link_out(link, users_map=users_map),
+            token=token,
+            invite_url=invite_url,
+        )
+
+    async def disable_invite_link(
+        self,
+        *,
+        organization_id: UUID,
+        actor_membership: OrgMembership,
+        link_id: UUID,
+    ) -> bool:
+        await self._ensure_permission(
+            organization_id=organization_id,
+            actor_membership=actor_membership,
+            permission_code="org.invitations.revoke",
+            error_code="ORG_INVITATIONS_REVOKE_REQUIRED",
+        )
+        link = await self.repo.get_invite_link(organization_id=organization_id, link_id=link_id)
+        if link is None:
+            raise NotFound(message=t("errors", "NOT_FOUND", default="Not found"), error="NOT_FOUND")
+        if link.disabled_at is not None:
+            return True
+
+        link.disabled_at = datetime.now(UTC)
+        await link.save(update_fields=["disabled_at", "updated_at"])
+        return True
+
+    async def list_invite_link_participants(
+        self,
+        *,
+        organization_id: UUID,
+        actor_membership: OrgMembership,
+        link_id: UUID,
+        params: PageParams,
+    ) -> PageData[OrganizationInviteLinkParticipantOut]:
+        await self._ensure_permission(
+            organization_id=organization_id,
+            actor_membership=actor_membership,
+            permission_code="org.invitations.read",
+            error_code="ORG_INVITATIONS_READ_REQUIRED",
+        )
+        total, rows = await self.repo.list_invite_link_use_events(
+            organization_id=organization_id,
+            link_id=link_id,
+            params=params,
+        )
+        user_ids = [UUID(str(row.used_by_user_id)) for row in rows]
+        users_map = await self.repo.get_users_map(user_ids=user_ids)
+
+        items: list[OrganizationInviteLinkParticipantOut] = []
+        for row in rows:
+            user = users_map.get(UUID(str(row.used_by_user_id)))
+            if user is None:
+                continue
+            user_ref = self._user_ref(user)
+            if user_ref is None:
+                continue
+            items.append(
+                OrganizationInviteLinkParticipantOut(
+                    user=user_ref,
+                    used_at=row.used_at,
+                )
+            )
+
+        pages = (total + params.size - 1) // params.size if params.size else 0
+        next_page = params.page + 1 if pages and params.page < pages else None
+        prev_page = min(params.page - 1, pages) if pages and params.page > 1 else None
+        return PageData[OrganizationInviteLinkParticipantOut](
+            items=items,
+            total=total,
+            page=params.page,
+            size=params.size,
+            pages=pages,
+            next=next_page,
+            prev=prev_page,
         )
 
     async def update_member_role(
@@ -140,32 +597,44 @@ class OrganizationMemberService(BaseService):
         organization_id: UUID,
         actor_membership: OrgMembership,
         target_membership_id: UUID,
-        role: OrgRole,
+        role_code: str,
     ) -> OrganizationMemberOut:
         actor_role = actor_membership.role
-        self._ensure_org_admin(actor_role=actor_role)
+        await self._ensure_permission(
+            organization_id=organization_id,
+            actor_membership=actor_membership,
+            permission_code="org.members.manage",
+            error_code="ORG_MEMBERS_MANAGE_REQUIRED",
+        )
+
+        normalized_role_code = await self._normalize_and_validate_role_code(
+            organization_id=organization_id,
+            role_code=role_code,
+        )
+        normalized_role = self._to_builtin_org_role(normalized_role_code)
 
         target = await self.repo.get_membership(organization_id=organization_id, membership_id=target_membership_id)
         if target is None:
-            raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
+            raise NotFound(message=t("errors", "NOT_FOUND", default="Not found"), error="NOT_FOUND")
 
-        if actor_role == OrgRole.ADMIN:
-            if target.role == OrgRole.OWNER or role == OrgRole.OWNER:
+        if actor_role != OrgRole.OWNER:
+            if target.role == OrgRole.OWNER or normalized_role == OrgRole.OWNER:
                 raise Forbidden(
-                    message=t("errors", "PERMISSION_DENIED", default="权限不足"),
+                    message=t("errors", "PERMISSION_DENIED", default="Forbidden"),
                     error="ORG_OWNER_REQUIRED",
                 )
 
-        if target.role == OrgRole.OWNER and role != OrgRole.OWNER:
+        if target.role == OrgRole.OWNER and normalized_role != OrgRole.OWNER:
             owner_count = await self.repo.count_role_memberships(organization_id=organization_id, role=OrgRole.OWNER)
             if owner_count <= 1:
                 raise BadRequest(
-                    message=t("errors", "BAD_REQUEST", default="参数错误"),
+                    message=t("errors", "BAD_REQUEST", default="Invalid request"),
                     error="ORG_OWNER_AT_LEAST_ONE_REQUIRED",
                 )
 
-        target.role = role
-        await target.save(update_fields=["role", "updated_at"])
+        target.role = normalized_role
+        target.role_code = normalized_role_code
+        await target.save(update_fields=["role", "role_code", "updated_at"])
 
         self.logger.info(
             "Organization member role updated",
@@ -173,22 +642,33 @@ class OrganizationMemberService(BaseService):
             organization_id=str(organization_id),
             actor_user_id=str(cast(HasUserId, actor_membership).user_id),
             target_user_id=str(target.user.id),
-            role=str(role),
+            role=str(normalized_role),
+            role_code=normalized_role_code,
         )
+
+        workspace_rows = await self.repo.list_workspace_memberships_for_user_ids(
+            organization_id=organization_id,
+            user_ids=[UUID(str(target.user.id))],
+        )
+        workspace_items = self._build_workspace_map(workspace_rows).get(UUID(str(target.user.id)), [])
 
         return OrganizationMemberOut(
             id=target.id,
             membership_id=target.id,
             organization_id=organization_id,
             role=target.role,
+            role_code=target.role_code,
             status=target.status,
             user_id=target.user.id,
             username=target.user.username,
             display_name=target.user.display_name,
             email=target.user.email,
             avatar_url=target.user.avatar_url,
+            user_status=target.user.status,
             last_login_at=target.user.last_login_at,
             joined_at=target.created_at,
+            workspace_count=len(workspace_items),
+            workspaces=workspace_items,
         )
 
     async def remove_member(
@@ -199,27 +679,40 @@ class OrganizationMemberService(BaseService):
         target_membership_id: UUID,
     ) -> OrganizationMemberDeleteResult:
         actor_role = actor_membership.role
-        self._ensure_org_admin(actor_role=actor_role)
+        actor_user_id = UUID(str(cast(HasUserId, actor_membership).user_id))
+        await self._ensure_permission(
+            organization_id=organization_id,
+            actor_membership=actor_membership,
+            permission_code="org.members.manage",
+            error_code="ORG_MEMBERS_MANAGE_REQUIRED",
+        )
 
         target = await self.repo.get_membership(organization_id=organization_id, membership_id=target_membership_id)
         if target is None:
-            raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
+            raise NotFound(message=t("errors", "NOT_FOUND", default="Not found"), error="NOT_FOUND")
 
-        if actor_role == OrgRole.ADMIN and target.role == OrgRole.OWNER:
+        target_user_id = UUID(str(target.user.id))
+
+        if actor_role != OrgRole.OWNER and target.role == OrgRole.OWNER:
             raise Forbidden(
-                message=t("errors", "PERMISSION_DENIED", default="权限不足"),
+                message=t("errors", "PERMISSION_DENIED", default="Forbidden"),
                 error="ORG_OWNER_REQUIRED",
+            )
+
+        if target.role == OrgRole.OWNER and actor_user_id == target_user_id:
+            raise Forbidden(
+                message=t("errors", "PERMISSION_DENIED", default="Forbidden"),
+                error="ORG_OWNER_SELF_REMOVE_FORBIDDEN",
             )
 
         if target.role == OrgRole.OWNER:
             owner_count = await self.repo.count_role_memberships(organization_id=organization_id, role=OrgRole.OWNER)
             if owner_count <= 1:
                 raise BadRequest(
-                    message=t("errors", "BAD_REQUEST", default="参数错误"),
+                    message=t("errors", "BAD_REQUEST", default="Invalid request"),
                     error="ORG_OWNER_AT_LEAST_ONE_REQUIRED",
                 )
 
-        target_user_id = UUID(str(target.user.id))
         target_membership = UUID(str(target.id))
         await self.repo.disable_workspace_memberships(organization_id=organization_id, user_id=target_user_id)
         await target.delete()
@@ -228,16 +721,175 @@ class OrganizationMemberService(BaseService):
             "Organization member removed",
             action="organization_member_remove",
             organization_id=str(organization_id),
-            actor_user_id=str(cast(HasUserId, actor_membership).user_id),
+            actor_user_id=str(actor_user_id),
             target_user_id=str(target_user_id),
         )
 
         return OrganizationMemberDeleteResult(membership_id=target_membership, removed=True)
 
-    def _ensure_org_admin(self, *, actor_role: OrgRole) -> None:
-        if actor_role in (OrgRole.OWNER, OrgRole.ADMIN):
-            return
-        raise Forbidden(
-            message=t("errors", "PERMISSION_DENIED", default="权限不足"),
-            error="ORG_ADMIN_REQUIRED",
+    async def _ensure_permission(
+        self,
+        *,
+        organization_id: UUID,
+        actor_membership: OrgMembership,
+        permission_code: str,
+        error_code: str = "ORG_PERMISSION_DENIED",
+    ) -> None:
+        await self.rbac.ensure_permission(
+            organization_id=organization_id,
+            membership=actor_membership,
+            permission_code=permission_code,
+            error_code=error_code,
         )
+
+    async def _normalize_and_validate_role_code(self, *, organization_id: UUID, role_code: str | None) -> str:
+        code = str(role_code or OrgRole.MEMBER.value).strip().lower()
+        if not code:
+            code = OrgRole.MEMBER.value
+
+        await self.rbac.ensure_defaults(organization_id=organization_id)
+        role = await self.rbac.repo.get_role_by_code(organization_id=organization_id, code=code)
+        if role is None:
+            raise BadRequest(message="Role code not found", error="ROLE_CODE_NOT_FOUND")
+        return role.code
+
+    def _to_builtin_org_role(self, role_code: str) -> OrgRole:
+        if role_code == OrgRole.OWNER.value:
+            return OrgRole.OWNER
+        if role_code == OrgRole.ADMIN.value:
+            return OrgRole.ADMIN
+        return OrgRole.MEMBER
+
+    def _build_workspace_map(
+        self,
+        memberships: list[WorkspaceMembership],
+    ) -> dict[UUID, list[OrganizationMemberWorkspaceOut]]:
+        out: dict[UUID, list[OrganizationMemberWorkspaceOut]] = {}
+
+        for membership in memberships:
+            membership_with_rel = cast(_WorkspaceMembershipWithRelations, membership)
+            user_id = UUID(str(cast(HasUserId, membership).user_id))
+            workspace = membership_with_rel.workspace
+            if workspace is None:
+                continue
+
+            role_codes = sorted(
+                {
+                    str(binding.role.code)
+                    for binding in (membership_with_rel.membership_roles or [])
+                    if getattr(binding, "role", None) is not None and getattr(binding.role, "code", None)
+                }
+            )
+
+            out.setdefault(user_id, []).append(
+                OrganizationMemberWorkspaceOut(
+                    workspace_id=UUID(str(workspace.id)),
+                    workspace_name=workspace.name,
+                    workspace_slug=workspace.slug,
+                    membership_status=str(membership.status),
+                    role_codes=role_codes,
+                    joined_at=membership.created_at,
+                )
+            )
+
+        return out
+
+    def _compute_invitation_status(
+        self,
+        *,
+        accepted_at: datetime | None,
+        revoked_at: datetime | None,
+        expires_at: datetime | None,
+    ) -> str:
+        if accepted_at is not None:
+            return "accepted"
+        if revoked_at is not None:
+            return "revoked"
+        if expires_at is not None and expires_at <= datetime.now(UTC):
+            return "expired"
+        return "pending"
+
+    def _user_ref(self, user: User | None) -> OrganizationInvitationUserRefOut | None:
+        if user is None:
+            return None
+        return OrganizationInvitationUserRefOut(
+            user_id=user.id,
+            username=user.username,
+            email=user.email,
+            display_name=user.display_name,
+            avatar_url=user.avatar_url,
+        )
+
+    def _to_email_invitation_out(
+        self,
+        invitation: OrganizationEmailInvite,
+        *,
+        users_map: dict[UUID, User],
+    ) -> OrganizationInvitationOut:
+        created_by = users_map.get(UUID(str(invitation.created_by_user_id))) if invitation.created_by_user_id else None
+        accepted_by = (
+            users_map.get(UUID(str(invitation.accepted_by_user_id))) if invitation.accepted_by_user_id else None
+        )
+        revoked_by = users_map.get(UUID(str(invitation.revoked_by_user_id))) if invitation.revoked_by_user_id else None
+        return OrganizationInvitationOut(
+            id=invitation.id,
+            invitation_type="email",
+            email=invitation.email,
+            display_code=None,
+            role_code=invitation.role_code,
+            expires_at=invitation.expires_at,
+            created_by_user_id=invitation.created_by_user_id,
+            created_by=self._user_ref(created_by),
+            accepted_by_user_id=invitation.accepted_by_user_id,
+            accepted_by=self._user_ref(accepted_by),
+            revoked_by_user_id=invitation.revoked_by_user_id,
+            revoked_by=self._user_ref(revoked_by),
+            accepted_at=invitation.accepted_at,
+            revoked_at=invitation.revoked_at,
+            status=self._compute_invitation_status(
+                accepted_at=invitation.accepted_at,
+                revoked_at=invitation.revoked_at,
+                expires_at=invitation.expires_at,
+            ),
+            created_at=invitation.created_at,
+            updated_at=invitation.updated_at,
+        )
+
+    def _to_invite_link_out(
+        self,
+        link: OrganizationInviteLink,
+        *,
+        users_map: dict[UUID, User],
+    ) -> OrganizationInviteLinkOut:
+        created_by = users_map.get(UUID(str(link.created_by_user_id))) if link.created_by_user_id else None
+        last_used_by = users_map.get(UUID(str(link.last_used_by_user_id))) if link.last_used_by_user_id else None
+        token = build_invite_token(self.settings, code=link.code)
+        invite_url = self._build_invite_url(token)
+        return OrganizationInviteLinkOut(
+            id=link.id,
+            display_code=link.display_code,
+            role_code=link.role_code,
+            expires_at=link.expires_at,
+            disabled_at=link.disabled_at,
+            max_uses=link.max_uses,
+            allowed_email_domain=link.allowed_email_domain,
+            token=token,
+            invite_url=invite_url,
+            created_by_user_id=link.created_by_user_id,
+            created_by=self._user_ref(created_by),
+            last_used_by_user_id=link.last_used_by_user_id,
+            last_used_by=self._user_ref(last_used_by),
+            last_used_at=link.last_used_at,
+            uses_count=int(link.uses_count or 0),
+            created_at=link.created_at,
+            updated_at=link.updated_at,
+        )
+
+    def _build_display_code(self) -> str:
+        return f"ORG-{secrets.token_hex(3).upper()}"
+
+    def _build_invite_url(self, token: str) -> str | None:
+        base = (self.settings.application.frontend_base_url or "").strip().rstrip("/")
+        if not base:
+            return None
+        return f"{base}/accept-invite?token={token}"

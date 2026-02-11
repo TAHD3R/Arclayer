@@ -1,20 +1,16 @@
 {
   "INVITE_PAGE_TITLE": "接受邀请",
-
   "INVITE_STEP1_TITLE": "确认邀请",
   "INVITE_STEP1_DESC": "请确认邀请信息无误后继续。",
   "INVITE_STEP2_TITLE": "加入工作区",
   "INVITE_STEP2_DESC": "登录或创建账号以加入工作区。",
-
   "INVITE_PREVIEW_INVITED_TO_ORG": "{{inviter}} 邀请你加入工作区“{{workspaceName}}”",
   "INVITE_PREVIEW_INVITED_AS_ROLE": "你被邀请为 {{roleName}}",
-
   "INVITE_FIELD_ORG": "工作区",
   "INVITE_FIELD_INVITER": "邀请人",
   "INVITE_FIELD_EMAIL": "受邀邮箱",
   "INVITE_FIELD_ROLE": "角色",
   "INVITE_FIELD_EXPIRES": "有效期",
-
   "INVITE_EXPIRES_NEVER": "永不过期",
   "INVITE_EXPIRES_RELATIVE_FUTURE": "将于 {{relative}} 过期",
   "INVITE_EXPIRES_RELATIVE_PAST": "已于 {{relative}} 过期",
@@ -23,15 +19,12 @@
   "INVITE_INVITER_UNKNOWN": "未知",
   "INVITE_ROLE_UNKNOWN": "未知角色",
   "INVITE_EMAIL_UNKNOWN": "未知邮箱",
-
   "INVITE_EMAIL_BOUND_HELP": "该邀请绑定邮箱，不可修改。",
   "INVITE_SECURITY_NOTICE": "该链接在有效期内可多次使用，请仅分享给可信对象。",
-
   "INVITE_TOKEN_MISSING": "缺少邀请 Token，请检查链接是否完整。",
   "INVITE_TOKEN_MISSING_DESC": "你可以从邮件中复制 Token 并手动输入。",
   "INVITE_PREVIEW_FAILED": "加载邀请信息失败",
   "INVITE_INVALID_HELP": "请检查 Token 是否正确，或联系邀请人重新发送邀请。",
-
   "INVITE_ACTION_CONTINUE": "继续",
   "INVITE_ACTION_ACCEPT_JOIN": "同意邀请并加入",
   "INVITE_ACTION_REJECT": "拒绝邀请",
@@ -45,35 +38,29 @@
   "INVITE_ACTION_REGISTER_JOIN": "创建账号并加入工作区",
   "INVITE_ACTION_SWITCH_TO_LOGIN": "已有账号？去登录",
   "INVITE_ACTION_SWITCH_TO_REGISTER": "没有账号？创建账号",
-
   "INVITE_MODE_LOGIN_DESC": "使用已有账号加入工作区",
   "INVITE_MODE_REGISTER_DESC": "创建新账号并加入工作区",
   "INVITE_LOGIN_HINT": "请输入密码登录后加入工作区。",
   "INVITE_LOGIN_LINK_HINT": "该邀请不绑定邮箱，请先登录后再加入工作区。",
   "INVITE_REGISTER_HINT": "请填写账号信息，创建账号后加入工作区。",
-
   "INVITE_LOGGED_IN_MATCH": "当前账号与邀请邮箱一致，可直接加入。",
   "INVITE_LOGGED_IN_MISMATCH": "当前账号与邀请邮件中的邮箱不一致，你仍可以加入，但请确认邀请来源可信。",
   "INVITE_LOGGED_IN_GENERIC": "该邀请为链接邀请，你可以直接使用当前账号加入。",
   "INVITE_CURRENT_ACCOUNT": "当前账号：",
   "INVITE_INVITED_EMAIL": "邀请邮箱：",
   "INVITE_CURRENT_ORG_HINT": "当前选择工作区：{{workspaceId}}",
-
   "INVITE_JOIN_SUCCESS": "加入工作区成功",
   "INVITE_EMAIL_EXISTS_SWITCH_TO_LOGIN": "该邮箱已存在账号，请改用“登录并加入工作区”。",
-
   "INVITE_CONFIRM_JOIN_TITLE": "确认加入工作区",
   "INVITE_CONFIRM_JOIN_LINE1": "你将以账号 {{email}} 加入工作区 {{workspaceName}}。",
   "INVITE_CONFIRM_JOIN_LINE2": "加入后你的角色为：{{roleName}}。",
   "INVITE_CONFIRM_JOIN_RISK_NOTICE": "加入工作区将授予你相应的后台访问权限。请确认该邀请来自可信来源。",
   "INVITE_CONFIRM_JOIN_OK": "确认加入",
   "INVITE_CONFIRM_JOIN_CANCEL": "取消",
-
   "INVITE_TOKEN_INPUT_TITLE": "手动输入邀请 Token",
   "INVITE_TOKEN_INPUT_DESC": "如果邮件里的按钮无法使用，你可以复制邮件中提供的 Token 并粘贴到此处。",
   "INVITE_TOKEN_INPUT_PLACEHOLDER": "粘贴邀请 Token",
   "INVITE_TOKEN_INPUT_CONFIRM": "继续",
-
   "ROLE_OWNER_NAME": "Owner",
   "ROLE_OWNER_DESC": "最高权限。包括财务管理、项目转让、全局删除等。",
   "ROLE_ADMIN_NAME": "Admin",
@@ -83,5 +70,6 @@
   "ROLE_EDITOR_NAME": "Editor",
   "ROLE_EDITOR_DESC": "内容管理。可创建、编辑、发布与删除内容。",
   "ROLE_VIEWER_NAME": "Viewer",
-  "ROLE_VIEWER_DESC": "全局只读。可查看仪表盘与内容预览。"
+  "ROLE_VIEWER_DESC": "全局只读。可查看仪表盘与内容预览。",
+  "INVITE_WORKSPACE_FALLBACK": "组织"
 }

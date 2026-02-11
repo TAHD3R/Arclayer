@@ -513,7 +513,12 @@ class SystemSetupService(BaseService):
 
             await OrgMembership.get_or_create(
                 user_id=owner_user_id,
-                defaults={"organization_id": org_id, "role": OrgRole.OWNER, "status": "active"},
+                defaults={
+                    "organization_id": org_id,
+                    "role": OrgRole.OWNER,
+                    "role_code": OrgRole.OWNER.value,
+                    "status": "active",
+                },
             )
             # If already exists, ensure owner + org_id match.
             orgm = await OrgMembership.get_or_none(user_id=owner_user_id)
@@ -526,11 +531,14 @@ class SystemSetupService(BaseService):
                 if orgm.role != OrgRole.OWNER:
                     orgm.role = OrgRole.OWNER
                     changed = True
+                if str(getattr(orgm, "role_code", "") or "").strip().lower() != OrgRole.OWNER.value:
+                    orgm.role_code = OrgRole.OWNER.value
+                    changed = True
                 if orgm.status != "active":
                     orgm.status = "active"
                     changed = True
                 if changed:
-                    await orgm.save(update_fields=["organization_id", "role", "status", "updated_at"])
+                    await orgm.save(update_fields=["organization_id", "role", "role_code", "status", "updated_at"])
 
             ws = await Workspace.filter(organization_id=org_id).order_by("created_at").first()
             if ws is None:

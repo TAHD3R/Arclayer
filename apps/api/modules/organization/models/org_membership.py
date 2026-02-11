@@ -37,6 +37,9 @@ class OrgMembership(BaseModel):
     )
 
     role = fields.CharEnumField(OrgRole, default=OrgRole.MEMBER, db_index=True)
+    # role_code keeps the source role semantics for org RBAC templates.
+    # Built-in roles use owner/admin/member; template roles use custom codes.
+    role_code = fields.CharField(max_length=64, default=OrgRole.MEMBER.value, db_index=True)
     status = fields.CharField(max_length=16, default="active", db_index=True)
 
     class Meta(BaseModel.Meta):

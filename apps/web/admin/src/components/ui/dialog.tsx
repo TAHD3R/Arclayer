@@ -100,7 +100,7 @@ type DialogFooterProps = DialogFooterPrimitiveProps;
 function DialogFooter({ className, ...props }: DialogFooterProps) {
   return (
     <DialogFooterPrimitive
-      className={cn("flex flex-col-reverse gap-2 sm:flex-row sm:justify-end", className)}
+      className={cn("flex flex-col-reverse gap-2 pt-3 sm:flex-row sm:justify-end", className)}
       {...props}
     />
   );

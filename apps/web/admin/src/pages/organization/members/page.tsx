@@ -45,7 +45,11 @@ export function OrganizationMembersPage() {
   const [pendingRemove, setPendingRemove] = useState<OrganizationMember | null>(null);
 
   const inviteMutation = useMutation({
-    mutationFn: async (payload: { email: string; role: OrgRole }) => inviteOrganizationMember(payload),
+    mutationFn: async (payload: { email: string; role: OrgRole }) =>
+      inviteOrganizationMember({
+        email: payload.email,
+        roleCode: payload.role,
+      }),
     onSuccess: async () => {
       notifySuccessText(t("team:TEAM_INVITE_SUCCESS"));
       setInviteOpen(false);

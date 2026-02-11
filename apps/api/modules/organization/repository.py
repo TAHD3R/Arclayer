@@ -28,7 +28,12 @@ class OrganizationRepository(BaseRepository):
     ) -> OrgMembership:
         orgm, _ = await OrgMembership.get_or_create(
             user_id=user_id,
-            defaults={"organization_id": organization_id, "role": role, "status": "active"},
+            defaults={
+                "organization_id": organization_id,
+                "role": role,
+                "role_code": role.value,
+                "status": "active",
+            },
         )
         # Defensive: if the user already belongs to another org, we do not auto-migrate here.
         return orgm

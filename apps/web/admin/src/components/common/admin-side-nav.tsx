@@ -16,6 +16,8 @@ import {
 } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 
+const NAV_ITEM_BASE_PADDING_LEFT = 20;
+
 function normalizePath(input: string): string {
   if (input.length > 1 && input.endsWith("/")) return input.slice(0, -1);
   return input;
@@ -199,6 +201,7 @@ function NavNode({
             aria-disabled={item.disabled ? "true" : undefined}
             className={cn(
               "rounded-none relative z-10",
+              "h-[38px]",
               "transition-[width,height,padding,color] duration-150 ease-out",
               "text-muted-foreground! hover:text-foreground! hover:bg-transparent! active:bg-transparent!",
               "data-[active=true]:font-semibold data-[active=true]:bg-transparent! data-[active=true]:text-foreground!",
@@ -215,7 +218,7 @@ function NavNode({
             )}
             style={
               {
-                paddingLeft: 24 + Math.max(0, depth - 1) * 12,
+                paddingLeft: NAV_ITEM_BASE_PADDING_LEFT,
               } as CSSProperties
             }
           >
@@ -258,6 +261,7 @@ function NavNode({
             aria-disabled={item.disabled ? "true" : undefined}
             className={cn(
               "rounded-none relative z-10",
+              "h-[38px]",
               "transition-[width,height,padding,color] duration-150 ease-out",
               "text-muted-foreground! hover:text-foreground! hover:bg-transparent! active:bg-transparent!",
               "data-[active=true]:font-semibold data-[active=true]:bg-transparent! data-[active=true]:text-foreground!",
@@ -273,7 +277,7 @@ function NavNode({
             )}
             style={
               {
-                paddingLeft: 24 + Math.max(0, depth - 1) * 12,
+                paddingLeft: NAV_ITEM_BASE_PADDING_LEFT,
               } as CSSProperties
             }
             onClick={() => {

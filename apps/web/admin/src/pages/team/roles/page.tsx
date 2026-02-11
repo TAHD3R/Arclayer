@@ -36,11 +36,12 @@ import {
   sortByName,
 } from "./roles-utils";
 import type { CreateRoleFormValues } from "./roles-utils";
-export function TeamRolesView() {
+export function TeamRolesView(props: { workspaceIdOverride?: string | null } = {}) {
   const { t } = useTranslation(["team", "common", "settings"]);
   const queryClient = useQueryClient();
   const accessToken = useAuthStore((s) => s.accessToken);
-  const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
+  const workspaceIdFromStore = useWorkspaceStore((s) => s.currentWorkspaceId);
+  const workspaceId = props.workspaceIdOverride ?? workspaceIdFromStore;
   const [search, setSearch] = React.useState("");
   const needle = React.useMemo(() => normalizeNeedle(search), [search]);
   const [createOpen, setCreateOpen] = React.useState(false);

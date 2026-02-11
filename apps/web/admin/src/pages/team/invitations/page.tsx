@@ -35,11 +35,12 @@ import { renderUserLabel } from "./invitations-helpers";
 import type { RenewExpiresInSeconds, TabKey } from "./invitations-helpers";
 import { TeamInvitationsTableSection } from "./invitations-table-section";
 import { TeamInvitationsDialogs } from "./invitations-dialogs";
-export function TeamInvitationsView() {
+export function TeamInvitationsView(props: { workspaceIdOverride?: string | null } = {}) {
   const { t } = useTranslation(["team", "nav", "common"]);
   const queryClient = useQueryClient();
   const accessToken = useAuthStore((s) => s.accessToken);
-  const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
+  const workspaceIdFromStore = useWorkspaceStore((s) => s.currentWorkspaceId);
+  const workspaceId = props.workspaceIdOverride ?? workspaceIdFromStore;
   const dateTime = useWorkspaceDateTimeFormatter();
   const [tab, setTab] = React.useState<TabKey>("pending");
   const [inviteOpen, setInviteOpen] = React.useState(false);

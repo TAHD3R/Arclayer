@@ -9,6 +9,7 @@ from apps.api.modules.organization.deps import get_current_org_membership
 from apps.api.modules.organization.members.router import router as organization_members_router
 from apps.api.modules.organization.models.org_membership import OrgMembership
 from apps.api.modules.organization.plugins.router import router as organization_plugins_router
+from apps.api.modules.organization.rbac.router import router as organization_rbac_router
 from apps.api.modules.organization.schema import MyOrganizationOut, OrganizationBriefOut, OrganizationMembershipOut
 from apps.api.modules.organization.workspaces.router import router as organization_workspaces_router
 
@@ -17,6 +18,7 @@ router = APIRouter(tags=["Me"])
 router.include_router(organization_plugins_router)
 router.include_router(organization_workspaces_router)
 router.include_router(organization_members_router)
+router.include_router(organization_rbac_router)
 
 
 @router.get(

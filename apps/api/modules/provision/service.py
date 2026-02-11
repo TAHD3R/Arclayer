@@ -226,6 +226,7 @@ class TenantProvisioningService(BaseService):
             organization_id=organization.id,
             user_id=user.id,
             role=org_role,
+            role_code=org_role.value,
             status="active",
         )
         actions.append("org_membership_created")

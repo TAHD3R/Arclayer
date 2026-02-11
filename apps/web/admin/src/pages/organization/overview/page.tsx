@@ -44,7 +44,7 @@ export function OrganizationOverviewPage() {
               <Button type="primary" onClick={() => void navigate({ to: "/organization/workspaces" })}>
                 {t("nav:NAV_ORG_WORKSPACES")}
               </Button>
-              <Button onClick={() => void navigate({ to: "/organization/members" })}>
+              <Button onClick={() => void navigate({ to: "/organization/team/members" })}>
                 {t("nav:NAV_ORG_MEMBERS")}
               </Button>
             </div>

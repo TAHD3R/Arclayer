@@ -251,6 +251,12 @@ async def test_workspace_invite_link_accept_existing_creates_use_event(
             assert data["organizationId"] == encode_uuid(org.id)
             assert data["workspaceId"] == ws_pid
 
+            # Workspace invitation role should never overwrite organization-level role code.
+            orgm = await OrgMembership.get_or_none(organization_id=org.id, user_id=invitee.id)
+            assert orgm is not None
+            assert orgm.role == OrgRole.MEMBER
+            assert orgm.role_code == OrgRole.MEMBER.value
+
             # 3) Link use event should be created.
             assert await WorkspaceInviteLinkUseEvent.filter(used_by_user_id=invitee.id).exists()
 

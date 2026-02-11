@@ -32,6 +32,7 @@ import { Route as PluginsMarketplaceIndexRouteImport } from './routes/plugins/ma
 import { Route as PluginsInstalledIndexRouteImport } from './routes/plugins/installed/index'
 import { Route as PluginsPluginSlugIndexRouteImport } from './routes/plugins/$pluginSlug/index'
 import { Route as OrganizationWorkspacesIndexRouteImport } from './routes/organization/workspaces/index'
+import { Route as OrganizationTeamIndexRouteImport } from './routes/organization/team/index'
 import { Route as OrganizationMembersIndexRouteImport } from './routes/organization/members/index'
 import { Route as OrganizationActivityIndexRouteImport } from './routes/organization/activity/index'
 import { Route as ContentPagesIndexRouteImport } from './routes/content/pages/index'
@@ -39,6 +40,9 @@ import { Route as ContentLibraryIndexRouteImport } from './routes/content/librar
 import { Route as AppearanceThemesIndexRouteImport } from './routes/appearance/themes/index'
 import { Route as AppearanceStylesIndexRouteImport } from './routes/appearance/styles/index'
 import { Route as AppearanceNavigationIndexRouteImport } from './routes/appearance/navigation/index'
+import { Route as OrganizationTeamRolesRouteImport } from './routes/organization/team/roles'
+import { Route as OrganizationTeamMembersRouteImport } from './routes/organization/team/members'
+import { Route as OrganizationTeamInvitationsRouteImport } from './routes/organization/team/invitations'
 import { Route as WWorkspaceIdTeamIndexRouteImport } from './routes/w/$workspaceId/team/index'
 import { Route as WWorkspaceIdNotificationsIndexRouteImport } from './routes/w/$workspaceId/notifications/index'
 import { Route as WWorkspaceIdAssetsIndexRouteImport } from './routes/w/$workspaceId/assets/index'
@@ -182,6 +186,11 @@ const OrganizationWorkspacesIndexRoute =
     path: '/organization/workspaces/',
     getParentRoute: () => rootRouteImport,
   } as any)
+const OrganizationTeamIndexRoute = OrganizationTeamIndexRouteImport.update({
+  id: '/organization/team/',
+  path: '/organization/team/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OrganizationMembersIndexRoute =
   OrganizationMembersIndexRouteImport.update({
     id: '/organization/members/',
@@ -218,6 +227,22 @@ const AppearanceNavigationIndexRoute =
   AppearanceNavigationIndexRouteImport.update({
     id: '/appearance/navigation/',
     path: '/appearance/navigation/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const OrganizationTeamRolesRoute = OrganizationTeamRolesRouteImport.update({
+  id: '/organization/team/roles',
+  path: '/organization/team/roles',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OrganizationTeamMembersRoute = OrganizationTeamMembersRouteImport.update({
+  id: '/organization/team/members',
+  path: '/organization/team/members',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OrganizationTeamInvitationsRoute =
+  OrganizationTeamInvitationsRouteImport.update({
+    id: '/organization/team/invitations',
+    path: '/organization/team/invitations',
     getParentRoute: () => rootRouteImport,
   } as any)
 const WWorkspaceIdTeamIndexRoute = WWorkspaceIdTeamIndexRouteImport.update({
@@ -382,6 +407,9 @@ export interface FileRoutesByFullPath {
   '/w/$workspaceId': typeof WWorkspaceIdRouteWithChildren
   '/assets/': typeof AssetsIndexRoute
   '/team/': typeof TeamIndexRoute
+  '/organization/team/invitations': typeof OrganizationTeamInvitationsRoute
+  '/organization/team/members': typeof OrganizationTeamMembersRoute
+  '/organization/team/roles': typeof OrganizationTeamRolesRoute
   '/appearance/navigation/': typeof AppearanceNavigationIndexRoute
   '/appearance/styles/': typeof AppearanceStylesIndexRoute
   '/appearance/themes/': typeof AppearanceThemesIndexRoute
@@ -389,6 +417,7 @@ export interface FileRoutesByFullPath {
   '/content/pages/': typeof ContentPagesIndexRoute
   '/organization/activity/': typeof OrganizationActivityIndexRoute
   '/organization/members/': typeof OrganizationMembersIndexRoute
+  '/organization/team/': typeof OrganizationTeamIndexRoute
   '/organization/workspaces/': typeof OrganizationWorkspacesIndexRoute
   '/plugins/$pluginSlug/': typeof PluginsPluginSlugIndexRoute
   '/plugins/installed/': typeof PluginsInstalledIndexRoute
@@ -438,6 +467,9 @@ export interface FileRoutesByTo {
   '/team/roles': typeof TeamRolesRoute
   '/assets': typeof AssetsIndexRoute
   '/team': typeof TeamIndexRoute
+  '/organization/team/invitations': typeof OrganizationTeamInvitationsRoute
+  '/organization/team/members': typeof OrganizationTeamMembersRoute
+  '/organization/team/roles': typeof OrganizationTeamRolesRoute
   '/appearance/navigation': typeof AppearanceNavigationIndexRoute
   '/appearance/styles': typeof AppearanceStylesIndexRoute
   '/appearance/themes': typeof AppearanceThemesIndexRoute
@@ -445,6 +477,7 @@ export interface FileRoutesByTo {
   '/content/pages': typeof ContentPagesIndexRoute
   '/organization/activity': typeof OrganizationActivityIndexRoute
   '/organization/members': typeof OrganizationMembersIndexRoute
+  '/organization/team': typeof OrganizationTeamIndexRoute
   '/organization/workspaces': typeof OrganizationWorkspacesIndexRoute
   '/plugins/$pluginSlug': typeof PluginsPluginSlugIndexRoute
   '/plugins/installed': typeof PluginsInstalledIndexRoute
@@ -496,6 +529,9 @@ export interface FileRoutesById {
   '/w/$workspaceId': typeof WWorkspaceIdRouteWithChildren
   '/assets/': typeof AssetsIndexRoute
   '/team/': typeof TeamIndexRoute
+  '/organization/team/invitations': typeof OrganizationTeamInvitationsRoute
+  '/organization/team/members': typeof OrganizationTeamMembersRoute
+  '/organization/team/roles': typeof OrganizationTeamRolesRoute
   '/appearance/navigation/': typeof AppearanceNavigationIndexRoute
   '/appearance/styles/': typeof AppearanceStylesIndexRoute
   '/appearance/themes/': typeof AppearanceThemesIndexRoute
@@ -503,6 +539,7 @@ export interface FileRoutesById {
   '/content/pages/': typeof ContentPagesIndexRoute
   '/organization/activity/': typeof OrganizationActivityIndexRoute
   '/organization/members/': typeof OrganizationMembersIndexRoute
+  '/organization/team/': typeof OrganizationTeamIndexRoute
   '/organization/workspaces/': typeof OrganizationWorkspacesIndexRoute
   '/plugins/$pluginSlug/': typeof PluginsPluginSlugIndexRoute
   '/plugins/installed/': typeof PluginsInstalledIndexRoute
@@ -555,6 +592,9 @@ export interface FileRouteTypes {
     | '/w/$workspaceId'
     | '/assets/'
     | '/team/'
+    | '/organization/team/invitations'
+    | '/organization/team/members'
+    | '/organization/team/roles'
     | '/appearance/navigation/'
     | '/appearance/styles/'
     | '/appearance/themes/'
@@ -562,6 +602,7 @@ export interface FileRouteTypes {
     | '/content/pages/'
     | '/organization/activity/'
     | '/organization/members/'
+    | '/organization/team/'
     | '/organization/workspaces/'
     | '/plugins/$pluginSlug/'
     | '/plugins/installed/'
@@ -611,6 +652,9 @@ export interface FileRouteTypes {
     | '/team/roles'
     | '/assets'
     | '/team'
+    | '/organization/team/invitations'
+    | '/organization/team/members'
+    | '/organization/team/roles'
     | '/appearance/navigation'
     | '/appearance/styles'
     | '/appearance/themes'
@@ -618,6 +662,7 @@ export interface FileRouteTypes {
     | '/content/pages'
     | '/organization/activity'
     | '/organization/members'
+    | '/organization/team'
     | '/organization/workspaces'
     | '/plugins/$pluginSlug'
     | '/plugins/installed'
@@ -668,6 +713,9 @@ export interface FileRouteTypes {
     | '/w/$workspaceId'
     | '/assets/'
     | '/team/'
+    | '/organization/team/invitations'
+    | '/organization/team/members'
+    | '/organization/team/roles'
     | '/appearance/navigation/'
     | '/appearance/styles/'
     | '/appearance/themes/'
@@ -675,6 +723,7 @@ export interface FileRouteTypes {
     | '/content/pages/'
     | '/organization/activity/'
     | '/organization/members/'
+    | '/organization/team/'
     | '/organization/workspaces/'
     | '/plugins/$pluginSlug/'
     | '/plugins/installed/'
@@ -726,6 +775,9 @@ export interface RootRouteChildren {
   WWorkspaceIdRoute: typeof WWorkspaceIdRouteWithChildren
   AssetsIndexRoute: typeof AssetsIndexRoute
   TeamIndexRoute: typeof TeamIndexRoute
+  OrganizationTeamInvitationsRoute: typeof OrganizationTeamInvitationsRoute
+  OrganizationTeamMembersRoute: typeof OrganizationTeamMembersRoute
+  OrganizationTeamRolesRoute: typeof OrganizationTeamRolesRoute
   AppearanceNavigationIndexRoute: typeof AppearanceNavigationIndexRoute
   AppearanceStylesIndexRoute: typeof AppearanceStylesIndexRoute
   AppearanceThemesIndexRoute: typeof AppearanceThemesIndexRoute
@@ -733,6 +785,7 @@ export interface RootRouteChildren {
   ContentPagesIndexRoute: typeof ContentPagesIndexRoute
   OrganizationActivityIndexRoute: typeof OrganizationActivityIndexRoute
   OrganizationMembersIndexRoute: typeof OrganizationMembersIndexRoute
+  OrganizationTeamIndexRoute: typeof OrganizationTeamIndexRoute
   OrganizationWorkspacesIndexRoute: typeof OrganizationWorkspacesIndexRoute
   PluginsPluginSlugIndexRoute: typeof PluginsPluginSlugIndexRoute
   PluginsInstalledIndexRoute: typeof PluginsInstalledIndexRoute
@@ -910,6 +963,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrganizationWorkspacesIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/organization/team/': {
+      id: '/organization/team/'
+      path: '/organization/team'
+      fullPath: '/organization/team/'
+      preLoaderRoute: typeof OrganizationTeamIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/organization/members/': {
       id: '/organization/members/'
       path: '/organization/members'
@@ -957,6 +1017,27 @@ declare module '@tanstack/react-router' {
       path: '/appearance/navigation'
       fullPath: '/appearance/navigation/'
       preLoaderRoute: typeof AppearanceNavigationIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/organization/team/roles': {
+      id: '/organization/team/roles'
+      path: '/organization/team/roles'
+      fullPath: '/organization/team/roles'
+      preLoaderRoute: typeof OrganizationTeamRolesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/organization/team/members': {
+      id: '/organization/team/members'
+      path: '/organization/team/members'
+      fullPath: '/organization/team/members'
+      preLoaderRoute: typeof OrganizationTeamMembersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/organization/team/invitations': {
+      id: '/organization/team/invitations'
+      path: '/organization/team/invitations'
+      fullPath: '/organization/team/invitations'
+      preLoaderRoute: typeof OrganizationTeamInvitationsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/w/$workspaceId/team/': {
@@ -1217,6 +1298,9 @@ const rootRouteChildren: RootRouteChildren = {
   WWorkspaceIdRoute: WWorkspaceIdRouteWithChildren,
   AssetsIndexRoute: AssetsIndexRoute,
   TeamIndexRoute: TeamIndexRoute,
+  OrganizationTeamInvitationsRoute: OrganizationTeamInvitationsRoute,
+  OrganizationTeamMembersRoute: OrganizationTeamMembersRoute,
+  OrganizationTeamRolesRoute: OrganizationTeamRolesRoute,
   AppearanceNavigationIndexRoute: AppearanceNavigationIndexRoute,
   AppearanceStylesIndexRoute: AppearanceStylesIndexRoute,
   AppearanceThemesIndexRoute: AppearanceThemesIndexRoute,
@@ -1224,6 +1308,7 @@ const rootRouteChildren: RootRouteChildren = {
   ContentPagesIndexRoute: ContentPagesIndexRoute,
   OrganizationActivityIndexRoute: OrganizationActivityIndexRoute,
   OrganizationMembersIndexRoute: OrganizationMembersIndexRoute,
+  OrganizationTeamIndexRoute: OrganizationTeamIndexRoute,
   OrganizationWorkspacesIndexRoute: OrganizationWorkspacesIndexRoute,
   PluginsPluginSlugIndexRoute: PluginsPluginSlugIndexRoute,
   PluginsInstalledIndexRoute: PluginsInstalledIndexRoute,
