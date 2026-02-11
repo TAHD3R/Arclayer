@@ -37,3 +37,18 @@ class WorkspaceDetailOut(BaseOut):
 class WorkspaceUpdateRequest(BaseSchema):
     name: str | None = Field(default=None, description="Workspace name.")
     slug: str | None = Field(default=None, description="Workspace slug.")
+
+
+class LeaveWorkspaceRequest(BaseSchema):
+    confirm_text: str = Field(..., min_length=1, max_length=32, description="Confirmation text, must be LEAVE.")
+
+
+class LeaveWorkspaceResult(BaseSchema):
+    workspace_id: PublicUUID = Field(..., description="Workspace id.")
+    membership_id: PublicUUID = Field(..., description="Deleted workspace membership id.")
+    left: bool = Field(default=True, description="Whether current user left the workspace.")
+
+
+class WorkspaceDeleteResult(BaseSchema):
+    workspace_id: PublicUUID = Field(..., description="Deleted workspace id.")
+    deleted: bool = Field(default=True, description="Whether workspace was deleted.")

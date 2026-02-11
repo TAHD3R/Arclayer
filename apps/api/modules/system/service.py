@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any, cast
 from uuid import UUID, uuid4
 
@@ -18,8 +19,11 @@ from apps.api.modules.auth.security import hash_password
 from apps.api.modules.organization.models.organization import Organization
 from apps.api.modules.organization.models.user import User
 from apps.api.modules.provision.service import TenantProvisioningService
+from apps.api.modules.system.models.setting import SettingRecord
 from apps.api.modules.system.models.setup_job import SetupJobRecord
 from apps.api.modules.system.schema import (
+    SystemMasterKeyRepairResult,
+    SystemReinitializeResult,
     SystemSetupJobOut,
     SystemSetupJobStage,
     SystemSetupJobStatus,
@@ -76,10 +80,15 @@ class SystemSetupService(BaseService):
 
     async def get_setup_status(self) -> SystemSetupStatus:
         initialized = await self.is_initialized()
+        master_key_ready = master_key_exists(self.settings.setup.master_key_path)
+        repair_required = bool(initialized and not master_key_ready)
         expected = self.settings.setup.token.get_secret_value() if self.settings.setup.token is not None else ""
         access = "token" if expected else "local_only"
         return SystemSetupStatus(
             initialized=initialized,
+            master_key_ready=master_key_ready,
+            repair_required=repair_required,
+            repair_hint=("MASTER_KEY_REPAIR_REQUIRED" if repair_required else None),
             setup_enabled=self.settings.setup.enabled,
             access=access,
         )
@@ -347,9 +356,82 @@ class SystemSetupService(BaseService):
         )
 
     async def is_initialized(self) -> bool:
-        if master_key_exists(self.settings.setup.master_key_path):
-            return True
         return await User.all().exists()
+
+    async def repair_master_key(self, *, confirm_text: str) -> SystemMasterKeyRepairResult:
+        if str(confirm_text or "").strip() != "REPAIR":
+            raise BadRequest(message=_ts("BAD_REQUEST", "参数错误"), error="MASTER_KEY_REPAIR_CONFIRM_MISMATCH")
+
+        if not await self.is_initialized():
+            raise Conflict(message=_ts("SETUP_NOT_DONE", "系统尚未初始化"), error="SETUP_NOT_DONE")
+
+        key_path = Path(self.settings.setup.master_key_path)
+        created = not master_key_exists(key_path)
+        key, fingerprint = ensure_master_key(key_path)
+
+        try:
+            await SettingsService(self.settings, manager=self.manager).patch_namespace(
+                "core",
+                patch={"system": {"master_key_fingerprint": fingerprint}},
+                updated_by=None,
+            )
+        except BaseException as exc:
+            _raise_if_fatal(exc)
+            self.logger.warning(
+                "Persist master key fingerprint failed",
+                action="system_master_key_repair_persist_fingerprint",
+                error=str(exc),
+            )
+
+        self.logger.info(
+            "System master key repaired",
+            action="system_master_key_repair",
+            created=created,
+            master_key_fingerprint=fingerprint,
+            key_len=len(key),
+        )
+
+        return SystemMasterKeyRepairResult(
+            master_key_ready=True,
+            created=created,
+            master_key_fingerprint=fingerprint,
+        )
+
+    async def reinitialize_self_host(
+        self,
+        *,
+        organization_id: UUID,
+        confirm_name: str,
+    ) -> SystemReinitializeResult:
+        if self.settings.application.deployment_mode != "self_host":
+            raise Forbidden(
+                message=_ts("SELF_HOST_ONLY", "仅自托管环境允许执行该操作"),
+                error="SELF_HOST_ONLY",
+            )
+
+        organization = await Organization.get_or_none(id=organization_id)
+        if organization is None:
+            raise NotFound(message=_ts("NOT_FOUND", "资源不存在"), error="NOT_FOUND")
+
+        if str(confirm_name or "").strip() != str(organization.name):
+            raise BadRequest(message=_ts("BAD_REQUEST", "参数错误"), error="SYSTEM_REINITIALIZE_CONFIRM_NAME_MISMATCH")
+
+        await SetupJobRecord.all().delete()
+        await SettingRecord.all().delete()
+        await Organization.all().delete()
+        await User.all().delete()
+
+        key_path = Path(self.settings.setup.master_key_path)
+        if key_path.exists():
+            key_path.unlink()
+
+        self.logger.warning(
+            "System reinitialized for self-host setup replay",
+            action="system_reinitialize_self_host",
+            organization_id=str(organization_id),
+        )
+
+        return SystemReinitializeResult(reinitialized=True, setup_required=True)
 
     async def setup(
         self,

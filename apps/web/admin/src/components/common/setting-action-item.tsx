@@ -8,21 +8,22 @@ type Description = ReactNode | string | string[] | undefined | null;
 export type SettingActionItemProps = {
   as?: "button" | "div";
   title: ReactNode;
+  showSummary?: boolean;
   summary?: ReactNode;
   placeholder?: ReactNode;
   description?: Description;
   disabled?: boolean;
   onTrigger?: () => void;
   className?: string;
-  /** 标题列宽度（px）。默认 240，适用于设置页；在“链接/复制”类场景可以调小。 */
+  /** Title column width in px. Defaults to 240 for settings pages. */
   titleColumnWidth?: number;
-  /** 右侧箭头是否显示（默认显示）。在“点击复制”类场景可隐藏以节省空间。 */
+  /** Whether to show the chevron on the right side. Defaults to true. */
   showChevron?: boolean;
-  /** 右侧自定义内容（例如开关、徽标、按钮组）。 */
+  /** Custom right-side content (for example switch, badge, or button group). */
   right?: ReactNode;
-  /** 覆盖 summary 区域样式（默认是 16px + 半粗）。 */
+  /** Optional class override for summary text styles. */
   summaryClassName?: string;
-  /** 覆盖 title 文案样式。 */
+  /** Optional class override for title text styles. */
   titleClassName?: string;
 };
 
@@ -50,25 +51,29 @@ export function SettingActionItem(props: SettingActionItemProps) {
   const desc = useMemo(() => normalizeDescription(props.description), [props.description]);
   const titleColumnWidth = props.titleColumnWidth ?? 240;
   const showChevron = props.showChevron ?? true;
+  const showSummary = props.showSummary ?? true;
   const as = props.as ?? "button";
   const hasRight = props.right !== undefined && props.right !== null;
   const hasThirdColumn = showChevron || hasRight;
 
-  const summaryNode =
-    props.summary !== undefined && props.summary !== null ? (
-      <div
-        className={cn(
-          "text-[16px] font-semibold leading-snug text-foreground",
-          props.summaryClassName,
-        )}
-      >
-        {props.summary}
-      </div>
-    ) : (
-      <div className={cn("text-[16px] leading-snug text-muted-foreground", props.summaryClassName)}>
-        {props.placeholder ?? "-"}
-      </div>
-    );
+  const summaryNode = showSummary
+    ? props.summary !== undefined && props.summary !== null
+      ? (
+          <div
+            className={cn(
+              "text-[16px] font-semibold leading-snug text-foreground",
+              props.summaryClassName,
+            )}
+          >
+            {props.summary}
+          </div>
+        )
+      : (
+          <div className={cn("text-[16px] leading-snug text-muted-foreground", props.summaryClassName)}>
+            {props.placeholder ?? "-"}
+          </div>
+        )
+    : null;
 
   const inner = (
     <div
@@ -84,7 +89,7 @@ export function SettingActionItem(props: SettingActionItemProps) {
       </div>
       <div className="min-w-0">
         {summaryNode}
-        {desc ? <div className="mt-1 text-[16px] text-muted-foreground">{desc}</div> : null}
+        {desc ? <div className={cn(summaryNode ? "mt-1" : undefined, "text-[16px] text-muted-foreground")}>{desc}</div> : null}
       </div>
       {hasThirdColumn ? (
         <div

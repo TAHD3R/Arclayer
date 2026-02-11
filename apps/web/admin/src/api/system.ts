@@ -4,6 +4,9 @@ export type SetupAccessMode = "local_only" | "token";
 
 export interface SystemSetupStatus {
   initialized: boolean;
+  masterKeyReady: boolean;
+  repairRequired: boolean;
+  repairHint?: string | null;
   setupEnabled: boolean;
   access: SetupAccessMode;
 }
@@ -81,6 +84,25 @@ export async function getSetupJobStatus(
   return api.get<SystemSetupJobStatusPayload>(`/system/setup/jobs/${jobId}`, {
     headers,
     auth: { skipRefresh: true },
+  });
+}
+
+export async function repairSetupMasterKey(input: {
+  confirmText: string;
+}): Promise<{ masterKeyReady: boolean; created: boolean; masterKeyFingerprint: string }> {
+  return api.post<{ masterKeyReady: boolean; created: boolean; masterKeyFingerprint: string }>(
+    "/system/setup/master-key/repair",
+    {
+      confirmText: input.confirmText,
+    },
+  );
+}
+
+export async function reinitializeSelfHostSystem(input: {
+  confirmName: string;
+}): Promise<{ reinitialized: boolean; setupRequired: boolean }> {
+  return api.post<{ reinitialized: boolean; setupRequired: boolean }>("/system/setup/reinitialize", {
+    confirmName: input.confirmName,
   });
 }
 

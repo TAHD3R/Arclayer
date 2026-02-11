@@ -51,12 +51,34 @@ class SystemSetupResult(BaseSchema):
 
 class SystemSetupStatus(BaseSchema):
     initialized: bool = Field(..., description="Whether the system has been initialized.")
+    master_key_ready: bool = Field(..., description="Whether the master key file exists and can be used.")
+    repair_required: bool = Field(..., description="Whether setup is initialized but master key is missing.")
+    repair_hint: str | None = Field(default=None, description="Hint code for operators when repair is required.")
     setup_enabled: bool = Field(..., description="Whether the setup endpoint is enabled.")
     access: str = Field(
         ...,
         description="Setup access mode: local_only (no token configured) or token (token required).",
         examples=["local_only", "token"],
     )
+
+
+class SystemMasterKeyRepairRequest(BaseSchema):
+    confirm_text: str = Field(..., min_length=1, max_length=64, description="Confirmation text, must be REPAIR.")
+
+
+class SystemMasterKeyRepairResult(BaseSchema):
+    master_key_ready: bool = Field(..., description="Whether master key is ready after repair.")
+    created: bool = Field(..., description="Whether the master key file was newly created.")
+    master_key_fingerprint: str = Field(..., description="SHA-256 fingerprint of the current master key.")
+
+
+class SystemReinitializeRequest(BaseSchema):
+    confirm_name: str = Field(..., min_length=1, max_length=128, description="Organization name confirmation.")
+
+
+class SystemReinitializeResult(BaseSchema):
+    reinitialized: bool = Field(default=True, description="Whether system reinitialization completed.")
+    setup_required: bool = Field(default=True, description="Whether setup must run again.")
 
 
 SystemSetupJobStatus = Literal["pending", "running", "succeeded", "failed"]

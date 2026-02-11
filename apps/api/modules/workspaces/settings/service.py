@@ -3,11 +3,26 @@ from __future__ import annotations
 from typing import Any, cast
 from uuid import UUID
 
+from tortoise.transactions import in_transaction
+
 from apps.api.common.protocols.tortoise import SettingUpdatedBy
 from apps.api.common.services import BaseService
-from apps.api.core.exceptions import ServiceUnavailable
+from apps.api.core.exceptions import BadRequest, NotFound, ServiceUnavailable
+from apps.api.core.i18n import t
+from apps.api.modules.system.models.rbac import Role
 from apps.api.modules.system.models.setting import SettingRecord
-from apps.api.modules.workspaces.settings.schema import WorkspaceSettingsDetail
+from apps.api.modules.system.rbac.constants import ROLE_ADMIN, ROLE_OWNER
+from apps.api.modules.workspaces.models.workspace import (
+    Workspace,
+    WorkspaceMembership,
+    WorkspaceMembershipRole,
+    WorkspaceMembershipStatus,
+)
+from apps.api.modules.workspaces.settings.schema import (
+    WorkspaceAssignRoleToMembersResult,
+    WorkspaceRolePolicyOut,
+    WorkspaceSettingsDetail,
+)
 from apps.api.settings.core_schema import CORE_SETTINGS_NAMESPACE, CORE_SETTINGS_SCHEMA
 from apps.api.settings.crypto import encrypt_secret, ensure_master_key, is_encrypted, master_key_exists
 from apps.api.settings.scopes import SCOPE_TYPE_WORKSPACE
@@ -70,6 +85,110 @@ class WorkspaceSettingsService(BaseService):
             value=masked,
             secrets=secrets,
             updated_at=saved.updated_at,
+        )
+
+    async def get_role_policy(self, *, workspace_id: UUID) -> WorkspaceRolePolicyOut:
+        workspace = await Workspace.get_or_none(id=workspace_id, is_active=True)
+        if workspace is None:
+            raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
+
+        roles = await Role.filter(workspace_id=workspace_id).order_by("code").all()
+        if not roles:
+            raise BadRequest(message=t("errors", "BAD_REQUEST", default="参数错误"), error="ROLE_CODE_NOT_FOUND")
+
+        default_role = next((item for item in roles if bool(item.is_default)), roles[0])
+        return WorkspaceRolePolicyOut(
+            workspace_id=workspace_id,
+            default_role_code=str(default_role.code),
+        )
+
+    async def patch_role_policy(
+        self,
+        *,
+        workspace_id: UUID,
+        default_role_code: str,
+    ) -> WorkspaceRolePolicyOut:
+        workspace = await Workspace.get_or_none(id=workspace_id, is_active=True)
+        if workspace is None:
+            raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
+
+        code = str(default_role_code or "").strip().lower()
+        if not code:
+            raise BadRequest(message=t("errors", "BAD_REQUEST", default="参数错误"), error="ROLE_CODE_NOT_FOUND")
+
+        target_role = await Role.get_or_none(workspace_id=workspace_id, code=code)
+        if target_role is None:
+            raise BadRequest(message=t("errors", "BAD_REQUEST", default="参数错误"), error="ROLE_CODE_NOT_FOUND")
+
+        async with in_transaction():
+            await Role.filter(workspace_id=workspace_id, is_default=True).exclude(id=target_role.id).update(
+                is_default=False
+            )
+            if not bool(target_role.is_default):
+                target_role.is_default = True
+                await target_role.save(update_fields=["is_default", "updated_at"])
+
+        return await self.get_role_policy(workspace_id=workspace_id)
+
+    async def assign_role_to_regular_members(
+        self,
+        *,
+        workspace_id: UUID,
+        role_code: str,
+        confirm_name: str,
+    ) -> WorkspaceAssignRoleToMembersResult:
+        workspace = await Workspace.get_or_none(id=workspace_id, is_active=True)
+        if workspace is None:
+            raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
+
+        if str(confirm_name or "").strip() != str(workspace.name):
+            raise BadRequest(
+                message=t("errors", "BAD_REQUEST", default="参数错误"),
+                error="WORKSPACE_DELETE_CONFIRM_NAME_MISMATCH",
+            )
+
+        code = str(role_code or "").strip().lower()
+        if not code:
+            raise BadRequest(message=t("errors", "BAD_REQUEST", default="参数错误"), error="ROLE_CODE_NOT_FOUND")
+
+        target_role = await Role.get_or_none(workspace_id=workspace_id, code=code)
+        if target_role is None:
+            raise BadRequest(message=t("errors", "BAD_REQUEST", default="参数错误"), error="ROLE_CODE_NOT_FOUND")
+
+        excluded_membership_ids = {
+            UUID(str(member_id))
+            for member_id in await WorkspaceMembershipRole.filter(
+                membership__workspace_id=workspace_id,
+                membership__status=WorkspaceMembershipStatus.ACTIVE,
+                role__code__in=[ROLE_OWNER, ROLE_ADMIN],
+            ).values_list("membership_id", flat=True)
+            if member_id is not None
+        }
+
+        target_memberships_query = WorkspaceMembership.filter(
+            workspace_id=workspace_id,
+            status=WorkspaceMembershipStatus.ACTIVE,
+        )
+        if excluded_membership_ids:
+            target_memberships_query = target_memberships_query.exclude(id__in=list(excluded_membership_ids))
+
+        target_memberships = await target_memberships_query.all()
+        if not target_memberships:
+            return WorkspaceAssignRoleToMembersResult(
+                workspace_id=workspace_id,
+                role_code=code,
+                updated_count=0,
+            )
+
+        async with in_transaction():
+            for membership in target_memberships:
+                await WorkspaceMembershipRole.filter(membership_id=membership.id).delete()
+                await WorkspaceMembershipRole.get_or_create(membership_id=membership.id, role_id=target_role.id)
+
+        return WorkspaceAssignRoleToMembersResult(
+            workspace_id=workspace_id,
+            role_code=code,
+            updated_count=len(target_memberships),
         )
 
     def _mask_secrets(self, config: dict[str, Any]) -> tuple[dict[str, Any], dict[str, bool]]:

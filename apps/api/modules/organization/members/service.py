@@ -34,9 +34,11 @@ from apps.api.modules.organization.models.org_invitation import (
 from apps.api.modules.organization.models.org_membership import OrgMembership, OrgRole
 from apps.api.modules.organization.models.user import User
 from apps.api.modules.organization.rbac.service import OrganizationRBACService
+from apps.api.modules.system.models.setting import SettingRecord
 from apps.api.modules.workspaces.invitations.expiry import build_expires_at
 from apps.api.modules.workspaces.invitations.tokens import build_invite_token, generate_invite_code
 from apps.api.modules.workspaces.models.workspace import WorkspaceMembership
+from apps.api.settings.scopes import SCOPE_TYPE_ORG
 
 
 class _RoleCodeRef(Protocol):
@@ -198,9 +200,13 @@ class OrganizationMemberService(BaseService):
                 error="ORG_MEMBER_INVITE_ALREADY_PENDING",
             )
 
+        requested_role_code = payload.role_code
+        if "role_code" not in payload.model_fields_set and "role" not in payload.model_fields_set:
+            requested_role_code = await self._get_default_role_code(organization_id=organization_id)
+
         role_code = await self._normalize_and_validate_role_code(
             organization_id=organization_id,
-            role_code=payload.role_code,
+            role_code=requested_role_code,
         )
 
         invite = await OrganizationEmailInvite.create(
@@ -403,9 +409,13 @@ class OrganizationMemberService(BaseService):
             error_code="ORG_INVITATIONS_CREATE_REQUIRED",
         )
 
+        requested_role_code = payload.role_code
+        if "role_code" not in payload.model_fields_set:
+            requested_role_code = await self._get_default_role_code(organization_id=organization_id)
+
         role_code = await self._normalize_and_validate_role_code(
             organization_id=organization_id,
-            role_code=payload.role_code,
+            role_code=requested_role_code,
         )
 
         domain = str(payload.allowed_email_domain or "").strip().lower() or None
@@ -741,6 +751,19 @@ class OrganizationMemberService(BaseService):
             permission_code=permission_code,
             error_code=error_code,
         )
+
+    async def _get_default_role_code(self, *, organization_id: UUID) -> str:
+        record = await SettingRecord.get_or_none(
+            scope_type=SCOPE_TYPE_ORG,
+            scope_id=organization_id,
+            namespace="core",
+        )
+        value = record.value if record and isinstance(record.value, dict) else {}
+        role_code = value.get("default_role_code") if isinstance(value, dict) else None
+        if not isinstance(role_code, str):
+            return OrgRole.MEMBER.value
+        normalized = role_code.strip().lower()
+        return normalized or OrgRole.MEMBER.value
 
     async def _normalize_and_validate_role_code(self, *, organization_id: UUID, role_code: str | None) -> str:
         code = str(role_code or OrgRole.MEMBER.value).strip().lower()

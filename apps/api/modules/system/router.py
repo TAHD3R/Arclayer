@@ -1,17 +1,27 @@
 from __future__ import annotations
 
+from typing import cast
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, Header, Query, Request
 
+from apps.api.common.protocols.tortoise import HasOrganizationId
 from apps.api.common.types.public_uuid import PublicUUID
 from apps.api.config import Settings, get_settings
 from apps.api.core.exceptions import ServiceUnavailable
 from apps.api.core.http.response import Response, ResponseModel
 from apps.api.core.i18n import t
 from apps.api.modules.analytics.system.router import router as system_activity_router
+from apps.api.modules.organization.deps import require_org_owner
+from apps.api.modules.organization.models.org_membership import OrgMembership
 from apps.api.modules.system.mail.router import router as system_mail_router
 from apps.api.modules.system.plugins_manager.router import router as system_plugins_router
 from apps.api.modules.system.rbac.router import router as system_rbac_router
 from apps.api.modules.system.schema import (
+    SystemMasterKeyRepairRequest,
+    SystemMasterKeyRepairResult,
+    SystemReinitializeRequest,
+    SystemReinitializeResult,
     SystemRuntimeCapabilities,
     SystemRuntimeOut,
     SystemSetupJobOut,
@@ -94,6 +104,37 @@ async def get_setup_job_status(
     service.validate_setup_access(client_host=host, setup_token=x_setup_token)
     job = await service.get_setup_job_status(job_id=job_id)
     return Response.success(data=job)
+
+
+@router.post(
+    "/setup/master-key/repair",
+    response_model=ResponseModel[SystemMasterKeyRepairResult],
+    summary="Repair missing master key",
+)
+async def repair_setup_master_key(
+    payload: SystemMasterKeyRepairRequest,
+    _orgm: OrgMembership = Depends(require_org_owner),
+    service: SystemSetupService = Depends(get_setup_service),
+) -> ResponseModel[SystemMasterKeyRepairResult]:
+    out = await service.repair_master_key(confirm_text=payload.confirm_text)
+    return Response.success(data=out)
+
+
+@router.post(
+    "/setup/reinitialize",
+    response_model=ResponseModel[SystemReinitializeResult],
+    summary="Reinitialize self-host system",
+)
+async def reinitialize_self_host_setup(
+    payload: SystemReinitializeRequest,
+    orgm: OrgMembership = Depends(require_org_owner),
+    service: SystemSetupService = Depends(get_setup_service),
+) -> ResponseModel[SystemReinitializeResult]:
+    out = await service.reinitialize_self_host(
+        organization_id=UUID(str(cast(HasOrganizationId, orgm).organization_id)),
+        confirm_name=payload.confirm_name,
+    )
+    return Response.success(data=out)
 
 
 @router.get(

@@ -27,6 +27,17 @@ export interface WorkspaceDetail {
   name: string;
 }
 
+export interface WorkspaceRolePolicy {
+  workspaceId: string;
+  defaultRoleCode: string;
+}
+
+export interface WorkspaceAssignRoleResult {
+  workspaceId: string;
+  roleCode: string;
+  updatedCount: number;
+}
+
 export async function listMyWorkspaces(): Promise<MyWorkspaceListResult> {
   return api.get<MyWorkspaceListResult>("/me/workspaces");
 }
@@ -47,4 +58,45 @@ export async function patchWorkspaceDetail(
 ): Promise<WorkspaceDetail> {
   const id = encodeURIComponent(String(workspaceId));
   return api.patch<WorkspaceDetail>(`/workspaces/${id}`, payload);
+}
+
+export async function leaveWorkspace(
+  workspaceId: string,
+  confirmText: string,
+): Promise<{ workspaceId: string; membershipId: string; left: boolean }> {
+  const id = encodeURIComponent(String(workspaceId));
+  return api.post<{ workspaceId: string; membershipId: string; left: boolean }>(
+    `/workspaces/${id}/leave`,
+    { confirmText },
+  );
+}
+
+export async function deleteWorkspace(
+  workspaceId: string,
+  confirmName: string,
+): Promise<{ workspaceId: string; deleted: boolean }> {
+  const id = encodeURIComponent(String(workspaceId));
+  const query = new URLSearchParams({ confirmName }).toString();
+  return api.delete<{ workspaceId: string; deleted: boolean }>(`/workspaces/${id}?${query}`);
+}
+
+export async function getWorkspaceRolePolicy(workspaceId: string): Promise<WorkspaceRolePolicy> {
+  const id = encodeURIComponent(String(workspaceId));
+  return api.get<WorkspaceRolePolicy>(`/workspaces/${id}/settings/role-policy`);
+}
+
+export async function patchWorkspaceRolePolicy(
+  workspaceId: string,
+  payload: { defaultRoleCode: string },
+): Promise<WorkspaceRolePolicy> {
+  const id = encodeURIComponent(String(workspaceId));
+  return api.patch<WorkspaceRolePolicy>(`/workspaces/${id}/settings/role-policy`, payload);
+}
+
+export async function assignWorkspaceRoleToAllUsers(
+  workspaceId: string,
+  payload: { roleCode: string; confirmName: string },
+): Promise<WorkspaceAssignRoleResult> {
+  const id = encodeURIComponent(String(workspaceId));
+  return api.post<WorkspaceAssignRoleResult>(`/workspaces/${id}/settings/role-policy/assign-all`, payload);
 }

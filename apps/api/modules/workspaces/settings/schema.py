@@ -6,6 +6,7 @@ from typing import Any
 from pydantic import Field
 
 from apps.api.common.schemas import BaseSchema
+from apps.api.common.types.public_uuid import PublicUUID
 
 
 class WorkspaceSettingsDetail(BaseSchema):
@@ -17,3 +18,23 @@ class WorkspaceSettingsDetail(BaseSchema):
 
 class WorkspaceSettingsPatch(BaseSchema):
     patch: dict[str, Any] = Field(default_factory=dict, description="Merge patch payload.")
+
+
+class WorkspaceRolePolicyOut(BaseSchema):
+    workspace_id: PublicUUID = Field(..., description="Workspace id.")
+    default_role_code: str = Field(..., description="Default role code used for onboarding/invites.")
+
+
+class WorkspaceRolePolicyPatch(BaseSchema):
+    default_role_code: str = Field(..., min_length=1, max_length=64, description="Default role code.")
+
+
+class WorkspaceAssignRoleToMembersRequest(BaseSchema):
+    role_code: str = Field(..., min_length=1, max_length=64, description="Role code to assign.")
+    confirm_name: str = Field(..., min_length=1, max_length=128, description="Workspace name confirmation.")
+
+
+class WorkspaceAssignRoleToMembersResult(BaseSchema):
+    workspace_id: PublicUUID = Field(..., description="Workspace id.")
+    role_code: str = Field(..., description="Applied role code.")
+    updated_count: int = Field(default=0, ge=0, description="How many memberships were updated.")

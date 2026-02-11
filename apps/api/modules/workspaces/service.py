@@ -6,11 +6,18 @@ from uuid import UUID
 from apps.api.common.protocols.tortoise import HasOrganizationId, HasWorkspaceId
 from apps.api.common.services import BaseService
 from apps.api.config import Settings
-from apps.api.core.exceptions import BadRequest, NotFound
+from apps.api.core.exceptions import BadRequest, Forbidden, NotFound
 from apps.api.core.i18n import t
 from apps.api.modules.organization.models.org_membership import OrgMembership, OrgRole
+from apps.api.modules.system.models.rbac import Role
+from apps.api.modules.system.rbac.constants import ROLE_OWNER
 from apps.api.modules.workspaces.models.workspace import Workspace, WorkspaceMembership, WorkspaceMembershipStatus
-from apps.api.modules.workspaces.schema import MyWorkspaceOut, WorkspaceDetailOut, WorkspaceUpdateRequest
+from apps.api.modules.workspaces.schema import (
+    LeaveWorkspaceResult,
+    MyWorkspaceOut,
+    WorkspaceDetailOut,
+    WorkspaceUpdateRequest,
+)
 
 
 class WorkspaceService(BaseService):
@@ -118,4 +125,57 @@ class WorkspaceService(BaseService):
             organization_id=UUID(str(cast(HasOrganizationId, ws).organization_id)),
             slug=ws.slug,
             name=ws.name,
+        )
+
+    async def leave_workspace(
+        self,
+        *,
+        organization_id: UUID,
+        workspace_id: UUID,
+        user_id: UUID,
+        confirm_text: str,
+    ) -> LeaveWorkspaceResult:
+        if str(confirm_text or "").strip() != "LEAVE":
+            raise BadRequest(
+                message=t("errors", "BAD_REQUEST", default="参数错误"),
+                error="WORKSPACE_LEAVE_CONFIRM_TEXT_MISMATCH",
+            )
+
+        ws = await Workspace.get_or_none(id=workspace_id, organization_id=organization_id, is_active=True)
+        if ws is None:
+            raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
+
+        membership = await WorkspaceMembership.get_or_none(
+            workspace_id=workspace_id,
+            user_id=user_id,
+            status=WorkspaceMembershipStatus.ACTIVE,
+        )
+        if membership is None:
+            raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
+
+        owner_role = await Role.get_or_none(workspace_id=workspace_id, code=ROLE_OWNER)
+        if owner_role is not None:
+            is_owner_member = await WorkspaceMembership.filter(
+                id=membership.id,
+                membership_roles__role_id=owner_role.id,
+            ).exists()
+            if is_owner_member:
+                owner_count = await WorkspaceMembership.filter(
+                    workspace_id=workspace_id,
+                    status=WorkspaceMembershipStatus.ACTIVE,
+                    membership_roles__role_id=owner_role.id,
+                ).count()
+                if int(owner_count) <= 1:
+                    raise Forbidden(
+                        message=t("errors", "PERMISSION_DENIED", default="权限不足"),
+                        error="WORKSPACE_OWNER_AT_LEAST_ONE_REQUIRED",
+                    )
+
+        membership_id = membership.id
+        await membership.delete()
+
+        return LeaveWorkspaceResult(
+            workspace_id=workspace_id,
+            membership_id=membership_id,
+            left=True,
         )
