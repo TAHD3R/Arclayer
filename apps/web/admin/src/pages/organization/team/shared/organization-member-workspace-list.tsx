@@ -100,7 +100,6 @@ export function OrganizationMemberWorkspaceList({
                 <div className="grid grid-cols-[auto_1fr] gap-3">
                   <Avatar
                     size={34}
-                    shape="square"
                     src={workspace.iconUrl ?? undefined}
                     className="shrink-0 bg-muted text-foreground"
                   >

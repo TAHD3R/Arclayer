@@ -84,6 +84,13 @@ If a page chooses a non-default implementation:
 - Explain the UX impact and consistency tradeoff.
 - Keep API and style aligned with existing patterns.
 
+### 4.4 Avatar shape rule (Admin)
+
+- Admin `Avatar` components must be round by default.
+- Prefer omitting `shape` (Antd default) or using `shape="circle"` explicitly when needed.
+- Do not use `shape="square"` in Admin UI.
+- Any exception must include product/design approval and a clear rationale in the PR.
+
 ## 5. Page Behavior Contracts (Admin)
 
 ### 5.1 Page shell contract
@@ -204,6 +211,7 @@ A UI PR is acceptable only when all relevant items pass:
 - [ ] Business page uses `DefaultPage` unless justified.
 - [ ] Loading/empty/error states are explicitly implemented with standard patterns.
 - [ ] Component choices follow the default matrix, or deviations are explained.
+- [ ] Avatar usage is round, and `shape="square"` is not introduced in Admin UI.
 - [ ] Settings interactions follow the inline-first model unless overlay is justified.
 - [ ] Token usage follows `packages/ui-theme` and avoids style drift.
 - [ ] Accessibility baseline (focus, keyboard, labels) is satisfied.

@@ -205,7 +205,6 @@ export function OrganizationMemberInspectSheet({
                 <div className="flex items-center gap-3">
                   <Avatar
                     size={64}
-                    shape="square"
                     src={member.avatarUrl ?? undefined}
                     className="shrink-0 bg-muted text-foreground"
                   >

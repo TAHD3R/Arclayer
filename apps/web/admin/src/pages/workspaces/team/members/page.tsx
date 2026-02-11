@@ -249,7 +249,6 @@ export function TeamMembersView() {
             <div className="flex items-center gap-3">
               <Avatar
                 size={28}
-                shape="square"
                 src={resolveAssetRefToPublicUrlPath(m.avatarUrl) || undefined}
                 style={{
                   backgroundColor: "var(--color-muted)",

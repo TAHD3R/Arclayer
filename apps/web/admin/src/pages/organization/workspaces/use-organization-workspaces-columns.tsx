@@ -78,7 +78,7 @@ export function useOrganizationWorkspacesColumns(
 
           return (
             <div className="flex min-w-0 justify-center items-center gap-3">
-              <Avatar shape="square" size={42} src={item.iconUrl ?? undefined}>
+              <Avatar size={42} src={item.iconUrl ?? undefined}>
                 {item.name.slice(0, 1).toUpperCase()}
               </Avatar>
               <div className="min-w-0 flex-1">

@@ -335,7 +335,6 @@ function AdminAccountPanelContent(props: {
           <Avatar
             size={48}
             src={resolveAssetRefToPublicUrlPath(props.avatarUrl) ?? undefined}
-            shape="square"
             style={{
               backgroundColor: "var(--color-muted)",
               color: "var(--color-foreground)",
@@ -511,7 +510,6 @@ export function AdminAccountMenu() {
       >
         <Avatar
           size={40}
-          shape="square"
           src={
             resolveAssetRefToPublicUrlPath(profile.avatarUrl ?? profile.avatarAssetId) ?? undefined
           }

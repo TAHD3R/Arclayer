@@ -104,7 +104,6 @@ export function createOrganizationMemberColumns({
           <div className="flex min-w-0 items-center gap-3">
             <Avatar
               size={28}
-              shape="square"
               src={item.avatarUrl ?? undefined}
               className="shrink-0 bg-muted text-foreground"
             >

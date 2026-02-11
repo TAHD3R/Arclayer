@@ -25,7 +25,6 @@ function renderUserLabel(user: TeamUserRef | null): React.ReactNode {
     <div className="flex items-center gap-2 min-w-0">
       <Avatar
         size={24}
-        shape="square"
         src={resolveAssetRefToPublicUrlPath(user.avatarUrl) || undefined}
         style={{
           backgroundColor: "var(--color-muted)",
