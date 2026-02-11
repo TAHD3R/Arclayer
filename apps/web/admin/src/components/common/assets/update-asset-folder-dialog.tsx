@@ -59,8 +59,9 @@ export function UpdateAssetFolderDialog(props: UpdateAssetFolderDialogProps) {
         </DialogHeader>
 
         <div className="mt-4 space-y-4">
-          <div className="space-y-1">
-            <div className="text-sm text-foreground/80">{t("assets:ASSET_FOLDER_NAME")}</div>
+          <div className="grid gap-1.5">
+            <label className="font-semibold text-foreground">{t("assets:ASSET_FOLDER_NAME")}</label>
+            <div className="text-muted-foreground">{t("assets:ASSET_FOLDER_FIELD_NAME_HELP")}</div>
             <Input
               autoFocus
               value={name}
@@ -70,8 +71,13 @@ export function UpdateAssetFolderDialog(props: UpdateAssetFolderDialogProps) {
             />
           </div>
 
-          <div className="space-y-1">
-            <div className="text-sm text-foreground/80">{t("assets:ASSET_FOLDER_DESCRIPTION")}</div>
+          <div className="grid gap-1.5">
+            <label className="font-semibold text-foreground">
+              {t("assets:ASSET_FOLDER_DESCRIPTION")}
+            </label>
+            <div className="text-muted-foreground">
+              {t("assets:ASSET_FOLDER_FIELD_DESCRIPTION_HELP")}
+            </div>
             <Input.TextArea
               value={description}
               onChange={(e) => setDescription(e.target.value)}

@@ -182,6 +182,8 @@
   "ASSET_EDIT_KEEP": "不修改",
   "ASSET_EDIT_ACCESS_TITLE": "修改可见性/用途",
   "ASSET_EDIT_ACCESS_DESC": "在这里更新该资源的可见性与用途。",
+  "ASSET_EDIT_ACCESS_VISIBILITY_HELP": "决定资产可被哪些人通过链接或接口访问。",
+  "ASSET_EDIT_ACCESS_PURPOSE_HELP": "声明资产业务用途，便于下游流程正确分类与治理。",
   "ASSET_BULK_EDIT_ACCESS_TITLE": "修改 {{count}} 个资源的可见性/用途",
   "ASSET_BULK_EDIT_ACCESS_DESC": "批量更新所选资源的可见性与用途；选择“不修改”可保持原值。",
   "ASSET_EDIT_ACCESS_SUCCESS": "已更新",
@@ -196,8 +198,10 @@
   "ASSET_FOLDER_CREATE_PLACEHOLDER": "输入文件夹名称",
   "ASSET_FOLDER_CREATE_CONFIRM": "创建",
   "ASSET_FOLDER_NAME": "文件夹名称",
+  "ASSET_FOLDER_FIELD_NAME_HELP": "使用清晰名称，方便协作者快速定位相关资源。",
   "ASSET_FOLDER_NAME_PLACEHOLDER": "输入文件夹名称",
   "ASSET_FOLDER_DESCRIPTION": "描述",
+  "ASSET_FOLDER_FIELD_DESCRIPTION_HELP": "说明该文件夹存放内容及协作约束，便于长期维护。",
   "ASSET_FOLDER_DESCRIPTION_PLACEHOLDER": "可选，填写文件夹说明",
   "ASSET_FOLDER_EDIT_TITLE": "编辑文件夹",
   "ASSET_FOLDER_EDIT_DESC": "修改文件夹「{{name}}」的名称与描述。",
@@ -215,5 +219,7 @@
   "ASSET_FOLDER_DELETE_BLOCKED_ASSETS": "该文件夹下仍有资源。请先将资源移动到其他文件夹或移到根目录。",
   "ASSET_FOLDER_DELETE_BLOCKED_CHILDREN": "该文件夹下仍有子文件夹。请先删除或移动子文件夹。",
   "ASSET_FOLDER_DELETE_BLOCKED_BOTH": "该文件夹下仍有资源与子文件夹。请先清空后再删除。",
-  "ASSET_FOLDER_DELETE_BLOCKED_GENERIC": "该文件夹非空，无法删除。"
+  "ASSET_FOLDER_DELETE_BLOCKED_GENERIC": "该文件夹非空，无法删除。",
+  "ASSET_PICKER_FIELD_SEARCH": "搜索资源",
+  "ASSET_PICKER_FIELD_SEARCH_HELP": "可按文件名或关键词检索，先缩小候选范围再进行选择。"
 }

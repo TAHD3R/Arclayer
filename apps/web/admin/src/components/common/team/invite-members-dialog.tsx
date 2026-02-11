@@ -269,9 +269,10 @@ export function InviteMembersDialog(props: {
         <form onSubmit={onSubmit} className="grid gap-5 py-2">
           {props.mode === "email" ? (
             <div className="grid gap-1.5">
-              <label className="text-muted-foreground font-semibold" htmlFor="to">
+              <label className="font-semibold text-foreground" htmlFor="to">
                 {t("team:TEAM_INVITE_FIELD_TO")}
               </label>
+              <div className="text-muted-foreground">{t("team:TEAM_INVITE_FIELD_TO_HELP")}</div>
               <Select
                 id="to"
                 mode="tags"
@@ -300,7 +301,7 @@ export function InviteMembersDialog(props: {
                       color={message ? "error" : "default"}
                       closable={closable}
                       onClose={onClose}
-                      style={{ marginInlineEnd: 0 }}
+                      className="!mr-0"
                     >
                       {tagProps.label}
                     </Tag>
@@ -324,7 +325,7 @@ export function InviteMembersDialog(props: {
           ) : null}
 
           <div className="grid gap-1.5">
-            <label className="text-muted-foreground font-semibold" htmlFor="roleCode">
+            <label className="font-semibold text-foreground" htmlFor="roleCode">
               {t("team:TEAM_INVITE_FIELD_ROLE")}
             </label>
             <Select
@@ -350,9 +351,10 @@ export function InviteMembersDialog(props: {
           </div>
 
           <div className="grid gap-1.5">
-            <label className="text-muted-foreground font-semibold" htmlFor="expiresInSeconds">
+            <label className="font-semibold text-foreground" htmlFor="expiresInSeconds">
               {t("team:TEAM_INVITE_LINK_FIELD_EXPIRES")}
             </label>
+            <div className="text-muted-foreground">{t("team:TEAM_INVITE_FIELD_EXPIRES_HELP")}</div>
             <Select<ExpiresInSecondsValue>
               id="expiresInSeconds"
               value={selectedExpires}

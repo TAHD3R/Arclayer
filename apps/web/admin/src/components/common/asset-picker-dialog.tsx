@@ -266,19 +266,25 @@ export function AssetPickerDialog(props: {
           <div className="flex-1 min-h-0 flex flex-col">
             {/* Toolbar: search + filters + upload */}
             <div className="px-6 py-4 flex flex-wrap items-center justify-between gap-3">
-              <div className="flex gap-2">
-                <Input
-                  variant="borderless"
-                  ref={searchInputRef}
-                  allowClear
-                  value={searchInput}
-                  onChange={(e) => setSearchInput(e.target.value)}
-                  placeholder={t("settings:SETTINGS_ASSET_PICKER_SEARCH_PLACEHOLDER")}
-                  prefix={<Search size={16} className="text-muted-foreground" />}
-                  style={{ width: 320, maxWidth: "100%" }}
-                />
+              <div className="flex flex-wrap items-end gap-3">
+                <div className="grid min-w-[280px] flex-1 gap-1.5">
+                  <label className="font-semibold text-foreground">
+                    {t("assets:ASSET_PICKER_FIELD_SEARCH")}
+                  </label>
+                  <div className="text-muted-foreground">{t("assets:ASSET_PICKER_FIELD_SEARCH_HELP")}</div>
+                  <Input
+                    className="w-full max-w-[320px]"
+                    variant="borderless"
+                    ref={searchInputRef}
+                    allowClear
+                    value={searchInput}
+                    onChange={(e) => setSearchInput(e.target.value)}
+                    placeholder={t("settings:SETTINGS_ASSET_PICKER_SEARCH_PLACEHOLDER")}
+                    prefix={<Search size={16} className="text-muted-foreground" />}
+                  />
+                </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 self-end">
                   <AssetsFilterPopover
                     value={filters}
                     onChange={(next: AssetsFilters) => {

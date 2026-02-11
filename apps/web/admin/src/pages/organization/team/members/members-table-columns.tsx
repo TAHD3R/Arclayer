@@ -5,6 +5,7 @@ import { type ColumnDef } from "@tanstack/react-table";
 import { Eye, MoreVertical, Trash2, UserCog } from "lucide-react";
 
 import type { OrganizationMember, OrganizationMemberWorkspace } from "@/api/organization-members";
+import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 import {
   builtinRoleLabel,
   formatDateTime,
@@ -116,7 +117,12 @@ export function createOrganizationMemberColumns({
             </div>
 
             <div className="ml-auto pl-2">
-              <Dropdown trigger={["click"]} menu={{ items: menuItems }}>
+              <Dropdown
+                trigger={["click"]}
+                menu={{ items: menuItems }}
+                getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
+                overlayStyle={{ zIndex: 1400 }}
+              >
                 <AntButton
                   type="text"
                   className="!h-8 !w-8 !p-0"

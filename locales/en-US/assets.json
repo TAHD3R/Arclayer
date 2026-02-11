@@ -182,6 +182,8 @@
   "ASSET_EDIT_KEEP": "Keep unchanged",
   "ASSET_EDIT_ACCESS_TITLE": "Edit visibility & purpose",
   "ASSET_EDIT_ACCESS_DESC": "Update visibility and purpose for this asset.",
+  "ASSET_EDIT_ACCESS_VISIBILITY_HELP": "Controls who can read this asset from links and APIs.",
+  "ASSET_EDIT_ACCESS_PURPOSE_HELP": "Declare the business usage so downstream workflows can classify it correctly.",
   "ASSET_BULK_EDIT_ACCESS_TITLE": "Edit visibility & purpose for {{count}} assets",
   "ASSET_BULK_EDIT_ACCESS_DESC": "Batch update visibility and purpose. Choose “Keep unchanged” to leave a field as-is.",
   "ASSET_EDIT_ACCESS_SUCCESS": "Updated",
@@ -196,8 +198,10 @@
   "ASSET_FOLDER_CREATE_PLACEHOLDER": "Folder name",
   "ASSET_FOLDER_CREATE_CONFIRM": "Create",
   "ASSET_FOLDER_NAME": "Folder name",
+  "ASSET_FOLDER_FIELD_NAME_HELP": "Use a clear name so collaborators can quickly locate related assets.",
   "ASSET_FOLDER_NAME_PLACEHOLDER": "Folder name",
   "ASSET_FOLDER_DESCRIPTION": "Description",
+  "ASSET_FOLDER_FIELD_DESCRIPTION_HELP": "Summarize what this folder stores and any collaboration constraints.",
   "ASSET_FOLDER_DESCRIPTION_PLACEHOLDER": "Optional, add a short note for this folder",
   "ASSET_FOLDER_EDIT_TITLE": "Edit folder",
   "ASSET_FOLDER_EDIT_DESC": "Update name and description for “{{name}}”.",
@@ -215,5 +219,7 @@
   "ASSET_FOLDER_DELETE_BLOCKED_ASSETS": "This folder still contains assets. Please move assets out or move them to root first.",
   "ASSET_FOLDER_DELETE_BLOCKED_CHILDREN": "This folder still contains subfolders. Please remove or move subfolders first.",
   "ASSET_FOLDER_DELETE_BLOCKED_BOTH": "This folder contains assets and subfolders. Please empty it first.",
-  "ASSET_FOLDER_DELETE_BLOCKED_GENERIC": "This folder is not empty and cannot be deleted."
+  "ASSET_FOLDER_DELETE_BLOCKED_GENERIC": "This folder is not empty and cannot be deleted.",
+  "ASSET_PICKER_FIELD_SEARCH": "Search assets",
+  "ASSET_PICKER_FIELD_SEARCH_HELP": "Search by file name or keyword to narrow the candidate list before selecting."
 }

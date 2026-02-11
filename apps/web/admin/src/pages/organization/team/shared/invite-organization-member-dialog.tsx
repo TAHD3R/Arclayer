@@ -79,7 +79,7 @@ export function InviteOrganizationMemberDialog(props: {
             }
           }
         }),
-        roleCode: z.string().min(1, t("common:ORG_MEMBERS_INVITE_ROLE_REQUIRED")),
+        roleCode: z.string().min(1, t("team:TEAM_INVITE_VALIDATION_ROLE_REQUIRED")),
         expiresInSeconds: z.number().int().min(60).nullable(),
       }),
     [t],
@@ -164,7 +164,12 @@ export function InviteOrganizationMemberDialog(props: {
           onFinish={() => void onSubmit()}
         >
           <Form.Item
-            label={t("common:ORG_MEMBERS_INVITE_EMAIL")}
+            label={
+              <div className="grid gap-1.5">
+                <span className="font-semibold text-foreground">{t("team:TEAM_INVITE_FIELD_TO")}</span>
+                <span className="text-muted-foreground">{t("team:TEAM_INVITE_FIELD_TO_HELP")}</span>
+              </div>
+            }
             validateStatus={emailHasError ? "error" : undefined}
             help={emailError || null}
             className="!mb-4"
@@ -179,7 +184,7 @@ export function InviteOrganizationMemberDialog(props: {
                   open={false}
                   tokenSeparators={[" ", "\n", ",", ";", "，", "；", "\t"]}
                   autoFocus
-                  placeholder={t("common:ORG_MEMBERS_INVITE_EMAIL_PLACEHOLDER")}
+                  placeholder={t("team:TEAM_INVITE_FIELD_TO_PLACEHOLDER")}
                   value={emailTags}
                   onChange={(next) => {
                     form.setValue(
@@ -224,10 +229,14 @@ export function InviteOrganizationMemberDialog(props: {
           </Form.Item>
 
           <Form.Item
-            label={t("common:ORG_MEMBERS_INVITE_ROLE")}
+            label={
+              <div className="grid gap-1.5">
+                <span className="font-semibold text-foreground">{t("team:TEAM_INVITE_FIELD_ROLE")}</span>
+                <span className="text-muted-foreground">{t("team:TEAM_INVITE_ROLE_HELP")}</span>
+              </div>
+            }
             validateStatus={roleError ? "error" : undefined}
             help={roleError || null}
-            extra={<span className="text-muted-foreground">{t("team:TEAM_INVITE_ROLE_HELP")}</span>}
             className="!mb-4"
           >
             <Controller
@@ -251,7 +260,14 @@ export function InviteOrganizationMemberDialog(props: {
           </Form.Item>
 
           <Form.Item
-            label={t("team:TEAM_INVITE_LINK_FIELD_EXPIRES")}
+            label={
+              <div className="grid gap-1.5">
+                <span className="font-semibold text-foreground">
+                  {t("team:TEAM_INVITE_LINK_FIELD_EXPIRES")}
+                </span>
+                <span className="text-muted-foreground">{t("team:TEAM_INVITE_FIELD_EXPIRES_HELP")}</span>
+              </div>
+            }
             validateStatus={expiresError ? "error" : undefined}
             help={expiresError || null}
             className="!mb-0"

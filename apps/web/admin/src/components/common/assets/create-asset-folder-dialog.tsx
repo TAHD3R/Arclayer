@@ -35,7 +35,7 @@ export function CreateAssetFolderDialog(props: CreateAssetFolderDialogProps) {
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
       <DialogContent>
-        <DialogHeader className="gap-2">
+        <DialogHeader>
           <DialogTitle className="font-bold! text-xl">
             {t("assets:ASSET_FOLDER_CREATE_TITLE")}
           </DialogTitle>
@@ -46,31 +46,40 @@ export function CreateAssetFolderDialog(props: CreateAssetFolderDialogProps) {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="mt-4">
-          <Input
-            autoFocus
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder={t("assets:ASSET_FOLDER_CREATE_PLACEHOLDER")}
-            onKeyDown={(e) => {
-              if (e.key !== "Enter") return;
-              if (!canSubmit) return;
-              void (async () => {
-                await props.onCreate(name.trim(), description.trim() || null);
-                props.onOpenChange(false);
-              })();
-            }}
-          />
-        </div>
+        <div className="mt-4 grid gap-4">
+          <div className="grid gap-1.5">
+            <label className="font-semibold text-foreground">{t("assets:ASSET_FOLDER_NAME")}</label>
+            <div className="text-muted-foreground">{t("assets:ASSET_FOLDER_FIELD_NAME_HELP")}</div>
+            <Input
+              autoFocus
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder={t("assets:ASSET_FOLDER_CREATE_PLACEHOLDER")}
+              onKeyDown={(e) => {
+                if (e.key !== "Enter") return;
+                if (!canSubmit) return;
+                void (async () => {
+                  await props.onCreate(name.trim(), description.trim() || null);
+                  props.onOpenChange(false);
+                })();
+              }}
+            />
+          </div>
 
-        <div className="mt-4 space-y-1">
-          <div className="text-sm text-foreground/80">{t("assets:ASSET_FOLDER_DESCRIPTION")}</div>
-          <Input.TextArea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder={t("assets:ASSET_FOLDER_DESCRIPTION_PLACEHOLDER")}
-            autoSize={{ minRows: 2, maxRows: 5 }}
-          />
+          <div className="grid gap-1.5">
+            <label className="font-semibold text-foreground">
+              {t("assets:ASSET_FOLDER_DESCRIPTION")}
+            </label>
+            <div className="text-muted-foreground">
+              {t("assets:ASSET_FOLDER_FIELD_DESCRIPTION_HELP")}
+            </div>
+            <Input.TextArea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder={t("assets:ASSET_FOLDER_DESCRIPTION_PLACEHOLDER")}
+              autoSize={{ minRows: 2, maxRows: 5 }}
+            />
+          </div>
         </div>
 
         <DialogFooter className="mt-6">

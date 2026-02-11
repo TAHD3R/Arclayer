@@ -2,6 +2,7 @@ import * as React from "react";
 import { Button, Input, Select } from "antd";
 import { Controller, type FieldErrors, type UseFormReturn } from "react-hook-form";
 import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
+import { cn } from "@/lib/utils";
 
 import type { AdminMenuNode } from "@/api/admin-menus";
 import type { RbacMatrixPermissionRow, Role } from "@/api/rbac";
@@ -20,6 +21,17 @@ import { collectDescendantPermissionCodes, normalizePermissionCode } from "./rol
 import type { CreateRoleFormValues, MenuScopeCheckedState } from "./roles-utils";
 
 type TranslateFn = (key: string, options?: Record<string, unknown>) => string;
+
+const MENU_NODE_DEPTH_PADDING_CLASSES = [
+  "pl-2",
+  "pl-6",
+  "pl-10",
+  "pl-14",
+  "pl-[4.5rem]",
+  "pl-[5.5rem]",
+  "pl-[6.5rem]",
+  "pl-[7.5rem]",
+] as const;
 
 interface TeamRolesDialogsProps {
   t: TranslateFn;
@@ -118,8 +130,12 @@ export function TeamRolesDialogs(props: TeamRolesDialogsProps) {
       return (
         <div key={node.code}>
           <div
-            className="flex items-start gap-3 rounded-md px-2 py-2 hover:bg-muted/30"
-            style={{ paddingLeft: 8 + depth * 16 }}
+            className={cn(
+              "flex items-start gap-3 rounded-md px-2 py-2 hover:bg-muted/30",
+              MENU_NODE_DEPTH_PADDING_CLASSES[
+                Math.min(depth, MENU_NODE_DEPTH_PADDING_CLASSES.length - 1)
+              ],
+            )}
           >
             <Checkbox
               checked={checkedState}
@@ -198,10 +214,13 @@ export function TeamRolesDialogs(props: TeamRolesDialogsProps) {
           </DialogHeader>
 
           {customRoles.length ? (
-            <div className="grid gap-2">
+            <div className="grid gap-1.5">
               <label className="font-semibold text-foreground">
                 {t("team:TEAM_ROLES_MENU_SCOPE_ROLE_LABEL")}
               </label>
+              <div className="text-muted-foreground">
+                {t("team:TEAM_ROLES_MENU_SCOPE_ROLE_HELP")}
+              </div>
               <Select
                 value={menuScopeRoleCode || undefined}
                 onChange={(value) => setMenuScopeRoleCode(String(value))}
@@ -256,10 +275,10 @@ export function TeamRolesDialogs(props: TeamRolesDialogsProps) {
         <DialogContent className="max-w-[680px]">
           <DialogHeader>
             <DialogTitle>
-              {activePermission?.name || t("team:TEAM_ROLES_PERMISSION_TITLE")}
+              {activePermission?.name || t("team:TEAM_ROLES_PERMISSION_ACTION")}
             </DialogTitle>
             <DialogDescription>
-              {activePermission?.description || t("team:TEAM_ROLES_PERMISSION_DESC")}
+              {activePermission?.description || t("team:TEAM_ROLES_PERMISSION_DIALOG_DESC")}
             </DialogDescription>
           </DialogHeader>
 
@@ -322,9 +341,12 @@ export function TeamRolesDialogs(props: TeamRolesDialogsProps) {
             onSubmit={createForm.handleSubmit(onCreateRoleSubmit)}
           >
             <div className="grid gap-2">
-              <label className="font-semibold text-foreground">
-                {t("team:TEAM_ROLES_FIELD_TEMPLATE")}
-              </label>
+              <div className="grid gap-1.5">
+                <label className="font-semibold text-foreground">
+                  {t("team:TEAM_ROLES_FIELD_TEMPLATE")}
+                </label>
+                <div className="text-muted-foreground">{t("team:TEAM_ROLES_FIELD_TEMPLATE_HELP")}</div>
+              </div>
               <Controller
                 name="templateRoleCode"
                 control={createForm.control}
@@ -350,9 +372,12 @@ export function TeamRolesDialogs(props: TeamRolesDialogsProps) {
             </div>
 
             <div className="grid gap-2">
-              <label className="font-semibold text-foreground">
-                {t("team:TEAM_ROLES_FIELD_NAME")}
-              </label>
+              <div className="grid gap-1.5">
+                <label className="font-semibold text-foreground">
+                  {t("team:TEAM_ROLES_FIELD_NAME")}
+                </label>
+                <div className="text-muted-foreground">{t("team:TEAM_ROLES_FIELD_NAME_HELP")}</div>
+              </div>
               <Controller
                 name="name"
                 control={createForm.control}
@@ -369,9 +394,12 @@ export function TeamRolesDialogs(props: TeamRolesDialogsProps) {
             </div>
 
             <div className="grid gap-2">
-              <label className="font-semibold text-foreground">
-                {t("team:TEAM_ROLES_FIELD_DESC")}
-              </label>
+              <div className="grid gap-1.5">
+                <label className="font-semibold text-foreground">
+                  {t("team:TEAM_ROLES_FIELD_DESC")}
+                </label>
+                <div className="text-muted-foreground">{t("team:TEAM_ROLES_FIELD_DESC_HELP")}</div>
+              </div>
               <Controller
                 name="description"
                 control={createForm.control}

@@ -1,6 +1,5 @@
 import { Button as AntButton, Input, Select } from "antd";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -135,9 +134,9 @@ export function DeleteRoleDialog(props: DeleteRoleDialogProps) {
         </DialogHeader>
 
         <DialogFooter>
-          <Button onClick={onCancel} disabled={submitting}>
+          <AntButton onClick={onCancel} disabled={submitting}>
             {t("common:CANCEL")}
-          </Button>
+          </AntButton>
           <AntButton danger type="primary" loading={submitting} onClick={onConfirm}>
             {t("team:TEAM_ACTION_DELETE")}
           </AntButton>

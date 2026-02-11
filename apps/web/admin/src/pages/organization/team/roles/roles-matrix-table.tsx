@@ -1,11 +1,10 @@
+import { Button as AntButton, Dropdown } from "antd";
+import type { MenuProps } from "antd";
 import { Check, MoreVertical, Trash2 } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+
+import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+
 import type { DisplayOrganizationPermission, DisplayOrganizationRole } from "./roles-display";
 
 type Translate = (key: string, opts?: Record<string, unknown>) => string;
@@ -22,44 +21,50 @@ export function RolesMatrixTable(props: RolesMatrixTableProps) {
   const { filteredRoles, filteredPermissions, onDeleteRole, onPermissionEdit, t } = props;
 
   return (
-    <div className="rounded-lg border bg-card overflow-auto">
+    <div className="overflow-auto rounded-lg border bg-card">
       <table className="w-full min-w-max text-sm [&_th]:whitespace-nowrap">
         <TableHeader className="sticky top-0 z-20 bg-card">
           <TableRow>
             <TableHead className="sticky left-0 z-30 w-[360px] bg-card text-center">
               {t("team:TEAM_ROLES_COL_PERMISSION")}
             </TableHead>
-            {filteredRoles.map((role) => (
-              <TableHead key={role.code} className="min-w-[160px] text-center">
-                <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-                  <div />
-                  <div className="truncate font-medium text-foreground">{role.name}</div>
-                  <div className="flex justify-end">
-                    {role.isSystem ? null : (
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <button
-                            type="button"
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
-                          >
-                            <MoreVertical className="h-4 w-4" />
-                          </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            className="text-destructive focus:text-destructive"
-                            onClick={() => onDeleteRole(role.code)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                            {t("team:TEAM_ACTION_DELETE")}
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    )}
+            {filteredRoles.map((role) => {
+              const menuItems: NonNullable<MenuProps["items"]> = [
+                {
+                  key: "delete",
+                  label: t("team:TEAM_ACTION_DELETE"),
+                  danger: true,
+                  icon: <Trash2 className="h-4 w-4" />,
+                  onClick: () => onDeleteRole(role.code),
+                },
+              ];
+
+              return (
+                <TableHead key={role.code} className="min-w-[160px] text-center">
+                  <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+                    <div />
+                    <div className="truncate font-medium text-foreground">{role.name}</div>
+                    <div className="flex justify-end">
+                      {role.isSystem ? null : (
+                        <Dropdown
+                          trigger={["click"]}
+                          menu={{ items: menuItems }}
+                          getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
+                          overlayStyle={{ zIndex: 1400 }}
+                        >
+                          <AntButton
+                            type="text"
+                            className="!h-8 !w-8 !p-0"
+                            icon={<MoreVertical className="h-4 w-4" />}
+                            aria-label={t("team:TEAM_USER_ACTIONS")}
+                          />
+                        </Dropdown>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </TableHead>
-            ))}
+                </TableHead>
+              );
+            })}
           </TableRow>
         </TableHeader>
 

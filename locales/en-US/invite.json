@@ -59,6 +59,8 @@
   "INVITE_CONFIRM_JOIN_CANCEL": "Cancel",
   "INVITE_TOKEN_INPUT_TITLE": "Enter Invitation Token",
   "INVITE_TOKEN_INPUT_DESC": "If the button in the email does not work, copy the token from the email and paste it here.",
+  "INVITE_TOKEN_INPUT_FIELD_LABEL": "Invitation token",
+  "INVITE_TOKEN_INPUT_FIELD_HELP": "Paste the full token from the invitation email. We will validate and continue.",
   "INVITE_TOKEN_INPUT_PLACEHOLDER": "Paste invitation token",
   "INVITE_TOKEN_INPUT_CONFIRM": "Continue",
   "ROLE_OWNER_NAME": "Owner",

@@ -114,12 +114,16 @@ export function TeamInvitationsDialogs(props: TeamInvitationsDialogsProps) {
           </DialogHeader>
 
           {renewInvitation ? (
-            <div className="space-y-3 py-2">
+            <div className="grid gap-1.5 py-2">
+              <label className="font-semibold text-foreground">
+                {t("team:TEAM_INVITE_LINK_FIELD_EXPIRES")}
+              </label>
+              <div className="text-muted-foreground">{t("team:TEAM_INVITE_FIELD_EXPIRES_HELP")}</div>
               <Select<RenewExpiresInSeconds>
                 value={renewExpiresInSeconds}
                 onChange={(value) => setRenewExpiresInSeconds(value)}
                 options={renewOptions}
-                style={{ width: "100%" }}
+                className="w-full"
                 getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
               />
             </div>
@@ -162,12 +166,16 @@ export function TeamInvitationsDialogs(props: TeamInvitationsDialogsProps) {
           </DialogHeader>
 
           {renewLink ? (
-            <div className="space-y-3 py-2">
+            <div className="grid gap-1.5 py-2">
+              <label className="font-semibold text-foreground">
+                {t("team:TEAM_INVITE_LINK_FIELD_EXPIRES")}
+              </label>
+              <div className="text-muted-foreground">{t("team:TEAM_INVITE_FIELD_EXPIRES_HELP")}</div>
               <Select<RenewExpiresInSeconds>
                 value={renewExpiresInSeconds}
                 onChange={(value) => setRenewExpiresInSeconds(value)}
                 options={renewOptions}
-                style={{ width: "100%" }}
+                className="w-full"
                 getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
               />
             </div>

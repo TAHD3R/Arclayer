@@ -100,8 +100,11 @@ export function UpdateAssetsAccessDialog(props: UpdateAssetsAccessDialogProps) {
         </DialogHeader>
 
         <div className="mt-4 space-y-4">
-          <div className="space-y-1">
-            <div className="text-sm text-foreground/80">{t("assets:ASSET_META_VISIBILITY")}</div>
+          <div className="grid gap-1.5">
+            <label className="font-semibold text-foreground">{t("assets:ASSET_META_VISIBILITY")}</label>
+            <div className="text-muted-foreground">
+              {t("assets:ASSET_EDIT_ACCESS_VISIBILITY_HELP")}
+            </div>
             <Select
               className="w-full"
               value={visibility}
@@ -112,8 +115,9 @@ export function UpdateAssetsAccessDialog(props: UpdateAssetsAccessDialogProps) {
             />
           </div>
 
-          <div className="space-y-1">
-            <div className="text-sm text-foreground/80">{t("assets:ASSET_META_PURPOSE")}</div>
+          <div className="grid gap-1.5">
+            <label className="font-semibold text-foreground">{t("assets:ASSET_META_PURPOSE")}</label>
+            <div className="text-muted-foreground">{t("assets:ASSET_EDIT_ACCESS_PURPOSE_HELP")}</div>
             <Select
               className="w-full"
               value={purpose}

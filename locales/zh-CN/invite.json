@@ -59,6 +59,8 @@
   "INVITE_CONFIRM_JOIN_CANCEL": "取消",
   "INVITE_TOKEN_INPUT_TITLE": "手动输入邀请 Token",
   "INVITE_TOKEN_INPUT_DESC": "如果邮件里的按钮无法使用，你可以复制邮件中提供的 Token 并粘贴到此处。",
+  "INVITE_TOKEN_INPUT_FIELD_LABEL": "邀请 Token",
+  "INVITE_TOKEN_INPUT_FIELD_HELP": "粘贴邮件中的完整 Token，系统会校验后继续下一步。",
   "INVITE_TOKEN_INPUT_PLACEHOLDER": "粘贴邀请 Token",
   "INVITE_TOKEN_INPUT_CONFIRM": "继续",
   "ROLE_OWNER_NAME": "Owner",

@@ -28,12 +28,12 @@ export function StandardDialogLayout({
 }: StandardDialogLayoutProps) {
   return (
     <>
-      <DialogHeader className={cn("px-6 pt-4 pb-4", headerClassName)}>
+      <DialogHeader className={cn("px-6 pt-4", headerClassName)}>
         <DialogTitle>{title}</DialogTitle>
         {description ? <DialogDescription>{description}</DialogDescription> : null}
       </DialogHeader>
 
-      <div className={cn("px-6 py-4", bodyClassName)}>{children}</div>
+      <div className={cn("px-6", bodyClassName)}>{children}</div>
 
       {footer ? <DialogFooter className={cn("mt-0 px-6 py-4", footerClassName)}>{footer}</DialogFooter> : null}
     </>

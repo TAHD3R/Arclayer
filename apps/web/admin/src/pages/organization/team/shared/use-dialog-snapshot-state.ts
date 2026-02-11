@@ -1,49 +1,31 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
-type UseDialogSnapshotStateOptions = {
-  closeDelayMs?: number;
-};
-
-const DEFAULT_CLOSE_DELAY_MS = 220;
-
-export function useDialogSnapshotState<T>(options: UseDialogSnapshotStateOptions = {}) {
-  const closeDelayMs = options.closeDelayMs ?? DEFAULT_CLOSE_DELAY_MS;
-
+/**
+ * Keep a stable payload snapshot across close animations.
+ * This prevents close-transition flicker where i18n interpolations temporarily
+ * fall back to raw/default values while dialog content is still visible.
+ */
+export function useDialogSnapshotState<T>() {
   const [open, setOpen] = useState(false);
   const [payload, setPayload] = useState<T | null>(null);
   const [snapshot, setSnapshot] = useState<T | null>(null);
-
-  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const clearCloseTimer = useCallback(() => {
-    if (!closeTimerRef.current) return;
-    clearTimeout(closeTimerRef.current);
-    closeTimerRef.current = null;
-  }, []);
 
   const clearPayload = useCallback(() => {
     setPayload(null);
     setSnapshot(null);
   }, []);
 
-  const openWith = useCallback(
-    (nextPayload: T) => {
-      clearCloseTimer();
-      setPayload(nextPayload);
-      setSnapshot(nextPayload);
-      setOpen(true);
-    },
-    [clearCloseTimer],
-  );
+  const openWith = useCallback((nextPayload: T) => {
+    setPayload(nextPayload);
+    setSnapshot(nextPayload);
+    setOpen(true);
+  }, []);
 
   const close = useCallback(() => {
     setOpen(false);
-    clearCloseTimer();
-    closeTimerRef.current = setTimeout(() => {
-      clearPayload();
-      closeTimerRef.current = null;
-    }, closeDelayMs);
-  }, [clearCloseTimer, clearPayload, closeDelayMs]);
+    setPayload(null);
+    // Keep snapshot until next openWith/clearPayload so the closing frame remains stable.
+  }, []);
 
   const onOpenChange = useCallback(
     (nextOpen: boolean) => {
@@ -55,12 +37,6 @@ export function useDialogSnapshotState<T>(options: UseDialogSnapshotStateOptions
     },
     [close],
   );
-
-  useEffect(() => {
-    return () => {
-      clearCloseTimer();
-    };
-  }, [clearCloseTimer]);
 
   const displayPayload = useMemo(() => payload ?? snapshot, [payload, snapshot]);
 

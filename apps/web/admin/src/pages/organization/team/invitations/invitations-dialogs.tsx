@@ -98,9 +98,10 @@ export function OrganizationTeamInvitationsDialogs(props: OrganizationTeamInvita
 
           <div className="grid gap-5 py-2">
             <div className="grid gap-1.5">
-              <label className="text-sm font-medium text-foreground">
+              <label className="font-semibold text-foreground">
                 {t("team:TEAM_INVITE_FIELD_ROLE")}
               </label>
+              <div className="text-muted-foreground">{t("team:TEAM_INVITE_ROLE_HELP")}</div>
               <Select
                 value={linkRoleCode}
                 showSearch
@@ -111,13 +112,13 @@ export function OrganizationTeamInvitationsDialogs(props: OrganizationTeamInvita
                 getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
                 className="w-full"
               />
-              <div className="text-xs text-muted-foreground">{t("team:TEAM_INVITE_ROLE_HELP")}</div>
             </div>
 
             <div className="grid gap-1.5">
-              <label className="text-sm font-medium text-foreground">
+              <label className="font-semibold text-foreground">
                 {t("team:TEAM_INVITE_LINK_FIELD_EXPIRES")}
               </label>
+              <div className="text-muted-foreground">{t("team:TEAM_INVITE_FIELD_EXPIRES_HELP")}</div>
               <Select<RenewExpiresInSeconds>
                 value={linkExpiresInSeconds}
                 onChange={(next) => onLinkExpiresInSecondsChange(next)}
@@ -128,9 +129,12 @@ export function OrganizationTeamInvitationsDialogs(props: OrganizationTeamInvita
             </div>
 
             <div className="grid gap-1.5">
-              <label className="text-sm font-medium text-foreground">
+              <label className="font-semibold text-foreground">
                 {t("common:ORG_INVITE_LINK_ALLOWED_DOMAIN_LABEL")}
               </label>
+              <div className="text-muted-foreground">
+                {t("team:TEAM_INVITE_LINK_ALLOWED_DOMAIN_HELP")}
+              </div>
               <Input
                 value={linkAllowedDomain}
                 onChange={(event) => onLinkAllowedDomainChange(event.target.value)}
@@ -164,7 +168,11 @@ export function OrganizationTeamInvitationsDialogs(props: OrganizationTeamInvita
           </DialogHeader>
 
           {renewInvitationDialog.displayPayload ? (
-            <div className="space-y-3 py-2">
+            <div className="grid gap-1.5 py-2">
+              <label className="font-semibold text-foreground">
+                {t("team:TEAM_INVITE_LINK_FIELD_EXPIRES")}
+              </label>
+              <div className="text-muted-foreground">{t("team:TEAM_INVITE_FIELD_EXPIRES_HELP")}</div>
               <Select<RenewExpiresInSeconds>
                 value={renewExpiresInSeconds}
                 onChange={(value) => onRenewExpiresInSecondsChange(value)}
@@ -241,7 +249,11 @@ export function OrganizationTeamInvitationsDialogs(props: OrganizationTeamInvita
           </DialogHeader>
 
           {renewLinkDialog.displayPayload ? (
-            <div className="space-y-3 py-2">
+            <div className="grid gap-1.5 py-2">
+              <label className="font-semibold text-foreground">
+                {t("team:TEAM_INVITE_LINK_FIELD_EXPIRES")}
+              </label>
+              <div className="text-muted-foreground">{t("team:TEAM_INVITE_FIELD_EXPIRES_HELP")}</div>
               <Select<RenewExpiresInSeconds>
                 value={renewExpiresInSeconds}
                 onChange={(value) => onRenewExpiresInSecondsChange(value)}

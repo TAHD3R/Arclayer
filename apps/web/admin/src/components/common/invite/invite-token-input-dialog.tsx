@@ -42,7 +42,11 @@ export function InviteTokenInputDialog(props: InviteTokenInputDialogProps) {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="mt-4">
+        <div className="mt-4 grid gap-1.5">
+          <label className="font-semibold text-foreground">
+            {t("invite:INVITE_TOKEN_INPUT_FIELD_LABEL")}
+          </label>
+          <div className="text-muted-foreground">{t("invite:INVITE_TOKEN_INPUT_FIELD_HELP")}</div>
           <Input
             autoFocus
             value={value}

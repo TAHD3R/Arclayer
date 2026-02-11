@@ -149,9 +149,8 @@ export function OrganizationMembersDialogs({
             </DialogHeader>
 
             <div className="grid gap-1.5">
-              <label className="text-sm font-medium text-foreground">
-                {t("common:ORG_MEMBERS_INVITE_ROLE")}
-              </label>
+              <label className="font-semibold text-foreground">{t("team:TEAM_INVITE_FIELD_ROLE")}</label>
+              <div className="text-muted-foreground">{t("team:TEAM_ROLE_CHANGE_FIELD_ROLE_HELP")}</div>
               <Select
                 value={roleDraft}
                 onChange={(next) => onRoleDraftChange(String(next))}

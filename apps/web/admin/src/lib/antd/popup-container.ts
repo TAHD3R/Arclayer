@@ -26,5 +26,7 @@ export function getPopupContainerWithinOverlay(triggerNode?: HTMLElement | null)
     return overlayRoot;
   }
 
-  return triggerNode.parentElement ?? document.body;
+  // Always fallback to body outside overlays to avoid clipping inside scroll/stacking containers
+  // (e.g. sticky table headers and overflow wrappers).
+  return document.body;
 }
