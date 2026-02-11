@@ -369,7 +369,7 @@ export function OrganizationTeamRolesPage() {
           <div className="grid gap-4 py-2">
             <div className="grid gap-1.5">
               <label className="font-semibold text-foreground">{t("team:TEAM_ROLES_FIELD_TEMPLATE")}</label>
-              <div className="text-xs text-muted-foreground">{t("team:TEAM_ROLES_FIELD_TEMPLATE_HELP")}</div>
+              <div className="text-muted-foreground">{t("team:TEAM_ROLES_FIELD_TEMPLATE_HELP")}</div>
               <Select
                 value={newRoleTemplateCode}
                 onChange={(next) => setNewRoleTemplateCode(String(next))}
@@ -382,7 +382,7 @@ export function OrganizationTeamRolesPage() {
 
             <div className="grid gap-1.5">
               <label className="font-semibold text-foreground">{t("team:TEAM_ROLES_FIELD_NAME")}</label>
-              <div className="text-xs text-muted-foreground">{t("team:TEAM_ROLES_FIELD_NAME_HELP")}</div>
+              <div className="text-muted-foreground">{t("team:TEAM_ROLES_FIELD_NAME_HELP")}</div>
               <Input
                 value={newRoleName}
                 onChange={(event) => setNewRoleName(event.target.value)}
@@ -392,7 +392,7 @@ export function OrganizationTeamRolesPage() {
 
             <div className="grid gap-1.5">
               <label className="font-semibold text-foreground">{t("team:TEAM_ROLES_FIELD_DESC")}</label>
-              <div className="text-xs text-muted-foreground">{t("team:TEAM_ROLES_FIELD_DESC_HELP")}</div>
+              <div className="text-muted-foreground">{t("team:TEAM_ROLES_FIELD_DESC_HELP")}</div>
               <Input.TextArea
                 value={newRoleDesc}
                 onChange={(event) => setNewRoleDesc(event.target.value)}
@@ -486,7 +486,7 @@ export function OrganizationTeamRolesPage() {
                       <div className="truncate font-semibold text-foreground">
                         {role.name}
                         {role.isSystem ? (
-                          <span className="ml-2 text-xs font-normal text-muted-foreground">
+                          <span className="ml-2 font-normal text-muted-foreground">
                             ({t("team:TEAM_ROLES_PERMISSION_READ_ONLY")})
                           </span>
                         ) : null}
