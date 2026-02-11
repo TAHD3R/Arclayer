@@ -1,5 +1,5 @@
 import { Controller, useForm } from "react-hook-form";
-import { Button as AntButton, Form, Input, Select } from "antd";
+import { Button as AntButton, Form, Select, Tag, Tooltip } from "antd";
 import { useTranslation } from "react-i18next";
 import { useMemo } from "react";
 import { z } from "zod";
@@ -15,7 +15,7 @@ import {
 import { zodResolver } from "@/lib/forms/zod-resolver";
 
 export type InviteOrganizationMemberFormValues = {
-  email: string;
+  emails: string[];
   roleCode: string;
   expiresInSeconds: number | null;
 };
@@ -24,6 +24,21 @@ export type InviteOrganizationRoleOption = {
   value: string;
   label: string;
 };
+
+function normalizeEmailList(input: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const raw of input) {
+    const email = String(raw || "")
+      .trim()
+      .toLowerCase();
+    if (!email) continue;
+    if (seen.has(email)) continue;
+    seen.add(email);
+    out.push(email);
+  }
+  return out;
+}
 
 export function InviteOrganizationMemberDialog(props: {
   open: boolean;
@@ -41,7 +56,28 @@ export function InviteOrganizationMemberDialog(props: {
   const schema = useMemo(
     () =>
       z.object({
-        email: z.string().email(t("team:TEAM_INVITE_VALIDATION_EMAIL_INVALID")),
+        emails: z.array(z.string()).superRefine((val, ctx) => {
+          const emails = normalizeEmailList(val);
+          if (emails.length <= 0) {
+            ctx.addIssue({
+              code: "custom",
+              path: [],
+              message: t("team:TEAM_INVITE_VALIDATION_TO_REQUIRED"),
+            });
+            return;
+          }
+
+          for (const [idx, email] of emails.entries()) {
+            if (!z.string().email().safeParse(email).success) {
+              ctx.addIssue({
+                code: "custom",
+                path: [idx],
+                message: t("team:TEAM_INVITE_VALIDATION_EMAIL_INVALID", { email }),
+              });
+              return;
+            }
+          }
+        }),
         roleCode: z.string().min(1, t("common:ORG_MEMBERS_INVITE_ROLE_REQUIRED")),
         expiresInSeconds: z.number().int().min(60).nullable(),
       }),
@@ -51,7 +87,7 @@ export function InviteOrganizationMemberDialog(props: {
   const form = useForm<InviteOrganizationMemberFormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      email: "",
+      emails: [],
       roleCode: props.defaultRoleCode,
       expiresInSeconds: defaultExpiresInSeconds,
     },
@@ -69,13 +105,31 @@ export function InviteOrganizationMemberDialog(props: {
   );
 
   const selectedRoleCode = form.watch("roleCode");
-  const emailError = form.formState.errors.email?.message;
+  const emailTags = form.watch("emails");
+  const emailFieldError = form.formState.errors.emails;
+  const emailError = typeof emailFieldError?.message === "string" ? emailFieldError.message : undefined;
+  const emailHasError =
+    Boolean(emailError) ||
+    (Array.isArray(emailFieldError) && emailFieldError.some((item) => Boolean(item?.message)));
   const roleError = form.formState.errors.roleCode?.message;
   const expiresError = form.formState.errors.expiresInSeconds?.message;
+  const invalidEmailMessageByValue = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const email of normalizeEmailList(emailTags)) {
+      if (!z.string().email().safeParse(email).success) {
+        map.set(email, t("team:TEAM_INVITE_VALIDATION_EMAIL_INVALID", { email }));
+      }
+    }
+    return map;
+  }, [emailTags, t]);
+
   const onSubmit = form.handleSubmit(async (values) => {
-    await props.onSubmit(values);
+    await props.onSubmit({
+      ...values,
+      emails: normalizeEmailList(values.emails),
+    });
     form.reset({
-      email: "",
+      emails: [],
       roleCode: props.defaultRoleCode,
       expiresInSeconds: defaultExpiresInSeconds,
     });
@@ -88,7 +142,7 @@ export function InviteOrganizationMemberDialog(props: {
         props.onOpenChange(next);
         if (!next) {
           form.reset({
-            email: "",
+            emails: [],
             roleCode: props.defaultRoleCode,
             expiresInSeconds: defaultExpiresInSeconds,
           });
@@ -104,19 +158,59 @@ export function InviteOrganizationMemberDialog(props: {
         <Form layout="vertical" requiredMark={false} className="py-1" onFinish={() => void onSubmit()}>
           <Form.Item
             label={t("common:ORG_MEMBERS_INVITE_EMAIL")}
-            validateStatus={emailError ? "error" : undefined}
+            validateStatus={emailHasError ? "error" : undefined}
             help={emailError || null}
             className="!mb-4"
           >
             <Controller
               control={form.control}
-              name="email"
-              render={({ field }) => (
-                <Input
-                  {...field}
+              name="emails"
+              render={() => (
+                <Select
+                  mode="tags"
+                  suffixIcon={false}
+                  open={false}
+                  tokenSeparators={[" ", "\n", ",", ";", "，", "；", "\t"]}
                   autoFocus
                   placeholder={t("common:ORG_MEMBERS_INVITE_EMAIL_PLACEHOLDER")}
+                  value={emailTags}
+                  onChange={(next) => {
+                    form.setValue(
+                      "emails",
+                      normalizeEmailList(next.map((value) => String(value))),
+                      {
+                        shouldDirty: true,
+                        shouldValidate: true,
+                      },
+                    );
+                  }}
+                  getPopupContainer={(node) => node.parentElement ?? document.body}
+                  options={[]}
+                  notFoundContent={null}
                   disabled={props.loading}
+                  tagRender={(tagProps) => {
+                    const value = String(tagProps.value || "").trim();
+                    const message = invalidEmailMessageByValue.get(value) ?? null;
+
+                    const tag = (
+                      <Tag
+                        color={message ? "error" : "default"}
+                        closable={tagProps.closable}
+                        onClose={tagProps.onClose}
+                        style={{ marginInlineEnd: 0 }}
+                      >
+                        {tagProps.label}
+                      </Tag>
+                    );
+
+                    return message ? (
+                      <Tooltip title={message} placement="top">
+                        {tag}
+                      </Tooltip>
+                    ) : (
+                      tag
+                    );
+                  }}
                 />
               )}
             />

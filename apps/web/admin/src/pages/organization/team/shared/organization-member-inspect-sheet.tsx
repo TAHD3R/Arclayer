@@ -321,8 +321,12 @@ export function OrganizationMemberInspectSheet({
             </SheetHeader>
 
             <div className="min-h-0 flex-1 overflow-hidden px-6 pb-4 pt-3">
-              <ChromeTabs value={tab} onValueChange={(next) => setTab(next as InspectTab)}>
-                <ChromeTabsList className="w-auto">
+              <ChromeTabs
+                value={tab}
+                onValueChange={(next) => setTab(next as InspectTab)}
+                className="flex h-full min-h-0 flex-col"
+              >
+                <ChromeTabsList className="w-auto shrink-0">
                   <ChromeTabsTrigger value="role">{t("common:ORG_MEMBERS_INSPECT_TAB_ROLE")}</ChromeTabsTrigger>
                   <ChromeTabsTrigger value="workspaces">
                     {t("common:ORG_MEMBERS_INSPECT_TAB_WORKSPACES")}
@@ -330,8 +334,8 @@ export function OrganizationMemberInspectSheet({
                   <ChromeTabsTrigger value="activity">{t("common:ORG_MEMBERS_INSPECT_TAB_ACTIVITY")}</ChromeTabsTrigger>
                 </ChromeTabsList>
 
-                <ChromeTabsContent value="role" className="min-h-0 pt-3">
-                  <div className="min-h-[360px]">
+                <ChromeTabsContent value="role" className="flex min-h-0 flex-1 flex-col pt-3">
+                  <div className="flex min-h-0 flex-1 flex-col">
                     {rolesLoading || permissionsLoading ? (
                       <PageSkeleton variant="form" />
                     ) : (
@@ -350,16 +354,16 @@ export function OrganizationMemberInspectSheet({
                         variant="compact"
                         className="py-4"
                       >
-                        <div className="px-8 flex flex-col">
+                        <div className="flex min-h-0 flex-1 flex-col px-8">
                           <div className="text-lg font-semibold">{roleDetail?.name || "-"}</div>
 
                           <p className="text-muted-foreground">
                             {roleDetail?.description || t("common:ORG_MEMBERS_INSPECT_ROLE_DESC_EMPTY")}
                           </p>
 
-                          <div className="max-h-[50vh] overflow-auto">
+                          <div className="flex min-h-0 flex-1 flex-col">
                             <div className="mb-2 text-lg font-medium">{t("team:TEAM_ROLES_COL_PERMISSION")}</div>
-                            <div className="grow divide-y overflow-auto rounded-md border">
+                            <div className="min-h-0 flex-1 divide-y overflow-auto rounded-md border">
                               {rolePermissions.map((permission) => (
                                 <div key={permission.code} className="grid grid-cols-[1fr_auto] gap-3 px-3 py-2">
                                   <div className="min-w-0">
@@ -408,20 +412,20 @@ export function OrganizationMemberInspectSheet({
                         className="py-4"
                       >
                         <div className="px-8">
-                        <OrganizationMemberWorkspaceList
-                          workspaces={resolvedWorkspaces}
-                          roleNameByCode={roleNameByCode}
-                          onEnterWorkspace={onEnterWorkspace}
-                          searchable
-                        />
+                          <OrganizationMemberWorkspaceList
+                            workspaces={resolvedWorkspaces}
+                            roleNameByCode={roleNameByCode}
+                            onEnterWorkspace={onEnterWorkspace}
+                            searchable
+                          />
                         </div>
                       </PageState>
                     )}
                   </div>
                 </ChromeTabsContent>
 
-                <ChromeTabsContent value="activity" className="min-h-0 pt-3">
-                  <div className="min-h-[420px]">
+                <ChromeTabsContent value="activity" className="flex min-h-0 flex-1 flex-col pt-3">
+                  <div className="flex min-h-0 flex-1 flex-col">
                     {activityLoading ? (
                       <PageSkeleton variant="table" />
                     ) : (
@@ -437,8 +441,7 @@ export function OrganizationMemberInspectSheet({
                         emptyDescription={t("activity:ACTIVITY_EMPTY_DESC")}
                         variant="compact"
                       >
-                        <div ref={activityScrollRef} className="max-h-[48vh] overflow-auto px-8">
-                          <div className="py-3">
+                        <div ref={activityScrollRef} className="min-h-0 flex-1 overflow-auto px-8">
                             <ActivityTimeline
                               items={activityItems}
                               onSelect={(event) => setSelectedActivity(event)}
@@ -446,7 +449,6 @@ export function OrganizationMemberInspectSheet({
                               titleSpan={4}
                             />
                             <div ref={activitySentinelRef} className="h-10" />
-                          </div>
                         </div>
                       </PageState>
                     )}

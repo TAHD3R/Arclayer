@@ -118,14 +118,40 @@ export function OrganizationTeamInvitationsPage() {
   };
 
   const inviteMutation = useMutation({
-    mutationFn: async (payload: InviteOrganizationMemberFormValues) =>
-      inviteOrganizationMember({
-        email: payload.email.trim(),
-        roleCode: payload.roleCode,
-        expiresInSeconds: payload.expiresInSeconds ?? undefined,
-      }),
-    onSuccess: async () => {
-      notifySuccessText(t("team:TEAM_INVITE_SUCCESS"));
+    mutationFn: async (payload: InviteOrganizationMemberFormValues) => {
+      const results = await Promise.allSettled(
+        payload.emails.map((email) =>
+          inviteOrganizationMember({
+            email: email.trim(),
+            roleCode: payload.roleCode,
+            expiresInSeconds: payload.expiresInSeconds ?? undefined,
+          }),
+        ),
+      );
+
+      const successCount = results.filter((result) => result.status === "fulfilled").length;
+      const failed = results.filter(
+        (result): result is PromiseRejectedResult => result.status === "rejected",
+      );
+      const failedCount = failed.length;
+
+      if (successCount === 0 && failedCount > 0) {
+        throw failed[0]?.reason;
+      }
+
+      return { successCount, failedCount };
+    },
+    onSuccess: async (result) => {
+      if (result.failedCount > 0) {
+        notifySuccessText(
+          t("team:TEAM_INVITE_SUCCESS_WITH_FAILURE", {
+            count: result.successCount,
+            failed: result.failedCount,
+          }),
+        );
+      } else {
+        notifySuccessText(t("team:TEAM_INVITE_SUCCESS", { count: result.successCount }));
+      }
       setInviteOpen(false);
       await queryClient.invalidateQueries({ queryKey: ["dataTable", "organization-invitations:pending"] });
     },

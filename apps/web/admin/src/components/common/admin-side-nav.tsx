@@ -174,7 +174,6 @@ function NavNode({
   const isSectionActive = depth === 0 && hasChildren && activeKeys.has(item.key);
   const isTrailActive = activeKeys.has(item.key);
   const showActiveIndicator = depth === 0 && (isSelected || isSectionActive);
-  const itemTextSize = depth === 0 ? "text-[15px]" : "text-sm";
   const blockedTooltip = getBlockedTooltipText(item, t, resolvePermissionName);
 
   const openSelf = () => {
