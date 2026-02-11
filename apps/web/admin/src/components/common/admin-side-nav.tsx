@@ -201,11 +201,10 @@ function NavNode({
             aria-disabled={item.disabled ? "true" : undefined}
             className={cn(
               "rounded-none relative z-10",
-              "h-[38px]",
+              "h-9.5 pl-5",
               "transition-[width,height,padding,color] duration-150 ease-out",
               "text-muted-foreground! hover:text-foreground! hover:bg-transparent! active:bg-transparent!",
               "data-[active=true]:font-semibold data-[active=true]:bg-transparent! data-[active=true]:text-foreground!",
-              itemTextSize,
               item.disabled
                 ? cn(
                     "opacity-60",
@@ -261,11 +260,10 @@ function NavNode({
             aria-disabled={item.disabled ? "true" : undefined}
             className={cn(
               "rounded-none relative z-10",
-              "h-[38px]",
+              "h-9.5 pl-5",
               "transition-[width,height,padding,color] duration-150 ease-out",
               "text-muted-foreground! hover:text-foreground! hover:bg-transparent! active:bg-transparent!",
               "data-[active=true]:font-semibold data-[active=true]:bg-transparent! data-[active=true]:text-foreground!",
-              itemTextSize,
               item.disabled
                 ? cn(
                     "opacity-60",

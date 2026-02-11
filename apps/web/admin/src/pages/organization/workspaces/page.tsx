@@ -15,7 +15,7 @@ import {
   Tag,
 } from "antd";
 import type { MenuProps } from "antd";
-import { ArrowRight, Archive, MoreVertical, Plus, Search, Trash2, Undo2 } from "lucide-react";
+import { Archive, MoreVertical, Plus, Search, Trash2, Undo2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -111,12 +111,9 @@ function WorkspaceMembersPopover({ workspace }: { workspace: OrganizationWorkspa
   };
 
   const content = (
-    <div className="w-[420px] max-w-[85vw]">
+    <div className="w-80 max-w-[85vw]">
       <div className="flex items-center justify-between gap-2">
         <div className="font-semibold">{t("common:ORG_WORKSPACES_MEMBERS_POPOVER_TITLE")}</div>
-        <Tag color="blue" style={{ marginInlineEnd: 0 }}>
-          {t("common:ORG_WORKSPACES_MEMBERS_COUNT", { count: workspace.memberCount })}
-        </Tag>
       </div>
 
       <Input
@@ -423,7 +420,6 @@ export function OrganizationWorkspacesPage() {
             <AntButton
               type="link"
               disabled={item.isArchived}
-              icon={<ArrowRight className="size-4" />}
               onClick={() => {
                 setCurrentWorkspaceId(item.workspaceId);
                 void navigate({ to: `/w/${item.workspaceId}` });
@@ -505,6 +501,7 @@ export function OrganizationWorkspacesPage() {
           }
           right={
             <Input.Search
+            variant="borderless"
               value={currentTableHook.searchInput}
               onChange={(event) => currentTableHook.setSearchInput(event.target.value)}
               placeholder={t("common:ORG_WORKSPACES_SEARCH_PLACEHOLDER")}

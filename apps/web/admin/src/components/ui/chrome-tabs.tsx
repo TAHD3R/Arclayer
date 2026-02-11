@@ -218,7 +218,7 @@ function ChromeTabsListImpl(
         className={cn(
           "relative",
           "w-full justify-start gap-2 rounded-none bg-transparent p-0",
-          "border-b border-border/80",
+          // "border-b border-border/80",
           "h-auto",
           // Overflow handling
           "overflow-x-auto overflow-y-hidden",
@@ -266,7 +266,7 @@ const ChromeTabsTrigger = React.forwardRef<
       "transition-colors",
       "hover:text-foreground",
       // Fallback when the trigger is wrapped by other Radix primitives that also set data-state.
-      "[&[aria-selected=true]]:text-foreground",
+      "aria-selected:text-foreground",
       // Hover underline for inactive tabs (active underline is rendered by ChromeTabsList for animation).
       "after:absolute after:left-8 after:right-8 after:bottom-2 after:h-0.5 after:rounded-full after:bg-transparent after:transition-colors",
       "data-[state=inactive]:hover:after:bg-foreground/60",
