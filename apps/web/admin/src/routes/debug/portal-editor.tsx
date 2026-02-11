@@ -255,7 +255,7 @@ function PortalEditorDebugPage() {
 
   return (
     <div className="flex h-dvh w-full flex-col">
-      <div className="flex flex-wrap items-center gap-2 border-b border-gray-200 bg-white p-3 text-xs">
+      <div className="flex items-center gap-2 border-b border-gray-200 bg-white p-3 text-xs">
         <div className="mr-2 font-medium">{t("PORTAL_EDITOR_DEBUG_TITLE")}</div>
         <div className="text-gray-600">
           {t("PORTAL_ORIGIN")}: <code>{portalOrigin}</code>

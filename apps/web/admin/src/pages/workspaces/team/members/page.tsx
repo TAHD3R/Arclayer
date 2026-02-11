@@ -403,7 +403,7 @@ export function TeamMembersView() {
       }
       extra={
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-2">
             <AntInput
               variant="borderless"
               value={tableHook.searchInput}

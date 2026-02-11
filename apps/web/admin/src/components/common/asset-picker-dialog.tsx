@@ -311,7 +311,7 @@ export function AssetPickerDialog(props: {
             </div>
 
             {/* Breadcrumbs */}
-            <div className="px-6 flex flex-wrap items-center gap-2 text-sm">
+            <div className="px-6 flex items-center gap-2 text-sm">
               <Button
                 type="text"
                 onClick={() => {

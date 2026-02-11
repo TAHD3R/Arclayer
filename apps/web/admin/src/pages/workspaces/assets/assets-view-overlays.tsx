@@ -157,7 +157,7 @@ export function AssetsViewOverlays(props: AssetsViewOverlaysProps) {
                     {props.t("assets:ASSET_CLEAR_SELECTION")}
                   </Button>
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex items-center gap-2">
                   <Button
                     type="text"
                     icon={<FolderInput size={16} />}

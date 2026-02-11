@@ -257,7 +257,7 @@ export function ContentPageEditorView(props: ContentPageEditorViewProps) {
         layout === "overlay" ? "flex h-full w-full flex-col bg-background p-4 pt-16" : undefined
       }
     >
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex items-center gap-2">
         <div className="text-sm text-muted-foreground">
           {t("content_pages:EDITOR_PATH_LABEL")}:{" "}
           <code>{page?.path ?? t("content_pages:PLACEHOLDER_DASH")}</code>
