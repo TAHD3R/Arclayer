@@ -153,9 +153,12 @@
   "TEAM_RESET_PASSWORD_FIELD_CONFIRM_PASSWORD_HELP": "再次输入相同密码，避免误操作导致成员无法登录。",
 
   "TEAM_FIELD_USERNAME": "用户名",
+  "TEAM_FIELD_USERNAME_HELP": "该账号标识由系统维护，当前页面不支持修改。",
   "TEAM_FIELD_DISPLAY_NAME": "昵称",
+  "TEAM_FIELD_DISPLAY_NAME_HELP": "设置团队易于识别的名称，便于成员列表与操作记录快速定位。",
   "TEAM_FIELD_DISPLAY_NAME_PLACEHOLDER": "请输入昵称（可选）",
   "TEAM_FIELD_EMAIL": "邮箱",
+  "TEAM_FIELD_EMAIL_HELP": "更新用于通知与身份校验的联系邮箱。",
   "TEAM_FIELD_EMAIL_PLACEHOLDER": "请输入邮箱（可选）",
   "TEAM_FIELD_AVATAR": "头像",
   "TEAM_FIELD_AVATAR_DESC": "点击头像，从资源库选择或上传一张图片。",

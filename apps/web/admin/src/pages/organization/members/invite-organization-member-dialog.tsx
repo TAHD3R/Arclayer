@@ -68,7 +68,16 @@ export function InviteOrganizationMemberDialog(props: InviteOrganizationMemberDi
       <Form form={form} layout="vertical" requiredMark={false}>
         <Form.Item
           name="email"
-          label={t("common:ORG_MEMBERS_INVITE_EMAIL")}
+          label={
+            <div className="grid gap-1.5">
+              <span className="font-semibold text-foreground">
+                {t("common:ORG_MEMBERS_INVITE_EMAIL")}
+              </span>
+              <span className="text-muted-foreground">
+                {t("common:ORG_MEMBERS_INVITE_EMAIL_HELP")}
+              </span>
+            </div>
+          }
           rules={[
             { required: true, message: t("common:ORG_MEMBERS_INVITE_EMAIL_REQUIRED") },
             { type: "email", message: t("team:TEAM_INVITE_VALIDATION_EMAIL_INVALID") },
@@ -79,7 +88,16 @@ export function InviteOrganizationMemberDialog(props: InviteOrganizationMemberDi
 
         <Form.Item
           name="role"
-          label={t("common:ORG_MEMBERS_INVITE_ROLE")}
+          label={
+            <div className="grid gap-1.5">
+              <span className="font-semibold text-foreground">
+                {t("common:ORG_MEMBERS_INVITE_ROLE")}
+              </span>
+              <span className="text-muted-foreground">
+                {t("common:ORG_MEMBERS_INVITE_ROLE_HELP")}
+              </span>
+            </div>
+          }
           rules={[{ required: true, message: t("common:ORG_MEMBERS_INVITE_ROLE_REQUIRED") }]}
         >
           <Select

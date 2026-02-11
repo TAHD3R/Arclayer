@@ -1,7 +1,13 @@
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
-import { StandardDialogLayout } from "@/components/common/dialog/standard-dialog-layout";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
 type SettingDialogProps = {
@@ -15,9 +21,9 @@ type SettingDialogProps = {
 };
 
 /**
- * SettingDialog：用于设置页的“弹窗式”配置入口。
- * - 统一标题/描述/正文/底部按钮区布局
- * - 不强绑定具体表单库（AntD / RHF 均可）
+ * SettingDialog is a shared overlay wrapper for settings-like forms.
+ * It keeps visual alignment with the base dialog primitives and ensures
+ * a consistent header/body/footer structure.
  */
 export function SettingDialog({
   open,
@@ -28,18 +34,29 @@ export function SettingDialog({
   footer,
   contentClassName,
 }: SettingDialogProps) {
+  const [titleSnapshot, setTitleSnapshot] = useState<ReactNode>(title);
+  const [descriptionSnapshot, setDescriptionSnapshot] = useState<ReactNode>(description);
+
+  useEffect(() => {
+    if (!open) return;
+    setTitleSnapshot(title);
+    setDescriptionSnapshot(description);
+  }, [description, open, title]);
+
+  const displayTitle = open ? title : titleSnapshot;
+  const displayDescription = open ? description : descriptionSnapshot;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={cn("p-0", contentClassName)}>
-        <StandardDialogLayout
-          title={title}
-          description={description}
-          footer={footer}
-          headerClassName="text-left"
-          bodyClassName="py-4"
-        >
-          {children}
-        </StandardDialogLayout>
+      <DialogContent className={cn("overflow-hidden p-0", contentClassName)}>
+        <DialogHeader className="border-b px-6 py-4 text-left">
+          <DialogTitle>{displayTitle}</DialogTitle>
+          {displayDescription ? <DialogDescription>{displayDescription}</DialogDescription> : null}
+        </DialogHeader>
+
+        <div className="px-6 py-4">{children}</div>
+
+        {footer ? <DialogFooter className="mt-0 border-t px-6 py-4">{footer}</DialogFooter> : null}
       </DialogContent>
     </Dialog>
   );

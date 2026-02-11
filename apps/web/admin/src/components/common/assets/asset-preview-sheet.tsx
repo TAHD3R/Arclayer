@@ -348,6 +348,14 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
                           ]}
                         />
                         <div className="mt-4">
+                          <div className="mb-2 grid gap-1.5">
+                            <div className="font-semibold text-foreground">
+                              {t("assets:ASSET_TAG_FIELD_TITLE")}
+                            </div>
+                            <div className="text-muted-foreground">
+                              {t("assets:ASSET_TAG_FIELD_DESC")}
+                            </div>
+                          </div>
                           <Flex gap="small" align="center" wrap>
                             {selectedTags.map((tag, index) => {
                               if (editInputIndex === index) {

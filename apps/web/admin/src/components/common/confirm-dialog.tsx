@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import { Button } from "antd";
 
@@ -26,13 +26,25 @@ export interface ConfirmDialogProps {
 }
 
 export function ConfirmDialog(props: ConfirmDialogProps) {
+  const [titleSnapshot, setTitleSnapshot] = useState<ReactNode>(props.title);
+  const [descriptionSnapshot, setDescriptionSnapshot] = useState<ReactNode>(props.description);
+
+  useEffect(() => {
+    if (!props.open) return;
+    setTitleSnapshot(props.title);
+    setDescriptionSnapshot(props.description);
+  }, [props.description, props.open, props.title]);
+
+  const displayTitle = props.open ? props.title : titleSnapshot;
+  const displayDescription = props.open ? props.description : descriptionSnapshot;
+
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
       <DialogContent showCloseButton className="sm:max-w-[520px]">
         <DialogHeader>
-          <DialogTitle>{props.title}</DialogTitle>
-          {props.description ? (
-            <DialogDescription className="mt-2">{props.description}</DialogDescription>
+          <DialogTitle>{displayTitle}</DialogTitle>
+          {displayDescription ? (
+            <DialogDescription className="mt-2">{displayDescription}</DialogDescription>
           ) : null}
         </DialogHeader>
 

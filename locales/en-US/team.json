@@ -153,9 +153,12 @@
   "TEAM_RESET_PASSWORD_FIELD_CONFIRM_PASSWORD_HELP": "Re-enter the same password to avoid accidental lockouts.",
 
   "TEAM_FIELD_USERNAME": "Username",
+  "TEAM_FIELD_USERNAME_HELP": "This account identifier is managed by the system and cannot be edited here.",
   "TEAM_FIELD_DISPLAY_NAME": "Display name",
+  "TEAM_FIELD_DISPLAY_NAME_HELP": "Set a friendly name teammates can recognize in member lists and activity records.",
   "TEAM_FIELD_DISPLAY_NAME_PLACEHOLDER": "Enter display name (optional)",
   "TEAM_FIELD_EMAIL": "Email",
+  "TEAM_FIELD_EMAIL_HELP": "Update the contact email used for notifications and identity checks.",
   "TEAM_FIELD_EMAIL_PLACEHOLDER": "Enter email (optional)",
   "TEAM_FIELD_AVATAR": "Avatar",
   "TEAM_FIELD_AVATAR_DESC": "Click the avatar to pick or upload an image from the asset library.",

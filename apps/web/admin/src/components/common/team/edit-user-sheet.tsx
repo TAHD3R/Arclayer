@@ -162,8 +162,9 @@ export function EditUserSheet(props: {
             <input type="hidden" {...form.register("avatarUrl")} />
 
             {/* Avatar (above username for better identification) */}
-            <div className="grid gap-2">
-              <label className="text-sm text-muted-foreground">{t("team:TEAM_FIELD_AVATAR")}</label>
+            <div className="grid gap-1.5">
+              <label className="font-semibold text-foreground">{t("team:TEAM_FIELD_AVATAR")}</label>
+              <div className="text-muted-foreground">{t("team:TEAM_FIELD_AVATAR_DESC")}</div>
               <div className="relative h-16 w-16">
                 <div
                   role="button"
@@ -258,9 +259,10 @@ export function EditUserSheet(props: {
             </div>
 
             <div className="grid gap-1.5">
-              <label className="text-sm text-muted-foreground" htmlFor="username">
+              <label className="font-semibold text-foreground" htmlFor="username">
                 {t("team:TEAM_FIELD_USERNAME")}
               </label>
+              <div className="text-muted-foreground">{t("team:TEAM_FIELD_USERNAME_HELP")}</div>
               <Controller
                 control={control}
                 name="username"
@@ -271,9 +273,10 @@ export function EditUserSheet(props: {
             </div>
 
             <div className="grid gap-1.5">
-              <label className="text-sm text-muted-foreground" htmlFor="displayName">
+              <label className="font-semibold text-foreground" htmlFor="displayName">
                 {t("team:TEAM_FIELD_DISPLAY_NAME")}
               </label>
+              <div className="text-muted-foreground">{t("team:TEAM_FIELD_DISPLAY_NAME_HELP")}</div>
               <Controller
                 control={control}
                 name="displayName"
@@ -298,9 +301,10 @@ export function EditUserSheet(props: {
             </div>
 
             <div className="grid gap-1.5">
-              <label className="text-sm text-muted-foreground" htmlFor="email">
+              <label className="font-semibold text-foreground" htmlFor="email">
                 {t("team:TEAM_FIELD_EMAIL")}
               </label>
+              <div className="text-muted-foreground">{t("team:TEAM_FIELD_EMAIL_HELP")}</div>
               <Controller
                 control={control}
                 name="email"

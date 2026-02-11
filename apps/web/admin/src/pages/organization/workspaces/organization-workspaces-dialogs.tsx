@@ -75,13 +75,34 @@ export function OrganizationWorkspacesDialogs(props: OrganizationWorkspacesDialo
         <Form form={createDialog.form} layout="vertical" requiredMark={false}>
           <Form.Item
             name="name"
-            label={t("common:ORG_WORKSPACES_FIELD_NAME")}
+            label={
+              <div className="grid gap-1.5">
+                <span className="font-semibold text-foreground">
+                  {t("common:ORG_WORKSPACES_FIELD_NAME")}
+                </span>
+                <span className="text-muted-foreground">
+                  {t("common:ORG_WORKSPACES_FIELD_NAME_HELP")}
+                </span>
+              </div>
+            }
             rules={[{ required: true, message: t("common:ORG_WORKSPACES_FIELD_NAME_REQUIRED") }]}
           >
             <Input placeholder={t("common:ORG_WORKSPACES_FIELD_NAME_PLACEHOLDER")} />
           </Form.Item>
 
-          <Form.Item name="description" label={t("common:ORG_WORKSPACES_FIELD_DESCRIPTION")}>
+          <Form.Item
+            name="description"
+            label={
+              <div className="grid gap-1.5">
+                <span className="font-semibold text-foreground">
+                  {t("common:ORG_WORKSPACES_FIELD_DESCRIPTION")}
+                </span>
+                <span className="text-muted-foreground">
+                  {t("common:ORG_WORKSPACES_FIELD_DESCRIPTION_HELP")}
+                </span>
+              </div>
+            }
+          >
             <Input.TextArea
               rows={3}
               placeholder={t("common:ORG_WORKSPACES_FIELD_DESCRIPTION_PLACEHOLDER")}
@@ -151,12 +172,15 @@ export function OrganizationWorkspacesDialogs(props: OrganizationWorkspacesDialo
           </div>
         }
       >
-        <div className="space-y-2">
-          <label className="font-medium text-foreground" htmlFor="workspace-delete-confirm-name">
+        <div className="grid gap-1.5">
+          <label className="font-semibold text-foreground" htmlFor="workspace-delete-confirm-name">
             {t("common:ORG_WORKSPACES_DELETE_CONFIRM_INPUT_LABEL", {
               name: deleteDialog.workspace?.name || "",
             })}
           </label>
+          <div className="text-muted-foreground">
+            {t("common:ORG_WORKSPACES_DELETE_CONFIRM_INPUT_HELP")}
+          </div>
           <Input
             id="workspace-delete-confirm-name"
             value={deleteDialog.confirmName}

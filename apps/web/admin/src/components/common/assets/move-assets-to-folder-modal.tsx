@@ -89,7 +89,9 @@ export function MoveAssetsToFolderModal(props: MoveAssetsToFolderModalProps) {
           </AlertDialogDescription>
         </AlertDialogHeader>
 
-        <div className="mt-4">
+        <div className="mt-4 grid gap-1.5">
+          <label className="font-semibold text-foreground">{t("assets:ASSET_BULK_MOVE_FIELD_TARGET")}</label>
+          <div className="text-muted-foreground">{t("assets:ASSET_BULK_MOVE_FIELD_TARGET_HELP")}</div>
           <Select
             showSearch
             className="w-full"
