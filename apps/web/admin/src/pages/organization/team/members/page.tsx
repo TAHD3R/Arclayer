@@ -1,6 +1,7 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { flexRender, type ColumnDef } from "@tanstack/react-table";
+import { useNavigate } from "@tanstack/react-router";
 import {
   Avatar,
   Button as AntButton,
@@ -12,7 +13,7 @@ import {
   Pagination,
 } from "antd";
 import type { MenuProps } from "antd";
-import { Filter, MoreVertical, Plus, Search, Trash2, UserCog } from "lucide-react";
+import { Eye, Filter, MoreVertical, Plus, Search, Trash2, UserCog } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import * as authApi from "@/api/auth";
@@ -27,12 +28,16 @@ import {
   type OrganizationMember,
   type OrganizationMemberWorkspace,
 } from "@/api/organization-members";
-import { listOrganizationRoles } from "@/api/organization-rbac";
+import { listOrganizationWorkspaces } from "@/api/organization-workspaces";
+import {
+  getOrganizationRbacMatrix,
+  listOrganizationRoles,
+  type OrganizationRbacMatrixPermissionRow,
+} from "@/api/organization-rbac";
 import { ConfirmDialog } from "@/components/common/confirm-dialog";
 import { DefaultPage } from "@/components/common/default-page";
 import { PageState } from "@/components/common/page-state";
 import { useDataTable } from "@/components/data-table";
-import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -52,6 +57,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
+import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { cn } from "@/lib/utils";
 
 import {
@@ -59,6 +65,11 @@ import {
   type InviteOrganizationMemberFormValues,
   type InviteOrganizationRoleOption,
 } from "../shared/invite-organization-member-dialog";
+import { OrganizationMemberInspectSheet } from "../shared/organization-member-inspect-sheet";
+import {
+  type ResolvedMemberWorkspace,
+  OrganizationMemberWorkspaceList,
+} from "../shared/organization-member-workspace-list";
 import { getOrganizationRoleDisplayName } from "../shared/role-i18n";
 
 type OrgMemberFilters = {
@@ -66,6 +77,70 @@ type OrgMemberFilters = {
   membershipStatus?: OrgMembershipStatus;
   userStatus?: OrgUserStatus;
   hasWorkspace?: boolean;
+};
+
+type DisplayOrganizationPermission = OrganizationRbacMatrixPermissionRow & {
+  displayName: string;
+  displayDescription: string | null;
+};
+
+const ORG_PERMISSION_COPY_MAP: Record<string, { nameKey: string; descKey: string }> = {
+  "org.members.read": {
+    nameKey: "ORG_ROLE_PERMISSION_MEMBERS_VIEW",
+    descKey: "ORG_ROLE_PERMISSION_MEMBERS_VIEW_DESC",
+  },
+  "org.members.manage": {
+    nameKey: "ORG_ROLE_PERMISSION_MEMBERS_MANAGE",
+    descKey: "ORG_ROLE_PERMISSION_MEMBERS_MANAGE_DESC",
+  },
+  "org.invitations.read": {
+    nameKey: "ORG_ROLE_PERMISSION_INVITES_VIEW",
+    descKey: "ORG_ROLE_PERMISSION_INVITES_VIEW_DESC",
+  },
+  "org.invitations.create": {
+    nameKey: "ORG_ROLE_PERMISSION_INVITES_CREATE",
+    descKey: "ORG_ROLE_PERMISSION_INVITES_CREATE_DESC",
+  },
+  "org.invitations.revoke": {
+    nameKey: "ORG_ROLE_PERMISSION_INVITES_REVOKE",
+    descKey: "ORG_ROLE_PERMISSION_INVITES_REVOKE_DESC",
+  },
+  "org.roles.read": {
+    nameKey: "ORG_ROLE_PERMISSION_ROLES_VIEW",
+    descKey: "ORG_ROLE_PERMISSION_ROLES_VIEW_DESC",
+  },
+  "org.roles.write": {
+    nameKey: "ORG_ROLE_PERMISSION_ROLES_MANAGE",
+    descKey: "ORG_ROLE_PERMISSION_ROLES_MANAGE_DESC",
+  },
+  "org.workspaces.read": {
+    nameKey: "ORG_ROLE_PERMISSION_WORKSPACES_VIEW",
+    descKey: "ORG_ROLE_PERMISSION_WORKSPACES_VIEW_DESC",
+  },
+  "org.workspaces.manage": {
+    nameKey: "ORG_ROLE_PERMISSION_WORKSPACES_MANAGE",
+    descKey: "ORG_ROLE_PERMISSION_WORKSPACES_MANAGE_DESC",
+  },
+  "org.settings.read": {
+    nameKey: "ORG_ROLE_PERMISSION_SETTINGS_VIEW",
+    descKey: "ORG_ROLE_PERMISSION_SETTINGS_VIEW_DESC",
+  },
+  "org.settings.manage": {
+    nameKey: "ORG_ROLE_PERMISSION_SETTINGS_MANAGE",
+    descKey: "ORG_ROLE_PERMISSION_SETTINGS_MANAGE_DESC",
+  },
+  "org.plugins.read": {
+    nameKey: "ORG_ROLE_PERMISSION_PLUGINS_VIEW",
+    descKey: "ORG_ROLE_PERMISSION_PLUGINS_VIEW_DESC",
+  },
+  "org.plugins.manage": {
+    nameKey: "ORG_ROLE_PERMISSION_PLUGINS_MANAGE",
+    descKey: "ORG_ROLE_PERMISSION_PLUGINS_MANAGE_DESC",
+  },
+  "org.activity.read": {
+    nameKey: "ORG_ROLE_PERMISSION_ACTIVITY_VIEW",
+    descKey: "ORG_ROLE_PERMISSION_ACTIVITY_VIEW_DESC",
+  },
 };
 
 function formatDateTime(value: string | null): string {
@@ -117,8 +192,12 @@ function userStatusLabel(
 
 function WorkspaceAssociationPopover({
   workspaces,
+  roleNameByCode,
+  onEnterWorkspace,
 }: {
-  workspaces: OrganizationMemberWorkspace[];
+  workspaces: ResolvedMemberWorkspace[];
+  roleNameByCode: Map<string, string>;
+  onEnterWorkspace: (workspaceId: string) => void;
 }) {
   const { t } = useTranslation(["common", "team"]);
 
@@ -139,29 +218,21 @@ function WorkspaceAssociationPopover({
         </button>
       </PopoverTrigger>
 
-      <PopoverContent align="start" sideOffset={8} className="w-[360px] max-w-[85vw] p-3">
-        <div className="space-y-2">
-          {workspaces.map((workspace) => (
-            <div
-              key={`${workspace.workspaceId}:${workspace.membershipStatus}`}
-              className="rounded-md border px-3 py-2"
-            >
-              <div className="flex items-center justify-between gap-2">
-                <div className="font-medium">{workspace.workspaceName}</div>
-                <Tag color={membershipTagColor(workspace.membershipStatus)} style={{ marginInlineEnd: 0 }}>
-                  {membershipLabel(t, workspace.membershipStatus)}
-                </Tag>
-              </div>
-              <div className="mt-1 text-xs text-muted-foreground">/{workspace.workspaceSlug}</div>
-              <div className="mt-2 flex flex-wrap gap-1">
-                {(workspace.roleCodes.length ? workspace.roleCodes : ["-"]).map((code) => (
-                  <Tag key={`${workspace.workspaceId}:${code}`} style={{ marginInlineEnd: 0 }}>
-                    {code}
-                  </Tag>
-                ))}
-              </div>
-            </div>
-          ))}
+      <PopoverContent align="start" sideOffset={8} className="w-[420px] max-w-[90vw] p-3">
+        <div className="space-y-3">
+          <div>
+            <div className="font-semibold">{t("common:ORG_MEMBERS_WORKSPACE_POPOVER_TITLE")}</div>
+            <div className="text-muted-foreground">{t("common:ORG_MEMBERS_WORKSPACE_POPOVER_DESC")}</div>
+          </div>
+
+          <div className="max-h-[420px] overflow-auto pr-1">
+            <OrganizationMemberWorkspaceList
+              workspaces={workspaces}
+              roleNameByCode={roleNameByCode}
+              onEnterWorkspace={onEnterWorkspace}
+              searchable
+            />
+          </div>
         </div>
       </PopoverContent>
     </Popover>
@@ -301,16 +372,28 @@ function MembersFilterPopover({
 export function OrganizationTeamMembersPage() {
   const { t } = useTranslation(["nav", "common", "team"]);
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const setCurrentWorkspaceId = useWorkspaceStore((s) => s.setCurrentWorkspaceId);
 
   const [inviteOpen, setInviteOpen] = useState(false);
   const [filters, setFilters] = useState<OrgMemberFilters>({});
   const [pendingRemove, setPendingRemove] = useState<OrganizationMember | null>(null);
   const [editingRoleMember, setEditingRoleMember] = useState<OrganizationMember | null>(null);
+  const [inspectingMember, setInspectingMember] = useState<OrganizationMember | null>(null);
   const [roleDraft, setRoleDraft] = useState<string>("member");
+  const roleDialogPopupRef = useRef<HTMLDivElement | null>(null);
 
   const rolesQuery = useQuery({
     queryKey: ["organization", "rbac", "roles"],
     queryFn: async () => listOrganizationRoles({ size: 200 }),
+    staleTime: 60 * 1000,
+    retry: false,
+    meta: { silent: true },
+  });
+
+  const matrixQuery = useQuery({
+    queryKey: ["organization", "rbac", "matrix", "members-page"],
+    queryFn: async () => getOrganizationRbacMatrix(),
     staleTime: 60 * 1000,
     retry: false,
     meta: { silent: true },
@@ -326,16 +409,117 @@ export function OrganizationTeamMembersPage() {
 
   const currentUserId = meQuery.data?.id ? String(meQuery.data.id) : null;
 
-  const roleNameByCode = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const role of rolesQuery.data?.items ?? []) {
-      map.set(role.code, getOrganizationRoleDisplayName(t, role.code, role.name));
+  const activeWorkspacesQuery = useQuery({
+    queryKey: ["organization", "workspaces", "active", "members-page"],
+    queryFn: async () => listOrganizationWorkspaces({ page: 1, size: 200, archived: false }),
+    staleTime: 60 * 1000,
+    retry: false,
+    meta: { silent: true },
+  });
+
+  const archivedWorkspacesQuery = useQuery({
+    queryKey: ["organization", "workspaces", "archived", "members-page"],
+    queryFn: async () => listOrganizationWorkspaces({ page: 1, size: 200, archived: true }),
+    staleTime: 60 * 1000,
+    retry: false,
+    meta: { silent: true },
+  });
+
+  const workspaceMetaById = useMemo(() => {
+    const map = new Map<string, { name: string; slug: string; description: string | null; iconUrl: string | null }>();
+    for (const workspace of activeWorkspacesQuery.data?.items ?? []) {
+      map.set(workspace.workspaceId, {
+        name: workspace.name,
+        slug: workspace.slug,
+        description: workspace.description,
+        iconUrl: workspace.iconUrl,
+      });
     }
-    map.set("owner", getOrganizationRoleDisplayName(t, "owner", map.get("owner")));
-    map.set("admin", getOrganizationRoleDisplayName(t, "admin", map.get("admin")));
-    map.set("member", getOrganizationRoleDisplayName(t, "member", map.get("member")));
+    for (const workspace of archivedWorkspacesQuery.data?.items ?? []) {
+      map.set(workspace.workspaceId, {
+        name: workspace.name,
+        slug: workspace.slug,
+        description: workspace.description,
+        iconUrl: workspace.iconUrl,
+      });
+    }
+    return map;
+  }, [activeWorkspacesQuery.data?.items, archivedWorkspacesQuery.data?.items]);
+
+  const workspaceLabelById = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const [workspaceId, meta] of workspaceMetaById.entries()) {
+      map[workspaceId] = meta.name || meta.slug || workspaceId;
+    }
+    return map;
+  }, [workspaceMetaById]);
+
+  const resolveWorkspaces = useCallback(
+    (workspaces: OrganizationMemberWorkspace[]): ResolvedMemberWorkspace[] => {
+      return workspaces.map((workspace) => {
+        const meta = workspaceMetaById.get(workspace.workspaceId);
+        return {
+          ...workspace,
+          workspaceName: meta?.name || workspace.workspaceName,
+          workspaceSlug: meta?.slug || workspace.workspaceSlug,
+          description: meta?.description,
+          iconUrl: meta?.iconUrl,
+        };
+      });
+    },
+    [workspaceMetaById],
+  );
+
+  const roleDetailsByCode = useMemo(() => {
+    const map = new Map<string, { name: string; description: string | null }>();
+    for (const role of rolesQuery.data?.items ?? []) {
+      map.set(role.code, {
+        name: getOrganizationRoleDisplayName(t, role.code, role.name),
+        description: role.description,
+      });
+    }
+    map.set("owner", {
+      name: getOrganizationRoleDisplayName(t, "owner", map.get("owner")?.name),
+      description: map.get("owner")?.description || t("common:ORG_ROLE_OWNER_DESC"),
+    });
+    map.set("admin", {
+      name: getOrganizationRoleDisplayName(t, "admin", map.get("admin")?.name),
+      description: map.get("admin")?.description || t("common:ORG_ROLE_ADMIN_DESC"),
+    });
+    map.set("member", {
+      name: getOrganizationRoleDisplayName(t, "member", map.get("member")?.name),
+      description: map.get("member")?.description || t("common:ORG_ROLE_MEMBER_DESC"),
+    });
     return map;
   }, [rolesQuery.data?.items, t]);
+
+  const roleNameByCode = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const [code, role] of roleDetailsByCode.entries()) {
+      map.set(code, role.name);
+    }
+    return map;
+  }, [roleDetailsByCode]);
+
+  const displayPermissions = useMemo<DisplayOrganizationPermission[]>(
+    () =>
+      (matrixQuery.data?.permissions ?? []).map((permission) => {
+        const mapped = ORG_PERMISSION_COPY_MAP[permission.code];
+        const displayName = mapped
+          ? t(`common:${mapped.nameKey}`, { defaultValue: permission.name })
+          : permission.name;
+        const translatedDescription = mapped
+          ? t(`common:${mapped.descKey}`, { defaultValue: permission.description || "" })
+          : permission.description;
+        const displayDescription = String(translatedDescription || permission.description || "").trim() || null;
+        return {
+          ...permission,
+          displayName,
+          displayDescription,
+        };
+      }),
+    [matrixQuery.data?.permissions, t],
+  );
 
   const roleOptions = useMemo<InviteOrganizationRoleOption[]>(() => {
     const fromApi = (rolesQuery.data?.items ?? []).map((role) => ({
@@ -394,6 +578,23 @@ export function OrganizationTeamMembersPage() {
     onError: (err) => notifyError(err),
   });
 
+  const openRoleDialog = useCallback((member: OrganizationMember) => {
+    setEditingRoleMember(member);
+    setRoleDraft(member.roleCode || member.role);
+  }, []);
+
+  const openRemoveDialog = useCallback((member: OrganizationMember) => {
+    setPendingRemove(member);
+  }, []);
+
+  const handleEnterWorkspace = useCallback(
+    (workspaceId: string) => {
+      setCurrentWorkspaceId(workspaceId);
+      void navigate({ to: `/w/${workspaceId}` });
+    },
+    [navigate, setCurrentWorkspaceId],
+  );
+
   const columns = useMemo<Array<ColumnDef<OrganizationMember, unknown>>>(
     () => [
       {
@@ -403,39 +604,60 @@ export function OrganizationTeamMembersPage() {
           const item = row.original;
           const primary = item.displayName || item.username;
           const secondary = item.email || "-";
+          const isCurrentUser = currentUserId !== null && item.userId === currentUserId;
           const isOwnerSelf = item.role === "owner" && currentUserId !== null && item.userId === currentUserId;
 
-          const removeMenuLabel = isOwnerSelf ? (
+          const leaveMenuLabel = isOwnerSelf ? (
             <Tooltip title={t("common:ORG_MEMBERS_OWNER_SELF_REMOVE_BLOCKED")}>
-              <span>{t("common:DELETE")}</span>
+              <span>{t("common:ORG_MEMBERS_ACTION_LEAVE_ORGANIZATION")}</span>
             </Tooltip>
           ) : (
-            t("common:DELETE")
+            t("common:ORG_MEMBERS_ACTION_LEAVE_ORGANIZATION")
           );
 
           const menuItems: MenuProps["items"] = [
+            {
+              key: "inspect",
+              icon: <Eye className="size-4" />,
+              label: t("common:ORG_MEMBERS_ACTION_INSPECT_USER"),
+              onClick: () => {
+                setInspectingMember(item);
+              },
+            },
             {
               key: "change_role",
               icon: <UserCog className="size-4" />,
               label: t("common:ORG_MEMBERS_ACTION_CHANGE_ROLE"),
               onClick: () => {
-                setEditingRoleMember(item);
-                setRoleDraft(item.roleCode || item.role);
+                openRoleDialog(item);
               },
             },
             { type: "divider" },
-            {
-              key: "remove",
+          ];
+
+          if (isCurrentUser) {
+            menuItems.push({
+              key: "leave",
               icon: <Trash2 className="size-4" />,
-              label: removeMenuLabel,
+              label: leaveMenuLabel,
               danger: true,
               disabled: isOwnerSelf,
               onClick: () => {
                 if (isOwnerSelf) return;
-                setPendingRemove(item);
+                openRemoveDialog(item);
               },
-            },
-          ];
+            });
+          } else {
+            menuItems.push({
+              key: "remove",
+              icon: <Trash2 className="size-4" />,
+              label: t("common:DELETE"),
+              danger: true,
+              onClick: () => {
+                openRemoveDialog(item);
+              },
+            });
+          }
 
           return (
             <div className="flex min-w-0 items-center gap-3">
@@ -458,9 +680,12 @@ export function OrganizationTeamMembersPage() {
 
               <div className="ml-auto pl-2">
                 <Dropdown trigger={["click"]} menu={{ items: menuItems }}>
-                  <Button variant="ghost" className="h-8 w-8 p-0" aria-label={t("team:TEAM_USER_ACTIONS")}>
-                    <MoreVertical className="size-4" />
-                  </Button>
+                  <AntButton
+                    type="text"
+                    className="!h-8 !w-8 !p-0"
+                    icon={<MoreVertical className="size-4" />}
+                    aria-label={t("team:TEAM_USER_ACTIONS")}
+                  />
                 </Dropdown>
               </div>
             </div>
@@ -470,7 +695,13 @@ export function OrganizationTeamMembersPage() {
       {
         id: "workspaces",
         header: t("common:ORG_MEMBERS_TABLE_WORKSPACES"),
-        cell: ({ row }) => <WorkspaceAssociationPopover workspaces={row.original.workspaces} />,
+        cell: ({ row }) => (
+          <WorkspaceAssociationPopover
+            workspaces={resolveWorkspaces(row.original.workspaces)}
+            roleNameByCode={roleNameByCode}
+            onEnterWorkspace={handleEnterWorkspace}
+          />
+        ),
       },
       {
         id: "status",
@@ -499,13 +730,6 @@ export function OrganizationTeamMembersPage() {
         ),
       },
       {
-        id: "joined",
-        header: t("common:ORG_MEMBERS_TABLE_JOINED_AT"),
-        cell: ({ row }) => (
-          <span className="text-sm text-muted-foreground">{formatDateTime(row.original.joinedAt)}</span>
-        ),
-      },
-      {
         id: "lastLogin",
         header: t("common:ORG_MEMBERS_TABLE_LAST_LOGIN"),
         cell: ({ row }) => (
@@ -513,7 +737,15 @@ export function OrganizationTeamMembersPage() {
         ),
       },
     ],
-    [currentUserId, roleNameByCode, t],
+    [
+      currentUserId,
+      handleEnterWorkspace,
+      openRemoveDialog,
+      openRoleDialog,
+      resolveWorkspaces,
+      roleNameByCode,
+      t,
+    ],
   );
 
   const tableHook = useDataTable<OrganizationMember>({
@@ -546,6 +778,8 @@ export function OrganizationTeamMembersPage() {
   const table = tableHook.table;
   const pageData = tableHook.pageData;
   const empty = !tableHook.isLoading && tableHook.items.length === 0;
+  const pendingRemoveIsCurrentUser =
+    currentUserId !== null && pendingRemove !== null && pendingRemove.userId === currentUserId;
 
   return (
     <DefaultPage
@@ -661,6 +895,34 @@ export function OrganizationTeamMembersPage() {
         }}
       />
 
+      <OrganizationMemberInspectSheet
+        open={Boolean(inspectingMember)}
+        onOpenChange={(open) => {
+          if (!open) setInspectingMember(null);
+        }}
+        member={inspectingMember}
+        currentUserId={currentUserId}
+        roleDetailsByCode={roleDetailsByCode}
+        rolesLoading={rolesQuery.isLoading}
+        rolesError={rolesQuery.error}
+        workspaceDataLoading={activeWorkspacesQuery.isLoading || archivedWorkspacesQuery.isLoading}
+        workspaceDataError={activeWorkspacesQuery.error || archivedWorkspacesQuery.error}
+        resolveWorkspaces={resolveWorkspaces}
+        workspaceLabelById={workspaceLabelById}
+        permissions={displayPermissions}
+        permissionsLoading={matrixQuery.isLoading}
+        permissionsError={matrixQuery.error}
+        onEnterWorkspace={handleEnterWorkspace}
+        onAdjustRole={(member) => {
+          setInspectingMember(null);
+          openRoleDialog(member);
+        }}
+        onRemoveMember={(member) => {
+          setInspectingMember(null);
+          openRemoveDialog(member);
+        }}
+      />
+
       <Dialog
         open={Boolean(editingRoleMember)}
         onOpenChange={(open) => {
@@ -668,44 +930,47 @@ export function OrganizationTeamMembersPage() {
         }}
       >
         <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{t("common:ORG_MEMBERS_ACTION_CHANGE_ROLE")}</DialogTitle>
-            <DialogDescription>
-              {t("common:ORG_MEMBERS_ROLE_DIALOG_DESC", {
-                name: editingRoleMember?.displayName || editingRoleMember?.username || "",
-              })}
-            </DialogDescription>
-          </DialogHeader>
+          <div ref={roleDialogPopupRef} className="space-y-4">
+            <DialogHeader>
+              <DialogTitle>{t("common:ORG_MEMBERS_ACTION_CHANGE_ROLE")}</DialogTitle>
+              <DialogDescription>
+                {t("common:ORG_MEMBERS_ROLE_DIALOG_DESC", {
+                  name: editingRoleMember?.displayName || editingRoleMember?.username || "",
+                })}
+              </DialogDescription>
+            </DialogHeader>
 
-          <div className="grid gap-1.5">
-            <label className="text-sm font-medium text-foreground">{t("common:ORG_MEMBERS_INVITE_ROLE")}</label>
-            <Select
-              value={roleDraft}
-              onChange={(next) => setRoleDraft(String(next))}
-              options={roleOptions}
-              style={{ width: "100%" }}
-              disabled={updateRoleMutation.isPending}
-            />
+            <div className="grid gap-1.5">
+              <label className="text-sm font-medium text-foreground">{t("common:ORG_MEMBERS_INVITE_ROLE")}</label>
+              <Select
+                value={roleDraft}
+                onChange={(next) => setRoleDraft(String(next))}
+                options={roleOptions}
+                style={{ width: "100%" }}
+                getPopupContainer={() => roleDialogPopupRef.current ?? document.body}
+                disabled={updateRoleMutation.isPending}
+              />
+            </div>
+
+            <DialogFooter>
+              <AntButton onClick={() => setEditingRoleMember(null)} disabled={updateRoleMutation.isPending}>
+                {t("common:CANCEL")}
+              </AntButton>
+              <AntButton
+                type="primary"
+                loading={updateRoleMutation.isPending}
+                onClick={async () => {
+                  if (!editingRoleMember) return;
+                  await updateRoleMutation.mutateAsync({
+                    membershipId: editingRoleMember.membershipId,
+                    roleCode: roleDraft,
+                  });
+                }}
+              >
+                {t("common:CONFIRM")}
+              </AntButton>
+            </DialogFooter>
           </div>
-
-          <DialogFooter>
-            <AntButton onClick={() => setEditingRoleMember(null)} disabled={updateRoleMutation.isPending}>
-              {t("common:CANCEL")}
-            </AntButton>
-            <AntButton
-              type="primary"
-              loading={updateRoleMutation.isPending}
-              onClick={async () => {
-                if (!editingRoleMember) return;
-                await updateRoleMutation.mutateAsync({
-                  membershipId: editingRoleMember.membershipId,
-                  roleCode: roleDraft,
-                });
-              }}
-            >
-              {t("common:CONFIRM")}
-            </AntButton>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -714,10 +979,18 @@ export function OrganizationTeamMembersPage() {
         onOpenChange={(open) => {
           if (!open) setPendingRemove(null);
         }}
-        title={t("common:ORG_MEMBERS_REMOVE_CONFIRM_TITLE")}
-        description={t("common:ORG_MEMBERS_REMOVE_CONFIRM_DESC", {
-          name: pendingRemove?.displayName || pendingRemove?.username || "",
-        })}
+        title={
+          pendingRemoveIsCurrentUser
+            ? t("common:ORG_MEMBERS_LEAVE_CONFIRM_TITLE")
+            : t("common:ORG_MEMBERS_REMOVE_CONFIRM_TITLE")
+        }
+        description={
+          pendingRemoveIsCurrentUser
+            ? t("common:ORG_MEMBERS_LEAVE_CONFIRM_DESC")
+            : t("common:ORG_MEMBERS_REMOVE_CONFIRM_DESC", {
+                name: pendingRemove?.displayName || pendingRemove?.username || "",
+              })
+        }
         cancelText={t("common:CANCEL")}
         confirmText={t("common:CONFIRM")}
         danger
