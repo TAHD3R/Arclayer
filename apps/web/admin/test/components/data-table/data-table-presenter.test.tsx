@@ -65,7 +65,7 @@ describe("DataTablePresenter", () => {
     expect(ordering).toHaveTextContent("");
   });
 
-  it("non-sortable header does not render a button and default header is centered", () => {
+  it("non-sortable header does not render a button and default header is left aligned", () => {
     function NonSortableHarness() {
       const data = [{ value: "A" }];
       const columns = [
@@ -95,7 +95,7 @@ describe("DataTablePresenter", () => {
     expect(screen.queryByRole("button", { name: "Value" })).not.toBeInTheDocument();
 
     const headerCells = container.querySelectorAll("th");
-    expect(headerCells[0]?.className).toContain("text-center");
+    expect(headerCells[0]?.className).toContain("text-left");
     expect(headerCells[1]?.className).toContain("text-right");
   });
 });

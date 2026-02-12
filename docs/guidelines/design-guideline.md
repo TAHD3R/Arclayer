@@ -134,6 +134,24 @@ Skeletons must:
 - Preserve readability and spacing rhythm
 - Avoid misleading placeholder patterns unrelated to final content
 
+### 5.4 Data table sorting contract (Admin, mandatory)
+
+For all Admin data tables using the shared TanStack table stack:
+
+- If a column maps to a backend-supported ordering field, it **must** expose sorting via `meta.sortKey`.
+- If backend ordering does not support a field, the column **must not** expose sorting UI.
+- Action/selection/operation columns (for example `actions`, checkbox selectors) are non-sortable by default.
+- Do not rely on ad-hoc per-page sorting state when shared `DataTablePresenter` sorting behavior is applicable.
+
+### 5.5 Data table date/time formatting contract (Admin, mandatory)
+
+- Date/time text rendered inside Admin data tables must use the shared formatter hook and localization chain.
+- Do not use local `new Date(...).toLocaleString()` implementations inside table columns.
+- Formatting must follow this fallback order:
+  1. Workspace localization
+  2. Organization localization
+  3. User preference and browser defaults
+
 ## 6. Settings Page Rules (Merged from legacy settings guideline)
 
 Settings behavior is governed by this document. The old standalone settings pattern file is deprecated and removed.
@@ -229,6 +247,8 @@ A UI PR is acceptable only when all relevant items pass:
 - [ ] Overlay footer styling is consistent (`bg-card`), and cancel buttons use Antd `type="text"`.
 - [ ] Input-capable overlays provide both title and description (no title-only forms).
 - [ ] Avatar usage is round, and `shape="square"` is not introduced in Admin UI.
+- [ ] Data table columns that map to backend ordering fields define `meta.sortKey` and expose sorting.
+- [ ] Data table date/time text uses the shared formatter chain (workspace -> organization -> user/browser).
 - [ ] Settings interactions follow the inline-first model unless overlay is justified.
 - [ ] Token usage follows `packages/ui-theme` and avoids style drift.
 - [ ] Accessibility baseline (focus, keyboard, labels) is satisfied.

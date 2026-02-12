@@ -8,13 +8,6 @@ export type DisplayOrganizationPermission = OrganizationRbacMatrixPermissionRow 
   displayDescription: string | null;
 };
 
-export function formatDateTime(value: string | null): string {
-  if (!value) return "-";
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return "-";
-  return d.toLocaleString();
-}
-
 export function builtinRoleLabel(
   t: (key: string, opts?: Record<string, unknown>) => string,
   role: OrgRole,

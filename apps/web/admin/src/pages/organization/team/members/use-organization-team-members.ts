@@ -18,6 +18,7 @@ import {
 import { getOrganizationRbacMatrix, listOrganizationRoles } from "@/api/organization-rbac";
 import { listOrganizationWorkspaces } from "@/api/organization-workspaces";
 import { useDataTable } from "@/components/data-table";
+import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
@@ -57,6 +58,7 @@ export function useOrganizationTeamMembers() {
   const [editingRoleMember, setEditingRoleMember] = useState<OrganizationMember | null>(null);
   const [inspectingMember, setInspectingMember] = useState<OrganizationMember | null>(null);
   const [roleDraft, setRoleDraft] = useState<string>("member");
+  const dateTime = useWorkspaceDateTimeFormatter();
 
   const rolesQuery = useQuery({
     queryKey: ["organization", "rbac", "roles"],
@@ -324,6 +326,7 @@ export function useOrganizationTeamMembers() {
       createOrganizationMemberColumns({
         t,
         currentUserId,
+        formatDateTime: dateTime.formatDateTime,
         roleNameByCode,
         resolveWorkspaces,
         onInspectMember: openInspectSheet,
@@ -334,6 +337,7 @@ export function useOrganizationTeamMembers() {
     [
       t,
       currentUserId,
+      dateTime.formatDateTime,
       roleNameByCode,
       resolveWorkspaces,
       openInspectSheet,

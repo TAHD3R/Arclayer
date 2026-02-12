@@ -5,16 +5,11 @@ import type { MenuProps } from "antd";
 import { Archive, MoreVertical, Trash2, Undo2 } from "lucide-react";
 
 import type { OrganizationWorkspace } from "@/api/organization-workspaces";
+import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";
 import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 
 import type { OrganizationWorkspacesTranslateFn } from "./organization-workspaces-types";
 import { WorkspaceMembersPopover } from "./workspace-members-popover";
-
-function formatDateTime(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "-";
-  return date.toLocaleString();
-}
 
 interface UseOrganizationWorkspacesColumnsOptions {
   t: OrganizationWorkspacesTranslateFn;
@@ -34,6 +29,7 @@ export function useOrganizationWorkspacesColumns(
     onUnarchiveWorkspace,
     onEnterWorkspace,
   } = options;
+  const dateTime = useWorkspaceDateTimeFormatter();
 
   return useMemo<Array<ColumnDef<OrganizationWorkspace, unknown>>>(
     () => [
@@ -116,7 +112,7 @@ export function useOrganizationWorkspacesColumns(
         id: "createdAt",
         meta: { sortKey: "created_at" },
         header: t("common:ORG_WORKSPACES_TABLE_CREATED_AT"),
-        cell: ({ row }) => <span>{formatDateTime(row.original.createdAt)}</span>,
+        cell: ({ row }) => <span>{dateTime.formatDateTime(row.original.createdAt)}</span>,
       },
       {
         id: "actions",
@@ -136,6 +132,13 @@ export function useOrganizationWorkspacesColumns(
         },
       },
     ],
-    [onArchiveWorkspace, onEnterWorkspace, onRequestDeleteWorkspace, onUnarchiveWorkspace, t],
+    [
+      dateTime.formatDateTime,
+      onArchiveWorkspace,
+      onEnterWorkspace,
+      onRequestDeleteWorkspace,
+      onUnarchiveWorkspace,
+      t,
+    ],
   );
 }

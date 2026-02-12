@@ -15,6 +15,7 @@ import { ConfirmDialog } from "@/components/common/confirm-dialog";
 import { DefaultPage } from "@/components/common/default-page";
 import { PageState } from "@/components/common/page-state";
 import { DataTablePresenter, useDataTable } from "@/components/data-table";
+import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 
 import { InviteOrganizationMemberDialog } from "./invite-organization-member-dialog";
@@ -25,6 +26,7 @@ const TABLE_QUERY_KEY = ["dataTable", "organization-members"] as const;
 export function OrganizationMembersPage() {
   const { t } = useTranslation(["nav", "common", "team"]);
   const queryClient = useQueryClient();
+  const dateTime = useWorkspaceDateTimeFormatter();
 
   const [inviteOpen, setInviteOpen] = useState(false);
   const [pendingRemove, setPendingRemove] = useState<OrganizationMember | null>(null);
@@ -82,12 +84,13 @@ export function OrganizationMembersPage() {
         t,
         roleOptions,
         roleUpdating: roleMutation.isPending,
+        formatDateTime: dateTime.formatDateTime,
         onRoleChange: ({ memberId, role }) => {
           void roleMutation.mutateAsync({ memberId, role });
         },
         onRemove: (member) => setPendingRemove(member),
       }),
-    [roleMutation, roleOptions, t],
+    [dateTime.formatDateTime, roleMutation, roleOptions, t],
   );
 
   const tableHook = useDataTable<OrganizationMember>({

@@ -12,18 +12,10 @@ type CreateOrganizationMembersColumnsParams = {
   t: Translate;
   roleOptions: Array<{ value: OrgRole; label: string }>;
   roleUpdating: boolean;
+  formatDateTime: (value: string | null | undefined) => string;
   onRoleChange: (payload: { memberId: string; role: OrgRole }) => void;
   onRemove: (member: OrganizationMember) => void;
 };
-
-function formatDateTime(value: string | null): string {
-  if (!value) return "-";
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "-";
-
-  return date.toLocaleString();
-}
 
 function membershipLabel(t: Translate, status: OrganizationMember["status"]): string {
   if (status === "active") return t("team:TEAM_MEMBERSHIP_STATUS_ACTIVE");
@@ -34,7 +26,7 @@ function membershipLabel(t: Translate, status: OrganizationMember["status"]): st
 export function createOrganizationMembersColumns(
   params: CreateOrganizationMembersColumnsParams,
 ): Array<ColumnDef<OrganizationMember, unknown>> {
-  const { onRemove, onRoleChange, roleOptions, roleUpdating, t } = params;
+  const { formatDateTime, onRemove, onRoleChange, roleOptions, roleUpdating, t } = params;
 
   return [
     {

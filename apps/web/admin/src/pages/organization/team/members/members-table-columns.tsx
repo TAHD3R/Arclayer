@@ -8,7 +8,6 @@ import type { OrganizationMember, OrganizationMemberWorkspace } from "@/api/orga
 import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 import {
   builtinRoleLabel,
-  formatDateTime,
   membershipLabel,
   membershipTagColor,
   roleTagColor,
@@ -23,6 +22,7 @@ type TranslateFn = (key: string, opts?: Record<string, unknown>) => string;
 interface CreateOrganizationMemberColumnsParams {
   t: TranslateFn;
   currentUserId: string | null;
+  formatDateTime: (value: string | null | undefined) => string;
   roleNameByCode: Map<string, string>;
   resolveWorkspaces: (workspaces: OrganizationMemberWorkspace[]) => ResolvedMemberWorkspace[];
   onInspectMember: (member: OrganizationMember) => void;
@@ -42,6 +42,7 @@ function buildSelfLeaveLabel(t: TranslateFn): ReactNode {
 export function createOrganizationMemberColumns({
   t,
   currentUserId,
+  formatDateTime,
   roleNameByCode,
   resolveWorkspaces,
   onInspectMember,
