@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { WorkspaceThemesView } from "@/pages/workspaces/appearance/themes/page";
+import { PlaceholderView } from "@/pages/placeholder/page";
 
 export const Route = createFileRoute("/w/$workspaceId/appearance/themes/")({
-  component: WorkspaceThemesView,
+  component: () => <PlaceholderView titleKey="nav:NAV_APPEARANCE_THEMES" />,
 });

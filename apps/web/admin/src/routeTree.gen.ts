@@ -65,7 +65,6 @@ import { Route as WWorkspaceIdSettingsMaintenanceStatusIndexRouteImport } from '
 import { Route as WWorkspaceIdSettingsMaintenanceSnapshotsIndexRouteImport } from './routes/w/$workspaceId/settings/maintenance/snapshots/index'
 import { Route as WWorkspaceIdSettingsMaintenanceActivityIndexRouteImport } from './routes/w/$workspaceId/settings/maintenance/activity/index'
 import { Route as OOrgIdSettingsOrganizationActivityIndexRouteImport } from './routes/o/$orgId/settings/organization/activity/index'
-import { Route as WWorkspaceIdContentPagesPageIdEditRouteImport } from './routes/w/$workspaceId/content/pages/$pageId/edit'
 
 const SetupRoute = SetupRouteImport.update({
   id: '/setup',
@@ -372,12 +371,6 @@ const OOrgIdSettingsOrganizationActivityIndexRoute =
     path: '/settings/organization/activity/',
     getParentRoute: () => OOrgIdRoute,
   } as any)
-const WWorkspaceIdContentPagesPageIdEditRoute =
-  WWorkspaceIdContentPagesPageIdEditRouteImport.update({
-    id: '/content/pages/$pageId/edit',
-    path: '/content/pages/$pageId/edit',
-    getParentRoute: () => WWorkspaceIdRoute,
-  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -432,7 +425,6 @@ export interface FileRoutesByFullPath {
   '/w/$workspaceId/settings/organization/': typeof WWorkspaceIdSettingsOrganizationIndexRoute
   '/w/$workspaceId/settings/seo/': typeof WWorkspaceIdSettingsSeoIndexRoute
   '/w/$workspaceId/settings/workspace/': typeof WWorkspaceIdSettingsWorkspaceIndexRoute
-  '/w/$workspaceId/content/pages/$pageId/edit': typeof WWorkspaceIdContentPagesPageIdEditRoute
   '/o/$orgId/settings/organization/activity/': typeof OOrgIdSettingsOrganizationActivityIndexRoute
   '/w/$workspaceId/settings/maintenance/activity/': typeof WWorkspaceIdSettingsMaintenanceActivityIndexRoute
   '/w/$workspaceId/settings/maintenance/snapshots/': typeof WWorkspaceIdSettingsMaintenanceSnapshotsIndexRoute
@@ -489,7 +481,6 @@ export interface FileRoutesByTo {
   '/w/$workspaceId/settings/organization': typeof WWorkspaceIdSettingsOrganizationIndexRoute
   '/w/$workspaceId/settings/seo': typeof WWorkspaceIdSettingsSeoIndexRoute
   '/w/$workspaceId/settings/workspace': typeof WWorkspaceIdSettingsWorkspaceIndexRoute
-  '/w/$workspaceId/content/pages/$pageId/edit': typeof WWorkspaceIdContentPagesPageIdEditRoute
   '/o/$orgId/settings/organization/activity': typeof OOrgIdSettingsOrganizationActivityIndexRoute
   '/w/$workspaceId/settings/maintenance/activity': typeof WWorkspaceIdSettingsMaintenanceActivityIndexRoute
   '/w/$workspaceId/settings/maintenance/snapshots': typeof WWorkspaceIdSettingsMaintenanceSnapshotsIndexRoute
@@ -549,7 +540,6 @@ export interface FileRoutesById {
   '/w/$workspaceId/settings/organization/': typeof WWorkspaceIdSettingsOrganizationIndexRoute
   '/w/$workspaceId/settings/seo/': typeof WWorkspaceIdSettingsSeoIndexRoute
   '/w/$workspaceId/settings/workspace/': typeof WWorkspaceIdSettingsWorkspaceIndexRoute
-  '/w/$workspaceId/content/pages/$pageId/edit': typeof WWorkspaceIdContentPagesPageIdEditRoute
   '/o/$orgId/settings/organization/activity/': typeof OOrgIdSettingsOrganizationActivityIndexRoute
   '/w/$workspaceId/settings/maintenance/activity/': typeof WWorkspaceIdSettingsMaintenanceActivityIndexRoute
   '/w/$workspaceId/settings/maintenance/snapshots/': typeof WWorkspaceIdSettingsMaintenanceSnapshotsIndexRoute
@@ -610,7 +600,6 @@ export interface FileRouteTypes {
     | '/w/$workspaceId/settings/organization/'
     | '/w/$workspaceId/settings/seo/'
     | '/w/$workspaceId/settings/workspace/'
-    | '/w/$workspaceId/content/pages/$pageId/edit'
     | '/o/$orgId/settings/organization/activity/'
     | '/w/$workspaceId/settings/maintenance/activity/'
     | '/w/$workspaceId/settings/maintenance/snapshots/'
@@ -667,7 +656,6 @@ export interface FileRouteTypes {
     | '/w/$workspaceId/settings/organization'
     | '/w/$workspaceId/settings/seo'
     | '/w/$workspaceId/settings/workspace'
-    | '/w/$workspaceId/content/pages/$pageId/edit'
     | '/o/$orgId/settings/organization/activity'
     | '/w/$workspaceId/settings/maintenance/activity'
     | '/w/$workspaceId/settings/maintenance/snapshots'
@@ -726,7 +714,6 @@ export interface FileRouteTypes {
     | '/w/$workspaceId/settings/organization/'
     | '/w/$workspaceId/settings/seo/'
     | '/w/$workspaceId/settings/workspace/'
-    | '/w/$workspaceId/content/pages/$pageId/edit'
     | '/o/$orgId/settings/organization/activity/'
     | '/w/$workspaceId/settings/maintenance/activity/'
     | '/w/$workspaceId/settings/maintenance/snapshots/'
@@ -1152,13 +1139,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OOrgIdSettingsOrganizationActivityIndexRouteImport
       parentRoute: typeof OOrgIdRoute
     }
-    '/w/$workspaceId/content/pages/$pageId/edit': {
-      id: '/w/$workspaceId/content/pages/$pageId/edit'
-      path: '/content/pages/$pageId/edit'
-      fullPath: '/w/$workspaceId/content/pages/$pageId/edit'
-      preLoaderRoute: typeof WWorkspaceIdContentPagesPageIdEditRouteImport
-      parentRoute: typeof WWorkspaceIdRoute
-    }
   }
 }
 
@@ -1217,7 +1197,6 @@ interface WWorkspaceIdRouteChildren {
   WWorkspaceIdSettingsOrganizationIndexRoute: typeof WWorkspaceIdSettingsOrganizationIndexRoute
   WWorkspaceIdSettingsSeoIndexRoute: typeof WWorkspaceIdSettingsSeoIndexRoute
   WWorkspaceIdSettingsWorkspaceIndexRoute: typeof WWorkspaceIdSettingsWorkspaceIndexRoute
-  WWorkspaceIdContentPagesPageIdEditRoute: typeof WWorkspaceIdContentPagesPageIdEditRoute
   WWorkspaceIdSettingsMaintenanceActivityIndexRoute: typeof WWorkspaceIdSettingsMaintenanceActivityIndexRoute
   WWorkspaceIdSettingsMaintenanceSnapshotsIndexRoute: typeof WWorkspaceIdSettingsMaintenanceSnapshotsIndexRoute
   WWorkspaceIdSettingsMaintenanceStatusIndexRoute: typeof WWorkspaceIdSettingsMaintenanceStatusIndexRoute
@@ -1249,8 +1228,6 @@ const WWorkspaceIdRouteChildren: WWorkspaceIdRouteChildren = {
   WWorkspaceIdSettingsSeoIndexRoute: WWorkspaceIdSettingsSeoIndexRoute,
   WWorkspaceIdSettingsWorkspaceIndexRoute:
     WWorkspaceIdSettingsWorkspaceIndexRoute,
-  WWorkspaceIdContentPagesPageIdEditRoute:
-    WWorkspaceIdContentPagesPageIdEditRoute,
   WWorkspaceIdSettingsMaintenanceActivityIndexRoute:
     WWorkspaceIdSettingsMaintenanceActivityIndexRoute,
   WWorkspaceIdSettingsMaintenanceSnapshotsIndexRoute:

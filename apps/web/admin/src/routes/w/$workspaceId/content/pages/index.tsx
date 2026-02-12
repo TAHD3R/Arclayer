@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { ContentPagesIndexView } from "@/pages/workspaces/content/pages/page";
+import { PlaceholderView } from "@/pages/placeholder/page";
 
 export const Route = createFileRoute("/w/$workspaceId/content/pages/")({
-  component: ContentPagesIndexView,
+  component: () => <PlaceholderView titleKey="nav:NAV_CONTENT_PAGES" />,
 });
