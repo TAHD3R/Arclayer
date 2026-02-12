@@ -91,6 +91,19 @@ If a page chooses a non-default implementation:
 - Do not use `shape="square"` in Admin UI.
 - Any exception must include product/design approval and a clear rationale in the PR.
 
+### 4.5 Overlay consistency rules (Admin, mandatory)
+
+To avoid style drift across settings and management flows, use the following overlay rules:
+
+- Replace `Spin` with `LoaderOne` for loading indicators inside Admin overlays and popovers.
+- For form-oriented business overlays, default to `SettingDialog` instead of wiring `Dialog`
+  primitives directly in feature files.
+- `DialogFooter` and `SheetFooter` must provide a `bg-card` background.
+- In overlay footers, cancel actions implemented with Antd `Button` must use `type="text"`.
+- Any overlay containing input interactions (for example `Input`, `Select`, `Checkbox`,
+  `Form`) must provide both `title` and `description`, aligned with the invite-member
+  dialog pattern.
+
 ## 5. Page Behavior Contracts (Admin)
 
 ### 5.1 Page shell contract
@@ -211,6 +224,10 @@ A UI PR is acceptable only when all relevant items pass:
 - [ ] Business page uses `DefaultPage` unless justified.
 - [ ] Loading/empty/error states are explicitly implemented with standard patterns.
 - [ ] Component choices follow the default matrix, or deviations are explained.
+- [ ] Overlay loading indicators use `LoaderOne` (no new `Spin` in Admin feature UI).
+- [ ] Form-oriented business dialogs use `SettingDialog` unless a justified exception applies.
+- [ ] Overlay footer styling is consistent (`bg-card`), and cancel buttons use Antd `type="text"`.
+- [ ] Input-capable overlays provide both title and description (no title-only forms).
 - [ ] Avatar usage is round, and `shape="square"` is not introduced in Admin UI.
 - [ ] Settings interactions follow the inline-first model unless overlay is justified.
 - [ ] Token usage follows `packages/ui-theme` and avoids style drift.

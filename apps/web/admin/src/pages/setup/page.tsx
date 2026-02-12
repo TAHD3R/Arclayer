@@ -23,7 +23,12 @@ import {
 } from "@/components/ui/expandable-screen";
 import ColorBends from "@/components/ui/color-bends";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
-import { notifyError, notifyErrorText, notifyInfoText, notifySuccessText } from "@/lib/notifications";
+import {
+  notifyError,
+  notifyErrorText,
+  notifyInfoText,
+  notifySuccessText,
+} from "@/lib/notifications";
 import { applyWorkspaceTemplatePreset } from "@/lib/setup-template";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";
@@ -594,7 +599,9 @@ export function SetupView() {
               </span>
             </div>
             {setupProgressStage ? (
-              <div className="mt-1 text-sm text-(--color-foreground)">{setupProgressStageLabels[setupProgressStage]}</div>
+              <div className="mt-1 text-sm text-(--color-foreground)">
+                {setupProgressStageLabels[setupProgressStage]}
+              </div>
             ) : null}
           </div>
         ) : setupEnabled === false ? (

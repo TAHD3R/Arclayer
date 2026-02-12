@@ -22,13 +22,11 @@ export interface SystemSetupRequest {
     email: string;
     display_name: string;
   };
-  organization?:
-    | {
-        name: string;
-        slug?: string | null;
-        logo_url?: string | null;
-      }
-    | null;
+  organization?: {
+    name: string;
+    slug?: string | null;
+    logo_url?: string | null;
+  } | null;
   master_key?: string;
   core_patch: Record<string, unknown>;
 }
@@ -101,9 +99,12 @@ export async function repairSetupMasterKey(input: {
 export async function reinitializeSelfHostSystem(input: {
   confirmName: string;
 }): Promise<{ reinitialized: boolean; setupRequired: boolean }> {
-  return api.post<{ reinitialized: boolean; setupRequired: boolean }>("/system/setup/reinitialize", {
-    confirmName: input.confirmName,
-  });
+  return api.post<{ reinitialized: boolean; setupRequired: boolean }>(
+    "/system/setup/reinitialize",
+    {
+      confirmName: input.confirmName,
+    },
+  );
 }
 
 export type DeploymentMode = "saas" | "self_host";

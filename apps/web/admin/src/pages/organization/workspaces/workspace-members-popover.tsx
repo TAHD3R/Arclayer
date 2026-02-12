@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { useQuery } from "@tanstack/react-query";
-import { Avatar, Button as AntButton, Input, List, Pagination, Popover, Spin } from "antd";
+import { Avatar, Button as AntButton, Input, List, Pagination, Popover } from "antd";
 import { Search } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -10,6 +10,7 @@ import {
   type OrganizationWorkspace,
   type OrganizationWorkspaceMember,
 } from "@/api/organization-workspaces";
+import { LoaderOne } from "@/components/ui/loader";
 
 function normalizeQuery(input: string): string {
   return String(input || "").trim();
@@ -80,7 +81,7 @@ export function WorkspaceMembersPopover({ workspace }: { workspace: Organization
       <div className="mt-3">
         {membersQuery.isLoading ? (
           <div className="flex justify-center py-8">
-            <Spin />
+            <LoaderOne />
           </div>
         ) : membersQuery.isError ? (
           <div className="py-6 text-center">

@@ -289,7 +289,7 @@ export function OrganizationMemberInspectSheet({
               </ChromeTabs>
             </div>
 
-            <SheetFooter className="sticky bottom-0 border-t bg-background px-6 py-3">
+            <SheetFooter className="sticky bottom-0 border-t bg-card px-6 py-3">
               <div className="flex w-full items-center justify-end gap-2">
                 <AntButton type="text" onClick={() => onAdjustRole(member)}>
                   {t("common:ORG_MEMBERS_ACTION_CHANGE_ROLE")}

@@ -331,7 +331,11 @@ export function EditUserSheet(props: {
 
           <SheetFooter>
             <div className="flex items-center justify-end gap-2">
-              <AntButton onClick={() => props.onOpenChange(false)} disabled={mutation.isPending}>
+              <AntButton
+                type="text"
+                onClick={() => props.onOpenChange(false)}
+                disabled={mutation.isPending}
+              >
                 {t("common:CANCEL")}
               </AntButton>
               <AntButton

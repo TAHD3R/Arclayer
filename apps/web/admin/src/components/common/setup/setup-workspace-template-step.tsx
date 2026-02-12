@@ -22,7 +22,9 @@ export function SetupWorkspaceTemplateStep(props: {
   onTemplateSelect: (templateKey: SetupWorkspaceTemplate) => void;
 }) {
   const { t } = useTranslation();
-  const selectedTemplate = Form.useWatch("templateKey", props.form) as SetupWorkspaceTemplate | undefined;
+  const selectedTemplate = Form.useWatch("templateKey", props.form) as
+    | SetupWorkspaceTemplate
+    | undefined;
   const workspaceName = Form.useWatch("workspaceName", props.form) as string | undefined;
   const siteName = Form.useWatch("siteName", props.form) as string | undefined;
   const siteUrl = Form.useWatch("siteUrl", props.form) as string | undefined;
@@ -98,7 +100,12 @@ export function SetupWorkspaceTemplateStep(props: {
             >
               <Card.Meta
                 title={
-                  <span className={clsx("text-[17px] font-semibold", selected ? "text-primary" : undefined)}>
+                  <span
+                    className={clsx(
+                      "text-[17px] font-semibold",
+                      selected ? "text-primary" : undefined,
+                    )}
+                  >
                     {template.title}
                   </span>
                 }

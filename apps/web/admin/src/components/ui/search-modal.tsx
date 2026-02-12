@@ -113,7 +113,9 @@ export function SearchModal({ children, data }: SearchModalProps) {
                       ) : null}
                     </div>
                     {item.category ? (
-                      <p className="ml-auto shrink-0 text-xs text-muted-foreground">{item.category}</p>
+                      <p className="ml-auto shrink-0 text-xs text-muted-foreground">
+                        {item.category}
+                      </p>
                     ) : null}
                   </CommandOption>
                 );

@@ -7,14 +7,7 @@ import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 
 import type { Role } from "@/api/rbac";
 import type { TeamMember } from "@/api/team";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { SettingDialog } from "@/components/common/setting-dialog";
 
 export function EditMemberRolesDialog(props: {
   open: boolean;
@@ -42,31 +35,19 @@ export function EditMemberRolesDialog(props: {
     : t("team:TEAM_EDIT_ROLES_TITLE");
 
   return (
-    <Dialog open={props.open} onOpenChange={props.onOpenChange}>
-      <DialogContent className="sm:max-w-xl">
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{t("team:TEAM_EDIT_ROLES_DESC")}</DialogDescription>
-        </DialogHeader>
-
-        <div className="grid grid-cols-1 gap-2 py-2">
-          <label className="font-semibold text-foreground">{t("team:TEAM_INVITE_FIELD_ROLE")}</label>
-          <div className="text-muted-foreground">{t("team:TEAM_EDIT_ROLES_FIELD_ROLE_HELP")}</div>
-          <Select
-            allowClear
-            placeholder={t("team:TEAM_EDIT_ROLES_PLACEHOLDER")}
-            loading={props.rolesLoading}
-            value={props.value ?? undefined}
-            onChange={(next) => props.onChange(next ? String(next) : null)}
-            options={options}
-            showSearch
-            optionFilterProp="label"
-            getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
-          />
-        </div>
-
-        <DialogFooter>
-          <AntButton onClick={() => props.onOpenChange(false)} disabled={props.confirmLoading}>
+    <SettingDialog
+      open={props.open}
+      onOpenChange={props.onOpenChange}
+      title={title}
+      description={t("team:TEAM_EDIT_ROLES_DESC")}
+      contentClassName="sm:max-w-xl"
+      footer={
+        <>
+          <AntButton
+            type="text"
+            onClick={() => props.onOpenChange(false)}
+            disabled={props.confirmLoading}
+          >
             {t("common:CANCEL")}
           </AntButton>
           <AntButton
@@ -77,8 +58,24 @@ export function EditMemberRolesDialog(props: {
           >
             {t("common:CONFIRM")}
           </AntButton>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </>
+      }
+    >
+      <div className="grid grid-cols-1 gap-2 py-2">
+        <label className="font-semibold text-foreground">{t("team:TEAM_INVITE_FIELD_ROLE")}</label>
+        <div className="text-muted-foreground">{t("team:TEAM_EDIT_ROLES_FIELD_ROLE_HELP")}</div>
+        <Select
+          allowClear
+          placeholder={t("team:TEAM_EDIT_ROLES_PLACEHOLDER")}
+          loading={props.rolesLoading}
+          value={props.value ?? undefined}
+          onChange={(next) => props.onChange(next ? String(next) : null)}
+          options={options}
+          showSearch
+          optionFilterProp="label"
+          getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
+        />
+      </div>
+    </SettingDialog>
   );
 }

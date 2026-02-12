@@ -155,7 +155,11 @@ export function LoginView({
         <div className="mt-4 text-center">
           <Typography.Text style={{ color: "var(--color-muted-foreground)" }}>
             {t("auth:NO_ACCOUNT")}{" "}
-            <Button type="link" style={{ paddingInline: 0 }} onClick={() => onModeChange("register")}>
+            <Button
+              type="link"
+              style={{ paddingInline: 0 }}
+              onClick={() => onModeChange("register")}
+            >
               {t("auth:CREATE_ACCOUNT")}
             </Button>
           </Typography.Text>

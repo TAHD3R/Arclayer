@@ -9,7 +9,9 @@ interface OrganizationMembersInviteActionProps {
   onInvite: () => void;
 }
 
-export function OrganizationMembersInviteAction({ onInvite }: OrganizationMembersInviteActionProps) {
+export function OrganizationMembersInviteAction({
+  onInvite,
+}: OrganizationMembersInviteActionProps) {
   const { t } = useTranslation(["common"]);
 
   return (

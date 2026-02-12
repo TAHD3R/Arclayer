@@ -3,14 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { AdminAssetFolder } from "@/api/assets";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { SettingDialog } from "@/components/common/setting-dialog";
 
 export type UpdateAssetFolderDialogValue = {
   name: string;
@@ -45,50 +38,17 @@ export function UpdateAssetFolderDialog(props: UpdateAssetFolderDialogProps) {
   }, [disabled, name, props.folder]);
 
   return (
-    <Dialog open={props.open} onOpenChange={props.onOpenChange}>
-      <DialogContent>
-        <DialogHeader className="gap-2">
-          <DialogTitle className="font-bold! text-xl">
-            {t("assets:ASSET_FOLDER_EDIT_TITLE")}
-          </DialogTitle>
-          <DialogDescription className="text-base">
-            {props.folder
-              ? t("assets:ASSET_FOLDER_EDIT_DESC", { name: props.folder.name })
-              : t("assets:ASSET_FOLDER_EDIT_DESC_FALLBACK")}
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="mt-4 space-y-4">
-          <div className="grid gap-1.5">
-            <label className="font-semibold text-foreground">{t("assets:ASSET_FOLDER_NAME")}</label>
-            <div className="text-muted-foreground">{t("assets:ASSET_FOLDER_FIELD_NAME_HELP")}</div>
-            <Input
-              autoFocus
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder={t("assets:ASSET_FOLDER_NAME_PLACEHOLDER")}
-              disabled={disabled}
-            />
-          </div>
-
-          <div className="grid gap-1.5">
-            <label className="font-semibold text-foreground">
-              {t("assets:ASSET_FOLDER_DESCRIPTION")}
-            </label>
-            <div className="text-muted-foreground">
-              {t("assets:ASSET_FOLDER_FIELD_DESCRIPTION_HELP")}
-            </div>
-            <Input.TextArea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder={t("assets:ASSET_FOLDER_DESCRIPTION_PLACEHOLDER")}
-              autoSize={{ minRows: 2, maxRows: 5 }}
-              disabled={disabled}
-            />
-          </div>
-        </div>
-
-        <DialogFooter className="mt-6">
+    <SettingDialog
+      open={props.open}
+      onOpenChange={props.onOpenChange}
+      title={t("assets:ASSET_FOLDER_EDIT_TITLE")}
+      description={
+        props.folder
+          ? t("assets:ASSET_FOLDER_EDIT_DESC", { name: props.folder.name })
+          : t("assets:ASSET_FOLDER_EDIT_DESC_FALLBACK")
+      }
+      footer={
+        <>
           <Button type="text" disabled={disabled} onClick={() => props.onOpenChange(false)}>
             {t("common:CANCEL")}
           </Button>
@@ -106,8 +66,38 @@ export function UpdateAssetFolderDialog(props: UpdateAssetFolderDialogProps) {
           >
             {t("common:CONFIRM")}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </>
+      }
+    >
+      <div className="mt-4 space-y-4">
+        <div className="grid gap-1.5">
+          <label className="font-semibold text-foreground">{t("assets:ASSET_FOLDER_NAME")}</label>
+          <div className="text-muted-foreground">{t("assets:ASSET_FOLDER_FIELD_NAME_HELP")}</div>
+          <Input
+            autoFocus
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder={t("assets:ASSET_FOLDER_NAME_PLACEHOLDER")}
+            disabled={disabled}
+          />
+        </div>
+
+        <div className="grid gap-1.5">
+          <label className="font-semibold text-foreground">
+            {t("assets:ASSET_FOLDER_DESCRIPTION")}
+          </label>
+          <div className="text-muted-foreground">
+            {t("assets:ASSET_FOLDER_FIELD_DESCRIPTION_HELP")}
+          </div>
+          <Input.TextArea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder={t("assets:ASSET_FOLDER_DESCRIPTION_PLACEHOLDER")}
+            autoSize={{ minRows: 2, maxRows: 5 }}
+            disabled={disabled}
+          />
+        </div>
+      </div>
+    </SettingDialog>
   );
 }

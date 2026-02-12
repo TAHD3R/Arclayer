@@ -16,10 +16,7 @@ import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { useDialogSnapshotState } from "@/pages/organization/team/shared/use-dialog-snapshot-state";
 import { CreateRoleDialog, DeleteRoleDialog, PermissionEditDialog } from "./roles-dialogs";
 import { RolesMatrixTable } from "./roles-matrix-table";
-import {
-  type DisplayOrganizationPermission,
-  useOrganizationRolesDisplay,
-} from "./roles-display";
+import { type DisplayOrganizationPermission, useOrganizationRolesDisplay } from "./roles-display";
 
 export function OrganizationTeamRolesPage() {
   const { t } = useTranslation(["team", "common", "nav"]);

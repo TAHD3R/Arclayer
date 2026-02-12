@@ -63,7 +63,9 @@ export async function leaveOrganization(confirmText: string): Promise<{
   );
 }
 
-export async function deleteOrganization(confirmName: string): Promise<{ organizationId: string; deleted: boolean }> {
+export async function deleteOrganization(
+  confirmName: string,
+): Promise<{ organizationId: string; deleted: boolean }> {
   const query = toQueryString({ confirmName });
   return api.delete<{ organizationId: string; deleted: boolean }>(`/organizations/me${query}`);
 }

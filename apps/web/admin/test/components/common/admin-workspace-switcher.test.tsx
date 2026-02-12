@@ -250,7 +250,9 @@ describe("AdminWorkspaceSwitcher", () => {
 
     renderWithQueryClient();
 
-    expect(await screen.findByRole("button", { name: /Org Alpha \/ Workspace Alpha/ })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("button", { name: /Org Alpha \/ Workspace Alpha/ }),
+    ).toBeInTheDocument();
 
     await openSwitcher(user);
   });
@@ -283,9 +285,12 @@ describe("AdminWorkspaceSwitcher", () => {
 
     expect(within(getLatestDialog()).getByText("Workspace Alpha")).toBeInTheDocument();
 
-    await waitFor(() => {
-      expect(within(getLatestDialog()).queryByText("Workspace Alpha")).not.toBeInTheDocument();
-    }, { timeout: 500 });
+    await waitFor(
+      () => {
+        expect(within(getLatestDialog()).queryByText("Workspace Alpha")).not.toBeInTheDocument();
+      },
+      { timeout: 500 },
+    );
   });
 
   it("点击组织项会跳转到对应组织主页", async () => {
@@ -377,7 +382,9 @@ describe("AdminWorkspaceSwitcher", () => {
     renderWithQueryClient();
 
     await openSwitcher(user);
-    await user.click(await screen.findByRole("button", { name: "common:WORKSPACE_SWITCHER_CREATE_ORG" }));
+    await user.click(
+      await screen.findByRole("button", { name: "common:WORKSPACE_SWITCHER_CREATE_ORG" }),
+    );
 
     expect(
       await screen.findByPlaceholderText("common:WORKSPACE_SWITCHER_CREATE_ORG_NAME_PLACEHOLDER"),

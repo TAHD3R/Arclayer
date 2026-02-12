@@ -107,4 +107,3 @@ describe("nav-command-items", () => {
     expect(items[0]?.title).toBe("A");
   });
 });
-

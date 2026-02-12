@@ -92,18 +92,13 @@ export function ExpandableScreen({
       animationDuration,
       overlayZIndexClassName,
     }),
-    [
-      isExpanded,
-      layoutId,
-      triggerRadius,
-      contentRadius,
-      animationDuration,
-      overlayZIndexClassName,
-    ],
+    [isExpanded, layoutId, triggerRadius, contentRadius, animationDuration, overlayZIndexClassName],
   );
 
   return (
-    <ExpandableScreenContext.Provider value={contextValue}>{children}</ExpandableScreenContext.Provider>
+    <ExpandableScreenContext.Provider value={contextValue}>
+      {children}
+    </ExpandableScreenContext.Provider>
   );
 }
 

@@ -99,7 +99,9 @@ function WorkspaceSwitcherPanel(props: WorkspaceSwitcherPanelProps) {
 
   const [organizationSearch, setOrganizationSearch] = useState("");
   const [workspaceSearch, setWorkspaceSearch] = useState("");
-  const [openWorkspaceOrganizationId, setOpenWorkspaceOrganizationId] = useState<string | null>(null);
+  const [openWorkspaceOrganizationId, setOpenWorkspaceOrganizationId] = useState<string | null>(
+    null,
+  );
   const closeTimerRef = useRef<number | null>(null);
 
   const cancelWorkspacePanelClose = () => {
@@ -149,7 +151,8 @@ function WorkspaceSwitcherPanel(props: WorkspaceSwitcherPanelProps) {
   const hoveredOrganization = useMemo(() => {
     if (!openWorkspaceOrganizationId) return null;
     return (
-      props.organizations.find((organization) => organization.id === openWorkspaceOrganizationId) ?? null
+      props.organizations.find((organization) => organization.id === openWorkspaceOrganizationId) ??
+      null
     );
   }, [openWorkspaceOrganizationId, props.organizations]);
 
@@ -209,7 +212,9 @@ function WorkspaceSwitcherPanel(props: WorkspaceSwitcherPanelProps) {
               <RefreshCw
                 className={cn(
                   "size-4",
-                  props.organizationsFetching || workspaceQuery.isFetching ? "animate-spin" : undefined,
+                  props.organizationsFetching || workspaceQuery.isFetching
+                    ? "animate-spin"
+                    : undefined,
                 )}
               />
             }
@@ -262,8 +267,8 @@ function WorkspaceSwitcherPanel(props: WorkspaceSwitcherPanelProps) {
                         "group flex w-full cursor-pointer flex-col gap-2 rounded-md px-3 py-2 text-left transition-colors",
                         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0",
                         current
-                        ? "bg-accent text-accent-foreground"
-                        : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                          ? "bg-accent text-accent-foreground"
+                          : "text-muted-foreground hover:bg-muted hover:text-foreground",
                       )}
                       onMouseEnter={() => openWorkspacePanel(organization.id)}
                       onMouseLeave={scheduleWorkspacePanelClose}
@@ -283,9 +288,7 @@ function WorkspaceSwitcherPanel(props: WorkspaceSwitcherPanelProps) {
                           >
                             {organization.name}
                           </div>
-                          <div
-                            className="flex items-center gap-2 text-md text-muted-foreground"
-                          >
+                          <div className="flex items-center gap-2 text-md text-muted-foreground">
                             {organization.membersPreview.length ? (
                               <Avatar.Group size={18} max={{ count: 4 }}>
                                 {organization.membersPreview.map((member) => {
@@ -452,7 +455,10 @@ function WorkspaceSwitcherPanel(props: WorkspaceSwitcherPanelProps) {
                                   {workspace.membersPreview.map((member) => {
                                     const primary = member.displayName || member.username;
                                     return (
-                                      <Avatar key={member.userId} src={member.avatarUrl ?? undefined}>
+                                      <Avatar
+                                        key={member.userId}
+                                        src={member.avatarUrl ?? undefined}
+                                      >
                                         {firstLetter(primary)}
                                       </Avatar>
                                     );
@@ -528,7 +534,9 @@ export function AdminWorkspaceSwitcher() {
       notifySuccessText(t("common:ACTION_SUCCESS"));
       setCreateOrganizationOpen(false);
       createOrganizationForm.resetFields();
-      await queryClient.invalidateQueries({ queryKey: ["organization", "me", "organizations", "switcher"] });
+      await queryClient.invalidateQueries({
+        queryKey: ["organization", "me", "organizations", "switcher"],
+      });
       void navigate({
         to: buildOrganizationPath(created.organization.id, "/workspaces"),
         search: { create: "1" } as never,
@@ -664,6 +672,7 @@ export function AdminWorkspaceSwitcher() {
         footer={
           <>
             <Button
+              type="text"
               onClick={() => {
                 if (createOrganizationMutation.isPending) return;
                 setCreateOrganizationOpen(false);

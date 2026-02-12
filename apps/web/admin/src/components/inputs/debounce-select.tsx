@@ -1,9 +1,10 @@
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Avatar, Select, Spin } from "antd";
+import { Avatar, Select } from "antd";
 import type { SelectProps } from "antd";
 import debounce from "lodash/debounce";
 
+import { LoaderOne } from "@/components/ui/loader";
 import { resolveAssetRefToPublicUrlPath } from "@/lib/assets/asset-urls";
 
 export type DebounceSelectOption = {
@@ -88,7 +89,7 @@ export function DebounceSelect<ValueType extends DebounceSelectOption = Debounce
         // 兜底：有些情况下 dropdown open 事件触发较晚/不稳定
         if (options.length === 0) loadOptions("", { clear: false });
       }}
-      notFoundContent={fetching ? <Spin size="small" /> : null}
+      notFoundContent={fetching ? <LoaderOne /> : null}
       options={options}
       optionRender={(option) => (
         <div style={{ display: "flex", alignItems: "center" }}>

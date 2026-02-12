@@ -1,4 +1,13 @@
-import { Activity, Boxes, Home, Package, Settings, ShieldCheck, UserPlus, Users } from "lucide-react";
+import {
+  Activity,
+  Boxes,
+  Home,
+  Package,
+  Settings,
+  ShieldCheck,
+  UserPlus,
+  Users,
+} from "lucide-react";
 
 import type { AdminNavItem } from "@/constants/admin-nav";
 

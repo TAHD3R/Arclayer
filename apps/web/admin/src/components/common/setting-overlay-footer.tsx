@@ -76,7 +76,9 @@ export function SettingOverlayFooter({
 
   return (
     <div className="flex w-full items-center justify-end gap-2">
-      <Button type="text" onClick={close}>{backText}</Button>
+      <Button type="text" onClick={close}>
+        {backText}
+      </Button>
 
       {resetVisible && onReset ? (
         <Button loading={resetLoading} disabled={disabled} onClick={() => void handleReset()}>

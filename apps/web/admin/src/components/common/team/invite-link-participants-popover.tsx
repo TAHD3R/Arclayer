@@ -1,4 +1,4 @@
-import { Avatar, Button, Input, List, Pagination, Popover, Spin, Tag } from "antd";
+import { Avatar, Button, Input, List, Pagination, Popover, Tag } from "antd";
 import * as React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
@@ -8,6 +8,7 @@ import {
   type TeamInviteLinkParticipant,
   type TeamUserRef,
 } from "@/api/team";
+import { LoaderOne } from "@/components/ui/loader";
 import { notifyError } from "@/lib/notifications";
 import { resolveAssetRefToPublicUrlPath } from "@/lib/assets/asset-urls";
 import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";
@@ -105,7 +106,7 @@ export function InviteLinkParticipantsPopover(props: {
       <div className="mt-3">
         {query.isLoading ? (
           <div className="py-8 flex items-center justify-center">
-            <Spin />
+            <LoaderOne />
           </div>
         ) : query.isError ? (
           <div className="py-6 text-center">

@@ -62,7 +62,8 @@ export function useOrganizationWorkspacesMutations(
   });
 
   const archiveMutation = useMutation({
-    mutationFn: async (workspaceId: string) => archiveOrganizationWorkspace(organizationId, workspaceId),
+    mutationFn: async (workspaceId: string) =>
+      archiveOrganizationWorkspace(organizationId, workspaceId),
     onSuccess: async () => {
       notifySuccessText(t("common:ACTION_SUCCESS"));
       onArchiveSuccess();
@@ -72,7 +73,8 @@ export function useOrganizationWorkspacesMutations(
   });
 
   const unarchiveMutation = useMutation({
-    mutationFn: async (workspaceId: string) => unarchiveOrganizationWorkspace(organizationId, workspaceId),
+    mutationFn: async (workspaceId: string) =>
+      unarchiveOrganizationWorkspace(organizationId, workspaceId),
     onSuccess: async () => {
       notifySuccessText(t("common:ACTION_SUCCESS"));
       await invalidateWorkspaceTables();

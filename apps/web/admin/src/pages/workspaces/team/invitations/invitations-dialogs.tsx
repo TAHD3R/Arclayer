@@ -3,14 +3,7 @@ import * as React from "react";
 import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 
 import type { TeamInvitation, TeamInviteLink } from "@/api/team";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { SettingDialog } from "@/components/common/setting-dialog";
 
 import type { RenewExpiresInSeconds } from "./invitations-helpers";
 
@@ -63,22 +56,23 @@ export function TeamInvitationsDialogs(props: TeamInvitationsDialogsProps) {
 
   return (
     <>
-      <Dialog
+      <SettingDialog
         open={Boolean(deleteInvitation)}
         onOpenChange={(open) => (!open ? setDeleteInvitation(null) : null)}
-      >
-        <DialogContent className="sm:max-w-xl">
-          <DialogHeader>
-            <DialogTitle>{t("team:TEAM_INVITATIONS_DELETE_TITLE")}</DialogTitle>
-            <DialogDescription>
-              {deleteInvitation
-                ? t("team:TEAM_INVITATIONS_DELETE_DESC", { email: deleteInvitation.email })
-                : null}
-            </DialogDescription>
-          </DialogHeader>
-
-          <DialogFooter>
-            <AntButton onClick={() => setDeleteInvitation(null)} disabled={deleteInvitationPending}>
+        title={t("team:TEAM_INVITATIONS_DELETE_TITLE")}
+        description={
+          deleteInvitation
+            ? t("team:TEAM_INVITATIONS_DELETE_DESC", { email: deleteInvitation.email })
+            : undefined
+        }
+        contentClassName="sm:max-w-xl"
+        footer={
+          <>
+            <AntButton
+              type="text"
+              onClick={() => setDeleteInvitation(null)}
+              disabled={deleteInvitationPending}
+            >
               {t("common:CANCEL")}
             </AntButton>
             <AntButton
@@ -95,42 +89,29 @@ export function TeamInvitationsDialogs(props: TeamInvitationsDialogsProps) {
             >
               {t("team:TEAM_ACTION_DELETE")}
             </AntButton>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </>
+        }
+      >
+        <></>
+      </SettingDialog>
 
-      <Dialog
+      <SettingDialog
         open={Boolean(renewInvitation)}
         onOpenChange={(open) => (!open ? setRenewInvitation(null) : null)}
-      >
-        <DialogContent className="sm:max-w-xl">
-          <DialogHeader>
-            <DialogTitle>{t("team:TEAM_INVITATIONS_RENEW_TITLE")}</DialogTitle>
-            <DialogDescription>
-              {renewInvitation
-                ? t("team:TEAM_INVITATIONS_RENEW_DESC", { email: renewInvitation.email })
-                : null}
-            </DialogDescription>
-          </DialogHeader>
-
-          {renewInvitation ? (
-            <div className="grid gap-1.5 py-2">
-              <label className="font-semibold text-foreground">
-                {t("team:TEAM_INVITE_LINK_FIELD_EXPIRES")}
-              </label>
-              <div className="text-muted-foreground">{t("team:TEAM_INVITE_FIELD_EXPIRES_HELP")}</div>
-              <Select<RenewExpiresInSeconds>
-                value={renewExpiresInSeconds}
-                onChange={(value) => setRenewExpiresInSeconds(value)}
-                options={renewOptions}
-                className="w-full"
-                getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
-              />
-            </div>
-          ) : null}
-
-          <DialogFooter>
-            <AntButton onClick={() => setRenewInvitation(null)} disabled={renewInvitationPending}>
+        title={t("team:TEAM_INVITATIONS_RENEW_TITLE")}
+        description={
+          renewInvitation
+            ? t("team:TEAM_INVITATIONS_RENEW_DESC", { email: renewInvitation.email })
+            : undefined
+        }
+        contentClassName="sm:max-w-xl"
+        footer={
+          <>
+            <AntButton
+              type="text"
+              onClick={() => setRenewInvitation(null)}
+              disabled={renewInvitationPending}
+            >
               {t("common:CANCEL")}
             </AntButton>
             <AntButton
@@ -147,42 +128,39 @@ export function TeamInvitationsDialogs(props: TeamInvitationsDialogsProps) {
             >
               {t("team:TEAM_ACTION_RENEW")}
             </AntButton>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </>
+        }
+      >
+        {renewInvitation ? (
+          <div className="grid gap-1.5 py-2">
+            <label className="font-semibold text-foreground">
+              {t("team:TEAM_INVITE_LINK_FIELD_EXPIRES")}
+            </label>
+            <div className="text-muted-foreground">{t("team:TEAM_INVITE_FIELD_EXPIRES_HELP")}</div>
+            <Select<RenewExpiresInSeconds>
+              value={renewExpiresInSeconds}
+              onChange={(value) => setRenewExpiresInSeconds(value)}
+              options={renewOptions}
+              className="w-full"
+              getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
+            />
+          </div>
+        ) : null}
+      </SettingDialog>
 
-      <Dialog
+      <SettingDialog
         open={Boolean(renewLink)}
         onOpenChange={(open) => (!open ? setRenewLink(null) : null)}
-      >
-        <DialogContent className="sm:max-w-xl">
-          <DialogHeader>
-            <DialogTitle>{t("team:TEAM_INVITE_LINKS_RENEW_TITLE")}</DialogTitle>
-            <DialogDescription>
-              {renewLink
-                ? t("team:TEAM_INVITE_LINKS_RENEW_DESC", { code: renewLink.displayCode })
-                : null}
-            </DialogDescription>
-          </DialogHeader>
-
-          {renewLink ? (
-            <div className="grid gap-1.5 py-2">
-              <label className="font-semibold text-foreground">
-                {t("team:TEAM_INVITE_LINK_FIELD_EXPIRES")}
-              </label>
-              <div className="text-muted-foreground">{t("team:TEAM_INVITE_FIELD_EXPIRES_HELP")}</div>
-              <Select<RenewExpiresInSeconds>
-                value={renewExpiresInSeconds}
-                onChange={(value) => setRenewExpiresInSeconds(value)}
-                options={renewOptions}
-                className="w-full"
-                getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
-              />
-            </div>
-          ) : null}
-
-          <DialogFooter>
-            <AntButton onClick={() => setRenewLink(null)} disabled={renewLinkPending}>
+        title={t("team:TEAM_INVITE_LINKS_RENEW_TITLE")}
+        description={
+          renewLink
+            ? t("team:TEAM_INVITE_LINKS_RENEW_DESC", { code: renewLink.displayCode })
+            : undefined
+        }
+        contentClassName="sm:max-w-xl"
+        footer={
+          <>
+            <AntButton type="text" onClick={() => setRenewLink(null)} disabled={renewLinkPending}>
               {t("common:CANCEL")}
             </AntButton>
             <AntButton
@@ -199,9 +177,25 @@ export function TeamInvitationsDialogs(props: TeamInvitationsDialogsProps) {
             >
               {t("team:TEAM_ACTION_RENEW")}
             </AntButton>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </>
+        }
+      >
+        {renewLink ? (
+          <div className="grid gap-1.5 py-2">
+            <label className="font-semibold text-foreground">
+              {t("team:TEAM_INVITE_LINK_FIELD_EXPIRES")}
+            </label>
+            <div className="text-muted-foreground">{t("team:TEAM_INVITE_FIELD_EXPIRES_HELP")}</div>
+            <Select<RenewExpiresInSeconds>
+              value={renewExpiresInSeconds}
+              onChange={(value) => setRenewExpiresInSeconds(value)}
+              options={renewOptions}
+              className="w-full"
+              getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
+            />
+          </div>
+        ) : null}
+      </SettingDialog>
     </>
   );
 }

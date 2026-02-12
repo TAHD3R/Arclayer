@@ -1,16 +1,11 @@
-import { Button, Descriptions, Result, Spin, Typography } from "antd";
+import { Button, Descriptions, Result, Typography } from "antd";
 import { CloudUpload, Upload } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { useTranslation } from "react-i18next";
 
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { SettingDialog } from "@/components/common/setting-dialog";
+import { LoaderOne } from "@/components/ui/loader";
 import { cn } from "@/lib/utils";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import type { WorkspacePluginPackageValidateOut } from "@/api/workspace-plugins";
@@ -144,22 +139,35 @@ export function PluginInstallDialog({
   }, [onInstalled, onOpenChange, t, validated, workspaceId]);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        showCloseButton
-        className={cn(
-          "p-0",
-          "max-w-[min(920px,calc(100vw-2rem))] sm:max-w-[min(920px,calc(100vw-2rem))]",
-        )}
-      >
-        <DialogHeader className="px-5 pt-4 pb-2">
-          <DialogTitle className="font-bold!">
-            {t("plugin:PLUGIN_CENTER_INSTALL_DIALOG_TITLE")}
-          </DialogTitle>
-          <DialogDescription>{t("plugin:PLUGIN_CENTER_DROP_DESC")}</DialogDescription>
-        </DialogHeader>
-
-        <div className="px-5 pt-4 pb-5">
+    <SettingDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title={t("plugin:PLUGIN_CENTER_INSTALL_DIALOG_TITLE")}
+      description={t("plugin:PLUGIN_CENTER_DROP_DESC")}
+      contentClassName={cn(
+        "p-0",
+        "max-w-[min(920px,calc(100vw-2rem))] sm:max-w-[min(920px,calc(100vw-2rem))]",
+      )}
+      bodyClassName="p-0"
+      footer={
+        step === "validated" || step === "installing" ? (
+          <>
+            <Button type="text" onClick={() => onOpenChange(false)} disabled={step === "installing"}>
+              {t("common:CANCEL")}
+            </Button>
+            <Button
+              type="primary"
+              loading={step === "installing"}
+              disabled={step === "installing"}
+              onClick={() => void confirmInstall()}
+            >
+              {t("plugin:PLUGIN_CENTER_CONFIRM_INSTALL_ACTION")}
+            </Button>
+          </>
+        ) : undefined
+      }
+    >
+      <div className="px-5 pt-4 pb-5">
           <div
             {...getRootProps()}
             className={cn(
@@ -213,7 +221,7 @@ export function PluginInstallDialog({
 
           {step === "validating" ? (
             <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
-              <Spin size="small" />
+              <LoaderOne />
               {t("plugin:PLUGIN_CENTER_VALIDATING")}
             </div>
           ) : null}
@@ -256,24 +264,11 @@ export function PluginInstallDialog({
 
               {step === "installing" ? (
                 <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
-                  <Spin size="small" />
+                  <LoaderOne />
                   {t("plugin:PLUGIN_CENTER_INSTALLING")}
                 </div>
               ) : null}
 
-              <div className="mt-4 flex items-center justify-end gap-2">
-                <Button onClick={() => onOpenChange(false)} disabled={step === "installing"}>
-                  {t("common:CANCEL")}
-                </Button>
-                <Button
-                  type="primary"
-                  loading={step === "installing"}
-                  disabled={step === "installing"}
-                  onClick={() => void confirmInstall()}
-                >
-                  {t("plugin:PLUGIN_CENTER_CONFIRM_INSTALL_ACTION")}
-                </Button>
-              </div>
             </div>
           ) : null}
 
@@ -296,8 +291,7 @@ export function PluginInstallDialog({
               />
             </div>
           ) : null}
-        </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </SettingDialog>
   );
 }

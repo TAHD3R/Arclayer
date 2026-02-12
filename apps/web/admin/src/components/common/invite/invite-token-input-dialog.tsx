@@ -2,14 +2,7 @@ import { Button, Input } from "antd";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { SettingDialog } from "@/components/common/setting-dialog";
 
 export type InviteTokenInputDialogProps = {
   open: boolean;
@@ -31,39 +24,13 @@ export function InviteTokenInputDialog(props: InviteTokenInputDialogProps) {
   const canSubmit = token.length > 0 && !props.confirmLoading;
 
   return (
-    <Dialog open={props.open} onOpenChange={props.onOpenChange}>
-      <DialogContent>
-        <DialogHeader className="gap-2">
-          <DialogTitle className="font-bold! text-xl">
-            {t("invite:INVITE_TOKEN_INPUT_TITLE")}
-          </DialogTitle>
-          <DialogDescription className="text-base">
-            {t("invite:INVITE_TOKEN_INPUT_DESC")}
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="mt-4 grid gap-1.5">
-          <label className="font-semibold text-foreground">
-            {t("invite:INVITE_TOKEN_INPUT_FIELD_LABEL")}
-          </label>
-          <div className="text-muted-foreground">{t("invite:INVITE_TOKEN_INPUT_FIELD_HELP")}</div>
-          <Input
-            autoFocus
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            placeholder={t("invite:INVITE_TOKEN_INPUT_PLACEHOLDER")}
-            onKeyDown={(e) => {
-              if (e.key !== "Enter") return;
-              if (!canSubmit) return;
-              void (async () => {
-                await props.onSubmit(token);
-                props.onOpenChange(false);
-              })();
-            }}
-          />
-        </div>
-
-        <DialogFooter className="mt-6">
+    <SettingDialog
+      open={props.open}
+      onOpenChange={props.onOpenChange}
+      title={t("invite:INVITE_TOKEN_INPUT_TITLE")}
+      description={t("invite:INVITE_TOKEN_INPUT_DESC")}
+      footer={
+        <>
           <Button
             type="text"
             disabled={Boolean(props.confirmLoading)}
@@ -82,8 +49,29 @@ export function InviteTokenInputDialog(props: InviteTokenInputDialogProps) {
           >
             {t("invite:INVITE_TOKEN_INPUT_CONFIRM")}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </>
+      }
+    >
+      <div className="mt-4 grid gap-1.5">
+        <label className="font-semibold text-foreground">
+          {t("invite:INVITE_TOKEN_INPUT_FIELD_LABEL")}
+        </label>
+        <div className="text-muted-foreground">{t("invite:INVITE_TOKEN_INPUT_FIELD_HELP")}</div>
+        <Input
+          autoFocus
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          placeholder={t("invite:INVITE_TOKEN_INPUT_PLACEHOLDER")}
+          onKeyDown={(e) => {
+            if (e.key !== "Enter") return;
+            if (!canSubmit) return;
+            void (async () => {
+              await props.onSubmit(token);
+              props.onOpenChange(false);
+            })();
+          }}
+        />
+      </div>
+    </SettingDialog>
   );
 }

@@ -56,8 +56,15 @@ function SortStateIcon(props: { state: false | "asc" | "desc" }) {
 }
 
 export function DataTablePresenter<TData>(props: DataTablePresenterProps<TData>) {
-  const { table, emptyText, className, tableClassName, rowClassName, headerCellClassName, cellClassName } =
-    props;
+  const {
+    table,
+    emptyText,
+    className,
+    tableClassName,
+    rowClassName,
+    headerCellClassName,
+    cellClassName,
+  } = props;
 
   return (
     <div className={cn("rounded-md border bg-card overflow-auto", className)}>
@@ -72,11 +79,7 @@ export function DataTablePresenter<TData>(props: DataTablePresenterProps<TData>)
                 const canSort = Boolean(sortKey) && header.column.getCanSort();
                 const sorted = header.column.getIsSorted();
                 const ariaSort =
-                  sorted === "asc"
-                    ? "ascending"
-                    : sorted === "desc"
-                      ? "descending"
-                      : "none";
+                  sorted === "asc" ? "ascending" : sorted === "desc" ? "descending" : "none";
                 const content = header.isPlaceholder
                   ? null
                   : flexRender(header.column.columnDef.header, header.getContext());

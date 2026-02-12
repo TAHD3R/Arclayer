@@ -180,9 +180,7 @@ export function createOrganizationMemberColumns({
       id: "lastLogin",
       meta: { sortKey: "last_login_at" },
       header: t("common:ORG_MEMBERS_TABLE_LAST_LOGIN"),
-      cell: ({ row }) => (
-        <span>{formatDateTime(row.original.lastLoginAt)}</span>
-      ),
+      cell: ({ row }) => <span>{formatDateTime(row.original.lastLoginAt)}</span>,
     },
   ];
 }

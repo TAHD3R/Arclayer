@@ -98,5 +98,8 @@ export async function assignWorkspaceRoleToAllUsers(
   payload: { roleCode: string; confirmName: string },
 ): Promise<WorkspaceAssignRoleResult> {
   const id = encodeURIComponent(String(workspaceId));
-  return api.post<WorkspaceAssignRoleResult>(`/workspaces/${id}/settings/role-policy/assign-all`, payload);
+  return api.post<WorkspaceAssignRoleResult>(
+    `/workspaces/${id}/settings/role-policy/assign-all`,
+    payload,
+  );
 }

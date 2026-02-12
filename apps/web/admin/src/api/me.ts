@@ -41,6 +41,8 @@ export async function listMyOrganizations(): Promise<MyOrganizationListResult> {
   return api.get<MyOrganizationListResult>("/me/organizations");
 }
 
-export async function createMyOrganization(input: CreateMyOrganizationInput): Promise<MyOrganization> {
+export async function createMyOrganization(
+  input: CreateMyOrganizationInput,
+): Promise<MyOrganization> {
   return api.post<MyOrganization>("/me/organizations", input);
 }

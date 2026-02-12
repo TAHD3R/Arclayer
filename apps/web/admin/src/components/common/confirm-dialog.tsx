@@ -4,14 +4,7 @@ import { useEffect, useState, type ReactNode } from "react";
 
 import { Button } from "antd";
 
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { SettingDialog } from "@/components/common/setting-dialog";
 
 export interface ConfirmDialogProps {
   open: boolean;
@@ -39,17 +32,15 @@ export function ConfirmDialog(props: ConfirmDialogProps) {
   const displayDescription = props.open ? props.description : descriptionSnapshot;
 
   return (
-    <Dialog open={props.open} onOpenChange={props.onOpenChange}>
-      <DialogContent showCloseButton className="sm:max-w-[520px]">
-        <DialogHeader>
-          <DialogTitle>{displayTitle}</DialogTitle>
-          {displayDescription ? (
-            <DialogDescription className="mt-2">{displayDescription}</DialogDescription>
-          ) : null}
-        </DialogHeader>
-
-        <DialogFooter className="mt-0">
-          <Button onClick={() => props.onOpenChange(false)} disabled={props.loading}>
+    <SettingDialog
+      open={props.open}
+      onOpenChange={props.onOpenChange}
+      title={displayTitle}
+      description={displayDescription}
+      contentClassName="sm:max-w-[520px]"
+      footer={
+        <>
+          <Button type="text" onClick={() => props.onOpenChange(false)} disabled={props.loading}>
             {props.cancelText}
           </Button>
           <Button
@@ -60,8 +51,10 @@ export function ConfirmDialog(props: ConfirmDialogProps) {
           >
             {props.confirmText}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </>
+      }
+    >
+      <></>
+    </SettingDialog>
   );
 }

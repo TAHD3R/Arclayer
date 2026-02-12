@@ -7,15 +7,8 @@ import { cn } from "@/lib/utils";
 import type { AdminMenuNode } from "@/api/admin-menus";
 import type { RbacMatrixPermissionRow, Role } from "@/api/rbac";
 import { PageState } from "@/components/common/page-state";
+import { SettingDialog } from "@/components/common/setting-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 
 import { collectDescendantPermissionCodes, normalizePermissionCode } from "./roles-utils";
 import type { CreateRoleFormValues, MenuScopeCheckedState } from "./roles-utils";
@@ -171,22 +164,18 @@ export function TeamRolesDialogs(props: TeamRolesDialogsProps) {
 
   return (
     <>
-      <Dialog
+      <SettingDialog
         open={deleteOpen}
         onOpenChange={(open) => {
           setDeleteOpen(open);
           if (!open) setDeleteTarget(null);
         }}
-      >
-        <DialogContent className="max-w-[520px]">
-          <DialogHeader>
-            <DialogTitle>{t("team:TEAM_ROLES_DELETE_TITLE")}</DialogTitle>
-            <DialogDescription>
-              {t("team:TEAM_ROLES_DELETE_DESC", { roleName: deleteTarget?.name ?? "" })}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button onClick={() => setDeleteOpen(false)} disabled={deleteRolePending}>
+        title={t("team:TEAM_ROLES_DELETE_TITLE")}
+        description={t("team:TEAM_ROLES_DELETE_DESC", { roleName: deleteTarget?.name ?? "" })}
+        contentClassName="max-w-[520px]"
+        footer={
+          <>
+            <Button type="text" onClick={() => setDeleteOpen(false)} disabled={deleteRolePending}>
               {t("common:CANCEL")}
             </Button>
             <Button
@@ -202,61 +191,25 @@ export function TeamRolesDialogs(props: TeamRolesDialogsProps) {
             >
               {t("team:TEAM_ACTION_DELETE")}
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </>
+        }
+      >
+        <></>
+      </SettingDialog>
 
-      <Dialog open={menuScopeOpen} onOpenChange={setMenuScopeOpen}>
-        <DialogContent className="max-w-[860px]">
-          <DialogHeader>
-            <DialogTitle>{t("team:TEAM_ROLES_MENU_SCOPE_TITLE")}</DialogTitle>
-            <DialogDescription>{t("team:TEAM_ROLES_MENU_SCOPE_DESC")}</DialogDescription>
-          </DialogHeader>
-
-          {customRoles.length ? (
-            <div className="grid gap-1.5">
-              <label className="font-semibold text-foreground">
-                {t("team:TEAM_ROLES_MENU_SCOPE_ROLE_LABEL")}
-              </label>
-              <div className="text-muted-foreground">
-                {t("team:TEAM_ROLES_MENU_SCOPE_ROLE_HELP")}
-              </div>
-              <Select
-                value={menuScopeRoleCode || undefined}
-                onChange={(value) => setMenuScopeRoleCode(String(value))}
-                placeholder={t("team:TEAM_ROLES_MENU_SCOPE_ROLE_PLACEHOLDER")}
-                getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
-                dropdownStyle={{ zIndex: 3000 }}
-                options={customRoles.map((role) => ({ value: role.code, label: role.name }))}
-              />
-              <p className="text-xs text-muted-foreground">
-                {t("team:TEAM_ROLES_MENU_SCOPE_NOTE")}
-              </p>
-            </div>
-          ) : (
-            <div className="rounded-md border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
-              {t("team:TEAM_ROLES_MENU_SCOPE_NO_CUSTOM_ROLE")}
-            </div>
-          )}
-
-          <div className="max-h-[420px] overflow-auto rounded-md border bg-card">
-            {menuCatalogLoading && menuCatalogItems.length === 0 ? (
-              <div className="p-4">
-                <PageState loading loadingVariant="form" />
-              </div>
-            ) : menuCatalogIsError ? (
-              <div className="p-4">
-                <PageState loading={false} error={menuCatalogError} onRetry={onMenuCatalogRetry} />
-              </div>
-            ) : (
-              <div className="flex flex-col gap-1 p-2">
-                {menuCatalogItems.map((root) => renderMenuNode(root, 0))}
-              </div>
-            )}
-          </div>
-
-          <DialogFooter>
-            <Button onClick={() => setMenuScopeOpen(false)} disabled={saveMenuScopePending}>
+      <SettingDialog
+        open={menuScopeOpen}
+        onOpenChange={setMenuScopeOpen}
+        title={t("team:TEAM_ROLES_MENU_SCOPE_TITLE")}
+        description={t("team:TEAM_ROLES_MENU_SCOPE_DESC")}
+        contentClassName="max-w-[860px]"
+        footer={
+          <>
+            <Button
+              type="text"
+              onClick={() => setMenuScopeOpen(false)}
+              disabled={saveMenuScopePending}
+            >
               {t("common:CANCEL")}
             </Button>
             <Button
@@ -267,55 +220,61 @@ export function TeamRolesDialogs(props: TeamRolesDialogsProps) {
             >
               {t("common:CONFIRM")}
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={permissionDialogOpen} onOpenChange={setPermissionDialogOpen}>
-        <DialogContent className="max-w-[680px]">
-          <DialogHeader>
-            <DialogTitle>
-              {activePermission?.name || t("team:TEAM_ROLES_PERMISSION_ACTION")}
-            </DialogTitle>
-            <DialogDescription>
-              {activePermission?.description || t("team:TEAM_ROLES_PERMISSION_DIALOG_DESC")}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="max-h-[420px] overflow-auto rounded-md border bg-card p-2">
-            {roles.map((role) => {
-              const checked = Boolean(permissionDraft[role.code]);
-              const disabled = role.isSystem;
-              return (
-                <label
-                  key={role.code}
-                  className="flex cursor-pointer items-start gap-3 rounded-md px-2 py-2 hover:bg-muted/50 data-[disabled=true]:cursor-not-allowed data-[disabled=true]:opacity-70"
-                  data-disabled={disabled}
-                >
-                  <Checkbox
-                    checked={checked}
-                    disabled={disabled}
-                    onCheckedChange={(value) => {
-                      setPermissionDraft((prev) => ({ ...prev, [role.code]: Boolean(value) }));
-                    }}
-                  />
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="truncate font-semibold text-foreground">{role.name}</span>
-                    </div>
-                    {role.description ? (
-                      <div className="mt-0.5 line-clamp-2  text-muted-foreground">
-                        {role.description}
-                      </div>
-                    ) : null}
-                  </div>
-                </label>
-              );
-            })}
+          </>
+        }
+      >
+        {customRoles.length ? (
+          <div className="grid gap-1.5">
+            <label className="font-semibold text-foreground">
+              {t("team:TEAM_ROLES_MENU_SCOPE_ROLE_LABEL")}
+            </label>
+            <div className="text-muted-foreground">{t("team:TEAM_ROLES_MENU_SCOPE_ROLE_HELP")}</div>
+            <Select
+              value={menuScopeRoleCode || undefined}
+              onChange={(value) => setMenuScopeRoleCode(String(value))}
+              placeholder={t("team:TEAM_ROLES_MENU_SCOPE_ROLE_PLACEHOLDER")}
+              getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
+              dropdownStyle={{ zIndex: 3000 }}
+              options={customRoles.map((role) => ({ value: role.code, label: role.name }))}
+            />
+            <p className="text-xs text-muted-foreground">{t("team:TEAM_ROLES_MENU_SCOPE_NOTE")}</p>
           </div>
+        ) : (
+          <div className="rounded-md border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+            {t("team:TEAM_ROLES_MENU_SCOPE_NO_CUSTOM_ROLE")}
+          </div>
+        )}
 
-          <DialogFooter>
-            <Button onClick={() => setPermissionDialogOpen(false)} disabled={savePermissionPending}>
+        <div className="max-h-[420px] overflow-auto rounded-md border bg-card">
+          {menuCatalogLoading && menuCatalogItems.length === 0 ? (
+            <div className="p-4">
+              <PageState loading loadingVariant="form" />
+            </div>
+          ) : menuCatalogIsError ? (
+            <div className="p-4">
+              <PageState loading={false} error={menuCatalogError} onRetry={onMenuCatalogRetry} />
+            </div>
+          ) : (
+            <div className="flex flex-col gap-1 p-2">
+              {menuCatalogItems.map((root) => renderMenuNode(root, 0))}
+            </div>
+          )}
+        </div>
+      </SettingDialog>
+
+      <SettingDialog
+        open={permissionDialogOpen}
+        onOpenChange={setPermissionDialogOpen}
+        title={activePermission?.name || t("team:TEAM_ROLES_PERMISSION_ACTION")}
+        description={activePermission?.description || t("team:TEAM_ROLES_PERMISSION_DIALOG_DESC")}
+        contentClassName="max-w-[680px]"
+        footer={
+          <>
+            <Button
+              type="text"
+              onClick={() => setPermissionDialogOpen(false)}
+              disabled={savePermissionPending}
+            >
               {t("common:CANCEL")}
             </Button>
             <Button
@@ -325,105 +284,143 @@ export function TeamRolesDialogs(props: TeamRolesDialogsProps) {
             >
               {t("common:CONFIRM")}
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </>
+        }
+      >
+        <div className="max-h-[420px] overflow-auto rounded-md border bg-card p-2">
+          {roles.map((role) => {
+            const checked = Boolean(permissionDraft[role.code]);
+            const disabled = role.isSystem;
+            return (
+              <label
+                key={role.code}
+                className="flex cursor-pointer items-start gap-3 rounded-md px-2 py-2 hover:bg-muted/50 data-[disabled=true]:cursor-not-allowed data-[disabled=true]:opacity-70"
+                data-disabled={disabled}
+              >
+                <Checkbox
+                  checked={checked}
+                  disabled={disabled}
+                  onCheckedChange={(value) => {
+                    setPermissionDraft((prev) => ({ ...prev, [role.code]: Boolean(value) }));
+                  }}
+                />
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="truncate font-semibold text-foreground">{role.name}</span>
+                  </div>
+                  {role.description ? (
+                    <div className="mt-0.5 line-clamp-2  text-muted-foreground">
+                      {role.description}
+                    </div>
+                  ) : null}
+                </div>
+              </label>
+            );
+          })}
+        </div>
+      </SettingDialog>
 
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="max-w-[640px]">
-          <DialogHeader>
-            <DialogTitle>{t("team:TEAM_ROLES_ADD_ROLE_DIALOG_TITLE")}</DialogTitle>
-            <DialogDescription>{t("team:TEAM_ROLES_ADD_ROLE_DIALOG_DESC")}</DialogDescription>
-          </DialogHeader>
-
-          <form
-            className="flex flex-col gap-4"
-            onSubmit={createForm.handleSubmit(onCreateRoleSubmit)}
-          >
-            <div className="grid gap-2">
-              <div className="grid gap-1.5">
-                <label className="font-semibold text-foreground">
-                  {t("team:TEAM_ROLES_FIELD_TEMPLATE")}
-                </label>
-                <div className="text-muted-foreground">{t("team:TEAM_ROLES_FIELD_TEMPLATE_HELP")}</div>
+      <SettingDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        title={t("team:TEAM_ROLES_ADD_ROLE_DIALOG_TITLE")}
+        description={t("team:TEAM_ROLES_ADD_ROLE_DIALOG_DESC")}
+        contentClassName="max-w-[640px]"
+        footer={
+          <>
+            <Button type="text" onClick={() => setCreateOpen(false)} disabled={createRolePending}>
+              {t("common:CANCEL")}
+            </Button>
+            <Button
+              type="primary"
+              loading={createRolePending}
+              onClick={() => void createForm.handleSubmit(onCreateRoleSubmit)()}
+            >
+              {t("common:CONFIRM")}
+            </Button>
+          </>
+        }
+      >
+        <form
+          className="flex flex-col gap-4"
+          onSubmit={createForm.handleSubmit(onCreateRoleSubmit)}
+        >
+          <div className="grid gap-2">
+            <div className="grid gap-1.5">
+              <label className="font-semibold text-foreground">
+                {t("team:TEAM_ROLES_FIELD_TEMPLATE")}
+              </label>
+              <div className="text-muted-foreground">
+                {t("team:TEAM_ROLES_FIELD_TEMPLATE_HELP")}
               </div>
-              <Controller
-                name="templateRoleCode"
-                control={createForm.control}
-                render={({ field }) => (
-                  <Select
-                    value={field.value || undefined}
-                    onChange={(value) => field.onChange(value)}
-                    placeholder={t("team:TEAM_ROLES_FIELD_TEMPLATE_PLACEHOLDER")}
-                    getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
-                    dropdownStyle={{ zIndex: 3000 }}
-                    options={[
-                      { value: "__none__", label: t("team:TEAM_ROLES_TEMPLATE_NONE") },
-                      ...roles.map((role) => ({ value: role.code, label: role.name })),
-                    ]}
-                  />
-                )}
-              />
-              {createErrors.templateRoleCode?.message ? (
-                <p className="text-xs text-destructive">
-                  {String(createErrors.templateRoleCode.message)}
-                </p>
-              ) : null}
             </div>
+            <Controller
+              name="templateRoleCode"
+              control={createForm.control}
+              render={({ field }) => (
+                <Select
+                  value={field.value || undefined}
+                  onChange={(value) => field.onChange(value)}
+                  placeholder={t("team:TEAM_ROLES_FIELD_TEMPLATE_PLACEHOLDER")}
+                  getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
+                  dropdownStyle={{ zIndex: 3000 }}
+                  options={[
+                    { value: "__none__", label: t("team:TEAM_ROLES_TEMPLATE_NONE") },
+                    ...roles.map((role) => ({ value: role.code, label: role.name })),
+                  ]}
+                />
+              )}
+            />
+            {createErrors.templateRoleCode?.message ? (
+              <p className="text-xs text-destructive">
+                {String(createErrors.templateRoleCode.message)}
+              </p>
+            ) : null}
+          </div>
 
-            <div className="grid gap-2">
-              <div className="grid gap-1.5">
-                <label className="font-semibold text-foreground">
-                  {t("team:TEAM_ROLES_FIELD_NAME")}
-                </label>
-                <div className="text-muted-foreground">{t("team:TEAM_ROLES_FIELD_NAME_HELP")}</div>
-              </div>
-              <Controller
-                name="name"
-                control={createForm.control}
-                render={({ field }) => (
-                  <Input
-                    value={field.value}
-                    onChange={(event) => field.onChange(event.target.value)}
-                  />
-                )}
-              />
-              {createErrors.name?.message ? (
-                <p className="text-xs text-destructive">{String(createErrors.name.message)}</p>
-              ) : null}
+          <div className="grid gap-2">
+            <div className="grid gap-1.5">
+              <label className="font-semibold text-foreground">
+                {t("team:TEAM_ROLES_FIELD_NAME")}
+              </label>
+              <div className="text-muted-foreground">{t("team:TEAM_ROLES_FIELD_NAME_HELP")}</div>
             </div>
+            <Controller
+              name="name"
+              control={createForm.control}
+              render={({ field }) => (
+                <Input
+                  value={field.value}
+                  onChange={(event) => field.onChange(event.target.value)}
+                />
+              )}
+            />
+            {createErrors.name?.message ? (
+              <p className="text-xs text-destructive">{String(createErrors.name.message)}</p>
+            ) : null}
+          </div>
 
-            <div className="grid gap-2">
-              <div className="grid gap-1.5">
-                <label className="font-semibold text-foreground">
-                  {t("team:TEAM_ROLES_FIELD_DESC")}
-                </label>
-                <div className="text-muted-foreground">{t("team:TEAM_ROLES_FIELD_DESC_HELP")}</div>
-              </div>
-              <Controller
-                name="description"
-                control={createForm.control}
-                render={({ field }) => (
-                  <Input.TextArea
-                    autoSize={{ minRows: 3, maxRows: 6 }}
-                    value={field.value}
-                    onChange={(event) => field.onChange(event.target.value)}
-                  />
-                )}
-              />
+          <div className="grid gap-2">
+            <div className="grid gap-1.5">
+              <label className="font-semibold text-foreground">
+                {t("team:TEAM_ROLES_FIELD_DESC")}
+              </label>
+              <div className="text-muted-foreground">{t("team:TEAM_ROLES_FIELD_DESC_HELP")}</div>
             </div>
-
-            <DialogFooter>
-              <Button onClick={() => setCreateOpen(false)} disabled={createRolePending}>
-                {t("common:CANCEL")}
-              </Button>
-              <Button type="primary" htmlType="submit" loading={createRolePending}>
-                {t("common:CONFIRM")}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+            <Controller
+              name="description"
+              control={createForm.control}
+              render={({ field }) => (
+                <Input.TextArea
+                  autoSize={{ minRows: 3, maxRows: 6 }}
+                  value={field.value}
+                  onChange={(event) => field.onChange(event.target.value)}
+                />
+              )}
+            />
+          </div>
+        </form>
+      </SettingDialog>
     </>
   );
 }

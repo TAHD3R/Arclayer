@@ -117,11 +117,7 @@ export function OrganizationMembersPage() {
       description={t("common:ORG_MEMBERS_DESC")}
       contentClassName="min-h-0"
       action={
-        <AntButton
-          type="primary"
-          icon={<Plus size={16} />}
-          onClick={() => setInviteOpen(true)}
-        >
+        <AntButton type="primary" icon={<Plus size={16} />} onClick={() => setInviteOpen(true)}>
           {t("common:ORG_MEMBERS_INVITE")}
         </AntButton>
       }

@@ -3,14 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { SettingDialog } from "@/components/common/setting-dialog";
 
 export type UpdateAssetsAccessDialogValue = {
   visibility?: string;
@@ -88,48 +81,17 @@ export function UpdateAssetsAccessDialog(props: UpdateAssetsAccessDialogProps) {
       : t("assets:ASSET_BULK_EDIT_ACCESS_TITLE", { count: props.assetCount || 0 });
 
   return (
-    <Dialog open={props.open} onOpenChange={props.onOpenChange}>
-      <DialogContent>
-        <DialogHeader className="gap-2">
-          <DialogTitle className="font-bold! text-xl">{title}</DialogTitle>
-          <DialogDescription className="text-base">
-            {props.mode === "single"
-              ? t("assets:ASSET_EDIT_ACCESS_DESC")
-              : t("assets:ASSET_BULK_EDIT_ACCESS_DESC")}
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="mt-4 space-y-4">
-          <div className="grid gap-1.5">
-            <label className="font-semibold text-foreground">{t("assets:ASSET_META_VISIBILITY")}</label>
-            <div className="text-muted-foreground">
-              {t("assets:ASSET_EDIT_ACCESS_VISIBILITY_HELP")}
-            </div>
-            <Select
-              className="w-full"
-              value={visibility}
-              options={visibilityOptions}
-              onChange={(v) => setVisibility(String(v))}
-              getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
-              disabled={disabled}
-            />
-          </div>
-
-          <div className="grid gap-1.5">
-            <label className="font-semibold text-foreground">{t("assets:ASSET_META_PURPOSE")}</label>
-            <div className="text-muted-foreground">{t("assets:ASSET_EDIT_ACCESS_PURPOSE_HELP")}</div>
-            <Select
-              className="w-full"
-              value={purpose}
-              options={purposeOptions}
-              onChange={(v) => setPurpose(String(v))}
-              getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
-              disabled={disabled}
-            />
-          </div>
-        </div>
-
-        <DialogFooter className="mt-6">
+    <SettingDialog
+      open={props.open}
+      onOpenChange={props.onOpenChange}
+      title={title}
+      description={
+        props.mode === "single"
+          ? t("assets:ASSET_EDIT_ACCESS_DESC")
+          : t("assets:ASSET_BULK_EDIT_ACCESS_DESC")
+      }
+      footer={
+        <>
           <Button type="text" disabled={disabled} onClick={() => props.onOpenChange(false)}>
             {t("common:CANCEL")}
           </Button>
@@ -152,8 +114,40 @@ export function UpdateAssetsAccessDialog(props: UpdateAssetsAccessDialogProps) {
           >
             {t("common:CONFIRM")}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </>
+      }
+    >
+      <div className="mt-4 space-y-4">
+        <div className="grid gap-1.5">
+          <label className="font-semibold text-foreground">
+            {t("assets:ASSET_META_VISIBILITY")}
+          </label>
+          <div className="text-muted-foreground">
+            {t("assets:ASSET_EDIT_ACCESS_VISIBILITY_HELP")}
+          </div>
+          <Select
+            className="w-full"
+            value={visibility}
+            options={visibilityOptions}
+            onChange={(v) => setVisibility(String(v))}
+            getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
+            disabled={disabled}
+          />
+        </div>
+
+        <div className="grid gap-1.5">
+          <label className="font-semibold text-foreground">{t("assets:ASSET_META_PURPOSE")}</label>
+          <div className="text-muted-foreground">{t("assets:ASSET_EDIT_ACCESS_PURPOSE_HELP")}</div>
+          <Select
+            className="w-full"
+            value={purpose}
+            options={purposeOptions}
+            onChange={(v) => setPurpose(String(v))}
+            getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
+            disabled={disabled}
+          />
+        </div>
+      </div>
+    </SettingDialog>
   );
 }

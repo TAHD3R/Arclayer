@@ -71,7 +71,9 @@ export function InviteLoginJoinForm({
 
       <div className="mt-4 flex items-center justify-between">
         <Button onClick={onBack}>{t("invite:INVITE_ACTION_BACK")}</Button>
-        <Button onClick={() => void onBackToLogin()}>{t("invite:INVITE_ACTION_BACK_TO_LOGIN")}</Button>
+        <Button onClick={() => void onBackToLogin()}>
+          {t("invite:INVITE_ACTION_BACK_TO_LOGIN")}
+        </Button>
       </div>
     </Form>
   );

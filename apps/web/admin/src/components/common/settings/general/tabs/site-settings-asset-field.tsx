@@ -3,10 +3,7 @@ import type { FormInstance } from "antd";
 import { useTranslation } from "react-i18next";
 
 import { AssetPickerDialog } from "@/components/common/asset-picker-dialog";
-import {
-  formatSummaryText,
-  isValidHttpUrlOrAbsolutePath,
-} from "@/lib/settings/general/utils";
+import { formatSummaryText, isValidHttpUrlOrAbsolutePath } from "@/lib/settings/general/utils";
 import type { GeneralSettingsFormValues } from "@/types/settings-general";
 
 const SETTINGS_IMAGE_FALLBACK_DATA_URI = `data:image/svg+xml;utf8,${encodeURIComponent(

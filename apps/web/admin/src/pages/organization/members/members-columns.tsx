@@ -25,10 +25,7 @@ function formatDateTime(value: string | null): string {
   return date.toLocaleString();
 }
 
-function membershipLabel(
-  t: Translate,
-  status: OrganizationMember["status"],
-): string {
+function membershipLabel(t: Translate, status: OrganizationMember["status"]): string {
   if (status === "active") return t("team:TEAM_MEMBERSHIP_STATUS_ACTIVE");
   if (status === "invited") return t("team:TEAM_MEMBERSHIP_STATUS_INVITED");
   return t("team:TEAM_MEMBERSHIP_STATUS_DISABLED");
@@ -101,7 +98,9 @@ export function createOrganizationMembersColumns(
       meta: { sortKey: "joined_at" },
       header: t("common:ORG_MEMBERS_TABLE_JOINED_AT"),
       cell: ({ row }) => (
-        <span className="text-sm text-muted-foreground">{formatDateTime(row.original.joinedAt)}</span>
+        <span className="text-sm text-muted-foreground">
+          {formatDateTime(row.original.joinedAt)}
+        </span>
       ),
     },
     {

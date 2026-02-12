@@ -216,11 +216,7 @@ export function useOrganizationInvitationColumns(options: UseOrganizationInvitat
         cell: ({ row }) => {
           const text = row.original.inviteUrl || row.original.displayCode;
           return (
-            <AntButton
-              type="link"
-              className="font-mono"
-              onClick={() => onCopyLinkText(text)}
-            >
+            <AntButton type="link" className="font-mono" onClick={() => onCopyLinkText(text)}>
               {row.original.displayCode}
             </AntButton>
           );

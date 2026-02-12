@@ -49,7 +49,7 @@ export function InviteOrganizationMemberDialog(props: InviteOrganizationMemberDi
       contentClassName="sm:max-w-xl"
       footer={
         <>
-          <AntButton onClick={onClose} disabled={loading}>
+          <AntButton type="text" onClick={onClose} disabled={loading}>
             {t("common:CANCEL")}
           </AntButton>
           <AntButton

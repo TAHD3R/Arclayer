@@ -1,19 +1,9 @@
 import { Button as AntButton, Select } from "antd";
 import { useTranslation } from "react-i18next";
 
-import type {
-  OrganizationMember,
-  OrganizationMemberWorkspace,
-} from "@/api/organization-members";
+import type { OrganizationMember, OrganizationMemberWorkspace } from "@/api/organization-members";
 import { ConfirmDialog } from "@/components/common/confirm-dialog";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { SettingDialog } from "@/components/common/setting-dialog";
 import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 import {
   InviteOrganizationMemberDialog,
@@ -136,49 +126,51 @@ export function OrganizationMembersDialogs({
         }}
       />
 
-      <Dialog open={Boolean(editingRoleMember)} onOpenChange={onRoleDialogOpenChange}>
-        <DialogContent className="sm:max-w-md">
-          <div className="space-y-4">
-            <DialogHeader>
-              <DialogTitle>{t("common:ORG_MEMBERS_ACTION_CHANGE_ROLE")}</DialogTitle>
-              <DialogDescription>
-                {t("common:ORG_MEMBERS_ROLE_DIALOG_DESC", {
-                  name: editingRoleMember?.displayName || editingRoleMember?.username || "",
-                })}
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="grid gap-1.5">
-              <label className="font-semibold text-foreground">{t("team:TEAM_INVITE_FIELD_ROLE")}</label>
-              <div className="text-muted-foreground">{t("team:TEAM_ROLE_CHANGE_FIELD_ROLE_HELP")}</div>
-              <Select
-                value={roleDraft}
-                onChange={(next) => onRoleDraftChange(String(next))}
-                options={roleOptions}
-                className="w-full"
-                getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
-                disabled={roleUpdateLoading}
-              />
-            </div>
-
-            <DialogFooter>
-              <AntButton onClick={() => onRoleDialogOpenChange(false)} disabled={roleUpdateLoading}>
-                {t("common:CANCEL")}
-              </AntButton>
-              <AntButton
-                type="primary"
-                loading={roleUpdateLoading}
-                onClick={async () => {
-                  if (!editingRoleMember) return;
-                  await onConfirmRoleChange(editingRoleMember, roleDraft);
-                }}
-              >
-                {t("common:CONFIRM")}
-              </AntButton>
-            </DialogFooter>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <SettingDialog
+        open={Boolean(editingRoleMember)}
+        onOpenChange={onRoleDialogOpenChange}
+        title={t("common:ORG_MEMBERS_ACTION_CHANGE_ROLE")}
+        description={t("common:ORG_MEMBERS_ROLE_DIALOG_DESC", {
+          name: editingRoleMember?.displayName || editingRoleMember?.username || "",
+        })}
+        contentClassName="sm:max-w-md"
+        footer={
+          <>
+            <AntButton
+              type="text"
+              onClick={() => onRoleDialogOpenChange(false)}
+              disabled={roleUpdateLoading}
+            >
+              {t("common:CANCEL")}
+            </AntButton>
+            <AntButton
+              type="primary"
+              loading={roleUpdateLoading}
+              onClick={async () => {
+                if (!editingRoleMember) return;
+                await onConfirmRoleChange(editingRoleMember, roleDraft);
+              }}
+            >
+              {t("common:CONFIRM")}
+            </AntButton>
+          </>
+        }
+      >
+        <div className="grid gap-1.5 py-2">
+          <label className="font-semibold text-foreground">
+            {t("team:TEAM_INVITE_FIELD_ROLE")}
+          </label>
+          <div className="text-muted-foreground">{t("team:TEAM_ROLE_CHANGE_FIELD_ROLE_HELP")}</div>
+          <Select
+            value={roleDraft}
+            onChange={(next) => onRoleDraftChange(String(next))}
+            options={roleOptions}
+            className="w-full"
+            getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
+            disabled={roleUpdateLoading}
+          />
+        </div>
+      </SettingDialog>
 
       <ConfirmDialog
         open={Boolean(pendingRemove)}

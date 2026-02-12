@@ -7,7 +7,8 @@ import { OrganizationMembersInviteAction, OrganizationMembersToolbar } from "./m
 import { useOrganizationTeamMembers } from "./use-organization-team-members";
 
 export function OrganizationTeamMembersPage() {
-  const { t, openInviteDialog, toolbarProps, tableState, dialogsProps } = useOrganizationTeamMembers();
+  const { t, openInviteDialog, toolbarProps, tableState, dialogsProps } =
+    useOrganizationTeamMembers();
 
   return (
     <DefaultPage

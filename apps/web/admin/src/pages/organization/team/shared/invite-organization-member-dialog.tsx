@@ -5,14 +5,7 @@ import { useMemo } from "react";
 import { z } from "zod";
 import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { SettingDialog } from "@/components/common/setting-dialog";
 import { zodResolver } from "@/lib/forms/zod-resolver";
 
 export type InviteOrganizationMemberFormValues = {
@@ -138,7 +131,7 @@ export function InviteOrganizationMemberDialog(props: {
   });
 
   return (
-    <Dialog
+    <SettingDialog
       open={props.open}
       onOpenChange={(next) => {
         props.onOpenChange(next);
@@ -150,154 +143,153 @@ export function InviteOrganizationMemberDialog(props: {
           });
         }
       }}
-    >
-      <DialogContent className="sm:max-w-xl">
-        <DialogHeader>
-          <DialogTitle>{t("common:ORG_MEMBERS_INVITE")}</DialogTitle>
-          <DialogDescription>{t("common:ORG_INVITATIONS_DIALOG_DESC")}</DialogDescription>
-        </DialogHeader>
-
-        <Form
-          layout="vertical"
-          requiredMark={false}
-          className="py-1"
-          onFinish={() => void onSubmit()}
-        >
-          <Form.Item
-            label={
-              <div className="grid gap-1.5">
-                <span className="font-semibold text-foreground">{t("team:TEAM_INVITE_FIELD_TO")}</span>
-                <span className="text-muted-foreground">{t("team:TEAM_INVITE_FIELD_TO_HELP")}</span>
-              </div>
-            }
-            validateStatus={emailHasError ? "error" : undefined}
-            help={emailError || null}
-            className="!mb-4"
-          >
-            <Controller
-              control={form.control}
-              name="emails"
-              render={() => (
-                <Select
-                  mode="tags"
-                  suffixIcon={false}
-                  open={false}
-                  tokenSeparators={[" ", "\n", ",", ";", "，", "；", "\t"]}
-                  autoFocus
-                  placeholder={t("team:TEAM_INVITE_FIELD_TO_PLACEHOLDER")}
-                  value={emailTags}
-                  onChange={(next) => {
-                    form.setValue(
-                      "emails",
-                      normalizeEmailList(next.map((value) => String(value))),
-                      {
-                        shouldDirty: true,
-                        shouldValidate: true,
-                      },
-                    );
-                  }}
-                  getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
-                  options={[]}
-                  notFoundContent={null}
-                  disabled={props.loading}
-                  tagRender={(tagProps) => {
-                    const value = String(tagProps.value || "").trim();
-                    const message = invalidEmailMessageByValue.get(value) ?? null;
-
-                    const tag = (
-                      <Tag
-                        color={message ? "error" : "default"}
-                        closable={tagProps.closable}
-                        onClose={tagProps.onClose}
-                        className="!mr-0"
-                      >
-                        {tagProps.label}
-                      </Tag>
-                    );
-
-                    return message ? (
-                      <Tooltip title={message} placement="top">
-                        {tag}
-                      </Tooltip>
-                    ) : (
-                      tag
-                    );
-                  }}
-                />
-              )}
-            />
-          </Form.Item>
-
-          <Form.Item
-            label={
-              <div className="grid gap-1.5">
-                <span className="font-semibold text-foreground">{t("team:TEAM_INVITE_FIELD_ROLE")}</span>
-                <span className="text-muted-foreground">{t("team:TEAM_INVITE_ROLE_HELP")}</span>
-              </div>
-            }
-            validateStatus={roleError ? "error" : undefined}
-            help={roleError || null}
-            className="!mb-4"
-          >
-            <Controller
-              control={form.control}
-              name="roleCode"
-              render={({ field }) => (
-                <Select
-                  {...field}
-                  showSearch
-                  optionFilterProp="label"
-                  value={field.value || selectedRoleCode || undefined}
-                  onChange={(next) => field.onChange(String(next))}
-                  options={props.roleOptions}
-                  placeholder={t("team:TEAM_INVITE_FIELD_ROLE_PLACEHOLDER")}
-                  getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
-                  disabled={props.loading}
-                  className="w-full"
-                />
-              )}
-            />
-          </Form.Item>
-
-          <Form.Item
-            label={
-              <div className="grid gap-1.5">
-                <span className="font-semibold text-foreground">
-                  {t("team:TEAM_INVITE_LINK_FIELD_EXPIRES")}
-                </span>
-                <span className="text-muted-foreground">{t("team:TEAM_INVITE_FIELD_EXPIRES_HELP")}</span>
-              </div>
-            }
-            validateStatus={expiresError ? "error" : undefined}
-            help={expiresError || null}
-            className="!mb-0"
-          >
-            <Controller
-              control={form.control}
-              name="expiresInSeconds"
-              render={({ field }) => (
-                <Select
-                  value={field.value}
-                  onChange={(next) => field.onChange(next)}
-                  options={expiresOptions}
-                  getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
-                  disabled={props.loading}
-                  className="w-full"
-                />
-              )}
-            />
-          </Form.Item>
-        </Form>
-
-        <DialogFooter>
-          <AntButton onClick={() => props.onOpenChange(false)} disabled={props.loading}>
+      title={t("common:ORG_MEMBERS_INVITE")}
+      description={t("common:ORG_INVITATIONS_DIALOG_DESC")}
+      contentClassName="sm:max-w-xl"
+      footer={
+        <>
+          <AntButton type="text" onClick={() => props.onOpenChange(false)} disabled={props.loading}>
             {t("common:CANCEL")}
           </AntButton>
           <AntButton type="primary" loading={props.loading} onClick={() => void onSubmit()}>
             {t("common:CONFIRM")}
           </AntButton>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </>
+      }
+    >
+      <Form
+        layout="vertical"
+        requiredMark={false}
+        className="py-1"
+        onFinish={() => void onSubmit()}
+      >
+        <Form.Item
+          label={
+            <div className="grid gap-1.5">
+              <span className="font-semibold text-foreground">
+                {t("team:TEAM_INVITE_FIELD_TO")}
+              </span>
+              <span className="text-muted-foreground">{t("team:TEAM_INVITE_FIELD_TO_HELP")}</span>
+            </div>
+          }
+          validateStatus={emailHasError ? "error" : undefined}
+          help={emailError || null}
+          className="!mb-4"
+        >
+          <Controller
+            control={form.control}
+            name="emails"
+            render={() => (
+              <Select
+                mode="tags"
+                suffixIcon={false}
+                open={false}
+                tokenSeparators={[" ", "\n", ",", ";", "，", "；", "\t"]}
+                autoFocus
+                placeholder={t("team:TEAM_INVITE_FIELD_TO_PLACEHOLDER")}
+                value={emailTags}
+                onChange={(next) => {
+                  form.setValue("emails", normalizeEmailList(next.map((value) => String(value))), {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                  });
+                }}
+                getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
+                options={[]}
+                notFoundContent={null}
+                disabled={props.loading}
+                tagRender={(tagProps) => {
+                  const value = String(tagProps.value || "").trim();
+                  const message = invalidEmailMessageByValue.get(value) ?? null;
+
+                  const tag = (
+                    <Tag
+                      color={message ? "error" : "default"}
+                      closable={tagProps.closable}
+                      onClose={tagProps.onClose}
+                      className="!mr-0"
+                    >
+                      {tagProps.label}
+                    </Tag>
+                  );
+
+                  return message ? (
+                    <Tooltip title={message} placement="top">
+                      {tag}
+                    </Tooltip>
+                  ) : (
+                    tag
+                  );
+                }}
+              />
+            )}
+          />
+        </Form.Item>
+
+        <Form.Item
+          label={
+            <div className="grid gap-1.5">
+              <span className="font-semibold text-foreground">
+                {t("team:TEAM_INVITE_FIELD_ROLE")}
+              </span>
+              <span className="text-muted-foreground">{t("team:TEAM_INVITE_ROLE_HELP")}</span>
+            </div>
+          }
+          validateStatus={roleError ? "error" : undefined}
+          help={roleError || null}
+          className="!mb-4"
+        >
+          <Controller
+            control={form.control}
+            name="roleCode"
+            render={({ field }) => (
+              <Select
+                {...field}
+                showSearch
+                optionFilterProp="label"
+                value={field.value || selectedRoleCode || undefined}
+                onChange={(next) => field.onChange(String(next))}
+                options={props.roleOptions}
+                placeholder={t("team:TEAM_INVITE_FIELD_ROLE_PLACEHOLDER")}
+                getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
+                disabled={props.loading}
+                className="w-full"
+              />
+            )}
+          />
+        </Form.Item>
+
+        <Form.Item
+          label={
+            <div className="grid gap-1.5">
+              <span className="font-semibold text-foreground">
+                {t("team:TEAM_INVITE_LINK_FIELD_EXPIRES")}
+              </span>
+              <span className="text-muted-foreground">
+                {t("team:TEAM_INVITE_FIELD_EXPIRES_HELP")}
+              </span>
+            </div>
+          }
+          validateStatus={expiresError ? "error" : undefined}
+          help={expiresError || null}
+          className="!mb-0"
+        >
+          <Controller
+            control={form.control}
+            name="expiresInSeconds"
+            render={({ field }) => (
+              <Select
+                value={field.value}
+                onChange={(next) => field.onChange(next)}
+                options={expiresOptions}
+                getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
+                disabled={props.loading}
+                className="w-full"
+              />
+            )}
+          />
+        </Form.Item>
+      </Form>
+    </SettingDialog>
   );
 }

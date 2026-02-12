@@ -14,7 +14,9 @@ export type LocalizationOption<T extends string = string> = {
   label: string;
 };
 
-export function buildLocaleOptions(t: (key: string) => string): Array<LocalizationOption<AppLocale>> {
+export function buildLocaleOptions(
+  t: (key: string) => string,
+): Array<LocalizationOption<AppLocale>> {
   return SUPPORTED_LOCALES.map((locale) => ({
     value: locale,
     label: formatLocaleLabel(locale, t),

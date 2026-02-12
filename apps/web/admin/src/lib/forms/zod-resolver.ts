@@ -3,7 +3,11 @@ import type { z } from "zod";
 
 type MutableErrorTree = Record<string, unknown>;
 
-function setPathError(errors: MutableErrorTree, path: readonly (string | number)[], message: string) {
+function setPathError(
+  errors: MutableErrorTree,
+  path: readonly (string | number)[],
+  message: string,
+) {
   if (!path.length) return;
 
   const [head, ...rest] = path;

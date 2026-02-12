@@ -254,7 +254,8 @@ export function OrganizationSettingsView() {
   const timezoneOptions = useMemo(() => buildTimezoneOptions(), []);
   const dateFormatOptions = useMemo(() => buildDateFormatOptions(), []);
 
-  const initialOrgName = coreQuery.data?.organizationName ?? myOrgQuery.data?.organization.name ?? "";
+  const initialOrgName =
+    coreQuery.data?.organizationName ?? myOrgQuery.data?.organization.name ?? "";
   const persistedOrgName = String(initialOrgName || "").trim();
   const currentOrgName = (Form.useWatch("name", form) as string | undefined) ?? initialOrgName;
 
@@ -262,12 +263,14 @@ export function OrganizationSettingsView() {
     coreQuery.data?.organizationLocalization.locale || DEFAULT_LOCALE,
   ) as AppLocale;
   const initialOrgTimezone = coreQuery.data?.organizationLocalization.timezone || DEFAULT_TIMEZONE;
-  const initialOrgDateFormat = coreQuery.data?.organizationLocalization.dateFormat || DEFAULT_DATE_FORMAT;
+  const initialOrgDateFormat =
+    coreQuery.data?.organizationLocalization.dateFormat || DEFAULT_DATE_FORMAT;
   const initialDefaultRoleCode = coreQuery.data?.defaultRoleCode || "member";
 
   const orgLocale = (Form.useWatch("locale", form) as AppLocale | undefined) ?? initialOrgLocale;
   const orgTimezone = (Form.useWatch("timezone", form) as string | undefined) ?? initialOrgTimezone;
-  const orgDateFormat = (Form.useWatch("dateFormat", form) as string | undefined) ?? initialOrgDateFormat;
+  const orgDateFormat =
+    (Form.useWatch("dateFormat", form) as string | undefined) ?? initialOrgDateFormat;
   const defaultRoleCode =
     (Form.useWatch("defaultRoleCode", form) as string | undefined) ?? initialDefaultRoleCode;
   const assignRoleCode =
@@ -500,7 +503,12 @@ export function OrganizationSettingsView() {
                       >
                         <Form.Item
                           name="locale"
-                          rules={[{ required: true, message: t("setup:SETUP_VALIDATION_LOCALE_REQUIRED") }]}
+                          rules={[
+                            {
+                              required: true,
+                              message: t("setup:SETUP_VALIDATION_LOCALE_REQUIRED"),
+                            },
+                          ]}
                           style={{ marginBottom: 0 }}
                         >
                           <Select size="large" options={localeOptions} />
@@ -660,7 +668,12 @@ export function OrganizationSettingsView() {
                           ]}
                           style={{ marginBottom: 0 }}
                         >
-                          <Select size="large" options={roleOptions} optionFilterProp="label" showSearch />
+                          <Select
+                            size="large"
+                            options={roleOptions}
+                            optionFilterProp="label"
+                            showSearch
+                          />
                         </Form.Item>
                       </SettingAccordionItem>
                       <SettingAccordionItem
@@ -684,7 +697,12 @@ export function OrganizationSettingsView() {
                             style={{ marginBottom: 0 }}
                             className="flex-1"
                           >
-                            <Select size="large" options={roleOptions} optionFilterProp="label" showSearch />
+                            <Select
+                              size="large"
+                              options={roleOptions}
+                              optionFilterProp="label"
+                              showSearch
+                            />
                           </Form.Item>
 
                           <Button
@@ -780,7 +798,9 @@ export function OrganizationSettingsView() {
           description={t("settings:SETTINGS_ORG_ASSIGN_ROLE_ALL_DESC")}
           footer={
             <div className="flex w-full justify-end gap-2">
-              <Button type="text" onClick={closeAssignRoleDialog}>{t("common:CANCEL")}</Button>
+              <Button type="text" onClick={closeAssignRoleDialog}>
+                {t("common:CANCEL")}
+              </Button>
               <Button
                 type="primary"
                 loading={savingKey === "organization:assignRoleAll"}
@@ -802,12 +822,19 @@ export function OrganizationSettingsView() {
             </div>
           }
         >
-          <Form form={assignRoleDialogForm} layout="vertical" requiredMark={false} autoComplete="off">
+          <Form
+            form={assignRoleDialogForm}
+            layout="vertical"
+            requiredMark={false}
+            autoComplete="off"
+          >
             <Form.Item
               name="confirmName"
               label={dialogFieldLabel(
                 t("settings:SETTINGS_DIALOG_CONFIRM_NAME_LABEL"),
-                t("settings:SETTINGS_ORG_ASSIGN_ROLE_ALL_DIALOG_CONFIRM_DESC", { role: assignRoleLabel }),
+                t("settings:SETTINGS_ORG_ASSIGN_ROLE_ALL_DIALOG_CONFIRM_DESC", {
+                  role: assignRoleLabel,
+                }),
               )}
               rules={[
                 {
@@ -819,7 +846,9 @@ export function OrganizationSettingsView() {
                     if (String(value || "").trim() === persistedOrgName) {
                       return;
                     }
-                    throw new Error(t("settings:SETTINGS_ORG_ASSIGN_ROLE_ALL_CONFIRM_NAME_MISMATCH"));
+                    throw new Error(
+                      t("settings:SETTINGS_ORG_ASSIGN_ROLE_ALL_CONFIRM_NAME_MISMATCH"),
+                    );
                   },
                 },
               ]}
@@ -842,7 +871,9 @@ export function OrganizationSettingsView() {
           description={t("settings:SETTINGS_ORG_LEAVE_DESC")}
           footer={
             <div className="flex w-full justify-end gap-2">
-              <Button type="text" onClick={closeLeaveDialog}>{t("common:CANCEL")}</Button>
+              <Button type="text" onClick={closeLeaveDialog}>
+                {t("common:CANCEL")}
+              </Button>
               <Button
                 type="primary"
                 loading={savingKey === "organization:leave"}
@@ -886,7 +917,10 @@ export function OrganizationSettingsView() {
               ]}
               style={{ marginBottom: 0 }}
             >
-              <Input size="large" placeholder={t("settings:SETTINGS_ORG_LEAVE_CONFIRM_PLACEHOLDER")} />
+              <Input
+                size="large"
+                placeholder={t("settings:SETTINGS_ORG_LEAVE_CONFIRM_PLACEHOLDER")}
+              />
             </Form.Item>
           </Form>
         </SettingDialog>
@@ -900,7 +934,9 @@ export function OrganizationSettingsView() {
           description={t("settings:SETTINGS_ORG_DELETE_DESC")}
           footer={
             <div className="flex w-full justify-end gap-2">
-              <Button type="text" onClick={closeDeleteDialog}>{t("common:CANCEL")}</Button>
+              <Button type="text" onClick={closeDeleteDialog}>
+                {t("common:CANCEL")}
+              </Button>
               <Button
                 type="primary"
                 danger
@@ -945,7 +981,10 @@ export function OrganizationSettingsView() {
               ]}
               style={{ marginBottom: 0 }}
             >
-              <Input size="large" placeholder={t("settings:SETTINGS_ORG_DELETE_CONFIRM_NAME_PLACEHOLDER")} />
+              <Input
+                size="large"
+                placeholder={t("settings:SETTINGS_ORG_DELETE_CONFIRM_NAME_PLACEHOLDER")}
+              />
             </Form.Item>
           </Form>
         </SettingDialog>
@@ -959,7 +998,9 @@ export function OrganizationSettingsView() {
           description={t("settings:SETTINGS_ORG_REINITIALIZE_DESC")}
           footer={
             <div className="flex w-full justify-end gap-2">
-              <Button type="text" onClick={closeReinitializeDialog}>{t("common:CANCEL")}</Button>
+              <Button type="text" onClick={closeReinitializeDialog}>
+                {t("common:CANCEL")}
+              </Button>
               <Button
                 type="primary"
                 danger
@@ -983,7 +1024,12 @@ export function OrganizationSettingsView() {
             </div>
           }
         >
-          <Form form={reinitializeDialogForm} layout="vertical" requiredMark={false} autoComplete="off">
+          <Form
+            form={reinitializeDialogForm}
+            layout="vertical"
+            requiredMark={false}
+            autoComplete="off"
+          >
             <Form.Item
               name="confirmName"
               label={dialogFieldLabel(

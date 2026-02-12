@@ -26,10 +26,7 @@ export function OrganizationMembersTableSection({
         table={table}
         emptyText={t("team:TEAM_EMPTY_TABLE")}
         rowClassName={(_row, rowIndex) =>
-          cn(
-            rowIndex % 2 === 1 ? "bg-muted/20" : "bg-card",
-            "transition-colors hover:bg-muted/40",
-          )
+          cn(rowIndex % 2 === 1 ? "bg-muted/20" : "bg-card", "transition-colors hover:bg-muted/40")
         }
       />
 

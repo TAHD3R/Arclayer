@@ -428,7 +428,6 @@ export function SiteSettingsTab({
           pickerDescription={t("settings:SETTINGS_SITE_LOGO_PICKER_DESC")}
           inputPlaceholder={t("settings:SETTINGS_SITE_LOGO_PLACEHOLDER")}
         />
-
       </SettingAccordionItem>
 
       <SettingAccordionItem
@@ -459,7 +458,6 @@ export function SiteSettingsTab({
           pickerDescription={t("settings:SETTINGS_SITE_FAVICON_PICKER_DESC")}
           inputPlaceholder={t("settings:SETTINGS_SITE_FAVICON_PLACEHOLDER")}
         />
-
       </SettingAccordionItem>
 
       <SettingAccordionItem

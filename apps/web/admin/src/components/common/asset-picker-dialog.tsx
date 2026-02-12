@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 
 import { cn } from "@/lib/utils";
 import { LoaderOne } from "@/components/ui/loader";
+import { SettingDialog } from "@/components/common/setting-dialog";
 import { AssetUploadDialog } from "@/components/common/assets/asset-upload-dialog";
 import {
   AssetsExplorerFolderTile,
@@ -25,14 +26,6 @@ import {
   AssetMasonryTile,
   type AssetMasonryItem,
 } from "@/components/common/assets/asset-masonry-card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import {
   AssetsFilterPopover,
   type AssetsFilters,
@@ -245,25 +238,44 @@ export function AssetPickerDialog(props: {
 
   return (
     <>
-      <Dialog open={props.open} onOpenChange={props.onOpenChange}>
-        <DialogContent
-          showCloseButton
-          className={cn(
-            "!p-0 !flex !flex-col overflow-hidden",
-            "max-h-[calc(100vh-2rem)]",
-            "w-[min(1080px,calc(100vw-2rem))] sm:w-[min(1080px,calc(100vw-2rem))] sm:max-w-none",
-          )}
-        >
-          <DialogHeader className="px-6 pt-5 pb-4 border-b">
-            <DialogTitle className="font-bold!">
-              {props.title || t("settings:SETTINGS_ASSET_PICKER_TITLE")}
-            </DialogTitle>
-            <DialogDescription>
-              {props.description || t("settings:SETTINGS_ASSET_PICKER_DESC")}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="flex-1 min-h-0 flex flex-col">
+      <SettingDialog
+        open={props.open}
+        onOpenChange={props.onOpenChange}
+        title={props.title || t("settings:SETTINGS_ASSET_PICKER_TITLE")}
+        description={props.description || t("settings:SETTINGS_ASSET_PICKER_DESC")}
+        contentClassName={cn(
+          "!p-0 !flex !flex-col overflow-hidden",
+          "max-h-[calc(100vh-2rem)]",
+          "w-[min(1080px,calc(100vw-2rem))] sm:w-[min(1080px,calc(100vw-2rem))] sm:max-w-none",
+        )}
+        bodyClassName="!p-0"
+        footer={
+          <>
+            {props.allowClear ? (
+              <Button
+                danger
+                onClick={() => {
+                  props.onConfirm({ assetIds: [] });
+                  props.onOpenChange(false);
+                }}
+              >
+                {t("settings:SETTINGS_ASSET_PICKER_CLEAR")}
+              </Button>
+            ) : null}
+            <Button type="text" onClick={() => props.onOpenChange(false)}>
+              {t("common:CANCEL")}
+            </Button>
+            <Button
+              type="primary"
+              disabled={selectedIds.size <= 0}
+              onClick={() => confirmSelectionAndClose()}
+            >
+              {t("common:CONFIRM")}
+            </Button>
+          </>
+        }
+      >
+        <div className="flex-1 min-h-0 flex flex-col">
             {/* Toolbar: search + filters + upload */}
             <div className="px-6 py-4 flex flex-wrap items-center justify-between gap-3">
               <div className="flex flex-wrap items-end gap-3">
@@ -271,7 +283,9 @@ export function AssetPickerDialog(props: {
                   <label className="font-semibold text-foreground">
                     {t("assets:ASSET_PICKER_FIELD_SEARCH")}
                   </label>
-                  <div className="text-muted-foreground">{t("assets:ASSET_PICKER_FIELD_SEARCH_HELP")}</div>
+                  <div className="text-muted-foreground">
+                    {t("assets:ASSET_PICKER_FIELD_SEARCH_HELP")}
+                  </div>
                   <Input
                     className="w-full max-w-[320px]"
                     variant="borderless"
@@ -481,31 +495,8 @@ export function AssetPickerDialog(props: {
                 }}
               />
             </div>
-          </div>
-
-          <DialogFooter className={cn("px-6 py-4 border-t", "!flex !flex-row !justify-end !gap-2")}>
-            {props.allowClear ? (
-              <Button
-                danger
-                onClick={() => {
-                  props.onConfirm({ assetIds: [] });
-                  props.onOpenChange(false);
-                }}
-              >
-                {t("settings:SETTINGS_ASSET_PICKER_CLEAR")}
-              </Button>
-            ) : null}
-            <Button onClick={() => props.onOpenChange(false)}>{t("common:CANCEL")}</Button>
-            <Button
-              type="primary"
-              disabled={selectedIds.size <= 0}
-              onClick={() => confirmSelectionAndClose()}
-            >
-              {t("common:CONFIRM")}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        </div>
+      </SettingDialog>
 
       <AssetUploadDialog
         workspaceId={workspaceId ? String(workspaceId) : ""}

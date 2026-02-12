@@ -109,7 +109,11 @@ function LoginPage() {
         await navigateAfterAuth();
       } catch {
         // Error toast is handled globally by TanStack Query's MutationCache onError.
-        void navigate({ to: "/login", search: { redirect: redirectTo, mode: effectiveMode }, replace: true });
+        void navigate({
+          to: "/login",
+          search: { redirect: redirectTo, mode: effectiveMode },
+          replace: true,
+        });
       }
     };
 
@@ -136,7 +140,11 @@ function LoginPage() {
     })();
 
     notifyErrorText(msg);
-    void navigate({ to: "/login", search: { redirect: redirectTo, mode: effectiveMode }, replace: true });
+    void navigate({
+      to: "/login",
+      search: { redirect: redirectTo, mode: effectiveMode },
+      replace: true,
+    });
   }, [effectiveMode, navigate, oauthError, redirectTo, t]);
 
   const forgotPasswordMutation = useMutation({

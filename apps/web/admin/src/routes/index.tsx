@@ -49,7 +49,9 @@ function IndexRoute() {
       description={t("common:WORKSPACE_SWITCHER_ORG_EMPTY_DESC")}
     >
       <PageState
-        loading={Boolean(firstOrganizationId) || (organizationsQuery.isLoading && !organizationsQuery.data)}
+        loading={
+          Boolean(firstOrganizationId) || (organizationsQuery.isLoading && !organizationsQuery.data)
+        }
         error={organizationsQuery.error}
         onRetry={() => {
           void organizationsQuery.refetch();

@@ -52,7 +52,9 @@ export function OrganizationOverviewPage(props: { organizationId: string }) {
               </Button>
               <Button
                 onClick={() =>
-                  void navigate({ to: buildOrganizationPath(props.organizationId, "/team/members") })
+                  void navigate({
+                    to: buildOrganizationPath(props.organizationId, "/team/members"),
+                  })
                 }
               >
                 {t("nav:NAV_ORG_MEMBERS")}

@@ -56,24 +56,22 @@ export function SettingActionItem(props: SettingActionItemProps) {
   const hasRight = props.right !== undefined && props.right !== null;
   const hasThirdColumn = showChevron || hasRight;
 
-  const summaryNode = showSummary
-    ? props.summary !== undefined && props.summary !== null
-      ? (
-          <div
-            className={cn(
-              "text-[16px] font-semibold leading-snug text-foreground",
-              props.summaryClassName,
-            )}
-          >
-            {props.summary}
-          </div>
-        )
-      : (
-          <div className={cn("text-[16px] leading-snug text-muted-foreground", props.summaryClassName)}>
-            {props.placeholder ?? "-"}
-          </div>
-        )
-    : null;
+  const summaryNode = showSummary ? (
+    props.summary !== undefined && props.summary !== null ? (
+      <div
+        className={cn(
+          "text-[16px] font-semibold leading-snug text-foreground",
+          props.summaryClassName,
+        )}
+      >
+        {props.summary}
+      </div>
+    ) : (
+      <div className={cn("text-[16px] leading-snug text-muted-foreground", props.summaryClassName)}>
+        {props.placeholder ?? "-"}
+      </div>
+    )
+  ) : null;
 
   const inner = (
     <div
@@ -89,7 +87,13 @@ export function SettingActionItem(props: SettingActionItemProps) {
       </div>
       <div className="min-w-0">
         {summaryNode}
-        {desc ? <div className={cn(summaryNode ? "mt-1" : undefined, "text-[16px] text-muted-foreground")}>{desc}</div> : null}
+        {desc ? (
+          <div
+            className={cn(summaryNode ? "mt-1" : undefined, "text-[16px] text-muted-foreground")}
+          >
+            {desc}
+          </div>
+        ) : null}
       </div>
       {hasThirdColumn ? (
         <div

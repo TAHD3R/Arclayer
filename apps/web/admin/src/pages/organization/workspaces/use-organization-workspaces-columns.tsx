@@ -116,9 +116,7 @@ export function useOrganizationWorkspacesColumns(
         id: "createdAt",
         meta: { sortKey: "created_at" },
         header: t("common:ORG_WORKSPACES_TABLE_CREATED_AT"),
-        cell: ({ row }) => (
-          <span>{formatDateTime(row.original.createdAt)}</span>
-        ),
+        cell: ({ row }) => <span>{formatDateTime(row.original.createdAt)}</span>,
       },
       {
         id: "actions",
@@ -138,12 +136,6 @@ export function useOrganizationWorkspacesColumns(
         },
       },
     ],
-    [
-      onArchiveWorkspace,
-      onEnterWorkspace,
-      onRequestDeleteWorkspace,
-      onUnarchiveWorkspace,
-      t,
-    ],
+    [onArchiveWorkspace, onEnterWorkspace, onRequestDeleteWorkspace, onUnarchiveWorkspace, t],
   );
 }

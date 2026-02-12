@@ -101,14 +101,16 @@ export async function listOrganizationWorkspaces(params: {
   );
 }
 
-export async function listAllOrganizationWorkspaces(params: {
-  organizationId?: string;
-  q?: string;
-  ordering?: string;
-  archived?: boolean;
-  enterableOnly?: boolean;
-  pageSize?: number;
-} = {}): Promise<OrganizationWorkspace[]> {
+export async function listAllOrganizationWorkspaces(
+  params: {
+    organizationId?: string;
+    q?: string;
+    ordering?: string;
+    archived?: boolean;
+    enterableOnly?: boolean;
+    pageSize?: number;
+  } = {},
+): Promise<OrganizationWorkspace[]> {
   const size = Math.max(1, params.pageSize ?? 100);
   let page = 1;
   const items: OrganizationWorkspace[] = [];

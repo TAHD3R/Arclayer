@@ -205,11 +205,7 @@ export function AdminHeader(props: {
         <Space size={4}>
           <AdminLocaleToggle />
           <AdminThemeModeToggle />
-          {props.accountMenuSlot ? (
-            <>
-              {props.accountMenuSlot}
-            </>
-          ) : null}
+          {props.accountMenuSlot ? <>{props.accountMenuSlot}</> : null}
         </Space>
       </div>
     </header>

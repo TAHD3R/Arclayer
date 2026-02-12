@@ -56,7 +56,11 @@ export function OrganizationWorkspacesDialogs(props: OrganizationWorkspacesDialo
         contentClassName="sm:max-w-[620px]"
         footer={
           <div className="flex w-full items-center justify-end gap-2">
-            <AntButton type="text"  onClick={() => createDialog.setOpen(false)} disabled={createDialog.pending}>
+            <AntButton
+              type="text"
+              onClick={() => createDialog.setOpen(false)}
+              disabled={createDialog.pending}
+            >
               {t("common:CANCEL")}
             </AntButton>
             <AntButton
@@ -146,7 +150,7 @@ export function OrganizationWorkspacesDialogs(props: OrganizationWorkspacesDialo
         footer={
           <div className="flex w-full items-center justify-end gap-2">
             <AntButton
-            type="text"
+              type="text"
               disabled={deleteDialog.pending}
               onClick={() => {
                 deleteDialog.setWorkspace(null);
@@ -175,7 +179,10 @@ export function OrganizationWorkspacesDialogs(props: OrganizationWorkspacesDialo
       >
         <div className="grid gap-2">
           <div className="flex flex-col gap-2">
-            <label className="font-semibold text-foreground" htmlFor="workspace-delete-confirm-name">
+            <label
+              className="font-semibold text-foreground"
+              htmlFor="workspace-delete-confirm-name"
+            >
               {t("common:ORG_WORKSPACES_DELETE_CONFIRM_INPUT_LABEL", {
                 name: deleteDialog.workspace?.name || "",
               })}

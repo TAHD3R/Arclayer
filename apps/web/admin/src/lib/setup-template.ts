@@ -16,7 +16,11 @@ function normalizeOrganizationName(name: string): string {
   return raw || "Celestial";
 }
 
-function resolveOptionalTranslation(t: SetupTranslate, key: string, params: Record<string, unknown>): string {
+function resolveOptionalTranslation(
+  t: SetupTranslate,
+  key: string,
+  params: Record<string, unknown>,
+): string {
   const value = t(key, params);
   return value === key ? "" : value;
 }

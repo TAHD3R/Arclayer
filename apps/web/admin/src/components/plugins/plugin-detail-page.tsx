@@ -120,7 +120,8 @@ export function PluginDetailPage(props: PluginDetailPageProps) {
     }
   }, [availableTabs, tab]);
 
-  const settingsDisabled = props.patchPending || !props.canManage || Boolean(props.settingsManagedByPlatform);
+  const settingsDisabled =
+    props.patchPending || !props.canManage || Boolean(props.settingsManagedByPlatform);
 
   const renderSettingsTabBody = (sectionId?: string) => {
     if (props.settingsManagedByPlatform) {
@@ -134,7 +135,9 @@ export function PluginDetailPage(props: PluginDetailPageProps) {
       return <PageState loading loadingVariant="form" />;
     }
     if (props.settingsError) {
-      return <PageState loading={false} error={props.settingsError} onRetry={props.onRetrySettings} />;
+      return (
+        <PageState loading={false} error={props.settingsError} onRetry={props.onRetrySettings} />
+      );
     }
     if (!props.settingsDetail) {
       return (
@@ -178,7 +181,9 @@ export function PluginDetailPage(props: PluginDetailPageProps) {
         {props.plugin ? (
           <ChromeTabs value={tab} onValueChange={(value) => setTab(String(value))}>
             <ChromeTabsList>
-              <ChromeTabsTrigger value={detailsTab}>{t("plugin:PLUGIN_TAB_DETAILS")}</ChromeTabsTrigger>
+              <ChromeTabsTrigger value={detailsTab}>
+                {t("plugin:PLUGIN_TAB_DETAILS")}
+              </ChromeTabsTrigger>
               {configSections.length > 0
                 ? configSections.map((section) => (
                     <ChromeTabsTrigger key={section.id} value={`${props.tabPrefix}:${section.id}`}>
@@ -187,7 +192,9 @@ export function PluginDetailPage(props: PluginDetailPageProps) {
                   ))
                 : null}
               {configSections.length === 0 && hasConfigSchema ? (
-                <ChromeTabsTrigger value={configTabKey}>{t("plugin:PLUGIN_TAB_CONFIG")}</ChromeTabsTrigger>
+                <ChromeTabsTrigger value={configTabKey}>
+                  {t("plugin:PLUGIN_TAB_CONFIG")}
+                </ChromeTabsTrigger>
               ) : null}
             </ChromeTabsList>
 
@@ -216,7 +223,9 @@ export function PluginDetailPage(props: PluginDetailPageProps) {
                     {statusLabel || t("common:NA")}
                   </Descriptions.Item>
                   <Descriptions.Item label={t("plugin:PLUGIN_META_CATEGORY")}>
-                    {props.plugin.category ? categoryLabel(t, props.plugin.category) : t("common:NA")}
+                    {props.plugin.category
+                      ? categoryLabel(t, props.plugin.category)
+                      : t("common:NA")}
                   </Descriptions.Item>
                   <Descriptions.Item label={t("plugin:PLUGIN_META_ENABLED")}>
                     {props.plugin.enabled

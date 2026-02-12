@@ -24,13 +24,7 @@ import {
   uploadPart,
 } from "@/api/uploads";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { SettingDialog } from "@/components/common/setting-dialog";
 
 type UploadItemStatus = "pending" | "uploading" | "success" | "error" | "canceled";
 
@@ -337,22 +331,32 @@ export function AssetUploadDialog(props: {
   );
 
   return (
-    <Dialog open={props.open} onOpenChange={onDialogOpenChange}>
-      <DialogContent
-        showCloseButton
-        className={cn(
-          "p-0",
-          // DialogContent 基类在 sm+ 会附带 `sm:max-w-lg`，当上传多个文件时内容更拥挤，
-          // 容易出现“内容宽度 > dialog，导致被裁切”的观感；这里显式覆盖为更宽的响应式宽度。
-          "max-w-[min(920px,calc(100vw-2rem))] sm:max-w-[min(920px,calc(100vw-2rem))]",
-        )}
-      >
-        <DialogHeader className="px-5 pt-4 pb-2">
-          <DialogTitle className="font-bold!">{t("assets:ASSET_UPLOAD_DIALOG_TITLE")}</DialogTitle>
-          <DialogDescription>{t("assets:ASSET_UPLOAD_DIALOG_DESC")}</DialogDescription>
-        </DialogHeader>
-
-        <div className="px-5 pt-4">
+    <SettingDialog
+      open={props.open}
+      onOpenChange={onDialogOpenChange}
+      title={t("assets:ASSET_UPLOAD_DIALOG_TITLE")}
+      description={t("assets:ASSET_UPLOAD_DIALOG_DESC")}
+      contentClassName={cn(
+        "p-0",
+        // DialogContent 基类在 sm+ 会附带 `sm:max-w-lg`，当上传多个文件时内容更拥挤，
+        // 容易出现“内容宽度 > dialog，导致被裁切”的观感；这里显式覆盖为更宽的响应式宽度。
+        "max-w-[min(920px,calc(100vw-2rem))] sm:max-w-[min(920px,calc(100vw-2rem))]",
+      )}
+      bodyClassName="p-0"
+      footer={
+        <>
+          <Button type="text" onClick={() => void abortAllAndClose()} disabled={isUploading && !hasUploading}>
+            {t("assets:ASSET_UPLOAD_ACTION_CANCEL")}
+          </Button>
+          <Button type="primary" disabled={!canStart || isUploading} onClick={() => void startUpload()}>
+            {isUploading
+              ? t("assets:ASSET_UPLOAD_ACTION_UPLOADING")
+              : t("assets:ASSET_UPLOAD_ACTION_START")}
+          </Button>
+        </>
+      }
+    >
+      <div className="px-5 pt-4">
           <div
             {...getRootProps()}
             className={cn(
@@ -384,7 +388,7 @@ export function AssetUploadDialog(props: {
           </div>
         </div>
 
-        <div className="px-5 pt-4 pb-5">
+      <div className="px-5 pt-4 pb-5">
           <div className="font-semibold">{t("assets:ASSET_UPLOAD_LIST_TITLE")}</div>
 
           <div
@@ -479,22 +483,7 @@ export function AssetUploadDialog(props: {
             )}
           </div>
 
-          <div className="mt-4 flex items-center justify-end gap-2">
-            <Button onClick={() => void abortAllAndClose()} disabled={isUploading && !hasUploading}>
-              {t("assets:ASSET_UPLOAD_ACTION_CANCEL")}
-            </Button>
-            <Button
-              type="primary"
-              disabled={!canStart || isUploading}
-              onClick={() => void startUpload()}
-            >
-              {isUploading
-                ? t("assets:ASSET_UPLOAD_ACTION_UPLOADING")
-                : t("assets:ASSET_UPLOAD_ACTION_START")}
-            </Button>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </SettingDialog>
   );
 }

@@ -50,7 +50,9 @@ function toQueryString(params: Record<string, unknown>): string {
   return s ? `?${s}` : "";
 }
 
-export async function listOrganizationRoles(params: { page?: number; size?: number } = {}): Promise<PageData<OrganizationRole>> {
+export async function listOrganizationRoles(
+  params: { page?: number; size?: number } = {},
+): Promise<PageData<OrganizationRole>> {
   const query = toQueryString({ page: params.page ?? 1, size: params.size ?? 200 });
   return api.get<PageData<OrganizationRole>>(`/organizations/me/rbac/roles${query}`);
 }

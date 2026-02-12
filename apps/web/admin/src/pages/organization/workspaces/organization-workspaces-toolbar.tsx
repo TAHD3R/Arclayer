@@ -34,7 +34,9 @@ export function OrganizationWorkspacesToolbar(props: OrganizationWorkspacesToolb
       <ChromeTabsBar
         left={
           <ChromeTabsList>
-            <ChromeTabsTrigger value="active">{t("common:ORG_WORKSPACES_TAB_ACTIVE")}</ChromeTabsTrigger>
+            <ChromeTabsTrigger value="active">
+              {t("common:ORG_WORKSPACES_TAB_ACTIVE")}
+            </ChromeTabsTrigger>
             <ChromeTabsTrigger value="archived">
               {t("common:ORG_WORKSPACES_TAB_ARCHIVED")}
             </ChromeTabsTrigger>

@@ -113,7 +113,7 @@ function DialogFooter({ className, ...props }: DialogFooterProps) {
   return (
     <DialogFooterPrimitive
       className={cn(
-        "mt-2 flex flex-col-reverse gap-2 pt-4 sm:flex-row sm:justify-end",
+        "mt-2 flex flex-col-reverse gap-2 bg-card pt-4 sm:flex-row sm:justify-end",
         className,
       )}
       {...props}

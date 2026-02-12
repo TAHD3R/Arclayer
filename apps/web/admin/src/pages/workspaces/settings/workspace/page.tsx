@@ -227,7 +227,9 @@ export function WorkspaceSettingsView() {
     },
     onSuccess: async () => {
       notifySuccessText(t("settings:SETTINGS_SAVED"));
-      await queryClient.invalidateQueries({ queryKey: ["workspace", "rbac", "roles", workspaceId] });
+      await queryClient.invalidateQueries({
+        queryKey: ["workspace", "rbac", "roles", workspaceId],
+      });
     },
     onError: (err) => notifyError(err),
   });
@@ -239,7 +241,9 @@ export function WorkspaceSettingsView() {
     },
     onSuccess: async () => {
       notifySuccessText(t("common:ACTION_SUCCESS"));
-      await queryClient.invalidateQueries({ queryKey: ["workspace", "rbac", "roles", workspaceId] });
+      await queryClient.invalidateQueries({
+        queryKey: ["workspace", "rbac", "roles", workspaceId],
+      });
     },
     onError: (err) => notifyError(err),
   });
@@ -345,7 +349,8 @@ export function WorkspaceSettingsView() {
 
   const navigateAfterWorkspaceRemoved = React.useCallback(async () => {
     const next = await listMyWorkspaces();
-    const nextWorkspace = next.items.find((item) => item.workspaceId !== workspaceId) ?? next.items[0];
+    const nextWorkspace =
+      next.items.find((item) => item.workspaceId !== workspaceId) ?? next.items[0];
 
     if (nextWorkspace) {
       setCurrentWorkspaceId(nextWorkspace.workspaceId);
@@ -370,7 +375,9 @@ export function WorkspaceSettingsView() {
       width="fixed"
     >
       <PageState
-        loading={Boolean(workspaceId && (detailQuery.isLoading || rolesQuery.isLoading) && !detailQuery.data)}
+        loading={Boolean(
+          workspaceId && (detailQuery.isLoading || rolesQuery.isLoading) && !detailQuery.data,
+        )}
         loadingVariant="form"
         empty={!workspaceId}
         emptyTitle={t("settings:SETTINGS_WORKSPACE_NOT_SELECTED_TITLE")}
@@ -382,9 +389,9 @@ export function WorkspaceSettingsView() {
               ? coreQuery.error
               : rolesQuery.isError
                 ? rolesQuery.error
-              : myOrgQuery.isError
-                ? myOrgQuery.error
-                : null
+                : myOrgQuery.isError
+                  ? myOrgQuery.error
+                  : null
         }
         onRetry={() => {
           void detailQuery.refetch();
@@ -735,7 +742,12 @@ export function WorkspaceSettingsView() {
                           ]}
                           style={{ marginBottom: 0 }}
                         >
-                          <Select size="large" options={roleOptions} optionFilterProp="label" showSearch />
+                          <Select
+                            size="large"
+                            options={roleOptions}
+                            optionFilterProp="label"
+                            showSearch
+                          />
                         </Form.Item>
                       </SettingAccordionItem>
 
@@ -760,7 +772,12 @@ export function WorkspaceSettingsView() {
                             style={{ marginBottom: 0 }}
                             className="flex-1"
                           >
-                            <Select size="large" options={roleOptions} optionFilterProp="label" showSearch />
+                            <Select
+                              size="large"
+                              options={roleOptions}
+                              optionFilterProp="label"
+                              showSearch
+                            />
                           </Form.Item>
 
                           <Button
@@ -896,7 +913,9 @@ export function WorkspaceSettingsView() {
           description={t("settings:SETTINGS_WORKSPACE_ASSIGN_ROLE_ALL_DESC")}
           footer={
             <div className="flex w-full justify-end gap-2">
-              <Button type="text" onClick={closeAssignRoleDialog}>{t("common:CANCEL")}</Button>
+              <Button type="text" onClick={closeAssignRoleDialog}>
+                {t("common:CANCEL")}
+              </Button>
               <Button
                 type="primary"
                 loading={savingKey === "workspace:assignRoleAll"}
@@ -918,7 +937,12 @@ export function WorkspaceSettingsView() {
             </div>
           }
         >
-          <Form form={assignRoleDialogForm} layout="vertical" requiredMark={false} autoComplete="off">
+          <Form
+            form={assignRoleDialogForm}
+            layout="vertical"
+            requiredMark={false}
+            autoComplete="off"
+          >
             <Form.Item
               name="confirmName"
               label={dialogFieldLabel(
@@ -937,7 +961,9 @@ export function WorkspaceSettingsView() {
                     if (String(value || "").trim() === persistedWorkspaceName) {
                       return;
                     }
-                    throw new Error(t("settings:SETTINGS_WORKSPACE_ASSIGN_ROLE_ALL_CONFIRM_NAME_MISMATCH"));
+                    throw new Error(
+                      t("settings:SETTINGS_WORKSPACE_ASSIGN_ROLE_ALL_CONFIRM_NAME_MISMATCH"),
+                    );
                   },
                 },
               ]}
@@ -945,7 +971,9 @@ export function WorkspaceSettingsView() {
             >
               <Input
                 size="large"
-                placeholder={t("settings:SETTINGS_WORKSPACE_ASSIGN_ROLE_ALL_CONFIRM_NAME_PLACEHOLDER")}
+                placeholder={t(
+                  "settings:SETTINGS_WORKSPACE_ASSIGN_ROLE_ALL_CONFIRM_NAME_PLACEHOLDER",
+                )}
               />
             </Form.Item>
           </Form>
@@ -960,7 +988,9 @@ export function WorkspaceSettingsView() {
           description={t("settings:SETTINGS_WORKSPACE_LEAVE_DESC")}
           footer={
             <div className="flex w-full justify-end gap-2">
-              <Button type="text" onClick={closeLeaveDialog}>{t("common:CANCEL")}</Button>
+              <Button type="text" onClick={closeLeaveDialog}>
+                {t("common:CANCEL")}
+              </Button>
               <Button
                 type="primary"
                 loading={savingKey === "workspace:leave"}
@@ -968,7 +998,9 @@ export function WorkspaceSettingsView() {
                 onClick={() => {
                   void withSavingKey("workspace:leave", async () => {
                     const values = await leaveDialogForm.validateFields();
-                    await leaveWorkspaceMutation.mutateAsync(String(values.confirmText || "").trim());
+                    await leaveWorkspaceMutation.mutateAsync(
+                      String(values.confirmText || "").trim(),
+                    );
                     await queryClient.invalidateQueries({ queryKey: ["me", "workspaces"] });
                     notifySuccessText(t("common:ACTION_SUCCESS"));
                     closeLeaveDialog();
@@ -1021,7 +1053,9 @@ export function WorkspaceSettingsView() {
           description={t("settings:SETTINGS_WORKSPACE_DELETE_DESC")}
           footer={
             <div className="flex w-full justify-end gap-2">
-              <Button type="text" onClick={closeDeleteDialog}>{t("common:CANCEL")}</Button>
+              <Button type="text" onClick={closeDeleteDialog}>
+                {t("common:CANCEL")}
+              </Button>
               <Button
                 type="primary"
                 danger
@@ -1030,7 +1064,9 @@ export function WorkspaceSettingsView() {
                 onClick={() => {
                   void withSavingKey("workspace:delete", async () => {
                     const values = await deleteDialogForm.validateFields();
-                    await deleteWorkspaceMutation.mutateAsync(String(values.confirmName || "").trim());
+                    await deleteWorkspaceMutation.mutateAsync(
+                      String(values.confirmName || "").trim(),
+                    );
                     await queryClient.invalidateQueries({ queryKey: ["me", "workspaces"] });
                     notifySuccessText(t("common:ACTION_SUCCESS"));
                     closeDeleteDialog();

@@ -493,10 +493,7 @@ export function TeamMembersView() {
         emptyDescription={t("team:TEAM_EMPTY_DESC")}
         className="flex-1 min-h-0"
       >
-        <TeamMembersDataTable
-          table={table}
-          emptyText={t("team:TEAM_EMPTY_TABLE")}
-        />
+        <TeamMembersDataTable table={table} emptyText={t("team:TEAM_EMPTY_TABLE")} />
 
         <EditMemberRolesDialog
           open={Boolean(editingMember)}

@@ -10,14 +10,7 @@ import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 
 import type { Role } from "@/api/rbac";
 import { createTeamInvitation, createTeamInviteLink } from "@/api/team";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { SettingDialog } from "@/components/common/setting-dialog";
 import { zodResolver } from "@/lib/forms/zod-resolver";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 
@@ -251,127 +244,27 @@ export function InviteMembersDialog(props: {
   }, [emailTags, t]);
 
   return (
-    <Dialog open={props.open} onOpenChange={props.onOpenChange}>
-      <DialogContent className="sm:max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>
-            {props.mode === "link"
-              ? t("team:TEAM_INVITE_LINK_CREATE_TITLE", { workspaceName: props.workspaceName })
-              : t("team:TEAM_INVITE_DIALOG_TITLE", { workspaceName: props.workspaceName })}
-          </DialogTitle>
-          <DialogDescription>
-            {props.mode === "link"
-              ? t("team:TEAM_INVITE_LINK_CREATE_DESC")
-              : t("team:TEAM_INVITE_DIALOG_DESC")}
-          </DialogDescription>
-        </DialogHeader>
-
-        <form onSubmit={onSubmit} className="grid gap-5 py-2">
-          {props.mode === "email" ? (
-            <div className="grid gap-1.5">
-              <label className="font-semibold text-foreground" htmlFor="to">
-                {t("team:TEAM_INVITE_FIELD_TO")}
-              </label>
-              <div className="text-muted-foreground">{t("team:TEAM_INVITE_FIELD_TO_HELP")}</div>
-              <Select
-                id="to"
-                mode="tags"
-                suffixIcon={false}
-                open={false}
-                tokenSeparators={[" ", "\n", ",", ";", "，", "；", "\t"]}
-                placeholder={t("team:TEAM_INVITE_FIELD_TO_PLACEHOLDER")}
-                value={emailTags}
-                onChange={(next) => {
-                  form.setValue("emails", normalizeEmailList(next), {
-                    shouldDirty: true,
-                    shouldValidate: true,
-                  });
-                }}
-                getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
-                options={[]}
-                notFoundContent={null}
-                tagRender={(tagProps) => {
-                  const value = String(tagProps.value || "").trim();
-                  const message = invalidEmailMessageByValue.get(value) ?? null;
-                  const closable = tagProps.closable;
-                  const onClose = tagProps.onClose;
-
-                  const tag = (
-                    <Tag
-                      color={message ? "error" : "default"}
-                      closable={closable}
-                      onClose={onClose}
-                      className="!mr-0"
-                    >
-                      {tagProps.label}
-                    </Tag>
-                  );
-
-                  return message ? (
-                    <Tooltip title={message} placement="top">
-                      {tag}
-                    </Tooltip>
-                  ) : (
-                    tag
-                  );
-                }}
-              />
-              {form.formState.errors.emails?.message ? (
-                <div className="text-destructive">
-                  {String(form.formState.errors.emails.message)}
-                </div>
-              ) : null}
-            </div>
-          ) : null}
-
-          <div className="grid gap-1.5">
-            <label className="font-semibold text-foreground" htmlFor="roleCode">
-              {t("team:TEAM_INVITE_FIELD_ROLE")}
-            </label>
-            <Select
-              id="roleCode"
-              showSearch
-              optionFilterProp="label"
-              loading={props.rolesLoading}
-              value={selectedRoleCode || undefined}
-              onChange={(v) =>
-                form.setValue("roleCode", String(v), { shouldDirty: true, shouldValidate: true })
-              }
-              options={roleOptions}
-              placeholder={t("team:TEAM_INVITE_FIELD_ROLE_PLACEHOLDER")}
-              // Keep dropdown inside the dialog; otherwise Radix overlay may block item clicks.
-              getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
-            />
-            <div className="text-muted-foreground">{t("team:TEAM_INVITE_ROLE_HELP")}</div>
-            {form.formState.errors.roleCode?.message ? (
-              <div className="text-sm text-destructive">
-                {String(form.formState.errors.roleCode.message)}
-              </div>
-            ) : null}
-          </div>
-
-          <div className="grid gap-1.5">
-            <label className="font-semibold text-foreground" htmlFor="expiresInSeconds">
-              {t("team:TEAM_INVITE_LINK_FIELD_EXPIRES")}
-            </label>
-            <div className="text-muted-foreground">{t("team:TEAM_INVITE_FIELD_EXPIRES_HELP")}</div>
-            <Select<ExpiresInSecondsValue>
-              id="expiresInSeconds"
-              value={selectedExpires}
-              // antd emits `null` when selecting the "never" option.
-              onChange={(v) =>
-                form.setValue("expiresInSeconds", v, {
-                  shouldDirty: true,
-                })
-              }
-              options={expiresOptions}
-              getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
-            />
-          </div>
-        </form>
-
-        <DialogFooter>
-          <AntButton onClick={() => props.onOpenChange(false)} disabled={inviteMutation.isPending}>
+    <SettingDialog
+      open={props.open}
+      onOpenChange={props.onOpenChange}
+      title={
+        props.mode === "link"
+          ? t("team:TEAM_INVITE_LINK_CREATE_TITLE", { workspaceName: props.workspaceName })
+          : t("team:TEAM_INVITE_DIALOG_TITLE", { workspaceName: props.workspaceName })
+      }
+      description={
+        props.mode === "link"
+          ? t("team:TEAM_INVITE_LINK_CREATE_DESC")
+          : t("team:TEAM_INVITE_DIALOG_DESC")
+      }
+      contentClassName="sm:max-w-2xl"
+      footer={
+        <>
+          <AntButton
+            type="text"
+            onClick={() => props.onOpenChange(false)}
+            disabled={inviteMutation.isPending}
+          >
             {t("common:CANCEL")}
           </AntButton>
           <AntButton
@@ -381,8 +274,110 @@ export function InviteMembersDialog(props: {
           >
             {t("common:CONFIRM")}
           </AntButton>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </>
+      }
+    >
+      <form onSubmit={onSubmit} className="grid gap-5 py-2">
+        {props.mode === "email" ? (
+          <div className="grid gap-1.5">
+            <label className="font-semibold text-foreground" htmlFor="to">
+              {t("team:TEAM_INVITE_FIELD_TO")}
+            </label>
+            <div className="text-muted-foreground">{t("team:TEAM_INVITE_FIELD_TO_HELP")}</div>
+            <Select
+              id="to"
+              mode="tags"
+              suffixIcon={false}
+              open={false}
+              tokenSeparators={[" ", "\n", ",", ";", "，", "；", "\t"]}
+              placeholder={t("team:TEAM_INVITE_FIELD_TO_PLACEHOLDER")}
+              value={emailTags}
+              onChange={(next) => {
+                form.setValue("emails", normalizeEmailList(next), {
+                  shouldDirty: true,
+                  shouldValidate: true,
+                });
+              }}
+              getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
+              options={[]}
+              notFoundContent={null}
+              tagRender={(tagProps) => {
+                const value = String(tagProps.value || "").trim();
+                const message = invalidEmailMessageByValue.get(value) ?? null;
+                const closable = tagProps.closable;
+                const onClose = tagProps.onClose;
+
+                const tag = (
+                  <Tag
+                    color={message ? "error" : "default"}
+                    closable={closable}
+                    onClose={onClose}
+                    className="!mr-0"
+                  >
+                    {tagProps.label}
+                  </Tag>
+                );
+
+                return message ? (
+                  <Tooltip title={message} placement="top">
+                    {tag}
+                  </Tooltip>
+                ) : (
+                  tag
+                );
+              }}
+            />
+            {form.formState.errors.emails?.message ? (
+              <div className="text-destructive">{String(form.formState.errors.emails.message)}</div>
+            ) : null}
+          </div>
+        ) : null}
+
+        <div className="grid gap-1.5">
+          <label className="font-semibold text-foreground" htmlFor="roleCode">
+            {t("team:TEAM_INVITE_FIELD_ROLE")}
+          </label>
+          <Select
+            id="roleCode"
+            showSearch
+            optionFilterProp="label"
+            loading={props.rolesLoading}
+            value={selectedRoleCode || undefined}
+            onChange={(v) =>
+              form.setValue("roleCode", String(v), { shouldDirty: true, shouldValidate: true })
+            }
+            options={roleOptions}
+            placeholder={t("team:TEAM_INVITE_FIELD_ROLE_PLACEHOLDER")}
+            // Keep dropdown inside the dialog; otherwise Radix overlay may block item clicks.
+            getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
+          />
+          <div className="text-muted-foreground">{t("team:TEAM_INVITE_ROLE_HELP")}</div>
+          {form.formState.errors.roleCode?.message ? (
+            <div className="text-sm text-destructive">
+              {String(form.formState.errors.roleCode.message)}
+            </div>
+          ) : null}
+        </div>
+
+        <div className="grid gap-1.5">
+          <label className="font-semibold text-foreground" htmlFor="expiresInSeconds">
+            {t("team:TEAM_INVITE_LINK_FIELD_EXPIRES")}
+          </label>
+          <div className="text-muted-foreground">{t("team:TEAM_INVITE_FIELD_EXPIRES_HELP")}</div>
+          <Select<ExpiresInSecondsValue>
+            id="expiresInSeconds"
+            value={selectedExpires}
+            // antd emits `null` when selecting the "never" option.
+            onChange={(v) =>
+              form.setValue("expiresInSeconds", v, {
+                shouldDirty: true,
+              })
+            }
+            options={expiresOptions}
+            getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
+          />
+        </div>
+      </form>
+    </SettingDialog>
   );
 }

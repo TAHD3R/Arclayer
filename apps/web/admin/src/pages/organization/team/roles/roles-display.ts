@@ -65,7 +65,7 @@ export function useOrganizationRolesDisplay(params: {
           : permission.name;
         const translatedDescription = mapped
           ? t(`common:${mapped.descKey}`, { defaultValue: permission.description ?? "" })
-          : permission.description ?? "";
+          : (permission.description ?? "");
         const displayDescription = translatedDescription.trim() ? translatedDescription : null;
 
         return {

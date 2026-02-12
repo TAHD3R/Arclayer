@@ -112,10 +112,7 @@ export function LocalizationSettingsTab({
           rules={[{ required: true, message: t("setup:SETUP_VALIDATION_LOCALE_REQUIRED") }]}
           style={{ marginBottom: 0 }}
         >
-          <Select
-            size="large"
-            options={localeOptions}
-          />
+          <Select size="large" options={localeOptions} />
         </Form.Item>
       </SettingAccordionItem>
 
@@ -137,12 +134,7 @@ export function LocalizationSettingsTab({
           rules={[{ required: true, message: t("setup:SETUP_VALIDATION_TIMEZONE_REQUIRED") }]}
           style={{ marginBottom: 0 }}
         >
-          <Select
-            size="large"
-            options={timezoneOptions}
-            showSearch
-            optionFilterProp="label"
-          />
+          <Select size="large" options={timezoneOptions} showSearch optionFilterProp="label" />
         </Form.Item>
       </SettingAccordionItem>
 
@@ -169,10 +161,7 @@ export function LocalizationSettingsTab({
           ]}
           style={{ marginBottom: 0 }}
         >
-          <Select
-            size="large"
-            options={dateFormatOptions}
-          />
+          <Select size="large" options={dateFormatOptions} />
         </Form.Item>
       </SettingAccordionItem>
     </Accordion>

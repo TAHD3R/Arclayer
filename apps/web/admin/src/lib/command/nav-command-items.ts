@@ -43,4 +43,3 @@ export function buildAdminNavCommandItems(
   walk(navItems);
   return result;
 }
-

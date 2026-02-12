@@ -23,7 +23,9 @@ export function SetupOrganizationStep(props: {
       <Form.Item<SetupSiteDraft>
         name="organizationName"
         label={t("setup:SETUP_FIELD_ORGANIZATION_NAME_LABEL")}
-        rules={[{ required: true, message: t("setup:SETUP_VALIDATION_ORGANIZATION_NAME_REQUIRED") }]}
+        rules={[
+          { required: true, message: t("setup:SETUP_VALIDATION_ORGANIZATION_NAME_REQUIRED") },
+        ]}
       >
         <Input
           autoComplete="off"
