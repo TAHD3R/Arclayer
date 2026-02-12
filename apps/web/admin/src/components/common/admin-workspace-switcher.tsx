@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
-import { Avatar, Button, Form, Input } from "antd";
+import { Avatar, Button, Form, Input, Tooltip } from "antd";
 import { AnimatePresence, motion } from "motion/react";
 import { Building2, ChevronRight, ChevronsUpDown, Plus, RefreshCw, Search } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -17,6 +17,7 @@ import {
   listAllOrganizationWorkspaces,
   type OrganizationWorkspace,
 } from "@/api/organization-workspaces";
+import { getWorkspaceDetail } from "@/api/workspaces";
 import { PageState } from "@/components/common/page-state";
 import { SettingDialog } from "@/components/common/setting-dialog";
 import {
@@ -508,6 +509,7 @@ export function AdminWorkspaceSwitcher() {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const queryClient = useQueryClient();
+  const isWorkspaceScopeRoute = pathname.startsWith("/w/");
 
   const [createOrganizationOpen, setCreateOrganizationOpen] = useState(false);
   const [createOrganizationForm] = Form.useForm<CreateOrganizationFormValues>();
@@ -550,6 +552,21 @@ export function AdminWorkspaceSwitcher() {
       .sort((left, right) => left.name.localeCompare(right.name));
   }, [organizationsQuery.data?.items]);
 
+  const workspaceDetailQuery = useQuery({
+    queryKey: ["workspace", "detail", currentWorkspaceId],
+    enabled: Boolean(accessToken && currentWorkspaceId && isWorkspaceScopeRoute),
+    queryFn: async () => getWorkspaceDetail(String(currentWorkspaceId)),
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+    meta: { silent: true },
+  });
+
+  const workspaceOrganization = useMemo(() => {
+    const organizationId = workspaceDetailQuery.data?.organizationId;
+    if (!organizationId) return null;
+    return organizations.find((item) => item.id === organizationId) ?? null;
+  }, [organizations, workspaceDetailQuery.data?.organizationId]);
+
   const routeOrganizationId = parseOrganizationIdFromPath(pathname);
   const currentOrganization = useMemo(() => {
     if (!organizations.length) return null;
@@ -557,8 +574,26 @@ export function AdminWorkspaceSwitcher() {
       const matched = organizations.find((item) => item.id === routeOrganizationId);
       if (matched) return matched;
     }
+    if (workspaceOrganization) return workspaceOrganization;
     return organizations[0] ?? null;
-  }, [organizations, routeOrganizationId]);
+  }, [organizations, routeOrganizationId, workspaceOrganization]);
+
+  const triggerLabel = useMemo(() => {
+    const organizationName = workspaceOrganization?.name || currentOrganization?.name || "";
+    const workspaceName = String(workspaceDetailQuery.data?.name || "").trim();
+
+    if (isWorkspaceScopeRoute && organizationName && workspaceName) {
+      return `${organizationName} / ${workspaceName}`;
+    }
+    if (organizationName) return organizationName;
+    return t("common:WORKSPACE_SWITCHER_TRIGGER");
+  }, [
+    currentOrganization?.name,
+    isWorkspaceScopeRoute,
+    t,
+    workspaceDetailQuery.data?.name,
+    workspaceOrganization?.name,
+  ]);
 
   const triggerClassName = cn(
     "group flex h-12 w-full items-center justify-between gap-2 rounded-none border-0 bg-transparent px-4 text-left",
@@ -577,9 +612,9 @@ export function AdminWorkspaceSwitcher() {
         >
           <span className="flex min-w-0 flex-1 items-center gap-2">
             <Building2 className="size-4 shrink-0 opacity-80" aria-hidden="true" />
-            <span className="truncate font-semibold">
-              {currentOrganization?.name || t("common:WORKSPACE_SWITCHER_TRIGGER")}
-            </span>
+            <Tooltip title={triggerLabel}>
+              <span className="block min-w-0 truncate font-semibold">{triggerLabel}</span>
+            </Tooltip>
           </span>
           <ChevronsUpDown
             className="size-4 shrink-0 opacity-70 transition-colors group-hover:opacity-100"

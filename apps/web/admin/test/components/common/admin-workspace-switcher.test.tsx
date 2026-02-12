@@ -7,6 +7,7 @@ import type { MyOrganization, MyOrganizationListResult } from "@/api/me";
 import { listMyOrganizations } from "@/api/me";
 import type { OrganizationWorkspace } from "@/api/organization-workspaces";
 import { listAllOrganizationWorkspaces } from "@/api/organization-workspaces";
+import { getWorkspaceDetail } from "@/api/workspaces";
 import { AdminWorkspaceSwitcher } from "@/components/common/admin-workspace-switcher";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
@@ -32,6 +33,10 @@ vi.mock("@/api/me", () => ({
 
 vi.mock("@/api/organization-workspaces", () => ({
   listAllOrganizationWorkspaces: vi.fn(),
+}));
+
+vi.mock("@/api/workspaces", () => ({
+  getWorkspaceDetail: vi.fn(),
 }));
 
 const organizationFixture: MyOrganization = {
@@ -232,6 +237,22 @@ describe("AdminWorkspaceSwitcher", () => {
       if (params?.organizationId === "org-2") return workspaceFixturesOrg2;
       return workspaceFixturesOrg1;
     });
+    vi.mocked(getWorkspaceDetail).mockResolvedValue({
+      id: "ws-alpha",
+      organizationId: "org-1",
+      slug: "alpha",
+      name: "Workspace Alpha",
+    });
+  });
+
+  it("工作区作用域 trigger 显示组织与工作区名称", async () => {
+    const user = userEvent.setup();
+
+    renderWithQueryClient();
+
+    expect(await screen.findByRole("button", { name: /Org Alpha \/ Workspace Alpha/ })).toBeInTheDocument();
+
+    await openSwitcher(user);
   });
 
   it("默认仅显示组织列表，hover 组织后才展示工作区面板", async () => {
