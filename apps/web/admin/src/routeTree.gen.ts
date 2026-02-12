@@ -16,12 +16,8 @@ import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AcceptInviteRouteImport } from './routes/accept-invite'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as TeamIndexRouteImport } from './routes/team/index'
 import { Route as AssetsIndexRouteImport } from './routes/assets/index'
 import { Route as WWorkspaceIdRouteImport } from './routes/w/$workspaceId'
-import { Route as TeamRolesRouteImport } from './routes/team/roles'
-import { Route as TeamMembersRouteImport } from './routes/team/members'
-import { Route as TeamInvitationsRouteImport } from './routes/team/invitations'
 import { Route as OOrgIdRouteImport } from './routes/o/$orgId'
 import { Route as DebugPortalEditorRouteImport } from './routes/debug/portal-editor'
 import { Route as WWorkspaceIdIndexRouteImport } from './routes/w/$workspaceId/index'
@@ -106,11 +102,6 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const TeamIndexRoute = TeamIndexRouteImport.update({
-  id: '/team/',
-  path: '/team/',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AssetsIndexRoute = AssetsIndexRouteImport.update({
   id: '/assets/',
   path: '/assets/',
@@ -119,21 +110,6 @@ const AssetsIndexRoute = AssetsIndexRouteImport.update({
 const WWorkspaceIdRoute = WWorkspaceIdRouteImport.update({
   id: '/w/$workspaceId',
   path: '/w/$workspaceId',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TeamRolesRoute = TeamRolesRouteImport.update({
-  id: '/team/roles',
-  path: '/team/roles',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TeamMembersRoute = TeamMembersRouteImport.update({
-  id: '/team/members',
-  path: '/team/members',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TeamInvitationsRoute = TeamInvitationsRouteImport.update({
-  id: '/team/invitations',
-  path: '/team/invitations',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OOrgIdRoute = OOrgIdRouteImport.update({
@@ -413,12 +389,8 @@ export interface FileRoutesByFullPath {
   '/setup': typeof SetupRoute
   '/debug/portal-editor': typeof DebugPortalEditorRoute
   '/o/$orgId': typeof OOrgIdRouteWithChildren
-  '/team/invitations': typeof TeamInvitationsRoute
-  '/team/members': typeof TeamMembersRoute
-  '/team/roles': typeof TeamRolesRoute
   '/w/$workspaceId': typeof WWorkspaceIdRouteWithChildren
   '/assets/': typeof AssetsIndexRoute
-  '/team/': typeof TeamIndexRoute
   '/appearance/navigation/': typeof AppearanceNavigationIndexRoute
   '/appearance/styles/': typeof AppearanceStylesIndexRoute
   '/appearance/themes/': typeof AppearanceThemesIndexRoute
@@ -475,11 +447,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/setup': typeof SetupRoute
   '/debug/portal-editor': typeof DebugPortalEditorRoute
-  '/team/invitations': typeof TeamInvitationsRoute
-  '/team/members': typeof TeamMembersRoute
-  '/team/roles': typeof TeamRolesRoute
   '/assets': typeof AssetsIndexRoute
-  '/team': typeof TeamIndexRoute
   '/appearance/navigation': typeof AppearanceNavigationIndexRoute
   '/appearance/styles': typeof AppearanceStylesIndexRoute
   '/appearance/themes': typeof AppearanceThemesIndexRoute
@@ -538,12 +506,8 @@ export interface FileRoutesById {
   '/setup': typeof SetupRoute
   '/debug/portal-editor': typeof DebugPortalEditorRoute
   '/o/$orgId': typeof OOrgIdRouteWithChildren
-  '/team/invitations': typeof TeamInvitationsRoute
-  '/team/members': typeof TeamMembersRoute
-  '/team/roles': typeof TeamRolesRoute
   '/w/$workspaceId': typeof WWorkspaceIdRouteWithChildren
   '/assets/': typeof AssetsIndexRoute
-  '/team/': typeof TeamIndexRoute
   '/appearance/navigation/': typeof AppearanceNavigationIndexRoute
   '/appearance/styles/': typeof AppearanceStylesIndexRoute
   '/appearance/themes/': typeof AppearanceThemesIndexRoute
@@ -603,12 +567,8 @@ export interface FileRouteTypes {
     | '/setup'
     | '/debug/portal-editor'
     | '/o/$orgId'
-    | '/team/invitations'
-    | '/team/members'
-    | '/team/roles'
     | '/w/$workspaceId'
     | '/assets/'
-    | '/team/'
     | '/appearance/navigation/'
     | '/appearance/styles/'
     | '/appearance/themes/'
@@ -665,11 +625,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/setup'
     | '/debug/portal-editor'
-    | '/team/invitations'
-    | '/team/members'
-    | '/team/roles'
     | '/assets'
-    | '/team'
     | '/appearance/navigation'
     | '/appearance/styles'
     | '/appearance/themes'
@@ -727,12 +683,8 @@ export interface FileRouteTypes {
     | '/setup'
     | '/debug/portal-editor'
     | '/o/$orgId'
-    | '/team/invitations'
-    | '/team/members'
-    | '/team/roles'
     | '/w/$workspaceId'
     | '/assets/'
-    | '/team/'
     | '/appearance/navigation/'
     | '/appearance/styles/'
     | '/appearance/themes/'
@@ -791,12 +743,8 @@ export interface RootRouteChildren {
   SetupRoute: typeof SetupRoute
   DebugPortalEditorRoute: typeof DebugPortalEditorRoute
   OOrgIdRoute: typeof OOrgIdRouteWithChildren
-  TeamInvitationsRoute: typeof TeamInvitationsRoute
-  TeamMembersRoute: typeof TeamMembersRoute
-  TeamRolesRoute: typeof TeamRolesRoute
   WWorkspaceIdRoute: typeof WWorkspaceIdRouteWithChildren
   AssetsIndexRoute: typeof AssetsIndexRoute
-  TeamIndexRoute: typeof TeamIndexRoute
   AppearanceNavigationIndexRoute: typeof AppearanceNavigationIndexRoute
   AppearanceStylesIndexRoute: typeof AppearanceStylesIndexRoute
   AppearanceThemesIndexRoute: typeof AppearanceThemesIndexRoute
@@ -861,13 +809,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/team/': {
-      id: '/team/'
-      path: '/team'
-      fullPath: '/team/'
-      preLoaderRoute: typeof TeamIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/assets/': {
       id: '/assets/'
       path: '/assets'
@@ -880,27 +821,6 @@ declare module '@tanstack/react-router' {
       path: '/w/$workspaceId'
       fullPath: '/w/$workspaceId'
       preLoaderRoute: typeof WWorkspaceIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/team/roles': {
-      id: '/team/roles'
-      path: '/team/roles'
-      fullPath: '/team/roles'
-      preLoaderRoute: typeof TeamRolesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/team/members': {
-      id: '/team/members'
-      path: '/team/members'
-      fullPath: '/team/members'
-      preLoaderRoute: typeof TeamMembersRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/team/invitations': {
-      id: '/team/invitations'
-      path: '/team/invitations'
-      fullPath: '/team/invitations'
-      preLoaderRoute: typeof TeamInvitationsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/o/$orgId': {
@@ -1353,12 +1273,8 @@ const rootRouteChildren: RootRouteChildren = {
   SetupRoute: SetupRoute,
   DebugPortalEditorRoute: DebugPortalEditorRoute,
   OOrgIdRoute: OOrgIdRouteWithChildren,
-  TeamInvitationsRoute: TeamInvitationsRoute,
-  TeamMembersRoute: TeamMembersRoute,
-  TeamRolesRoute: TeamRolesRoute,
   WWorkspaceIdRoute: WWorkspaceIdRouteWithChildren,
   AssetsIndexRoute: AssetsIndexRoute,
-  TeamIndexRoute: TeamIndexRoute,
   AppearanceNavigationIndexRoute: AppearanceNavigationIndexRoute,
   AppearanceStylesIndexRoute: AppearanceStylesIndexRoute,
   AppearanceThemesIndexRoute: AppearanceThemesIndexRoute,

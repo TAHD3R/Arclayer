@@ -267,7 +267,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
 
   const navItems = useMemo(() => {
     if (isOrgScopeRoute) {
-      if (!orgPathPrefix) return ORG_NAV_ITEMS;
+      if (!orgPathPrefix) return [];
 
       const mapOrgItems = (items: AdminNavItem[]): AdminNavItem[] => {
         return items.map((item) => {
@@ -313,7 +313,13 @@ export function AdminLayout({ children }: PropsWithChildren) {
     };
 
     return mapItems(baseItems);
-  }, [isOrgScopeRoute, workspaceBase, workspaceMenuQuery.data?.items, workspaceMenuQuery.isError]);
+  }, [
+    isOrgScopeRoute,
+    orgPathPrefix,
+    workspaceBase,
+    workspaceMenuQuery.data?.items,
+    workspaceMenuQuery.isError,
+  ]);
 
   const workspaceRouteGuard = useMemo(() => {
     if (isOrgScopeRoute) return { kind: "skip" as const };
