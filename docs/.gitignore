@@ -2,5 +2,4 @@
 !.gitignore
 !guidelines/
 !guidelines/**
-!plan/
-!plan/**
+// Do not add plan folder to git
