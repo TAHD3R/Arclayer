@@ -94,7 +94,7 @@ type SheetHeaderProps = SheetHeaderPrimitiveProps;
 function SheetHeader({ className, ...props }: SheetHeaderProps) {
   return (
     <SheetHeaderPrimitive
-      className={cn("flex flex-col gap-2 border-b px-6 py-4 text-left", className)}
+      className={cn("flex flex-col border-b px-6 py-4 text-left", className)}
       {...props}
     />
   );
@@ -105,7 +105,7 @@ type SheetFooterProps = SheetFooterPrimitiveProps;
 function SheetFooter({ className, ...props }: SheetFooterProps) {
   return (
     <SheetFooterPrimitive
-      className={cn("mt-auto flex flex-col gap-2 border-t px-6 py-4", className)}
+      className={cn("mt-auto flex flex-col gap-2 border-t px-6 py-4 bg-card", className)}
       {...props}
     />
   );
@@ -126,7 +126,7 @@ type SheetDescriptionProps = SheetDescriptionPrimitiveProps;
 
 function SheetDescription({ className, ...props }: SheetDescriptionProps) {
   return (
-    <SheetDescriptionPrimitive className={cn("text-muted-foreground ", className)} {...props} />
+    <SheetDescriptionPrimitive className={cn("text-muted-foreground mb-0!", className)} {...props} />
   );
 }
 
