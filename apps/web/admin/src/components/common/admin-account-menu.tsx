@@ -1,4 +1,4 @@
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Avatar, Tag, Typography } from "antd";
 import { useTranslation } from "react-i18next";
@@ -31,6 +31,7 @@ import {
   FloatingPanelTrigger,
   useFloatingPanel,
 } from "@/components/ui/floating-panel";
+import { buildOrganizationPath, parseOrganizationIdFromPath } from "@/lib/organization-routing";
 import { cn } from "@/lib/utils";
 import { resolveAssetRefToPublicUrlPath } from "@/lib/assets/asset-urls";
 
@@ -417,6 +418,7 @@ function AdminAccountPanelContent(props: {
 export function AdminAccountMenu(props?: { triggerVariant?: "sidebar" | "header" }) {
   const navigate = useNavigate();
   const { t } = useTranslation("account");
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
   const triggerVariant = props?.triggerVariant ?? "sidebar";
   const isHeaderTrigger = triggerVariant === "header";
   const clear = useAuthStore((s) => s.clear);
@@ -471,12 +473,19 @@ export function AdminAccountMenu(props?: { triggerVariant?: "sidebar" | "header"
     return role;
   }, [isSuper, roleCodes, t]);
 
+  const routeOrganizationId = parseOrganizationIdFromPath(pathname);
+  const currentOrganizationId = routeOrganizationId || myOrgQuery.data?.organization.id || null;
+
   const onLogout = async () => {
     clear();
     await navigate({ to: "/login", replace: true });
   };
 
   const onPersonalSettings = () => {
+    if (currentOrganizationId) {
+      void navigate({ to: buildOrganizationPath(currentOrganizationId) });
+      return;
+    }
     void navigate({ to: "/" });
   };
 
@@ -485,13 +494,21 @@ export function AdminAccountMenu(props?: { triggerVariant?: "sidebar" | "header"
       void navigate({ to: `/w/${workspaceId}/notifications` });
       return;
     }
+    if (currentOrganizationId) {
+      void navigate({ to: buildOrganizationPath(currentOrganizationId, "/workspaces") });
+      return;
+    }
     void navigate({ to: "/" });
   };
 
   const canManageOrganization =
     myOrgQuery.data?.membership?.role === "owner" || myOrgQuery.data?.membership?.role === "admin";
   const onOrganizationSettings = () => {
-    void navigate({ to: "/settings/organization" });
+    if (currentOrganizationId) {
+      void navigate({ to: buildOrganizationPath(currentOrganizationId, "/settings/organization") });
+      return;
+    }
+    void navigate({ to: "/" });
   };
 
   const triggerClassName = isHeaderTrigger

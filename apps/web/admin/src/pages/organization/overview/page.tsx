@@ -6,8 +6,9 @@ import { useTranslation } from "react-i18next";
 import { listMyWorkspaces } from "@/api/workspaces";
 import { DefaultPage } from "@/components/common/default-page";
 import { PageState } from "@/components/common/page-state";
+import { buildOrganizationPath } from "@/lib/organization-routing";
 
-export function OrganizationOverviewPage() {
+export function OrganizationOverviewPage(props: { organizationId: string }) {
   const { t } = useTranslation(["nav", "common", "team"]);
   const navigate = useNavigate();
 
@@ -41,10 +42,19 @@ export function OrganizationOverviewPage() {
               suffix={t("common:ORG_OVERVIEW_WORKSPACE_UNIT")}
             />
             <div className="mt-4 flex gap-2">
-              <Button type="primary" onClick={() => void navigate({ to: "/organization/workspaces" })}>
+              <Button
+                type="primary"
+                onClick={() =>
+                  void navigate({ to: buildOrganizationPath(props.organizationId, "/workspaces") })
+                }
+              >
                 {t("nav:NAV_ORG_WORKSPACES")}
               </Button>
-              <Button onClick={() => void navigate({ to: "/organization/team/members" })}>
+              <Button
+                onClick={() =>
+                  void navigate({ to: buildOrganizationPath(props.organizationId, "/team/members") })
+                }
+              >
                 {t("nav:NAV_ORG_MEMBERS")}
               </Button>
             </div>

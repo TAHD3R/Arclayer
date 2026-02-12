@@ -49,6 +49,10 @@ class OrganizationWorkspaceOut(BaseOut):
         description="Preview members for avatar group rendering.",
     )
     created_at: datetime = Field(..., description="Workspace creation time.")
+    enterable: bool = Field(
+        default=False,
+        description="Whether current user can enter this workspace admin scope.",
+    )
 
 
 class OrganizationWorkspaceCreateRequest(BaseSchema):

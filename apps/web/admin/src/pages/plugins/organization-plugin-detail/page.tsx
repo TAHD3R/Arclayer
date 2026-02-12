@@ -12,13 +12,18 @@ import {
   patchOrganizationPluginSettings,
 } from "@/api/org-plugins";
 import { PluginDetailPage, findPluginBySlug } from "@/components/plugins/plugin-detail-page";
+import { buildOrganizationPath } from "@/lib/organization-routing";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 
 type OrganizationPluginDetailViewProps = {
+  organizationId: string;
   pluginSlug: string;
 };
 
-export function OrganizationPluginDetailView({ pluginSlug }: OrganizationPluginDetailViewProps) {
+export function OrganizationPluginDetailView({
+  organizationId,
+  pluginSlug,
+}: OrganizationPluginDetailViewProps) {
   const { t } = useTranslation(["settings"]);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -96,7 +101,9 @@ export function OrganizationPluginDetailView({ pluginSlug }: OrganizationPluginD
       loading={loading}
       loadError={loadError}
       onRetryLoad={loadError ? () => void pluginsQuery.refetch() : undefined}
-      onBack={() => void navigate({ to: "/plugins/installed" })}
+      onBack={() =>
+        void navigate({ to: buildOrganizationPath(organizationId, "/plugins/installed") })
+      }
       onToggleEnabled={async (enabled) => toggleMutation.mutateAsync(enabled)}
       togglePending={toggleMutation.isPending}
       canManage={canManage}

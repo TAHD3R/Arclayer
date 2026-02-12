@@ -71,8 +71,10 @@ class OrganizationSettingsService(BaseService):
             raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
 
         current_record = await self.repo.get_core_setting(organization_id=organization_id)
-        current_value = current_record.value if current_record and isinstance(current_record.value, dict) else {}
-        next_value = dict(current_value)
+        current_value: dict[str, object] = (
+            current_record.value if current_record and isinstance(current_record.value, dict) else {}
+        )
+        next_value: dict[str, object] = dict(current_value)
         changed_setting = False
 
         if patch.organization_name is not None:
@@ -86,11 +88,13 @@ class OrganizationSettingsService(BaseService):
                 await org.save(update_fields=["name", "updated_at"])
 
         if patch.organization_localization is not None:
-            localization = (
-                dict(next_value.get("organization_localization"))
-                if isinstance(next_value.get("organization_localization"), dict)
-                else {}
-            )
+            raw_localization = next_value.get("organization_localization")
+            localization: dict[str, str] = {}
+            if isinstance(raw_localization, dict):
+                for key in ("locale", "timezone", "date_format"):
+                    value = raw_localization.get(key)
+                    if isinstance(value, str):
+                        localization[key] = value
             if patch.organization_localization.locale is not None:
                 localization["locale"] = str(patch.organization_localization.locale).strip()
             if patch.organization_localization.timezone is not None:

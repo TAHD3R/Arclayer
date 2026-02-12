@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { useNavigate } from "@tanstack/react-router";
 import { Button as AntButton, Form } from "antd";
@@ -21,18 +21,26 @@ import { useOrganizationWorkspacesMutations } from "./use-organization-workspace
 import { useOrganizationWorkspacesTables } from "./use-organization-workspaces-tables";
 import { WorkspacesTableSection } from "./workspaces-table-section";
 
-export function OrganizationWorkspacesPage() {
+export function OrganizationWorkspacesPage(props?: {
+  organizationId?: string;
+  autoOpenCreate?: boolean;
+}) {
   const { t } = useTranslation(["nav", "common"]);
   const navigate = useNavigate();
   const setCurrentWorkspaceId = useWorkspaceStore((state) => state.setCurrentWorkspaceId);
 
   const [tab, setTab] = useState<OrganizationWorkspacesTab>("active");
-  const [createOpen, setCreateOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(Boolean(props?.autoOpenCreate));
   const [confirmArchive, setConfirmArchive] = useState<OrganizationWorkspace | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<OrganizationWorkspace | null>(null);
   const [deleteConfirmName, setDeleteConfirmName] = useState("");
 
   const [createForm] = Form.useForm<CreateWorkspaceFormValues>();
+
+  useEffect(() => {
+    if (!props?.autoOpenCreate) return;
+    setCreateOpen(true);
+  }, [props?.autoOpenCreate]);
 
   const handleEnterWorkspace = useCallback(
     (workspaceId: string) => {
@@ -48,6 +56,7 @@ export function OrganizationWorkspacesPage() {
   }, []);
 
   const mutations = useOrganizationWorkspacesMutations({
+    organizationId: props?.organizationId,
     t,
     onCreateSuccess: () => {
       setCreateOpen(false);
@@ -77,7 +86,10 @@ export function OrganizationWorkspacesPage() {
     onEnterWorkspace: handleEnterWorkspace,
   });
 
-  const { activeTableHook, archivedTableHook } = useOrganizationWorkspacesTables({ columns });
+  const { activeTableHook, archivedTableHook } = useOrganizationWorkspacesTables({
+    organizationId: props?.organizationId,
+    columns,
+  });
   const currentTableHook = tab === "active" ? activeTableHook : archivedTableHook;
   const deleteConfirmMatches = deleteConfirmName.trim() === (confirmDelete?.name || "");
 

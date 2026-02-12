@@ -2,11 +2,11 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { OrganizationPluginDetailView } from "@/pages/plugins/organization-plugin-detail/page";
 
-export const Route = createFileRoute("/plugins/$pluginSlug/")({
+export const Route = createFileRoute("/o/$orgId/plugins/$pluginSlug/")({
   component: PluginSlugPage,
 });
 
 function PluginSlugPage() {
-  const { pluginSlug } = Route.useParams();
-  return <OrganizationPluginDetailView pluginSlug={pluginSlug} />;
+  const { orgId, pluginSlug } = Route.useParams();
+  return <OrganizationPluginDetailView organizationId={orgId} pluginSlug={pluginSlug} />;
 }

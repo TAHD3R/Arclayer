@@ -20,7 +20,7 @@ class OrgMembership(BaseModel):
     User membership in an organization.
 
     Notes:
-    - A user belongs to exactly one organization (enforced by UNIQUE(user_id)).
+    - A user can belong to multiple organizations.
     - `role` is used for organization-level governance (e.g. plugin management).
     """
 
@@ -33,7 +33,6 @@ class OrgMembership(BaseModel):
         "models.User",
         related_name="org_memberships",
         on_delete=fields.CASCADE,
-        unique=True,
     )
 
     role = fields.CharEnumField(OrgRole, default=OrgRole.MEMBER, db_index=True)
@@ -45,4 +44,4 @@ class OrgMembership(BaseModel):
     class Meta(BaseModel.Meta):
         table = "org_memberships"
         abstract = False
-        # One user can only belong to one organization.
+        unique_together = (("organization", "user"),)

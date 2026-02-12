@@ -50,9 +50,13 @@ import {
 
 type PluginsInstalledViewProps = {
   scope?: PluginScope;
+  organizationId?: string;
 };
 
-export function PluginsInstalledView({ scope = "workspace" }: PluginsInstalledViewProps) {
+export function PluginsInstalledView({
+  scope = "workspace",
+  organizationId,
+}: PluginsInstalledViewProps) {
   const { t } = useTranslation(["plugin", "nav", "common", "settings"]);
   const queryClient = useQueryClient();
   const accessToken = useAuthStore((s) => s.accessToken);
@@ -105,6 +109,11 @@ export function PluginsInstalledView({ scope = "workspace" }: PluginsInstalledVi
     isOrganizationScope,
     myOrganizationQuery.data?.membership?.role,
   ]);
+
+  const effectiveOrganizationId = useMemo(() => {
+    if (!isOrganizationScope) return null;
+    return String(organizationId || myOrganizationQuery.data?.organization.id || "").trim() || null;
+  }, [isOrganizationScope, myOrganizationQuery.data?.organization.id, organizationId]);
 
   const listQueryKey = useMemo(
     () =>
@@ -406,7 +415,9 @@ export function PluginsInstalledView({ scope = "workspace" }: PluginsInstalledVi
 
             const pluginRef = getPluginRef(p);
             const configureHref = isOrganizationScope
-              ? `/plugins/${encodeURIComponent(pluginRef)}`
+              ? effectiveOrganizationId
+                ? `/o/${encodeURIComponent(effectiveOrganizationId)}/plugins/${encodeURIComponent(pluginRef)}`
+                : null
               : workspaceId
                 ? `/w/${workspaceId}/plugins/${encodeURIComponent(pluginRef)}`
                 : null;

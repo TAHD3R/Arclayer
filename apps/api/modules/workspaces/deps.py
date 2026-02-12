@@ -44,7 +44,7 @@ async def get_workspace_context(
     Resolve current workspace and enforce org boundary.
 
     Behavior:
-    - The user must belong to exactly one organization (OrgMembership).
+    - The user must belong to the target organization.
     - The workspace must belong to that organization.
     - Workspace membership is optional for org owner visibility (E1).
     - If user is org owner AND is the workspace creator, they get implicit admin rights:
@@ -55,15 +55,20 @@ async def get_workspace_context(
     if ws is None or not ws.is_active:
         raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
 
-    orgm = await OrgMembership.get_or_none(user_id=user_id)
-    if orgm is None:
-        raise Forbidden(message=t("errors", "PERMISSION_DENIED", default="权限不足"), error="ORG_MEMBERSHIP_REQUIRED")
-
-    orgm_like = cast(HasOrganizationId, orgm)
     ws_like = cast(HasOrganizationId, ws)
     ws_org_id = UUID(str(ws_like.organization_id))
-    if UUID(str(orgm_like.organization_id)) != ws_org_id:
-        raise Forbidden(message=t("errors", "PERMISSION_DENIED", default="权限不足"), error="CROSS_ORG_ACCESS_DENIED")
+
+    orgm = (
+        await OrgMembership.filter(
+            user_id=user_id,
+            organization_id=ws_org_id,
+            status="active",
+        )
+        .order_by("created_at", "id")
+        .first()
+    )
+    if orgm is None:
+        raise Forbidden(message=t("errors", "PERMISSION_DENIED", default="权限不足"), error="ORG_MEMBERSHIP_REQUIRED")
 
     is_owner = orgm.role == OrgRole.OWNER
     is_creator_admin = bool(is_owner and (UUID(str(ws.created_by_user_id)) == UUID(str(user_id))))

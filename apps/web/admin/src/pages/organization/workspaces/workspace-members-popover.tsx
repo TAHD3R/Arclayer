@@ -36,7 +36,7 @@ export function WorkspaceMembersPopover({ workspace }: { workspace: Organization
     queryKey: ["organization-workspace-members", workspace.workspaceId, page, q],
     enabled: open && workspace.memberCount > 0,
     queryFn: async () =>
-      listOrganizationWorkspaceMembers(workspace.workspaceId, {
+      listOrganizationWorkspaceMembers(workspace.organizationId, workspace.workspaceId, {
         page,
         size: 10,
         q,

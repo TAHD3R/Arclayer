@@ -7,6 +7,7 @@ import {
 import { useDataTable, type UseDataTableResult } from "@/components/data-table";
 
 interface UseOrganizationWorkspacesTablesOptions {
+  organizationId?: string;
   columns: Array<ColumnDef<OrganizationWorkspace, unknown>>;
 }
 
@@ -16,14 +17,16 @@ export type OrganizationWorkspaceTableHook = UseDataTableResult<
 >;
 
 export function useOrganizationWorkspacesTables(options: UseOrganizationWorkspacesTablesOptions) {
-  const { columns } = options;
+  const { organizationId, columns } = options;
+  const tableScope = organizationId ? `org:${organizationId}` : "org:me";
 
   const activeTableHook = useDataTable<OrganizationWorkspace>({
-    tableId: "organization-workspaces-active",
+    tableId: `organization-workspaces-active:${tableScope}`,
     columns,
     initialState: { pageSize: 10 },
     fetcher: async (params) =>
       listOrganizationWorkspaces({
+        organizationId,
         page: params.page,
         size: params.size,
         q: params.q,
@@ -38,11 +41,12 @@ export function useOrganizationWorkspacesTables(options: UseOrganizationWorkspac
   });
 
   const archivedTableHook = useDataTable<OrganizationWorkspace>({
-    tableId: "organization-workspaces-archived",
+    tableId: `organization-workspaces-archived:${tableScope}`,
     columns,
     initialState: { pageSize: 10 },
     fetcher: async (params) =>
       listOrganizationWorkspaces({
+        organizationId,
         page: params.page,
         size: params.size,
         q: params.q,

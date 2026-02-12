@@ -44,6 +44,7 @@ import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 import type { AppLocale } from "@/lib/i18n";
 import { normalizeLocale } from "@/lib/i18n";
+import { buildOrganizationPath } from "@/lib/organization-routing";
 
 type WorkspaceSettingsTabKey =
   | "basics"
@@ -353,8 +354,14 @@ export function WorkspaceSettingsView() {
     }
 
     setCurrentWorkspaceId(null);
-    await navigate({ to: "/settings/organization", replace: true });
-  }, [navigate, setCurrentWorkspaceId, workspaceId]);
+    const orgId = String(myOrgQuery.data?.organization.id || "").trim();
+    if (orgId) {
+      await navigate({ to: buildOrganizationPath(orgId, "/settings/organization"), replace: true });
+      return;
+    }
+
+    await navigate({ to: "/", replace: true });
+  }, [myOrgQuery.data?.organization.id, navigate, setCurrentWorkspaceId, workspaceId]);
 
   return (
     <DefaultPage

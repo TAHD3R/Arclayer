@@ -1,34 +1,67 @@
 from __future__ import annotations
 
-from typing import cast
+from typing import Annotated, cast
 from uuid import UUID
 
-from fastapi import Depends
+from fastapi import Depends, Path
 from structlog.contextvars import bind_contextvars
 
 from apps.api.common.protocols.tortoise import HasOrganizationId
+from apps.api.common.types.public_uuid import PublicUUID
 from apps.api.core.exceptions import Forbidden
 from apps.api.core.i18n import t
 from apps.api.modules.auth.deps import get_current_user_id
 from apps.api.modules.organization.models.org_membership import OrgMembership, OrgRole
 
 
+def _bind_org_context(orgm: OrgMembership) -> None:
+    # Keep org id in structured logs for downstream handlers.
+    try:
+        bind_contextvars(organization_id=str(cast(HasOrganizationId, orgm).organization_id))
+    except (RuntimeError, TypeError, ValueError):
+        pass
+
+
 async def get_current_org_membership(
     user_id: UUID = Depends(get_current_user_id),
 ) -> OrgMembership:
-    """Resolve current org membership for the authenticated user."""
+    """Resolve the default org membership for the authenticated user."""
 
-    orgm = await OrgMembership.get_or_none(user_id=user_id)
+    orgm = (
+        await OrgMembership.filter(user_id=user_id, status="active")
+        .order_by("created_at", "id")
+        .first()
+    )
     if orgm is None:
         raise Forbidden(
             message=t("errors", "PERMISSION_DENIED", default="权限不足"),
             error="ORG_MEMBERSHIP_REQUIRED",
         )
-    # Bind org context for downstream logs and audit events in this request.
-    try:
-        bind_contextvars(organization_id=str(cast(HasOrganizationId, orgm).organization_id))
-    except (RuntimeError, TypeError, ValueError):
-        pass
+    _bind_org_context(orgm)
+    return orgm
+
+
+async def get_org_membership_for_organization(
+    organization_id: Annotated[PublicUUID, Path(..., description="Organization ID.")],
+    user_id: UUID = Depends(get_current_user_id),
+) -> OrgMembership:
+    """Resolve membership for an explicit organization path parameter."""
+
+    orgm = (
+        await OrgMembership.filter(
+            user_id=user_id,
+            organization_id=UUID(str(organization_id)),
+            status="active",
+        )
+        .order_by("created_at", "id")
+        .first()
+    )
+    if orgm is None:
+        raise Forbidden(
+            message=t("errors", "PERMISSION_DENIED", default="权限不足"),
+            error="ORG_MEMBERSHIP_REQUIRED",
+        )
+    _bind_org_context(orgm)
     return orgm
 
 
@@ -39,8 +72,8 @@ async def require_org_owner(
     System-level gate in v2.
 
     Notes:
-    - We don't maintain org-scoped RBAC in v2 (workspace is the governance boundary).
-    - For now, org owner is the only authority allowed to change system-wide settings.
+    - We do not maintain org scoped RBAC in v2 (workspace is the governance boundary).
+    - For now, org owner is the only authority allowed to change system wide settings.
     """
 
     if orgm.role != OrgRole.OWNER:
@@ -58,7 +91,7 @@ async def require_org_admin(
     Organization-level admin gate.
 
     - OWNER implies ADMIN permissions.
-    - Used for high-impact org operations (e.g. plugin management) that should not be
+    - Used for high-impact org operations (for example plugin management) that should not be
       exposed to regular members.
     """
 

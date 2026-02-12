@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { PlaceholderView } from "@/pages/placeholder/page";
 
-export const Route = createFileRoute("/plugins/marketplace/")({
+export const Route = createFileRoute("/o/$orgId/plugins/marketplace/")({
   component: PluginsMarketplacePage,
 });
 

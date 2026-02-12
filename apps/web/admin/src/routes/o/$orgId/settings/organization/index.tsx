@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { OrganizationSettingsView } from "@/pages/settings/organization/page";
 
-export const Route = createFileRoute("/settings/organization/")({
+export const Route = createFileRoute("/o/$orgId/settings/organization/")({
   component: OrganizationSettingsRoutePage,
 });
 

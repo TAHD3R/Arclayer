@@ -63,6 +63,7 @@ class OrganizationWorkspaceService(BaseService):
         q: str | None,
         ordering: str | None,
         archived: bool | None,
+        enterable_only: bool,
     ) -> PageData[OrganizationWorkspaceOut]:
         if org_role in (OrgRole.OWNER, OrgRole.ADMIN):
             rows = await self.repo.list_active_workspaces_for_org(organization_id=organization_id)
@@ -97,11 +98,15 @@ class OrganizationWorkspaceService(BaseService):
         memberships = await self.repo.list_active_memberships(workspace_ids=workspace_ids)
 
         members_by_workspace: dict[UUID, list[UUID]] = defaultdict(list)
+        viewer_membership_workspace_ids: set[UUID] = set()
         for membership in memberships:
             ws_id = UUID(str(cast(HasWorkspaceId, membership).workspace_id))
             user_id_value = cast(HasUserId, membership).user_id
             if user_id_value is not None:
-                members_by_workspace[ws_id].append(UUID(str(user_id_value)))
+                member_user_id = UUID(str(user_id_value))
+                members_by_workspace[ws_id].append(member_user_id)
+                if member_user_id == user_id:
+                    viewer_membership_workspace_ids.add(ws_id)
 
         unique_user_ids = list({uid for ids in members_by_workspace.values() for uid in ids})
         users = await self.repo.list_users(user_ids=unique_user_ids)
@@ -110,6 +115,11 @@ class OrganizationWorkspaceService(BaseService):
         out_items: list[OrganizationWorkspaceOut] = []
         for ws in rows:
             ws_id = UUID(str(ws.id))
+            is_creator_admin = bool(org_role == OrgRole.OWNER and UUID(str(ws.created_by_user_id)) == user_id)
+            enterable = ws_id in viewer_membership_workspace_ids or is_creator_admin
+            if enterable_only and not enterable:
+                continue
+
             member_ids = members_by_workspace.get(ws_id, [])
             preview: list[OrganizationWorkspaceMemberPreviewOut] = []
             for uid in member_ids[:5]:
@@ -132,6 +142,7 @@ class OrganizationWorkspaceService(BaseService):
                     workspace=ws,
                     member_count=len(member_ids),
                     members_preview=preview,
+                    enterable=enterable,
                 )
             )
 
@@ -280,6 +291,7 @@ class OrganizationWorkspaceService(BaseService):
             workspace=ws,
             member_count=1 if preview else 0,
             members_preview=preview,
+            enterable=True,
         )
 
     async def archive_workspace(
@@ -438,6 +450,7 @@ class OrganizationWorkspaceService(BaseService):
         workspace: Workspace,
         member_count: int,
         members_preview: list[OrganizationWorkspaceMemberPreviewOut],
+        enterable: bool,
     ) -> OrganizationWorkspaceOut:
         return OrganizationWorkspaceOut(
             id=workspace.id,
@@ -453,6 +466,7 @@ class OrganizationWorkspaceService(BaseService):
             member_count=member_count,
             members_preview=members_preview,
             created_at=workspace.created_at,
+            enterable=enterable,
         )
 
     def _sort_workspaces_default(self, *, rows: list[Workspace], archived: bool | None) -> list[Workspace]:

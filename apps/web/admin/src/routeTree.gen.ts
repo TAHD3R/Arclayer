@@ -22,37 +22,34 @@ import { Route as WWorkspaceIdRouteImport } from './routes/w/$workspaceId'
 import { Route as TeamRolesRouteImport } from './routes/team/roles'
 import { Route as TeamMembersRouteImport } from './routes/team/members'
 import { Route as TeamInvitationsRouteImport } from './routes/team/invitations'
+import { Route as OOrgIdRouteImport } from './routes/o/$orgId'
 import { Route as DebugPortalEditorRouteImport } from './routes/debug/portal-editor'
 import { Route as WWorkspaceIdIndexRouteImport } from './routes/w/$workspaceId/index'
 import { Route as SettingsWorkspaceIndexRouteImport } from './routes/settings/workspace/index'
 import { Route as SettingsSeoIndexRouteImport } from './routes/settings/seo/index'
-import { Route as SettingsOrganizationIndexRouteImport } from './routes/settings/organization/index'
 import { Route as SettingsGeneralIndexRouteImport } from './routes/settings/general/index'
-import { Route as PluginsMarketplaceIndexRouteImport } from './routes/plugins/marketplace/index'
-import { Route as PluginsInstalledIndexRouteImport } from './routes/plugins/installed/index'
-import { Route as PluginsPluginSlugIndexRouteImport } from './routes/plugins/$pluginSlug/index'
-import { Route as OrganizationWorkspacesIndexRouteImport } from './routes/organization/workspaces/index'
-import { Route as OrganizationTeamIndexRouteImport } from './routes/organization/team/index'
-import { Route as OrganizationMembersIndexRouteImport } from './routes/organization/members/index'
-import { Route as OrganizationActivityIndexRouteImport } from './routes/organization/activity/index'
+import { Route as OOrgIdIndexRouteImport } from './routes/o/$orgId/index'
 import { Route as ContentPagesIndexRouteImport } from './routes/content/pages/index'
 import { Route as ContentLibraryIndexRouteImport } from './routes/content/library/index'
 import { Route as AppearanceThemesIndexRouteImport } from './routes/appearance/themes/index'
 import { Route as AppearanceStylesIndexRouteImport } from './routes/appearance/styles/index'
 import { Route as AppearanceNavigationIndexRouteImport } from './routes/appearance/navigation/index'
-import { Route as OrganizationTeamRolesRouteImport } from './routes/organization/team/roles'
-import { Route as OrganizationTeamMembersRouteImport } from './routes/organization/team/members'
-import { Route as OrganizationTeamInvitationsRouteImport } from './routes/organization/team/invitations'
 import { Route as WWorkspaceIdTeamIndexRouteImport } from './routes/w/$workspaceId/team/index'
 import { Route as WWorkspaceIdNotificationsIndexRouteImport } from './routes/w/$workspaceId/notifications/index'
 import { Route as WWorkspaceIdAssetsIndexRouteImport } from './routes/w/$workspaceId/assets/index'
-import { Route as SettingsOrganizationActivityIndexRouteImport } from './routes/settings/organization/activity/index'
 import { Route as SettingsMaintenanceStatusIndexRouteImport } from './routes/settings/maintenance/status/index'
 import { Route as SettingsMaintenanceSnapshotsIndexRouteImport } from './routes/settings/maintenance/snapshots/index'
 import { Route as SettingsMaintenanceActivityIndexRouteImport } from './routes/settings/maintenance/activity/index'
+import { Route as OOrgIdWorkspacesIndexRouteImport } from './routes/o/$orgId/workspaces/index'
+import { Route as OOrgIdTeamIndexRouteImport } from './routes/o/$orgId/team/index'
+import { Route as OOrgIdMembersIndexRouteImport } from './routes/o/$orgId/members/index'
+import { Route as OOrgIdActivityIndexRouteImport } from './routes/o/$orgId/activity/index'
 import { Route as WWorkspaceIdTeamRolesRouteImport } from './routes/w/$workspaceId/team/roles'
 import { Route as WWorkspaceIdTeamMembersRouteImport } from './routes/w/$workspaceId/team/members'
 import { Route as WWorkspaceIdTeamInvitationsRouteImport } from './routes/w/$workspaceId/team/invitations'
+import { Route as OOrgIdTeamRolesRouteImport } from './routes/o/$orgId/team/roles'
+import { Route as OOrgIdTeamMembersRouteImport } from './routes/o/$orgId/team/members'
+import { Route as OOrgIdTeamInvitationsRouteImport } from './routes/o/$orgId/team/invitations'
 import { Route as WWorkspaceIdSettingsWorkspaceIndexRouteImport } from './routes/w/$workspaceId/settings/workspace/index'
 import { Route as WWorkspaceIdSettingsSeoIndexRouteImport } from './routes/w/$workspaceId/settings/seo/index'
 import { Route as WWorkspaceIdSettingsOrganizationIndexRouteImport } from './routes/w/$workspaceId/settings/organization/index'
@@ -64,9 +61,14 @@ import { Route as WWorkspaceIdContentLibraryIndexRouteImport } from './routes/w/
 import { Route as WWorkspaceIdAppearanceThemesIndexRouteImport } from './routes/w/$workspaceId/appearance/themes/index'
 import { Route as WWorkspaceIdAppearanceStylesIndexRouteImport } from './routes/w/$workspaceId/appearance/styles/index'
 import { Route as WWorkspaceIdAppearanceNavigationIndexRouteImport } from './routes/w/$workspaceId/appearance/navigation/index'
+import { Route as OOrgIdSettingsOrganizationIndexRouteImport } from './routes/o/$orgId/settings/organization/index'
+import { Route as OOrgIdPluginsMarketplaceIndexRouteImport } from './routes/o/$orgId/plugins/marketplace/index'
+import { Route as OOrgIdPluginsInstalledIndexRouteImport } from './routes/o/$orgId/plugins/installed/index'
+import { Route as OOrgIdPluginsPluginSlugIndexRouteImport } from './routes/o/$orgId/plugins/$pluginSlug/index'
 import { Route as WWorkspaceIdSettingsMaintenanceStatusIndexRouteImport } from './routes/w/$workspaceId/settings/maintenance/status/index'
 import { Route as WWorkspaceIdSettingsMaintenanceSnapshotsIndexRouteImport } from './routes/w/$workspaceId/settings/maintenance/snapshots/index'
 import { Route as WWorkspaceIdSettingsMaintenanceActivityIndexRouteImport } from './routes/w/$workspaceId/settings/maintenance/activity/index'
+import { Route as OOrgIdSettingsOrganizationActivityIndexRouteImport } from './routes/o/$orgId/settings/organization/activity/index'
 import { Route as WWorkspaceIdContentPagesPageIdEditRouteImport } from './routes/w/$workspaceId/content/pages/$pageId/edit'
 
 const SetupRoute = SetupRouteImport.update({
@@ -134,6 +136,11 @@ const TeamInvitationsRoute = TeamInvitationsRouteImport.update({
   path: '/team/invitations',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OOrgIdRoute = OOrgIdRouteImport.update({
+  id: '/o/$orgId',
+  path: '/o/$orgId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DebugPortalEditorRoute = DebugPortalEditorRouteImport.update({
   id: '/debug/portal-editor',
   path: '/debug/portal-editor',
@@ -154,55 +161,16 @@ const SettingsSeoIndexRoute = SettingsSeoIndexRouteImport.update({
   path: '/settings/seo/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SettingsOrganizationIndexRoute =
-  SettingsOrganizationIndexRouteImport.update({
-    id: '/settings/organization/',
-    path: '/settings/organization/',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const SettingsGeneralIndexRoute = SettingsGeneralIndexRouteImport.update({
   id: '/settings/general/',
   path: '/settings/general/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const PluginsMarketplaceIndexRoute = PluginsMarketplaceIndexRouteImport.update({
-  id: '/plugins/marketplace/',
-  path: '/plugins/marketplace/',
-  getParentRoute: () => rootRouteImport,
+const OOrgIdIndexRoute = OOrgIdIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => OOrgIdRoute,
 } as any)
-const PluginsInstalledIndexRoute = PluginsInstalledIndexRouteImport.update({
-  id: '/plugins/installed/',
-  path: '/plugins/installed/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PluginsPluginSlugIndexRoute = PluginsPluginSlugIndexRouteImport.update({
-  id: '/plugins/$pluginSlug/',
-  path: '/plugins/$pluginSlug/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const OrganizationWorkspacesIndexRoute =
-  OrganizationWorkspacesIndexRouteImport.update({
-    id: '/organization/workspaces/',
-    path: '/organization/workspaces/',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const OrganizationTeamIndexRoute = OrganizationTeamIndexRouteImport.update({
-  id: '/organization/team/',
-  path: '/organization/team/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const OrganizationMembersIndexRoute =
-  OrganizationMembersIndexRouteImport.update({
-    id: '/organization/members/',
-    path: '/organization/members/',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const OrganizationActivityIndexRoute =
-  OrganizationActivityIndexRouteImport.update({
-    id: '/organization/activity/',
-    path: '/organization/activity/',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const ContentPagesIndexRoute = ContentPagesIndexRouteImport.update({
   id: '/content/pages/',
   path: '/content/pages/',
@@ -229,22 +197,6 @@ const AppearanceNavigationIndexRoute =
     path: '/appearance/navigation/',
     getParentRoute: () => rootRouteImport,
   } as any)
-const OrganizationTeamRolesRoute = OrganizationTeamRolesRouteImport.update({
-  id: '/organization/team/roles',
-  path: '/organization/team/roles',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const OrganizationTeamMembersRoute = OrganizationTeamMembersRouteImport.update({
-  id: '/organization/team/members',
-  path: '/organization/team/members',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const OrganizationTeamInvitationsRoute =
-  OrganizationTeamInvitationsRouteImport.update({
-    id: '/organization/team/invitations',
-    path: '/organization/team/invitations',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const WWorkspaceIdTeamIndexRoute = WWorkspaceIdTeamIndexRouteImport.update({
   id: '/team/',
   path: '/team/',
@@ -261,12 +213,6 @@ const WWorkspaceIdAssetsIndexRoute = WWorkspaceIdAssetsIndexRouteImport.update({
   path: '/assets/',
   getParentRoute: () => WWorkspaceIdRoute,
 } as any)
-const SettingsOrganizationActivityIndexRoute =
-  SettingsOrganizationActivityIndexRouteImport.update({
-    id: '/settings/organization/activity/',
-    path: '/settings/organization/activity/',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const SettingsMaintenanceStatusIndexRoute =
   SettingsMaintenanceStatusIndexRouteImport.update({
     id: '/settings/maintenance/status/',
@@ -285,6 +231,26 @@ const SettingsMaintenanceActivityIndexRoute =
     path: '/settings/maintenance/activity/',
     getParentRoute: () => rootRouteImport,
   } as any)
+const OOrgIdWorkspacesIndexRoute = OOrgIdWorkspacesIndexRouteImport.update({
+  id: '/workspaces/',
+  path: '/workspaces/',
+  getParentRoute: () => OOrgIdRoute,
+} as any)
+const OOrgIdTeamIndexRoute = OOrgIdTeamIndexRouteImport.update({
+  id: '/team/',
+  path: '/team/',
+  getParentRoute: () => OOrgIdRoute,
+} as any)
+const OOrgIdMembersIndexRoute = OOrgIdMembersIndexRouteImport.update({
+  id: '/members/',
+  path: '/members/',
+  getParentRoute: () => OOrgIdRoute,
+} as any)
+const OOrgIdActivityIndexRoute = OOrgIdActivityIndexRouteImport.update({
+  id: '/activity/',
+  path: '/activity/',
+  getParentRoute: () => OOrgIdRoute,
+} as any)
 const WWorkspaceIdTeamRolesRoute = WWorkspaceIdTeamRolesRouteImport.update({
   id: '/team/roles',
   path: '/team/roles',
@@ -301,6 +267,21 @@ const WWorkspaceIdTeamInvitationsRoute =
     path: '/team/invitations',
     getParentRoute: () => WWorkspaceIdRoute,
   } as any)
+const OOrgIdTeamRolesRoute = OOrgIdTeamRolesRouteImport.update({
+  id: '/team/roles',
+  path: '/team/roles',
+  getParentRoute: () => OOrgIdRoute,
+} as any)
+const OOrgIdTeamMembersRoute = OOrgIdTeamMembersRouteImport.update({
+  id: '/team/members',
+  path: '/team/members',
+  getParentRoute: () => OOrgIdRoute,
+} as any)
+const OOrgIdTeamInvitationsRoute = OOrgIdTeamInvitationsRouteImport.update({
+  id: '/team/invitations',
+  path: '/team/invitations',
+  getParentRoute: () => OOrgIdRoute,
+} as any)
 const WWorkspaceIdSettingsWorkspaceIndexRoute =
   WWorkspaceIdSettingsWorkspaceIndexRouteImport.update({
     id: '/settings/workspace/',
@@ -367,6 +348,30 @@ const WWorkspaceIdAppearanceNavigationIndexRoute =
     path: '/appearance/navigation/',
     getParentRoute: () => WWorkspaceIdRoute,
   } as any)
+const OOrgIdSettingsOrganizationIndexRoute =
+  OOrgIdSettingsOrganizationIndexRouteImport.update({
+    id: '/settings/organization/',
+    path: '/settings/organization/',
+    getParentRoute: () => OOrgIdRoute,
+  } as any)
+const OOrgIdPluginsMarketplaceIndexRoute =
+  OOrgIdPluginsMarketplaceIndexRouteImport.update({
+    id: '/plugins/marketplace/',
+    path: '/plugins/marketplace/',
+    getParentRoute: () => OOrgIdRoute,
+  } as any)
+const OOrgIdPluginsInstalledIndexRoute =
+  OOrgIdPluginsInstalledIndexRouteImport.update({
+    id: '/plugins/installed/',
+    path: '/plugins/installed/',
+    getParentRoute: () => OOrgIdRoute,
+  } as any)
+const OOrgIdPluginsPluginSlugIndexRoute =
+  OOrgIdPluginsPluginSlugIndexRouteImport.update({
+    id: '/plugins/$pluginSlug/',
+    path: '/plugins/$pluginSlug/',
+    getParentRoute: () => OOrgIdRoute,
+  } as any)
 const WWorkspaceIdSettingsMaintenanceStatusIndexRoute =
   WWorkspaceIdSettingsMaintenanceStatusIndexRouteImport.update({
     id: '/settings/maintenance/status/',
@@ -385,6 +390,12 @@ const WWorkspaceIdSettingsMaintenanceActivityIndexRoute =
     path: '/settings/maintenance/activity/',
     getParentRoute: () => WWorkspaceIdRoute,
   } as any)
+const OOrgIdSettingsOrganizationActivityIndexRoute =
+  OOrgIdSettingsOrganizationActivityIndexRouteImport.update({
+    id: '/settings/organization/activity/',
+    path: '/settings/organization/activity/',
+    getParentRoute: () => OOrgIdRoute,
+  } as any)
 const WWorkspaceIdContentPagesPageIdEditRoute =
   WWorkspaceIdContentPagesPageIdEditRouteImport.update({
     id: '/content/pages/$pageId/edit',
@@ -401,42 +412,43 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/setup': typeof SetupRoute
   '/debug/portal-editor': typeof DebugPortalEditorRoute
+  '/o/$orgId': typeof OOrgIdRouteWithChildren
   '/team/invitations': typeof TeamInvitationsRoute
   '/team/members': typeof TeamMembersRoute
   '/team/roles': typeof TeamRolesRoute
   '/w/$workspaceId': typeof WWorkspaceIdRouteWithChildren
   '/assets/': typeof AssetsIndexRoute
   '/team/': typeof TeamIndexRoute
-  '/organization/team/invitations': typeof OrganizationTeamInvitationsRoute
-  '/organization/team/members': typeof OrganizationTeamMembersRoute
-  '/organization/team/roles': typeof OrganizationTeamRolesRoute
   '/appearance/navigation/': typeof AppearanceNavigationIndexRoute
   '/appearance/styles/': typeof AppearanceStylesIndexRoute
   '/appearance/themes/': typeof AppearanceThemesIndexRoute
   '/content/library/': typeof ContentLibraryIndexRoute
   '/content/pages/': typeof ContentPagesIndexRoute
-  '/organization/activity/': typeof OrganizationActivityIndexRoute
-  '/organization/members/': typeof OrganizationMembersIndexRoute
-  '/organization/team/': typeof OrganizationTeamIndexRoute
-  '/organization/workspaces/': typeof OrganizationWorkspacesIndexRoute
-  '/plugins/$pluginSlug/': typeof PluginsPluginSlugIndexRoute
-  '/plugins/installed/': typeof PluginsInstalledIndexRoute
-  '/plugins/marketplace/': typeof PluginsMarketplaceIndexRoute
+  '/o/$orgId/': typeof OOrgIdIndexRoute
   '/settings/general/': typeof SettingsGeneralIndexRoute
-  '/settings/organization/': typeof SettingsOrganizationIndexRoute
   '/settings/seo/': typeof SettingsSeoIndexRoute
   '/settings/workspace/': typeof SettingsWorkspaceIndexRoute
   '/w/$workspaceId/': typeof WWorkspaceIdIndexRoute
+  '/o/$orgId/team/invitations': typeof OOrgIdTeamInvitationsRoute
+  '/o/$orgId/team/members': typeof OOrgIdTeamMembersRoute
+  '/o/$orgId/team/roles': typeof OOrgIdTeamRolesRoute
   '/w/$workspaceId/team/invitations': typeof WWorkspaceIdTeamInvitationsRoute
   '/w/$workspaceId/team/members': typeof WWorkspaceIdTeamMembersRoute
   '/w/$workspaceId/team/roles': typeof WWorkspaceIdTeamRolesRoute
+  '/o/$orgId/activity/': typeof OOrgIdActivityIndexRoute
+  '/o/$orgId/members/': typeof OOrgIdMembersIndexRoute
+  '/o/$orgId/team/': typeof OOrgIdTeamIndexRoute
+  '/o/$orgId/workspaces/': typeof OOrgIdWorkspacesIndexRoute
   '/settings/maintenance/activity/': typeof SettingsMaintenanceActivityIndexRoute
   '/settings/maintenance/snapshots/': typeof SettingsMaintenanceSnapshotsIndexRoute
   '/settings/maintenance/status/': typeof SettingsMaintenanceStatusIndexRoute
-  '/settings/organization/activity/': typeof SettingsOrganizationActivityIndexRoute
   '/w/$workspaceId/assets/': typeof WWorkspaceIdAssetsIndexRoute
   '/w/$workspaceId/notifications/': typeof WWorkspaceIdNotificationsIndexRoute
   '/w/$workspaceId/team/': typeof WWorkspaceIdTeamIndexRoute
+  '/o/$orgId/plugins/$pluginSlug/': typeof OOrgIdPluginsPluginSlugIndexRoute
+  '/o/$orgId/plugins/installed/': typeof OOrgIdPluginsInstalledIndexRoute
+  '/o/$orgId/plugins/marketplace/': typeof OOrgIdPluginsMarketplaceIndexRoute
+  '/o/$orgId/settings/organization/': typeof OOrgIdSettingsOrganizationIndexRoute
   '/w/$workspaceId/appearance/navigation/': typeof WWorkspaceIdAppearanceNavigationIndexRoute
   '/w/$workspaceId/appearance/styles/': typeof WWorkspaceIdAppearanceStylesIndexRoute
   '/w/$workspaceId/appearance/themes/': typeof WWorkspaceIdAppearanceThemesIndexRoute
@@ -449,6 +461,7 @@ export interface FileRoutesByFullPath {
   '/w/$workspaceId/settings/seo/': typeof WWorkspaceIdSettingsSeoIndexRoute
   '/w/$workspaceId/settings/workspace/': typeof WWorkspaceIdSettingsWorkspaceIndexRoute
   '/w/$workspaceId/content/pages/$pageId/edit': typeof WWorkspaceIdContentPagesPageIdEditRoute
+  '/o/$orgId/settings/organization/activity/': typeof OOrgIdSettingsOrganizationActivityIndexRoute
   '/w/$workspaceId/settings/maintenance/activity/': typeof WWorkspaceIdSettingsMaintenanceActivityIndexRoute
   '/w/$workspaceId/settings/maintenance/snapshots/': typeof WWorkspaceIdSettingsMaintenanceSnapshotsIndexRoute
   '/w/$workspaceId/settings/maintenance/status/': typeof WWorkspaceIdSettingsMaintenanceStatusIndexRoute
@@ -467,36 +480,36 @@ export interface FileRoutesByTo {
   '/team/roles': typeof TeamRolesRoute
   '/assets': typeof AssetsIndexRoute
   '/team': typeof TeamIndexRoute
-  '/organization/team/invitations': typeof OrganizationTeamInvitationsRoute
-  '/organization/team/members': typeof OrganizationTeamMembersRoute
-  '/organization/team/roles': typeof OrganizationTeamRolesRoute
   '/appearance/navigation': typeof AppearanceNavigationIndexRoute
   '/appearance/styles': typeof AppearanceStylesIndexRoute
   '/appearance/themes': typeof AppearanceThemesIndexRoute
   '/content/library': typeof ContentLibraryIndexRoute
   '/content/pages': typeof ContentPagesIndexRoute
-  '/organization/activity': typeof OrganizationActivityIndexRoute
-  '/organization/members': typeof OrganizationMembersIndexRoute
-  '/organization/team': typeof OrganizationTeamIndexRoute
-  '/organization/workspaces': typeof OrganizationWorkspacesIndexRoute
-  '/plugins/$pluginSlug': typeof PluginsPluginSlugIndexRoute
-  '/plugins/installed': typeof PluginsInstalledIndexRoute
-  '/plugins/marketplace': typeof PluginsMarketplaceIndexRoute
+  '/o/$orgId': typeof OOrgIdIndexRoute
   '/settings/general': typeof SettingsGeneralIndexRoute
-  '/settings/organization': typeof SettingsOrganizationIndexRoute
   '/settings/seo': typeof SettingsSeoIndexRoute
   '/settings/workspace': typeof SettingsWorkspaceIndexRoute
   '/w/$workspaceId': typeof WWorkspaceIdIndexRoute
+  '/o/$orgId/team/invitations': typeof OOrgIdTeamInvitationsRoute
+  '/o/$orgId/team/members': typeof OOrgIdTeamMembersRoute
+  '/o/$orgId/team/roles': typeof OOrgIdTeamRolesRoute
   '/w/$workspaceId/team/invitations': typeof WWorkspaceIdTeamInvitationsRoute
   '/w/$workspaceId/team/members': typeof WWorkspaceIdTeamMembersRoute
   '/w/$workspaceId/team/roles': typeof WWorkspaceIdTeamRolesRoute
+  '/o/$orgId/activity': typeof OOrgIdActivityIndexRoute
+  '/o/$orgId/members': typeof OOrgIdMembersIndexRoute
+  '/o/$orgId/team': typeof OOrgIdTeamIndexRoute
+  '/o/$orgId/workspaces': typeof OOrgIdWorkspacesIndexRoute
   '/settings/maintenance/activity': typeof SettingsMaintenanceActivityIndexRoute
   '/settings/maintenance/snapshots': typeof SettingsMaintenanceSnapshotsIndexRoute
   '/settings/maintenance/status': typeof SettingsMaintenanceStatusIndexRoute
-  '/settings/organization/activity': typeof SettingsOrganizationActivityIndexRoute
   '/w/$workspaceId/assets': typeof WWorkspaceIdAssetsIndexRoute
   '/w/$workspaceId/notifications': typeof WWorkspaceIdNotificationsIndexRoute
   '/w/$workspaceId/team': typeof WWorkspaceIdTeamIndexRoute
+  '/o/$orgId/plugins/$pluginSlug': typeof OOrgIdPluginsPluginSlugIndexRoute
+  '/o/$orgId/plugins/installed': typeof OOrgIdPluginsInstalledIndexRoute
+  '/o/$orgId/plugins/marketplace': typeof OOrgIdPluginsMarketplaceIndexRoute
+  '/o/$orgId/settings/organization': typeof OOrgIdSettingsOrganizationIndexRoute
   '/w/$workspaceId/appearance/navigation': typeof WWorkspaceIdAppearanceNavigationIndexRoute
   '/w/$workspaceId/appearance/styles': typeof WWorkspaceIdAppearanceStylesIndexRoute
   '/w/$workspaceId/appearance/themes': typeof WWorkspaceIdAppearanceThemesIndexRoute
@@ -509,6 +522,7 @@ export interface FileRoutesByTo {
   '/w/$workspaceId/settings/seo': typeof WWorkspaceIdSettingsSeoIndexRoute
   '/w/$workspaceId/settings/workspace': typeof WWorkspaceIdSettingsWorkspaceIndexRoute
   '/w/$workspaceId/content/pages/$pageId/edit': typeof WWorkspaceIdContentPagesPageIdEditRoute
+  '/o/$orgId/settings/organization/activity': typeof OOrgIdSettingsOrganizationActivityIndexRoute
   '/w/$workspaceId/settings/maintenance/activity': typeof WWorkspaceIdSettingsMaintenanceActivityIndexRoute
   '/w/$workspaceId/settings/maintenance/snapshots': typeof WWorkspaceIdSettingsMaintenanceSnapshotsIndexRoute
   '/w/$workspaceId/settings/maintenance/status': typeof WWorkspaceIdSettingsMaintenanceStatusIndexRoute
@@ -523,42 +537,43 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/setup': typeof SetupRoute
   '/debug/portal-editor': typeof DebugPortalEditorRoute
+  '/o/$orgId': typeof OOrgIdRouteWithChildren
   '/team/invitations': typeof TeamInvitationsRoute
   '/team/members': typeof TeamMembersRoute
   '/team/roles': typeof TeamRolesRoute
   '/w/$workspaceId': typeof WWorkspaceIdRouteWithChildren
   '/assets/': typeof AssetsIndexRoute
   '/team/': typeof TeamIndexRoute
-  '/organization/team/invitations': typeof OrganizationTeamInvitationsRoute
-  '/organization/team/members': typeof OrganizationTeamMembersRoute
-  '/organization/team/roles': typeof OrganizationTeamRolesRoute
   '/appearance/navigation/': typeof AppearanceNavigationIndexRoute
   '/appearance/styles/': typeof AppearanceStylesIndexRoute
   '/appearance/themes/': typeof AppearanceThemesIndexRoute
   '/content/library/': typeof ContentLibraryIndexRoute
   '/content/pages/': typeof ContentPagesIndexRoute
-  '/organization/activity/': typeof OrganizationActivityIndexRoute
-  '/organization/members/': typeof OrganizationMembersIndexRoute
-  '/organization/team/': typeof OrganizationTeamIndexRoute
-  '/organization/workspaces/': typeof OrganizationWorkspacesIndexRoute
-  '/plugins/$pluginSlug/': typeof PluginsPluginSlugIndexRoute
-  '/plugins/installed/': typeof PluginsInstalledIndexRoute
-  '/plugins/marketplace/': typeof PluginsMarketplaceIndexRoute
+  '/o/$orgId/': typeof OOrgIdIndexRoute
   '/settings/general/': typeof SettingsGeneralIndexRoute
-  '/settings/organization/': typeof SettingsOrganizationIndexRoute
   '/settings/seo/': typeof SettingsSeoIndexRoute
   '/settings/workspace/': typeof SettingsWorkspaceIndexRoute
   '/w/$workspaceId/': typeof WWorkspaceIdIndexRoute
+  '/o/$orgId/team/invitations': typeof OOrgIdTeamInvitationsRoute
+  '/o/$orgId/team/members': typeof OOrgIdTeamMembersRoute
+  '/o/$orgId/team/roles': typeof OOrgIdTeamRolesRoute
   '/w/$workspaceId/team/invitations': typeof WWorkspaceIdTeamInvitationsRoute
   '/w/$workspaceId/team/members': typeof WWorkspaceIdTeamMembersRoute
   '/w/$workspaceId/team/roles': typeof WWorkspaceIdTeamRolesRoute
+  '/o/$orgId/activity/': typeof OOrgIdActivityIndexRoute
+  '/o/$orgId/members/': typeof OOrgIdMembersIndexRoute
+  '/o/$orgId/team/': typeof OOrgIdTeamIndexRoute
+  '/o/$orgId/workspaces/': typeof OOrgIdWorkspacesIndexRoute
   '/settings/maintenance/activity/': typeof SettingsMaintenanceActivityIndexRoute
   '/settings/maintenance/snapshots/': typeof SettingsMaintenanceSnapshotsIndexRoute
   '/settings/maintenance/status/': typeof SettingsMaintenanceStatusIndexRoute
-  '/settings/organization/activity/': typeof SettingsOrganizationActivityIndexRoute
   '/w/$workspaceId/assets/': typeof WWorkspaceIdAssetsIndexRoute
   '/w/$workspaceId/notifications/': typeof WWorkspaceIdNotificationsIndexRoute
   '/w/$workspaceId/team/': typeof WWorkspaceIdTeamIndexRoute
+  '/o/$orgId/plugins/$pluginSlug/': typeof OOrgIdPluginsPluginSlugIndexRoute
+  '/o/$orgId/plugins/installed/': typeof OOrgIdPluginsInstalledIndexRoute
+  '/o/$orgId/plugins/marketplace/': typeof OOrgIdPluginsMarketplaceIndexRoute
+  '/o/$orgId/settings/organization/': typeof OOrgIdSettingsOrganizationIndexRoute
   '/w/$workspaceId/appearance/navigation/': typeof WWorkspaceIdAppearanceNavigationIndexRoute
   '/w/$workspaceId/appearance/styles/': typeof WWorkspaceIdAppearanceStylesIndexRoute
   '/w/$workspaceId/appearance/themes/': typeof WWorkspaceIdAppearanceThemesIndexRoute
@@ -571,6 +586,7 @@ export interface FileRoutesById {
   '/w/$workspaceId/settings/seo/': typeof WWorkspaceIdSettingsSeoIndexRoute
   '/w/$workspaceId/settings/workspace/': typeof WWorkspaceIdSettingsWorkspaceIndexRoute
   '/w/$workspaceId/content/pages/$pageId/edit': typeof WWorkspaceIdContentPagesPageIdEditRoute
+  '/o/$orgId/settings/organization/activity/': typeof OOrgIdSettingsOrganizationActivityIndexRoute
   '/w/$workspaceId/settings/maintenance/activity/': typeof WWorkspaceIdSettingsMaintenanceActivityIndexRoute
   '/w/$workspaceId/settings/maintenance/snapshots/': typeof WWorkspaceIdSettingsMaintenanceSnapshotsIndexRoute
   '/w/$workspaceId/settings/maintenance/status/': typeof WWorkspaceIdSettingsMaintenanceStatusIndexRoute
@@ -586,42 +602,43 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/setup'
     | '/debug/portal-editor'
+    | '/o/$orgId'
     | '/team/invitations'
     | '/team/members'
     | '/team/roles'
     | '/w/$workspaceId'
     | '/assets/'
     | '/team/'
-    | '/organization/team/invitations'
-    | '/organization/team/members'
-    | '/organization/team/roles'
     | '/appearance/navigation/'
     | '/appearance/styles/'
     | '/appearance/themes/'
     | '/content/library/'
     | '/content/pages/'
-    | '/organization/activity/'
-    | '/organization/members/'
-    | '/organization/team/'
-    | '/organization/workspaces/'
-    | '/plugins/$pluginSlug/'
-    | '/plugins/installed/'
-    | '/plugins/marketplace/'
+    | '/o/$orgId/'
     | '/settings/general/'
-    | '/settings/organization/'
     | '/settings/seo/'
     | '/settings/workspace/'
     | '/w/$workspaceId/'
+    | '/o/$orgId/team/invitations'
+    | '/o/$orgId/team/members'
+    | '/o/$orgId/team/roles'
     | '/w/$workspaceId/team/invitations'
     | '/w/$workspaceId/team/members'
     | '/w/$workspaceId/team/roles'
+    | '/o/$orgId/activity/'
+    | '/o/$orgId/members/'
+    | '/o/$orgId/team/'
+    | '/o/$orgId/workspaces/'
     | '/settings/maintenance/activity/'
     | '/settings/maintenance/snapshots/'
     | '/settings/maintenance/status/'
-    | '/settings/organization/activity/'
     | '/w/$workspaceId/assets/'
     | '/w/$workspaceId/notifications/'
     | '/w/$workspaceId/team/'
+    | '/o/$orgId/plugins/$pluginSlug/'
+    | '/o/$orgId/plugins/installed/'
+    | '/o/$orgId/plugins/marketplace/'
+    | '/o/$orgId/settings/organization/'
     | '/w/$workspaceId/appearance/navigation/'
     | '/w/$workspaceId/appearance/styles/'
     | '/w/$workspaceId/appearance/themes/'
@@ -634,6 +651,7 @@ export interface FileRouteTypes {
     | '/w/$workspaceId/settings/seo/'
     | '/w/$workspaceId/settings/workspace/'
     | '/w/$workspaceId/content/pages/$pageId/edit'
+    | '/o/$orgId/settings/organization/activity/'
     | '/w/$workspaceId/settings/maintenance/activity/'
     | '/w/$workspaceId/settings/maintenance/snapshots/'
     | '/w/$workspaceId/settings/maintenance/status/'
@@ -652,36 +670,36 @@ export interface FileRouteTypes {
     | '/team/roles'
     | '/assets'
     | '/team'
-    | '/organization/team/invitations'
-    | '/organization/team/members'
-    | '/organization/team/roles'
     | '/appearance/navigation'
     | '/appearance/styles'
     | '/appearance/themes'
     | '/content/library'
     | '/content/pages'
-    | '/organization/activity'
-    | '/organization/members'
-    | '/organization/team'
-    | '/organization/workspaces'
-    | '/plugins/$pluginSlug'
-    | '/plugins/installed'
-    | '/plugins/marketplace'
+    | '/o/$orgId'
     | '/settings/general'
-    | '/settings/organization'
     | '/settings/seo'
     | '/settings/workspace'
     | '/w/$workspaceId'
+    | '/o/$orgId/team/invitations'
+    | '/o/$orgId/team/members'
+    | '/o/$orgId/team/roles'
     | '/w/$workspaceId/team/invitations'
     | '/w/$workspaceId/team/members'
     | '/w/$workspaceId/team/roles'
+    | '/o/$orgId/activity'
+    | '/o/$orgId/members'
+    | '/o/$orgId/team'
+    | '/o/$orgId/workspaces'
     | '/settings/maintenance/activity'
     | '/settings/maintenance/snapshots'
     | '/settings/maintenance/status'
-    | '/settings/organization/activity'
     | '/w/$workspaceId/assets'
     | '/w/$workspaceId/notifications'
     | '/w/$workspaceId/team'
+    | '/o/$orgId/plugins/$pluginSlug'
+    | '/o/$orgId/plugins/installed'
+    | '/o/$orgId/plugins/marketplace'
+    | '/o/$orgId/settings/organization'
     | '/w/$workspaceId/appearance/navigation'
     | '/w/$workspaceId/appearance/styles'
     | '/w/$workspaceId/appearance/themes'
@@ -694,6 +712,7 @@ export interface FileRouteTypes {
     | '/w/$workspaceId/settings/seo'
     | '/w/$workspaceId/settings/workspace'
     | '/w/$workspaceId/content/pages/$pageId/edit'
+    | '/o/$orgId/settings/organization/activity'
     | '/w/$workspaceId/settings/maintenance/activity'
     | '/w/$workspaceId/settings/maintenance/snapshots'
     | '/w/$workspaceId/settings/maintenance/status'
@@ -707,42 +726,43 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/setup'
     | '/debug/portal-editor'
+    | '/o/$orgId'
     | '/team/invitations'
     | '/team/members'
     | '/team/roles'
     | '/w/$workspaceId'
     | '/assets/'
     | '/team/'
-    | '/organization/team/invitations'
-    | '/organization/team/members'
-    | '/organization/team/roles'
     | '/appearance/navigation/'
     | '/appearance/styles/'
     | '/appearance/themes/'
     | '/content/library/'
     | '/content/pages/'
-    | '/organization/activity/'
-    | '/organization/members/'
-    | '/organization/team/'
-    | '/organization/workspaces/'
-    | '/plugins/$pluginSlug/'
-    | '/plugins/installed/'
-    | '/plugins/marketplace/'
+    | '/o/$orgId/'
     | '/settings/general/'
-    | '/settings/organization/'
     | '/settings/seo/'
     | '/settings/workspace/'
     | '/w/$workspaceId/'
+    | '/o/$orgId/team/invitations'
+    | '/o/$orgId/team/members'
+    | '/o/$orgId/team/roles'
     | '/w/$workspaceId/team/invitations'
     | '/w/$workspaceId/team/members'
     | '/w/$workspaceId/team/roles'
+    | '/o/$orgId/activity/'
+    | '/o/$orgId/members/'
+    | '/o/$orgId/team/'
+    | '/o/$orgId/workspaces/'
     | '/settings/maintenance/activity/'
     | '/settings/maintenance/snapshots/'
     | '/settings/maintenance/status/'
-    | '/settings/organization/activity/'
     | '/w/$workspaceId/assets/'
     | '/w/$workspaceId/notifications/'
     | '/w/$workspaceId/team/'
+    | '/o/$orgId/plugins/$pluginSlug/'
+    | '/o/$orgId/plugins/installed/'
+    | '/o/$orgId/plugins/marketplace/'
+    | '/o/$orgId/settings/organization/'
     | '/w/$workspaceId/appearance/navigation/'
     | '/w/$workspaceId/appearance/styles/'
     | '/w/$workspaceId/appearance/themes/'
@@ -755,6 +775,7 @@ export interface FileRouteTypes {
     | '/w/$workspaceId/settings/seo/'
     | '/w/$workspaceId/settings/workspace/'
     | '/w/$workspaceId/content/pages/$pageId/edit'
+    | '/o/$orgId/settings/organization/activity/'
     | '/w/$workspaceId/settings/maintenance/activity/'
     | '/w/$workspaceId/settings/maintenance/snapshots/'
     | '/w/$workspaceId/settings/maintenance/status/'
@@ -769,35 +790,24 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   SetupRoute: typeof SetupRoute
   DebugPortalEditorRoute: typeof DebugPortalEditorRoute
+  OOrgIdRoute: typeof OOrgIdRouteWithChildren
   TeamInvitationsRoute: typeof TeamInvitationsRoute
   TeamMembersRoute: typeof TeamMembersRoute
   TeamRolesRoute: typeof TeamRolesRoute
   WWorkspaceIdRoute: typeof WWorkspaceIdRouteWithChildren
   AssetsIndexRoute: typeof AssetsIndexRoute
   TeamIndexRoute: typeof TeamIndexRoute
-  OrganizationTeamInvitationsRoute: typeof OrganizationTeamInvitationsRoute
-  OrganizationTeamMembersRoute: typeof OrganizationTeamMembersRoute
-  OrganizationTeamRolesRoute: typeof OrganizationTeamRolesRoute
   AppearanceNavigationIndexRoute: typeof AppearanceNavigationIndexRoute
   AppearanceStylesIndexRoute: typeof AppearanceStylesIndexRoute
   AppearanceThemesIndexRoute: typeof AppearanceThemesIndexRoute
   ContentLibraryIndexRoute: typeof ContentLibraryIndexRoute
   ContentPagesIndexRoute: typeof ContentPagesIndexRoute
-  OrganizationActivityIndexRoute: typeof OrganizationActivityIndexRoute
-  OrganizationMembersIndexRoute: typeof OrganizationMembersIndexRoute
-  OrganizationTeamIndexRoute: typeof OrganizationTeamIndexRoute
-  OrganizationWorkspacesIndexRoute: typeof OrganizationWorkspacesIndexRoute
-  PluginsPluginSlugIndexRoute: typeof PluginsPluginSlugIndexRoute
-  PluginsInstalledIndexRoute: typeof PluginsInstalledIndexRoute
-  PluginsMarketplaceIndexRoute: typeof PluginsMarketplaceIndexRoute
   SettingsGeneralIndexRoute: typeof SettingsGeneralIndexRoute
-  SettingsOrganizationIndexRoute: typeof SettingsOrganizationIndexRoute
   SettingsSeoIndexRoute: typeof SettingsSeoIndexRoute
   SettingsWorkspaceIndexRoute: typeof SettingsWorkspaceIndexRoute
   SettingsMaintenanceActivityIndexRoute: typeof SettingsMaintenanceActivityIndexRoute
   SettingsMaintenanceSnapshotsIndexRoute: typeof SettingsMaintenanceSnapshotsIndexRoute
   SettingsMaintenanceStatusIndexRoute: typeof SettingsMaintenanceStatusIndexRoute
-  SettingsOrganizationActivityIndexRoute: typeof SettingsOrganizationActivityIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -893,6 +903,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TeamInvitationsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/o/$orgId': {
+      id: '/o/$orgId'
+      path: '/o/$orgId'
+      fullPath: '/o/$orgId'
+      preLoaderRoute: typeof OOrgIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/debug/portal-editor': {
       id: '/debug/portal-editor'
       path: '/debug/portal-editor'
@@ -921,13 +938,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsSeoIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/settings/organization/': {
-      id: '/settings/organization/'
-      path: '/settings/organization'
-      fullPath: '/settings/organization/'
-      preLoaderRoute: typeof SettingsOrganizationIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/settings/general/': {
       id: '/settings/general/'
       path: '/settings/general'
@@ -935,54 +945,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsGeneralIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/plugins/marketplace/': {
-      id: '/plugins/marketplace/'
-      path: '/plugins/marketplace'
-      fullPath: '/plugins/marketplace/'
-      preLoaderRoute: typeof PluginsMarketplaceIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/plugins/installed/': {
-      id: '/plugins/installed/'
-      path: '/plugins/installed'
-      fullPath: '/plugins/installed/'
-      preLoaderRoute: typeof PluginsInstalledIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/plugins/$pluginSlug/': {
-      id: '/plugins/$pluginSlug/'
-      path: '/plugins/$pluginSlug'
-      fullPath: '/plugins/$pluginSlug/'
-      preLoaderRoute: typeof PluginsPluginSlugIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/organization/workspaces/': {
-      id: '/organization/workspaces/'
-      path: '/organization/workspaces'
-      fullPath: '/organization/workspaces/'
-      preLoaderRoute: typeof OrganizationWorkspacesIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/organization/team/': {
-      id: '/organization/team/'
-      path: '/organization/team'
-      fullPath: '/organization/team/'
-      preLoaderRoute: typeof OrganizationTeamIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/organization/members/': {
-      id: '/organization/members/'
-      path: '/organization/members'
-      fullPath: '/organization/members/'
-      preLoaderRoute: typeof OrganizationMembersIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/organization/activity/': {
-      id: '/organization/activity/'
-      path: '/organization/activity'
-      fullPath: '/organization/activity/'
-      preLoaderRoute: typeof OrganizationActivityIndexRouteImport
-      parentRoute: typeof rootRouteImport
+    '/o/$orgId/': {
+      id: '/o/$orgId/'
+      path: '/'
+      fullPath: '/o/$orgId/'
+      preLoaderRoute: typeof OOrgIdIndexRouteImport
+      parentRoute: typeof OOrgIdRoute
     }
     '/content/pages/': {
       id: '/content/pages/'
@@ -1019,27 +987,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppearanceNavigationIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/organization/team/roles': {
-      id: '/organization/team/roles'
-      path: '/organization/team/roles'
-      fullPath: '/organization/team/roles'
-      preLoaderRoute: typeof OrganizationTeamRolesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/organization/team/members': {
-      id: '/organization/team/members'
-      path: '/organization/team/members'
-      fullPath: '/organization/team/members'
-      preLoaderRoute: typeof OrganizationTeamMembersRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/organization/team/invitations': {
-      id: '/organization/team/invitations'
-      path: '/organization/team/invitations'
-      fullPath: '/organization/team/invitations'
-      preLoaderRoute: typeof OrganizationTeamInvitationsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/w/$workspaceId/team/': {
       id: '/w/$workspaceId/team/'
       path: '/team'
@@ -1060,13 +1007,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/w/$workspaceId/assets/'
       preLoaderRoute: typeof WWorkspaceIdAssetsIndexRouteImport
       parentRoute: typeof WWorkspaceIdRoute
-    }
-    '/settings/organization/activity/': {
-      id: '/settings/organization/activity/'
-      path: '/settings/organization/activity'
-      fullPath: '/settings/organization/activity/'
-      preLoaderRoute: typeof SettingsOrganizationActivityIndexRouteImport
-      parentRoute: typeof rootRouteImport
     }
     '/settings/maintenance/status/': {
       id: '/settings/maintenance/status/'
@@ -1089,6 +1029,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsMaintenanceActivityIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/o/$orgId/workspaces/': {
+      id: '/o/$orgId/workspaces/'
+      path: '/workspaces'
+      fullPath: '/o/$orgId/workspaces/'
+      preLoaderRoute: typeof OOrgIdWorkspacesIndexRouteImport
+      parentRoute: typeof OOrgIdRoute
+    }
+    '/o/$orgId/team/': {
+      id: '/o/$orgId/team/'
+      path: '/team'
+      fullPath: '/o/$orgId/team/'
+      preLoaderRoute: typeof OOrgIdTeamIndexRouteImport
+      parentRoute: typeof OOrgIdRoute
+    }
+    '/o/$orgId/members/': {
+      id: '/o/$orgId/members/'
+      path: '/members'
+      fullPath: '/o/$orgId/members/'
+      preLoaderRoute: typeof OOrgIdMembersIndexRouteImport
+      parentRoute: typeof OOrgIdRoute
+    }
+    '/o/$orgId/activity/': {
+      id: '/o/$orgId/activity/'
+      path: '/activity'
+      fullPath: '/o/$orgId/activity/'
+      preLoaderRoute: typeof OOrgIdActivityIndexRouteImport
+      parentRoute: typeof OOrgIdRoute
+    }
     '/w/$workspaceId/team/roles': {
       id: '/w/$workspaceId/team/roles'
       path: '/team/roles'
@@ -1109,6 +1077,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/w/$workspaceId/team/invitations'
       preLoaderRoute: typeof WWorkspaceIdTeamInvitationsRouteImport
       parentRoute: typeof WWorkspaceIdRoute
+    }
+    '/o/$orgId/team/roles': {
+      id: '/o/$orgId/team/roles'
+      path: '/team/roles'
+      fullPath: '/o/$orgId/team/roles'
+      preLoaderRoute: typeof OOrgIdTeamRolesRouteImport
+      parentRoute: typeof OOrgIdRoute
+    }
+    '/o/$orgId/team/members': {
+      id: '/o/$orgId/team/members'
+      path: '/team/members'
+      fullPath: '/o/$orgId/team/members'
+      preLoaderRoute: typeof OOrgIdTeamMembersRouteImport
+      parentRoute: typeof OOrgIdRoute
+    }
+    '/o/$orgId/team/invitations': {
+      id: '/o/$orgId/team/invitations'
+      path: '/team/invitations'
+      fullPath: '/o/$orgId/team/invitations'
+      preLoaderRoute: typeof OOrgIdTeamInvitationsRouteImport
+      parentRoute: typeof OOrgIdRoute
     }
     '/w/$workspaceId/settings/workspace/': {
       id: '/w/$workspaceId/settings/workspace/'
@@ -1187,6 +1176,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WWorkspaceIdAppearanceNavigationIndexRouteImport
       parentRoute: typeof WWorkspaceIdRoute
     }
+    '/o/$orgId/settings/organization/': {
+      id: '/o/$orgId/settings/organization/'
+      path: '/settings/organization'
+      fullPath: '/o/$orgId/settings/organization/'
+      preLoaderRoute: typeof OOrgIdSettingsOrganizationIndexRouteImport
+      parentRoute: typeof OOrgIdRoute
+    }
+    '/o/$orgId/plugins/marketplace/': {
+      id: '/o/$orgId/plugins/marketplace/'
+      path: '/plugins/marketplace'
+      fullPath: '/o/$orgId/plugins/marketplace/'
+      preLoaderRoute: typeof OOrgIdPluginsMarketplaceIndexRouteImport
+      parentRoute: typeof OOrgIdRoute
+    }
+    '/o/$orgId/plugins/installed/': {
+      id: '/o/$orgId/plugins/installed/'
+      path: '/plugins/installed'
+      fullPath: '/o/$orgId/plugins/installed/'
+      preLoaderRoute: typeof OOrgIdPluginsInstalledIndexRouteImport
+      parentRoute: typeof OOrgIdRoute
+    }
+    '/o/$orgId/plugins/$pluginSlug/': {
+      id: '/o/$orgId/plugins/$pluginSlug/'
+      path: '/plugins/$pluginSlug'
+      fullPath: '/o/$orgId/plugins/$pluginSlug/'
+      preLoaderRoute: typeof OOrgIdPluginsPluginSlugIndexRouteImport
+      parentRoute: typeof OOrgIdRoute
+    }
     '/w/$workspaceId/settings/maintenance/status/': {
       id: '/w/$workspaceId/settings/maintenance/status/'
       path: '/settings/maintenance/status'
@@ -1208,6 +1225,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WWorkspaceIdSettingsMaintenanceActivityIndexRouteImport
       parentRoute: typeof WWorkspaceIdRoute
     }
+    '/o/$orgId/settings/organization/activity/': {
+      id: '/o/$orgId/settings/organization/activity/'
+      path: '/settings/organization/activity'
+      fullPath: '/o/$orgId/settings/organization/activity/'
+      preLoaderRoute: typeof OOrgIdSettingsOrganizationActivityIndexRouteImport
+      parentRoute: typeof OOrgIdRoute
+    }
     '/w/$workspaceId/content/pages/$pageId/edit': {
       id: '/w/$workspaceId/content/pages/$pageId/edit'
       path: '/content/pages/$pageId/edit'
@@ -1217,6 +1241,42 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface OOrgIdRouteChildren {
+  OOrgIdIndexRoute: typeof OOrgIdIndexRoute
+  OOrgIdTeamInvitationsRoute: typeof OOrgIdTeamInvitationsRoute
+  OOrgIdTeamMembersRoute: typeof OOrgIdTeamMembersRoute
+  OOrgIdTeamRolesRoute: typeof OOrgIdTeamRolesRoute
+  OOrgIdActivityIndexRoute: typeof OOrgIdActivityIndexRoute
+  OOrgIdMembersIndexRoute: typeof OOrgIdMembersIndexRoute
+  OOrgIdTeamIndexRoute: typeof OOrgIdTeamIndexRoute
+  OOrgIdWorkspacesIndexRoute: typeof OOrgIdWorkspacesIndexRoute
+  OOrgIdPluginsPluginSlugIndexRoute: typeof OOrgIdPluginsPluginSlugIndexRoute
+  OOrgIdPluginsInstalledIndexRoute: typeof OOrgIdPluginsInstalledIndexRoute
+  OOrgIdPluginsMarketplaceIndexRoute: typeof OOrgIdPluginsMarketplaceIndexRoute
+  OOrgIdSettingsOrganizationIndexRoute: typeof OOrgIdSettingsOrganizationIndexRoute
+  OOrgIdSettingsOrganizationActivityIndexRoute: typeof OOrgIdSettingsOrganizationActivityIndexRoute
+}
+
+const OOrgIdRouteChildren: OOrgIdRouteChildren = {
+  OOrgIdIndexRoute: OOrgIdIndexRoute,
+  OOrgIdTeamInvitationsRoute: OOrgIdTeamInvitationsRoute,
+  OOrgIdTeamMembersRoute: OOrgIdTeamMembersRoute,
+  OOrgIdTeamRolesRoute: OOrgIdTeamRolesRoute,
+  OOrgIdActivityIndexRoute: OOrgIdActivityIndexRoute,
+  OOrgIdMembersIndexRoute: OOrgIdMembersIndexRoute,
+  OOrgIdTeamIndexRoute: OOrgIdTeamIndexRoute,
+  OOrgIdWorkspacesIndexRoute: OOrgIdWorkspacesIndexRoute,
+  OOrgIdPluginsPluginSlugIndexRoute: OOrgIdPluginsPluginSlugIndexRoute,
+  OOrgIdPluginsInstalledIndexRoute: OOrgIdPluginsInstalledIndexRoute,
+  OOrgIdPluginsMarketplaceIndexRoute: OOrgIdPluginsMarketplaceIndexRoute,
+  OOrgIdSettingsOrganizationIndexRoute: OOrgIdSettingsOrganizationIndexRoute,
+  OOrgIdSettingsOrganizationActivityIndexRoute:
+    OOrgIdSettingsOrganizationActivityIndexRoute,
+}
+
+const OOrgIdRouteWithChildren =
+  OOrgIdRoute._addFileChildren(OOrgIdRouteChildren)
 
 interface WWorkspaceIdRouteChildren {
   WWorkspaceIdIndexRoute: typeof WWorkspaceIdIndexRoute
@@ -1292,37 +1352,25 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   SetupRoute: SetupRoute,
   DebugPortalEditorRoute: DebugPortalEditorRoute,
+  OOrgIdRoute: OOrgIdRouteWithChildren,
   TeamInvitationsRoute: TeamInvitationsRoute,
   TeamMembersRoute: TeamMembersRoute,
   TeamRolesRoute: TeamRolesRoute,
   WWorkspaceIdRoute: WWorkspaceIdRouteWithChildren,
   AssetsIndexRoute: AssetsIndexRoute,
   TeamIndexRoute: TeamIndexRoute,
-  OrganizationTeamInvitationsRoute: OrganizationTeamInvitationsRoute,
-  OrganizationTeamMembersRoute: OrganizationTeamMembersRoute,
-  OrganizationTeamRolesRoute: OrganizationTeamRolesRoute,
   AppearanceNavigationIndexRoute: AppearanceNavigationIndexRoute,
   AppearanceStylesIndexRoute: AppearanceStylesIndexRoute,
   AppearanceThemesIndexRoute: AppearanceThemesIndexRoute,
   ContentLibraryIndexRoute: ContentLibraryIndexRoute,
   ContentPagesIndexRoute: ContentPagesIndexRoute,
-  OrganizationActivityIndexRoute: OrganizationActivityIndexRoute,
-  OrganizationMembersIndexRoute: OrganizationMembersIndexRoute,
-  OrganizationTeamIndexRoute: OrganizationTeamIndexRoute,
-  OrganizationWorkspacesIndexRoute: OrganizationWorkspacesIndexRoute,
-  PluginsPluginSlugIndexRoute: PluginsPluginSlugIndexRoute,
-  PluginsInstalledIndexRoute: PluginsInstalledIndexRoute,
-  PluginsMarketplaceIndexRoute: PluginsMarketplaceIndexRoute,
   SettingsGeneralIndexRoute: SettingsGeneralIndexRoute,
-  SettingsOrganizationIndexRoute: SettingsOrganizationIndexRoute,
   SettingsSeoIndexRoute: SettingsSeoIndexRoute,
   SettingsWorkspaceIndexRoute: SettingsWorkspaceIndexRoute,
   SettingsMaintenanceActivityIndexRoute: SettingsMaintenanceActivityIndexRoute,
   SettingsMaintenanceSnapshotsIndexRoute:
     SettingsMaintenanceSnapshotsIndexRoute,
   SettingsMaintenanceStatusIndexRoute: SettingsMaintenanceStatusIndexRoute,
-  SettingsOrganizationActivityIndexRoute:
-    SettingsOrganizationActivityIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

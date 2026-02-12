@@ -33,7 +33,7 @@ import { getAppConfig } from "@/constants/app-config";
 import { AdminSiderNav } from "@/components/common/admin-side-nav";
 import { AdminLogo } from "@/components/common/admin-logo";
 import { AdminAccountMenu } from "@/components/common/admin-account-menu";
-import { AdminCommandMenuTrigger } from "@/components/common/admin-command-menu-trigger";
+import { AdminWorkspaceSwitcher } from "@/components/common/admin-workspace-switcher";
 import { AdminHeader } from "@/components/common/admin-header";
 import { AdminNotificationCenter } from "@/components/common/admin-notification-center";
 import { RouteProgress } from "@/components/common/route-progress";
@@ -215,17 +215,14 @@ export function AdminLayout({ children }: PropsWithChildren) {
   const cacheWorkspaceLocale = usePreferencesStore((s) => s.cacheWorkspaceLocale);
   const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
 
+  const orgPathPrefix = useMemo(() => {
+    const matched = /^\/o\/[^/]+/.exec(pathname || "");
+    return matched?.[0] ?? null;
+  }, [pathname]);
+
   const isOrgScopeRoute = useMemo(() => {
     const p = pathname || "/";
-    return (
-      p === "/" ||
-      p === "/organization" ||
-      p.startsWith("/organization/") ||
-      p === "/settings/organization" ||
-      p.startsWith("/settings/organization/") ||
-      p === "/plugins" ||
-      p.startsWith("/plugins/")
-    );
+    return p === "/" || p.startsWith("/o/");
   }, [pathname]);
 
   const workspaceBase = useMemo(() => {
@@ -269,7 +266,26 @@ export function AdminLayout({ children }: PropsWithChildren) {
   );
 
   const navItems = useMemo(() => {
-    if (isOrgScopeRoute) return ORG_NAV_ITEMS;
+    if (isOrgScopeRoute) {
+      if (!orgPathPrefix) return ORG_NAV_ITEMS;
+
+      const mapOrgItems = (items: AdminNavItem[]): AdminNavItem[] => {
+        return items.map((item) => {
+          let to = item.to;
+          if (item.to) {
+            const subPath = item.to === "/" ? "" : item.to;
+            to = `${orgPathPrefix}${subPath.startsWith("/") ? subPath : `/${subPath}`}`;
+          }
+          return {
+            ...item,
+            ...(to ? { to } : {}),
+            ...(item.children?.length ? { children: mapOrgItems(item.children) } : {}),
+          };
+        });
+      };
+
+      return mapOrgItems(ORG_NAV_ITEMS);
+    }
     // When workspace is not selected (or currentWorkspaceId is temporarily unavailable),
     // keep a stable shell so error/not-found pages don't "drop" the layout.
     if (!workspaceBase) return ORG_NAV_ITEMS;
@@ -479,7 +495,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
               ) : null}
             </div>
             <div className="w-full">
-              <AdminCommandMenuTrigger navItems={navItems} />
+              <AdminWorkspaceSwitcher />
             </div>
           </div>
         </SidebarFooter>

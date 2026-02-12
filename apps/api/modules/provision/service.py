@@ -51,7 +51,11 @@ class TenantProvisioningService(BaseService):
         self.workspace_site_service = WorkspaceSiteService(settings)
 
     async def get_bootstrap_state(self, *, user_id: UUID) -> BootstrapStateOut:
-        orgm = await OrgMembership.get_or_none(user_id=user_id)
+        orgm = (
+            await OrgMembership.filter(user_id=user_id, status="active")
+            .order_by("created_at", "id")
+            .first()
+        )
         if orgm is None:
             return BootstrapStateOut(
                 ready=False,

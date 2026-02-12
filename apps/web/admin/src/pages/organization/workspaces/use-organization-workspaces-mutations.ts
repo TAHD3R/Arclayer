@@ -21,6 +21,7 @@ type DeleteWorkspacePayload = {
 };
 
 interface UseOrganizationWorkspacesMutationsOptions {
+  organizationId?: string;
   t: OrganizationWorkspacesTranslateFn;
   onCreateSuccess: () => void;
   onArchiveSuccess: () => void;
@@ -30,21 +31,24 @@ interface UseOrganizationWorkspacesMutationsOptions {
 export function useOrganizationWorkspacesMutations(
   options: UseOrganizationWorkspacesMutationsOptions,
 ) {
-  const { t, onCreateSuccess, onArchiveSuccess, onDeleteSuccess } = options;
+  const { organizationId, t, onCreateSuccess, onArchiveSuccess, onDeleteSuccess } = options;
   const queryClient = useQueryClient();
+
+  const tableScope = organizationId ? `org:${organizationId}` : "org:me";
+  const activeTableKey = ["dataTable", `organization-workspaces-active:${tableScope}`] as const;
+  const archivedTableKey = ["dataTable", `organization-workspaces-archived:${tableScope}`] as const;
 
   const invalidateWorkspaceTables = async () => {
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ["dataTable", "organization-workspaces-active"] }),
-      queryClient.invalidateQueries({
-        queryKey: ["dataTable", "organization-workspaces-archived"],
-      }),
+      queryClient.invalidateQueries({ queryKey: activeTableKey }),
+      queryClient.invalidateQueries({ queryKey: archivedTableKey }),
+      queryClient.invalidateQueries({ queryKey: ["organization", "workspaces", "switcher"] }),
     ]);
   };
 
   const createMutation = useMutation({
     mutationFn: async (payload: CreateWorkspacePayload) =>
-      createOrganizationWorkspace({
+      createOrganizationWorkspace(organizationId, {
         name: payload.name,
         description: payload.description,
         template: "blank",
@@ -58,7 +62,7 @@ export function useOrganizationWorkspacesMutations(
   });
 
   const archiveMutation = useMutation({
-    mutationFn: async (workspaceId: string) => archiveOrganizationWorkspace(workspaceId),
+    mutationFn: async (workspaceId: string) => archiveOrganizationWorkspace(organizationId, workspaceId),
     onSuccess: async () => {
       notifySuccessText(t("common:ACTION_SUCCESS"));
       onArchiveSuccess();
@@ -68,7 +72,7 @@ export function useOrganizationWorkspacesMutations(
   });
 
   const unarchiveMutation = useMutation({
-    mutationFn: async (workspaceId: string) => unarchiveOrganizationWorkspace(workspaceId),
+    mutationFn: async (workspaceId: string) => unarchiveOrganizationWorkspace(organizationId, workspaceId),
     onSuccess: async () => {
       notifySuccessText(t("common:ACTION_SUCCESS"));
       await invalidateWorkspaceTables();
@@ -78,7 +82,7 @@ export function useOrganizationWorkspacesMutations(
 
   const deleteMutation = useMutation({
     mutationFn: async (payload: DeleteWorkspacePayload) =>
-      deleteOrganizationWorkspace(payload.workspaceId, payload.confirmName),
+      deleteOrganizationWorkspace(organizationId, payload.workspaceId, payload.confirmName),
     onSuccess: async () => {
       notifySuccessText(t("common:ACTION_SUCCESS"));
       onDeleteSuccess();

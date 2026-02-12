@@ -44,6 +44,7 @@ export type OrganizationWorkspace = {
   memberCount: number;
   membersPreview: OrganizationWorkspaceMemberPreview[];
   createdAt: string;
+  enterable: boolean;
 };
 
 export type OrganizationWorkspaceArchiveResult = {
@@ -72,12 +73,20 @@ function toQueryString(params: Record<string, unknown>): string {
   return s ? `?${s}` : "";
 }
 
+function organizationWorkspacesBasePath(organizationId?: string): string {
+  if (!organizationId) return "/organizations/me/workspaces";
+  const id = encodeURIComponent(String(organizationId));
+  return `/organizations/${id}/workspaces`;
+}
+
 export async function listOrganizationWorkspaces(params: {
+  organizationId?: string;
   page?: number;
   size?: number;
   q?: string;
   ordering?: string;
   archived?: boolean;
+  enterableOnly?: boolean;
 }): Promise<PageData<OrganizationWorkspace>> {
   const query = toQueryString({
     page: params.page ?? 1,
@@ -85,11 +94,47 @@ export async function listOrganizationWorkspaces(params: {
     q: params.q,
     ordering: params.ordering,
     archived: params.archived,
+    enterable_only: params.enterableOnly,
   });
-  return api.get<PageData<OrganizationWorkspace>>(`/organizations/me/workspaces${query}`);
+  return api.get<PageData<OrganizationWorkspace>>(
+    `${organizationWorkspacesBasePath(params.organizationId)}${query}`,
+  );
+}
+
+export async function listAllOrganizationWorkspaces(params: {
+  organizationId?: string;
+  q?: string;
+  ordering?: string;
+  archived?: boolean;
+  enterableOnly?: boolean;
+  pageSize?: number;
+} = {}): Promise<OrganizationWorkspace[]> {
+  const size = Math.max(1, params.pageSize ?? 100);
+  let page = 1;
+  const items: OrganizationWorkspace[] = [];
+
+  for (;;) {
+    const result = await listOrganizationWorkspaces({
+      organizationId: params.organizationId,
+      page,
+      size,
+      q: params.q,
+      ordering: params.ordering,
+      archived: params.archived,
+      enterableOnly: params.enterableOnly,
+    });
+
+    items.push(...result.items);
+
+    if (!result.next || result.page >= result.pages) break;
+    page = result.next;
+  }
+
+  return items;
 }
 
 export async function listOrganizationWorkspaceMembers(
+  organizationId: string | undefined,
   workspaceId: string,
   params: {
     page?: number;
@@ -104,37 +149,45 @@ export async function listOrganizationWorkspaceMembers(
     q: params.q,
   });
   return api.get<PageData<OrganizationWorkspaceMember>>(
-    `/organizations/me/workspaces/${id}/members${query}`,
+    `${organizationWorkspacesBasePath(organizationId)}/${id}/members${query}`,
   );
 }
 
 export async function createOrganizationWorkspace(
+  organizationId: string | undefined,
   payload: OrganizationWorkspaceCreateInput,
 ): Promise<OrganizationWorkspace> {
-  return api.post<OrganizationWorkspace>("/organizations/me/workspaces", payload);
+  return api.post<OrganizationWorkspace>(organizationWorkspacesBasePath(organizationId), payload);
 }
 
 export async function archiveOrganizationWorkspace(
+  organizationId: string | undefined,
   workspaceId: string,
 ): Promise<OrganizationWorkspaceArchiveResult> {
   const id = encodeURIComponent(String(workspaceId));
-  return api.post<OrganizationWorkspaceArchiveResult>(`/organizations/me/workspaces/${id}/archive`);
+  return api.post<OrganizationWorkspaceArchiveResult>(
+    `${organizationWorkspacesBasePath(organizationId)}/${id}/archive`,
+  );
 }
 
 export async function unarchiveOrganizationWorkspace(
+  organizationId: string | undefined,
   workspaceId: string,
 ): Promise<OrganizationWorkspaceArchiveResult> {
   const id = encodeURIComponent(String(workspaceId));
-  return api.post<OrganizationWorkspaceArchiveResult>(`/organizations/me/workspaces/${id}/unarchive`);
+  return api.post<OrganizationWorkspaceArchiveResult>(
+    `${organizationWorkspacesBasePath(organizationId)}/${id}/unarchive`,
+  );
 }
 
 export async function deleteOrganizationWorkspace(
+  organizationId: string | undefined,
   workspaceId: string,
   confirmName: string,
 ): Promise<{ workspaceId: string; deleted: boolean }> {
   const id = encodeURIComponent(String(workspaceId));
   const query = toQueryString({ confirmName });
   return api.delete<{ workspaceId: string; deleted: boolean }>(
-    `/organizations/me/workspaces/${id}${query}`,
+    `${organizationWorkspacesBasePath(organizationId)}/${id}${query}`,
   );
 }

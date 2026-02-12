@@ -16,6 +16,7 @@ import {
   notifySuccessText,
 } from "@/lib/notifications";
 import { ApiError } from "@/lib/http";
+import { buildOrganizationPath } from "@/lib/organization-routing";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import { PageState } from "@/components/common/page-state";
 import { InviteTokenInputDialog } from "@/components/common/invite/invite-token-input-dialog";
@@ -202,15 +203,30 @@ export function AcceptInviteView(props: { token: string | null }) {
     clearWorkspace();
     await onBackToLogin();
   };
-  const applyJoinedWorkspace = async (workspaceId: string | null | undefined) => {
-    if (!workspaceId) {
+  const applyJoinedWorkspace = async (payload: {
+    workspaceId: string | null | undefined;
+    organizationId: string | null | undefined;
+  }) => {
+    const organizationId = String(payload.organizationId || "").trim();
+
+    if (!payload.workspaceId) {
       notifySuccessText(t("invite:INVITE_JOIN_SUCCESS"));
-      await navigate({ to: "/organization/team/members", replace: true });
+
+      if (organizationId) {
+        await navigate({
+          to: buildOrganizationPath(organizationId, "/team/members"),
+          replace: true,
+        });
+        return;
+      }
+
+      await navigate({ to: "/", replace: true });
       return;
     }
-    setCurrentWorkspaceId(workspaceId);
+
+    setCurrentWorkspaceId(payload.workspaceId);
     notifySuccessText(t("invite:INVITE_JOIN_SUCCESS"));
-    await navigate({ to: `/w/${workspaceId}`, replace: true });
+    await navigate({ to: `/w/${payload.workspaceId}`, replace: true });
   };
   const joinAsExistingLoggedIn = async () => {
     if (!previewQuery.data) return;
@@ -241,7 +257,10 @@ export function AcceptInviteView(props: { token: string | null }) {
       onOk: async () => {
         try {
           const accepted = await acceptExistingMutation.mutateAsync();
-          await applyJoinedWorkspace(accepted.workspaceId);
+          await applyJoinedWorkspace({
+            organizationId: accepted.organizationId || previewQuery.data?.organization.id,
+            workspaceId: accepted.workspaceId,
+          });
         } catch (err) {
           notifyError(err);
           throw err;
@@ -261,7 +280,10 @@ export function AcceptInviteView(props: { token: string | null }) {
       applyLogin(tokens, { keepSession: values.keepSession });
 
       const accepted = await acceptExistingMutation.mutateAsync();
-      await applyJoinedWorkspace(accepted.workspaceId);
+      await applyJoinedWorkspace({
+        organizationId: accepted.organizationId || previewQuery.data?.organization.id,
+        workspaceId: accepted.workspaceId,
+      });
     } catch (err) {
       notifyError(err);
     }
@@ -277,7 +299,10 @@ export function AcceptInviteView(props: { token: string | null }) {
     try {
       const tokens = await registerAcceptMutation.mutateAsync(values);
       applyLogin(tokens, { keepSession: true });
-      await applyJoinedWorkspace(previewQuery.data.workspace?.id);
+      await applyJoinedWorkspace({
+        organizationId: previewQuery.data.organization.id,
+        workspaceId: previewQuery.data.workspace?.id,
+      });
     } catch (err) {
       // If email already exists, guide user to login flow.
       if (err instanceof ApiError && err.error === "EMAIL_EXISTS") {

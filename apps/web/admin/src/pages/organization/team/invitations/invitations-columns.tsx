@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from "react";
 import { type ColumnDef } from "@tanstack/react-table";
 import { Button as AntButton, Tag } from "antd";
-import { Copy, Link2Off, RotateCcw } from "lucide-react";
+import { Link2Off, RotateCcw } from "lucide-react";
 
 import {
   type OrganizationInvitation,
