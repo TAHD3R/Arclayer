@@ -1,0 +1,36 @@
+{
+  "INDEX_DESC": "以列表与瀑布流方式管理内容条目、分类与标签。",
+  "ACTION_CREATE_ENTRY": "新建条目",
+  "TAB_ENTRIES": "条目",
+  "TAB_CATEGORIES": "分类",
+  "TAB_TAGS": "标签",
+  "SEARCH_PLACEHOLDER": "搜索标题、slug、分类或标签",
+  "FILTER_STATUS_ALL": "全部状态",
+  "FILTER_STATUS_DRAFT": "草稿",
+  "FILTER_STATUS_PUBLISHED": "已发布",
+  "FILTER_CATEGORY_ALL": "全部分类",
+  "VIEW_MASONRY": "瀑布流",
+  "VIEW_TABLE": "数据表",
+  "PAGINATION_TOTAL": "共 {{total}} 条",
+
+  "ENTRY_COL_TITLE": "标题",
+  "ENTRY_COL_SLUG": "Slug",
+  "ENTRY_COL_CATEGORY": "分类",
+  "ENTRY_COL_TAGS": "标签",
+  "ENTRY_COL_STATUS": "状态",
+  "ENTRY_COL_UPDATED_AT": "更新时间",
+  "ENTRY_COL_ACTIONS": "操作",
+  "ENTRY_STATUS_DRAFT": "草稿",
+  "ENTRY_STATUS_PUBLISHED": "已发布",
+  "ENTRY_ACTION_EDIT": "打开编辑器",
+
+  "CATEGORY_COL_NAME": "分类",
+  "CATEGORY_COL_ENTRY_COUNT": "条目数",
+
+  "TAG_COL_NAME": "标签",
+  "TAG_COL_ENTRY_COUNT": "条目数",
+
+  "EMPTY_ENTRIES": "暂无条目",
+  "EMPTY_CATEGORIES": "暂无分类",
+  "EMPTY_TAGS": "暂无标签"
+}

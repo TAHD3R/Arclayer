@@ -3,6 +3,7 @@ import { useLayoutEffect, useRef } from "react";
 
 import { AdminLayout } from "@/layouts/admin-layout";
 import { AuthLayout } from "@/layouts/auth-layout";
+import { EditorLayout } from "@/layouts/editor-layout";
 import { SetupLayout } from "@/layouts/setup-layout";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import { isOnboardingScenePath, resolveSetupGateRedirect } from "@/lib/setup-routing";
@@ -97,8 +98,15 @@ function RootLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isOnboardingRoute = isOnboardingScenePath(pathname);
   const isAuthRoute = pathname === "/login" || pathname === "/reset-password";
+  const isEditorRoute = /^\/w\/[^/]+\/editor(?:\/|$)/.test(pathname);
 
-  const sceneKey = isOnboardingRoute ? "setup" : isAuthRoute ? "auth" : "admin";
+  const sceneKey = isOnboardingRoute
+    ? "setup"
+    : isAuthRoute
+      ? "auth"
+      : isEditorRoute
+        ? "editor"
+        : "admin";
   useSceneRevealTransition(sceneKey);
 
   return isOnboardingRoute ? (
@@ -109,6 +117,10 @@ function RootLayout() {
     <AuthLayout>
       <Outlet />
     </AuthLayout>
+  ) : isEditorRoute ? (
+    <EditorLayout>
+      <Outlet />
+    </EditorLayout>
   ) : (
     <AdminLayout>
       <Outlet />

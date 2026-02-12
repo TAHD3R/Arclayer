@@ -92,13 +92,6 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
         icon: Paintbrush,
       },
       {
-        key: "appearance.navigation",
-        label: "Navigation",
-        labelKey: "nav:NAV_APPEARANCE_NAVIGATION",
-        to: "/appearance/navigation",
-        icon: Navigation2,
-      },
-      {
         key: "appearance.styles",
         label: "Global styles",
         labelKey: "nav:NAV_APPEARANCE_STYLES",

@@ -1,7 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
-
-import { PlaceholderView } from "@/pages/placeholder/page";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/appearance/navigation/")({
-  component: () => <PlaceholderView titleKey="nav:NAV_APPEARANCE_NAVIGATION" />,
+  beforeLoad: () => {
+    throw redirect({ to: "/content/pages" });
+  },
 });

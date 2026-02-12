@@ -61,6 +61,7 @@ import { Route as OOrgIdSettingsOrganizationIndexRouteImport } from './routes/o/
 import { Route as OOrgIdPluginsMarketplaceIndexRouteImport } from './routes/o/$orgId/plugins/marketplace/index'
 import { Route as OOrgIdPluginsInstalledIndexRouteImport } from './routes/o/$orgId/plugins/installed/index'
 import { Route as OOrgIdPluginsPluginSlugIndexRouteImport } from './routes/o/$orgId/plugins/$pluginSlug/index'
+import { Route as WWorkspaceIdEditorEditorModeEntityIdRouteImport } from './routes/w/$workspaceId/editor/$editorMode/$entityId'
 import { Route as WWorkspaceIdSettingsMaintenanceStatusIndexRouteImport } from './routes/w/$workspaceId/settings/maintenance/status/index'
 import { Route as WWorkspaceIdSettingsMaintenanceSnapshotsIndexRouteImport } from './routes/w/$workspaceId/settings/maintenance/snapshots/index'
 import { Route as WWorkspaceIdSettingsMaintenanceActivityIndexRouteImport } from './routes/w/$workspaceId/settings/maintenance/activity/index'
@@ -347,6 +348,12 @@ const OOrgIdPluginsPluginSlugIndexRoute =
     path: '/plugins/$pluginSlug/',
     getParentRoute: () => OOrgIdRoute,
   } as any)
+const WWorkspaceIdEditorEditorModeEntityIdRoute =
+  WWorkspaceIdEditorEditorModeEntityIdRouteImport.update({
+    id: '/editor/$editorMode/$entityId',
+    path: '/editor/$editorMode/$entityId',
+    getParentRoute: () => WWorkspaceIdRoute,
+  } as any)
 const WWorkspaceIdSettingsMaintenanceStatusIndexRoute =
   WWorkspaceIdSettingsMaintenanceStatusIndexRouteImport.update({
     id: '/settings/maintenance/status/',
@@ -410,6 +417,7 @@ export interface FileRoutesByFullPath {
   '/w/$workspaceId/assets/': typeof WWorkspaceIdAssetsIndexRoute
   '/w/$workspaceId/notifications/': typeof WWorkspaceIdNotificationsIndexRoute
   '/w/$workspaceId/team/': typeof WWorkspaceIdTeamIndexRoute
+  '/w/$workspaceId/editor/$editorMode/$entityId': typeof WWorkspaceIdEditorEditorModeEntityIdRoute
   '/o/$orgId/plugins/$pluginSlug/': typeof OOrgIdPluginsPluginSlugIndexRoute
   '/o/$orgId/plugins/installed/': typeof OOrgIdPluginsInstalledIndexRoute
   '/o/$orgId/plugins/marketplace/': typeof OOrgIdPluginsMarketplaceIndexRoute
@@ -466,6 +474,7 @@ export interface FileRoutesByTo {
   '/w/$workspaceId/assets': typeof WWorkspaceIdAssetsIndexRoute
   '/w/$workspaceId/notifications': typeof WWorkspaceIdNotificationsIndexRoute
   '/w/$workspaceId/team': typeof WWorkspaceIdTeamIndexRoute
+  '/w/$workspaceId/editor/$editorMode/$entityId': typeof WWorkspaceIdEditorEditorModeEntityIdRoute
   '/o/$orgId/plugins/$pluginSlug': typeof OOrgIdPluginsPluginSlugIndexRoute
   '/o/$orgId/plugins/installed': typeof OOrgIdPluginsInstalledIndexRoute
   '/o/$orgId/plugins/marketplace': typeof OOrgIdPluginsMarketplaceIndexRoute
@@ -525,6 +534,7 @@ export interface FileRoutesById {
   '/w/$workspaceId/assets/': typeof WWorkspaceIdAssetsIndexRoute
   '/w/$workspaceId/notifications/': typeof WWorkspaceIdNotificationsIndexRoute
   '/w/$workspaceId/team/': typeof WWorkspaceIdTeamIndexRoute
+  '/w/$workspaceId/editor/$editorMode/$entityId': typeof WWorkspaceIdEditorEditorModeEntityIdRoute
   '/o/$orgId/plugins/$pluginSlug/': typeof OOrgIdPluginsPluginSlugIndexRoute
   '/o/$orgId/plugins/installed/': typeof OOrgIdPluginsInstalledIndexRoute
   '/o/$orgId/plugins/marketplace/': typeof OOrgIdPluginsMarketplaceIndexRoute
@@ -585,6 +595,7 @@ export interface FileRouteTypes {
     | '/w/$workspaceId/assets/'
     | '/w/$workspaceId/notifications/'
     | '/w/$workspaceId/team/'
+    | '/w/$workspaceId/editor/$editorMode/$entityId'
     | '/o/$orgId/plugins/$pluginSlug/'
     | '/o/$orgId/plugins/installed/'
     | '/o/$orgId/plugins/marketplace/'
@@ -641,6 +652,7 @@ export interface FileRouteTypes {
     | '/w/$workspaceId/assets'
     | '/w/$workspaceId/notifications'
     | '/w/$workspaceId/team'
+    | '/w/$workspaceId/editor/$editorMode/$entityId'
     | '/o/$orgId/plugins/$pluginSlug'
     | '/o/$orgId/plugins/installed'
     | '/o/$orgId/plugins/marketplace'
@@ -699,6 +711,7 @@ export interface FileRouteTypes {
     | '/w/$workspaceId/assets/'
     | '/w/$workspaceId/notifications/'
     | '/w/$workspaceId/team/'
+    | '/w/$workspaceId/editor/$editorMode/$entityId'
     | '/o/$orgId/plugins/$pluginSlug/'
     | '/o/$orgId/plugins/installed/'
     | '/o/$orgId/plugins/marketplace/'
@@ -1111,6 +1124,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OOrgIdPluginsPluginSlugIndexRouteImport
       parentRoute: typeof OOrgIdRoute
     }
+    '/w/$workspaceId/editor/$editorMode/$entityId': {
+      id: '/w/$workspaceId/editor/$editorMode/$entityId'
+      path: '/editor/$editorMode/$entityId'
+      fullPath: '/w/$workspaceId/editor/$editorMode/$entityId'
+      preLoaderRoute: typeof WWorkspaceIdEditorEditorModeEntityIdRouteImport
+      parentRoute: typeof WWorkspaceIdRoute
+    }
     '/w/$workspaceId/settings/maintenance/status/': {
       id: '/w/$workspaceId/settings/maintenance/status/'
       path: '/settings/maintenance/status'
@@ -1186,6 +1206,7 @@ interface WWorkspaceIdRouteChildren {
   WWorkspaceIdAssetsIndexRoute: typeof WWorkspaceIdAssetsIndexRoute
   WWorkspaceIdNotificationsIndexRoute: typeof WWorkspaceIdNotificationsIndexRoute
   WWorkspaceIdTeamIndexRoute: typeof WWorkspaceIdTeamIndexRoute
+  WWorkspaceIdEditorEditorModeEntityIdRoute: typeof WWorkspaceIdEditorEditorModeEntityIdRoute
   WWorkspaceIdAppearanceNavigationIndexRoute: typeof WWorkspaceIdAppearanceNavigationIndexRoute
   WWorkspaceIdAppearanceStylesIndexRoute: typeof WWorkspaceIdAppearanceStylesIndexRoute
   WWorkspaceIdAppearanceThemesIndexRoute: typeof WWorkspaceIdAppearanceThemesIndexRoute
@@ -1210,6 +1231,8 @@ const WWorkspaceIdRouteChildren: WWorkspaceIdRouteChildren = {
   WWorkspaceIdAssetsIndexRoute: WWorkspaceIdAssetsIndexRoute,
   WWorkspaceIdNotificationsIndexRoute: WWorkspaceIdNotificationsIndexRoute,
   WWorkspaceIdTeamIndexRoute: WWorkspaceIdTeamIndexRoute,
+  WWorkspaceIdEditorEditorModeEntityIdRoute:
+    WWorkspaceIdEditorEditorModeEntityIdRoute,
   WWorkspaceIdAppearanceNavigationIndexRoute:
     WWorkspaceIdAppearanceNavigationIndexRoute,
   WWorkspaceIdAppearanceStylesIndexRoute:

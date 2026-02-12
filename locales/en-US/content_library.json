@@ -1,0 +1,36 @@
+{
+  "INDEX_DESC": "Manage entries, categories, and tags with list and masonry workflows.",
+  "ACTION_CREATE_ENTRY": "Create entry",
+  "TAB_ENTRIES": "Entries",
+  "TAB_CATEGORIES": "Categories",
+  "TAB_TAGS": "Tags",
+  "SEARCH_PLACEHOLDER": "Search title, slug, category, or tag",
+  "FILTER_STATUS_ALL": "All statuses",
+  "FILTER_STATUS_DRAFT": "Draft",
+  "FILTER_STATUS_PUBLISHED": "Published",
+  "FILTER_CATEGORY_ALL": "All categories",
+  "VIEW_MASONRY": "Masonry",
+  "VIEW_TABLE": "Table",
+  "PAGINATION_TOTAL": "Total {{total}} items",
+
+  "ENTRY_COL_TITLE": "Title",
+  "ENTRY_COL_SLUG": "Slug",
+  "ENTRY_COL_CATEGORY": "Category",
+  "ENTRY_COL_TAGS": "Tags",
+  "ENTRY_COL_STATUS": "Status",
+  "ENTRY_COL_UPDATED_AT": "Updated at",
+  "ENTRY_COL_ACTIONS": "Actions",
+  "ENTRY_STATUS_DRAFT": "Draft",
+  "ENTRY_STATUS_PUBLISHED": "Published",
+  "ENTRY_ACTION_EDIT": "Open editor",
+
+  "CATEGORY_COL_NAME": "Category",
+  "CATEGORY_COL_ENTRY_COUNT": "Entries",
+
+  "TAG_COL_NAME": "Tag",
+  "TAG_COL_ENTRY_COUNT": "Entries",
+
+  "EMPTY_ENTRIES": "No entries yet",
+  "EMPTY_CATEGORIES": "No categories yet",
+  "EMPTY_TAGS": "No tags yet"
+}

@@ -158,7 +158,7 @@ export function EditUserSheet(props: {
             <SheetDescription>{t("team:TEAM_EDIT_USER_DESC")}</SheetDescription>
           </SheetHeader>
 
-          <form onSubmit={onSubmit} className="flex min-h-0 flex-1 flex-col gap-4 px-4">
+          <form onSubmit={onSubmit} className="flex min-h-0 flex-1 flex-col gap-4 p-4">
             <input type="hidden" {...form.register("avatarUrl")} />
 
             {/* Avatar (above username for better identification) */}
