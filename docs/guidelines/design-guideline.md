@@ -152,6 +152,13 @@ For all Admin data tables using the shared TanStack table stack:
   2. Organization localization
   3. User preference and browser defaults
 
+### 5.6 Table sticky layering contract (Admin, mandatory)
+
+- Sticky table header/cell layering must be contained in a local stacking context.
+- Prefer `relative isolate` on the table scroll container instead of increasing global z-index.
+- Sticky z-index values must stay minimal and only solve intra-table overlap.
+- Sticky cells must not overlap app-level overlays (for example workspace/organization switchers).
+
 ## 6. Settings Page Rules (Merged from legacy settings guideline)
 
 Settings behavior is governed by this document. The old standalone settings pattern file is deprecated and removed.
@@ -249,6 +256,7 @@ A UI PR is acceptable only when all relevant items pass:
 - [ ] Avatar usage is round, and `shape="square"` is not introduced in Admin UI.
 - [ ] Data table columns that map to backend ordering fields define `meta.sortKey` and expose sorting.
 - [ ] Data table date/time text uses the shared formatter chain (workspace -> organization -> user/browser).
+- [ ] Sticky table layering is isolated and does not overlap app-level overlays.
 - [ ] Settings interactions follow the inline-first model unless overlay is justified.
 - [ ] Token usage follows `packages/ui-theme` and avoids style drift.
 - [ ] Accessibility baseline (focus, keyboard, labels) is satisfied.

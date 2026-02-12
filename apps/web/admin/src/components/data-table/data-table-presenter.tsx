@@ -67,7 +67,7 @@ export function DataTablePresenter<TData>(props: DataTablePresenterProps<TData>)
   } = props;
 
   return (
-    <div className={cn("rounded-md border bg-card overflow-auto", className)}>
+    <div className={cn("relative isolate rounded-md border bg-card overflow-auto", className)}>
       <Table className={tableClassName}>
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (

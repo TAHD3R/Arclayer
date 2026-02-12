@@ -402,7 +402,7 @@ export function TeamRolesView(props: { workspaceIdOverride?: string | null } = {
         {hasEmptySearch ? (
           <PageState loading={false} empty emptyTitle={t("team:TEAM_ROLES_EMPTY_SEARCH")} />
         ) : (
-          <div className="rounded-lg border bg-card">
+          <div className="relative isolate rounded-lg border bg-card">
             {/* Top scrollbar to avoid having to scroll to the bottom to access horizontal scrolling. */}
             {showTopScrollbar ? (
               <div
@@ -418,9 +418,9 @@ export function TeamRolesView(props: { workspaceIdOverride?: string | null } = {
                 ref={tableRef}
                 className="w-full min-w-max caption-bottom text-sm [&_th]:whitespace-nowrap"
               >
-                <TableHeader className="sticky top-0 z-20 bg-card">
+                <TableHeader className="sticky top-0 z-[2] bg-card">
                   <TableRow>
-                    <TableHead className="sticky left-0 z-30 w-[360px] bg-card text-center">
+                    <TableHead className="sticky left-0 z-[3] w-[360px] bg-card text-center">
                       {t("team:TEAM_ROLES_COL_PERMISSION")}
                     </TableHead>
                     {filteredRoles.map((role) => (
@@ -466,7 +466,7 @@ export function TeamRolesView(props: { workspaceIdOverride?: string | null } = {
                 <TableBody>
                   {filteredPermissions.map((perm) => (
                     <TableRow key={perm.code}>
-                      <TableCell className="sticky left-0 z-10 w-90 bg-card">
+                      <TableCell className="sticky left-0 z-[1] w-90 bg-card">
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
                             <div className="truncate font-semibold text-foreground">

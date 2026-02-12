@@ -16,10 +16,12 @@ export function TeamMembersDataTable({ table, emptyText }: TeamMembersDataTableP
       className="flex-1 min-h-0"
       emptyText={emptyText}
       headerCellClassName={(header) =>
-        cn(header.column.id === "user" ? "sticky left-0 z-20 bg-card min-w-72 w-72" : undefined)
+        cn(
+          header.column.id === "user" ? "sticky left-0 z-[2] bg-card min-w-72 w-72" : undefined,
+        )
       }
       cellClassName={(cell) =>
-        cn(cell.column.id === "user" ? "sticky left-0 z-10 min-w-72 w-72" : undefined)
+        cn(cell.column.id === "user" ? "sticky left-0 z-[1] min-w-72 w-72" : undefined)
       }
       rowClassName={(_row, rowIndex) => {
         const stripeClass = rowIndex % 2 === 1 ? "bg-muted/20" : "bg-card";
