@@ -71,10 +71,18 @@ export function useOrganizationInvitationColumns(options: UseOrganizationInvitat
         meta: { sortKey: "role_code" },
         header: t("team:TEAM_INVITATIONS_COL_ROLE"),
         cell: ({ row }) => (
-          <Tag className="!mr-0">
+          <Tag className="mr-0!">
             {roleNameByCode.get(row.original.roleCode) || row.original.roleCode}
           </Tag>
         ),
+      },
+      {
+        id: "status",
+        header: t("team:TEAM_INVITATIONS_COL_STATUS"),
+        cell: ({ row }) => {
+          const status = row.original.status;
+          return <Tag color={toStatusTagColor(status)}>{invitationStatusLabel(status)}</Tag>;
+        },
       },
       {
         id: "createdAt",
@@ -85,14 +93,6 @@ export function useOrganizationInvitationColumns(options: UseOrganizationInvitat
           return (
             <span className={formatted ? "" : "text-muted-foreground"}>{formatted || "-"}</span>
           );
-        },
-      },
-      {
-        id: "status",
-        header: t("team:TEAM_INVITATIONS_COL_STATUS"),
-        cell: ({ row }) => {
-          const status = row.original.status;
-          return <Tag color={toStatusTagColor(status)}>{invitationStatusLabel(status)}</Tag>;
         },
       },
       {
