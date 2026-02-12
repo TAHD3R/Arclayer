@@ -312,17 +312,47 @@ class SiteService(BaseService):
     async def list_pages_tree(self, *, site_id: UUID) -> PageData[SitePageTreeNodeOut]:
         return await self._content.list_pages_tree(site_id=site_id)
 
-    async def create_page(self, *, site_id: UUID, payload: SitePageCreateIn) -> SitePageTreeNodeOut:
-        return await self._content.create_page(site_id=site_id, payload=payload)
+    async def create_page(
+        self,
+        *,
+        site_id: UUID,
+        payload: SitePageCreateIn,
+        actor_user_id: UUID | None = None,
+    ) -> SitePageTreeNodeOut:
+        return await self._content.create_page(site_id=site_id, payload=payload, actor_user_id=actor_user_id)
 
-    async def update_page(self, *, site_id: UUID, page_id: UUID, payload: SitePageUpdateIn) -> SitePageTreeNodeOut:
-        return await self._content.update_page(site_id=site_id, page_id=page_id, payload=payload)
+    async def update_page(
+        self,
+        *,
+        site_id: UUID,
+        page_id: UUID,
+        payload: SitePageUpdateIn,
+        actor_user_id: UUID | None = None,
+    ) -> SitePageTreeNodeOut:
+        return await self._content.update_page(
+            site_id=site_id,
+            page_id=page_id,
+            payload=payload,
+            actor_user_id=actor_user_id,
+        )
 
     async def get_page(self, *, site_id: UUID, page_id: UUID) -> SitePageTreeNodeOut:
         return await self._content.get_page(site_id=site_id, page_id=page_id)
 
-    async def move_page(self, *, site_id: UUID, page_id: UUID, payload: SitePageMoveIn) -> SitePageTreeNodeOut:
-        return await self._content.move_page(site_id=site_id, page_id=page_id, payload=payload)
+    async def move_page(
+        self,
+        *,
+        site_id: UUID,
+        page_id: UUID,
+        payload: SitePageMoveIn,
+        actor_user_id: UUID | None = None,
+    ) -> SitePageTreeNodeOut:
+        return await self._content.move_page(
+            site_id=site_id,
+            page_id=page_id,
+            payload=payload,
+            actor_user_id=actor_user_id,
+        )
 
     async def delete_page(self, *, site_id: UUID, page_id: UUID) -> SitePageDeleteOut:
         return await self._content.delete_page(site_id=site_id, page_id=page_id)
@@ -395,8 +425,14 @@ class SiteService(BaseService):
         site_id: UUID,
         page_id: UUID,
         payload: SitePageRollbackIn,
+        actor_user_id: UUID | None = None,
     ) -> SitePageRollbackOut:
-        return await self._publishing.rollback_page_revision(site_id=site_id, page_id=page_id, payload=payload)
+        return await self._publishing.rollback_page_revision(
+            site_id=site_id,
+            page_id=page_id,
+            payload=payload,
+            actor_user_id=actor_user_id,
+        )
 
     async def rollback_entry_revision(
         self,
@@ -472,8 +508,14 @@ class SiteService(BaseService):
         site_id: UUID,
         page_id: UUID,
         payload: SitePageDraftSaveIn,
+        actor_user_id: UUID | None = None,
     ) -> SitePageDraftSaveOut:
-        return await self._publishing.save_page_draft(site_id=site_id, page_id=page_id, payload=payload)
+        return await self._publishing.save_page_draft(
+            site_id=site_id,
+            page_id=page_id,
+            payload=payload,
+            actor_user_id=actor_user_id,
+        )
 
     async def publish_page(
         self,
@@ -481,11 +523,27 @@ class SiteService(BaseService):
         site_id: UUID,
         page_id: UUID,
         payload: SitePagePublishIn,
+        actor_user_id: UUID | None = None,
     ) -> SitePagePublishOut:
-        return await self._publishing.publish_page(site_id=site_id, page_id=page_id, payload=payload)
+        return await self._publishing.publish_page(
+            site_id=site_id,
+            page_id=page_id,
+            payload=payload,
+            actor_user_id=actor_user_id,
+        )
 
-    async def unpublish_page(self, *, site_id: UUID, page_id: UUID) -> SitePageUnpublishOut:
-        return await self._publishing.unpublish_page(site_id=site_id, page_id=page_id)
+    async def unpublish_page(
+        self,
+        *,
+        site_id: UUID,
+        page_id: UUID,
+        actor_user_id: UUID | None = None,
+    ) -> SitePageUnpublishOut:
+        return await self._publishing.unpublish_page(
+            site_id=site_id,
+            page_id=page_id,
+            actor_user_id=actor_user_id,
+        )
 
     async def heartbeat_presence(
         self,

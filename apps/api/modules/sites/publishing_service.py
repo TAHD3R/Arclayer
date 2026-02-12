@@ -117,6 +117,7 @@ class SitePublishingService(BaseService):
         site_id: UUID,
         page_id: UUID,
         payload: SitePageRollbackIn,
+        actor_user_id: UUID | None,
     ) -> SitePageRollbackOut:
         if not self.settings.database.enabled:
             raise Conflict("Page revisions require database storage", error="PAGE_REVISION_DB_REQUIRED")
@@ -127,6 +128,7 @@ class SitePublishingService(BaseService):
             page_id=page_id,
             target=payload.target,
             revision=payload.revision,
+            updated_by_user_id=actor_user_id,
         )
         # Minimal audit trail via structured log (full audit log table is planned for later milestones).
         self.logger.info(
@@ -499,6 +501,7 @@ class SitePublishingService(BaseService):
             site_id=site_id,
             path=pathname,
             revision=payload.revision,
+            updated_by_user_id=None,
         )
         self.logger.info(
             "Published page",
@@ -519,6 +522,7 @@ class SitePublishingService(BaseService):
         site_id: UUID,
         page_id: UUID,
         payload: SitePageDraftSaveIn,
+        actor_user_id: UUID | None,
     ) -> SitePageDraftSaveOut:
         """
         Save a page draft by page id (preferred editor entrypoint).
@@ -549,7 +553,7 @@ class SitePublishingService(BaseService):
             ),
             deps=deps,
             expected_revision=payload.expected_revision,
-            created_by_user_id=None,
+            created_by_user_id=actor_user_id,
         )
 
         self.logger.info(
@@ -575,6 +579,7 @@ class SitePublishingService(BaseService):
         site_id: UUID,
         page_id: UUID,
         payload: SitePagePublishIn,
+        actor_user_id: UUID | None,
     ) -> SitePagePublishOut:
         """
         Publish a page by page id (preferred editor entrypoint).
@@ -590,6 +595,7 @@ class SitePublishingService(BaseService):
             site_id=site_id,
             page_id=page_id,
             revision=payload.revision,
+            updated_by_user_id=actor_user_id,
         )
 
         self.logger.info(
@@ -608,7 +614,13 @@ class SitePublishingService(BaseService):
             published_at_ms=published_at_ms or now_ms,
         )
 
-    async def unpublish_page(self, *, site_id: UUID, page_id: UUID) -> SitePageUnpublishOut:
+    async def unpublish_page(
+        self,
+        *,
+        site_id: UUID,
+        page_id: UUID,
+        actor_user_id: UUID | None,
+    ) -> SitePageUnpublishOut:
         """
         Unpublish a page (published -> draft-only).
 
@@ -623,7 +635,11 @@ class SitePublishingService(BaseService):
             raise Conflict("Publishing requires database storage", error="PUBLISH_DB_REQUIRED")
 
         await self._repo.get_site_by_id(site_id=site_id)
-        path, unpublished_at_ms = await self._repo.unpublish_page_by_id(site_id=site_id, page_id=page_id)
+        path, unpublished_at_ms = await self._repo.unpublish_page_by_id(
+            site_id=site_id,
+            page_id=page_id,
+            updated_by_user_id=actor_user_id,
+        )
 
         self.logger.info(
             "Unpublished page",

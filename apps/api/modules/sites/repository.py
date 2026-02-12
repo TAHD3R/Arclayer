@@ -12,6 +12,7 @@ from apps.api.common.protocols.tortoise import (
     EntryRecordMutableFields,
     HasWorkspaceId,
     SettingUpdatedBy,
+    SitePageMutableFields,
 )
 from apps.api.common.repositories.base import BaseRepository
 from apps.api.core.exceptions import Conflict, NotFound
@@ -180,6 +181,8 @@ class SitesRepository(BaseRepository):
         if page is None:
             page = await SitePageRecord.create(
                 site_id=site_id,
+                title=None,
+                description=None,
                 path=path,
                 parent_id=None,
                 sort_order=0,
@@ -187,6 +190,7 @@ class SitesRepository(BaseRepository):
                 draft_rev=0,
                 published_rev=None,
                 created_by_user_id=None,
+                updated_by_user_id=None,
                 using_db=conn,
             )
 
@@ -296,11 +300,14 @@ class SitesRepository(BaseRepository):
         self,
         *,
         site_id: UUID,
+        title: str | None,
+        description: str | None,
         path: str,
         parent_id: UUID | None,
         sort_order: int,
         visibility: str,
         created_by_user_id: UUID | None,
+        updated_by_user_id: UUID | None,
     ) -> SitePageRecord:
         pathname = normalize_path(path)
         if not pathname.startswith("/"):
@@ -314,6 +321,10 @@ class SitesRepository(BaseRepository):
         try:
             return await SitePageRecord.create(
                 site_id=site_id,
+                title=(title.strip() if isinstance(title, str) and title.strip() else None),
+                description=(
+                    description.strip() if isinstance(description, str) and description.strip() else None
+                ),
                 path=pathname,
                 parent_id=parent_id,
                 sort_order=int(sort_order or 0),
@@ -321,6 +332,7 @@ class SitesRepository(BaseRepository):
                 draft_rev=0,
                 published_rev=None,
                 created_by_user_id=created_by_user_id,
+                updated_by_user_id=updated_by_user_id,
             )
         except IntegrityError:
             raise Conflict("Page path already exists", error="PAGE_PATH_CONFLICT") from None
@@ -330,10 +342,13 @@ class SitesRepository(BaseRepository):
         *,
         site_id: UUID,
         page_id: UUID,
+        title: str | None,
+        description: str | None,
         path: str,
         parent_id: UUID | None,
         sort_order: int,
         visibility: str,
+        updated_by_user_id: UUID | None,
     ) -> SitePageRecord:
         pathname = normalize_path(path)
         if not pathname.startswith("/"):
@@ -350,12 +365,29 @@ class SitesRepository(BaseRepository):
                 raise NotFound("Page not found", error="PAGE_NOT_FOUND")
 
             page.path = pathname
+            mutable_page = cast(SitePageMutableFields, page)
+            mutable_page.title = title.strip() if isinstance(title, str) and title.strip() else None
+            mutable_page.description = (
+                description.strip() if isinstance(description, str) and description.strip() else None
+            )
             page.parent_id = parent_id
             page.sort_order = int(sort_order or 0)
             page.visibility = vis
+            mutable_page.updated_by_user_id = updated_by_user_id
 
             try:
-                await page.save(update_fields=["path", "parent_id", "sort_order", "visibility"], using_db=conn)
+                await page.save(
+                    update_fields=[
+                        "title",
+                        "description",
+                        "path",
+                        "parent_id",
+                        "sort_order",
+                        "visibility",
+                        "updated_by_user_id",
+                    ],
+                    using_db=conn,
+                )
             except IntegrityError:
                 raise Conflict("Page path already exists", error="PAGE_PATH_CONFLICT") from None
 
@@ -385,12 +417,14 @@ class SitesRepository(BaseRepository):
         page_id: UUID,
         target: Literal["draft", "published"],
         revision: int,
+        updated_by_user_id: UUID | None,
     ) -> tuple[int | None, int, int]:
         return await self._publishing_repo.rollback_page_revision_pointer(
             site_id=site_id,
             page_id=page_id,
             target=target,
             revision=revision,
+            updated_by_user_id=updated_by_user_id,
         )
 
     async def rollback_entry_revision_pointer(
@@ -656,11 +690,13 @@ class SitesRepository(BaseRepository):
         site_id: UUID,
         path: str,
         revision: int | None,
+        updated_by_user_id: UUID | None,
     ) -> tuple[int, int]:
         return await self._publishing_repo.publish_page_by_path(
             site_id=site_id,
             path=path,
             revision=revision,
+            updated_by_user_id=updated_by_user_id,
         )
 
     async def publish_page_by_id(
@@ -669,15 +705,27 @@ class SitesRepository(BaseRepository):
         site_id: UUID,
         page_id: UUID,
         revision: int | None,
+        updated_by_user_id: UUID | None,
     ) -> tuple[str, int, int]:
         return await self._publishing_repo.publish_page_by_id(
             site_id=site_id,
             page_id=page_id,
             revision=revision,
+            updated_by_user_id=updated_by_user_id,
         )
 
-    async def unpublish_page_by_id(self, *, site_id: UUID, page_id: UUID) -> tuple[str, int]:
-        return await self._publishing_repo.unpublish_page_by_id(site_id=site_id, page_id=page_id)
+    async def unpublish_page_by_id(
+        self,
+        *,
+        site_id: UUID,
+        page_id: UUID,
+        updated_by_user_id: UUID | None,
+    ) -> tuple[str, int]:
+        return await self._publishing_repo.unpublish_page_by_id(
+            site_id=site_id,
+            page_id=page_id,
+            updated_by_user_id=updated_by_user_id,
+        )
 
     async def resolve_entry_by_slug(
         self,

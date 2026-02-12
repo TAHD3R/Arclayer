@@ -8,6 +8,7 @@ from apps.api.common.protocols.tortoise import HasEntryTypeId, HasParentId, Rout
 from apps.api.common.services.base import BaseService
 from apps.api.core.exceptions import Conflict, NotFound
 from apps.api.core.http.pagination import PageData, PageParams, paginate_items
+from apps.api.modules.organization.models.user import User
 from apps.api.modules.sites.constants import ROUTE_TEMPLATES_VERSION_NAMESPACE
 from apps.api.modules.sites.repository import SitesRepository
 from apps.api.modules.sites.schema import (
@@ -26,6 +27,7 @@ from apps.api.modules.sites.schema import (
     SitePageMoveIn,
     SitePageTreeNodeOut,
     SitePageUpdateIn,
+    SitePageUserSummaryOut,
     SiteRouteTemplateCreateIn,
     SiteRouteTemplateDeleteOut,
     SiteRouteTemplateOut,
@@ -60,6 +62,11 @@ def _get_template_page_revision_id(value: object) -> UUID | None:
     return UUID(str(raw)) if raw is not None else None
 
 
+def _get_updated_by_user_id(value: object) -> UUID | None:
+    raw = getattr(value, "updated_by_user_id", None)
+    return UUID(str(raw)) if raw is not None else None
+
+
 class SiteContentService(BaseService):
     def __init__(
         self,
@@ -71,6 +78,55 @@ class SiteContentService(BaseService):
         super().__init__(settings)
         self._repo = repo
         self._route_templates_version = route_templates_version
+
+    async def _load_page_user_summaries(
+        self,
+        *,
+        user_ids: set[UUID],
+    ) -> dict[UUID, SitePageUserSummaryOut]:
+        if not user_ids:
+            return {}
+
+        rows = await User.filter(id__in=list(user_ids)).values("id", "display_name", "email", "avatar_url")
+        out: dict[UUID, SitePageUserSummaryOut] = {}
+        for row in rows:
+            raw_id = row.get("id")
+            if raw_id is None:
+                continue
+            user_id = UUID(str(raw_id))
+            out[user_id] = SitePageUserSummaryOut(
+                id=user_id,
+                display_name=(str(row.get("display_name")) if row.get("display_name") is not None else None),
+                email=(str(row.get("email")) if row.get("email") is not None else None),
+                avatar_url=(str(row.get("avatar_url")) if row.get("avatar_url") is not None else None),
+            )
+        return out
+
+    def _to_page_tree_node(
+        self,
+        *,
+        page,
+        user_summary_by_id: dict[UUID, SitePageUserSummaryOut],
+    ) -> SitePageTreeNodeOut:
+        updated_by_user_id = _get_updated_by_user_id(page)
+        return SitePageTreeNodeOut(
+            id=UUID(str(page.id)),
+            title=(page.title if isinstance(page.title, str) else None),
+            description=(page.description if isinstance(page.description, str) else None),
+            path=page.path,
+            parent_id=_get_parent_id(page),
+            sort_order=int(page.sort_order or 0),
+            visibility=_as_visibility(str(page.visibility)),
+            draft_revision=int(page.draft_rev or 0),
+            published_revision=(int(page.published_rev) if page.published_rev is not None else None),
+            updated_at=page.updated_at,
+            updated_by=(
+                user_summary_by_id.get(updated_by_user_id)
+                if updated_by_user_id is not None
+                else None
+            ),
+            children=[],
+        )
 
     async def list_pages_tree(self, *, site_id: UUID) -> PageData[SitePageTreeNodeOut]:
         """
@@ -88,16 +144,17 @@ class SiteContentService(BaseService):
         await self._repo.get_site_by_id(site_id=site_id)
         pages = await self._repo.list_pages_by_site(site_id=site_id)
 
+        updated_by_user_ids = {
+            user_id
+            for user_id in (_get_updated_by_user_id(page) for page in pages)
+            if user_id is not None
+        }
+        user_summary_by_id = await self._load_page_user_summaries(user_ids=updated_by_user_ids)
+
         nodes = [
-            SitePageTreeNodeOut(
-                id=UUID(str(p.id)),
-                path=p.path,
-                parent_id=_get_parent_id(p),
-                sort_order=int(p.sort_order or 0),
-                visibility=_as_visibility(str(p.visibility)),
-                draft_revision=int(p.draft_rev or 0),
-                published_revision=(int(p.published_rev) if p.published_rev is not None else None),
-                children=[],
+            self._to_page_tree_node(
+                page=p,
+                user_summary_by_id=user_summary_by_id,
             )
             for p in pages
         ]
@@ -115,7 +172,13 @@ class SiteContentService(BaseService):
             prev=None,
         )
 
-    async def create_page(self, *, site_id: UUID, payload: SitePageCreateIn) -> SitePageTreeNodeOut:
+    async def create_page(
+        self,
+        *,
+        site_id: UUID,
+        payload: SitePageCreateIn,
+        actor_user_id: UUID | None,
+    ) -> SitePageTreeNodeOut:
         if not self.settings.database.enabled:
             raise Conflict("Site pages require database storage", error="PAGES_DB_REQUIRED")
 
@@ -130,25 +193,29 @@ class SiteContentService(BaseService):
 
         page = await self._repo.create_page(
             site_id=site_id,
+            title=payload.title,
+            description=payload.description,
             path=path,
             parent_id=parent_id,
             sort_order=int(payload.sort_order or 0),
             visibility=payload.visibility,
-            created_by_user_id=None,
+            created_by_user_id=actor_user_id,
+            updated_by_user_id=actor_user_id,
         )
 
-        return SitePageTreeNodeOut(
-            id=UUID(str(page.id)),
-            path=page.path,
-            parent_id=_get_parent_id(page),
-            sort_order=int(page.sort_order or 0),
-            visibility=_as_visibility(str(page.visibility)),
-            draft_revision=int(page.draft_rev or 0),
-            published_revision=(int(page.published_rev) if page.published_rev is not None else None),
-            children=[],
+        user_summary_by_id = await self._load_page_user_summaries(
+            user_ids={actor_user_id} if actor_user_id is not None else set(),
         )
+        return self._to_page_tree_node(page=page, user_summary_by_id=user_summary_by_id)
 
-    async def update_page(self, *, site_id: UUID, page_id: UUID, payload: SitePageUpdateIn) -> SitePageTreeNodeOut:
+    async def update_page(
+        self,
+        *,
+        site_id: UUID,
+        page_id: UUID,
+        payload: SitePageUpdateIn,
+        actor_user_id: UUID | None,
+    ) -> SitePageTreeNodeOut:
         if not self.settings.database.enabled:
             raise Conflict("Site pages require database storage", error="PAGES_DB_REQUIRED")
 
@@ -164,6 +231,14 @@ class SiteContentService(BaseService):
         new_path = page.path
         if "path" in fields_set and payload.path is not None:
             new_path = validate_page_pathname(payload.path)
+
+        new_title = page.title
+        if "title" in fields_set:
+            new_title = payload.title
+
+        new_description = page.description
+        if "description" in fields_set:
+            new_description = payload.description
 
         new_parent_id: UUID | None = _get_parent_id(page)
         if "parent_id" in fields_set:
@@ -193,22 +268,20 @@ class SiteContentService(BaseService):
         updated = await self._repo.update_page(
             site_id=site_id,
             page_id=UUID(str(page.id)),
+            title=new_title,
+            description=new_description,
             path=new_path,
             parent_id=new_parent_id,
             sort_order=new_sort_order,
             visibility=new_visibility,
+            updated_by_user_id=actor_user_id,
         )
 
-        return SitePageTreeNodeOut(
-            id=UUID(str(updated.id)),
-            path=updated.path,
-            parent_id=_get_parent_id(updated),
-            sort_order=int(updated.sort_order or 0),
-            visibility=_as_visibility(str(updated.visibility)),
-            draft_revision=int(updated.draft_rev or 0),
-            published_revision=(int(updated.published_rev) if updated.published_rev is not None else None),
-            children=[],
+        updated_by_user_id = _get_updated_by_user_id(updated)
+        user_summary_by_id = await self._load_page_user_summaries(
+            user_ids={updated_by_user_id} if updated_by_user_id is not None else set(),
         )
+        return self._to_page_tree_node(page=updated, user_summary_by_id=user_summary_by_id)
 
     async def get_page(self, *, site_id: UUID, page_id: UUID) -> SitePageTreeNodeOut:
         if not self.settings.database.enabled:
@@ -219,18 +292,20 @@ class SiteContentService(BaseService):
         if page is None:
             raise NotFound("Page not found", error="PAGE_NOT_FOUND")
 
-        return SitePageTreeNodeOut(
-            id=UUID(str(page.id)),
-            path=str(page.path),
-            parent_id=_get_parent_id(page),
-            sort_order=int(page.sort_order or 0),
-            visibility=_as_visibility(str(page.visibility)),
-            draft_revision=int(page.draft_rev or 0),
-            published_revision=(int(page.published_rev) if page.published_rev is not None else None),
-            children=[],
+        updated_by_user_id = _get_updated_by_user_id(page)
+        user_summary_by_id = await self._load_page_user_summaries(
+            user_ids={updated_by_user_id} if updated_by_user_id is not None else set(),
         )
+        return self._to_page_tree_node(page=page, user_summary_by_id=user_summary_by_id)
 
-    async def move_page(self, *, site_id: UUID, page_id: UUID, payload: SitePageMoveIn) -> SitePageTreeNodeOut:
+    async def move_page(
+        self,
+        *,
+        site_id: UUID,
+        page_id: UUID,
+        payload: SitePageMoveIn,
+        actor_user_id: UUID | None,
+    ) -> SitePageTreeNodeOut:
         if not self.settings.database.enabled:
             raise Conflict("Site pages require database storage", error="PAGES_DB_REQUIRED")
 
@@ -257,22 +332,20 @@ class SiteContentService(BaseService):
         updated = await self._repo.update_page(
             site_id=site_id,
             page_id=UUID(str(page.id)),
+            title=page.title,
+            description=page.description,
             path=page.path,
             parent_id=new_parent_id,
             sort_order=int(payload.sort_order or 0),
             visibility=str(page.visibility),
+            updated_by_user_id=actor_user_id,
         )
 
-        return SitePageTreeNodeOut(
-            id=UUID(str(updated.id)),
-            path=updated.path,
-            parent_id=_get_parent_id(updated),
-            sort_order=int(updated.sort_order or 0),
-            visibility=_as_visibility(str(updated.visibility)),
-            draft_revision=int(updated.draft_rev or 0),
-            published_revision=(int(updated.published_rev) if updated.published_rev is not None else None),
-            children=[],
+        updated_by_user_id = _get_updated_by_user_id(updated)
+        user_summary_by_id = await self._load_page_user_summaries(
+            user_ids={updated_by_user_id} if updated_by_user_id is not None else set(),
         )
+        return self._to_page_tree_node(page=updated, user_summary_by_id=user_summary_by_id)
 
     async def delete_page(self, *, site_id: UUID, page_id: UUID) -> SitePageDeleteOut:
         if not self.settings.database.enabled:

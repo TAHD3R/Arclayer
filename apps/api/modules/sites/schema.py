@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Annotated, Any, Literal
 
 from pydantic import AliasChoices, ConfigDict, Field
@@ -382,6 +383,15 @@ class SiteSettingUpsertIn(BaseSchema):
     value: dict[str, Any] | None = Field(default=None, description="Setting value (JSON).")
 
 
+class SitePageUserSummaryOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    id: PublicUUID = Field(..., description="User id.")
+    display_name: str | None = Field(default=None, description="Display name.")
+    email: str | None = Field(default=None, description="Email.")
+    avatar_url: str | None = Field(default=None, description="Avatar URL.")
+
+
 class SitePageTreeNodeOut(BaseSchema):
     """
     Site page tree node (IA structure).
@@ -394,18 +404,27 @@ class SitePageTreeNodeOut(BaseSchema):
     model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
 
     id: PublicUUID = Field(..., description="Page id.")
+    title: str | None = Field(default=None, max_length=256, description="Page title.")
+    description: str | None = Field(default=None, max_length=1024, description="Page description.")
     path: str = Field(..., description="Resolved unique pathname (e.g. /about).")
     parent_id: PublicUUID | None = Field(default=None, description="Parent page id (null for root).")
     sort_order: int = Field(default=0, description="Sort order within siblings.")
     visibility: Literal["public", "private"] = Field(..., description="Page visibility.")
     draft_revision: int = Field(default=0, ge=0, description="Current draft revision pointer.")
     published_revision: int | None = Field(default=None, ge=0, description="Current published revision pointer.")
+    updated_at: datetime | None = Field(default=None, description="Last update time (UTC).")
+    updated_by: SitePageUserSummaryOut | None = Field(
+        default=None,
+        description="Last updated-by user summary.",
+    )
     children: list[SitePageTreeNodeOut] = Field(default_factory=list, description="Child pages.")
 
 
 class SitePageCreateIn(BaseSchema):
     model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
 
+    title: str | None = Field(default=None, max_length=256, description="Page title.")
+    description: str | None = Field(default=None, max_length=1024, description="Page description.")
     path: str = Field(..., description="Unique pathname (e.g. /about).", examples=["/about"])
     parent_id: PublicUUID | None = Field(default=None, description="Optional parent page id.")
     sort_order: int = Field(default=0, description="Sort order within siblings.")
@@ -415,6 +434,8 @@ class SitePageCreateIn(BaseSchema):
 class SitePageUpdateIn(BaseSchema):
     model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
 
+    title: str | None = Field(default=None, max_length=256, description="Page title.")
+    description: str | None = Field(default=None, max_length=1024, description="Page description.")
     path: str | None = Field(default=None, description="Unique pathname (e.g. /about).", examples=["/about"])
     parent_id: PublicUUID | None = Field(default=None, description="Parent page id (null for root).")
     sort_order: int | None = Field(default=None, description="Sort order within siblings.")

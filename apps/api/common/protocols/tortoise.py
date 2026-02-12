@@ -48,6 +48,14 @@ class EntryRecordMutableFields(Protocol):
     published_rev: int | None
 
 
+class SitePageMutableFields(Protocol):
+    title: str | None
+    description: str | None
+    draft_rev: int
+    published_rev: int | None
+    updated_by_user_id: UUID | None
+
+
 class AdminMenuItemMutableFields(Protocol):
     deleted_at: datetime | None
     title_i18n: str | None

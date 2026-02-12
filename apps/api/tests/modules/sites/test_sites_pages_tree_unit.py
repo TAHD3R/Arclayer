@@ -11,11 +11,15 @@ def _node(*, id, path: str, parent_id=None, sort_order: int = 0, visibility: Lit
     return SitePageTreeNodeOut(
         id=id,
         path=path,
+        title=None,
+        description=None,
         parent_id=parent_id,
         sort_order=sort_order,
         visibility=visibility,
         draft_revision=0,
         published_revision=None,
+        updated_at=None,
+        updated_by=None,
         children=[],
     )
 

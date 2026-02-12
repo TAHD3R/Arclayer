@@ -39,16 +39,29 @@ export type SiteSettingDetail = {
 
 export type SitePageTreeNode = {
   id: string;
+  title?: string | null;
+  description?: string | null;
   path: string;
   parentId?: string | null;
   sortOrder: number;
   visibility: "public" | "private";
   draftRevision: number;
   publishedRevision?: number | null;
+  updatedAt?: string | null;
+  updatedBy?: SitePageUserSummary | null;
   children: SitePageTreeNode[];
 };
 
+export type SitePageUserSummary = {
+  id: string;
+  displayName?: string | null;
+  email?: string | null;
+  avatarUrl?: string | null;
+};
+
 export type SitePageCreateIn = {
+  title?: string | null;
+  description?: string | null;
   path: string;
   parentId?: string | null;
   sortOrder?: number;
@@ -84,6 +97,18 @@ export type SitePagePublishOut = {
   path: string;
   revision: number;
   publishedAtMs: number;
+};
+
+export type SitePageRevisionOut = {
+  pageId: string;
+  state: "draft" | "published";
+  revision: number;
+  createdAtMs: number;
+  document: unknown;
+  meta?: Record<string, unknown> | null;
+  styleOverrides?: Record<string, unknown> | null;
+  variantId?: string | null;
+  deps?: Record<string, unknown> | null;
 };
 
 export type SitePageUnpublishOut = {
@@ -157,6 +182,10 @@ export async function patchWorkspaceSitePage(
   );
 }
 
+export async function deleteWorkspaceSitePage(workspaceId: string, pageId: string): Promise<void> {
+  await api.delete(workspacePath(workspaceId, `/site/pages/${encodeURIComponent(pageId)}`));
+}
+
 export async function saveWorkspaceSitePageDraft(
   workspaceId: string,
   pageId: string,
@@ -176,6 +205,24 @@ export async function publishWorkspaceSitePage(
   return api.post<SitePagePublishOut>(
     workspacePath(workspaceId, `/site/pages/${encodeURIComponent(pageId)}/revisions/publish`),
     payload,
+  );
+}
+
+export async function getWorkspaceSitePageDraftRevision(
+  workspaceId: string,
+  pageId: string,
+): Promise<SitePageRevisionOut> {
+  return api.get<SitePageRevisionOut>(
+    workspacePath(workspaceId, `/site/pages/${encodeURIComponent(pageId)}/revisions/draft`),
+  );
+}
+
+export async function getWorkspaceSitePagePublishedRevision(
+  workspaceId: string,
+  pageId: string,
+): Promise<SitePageRevisionOut> {
+  return api.get<SitePageRevisionOut>(
+    workspacePath(workspaceId, `/site/pages/${encodeURIComponent(pageId)}/revisions/published`),
   );
 }
 

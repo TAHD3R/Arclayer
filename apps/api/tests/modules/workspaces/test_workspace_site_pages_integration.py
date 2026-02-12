@@ -85,11 +85,22 @@ async def test_workspace_site_pages_flow_single_site_model(prepared_db, integrat
             assert isinstance(token_payload.get("token"), str)
 
             # Create a page.
-            res3 = await client.post(f"/api/v1/workspaces/{ws.id}/site/pages", json={"path": "/about"})
+            res3 = await client.post(
+                f"/api/v1/workspaces/{ws.id}/site/pages",
+                json={
+                    "path": "/about",
+                    "title": "About",
+                    "description": "About page",
+                },
+            )
             assert res3.status_code == 201, res3.text
             page = res3.json()["data"]
             page_id = page["id"]
             assert page["path"] == "/about"
+            assert page["title"] == "About"
+            assert page["description"] == "About page"
+            assert page["updatedBy"] is not None
+            assert page["updatedBy"]["email"] == "owner@example.com"
 
             # Save a draft revision.
             res4 = await client.post(
@@ -106,6 +117,19 @@ async def test_workspace_site_pages_flow_single_site_model(prepared_db, integrat
                 json={},
             )
             assert res5.status_code == 200, res5.text
+
+            # Tree response includes listing metadata required by Admin table.
+            res_tree = await client.get(f"/api/v1/workspaces/{ws.id}/site/pages/tree")
+            assert res_tree.status_code == 200, res_tree.text
+            pages = res_tree.json()["data"]["items"]
+            assert pages
+            about = next((item for item in pages if item["path"] == "/about"), None)
+            assert about is not None
+            assert about["title"] == "About"
+            assert about["description"] == "About page"
+            assert isinstance(about["updatedAt"], str)
+            assert about["updatedBy"] is not None
+            assert about["updatedBy"]["email"] == "owner@example.com"
 
             # Public mode should resolve the page.
             res6 = await client.get(

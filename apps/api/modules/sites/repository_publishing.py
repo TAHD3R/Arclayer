@@ -7,8 +7,8 @@ from uuid import UUID
 from tortoise.transactions import in_transaction
 
 from apps.api.common.protocols.tortoise import (
-    EntryRecordMutableFields,
     HasWorkspaceId,
+    SitePageMutableFields,
 )
 from apps.api.common.repositories.base import BaseRepository
 from apps.api.common.utils.public_ids import decode_public_id, encode_uuid, is_public_id
@@ -134,6 +134,7 @@ class SitePublishingRepository(BaseRepository):
         page_id: UUID,
         target: Literal["draft", "published"],
         revision: int,
+        updated_by_user_id: UUID | None,
     ) -> tuple[int | None, int, int]:
         """
         Rollback a page revision pointer by setting `draft_rev` or `published_rev`.
@@ -158,14 +159,24 @@ class SitePublishingRepository(BaseRepository):
             )
 
             if target == "draft":
+                mutable_page = cast(SitePageMutableFields, page)
                 from_rev = int(page.draft_rev or 0) or None
-                page.draft_rev = int(revision)
-                await page.save(update_fields=["draft_rev"], using_db=conn)
+                mutable_page.draft_rev = int(revision)
+                update_fields = ["draft_rev"]
+                if updated_by_user_id is not None:
+                    mutable_page.updated_by_user_id = updated_by_user_id
+                    update_fields.append("updated_by_user_id")
+                await page.save(update_fields=update_fields, using_db=conn)
                 return from_rev, int(revision), now_ms
 
+            mutable_page = cast(SitePageMutableFields, page)
             from_rev = int(page.published_rev or 0) or None
-            page.published_rev = int(revision)
-            await page.save(update_fields=["published_rev"], using_db=conn)
+            mutable_page.published_rev = int(revision)
+            update_fields = ["published_rev"]
+            if updated_by_user_id is not None:
+                mutable_page.updated_by_user_id = updated_by_user_id
+                update_fields.append("updated_by_user_id")
+            await page.save(update_fields=update_fields, using_db=conn)
             return from_rev, int(revision), now_ms
 
     async def get_entry_by_id(self, *, site_id: UUID, entry_id: UUID) -> EntryRecord | None:
@@ -366,6 +377,8 @@ class SitePublishingRepository(BaseRepository):
             if page is None:
                 page = await SitePageRecord.create(
                     site_id=site_id,
+                    title=None,
+                    description=None,
                     path=pathname,
                     parent_id=None,
                     sort_order=0,
@@ -373,6 +386,7 @@ class SitePublishingRepository(BaseRepository):
                     draft_rev=0,
                     published_rev=None,
                     created_by_user_id=created_by_user_id,
+                    updated_by_user_id=created_by_user_id,
                     using_db=conn,
                 )
 
@@ -396,8 +410,13 @@ class SitePublishingRepository(BaseRepository):
                 created_by_user_id=created_by_user_id,
                 using_db=conn,
             )
-            page.draft_rev = next_rev
-            await page.save(update_fields=["draft_rev"], using_db=conn)
+            mutable_page = cast(SitePageMutableFields, page)
+            mutable_page.draft_rev = next_rev
+            update_fields = ["draft_rev"]
+            if created_by_user_id is not None:
+                mutable_page.updated_by_user_id = created_by_user_id
+                update_fields.append("updated_by_user_id")
+            await page.save(update_fields=update_fields, using_db=conn)
 
         return next_rev, now_ms
 
@@ -447,8 +466,13 @@ class SitePublishingRepository(BaseRepository):
                 created_by_user_id=created_by_user_id,
                 using_db=conn,
             )
-            page.draft_rev = next_rev
-            await page.save(update_fields=["draft_rev"], using_db=conn)
+            mutable_page = cast(SitePageMutableFields, page)
+            mutable_page.draft_rev = next_rev
+            update_fields = ["draft_rev"]
+            if created_by_user_id is not None:
+                mutable_page.updated_by_user_id = created_by_user_id
+                update_fields.append("updated_by_user_id")
+            await page.save(update_fields=update_fields, using_db=conn)
 
         return normalize_path(str(page.path)), next_rev, now_ms
 
@@ -458,6 +482,7 @@ class SitePublishingRepository(BaseRepository):
         site_id: UUID,
         path: str,
         revision: int | None,
+        updated_by_user_id: UUID | None,
     ) -> tuple[int, int]:
         """
         Publish a page revision by pathname.
@@ -489,8 +514,13 @@ class SitePublishingRepository(BaseRepository):
                 conn=conn,
             )
 
-            page.published_rev = target_rev
-            await page.save(update_fields=["published_rev"], using_db=conn)
+            mutable_page = cast(SitePageMutableFields, page)
+            mutable_page.published_rev = target_rev
+            update_fields = ["published_rev"]
+            if updated_by_user_id is not None:
+                mutable_page.updated_by_user_id = updated_by_user_id
+                update_fields.append("updated_by_user_id")
+            await page.save(update_fields=update_fields, using_db=conn)
 
         return target_rev, now_ms
 
@@ -500,6 +530,7 @@ class SitePublishingRepository(BaseRepository):
         site_id: UUID,
         page_id: UUID,
         revision: int | None,
+        updated_by_user_id: UUID | None,
     ) -> tuple[str, int, int]:
         """
         Publish a page revision by page id.
@@ -528,12 +559,23 @@ class SitePublishingRepository(BaseRepository):
                 conn=conn,
             )
 
-            page.published_rev = target_rev
-            await page.save(update_fields=["published_rev"], using_db=conn)
+            mutable_page = cast(SitePageMutableFields, page)
+            mutable_page.published_rev = target_rev
+            update_fields = ["published_rev"]
+            if updated_by_user_id is not None:
+                mutable_page.updated_by_user_id = updated_by_user_id
+                update_fields.append("updated_by_user_id")
+            await page.save(update_fields=update_fields, using_db=conn)
 
         return normalize_path(str(page.path)), target_rev, now_ms
 
-    async def unpublish_page_by_id(self, *, site_id: UUID, page_id: UUID) -> tuple[str, int]:
+    async def unpublish_page_by_id(
+        self,
+        *,
+        site_id: UUID,
+        page_id: UUID,
+        updated_by_user_id: UUID | None,
+    ) -> tuple[str, int]:
         """
         Unpublish a page (published -> draft-only).
 
@@ -548,8 +590,13 @@ class SitePublishingRepository(BaseRepository):
                 raise NotFound("Page not found", error="PAGE_NOT_FOUND")
 
             # Idempotent: if already unpublished, keep it as is.
-            cast(EntryRecordMutableFields, page).published_rev = None
-            await page.save(update_fields=["published_rev"], using_db=conn)
+            mutable_page = cast(SitePageMutableFields, page)
+            mutable_page.published_rev = None
+            update_fields = ["published_rev"]
+            if updated_by_user_id is not None:
+                mutable_page.updated_by_user_id = updated_by_user_id
+                update_fields.append("updated_by_user_id")
+            await page.save(update_fields=update_fields, using_db=conn)
 
         return normalize_path(str(page.path)), now_ms
 
@@ -660,4 +707,3 @@ class SitePublishingRepository(BaseRepository):
 
     async def list_public_sitemap_paths(self, *, site_id: UUID) -> list[str]:
         return await self._routing_repo.list_public_sitemap_paths(site_id=site_id)
-

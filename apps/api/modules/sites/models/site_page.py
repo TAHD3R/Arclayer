@@ -30,6 +30,8 @@ class SitePageRecord(BaseModel):
         on_delete=fields.CASCADE,
     )
 
+    title = fields.CharField(max_length=256, null=True)
+    description = fields.CharField(max_length=1024, null=True)
     path = fields.CharField(max_length=512, db_index=True)
 
     parent = fields.ForeignKeyField(
@@ -45,6 +47,7 @@ class SitePageRecord(BaseModel):
     published_rev = fields.IntField(null=True)
 
     created_by_user_id = fields.UUIDField(null=True, db_index=True)
+    updated_by_user_id = fields.UUIDField(null=True, db_index=True)
 
     class Meta(BaseModel.Meta):
         table = "site_pages"

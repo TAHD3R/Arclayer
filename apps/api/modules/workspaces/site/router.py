@@ -180,9 +180,10 @@ async def get_workspace_site_page(
 async def create_workspace_site_page(
     payload: Annotated[SitePageCreateIn, Body(description="Create payload.")],
     site_id: Annotated[UUID, Depends(_resolve_site_id)],
+    user_id: Annotated[UUID, Depends(get_current_user_id)],
     service: Annotated[SiteService, Depends(get_site_service)],
 ) -> ResponseModel[SitePageTreeNodeOut]:
-    data = await service.create_page(site_id=site_id, payload=payload)
+    data = await service.create_page(site_id=site_id, payload=payload, actor_user_id=user_id)
     return Response.success(data=data)
 
 
@@ -196,9 +197,15 @@ async def update_workspace_site_page(
     page_id: PublicUUID,
     payload: Annotated[SitePageUpdateIn, Body(description="Update payload.")],
     site_id: Annotated[UUID, Depends(_resolve_site_id)],
+    user_id: Annotated[UUID, Depends(get_current_user_id)],
     service: Annotated[SiteService, Depends(get_site_service)],
 ) -> ResponseModel[SitePageTreeNodeOut]:
-    data = await service.update_page(site_id=site_id, page_id=page_id, payload=payload)
+    data = await service.update_page(
+        site_id=site_id,
+        page_id=page_id,
+        payload=payload,
+        actor_user_id=user_id,
+    )
     return Response.success(data=data)
 
 
@@ -212,9 +219,15 @@ async def move_workspace_site_page(
     page_id: PublicUUID,
     payload: Annotated[SitePageMoveIn, Body(description="Move payload.")],
     site_id: Annotated[UUID, Depends(_resolve_site_id)],
+    user_id: Annotated[UUID, Depends(get_current_user_id)],
     service: Annotated[SiteService, Depends(get_site_service)],
 ) -> ResponseModel[SitePageTreeNodeOut]:
-    data = await service.move_page(site_id=site_id, page_id=page_id, payload=payload)
+    data = await service.move_page(
+        site_id=site_id,
+        page_id=page_id,
+        payload=payload,
+        actor_user_id=user_id,
+    )
     return Response.success(data=data)
 
 
@@ -274,9 +287,15 @@ async def save_workspace_site_page_draft_revision(
     page_id: PublicUUID,
     payload: Annotated[SitePageDraftSaveIn, Body(description="Page draft save payload.")],
     site_id: Annotated[UUID, Depends(_resolve_site_id)],
+    user_id: Annotated[UUID, Depends(get_current_user_id)],
     service: Annotated[SiteService, Depends(get_site_service)],
 ) -> ResponseModel[SitePageDraftSaveOut]:
-    data = await service.save_page_draft(site_id=site_id, page_id=page_id, payload=payload)
+    data = await service.save_page_draft(
+        site_id=site_id,
+        page_id=page_id,
+        payload=payload,
+        actor_user_id=user_id,
+    )
     return Response.success(data=data)
 
 
@@ -290,9 +309,15 @@ async def publish_workspace_site_page_revision(
     page_id: PublicUUID,
     payload: Annotated[SitePagePublishIn, Body(description="Page publish payload.")],
     site_id: Annotated[UUID, Depends(_resolve_site_id)],
+    user_id: Annotated[UUID, Depends(get_current_user_id)],
     service: Annotated[SiteService, Depends(get_site_service)],
 ) -> ResponseModel[SitePagePublishOut]:
-    data = await service.publish_page(site_id=site_id, page_id=page_id, payload=payload)
+    data = await service.publish_page(
+        site_id=site_id,
+        page_id=page_id,
+        payload=payload,
+        actor_user_id=user_id,
+    )
     return Response.success(data=data)
 
 
@@ -305,9 +330,10 @@ async def publish_workspace_site_page_revision(
 async def unpublish_workspace_site_page(
     page_id: PublicUUID,
     site_id: Annotated[UUID, Depends(_resolve_site_id)],
+    user_id: Annotated[UUID, Depends(get_current_user_id)],
     service: Annotated[SiteService, Depends(get_site_service)],
 ) -> ResponseModel[SitePageUnpublishOut]:
-    data = await service.unpublish_page(site_id=site_id, page_id=page_id)
+    data = await service.unpublish_page(site_id=site_id, page_id=page_id, actor_user_id=user_id)
     return Response.success(data=data)
 
 
@@ -321,7 +347,13 @@ async def rollback_workspace_site_page_revision(
     page_id: PublicUUID,
     payload: Annotated[SitePageRollbackIn, Body(description="Rollback payload.")],
     site_id: Annotated[UUID, Depends(_resolve_site_id)],
+    user_id: Annotated[UUID, Depends(get_current_user_id)],
     service: Annotated[SiteService, Depends(get_site_service)],
 ) -> ResponseModel[SitePageRollbackOut]:
-    data = await service.rollback_page_revision(site_id=site_id, page_id=page_id, payload=payload)
+    data = await service.rollback_page_revision(
+        site_id=site_id,
+        page_id=page_id,
+        payload=payload,
+        actor_user_id=user_id,
+    )
     return Response.success(data=data)
