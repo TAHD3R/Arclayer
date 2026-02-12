@@ -889,7 +889,7 @@ export function WorkspaceSettingsView() {
           description={t("settings:SETTINGS_WORKSPACE_ASSIGN_ROLE_ALL_DESC")}
           footer={
             <div className="flex w-full justify-end gap-2">
-              <Button onClick={closeAssignRoleDialog}>{t("common:CANCEL")}</Button>
+              <Button type="text" onClick={closeAssignRoleDialog}>{t("common:CANCEL")}</Button>
               <Button
                 type="primary"
                 loading={savingKey === "workspace:assignRoleAll"}
@@ -953,7 +953,7 @@ export function WorkspaceSettingsView() {
           description={t("settings:SETTINGS_WORKSPACE_LEAVE_DESC")}
           footer={
             <div className="flex w-full justify-end gap-2">
-              <Button onClick={closeLeaveDialog}>{t("common:CANCEL")}</Button>
+              <Button type="text" onClick={closeLeaveDialog}>{t("common:CANCEL")}</Button>
               <Button
                 type="primary"
                 loading={savingKey === "workspace:leave"}
@@ -1014,7 +1014,7 @@ export function WorkspaceSettingsView() {
           description={t("settings:SETTINGS_WORKSPACE_DELETE_DESC")}
           footer={
             <div className="flex w-full justify-end gap-2">
-              <Button onClick={closeDeleteDialog}>{t("common:CANCEL")}</Button>
+              <Button type="text" onClick={closeDeleteDialog}>{t("common:CANCEL")}</Button>
               <Button
                 type="primary"
                 danger

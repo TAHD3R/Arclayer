@@ -200,7 +200,7 @@ function NavNode({
             aria-disabled={item.disabled ? "true" : undefined}
             className={cn(
               "rounded-none relative z-10",
-              "h-9.5 pl-5",
+              "h-10 pl-5",
               "transition-[width,height,padding,color] duration-150 ease-out",
               "text-muted-foreground! hover:text-foreground! hover:bg-transparent! active:bg-transparent!",
               "data-[active=true]:font-semibold data-[active=true]:bg-transparent! data-[active=true]:text-foreground!",
@@ -231,7 +231,7 @@ function NavNode({
               }}
             >
               {iconSlot(depth, Icon)}
-              <span className="min-w-0 flex-1 truncate">{label}</span>
+              <span className="min-w-0 flex-1 truncate text-base">{label}</span>
             </Link>
           </SidebarMenuButton>
         </WithBlockedTooltip>
@@ -259,7 +259,8 @@ function NavNode({
             aria-disabled={item.disabled ? "true" : undefined}
             className={cn(
               "rounded-none relative z-10",
-              "h-9.5 pl-5",
+              "h-10 pl-5",
+              "text-base",
               "transition-[width,height,padding,color] duration-150 ease-out",
               "text-muted-foreground! hover:text-foreground! hover:bg-transparent! active:bg-transparent!",
               "data-[active=true]:font-semibold data-[active=true]:bg-transparent! data-[active=true]:text-foreground!",
@@ -287,7 +288,7 @@ function NavNode({
             }}
           >
             {iconSlot(depth, Icon)}
-            <span className="min-w-0 flex-1 truncate">{label}</span>
+            <span className="min-w-0 flex-1 truncate  text-base">{label}</span>
             <ChevronRightIcon
               size={16}
               expanded={isOpen}

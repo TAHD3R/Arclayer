@@ -414,9 +414,11 @@ function AdminAccountPanelContent(props: {
   );
 }
 
-export function AdminAccountMenu() {
+export function AdminAccountMenu(props?: { triggerVariant?: "sidebar" | "header" }) {
   const navigate = useNavigate();
   const { t } = useTranslation("account");
+  const triggerVariant = props?.triggerVariant ?? "sidebar";
+  const isHeaderTrigger = triggerVariant === "header";
   const clear = useAuthStore((s) => s.clear);
   const accessToken = useAuthStore((s) => s.accessToken);
   const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
@@ -492,46 +494,59 @@ export function AdminAccountMenu() {
     void navigate({ to: "/settings/organization" });
   };
 
+  const triggerClassName = isHeaderTrigger
+    ? cn(
+        "group justify-start gap-2",
+        "h-12 rounded-none border-0 bg-transparent",
+        "px-3",
+        "text-foreground",
+        "hover:bg-muted hover:text-sidebar-accent-foreground",
+        "data-[state=open]:bg-muted data-[state=open]:text-sidebar-accent-foreground",
+        "transition-colors duration-150 ease-out",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0",
+      )
+    : cn(
+        "group justify-start gap-3",
+        "px-4 py-3",
+        "border-0 bg-transparent",
+        "rounded-none",
+        "text-muted-foreground",
+        "hover:bg-primary hover:text-sidebar-accent-foreground",
+        "data-[state=open]:bg-primary data-[state=open]:text-sidebar-accent-foreground",
+        "transition-colors duration-150 ease-out",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0",
+      );
+
+  const nameClassName = isHeaderTrigger
+    ? cn(
+        "text-foreground",
+        "group-hover:text-sidebar-accent-foreground",
+        "group-data-[state=open]:text-sidebar-accent-foreground",
+      )
+    : cn(
+        "text-sidebar-foreground",
+        "group-hover:text-sidebar-accent-foreground",
+        "group-data-[state=open]:text-sidebar-accent-foreground",
+      );
+
   return (
     <FloatingPanelRoot className="w-full">
-      <FloatingPanelTrigger
-        title={t("ACCOUNT_TITLE")}
-        className={cn(
-          "group w-full justify-start gap-3",
-          "px-4 py-3",
-          "border-0 bg-transparent",
-          "rounded-none",
-          "text-muted-foreground",
-          "hover:bg-primary hover:text-sidebar-accent-foreground",
-          "data-[state=open]:bg-primary data-[state=open]:text-sidebar-accent-foreground",
-          "transition-colors duration-150 ease-out",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0",
-        )}
-      >
+      <FloatingPanelTrigger title={t("ACCOUNT_TITLE")} className={triggerClassName}>
         <Avatar
-          size={40}
+          size={isHeaderTrigger ? 32 : 40}
           src={
             resolveAssetRefToPublicUrlPath(profile.avatarUrl ?? profile.avatarAssetId) ?? undefined
           }
-          style={{
-            backgroundColor: "var(--card-muted)",
-            color: "var(--color-foreground)",
-            flexShrink: 0,
-          }}
         >
           {initialsFromName(displayName)}
         </Avatar>
 
-        <span className="flex min-w-0 flex-1 flex-col items-start gap-1 text-left leading-tight">
+        <span>
           <Typography.Text
             strong
             ellipsis={{ tooltip: displayName }}
             style={{ maxWidth: "100%", display: "block" }}
-            className={cn(
-              "text-sidebar-foreground",
-              "group-hover:text-sidebar-accent-foreground",
-              "group-data-[state=open]:text-sidebar-accent-foreground",
-            )}
+            className={nameClassName}
           >
             {displayName}
           </Typography.Text>

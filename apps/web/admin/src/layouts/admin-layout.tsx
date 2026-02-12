@@ -33,6 +33,7 @@ import { getAppConfig } from "@/constants/app-config";
 import { AdminSiderNav } from "@/components/common/admin-side-nav";
 import { AdminLogo } from "@/components/common/admin-logo";
 import { AdminAccountMenu } from "@/components/common/admin-account-menu";
+import { AdminCommandMenuTrigger } from "@/components/common/admin-command-menu-trigger";
 import { AdminHeader } from "@/components/common/admin-header";
 import { AdminNotificationCenter } from "@/components/common/admin-notification-center";
 import { RouteProgress } from "@/components/common/route-progress";
@@ -401,6 +402,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
 
       <Sidebar
         collapsible="none"
+        animateOnHover={false}
         className="shrink-0 h-full border-r"
         style={
           {
@@ -476,7 +478,9 @@ export function AdminLayout({ children }: PropsWithChildren) {
                 />
               ) : null}
             </div>
-            <AdminAccountMenu />
+            <div className="w-full">
+              <AdminCommandMenuTrigger navItems={navItems} />
+            </div>
           </div>
         </SidebarFooter>
       </Sidebar>
@@ -484,6 +488,11 @@ export function AdminLayout({ children }: PropsWithChildren) {
       <SidebarInset className="w-auto flex-1 min-w-0 overflow-hidden">
         <AdminHeader
           navItems={navItems}
+          accountMenuSlot={
+            <div className="max-w-[45vw]">
+              <AdminAccountMenu triggerVariant="header" />
+            </div>
+          }
           refreshing={refreshing}
           onRefresh={async () => {
             if (refreshing) return;

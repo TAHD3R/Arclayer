@@ -780,7 +780,7 @@ export function OrganizationSettingsView() {
           description={t("settings:SETTINGS_ORG_ASSIGN_ROLE_ALL_DESC")}
           footer={
             <div className="flex w-full justify-end gap-2">
-              <Button onClick={closeAssignRoleDialog}>{t("common:CANCEL")}</Button>
+              <Button type="text" onClick={closeAssignRoleDialog}>{t("common:CANCEL")}</Button>
               <Button
                 type="primary"
                 loading={savingKey === "organization:assignRoleAll"}
@@ -842,7 +842,7 @@ export function OrganizationSettingsView() {
           description={t("settings:SETTINGS_ORG_LEAVE_DESC")}
           footer={
             <div className="flex w-full justify-end gap-2">
-              <Button onClick={closeLeaveDialog}>{t("common:CANCEL")}</Button>
+              <Button type="text" onClick={closeLeaveDialog}>{t("common:CANCEL")}</Button>
               <Button
                 type="primary"
                 loading={savingKey === "organization:leave"}
@@ -900,7 +900,7 @@ export function OrganizationSettingsView() {
           description={t("settings:SETTINGS_ORG_DELETE_DESC")}
           footer={
             <div className="flex w-full justify-end gap-2">
-              <Button onClick={closeDeleteDialog}>{t("common:CANCEL")}</Button>
+              <Button type="text" onClick={closeDeleteDialog}>{t("common:CANCEL")}</Button>
               <Button
                 type="primary"
                 danger
@@ -959,7 +959,7 @@ export function OrganizationSettingsView() {
           description={t("settings:SETTINGS_ORG_REINITIALIZE_DESC")}
           footer={
             <div className="flex w-full justify-end gap-2">
-              <Button onClick={closeReinitializeDialog}>{t("common:CANCEL")}</Button>
+              <Button type="text" onClick={closeReinitializeDialog}>{t("common:CANCEL")}</Button>
               <Button
                 type="primary"
                 danger

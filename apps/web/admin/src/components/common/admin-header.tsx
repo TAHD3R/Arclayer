@@ -1,24 +1,15 @@
-import { Breadcrumb, Button, Divider, Select, Space } from "antd";
+import { Breadcrumb, Button, Divider, Space } from "antd";
 import type { BreadcrumbProps } from "antd";
 import type { BreadcrumbItemProps } from "antd/es/breadcrumb/BreadcrumbItem";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { type ReactNode, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Search } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 
 import type { AdminNavItem } from "@/constants/admin-nav";
 import { cn } from "@/lib/utils";
 import { AdminLocaleToggle } from "@/components/common/admin-toggle-locales";
 import { AdminThemeModeToggle } from "@/components/common/admin-toggle-theme";
-import { CommandMenu01 } from "@/components/ui/command-menu";
-import { Kbd, KbdGroup } from "@/components/ui/kbd";
 import RefreshIcon from "@/components/ui/icons/refresh-icon";
-import { listMyWorkspaces } from "@/api/workspaces";
-import { useAuthStore } from "@/stores/use-auth-store";
-import { useWorkspaceStore } from "@/stores/use-workspace-store";
-import { switchWorkspacePath } from "@/lib/workspace-routing";
 function normalizePath(input: string): string {
   if (input.length > 1 && input.endsWith("/")) return input.slice(0, -1);
   return input;
@@ -125,33 +116,12 @@ export function AdminHeader(props: {
   className?: string;
   onRefresh?: () => Promise<void> | void;
   refreshing?: boolean;
+  accountMenuSlot?: ReactNode;
 }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const [commandOpen, setCommandOpen] = useState(false);
   const [refreshHovered, setRefreshHovered] = useState(false);
-  const accessToken = useAuthStore((s) => s.accessToken);
-  const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
-  const setCurrentWorkspaceId = useWorkspaceStore((s) => s.setCurrentWorkspaceId);
-
-  const workspacesQuery = useQuery({
-    queryKey: ["me", "workspaces"],
-    enabled: Boolean(accessToken),
-    queryFn: async () => listMyWorkspaces(),
-    staleTime: 60 * 1000,
-    retry: false,
-    meta: { silent: true },
-  });
-
-  const workspaceOptions = useMemo(() => {
-    return (workspacesQuery.data?.items ?? []).map((w) => ({
-      label: w.name || w.slug || w.workspaceId,
-      value: w.workspaceId,
-    }));
-  }, [workspacesQuery.data?.items]);
-
-  const showWorkspaceSwitcher = Boolean(workspaceId) && workspaceOptions.length > 1;
 
   const trailNodes = useMemo(
     () => findActiveTrailNodes(props.navItems, pathname),
@@ -205,7 +175,7 @@ export function AdminHeader(props: {
   return (
     <header
       className={cn(
-        "h-14 w-full shrink-0 border-b bg-background px-4",
+        "h-12 w-full shrink-0 border-b bg-background px-4",
         "flex items-center justify-between gap-4",
         props.className,
       )}
@@ -232,48 +202,16 @@ export function AdminHeader(props: {
       </div>
 
       <div className="shrink-0">
-        <Space size={6}>
-          {showWorkspaceSwitcher ? (
-            <Select
-              value={workspaceId || undefined}
-              options={workspaceOptions}
-              onChange={(next) => {
-                const nextId = String(next);
-                setCurrentWorkspaceId(nextId);
-                const nextPath = switchWorkspacePath({
-                  pathname,
-                  currentWorkspaceId: workspaceId,
-                  nextWorkspaceId: nextId,
-                });
-                void navigate({ to: nextPath as never, replace: true });
-              }}
-              style={{ width: 220 }}
-              size="middle"
-              placeholder={t("common:WORKSPACE_SELECT")}
-              getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
-            />
-          ) : null}
+        <Space size={4}>
           <AdminLocaleToggle />
           <AdminThemeModeToggle />
-          <Divider vertical />
-          <Button
-            variant="text"
-            icon={<Search size={18} />}
-            onClick={() => setCommandOpen(true)}
-            className="h-8 w-50"
-          >
-            <section className="flex justify-between">
-              <span className="text-muted-foreground">{t("command:CMD_SEARCH")}</span>
-              <KbdGroup className="ml-2">
-                <Kbd>Ctrl</Kbd>
-                <Kbd>K</Kbd>
-              </KbdGroup>
-            </section>
-          </Button>
+          {props.accountMenuSlot ? (
+            <>
+              {props.accountMenuSlot}
+            </>
+          ) : null}
         </Space>
       </div>
-
-      <CommandMenu01 open={commandOpen} onOpenChange={setCommandOpen} navItems={props.navItems} />
     </header>
   );
 }

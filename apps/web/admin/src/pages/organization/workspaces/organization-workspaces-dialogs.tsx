@@ -56,7 +56,7 @@ export function OrganizationWorkspacesDialogs(props: OrganizationWorkspacesDialo
         contentClassName="sm:max-w-[620px]"
         footer={
           <div className="flex w-full items-center justify-end gap-2">
-            <AntButton onClick={() => createDialog.setOpen(false)} disabled={createDialog.pending}>
+            <AntButton type="text"  onClick={() => createDialog.setOpen(false)} disabled={createDialog.pending}>
               {t("common:CANCEL")}
             </AntButton>
             <AntButton
@@ -146,6 +146,7 @@ export function OrganizationWorkspacesDialogs(props: OrganizationWorkspacesDialo
         footer={
           <div className="flex w-full items-center justify-end gap-2">
             <AntButton
+            type="text"
               disabled={deleteDialog.pending}
               onClick={() => {
                 deleteDialog.setWorkspace(null);

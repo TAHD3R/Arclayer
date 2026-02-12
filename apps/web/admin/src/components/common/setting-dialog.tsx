@@ -51,12 +51,12 @@ export function SettingDialog({
       <DialogContent className={cn("overflow-hidden p-0", contentClassName)}>
         <DialogHeader className="border-b px-6 py-4 text-left">
           <DialogTitle>{displayTitle}</DialogTitle>
-          {displayDescription ? <DialogDescription>{displayDescription}</DialogDescription> : null}
+          {displayDescription ? <DialogDescription className="mb-0!">{displayDescription}</DialogDescription> : null}
         </DialogHeader>
 
         <div className="px-6 py-4">{children}</div>
 
-        {footer ? <DialogFooter className="mt-0 border-t px-6 py-4">{footer}</DialogFooter> : null}
+        {footer ? <DialogFooter className="mt-0 border-t px-6 py-4 bg-card">{footer}</DialogFooter> : null}
       </DialogContent>
     </Dialog>
   );
