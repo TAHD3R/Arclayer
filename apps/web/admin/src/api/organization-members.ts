@@ -48,6 +48,7 @@ export type OrganizationMemberListParams = {
   page?: number;
   size?: number;
   q?: string;
+  ordering?: string;
   role?: OrgRole;
   membershipStatus?: OrgMembershipStatus;
   userStatus?: OrgUserStatus;
@@ -90,6 +91,7 @@ export type OrganizationInvitationListParams = {
   page?: number;
   size?: number;
   q?: string;
+  ordering?: string;
   status?: OrgInvitationStatus | "processed";
   mine?: boolean;
 };
@@ -144,6 +146,7 @@ export async function listOrganizationMembers(
     page: params.page ?? 1,
     size: params.size ?? 20,
     q: params.q,
+    ordering: params.ordering,
     role: params.role,
     membershipStatus: params.membershipStatus,
     userStatus: params.userStatus,
@@ -163,6 +166,7 @@ export async function listOrganizationInvitations(
     page: params.page ?? 1,
     size: params.size ?? 20,
     q: params.q,
+    ordering: params.ordering,
     status: params.status,
     mine: params.mine,
   });
@@ -201,12 +205,14 @@ export async function listOrganizationInviteLinks(params: {
   page?: number;
   size?: number;
   q?: string;
+  ordering?: string;
   mine?: boolean;
 }): Promise<PageData<OrganizationInviteLink>> {
   const query = toQueryString({
     page: params.page ?? 1,
     size: params.size ?? 20,
     q: params.q,
+    ordering: params.ordering,
     mine: params.mine,
   });
   return api.get<PageData<OrganizationInviteLink>>(`/organizations/me/invitations/links${query}`);

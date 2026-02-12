@@ -82,6 +82,7 @@ class OrganizationMemberRepository(BaseRepository):
         organization_id: UUID,
         params: PageParams,
         q: str | None,
+        ordering: str | None,
         status: str | None,
         mine: bool | None,
         current_user_id: UUID,
@@ -117,7 +118,12 @@ class OrganizationMemberRepository(BaseRepository):
                 )
 
         total = int(await qs.count())
-        rows = await qs.order_by("-created_at").limit(params.limit).offset(params.offset).all()
+        rows = (
+            await qs.order_by(*_normalize_org_email_invite_ordering(ordering))
+            .limit(params.limit)
+            .offset(params.offset)
+            .all()
+        )
         return total, rows
 
     async def get_email_invite(self, *, organization_id: UUID, invitation_id: UUID) -> OrganizationEmailInvite | None:
@@ -132,6 +138,7 @@ class OrganizationMemberRepository(BaseRepository):
         organization_id: UUID,
         params: PageParams,
         q: str | None,
+        ordering: str | None,
         mine: bool | None,
         current_user_id: UUID,
     ) -> tuple[int, list[OrganizationInviteLink]]:
@@ -150,7 +157,12 @@ class OrganizationMemberRepository(BaseRepository):
             qs = qs.filter(created_by_user_id=current_user_id)
 
         total = int(await qs.count())
-        rows = await qs.order_by("-created_at").limit(params.limit).offset(params.offset).all()
+        rows = (
+            await qs.order_by(*_normalize_org_invite_link_ordering(ordering))
+            .limit(params.limit)
+            .offset(params.offset)
+            .all()
+        )
         return total, rows
 
     async def get_invite_link(self, *, organization_id: UUID, link_id: UUID) -> OrganizationInviteLink | None:
@@ -173,3 +185,58 @@ class OrganizationMemberRepository(BaseRepository):
             return {}
         rows = await User.filter(id__in=list(user_ids)).all()
         return {UUID(str(row.id)): row for row in rows}
+
+
+_ORG_EMAIL_INVITE_ALLOWED_ORDER_FIELDS: frozenset[str] = frozenset(
+    {
+        "created_at",
+        "updated_at",
+        "email",
+        "role_code",
+        "expires_at",
+        "accepted_at",
+        "revoked_at",
+    }
+)
+
+_ORG_INVITE_LINK_ALLOWED_ORDER_FIELDS: frozenset[str] = frozenset(
+    {
+        "created_at",
+        "updated_at",
+        "display_code",
+        "role_code",
+        "allowed_email_domain",
+        "expires_at",
+        "disabled_at",
+        "last_used_at",
+        "uses_count",
+    }
+)
+
+
+def _normalize_org_email_invite_ordering(value: str | None) -> list[str]:
+    fields: list[str] = []
+    for part in str(value or "").split(","):
+        raw = part.strip()
+        if not raw:
+            continue
+        desc = raw.startswith("-")
+        name = raw[1:] if desc else raw
+        if name not in _ORG_EMAIL_INVITE_ALLOWED_ORDER_FIELDS:
+            continue
+        fields.append(f"-{name}" if desc else name)
+    return fields or ["-created_at"]
+
+
+def _normalize_org_invite_link_ordering(value: str | None) -> list[str]:
+    fields: list[str] = []
+    for part in str(value or "").split(","):
+        raw = part.strip()
+        if not raw:
+            continue
+        desc = raw.startswith("-")
+        name = raw[1:] if desc else raw
+        if name not in _ORG_INVITE_LINK_ALLOWED_ORDER_FIELDS:
+            continue
+        fields.append(f"-{name}" if desc else name)
+    return fields or ["-created_at"]

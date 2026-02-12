@@ -287,6 +287,7 @@ export function useOrganizationTeamInvitations() {
         page: params.page,
         size: params.size,
         q: params.q,
+        ordering: params.ordering,
         status: params.status,
       }),
     queryOptions: {
@@ -307,6 +308,7 @@ export function useOrganizationTeamInvitations() {
         page: params.page,
         size: params.size,
         q: params.q,
+        ordering: params.ordering,
         status: params.status,
       }),
     queryOptions: {
@@ -326,6 +328,7 @@ export function useOrganizationTeamInvitations() {
         page: params.page,
         size: params.size,
         q: params.q,
+        ordering: params.ordering,
       }),
     queryOptions: {
       enabled: tab === "links",

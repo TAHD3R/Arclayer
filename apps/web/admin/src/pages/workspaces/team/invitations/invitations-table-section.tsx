@@ -1,17 +1,10 @@
 import { Input, Pagination } from "antd";
-import { flexRender, type Table } from "@tanstack/react-table";
+import { type Table } from "@tanstack/react-table";
 import { Search } from "lucide-react";
 
 import { PageState } from "@/components/common/page-state";
+import { DataTablePresenter } from "@/components/data-table";
 import { LoaderOne } from "@/components/ui/loader";
-import {
-  Table as UiTable,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 
 type TranslateFn = (key: string, options?: Record<string, unknown>) => string;
@@ -78,52 +71,15 @@ export function TeamInvitationsTableSection<TRow>(props: TeamInvitationsTableSec
         emptyDescription={emptyDescription}
         className="flex-1 min-h-0"
       >
-        <div className="rounded-md border overflow-auto flex-1 min-h-0">
-          <UiTable>
-            <TableHeader>
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => (
-                    <TableHead key={header.id}>
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(header.column.columnDef.header, header.getContext())}
-                    </TableHead>
-                  ))}
-                </TableRow>
-              ))}
-            </TableHeader>
-
-            <TableBody>
-              {table.getRowModel().rows.length ? (
-                table.getRowModel().rows.map((row, rowIndex) => {
-                  const stripeClass = rowIndex % 2 === 1 ? "bg-muted/20" : "bg-background";
-                  return (
-                    <TableRow
-                      key={row.id}
-                      className={cn(stripeClass, "hover:bg-muted/40 transition-colors")}
-                    >
-                      {row.getVisibleCells().map((cell) => (
-                        <TableCell key={cell.id}>
-                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  );
-                })
-              ) : (
-                <TableRow>
-                  <TableCell
-                    className="h-24 text-center text-muted-foreground"
-                    colSpan={table.getVisibleLeafColumns().length}
-                  >
-                    {t("team:TEAM_EMPTY_TABLE")}
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </UiTable>
-        </div>
+        <DataTablePresenter
+          table={table}
+          className="flex-1 min-h-0"
+          emptyText={t("team:TEAM_EMPTY_TABLE")}
+          rowClassName={(_row, rowIndex) => {
+            const stripeClass = rowIndex % 2 === 1 ? "bg-muted/20" : "bg-card";
+            return cn(stripeClass, "hover:bg-muted/40 transition-colors");
+          }}
+        />
 
         {pageData ? (
           <div className="flex flex-wrap items-center justify-between gap-3 pt-4">

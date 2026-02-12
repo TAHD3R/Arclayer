@@ -124,7 +124,7 @@ export function WorkspaceMembersPopover({ workspace }: { workspace: Organization
     >
       <button
         type="button"
-        className="inline-flex items-center gap-2 rounded-md px-2 py-1 transition-colors hover:bg-muted"
+        className="inline-flex items-center gap-2 rounded-md px-2 py-1 transition-colors hover:bg-accent"
       >
         <Avatar.Group max={{ count: 4 }}>
           {workspace.membersPreview.map((member) => {
@@ -136,7 +136,7 @@ export function WorkspaceMembersPopover({ workspace }: { workspace: Organization
             );
           })}
         </Avatar.Group>
-        <span className="font-medium text-muted-foreground">
+        <span className="font-medium">
           {t("common:ORG_WORKSPACES_MEMBERS_COUNT", { count: workspace.memberCount })}
         </span>
       </button>

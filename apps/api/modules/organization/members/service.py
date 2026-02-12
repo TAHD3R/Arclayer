@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import secrets
 from datetime import UTC, datetime
-from typing import Protocol, cast
+from typing import Any, Protocol, cast
 from uuid import UUID
 
 from apps.api.common.protocols.tortoise import HasUserId
@@ -64,6 +64,35 @@ class _HasNullableExpiresAt(Protocol):
     expires_at: datetime | None
 
 
+_ORG_MEMBER_ALLOWED_ORDER_FIELDS: frozenset[str] = frozenset(
+    {
+        "joined_at",
+        "username",
+        "email",
+        "display_name",
+        "role_code",
+        "status",
+        "user_status",
+        "workspace_count",
+        "last_login_at",
+    }
+)
+
+
+def _normalize_member_ordering(value: str | None) -> list[str]:
+    fields: list[str] = []
+    for part in str(value or "").split(","):
+        raw = part.strip()
+        if not raw:
+            continue
+        desc = raw.startswith("-")
+        name = raw[1:] if desc else raw
+        if name not in _ORG_MEMBER_ALLOWED_ORDER_FIELDS:
+            continue
+        fields.append(f"-{name}" if desc else name)
+    return fields or ["joined_at"]
+
+
 class OrganizationMemberService(BaseService):
     def __init__(self, settings: Settings) -> None:
         super().__init__(settings)
@@ -77,6 +106,7 @@ class OrganizationMemberService(BaseService):
         actor_membership: OrgMembership,
         params: PageParams,
         q: str | None,
+        ordering: str | None,
         role: OrgRole | None,
         membership_status: str | None,
         user_status: str | None,
@@ -165,7 +195,8 @@ class OrganizationMemberService(BaseService):
                 )
             )
 
-        return paginate_items(items, params=params)
+        sorted_items = self._sort_members(items=items, ordering=ordering)
+        return paginate_items(sorted_items, params=params)
 
     async def invite_member(
         self,
@@ -245,6 +276,7 @@ class OrganizationMemberService(BaseService):
         actor_membership: OrgMembership,
         params: PageParams,
         q: str | None,
+        ordering: str | None,
         status: str | None,
         mine: bool | None,
     ) -> PageData[OrganizationInvitationOut]:
@@ -260,6 +292,7 @@ class OrganizationMemberService(BaseService):
             organization_id=organization_id,
             params=params,
             q=q,
+            ordering=ordering,
             status=status,
             mine=mine,
             current_user_id=actor_user_id,
@@ -447,6 +480,7 @@ class OrganizationMemberService(BaseService):
         actor_membership: OrgMembership,
         params: PageParams,
         q: str | None,
+        ordering: str | None,
         mine: bool | None,
     ) -> PageData[OrganizationInviteLinkOut]:
         actor_user_id = UUID(str(cast(HasUserId, actor_membership).user_id))
@@ -461,6 +495,7 @@ class OrganizationMemberService(BaseService):
             organization_id=organization_id,
             params=params,
             q=q,
+            ordering=ordering,
             mine=mine,
             current_user_id=actor_user_id,
         )
@@ -816,6 +851,46 @@ class OrganizationMemberService(BaseService):
             )
 
         return out
+
+    def _sort_members(self, *, items: list[OrganizationMemberOut], ordering: str | None) -> list[OrganizationMemberOut]:
+        out = list(items)
+        normalized_fields = _normalize_member_ordering(ordering)
+        for raw in reversed(normalized_fields):
+            desc = raw.startswith("-")
+            name = raw[1:] if desc else raw
+            out.sort(
+                key=lambda item, field=name: self._member_sort_key(item=item, field=field),
+                reverse=desc,
+            )
+        return out
+
+    def _member_sort_key(self, *, item: OrganizationMemberOut, field: str) -> tuple[int, Any]:
+        if field == "joined_at":
+            return self._normalize_sort_value(item.joined_at)
+        if field == "username":
+            return self._normalize_sort_value(item.username)
+        if field == "email":
+            return self._normalize_sort_value(item.email)
+        if field == "display_name":
+            return self._normalize_sort_value(item.display_name)
+        if field == "role_code":
+            return self._normalize_sort_value(item.role_code)
+        if field == "status":
+            return self._normalize_sort_value(item.status)
+        if field == "user_status":
+            return self._normalize_sort_value(item.user_status)
+        if field == "workspace_count":
+            return self._normalize_sort_value(item.workspace_count)
+        if field == "last_login_at":
+            return self._normalize_sort_value(item.last_login_at)
+        return self._normalize_sort_value(item.joined_at)
+
+    def _normalize_sort_value(self, value: Any) -> tuple[int, Any]:
+        if value is None:
+            return (1, "")
+        if isinstance(value, str):
+            return (0, value.lower())
+        return (0, value)
 
     def _compute_invitation_status(
         self,

@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 from datetime import UTC, datetime
 from math import ceil
-from typing import cast
+from typing import Any, cast
 from uuid import UUID, uuid4
 
 from apps.api.common.protocols.tortoise import HasUserId, HasWorkspaceId, WorkspaceArchiveMutableFields
@@ -30,6 +30,22 @@ from apps.api.modules.system.rbac.service import RBACService
 from apps.api.modules.workspaces.models.workspace import Workspace, WorkspaceMembershipRole
 from apps.api.modules.workspaces.site.service import WorkspaceSiteService
 
+_ORG_WORKSPACE_ALLOWED_ORDER_FIELDS: frozenset[str] = frozenset({"name", "slug", "created_at", "archived_at"})
+
+
+def _normalize_workspace_ordering(value: str | None) -> list[str]:
+    fields: list[str] = []
+    for part in str(value or "").split(","):
+        raw = part.strip()
+        if not raw:
+            continue
+        desc = raw.startswith("-")
+        name = raw[1:] if desc else raw
+        if name not in _ORG_WORKSPACE_ALLOWED_ORDER_FIELDS:
+            continue
+        fields.append(f"-{name}" if desc else name)
+    return fields
+
 
 class OrganizationWorkspaceService(BaseService):
     def __init__(self, settings: Settings) -> None:
@@ -45,6 +61,7 @@ class OrganizationWorkspaceService(BaseService):
         org_role: OrgRole,
         params: PageParams,
         q: str | None,
+        ordering: str | None,
         archived: bool | None,
     ) -> PageData[OrganizationWorkspaceOut]:
         if org_role in (OrgRole.OWNER, OrgRole.ADMIN):
@@ -67,12 +84,14 @@ class OrganizationWorkspaceService(BaseService):
 
         if archived is True:
             rows = [ws for ws in rows if ws.archived_at is not None]
-            rows = sorted(rows, key=lambda ws: ws.created_at)
         elif archived is False:
             rows = [ws for ws in rows if ws.archived_at is None]
-            rows = sorted(rows, key=lambda ws: ws.created_at)
+
+        normalized_ordering = _normalize_workspace_ordering(ordering)
+        if normalized_ordering:
+            rows = self._sort_workspaces(rows=rows, ordering=normalized_ordering)
         else:
-            rows = sorted(rows, key=lambda ws: (ws.archived_at is not None, ws.created_at))
+            rows = self._sort_workspaces_default(rows=rows, archived=archived)
 
         workspace_ids = [UUID(str(ws.id)) for ws in rows]
         memberships = await self.repo.list_active_memberships(workspace_ids=workspace_ids)
@@ -435,3 +454,37 @@ class OrganizationWorkspaceService(BaseService):
             members_preview=members_preview,
             created_at=workspace.created_at,
         )
+
+    def _sort_workspaces_default(self, *, rows: list[Workspace], archived: bool | None) -> list[Workspace]:
+        if archived is True:
+            return sorted(rows, key=lambda ws: ws.created_at)
+        if archived is False:
+            return sorted(rows, key=lambda ws: ws.created_at)
+        return sorted(rows, key=lambda ws: (ws.archived_at is not None, ws.created_at))
+
+    def _sort_workspaces(self, *, rows: list[Workspace], ordering: list[str]) -> list[Workspace]:
+        out = list(rows)
+        for raw in reversed(ordering):
+            desc = raw.startswith("-")
+            name = raw[1:] if desc else raw
+            out.sort(
+                key=lambda ws, field=name: self._workspace_sort_key(workspace=ws, field=field),
+                reverse=desc,
+            )
+        return out
+
+    def _workspace_sort_key(self, *, workspace: Workspace, field: str) -> tuple[int, Any]:
+        if field == "name":
+            return self._normalize_sort_value(workspace.name)
+        if field == "slug":
+            return self._normalize_sort_value(workspace.slug)
+        if field == "archived_at":
+            return self._normalize_sort_value(workspace.archived_at)
+        return self._normalize_sort_value(workspace.created_at)
+
+    def _normalize_sort_value(self, value: Any) -> tuple[int, Any]:
+        if value is None:
+            return (1, "")
+        if isinstance(value, str):
+            return (0, value.lower())
+        return (0, value)

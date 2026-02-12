@@ -57,6 +57,7 @@ export function useOrganizationInvitationColumns(options: UseOrganizationInvitat
     () => [
       {
         id: "email",
+        meta: { sortKey: "email" },
         header: t("team:TEAM_INVITATIONS_COL_EMAIL"),
         cell: ({ row }) => <span>{row.original.email || "-"}</span>,
       },
@@ -67,6 +68,7 @@ export function useOrganizationInvitationColumns(options: UseOrganizationInvitat
       },
       {
         id: "role",
+        meta: { sortKey: "role_code" },
         header: t("team:TEAM_INVITATIONS_COL_ROLE"),
         cell: ({ row }) => (
           <Tag className="!mr-0">
@@ -76,6 +78,7 @@ export function useOrganizationInvitationColumns(options: UseOrganizationInvitat
       },
       {
         id: "createdAt",
+        meta: { sortKey: "created_at" },
         header: t("team:TEAM_INVITATIONS_COL_CREATED"),
         cell: ({ row }) => {
           const formatted = dateTime.formatDate(row.original.createdAt, { emptyValue: "" });
@@ -94,6 +97,7 @@ export function useOrganizationInvitationColumns(options: UseOrganizationInvitat
       },
       {
         id: "expiresAt",
+        meta: { sortKey: "expires_at" },
         header: t("team:TEAM_INVITATIONS_COL_EXPIRES"),
         cell: ({ row }) => {
           const formatted = dateTime.formatDate(row.original.expiresAt, { emptyValue: "" });
@@ -106,6 +110,7 @@ export function useOrganizationInvitationColumns(options: UseOrganizationInvitat
       },
       {
         id: "actions",
+        meta: { kind: "actions" },
         header: "",
         cell: ({ row }) => (
           <div className="flex items-center justify-end gap-1">
@@ -137,11 +142,13 @@ export function useOrganizationInvitationColumns(options: UseOrganizationInvitat
     () => [
       {
         id: "invitee",
+        meta: { sortKey: "email" },
         header: t("team:TEAM_INVITATIONS_COL_EMAIL"),
         cell: ({ row }) => <span>{row.original.email || "-"}</span>,
       },
       {
         id: "role",
+        meta: { sortKey: "role_code" },
         header: t("team:TEAM_INVITATIONS_COL_ROLE"),
         cell: ({ row }) => (
           <span>{roleNameByCode.get(row.original.roleCode) || row.original.roleCode}</span>
@@ -182,6 +189,7 @@ export function useOrganizationInvitationColumns(options: UseOrganizationInvitat
       },
       {
         id: "createdAt",
+        meta: { sortKey: "created_at" },
         header: t("team:TEAM_INVITATIONS_COL_CREATED"),
         cell: ({ row }) => {
           const formatted = dateTime.formatDate(row.original.createdAt, { emptyValue: "" });
@@ -203,6 +211,7 @@ export function useOrganizationInvitationColumns(options: UseOrganizationInvitat
       },
       {
         id: "code",
+        meta: { sortKey: "display_code" },
         header: t("team:TEAM_INVITE_LINKS_COL_CODE"),
         cell: ({ row }) => {
           const text = row.original.inviteUrl || row.original.displayCode;
@@ -219,6 +228,7 @@ export function useOrganizationInvitationColumns(options: UseOrganizationInvitat
       },
       {
         id: "participant",
+        meta: { sortKey: "uses_count" },
         header: t("team:TEAM_INVITE_LINKS_COL_PARTICIPANT"),
         cell: ({ row }) => {
           const uses = Number(row.original.usesCount || 0);
@@ -240,6 +250,7 @@ export function useOrganizationInvitationColumns(options: UseOrganizationInvitat
       },
       {
         id: "createdAt",
+        meta: { sortKey: "created_at" },
         header: t("team:TEAM_INVITE_LINKS_COL_CREATED"),
         cell: ({ row }) => {
           const formatted = dateTime.formatDate(row.original.createdAt, { emptyValue: "" });
@@ -250,6 +261,7 @@ export function useOrganizationInvitationColumns(options: UseOrganizationInvitat
       },
       {
         id: "expiresAt",
+        meta: { sortKey: "expires_at" },
         header: t("team:TEAM_INVITE_LINKS_COL_EXPIRES"),
         cell: ({ row }) => {
           const formatted = dateTime.formatDate(row.original.expiresAt, { emptyValue: "" });
@@ -262,19 +274,10 @@ export function useOrganizationInvitationColumns(options: UseOrganizationInvitat
       },
       {
         id: "actions",
+        meta: { kind: "actions" },
         header: "",
         cell: ({ row }) => (
           <div className="flex items-center justify-end gap-1">
-            <AntButton
-              type="text"
-              icon={<Copy className="size-4" />}
-              onClick={() => {
-                const text = row.original.inviteUrl || row.original.displayCode;
-                onCopyLinkText(text);
-              }}
-            >
-              {t("team:TEAM_INVITE_LINKS_ACTION_COPY_LINK")}
-            </AntButton>
             <AntButton
               type="text"
               icon={<RotateCcw className="size-4" />}

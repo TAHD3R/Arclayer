@@ -33,6 +33,10 @@ async def list_organization_workspaces(
     orgm: Annotated[OrgMembership, Depends(get_current_org_membership)],
     params: PageParams = DependsPagination,
     q: str | None = Query(default=None, description="Search query by workspace name/slug."),
+    ordering: str | None = Query(
+        default=None,
+        description="Ordering fields, e.g. -created_at, name.",
+    ),
     archived: bool | None = Query(
         default=None,
         description="Filter archived status when provided.",
@@ -46,6 +50,7 @@ async def list_organization_workspaces(
         org_role=orgm.role,
         params=params,
         q=q,
+        ordering=ordering,
         archived=archived,
     )
     return Response.success(data=data)

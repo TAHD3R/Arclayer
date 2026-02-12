@@ -27,15 +27,15 @@ export function WorkspaceAssociationPopover({
       <PopoverTrigger asChild>
         <AntButton
           type="text"
-          className="!h-auto !px-2 !py-1 !font-medium !text-foreground hover:!bg-muted"
+          className="!h-auto !px-2 !py-1 !font-medium !text-foreground hover:!bg-accent"
         >
           {t("common:ORG_MEMBERS_ASSOCIATED_WORKSPACES_COUNT", { count: workspaces.length })}
         </AntButton>
       </PopoverTrigger>
 
-      <PopoverContent align="start" sideOffset={8} className="w-[420px] max-w-[90vw] p-3">
+      <PopoverContent align="start" sideOffset={8} className="w-100 max-w-[90vw] p-3">
         <div className="space-y-3">
-          <div>
+          <div className="flex flex-col gap-2">
             <div className="font-semibold">{t("common:ORG_MEMBERS_WORKSPACE_POPOVER_TITLE")}</div>
             <div className="text-muted-foreground">
               {t("common:ORG_MEMBERS_WORKSPACE_POPOVER_DESC")}

@@ -74,6 +74,7 @@ export type ListTeamInvitationsParams = {
   page?: number;
   size?: number;
   q?: string;
+  ordering?: string;
   status?: InvitationStatus;
   mine?: boolean;
 };
@@ -186,6 +187,7 @@ export async function listTeamInvitations(
     page: params.page ?? 1,
     size: params.size ?? 10,
     q: params.q,
+    ordering: params.ordering,
     status: params.status,
     mine: params.mine ? "true" : undefined,
   });
@@ -275,6 +277,7 @@ export type ListTeamInviteLinksParams = {
   page?: number;
   size?: number;
   q?: string;
+  ordering?: string;
   mine?: boolean;
 };
 
@@ -297,6 +300,7 @@ export async function listTeamInviteLinks(
     page: params.page ?? 1,
     size: params.size ?? 10,
     q: params.q,
+    ordering: params.ordering,
     mine: params.mine ? "true" : undefined,
   });
   return api.get<PageData<TeamInviteLink>>(

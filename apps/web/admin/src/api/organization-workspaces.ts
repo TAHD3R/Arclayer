@@ -76,12 +76,14 @@ export async function listOrganizationWorkspaces(params: {
   page?: number;
   size?: number;
   q?: string;
+  ordering?: string;
   archived?: boolean;
 }): Promise<PageData<OrganizationWorkspace>> {
   const query = toQueryString({
     page: params.page ?? 1,
     size: params.size ?? 20,
     q: params.q,
+    ordering: params.ordering,
     archived: params.archived,
   });
   return api.get<PageData<OrganizationWorkspace>>(`/organizations/me/workspaces${query}`);

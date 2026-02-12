@@ -42,6 +42,7 @@ export function createOrganizationMembersColumns(
   return [
     {
       id: "member",
+      meta: { sortKey: "username" },
       header: t("common:ORG_MEMBERS_TABLE_MEMBER"),
       cell: ({ row }) => {
         const member = row.original;
@@ -60,6 +61,7 @@ export function createOrganizationMembersColumns(
     },
     {
       id: "role",
+      meta: { sortKey: "role_code" },
       header: t("common:ORG_MEMBERS_TABLE_ROLE"),
       cell: ({ row }) => {
         const member = row.original;
@@ -82,6 +84,7 @@ export function createOrganizationMembersColumns(
     },
     {
       id: "status",
+      meta: { sortKey: "status" },
       header: t("common:ORG_MEMBERS_TABLE_STATUS"),
       cell: ({ row }) => {
         const member = row.original;
@@ -95,6 +98,7 @@ export function createOrganizationMembersColumns(
     },
     {
       id: "joined",
+      meta: { sortKey: "joined_at" },
       header: t("common:ORG_MEMBERS_TABLE_JOINED_AT"),
       cell: ({ row }) => (
         <span className="text-sm text-muted-foreground">{formatDateTime(row.original.joinedAt)}</span>
@@ -102,6 +106,7 @@ export function createOrganizationMembersColumns(
     },
     {
       id: "lastLogin",
+      meta: { sortKey: "last_login_at" },
       header: t("common:ORG_MEMBERS_TABLE_LAST_LOGIN"),
       cell: ({ row }) => (
         <span className="text-sm text-muted-foreground">
@@ -111,6 +116,7 @@ export function createOrganizationMembersColumns(
     },
     {
       id: "actions",
+      meta: { kind: "actions" },
       header: t("common:ORG_MEMBERS_TABLE_ACTIONS"),
       cell: ({ row }) => (
         <AntButton

@@ -230,6 +230,10 @@ async def create_email_invite(
 )
 async def list_email_invites(
     q: str | None = Query(default=None, description="Search query (email/role_code)."),
+    ordering: str | None = Query(
+        default=None,
+        description="Ordering fields, e.g. -created_at, email.",
+    ),
     status: str | None = Query(default=None, description="pending|accepted|revoked|expired"),
     mine: bool | None = Query(default=None, description="Only mine"),
     params=Depends(get_page_params),
@@ -243,6 +247,7 @@ async def list_email_invites(
         workspace_id=ctx.workspace_id,
         params=params,
         q=q,
+        ordering=ordering,
         status=status,
         mine=mine,
         current_user_id=user_id,
@@ -326,6 +331,10 @@ async def create_invite_link(
 )
 async def list_invite_links(
     q: str | None = Query(default=None, description="Search query (display_code/role_code)."),
+    ordering: str | None = Query(
+        default=None,
+        description="Ordering fields, e.g. -created_at, display_code.",
+    ),
     mine: bool | None = Query(default=None, description="Only mine"),
     params=Depends(get_page_params),
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
@@ -338,6 +347,7 @@ async def list_invite_links(
         workspace_id=ctx.workspace_id,
         params=params,
         q=q,
+        ordering=ordering,
         mine=mine,
         current_user_id=user_id,
     )

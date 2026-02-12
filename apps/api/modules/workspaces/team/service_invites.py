@@ -51,6 +51,61 @@ def _user_ref(user: User) -> WorkspaceTeamUserRefOut:
     )
 
 
+_WORKSPACE_EMAIL_INVITE_ALLOWED_ORDER_FIELDS: frozenset[str] = frozenset(
+    {
+        "created_at",
+        "updated_at",
+        "email",
+        "role_code",
+        "expires_at",
+        "accepted_at",
+        "revoked_at",
+    }
+)
+
+_WORKSPACE_INVITE_LINK_ALLOWED_ORDER_FIELDS: frozenset[str] = frozenset(
+    {
+        "created_at",
+        "updated_at",
+        "display_code",
+        "role_code",
+        "allowed_email_domain",
+        "expires_at",
+        "disabled_at",
+        "last_used_at",
+        "uses_count",
+    }
+)
+
+
+def _normalize_workspace_email_invite_ordering(value: str | None) -> list[str]:
+    fields: list[str] = []
+    for part in str(value or "").split(","):
+        raw = part.strip()
+        if not raw:
+            continue
+        desc = raw.startswith("-")
+        name = raw[1:] if desc else raw
+        if name not in _WORKSPACE_EMAIL_INVITE_ALLOWED_ORDER_FIELDS:
+            continue
+        fields.append(f"-{name}" if desc else name)
+    return fields or ["-created_at"]
+
+
+def _normalize_workspace_invite_link_ordering(value: str | None) -> list[str]:
+    fields: list[str] = []
+    for part in str(value or "").split(","):
+        raw = part.strip()
+        if not raw:
+            continue
+        desc = raw.startswith("-")
+        name = raw[1:] if desc else raw
+        if name not in _WORKSPACE_INVITE_LINK_ALLOWED_ORDER_FIELDS:
+            continue
+        fields.append(f"-{name}" if desc else name)
+    return fields or ["-created_at"]
+
+
 class WorkspaceTeamInviteMixin:
     repo: WorkspaceTeamRepository
     settings: Settings
@@ -465,6 +520,7 @@ class WorkspaceTeamInviteMixin:
         workspace_id: UUID,
         params: PageParams,
         q: str | None,
+        ordering: str | None,
         mine: bool | None,
         current_user_id: UUID,
     ) -> PageData[WorkspaceInviteLinkOut]:
@@ -478,7 +534,12 @@ class WorkspaceTeamInviteMixin:
 
         total = int(await qs.count())
         pages = (total + params.size - 1) // params.size if params.size else 0
-        rows = await qs.order_by("-created_at").limit(params.limit).offset(params.offset).all()
+        rows = (
+            await qs.order_by(*_normalize_workspace_invite_link_ordering(ordering))
+            .limit(params.limit)
+            .offset(params.offset)
+            .all()
+        )
 
         user_ids: set[UUID] = set()
         for r in rows:
@@ -613,6 +674,7 @@ class WorkspaceTeamInviteMixin:
         workspace_id: UUID,
         params: PageParams,
         q: str | None,
+        ordering: str | None,
         status: str | None,
         mine: bool | None,
         current_user_id: UUID,
@@ -640,7 +702,12 @@ class WorkspaceTeamInviteMixin:
 
         total = int(await qs.count())
         pages = (total + params.size - 1) // params.size if params.size else 0
-        rows = await qs.order_by("-created_at").limit(params.limit).offset(params.offset).all()
+        rows = (
+            await qs.order_by(*_normalize_workspace_email_invite_ordering(ordering))
+            .limit(params.limit)
+            .offset(params.offset)
+            .all()
+        )
 
         user_ids: set[UUID] = set()
         for r in rows:

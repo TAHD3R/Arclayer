@@ -2,8 +2,11 @@
 
 import * as React from "react";
 import {
+  type ColumnPinningState,
   type ColumnDef,
   type ColumnFiltersState,
+  type ColumnSizingState,
+  type ExpandedState,
   getCoreRowModel,
   type OnChangeFn,
   getPaginationRowModel,
@@ -15,8 +18,13 @@ import {
   type VisibilityState,
 } from "@tanstack/react-table";
 
-import type { DataTableBaseQuery } from "@/components/data-table/types";
-import { applyUpdater, buildOrdering, collectColumnSortKeys } from "@/components/data-table/utils";
+import type { DataTableBaseQuery, DataTableFeatureOptions } from "@/components/data-table/types";
+import {
+  applyMetaSortability,
+  applyUpdater,
+  buildOrdering,
+  collectColumnSortKeys,
+} from "@/components/data-table/utils";
 
 export type UseDataTableCoreOptions<TData> = {
   columns: ColumnDef<TData, unknown>[];
@@ -37,7 +45,9 @@ export type UseDataTableCoreOptions<TData> = {
      */
     resetOnPaginationChange?: boolean;
   };
+  features?: DataTableFeatureOptions;
   onColumnVisibilityChange?: (next: VisibilityState) => void;
+  onSortingChange?: (next: SortingState, ordering: string | undefined) => void;
 };
 
 export type UseDataTableCoreResult<TData> = {
@@ -46,16 +56,27 @@ export type UseDataTableCoreResult<TData> = {
   committedSearch: string;
   setCommittedSearch: (next: string) => void;
   columnFilters: ColumnFiltersState;
+  sorting: SortingState;
+  setSorting: (next: SortingState) => void;
 };
 
 export function useDataTableCore<TData>(
   options: UseDataTableCoreOptions<TData>,
 ): UseDataTableCoreResult<TData> {
-  const { onColumnVisibilityChange } = options;
+  const { onColumnVisibilityChange, onSortingChange } = options;
+
+  const sortingOptions = options.features?.sorting;
+  const sortingEnabled = sortingOptions?.enabled ?? true;
+  const sortingMode = sortingOptions?.mode ?? "server";
+
+  const columnsWithSorting = React.useMemo(
+    () => (sortingEnabled ? applyMetaSortability(options.columns) : options.columns),
+    [options.columns, sortingEnabled],
+  );
 
   const sortKeyByColumnId = React.useMemo(
-    () => collectColumnSortKeys(options.columns),
-    [options.columns],
+    () => collectColumnSortKeys(columnsWithSorting),
+    [columnsWithSorting],
   );
 
   const [committedSearch, setCommittedSearch] = React.useState(() => options.initialState?.q ?? "");
@@ -66,16 +87,20 @@ export function useDataTableCore<TData>(
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>(
     () => options.initialState?.columnVisibility ?? {},
   );
+  const [columnPinning, setColumnPinning] = React.useState<ColumnPinningState>({});
+  const [columnSizing, setColumnSizing] = React.useState<ColumnSizingState>({});
+  const [expanded, setExpanded] = React.useState<ExpandedState>({});
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
   const [pagination, setPagination] = React.useState<PaginationState>(() => ({
     pageIndex: 0,
     pageSize: options.initialState?.pageSize ?? 10,
   }));
 
-  const ordering = React.useMemo(
-    () => buildOrdering(sorting, sortKeyByColumnId),
-    [sortKeyByColumnId, sorting],
-  );
+  const ordering = React.useMemo(() => {
+    if (!sortingEnabled) return undefined;
+    if (sortingMode !== "server") return undefined;
+    return buildOrdering(sorting, sortKeyByColumnId);
+  }, [sortKeyByColumnId, sorting, sortingEnabled, sortingMode]);
 
   const q = committedSearch.trim();
   const baseQuery: DataTableBaseQuery = React.useMemo(
@@ -117,17 +142,39 @@ export function useDataTableCore<TData>(
     [options.rowSelection?.enabled, options.rowSelection?.resetOnPaginationChange],
   );
 
+  const handleSortingChange: OnChangeFn<SortingState> = React.useCallback(
+    (updater) => {
+      setSorting((prev) => {
+        const next = applyUpdater(updater, prev);
+        const nextOrdering =
+          sortingEnabled && sortingMode === "server"
+            ? buildOrdering(next, sortKeyByColumnId)
+            : undefined;
+        onSortingChange?.(next, nextOrdering);
+        return next;
+      });
+    },
+    [onSortingChange, sortKeyByColumnId, sortingEnabled, sortingMode],
+  );
+
   const table = useReactTable({
     data: options.data,
-    columns: options.columns,
+    columns: columnsWithSorting,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
 
     // Server-side by default.
     manualPagination: true,
-    manualSorting: true,
+    manualSorting: sortingEnabled && sortingMode === "server",
     manualFiltering: true,
     pageCount: options.pageCount,
+
+    enableSorting: sortingEnabled,
+    enableMultiSort: sortingOptions?.multiSort ?? true,
+    enableSortingRemoval: sortingOptions?.allowRemoval ?? true,
+    enableColumnPinning: options.features?.columnPinning?.enabled ?? false,
+    enableColumnResizing: options.features?.columnSizing?.enabled ?? false,
+    enableExpanding: options.features?.rowExpansion?.enabled ?? false,
 
     // Row selection is opt-in.
     enableRowSelection: options.rowSelection?.enabled ?? false,
@@ -135,9 +182,12 @@ export function useDataTableCore<TData>(
       ? (row, index) => options.rowSelection?.getRowId?.(row, index) ?? String(index)
       : undefined,
 
-    onSortingChange: setSorting,
+    onSortingChange: handleSortingChange,
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: handleColumnVisibilityChange,
+    onColumnPinningChange: setColumnPinning,
+    onColumnSizingChange: setColumnSizing,
+    onExpandedChange: setExpanded,
     onRowSelectionChange: setRowSelection,
     onPaginationChange: handlePaginationChange,
 
@@ -145,6 +195,9 @@ export function useDataTableCore<TData>(
       sorting,
       columnFilters,
       columnVisibility,
+      columnPinning,
+      columnSizing,
+      expanded,
       rowSelection,
       pagination,
     },
@@ -156,5 +209,7 @@ export function useDataTableCore<TData>(
     committedSearch,
     setCommittedSearch,
     columnFilters,
+    sorting,
+    setSorting,
   } as const;
 }

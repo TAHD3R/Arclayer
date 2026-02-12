@@ -27,6 +27,7 @@ export function useOrganizationWorkspacesTables(options: UseOrganizationWorkspac
         page: params.page,
         size: params.size,
         q: params.q,
+        ordering: params.ordering,
         archived: false,
       }),
     queryOptions: {
@@ -45,6 +46,7 @@ export function useOrganizationWorkspacesTables(options: UseOrganizationWorkspac
         page: params.page,
         size: params.size,
         q: params.q,
+        ordering: params.ordering,
         archived: true,
       }),
     queryOptions: {

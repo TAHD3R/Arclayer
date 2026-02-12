@@ -26,3 +26,18 @@ export type DataTableInitialState = {
   sorting?: SortingState;
   q?: string;
 };
+
+export type DataTableSortingFeature = {
+  enabled?: boolean;
+  mode?: "server" | "client";
+  multiSort?: boolean;
+  allowRemoval?: boolean;
+};
+
+export type DataTableFeatureOptions = {
+  sorting?: DataTableSortingFeature;
+  // Extension points reserved for future rollout.
+  columnPinning?: { enabled?: boolean };
+  columnSizing?: { enabled?: boolean };
+  rowExpansion?: { enabled?: boolean };
+};

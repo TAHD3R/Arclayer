@@ -1,16 +1,9 @@
 import { Pagination } from "antd";
-import { flexRender, type Table as ReactTable } from "@tanstack/react-table";
+import { type Table as ReactTable } from "@tanstack/react-table";
 import { useTranslation } from "react-i18next";
 
+import { DataTablePresenter } from "@/components/data-table";
 import type { PageData } from "@/components/data-table";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import type { OrganizationMember } from "@/api/organization-members";
 
@@ -29,40 +22,16 @@ export function OrganizationMembersTableSection({
 
   return (
     <>
-      <div className="overflow-auto rounded-md border">
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id}>
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(header.column.columnDef.header, header.getContext())}
-                  </TableHead>
-                ))}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows.map((row, rowIndex) => (
-              <TableRow
-                key={row.id}
-                className={cn(
-                  rowIndex % 2 === 1 ? "bg-muted/20" : "bg-background",
-                  "transition-colors hover:bg-muted/40",
-                )}
-              >
-                {row.getVisibleCells().map((cell) => (
-                  <TableCell key={cell.id}>
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </TableCell>
-                ))}
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+      <DataTablePresenter
+        table={table}
+        emptyText={t("team:TEAM_EMPTY_TABLE")}
+        rowClassName={(_row, rowIndex) =>
+          cn(
+            rowIndex % 2 === 1 ? "bg-muted/20" : "bg-card",
+            "transition-colors hover:bg-muted/40",
+          )
+        }
+      />
 
       {pageData ? (
         <div className="flex flex-wrap items-center justify-between gap-3 pt-4">

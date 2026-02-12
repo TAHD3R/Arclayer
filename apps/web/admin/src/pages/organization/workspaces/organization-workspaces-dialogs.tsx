@@ -173,14 +173,16 @@ export function OrganizationWorkspacesDialogs(props: OrganizationWorkspacesDialo
           </div>
         }
       >
-        <div className="grid gap-1.5">
-          <label className="font-semibold text-foreground" htmlFor="workspace-delete-confirm-name">
-            {t("common:ORG_WORKSPACES_DELETE_CONFIRM_INPUT_LABEL", {
-              name: deleteDialog.workspace?.name || "",
-            })}
-          </label>
-          <div className="text-muted-foreground">
-            {t("common:ORG_WORKSPACES_DELETE_CONFIRM_INPUT_HELP")}
+        <div className="grid gap-2">
+          <div className="flex flex-col gap-2">
+            <label className="font-semibold text-foreground" htmlFor="workspace-delete-confirm-name">
+              {t("common:ORG_WORKSPACES_DELETE_CONFIRM_INPUT_LABEL", {
+                name: deleteDialog.workspace?.name || "",
+              })}
+            </label>
+            <div className="text-muted-foreground">
+              {t("common:ORG_WORKSPACES_DELETE_CONFIRM_INPUT_HELP")}
+            </div>
           </div>
           <Input
             id="workspace-delete-confirm-name"

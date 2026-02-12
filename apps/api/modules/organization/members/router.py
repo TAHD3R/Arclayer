@@ -44,6 +44,10 @@ async def list_organization_members(
     orgm: Annotated[OrgMembership, Depends(get_current_org_membership)],
     params: PageParams = DependsPagination,
     q: str | None = Query(default=None, description="Search query by username/email/display name."),
+    ordering: str | None = Query(
+        default=None,
+        description="Ordering fields, e.g. -joined_at, email.",
+    ),
     role: OrgRole | None = Query(default=None, description="Filter by organization role."),
     membership_status: str | None = Query(
         default=None,
@@ -88,6 +92,7 @@ async def list_organization_members(
         actor_membership=orgm,
         params=params,
         q=q,
+        ordering=ordering,
         role=role,
         membership_status=membership_status,
         user_status=user_status,
@@ -128,6 +133,10 @@ async def list_organization_invitations(
     orgm: Annotated[OrgMembership, Depends(get_current_org_membership)],
     params: PageParams = DependsPagination,
     q: str | None = Query(default=None, description="Search query by email/role."),
+    ordering: str | None = Query(
+        default=None,
+        description="Ordering fields, e.g. -created_at, email.",
+    ),
     status: str | None = Query(default=None, description="Filter by invitation status."),
     mine: bool | None = Query(default=None, description="If true, only invitations created by me."),
     settings: Settings = Depends(get_settings),
@@ -138,6 +147,7 @@ async def list_organization_invitations(
         actor_membership=orgm,
         params=params,
         q=q,
+        ordering=ordering,
         status=status,
         mine=mine,
     )
@@ -214,6 +224,10 @@ async def list_organization_invite_links(
     orgm: Annotated[OrgMembership, Depends(get_current_org_membership)],
     params: PageParams = DependsPagination,
     q: str | None = Query(default=None, description="Search query by code/domain/role."),
+    ordering: str | None = Query(
+        default=None,
+        description="Ordering fields, e.g. -created_at, display_code.",
+    ),
     mine: bool | None = Query(default=None, description="If true, only links created by me."),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[PageData[OrganizationInviteLinkOut]]:
@@ -223,6 +237,7 @@ async def list_organization_invite_links(
         actor_membership=orgm,
         params=params,
         q=q,
+        ordering=ordering,
         mine=mine,
     )
     return Response.success(data=out)

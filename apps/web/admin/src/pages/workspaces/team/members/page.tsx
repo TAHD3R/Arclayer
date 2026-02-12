@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
-import { type ColumnDef } from "@tanstack/react-table";
+import { type ColumnDef, type SortingState } from "@tanstack/react-table";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { MenuProps } from "antd";
 
@@ -56,6 +56,32 @@ import {
   userInitials,
   userStatusTagColor,
 } from "./helpers";
+
+function sortValueToTableSorting(value: TeamMemberSort): SortingState {
+  if (value === "user__username") return [{ id: "user", desc: false }];
+  if (value === "-user__username") return [{ id: "user", desc: true }];
+  if (value === "user__email") return [{ id: "email", desc: false }];
+  if (value === "-user__email") return [{ id: "email", desc: true }];
+  if (value === "user__last_login_at") return [{ id: "lastLoginAt", desc: false }];
+  if (value === "-user__last_login_at") return [{ id: "lastLoginAt", desc: true }];
+  if (value === "status") return [{ id: "userStatus", desc: false }];
+  if (value === "-status") return [{ id: "userStatus", desc: true }];
+  return [];
+}
+
+function tableSortingToSortValue(sorting: SortingState): TeamMemberSort | null {
+  const [first] = sorting;
+  if (!first) return null;
+
+  if (first.id === "user") return first.desc ? "-user__username" : "user__username";
+  if (first.id === "email") return first.desc ? "-user__email" : "user__email";
+  if (first.id === "lastLoginAt") {
+    return first.desc ? "-user__last_login_at" : "user__last_login_at";
+  }
+  if (first.id === "userStatus") return first.desc ? "-status" : "status";
+
+  return null;
+}
 
 export function TeamMembersView() {
   const { t } = useTranslation(["team", "common"]);
@@ -182,7 +208,10 @@ export function TeamMembersView() {
     const cols: ColumnDef<TeamMember, unknown>[] = [
       {
         id: "user",
-        meta: { title: t("team:TEAM_TABLE_COL_USER") },
+        meta: {
+          title: t("team:TEAM_TABLE_COL_USER"),
+          sortKey: "user__username",
+        },
         header: t("team:TEAM_TABLE_COL_USER"),
         cell: ({ row }) => {
           const m = row.original;
@@ -282,7 +311,10 @@ export function TeamMembersView() {
       },
       {
         accessorKey: "email",
-        meta: { title: t("team:TEAM_TABLE_COL_EMAIL") },
+        meta: {
+          title: t("team:TEAM_TABLE_COL_EMAIL"),
+          sortKey: "user__email",
+        },
         header: t("team:TEAM_TABLE_COL_EMAIL"),
         cell: ({ row }) => {
           const v = row.original.email;
@@ -314,7 +346,10 @@ export function TeamMembersView() {
       },
       {
         accessorKey: "userStatus",
-        meta: { title: t("team:TEAM_TABLE_COL_STATUS") },
+        meta: {
+          title: t("team:TEAM_TABLE_COL_STATUS"),
+          sortKey: "status",
+        },
         header: t("team:TEAM_TABLE_COL_STATUS"),
         cell: ({ row }) => {
           const membership = row.original.membershipStatus;
@@ -341,7 +376,10 @@ export function TeamMembersView() {
       },
       {
         accessorKey: "lastLoginAt",
-        meta: { title: t("team:TEAM_TABLE_COL_LAST_LOGIN") },
+        meta: {
+          title: t("team:TEAM_TABLE_COL_LAST_LOGIN"),
+          sortKey: "user__last_login_at",
+        },
         header: t("team:TEAM_TABLE_COL_LAST_LOGIN"),
         cell: ({ row }) => {
           const formatted = dateTime.formatDateTimeOrNull(row.original.lastLoginAt);
@@ -365,6 +403,10 @@ export function TeamMembersView() {
     extraQuery,
     orderingOverride: sort,
     initialState: { pageSize: 10 },
+    onSortingChange: (nextSorting) => {
+      const mapped = tableSortingToSortValue(nextSorting);
+      setSort(mapped ?? "-created_at");
+    },
     fetcher: async (params) =>
       workspaceId
         ? listTeamMembers(String(workspaceId), {
@@ -429,7 +471,10 @@ export function TeamMembersView() {
               roles={rolesQuery.data?.items ?? []}
               rolesLoading={rolesQuery.isLoading}
               sort={sort}
-              onSortChange={setSort}
+              onSortChange={(next) => {
+                setSort(next);
+                tableHook.setSorting(sortValueToTableSorting(next));
+              }}
               defaultSort="-created_at"
             />
           </div>
@@ -450,7 +495,6 @@ export function TeamMembersView() {
       >
         <TeamMembersDataTable
           table={table}
-          columns={columns}
           emptyText={t("team:TEAM_EMPTY_TABLE")}
         />
 

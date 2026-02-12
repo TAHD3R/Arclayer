@@ -108,7 +108,6 @@ export function OrganizationWorkspacesPage() {
       >
         <ChromeTabsContent value="active">
           <WorkspacesTableSection
-            columns={columns}
             tableHook={activeTableHook}
             emptyTitle={t("common:ORG_WORKSPACES_ACTIVE_EMPTY_TITLE")}
             emptyDescription={t("common:ORG_WORKSPACES_ACTIVE_EMPTY_DESC")}
@@ -119,7 +118,6 @@ export function OrganizationWorkspacesPage() {
 
         <ChromeTabsContent value="archived">
           <WorkspacesTableSection
-            columns={columns}
             tableHook={archivedTableHook}
             emptyTitle={t("common:ORG_WORKSPACES_ARCHIVED_EMPTY_TITLE")}
             emptyDescription={t("common:ORG_WORKSPACES_ARCHIVED_EMPTY_DESC")}

@@ -173,6 +173,35 @@ async def test_workspace_email_invite_pending_unique_and_accept(
             page = resp.json()["data"]
             assert page["total"] >= 1
 
+            ordered_email_low = f"aa_{uuid4().hex[:6]}@ordering.workspace.example.com"
+            ordered_email_high = f"zz_{uuid4().hex[:6]}@ordering.workspace.example.com"
+            resp = await client.post(
+                f"/api/v1/workspaces/{ws_pid}/team/email-invites",
+                json={"email": ordered_email_low, "roleCode": "admin", "expiresInSeconds": 3600},
+            )
+            assert resp.status_code == 200
+            resp = await client.post(
+                f"/api/v1/workspaces/{ws_pid}/team/email-invites",
+                json={"email": ordered_email_high, "roleCode": "admin", "expiresInSeconds": 3600},
+            )
+            assert resp.status_code == 200
+
+            resp = await client.get(
+                f"/api/v1/workspaces/{ws_pid}/team/email-invites",
+                params={"q": "ordering.workspace.example.com", "ordering": "email", "page": 1, "size": 10},
+            )
+            assert resp.status_code == 200
+            ordered_invites_asc_items = resp.json()["data"]["items"]
+            assert ordered_invites_asc_items[0]["email"] == ordered_email_low
+
+            resp = await client.get(
+                f"/api/v1/workspaces/{ws_pid}/team/email-invites",
+                params={"q": "ordering.workspace.example.com", "ordering": "-email", "page": 1, "size": 10},
+            )
+            assert resp.status_code == 200
+            ordered_invites_desc_items = resp.json()["data"]["items"]
+            assert ordered_invites_desc_items[0]["email"] == ordered_email_high
+
 
 async def test_workspace_email_invite_email_mismatch_rejected(
     prepared_db, integration_valkey_settings, monkeypatch
@@ -334,6 +363,21 @@ async def test_workspace_invite_link_disable_blocks_accept(prepared_db, integrat
             assert resp.status_code == 200
             token = resp.json()["data"]["token"]
             link_id = resp.json()["data"]["link"]["id"]
+
+            resp = await client.post(
+                f"/api/v1/workspaces/{ws_pid}/team/invite-links",
+                json={"roleCode": "admin", "expiresInSeconds": 3600, "maxUses": None, "allowedEmailDomain": None},
+            )
+            assert resp.status_code == 200
+            latest_link_id = resp.json()["data"]["link"]["id"]
+
+            resp = await client.get(
+                f"/api/v1/workspaces/{ws_pid}/team/invite-links",
+                params={"ordering": "-created_at", "page": 1, "size": 10},
+            )
+            assert resp.status_code == 200
+            ordered_links_items = resp.json()["data"]["items"]
+            assert ordered_links_items[0]["id"] == latest_link_id
 
             # Disable the link.
             resp = await client.post(f"/api/v1/workspaces/{ws_pid}/team/invite-links/{link_id}/disable")

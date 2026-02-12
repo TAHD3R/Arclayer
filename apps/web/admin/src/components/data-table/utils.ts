@@ -16,6 +16,34 @@ function getColumnId<TData>(col: ColumnDef<TData, unknown>): string | undefined 
   return undefined;
 }
 
+export function applyMetaSortability<TData>(
+  columns: ColumnDef<TData, unknown>[],
+): ColumnDef<TData, unknown>[] {
+  const walk = (defs: ColumnDef<TData, unknown>[]): ColumnDef<TData, unknown>[] => {
+    return defs.map((col) => {
+      if ("columns" in col && Array.isArray(col.columns)) {
+        return {
+          ...col,
+          columns: walk(col.columns as ColumnDef<TData, unknown>[]),
+        } as ColumnDef<TData, unknown>;
+      }
+
+      if (col.enableSorting !== undefined) {
+        return col;
+      }
+
+      const sortKey = String(col.meta?.sortKey ?? "").trim();
+      return {
+        ...col,
+        // Keep sortability strictly aligned with backend ordering contract.
+        enableSorting: Boolean(sortKey),
+      } as ColumnDef<TData, unknown>;
+    });
+  };
+
+  return walk(columns);
+}
+
 export function collectColumnSortKeys<TData>(
   columns: ColumnDef<TData, unknown>[],
 ): ColumnSortKeyMap {

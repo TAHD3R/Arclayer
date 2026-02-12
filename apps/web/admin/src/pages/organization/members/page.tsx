@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { flexRender } from "@tanstack/react-table";
 import { Button as AntButton, Input } from "antd";
 import { Plus } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -15,15 +14,7 @@ import {
 import { ConfirmDialog } from "@/components/common/confirm-dialog";
 import { DefaultPage } from "@/components/common/default-page";
 import { PageState } from "@/components/common/page-state";
-import { useDataTable } from "@/components/data-table";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { DataTablePresenter, useDataTable } from "@/components/data-table";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 
 import { InviteOrganizationMemberDialog } from "./invite-organization-member-dialog";
@@ -108,6 +99,7 @@ export function OrganizationMembersPage() {
         page: params.page,
         size: params.size,
         q: params.q,
+        ordering: params.ordering,
       }),
     queryOptions: {
       staleTime: 30 * 1000,
@@ -148,45 +140,7 @@ export function OrganizationMembersPage() {
         error={tableHook.error}
         onRetry={() => void tableHook.refetch()}
       >
-        <div className="overflow-auto rounded-md border">
-          <Table>
-            <TableHeader>
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => (
-                    <TableHead key={header.id}>
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(header.column.columnDef.header, header.getContext())}
-                    </TableHead>
-                  ))}
-                </TableRow>
-              ))}
-            </TableHeader>
-            <TableBody>
-              {table.getRowModel().rows.length ? (
-                table.getRowModel().rows.map((row) => (
-                  <TableRow key={row.id}>
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id}>
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell
-                    className="h-24 text-center text-muted-foreground"
-                    colSpan={columns.length}
-                  >
-                    {t("common:EMPTY_DESC")}
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
+        <DataTablePresenter table={table} emptyText={t("common:EMPTY_DESC")} />
       </PageState>
 
       <InviteOrganizationMemberDialog

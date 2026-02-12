@@ -52,6 +52,7 @@ export function createOrganizationMemberColumns({
   return [
     {
       id: "member",
+      meta: { sortKey: "username" },
       header: t("common:ORG_MEMBERS_TABLE_MEMBER"),
       cell: ({ row }) => {
         const item = row.original;
@@ -124,7 +125,7 @@ export function createOrganizationMemberColumns({
               >
                 <AntButton
                   type="text"
-                  className="!h-8 !w-8 !p-0"
+                  className="h-8! w-8! p-0!"
                   icon={<MoreVertical className="size-4" />}
                   aria-label={t("team:TEAM_USER_ACTIONS")}
                 />
@@ -136,6 +137,7 @@ export function createOrganizationMemberColumns({
     },
     {
       id: "workspaces",
+      meta: { sortKey: "workspace_count" },
       header: t("common:ORG_MEMBERS_TABLE_WORKSPACES"),
       cell: ({ row }) => (
         <WorkspaceAssociationPopover
@@ -147,16 +149,17 @@ export function createOrganizationMemberColumns({
     },
     {
       id: "status",
+      meta: { sortKey: "status" },
       header: t("common:ORG_MEMBERS_TABLE_STATUS"),
       cell: ({ row }) => {
         const item = row.original;
 
         return (
           <div className="flex flex-wrap gap-1">
-            <Tag color={membershipTagColor(item.status)} className="!mr-0">
+            <Tag color={membershipTagColor(item.status)} className="mr-0!">
               {membershipLabel(t, item.status)}
             </Tag>
-            <Tag color={userTagColor(item.userStatus)} className="!mr-0">
+            <Tag color={userTagColor(item.userStatus)} className="mr-0!">
               {userStatusLabel(t, item.userStatus)}
             </Tag>
           </div>
@@ -165,18 +168,20 @@ export function createOrganizationMemberColumns({
     },
     {
       id: "role",
+      meta: { sortKey: "role_code" },
       header: t("common:ORG_MEMBERS_TABLE_ROLE"),
       cell: ({ row }) => (
-        <Tag color={roleTagColor(row.original.role)} className="!mr-0">
+        <Tag color={roleTagColor(row.original.role)} className="mr-0!">
           {roleNameByCode.get(row.original.roleCode) || builtinRoleLabel(t, row.original.role)}
         </Tag>
       ),
     },
     {
       id: "lastLogin",
+      meta: { sortKey: "last_login_at" },
       header: t("common:ORG_MEMBERS_TABLE_LAST_LOGIN"),
       cell: ({ row }) => (
-        <span className="text-sm text-muted-foreground">{formatDateTime(row.original.lastLoginAt)}</span>
+        <span>{formatDateTime(row.original.lastLoginAt)}</span>
       ),
     },
   ];

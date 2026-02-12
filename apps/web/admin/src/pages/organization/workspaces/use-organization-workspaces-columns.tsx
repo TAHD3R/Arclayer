@@ -39,6 +39,7 @@ export function useOrganizationWorkspacesColumns(
     () => [
       {
         id: "workspace",
+        meta: { sortKey: "name" },
         header: t("common:ORG_WORKSPACES_TABLE_WORKSPACE"),
         cell: ({ row }) => {
           const item = row.original;
@@ -113,14 +114,16 @@ export function useOrganizationWorkspacesColumns(
       },
       {
         id: "createdAt",
+        meta: { sortKey: "created_at" },
         header: t("common:ORG_WORKSPACES_TABLE_CREATED_AT"),
         cell: ({ row }) => (
-          <span className="text-muted-foreground">{formatDateTime(row.original.createdAt)}</span>
+          <span>{formatDateTime(row.original.createdAt)}</span>
         ),
       },
       {
         id: "actions",
-        header: t("common:ORG_WORKSPACES_TABLE_ACTIONS"),
+        meta: { kind: "actions" },
+        header: "",
         cell: ({ row }) => {
           const item = row.original;
           return (

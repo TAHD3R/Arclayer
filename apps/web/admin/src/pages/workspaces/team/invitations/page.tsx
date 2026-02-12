@@ -166,7 +166,10 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
     return [
       {
         id: "email",
-        meta: { title: t("team:TEAM_INVITATIONS_COL_EMAIL") },
+        meta: {
+          title: t("team:TEAM_INVITATIONS_COL_EMAIL"),
+          sortKey: "email",
+        },
         header: t("team:TEAM_INVITATIONS_COL_EMAIL"),
         cell: ({ row }) => {
           const inv = row.original;
@@ -190,7 +193,10 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
       },
       {
         accessorKey: "createdAt",
-        meta: { title: t("team:TEAM_INVITATIONS_COL_CREATED") },
+        meta: {
+          title: t("team:TEAM_INVITATIONS_COL_CREATED"),
+          sortKey: "created_at",
+        },
         header: t("team:TEAM_INVITATIONS_COL_CREATED"),
         cell: ({ row }) => {
           const formatted = dateTime.formatDate(row.original.createdAt, { emptyValue: "" });
@@ -213,7 +219,10 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
       },
       {
         accessorKey: "expiresAt",
-        meta: { title: t("team:TEAM_INVITATIONS_COL_EXPIRES") },
+        meta: {
+          title: t("team:TEAM_INVITATIONS_COL_EXPIRES"),
+          sortKey: "expires_at",
+        },
         header: t("team:TEAM_INVITATIONS_COL_EXPIRES"),
         cell: ({ row }) => {
           const formatted = dateTime.formatDate(row.original.expiresAt, { emptyValue: "" });
@@ -227,7 +236,10 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
       {
         id: "actions",
         enableHiding: false,
-        meta: { title: t("team:TEAM_TABLE_COL_ACTIONS") },
+        meta: {
+          title: t("team:TEAM_TABLE_COL_ACTIONS"),
+          kind: "actions",
+        },
         header: "",
         cell: ({ row }) => {
           const inv = row.original;
@@ -271,7 +283,10 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
       },
       {
         accessorKey: "code",
-        meta: { title: t("team:TEAM_INVITE_LINKS_COL_CODE") },
+        meta: {
+          title: t("team:TEAM_INVITE_LINKS_COL_CODE"),
+          sortKey: "display_code",
+        },
         header: t("team:TEAM_INVITE_LINKS_COL_CODE"),
         cell: ({ row }) => {
           const code = row.original.displayCode;
@@ -300,7 +315,10 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
       },
       {
         id: "participant",
-        meta: { title: t("team:TEAM_INVITE_LINKS_COL_PARTICIPANT") },
+        meta: {
+          title: t("team:TEAM_INVITE_LINKS_COL_PARTICIPANT"),
+          sortKey: "uses_count",
+        },
         header: t("team:TEAM_INVITE_LINKS_COL_PARTICIPANT"),
         cell: ({ row }) => {
           const uses = Number(row.original.usesCount || 0);
@@ -319,7 +337,10 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
       },
       {
         accessorKey: "createdAt",
-        meta: { title: t("team:TEAM_INVITE_LINKS_COL_CREATED") },
+        meta: {
+          title: t("team:TEAM_INVITE_LINKS_COL_CREATED"),
+          sortKey: "created_at",
+        },
         header: t("team:TEAM_INVITE_LINKS_COL_CREATED"),
         cell: ({ row }) => {
           const formatted = dateTime.formatDate(row.original.createdAt, { emptyValue: "" });
@@ -330,7 +351,10 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
       },
       {
         accessorKey: "expiresAt",
-        meta: { title: t("team:TEAM_INVITE_LINKS_COL_EXPIRES") },
+        meta: {
+          title: t("team:TEAM_INVITE_LINKS_COL_EXPIRES"),
+          sortKey: "expires_at",
+        },
         header: t("team:TEAM_INVITE_LINKS_COL_EXPIRES"),
         cell: ({ row }) => {
           const formatted = dateTime.formatDate(row.original.expiresAt, { emptyValue: "" });
@@ -344,7 +368,10 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
       {
         id: "actions",
         enableHiding: false,
-        meta: { title: t("team:TEAM_INVITE_LINKS_COL_ACTIONS") },
+        meta: {
+          title: t("team:TEAM_INVITE_LINKS_COL_ACTIONS"),
+          kind: "actions",
+        },
         header: "",
         cell: ({ row }) => {
           const link = row.original;
@@ -391,6 +418,7 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
               page: params.page,
               size: params.size,
               q: params.q,
+              ordering: params.ordering,
               status: (params.status ?? "pending") as "pending",
               mine: params.mine,
             })
@@ -417,6 +445,7 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
             page: params.page,
             size: params.size,
             q: params.q,
+            ordering: params.ordering,
             status: (params.status ?? "accepted") as "accepted",
             mine: params.mine,
           })
@@ -448,6 +477,7 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
             page: params.page,
             size: params.size,
             q: params.q,
+            ordering: params.ordering,
             mine: params.mine,
           }).then((data) => ({
             ...data,

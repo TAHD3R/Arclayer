@@ -5,7 +5,12 @@ import type { ColumnDef, SortingState, Table, VisibilityState } from "@tanstack/
 import * as React from "react";
 
 import { clearVisibilityState, readVisibilityState, writeVisibilityState } from "./storage";
-import type { DataTableBaseQuery, MapColumnFiltersFn, PageData } from "./types";
+import type {
+  DataTableBaseQuery,
+  DataTableFeatureOptions,
+  MapColumnFiltersFn,
+  PageData,
+} from "./types";
 import { useDataTableCore } from "./use-data-table-core";
 
 export type UseDataTableOptions<
@@ -35,6 +40,8 @@ export type UseDataTableOptions<
     enabled?: boolean;
     getRowId?: (row: TData, index: number) => string;
   };
+  features?: DataTableFeatureOptions;
+  onSortingChange?: (next: SortingState, ordering: string | undefined) => void;
   queryOptions?: Omit<
     UseQueryOptions<PageData<TData>, unknown, PageData<TData>, readonly unknown[]>,
     "queryKey" | "queryFn" | "placeholderData"
@@ -56,6 +63,10 @@ export type UseDataTableResult<TData, TExtraQuery extends Record<string, unknown
   items: TData[];
   total: number;
   pageCount: number;
+
+  // Sorting state.
+  sorting: SortingState;
+  setSorting: (next: SortingState) => void;
 
   // React Query state.
   isLoading: boolean;
@@ -117,6 +128,8 @@ export function useDataTable<
     mapColumnFilters,
     initialState,
     rowSelection,
+    features,
+    onSortingChange,
     search,
     queryOptions,
   } = options;
@@ -144,6 +157,8 @@ export function useDataTable<
       getRowId: rowSelection?.getRowId,
       resetOnPaginationChange: true, // semantics A: selection is per-page
     },
+    features,
+    onSortingChange,
     onColumnVisibilityChange: (next) => writeVisibilityState(tableId, next),
   });
 
@@ -239,6 +254,8 @@ export function useDataTable<
     items,
     total,
     pageCount: nextPageCount,
+    sorting: core.sorting,
+    setSorting: core.setSorting,
     isLoading: query.isLoading,
     isFetching: query.isFetching,
     error: query.error,

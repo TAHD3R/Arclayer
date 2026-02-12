@@ -358,6 +358,7 @@ export function useOrganizationTeamMembers() {
         page: params.page,
         size: params.size,
         q: params.q,
+        ordering: params.ordering,
         role: params.role,
         membershipStatus: params.membershipStatus,
         userStatus: params.userStatus,

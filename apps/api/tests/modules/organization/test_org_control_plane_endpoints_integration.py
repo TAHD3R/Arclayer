@@ -123,6 +123,15 @@ async def test_org_workspace_endpoints_list_create_archive_delete_and_guards(
             assert post_archive_items[-1]["workspaceId"] == created_workspace_id
             assert post_archive_items[-1]["isArchived"] is True
 
+            ordered_workspaces_desc = await client.get(
+                "/api/v1/organizations/me/workspaces",
+                params={"ordering": "-created_at"},
+            )
+            assert ordered_workspaces_desc.status_code == 200, ordered_workspaces_desc.text
+            ordered_workspace_items = ordered_workspaces_desc.json()["data"]["items"]
+            assert ordered_workspace_items[0]["workspaceId"] == created_workspace_id
+            assert ordered_workspace_items[-1]["workspaceId"] == encode_uuid(default_workspace.id)
+
             members_resp = await client.get(
                 f"/api/v1/organizations/me/workspaces/{encode_uuid(default_workspace.id)}/members"
             )
@@ -277,6 +286,22 @@ async def test_org_members_endpoints_invite_and_role_update(prepared_db, integra
             assert member_row["workspaceCount"] == 1
             assert len(member_row["workspaces"]) == 1
 
+            ordered_members_asc = await client.get(
+                "/api/v1/organizations/me/members",
+                params={"ordering": "username"},
+            )
+            assert ordered_members_asc.status_code == 200, ordered_members_asc.text
+            ordered_members_asc_items = ordered_members_asc.json()["data"]["items"]
+            assert ordered_members_asc_items[0]["username"].startswith("member_")
+
+            ordered_members_desc = await client.get(
+                "/api/v1/organizations/me/members",
+                params={"ordering": "-username"},
+            )
+            assert ordered_members_desc.status_code == 200, ordered_members_desc.text
+            ordered_members_desc_items = ordered_members_desc.json()["data"]["items"]
+            assert ordered_members_desc_items[0]["username"].startswith("owner_")
+
             role_update = await client.patch(
                 f"/api/v1/organizations/me/members/{encode_uuid(member_orgm.id)}/role",
                 json={"role": "admin"},
@@ -335,12 +360,41 @@ async def test_org_members_endpoints_invite_and_role_update(prepared_db, integra
             assert invite_payload["token"]
             assert invite_payload["email"].endswith("@example.com")
 
+            ordered_email_low = f"a_order_{uuid4().hex[:6]}@ordering.example.com"
+            ordered_email_high = f"z_order_{uuid4().hex[:6]}@ordering.example.com"
+            ordered_invite_low_resp = await client.post(
+                "/api/v1/organizations/me/invitations",
+                json={"email": ordered_email_low, "roleCode": "member"},
+            )
+            assert ordered_invite_low_resp.status_code == 200, ordered_invite_low_resp.text
+            ordered_invite_high_resp = await client.post(
+                "/api/v1/organizations/me/invitations",
+                json={"email": ordered_email_high, "roleCode": "member"},
+            )
+            assert ordered_invite_high_resp.status_code == 200, ordered_invite_high_resp.text
+
             list_invites_resp = await client.get("/api/v1/organizations/me/invitations")
             assert list_invites_resp.status_code == 200, list_invites_resp.text
             list_invites_payload = list_invites_resp.json()["data"]
             assert list_invites_payload["total"] >= 1
             assert list_invites_payload["items"][0]["invitationType"] == "email"
             invitation_id = invite_payload["invitationId"]
+
+            ordered_invites_asc_resp = await client.get(
+                "/api/v1/organizations/me/invitations",
+                params={"q": "ordering.example.com", "ordering": "email"},
+            )
+            assert ordered_invites_asc_resp.status_code == 200, ordered_invites_asc_resp.text
+            ordered_invites_asc_items = ordered_invites_asc_resp.json()["data"]["items"]
+            assert ordered_invites_asc_items[0]["email"] == ordered_email_low
+
+            ordered_invites_desc_resp = await client.get(
+                "/api/v1/organizations/me/invitations",
+                params={"q": "ordering.example.com", "ordering": "-email"},
+            )
+            assert ordered_invites_desc_resp.status_code == 200, ordered_invites_desc_resp.text
+            ordered_invites_desc_items = ordered_invites_desc_resp.json()["data"]["items"]
+            assert ordered_invites_desc_items[0]["email"] == ordered_email_high
 
             create_link_resp = await client.post(
                 "/api/v1/organizations/me/invitations/links",
@@ -351,9 +405,24 @@ async def test_org_members_endpoints_invite_and_role_update(prepared_db, integra
             assert link_payload["link"]["displayCode"]
             assert link_payload["token"]
 
+            create_link_resp_latest = await client.post(
+                "/api/v1/organizations/me/invitations/links",
+                json={"roleCode": "member", "maxUses": 3},
+            )
+            assert create_link_resp_latest.status_code == 200, create_link_resp_latest.text
+            latest_link_payload = create_link_resp_latest.json()["data"]
+
             list_links_resp = await client.get("/api/v1/organizations/me/invitations/links")
             assert list_links_resp.status_code == 200, list_links_resp.text
             assert list_links_resp.json()["data"]["total"] >= 1
+
+            ordered_links_desc_resp = await client.get(
+                "/api/v1/organizations/me/invitations/links",
+                params={"ordering": "-created_at"},
+            )
+            assert ordered_links_desc_resp.status_code == 200, ordered_links_desc_resp.text
+            ordered_links_desc_items = ordered_links_desc_resp.json()["data"]["items"]
+            assert ordered_links_desc_items[0]["id"] == latest_link_payload["link"]["id"]
 
             link_id = link_payload["link"]["id"]
             renew_link_resp = await client.post(
