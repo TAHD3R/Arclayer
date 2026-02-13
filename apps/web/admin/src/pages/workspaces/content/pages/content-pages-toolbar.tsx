@@ -1,7 +1,6 @@
 import { Input } from "antd";
 import { Search } from "lucide-react";
 
-import { ChromeTabs, ChromeTabsList, ChromeTabsTrigger } from "@/components/ui/chrome-tabs";
 import { LoaderOne } from "@/components/ui/loader";
 
 import { ContentPagesFilterPopover } from "./content-pages-filter-popover";
@@ -10,7 +9,6 @@ import type { ContentPagesFilters } from "./content-pages-types";
 type ContentPagesToolbarProps = {
   t: (key: string, options?: Record<string, unknown>) => string;
   filters: ContentPagesFilters;
-  onTypeChange: (type: ContentPagesFilters["type"]) => void;
   searchInput: string;
   onSearchInputChange: (value: string) => void;
   onFiltersChange: (next: ContentPagesFilters) => void;
@@ -20,17 +18,7 @@ type ContentPagesToolbarProps = {
 
 export function ContentPagesToolbar(props: ContentPagesToolbarProps) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3">
-      <div className="min-w-0">
-        <ChromeTabs value={props.filters.type} onValueChange={(next) => props.onTypeChange(next as ContentPagesFilters["type"])}>
-          <ChromeTabsList className="w-auto">
-            <ChromeTabsTrigger value="all">{props.t("content_pages:INDEX_FILTER_TYPE_ALL")}</ChromeTabsTrigger>
-            <ChromeTabsTrigger value="static">{props.t("content_pages:INDEX_FILTER_TYPE_STATIC")}</ChromeTabsTrigger>
-            <ChromeTabsTrigger value="template">{props.t("content_pages:INDEX_FILTER_TYPE_TEMPLATE")}</ChromeTabsTrigger>
-          </ChromeTabsList>
-        </ChromeTabs>
-      </div>
-
+    <div className="flex flex-wrap items-center justify-start gap-2">
       <div className="flex items-center gap-2">
         <Input
           allowClear

@@ -21,7 +21,6 @@ export type ContentPageRow = {
 };
 
 export type ContentPagesFilters = {
-  type: "all" | PageType;
   status: "all" | PageStatus;
   visibility: "all" | "public" | "private";
 };
@@ -41,7 +40,6 @@ export type ContentPageFormValues = {
   type: PageType;
   visibility: "public" | "private";
   parentId: string | null;
-  sortOrder: number;
   contentMode: "blank" | "copy";
   sourcePageId: string | null;
 };

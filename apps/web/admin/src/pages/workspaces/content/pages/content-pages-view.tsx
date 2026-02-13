@@ -21,11 +21,12 @@ import { DataTablePresenter, useDataTable } from "@/components/data-table";
 import { ApiError } from "@/lib/http";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { cn } from "@/lib/utils";
-import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";
+import { useAdminDateTimeFormatter } from "@/hooks/use-admin-date-time-formatter";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
 import { buildContentPagesColumns } from "./content-pages-columns";
 import { ContentPagesBulkActions } from "./content-pages-bulk-actions";
+import { ContentPagesConfirmDialogs } from "./content-pages-confirm-dialogs";
 import { ContentPagesSheet } from "./content-pages-sheet";
 import { ContentPagesToolbar } from "./content-pages-toolbar";
 import type {
@@ -39,7 +40,6 @@ import {
   buildDuplicateTitle,
   mapTreeToRows,
   normalizePathInput,
-  resolveDisplayName,
   sortRows,
   validatePathWithType,
 } from "./content-pages-utils";
@@ -49,14 +49,12 @@ function tableId(workspaceId: string | null): string {
 }
 
 function toApiFilters(filters: ContentPagesFilters): {
-  type?: ContentPagesFilters["type"] extends "all" ? never : ContentPagesFilters["type"];
   status?: ContentPagesFilters["status"] extends "all" ? never : ContentPagesFilters["status"];
   visibility?:
     | (ContentPagesFilters["visibility"] extends "all" ? never : ContentPagesFilters["visibility"])
     | undefined;
 } {
   return {
-    type: filters.type === "all" ? undefined : filters.type,
     status: filters.status === "all" ? undefined : filters.status,
     visibility: filters.visibility === "all" ? undefined : filters.visibility,
   };
@@ -78,16 +76,17 @@ export function ContentPagesView() {
   const queryClient = useQueryClient();
   const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
   const navigate = useNavigate();
-  const dateTime = useWorkspaceDateTimeFormatter();
+  const dateTime = useAdminDateTimeFormatter({ workspaceId });
 
   const [filters, setFilters] = React.useState<ContentPagesFilters>({
-    type: "all",
     status: "all",
     visibility: "all",
   });
   const [sheetOpen, setSheetOpen] = React.useState(false);
   const [sheetMode, setSheetMode] = React.useState<ContentPageSheetMode>("create");
   const [editingRow, setEditingRow] = React.useState<ContentPageRow | null>(null);
+  const [duplicateCandidate, setDuplicateCandidate] = React.useState<ContentPageRow | null>(null);
+  const [deleteCandidates, setDeleteCandidates] = React.useState<ContentPageRow[] | null>(null);
 
   const [processingIds, setProcessingIds] = React.useState<Set<string>>(new Set());
   const [bulkAction, setBulkAction] = React.useState<null | "delete" | "duplicate" | "visibility">(null);
@@ -124,12 +123,14 @@ export function ContentPagesView() {
       const mismatch = validatePathWithType(normalizedPath, payload.values.type);
       if (mismatch) throw new Error(t("content_pages:VALIDATION_PATH_TYPE_MISMATCH"));
 
+      const normalizedTitle = (payload.values.title ?? "").trim();
+      const normalizedDescription = (payload.values.description ?? "").trim();
+
       const commonPayload = {
-        title: payload.values.title.trim() || null,
-        description: payload.values.description.trim() || null,
+        title: normalizedTitle || null,
+        description: normalizedDescription || null,
         path: normalizedPath,
         parentId: payload.values.parentId,
-        sortOrder: Math.max(0, Number(payload.values.sortOrder || 0)),
         visibility: payload.values.visibility,
       } as const;
 
@@ -191,64 +192,8 @@ export function ContentPagesView() {
           setEditingRow(row);
           setSheetOpen(true);
         },
-        onDuplicate: async (row) => {
-          if (!workspaceId) return;
-
-          setRowProcessing(row.id, true);
-          try {
-            const tree = await listWorkspaceSitePagesTree(String(workspaceId));
-            const rows = mapTreeToRows(tree.items);
-            const existingPaths = new Set(rows.map((item) => item.path));
-            const duplicatedPath = buildDuplicatePath(row.path, existingPaths);
-
-            const created = await createWorkspaceSitePage(String(workspaceId), {
-              title: buildDuplicateTitle(row.title, row.path),
-              description: row.description,
-              path: duplicatedPath,
-              parentId: row.parentId,
-              sortOrder: row.sortOrder,
-              visibility: row.visibility,
-            });
-
-            const source = await resolveSourceRevision(String(workspaceId), row.id);
-            await saveWorkspaceSitePageDraft(String(workspaceId), created.id, {
-              document: source.document,
-              meta: source.meta ?? null,
-              styleOverrides: source.styleOverrides ?? null,
-              variantId: source.variantId ?? null,
-              deps: source.deps ?? null,
-              expectedRevision: 0,
-            });
-
-            notifySuccessText(t("content_pages:TOAST_DUPLICATE_SUCCESS"));
-            void queryClient.invalidateQueries({ queryKey: ["dataTable", tableId(String(workspaceId))] });
-            void queryClient.invalidateQueries({ queryKey: ["site", "pages", "tree", workspaceId] });
-          } catch (error) {
-            notifyError(error);
-          } finally {
-            setRowProcessing(row.id, false);
-          }
-        },
-        onDelete: async (row) => {
-          if (!workspaceId) return;
-
-          const confirmed = window.confirm(
-            t("content_pages:CONFIRM_DELETE_SINGLE", { name: resolveDisplayName(row) }),
-          );
-          if (!confirmed) return;
-
-          setRowProcessing(row.id, true);
-          try {
-            await deleteWorkspaceSitePage(String(workspaceId), row.id);
-            notifySuccessText(t("content_pages:TOAST_DELETE_SUCCESS"));
-            void queryClient.invalidateQueries({ queryKey: ["dataTable", tableId(String(workspaceId))] });
-            void queryClient.invalidateQueries({ queryKey: ["site", "pages", "tree", workspaceId] });
-          } catch (error) {
-            notifyError(error);
-          } finally {
-            setRowProcessing(row.id, false);
-          }
-        },
+        onDuplicate: (row) => setDuplicateCandidate(row),
+        onDelete: (row) => setDeleteCandidates([row]),
       }),
     [dateTime, navigate, processingIds, queryClient, setRowProcessing, t, workspaceId],
   );
@@ -256,7 +201,6 @@ export function ContentPagesView() {
   const tableHook = useDataTable<
     ContentPageRow,
     {
-      type?: ContentPagesFilters["type"] extends "all" ? never : ContentPagesFilters["type"];
       status?: ContentPagesFilters["status"] extends "all" ? never : ContentPagesFilters["status"];
       visibility?: ContentPagesFilters["visibility"] extends "all"
         ? never
@@ -270,6 +214,11 @@ export function ContentPagesView() {
       enabled: true,
       getRowId: (row) => row.id,
     },
+    features: {
+      columnPinning: {
+        enabled: true,
+      },
+    },
     initialState: {
       pageSize: 10,
       sorting: [{ id: "updatedAt", desc: true }],
@@ -282,7 +231,6 @@ export function ContentPagesView() {
       const q = (params.q || "").trim().toLowerCase();
 
       const filtered = rows.filter((row) => {
-        if (params.type && row.pageType !== params.type) return false;
         if (params.status && row.status !== params.status) return false;
         if (params.visibility && row.visibility !== params.visibility) return false;
 
@@ -330,9 +278,23 @@ export function ContentPagesView() {
   const selectedRows = table.getSelectedRowModel().rows.map((row) => row.original);
   const selectedCount = selectedRows.length;
 
+  React.useEffect(() => {
+    table.setColumnPinning((prev) => {
+      const left = ["select", "name"];
+      const right = ["actions"];
+
+      const leftSame =
+        (prev.left ?? []).length === left.length && left.every((value, index) => prev.left?.[index] === value);
+      const rightSame =
+        (prev.right ?? []).length === right.length && right.every((value, index) => prev.right?.[index] === value);
+
+      if (leftSame && rightSame) return prev;
+      return { left, right };
+    });
+  }, [table]);
+
   const resetFilters = React.useCallback(() => {
     setFilters({
-      type: "all",
       status: "all",
       visibility: "all",
     });
@@ -342,6 +304,83 @@ export function ContentPagesView() {
     () => mapTreeToRows(pagesTreeQuery.data?.items ?? []),
     [pagesTreeQuery.data?.items],
   );
+
+  const runSingleDuplicate = async (row: ContentPageRow): Promise<boolean> => {
+    if (!workspaceId) return false;
+
+    setRowProcessing(row.id, true);
+    try {
+      const tree = await listWorkspaceSitePagesTree(String(workspaceId));
+      const rows = mapTreeToRows(tree.items);
+      const existingPaths = new Set(rows.map((item) => item.path));
+      const duplicatedPath = buildDuplicatePath(row.path, existingPaths);
+
+      const created = await createWorkspaceSitePage(String(workspaceId), {
+        title: buildDuplicateTitle(row.title, row.path),
+        description: row.description,
+        path: duplicatedPath,
+        parentId: row.parentId,
+        sortOrder: row.sortOrder,
+        visibility: row.visibility,
+      });
+
+      const source = await resolveSourceRevision(String(workspaceId), row.id);
+      await saveWorkspaceSitePageDraft(String(workspaceId), created.id, {
+        document: source.document,
+        meta: source.meta ?? null,
+        styleOverrides: source.styleOverrides ?? null,
+        variantId: source.variantId ?? null,
+        deps: source.deps ?? null,
+        expectedRevision: 0,
+      });
+
+      notifySuccessText(t("content_pages:TOAST_DUPLICATE_SUCCESS"));
+      void queryClient.invalidateQueries({ queryKey: ["dataTable", tableId(String(workspaceId))] });
+      void queryClient.invalidateQueries({ queryKey: ["site", "pages", "tree", workspaceId] });
+      return true;
+    } catch (error) {
+      notifyError(error);
+      return false;
+    } finally {
+      setRowProcessing(row.id, false);
+    }
+  };
+
+  const runDeleteRows = async (rows: ContentPageRow[]): Promise<boolean> => {
+    if (!workspaceId || !rows.length) return false;
+
+    if (rows.length === 1) {
+      const row = rows[0];
+      setRowProcessing(row.id, true);
+      try {
+        await deleteWorkspaceSitePage(String(workspaceId), row.id);
+        notifySuccessText(t("content_pages:TOAST_DELETE_SUCCESS"));
+        void queryClient.invalidateQueries({ queryKey: ["dataTable", tableId(String(workspaceId))] });
+        void queryClient.invalidateQueries({ queryKey: ["site", "pages", "tree", workspaceId] });
+        return true;
+      } catch (error) {
+        notifyError(error);
+        return false;
+      } finally {
+        setRowProcessing(row.id, false);
+      }
+    }
+
+    setBulkAction("delete");
+    try {
+      await Promise.all(rows.map((row) => deleteWorkspaceSitePage(String(workspaceId), row.id)));
+      notifySuccessText(t("content_pages:TOAST_BULK_DELETE_SUCCESS"));
+      table.resetRowSelection();
+      void queryClient.invalidateQueries({ queryKey: ["dataTable", tableId(String(workspaceId))] });
+      void queryClient.invalidateQueries({ queryKey: ["site", "pages", "tree", workspaceId] });
+      return true;
+    } catch (error) {
+      notifyError(error);
+      return false;
+    } finally {
+      setBulkAction(null);
+    }
+  };
 
   const runBulkVisibility = async (visibility: "public" | "private") => {
     if (!workspaceId || !selectedRows.length) return;
@@ -371,28 +410,9 @@ export function ContentPagesView() {
     }
   };
 
-  const runBulkDelete = async () => {
-    if (!workspaceId || !selectedRows.length) return;
-
-    const confirmed = window.confirm(
-      t("content_pages:CONFIRM_DELETE_BULK", {
-        count: selectedRows.length,
-      }),
-    );
-    if (!confirmed) return;
-
-    setBulkAction("delete");
-    try {
-      await Promise.all(selectedRows.map((row) => deleteWorkspaceSitePage(String(workspaceId), row.id)));
-      notifySuccessText(t("content_pages:TOAST_BULK_DELETE_SUCCESS"));
-      table.resetRowSelection();
-      void queryClient.invalidateQueries({ queryKey: ["dataTable", tableId(String(workspaceId))] });
-      void queryClient.invalidateQueries({ queryKey: ["site", "pages", "tree", workspaceId] });
-    } catch (error) {
-      notifyError(error);
-    } finally {
-      setBulkAction(null);
-    }
+  const requestBulkDelete = () => {
+    if (!selectedRows.length) return;
+    setDeleteCandidates(selectedRows);
   };
 
   const runBulkDuplicate = async () => {
@@ -438,6 +458,18 @@ export function ContentPagesView() {
     }
   };
 
+  const handleConfirmDuplicate = async () => {
+    if (!duplicateCandidate) return;
+    const ok = await runSingleDuplicate(duplicateCandidate);
+    if (ok) setDuplicateCandidate(null);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteCandidates || deleteCandidates.length === 0) return;
+    const ok = await runDeleteRows(deleteCandidates);
+    if (ok) setDeleteCandidates(null);
+  };
+
   return (
     <>
       <DefaultPage
@@ -463,12 +495,6 @@ export function ContentPagesView() {
           <ContentPagesToolbar
             t={t}
             filters={filters}
-            onTypeChange={(type) =>
-              setFilters((prev) => ({
-                ...prev,
-                type,
-              }))
-            }
             searchInput={tableHook.searchInput}
             onSearchInputChange={tableHook.setSearchInput}
             onFiltersChange={setFilters}
@@ -484,7 +510,7 @@ export function ContentPagesView() {
           empty={!tableHook.isLoading && !tableHook.error && tableHook.items.length === 0}
           emptyTitle={t("content_pages:INDEX_EMPTY")}
           emptyDescription={t("common:EMPTY_DESC")}
-          className="flex-1 min-h-0"
+          className={cn("flex-1 min-h-0", selectedCount > 0 ? "pb-24" : "")}
           loadingVariant="table"
         >
           <ContentPagesBulkActions
@@ -497,7 +523,7 @@ export function ContentPagesView() {
             onSetPublic={() => void runBulkVisibility("public")}
             onSetPrivate={() => void runBulkVisibility("private")}
             onDuplicate={() => void runBulkDuplicate()}
-            onDelete={() => void runBulkDelete()}
+            onDelete={requestBulkDelete}
           />
 
           <DataTablePresenter
@@ -555,6 +581,25 @@ export function ContentPagesView() {
             targetId: editingRow?.id,
           });
         }}
+      />
+
+      <ContentPagesConfirmDialogs
+        t={t}
+        duplicateRow={duplicateCandidate}
+        duplicateLoading={Boolean(duplicateCandidate && processingIds.has(duplicateCandidate.id))}
+        onCloseDuplicate={() => setDuplicateCandidate(null)}
+        onConfirmDuplicate={() => void handleConfirmDuplicate()}
+        deleteRows={deleteCandidates}
+        deleteLoading={
+          Boolean(
+            deleteCandidates &&
+              (deleteCandidates.length > 1
+                ? bulkAction === "delete"
+                : processingIds.has(deleteCandidates[0]?.id ?? "")),
+          )
+        }
+        onCloseDelete={() => setDeleteCandidates(null)}
+        onConfirmDelete={() => void handleConfirmDelete()}
       />
     </>
   );

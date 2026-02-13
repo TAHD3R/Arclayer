@@ -8,6 +8,7 @@ import {
   type Table as ReactTable,
 } from "@tanstack/react-table";
 import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
+import type { CSSProperties } from "react";
 
 import {
   Table,
@@ -30,6 +31,11 @@ type DataTablePresenterProps<TData> = {
 };
 
 type AlignClass = "text-left" | "text-center" | "text-right";
+
+type PinStyleState = {
+  className: string | undefined;
+  style: CSSProperties;
+};
 
 function resolveHeaderAlignClass<TData>(header: Header<TData, unknown>): AlignClass {
   const meta = header.column.columnDef.meta;
@@ -55,6 +61,64 @@ function SortStateIcon(props: { state: false | "asc" | "desc" }) {
   return <ArrowUpDown className="size-3.5 text-muted-foreground/70" />;
 }
 
+function resolveColumnBaseStyle<TData>(column: Header<TData, unknown>["column"]): CSSProperties {
+  const size = column.getSize();
+  if (!size) return {};
+  return {
+    width: size,
+    minWidth: size,
+    maxWidth: size,
+  };
+}
+
+function resolveHeaderPinStyle<TData>(header: Header<TData, unknown>): PinStyleState {
+  const pinned = header.column.getIsPinned();
+  const style: CSSProperties = resolveColumnBaseStyle(header.column);
+
+  if (!pinned) return { className: undefined, style };
+
+  if (pinned === "left") {
+    style.position = "sticky";
+    style.left = `${header.column.getStart("left")}px`;
+  } else {
+    style.position = "sticky";
+    style.right = `${header.column.getAfter("right")}px`;
+  }
+
+  return {
+    className: cn(
+      "z-30 bg-card",
+      pinned === "left" && header.column.getIsLastColumn("left") ? "shadow-[2px_0_0_0_hsl(var(--border))]" : "",
+      pinned === "right" && header.column.getIsFirstColumn("right") ? "shadow-[-2px_0_0_0_hsl(var(--border))]" : "",
+    ),
+    style,
+  };
+}
+
+function resolveCellPinStyle<TData>(cell: Cell<TData, unknown>): PinStyleState {
+  const pinned = cell.column.getIsPinned();
+  const style: CSSProperties = resolveColumnBaseStyle(cell.column);
+
+  if (!pinned) return { className: undefined, style };
+
+  if (pinned === "left") {
+    style.position = "sticky";
+    style.left = `${cell.column.getStart("left")}px`;
+  } else {
+    style.position = "sticky";
+    style.right = `${cell.column.getAfter("right")}px`;
+  }
+
+  return {
+    className: cn(
+      "z-20 bg-card",
+      pinned === "left" && cell.column.getIsLastColumn("left") ? "shadow-[2px_0_0_0_hsl(var(--border))]" : "",
+      pinned === "right" && cell.column.getIsFirstColumn("right") ? "shadow-[-2px_0_0_0_hsl(var(--border))]" : "",
+    ),
+    style,
+  };
+}
+
 export function DataTablePresenter<TData>(props: DataTablePresenterProps<TData>) {
   const {
     table,
@@ -75,6 +139,7 @@ export function DataTablePresenter<TData>(props: DataTablePresenterProps<TData>)
               {headerGroup.headers.map((header) => {
                 const alignClass = resolveHeaderAlignClass(header);
                 const justifyClass = resolveHeaderJustifyClass(alignClass);
+                const pinStyle = resolveHeaderPinStyle(header);
                 const sortKey = String(header.column.columnDef.meta?.sortKey ?? "").trim();
                 const canSort = Boolean(sortKey) && header.column.getCanSort();
                 const sorted = header.column.getIsSorted();
@@ -88,13 +153,14 @@ export function DataTablePresenter<TData>(props: DataTablePresenterProps<TData>)
                   <TableHead
                     key={header.id}
                     aria-sort={canSort ? ariaSort : undefined}
-                    className={cn(alignClass, headerCellClassName?.(header))}
+                    className={cn(alignClass, pinStyle.className, headerCellClassName?.(header))}
+                    style={pinStyle.style}
                   >
                     {canSort ? (
                       <button
                         type="button"
                         className={cn(
-                          "group inline-flex w-full items-center gap-1 rounded-sm px-1 py-1 transition-colors hover:bg-muted/50",
+                          "group inline-flex items-center gap-1 rounded-sm px-1 py-1 transition-colors hover:bg-muted/50",
                           justifyClass,
                         )}
                         onClick={header.column.getToggleSortingHandler()}
@@ -116,11 +182,18 @@ export function DataTablePresenter<TData>(props: DataTablePresenterProps<TData>)
           {table.getRowModel().rows.length ? (
             table.getRowModel().rows.map((row, rowIndex) => (
               <TableRow key={row.id} className={rowClassName?.(row, rowIndex)}>
-                {row.getVisibleCells().map((cell) => (
-                  <TableCell key={cell.id} className={cellClassName?.(cell)}>
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </TableCell>
-                ))}
+                {row.getVisibleCells().map((cell) => {
+                  const pinStyle = resolveCellPinStyle(cell);
+                  return (
+                    <TableCell
+                      key={cell.id}
+                      className={cn(pinStyle.className, cellClassName?.(cell))}
+                      style={pinStyle.style}
+                    >
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </TableCell>
+                  );
+                })}
               </TableRow>
             ))
           ) : (

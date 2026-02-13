@@ -1,7 +1,7 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import { Avatar, Button as AntButton, Dropdown, Tag } from "antd";
 import type { MenuProps } from "antd";
-import { Copy, MoreVertical, Pencil, Trash2 } from "lucide-react";
+import { Copy, ExternalLink, MoreVertical, Pencil, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -32,17 +32,32 @@ function renderStatusTag(
   );
 }
 
-function renderVisibilityTag(
-  visibility: ContentPageRow["visibility"],
-  t: (key: string, options?: Record<string, unknown>) => string,
-) {
-  return (
-    <Tag color={visibility === "public" ? "green" : "volcano"} style={{ marginInlineEnd: 0 }}>
-      {visibility === "public"
-        ? t("content_pages:INDEX_FILTER_VISIBILITY_PUBLIC")
-        : t("content_pages:INDEX_FILTER_VISIBILITY_PRIVATE")}
-    </Tag>
-  );
+function buildRowMenuItems(
+  row: ContentPageRow,
+  options: BuildContentPagesColumnsOptions,
+): MenuProps["items"] {
+  return [
+    {
+      key: "edit",
+      icon: <Pencil className="size-4" />,
+      label: options.t("content_pages:MENU_EDIT"),
+      onClick: () => options.onEdit(row),
+    },
+    {
+      key: "duplicate",
+      icon: <Copy className="size-4" />,
+      label: options.t("content_pages:MENU_DUPLICATE"),
+      onClick: () => options.onDuplicate(row),
+    },
+    { type: "divider" },
+    {
+      key: "delete",
+      icon: <Trash2 className="size-4" />,
+      danger: true,
+      label: options.t("content_pages:MENU_DELETE"),
+      onClick: () => options.onDelete(row),
+    },
+  ];
 }
 
 export function buildContentPagesColumns(
@@ -75,6 +90,8 @@ export function buildContentPagesColumns(
       enableSorting: false,
       enableHiding: false,
       size: 48,
+      minSize: 48,
+      maxSize: 48,
     },
     {
       id: "name",
@@ -85,16 +102,45 @@ export function buildContentPagesColumns(
       header: options.t("content_pages:INDEX_COL_NAME"),
       cell: ({ row }) => {
         const item = row.original;
+        const processing = options.processingIds.has(item.id);
+        const menuItems = buildRowMenuItems(item, options);
         const prefix = item.level > 0 ? `${"· ".repeat(Math.min(item.level, 4))}` : "";
+
+        const displayName = `${prefix}${resolveDisplayName(item)}`;
+
         return (
-          <div className="min-w-64">
-            <div className="font-medium truncate">{`${prefix}${resolveDisplayName(item)}`}</div>
+          <div className="min-w-0 max-w-[18rem]">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <div className="font-medium truncate">{displayName}</div>
+              </div>
+              <Dropdown trigger={["click"]} menu={{ items: menuItems }}>
+                <Button
+                  variant="ghost"
+                  className="h-7 w-7 p-0"
+                  disabled={processing}
+                  aria-label={options.t("content_pages:INDEX_ACTION_MORE")}
+                >
+                  <MoreVertical className="size-4" />
+                </Button>
+              </Dropdown>
+            </div>
+
+            <div className="mt-1">
+              <Tag style={{ marginInlineEnd: 0 }} className="max-w-full truncate align-middle">
+                {item.path}
+              </Tag>
+            </div>
+
             {item.description ? (
-              <div className="text-muted-foreground text-xs truncate">{item.description}</div>
+              <div className="text-muted-foreground text-xs truncate mt-1">{item.description}</div>
             ) : null}
           </div>
         );
       },
+      size: 180,
+      minSize: 180,
+      maxSize: 240,
     },
     {
       id: "type",
@@ -111,26 +157,7 @@ export function buildContentPagesColumns(
         </Tag>
       ),
       enableSorting: false,
-    },
-    {
-      id: "path",
-      accessorFn: (row) => row.path,
-      meta: {
-        title: options.t("content_pages:COL_PATH"),
-        sortKey: "path",
-      },
-      header: options.t("content_pages:COL_PATH"),
-      cell: ({ row }) => <span className="font-mono text-xs">{row.original.path}</span>,
-    },
-    {
-      id: "visibility",
-      accessorFn: (row) => row.visibility,
-      meta: {
-        title: options.t("content_pages:COL_VISIBILITY"),
-        sortKey: "visibility",
-      },
-      header: options.t("content_pages:COL_VISIBILITY"),
-      cell: ({ row }) => renderVisibilityTag(row.original.visibility, options.t),
+      size: 100,
     },
     {
       id: "status",
@@ -141,6 +168,24 @@ export function buildContentPagesColumns(
       },
       header: options.t("content_pages:INDEX_COL_STATUS"),
       cell: ({ row }) => renderStatusTag(row.original.status, options.t),
+      size: 100,
+    },
+    {
+      id: "updatedAt",
+      accessorFn: (row) => row.updatedAt,
+      meta: {
+        title: options.t("content_pages:INDEX_COL_UPDATED_AT"),
+        sortKey: "updated_at",
+      },
+      header: options.t("content_pages:INDEX_COL_UPDATED_AT"),
+      cell: ({ row }) => {
+        const formatted = options.formatUpdatedAt(row.original.updatedAt);
+        return (
+          <span className={formatted ? "" : "text-muted-foreground"}>
+            {formatted || options.t("content_pages:PLACEHOLDER_DASH")}
+          </span>
+        );
+      },
     },
     {
       id: "updatedBy",
@@ -162,8 +207,8 @@ export function buildContentPagesColumns(
               {primary.slice(0, 1).toUpperCase()}
             </Avatar>
             <div className="min-w-0">
-              <div className="font-medium text-sm truncate">{primary}</div>
-              {secondary ? <div className="text-xs text-muted-foreground truncate">{secondary}</div> : null}
+              <div className="font-medium truncate">{primary}</div>
+              {secondary ? <div className="text-sm text-muted-foreground truncate">{secondary}</div> : null}
             </div>
           </div>
         );
@@ -171,76 +216,27 @@ export function buildContentPagesColumns(
       enableSorting: false,
     },
     {
-      id: "updatedAt",
-      accessorFn: (row) => row.updatedAt,
-      meta: {
-        title: options.t("content_pages:INDEX_COL_UPDATED_AT"),
-        sortKey: "updated_at",
-      },
-      header: options.t("content_pages:INDEX_COL_UPDATED_AT"),
-      cell: ({ row }) => {
-        const formatted = options.formatUpdatedAt(row.original.updatedAt);
-        return (
-          <span className={formatted ? "" : "text-muted-foreground"}>
-            {formatted || options.t("content_pages:PLACEHOLDER_DASH")}
-          </span>
-        );
-      },
-    },
-    {
       id: "actions",
       meta: {
-        title: options.t("content_pages:COL_ACTIONS"),
+        title: "",
         kind: "actions",
       },
-      header: options.t("content_pages:COL_ACTIONS"),
+      header: () => null,
       cell: ({ row }) => {
         const item = row.original;
         const processing = options.processingIds.has(item.id);
 
-        const menuItems: MenuProps["items"] = [
-          {
-            key: "edit",
-            icon: <Pencil className="size-4" />,
-            label: options.t("content_pages:MENU_EDIT"),
-            onClick: () => options.onEdit(item),
-          },
-          {
-            key: "duplicate",
-            icon: <Copy className="size-4" />,
-            label: options.t("content_pages:MENU_DUPLICATE"),
-            onClick: () => options.onDuplicate(item),
-          },
-          { type: "divider" },
-          {
-            key: "delete",
-            icon: <Trash2 className="size-4" />,
-            danger: true,
-            label: options.t("content_pages:MENU_DELETE"),
-            onClick: () => options.onDelete(item),
-          },
-        ];
-
         return (
-          <div className="flex items-center justify-end gap-2">
+          <div className="flex items-center justify-end">
             <AntButton
-              type="default"
+              type="link"
               size="small"
+              icon={<ExternalLink className="size-4" />}
               onClick={() => options.onOpenEditor(item)}
               disabled={processing}
             >
               {options.t("content_pages:INDEX_ACTION_OPEN_EDITOR")}
             </AntButton>
-            <Dropdown trigger={["click"]} menu={{ items: menuItems }}>
-              <Button
-                variant="ghost"
-                className="h-8 w-8 p-0"
-                disabled={processing}
-                aria-label={options.t("content_pages:INDEX_ACTION_MORE")}
-              >
-                <MoreVertical className="size-4" />
-              </Button>
-            </Dropdown>
           </div>
         );
       },

@@ -1,4 +1,4 @@
-import { Button, Form, Input, InputNumber, Select } from "antd";
+import { Alert, Button, Form, Input, Select } from "antd";
 import * as React from "react";
 
 import { SettingSheet } from "@/components/common/setting-sheet";
@@ -28,6 +28,19 @@ type ContentPagesSheetProps = {
   onSubmit: (values: ContentPageFormValues) => Promise<void>;
 };
 
+function renderFieldHeader(
+  t: (key: string, options?: Record<string, unknown>) => string,
+  titleKey: string,
+  descKey: string,
+) {
+  return (
+    <div className="grid gap-1.5">
+      <span className="font-semibold text-foreground">{t(titleKey)}</span>
+      <span className="text-muted-foreground text-sm">{t(descKey)}</span>
+    </div>
+  );
+}
+
 function getInitialValues(mode: ContentPageSheetMode, editingRow: ContentPageRow | null): ContentPageFormValues {
   if (mode === "edit" && editingRow) {
     return {
@@ -37,7 +50,6 @@ function getInitialValues(mode: ContentPageSheetMode, editingRow: ContentPageRow
       type: editingRow.pageType,
       visibility: editingRow.visibility,
       parentId: editingRow.parentId,
-      sortOrder: editingRow.sortOrder,
       contentMode: "blank",
       sourcePageId: null,
     };
@@ -50,7 +62,6 @@ function getInitialValues(mode: ContentPageSheetMode, editingRow: ContentPageRow
     type: "static",
     visibility: "public",
     parentId: null,
-    sortOrder: 0,
     contentMode: "blank",
     sourcePageId: null,
   };
@@ -59,11 +70,16 @@ function getInitialValues(mode: ContentPageSheetMode, editingRow: ContentPageRow
 export function ContentPagesSheet(props: ContentPagesSheetProps) {
   const [form] = Form.useForm<ContentPageFormValues>();
   const [tab, setTab] = React.useState<"basic" | "content">("basic");
+  const [typeSwitchHint, setTypeSwitchHint] = React.useState<PageType | null>(null);
+  const lastTypeRef = React.useRef<PageType | null>(null);
 
   React.useEffect(() => {
     if (!props.open) return;
-    form.setFieldsValue(getInitialValues(props.mode, props.editingRow));
+    const initialValues = getInitialValues(props.mode, props.editingRow);
+    form.setFieldsValue(initialValues);
     setTab("basic");
+    setTypeSwitchHint(null);
+    lastTypeRef.current = initialValues.type;
   }, [form, props.editingRow, props.mode, props.open]);
 
   const typeValue = Form.useWatch("type", form) as PageType | undefined;
@@ -128,6 +144,22 @@ export function ContentPagesSheet(props: ContentPagesSheetProps) {
       <Form<ContentPageFormValues>
         form={form}
         layout="vertical"
+        onValuesChange={(changedValues) => {
+          const nextType = changedValues.type as PageType | undefined;
+          if (nextType) {
+            if (lastTypeRef.current !== null && nextType !== lastTypeRef.current) {
+              setTypeSwitchHint(nextType);
+            }
+            lastTypeRef.current = nextType;
+          }
+
+          const nextContentMode = changedValues.contentMode as
+            | ContentPageFormValues["contentMode"]
+            | undefined;
+          if (nextContentMode && nextContentMode !== "copy") {
+            form.setFieldValue("sourcePageId", null);
+          }
+        }}
         onFinish={async (values) => {
           const normalizedPath = normalizePathInput(values.path);
           await props.onSubmit({
@@ -144,109 +176,154 @@ export function ContentPagesSheet(props: ContentPagesSheetProps) {
             <ChromeTabsTrigger value="content">{props.t("content_pages:SHEET_TAB_CONTENT")}</ChromeTabsTrigger>
           </ChromeTabsList>
 
-          <ChromeTabsContent value="basic" className="mt-4 grid grid-cols-1 gap-3">
-            <Form.Item
-              label={props.t("content_pages:FIELD_TITLE_LABEL")}
-              name="title"
-              rules={[{ required: true, message: props.t("content_pages:VALIDATION_TITLE_REQUIRED") }]}
-            >
-              <Input maxLength={256} />
-            </Form.Item>
+          <ChromeTabsContent value="basic" className="mt-4 grid grid-cols-1 gap-4">
+            <div className="grid gap-2">
+              {renderFieldHeader(props.t, "content_pages:FIELD_TITLE_LABEL", "content_pages:FIELD_TITLE_DESC")}
+              <Form.Item
+                className="mb-0"
+                name="title"
+                rules={[{ required: true, message: props.t("content_pages:VALIDATION_TITLE_REQUIRED") }]}
+              >
+                <Input maxLength={256} />
+              </Form.Item>
+            </div>
 
-            <Form.Item label={props.t("content_pages:FIELD_TYPE_LABEL")} name="type">
-              <Select
-                options={[
-                  { value: "static", label: props.t("content_pages:INDEX_TYPE_STATIC") },
-                  { value: "template", label: props.t("content_pages:INDEX_TYPE_TEMPLATE") },
+            <div className="grid gap-2">
+              {renderFieldHeader(props.t, "content_pages:FIELD_TYPE_LABEL", "content_pages:FIELD_TYPE_DESC")}
+              <Form.Item className="mb-0" name="type">
+                <Select
+                  options={[
+                    { value: "static", label: props.t("content_pages:INDEX_TYPE_STATIC") },
+                    { value: "template", label: props.t("content_pages:INDEX_TYPE_TEMPLATE") },
+                  ]}
+                />
+              </Form.Item>
+            </div>
+
+            {typeSwitchHint ? (
+              <Alert
+                showIcon
+                type="info"
+                message={
+                  typeSwitchHint === "template"
+                    ? props.t("content_pages:TYPE_SWITCH_TEMPLATE_TITLE")
+                    : props.t("content_pages:TYPE_SWITCH_STATIC_TITLE")
+                }
+                description={
+                  typeSwitchHint === "template"
+                    ? props.t("content_pages:TYPE_SWITCH_TEMPLATE_DESC")
+                    : props.t("content_pages:TYPE_SWITCH_STATIC_DESC")
+                }
+              />
+            ) : null}
+
+            <div className="grid gap-2">
+              {renderFieldHeader(props.t, "content_pages:FIELD_PATH_LABEL", "content_pages:FIELD_PATH_DESC")}
+              <Form.Item
+                className="mb-0"
+                name="path"
+                rules={[
+                  { required: true, message: props.t("content_pages:VALIDATION_PATH_REQUIRED") },
+                  ({ getFieldValue }) => ({
+                    validator(_, value: string) {
+                      const nextType = (getFieldValue("type") as PageType | undefined) ?? "static";
+                      const mismatch = validatePathWithType(normalizePathInput(value || ""), nextType);
+                      if (!mismatch) return Promise.resolve();
+                      return Promise.reject(new Error(props.t("content_pages:VALIDATION_PATH_TYPE_MISMATCH")));
+                    },
+                  }),
                 ]}
-              />
-            </Form.Item>
+              >
+                <Input placeholder="/about" />
+              </Form.Item>
+            </div>
 
-            <Form.Item
-              label={props.t("content_pages:FIELD_PATH_LABEL")}
-              name="path"
-              extra={props.t("content_pages:FIELD_PATH_HELP")}
-              rules={[
-                { required: true, message: props.t("content_pages:VALIDATION_PATH_REQUIRED") },
-                ({ getFieldValue }) => ({
-                  validator(_, value: string) {
-                    const nextType = (getFieldValue("type") as PageType | undefined) ?? "static";
-                    const mismatch = validatePathWithType(normalizePathInput(value || ""), nextType);
-                    if (!mismatch) return Promise.resolve();
-                    return Promise.reject(new Error(props.t("content_pages:VALIDATION_PATH_TYPE_MISMATCH")));
-                  },
-                }),
-              ]}
-            >
-              <Input placeholder="/about" />
-            </Form.Item>
+            <div className="grid gap-2">
+              {renderFieldHeader(
+                props.t,
+                "content_pages:FIELD_VISIBILITY_LABEL",
+                "content_pages:FIELD_VISIBILITY_DESC",
+              )}
+              <Form.Item className="mb-0" name="visibility">
+                <Select
+                  options={[
+                    { value: "public", label: props.t("content_pages:INDEX_FILTER_VISIBILITY_PUBLIC") },
+                    { value: "private", label: props.t("content_pages:INDEX_FILTER_VISIBILITY_PRIVATE") },
+                  ]}
+                />
+              </Form.Item>
+            </div>
 
-            <Form.Item label={props.t("content_pages:FIELD_VISIBILITY_LABEL")} name="visibility">
-              <Select
-                options={[
-                  { value: "public", label: props.t("content_pages:INDEX_FILTER_VISIBILITY_PUBLIC") },
-                  { value: "private", label: props.t("content_pages:INDEX_FILTER_VISIBILITY_PRIVATE") },
-                ]}
-              />
-            </Form.Item>
-
-            <Form.Item label={props.t("content_pages:FIELD_PARENT_LABEL")} name="parentId">
-              <Select
-                showSearch
-                optionFilterProp="label"
-                options={parentOptions}
-              />
-            </Form.Item>
-
-            <Form.Item label={props.t("content_pages:FIELD_SORT_ORDER_LABEL")} name="sortOrder">
-              <InputNumber className="w-full" min={0} precision={0} />
-            </Form.Item>
+            <div className="grid gap-2">
+              {renderFieldHeader(props.t, "content_pages:FIELD_PARENT_LABEL", "content_pages:FIELD_PARENT_DESC")}
+              <Form.Item className="mb-0" name="parentId">
+                <Select showSearch optionFilterProp="label" options={parentOptions} />
+              </Form.Item>
+            </div>
           </ChromeTabsContent>
 
-          <ChromeTabsContent value="content" className="mt-4 grid grid-cols-1 gap-3">
-            <Form.Item label={props.t("content_pages:FIELD_DESCRIPTION_LABEL")} name="description">
-              <Input.TextArea rows={4} maxLength={1024} />
-            </Form.Item>
+          <ChromeTabsContent value="content" className="mt-4 grid grid-cols-1 gap-4">
+            <div className="grid gap-2">
+              {renderFieldHeader(
+                props.t,
+                "content_pages:FIELD_DESCRIPTION_LABEL",
+                "content_pages:FIELD_DESCRIPTION_DESC",
+              )}
+              <Form.Item className="mb-0" name="description">
+                <Input.TextArea rows={4} maxLength={1024} />
+              </Form.Item>
+            </div>
 
             {props.mode === "create" ? (
               <>
-                <Form.Item label={props.t("content_pages:FIELD_CONTENT_MODE_LABEL")} name="contentMode">
-                  <Select
-                    options={[
-                      {
-                        value: "blank",
-                        label: props.t("content_pages:CONTENT_MODE_BLANK"),
-                      },
-                      {
-                        value: "copy",
-                        label: props.t("content_pages:CONTENT_MODE_COPY"),
-                      },
-                    ]}
-                  />
-                </Form.Item>
+                <div className="grid gap-2">
+                  {renderFieldHeader(
+                    props.t,
+                    "content_pages:FIELD_CONTENT_MODE_LABEL",
+                    "content_pages:FIELD_CONTENT_MODE_DESC",
+                  )}
+                  <Form.Item className="mb-0" name="contentMode">
+                    <Select
+                      options={[
+                        {
+                          value: "blank",
+                          label: props.t("content_pages:CONTENT_MODE_BLANK"),
+                        },
+                        {
+                          value: "copy",
+                          label: props.t("content_pages:CONTENT_MODE_COPY"),
+                        },
+                      ]}
+                    />
+                  </Form.Item>
+                </div>
 
-                <Form.Item
-                  label={props.t("content_pages:FIELD_COPY_SOURCE_LABEL")}
-                  name="sourcePageId"
-                  rules={
-                    contentModeValue === "copy"
-                      ? [
-                          {
-                            required: true,
-                            message: props.t("content_pages:VALIDATION_COPY_SOURCE_REQUIRED"),
-                          },
-                        ]
-                      : []
-                  }
-                >
-                  <Select
-                    showSearch
-                    optionFilterProp="label"
-                    disabled={contentModeValue !== "copy"}
-                    options={copySourceOptions}
-                    placeholder={props.t("content_pages:COPY_SOURCE_PLACEHOLDER")}
-                  />
-                </Form.Item>
+                {contentModeValue === "copy" ? (
+                  <div className="grid gap-2">
+                    {renderFieldHeader(
+                      props.t,
+                      "content_pages:FIELD_COPY_SOURCE_LABEL",
+                      "content_pages:FIELD_COPY_SOURCE_DESC",
+                    )}
+                    <Form.Item
+                      className="mb-0"
+                      name="sourcePageId"
+                      rules={[
+                        {
+                          required: true,
+                          message: props.t("content_pages:VALIDATION_COPY_SOURCE_REQUIRED"),
+                        },
+                      ]}
+                    >
+                      <Select
+                        showSearch
+                        optionFilterProp="label"
+                        options={copySourceOptions}
+                        placeholder={props.t("content_pages:COPY_SOURCE_PLACEHOLDER")}
+                      />
+                    </Form.Item>
+                  </div>
+                ) : null}
               </>
             ) : null}
 
