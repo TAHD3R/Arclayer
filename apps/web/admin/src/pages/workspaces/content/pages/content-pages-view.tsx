@@ -109,6 +109,22 @@ export function ContentPagesView() {
     });
   }, []);
 
+  const openEditor = React.useCallback(
+    (row: ContentPageRow) => {
+      if (!workspaceId) return;
+      void navigate({
+        to: "/w/$workspaceId/editor/$editorMode/$entityId",
+        params: {
+          workspaceId: String(workspaceId),
+          editorMode: "page",
+          entityId: row.id,
+        },
+        search: { pathname: row.path },
+      });
+    },
+    [navigate, workspaceId],
+  );
+
   const extraQuery = React.useMemo(() => toApiFilters(filters), [filters]);
 
   const submitMutation = useMutation({
@@ -175,18 +191,7 @@ export function ContentPagesView() {
         t,
         formatUpdatedAt: (value) => (value ? dateTime.formatDateTime(value) : null),
         processingIds,
-        onOpenEditor: (row) => {
-          if (!workspaceId) return;
-          void navigate({
-            to: "/w/$workspaceId/editor/$editorMode/$entityId",
-            params: {
-              workspaceId: String(workspaceId),
-              editorMode: "page",
-              entityId: row.id,
-            },
-            search: { pathname: row.path },
-          });
-        },
+        onOpenEditor: openEditor,
         onEdit: (row) => {
           setSheetMode("edit");
           setEditingRow(row);
@@ -195,7 +200,7 @@ export function ContentPagesView() {
         onDuplicate: (row) => setDuplicateCandidate(row),
         onDelete: (row) => setDeleteCandidates([row]),
       }),
-    [dateTime, navigate, processingIds, queryClient, setRowProcessing, t, workspaceId],
+    [dateTime, openEditor, processingIds, t],
   );
 
   const tableHook = useDataTable<
@@ -280,8 +285,8 @@ export function ContentPagesView() {
 
   React.useEffect(() => {
     table.setColumnPinning((prev) => {
-      const left = ["select", "name"];
-      const right = ["actions"];
+      const left = ["select"];
+      const right: string[] = [];
 
       const leftSame =
         (prev.left ?? []).length === left.length && left.every((value, index) => prev.left?.[index] === value);
@@ -532,8 +537,9 @@ export function ContentPagesView() {
             className="flex-1 min-h-0"
             rowClassName={(row, rowIndex) => {
               const selected = row.getIsSelected() ? "bg-muted/40" : rowIndex % 2 === 1 ? "bg-muted/20" : "";
-              return cn(selected, "hover:bg-muted/40 transition-colors");
+              return cn(selected, "hover:bg-muted/40 transition-colors cursor-pointer");
             }}
+            onRowClick={(row) => openEditor(row.original)}
           />
 
           {pageData ? (

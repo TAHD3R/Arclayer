@@ -8,7 +8,7 @@ import {
   type Table as ReactTable,
 } from "@tanstack/react-table";
 import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
-import type { CSSProperties } from "react";
+import type { CSSProperties, MouseEvent } from "react";
 
 import {
   Table,
@@ -26,6 +26,7 @@ type DataTablePresenterProps<TData> = {
   className?: string;
   tableClassName?: string;
   rowClassName?: (row: Row<TData>, rowIndex: number) => string | undefined;
+  onRowClick?: (row: Row<TData>, rowIndex: number, event: MouseEvent<HTMLTableRowElement>) => void;
   headerCellClassName?: (header: Header<TData, unknown>) => string | undefined;
   cellClassName?: (cell: Cell<TData, unknown>) => string | undefined;
 };
@@ -119,6 +120,15 @@ function resolveCellPinStyle<TData>(cell: Cell<TData, unknown>): PinStyleState {
   };
 }
 
+function shouldIgnoreRowClick(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  return Boolean(
+    target.closest(
+      "button, a, input, textarea, select, label, [role=button], [role=menuitem], [role=checkbox], [data-row-click-ignore=true]",
+    ),
+  );
+}
+
 export function DataTablePresenter<TData>(props: DataTablePresenterProps<TData>) {
   const {
     table,
@@ -126,6 +136,7 @@ export function DataTablePresenter<TData>(props: DataTablePresenterProps<TData>)
     className,
     tableClassName,
     rowClassName,
+    onRowClick,
     headerCellClassName,
     cellClassName,
   } = props;
@@ -181,7 +192,15 @@ export function DataTablePresenter<TData>(props: DataTablePresenterProps<TData>)
         <TableBody>
           {table.getRowModel().rows.length ? (
             table.getRowModel().rows.map((row, rowIndex) => (
-              <TableRow key={row.id} className={rowClassName?.(row, rowIndex)}>
+              <TableRow
+                key={row.id}
+                className={rowClassName?.(row, rowIndex)}
+                onClick={(event) => {
+                  if (!onRowClick) return;
+                  if (shouldIgnoreRowClick(event.target)) return;
+                  onRowClick(row, rowIndex, event);
+                }}
+              >
                 {row.getVisibleCells().map((cell) => {
                   const pinStyle = resolveCellPinStyle(cell);
                   return (

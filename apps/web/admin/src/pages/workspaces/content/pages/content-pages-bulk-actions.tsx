@@ -38,16 +38,16 @@ export function ContentPagesBulkActions(props: ContentPagesBulkActionsProps) {
               </div>
 
               <div className="flex items-center gap-2">
-                <Button onClick={props.onSetPublic} loading={props.visibilityLoading}>
+                <Button type="text" onClick={props.onSetPublic} loading={props.visibilityLoading}>
                   {props.t("content_pages:BULK_SET_PUBLIC")}
                 </Button>
-                <Button onClick={props.onSetPrivate} loading={props.visibilityLoading}>
+                <Button type="text" onClick={props.onSetPrivate} loading={props.visibilityLoading}>
                   {props.t("content_pages:BULK_SET_PRIVATE")}
                 </Button>
-                <Button onClick={props.onDuplicate} loading={props.duplicateLoading}>
+                <Button type="text" onClick={props.onDuplicate} loading={props.duplicateLoading}>
                   {props.t("content_pages:BULK_DUPLICATE")}
                 </Button>
-                <Button danger onClick={props.onDelete} loading={props.deleteLoading}>
+                <Button type="primary" danger onClick={props.onDelete} loading={props.deleteLoading}>
                   {props.t("content_pages:BULK_DELETE")}
                 </Button>
               </div>

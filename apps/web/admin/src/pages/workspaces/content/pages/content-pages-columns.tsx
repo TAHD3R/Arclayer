@@ -1,5 +1,5 @@
 import type { ColumnDef } from "@tanstack/react-table";
-import { Avatar, Button as AntButton, Dropdown, Tag } from "antd";
+import { Avatar, Dropdown, Tag } from "antd";
 import type { MenuProps } from "antd";
 import { Copy, ExternalLink, MoreVertical, Pencil, Trash2 } from "lucide-react";
 
@@ -37,6 +37,13 @@ function buildRowMenuItems(
   options: BuildContentPagesColumnsOptions,
 ): MenuProps["items"] {
   return [
+    {
+      key: "open-editor",
+      icon: <ExternalLink className="size-4" />,
+      label: options.t("content_pages:INDEX_ACTION_OPEN_EDITOR"),
+      onClick: () => options.onOpenEditor(row),
+    },
+    { type: "divider" },
     {
       key: "edit",
       icon: <Pencil className="size-4" />,
@@ -110,14 +117,22 @@ export function buildContentPagesColumns(
 
         return (
           <div className="min-w-0 max-w-[18rem]">
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0 flex-1">
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0 flex-1 grid gap-1">
                 <div className="font-medium truncate">{displayName}</div>
+                <Tag style={{ marginInlineEnd: 0 }} className="w-fit max-w-full truncate align-middle justify-self-start">
+                  {item.path}
+                </Tag>
+
+                {item.description ? (
+                  <div className="text-muted-foreground text-xs truncate">{item.description}</div>
+                ) : null}
               </div>
+
               <Dropdown trigger={["click"]} menu={{ items: menuItems }}>
                 <Button
                   variant="ghost"
-                  className="h-7 w-7 p-0"
+                  className="h-7 w-7 p-0 self-center"
                   disabled={processing}
                   aria-label={options.t("content_pages:INDEX_ACTION_MORE")}
                 >
@@ -125,16 +140,6 @@ export function buildContentPagesColumns(
                 </Button>
               </Dropdown>
             </div>
-
-            <div className="mt-1">
-              <Tag style={{ marginInlineEnd: 0 }} className="max-w-full truncate align-middle">
-                {item.path}
-              </Tag>
-            </div>
-
-            {item.description ? (
-              <div className="text-muted-foreground text-xs truncate mt-1">{item.description}</div>
-            ) : null}
           </div>
         );
       },
@@ -214,34 +219,6 @@ export function buildContentPagesColumns(
         );
       },
       enableSorting: false,
-    },
-    {
-      id: "actions",
-      meta: {
-        title: "",
-        kind: "actions",
-      },
-      header: () => null,
-      cell: ({ row }) => {
-        const item = row.original;
-        const processing = options.processingIds.has(item.id);
-
-        return (
-          <div className="flex items-center justify-end">
-            <AntButton
-              type="link"
-              size="small"
-              icon={<ExternalLink className="size-4" />}
-              onClick={() => options.onOpenEditor(item)}
-              disabled={processing}
-            >
-              {options.t("content_pages:INDEX_ACTION_OPEN_EDITOR")}
-            </AntButton>
-          </div>
-        );
-      },
-      enableSorting: false,
-      enableHiding: false,
     },
   ];
 }
