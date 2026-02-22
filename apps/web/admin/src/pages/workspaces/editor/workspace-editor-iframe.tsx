@@ -13,10 +13,26 @@ type WorkspaceEditorIframeProps = {
   onPathnameChange: (pathname: string) => void;
   portalOrigin: string;
   onIframeRefChange: (iframe: HTMLIFrameElement | null) => void;
+  hideToolbar?: boolean;
+  canvasWidthPx?: number;
+  zoomPercent?: number;
+  showBounds?: boolean;
+  showGuides?: boolean;
 };
 
 export function WorkspaceEditorIframe(props: WorkspaceEditorIframeProps) {
-  const { workspaceId, pathname, onPathnameChange, portalOrigin, onIframeRefChange } = props;
+  const {
+    workspaceId,
+    pathname,
+    onPathnameChange,
+    portalOrigin,
+    onIframeRefChange,
+    hideToolbar = false,
+    canvasWidthPx = 1280,
+    zoomPercent = 100,
+    showBounds = true,
+    showGuides = false,
+  } = props;
   const { t } = useTranslation(["content_pages", "common"]);
 
   const [pathInput, setPathInput] = React.useState(pathname);
@@ -70,22 +86,26 @@ export function WorkspaceEditorIframe(props: WorkspaceEditorIframeProps) {
     onPathnameChange(normalizePathname(pathInput || "/"));
   };
 
+  const scale = Math.min(2, Math.max(0.25, zoomPercent / 100));
+
   return (
     <div className="flex h-full min-h-0 flex-col gap-3">
-      <div className="flex flex-wrap items-center gap-2 rounded-md border bg-muted/30 p-2">
-        <Input
-          value={pathInput}
-          onChange={(event) => setPathInput(event.target.value)}
-          onPressEnter={onSubmitPath}
-          placeholder={t("content_pages:EDITOR_SHELL_PATH_PLACEHOLDER")}
-          className="w-full md:w-80"
-        />
-        <Button onClick={onSubmitPath}>{t("content_pages:EDITOR_SHELL_PATH_APPLY")}</Button>
-        <Button onClick={() => tokenQuery.refetch()}>{t("content_pages:EDITOR_SHELL_TOKEN_REFRESH")}</Button>
+      {!hideToolbar ? (
+        <div className="flex flex-wrap items-center gap-2 rounded-md border bg-muted/30 p-2">
+          <Input
+            value={pathInput}
+            onChange={(event) => setPathInput(event.target.value)}
+            onPressEnter={onSubmitPath}
+            placeholder={t("content_pages:EDITOR_SHELL_PATH_PLACEHOLDER")}
+            className="w-full md:w-80"
+          />
+          <Button onClick={onSubmitPath}>{t("content_pages:EDITOR_SHELL_PATH_APPLY")}</Button>
+          <Button onClick={() => tokenQuery.refetch()}>{t("content_pages:EDITOR_SHELL_TOKEN_REFRESH")}</Button>
 
-        {siteQuery.data?.slug ? <Tag>{siteQuery.data.slug}</Tag> : null}
-        {tokenQuery.data?.token ? <Tag color="green">{t("content_pages:EDITOR_SHELL_TOKEN_READY")}</Tag> : null}
-      </div>
+          {siteQuery.data?.slug ? <Tag>{siteQuery.data.slug}</Tag> : null}
+          {tokenQuery.data?.token ? <Tag color="green">{t("content_pages:EDITOR_SHELL_TOKEN_READY")}</Tag> : null}
+        </div>
+      ) : null}
 
       {hasError ? (
         <Alert
@@ -100,7 +120,7 @@ export function WorkspaceEditorIframe(props: WorkspaceEditorIframeProps) {
         />
       ) : null}
 
-      <div className="relative flex-1 min-h-[340px] overflow-hidden rounded-md border bg-background">
+      <div className="relative flex-1 min-h-[340px] overflow-auto rounded-md border bg-[#f5f6f8]">
         {siteQuery.isLoading || tokenQuery.isLoading ? (
           <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/70">
             <Space align="center">
@@ -113,12 +133,38 @@ export function WorkspaceEditorIframe(props: WorkspaceEditorIframeProps) {
         ) : null}
 
         {iframeSrc ? (
-          <iframe
-            ref={onIframeRefChange}
-            title="workspace-editor-iframe"
-            src={iframeSrc}
-            className="h-full w-full border-0"
-          />
+          <div className="relative flex min-h-full items-start justify-center p-10">
+            <div
+              className="relative"
+              style={{
+                width: `${canvasWidthPx}px`,
+                transform: `scale(${scale})`,
+                transformOrigin: "top center",
+              }}
+            >
+              {showGuides ? (
+                <>
+                  <div className="pointer-events-none absolute left-1/2 top-0 z-20 h-full w-px bg-blue-200/80" />
+                  <div className="pointer-events-none absolute left-0 top-1/2 z-20 h-px w-full bg-blue-200/80" />
+                </>
+              ) : null}
+              <div
+                className="relative h-[960px] overflow-hidden rounded-xl bg-background shadow-[0_20px_60px_rgba(15,23,42,0.22)]"
+                style={{
+                  borderWidth: showBounds ? 1 : 0,
+                  borderStyle: "solid",
+                  borderColor: "rgba(148,163,184,0.5)",
+                }}
+              >
+                <iframe
+                  ref={onIframeRefChange}
+                  title="workspace-editor-iframe"
+                  src={iframeSrc}
+                  className="h-full w-full border-0"
+                />
+              </div>
+            </div>
+          </div>
         ) : (
           <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
             {t("content_pages:EDITOR_SHELL_IFRAME_EMPTY")}

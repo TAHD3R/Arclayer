@@ -23,7 +23,85 @@ class DocumentMeta(BaseSchema):
     )
 
 
-class ContainerBlockProps(BaseSchema):
+class BlockLayoutProps(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    width: int | str | None = Field(default=None, description="Optional width value.")
+    min_width: int | str | None = Field(default=None, alias="minWidth", description="Optional min width value.")
+    max_width: int | str | None = Field(default=None, alias="maxWidth", description="Optional max width value.")
+    height: int | str | None = Field(default=None, description="Optional height value.")
+    min_height: int | str | None = Field(default=None, alias="minHeight", description="Optional min height value.")
+    max_height: int | str | None = Field(default=None, alias="maxHeight", description="Optional max height value.")
+    margin: int | str | None = Field(default=None, description="Optional margin value.")
+    padding: int | str | None = Field(default=None, description="Optional padding value.")
+    padding_x: int | str | None = Field(default=None, alias="paddingX", description="Optional horizontal padding.")
+    padding_y: int | str | None = Field(default=None, alias="paddingY", description="Optional vertical padding.")
+    gap: int | str | None = Field(default=None, description="Optional layout gap.")
+    display: Literal["block", "flex"] | None = Field(default=None, description="Optional CSS display mode.")
+    direction: Literal["row", "column"] | None = Field(default=None, description="Optional flex direction.")
+    wrap: Literal["nowrap", "wrap"] | None = Field(default=None, description="Optional flex wrap mode.")
+    justify_content: Literal["start", "center", "end", "space-between", "space-around"] | None = Field(
+        default=None,
+        alias="justifyContent",
+        description="Optional flex justify-content value.",
+    )
+    align_items: Literal["start", "center", "end", "stretch"] | None = Field(
+        default=None,
+        alias="alignItems",
+        description="Optional flex align-items value.",
+    )
+
+
+class BlockDesignProps(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    color: str | None = Field(default=None, description="Optional text color.")
+    background_color: str | None = Field(default=None, alias="backgroundColor", description="Optional background color.")
+    border_color: str | None = Field(default=None, alias="borderColor", description="Optional border color.")
+    border_style: Literal["solid", "dashed", "dotted"] | None = Field(
+        default=None,
+        alias="borderStyle",
+        description="Optional border style.",
+    )
+    border_width: int | str | None = Field(default=None, alias="borderWidth", description="Optional border width.")
+    border_radius: int | str | None = Field(default=None, alias="borderRadius", description="Optional border radius.")
+    box_shadow: str | None = Field(default=None, alias="boxShadow", description="Optional box-shadow.")
+    opacity: float | None = Field(default=None, ge=0, le=1, description="Optional opacity value.")
+
+
+class BlockAnimationProps(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    type: Literal["none", "fade", "slide-up", "slide-down", "zoom-in"] | None = Field(
+        default=None,
+        description="Animation type.",
+    )
+    trigger: Literal["load", "hover"] | None = Field(default=None, description="Animation trigger.")
+    duration_ms: int | None = Field(default=None, alias="durationMs", ge=0, description="Animation duration in ms.")
+    delay_ms: int | None = Field(default=None, alias="delayMs", ge=0, description="Animation delay in ms.")
+    easing: str | None = Field(default=None, description="Animation easing expression.")
+    iteration_count: int | None = Field(
+        default=None,
+        alias="iterationCount",
+        ge=1,
+        description="Animation iteration count.",
+    )
+    fill_mode: Literal["none", "forwards", "backwards", "both"] | None = Field(
+        default=None,
+        alias="fillMode",
+        description="Animation fill mode.",
+    )
+
+
+class BlockVisualProps(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    layout: BlockLayoutProps | None = Field(default=None, description="Optional block layout settings.")
+    style: BlockDesignProps | None = Field(default=None, description="Optional block style settings.")
+    animation: BlockAnimationProps | None = Field(default=None, description="Optional block animation settings.")
+
+
+class ContainerBlockProps(BlockVisualProps):
     model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
 
     as_tag: Literal["div", "section", "article"] | None = Field(
@@ -35,7 +113,7 @@ class ContainerBlockProps(BaseSchema):
     class_name: str | None = Field(default=None, alias="className", description="Optional CSS class name.")
 
 
-class HeadingBlockProps(BaseSchema):
+class HeadingBlockProps(BlockVisualProps):
     model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
 
     level: int = Field(..., ge=1, le=6, description="Heading level (1-6).")
@@ -43,14 +121,14 @@ class HeadingBlockProps(BaseSchema):
     align: Literal["left", "center", "right"] | None = Field(default=None, description="Optional text alignment.")
 
 
-class ParagraphBlockProps(BaseSchema):
+class ParagraphBlockProps(BlockVisualProps):
     model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
 
     text: LocalizedString = Field(..., description="Paragraph text (field-level i18n map).")
     align: Literal["left", "center", "right"] | None = Field(default=None, description="Optional text alignment.")
 
 
-class DividerBlockProps(BaseSchema):
+class DividerBlockProps(BlockVisualProps):
     model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
 
     variant: Literal["default", "subtle"] | None = Field(default=None, description="Divider visual variant.")
@@ -383,6 +461,77 @@ class SiteSettingUpsertIn(BaseSchema):
     value: dict[str, Any] | None = Field(default=None, description="Setting value (JSON).")
 
 
+class SiteStyleOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    namespace: str = Field(..., description="Style setting namespace.")
+    value: dict[str, Any] | None = Field(default=None, description="Site style payload (JSON).")
+
+
+class SiteStyleUpsertIn(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    value: dict[str, Any] | None = Field(default=None, description="Site style payload (JSON).")
+
+
+class SiteGlobalSectionOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    id: str = Field(..., min_length=1, max_length=128, description="Global section id.")
+    name: str = Field(..., min_length=1, max_length=128, description="Global section display name.")
+    kind: str = Field(..., min_length=1, max_length=64, description="Global section kind key.")
+    enabled: bool = Field(default=True, description="Whether this global section is enabled.")
+    payload: dict[str, Any] | None = Field(default=None, description="Global section payload (JSON).")
+    updated_at_ms: int = Field(..., ge=0, description="Last update timestamp in milliseconds (UTC).")
+
+
+class SiteGlobalSectionsOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    items: list[SiteGlobalSectionOut] = Field(default_factory=list, description="Global sections.")
+
+
+class SiteGlobalSectionCreateIn(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    name: str = Field(..., min_length=1, max_length=128, description="Global section display name.")
+    kind: str = Field(..., min_length=1, max_length=64, description="Global section kind key.")
+    enabled: bool = Field(default=True, description="Whether this global section is enabled.")
+    payload: dict[str, Any] | None = Field(default=None, description="Global section payload (JSON).")
+
+
+class SiteGlobalSectionUpdateIn(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    name: str | None = Field(default=None, min_length=1, max_length=128, description="Global section display name.")
+    kind: str | None = Field(default=None, min_length=1, max_length=64, description="Global section kind key.")
+    enabled: bool | None = Field(default=None, description="Whether this global section is enabled.")
+    payload: dict[str, Any] | None = Field(default=None, description="Global section payload (JSON).")
+
+
+class SiteGlobalSectionDeleteOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    id: str = Field(..., min_length=1, max_length=128, description="Deleted global section id.")
+
+
+class SiteVisualSitemapNodeOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    id: str = Field(..., min_length=1, max_length=128, description="Visual sitemap node id.")
+    title: str = Field(..., description="Visual sitemap node title.")
+    path: str = Field(..., description="Resolved unique pathname.")
+    page_id: PublicUUID | None = Field(default=None, description="Linked page id.")
+    children: list[SiteVisualSitemapNodeOut] = Field(default_factory=list, description="Child nodes.")
+
+
+class SiteVisualSitemapOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    nodes: list[SiteVisualSitemapNodeOut] = Field(default_factory=list, description="Sitemap tree nodes.")
+    updated_at_ms: int = Field(..., ge=0, description="Tree update timestamp in milliseconds (UTC).")
+
+
 class SitePageUserSummaryOut(BaseSchema):
     model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
 
@@ -694,3 +843,4 @@ class SiteEntryDeleteOut(BaseSchema):
 ContainerBlock.model_rebuild()
 DocumentIR.model_rebuild()
 SitePageTreeNodeOut.model_rebuild()
+SiteVisualSitemapNodeOut.model_rebuild()

@@ -15,7 +15,7 @@ import type {
 } from "@celestial/site-editor-bridge";
 
 import { getHardcodedDocument } from "@/runtime/hardcoded-document";
-import { getPortalSiteIdFromEnv, resolveRouteFromApi } from "@/runtime/site-api";
+import { getPortalApiPrefix, getPortalSiteIdFromEnv, resolveRouteFromApi } from "@/runtime/site-api";
 import {
   heartbeatPresenceToApi,
   parsePreviewToken,

@@ -54,4 +54,45 @@ describe("site-renderer-core guards (imported via Portal)", () => {
 
     expect(isCoreDocumentIR(doc)).toBe(false);
   });
+
+  test("accepts visual layout and animation props", () => {
+    const doc = {
+      version: 1,
+      blocks: [
+        {
+          id: "c1",
+          type: "container",
+          props: {
+            as: "section",
+            layout: {
+              width: "100%",
+              display: "flex",
+              direction: "column",
+              gap: 12,
+            },
+            style: {
+              backgroundColor: "#ffffff",
+              borderRadius: 12,
+            },
+          },
+          children: [
+            {
+              id: "h1",
+              type: "heading",
+              props: {
+                level: 2,
+                text: { "en-US": "Heading" },
+                animation: {
+                  type: "fade",
+                  durationMs: 200,
+                },
+              },
+            },
+          ],
+        },
+      ],
+    };
+
+    expect(isCoreDocumentIR(doc)).toBe(true);
+  });
 });

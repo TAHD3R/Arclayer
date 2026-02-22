@@ -12,6 +12,11 @@ from apps.api.core.http.response import Response, ResponseModel
 from apps.api.infra.cache.valkey import get_valkey
 from apps.api.modules.auth.deps import get_current_user_id
 from apps.api.modules.sites.schema import (
+    SiteGlobalSectionCreateIn,
+    SiteGlobalSectionDeleteOut,
+    SiteGlobalSectionOut,
+    SiteGlobalSectionUpdateIn,
+    SiteGlobalSectionsOut,
     SitePageCreateIn,
     SitePageDraftSaveIn,
     SitePageDraftSaveOut,
@@ -28,6 +33,9 @@ from apps.api.modules.sites.schema import (
     SitePreviewTokenOut,
     SiteSettingGetOut,
     SiteSettingUpsertIn,
+    SiteStyleOut,
+    SiteStyleUpsertIn,
+    SiteVisualSitemapOut,
 )
 from apps.api.modules.sites.service import SiteService
 from apps.api.modules.workspaces.authz.deps import require_workspace_permission
@@ -138,6 +146,110 @@ async def upsert_workspace_site_setting(
     service: Annotated[SiteService, Depends(get_site_service)],
 ) -> ResponseModel[SiteSettingGetOut]:
     data = await service.upsert_site_setting(site_id=site_id, namespace=namespace, payload=payload)
+    return Response.success(data=data)
+
+
+@router.get(
+    "/style",
+    response_model=ResponseModel[SiteStyleOut],
+    response_model_exclude_none=True,
+    summary="Get workspace site style payload",
+)
+async def get_workspace_site_style(
+    site_id: Annotated[UUID, Depends(_resolve_site_id)],
+    service: Annotated[SiteService, Depends(get_site_service)],
+) -> ResponseModel[SiteStyleOut]:
+    data = await service.get_site_style(site_id=site_id)
+    return Response.success(data=data)
+
+
+@router.put(
+    "/style",
+    response_model=ResponseModel[SiteStyleOut],
+    response_model_exclude_none=True,
+    summary="Upsert workspace site style payload",
+)
+async def upsert_workspace_site_style(
+    payload: Annotated[SiteStyleUpsertIn, Body(description="Style upsert payload.")],
+    site_id: Annotated[UUID, Depends(_resolve_site_id)],
+    service: Annotated[SiteService, Depends(get_site_service)],
+) -> ResponseModel[SiteStyleOut]:
+    data = await service.upsert_site_style(site_id=site_id, payload=payload)
+    return Response.success(data=data)
+
+
+@router.get(
+    "/global-sections",
+    response_model=ResponseModel[SiteGlobalSectionsOut],
+    response_model_exclude_none=True,
+    summary="List workspace site global sections",
+)
+async def list_workspace_site_global_sections(
+    site_id: Annotated[UUID, Depends(_resolve_site_id)],
+    service: Annotated[SiteService, Depends(get_site_service)],
+) -> ResponseModel[SiteGlobalSectionsOut]:
+    data = await service.list_global_sections(site_id=site_id)
+    return Response.success(data=data)
+
+
+@router.post(
+    "/global-sections",
+    response_model=ResponseModel[SiteGlobalSectionOut],
+    response_model_exclude_none=True,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a workspace site global section",
+)
+async def create_workspace_site_global_section(
+    payload: Annotated[SiteGlobalSectionCreateIn, Body(description="Global section create payload.")],
+    site_id: Annotated[UUID, Depends(_resolve_site_id)],
+    service: Annotated[SiteService, Depends(get_site_service)],
+) -> ResponseModel[SiteGlobalSectionOut]:
+    data = await service.create_global_section(site_id=site_id, payload=payload)
+    return Response.success(data=data)
+
+
+@router.patch(
+    "/global-sections/{section_id}",
+    response_model=ResponseModel[SiteGlobalSectionOut],
+    response_model_exclude_none=True,
+    summary="Patch a workspace site global section",
+)
+async def patch_workspace_site_global_section(
+    section_id: str,
+    payload: Annotated[SiteGlobalSectionUpdateIn, Body(description="Global section patch payload.")],
+    site_id: Annotated[UUID, Depends(_resolve_site_id)],
+    service: Annotated[SiteService, Depends(get_site_service)],
+) -> ResponseModel[SiteGlobalSectionOut]:
+    data = await service.patch_global_section(site_id=site_id, section_id=section_id, payload=payload)
+    return Response.success(data=data)
+
+
+@router.delete(
+    "/global-sections/{section_id}",
+    response_model=ResponseModel[SiteGlobalSectionDeleteOut],
+    response_model_exclude_none=True,
+    summary="Delete a workspace site global section",
+)
+async def delete_workspace_site_global_section(
+    section_id: str,
+    site_id: Annotated[UUID, Depends(_resolve_site_id)],
+    service: Annotated[SiteService, Depends(get_site_service)],
+) -> ResponseModel[SiteGlobalSectionDeleteOut]:
+    data = await service.delete_global_section(site_id=site_id, section_id=section_id)
+    return Response.success(data=data)
+
+
+@router.get(
+    "/sitemap/visual",
+    response_model=ResponseModel[SiteVisualSitemapOut],
+    response_model_exclude_none=True,
+    summary="Get workspace site visual sitemap tree",
+)
+async def get_workspace_site_visual_sitemap(
+    site_id: Annotated[UUID, Depends(_resolve_site_id)],
+    service: Annotated[SiteService, Depends(get_site_service)],
+) -> ResponseModel[SiteVisualSitemapOut]:
+    data = await service.get_visual_sitemap(site_id=site_id)
     return Response.success(data=data)
 
 

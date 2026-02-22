@@ -6,17 +6,61 @@ import { isCoreDocumentIR } from "@celestial/site-renderer-core";
 import type { ViewerContext } from "@celestial/site-block-protocol";
 import type {
   BlockId,
+  EditorCanvasState,
+  EditorHistoryState,
+  EditorLayerNode,
   EditorOverlayMode,
+  EditorSelectionInspector,
   PortalEditorRpcApi,
 } from "@celestial/site-editor-protocol";
 import type { EditorPortalPenpalConnection } from "@celestial/site-editor-bridge";
 import { connectEditorPortalToHost, isHttpOrigin } from "@celestial/site-editor-bridge";
+
+import {
+  applySelectionPatch,
+  buildLayerTree,
+  buildSelectionInspector,
+  commitEditorHistory,
+  createEditorHistory,
+  insertBlockWithMeta,
+  redoEditorHistory,
+  toEditorHistoryState,
+  undoEditorHistory,
+} from "@/features/editor/editor-document-state";
 
 export interface EditorSiteViewProps {
   initialDocument: unknown;
   viewerCtx: ViewerContext;
   pathname: string;
   siteId: string;
+}
+
+const DEFAULT_CANVAS_STATE: EditorCanvasState = {
+  devicePreset: "desktop",
+  zoomPercent: 100,
+  preferences: {
+    showRulers: false,
+    showGuides: false,
+    showBounds: true,
+    showCanvasIndications: true,
+    sizingMode: "fit",
+  },
+};
+
+type HostOptionalEvents = {
+  historyChanged?: (args: EditorHistoryState) => void;
+  canvasChanged?: (args: { canvas: EditorCanvasState }) => void;
+  selectionInspectorChanged?: (args: { inspector: EditorSelectionInspector }) => void;
+  layerTreeChanged?: (args: { layers: EditorLayerNode[] }) => void;
+};
+
+function getHostOptionalEvents(host: EditorPortalPenpalConnection["host"] | null): HostOptionalEvents {
+  return host as unknown as HostOptionalEvents;
+}
+
+function clampZoomPercent(value: number): number {
+  if (!Number.isFinite(value)) return 100;
+  return Math.min(200, Math.max(25, Math.round(value)));
 }
 
 export function EditorSiteView(props: EditorSiteViewProps) {
@@ -32,18 +76,35 @@ export function EditorSiteView(props: EditorSiteViewProps) {
 
   const baseDocument = initialDocumentUnknown as CoreDocumentIR;
 
-  // Sprint 2: keep a strict separation between:
-  // - baseDocument: resolved from API for the current route
-  // - draftOverride: pushed from the host shell (Admin) for instant preview
-  const [draftOverride, setDraftOverride] = React.useState<CoreDocumentIR | null>(null);
+  const [history, setHistory] = React.useState(() => createEditorHistory(baseDocument));
+  const [hasDraftOverride, setHasDraftOverride] = React.useState(false);
   const [overlayMode, setOverlayMode] = React.useState<EditorOverlayMode>("inspect");
   const [selectedBlockId, setSelectedBlockId] = React.useState<BlockId | null>(null);
   const [hoveredBlockId, setHoveredBlockId] = React.useState<BlockId | null>(null);
+  const [canvasState, setCanvasState] = React.useState<EditorCanvasState>(DEFAULT_CANVAS_STATE);
+
   const hostRef = React.useRef<EditorPortalPenpalConnection["host"] | null>(null);
   const overlayModeRef = React.useRef<EditorOverlayMode>("inspect");
   const pathnameRef = React.useRef<string>(pathname);
+  const historyRef = React.useRef(history);
+  const selectedBlockIdRef = React.useRef<BlockId | null>(selectedBlockId);
+  const canvasStateRef = React.useRef<EditorCanvasState>(canvasState);
   const hoverRafRef = React.useRef<number | null>(null);
   const pendingHoverRef = React.useRef<BlockId | null>(null);
+
+  const renderDocument = history.present;
+
+  React.useEffect(() => {
+    historyRef.current = history;
+  }, [history]);
+
+  React.useEffect(() => {
+    selectedBlockIdRef.current = selectedBlockId;
+  }, [selectedBlockId]);
+
+  React.useEffect(() => {
+    canvasStateRef.current = canvasState;
+  }, [canvasState]);
 
   React.useEffect(() => {
     overlayModeRef.current = overlayMode;
@@ -63,13 +124,14 @@ export function EditorSiteView(props: EditorSiteViewProps) {
   }, [pathname]);
 
   React.useEffect(() => {
-    // Route changed -> clear host overrides so we don't accidentally show a draft from another page.
-    setDraftOverride(null);
+    // Route changed -> clear host overrides so we do not accidentally show a draft from another page.
+    const nextHistory = createEditorHistory(baseDocument);
+    historyRef.current = nextHistory;
+    setHistory(nextHistory);
+    setHasDraftOverride(false);
     setSelectedBlockId(null);
     setHoveredBlockId(null);
-  }, [pathname]);
-
-  const renderDocument = draftOverride ?? baseDocument;
+  }, [baseDocument, pathname]);
 
   const hoveredRect = useObservedBlockRect({
     enabled: overlayMode === "inspect",
@@ -83,25 +145,126 @@ export function EditorSiteView(props: EditorSiteViewProps) {
     onMissing: () => setSelectedBlockId(null),
   });
 
+  const syncSelectionInspector = React.useCallback((document: CoreDocumentIR, blockId: BlockId | null) => {
+    const inspector = buildSelectionInspector(document, blockId);
+    getHostOptionalEvents(hostRef.current).selectionInspectorChanged?.({ inspector });
+    return inspector;
+  }, []);
+
+  const syncLayers = React.useCallback((document: CoreDocumentIR) => {
+    const layers = buildLayerTree(document);
+    getHostOptionalEvents(hostRef.current).layerTreeChanged?.({ layers });
+    return layers;
+  }, []);
+
+  const syncHistoryState = React.useCallback((nextHistoryState: EditorHistoryState) => {
+    getHostOptionalEvents(hostRef.current).historyChanged?.(nextHistoryState);
+  }, []);
+
+  const commitNextDocument = React.useCallback(
+    (nextDocument: CoreDocumentIR, opts?: { preserveSelection?: boolean }) => {
+      const nextHistory = commitEditorHistory(historyRef.current, nextDocument);
+      historyRef.current = nextHistory;
+      setHistory(nextHistory);
+      setHasDraftOverride(true);
+
+      const currentSelected = opts?.preserveSelection ? selectedBlockIdRef.current : null;
+      const inspector = buildSelectionInspector(nextDocument, currentSelected);
+      if (inspector.blockId !== currentSelected) {
+        setSelectedBlockId(inspector.blockId);
+      }
+
+      syncHistoryState(toEditorHistoryState(nextHistory));
+      syncLayers(nextDocument);
+      syncSelectionInspector(nextDocument, inspector.blockId);
+      return inspector;
+    },
+    [syncHistoryState, syncLayers, syncSelectionInspector],
+  );
+
+  const undoFromPortal = React.useCallback((): EditorHistoryState => {
+    const nextHistory = undoEditorHistory(historyRef.current);
+    historyRef.current = nextHistory;
+    setHistory(nextHistory);
+
+    const inspector = buildSelectionInspector(nextHistory.present, selectedBlockIdRef.current);
+    if (inspector.blockId !== selectedBlockIdRef.current) {
+      setSelectedBlockId(inspector.blockId);
+    }
+
+    syncLayers(nextHistory.present);
+    syncSelectionInspector(nextHistory.present, inspector.blockId);
+    const snapshot = toEditorHistoryState(nextHistory);
+    syncHistoryState(snapshot);
+    return snapshot;
+  }, [syncHistoryState, syncLayers, syncSelectionInspector]);
+
+  const redoFromPortal = React.useCallback((): EditorHistoryState => {
+    const nextHistory = redoEditorHistory(historyRef.current);
+    historyRef.current = nextHistory;
+    setHistory(nextHistory);
+
+    const inspector = buildSelectionInspector(nextHistory.present, selectedBlockIdRef.current);
+    if (inspector.blockId !== selectedBlockIdRef.current) {
+      setSelectedBlockId(inspector.blockId);
+    }
+
+    syncLayers(nextHistory.present);
+    syncSelectionInspector(nextHistory.present, inspector.blockId);
+    const snapshot = toEditorHistoryState(nextHistory);
+    syncHistoryState(snapshot);
+    return snapshot;
+  }, [syncHistoryState, syncLayers, syncSelectionInspector]);
+
+  const updateCanvas = React.useCallback(
+    (updater: (prev: EditorCanvasState) => EditorCanvasState): EditorCanvasState => {
+      const next = updater(canvasStateRef.current);
+      canvasStateRef.current = next;
+      setCanvasState(next);
+      getHostOptionalEvents(hostRef.current).canvasChanged?.({ canvas: next });
+      return next;
+    },
+    [],
+  );
+
   React.useEffect(() => {
     if (overlayMode === "off") return;
 
     const onKeyDown = (ev: KeyboardEvent) => {
-      const isSave = (ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === "s";
-      if (!isSave) return;
-      ev.preventDefault();
-      ev.stopPropagation();
+      const key = ev.key.toLowerCase();
+      const isMeta = ev.ctrlKey || ev.metaKey;
 
-      void hostRef.current?.requestSave({
-        siteId,
-        pathname,
-        document: renderDocument,
-      });
+      const isSave = isMeta && key === "s";
+      if (isSave) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        void hostRef.current?.requestSave({
+          siteId,
+          pathname,
+          document: historyRef.current.present,
+        });
+        return;
+      }
+
+      const isUndo = isMeta && !ev.shiftKey && key === "z";
+      if (isUndo) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        undoFromPortal();
+        return;
+      }
+
+      const isRedo = (isMeta && ev.shiftKey && key === "z") || (ev.ctrlKey && key === "y");
+      if (isRedo) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        redoFromPortal();
+      }
     };
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [overlayMode, pathname, renderDocument, siteId]);
+  }, [overlayMode, pathname, redoFromPortal, siteId, undoFromPortal]);
 
   React.useEffect(() => {
     let mounted = true;
@@ -112,7 +275,7 @@ export function EditorSiteView(props: EditorSiteViewProps) {
       return () => {};
     }
 
-    // We rely on Penpal's built-in origin restriction (`parentOrigin`).
+    // We rely on Penpal built-in origin restriction (`parentOrigin`).
     // Cross-origin hosts must pass `?parentOrigin=...` explicitly.
     // Same-origin embeds can omit it; we default to `window.location.origin`.
     const parentOrigin = getParentOriginFromSearch() ?? window.location.origin;
@@ -131,16 +294,88 @@ export function EditorSiteView(props: EditorSiteViewProps) {
       },
       pushDraftDocument: ({ document, pathname: incomingPathname }) => {
         // Optional scope guard: avoid applying drafts for other pathnames.
-        // Host shells may pass `pathname` to prevent accidental cross-route overwrites.
-        // We keep it strict: if pathname is provided and doesn't match, ignore.
-        // (Normalize trailing slash at the resolver layer.)
         if (incomingPathname && incomingPathname !== pathnameRef.current) {
           return;
         }
-        if (isCoreDocumentIR(document)) {
-          setDraftOverride(document);
+        if (!isCoreDocumentIR(document)) {
+          return;
         }
+
+        const nextHistory = createEditorHistory(document);
+        historyRef.current = nextHistory;
+        setHistory(nextHistory);
+        setHasDraftOverride(true);
+        setSelectedBlockId(null);
+        setHoveredBlockId(null);
+        syncHistoryState(toEditorHistoryState(nextHistory));
+        syncLayers(nextHistory.present);
+        syncSelectionInspector(nextHistory.present, null);
       },
+      undo: () => undoFromPortal(),
+      redo: () => redoFromPortal(),
+      getHistoryState: () => toEditorHistoryState(historyRef.current),
+      getSelectionInspector: () =>
+        buildSelectionInspector(historyRef.current.present, selectedBlockIdRef.current),
+      applySelectionPatch: ({ patch }) => {
+        const patched = applySelectionPatch(
+          historyRef.current.present,
+          selectedBlockIdRef.current,
+          patch,
+        );
+
+        if (patched.document !== historyRef.current.present) {
+          return commitNextDocument(patched.document, { preserveSelection: true });
+        }
+
+        syncSelectionInspector(historyRef.current.present, selectedBlockIdRef.current);
+        return patched.inspector;
+      },
+      getLayerTree: () => buildLayerTree(historyRef.current.present),
+      insertBlock: (args) => {
+        const inserted = insertBlockWithMeta(historyRef.current.present, {
+          ...args,
+          targetBlockId: args.targetBlockId ?? selectedBlockIdRef.current,
+        });
+
+        const nextHistory = commitEditorHistory(historyRef.current, inserted.document);
+        historyRef.current = nextHistory;
+        setHistory(nextHistory);
+        setHasDraftOverride(true);
+        setSelectedBlockId(inserted.blockId);
+        syncHistoryState(toEditorHistoryState(nextHistory));
+        syncLayers(inserted.document);
+        syncSelectionInspector(inserted.document, inserted.blockId);
+
+        return {
+          blockId: inserted.blockId,
+          inspector: inserted.inspector,
+          layers: inserted.layers,
+        };
+      },
+      setDevicePreset: ({ devicePreset }) =>
+        updateCanvas((prev) => ({
+          ...prev,
+          devicePreset,
+        })),
+      setZoom: ({ zoomPercent }) =>
+        updateCanvas((prev) => ({
+          ...prev,
+          zoomPercent: clampZoomPercent(zoomPercent),
+        })),
+      resetZoom: () =>
+        updateCanvas((prev) => ({
+          ...prev,
+          zoomPercent: 100,
+        })),
+      setCanvasPreferences: ({ preferences }) =>
+        updateCanvas((prev) => ({
+          ...prev,
+          preferences: {
+            ...prev.preferences,
+            ...preferences,
+          },
+        })),
+      getCanvasState: () => canvasStateRef.current,
     };
 
     void (async () => {
@@ -152,6 +387,10 @@ export function EditorSiteView(props: EditorSiteViewProps) {
       destroy = conn.destroy;
       hostRef.current = conn.host;
       await conn.host.ready({ readyAt: Date.now() });
+      syncHistoryState(toEditorHistoryState(historyRef.current));
+      syncLayers(historyRef.current.present);
+      syncSelectionInspector(historyRef.current.present, selectedBlockIdRef.current);
+      getHostOptionalEvents(conn.host).canvasChanged?.({ canvas: canvasStateRef.current });
     })();
 
     return () => {
@@ -159,11 +398,20 @@ export function EditorSiteView(props: EditorSiteViewProps) {
       hostRef.current = null;
       destroy?.();
     };
-  }, []);
+  }, [
+    commitNextDocument,
+    redoFromPortal,
+    syncHistoryState,
+    syncLayers,
+    syncSelectionInspector,
+    undoFromPortal,
+    updateCanvas,
+  ]);
 
   React.useEffect(() => {
     void hostRef.current?.selectionChanged({ blockId: selectedBlockId });
-  }, [selectedBlockId]);
+    syncSelectionInspector(history.present, selectedBlockId);
+  }, [history.present, selectedBlockId, syncSelectionInspector]);
 
   React.useEffect(() => {
     const presence = {
@@ -171,15 +419,17 @@ export function EditorSiteView(props: EditorSiteViewProps) {
       pathname,
       overlayMode,
       selectedBlockId,
-      hasDraftOverride: Boolean(draftOverride),
+      hasDraftOverride,
+      canvasState,
       updatedAtMs: Date.now(),
     };
+
     // Throttle presence updates to avoid noisy iframe chatter.
     const timer = window.setTimeout(() => {
       void hostRef.current?.reportPresence({ presence });
     }, 100);
     return () => window.clearTimeout(timer);
-  }, [draftOverride, overlayMode, pathname, selectedBlockId, siteId]);
+  }, [canvasState, hasDraftOverride, overlayMode, pathname, selectedBlockId, siteId]);
 
   React.useEffect(() => {
     if (overlayMode !== "inspect") {
@@ -272,7 +522,7 @@ type ObservedBlockRect = {
   height: number;
 };
 
-// Must match the guard in @celestial/site-renderer-core (Sprint 2 security hardening).
+// Must match the guard in @celestial/site-renderer-core.
 const SAFE_BLOCK_ID_RE = /^[A-Za-z0-9][A-Za-z0-9:_-]*$/;
 
 function isSafeEditorBlockId(value: string): boolean {

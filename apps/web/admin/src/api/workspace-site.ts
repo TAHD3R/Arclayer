@@ -118,6 +118,54 @@ export type SitePageUnpublishOut = {
   unpublishedAtMs: number;
 };
 
+export type SiteStyleOut = {
+  namespace: string;
+  value: Record<string, unknown> | null;
+};
+
+export type SiteStyleUpsertIn = {
+  value: Record<string, unknown> | null;
+};
+
+export type SiteGlobalSection = {
+  id: string;
+  name: string;
+  kind: string;
+  enabled: boolean;
+  payload?: Record<string, unknown> | null;
+  updatedAtMs: number;
+};
+
+export type SiteGlobalSectionsOut = {
+  items: SiteGlobalSection[];
+};
+
+export type SiteGlobalSectionCreateIn = {
+  name: string;
+  kind: string;
+  enabled?: boolean;
+  payload?: Record<string, unknown> | null;
+};
+
+export type SiteGlobalSectionUpdateIn = Partial<SiteGlobalSectionCreateIn>;
+
+export type SiteGlobalSectionDeleteOut = {
+  id: string;
+};
+
+export type SiteVisualSitemapNode = {
+  id: string;
+  title: string;
+  path: string;
+  pageId?: string | null;
+  children: SiteVisualSitemapNode[];
+};
+
+export type SiteVisualSitemapOut = {
+  nodes: SiteVisualSitemapNode[];
+  updatedAtMs: number;
+};
+
 export async function getWorkspaceSite(workspaceId: string): Promise<WorkspaceSite> {
   return api.get<WorkspaceSite>(workspacePath(workspaceId, "/site"));
 }
@@ -234,4 +282,54 @@ export async function unpublishWorkspaceSitePage(
     workspacePath(workspaceId, `/site/pages/${encodeURIComponent(pageId)}/revisions/unpublish`),
     {},
   );
+}
+
+export async function getWorkspaceSiteStyle(workspaceId: string): Promise<SiteStyleOut> {
+  return api.get<SiteStyleOut>(workspacePath(workspaceId, "/site/style"));
+}
+
+export async function upsertWorkspaceSiteStyle(
+  workspaceId: string,
+  payload: SiteStyleUpsertIn,
+): Promise<SiteStyleOut> {
+  return api.put<SiteStyleOut>(workspacePath(workspaceId, "/site/style"), payload);
+}
+
+export async function listWorkspaceSiteGlobalSections(
+  workspaceId: string,
+): Promise<SiteGlobalSectionsOut> {
+  return api.get<SiteGlobalSectionsOut>(workspacePath(workspaceId, "/site/global-sections"));
+}
+
+export async function createWorkspaceSiteGlobalSection(
+  workspaceId: string,
+  payload: SiteGlobalSectionCreateIn,
+): Promise<SiteGlobalSection> {
+  return api.post<SiteGlobalSection>(workspacePath(workspaceId, "/site/global-sections"), payload);
+}
+
+export async function patchWorkspaceSiteGlobalSection(
+  workspaceId: string,
+  sectionId: string,
+  payload: SiteGlobalSectionUpdateIn,
+): Promise<SiteGlobalSection> {
+  return api.patch<SiteGlobalSection>(
+    workspacePath(workspaceId, `/site/global-sections/${encodeURIComponent(sectionId)}`),
+    payload,
+  );
+}
+
+export async function deleteWorkspaceSiteGlobalSection(
+  workspaceId: string,
+  sectionId: string,
+): Promise<SiteGlobalSectionDeleteOut> {
+  return api.delete<SiteGlobalSectionDeleteOut>(
+    workspacePath(workspaceId, `/site/global-sections/${encodeURIComponent(sectionId)}`),
+  );
+}
+
+export async function getWorkspaceSiteVisualSitemap(
+  workspaceId: string,
+): Promise<SiteVisualSitemapOut> {
+  return api.get<SiteVisualSitemapOut>(workspacePath(workspaceId, "/site/sitemap/visual"));
 }

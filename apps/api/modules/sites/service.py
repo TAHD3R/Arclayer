@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import secrets
 import time
-from typing import Literal, cast
+from typing import Any, Literal, cast
 from uuid import UUID
 
 from pydantic import ValidationError
@@ -14,6 +14,8 @@ from apps.api.core.exceptions import Conflict, Forbidden, NotFound, ServiceUnava
 from apps.api.core.http.pagination import PageData, PageParams
 from apps.api.infra.cache.valkey import ValkeyClientLike
 from apps.api.modules.sites.constants import (
+    EDITOR_GLOBAL_SECTIONS_NAMESPACE,
+    EDITOR_STYLE_NAMESPACE,
     RUNTIME_SETTING_NAMESPACE,
     THEME_ACTIVE_NAMESPACE,
     THEME_CONFIG_NAMESPACE,
@@ -41,6 +43,11 @@ from apps.api.modules.sites.schema import (
     SiteEntryUnpublishOut,
     SiteEntryUpdateIn,
     SiteFontOut,
+    SiteGlobalSectionCreateIn,
+    SiteGlobalSectionDeleteOut,
+    SiteGlobalSectionOut,
+    SiteGlobalSectionUpdateIn,
+    SiteGlobalSectionsOut,
     SitePageCreateIn,
     SitePageDeleteOut,
     SitePageDraftSaveIn,
@@ -71,7 +78,11 @@ from apps.api.modules.sites.schema import (
     SiteRuntimeOut,
     SiteSettingGetOut,
     SiteSettingUpsertIn,
+    SiteStyleOut,
+    SiteStyleUpsertIn,
     SiteThemeOut,
+    SiteVisualSitemapNodeOut,
+    SiteVisualSitemapOut,
 )
 from apps.api.modules.sites.stores import PresenceStore, PreviewTokenStore, RouteTemplateVersionStore
 
@@ -308,6 +319,166 @@ class SiteService(BaseService):
         )
         value = rec.value if isinstance(rec.value, dict) else None
         return SiteSettingGetOut(namespace=namespace, value=value)
+
+    @staticmethod
+    def _normalize_section_id(section_id: str) -> str:
+        return (section_id or "").strip()
+
+    def _parse_global_sections_value(self, value: dict[str, Any] | None) -> list[SiteGlobalSectionOut]:
+        if not isinstance(value, dict):
+            return []
+
+        raw_items = value.get("items")
+        if not isinstance(raw_items, list):
+            return []
+
+        items: list[SiteGlobalSectionOut] = []
+        for raw in raw_items:
+            if not isinstance(raw, dict):
+                continue
+            try:
+                items.append(SiteGlobalSectionOut.model_validate(raw))
+            except ValidationError:
+                # Keep the API resilient when settings contain legacy or malformed items.
+                continue
+        return items
+
+    @staticmethod
+    def _dump_global_sections_value(items: list[SiteGlobalSectionOut]) -> dict[str, Any]:
+        return {"items": [item.model_dump() for item in items]}
+
+    async def _load_global_sections(self, *, site_id: UUID) -> list[SiteGlobalSectionOut]:
+        setting = await self.get_site_setting(site_id=site_id, namespace=EDITOR_GLOBAL_SECTIONS_NAMESPACE)
+        return self._parse_global_sections_value(setting.value)
+
+    async def _save_global_sections(self, *, site_id: UUID, items: list[SiteGlobalSectionOut]) -> None:
+        await self.upsert_site_setting(
+            site_id=site_id,
+            namespace=EDITOR_GLOBAL_SECTIONS_NAMESPACE,
+            payload=SiteSettingUpsertIn(value=self._dump_global_sections_value(items)),
+        )
+
+    @staticmethod
+    def _to_visual_sitemap_node(page: SitePageTreeNodeOut) -> SiteVisualSitemapNodeOut:
+        title = (page.title or "").strip() or page.path
+        return SiteVisualSitemapNodeOut(
+            id=encode_uuid(page.id),
+            title=title,
+            path=page.path,
+            page_id=page.id,
+            children=[SiteService._to_visual_sitemap_node(child) for child in page.children],
+        )
+
+    @staticmethod
+    def _collect_sitemap_updated_at_ms(nodes: list[SitePageTreeNodeOut]) -> int:
+        updated_at_ms = 0
+        stack = list(nodes)
+        while stack:
+            node = stack.pop()
+            if node.updated_at is not None:
+                updated_at_ms = max(updated_at_ms, int(node.updated_at.timestamp() * 1000))
+            if node.children:
+                stack.extend(node.children)
+        return updated_at_ms
+
+    async def get_site_style(self, *, site_id: UUID) -> SiteStyleOut:
+        setting = await self.get_site_setting(site_id=site_id, namespace=EDITOR_STYLE_NAMESPACE)
+        return SiteStyleOut(namespace=setting.namespace, value=setting.value)
+
+    async def upsert_site_style(self, *, site_id: UUID, payload: SiteStyleUpsertIn) -> SiteStyleOut:
+        setting = await self.upsert_site_setting(
+            site_id=site_id,
+            namespace=EDITOR_STYLE_NAMESPACE,
+            payload=SiteSettingUpsertIn(value=payload.value),
+        )
+        return SiteStyleOut(namespace=setting.namespace, value=setting.value)
+
+    async def list_global_sections(self, *, site_id: UUID) -> SiteGlobalSectionsOut:
+        items = await self._load_global_sections(site_id=site_id)
+        return SiteGlobalSectionsOut(items=items)
+
+    async def create_global_section(
+        self,
+        *,
+        site_id: UUID,
+        payload: SiteGlobalSectionCreateIn,
+    ) -> SiteGlobalSectionOut:
+        items = await self._load_global_sections(site_id=site_id)
+
+        new_id = secrets.token_hex(12)
+        while any(item.id == new_id for item in items):
+            new_id = secrets.token_hex(12)
+
+        now_ms = int(time.time() * 1000)
+        section = SiteGlobalSectionOut(
+            id=new_id,
+            name=payload.name,
+            kind=payload.kind,
+            enabled=payload.enabled,
+            payload=payload.payload,
+            updated_at_ms=now_ms,
+        )
+        items.append(section)
+        await self._save_global_sections(site_id=site_id, items=items)
+        return section
+
+    async def patch_global_section(
+        self,
+        *,
+        site_id: UUID,
+        section_id: str,
+        payload: SiteGlobalSectionUpdateIn,
+    ) -> SiteGlobalSectionOut:
+        target_section_id = self._normalize_section_id(section_id)
+        if not target_section_id:
+            raise NotFound("Global section not found", error="GLOBAL_SECTION_NOT_FOUND")
+
+        items = await self._load_global_sections(site_id=site_id)
+
+        index = next((i for i, item in enumerate(items) if item.id == target_section_id), None)
+        if index is None:
+            raise NotFound("Global section not found", error="GLOBAL_SECTION_NOT_FOUND")
+
+        current = items[index]
+        fields_set = payload.model_fields_set
+        patch_data: dict[str, Any] = {}
+
+        if "name" in fields_set and payload.name is not None:
+            patch_data["name"] = payload.name
+        if "kind" in fields_set and payload.kind is not None:
+            patch_data["kind"] = payload.kind
+        if "enabled" in fields_set and payload.enabled is not None:
+            patch_data["enabled"] = payload.enabled
+        if "payload" in fields_set:
+            patch_data["payload"] = payload.payload
+
+        if not patch_data:
+            return current
+
+        patch_data["updated_at_ms"] = int(time.time() * 1000)
+        updated = current.model_copy(update=patch_data)
+        items[index] = updated
+        await self._save_global_sections(site_id=site_id, items=items)
+        return updated
+
+    async def delete_global_section(self, *, site_id: UUID, section_id: str) -> SiteGlobalSectionDeleteOut:
+        target_section_id = self._normalize_section_id(section_id)
+        if not target_section_id:
+            raise NotFound("Global section not found", error="GLOBAL_SECTION_NOT_FOUND")
+
+        items = await self._load_global_sections(site_id=site_id)
+        next_items = [item for item in items if item.id != target_section_id]
+        if len(next_items) == len(items):
+            raise NotFound("Global section not found", error="GLOBAL_SECTION_NOT_FOUND")
+
+        await self._save_global_sections(site_id=site_id, items=next_items)
+        return SiteGlobalSectionDeleteOut(id=target_section_id)
+
+    async def get_visual_sitemap(self, *, site_id: UUID) -> SiteVisualSitemapOut:
+        tree = await self.list_pages_tree(site_id=site_id)
+        nodes = [self._to_visual_sitemap_node(page) for page in tree.items]
+        updated_at_ms = self._collect_sitemap_updated_at_ms(tree.items)
+        return SiteVisualSitemapOut(nodes=nodes, updated_at_ms=updated_at_ms)
 
     async def list_pages_tree(self, *, site_id: UUID) -> PageData[SitePageTreeNodeOut]:
         return await self._content.list_pages_tree(site_id=site_id)

@@ -15,6 +15,54 @@ export interface DocumentMeta {
   description?: LocalizedString;
 }
 
+export type BlockDimensionValue = number | string;
+
+export interface BlockLayoutProps {
+  width?: BlockDimensionValue;
+  minWidth?: BlockDimensionValue;
+  maxWidth?: BlockDimensionValue;
+  height?: BlockDimensionValue;
+  minHeight?: BlockDimensionValue;
+  maxHeight?: BlockDimensionValue;
+  margin?: BlockDimensionValue;
+  padding?: BlockDimensionValue;
+  paddingX?: BlockDimensionValue;
+  paddingY?: BlockDimensionValue;
+  gap?: BlockDimensionValue;
+  display?: "block" | "flex";
+  direction?: "row" | "column";
+  wrap?: "nowrap" | "wrap";
+  justifyContent?: "start" | "center" | "end" | "space-between" | "space-around";
+  alignItems?: "start" | "center" | "end" | "stretch";
+}
+
+export interface BlockDesignProps {
+  color?: string;
+  backgroundColor?: string;
+  borderColor?: string;
+  borderStyle?: "solid" | "dashed" | "dotted";
+  borderWidth?: BlockDimensionValue;
+  borderRadius?: BlockDimensionValue;
+  boxShadow?: string;
+  opacity?: number;
+}
+
+export interface BlockAnimationProps {
+  type?: "none" | "fade" | "slide-up" | "slide-down" | "zoom-in";
+  trigger?: "load" | "hover";
+  durationMs?: number;
+  delayMs?: number;
+  easing?: string;
+  iterationCount?: number;
+  fillMode?: "none" | "forwards" | "backwards" | "both";
+}
+
+export interface CommonBlockVisualProps {
+  layout?: BlockLayoutProps;
+  style?: BlockDesignProps;
+  animation?: BlockAnimationProps;
+}
+
 /**
  * Block protocol v1:
  * - `type` is registered in block registry
