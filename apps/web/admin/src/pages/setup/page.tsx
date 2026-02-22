@@ -349,7 +349,11 @@ export function SetupView() {
   };
 
   const waitForSetupJob = async (jobId: string): Promise<SystemSetupJobStatusPayload> => {
-    for (let attempt = 0; attempt < SETUP_JOB_MAX_POLLS; attempt += 1) {
+    const pollSetupJob = async (attempt: number): Promise<SystemSetupJobStatusPayload> => {
+      if (attempt >= SETUP_JOB_MAX_POLLS) {
+        throw new Error(t("setup:SETUP_PROGRESS_TIMEOUT"));
+      }
+
       if (pollingCancelledRef.current) {
         throw new Error("SETUP_POLLING_CANCELLED");
       }
@@ -367,9 +371,10 @@ export function SetupView() {
       }
 
       await sleep(SETUP_JOB_POLL_INTERVAL_MS);
-    }
+      return pollSetupJob(attempt + 1);
+    };
 
-    throw new Error(t("setup:SETUP_PROGRESS_TIMEOUT"));
+    return pollSetupJob(0);
   };
 
   const onFinish = async () => {
@@ -555,17 +560,10 @@ export function SetupView() {
           alt={t("setup:SETUP_BRAND_LOGO_ALT")}
         />
 
-        <Typography.Title level={1} style={{ marginTop: 20, marginBottom: 10, fontSize: 36 }}>
+        <Typography.Title level={1} className="!mt-5 !mb-2.5 text-largetitle text-label-primary">
           {t("setup:SETUP_WELCOME_TITLE")}
         </Typography.Title>
-        <Typography.Paragraph
-          style={{
-            marginTop: 0,
-            marginBottom: 22,
-            color: "var(--color-muted-foreground)",
-            fontSize: 18,
-          }}
-        >
+        <Typography.Paragraph className="!mt-0 !mb-[1.375rem] text-title2 text-label-secondary">
           {t("setup:SETUP_WELCOME_DESC")}
         </Typography.Paragraph>
 
@@ -652,12 +650,10 @@ export function SetupView() {
 
             <div className="relative z-10 flex h-full min-h-[220px] items-end p-6 sm:p-8">
               <div className="max-w-110 select-none">
-                <h2 className="text-[34px] font-bold leading-tight tracking-tight text-(--color-foreground)">
+                <h2 className="text-largetitle leading-tight text-label-primary font-bold">
                   {t("auth:SLOGAN_TITLE")}
                 </h2>
-                <p className="mt-4 text-[18px] leading-relaxed text-(--color-muted-foreground)">
-                  {t("auth:SLOGAN_SUBTITLE")}
-                </p>
+                <p className="mt-4 text-title2 text-label-secondary">{t("auth:SLOGAN_SUBTITLE")}</p>
               </div>
             </div>
           </aside>
@@ -672,10 +668,10 @@ export function SetupView() {
                     animate={{ opacity: 1, y: 0 }}
                     exit={reducedMotion ? { opacity: 1 } : { opacity: 0, y: -8 }}
                   >
-                    <h2 className="text-[32px] font-bold leading-tight tracking-tight text-(--color-foreground)">
+                    <h2 className="text-largetitle text-label-primary font-bold">
                       {stageMeta[step].title}
                     </h2>
-                    <p className="mt-3 text-[18px] leading-relaxed text-(--color-muted-foreground)">
+                    <p className="mt-3 text-title2 text-label-secondary">
                       {stageMeta[step].description}
                     </p>
                   </motion.div>

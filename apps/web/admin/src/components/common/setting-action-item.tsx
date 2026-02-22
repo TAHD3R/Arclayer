@@ -58,16 +58,11 @@ export function SettingActionItem(props: SettingActionItemProps) {
 
   const summaryNode = showSummary ? (
     props.summary !== undefined && props.summary !== null ? (
-      <div
-        className={cn(
-          "text-[16px] font-semibold leading-snug text-foreground",
-          props.summaryClassName,
-        )}
-      >
+      <div className={cn("text-headline text-label-primary", props.summaryClassName)}>
         {props.summary}
       </div>
     ) : (
-      <div className={cn("text-[16px] leading-snug text-muted-foreground", props.summaryClassName)}>
+      <div className={cn("text-callout text-label-secondary", props.summaryClassName)}>
         {props.placeholder ?? "-"}
       </div>
     )
@@ -82,14 +77,14 @@ export function SettingActionItem(props: SettingActionItemProps) {
           : `${titleColumnWidth}px 1fr`,
       }}
     >
-      <div className={cn("text-[16px] font-medium leading-snug", props.titleClassName)}>
+      <div className={cn("text-headline font-semibold text-label-primary", props.titleClassName)}>
         {props.title}
       </div>
       <div className="min-w-0">
         {summaryNode}
         {desc ? (
           <div
-            className={cn(summaryNode ? "mt-1" : undefined, "text-[16px] text-muted-foreground")}
+            className={cn(summaryNode ? "mt-1" : undefined, "text-callout text-label-secondary")}
           >
             {desc}
           </div>

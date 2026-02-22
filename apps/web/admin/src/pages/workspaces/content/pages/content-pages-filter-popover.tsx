@@ -42,7 +42,10 @@ export function ContentPagesFilterPopover(props: ContentPagesFilterPopoverProps)
               options={[
                 { value: "all", label: props.t("content_pages:INDEX_FILTER_STATUS_ALL") },
                 { value: "draft", label: props.t("content_pages:INDEX_FILTER_STATUS_DRAFT") },
-                { value: "published", label: props.t("content_pages:INDEX_FILTER_STATUS_PUBLISHED") },
+                {
+                  value: "published",
+                  label: props.t("content_pages:INDEX_FILTER_STATUS_PUBLISHED"),
+                },
               ]}
             />
           </div>
@@ -58,7 +61,10 @@ export function ContentPagesFilterPopover(props: ContentPagesFilterPopoverProps)
               options={[
                 { value: "all", label: props.t("content_pages:INDEX_FILTER_VISIBILITY_ALL") },
                 { value: "public", label: props.t("content_pages:INDEX_FILTER_VISIBILITY_PUBLIC") },
-                { value: "private", label: props.t("content_pages:INDEX_FILTER_VISIBILITY_PRIVATE") },
+                {
+                  value: "private",
+                  label: props.t("content_pages:INDEX_FILTER_VISIBILITY_PRIVATE"),
+                },
               ]}
             />
           </div>

@@ -47,7 +47,12 @@ export function ContentPagesBulkActions(props: ContentPagesBulkActionsProps) {
                 <Button type="text" onClick={props.onDuplicate} loading={props.duplicateLoading}>
                   {props.t("content_pages:BULK_DUPLICATE")}
                 </Button>
-                <Button type="primary" danger onClick={props.onDelete} loading={props.deleteLoading}>
+                <Button
+                  type="primary"
+                  danger
+                  onClick={props.onDelete}
+                  loading={props.deleteLoading}
+                >
                   {props.t("content_pages:BULK_DELETE")}
                 </Button>
               </div>

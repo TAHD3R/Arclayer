@@ -80,7 +80,7 @@ export function useOrganizationWorkspacesColumns(
               </Avatar>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <span className="truncate text-[15px] font-semibold">{item.name}</span>
+                  <span className="truncate text-headline font-semibold">{item.name}</span>
                   <Tag className="!mr-0">{item.slug}</Tag>
                   {item.isArchived ? (
                     <Tag color="default" className="!mr-0">

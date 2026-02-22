@@ -100,10 +100,14 @@ export function WorkspaceEditorIframe(props: WorkspaceEditorIframeProps) {
             className="w-full md:w-80"
           />
           <Button onClick={onSubmitPath}>{t("content_pages:EDITOR_SHELL_PATH_APPLY")}</Button>
-          <Button onClick={() => tokenQuery.refetch()}>{t("content_pages:EDITOR_SHELL_TOKEN_REFRESH")}</Button>
+          <Button onClick={() => tokenQuery.refetch()}>
+            {t("content_pages:EDITOR_SHELL_TOKEN_REFRESH")}
+          </Button>
 
           {siteQuery.data?.slug ? <Tag>{siteQuery.data.slug}</Tag> : null}
-          {tokenQuery.data?.token ? <Tag color="green">{t("content_pages:EDITOR_SHELL_TOKEN_READY")}</Tag> : null}
+          {tokenQuery.data?.token ? (
+            <Tag color="green">{t("content_pages:EDITOR_SHELL_TOKEN_READY")}</Tag>
+          ) : null}
         </div>
       ) : null}
 

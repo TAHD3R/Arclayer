@@ -72,7 +72,7 @@ export function SetupWorkspaceTemplateStep(props: {
                   key={`${template.key}-action`}
                   type="button"
                   className={clsx(
-                    "inline-flex cursor-pointer items-center gap-1 text-[14px] font-medium",
+                    "inline-flex cursor-pointer items-center gap-1 text-body font-medium",
                     selected ? "text-primary" : undefined,
                   )}
                   onClick={() => props.onTemplateSelect(template.key)}
@@ -100,19 +100,14 @@ export function SetupWorkspaceTemplateStep(props: {
             >
               <Card.Meta
                 title={
-                  <span
-                    className={clsx(
-                      "text-[17px] font-semibold",
-                      selected ? "text-primary" : undefined,
-                    )}
-                  >
+                  <span className={clsx("text-title2", selected ? "text-primary" : undefined)}>
                     {template.title}
                   </span>
                 }
                 description={
                   <span
                     className={clsx(
-                      "text-[14px] leading-relaxed",
+                      "text-callout",
                       selected ? "text-primary/85" : "text-(--color-muted-foreground)",
                     )}
                   >

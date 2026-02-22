@@ -12,9 +12,14 @@ function resolveSource(relativePath: string) {
 
 describe("workspace content and appearance routes", () => {
   test("workspace content pages route uses content pages view", () => {
-    const source = readFileSync(resolveSource("routes/w/$workspaceId/content/pages/index.tsx"), "utf-8");
+    const source = readFileSync(
+      resolveSource("routes/w/$workspaceId/content/pages/index.tsx"),
+      "utf-8",
+    );
 
-    expect(source).toContain("import { ContentPagesIndexView } from \"@/pages/workspaces/content/pages/page\"");
+    expect(source).toContain(
+      'import { ContentPagesIndexView } from "@/pages/workspaces/content/pages/page"',
+    );
     expect(source).toContain("component: ContentPagesIndexView");
   });
 
@@ -25,7 +30,7 @@ describe("workspace content and appearance routes", () => {
     );
 
     expect(source).toContain(
-      "import { ContentLibraryView } from \"@/pages/workspaces/content/library/page\"",
+      'import { ContentLibraryView } from "@/pages/workspaces/content/library/page"',
     );
     expect(source).toContain("component: ContentLibraryView");
   });
@@ -41,10 +46,10 @@ describe("workspace content and appearance routes", () => {
     );
 
     expect(themesSource).toContain(
-      "import { WorkspaceThemesView } from \"@/pages/workspaces/appearance/themes/page\"",
+      'import { WorkspaceThemesView } from "@/pages/workspaces/appearance/themes/page"',
     );
     expect(stylesSource).toContain(
-      "import { WorkspaceGlobalStylesView } from \"@/pages/workspaces/appearance/styles/page\"",
+      'import { WorkspaceGlobalStylesView } from "@/pages/workspaces/appearance/styles/page"',
     );
   });
 
@@ -53,7 +58,9 @@ describe("workspace content and appearance routes", () => {
     const editorRouteSource = readFileSync(editorRouteFile, "utf-8");
 
     expect(existsSync(editorRouteFile)).toBe(true);
-    expect(editorRouteSource).toContain("createFileRoute(\"/w/$workspaceId/editor/$editorMode/$entityId\")");
+    expect(editorRouteSource).toContain(
+      'createFileRoute("/w/$workspaceId/editor/$editorMode/$entityId")',
+    );
     expect(editorRouteSource).toContain("validateSearch");
     expect(editorRouteSource).toContain("pathname");
     expect(editorRouteSource).toContain("WorkspaceEditorView");
@@ -66,7 +73,7 @@ describe("workspace content and appearance routes", () => {
     );
 
     expect(source).toContain("redirect({");
-    expect(source).toContain("to: \"/w/$workspaceId/content/pages\"");
+    expect(source).toContain('to: "/w/$workspaceId/content/pages"');
   });
 
   test("legacy workspace content page edit route file is still removed", () => {

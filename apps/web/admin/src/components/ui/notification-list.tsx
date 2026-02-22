@@ -120,7 +120,7 @@ function NotificationList(props: {
             {notification.time || notification.subtitle ? (
               <div className="mt-0.5 min-w-0">
                 {notification.time ? (
-                  <div className="text-[11px] font-medium text-sidebar-foreground/50">
+                  <div className="text-caption font-medium text-sidebar-foreground/50">
                     {notification.time}
                   </div>
                 ) : null}

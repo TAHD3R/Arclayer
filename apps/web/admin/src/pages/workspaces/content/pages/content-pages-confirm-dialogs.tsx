@@ -45,10 +45,18 @@ export function ContentPagesConfirmDialogs(props: ContentPagesConfirmDialogsProp
         contentClassName="sm:max-w-xl"
         footer={
           <>
-            <AntButton type="text" onClick={props.onCloseDuplicate} disabled={props.duplicateLoading}>
+            <AntButton
+              type="text"
+              onClick={props.onCloseDuplicate}
+              disabled={props.duplicateLoading}
+            >
               {props.t("common:CANCEL")}
             </AntButton>
-            <AntButton type="primary" loading={props.duplicateLoading} onClick={props.onConfirmDuplicate}>
+            <AntButton
+              type="primary"
+              loading={props.duplicateLoading}
+              onClick={props.onConfirmDuplicate}
+            >
               {props.t("content_pages:DIALOG_DUPLICATE_ACTION")}
             </AntButton>
           </>
@@ -71,7 +79,12 @@ export function ContentPagesConfirmDialogs(props: ContentPagesConfirmDialogsProp
             <AntButton type="text" onClick={props.onCloseDelete} disabled={props.deleteLoading}>
               {props.t("common:CANCEL")}
             </AntButton>
-            <AntButton type="primary" danger loading={props.deleteLoading} onClick={props.onConfirmDelete}>
+            <AntButton
+              type="primary"
+              danger
+              loading={props.deleteLoading}
+              onClick={props.onConfirmDelete}
+            >
               {props.t("content_pages:DIALOG_DELETE_ACTION")}
             </AntButton>
           </>

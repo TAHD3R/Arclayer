@@ -1133,7 +1133,7 @@ function PlaceholderPoliciesPanel(props: {
             disabled
             showSummary={false}
           >
-            <div className="text-[16px] text-muted-foreground leading-snug">
+            <div className="text-callout text-label-secondary">
               {t("common:PAGE_COMING_SOON_DESC")}
             </div>
           </SettingAccordionItem>

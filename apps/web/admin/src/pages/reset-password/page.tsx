@@ -28,17 +28,10 @@ export function ResetPasswordView({
 
   return (
     <div className="w-full">
-      <Typography.Title level={1} style={{ marginTop: 0, marginBottom: 8, fontSize: 32 }}>
+      <Typography.Title level={1} className="!mt-0 !mb-2 text-largetitle text-label-primary">
         {t("auth:RESET_PASSWORD_PAGE_TITLE")}
       </Typography.Title>
-      <Typography.Paragraph
-        style={{
-          marginTop: 0,
-          marginBottom: 26,
-          color: "var(--color-muted-foreground)",
-          fontSize: 18,
-        }}
-      >
+      <Typography.Paragraph className="!mt-0 !mb-[1.625rem] text-title2 text-label-secondary">
         {t("auth:RESET_PASSWORD_PAGE_SUBTITLE")}
       </Typography.Paragraph>
 

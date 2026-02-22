@@ -89,8 +89,12 @@ function resolveHeaderPinStyle<TData>(header: Header<TData, unknown>): PinStyleS
   return {
     className: cn(
       "z-30 bg-card",
-      pinned === "left" && header.column.getIsLastColumn("left") ? "shadow-[2px_0_0_0_hsl(var(--border))]" : "",
-      pinned === "right" && header.column.getIsFirstColumn("right") ? "shadow-[-2px_0_0_0_hsl(var(--border))]" : "",
+      pinned === "left" && header.column.getIsLastColumn("left")
+        ? "shadow-[2px_0_0_0_hsl(var(--border))]"
+        : "",
+      pinned === "right" && header.column.getIsFirstColumn("right")
+        ? "shadow-[-2px_0_0_0_hsl(var(--border))]"
+        : "",
     ),
     style,
   };
@@ -113,8 +117,12 @@ function resolveCellPinStyle<TData>(cell: Cell<TData, unknown>): PinStyleState {
   return {
     className: cn(
       "z-20 bg-card",
-      pinned === "left" && cell.column.getIsLastColumn("left") ? "shadow-[2px_0_0_0_hsl(var(--border))]" : "",
-      pinned === "right" && cell.column.getIsFirstColumn("right") ? "shadow-[-2px_0_0_0_hsl(var(--border))]" : "",
+      pinned === "left" && cell.column.getIsLastColumn("left")
+        ? "shadow-[2px_0_0_0_hsl(var(--border))]"
+        : "",
+      pinned === "right" && cell.column.getIsFirstColumn("right")
+        ? "shadow-[-2px_0_0_0_hsl(var(--border))]"
+        : "",
     ),
     style,
   };

@@ -40,7 +40,9 @@ export function SettingSheet({
         <SheetHeader>
           <SheetTitle className="font-bold!">{title}</SheetTitle>
           {description ? (
-            <SheetDescription className="text-[16px]!">{description}</SheetDescription>
+            <SheetDescription className="text-callout text-label-secondary">
+              {description}
+            </SheetDescription>
           ) : null}
         </SheetHeader>
 

@@ -182,7 +182,9 @@ function readLocalizedText(value: unknown, locale: string): string {
 }
 
 function flattenPagesTree(
-  nodes: Array<{ id: string; title?: string | null; path: string; children: Array<unknown> }> | undefined,
+  nodes:
+    | Array<{ id: string; title?: string | null; path: string; children: Array<unknown> }>
+    | undefined,
   depth = 0,
 ): FlatPageNode[] {
   if (!Array.isArray(nodes)) return [];
@@ -196,7 +198,12 @@ function flattenPagesTree(
     });
 
     const children = Array.isArray(node.children)
-      ? (node.children as Array<{ id: string; title?: string | null; path: string; children: Array<unknown> }>)
+      ? (node.children as Array<{
+          id: string;
+          title?: string | null;
+          path: string;
+          children: Array<unknown>;
+        }>)
       : [];
     rows.push(...flattenPagesTree(children, depth + 1));
   }
@@ -255,8 +262,9 @@ export function WorkspaceEditorView(props: WorkspaceEditorViewProps) {
 
   const [devicePreset, setDevicePreset] = React.useState<EditorDevicePreset>("desktop");
   const [zoomPercent, setZoomPercent] = React.useState<number>(100);
-  const [canvasPreferences, setCanvasPreferences] =
-    React.useState<EditorCanvasPreferences>(DEFAULT_CANVAS_PREFERENCES);
+  const [canvasPreferences, setCanvasPreferences] = React.useState<EditorCanvasPreferences>(
+    DEFAULT_CANVAS_PREFERENCES,
+  );
   const [canUndo, setCanUndo] = React.useState(false);
   const [canRedo, setCanRedo] = React.useState(false);
   const [pagePickerOpen, setPagePickerOpen] = React.useState(false);
@@ -354,7 +362,9 @@ export function WorkspaceEditorView(props: WorkspaceEditorViewProps) {
   const upsertStyleMutation = useMutation({
     mutationFn: async () => upsertWorkspaceSiteStyle(workspaceId, { value: styleDraft }),
     onSuccess: () => {
-      notifySuccessText(t("content_pages:EDITOR_V2_STYLE_SAVE_SUCCESS", { defaultValue: "Site style saved." }));
+      notifySuccessText(
+        t("content_pages:EDITOR_V2_STYLE_SAVE_SUCCESS", { defaultValue: "Site style saved." }),
+      );
       void queryClient.invalidateQueries({
         queryKey: ["workspace", workspaceId, "editor", "site-style"],
       });
@@ -365,7 +375,9 @@ export function WorkspaceEditorView(props: WorkspaceEditorViewProps) {
   const createGlobalSectionMutation = useMutation({
     mutationFn: async () =>
       createWorkspaceSiteGlobalSection(workspaceId, {
-        name: t("content_pages:EDITOR_V2_GLOBAL_SECTION_DEFAULT_NAME", { defaultValue: "New section" }),
+        name: t("content_pages:EDITOR_V2_GLOBAL_SECTION_DEFAULT_NAME", {
+          defaultValue: "New section",
+        }),
         kind: "generic",
         enabled: true,
         payload: {
@@ -525,7 +537,10 @@ export function WorkspaceEditorView(props: WorkspaceEditorViewProps) {
   }, [entityId, isPageMode, t, workspaceId]);
 
   const updateInspector = React.useCallback(
-    async (section: "component" | "layout" | "design" | "animation", values: Record<string, unknown>) => {
+    async (
+      section: "component" | "layout" | "design" | "animation",
+      values: Record<string, unknown>,
+    ) => {
       const portal = portalRef.current;
       if (!portal || !selectedBlockId) return;
       try {
@@ -797,12 +812,14 @@ export function WorkspaceEditorView(props: WorkspaceEditorViewProps) {
   const flatPages = React.useMemo(
     () =>
       flattenPagesTree(
-        pagesTreeQuery.data?.items as Array<{
-          id: string;
-          title?: string | null;
-          path: string;
-          children: Array<unknown>;
-        }> | undefined,
+        pagesTreeQuery.data?.items as
+          | Array<{
+              id: string;
+              title?: string | null;
+              path: string;
+              children: Array<unknown>;
+            }>
+          | undefined,
       ),
     [pagesTreeQuery.data?.items],
   );
@@ -823,7 +840,10 @@ export function WorkspaceEditorView(props: WorkspaceEditorViewProps) {
       )
       .filter((option) => {
         if (!keyword) return true;
-        return option.title.toLowerCase().includes(keyword) || option.path.toLowerCase().includes(keyword);
+        return (
+          option.title.toLowerCase().includes(keyword) ||
+          option.path.toLowerCase().includes(keyword)
+        );
       });
 
     const templateOptions: PagePickerOption[] = [];
@@ -831,7 +851,9 @@ export function WorkspaceEditorView(props: WorkspaceEditorViewProps) {
     return [
       {
         key: "static",
-        label: t("content_pages:EDITOR_V2_PAGE_PICKER_GROUP_STATIC", { defaultValue: "Static pages" }),
+        label: t("content_pages:EDITOR_V2_PAGE_PICKER_GROUP_STATIC", {
+          defaultValue: "Static pages",
+        }),
         options:
           staticOptions.length > 0
             ? staticOptions
@@ -853,7 +875,9 @@ export function WorkspaceEditorView(props: WorkspaceEditorViewProps) {
       },
       {
         key: "template",
-        label: t("content_pages:EDITOR_V2_PAGE_PICKER_GROUP_TEMPLATE", { defaultValue: "Template pages" }),
+        label: t("content_pages:EDITOR_V2_PAGE_PICKER_GROUP_TEMPLATE", {
+          defaultValue: "Template pages",
+        }),
         options:
           templateOptions.length > 0
             ? templateOptions
@@ -958,7 +982,9 @@ export function WorkspaceEditorView(props: WorkspaceEditorViewProps) {
       {
         key: "ping",
         icon: <Search className="h-4 w-4" />,
-        label: renderMenuLabel(t("content_pages:EDITOR_V2_TOOLS_PING", { defaultValue: "Ping bridge" })),
+        label: renderMenuLabel(
+          t("content_pages:EDITOR_V2_TOOLS_PING", { defaultValue: "Ping bridge" }),
+        ),
         onClick: () => {
           void sendPing();
         },
@@ -1044,19 +1070,25 @@ export function WorkspaceEditorView(props: WorkspaceEditorViewProps) {
       {
         key: "toggle-rulers",
         icon: <Layers className="h-4 w-4" />,
-        label: renderMenuLabel(t("content_pages:EDITOR_V2_VIEWS_RULERS", { defaultValue: "Show rulers" })),
+        label: renderMenuLabel(
+          t("content_pages:EDITOR_V2_VIEWS_RULERS", { defaultValue: "Show rulers" }),
+        ),
         onClick: () => void toggleCanvasPreference("showRulers", !canvasPreferences.showRulers),
       },
       {
         key: "toggle-guides",
         icon: <Layers className="h-4 w-4" />,
-        label: renderMenuLabel(t("content_pages:EDITOR_V2_VIEWS_GUIDES", { defaultValue: "Show guides" })),
+        label: renderMenuLabel(
+          t("content_pages:EDITOR_V2_VIEWS_GUIDES", { defaultValue: "Show guides" }),
+        ),
         onClick: () => void toggleCanvasPreference("showGuides", !canvasPreferences.showGuides),
       },
       {
         key: "toggle-bounds",
         icon: <Layers className="h-4 w-4" />,
-        label: renderMenuLabel(t("content_pages:EDITOR_V2_VIEWS_BOUNDS", { defaultValue: "Show bounds" })),
+        label: renderMenuLabel(
+          t("content_pages:EDITOR_V2_VIEWS_BOUNDS", { defaultValue: "Show bounds" }),
+        ),
         onClick: () => void toggleCanvasPreference("showBounds", !canvasPreferences.showBounds),
       },
       {
@@ -1066,7 +1098,10 @@ export function WorkspaceEditorView(props: WorkspaceEditorViewProps) {
           t("content_pages:EDITOR_V2_CANVAS_INDICATIONS", { defaultValue: "Canvas indications" }),
         ),
         onClick: () =>
-          void toggleCanvasPreference("showCanvasIndications", !canvasPreferences.showCanvasIndications),
+          void toggleCanvasPreference(
+            "showCanvasIndications",
+            !canvasPreferences.showCanvasIndications,
+          ),
       },
     ],
     [
@@ -1202,7 +1237,9 @@ export function WorkspaceEditorView(props: WorkspaceEditorViewProps) {
             <>
               <div>
                 <div className="mb-1 text-xs text-muted-foreground">
-                  {t("content_pages:EDITOR_V2_FIELD_HEADING_LEVEL", { defaultValue: "Heading level" })}
+                  {t("content_pages:EDITOR_V2_FIELD_HEADING_LEVEL", {
+                    defaultValue: "Heading level",
+                  })}
                 </div>
                 <InputNumber
                   min={1}
@@ -1302,7 +1339,9 @@ export function WorkspaceEditorView(props: WorkspaceEditorViewProps) {
             <>
               <div>
                 <div className="mb-1 text-xs text-muted-foreground">
-                  {t("content_pages:EDITOR_V2_FIELD_CONTAINER_TAG", { defaultValue: "Container tag" })}
+                  {t("content_pages:EDITOR_V2_FIELD_CONTAINER_TAG", {
+                    defaultValue: "Container tag",
+                  })}
                 </div>
                 <Select
                   value={toStringValue(inspectorComponent.as) || "section"}
@@ -1515,7 +1554,9 @@ export function WorkspaceEditorView(props: WorkspaceEditorViewProps) {
           </div>
           <div>
             <div className="mb-1 text-xs text-muted-foreground">
-              {t("content_pages:EDITOR_V2_FIELD_ANIMATION_DURATION", { defaultValue: "Duration (ms)" })}
+              {t("content_pages:EDITOR_V2_FIELD_ANIMATION_DURATION", {
+                defaultValue: "Duration (ms)",
+              })}
             </div>
             <InputNumber
               min={0}
@@ -1671,7 +1712,9 @@ export function WorkspaceEditorView(props: WorkspaceEditorViewProps) {
           </div>
           <div>
             <div className="mb-1 text-xs text-muted-foreground">
-              {t("content_pages:EDITOR_V2_SITE_STYLE_BACKGROUND", { defaultValue: "Background color" })}
+              {t("content_pages:EDITOR_V2_SITE_STYLE_BACKGROUND", {
+                defaultValue: "Background color",
+              })}
             </div>
             <Input
               value={toStringValue(styleDraft.backgroundColor)}
@@ -1683,7 +1726,10 @@ export function WorkspaceEditorView(props: WorkspaceEditorViewProps) {
               }
             />
           </div>
-          <Button loading={upsertStyleMutation.isPending} onClick={() => upsertStyleMutation.mutate()}>
+          <Button
+            loading={upsertStyleMutation.isPending}
+            onClick={() => upsertStyleMutation.mutate()}
+          >
             {t("content_pages:EDITOR_V2_STYLE_SAVE", { defaultValue: "Save style" })}
           </Button>
         </div>
@@ -1693,7 +1739,10 @@ export function WorkspaceEditorView(props: WorkspaceEditorViewProps) {
     if (leftPanelKey === "global_sections") {
       return (
         <div className="flex flex-col gap-2">
-          <Button loading={createGlobalSectionMutation.isPending} onClick={() => createGlobalSectionMutation.mutate()}>
+          <Button
+            loading={createGlobalSectionMutation.isPending}
+            onClick={() => createGlobalSectionMutation.mutate()}
+          >
             {t("content_pages:EDITOR_V2_GLOBAL_SECTION_CREATE", { defaultValue: "Create section" })}
           </Button>
           {(globalSectionsQuery.data?.items ?? []).map((section) => (
@@ -1733,7 +1782,7 @@ export function WorkspaceEditorView(props: WorkspaceEditorViewProps) {
                   </Button>
                 </Space>
               </div>
-              <div className="mt-1 text-[11px] text-muted-foreground">{section.kind}</div>
+              <div className="mt-1 text-caption text-label-secondary">{section.kind}</div>
             </div>
           ))}
         </div>
@@ -1792,8 +1841,10 @@ export function WorkspaceEditorView(props: WorkspaceEditorViewProps) {
                       <div className="truncate text-xs text-muted-foreground">{data.path}</div>
                     </div>
                     {data.isCurrent ? (
-                      <span className="rounded bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-medium text-blue-600">
-                        {t("content_pages:EDITOR_V2_PAGE_PICKER_CURRENT", { defaultValue: "Current" })}
+                      <span className="rounded bg-blue-500/10 px-1.5 py-0.5 text-caption font-medium text-blue-600">
+                        {t("content_pages:EDITOR_V2_PAGE_PICKER_CURRENT", {
+                          defaultValue: "Current",
+                        })}
                       </span>
                     ) : null}
                   </div>
@@ -1853,7 +1904,9 @@ export function WorkspaceEditorView(props: WorkspaceEditorViewProps) {
 
           <div className="flex shrink-0 items-center gap-2">
             <Space.Compact>
-              <Tooltip title={t("content_pages:EDITOR_V2_DEVICE_DESKTOP", { defaultValue: "Desktop" })}>
+              <Tooltip
+                title={t("content_pages:EDITOR_V2_DEVICE_DESKTOP", { defaultValue: "Desktop" })}
+              >
                 <Button
                   size="small"
                   type={devicePreset === "desktop" ? "primary" : "default"}
@@ -1862,7 +1915,9 @@ export function WorkspaceEditorView(props: WorkspaceEditorViewProps) {
                 />
               </Tooltip>
 
-              <Tooltip title={t("content_pages:EDITOR_V2_DEVICE_TABLET", { defaultValue: "Tablet" })}>
+              <Tooltip
+                title={t("content_pages:EDITOR_V2_DEVICE_TABLET", { defaultValue: "Tablet" })}
+              >
                 <Button
                   size="small"
                   type={devicePreset === "tablet" ? "primary" : "default"}
@@ -1871,7 +1926,9 @@ export function WorkspaceEditorView(props: WorkspaceEditorViewProps) {
                 />
               </Tooltip>
 
-              <Tooltip title={t("content_pages:EDITOR_V2_DEVICE_MOBILE", { defaultValue: "Mobile" })}>
+              <Tooltip
+                title={t("content_pages:EDITOR_V2_DEVICE_MOBILE", { defaultValue: "Mobile" })}
+              >
                 <Button
                   size="small"
                   type={devicePreset === "mobile" ? "primary" : "default"}
@@ -1883,7 +1940,10 @@ export function WorkspaceEditorView(props: WorkspaceEditorViewProps) {
 
             <Popover>
               <PopoverTrigger asChild>
-                <Button size="small" icon={<Monitor className="h-4 w-4" />}>{`${zoomPercent}%`}</Button>
+                <Button
+                  size="small"
+                  icon={<Monitor className="h-4 w-4" />}
+                >{`${zoomPercent}%`}</Button>
               </PopoverTrigger>
               <PopoverContent align="center" sideOffset={8} className="w-[300px] p-3">
                 <div className="space-y-3">
@@ -1951,7 +2011,9 @@ export function WorkspaceEditorView(props: WorkspaceEditorViewProps) {
                       type={canvasPreferences.sizingMode === "fixed" ? "primary" : "default"}
                       onClick={() => void setCanvasSizingMode("fixed")}
                     >
-                      {t("content_pages:EDITOR_V2_CANVAS_SIZE_MODE_FIXED", { defaultValue: "Fixed" })}
+                      {t("content_pages:EDITOR_V2_CANVAS_SIZE_MODE_FIXED", {
+                        defaultValue: "Fixed",
+                      })}
                     </Button>
                   </Space.Compact>
                 </div>
@@ -1996,7 +2058,9 @@ export function WorkspaceEditorView(props: WorkspaceEditorViewProps) {
             </Space.Compact>
 
             <Space.Compact>
-              <Tooltip title={t("content_pages:EDITOR_V2_MODE_EDIT", { defaultValue: "Edit mode" })}>
+              <Tooltip
+                title={t("content_pages:EDITOR_V2_MODE_EDIT", { defaultValue: "Edit mode" })}
+              >
                 <Button
                   size="small"
                   type={editorViewMode === "edit" ? "primary" : "default"}
@@ -2004,7 +2068,9 @@ export function WorkspaceEditorView(props: WorkspaceEditorViewProps) {
                   onClick={() => setEditorViewMode("edit")}
                 />
               </Tooltip>
-              <Tooltip title={t("content_pages:EDITOR_V2_MODE_PREVIEW", { defaultValue: "Preview mode" })}>
+              <Tooltip
+                title={t("content_pages:EDITOR_V2_MODE_PREVIEW", { defaultValue: "Preview mode" })}
+              >
                 <Button
                   size="small"
                   type={editorViewMode === "preview" ? "primary" : "default"}
@@ -2015,7 +2081,11 @@ export function WorkspaceEditorView(props: WorkspaceEditorViewProps) {
             </Space.Compact>
 
             <Tooltip title={t("content_pages:EDITOR_SHELL_SAVE_SHORTCUT_HINT")}>
-              <Button loading={saveStatus === "saving"} disabled={saveDisabled} onClick={onSaveFromHeader}>
+              <Button
+                loading={saveStatus === "saving"}
+                disabled={saveDisabled}
+                onClick={onSaveFromHeader}
+              >
                 {t("content_pages:EDITOR_SHELL_ACTION_SAVE")}
               </Button>
             </Tooltip>
@@ -2050,7 +2120,12 @@ export function WorkspaceEditorView(props: WorkspaceEditorViewProps) {
       ) : null}
 
       {saveError ? (
-        <Alert type="error" showIcon message={t("content_pages:EDITOR_SHELL_SAVE_ERROR")} description={saveError} />
+        <Alert
+          type="error"
+          showIcon
+          message={t("content_pages:EDITOR_SHELL_SAVE_ERROR")}
+          description={saveError}
+        />
       ) : null}
 
       {publishError ? (
@@ -2068,7 +2143,7 @@ export function WorkspaceEditorView(props: WorkspaceEditorViewProps) {
             <button
               key={item.key}
               type="button"
-              className={`rounded px-2 py-2 text-left text-[11px] ${
+              className={`rounded px-2 py-2 text-left text-caption ${
                 item.key === leftPanelKey ? "bg-blue-500/10 text-blue-600" : "hover:bg-muted"
               }`}
               onClick={() => setLeftPanelKey(item.key)}
@@ -2133,7 +2208,6 @@ export function WorkspaceEditorView(props: WorkspaceEditorViewProps) {
           </div>
         </aside>
       </div>
-
     </div>
   );
 }

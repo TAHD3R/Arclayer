@@ -276,225 +276,223 @@ export function AssetPickerDialog(props: {
         }
       >
         <div className="flex-1 min-h-0 flex flex-col">
-            {/* Toolbar: search + filters + upload */}
-            <div className="px-6 py-4 flex flex-wrap items-center justify-between gap-3">
-              <div className="flex flex-wrap items-end gap-3">
-                <div className="grid min-w-[280px] flex-1 gap-1.5">
-                  <label className="font-semibold text-foreground">
-                    {t("assets:ASSET_PICKER_FIELD_SEARCH")}
-                  </label>
-                  <div className="text-muted-foreground">
-                    {t("assets:ASSET_PICKER_FIELD_SEARCH_HELP")}
-                  </div>
-                  <Input
-                    className="w-full max-w-[320px]"
-                    variant="borderless"
-                    ref={searchInputRef}
-                    allowClear
-                    value={searchInput}
-                    onChange={(e) => setSearchInput(e.target.value)}
-                    placeholder={t("settings:SETTINGS_ASSET_PICKER_SEARCH_PLACEHOLDER")}
-                    prefix={<Search size={16} className="text-muted-foreground" />}
-                  />
+          {/* Toolbar: search + filters + upload */}
+          <div className="px-6 py-4 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-end gap-3">
+              <div className="grid min-w-[280px] flex-1 gap-1.5">
+                <label className="font-semibold text-foreground">
+                  {t("assets:ASSET_PICKER_FIELD_SEARCH")}
+                </label>
+                <div className="text-muted-foreground">
+                  {t("assets:ASSET_PICKER_FIELD_SEARCH_HELP")}
                 </div>
-
-                <div className="flex items-center gap-2 self-end">
-                  <AssetsFilterPopover
-                    value={filters}
-                    onChange={(next: AssetsFilters) => {
-                      setFilters(next);
-                    }}
-                    ordering={ordering}
-                    onOrderingChange={(next) => {
-                      setOrdering(next);
-                      setPage(1);
-                    }}
-                    defaultOrdering="-created_at"
-                    tags={tagsQuery.data?.items ?? []}
-                    tagsLoading={tagsQuery.isLoading}
-                  />
-                </div>
+                <Input
+                  className="w-full max-w-[320px]"
+                  variant="borderless"
+                  ref={searchInputRef}
+                  allowClear
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  placeholder={t("settings:SETTINGS_ASSET_PICKER_SEARCH_PLACEHOLDER")}
+                  prefix={<Search size={16} className="text-muted-foreground" />}
+                />
               </div>
 
-              <div className="flex items-center gap-2">
-                {allowUpload ? (
-                  <Button
-                    type="primary"
-                    icon={<UploadCloud size={16} />}
-                    onClick={() => setUploadOpen(true)}
-                    disabled={isFetching}
-                  >
-                    {t("assets:ASSET_ACTION_UPLOAD")}
-                  </Button>
-                ) : null}
+              <div className="flex items-center gap-2 self-end">
+                <AssetsFilterPopover
+                  value={filters}
+                  onChange={(next: AssetsFilters) => {
+                    setFilters(next);
+                  }}
+                  ordering={ordering}
+                  onOrderingChange={(next) => {
+                    setOrdering(next);
+                    setPage(1);
+                  }}
+                  defaultOrdering="-created_at"
+                  tags={tagsQuery.data?.items ?? []}
+                  tagsLoading={tagsQuery.isLoading}
+                />
               </div>
             </div>
 
-            {/* Breadcrumbs */}
-            <div className="px-6 flex items-center gap-2 text-sm">
-              <Button
-                type="text"
-                onClick={() => {
-                  setCurrentFolderId(null);
-                  setFocusedFolderId(null);
-                }}
-              >
-                {t("assets:ASSET_BREADCRUMB_ROOT")}
-              </Button>
-              {folderPath.map((f) => (
-                <div key={String(f.id)} className="flex items-center gap-2">
-                  <span className="text-muted-foreground">/</span>
-                  <Button
-                    type="text"
-                    size="small"
-                    onClick={() => {
-                      setCurrentFolderId(String(f.id));
-                      setFocusedFolderId(null);
-                    }}
-                  >
-                    {f.name}
-                  </Button>
-                </div>
-              ))}
+            <div className="flex items-center gap-2">
+              {allowUpload ? (
+                <Button
+                  type="primary"
+                  icon={<UploadCloud size={16} />}
+                  onClick={() => setUploadOpen(true)}
+                  disabled={isFetching}
+                >
+                  {t("assets:ASSET_ACTION_UPLOAD")}
+                </Button>
+              ) : null}
             </div>
+          </div>
 
-            {/* Content */}
-            <div
-              className="flex-1 min-h-0 overflow-auto px-6 py-5 select-none"
-              onMouseDown={(e) => {
-                const target = e.target as HTMLElement | null;
-                if (!target) return;
-                // Click blank area => clear selection & folder focus (file-manager-like UX).
-                if (target.closest("[data-asset-tile='true']")) return;
-                if (target.closest("[data-folder-tile='true']")) return;
-                setSelection((prev) => clearSelection(prev));
+          {/* Breadcrumbs */}
+          <div className="px-6 flex items-center gap-2 text-sm">
+            <Button
+              type="text"
+              onClick={() => {
+                setCurrentFolderId(null);
                 setFocusedFolderId(null);
               }}
             >
-              {isLoading ? (
-                <div className="py-10 flex justify-center">
-                  <LoaderOne />
-                </div>
-              ) : masonryEntries.length === 0 ? (
-                <div className="py-10 text-sm text-muted-foreground">
-                  {t("assets:ASSET_EMPTY_SEARCH_DESC")}
-                </div>
-              ) : (
-                <Masonry
-                  gutter={[16, 16]}
-                  columns={{ xs: 1, sm: 2, md: 3, xl: 4, xxl: 5 }}
-                  fresh
-                  items={masonryEntries.map((it) => ({
-                    key:
-                      it.kind === "asset"
-                        ? it.asset.id
-                        : it.kind === "folder"
-                          ? `folder:${it.folder.id}`
-                          : "folder:__up__",
-                    data: it,
-                  }))}
-                  itemRender={(info) => {
-                    const entry = info.data as PickerMasonryEntry;
-                    if (entry.kind === "folderUp") {
-                      return (
-                        <AssetsExplorerFolderUpTile
-                          label={t("assets:ASSET_FOLDER_UP")}
-                          onClick={() => {
-                            setFocusedFolderId("__up__");
-                            setSelection((prev) => clearSelection(prev));
-                          }}
-                          onDoubleClick={() => {
-                            setCurrentFolderId(parentIdForUp);
-                            setFocusedFolderId(null);
-                          }}
-                        />
-                      );
-                    }
+              {t("assets:ASSET_BREADCRUMB_ROOT")}
+            </Button>
+            {folderPath.map((f) => (
+              <div key={String(f.id)} className="flex items-center gap-2">
+                <span className="text-muted-foreground">/</span>
+                <Button
+                  type="text"
+                  size="small"
+                  onClick={() => {
+                    setCurrentFolderId(String(f.id));
+                    setFocusedFolderId(null);
+                  }}
+                >
+                  {f.name}
+                </Button>
+              </div>
+            ))}
+          </div>
 
-                    if (entry.kind === "folder") {
-                      return (
-                        <AssetsExplorerFolderTile
-                          folder={entry.folder}
-                          folderLabel={t("assets:ASSET_FOLDER")}
-                          focused={focusedFolderId === entry.folder.id}
-                          onClick={() => {
-                            setFocusedFolderId(entry.folder.id);
-                            setSelection((prev) => clearSelection(prev));
-                          }}
-                          onDoubleClick={() => {
-                            setCurrentFolderId(String(entry.folder.id));
-                            setFocusedFolderId(null);
-                          }}
-                        />
-                      );
-                    }
-
-                    const asset = entry.asset as AssetMasonryItem;
-                    const isSelected = selectedIds.has(asset.id);
-
+          {/* Content */}
+          <div
+            className="flex-1 min-h-0 overflow-auto px-6 py-5 select-none"
+            onMouseDown={(e) => {
+              const target = e.target as HTMLElement | null;
+              if (!target) return;
+              // Click blank area => clear selection & folder focus (file-manager-like UX).
+              if (target.closest("[data-asset-tile='true']")) return;
+              if (target.closest("[data-folder-tile='true']")) return;
+              setSelection((prev) => clearSelection(prev));
+              setFocusedFolderId(null);
+            }}
+          >
+            {isLoading ? (
+              <div className="py-10 flex justify-center">
+                <LoaderOne />
+              </div>
+            ) : masonryEntries.length === 0 ? (
+              <div className="py-10 text-sm text-muted-foreground">
+                {t("assets:ASSET_EMPTY_SEARCH_DESC")}
+              </div>
+            ) : (
+              <Masonry
+                gutter={[16, 16]}
+                columns={{ xs: 1, sm: 2, md: 3, xl: 4, xxl: 5 }}
+                fresh
+                items={masonryEntries.map((it) => ({
+                  key:
+                    it.kind === "asset"
+                      ? it.asset.id
+                      : it.kind === "folder"
+                        ? `folder:${it.folder.id}`
+                        : "folder:__up__",
+                  data: it,
+                }))}
+                itemRender={(info) => {
+                  const entry = info.data as PickerMasonryEntry;
+                  if (entry.kind === "folderUp") {
                     return (
-                      <AssetMasonryTile
-                        asset={asset}
-                        selected={isSelected}
-                        onSelect={(e) => {
-                          if (mode === "single") {
-                            setSelection((prev) =>
-                              selectOrClearOnPlainClick(prev, asset.id, e.detail),
-                            );
-                            setFocusedFolderId(null);
-                            return;
-                          }
-
+                      <AssetsExplorerFolderUpTile
+                        label={t("assets:ASSET_FOLDER_UP")}
+                        onClick={() => {
+                          setFocusedFolderId("__up__");
+                          setSelection((prev) => clearSelection(prev));
+                        }}
+                        onDoubleClick={() => {
+                          setCurrentFolderId(parentIdForUp);
                           setFocusedFolderId(null);
-                          if (e.shiftKey) {
-                            setSelection((prev) => rangeSelect(prev, asset.id, orderedAssetIds));
-                            return;
-                          }
-                          if (e.metaKey || e.ctrlKey) {
-                            setSelection((prev) => toggleSelect(prev, asset.id));
-                            return;
-                          }
+                        }}
+                      />
+                    );
+                  }
+
+                  if (entry.kind === "folder") {
+                    return (
+                      <AssetsExplorerFolderTile
+                        folder={entry.folder}
+                        folderLabel={t("assets:ASSET_FOLDER")}
+                        focused={focusedFolderId === entry.folder.id}
+                        onClick={() => {
+                          setFocusedFolderId(entry.folder.id);
+                          setSelection((prev) => clearSelection(prev));
+                        }}
+                        onDoubleClick={() => {
+                          setCurrentFolderId(String(entry.folder.id));
+                          setFocusedFolderId(null);
+                        }}
+                      />
+                    );
+                  }
+
+                  const asset = entry.asset as AssetMasonryItem;
+                  const isSelected = selectedIds.has(asset.id);
+
+                  return (
+                    <AssetMasonryTile
+                      asset={asset}
+                      selected={isSelected}
+                      onSelect={(e) => {
+                        if (mode === "single") {
                           setSelection((prev) =>
                             selectOrClearOnPlainClick(prev, asset.id, e.detail),
                           );
-                        }}
-                        onToggleSelected={() => {
                           setFocusedFolderId(null);
-                          if (mode === "single") {
-                            setSelection((prev) => selectOrClearOnPlainClick(prev, asset.id, 1));
-                            return;
-                          }
-                          setSelection((prev) => toggleSelect(prev, asset.id));
-                        }}
-                        onOpen={handleAssetDoubleClick}
-                      />
-                    );
-                  }}
-                />
-              )}
-            </div>
+                          return;
+                        }
 
-            {/* Pagination */}
-            <div className="px-6 py-3 border-t flex items-center justify-between gap-3">
-              <div className="text-xs text-muted-foreground">
-                {isFetching ? t("common:LOADING") : null}
-              </div>
-              <Pagination
-                size="small"
-                showSizeChanger
-                current={page}
-                pageSize={pageSize}
-                total={total}
-                onChange={(nextPage, nextSize) => {
-                  if (typeof nextSize === "number" && nextSize !== pageSize) {
-                    setPageSize(nextSize);
-                    setPage(1);
-                    return;
-                  }
-                  setPage(nextPage);
+                        setFocusedFolderId(null);
+                        if (e.shiftKey) {
+                          setSelection((prev) => rangeSelect(prev, asset.id, orderedAssetIds));
+                          return;
+                        }
+                        if (e.metaKey || e.ctrlKey) {
+                          setSelection((prev) => toggleSelect(prev, asset.id));
+                          return;
+                        }
+                        setSelection((prev) => selectOrClearOnPlainClick(prev, asset.id, e.detail));
+                      }}
+                      onToggleSelected={() => {
+                        setFocusedFolderId(null);
+                        if (mode === "single") {
+                          setSelection((prev) => selectOrClearOnPlainClick(prev, asset.id, 1));
+                          return;
+                        }
+                        setSelection((prev) => toggleSelect(prev, asset.id));
+                      }}
+                      onOpen={handleAssetDoubleClick}
+                    />
+                  );
                 }}
               />
+            )}
+          </div>
+
+          {/* Pagination */}
+          <div className="px-6 py-3 border-t flex items-center justify-between gap-3">
+            <div className="text-xs text-muted-foreground">
+              {isFetching ? t("common:LOADING") : null}
             </div>
+            <Pagination
+              size="small"
+              showSizeChanger
+              current={page}
+              pageSize={pageSize}
+              total={total}
+              onChange={(nextPage, nextSize) => {
+                if (typeof nextSize === "number" && nextSize !== pageSize) {
+                  setPageSize(nextSize);
+                  setPage(1);
+                  return;
+                }
+                setPage(nextPage);
+              }}
+            />
+          </div>
         </div>
       </SettingDialog>
 

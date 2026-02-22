@@ -152,7 +152,11 @@ export function PluginInstallDialog({
       footer={
         step === "validated" || step === "installing" ? (
           <>
-            <Button type="text" onClick={() => onOpenChange(false)} disabled={step === "installing"}>
+            <Button
+              type="text"
+              onClick={() => onOpenChange(false)}
+              disabled={step === "installing"}
+            >
               {t("common:CANCEL")}
             </Button>
             <Button
@@ -168,129 +172,126 @@ export function PluginInstallDialog({
       }
     >
       <div className="px-5 pt-4 pb-5">
-          <div
-            {...getRootProps()}
-            className={cn(
-              "relative rounded-xl border border-dashed",
-              "p-8 sm:p-10",
-              "transition",
-              isDragActive ? "border-primary bg-primary/5" : "border-border/70 hover:border-border",
-              disabled ? "opacity-60 pointer-events-none" : "",
-            )}
-          >
-            <input {...getInputProps()} />
+        <div
+          {...getRootProps()}
+          className={cn(
+            "relative rounded-xl border border-dashed",
+            "p-8 sm:p-10",
+            "transition",
+            isDragActive ? "border-primary bg-primary/5" : "border-border/70 hover:border-border",
+            disabled ? "opacity-60 pointer-events-none" : "",
+          )}
+        >
+          <input {...getInputProps()} />
 
-            <div className="flex flex-col items-center text-center">
-              <CloudUpload
-                className={cn("size-10", isDragActive ? "text-primary" : "text-muted-foreground")}
-              />
-              <div className="mt-3 text-base font-medium">
-                {t("plugin:PLUGIN_CENTER_DROP_TITLE")}
+          <div className="flex flex-col items-center text-center">
+            <CloudUpload
+              className={cn("size-10", isDragActive ? "text-primary" : "text-muted-foreground")}
+            />
+            <div className="mt-3 text-base font-medium">{t("plugin:PLUGIN_CENTER_DROP_TITLE")}</div>
+            <div className="mt-1 text-sm text-muted-foreground">
+              {t("plugin:PLUGIN_CENTER_DROP_DESC")}
+            </div>
+
+            <div className="mt-4 flex flex-col items-center gap-3">
+              <div className="flex items-center gap-2">
+                <Button
+                  type="primary"
+                  disabled={disabled}
+                  icon={<Upload className="size-4" />}
+                  onClick={() => openFileDialog()}
+                >
+                  {t("plugin:PLUGIN_CENTER_PICK_FILE")}
+                </Button>
+                <Button
+                  disabled={!canValidate}
+                  loading={step === "validating"}
+                  onClick={() => void validateNow()}
+                >
+                  {t("plugin:PLUGIN_CENTER_VALIDATE_ACTION")}
+                </Button>
               </div>
-              <div className="mt-1 text-sm text-muted-foreground">
-                {t("plugin:PLUGIN_CENTER_DROP_DESC")}
-              </div>
 
-              <div className="mt-4 flex flex-col items-center gap-3">
-                <div className="flex items-center gap-2">
-                  <Button
-                    type="primary"
-                    disabled={disabled}
-                    icon={<Upload className="size-4" />}
-                    onClick={() => openFileDialog()}
-                  >
-                    {t("plugin:PLUGIN_CENTER_PICK_FILE")}
-                  </Button>
-                  <Button
-                    disabled={!canValidate}
-                    loading={step === "validating"}
-                    onClick={() => void validateNow()}
-                  >
-                    {t("plugin:PLUGIN_CENTER_VALIDATE_ACTION")}
-                  </Button>
-                </div>
-
-                <div className="text-sm text-muted-foreground">
-                  {file
-                    ? `${file.name} (${formatBytes(file.size)})`
-                    : t("plugin:PLUGIN_CENTER_FILE_EMPTY")}
-                </div>
+              <div className="text-sm text-muted-foreground">
+                {file
+                  ? `${file.name} (${formatBytes(file.size)})`
+                  : t("plugin:PLUGIN_CENTER_FILE_EMPTY")}
               </div>
             </div>
           </div>
+        </div>
 
-          {step === "validating" ? (
-            <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
-              <LoaderOne />
-              {t("plugin:PLUGIN_CENTER_VALIDATING")}
-            </div>
-          ) : null}
+        {step === "validating" ? (
+          <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
+            <LoaderOne />
+            {t("plugin:PLUGIN_CENTER_VALIDATING")}
+          </div>
+        ) : null}
 
-          {(step === "validated" || step === "installing") && validated ? (
-            <div className="mt-4">
-              <Typography.Title level={5} style={{ marginTop: 0 }}>
-                {t("plugin:PLUGIN_CENTER_META_TITLE")}
-              </Typography.Title>
+        {(step === "validated" || step === "installing") && validated ? (
+          <div className="mt-4">
+            <Typography.Title level={5} style={{ marginTop: 0 }}>
+              {t("plugin:PLUGIN_CENTER_META_TITLE")}
+            </Typography.Title>
 
-              <Descriptions bordered size="small" column={1}>
-                <Descriptions.Item label={t("plugin:PLUGIN_META_NAME")}>
-                  {validated.meta.name}
-                </Descriptions.Item>
-                <Descriptions.Item label={t("plugin:PLUGIN_META_VERSION")}>
-                  {validated.meta.version}
-                </Descriptions.Item>
-                <Descriptions.Item label={t("plugin:PLUGIN_META_AUTHOR")}>
-                  {validated.meta.author}
-                </Descriptions.Item>
-                <Descriptions.Item label={t("plugin:PLUGIN_META_ID")}>
-                  {validated.meta.pluginId}
-                </Descriptions.Item>
-                <Descriptions.Item label={t("plugin:PLUGIN_META_SLUG")}>
-                  {validated.meta.slug}
-                </Descriptions.Item>
-                <Descriptions.Item label={t("plugin:PLUGIN_META_REQUIRES")}>
-                  {validated.meta.requires}
-                </Descriptions.Item>
-                <Descriptions.Item label={t("plugin:PLUGIN_META_CATEGORY")}>
-                  {categoryLabel(t, validated.meta.category)}
-                </Descriptions.Item>
-                <Descriptions.Item label={t("plugin:PLUGIN_META_SHA256")}>
-                  {validated.sha256}
-                </Descriptions.Item>
-                <Descriptions.Item label={t("plugin:PLUGIN_META_SIZE")}>
-                  {formatBytes(validated.sizeBytes)}
-                </Descriptions.Item>
-              </Descriptions>
+            <Descriptions bordered size="small" column={1}>
+              <Descriptions.Item label={t("plugin:PLUGIN_META_NAME")}>
+                {validated.meta.name}
+              </Descriptions.Item>
+              <Descriptions.Item label={t("plugin:PLUGIN_META_VERSION")}>
+                {validated.meta.version}
+              </Descriptions.Item>
+              <Descriptions.Item label={t("plugin:PLUGIN_META_AUTHOR")}>
+                {validated.meta.author}
+              </Descriptions.Item>
+              <Descriptions.Item label={t("plugin:PLUGIN_META_ID")}>
+                {validated.meta.pluginId}
+              </Descriptions.Item>
+              <Descriptions.Item label={t("plugin:PLUGIN_META_SLUG")}>
+                {validated.meta.slug}
+              </Descriptions.Item>
+              <Descriptions.Item label={t("plugin:PLUGIN_META_REQUIRES")}>
+                {validated.meta.requires}
+              </Descriptions.Item>
+              <Descriptions.Item label={t("plugin:PLUGIN_META_CATEGORY")}>
+                {categoryLabel(t, validated.meta.category)}
+              </Descriptions.Item>
+              <Descriptions.Item label={t("plugin:PLUGIN_META_SHA256")}>
+                {validated.sha256}
+              </Descriptions.Item>
+              <Descriptions.Item label={t("plugin:PLUGIN_META_SIZE")}>
+                {formatBytes(validated.sizeBytes)}
+              </Descriptions.Item>
+            </Descriptions>
 
-              {step === "installing" ? (
-                <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
-                  <LoaderOne />
-                  {t("plugin:PLUGIN_CENTER_INSTALLING")}
-                </div>
-              ) : null}
+            {step === "installing" ? (
+              <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
+                <LoaderOne />
+                {t("plugin:PLUGIN_CENTER_INSTALLING")}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
 
-            </div>
-          ) : null}
-
-          {step === "error" ? (
-            <div className="mt-4">
-              <Result
-                status="error"
-                title={t("plugin:PLUGIN_CENTER_OPERATION_FAILED")}
-                subTitle={errorText || t("plugin:PLUGIN_CENTER_INSTALL_FAILED_GENERIC")}
-                extra={[
-                  <Button
-                    key="retry"
-                    type="primary"
-                    disabled={!file || disabled}
-                    onClick={() => void validateNow()}
-                  >
-                    {t("common:RETRY")}
-                  </Button>,
-                ]}
-              />
-            </div>
-          ) : null}
+        {step === "error" ? (
+          <div className="mt-4">
+            <Result
+              status="error"
+              title={t("plugin:PLUGIN_CENTER_OPERATION_FAILED")}
+              subTitle={errorText || t("plugin:PLUGIN_CENTER_INSTALL_FAILED_GENERIC")}
+              extra={[
+                <Button
+                  key="retry"
+                  type="primary"
+                  disabled={!file || disabled}
+                  onClick={() => void validateNow()}
+                >
+                  {t("common:RETRY")}
+                </Button>,
+              ]}
+            />
+          </div>
+        ) : null}
       </div>
     </SettingDialog>
   );

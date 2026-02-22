@@ -422,7 +422,7 @@ export const AssetMasonryTile = memo(
             <div className="absolute inset-0 grid place-items-center bg-muted/20">
               <div className="flex flex-col items-center gap-3 text-muted-foreground">
                 <div className="opacity-95">{fallbackIcon}</div>
-                <div className="text-[11px] font-medium uppercase tracking-wide opacity-80">
+                <div className="text-caption font-medium uppercase opacity-80">
                   {(props.asset.ext || props.asset.mimeType || t("assets:ASSET_FILE_GENERIC"))
                     .toString()
                     .replace(/^\\./, "")}

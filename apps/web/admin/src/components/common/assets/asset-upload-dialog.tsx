@@ -345,10 +345,18 @@ export function AssetUploadDialog(props: {
       bodyClassName="p-0"
       footer={
         <>
-          <Button type="text" onClick={() => void abortAllAndClose()} disabled={isUploading && !hasUploading}>
+          <Button
+            type="text"
+            onClick={() => void abortAllAndClose()}
+            disabled={isUploading && !hasUploading}
+          >
             {t("assets:ASSET_UPLOAD_ACTION_CANCEL")}
           </Button>
-          <Button type="primary" disabled={!canStart || isUploading} onClick={() => void startUpload()}>
+          <Button
+            type="primary"
+            disabled={!canStart || isUploading}
+            onClick={() => void startUpload()}
+          >
             {isUploading
               ? t("assets:ASSET_UPLOAD_ACTION_UPLOADING")
               : t("assets:ASSET_UPLOAD_ACTION_START")}
@@ -357,132 +365,129 @@ export function AssetUploadDialog(props: {
       }
     >
       <div className="px-5 pt-4">
-          <div
-            {...getRootProps()}
-            className={cn(
-              "relative rounded-xl border border-dashed",
-              "p-8 sm:p-10",
-              "transition",
-              isDragActive ? "border-primary bg-primary/5" : "border-border/70 hover:border-border",
-            )}
-          >
-            <input {...getInputProps()} />
+        <div
+          {...getRootProps()}
+          className={cn(
+            "relative rounded-xl border border-dashed",
+            "p-8 sm:p-10",
+            "transition",
+            isDragActive ? "border-primary bg-primary/5" : "border-border/70 hover:border-border",
+          )}
+        >
+          <input {...getInputProps()} />
 
-            <div className="flex flex-col items-center text-center">
-              <CloudUpload
-                className={cn("size-10", isDragActive ? "text-primary" : "text-muted-foreground")}
-              />
-              <div className="mt-3 text-base font-medium">
-                {t("assets:ASSET_UPLOAD_DROP_TITLE")}
-              </div>
-              <div className="mt-1 text-sm text-muted-foreground">
-                {t("assets:ASSET_UPLOAD_DROP_DESC")}
-              </div>
+          <div className="flex flex-col items-center text-center">
+            <CloudUpload
+              className={cn("size-10", isDragActive ? "text-primary" : "text-muted-foreground")}
+            />
+            <div className="mt-3 text-base font-medium">{t("assets:ASSET_UPLOAD_DROP_TITLE")}</div>
+            <div className="mt-1 text-sm text-muted-foreground">
+              {t("assets:ASSET_UPLOAD_DROP_DESC")}
+            </div>
 
-              <div className="mt-4">
-                <Button type="primary" disabled={hasUploading} onClick={() => openFileDialog()}>
-                  {t("assets:ASSET_UPLOAD_PICK_FILES")}
-                </Button>
-              </div>
+            <div className="mt-4">
+              <Button type="primary" disabled={hasUploading} onClick={() => openFileDialog()}>
+                {t("assets:ASSET_UPLOAD_PICK_FILES")}
+              </Button>
             </div>
           </div>
         </div>
+      </div>
 
       <div className="px-5 pt-4 pb-5">
-          <div className="font-semibold">{t("assets:ASSET_UPLOAD_LIST_TITLE")}</div>
+        <div className="font-semibold">{t("assets:ASSET_UPLOAD_LIST_TITLE")}</div>
 
-          <div
-            className={cn("max-h-80 overflow-auto", items.length ? "bg-background" : "bg-muted/20")}
-          >
-            {items.length ? (
-              <div className="divide-y">
-                {items.map((it) => (
-                  <div
-                    key={it.id}
-                    className={cn("px-4 py-3", it.status === "error" ? "bg-destructive/5" : "")}
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="mt-0.5">{getFileTypeIcon(it.file)}</div>
+        <div
+          className={cn("max-h-80 overflow-auto", items.length ? "bg-background" : "bg-muted/20")}
+        >
+          {items.length ? (
+            <div className="divide-y">
+              {items.map((it) => (
+                <div
+                  key={it.id}
+                  className={cn("px-4 py-3", it.status === "error" ? "bg-destructive/5" : "")}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="mt-0.5">{getFileTypeIcon(it.file)}</div>
 
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="min-w-0">
-                            <div className="truncate text-sm font-bold" title={it.file.name}>
-                              {it.file.name}
-                            </div>
-                            <div className="mt-0.5 text-sm text-muted-foreground">
-                              {formatBytes(it.file.size)}
-                            </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="truncate text-sm font-bold" title={it.file.name}>
+                            {it.file.name}
                           </div>
-
-                          <div className="shrink-0 flex items-center gap-2">
-                            {it.status === "success" ? (
-                              <CheckCircle2 className="size-5 text-emerald-600" />
-                            ) : null}
-
-                            <Tooltip title={t("assets:ASSET_UPLOAD_REMOVE")}>
-                              <Button
-                                size="small"
-                                type="text"
-                                icon={
-                                  it.status === "uploading" ? (
-                                    <X className="size-4" />
-                                  ) : (
-                                    <Trash2 className="size-4" />
-                                  )
-                                }
-                                disabled={isUploading && it.status !== "uploading"}
-                                onClick={() => void removeItem(it.id)}
-                              />
-                            </Tooltip>
+                          <div className="mt-0.5 text-sm text-muted-foreground">
+                            {formatBytes(it.file.size)}
                           </div>
                         </div>
 
-                        <div className="mt-2">
-                          <div className="h-1.5 w-full rounded-full bg-muted">
-                            <div
-                              className={cn(
-                                "h-1.5 rounded-full transition-[width] duration-200",
-                                it.status === "error"
-                                  ? "bg-destructive"
-                                  : it.status === "success"
-                                    ? "bg-emerald-600"
-                                    : "bg-primary",
-                              )}
-                              style={{ width: `${Math.min(100, Math.max(0, it.progress))}%` }}
-                            />
-                          </div>
-                          <div className="mt-1 flex items-center justify-between text-sm text-muted-foreground">
-                            <span>
-                              {it.status === "pending"
-                                ? t("assets:ASSET_UPLOAD_STATUS_PENDING")
-                                : it.status === "uploading"
-                                  ? t("assets:ASSET_UPLOAD_STATUS_UPLOADING")
-                                  : it.status === "success"
-                                    ? t("assets:ASSET_UPLOAD_STATUS_SUCCESS")
-                                    : it.status === "canceled"
-                                      ? t("assets:ASSET_UPLOAD_STATUS_CANCELED")
-                                      : t("assets:ASSET_UPLOAD_STATUS_ERROR")}
-                            </span>
-                            <span>{it.progress}%</span>
-                          </div>
-
-                          {it.errorText ? (
-                            <div className="mt-1 text-xs text-destructive">{it.errorText}</div>
+                        <div className="shrink-0 flex items-center gap-2">
+                          {it.status === "success" ? (
+                            <CheckCircle2 className="size-5 text-emerald-600" />
                           ) : null}
+
+                          <Tooltip title={t("assets:ASSET_UPLOAD_REMOVE")}>
+                            <Button
+                              size="small"
+                              type="text"
+                              icon={
+                                it.status === "uploading" ? (
+                                  <X className="size-4" />
+                                ) : (
+                                  <Trash2 className="size-4" />
+                                )
+                              }
+                              disabled={isUploading && it.status !== "uploading"}
+                              onClick={() => void removeItem(it.id)}
+                            />
+                          </Tooltip>
                         </div>
+                      </div>
+
+                      <div className="mt-2">
+                        <div className="h-1.5 w-full rounded-full bg-muted">
+                          <div
+                            className={cn(
+                              "h-1.5 rounded-full transition-[width] duration-200",
+                              it.status === "error"
+                                ? "bg-destructive"
+                                : it.status === "success"
+                                  ? "bg-emerald-600"
+                                  : "bg-primary",
+                            )}
+                            style={{ width: `${Math.min(100, Math.max(0, it.progress))}%` }}
+                          />
+                        </div>
+                        <div className="mt-1 flex items-center justify-between text-sm text-muted-foreground">
+                          <span>
+                            {it.status === "pending"
+                              ? t("assets:ASSET_UPLOAD_STATUS_PENDING")
+                              : it.status === "uploading"
+                                ? t("assets:ASSET_UPLOAD_STATUS_UPLOADING")
+                                : it.status === "success"
+                                  ? t("assets:ASSET_UPLOAD_STATUS_SUCCESS")
+                                  : it.status === "canceled"
+                                    ? t("assets:ASSET_UPLOAD_STATUS_CANCELED")
+                                    : t("assets:ASSET_UPLOAD_STATUS_ERROR")}
+                          </span>
+                          <span>{it.progress}%</span>
+                        </div>
+
+                        {it.errorText ? (
+                          <div className="mt-1 text-xs text-destructive">{it.errorText}</div>
+                        ) : null}
                       </div>
                     </div>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div className="px-4 py-6 text-sm text-muted-foreground">
-                {t("assets:ASSET_UPLOAD_LIST_EMPTY")}
-              </div>
-            )}
-          </div>
-
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="px-4 py-6 text-sm text-muted-foreground">
+              {t("assets:ASSET_UPLOAD_LIST_EMPTY")}
+            </div>
+          )}
+        </div>
       </div>
     </SettingDialog>
   );

@@ -87,10 +87,10 @@ export function AuthLayout({ children }: PropsWithChildren) {
               style={{
                 margin: 0,
                 color: isDark ? "rgba(255,255,255,0.96)" : "rgba(20,20,20,0.96)",
-                fontSize: 52,
+                fontSize: "3.25rem",
                 fontWeight: 700,
                 lineHeight: 1.05,
-                letterSpacing: -0.6,
+                letterSpacing: "-0.015em",
                 textShadow: isDark
                   ? "0 18px 60px rgba(0,0,0,0.35)"
                   : "0 18px 60px rgba(0,0,0,0.45)",
@@ -103,7 +103,7 @@ export function AuthLayout({ children }: PropsWithChildren) {
                 marginTop: 14,
                 marginBottom: 0,
                 color: isDark ? "rgba(255,255,255,0.78)" : "rgba(20,20,20,0.78)",
-                fontSize: 20,
+                fontSize: "1.25rem",
                 lineHeight: 1.6,
                 textShadow: isDark
                   ? "0 18px 60px rgba(0,0,0,0.35)"

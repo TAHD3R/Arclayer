@@ -76,17 +76,10 @@ export function LoginView({
 
   const loginPane = (
     <>
-      <Typography.Title level={1} style={{ marginTop: 0, marginBottom: 8, fontSize: 32 }}>
+      <Typography.Title level={1} className="!mt-0 !mb-2 text-largetitle text-label-primary">
         {t("auth:LOGIN_PAGE_TITLE")}
       </Typography.Title>
-      <Typography.Paragraph
-        style={{
-          marginTop: 0,
-          marginBottom: 26,
-          color: "var(--color-muted-foreground)",
-          fontSize: 18,
-        }}
-      >
+      <Typography.Paragraph className="!mt-0 !mb-[1.625rem] text-title2 text-label-secondary">
         {t("auth:LOGIN_PAGE_SUBTITLE")}
       </Typography.Paragraph>
 
@@ -153,7 +146,7 @@ export function LoginView({
 
       {publicRegisterEnabled ? (
         <div className="mt-4 text-center">
-          <Typography.Text style={{ color: "var(--color-muted-foreground)" }}>
+          <Typography.Text className="text-label-secondary">
             {t("auth:NO_ACCOUNT")}{" "}
             <Button
               type="link"
@@ -170,17 +163,10 @@ export function LoginView({
 
   const registerPane = (
     <>
-      <Typography.Title level={1} style={{ marginTop: 0, marginBottom: 8, fontSize: 32 }}>
+      <Typography.Title level={1} className="!mt-0 !mb-2 text-largetitle text-label-primary">
         {t("auth:REGISTER_PAGE_TITLE")}
       </Typography.Title>
-      <Typography.Paragraph
-        style={{
-          marginTop: 0,
-          marginBottom: 26,
-          color: "var(--color-muted-foreground)",
-          fontSize: 18,
-        }}
-      >
+      <Typography.Paragraph className="!mt-0 !mb-[1.625rem] text-title2 text-label-secondary">
         {t("auth:REGISTER_PAGE_SUBTITLE")}
       </Typography.Paragraph>
 
@@ -264,7 +250,7 @@ export function LoginView({
       </Form>
 
       <div className="mt-4 text-center">
-        <Typography.Text style={{ color: "var(--color-muted-foreground)" }}>
+        <Typography.Text className="text-label-secondary">
           {t("auth:HAVE_ACCOUNT")}{" "}
           <Button type="link" style={{ paddingInline: 0 }} onClick={() => onModeChange("login")}>
             {t("auth:SIGN_IN")}
@@ -289,9 +275,7 @@ export function LoginView({
       >
         <div className="space-y-3">
           <Alert type="info" showIcon title={t("auth:FORGOT_PASSWORD_MODAL_HINT")} />
-          <Typography.Paragraph
-            style={{ marginTop: 0, marginBottom: 0, color: "var(--color-muted-foreground)" }}
-          >
+          <Typography.Paragraph className="!mt-0 !mb-0 text-callout text-label-secondary">
             {t("auth:FORGOT_PASSWORD_MODAL_DESC")}
           </Typography.Paragraph>
         </div>

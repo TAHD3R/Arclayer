@@ -50,17 +50,10 @@ export function OnboardingView() {
 
   return (
     <div className="w-full">
-      <Typography.Title level={1} style={{ marginTop: 0, marginBottom: 8, fontSize: 32 }}>
+      <Typography.Title level={1} className="!mt-0 !mb-2 text-largetitle text-label-primary">
         {t("ONBOARDING_TITLE")}
       </Typography.Title>
-      <Typography.Paragraph
-        style={{
-          marginTop: 0,
-          marginBottom: 20,
-          color: "var(--color-muted-foreground)",
-          fontSize: 18,
-        }}
-      >
+      <Typography.Paragraph className="!mt-0 !mb-5 text-title2 text-label-secondary">
         {t("ONBOARDING_SUBTITLE")}
       </Typography.Paragraph>
 
@@ -81,7 +74,7 @@ export function OnboardingView() {
         />
       )}
 
-      <div className="flex gap-2 justify-end" style={{ marginTop: 20 }}>
+      <div className="mt-5 flex justify-end gap-2">
         <Button disabled={checking} onClick={() => void navigate({ to: "/login" })}>
           {t("ONBOARDING_LOGIN_BUTTON")}
         </Button>

@@ -1,4 +1,9 @@
-import type { ContentPageRow, ContentPageTreeLikeNode, PageStatus, PageType } from "./content-pages-types";
+import type {
+  ContentPageRow,
+  ContentPageTreeLikeNode,
+  PageStatus,
+  PageType,
+} from "./content-pages-types";
 
 function detectPageType(path: string): PageType {
   return path.includes(":") ? "template" : "static";

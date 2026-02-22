@@ -1,9 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import {
-  type WorkspaceEditorMode,
-  WorkspaceEditorView,
-} from "@/pages/workspaces/editor/page";
+import { type WorkspaceEditorMode, WorkspaceEditorView } from "@/pages/workspaces/editor/page";
 
 type WorkspaceEditorSearch = {
   pathname?: string;

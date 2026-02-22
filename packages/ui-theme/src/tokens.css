@@ -1,6 +1,52 @@
 :root {
+  /* Typography scale (Apple HIG semantics blended for SaaS density) */
+  --font-size-largetitle: 2.125rem; /* 34px */
+  --font-size-title: 1.75rem; /* 28px */
+  --font-size-title2: 1.375rem; /* 22px */
+  --font-size-title3: 1.25rem; /* 20px */
+  --font-size-headline: 1rem; /* 16px */
+  --font-size-body: 1rem; /* 16px */
+  --font-size-callout: 0.9375rem; /* 15px */
+  --font-size-footnote: 0.8125rem; /* 13px */
+  --font-size-caption: 0.75rem; /* 12px */
+
+  --line-height-largetitle: 1.25;
+  --line-height-title: 1.35;
+  --line-height-title2: 1.4;
+  --line-height-title3: 1.4;
+  --line-height-headline: 1.4;
+  --line-height-body: 1.5;
+  --line-height-callout: 1.45;
+  --line-height-footnote: 1.45;
+  --line-height-caption: 1.45;
+
+  --tracking-largetitle: -0.015em;
+  --tracking-title: -0.01em;
+  --tracking-title2: 0em;
+  --tracking-title3: 0em;
+  --tracking-headline: 0em;
+  --tracking-body: 0em;
+  --tracking-callout: 0.01em;
+  --tracking-footnote: 0.02em;
+  --tracking-caption: 0.02em;
+
+  --font-weight-largetitle: 700;
+  --font-weight-title: 600;
+  --font-weight-title2: 500;
+  --font-weight-title3: 500;
+  --font-weight-headline: 600;
+  --font-weight-body: 400;
+  --font-weight-callout: 400;
+  --font-weight-footnote: 400;
+  --font-weight-caption: 400;
+
+  --text-primary: rgb(0 0 0 / 85%);
+  --text-secondary: rgb(0 0 0 / 50%);
+  --text-tertiary: rgb(0 0 0 / 35%);
+  --text-quaternary: rgb(0 0 0 / 25%);
+
   --background: hsl(0 0% 100%);
-  --foreground: hsl(210 25% 7.8431%);
+  --foreground: var(--text-primary);
   --card: hsl(180 6.6667% 97.0588%);
   --card-foreground: hsl(210 25% 7.8431%);
   --popover: hsl(0 0% 100%);
@@ -10,7 +56,7 @@
   --secondary: hsl(210 25% 7.8431%);
   --secondary-foreground: hsl(0 0% 100%);
   --muted: hsl(240 1.9608% 90%);
-  --muted-foreground: hsl(210 25% 7.8431%);
+  --muted-foreground: var(--text-secondary);
   --accent: hsl(211.5789 51.3514% 92.7451%);
   --accent-foreground: hsl(203.8863 88.2845% 53.1373%);
   --destructive: hsl(356.3033 90.5579% 54.3137%);
@@ -64,8 +110,13 @@
 }
 
 [data-theme="dark"] {
+  --text-primary: rgb(255 255 255 / 92%);
+  --text-secondary: rgb(255 255 255 / 65%);
+  --text-tertiary: rgb(255 255 255 / 45%);
+  --text-quaternary: rgb(255 255 255 / 30%);
+
   --background: hsl(0 0% 0%);
-  --foreground: hsl(200 6.6667% 91.1765%);
+  --foreground: var(--text-primary);
   --card: hsl(228 9.8039% 10%);
   --card-foreground: hsl(0 0% 85.098%);
   --popover: hsl(0 0% 0%);
@@ -75,7 +126,7 @@
   --secondary: hsl(195 15.3846% 94.902%);
   --secondary-foreground: hsl(210 25% 7.8431%);
   --muted: hsl(0 0% 9.4118%);
-  --muted-foreground: hsl(210 3.3898% 46.2745%);
+  --muted-foreground: var(--text-secondary);
   --accent: hsl(205.7143 70% 7.8431%);
   --accent-foreground: hsl(203.7736 87.6033% 52.549%);
   --destructive: hsl(356.3033 90.5579% 54.3137%);
@@ -146,6 +197,10 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-tertiary: var(--text-tertiary);
+  --color-text-quaternary: var(--text-quaternary);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);

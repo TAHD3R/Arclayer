@@ -127,15 +127,11 @@ export function SettingAccordionItem(props: SettingAccordionItemProps) {
                 : `${titleColumnWidth}px 1fr`,
             }}
           >
-            <div className="text-[16px] font-medium leading-snug">{props.title}</div>
+            <div className="text-headline text-label-primary">{props.title}</div>
             <div className="min-w-0">
-              <div className="text-[16px] font-semibold leading-snug text-foreground">
-                {primaryValueNode}
-              </div>
+              <div className="text-headline text-label-primary">{primaryValueNode}</div>
               {hasDescription ? (
-                <div className="mt-1 text-[16px] text-muted-foreground leading-snug">
-                  {props.description}
-                </div>
+                <div className="mt-1 text-callout text-label-secondary">{props.description}</div>
               ) : null}
               {shouldRenderSummary && summaryPrefix ? (
                 <div className="sr-only">

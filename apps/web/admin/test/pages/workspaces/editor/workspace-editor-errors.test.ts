@@ -23,9 +23,7 @@ describe("formatWorkspaceEditorSaveError", () => {
 
     const out = formatWorkspaceEditorSaveError(err, t);
 
-    expect(out).toBe(
-      "content_pages:EDITOR_SHELL_DRAFT_CONFLICT:{\"expected\":5,\"current\":7}",
-    );
+    expect(out).toBe('content_pages:EDITOR_SHELL_DRAFT_CONFLICT:{"expected":5,"current":7}');
   });
 
   test("falls back to generic 409 conflict message", () => {

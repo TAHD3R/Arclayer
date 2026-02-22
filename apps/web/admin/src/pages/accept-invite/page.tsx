@@ -247,7 +247,7 @@ export function AcceptInviteView(props: { token: string | null }) {
           <div style={{ marginBottom: 10 }}>
             {t("invite:INVITE_CONFIRM_JOIN_LINE2", { roleName })}
           </div>
-          <div style={{ color: "var(--color-muted-foreground)", fontSize: 12 }}>
+          <div className="text-callout text-label-secondary">
             {t("invite:INVITE_CONFIRM_JOIN_RISK_NOTICE")}
           </div>
         </div>
@@ -592,10 +592,13 @@ export function AcceptInviteView(props: { token: string | null }) {
         }}
       />
 
-      <Typography.Title level={1} className="!mt-0 !mb-2 text-center !text-[32px]">
+      <Typography.Title
+        level={1}
+        className="!mt-0 !mb-2 text-center text-largetitle text-label-primary"
+      >
         {headerMeta.title}
       </Typography.Title>
-      <Typography.Paragraph className="!mt-0 !mb-7 text-center text-(--color-muted-foreground) !text-[18px]">
+      <Typography.Paragraph className="!mt-0 !mb-7 text-center text-title2 text-label-secondary">
         {headerMeta.description}
       </Typography.Paragraph>
 

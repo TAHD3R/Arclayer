@@ -89,7 +89,9 @@ export function ContentPagesView() {
   const [deleteCandidates, setDeleteCandidates] = React.useState<ContentPageRow[] | null>(null);
 
   const [processingIds, setProcessingIds] = React.useState<Set<string>>(new Set());
-  const [bulkAction, setBulkAction] = React.useState<null | "delete" | "duplicate" | "visibility">(null);
+  const [bulkAction, setBulkAction] = React.useState<null | "delete" | "duplicate" | "visibility">(
+    null,
+  );
 
   const pagesTreeQuery = useQuery({
     queryKey: ["site", "pages", "tree", workspaceId],
@@ -154,7 +156,10 @@ export function ContentPagesView() {
         const created = await createWorkspaceSitePage(String(workspaceId), commonPayload);
 
         if (payload.values.contentMode === "copy" && payload.values.sourcePageId) {
-          const source = await resolveSourceRevision(String(workspaceId), payload.values.sourcePageId);
+          const source = await resolveSourceRevision(
+            String(workspaceId),
+            payload.values.sourcePageId,
+          );
           await saveWorkspaceSitePageDraft(String(workspaceId), created.id, {
             document: source.document,
             meta: source.meta ?? null,
@@ -289,9 +294,11 @@ export function ContentPagesView() {
       const right: string[] = [];
 
       const leftSame =
-        (prev.left ?? []).length === left.length && left.every((value, index) => prev.left?.[index] === value);
+        (prev.left ?? []).length === left.length &&
+        left.every((value, index) => prev.left?.[index] === value);
       const rightSame =
-        (prev.right ?? []).length === right.length && right.every((value, index) => prev.right?.[index] === value);
+        (prev.right ?? []).length === right.length &&
+        right.every((value, index) => prev.right?.[index] === value);
 
       if (leftSame && rightSame) return prev;
       return { left, right };
@@ -360,7 +367,9 @@ export function ContentPagesView() {
       try {
         await deleteWorkspaceSitePage(String(workspaceId), row.id);
         notifySuccessText(t("content_pages:TOAST_DELETE_SUCCESS"));
-        void queryClient.invalidateQueries({ queryKey: ["dataTable", tableId(String(workspaceId))] });
+        void queryClient.invalidateQueries({
+          queryKey: ["dataTable", tableId(String(workspaceId))],
+        });
         void queryClient.invalidateQueries({ queryKey: ["site", "pages", "tree", workspaceId] });
         return true;
       } catch (error) {
@@ -427,32 +436,38 @@ export function ContentPagesView() {
     try {
       const tree = await listWorkspaceSitePagesTree(String(workspaceId));
       const existingPaths = new Set(mapTreeToRows(tree.items).map((row) => row.path));
-
-      for (const row of selectedRows) {
+      const duplicateTargets = selectedRows.map((row) => {
         const duplicatedPath = buildDuplicatePath(row.path, existingPaths);
         existingPaths.add(duplicatedPath);
+        return { row, duplicatedPath };
+      });
 
-        const created = await createWorkspaceSitePage(String(workspaceId), {
-          title: buildDuplicateTitle(row.title, row.path),
-          description: row.description,
-          path: duplicatedPath,
-          parentId: row.parentId,
-          sortOrder: row.sortOrder,
-          visibility: row.visibility,
-        });
+      await Promise.all(
+        duplicateTargets.map(async ({ row, duplicatedPath }) => {
+          const created = await createWorkspaceSitePage(String(workspaceId), {
+            title: buildDuplicateTitle(row.title, row.path),
+            description: row.description,
+            path: duplicatedPath,
+            parentId: row.parentId,
+            sortOrder: row.sortOrder,
+            visibility: row.visibility,
+          });
 
-        const source = await resolveSourceRevision(String(workspaceId), row.id);
-        await saveWorkspaceSitePageDraft(String(workspaceId), created.id, {
-          document: source.document,
-          meta: source.meta ?? null,
-          styleOverrides: source.styleOverrides ?? null,
-          variantId: source.variantId ?? null,
-          deps: source.deps ?? null,
-          expectedRevision: 0,
-        });
-      }
+          const source = await resolveSourceRevision(String(workspaceId), row.id);
+          await saveWorkspaceSitePageDraft(String(workspaceId), created.id, {
+            document: source.document,
+            meta: source.meta ?? null,
+            styleOverrides: source.styleOverrides ?? null,
+            variantId: source.variantId ?? null,
+            deps: source.deps ?? null,
+            expectedRevision: 0,
+          });
+        }),
+      );
 
-      notifySuccessText(t("content_pages:TOAST_BULK_DUPLICATE_SUCCESS", { count: selectedRows.length }));
+      notifySuccessText(
+        t("content_pages:TOAST_BULK_DUPLICATE_SUCCESS", { count: selectedRows.length }),
+      );
       table.resetRowSelection();
       void queryClient.invalidateQueries({ queryKey: ["dataTable", tableId(String(workspaceId))] });
       void queryClient.invalidateQueries({ queryKey: ["site", "pages", "tree", workspaceId] });
@@ -536,7 +551,11 @@ export function ContentPagesView() {
             emptyText={t("content_pages:INDEX_EMPTY")}
             className="flex-1 min-h-0"
             rowClassName={(row, rowIndex) => {
-              const selected = row.getIsSelected() ? "bg-muted/40" : rowIndex % 2 === 1 ? "bg-muted/20" : "";
+              const selected = row.getIsSelected()
+                ? "bg-muted/40"
+                : rowIndex % 2 === 1
+                  ? "bg-muted/20"
+                  : "";
               return cn(selected, "hover:bg-muted/40 transition-colors cursor-pointer");
             }}
             onRowClick={(row) => openEditor(row.original)}
@@ -558,7 +577,10 @@ export function ContentPagesView() {
                 showSizeChanger
                 pageSizeOptions={[10, 20, 50, 100]}
                 onChange={(nextPage, nextSize) => {
-                  if (typeof nextSize === "number" && nextSize !== table.getState().pagination.pageSize) {
+                  if (
+                    typeof nextSize === "number" &&
+                    nextSize !== table.getState().pagination.pageSize
+                  ) {
                     table.setPageSize(nextSize);
                   }
                   table.setPageIndex(Math.max(0, nextPage - 1));
@@ -596,14 +618,12 @@ export function ContentPagesView() {
         onCloseDuplicate={() => setDuplicateCandidate(null)}
         onConfirmDuplicate={() => void handleConfirmDuplicate()}
         deleteRows={deleteCandidates}
-        deleteLoading={
-          Boolean(
-            deleteCandidates &&
-              (deleteCandidates.length > 1
-                ? bulkAction === "delete"
-                : processingIds.has(deleteCandidates[0]?.id ?? "")),
-          )
-        }
+        deleteLoading={Boolean(
+          deleteCandidates &&
+          (deleteCandidates.length > 1
+            ? bulkAction === "delete"
+            : processingIds.has(deleteCandidates[0]?.id ?? "")),
+        )}
         onCloseDelete={() => setDeleteCandidates(null)}
         onConfirmDelete={() => void handleConfirmDelete()}
       />

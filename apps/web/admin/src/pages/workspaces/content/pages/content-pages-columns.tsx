@@ -120,7 +120,10 @@ export function buildContentPagesColumns(
             <div className="flex items-center justify-between gap-2">
               <div className="min-w-0 flex-1 grid gap-1">
                 <div className="font-medium truncate">{displayName}</div>
-                <Tag style={{ marginInlineEnd: 0 }} className="w-fit max-w-full truncate align-middle justify-self-start">
+                <Tag
+                  style={{ marginInlineEnd: 0 }}
+                  className="w-fit max-w-full truncate align-middle justify-self-start"
+                >
                   {item.path}
                 </Tag>
 
@@ -155,7 +158,10 @@ export function buildContentPagesColumns(
       },
       header: options.t("content_pages:INDEX_COL_TYPE"),
       cell: ({ row }) => (
-        <Tag color={row.original.pageType === "template" ? "purple" : "blue"} style={{ marginInlineEnd: 0 }}>
+        <Tag
+          color={row.original.pageType === "template" ? "purple" : "blue"}
+          style={{ marginInlineEnd: 0 }}
+        >
           {row.original.pageType === "template"
             ? options.t("content_pages:INDEX_TYPE_TEMPLATE")
             : options.t("content_pages:INDEX_TYPE_STATIC")}
@@ -213,7 +219,9 @@ export function buildContentPagesColumns(
             </Avatar>
             <div className="min-w-0">
               <div className="font-medium truncate">{primary}</div>
-              {secondary ? <div className="text-sm text-muted-foreground truncate">{secondary}</div> : null}
+              {secondary ? (
+                <div className="text-sm text-muted-foreground truncate">{secondary}</div>
+              ) : null}
             </div>
           </div>
         );

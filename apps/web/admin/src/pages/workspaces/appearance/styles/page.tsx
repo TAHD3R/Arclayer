@@ -39,7 +39,10 @@ export function WorkspaceGlobalStylesView() {
             onFinish={() => undefined}
           >
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <Form.Item label={t("appearance:GLOBAL_STYLES_FIELD_PRIMARY_COLOR")} name="primaryColor">
+              <Form.Item
+                label={t("appearance:GLOBAL_STYLES_FIELD_PRIMARY_COLOR")}
+                name="primaryColor"
+              >
                 <Input />
               </Form.Item>
 
@@ -60,7 +63,10 @@ export function WorkspaceGlobalStylesView() {
                 />
               </Form.Item>
 
-              <Form.Item label={t("appearance:GLOBAL_STYLES_FIELD_CONTAINER_WIDTH")} name="containerWidth">
+              <Form.Item
+                label={t("appearance:GLOBAL_STYLES_FIELD_CONTAINER_WIDTH")}
+                name="containerWidth"
+              >
                 <Select
                   options={[
                     { value: "sm", label: "SM" },
@@ -71,7 +77,10 @@ export function WorkspaceGlobalStylesView() {
                 />
               </Form.Item>
 
-              <Form.Item label={t("appearance:GLOBAL_STYLES_FIELD_RADIUS_SCALE")} name="radiusScale">
+              <Form.Item
+                label={t("appearance:GLOBAL_STYLES_FIELD_RADIUS_SCALE")}
+                name="radiusScale"
+              >
                 <Select
                   options={[
                     { value: "sm", label: "SM" },
@@ -81,7 +90,10 @@ export function WorkspaceGlobalStylesView() {
                 />
               </Form.Item>
 
-              <Form.Item label={t("appearance:GLOBAL_STYLES_FIELD_SPACING_SCALE")} name="spacingScale">
+              <Form.Item
+                label={t("appearance:GLOBAL_STYLES_FIELD_SPACING_SCALE")}
+                name="spacingScale"
+              >
                 <Select
                   options={[
                     { value: "sm", label: "SM" },
