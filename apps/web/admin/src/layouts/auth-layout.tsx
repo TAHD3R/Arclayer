@@ -63,7 +63,11 @@ export function AuthLayout({ children }: PropsWithChildren) {
     <div className="fixed inset-0 w-full overflow-hidden grid grid-cols-1 lg:grid-cols-2 bg-(--color-background) text-(--color-foreground)">
       <div className="relative hidden lg:block min-h-0 h-full overflow-hidden bg-(--color-background)">
         {isLargeScreen && !reducedMotion ? (
-          <Suspense fallback={<div className="absolute inset-0 bg-(--color-background)" />}>
+          <Suspense
+            fallback={
+              <div className="absolute inset-0 bg-(--color-background) animate-pulse opacity-50" />
+            }
+          >
             <ColorBendsLazy
               colors={AUTH_BEND_COLORS}
               rotation={45}
@@ -84,13 +88,9 @@ export function AuthLayout({ children }: PropsWithChildren) {
           <div className="max-w-120 select-none">
             <Typography.Title
               level={1}
+              className="!m-0 text-[3.25rem] font-bold leading-[1.05] tracking-[-0.015em]"
               style={{
-                margin: 0,
                 color: isDark ? "rgba(255,255,255,0.96)" : "rgba(20,20,20,0.96)",
-                fontSize: "3.25rem",
-                fontWeight: 700,
-                lineHeight: 1.05,
-                letterSpacing: "-0.015em",
                 textShadow: isDark
                   ? "0 18px 60px rgba(0,0,0,0.35)"
                   : "0 18px 60px rgba(0,0,0,0.45)",
@@ -99,12 +99,9 @@ export function AuthLayout({ children }: PropsWithChildren) {
               {t("auth:SLOGAN_TITLE")}
             </Typography.Title>
             <Typography.Paragraph
+              className="!mt-[14px] !mb-0 text-xl leading-[1.6]"
               style={{
-                marginTop: 14,
-                marginBottom: 0,
                 color: isDark ? "rgba(255,255,255,0.78)" : "rgba(20,20,20,0.78)",
-                fontSize: "1.25rem",
-                lineHeight: 1.6,
                 textShadow: isDark
                   ? "0 18px 60px rgba(0,0,0,0.35)"
                   : "0 18px 60px rgba(0,0,0,0.45)",
@@ -136,7 +133,7 @@ export function AuthLayout({ children }: PropsWithChildren) {
           <Trans
             i18nKey="auth:FOOTER_COPYRIGHT"
             components={{
-              brand: <span style={{ color: "var(--color-foreground)" }}>Celestial CMS</span>,
+              brand: <span className="text-(--color-foreground)">Celestial CMS</span>,
             }}
           />
         </div>

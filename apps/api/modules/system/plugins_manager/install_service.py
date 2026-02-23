@@ -39,15 +39,20 @@ LIFECYCLE_RECOVERY_ERRORS = (IntegrityError, KeyError, OperationalError, OSError
 PERSISTENCE_ERRORS = (IntegrityError, OperationalError, TypeError, ValidationError, ValueError)
 MENU_SEED_ERRORS = (IntegrityError, OperationalError, OSError, RuntimeError, TypeError, ValidationError, ValueError)
 EVENT_PUBLISH_ERRORS = (KeyError, OSError, RuntimeError, TypeError, ValueError)
+
+
 def _tp(key: str, default: str) -> str:
     return t("plugin", key, default=default)
+
 
 @dataclass(frozen=True)
 class _InstallLockEntry:
     loop_id: int
     lock: asyncio.Lock
 
+
 _INSTALL_LOCKS: dict[str, _InstallLockEntry] = {}
+
 
 def _get_install_lock(plugin_id: str) -> asyncio.Lock:
     # Keep locking per-event-loop to avoid cross-loop asyncio.Lock reuse in tests.
@@ -61,12 +66,14 @@ def _get_install_lock(plugin_id: str) -> asyncio.Lock:
         return lock
     return entry.lock
 
+
 class UploadLike(Protocol):
     filename: str | None
 
     async def read(self, size: int = -1) -> bytes: ...
 
     async def close(self) -> None: ...
+
 
 class PluginInstallService(BaseService):
     def __init__(

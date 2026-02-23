@@ -640,7 +640,6 @@ class SitePublishingRepository(BaseRepository):
             document=doc,
         )
 
-
     async def list_route_templates(self, *, site_id: UUID) -> list[RouteTemplateRecord]:
         return await self._routing_repo.list_route_templates(site_id=site_id)
 

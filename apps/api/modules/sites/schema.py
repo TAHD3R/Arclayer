@@ -56,7 +56,9 @@ class BlockDesignProps(BaseSchema):
     model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
 
     color: str | None = Field(default=None, description="Optional text color.")
-    background_color: str | None = Field(default=None, alias="backgroundColor", description="Optional background color.")
+    background_color: str | None = Field(
+        default=None, alias="backgroundColor", description="Optional background color."
+    )
     border_color: str | None = Field(default=None, alias="borderColor", description="Optional border color.")
     border_style: Literal["solid", "dashed", "dotted"] | None = Field(
         default=None,

@@ -59,7 +59,8 @@ async def get_workspace_context(
     ws_org_id = UUID(str(ws_like.organization_id))
 
     orgm = (
-        await OrgMembership.filter(
+        await OrgMembership
+        .filter(
             user_id=user_id,
             organization_id=ws_org_id,
             status="active",

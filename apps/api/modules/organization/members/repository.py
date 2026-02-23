@@ -21,7 +21,8 @@ from apps.api.modules.workspaces.models.workspace import WorkspaceMembership, Wo
 class OrganizationMemberRepository(BaseRepository):
     async def list_memberships(self, *, organization_id: UUID) -> list[OrgMembership]:
         return (
-            await OrgMembership.filter(organization_id=organization_id)
+            await OrgMembership
+            .filter(organization_id=organization_id)
             .select_related("user")
             .order_by("created_at")
             .all()
@@ -55,7 +56,8 @@ class OrganizationMemberRepository(BaseRepository):
             return []
 
         return (
-            await WorkspaceMembership.filter(
+            await WorkspaceMembership
+            .filter(
                 workspace__organization_id=organization_id,
                 workspace__is_active=True,
                 user_id__in=list(user_ids),
@@ -69,12 +71,17 @@ class OrganizationMemberRepository(BaseRepository):
 
     async def has_pending_email_invite(self, *, organization_id: UUID, email: str) -> bool:
         now = datetime.now(UTC)
-        return await OrganizationEmailInvite.filter(
-            organization_id=organization_id,
-            email=email,
-            accepted_at=None,
-            revoked_at=None,
-        ).filter(Q(expires_at__isnull=True) | Q(expires_at__gt=now)).exists()
+        return (
+            await OrganizationEmailInvite
+            .filter(
+                organization_id=organization_id,
+                email=email,
+                accepted_at=None,
+                revoked_at=None,
+            )
+            .filter(Q(expires_at__isnull=True) | Q(expires_at__gt=now))
+            .exists()
+        )
 
     async def list_email_invites(
         self,
@@ -110,7 +117,12 @@ class OrganizationMemberRepository(BaseRepository):
                 qs = qs.filter(
                     Q(accepted_at__not_isnull=True)
                     | Q(revoked_at__not_isnull=True)
-                    | (Q(accepted_at=None) & Q(revoked_at=None) & Q(expires_at__not_isnull=True) & Q(expires_at__lte=now))
+                    | (
+                        Q(accepted_at=None)
+                        & Q(revoked_at=None)
+                        & Q(expires_at__not_isnull=True)
+                        & Q(expires_at__lte=now)
+                    )
                 )
             elif normalized == "pending":
                 qs = qs.filter(accepted_at=None, revoked_at=None).filter(
@@ -119,7 +131,8 @@ class OrganizationMemberRepository(BaseRepository):
 
         total = int(await qs.count())
         rows = (
-            await qs.order_by(*_normalize_org_email_invite_ordering(ordering))
+            await qs
+            .order_by(*_normalize_org_email_invite_ordering(ordering))
             .limit(params.limit)
             .offset(params.offset)
             .all()
@@ -158,7 +171,8 @@ class OrganizationMemberRepository(BaseRepository):
 
         total = int(await qs.count())
         rows = (
-            await qs.order_by(*_normalize_org_invite_link_ordering(ordering))
+            await qs
+            .order_by(*_normalize_org_invite_link_ordering(ordering))
             .limit(params.limit)
             .offset(params.offset)
             .all()
@@ -187,31 +201,27 @@ class OrganizationMemberRepository(BaseRepository):
         return {UUID(str(row.id)): row for row in rows}
 
 
-_ORG_EMAIL_INVITE_ALLOWED_ORDER_FIELDS: frozenset[str] = frozenset(
-    {
-        "created_at",
-        "updated_at",
-        "email",
-        "role_code",
-        "expires_at",
-        "accepted_at",
-        "revoked_at",
-    }
-)
+_ORG_EMAIL_INVITE_ALLOWED_ORDER_FIELDS: frozenset[str] = frozenset({
+    "created_at",
+    "updated_at",
+    "email",
+    "role_code",
+    "expires_at",
+    "accepted_at",
+    "revoked_at",
+})
 
-_ORG_INVITE_LINK_ALLOWED_ORDER_FIELDS: frozenset[str] = frozenset(
-    {
-        "created_at",
-        "updated_at",
-        "display_code",
-        "role_code",
-        "allowed_email_domain",
-        "expires_at",
-        "disabled_at",
-        "last_used_at",
-        "uses_count",
-    }
-)
+_ORG_INVITE_LINK_ALLOWED_ORDER_FIELDS: frozenset[str] = frozenset({
+    "created_at",
+    "updated_at",
+    "display_code",
+    "role_code",
+    "allowed_email_domain",
+    "expires_at",
+    "disabled_at",
+    "last_used_at",
+    "uses_count",
+})
 
 
 def _normalize_org_email_invite_ordering(value: str | None) -> list[str]:

@@ -41,7 +41,9 @@ def _raise_if_fatal(exc: BaseException) -> None:
         raise exc
 
 
-async def _publish_rbac_event(*, event_name: str, payload: dict[str, str | list[str] | None], actor_user_id: UUID) -> None:
+async def _publish_rbac_event(
+    *, event_name: str, payload: dict[str, str | list[str] | None], actor_user_id: UUID
+) -> None:
     try:
         from asgi_correlation_id import correlation_id
 
@@ -293,9 +295,7 @@ async def set_role_permissions(
         payload={
             "workspace_id": str(ctx.workspace_id),
             "role_code": str(role_code),
-            "permission_codes": sorted({
-                str(x).strip() for x in (body.permission_codes or []) if x and str(x).strip()
-            }),
+            "permission_codes": sorted({str(x).strip() for x in (body.permission_codes or []) if x and str(x).strip()}),
         },
         actor_user_id=user_id,
     )

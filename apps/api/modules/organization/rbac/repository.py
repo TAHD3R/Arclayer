@@ -19,9 +19,7 @@ class _HasNullableDescription(Protocol):
 class OrganizationRBACRepository(BaseRepository):
     async def list_roles(self, *, organization_id: UUID) -> list[OrganizationRole]:
         return (
-            await OrganizationRole.filter(organization_id=organization_id)
-            .order_by("-is_system", "name", "code")
-            .all()
+            await OrganizationRole.filter(organization_id=organization_id).order_by("-is_system", "name", "code").all()
         )
 
     async def get_role_by_code(self, *, organization_id: UUID, code: str) -> OrganizationRole | None:
@@ -88,7 +86,8 @@ class OrganizationRBACRepository(BaseRepository):
 
     async def list_role_permissions(self, *, role_id: UUID) -> list[OrganizationPermission]:
         return (
-            await OrganizationPermission.filter(permission_roles__role_id=role_id)
+            await OrganizationPermission
+            .filter(permission_roles__role_id=role_id)
             .order_by("module", "name", "code")
             .all()
         )

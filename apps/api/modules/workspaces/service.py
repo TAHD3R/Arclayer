@@ -34,11 +34,7 @@ class WorkspaceService(BaseService):
         - Creator admin: if org owner created the workspace, mark is_creator_admin (and not visible_only).
         """
 
-        orgm = (
-            await OrgMembership.filter(user_id=user_id, status="active")
-            .order_by("created_at", "id")
-            .first()
-        )
+        orgm = await OrgMembership.filter(user_id=user_id, status="active").order_by("created_at", "id").first()
         if orgm is None:
             return []
 

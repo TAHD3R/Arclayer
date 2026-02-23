@@ -109,9 +109,7 @@ async def test_org_workspace_endpoints_list_create_archive_delete_and_guards(
             assert created["name"] == "Blog Team"
             assert created["description"] == "Marketing and content"
 
-            archive_resp = await client.post(
-                f"/api/v1/organizations/me/workspaces/{created_workspace_id}/archive"
-            )
+            archive_resp = await client.post(f"/api/v1/organizations/me/workspaces/{created_workspace_id}/archive")
             assert archive_resp.status_code == 200, archive_resp.text
             assert archive_resp.json()["data"]["isArchived"] is True
 
@@ -147,9 +145,7 @@ async def test_org_workspace_endpoints_list_create_archive_delete_and_guards(
             assert search_resp.status_code == 200, search_resp.text
             assert search_resp.json()["data"]["total"] == 1
 
-            unarchive_resp = await client.post(
-                f"/api/v1/organizations/me/workspaces/{created_workspace_id}/unarchive"
-            )
+            unarchive_resp = await client.post(f"/api/v1/organizations/me/workspaces/{created_workspace_id}/unarchive")
             assert unarchive_resp.status_code == 200, unarchive_resp.text
             assert unarchive_resp.json()["data"]["isArchived"] is False
 
@@ -162,9 +158,7 @@ async def test_org_workspace_endpoints_list_create_archive_delete_and_guards(
             assert delete_as_admin.json().get("error") == "ORG_OWNER_REQUIRED"
 
             current_user = owner
-            delete_missing_confirm = await client.delete(
-                f"/api/v1/organizations/me/workspaces/{created_workspace_id}"
-            )
+            delete_missing_confirm = await client.delete(f"/api/v1/organizations/me/workspaces/{created_workspace_id}")
             assert delete_missing_confirm.status_code == 400, delete_missing_confirm.text
             assert delete_missing_confirm.json().get("error") == "WORKSPACE_DELETE_CONFIRM_NAME_MISMATCH"
 
@@ -281,7 +275,9 @@ async def test_org_members_endpoints_invite_and_role_update(prepared_db, integra
             assert list_members.status_code == 200, list_members.text
             payload = list_members.json()["data"]
             assert payload["total"] == 2
-            member_row = next((row for row in payload["items"] if row["membershipId"] == encode_uuid(member_orgm.id)), None)
+            member_row = next(
+                (row for row in payload["items"] if row["membershipId"] == encode_uuid(member_orgm.id)), None
+            )
             assert member_row is not None
             assert member_row["workspaceCount"] == 1
             assert len(member_row["workspaces"]) == 1
@@ -449,8 +445,6 @@ async def test_org_members_endpoints_invite_and_role_update(prepared_db, integra
             assert revoke_resp.status_code == 200, revoke_resp.text
             assert revoke_resp.json()["data"]["revoked"] is True
 
-            owner_self_remove = await client.delete(
-                f"/api/v1/organizations/me/members/{encode_uuid(owner_orgm.id)}"
-            )
+            owner_self_remove = await client.delete(f"/api/v1/organizations/me/members/{encode_uuid(owner_orgm.id)}")
             assert owner_self_remove.status_code == 403, owner_self_remove.text
             assert owner_self_remove.json().get("error") == "ORG_OWNER_SELF_REMOVE_FORBIDDEN"

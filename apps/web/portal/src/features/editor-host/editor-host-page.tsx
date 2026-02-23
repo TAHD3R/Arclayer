@@ -2,7 +2,6 @@ import React from "react";
 
 import type { EditorOverlayMode } from "@celestial/site-editor-protocol";
 import type { EditorPresence, HostEditorRpcApi } from "@celestial/site-editor-protocol";
-import type { DocumentIR } from "@celestial/site-block-protocol";
 import type { CoreDocumentIR } from "@celestial/site-renderer-core";
 import {
   buildEditorIframeHref,
@@ -15,7 +14,11 @@ import type {
 } from "@celestial/site-editor-bridge";
 
 import { getHardcodedDocument } from "@/runtime/hardcoded-document";
-import { getPortalApiPrefix, getPortalSiteIdFromEnv, resolveRouteFromApi } from "@/runtime/site-api";
+import {
+  getPortalApiPrefix,
+  getPortalSiteIdFromEnv,
+  resolveRouteFromApi,
+} from "@/runtime/site-api";
 import {
   heartbeatPresenceToApi,
   parsePreviewToken,

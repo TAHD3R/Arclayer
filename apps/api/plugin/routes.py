@@ -82,7 +82,9 @@ def _load_plugin_routers(entrypoint: str) -> Iterable[tuple[str, APIRouter]]:
         return []
     except BaseException as exc:
         _raise_if_fatal(exc)
-        logger.warning("Plugin router import failed", entrypoint=entrypoint, action="load_plugin_routers", error=str(exc))
+        logger.warning(
+            "Plugin router import failed", entrypoint=entrypoint, action="load_plugin_routers", error=str(exc)
+        )
         return []
 
     routers: list[tuple[str, APIRouter]] = []

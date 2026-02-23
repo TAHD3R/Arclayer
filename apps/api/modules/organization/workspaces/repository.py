@@ -12,11 +12,7 @@ from apps.api.modules.workspaces.models.workspace import Workspace, WorkspaceMem
 
 class OrganizationWorkspaceRepository(BaseRepository):
     async def list_active_workspaces_for_org(self, *, organization_id: UUID) -> list[Workspace]:
-        return (
-            await Workspace.filter(organization_id=organization_id, is_active=True)
-            .order_by("created_at")
-            .all()
-        )
+        return await Workspace.filter(organization_id=organization_id, is_active=True).order_by("created_at").all()
 
     async def list_active_workspaces_for_member(self, *, organization_id: UUID, user_id: UUID) -> list[Workspace]:
         rows = await WorkspaceMembership.filter(

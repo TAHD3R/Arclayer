@@ -27,11 +27,7 @@ async def get_current_org_membership(
 ) -> OrgMembership:
     """Resolve the default org membership for the authenticated user."""
 
-    orgm = (
-        await OrgMembership.filter(user_id=user_id, status="active")
-        .order_by("created_at", "id")
-        .first()
-    )
+    orgm = await OrgMembership.filter(user_id=user_id, status="active").order_by("created_at", "id").first()
     if orgm is None:
         raise Forbidden(
             message=t("errors", "PERMISSION_DENIED", default="权限不足"),
@@ -48,7 +44,8 @@ async def get_org_membership_for_organization(
     """Resolve membership for an explicit organization path parameter."""
 
     orgm = (
-        await OrgMembership.filter(
+        await OrgMembership
+        .filter(
             user_id=user_id,
             organization_id=UUID(str(organization_id)),
             status="active",

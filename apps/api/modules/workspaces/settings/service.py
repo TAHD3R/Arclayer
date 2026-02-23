@@ -121,8 +121,11 @@ class WorkspaceSettingsService(BaseService):
             raise BadRequest(message=t("errors", "BAD_REQUEST", default="参数错误"), error="ROLE_CODE_NOT_FOUND")
 
         async with in_transaction():
-            await Role.filter(workspace_id=workspace_id, is_default=True).exclude(id=target_role.id).update(
-                is_default=False
+            await (
+                Role
+                .filter(workspace_id=workspace_id, is_default=True)
+                .exclude(id=target_role.id)
+                .update(is_default=False)
             )
             if not bool(target_role.is_default):
                 target_role.is_default = True

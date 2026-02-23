@@ -491,7 +491,6 @@ class AuthInvitationAcceptanceService(BaseService):
 
         return tokens
 
-
     async def accept_existing_invitation(
         self,
         *,

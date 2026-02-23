@@ -54,7 +54,9 @@ type HostOptionalEvents = {
   layerTreeChanged?: (args: { layers: EditorLayerNode[] }) => void;
 };
 
-function getHostOptionalEvents(host: EditorPortalPenpalConnection["host"] | null): HostOptionalEvents {
+function getHostOptionalEvents(
+  host: EditorPortalPenpalConnection["host"] | null,
+): HostOptionalEvents {
   return host as unknown as HostOptionalEvents;
 }
 
@@ -145,11 +147,14 @@ export function EditorSiteView(props: EditorSiteViewProps) {
     onMissing: () => setSelectedBlockId(null),
   });
 
-  const syncSelectionInspector = React.useCallback((document: CoreDocumentIR, blockId: BlockId | null) => {
-    const inspector = buildSelectionInspector(document, blockId);
-    getHostOptionalEvents(hostRef.current).selectionInspectorChanged?.({ inspector });
-    return inspector;
-  }, []);
+  const syncSelectionInspector = React.useCallback(
+    (document: CoreDocumentIR, blockId: BlockId | null) => {
+      const inspector = buildSelectionInspector(document, blockId);
+      getHostOptionalEvents(hostRef.current).selectionInspectorChanged?.({ inspector });
+      return inspector;
+    },
+    [],
+  );
 
   const syncLayers = React.useCallback((document: CoreDocumentIR) => {
     const layers = buildLayerTree(document);

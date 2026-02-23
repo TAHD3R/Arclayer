@@ -201,7 +201,9 @@ class OrganizationRBACService(BaseService):
 
         raise Forbidden(message="Forbidden", error=error_code)
 
-    async def get_matrix(self, *, organization_id: UUID) -> tuple[list[OrganizationRole], list[OrganizationPermission], dict[str, list[str]]]:
+    async def get_matrix(
+        self, *, organization_id: UUID
+    ) -> tuple[list[OrganizationRole], list[OrganizationPermission], dict[str, list[str]]]:
         roles = await self.list_roles(organization_id=organization_id)
         permissions = await self.list_permissions(organization_id=organization_id)
         edges = await self.repo.list_role_permission_edges(organization_id=organization_id)

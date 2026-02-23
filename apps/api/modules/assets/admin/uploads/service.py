@@ -79,6 +79,7 @@ UPLOAD_ABORT_ERRORS = (
     ValueError,
 )
 
+
 def _ts(key: str, default: str) -> str:
     return t("errors", key, default=default)
 

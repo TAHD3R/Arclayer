@@ -80,34 +80,32 @@ class _FakeValkey(ValkeyClientLike):
 
 
 def _build_manifest() -> PluginManifest:
-    return PluginManifest.model_validate(
-        {
-            "plugin": {
-                "id": "plugin-oauth-social",
-                "slug": "oauth",
-                "management_scope": "organization",
-                "name": "OAuth Social Login",
-                "description": "Provide social login",
-                "author": "Test",
-                "version": "0.1.0",
-                "requires": ">=2026.01.18-dev",
-                "entrypoint": "oauth_social.plugin:OAuthSocialPlugin",
-            },
-            "config_schema": {
-                "sections": [
-                    {
-                        "id": "google",
-                        "title": "Google",
-                        "fields": [
-                            {"key": "enabled", "type": "bool", "default": False},
-                            {"key": "client_id", "type": "str"},
-                            {"key": "client_secret", "type": "str", "secret": True},
-                        ],
-                    }
-                ]
-            },
-        }
-    )
+    return PluginManifest.model_validate({
+        "plugin": {
+            "id": "plugin-oauth-social",
+            "slug": "oauth",
+            "management_scope": "organization",
+            "name": "OAuth Social Login",
+            "description": "Provide social login",
+            "author": "Test",
+            "version": "0.1.0",
+            "requires": ">=2026.01.18-dev",
+            "entrypoint": "oauth_social.plugin:OAuthSocialPlugin",
+        },
+        "config_schema": {
+            "sections": [
+                {
+                    "id": "google",
+                    "title": "Google",
+                    "fields": [
+                        {"key": "enabled", "type": "bool", "default": False},
+                        {"key": "client_id", "type": "str"},
+                        {"key": "client_secret", "type": "str", "secret": True},
+                    ],
+                }
+            ]
+        },
+    })
 
 
 def _build_callback_request(provider: str) -> Request:
@@ -159,15 +157,13 @@ class _FakeGoogleClient:
         return _FakeResponse({"access_token": "google-token"})
 
     async def get(self, *_args, **_kwargs) -> _FakeResponse:
-        return _FakeResponse(
-            {
-                "sub": "google-sub",
-                "email": "new-user@example.com",
-                "email_verified": True,
-                "name": "New User",
-                "picture": "https://example.com/avatar.png",
-            }
-        )
+        return _FakeResponse({
+            "sub": "google-sub",
+            "email": "new-user@example.com",
+            "email_verified": True,
+            "name": "New User",
+            "picture": "https://example.com/avatar.png",
+        })
 
 
 @pytest.mark.asyncio

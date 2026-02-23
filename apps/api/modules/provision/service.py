@@ -51,11 +51,7 @@ class TenantProvisioningService(BaseService):
         self.workspace_site_service = WorkspaceSiteService(settings)
 
     async def get_bootstrap_state(self, *, user_id: UUID) -> BootstrapStateOut:
-        orgm = (
-            await OrgMembership.filter(user_id=user_id, status="active")
-            .order_by("created_at", "id")
-            .first()
-        )
+        orgm = await OrgMembership.filter(user_id=user_id, status="active").order_by("created_at", "id").first()
         if orgm is None:
             return BootstrapStateOut(
                 ready=False,
@@ -69,7 +65,8 @@ class TenantProvisioningService(BaseService):
 
         org_id = UUID(str(cast(HasOrganizationId, orgm).organization_id))
         membership = (
-            await WorkspaceMembership.filter(
+            await WorkspaceMembership
+            .filter(
                 user_id=user_id,
                 status=WorkspaceMembershipStatus.ACTIVE,
                 workspace__organization_id=org_id,
@@ -245,7 +242,9 @@ class TenantProvisioningService(BaseService):
     ) -> tuple[Workspace, list[str]]:
         actions: list[str] = []
 
-        workspace = await Workspace.filter(organization_id=organization_id, is_active=True).order_by("created_at").first()
+        workspace = (
+            await Workspace.filter(organization_id=organization_id, is_active=True).order_by("created_at").first()
+        )
         if workspace is not None:
             return workspace, actions
 

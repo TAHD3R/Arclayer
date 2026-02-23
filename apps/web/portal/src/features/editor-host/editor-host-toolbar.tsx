@@ -41,7 +41,14 @@ export function EditorHostToolbar(props: EditorHostToolbarProps) {
         Overlay: <code>{props.overlayMode}</code>
       </span>
       <span className="portal-editor-host-meta">
-        Ping: <code>{props.lastPingRttMs !== null ? `${props.lastPingRttMs}ms` : props.lastPingError ? "error" : "n/a"}</code>
+        Ping:{" "}
+        <code>
+          {props.lastPingRttMs !== null
+            ? `${props.lastPingRttMs}ms`
+            : props.lastPingError
+              ? "error"
+              : "n/a"}
+        </code>
       </span>
       <span className="portal-editor-host-meta">
         Token: <code>{props.previewToken ? `${props.previewToken.slice(0, 6)}...` : "n/a"}</code>
@@ -100,7 +107,8 @@ export function EditorHostToolbar(props: EditorHostToolbarProps) {
       </span>
       {props.lastPresence ? (
         <span className="portal-editor-host-meta">
-          Presence: <code>{props.lastPresence.pathname}</code> <code>{String(props.lastPresence.overlayMode)}</code>{" "}
+          Presence: <code>{props.lastPresence.pathname}</code>{" "}
+          <code>{String(props.lastPresence.overlayMode)}</code>{" "}
           <code>{props.lastPresence.selectedBlockId ?? "null"}</code>{" "}
           <code>{props.lastPresence.hasDraftOverride ? "draft" : "base"}</code>
         </span>

@@ -60,6 +60,7 @@ class _RouteTemplateCache:
 
 _route_template_cache = _RouteTemplateCache()
 
+
 class SiteRoutingRepository(BaseRepository):
     async def list_route_templates(self, *, site_id: UUID) -> list[RouteTemplateRecord]:
         return (
@@ -265,6 +266,8 @@ class SiteRoutingRepository(BaseRepository):
             paths.remove("/")
             paths.insert(0, "/")
         return paths
+
+
 _PARAM_RE = re.compile(r"^:([A-Za-z][A-Za-z0-9_]*)$")
 
 

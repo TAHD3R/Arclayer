@@ -69,7 +69,8 @@ async def list_my_organizations(
     user_id: UUID = Depends(get_current_user_id),
 ) -> ResponseModel[MyOrganizationListOut]:
     memberships = (
-        await OrgMembership.filter(user_id=user_id, status="active")
+        await OrgMembership
+        .filter(user_id=user_id, status="active")
         .prefetch_related("organization")
         .order_by("created_at", "id")
         .all()
@@ -79,7 +80,8 @@ async def list_my_organizations(
 
     org_ids = [UUID(str(cast(HasOrganizationId, membership).organization_id)) for membership in memberships]
     active_org_memberships = (
-        await OrgMembership.filter(organization_id__in=org_ids, status="active")
+        await OrgMembership
+        .filter(organization_id__in=org_ids, status="active")
         .prefetch_related("user")
         .order_by("organization_id", "created_at", "id")
         .all()
@@ -214,7 +216,8 @@ async def get_my_organization(
         )
 
     active_memberships = (
-        await OrgMembership.filter(organization_id=org.id, status="active")
+        await OrgMembership
+        .filter(organization_id=org.id, status="active")
         .prefetch_related("user")
         .order_by("created_at", "id")
         .all()

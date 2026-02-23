@@ -540,6 +540,7 @@ class PluginService(BaseService):
 
         self._validate_config(schema, config)
 
+
 def _flatten_patch_paths(patch: dict[str, Any], *, _prefix: str = "") -> list[str]:
     # Only emit keys/paths, never values (could contain secrets).
     out: list[str] = []

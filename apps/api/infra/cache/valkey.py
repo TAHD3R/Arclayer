@@ -26,6 +26,7 @@ def _raise_if_fatal(exc: BaseException) -> None:
     if isinstance(exc, _FATAL_VALKEY_ERRORS):
         raise exc
 
+
 try:
     import orjson as _orjson
 except ImportError:

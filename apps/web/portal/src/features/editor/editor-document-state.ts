@@ -52,8 +52,7 @@ function isContainer(node: CoreBlockNode): node is Extract<CoreBlockNode, { type
 
 function localizedTextFromProps(value: unknown): string {
   if (!isRecord(value)) return "";
-  const entries = Object.values(value).filter((item): item is string => typeof item === "string");
-  return entries[0] ?? "";
+  return Object.values(value).find((item): item is string => typeof item === "string") ?? "";
 }
 
 function buildLayerLabel(block: CoreBlockNode): string {
@@ -302,7 +301,10 @@ function componentSectionFromProps(props: Record<string, unknown>): Record<strin
   return section;
 }
 
-export function createEditorHistory(initialDocument: CoreDocumentIR, limit = HISTORY_LIMIT_DEFAULT): EditorDocumentHistory {
+export function createEditorHistory(
+  initialDocument: CoreDocumentIR,
+  limit = HISTORY_LIMIT_DEFAULT,
+): EditorDocumentHistory {
   return {
     past: [],
     present: cloneDocument(initialDocument),
@@ -311,7 +313,10 @@ export function createEditorHistory(initialDocument: CoreDocumentIR, limit = HIS
   };
 }
 
-export function commitEditorHistory(state: EditorDocumentHistory, nextDocument: CoreDocumentIR): EditorDocumentHistory {
+export function commitEditorHistory(
+  state: EditorDocumentHistory,
+  nextDocument: CoreDocumentIR,
+): EditorDocumentHistory {
   const nextPast = [...state.past, cloneDocument(state.present)];
   const overflow = Math.max(0, nextPast.length - state.limit);
 

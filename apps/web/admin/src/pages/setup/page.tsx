@@ -1,5 +1,5 @@
 import { Alert, Button, Form, Input, Progress, Typography } from "antd";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "@tanstack/react-router";
 import { AnimatePresence, MotionConfig, motion } from "motion/react";
@@ -21,7 +21,7 @@ import {
   ExpandableScreenContent,
   ExpandableScreenTrigger,
 } from "@/components/ui/expandable-screen";
-import ColorBends from "@/components/ui/color-bends";
+const ColorBendsLazy = lazy(() => import("@/components/ui/color-bends"));
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import {
   notifyError,
@@ -150,6 +150,7 @@ export function SetupView() {
   const access = useSetupWizardStore((s) => s.access);
   const deploymentMode = useSetupWizardStore((s) => s.deploymentMode);
   const themeMode = usePreferencesStore((s) => s.themeMode);
+  const isDark = themeMode === "dark";
 
   const setupDryRunEnabled = useMemo(() => resolveSetupDryRunFlag(), []);
 
@@ -170,7 +171,11 @@ export function SetupView() {
   const enterOffsetX = stepDirection > 0 ? 14 : stepDirection < 0 ? -14 : 0;
   const exitOffsetX = stepDirection > 0 ? -14 : stepDirection < 0 ? 14 : 0;
 
-  const primaryBendColor = useMemo(() => resolvePrimaryBendColor(), [themeMode]);
+  const [primaryBendColor, setPrimaryBendColor] = useState(FALLBACK_PRIMARY_BEND_COLOR);
+
+  useEffect(() => {
+    setPrimaryBendColor(resolvePrimaryBendColor());
+  }, [themeMode]);
 
   useEffect(() => {
     return () => {
@@ -188,7 +193,7 @@ export function SetupView() {
   }, [deploymentMode, navigate]);
 
   const transition = reducedMotion
-    ? ({ duration: 0.01 } as const)
+    ? ({ duration: 0 } as const)
     : ({ duration: 0.18, ease: [0.2, 0, 0, 1] as const } as const);
 
   useEffect(() => {
@@ -546,7 +551,7 @@ export function SetupView() {
       layoutId="setup-launcher"
       triggerRadius="999px"
       contentRadius="24px"
-      animationDuration={reducedMotion ? 0.01 : 0.22}
+      animationDuration={reducedMotion ? 0 : 0.22}
       overlayZIndexClassName="z-[2400]"
       expanded={isLauncherExpanded}
       onExpandChange={setLauncherExpanded}
@@ -573,7 +578,7 @@ export function SetupView() {
             showIcon
             message={t("setup:SETUP_DISABLED_TITLE")}
             description={t("setup:SETUP_DISABLED_DESC")}
-            style={{ textAlign: "left", marginBottom: 16 }}
+            className="text-left mb-4"
           />
         ) : null}
 
@@ -632,28 +637,53 @@ export function SetupView() {
         <div className="grid h-full min-h-0 grid-cols-1 lg:grid-cols-3">
           <aside className="relative hidden overflow-hidden border-r border-border/70 lg:block">
             <div className="pointer-events-none absolute inset-0">
-              <ColorBends
-                className="h-full w-full"
-                colors={[primaryBendColor]}
-                rotation={0}
-                speed={0.2}
-                scale={1}
-                frequency={1}
-                warpStrength={1}
-                mouseInfluence={1}
-                parallax={0.5}
-                noise={0.1}
-                transparent
-              />
+              <Suspense
+                fallback={
+                  <div className="absolute inset-0 bg-(--color-background) animate-pulse opacity-50" />
+                }
+              >
+                <ColorBendsLazy
+                  className="h-full w-full"
+                  colors={[primaryBendColor]}
+                  rotation={0}
+                  speed={0.2}
+                  scale={1}
+                  frequency={1}
+                  warpStrength={1}
+                  mouseInfluence={1}
+                  parallax={0.5}
+                  noise={0.1}
+                  transparent
+                />
+              </Suspense>
               <div className="absolute inset-0 bg-(--color-background)/72" />
             </div>
 
             <div className="relative z-10 flex h-full min-h-[220px] items-end p-6 sm:p-8">
               <div className="max-w-110 select-none">
-                <h2 className="text-largetitle leading-tight text-label-primary font-bold">
+                <Typography.Title
+                  level={1}
+                  className="!m-0 text-[3.25rem] font-bold leading-[1.05] tracking-[-0.015em]"
+                  style={{
+                    color: isDark ? "rgba(255,255,255,0.96)" : "rgba(20,20,20,0.96)",
+                    textShadow: isDark
+                      ? "0 18px 60px rgba(0,0,0,0.35)"
+                      : "0 18px 60px rgba(0,0,0,0.45)",
+                  }}
+                >
                   {t("auth:SLOGAN_TITLE")}
-                </h2>
-                <p className="mt-4 text-title2 text-label-secondary">{t("auth:SLOGAN_SUBTITLE")}</p>
+                </Typography.Title>
+                <Typography.Paragraph
+                  className="!mt-[14px] !mb-0 text-xl leading-[1.6]"
+                  style={{
+                    color: isDark ? "rgba(255,255,255,0.78)" : "rgba(20,20,20,0.78)",
+                    textShadow: isDark
+                      ? "0 18px 60px rgba(0,0,0,0.35)"
+                      : "0 18px 60px rgba(0,0,0,0.45)",
+                  }}
+                >
+                  {t("auth:SLOGAN_SUBTITLE")}
+                </Typography.Paragraph>
               </div>
             </div>
           </aside>
@@ -697,12 +727,12 @@ export function SetupView() {
 
             <div className="border-t border-border/70 bg-(--color-background)/95 px-4 py-3 sm:px-6">
               {step === MAX_STEP && access === "token" ? (
-                <div style={{ marginBottom: 12 }}>
+                <div className="mb-3">
                   <Form.Item
                     label={t("setup:SETUP_FIELD_SETUP_TOKEN_LABEL")}
                     help={t("setup:SETUP_FIELD_SETUP_TOKEN_HELP")}
                     required
-                    style={{ marginBottom: 0 }}
+                    className="!mb-0"
                   >
                     <Input.Password
                       value={setupToken}

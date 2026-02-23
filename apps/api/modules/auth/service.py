@@ -188,11 +188,7 @@ class AuthService(BaseService):
             from apps.api.plugin.event_bus import Event
             from apps.api.plugin.host import host as plugin_host
 
-            orgm = (
-                await OrgMembership.filter(user_id=user_id, status="active")
-                .order_by("created_at", "id")
-                .first()
-            )
+            orgm = await OrgMembership.filter(user_id=user_id, status="active").order_by("created_at", "id").first()
             org_id = UUID(str(cast(HasOrganizationId, orgm).organization_id)) if orgm is not None else None
 
             await plugin_host.event_bus.publish(
@@ -475,11 +471,7 @@ class AuthService(BaseService):
             from apps.api.plugin.event_bus import Event
             from apps.api.plugin.host import host as plugin_host
 
-            orgm = (
-                await OrgMembership.filter(user_id=user_id, status="active")
-                .order_by("created_at", "id")
-                .first()
-            )
+            orgm = await OrgMembership.filter(user_id=user_id, status="active").order_by("created_at", "id").first()
             org_id = UUID(str(cast(HasOrganizationId, orgm).organization_id)) if orgm is not None else None
 
             await plugin_host.event_bus.publish(
@@ -576,11 +568,7 @@ class AuthService(BaseService):
             from apps.api.plugin.event_bus import Event
             from apps.api.plugin.host import host as plugin_host
 
-            orgm = (
-                await OrgMembership.filter(user_id=user_id, status="active")
-                .order_by("created_at", "id")
-                .first()
-            )
+            orgm = await OrgMembership.filter(user_id=user_id, status="active").order_by("created_at", "id").first()
             org_id = UUID(str(cast(HasOrganizationId, orgm).organization_id)) if orgm is not None else None
 
             await plugin_host.event_bus.publish(

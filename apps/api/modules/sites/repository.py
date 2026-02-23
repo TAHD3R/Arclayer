@@ -55,10 +55,7 @@ class SitesRepository(BaseRepository):
     ) -> None:
         async with in_transaction() as conn:
             site = (
-                await SiteRecord.filter(workspace_id=workspace_id)
-                .using_db(conn)
-                .order_by("created_at", "id")
-                .first()
+                await SiteRecord.filter(workspace_id=workspace_id).using_db(conn).order_by("created_at", "id").first()
             )
             if site is None:
                 demo_site = await SiteRecord.filter(id=site_id).using_db(conn).first()
@@ -93,7 +90,8 @@ class SitesRepository(BaseRepository):
                     site = await SiteRecord.create(using_db=conn, **create_kwargs)
                 except IntegrityError:
                     site = (
-                        await SiteRecord.filter(workspace_id=workspace_id)
+                        await SiteRecord
+                        .filter(workspace_id=workspace_id)
                         .using_db(conn)
                         .order_by("created_at", "id")
                         .first()
@@ -322,9 +320,7 @@ class SitesRepository(BaseRepository):
             return await SitePageRecord.create(
                 site_id=site_id,
                 title=(title.strip() if isinstance(title, str) and title.strip() else None),
-                description=(
-                    description.strip() if isinstance(description, str) and description.strip() else None
-                ),
+                description=(description.strip() if isinstance(description, str) and description.strip() else None),
                 path=pathname,
                 parent_id=parent_id,
                 sort_order=int(sort_order or 0),
@@ -808,8 +804,6 @@ class SitesRepository(BaseRepository):
 
     async def list_public_sitemap_paths(self, *, site_id: UUID) -> list[str]:
         return await self._publishing_repo.list_public_sitemap_paths(site_id=site_id)
-
-
 
 
 def _compile_path_pattern(

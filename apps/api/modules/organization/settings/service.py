@@ -38,15 +38,11 @@ class OrganizationSettingsService(BaseService):
         raw_value = record.value if record and isinstance(record.value, dict) else {}
 
         locale = self._read_str(raw_value, ["organization_localization", "locale"]) or _DEFAULT_ORG_LOCALE
-        timezone = (
-            self._read_str(raw_value, ["organization_localization", "timezone"]) or _DEFAULT_ORG_TIMEZONE
-        )
+        timezone = self._read_str(raw_value, ["organization_localization", "timezone"]) or _DEFAULT_ORG_TIMEZONE
         date_format = (
             self._read_str(raw_value, ["organization_localization", "date_format"]) or _DEFAULT_ORG_DATE_FORMAT
         )
-        default_role_code = (
-            self._read_str(raw_value, ["default_role_code"]) or OrgRole.MEMBER.value
-        )
+        default_role_code = self._read_str(raw_value, ["default_role_code"]) or OrgRole.MEMBER.value
 
         return OrganizationSettingsCoreOut(
             organization_id=org.id,

@@ -43,8 +43,8 @@ from apps.api.modules.sites.utils import (
 )
 
 
-def _as_visibility(value: str) -> Literal['public', 'private']:
-    return cast(Literal['public', 'private'], value)
+def _as_visibility(value: str) -> Literal["public", "private"]:
+    return cast(Literal["public", "private"], value)
 
 
 def _get_parent_id(value: object) -> UUID | None:
@@ -120,11 +120,7 @@ class SiteContentService(BaseService):
             draft_revision=int(page.draft_rev or 0),
             published_revision=(int(page.published_rev) if page.published_rev is not None else None),
             updated_at=page.updated_at,
-            updated_by=(
-                user_summary_by_id.get(updated_by_user_id)
-                if updated_by_user_id is not None
-                else None
-            ),
+            updated_by=(user_summary_by_id.get(updated_by_user_id) if updated_by_user_id is not None else None),
             children=[],
         )
 
@@ -145,9 +141,7 @@ class SiteContentService(BaseService):
         pages = await self._repo.list_pages_by_site(site_id=site_id)
 
         updated_by_user_ids = {
-            user_id
-            for user_id in (_get_updated_by_user_id(page) for page in pages)
-            if user_id is not None
+            user_id for user_id in (_get_updated_by_user_id(page) for page in pages) if user_id is not None
         }
         user_summary_by_id = await self._load_page_user_summaries(user_ids=updated_by_user_ids)
 

@@ -174,11 +174,14 @@ async def test_organization_settings_assign_leave_and_delete(
             assert delete_resp.status_code == 200, delete_resp.text
             assert delete_resp.json()["data"]["deleted"] is True
             assert await Organization.get_or_none(id=org.id) is None
-            assert await SettingRecord.filter(
-                scope_type=SCOPE_TYPE_ORG,
-                scope_id=org.id,
-                namespace="core",
-            ).exists() is False
+            assert (
+                await SettingRecord.filter(
+                    scope_type=SCOPE_TYPE_ORG,
+                    scope_id=org.id,
+                    namespace="core",
+                ).exists()
+                is False
+            )
 
             # Owner membership is deleted via organization cascade.
             assert await OrgMembership.get_or_none(id=owner_orgm.id) is None

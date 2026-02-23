@@ -64,19 +64,17 @@ class _HasNullableExpiresAt(Protocol):
     expires_at: datetime | None
 
 
-_ORG_MEMBER_ALLOWED_ORDER_FIELDS: frozenset[str] = frozenset(
-    {
-        "joined_at",
-        "username",
-        "email",
-        "display_name",
-        "role_code",
-        "status",
-        "user_status",
-        "workspace_count",
-        "last_login_at",
-    }
-)
+_ORG_MEMBER_ALLOWED_ORDER_FIELDS: frozenset[str] = frozenset({
+    "joined_at",
+    "username",
+    "email",
+    "display_name",
+    "role_code",
+    "status",
+    "user_status",
+    "workspace_count",
+    "last_login_at",
+})
 
 
 def _normalize_member_ordering(value: str | None) -> list[str]:
@@ -831,13 +829,11 @@ class OrganizationMemberService(BaseService):
             if workspace is None:
                 continue
 
-            role_codes = sorted(
-                {
-                    str(binding.role.code)
-                    for binding in (membership_with_rel.membership_roles or [])
-                    if getattr(binding, "role", None) is not None and getattr(binding.role, "code", None)
-                }
-            )
+            role_codes = sorted({
+                str(binding.role.code)
+                for binding in (membership_with_rel.membership_roles or [])
+                if getattr(binding, "role", None) is not None and getattr(binding.role, "code", None)
+            })
 
             out.setdefault(user_id, []).append(
                 OrganizationMemberWorkspaceOut(

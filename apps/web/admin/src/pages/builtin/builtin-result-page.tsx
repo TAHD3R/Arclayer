@@ -31,49 +31,23 @@ export type BuiltinResultPageProps = {
   extra?: ReactNode;
 };
 
-function DefaultActions(props: { showHome?: boolean; showRefresh?: boolean }) {
+function DefaultAction(props: { status: BuiltinResultStatus }) {
   const { t } = useTranslation();
   const router = useRouter();
 
-  const goBack = () => {
-    try {
-      router.history.back();
-    } catch {
-      // ignore
-    }
-  };
+  if (props.status === "404" || props.status === "403") {
+    return (
+      <Button type="primary" onClick={() => void router.navigate({ to: "/" })}>
+        {t("common:GO_HOME")}
+      </Button>
+    );
+  }
 
-  const goHome = () => {
-    void router.navigate({ to: "/" });
-  };
-
-  const reload = () => {
-    try {
-      window.location.reload();
-    } catch {
-      // ignore
-    }
-  };
-
-  return [
-    <Button key="back" onClick={goBack}>
-      {t("common:BACK")}
-    </Button>,
-    ...(props.showHome
-      ? [
-          <Button key="home" type="primary" onClick={goHome}>
-            {t("common:GO_HOME")}
-          </Button>,
-        ]
-      : []),
-    ...(props.showRefresh === false
-      ? []
-      : [
-          <Button key="refresh" onClick={reload}>
-            {t("common:REFRESH")}
-          </Button>,
-        ]),
-  ];
+  return (
+    <Button type="primary" onClick={() => window.location.reload()}>
+      {t("common:REFRESH")}
+    </Button>
+  );
 }
 
 function pickBuiltinIllustration(status: BuiltinResultStatus) {
@@ -91,7 +65,7 @@ export function BuiltinResultPage({
 }: BuiltinResultPageProps) {
   const actions = useMemo(() => {
     if (extra) return extra;
-    return <DefaultActions showHome showRefresh={status !== "404"} />;
+    return <DefaultAction status={status} />;
   }, [extra, status]);
 
   const Illustration = pickBuiltinIllustration(status);

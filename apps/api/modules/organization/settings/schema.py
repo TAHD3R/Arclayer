@@ -48,11 +48,7 @@ class OrganizationSettingsCorePatch(BaseSchema):
 
     @model_validator(mode="after")
     def _validate_any_field(self) -> OrganizationSettingsCorePatch:
-        if (
-            self.organization_name is None
-            and self.organization_localization is None
-            and self.default_role_code is None
-        ):
+        if self.organization_name is None and self.organization_localization is None and self.default_role_code is None:
             raise ValueError("At least one patch field is required")
         return self
 

@@ -51,31 +51,27 @@ def _user_ref(user: User) -> WorkspaceTeamUserRefOut:
     )
 
 
-_WORKSPACE_EMAIL_INVITE_ALLOWED_ORDER_FIELDS: frozenset[str] = frozenset(
-    {
-        "created_at",
-        "updated_at",
-        "email",
-        "role_code",
-        "expires_at",
-        "accepted_at",
-        "revoked_at",
-    }
-)
+_WORKSPACE_EMAIL_INVITE_ALLOWED_ORDER_FIELDS: frozenset[str] = frozenset({
+    "created_at",
+    "updated_at",
+    "email",
+    "role_code",
+    "expires_at",
+    "accepted_at",
+    "revoked_at",
+})
 
-_WORKSPACE_INVITE_LINK_ALLOWED_ORDER_FIELDS: frozenset[str] = frozenset(
-    {
-        "created_at",
-        "updated_at",
-        "display_code",
-        "role_code",
-        "allowed_email_domain",
-        "expires_at",
-        "disabled_at",
-        "last_used_at",
-        "uses_count",
-    }
-)
+_WORKSPACE_INVITE_LINK_ALLOWED_ORDER_FIELDS: frozenset[str] = frozenset({
+    "created_at",
+    "updated_at",
+    "display_code",
+    "role_code",
+    "allowed_email_domain",
+    "expires_at",
+    "disabled_at",
+    "last_used_at",
+    "uses_count",
+})
 
 
 def _normalize_workspace_email_invite_ordering(value: str | None) -> list[str]:
@@ -535,7 +531,8 @@ class WorkspaceTeamInviteMixin:
         total = int(await qs.count())
         pages = (total + params.size - 1) // params.size if params.size else 0
         rows = (
-            await qs.order_by(*_normalize_workspace_invite_link_ordering(ordering))
+            await qs
+            .order_by(*_normalize_workspace_invite_link_ordering(ordering))
             .limit(params.limit)
             .offset(params.offset)
             .all()
@@ -703,7 +700,8 @@ class WorkspaceTeamInviteMixin:
         total = int(await qs.count())
         pages = (total + params.size - 1) // params.size if params.size else 0
         rows = (
-            await qs.order_by(*_normalize_workspace_email_invite_ordering(ordering))
+            await qs
+            .order_by(*_normalize_workspace_email_invite_ordering(ordering))
             .limit(params.limit)
             .offset(params.offset)
             .all()

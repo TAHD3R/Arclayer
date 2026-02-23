@@ -94,7 +94,9 @@ async def list_permissions(
         permission_code="org.roles.read",
         error_code="ORG_ROLES_READ_REQUIRED",
     )
-    permissions = await service.list_permissions(organization_id=UUID(str(cast(HasOrganizationId, orgm).organization_id)))
+    permissions = await service.list_permissions(
+        organization_id=UUID(str(cast(HasOrganizationId, orgm).organization_id))
+    )
     page = paginate_items(
         [
             OrganizationPermissionOut(
@@ -126,7 +128,9 @@ async def get_matrix(
         permission_code="org.roles.read",
         error_code="ORG_ROLES_READ_REQUIRED",
     )
-    roles, permissions, grants = await service.get_matrix(organization_id=UUID(str(cast(HasOrganizationId, orgm).organization_id)))
+    roles, permissions, grants = await service.get_matrix(
+        organization_id=UUID(str(cast(HasOrganizationId, orgm).organization_id))
+    )
     return Response.success(
         data=OrganizationRBACMatrixOut(
             roles=[
@@ -205,7 +209,9 @@ async def delete_role(
         permission_code="org.roles.write",
         error_code="ORG_ROLES_WRITE_REQUIRED",
     )
-    await service.delete_custom_role(organization_id=UUID(str(cast(HasOrganizationId, orgm).organization_id)), role_code=role_code)
+    await service.delete_custom_role(
+        organization_id=UUID(str(cast(HasOrganizationId, orgm).organization_id)), role_code=role_code
+    )
     return Response.success()
 
 
