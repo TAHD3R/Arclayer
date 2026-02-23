@@ -123,20 +123,6 @@ export function OrganizationTeamInvitationsDialogs(props: OrganizationTeamInvita
 
           <div className="grid gap-1.5">
             <label className="font-semibold text-foreground">
-              {t("team:TEAM_INVITE_LINK_FIELD_EXPIRES")}
-            </label>
-            <div className="text-muted-foreground">{t("team:TEAM_INVITE_FIELD_EXPIRES_HELP")}</div>
-            <Select<RenewExpiresInSeconds>
-              value={linkExpiresInSeconds}
-              onChange={(next) => onLinkExpiresInSecondsChange(next)}
-              options={renewOptions}
-              getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
-              className="w-full"
-            />
-          </div>
-
-          <div className="grid gap-1.5">
-            <label className="font-semibold text-foreground">
               {t("common:ORG_INVITE_LINK_ALLOWED_DOMAIN_LABEL")}
             </label>
             <div className="text-muted-foreground">
@@ -146,6 +132,20 @@ export function OrganizationTeamInvitationsDialogs(props: OrganizationTeamInvita
               value={linkAllowedDomain}
               onChange={(event) => onLinkAllowedDomainChange(event.target.value)}
               placeholder={t("common:ORG_INVITE_LINK_ALLOWED_DOMAIN_PLACEHOLDER")}
+            />
+          </div>
+
+          <div className="grid gap-1.5">
+            <label className="font-semibold text-foreground">
+              {t("team:TEAM_INVITE_LINK_FIELD_EXPIRES")}
+            </label>
+            <div className="text-muted-foreground">{t("team:TEAM_INVITE_FIELD_EXPIRES_HELP")}</div>
+            <Select<RenewExpiresInSeconds>
+              value={linkExpiresInSeconds}
+              onChange={(next) => onLinkExpiresInSecondsChange(next)}
+              options={renewOptions}
+              getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
+              className="w-full"
             />
           </div>
         </div>

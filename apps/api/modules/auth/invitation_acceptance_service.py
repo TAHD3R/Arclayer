@@ -135,9 +135,7 @@ class AuthInvitationAcceptanceService(BaseService):
                 if not invite_email:
                     raise BadRequest(message=self._ta("EMAIL_REQUIRED", "邮箱不能为空"), error="EMAIL_REQUIRED")
 
-                allowed_domain = (invite_link.allowed_email_domain or "").strip().lower()
-                if allowed_domain.startswith("@"):
-                    allowed_domain = allowed_domain[1:]
+                allowed_domain = (invite_link.allowed_email_domain or "").strip().lower().lstrip("@").strip()
                 if allowed_domain:
                     if "@" not in invite_email:
                         raise Forbidden(
@@ -204,9 +202,7 @@ class AuthInvitationAcceptanceService(BaseService):
                 if not invite_email:
                     raise BadRequest(message=self._ta("EMAIL_REQUIRED", "邮箱不能为空"), error="EMAIL_REQUIRED")
 
-                allowed_domain = (org_invite_link.allowed_email_domain or "").strip().lower()
-                if allowed_domain.startswith("@"):
-                    allowed_domain = allowed_domain[1:]
+                allowed_domain = (org_invite_link.allowed_email_domain or "").strip().lower().lstrip("@").strip()
                 if allowed_domain:
                     if "@" not in invite_email:
                         raise Forbidden(

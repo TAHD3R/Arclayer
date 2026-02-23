@@ -26,15 +26,7 @@ export function renderUserLabel(
 
   return (
     <div className="flex items-center gap-2 min-w-0">
-      <Avatar
-        size={24}
-        src={resolveAssetRefToPublicUrlPath(user.avatarUrl) || undefined}
-        style={{
-          backgroundColor: "var(--color-muted)",
-          color: "var(--color-foreground)",
-          flexShrink: 0,
-        }}
-      >
+      <Avatar size={24} src={resolveAssetRefToPublicUrlPath(user.avatarUrl) || undefined}>
         {userInitials(primary)}
       </Avatar>
       <div className="min-w-0">

@@ -132,7 +132,7 @@
   "SETTINGS_ORG_MEMBERS_ACCESS_DESC": "Manage organization members, access control and global permission model.",
   "SETTINGS_ORG_MEMBERS_DIRECTORY_TITLE": "Members directory",
   "SETTINGS_ORG_MEMBERS_DIRECTORY_DESC": "View and manage members, invitations and account ownership (placeholder).",
-  "SETTINGS_ORG_ROLES_TITLE": "Roles & permissions",
+  "SETTINGS_ORG_ROLES_TITLE": "Roles & Permissions",
   "SETTINGS_ORG_ROLES_DESC": "Define org-level role templates for cross-workspace governance (placeholder).",
   "SETTINGS_ORG_BILLING_ASSETS_TITLE": "Billing & Assets",
   "SETTINGS_ORG_BILLING_ASSETS_DESC": "Manage subscription, invoices and organization brand assets.",

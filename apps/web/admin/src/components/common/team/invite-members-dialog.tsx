@@ -1,6 +1,6 @@
 "use client";
 
-import { Button as AntButton, Select, Tag, Tooltip } from "antd";
+import { Button as AntButton, Input, Select, Tag, Tooltip } from "antd";
 import * as React from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
@@ -18,6 +18,7 @@ type FormValues = {
   emails: string[];
   roleCode: string;
   expiresInSeconds: number | null;
+  allowedEmailDomain: string;
 };
 
 const DEFAULT_EXPIRES_IN_SECONDS = 7 * 24 * 60 * 60;
@@ -90,6 +91,7 @@ export function InviteMembersDialog(props: {
       }),
       roleCode: z.string().min(1, t("team:TEAM_INVITE_VALIDATION_ROLE_REQUIRED")),
       expiresInSeconds: z.number().int().min(60).nullable(),
+      allowedEmailDomain: z.string().default(""),
     });
   }, [props.mode, t]);
 
@@ -99,13 +101,19 @@ export function InviteMembersDialog(props: {
       emails: [],
       roleCode: "",
       expiresInSeconds: DEFAULT_EXPIRES_IN_SECONDS,
+      allowedEmailDomain: "",
     },
     mode: "onSubmit",
   });
 
   React.useEffect(() => {
     if (!props.open) {
-      form.reset({ emails: [], roleCode: "", expiresInSeconds: DEFAULT_EXPIRES_IN_SECONDS });
+      form.reset({
+        emails: [],
+        roleCode: "",
+        expiresInSeconds: DEFAULT_EXPIRES_IN_SECONDS,
+        allowedEmailDomain: "",
+      });
     }
   }, [form, props.open]);
 
@@ -159,6 +167,7 @@ export function InviteMembersDialog(props: {
         workspaceId: props.workspaceId,
         roleCode,
         expiresInSeconds,
+        allowedEmailDomain: values.allowedEmailDomain.trim() || null,
       });
 
       const url =
@@ -358,6 +367,25 @@ export function InviteMembersDialog(props: {
             </div>
           ) : null}
         </div>
+
+        {props.mode === "link" ? (
+          <div className="grid gap-1.5">
+            <label className="font-semibold text-foreground" htmlFor="allowedEmailDomain">
+              {t("common:ORG_INVITE_LINK_ALLOWED_DOMAIN_LABEL")}
+            </label>
+            <div className="text-muted-foreground">
+              {t("team:TEAM_INVITE_LINK_ALLOWED_DOMAIN_HELP")}
+            </div>
+            <Input
+              id="allowedEmailDomain"
+              placeholder={t("common:ORG_INVITE_LINK_ALLOWED_DOMAIN_PLACEHOLDER")}
+              value={form.watch("allowedEmailDomain")}
+              onChange={(e) =>
+                form.setValue("allowedEmailDomain", e.target.value, { shouldDirty: true })
+              }
+            />
+          </div>
+        ) : null}
 
         <div className="grid gap-1.5">
           <label className="font-semibold text-foreground" htmlFor="expiresInSeconds">

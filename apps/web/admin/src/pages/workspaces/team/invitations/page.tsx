@@ -44,6 +44,7 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
   const dateTime = useWorkspaceDateTimeFormatter();
   const [tab, setTab] = React.useState<TabKey>("pending");
   const [inviteOpen, setInviteOpen] = React.useState(false);
+  const [inviteEmailOpen, setInviteEmailOpen] = React.useState(false);
   const [deleteInvitation, setDeleteInvitation] = React.useState<TeamInvitation | null>(null);
   const [renewInvitation, setRenewInvitation] = React.useState<TeamInvitation | null>(null);
   const [renewLink, setRenewLink] = React.useState<TeamInviteLink | null>(null);
@@ -173,22 +174,40 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
         header: t("team:TEAM_INVITATIONS_COL_EMAIL"),
         cell: ({ row }) => {
           const inv = row.original;
-          const inviter = inv.createdBy;
-          const inviterLabel =
-            (inviter?.displayName || inviter?.username || inviter?.email || "").trim() || "-";
           const roleCode = inv.roleCode || null;
           const roleName = roleCode ? (roleNameByCode.get(roleCode) ?? roleCode) : null;
           return (
             <div className="min-w-0">
               <div className="font-medium truncate">{inv.email || "-"}</div>
-              <div className="text-xs text-muted-foreground truncate">
-                {t("team:TEAM_INVITATIONS_SENT_BY", { inviter: inviterLabel })}
-              </div>
               <div className="mt-1">
                 <Tag style={{ marginInlineEnd: 0 }}>{roleName || t("common:NA")}</Tag>
               </div>
             </div>
           );
+        },
+      },
+      {
+        id: "inviter",
+        meta: { title: t("team:TEAM_INVITE_LINKS_COL_CREATOR") },
+        header: t("team:TEAM_INVITE_LINKS_COL_CREATOR"),
+        cell: ({ row }) => renderUserLabel(row.original.createdBy),
+      },
+
+      {
+        accessorKey: "status",
+        meta: { title: t("team:TEAM_INVITATIONS_COL_STATUS") },
+        header: t("team:TEAM_INVITATIONS_COL_STATUS"),
+        cell: ({ row }) => {
+          const status = row.original.status;
+          const color =
+            status === "accepted"
+              ? "green"
+              : status === "revoked"
+                ? "red"
+                : status === "expired"
+                  ? "gold"
+                  : "blue";
+          return <Tag color={color}>{renderInvitationStatus(status)}</Tag>;
         },
       },
       {
@@ -206,15 +225,6 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
               {t("team:TEAM_INVITATIONS_SENT_AT", { datetime })}
             </span>
           );
-        },
-      },
-      {
-        accessorKey: "status",
-        meta: { title: t("team:TEAM_INVITATIONS_COL_STATUS") },
-        header: t("team:TEAM_INVITATIONS_COL_STATUS"),
-        cell: ({ row }) => {
-          const inv = row.original;
-          return <span>{renderInvitationStatus(inv.status)}</span>;
         },
       },
       {
@@ -273,6 +283,63 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
     ];
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dateTime, deleteInvitationMutation, renderInvitationStatus, roleNameByCode, t]);
+  const processedColumns = React.useMemo<ColumnDef<TeamInvitation, unknown>[]>(() => {
+    return [
+      {
+        id: "email",
+        meta: { title: t("team:TEAM_INVITATIONS_COL_EMAIL"), sortKey: "email" },
+        header: t("team:TEAM_INVITATIONS_COL_EMAIL"),
+        cell: ({ row }) => <span>{row.original.email || "-"}</span>,
+      },
+      {
+        id: "role",
+        meta: { title: t("team:TEAM_INVITATIONS_COL_ROLE"), sortKey: "role_code" },
+        header: t("team:TEAM_INVITATIONS_COL_ROLE"),
+        cell: ({ row }) => {
+          const code = row.original.roleCode;
+          return <span>{(code ? roleNameByCode.get(code) : null) || code || "-"}</span>;
+        },
+      },
+      {
+        id: "status",
+        meta: { title: t("team:TEAM_INVITATIONS_COL_STATUS") },
+        header: t("team:TEAM_INVITATIONS_COL_STATUS"),
+        cell: ({ row }) => <span>{renderInvitationStatus(row.original.status)}</span>,
+      },
+      {
+        id: "processedBy",
+        header: t("common:ORG_MEMBERS_TABLE_MEMBER"),
+        cell: ({ row }) => (
+          <span>
+            {row.original.acceptedBy?.displayName || row.original.acceptedBy?.username || "-"}
+          </span>
+        ),
+      },
+      {
+        id: "processedAt",
+        header: t("team:TEAM_INVITATIONS_COL_ACCEPTED"),
+        cell: ({ row }) => {
+          const formatted = dateTime.formatDate(row.original.acceptedAt || row.original.revokedAt, {
+            emptyValue: "",
+          });
+          return (
+            <span className={formatted ? "" : "text-muted-foreground"}>{formatted || "-"}</span>
+          );
+        },
+      },
+      {
+        id: "createdAt",
+        meta: { title: t("team:TEAM_INVITATIONS_COL_CREATED"), sortKey: "created_at" },
+        header: t("team:TEAM_INVITATIONS_COL_CREATED"),
+        cell: ({ row }) => {
+          const formatted = dateTime.formatDate(row.original.createdAt, { emptyValue: "" });
+          return (
+            <span className={formatted ? "" : "text-muted-foreground"}>{formatted || "-"}</span>
+          );
+        },
+      },
+    ];
+  }, [dateTime, renderInvitationStatus, roleNameByCode, t]);
   const inviteLinksColumns = React.useMemo<ColumnDef<TeamInviteLink, unknown>[]>(() => {
     return [
       {
@@ -344,8 +411,11 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
         header: t("team:TEAM_INVITE_LINKS_COL_CREATED"),
         cell: ({ row }) => {
           const formatted = dateTime.formatDate(row.original.createdAt, { emptyValue: "" });
+          const datetime = formatted || "-";
           return (
-            <span className={formatted ? "" : "text-muted-foreground"}>{formatted || "-"}</span>
+            <span className={formatted ? "" : "text-muted-foreground"}>
+              {t("team:TEAM_INVITATIONS_SENT_AT", { datetime })}
+            </span>
           );
         },
       },
@@ -436,7 +506,7 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
     { status: "pending" | "accepted"; mine: true }
   >({
     tableId: workspaceId ? `team-invitations:${workspaceId}` : "team-invitations",
-    columns: invitationsColumns,
+    columns: processedColumns,
     extraQuery: { ...acceptedExtraQuery, mine: true },
     initialState: { pageSize: 10 },
     fetcher: async (params) =>
@@ -492,9 +562,14 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
     },
   });
   const inviteAction = (
-    <AntButton type="primary" icon={<Plus size={16} />} onClick={() => setInviteOpen(true)}>
-      {t("team:TEAM_INVITE_CREATE_LINK_ACTION")}
-    </AntButton>
+    <div className="flex items-center gap-2">
+      <AntButton onClick={() => setInviteOpen(true)}>
+        {t("team:TEAM_INVITE_CREATE_LINK_ACTION")}
+      </AntButton>
+      <AntButton type="primary" icon={<Plus size={16} />} onClick={() => setInviteEmailOpen(true)}>
+        {t("common:ORG_MEMBERS_INVITE")}
+      </AntButton>
+    </div>
   );
   return (
     <DefaultPage
@@ -543,7 +618,7 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
             placeholder={t("team:TEAM_INVITE_LINKS_SEARCH_PLACEHOLDER")}
             emptyTitle={t("team:TEAM_INVITE_LINKS_EMPTY_TITLE")}
             emptyDescription={t("team:TEAM_INVITE_LINKS_EMPTY_DESC")}
-            showSearch={false}
+            showSearch
             t={t}
           />
         </ChromeTabsContent>
@@ -570,6 +645,23 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
             queryKey: [
               "dataTable",
               workspaceId ? `team-invite-links:${workspaceId}` : "team-invite-links",
+            ],
+          });
+        }}
+      />
+      <InviteMembersDialog
+        open={inviteEmailOpen}
+        onOpenChange={setInviteEmailOpen}
+        mode="email"
+        workspaceId={String(workspaceId || "")}
+        workspaceName={workspaceName}
+        roles={rolesQuery.data?.items ?? []}
+        rolesLoading={rolesQuery.isLoading}
+        onInvited={() => {
+          void queryClient.invalidateQueries({
+            queryKey: [
+              "dataTable",
+              workspaceId ? `team-invitations:${workspaceId}` : "team-invitations",
             ],
           });
         }}

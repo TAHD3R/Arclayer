@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 from typing import Any, Protocol, cast
 from uuid import UUID
 
+from apps.api.common.email.service import EmailService
 from apps.api.common.protocols.tortoise import HasUserId
 from apps.api.common.services import BaseService
 from apps.api.config import Settings
@@ -96,6 +97,7 @@ class OrganizationMemberService(BaseService):
         super().__init__(settings)
         self.repo = OrganizationMemberRepository()
         self.rbac = OrganizationRBACService(settings)
+        self.email_service = EmailService(settings)
 
     async def list_members(
         self,
@@ -457,7 +459,7 @@ class OrganizationMemberService(BaseService):
             organization_id=organization_id,
             role_code=role_code,
             code=generate_invite_code(prefix="ol"),
-            display_code=self._build_display_code(),
+            display_code=await self._build_display_code(),
             expires_at=build_expires_at(expires_in_seconds=payload.expires_in_seconds),
             max_uses=payload.max_uses,
             allowed_email_domain=domain,
@@ -979,8 +981,17 @@ class OrganizationMemberService(BaseService):
             updated_at=link.updated_at,
         )
 
-    def _build_display_code(self) -> str:
-        return f"ORG-{secrets.token_hex(3).upper()}"
+    async def _build_display_code(self) -> str:
+        for _ in range(5):
+            display_code = secrets.token_urlsafe(9).replace("-", "").replace("_", "")[:12]
+            if not display_code:
+                continue
+            if not await OrganizationInviteLink.filter(display_code=display_code).exists():
+                return display_code
+        raise BadRequest(
+            message=t("errors", "FAILED_TO_CREATE_INVITE_LINK", default="创建邀请链接失败"),
+            error="FAILED_TO_CREATE_INVITE_LINK",
+        )
 
     def _build_invite_url(self, token: str) -> str | None:
         base = (self.settings.application.frontend_base_url or "").strip().rstrip("/")

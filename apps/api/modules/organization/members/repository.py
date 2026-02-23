@@ -155,7 +155,7 @@ class OrganizationMemberRepository(BaseRepository):
         mine: bool | None,
         current_user_id: UUID,
     ) -> tuple[int, list[OrganizationInviteLink]]:
-        qs = OrganizationInviteLink.filter(organization_id=organization_id)
+        qs = OrganizationInviteLink.filter(organization_id=organization_id, disabled_at=None)
 
         if q:
             needle = q.strip()

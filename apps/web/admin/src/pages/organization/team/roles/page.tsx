@@ -107,7 +107,7 @@ export function OrganizationTeamRolesPage() {
     return (
       <DefaultPage
         width="full"
-        title={t("nav:NAV_SETTINGS_TEAM_ROLES")}
+        title={t("settings:SETTINGS_ORG_ROLES_TITLE")}
         description={t("common:ORG_ROLES_DESC")}
       >
         <PageState loading loadingVariant="table" />
@@ -119,7 +119,7 @@ export function OrganizationTeamRolesPage() {
     return (
       <DefaultPage
         width="full"
-        title={t("nav:NAV_SETTINGS_TEAM_ROLES")}
+        title={t("settings:SETTINGS_ORG_ROLES_TITLE")}
         description={t("common:ORG_ROLES_DESC")}
       >
         <PageState
@@ -134,7 +134,7 @@ export function OrganizationTeamRolesPage() {
   return (
     <DefaultPage
       width="full"
-      title={t("nav:NAV_SETTINGS_TEAM_ROLES")}
+      title={t("settings:SETTINGS_ORG_ROLES_TITLE")}
       description={t("common:ORG_ROLES_DESC")}
       action={
         <AntButton

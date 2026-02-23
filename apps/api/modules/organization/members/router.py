@@ -9,8 +9,10 @@ from fastapi import APIRouter, Depends, Query
 from apps.api.common.protocols.tortoise import HasOrganizationId
 from apps.api.common.types.public_uuid import PublicUUID
 from apps.api.config import Settings, get_settings
+from apps.api.core.exceptions import BadRequest
 from apps.api.core.http.pagination import DependsPagination, PageData, PageParams
 from apps.api.core.http.response import Response, ResponseModel
+from apps.api.core.i18n import t
 from apps.api.modules.organization.deps import get_current_org_membership
 from apps.api.modules.organization.members.schema import (
     OrganizationInvitationOut,
@@ -116,6 +118,11 @@ async def invite_organization_member(
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[OrganizationMemberInviteResult]:
     service = OrganizationMemberService(settings)
+    if not await service.email_service.is_enabled():
+        raise BadRequest(
+            message=t("settings", "MAIL_DISABLED", default="邮件服务未开启"),
+            error="MAIL_DISABLED",
+        )
     out = await service.invite_member(
         organization_id=UUID(str(cast(HasOrganizationId, orgm).organization_id)),
         actor_membership=orgm,

@@ -7,6 +7,7 @@ import {
   type OrganizationInvitation,
   type OrganizationInviteLink,
 } from "@/api/organization-members";
+import { InviteLinkParticipantsPopover } from "@/components/common/team/invite-link-participants-popover";
 import { renderUserLabel } from "@/pages/workspaces/team/invitations/invitations-helpers";
 
 import { toStatusTagColor } from "./invitations-constants";
@@ -59,22 +60,24 @@ export function useOrganizationInvitationColumns(options: UseOrganizationInvitat
         id: "email",
         meta: { sortKey: "email" },
         header: t("team:TEAM_INVITATIONS_COL_EMAIL"),
-        cell: ({ row }) => <span>{row.original.email || "-"}</span>,
+        cell: ({ row }) => {
+          const inv = row.original;
+          const roleCode = inv.roleCode || null;
+          const roleName = roleCode ? (roleNameByCode.get(roleCode) ?? roleCode) : null;
+          return (
+            <div className="min-w-0">
+              <div className="font-medium truncate">{inv.email || "-"}</div>
+              <div className="mt-1">
+                <Tag style={{ marginInlineEnd: 0 }}>{roleName || t("common:NA")}</Tag>
+              </div>
+            </div>
+          );
+        },
       },
       {
         id: "inviter",
         header: t("team:TEAM_INVITE_LINKS_COL_CREATOR"),
         cell: ({ row }) => renderUserLabel(row.original.createdBy),
-      },
-      {
-        id: "role",
-        meta: { sortKey: "role_code" },
-        header: t("team:TEAM_INVITATIONS_COL_ROLE"),
-        cell: ({ row }) => (
-          <Tag className="mr-0!">
-            {roleNameByCode.get(row.original.roleCode) || row.original.roleCode}
-          </Tag>
-        ),
       },
       {
         id: "status",
@@ -90,8 +93,11 @@ export function useOrganizationInvitationColumns(options: UseOrganizationInvitat
         header: t("team:TEAM_INVITATIONS_COL_CREATED"),
         cell: ({ row }) => {
           const formatted = dateTime.formatDate(row.original.createdAt, { emptyValue: "" });
+          const datetime = formatted || "-";
           return (
-            <span className={formatted ? "" : "text-muted-foreground"}>{formatted || "-"}</span>
+            <span className={formatted ? "" : "text-muted-foreground"}>
+              {t("team:TEAM_INVITATIONS_SENT_AT", { datetime })}
+            </span>
           );
         },
       },
@@ -228,19 +234,14 @@ export function useOrganizationInvitationColumns(options: UseOrganizationInvitat
         header: t("team:TEAM_INVITE_LINKS_COL_PARTICIPANT"),
         cell: ({ row }) => {
           const uses = Number(row.original.usesCount || 0);
-          const latestParticipant =
-            row.original.lastUsedBy?.displayName ||
-            row.original.lastUsedBy?.username ||
-            row.original.lastUsedBy?.email ||
-            null;
-
+          const primaryUser = row.original.lastUsedBy ?? null;
           return (
-            <div className="min-w-0">
-              <div className="font-medium">{uses}</div>
-              {latestParticipant ? (
-                <div className="truncate text-xs text-muted-foreground">{latestParticipant}</div>
-              ) : null}
-            </div>
+            <InviteLinkParticipantsPopover
+              scope="organization"
+              linkId={row.original.id}
+              usesCount={uses}
+              primaryUser={primaryUser}
+            />
           );
         },
       },
@@ -250,8 +251,11 @@ export function useOrganizationInvitationColumns(options: UseOrganizationInvitat
         header: t("team:TEAM_INVITE_LINKS_COL_CREATED"),
         cell: ({ row }) => {
           const formatted = dateTime.formatDate(row.original.createdAt, { emptyValue: "" });
+          const datetime = formatted || "-";
           return (
-            <span className={formatted ? "" : "text-muted-foreground"}>{formatted || "-"}</span>
+            <span className={formatted ? "" : "text-muted-foreground"}>
+              {t("team:TEAM_INVITATIONS_SENT_AT", { datetime })}
+            </span>
           );
         },
       },

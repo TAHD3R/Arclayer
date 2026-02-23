@@ -8,6 +8,7 @@ import {
   type TeamInviteLinkParticipant,
   type TeamUserRef,
 } from "@/api/team";
+import { listOrganizationInviteLinkParticipants } from "@/api/organization-members";
 import { LoaderOne } from "@/components/ui/loader";
 import { notifyError } from "@/lib/notifications";
 import { resolveAssetRefToPublicUrlPath } from "@/lib/assets/asset-urls";
@@ -50,7 +51,8 @@ function normalizeQuery(input: string): string {
 }
 
 export function InviteLinkParticipantsPopover(props: {
-  workspaceId: string;
+  scope?: "workspace" | "organization";
+  workspaceId?: string;
   linkId: string;
   usesCount: number;
   primaryUser: TeamUserRef | null;
@@ -73,12 +75,29 @@ export function InviteLinkParticipantsPopover(props: {
     setPage(1);
   }, [open, q]);
 
-  const enabled = open && Boolean(props.workspaceId) && Boolean(props.linkId);
+  const isOrg = props.scope === "organization";
+  const enabled = open && Boolean(props.linkId) && (isOrg || Boolean(props.workspaceId));
   const query = useQuery({
-    queryKey: ["team", "invite-link-participants", props.workspaceId, props.linkId, page, q],
+    queryKey: [
+      "team",
+      "invite-link-participants",
+      props.scope ?? "workspace",
+      props.workspaceId ?? "",
+      props.linkId,
+      page,
+      q,
+    ],
     enabled,
-    queryFn: async () =>
-      listTeamInviteLinkParticipants(props.workspaceId, props.linkId, { page, size: 10, q }),
+    queryFn: async () => {
+      if (isOrg) {
+        return listOrganizationInviteLinkParticipants(props.linkId, { page, size: 10 });
+      }
+      return listTeamInviteLinkParticipants(props.workspaceId!, props.linkId, {
+        page,
+        size: 10,
+        q,
+      });
+    },
     retry: false,
     meta: { silent: true },
   });
@@ -159,7 +178,10 @@ export function InviteLinkParticipantsPopover(props: {
     </div>
   );
 
-  if (props.usesCount <= 0) return <span className="text-muted-foreground">{t("common:NA")}</span>;
+  if (props.usesCount <= 0)
+    return (
+      <span className="text-muted-foreground">{t("team:TEAM_INVITE_LINKS_PARTICIPANT_EMPTY")}</span>
+    );
 
   return (
     <Popover
