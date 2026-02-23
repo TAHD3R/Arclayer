@@ -208,5 +208,9 @@
   "WORKSPACE_SWITCHER_CREATE_ORG_NAME_REQUIRED": "Please enter organization name",
   "WORKSPACE_SWITCHER_CREATE_ORG_NAME_MAX": "Organization name must be 128 characters or less",
   "WORKSPACE_SWITCHER_ORG_MEMBERS_COUNT_one": "{{count}} member",
-  "WORKSPACE_SWITCHER_ORG_MEMBERS_COUNT_other": "{{count}} members"
+  "WORKSPACE_SWITCHER_ORG_MEMBERS_COUNT_other": "{{count}} members",
+  "FAVORITE_ADD": "Bookmark",
+  "FAVORITE_ADD_TOOLTIP": "Add this page to your sidebar for quick access",
+  "FAVORITE_REMOVE": "Bookmarked",
+  "FAVORITE_REMOVE_TOOLTIP": "Remove this page from your sidebar bookmarks"
 }

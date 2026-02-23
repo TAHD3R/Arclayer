@@ -13,8 +13,10 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarSeparator,
 } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
+import { useFavoritesStore } from "@/stores/use-favorites-store";
 
 const NAV_ITEM_BASE_PADDING_LEFT = 20;
 
@@ -335,11 +337,24 @@ function NavNode({
   );
 }
 
+function findNavItemByPath(items: readonly AdminNavItem[], path: string): AdminNavItem | null {
+  for (const item of items) {
+    if (item.to && normalizePath(item.to) === normalizePath(path)) return item;
+    if (item.children) {
+      const found = findNavItemByPath(item.children, path);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
 export function AdminSiderNav(props: {
   items: readonly AdminNavItem[];
   resolvePermissionName?: (code: string) => string | null;
 }) {
+  const { t } = useTranslation(["admin_menu"]);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const favoritePaths = useFavoritesStore((s) => s.paths);
   const navIndex = useMemo(() => buildNavIndex(props.items), [props.items]);
   const activeTrail = useMemo(
     () => findActiveTrail(props.items, pathname),
@@ -379,27 +394,86 @@ export function AdminSiderNav(props: {
     });
   }, [activeTrail, navIndex]);
 
+  const favoriteItems = useMemo(() => {
+    const resolved: Array<{ path: string; label: string; Icon: AdminNavItem["icon"] }> = [];
+    for (const path of favoritePaths) {
+      const item = findNavItemByPath(props.items, path);
+      if (!item) continue;
+      const label = item.labelKey ? t(item.labelKey) : item.label;
+      resolved.push({ path, label, Icon: item.icon });
+    }
+    return resolved;
+  }, [favoritePaths, props.items, t]);
+
   return (
-    <SidebarGroup className="p-0">
-      <SidebarGroupContent>
-        <SidebarMenu className="gap-2 px-0">
-          {props.items.map((item) => (
-            <NavNode
-              key={item.key}
-              item={item}
-              depth={0}
-              parentKey="__root__"
-              pathname={pathname}
-              activeKeys={activeKeys}
-              openByParent={openByParent}
-              openChainForKey={openChainForKey}
-              animateOpenKey={animateOpenKey}
-              setAnimateOpenKey={setAnimateOpenKey}
-              resolvePermissionName={props.resolvePermissionName}
-            />
-          ))}
-        </SidebarMenu>
-      </SidebarGroupContent>
-    </SidebarGroup>
+    <>
+      {favoriteItems.length > 0 ? (
+        <>
+          <SidebarGroup className="p-0 pb-0">
+            <SidebarGroupContent>
+              <SidebarMenu className="mb-0! gap-0 px-0">
+                {favoriteItems.map((fav) => {
+                  const isSelected = isExactMatch(fav.path, pathname);
+                  const Icon = fav.Icon;
+                  return (
+                    <SidebarMenuItem key={fav.path}>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={isSelected}
+                        className={cn(
+                          "rounded-none relative z-10",
+                          "h-8 pl-5",
+                          "transition-[color] duration-150 ease-out",
+                          "text-muted-foreground! hover:text-foreground! hover:bg-transparent! active:bg-transparent!",
+                          "data-[active=true]:font-semibold data-[active=true]:bg-transparent! data-[active=true]:text-foreground!",
+                        )}
+                        style={{ paddingLeft: NAV_ITEM_BASE_PADDING_LEFT } as CSSProperties}
+                      >
+                        <Link to={fav.path}>
+                          {Icon ? (
+                            <span
+                              className="size-5 shrink-0 inline-flex items-center justify-center"
+                              aria-hidden="true"
+                            >
+                              <Icon className="size-full" />
+                            </span>
+                          ) : (
+                            <span className="size-5 shrink-0" aria-hidden="true" />
+                          )}
+                          <span className="min-w-0 flex-1 truncate">{fav.label}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+          <SidebarSeparator className="mx-5 my-2" />
+        </>
+      ) : null}
+
+      <SidebarGroup className="p-0">
+        <SidebarGroupContent>
+          <SidebarMenu className="gap-2 px-0">
+            {props.items.map((item) => (
+              <NavNode
+                key={item.key}
+                item={item}
+                depth={0}
+                parentKey="__root__"
+                pathname={pathname}
+                activeKeys={activeKeys}
+                openByParent={openByParent}
+                openChainForKey={openChainForKey}
+                animateOpenKey={animateOpenKey}
+                setAnimateOpenKey={setAnimateOpenKey}
+                resolvePermissionName={props.resolvePermissionName}
+              />
+            ))}
+          </SidebarMenu>
+        </SidebarGroupContent>
+      </SidebarGroup>
+    </>
   );
 }

@@ -1,5 +1,11 @@
-import { type ReactNode } from "react";
+import { type ReactNode, useState } from "react";
 import clsx from "clsx";
+import { useRouterState } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
+import { Button, Tooltip } from "antd";
+
+import { useFavoritesStore } from "@/stores/use-favorites-store";
+import BookmarkIcon from "@/components/ui/icons/bookmark-icon";
 
 import styles from "./styles/default-page.module.css";
 
@@ -15,6 +21,39 @@ export type DefaultPageProps = {
   className?: string;
   contentClassName?: string;
 };
+
+function FavoriteToggle() {
+  const { t } = useTranslation(["common"]);
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const paths = useFavoritesStore((s) => s.paths);
+  const toggle = useFavoritesStore((s) => s.toggle);
+  const isFavorited = paths.includes(pathname);
+  const [hovered, setHovered] = useState(false);
+
+  const label = isFavorited ? t("common:FAVORITE_REMOVE") : t("common:FAVORITE_ADD");
+  const tooltip = isFavorited
+    ? t("common:FAVORITE_REMOVE_TOOLTIP")
+    : t("common:FAVORITE_ADD_TOOLTIP");
+
+  return (
+    <Tooltip title={tooltip} placement="bottom">
+      <Button
+        type="text"
+        icon={<BookmarkIcon size={16} strokeWidth={2} isHovered={hovered} isFilled={isFavorited} />}
+        onClick={() => toggle(pathname)}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        className={clsx(
+          "inline-flex items-center gap-1 rounded-md px-1.5 py-1 transition-colors",
+          "text-muted-foreground hover:text-foreground",
+          isFavorited && "text-amber-500 hover:text-amber-600",
+        )}
+      >
+        <span>{label}</span>
+      </Button>
+    </Tooltip>
+  );
+}
 
 export function DefaultPage({
   width = "fixed",
@@ -33,8 +72,9 @@ export function DefaultPage({
           <header className={styles.header}>
             {(title || action) && (
               <div className={styles.titleRow}>
-                <div className={styles.titleArea}>
+                <div className={clsx(styles.titleArea, "flex justify-center items-center gap-2")}>
                   {title ? <span className="text-largetitle">{title}</span> : null}
+                  {title ? <FavoriteToggle /> : null}
                 </div>
 
                 {action ? <div className={styles.actionArea}>{action}</div> : null}
