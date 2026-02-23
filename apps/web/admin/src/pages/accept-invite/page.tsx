@@ -1,9 +1,9 @@
-import { Avatar, Button, Divider, Modal, Typography } from "antd";
+import { Avatar, Button, Modal, Typography } from "antd";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { AnimatePresence, MotionConfig, motion } from "motion/react";
+import { AnimatePresence, MotionConfig, motion, type Variants } from "motion/react";
 
 import * as authApi from "@/api/auth";
 import * as invitationApi from "@/api/invitations";
@@ -22,7 +22,7 @@ import { PageState } from "@/components/common/page-state";
 import { InviteTokenInputDialog } from "@/components/common/invite/invite-token-input-dialog";
 import { InviteRegisterForm } from "@/components/common/invite/invite-register-form";
 import { InviteLoginJoinForm } from "./login-join-form";
-import { briefRoleDescription, formatInvitationExpiresRelative, resolveRoleText } from "./utils";
+import { formatInvitationExpiresRelative, resolveRoleText } from "./utils";
 
 type WizardStep = 0 | 1;
 type JoinMode = "login" | "register";
@@ -42,6 +42,10 @@ export function AcceptInviteView(props: { token: string | null }) {
   const modeInitializedRef = useRef(false);
   const [tokenDialogOpen, setTokenDialogOpen] = useState(false);
   const prevStepRef = useRef(step);
+  const prevJoinModeRef = useRef<JoinMode>(mode);
+  const modeDirection = mode === prevJoinModeRef.current ? 0 : mode === "register" ? 1 : -1;
+  const modeEnterX = modeDirection > 0 ? 8 : modeDirection < 0 ? -8 : 0;
+  const modeExitX = modeDirection > 0 ? -8 : modeDirection < 0 ? 8 : 0;
   const stepDirection = step === prevStepRef.current ? 0 : step > prevStepRef.current ? 1 : -1;
   const enterOffsetX = stepDirection > 0 ? 14 : stepDirection < 0 ? -14 : 0;
   const exitOffsetX = stepDirection > 0 ? -14 : stepDirection < 0 ? 14 : 0;
@@ -49,6 +53,15 @@ export function AcceptInviteView(props: { token: string | null }) {
     ? ({ duration: 0.01 } as const)
     : ({ duration: 0.18, ease: [0.2, 0, 0, 1] as const } as const);
   const token = (props.token || "").trim();
+  const itemVariants: Variants = {
+    hidden: { opacity: 0, y: 8 },
+    show: { opacity: 1, y: 0, transition: { duration: 0.3, ease: "easeOut" } },
+    exit: { opacity: 0, y: -4, transition: { duration: 0.12 } },
+  };
+  const v = reducedMotion ? {} : itemVariants;
+  const staggerContainer = {
+    show: reducedMotion ? {} : { transition: { staggerChildren: 0.05 } },
+  };
 
   useEffect(() => {
     // When token changes (e.g. user manually inputs token), restart the wizard.
@@ -61,6 +74,15 @@ export function AcceptInviteView(props: { token: string | null }) {
     queryFn: async () => invitationApi.previewInvitation(token),
     retry: false,
   });
+  const isOrgOnlyInvite = previewQuery.data?.workspace === null;
+  const targetName = useMemo(() => {
+    if (!previewQuery.data) return "";
+    return isOrgOnlyInvite
+      ? previewQuery.data.organization.name
+      : previewQuery.data.workspace?.name ||
+          previewQuery.data.organization.name ||
+          t("invite:INVITE_WORKSPACE_FALLBACK");
+  }, [previewQuery.data, isOrgOnlyInvite, t]);
   const meQuery = useQuery({
     queryKey: ["me"],
     enabled: !!accessToken,
@@ -107,17 +129,12 @@ export function AcceptInviteView(props: { token: string | null }) {
     modeInitializedRef.current = true;
     setMode(previewQuery.data.userExists ? "login" : "register");
   }, [previewQuery.data]);
+  useEffect(() => {
+    prevJoinModeRef.current = mode;
+  }, [mode]);
   const onBackToLogin = async () => {
     const redirect = token ? `/accept-invite?token=${encodeURIComponent(token)}` : undefined;
     await navigate({ to: "/login", search: redirect ? { redirect } : undefined, replace: true });
-  };
-  const onRejectInvite = async () => {
-    // Provide an explicit exit when user clicked a wrong link or doesn't want to join.
-    if (accessToken) {
-      await navigate({ to: "/", replace: true });
-      return;
-    }
-    await navigate({ to: "/login", replace: true });
   };
   const applyToken = async (nextToken: string) => {
     const trimmed = (nextToken || "").trim();
@@ -176,10 +193,6 @@ export function AcceptInviteView(props: { token: string | null }) {
     const roleCode = previewQuery.data?.invitation.roleCode || role?.code || null;
     return resolveRoleText(t, roleCode, { name: role?.name, description: role?.description });
   }, [previewQuery.data?.invitation.roleCode, previewQuery.data?.role, t]);
-  const roleBrief = useMemo(
-    () => briefRoleDescription(roleResolved.description),
-    [roleResolved.description],
-  );
   const expiresRelativeText = useMemo(() => {
     const expiresAt = previewQuery.data?.invitation.expiresAt;
     return formatInvitationExpiresRelative({
@@ -262,7 +275,11 @@ export function AcceptInviteView(props: { token: string | null }) {
             workspaceId: accepted.workspaceId,
           });
         } catch (err) {
-          notifyError(err);
+          if (err instanceof ApiError && err.error === "INVITE_EMAIL_DOMAIN_FORBIDDEN") {
+            notifyErrorText(t("invite:INVITE_EMAIL_DOMAIN_FORBIDDEN"));
+          } else {
+            notifyError(err);
+          }
           throw err;
         }
       },
@@ -285,7 +302,11 @@ export function AcceptInviteView(props: { token: string | null }) {
         workspaceId: accepted.workspaceId,
       });
     } catch (err) {
-      notifyError(err);
+      if (err instanceof ApiError && err.error === "INVITE_EMAIL_DOMAIN_FORBIDDEN") {
+        notifyErrorText(t("invite:INVITE_EMAIL_DOMAIN_FORBIDDEN"));
+      } else {
+        notifyError(err);
+      }
     }
   };
   const onRegisterAndJoin = async (values: {
@@ -311,6 +332,10 @@ export function AcceptInviteView(props: { token: string | null }) {
         setStep(1);
         return;
       }
+      if (err instanceof ApiError && err.error === "INVITE_EMAIL_DOMAIN_FORBIDDEN") {
+        notifyErrorText(t("invite:INVITE_EMAIL_DOMAIN_FORBIDDEN"));
+        return;
+      }
       notifyError(err);
     }
   };
@@ -325,18 +350,6 @@ export function AcceptInviteView(props: { token: string | null }) {
       notifyError(err);
     }
   };
-  const headerMeta = useMemo(() => {
-    if (step === 0) {
-      return {
-        title: t("invite:INVITE_STEP1_TITLE"),
-        description: t("invite:INVITE_STEP1_DESC"),
-      };
-    }
-    return {
-      title: t("invite:INVITE_STEP2_TITLE"),
-      description: t("invite:INVITE_STEP2_DESC"),
-    };
-  }, [step, t]);
   const previewPane = (
     <div className="w-full">
       {!token ? (
@@ -372,62 +385,77 @@ export function AcceptInviteView(props: { token: string | null }) {
           errorExtra={tokenActionsWithRetry}
         >
           {previewQuery.data ? (
-            <>
-              <div className="">
-                <div className="flex flex-col items-center text-center">
-                  <Avatar
-                    size={80}
-                    src={previewQuery.data.organization.logoUrl || undefined}
-                    className="mb-4"
-                  >
-                    {(
-                      previewQuery.data.workspace?.name ||
-                      previewQuery.data.organization.name ||
-                      "W"
-                    ).slice(0, 1)}
+            <div className="rounded-xl border bg-card p-8">
+              <motion.div
+                className="flex flex-col items-center text-center"
+                initial="hidden"
+                animate="show"
+                variants={staggerContainer}
+              >
+                <motion.div variants={v}>
+                  <Avatar size={72} src={previewQuery.data.organization.logoUrl || undefined}>
+                    {(targetName || "W").slice(0, 1)}
                   </Avatar>
+                </motion.div>
 
-                  <div className="text-2xl font-semibold">
-                    {t("invite:INVITE_PREVIEW_INVITED_TO_ORG", {
-                      inviter: inviterLabel || t("invite:INVITE_INVITER_UNKNOWN"),
-                      workspaceName:
-                        previewQuery.data.workspace?.name ||
-                        previewQuery.data.organization.name ||
-                        t("invite:INVITE_WORKSPACE_FALLBACK"),
-                    })}
-                  </div>
+                <motion.div
+                  variants={v}
+                  className="mt-4 text-title3 font-semibold text-label-primary"
+                >
+                  {targetName}
+                </motion.div>
 
-                  <div className="mt-4 text-(--color-muted-foreground)">
-                    {t("invite:INVITE_PREVIEW_INVITED_AS_ROLE", { roleName: roleResolved.name })}
-                  </div>
-                  {roleBrief ? (
-                    <div className="mt-1 text-(--color-muted-foreground)">{roleBrief}</div>
-                  ) : null}
+                {!isOrgOnlyInvite && (
+                  <motion.div variants={v} className="mt-1 text-footnote text-label-secondary">
+                    {previewQuery.data.organization.name}
+                  </motion.div>
+                )}
 
-                  <div className="mt-4 text-(--color-muted-foreground)">
-                    {t("invite:INVITE_SECURITY_NOTICE")}
+                <motion.div variants={v} className="mt-2 text-center">
+                  <div className="text-footnote font-medium text-label-secondary">
+                    {roleResolved.name}
                   </div>
-                  <div className="text-(--color-muted-foreground)">{expiresRelativeText}</div>
-                </div>
+                  {roleResolved.description && (
+                    <div className="mt-0.5 text-caption text-label-tertiary">
+                      {roleResolved.description}
+                    </div>
+                  )}
+                </motion.div>
 
-                <div className="mt-6 flex items-center justify-center gap-3">
-                  <div className="flex flex-col items-center gap-4">
-                    <Button
-                      block
-                      size="large"
-                      type="primary"
-                      danger
-                      onClick={() => void onRejectInvite()}
-                    >
-                      {t("invite:INVITE_ACTION_REJECT")}
-                    </Button>
-                    <Button block size="large" type="primary" onClick={onContinue}>
-                      {t("invite:INVITE_ACTION_ACCEPT_JOIN")}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </>
+                <motion.div variants={v} className="mt-3 text-footnote text-label-secondary">
+                  {inviterLabel
+                    ? t("invite:INVITE_PREVIEW_INVITED_BY", { inviter: inviterLabel })
+                    : t("invite:INVITE_PREVIEW_INVITED_GENERIC")}
+                </motion.div>
+
+                <motion.div variants={v} className="mt-1 text-caption text-label-tertiary">
+                  {expiresRelativeText}
+                </motion.div>
+
+                <motion.div variants={v} className="mt-6">
+                  <Button
+                    size="large"
+                    type="primary"
+                    className="!rounded-full !px-8"
+                    onClick={onContinue}
+                  >
+                    {t(
+                      isOrgOnlyInvite
+                        ? "invite:INVITE_ACTION_ACCEPT_JOIN_ORG"
+                        : "invite:INVITE_ACTION_ACCEPT_JOIN",
+                    )}
+                  </Button>
+                </motion.div>
+
+                <motion.div variants={v} className="mt-4 text-caption text-label-tertiary">
+                  {t(
+                    isOrgOnlyInvite
+                      ? "invite:INVITE_SCOPE_ORGANIZATION"
+                      : "invite:INVITE_SCOPE_WORKSPACE",
+                  )}
+                </motion.div>
+              </motion.div>
+            </div>
           ) : null}
         </PageState>
       )}
@@ -468,39 +496,72 @@ export function AcceptInviteView(props: { token: string | null }) {
           errorExtra={tokenActionsWithRetry}
         >
           {!previewQuery.data ? null : isLoggedIn ? (
-            <>
-              <div className="rounded-lg border p-4">
-                <Typography.Text strong>
+            <div className="rounded-xl border bg-card p-8">
+              <motion.div
+                className="flex flex-col items-center text-center"
+                initial="hidden"
+                animate="show"
+                variants={staggerContainer}
+              >
+                <motion.div variants={v}>
+                  <Avatar size={56} src={previewQuery.data.organization.logoUrl || undefined}>
+                    {(targetName || "W").slice(0, 1)}
+                  </Avatar>
+                </motion.div>
+
+                <motion.div variants={v}>
+                  <Typography.Title
+                    level={1}
+                    className="!mt-3 !mb-1 text-largetitle text-label-primary"
+                  >
+                    {t(
+                      isOrgOnlyInvite
+                        ? "invite:INVITE_STEP2_TITLE_ORG"
+                        : "invite:INVITE_STEP2_TITLE",
+                    )}
+                  </Typography.Title>
+                </motion.div>
+
+                <motion.div variants={v} className="mt-2 text-callout text-label-secondary">
                   {hasBoundEmail
                     ? emailMatches
                       ? t("invite:INVITE_LOGGED_IN_MATCH")
                       : t("invite:INVITE_LOGGED_IN_MISMATCH")
                     : t("invite:INVITE_LOGGED_IN_GENERIC")}
-                </Typography.Text>
-                <div className="mt-2 text-sm">
+                </motion.div>
+
+                <motion.div
+                  variants={v}
+                  className="mt-4 w-full rounded-lg border border-(--color-border) bg-muted/30 p-4 text-left text-footnote"
+                >
                   <div>
                     {t("invite:INVITE_CURRENT_ACCOUNT")}{" "}
                     <strong>{meQuery.data?.email || t("invite:INVITE_EMAIL_UNKNOWN")}</strong>
                   </div>
                   {hasBoundEmail && previewQuery.data.invitation.maskedEmail ? (
-                    <div>
+                    <div className="mt-1">
                       {t("invite:INVITE_INVITED_EMAIL")}{" "}
                       <strong>{previewQuery.data.invitation.maskedEmail}</strong>
                     </div>
                   ) : null}
-                </div>
-              </div>
+                </motion.div>
 
-              <div className="mt-6 flex items-center justify-between gap-3">
-                <Button onClick={() => setStep(0)}>{t("invite:INVITE_ACTION_BACK")}</Button>
-                <div className="flex items-center gap-2">
-                  {hasBoundEmail && !emailMatches ? (
-                    <Button type="primary" onClick={() => void onLogoutAndSwitch()}>
-                      {t("invite:INVITE_ACTION_LOGOUT_SWITCH")}
-                    </Button>
-                  ) : null}
+                <motion.div variants={v} className="mt-3 text-center">
+                  <div className="text-footnote font-medium text-label-secondary">
+                    {roleResolved.name}
+                  </div>
+                  {roleResolved.description && (
+                    <div className="mt-0.5 text-caption text-label-tertiary">
+                      {roleResolved.description}
+                    </div>
+                  )}
+                </motion.div>
+
+                <motion.div variants={v} className="mt-5">
                   <Button
-                    type={hasBoundEmail && !emailMatches ? "default" : "primary"}
+                    size="large"
+                    type="primary"
+                    className="!rounded-full !px-8"
                     loading={acceptExistingMutation.isPending}
                     onClick={() => void joinAsExistingLoggedIn()}
                   >
@@ -508,74 +569,128 @@ export function AcceptInviteView(props: { token: string | null }) {
                       ? t("invite:INVITE_ACTION_JOIN_ANYWAY")
                       : t("invite:INVITE_ACTION_JOIN")}
                   </Button>
-                </div>
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="flex items-center justify-between gap-3">
-                <div className="text-sm text-(--color-muted-foreground)">
-                  {mode === "login"
-                    ? t("invite:INVITE_MODE_LOGIN_DESC")
-                    : t("invite:INVITE_MODE_REGISTER_DESC")}
-                </div>
-                {mode === "login" ? (
-                  <Button
-                    type="link"
-                    style={{ paddingInline: 0 }}
-                    onClick={() => setMode("register")}
-                  >
-                    {t("invite:INVITE_ACTION_SWITCH_TO_REGISTER")}
-                  </Button>
+                </motion.div>
+
+                {hasBoundEmail && !emailMatches ? (
+                  <motion.div variants={v} className="mt-3">
+                    <Button type="link" size="small" onClick={() => void onLogoutAndSwitch()}>
+                      {t("invite:INVITE_ACTION_LOGOUT_SWITCH")}
+                    </Button>
+                  </motion.div>
                 ) : null}
-              </div>
 
-              <Divider style={{ margin: "14px 0" }} />
-
-              {mode === "login" ? (
-                <>
-                  <Typography.Paragraph style={{ marginTop: 0, marginBottom: 12 }}>
-                    {hasBoundEmail
-                      ? t("invite:INVITE_LOGIN_HINT")
-                      : t("invite:INVITE_LOGIN_LINK_HINT")}
-                  </Typography.Paragraph>
-
-                  {hasBoundEmail ? (
-                    <InviteLoginJoinForm
-                      t={t}
-                      email={previewQuery.data.invitation.email || ""}
-                      keepSession={keepSession}
-                      loading={loginMutation.isPending || acceptExistingMutation.isPending}
-                      forgotLoading={forgotPasswordMutation.isPending}
-                      onSubmit={onLoginAndJoin}
-                      onForgotPassword={onForgotPassword}
-                      onBack={() => setStep(0)}
-                      onBackToLogin={onBackToLogin}
-                    />
-                  ) : (
-                    <div className="flex flex-col gap-3">
-                      <Button
-                        type="primary"
-                        block
-                        size="large"
-                        onClick={() => void onBackToLogin()}
+                <motion.div variants={v} className="mt-3">
+                  <Button type="link" size="small" onClick={() => setStep(0)}>
+                    {t("invite:INVITE_ACTION_BACK")}
+                  </Button>
+                </motion.div>
+              </motion.div>
+            </div>
+          ) : (
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={mode}
+                initial="hidden"
+                animate="show"
+                exit="exit"
+                variants={{
+                  hidden: reducedMotion ? { opacity: 1 } : { opacity: 0, x: modeEnterX },
+                  show: reducedMotion
+                    ? { opacity: 1 }
+                    : {
+                        opacity: 1,
+                        x: 0,
+                        transition: { staggerChildren: 0.05, delayChildren: 0.02 },
+                      },
+                  exit: reducedMotion ? { opacity: 1 } : { opacity: 0, x: modeExitX },
+                }}
+              >
+                {mode === "login" ? (
+                  <>
+                    <motion.div variants={v} className="text-center">
+                      <Typography.Title
+                        level={1}
+                        className="!mt-0 !mb-1 text-largetitle text-label-primary"
                       >
-                        {t("invite:INVITE_ACTION_BACK_TO_LOGIN")}
+                        {t(
+                          isOrgOnlyInvite
+                            ? "invite:INVITE_STEP2_TITLE_ORG"
+                            : "invite:INVITE_STEP2_TITLE",
+                        )}
+                      </Typography.Title>
+                      <Typography.Paragraph className="!mt-0 !mb-5 text-callout text-label-secondary">
+                        {t("invite:INVITE_MODE_LOGIN_DESC")}
+                      </Typography.Paragraph>
+                    </motion.div>
+
+                    <motion.div variants={v} className="text-footnote text-label-secondary mb-4">
+                      {hasBoundEmail
+                        ? t("invite:INVITE_LOGIN_HINT")
+                        : t("invite:INVITE_LOGIN_LINK_HINT")}
+                    </motion.div>
+
+                    <motion.div variants={v}>
+                      {hasBoundEmail ? (
+                        <InviteLoginJoinForm
+                          t={t}
+                          email={previewQuery.data.invitation.email || ""}
+                          keepSession={keepSession}
+                          loading={loginMutation.isPending || acceptExistingMutation.isPending}
+                          forgotLoading={forgotPasswordMutation.isPending}
+                          onSubmit={onLoginAndJoin}
+                          onForgotPassword={onForgotPassword}
+                          onBack={() => setStep(0)}
+                          onBackToLogin={onBackToLogin}
+                        />
+                      ) : (
+                        <Button
+                          block
+                          size="large"
+                          type="primary"
+                          className="!rounded-full"
+                          onClick={() => void onBackToLogin()}
+                        >
+                          {t("invite:INVITE_ACTION_BACK_TO_LOGIN")}
+                        </Button>
+                      )}
+                    </motion.div>
+
+                    <motion.div variants={v} className="mt-4 text-center">
+                      <Button type="link" size="small" onClick={() => setMode("register")}>
+                        {t("invite:INVITE_ACTION_SWITCH_TO_REGISTER")}
                       </Button>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <>
-                  <InviteRegisterForm
-                    emailLocked={hasBoundEmail ? previewQuery.data.invitation.email : null}
-                    loading={registerAcceptMutation.isPending}
-                    onSubmit={onRegisterAndJoin}
-                    onSwitchToLogin={() => setMode("login")}
-                  />
-                </>
-              )}
-            </>
+                    </motion.div>
+                  </>
+                ) : (
+                  <>
+                    <motion.div variants={v} className="text-center">
+                      <Typography.Title
+                        level={1}
+                        className="!mt-0 !mb-1 text-largetitle text-label-primary"
+                      >
+                        {t(
+                          isOrgOnlyInvite
+                            ? "invite:INVITE_STEP2_TITLE_ORG"
+                            : "invite:INVITE_STEP2_TITLE",
+                        )}
+                      </Typography.Title>
+                      <Typography.Paragraph className="!mt-0 !mb-5 text-callout text-label-secondary">
+                        {t("invite:INVITE_MODE_REGISTER_DESC")}
+                      </Typography.Paragraph>
+                    </motion.div>
+
+                    <motion.div variants={v}>
+                      <InviteRegisterForm
+                        emailLocked={hasBoundEmail ? previewQuery.data.invitation.email : null}
+                        loading={registerAcceptMutation.isPending}
+                        onSubmit={onRegisterAndJoin}
+                        onSwitchToLogin={() => setMode("login")}
+                      />
+                    </motion.div>
+                  </>
+                )}
+              </motion.div>
+            </AnimatePresence>
           )}
         </PageState>
       )}
@@ -591,16 +706,6 @@ export function AcceptInviteView(props: { token: string | null }) {
           await applyToken(nextToken);
         }}
       />
-
-      <Typography.Title
-        level={1}
-        className="!mt-0 !mb-2 text-center text-largetitle text-label-primary"
-      >
-        {headerMeta.title}
-      </Typography.Title>
-      <Typography.Paragraph className="!mt-0 !mb-7 text-center text-title2 text-label-secondary">
-        {headerMeta.description}
-      </Typography.Paragraph>
 
       <MotionConfig transition={transition}>
         <AnimatePresence mode="popLayout" initial={false}>

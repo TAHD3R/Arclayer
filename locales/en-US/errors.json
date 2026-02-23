@@ -40,5 +40,6 @@
   "INVITE_ALREADY_ACCEPTED": "Invitation already used",
   "INVITE_EXPIRED": "Invitation expired",
   "INVITE_EMAIL_MISMATCH": "Current account email does not match the invitation email",
-  "INVITE_ROLE_MISSING_ADMIN_ACCESS": "Invitation role is missing admin console access"
+  "INVITE_ROLE_MISSING_ADMIN_ACCESS": "Invitation role is missing admin console access",
+  "INVITE_EMAIL_DOMAIN_FORBIDDEN": "Your email domain is not allowed for this invitation"
 }

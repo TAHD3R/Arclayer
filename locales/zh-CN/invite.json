@@ -73,5 +73,13 @@
   "ROLE_EDITOR_DESC": "内容管理。可创建、编辑、发布与删除内容。",
   "ROLE_VIEWER_NAME": "Viewer",
   "ROLE_VIEWER_DESC": "全局只读。可查看仪表盘与内容预览。",
-  "INVITE_WORKSPACE_FALLBACK": "组织"
+  "INVITE_WORKSPACE_FALLBACK": "组织",
+  "INVITE_SCOPE_ORGANIZATION": "组织邀请",
+  "INVITE_SCOPE_WORKSPACE": "工作区邀请",
+  "INVITE_PREVIEW_INVITED_BY": "{{inviter}} 邀请你加入",
+  "INVITE_PREVIEW_INVITED_GENERIC": "你收到了一份加入邀请",
+  "INVITE_ACTION_ACCEPT_JOIN_ORG": "接受邀请并加入组织",
+  "INVITE_STEP2_TITLE_ORG": "加入组织",
+  "INVITE_STEP2_DESC_ORG": "登录或创建账号以加入组织。",
+  "INVITE_EMAIL_DOMAIN_FORBIDDEN": "你的邮箱域名不符合该邀请的要求，请使用指定域名的邮箱地址。"
 }

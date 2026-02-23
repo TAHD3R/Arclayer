@@ -83,7 +83,7 @@ export function LoginView({
   const itemVariants: Variants = {
     hidden: { opacity: 0, y: 8 },
     show: { opacity: 1, y: 0, transition: { duration: 0.3, ease: "easeOut" } },
-    exit: { opacity: 0, transition: { duration: 0 } },
+    exit: { opacity: 0, y: -4, transition: { duration: 0.12 } },
   };
 
   const resolvedMode: AuthMode = publicRegisterEnabled ? mode : "login";
@@ -401,7 +401,7 @@ export function LoginView({
 
       <MotionConfig transition={transition}>
         <div className="relative">
-          <AnimatePresence mode="wait" initial={false}>
+          <AnimatePresence mode="wait">
             <motion.div
               key={resolvedMode}
               initial="hidden"

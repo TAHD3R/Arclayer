@@ -40,5 +40,6 @@
   "INVITE_ALREADY_ACCEPTED": "邀请已被使用",
   "INVITE_EXPIRED": "邀请已过期",
   "INVITE_EMAIL_MISMATCH": "当前账号邮箱与邀请邮箱不一致",
-  "INVITE_ROLE_MISSING_ADMIN_ACCESS": "邀请角色未包含后台访问权限"
+  "INVITE_ROLE_MISSING_ADMIN_ACCESS": "邀请角色未包含后台访问权限",
+  "INVITE_EMAIL_DOMAIN_FORBIDDEN": "你的邮箱域名不符合该邀请的要求"
 }

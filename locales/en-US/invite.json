@@ -73,5 +73,13 @@
   "ROLE_EDITOR_DESC": "Content management: create, edit, publish, and delete content.",
   "ROLE_VIEWER_NAME": "Viewer",
   "ROLE_VIEWER_DESC": "Read-only: view dashboards and previews.",
-  "INVITE_WORKSPACE_FALLBACK": "Organization"
+  "INVITE_WORKSPACE_FALLBACK": "Organization",
+  "INVITE_SCOPE_ORGANIZATION": "Organization invite",
+  "INVITE_SCOPE_WORKSPACE": "Workspace invite",
+  "INVITE_PREVIEW_INVITED_BY": "{{inviter}} invited you to join",
+  "INVITE_PREVIEW_INVITED_GENERIC": "You've been invited to join",
+  "INVITE_ACTION_ACCEPT_JOIN_ORG": "Accept and join organization",
+  "INVITE_STEP2_TITLE_ORG": "Join Organization",
+  "INVITE_STEP2_DESC_ORG": "Sign in or create an account to join the organization.",
+  "INVITE_EMAIL_DOMAIN_FORBIDDEN": "Your email domain is not allowed for this invitation. Please use an email with the required domain."
 }
