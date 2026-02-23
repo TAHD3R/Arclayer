@@ -1,14 +1,5 @@
 import { Avatar, Dropdown, Button as AntButton, Input as AntInput, Pagination, Tag } from "antd";
-import {
-  KeyRound,
-  MoreVertical,
-  Pencil,
-  Plus,
-  UserCheck,
-  UserCog,
-  UserX,
-  Search,
-} from "lucide-react";
+import { MoreVertical, Plus, UserCheck, UserCog, UserX, Search } from "lucide-react";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
 import { type ColumnDef, type SortingState } from "@tanstack/react-table";
@@ -37,8 +28,6 @@ import {
   type TeamMemberSort,
 } from "@/components/common/team/team-members-filter-popover";
 import { useAuthStore } from "@/stores/use-auth-store";
-import { EditUserSheet } from "@/components/common/team/edit-user-sheet";
-import { ResetUserPasswordDialog } from "@/components/common/team/reset-user-password-dialog";
 import { InviteMembersDialog } from "@/components/common/team/invite-members-dialog";
 import { resolveAssetRefToPublicUrlPath } from "@/lib/assets/asset-urls";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
@@ -60,8 +49,6 @@ import {
 function sortValueToTableSorting(value: TeamMemberSort): SortingState {
   if (value === "user__username") return [{ id: "user", desc: false }];
   if (value === "-user__username") return [{ id: "user", desc: true }];
-  if (value === "user__email") return [{ id: "email", desc: false }];
-  if (value === "-user__email") return [{ id: "email", desc: true }];
   if (value === "user__last_login_at") return [{ id: "lastLoginAt", desc: false }];
   if (value === "-user__last_login_at") return [{ id: "lastLoginAt", desc: true }];
   if (value === "status") return [{ id: "userStatus", desc: false }];
@@ -74,7 +61,6 @@ function tableSortingToSortValue(sorting: SortingState): TeamMemberSort | null {
   if (!first) return null;
 
   if (first.id === "user") return first.desc ? "-user__username" : "user__username";
-  if (first.id === "email") return first.desc ? "-user__email" : "user__email";
   if (first.id === "lastLoginAt") {
     return first.desc ? "-user__last_login_at" : "user__last_login_at";
   }
@@ -146,10 +132,6 @@ export function TeamMembersView() {
   const [editingMember, setEditingMember] = React.useState<TeamMember | null>(null);
   const [editingRoleCode, setEditingRoleCode] = React.useState<string | null>(null);
   const canEditRoles = Boolean(editingMember) && editingMember?.membershipStatus === "active";
-
-  const [editUserOpen, setEditUserOpen] = React.useState(false);
-  const [resetPasswordOpen, setResetPasswordOpen] = React.useState(false);
-  const [activeMember, setActiveMember] = React.useState<TeamMember | null>(null);
 
   const extraQuery = React.useMemo<TeamMemberExtraQuery>(
     () => buildTeamMemberExtraQuery(filters),
@@ -224,25 +206,6 @@ export function TeamMembersView() {
 
           const menuItems: MenuProps["items"] = [
             {
-              key: "edit_user",
-              icon: <Pencil className="size-4" />,
-              label: t("team:TEAM_ACTION_EDIT_USER"),
-              onClick: () => {
-                setActiveMember(m);
-                setEditUserOpen(true);
-              },
-            },
-            {
-              key: "reset_password",
-              icon: <KeyRound className="size-4" />,
-              label: t("team:TEAM_ACTION_RESET_PASSWORD"),
-              onClick: () => {
-                setActiveMember(m);
-                setResetPasswordOpen(true);
-              },
-            },
-            { type: "divider" },
-            {
               key: "edit_roles",
               icon: <UserCog className="size-4" />,
               label: t("team:TEAM_ACTION_EDIT_ROLES"),
@@ -279,11 +242,7 @@ export function TeamMembersView() {
               <Avatar
                 size={28}
                 src={resolveAssetRefToPublicUrlPath(m.avatarUrl) || undefined}
-                style={{
-                  backgroundColor: "var(--color-muted)",
-                  color: "var(--color-foreground)",
-                  flexShrink: 0,
-                }}
+                className="shrink-0"
               >
                 {userInitials(m)}
               </Avatar>
@@ -310,18 +269,6 @@ export function TeamMembersView() {
         },
       },
       {
-        accessorKey: "email",
-        meta: {
-          title: t("team:TEAM_TABLE_COL_EMAIL"),
-          sortKey: "user__email",
-        },
-        header: t("team:TEAM_TABLE_COL_EMAIL"),
-        cell: ({ row }) => {
-          const v = row.original.email;
-          return <span className={v ? "" : "text-muted-foreground"}>{v || "-"}</span>;
-        },
-      },
-      {
         id: "roles",
         meta: { title: t("team:TEAM_TABLE_COL_ROLES") },
         header: () => <span>{t("team:TEAM_TABLE_COL_ROLES")}</span>,
@@ -331,7 +278,7 @@ export function TeamMembersView() {
           return (
             <div className="flex flex-wrap gap-1">
               {codes.slice(0, 3).map((code) => (
-                <Tag key={code} style={{ marginInlineEnd: 0 }}>
+                <Tag key={code} className="mr-0!">
                   {roleNameByCode.get(code) ?? code}
                 </Tag>
               ))}
@@ -354,22 +301,25 @@ export function TeamMembersView() {
         cell: ({ row }) => {
           const membership = row.original.membershipStatus;
           const user = row.original.userStatus;
+          const isNormal = membership === "active" && user === "active";
           return (
             <div className="flex flex-wrap items-center gap-1">
-              <Tag color={membershipStatusTagColor(membership)} style={{ marginInlineEnd: 0 }}>
+              <Tag color={membershipStatusTagColor(membership)} className="mr-0!">
                 {membership === "active"
                   ? t("team:TEAM_MEMBERSHIP_STATUS_ACTIVE")
                   : membership === "invited"
                     ? t("team:TEAM_MEMBERSHIP_STATUS_INVITED")
                     : t("team:TEAM_MEMBERSHIP_STATUS_DISABLED")}
               </Tag>
-              <Tag color={userStatusTagColor(user)} style={{ marginInlineEnd: 0 }}>
-                {user === "active"
-                  ? t("team:TEAM_USER_STATUS_ACTIVE")
-                  : user === "disabled"
-                    ? t("team:TEAM_USER_STATUS_DISABLED")
-                    : t("team:TEAM_USER_STATUS_LOCKED")}
-              </Tag>
+              {!isNormal && (
+                <Tag color={userStatusTagColor(user)} className="mr-0!">
+                  {user === "active"
+                    ? t("team:TEAM_USER_STATUS_ACTIVE")
+                    : user === "disabled"
+                      ? t("team:TEAM_USER_STATUS_DISABLED")
+                      : t("team:TEAM_USER_STATUS_LOCKED")}
+                </Tag>
+              )}
             </div>
           );
         },
@@ -547,34 +497,6 @@ export function TeamMembersView() {
             />
           </div>
         ) : null}
-
-        <EditUserSheet
-          open={editUserOpen}
-          onOpenChange={(open) => {
-            setEditUserOpen(open);
-            if (!open) setActiveMember(null);
-          }}
-          member={activeMember}
-          onSaved={() =>
-            void queryClient.invalidateQueries({
-              queryKey: teamMembersQueryKey(workspaceId ? String(workspaceId) : null),
-            })
-          }
-        />
-
-        <ResetUserPasswordDialog
-          open={resetPasswordOpen}
-          onOpenChange={(open) => {
-            setResetPasswordOpen(open);
-            if (!open) setActiveMember(null);
-          }}
-          member={activeMember}
-          onReset={() =>
-            void queryClient.invalidateQueries({
-              queryKey: teamMembersQueryKey(workspaceId ? String(workspaceId) : null),
-            })
-          }
-        />
 
         <InviteMembersDialog
           open={inviteOpen}

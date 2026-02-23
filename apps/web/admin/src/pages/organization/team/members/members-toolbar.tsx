@@ -38,7 +38,7 @@ export function OrganizationMembersToolbar({
   isFetching,
   isLoading,
 }: OrganizationMembersToolbarProps) {
-  const { t } = useTranslation(["common"]);
+  const { t } = useTranslation(["common", "team"]);
 
   return (
     <div className="flex w-full flex-wrap items-center justify-between gap-3">
@@ -47,10 +47,10 @@ export function OrganizationMembersToolbar({
           variant="borderless"
           value={searchInput}
           onChange={(event) => onSearchInputChange(event.target.value)}
-          placeholder={t("common:ORG_MEMBERS_SEARCH_PLACEHOLDER")}
+          placeholder={t("team:TEAM_SEARCH_PLACEHOLDER")}
           allowClear
           prefix={<Search className="size-4 text-muted-foreground" />}
-          className="w-[360px] max-w-full"
+          style={{ width: 360, maxWidth: "100%" }}
         />
 
         <MembersFilterPopover value={filters} onChange={onFiltersChange} />

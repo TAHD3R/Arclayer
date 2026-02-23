@@ -104,11 +104,7 @@ export function createOrganizationMemberColumns({
 
         return (
           <div className="flex min-w-0 items-center gap-3">
-            <Avatar
-              size={28}
-              src={item.avatarUrl ?? undefined}
-              className="shrink-0 bg-muted text-foreground"
-            >
+            <Avatar size={28} src={item.avatarUrl ?? undefined} className="shrink-0">
               {primary.slice(0, 1).toUpperCase()}
             </Avatar>
 
@@ -149,25 +145,6 @@ export function createOrganizationMemberColumns({
       ),
     },
     {
-      id: "status",
-      meta: { sortKey: "status" },
-      header: t("common:ORG_MEMBERS_TABLE_STATUS"),
-      cell: ({ row }) => {
-        const item = row.original;
-
-        return (
-          <div className="flex flex-wrap gap-1">
-            <Tag color={membershipTagColor(item.status)} className="mr-0!">
-              {membershipLabel(t, item.status)}
-            </Tag>
-            <Tag color={userTagColor(item.userStatus)} className="mr-0!">
-              {userStatusLabel(t, item.userStatus)}
-            </Tag>
-          </div>
-        );
-      },
-    },
-    {
       id: "role",
       meta: { sortKey: "role_code" },
       header: t("common:ORG_MEMBERS_TABLE_ROLE"),
@@ -176,6 +153,28 @@ export function createOrganizationMemberColumns({
           {roleNameByCode.get(row.original.roleCode) || builtinRoleLabel(t, row.original.role)}
         </Tag>
       ),
+    },
+    {
+      id: "status",
+      meta: { sortKey: "status" },
+      header: t("common:ORG_MEMBERS_TABLE_STATUS"),
+      cell: ({ row }) => {
+        const item = row.original;
+        const isNormal = item.status === "active" && item.userStatus === "active";
+
+        return (
+          <div className="flex flex-wrap gap-1">
+            <Tag color={membershipTagColor(item.status)} className="mr-0!">
+              {membershipLabel(t, item.status)}
+            </Tag>
+            {!isNormal && (
+              <Tag color={userTagColor(item.userStatus)} className="mr-0!">
+                {userStatusLabel(t, item.userStatus)}
+              </Tag>
+            )}
+          </div>
+        );
+      },
     },
     {
       id: "lastLogin",

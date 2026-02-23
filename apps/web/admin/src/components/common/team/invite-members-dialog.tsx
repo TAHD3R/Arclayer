@@ -257,7 +257,7 @@ export function InviteMembersDialog(props: {
           ? t("team:TEAM_INVITE_LINK_CREATE_DESC")
           : t("team:TEAM_INVITE_DIALOG_DESC")
       }
-      contentClassName="sm:max-w-2xl"
+      contentClassName="sm:max-w-xl"
       footer={
         <>
           <AntButton
@@ -337,6 +337,7 @@ export function InviteMembersDialog(props: {
           <label className="font-semibold text-foreground" htmlFor="roleCode">
             {t("team:TEAM_INVITE_FIELD_ROLE")}
           </label>
+          <div className="text-muted-foreground">{t("team:TEAM_INVITE_ROLE_HELP")}</div>
           <Select
             id="roleCode"
             showSearch
@@ -351,7 +352,6 @@ export function InviteMembersDialog(props: {
             // Keep dropdown inside the dialog; otherwise Radix overlay may block item clicks.
             getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
           />
-          <div className="text-muted-foreground">{t("team:TEAM_INVITE_ROLE_HELP")}</div>
           {form.formState.errors.roleCode?.message ? (
             <div className="text-sm text-destructive">
               {String(form.formState.errors.roleCode.message)}
