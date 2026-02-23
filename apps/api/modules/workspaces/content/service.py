@@ -1,12 +1,19 @@
 from __future__ import annotations
 
 import time
+from typing import Any
 from uuid import UUID
 
 from apps.api.common.services.base import BaseService
+from apps.api.common.utils.public_ids import decode_public_id, is_public_id
 from apps.api.core.exceptions import Conflict, NotFound
 from apps.api.core.http.pagination import PageData, PageParams, paginate_items
-from apps.api.modules.sites.utils import validate_entry_type_code
+from apps.api.modules.sites.schema import (
+    SiteEntryTypeCreateIn,
+    SiteSettingUpsertIn,
+)
+from apps.api.modules.sites.service import SiteService
+from apps.api.modules.workspaces.content.mapper import to_content_entry_out, to_content_type_out
 from apps.api.modules.workspaces.content.repository import WorkspaceContentRepository
 from apps.api.modules.workspaces.content.schema import (
     ContentEntryCreateIn,
@@ -26,12 +33,29 @@ from apps.api.modules.workspaces.content.schema import (
     ContentTypeOut,
     ContentTypeUpdateIn,
 )
+from apps.api.modules.workspaces.content.service_appearance import WorkspaceContentAppearanceMixin
+from apps.api.modules.workspaces.content.service_blocks import WorkspaceContentBlocksMixin
+from apps.api.modules.workspaces.content.service_pages import WorkspaceContentPagesMixin
+from apps.api.modules.workspaces.content.service_structure import WorkspaceContentStructureMixin
+from apps.api.modules.workspaces.content.service_views import WorkspaceContentViewsMixin
 
 
-class WorkspaceContentService(BaseService):
-    def __init__(self, settings) -> None:
+class WorkspaceContentService(
+    WorkspaceContentPagesMixin,
+    WorkspaceContentStructureMixin,
+    WorkspaceContentBlocksMixin,
+    WorkspaceContentViewsMixin,
+    WorkspaceContentAppearanceMixin,
+    BaseService,
+):
+    def __init__(self, settings, site_service: SiteService | None = None) -> None:
         super().__init__(settings)
         self.repo = WorkspaceContentRepository()
+        self.site_service = site_service or SiteService(settings, valkey=None)
+
+    @staticmethod
+    def _now_ms() -> int:
+        return int(time.time() * 1000)
 
     @staticmethod
     def _validate_slug(slug: str) -> str:
@@ -41,41 +65,88 @@ class WorkspaceContentService(BaseService):
         return value
 
     @staticmethod
-    def _to_type_out(record) -> ContentTypeOut:
-        return ContentTypeOut(
-            id=record.id,
-            workspace_id=record.workspace_id,
-            site_id=record.site_id,
-            code=record.code,
-            name=record.name,
-            kind=record.kind,
-            field_schema=record.field_schema,
-            editor_schema=record.editor_schema,
-            render_contract=record.render_contract,
-            workflow_policy=record.workflow_policy,
-        )
+    def _validate_type_code(code: str) -> str:
+        out = (code or "").strip()
+        if not out:
+            raise Conflict("Invalid content type code", error="CONTENT_TYPE_CODE_INVALID")
+        if len(out) > 64:
+            raise Conflict("Invalid content type code", error="CONTENT_TYPE_CODE_INVALID")
+        if not (out[0].isalpha() or out[0] == "_"):
+            raise Conflict("Invalid content type code", error="CONTENT_TYPE_CODE_INVALID")
+        if not all(ch.isalnum() or ch == "_" for ch in out):
+            raise Conflict("Invalid content type code", error="CONTENT_TYPE_CODE_INVALID")
+        return out
 
     @staticmethod
-    def _to_entry_out(record) -> ContentEntryOut:
-        type_code = ""
-        if getattr(record, "type", None) is not None:
-            type_code = str(record.type.code)
+    def _parse_uuid_value(value: Any) -> UUID | None:
+        if isinstance(value, UUID):
+            return value
+        if isinstance(value, str):
+            raw = value.strip()
+            if not raw:
+                return None
+            if is_public_id(raw):
+                try:
+                    return decode_public_id(raw)
+                except ValueError:
+                    return None
+            try:
+                return UUID(raw)
+            except ValueError:
+                return None
+        return None
 
-        return ContentEntryOut(
-            id=record.id,
-            workspace_id=record.workspace_id,
-            site_id=record.site_id,
-            type_id=record.type_id,
-            type_code=type_code,
-            slug=record.slug,
-            title=record.title,
-            status=record.status,
-            visibility=record.visibility,
-            locale=record.locale,
-            draft_revision=int(record.draft_revision or 0),
-            published_revision=(int(record.published_revision) if record.published_revision is not None else None),
-            updated_at=record.updated_at,
+    async def _ensure_site_entry_type(
+        self,
+        *,
+        workspace_id: UUID,
+        site_id: UUID,
+        type_code: str,
+    ) -> str:
+        code = self._validate_type_code(type_code)
+        content_type = await self.repo.get_type_by_code(workspace_id=workspace_id, site_id=site_id, code=code)
+        if content_type is None:
+            raise NotFound("Content type not found", error="CONTENT_TYPE_NOT_FOUND")
+
+        try:
+            await self.site_service.create_entry_type(
+                site_id=site_id,
+                payload=SiteEntryTypeCreateIn(
+                    code=code,
+                    name=str(content_type.name),
+                    fields_schema=(content_type.field_schema if isinstance(content_type.field_schema, dict) else None),
+                ),
+            )
+        except Conflict as exc:
+            if exc.error != "ENTRY_TYPE_CONFLICT":
+                raise
+
+        return code
+
+    async def _get_setting_value(self, *, site_id: UUID, namespace: str) -> dict[str, Any] | None:
+        setting = await self.site_service.get_site_setting(site_id=site_id, namespace=namespace)
+        if isinstance(setting.value, dict):
+            return setting.value
+        return None
+
+    async def _put_setting_value(self, *, site_id: UUID, namespace: str, value: dict[str, Any] | None) -> None:
+        await self.site_service.upsert_site_setting(
+            site_id=site_id,
+            namespace=namespace,
+            payload=SiteSettingUpsertIn(value=value),
         )
+
+    async def _get_setting_list(self, *, site_id: UUID, namespace: str) -> list[dict[str, Any]]:
+        value = await self._get_setting_value(site_id=site_id, namespace=namespace)
+        if not value:
+            return []
+        items = value.get("items")
+        if isinstance(items, list):
+            return [item for item in items if isinstance(item, dict)]
+        return []
+
+    async def _put_setting_list(self, *, site_id: UUID, namespace: str, items: list[dict[str, Any]]) -> None:
+        await self._put_setting_value(site_id=site_id, namespace=namespace, value={"items": items})
 
     async def list_types_paginated(
         self,
@@ -85,7 +156,7 @@ class WorkspaceContentService(BaseService):
         params: PageParams,
     ) -> PageData[ContentTypeOut]:
         records = await self.repo.list_types(workspace_id=workspace_id, site_id=site_id)
-        rows = [self._to_type_out(record) for record in records]
+        rows = [to_content_type_out(record) for record in records]
         return paginate_items(rows, params=params)
 
     async def create_type(
@@ -95,7 +166,7 @@ class WorkspaceContentService(BaseService):
         site_id: UUID,
         payload: ContentTypeCreateIn,
     ) -> ContentTypeOut:
-        code = validate_entry_type_code(payload.code)
+        code = self._validate_type_code(payload.code)
         name = (payload.name or "").strip()
         if not name:
             raise Conflict("Invalid content type name", error="CONTENT_TYPE_NAME_INVALID")
@@ -111,7 +182,7 @@ class WorkspaceContentService(BaseService):
             render_contract=payload.render_contract,
             workflow_policy=payload.workflow_policy,
         )
-        return self._to_type_out(record)
+        return to_content_type_out(record)
 
     async def update_type(
         self,
@@ -146,7 +217,7 @@ class WorkspaceContentService(BaseService):
             type_id=type_id,
             fields=fields,
         )
-        return self._to_type_out(updated)
+        return to_content_type_out(updated)
 
     async def delete_type(
         self,
@@ -168,14 +239,14 @@ class WorkspaceContentService(BaseService):
     ) -> PageData[ContentEntryOut]:
         type_id: UUID | None = None
         if type_code is not None:
-            code = validate_entry_type_code(type_code)
+            code = self._validate_type_code(type_code)
             type_record = await self.repo.get_type_by_code(workspace_id=workspace_id, site_id=site_id, code=code)
             if type_record is None:
                 raise NotFound("Content type not found", error="CONTENT_TYPE_NOT_FOUND")
             type_id = UUID(str(type_record.id))
 
         entries = await self.repo.list_entries(workspace_id=workspace_id, site_id=site_id, type_id=type_id)
-        rows = [self._to_entry_out(record) for record in entries]
+        rows = [to_content_entry_out(record) for record in entries]
         return paginate_items(rows, params=params)
 
     async def create_entry(
@@ -186,7 +257,7 @@ class WorkspaceContentService(BaseService):
         payload: ContentEntryCreateIn,
         actor_user_id: UUID | None,
     ) -> ContentEntryOut:
-        type_code = validate_entry_type_code(payload.type_code)
+        type_code = self._validate_type_code(payload.type_code)
         slug = self._validate_slug(payload.slug)
 
         type_record = await self.repo.get_type_by_code(workspace_id=workspace_id, site_id=site_id, code=type_code)
@@ -212,7 +283,7 @@ class WorkspaceContentService(BaseService):
         )
         if hydrated is None:
             raise NotFound("Content entry not found", error="CONTENT_ENTRY_NOT_FOUND")
-        return self._to_entry_out(hydrated)
+        return to_content_entry_out(hydrated)
 
     async def get_entry(
         self,
@@ -224,7 +295,7 @@ class WorkspaceContentService(BaseService):
         record = await self.repo.get_entry_by_id(workspace_id=workspace_id, site_id=site_id, entry_id=entry_id)
         if record is None:
             raise NotFound("Content entry not found", error="CONTENT_ENTRY_NOT_FOUND")
-        return self._to_entry_out(record)
+        return to_content_entry_out(record)
 
     async def update_entry(
         self,
@@ -258,7 +329,7 @@ class WorkspaceContentService(BaseService):
             fields=fields,
             updated_by_user_id=actor_user_id,
         )
-        return self._to_entry_out(updated)
+        return to_content_entry_out(updated)
 
     async def delete_entry(
         self,
@@ -292,7 +363,7 @@ class WorkspaceContentService(BaseService):
         return ContentEntryDraftSaveOut(
             entry_id=entry_id,
             revision=revision.revision,
-            saved_at_ms=int(time.time() * 1000),
+            saved_at_ms=self._now_ms(),
         )
 
     async def publish_entry(
@@ -314,7 +385,7 @@ class WorkspaceContentService(BaseService):
         return ContentEntryPublishOut(
             entry_id=entry_id,
             revision=revision,
-            published_at_ms=int(time.time() * 1000),
+            published_at_ms=self._now_ms(),
         )
 
     async def unpublish_entry(
@@ -333,7 +404,7 @@ class WorkspaceContentService(BaseService):
         )
         return ContentEntryUnpublishOut(
             entry_id=entry_id,
-            unpublished_at_ms=int(time.time() * 1000),
+            unpublished_at_ms=self._now_ms(),
         )
 
     async def get_entry_revision(
@@ -392,5 +463,5 @@ class WorkspaceContentService(BaseService):
             target=payload.target,
             from_revision=from_revision,
             to_revision=to_revision,
-            rolled_back_at_ms=int(time.time() * 1000),
+            rolled_back_at_ms=self._now_ms(),
         )

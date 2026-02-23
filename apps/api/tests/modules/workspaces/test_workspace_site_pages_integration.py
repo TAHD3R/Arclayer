@@ -27,7 +27,7 @@ def _doc(title: str) -> dict:
 
 
 @pytest.mark.asyncio
-async def test_workspace_site_pages_flow_single_site_model(prepared_db, integration_valkey_settings) -> None:
+async def test_workspace_content_pages_flow_single_site_model(prepared_db, integration_valkey_settings) -> None:
     _ = prepared_db
     _ = integration_valkey_settings
 
@@ -84,9 +84,13 @@ async def test_workspace_site_pages_flow_single_site_model(prepared_db, integrat
             token_payload = res2.json()["data"]
             assert isinstance(token_payload.get("token"), str)
 
-            # Create a page.
+            # Legacy workspace site pages endpoint is removed after hard cut.
+            removed_pages_res = await client.get(f"/api/v1/workspaces/{ws.id}/site/pages/tree")
+            assert removed_pages_res.status_code == 404, removed_pages_res.text
+
+            # Create a page via workspace content endpoint.
             res3 = await client.post(
-                f"/api/v1/workspaces/{ws.id}/site/pages",
+                f"/api/v1/workspaces/{ws.id}/content/pages",
                 json={
                     "path": "/about",
                     "title": "About",
@@ -104,7 +108,7 @@ async def test_workspace_site_pages_flow_single_site_model(prepared_db, integrat
 
             # Save a draft revision.
             res4 = await client.post(
-                f"/api/v1/workspaces/{ws.id}/site/pages/{page_id}/revisions/draft",
+                f"/api/v1/workspaces/{ws.id}/content/pages/{page_id}/revisions/draft",
                 json={"document": _doc("About v1"), "expectedRevision": 0},
             )
             assert res4.status_code == 201, res4.text
@@ -113,13 +117,13 @@ async def test_workspace_site_pages_flow_single_site_model(prepared_db, integrat
 
             # Publish the draft.
             res5 = await client.post(
-                f"/api/v1/workspaces/{ws.id}/site/pages/{page_id}/revisions/publish",
+                f"/api/v1/workspaces/{ws.id}/content/pages/{page_id}/revisions/publish",
                 json={},
             )
             assert res5.status_code == 200, res5.text
 
             # Tree response includes listing metadata required by Admin table.
-            res_tree = await client.get(f"/api/v1/workspaces/{ws.id}/site/pages/tree")
+            res_tree = await client.get(f"/api/v1/workspaces/{ws.id}/content/pages/tree")
             assert res_tree.status_code == 200, res_tree.text
             pages = res_tree.json()["data"]["items"]
             assert pages
@@ -141,7 +145,7 @@ async def test_workspace_site_pages_flow_single_site_model(prepared_db, integrat
 
             # Unpublish (published -> draft-only).
             res7 = await client.post(
-                f"/api/v1/workspaces/{ws.id}/site/pages/{page_id}/revisions/unpublish",
+                f"/api/v1/workspaces/{ws.id}/content/pages/{page_id}/revisions/unpublish",
                 json={},
             )
             assert res7.status_code == 200, res7.text

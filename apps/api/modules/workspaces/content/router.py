@@ -3,14 +3,19 @@ from __future__ import annotations
 from typing import Annotated, Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Body, Depends, Query, Request, status
+from fastapi import APIRouter, Body, Depends, Query, status
 
 from apps.api.common.types.public_uuid import PublicUUID
-from apps.api.config import Settings, get_settings
 from apps.api.core.http.pagination import PageData, PageParams, get_page_params
 from apps.api.core.http.response import Response, ResponseModel
 from apps.api.modules.auth.deps import get_current_user_id
 from apps.api.modules.workspaces.authz.deps import require_workspace_permission
+from apps.api.modules.workspaces.content.router_appearance import appearance_router
+from apps.api.modules.workspaces.content.router_blocks import blocks_router
+from apps.api.modules.workspaces.content.router_pages import pages_router
+from apps.api.modules.workspaces.content.router_shared import _resolve_site_id, get_workspace_content_service
+from apps.api.modules.workspaces.content.router_structure import structure_router
+from apps.api.modules.workspaces.content.router_views import views_router
 from apps.api.modules.workspaces.content.schema import (
     ContentEntryCreateIn,
     ContentEntryDeleteOut,
@@ -31,31 +36,12 @@ from apps.api.modules.workspaces.content.schema import (
 )
 from apps.api.modules.workspaces.content.service import WorkspaceContentService
 from apps.api.modules.workspaces.deps import WorkspaceContext, require_workspace_manage_access
-from apps.api.modules.workspaces.site.service import WorkspaceSiteService
 
 router = APIRouter(
     prefix="/workspaces/{workspace_id}/content",
     tags=["Workspace: Content"],
     dependencies=[require_workspace_permission("admin:access")],
 )
-
-
-def get_workspace_content_service(
-    request: Request,
-    settings: Settings = Depends(get_settings),
-) -> WorkspaceContentService:
-    _ = request
-    return WorkspaceContentService(settings)
-
-
-async def _resolve_site_id(
-    ctx: Annotated[WorkspaceContext, Depends(require_workspace_manage_access)],
-    user_id: Annotated[UUID, Depends(get_current_user_id)],
-    settings: Settings = Depends(get_settings),
-) -> UUID:
-    service = WorkspaceSiteService(settings)
-    site = await service.get_or_create_site_for_workspace(workspace_id=ctx.workspace_id, actor_user_id=user_id)
-    return site.id
 
 
 @router.get(
@@ -365,3 +351,10 @@ async def rollback_workspace_content_entry_revision(
         actor_user_id=user_id,
     )
     return Response.success(data=data)
+
+
+router.include_router(pages_router)
+router.include_router(structure_router)
+router.include_router(blocks_router)
+router.include_router(views_router)
+router.include_router(appearance_router)

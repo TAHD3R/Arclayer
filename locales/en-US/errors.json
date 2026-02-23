@@ -41,5 +41,44 @@
   "INVITE_EXPIRED": "Invitation expired",
   "INVITE_EMAIL_MISMATCH": "Current account email does not match the invitation email",
   "INVITE_ROLE_MISSING_ADMIN_ACCESS": "Invitation role is missing admin console access",
-  "INVITE_EMAIL_DOMAIN_FORBIDDEN": "Your email domain is not allowed for this invitation"
+  "INVITE_EMAIL_DOMAIN_FORBIDDEN": "Your email domain is not allowed for this invitation",
+
+  "CONTENT_TYPE_CODE_INVALID": "Invalid content type code",
+  "CONTENT_TYPE_NAME_INVALID": "Invalid content type name",
+  "CONTENT_TYPE_CONFLICT": "Content type already exists",
+  "CONTENT_TYPE_NOT_FOUND": "Content type not found",
+  "CONTENT_TYPE_IN_USE": "Content type is in use",
+
+  "CONTENT_ENTRY_CONFLICT": "Content entry already exists",
+  "CONTENT_ENTRY_NOT_FOUND": "Content entry not found",
+  "CONTENT_ENTRY_SLUG_INVALID": "Invalid content entry slug",
+  "CONTENT_ENTRY_SLUG_CONFLICT": "Content entry slug already exists",
+  "CONTENT_ENTRY_MUST_UNPUBLISH": "Content entry must be unpublished before deletion",
+  "CONTENT_ENTRY_NOT_PUBLISHED": "Content entry is not published",
+  "CONTENT_ENTRY_DRAFT_NOT_FOUND": "Draft revision not found",
+  "CONTENT_ENTRY_PUBLISHED_NOT_FOUND": "Published revision not found",
+  "CONTENT_ENTRY_REVISION_NOT_FOUND": "Content revision not found",
+  "CONTENT_ENTRY_REVISION_CONFLICT": "Content draft revision conflict",
+
+  "CONTENT_GLOBAL_SLOT_KEY_INVALID": "Invalid global slot key",
+
+  "CONTENT_MENU_KEY_INVALID": "Invalid menu key",
+  "CONTENT_MENU_NAME_INVALID": "Invalid menu name",
+  "CONTENT_MENU_KEY_CONFLICT": "Menu key already exists",
+  "CONTENT_MENU_NOT_FOUND": "Menu not found",
+  "CONTENT_MENU_ITEM_NOT_FOUND": "Menu item not found",
+  "CONTENT_MENU_ITEM_PARENT_NOT_FOUND": "Parent menu item not found",
+  "CONTENT_MENU_ITEM_LABEL_INVALID": "Invalid menu item label",
+  "CONTENT_MENU_ITEM_PARENT_INVALID": "Invalid menu item parent",
+  "CONTENT_MENU_ITEMS_REORDER_MISMATCH": "Menu reorder payload mismatch",
+
+  "CONTENT_BLOCK_CODE_INVALID": "Invalid block code",
+  "CONTENT_BLOCK_NAME_INVALID": "Invalid block name",
+  "CONTENT_BLOCK_CODE_CONFLICT": "Block code already exists",
+  "CONTENT_BLOCK_NOT_FOUND": "Block not found",
+
+  "CONTENT_VIEW_CODE_INVALID": "Invalid view code",
+  "CONTENT_VIEW_NAME_INVALID": "Invalid view name",
+  "CONTENT_VIEW_CODE_CONFLICT": "View code already exists",
+  "CONTENT_VIEW_NOT_FOUND": "View not found"
 }

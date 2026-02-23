@@ -177,3 +177,268 @@ class ContentEntryRollbackOut(BaseSchema):
     from_revision: int | None = Field(default=None, ge=1, description="Previous pointer value.")
     to_revision: int = Field(..., ge=1, description="New pointer value.")
     rolled_back_at_ms: int = Field(..., ge=0, description="Rollback timestamp in milliseconds.")
+
+
+class ContentGlobalSlotOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    slot_key: str = Field(..., min_length=1, max_length=128, description="Global slot key.")
+    value: dict[str, Any] | None = Field(default=None, description="Global slot value payload.")
+    updated_at_ms: int = Field(..., ge=0, description="Global slot update timestamp in milliseconds.")
+
+
+class ContentGlobalSlotsOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    items: list[ContentGlobalSlotOut] = Field(default_factory=list, description="Global slots.")
+
+
+class ContentGlobalSlotUpsertIn(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    value: dict[str, Any] | None = Field(default=None, description="Global slot value payload.")
+
+
+ContentMenuItemKind = Literal["link", "page", "entry", "custom"]
+ContentViewFilterOp = Literal["eq", "neq", "in", "contains"]
+ContentViewSortOrder = Literal["asc", "desc"]
+
+
+class ContentMenuItemOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    id: PublicUUID = Field(..., description="Menu item id.")
+    label: str = Field(..., min_length=1, max_length=256, description="Menu item label.")
+    kind: ContentMenuItemKind = Field(default="link", description="Menu item kind.")
+    target: str | None = Field(default=None, max_length=512, description="Menu item target value.")
+    parent_id: PublicUUID | None = Field(default=None, description="Parent menu item id.")
+    sort_order: int = Field(default=0, description="Menu item sort order.")
+    meta: dict[str, Any] | None = Field(default=None, description="Menu item metadata payload.")
+    children: list[ContentMenuItemOut] = Field(default_factory=list, description="Nested child menu items.")
+
+
+class ContentMenuOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    id: PublicUUID = Field(..., description="Menu id.")
+    key: str = Field(..., min_length=1, max_length=64, description="Stable menu key.")
+    name: str = Field(..., min_length=1, max_length=128, description="Menu display name.")
+    items: list[ContentMenuItemOut] = Field(default_factory=list, description="Menu items tree.")
+    updated_at_ms: int = Field(..., ge=0, description="Menu update timestamp in milliseconds.")
+
+
+class ContentMenuCreateIn(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    key: str = Field(..., min_length=1, max_length=64, description="Stable menu key.")
+    name: str = Field(..., min_length=1, max_length=128, description="Menu display name.")
+
+
+class ContentMenuUpdateIn(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    key: str | None = Field(default=None, min_length=1, max_length=64, description="Stable menu key.")
+    name: str | None = Field(default=None, min_length=1, max_length=128, description="Menu display name.")
+
+
+class ContentMenuDeleteOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    menu_id: PublicUUID = Field(..., description="Deleted menu id.")
+
+
+class ContentMenuItemCreateIn(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    label: str = Field(..., min_length=1, max_length=256, description="Menu item label.")
+    kind: ContentMenuItemKind = Field(default="link", description="Menu item kind.")
+    target: str | None = Field(default=None, max_length=512, description="Menu item target value.")
+    parent_id: PublicUUID | None = Field(default=None, description="Parent menu item id.")
+    sort_order: int = Field(default=0, description="Menu item sort order.")
+    meta: dict[str, Any] | None = Field(default=None, description="Menu item metadata payload.")
+
+
+class ContentMenuItemUpdateIn(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    label: str | None = Field(default=None, min_length=1, max_length=256, description="Menu item label.")
+    kind: ContentMenuItemKind | None = Field(default=None, description="Menu item kind.")
+    target: str | None = Field(default=None, max_length=512, description="Menu item target value.")
+    parent_id: PublicUUID | None = Field(default=None, description="Parent menu item id.")
+    sort_order: int | None = Field(default=None, description="Menu item sort order.")
+    meta: dict[str, Any] | None = Field(default=None, description="Menu item metadata payload.")
+
+
+class ContentMenuItemDeleteOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    item_id: PublicUUID = Field(..., description="Deleted menu item id.")
+
+
+class ContentMenuItemReorderNodeIn(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    id: PublicUUID = Field(..., description="Menu item id.")
+    children: list[ContentMenuItemReorderNodeIn] = Field(default_factory=list, description="Nested child order.")
+
+
+class ContentMenuItemsReorderIn(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    items: list[ContentMenuItemReorderNodeIn] = Field(default_factory=list, description="Ordered menu item tree.")
+
+
+class ContentBlockOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    id: PublicUUID = Field(..., description="Block id.")
+    code: str = Field(..., min_length=1, max_length=64, description="Block stable code.")
+    name: str = Field(..., min_length=1, max_length=128, description="Block display name.")
+    payload: dict[str, Any] | None = Field(default=None, description="Block payload.")
+    updated_at_ms: int = Field(..., ge=0, description="Block update timestamp in milliseconds.")
+
+
+class ContentBlockCreateIn(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    code: str = Field(..., min_length=1, max_length=64, description="Block stable code.")
+    name: str = Field(..., min_length=1, max_length=128, description="Block display name.")
+    payload: dict[str, Any] | None = Field(default=None, description="Block payload.")
+
+
+class ContentBlockUpdateIn(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    name: str | None = Field(default=None, min_length=1, max_length=128, description="Block display name.")
+    payload: dict[str, Any] | None = Field(default=None, description="Block payload.")
+
+
+class ContentBlockDeleteOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    block_id: PublicUUID = Field(..., description="Deleted block id.")
+
+
+class ContentBlockUsageOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    source: Literal["page", "entry", "menu", "view"] = Field(..., description="Usage source type.")
+    source_id: PublicUUID = Field(..., description="Usage source id.")
+    path: str = Field(..., description="Usage path hint.")
+
+
+class ContentBlockUsagesOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    block_id: PublicUUID = Field(..., description="Block id.")
+    usages: list[ContentBlockUsageOut] = Field(default_factory=list, description="Block usages.")
+
+
+class ContentViewFilterIn(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    field: str = Field(..., min_length=1, max_length=64, description="Filter field.")
+    op: ContentViewFilterOp = Field(..., description="Filter operator.")
+    value: Any = Field(..., description="Filter value.")
+
+
+class ContentViewSortIn(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    field: str = Field(..., min_length=1, max_length=64, description="Sort field.")
+    order: ContentViewSortOrder = Field(default="desc", description="Sort order.")
+
+
+class ContentViewDslIn(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    filters: list[ContentViewFilterIn] = Field(default_factory=list, description="View filter rules.")
+    sort: list[ContentViewSortIn] = Field(default_factory=list, description="View sort rules.")
+    limit: int | None = Field(default=None, ge=1, le=1000, description="Default preview limit.")
+
+
+class ContentViewOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    id: PublicUUID = Field(..., description="View id.")
+    code: str = Field(..., min_length=1, max_length=64, description="View stable code.")
+    name: str = Field(..., min_length=1, max_length=128, description="View display name.")
+    type_code: str | None = Field(default=None, min_length=1, max_length=64, description="Optional content type code.")
+    dsl: ContentViewDslIn = Field(..., description="View DSL definition.")
+    enabled: bool = Field(default=True, description="Whether this view is enabled.")
+    updated_at_ms: int = Field(..., ge=0, description="View update timestamp in milliseconds.")
+
+
+class ContentViewCreateIn(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    code: str = Field(..., min_length=1, max_length=64, description="View stable code.")
+    name: str = Field(..., min_length=1, max_length=128, description="View display name.")
+    type_code: str | None = Field(default=None, min_length=1, max_length=64, description="Optional content type code.")
+    dsl: ContentViewDslIn = Field(default_factory=ContentViewDslIn, description="View DSL definition.")
+    enabled: bool = Field(default=True, description="Whether this view is enabled.")
+
+
+class ContentViewUpdateIn(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    name: str | None = Field(default=None, min_length=1, max_length=128, description="View display name.")
+    type_code: str | None = Field(default=None, min_length=1, max_length=64, description="Optional content type code.")
+    dsl: ContentViewDslIn | None = Field(default=None, description="View DSL definition.")
+    enabled: bool | None = Field(default=None, description="Whether this view is enabled.")
+
+
+class ContentViewDeleteOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    view_id: PublicUUID = Field(..., description="Deleted view id.")
+
+
+class ContentViewPreviewIn(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    limit: int | None = Field(default=None, ge=1, le=1000, description="Preview limit override.")
+    offset: int = Field(default=0, ge=0, description="Preview offset.")
+
+
+class ContentViewPreviewOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    view_id: PublicUUID = Field(..., description="View id.")
+    total: int = Field(..., ge=0, description="Total matched rows before pagination.")
+    items: list[dict[str, Any]] = Field(default_factory=list, description="Preview rows.")
+
+
+class ContentActiveThemeOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    theme_id: str | None = Field(default=None, description="Active theme id.")
+    version: str | None = Field(default=None, description="Active theme version.")
+
+
+class ContentActiveThemeSetIn(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    theme_id: str = Field(..., min_length=1, max_length=128, description="Theme id.")
+    version: str = Field(..., min_length=1, max_length=64, description="Theme version.")
+
+
+class ContentStyleValueOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    value: dict[str, Any] | None = Field(default=None, description="Style payload.")
+
+
+class ContentStyleSetIn(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    value: dict[str, Any] | None = Field(default=None, description="Style payload.")
+
+
+class ContentEffectiveStyleOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    global_style: dict[str, Any] | None = Field(default=None, description="Global style payload.")
+    type_style: dict[str, Any] | None = Field(default=None, description="Type style payload.")
+    entry_style: dict[str, Any] | None = Field(default=None, description="Entry style payload.")
+    effective: dict[str, Any] | None = Field(default=None, description="Merged effective style payload.")

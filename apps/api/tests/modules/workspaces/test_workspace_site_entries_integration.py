@@ -18,16 +18,8 @@ from apps.api.modules.workspaces.models.workspace import Workspace
 pytestmark = pytest.mark.integration
 
 
-def _doc(title: str) -> dict:
-    return {
-        "version": 1,
-        "meta": {"title": {"en-US": title}},
-        "blocks": [{"id": "h1", "type": "heading", "props": {"level": 1, "text": {"en-US": title}}}],
-    }
-
-
 @pytest.mark.asyncio
-async def test_workspace_site_entries_flow(prepared_db, integration_valkey_settings) -> None:
+async def test_workspace_site_content_endpoints_are_disabled(prepared_db, integration_valkey_settings) -> None:
     _ = prepared_db
     _ = integration_valkey_settings
 
@@ -71,94 +63,22 @@ async def test_workspace_site_entries_flow(prepared_db, integration_valkey_setti
         app.dependency_overrides[get_current_user_id] = _get_user_id
 
         async with AsyncClient(transport=transport, base_url="http://testserver") as client:
-            # Ensure site exists for the workspace.
+            # Site metadata and preview token endpoints are retained.
             site_res = await client.get(f"/api/v1/workspaces/{ws.id}/site")
             assert site_res.status_code == 200, site_res.text
 
-            # Create an entry type.
-            create_type_res = await client.post(
-                f"/api/v1/workspaces/{ws.id}/site/entry-types",
-                json={
-                    "code": "article",
-                    "name": "Article",
-                    "fieldsSchema": {
-                        "title": {"type": "string", "required": True},
-                        "excerpt": {"type": "string", "required": False},
-                    },
-                },
+            token_res = await client.post(
+                f"/api/v1/workspaces/{ws.id}/site/preview-tokens",
+                json={"ttlSeconds": 600},
             )
-            assert create_type_res.status_code == 201, create_type_res.text
-            entry_type = create_type_res.json()["data"]
-            assert entry_type["code"] == "article"
+            assert token_res.status_code == 201, token_res.text
 
-            # List entry types.
-            list_type_res = await client.get(f"/api/v1/workspaces/{ws.id}/site/entry-types")
-            assert list_type_res.status_code == 200, list_type_res.text
-            assert list_type_res.json()["data"]["total"] >= 1
+            # Legacy workspace site content endpoints are removed after hard cut.
+            list_types_res = await client.get(f"/api/v1/workspaces/{ws.id}/site/entry-types")
+            assert list_types_res.status_code == 404, list_types_res.text
 
-            # Create an entry.
             create_entry_res = await client.post(
                 f"/api/v1/workspaces/{ws.id}/site/entries",
-                json={"entryTypeCode": "article", "slug": "hello-phase1"},
+                json={"entryTypeCode": "article", "slug": "legacy-should-fail"},
             )
-            assert create_entry_res.status_code == 201, create_entry_res.text
-            entry = create_entry_res.json()["data"]
-            entry_id = entry["id"]
-
-            # Save draft revision.
-            save_draft_res = await client.post(
-                f"/api/v1/workspaces/{ws.id}/site/entries/draft",
-                json={
-                    "entryTypeCode": "article",
-                    "slug": "hello-phase1",
-                    "data": {"title": "Hello", "excerpt": "Phase 1"},
-                    "document": _doc("Hello phase1"),
-                    "expectedRevision": 0,
-                },
-            )
-            assert save_draft_res.status_code == 201, save_draft_res.text
-            assert save_draft_res.json()["data"]["revision"] == 1
-
-            # Publish.
-            publish_res = await client.post(
-                f"/api/v1/workspaces/{ws.id}/site/entries/publish",
-                json={"entryTypeCode": "article", "slug": "hello-phase1"},
-            )
-            assert publish_res.status_code == 200, publish_res.text
-            assert publish_res.json()["data"]["revision"] == 1
-
-            # List entries with entry type filter.
-            list_entries_res = await client.get(
-                f"/api/v1/workspaces/{ws.id}/site/entries",
-                params={"entryTypeCode": "article"},
-            )
-            assert list_entries_res.status_code == 200, list_entries_res.text
-            rows = list_entries_res.json()["data"]["items"]
-            row = next((item for item in rows if item["id"] == entry_id), None)
-            assert row is not None
-            assert row["draftRevision"] == 1
-            assert row["publishedRevision"] == 1
-
-            # Read published revision.
-            published_rev_res = await client.get(
-                f"/api/v1/workspaces/{ws.id}/site/entries/{entry_id}/revisions/published",
-            )
-            assert published_rev_res.status_code == 200, published_rev_res.text
-            assert published_rev_res.json()["data"]["revision"] == 1
-
-            # Unpublish.
-            unpublish_res = await client.post(
-                f"/api/v1/workspaces/{ws.id}/site/entries/unpublish",
-                json={"entryTypeCode": "article", "slug": "hello-phase1"},
-            )
-            assert unpublish_res.status_code == 200, unpublish_res.text
-
-            # Delete entry.
-            delete_entry_res = await client.delete(f"/api/v1/workspaces/{ws.id}/site/entries/{entry_id}")
-            assert delete_entry_res.status_code == 200, delete_entry_res.text
-
-            # Delete entry type.
-            delete_type_res = await client.delete(
-                f"/api/v1/workspaces/{ws.id}/site/entry-types/{entry_type['id']}",
-            )
-            assert delete_type_res.status_code == 200, delete_type_res.text
+            assert create_entry_res.status_code == 404, create_entry_res.text

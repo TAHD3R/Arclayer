@@ -5,6 +5,7 @@ from uuid import UUID, uuid4
 import pytest
 from httpx import ASGITransport, AsyncClient
 
+from apps.api.common.utils.public_ids import is_public_id
 from apps.api.config import get_settings
 from apps.api.core.database.orm import verify_db_ready
 from apps.api.core.registry import create_app
@@ -201,6 +202,166 @@ async def test_workspace_content_entries_flow(prepared_db, integration_valkey_se
                 json={},
             )
             assert unpublish_res.status_code == 200, unpublish_res.text
+
+            # Create and manage a structure route.
+            create_route_res = await client.post(
+                f"/api/v1/workspaces/{ws.id}/content/structure/routes",
+                json={"pathPattern": "/blog/:slug", "entryTypeCode": "article"},
+            )
+            assert create_route_res.status_code == 201, create_route_res.text
+            route_id = create_route_res.json()["data"]["id"]
+
+            list_routes_res = await client.get(f"/api/v1/workspaces/{ws.id}/content/structure/routes")
+            assert list_routes_res.status_code == 200, list_routes_res.text
+            assert list_routes_res.json()["data"]["total"] >= 1
+
+            update_route_res = await client.patch(
+                f"/api/v1/workspaces/{ws.id}/content/structure/routes/{route_id}",
+                json={"isActive": False},
+            )
+            assert update_route_res.status_code == 200, update_route_res.text
+
+            delete_route_res = await client.delete(
+                f"/api/v1/workspaces/{ws.id}/content/structure/routes/{route_id}",
+            )
+            assert delete_route_res.status_code == 200, delete_route_res.text
+
+            # Global slots.
+            upsert_slot_res = await client.put(
+                f"/api/v1/workspaces/{ws.id}/content/structure/global-slots/header",
+                json={"value": {"layout": "default"}},
+            )
+            assert upsert_slot_res.status_code == 200, upsert_slot_res.text
+            assert upsert_slot_res.json()["data"]["slotKey"] == "header"
+
+            list_slots_res = await client.get(f"/api/v1/workspaces/{ws.id}/content/structure/global-slots")
+            assert list_slots_res.status_code == 200, list_slots_res.text
+            assert any(item["slotKey"] == "header" for item in list_slots_res.json()["data"]["items"])
+
+            # Menus and items.
+            create_menu_res = await client.post(
+                f"/api/v1/workspaces/{ws.id}/content/structure/menus",
+                json={"key": "main", "name": "Main Menu"},
+            )
+            assert create_menu_res.status_code == 201, create_menu_res.text
+            menu = create_menu_res.json()["data"]
+            menu_id = menu["id"]
+            assert is_public_id(menu_id)
+
+            create_menu_item_res = await client.post(
+                f"/api/v1/workspaces/{ws.id}/content/structure/menus/{menu_id}/items",
+                json={"label": "Home", "kind": "link", "target": "/"},
+            )
+            assert create_menu_item_res.status_code == 201, create_menu_item_res.text
+            menu_after_item = create_menu_item_res.json()["data"]
+            assert len(menu_after_item["items"]) == 1
+            menu_item_id = menu_after_item["items"][0]["id"]
+            assert is_public_id(menu_item_id)
+
+            reorder_menu_items_res = await client.post(
+                f"/api/v1/workspaces/{ws.id}/content/structure/menus/{menu_id}/items/reorder",
+                json={"items": [{"id": menu_item_id, "children": []}]},
+            )
+            assert reorder_menu_items_res.status_code == 200, reorder_menu_items_res.text
+
+            update_menu_item_res = await client.patch(
+                f"/api/v1/workspaces/{ws.id}/content/structure/menus/{menu_id}/items/{menu_item_id}",
+                json={"label": "Homepage"},
+            )
+            assert update_menu_item_res.status_code == 200, update_menu_item_res.text
+
+            delete_menu_item_res = await client.delete(
+                f"/api/v1/workspaces/{ws.id}/content/structure/menus/{menu_id}/items/{menu_item_id}",
+            )
+            assert delete_menu_item_res.status_code == 200, delete_menu_item_res.text
+
+            delete_menu_res = await client.delete(f"/api/v1/workspaces/{ws.id}/content/structure/menus/{menu_id}")
+            assert delete_menu_res.status_code == 200, delete_menu_res.text
+
+            # Blocks.
+            create_block_res = await client.post(
+                f"/api/v1/workspaces/{ws.id}/content/blocks",
+                json={"code": "hero", "name": "Hero", "payload": {"kind": "hero"}},
+            )
+            assert create_block_res.status_code == 201, create_block_res.text
+            block = create_block_res.json()["data"]
+            block_id = block["id"]
+            assert is_public_id(block_id)
+
+            list_blocks_res = await client.get(f"/api/v1/workspaces/{ws.id}/content/blocks")
+            assert list_blocks_res.status_code == 200, list_blocks_res.text
+            assert list_blocks_res.json()["data"]["total"] >= 1
+
+            usages_res = await client.get(f"/api/v1/workspaces/{ws.id}/content/blocks/{block_id}/usages")
+            assert usages_res.status_code == 200, usages_res.text
+            assert usages_res.json()["data"]["blockId"] == block_id
+
+            delete_block_res = await client.delete(f"/api/v1/workspaces/{ws.id}/content/blocks/{block_id}")
+            assert delete_block_res.status_code == 200, delete_block_res.text
+
+            # Views + preview.
+            create_view_res = await client.post(
+                f"/api/v1/workspaces/{ws.id}/content/views",
+                json={
+                    "code": "article_list",
+                    "name": "Article List",
+                    "typeCode": "article",
+                    "dsl": {"filters": [{"field": "typeCode", "op": "eq", "value": "article"}]},
+                    "enabled": True,
+                },
+            )
+            assert create_view_res.status_code == 201, create_view_res.text
+            view_id = create_view_res.json()["data"]["id"]
+            assert is_public_id(view_id)
+
+            preview_view_res = await client.post(
+                f"/api/v1/workspaces/{ws.id}/content/views/{view_id}/preview",
+                json={"limit": 20, "offset": 0},
+            )
+            assert preview_view_res.status_code == 200, preview_view_res.text
+            assert preview_view_res.json()["data"]["total"] >= 1
+
+            delete_view_res = await client.delete(f"/api/v1/workspaces/{ws.id}/content/views/{view_id}")
+            assert delete_view_res.status_code == 200, delete_view_res.text
+
+            # Appearance: active theme + styles.
+            set_theme_res = await client.put(
+                f"/api/v1/workspaces/{ws.id}/content/appearance/themes/active",
+                json={"themeId": "core/default", "version": "1.0.0"},
+            )
+            assert set_theme_res.status_code == 200, set_theme_res.text
+
+            get_theme_res = await client.get(f"/api/v1/workspaces/{ws.id}/content/appearance/themes/active")
+            assert get_theme_res.status_code == 200, get_theme_res.text
+            assert get_theme_res.json()["data"]["themeId"] == "core/default"
+
+            set_global_style_res = await client.put(
+                f"/api/v1/workspaces/{ws.id}/content/appearance/styles/global",
+                json={"value": {"color": "black"}},
+            )
+            assert set_global_style_res.status_code == 200, set_global_style_res.text
+
+            set_type_style_res = await client.put(
+                f"/api/v1/workspaces/{ws.id}/content/appearance/styles/types/article",
+                json={"value": {"fontSize": "16px"}},
+            )
+            assert set_type_style_res.status_code == 200, set_type_style_res.text
+
+            set_entry_style_res = await client.put(
+                f"/api/v1/workspaces/{ws.id}/content/appearance/styles/entries/{entry_id}",
+                json={"value": {"lineHeight": 1.6}},
+            )
+            assert set_entry_style_res.status_code == 200, set_entry_style_res.text
+
+            effective_style_res = await client.get(
+                f"/api/v1/workspaces/{ws.id}/content/appearance/styles/effective",
+                params={"typeCode": "article", "entryId": entry_id},
+            )
+            assert effective_style_res.status_code == 200, effective_style_res.text
+            effective = effective_style_res.json()["data"]["effective"]
+            assert effective["color"] == "black"
+            assert effective["fontSize"] == "16px"
+            assert effective["lineHeight"] == 1.6
 
             # Delete entry.
             delete_entry_res = await client.delete(f"/api/v1/workspaces/{ws.id}/content/entries/{entry_id}")
