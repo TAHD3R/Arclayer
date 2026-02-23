@@ -40,6 +40,19 @@ class NotificationService(BaseService):
             items=[NotificationOut.model_validate(x, from_attributes=True) for x in items],
         )
 
+    async def get_unread_preview_for_user(
+        self,
+        *,
+        user_id: UUID,
+        limit: int = 3,
+    ) -> NotificationPreviewOut:
+        unread_count = await self.repo.get_unread_count_by_user(recipient_user_id=user_id)
+        items = await self.repo.list_unread_latest_by_user(recipient_user_id=user_id, limit=limit)
+        return NotificationPreviewOut(
+            unread_count=unread_count,
+            items=[NotificationOut.model_validate(x, from_attributes=True) for x in items],
+        )
+
     async def list_notifications(
         self,
         *,
@@ -52,6 +65,22 @@ class NotificationService(BaseService):
         category = filters.category.value if filters.category else None
         queryset = self.repo.build_list_queryset(
             workspace_id=workspace_id,
+            recipient_user_id=user_id,
+            unread_only=unread_only,
+            category=category,
+        )
+        return await paginate_queryset(queryset, params=params, out_schema=NotificationOut)
+
+    async def list_notifications_for_user(
+        self,
+        *,
+        user_id: UUID,
+        params: PageParams,
+        filters: NotificationListQuery,
+    ) -> PageData[NotificationOut]:
+        unread_only = filters.status == NotificationListStatus.UNREAD
+        category = filters.category.value if filters.category else None
+        queryset = self.repo.build_global_list_queryset(
             recipient_user_id=user_id,
             unread_only=unread_only,
             category=category,
@@ -72,6 +101,20 @@ class NotificationService(BaseService):
             raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
         return NotificationReadResult(id=row.id, read_at=row.read_at)
 
+    async def mark_read_for_user(
+        self,
+        *,
+        user_id: UUID,
+        notification_id: UUID,
+    ) -> NotificationReadResult:
+        row = await self.repo.mark_read_by_user(
+            recipient_user_id=user_id,
+            notification_id=notification_id,
+        )
+        if row is None:
+            raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
+        return NotificationReadResult(id=row.id, read_at=row.read_at)
+
     async def mark_all_read(
         self,
         *,
@@ -79,6 +122,14 @@ class NotificationService(BaseService):
         user_id: UUID,
     ) -> NotificationReadAllResult:
         total, updated = await self.repo.mark_all_read(workspace_id=workspace_id, recipient_user_id=user_id)
+        return NotificationReadAllResult(total_count=total, success_count=updated)
+
+    async def mark_all_read_for_user(
+        self,
+        *,
+        user_id: UUID,
+    ) -> NotificationReadAllResult:
+        total, updated = await self.repo.mark_all_read_by_user(recipient_user_id=user_id)
         return NotificationReadAllResult(total_count=total, success_count=updated)
 
     async def seed_demo_notifications(
@@ -168,6 +219,20 @@ class NotificationService(BaseService):
     ) -> NotificationDeleteResult:
         deleted = await self.repo.delete_notification(
             workspace_id=workspace_id,
+            recipient_user_id=user_id,
+            notification_id=notification_id,
+        )
+        if deleted <= 0:
+            raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
+        return NotificationDeleteResult(id=notification_id)
+
+    async def delete_notification_for_user(
+        self,
+        *,
+        user_id: UUID,
+        notification_id: UUID,
+    ) -> NotificationDeleteResult:
+        deleted = await self.repo.delete_notification_by_user(
             recipient_user_id=user_id,
             notification_id=notification_id,
         )

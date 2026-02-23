@@ -1,5 +1,6 @@
 import React, {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useId,
@@ -7,6 +8,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { createPortal } from "react-dom";
 import { ArrowLeftIcon } from "lucide-react";
 import { AnimatePresence, motion, MotionConfig, type Variants } from "motion/react";
 
@@ -20,12 +22,13 @@ const TRANSITION = {
 
 interface FloatingPanelContextType {
   isOpen: boolean;
-  openFloatingPanel: (rect: DOMRect) => void;
+  openFloatingPanel: (triggerEl: HTMLElement) => void;
   closeFloatingPanel: () => void;
   uniqueId: string;
   note: string;
   setNote: (note: string) => void;
   triggerRect: DOMRect | null;
+  triggerEl: HTMLElement | null;
   title: string;
   setTitle: (title: string) => void;
 }
@@ -45,10 +48,12 @@ function useFloatingPanelLogic() {
   const [isOpen, setIsOpen] = useState(false);
   const [note, setNote] = useState("");
   const [triggerRect, setTriggerRect] = useState<DOMRect | null>(null);
+  const [triggerEl, setTriggerEl] = useState<HTMLElement | null>(null);
   const [title, setTitle] = useState("");
 
-  const openFloatingPanel = (rect: DOMRect) => {
-    setTriggerRect(rect);
+  const openFloatingPanel = (nextTriggerEl: HTMLElement) => {
+    setTriggerEl(nextTriggerEl);
+    setTriggerRect(nextTriggerEl.getBoundingClientRect());
     setIsOpen(true);
   };
   const closeFloatingPanel = () => {
@@ -64,6 +69,7 @@ function useFloatingPanelLogic() {
     note,
     setNote,
     triggerRect,
+    triggerEl,
     title,
     setTitle,
   };
@@ -90,9 +96,20 @@ interface FloatingPanelTriggerProps {
   children: React.ReactNode;
   className?: string;
   title: string;
+  onMouseEnter?: React.MouseEventHandler<HTMLButtonElement>;
+  onMouseLeave?: React.MouseEventHandler<HTMLButtonElement>;
+  onFocus?: React.FocusEventHandler<HTMLButtonElement>;
+  onBlur?: React.FocusEventHandler<HTMLButtonElement>;
+  disabled?: boolean;
+  "aria-label"?: string;
 }
 
-export function FloatingPanelTrigger({ children, className, title }: FloatingPanelTriggerProps) {
+export function FloatingPanelTrigger({
+  children,
+  className,
+  title,
+  ...buttonProps
+}: FloatingPanelTriggerProps) {
   const { isOpen, openFloatingPanel, closeFloatingPanel, uniqueId, setTitle } = useFloatingPanel();
   const triggerRef = useRef<HTMLButtonElement>(null);
 
@@ -102,7 +119,7 @@ export function FloatingPanelTrigger({ children, className, title }: FloatingPan
       return;
     }
     if (triggerRef.current) {
-      openFloatingPanel(triggerRef.current.getBoundingClientRect());
+      openFloatingPanel(triggerRef.current);
       setTitle(title);
     }
   };
@@ -117,6 +134,7 @@ export function FloatingPanelTrigger({ children, className, title }: FloatingPan
         className,
       )}
       onClick={handleClick}
+      {...buttonProps}
       data-state={isOpen ? "open" : "closed"}
       aria-haspopup="dialog"
       aria-expanded={isOpen}
@@ -134,6 +152,9 @@ interface FloatingPanelContentProps {
   offset?: number;
   viewportPadding?: number;
   showTitle?: boolean;
+  description?: React.ReactNode;
+  titleClassName?: string;
+  descriptionClassName?: string;
 }
 
 export function FloatingPanelContent({
@@ -143,20 +164,75 @@ export function FloatingPanelContent({
   offset = 8,
   viewportPadding = 12,
   showTitle = true,
+  description,
+  titleClassName,
+  descriptionClassName,
 }: FloatingPanelContentProps) {
-  const { isOpen, closeFloatingPanel, uniqueId, triggerRect, title } = useFloatingPanel();
+  const { isOpen, closeFloatingPanel, uniqueId, triggerRect, triggerEl, title } =
+    useFloatingPanel();
   const contentRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState<{ left: number; top: number } | null>(null);
+  const computePosition = useCallback(() => {
+    if (!isOpen) return;
+
+    const panelEl = contentRef.current;
+    const anchorRect = triggerEl?.getBoundingClientRect() ?? triggerRect;
+    if (!panelEl || !anchorRect) return;
+
+    // Use layout metrics that are not affected by transform animations.
+    const panelWidth =
+      panelEl.offsetWidth || panelEl.clientWidth || panelEl.getBoundingClientRect().width;
+    const panelHeight =
+      panelEl.offsetHeight || panelEl.clientHeight || panelEl.getBoundingClientRect().height;
+    if (!panelWidth || !panelHeight) return;
+
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
+
+    const leftMin = viewportPadding;
+    const leftMax = Math.max(leftMin, vw - panelWidth - viewportPadding);
+    let left = clamp(anchorRect.left, leftMin, leftMax);
+
+    const spaceBottom = vh - anchorRect.bottom;
+    const spaceTop = anchorRect.top;
+    const wantsBottom = placement === "bottom";
+    const wantsTop = placement === "top";
+    const canBottom = spaceBottom >= panelHeight + offset + viewportPadding;
+    const canTop = spaceTop >= panelHeight + offset + viewportPadding;
+
+    let top: number;
+    if (wantsBottom) {
+      top = anchorRect.bottom + offset;
+    } else if (wantsTop) {
+      top = anchorRect.top - panelHeight - offset;
+    } else {
+      top =
+        canBottom || !canTop ? anchorRect.bottom + offset : anchorRect.top - panelHeight - offset;
+    }
+
+    const topMin = viewportPadding;
+    const topMax = Math.max(topMin, vh - panelHeight - viewportPadding);
+    top = clamp(top, topMin, topMax);
+
+    setPosition((prev) => {
+      if (prev && Math.abs(prev.left - left) < 0.5 && Math.abs(prev.top - top) < 0.5) {
+        return prev;
+      }
+      return { left, top };
+    });
+  }, [isOpen, offset, placement, triggerEl, triggerRect, viewportPadding]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (contentRef.current && !contentRef.current.contains(event.target as Node)) {
-        closeFloatingPanel();
-      }
+      const target = event.target as Node;
+      if (contentRef.current?.contains(target)) return;
+      if (triggerEl?.contains(target)) return;
+      closeFloatingPanel();
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [closeFloatingPanel]);
+  }, [closeFloatingPanel, triggerEl]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -173,62 +249,33 @@ export function FloatingPanelContent({
 
   useLayoutEffect(() => {
     if (!isOpen) return;
-    if (!triggerRect) return;
-
     const el = contentRef.current;
     if (!el) return;
 
-    const compute = () => {
-      const rect = el.getBoundingClientRect();
-      const vw = window.innerWidth;
-      const vh = window.innerHeight;
-
-      const clamp = (value: number, min: number, max: number) =>
-        Math.min(Math.max(value, min), max);
-
-      // Default anchor: align to trigger left.
-      let left = triggerRect.left;
-      left = clamp(left, viewportPadding, vw - rect.width - viewportPadding);
-
-      const spaceBottom = vh - triggerRect.bottom;
-      const spaceTop = triggerRect.top;
-
-      const wantsBottom = placement === "bottom";
-      const wantsTop = placement === "top";
-      const canBottom = spaceBottom >= rect.height + offset + viewportPadding;
-      const canTop = spaceTop >= rect.height + offset + viewportPadding;
-
-      let top: number;
-      if (wantsBottom) {
-        top = triggerRect.bottom + offset;
-      } else if (wantsTop) {
-        top = triggerRect.top - rect.height - offset;
-      } else {
-        // auto: prefer bottom, fallback to top
-        if (canBottom || !canTop) {
-          top = triggerRect.bottom + offset;
-        } else {
-          top = triggerRect.top - rect.height - offset;
-        }
-      }
-
-      top = clamp(top, viewportPadding, vh - rect.height - viewportPadding);
-
-      setPosition({ left, top });
-    };
-
-    // Measure after paint so we have a stable size.
-    const raf = window.requestAnimationFrame(compute);
-    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(() => compute()) : null;
+    const raf = window.requestAnimationFrame(computePosition);
+    const ro =
+      typeof ResizeObserver !== "undefined" ? new ResizeObserver(() => computePosition()) : null;
     ro?.observe(el);
 
     return () => {
       window.cancelAnimationFrame(raf);
       ro?.disconnect();
     };
-  }, [isOpen, triggerRect, placement, offset, viewportPadding]);
+  }, [computePosition, isOpen]);
 
-  return (
+  useEffect(() => {
+    if (!isOpen) return;
+
+    computePosition();
+    window.addEventListener("resize", computePosition);
+    window.addEventListener("scroll", computePosition, true);
+    return () => {
+      window.removeEventListener("resize", computePosition);
+      window.removeEventListener("scroll", computePosition, true);
+    };
+  }, [computePosition, isOpen]);
+
+  const panelNode = (
     <AnimatePresence>
       {isOpen && (
         <>
@@ -258,36 +305,64 @@ export function FloatingPanelContent({
             role="dialog"
             aria-modal="true"
             aria-labelledby={`floating-panel-title-${uniqueId}`}
+            aria-describedby={description ? `floating-panel-desc-${uniqueId}` : undefined}
             id={`floating-panel-content-${uniqueId}`}
           >
-            {showTitle ? <FloatingPanelTitle>{title}</FloatingPanelTitle> : null}
+            {showTitle ? (
+              <FloatingPanelTitle
+                description={description}
+                titleClassName={titleClassName}
+                descriptionClassName={descriptionClassName}
+              >
+                {title}
+              </FloatingPanelTitle>
+            ) : null}
             {children}
           </motion.div>
         </>
       )}
     </AnimatePresence>
   );
+
+  if (typeof document === "undefined") return null;
+  return createPortal(panelNode, document.body);
 }
 
 interface FloatingPanelTitleProps {
   children: React.ReactNode;
+  description?: React.ReactNode;
+  titleClassName?: string;
+  descriptionClassName?: string;
 }
 
-function FloatingPanelTitle({ children }: FloatingPanelTitleProps) {
+function FloatingPanelTitle({
+  children,
+  description,
+  titleClassName,
+  descriptionClassName,
+}: FloatingPanelTitleProps) {
   const { uniqueId } = useFloatingPanel();
 
   return (
     <motion.div
       layoutId={`floating-panel-label-container-${uniqueId}`}
-      className={cn("px-4 py-2", "border-b border-border/60")}
+      className={cn("px-4 py-3", "border-b border-border/60")}
     >
       <motion.div
         layoutId={`floating-panel-label-${uniqueId}`}
-        className="text-sm font-semibold"
+        className={cn("text-footnote font-bold! text-foreground", titleClassName)}
         id={`floating-panel-title-${uniqueId}`}
       >
         {children}
       </motion.div>
+      {description ? (
+        <div
+          className={cn("mt-1 text-caption text-muted-foreground", descriptionClassName)}
+          id={`floating-panel-desc-${uniqueId}`}
+        >
+          {description}
+        </div>
+      ) : null}
     </motion.div>
   );
 }

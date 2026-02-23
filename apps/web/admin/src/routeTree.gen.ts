@@ -12,13 +12,13 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as SetupRouteImport } from './routes/setup'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
-import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AcceptInviteRouteImport } from './routes/accept-invite'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AssetsIndexRouteImport } from './routes/assets/index'
 import { Route as WWorkspaceIdRouteImport } from './routes/w/$workspaceId'
 import { Route as OOrgIdRouteImport } from './routes/o/$orgId'
+import { Route as MeNotificationsRouteImport } from './routes/me/notifications'
 import { Route as DebugPortalEditorRouteImport } from './routes/debug/portal-editor'
 import { Route as WWorkspaceIdIndexRouteImport } from './routes/w/$workspaceId/index'
 import { Route as SettingsWorkspaceIndexRouteImport } from './routes/settings/workspace/index'
@@ -82,11 +82,6 @@ const OnboardingRoute = OnboardingRouteImport.update({
   path: '/onboarding',
   getParentRoute: () => rootRouteImport,
 } as any)
-const NotificationsRoute = NotificationsRouteImport.update({
-  id: '/notifications',
-  path: '/notifications',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -115,6 +110,11 @@ const WWorkspaceIdRoute = WWorkspaceIdRouteImport.update({
 const OOrgIdRoute = OOrgIdRouteImport.update({
   id: '/o/$orgId',
   path: '/o/$orgId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MeNotificationsRoute = MeNotificationsRouteImport.update({
+  id: '/me/notifications',
+  path: '/me/notifications',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DebugPortalEditorRoute = DebugPortalEditorRouteImport.update({
@@ -383,11 +383,11 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/accept-invite': typeof AcceptInviteRoute
   '/login': typeof LoginRoute
-  '/notifications': typeof NotificationsRoute
   '/onboarding': typeof OnboardingRoute
   '/reset-password': typeof ResetPasswordRoute
   '/setup': typeof SetupRoute
   '/debug/portal-editor': typeof DebugPortalEditorRoute
+  '/me/notifications': typeof MeNotificationsRoute
   '/o/$orgId': typeof OOrgIdRouteWithChildren
   '/w/$workspaceId': typeof WWorkspaceIdRouteWithChildren
   '/assets/': typeof AssetsIndexRoute
@@ -442,11 +442,11 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/accept-invite': typeof AcceptInviteRoute
   '/login': typeof LoginRoute
-  '/notifications': typeof NotificationsRoute
   '/onboarding': typeof OnboardingRoute
   '/reset-password': typeof ResetPasswordRoute
   '/setup': typeof SetupRoute
   '/debug/portal-editor': typeof DebugPortalEditorRoute
+  '/me/notifications': typeof MeNotificationsRoute
   '/assets': typeof AssetsIndexRoute
   '/appearance/navigation': typeof AppearanceNavigationIndexRoute
   '/appearance/styles': typeof AppearanceStylesIndexRoute
@@ -500,11 +500,11 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/accept-invite': typeof AcceptInviteRoute
   '/login': typeof LoginRoute
-  '/notifications': typeof NotificationsRoute
   '/onboarding': typeof OnboardingRoute
   '/reset-password': typeof ResetPasswordRoute
   '/setup': typeof SetupRoute
   '/debug/portal-editor': typeof DebugPortalEditorRoute
+  '/me/notifications': typeof MeNotificationsRoute
   '/o/$orgId': typeof OOrgIdRouteWithChildren
   '/w/$workspaceId': typeof WWorkspaceIdRouteWithChildren
   '/assets/': typeof AssetsIndexRoute
@@ -561,11 +561,11 @@ export interface FileRouteTypes {
     | '/'
     | '/accept-invite'
     | '/login'
-    | '/notifications'
     | '/onboarding'
     | '/reset-password'
     | '/setup'
     | '/debug/portal-editor'
+    | '/me/notifications'
     | '/o/$orgId'
     | '/w/$workspaceId'
     | '/assets/'
@@ -620,11 +620,11 @@ export interface FileRouteTypes {
     | '/'
     | '/accept-invite'
     | '/login'
-    | '/notifications'
     | '/onboarding'
     | '/reset-password'
     | '/setup'
     | '/debug/portal-editor'
+    | '/me/notifications'
     | '/assets'
     | '/appearance/navigation'
     | '/appearance/styles'
@@ -677,11 +677,11 @@ export interface FileRouteTypes {
     | '/'
     | '/accept-invite'
     | '/login'
-    | '/notifications'
     | '/onboarding'
     | '/reset-password'
     | '/setup'
     | '/debug/portal-editor'
+    | '/me/notifications'
     | '/o/$orgId'
     | '/w/$workspaceId'
     | '/assets/'
@@ -737,11 +737,11 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AcceptInviteRoute: typeof AcceptInviteRoute
   LoginRoute: typeof LoginRoute
-  NotificationsRoute: typeof NotificationsRoute
   OnboardingRoute: typeof OnboardingRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SetupRoute: typeof SetupRoute
   DebugPortalEditorRoute: typeof DebugPortalEditorRoute
+  MeNotificationsRoute: typeof MeNotificationsRoute
   OOrgIdRoute: typeof OOrgIdRouteWithChildren
   WWorkspaceIdRoute: typeof WWorkspaceIdRouteWithChildren
   AssetsIndexRoute: typeof AssetsIndexRoute
@@ -779,13 +779,6 @@ declare module '@tanstack/react-router' {
       path: '/onboarding'
       fullPath: '/onboarding'
       preLoaderRoute: typeof OnboardingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/notifications': {
-      id: '/notifications'
-      path: '/notifications'
-      fullPath: '/notifications'
-      preLoaderRoute: typeof NotificationsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -828,6 +821,13 @@ declare module '@tanstack/react-router' {
       path: '/o/$orgId'
       fullPath: '/o/$orgId'
       preLoaderRoute: typeof OOrgIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/me/notifications': {
+      id: '/me/notifications'
+      path: '/me/notifications'
+      fullPath: '/me/notifications'
+      preLoaderRoute: typeof MeNotificationsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/debug/portal-editor': {
@@ -1267,11 +1267,11 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AcceptInviteRoute: AcceptInviteRoute,
   LoginRoute: LoginRoute,
-  NotificationsRoute: NotificationsRoute,
   OnboardingRoute: OnboardingRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SetupRoute: SetupRoute,
   DebugPortalEditorRoute: DebugPortalEditorRoute,
+  MeNotificationsRoute: MeNotificationsRoute,
   OOrgIdRoute: OOrgIdRouteWithChildren,
   WWorkspaceIdRoute: WWorkspaceIdRouteWithChildren,
   AssetsIndexRoute: AssetsIndexRoute,

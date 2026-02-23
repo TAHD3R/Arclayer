@@ -85,7 +85,7 @@ export function WorkspaceSettingsView() {
   const [deleteDialogForm] = Form.useForm<DeleteWorkspaceDialogValues>();
   const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
   const setCurrentWorkspaceId = useWorkspaceStore((s) => s.setCurrentWorkspaceId);
-  const localePreference = usePreferencesStore((s) => s.localePreference);
+  const localePreferenceMode = usePreferencesStore((s) => s.localePreferenceMode);
   const setEffectiveLocale = usePreferencesStore((s) => s.setEffectiveLocale);
   const cacheWorkspaceLocale = usePreferencesStore((s) => s.cacheWorkspaceLocale);
   const [savingKey, setSavingKey] = React.useState<string | null>(null);
@@ -538,7 +538,7 @@ export function WorkspaceSettingsView() {
                               cacheWorkspaceLocale(String(workspaceId), nextLocale);
                             }
                             // Workspace default locale is only applied when user has no explicit preference.
-                            if (!localePreference) {
+                            if (localePreferenceMode === "workspace") {
                               setEffectiveLocale(nextLocale);
                             }
                           })
@@ -562,7 +562,7 @@ export function WorkspaceSettingsView() {
                                       initialWorkspaceLocale,
                                     );
                                   }
-                                  if (!localePreference) {
+                                  if (localePreferenceMode === "workspace") {
                                     setEffectiveLocale(initialWorkspaceLocale);
                                   }
                                 })

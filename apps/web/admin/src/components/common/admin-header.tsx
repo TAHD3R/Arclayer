@@ -7,8 +7,7 @@ import { useTranslation } from "react-i18next";
 
 import type { AdminNavItem } from "@/constants/admin-nav";
 import { cn } from "@/lib/utils";
-import { AdminLocaleToggle } from "@/components/common/admin-toggle-locales";
-import { AdminThemeModeToggle } from "@/components/common/admin-toggle-theme";
+import { AdminHeaderActions } from "@/components/common/admin-header-actions";
 import RefreshIcon from "@/components/ui/icons/refresh-icon";
 function normalizePath(input: string): string {
   if (input.length > 1 && input.endsWith("/")) return input.slice(0, -1);
@@ -203,8 +202,7 @@ export function AdminHeader(props: {
 
       <div className="shrink-0">
         <Space size={4}>
-          <AdminLocaleToggle />
-          <AdminThemeModeToggle />
+          <AdminHeaderActions />
           {props.accountMenuSlot ? <>{props.accountMenuSlot}</> : null}
         </Space>
       </div>

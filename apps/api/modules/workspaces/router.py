@@ -17,6 +17,7 @@ from apps.api.modules.organization.models.org_membership import OrgMembership
 from apps.api.modules.organization.workspaces.service import OrganizationWorkspaceService
 from apps.api.modules.system.admin.extensions.router import router as workspace_admin_extensions_router
 from apps.api.modules.system.admin.menus.router import router as workspace_menus_router
+from apps.api.modules.system.admin.notifications.me_router import router as my_notifications_router
 from apps.api.modules.system.admin.notifications.router import router as workspace_notifications_router
 from apps.api.modules.workspaces.authz.deps import require_workspace_permission
 from apps.api.modules.workspaces.authz.router import router as workspace_authz_router
@@ -51,6 +52,7 @@ router.include_router(workspace_uploads_router)
 router.include_router(workspace_shares_router)
 router.include_router(workspace_usages_router)
 router.include_router(workspace_notifications_router)
+router.include_router(my_notifications_router)
 router.include_router(workspace_menus_router)
 router.include_router(workspace_admin_extensions_router)
 router.include_router(workspace_themes_router)

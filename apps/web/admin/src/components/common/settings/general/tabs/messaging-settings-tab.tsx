@@ -11,7 +11,6 @@ import { SettingPanel } from "@/components/common/setting-panel";
 import { type SettingOverlayConfig, useSettingOverlays } from "@/hooks/use-setting-overlays";
 import { sendTestEmail } from "@/api/mail";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
-import { usePreferencesStore } from "@/stores/use-preference-store";
 
 import type { GeneralSettingsTabBaseProps } from "@/types/settings-general";
 import type { GeneralSettingsFormValues } from "@/types/settings-general";
@@ -53,10 +52,6 @@ export function MessagingSettingsTab({
   coreSecrets,
 }: MessagingSettingsTabProps) {
   const { t } = useTranslation();
-  const showSidebarNotificationCenter = usePreferencesStore((s) => s.showSidebarNotificationCenter);
-  const setShowSidebarNotificationCenter = usePreferencesStore(
-    (s) => s.setShowSidebarNotificationCenter,
-  );
   const [testRecipient, setTestRecipient] = React.useState("");
   const [isTestingEmail, setIsTestingEmail] = React.useState(false);
 
@@ -468,26 +463,6 @@ export function MessagingSettingsTab({
         bordered={false}
       >
         <div className="rounded-xl bg-background divide-y">
-          <SettingActionItem
-            as="div"
-            title={t("settings:SETTINGS_MESSAGING_NOTIFICATION_SIDENAV_TITLE")}
-            description={t("settings:SETTINGS_MESSAGING_NOTIFICATION_SIDENAV_DESC")}
-            summary={
-              showSidebarNotificationCenter
-                ? t("settings:SETTINGS_MESSAGING_ENABLED")
-                : t("settings:SETTINGS_MESSAGING_DISABLED")
-            }
-            showChevron={false}
-            right={
-              <Switch
-                checked={showSidebarNotificationCenter}
-                disabled={disabled}
-                onChange={(checked) => setShowSidebarNotificationCenter(Boolean(checked))}
-                onClick={(_checked, e) => e.stopPropagation()}
-              />
-            }
-          />
-
           <Accordion type="single" collapsible className="px-0">
             <SettingAccordionItem
               value="notificationTypes"

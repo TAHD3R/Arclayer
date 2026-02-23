@@ -2,28 +2,14 @@ import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Avatar, Tag, Typography } from "antd";
 import { useTranslation } from "react-i18next";
-import {
-  Check,
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  Inbox,
-  Languages,
-  LogOut,
-  Moon,
-  SlidersHorizontal,
-  Settings,
-  Sun,
-} from "lucide-react";
-import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { ChevronDown, Inbox, LogOut, Settings } from "lucide-react";
+import { type ReactNode, useMemo } from "react";
 
 import * as authApi from "@/api/auth";
 import { getMyOrganization } from "@/api/me";
 import { getMyWorkspaceAuthz } from "@/api/workspaces";
 import { useAuthStore } from "@/stores/use-auth-store";
-import { usePreferencesStore } from "@/stores/use-preference-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
-import { setThemeModeWithTransition } from "@/components/ui/theme-transition";
 import {
   FloatingPanelButton,
   FloatingPanelContent,
@@ -152,7 +138,6 @@ function normalizeUserProfile(raw: unknown): {
 
 function getPrimaryRoleCode(input: { isSuper: boolean; roleCodes: string[] }): string {
   if (input.isSuper) return "superuser";
-  // Prefer "admin" as the primary role when it exists.
   if (input.roleCodes.includes("admin")) return "admin";
   if (input.roleCodes.includes("user")) return "user";
   return input.roleCodes[0] ?? "user";
@@ -163,22 +148,13 @@ function AdminAccountPanelContent(props: {
   avatarUrl: string | null;
   roleText: string;
   showOrganizationSettings: boolean;
-  themeMode: "light" | "dark";
-  locale: "zh-CN" | "en-US";
-  setLocale: (locale: "zh-CN" | "en-US") => void;
   onLogout: () => Promise<void>;
   onPersonalSettings: () => Promise<void> | void;
   onNotifications: () => Promise<void> | void;
   onOrganizationSettings: () => Promise<void> | void;
 }) {
   const { t } = useTranslation("account");
-  const { isOpen, closeFloatingPanel } = useFloatingPanel();
-  const [view, setView] = useState<"root" | "preferences" | "theme" | "language">("root");
-
-  useEffect(() => {
-    // Reset to root view whenever the panel closes to avoid reopening in a sub-view.
-    if (!isOpen) setView("root");
-  }, [isOpen]);
+  const { closeFloatingPanel } = useFloatingPanel();
 
   const onClickAndClose = async (fn: () => Promise<void> | void) => {
     await fn();
@@ -191,143 +167,6 @@ function AdminAccountPanelContent(props: {
     "hover:bg-primary hover:text-primary-foreground",
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0",
   );
-
-  if (view === "theme") {
-    return (
-      <div className="w-72">
-        <div className="flex items-center gap-2 px-2 py-2">
-          <button
-            type="button"
-            aria-label={t("common:BACK")}
-            className={cn(
-              "inline-flex items-center justify-center rounded-md px-2 py-2",
-              "text-muted-foreground hover:bg-muted hover:text-foreground",
-            )}
-            onClick={() => setView("root")}
-          >
-            <ChevronLeft className="size-4" />
-          </button>
-          <div className="text-sm font-semibold">{t("ACCOUNT_THEME")}</div>
-        </div>
-
-        {divider()}
-
-        <div className="py-1">
-          <FloatingPanelButton
-            className={menuItemClassName}
-            onClick={() => {
-              closeFloatingPanel();
-              void setThemeModeWithTransition("light", { direction: "ltr" });
-            }}
-          >
-            <MenuItemContent
-              icon={<Sun />}
-              label={t("ACCOUNT_THEME_LIGHT")}
-              right={props.themeMode === "light" ? <Check className="size-4" /> : null}
-            />
-          </FloatingPanelButton>
-          <FloatingPanelButton
-            className={menuItemClassName}
-            onClick={() => {
-              closeFloatingPanel();
-              void setThemeModeWithTransition("dark", { direction: "ltr" });
-            }}
-          >
-            <MenuItemContent
-              icon={<Moon />}
-              label={t("ACCOUNT_THEME_DARK")}
-              right={props.themeMode === "dark" ? <Check className="size-4" /> : null}
-            />
-          </FloatingPanelButton>
-        </div>
-      </div>
-    );
-  }
-
-  if (view === "language") {
-    return (
-      <div className="w-72">
-        <div className="flex items-center gap-2 px-2 py-2">
-          <button
-            type="button"
-            aria-label={t("common:BACK")}
-            className={cn(
-              "inline-flex items-center justify-center rounded-md px-2 py-2",
-              "text-muted-foreground hover:bg-muted hover:text-foreground",
-            )}
-            onClick={() => setView("root")}
-          >
-            <ChevronLeft className="size-4" />
-          </button>
-          <div className="text-sm font-semibold">{t("ACCOUNT_LANGUAGE")}</div>
-        </div>
-
-        {divider()}
-
-        <div className="py-1">
-          <FloatingPanelButton
-            className={menuItemClassName}
-            onClick={() => onClickAndClose(() => props.setLocale("zh-CN"))}
-          >
-            <MenuItemContent
-              label={t("ACCOUNT_LANGUAGE_ZH")}
-              right={props.locale === "zh-CN" ? <Check className="size-4" /> : null}
-            />
-          </FloatingPanelButton>
-          <FloatingPanelButton
-            className={menuItemClassName}
-            onClick={() => onClickAndClose(() => props.setLocale("en-US"))}
-          >
-            <MenuItemContent
-              label={t("ACCOUNT_LANGUAGE_EN")}
-              right={props.locale === "en-US" ? <Check className="size-4" /> : null}
-            />
-          </FloatingPanelButton>
-        </div>
-      </div>
-    );
-  }
-
-  if (view === "preferences") {
-    return (
-      <div className="w-72">
-        <div className="flex items-center gap-2 px-2 py-2">
-          <button
-            type="button"
-            aria-label={t("common:BACK")}
-            className={cn(
-              "inline-flex items-center justify-center rounded-md px-2 py-2",
-              "text-muted-foreground hover:bg-muted hover:text-foreground",
-            )}
-            onClick={() => setView("root")}
-          >
-            <ChevronLeft className="size-4" />
-          </button>
-          <div className="text-sm font-semibold">{t("ACCOUNT_PREFERENCES")}</div>
-        </div>
-
-        {divider()}
-
-        <div className="py-1">
-          <FloatingPanelButton className={menuItemClassName} onClick={() => setView("theme")}>
-            <MenuItemContent
-              icon={<Sun />}
-              label={t("ACCOUNT_THEME")}
-              right={<ChevronRight className="size-4" />}
-            />
-          </FloatingPanelButton>
-
-          <FloatingPanelButton className={menuItemClassName} onClick={() => setView("language")}>
-            <MenuItemContent
-              icon={<Languages />}
-              label={t("ACCOUNT_LANGUAGE")}
-              right={<ChevronRight className="size-4" />}
-            />
-          </FloatingPanelButton>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="w-72">
@@ -392,18 +231,6 @@ function AdminAccountPanelContent(props: {
       {divider()}
 
       <div className="py-1">
-        <FloatingPanelButton className={menuItemClassName} onClick={() => setView("preferences")}>
-          <MenuItemContent
-            icon={<SlidersHorizontal />}
-            label={t("ACCOUNT_PREFERENCES")}
-            right={<ChevronRight className="size-4" />}
-          />
-        </FloatingPanelButton>
-      </div>
-
-      {divider()}
-
-      <div className="py-1">
         <FloatingPanelButton
           className={menuItemClassName}
           onClick={() => onClickAndClose(props.onLogout)}
@@ -424,10 +251,6 @@ export function AdminAccountMenu(props?: { triggerVariant?: "sidebar" | "header"
   const clear = useAuthStore((s) => s.clear);
   const accessToken = useAuthStore((s) => s.accessToken);
   const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
-
-  const themeMode = usePreferencesStore((s) => s.themeMode);
-  const locale = usePreferencesStore((s) => s.locale);
-  const setLocale = usePreferencesStore((s) => s.setLocale);
 
   const meQuery = useQuery({
     queryKey: ["auth", "me"],
@@ -490,15 +313,7 @@ export function AdminAccountMenu(props?: { triggerVariant?: "sidebar" | "header"
   };
 
   const onNotifications = () => {
-    if (workspaceId) {
-      void navigate({ to: `/w/${workspaceId}/notifications` });
-      return;
-    }
-    if (currentOrganizationId) {
-      void navigate({ to: buildOrganizationPath(currentOrganizationId, "/workspaces") });
-      return;
-    }
-    void navigate({ to: "/" });
+    void navigate({ to: "/me/notifications" });
   };
 
   const canManageOrganization =
@@ -578,9 +393,6 @@ export function AdminAccountMenu(props?: { triggerVariant?: "sidebar" | "header"
           avatarUrl={profile.avatarUrl ?? profile.avatarAssetId}
           roleText={roleText}
           showOrganizationSettings={canManageOrganization}
-          themeMode={themeMode}
-          locale={locale}
-          setLocale={setLocale}
           onLogout={onLogout}
           onPersonalSettings={onPersonalSettings}
           onNotifications={onNotifications}

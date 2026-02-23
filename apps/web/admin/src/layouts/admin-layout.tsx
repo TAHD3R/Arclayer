@@ -1,7 +1,7 @@
 import { Outlet } from "@tanstack/react-router";
 import { type CSSProperties, type PropsWithChildren, useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate, useRouterState } from "@tanstack/react-router";
+import { useRouterState } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import type { LucideIcon } from "lucide-react";
 import {
@@ -35,21 +35,17 @@ import { AdminLogo } from "@/components/common/admin-logo";
 import { AdminAccountMenu } from "@/components/common/admin-account-menu";
 import { AdminWorkspaceSwitcher } from "@/components/common/admin-workspace-switcher";
 import { AdminHeader } from "@/components/common/admin-header";
-import { AdminNotificationCenter } from "@/components/common/admin-notification-center";
 import { RouteProgress } from "@/components/common/route-progress";
 import { RouteTransition } from "@/components/common/route-transition";
 import { PageState } from "@/components/common/page-state";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
-import type { NotificationPreview } from "@/api/notifications";
-import { getUnreadNotificationPreview, markNotificationRead } from "@/api/notifications";
 import type { AdminMenuNodeEffective } from "@/api/admin-menus";
 import { getAdminMenuCatalogEffective } from "@/api/admin-menus";
+import { getMyOrganization } from "@/api/me";
 import { getWorkspaceDetail } from "@/api/workspaces";
 import { useWorkspaceLocalization } from "@/hooks/use-workspace-localization";
-import { useNowTick } from "@/hooks/use-now-tick";
-import { formatRelativeTimeAt } from "@/lib/time/relative-time";
 import { resolvePermissionNameI18nKey } from "@/lib/rbac-permissions";
 import { ForbiddenView } from "@/pages/builtin/forbidden-page";
 import {
@@ -156,6 +152,23 @@ function findActiveTrailNodes(items: AdminNavItem[], pathname: string): AdminNav
   return bestTrail;
 }
 
+function mapOrgItemsWithPrefix(items: AdminNavItem[], orgPathPrefix: string): AdminNavItem[] {
+  return items.map((item) => {
+    let to = item.to;
+    if (item.to) {
+      const subPath = item.to === "/" ? "" : item.to;
+      to = `${orgPathPrefix}${subPath.startsWith("/") ? subPath : `/${subPath}`}`;
+    }
+    return {
+      ...item,
+      ...(to ? { to } : {}),
+      ...(item.children?.length
+        ? { children: mapOrgItemsWithPrefix(item.children, orgPathPrefix) }
+        : {}),
+    };
+  });
+}
+
 function collectAllowedWorkspacePathPrefixes(
   items: AdminNavItem[],
   workspaceBase: string,
@@ -164,6 +177,7 @@ function collectAllowedWorkspacePathPrefixes(
   const prefixes = new Set<string>();
 
   prefixes.add(base);
+  // Keep legacy workspace-scoped notifications URL reachable so route-level redirect can run.
   prefixes.add(normalizePath(`${base}/notifications`));
   // This route immediately redirects to the canonical org-scope path, but guard it as allowed
   // so the redirect can happen without being blocked.
@@ -203,14 +217,12 @@ function buildDocumentTitle(routeTitle: string | null, workspaceName: string | n
 }
 
 export function AdminLayout({ children }: PropsWithChildren) {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const accessToken = useAuthStore((s) => s.accessToken);
-  const showSidebarNotificationCenter = usePreferencesStore((s) => s.showSidebarNotificationCenter);
   const effectiveLocale = usePreferencesStore((s) => s.locale);
-  const localePreference = usePreferencesStore((s) => s.localePreference);
+  const localePreferenceMode = usePreferencesStore((s) => s.localePreferenceMode);
   const setEffectiveLocale = usePreferencesStore((s) => s.setEffectiveLocale);
   const cacheWorkspaceLocale = usePreferencesStore((s) => s.cacheWorkspaceLocale);
   const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
@@ -224,6 +236,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
     const p = pathname || "/";
     return p === "/" || p.startsWith("/o/");
   }, [pathname]);
+  const isMeScopeRoute = useMemo(() => (pathname || "/").startsWith("/me/"), [pathname]);
 
   const workspaceBase = useMemo(() => {
     if (!workspaceId) return null;
@@ -240,6 +253,21 @@ export function AdminLayout({ children }: PropsWithChildren) {
     retry: false,
     meta: { silent: true },
   });
+  const myOrganizationQuery = useQuery({
+    queryKey: ["me", "organization", "layout", accessToken],
+    enabled: Boolean(accessToken),
+    queryFn: async () => getMyOrganization(),
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+    meta: { silent: true },
+  });
+
+  const resolvedOrgPathPrefix = useMemo(() => {
+    if (orgPathPrefix) return orgPathPrefix;
+    const orgId = myOrganizationQuery.data?.organization?.id;
+    if (!orgId) return null;
+    return `/o/${encodeURIComponent(orgId)}`;
+  }, [myOrganizationQuery.data?.organization?.id, orgPathPrefix]);
 
   const resolvePermissionName = useMemo(() => {
     return (code: string) => {
@@ -266,29 +294,16 @@ export function AdminLayout({ children }: PropsWithChildren) {
   );
 
   const navItems = useMemo(() => {
-    if (isOrgScopeRoute) {
-      if (!orgPathPrefix) return [];
-
-      const mapOrgItems = (items: AdminNavItem[]): AdminNavItem[] => {
-        return items.map((item) => {
-          let to = item.to;
-          if (item.to) {
-            const subPath = item.to === "/" ? "" : item.to;
-            to = `${orgPathPrefix}${subPath.startsWith("/") ? subPath : `/${subPath}`}`;
-          }
-          return {
-            ...item,
-            ...(to ? { to } : {}),
-            ...(item.children?.length ? { children: mapOrgItems(item.children) } : {}),
-          };
-        });
-      };
-
-      return mapOrgItems(ORG_NAV_ITEMS);
+    if (isOrgScopeRoute || isMeScopeRoute) {
+      if (!resolvedOrgPathPrefix) return [];
+      return mapOrgItemsWithPrefix(ORG_NAV_ITEMS, resolvedOrgPathPrefix);
     }
     // When workspace is not selected (or currentWorkspaceId is temporarily unavailable),
     // keep a stable shell so error/not-found pages don't "drop" the layout.
-    if (!workspaceBase) return ORG_NAV_ITEMS;
+    if (!workspaceBase) {
+      if (resolvedOrgPathPrefix) return mapOrgItemsWithPrefix(ORG_NAV_ITEMS, resolvedOrgPathPrefix);
+      return ORG_NAV_ITEMS;
+    }
     const base = workspaceBase.endsWith("/") ? workspaceBase.slice(0, -1) : workspaceBase;
 
     const baseItems: AdminNavItem[] = workspaceMenuQuery.data?.items?.length
@@ -315,7 +330,8 @@ export function AdminLayout({ children }: PropsWithChildren) {
     return mapItems(baseItems);
   }, [
     isOrgScopeRoute,
-    orgPathPrefix,
+    isMeScopeRoute,
+    resolvedOrgPathPrefix,
     workspaceBase,
     workspaceMenuQuery.data?.items,
     workspaceMenuQuery.isError,
@@ -370,12 +386,12 @@ export function AdminLayout({ children }: PropsWithChildren) {
     if (!next) return;
     // Always cache workspace default locale for smoother refresh bootstrapping.
     cacheWorkspaceLocale(String(workspaceId), next);
-    if (localePreference) return;
+    if (localePreferenceMode !== "workspace") return;
     setEffectiveLocale(next);
   }, [
     accessToken,
     cacheWorkspaceLocale,
-    localePreference,
+    localePreferenceMode,
     setEffectiveLocale,
     workspaceId,
     workspaceLocalization.localization.locale,
@@ -393,30 +409,6 @@ export function AdminLayout({ children }: PropsWithChildren) {
   }, [routeTitle, workspaceName]);
 
   const brandTitle = useMemo(() => (getAppConfig().title || "Celestial").trim(), []);
-
-  const notificationsPreviewQuery = useQuery({
-    queryKey: ["notifications", "preview", workspaceId],
-    enabled: Boolean(accessToken && workspaceId && !isOrgScopeRoute),
-    queryFn: async () => getUnreadNotificationPreview(String(workspaceId), { limit: 3 }),
-    staleTime: 15 * 1000,
-    refetchInterval: 30 * 1000,
-    meta: { silent: true },
-  });
-  const nowMs = useNowTick(60_000);
-
-  const markPreviewItemReadOptimistic = (id: string) => {
-    queryClient.setQueryData<NotificationPreview>(
-      ["notifications", "preview", workspaceId],
-      (old) => {
-        if (!old) return old;
-        return {
-          ...old,
-          unreadCount: Math.max(0, old.unreadCount - 1),
-          items: old.items.filter((x) => x.id !== id),
-        };
-      },
-    );
-  };
 
   return (
     <SidebarProvider defaultOpen className="h-screen">
@@ -461,45 +453,6 @@ export function AdminLayout({ children }: PropsWithChildren) {
 
         <SidebarFooter className="relative z-10 isolate p-0">
           <div className="w-full bg-sidebar">
-            <div className="px-4 pb-3">
-              {showSidebarNotificationCenter && !isOrgScopeRoute && workspaceBase ? (
-                <AdminNotificationCenter
-                  maxItems={2}
-                  unreadCount={notificationsPreviewQuery.data?.unreadCount ?? 0}
-                  items={(notificationsPreviewQuery.data?.items ?? []).map((n) => ({
-                    id: n.id,
-                    title: n.title,
-                    subtitle: n.body ?? undefined,
-                    time: formatRelativeTimeAt(n.createdAt, i18n.language, nowMs),
-                    to: n.targetTo ? `${workspaceBase}${n.targetTo}` : undefined,
-                  }))}
-                  onViewAll={() => {
-                    void navigate({ to: `${workspaceBase}/notifications` });
-                  }}
-                  onItemClick={(item) => {
-                    const to = item.to;
-                    const id = String(item.id);
-                    markPreviewItemReadOptimistic(id);
-                    void markNotificationRead(String(workspaceId), id).finally(() => {
-                      // Best-effort refresh to keep badge/list in sync (handles failures/edge cases).
-                      void queryClient.invalidateQueries({
-                        queryKey: ["notifications", "preview", workspaceId],
-                      });
-                    });
-                    if (to) void navigate({ to: to as never });
-                  }}
-                  onDismiss={(id) => {
-                    const notificationId = String(id);
-                    markPreviewItemReadOptimistic(notificationId);
-                    void markNotificationRead(String(workspaceId), notificationId).finally(() => {
-                      void queryClient.invalidateQueries({
-                        queryKey: ["notifications", "preview", workspaceId],
-                      });
-                    });
-                  }}
-                />
-              ) : null}
-            </div>
             <div className="w-full">
               <AdminWorkspaceSwitcher />
             </div>

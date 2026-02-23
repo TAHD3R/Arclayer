@@ -2,7 +2,7 @@ import { create } from "zustand";
 
 import { STORAGE_KEYS } from "@/constants/storage";
 import {
-  getInitialLocale,
+  detectBrowserLocale,
   i18n,
   type AppLocale,
   DEFAULT_LOCALE,
@@ -10,21 +10,27 @@ import {
 } from "@/lib/i18n";
 import { type ThemeMode } from "@celestial/ui-theme/antd";
 
+export type ThemePreference = ThemeMode | "system";
+export type LocalePreferenceMode = "workspace" | "browser" | "explicit";
+
 interface PreferencesState {
   themeMode: ThemeMode;
+  themePreference: ThemePreference;
   locale: AppLocale;
-  showSidebarNotificationCenter: boolean;
   /**
    * Whether the user explicitly chose a locale:
    * - set: user preference (client will send X-Locale)
-   * - null: no preference (client won't send X-Locale; server falls back to workspace default)
+   * - null: no explicit preference (client won't send X-Locale)
    */
   localePreference: AppLocale | null;
+  localePreferenceMode: LocalePreferenceMode;
   setThemeMode: (mode: ThemeMode) => void;
+  setThemePreference: (preference: ThemePreference) => void;
   toggleThemeMode: () => void;
   setLocale: (locale: AppLocale) => void;
+  setBrowserLocale: () => void;
   /**
-   * Apply an effective locale from workspace/site defaults when user has no explicit preference.
+   * Apply an effective locale from workspace/site defaults when user is in workspace mode.
    *
    * Notes:
    * - Does NOT persist to localStorage.
@@ -39,7 +45,6 @@ interface PreferencesState {
    * - Used to avoid "flash to browser language" before workspace settings are loaded.
    */
   cacheWorkspaceLocale: (workspaceId: string, locale: AppLocale) => void;
-  setShowSidebarNotificationCenter: (enabled: boolean) => void;
 }
 
 function normalizeThemeMode(input: unknown): ThemeMode {
@@ -47,35 +52,49 @@ function normalizeThemeMode(input: unknown): ThemeMode {
   return "light";
 }
 
+function normalizeThemePreference(input: unknown): ThemePreference {
+  if (input === "system") return "system";
+  return normalizeThemeMode(input);
+}
+
+function normalizeLocalePreferenceMode(input: unknown): LocalePreferenceMode {
+  if (input === "explicit" || input === "browser" || input === "workspace") return input;
+  return "workspace";
+}
+
 function detectSystemThemeMode(): ThemeMode {
   if (typeof window === "undefined") return "light";
   return window.matchMedia?.("(prefers-color-scheme: dark)")?.matches ? "dark" : "light";
 }
 
-function getInitialThemeMode(): ThemeMode {
+function resolveThemeMode(preference: ThemePreference): ThemeMode {
+  if (preference === "system") return detectSystemThemeMode();
+  return preference;
+}
+
+function getInitialThemePreference(): ThemePreference {
   if (typeof window === "undefined") return "light";
 
-  // Prefer explicit attribute if present (source-of-truth is CSS vars).
   const fromDom = document.documentElement.dataset.theme;
   if (fromDom) return normalizeThemeMode(fromDom);
 
   try {
     const stored = window.localStorage.getItem(STORAGE_KEYS.themeMode);
-    if (stored) return normalizeThemeMode(stored);
+    if (stored) return normalizeThemePreference(stored);
   } catch {
     // ignore storage errors
   }
 
-  return detectSystemThemeMode();
+  return "system";
 }
 
 function applyThemeModeToDom(mode: ThemeMode) {
   document.documentElement.dataset.theme = mode;
 }
 
-function persistThemeMode(mode: ThemeMode) {
+function persistThemePreference(preference: ThemePreference) {
   try {
-    window.localStorage.setItem(STORAGE_KEYS.themeMode, mode);
+    window.localStorage.setItem(STORAGE_KEYS.themeMode, preference);
   } catch {
     // ignore storage errors
   }
@@ -89,9 +108,17 @@ function persistLocale(locale: AppLocale) {
   }
 }
 
-function persistSidebarNotificationCenter(enabled: boolean) {
+function clearPersistedLocale() {
   try {
-    window.localStorage.setItem(STORAGE_KEYS.sidebarNotificationCenter, enabled ? "1" : "0");
+    window.localStorage.removeItem(STORAGE_KEYS.locale);
+  } catch {
+    // ignore storage errors
+  }
+}
+
+function persistLocalePreferenceMode(mode: LocalePreferenceMode) {
+  try {
+    window.localStorage.setItem(STORAGE_KEYS.localePreferenceMode, mode);
   } catch {
     // ignore storage errors
   }
@@ -127,7 +154,6 @@ function readPersistedLastWorkspaceId(): string | null {
     const raw = window.localStorage.getItem(STORAGE_KEYS.workspace);
     if (!raw) return null;
     const parsed: unknown = JSON.parse(raw);
-    // zustand persist stores { state: {...}, version: n }
     if (!parsed || typeof parsed !== "object") return null;
     const stateCandidate = (parsed as { state?: unknown }).state;
     if (!stateCandidate || typeof stateCandidate !== "object") return null;
@@ -139,31 +165,91 @@ function readPersistedLastWorkspaceId(): string | null {
   }
 }
 
-function getInitialSidebarNotificationCenterEnabled(): boolean {
-  if (typeof window === "undefined") return true;
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEYS.sidebarNotificationCenter);
-    if (raw === null) return true;
-    return raw === "1" || raw === "true";
-  } catch {
-    return true;
-  }
-}
-
 function applyLocaleToDom(locale: AppLocale) {
   document.documentElement.lang = locale;
 }
 
+function getInitialLocaleState(): {
+  mode: LocalePreferenceMode;
+  localePreference: AppLocale | null;
+  locale: AppLocale;
+} {
+  if (typeof window === "undefined") {
+    return {
+      mode: "workspace",
+      localePreference: null,
+      locale: DEFAULT_LOCALE,
+    };
+  }
+
+  let storedLocale: string | null = null;
+  let storedModeRaw: string | null = null;
+  try {
+    storedLocale = window.localStorage.getItem(STORAGE_KEYS.locale);
+    storedModeRaw = window.localStorage.getItem(STORAGE_KEYS.localePreferenceMode);
+  } catch {
+    // ignore storage errors
+  }
+
+  const storedMode = normalizeLocalePreferenceMode(storedModeRaw);
+  const hasStoredMode = Boolean(storedModeRaw);
+
+  // Backward compatibility: legacy clients only stored locale, which implies explicit mode.
+  if ((hasStoredMode && storedMode === "explicit") || (!hasStoredMode && storedLocale)) {
+    const explicitLocale = storedLocale ? normalizeLocale(storedLocale) : detectBrowserLocale();
+    return {
+      mode: "explicit",
+      localePreference: explicitLocale,
+      locale: explicitLocale,
+    };
+  }
+
+  if (hasStoredMode && storedMode === "browser") {
+    const browserLocale = detectBrowserLocale();
+    return {
+      mode: "browser",
+      localePreference: null,
+      locale: browserLocale,
+    };
+  }
+
+  const lastWorkspaceId = readPersistedLastWorkspaceId();
+  if (lastWorkspaceId) {
+    const cache = readWorkspaceLocaleCache();
+    const cached = cache[lastWorkspaceId];
+    if (cached) {
+      return {
+        mode: "workspace",
+        localePreference: null,
+        locale: normalizeLocale(cached),
+      };
+    }
+  }
+
+  return {
+    mode: "workspace",
+    localePreference: null,
+    locale: detectBrowserLocale(),
+  };
+}
+
 export const usePreferencesStore = create<PreferencesState>((set, get) => ({
   themeMode: "light",
+  themePreference: "light",
   locale: DEFAULT_LOCALE,
-  showSidebarNotificationCenter: true,
   localePreference: null,
+  localePreferenceMode: "workspace",
 
   setThemeMode: (mode) => {
-    applyThemeModeToDom(mode);
-    persistThemeMode(mode);
-    set({ themeMode: mode });
+    get().setThemePreference(mode);
+  },
+
+  setThemePreference: (preference) => {
+    const nextPreference = normalizeThemePreference(preference);
+    const nextMode = resolveThemeMode(nextPreference);
+    applyThemeModeToDom(nextMode);
+    persistThemePreference(nextPreference);
+    set({ themeMode: nextMode, themePreference: nextPreference });
   },
 
   toggleThemeMode: () => {
@@ -175,15 +261,25 @@ export const usePreferencesStore = create<PreferencesState>((set, get) => ({
     const next = normalizeLocale(locale);
     applyLocaleToDom(next);
     persistLocale(next);
-    set({ locale: next, localePreference: next });
+    persistLocalePreferenceMode("explicit");
+    set({ locale: next, localePreference: next, localePreferenceMode: "explicit" });
+    void i18n.changeLanguage(next);
+  },
+
+  setBrowserLocale: () => {
+    const next = detectBrowserLocale();
+    applyLocaleToDom(next);
+    clearPersistedLocale();
+    persistLocalePreferenceMode("browser");
+    set({ locale: next, localePreference: null, localePreferenceMode: "browser" });
     void i18n.changeLanguage(next);
   },
 
   setEffectiveLocale: (locale) => {
+    if (get().localePreferenceMode !== "workspace") return;
     const next = normalizeLocale(locale);
     applyLocaleToDom(next);
-    // Do not persist; do not mark as explicit preference.
-    set({ locale: next });
+    set({ locale: next, localePreference: null });
     void i18n.changeLanguage(next);
   },
 
@@ -196,15 +292,12 @@ export const usePreferencesStore = create<PreferencesState>((set, get) => ({
     current[wid] = nextLocale;
     writeWorkspaceLocaleCache(current);
   },
-
-  setShowSidebarNotificationCenter: (enabled) => {
-    persistSidebarNotificationCenter(enabled);
-    set({ showSidebarNotificationCenter: enabled });
-  },
 }));
 
 let isInitialized = false;
 let themeObserver: MutationObserver | null = null;
+let systemThemeMediaQuery: MediaQueryList | null = null;
+let systemThemeListener: ((event: MediaQueryListEvent) => void) | null = null;
 
 export function initializePreferences() {
   if (isInitialized) return;
@@ -212,49 +305,21 @@ export function initializePreferences() {
 
   if (typeof window === "undefined") return;
 
-  const initialThemeMode = getInitialThemeMode();
-
-  // Locale has 2 concepts:
-  // - locale: effective UI language used by admin app
-  // - localePreference: whether user explicitly set it (controls X-Locale header)
-  let localePreference: AppLocale | null = null;
-  let initialLocale: AppLocale = DEFAULT_LOCALE;
-  try {
-    const stored = window.localStorage.getItem(STORAGE_KEYS.locale);
-    if (stored) {
-      initialLocale = normalizeLocale(stored);
-      localePreference = initialLocale;
-    } else {
-      // No explicit user preference -> try cached workspace default first.
-      const lastWorkspaceId = readPersistedLastWorkspaceId();
-      if (lastWorkspaceId) {
-        const cache = readWorkspaceLocaleCache();
-        const cached = cache[lastWorkspaceId];
-        if (cached) {
-          initialLocale = normalizeLocale(cached);
-        } else {
-          initialLocale = getInitialLocale();
-        }
-      } else {
-        initialLocale = getInitialLocale();
-      }
-    }
-  } catch {
-    initialLocale = getInitialLocale();
-  }
+  const initialThemePreference = getInitialThemePreference();
+  const initialThemeMode = resolveThemeMode(initialThemePreference);
+  const initialLocaleState = getInitialLocaleState();
 
   applyThemeModeToDom(initialThemeMode);
-  applyLocaleToDom(initialLocale);
-  const sidebarNotificationCenterEnabled = getInitialSidebarNotificationCenterEnabled();
+  applyLocaleToDom(initialLocaleState.locale);
 
   usePreferencesStore.setState({
     themeMode: initialThemeMode,
-    locale: initialLocale,
-    showSidebarNotificationCenter: sidebarNotificationCenterEnabled,
-    localePreference,
+    themePreference: initialThemePreference,
+    locale: initialLocaleState.locale,
+    localePreference: initialLocaleState.localePreference,
+    localePreferenceMode: initialLocaleState.mode,
   });
 
-  // Keep store in sync if something else toggles data-theme at runtime.
   themeObserver = new MutationObserver((mutations) => {
     for (const m of mutations) {
       if (m.type !== "attributes") continue;
@@ -264,8 +329,8 @@ export function initializePreferences() {
       const current = usePreferencesStore.getState().themeMode;
       if (mode === current) continue;
 
-      persistThemeMode(mode);
-      usePreferencesStore.setState({ themeMode: mode });
+      persistThemePreference(mode);
+      usePreferencesStore.setState({ themeMode: mode, themePreference: mode });
     }
   });
 
@@ -273,10 +338,29 @@ export function initializePreferences() {
     attributes: true,
     attributeFilter: ["data-theme"],
   });
+
+  systemThemeMediaQuery = window.matchMedia?.("(prefers-color-scheme: dark)") ?? null;
+  if (systemThemeMediaQuery) {
+    systemThemeListener = () => {
+      const state = usePreferencesStore.getState();
+      if (state.themePreference !== "system") return;
+      const nextMode = detectSystemThemeMode();
+      applyThemeModeToDom(nextMode);
+      usePreferencesStore.setState({ themeMode: nextMode });
+    };
+    systemThemeMediaQuery.addEventListener("change", systemThemeListener);
+  }
 }
 
 export function teardownPreferences() {
   themeObserver?.disconnect();
   themeObserver = null;
+
+  if (systemThemeMediaQuery && systemThemeListener) {
+    systemThemeMediaQuery.removeEventListener("change", systemThemeListener);
+  }
+  systemThemeMediaQuery = null;
+  systemThemeListener = null;
+
   isInitialized = false;
 }

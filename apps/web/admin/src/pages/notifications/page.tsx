@@ -1,6 +1,6 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Button } from "antd";
-import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Check, ShieldCheck, Trash2, Users, Wrench } from "lucide-react";
@@ -15,6 +15,7 @@ import {
   type NotificationCategory,
   type NotificationItem,
 } from "@/api/notifications";
+import { listMyWorkspaces } from "@/api/workspaces";
 import { DefaultPage } from "@/components/common/default-page";
 import { PageState } from "@/components/common/page-state";
 import {
@@ -36,13 +37,10 @@ import {
   ItemTitle,
 } from "@/components/ui/item";
 import { useNowTick } from "@/hooks/use-now-tick";
+import { notifyErrorText } from "@/lib/notifications";
 import { formatRelativeTimeAt } from "@/lib/time/relative-time";
 import { cn } from "@/lib/utils";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
-
-export const Route = createFileRoute("/notifications")({
-  component: NotificationsPage,
-});
 
 type ListStatus = "unread" | "all";
 
@@ -53,12 +51,22 @@ function pickCategoryIcon(category: NotificationCategory) {
   return Wrench;
 }
 
+function resolveNotificationTarget(item: NotificationItem): string | null {
+  const workspaceId = String(item.workspaceId || "").trim();
+  const targetTo = String(item.targetTo || "").trim();
+  if (!workspaceId || !targetTo) return null;
+
+  if (targetTo === "/") return `/w/${workspaceId}/`;
+  if (targetTo.startsWith("/w/") || targetTo.startsWith("/o/")) return targetTo;
+
+  return `/w/${workspaceId}${targetTo.startsWith("/") ? targetTo : `/${targetTo}`}`;
+}
+
 export function NotificationsPage() {
   const { t, i18n } = useTranslation("notifications");
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
-  const workspaceBase = workspaceId ? `/w/${workspaceId}` : "";
 
   const [status, setStatus] = useState<ListStatus>("unread");
   const pageSize = 20;
@@ -67,11 +75,22 @@ export function NotificationsPage() {
   const nowMs = useNowTick(60_000);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
+  const workspacesQuery = useQuery({
+    queryKey: ["workspaces", "me", "list", "notifications"],
+    queryFn: listMyWorkspaces,
+    staleTime: 60 * 1000,
+    meta: { silent: true },
+  });
+
+  const accessibleWorkspaceIds = useMemo(
+    () => new Set((workspacesQuery.data?.items ?? []).map((item) => String(item.workspaceId))),
+    [workspacesQuery.data?.items],
+  );
+
   const listQuery = useInfiniteQuery({
-    queryKey: ["notifications", "list", workspaceId, status, pageSize],
-    enabled: Boolean(workspaceId),
+    queryKey: ["notifications", "list", status, pageSize],
     queryFn: async ({ pageParam }) =>
-      listNotifications(String(workspaceId), {
+      listNotifications({
         status,
         page: typeof pageParam === "number" ? pageParam : 1,
         size: pageSize,
@@ -117,13 +136,19 @@ export function NotificationsPage() {
   const emptyDescription =
     status === "unread" ? t("NOTIFICATIONS_EMPTY_UNREAD_DESC") : t("NOTIFICATIONS_EMPTY_ALL_DESC");
 
+  const invalidateNotificationQueries = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["notifications", "preview"] }),
+      queryClient.invalidateQueries({ queryKey: ["notifications", "list"] }),
+    ]);
+  };
+
   const markRead = async (n: NotificationItem) => {
-    if (!workspaceId) return;
     const readAt = new Date().toISOString();
 
     // Optimistic cache update: makes the "read moves below unread" feel instant in the All tab.
     queryClient.setQueryData(
-      ["notifications", "list", workspaceId, status, pageSize],
+      ["notifications", "list", status, pageSize],
       (old: typeof listQuery.data | undefined) => {
         if (!old) return old;
         return {
@@ -140,29 +165,21 @@ export function NotificationsPage() {
     );
 
     try {
-      await markNotificationRead(String(workspaceId), n.id);
+      await markNotificationRead(n.id);
     } finally {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["notifications", "preview", workspaceId] }),
-        queryClient.invalidateQueries({ queryKey: ["notifications", "list", workspaceId] }),
-      ]);
+      await invalidateNotificationQueries();
     }
   };
 
   const markAllRead = async () => {
-    if (!workspaceId) return;
-    await markAllNotificationsRead(String(workspaceId));
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ["notifications", "preview", workspaceId] }),
-      queryClient.invalidateQueries({ queryKey: ["notifications", "list", workspaceId] }),
-    ]);
+    await markAllNotificationsRead();
+    await invalidateNotificationQueries();
   };
 
   const removeItem = async (n: NotificationItem) => {
-    if (!workspaceId) return;
     // Optimistic cache update: remove from current list immediately.
     queryClient.setQueryData(
-      ["notifications", "list", workspaceId, status, pageSize],
+      ["notifications", "list", status, pageSize],
       (old: typeof listQuery.data | undefined) => {
         if (!old) return old;
         return {
@@ -176,12 +193,9 @@ export function NotificationsPage() {
     );
 
     try {
-      await deleteNotification(String(workspaceId), n.id);
+      await deleteNotification(n.id);
     } finally {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["notifications", "preview", workspaceId] }),
-        queryClient.invalidateQueries({ queryKey: ["notifications", "list", workspaceId] }),
-      ]);
+      await invalidateNotificationQueries();
     }
   };
 
@@ -191,17 +205,41 @@ export function NotificationsPage() {
     try {
       await seedDemoNotifications(String(workspaceId), { count: 12 });
       setStatus("unread");
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["notifications", "preview", workspaceId] }),
-        queryClient.invalidateQueries({ queryKey: ["notifications", "list", workspaceId] }),
-      ]);
+      await invalidateNotificationQueries();
     } finally {
       setIsSeeding(false);
     }
   };
 
+  const navigateToNotificationTarget = async (n: NotificationItem) => {
+    const target = resolveNotificationTarget(n);
+    if (!target) return;
+
+    const isAccessibleWorkspace = accessibleWorkspaceIds.has(String(n.workspaceId));
+    if (workspacesQuery.data && !isAccessibleWorkspace) {
+      notifyErrorText(t("NOTIFICATIONS_TARGET_FORBIDDEN"));
+      return;
+    }
+
+    await markRead(n);
+    void navigate({ to: target as never });
+  };
+
+  const navigateToReadNotificationTarget = (n: NotificationItem) => {
+    const target = resolveNotificationTarget(n);
+    if (!target) return;
+
+    const isAccessibleWorkspace = accessibleWorkspaceIds.has(String(n.workspaceId));
+    if (workspacesQuery.data && !isAccessibleWorkspace) {
+      notifyErrorText(t("NOTIFICATIONS_TARGET_FORBIDDEN"));
+      return;
+    }
+
+    void navigate({ to: target as never });
+  };
+
   const canMarkAllRead = status === "unread";
-  const showDevSeed = isDev;
+  const showDevSeed = isDev && Boolean(workspaceId);
   const action =
     !canMarkAllRead && !showDevSeed ? null : (
       <div className="flex items-center gap-2">
@@ -279,7 +317,7 @@ export function NotificationsPage() {
             <div className="space-y-4">
               <ItemGroup className={cn("rounded-lg border border-border bg-card")}>
                 {status === "all" && unreadItems.length ? (
-                  <div className="px-4 py-2 text-xs font-semibold text-muted-foreground">
+                  <div className="px-4 py-2 text-caption font-semibold text-muted-foreground">
                     {t("NOTIFICATIONS_GROUP_UNREAD")}
                   </div>
                 ) : null}
@@ -312,12 +350,10 @@ export function NotificationsPage() {
                             tabIndex={0}
                             onKeyDown={(e) => {
                               if (e.key !== "Enter") return;
-                              void markRead(n);
-                              void navigate({ to: `${workspaceBase}${n.targetTo}` as never });
+                              void navigateToNotificationTarget(n);
                             }}
                             onClick={() => {
-                              void markRead(n);
-                              void navigate({ to: `${workspaceBase}${n.targetTo}` as never });
+                              void navigateToNotificationTarget(n);
                             }}
                           >
                             <ItemMedia variant="icon" className="size-12 rounded-md">
@@ -335,7 +371,7 @@ export function NotificationsPage() {
                                 <ItemTitle className="min-w-0 flex-1">
                                   <span
                                     className={cn(
-                                      "min-w-0 text-base truncate",
+                                      "min-w-0 text-body truncate",
                                       isRead ? "line-through text-muted-foreground" : undefined,
                                     )}
                                   >
@@ -346,7 +382,7 @@ export function NotificationsPage() {
                               {n.body ? (
                                 <ItemDescription
                                   className={cn(
-                                    "text-base",
+                                    "text-callout",
                                     isRead ? "text-muted-foreground/80" : undefined,
                                   )}
                                 >
@@ -357,7 +393,7 @@ export function NotificationsPage() {
 
                             <div className="ml-auto flex flex-col items-end gap-2">
                               {timeText ? (
-                                <span className="shrink-0 text-md text-muted-foreground">
+                                <span className="shrink-0 text-footnote text-muted-foreground">
                                   {timeText}
                                 </span>
                               ) : null}
@@ -404,7 +440,7 @@ export function NotificationsPage() {
                 {status === "all" && readItems.length ? (
                   <>
                     {unreadItems.length ? <ItemSeparator className="my-0" /> : null}
-                    <div className="px-4 py-2 text-xs font-semibold text-muted-foreground">
+                    <div className="px-4 py-2 text-caption font-semibold text-muted-foreground">
                       {t("NOTIFICATIONS_GROUP_READ")}
                     </div>
                     <AnimatePresence initial={false}>
@@ -434,10 +470,10 @@ export function NotificationsPage() {
                                 tabIndex={0}
                                 onKeyDown={(e) => {
                                   if (e.key !== "Enter") return;
-                                  void navigate({ to: `${workspaceBase}${n.targetTo}` as never });
+                                  navigateToReadNotificationTarget(n);
                                 }}
                                 onClick={() => {
-                                  void navigate({ to: `${workspaceBase}${n.targetTo}` as never });
+                                  navigateToReadNotificationTarget(n);
                                 }}
                               >
                                 <ItemMedia variant="icon" className="size-12 rounded-md">
@@ -450,13 +486,13 @@ export function NotificationsPage() {
                                 <ItemContent>
                                   <ItemHeader>
                                     <ItemTitle className="min-w-0 flex-1">
-                                      <span className="min-w-0 text-base truncate line-through text-muted-foreground">
+                                      <span className="min-w-0 text-body truncate line-through text-muted-foreground">
                                         {n.title}
                                       </span>
                                     </ItemTitle>
                                   </ItemHeader>
                                   {n.body ? (
-                                    <ItemDescription className="text-base text-muted-foreground/80">
+                                    <ItemDescription className="text-callout text-muted-foreground/80">
                                       {n.body}
                                     </ItemDescription>
                                   ) : null}
@@ -464,7 +500,7 @@ export function NotificationsPage() {
 
                                 <div className="ml-auto flex flex-col items-end gap-2">
                                   {timeText ? (
-                                    <span className="shrink-0 text-md text-muted-foreground">
+                                    <span className="shrink-0 text-footnote text-muted-foreground">
                                       {timeText}
                                     </span>
                                   ) : null}

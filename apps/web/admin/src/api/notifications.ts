@@ -56,18 +56,14 @@ function toQueryString(params: Record<string, unknown>): string {
   return s ? `?${s}` : "";
 }
 
-export async function getUnreadNotificationPreview(
-  workspaceId: string,
-  params?: { limit?: number },
-): Promise<NotificationPreview> {
+export async function getUnreadNotificationPreview(params?: {
+  limit?: number;
+}): Promise<NotificationPreview> {
   const qs = toQueryString({ limit: params?.limit ?? 3 });
-  return api.get<NotificationPreview>(
-    workspacePath(workspaceId, `/notifications/unread/preview${qs}`),
-  );
+  return api.get<NotificationPreview>(`/me/notifications/unread/preview${qs}`);
 }
 
 export async function listNotifications(
-  workspaceId: string,
   params: ListNotificationsParams,
 ): Promise<PageData<NotificationItem>> {
   const qs = toQueryString({
@@ -76,25 +72,22 @@ export async function listNotifications(
     page: params.page ?? 1,
     size: params.size ?? 20,
   });
-  return api.get<PageData<NotificationItem>>(workspacePath(workspaceId, `/notifications${qs}`));
+  return api.get<PageData<NotificationItem>>(`/me/notifications${qs}`);
 }
 
 export async function markNotificationRead(
-  workspaceId: string,
   notificationId: string,
 ): Promise<{ id: string; readAt?: string | null }> {
   return api.post<{ id: string; readAt?: string | null }>(
-    workspacePath(workspaceId, `/notifications/${notificationId}/read`),
+    `/me/notifications/${notificationId}/read`,
   );
 }
 
-export async function markAllNotificationsRead(workspaceId: string): Promise<{
+export async function markAllNotificationsRead(): Promise<{
   totalCount: number;
   successCount: number;
 }> {
-  return api.post<{ totalCount: number; successCount: number }>(
-    workspacePath(workspaceId, "/notifications/read-all"),
-  );
+  return api.post<{ totalCount: number; successCount: number }>("/me/notifications/read-all");
 }
 
 export async function seedDemoNotifications(
@@ -106,9 +99,6 @@ export async function seedDemoNotifications(
   });
 }
 
-export async function deleteNotification(
-  workspaceId: string,
-  notificationId: string,
-): Promise<{ id: string }> {
-  return api.delete<{ id: string }>(workspacePath(workspaceId, `/notifications/${notificationId}`));
+export async function deleteNotification(notificationId: string): Promise<{ id: string }> {
+  return api.delete<{ id: string }>(`/me/notifications/${notificationId}`);
 }

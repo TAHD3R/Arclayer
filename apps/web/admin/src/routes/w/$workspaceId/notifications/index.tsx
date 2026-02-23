@@ -1,7 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
-
-import { NotificationsPage } from "@/routes/notifications";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/w/$workspaceId/notifications/")({
-  component: NotificationsPage,
+  beforeLoad: () => {
+    throw redirect({ to: "/me/notifications", replace: true });
+  },
 });

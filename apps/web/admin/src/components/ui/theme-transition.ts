@@ -2,6 +2,7 @@ import { flushSync } from "react-dom";
 
 import { usePreferencesStore } from "@/stores/use-preference-store";
 import type { ThemeMode } from "@celestial/ui-theme/antd";
+import type { ThemePreference } from "@/stores/use-preference-store";
 
 export type ThemeTransitionDirection = "btt" | "ttb" | "ltr" | "rtl";
 
@@ -171,10 +172,17 @@ export async function setThemeModeWithTransition(
   next: ThemeMode,
   options: { direction?: ThemeTransitionDirection } = {},
 ) {
+  await setThemePreferenceWithTransition(next, options);
+}
+
+export async function setThemePreferenceWithTransition(
+  next: ThemePreference,
+  options: { direction?: ThemeTransitionDirection } = {},
+) {
   const direction = options.direction ?? "ltr";
   await runThemeViewTransition({
     direction,
-    apply: () => usePreferencesStore.getState().setThemeMode(next),
+    apply: () => usePreferencesStore.getState().setThemePreference(next),
   });
 }
 

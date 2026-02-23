@@ -264,6 +264,93 @@ async def test_admin_notifications_mark_all_read(
         assert unread_2.read_at is not None
 
 
+async def test_me_notifications_global_endpoints(
+    prepared_db,
+    integration_valkey_settings,
+) -> None:
+    _ = prepared_db
+    _ = integration_valkey_settings
+
+    settings = get_settings()
+    app = create_app()
+    transport = ASGITransport(app=app)
+
+    async with app.router.lifespan_context(app):
+        await verify_db_ready(settings)
+
+        workspace_id, admin_user_id = await _bootstrap_admin_user(app)
+
+        # A historical notification in another workspace that the user may not currently access.
+        historical_workspace_id = uuid4()
+        in_current_workspace = await NotificationRecord.create(
+            workspace_id=workspace_id,
+            recipient_user_id=admin_user_id,
+            category=NotificationCategory.TEAM,
+            title="Current workspace",
+            body=None,
+            target_to="/settings/team/members",
+            target_meta=None,
+            actor_user_id=None,
+            event_name="demo.current",
+            dedupe_key=None,
+            read_at=None,
+        )
+        historical_notification = await NotificationRecord.create(
+            workspace_id=historical_workspace_id,
+            recipient_user_id=admin_user_id,
+            category=NotificationCategory.SECURITY,
+            title="Historical workspace",
+            body=None,
+            target_to="/settings/maintenance/status",
+            target_meta=None,
+            actor_user_id=None,
+            event_name="demo.historical",
+            dedupe_key=None,
+            read_at=None,
+        )
+
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            current_pid = encode_uuid(in_current_workspace.id)
+            historical_pid = encode_uuid(historical_notification.id)
+
+            resp = await client.get("/api/v1/me/notifications/unread/preview?limit=10")
+            assert resp.status_code == 200
+            preview = resp.json()["data"]
+            assert preview["unreadCount"] == 2
+            assert {item["id"] for item in preview["items"]} == {current_pid, historical_pid}
+
+            resp = await client.get("/api/v1/me/notifications?status=all&page=1&size=20")
+            assert resp.status_code == 200
+            page = resp.json()["data"]
+            assert page["total"] == 2
+            ids = {item["id"] for item in page["items"]}
+            assert ids == {current_pid, historical_pid}
+            workspace_ids = {item["workspaceId"] for item in page["items"]}
+            assert workspace_ids == {encode_uuid(workspace_id), encode_uuid(historical_workspace_id)}
+
+            resp = await client.post(f"/api/v1/me/notifications/{historical_pid}/read")
+            assert resp.status_code == 200
+            read_item = resp.json()["data"]
+            assert read_item["id"] == historical_pid
+            assert read_item["readAt"] is not None
+
+            resp = await client.post("/api/v1/me/notifications/read-all")
+            assert resp.status_code == 200
+            out = resp.json()["data"]
+            assert out["totalCount"] == 1
+            assert out["successCount"] == 1
+
+            resp = await client.delete(f"/api/v1/me/notifications/{current_pid}")
+            assert resp.status_code == 200
+            assert resp.json()["data"]["id"] == current_pid
+
+            resp = await client.get("/api/v1/me/notifications?status=all&page=1&size=20")
+            assert resp.status_code == 200
+            page2 = resp.json()["data"]
+            assert page2["total"] == 1
+            assert page2["items"][0]["id"] == historical_pid
+
+
 # NOTE(2026-01-31): v1 org-scoped team invitation routes were removed during the v2 refactor
 # (Organization -> Workspaces). The notification integration is reworked in v2 and covered by
 # workspace invite tests.

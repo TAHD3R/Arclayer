@@ -80,7 +80,7 @@ export function OrganizationSettingsView() {
   const runtime = useSystemRuntime();
   const clearAuth = useAuthStore((s) => s.clear);
   const clearWorkspace = useWorkspaceStore((s) => s.clearWorkspace);
-  const localePreference = usePreferencesStore((s) => s.localePreference);
+  const localePreferenceMode = usePreferencesStore((s) => s.localePreferenceMode);
   const setEffectiveLocale = usePreferencesStore((s) => s.setEffectiveLocale);
   const [form] = Form.useForm<FormValues>();
   const [assignRoleDialogForm] = Form.useForm<AssignRoleDialogValues>();
@@ -480,7 +480,7 @@ export function OrganizationSettingsView() {
                             await patchCoreMutation.mutateAsync({
                               organizationLocalization: { locale: nextLocale },
                             });
-                            if (!localePreference) {
+                            if (localePreferenceMode === "workspace") {
                               setEffectiveLocale(nextLocale);
                             }
                           })
@@ -493,7 +493,7 @@ export function OrganizationSettingsView() {
                                   await patchCoreMutation.mutateAsync({
                                     organizationLocalization: { locale: initialOrgLocale },
                                   });
-                                  if (!localePreference) {
+                                  if (localePreferenceMode === "workspace") {
                                     setEffectiveLocale(initialOrgLocale);
                                   }
                                 })
