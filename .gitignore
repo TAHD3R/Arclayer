@@ -40,3 +40,6 @@ htmlcov/
 
 # Frontend files
 .tanstack
+
+# Agent files
+.claude/
