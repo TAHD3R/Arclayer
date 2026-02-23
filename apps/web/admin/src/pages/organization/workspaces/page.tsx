@@ -95,7 +95,6 @@ export function OrganizationWorkspacesPage(props?: {
 
   return (
     <DefaultPage
-      width="full"
       title={t("nav:NAV_ORG_WORKSPACES")}
       description={t("common:ORG_WORKSPACES_DESC")}
       contentClassName="min-h-0"
@@ -124,6 +123,7 @@ export function OrganizationWorkspacesPage(props?: {
             emptyTitle={t("common:ORG_WORKSPACES_ACTIVE_EMPTY_TITLE")}
             emptyDescription={t("common:ORG_WORKSPACES_ACTIVE_EMPTY_DESC")}
             onRetry={() => void activeTableHook.refetch()}
+            onRowClick={(row) => handleEnterWorkspace(row.original.workspaceId)}
             t={t}
           />
         </ChromeTabsContent>

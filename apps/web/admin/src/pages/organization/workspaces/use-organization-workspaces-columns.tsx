@@ -1,8 +1,8 @@
 import { useMemo } from "react";
 import { type ColumnDef } from "@tanstack/react-table";
-import { Avatar, Button as AntButton, Dropdown, Tag } from "antd";
+import { Avatar, Button as AntButton, Dropdown } from "antd";
 import type { MenuProps } from "antd";
-import { Archive, MoreVertical, Trash2, Undo2 } from "lucide-react";
+import { Archive, LogIn, MoreVertical, Trash2, Undo2 } from "lucide-react";
 
 import type { OrganizationWorkspace } from "@/api/organization-workspaces";
 import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";
@@ -45,10 +45,9 @@ export function useOrganizationWorkspacesColumns(
                   key: "unarchive",
                   icon: <Undo2 className="size-4" />,
                   label: t("common:ORG_WORKSPACES_ACTION_UNARCHIVE"),
-                  onClick: () => {
-                    onUnarchiveWorkspace(item.workspaceId);
-                  },
+                  onClick: () => onUnarchiveWorkspace(item.workspaceId),
                 },
+                { type: "divider" },
                 {
                   key: "delete",
                   danger: true,
@@ -58,6 +57,13 @@ export function useOrganizationWorkspacesColumns(
                 },
               ]
             : [
+                {
+                  key: "enter",
+                  icon: <LogIn className="size-4" />,
+                  label: t("common:ORG_WORKSPACES_ACTION_ENTER"),
+                  onClick: () => onEnterWorkspace(item.workspaceId),
+                },
+                { type: "divider" },
                 {
                   key: "archive",
                   icon: <Archive className="size-4" />,
@@ -74,31 +80,25 @@ export function useOrganizationWorkspacesColumns(
               ];
 
           return (
-            <div className="flex min-w-0 justify-center items-center gap-3">
+            <div className="flex min-w-0 items-center gap-3">
               <Avatar size={42} src={item.iconUrl ?? undefined}>
                 {item.name.slice(0, 1).toUpperCase()}
               </Avatar>
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="truncate text-headline font-semibold">{item.name}</span>
-                  <Tag className="!mr-0">{item.slug}</Tag>
-                  {item.isArchived ? (
-                    <Tag color="default" className="!mr-0">
-                      {t("common:ORG_WORKSPACES_STATUS_ARCHIVED")}
-                    </Tag>
-                  ) : null}
-                </div>
+                <span className="truncate text-headline font-semibold">{item.name}</span>
                 <div className="truncate text-muted-foreground">
                   {item.description || t("common:ORG_WORKSPACES_DESCRIPTION_FALLBACK")}
                 </div>
               </div>
-              <Dropdown
-                trigger={["click"]}
-                menu={{ items: menuItems }}
-                getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
-              >
-                <AntButton type="text" icon={<MoreVertical className="size-4" />} />
-              </Dropdown>
+              <div onClick={(e) => e.stopPropagation()}>
+                <Dropdown
+                  trigger={["click"]}
+                  menu={{ items: menuItems }}
+                  getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
+                >
+                  <AntButton type="text" icon={<MoreVertical className="size-4" />} />
+                </Dropdown>
+              </div>
             </div>
           );
         },
@@ -113,23 +113,6 @@ export function useOrganizationWorkspacesColumns(
         meta: { sortKey: "created_at" },
         header: t("common:ORG_WORKSPACES_TABLE_CREATED_AT"),
         cell: ({ row }) => <span>{dateTime.formatDateTime(row.original.createdAt)}</span>,
-      },
-      {
-        id: "actions",
-        meta: { kind: "actions" },
-        header: "",
-        cell: ({ row }) => {
-          const item = row.original;
-          return (
-            <AntButton
-              type="link"
-              disabled={item.isArchived}
-              onClick={() => onEnterWorkspace(item.workspaceId)}
-            >
-              {t("common:ORG_WORKSPACES_ACTION_ENTER")}
-            </AntButton>
-          );
-        },
       },
     ],
     [

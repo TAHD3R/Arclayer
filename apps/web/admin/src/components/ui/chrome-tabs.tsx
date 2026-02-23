@@ -217,7 +217,7 @@ function ChromeTabsListImpl(
         ref={localRef}
         className={cn(
           "relative",
-          "w-full justify-start gap-2 rounded-none bg-transparent p-0",
+          "w-full justify-start gap-2 rounded-none bg-transparent p-0 text-label-primary",
           // "border-b border-border/80",
           "h-auto",
           // Overflow handling

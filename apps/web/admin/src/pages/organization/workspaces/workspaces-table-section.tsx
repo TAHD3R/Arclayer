@@ -1,3 +1,6 @@
+import type { Row } from "@tanstack/react-table";
+
+import type { OrganizationWorkspace } from "@/api/organization-workspaces";
 import { PageState } from "@/components/common/page-state";
 import { DataTablePresenter } from "@/components/data-table";
 
@@ -8,6 +11,7 @@ export function WorkspacesTableSection(props: {
   emptyTitle: string;
   emptyDescription: string;
   onRetry: () => void;
+  onRowClick?: (row: Row<OrganizationWorkspace>) => void;
   t: (key: string) => string;
 }) {
   const table = props.tableHook.table;
@@ -24,7 +28,14 @@ export function WorkspacesTableSection(props: {
       emptyDescription={props.emptyDescription}
       className="py-4"
     >
-      <DataTablePresenter table={table} emptyText={props.t("common:EMPTY_DESC")} />
+      <DataTablePresenter
+        table={table}
+        emptyText={props.t("common:EMPTY_DESC")}
+        rowClassName={() =>
+          props.onRowClick ? "hover:bg-muted/40 transition-colors cursor-pointer" : ""
+        }
+        onRowClick={props.onRowClick}
+      />
     </PageState>
   );
 }
