@@ -33,6 +33,7 @@
   "INVITE_ACTION_ENTER_TOKEN": "Enter token manually",
   "INVITE_ACTION_LOGOUT_SWITCH": "Logout and switch account",
   "INVITE_ACTION_JOIN": "Join and enter admin",
+  "INVITE_ACTION_JOIN_ORG": "Join organization and enter admin",
   "INVITE_ACTION_JOIN_ANYWAY": "Join with current account anyway",
   "INVITE_ACTION_LOGIN_JOIN": "Sign in and join",
   "INVITE_ACTION_REGISTER_JOIN": "Create account and join",
@@ -81,5 +82,6 @@
   "INVITE_ACTION_ACCEPT_JOIN_ORG": "Accept and join organization",
   "INVITE_STEP2_TITLE_ORG": "Join Organization",
   "INVITE_STEP2_DESC_ORG": "Sign in or create an account to join the organization.",
-  "INVITE_EMAIL_DOMAIN_FORBIDDEN": "Your email domain is not allowed for this invitation. Please use an email with the required domain."
+  "INVITE_EMAIL_DOMAIN_FORBIDDEN": "Your email domain is not allowed for this invitation. Please use an email with the required domain.",
+  "INVITE_ALREADY_MEMBER": "You are already a member of this workspace."
 }

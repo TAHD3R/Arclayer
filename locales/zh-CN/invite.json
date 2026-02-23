@@ -33,6 +33,7 @@
   "INVITE_ACTION_ENTER_TOKEN": "手动输入 Token",
   "INVITE_ACTION_LOGOUT_SWITCH": "退出并切换账号",
   "INVITE_ACTION_JOIN": "加入工作区并进入后台",
+  "INVITE_ACTION_JOIN_ORG": "加入组织并进入后台",
   "INVITE_ACTION_JOIN_ANYWAY": "仍要用当前账号加入",
   "INVITE_ACTION_LOGIN_JOIN": "登录并加入工作区",
   "INVITE_ACTION_REGISTER_JOIN": "创建账号并加入工作区",
@@ -81,5 +82,6 @@
   "INVITE_ACTION_ACCEPT_JOIN_ORG": "接受邀请并加入组织",
   "INVITE_STEP2_TITLE_ORG": "加入组织",
   "INVITE_STEP2_DESC_ORG": "登录或创建账号以加入组织。",
-  "INVITE_EMAIL_DOMAIN_FORBIDDEN": "你的邮箱域名不符合该邀请的要求，请使用指定域名的邮箱地址。"
+  "INVITE_EMAIL_DOMAIN_FORBIDDEN": "你的邮箱域名不符合该邀请的要求，请使用指定域名的邮箱地址。",
+  "INVITE_ALREADY_MEMBER": "你已是该工作区的成员，无需重复加入。"
 }

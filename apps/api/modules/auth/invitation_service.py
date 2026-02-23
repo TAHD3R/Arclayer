@@ -363,7 +363,7 @@ class AuthInvitationService(BaseService):
 
         if org is None or not org.is_active:
             raise Forbidden(message=self._ta("ORG_INACTIVE", "组织不可用"), error="ORG_INACTIVE")
-        if not is_org_scope and (ws is None or not ws.is_active):
+        if not is_org_scope and (ws is None or not ws.is_active or ws.archived_at is not None):
             raise Forbidden(message=t("errors", "NOT_FOUND", default="资源不存在"), error="WORKSPACE_INACTIVE")
 
         inviter: InvitationPreviewInviterOut | None = None

@@ -136,8 +136,9 @@ class AuthInvitationAcceptanceService(BaseService):
                     raise BadRequest(message=self._ta("EMAIL_REQUIRED", "邮箱不能为空"), error="EMAIL_REQUIRED")
 
                 allowed_domain = (invite_link.allowed_email_domain or "").strip().lower()
+                if allowed_domain.startswith("@"):
+                    allowed_domain = allowed_domain[1:]
                 if allowed_domain:
-                    allowed_domain = allowed_domain[1:] if allowed_domain.startswith("@") else allowed_domain
                     if "@" not in invite_email:
                         raise Forbidden(
                             message=self._ta("INVITE_EMAIL_MISMATCH", "邮箱不符合要求"),
@@ -204,8 +205,9 @@ class AuthInvitationAcceptanceService(BaseService):
                     raise BadRequest(message=self._ta("EMAIL_REQUIRED", "邮箱不能为空"), error="EMAIL_REQUIRED")
 
                 allowed_domain = (org_invite_link.allowed_email_domain or "").strip().lower()
+                if allowed_domain.startswith("@"):
+                    allowed_domain = allowed_domain[1:]
                 if allowed_domain:
-                    allowed_domain = allowed_domain[1:] if allowed_domain.startswith("@") else allowed_domain
                     if "@" not in invite_email:
                         raise Forbidden(
                             message=self._ta("INVITE_EMAIL_MISMATCH", "邮箱不符合要求"),
@@ -257,7 +259,7 @@ class AuthInvitationAcceptanceService(BaseService):
                 raise Forbidden(message=self._ta("ORG_INACTIVE", "组织不可用"), error="ORG_INACTIVE")
             if not is_org_scope:
                 ws = await Workspace.get_or_none(id=workspace_id, using_db=conn)
-                if ws is None or not ws.is_active:
+                if ws is None or not ws.is_active or ws.archived_at is not None:
                     raise Forbidden(
                         message=t("errors", "NOT_FOUND", default="资源不存在"),
                         error="WORKSPACE_INACTIVE",
@@ -549,8 +551,9 @@ class AuthInvitationAcceptanceService(BaseService):
                 if not user_email:
                     raise Forbidden(message=self._ta("EMAIL_REQUIRED", "邮箱不能为空"), error="EMAIL_REQUIRED")
                 allowed_domain = (invite_link.allowed_email_domain or "").strip().lower()
+                if allowed_domain.startswith("@"):
+                    allowed_domain = allowed_domain[1:]
                 if allowed_domain:
-                    allowed_domain = allowed_domain[1:] if allowed_domain.startswith("@") else allowed_domain
                     if "@" not in user_email:
                         raise Forbidden(
                             message=self._ta("INVITE_EMAIL_MISMATCH", "邮箱不符合要求"),
@@ -615,8 +618,9 @@ class AuthInvitationAcceptanceService(BaseService):
                 if not user_email:
                     raise Forbidden(message=self._ta("EMAIL_REQUIRED", "邮箱不能为空"), error="EMAIL_REQUIRED")
                 allowed_domain = (org_invite_link.allowed_email_domain or "").strip().lower()
+                if allowed_domain.startswith("@"):
+                    allowed_domain = allowed_domain[1:]
                 if allowed_domain:
-                    allowed_domain = allowed_domain[1:] if allowed_domain.startswith("@") else allowed_domain
                     if "@" not in user_email:
                         raise Forbidden(
                             message=self._ta("INVITE_EMAIL_MISMATCH", "邮箱不符合要求"),
@@ -667,7 +671,7 @@ class AuthInvitationAcceptanceService(BaseService):
                 raise Forbidden(message=self._ta("ORG_INACTIVE", "组织不可用"), error="ORG_INACTIVE")
             if not is_org_scope:
                 ws = await Workspace.get_or_none(id=workspace_id, using_db=conn)
-                if ws is None or not ws.is_active:
+                if ws is None or not ws.is_active or ws.archived_at is not None:
                     raise Forbidden(
                         message=t("errors", "NOT_FOUND", default="资源不存在"),
                         error="WORKSPACE_INACTIVE",
@@ -680,6 +684,14 @@ class AuthInvitationAcceptanceService(BaseService):
 
             # One user can only be in one organization.
             existing_orgm = await OrgMembership.filter(user_id=user.id).using_db(conn).select_for_update().first()
+
+            if is_org_scope and existing_orgm is not None:
+                if UUID(str(cast(HasOrganizationId, existing_orgm).organization_id)) == organization_id:
+                    raise Conflict(
+                        message=self._ta("INVITE_ALREADY_MEMBER", "你已是该组织的成员"),
+                        error="INVITE_ALREADY_MEMBER",
+                    )
+
             # Workspace invitations never imply organization governance elevation.
             normalized_org_role = self._to_builtin_org_role(assigned_role_code) if is_org_scope else OrgRole.MEMBER
             org_membership_role_code = (
@@ -710,6 +722,15 @@ class AuthInvitationAcceptanceService(BaseService):
                     raise ServiceUnavailable(
                         message=t("errors", "SERVICE_UNAVAILABLE", default="服务不可用"),
                         error="SERVICE_UNAVAILABLE",
+                    )
+
+                existing_wsm = await WorkspaceMembership.get_or_none(
+                    user_id=user.id, workspace_id=workspace_id, using_db=conn
+                )
+                if existing_wsm is not None and existing_wsm.status == WorkspaceMembershipStatus.ACTIVE:
+                    raise Conflict(
+                        message=self._ta("INVITE_ALREADY_MEMBER", "你已是该工作区的成员"),
+                        error="INVITE_ALREADY_MEMBER",
                     )
 
                 wsm, _created = await WorkspaceMembership.get_or_create(

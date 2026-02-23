@@ -1,4 +1,4 @@
-import { Avatar, Button, Modal, Typography } from "antd";
+import { Avatar, Button, Typography } from "antd";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -19,6 +19,15 @@ import { ApiError } from "@/lib/http";
 import { buildOrganizationPath } from "@/lib/organization-routing";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import { PageState } from "@/components/common/page-state";
+import { Card } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { InviteTokenInputDialog } from "@/components/common/invite/invite-token-input-dialog";
 import { InviteRegisterForm } from "@/components/common/invite/invite-register-form";
 import { InviteLoginJoinForm } from "./login-join-form";
@@ -41,6 +50,7 @@ export function AcceptInviteView(props: { token: string | null }) {
   const [mode, setMode] = useState<JoinMode>("login");
   const modeInitializedRef = useRef(false);
   const [tokenDialogOpen, setTokenDialogOpen] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const prevStepRef = useRef(step);
   const prevJoinModeRef = useRef<JoinMode>(mode);
   const modeDirection = mode === prevJoinModeRef.current ? 0 : mode === "register" ? 1 : -1;
@@ -161,25 +171,22 @@ export function AcceptInviteView(props: { token: string | null }) {
     };
   }, [previewQuery.error, previewQuery.isError, t]);
   const tokenActions = (
-    <div className="flex flex-col gap-3 w-full">
-      <Button type="primary" block onClick={() => setTokenDialogOpen(true)}>
+    <div className="flex flex-wrap justify-center gap-3">
+      <Button type="primary" onClick={() => setTokenDialogOpen(true)}>
         {t("invite:INVITE_ACTION_ENTER_TOKEN")}
       </Button>
-      <Button block onClick={() => void onBackToLogin()}>
+      <Button onClick={() => void onBackToLogin()}>
         {t("invite:INVITE_ACTION_BACK_TO_LOGIN")}
       </Button>
     </div>
   );
   const tokenActionsWithRetry = (
-    <div className="flex flex-col gap-3 w-full">
-      <Button type="primary" block onClick={() => void previewQuery.refetch()}>
+    <div className="flex flex-wrap justify-center gap-3">
+      <Button type="primary" onClick={() => void previewQuery.refetch()}>
         {t("common:RETRY")}
       </Button>
-      <Button block onClick={() => setTokenDialogOpen(true)}>
+      <Button onClick={() => setTokenDialogOpen(true)}>
         {t("invite:INVITE_ACTION_ENTER_TOKEN")}
-      </Button>
-      <Button block onClick={() => void onBackToLogin()}>
-        {t("invite:INVITE_ACTION_BACK_TO_LOGIN")}
       </Button>
     </div>
   );
@@ -241,49 +248,26 @@ export function AcceptInviteView(props: { token: string | null }) {
     notifySuccessText(t("invite:INVITE_JOIN_SUCCESS"));
     await navigate({ to: `/w/${payload.workspaceId}`, replace: true });
   };
-  const joinAsExistingLoggedIn = async () => {
+  const joinAsExistingLoggedIn = () => {
     if (!previewQuery.data) return;
-    const workspaceName =
-      previewQuery.data.workspace?.name ||
-      previewQuery.data.organization.name ||
-      t("invite:INVITE_WORKSPACE_FALLBACK");
-    const email = myEmail || inviteEmail;
-    const roleName = roleResolved.name;
-
-    Modal.confirm({
-      title: t("invite:INVITE_CONFIRM_JOIN_TITLE"),
-      content: (
-        <div>
-          <div style={{ marginBottom: 6 }}>
-            {t("invite:INVITE_CONFIRM_JOIN_LINE1", { email, workspaceName })}
-          </div>
-          <div style={{ marginBottom: 10 }}>
-            {t("invite:INVITE_CONFIRM_JOIN_LINE2", { roleName })}
-          </div>
-          <div className="text-callout text-label-secondary">
-            {t("invite:INVITE_CONFIRM_JOIN_RISK_NOTICE")}
-          </div>
-        </div>
-      ),
-      okText: t("invite:INVITE_CONFIRM_JOIN_OK"),
-      cancelText: t("invite:INVITE_CONFIRM_JOIN_CANCEL"),
-      onOk: async () => {
-        try {
-          const accepted = await acceptExistingMutation.mutateAsync();
-          await applyJoinedWorkspace({
-            organizationId: accepted.organizationId || previewQuery.data?.organization.id,
-            workspaceId: accepted.workspaceId,
-          });
-        } catch (err) {
-          if (err instanceof ApiError && err.error === "INVITE_EMAIL_DOMAIN_FORBIDDEN") {
-            notifyErrorText(t("invite:INVITE_EMAIL_DOMAIN_FORBIDDEN"));
-          } else {
-            notifyError(err);
-          }
-          throw err;
-        }
-      },
-    });
+    setConfirmOpen(true);
+  };
+  const handleConfirmJoin = async () => {
+    try {
+      const accepted = await acceptExistingMutation.mutateAsync();
+      setConfirmOpen(false);
+      await applyJoinedWorkspace({
+        organizationId: accepted.organizationId || previewQuery.data?.organization.id,
+        workspaceId: accepted.workspaceId,
+      });
+    } catch (err) {
+      setConfirmOpen(false);
+      if (err instanceof ApiError && err.error === "INVITE_EMAIL_DOMAIN_FORBIDDEN") {
+        notifyErrorText(t("invite:INVITE_EMAIL_DOMAIN_FORBIDDEN"));
+      } else {
+        notifyError(err);
+      }
+    }
   };
   const onLoginAndJoin = async (values: { password: string; keepSession: boolean }) => {
     if (!previewQuery.data) return;
@@ -353,7 +337,7 @@ export function AcceptInviteView(props: { token: string | null }) {
   const previewPane = (
     <div className="w-full">
       {!token ? (
-        <>
+        <Card className="p-8">
           <PageState
             loading={false}
             empty
@@ -362,30 +346,34 @@ export function AcceptInviteView(props: { token: string | null }) {
             emptyDescription={t("invite:INVITE_TOKEN_MISSING_DESC")}
             emptyExtra={tokenActions}
           />
-        </>
+        </Card>
       ) : inviteBusinessFailure ? (
-        <PageState
-          loading={false}
-          empty
-          variant="compact"
-          emptyTitle={inviteBusinessFailure.title}
-          emptyDescription={inviteBusinessFailure.description}
-          emptyExtra={tokenActions}
-        />
+        <Card className="p-8">
+          <PageState
+            loading={false}
+            empty
+            variant="compact"
+            emptyTitle={inviteBusinessFailure.title}
+            emptyDescription={inviteBusinessFailure.description}
+            emptyExtra={tokenActions}
+          />
+        </Card>
       ) : (
-        <PageState
-          loading={previewQuery.isLoading}
-          error={previewQuery.isError ? previewQuery.error : null}
-          onRetry={() => void previewQuery.refetch()}
-          hideRetry
-          variant="compact"
-          loadingVariant="form"
-          errorTitle={t("invite:INVITE_PREVIEW_FAILED")}
-          errorDescription={previewQuery.isError ? getErrorMessage(previewQuery.error) : undefined}
-          errorExtra={tokenActionsWithRetry}
-        >
-          {previewQuery.data ? (
-            <div className="rounded-xl border bg-card p-8">
+        <Card className="p-8">
+          <PageState
+            loading={previewQuery.isLoading}
+            error={previewQuery.isError ? previewQuery.error : null}
+            onRetry={() => void previewQuery.refetch()}
+            hideRetry
+            variant="compact"
+            loadingVariant="form"
+            errorTitle={t("invite:INVITE_PREVIEW_FAILED")}
+            errorDescription={
+              previewQuery.isError ? getErrorMessage(previewQuery.error) : undefined
+            }
+            errorExtra={tokenActionsWithRetry}
+          >
+            {previewQuery.data ? (
               <motion.div
                 className="flex flex-col items-center text-center"
                 initial="hidden"
@@ -393,42 +381,40 @@ export function AcceptInviteView(props: { token: string | null }) {
                 variants={staggerContainer}
               >
                 <motion.div variants={v}>
-                  <Avatar size={72} src={previewQuery.data.organization.logoUrl || undefined}>
+                  <Avatar size={80} src={previewQuery.data.organization.logoUrl || undefined}>
                     {(targetName || "W").slice(0, 1)}
                   </Avatar>
                 </motion.div>
 
                 <motion.div
                   variants={v}
-                  className="mt-4 text-title3 font-semibold text-label-primary"
+                  className="mt-4 text-largetitle font-semibold text-label-primary"
                 >
                   {targetName}
                 </motion.div>
 
                 {!isOrgOnlyInvite && (
-                  <motion.div variants={v} className="mt-1 text-footnote text-label-secondary">
+                  <motion.div variants={v} className="mt-1 text-headline text-label-secondary">
                     {previewQuery.data.organization.name}
                   </motion.div>
                 )}
 
                 <motion.div variants={v} className="mt-2 text-center">
-                  <div className="text-footnote font-medium text-label-secondary">
-                    {roleResolved.name}
-                  </div>
+                  <div className="text-headline text-label-secondary">{roleResolved.name}</div>
                   {roleResolved.description && (
-                    <div className="mt-0.5 text-caption text-label-tertiary">
+                    <div className="mt-0.5 text-callout text-label-tertiary">
                       {roleResolved.description}
                     </div>
                   )}
                 </motion.div>
 
-                <motion.div variants={v} className="mt-3 text-footnote text-label-secondary">
+                <motion.div variants={v} className="mt-3 text-headline text-label-secondary">
                   {inviterLabel
                     ? t("invite:INVITE_PREVIEW_INVITED_BY", { inviter: inviterLabel })
                     : t("invite:INVITE_PREVIEW_INVITED_GENERIC")}
                 </motion.div>
 
-                <motion.div variants={v} className="mt-1 text-caption text-label-tertiary">
+                <motion.div variants={v} className="mt-1 text-callout text-label-tertiary">
                   {expiresRelativeText}
                 </motion.div>
 
@@ -447,7 +433,7 @@ export function AcceptInviteView(props: { token: string | null }) {
                   </Button>
                 </motion.div>
 
-                <motion.div variants={v} className="mt-4 text-caption text-label-tertiary">
+                <motion.div variants={v} className="mt-4 text-callout text-label-tertiary">
                   {t(
                     isOrgOnlyInvite
                       ? "invite:INVITE_SCOPE_ORGANIZATION"
@@ -455,16 +441,16 @@ export function AcceptInviteView(props: { token: string | null }) {
                   )}
                 </motion.div>
               </motion.div>
-            </div>
-          ) : null}
-        </PageState>
+            ) : null}
+          </PageState>
+        </Card>
       )}
     </div>
   );
   const joinPane = (
     <div className="w-full">
       {!token ? (
-        <>
+        <Card className="p-8">
           <PageState
             loading={false}
             empty
@@ -473,30 +459,34 @@ export function AcceptInviteView(props: { token: string | null }) {
             emptyDescription={t("invite:INVITE_TOKEN_MISSING_DESC")}
             emptyExtra={tokenActions}
           />
-        </>
+        </Card>
       ) : inviteBusinessFailure ? (
-        <PageState
-          loading={false}
-          empty
-          variant="compact"
-          emptyTitle={inviteBusinessFailure.title}
-          emptyDescription={inviteBusinessFailure.description}
-          emptyExtra={tokenActions}
-        />
+        <Card className="p-8">
+          <PageState
+            loading={false}
+            empty
+            variant="compact"
+            emptyTitle={inviteBusinessFailure.title}
+            emptyDescription={inviteBusinessFailure.description}
+            emptyExtra={tokenActions}
+          />
+        </Card>
       ) : (
-        <PageState
-          loading={previewQuery.isLoading || (isLoggedIn && meQuery.isLoading)}
-          error={previewQuery.isError ? previewQuery.error : null}
-          onRetry={() => void previewQuery.refetch()}
-          hideRetry
-          variant="compact"
-          loadingVariant="form"
-          errorTitle={t("invite:INVITE_PREVIEW_FAILED")}
-          errorDescription={previewQuery.isError ? getErrorMessage(previewQuery.error) : undefined}
-          errorExtra={tokenActionsWithRetry}
-        >
-          {!previewQuery.data ? null : isLoggedIn ? (
-            <div className="rounded-xl border bg-card p-8">
+        <Card className="p-8">
+          <PageState
+            loading={previewQuery.isLoading || (isLoggedIn && meQuery.isLoading)}
+            error={previewQuery.isError ? previewQuery.error : null}
+            onRetry={() => void previewQuery.refetch()}
+            hideRetry
+            variant="compact"
+            loadingVariant="form"
+            errorTitle={t("invite:INVITE_PREVIEW_FAILED")}
+            errorDescription={
+              previewQuery.isError ? getErrorMessage(previewQuery.error) : undefined
+            }
+            errorExtra={tokenActionsWithRetry}
+          >
+            {!previewQuery.data ? null : isLoggedIn ? (
               <motion.div
                 className="flex flex-col items-center text-center"
                 initial="hidden"
@@ -504,7 +494,7 @@ export function AcceptInviteView(props: { token: string | null }) {
                 variants={staggerContainer}
               >
                 <motion.div variants={v}>
-                  <Avatar size={56} src={previewQuery.data.organization.logoUrl || undefined}>
+                  <Avatar size={80} src={previewQuery.data.organization.logoUrl || undefined}>
                     {(targetName || "W").slice(0, 1)}
                   </Avatar>
                 </motion.div>
@@ -522,7 +512,7 @@ export function AcceptInviteView(props: { token: string | null }) {
                   </Typography.Title>
                 </motion.div>
 
-                <motion.div variants={v} className="mt-2 text-callout text-label-secondary">
+                <motion.div variants={v} className="mt-2 text-headline text-label-secondary">
                   {hasBoundEmail
                     ? emailMatches
                       ? t("invite:INVITE_LOGGED_IN_MATCH")
@@ -532,26 +522,30 @@ export function AcceptInviteView(props: { token: string | null }) {
 
                 <motion.div
                   variants={v}
-                  className="mt-4 w-full rounded-lg border border-(--color-border) bg-muted/30 p-4 text-left text-footnote"
+                  className="mt-4 w-full rounded-lg border border-(--color-border) bg-muted/30 p-4 text-center text-headline"
                 >
-                  <div>
-                    {t("invite:INVITE_CURRENT_ACCOUNT")}{" "}
-                    <strong>{meQuery.data?.email || t("invite:INVITE_EMAIL_UNKNOWN")}</strong>
+                  <div className="text-label-secondary">{t("invite:INVITE_CURRENT_ACCOUNT")}</div>
+                  <div className="font-medium text-label-primary">
+                    {meQuery.data?.email || t("invite:INVITE_EMAIL_UNKNOWN")}
                   </div>
                   {hasBoundEmail && previewQuery.data.invitation.maskedEmail ? (
-                    <div className="mt-1">
-                      {t("invite:INVITE_INVITED_EMAIL")}{" "}
-                      <strong>{previewQuery.data.invitation.maskedEmail}</strong>
+                    <div className="mt-2 text-label-secondary">
+                      {t("invite:INVITE_INVITED_EMAIL")}
+                    </div>
+                  ) : null}
+                  {hasBoundEmail && previewQuery.data.invitation.maskedEmail ? (
+                    <div className="font-medium text-label-primary">
+                      {previewQuery.data.invitation.maskedEmail}
                     </div>
                   ) : null}
                 </motion.div>
 
                 <motion.div variants={v} className="mt-3 text-center">
-                  <div className="text-footnote font-medium text-label-secondary">
+                  <div className="text-headline font-medium text-label-secondary">
                     {roleResolved.name}
                   </div>
                   {roleResolved.description && (
-                    <div className="mt-0.5 text-caption text-label-tertiary">
+                    <div className="mt-0.5 text-callout text-label-tertiary">
                       {roleResolved.description}
                     </div>
                   )}
@@ -567,7 +561,11 @@ export function AcceptInviteView(props: { token: string | null }) {
                   >
                     {hasBoundEmail && !emailMatches
                       ? t("invite:INVITE_ACTION_JOIN_ANYWAY")
-                      : t("invite:INVITE_ACTION_JOIN")}
+                      : t(
+                          isOrgOnlyInvite
+                            ? "invite:INVITE_ACTION_JOIN_ORG"
+                            : "invite:INVITE_ACTION_JOIN",
+                        )}
                   </Button>
                 </motion.div>
 
@@ -578,127 +576,121 @@ export function AcceptInviteView(props: { token: string | null }) {
                     </Button>
                   </motion.div>
                 ) : null}
-
-                <motion.div variants={v} className="mt-3">
-                  <Button type="link" size="small" onClick={() => setStep(0)}>
-                    {t("invite:INVITE_ACTION_BACK")}
-                  </Button>
-                </motion.div>
               </motion.div>
-            </div>
-          ) : (
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={mode}
-                initial="hidden"
-                animate="show"
-                exit="exit"
-                variants={{
-                  hidden: reducedMotion ? { opacity: 1 } : { opacity: 0, x: modeEnterX },
-                  show: reducedMotion
-                    ? { opacity: 1 }
-                    : {
-                        opacity: 1,
-                        x: 0,
-                        transition: { staggerChildren: 0.05, delayChildren: 0.02 },
-                      },
-                  exit: reducedMotion ? { opacity: 1 } : { opacity: 0, x: modeExitX },
-                }}
-              >
-                {mode === "login" ? (
-                  <>
-                    <motion.div variants={v} className="text-center">
-                      <Typography.Title
-                        level={1}
-                        className="!mt-0 !mb-1 text-largetitle text-label-primary"
-                      >
-                        {t(
-                          isOrgOnlyInvite
-                            ? "invite:INVITE_STEP2_TITLE_ORG"
-                            : "invite:INVITE_STEP2_TITLE",
-                        )}
-                      </Typography.Title>
-                      <Typography.Paragraph className="!mt-0 !mb-5 text-callout text-label-secondary">
-                        {t("invite:INVITE_MODE_LOGIN_DESC")}
-                      </Typography.Paragraph>
-                    </motion.div>
-
-                    <motion.div variants={v} className="text-footnote text-label-secondary mb-4">
-                      {hasBoundEmail
-                        ? t("invite:INVITE_LOGIN_HINT")
-                        : t("invite:INVITE_LOGIN_LINK_HINT")}
-                    </motion.div>
-
-                    <motion.div variants={v}>
-                      {hasBoundEmail ? (
-                        <InviteLoginJoinForm
-                          t={t}
-                          email={previewQuery.data.invitation.email || ""}
-                          keepSession={keepSession}
-                          loading={loginMutation.isPending || acceptExistingMutation.isPending}
-                          forgotLoading={forgotPasswordMutation.isPending}
-                          onSubmit={onLoginAndJoin}
-                          onForgotPassword={onForgotPassword}
-                          onBack={() => setStep(0)}
-                          onBackToLogin={onBackToLogin}
-                        />
-                      ) : (
-                        <Button
-                          block
-                          size="large"
-                          type="primary"
-                          className="!rounded-full"
-                          onClick={() => void onBackToLogin()}
+            ) : (
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={mode}
+                  initial="hidden"
+                  animate="show"
+                  exit="exit"
+                  variants={{
+                    hidden: reducedMotion ? { opacity: 1 } : { opacity: 0, x: modeEnterX },
+                    show: reducedMotion
+                      ? { opacity: 1 }
+                      : {
+                          opacity: 1,
+                          x: 0,
+                          transition: { staggerChildren: 0.05, delayChildren: 0.02 },
+                        },
+                    exit: reducedMotion ? { opacity: 1 } : { opacity: 0, x: modeExitX },
+                  }}
+                >
+                  {mode === "login" ? (
+                    <>
+                      <motion.div variants={v} className="text-center">
+                        <Typography.Title
+                          level={1}
+                          className="!mt-0 !mb-1 text-largetitle text-label-primary"
                         >
-                          {t("invite:INVITE_ACTION_BACK_TO_LOGIN")}
-                        </Button>
-                      )}
-                    </motion.div>
+                          {t(
+                            isOrgOnlyInvite
+                              ? "invite:INVITE_STEP2_TITLE_ORG"
+                              : "invite:INVITE_STEP2_TITLE",
+                          )}
+                        </Typography.Title>
+                        <Typography.Paragraph className="!mt-0 !mb-5 text-headline text-label-secondary">
+                          {t("invite:INVITE_MODE_LOGIN_DESC")}
+                        </Typography.Paragraph>
+                      </motion.div>
 
-                    <motion.div variants={v} className="mt-4 text-center">
-                      <Button type="link" size="small" onClick={() => setMode("register")}>
-                        {t("invite:INVITE_ACTION_SWITCH_TO_REGISTER")}
-                      </Button>
-                    </motion.div>
-                  </>
-                ) : (
-                  <>
-                    <motion.div variants={v} className="text-center">
-                      <Typography.Title
-                        level={1}
-                        className="!mt-0 !mb-1 text-largetitle text-label-primary"
-                      >
-                        {t(
-                          isOrgOnlyInvite
-                            ? "invite:INVITE_STEP2_TITLE_ORG"
-                            : "invite:INVITE_STEP2_TITLE",
+                      <motion.div variants={v} className="text-callout text-label-secondary mb-4">
+                        {hasBoundEmail
+                          ? t("invite:INVITE_LOGIN_HINT")
+                          : t("invite:INVITE_LOGIN_LINK_HINT")}
+                      </motion.div>
+
+                      <motion.div variants={v}>
+                        {hasBoundEmail ? (
+                          <InviteLoginJoinForm
+                            t={t}
+                            email={previewQuery.data.invitation.email || ""}
+                            keepSession={keepSession}
+                            loading={loginMutation.isPending || acceptExistingMutation.isPending}
+                            forgotLoading={forgotPasswordMutation.isPending}
+                            onSubmit={onLoginAndJoin}
+                            onForgotPassword={onForgotPassword}
+                            onBack={() => setStep(0)}
+                            onBackToLogin={onBackToLogin}
+                          />
+                        ) : (
+                          <Button
+                            block
+                            size="large"
+                            type="primary"
+                            className="!rounded-full"
+                            onClick={() => void onBackToLogin()}
+                          >
+                            {t("invite:INVITE_ACTION_BACK_TO_LOGIN")}
+                          </Button>
                         )}
-                      </Typography.Title>
-                      <Typography.Paragraph className="!mt-0 !mb-5 text-callout text-label-secondary">
-                        {t("invite:INVITE_MODE_REGISTER_DESC")}
-                      </Typography.Paragraph>
-                    </motion.div>
+                      </motion.div>
 
-                    <motion.div variants={v}>
-                      <InviteRegisterForm
-                        emailLocked={hasBoundEmail ? previewQuery.data.invitation.email : null}
-                        loading={registerAcceptMutation.isPending}
-                        onSubmit={onRegisterAndJoin}
-                        onSwitchToLogin={() => setMode("login")}
-                      />
-                    </motion.div>
-                  </>
-                )}
-              </motion.div>
-            </AnimatePresence>
-          )}
-        </PageState>
+                      <motion.div variants={v} className="mt-4 text-center">
+                        <Button type="link" size="small" onClick={() => setMode("register")}>
+                          {t("invite:INVITE_ACTION_SWITCH_TO_REGISTER")}
+                        </Button>
+                      </motion.div>
+                    </>
+                  ) : (
+                    <>
+                      <motion.div variants={v} className="text-center">
+                        <Typography.Title
+                          level={1}
+                          className="!mt-0 !mb-1 text-largetitle text-label-primary"
+                        >
+                          {t(
+                            isOrgOnlyInvite
+                              ? "invite:INVITE_STEP2_TITLE_ORG"
+                              : "invite:INVITE_STEP2_TITLE",
+                          )}
+                        </Typography.Title>
+                        <Typography.Paragraph className="!mt-0 !mb-5 text-headline text-label-secondary">
+                          {t("invite:INVITE_MODE_REGISTER_DESC")}
+                        </Typography.Paragraph>
+                      </motion.div>
+
+                      <motion.div variants={v}>
+                        <InviteRegisterForm
+                          emailLocked={hasBoundEmail ? previewQuery.data.invitation.email : null}
+                          loading={registerAcceptMutation.isPending}
+                          onSubmit={onRegisterAndJoin}
+                          onSwitchToLogin={() => setMode("login")}
+                        />
+                      </motion.div>
+                    </>
+                  )}
+                </motion.div>
+              </AnimatePresence>
+            )}
+          </PageState>
+        </Card>
       )}
     </div>
   );
 
   return (
-    <div className="w-full">
+    <div className="mx-auto w-full max-w-[480px] pt-12">
       <InviteTokenInputDialog
         open={tokenDialogOpen}
         onOpenChange={setTokenDialogOpen}
@@ -706,6 +698,44 @@ export function AcceptInviteView(props: { token: string | null }) {
           await applyToken(nextToken);
         }}
       />
+
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-xl">{t("invite:INVITE_CONFIRM_JOIN_TITLE")}</DialogTitle>
+            <DialogDescription asChild>
+              <div className="text-muted-foreground">
+                <p>
+                  {t("invite:INVITE_CONFIRM_JOIN_LINE1", {
+                    email: myEmail || inviteEmail,
+                    workspaceName: targetName,
+                  })}
+                </p>
+                <p className="mt-2">
+                  {t("invite:INVITE_CONFIRM_JOIN_LINE2", { roleName: roleResolved.name })}
+                  {roleResolved.description ? (
+                    <span className="text-muted-foreground/70">
+                      {" — "}
+                      {roleResolved.description}
+                    </span>
+                  ) : null}
+                </p>
+                <p className="mt-3 text-muted-foreground/70">
+                  {t("invite:INVITE_CONFIRM_JOIN_RISK_NOTICE")}
+                </p>
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button type="text" onClick={() => setConfirmOpen(false)}>
+              {t("invite:INVITE_CONFIRM_JOIN_CANCEL")}
+            </Button>
+            <Button type="primary" onClick={() => void handleConfirmJoin()}>
+              {t("invite:INVITE_CONFIRM_JOIN_OK")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <MotionConfig transition={transition}>
         <AnimatePresence mode="popLayout" initial={false}>
