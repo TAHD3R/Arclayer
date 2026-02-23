@@ -1,6 +1,6 @@
-import { Button as AntButton, Dropdown } from "antd";
+import { Button as AntButton, Checkbox, Dropdown, Spin } from "antd";
 import type { MenuProps } from "antd";
-import { Check, MoreVertical, Trash2 } from "lucide-react";
+import { MoreVertical, Trash2 } from "lucide-react";
 
 import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -13,12 +13,14 @@ type RolesMatrixTableProps = {
   filteredRoles: DisplayOrganizationRole[];
   filteredPermissions: DisplayOrganizationPermission[];
   onDeleteRole: (roleCode: string) => void;
-  onPermissionEdit: (permission: DisplayOrganizationPermission) => void;
+  onTogglePermission: (permissionCode: string, roleCode: string, granted: boolean) => void;
+  togglingKey: string | null;
   t: Translate;
 };
 
 export function RolesMatrixTable(props: RolesMatrixTableProps) {
-  const { filteredRoles, filteredPermissions, onDeleteRole, onPermissionEdit, t } = props;
+  const { filteredRoles, filteredPermissions, onDeleteRole, onTogglePermission, togglingKey, t } =
+    props;
 
   return (
     <div className="relative isolate overflow-auto rounded-lg border bg-card">
@@ -72,36 +74,36 @@ export function RolesMatrixTable(props: RolesMatrixTableProps) {
           {filteredPermissions.map((permission) => (
             <TableRow key={permission.code}>
               <TableCell className="sticky left-0 z-[1] w-90 bg-card">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="truncate font-semibold text-foreground">
-                      {permission.displayName}
-                    </div>
-                    {permission.displayDescription ? (
-                      <div className="mt-0.5 line-clamp-2 text-muted-foreground">
-                        {permission.displayDescription}
-                      </div>
-                    ) : null}
+                <div className="min-w-0">
+                  <div className="truncate font-semibold text-foreground">
+                    {permission.displayName}
                   </div>
-                  <button
-                    type="button"
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
-                    onClick={() => onPermissionEdit(permission)}
-                  >
-                    <MoreVertical className="h-4 w-4" />
-                  </button>
+                  {permission.displayDescription ? (
+                    <div className="mt-0.5 line-clamp-2 text-muted-foreground">
+                      {permission.displayDescription}
+                    </div>
+                  ) : null}
                 </div>
               </TableCell>
 
               {filteredRoles.map((role) => {
                 const granted = permission.grantedRoleCodes.includes(role.code);
+                const key = `${permission.code}:${role.code}`;
                 return (
-                  <TableCell key={`${permission.code}:${role.code}`} className="text-center">
-                    {granted ? (
-                      <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-muted">
-                        <Check className="h-4 w-4 text-foreground" />
-                      </span>
-                    ) : null}
+                  <TableCell key={key} className="text-center">
+                    <div className="flex justify-center">
+                      {togglingKey === key ? (
+                        <Spin size="small" />
+                      ) : (
+                        <Checkbox
+                          checked={granted}
+                          disabled={role.isSystem}
+                          onChange={(e) => {
+                            onTogglePermission(permission.code, role.code, e.target.checked);
+                          }}
+                        />
+                      )}
+                    </div>
                   </TableCell>
                 );
               })}

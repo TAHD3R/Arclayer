@@ -1,8 +1,6 @@
 import { Button as AntButton, Input, Select } from "antd";
-import { Checkbox } from "@/components/ui/checkbox";
 import { SettingDialog } from "@/components/common/setting-dialog";
 import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
-import type { DisplayOrganizationPermission, DisplayOrganizationRole } from "./roles-display";
 
 type Translate = (key: string, opts?: Record<string, unknown>) => string;
 
@@ -135,102 +133,6 @@ export function DeleteRoleDialog(props: DeleteRoleDialogProps) {
       }
     >
       <></>
-    </SettingDialog>
-  );
-}
-
-type PermissionEditDialogProps = {
-  open: boolean;
-  onOpenChange: (nextOpen: boolean) => void;
-  onCancel: () => void;
-  onConfirm: () => void;
-  submitting: boolean;
-  permission: DisplayOrganizationPermission | null;
-  displayRoles: DisplayOrganizationRole[];
-  permissionDraft: Record<string, boolean>;
-  onRoleCheckedChange: (roleCode: string, checked: boolean) => void;
-  t: Translate;
-};
-
-export function PermissionEditDialog(props: PermissionEditDialogProps) {
-  const {
-    open,
-    onOpenChange,
-    onCancel,
-    onConfirm,
-    submitting,
-    permission,
-    displayRoles,
-    permissionDraft,
-    onRoleCheckedChange,
-    t,
-  } = props;
-
-  return (
-    <SettingDialog
-      open={open}
-      onOpenChange={onOpenChange}
-      title={
-        permission
-          ? t("team:TEAM_ROLES_PERMISSION_DIALOG_TITLE", {
-              permissionName: permission.displayName,
-            })
-          : ""
-      }
-      description={permission?.displayDescription || t("team:TEAM_ROLES_PERMISSION_DIALOG_DESC")}
-      contentClassName="max-w-[680px]"
-      footer={
-        <>
-          <AntButton type="text" onClick={onCancel} disabled={submitting}>
-            {t("common:CANCEL")}
-          </AntButton>
-          <AntButton type="primary" loading={submitting} onClick={onConfirm}>
-            {t("common:CONFIRM")}
-          </AntButton>
-        </>
-      }
-    >
-      <div className="max-h-[420px] overflow-auto rounded-md border bg-card p-2">
-        {displayRoles.length ? (
-          displayRoles.map((role) => {
-            const checked = Boolean(permissionDraft[role.code]);
-            const disabled = role.isSystem;
-
-            return (
-              <label
-                key={role.code}
-                className="flex cursor-pointer items-start gap-3 rounded-md px-2 py-2 hover:bg-muted/50 data-[disabled=true]:cursor-not-allowed data-[disabled=true]:opacity-70"
-                data-disabled={disabled}
-              >
-                <Checkbox
-                  checked={checked}
-                  disabled={disabled}
-                  onCheckedChange={(value) => onRoleCheckedChange(role.code, Boolean(value))}
-                />
-                <div className="min-w-0">
-                  <div className="truncate font-semibold text-foreground">
-                    {role.name}
-                    {role.isSystem ? (
-                      <span className="ml-2 font-normal text-muted-foreground">
-                        ({t("team:TEAM_ROLES_PERMISSION_READ_ONLY")})
-                      </span>
-                    ) : null}
-                  </div>
-                  {role.description ? (
-                    <div className="mt-0.5 line-clamp-2 text-muted-foreground">
-                      {role.description}
-                    </div>
-                  ) : null}
-                </div>
-              </label>
-            );
-          })
-        ) : (
-          <div className="px-2 py-6 text-center text-sm text-muted-foreground">
-            {t("team:TEAM_ROLES_PERMISSION_EMPTY_ROLES")}
-          </div>
-        )}
-      </div>
     </SettingDialog>
   );
 }

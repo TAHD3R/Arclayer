@@ -1,30 +1,13 @@
-import * as React from "react";
 import { Button, Input, Select } from "antd";
 import { Controller, type FieldErrors, type UseFormReturn } from "react-hook-form";
 import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
-import { cn } from "@/lib/utils";
 
-import type { AdminMenuNode } from "@/api/admin-menus";
-import type { RbacMatrixPermissionRow, Role } from "@/api/rbac";
-import { PageState } from "@/components/common/page-state";
+import type { Role } from "@/api/rbac";
 import { SettingDialog } from "@/components/common/setting-dialog";
-import { Checkbox } from "@/components/ui/checkbox";
 
-import { collectDescendantPermissionCodes, normalizePermissionCode } from "./roles-utils";
-import type { CreateRoleFormValues, MenuScopeCheckedState } from "./roles-utils";
+import type { CreateRoleFormValues } from "./roles-utils";
 
 type TranslateFn = (key: string, options?: Record<string, unknown>) => string;
-
-const MENU_NODE_DEPTH_PADDING_CLASSES = [
-  "pl-2",
-  "pl-6",
-  "pl-10",
-  "pl-14",
-  "pl-[4.5rem]",
-  "pl-[5.5rem]",
-  "pl-[6.5rem]",
-  "pl-[7.5rem]",
-] as const;
 
 interface TeamRolesDialogsProps {
   t: TranslateFn;
@@ -34,34 +17,13 @@ interface TeamRolesDialogsProps {
   setDeleteTarget: React.Dispatch<React.SetStateAction<{ code: string; name: string } | null>>;
   deleteRolePending: boolean;
   onDeleteRoleConfirm: (roleCode: string) => Promise<void>;
-  menuScopeOpen: boolean;
-  setMenuScopeOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  customRoles: Role[];
-  menuScopeRoleCode: string | null;
-  setMenuScopeRoleCode: React.Dispatch<React.SetStateAction<string | null>>;
-  menuCatalogItems: AdminMenuNode[];
-  menuCatalogLoading: boolean;
-  menuCatalogError: unknown;
-  menuCatalogIsError: boolean;
-  onMenuCatalogRetry: () => void;
-  menuScopeDraft: Record<string, boolean>;
-  setMenuScopeDraft: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
-  saveMenuScopePending: boolean;
-  onSaveMenuScope: () => void;
-  permissionDialogOpen: boolean;
-  setPermissionDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  activePermission: RbacMatrixPermissionRow | null;
-  roles: Role[];
-  permissionDraft: Record<string, boolean>;
-  setPermissionDraft: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
-  savePermissionPending: boolean;
-  onSavePermission: () => void;
   createOpen: boolean;
   setCreateOpen: React.Dispatch<React.SetStateAction<boolean>>;
   createForm: UseFormReturn<CreateRoleFormValues>;
   createErrors: FieldErrors<CreateRoleFormValues>;
   createRolePending: boolean;
   onCreateRoleSubmit: (values: CreateRoleFormValues) => void;
+  roles: Role[];
 }
 
 export function TeamRolesDialogs(props: TeamRolesDialogsProps) {
@@ -73,94 +35,14 @@ export function TeamRolesDialogs(props: TeamRolesDialogsProps) {
     setDeleteTarget,
     deleteRolePending,
     onDeleteRoleConfirm,
-    menuScopeOpen,
-    setMenuScopeOpen,
-    customRoles,
-    menuScopeRoleCode,
-    setMenuScopeRoleCode,
-    menuCatalogItems,
-    menuCatalogLoading,
-    menuCatalogError,
-    menuCatalogIsError,
-    onMenuCatalogRetry,
-    menuScopeDraft,
-    setMenuScopeDraft,
-    saveMenuScopePending,
-    onSaveMenuScope,
-    permissionDialogOpen,
-    setPermissionDialogOpen,
-    activePermission,
-    roles,
-    permissionDraft,
-    setPermissionDraft,
-    savePermissionPending,
-    onSavePermission,
     createOpen,
     setCreateOpen,
     createForm,
     createErrors,
     createRolePending,
     onCreateRoleSubmit,
+    roles,
   } = props;
-
-  const renderMenuNode = React.useCallback(
-    (node: AdminMenuNode, depth: number): React.ReactNode => {
-      const permissionSet = collectDescendantPermissionCodes(node);
-      const permissionCodes = Array.from(permissionSet);
-      const selectedCount = permissionCodes.filter((code) => Boolean(menuScopeDraft[code])).length;
-      const checkedState: MenuScopeCheckedState =
-        permissionCodes.length === 0
-          ? false
-          : selectedCount === 0
-            ? false
-            : selectedCount === permissionCodes.length
-              ? true
-              : "indeterminate";
-
-      const label = node.titleI18n ? t(node.titleI18n) : node.title;
-      const directPermission = normalizePermissionCode(node.permissionCode);
-
-      return (
-        <div key={node.code}>
-          <div
-            className={cn(
-              "flex items-start gap-3 rounded-md px-2 py-2 hover:bg-muted/30",
-              MENU_NODE_DEPTH_PADDING_CLASSES[
-                Math.min(depth, MENU_NODE_DEPTH_PADDING_CLASSES.length - 1)
-              ],
-            )}
-          >
-            <Checkbox
-              checked={checkedState}
-              disabled={!menuScopeRoleCode || permissionCodes.length === 0}
-              onCheckedChange={(value) => {
-                const nextChecked = Boolean(value);
-                const targetCodes = collectDescendantPermissionCodes(node);
-                setMenuScopeDraft((prev) => {
-                  const next = { ...prev };
-                  for (const code of targetCodes) next[code] = nextChecked;
-                  return next;
-                });
-              }}
-            />
-            <div className="min-w-0">
-              <div className="font-medium text-foreground">{label}</div>
-              {directPermission ? (
-                <div className="text-xs text-muted-foreground">
-                  {t("team:TEAM_ROLES_MENU_SCOPE_PERMISSION_CODE", { code: directPermission })}
-                </div>
-              ) : null}
-              {node.path ? <div className="text-xs text-muted-foreground">{node.path}</div> : null}
-            </div>
-          </div>
-          {node.children?.length
-            ? node.children.map((child) => renderMenuNode(child, depth + 1))
-            : null}
-        </div>
-      );
-    },
-    [menuScopeDraft, menuScopeRoleCode, setMenuScopeDraft, t],
-  );
 
   return (
     <>
@@ -195,129 +77,6 @@ export function TeamRolesDialogs(props: TeamRolesDialogsProps) {
         }
       >
         <></>
-      </SettingDialog>
-
-      <SettingDialog
-        open={menuScopeOpen}
-        onOpenChange={setMenuScopeOpen}
-        title={t("team:TEAM_ROLES_MENU_SCOPE_TITLE")}
-        description={t("team:TEAM_ROLES_MENU_SCOPE_DESC")}
-        contentClassName="max-w-[860px]"
-        footer={
-          <>
-            <Button
-              type="text"
-              onClick={() => setMenuScopeOpen(false)}
-              disabled={saveMenuScopePending}
-            >
-              {t("common:CANCEL")}
-            </Button>
-            <Button
-              type="primary"
-              loading={saveMenuScopePending}
-              onClick={() => onSaveMenuScope()}
-              disabled={!menuScopeRoleCode || customRoles.length === 0}
-            >
-              {t("common:CONFIRM")}
-            </Button>
-          </>
-        }
-      >
-        {customRoles.length ? (
-          <div className="grid gap-1.5">
-            <label className="font-semibold text-foreground">
-              {t("team:TEAM_ROLES_MENU_SCOPE_ROLE_LABEL")}
-            </label>
-            <div className="text-muted-foreground">{t("team:TEAM_ROLES_MENU_SCOPE_ROLE_HELP")}</div>
-            <Select
-              value={menuScopeRoleCode || undefined}
-              onChange={(value) => setMenuScopeRoleCode(String(value))}
-              placeholder={t("team:TEAM_ROLES_MENU_SCOPE_ROLE_PLACEHOLDER")}
-              getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
-              dropdownStyle={{ zIndex: 3000 }}
-              options={customRoles.map((role) => ({ value: role.code, label: role.name }))}
-            />
-            <p className="text-xs text-muted-foreground">{t("team:TEAM_ROLES_MENU_SCOPE_NOTE")}</p>
-          </div>
-        ) : (
-          <div className="rounded-md border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
-            {t("team:TEAM_ROLES_MENU_SCOPE_NO_CUSTOM_ROLE")}
-          </div>
-        )}
-
-        <div className="max-h-[420px] overflow-auto rounded-md border bg-card">
-          {menuCatalogLoading && menuCatalogItems.length === 0 ? (
-            <div className="p-4">
-              <PageState loading loadingVariant="form" />
-            </div>
-          ) : menuCatalogIsError ? (
-            <div className="p-4">
-              <PageState loading={false} error={menuCatalogError} onRetry={onMenuCatalogRetry} />
-            </div>
-          ) : (
-            <div className="flex flex-col gap-1 p-2">
-              {menuCatalogItems.map((root) => renderMenuNode(root, 0))}
-            </div>
-          )}
-        </div>
-      </SettingDialog>
-
-      <SettingDialog
-        open={permissionDialogOpen}
-        onOpenChange={setPermissionDialogOpen}
-        title={activePermission?.name || t("team:TEAM_ROLES_PERMISSION_ACTION")}
-        description={activePermission?.description || t("team:TEAM_ROLES_PERMISSION_DIALOG_DESC")}
-        contentClassName="max-w-[680px]"
-        footer={
-          <>
-            <Button
-              type="text"
-              onClick={() => setPermissionDialogOpen(false)}
-              disabled={savePermissionPending}
-            >
-              {t("common:CANCEL")}
-            </Button>
-            <Button
-              type="primary"
-              onClick={() => onSavePermission()}
-              loading={savePermissionPending}
-            >
-              {t("common:CONFIRM")}
-            </Button>
-          </>
-        }
-      >
-        <div className="max-h-[420px] overflow-auto rounded-md border bg-card p-2">
-          {roles.map((role) => {
-            const checked = Boolean(permissionDraft[role.code]);
-            const disabled = role.isSystem;
-            return (
-              <label
-                key={role.code}
-                className="flex cursor-pointer items-start gap-3 rounded-md px-2 py-2 hover:bg-muted/50 data-[disabled=true]:cursor-not-allowed data-[disabled=true]:opacity-70"
-                data-disabled={disabled}
-              >
-                <Checkbox
-                  checked={checked}
-                  disabled={disabled}
-                  onCheckedChange={(value) => {
-                    setPermissionDraft((prev) => ({ ...prev, [role.code]: Boolean(value) }));
-                  }}
-                />
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="truncate font-semibold text-foreground">{role.name}</span>
-                  </div>
-                  {role.description ? (
-                    <div className="mt-0.5 line-clamp-2  text-muted-foreground">
-                      {role.description}
-                    </div>
-                  ) : null}
-                </div>
-              </label>
-            );
-          })}
-        </div>
       </SettingDialog>
 
       <SettingDialog

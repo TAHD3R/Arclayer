@@ -14,9 +14,9 @@ import { DefaultPage } from "@/components/common/default-page";
 import { PageState } from "@/components/common/page-state";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { useDialogSnapshotState } from "@/pages/organization/team/shared/use-dialog-snapshot-state";
-import { CreateRoleDialog, DeleteRoleDialog, PermissionEditDialog } from "./roles-dialogs";
+import { CreateRoleDialog, DeleteRoleDialog } from "./roles-dialogs";
 import { RolesMatrixTable } from "./roles-matrix-table";
-import { type DisplayOrganizationPermission, useOrganizationRolesDisplay } from "./roles-display";
+import { useOrganizationRolesDisplay } from "./roles-display";
 
 export function OrganizationTeamRolesPage() {
   const { t } = useTranslation(["team", "common", "nav"]);
@@ -24,10 +24,9 @@ export function OrganizationTeamRolesPage() {
 
   const [search, setSearch] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
-  const [permissionDraft, setPermissionDraft] = useState<Record<string, boolean>>({});
+  const [togglingKey, setTogglingKey] = useState<string | null>(null);
 
   const deleteRoleDialog = useDialogSnapshotState<string>();
-  const permissionDialog = useDialogSnapshotState<DisplayOrganizationPermission>();
 
   const [newRoleTemplateCode, setNewRoleTemplateCode] = useState<string>("member");
   const [newRoleName, setNewRoleName] = useState("");
@@ -75,32 +74,36 @@ export function OrganizationTeamRolesPage() {
     onError: (err) => notifyError(err),
   });
 
-  const savePermissionMutation = useMutation({
-    mutationFn: async (permission: DisplayOrganizationPermission) => {
-      const selectedRoleCodes = Object.entries(permissionDraft)
-        .filter(([code, checked]) => checked && customRoleCodeSet.has(code))
-        .map(([code]) => code);
-      await setOrganizationPermissionRoles({
-        permissionCode: permission.code,
-        roleCodes: selectedRoleCodes,
-      });
+  const togglePermissionMutation = useMutation({
+    mutationFn: async ({
+      permissionCode,
+      roleCode,
+      granted,
+    }: {
+      permissionCode: string;
+      roleCode: string;
+      granted: boolean;
+    }) => {
+      const perm = filteredPermissions.find((p) => p.code === permissionCode);
+      const currentCodes = new Set(perm?.grantedRoleCodes ?? []);
+      if (granted) {
+        currentCodes.add(roleCode);
+      } else {
+        currentCodes.delete(roleCode);
+      }
+      const roleCodes = Array.from(currentCodes).filter((c) => customRoleCodeSet.has(c));
+      await setOrganizationPermissionRoles({ permissionCode, roleCodes });
     },
     onSuccess: async () => {
-      notifySuccessText(t("team:TEAM_ROLES_PERMISSION_SAVE_SUCCESS"));
-      permissionDialog.close();
       await queryClient.invalidateQueries({ queryKey: ["organization", "rbac", "matrix"] });
     },
     onError: (err) => notifyError(err),
+    onSettled: () => setTogglingKey(null),
   });
 
-  const openPermissionDialog = (permission: DisplayOrganizationPermission) => {
-    const granted = new Set(permission.grantedRoleCodes);
-    const draft: Record<string, boolean> = {};
-    for (const role of displayRoles) {
-      draft[role.code] = granted.has(role.code);
-    }
-    setPermissionDraft(draft);
-    permissionDialog.openWith(permission);
+  const handleTogglePermission = (permissionCode: string, roleCode: string, granted: boolean) => {
+    setTogglingKey(`${permissionCode}:${roleCode}`);
+    togglePermissionMutation.mutate({ permissionCode, roleCode, granted });
   };
 
   if (matrixQuery.isLoading && !matrixQuery.data) {
@@ -160,7 +163,8 @@ export function OrganizationTeamRolesPage() {
           filteredRoles={filteredRoles}
           filteredPermissions={filteredPermissions}
           onDeleteRole={(roleCode) => deleteRoleDialog.openWith(roleCode)}
-          onPermissionEdit={openPermissionDialog}
+          onTogglePermission={handleTogglePermission}
+          togglingKey={togglingKey}
           t={t}
         />
       </div>
@@ -194,25 +198,6 @@ export function OrganizationTeamRolesPage() {
           displayRoles.find((role) => role.code === deleteRoleDialog.displayPayload)?.name || ""
         }
         submitting={deleteRoleMutation.isPending}
-        t={t}
-      />
-
-      <PermissionEditDialog
-        open={permissionDialog.open}
-        onOpenChange={permissionDialog.onOpenChange}
-        onCancel={permissionDialog.close}
-        onConfirm={() => {
-          const activePermission = permissionDialog.displayPayload;
-          if (!activePermission) return;
-          void savePermissionMutation.mutateAsync(activePermission);
-        }}
-        submitting={savePermissionMutation.isPending}
-        permission={permissionDialog.displayPayload}
-        displayRoles={displayRoles}
-        permissionDraft={permissionDraft}
-        onRoleCheckedChange={(roleCode, checked) => {
-          setPermissionDraft((prev) => ({ ...prev, [roleCode]: checked }));
-        }}
         t={t}
       />
     </DefaultPage>
