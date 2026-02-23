@@ -111,11 +111,119 @@ export type SitePageRevisionOut = {
   deps?: Record<string, unknown> | null;
 };
 
+export type SiteEntryRevisionOut = {
+  entryId: string;
+  state: "draft" | "published";
+  revision: number;
+  createdAtMs: number;
+  document?: unknown;
+  data?: Record<string, unknown> | null;
+  meta?: Record<string, unknown> | null;
+  styleOverrides?: Record<string, unknown> | null;
+  variantId?: string | null;
+  deps?: Record<string, unknown> | null;
+};
+
 export type SitePageUnpublishOut = {
   siteId: string;
   pageId: string;
   path: string;
   unpublishedAtMs: number;
+};
+
+export type SiteEntryType = {
+  id: string;
+  siteId: string;
+  code: string;
+  name: string;
+  fieldsSchema?: Record<string, unknown> | null;
+};
+
+export type SiteEntry = {
+  id: string;
+  siteId: string;
+  entryTypeId: string;
+  entryTypeCode: string;
+  slug: string;
+  draftRevision: number;
+  publishedRevision?: number | null;
+};
+
+export type SiteEntryTypeCreateIn = {
+  code: string;
+  name: string;
+  fieldsSchema?: Record<string, unknown> | null;
+};
+
+export type SiteEntryTypeUpdateIn = {
+  name?: string;
+  fieldsSchema?: Record<string, unknown> | null;
+};
+
+export type SiteEntryCreateIn = {
+  entryTypeCode: string;
+  slug: string;
+};
+
+export type SiteEntryUpdateIn = {
+  slug?: string;
+};
+
+export type SiteEntryDraftSaveIn = {
+  entryTypeCode: string;
+  slug: string;
+  document?: unknown;
+  data?: Record<string, unknown> | null;
+  meta?: Record<string, unknown> | null;
+  styleOverrides?: Record<string, unknown> | null;
+  variantId?: string | null;
+  deps?: Record<string, unknown> | null;
+  expectedRevision?: number | null;
+};
+
+export type SiteEntryDraftSaveOut = {
+  siteId: string;
+  entryId: string;
+  entryTypeCode: string;
+  slug: string;
+  revision: number;
+  savedAtMs: number;
+};
+
+export type SiteEntryPublishIn = {
+  entryTypeCode: string;
+  slug: string;
+  revision?: number | null;
+};
+
+export type SiteEntryPublishOut = {
+  siteId: string;
+  entryId: string;
+  entryTypeCode: string;
+  slug: string;
+  revision: number;
+  publishedAtMs: number;
+};
+
+export type SiteEntryUnpublishIn = {
+  entryTypeCode: string;
+  slug: string;
+};
+
+export type SiteEntryUnpublishOut = {
+  siteId: string;
+  entryId: string;
+  entryTypeCode: string;
+  slug: string;
+  unpublishedAtMs: number;
+};
+
+export type SiteEntryDeleteOut = {
+  entryId: string;
+};
+
+export type SiteEntryTypeDeleteOut = {
+  entryTypeId: string;
 };
 
 export type SiteStyleOut = {
@@ -281,6 +389,131 @@ export async function unpublishWorkspaceSitePage(
   return api.post<SitePageUnpublishOut>(
     workspacePath(workspaceId, `/site/pages/${encodeURIComponent(pageId)}/revisions/unpublish`),
     {},
+  );
+}
+
+export async function listWorkspaceSiteEntryTypes(
+  workspaceId: string,
+  params?: { page?: number; size?: number },
+): Promise<PageData<SiteEntryType>> {
+  const qs = new URLSearchParams();
+  if (typeof params?.page === "number") qs.set("page", String(params.page));
+  if (typeof params?.size === "number") qs.set("size", String(params.size));
+  const suffix = qs.size > 0 ? `?${qs.toString()}` : "";
+  return api.get<PageData<SiteEntryType>>(workspacePath(workspaceId, `/site/entry-types${suffix}`));
+}
+
+export async function createWorkspaceSiteEntryType(
+  workspaceId: string,
+  payload: SiteEntryTypeCreateIn,
+): Promise<SiteEntryType> {
+  return api.post<SiteEntryType>(workspacePath(workspaceId, "/site/entry-types"), payload);
+}
+
+export async function patchWorkspaceSiteEntryType(
+  workspaceId: string,
+  entryTypeId: string,
+  payload: SiteEntryTypeUpdateIn,
+): Promise<SiteEntryType> {
+  return api.patch<SiteEntryType>(
+    workspacePath(workspaceId, `/site/entry-types/${encodeURIComponent(entryTypeId)}`),
+    payload,
+  );
+}
+
+export async function deleteWorkspaceSiteEntryType(
+  workspaceId: string,
+  entryTypeId: string,
+): Promise<SiteEntryTypeDeleteOut> {
+  return api.delete<SiteEntryTypeDeleteOut>(
+    workspacePath(workspaceId, `/site/entry-types/${encodeURIComponent(entryTypeId)}`),
+  );
+}
+
+export async function listWorkspaceSiteEntries(
+  workspaceId: string,
+  params?: { page?: number; size?: number; entryTypeCode?: string },
+): Promise<PageData<SiteEntry>> {
+  const qs = new URLSearchParams();
+  if (typeof params?.page === "number") qs.set("page", String(params.page));
+  if (typeof params?.size === "number") qs.set("size", String(params.size));
+  if (params?.entryTypeCode) qs.set("entryTypeCode", params.entryTypeCode);
+  const suffix = qs.size > 0 ? `?${qs.toString()}` : "";
+  return api.get<PageData<SiteEntry>>(workspacePath(workspaceId, `/site/entries${suffix}`));
+}
+
+export async function createWorkspaceSiteEntry(
+  workspaceId: string,
+  payload: SiteEntryCreateIn,
+): Promise<SiteEntry> {
+  return api.post<SiteEntry>(workspacePath(workspaceId, "/site/entries"), payload);
+}
+
+export async function patchWorkspaceSiteEntry(
+  workspaceId: string,
+  entryId: string,
+  payload: SiteEntryUpdateIn,
+): Promise<SiteEntry> {
+  return api.patch<SiteEntry>(
+    workspacePath(workspaceId, `/site/entries/${encodeURIComponent(entryId)}`),
+    payload,
+  );
+}
+
+export async function deleteWorkspaceSiteEntry(
+  workspaceId: string,
+  entryId: string,
+): Promise<SiteEntryDeleteOut> {
+  return api.delete<SiteEntryDeleteOut>(
+    workspacePath(workspaceId, `/site/entries/${encodeURIComponent(entryId)}`),
+  );
+}
+
+export async function saveWorkspaceSiteEntryDraft(
+  workspaceId: string,
+  payload: SiteEntryDraftSaveIn,
+): Promise<SiteEntryDraftSaveOut> {
+  return api.post<SiteEntryDraftSaveOut>(
+    workspacePath(workspaceId, "/site/entries/draft"),
+    payload,
+  );
+}
+
+export async function publishWorkspaceSiteEntry(
+  workspaceId: string,
+  payload: SiteEntryPublishIn,
+): Promise<SiteEntryPublishOut> {
+  return api.post<SiteEntryPublishOut>(
+    workspacePath(workspaceId, "/site/entries/publish"),
+    payload,
+  );
+}
+
+export async function unpublishWorkspaceSiteEntry(
+  workspaceId: string,
+  payload: SiteEntryUnpublishIn,
+): Promise<SiteEntryUnpublishOut> {
+  return api.post<SiteEntryUnpublishOut>(
+    workspacePath(workspaceId, "/site/entries/unpublish"),
+    payload,
+  );
+}
+
+export async function getWorkspaceSiteEntryPublishedRevision(
+  workspaceId: string,
+  entryId: string,
+): Promise<SiteEntryRevisionOut> {
+  return api.get<SiteEntryRevisionOut>(
+    workspacePath(workspaceId, `/site/entries/${encodeURIComponent(entryId)}/revisions/published`),
+  );
+}
+
+export async function getWorkspaceSiteEntryDraftRevision(
+  workspaceId: string,
+  entryId: string,
+): Promise<SiteEntryRevisionOut> {
+  return api.get<SiteEntryRevisionOut>(
+    workspacePath(workspaceId, `/site/entries/${encodeURIComponent(entryId)}/revisions/draft`),
   );
 }
 

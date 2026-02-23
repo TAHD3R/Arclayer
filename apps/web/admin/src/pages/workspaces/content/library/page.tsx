@@ -1,135 +1,326 @@
 import * as React from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { Button, Card, Input, List, Pagination, Select, Segmented, Table, Tabs, Tag } from "antd";
+import {
+  Alert,
+  Button,
+  Card,
+  Form,
+  Input,
+  List,
+  Modal,
+  Pagination,
+  Popconfirm,
+  Segmented,
+  Select,
+  Space,
+  Spin,
+  Table,
+  Tabs,
+  Tag,
+} from "antd";
 import type { TableColumnsType } from "antd";
 import { useTranslation } from "react-i18next";
 
+import {
+  createWorkspaceSiteEntry,
+  createWorkspaceSiteEntryType,
+  deleteWorkspaceSiteEntry,
+  deleteWorkspaceSiteEntryType,
+  listWorkspaceSiteEntries,
+  listWorkspaceSiteEntryTypes,
+  listWorkspaceSitePagesTree,
+  publishWorkspaceSiteEntry,
+  type SiteEntry,
+  type SiteEntryType,
+  type SitePageTreeNode,
+  unpublishWorkspaceSiteEntry,
+} from "@/api/workspace-site";
 import { DefaultPage } from "@/components/common/default-page";
+import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
 type EntryStatus = "draft" | "published";
-type EntryRow = {
+
+type EntryRow = SiteEntry & {
+  status: EntryStatus;
+};
+
+type EntryTypeRow = SiteEntryType & {
+  entryCount: number;
+};
+
+type PageRow = {
   id: string;
   title: string;
-  slug: string;
-  category: string;
-  tags: string[];
+  path: string;
   status: EntryStatus;
-  updatedAt: string;
+  updatedAt: string | null;
 };
 
-type CategoryRow = {
-  id: string;
-  name: string;
-  entryCount: number;
-};
-
-type TagRow = {
-  id: string;
-  name: string;
-  entryCount: number;
-};
-
-const ENTRY_ROWS: EntryRow[] = [
-  {
-    id: "entry-getting-started",
-    title: "Getting started with CelestialCMS",
-    slug: "getting-started",
-    category: "Guides",
-    tags: ["cms", "guide"],
-    status: "published",
-    updatedAt: "2026-02-11 10:30",
-  },
-  {
-    id: "entry-theme-customization",
-    title: "Theme customization checklist",
-    slug: "theme-customization-checklist",
-    category: "Design",
-    tags: ["themes", "design"],
-    status: "draft",
-    updatedAt: "2026-02-12 08:45",
-  },
-  {
-    id: "entry-content-governance",
-    title: "Content governance baseline",
-    slug: "content-governance-baseline",
-    category: "Governance",
-    tags: ["policy", "workflow"],
-    status: "published",
-    updatedAt: "2026-02-09 14:02",
-  },
-  {
-    id: "entry-seo-playbook",
-    title: "SEO playbook for landing pages",
-    slug: "seo-playbook-landing-pages",
-    category: "Marketing",
-    tags: ["seo", "landing"],
-    status: "draft",
-    updatedAt: "2026-02-12 11:10",
-  },
-];
-
-const CATEGORY_ROWS: CategoryRow[] = [
-  { id: "category-guides", name: "Guides", entryCount: 18 },
-  { id: "category-design", name: "Design", entryCount: 9 },
-  { id: "category-governance", name: "Governance", entryCount: 5 },
-  { id: "category-marketing", name: "Marketing", entryCount: 12 },
-];
-
-const TAG_ROWS: TagRow[] = [
-  { id: "tag-cms", name: "cms", entryCount: 11 },
-  { id: "tag-guide", name: "guide", entryCount: 8 },
-  { id: "tag-themes", name: "themes", entryCount: 6 },
-  { id: "tag-seo", name: "seo", entryCount: 9 },
-];
-
-type LibraryTab = "entries" | "categories" | "tags";
+type LibraryTab = "entries" | "types" | "pages";
 type EntriesView = "masonry" | "table";
+
+type CreateEntryFormValues = {
+  entryTypeCode: string;
+  slug: string;
+};
+
+type CreateEntryTypeFormValues = {
+  code: string;
+  name: string;
+};
+
+function flattenPageTree(items: SitePageTreeNode[]): PageRow[] {
+  const rows: PageRow[] = [];
+
+  const walk = (nodes: SitePageTreeNode[]) => {
+    for (const node of nodes) {
+      rows.push({
+        id: node.id,
+        title: node.title?.trim() || node.path,
+        path: node.path,
+        status: node.publishedRevision ? "published" : "draft",
+        updatedAt: node.updatedAt ?? null,
+      });
+      if (node.children.length > 0) {
+        walk(node.children);
+      }
+    }
+  };
+
+  walk(items);
+  return rows;
+}
 
 export function ContentLibraryView() {
   const { t } = useTranslation(["content_library", "nav", "common"]);
   const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const [activeTab, setActiveTab] = React.useState<LibraryTab>("entries");
-  const [entriesView, setEntriesView] = React.useState<EntriesView>("masonry");
+  const [entriesView, setEntriesView] = React.useState<EntriesView>("table");
 
   const [searchText, setSearchText] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState<"all" | EntryStatus>("all");
-  const [categoryFilter, setCategoryFilter] = React.useState<"all" | string>("all");
+  const [entryTypeFilter, setEntryTypeFilter] = React.useState<"all" | string>("all");
   const [pageIndex, setPageIndex] = React.useState(1);
-  const [pageSize, setPageSize] = React.useState(8);
+  const [pageSize, setPageSize] = React.useState(10);
+
+  const [createOpen, setCreateOpen] = React.useState(false);
+  const [createTypeOpen, setCreateTypeOpen] = React.useState(false);
+  const [processingEntryId, setProcessingEntryId] = React.useState<string | null>(null);
+  const [processingTypeId, setProcessingTypeId] = React.useState<string | null>(null);
+  const [createForm] = Form.useForm<CreateEntryFormValues>();
+  const [createTypeForm] = Form.useForm<CreateEntryTypeFormValues>();
+
+  const entryTypesQuery = useQuery({
+    queryKey: ["site", "entry-types", workspaceId],
+    enabled: Boolean(workspaceId),
+    queryFn: async () => listWorkspaceSiteEntryTypes(String(workspaceId), { page: 1, size: 200 }),
+    staleTime: 30 * 1000,
+    retry: false,
+    meta: { silent: true },
+  });
+
+  const entriesQuery = useQuery({
+    queryKey: ["site", "entries", workspaceId],
+    enabled: Boolean(workspaceId),
+    queryFn: async () => listWorkspaceSiteEntries(String(workspaceId), { page: 1, size: 200 }),
+    staleTime: 30 * 1000,
+    retry: false,
+    meta: { silent: true },
+  });
+
+  const pagesQuery = useQuery({
+    queryKey: ["site", "pages", "tree", workspaceId],
+    enabled: Boolean(workspaceId),
+    queryFn: async () => listWorkspaceSitePagesTree(String(workspaceId)),
+    staleTime: 30 * 1000,
+    retry: false,
+    meta: { silent: true },
+  });
+
+  const createEntryMutation = useMutation({
+    mutationFn: async (values: CreateEntryFormValues) => {
+      if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
+      return createWorkspaceSiteEntry(String(workspaceId), values);
+    },
+    onSuccess: () => {
+      notifySuccessText(t("content_library:TOAST_CREATE_ENTRY_SUCCESS"));
+      setCreateOpen(false);
+      createForm.resetFields();
+      void queryClient.invalidateQueries({ queryKey: ["site", "entries", workspaceId] });
+    },
+    onError: (error) => notifyError(error),
+  });
+
+  const createEntryTypeMutation = useMutation({
+    mutationFn: async (values: CreateEntryTypeFormValues) => {
+      if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
+      return createWorkspaceSiteEntryType(String(workspaceId), values);
+    },
+    onSuccess: () => {
+      notifySuccessText(t("content_library:TOAST_CREATE_TYPE_SUCCESS"));
+      setCreateTypeOpen(false);
+      createTypeForm.resetFields();
+      void queryClient.invalidateQueries({ queryKey: ["site", "entry-types", workspaceId] });
+    },
+    onError: (error) => notifyError(error),
+  });
+
+  const publishEntryMutation = useMutation({
+    mutationFn: async (row: EntryRow) => {
+      if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
+      return publishWorkspaceSiteEntry(String(workspaceId), {
+        entryTypeCode: row.entryTypeCode,
+        slug: row.slug,
+      });
+    },
+    onMutate: (row) => {
+      setProcessingEntryId(row.id);
+    },
+    onSuccess: async () => {
+      notifySuccessText(t("content_library:TOAST_PUBLISH_ENTRY_SUCCESS"));
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["site", "entries", workspaceId] }),
+        queryClient.invalidateQueries({ queryKey: ["site", "entry-types", workspaceId] }),
+      ]);
+    },
+    onError: (error) => notifyError(error),
+    onSettled: () => setProcessingEntryId(null),
+  });
+
+  const unpublishEntryMutation = useMutation({
+    mutationFn: async (row: EntryRow) => {
+      if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
+      return unpublishWorkspaceSiteEntry(String(workspaceId), {
+        entryTypeCode: row.entryTypeCode,
+        slug: row.slug,
+      });
+    },
+    onMutate: (row) => {
+      setProcessingEntryId(row.id);
+    },
+    onSuccess: async () => {
+      notifySuccessText(t("content_library:TOAST_UNPUBLISH_ENTRY_SUCCESS"));
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["site", "entries", workspaceId] }),
+        queryClient.invalidateQueries({ queryKey: ["site", "entry-types", workspaceId] }),
+      ]);
+    },
+    onError: (error) => notifyError(error),
+    onSettled: () => setProcessingEntryId(null),
+  });
+
+  const deleteEntryMutation = useMutation({
+    mutationFn: async (row: EntryRow) => {
+      if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
+      return deleteWorkspaceSiteEntry(String(workspaceId), row.id);
+    },
+    onMutate: (row) => {
+      setProcessingEntryId(row.id);
+    },
+    onSuccess: async () => {
+      notifySuccessText(t("content_library:TOAST_DELETE_ENTRY_SUCCESS"));
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["site", "entries", workspaceId] }),
+        queryClient.invalidateQueries({ queryKey: ["site", "entry-types", workspaceId] }),
+      ]);
+    },
+    onError: (error) => notifyError(error),
+    onSettled: () => setProcessingEntryId(null),
+  });
+
+  const deleteEntryTypeMutation = useMutation({
+    mutationFn: async (row: EntryTypeRow) => {
+      if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
+      return deleteWorkspaceSiteEntryType(String(workspaceId), row.id);
+    },
+    onMutate: (row) => {
+      setProcessingTypeId(row.id);
+    },
+    onSuccess: async () => {
+      notifySuccessText(t("content_library:TOAST_DELETE_TYPE_SUCCESS"));
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["site", "entry-types", workspaceId] }),
+        queryClient.invalidateQueries({ queryKey: ["site", "entries", workspaceId] }),
+      ]);
+    },
+    onError: (error) => notifyError(error),
+    onSettled: () => setProcessingTypeId(null),
+  });
+
+  const entryRows = React.useMemo<EntryRow[]>(() => {
+    return (entriesQuery.data?.items ?? []).map((row) =>
+      Object.assign({}, row, {
+        status: row.publishedRevision ? "published" : "draft",
+      }),
+    );
+  }, [entriesQuery.data?.items]);
+
+  const entryTypeRows = React.useMemo<EntryTypeRow[]>(() => {
+    const entryTypeCount = new Map<string, number>();
+    for (const row of entryRows) {
+      entryTypeCount.set(row.entryTypeCode, (entryTypeCount.get(row.entryTypeCode) ?? 0) + 1);
+    }
+
+    return (entryTypesQuery.data?.items ?? []).map((row) =>
+      Object.assign({}, row, {
+        entryCount: entryTypeCount.get(row.code) ?? 0,
+      }),
+    );
+  }, [entryRows, entryTypesQuery.data?.items]);
+
+  const pageRows = React.useMemo<PageRow[]>(() => {
+    return flattenPageTree(pagesQuery.data?.items ?? []);
+  }, [pagesQuery.data?.items]);
+
+  const entryTypeOptions = React.useMemo(
+    () =>
+      entryTypeRows.map((row) => ({
+        value: row.code,
+        label: row.name,
+      })),
+    [entryTypeRows],
+  );
 
   const normalizedSearch = searchText.trim().toLowerCase();
 
   const filteredEntries = React.useMemo(() => {
-    return ENTRY_ROWS.filter((row) => {
+    return entryRows.filter((row) => {
       if (statusFilter !== "all" && row.status !== statusFilter) return false;
-      if (categoryFilter !== "all" && row.category !== categoryFilter) return false;
+      if (entryTypeFilter !== "all" && row.entryTypeCode !== entryTypeFilter) return false;
       if (!normalizedSearch) return true;
 
-      return [row.title, row.slug, row.category, ...row.tags].some((value) =>
+      return [row.slug, row.entryTypeCode].some((value) =>
         value.toLowerCase().includes(normalizedSearch),
       );
     });
-  }, [categoryFilter, normalizedSearch, statusFilter]);
+  }, [entryRows, entryTypeFilter, normalizedSearch, statusFilter]);
 
-  const filteredCategories = React.useMemo(() => {
-    if (!normalizedSearch) return CATEGORY_ROWS;
-    return CATEGORY_ROWS.filter((row) => row.name.toLowerCase().includes(normalizedSearch));
-  }, [normalizedSearch]);
+  const filteredTypes = React.useMemo(() => {
+    if (!normalizedSearch) return entryTypeRows;
+    return entryTypeRows.filter((row) =>
+      [row.code, row.name].some((value) => value.toLowerCase().includes(normalizedSearch)),
+    );
+  }, [entryTypeRows, normalizedSearch]);
 
-  const filteredTags = React.useMemo(() => {
-    if (!normalizedSearch) return TAG_ROWS;
-    return TAG_ROWS.filter((row) => row.name.toLowerCase().includes(normalizedSearch));
-  }, [normalizedSearch]);
+  const filteredPages = React.useMemo(() => {
+    return pageRows.filter((row) => {
+      if (statusFilter !== "all" && row.status !== statusFilter) return false;
+      if (!normalizedSearch) return true;
+      return [row.title, row.path].some((value) => value.toLowerCase().includes(normalizedSearch));
+    });
+  }, [normalizedSearch, pageRows, statusFilter]);
 
   const currentRows =
     activeTab === "entries"
       ? filteredEntries
-      : activeTab === "categories"
-        ? filteredCategories
-        : filteredTags;
+      : activeTab === "types"
+        ? filteredTypes
+        : filteredPages;
 
   const pagedRows = React.useMemo(() => {
     const start = (pageIndex - 1) * pageSize;
@@ -138,36 +329,19 @@ export function ContentLibraryView() {
 
   React.useEffect(() => {
     setPageIndex(1);
-  }, [activeTab, categoryFilter, normalizedSearch, statusFilter]);
+  }, [activeTab, entryTypeFilter, normalizedSearch, statusFilter]);
 
-  const entryTableColumns = React.useMemo<TableColumnsType<EntryRow>>(
+  const entryColumns = React.useMemo<TableColumnsType<EntryRow>>(
     () => [
-      {
-        title: t("content_library:ENTRY_COL_TITLE"),
-        dataIndex: "title",
-        key: "title",
-      },
       {
         title: t("content_library:ENTRY_COL_SLUG"),
         dataIndex: "slug",
         key: "slug",
       },
       {
-        title: t("content_library:ENTRY_COL_CATEGORY"),
-        dataIndex: "category",
-        key: "category",
-      },
-      {
-        title: t("content_library:ENTRY_COL_TAGS"),
-        dataIndex: "tags",
-        key: "tags",
-        render: (tags: string[]) => (
-          <div className="flex flex-wrap gap-1">
-            {tags.map((tag) => (
-              <Tag key={tag}>{tag}</Tag>
-            ))}
-          </div>
-        ),
+        title: t("content_library:ENTRY_COL_TYPE"),
+        dataIndex: "entryTypeCode",
+        key: "entryTypeCode",
       },
       {
         title: t("content_library:ENTRY_COL_STATUS"),
@@ -182,9 +356,154 @@ export function ContentLibraryView() {
         ),
       },
       {
-        title: t("content_library:ENTRY_COL_UPDATED_AT"),
+        title: t("content_library:ENTRY_COL_REVISIONS"),
+        key: "revisions",
+        render: (_, row) => `${row.draftRevision}/${row.publishedRevision ?? "-"}`,
+      },
+      {
+        title: t("content_library:ENTRY_COL_ACTIONS"),
+        key: "actions",
+        align: "right",
+        render: (_, row) => (
+          <Space wrap className="justify-end">
+            <Button
+              onClick={() => {
+                if (!workspaceId) return;
+                void navigate({
+                  to: "/w/$workspaceId/editor/$editorMode/$entityId",
+                  params: {
+                    workspaceId: String(workspaceId),
+                    editorMode: "article",
+                    entityId: row.id,
+                  },
+                  search: { pathname: `/entry/${row.slug}` },
+                });
+              }}
+              disabled={processingEntryId === row.id}
+            >
+              {t("content_library:ENTRY_ACTION_EDIT")}
+            </Button>
+
+            {row.status === "published" ? (
+              <Button
+                onClick={() => {
+                  void unpublishEntryMutation.mutateAsync(row);
+                }}
+                disabled={processingEntryId === row.id}
+              >
+                {t("content_library:ENTRY_ACTION_UNPUBLISH")}
+              </Button>
+            ) : (
+              <Button
+                type="primary"
+                ghost
+                onClick={() => {
+                  void publishEntryMutation.mutateAsync(row);
+                }}
+                disabled={processingEntryId === row.id}
+              >
+                {t("content_library:ENTRY_ACTION_PUBLISH")}
+              </Button>
+            )}
+
+            <Popconfirm
+              title={t("content_library:ENTRY_DELETE_CONFIRM_TITLE")}
+              onConfirm={() => {
+                void deleteEntryMutation.mutateAsync(row);
+              }}
+              okText={t("common:CONFIRM")}
+              cancelText={t("common:CANCEL")}
+              disabled={row.status === "published" || processingEntryId === row.id}
+            >
+              <Button danger disabled={row.status === "published" || processingEntryId === row.id}>
+                {t("content_library:ENTRY_ACTION_DELETE")}
+              </Button>
+            </Popconfirm>
+          </Space>
+        ),
+      },
+    ],
+    [
+      deleteEntryMutation,
+      navigate,
+      processingEntryId,
+      publishEntryMutation,
+      t,
+      unpublishEntryMutation,
+      workspaceId,
+    ],
+  );
+
+  const typeColumns = React.useMemo<TableColumnsType<EntryTypeRow>>(
+    () => [
+      {
+        title: t("content_library:TYPE_COL_CODE"),
+        dataIndex: "code",
+        key: "code",
+      },
+      {
+        title: t("content_library:TYPE_COL_NAME"),
+        dataIndex: "name",
+        key: "name",
+      },
+      {
+        title: t("content_library:TYPE_COL_ENTRY_COUNT"),
+        dataIndex: "entryCount",
+        key: "entryCount",
+      },
+      {
+        title: t("content_library:ENTRY_COL_ACTIONS"),
+        key: "actions",
+        align: "right",
+        render: (_, row) => (
+          <Popconfirm
+            title={t("content_library:TYPE_DELETE_CONFIRM_TITLE", { code: row.code })}
+            onConfirm={() => {
+              void deleteEntryTypeMutation.mutateAsync(row);
+            }}
+            okText={t("common:CONFIRM")}
+            cancelText={t("common:CANCEL")}
+            disabled={row.entryCount > 0 || processingTypeId === row.id}
+          >
+            <Button danger disabled={row.entryCount > 0 || processingTypeId === row.id}>
+              {t("content_library:TYPE_ACTION_DELETE")}
+            </Button>
+          </Popconfirm>
+        ),
+      },
+    ],
+    [deleteEntryTypeMutation, processingTypeId, t],
+  );
+
+  const pageColumns = React.useMemo<TableColumnsType<PageRow>>(
+    () => [
+      {
+        title: t("content_library:PAGE_COL_TITLE"),
+        dataIndex: "title",
+        key: "title",
+      },
+      {
+        title: t("content_library:PAGE_COL_PATH"),
+        dataIndex: "path",
+        key: "path",
+      },
+      {
+        title: t("content_library:PAGE_COL_STATUS"),
+        dataIndex: "status",
+        key: "status",
+        render: (status: EntryStatus) => (
+          <Tag color={status === "published" ? "green" : "gold"}>
+            {status === "published"
+              ? t("content_library:ENTRY_STATUS_PUBLISHED")
+              : t("content_library:ENTRY_STATUS_DRAFT")}
+          </Tag>
+        ),
+      },
+      {
+        title: t("content_library:PAGE_COL_UPDATED_AT"),
         dataIndex: "updatedAt",
         key: "updatedAt",
+        render: (updatedAt: string | null) => updatedAt ?? "-",
       },
       {
         title: t("content_library:ENTRY_COL_ACTIONS"),
@@ -198,10 +517,10 @@ export function ContentLibraryView() {
                 to: "/w/$workspaceId/editor/$editorMode/$entityId",
                 params: {
                   workspaceId: String(workspaceId),
-                  editorMode: "article",
+                  editorMode: "page",
                   entityId: row.id,
                 },
-                search: { pathname: `/blog/${row.slug}` },
+                search: { pathname: row.path },
               });
             }}
           >
@@ -213,48 +532,16 @@ export function ContentLibraryView() {
     [navigate, t, workspaceId],
   );
 
-  const categoryColumns = React.useMemo<TableColumnsType<CategoryRow>>(
-    () => [
-      {
-        title: t("content_library:CATEGORY_COL_NAME"),
-        dataIndex: "name",
-        key: "name",
-      },
-      {
-        title: t("content_library:CATEGORY_COL_ENTRY_COUNT"),
-        dataIndex: "entryCount",
-        key: "entryCount",
-      },
-    ],
-    [t],
-  );
-
-  const tagColumns = React.useMemo<TableColumnsType<TagRow>>(
-    () => [
-      {
-        title: t("content_library:TAG_COL_NAME"),
-        dataIndex: "name",
-        key: "name",
-      },
-      {
-        title: t("content_library:TAG_COL_ENTRY_COUNT"),
-        dataIndex: "entryCount",
-        key: "entryCount",
-      },
-    ],
-    [t],
-  );
-
   const renderEntriesView = () => {
     if (entriesView === "table") {
       return (
         <Table<EntryRow>
           rowKey="id"
-          columns={entryTableColumns}
+          columns={entryColumns}
           dataSource={pagedRows as EntryRow[]}
           pagination={false}
           locale={{ emptyText: t("content_library:EMPTY_ENTRIES") }}
-          scroll={{ x: 1100 }}
+          scroll={{ x: 980 }}
         />
       );
     }
@@ -267,7 +554,7 @@ export function ContentLibraryView() {
         renderItem={(item) => (
           <List.Item>
             <Card
-              title={item.title}
+              title={item.slug}
               extra={
                 <Tag color={item.status === "published" ? "green" : "gold"}>
                   {item.status === "published"
@@ -288,23 +575,59 @@ export function ContentLibraryView() {
                         editorMode: "article",
                         entityId: item.id,
                       },
-                      search: { pathname: `/blog/${item.slug}` },
+                      search: { pathname: `/entry/${item.slug}` },
                     });
                   }}
+                  disabled={processingEntryId === item.id}
                 >
                   {t("content_library:ENTRY_ACTION_EDIT")}
                 </Button>,
+                item.status === "published" ? (
+                  <Button
+                    key="unpublish"
+                    type="link"
+                    onClick={() => {
+                      void unpublishEntryMutation.mutateAsync(item);
+                    }}
+                    disabled={processingEntryId === item.id}
+                  >
+                    {t("content_library:ENTRY_ACTION_UNPUBLISH")}
+                  </Button>
+                ) : (
+                  <Button
+                    key="publish"
+                    type="link"
+                    onClick={() => {
+                      void publishEntryMutation.mutateAsync(item);
+                    }}
+                    disabled={processingEntryId === item.id}
+                  >
+                    {t("content_library:ENTRY_ACTION_PUBLISH")}
+                  </Button>
+                ),
+                <Popconfirm
+                  key="delete"
+                  title={t("content_library:ENTRY_DELETE_CONFIRM_TITLE")}
+                  onConfirm={() => {
+                    void deleteEntryMutation.mutateAsync(item);
+                  }}
+                  okText={t("common:CONFIRM")}
+                  cancelText={t("common:CANCEL")}
+                  disabled={item.status === "published" || processingEntryId === item.id}
+                >
+                  <Button
+                    type="link"
+                    danger
+                    disabled={item.status === "published" || processingEntryId === item.id}
+                  >
+                    {t("content_library:ENTRY_ACTION_DELETE")}
+                  </Button>
+                </Popconfirm>,
               ]}
             >
               <div className="flex flex-col gap-2 text-sm text-muted-foreground">
-                <div>{`/${item.slug}`}</div>
-                <div>{item.category}</div>
-                <div>{item.updatedAt}</div>
-              </div>
-              <div className="mt-3 flex flex-wrap gap-1">
-                {item.tags.map((tag) => (
-                  <Tag key={tag}>{tag}</Tag>
-                ))}
+                <div>{item.entryTypeCode}</div>
+                <div>{`${t("content_library:ENTRY_COL_REVISIONS")}: ${item.draftRevision}/${item.publishedRevision ?? "-"}`}</div>
               </div>
             </Card>
           </List.Item>
@@ -318,57 +641,75 @@ export function ContentLibraryView() {
       return renderEntriesView();
     }
 
-    if (activeTab === "categories") {
+    if (activeTab === "types") {
       return (
-        <Table<CategoryRow>
+        <Table<EntryTypeRow>
           rowKey="id"
-          columns={categoryColumns}
-          dataSource={pagedRows as CategoryRow[]}
+          columns={typeColumns}
+          dataSource={pagedRows as EntryTypeRow[]}
           pagination={false}
-          locale={{ emptyText: t("content_library:EMPTY_CATEGORIES") }}
+          locale={{ emptyText: t("content_library:EMPTY_TYPES") }}
         />
       );
     }
 
     return (
-      <Table<TagRow>
+      <Table<PageRow>
         rowKey="id"
-        columns={tagColumns}
-        dataSource={pagedRows as TagRow[]}
+        columns={pageColumns}
+        dataSource={pagedRows as PageRow[]}
         pagination={false}
-        locale={{ emptyText: t("content_library:EMPTY_TAGS") }}
+        locale={{ emptyText: t("content_library:EMPTY_PAGES") }}
+        scroll={{ x: 980 }}
       />
     );
   };
 
-  return (
-    <DefaultPage
-      title={t("nav:NAV_CONTENT_LIBRARY")}
-      description={t("content_library:INDEX_DESC")}
-      action={<Button type="primary">{t("content_library:ACTION_CREATE_ENTRY")}</Button>}
-    >
-      <div className="flex flex-col gap-4">
-        <Tabs
-          activeKey={activeTab}
-          onChange={(value) => setActiveTab(value as LibraryTab)}
-          items={[
-            { key: "entries", label: t("content_library:TAB_ENTRIES") },
-            { key: "categories", label: t("content_library:TAB_CATEGORIES") },
-            { key: "tags", label: t("content_library:TAB_TAGS") },
-          ]}
-        />
+  const firstError = entryTypesQuery.error || entriesQuery.error || pagesQuery.error;
+  const loading = entryTypesQuery.isLoading || entriesQuery.isLoading || pagesQuery.isLoading;
 
-        <div className="flex flex-wrap items-center gap-3">
-          <Input
-            value={searchText}
-            onChange={(event) => setSearchText(event.target.value)}
-            placeholder={t("content_library:SEARCH_PLACEHOLDER")}
-            allowClear
-            className="w-full md:w-80"
+  return (
+    <>
+      <DefaultPage
+        title={t("nav:NAV_CONTENT_LIBRARY")}
+        description={t("content_library:INDEX_DESC")}
+        action={
+          activeTab === "entries" ? (
+            <Button
+              type="primary"
+              disabled={!workspaceId || entryTypeRows.length === 0}
+              onClick={() => setCreateOpen(true)}
+            >
+              {t("content_library:ACTION_CREATE_ENTRY")}
+            </Button>
+          ) : activeTab === "types" ? (
+            <Button type="primary" disabled={!workspaceId} onClick={() => setCreateTypeOpen(true)}>
+              {t("content_library:ACTION_CREATE_TYPE")}
+            </Button>
+          ) : null
+        }
+      >
+        <div className="flex flex-col gap-4">
+          <Tabs
+            activeKey={activeTab}
+            onChange={(value) => setActiveTab(value as LibraryTab)}
+            items={[
+              { key: "entries", label: t("content_library:TAB_ENTRIES") },
+              { key: "types", label: t("content_library:TAB_TYPES") },
+              { key: "pages", label: t("content_library:TAB_PAGES") },
+            ]}
           />
 
-          {activeTab === "entries" ? (
-            <>
+          <div className="flex flex-wrap items-center gap-3">
+            <Input
+              value={searchText}
+              onChange={(event) => setSearchText(event.target.value)}
+              placeholder={t("content_library:SEARCH_PLACEHOLDER")}
+              allowClear
+              className="w-full md:w-80"
+            />
+
+            {activeTab === "entries" || activeTab === "pages" ? (
               <Select
                 value={statusFilter}
                 onChange={(value) => setStatusFilter(value)}
@@ -379,49 +720,155 @@ export function ContentLibraryView() {
                 ]}
                 className="w-full md:w-52"
               />
+            ) : null}
 
-              <Select
-                value={categoryFilter}
-                onChange={(value) => setCategoryFilter(value)}
-                options={[
-                  { value: "all", label: t("content_library:FILTER_CATEGORY_ALL") },
-                  ...CATEGORY_ROWS.map((category) => ({
-                    value: category.name,
-                    label: category.name,
-                  })),
-                ]}
-                className="w-full md:w-52"
-              />
+            {activeTab === "entries" ? (
+              <>
+                <Select
+                  value={entryTypeFilter}
+                  onChange={(value) => setEntryTypeFilter(value)}
+                  options={[
+                    { value: "all", label: t("content_library:FILTER_TYPE_ALL") },
+                    ...entryTypeOptions,
+                  ]}
+                  className="w-full md:w-52"
+                />
 
-              <Segmented
-                value={entriesView}
-                onChange={(value) => setEntriesView(value as EntriesView)}
-                options={[
-                  { value: "masonry", label: t("content_library:VIEW_MASONRY") },
-                  { value: "table", label: t("content_library:VIEW_TABLE") },
-                ]}
-              />
+                <Segmented
+                  value={entriesView}
+                  onChange={(value) => setEntriesView(value as EntriesView)}
+                  options={[
+                    { value: "table", label: t("content_library:VIEW_TABLE") },
+                    { value: "masonry", label: t("content_library:VIEW_MASONRY") },
+                  ]}
+                />
+              </>
+            ) : null}
+          </div>
+
+          {loading ? (
+            <div className="flex min-h-40 items-center justify-center">
+              <Spin />
+            </div>
+          ) : firstError ? (
+            <Alert
+              type="error"
+              showIcon
+              message={t("common:REQUEST_FAILED")}
+              description={String(firstError)}
+            />
+          ) : (
+            <>
+              {renderCurrentTab()}
+
+              <div className="flex justify-end">
+                <Pagination
+                  current={pageIndex}
+                  pageSize={pageSize}
+                  showSizeChanger
+                  pageSizeOptions={[10, 20, 50]}
+                  total={currentRows.length}
+                  onChange={(nextPage, nextPageSize) => {
+                    setPageIndex(nextPage);
+                    setPageSize(nextPageSize);
+                  }}
+                  showTotal={(total) => t("content_library:PAGINATION_TOTAL", { total })}
+                />
+              </div>
             </>
-          ) : null}
+          )}
         </div>
+      </DefaultPage>
 
-        {renderCurrentTab()}
+      <Modal
+        open={createOpen}
+        title={t("content_library:CREATE_ENTRY_DIALOG_TITLE")}
+        okText={t("common:CONFIRM")}
+        cancelText={t("common:CANCEL")}
+        confirmLoading={createEntryMutation.isPending}
+        onCancel={() => {
+          if (createEntryMutation.isPending) return;
+          setCreateOpen(false);
+        }}
+        onOk={() => {
+          void createForm.validateFields().then((values) => {
+            void createEntryMutation.mutateAsync(values);
+          });
+        }}
+      >
+        <Form<CreateEntryFormValues>
+          form={createForm}
+          layout="vertical"
+          initialValues={{ entryTypeCode: entryTypeRows[0]?.code, slug: "" }}
+        >
+          <Form.Item
+            name="entryTypeCode"
+            label={t("content_library:CREATE_ENTRY_FIELD_TYPE")}
+            rules={[{ required: true }]}
+          >
+            <Select options={entryTypeOptions} />
+          </Form.Item>
 
-        <div className="flex justify-end">
-          <Pagination
-            current={pageIndex}
-            pageSize={pageSize}
-            showSizeChanger
-            pageSizeOptions={[8, 16, 32]}
-            total={currentRows.length}
-            onChange={(nextPage, nextPageSize) => {
-              setPageIndex(nextPage);
-              setPageSize(nextPageSize);
-            }}
-            showTotal={(total) => t("content_library:PAGINATION_TOTAL", { total })}
-          />
-        </div>
-      </div>
-    </DefaultPage>
+          <Form.Item
+            name="slug"
+            label={t("content_library:CREATE_ENTRY_FIELD_SLUG")}
+            rules={[
+              { required: true },
+              {
+                pattern: /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
+                message: t("content_library:CREATE_ENTRY_SLUG_HINT"),
+              },
+            ]}
+          >
+            <Input placeholder="hello-world" />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      <Modal
+        open={createTypeOpen}
+        title={t("content_library:CREATE_TYPE_DIALOG_TITLE")}
+        okText={t("common:CONFIRM")}
+        cancelText={t("common:CANCEL")}
+        confirmLoading={createEntryTypeMutation.isPending}
+        onCancel={() => {
+          if (createEntryTypeMutation.isPending) return;
+          setCreateTypeOpen(false);
+        }}
+        onOk={() => {
+          void createTypeForm.validateFields().then((values) => {
+            void createEntryTypeMutation.mutateAsync(values);
+          });
+        }}
+      >
+        <Form<CreateEntryTypeFormValues>
+          form={createTypeForm}
+          layout="vertical"
+          initialValues={{ code: "", name: "" }}
+        >
+          <Form.Item
+            name="code"
+            label={t("content_library:CREATE_TYPE_FIELD_CODE")}
+            rules={[
+              { required: true },
+              {
+                pattern: /^[a-z][a-z0-9_]*$/,
+                message: t("content_library:CREATE_TYPE_CODE_HINT"),
+              },
+            ]}
+          >
+            <Input placeholder="post" />
+          </Form.Item>
+
+          <Form.Item
+            name="name"
+            label={t("content_library:CREATE_TYPE_FIELD_NAME")}
+            rules={[{ required: true }]}
+          >
+            <Input placeholder="Post" />
+          </Form.Item>
+        </Form>
+      </Modal>
+    </>
   );
 }

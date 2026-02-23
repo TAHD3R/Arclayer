@@ -21,6 +21,7 @@ from apps.api.modules.system.admin.notifications.me_router import router as my_n
 from apps.api.modules.system.admin.notifications.router import router as workspace_notifications_router
 from apps.api.modules.workspaces.authz.deps import require_workspace_permission
 from apps.api.modules.workspaces.authz.router import router as workspace_authz_router
+from apps.api.modules.workspaces.content.router import router as workspace_content_router
 from apps.api.modules.workspaces.deps import (
     WorkspaceContext,
     get_workspace_context,
@@ -56,6 +57,7 @@ router.include_router(my_notifications_router)
 router.include_router(workspace_menus_router)
 router.include_router(workspace_admin_extensions_router)
 router.include_router(workspace_themes_router)
+router.include_router(workspace_content_router)
 router.include_router(workspace_site_router)
 router.include_router(workspace_activity_router)
 router.include_router(workspace_plugins_center_router)

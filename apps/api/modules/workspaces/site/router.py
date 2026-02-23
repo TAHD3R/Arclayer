@@ -7,11 +7,28 @@ from fastapi import APIRouter, Body, Depends, Query, Request, status
 
 from apps.api.common.types.public_uuid import PublicUUID
 from apps.api.config import Settings, get_settings
-from apps.api.core.http.pagination import PageData
+from apps.api.core.http.pagination import PageData, PageParams, get_page_params
 from apps.api.core.http.response import Response, ResponseModel
 from apps.api.infra.cache.valkey import get_valkey
 from apps.api.modules.auth.deps import get_current_user_id
 from apps.api.modules.sites.schema import (
+    SiteEntryCreateIn,
+    SiteEntryDeleteOut,
+    SiteEntryDraftSaveIn,
+    SiteEntryDraftSaveOut,
+    SiteEntryOut,
+    SiteEntryPublishIn,
+    SiteEntryPublishOut,
+    SiteEntryRevisionOut,
+    SiteEntryRollbackIn,
+    SiteEntryRollbackOut,
+    SiteEntryTypeCreateIn,
+    SiteEntryTypeDeleteOut,
+    SiteEntryTypeOut,
+    SiteEntryTypeUpdateIn,
+    SiteEntryUnpublishIn,
+    SiteEntryUnpublishOut,
+    SiteEntryUpdateIn,
     SiteGlobalSectionCreateIn,
     SiteGlobalSectionDeleteOut,
     SiteGlobalSectionOut,
@@ -468,4 +485,227 @@ async def rollback_workspace_site_page_revision(
         payload=payload,
         actor_user_id=user_id,
     )
+    return Response.success(data=data)
+
+
+@router.get(
+    "/entry-types",
+    response_model=ResponseModel[PageData[SiteEntryTypeOut]],
+    response_model_exclude_none=True,
+    summary="List entry types (workspace RBAC protected)",
+)
+async def list_workspace_site_entry_types(
+    site_id: Annotated[UUID, Depends(_resolve_site_id)],
+    service: Annotated[SiteService, Depends(get_site_service)],
+    params: PageParams = Depends(get_page_params),
+) -> ResponseModel[PageData[SiteEntryTypeOut]]:
+    data = await service.list_entry_types_paginated(site_id=site_id, params=params)
+    return Response.success(data=data)
+
+
+@router.post(
+    "/entry-types",
+    response_model=ResponseModel[SiteEntryTypeOut],
+    response_model_exclude_none=True,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create an entry type (workspace RBAC protected)",
+)
+async def create_workspace_site_entry_type(
+    payload: Annotated[SiteEntryTypeCreateIn, Body(description="Create payload.")],
+    site_id: Annotated[UUID, Depends(_resolve_site_id)],
+    service: Annotated[SiteService, Depends(get_site_service)],
+) -> ResponseModel[SiteEntryTypeOut]:
+    data = await service.create_entry_type(site_id=site_id, payload=payload)
+    return Response.success(data=data)
+
+
+@router.patch(
+    "/entry-types/{entry_type_id}",
+    response_model=ResponseModel[SiteEntryTypeOut],
+    response_model_exclude_none=True,
+    summary="Update an entry type (workspace RBAC protected)",
+)
+async def update_workspace_site_entry_type(
+    entry_type_id: PublicUUID,
+    payload: Annotated[SiteEntryTypeUpdateIn, Body(description="Update payload.")],
+    site_id: Annotated[UUID, Depends(_resolve_site_id)],
+    service: Annotated[SiteService, Depends(get_site_service)],
+) -> ResponseModel[SiteEntryTypeOut]:
+    data = await service.update_entry_type(site_id=site_id, entry_type_id=entry_type_id, payload=payload)
+    return Response.success(data=data)
+
+
+@router.delete(
+    "/entry-types/{entry_type_id}",
+    response_model=ResponseModel[SiteEntryTypeDeleteOut],
+    response_model_exclude_none=True,
+    summary="Delete an entry type (workspace RBAC protected)",
+)
+async def delete_workspace_site_entry_type(
+    entry_type_id: PublicUUID,
+    site_id: Annotated[UUID, Depends(_resolve_site_id)],
+    service: Annotated[SiteService, Depends(get_site_service)],
+) -> ResponseModel[SiteEntryTypeDeleteOut]:
+    data = await service.delete_entry_type(site_id=site_id, entry_type_id=entry_type_id)
+    return Response.success(data=data)
+
+
+@router.get(
+    "/entries",
+    response_model=ResponseModel[PageData[SiteEntryOut]],
+    response_model_exclude_none=True,
+    summary="List entries (workspace RBAC protected)",
+)
+async def list_workspace_site_entries(
+    site_id: Annotated[UUID, Depends(_resolve_site_id)],
+    service: Annotated[SiteService, Depends(get_site_service)],
+    params: PageParams = Depends(get_page_params),
+    entry_type_code: Annotated[
+        str | None,
+        Query(
+            alias="entryTypeCode",
+            description="Optional entry type code filter (e.g. blog_post).",
+        ),
+    ] = None,
+) -> ResponseModel[PageData[SiteEntryOut]]:
+    data = await service.list_entries_paginated(site_id=site_id, params=params, entry_type_code=entry_type_code)
+    return Response.success(data=data)
+
+
+@router.post(
+    "/entries",
+    response_model=ResponseModel[SiteEntryOut],
+    response_model_exclude_none=True,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create an entry (workspace RBAC protected)",
+)
+async def create_workspace_site_entry(
+    payload: Annotated[SiteEntryCreateIn, Body(description="Create payload.")],
+    site_id: Annotated[UUID, Depends(_resolve_site_id)],
+    service: Annotated[SiteService, Depends(get_site_service)],
+) -> ResponseModel[SiteEntryOut]:
+    data = await service.create_entry(site_id=site_id, payload=payload)
+    return Response.success(data=data)
+
+
+@router.patch(
+    "/entries/{entry_id}",
+    response_model=ResponseModel[SiteEntryOut],
+    response_model_exclude_none=True,
+    summary="Update an entry (workspace RBAC protected)",
+)
+async def update_workspace_site_entry(
+    entry_id: PublicUUID,
+    payload: Annotated[SiteEntryUpdateIn, Body(description="Update payload.")],
+    site_id: Annotated[UUID, Depends(_resolve_site_id)],
+    service: Annotated[SiteService, Depends(get_site_service)],
+) -> ResponseModel[SiteEntryOut]:
+    data = await service.update_entry(site_id=site_id, entry_id=entry_id, payload=payload)
+    return Response.success(data=data)
+
+
+@router.delete(
+    "/entries/{entry_id}",
+    response_model=ResponseModel[SiteEntryDeleteOut],
+    response_model_exclude_none=True,
+    summary="Delete an entry (must unpublish first; workspace RBAC protected)",
+)
+async def delete_workspace_site_entry(
+    entry_id: PublicUUID,
+    site_id: Annotated[UUID, Depends(_resolve_site_id)],
+    service: Annotated[SiteService, Depends(get_site_service)],
+) -> ResponseModel[SiteEntryDeleteOut]:
+    data = await service.delete_entry(site_id=site_id, entry_id=entry_id)
+    return Response.success(data=data)
+
+
+@router.post(
+    "/entries/draft",
+    response_model=ResponseModel[SiteEntryDraftSaveOut],
+    response_model_exclude_none=True,
+    status_code=status.HTTP_201_CREATED,
+    summary="Save a draft entry revision (workspace RBAC protected)",
+)
+async def save_workspace_site_entry_draft(
+    payload: Annotated[SiteEntryDraftSaveIn, Body(description="Entry draft save payload.")],
+    site_id: Annotated[UUID, Depends(_resolve_site_id)],
+    service: Annotated[SiteService, Depends(get_site_service)],
+) -> ResponseModel[SiteEntryDraftSaveOut]:
+    data = await service.save_entry_draft(site_id=site_id, payload=payload)
+    return Response.success(data=data)
+
+
+@router.post(
+    "/entries/publish",
+    response_model=ResponseModel[SiteEntryPublishOut],
+    response_model_exclude_none=True,
+    summary="Publish an entry (workspace RBAC protected)",
+)
+async def publish_workspace_site_entry(
+    payload: Annotated[SiteEntryPublishIn, Body(description="Entry publish payload.")],
+    site_id: Annotated[UUID, Depends(_resolve_site_id)],
+    service: Annotated[SiteService, Depends(get_site_service)],
+) -> ResponseModel[SiteEntryPublishOut]:
+    data = await service.publish_entry(site_id=site_id, payload=payload)
+    return Response.success(data=data)
+
+
+@router.post(
+    "/entries/unpublish",
+    response_model=ResponseModel[SiteEntryUnpublishOut],
+    response_model_exclude_none=True,
+    summary="Unpublish an entry (workspace RBAC protected)",
+)
+async def unpublish_workspace_site_entry(
+    payload: Annotated[SiteEntryUnpublishIn, Body(description="Entry unpublish payload.")],
+    site_id: Annotated[UUID, Depends(_resolve_site_id)],
+    service: Annotated[SiteService, Depends(get_site_service)],
+) -> ResponseModel[SiteEntryUnpublishOut]:
+    data = await service.unpublish_entry(site_id=site_id, payload=payload)
+    return Response.success(data=data)
+
+
+@router.post(
+    "/entries/{entry_id}/revisions/rollback",
+    response_model=ResponseModel[SiteEntryRollbackOut],
+    response_model_exclude_none=True,
+    summary="Rollback an entry revision pointer (workspace RBAC protected)",
+)
+async def rollback_workspace_site_entry_revision(
+    entry_id: PublicUUID,
+    payload: Annotated[SiteEntryRollbackIn, Body(description="Rollback payload.")],
+    site_id: Annotated[UUID, Depends(_resolve_site_id)],
+    service: Annotated[SiteService, Depends(get_site_service)],
+) -> ResponseModel[SiteEntryRollbackOut]:
+    data = await service.rollback_entry_revision(site_id=site_id, entry_id=entry_id, payload=payload)
+    return Response.success(data=data)
+
+
+@router.get(
+    "/entries/{entry_id}/revisions/published",
+    response_model=ResponseModel[SiteEntryRevisionOut],
+    response_model_exclude_none=True,
+    summary="Get a published entry revision snapshot (workspace RBAC protected)",
+)
+async def get_workspace_site_published_entry_revision(
+    entry_id: PublicUUID,
+    site_id: Annotated[UUID, Depends(_resolve_site_id)],
+    service: Annotated[SiteService, Depends(get_site_service)],
+) -> ResponseModel[SiteEntryRevisionOut]:
+    data = await service.get_entry_revision(site_id=site_id, entry_id=entry_id, state="published")
+    return Response.success(data=data)
+
+
+@router.get(
+    "/entries/{entry_id}/revisions/draft",
+    response_model=ResponseModel[SiteEntryRevisionOut],
+    response_model_exclude_none=True,
+    summary="Get a draft entry revision snapshot (workspace RBAC protected)",
+)
+async def get_workspace_site_draft_entry_revision(
+    entry_id: PublicUUID,
+    site_id: Annotated[UUID, Depends(_resolve_site_id)],
+    service: Annotated[SiteService, Depends(get_site_service)],
+) -> ResponseModel[SiteEntryRevisionOut]:
+    data = await service.get_entry_revision(site_id=site_id, entry_id=entry_id, state="draft")
     return Response.success(data=data)
