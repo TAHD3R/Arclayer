@@ -338,6 +338,33 @@ class PluginSettings(BaseSettings):
         return _normalize_runtime_fs_path(value, default_base=repo_root)
 
 
+class SaasSettings(BaseSettings):
+    """
+    SaaS-mode settings (only effective when deployment_mode == "saas").
+    """
+
+    model_config = SettingsConfigDict(
+        env_prefix="SAAS__",
+        env_file_encoding="utf-8",
+        env_nested_delimiter="__",
+        extra="ignore",
+        case_sensitive=False,
+        populate_by_name=True,
+        validate_default=True,
+    )
+
+    base_domain: str = Field(
+        default="celestial.app",
+        description="Base domain for tenant subdomains (e.g. {org_slug}.celestial.app).",
+    )
+    admin_url: str = Field(
+        default="https://admin.celestial.app",
+        description="Admin console URL.",
+    )
+    free_tier_page_limit: int = Field(default=20, ge=1, description="Max pages for free tier.")
+    free_tier_storage_mb: int = Field(default=500, ge=1, description="Max storage (MiB) for free tier.")
+
+
 class SetupSettings(BaseSettings):
     """
     One-time system initialization (bootstrap) settings.

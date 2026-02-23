@@ -170,6 +170,10 @@ export type {
   ReusableBlockRef,
 } from "./block-registry";
 
+export { CORE_BLOCK_MANIFESTS } from "./manifests/index";
+
+export { CORE_BLOCK_PATTERNS } from "./patterns/index";
+
 export function resolveLocalizedValue<T>(
   value: LocalizedValue<T> | undefined,
   ctx: ViewerContext,

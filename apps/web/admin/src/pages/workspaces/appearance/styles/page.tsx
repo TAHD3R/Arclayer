@@ -1,126 +1,129 @@
-import { Button, Card, Form, Input, Select, Space, Typography } from "antd";
+import { useCallback, useEffect, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import { Button, Input } from "antd";
 
+import { getWorkspaceSiteStyle, upsertWorkspaceSiteStyle } from "@/api/workspace-site";
 import { DefaultPage } from "@/components/common/default-page";
-
-type GlobalStylesFormValues = {
-  primaryColor: string;
-  secondaryColor: string;
-  fontFamily: string;
-  radiusScale: string;
-  spacingScale: string;
-  containerWidth: string;
-};
-
-const INITIAL_VALUES: GlobalStylesFormValues = {
-  primaryColor: "#2f6fff",
-  secondaryColor: "#f5f7ff",
-  fontFamily: "Inter",
-  radiusScale: "md",
-  spacingScale: "md",
-  containerWidth: "lg",
-};
+import { PageState } from "@/components/common/page-state";
+import { notifyError, notifySuccessText } from "@/lib/notifications";
+import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
 export function WorkspaceGlobalStylesView() {
   const { t } = useTranslation(["appearance", "nav", "common"]);
-  const [form] = Form.useForm<GlobalStylesFormValues>();
+  const queryClient = useQueryClient();
+  const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
+
+  const [jsonText, setJsonText] = useState("");
+  const [jsonError, setJsonError] = useState<string | null>(null);
+
+  const queryKey = ["workspace", "site", "style", workspaceId] as const;
+
+  const styleQuery = useQuery({
+    queryKey,
+    enabled: Boolean(workspaceId),
+    queryFn: () => getWorkspaceSiteStyle(String(workspaceId)),
+    staleTime: 60_000,
+  });
+
+  // Sync fetched data into local editor state
+  useEffect(() => {
+    if (!styleQuery.data) return;
+    setJsonText(JSON.stringify(styleQuery.data.value ?? {}, null, 2));
+    setJsonError(null);
+  }, [styleQuery.data]);
+
+  const saveMutation = useMutation({
+    mutationFn: (value: Record<string, unknown>) =>
+      upsertWorkspaceSiteStyle(String(workspaceId), { value }),
+    onSuccess: async () => {
+      notifySuccessText(t("appearance:GLOBAL_STYLES_SAVE_SUCCESS"));
+      await queryClient.invalidateQueries({ queryKey });
+    },
+    onError: notifyError,
+  });
+
+  const handleJsonChange = useCallback(
+    (value: string) => {
+      setJsonText(value);
+      try {
+        JSON.parse(value);
+        setJsonError(null);
+      } catch {
+        setJsonError(t("appearance:THEME_CONFIG_JSON_INVALID"));
+      }
+    },
+    [t],
+  );
+
+  const handleSave = useCallback(() => {
+    try {
+      const parsed = JSON.parse(jsonText) as Record<string, unknown>;
+      saveMutation.mutate(parsed);
+    } catch {
+      setJsonError(t("appearance:THEME_CONFIG_JSON_INVALID"));
+    }
+  }, [jsonText, saveMutation, t]);
+
+  const handleReset = useCallback(() => {
+    if (!styleQuery.data) return;
+    setJsonText(JSON.stringify(styleQuery.data.value ?? {}, null, 2));
+    setJsonError(null);
+  }, [styleQuery.data]);
 
   return (
     <DefaultPage
       title={t("nav:NAV_APPEARANCE_STYLES")}
       description={t("appearance:GLOBAL_STYLES_DESC")}
     >
-      <div className="flex flex-col gap-4">
-        <Card title={t("appearance:GLOBAL_STYLES_CARD_TITLE")}>
-          <Form<GlobalStylesFormValues>
-            form={form}
-            layout="vertical"
-            initialValues={INITIAL_VALUES}
-            onFinish={() => undefined}
-          >
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <Form.Item
-                label={t("appearance:GLOBAL_STYLES_FIELD_PRIMARY_COLOR")}
-                name="primaryColor"
-              >
-                <Input />
-              </Form.Item>
+      <PageState
+        loading={styleQuery.isLoading && !styleQuery.data}
+        loadingVariant="form"
+        error={styleQuery.isError ? styleQuery.error : null}
+        onRetry={styleQuery.isError ? () => void styleQuery.refetch() : undefined}
+      >
+        <div className="flex flex-col gap-4">
+          {/* JSON editor card */}
+          <div className="rounded-lg border bg-card p-5">
+            <h3 className="mb-3 font-semibold">{t("appearance:GLOBAL_STYLES_CARD_TITLE")}</h3>
 
-              <Form.Item
-                label={t("appearance:GLOBAL_STYLES_FIELD_SECONDARY_COLOR")}
-                name="secondaryColor"
-              >
-                <Input />
-              </Form.Item>
+            <label className="mb-1 block text-sm font-medium">
+              {t("appearance:GLOBAL_STYLES_JSON_LABEL")}
+            </label>
+            <Input.TextArea
+              rows={12}
+              value={jsonText}
+              onChange={(e) => handleJsonChange(e.target.value)}
+              placeholder={t("appearance:GLOBAL_STYLES_JSON_PLACEHOLDER")}
+              status={jsonError ? "error" : undefined}
+              className="font-mono text-sm"
+            />
+            {jsonError ? <p className="mt-1 text-xs text-destructive">{jsonError}</p> : null}
 
-              <Form.Item label={t("appearance:GLOBAL_STYLES_FIELD_FONT_FAMILY")} name="fontFamily">
-                <Select
-                  options={[
-                    { value: "Inter", label: "Inter" },
-                    { value: "DM Sans", label: "DM Sans" },
-                    { value: "Noto Sans", label: "Noto Sans" },
-                  ]}
-                />
-              </Form.Item>
-
-              <Form.Item
-                label={t("appearance:GLOBAL_STYLES_FIELD_CONTAINER_WIDTH")}
-                name="containerWidth"
-              >
-                <Select
-                  options={[
-                    { value: "sm", label: "SM" },
-                    { value: "md", label: "MD" },
-                    { value: "lg", label: "LG" },
-                    { value: "xl", label: "XL" },
-                  ]}
-                />
-              </Form.Item>
-
-              <Form.Item
-                label={t("appearance:GLOBAL_STYLES_FIELD_RADIUS_SCALE")}
-                name="radiusScale"
-              >
-                <Select
-                  options={[
-                    { value: "sm", label: "SM" },
-                    { value: "md", label: "MD" },
-                    { value: "lg", label: "LG" },
-                  ]}
-                />
-              </Form.Item>
-
-              <Form.Item
-                label={t("appearance:GLOBAL_STYLES_FIELD_SPACING_SCALE")}
-                name="spacingScale"
-              >
-                <Select
-                  options={[
-                    { value: "sm", label: "SM" },
-                    { value: "md", label: "MD" },
-                    { value: "lg", label: "LG" },
-                  ]}
-                />
-              </Form.Item>
-            </div>
-
-            <Space>
-              <Button htmlType="button" onClick={() => form.resetFields()}>
+            <div className="mt-4 flex gap-2">
+              <Button onClick={handleReset} disabled={saveMutation.isPending}>
                 {t("appearance:GLOBAL_STYLES_ACTION_RESET")}
               </Button>
-              <Button type="primary" htmlType="submit">
+              <Button
+                type="primary"
+                loading={saveMutation.isPending}
+                disabled={Boolean(jsonError)}
+                onClick={handleSave}
+              >
                 {t("appearance:GLOBAL_STYLES_ACTION_APPLY")}
               </Button>
-            </Space>
-          </Form>
-        </Card>
+            </div>
+          </div>
 
-        <Card title={t("appearance:GLOBAL_STYLES_PRECEDENCE_TITLE")}>
-          <Typography.Paragraph className="!mb-0 text-sm text-muted-foreground">
-            {t("appearance:GLOBAL_STYLES_PRECEDENCE_DESC")}
-          </Typography.Paragraph>
-        </Card>
-      </div>
+          {/* Precedence info */}
+          <div className="rounded-lg border bg-card p-5">
+            <h3 className="mb-2 font-semibold">{t("appearance:GLOBAL_STYLES_PRECEDENCE_TITLE")}</h3>
+            <p className="text-sm text-muted-foreground">
+              {t("appearance:GLOBAL_STYLES_PRECEDENCE_DESC")}
+            </p>
+          </div>
+        </div>
+      </PageState>
     </DefaultPage>
   );
 }

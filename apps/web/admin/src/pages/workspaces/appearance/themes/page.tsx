@@ -1,226 +1,262 @@
-import * as React from "react";
-import {
-  Alert,
-  Button,
-  Card,
-  Input,
-  Pagination,
-  Select,
-  Space,
-  Table,
-  Tag,
-  Typography,
-} from "antd";
-import type { TableColumnsType } from "antd";
+import { useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import { Button, Input, Tag } from "antd";
+import { ImageIcon, MoreVertical, Trash2, Upload } from "lucide-react";
 
+import {
+  deleteWorkspaceTheme,
+  importWorkspaceTheme,
+  listWorkspaceThemes,
+  type WorkspaceThemeItem,
+} from "@/api/workspace-themes";
+import { ConfirmDialog } from "@/components/common/confirm-dialog";
 import { DefaultPage } from "@/components/common/default-page";
-
-type ThemePackageStatus = "active" | "installed";
-
-type ThemePackageRow = {
-  id: string;
-  name: string;
-  themeId: string;
-  version: string;
-  status: ThemePackageStatus;
-  capabilities: string[];
-  updatedAt: string;
-};
-
-const THEME_ROWS: ThemePackageRow[] = [
-  {
-    id: "theme-default",
-    name: "Celestial Default",
-    themeId: "@celestial/default",
-    version: "1.4.2",
-    status: "active",
-    capabilities: ["tokens", "presets", "configSchema"],
-    updatedAt: "2026-02-10 18:00",
-  },
-  {
-    id: "theme-editorial",
-    name: "Editorial Pro",
-    themeId: "@celestial/editorial",
-    version: "0.9.1",
-    status: "installed",
-    capabilities: ["tokens", "configSchema"],
-    updatedAt: "2026-02-12 07:45",
-  },
-  {
-    id: "theme-landing-kit",
-    name: "Landing Kit",
-    themeId: "@celestial/landing-kit",
-    version: "2.1.0",
-    status: "installed",
-    capabilities: ["tokens", "presets"],
-    updatedAt: "2026-02-09 12:30",
-  },
-];
+import { PageState } from "@/components/common/page-state";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { notifyError, notifySuccessText } from "@/lib/notifications";
+import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
 export function WorkspaceThemesView() {
   const { t } = useTranslation(["appearance", "nav", "common"]);
+  const queryClient = useQueryClient();
+  const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
 
-  const [searchText, setSearchText] = React.useState("");
-  const [statusFilter, setStatusFilter] = React.useState<"all" | ThemePackageStatus>("all");
-  const [pageIndex, setPageIndex] = React.useState(1);
-  const [pageSize, setPageSize] = React.useState(10);
+  const [importOpen, setImportOpen] = useState(false);
+  const [assetId, setAssetId] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<WorkspaceThemeItem | null>(null);
 
-  const filteredRows = React.useMemo(() => {
-    const normalized = searchText.trim().toLowerCase();
+  const queryKey = ["workspace", "themes", workspaceId] as const;
 
-    return THEME_ROWS.filter((row) => {
-      if (statusFilter !== "all" && row.status !== statusFilter) return false;
-      if (!normalized) return true;
-      return [row.name, row.themeId, row.version].some((value) =>
-        value.toLowerCase().includes(normalized),
-      );
-    });
-  }, [searchText, statusFilter]);
+  const listQuery = useQuery({
+    queryKey,
+    enabled: Boolean(workspaceId),
+    queryFn: () => listWorkspaceThemes(String(workspaceId)),
+    staleTime: 15_000,
+  });
 
-  const pagedRows = React.useMemo(() => {
-    const start = (pageIndex - 1) * pageSize;
-    return filteredRows.slice(start, start + pageSize);
-  }, [filteredRows, pageIndex, pageSize]);
+  const importMutation = useMutation({
+    mutationFn: () => importWorkspaceTheme(String(workspaceId), assetId.trim()),
+    onSuccess: async () => {
+      notifySuccessText(t("appearance:THEME_CENTER_IMPORT_SUCCESS"));
+      setImportOpen(false);
+      setAssetId("");
+      await queryClient.invalidateQueries({ queryKey });
+    },
+    onError: notifyError,
+  });
 
-  const columns = React.useMemo<TableColumnsType<ThemePackageRow>>(
-    () => [
-      {
-        title: t("appearance:THEME_CENTER_COL_NAME"),
-        dataIndex: "name",
-        key: "name",
-      },
-      {
-        title: t("appearance:THEME_CENTER_COL_THEME_ID"),
-        dataIndex: "themeId",
-        key: "themeId",
-      },
-      {
-        title: t("appearance:THEME_CENTER_COL_VERSION"),
-        dataIndex: "version",
-        key: "version",
-      },
-      {
-        title: t("appearance:THEME_CENTER_COL_STATUS"),
-        dataIndex: "status",
-        key: "status",
-        render: (status: ThemePackageStatus) => (
-          <Tag color={status === "active" ? "green" : "blue"}>
-            {status === "active"
-              ? t("appearance:THEME_CENTER_STATUS_ACTIVE")
-              : t("appearance:THEME_CENTER_STATUS_INSTALLED")}
-          </Tag>
-        ),
-      },
-      {
-        title: t("appearance:THEME_CENTER_COL_CAPABILITIES"),
-        dataIndex: "capabilities",
-        key: "capabilities",
-        render: (capabilities: string[]) => (
-          <div className="flex flex-wrap gap-1">
-            {capabilities.map((capability) => (
-              <Tag key={capability}>{capability}</Tag>
-            ))}
-          </div>
-        ),
-      },
-      {
-        title: t("appearance:THEME_CENTER_COL_UPDATED_AT"),
-        dataIndex: "updatedAt",
-        key: "updatedAt",
-      },
-      {
-        title: t("appearance:THEME_CENTER_COL_ACTIONS"),
-        key: "actions",
-        align: "right",
-        render: (_, row) => (
-          <Space>
-            <Button size="small">{t("appearance:THEME_CENTER_ACTION_CONFIGURE")}</Button>
-            <Button
-              size="small"
-              type={row.status === "active" ? "default" : "primary"}
-              disabled={row.status === "active"}
-            >
-              {t("appearance:THEME_CENTER_ACTION_ACTIVATE")}
-            </Button>
-          </Space>
-        ),
-      },
-    ],
-    [t],
-  );
+  const deleteMutation = useMutation({
+    mutationFn: (theme: WorkspaceThemeItem) =>
+      deleteWorkspaceTheme(String(workspaceId), theme.themeId, theme.version),
+    onSuccess: async () => {
+      notifySuccessText(t("appearance:THEME_CENTER_DELETE_SUCCESS"));
+      setDeleteTarget(null);
+      await queryClient.invalidateQueries({ queryKey });
+    },
+    onError: notifyError,
+  });
+
+  const items = listQuery.data?.items ?? [];
 
   return (
     <DefaultPage
       title={t("nav:NAV_APPEARANCE_THEMES")}
       description={t("appearance:THEME_CENTER_DESC")}
-      action={<Button type="primary">{t("appearance:THEME_CENTER_ACTION_IMPORT")}</Button>}
+      action={
+        <Button
+          type="primary"
+          icon={<Upload className="size-4" />}
+          onClick={() => setImportOpen(true)}
+        >
+          {t("appearance:THEME_CENTER_ACTION_IMPORT")}
+        </Button>
+      }
     >
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-wrap items-center gap-3">
-          <Input
-            value={searchText}
-            onChange={(event) => {
-              setSearchText(event.target.value);
-              setPageIndex(1);
-            }}
-            placeholder={t("appearance:THEME_CENTER_SEARCH_PLACEHOLDER")}
-            allowClear
-            className="w-full md:w-80"
-          />
+      <PageState
+        loading={listQuery.isLoading && !listQuery.data}
+        loadingVariant="masonry"
+        error={listQuery.isError ? listQuery.error : null}
+        onRetry={listQuery.isError ? () => void listQuery.refetch() : undefined}
+        empty={!listQuery.isLoading && items.length === 0}
+        emptyDescription={t("appearance:THEME_CENTER_EMPTY")}
+      >
+        <ThemeCardGrid items={items} onDelete={setDeleteTarget} t={t} />
+      </PageState>
 
-          <Select
-            value={statusFilter}
-            onChange={(value) => {
-              setStatusFilter(value);
-              setPageIndex(1);
-            }}
-            options={[
-              { value: "all", label: t("appearance:THEME_CENTER_FILTER_ALL") },
-              { value: "active", label: t("appearance:THEME_CENTER_FILTER_ACTIVE") },
-              { value: "installed", label: t("appearance:THEME_CENTER_FILTER_INSTALLED") },
-            ]}
-            className="w-full md:w-52"
-          />
-        </div>
+      {/* Import dialog */}
+      <ImportThemeDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        assetId={assetId}
+        onAssetIdChange={setAssetId}
+        loading={importMutation.isPending}
+        onConfirm={() => importMutation.mutate()}
+        t={t}
+      />
 
-        <Table<ThemePackageRow>
-          rowKey="id"
-          columns={columns}
-          dataSource={pagedRows}
-          pagination={false}
-          locale={{ emptyText: t("appearance:THEME_CENTER_EMPTY") }}
-          scroll={{ x: 1160 }}
-        />
-
-        <div className="flex justify-end">
-          <Pagination
-            current={pageIndex}
-            pageSize={pageSize}
-            showSizeChanger
-            pageSizeOptions={[10, 20, 50]}
-            total={filteredRows.length}
-            onChange={(nextPage, nextPageSize) => {
-              setPageIndex(nextPage);
-              setPageSize(nextPageSize);
-            }}
-            showTotal={(total) => t("appearance:THEME_CENTER_PAGINATION_TOTAL", { total })}
-          />
-        </div>
-
-        <Card title={t("appearance:THEME_CENTER_CONFIG_SCHEMA_TITLE")}>
-          <Space direction="vertical" size={8} className="w-full">
-            <Typography.Paragraph className="!mb-0 text-sm text-muted-foreground">
-              {t("appearance:THEME_CENTER_CONFIG_SCHEMA_DESC")}
-            </Typography.Paragraph>
-            <Alert
-              type="info"
-              showIcon
-              message={t("appearance:THEME_CENTER_CONFIG_SCHEMA_ALERT")}
-            />
-          </Space>
-        </Card>
-      </div>
+      {/* Delete confirmation */}
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null);
+        }}
+        title={t("appearance:THEME_CENTER_DELETE_CONFIRM_TITLE")}
+        description={t("appearance:THEME_CENTER_DELETE_CONFIRM_DESC", {
+          name: deleteTarget?.name || deleteTarget?.themeId || "",
+        })}
+        cancelText={t("common:CANCEL")}
+        confirmText={t("common:CONFIRM")}
+        danger
+        loading={deleteMutation.isPending}
+        onConfirm={async () => {
+          if (deleteTarget) await deleteMutation.mutateAsync(deleteTarget);
+        }}
+      />
     </DefaultPage>
+  );
+}
+
+// -- Sub-components ----------------------------------------------------------
+
+type ThemeCardGridProps = {
+  items: WorkspaceThemeItem[];
+  onDelete: (theme: WorkspaceThemeItem) => void;
+  t: (key: string, opts?: Record<string, unknown>) => string;
+};
+
+function ThemeCardGrid({ items, onDelete, t }: ThemeCardGridProps) {
+  return (
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+      {items.map((theme) => (
+        <ThemeCard
+          key={`${theme.themeId}@${theme.version}`}
+          theme={theme}
+          onDelete={onDelete}
+          t={t}
+        />
+      ))}
+    </div>
+  );
+}
+
+type ThemeCardProps = {
+  theme: WorkspaceThemeItem;
+  onDelete: (theme: WorkspaceThemeItem) => void;
+  t: (key: string, opts?: Record<string, unknown>) => string;
+};
+
+function ThemeCard({ theme, onDelete, t }: ThemeCardProps) {
+  const displayName = theme.name || theme.themeId;
+  const hasPresets = Boolean(theme.presets && Object.keys(theme.presets).length > 0);
+  const hasVariants = Boolean(theme.variants && Object.keys(theme.variants).length > 0);
+
+  return (
+    <div className="rounded-lg border bg-card p-4 flex flex-col gap-3">
+      {/* Preview area */}
+      <div className="flex h-28 items-center justify-center rounded-md bg-muted">
+        <ImageIcon className="size-8 text-muted-foreground" />
+        <span className="ml-2 text-xs text-muted-foreground">
+          {t("appearance:THEME_CENTER_NO_PREVIEW")}
+        </span>
+      </div>
+
+      {/* Info row */}
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <p className="truncate font-semibold">{displayName}</p>
+          <p className="truncate text-xs text-muted-foreground">{theme.themeId}</p>
+        </div>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button type="text" icon={<MoreVertical className="size-4" />} />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem variant="destructive" onSelect={() => onDelete(theme)}>
+              <Trash2 />
+              {t("appearance:THEME_CENTER_ACTION_DELETE")}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      {/* Tags */}
+      <div className="flex flex-wrap gap-1">
+        <Tag>{theme.version}</Tag>
+        {hasPresets && <Tag color="blue">presets</Tag>}
+        {hasVariants && <Tag color="purple">variants</Tag>}
+      </div>
+
+      {/* Description */}
+      {theme.description ? (
+        <p className="line-clamp-2 text-sm text-muted-foreground">{theme.description}</p>
+      ) : null}
+    </div>
+  );
+}
+
+type ImportThemeDialogProps = {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  assetId: string;
+  onAssetIdChange: (v: string) => void;
+  loading: boolean;
+  onConfirm: () => void;
+  t: (key: string) => string;
+};
+
+function ImportThemeDialog({
+  open,
+  onOpenChange,
+  assetId,
+  onAssetIdChange,
+  loading,
+  onConfirm,
+  t,
+}: ImportThemeDialogProps) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{t("appearance:THEME_CENTER_IMPORT_TITLE")}</DialogTitle>
+          <DialogDescription>{t("appearance:THEME_CENTER_IMPORT_DESC")}</DialogDescription>
+        </DialogHeader>
+
+        <div className="flex flex-col gap-2 py-2">
+          <label className="text-sm font-medium">
+            {t("appearance:THEME_CENTER_IMPORT_ASSET_ID")}
+          </label>
+          <Input
+            value={assetId}
+            onChange={(e) => onAssetIdChange(e.target.value)}
+            placeholder={t("appearance:THEME_CENTER_IMPORT_ASSET_ID_PLACEHOLDER")}
+            disabled={loading}
+          />
+        </div>
+
+        <DialogFooter>
+          <Button type="text" onClick={() => onOpenChange(false)} disabled={loading}>
+            {t("common:CANCEL")}
+          </Button>
+          <Button type="primary" loading={loading} disabled={!assetId.trim()} onClick={onConfirm}>
+            {t("appearance:THEME_CENTER_ACTION_IMPORT")}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

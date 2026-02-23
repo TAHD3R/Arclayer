@@ -1,4 +1,5 @@
-import { Alert, Button, Form, Input, Select } from "antd";
+import { Button, Form, Input } from "antd";
+import { Info } from "lucide-react";
 import * as React from "react";
 
 import { SettingSheet } from "@/components/common/setting-sheet";
@@ -27,6 +28,38 @@ type ContentPagesSheetProps = {
   onOpenChange: (open: boolean) => void;
   onSubmit: (values: ContentPageFormValues) => Promise<void>;
 };
+
+// Antd Form-compatible native select adapter (bridges value/onChange signature)
+function FormSelect({
+  value,
+  onChange,
+  options,
+  placeholder,
+}: {
+  value?: string | null;
+  onChange?: (value: string | null) => void;
+  options: Array<{ value: string | null; label: string }>;
+  placeholder?: string;
+}) {
+  return (
+    <select
+      value={value ?? ""}
+      onChange={(e) => onChange?.(e.target.value || null)}
+      className="h-9 w-full rounded-md border border-border bg-background px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+    >
+      {placeholder ? (
+        <option value="" disabled>
+          {placeholder}
+        </option>
+      ) : null}
+      {options.map((opt) => (
+        <option key={String(opt.value)} value={opt.value ?? ""}>
+          {opt.label}
+        </option>
+      ))}
+    </select>
+  );
+}
 
 function renderFieldHeader(
   t: (key: string, options?: Record<string, unknown>) => string,
@@ -208,7 +241,7 @@ export function ContentPagesSheet(props: ContentPagesSheetProps) {
                 "content_pages:FIELD_TYPE_DESC",
               )}
               <Form.Item className="mb-0" name="type">
-                <Select
+                <FormSelect
                   options={[
                     { value: "static", label: props.t("content_pages:INDEX_TYPE_STATIC") },
                     { value: "template", label: props.t("content_pages:INDEX_TYPE_TEMPLATE") },
@@ -218,20 +251,21 @@ export function ContentPagesSheet(props: ContentPagesSheetProps) {
             </div>
 
             {typeSwitchHint ? (
-              <Alert
-                showIcon
-                type="info"
-                message={
-                  typeSwitchHint === "template"
-                    ? props.t("content_pages:TYPE_SWITCH_TEMPLATE_TITLE")
-                    : props.t("content_pages:TYPE_SWITCH_STATIC_TITLE")
-                }
-                description={
-                  typeSwitchHint === "template"
-                    ? props.t("content_pages:TYPE_SWITCH_TEMPLATE_DESC")
-                    : props.t("content_pages:TYPE_SWITCH_STATIC_DESC")
-                }
-              />
+              <div className="flex gap-2.5 rounded-md border border-blue-200 bg-blue-50 p-3 text-sm dark:border-blue-800 dark:bg-blue-950/40">
+                <Info className="size-4 shrink-0 text-blue-500 mt-0.5" />
+                <div className="grid gap-1">
+                  <span className="font-medium">
+                    {typeSwitchHint === "template"
+                      ? props.t("content_pages:TYPE_SWITCH_TEMPLATE_TITLE")
+                      : props.t("content_pages:TYPE_SWITCH_STATIC_TITLE")}
+                  </span>
+                  <span className="text-muted-foreground">
+                    {typeSwitchHint === "template"
+                      ? props.t("content_pages:TYPE_SWITCH_TEMPLATE_DESC")
+                      : props.t("content_pages:TYPE_SWITCH_STATIC_DESC")}
+                  </span>
+                </div>
+              </div>
             ) : null}
 
             <div className="grid gap-2">
@@ -271,7 +305,7 @@ export function ContentPagesSheet(props: ContentPagesSheetProps) {
                 "content_pages:FIELD_VISIBILITY_DESC",
               )}
               <Form.Item className="mb-0" name="visibility">
-                <Select
+                <FormSelect
                   options={[
                     {
                       value: "public",
@@ -293,7 +327,7 @@ export function ContentPagesSheet(props: ContentPagesSheetProps) {
                 "content_pages:FIELD_PARENT_DESC",
               )}
               <Form.Item className="mb-0" name="parentId">
-                <Select showSearch optionFilterProp="label" options={parentOptions} />
+                <FormSelect options={parentOptions} />
               </Form.Item>
             </div>
           </ChromeTabsContent>
@@ -319,7 +353,7 @@ export function ContentPagesSheet(props: ContentPagesSheetProps) {
                     "content_pages:FIELD_CONTENT_MODE_DESC",
                   )}
                   <Form.Item className="mb-0" name="contentMode">
-                    <Select
+                    <FormSelect
                       options={[
                         {
                           value: "blank",
@@ -351,9 +385,7 @@ export function ContentPagesSheet(props: ContentPagesSheetProps) {
                         },
                       ]}
                     >
-                      <Select
-                        showSearch
-                        optionFilterProp="label"
+                      <FormSelect
                         options={copySourceOptions}
                         placeholder={props.t("content_pages:COPY_SOURCE_PLACEHOLDER")}
                       />

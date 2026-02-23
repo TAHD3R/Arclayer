@@ -8,6 +8,7 @@
     "./config": "./src/config/index.ts",
     "./http": "./src/http/index.ts",
     "./i18n": "./src/i18n/index.ts",
+    "./plugin-slots": "./src/plugin-slots.ts",
     "./storage": "./src/storage/index.ts"
   }
 }

@@ -17,6 +17,7 @@ class WorkspaceSiteService(BaseService):
         *,
         workspace_id: UUID,
         actor_user_id: UUID | None,
+        primary_host: str | None = None,
     ):
         """
         Resolve the single site for a workspace.
@@ -44,6 +45,6 @@ class WorkspaceSiteService(BaseService):
             name=f"{ws_name} Site",
             default_locale="zh-CN",
             fallback_locale="en-US",
-            primary_host=None,
+            primary_host=primary_host,
             created_by_user_id=actor_user_id,
         )

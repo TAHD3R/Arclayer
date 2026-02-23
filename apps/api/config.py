@@ -12,6 +12,7 @@ from apps.api.config_runtime import (
     ObservabilitySettings,
     PluginSettings,
     PublicIdSettings,
+    SaasSettings,
     SetupSettings,
     TestingSettings,
 )
@@ -649,6 +650,7 @@ class Settings(BaseSettings):
     public_id: PublicIdSettings = Field(default_factory=PublicIdSettings)
     email: EmailSettings = Field(default_factory=EmailSettings)
     plugin: PluginSettings = Field(default_factory=PluginSettings)
+    saas: SaasSettings = Field(default_factory=SaasSettings)
     setup: SetupSettings = Field(default_factory=SetupSettings)
     testing: TestingSettings = Field(default_factory=TestingSettings)
 
@@ -748,6 +750,10 @@ class Settings(BaseSettings):
         self.plugin = _merge_settings(
             self.plugin,
             _build_settings_from_env_file(PluginSettings, env_file=env_file, env_file_encoding=env_file_encoding),
+        )
+        self.saas = _merge_settings(
+            self.saas,
+            _build_settings_from_env_file(SaasSettings, env_file=env_file, env_file_encoding=env_file_encoding),
         )
         self.setup = _merge_settings(
             self.setup,

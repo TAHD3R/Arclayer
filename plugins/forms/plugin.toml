@@ -1,0 +1,23 @@
+[plugin]
+id = "forms"
+slug = "forms"
+name = "Forms"
+description = "Form builder with submissions collection and notification hooks."
+author = "CelestialCMS"
+version = "0.1.0"
+requires = ">=0.1.0"
+entrypoint = "forms.plugin:FormsPlugin"
+
+[[admin_ui_extensions]]
+id = "forms.block-type"
+slot = "editor.blocks"
+title = "Form"
+kind = "widget"
+icon = "FileInput"
+
+[[admin_menu]]
+code = "forms"
+title = "Forms"
+icon = "FileInput"
+path = "/plugins/forms"
+sort = 50

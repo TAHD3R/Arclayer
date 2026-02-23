@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Annotated, Any, Literal
 
-from pydantic import AliasChoices, ConfigDict, Field
+from pydantic import AliasChoices, ConfigDict, Field, field_validator
 
 from apps.api.common.schemas import BaseSchema
 from apps.api.common.types.public_uuid import PublicUUID
@@ -136,6 +136,74 @@ class DividerBlockProps(BlockVisualProps):
     variant: Literal["default", "subtle"] | None = Field(default=None, description="Divider visual variant.")
 
 
+class ImageBlockProps(BlockVisualProps):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    src: LocalizedString = Field(..., description="Image source URL (field-level i18n map).")
+    alt: LocalizedString | None = Field(default=None, description="Alt text (field-level i18n map).")
+    object_fit: Literal["cover", "contain", "fill", "none"] | None = Field(
+        default=None, alias="objectFit", description="CSS object-fit."
+    )
+
+
+class ButtonBlockProps(BlockVisualProps):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    text: LocalizedString = Field(..., description="Button label (field-level i18n map).")
+    href: str | None = Field(default=None, description="Link URL.")
+    variant: Literal["primary", "secondary", "outline", "ghost"] | None = Field(
+        default=None, description="Button variant."
+    )
+    size: Literal["sm", "md", "lg"] | None = Field(default=None, description="Button size.")
+
+
+class VideoBlockProps(BlockVisualProps):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    src: str = Field(..., description="Video source URL.")
+    poster: str | None = Field(default=None, description="Poster image URL.")
+    autoplay: bool = Field(default=False, description="Autoplay on load.")
+    loop: bool = Field(default=False, description="Loop playback.")
+    muted: bool = Field(default=True, description="Muted by default.")
+
+
+class GridBlockProps(BlockVisualProps):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    columns: int = Field(default=2, ge=1, le=12, description="Number of grid columns.")
+    column_gap: int | str | None = Field(default=None, alias="columnGap", description="Column gap.")
+    row_gap: int | str | None = Field(default=None, alias="rowGap", description="Row gap.")
+
+
+class SpacerBlockProps(BlockVisualProps):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    size: int | str = Field(default=24, description="Spacer height (px or CSS value).")
+
+
+class IconBlockProps(BlockVisualProps):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    name: str = Field(..., description="Icon name (e.g. lucide icon id).")
+    size: int | str | None = Field(default=None, description="Icon size.")
+    color: str | None = Field(default=None, description="Icon color.")
+
+
+class ListBlockProps(BlockVisualProps):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    ordered: bool = Field(default=False, description="Ordered (numbered) list.")
+    items: list[LocalizedString] = Field(default_factory=list, description="List items (field-level i18n).")
+
+
+class QuoteBlockProps(BlockVisualProps):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    text: LocalizedString = Field(..., description="Quote text (field-level i18n map).")
+    citation: LocalizedString | None = Field(default=None, description="Citation / attribution.")
+    variant: Literal["default", "large"] | None = Field(default=None, description="Quote visual variant.")
+
+
 class ContainerBlock(BaseSchema):
     model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
 
@@ -169,8 +237,84 @@ class DividerBlock(BaseSchema):
     props: DividerBlockProps = Field(..., description="Block props.")
 
 
+class ImageBlock(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    id: str = Field(..., description="Block id.")
+    type: Literal["image"] = Field(..., description="Block type.")
+    props: ImageBlockProps = Field(..., description="Block props.")
+
+
+class ButtonBlock(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    id: str = Field(..., description="Block id.")
+    type: Literal["button"] = Field(..., description="Block type.")
+    props: ButtonBlockProps = Field(..., description="Block props.")
+
+
+class VideoBlock(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    id: str = Field(..., description="Block id.")
+    type: Literal["video"] = Field(..., description="Block type.")
+    props: VideoBlockProps = Field(..., description="Block props.")
+
+
+class GridBlock(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    id: str = Field(..., description="Block id.")
+    type: Literal["grid"] = Field(..., description="Block type.")
+    props: GridBlockProps = Field(..., description="Block props.")
+    children: list[BlockNode] | None = Field(default=None, description="Child blocks.")
+
+
+class SpacerBlock(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    id: str = Field(..., description="Block id.")
+    type: Literal["spacer"] = Field(..., description="Block type.")
+    props: SpacerBlockProps = Field(..., description="Block props.")
+
+
+class IconBlock(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    id: str = Field(..., description="Block id.")
+    type: Literal["icon"] = Field(..., description="Block type.")
+    props: IconBlockProps = Field(..., description="Block props.")
+
+
+class ListBlock(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    id: str = Field(..., description="Block id.")
+    type: Literal["list"] = Field(..., description="Block type.")
+    props: ListBlockProps = Field(..., description="Block props.")
+
+
+class QuoteBlock(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    id: str = Field(..., description="Block id.")
+    type: Literal["quote"] = Field(..., description="Block type.")
+    props: QuoteBlockProps = Field(..., description="Block props.")
+
+
 BlockNode = Annotated[
-    ContainerBlock | HeadingBlock | ParagraphBlock | DividerBlock,
+    ContainerBlock
+    | HeadingBlock
+    | ParagraphBlock
+    | DividerBlock
+    | ImageBlock
+    | ButtonBlock
+    | VideoBlock
+    | GridBlock
+    | SpacerBlock
+    | IconBlock
+    | ListBlock
+    | QuoteBlock,
     Field(discriminator="type"),
 ]
 
@@ -842,7 +986,66 @@ class SiteEntryDeleteOut(BaseSchema):
     entry_id: PublicUUID = Field(..., description="Deleted entry id.")
 
 
+# ---- Site Patterns ----
+
+
+class SitePatternOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid", from_attributes=True)
+
+    id: PublicUUID = Field(..., description="Pattern id.")
+    site_id: PublicUUID = Field(..., description="Site id.")
+    code: str = Field(..., description="Pattern code (unique within site).")
+    label: dict[str, str] = Field(
+        default_factory=dict,
+        validation_alias="label_json",
+        description="Localized label map.",
+    )
+    category: str = Field(..., description="Pattern category.")
+    preview_image_url: str | None = Field(default=None, description="Preview image URL.")
+    blocks: list[dict[str, Any]] = Field(
+        default_factory=list,
+        validation_alias="blocks_json",
+        description="Block nodes (serialized JSON).",
+    )
+    created_at_ms: int = Field(
+        ..., validation_alias="created_at", description="Created timestamp in milliseconds (UTC)."
+    )
+
+    @field_validator("created_at_ms", mode="before")
+    @classmethod
+    def _dt_to_ms(cls, v: datetime | int) -> int:
+        if isinstance(v, datetime):
+            return int(v.timestamp() * 1000)
+        return v
+
+
+class SitePatternCreateIn(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    code: str = Field(..., min_length=1, max_length=128, description="Pattern code (unique within site).")
+    label: dict[str, str] = Field(default_factory=dict, description="Localized label map.")
+    category: str = Field(default="custom", max_length=64, description="Pattern category.")
+    preview_image_url: str | None = Field(default=None, max_length=512, description="Preview image URL.")
+    blocks: list[dict[str, Any]] = Field(default_factory=list, description="Block nodes (serialized JSON).")
+
+
+class SitePatternUpdateIn(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    label: dict[str, str] | None = Field(default=None, description="Localized label map.")
+    category: str | None = Field(default=None, max_length=64, description="Pattern category.")
+    preview_image_url: str | None = Field(default=None, max_length=512, description="Preview image URL.")
+    blocks: list[dict[str, Any]] | None = Field(default=None, description="Block nodes (serialized JSON).")
+
+
+class SitePatternDeleteOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    pattern_id: PublicUUID = Field(..., description="Deleted pattern id.")
+
+
 ContainerBlock.model_rebuild()
+GridBlock.model_rebuild()
 DocumentIR.model_rebuild()
 SitePageTreeNodeOut.model_rebuild()
 SiteVisualSitemapNodeOut.model_rebuild()

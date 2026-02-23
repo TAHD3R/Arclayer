@@ -381,6 +381,10 @@ export function EditorSiteView(props: EditorSiteViewProps) {
           },
         })),
       getCanvasState: () => canvasStateRef.current,
+
+      // --- Inline editing (skeleton stubs) ---
+      startInlineEdit: ({ blockId: _b, fieldKey: _f }) => ({ content: [] }),
+      commitInlineEdit: () => {},
     };
 
     void (async () => {

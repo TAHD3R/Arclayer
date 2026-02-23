@@ -29,6 +29,16 @@
   "THEME_CENTER_CONFIG_SCHEMA_TITLE": "Theme config schema",
   "THEME_CENTER_CONFIG_SCHEMA_DESC": "Theme-specific settings are generated from package manifest JSON Schema.",
   "THEME_CENTER_CONFIG_SCHEMA_ALERT": "V1 supports schema-driven fields only; executable theme config UIs are disabled.",
+  "THEME_CENTER_ACTION_DELETE": "Delete",
+  "THEME_CENTER_DELETE_CONFIRM_TITLE": "Delete theme",
+  "THEME_CENTER_DELETE_CONFIRM_DESC": "Are you sure you want to delete theme \"{{name}}\"? This action cannot be undone.",
+  "THEME_CENTER_DELETE_SUCCESS": "Theme deleted",
+  "THEME_CENTER_IMPORT_TITLE": "Import theme package",
+  "THEME_CENTER_IMPORT_DESC": "Provide the asset ID of the uploaded theme zip package.",
+  "THEME_CENTER_IMPORT_ASSET_ID": "Asset ID",
+  "THEME_CENTER_IMPORT_ASSET_ID_PLACEHOLDER": "Enter the asset public ID",
+  "THEME_CENTER_IMPORT_SUCCESS": "Theme imported",
+  "THEME_CENTER_NO_PREVIEW": "No preview",
 
   "GLOBAL_STYLES_DESC": "Workspace-level style overrides applied after theme tokens.",
   "GLOBAL_STYLES_CARD_TITLE": "Global style overrides",
@@ -40,6 +50,9 @@
   "GLOBAL_STYLES_FIELD_CONTAINER_WIDTH": "Container width",
   "GLOBAL_STYLES_ACTION_RESET": "Reset",
   "GLOBAL_STYLES_ACTION_APPLY": "Apply",
+  "GLOBAL_STYLES_SAVE_SUCCESS": "Styles saved",
+  "GLOBAL_STYLES_JSON_LABEL": "Style JSON",
+  "GLOBAL_STYLES_JSON_PLACEHOLDER": "Enter style overrides as JSON",
   "GLOBAL_STYLES_PRECEDENCE_TITLE": "Style precedence",
   "GLOBAL_STYLES_PRECEDENCE_DESC": "Theme Tokens < Global Styles < Page Overrides"
 }

@@ -2,6 +2,7 @@ import type {
   DocumentIR,
   BlockManifest,
   BlockPattern,
+  PortableTextContent,
 } from "@celestial/site-block-protocol";
 
 export type EditorProtocolVersion = 1;
@@ -72,7 +73,11 @@ export type EditorLayerNode = {
   children: EditorLayerNode[];
 };
 
-export type EditorInsertBlockType = "container" | "heading" | "paragraph" | "divider";
+/**
+ * Block type identifier for insertion.
+ * Registry-driven: any string registered in BlockRegistry is valid.
+ */
+export type EditorInsertBlockType = string;
 
 export type EditorInsertBlockPosition = "inside" | "after" | "before";
 
@@ -209,6 +214,10 @@ export type PortalEditorRpcApi = {
     breakpoint: string;
     patch: EditorSelectionPatch;
   }) => EditorSelectionInspector;
+
+  // --- Inline editing ---
+  startInlineEdit: (args: { blockId: BlockId; fieldKey: string }) => { content: PortableTextContent };
+  commitInlineEdit: (args: { blockId: BlockId; fieldKey: string; content: PortableTextContent }) => void;
 };
 
 export type HostEditorRpcApi = {
@@ -233,3 +242,5 @@ export type HostEditorRpcApi = {
   selectionInspectorChanged?: (args: { inspector: EditorSelectionInspector }) => void;
   layerTreeChanged?: (args: { layers: EditorLayerNode[] }) => void;
 };
+
+export type { DndItemKind, DndNewBlockItem, DndExistingBlockItem, DndItem, DndDropTarget, DndDropResult } from "./dnd";

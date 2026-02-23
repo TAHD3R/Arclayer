@@ -1,8 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { type ColumnDef } from "@tanstack/react-table";
-import { Button, Pagination } from "antd";
-import { Plus } from "lucide-react";
+import { Button } from "antd";
+import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
 
@@ -18,6 +18,7 @@ import {
 import { DefaultPage } from "@/components/common/default-page";
 import { PageState } from "@/components/common/page-state";
 import { DataTablePresenter, useDataTable } from "@/components/data-table";
+import { Button as UiButton } from "@/components/ui/button";
 import { ApiError } from "@/lib/http";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { cn } from "@/lib/utils";
@@ -570,22 +571,44 @@ export function ContentPagesView() {
                   to: Math.min(pageData.page * pageData.size, pageData.total),
                 })}
               </div>
-              <Pagination
-                current={pageData.page}
-                pageSize={pageData.size}
-                total={pageData.total}
-                showSizeChanger
-                pageSizeOptions={[10, 20, 50, 100]}
-                onChange={(nextPage, nextSize) => {
-                  if (
-                    typeof nextSize === "number" &&
-                    nextSize !== table.getState().pagination.pageSize
-                  ) {
-                    table.setPageSize(nextSize);
-                  }
-                  table.setPageIndex(Math.max(0, nextPage - 1));
-                }}
-              />
+              <div className="flex items-center gap-2">
+                <select
+                  value={pageData.size}
+                  onChange={(e) => {
+                    table.setPageSize(Number(e.target.value));
+                    table.setPageIndex(0);
+                  }}
+                  className="h-8 rounded-md border border-border bg-background px-2 text-sm"
+                >
+                  {[10, 20, 50, 100].map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
+
+                <UiButton
+                  variant="outline"
+                  size="icon-sm"
+                  disabled={!pageData.prev}
+                  onClick={() => table.setPageIndex(Math.max(0, pageData.page - 2))}
+                >
+                  <ChevronLeft className="size-4" />
+                </UiButton>
+
+                <span className="text-sm tabular-nums">
+                  {pageData.page} / {pageData.pages || 1}
+                </span>
+
+                <UiButton
+                  variant="outline"
+                  size="icon-sm"
+                  disabled={!pageData.next}
+                  onClick={() => table.setPageIndex(pageData.page)}
+                >
+                  <ChevronRight className="size-4" />
+                </UiButton>
+              </div>
             </div>
           ) : null}
         </PageState>

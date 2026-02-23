@@ -67,3 +67,17 @@ class CelestialHooks:
         - render a label/icon on the login page.
         """
         raise NotImplementedError
+
+    @hookspec
+    def frontend_extensions(self) -> list[Any]:
+        """
+        Return frontend UI extension declarations.
+
+        Each declaration should be a dict or object with:
+        - id: str
+        - slot: str
+        - title: str
+        - kind: str ("action" | "panel" | "widget")
+        - component_url: str (JS module URL for lazy loading)
+        """
+        raise NotImplementedError

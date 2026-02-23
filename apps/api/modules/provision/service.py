@@ -170,6 +170,7 @@ class TenantProvisioningService(BaseService):
         site, site_actions = await self._ensure_workspace_site(
             workspace_id=workspace.id,
             actor_user_id=user.id,
+            org_slug=organization.slug,
         )
         actions.extend(site_actions)
 
@@ -314,16 +315,29 @@ class TenantProvisioningService(BaseService):
         *,
         workspace_id: UUID,
         actor_user_id: UUID,
+        org_slug: str | None = None,
     ) -> tuple[SiteRecord, list[str]]:
         actions: list[str] = []
 
         existing = await SiteRecord.filter(workspace_id=workspace_id).order_by("created_at", "id").first()
         if existing is not None:
+            # Back-fill primary_host for SaaS mode if missing.
+            if existing.primary_host is None and org_slug and self.settings.application.deployment_mode == "saas":
+                host = f"{org_slug}.{self.settings.saas.base_domain}"
+                existing.primary_host = host
+                await existing.save(update_fields=["primary_host", "updated_at"])
+                actions.append("site_primary_host_backfilled")
             return existing, actions
+
+        # Derive primary_host in SaaS mode.
+        primary_host: str | None = None
+        if org_slug and self.settings.application.deployment_mode == "saas":
+            primary_host = f"{org_slug}.{self.settings.saas.base_domain}"
 
         site = await self.workspace_site_service.get_or_create_site_for_workspace(
             workspace_id=workspace_id,
             actor_user_id=actor_user_id,
+            primary_host=primary_host,
         )
         actions.append("workspace_site_created")
         return site, actions

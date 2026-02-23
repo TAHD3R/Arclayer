@@ -1,8 +1,8 @@
-import { Button, Select } from "antd";
+import { Button } from "antd";
+import type { ChangeEvent } from "react";
 import { Filter } from "lucide-react";
 
 import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 
 import type { ContentPagesFilters } from "./content-pages-types";
 
@@ -12,6 +12,31 @@ type ContentPagesFilterPopoverProps = {
   onChange: (next: ContentPagesFilters) => void;
   onReset: () => void;
 };
+
+// Tailwind-styled native select to replace Antd Select
+function FilterSelect<T extends string>({
+  value,
+  onChange,
+  options,
+}: {
+  value: T;
+  onChange: (next: T) => void;
+  options: Array<{ value: T; label: string }>;
+}) {
+  return (
+    <select
+      value={value}
+      onChange={(e: ChangeEvent<HTMLSelectElement>) => onChange(e.target.value as T)}
+      className="h-9 w-full rounded-md border border-border bg-background px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+    >
+      {options.map((opt) => (
+        <option key={opt.value} value={opt.value}>
+          {opt.label}
+        </option>
+      ))}
+    </select>
+  );
+}
 
 export function ContentPagesFilterPopover(props: ContentPagesFilterPopoverProps) {
   return (
@@ -35,10 +60,9 @@ export function ContentPagesFilterPopover(props: ContentPagesFilterPopoverProps)
             <div className="text-sm text-muted-foreground">
               {props.t("content_pages:FILTER_FIELD_STATUS")}
             </div>
-            <Select
+            <FilterSelect
               value={props.value.status}
               onChange={(status) => props.onChange({ ...props.value, status })}
-              getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
               options={[
                 { value: "all", label: props.t("content_pages:INDEX_FILTER_STATUS_ALL") },
                 { value: "draft", label: props.t("content_pages:INDEX_FILTER_STATUS_DRAFT") },
@@ -54,13 +78,15 @@ export function ContentPagesFilterPopover(props: ContentPagesFilterPopoverProps)
             <div className="text-sm text-muted-foreground">
               {props.t("content_pages:FILTER_FIELD_VISIBILITY")}
             </div>
-            <Select
+            <FilterSelect
               value={props.value.visibility}
               onChange={(visibility) => props.onChange({ ...props.value, visibility })}
-              getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
               options={[
                 { value: "all", label: props.t("content_pages:INDEX_FILTER_VISIBILITY_ALL") },
-                { value: "public", label: props.t("content_pages:INDEX_FILTER_VISIBILITY_PUBLIC") },
+                {
+                  value: "public",
+                  label: props.t("content_pages:INDEX_FILTER_VISIBILITY_PUBLIC"),
+                },
                 {
                   value: "private",
                   label: props.t("content_pages:INDEX_FILTER_VISIBILITY_PRIVATE"),

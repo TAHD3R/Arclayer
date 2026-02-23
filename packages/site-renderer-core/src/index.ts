@@ -23,3 +23,8 @@ export { serializeCssVarsToStyleText, resolveTokenCollection, serializeTokensToS
 
 export type { BlockRenderer } from "./internal/BlockRegistry";
 export { BlockRegistry } from "./internal/BlockRegistry";
+
+export { coreBlockRenderers } from "./internal/blocks/index";
+
+export { PortableTextRenderer } from "./internal/rich-text/portable-text-renderer";
+export { InlineEditor } from "./internal/rich-text/inline-editor";

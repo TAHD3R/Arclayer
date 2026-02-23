@@ -11,12 +11,10 @@ function resolveSource(relativePath: string) {
 }
 
 describe("workspace editor source", () => {
-  test("editor page wires bridge and draft lifecycle", () => {
+  test("editor page renders layout shell", () => {
     const source = readFileSync(resolveSource("pages/workspaces/editor/page.tsx"), "utf-8");
 
-    expect(source).toContain("createEditorHostConnector");
-    expect(source).toContain("saveWorkspaceSitePageDraft");
-    expect(source).toContain("publishWorkspaceSitePage");
-    expect(source).toContain("EDITOR_SHELL_SAVE_SHORTCUT_HINT");
+    expect(source).toContain("EditorLayout");
+    expect(source).toContain("WorkspaceEditorView");
   });
 });

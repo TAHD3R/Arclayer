@@ -107,6 +107,9 @@ describe("ContentLibraryView", () => {
     }
 
     vi.stubGlobal("ResizeObserver", ResizeObserverMock);
+
+    // ChromeTabs uses scrollIntoView internally
+    Element.prototype.scrollIntoView = vi.fn();
   });
 
   beforeEach(() => {
@@ -165,11 +168,16 @@ describe("ContentLibraryView", () => {
     const user = userEvent.setup();
     renderView();
 
-    const publishButton = await screen.findByRole("button", {
+    // Actions are now inside a DropdownMenu; open it first
+    const trigger = await screen.findByRole("button", {
+      name: "content_library:ENTRY_COL_ACTIONS",
+    });
+    await user.click(trigger);
+
+    const publishItem = await screen.findByRole("menuitem", {
       name: "content_library:ENTRY_ACTION_PUBLISH",
     });
-
-    await user.click(publishButton);
+    await user.click(publishItem);
 
     await waitFor(() => {
       expect(publishWorkspaceSiteEntry).toHaveBeenCalledWith("ws-1", {
@@ -197,11 +205,15 @@ describe("ContentLibraryView", () => {
     const user = userEvent.setup();
     renderView();
 
-    const unpublishButton = await screen.findByRole("button", {
+    const trigger = await screen.findByRole("button", {
+      name: "content_library:ENTRY_COL_ACTIONS",
+    });
+    await user.click(trigger);
+
+    const unpublishItem = await screen.findByRole("menuitem", {
       name: "content_library:ENTRY_ACTION_UNPUBLISH",
     });
-
-    await user.click(unpublishButton);
+    await user.click(unpublishItem);
 
     await waitFor(() => {
       expect(unpublishWorkspaceSiteEntry).toHaveBeenCalledWith("ws-1", {

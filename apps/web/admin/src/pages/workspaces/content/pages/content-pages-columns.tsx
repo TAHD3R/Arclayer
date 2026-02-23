@@ -1,10 +1,16 @@
 import type { ColumnDef } from "@tanstack/react-table";
-import { Avatar, Dropdown, Tag } from "antd";
-import type { MenuProps } from "antd";
+import { Avatar, Tag } from "antd";
 import { Copy, ExternalLink, MoreVertical, Pencil, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 import type { ContentPageRow } from "./content-pages-types";
 import { resolveDisplayName } from "./content-pages-utils";
@@ -32,39 +38,50 @@ function renderStatusTag(
   );
 }
 
-function buildRowMenuItems(
-  row: ContentPageRow,
-  options: BuildContentPagesColumnsOptions,
-): MenuProps["items"] {
-  return [
-    {
-      key: "open-editor",
-      icon: <ExternalLink className="size-4" />,
-      label: options.t("content_pages:INDEX_ACTION_OPEN_EDITOR"),
-      onClick: () => options.onOpenEditor(row),
-    },
-    { type: "divider" },
-    {
-      key: "edit",
-      icon: <Pencil className="size-4" />,
-      label: options.t("content_pages:MENU_EDIT"),
-      onClick: () => options.onEdit(row),
-    },
-    {
-      key: "duplicate",
-      icon: <Copy className="size-4" />,
-      label: options.t("content_pages:MENU_DUPLICATE"),
-      onClick: () => options.onDuplicate(row),
-    },
-    { type: "divider" },
-    {
-      key: "delete",
-      icon: <Trash2 className="size-4" />,
-      danger: true,
-      label: options.t("content_pages:MENU_DELETE"),
-      onClick: () => options.onDelete(row),
-    },
-  ];
+// Row-level dropdown menu using the design system DropdownMenu
+function RowActionsMenu({
+  row,
+  options,
+}: {
+  row: ContentPageRow;
+  options: BuildContentPagesColumnsOptions;
+}) {
+  const processing = options.processingIds.has(row.id);
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          className="h-7 w-7 p-0 self-center"
+          disabled={processing}
+          aria-label={options.t("content_pages:INDEX_ACTION_MORE")}
+        >
+          <MoreVertical className="size-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onSelect={() => options.onOpenEditor(row)}>
+          <ExternalLink className="size-4" />
+          {options.t("content_pages:INDEX_ACTION_OPEN_EDITOR")}
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onSelect={() => options.onEdit(row)}>
+          <Pencil className="size-4" />
+          {options.t("content_pages:MENU_EDIT")}
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => options.onDuplicate(row)}>
+          <Copy className="size-4" />
+          {options.t("content_pages:MENU_DUPLICATE")}
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem variant="destructive" onSelect={() => options.onDelete(row)}>
+          <Trash2 className="size-4" />
+          {options.t("content_pages:MENU_DELETE")}
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
 }
 
 export function buildContentPagesColumns(
@@ -109,10 +126,7 @@ export function buildContentPagesColumns(
       header: options.t("content_pages:INDEX_COL_NAME"),
       cell: ({ row }) => {
         const item = row.original;
-        const processing = options.processingIds.has(item.id);
-        const menuItems = buildRowMenuItems(item, options);
         const prefix = item.level > 0 ? `${"· ".repeat(Math.min(item.level, 4))}` : "";
-
         const displayName = `${prefix}${resolveDisplayName(item)}`;
 
         return (
@@ -132,16 +146,7 @@ export function buildContentPagesColumns(
                 ) : null}
               </div>
 
-              <Dropdown trigger={["click"]} menu={{ items: menuItems }}>
-                <Button
-                  variant="ghost"
-                  className="h-7 w-7 p-0 self-center"
-                  disabled={processing}
-                  aria-label={options.t("content_pages:INDEX_ACTION_MORE")}
-                >
-                  <MoreVertical className="size-4" />
-                </Button>
-              </Dropdown>
+              <RowActionsMenu row={item} options={options} />
             </div>
           </div>
         );
