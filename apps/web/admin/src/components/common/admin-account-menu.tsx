@@ -242,12 +242,10 @@ function AdminAccountPanelContent(props: {
   );
 }
 
-export function AdminAccountMenu(props?: { triggerVariant?: "sidebar" | "header" }) {
+export function AdminAccountMenu() {
   const navigate = useNavigate();
   const { t } = useTranslation("account");
   const pathname = useRouterState({ select: (state) => state.location.pathname });
-  const triggerVariant = props?.triggerVariant ?? "sidebar";
-  const isHeaderTrigger = triggerVariant === "header";
   const clear = useAuthStore((s) => s.clear);
   const accessToken = useAuthStore((s) => s.accessToken);
   const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
@@ -326,46 +324,30 @@ export function AdminAccountMenu(props?: { triggerVariant?: "sidebar" | "header"
     void navigate({ to: "/" });
   };
 
-  const triggerClassName = isHeaderTrigger
-    ? cn(
-        "group justify-start gap-2",
-        "h-12 rounded-none border-0 bg-transparent",
-        "px-3",
-        "text-foreground",
-        "hover:bg-muted hover:text-sidebar-accent-foreground",
-        "data-[state=open]:bg-muted data-[state=open]:text-sidebar-accent-foreground",
-        "transition-colors duration-150 ease-out",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0",
-      )
-    : cn(
-        "group justify-start gap-3",
-        "px-4 py-3",
-        "border-0 bg-transparent",
-        "rounded-none",
-        "text-muted-foreground",
-        "hover:bg-primary hover:text-sidebar-accent-foreground",
-        "data-[state=open]:bg-primary data-[state=open]:text-sidebar-accent-foreground",
-        "transition-colors duration-150 ease-out",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0",
-      );
+  const triggerClassName = cn(
+    "group justify-start gap-3",
+    "w-full",
+    "px-4 py-3",
+    "border-0 bg-transparent",
+    "rounded-none",
+    "text-muted-foreground",
+    "hover:bg-primary hover:text-sidebar-accent-foreground",
+    "data-[state=open]:bg-primary data-[state=open]:text-sidebar-accent-foreground",
+    "transition-colors duration-150 ease-out",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0",
+  );
 
-  const nameClassName = isHeaderTrigger
-    ? cn(
-        "text-foreground",
-        "group-hover:text-sidebar-accent-foreground",
-        "group-data-[state=open]:text-sidebar-accent-foreground",
-      )
-    : cn(
-        "text-sidebar-foreground",
-        "group-hover:text-sidebar-accent-foreground",
-        "group-data-[state=open]:text-sidebar-accent-foreground",
-      );
+  const nameClassName = cn(
+    "text-sidebar-foreground",
+    "group-hover:text-sidebar-accent-foreground",
+    "group-data-[state=open]:text-sidebar-accent-foreground",
+  );
 
   return (
     <FloatingPanelRoot className="w-full">
       <FloatingPanelTrigger title={t("ACCOUNT_TITLE")} className={triggerClassName}>
         <Avatar
-          size={isHeaderTrigger ? 32 : 40}
+          size={32}
           src={
             resolveAssetRefToPublicUrlPath(profile.avatarUrl ?? profile.avatarAssetId) ?? undefined
           }
@@ -387,7 +369,7 @@ export function AdminAccountMenu(props?: { triggerVariant?: "sidebar" | "header"
         <ChevronDown className="size-4 shrink-0 opacity-70 transition-colors group-hover:opacity-100" />
       </FloatingPanelTrigger>
 
-      <FloatingPanelContent placement="auto" showTitle={false} className="p-0">
+      <FloatingPanelContent placement="top" showTitle={false} className="p-0">
         <AdminAccountPanelContent
           displayName={displayName}
           avatarUrl={profile.avatarUrl ?? profile.avatarAssetId}

@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
-import { Avatar, Button, Form, Input, Tooltip } from "antd";
-import { AnimatePresence, motion } from "motion/react";
-import { Building2, ChevronRight, ChevronsUpDown, Plus, RefreshCw, Search } from "lucide-react";
+import { Avatar, Button, Form, Input } from "antd";
+import { motion, type Variants } from "motion/react";
+import { ChevronRight, ChevronsUpDown, Plus, RefreshCw, Search } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -77,432 +77,281 @@ function PanelListSkeleton({ rows = 6 }: { rows?: number }) {
   );
 }
 
-const HOVER_CLOSE_DELAY_MS = 150;
+const DRILL_EASE = [0.2, 0, 0, 1] as const;
 
-type WorkspaceSwitcherPanelProps = {
-  organizations: OrganizationOption[];
-  organizationsLoading: boolean;
-  organizationsFetching: boolean;
-  organizationsError: unknown;
-  onRetryOrganizations: () => void;
-  currentOrganizationId: string | null;
-  currentWorkspaceId: string | null;
-  onSelectOrganization: (organizationId: string) => void;
-  onSelectWorkspace: (workspaceId: string) => void;
-  onOpenCreateOrganization: () => void;
+const listContainerVariants: Variants = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.03, delayChildren: 0.05 } },
 };
 
-function WorkspaceSwitcherPanel(props: WorkspaceSwitcherPanelProps) {
+const listItemVariants: Variants = {
+  hidden: { opacity: 0, y: 8 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.18, ease: DRILL_EASE } },
+};
+
+function OrgSwitcherPanel(props: {
+  organizations: OrganizationOption[];
+  loading: boolean;
+  fetching: boolean;
+  error: unknown;
+  currentOrganizationId: string | null;
+  onRefresh: () => void;
+  onSelectOrganization: (id: string) => void;
+  onOpenCreateOrganization: () => void;
+}) {
   const { t } = useTranslation(["common"]);
-  const navigate = useNavigate();
   const { closeFloatingPanel } = useFloatingPanel();
+  const [search, setSearch] = useState("");
 
-  const [organizationSearch, setOrganizationSearch] = useState("");
-  const [workspaceSearch, setWorkspaceSearch] = useState("");
-  const [openWorkspaceOrganizationId, setOpenWorkspaceOrganizationId] = useState<string | null>(
-    null,
-  );
-  const closeTimerRef = useRef<number | null>(null);
-
-  const cancelWorkspacePanelClose = () => {
-    if (closeTimerRef.current === null) return;
-    window.clearTimeout(closeTimerRef.current);
-    closeTimerRef.current = null;
-  };
-
-  const scheduleWorkspacePanelClose = () => {
-    cancelWorkspacePanelClose();
-    closeTimerRef.current = window.setTimeout(() => {
-      setOpenWorkspaceOrganizationId(null);
-      setWorkspaceSearch("");
-      closeTimerRef.current = null;
-    }, HOVER_CLOSE_DELAY_MS);
-  };
-
-  const openWorkspacePanel = (organizationId: string) => {
-    cancelWorkspacePanelClose();
-    setOpenWorkspaceOrganizationId(organizationId);
-  };
-
-  useEffect(() => {
-    return () => {
-      if (closeTimerRef.current === null) return;
-      window.clearTimeout(closeTimerRef.current);
-      closeTimerRef.current = null;
-    };
-  }, []);
-
-  const filteredOrganizations = useMemo(() => {
-    const keyword = normalizeSearch(organizationSearch);
+  const filtered = useMemo(() => {
+    const keyword = normalizeSearch(search);
     if (!keyword) return props.organizations;
-
-    return props.organizations.filter((organization) => {
-      const text = [organization.name, organization.slug]
-        .map((value) => String(value || "").toLowerCase())
-        .join(" ");
+    return props.organizations.filter((org) => {
+      const text = [org.name, org.slug].map((v) => String(v || "").toLowerCase()).join(" ");
       return text.includes(keyword);
     });
-  }, [organizationSearch, props.organizations]);
+  }, [search, props.organizations]);
 
-  useEffect(() => {
-    setWorkspaceSearch("");
-  }, [openWorkspaceOrganizationId]);
-
-  const hoveredOrganization = useMemo(() => {
-    if (!openWorkspaceOrganizationId) return null;
-    return (
-      props.organizations.find((organization) => organization.id === openWorkspaceOrganizationId) ??
-      null
-    );
-  }, [openWorkspaceOrganizationId, props.organizations]);
-
-  const canCreateWorkspace =
-    hoveredOrganization?.role === "owner" || hoveredOrganization?.role === "admin";
-
-  const workspaceQuery = useQuery({
-    queryKey: ["organization", "workspaces", "switcher", openWorkspaceOrganizationId],
-    enabled: Boolean(openWorkspaceOrganizationId),
-    queryFn: async () =>
-      listAllOrganizationWorkspaces({
-        organizationId: String(openWorkspaceOrganizationId),
-        archived: false,
-        enterableOnly: true,
-        pageSize: 100,
-      }),
-    staleTime: 60 * 1000,
-    meta: { silent: true },
-  });
-
-  const filteredWorkspaces = useMemo(() => {
-    const items = workspaceQuery.data ?? [];
-    const keyword = normalizeSearch(workspaceSearch);
-    if (!keyword) return items;
-    return items.filter((workspace) => workspaceSearchText(workspace).includes(keyword));
-  }, [workspaceQuery.data, workspaceSearch]);
-
-  const orgKeyword = normalizeSearch(organizationSearch);
-  const workspaceKeyword = normalizeSearch(workspaceSearch);
-
-  const organizationEmpty = !props.organizations.length || filteredOrganizations.length === 0;
-
-  const workspaceSource = workspaceQuery.data ?? [];
-  const workspaceEmpty =
-    !hoveredOrganization ||
-    workspaceSource.length === 0 ||
-    (workspaceSource.length > 0 && filteredWorkspaces.length === 0);
-
-  const onRefresh = () => {
-    props.onRetryOrganizations();
-    if (openWorkspaceOrganizationId) {
-      void workspaceQuery.refetch();
-    }
-  };
+  const keyword = normalizeSearch(search);
+  const empty = !props.organizations.length || filtered.length === 0;
 
   return (
-    <div className="relative w-[320px] max-w-[calc(100vw-20px)]">
-      <aside
-        className="flex h-[420px] min-h-0 min-w-0 flex-col"
-        onMouseEnter={cancelWorkspacePanelClose}
-        onMouseLeave={scheduleWorkspacePanelClose}
-      >
-        <div className="flex items-center gap-1 border-b border-border/60 p-2">
-          <Button
-            type="text"
-            icon={
-              <RefreshCw
-                className={cn(
-                  "size-4",
-                  props.organizationsFetching || workspaceQuery.isFetching
-                    ? "animate-spin"
-                    : undefined,
-                )}
-              />
-            }
-            aria-label={t("common:REFRESH")}
-            onClick={onRefresh}
+    <div className="flex h-[380px] w-72 flex-col overflow-hidden">
+      <div className="flex items-center gap-1 border-b border-border/60 p-2">
+        <Button
+          type="text"
+          icon={<RefreshCw className={cn("size-4", props.fetching ? "animate-spin" : undefined)} />}
+          aria-label={t("common:REFRESH")}
+          onClick={props.onRefresh}
+        />
+        <Input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder={t("common:WORKSPACE_SWITCHER_ORG_SEARCH_PLACEHOLDER")}
+          allowClear
+          variant="borderless"
+          prefix={<Search className="size-4 text-muted-foreground" />}
+        />
+      </div>
+
+      <div className="min-h-0 flex-1 overflow-auto py-2">
+        {props.loading ? (
+          <PanelListSkeleton rows={6} />
+        ) : props.error ? (
+          <PageState
+            loading={false}
+            error={props.error}
+            onRetry={props.onRefresh}
+            className="py-4"
           />
-          <Input
-            value={organizationSearch}
-            onChange={(event) => setOrganizationSearch(event.target.value)}
-            placeholder={t("common:WORKSPACE_SWITCHER_ORG_SEARCH_PLACEHOLDER")}
-            allowClear
-            variant="borderless"
-            prefix={<Search className="size-4 text-muted-foreground" />}
-          />
-        </div>
-
-        <div className="flex-1 min-h-0 overflow-auto py-2">
-          {props.organizationsLoading ? (
-            <PanelListSkeleton rows={6} />
-          ) : (
-            <PageState
-              loading={false}
-              error={props.organizationsError}
-              onRetry={props.onRetryOrganizations}
-              empty={organizationEmpty}
-              variant="compact"
-              className="py-4"
-              emptyTitle={
-                orgKeyword
-                  ? t("common:WORKSPACE_SWITCHER_ORG_NO_RESULTS_TITLE")
-                  : t("common:WORKSPACE_SWITCHER_ORG_EMPTY")
-              }
-              emptyDescription={
-                orgKeyword
-                  ? t("common:WORKSPACE_SWITCHER_ORG_NO_RESULTS_DESC")
-                  : t("common:WORKSPACE_SWITCHER_ORG_EMPTY_DESC")
-              }
-            >
-              <div className="flex flex-col gap-2 pl-2">
-                {filteredOrganizations.map((organization) => {
-                  const hovered = organization.id === openWorkspaceOrganizationId;
-                  const current = organization.id === props.currentOrganizationId;
-                  const selected = hovered || current;
-
-                  return (
-                    <button
-                      key={organization.id}
-                      type="button"
-                      className={cn(
-                        "group flex w-full cursor-pointer flex-col gap-2 rounded-md px-3 py-2 text-left transition-colors",
-                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0",
-                        current
-                          ? "bg-accent text-accent-foreground"
-                          : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                      )}
-                      onMouseEnter={() => openWorkspacePanel(organization.id)}
-                      onMouseLeave={scheduleWorkspacePanelClose}
-                      onFocus={() => openWorkspacePanel(organization.id)}
-                      onClick={() => {
-                        closeFloatingPanel();
-                        props.onSelectOrganization(organization.id);
-                      }}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0 space-y-1">
-                          <div
-                            className={cn(
-                              "truncate font-medium",
-                              selected ? "text-accent-foreground" : "text-foreground",
-                            )}
-                          >
-                            {organization.name}
-                          </div>
-                          <div className="flex items-center gap-2 text-md text-muted-foreground">
-                            {organization.membersPreview.length ? (
-                              <Avatar.Group size={18} max={{ count: 4 }}>
-                                {organization.membersPreview.map((member) => {
-                                  const primary = member.displayName || member.username;
-                                  return (
-                                    <Avatar key={member.userId} src={member.avatarUrl ?? undefined}>
-                                      {firstLetter(primary)}
-                                    </Avatar>
-                                  );
-                                })}
-                              </Avatar.Group>
-                            ) : null}
-                            <span>
-                              {t("common:WORKSPACE_SWITCHER_ORG_MEMBERS_COUNT", {
-                                count: organization.memberCount,
-                              })}
-                            </span>
-                          </div>
-                        </div>
-
-                        <ChevronRight className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </PageState>
-          )}
-        </div>
-
-        <div className="border-t border-border/60 p-2">
-          <Button
-            type="link"
-            block
-            className="justify-start px-0"
-            icon={<Plus className="size-4" aria-hidden="true" />}
-            onClick={() => {
-              closeFloatingPanel();
-              props.onOpenCreateOrganization();
-            }}
+        ) : empty ? (
+          <div className="px-4 py-8 text-center text-sm text-muted-foreground">
+            {keyword
+              ? t("common:WORKSPACE_SWITCHER_ORG_NO_RESULTS_TITLE")
+              : t("common:WORKSPACE_SWITCHER_ORG_EMPTY")}
+          </div>
+        ) : (
+          <motion.div
+            className="flex flex-col gap-1 px-2"
+            variants={listContainerVariants}
+            initial="hidden"
+            animate="visible"
           >
-            {t("common:WORKSPACE_SWITCHER_CREATE_ORG")}
-          </Button>
-        </div>
-      </aside>
-
-      <AnimatePresence initial={false}>
-        {hoveredOrganization ? (
-          <motion.section
-            key="workspace-flyout"
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -10 }}
-            transition={{ duration: 0.16, ease: [0.2, 0, 0, 1] }}
-            className={cn(
-              "absolute left-full top-0 z-10 ml-2",
-              "flex h-[420px] min-h-0 w-[430px] min-w-0 flex-col overflow-hidden",
-              "rounded-xl border border-border bg-popover text-popover-foreground shadow-lg",
-            )}
-            onMouseEnter={cancelWorkspacePanelClose}
-            onMouseLeave={scheduleWorkspacePanelClose}
-          >
-            <div className="flex items-center gap-1 border-b border-border/60 p-2">
-              <Button
-                type="text"
-                icon={
-                  <RefreshCw
-                    className={cn("size-4", workspaceQuery.isFetching ? "animate-spin" : undefined)}
-                  />
-                }
-                aria-label={t("common:REFRESH")}
-                onClick={() => {
-                  void workspaceQuery.refetch();
-                }}
-              />
-              <Input
-                value={workspaceSearch}
-                onChange={(event) => setWorkspaceSearch(event.target.value)}
-                placeholder={t("common:WORKSPACE_SWITCHER_WORKSPACE_SEARCH_PLACEHOLDER")}
-                allowClear
-                variant="borderless"
-                prefix={<Search className="size-4 text-muted-foreground" />}
-              />
-            </div>
-
-            <div className="flex-1 min-h-0 overflow-auto py-2">
-              {workspaceQuery.isLoading ? (
-                <PanelListSkeleton rows={7} />
-              ) : (
-                <PageState
-                  loading={false}
-                  error={workspaceQuery.error}
-                  onRetry={() => {
-                    void workspaceQuery.refetch();
+            {filtered.map((org) => {
+              const current = org.id === props.currentOrganizationId;
+              return (
+                <motion.button
+                  key={org.id}
+                  variants={listItemVariants}
+                  type="button"
+                  className={cn(
+                    "group flex w-full items-center gap-3 rounded-md px-3 py-2 text-left transition-colors",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                    current
+                      ? "bg-accent text-accent-foreground"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                  )}
+                  onClick={() => {
+                    closeFloatingPanel();
+                    props.onSelectOrganization(org.id);
                   }}
-                  empty={workspaceEmpty}
-                  variant="compact"
-                  className="py-4"
-                  emptyTitle={
-                    workspaceKeyword
-                      ? t("common:WORKSPACE_SWITCHER_WORKSPACE_NO_RESULTS_TITLE")
-                      : t("common:WORKSPACE_SWITCHER_WORKSPACE_EMPTY")
-                  }
-                  emptyDescription={
-                    workspaceKeyword
-                      ? t("common:WORKSPACE_SWITCHER_WORKSPACE_NO_RESULTS_DESC")
-                      : t("common:WORKSPACE_SWITCHER_WORKSPACE_EMPTY_DESC")
-                  }
                 >
-                  <div className="flex flex-col gap-2 pl-2">
-                    {filteredWorkspaces.map((workspace) => {
-                      const title = workspace.name || workspace.slug;
-                      const description =
-                        workspace.description || t("common:ORG_WORKSPACES_DESCRIPTION_FALLBACK");
-                      const current = workspace.workspaceId === props.currentWorkspaceId;
-
-                      return (
-                        <button
-                          key={workspace.workspaceId}
-                          type="button"
-                          className={cn(
-                            "flex w-full cursor-pointer flex-col gap-2 rounded-md px-3 py-2 text-left transition-colors",
-                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0",
-                            current
-                              ? "bg-accent text-accent-foreground"
-                              : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                          )}
-                          onClick={() => {
-                            closeFloatingPanel();
-                            props.onSelectWorkspace(workspace.workspaceId);
-                          }}
-                        >
-                          <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2">
-                            <Avatar
-                              size={30}
-                              src={workspace.iconUrl ?? undefined}
-                              className="shrink-0 bg-muted text-foreground"
-                            >
-                              {firstLetter(title)}
-                            </Avatar>
-
-                            <div className="min-w-0">
-                              <div
-                                className={cn(
-                                  "truncate font-medium",
-                                  current ? "text-accent-foreground" : "text-foreground",
-                                )}
-                              >
-                                {title}
-                              </div>
-                              <div
-                                className={cn(
-                                  "truncate text-md",
-                                  current ? "text-accent-foreground/80" : "text-muted-foreground",
-                                )}
-                              >
-                                {description}
-                              </div>
-                            </div>
-
-                            <div className="flex items-center gap-2 text-md text-muted-foreground">
-                              {workspace.membersPreview.length ? (
-                                <Avatar.Group size={18} max={{ count: 3 }}>
-                                  {workspace.membersPreview.map((member) => {
-                                    const primary = member.displayName || member.username;
-                                    return (
-                                      <Avatar
-                                        key={member.userId}
-                                        src={member.avatarUrl ?? undefined}
-                                      >
-                                        {firstLetter(primary)}
-                                      </Avatar>
-                                    );
-                                  })}
-                                </Avatar.Group>
-                              ) : null}
-                              <span>
-                                {t("common:ORG_WORKSPACES_MEMBERS_COUNT", {
-                                  count: workspace.memberCount,
-                                })}
-                              </span>
-                              <ChevronRight className="size-4 shrink-0" aria-hidden="true" />
-                            </div>
-                          </div>
-                        </button>
-                      );
-                    })}
+                  <Avatar size={28} className="shrink-0 bg-muted text-foreground">
+                    {firstLetter(org.name)}
+                  </Avatar>
+                  <div className="min-w-0 flex-1">
+                    <div
+                      className={cn(
+                        "truncate text-sm font-medium",
+                        current ? "text-accent-foreground" : "text-foreground",
+                      )}
+                    >
+                      {org.name}
+                    </div>
+                    <div className="truncate text-xs text-muted-foreground">
+                      {t("common:WORKSPACE_SWITCHER_ORG_MEMBERS_COUNT", {
+                        count: org.memberCount,
+                      })}
+                    </div>
                   </div>
-                </PageState>
-              )}
-            </div>
+                </motion.button>
+              );
+            })}
+          </motion.div>
+        )}
+      </div>
 
-            <div className="border-t border-border/60 p-2">
-              <Button
-                type="link"
-                block
-                className="justify-start px-0"
-                icon={<Plus className="size-4" aria-hidden="true" />}
-                disabled={!canCreateWorkspace}
-                onClick={() => {
-                  if (!canCreateWorkspace) return;
-                  closeFloatingPanel();
-                  void navigate({
-                    to: buildOrganizationPath(hoveredOrganization.id, "/workspaces"),
-                    search: { create: "1" } as never,
-                  });
-                }}
-              >
-                {t("common:WORKSPACE_SWITCHER_CREATE")}
-              </Button>
-            </div>
-          </motion.section>
-        ) : null}
-      </AnimatePresence>
+      <div className="border-t border-border/60 p-2">
+        <Button
+          type="link"
+          block
+          className="justify-start px-0"
+          icon={<Plus className="size-4" aria-hidden="true" />}
+          onClick={() => {
+            closeFloatingPanel();
+            props.onOpenCreateOrganization();
+          }}
+        >
+          {t("common:WORKSPACE_SWITCHER_CREATE_ORG")}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function WsSwitcherPanel(props: {
+  workspaces: OrganizationWorkspace[];
+  loading: boolean;
+  fetching: boolean;
+  error: unknown;
+  currentWorkspaceId: string | null;
+  canCreateWorkspace: boolean;
+  onRefresh: () => void;
+  onSelectWorkspace: (id: string) => void;
+  onCreateWorkspace: () => void;
+}) {
+  const { t } = useTranslation(["common"]);
+  const { closeFloatingPanel } = useFloatingPanel();
+  const [search, setSearch] = useState("");
+
+  const filtered = useMemo(() => {
+    const keyword = normalizeSearch(search);
+    if (!keyword) return props.workspaces;
+    return props.workspaces.filter((ws) => workspaceSearchText(ws).includes(keyword));
+  }, [search, props.workspaces]);
+
+  const keyword = normalizeSearch(search);
+  const empty = !props.workspaces.length || filtered.length === 0;
+
+  return (
+    <div className="flex h-[380px] w-72 flex-col overflow-hidden">
+      <div className="flex items-center gap-1 border-b border-border/60 p-2">
+        <Button
+          type="text"
+          icon={<RefreshCw className={cn("size-4", props.fetching ? "animate-spin" : undefined)} />}
+          aria-label={t("common:REFRESH")}
+          onClick={props.onRefresh}
+        />
+        <Input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder={t("common:WORKSPACE_SWITCHER_WORKSPACE_SEARCH_PLACEHOLDER")}
+          allowClear
+          variant="borderless"
+          prefix={<Search className="size-4 text-muted-foreground" />}
+        />
+      </div>
+
+      <div className="min-h-0 flex-1 overflow-auto py-2">
+        {props.loading ? (
+          <PanelListSkeleton rows={6} />
+        ) : props.error ? (
+          <PageState
+            loading={false}
+            error={props.error}
+            onRetry={props.onRefresh}
+            className="py-4"
+          />
+        ) : empty ? (
+          <div className="px-4 py-8 text-center text-sm text-muted-foreground">
+            {keyword
+              ? t("common:WORKSPACE_SWITCHER_WORKSPACE_NO_RESULTS_TITLE")
+              : t("common:WORKSPACE_SWITCHER_WORKSPACE_EMPTY")}
+          </div>
+        ) : (
+          <motion.div
+            className="flex flex-col gap-1 px-2"
+            variants={listContainerVariants}
+            initial="hidden"
+            animate="visible"
+          >
+            {filtered.map((ws) => {
+              const title = ws.name || ws.slug;
+              const current = ws.workspaceId === props.currentWorkspaceId;
+              return (
+                <motion.button
+                  key={ws.workspaceId}
+                  variants={listItemVariants}
+                  type="button"
+                  className={cn(
+                    "flex w-full items-center gap-3 rounded-md px-3 py-2 text-left transition-colors",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                    current
+                      ? "bg-accent text-accent-foreground"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                  )}
+                  onClick={() => {
+                    closeFloatingPanel();
+                    props.onSelectWorkspace(ws.workspaceId);
+                  }}
+                >
+                  <Avatar
+                    size={28}
+                    src={ws.iconUrl ?? undefined}
+                    className="shrink-0 bg-muted text-foreground"
+                  >
+                    {firstLetter(title)}
+                  </Avatar>
+                  <div className="min-w-0 flex-1">
+                    <div
+                      className={cn(
+                        "truncate text-sm font-medium",
+                        current ? "text-accent-foreground" : "text-foreground",
+                      )}
+                    >
+                      {title}
+                    </div>
+                    <div
+                      className={cn(
+                        "truncate text-xs",
+                        current ? "text-accent-foreground/80" : "text-muted-foreground",
+                      )}
+                    >
+                      {ws.description || t("common:ORG_WORKSPACES_DESCRIPTION_FALLBACK")}
+                    </div>
+                  </div>
+                </motion.button>
+              );
+            })}
+          </motion.div>
+        )}
+      </div>
+
+      <div className="border-t border-border/60 p-2">
+        <Button
+          type="link"
+          block
+          className="justify-start px-0"
+          icon={<Plus className="size-4" aria-hidden="true" />}
+          disabled={!props.canCreateWorkspace}
+          onClick={() => {
+            closeFloatingPanel();
+            props.onCreateWorkspace();
+          }}
+        >
+          {t("common:WORKSPACE_SWITCHER_CREATE")}
+        </Button>
+      </div>
     </div>
   );
 }
@@ -586,79 +435,118 @@ export function AdminWorkspaceSwitcher() {
     return organizations[0] ?? null;
   }, [organizations, routeOrganizationId, workspaceOrganization]);
 
-  const triggerLabel = useMemo(() => {
-    const organizationName = workspaceOrganization?.name || currentOrganization?.name || "";
-    const workspaceName = String(workspaceDetailQuery.data?.name || "").trim();
+  const organizationName =
+    (isWorkspaceScopeRoute ? workspaceOrganization?.name : null) || currentOrganization?.name || "";
+  const workspaceName = useMemo(
+    () => (isWorkspaceScopeRoute ? String(workspaceDetailQuery.data?.name || "").trim() : ""),
+    [isWorkspaceScopeRoute, workspaceDetailQuery.data?.name],
+  );
 
-    if (isWorkspaceScopeRoute && organizationName && workspaceName) {
-      return `${organizationName} / ${workspaceName}`;
-    }
-    if (organizationName) return organizationName;
-    return t("common:WORKSPACE_SWITCHER_TRIGGER");
-  }, [
-    currentOrganization?.name,
-    isWorkspaceScopeRoute,
-    t,
-    workspaceDetailQuery.data?.name,
-    workspaceOrganization?.name,
-  ]);
+  const workspaceQuery = useQuery({
+    queryKey: ["organization", "workspaces", "switcher", currentOrganization?.id],
+    enabled: Boolean(currentOrganization),
+    queryFn: async () =>
+      listAllOrganizationWorkspaces({
+        organizationId: String(currentOrganization!.id),
+        archived: false,
+        enterableOnly: true,
+        pageSize: 100,
+      }),
+    staleTime: 60 * 1000,
+    meta: { silent: true },
+  });
 
-  const triggerClassName = cn(
-    "group flex h-12 w-full items-center justify-between gap-2 rounded-none border-0 bg-transparent px-4 text-left",
-    "text-muted-foreground transition-colors duration-150 ease-out",
-    "hover:bg-primary hover:text-sidebar-accent-foreground",
-    "data-[state=open]:bg-primary data-[state=open]:text-sidebar-accent-foreground",
-    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0",
+  const canCreateWorkspace =
+    currentOrganization?.role === "owner" || currentOrganization?.role === "admin";
+
+  const headerTriggerClassName = cn(
+    "flex items-center gap-1.5 rounded-md px-2 py-1",
+    "text-sm text-muted-foreground border-0 bg-transparent",
+    "hover:bg-accent hover:text-foreground",
+    "data-[state=open]:bg-accent data-[state=open]:text-foreground",
+    "transition-colors",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
   );
 
   return (
     <>
-      <FloatingPanelRoot className="w-full">
-        <FloatingPanelTrigger
-          title={t("common:WORKSPACE_SWITCHER_TRIGGER")}
-          className={triggerClassName}
-        >
-          <span className="flex min-w-0 flex-1 items-center gap-2">
-            <Building2 className="size-4 shrink-0 opacity-80" aria-hidden="true" />
-            <Tooltip title={triggerLabel}>
-              <span className="block min-w-0 truncate font-semibold">{triggerLabel}</span>
-            </Tooltip>
-          </span>
-          <ChevronsUpDown
-            className="size-4 shrink-0 opacity-70 transition-colors group-hover:opacity-100"
-            aria-hidden="true"
-          />
-        </FloatingPanelTrigger>
+      <div className="flex max-w-xs min-w-0 items-center gap-0.5">
+        <FloatingPanelRoot>
+          <FloatingPanelTrigger
+            title={t("common:WORKSPACE_SWITCHER_SELECT_ORG")}
+            className={headerTriggerClassName}
+          >
+            <span className="max-w-32 truncate">
+              {organizationName || t("common:WORKSPACE_SWITCHER_SELECT_ORG")}
+            </span>
+            <ChevronsUpDown className="size-3.5 shrink-0 opacity-60" aria-hidden="true" />
+          </FloatingPanelTrigger>
 
-        <FloatingPanelContent placement="top" showTitle={false} className="overflow-visible p-0">
-          <WorkspaceSwitcherPanel
-            organizations={organizations}
-            organizationsLoading={organizationsQuery.isLoading}
-            organizationsFetching={organizationsQuery.isFetching}
-            organizationsError={organizationsQuery.error}
-            onRetryOrganizations={() => {
-              void organizationsQuery.refetch();
-            }}
-            currentOrganizationId={currentOrganization?.id ?? null}
-            currentWorkspaceId={currentWorkspaceId}
-            onSelectOrganization={(organizationId) => {
-              void navigate({ to: buildOrganizationPath(organizationId) });
-            }}
-            onSelectWorkspace={(nextWorkspaceId) => {
-              setCurrentWorkspaceId(nextWorkspaceId);
-              const nextPath = switchWorkspacePath({
-                pathname,
-                currentWorkspaceId,
-                nextWorkspaceId,
-              });
-              void navigate({ to: nextPath as never });
-            }}
-            onOpenCreateOrganization={() => {
-              setCreateOrganizationOpen(true);
-            }}
-          />
-        </FloatingPanelContent>
-      </FloatingPanelRoot>
+          <FloatingPanelContent placement="bottom" showTitle={false} className="p-0">
+            <OrgSwitcherPanel
+              organizations={organizations}
+              loading={organizationsQuery.isLoading}
+              fetching={organizationsQuery.isFetching}
+              error={organizationsQuery.error}
+              currentOrganizationId={currentOrganization?.id ?? null}
+              onRefresh={() => {
+                void organizationsQuery.refetch();
+              }}
+              onSelectOrganization={(organizationId) => {
+                setCurrentWorkspaceId(null);
+                void navigate({ to: buildOrganizationPath(organizationId) });
+              }}
+              onOpenCreateOrganization={() => {
+                setCreateOrganizationOpen(true);
+              }}
+            />
+          </FloatingPanelContent>
+        </FloatingPanelRoot>
+
+        <ChevronRight className="size-3.5 shrink-0 text-muted-foreground/50" aria-hidden="true" />
+
+        <FloatingPanelRoot>
+          <FloatingPanelTrigger
+            title={t("common:WORKSPACE_SWITCHER_SELECT_WORKSPACE")}
+            className={headerTriggerClassName}
+          >
+            <span className="max-w-36 truncate">
+              {workspaceName || t("common:WORKSPACE_SWITCHER_SELECT_WORKSPACE")}
+            </span>
+            <ChevronsUpDown className="size-3.5 shrink-0 opacity-60" aria-hidden="true" />
+          </FloatingPanelTrigger>
+
+          <FloatingPanelContent placement="bottom" showTitle={false} className="p-0">
+            <WsSwitcherPanel
+              workspaces={workspaceQuery.data ?? []}
+              loading={workspaceQuery.isLoading}
+              fetching={workspaceQuery.isFetching}
+              error={workspaceQuery.error}
+              currentWorkspaceId={currentWorkspaceId}
+              canCreateWorkspace={canCreateWorkspace}
+              onRefresh={() => {
+                void workspaceQuery.refetch();
+              }}
+              onSelectWorkspace={(nextWorkspaceId) => {
+                setCurrentWorkspaceId(nextWorkspaceId);
+                const nextPath = switchWorkspacePath({
+                  pathname,
+                  currentWorkspaceId,
+                  nextWorkspaceId,
+                });
+                void navigate({ to: nextPath as never });
+              }}
+              onCreateWorkspace={() => {
+                if (!canCreateWorkspace || !currentOrganization) return;
+                void navigate({
+                  to: buildOrganizationPath(currentOrganization.id, "/workspaces"),
+                  search: { create: "1" } as never,
+                });
+              }}
+            />
+          </FloatingPanelContent>
+        </FloatingPanelRoot>
+      </div>
 
       <SettingDialog
         open={createOrganizationOpen}

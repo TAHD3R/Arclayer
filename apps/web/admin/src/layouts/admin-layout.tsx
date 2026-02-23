@@ -1,6 +1,6 @@
 import { Outlet } from "@tanstack/react-router";
-import { type CSSProperties, type PropsWithChildren, useEffect, useMemo, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { type CSSProperties, type PropsWithChildren, useEffect, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useRouterState } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import type { LucideIcon } from "lucide-react";
@@ -31,9 +31,9 @@ import type { AdminNavItem } from "@/constants/admin-nav";
 import { ORG_NAV_ITEMS } from "@/constants/org-nav";
 import { getAppConfig } from "@/constants/app-config";
 import { AdminSiderNav } from "@/components/common/admin-side-nav";
-import { AdminLogo } from "@/components/common/admin-logo";
+import { AdminFullLogo } from "@/components/common/admin-logo";
 import { AdminAccountMenu } from "@/components/common/admin-account-menu";
-import { AdminWorkspaceSwitcher } from "@/components/common/admin-workspace-switcher";
+
 import { AdminHeader } from "@/components/common/admin-header";
 import { RouteProgress } from "@/components/common/route-progress";
 import { RouteTransition } from "@/components/common/route-transition";
@@ -219,7 +219,6 @@ function buildDocumentTitle(routeTitle: string | null, workspaceName: string | n
 export function AdminLayout({ children }: PropsWithChildren) {
   const { t } = useTranslation();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const queryClient = useQueryClient();
   const accessToken = useAuthStore((s) => s.accessToken);
   const effectiveLocale = usePreferencesStore((s) => s.locale);
   const localePreferenceMode = usePreferencesStore((s) => s.localePreferenceMode);
@@ -360,8 +359,6 @@ export function AdminLayout({ children }: PropsWithChildren) {
     workspaceMenuQuery.isLoading,
   ]);
 
-  const [refreshing, setRefreshing] = useState(false);
-
   const workspaceDetailQuery = useQuery({
     queryKey: ["workspace", "detail", workspaceId],
     enabled: Boolean(accessToken && workspaceId && !isOrgScopeRoute),
@@ -408,8 +405,6 @@ export function AdminLayout({ children }: PropsWithChildren) {
     document.title = buildDocumentTitle(routeTitle, workspaceName);
   }, [routeTitle, workspaceName]);
 
-  const brandTitle = useMemo(() => (getAppConfig().title || "Celestial").trim(), []);
-
   return (
     <SidebarProvider defaultOpen className="h-screen">
       <RouteProgress />
@@ -426,11 +421,8 @@ export function AdminLayout({ children }: PropsWithChildren) {
           } as CSSProperties
         }
       >
-        <SidebarHeader className="flex flex-col items-center gap-4 w-full px-0 py-8">
-          <AdminLogo ariaLabel="Celestial" />
-          <h2 className="font-bold line-clamp-2 text-center select-none max-w-2/3 wrap-break-word">
-            {isOrgScopeRoute ? brandTitle : workspaceName || brandTitle}
-          </h2>
+        <SidebarHeader className="flex flex-col items-center gap-2 w-full px-0 pt-8">
+          <AdminFullLogo ariaLabel="Celestial" />
         </SidebarHeader>
 
         <SidebarContent className="relative z-0 pl-0 pr-4 scrollbar-none">
@@ -439,7 +431,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
           ) : menuBootstrapping ? (
             <SidebarGroup>
               <SidebarGroupContent>
-                <SidebarMenu className="gap-1.5">
+                <SidebarMenu className="gap-1.5 mt-12 mb-8">
                   {Array.from({ length: 12 }).map((_, i) => (
                     <SidebarMenuSkeleton key={i} showIcon />
                   ))}
@@ -452,37 +444,20 @@ export function AdminLayout({ children }: PropsWithChildren) {
         </SidebarContent>
 
         <SidebarFooter className="relative z-10 isolate p-0">
-          <div className="w-full bg-sidebar">
-            <div className="w-full">
-              <AdminWorkspaceSwitcher />
-            </div>
-          </div>
+          <AdminAccountMenu />
         </SidebarFooter>
       </Sidebar>
 
       <SidebarInset className="w-auto flex-1 min-w-0 overflow-hidden">
         <AdminHeader
           navItems={navItems}
-          accountMenuSlot={
-            <div className="max-w-[45vw]">
-              <AdminAccountMenu triggerVariant="header" />
-            </div>
-          }
-          refreshing={refreshing}
-          onRefresh={async () => {
-            if (refreshing) return;
-            setRefreshing(true);
-            try {
-              // Only refetch currently mounted queries so we "refresh the page content" without a full reload.
-              await queryClient.refetchQueries({ type: "active" });
-            } finally {
-              setRefreshing(false);
-            }
+          onRefresh={() => {
+            window.location.reload();
           }}
         />
         <div className="flex-1 min-h-0 overflow-auto">
           <PageState
-            loading={workspaceRouteGuard.kind === "loading"}
+            loading={false}
             error={workspaceRouteGuard.kind === "error" ? workspaceRouteGuard.error : null}
             onRetry={
               workspaceRouteGuard.kind === "error"

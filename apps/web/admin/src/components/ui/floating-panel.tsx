@@ -148,7 +148,7 @@ export function FloatingPanelTrigger({
 interface FloatingPanelContentProps {
   children: React.ReactNode;
   className?: string;
-  placement?: "auto" | "top" | "bottom";
+  placement?: "auto" | "top" | "bottom" | "right-start";
   offset?: number;
   viewportPadding?: number;
   showTitle?: boolean;
@@ -193,6 +193,20 @@ export function FloatingPanelContent({
     const leftMin = viewportPadding;
     const leftMax = Math.max(leftMin, vw - panelWidth - viewportPadding);
     let left = clamp(anchorRect.left, leftMin, leftMax);
+
+    if (placement === "right-start") {
+      left = clamp(anchorRect.right + offset, leftMin, leftMax);
+      const top = clamp(
+        anchorRect.top,
+        viewportPadding,
+        Math.max(viewportPadding, vh - panelHeight - viewportPadding),
+      );
+      setPosition((prev) => {
+        if (prev && Math.abs(prev.left - left) < 0.5 && Math.abs(prev.top - top) < 0.5) return prev;
+        return { left, top };
+      });
+      return;
+    }
 
     const spaceBottom = vh - anchorRect.bottom;
     const spaceTop = anchorRect.top;

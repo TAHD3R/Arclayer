@@ -406,7 +406,7 @@ export function AdminSiderNav(props: {
   }, [favoritePaths, props.items, t]);
 
   return (
-    <>
+    <nav className="mt-12 mb-8">
       {favoriteItems.length > 0 ? (
         <>
           <SidebarGroup className="p-0 pb-0">
@@ -474,6 +474,6 @@ export function AdminSiderNav(props: {
           </SidebarMenu>
         </SidebarGroupContent>
       </SidebarGroup>
-    </>
+    </nav>
   );
 }

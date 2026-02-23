@@ -127,25 +127,6 @@ const workspaceFixturesOrg1: OrganizationWorkspace[] = [
   },
 ];
 
-const workspaceFixturesOrg2: OrganizationWorkspace[] = [
-  {
-    id: "workspace-link-3",
-    workspaceId: "ws-gamma",
-    organizationId: "org-2",
-    slug: "gamma",
-    name: "Workspace Gamma",
-    description: "Gamma description",
-    iconUrl: null,
-    isArchived: false,
-    archivedAt: null,
-    archivedByUserId: null,
-    memberCount: 1,
-    membersPreview: [],
-    createdAt: "2026-01-03T00:00:00Z",
-    enterable: true,
-  },
-];
-
 function renderWithQueryClient() {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -169,30 +150,6 @@ function getLatestDialog(): HTMLElement {
     throw new Error("No dialog found");
   }
   return latest;
-}
-
-async function openSwitcher(user: ReturnType<typeof userEvent.setup>) {
-  await user.click(await screen.findByRole("button", { name: /Org Alpha/ }));
-  return getLatestDialog();
-}
-
-async function hoverOrganizationInPanel(
-  user: ReturnType<typeof userEvent.setup>,
-  organizationName: string,
-) {
-  const panel = getLatestDialog();
-  const label = within(panel).getByText(organizationName);
-  const button = label.closest("button");
-  if (!button) throw new Error(`Organization item button not found: ${organizationName}`);
-  await user.hover(button);
-}
-
-function getOrganizationButton(organizationName: string): HTMLButtonElement {
-  const panel = getLatestDialog();
-  const label = within(panel).getByText(organizationName);
-  const button = label.closest("button");
-  if (!button) throw new Error(`Organization item button not found: ${organizationName}`);
-  return button;
 }
 
 describe("AdminWorkspaceSwitcher", () => {
@@ -233,10 +190,7 @@ describe("AdminWorkspaceSwitcher", () => {
     useWorkspaceStore.setState({ currentWorkspaceId: "ws-alpha", lastWorkspaceId: "ws-alpha" });
 
     vi.mocked(listMyOrganizations).mockResolvedValue(organizationsFixture);
-    vi.mocked(listAllOrganizationWorkspaces).mockImplementation(async (params) => {
-      if (params?.organizationId === "org-2") return workspaceFixturesOrg2;
-      return workspaceFixturesOrg1;
-    });
+    vi.mocked(listAllOrganizationWorkspaces).mockResolvedValue(workspaceFixturesOrg1);
     vi.mocked(getWorkspaceDetail).mockResolvedValue({
       id: "ws-alpha",
       organizationId: "org-1",
@@ -245,89 +199,39 @@ describe("AdminWorkspaceSwitcher", () => {
     });
   });
 
-  it("工作区作用域 trigger 显示组织与工作区名称", async () => {
-    const user = userEvent.setup();
-
+  it("trigger 显示组织名和工作区名", async () => {
     renderWithQueryClient();
 
-    expect(
-      await screen.findByRole("button", { name: /Org Alpha \/ Workspace Alpha/ }),
-    ).toBeInTheDocument();
-
-    await openSwitcher(user);
-  });
-
-  it("默认仅显示组织列表，hover 组织后才展示工作区面板", async () => {
-    const user = userEvent.setup();
-
-    renderWithQueryClient();
-
-    await openSwitcher(user);
-
-    expect(screen.queryByText("Workspace Alpha")).not.toBeInTheDocument();
-
-    await hoverOrganizationInPanel(user, "Org Alpha");
-
-    expect(await screen.findByText("Workspace Alpha")).toBeInTheDocument();
-    expect(screen.getByText("Workspace Beta")).toBeInTheDocument();
-  });
-
-  it("鼠标离开切换器后，工作区面板会收起", async () => {
-    const user = userEvent.setup();
-
-    renderWithQueryClient();
-
-    await openSwitcher(user);
-    await hoverOrganizationInPanel(user, "Org Alpha");
-    expect(await within(getLatestDialog()).findByText("Workspace Alpha")).toBeInTheDocument();
-
-    await user.unhover(getOrganizationButton("Org Alpha"));
-
-    expect(within(getLatestDialog()).getByText("Workspace Alpha")).toBeInTheDocument();
-
-    await waitFor(
-      () => {
-        expect(within(getLatestDialog()).queryByText("Workspace Alpha")).not.toBeInTheDocument();
-      },
-      { timeout: 500 },
-    );
-  });
-
-  it("点击组织项会跳转到对应组织主页", async () => {
-    const user = userEvent.setup();
-
-    renderWithQueryClient();
-
-    const panel = await openSwitcher(user);
-
-    const betaLabel = within(panel).getByText("Org Beta");
-    const betaButton = betaLabel.closest("button");
-    if (!betaButton) throw new Error("Organization button not found: Org Beta");
-    await user.click(betaButton);
-
+    expect(await screen.findByText("Org Alpha")).toBeInTheDocument();
     await waitFor(() => {
-      expect(navigateMock).toHaveBeenCalledWith({ to: "/o/org-2" });
+      expect(screen.getByText("Workspace Alpha")).toBeInTheDocument();
     });
   });
 
-  it("组织搜索不会联动修改当前工作区列表", async () => {
+  it("打开组织面板后显示组织列表", async () => {
     const user = userEvent.setup();
 
     renderWithQueryClient();
 
-    await openSwitcher(user);
-    await hoverOrganizationInPanel(user, "Org Alpha");
-    expect(await screen.findByText("Workspace Alpha")).toBeInTheDocument();
+    const orgTrigger = await screen.findByRole("button", { name: /Org Alpha/ });
+    await user.click(orgTrigger);
 
     const panel = getLatestDialog();
-    const orgSearchInput = within(panel).getByPlaceholderText(
-      "common:WORKSPACE_SWITCHER_ORG_SEARCH_PLACEHOLDER",
-    );
-    await user.type(orgSearchInput, "beta");
+    expect(within(panel).getByText("Org Alpha")).toBeInTheDocument();
+    expect(within(panel).getByText("Org Beta")).toBeInTheDocument();
+  });
 
-    expect(within(getLatestDialog()).getByText("Workspace Alpha")).toBeInTheDocument();
-    expect(within(getLatestDialog()).getByText("Workspace Beta")).toBeInTheDocument();
-    expect(within(getLatestDialog()).queryByText("Workspace Gamma")).not.toBeInTheDocument();
+  it("打开工作区面板后显示工作区列表", async () => {
+    const user = userEvent.setup();
+
+    renderWithQueryClient();
+
+    const wsTrigger = await screen.findByRole("button", { name: /Workspace Alpha/ });
+    await user.click(wsTrigger);
+
+    const panel = getLatestDialog();
+    expect(await within(panel).findByText("Workspace Alpha")).toBeInTheDocument();
+    expect(within(panel).getByText("Workspace Beta")).toBeInTheDocument();
   });
 
   it("点击工作区项会切换到对应工作区路径", async () => {
@@ -335,15 +239,15 @@ describe("AdminWorkspaceSwitcher", () => {
 
     renderWithQueryClient();
 
-    await openSwitcher(user);
-    await hoverOrganizationInPanel(user, "Org Alpha");
-    expect(await screen.findByText("Workspace Alpha")).toBeInTheDocument();
+    const wsTrigger = await screen.findByRole("button", { name: /Workspace Alpha/ });
+    await user.click(wsTrigger);
 
-    const workspacePanel = getLatestDialog();
-    const workspaceBetaButton = within(workspacePanel).getByRole("button", {
+    const panel = getLatestDialog();
+    expect(await within(panel).findByText("Workspace Beta")).toBeInTheDocument();
+
+    const workspaceBetaButton = within(panel).getByRole("button", {
       name: /Workspace Beta/i,
     });
-
     await user.click(workspaceBetaButton);
 
     await waitFor(() => {
@@ -352,36 +256,14 @@ describe("AdminWorkspaceSwitcher", () => {
     expect(useWorkspaceStore.getState().currentWorkspaceId).toBe("ws-beta");
   });
 
-  it("创建工作区按钮会跳转到组织工作区页并带 create 参数", async () => {
-    const user = userEvent.setup();
-
-    renderWithQueryClient();
-
-    await openSwitcher(user);
-    await hoverOrganizationInPanel(user, "Org Alpha");
-    expect(await screen.findByText("Workspace Alpha")).toBeInTheDocument();
-
-    const workspacePanel = getLatestDialog();
-    const createWorkspaceButton = within(workspacePanel).getByRole("button", {
-      name: "common:WORKSPACE_SWITCHER_CREATE",
-    });
-
-    await user.click(createWorkspaceButton);
-
-    await waitFor(() => {
-      expect(navigateMock).toHaveBeenCalledWith({
-        to: "/o/org-1/workspaces",
-        search: { create: "1" },
-      });
-    });
-  });
-
   it("新增组织弹窗使用新结构且不包含 slug 输入框", async () => {
     const user = userEvent.setup();
 
     renderWithQueryClient();
 
-    await openSwitcher(user);
+    const orgTrigger = await screen.findByRole("button", { name: /Org Alpha/ });
+    await user.click(orgTrigger);
+
     await user.click(
       await screen.findByRole("button", { name: "common:WORKSPACE_SWITCHER_CREATE_ORG" }),
     );

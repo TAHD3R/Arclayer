@@ -1,13 +1,14 @@
-import { Breadcrumb, Button, Space } from "antd";
+import { Breadcrumb, Button } from "antd";
 import type { BreadcrumbProps } from "antd";
 import type { BreadcrumbItemProps } from "antd/es/breadcrumb/BreadcrumbItem";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { type ReactNode, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { AdminNavItem } from "@/constants/admin-nav";
 import { cn } from "@/lib/utils";
 import { AdminHeaderActions } from "@/components/common/admin-header-actions";
+import { AdminWorkspaceSwitcher } from "@/components/common/admin-workspace-switcher";
 import RefreshIcon from "@/components/ui/icons/refresh-icon";
 function normalizePath(input: string): string {
   if (input.length > 1 && input.endsWith("/")) return input.slice(0, -1);
@@ -113,9 +114,7 @@ function buildBreadcrumbMenuItems(
 export function AdminHeader(props: {
   navItems: readonly AdminNavItem[];
   className?: string;
-  onRefresh?: () => Promise<void> | void;
-  refreshing?: boolean;
-  accountMenuSlot?: ReactNode;
+  onRefresh?: () => void;
 }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
@@ -184,27 +183,21 @@ export function AdminHeader(props: {
           size="large"
           aria-label={t("common:REFRESH")}
           type="text"
-          disabled={!props.onRefresh || props.refreshing}
+          disabled={!props.onRefresh}
           onMouseEnter={() => setRefreshHovered(true)}
           onMouseLeave={() => setRefreshHovered(false)}
-          onClick={() => void props.onRefresh?.()}
-          icon={
-            props.refreshing ? (
-              <RefreshIcon size={18} duration={0.8} loop className="text-current" />
-            ) : (
-              <RefreshIcon size={18} isHovered={refreshHovered} className="text-current" />
-            )
-          }
+          onClick={() => props.onRefresh?.()}
+          icon={<RefreshIcon size={18} isHovered={refreshHovered} className="text-current" />}
         />
+        <div className="mx-1 h-4 w-px bg-border" />
+        <AdminWorkspaceSwitcher />
+        <div className="mx-1 h-4 w-px bg-border" />
 
         <Breadcrumb items={breadcrumbItems} />
       </div>
 
       <div className="shrink-0">
-        <Space size={4}>
-          <AdminHeaderActions />
-          {props.accountMenuSlot ? <>{props.accountMenuSlot}</> : null}
-        </Space>
+        <AdminHeaderActions />
       </div>
     </header>
   );
