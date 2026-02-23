@@ -230,6 +230,14 @@ class WorkspaceContentViewsMixin:
 
         rows = self._apply_view_filters(rows, view.dsl.filters)
         rows = self._apply_view_sort(rows, view.dsl.sort)
+
+        if view.dsl.projection:
+            rows = _apply_projection(rows, view.dsl.projection)
+        if not view.dsl.include_document_ir:
+            for row in rows:
+                row.pop("document_ir", None)
+                row.pop("documentIr", None)
+
         total = len(rows)
         offset = payload.offset
         limit = payload.limit or view.dsl.limit or 20
@@ -239,3 +247,8 @@ class WorkspaceContentViewsMixin:
             total=total,
             items=sliced,
         )
+
+
+def _apply_projection(rows: list[dict[str, Any]], fields: list[str]) -> list[dict[str, Any]]:
+    """Keep only the specified keys in each row."""
+    return [{k: row[k] for k in fields if k in row} for row in rows]

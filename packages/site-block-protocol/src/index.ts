@@ -73,6 +73,8 @@ export interface BlockNode<Type extends string = string, Props extends object = 
   type: Type;
   props: Props;
   children?: BlockNode[];
+  /** Per-breakpoint visual overrides, keyed by breakpoint name. */
+  responsive?: Partial<Record<string, Partial<CommonBlockVisualProps>>>;
 }
 
 export interface DocumentIR {
@@ -88,17 +90,85 @@ export interface DocumentIR {
 export interface ViewerContext {
   locale: LocaleCode;
   fallbackLocale?: LocaleCode;
-  /**
-   * Route params injected by the Portal runtime (e.g. from RouteTemplate matcher).
-   * Keys/values are always strings.
-   */
   routeParams?: Record<string, string>;
-  /**
-   * Optional page variant id selected by backend.
-   * Variants are theme-scoped and defined by theme packages.
-   */
   variantId?: string | null;
+  /** Active design token mode (e.g. "light", "dark"). */
+  mode?: string;
+  /** Active breakpoint name (e.g. "desktop", "mobile"). */
+  breakpoint?: string;
 }
+
+// --- Breakpoint ---
+
+export interface BreakpointDefinition {
+  name: string;
+  minWidth: number;
+  label: LocalizedString;
+}
+
+export const DEFAULT_BREAKPOINTS: BreakpointDefinition[] = [
+  { name: "wide", minWidth: 1440, label: { "en-US": "Wide", "zh-CN": "超宽" } },
+  { name: "desktop", minWidth: 1024, label: { "en-US": "Desktop", "zh-CN": "桌面" } },
+  { name: "tablet", minWidth: 768, label: { "en-US": "Tablet", "zh-CN": "平板" } },
+  { name: "mobile", minWidth: 0, label: { "en-US": "Mobile", "zh-CN": "手机" } },
+];
+
+// --- Display Mode ---
+
+export interface DisplayMode {
+  code: string;
+  label: LocalizedString;
+  field_visibility: Record<string, boolean>;
+  field_order: string[];
+  template_hint?: string;
+}
+
+export interface ContentTypeRenderContract {
+  version: 1;
+  display_modes: DisplayMode[];
+  default_mode: string;
+  platform_hints?: {
+    web?: { ssr?: boolean; lazy_images?: boolean };
+    miniapp?: { max_depth?: number; unsupported_blocks?: string[] };
+    native?: { image_quality?: string };
+  };
+}
+
+// --- Re-exports ---
+
+export type {
+  FieldKind,
+  FieldValidation,
+  FieldUIHints,
+  FieldDefinition,
+  ContentTypeFieldSchema,
+  ReferenceValue,
+} from "./field-types";
+
+export type {
+  TokenValue,
+  TokenLayer,
+  TokenDefinition,
+  TokenCollection,
+  DesignTokenCollection,
+} from "./design-tokens";
+
+export type {
+  PortableTextMarkDef,
+  PortableTextSpan,
+  PortableTextChild,
+  PortableTextBlock,
+  PortableTextCustomBlock,
+  PortableTextContent,
+} from "./portable-text";
+
+export type {
+  BlockCategory,
+  BlockSupports,
+  BlockManifest,
+  BlockPattern,
+  ReusableBlockRef,
+} from "./block-registry";
 
 export function resolveLocalizedValue<T>(
   value: LocalizedValue<T> | undefined,

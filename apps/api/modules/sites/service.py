@@ -729,3 +729,33 @@ class SiteService(BaseService):
 
     async def get_sitemap_xml(self, *, site_id: UUID) -> str:
         return await self._publishing.get_sitemap_xml(site_id=site_id)
+
+    # --- Delivery API (public read-only) ---
+
+    async def delivery_list_entries(
+        self,
+        *,
+        site_id: UUID,
+        params: PageParams,
+        type_code: str | None = None,
+        display_mode: str | None = None,
+    ) -> PageData:
+        return await self._content.delivery_list_entries(
+            site_id=site_id,
+            params=params,
+            type_code=type_code,
+            display_mode=display_mode,
+        )
+
+    async def delivery_get_entry(self, *, site_id: UUID, slug: str, display_mode: str | None = None):
+        return await self._content.delivery_get_entry(
+            site_id=site_id,
+            slug=slug,
+            display_mode=display_mode,
+        )
+
+    async def delivery_get_menu(self, *, site_id: UUID, menu_key: str):
+        return await self._content.delivery_get_menu(site_id=site_id, menu_key=menu_key)
+
+    async def delivery_get_style(self, *, site_id: UUID):
+        return await self._content.delivery_get_style(site_id=site_id)

@@ -92,12 +92,9 @@ class WorkspaceContentAppearanceMixin:
                 entry_style = maybe
 
         effective: dict[str, Any] = {}
-        if isinstance(global_style, dict):
-            effective.update(global_style)
-        if isinstance(type_style, dict):
-            effective.update(type_style)
-        if isinstance(entry_style, dict):
-            effective.update(entry_style)
+        for layer in (global_style, type_style, entry_style):
+            if isinstance(layer, dict):
+                _deep_merge(effective, layer)
 
         return ContentEffectiveStyleOut(
             global_style=global_style,
@@ -105,3 +102,12 @@ class WorkspaceContentAppearanceMixin:
             entry_style=entry_style,
             effective=effective or None,
         )
+
+
+def _deep_merge(base: dict[str, Any], override: dict[str, Any]) -> None:
+    """Recursively merge *override* into *base* in-place."""
+    for key, val in override.items():
+        if isinstance(val, dict) and isinstance(base.get(key), dict):
+            _deep_merge(base[key], val)
+        else:
+            base[key] = val

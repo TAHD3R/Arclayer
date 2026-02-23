@@ -707,3 +707,80 @@ class SiteContentService(BaseService):
         await self._repo.get_site_by_id(site_id=site_id)
         await self._repo.delete_entry(site_id=site_id, entry_id=entry_id)
         return SiteEntryDeleteOut(entry_id=entry_id)
+
+    # --- Delivery API (public read-only) ---
+
+    async def delivery_list_entries(
+        self,
+        *,
+        site_id: UUID,
+        params: PageParams,
+        type_code: str | None = None,
+        display_mode: str | None = None,
+    ) -> PageData:
+        from apps.api.modules.sites.schema_delivery import DeliveryEntryOut
+
+        if not self.settings.database.enabled:
+            return paginate_items([], params)
+        await self._repo.get_site_by_id(site_id=site_id)
+
+        entry_type_id: UUID | None = None
+        if type_code:
+            et = await self._repo.get_entry_type_by_code(site_id=site_id, code=type_code)
+            entry_type_id = UUID(str(et.id))
+
+        entries = await self._repo.list_published_entries(
+            site_id=site_id,
+            entry_type_id=entry_type_id,
+        )
+        items = [
+            DeliveryEntryOut(
+                slug=str(getattr(e, "slug", "")),
+                type_code=str(getattr(e, "entry_type_code", "")),
+                title=getattr(e, "title", None),
+                field_values=getattr(e, "field_values", None),
+                document_ir=None if not display_mode else getattr(e, "document_ir", None),
+            )
+            for e in entries
+        ]
+        return paginate_items(items, params)
+
+    async def delivery_get_entry(
+        self,
+        *,
+        site_id: UUID,
+        slug: str,
+        display_mode: str | None = None,
+    ):
+        from apps.api.modules.sites.schema_delivery import DeliveryEntryOut
+
+        if not self.settings.database.enabled:
+            raise NotFound("Entry not found", error="DELIVERY_ENTRY_NOT_FOUND")
+        await self._repo.get_site_by_id(site_id=site_id)
+        e = await self._repo.get_published_entry_by_slug(site_id=site_id, slug=slug)
+        return DeliveryEntryOut(
+            slug=str(getattr(e, "slug", "")),
+            type_code=str(getattr(e, "entry_type_code", "")),
+            title=getattr(e, "title", None),
+            field_values=getattr(e, "field_values", None),
+            document_ir=getattr(e, "document_ir", None),
+        )
+
+    async def delivery_get_menu(self, *, site_id: UUID, menu_key: str):
+        from apps.api.modules.sites.schema_delivery import DeliveryMenuOut
+
+        await self._repo.get_site_by_id(site_id=site_id)
+        menu = await self._repo.get_menu_by_key(site_id=site_id, key=menu_key)
+        return DeliveryMenuOut(
+            key=menu_key,
+            items=getattr(menu, "items", []),
+        )
+
+    async def delivery_get_style(self, *, site_id: UUID):
+        from apps.api.modules.sites.schema_delivery import DeliveryStyleOut
+
+        await self._repo.get_site_by_id(site_id=site_id)
+        style = await self._repo.get_site_style(site_id=site_id)
+        return DeliveryStyleOut(
+            effective=style if isinstance(style, dict) else None,
+        )

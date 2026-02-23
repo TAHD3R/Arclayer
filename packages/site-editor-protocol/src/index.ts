@@ -1,4 +1,8 @@
-import type { DocumentIR } from "@celestial/site-block-protocol";
+import type {
+  DocumentIR,
+  BlockManifest,
+  BlockPattern,
+} from "@celestial/site-block-protocol";
 
 export type EditorProtocolVersion = 1;
 
@@ -185,6 +189,26 @@ export type PortalEditorRpcApi = {
   resetZoom: () => EditorCanvasState;
   setCanvasPreferences: (args: { preferences: Partial<EditorCanvasPreferences> }) => EditorCanvasState;
   getCanvasState: () => EditorCanvasState;
+
+  // --- Block registry & patterns ---
+  getAvailableBlocks: () => BlockManifest[];
+  getBlockPatterns: (args: { category?: string }) => BlockPattern[];
+
+  // --- Block manipulation ---
+  moveBlock: (args: {
+    blockId: BlockId;
+    targetId: BlockId;
+    position: "before" | "after" | "inside";
+  }) => EditorLayerNode[];
+  deleteBlock: (args: { blockId: BlockId }) => EditorLayerNode[];
+  duplicateBlock: (args: { blockId: BlockId }) => EditorInsertBlockResult;
+
+  // --- Responsive ---
+  setBreakpointOverride: (args: {
+    blockId: BlockId;
+    breakpoint: string;
+    patch: EditorSelectionPatch;
+  }) => EditorSelectionInspector;
 };
 
 export type HostEditorRpcApi = {

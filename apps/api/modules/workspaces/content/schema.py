@@ -355,6 +355,9 @@ class ContentViewDslIn(BaseSchema):
     filters: list[ContentViewFilterIn] = Field(default_factory=list, description="View filter rules.")
     sort: list[ContentViewSortIn] = Field(default_factory=list, description="View sort rules.")
     limit: int | None = Field(default=None, ge=1, le=1000, description="Default preview limit.")
+    projection: list[str] | None = Field(default=None, description="Field projection list.")
+    display_mode: str | None = Field(default=None, max_length=64, description="Display mode code for field filtering.")
+    include_document_ir: bool = Field(default=False, description="Whether to include full DocumentIR.")
 
 
 class ContentViewOut(BaseSchema):
