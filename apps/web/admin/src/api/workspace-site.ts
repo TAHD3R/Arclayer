@@ -308,7 +308,7 @@ export async function upsertWorkspaceSiteSetting(
 export async function listWorkspaceSitePagesTree(
   workspaceId: string,
 ): Promise<PageData<SitePageTreeNode>> {
-  return api.get<PageData<SitePageTreeNode>>(workspacePath(workspaceId, "/site/pages/tree"));
+  return api.get<PageData<SitePageTreeNode>>(workspacePath(workspaceId, "/content/pages/tree"));
 }
 
 export async function getWorkspaceSitePage(
@@ -316,7 +316,7 @@ export async function getWorkspaceSitePage(
   pageId: string,
 ): Promise<SitePageTreeNode> {
   return api.get<SitePageTreeNode>(
-    workspacePath(workspaceId, `/site/pages/${encodeURIComponent(pageId)}`),
+    workspacePath(workspaceId, `/content/pages/${encodeURIComponent(pageId)}`),
   );
 }
 
@@ -324,7 +324,7 @@ export async function createWorkspaceSitePage(
   workspaceId: string,
   payload: SitePageCreateIn,
 ): Promise<SitePageTreeNode> {
-  return api.post<SitePageTreeNode>(workspacePath(workspaceId, "/site/pages"), payload);
+  return api.post<SitePageTreeNode>(workspacePath(workspaceId, "/content/pages"), payload);
 }
 
 export async function patchWorkspaceSitePage(
@@ -333,13 +333,13 @@ export async function patchWorkspaceSitePage(
   payload: SitePageUpdateIn,
 ): Promise<SitePageTreeNode> {
   return api.patch<SitePageTreeNode>(
-    workspacePath(workspaceId, `/site/pages/${encodeURIComponent(pageId)}`),
+    workspacePath(workspaceId, `/content/pages/${encodeURIComponent(pageId)}`),
     payload,
   );
 }
 
 export async function deleteWorkspaceSitePage(workspaceId: string, pageId: string): Promise<void> {
-  await api.delete(workspacePath(workspaceId, `/site/pages/${encodeURIComponent(pageId)}`));
+  await api.delete(workspacePath(workspaceId, `/content/pages/${encodeURIComponent(pageId)}`));
 }
 
 export async function saveWorkspaceSitePageDraft(
@@ -348,7 +348,7 @@ export async function saveWorkspaceSitePageDraft(
   payload: SitePageDraftSaveIn,
 ): Promise<SitePageDraftSaveOut> {
   return api.post<SitePageDraftSaveOut>(
-    workspacePath(workspaceId, `/site/pages/${encodeURIComponent(pageId)}/revisions/draft`),
+    workspacePath(workspaceId, `/content/pages/${encodeURIComponent(pageId)}/revisions/draft`),
     payload,
   );
 }
@@ -359,7 +359,7 @@ export async function publishWorkspaceSitePage(
   payload: SitePagePublishIn = {},
 ): Promise<SitePagePublishOut> {
   return api.post<SitePagePublishOut>(
-    workspacePath(workspaceId, `/site/pages/${encodeURIComponent(pageId)}/revisions/publish`),
+    workspacePath(workspaceId, `/content/pages/${encodeURIComponent(pageId)}/revisions/publish`),
     payload,
   );
 }
@@ -369,7 +369,7 @@ export async function getWorkspaceSitePageDraftRevision(
   pageId: string,
 ): Promise<SitePageRevisionOut> {
   return api.get<SitePageRevisionOut>(
-    workspacePath(workspaceId, `/site/pages/${encodeURIComponent(pageId)}/revisions/draft`),
+    workspacePath(workspaceId, `/content/pages/${encodeURIComponent(pageId)}/revisions/draft`),
   );
 }
 
@@ -378,7 +378,7 @@ export async function getWorkspaceSitePagePublishedRevision(
   pageId: string,
 ): Promise<SitePageRevisionOut> {
   return api.get<SitePageRevisionOut>(
-    workspacePath(workspaceId, `/site/pages/${encodeURIComponent(pageId)}/revisions/published`),
+    workspacePath(workspaceId, `/content/pages/${encodeURIComponent(pageId)}/revisions/published`),
   );
 }
 
@@ -387,7 +387,7 @@ export async function unpublishWorkspaceSitePage(
   pageId: string,
 ): Promise<SitePageUnpublishOut> {
   return api.post<SitePageUnpublishOut>(
-    workspacePath(workspaceId, `/site/pages/${encodeURIComponent(pageId)}/revisions/unpublish`),
+    workspacePath(workspaceId, `/content/pages/${encodeURIComponent(pageId)}/revisions/unpublish`),
     {},
   );
 }
@@ -400,14 +400,14 @@ export async function listWorkspaceSiteEntryTypes(
   if (typeof params?.page === "number") qs.set("page", String(params.page));
   if (typeof params?.size === "number") qs.set("size", String(params.size));
   const suffix = qs.size > 0 ? `?${qs.toString()}` : "";
-  return api.get<PageData<SiteEntryType>>(workspacePath(workspaceId, `/site/entry-types${suffix}`));
+  return api.get<PageData<SiteEntryType>>(workspacePath(workspaceId, `/content/types${suffix}`));
 }
 
 export async function createWorkspaceSiteEntryType(
   workspaceId: string,
   payload: SiteEntryTypeCreateIn,
 ): Promise<SiteEntryType> {
-  return api.post<SiteEntryType>(workspacePath(workspaceId, "/site/entry-types"), payload);
+  return api.post<SiteEntryType>(workspacePath(workspaceId, "/content/types"), payload);
 }
 
 export async function patchWorkspaceSiteEntryType(
@@ -416,7 +416,7 @@ export async function patchWorkspaceSiteEntryType(
   payload: SiteEntryTypeUpdateIn,
 ): Promise<SiteEntryType> {
   return api.patch<SiteEntryType>(
-    workspacePath(workspaceId, `/site/entry-types/${encodeURIComponent(entryTypeId)}`),
+    workspacePath(workspaceId, `/content/types/${encodeURIComponent(entryTypeId)}`),
     payload,
   );
 }
@@ -426,7 +426,7 @@ export async function deleteWorkspaceSiteEntryType(
   entryTypeId: string,
 ): Promise<SiteEntryTypeDeleteOut> {
   return api.delete<SiteEntryTypeDeleteOut>(
-    workspacePath(workspaceId, `/site/entry-types/${encodeURIComponent(entryTypeId)}`),
+    workspacePath(workspaceId, `/content/types/${encodeURIComponent(entryTypeId)}`),
   );
 }
 
@@ -439,14 +439,14 @@ export async function listWorkspaceSiteEntries(
   if (typeof params?.size === "number") qs.set("size", String(params.size));
   if (params?.entryTypeCode) qs.set("entryTypeCode", params.entryTypeCode);
   const suffix = qs.size > 0 ? `?${qs.toString()}` : "";
-  return api.get<PageData<SiteEntry>>(workspacePath(workspaceId, `/site/entries${suffix}`));
+  return api.get<PageData<SiteEntry>>(workspacePath(workspaceId, `/content/entries${suffix}`));
 }
 
 export async function createWorkspaceSiteEntry(
   workspaceId: string,
   payload: SiteEntryCreateIn,
 ): Promise<SiteEntry> {
-  return api.post<SiteEntry>(workspacePath(workspaceId, "/site/entries"), payload);
+  return api.post<SiteEntry>(workspacePath(workspaceId, "/content/entries"), payload);
 }
 
 export async function patchWorkspaceSiteEntry(
@@ -455,7 +455,7 @@ export async function patchWorkspaceSiteEntry(
   payload: SiteEntryUpdateIn,
 ): Promise<SiteEntry> {
   return api.patch<SiteEntry>(
-    workspacePath(workspaceId, `/site/entries/${encodeURIComponent(entryId)}`),
+    workspacePath(workspaceId, `/content/entries/${encodeURIComponent(entryId)}`),
     payload,
   );
 }
@@ -465,7 +465,7 @@ export async function deleteWorkspaceSiteEntry(
   entryId: string,
 ): Promise<SiteEntryDeleteOut> {
   return api.delete<SiteEntryDeleteOut>(
-    workspacePath(workspaceId, `/site/entries/${encodeURIComponent(entryId)}`),
+    workspacePath(workspaceId, `/content/entries/${encodeURIComponent(entryId)}`),
   );
 }
 
@@ -474,7 +474,7 @@ export async function saveWorkspaceSiteEntryDraft(
   payload: SiteEntryDraftSaveIn,
 ): Promise<SiteEntryDraftSaveOut> {
   return api.post<SiteEntryDraftSaveOut>(
-    workspacePath(workspaceId, "/site/entries/draft"),
+    workspacePath(workspaceId, "/content/entries/draft"),
     payload,
   );
 }
@@ -484,7 +484,7 @@ export async function publishWorkspaceSiteEntry(
   payload: SiteEntryPublishIn,
 ): Promise<SiteEntryPublishOut> {
   return api.post<SiteEntryPublishOut>(
-    workspacePath(workspaceId, "/site/entries/publish"),
+    workspacePath(workspaceId, "/content/entries/publish"),
     payload,
   );
 }
@@ -494,7 +494,7 @@ export async function unpublishWorkspaceSiteEntry(
   payload: SiteEntryUnpublishIn,
 ): Promise<SiteEntryUnpublishOut> {
   return api.post<SiteEntryUnpublishOut>(
-    workspacePath(workspaceId, "/site/entries/unpublish"),
+    workspacePath(workspaceId, "/content/entries/unpublish"),
     payload,
   );
 }
@@ -504,7 +504,10 @@ export async function getWorkspaceSiteEntryPublishedRevision(
   entryId: string,
 ): Promise<SiteEntryRevisionOut> {
   return api.get<SiteEntryRevisionOut>(
-    workspacePath(workspaceId, `/site/entries/${encodeURIComponent(entryId)}/revisions/published`),
+    workspacePath(
+      workspaceId,
+      `/content/entries/${encodeURIComponent(entryId)}/revisions/published`,
+    ),
   );
 }
 
@@ -513,32 +516,40 @@ export async function getWorkspaceSiteEntryDraftRevision(
   entryId: string,
 ): Promise<SiteEntryRevisionOut> {
   return api.get<SiteEntryRevisionOut>(
-    workspacePath(workspaceId, `/site/entries/${encodeURIComponent(entryId)}/revisions/draft`),
+    workspacePath(workspaceId, `/content/entries/${encodeURIComponent(entryId)}/revisions/draft`),
   );
 }
 
 export async function getWorkspaceSiteStyle(workspaceId: string): Promise<SiteStyleOut> {
-  return api.get<SiteStyleOut>(workspacePath(workspaceId, "/site/style"));
+  return api.get<SiteStyleOut>(workspacePath(workspaceId, "/content/appearance/styles/global"));
 }
 
 export async function upsertWorkspaceSiteStyle(
   workspaceId: string,
   payload: SiteStyleUpsertIn,
 ): Promise<SiteStyleOut> {
-  return api.put<SiteStyleOut>(workspacePath(workspaceId, "/site/style"), payload);
+  return api.put<SiteStyleOut>(
+    workspacePath(workspaceId, "/content/appearance/styles/global"),
+    payload,
+  );
 }
 
 export async function listWorkspaceSiteGlobalSections(
   workspaceId: string,
 ): Promise<SiteGlobalSectionsOut> {
-  return api.get<SiteGlobalSectionsOut>(workspacePath(workspaceId, "/site/global-sections"));
+  return api.get<SiteGlobalSectionsOut>(
+    workspacePath(workspaceId, "/content/structure/global-slots"),
+  );
 }
 
 export async function createWorkspaceSiteGlobalSection(
   workspaceId: string,
   payload: SiteGlobalSectionCreateIn,
 ): Promise<SiteGlobalSection> {
-  return api.post<SiteGlobalSection>(workspacePath(workspaceId, "/site/global-sections"), payload);
+  return api.post<SiteGlobalSection>(
+    workspacePath(workspaceId, "/content/structure/global-slots"),
+    payload,
+  );
 }
 
 export async function patchWorkspaceSiteGlobalSection(
@@ -547,7 +558,7 @@ export async function patchWorkspaceSiteGlobalSection(
   payload: SiteGlobalSectionUpdateIn,
 ): Promise<SiteGlobalSection> {
   return api.patch<SiteGlobalSection>(
-    workspacePath(workspaceId, `/site/global-sections/${encodeURIComponent(sectionId)}`),
+    workspacePath(workspaceId, `/content/structure/global-slots/${encodeURIComponent(sectionId)}`),
     payload,
   );
 }
@@ -557,7 +568,7 @@ export async function deleteWorkspaceSiteGlobalSection(
   sectionId: string,
 ): Promise<SiteGlobalSectionDeleteOut> {
   return api.delete<SiteGlobalSectionDeleteOut>(
-    workspacePath(workspaceId, `/site/global-sections/${encodeURIComponent(sectionId)}`),
+    workspacePath(workspaceId, `/content/structure/global-slots/${encodeURIComponent(sectionId)}`),
   );
 }
 

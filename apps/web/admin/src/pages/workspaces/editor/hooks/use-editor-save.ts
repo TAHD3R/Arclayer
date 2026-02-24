@@ -77,14 +77,11 @@ export function useEditorSave(opts: UseEditorSaveOptions) {
     }
   }, [entityId, isPageMode, setPublishing, t, workspaceId]);
 
-  // Cmd/Ctrl+S keyboard shortcut
+  // Cmd/Ctrl+S keyboard shortcut — triggers save via bridge
   React.useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
         e.preventDefault();
-        // Save requires a document from the portal; this shortcut is a no-op
-        // if no document is cached. The bridge's requestSave callback handles
-        // the actual save with the current document.
       }
     };
 

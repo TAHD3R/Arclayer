@@ -17,6 +17,7 @@ const navigateMock = vi.fn();
 
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => navigateMock,
+  useRouterState: () => "/",
 }));
 
 vi.mock("react-i18next", () => ({

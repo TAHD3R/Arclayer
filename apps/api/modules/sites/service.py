@@ -165,6 +165,18 @@ class SiteService(BaseService):
             fallback_locale=site.fallback_locale,
         )
 
+    async def get_site_context(self, *, site_id: UUID) -> SiteResolveOut:
+        """Retrieve site context by internal ID (used by Portal editor)."""
+        if not self.settings.database.enabled:
+            raise Conflict("Site context requires database storage", error="SITE_CONTEXT_DB_REQUIRED")
+
+        site = await self._repo.get_site_by_id(site_id=site_id)
+        return SiteResolveOut(
+            site_id=UUID(str(site.id)),
+            default_locale=site.default_locale,
+            fallback_locale=site.fallback_locale,
+        )
+
     async def get_runtime(self, *, site_id: UUID, mode: Literal["public", "preview"]) -> SiteRuntimeOut:
         default_css_vars: dict[str, str] = {
             "--color-primary": "#1677ff",

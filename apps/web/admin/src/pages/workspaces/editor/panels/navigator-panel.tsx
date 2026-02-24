@@ -13,7 +13,9 @@ function LayerNode({ node, depth }: { node: EditorLayerNode; depth: number }) {
     <>
       <button
         type="button"
-        className={`flex w-full items-center gap-1.5 rounded px-2 py-1 text-left text-xs ${isSelected ? "bg-accent text-accent-foreground" : "hover:bg-muted"}`}
+        className={`flex w-full items-center gap-1.5 rounded px-2 py-1 text-left text-xs ${
+          isSelected ? "bg-accent text-accent-foreground" : "hover:bg-muted"
+        }`}
         style={{ paddingLeft: `${depth * 16 + 8}px` }}
         onClick={() => setSelectedBlockId(node.id)}
       >
@@ -26,14 +28,17 @@ function LayerNode({ node, depth }: { node: EditorLayerNode; depth: number }) {
   );
 }
 
-export function LayersPanel({ layers = [] }: { layers?: EditorLayerNode[] }) {
+export function NavigatorPanel() {
   const { t } = useTranslation(["content_pages"]);
+  const layerTree = useEditorStore((s) => s.layerTree);
 
-  if (layers.length === 0) {
+  if (layerTree.length === 0) {
     return (
       <div className="flex flex-1 items-center justify-center p-4">
         <span className="text-xs text-muted-foreground">
-          {t("content_pages:EDITOR_V2_LAYERS_EMPTY", { defaultValue: "No layers yet" })}
+          {t("content_pages:EDITOR_V2_LAYERS_EMPTY", {
+            defaultValue: "No layers yet",
+          })}
         </span>
       </div>
     );
@@ -41,7 +46,7 @@ export function LayersPanel({ layers = [] }: { layers?: EditorLayerNode[] }) {
 
   return (
     <div className="flex flex-col gap-0.5 p-1">
-      {layers.map((node) => (
+      {layerTree.map((node) => (
         <LayerNode key={node.id} node={node} depth={0} />
       ))}
     </div>

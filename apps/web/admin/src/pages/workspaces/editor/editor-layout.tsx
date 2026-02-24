@@ -1,23 +1,37 @@
 import { Canvas } from "@/pages/workspaces/editor/components/canvas";
-import { StatusBar } from "@/pages/workspaces/editor/components/status-bar";
-import { Toolbar } from "@/pages/workspaces/editor/components/toolbar";
-import { LeftPanel } from "@/pages/workspaces/editor/panels/left-panel";
-import { Inspector } from "@/pages/workspaces/editor/panels/inspector";
-import { useEditorStore } from "@/pages/workspaces/editor/stores/editor-store";
+import { CanvasToolbar } from "@/pages/workspaces/editor/components/canvas-toolbar";
+import { ActivityBar } from "@/pages/workspaces/editor/components/activity-bar";
+import { SidebarPanel } from "@/pages/workspaces/editor/components/sidebar-panel";
+import { EditorHeader } from "@/pages/workspaces/editor/components/editor-header";
 
-export function EditorLayout() {
-  const leftPanelOpen = useEditorStore((s) => s.leftPanelOpen);
-  const rightPanelOpen = useEditorStore((s) => s.rightPanelOpen);
+import { PropertiesPanel } from "@/pages/workspaces/editor/panels/properties-panel";
 
+type EditorLayoutProps = {
+  iframeSrc: string;
+  iframeRef: React.RefObject<HTMLIFrameElement | null>;
+  isLoading: boolean;
+  loadError: string | null;
+  portalOrigin: string;
+};
+
+export function EditorLayout({ iframeSrc, iframeRef, isLoading, loadError }: EditorLayoutProps) {
   return (
     <div className="flex h-screen flex-col bg-background">
-      <Toolbar onUndo={() => {}} onRedo={() => {}} />
+      <EditorHeader />
       <div className="flex min-h-0 flex-1">
-        {leftPanelOpen ? <LeftPanel /> : null}
-        <Canvas />
-        {rightPanelOpen ? <Inspector /> : null}
+        <ActivityBar />
+        <SidebarPanel />
+        <div className="flex min-w-0 flex-1 flex-col">
+          <CanvasToolbar />
+          <Canvas
+            iframeSrc={iframeSrc}
+            iframeRef={iframeRef}
+            isLoading={isLoading}
+            loadError={loadError}
+          />
+        </div>
+        <PropertiesPanel />
       </div>
-      <StatusBar />
     </div>
   );
 }

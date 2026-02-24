@@ -32,5 +32,7 @@
   "NAV_GO_BLOG_HELLO": "Go /blog/hello",
   "NAV_GO_OLD_ABOUT": "Go /old-about",
   "DRAFT_CONFLICT": "Draft conflict: expected {{expected}}, current {{current}}",
-  "DRAFT_CONFLICT_GENERIC": "Draft conflict (409)"
+  "DRAFT_CONFLICT_GENERIC": "Draft conflict (409)",
+  "PORTAL_EDITOR_SITE_ID_HINT": "Enter a Site ID to load the editor debug page. You can find it in Admin → Workspace → Site settings.",
+  "PORTAL_EDITOR_GO": "Go"
 }

@@ -32,5 +32,7 @@
   "NAV_GO_BLOG_HELLO": "去 /blog/hello",
   "NAV_GO_OLD_ABOUT": "去 /old-about",
   "DRAFT_CONFLICT": "草稿冲突：期望 {{expected}}，当前 {{current}}",
-  "DRAFT_CONFLICT_GENERIC": "草稿冲突（409）"
+  "DRAFT_CONFLICT_GENERIC": "草稿冲突（409）",
+  "PORTAL_EDITOR_SITE_ID_HINT": "输入站点 ID 以加载编辑器调试页面。可在 Admin → 工作区 → 站点设置中找到。",
+  "PORTAL_EDITOR_GO": "前往"
 }

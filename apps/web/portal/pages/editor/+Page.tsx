@@ -22,11 +22,15 @@ type EditorPageProps = {
 };
 
 async function onBeforeRender(pageContext: { urlOriginal: string }) {
-  const { siteCtx, viewerCtx } = await ensurePortalRequestContext(pageContext);
   const parsed = parseModeFromUrl(pageContext.urlOriginal);
   if (!parsed || parsed.mode !== "editor") {
     throw render(404, "Editor route not found");
   }
+
+  // Editor mode: resolve site by ID from URL, not by host
+  const { siteCtx, viewerCtx } = await ensurePortalRequestContext(pageContext, {
+    siteId: parsed.siteId,
+  });
 
   try {
     const resolved = await resolveEditorDocument(

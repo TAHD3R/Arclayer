@@ -78,12 +78,6 @@ async def init_domain_bootstrap(app: FastAPI, settings: Settings, *, plugin_mana
             error=str(exc),
         )
 
-    # Dev-only bootstrap for Portal SSR integration (do not run in production).
-    if settings.app_env != "production":
-        from apps.api.modules.sites.bootstrap import ensure_demo_site_ready
-
-        await ensure_demo_site_ready()
-
 
 async def close_domain_bootstrap(app: FastAPI, *, plugin_manager: PluginManager) -> None:
     """

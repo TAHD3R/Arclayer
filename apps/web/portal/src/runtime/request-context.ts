@@ -6,7 +6,7 @@ import {
   detectRequestLocaleFromHeaders,
 } from "@celestial/web-core/i18n";
 
-import { resolveSiteFromApi } from "./site-api";
+import { getPortalSiteIdFromEnv, resolveSiteByIdFromApi, resolveSiteFromApi } from "./site-api";
 
 type PortalPageContextLike = {
   urlOriginal: string;
@@ -17,12 +17,27 @@ type PortalPageContextLike = {
 
 export async function ensurePortalRequestContext(
   pageContext: PortalPageContextLike,
+  opts?: { siteId?: string },
 ): Promise<{ siteCtx: PortalSiteContext; viewerCtx: ViewerContext }> {
   let siteCtx = pageContext.siteCtx;
   if (!siteCtx) {
-    const host =
-      pageContext.headers?.host || getHostFromUrl(pageContext.urlOriginal) || getBrowserHost();
-    siteCtx = await resolveSiteFromApi(host || "localhost");
+    if (opts?.siteId) {
+      siteCtx = await resolveSiteByIdFromApi(opts.siteId);
+    } else {
+      const host =
+        pageContext.headers?.host || getHostFromUrl(pageContext.urlOriginal) || getBrowserHost();
+      try {
+        siteCtx = await resolveSiteFromApi(host || "localhost");
+      } catch (hostError) {
+        // Host-based resolution failed — fall back to VITE_PORTAL_SITE_ID (dev/self-hosted)
+        const fallbackSiteId = getPortalSiteIdFromEnv();
+        if (fallbackSiteId) {
+          siteCtx = await resolveSiteByIdFromApi(fallbackSiteId);
+        } else {
+          throw hostError;
+        }
+      }
+    }
   }
 
   let viewerCtx = pageContext.viewerCtx;

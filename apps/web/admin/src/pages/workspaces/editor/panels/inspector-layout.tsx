@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { Input } from "antd";
 
 import type { EditorInspectorLayout } from "@celestial/site-editor-protocol";
 
@@ -32,11 +33,10 @@ export function InspectorLayout({ data }: { data: EditorInspectorLayout }) {
       {LAYOUT_KEYS.map((key) => (
         <label key={key} className="flex items-center gap-2 text-xs">
           <span className="w-24 shrink-0 text-muted-foreground">{key}</span>
-          <input
-            type="text"
+          <Input
+            size="small"
             value={String(data[key] ?? "")}
             onChange={(e) => console.log("layout.patch", key, e.target.value)}
-            className="h-7 flex-1 rounded border bg-transparent px-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
           />
         </label>
       ))}

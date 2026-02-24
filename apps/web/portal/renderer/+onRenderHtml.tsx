@@ -4,6 +4,7 @@ import { escapeInject, dangerouslySkipEscape } from "vike/server";
 
 import { PageShell } from "./PageShell";
 import { ensurePortalRequestContext } from "@/runtime/request-context";
+import { parseModeFromUrl } from "@/runtime/route-entry";
 import { getPortalRuntimeConfigForSite } from "@/runtime/runtime-config";
 import { fetchPortalExtensionsFromApi, type PortalExtension } from "@/runtime/site-api";
 import { resolveLocalizedValue, serializeCssVarsToStyleText } from "@celestial/site-renderer-core";
@@ -21,11 +22,17 @@ type VikePageContextLike = {
 };
 
 async function onRenderHtml(pageContext: VikePageContextLike) {
-  const { siteCtx, viewerCtx } = await ensurePortalRequestContext(pageContext);
+  // Extract siteId from URL for editor/preview routes to avoid host-based resolution failure
+  const parsed = parseModeFromUrl(pageContext.urlOriginal);
+  const siteIdFromUrl = parsed?.mode === "editor" ? parsed.siteId : undefined;
+
+  const { siteCtx, viewerCtx } = await ensurePortalRequestContext(
+    pageContext,
+    siteIdFromUrl ? { siteId: siteIdFromUrl } : undefined,
+  );
   const mode = pageContext.pageProps?.mode ?? "public";
   const token = pageContext.pageProps?.token;
-  const resolveMode =
-    mode === "public" || mode === "editor-host" || mode === "debug" ? "public" : "preview";
+  const resolveMode = mode === "public" || mode === "debug" ? "public" : "preview";
 
   const runtimeConfig = await getPortalRuntimeConfigForSite(
     siteCtx.siteId,

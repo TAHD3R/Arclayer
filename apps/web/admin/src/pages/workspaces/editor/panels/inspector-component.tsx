@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { Input, InputNumber, Checkbox, Select } from "antd";
 
 import {
   CORE_BLOCK_MANIFESTS,
@@ -24,11 +25,9 @@ function FieldInput({
   if (field.kind === "boolean") {
     return (
       <label className="flex items-center gap-2 text-xs">
-        <input
-          type="checkbox"
+        <Checkbox
           checked={Boolean(value)}
           onChange={(e) => onChange(field.key, e.target.checked)}
-          className="size-3.5 rounded border"
         />
         <span className="text-muted-foreground">{label}</span>
       </label>
@@ -36,37 +35,48 @@ function FieldInput({
   }
 
   if (field.kind === "select" && field.validation?.options) {
+    const options = field.validation.options.map((opt) => ({
+      value: opt.value,
+      label: resolveLocalizedValue(opt.label, VIEWER_CTX) ?? opt.value,
+    }));
+
     return (
       <label className="flex items-center gap-2 text-xs">
         <span className="w-24 shrink-0 text-muted-foreground">{label}</span>
-        <select
-          value={String(value ?? "")}
-          onChange={(e) => onChange(field.key, e.target.value)}
-          className="h-7 flex-1 rounded border bg-transparent px-1 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
-        >
-          <option value="" />
-          {field.validation.options.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {resolveLocalizedValue(opt.label, VIEWER_CTX) ?? opt.value}
-            </option>
-          ))}
-        </select>
+        <Select
+          size="small"
+          className="flex-1"
+          value={value as string | undefined}
+          onChange={(val) => onChange(field.key, val)}
+          options={options}
+          allowClear
+        />
       </label>
     );
   }
 
-  const inputType = field.kind === "number" ? "number" : field.kind === "color" ? "color" : "text";
+  if (field.kind === "number") {
+    return (
+      <label className="flex items-center gap-2 text-xs">
+        <span className="w-24 shrink-0 text-muted-foreground">{label}</span>
+        <InputNumber
+          size="small"
+          className="flex-1"
+          value={value as number | undefined}
+          onChange={(val) => onChange(field.key, val)}
+        />
+      </label>
+    );
+  }
 
   return (
     <label className="flex items-center gap-2 text-xs">
       <span className="w-24 shrink-0 text-muted-foreground">{label}</span>
-      <input
-        type={inputType}
+      <Input
+        size="small"
+        type={field.kind === "color" ? "color" : "text"}
         value={String(value ?? "")}
-        onChange={(e) =>
-          onChange(field.key, inputType === "number" ? Number(e.target.value) : e.target.value)
-        }
-        className="h-7 flex-1 rounded border bg-transparent px-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+        onChange={(e) => onChange(field.key, e.target.value)}
       />
     </label>
   );

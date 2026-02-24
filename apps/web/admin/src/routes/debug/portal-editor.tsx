@@ -24,6 +24,66 @@ export const Route = createFileRoute("/debug/portal-editor")({
 
 function PortalEditorDebugPage() {
   const { t } = useTranslation("debug");
+
+  const siteIdFromUrl = React.useMemo(() => {
+    if (typeof window === "undefined") return null;
+    return new URLSearchParams(window.location.search).get("siteId")?.trim() || null;
+  }, []);
+
+  const [inputSiteId, setInputSiteId] = React.useState("");
+
+  if (!siteIdFromUrl) {
+    return <SiteIdPrompt inputSiteId={inputSiteId} setInputSiteId={setInputSiteId} t={t} />;
+  }
+
+  return <PortalEditorDebugInner siteId={siteIdFromUrl} />;
+}
+
+function SiteIdPrompt({
+  inputSiteId,
+  setInputSiteId,
+  t,
+}: {
+  inputSiteId: string;
+  setInputSiteId: (v: string) => void;
+  t: (key: string) => string;
+}) {
+  const handleGo = () => {
+    const trimmed = inputSiteId.trim();
+    if (!trimmed) return;
+    const url = new URL(window.location.href);
+    url.searchParams.set("siteId", trimmed);
+    window.location.href = url.toString();
+  };
+
+  return (
+    <div className="flex h-dvh w-full items-center justify-center bg-gray-50">
+      <div className="flex w-full max-w-md flex-col gap-4 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+        <h2 className="text-sm font-medium text-gray-900">{t("PORTAL_EDITOR_DEBUG_TITLE")}</h2>
+        <p className="text-xs text-gray-500">{t("PORTAL_EDITOR_SITE_ID_HINT")}</p>
+        <input
+          type="text"
+          value={inputSiteId}
+          onChange={(e) => setInputSiteId(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && handleGo()}
+          placeholder="e.g. aBcDeFgH..."
+          className="rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+        />
+        <button
+          type="button"
+          onClick={handleGo}
+          disabled={!inputSiteId.trim()}
+          className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {t("PORTAL_EDITOR_GO")}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function PortalEditorDebugInner({ siteId }: { siteId: string }) {
+  const { t } = useTranslation("debug");
   const iframeRef = React.useRef<HTMLIFrameElement | null>(null);
 
   const portalOrigin = React.useMemo(() => {
@@ -56,18 +116,18 @@ function PortalEditorDebugPage() {
   }, []);
 
   const iframeSrc = React.useMemo(() => {
-    if (!hostOrigin) return `${portalOrigin}/editor/site/demo`;
+    if (!hostOrigin) return `${portalOrigin}/editor/site/${encodeURIComponent(siteId)}`;
     // Token is required for editor mode; allow overriding via debug page query (?token=...).
     const tokenFromUrl = new URLSearchParams(window.location.search).get("token");
     const token = tokenFromUrl || previewToken || "demo";
     return buildEditorIframeHref({
       portalOrigin,
-      siteId: "demo",
+      siteId,
       pathname,
       token,
       parentOrigin: hostOrigin,
     });
-  }, [hostOrigin, pathname, portalOrigin, previewToken]);
+  }, [hostOrigin, pathname, portalOrigin, previewToken, siteId]);
 
   React.useEffect(() => {
     previewTokenRef.current = previewToken;
@@ -87,9 +147,8 @@ function PortalEditorDebugPage() {
 
     void (async () => {
       try {
-        const siteId = "00000000-0000-0000-0000-000000000001";
         const out = await api.post<{ token: string; expiresAtMs: number }>(
-          `/sites/${siteId}/preview-tokens`,
+          `/sites/${encodeURIComponent(siteId)}/preview-tokens`,
           {
             ttlSeconds: 600,
           },
@@ -106,7 +165,7 @@ function PortalEditorDebugPage() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [siteId]);
 
   const [overlayMode, setOverlayMode] = React.useState<EditorOverlayMode>("inspect");
   const overlayModeRef = React.useRef<EditorOverlayMode>("inspect");

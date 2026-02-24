@@ -1,10 +1,10 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Search } from "lucide-react";
+import { Input } from "antd";
 
 import {
   CORE_BLOCK_MANIFESTS,
-  CORE_BLOCK_PATTERNS,
   resolveLocalizedValue,
   type BlockCategory,
   type ViewerContext,
@@ -22,7 +22,7 @@ const CATEGORY_LABELS: Record<BlockCategory, string> = {
   custom: "Custom",
 };
 
-export function ElementsPanel() {
+export function ComponentsPanel() {
   const { t } = useTranslation(["content_pages"]);
   const [query, setQuery] = useState("");
 
@@ -47,16 +47,16 @@ export function ElementsPanel() {
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
       {/* Search */}
-      <div className="relative px-2 py-2">
-        <Search className="absolute left-4 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-        <input
-          type="text"
+      <div className="px-2 py-2">
+        <Input
+          size="small"
+          prefix={<Search className="size-3.5 text-muted-foreground" />}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder={t("content_pages:EDITOR_V2_ELEMENTS_SEARCH", {
             defaultValue: "Search blocks...",
           })}
-          className="h-8 w-full rounded-md border bg-transparent pl-8 pr-2 text-xs placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+          allowClear
         />
       </div>
 
@@ -73,7 +73,6 @@ export function ElementsPanel() {
                   key={m.type}
                   type="button"
                   className="flex flex-col items-center gap-1 rounded-md border p-2 text-xs hover:bg-muted"
-                  onClick={() => console.log("insertBlock", m.type)}
                 >
                   <span className="text-[10px] text-muted-foreground">{m.icon ?? m.type}</span>
                   <span className="truncate">
@@ -84,27 +83,6 @@ export function ElementsPanel() {
             </div>
           </div>
         ))}
-
-        {/* Patterns */}
-        {CORE_BLOCK_PATTERNS.length > 0 && (
-          <div className="mt-4">
-            <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-              {t("content_pages:EDITOR_V2_ELEMENTS_PATTERNS", { defaultValue: "Patterns" })}
-            </div>
-            <div className="flex flex-col gap-1">
-              {CORE_BLOCK_PATTERNS.map((p) => (
-                <button
-                  key={p.code}
-                  type="button"
-                  className="rounded-md border p-2 text-left text-xs hover:bg-muted"
-                  onClick={() => console.log("insertPattern", p.code)}
-                >
-                  {resolveLocalizedValue(p.label, VIEWER_CTX) ?? p.code}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

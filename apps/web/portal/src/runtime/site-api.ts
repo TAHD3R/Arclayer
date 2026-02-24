@@ -13,12 +13,9 @@ export function getPortalApiPrefix(): string {
   return raw && raw.startsWith("/") ? raw : "/api/v1";
 }
 
-export function getPortalSiteIdFromEnv(): string {
+export function getPortalSiteIdFromEnv(): string | null {
   const raw = (import.meta.env.VITE_PORTAL_SITE_ID || "").trim();
-  if (!raw) {
-    throw new Error("Missing VITE_PORTAL_SITE_ID (Portal requires backend site context).");
-  }
-  return raw;
+  return raw || null;
 }
 
 export async function resolveSiteFromApi(host: string): Promise<PortalSiteContext> {
@@ -51,6 +48,37 @@ export async function resolveSiteFromApi(host: string): Promise<PortalSiteContex
   }
 
   return { siteId, defaultLocale, fallbackLocale };
+}
+
+export async function resolveSiteByIdFromApi(siteId: string): Promise<PortalSiteContext> {
+  const apiPrefix = getPortalApiPrefix();
+  const requestPath = `${apiPrefix}/sites/${encodeURIComponent(siteId)}/context`;
+  const url = new URL(requestPath, "http://localhost");
+
+  const input =
+    typeof window === "undefined"
+      ? new URL(url.pathname + url.search, getPortalApiOriginForSsr()).toString()
+      : url.pathname + url.search;
+
+  const res = await fetch(input, { headers: { Accept: "application/json" } });
+  if (!res.ok) throw await toApiError(res, `Failed to resolve site by ID (${res.status})`);
+
+  const payload: unknown = await res.json();
+  const data = getResponseData(payload);
+
+  const resolvedSiteId = getStringField(data, ["siteId", "site_id"]);
+  const defaultLocale = getStringField(data, ["defaultLocale", "default_locale"]);
+  const fallbackLocale = getStringField(data, ["fallbackLocale", "fallback_locale"]);
+
+  if (!resolvedSiteId) throw new Error("Invalid siteId returned by API");
+  if (defaultLocale !== "zh-CN" && defaultLocale !== "en-US") {
+    throw new Error("Invalid defaultLocale returned by API");
+  }
+  if (fallbackLocale !== "zh-CN" && fallbackLocale !== "en-US") {
+    throw new Error("Invalid fallbackLocale returned by API");
+  }
+
+  return { siteId: resolvedSiteId, defaultLocale, fallbackLocale };
 }
 
 export async function resolveRouteFromApi(
