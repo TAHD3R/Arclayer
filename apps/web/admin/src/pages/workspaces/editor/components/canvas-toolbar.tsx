@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Monitor,
@@ -9,8 +10,11 @@ import {
   ZoomOut,
   RotateCcw,
   ChevronDown,
+  MousePointer2,
+  Hand,
 } from "lucide-react";
-import { Button, Tooltip, InputNumber, Radio, Checkbox, Space } from "antd";
+import { Button, Tooltip, InputNumber, Radio, Checkbox, Space, Dropdown } from "antd";
+import type { MenuProps } from "antd";
 
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import {
@@ -51,6 +55,8 @@ const RULER_OPTIONS: { value: RulerMode; labelKey: string; defaultValue: string 
   },
 ];
 
+const ZOOM_PRESETS = [50, 75, 100, 125, 150, 200];
+
 export function CanvasToolbar() {
   const { t } = useTranslation(["content_pages"]);
   const { portal } = useEditorBridgeContext();
@@ -62,18 +68,79 @@ export function CanvasToolbar() {
   const canvasWidth = useEditorStore((s) => s.canvasWidth);
   const rulerMode = useEditorStore((s) => s.rulerMode);
   const showLineGuides = useEditorStore((s) => s.showLineGuides);
+  const activeTool = useEditorStore((s) => s.activeTool);
   const setDevicePreset = useEditorStore((s) => s.setDevicePreset);
   const setZoomPercent = useEditorStore((s) => s.setZoomPercent);
   const setCanvasWidth = useEditorStore((s) => s.setCanvasWidth);
+  const setActiveTool = useEditorStore((s) => s.setActiveTool);
 
   const { onUndo, onRedo } = useEditorHistory(portal);
 
   const displayWidth = canvasWidth ?? DEVICE_NUMERIC_WIDTHS[devicePreset];
 
+  // Keyboard shortcuts for tool switching
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      const tag = (e.target as HTMLElement).tagName.toLowerCase();
+      if (tag === "input" || tag === "textarea" || (e.target as HTMLElement).isContentEditable) {
+        return;
+      }
+      if (e.key === "v" || e.key === "V") {
+        setActiveTool("select");
+      } else if (e.key === "h" || e.key === "H") {
+        setActiveTool("hand");
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [setActiveTool]);
+
+  // Zoom dropdown menu items
+  const zoomMenuItems: MenuProps["items"] = [
+    {
+      key: "fit",
+      label: t("content_pages:EDITOR_V2_TOOLBAR_ZOOM_FIT", { defaultValue: "Zoom to Fit" }),
+      onClick: () => setZoomPercent(100),
+    },
+    { type: "divider" },
+    ...ZOOM_PRESETS.map((value) => ({
+      key: String(value),
+      label: `${value}%`,
+      onClick: () => setZoomPercent(value),
+    })),
+  ];
+
   return (
     <div className="flex h-10 shrink-0 items-center justify-between border-b bg-card px-3">
-      {/* Left: Undo / Redo */}
+      {/* Left: Select/Hand toggle + Undo / Redo */}
       <div className="flex items-center gap-1">
+        <Space.Compact>
+          <Tooltip
+            title={t("content_pages:EDITOR_V2_TOOLBAR_TOOL_SELECT", {
+              defaultValue: "Select (V)",
+            })}
+          >
+            <Button
+              type={activeTool === "select" ? "primary" : "default"}
+              icon={<MousePointer2 className="size-4" />}
+              onClick={() => setActiveTool("select")}
+            />
+          </Tooltip>
+          <Tooltip
+            title={t("content_pages:EDITOR_V2_TOOLBAR_TOOL_HAND", {
+              defaultValue: "Hand (H)",
+            })}
+          >
+            <Button
+              type={activeTool === "hand" ? "primary" : "default"}
+              icon={<Hand className="size-4" />}
+              onClick={() => setActiveTool("hand")}
+            />
+          </Tooltip>
+        </Space.Compact>
+
+        <div className="mx-1 h-5 w-px bg-border" />
+
         <Tooltip title={t("content_pages:EDITOR_V2_TOOLBAR_UNDO", { defaultValue: "Undo" })}>
           <Button
             type="text"
@@ -124,11 +191,18 @@ export function CanvasToolbar() {
             </Button>
           </PopoverTrigger>
           <PopoverContent align="center" className="w-64 space-y-3 p-3">
-            <p className="text-callout font-medium">
-              {t("content_pages:EDITOR_V2_CANVAS_SETTINGS_TITLE", {
-                defaultValue: "Canvas Settings",
-              })}
-            </p>
+            <div>
+              <p className="text-callout font-medium">
+                {t("content_pages:EDITOR_V2_CANVAS_SETTINGS_TITLE", {
+                  defaultValue: "Canvas Settings",
+                })}
+              </p>
+              <p className="text-caption text-label-secondary">
+                {t("content_pages:EDITOR_V2_CANVAS_SETTINGS_DESC", {
+                  defaultValue: "Adjust viewport dimensions and display options",
+                })}
+              </p>
+            </div>
 
             {/* Width */}
             <label className="flex items-center gap-2 text-callout">
@@ -217,9 +291,12 @@ export function CanvasToolbar() {
           />
         </Tooltip>
 
-        <span className="w-10 text-center text-callout tabular-nums text-label-secondary">
-          {zoomPercent}%
-        </span>
+        <Dropdown menu={{ items: zoomMenuItems }} trigger={["click"]}>
+          <Button type="text" className="gap-0.5! tabular-nums">
+            <span className="text-callout text-label-secondary">{zoomPercent}%</span>
+            <ChevronDown className="size-3 text-label-secondary" />
+          </Button>
+        </Dropdown>
 
         <Tooltip title={t("content_pages:EDITOR_V2_TOOLBAR_ZOOM_IN", { defaultValue: "Zoom in" })}>
           <Button

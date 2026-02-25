@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { LayoutDashboard, Palette, Settings2, Sparkles } from "lucide-react";
 import { Tooltip } from "antd";
+import { AnimatePresence, motion } from "motion/react";
 
 import type { EditorSelectionInspector } from "@celestial/site-editor-protocol";
 
@@ -34,6 +35,26 @@ const TABS: {
     defaultValue: "Animation",
   },
 ];
+
+// 各 tab 的描述文案映射
+const TAB_DESCRIPTIONS: Record<PropertiesPanelTab, { descKey: string; descDefault: string }> = {
+  component: {
+    descKey: "EDITOR_V2_TAB_COMPONENT_DESC",
+    descDefault: "Configure the selected block's properties",
+  },
+  layout: {
+    descKey: "EDITOR_V2_TAB_LAYOUT_DESC",
+    descDefault: "Adjust positioning, spacing, and sizing",
+  },
+  design: {
+    descKey: "EDITOR_V2_TAB_DESIGN_DESC",
+    descDefault: "Style colors, typography, and effects",
+  },
+  animation: {
+    descKey: "EDITOR_V2_TAB_ANIMATION_DESC",
+    descDefault: "Add motion and transition effects",
+  },
+};
 
 function TabContent({
   tab,
@@ -69,32 +90,51 @@ export function PropertiesPanel() {
 
   return (
     <>
-      {/* Panel content (left of bar) */}
-      {propertiesPanelOpen && (
-        <aside className="flex h-full w-64 shrink-0 flex-col border-l bg-card">
-          <div className="flex h-10 items-center border-b px-3">
-            <span className="text-caption font-medium">
-              {activeTab
-                ? t(`content_pages:${activeTab.labelKey}`, { defaultValue: activeTab.defaultValue })
-                : t("content_pages:EDITOR_V2_RIGHT_TITLE", { defaultValue: "Inspector" })}
-            </span>
-          </div>
-          <div className="flex min-h-0 flex-1 flex-col overflow-auto p-3">
-            {selectedBlockId ? (
-              <TabContent tab={tab} inspector={inspectorData} />
-            ) : (
-              <p className="text-caption text-label-secondary">
-                {t("content_pages:EDITOR_V2_INSPECTOR_EMPTY", {
-                  defaultValue: "Select an element to inspect its properties.",
-                })}
-              </p>
-            )}
-          </div>
-        </aside>
-      )}
+      {/* Panel content (left of bar), with slide animation */}
+      <AnimatePresence initial={false}>
+        {propertiesPanelOpen && (
+          <motion.aside
+            key="properties"
+            initial={{ width: 0, opacity: 0 }}
+            animate={{ width: 256, opacity: 1 }}
+            exit={{ width: 0, opacity: 0 }}
+            transition={{ duration: 0.15, ease: "easeInOut" }}
+            className="flex shrink-0 flex-col overflow-hidden border-l bg-card"
+          >
+            {/* Header: title + description */}
+            <div className="flex shrink-0 flex-col gap-0.5 border-b px-3 py-2">
+              <span className="text-caption font-medium">
+                {activeTab
+                  ? t(`content_pages:${activeTab.labelKey}`, {
+                      defaultValue: activeTab.defaultValue,
+                    })
+                  : t("content_pages:EDITOR_V2_RIGHT_TITLE", { defaultValue: "Inspector" })}
+              </span>
+              {activeTab && (
+                <span className="text-caption text-label-secondary">
+                  {t(`content_pages:${TAB_DESCRIPTIONS[activeTab.id].descKey}`, {
+                    defaultValue: TAB_DESCRIPTIONS[activeTab.id].descDefault,
+                  })}
+                </span>
+              )}
+            </div>
+            <div className="flex min-h-0 flex-1 flex-col overflow-auto p-3">
+              {selectedBlockId ? (
+                <TabContent tab={tab} inspector={inspectorData} />
+              ) : (
+                <p className="text-caption text-label-secondary">
+                  {t("content_pages:EDITOR_V2_INSPECTOR_EMPTY", {
+                    defaultValue: "Select an element to inspect its properties.",
+                  })}
+                </p>
+              )}
+            </div>
+          </motion.aside>
+        )}
+      </AnimatePresence>
 
       {/* Vertical tab bar (rightmost) */}
-      <aside className="flex w-10 shrink-0 flex-col items-center gap-1 border-l bg-card py-2">
+      <aside className="flex w-12 shrink-0 flex-col items-center gap-1 border-l bg-card py-2">
         {TABS.map(({ id, icon: Icon, labelKey, defaultValue }) => {
           const isActive = propertiesPanelOpen && tab === id;
           return (
@@ -105,7 +145,7 @@ export function PropertiesPanel() {
             >
               <button
                 type="button"
-                className={`flex size-8 items-center justify-center rounded-md transition-colors ${
+                className={`flex size-10 items-center justify-center rounded-md transition-colors ${
                   isActive
                     ? "bg-accent text-primary"
                     : "text-label-secondary hover:bg-accent hover:text-foreground"
@@ -118,7 +158,7 @@ export function PropertiesPanel() {
                   }
                 }}
               >
-                <Icon className="size-4" />
+                <Icon className="size-5" />
               </button>
             </Tooltip>
           );

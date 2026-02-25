@@ -7,14 +7,16 @@ import type { BridgeStatus } from "@/pages/workspaces/editor/hooks/use-editor-br
 // --- Menu IDs for ActivityBar ---
 
 export type ActivityBarMenuId =
-  | "pages"
+  | "add-elements"
   | "navigator"
-  | "components"
-  | "blocks"
+  | "pages"
   | "assets"
+  | "blocks"
   | "plugins"
   | "settings"
   | "search";
+
+export type ActiveTool = "select" | "hand";
 
 export type PropertiesPanelTab = "component" | "layout" | "design" | "animation";
 export type DevicePreset = "desktop" | "tablet" | "mobile";
@@ -31,11 +33,17 @@ export interface EditorState {
   propertiesPanelTab: PropertiesPanelTab;
 
   // Canvas
+  activeTool: ActiveTool;
   devicePreset: DevicePreset;
   zoomPercent: number;
   canvasWidth: number | null;
+  canvasPanX: number;
+  canvasPanY: number;
   rulerMode: RulerMode;
   showLineGuides: boolean;
+
+  // Preview
+  isPreviewMode: boolean;
 
   // Selection
   selectedBlockId: string | null;
@@ -68,10 +76,14 @@ export interface EditorState {
   togglePropertiesPanel: () => void;
   setPropertiesPanelTab: (tab: PropertiesPanelTab) => void;
   setDevicePreset: (preset: DevicePreset) => void;
+  setActiveTool: (tool: ActiveTool) => void;
   setZoomPercent: (zoom: number) => void;
   setCanvasWidth: (width: number | null) => void;
+  setCanvasPan: (x: number, y: number) => void;
+  resetCanvasPan: () => void;
   setRulerMode: (mode: RulerMode) => void;
   setShowLineGuides: (show: boolean) => void;
+  togglePreviewMode: () => void;
   setSelectedBlockId: (id: string | null) => void;
   setHoveredBlockId: (id: string | null) => void;
   setDirty: (dirty: boolean) => void;
@@ -96,17 +108,22 @@ const EMPTY_INSPECTOR: EditorSelectionInspector = {
 };
 
 export const useEditorStore = create<EditorState>()((set) => ({
-  activeMenuId: "pages",
+  activeMenuId: "add-elements",
   sidebarOpen: true,
 
   propertiesPanelOpen: true,
   propertiesPanelTab: "component",
 
+  activeTool: "select",
   devicePreset: "desktop",
   zoomPercent: 100,
   canvasWidth: null,
+  canvasPanX: 0,
+  canvasPanY: 0,
   rulerMode: "off",
   showLineGuides: false,
+
+  isPreviewMode: false,
 
   selectedBlockId: null,
   hoveredBlockId: null,
@@ -115,7 +132,7 @@ export const useEditorStore = create<EditorState>()((set) => ({
   isSaving: false,
   isPublishing: false,
 
-  autoSaveEnabled: false,
+  autoSaveEnabled: true,
   autoSaveIntervalSec: 30,
   saveOnBlur: true,
 
@@ -139,10 +156,14 @@ export const useEditorStore = create<EditorState>()((set) => ({
   togglePropertiesPanel: () => set((s) => ({ propertiesPanelOpen: !s.propertiesPanelOpen })),
   setPropertiesPanelTab: (tab) => set({ propertiesPanelTab: tab, propertiesPanelOpen: true }),
   setDevicePreset: (preset) => set({ devicePreset: preset }),
+  setActiveTool: (tool) => set({ activeTool: tool }),
   setZoomPercent: (zoom) => set({ zoomPercent: Math.max(25, Math.min(200, Math.round(zoom))) }),
   setCanvasWidth: (width) => set({ canvasWidth: width }),
+  setCanvasPan: (x, y) => set({ canvasPanX: x, canvasPanY: y }),
+  resetCanvasPan: () => set({ canvasPanX: 0, canvasPanY: 0, zoomPercent: 100 }),
   setRulerMode: (mode) => set({ rulerMode: mode }),
   setShowLineGuides: (show) => set({ showLineGuides: show }),
+  togglePreviewMode: () => set((s) => ({ isPreviewMode: !s.isPreviewMode })),
   setSelectedBlockId: (id) => set({ selectedBlockId: id }),
   setHoveredBlockId: (id) => set({ hoveredBlockId: id }),
   setDirty: (dirty) => set({ isDirty: dirty }),

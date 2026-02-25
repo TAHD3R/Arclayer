@@ -15,8 +15,8 @@ export function BlockPatternsPanel() {
     return (
       <div className="flex flex-1 items-center justify-center p-4">
         <span className="text-caption text-label-secondary">
-          {t("content_pages:EDITOR_V2_PATTERNS_EMPTY", {
-            defaultValue: "No patterns available",
+          {t("content_pages:EDITOR_V2_BLOCKS_EMPTY", {
+            defaultValue: "No blocks available",
           })}
         </span>
       </div>

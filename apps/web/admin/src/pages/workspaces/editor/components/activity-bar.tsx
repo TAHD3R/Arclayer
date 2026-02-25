@@ -1,14 +1,5 @@
 import { useTranslation } from "react-i18next";
-import {
-  FileText,
-  Layers,
-  LayoutGrid,
-  Blocks,
-  Image,
-  Puzzle,
-  Settings,
-  Search,
-} from "lucide-react";
+import { Plus, Layers, FileText, Image, Blocks, Puzzle, Settings, Search } from "lucide-react";
 import { Tooltip } from "antd";
 
 import {
@@ -23,34 +14,30 @@ type MenuEntry = {
   defaultValue: string;
 };
 
+/* 主菜单项 — 按新顺序排列，plugins 已合并进来 */
 const MAIN_ITEMS: MenuEntry[] = [
-  { id: "pages", icon: FileText, labelKey: "EDITOR_V2_MENU_PAGES", defaultValue: "Pages" },
+  {
+    id: "add-elements",
+    icon: Plus,
+    labelKey: "EDITOR_V2_MENU_ADD_ELEMENTS",
+    defaultValue: "Add Elements",
+  },
   {
     id: "navigator",
     icon: Layers,
     labelKey: "EDITOR_V2_MENU_NAVIGATOR",
     defaultValue: "Navigator",
   },
-  {
-    id: "components",
-    icon: LayoutGrid,
-    labelKey: "EDITOR_V2_MENU_COMPONENTS",
-    defaultValue: "Components",
-  },
-  { id: "blocks", icon: Blocks, labelKey: "EDITOR_V2_MENU_BLOCKS", defaultValue: "Block patterns" },
+  { id: "pages", icon: FileText, labelKey: "EDITOR_V2_MENU_PAGES", defaultValue: "Pages" },
   { id: "assets", icon: Image, labelKey: "EDITOR_V2_MENU_ASSETS", defaultValue: "Assets" },
+  { id: "blocks", icon: Blocks, labelKey: "EDITOR_V2_MENU_BLOCKS", defaultValue: "Blocks" },
+  { id: "plugins", icon: Puzzle, labelKey: "EDITOR_V2_MENU_PLUGINS", defaultValue: "Plugins" },
 ];
 
-const PLUGIN_ITEM: MenuEntry = {
-  id: "plugins",
-  icon: Puzzle,
-  labelKey: "EDITOR_V2_MENU_PLUGINS",
-  defaultValue: "Plugins",
-};
-
+/* 底部固定项 */
 const BOTTOM_ITEMS: MenuEntry[] = [
-  { id: "settings", icon: Settings, labelKey: "EDITOR_V2_MENU_SETTINGS", defaultValue: "Settings" },
   { id: "search", icon: Search, labelKey: "EDITOR_V2_MENU_SEARCH", defaultValue: "Find anything" },
+  { id: "settings", icon: Settings, labelKey: "EDITOR_V2_MENU_SETTINGS", defaultValue: "Settings" },
 ];
 
 function BarButton({
@@ -72,7 +59,7 @@ function BarButton({
     >
       <button
         type="button"
-        className={`flex size-10 items-center justify-center rounded-md transition-colors ${
+        className={`flex size-10 items-center justify-center rounded-md transition-all hover:scale-105 ${
           isActive
             ? "bg-accent text-accent-foreground"
             : "text-label-secondary hover:bg-muted hover:text-foreground"
@@ -92,7 +79,7 @@ export function ActivityBar() {
 
   return (
     <aside className="flex w-12 shrink-0 flex-col items-center gap-1 border-r bg-card py-2">
-      {/* Main menu items */}
+      {/* 主菜单项 */}
       {MAIN_ITEMS.map((entry) => (
         <BarButton
           key={entry.id}
@@ -102,18 +89,10 @@ export function ActivityBar() {
         />
       ))}
 
-      {/* Separator + Plugins */}
-      <div className="mx-2 my-1 h-px w-6 bg-border" />
-      <BarButton
-        entry={PLUGIN_ITEM}
-        isActive={activeMenuId === "plugins"}
-        onClick={() => setActiveMenuId("plugins")}
-      />
-
-      {/* Spacer */}
+      {/* 弹性间隔 */}
       <div className="flex-1" />
 
-      {/* Bottom items */}
+      {/* 底部固定项 */}
       {BOTTOM_ITEMS.map((entry) => (
         <BarButton
           key={entry.id}
