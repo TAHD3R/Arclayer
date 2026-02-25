@@ -59,21 +59,23 @@ function SiteIdPrompt({
   return (
     <div className="flex h-dvh w-full items-center justify-center bg-gray-50">
       <div className="flex w-full max-w-md flex-col gap-4 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-        <h2 className="text-sm font-medium text-gray-900">{t("PORTAL_EDITOR_DEBUG_TITLE")}</h2>
-        <p className="text-xs text-gray-500">{t("PORTAL_EDITOR_SITE_ID_HINT")}</p>
+        <h2 className="text-footnote font-medium text-gray-900">
+          {t("PORTAL_EDITOR_DEBUG_TITLE")}
+        </h2>
+        <p className="text-caption text-gray-500">{t("PORTAL_EDITOR_SITE_ID_HINT")}</p>
         <input
           type="text"
           value={inputSiteId}
           onChange={(e) => setInputSiteId(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleGo()}
           placeholder="e.g. aBcDeFgH..."
-          className="rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          className="rounded border border-gray-300 px-3 py-2 text-footnote focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
         />
         <button
           type="button"
           onClick={handleGo}
           disabled={!inputSiteId.trim()}
-          className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+          className="rounded bg-blue-600 px-4 py-2 text-footnote font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {t("PORTAL_EDITOR_GO")}
         </button>
@@ -314,7 +316,7 @@ function PortalEditorDebugInner({ siteId }: { siteId: string }) {
 
   return (
     <div className="flex h-dvh w-full flex-col">
-      <div className="flex items-center gap-2 border-b border-gray-200 bg-white p-3 text-xs">
+      <div className="flex items-center gap-2 border-b border-gray-200 bg-white p-3 text-caption">
         <div className="mr-2 font-medium">{t("PORTAL_EDITOR_DEBUG_TITLE")}</div>
         <div className="text-gray-600">
           {t("PORTAL_ORIGIN")}: <code>{portalOrigin}</code>

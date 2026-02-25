@@ -14,7 +14,7 @@ export function BlockPatternsPanel() {
   if (CORE_BLOCK_PATTERNS.length === 0) {
     return (
       <div className="flex flex-1 items-center justify-center p-4">
-        <span className="text-xs text-muted-foreground">
+        <span className="text-caption text-label-secondary">
           {t("content_pages:EDITOR_V2_PATTERNS_EMPTY", {
             defaultValue: "No patterns available",
           })}
@@ -29,7 +29,7 @@ export function BlockPatternsPanel() {
         <button
           key={p.code}
           type="button"
-          className="rounded-md border p-2 text-left text-xs hover:bg-muted"
+          className="rounded-md border p-2 text-left text-caption hover:bg-muted"
         >
           {resolveLocalizedValue(p.label, VIEWER_CTX) ?? p.code}
         </button>

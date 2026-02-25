@@ -68,7 +68,7 @@ function MenuItemContent(props: { icon?: ReactNode; label: string; right?: React
     <>
       <span className="flex min-w-0 flex-1 items-center gap-3">
         {props.icon ? <span className="shrink-0 [&>svg]:size-4">{props.icon}</span> : null}
-        <span className="min-w-0 truncate text-sm font-medium">{props.label}</span>
+        <span className="min-w-0 truncate text-footnote font-medium">{props.label}</span>
       </span>
       {props.right ? (
         <span className="shrink-0 opacity-70 transition-opacity group-hover:opacity-100">
@@ -330,7 +330,7 @@ export function AdminAccountMenu() {
     "px-4 py-3",
     "border-0 bg-transparent",
     "rounded-none",
-    "text-muted-foreground",
+    "text-label-secondary",
     "hover:bg-primary hover:text-sidebar-accent-foreground",
     "data-[state=open]:bg-primary data-[state=open]:text-sidebar-accent-foreground",
     "transition-colors duration-150 ease-out",

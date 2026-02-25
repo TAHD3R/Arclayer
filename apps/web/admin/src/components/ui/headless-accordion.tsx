@@ -55,7 +55,7 @@ function AccordionButton({
   return (
     <DisclosureButtonPrimitive
       className={cn(
-        "focus-visible:border-ring focus-visible:ring-ring/50 flex flex-1 items-start justify-between gap-4 w-full rounded-md py-4 text-left text-sm font-medium transition-colors outline-none hover:underline focus-visible:ring-[3px] disabled:pointer-events-none disabled:opacity-50 [&[data-open]>svg]:rotate-180",
+        "focus-visible:border-ring focus-visible:ring-ring/50 flex flex-1 items-start justify-between gap-4 w-full rounded-md py-4 text-left text-footnote font-medium transition-colors outline-none hover:underline focus-visible:ring-[3px] disabled:pointer-events-none disabled:opacity-50 [&[data-open]>svg]:rotate-180",
         className,
       )}
       {...props}
@@ -64,7 +64,7 @@ function AccordionButton({
         <>
           {typeof children === "function" ? children(bag) : children}
           {showArrow && (
-            <ChevronDownIcon className="text-muted-foreground pointer-events-none size-4 shrink-0 translate-y-0.5 transition-transform duration-200" />
+            <ChevronDownIcon className="text-label-secondary pointer-events-none size-4 shrink-0 translate-y-0.5 transition-transform duration-200" />
           )}
         </>
       )}
@@ -82,7 +82,7 @@ function AccordionPanel({ className, children, ...props }: AccordionPanelProps) 
           typeof children === "function"
             ? (children as (renderBag: typeof bag) => React.ReactNode)(bag)
             : children;
-        return <div className={cn("text-sm pt-0 pb-4", className)}>{content}</div>;
+        return <div className={cn("text-footnote pt-0 pb-4", className)}>{content}</div>;
       }}
     </DisclosurePanelPrimitive>
   );

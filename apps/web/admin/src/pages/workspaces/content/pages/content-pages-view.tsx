@@ -564,7 +564,7 @@ export function ContentPagesView() {
 
           {pageData ? (
             <div className="flex flex-wrap items-center justify-between gap-3 pt-4">
-              <div className="text-muted-foreground text-sm">
+              <div className="text-label-secondary text-footnote">
                 {t("content_pages:PAGINATION_TOTAL", {
                   total: pageData.total,
                   from: pageData.total ? (pageData.page - 1) * pageData.size + 1 : 0,
@@ -578,7 +578,7 @@ export function ContentPagesView() {
                     table.setPageSize(Number(e.target.value));
                     table.setPageIndex(0);
                   }}
-                  className="h-8 rounded-md border border-border bg-background px-2 text-sm"
+                  className="h-8 rounded-md border border-border bg-background px-2 text-footnote"
                 >
                   {[10, 20, 50, 100].map((s) => (
                     <option key={s} value={s}>
@@ -596,7 +596,7 @@ export function ContentPagesView() {
                   <ChevronLeft className="size-4" />
                 </UiButton>
 
-                <span className="text-sm tabular-nums">
+                <span className="text-footnote tabular-nums">
                   {pageData.page} / {pageData.pages || 1}
                 </span>
 

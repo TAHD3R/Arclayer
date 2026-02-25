@@ -19,7 +19,7 @@ export function renderUserLabel(
     avatarUrl: string | null;
   } | null,
 ): React.ReactNode {
-  if (!user) return <span className="text-muted-foreground">-</span>;
+  if (!user) return <span className="text-label-secondary">-</span>;
 
   const primary = (user.displayName || user.username || user.email || "-").trim() || "-";
   const secondary = user.email || user.username || "";
@@ -30,9 +30,9 @@ export function renderUserLabel(
         {userInitials(primary)}
       </Avatar>
       <div className="min-w-0">
-        <div className="text-sm font-medium truncate">{primary}</div>
+        <div className="text-footnote font-medium truncate">{primary}</div>
         {secondary ? (
-          <div className="text-xs text-muted-foreground truncate">{secondary}</div>
+          <div className="text-caption text-label-secondary truncate">{secondary}</div>
         ) : null}
       </div>
     </div>

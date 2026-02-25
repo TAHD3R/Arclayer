@@ -95,7 +95,7 @@ export function useOrganizationInvitationColumns(options: UseOrganizationInvitat
           const formatted = dateTime.formatDate(row.original.createdAt, { emptyValue: "" });
           const datetime = formatted || "-";
           return (
-            <span className={formatted ? "" : "text-muted-foreground"}>
+            <span className={formatted ? "" : "text-label-secondary"}>
               {t("team:TEAM_INVITATIONS_SENT_AT", { datetime })}
             </span>
           );
@@ -108,7 +108,7 @@ export function useOrganizationInvitationColumns(options: UseOrganizationInvitat
         cell: ({ row }) => {
           const formatted = dateTime.formatDate(row.original.expiresAt, { emptyValue: "" });
           return (
-            <span className={formatted ? "" : "text-muted-foreground"}>
+            <span className={formatted ? "" : "text-label-secondary"}>
               {formatted || t("team:TEAM_INVITATIONS_NEVER_EXPIRES")}
             </span>
           );
@@ -189,7 +189,7 @@ export function useOrganizationInvitationColumns(options: UseOrganizationInvitat
             emptyValue: "",
           });
           return (
-            <span className={formatted ? "" : "text-muted-foreground"}>{formatted || "-"}</span>
+            <span className={formatted ? "" : "text-label-secondary"}>{formatted || "-"}</span>
           );
         },
       },
@@ -200,7 +200,7 @@ export function useOrganizationInvitationColumns(options: UseOrganizationInvitat
         cell: ({ row }) => {
           const formatted = dateTime.formatDate(row.original.createdAt, { emptyValue: "" });
           return (
-            <span className={formatted ? "" : "text-muted-foreground"}>{formatted || "-"}</span>
+            <span className={formatted ? "" : "text-label-secondary"}>{formatted || "-"}</span>
           );
         },
       },
@@ -253,7 +253,7 @@ export function useOrganizationInvitationColumns(options: UseOrganizationInvitat
           const formatted = dateTime.formatDate(row.original.createdAt, { emptyValue: "" });
           const datetime = formatted || "-";
           return (
-            <span className={formatted ? "" : "text-muted-foreground"}>
+            <span className={formatted ? "" : "text-label-secondary"}>
               {t("team:TEAM_INVITATIONS_SENT_AT", { datetime })}
             </span>
           );
@@ -266,7 +266,7 @@ export function useOrganizationInvitationColumns(options: UseOrganizationInvitat
         cell: ({ row }) => {
           const formatted = dateTime.formatDate(row.original.expiresAt, { emptyValue: "" });
           return (
-            <span className={formatted ? "" : "text-muted-foreground"}>
+            <span className={formatted ? "" : "text-label-secondary"}>
               {formatted || t("team:TEAM_INVITATIONS_NEVER_EXPIRES")}
             </span>
           );

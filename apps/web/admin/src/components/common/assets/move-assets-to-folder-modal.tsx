@@ -81,10 +81,10 @@ export function MoveAssetsToFolderModal(props: MoveAssetsToFolderModalProps) {
     <AlertDialog open={props.open} onOpenChange={props.onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle className="font-bold! text-xl">
+          <AlertDialogTitle className="text-title2 font-bold!">
             {t("assets:ASSET_BULK_MOVE_TITLE", { count: props.assetCount })}
           </AlertDialogTitle>
-          <AlertDialogDescription className="text-base">
+          <AlertDialogDescription className="text-body">
             {t("assets:ASSET_BULK_MOVE_DESC")}
           </AlertDialogDescription>
         </AlertDialogHeader>
@@ -93,7 +93,7 @@ export function MoveAssetsToFolderModal(props: MoveAssetsToFolderModalProps) {
           <label className="font-semibold text-foreground">
             {t("assets:ASSET_BULK_MOVE_FIELD_TARGET")}
           </label>
-          <div className="text-muted-foreground">
+          <div className="text-label-secondary">
             {t("assets:ASSET_BULK_MOVE_FIELD_TARGET_HELP")}
           </div>
           <Select

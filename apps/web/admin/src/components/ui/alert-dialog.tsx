@@ -90,7 +90,7 @@ type AlertDialogTitleProps = AlertDialogTitlePrimitiveProps;
 
 function AlertDialogTitle({ className, ...props }: AlertDialogTitleProps) {
   return (
-    <AlertDialogTitlePrimitive className={cn("text-lg font-semibold", className)} {...props} />
+    <AlertDialogTitlePrimitive className={cn("text-title3 font-semibold", className)} {...props} />
   );
 }
 
@@ -99,7 +99,7 @@ type AlertDialogDescriptionProps = AlertDialogDescriptionPrimitiveProps;
 function AlertDialogDescription({ className, ...props }: AlertDialogDescriptionProps) {
   return (
     <AlertDialogDescriptionPrimitive
-      className={cn("text-muted-foreground text-sm", className)}
+      className={cn("text-label-secondary text-footnote", className)}
       {...props}
     />
   );

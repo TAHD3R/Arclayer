@@ -155,7 +155,7 @@ export function OrganizationTeamRolesPage() {
           value={search}
           onChange={(event) => setSearch(event.target.value)}
           placeholder={t("team:TEAM_ROLES_SEARCH_PLACEHOLDER")}
-          prefix={<Search className="h-4 w-4 text-muted-foreground" />}
+          prefix={<Search className="h-4 w-4 text-label-secondary" />}
           allowClear
         />
 

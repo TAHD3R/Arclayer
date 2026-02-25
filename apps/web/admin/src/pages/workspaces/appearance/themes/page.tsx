@@ -168,8 +168,8 @@ function ThemeCard({ theme, onDelete, t }: ThemeCardProps) {
     <div className="rounded-lg border bg-card p-4 flex flex-col gap-3">
       {/* Preview area */}
       <div className="flex h-28 items-center justify-center rounded-md bg-muted">
-        <ImageIcon className="size-8 text-muted-foreground" />
-        <span className="ml-2 text-xs text-muted-foreground">
+        <ImageIcon className="size-8 text-label-secondary" />
+        <span className="ml-2 text-caption text-label-secondary">
           {t("appearance:THEME_CENTER_NO_PREVIEW")}
         </span>
       </div>
@@ -178,7 +178,7 @@ function ThemeCard({ theme, onDelete, t }: ThemeCardProps) {
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <p className="truncate font-semibold">{displayName}</p>
-          <p className="truncate text-xs text-muted-foreground">{theme.themeId}</p>
+          <p className="truncate text-caption text-label-secondary">{theme.themeId}</p>
         </div>
 
         <DropdownMenu>
@@ -203,7 +203,7 @@ function ThemeCard({ theme, onDelete, t }: ThemeCardProps) {
 
       {/* Description */}
       {theme.description ? (
-        <p className="line-clamp-2 text-sm text-muted-foreground">{theme.description}</p>
+        <p className="line-clamp-2 text-footnote text-label-secondary">{theme.description}</p>
       ) : null}
     </div>
   );
@@ -237,7 +237,7 @@ function ImportThemeDialog({
         </DialogHeader>
 
         <div className="flex flex-col gap-2 py-2">
-          <label className="text-sm font-medium">
+          <label className="text-footnote font-medium">
             {t("appearance:THEME_CENTER_IMPORT_ASSET_ID")}
           </label>
           <Input

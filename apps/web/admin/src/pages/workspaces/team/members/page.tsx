@@ -249,7 +249,7 @@ export function TeamMembersView() {
               <div className="min-w-0">
                 <div className="font-medium truncate">{primary}</div>
                 {secondary ? (
-                  <div className="text-muted-foreground text-xs truncate">{secondary}</div>
+                  <div className="text-label-secondary text-caption truncate">{secondary}</div>
                 ) : null}
               </div>
 
@@ -274,7 +274,7 @@ export function TeamMembersView() {
         header: () => <span>{t("team:TEAM_TABLE_COL_ROLES")}</span>,
         cell: ({ row }) => {
           const codes = row.original.roleCodes ?? [];
-          if (!codes.length) return <span className="text-muted-foreground">-</span>;
+          if (!codes.length) return <span className="text-label-secondary">-</span>;
           return (
             <div className="flex flex-wrap gap-1">
               {codes.slice(0, 3).map((code) => (
@@ -283,7 +283,7 @@ export function TeamMembersView() {
                 </Tag>
               ))}
               {codes.length > 3 ? (
-                <span className="text-muted-foreground text-xs">
+                <span className="text-label-secondary text-caption">
                   {t("team:TEAM_MORE_ROLES", { count: codes.length - 3 })}
                 </span>
               ) : null}
@@ -334,7 +334,7 @@ export function TeamMembersView() {
         cell: ({ row }) => {
           const formatted = dateTime.formatDateTimeOrNull(row.original.lastLoginAt);
           return (
-            <span className={formatted ? "" : "text-muted-foreground"}>
+            <span className={formatted ? "" : "text-label-secondary"}>
               {formatted || t("team:TEAM_LAST_LOGIN_NEVER")}
             </span>
           );
@@ -401,7 +401,7 @@ export function TeamMembersView() {
               onChange={(e) => tableHook.setSearchInput(e.target.value)}
               placeholder={t("team:TEAM_SEARCH_PLACEHOLDER")}
               allowClear
-              prefix={<Search className="size-4 text-muted-foreground" />}
+              prefix={<Search className="size-4 text-label-secondary" />}
               style={{ width: 360, maxWidth: "100%" }}
             />
 
@@ -472,7 +472,7 @@ export function TeamMembersView() {
 
         {pageData ? (
           <div className="flex flex-wrap items-center justify-between gap-3 pt-4">
-            <div className="text-muted-foreground text-sm">
+            <div className="text-label-secondary text-footnote">
               {t("team:TEAM_PAGINATION_TOTAL", {
                 total: pageData.total,
                 from: pageData.total ? (pageData.page - 1) * pageData.size + 1 : 0,

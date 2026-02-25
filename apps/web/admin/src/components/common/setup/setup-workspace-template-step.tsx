@@ -108,7 +108,7 @@ export function SetupWorkspaceTemplateStep(props: {
                   <span
                     className={clsx(
                       "text-callout",
-                      selected ? "text-primary/85" : "text-(--color-muted-foreground)",
+                      selected ? "text-primary/85" : "text-label-secondary",
                     )}
                   >
                     {template.description}

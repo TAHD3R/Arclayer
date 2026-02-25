@@ -178,11 +178,11 @@ export function LazyAssetImage(props: {
 
       {showError ? (
         <div className="absolute inset-0 grid place-items-center bg-muted/25">
-          <div className="flex flex-col items-center gap-2 text-muted-foreground">
+          <div className="flex flex-col items-center gap-2 text-label-secondary">
             <div className="rounded-full bg-background/70 p-3 shadow-sm">
               <ImageOff className="size-5" />
             </div>
-            <div className="text-xs">
+            <div className="text-caption">
               {props.errorText || t("assets:ASSET_PREVIEW_LOAD_FAILED")}
             </div>
             {showErrorOverlay ? (
@@ -396,7 +396,7 @@ export const AssetMasonryTile = memo(
               >
                 {initialsFromName(uploaderLabel)}
               </Avatar>
-              <span className="max-w-36 truncate text-xs font-medium">{uploaderLabel}</span>
+              <span className="max-w-36 truncate text-caption font-medium">{uploaderLabel}</span>
             </div>
           </div>
 
@@ -420,7 +420,7 @@ export const AssetMasonryTile = memo(
             />
           ) : (
             <div className="absolute inset-0 grid place-items-center bg-muted/20">
-              <div className="flex flex-col items-center gap-3 text-muted-foreground">
+              <div className="flex flex-col items-center gap-3 text-label-secondary">
                 <div className="opacity-95">{fallbackIcon}</div>
                 <div className="text-caption font-medium uppercase opacity-80">
                   {(props.asset.ext || props.asset.mimeType || t("assets:ASSET_FILE_GENERIC"))
@@ -461,13 +461,13 @@ export const AssetMasonryTile = memo(
             {!previewFailed ? (
               <div className="absolute left-3 right-3 bottom-3">
                 <motion.div
-                  className={cn("font-bold text-lg text-white", "truncate py-2 pr-8")}
+                  className={cn("text-title3 font-bold text-white", "truncate py-2 pr-8")}
                   title={props.asset.name}
                 >
                   {props.asset.name}
                 </motion.div>
                 {props.asset.description ? (
-                  <div className={cn("mt-1 text-sm text-white/85", "line-clamp-2")}>
+                  <div className={cn("mt-1 text-footnote text-white/85", "line-clamp-2")}>
                     {props.asset.description}
                   </div>
                 ) : null}

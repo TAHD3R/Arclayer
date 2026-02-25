@@ -65,7 +65,7 @@ export function CreateRoleDialog(props: CreateRoleDialogProps) {
           <label className="font-semibold text-foreground">
             {t("team:TEAM_ROLES_FIELD_TEMPLATE")}
           </label>
-          <div className="text-muted-foreground">{t("team:TEAM_ROLES_FIELD_TEMPLATE_HELP")}</div>
+          <div className="text-label-secondary">{t("team:TEAM_ROLES_FIELD_TEMPLATE_HELP")}</div>
           <Select
             value={templateRoleCode}
             onChange={(next) => onTemplateRoleCodeChange(String(next))}
@@ -78,7 +78,7 @@ export function CreateRoleDialog(props: CreateRoleDialogProps) {
 
         <div className="grid gap-1.5">
           <label className="font-semibold text-foreground">{t("team:TEAM_ROLES_FIELD_NAME")}</label>
-          <div className="text-muted-foreground">{t("team:TEAM_ROLES_FIELD_NAME_HELP")}</div>
+          <div className="text-label-secondary">{t("team:TEAM_ROLES_FIELD_NAME_HELP")}</div>
           <Input
             value={roleName}
             onChange={(event) => onRoleNameChange(event.target.value)}
@@ -88,7 +88,7 @@ export function CreateRoleDialog(props: CreateRoleDialogProps) {
 
         <div className="grid gap-1.5">
           <label className="font-semibold text-foreground">{t("team:TEAM_ROLES_FIELD_DESC")}</label>
-          <div className="text-muted-foreground">{t("team:TEAM_ROLES_FIELD_DESC_HELP")}</div>
+          <div className="text-label-secondary">{t("team:TEAM_ROLES_FIELD_DESC_HELP")}</div>
           <Input.TextArea
             value={roleDescription}
             onChange={(event) => onRoleDescriptionChange(event.target.value)}

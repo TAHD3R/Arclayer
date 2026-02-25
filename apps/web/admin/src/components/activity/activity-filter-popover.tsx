@@ -127,8 +127,8 @@ export function ActivityFilterPopover(props: {
         value: name,
         label: (
           <div className="min-w-0">
-            <div className="text-sm font-medium truncate">{title}</div>
-            <div className="text-xs text-muted-foreground font-mono truncate">{name}</div>
+            <div className="text-footnote font-medium truncate">{title}</div>
+            <div className="text-caption text-label-secondary font-mono truncate">{name}</div>
           </div>
         ),
       };
@@ -152,7 +152,7 @@ export function ActivityFilterPopover(props: {
         <div className="font-bold">{t("activity:ACTIVITY_FILTER_TITLE")}</div>
         <div className="mt-3 grid grid-cols-1 gap-3">
           <div className="grid grid-cols-1 gap-1.5">
-            <div className="text-sm text-muted-foreground">
+            <div className="text-footnote text-label-secondary">
               {t("activity:ACTIVITY_FIELD_OCCURRED_AT")}
             </div>
             <DatePicker.RangePicker
@@ -175,7 +175,7 @@ export function ActivityFilterPopover(props: {
           </div>
 
           <div className="grid grid-cols-1 gap-1.5">
-            <div className="text-sm text-muted-foreground">
+            <div className="text-footnote text-label-secondary">
               {t("activity:ACTIVITY_FILTER_EVENT_NAME")}
             </div>
 
@@ -200,7 +200,7 @@ export function ActivityFilterPopover(props: {
               <AntInput
                 allowClear
                 onFocus={() => setEventNameOpen(true)}
-                prefix={<Search className="size-4 text-muted-foreground" />}
+                prefix={<Search className="size-4 text-label-secondary" />}
                 placeholder={t("activity:ACTIVITY_FILTER_EVENT_NAME_PLACEHOLDER")}
                 aria-label={t("activity:ACTIVITY_FILTER_EVENT_NAME")}
               />
@@ -209,7 +209,7 @@ export function ActivityFilterPopover(props: {
 
           {props.scope === "org" ? (
             <div className="grid grid-cols-1 gap-1.5">
-              <div className="text-sm text-muted-foreground">
+              <div className="text-footnote text-label-secondary">
                 {t("activity:ACTIVITY_FILTER_WORKSPACE")}
               </div>
 
@@ -264,7 +264,7 @@ export function ActivityFilterPopover(props: {
           ) : null}
 
           <div className="grid grid-cols-1 gap-1.5">
-            <div className="text-sm text-muted-foreground">
+            <div className="text-footnote text-label-secondary">
               {t("activity:ACTIVITY_FILTER_ACTOR")}
             </div>
             <DebounceSelect
@@ -301,7 +301,7 @@ export function ActivityFilterPopover(props: {
           </div>
 
           <div className="grid grid-cols-1 gap-1.5">
-            <div className="text-sm text-muted-foreground">
+            <div className="text-footnote text-label-secondary">
               {t("activity:ACTIVITY_FILTER_SUBJECT")}
             </div>
             <DebounceSelect

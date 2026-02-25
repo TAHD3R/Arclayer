@@ -86,7 +86,7 @@ export function useOrganizationWorkspacesColumns(
               </Avatar>
               <div className="min-w-0 flex-1">
                 <span className="truncate text-headline font-semibold">{item.name}</span>
-                <div className="truncate text-muted-foreground">
+                <div className="truncate text-label-secondary">
                   {item.description || t("common:ORG_WORKSPACES_DESCRIPTION_FALLBACK")}
                 </div>
               </div>

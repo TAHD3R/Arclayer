@@ -233,7 +233,7 @@ export function DragSelectionOverlay(props: { count: number }) {
         ))}
       </div>
       {props.count > 1 ? (
-        <div className="absolute right-2 top-2 border border-border bg-card px-2 py-1 text-xs font-semibold">
+        <div className="absolute right-2 top-2 border border-border bg-card px-2 py-1 text-caption font-semibold">
           {props.count}
         </div>
       ) : null}

@@ -160,7 +160,7 @@ export function OrganizationMembersDialogs({
           <label className="font-semibold text-foreground">
             {t("team:TEAM_INVITE_FIELD_ROLE")}
           </label>
-          <div className="text-muted-foreground">{t("team:TEAM_ROLE_CHANGE_FIELD_ROLE_HELP")}</div>
+          <div className="text-label-secondary">{t("team:TEAM_ROLE_CHANGE_FIELD_ROLE_HELP")}</div>
           <Select
             value={roleDraft}
             onChange={(next) => onRoleDraftChange(String(next))}

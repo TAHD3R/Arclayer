@@ -68,10 +68,10 @@ export const FileUpload = ({ onChange }: { onChange?: (files: File[]) => void })
           <GridPattern />
         </div>
         <div className="flex flex-col items-center justify-center">
-          <p className="relative z-20 font-sans font-bold text-neutral-700 dark:text-neutral-300 text-base">
+          <p className="relative z-20 font-sans font-bold text-neutral-700 dark:text-neutral-300 text-body">
             Upload file
           </p>
-          <p className="relative z-20 font-sans font-normal text-neutral-400 dark:text-neutral-400 text-base mt-2">
+          <p className="relative z-20 font-sans font-normal text-neutral-400 dark:text-neutral-400 text-body mt-2">
             Drag or drop your files here or click to upload
           </p>
           <div className="relative w-full mt-10 max-w-xl mx-auto">
@@ -90,7 +90,7 @@ export const FileUpload = ({ onChange }: { onChange?: (files: File[]) => void })
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       layout
-                      className="text-base text-neutral-700 dark:text-neutral-300 truncate max-w-xs"
+                      className="text-body text-neutral-700 dark:text-neutral-300 truncate max-w-xs"
                     >
                       {file.name}
                     </motion.p>
@@ -98,13 +98,13 @@ export const FileUpload = ({ onChange }: { onChange?: (files: File[]) => void })
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       layout
-                      className="rounded-lg px-2 py-1 w-fit shrink-0 text-sm text-neutral-600 dark:bg-neutral-800 dark:text-white shadow-input"
+                      className="rounded-lg px-2 py-1 w-fit shrink-0 text-footnote text-neutral-600 dark:bg-neutral-800 dark:text-white shadow-input"
                     >
                       {(file.size / (1024 * 1024)).toFixed(2)} MB
                     </motion.p>
                   </div>
 
-                  <div className="flex text-sm md:flex-row flex-col items-start md:items-center w-full mt-2 justify-between text-neutral-600 dark:text-neutral-400">
+                  <div className="flex text-footnote md:flex-row flex-col items-start md:items-center w-full mt-2 justify-between text-neutral-600 dark:text-neutral-400">
                     <motion.p
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}

@@ -24,12 +24,12 @@ function FieldInput({
 
   if (field.kind === "boolean") {
     return (
-      <label className="flex items-center gap-2 text-xs">
+      <label className="flex items-center gap-2 text-caption">
         <Checkbox
           checked={Boolean(value)}
           onChange={(e) => onChange(field.key, e.target.checked)}
         />
-        <span className="text-muted-foreground">{label}</span>
+        <span className="text-label-secondary">{label}</span>
       </label>
     );
   }
@@ -41,8 +41,8 @@ function FieldInput({
     }));
 
     return (
-      <label className="flex items-center gap-2 text-xs">
-        <span className="w-24 shrink-0 text-muted-foreground">{label}</span>
+      <label className="flex items-center gap-2 text-caption">
+        <span className="w-24 shrink-0 text-label-secondary">{label}</span>
         <Select
           size="small"
           className="flex-1"
@@ -57,8 +57,8 @@ function FieldInput({
 
   if (field.kind === "number") {
     return (
-      <label className="flex items-center gap-2 text-xs">
-        <span className="w-24 shrink-0 text-muted-foreground">{label}</span>
+      <label className="flex items-center gap-2 text-caption">
+        <span className="w-24 shrink-0 text-label-secondary">{label}</span>
         <InputNumber
           size="small"
           className="flex-1"
@@ -70,8 +70,8 @@ function FieldInput({
   }
 
   return (
-    <label className="flex items-center gap-2 text-xs">
-      <span className="w-24 shrink-0 text-muted-foreground">{label}</span>
+    <label className="flex items-center gap-2 text-caption">
+      <span className="w-24 shrink-0 text-label-secondary">{label}</span>
       <Input
         size="small"
         type={field.kind === "color" ? "color" : "text"}
@@ -94,7 +94,7 @@ export function InspectorComponent({
 
   if (!manifest) {
     return (
-      <p className="text-xs text-muted-foreground">
+      <p className="text-caption text-label-secondary">
         {t("content_pages:EDITOR_V2_INSPECTOR_NO_MANIFEST", {
           defaultValue: "No manifest for {{type}}",
           type: blockType,
@@ -109,7 +109,7 @@ export function InspectorComponent({
 
   return (
     <div className="flex flex-col gap-2">
-      <p className="text-xs font-medium text-muted-foreground">
+      <p className="text-caption font-medium text-label-secondary">
         {resolveLocalizedValue(manifest.label, VIEWER_CTX) ?? blockType}
       </p>
       {manifest.attributes.map((field) => (

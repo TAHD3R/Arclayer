@@ -45,7 +45,7 @@ function PanelContent({ menuId }: { menuId: ActivityBarMenuId }) {
     case "plugins":
       return (
         <div className="flex flex-1 items-center justify-center p-4">
-          <span className="text-xs text-muted-foreground">Plugins coming soon</span>
+          <span className="text-caption text-label-secondary">Plugins coming soon</span>
         </div>
       );
   }
@@ -73,7 +73,7 @@ export function SidebarPanel() {
         >
           {/* Header */}
           <div className="flex h-10 shrink-0 items-center justify-between border-b px-3">
-            <span className="text-xs font-medium">
+            <span className="text-caption font-medium">
               {titleInfo
                 ? t(`content_pages:${titleInfo.key}`, { defaultValue: titleInfo.defaultValue })
                 : ""}

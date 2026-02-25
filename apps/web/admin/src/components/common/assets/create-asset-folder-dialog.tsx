@@ -61,7 +61,7 @@ export function CreateAssetFolderDialog(props: CreateAssetFolderDialogProps) {
       <div className="mt-4 grid gap-4">
         <div className="grid gap-1.5">
           <label className="font-semibold text-foreground">{t("assets:ASSET_FOLDER_NAME")}</label>
-          <div className="text-muted-foreground">{t("assets:ASSET_FOLDER_FIELD_NAME_HELP")}</div>
+          <div className="text-label-secondary">{t("assets:ASSET_FOLDER_FIELD_NAME_HELP")}</div>
           <Input
             autoFocus
             value={name}
@@ -82,7 +82,7 @@ export function CreateAssetFolderDialog(props: CreateAssetFolderDialogProps) {
           <label className="font-semibold text-foreground">
             {t("assets:ASSET_FOLDER_DESCRIPTION")}
           </label>
-          <div className="text-muted-foreground">
+          <div className="text-label-secondary">
             {t("assets:ASSET_FOLDER_FIELD_DESCRIPTION_HELP")}
           </div>
           <Input.TextArea

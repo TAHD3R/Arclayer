@@ -19,7 +19,7 @@ export function WorkspaceAssociationPopover({
   const { t } = useTranslation(["common", "team"]);
 
   if (!workspaces.length) {
-    return <span className="text-sm text-muted-foreground">{t("common:NA")}</span>;
+    return <span className="text-footnote text-label-secondary">{t("common:NA")}</span>;
   }
 
   return (
@@ -37,7 +37,7 @@ export function WorkspaceAssociationPopover({
         <div className="space-y-3">
           <div className="flex flex-col gap-2">
             <div className="font-semibold">{t("common:ORG_MEMBERS_WORKSPACE_POPOVER_TITLE")}</div>
-            <div className="text-muted-foreground">
+            <div className="text-label-secondary">
               {t("common:ORG_MEMBERS_WORKSPACE_POPOVER_DESC")}
             </div>
           </div>

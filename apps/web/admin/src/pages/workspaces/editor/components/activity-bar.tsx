@@ -75,7 +75,7 @@ function BarButton({
         className={`flex size-10 items-center justify-center rounded-md transition-colors ${
           isActive
             ? "bg-accent text-accent-foreground"
-            : "text-muted-foreground hover:bg-muted hover:text-foreground"
+            : "text-label-secondary hover:bg-muted hover:text-foreground"
         }`}
         onClick={onClick}
         aria-label={t(`content_pages:${entry.labelKey}`, { defaultValue: entry.defaultValue })}

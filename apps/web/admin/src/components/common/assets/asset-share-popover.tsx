@@ -149,7 +149,7 @@ export function AssetSharePopover(props: {
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="font-medium">{t("assets:ASSET_SHARE_POPOVER_TITLE")}</div>
-              <div className="mt-1 text-sm text-muted-foreground">
+              <div className="mt-1 text-footnote text-label-secondary">
                 {t("assets:ASSET_SHARE_POPOVER_DESC")}
               </div>
             </div>
@@ -171,7 +171,7 @@ export function AssetSharePopover(props: {
 
             {!permanent ? (
               <div className="mt-3 flex items-center gap-2">
-                <div className="text-sm text-muted-foreground shrink-0">
+                <div className="text-footnote text-label-secondary shrink-0">
                   {t("assets:ASSET_SHARE_EXPIRES_IN")}
                 </div>
                 <InputNumber
@@ -195,7 +195,7 @@ export function AssetSharePopover(props: {
                 />
               </div>
             ) : (
-              <div className="mt-2 text-sm text-muted-foreground">
+              <div className="mt-2 text-footnote text-label-secondary">
                 {t("assets:ASSET_SHARE_PERMANENT_DESC")}
               </div>
             )}
@@ -206,9 +206,11 @@ export function AssetSharePopover(props: {
           <div className="font-medium">{t("assets:ASSET_SHARE_LINKS_TITLE")}</div>
           <div className="mt-2">
             {linksQuery.isLoading ? (
-              <div className="text-sm text-muted-foreground">{t("assets:ASSET_SHARE_LOADING")}</div>
+              <div className="text-footnote text-label-secondary">
+                {t("assets:ASSET_SHARE_LOADING")}
+              </div>
             ) : rows.length === 0 ? (
-              <div className="text-sm text-muted-foreground">
+              <div className="text-footnote text-label-secondary">
                 {t("assets:ASSET_SHARE_LINKS_EMPTY")}
               </div>
             ) : (
@@ -266,11 +268,11 @@ export function AssetSharePopover(props: {
                           readOnly
                           value={url}
                           className="w-full"
-                          prefix={<Link2 className="size-4 text-muted-foreground" />}
+                          prefix={<Link2 className="size-4 text-label-secondary" />}
                         />
                       </div>
 
-                      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-caption text-label-secondary">
                         <div>
                           {t("assets:ASSET_SHARE_CREATED_AT")}:{" "}
                           {dateTime.formatDateTime(link.createdAt, { emptyValue: "-" })}

@@ -371,7 +371,7 @@ function FloatingPanelTitle({
       </motion.div>
       {description ? (
         <div
-          className={cn("mt-1 text-caption text-muted-foreground", descriptionClassName)}
+          className={cn("mt-1 text-caption text-label-secondary", descriptionClassName)}
           id={`floating-panel-desc-${uniqueId}`}
         >
           {description}
@@ -416,7 +416,7 @@ export function FloatingPanelLabel({ children, htmlFor, className }: FloatingPan
     <motion.label
       htmlFor={htmlFor}
       style={{ opacity: note ? 0 : 1 }}
-      className={cn("block mb-2 text-sm font-medium", className)}
+      className={cn("block mb-2 text-footnote font-medium", className)}
     >
       {children}
     </motion.label>
@@ -435,7 +435,7 @@ export function FloatingPanelTextarea({ className, id }: FloatingPanelTextareaPr
     <textarea
       id={id}
       className={cn(
-        "h-full w-full resize-none rounded-md bg-transparent px-4 py-3 text-sm outline-none",
+        "h-full w-full resize-none rounded-md bg-transparent px-4 py-3 text-footnote outline-none",
         className,
       )}
       autoFocus
@@ -528,7 +528,7 @@ export function FloatingPanelSubmitButton({ className }: FloatingPanelSubmitButt
   return (
     <motion.button
       className={cn(
-        "relative ml-1 flex h-8 shrink-0 scale-100 select-none appearance-none items-center justify-center rounded-lg border border-zinc-950/10 bg-transparent px-2 text-sm text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-800 focus-visible:ring-2 active:scale-[0.98] dark:border-zinc-50/10 dark:text-zinc-50 dark:hover:bg-zinc-800",
+        "relative ml-1 flex h-8 shrink-0 scale-100 select-none appearance-none items-center justify-center rounded-lg border border-zinc-950/10 bg-transparent px-2 text-footnote text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-800 focus-visible:ring-2 active:scale-[0.98] dark:border-zinc-50/10 dark:text-zinc-50 dark:hover:bg-zinc-800",
         className,
       )}
       type="submit"
@@ -551,7 +551,7 @@ export function FloatingPanelButton({ children, onClick, className }: FloatingPa
   return (
     <motion.button
       className={cn(
-        "flex w-full items-center gap-2 rounded-none px-4 py-2 text-left text-sm",
+        "flex w-full items-center gap-2 rounded-none px-4 py-2 text-left text-footnote",
         "hover:bg-muted",
         className,
       )}

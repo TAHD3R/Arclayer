@@ -27,7 +27,7 @@ export function EditorFooter() {
   const breadcrumb = buildBreadcrumb(layerTree, selectedBlockId);
 
   return (
-    <footer className="flex h-7 shrink-0 items-center gap-4 border-t bg-card px-3 text-xs text-muted-foreground">
+    <footer className="flex h-7 shrink-0 items-center gap-4 border-t bg-card px-3 text-caption text-label-secondary">
       {/* Left: Bridge status */}
       <div className="flex items-center gap-1.5">
         <span className={`inline-block size-2 rounded-full ${dotColor}`} />
@@ -41,7 +41,7 @@ export function EditorFooter() {
         <div className="flex items-center gap-1">
           {breadcrumb.map((segment, i) => (
             <span key={segment.id}>
-              {i > 0 ? <span className="mx-0.5 text-muted-foreground/50">/</span> : null}
+              {i > 0 ? <span className="mx-0.5 text-label-secondary/50">/</span> : null}
               <span>{segment.label || segment.type}</span>
             </span>
           ))}

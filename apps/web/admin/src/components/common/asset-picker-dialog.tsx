@@ -283,7 +283,7 @@ export function AssetPickerDialog(props: {
                 <label className="font-semibold text-foreground">
                   {t("assets:ASSET_PICKER_FIELD_SEARCH")}
                 </label>
-                <div className="text-muted-foreground">
+                <div className="text-label-secondary">
                   {t("assets:ASSET_PICKER_FIELD_SEARCH_HELP")}
                 </div>
                 <Input
@@ -294,7 +294,7 @@ export function AssetPickerDialog(props: {
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
                   placeholder={t("settings:SETTINGS_ASSET_PICKER_SEARCH_PLACEHOLDER")}
-                  prefix={<Search size={16} className="text-muted-foreground" />}
+                  prefix={<Search size={16} className="text-label-secondary" />}
                 />
               </div>
 
@@ -331,7 +331,7 @@ export function AssetPickerDialog(props: {
           </div>
 
           {/* Breadcrumbs */}
-          <div className="px-6 flex items-center gap-2 text-sm">
+          <div className="px-6 flex items-center gap-2 text-footnote">
             <Button
               type="text"
               onClick={() => {
@@ -343,7 +343,7 @@ export function AssetPickerDialog(props: {
             </Button>
             {folderPath.map((f) => (
               <div key={String(f.id)} className="flex items-center gap-2">
-                <span className="text-muted-foreground">/</span>
+                <span className="text-label-secondary">/</span>
                 <Button
                   type="text"
                   size="small"
@@ -376,7 +376,7 @@ export function AssetPickerDialog(props: {
                 <LoaderOne />
               </div>
             ) : masonryEntries.length === 0 ? (
-              <div className="py-10 text-sm text-muted-foreground">
+              <div className="py-10 text-footnote text-label-secondary">
                 {t("assets:ASSET_EMPTY_SEARCH_DESC")}
               </div>
             ) : (
@@ -474,7 +474,7 @@ export function AssetPickerDialog(props: {
 
           {/* Pagination */}
           <div className="px-6 py-3 border-t flex items-center justify-between gap-3">
-            <div className="text-xs text-muted-foreground">
+            <div className="text-caption text-label-secondary">
               {isFetching ? t("common:LOADING") : null}
             </div>
             <Pagination

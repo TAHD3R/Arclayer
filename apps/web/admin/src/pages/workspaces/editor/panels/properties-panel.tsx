@@ -73,7 +73,7 @@ export function PropertiesPanel() {
       {propertiesPanelOpen && (
         <aside className="flex h-full w-64 shrink-0 flex-col border-l bg-card">
           <div className="flex h-10 items-center border-b px-3">
-            <span className="text-xs font-medium">
+            <span className="text-caption font-medium">
               {activeTab
                 ? t(`content_pages:${activeTab.labelKey}`, { defaultValue: activeTab.defaultValue })
                 : t("content_pages:EDITOR_V2_RIGHT_TITLE", { defaultValue: "Inspector" })}
@@ -83,7 +83,7 @@ export function PropertiesPanel() {
             {selectedBlockId ? (
               <TabContent tab={tab} inspector={inspectorData} />
             ) : (
-              <p className="text-xs text-muted-foreground">
+              <p className="text-caption text-label-secondary">
                 {t("content_pages:EDITOR_V2_INSPECTOR_EMPTY", {
                   defaultValue: "Select an element to inspect its properties.",
                 })}
@@ -108,7 +108,7 @@ export function PropertiesPanel() {
                 className={`flex size-8 items-center justify-center rounded-md transition-colors ${
                   isActive
                     ? "bg-accent text-primary"
-                    : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                    : "text-label-secondary hover:bg-accent hover:text-foreground"
                 }`}
                 onClick={() => {
                   if (tab === id && propertiesPanelOpen) {

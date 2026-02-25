@@ -129,7 +129,7 @@ export function WorkspaceEditorIframe(props: WorkspaceEditorIframeProps) {
           <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/70">
             <Space align="center">
               <Spin size="small" />
-              <span className="text-sm text-muted-foreground">
+              <span className="text-footnote text-label-secondary">
                 {t("content_pages:EDITOR_SHELL_LOADING_PREVIEW")}
               </span>
             </Space>
@@ -170,7 +170,7 @@ export function WorkspaceEditorIframe(props: WorkspaceEditorIframeProps) {
             </div>
           </div>
         ) : (
-          <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+          <div className="flex h-full items-center justify-center text-footnote text-label-secondary">
             {t("content_pages:EDITOR_SHELL_IFRAME_EMPTY")}
           </div>
         )}

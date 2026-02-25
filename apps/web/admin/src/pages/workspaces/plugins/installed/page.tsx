@@ -357,7 +357,7 @@ export function PluginsInstalledView({
                         <div className="min-w-0 flex-1">
                           <div className="font-medium truncate">{data.label}</div>
                           {data.description ? (
-                            <div className="text-sm text-muted-foreground truncate">
+                            <div className="text-footnote text-label-secondary truncate">
                               {data.description}
                             </div>
                           ) : null}
@@ -513,11 +513,11 @@ export function PluginsInstalledView({
                   }
                   description={
                     p.description ? (
-                      <div className="text-sm text-muted-foreground line-clamp-2">
+                      <div className="text-footnote text-label-secondary line-clamp-2">
                         {p.description}
                       </div>
                     ) : (
-                      <div className="text-sm text-muted-foreground">{t("common:NA")}</div>
+                      <div className="text-footnote text-label-secondary">{t("common:NA")}</div>
                     )
                   }
                 />

@@ -50,7 +50,7 @@ export function ComponentsPanel() {
       <div className="px-2 py-2">
         <Input
           size="small"
-          prefix={<Search className="size-3.5 text-muted-foreground" />}
+          prefix={<Search className="size-3.5 text-label-secondary" />}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder={t("content_pages:EDITOR_V2_ELEMENTS_SEARCH", {
@@ -64,7 +64,7 @@ export function ComponentsPanel() {
       <div className="flex-1 overflow-auto px-2 pb-2">
         {[...grouped.entries()].map(([category, manifests]) => (
           <div key={category} className="mb-3">
-            <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-label-secondary">
               {CATEGORY_LABELS[category]}
             </div>
             <div className="grid grid-cols-2 gap-1">
@@ -72,9 +72,9 @@ export function ComponentsPanel() {
                 <button
                   key={m.type}
                   type="button"
-                  className="flex flex-col items-center gap-1 rounded-md border p-2 text-xs hover:bg-muted"
+                  className="flex flex-col items-center gap-1 rounded-md border p-2 text-caption hover:bg-muted"
                 >
-                  <span className="text-[10px] text-muted-foreground">{m.icon ?? m.type}</span>
+                  <span className="text-[10px] text-label-secondary">{m.icon ?? m.type}</span>
                   <span className="truncate">
                     {resolveLocalizedValue(m.label, VIEWER_CTX) ?? m.type}
                   </span>

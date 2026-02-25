@@ -405,7 +405,7 @@ export function ContentLibraryView() {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value as "all" | EntryStatus)}
-                className="h-8 rounded-md border border-border bg-background px-3 text-sm text-foreground w-full md:w-52"
+                className="h-8 rounded-md border border-border bg-background px-3 text-footnote text-foreground w-full md:w-52"
               >
                 <option value="all">{t("content_library:FILTER_STATUS_ALL")}</option>
                 <option value="draft">{t("content_library:FILTER_STATUS_DRAFT")}</option>
@@ -418,7 +418,7 @@ export function ContentLibraryView() {
                 <select
                   value={entryTypeFilter}
                   onChange={(e) => setEntryTypeFilter(e.target.value)}
-                  className="h-8 rounded-md border border-border bg-background px-3 text-sm text-foreground w-full md:w-52"
+                  className="h-8 rounded-md border border-border bg-background px-3 text-footnote text-foreground w-full md:w-52"
                 >
                   <option value="all">{t("content_library:FILTER_TYPE_ALL")}</option>
                   {entryTypeOptions.map((opt) => (
@@ -435,7 +435,7 @@ export function ContentLibraryView() {
                       key={mode}
                       type="button"
                       onClick={() => setEntriesView(mode)}
-                      className={`px-3 py-1 text-sm first:rounded-l-md last:rounded-r-md ${
+                      className={`px-3 py-1 text-footnote first:rounded-l-md last:rounded-r-md ${
                         entriesView === mode
                           ? "bg-foreground text-background"
                           : "bg-background text-foreground hover:bg-muted"
@@ -496,7 +496,7 @@ export function ContentLibraryView() {
 
             {/* Pagination */}
             <div className="flex flex-wrap items-center justify-between gap-3 pt-4">
-              <span className="text-sm text-muted-foreground">
+              <span className="text-footnote text-label-secondary">
                 {t("content_library:PAGINATION_TOTAL", { total: currentRows.length })}
               </span>
               <div className="flex items-center gap-2">
@@ -506,7 +506,7 @@ export function ContentLibraryView() {
                     setPageSize(Number(e.target.value));
                     setPageIndex(1);
                   }}
-                  className="h-8 rounded-md border border-border bg-background px-2 text-sm"
+                  className="h-8 rounded-md border border-border bg-background px-2 text-footnote"
                 >
                   {[10, 20, 50].map((s) => (
                     <option key={s} value={s}>
@@ -521,7 +521,7 @@ export function ContentLibraryView() {
                 >
                   &lsaquo;
                 </Button>
-                <span className="text-sm">
+                <span className="text-footnote">
                   {pageIndex} / {totalPages}
                 </span>
                 <Button
@@ -785,7 +785,7 @@ function EntriesTable(
   const { rows, t } = props;
   if (!rows.length)
     return (
-      <p className="py-8 text-center text-muted-foreground">{t("content_library:EMPTY_ENTRIES")}</p>
+      <p className="py-8 text-center text-label-secondary">{t("content_library:EMPTY_ENTRIES")}</p>
     );
   return (
     <UiTable>
@@ -832,7 +832,7 @@ function EntriesCards(
   const { rows, t } = props;
   if (!rows.length)
     return (
-      <p className="py-8 text-center text-muted-foreground">{t("content_library:EMPTY_ENTRIES")}</p>
+      <p className="py-8 text-center text-label-secondary">{t("content_library:EMPTY_ENTRIES")}</p>
     );
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -842,7 +842,7 @@ function EntriesCards(
             <span className="font-medium truncate">{item.slug}</span>
             <StatusTag status={item.status} t={t} />
           </div>
-          <div className="flex flex-col gap-1 text-sm text-muted-foreground">
+          <div className="flex flex-col gap-1 text-footnote text-label-secondary">
             <span>{item.entryTypeCode}</span>
             <span>
               {t("content_library:ENTRY_COL_REVISIONS")}: {item.draftRevision}/
@@ -885,7 +885,7 @@ function TypesTabContent({
 }) {
   if (!rows.length)
     return (
-      <p className="py-8 text-center text-muted-foreground">{t("content_library:EMPTY_TYPES")}</p>
+      <p className="py-8 text-center text-label-secondary">{t("content_library:EMPTY_TYPES")}</p>
     );
   return (
     <UiTable>
@@ -934,7 +934,7 @@ function PagesTabContent({
 }) {
   if (!rows.length)
     return (
-      <p className="py-8 text-center text-muted-foreground">{t("content_library:EMPTY_PAGES")}</p>
+      <p className="py-8 text-center text-label-secondary">{t("content_library:EMPTY_PAGES")}</p>
     );
   return (
     <UiTable>

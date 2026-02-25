@@ -97,7 +97,7 @@ export function AssetsViewMasonrySection(props: AssetsViewMasonrySectionProps) {
         assetsQuery.isError ? (
           <div className="space-y-1">
             <div>{t("assets:ASSET_LIST_LOAD_FAILED_DESC")}</div>
-            <div className="text-muted-foreground">{getErrorMessage(assetsQuery.error)}</div>
+            <div className="text-label-secondary">{getErrorMessage(assetsQuery.error)}</div>
           </div>
         ) : undefined
       }
@@ -137,7 +137,7 @@ export function AssetsViewMasonrySection(props: AssetsViewMasonrySectionProps) {
         onDragCancel={onDragCancel}
       >
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2 text-sm">
+          <div className="flex items-center gap-2 text-footnote">
             <FolderDroppableProvider droppableId={DND_ROOT_ID}>
               {({ setNodeRef, isOver }) => (
                 <DroppablePulse
@@ -168,7 +168,7 @@ export function AssetsViewMasonrySection(props: AssetsViewMasonrySectionProps) {
               const folderDroppableId = toFolderDndId(String(folder.id));
               return (
                 <div key={String(folder.id)} className="flex items-center gap-2">
-                  <span className="text-muted-foreground">/</span>
+                  <span className="text-label-secondary">/</span>
                   <FolderDroppableProvider droppableId={folderDroppableId}>
                     {({ setNodeRef, isOver }) => (
                       <DroppablePulse

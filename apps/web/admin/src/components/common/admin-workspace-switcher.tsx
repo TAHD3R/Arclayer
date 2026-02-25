@@ -130,7 +130,7 @@ function OrgSwitcherPanel(props: {
           placeholder={t("common:WORKSPACE_SWITCHER_ORG_SEARCH_PLACEHOLDER")}
           allowClear
           variant="borderless"
-          prefix={<Search className="size-4 text-muted-foreground" />}
+          prefix={<Search className="size-4 text-label-secondary" />}
         />
       </div>
 
@@ -145,7 +145,7 @@ function OrgSwitcherPanel(props: {
             className="py-4"
           />
         ) : empty ? (
-          <div className="px-4 py-8 text-center text-sm text-muted-foreground">
+          <div className="px-4 py-8 text-center text-footnote text-label-secondary">
             {keyword
               ? t("common:WORKSPACE_SWITCHER_ORG_NO_RESULTS_TITLE")
               : t("common:WORKSPACE_SWITCHER_ORG_EMPTY")}
@@ -169,7 +169,7 @@ function OrgSwitcherPanel(props: {
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                     current
                       ? "bg-accent text-accent-foreground"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                      : "text-label-secondary hover:bg-muted hover:text-foreground",
                   )}
                   onClick={() => {
                     closeFloatingPanel();
@@ -182,13 +182,13 @@ function OrgSwitcherPanel(props: {
                   <div className="min-w-0 flex-1">
                     <div
                       className={cn(
-                        "truncate text-sm font-medium",
+                        "truncate text-footnote font-medium",
                         current ? "text-accent-foreground" : "text-foreground",
                       )}
                     >
                       {org.name}
                     </div>
-                    <div className="truncate text-xs text-muted-foreground">
+                    <div className="truncate text-caption text-label-secondary">
                       {t("common:WORKSPACE_SWITCHER_ORG_MEMBERS_COUNT", {
                         count: org.memberCount,
                       })}
@@ -258,7 +258,7 @@ function WsSwitcherPanel(props: {
           placeholder={t("common:WORKSPACE_SWITCHER_WORKSPACE_SEARCH_PLACEHOLDER")}
           allowClear
           variant="borderless"
-          prefix={<Search className="size-4 text-muted-foreground" />}
+          prefix={<Search className="size-4 text-label-secondary" />}
         />
       </div>
 
@@ -273,7 +273,7 @@ function WsSwitcherPanel(props: {
             className="py-4"
           />
         ) : empty ? (
-          <div className="px-4 py-8 text-center text-sm text-muted-foreground">
+          <div className="px-4 py-8 text-center text-footnote text-label-secondary">
             {keyword
               ? t("common:WORKSPACE_SWITCHER_WORKSPACE_NO_RESULTS_TITLE")
               : t("common:WORKSPACE_SWITCHER_WORKSPACE_EMPTY")}
@@ -298,7 +298,7 @@ function WsSwitcherPanel(props: {
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                     current
                       ? "bg-accent text-accent-foreground"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                      : "text-label-secondary hover:bg-muted hover:text-foreground",
                   )}
                   onClick={() => {
                     closeFloatingPanel();
@@ -315,7 +315,7 @@ function WsSwitcherPanel(props: {
                   <div className="min-w-0 flex-1">
                     <div
                       className={cn(
-                        "truncate text-sm font-medium",
+                        "truncate text-footnote font-medium",
                         current ? "text-accent-foreground" : "text-foreground",
                       )}
                     >
@@ -323,8 +323,8 @@ function WsSwitcherPanel(props: {
                     </div>
                     <div
                       className={cn(
-                        "truncate text-xs",
-                        current ? "text-accent-foreground/80" : "text-muted-foreground",
+                        "truncate text-caption",
+                        current ? "text-accent-foreground/80" : "text-label-secondary",
                       )}
                     >
                       {ws.description || t("common:ORG_WORKSPACES_DESCRIPTION_FALLBACK")}
@@ -461,7 +461,7 @@ export function AdminWorkspaceSwitcher() {
 
   const headerTriggerClassName = cn(
     "flex items-center gap-1.5 rounded-md px-2 py-1",
-    "text-sm text-muted-foreground border-0 bg-transparent",
+    "text-footnote text-label-secondary border-0 bg-transparent",
     "hover:bg-accent hover:text-foreground",
     "data-[state=open]:bg-accent data-[state=open]:text-foreground",
     "transition-colors",
@@ -503,7 +503,7 @@ export function AdminWorkspaceSwitcher() {
           </FloatingPanelContent>
         </FloatingPanelRoot>
 
-        <ChevronRight className="size-3.5 shrink-0 text-muted-foreground/50" aria-hidden="true" />
+        <ChevronRight className="size-3.5 shrink-0 text-label-secondary/50" aria-hidden="true" />
 
         <FloatingPanelRoot>
           <FloatingPanelTrigger

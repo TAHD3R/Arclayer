@@ -28,7 +28,7 @@ export function ActivityUserPill(props: {
 }) {
   const size = props.size ?? 24;
   const user = props.user;
-  if (!user) return <span className="text-muted-foreground">-</span>;
+  if (!user) return <span className="text-label-secondary">-</span>;
 
   const primary = renderUserDisplayName(user);
   const secondary = props.secondary;
@@ -48,9 +48,9 @@ export function ActivityUserPill(props: {
         {userInitials(primary)}
       </Avatar>
       <div className="min-w-0">
-        <div className="text-sm font-medium truncate">{primary}</div>
+        <div className="text-footnote font-medium truncate">{primary}</div>
         {secondary ? (
-          <div className="text-xs text-muted-foreground truncate">{secondary}</div>
+          <div className="text-caption text-label-secondary truncate">{secondary}</div>
         ) : null}
       </div>
     </div>

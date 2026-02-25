@@ -204,12 +204,12 @@ function NavNode({
               "rounded-none relative z-10",
               "h-8 pl-5",
               "transition-[width,height,padding,color] duration-150 ease-out",
-              "text-muted-foreground! hover:text-foreground! hover:bg-transparent! active:bg-transparent!",
+              "text-label-secondary! hover:text-foreground! hover:bg-transparent! active:bg-transparent!",
               "data-[active=true]:font-semibold data-[active=true]:bg-transparent! data-[active=true]:text-foreground!",
               item.disabled
                 ? cn(
                     "opacity-60",
-                    "hover:text-muted-foreground!",
+                    "hover:text-label-secondary!",
                     "cursor-not-allowed",
                     // Override SidebarMenuButton's default aria-disabled pointer-events-none so tooltip still works.
                     "aria-disabled:pointer-events-auto",
@@ -263,12 +263,12 @@ function NavNode({
               "rounded-none relative z-10",
               "h-8 pl-5",
               "transition-[width,height,padding,color] duration-150 ease-out",
-              "text-muted-foreground! hover:text-foreground! hover:bg-transparent! active:bg-transparent!",
+              "text-label-secondary! hover:text-foreground! hover:bg-transparent! active:bg-transparent!",
               "data-[active=true]:font-semibold data-[active=true]:bg-transparent! data-[active=true]:text-foreground!",
               item.disabled
                 ? cn(
                     "opacity-60",
-                    "hover:text-muted-foreground!",
+                    "hover:text-label-secondary!",
                     "cursor-not-allowed",
                     "aria-disabled:pointer-events-auto",
                   )
@@ -293,7 +293,7 @@ function NavNode({
             <ChevronRightIcon
               size={16}
               expanded={isOpen}
-              className="ml-auto shrink-0 text-muted-foreground"
+              className="ml-auto shrink-0 text-label-secondary"
               aria-hidden="true"
             />
           </SidebarMenuButton>
@@ -424,7 +424,7 @@ export function AdminSiderNav(props: {
                           "rounded-none relative z-10",
                           "h-8 pl-5",
                           "transition-[color] duration-150 ease-out",
-                          "text-muted-foreground! hover:text-foreground! hover:bg-transparent! active:bg-transparent!",
+                          "text-label-secondary! hover:text-foreground! hover:bg-transparent! active:bg-transparent!",
                           "data-[active=true]:font-semibold data-[active=true]:bg-transparent! data-[active=true]:text-foreground!",
                         )}
                         style={{ paddingLeft: NAV_ITEM_BASE_PADDING_LEFT } as CSSProperties}

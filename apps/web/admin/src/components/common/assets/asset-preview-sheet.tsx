@@ -149,7 +149,10 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
                   <SheetTitle className="truncate" title={active.name}>
                     {active.name}
                   </SheetTitle>
-                  <SheetDescription className="mt-1 text-sm truncate" title={uploaderAndTimeText}>
+                  <SheetDescription
+                    className="mt-1 text-footnote truncate"
+                    title={uploaderAndTimeText}
+                  >
                     {uploaderAndTimeText}
                   </SheetDescription>
                 </div>
@@ -217,7 +220,7 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
                 </div>
               </div>
               <Typography.Paragraph
-                className="w-full !mb-0 text-muted-foreground"
+                className="w-full !mb-0 text-label-secondary"
                 ellipsis={{
                   rows: 2,
                   expandable: true,
@@ -238,7 +241,7 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
                 {descriptionDraft ? (
                   descriptionDraft
                 ) : (
-                  <span className="text-muted-foreground/70">
+                  <span className="text-label-secondary/70">
                     {t("assets:ASSET_DESCRIPTION_EMPTY")}
                   </span>
                 )}
@@ -294,7 +297,7 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
                       />
                     ) : (
                       <div className="absolute inset-0 grid place-items-center bg-muted/20">
-                        <div className="text-sm text-muted-foreground">
+                        <div className="text-footnote text-label-secondary">
                           {t("assets:ASSET_PREVIEW_UNAVAILABLE")}
                         </div>
                       </div>
@@ -352,7 +355,7 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
                             <div className="font-semibold text-foreground">
                               {t("assets:ASSET_TAG_FIELD_TITLE")}
                             </div>
-                            <div className="text-muted-foreground">
+                            <div className="text-label-secondary">
                               {t("assets:ASSET_TAG_FIELD_DESC")}
                             </div>
                           </div>
@@ -429,7 +432,7 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
                             )}
                           </Flex>
                           {saveState !== "idle" ? (
-                            <div className="mt-1 text-xs text-muted-foreground">
+                            <div className="mt-1 text-caption text-label-secondary">
                               {saveState === "saving"
                                 ? t("assets:ASSET_SAVE_SAVING")
                                 : saveState === "saved"
@@ -449,7 +452,7 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
                       <AccordionContent>
                         {linkSnippets ? (
                           <>
-                            <div className="mb-2 text-muted-foreground">
+                            <div className="mb-2 text-label-secondary">
                               {t("assets:ASSET_LINKS_DESC")}
                             </div>
                             <div className="rounded-md border border-border/60 overflow-hidden">
@@ -476,10 +479,10 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
                                   key={row.key}
                                   title={row.label}
                                   titleColumnWidth={110}
-                                  titleClassName="text-sm"
+                                  titleClassName="text-footnote"
                                   showChevron={false}
                                   summary={row.value}
-                                  summaryClassName="text-xs font-mono font-normal break-all line-clamp-2"
+                                  summaryClassName="text-caption font-mono font-normal break-all line-clamp-2"
                                   className={cn(
                                     idx !== arr.length - 1
                                       ? "border-b border-border/60"
@@ -497,7 +500,7 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
                             </div>
                           </>
                         ) : (
-                          <div className="text-sm text-muted-foreground">
+                          <div className="text-footnote text-label-secondary">
                             {t("assets:ASSET_LINKS_REQUIRES_PUBLIC")}
                           </div>
                         )}
@@ -527,14 +530,16 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
                               key: "id",
                               label: t("assets:ASSET_META_ID"),
                               children: (
-                                <span className="font-mono text-xs break-all">{active.id}</span>
+                                <span className="font-mono text-caption break-all">
+                                  {active.id}
+                                </span>
                               ),
                             },
                             {
                               key: "sha256",
                               label: t("assets:ASSET_META_SHA256"),
                               children: (
-                                <span className="font-mono text-xs break-all">
+                                <span className="font-mono text-caption break-all">
                                   {active.checksumSha256 || "-"}
                                 </span>
                               ),
@@ -553,10 +558,10 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="font-bold! text-xl">
+            <AlertDialogTitle className="text-title2 font-bold!">
               {t("assets:ASSET_DELETE_CONFIRM_TITLE")}
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-base">
+            <AlertDialogDescription className="text-body">
               {t("assets:ASSET_DELETE_CONFIRM_DESC")}
             </AlertDialogDescription>
           </AlertDialogHeader>

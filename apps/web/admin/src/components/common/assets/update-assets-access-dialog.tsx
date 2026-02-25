@@ -122,7 +122,7 @@ export function UpdateAssetsAccessDialog(props: UpdateAssetsAccessDialogProps) {
           <label className="font-semibold text-foreground">
             {t("assets:ASSET_META_VISIBILITY")}
           </label>
-          <div className="text-muted-foreground">
+          <div className="text-label-secondary">
             {t("assets:ASSET_EDIT_ACCESS_VISIBILITY_HELP")}
           </div>
           <Select
@@ -137,7 +137,7 @@ export function UpdateAssetsAccessDialog(props: UpdateAssetsAccessDialogProps) {
 
         <div className="grid gap-1.5">
           <label className="font-semibold text-foreground">{t("assets:ASSET_META_PURPOSE")}</label>
-          <div className="text-muted-foreground">{t("assets:ASSET_EDIT_ACCESS_PURPOSE_HELP")}</div>
+          <div className="text-label-secondary">{t("assets:ASSET_EDIT_ACCESS_PURPOSE_HELP")}</div>
           <Select
             className="w-full"
             value={purpose}

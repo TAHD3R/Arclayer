@@ -136,7 +136,7 @@ export function TeamInvitationsDialogs(props: TeamInvitationsDialogsProps) {
             <label className="font-semibold text-foreground">
               {t("team:TEAM_INVITE_LINK_FIELD_EXPIRES")}
             </label>
-            <div className="text-muted-foreground">{t("team:TEAM_INVITE_FIELD_EXPIRES_HELP")}</div>
+            <div className="text-label-secondary">{t("team:TEAM_INVITE_FIELD_EXPIRES_HELP")}</div>
             <Select<RenewExpiresInSeconds>
               value={renewExpiresInSeconds}
               onChange={(value) => setRenewExpiresInSeconds(value)}
@@ -185,7 +185,7 @@ export function TeamInvitationsDialogs(props: TeamInvitationsDialogsProps) {
             <label className="font-semibold text-foreground">
               {t("team:TEAM_INVITE_LINK_FIELD_EXPIRES")}
             </label>
-            <div className="text-muted-foreground">{t("team:TEAM_INVITE_FIELD_EXPIRES_HELP")}</div>
+            <div className="text-label-secondary">{t("team:TEAM_INVITE_FIELD_EXPIRES_HELP")}</div>
             <Select<RenewExpiresInSeconds>
               value={renewExpiresInSeconds}
               onChange={(value) => setRenewExpiresInSeconds(value)}

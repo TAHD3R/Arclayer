@@ -96,9 +96,11 @@ function NotificationList(props: {
             onClick={() => props.onItemClick?.(notification)}
           >
             <div className="flex items-center gap-2">
-              <h1 className="min-w-0 flex-1 truncate text-sm font-medium">{notification.title}</h1>
+              <h1 className="min-w-0 flex-1 truncate text-footnote font-medium">
+                {notification.title}
+              </h1>
               {notification.count && (
-                <div className="flex shrink-0 items-center text-xs gap-0.5 font-medium text-sidebar-foreground/70">
+                <div className="flex shrink-0 items-center text-caption gap-0.5 font-medium text-sidebar-foreground/70">
                   <RotateCcw className="size-3" />
                   <span>{notification.count}</span>
                 </div>
@@ -125,7 +127,7 @@ function NotificationList(props: {
                   </div>
                 ) : null}
                 {notification.subtitle ? (
-                  <div className="mt-0.5 min-w-0 block line-clamp-2 text-xs font-medium text-sidebar-foreground/70">
+                  <div className="mt-0.5 min-w-0 block line-clamp-2 text-caption font-medium text-sidebar-foreground/70">
                     {notification.subtitle}
                   </div>
                 ) : null}
@@ -136,12 +138,12 @@ function NotificationList(props: {
       </div>
 
       <div className="flex items-center gap-2">
-        <div className="size-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-medium">
+        <div className="size-5 rounded-full bg-primary text-primary-foreground text-caption flex items-center justify-center font-medium">
           {totalCount}
         </div>
         <span className="grid">
           <motion.span
-            className="text-sm font-medium text-sidebar-foreground/70 row-start-1 col-start-1"
+            className="text-footnote font-medium text-sidebar-foreground/70 row-start-1 col-start-1"
             variants={notificationTextVariants}
             transition={textSwitchTransition}
           >
@@ -150,7 +152,7 @@ function NotificationList(props: {
           {props.onViewAll ? (
             <motion.button
               type="button"
-              className="text-sm font-medium text-sidebar-foreground/70 hover:text-sidebar-foreground flex items-center gap-1 cursor-pointer select-none row-start-1 col-start-1"
+              className="text-footnote font-medium text-sidebar-foreground/70 hover:text-sidebar-foreground flex items-center gap-1 cursor-pointer select-none row-start-1 col-start-1"
               variants={viewAllTextVariants}
               transition={textSwitchTransition}
               onClick={props.onViewAll}

@@ -42,7 +42,9 @@ export function createOrganizationMembersColumns(
             <Avatar src={member.avatarUrl ?? undefined}>{primary.slice(0, 1).toUpperCase()}</Avatar>
             <div className="min-w-0">
               <div className="truncate font-medium">{primary}</div>
-              <div className="truncate text-xs text-muted-foreground">{member.email || "-"}</div>
+              <div className="truncate text-caption text-label-secondary">
+                {member.email || "-"}
+              </div>
             </div>
           </div>
         );
@@ -90,7 +92,7 @@ export function createOrganizationMembersColumns(
       meta: { sortKey: "joined_at" },
       header: t("common:ORG_MEMBERS_TABLE_JOINED_AT"),
       cell: ({ row }) => (
-        <span className="text-sm text-muted-foreground">
+        <span className="text-footnote text-label-secondary">
           {formatDateTime(row.original.joinedAt)}
         </span>
       ),
@@ -100,7 +102,7 @@ export function createOrganizationMembersColumns(
       meta: { sortKey: "last_login_at" },
       header: t("common:ORG_MEMBERS_TABLE_LAST_LOGIN"),
       cell: ({ row }) => (
-        <span className="text-sm text-muted-foreground">
+        <span className="text-footnote text-label-secondary">
           {formatDateTime(row.original.lastLoginAt)}
         </span>
       ),

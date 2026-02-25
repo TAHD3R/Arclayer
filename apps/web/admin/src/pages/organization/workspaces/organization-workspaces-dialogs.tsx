@@ -84,7 +84,7 @@ export function OrganizationWorkspacesDialogs(props: OrganizationWorkspacesDialo
                 <span className="font-semibold text-foreground">
                   {t("common:ORG_WORKSPACES_FIELD_NAME")}
                 </span>
-                <span className="text-muted-foreground">
+                <span className="text-label-secondary">
                   {t("common:ORG_WORKSPACES_FIELD_NAME_HELP")}
                 </span>
               </div>
@@ -101,7 +101,7 @@ export function OrganizationWorkspacesDialogs(props: OrganizationWorkspacesDialo
                 <span className="font-semibold text-foreground">
                   {t("common:ORG_WORKSPACES_FIELD_DESCRIPTION")}
                 </span>
-                <span className="text-muted-foreground">
+                <span className="text-label-secondary">
                   {t("common:ORG_WORKSPACES_FIELD_DESCRIPTION_HELP")}
                 </span>
               </div>
@@ -187,7 +187,7 @@ export function OrganizationWorkspacesDialogs(props: OrganizationWorkspacesDialo
                 name: deleteDialog.workspace?.name || "",
               })}
             </label>
-            <div className="text-muted-foreground">
+            <div className="text-label-secondary">
               {t("common:ORG_WORKSPACES_DELETE_CONFIRM_INPUT_HELP")}
             </div>
           </div>

@@ -13,7 +13,7 @@ function LayerNode({ node, depth }: { node: EditorLayerNode; depth: number }) {
     <>
       <button
         type="button"
-        className={`flex w-full items-center gap-1.5 rounded px-2 py-1 text-left text-xs ${
+        className={`flex w-full items-center gap-1.5 rounded px-2 py-1 text-left text-caption ${
           isSelected ? "bg-accent text-accent-foreground" : "hover:bg-muted"
         }`}
         style={{ paddingLeft: `${depth * 16 + 8}px` }}
@@ -35,7 +35,7 @@ export function NavigatorPanel() {
   if (layerTree.length === 0) {
     return (
       <div className="flex flex-1 items-center justify-center p-4">
-        <span className="text-xs text-muted-foreground">
+        <span className="text-caption text-label-secondary">
           {t("content_pages:EDITOR_V2_LAYERS_EMPTY", {
             defaultValue: "No layers yet",
           })}

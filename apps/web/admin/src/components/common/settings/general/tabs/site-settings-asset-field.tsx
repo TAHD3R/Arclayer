@@ -64,14 +64,16 @@ export function SiteSettingsAssetField({
               className="rounded-md border border-border/60 bg-muted/20"
             />
           ) : (
-            <div className="h-14 w-14 rounded-md border border-border/60 bg-muted/20 grid place-items-center text-xs text-muted-foreground">
+            <div className="h-14 w-14 rounded-md border border-border/60 bg-muted/20 grid place-items-center text-caption text-label-secondary">
               {t("settings:SETTINGS_NOT_SET")}
             </div>
           )}
         </div>
         <div className="min-w-0 flex-1">
-          <div className="text-sm font-medium">{t("settings:SETTINGS_ASSET_PICKER_CURRENT")}</div>
-          <div className="mt-1 text-xs text-muted-foreground truncate">
+          <div className="text-footnote font-medium">
+            {t("settings:SETTINGS_ASSET_PICKER_CURRENT")}
+          </div>
+          <div className="mt-1 text-caption text-label-secondary truncate">
             {assetId ? `/assets/${assetId}` : formatSummaryText(url)}
           </div>
         </div>

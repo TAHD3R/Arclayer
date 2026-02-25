@@ -164,7 +164,7 @@ export function EditUserSheet(props: {
             {/* Avatar (above username for better identification) */}
             <div className="grid gap-1.5">
               <label className="font-semibold text-foreground">{t("team:TEAM_FIELD_AVATAR")}</label>
-              <div className="text-muted-foreground">{t("team:TEAM_FIELD_AVATAR_DESC")}</div>
+              <div className="text-label-secondary">{t("team:TEAM_FIELD_AVATAR_DESC")}</div>
               <div className="relative h-16 w-16">
                 <div
                   role="button"
@@ -187,7 +187,7 @@ export function EditUserSheet(props: {
                       className="h-16 w-16 rounded-full"
                     />
                   ) : (
-                    <div className="h-16 w-16 grid place-items-center text-xs text-muted-foreground">
+                    <div className="h-16 w-16 grid place-items-center text-caption text-label-secondary">
                       {t("team:TEAM_FIELD_AVATAR_EMPTY")}
                     </div>
                   )}
@@ -262,7 +262,7 @@ export function EditUserSheet(props: {
               <label className="font-semibold text-foreground" htmlFor="username">
                 {t("team:TEAM_FIELD_USERNAME")}
               </label>
-              <div className="text-muted-foreground">{t("team:TEAM_FIELD_USERNAME_HELP")}</div>
+              <div className="text-label-secondary">{t("team:TEAM_FIELD_USERNAME_HELP")}</div>
               <Controller
                 control={control}
                 name="username"
@@ -276,7 +276,7 @@ export function EditUserSheet(props: {
               <label className="font-semibold text-foreground" htmlFor="displayName">
                 {t("team:TEAM_FIELD_DISPLAY_NAME")}
               </label>
-              <div className="text-muted-foreground">{t("team:TEAM_FIELD_DISPLAY_NAME_HELP")}</div>
+              <div className="text-label-secondary">{t("team:TEAM_FIELD_DISPLAY_NAME_HELP")}</div>
               <Controller
                 control={control}
                 name="displayName"
@@ -294,7 +294,7 @@ export function EditUserSheet(props: {
                 )}
               />
               {form.formState.errors.displayName?.message ? (
-                <div className="text-sm text-destructive">
+                <div className="text-footnote text-destructive">
                   {String(form.formState.errors.displayName.message)}
                 </div>
               ) : null}
@@ -304,7 +304,7 @@ export function EditUserSheet(props: {
               <label className="font-semibold text-foreground" htmlFor="email">
                 {t("team:TEAM_FIELD_EMAIL")}
               </label>
-              <div className="text-muted-foreground">{t("team:TEAM_FIELD_EMAIL_HELP")}</div>
+              <div className="text-label-secondary">{t("team:TEAM_FIELD_EMAIL_HELP")}</div>
               <Controller
                 control={control}
                 name="email"
@@ -322,7 +322,7 @@ export function EditUserSheet(props: {
                 )}
               />
               {form.formState.errors.email?.message ? (
-                <div className="text-sm text-destructive">
+                <div className="text-footnote text-destructive">
                   {String(form.formState.errors.email.message)}
                 </div>
               ) : null}

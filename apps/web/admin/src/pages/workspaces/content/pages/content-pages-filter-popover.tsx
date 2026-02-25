@@ -27,7 +27,7 @@ function FilterSelect<T extends string>({
     <select
       value={value}
       onChange={(e: ChangeEvent<HTMLSelectElement>) => onChange(e.target.value as T)}
-      className="h-9 w-full rounded-md border border-border bg-background px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+      className="h-9 w-full rounded-md border border-border bg-background px-3 py-1 text-footnote shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
     >
       {options.map((opt) => (
         <option key={opt.value} value={opt.value}>
@@ -57,7 +57,7 @@ export function ContentPagesFilterPopover(props: ContentPagesFilterPopoverProps)
 
         <div className="mt-3 grid grid-cols-1 gap-3">
           <div className="grid grid-cols-1 gap-1.5">
-            <div className="text-sm text-muted-foreground">
+            <div className="text-footnote text-label-secondary">
               {props.t("content_pages:FILTER_FIELD_STATUS")}
             </div>
             <FilterSelect
@@ -75,7 +75,7 @@ export function ContentPagesFilterPopover(props: ContentPagesFilterPopoverProps)
           </div>
 
           <div className="grid grid-cols-1 gap-1.5">
-            <div className="text-sm text-muted-foreground">
+            <div className="text-footnote text-label-secondary">
               {props.t("content_pages:FILTER_FIELD_VISIBILITY")}
             </div>
             <FilterSelect

@@ -104,16 +104,16 @@ function SaveSettingsContent() {
 
   return (
     <div className="flex w-52 flex-col gap-2.5">
-      <p className="text-xs font-medium">
+      <p className="text-caption font-medium">
         {t("content_pages:EDITOR_V2_SAVE_SETTINGS_TITLE", { defaultValue: "Save settings" })}
       </p>
       <Checkbox checked={autoSaveEnabled} onChange={(e) => setAutoSaveEnabled(e.target.checked)}>
-        <span className="text-xs">
+        <span className="text-caption">
           {t("content_pages:EDITOR_V2_SAVE_SETTINGS_AUTO_SAVE", { defaultValue: "Auto-save" })}
         </span>
       </Checkbox>
-      <label className="flex items-center gap-2 text-xs">
-        <span className="w-20 shrink-0 text-muted-foreground">
+      <label className="flex items-center gap-2 text-caption">
+        <span className="w-20 shrink-0 text-label-secondary">
           {t("content_pages:EDITOR_V2_SAVE_SETTINGS_INTERVAL", { defaultValue: "Interval (sec)" })}
         </span>
         <InputNumber
@@ -130,7 +130,7 @@ function SaveSettingsContent() {
         />
       </label>
       <Checkbox checked={saveOnBlur} onChange={(e) => setSaveOnBlur(e.target.checked)}>
-        <span className="text-xs">
+        <span className="text-caption">
           {t("content_pages:EDITOR_V2_SAVE_SETTINGS_SAVE_ON_BLUR", {
             defaultValue: "Save on blur",
           })}
@@ -151,7 +151,7 @@ function EditorUserMenuContent() {
   const themeMode = usePreferencesStore((s) => s.themeMode);
 
   const menuItemClass =
-    "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs transition-colors hover:bg-accent";
+    "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-caption transition-colors hover:bg-accent";
 
   return (
     <div className="w-52">
@@ -169,7 +169,7 @@ function EditorUserMenuContent() {
           <span className="flex-1 text-left">
             {t("content_pages:EDITOR_V2_USER_MENU_LANGUAGE", { defaultValue: "Language" })}
           </span>
-          <ChevronRight className="size-3.5 text-muted-foreground" />
+          <ChevronRight className="size-3.5 text-label-secondary" />
         </button>
         {showLangSub && (
           <div className="py-0.5 pl-6">
@@ -200,7 +200,7 @@ function EditorUserMenuContent() {
           <span className="flex-1 text-left">
             {t("content_pages:EDITOR_V2_USER_MENU_THEME", { defaultValue: "Appearance" })}
           </span>
-          <ChevronRight className="size-3.5 text-muted-foreground" />
+          <ChevronRight className="size-3.5 text-label-secondary" />
         </button>
         {showThemeSub && (
           <div className="py-0.5 pl-6">
@@ -305,7 +305,7 @@ export function EditorHeader() {
           <MenubarMenu>
             <MenubarTrigger>
               {t("content_pages:EDITOR_V2_MENU_FILE", { defaultValue: "File" })}
-              <span className="ml-0.5 text-muted-foreground">(F)</span>
+              <span className="ml-0.5 text-label-secondary">(F)</span>
             </MenubarTrigger>
             <MenubarContent>
               <MenubarItem disabled={!isDirty || isSaving} onClick={handleSave}>
@@ -337,7 +337,7 @@ export function EditorHeader() {
           <MenubarMenu>
             <MenubarTrigger>
               {t("content_pages:EDITOR_V2_MENU_EDIT", { defaultValue: "Edit" })}
-              <span className="ml-0.5 text-muted-foreground">(E)</span>
+              <span className="ml-0.5 text-label-secondary">(E)</span>
             </MenubarTrigger>
             <MenubarContent>
               <MenubarItem onClick={() => void portal?.undo()}>
@@ -373,7 +373,7 @@ export function EditorHeader() {
           <MenubarMenu>
             <MenubarTrigger>
               {t("content_pages:EDITOR_V2_MENU_VIEW", { defaultValue: "View" })}
-              <span className="ml-0.5 text-muted-foreground">(V)</span>
+              <span className="ml-0.5 text-label-secondary">(V)</span>
             </MenubarTrigger>
             <MenubarContent>
               <MenubarItem onClick={() => setZoomPercent(zoomPercent + 10)}>
@@ -402,7 +402,7 @@ export function EditorHeader() {
           <MenubarMenu>
             <MenubarTrigger>
               {t("content_pages:EDITOR_V2_MENU_INSERT", { defaultValue: "Insert" })}
-              <span className="ml-0.5 text-muted-foreground">(I)</span>
+              <span className="ml-0.5 text-label-secondary">(I)</span>
             </MenubarTrigger>
             <MenubarContent>
               <InsertMenuItems />

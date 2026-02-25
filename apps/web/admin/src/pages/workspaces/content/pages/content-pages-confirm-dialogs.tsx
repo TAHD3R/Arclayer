@@ -62,7 +62,7 @@ export function ContentPagesConfirmDialogs(props: ContentPagesConfirmDialogsProp
           </>
         }
       >
-        <div className="text-muted-foreground">
+        <div className="text-label-secondary">
           {props.t("content_pages:DIALOG_DUPLICATE_DESC", { name: duplicateName })}
         </div>
       </SettingDialog>
@@ -90,7 +90,7 @@ export function ContentPagesConfirmDialogs(props: ContentPagesConfirmDialogsProp
           </>
         }
       >
-        <div className="text-muted-foreground">{deleteDescription}</div>
+        <div className="text-label-secondary">{deleteDescription}</div>
       </SettingDialog>
     </>
   );

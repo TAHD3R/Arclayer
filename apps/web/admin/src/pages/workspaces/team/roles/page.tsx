@@ -291,7 +291,7 @@ export function TeamRolesView(props: { workspaceIdOverride?: string | null } = {
           onChange={(e) => setSearch(e.target.value)}
           placeholder={t("team:TEAM_ROLES_SEARCH_PLACEHOLDER")}
           allowClear
-          prefix={<Search className="h-4 w-4 text-muted-foreground" />}
+          prefix={<Search className="h-4 w-4 text-label-secondary" />}
         />
 
         {hasEmptySearch ? (
@@ -310,7 +310,7 @@ export function TeamRolesView(props: { workspaceIdOverride?: string | null } = {
             <div ref={mainScrollRef} onScroll={onMainScroll} className="overflow-auto">
               <table
                 ref={tableRef}
-                className="w-full min-w-max caption-bottom text-sm [&_th]:whitespace-nowrap"
+                className="w-full min-w-max caption-bottom text-footnote [&_th]:whitespace-nowrap"
               >
                 <TableHeader className="sticky top-0 z-[2] bg-card">
                   <TableRow>
@@ -371,12 +371,12 @@ export function TeamRolesView(props: { workspaceIdOverride?: string | null } = {
                         <div className="min-w-0">
                           <div className="truncate font-semibold text-foreground">{perm.name}</div>
                           {perm.description ? (
-                            <div className="mt-0.5 line-clamp-2 text-muted-foreground">
+                            <div className="mt-0.5 line-clamp-2 text-label-secondary">
                               {perm.description}
                             </div>
                           ) : null}
                           {perm.pluginId && perm.pluginId !== "core" ? (
-                            <div className="mt-1 text-xs text-muted-foreground bg-background border border-border p-1 rounded-md select-none">
+                            <div className="mt-1 text-caption text-label-secondary bg-background border border-border p-1 rounded-md select-none">
                               {t("team:TEAM_ROLES_PERMISSION_PROVIDED_BY", {
                                 pluginName: perm.pluginName || perm.pluginId,
                               })}

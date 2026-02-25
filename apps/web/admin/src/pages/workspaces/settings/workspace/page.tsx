@@ -342,7 +342,7 @@ export function WorkspaceSettingsView() {
     return (
       <div className="grid gap-1.5">
         <span className="font-semibold text-foreground">{title}</span>
-        <span className="text-muted-foreground">{description}</span>
+        <span className="text-label-secondary">{description}</span>
       </div>
     );
   }, []);
@@ -570,7 +570,7 @@ export function WorkspaceSettingsView() {
                         }
                         resetLoading={savingKey === "reset:workspace:locale"}
                       >
-                        <div className="text-muted-foreground mb-4">
+                        <div className="text-label-secondary mb-4">
                           {t("settings:SETTINGS_WORKSPACE_LOCALIZATION_NOTE", {
                             locale: workspaceLocaleLabel ?? "-",
                           })}

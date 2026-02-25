@@ -124,10 +124,10 @@ export function MoveFolderModal(props: MoveFolderModalProps) {
     <AlertDialog open={props.open} onOpenChange={props.onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle className="font-bold! text-xl">
+          <AlertDialogTitle className="text-title2 font-bold!">
             {t("assets:ASSET_FOLDER_MOVE_TITLE")}
           </AlertDialogTitle>
-          <AlertDialogDescription className="text-base">
+          <AlertDialogDescription className="text-body">
             {props.folder
               ? t("assets:ASSET_FOLDER_MOVE_DESC", { name: props.folder.name })
               : t("assets:ASSET_FOLDER_MOVE_DESC_FALLBACK")}
@@ -138,7 +138,7 @@ export function MoveFolderModal(props: MoveFolderModalProps) {
           <label className="font-semibold text-foreground">
             {t("assets:ASSET_FOLDER_MOVE_FIELD_TARGET")}
           </label>
-          <div className="text-muted-foreground">
+          <div className="text-label-secondary">
             {t("assets:ASSET_FOLDER_MOVE_FIELD_TARGET_HELP")}
           </div>
           <Select

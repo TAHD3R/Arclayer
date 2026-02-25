@@ -30,7 +30,7 @@ export function AssetsExplorerFolderUpTile(props: {
     >
       <div className="relative w-full overflow-hidden" style={{ aspectRatio: 4 / 3 }}>
         <div className="absolute inset-0 grid place-items-center bg-linear-to-b from-primary/25 via-transparent to-transparent">
-          <div className="font-bold text-muted-foreground">{props.label}</div>
+          <div className="font-bold text-label-secondary">{props.label}</div>
         </div>
       </div>
     </div>
@@ -86,7 +86,7 @@ export const AssetsExplorerFolderTile = forwardRef<
           <div className="relative flex h-full flex-col justify-between p-4">
             <div className="flex items-center gap-2 ">
               <Folder size={18} className="opacity-80" />
-              <span className="font-bold text-lg tracking-wide">{props.folderLabel}</span>
+              <span className="text-title3 font-bold tracking-wide">{props.folderLabel}</span>
             </div>
             <div className="min-w-0">
               <div className="font-semibold truncate" title={props.folder.name}>
@@ -94,7 +94,7 @@ export const AssetsExplorerFolderTile = forwardRef<
               </div>
               {props.folder.description ? (
                 <div
-                  className="mt-1 line-clamp-2 text-sm leading-snug text-muted-foreground/80"
+                  className="mt-1 line-clamp-2 text-footnote leading-snug text-label-secondary/80"
                   title={props.folder.description}
                 >
                   {props.folder.description}
@@ -124,9 +124,9 @@ export function AssetsExplorerFolderDragOverlay(props: {
       <div className="absolute inset-0 overflow-hidden rounded-lg border border-border bg-card">
         <div className="absolute inset-0 bg-muted/10" />
         <div className="relative flex h-full flex-col justify-between p-3">
-          <div className="flex items-center gap-2 text-muted-foreground">
+          <div className="flex items-center gap-2 text-label-secondary">
             <Folder size={18} className="opacity-80" />
-            <span className="text-sm tracking-wide">{props.folderLabel}</span>
+            <span className="text-footnote tracking-wide">{props.folderLabel}</span>
           </div>
           <div className="min-w-0">
             <div className="font-semibold truncate" title={props.folderName}>

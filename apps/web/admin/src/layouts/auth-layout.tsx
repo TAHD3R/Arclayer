@@ -99,7 +99,7 @@ export function AuthLayout({ children }: PropsWithChildren) {
               {t("auth:SLOGAN_TITLE")}
             </Typography.Title>
             <Typography.Paragraph
-              className="!mt-[14px] !mb-0 text-xl leading-[1.6]"
+              className="!mt-[14px] !mb-0 text-title2 leading-[1.6]"
               style={{
                 color: isDark ? "rgba(255,255,255,0.78)" : "rgba(20,20,20,0.78)",
                 textShadow: isDark
@@ -129,7 +129,7 @@ export function AuthLayout({ children }: PropsWithChildren) {
           </div>
         </div>
 
-        <div className="p-4 text-center text-xs text-(--color-muted-foreground)">
+        <div className="p-4 text-center text-caption text-label-secondary">
           <Trans
             i18nKey="auth:FOOTER_COPYRIGHT"
             components={{

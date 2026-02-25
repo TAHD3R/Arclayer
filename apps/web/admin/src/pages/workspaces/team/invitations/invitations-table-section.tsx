@@ -53,7 +53,7 @@ export function TeamInvitationsTableSection<TRow>(props: TeamInvitationsTableSec
               onChange={(event) => tableHook.setSearchInput(event.target.value)}
               placeholder={placeholder}
               allowClear
-              prefix={<Search className="size-4 text-muted-foreground" />}
+              prefix={<Search className="size-4 text-label-secondary" />}
               style={{ width: "100%" }}
             />
           </div>
@@ -83,7 +83,7 @@ export function TeamInvitationsTableSection<TRow>(props: TeamInvitationsTableSec
 
         {pageData ? (
           <div className="flex flex-wrap items-center justify-between gap-3 pt-4">
-            <div className="text-muted-foreground text-sm">
+            <div className="text-label-secondary text-footnote">
               {t("team:TEAM_PAGINATION_TOTAL", {
                 total: pageData.total,
                 from: pageData.total ? (pageData.page - 1) * pageData.size + 1 : 0,

@@ -197,10 +197,10 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --color-text-primary: var(--text-primary);
-  --color-text-secondary: var(--text-secondary);
-  --color-text-tertiary: var(--text-tertiary);
-  --color-text-quaternary: var(--text-quaternary);
+  --color-label-primary: var(--text-primary);
+  --color-label-secondary: var(--text-secondary);
+  --color-label-tertiary: var(--text-tertiary);
+  --color-label-quaternary: var(--text-quaternary);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
@@ -232,4 +232,50 @@
   --shadow-lg: var(--shadow-lg);
   --shadow-xl: var(--shadow-xl);
   --shadow-2xl: var(--shadow-2xl);
+
+  /* Typography scale — generates text-largetitle … text-caption utilities */
+  --text-largetitle: var(--font-size-largetitle);
+  --text-largetitle--line-height: var(--line-height-largetitle);
+  --text-largetitle--letter-spacing: var(--tracking-largetitle);
+  --text-largetitle--font-weight: var(--font-weight-largetitle);
+
+  --text-title: var(--font-size-title);
+  --text-title--line-height: var(--line-height-title);
+  --text-title--letter-spacing: var(--tracking-title);
+  --text-title--font-weight: var(--font-weight-title);
+
+  --text-title2: var(--font-size-title2);
+  --text-title2--line-height: var(--line-height-title2);
+  --text-title2--letter-spacing: var(--tracking-title2);
+  --text-title2--font-weight: var(--font-weight-title2);
+
+  --text-title3: var(--font-size-title3);
+  --text-title3--line-height: var(--line-height-title3);
+  --text-title3--letter-spacing: var(--tracking-title3);
+  --text-title3--font-weight: var(--font-weight-title3);
+
+  --text-headline: var(--font-size-headline);
+  --text-headline--line-height: var(--line-height-headline);
+  --text-headline--letter-spacing: var(--tracking-headline);
+  --text-headline--font-weight: var(--font-weight-headline);
+
+  --text-body: var(--font-size-body);
+  --text-body--line-height: var(--line-height-body);
+  --text-body--letter-spacing: var(--tracking-body);
+  --text-body--font-weight: var(--font-weight-body);
+
+  --text-callout: var(--font-size-callout);
+  --text-callout--line-height: var(--line-height-callout);
+  --text-callout--letter-spacing: var(--tracking-callout);
+  --text-callout--font-weight: var(--font-weight-callout);
+
+  --text-footnote: var(--font-size-footnote);
+  --text-footnote--line-height: var(--line-height-footnote);
+  --text-footnote--letter-spacing: var(--tracking-footnote);
+  --text-footnote--font-weight: var(--font-weight-footnote);
+
+  --text-caption: var(--font-size-caption);
+  --text-caption--line-height: var(--line-height-caption);
+  --text-caption--letter-spacing: var(--tracking-caption);
+  --text-caption--font-weight: var(--font-weight-caption);
 }

@@ -45,7 +45,7 @@ function FavoriteToggle() {
         onMouseLeave={() => setHovered(false)}
         className={clsx(
           "inline-flex items-center gap-1 rounded-md px-1.5 py-1 transition-colors",
-          "text-muted-foreground hover:text-foreground",
+          "text-label-secondary hover:text-foreground",
           isFavorited && "text-amber-500 hover:text-amber-600",
         )}
       >

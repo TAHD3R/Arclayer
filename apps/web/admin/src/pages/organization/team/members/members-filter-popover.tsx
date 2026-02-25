@@ -40,7 +40,7 @@ export function MembersFilterPopover({
 
         <div className="mt-3 grid grid-cols-1 gap-3">
           <div className="grid grid-cols-1 gap-1.5">
-            <div className="text-sm text-muted-foreground">
+            <div className="text-footnote text-label-secondary">
               {t("common:ORG_MEMBERS_TABLE_ROLE")}
             </div>
             <Select
@@ -63,7 +63,7 @@ export function MembersFilterPopover({
           </div>
 
           <div className="grid grid-cols-1 gap-1.5">
-            <div className="text-sm text-muted-foreground">
+            <div className="text-footnote text-label-secondary">
               {t("common:ORG_MEMBERS_FILTER_MEMBER_STATUS")}
             </div>
             <Select
@@ -86,7 +86,7 @@ export function MembersFilterPopover({
           </div>
 
           <div className="grid grid-cols-1 gap-1.5">
-            <div className="text-sm text-muted-foreground">
+            <div className="text-footnote text-label-secondary">
               {t("common:ORG_MEMBERS_FILTER_USER_STATUS")}
             </div>
             <Select
@@ -109,7 +109,7 @@ export function MembersFilterPopover({
           </div>
 
           <div className="grid grid-cols-1 gap-1.5">
-            <div className="text-sm text-muted-foreground">
+            <div className="text-footnote text-label-secondary">
               {t("common:ORG_MEMBERS_FILTER_WORKSPACE_ASSOCIATION")}
             </div>
             <Select

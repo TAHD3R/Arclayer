@@ -138,7 +138,7 @@ export function PluginIcon(props: PluginIconProps) {
         />
       ) : (
         <Package
-          className={cn("size-5 text-muted-foreground", props.fallbackIconClassName)}
+          className={cn("size-5 text-label-secondary", props.fallbackIconClassName)}
           aria-hidden="true"
         />
       )}

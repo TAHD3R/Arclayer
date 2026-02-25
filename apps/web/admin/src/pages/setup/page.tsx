@@ -592,7 +592,7 @@ export function SetupView() {
               showInfo={false}
               status={setupProgress >= 100 ? "success" : "active"}
             />
-            <div className="mt-2 flex items-center justify-between text-xs text-(--color-muted-foreground)">
+            <div className="mt-2 flex items-center justify-between text-caption text-label-secondary">
               <span>{t("setup:SETUP_INITIALIZING_LABEL")}</span>
               <span>
                 {t("setup:SETUP_PROGRESS_STEP_INDICATOR", {
@@ -602,7 +602,7 @@ export function SetupView() {
               </span>
             </div>
             {setupProgressStage ? (
-              <div className="mt-1 text-sm text-(--color-foreground)">
+              <div className="mt-1 text-footnote text-(--color-foreground)">
                 {setupProgressStageLabels[setupProgressStage]}
               </div>
             ) : null}
@@ -674,7 +674,7 @@ export function SetupView() {
                   {t("auth:SLOGAN_TITLE")}
                 </Typography.Title>
                 <Typography.Paragraph
-                  className="!mt-[14px] !mb-0 text-xl leading-[1.6]"
+                  className="!mt-[14px] !mb-0 text-title2 leading-[1.6]"
                   style={{
                     color: isDark ? "rgba(255,255,255,0.78)" : "rgba(20,20,20,0.78)",
                     textShadow: isDark

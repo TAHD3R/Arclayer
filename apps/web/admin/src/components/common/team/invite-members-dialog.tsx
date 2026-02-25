@@ -292,7 +292,7 @@ export function InviteMembersDialog(props: {
             <label className="font-semibold text-foreground" htmlFor="to">
               {t("team:TEAM_INVITE_FIELD_TO")}
             </label>
-            <div className="text-muted-foreground">{t("team:TEAM_INVITE_FIELD_TO_HELP")}</div>
+            <div className="text-label-secondary">{t("team:TEAM_INVITE_FIELD_TO_HELP")}</div>
             <Select
               id="to"
               mode="tags"
@@ -346,7 +346,7 @@ export function InviteMembersDialog(props: {
           <label className="font-semibold text-foreground" htmlFor="roleCode">
             {t("team:TEAM_INVITE_FIELD_ROLE")}
           </label>
-          <div className="text-muted-foreground">{t("team:TEAM_INVITE_ROLE_HELP")}</div>
+          <div className="text-label-secondary">{t("team:TEAM_INVITE_ROLE_HELP")}</div>
           <Select
             id="roleCode"
             showSearch
@@ -362,7 +362,7 @@ export function InviteMembersDialog(props: {
             getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
           />
           {form.formState.errors.roleCode?.message ? (
-            <div className="text-sm text-destructive">
+            <div className="text-footnote text-destructive">
               {String(form.formState.errors.roleCode.message)}
             </div>
           ) : null}
@@ -373,7 +373,7 @@ export function InviteMembersDialog(props: {
             <label className="font-semibold text-foreground" htmlFor="allowedEmailDomain">
               {t("common:ORG_INVITE_LINK_ALLOWED_DOMAIN_LABEL")}
             </label>
-            <div className="text-muted-foreground">
+            <div className="text-label-secondary">
               {t("team:TEAM_INVITE_LINK_ALLOWED_DOMAIN_HELP")}
             </div>
             <Input
@@ -391,7 +391,7 @@ export function InviteMembersDialog(props: {
           <label className="font-semibold text-foreground" htmlFor="expiresInSeconds">
             {t("team:TEAM_INVITE_LINK_FIELD_EXPIRES")}
           </label>
-          <div className="text-muted-foreground">{t("team:TEAM_INVITE_FIELD_EXPIRES_HELP")}</div>
+          <div className="text-label-secondary">{t("team:TEAM_INVITE_FIELD_EXPIRES_HELP")}</div>
           <Select<ExpiresInSecondsValue>
             id="expiresInSeconds"
             value={selectedExpires}

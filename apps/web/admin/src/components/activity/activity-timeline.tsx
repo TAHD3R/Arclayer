@@ -148,7 +148,7 @@ export function ActivityTimeline(props: ActivityTimelineProps) {
         return (
           <div key={group.key}>
             <div className="sticky top-0 z-10 bg-background/90 backdrop-blur py-2">
-              <div className="text-xl font-bold">{group.label}</div>
+              <div className="text-title2 font-bold">{group.label}</div>
             </div>
 
             <Timeline
@@ -205,7 +205,7 @@ export function ActivityTimeline(props: ActivityTimelineProps) {
                     key: event.id,
                     title: (
                       <time
-                        className="font-mono font-semibold text-muted-foreground"
+                        className="font-mono font-semibold text-label-secondary"
                         dateTime={event.occurredAt}
                         title={
                           d
@@ -243,9 +243,7 @@ export function ActivityTimeline(props: ActivityTimelineProps) {
                         <header className="min-w-0">
                           <div className="font-semibold wrap-break-word">{eventTitle}</div>
                           {eventDesc ? (
-                            <p className="mt-1 text-muted-foreground wrap-break-word">
-                              {eventDesc}
-                            </p>
+                            <p className="mt-1 text-label-secondary wrap-break-word">{eventDesc}</p>
                           ) : null}
                         </header>
 
@@ -266,7 +264,9 @@ export function ActivityTimeline(props: ActivityTimelineProps) {
                       {
                         key: `${group.key}:loading`,
                         loading: true,
-                        title: <span className="font-mono text-xs text-muted-foreground"> </span>,
+                        title: (
+                          <span className="font-mono text-caption text-label-secondary"> </span>
+                        ),
                         content: <div className="h-6" />,
                         styles: {
                           root: {

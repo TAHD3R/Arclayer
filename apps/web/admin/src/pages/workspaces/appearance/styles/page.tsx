@@ -87,7 +87,7 @@ export function WorkspaceGlobalStylesView() {
           <div className="rounded-lg border bg-card p-5">
             <h3 className="mb-3 font-semibold">{t("appearance:GLOBAL_STYLES_CARD_TITLE")}</h3>
 
-            <label className="mb-1 block text-sm font-medium">
+            <label className="mb-1 block text-footnote font-medium">
               {t("appearance:GLOBAL_STYLES_JSON_LABEL")}
             </label>
             <Input.TextArea
@@ -96,9 +96,9 @@ export function WorkspaceGlobalStylesView() {
               onChange={(e) => handleJsonChange(e.target.value)}
               placeholder={t("appearance:GLOBAL_STYLES_JSON_PLACEHOLDER")}
               status={jsonError ? "error" : undefined}
-              className="font-mono text-sm"
+              className="font-mono text-footnote"
             />
-            {jsonError ? <p className="mt-1 text-xs text-destructive">{jsonError}</p> : null}
+            {jsonError ? <p className="mt-1 text-caption text-destructive">{jsonError}</p> : null}
 
             <div className="mt-4 flex gap-2">
               <Button onClick={handleReset} disabled={saveMutation.isPending}>
@@ -118,7 +118,7 @@ export function WorkspaceGlobalStylesView() {
           {/* Precedence info */}
           <div className="rounded-lg border bg-card p-5">
             <h3 className="mb-2 font-semibold">{t("appearance:GLOBAL_STYLES_PRECEDENCE_TITLE")}</h3>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-footnote text-label-secondary">
               {t("appearance:GLOBAL_STYLES_PRECEDENCE_DESC")}
             </p>
           </div>

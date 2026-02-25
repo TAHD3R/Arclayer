@@ -218,7 +218,7 @@ export function PluginSettingsForm({
                         ) : null}
                       </div>
                       {field.description ? (
-                        <div className="mt-1 text-sm text-muted-foreground">
+                        <div className="mt-1 text-footnote text-label-secondary">
                           {field.description}
                         </div>
                       ) : null}
@@ -266,7 +266,9 @@ export function PluginSettingsForm({
                                         {String(option.label || "")}
                                       </div>
                                       {desc ? (
-                                        <div className="text-xs text-muted-foreground">{desc}</div>
+                                        <div className="text-caption text-label-secondary">
+                                          {desc}
+                                        </div>
                                       ) : null}
                                     </div>
                                   );

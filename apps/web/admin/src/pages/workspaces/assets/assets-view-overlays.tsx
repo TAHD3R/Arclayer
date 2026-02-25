@@ -150,7 +150,7 @@ export function AssetsViewOverlays(props: AssetsViewOverlaysProps) {
             <div className="pointer-events-auto w-full border-t border-border bg-card shadow-[0_-16px_30px_-24px_rgba(0,0,0,0.28)]">
               <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-10">
                 <div className="flex min-w-0 items-center gap-3">
-                  <div className="inline-flex items-center rounded-full bg-muted px-3 py-1 text-sm font-semibold">
+                  <div className="inline-flex items-center rounded-full bg-muted px-3 py-1 text-footnote font-semibold">
                     {props.t("assets:ASSET_SELECTED_COUNT", { count: props.selectedCount })}
                   </div>
                   <Button type="text" className="!h-8 !px-2" onClick={props.onClearSelection}>

@@ -142,7 +142,9 @@ export function buildContentPagesColumns(
                 </Tag>
 
                 {item.description ? (
-                  <div className="text-muted-foreground text-xs truncate">{item.description}</div>
+                  <div className="text-label-secondary text-caption truncate">
+                    {item.description}
+                  </div>
                 ) : null}
               </div>
 
@@ -197,7 +199,7 @@ export function buildContentPagesColumns(
       cell: ({ row }) => {
         const formatted = options.formatUpdatedAt(row.original.updatedAt);
         return (
-          <span className={formatted ? "" : "text-muted-foreground"}>
+          <span className={formatted ? "" : "text-label-secondary"}>
             {formatted || options.t("content_pages:PLACEHOLDER_DASH")}
           </span>
         );
@@ -212,7 +214,7 @@ export function buildContentPagesColumns(
       header: options.t("content_pages:INDEX_COL_UPDATED_BY"),
       cell: ({ row }) => {
         const user = row.original.updatedBy;
-        if (!user) return <span className="text-muted-foreground">-</span>;
+        if (!user) return <span className="text-label-secondary">-</span>;
 
         const primary = user.displayName?.trim() || user.email?.trim() || "-";
         const secondary = user.email?.trim() || "";
@@ -225,7 +227,7 @@ export function buildContentPagesColumns(
             <div className="min-w-0">
               <div className="font-medium truncate">{primary}</div>
               {secondary ? (
-                <div className="text-sm text-muted-foreground truncate">{secondary}</div>
+                <div className="text-footnote text-label-secondary truncate">{secondary}</div>
               ) : null}
             </div>
           </div>

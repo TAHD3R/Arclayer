@@ -49,7 +49,7 @@ export function OrganizationMembersToolbar({
           onChange={(event) => onSearchInputChange(event.target.value)}
           placeholder={t("team:TEAM_SEARCH_PLACEHOLDER")}
           allowClear
-          prefix={<Search className="size-4 text-muted-foreground" />}
+          prefix={<Search className="size-4 text-label-secondary" />}
           style={{ width: 360, maxWidth: "100%" }}
         />
 

@@ -97,7 +97,7 @@ export function SettingAccordionItem(props: SettingAccordionItemProps) {
   const summaryNode = shouldRenderSummary ? <span>{props.summary}</span> : null;
   const placeholderNode =
     !shouldRenderSummary && props.placeholder !== undefined && props.placeholder !== null ? (
-      <span className="text-muted-foreground font-normal">{props.placeholder}</span>
+      <span className="text-label-secondary font-normal">{props.placeholder}</span>
     ) : null;
   const primaryValueNode = summaryNode ?? placeholderNode;
 
@@ -140,7 +140,7 @@ export function SettingAccordionItem(props: SettingAccordionItemProps) {
               ) : null}
             </div>
             {showChevron ? (
-              <div className="pt-1 text-muted-foreground">
+              <div className="pt-1 text-label-secondary">
                 <ChevronRight
                   className={cn(
                     "size-5 transition-transform duration-200",
@@ -159,11 +159,11 @@ export function SettingAccordionItem(props: SettingAccordionItemProps) {
           className={cn("group hover:no-underline", props.triggerClassName)}
         >
           <div className="flex flex-col gap-1">
-            <div className="text-lg font-bold leading-tight">
+            <div className="text-title3 font-bold leading-tight">
               <span className="group-hover:underline underline-offset-4">{props.title}</span>
             </div>
             {hasDescription || shouldRenderSummary ? (
-              <div className="text-muted-foreground leading-snug no-underline font-normal">
+              <div className="text-label-secondary leading-snug no-underline font-normal">
                 {hasDescription ? props.description : null}
                 {shouldRenderSummary ? (
                   <>

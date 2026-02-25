@@ -213,7 +213,7 @@ export function OrganizationMemberInspectSheet({
 
                   <div className="min-w-0 flex-1">
                     <div className="truncate font-semibold">{primary}</div>
-                    <div className="truncate text-muted-foreground">{secondary}</div>
+                    <div className="truncate text-label-secondary">{secondary}</div>
                   </div>
 
                   <div className="flex flex-wrap justify-end gap-1">

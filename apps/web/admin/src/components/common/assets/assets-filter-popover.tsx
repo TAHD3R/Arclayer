@@ -76,7 +76,7 @@ export function AssetsFilterPopover(props: {
         <div className="font-bold">{t("assets:ASSET_FILTER_TITLE")}</div>
         <div className="mt-3 grid grid-cols-1 gap-3">
           <div className="grid grid-cols-1 gap-1.5">
-            <div className="text-sm text-muted-foreground">
+            <div className="text-footnote text-label-secondary">
               {t("assets:ASSET_FILTER_FIELD_SORT")}
             </div>
             <Select
@@ -93,7 +93,7 @@ export function AssetsFilterPopover(props: {
           </div>
 
           <div className="grid grid-cols-1 gap-1.5">
-            <div className="text-sm text-muted-foreground">
+            <div className="text-footnote text-label-secondary">
               {t("assets:ASSET_FILTER_FIELD_VISIBILITY")}
             </div>
             <Select
@@ -107,7 +107,7 @@ export function AssetsFilterPopover(props: {
           </div>
 
           <div className="grid grid-cols-1 gap-1.5">
-            <div className="text-sm text-muted-foreground">
+            <div className="text-footnote text-label-secondary">
               {t("assets:ASSET_FILTER_FIELD_CREATED_AT")}
             </div>
             <DatePicker.RangePicker
@@ -130,7 +130,7 @@ export function AssetsFilterPopover(props: {
           </div>
 
           <div className="grid grid-cols-1 gap-1.5">
-            <div className="text-sm text-muted-foreground">
+            <div className="text-footnote text-label-secondary">
               {t("assets:ASSET_FILTER_FIELD_TAGS")}
             </div>
             <Select

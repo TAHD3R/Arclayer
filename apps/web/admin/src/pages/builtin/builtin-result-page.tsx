@@ -78,7 +78,9 @@ export function BuiltinResultPage({
             <Illustration className="max-w-105" />
           </EmptyMedia>
           <EmptyTitle>{title}</EmptyTitle>
-          {subTitle ? <EmptyDescription className="text-lg">{subTitle}</EmptyDescription> : null}
+          {subTitle ? (
+            <EmptyDescription className="text-title3">{subTitle}</EmptyDescription>
+          ) : null}
         </EmptyHeader>
         {actions ? (
           <EmptyContent className="flex-row flex-wrap justify-center">{actions}</EmptyContent>

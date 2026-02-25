@@ -186,10 +186,10 @@ export function PluginInstallDialog({
 
           <div className="flex flex-col items-center text-center">
             <CloudUpload
-              className={cn("size-10", isDragActive ? "text-primary" : "text-muted-foreground")}
+              className={cn("size-10", isDragActive ? "text-primary" : "text-label-secondary")}
             />
-            <div className="mt-3 text-base font-medium">{t("plugin:PLUGIN_CENTER_DROP_TITLE")}</div>
-            <div className="mt-1 text-sm text-muted-foreground">
+            <div className="mt-3 text-body font-medium">{t("plugin:PLUGIN_CENTER_DROP_TITLE")}</div>
+            <div className="mt-1 text-footnote text-label-secondary">
               {t("plugin:PLUGIN_CENTER_DROP_DESC")}
             </div>
 
@@ -212,7 +212,7 @@ export function PluginInstallDialog({
                 </Button>
               </div>
 
-              <div className="text-sm text-muted-foreground">
+              <div className="text-footnote text-label-secondary">
                 {file
                   ? `${file.name} (${formatBytes(file.size)})`
                   : t("plugin:PLUGIN_CENTER_FILE_EMPTY")}
@@ -222,7 +222,7 @@ export function PluginInstallDialog({
         </div>
 
         {step === "validating" ? (
-          <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
+          <div className="mt-4 flex items-center gap-2 text-footnote text-label-secondary">
             <LoaderOne />
             {t("plugin:PLUGIN_CENTER_VALIDATING")}
           </div>
@@ -265,7 +265,7 @@ export function PluginInstallDialog({
             </Descriptions>
 
             {step === "installing" ? (
-              <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
+              <div className="mt-4 flex items-center gap-2 text-footnote text-label-secondary">
                 <LoaderOne />
                 {t("plugin:PLUGIN_CENTER_INSTALLING")}
               </div>

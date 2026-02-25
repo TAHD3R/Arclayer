@@ -317,7 +317,7 @@ export function NotificationsPage() {
             <div className="space-y-4">
               <ItemGroup className={cn("rounded-lg border border-border bg-card")}>
                 {status === "all" && unreadItems.length ? (
-                  <div className="px-4 py-2 text-caption font-semibold text-muted-foreground">
+                  <div className="px-4 py-2 text-caption font-semibold text-label-secondary">
                     {t("NOTIFICATIONS_GROUP_UNREAD")}
                   </div>
                 ) : null}
@@ -360,7 +360,7 @@ export function NotificationsPage() {
                               <Icon
                                 className={cn(
                                   "size-4",
-                                  isRead ? "text-muted-foreground/60" : "text-muted-foreground",
+                                  isRead ? "text-label-secondary/60" : "text-label-secondary",
                                 )}
                                 aria-hidden="true"
                               />
@@ -372,7 +372,7 @@ export function NotificationsPage() {
                                   <span
                                     className={cn(
                                       "min-w-0 text-body truncate",
-                                      isRead ? "line-through text-muted-foreground" : undefined,
+                                      isRead ? "line-through text-label-secondary" : undefined,
                                     )}
                                   >
                                     {n.title}
@@ -383,7 +383,7 @@ export function NotificationsPage() {
                                 <ItemDescription
                                   className={cn(
                                     "text-callout",
-                                    isRead ? "text-muted-foreground/80" : undefined,
+                                    isRead ? "text-label-secondary/80" : undefined,
                                   )}
                                 >
                                   {n.body}
@@ -393,7 +393,7 @@ export function NotificationsPage() {
 
                             <div className="ml-auto flex flex-col items-end gap-2">
                               {timeText ? (
-                                <span className="shrink-0 text-footnote text-muted-foreground">
+                                <span className="shrink-0 text-footnote text-label-secondary">
                                   {timeText}
                                 </span>
                               ) : null}
@@ -440,7 +440,7 @@ export function NotificationsPage() {
                 {status === "all" && readItems.length ? (
                   <>
                     {unreadItems.length ? <ItemSeparator className="my-0" /> : null}
-                    <div className="px-4 py-2 text-caption font-semibold text-muted-foreground">
+                    <div className="px-4 py-2 text-caption font-semibold text-label-secondary">
                       {t("NOTIFICATIONS_GROUP_READ")}
                     </div>
                     <AnimatePresence initial={false}>
@@ -478,7 +478,7 @@ export function NotificationsPage() {
                               >
                                 <ItemMedia variant="icon" className="size-12 rounded-md">
                                   <Icon
-                                    className="size-4 text-muted-foreground/60"
+                                    className="size-4 text-label-secondary/60"
                                     aria-hidden="true"
                                   />
                                 </ItemMedia>
@@ -486,13 +486,13 @@ export function NotificationsPage() {
                                 <ItemContent>
                                   <ItemHeader>
                                     <ItemTitle className="min-w-0 flex-1">
-                                      <span className="min-w-0 text-body truncate line-through text-muted-foreground">
+                                      <span className="min-w-0 text-body truncate line-through text-label-secondary">
                                         {n.title}
                                       </span>
                                     </ItemTitle>
                                   </ItemHeader>
                                   {n.body ? (
-                                    <ItemDescription className="text-callout text-muted-foreground/80">
+                                    <ItemDescription className="text-callout text-label-secondary/80">
                                       {n.body}
                                     </ItemDescription>
                                   ) : null}
@@ -500,7 +500,7 @@ export function NotificationsPage() {
 
                                 <div className="ml-auto flex flex-col items-end gap-2">
                                   {timeText ? (
-                                    <span className="shrink-0 text-footnote text-muted-foreground">
+                                    <span className="shrink-0 text-footnote text-label-secondary">
                                       {timeText}
                                     </span>
                                   ) : null}

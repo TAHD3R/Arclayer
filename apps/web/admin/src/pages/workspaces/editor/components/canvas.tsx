@@ -25,7 +25,7 @@ export function Canvas({ iframeSrc, iframeRef, isLoading, loadError }: CanvasPro
     <main className="relative min-w-0 flex-1 overflow-auto bg-[#e9edf3]">
       {loadError ? (
         <div className="flex h-full items-center justify-center p-8">
-          <p className="text-sm text-destructive">{loadError}</p>
+          <p className="text-footnote text-destructive">{loadError}</p>
         </div>
       ) : isLoading ? (
         <div className="flex h-full items-center justify-center">

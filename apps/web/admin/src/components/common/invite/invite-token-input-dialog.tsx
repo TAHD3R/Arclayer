@@ -56,7 +56,7 @@ export function InviteTokenInputDialog(props: InviteTokenInputDialogProps) {
         <label className="font-semibold text-foreground">
           {t("invite:INVITE_TOKEN_INPUT_FIELD_LABEL")}
         </label>
-        <div className="text-muted-foreground">{t("invite:INVITE_TOKEN_INPUT_FIELD_HELP")}</div>
+        <div className="text-label-secondary">{t("invite:INVITE_TOKEN_INPUT_FIELD_HELP")}</div>
         <Input
           autoFocus
           value={value}

@@ -24,7 +24,7 @@ export function RolesMatrixTable(props: RolesMatrixTableProps) {
 
   return (
     <div className="relative isolate overflow-auto rounded-lg border bg-card">
-      <table className="w-full min-w-max text-sm [&_th]:whitespace-nowrap">
+      <table className="w-full min-w-max text-footnote [&_th]:whitespace-nowrap">
         <TableHeader className="sticky top-0 z-[2] bg-card">
           <TableRow>
             <TableHead className="sticky left-0 z-[3] w-[360px] bg-card text-center">
@@ -79,7 +79,7 @@ export function RolesMatrixTable(props: RolesMatrixTableProps) {
                     {permission.displayName}
                   </div>
                   {permission.displayDescription ? (
-                    <div className="mt-0.5 line-clamp-2 text-muted-foreground">
+                    <div className="mt-0.5 line-clamp-2 text-label-secondary">
                       {permission.displayDescription}
                     </div>
                   ) : null}

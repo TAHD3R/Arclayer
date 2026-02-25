@@ -73,7 +73,7 @@ export function InviteOrganizationMemberDialog(props: InviteOrganizationMemberDi
               <span className="font-semibold text-foreground">
                 {t("common:ORG_MEMBERS_INVITE_EMAIL")}
               </span>
-              <span className="text-muted-foreground">
+              <span className="text-label-secondary">
                 {t("common:ORG_MEMBERS_INVITE_EMAIL_HELP")}
               </span>
             </div>
@@ -93,7 +93,7 @@ export function InviteOrganizationMemberDialog(props: InviteOrganizationMemberDi
               <span className="font-semibold text-foreground">
                 {t("common:ORG_MEMBERS_INVITE_ROLE")}
               </span>
-              <span className="text-muted-foreground">
+              <span className="text-label-secondary">
                 {t("common:ORG_MEMBERS_INVITE_ROLE_HELP")}
               </span>
             </div>

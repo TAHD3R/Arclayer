@@ -55,7 +55,7 @@ export function WorkspaceMembersPopover({ workspace }: { workspace: Organization
           <Avatar src={member.avatarUrl ?? undefined}>{primary.slice(0, 1).toUpperCase()}</Avatar>
           <div className="min-w-0">
             <div className="truncate font-medium">{primary}</div>
-            <div className="truncate text-muted-foreground">{member.email || "-"}</div>
+            <div className="truncate text-label-secondary">{member.email || "-"}</div>
           </div>
         </div>
       </List.Item>
@@ -82,7 +82,7 @@ export function WorkspaceMembersPopover({ workspace }: { workspace: Organization
             allowClear
             value={rawQ}
             onChange={(event) => setRawQ(event.target.value)}
-            prefix={<Search className="size-4 text-muted-foreground" />}
+            prefix={<Search className="size-4 text-label-secondary" />}
             placeholder={t("common:ORG_WORKSPACES_MEMBERS_SEARCH_PLACEHOLDER")}
           />
 
@@ -93,7 +93,7 @@ export function WorkspaceMembersPopover({ workspace }: { workspace: Organization
               </div>
             ) : membersQuery.isError ? (
               <div className="py-6 text-center">
-                <div className="text-muted-foreground">{t("common:REQUEST_FAILED")}</div>
+                <div className="text-label-secondary">{t("common:REQUEST_FAILED")}</div>
                 <AntButton className="mt-2" onClick={() => void membersQuery.refetch()}>
                   {t("common:RETRY")}
                 </AntButton>

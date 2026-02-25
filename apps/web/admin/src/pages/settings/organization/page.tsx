@@ -294,7 +294,7 @@ export function OrganizationSettingsView() {
     return (
       <div className="grid gap-1.5">
         <span className="font-semibold text-foreground">{title}</span>
-        <span className="text-muted-foreground">{description}</span>
+        <span className="text-label-secondary">{description}</span>
       </div>
     );
   }, []);

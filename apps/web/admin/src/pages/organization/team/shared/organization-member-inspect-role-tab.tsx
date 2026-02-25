@@ -53,21 +53,21 @@ export function OrganizationMemberInspectRoleTab({
       className="py-4"
     >
       <div className="flex min-h-0 flex-1 flex-col px-8">
-        <div className="text-lg font-semibold">{roleName || "-"}</div>
+        <div className="text-title3 font-semibold">{roleName || "-"}</div>
 
-        <p className="text-muted-foreground">
+        <p className="text-label-secondary">
           {roleDescription || t("common:ORG_MEMBERS_INSPECT_ROLE_DESC_EMPTY")}
         </p>
 
         <div className="flex min-h-0 flex-1 flex-col">
-          <div className="mb-2 text-lg font-medium">{t("team:TEAM_ROLES_COL_PERMISSION")}</div>
+          <div className="mb-2 text-title3">{t("team:TEAM_ROLES_COL_PERMISSION")}</div>
           <div className="min-h-0 flex-1 divide-y overflow-auto rounded-md border">
             {permissions.map((permission) => (
               <div key={permission.code} className="grid grid-cols-[1fr_auto] gap-3 px-3 py-2">
                 <div className="min-w-0">
                   <div className="truncate font-medium">{permission.displayName}</div>
                   {permission.displayDescription ? (
-                    <p className="mt-0.5 line-clamp-2 text-muted-foreground">
+                    <p className="mt-0.5 line-clamp-2 text-label-secondary">
                       {permission.displayDescription}
                     </p>
                   ) : null}
@@ -76,14 +76,14 @@ export function OrganizationMemberInspectRoleTab({
                   {permission.granted ? (
                     <Check className="size-4 text-emerald-600" />
                   ) : (
-                    <Minus className="size-4 text-muted-foreground" />
+                    <Minus className="size-4 text-label-secondary" />
                   )}
                 </div>
               </div>
             ))}
 
             {!permissions.length ? (
-              <div className="px-3 py-6 text-center text-muted-foreground">
+              <div className="px-3 py-6 text-center text-label-secondary">
                 {t("common:ORG_MEMBERS_INSPECT_ROLE_PERMISSIONS_EMPTY")}
               </div>
             ) : null}

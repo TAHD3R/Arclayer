@@ -82,7 +82,9 @@ export function TeamMembersFilterPopover(props: {
         <div className="font-bold">{t("team:TEAM_FILTER_TITLE")}</div>
         <div className="mt-3 grid grid-cols-1 gap-3">
           <div className="grid grid-cols-1 gap-1.5">
-            <div className="text-sm text-muted-foreground">{t("team:TEAM_FILTER_FIELD_SORT")}</div>
+            <div className="text-footnote text-label-secondary">
+              {t("team:TEAM_FILTER_FIELD_SORT")}
+            </div>
             <Select
               value={props.sort}
               onChange={props.onSortChange}
@@ -102,7 +104,7 @@ export function TeamMembersFilterPopover(props: {
           </div>
 
           <div className="grid grid-cols-1 gap-1.5">
-            <div className="text-sm text-muted-foreground">
+            <div className="text-footnote text-label-secondary">
               {t("team:TEAM_FILTER_FIELD_MEMBERSHIP_STATUS")}
             </div>
             <Select
@@ -120,7 +122,7 @@ export function TeamMembersFilterPopover(props: {
           </div>
 
           <div className="grid grid-cols-1 gap-1.5">
-            <div className="text-sm text-muted-foreground">
+            <div className="text-footnote text-label-secondary">
               {t("team:TEAM_FILTER_FIELD_USER_STATUS")}
             </div>
             <Select
@@ -135,7 +137,9 @@ export function TeamMembersFilterPopover(props: {
           </div>
 
           <div className="grid grid-cols-1 gap-1.5">
-            <div className="text-sm text-muted-foreground">{t("team:TEAM_FILTER_FIELD_ROLE")}</div>
+            <div className="text-footnote text-label-secondary">
+              {t("team:TEAM_FILTER_FIELD_ROLE")}
+            </div>
             <Select
               showSearch
               optionFilterProp="label"

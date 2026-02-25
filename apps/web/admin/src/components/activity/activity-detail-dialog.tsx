@@ -93,26 +93,28 @@ export function ActivityDetailDialog(props: {
             <>
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 <div className="rounded-md border bg-muted/30 p-3">
-                  <div className="text-xs text-muted-foreground">
+                  <div className="text-caption text-label-secondary">
                     {t("activity:ACTIVITY_FIELD_EVENT_NAME")}
                   </div>
-                  <div className="mt-1 font-mono text-xs break-words">{event.eventName || "-"}</div>
+                  <div className="mt-1 font-mono text-caption break-words">
+                    {event.eventName || "-"}
+                  </div>
                 </div>
 
                 <div className="rounded-md border bg-muted/30 p-3">
-                  <div className="text-xs text-muted-foreground">
+                  <div className="text-caption text-label-secondary">
                     {t("activity:ACTIVITY_FIELD_SOURCE")}
                   </div>
-                  <div className="mt-1 text-sm break-words">{event.source || "-"}</div>
+                  <div className="mt-1 text-footnote break-words">{event.source || "-"}</div>
                 </div>
               </div>
 
               {event.workspaceId ? (
                 <div className="rounded-md border bg-muted/30 p-3">
-                  <div className="text-xs text-muted-foreground">
+                  <div className="text-caption text-label-secondary">
                     {t("activity:ACTIVITY_TABLE_WORKSPACE")}
                   </div>
-                  <div className="mt-1 text-sm break-words">{workspaceLabel || "-"}</div>
+                  <div className="mt-1 text-footnote break-words">{workspaceLabel || "-"}</div>
                 </div>
               ) : null}
             </>
@@ -120,23 +122,23 @@ export function ActivityDetailDialog(props: {
 
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <div className="rounded-md border bg-muted/30 p-3">
-              <div className="text-xs text-muted-foreground">
+              <div className="text-caption text-label-secondary">
                 {t("activity:ACTIVITY_FIELD_OCCURRED_AT")}
               </div>
-              <div className="mt-1 text-sm">{occurredAtText}</div>
+              <div className="mt-1 text-footnote">{occurredAtText}</div>
             </div>
 
             <div className="rounded-md border bg-muted/30 p-3">
-              <div className="text-xs text-muted-foreground">
+              <div className="text-caption text-label-secondary">
                 {t("activity:ACTIVITY_FIELD_TRACE_ID")}
               </div>
-              <div className="mt-1 font-mono text-xs break-words">{event.traceId || "-"}</div>
+              <div className="mt-1 font-mono text-caption break-words">{event.traceId || "-"}</div>
             </div>
           </div>
 
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <div className="rounded-md border bg-muted/30 p-3">
-              <div className="text-xs text-muted-foreground">
+              <div className="text-caption text-label-secondary">
                 {t("activity:ACTIVITY_FIELD_ACTOR")}
               </div>
               <div className="mt-2">
@@ -164,7 +166,7 @@ export function ActivityDetailDialog(props: {
             </div>
 
             <div className="rounded-md border bg-muted/30 p-3">
-              <div className="text-xs text-muted-foreground">
+              <div className="text-caption text-label-secondary">
                 {t("activity:ACTIVITY_FIELD_SUBJECT")}
               </div>
               <div className="mt-2">
@@ -193,10 +195,10 @@ export function ActivityDetailDialog(props: {
           </div>
 
           <div className="rounded-md border bg-muted/30 p-3">
-            <div className="text-xs text-muted-foreground">
+            <div className="text-caption text-label-secondary">
               {t("activity:ACTIVITY_FIELD_PROPERTIES")}
             </div>
-            <pre className="mt-2 max-h-[45vh] overflow-auto whitespace-pre-wrap break-words text-xs">
+            <pre className="mt-2 max-h-[45vh] overflow-auto whitespace-pre-wrap break-words text-caption">
               {safeJsonStringify(event.properties)}
             </pre>
           </div>

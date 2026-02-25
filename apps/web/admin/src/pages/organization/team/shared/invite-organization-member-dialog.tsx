@@ -169,7 +169,7 @@ export function InviteOrganizationMemberDialog(props: {
               <span className="font-semibold text-foreground">
                 {t("team:TEAM_INVITE_FIELD_TO")}
               </span>
-              <span className="text-muted-foreground">{t("team:TEAM_INVITE_FIELD_TO_HELP")}</span>
+              <span className="text-label-secondary">{t("team:TEAM_INVITE_FIELD_TO_HELP")}</span>
             </div>
           }
           validateStatus={emailHasError ? "error" : undefined}
@@ -232,7 +232,7 @@ export function InviteOrganizationMemberDialog(props: {
               <span className="font-semibold text-foreground">
                 {t("team:TEAM_INVITE_FIELD_ROLE")}
               </span>
-              <span className="text-muted-foreground">{t("team:TEAM_INVITE_ROLE_HELP")}</span>
+              <span className="text-label-secondary">{t("team:TEAM_INVITE_ROLE_HELP")}</span>
             </div>
           }
           validateStatus={roleError ? "error" : undefined}
@@ -265,7 +265,7 @@ export function InviteOrganizationMemberDialog(props: {
               <span className="font-semibold text-foreground">
                 {t("team:TEAM_INVITE_LINK_FIELD_EXPIRES")}
               </span>
-              <span className="text-muted-foreground">
+              <span className="text-label-secondary">
                 {t("team:TEAM_INVITE_FIELD_EXPIRES_HELP")}
               </span>
             </div>

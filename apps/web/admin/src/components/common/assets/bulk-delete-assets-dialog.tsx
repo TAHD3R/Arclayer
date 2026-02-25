@@ -29,10 +29,10 @@ export function BulkDeleteAssetsDialog(props: BulkDeleteAssetsDialogProps) {
     <AlertDialog open={props.open} onOpenChange={props.onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle className="font-bold! text-xl">
+          <AlertDialogTitle className="text-title2 font-bold!">
             {t("assets:ASSET_BULK_DELETE_CONFIRM_TITLE", { count: props.assetCount })}
           </AlertDialogTitle>
-          <AlertDialogDescription className="text-base">
+          <AlertDialogDescription className="text-body">
             {t("assets:ASSET_BULK_DELETE_CONFIRM_DESC")}
           </AlertDialogDescription>
         </AlertDialogHeader>

@@ -110,7 +110,7 @@ export function createOrganizationMemberColumns({
 
             <div className="min-w-0">
               <div className="truncate font-medium">{primary}</div>
-              <div className="truncate text-xs text-muted-foreground">{secondary}</div>
+              <div className="truncate text-caption text-label-secondary">{secondary}</div>
             </div>
 
             <div className="ml-auto pl-2">

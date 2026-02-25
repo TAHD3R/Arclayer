@@ -239,7 +239,7 @@ export function StorageSettingsTab({
         ),
         content: () => (
           <>
-            <div className="mb-4 text-muted-foreground leading-relaxed">
+            <div className="mb-4 text-label-secondary leading-relaxed">
               {t("settings:SETTINGS_STORAGE_PROVIDER_DIALOG_HELP")}
             </div>
 
@@ -284,7 +284,7 @@ export function StorageSettingsTab({
         ),
         content: () => (
           <>
-            <div className="mb-4 text-muted-foreground leading-relaxed">
+            <div className="mb-4 text-label-secondary leading-relaxed">
               {t("settings:SETTINGS_STORAGE_PUBLIC_BASE_URL_DIALOG_HELP")}
             </div>
 
@@ -333,7 +333,7 @@ export function StorageSettingsTab({
         ),
         content: () => (
           <>
-            <div className="mb-4 text-muted-foreground leading-relaxed">
+            <div className="mb-4 text-label-secondary leading-relaxed">
               {t("settings:SETTINGS_STORAGE_UPLOAD_POLICY_SHEET_HELP")}
             </div>
 
@@ -390,7 +390,7 @@ export function StorageSettingsTab({
         ),
         content: () => (
           <>
-            <div className="mb-4 text-muted-foreground leading-relaxed">
+            <div className="mb-4 text-label-secondary leading-relaxed">
               {t("settings:SETTINGS_STORAGE_S3_CONFIG_SHEET_HELP")}
             </div>
 

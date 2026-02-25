@@ -45,7 +45,7 @@ function FormSelect({
     <select
       value={value ?? ""}
       onChange={(e) => onChange?.(e.target.value || null)}
-      className="h-9 w-full rounded-md border border-border bg-background px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+      className="h-9 w-full rounded-md border border-border bg-background px-3 py-1 text-footnote shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
     >
       {placeholder ? (
         <option value="" disabled>
@@ -69,7 +69,7 @@ function renderFieldHeader(
   return (
     <div className="grid gap-1.5">
       <span className="font-semibold text-foreground">{t(titleKey)}</span>
-      <span className="text-muted-foreground text-sm">{t(descKey)}</span>
+      <span className="text-label-secondary text-footnote">{t(descKey)}</span>
     </div>
   );
 }
@@ -251,7 +251,7 @@ export function ContentPagesSheet(props: ContentPagesSheetProps) {
             </div>
 
             {typeSwitchHint ? (
-              <div className="flex gap-2.5 rounded-md border border-blue-200 bg-blue-50 p-3 text-sm dark:border-blue-800 dark:bg-blue-950/40">
+              <div className="flex gap-2.5 rounded-md border border-blue-200 bg-blue-50 p-3 text-footnote dark:border-blue-800 dark:bg-blue-950/40">
                 <Info className="size-4 shrink-0 text-blue-500 mt-0.5" />
                 <div className="grid gap-1">
                   <span className="font-medium">
@@ -259,7 +259,7 @@ export function ContentPagesSheet(props: ContentPagesSheetProps) {
                       ? props.t("content_pages:TYPE_SWITCH_TEMPLATE_TITLE")
                       : props.t("content_pages:TYPE_SWITCH_STATIC_TITLE")}
                   </span>
-                  <span className="text-muted-foreground">
+                  <span className="text-label-secondary">
                     {typeSwitchHint === "template"
                       ? props.t("content_pages:TYPE_SWITCH_TEMPLATE_DESC")
                       : props.t("content_pages:TYPE_SWITCH_STATIC_DESC")}
@@ -396,7 +396,7 @@ export function ContentPagesSheet(props: ContentPagesSheetProps) {
             ) : null}
 
             {typeValue === "template" ? (
-              <div className="text-xs text-muted-foreground">
+              <div className="text-caption text-label-secondary">
                 {props.t("content_pages:TYPE_TEMPLATE_HINT")}
               </div>
             ) : null}

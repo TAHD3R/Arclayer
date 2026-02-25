@@ -64,8 +64,10 @@ export function OrganizationOverviewPage(props: { organizationId: string }) {
 
           <Card>
             <div className="space-y-2">
-              <h3 className="text-lg font-semibold">{t("common:ORG_OVERVIEW_NEXT_TITLE")}</h3>
-              <p className="text-sm text-muted-foreground">{t("common:ORG_OVERVIEW_NEXT_DESC")}</p>
+              <h3 className="text-title3 font-semibold">{t("common:ORG_OVERVIEW_NEXT_TITLE")}</h3>
+              <p className="text-footnote text-label-secondary">
+                {t("common:ORG_OVERVIEW_NEXT_DESC")}
+              </p>
             </div>
           </Card>
         </div>

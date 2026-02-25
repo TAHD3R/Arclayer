@@ -50,7 +50,7 @@ function LayerSection({
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center gap-1 py-1 text-xs font-semibold text-muted-foreground"
+        className="flex w-full items-center gap-1 py-1 text-caption font-semibold text-label-secondary"
       >
         <span className={`transition-transform ${open ? "rotate-90" : ""}`}>▶</span>
         {LAYER_LABEL[layer]} ({tokens.length})
@@ -64,8 +64,8 @@ function LayerSection({
             const color = !ref && typeof display === "string" && isColor(display);
 
             return (
-              <label key={token.key} className="flex items-center gap-2 text-xs">
-                <span className="w-32 shrink-0 truncate text-muted-foreground" title={token.key}>
+              <label key={token.key} className="flex items-center gap-2 text-caption">
+                <span className="w-32 shrink-0 truncate text-label-secondary" title={token.key}>
                   {token.key}
                 </span>
                 {color && (
@@ -75,7 +75,7 @@ function LayerSection({
                   />
                 )}
                 {ref ? (
-                  <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                  <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-label-secondary">
                     {display}
                   </span>
                 ) : (
@@ -83,7 +83,7 @@ function LayerSection({
                     type="text"
                     value={display}
                     onChange={(e) => onTokenChange?.(token.key, mode, e.target.value)}
-                    className="h-7 flex-1 rounded border bg-transparent px-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+                    className="h-7 flex-1 rounded border bg-transparent px-2 text-caption focus:outline-none focus:ring-1 focus:ring-ring"
                   />
                 )}
               </label>
@@ -105,7 +105,7 @@ export function DesignTokenEditor({
   if (!collection) {
     return (
       <div className="flex flex-1 items-center justify-center p-4">
-        <span className="text-xs text-muted-foreground">
+        <span className="text-caption text-label-secondary">
           {t("content_pages:EDITOR_V2_DESIGN_TOKENS_EMPTY", { defaultValue: "No design tokens" })}
         </span>
       </div>
@@ -129,8 +129,8 @@ export function DesignTokenEditor({
             <button
               key={m}
               type="button"
-              className={`rounded px-2 py-0.5 text-xs ${
-                m === mode ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+              className={`rounded px-2 py-0.5 text-caption ${
+                m === mode ? "bg-primary text-primary-foreground" : "bg-muted text-label-secondary"
               }`}
               onClick={() => onTokenChange?.("__mode__", m, m)}
             >

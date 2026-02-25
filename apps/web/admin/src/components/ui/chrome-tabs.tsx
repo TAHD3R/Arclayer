@@ -185,7 +185,7 @@ function ChromeTabsListImpl(
           className={cn(
             "absolute left-0 top-1/2 z-10 -translate-y-1/2",
             "h-8 w-8 rounded-md border bg-background/80 backdrop-blur",
-            "text-muted-foreground hover:text-foreground",
+            "text-label-secondary hover:text-foreground",
             "transition-colors",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
           )}
@@ -202,7 +202,7 @@ function ChromeTabsListImpl(
           className={cn(
             "absolute right-0 top-1/2 z-10 -translate-y-1/2",
             "h-8 w-8 rounded-md border bg-background/80 backdrop-blur",
-            "text-muted-foreground hover:text-foreground",
+            "text-label-secondary hover:text-foreground",
             "transition-colors",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
           )}
@@ -261,8 +261,8 @@ const ChromeTabsTrigger = React.forwardRef<
       "rounded-t-md rounded-b-none",
       // Padding requirement: 12px 32px
       "px-8 py-3",
-      "text-sm font-bold",
-      "text-muted-foreground",
+      "text-footnote font-bold",
+      "text-label-secondary",
       "transition-colors",
       "hover:text-foreground",
       // Fallback when the trigger is wrapped by other Radix primitives that also set data-state.

@@ -80,7 +80,7 @@ export function SetupLayout({ children }: PropsWithChildren) {
           <div className="w-full max-w-6xl max-h-full overflow-auto">{children}</div>
         </div>
 
-        <div className="pb-6 text-center text-xs text-(--color-muted-foreground) select-none">
+        <div className="pb-6 text-center text-caption text-label-secondary select-none">
           <Trans
             i18nKey="auth:FOOTER_COPYRIGHT"
             components={{

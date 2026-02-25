@@ -26,7 +26,7 @@ export function ContentPagesToolbar(props: ContentPagesToolbarProps) {
           value={props.searchInput}
           onChange={(event) => props.onSearchInputChange(event.target.value)}
           placeholder={props.t("content_pages:INDEX_SEARCH_PLACEHOLDER")}
-          prefix={<Search size={16} className="text-muted-foreground" />}
+          prefix={<Search size={16} className="text-label-secondary" />}
           style={{ width: 320, maxWidth: "100%" }}
         />
 

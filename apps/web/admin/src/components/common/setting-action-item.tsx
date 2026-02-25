@@ -93,7 +93,7 @@ export function SettingActionItem(props: SettingActionItemProps) {
       {hasThirdColumn ? (
         <div
           className={cn(
-            "text-muted-foreground",
+            "text-label-secondary",
             hasRight ? "flex items-center justify-end gap-2" : "pt-1",
           )}
         >

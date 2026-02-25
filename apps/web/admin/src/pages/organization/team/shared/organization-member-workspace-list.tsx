@@ -67,12 +67,12 @@ export function OrganizationMemberWorkspaceList({
           onChange={(event) => setSearchInput(event.target.value)}
           placeholder={t("common:ORG_MEMBERS_WORKSPACE_SEARCH_PLACEHOLDER")}
           allowClear
-          prefix={<Search className="size-4 text-muted-foreground" />}
+          prefix={<Search className="size-4 text-label-secondary" />}
         />
       ) : null}
 
       {!filtered.length ? (
-        <div className="rounded-md border border-dashed p-4 text-muted-foreground">
+        <div className="rounded-md border border-dashed p-4 text-label-secondary">
           {emptyText || t("common:ORG_MEMBERS_WORKSPACE_EMPTY")}
         </div>
       ) : (
@@ -114,7 +114,7 @@ export function OrganizationMemberWorkspaceList({
                       </Tag>
                     </div>
 
-                    <div className="mt-0.5 truncate text-muted-foreground">{desc}</div>
+                    <div className="mt-0.5 truncate text-label-secondary">{desc}</div>
                   </div>
                 </div>
               </button>

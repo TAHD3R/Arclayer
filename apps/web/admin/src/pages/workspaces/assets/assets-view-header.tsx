@@ -116,7 +116,7 @@ export function AssetsViewHeader(props: AssetsViewHeaderProps) {
           value={props.searchInput}
           onChange={(event) => props.setSearchInput(event.target.value)}
           placeholder={props.t("assets:ASSET_SEARCH_PLACEHOLDER")}
-          prefix={<Search size={16} className="text-muted-foreground" />}
+          prefix={<Search size={16} className="text-label-secondary" />}
           style={{ width: 260 }}
         />
         <AssetsFilterPopover

@@ -69,7 +69,7 @@ function getFileTypeIcon(file: File) {
   if (mime.startsWith("video/")) return <FileVideo className="size-5 text-purple-500" />;
   if (mime.startsWith("audio/")) return <FileAudio className="size-5 text-amber-500" />;
   if (mime.startsWith("text/")) return <FileText className="size-5 text-emerald-500" />;
-  return <FileIcon className="size-5 text-muted-foreground" />;
+  return <FileIcon className="size-5 text-label-secondary" />;
 }
 
 function nextLocalId() {
@@ -378,10 +378,10 @@ export function AssetUploadDialog(props: {
 
           <div className="flex flex-col items-center text-center">
             <CloudUpload
-              className={cn("size-10", isDragActive ? "text-primary" : "text-muted-foreground")}
+              className={cn("size-10", isDragActive ? "text-primary" : "text-label-secondary")}
             />
-            <div className="mt-3 text-base font-medium">{t("assets:ASSET_UPLOAD_DROP_TITLE")}</div>
-            <div className="mt-1 text-sm text-muted-foreground">
+            <div className="mt-3 text-body font-medium">{t("assets:ASSET_UPLOAD_DROP_TITLE")}</div>
+            <div className="mt-1 text-footnote text-label-secondary">
               {t("assets:ASSET_UPLOAD_DROP_DESC")}
             </div>
 
@@ -413,10 +413,10 @@ export function AssetUploadDialog(props: {
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between gap-3">
                         <div className="min-w-0">
-                          <div className="truncate text-sm font-bold" title={it.file.name}>
+                          <div className="truncate text-footnote font-bold" title={it.file.name}>
                             {it.file.name}
                           </div>
-                          <div className="mt-0.5 text-sm text-muted-foreground">
+                          <div className="mt-0.5 text-footnote text-label-secondary">
                             {formatBytes(it.file.size)}
                           </div>
                         </div>
@@ -458,7 +458,7 @@ export function AssetUploadDialog(props: {
                             style={{ width: `${Math.min(100, Math.max(0, it.progress))}%` }}
                           />
                         </div>
-                        <div className="mt-1 flex items-center justify-between text-sm text-muted-foreground">
+                        <div className="mt-1 flex items-center justify-between text-footnote text-label-secondary">
                           <span>
                             {it.status === "pending"
                               ? t("assets:ASSET_UPLOAD_STATUS_PENDING")
@@ -474,7 +474,7 @@ export function AssetUploadDialog(props: {
                         </div>
 
                         {it.errorText ? (
-                          <div className="mt-1 text-xs text-destructive">{it.errorText}</div>
+                          <div className="mt-1 text-caption text-destructive">{it.errorText}</div>
                         ) : null}
                       </div>
                     </div>
@@ -483,7 +483,7 @@ export function AssetUploadDialog(props: {
               ))}
             </div>
           ) : (
-            <div className="px-4 py-6 text-sm text-muted-foreground">
+            <div className="px-4 py-6 text-footnote text-label-secondary">
               {t("assets:ASSET_UPLOAD_LIST_EMPTY")}
             </div>
           )}

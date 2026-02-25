@@ -20,7 +20,7 @@ function userInitials(label: string | null | undefined): string {
 }
 
 function renderUserLabel(user: TeamUserRef | null): React.ReactNode {
-  if (!user) return <span className="text-muted-foreground">-</span>;
+  if (!user) return <span className="text-label-secondary">-</span>;
   const primary = (user.displayName || user.username || user.email || "-").trim() || "-";
   const secondary = user.email || user.username || "";
   return (
@@ -37,9 +37,9 @@ function renderUserLabel(user: TeamUserRef | null): React.ReactNode {
         {userInitials(primary)}
       </Avatar>
       <div className="min-w-0">
-        <div className="text-sm font-medium truncate">{primary}</div>
+        <div className="text-footnote font-medium truncate">{primary}</div>
         {secondary ? (
-          <div className="text-xs text-muted-foreground truncate">{secondary}</div>
+          <div className="text-caption text-label-secondary truncate">{secondary}</div>
         ) : null}
       </div>
     </div>
@@ -105,7 +105,7 @@ export function InviteLinkParticipantsPopover(props: {
   const content = (
     <div className="w-[380px] max-w-[85vw]">
       <div className="flex items-center justify-between gap-2">
-        <div className="text-sm font-medium">
+        <div className="text-footnote font-medium">
           {t("team:TEAM_INVITE_LINKS_PARTICIPANT_POPOVER_TITLE")}
         </div>
         <Tag color="blue" style={{ marginInlineEnd: 0 }}>
@@ -129,7 +129,7 @@ export function InviteLinkParticipantsPopover(props: {
           </div>
         ) : query.isError ? (
           <div className="py-6 text-center">
-            <div className="text-sm text-muted-foreground">{t("common:REQUEST_FAILED")}</div>
+            <div className="text-footnote text-label-secondary">{t("common:REQUEST_FAILED")}</div>
             <Button
               size="small"
               className="mt-2"
@@ -151,7 +151,7 @@ export function InviteLinkParticipantsPopover(props: {
                   <List.Item className="py-2">
                     <div className="flex items-center justify-between gap-3 w-full min-w-0">
                       <div className="min-w-0">{renderUserLabel(item.user)}</div>
-                      <div className="text-xs text-muted-foreground whitespace-nowrap">
+                      <div className="text-caption text-label-secondary whitespace-nowrap">
                         {dateTime.formatDateTime(item.usedAt, { emptyValue: "-" })}
                       </div>
                     </div>
@@ -180,7 +180,7 @@ export function InviteLinkParticipantsPopover(props: {
 
   if (props.usesCount <= 0)
     return (
-      <span className="text-muted-foreground">{t("team:TEAM_INVITE_LINKS_PARTICIPANT_EMPTY")}</span>
+      <span className="text-label-secondary">{t("team:TEAM_INVITE_LINKS_PARTICIPANT_EMPTY")}</span>
     );
 
   return (

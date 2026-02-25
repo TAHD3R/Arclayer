@@ -109,9 +109,7 @@ export function TeamRolesDialogs(props: TeamRolesDialogsProps) {
               <label className="font-semibold text-foreground">
                 {t("team:TEAM_ROLES_FIELD_TEMPLATE")}
               </label>
-              <div className="text-muted-foreground">
-                {t("team:TEAM_ROLES_FIELD_TEMPLATE_HELP")}
-              </div>
+              <div className="text-label-secondary">{t("team:TEAM_ROLES_FIELD_TEMPLATE_HELP")}</div>
             </div>
             <Controller
               name="templateRoleCode"
@@ -131,7 +129,7 @@ export function TeamRolesDialogs(props: TeamRolesDialogsProps) {
               )}
             />
             {createErrors.templateRoleCode?.message ? (
-              <p className="text-xs text-destructive">
+              <p className="text-caption text-destructive">
                 {String(createErrors.templateRoleCode.message)}
               </p>
             ) : null}
@@ -142,7 +140,7 @@ export function TeamRolesDialogs(props: TeamRolesDialogsProps) {
               <label className="font-semibold text-foreground">
                 {t("team:TEAM_ROLES_FIELD_NAME")}
               </label>
-              <div className="text-muted-foreground">{t("team:TEAM_ROLES_FIELD_NAME_HELP")}</div>
+              <div className="text-label-secondary">{t("team:TEAM_ROLES_FIELD_NAME_HELP")}</div>
             </div>
             <Controller
               name="name"
@@ -155,7 +153,7 @@ export function TeamRolesDialogs(props: TeamRolesDialogsProps) {
               )}
             />
             {createErrors.name?.message ? (
-              <p className="text-xs text-destructive">{String(createErrors.name.message)}</p>
+              <p className="text-caption text-destructive">{String(createErrors.name.message)}</p>
             ) : null}
           </div>
 
@@ -164,7 +162,7 @@ export function TeamRolesDialogs(props: TeamRolesDialogsProps) {
               <label className="font-semibold text-foreground">
                 {t("team:TEAM_ROLES_FIELD_DESC")}
               </label>
-              <div className="text-muted-foreground">{t("team:TEAM_ROLES_FIELD_DESC_HELP")}</div>
+              <div className="text-label-secondary">{t("team:TEAM_ROLES_FIELD_DESC_HELP")}</div>
             </div>
             <Controller
               name="description"

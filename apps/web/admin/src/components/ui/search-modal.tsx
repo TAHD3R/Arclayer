@@ -88,8 +88,8 @@ export function SearchModal({ children, data }: SearchModalProps) {
           />
           <CommandList className="max-h-[380px] min-h-[300px] px-2 md:px-0">
             <CommandEmpty className="flex min-h-[240px] flex-col items-center justify-center gap-2">
-              <SearchIcon className="size-5 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">{t("CMDK_NO_RESULTS")}</p>
+              <SearchIcon className="size-5 text-label-secondary" />
+              <p className="text-footnote text-label-secondary">{t("CMDK_NO_RESULTS")}</p>
             </CommandEmpty>
             <CommandGroup>
               {filteredItems.map((item) => {
@@ -107,13 +107,15 @@ export function SearchModal({ children, data }: SearchModalProps) {
                   >
                     {Icon ? <Icon className="size-4" aria-hidden="true" /> : null}
                     <div className="min-w-0 flex flex-col">
-                      <p className="truncate text-sm font-medium">{item.title}</p>
+                      <p className="truncate text-footnote font-medium">{item.title}</p>
                       {item.description ? (
-                        <p className="truncate text-xs text-muted-foreground">{item.description}</p>
+                        <p className="truncate text-caption text-label-secondary">
+                          {item.description}
+                        </p>
                       ) : null}
                     </div>
                     {item.category ? (
-                      <p className="ml-auto shrink-0 text-xs text-muted-foreground">
+                      <p className="ml-auto shrink-0 text-caption text-label-secondary">
                         {item.category}
                       </p>
                     ) : null}

@@ -702,9 +702,11 @@ export function AcceptInviteView(props: { token: string | null }) {
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-xl">{t("invite:INVITE_CONFIRM_JOIN_TITLE")}</DialogTitle>
+            <DialogTitle className="text-title2">
+              {t("invite:INVITE_CONFIRM_JOIN_TITLE")}
+            </DialogTitle>
             <DialogDescription asChild>
-              <div className="text-muted-foreground">
+              <div className="text-label-secondary">
                 <p>
                   {t("invite:INVITE_CONFIRM_JOIN_LINE1", {
                     email: myEmail || inviteEmail,
@@ -714,13 +716,13 @@ export function AcceptInviteView(props: { token: string | null }) {
                 <p className="mt-2">
                   {t("invite:INVITE_CONFIRM_JOIN_LINE2", { roleName: roleResolved.name })}
                   {roleResolved.description ? (
-                    <span className="text-muted-foreground/70">
+                    <span className="text-label-secondary/70">
                       {" — "}
                       {roleResolved.description}
                     </span>
                   ) : null}
                 </p>
-                <p className="mt-3 text-muted-foreground/70">
+                <p className="mt-3 text-label-secondary/70">
                   {t("invite:INVITE_CONFIRM_JOIN_RISK_NOTICE")}
                 </p>
               </div>

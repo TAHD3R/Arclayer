@@ -296,10 +296,10 @@ export function MessagingSettingsTab({
             </div>
 
             <div className="rounded-lg border bg-muted/20 p-4">
-              <div className="text-sm font-semibold">
+              <div className="text-footnote font-semibold">
                 {t("settings:SETTINGS_MESSAGING_MAIL_TEST_TITLE")}
               </div>
-              <div className="mt-1 text-sm text-muted-foreground">
+              <div className="mt-1 text-footnote text-label-secondary">
                 {t("settings:SETTINGS_MESSAGING_MAIL_TEST_DESC")}
               </div>
 
@@ -428,7 +428,7 @@ export function MessagingSettingsTab({
                               <div className="font-medium">
                                 {t("settings:SETTINGS_MESSAGING_MAIL_TEMPLATE_REG_PROMPT_TITLE")}
                               </div>
-                              <div className="text-muted-foreground">
+                              <div className="text-label-secondary">
                                 {t("settings:SETTINGS_MESSAGING_MAIL_TEMPLATE_REG_PROMPT_DESC")}
                               </div>
                             </div>
@@ -441,7 +441,7 @@ export function MessagingSettingsTab({
                               <div className="font-medium">
                                 {t("settings:SETTINGS_MESSAGING_MAIL_TEMPLATE_WELCOME_TITLE")}
                               </div>
-                              <div className="text-muted-foreground">
+                              <div className="text-label-secondary">
                                 {t("settings:SETTINGS_MESSAGING_MAIL_TEMPLATE_WELCOME_DESC")}
                               </div>
                             </div>
@@ -490,7 +490,7 @@ export function MessagingSettingsTab({
                     <div className="font-medium">
                       {t("settings:SETTINGS_MESSAGING_NOTIFICATION_INVITE_TITLE")}
                     </div>
-                    <div className="text-muted-foreground">
+                    <div className="text-label-secondary">
                       {t("settings:SETTINGS_MESSAGING_NOTIFICATION_INVITE_DESC")}
                     </div>
                   </div>

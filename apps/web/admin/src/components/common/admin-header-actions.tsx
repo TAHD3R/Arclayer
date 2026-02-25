@@ -61,7 +61,7 @@ function HeaderActionTrigger(props: { title: string; children: (hovered: boolean
     <FloatingPanelTrigger
       title={props.title}
       className={cn(
-        "relative size-9 justify-center rounded-lg border-0 bg-background text-muted-foreground",
+        "relative size-9 justify-center rounded-lg border-0 bg-background text-label-secondary",
         "hover:bg-muted hover:text-foreground",
         "data-[state=open]:bg-muted data-[state=open]:text-foreground",
         "transition-colors duration-150",
@@ -245,31 +245,31 @@ function HeaderNotificationsPanel() {
                 <div
                   className={cn(
                     "min-w-0 truncate text-footnote font-semibold",
-                    item.readAt ? "text-muted-foreground" : "text-foreground",
+                    item.readAt ? "text-label-secondary" : "text-foreground",
                   )}
                 >
                   {item.title}
                 </div>
                 {!item.readAt ? (
-                  <span className="inline-flex items-center gap-1 text-caption text-muted-foreground">
+                  <span className="inline-flex items-center gap-1 text-caption text-label-secondary">
                     <Check className="size-3" aria-hidden="true" />
                     {t("NOTIFICATIONS_MARK_AS_READ")}
                   </span>
                 ) : null}
               </div>
               {item.body ? (
-                <div className="mt-1 line-clamp-2 text-caption text-muted-foreground">
+                <div className="mt-1 line-clamp-2 text-caption text-label-secondary">
                   {item.body}
                 </div>
               ) : null}
-              <div className="mt-1 text-caption text-muted-foreground">
+              <div className="mt-1 text-caption text-label-secondary">
                 {formatRelativeTimeAt(item.createdAt, i18n.language, nowMs)}
               </div>
             </button>
           ))}
 
           {hasMore ? (
-            <div className="rounded-md border border-dashed border-border px-3 py-2 text-caption text-muted-foreground">
+            <div className="rounded-md border border-dashed border-border px-3 py-2 text-caption text-label-secondary">
               {t("NOTIFICATIONS_PREVIEW_MORE_HINT")}
             </div>
           ) : null}
@@ -321,7 +321,7 @@ function HeaderSupportPanel() {
       <button
         type="button"
         disabled
-        className="w-full rounded-md border border-dashed border-border px-3 py-2 text-left text-footnote text-muted-foreground disabled:cursor-not-allowed"
+        className="w-full rounded-md border border-dashed border-border px-3 py-2 text-left text-footnote text-label-secondary disabled:cursor-not-allowed"
       >
         {t("ACCOUNT_SUPPORT_CONTACT_PLACEHOLDER")}
       </button>
@@ -329,7 +329,7 @@ function HeaderSupportPanel() {
       <button
         type="button"
         disabled
-        className="w-full rounded-md border border-dashed border-border px-3 py-2 text-left text-footnote text-muted-foreground disabled:cursor-not-allowed"
+        className="w-full rounded-md border border-dashed border-border px-3 py-2 text-left text-footnote text-label-secondary disabled:cursor-not-allowed"
       >
         {t("ACCOUNT_SUPPORT_DOCS_PLACEHOLDER")}
       </button>
@@ -350,7 +350,7 @@ function HeaderSettingsPanel() {
   return (
     <FloatingPanelBody className="w-88 p-4 space-y-4">
       <div>
-        <div className="mb-2 text-footnote font-semibold text-muted-foreground">
+        <div className="mb-2 text-footnote font-semibold text-label-secondary">
           {t("ACCOUNT_SETTINGS_LANGUAGE_LABEL")}
         </div>
         <Select
@@ -374,7 +374,7 @@ function HeaderSettingsPanel() {
       </div>
 
       <div>
-        <div className="mb-2 text-footnote font-semibold text-muted-foreground">
+        <div className="mb-2 text-footnote font-semibold text-label-secondary">
           {t("ACCOUNT_SETTINGS_THEME_LABEL")}
         </div>
         <Radio.Group

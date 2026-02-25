@@ -59,7 +59,7 @@ function resolveHeaderJustifyClass(align: AlignClass): string {
 function SortStateIcon(props: { state: false | "asc" | "desc" }) {
   if (props.state === "asc") return <ArrowUp className="size-3.5 text-foreground" />;
   if (props.state === "desc") return <ArrowDown className="size-3.5 text-foreground" />;
-  return <ArrowUpDown className="size-3.5 text-muted-foreground/70" />;
+  return <ArrowUpDown className="size-3.5 text-label-secondary/70" />;
 }
 
 function resolveColumnBaseStyle<TData>(column: Header<TData, unknown>["column"]): CSSProperties {
@@ -226,7 +226,7 @@ export function DataTablePresenter<TData>(props: DataTablePresenterProps<TData>)
           ) : (
             <TableRow>
               <TableCell
-                className="h-24 text-center text-muted-foreground"
+                className="h-24 text-center text-label-secondary"
                 colSpan={table.getVisibleLeafColumns().length}
               >
                 {emptyText}

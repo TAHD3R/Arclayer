@@ -146,7 +146,7 @@ export function AdminHeader(props: {
 
       const title =
         !isLast && !hasChildren && node.to ? (
-          <Link to={node.to} className="text-muted-foreground hover:text-foreground">
+          <Link to={node.to} className="text-label-secondary hover:text-foreground">
             {titleContent}
           </Link>
         ) : (

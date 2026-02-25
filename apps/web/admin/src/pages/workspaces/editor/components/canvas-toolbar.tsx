@@ -120,7 +120,7 @@ export function CanvasToolbar() {
           <PopoverTrigger asChild>
             <Button type="text" className="ml-1 gap-0.5! tabular-nums">
               <span className="text-callout text-secondary">{displayWidth} px</span>
-              <ChevronDown className="size-3 text-muted-foreground" />
+              <ChevronDown className="size-3 text-label-secondary" />
             </Button>
           </PopoverTrigger>
           <PopoverContent align="center" className="w-64 space-y-3 p-3">
@@ -132,7 +132,7 @@ export function CanvasToolbar() {
 
             {/* Width */}
             <label className="flex items-center gap-2 text-callout">
-              <span className="w-16 shrink-0 text-muted-foreground">
+              <span className="w-16 shrink-0 text-label-secondary">
                 {t("content_pages:EDITOR_V2_CANVAS_SETTINGS_WIDTH", { defaultValue: "Width" })}
               </span>
               <InputNumber
@@ -147,7 +147,7 @@ export function CanvasToolbar() {
 
             {/* Scale */}
             <label className="flex items-center gap-2 text-callout">
-              <span className="w-16 shrink-0 text-muted-foreground">
+              <span className="w-16 shrink-0 text-label-secondary">
                 {t("content_pages:EDITOR_V2_CANVAS_SETTINGS_SCALE", { defaultValue: "Scale" })}
               </span>
               <InputNumber
@@ -169,7 +169,7 @@ export function CanvasToolbar() {
               title={t("content_pages:EDITOR_V2_COMING_SOON", { defaultValue: "Coming soon" })}
             >
               <div className="flex flex-col gap-1.5 opacity-50">
-                <span className="text-callout text-muted-foreground">
+                <span className="text-callout text-label-secondary">
                   {t("content_pages:EDITOR_V2_CANVAS_SETTINGS_RULER", { defaultValue: "Ruler" })}
                 </span>
                 <Radio.Group value={rulerMode} disabled>
@@ -217,7 +217,7 @@ export function CanvasToolbar() {
           />
         </Tooltip>
 
-        <span className="w-10 text-center text-callout tabular-nums text-muted-foreground">
+        <span className="w-10 text-center text-callout tabular-nums text-label-secondary">
           {zoomPercent}%
         </span>
 

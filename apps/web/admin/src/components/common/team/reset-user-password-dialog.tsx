@@ -118,7 +118,7 @@ export function ResetUserPasswordDialog(props: {
           <label className="font-semibold text-foreground" htmlFor="newPassword">
             {t("team:TEAM_FIELD_NEW_PASSWORD")}
           </label>
-          <div className="text-muted-foreground">
+          <div className="text-label-secondary">
             {t("team:TEAM_RESET_PASSWORD_FIELD_NEW_PASSWORD_HELP")}
           </div>
           <Input
@@ -128,7 +128,7 @@ export function ResetUserPasswordDialog(props: {
             {...form.register("newPassword")}
           />
           {form.formState.errors.newPassword?.message ? (
-            <div className="text-sm text-destructive">
+            <div className="text-footnote text-destructive">
               {String(form.formState.errors.newPassword.message)}
             </div>
           ) : null}
@@ -138,7 +138,7 @@ export function ResetUserPasswordDialog(props: {
           <label className="font-semibold text-foreground" htmlFor="confirmPassword">
             {t("team:TEAM_FIELD_CONFIRM_PASSWORD")}
           </label>
-          <div className="text-muted-foreground">
+          <div className="text-label-secondary">
             {t("team:TEAM_RESET_PASSWORD_FIELD_CONFIRM_PASSWORD_HELP")}
           </div>
           <Input
@@ -148,7 +148,7 @@ export function ResetUserPasswordDialog(props: {
             {...form.register("confirmPassword")}
           />
           {form.formState.errors.confirmPassword?.message ? (
-            <div className="text-sm text-destructive">
+            <div className="text-footnote text-destructive">
               {String(form.formState.errors.confirmPassword.message)}
             </div>
           ) : null}
