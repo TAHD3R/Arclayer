@@ -97,16 +97,16 @@ def encode_uuid(value: UUID) -> str:
 def decode_public_id(value: str) -> UUID:
     raw = (value or "").strip()
     if not is_public_id(raw):
-        raise PublicIdDecodeError()
+        raise PublicIdDecodeError("Invalid public id format")
 
     pad = "=" * (-len(raw) % 4)
     try:
         data = base64.urlsafe_b64decode(raw + pad)
     except (binascii.Error, ValueError, TypeError) as e:  # pragma: no cover
-        raise PublicIdDecodeError() from e
+        raise PublicIdDecodeError("Base64 decode failed") from e
 
     if len(data) != 16:
-        raise PublicIdDecodeError()
+        raise PublicIdDecodeError(f"Expected 16 bytes, got {len(data)}")
 
     secret = _get_public_id_secret_bytes()
     rounds = _get_public_id_rounds()
@@ -115,13 +115,13 @@ def decode_public_id(value: str) -> UUID:
     try:
         u = UUID(bytes=plain)
     except (binascii.Error, ValueError, TypeError) as e:  # pragma: no cover
-        raise PublicIdDecodeError() from e
+        raise PublicIdDecodeError("UUID construction failed") from e
 
     # Basic plausibility checks: RFC4122 variant + allow only v4/v7 to reduce random collisions.
     # (We use uuid7 by default and uuid4 fallback in ids.uuid7().)
     if u.variant != RFC_4122:
-        raise PublicIdDecodeError()
+        raise PublicIdDecodeError(f"UUID variant mismatch: {u.variant!r}")
     if u.version not in (4, 7):
-        raise PublicIdDecodeError()
+        raise PublicIdDecodeError(f"UUID version {u.version} not in (4, 7)")
 
     return u

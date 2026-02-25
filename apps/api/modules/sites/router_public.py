@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Annotated
+
 from fastapi import APIRouter, Depends, Path, Query, Request
 
 from apps.api.common.types.public_uuid import PublicUUID
@@ -46,7 +48,7 @@ async def resolve_site_by_host(
     description="Public endpoint for Portal editor to get site context by ID.",
 )
 async def get_site_context(
-    site_id: PublicUUID = Path(..., description="Site ID."),
+    site_id: Annotated[PublicUUID, Path(..., description="Site ID.")],
     svc: SiteService = Depends(get_site_service),
 ) -> ResponseModel[SiteResolveOut]:
     data = await svc.get_site_context(site_id=site_id)

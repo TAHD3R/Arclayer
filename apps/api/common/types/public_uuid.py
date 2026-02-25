@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Annotated, Any
 from uuid import UUID
 
-from pydantic import BeforeValidator, PlainSerializer, WithJsonSchema
+from pydantic import PlainSerializer, PlainValidator, WithJsonSchema
 
 from apps.api.common.utils.public_ids import decode_public_id, encode_uuid, is_public_id
 
@@ -35,7 +35,7 @@ def _serialize_public_uuid(value: UUID) -> str:
 
 PublicUUID = Annotated[
     UUID,
-    BeforeValidator(_parse_public_uuid),
+    PlainValidator(_parse_public_uuid),
     PlainSerializer(_serialize_public_uuid, return_type=str),
     WithJsonSchema({"type": "string", "pattern": "^[A-Za-z0-9_-]{22}$", "examples": ["1jz6k6rWQdK2nZk3fD3d1Q"]}),
 ]
