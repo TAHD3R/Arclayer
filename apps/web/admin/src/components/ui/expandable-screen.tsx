@@ -171,7 +171,7 @@ export function ExpandableScreenContent({
           <motion.button
             type="button"
             aria-label="Close overlay"
-            className="absolute inset-0 h-full w-full bg-(--color-background)/90 backdrop-blur-[1px]"
+            className="absolute inset-0 h-full w-full bg-background/90 backdrop-blur-[1px]"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}

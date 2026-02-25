@@ -91,12 +91,8 @@ export function LoginView({
   const loginPane = (
     <>
       <motion.div variants={reducedMotion ? {} : itemVariants}>
-        <Typography.Title level={1} className="!mt-0 !mb-2 text-largetitle text-label-primary">
-          {t("auth:LOGIN_PAGE_TITLE")}
-        </Typography.Title>
-        <Typography.Paragraph className="!mt-0 !mb-[1.625rem] text-title2 text-label-secondary">
-          {t("auth:LOGIN_PAGE_SUBTITLE")}
-        </Typography.Paragraph>
+        <div className="text-largetitle text-label-primary mb-2">{t("auth:LOGIN_PAGE_TITLE")}</div>
+        <div className="text-title2 text-label-secondary mb-6">{t("auth:LOGIN_PAGE_SUBTITLE")}</div>
       </motion.div>
 
       <Form<LoginFormValues>
@@ -141,14 +137,14 @@ export function LoginView({
           variants={reducedMotion ? {} : itemVariants}
           className="flex items-center justify-between mb-3"
         >
-          <Form.Item<LoginFormValues> name="keepSession" valuePropName="checked" className="!mb-0">
+          <Form.Item<LoginFormValues> name="keepSession" valuePropName="checked" className="mb-0!">
             <Checkbox>{t("auth:KEEP_SESSION")}</Checkbox>
           </Form.Item>
 
           <Button
             type="link"
             size="small"
-            className="!px-0"
+            className="px-0!"
             disabled={loginLoading}
             onClick={() => setOpenModal("forgot")}
           >
@@ -171,7 +167,7 @@ export function LoginView({
         <motion.div variants={reducedMotion ? {} : itemVariants} className="mt-4 text-center">
           <Typography.Text className="text-label-secondary">
             {t("auth:NO_ACCOUNT")}{" "}
-            <Button type="link" className="!px-0" onClick={() => onModeChange("register")}>
+            <Button type="link" className="px-0!" onClick={() => onModeChange("register")}>
               {t("auth:CREATE_ACCOUNT")}
             </Button>
           </Typography.Text>
@@ -183,12 +179,12 @@ export function LoginView({
   const registerPane = (
     <>
       <motion.div variants={reducedMotion ? {} : itemVariants}>
-        <Typography.Title level={1} className="!mt-0 !mb-2 text-largetitle text-label-primary">
+        <div className="text-largetitle text-label-primary mb-1">
           {t("auth:REGISTER_PAGE_TITLE")}
-        </Typography.Title>
-        <Typography.Paragraph className="!mt-0 !mb-[1.625rem] text-title2 text-label-secondary">
+        </div>
+        <div className="text-title2 text-label-secondary mb-6">
           {t("auth:REGISTER_PAGE_SUBTITLE")}
-        </Typography.Paragraph>
+        </div>
       </motion.div>
 
       <Form<RegisterFormValues>
@@ -285,7 +281,7 @@ export function LoginView({
       <motion.div variants={reducedMotion ? {} : itemVariants} className="mt-4 text-center">
         <Typography.Text className="text-label-secondary">
           {t("auth:HAVE_ACCOUNT")}{" "}
-          <Button type="link" className="!px-0" onClick={() => onModeChange("login")}>
+          <Button type="link" className="px-0!" onClick={() => onModeChange("login")}>
             {t("auth:SIGN_IN")}
           </Button>
         </Typography.Text>
@@ -307,7 +303,7 @@ export function LoginView({
         }}
       >
         <DialogContent
-          className="sm:max-w-[425px]"
+          className="sm:max-w-100"
           onInteractOutside={(e) => {
             if (forgotLoading) {
               e.preventDefault();
@@ -356,7 +352,7 @@ export function LoginView({
                 <Form.Item
                   name="identifier"
                   rules={[{ required: true, message: t("auth:VALIDATION_ACCOUNT_REQUIRED") }]}
-                  className="!mb-0"
+                  className="mb-0!"
                 >
                   <Input
                     size="large"
@@ -372,8 +368,7 @@ export function LoginView({
               <div className="mt-2 text-center">
                 <Button
                   type="link"
-                  size="small"
-                  className="!px-0"
+                  className="px-0!"
                   disabled={forgotLoading}
                   onClick={() => {
                     setOpenModal(null);
@@ -387,7 +382,7 @@ export function LoginView({
 
             <motion.div variants={reducedMotion ? {} : itemVariants}>
               <DialogFooter>
-                <Button disabled={forgotLoading} onClick={() => setOpenModal(null)}>
+                <Button type="text" disabled={forgotLoading} onClick={() => setOpenModal(null)}>
                   {t("auth:MODAL_CANCEL")}
                 </Button>
                 <Button type="primary" loading={forgotLoading} onClick={() => forgotForm.submit()}>

@@ -15,7 +15,7 @@ export function EditorLayout({ children }: PropsWithChildren) {
   }, []);
 
   return (
-    <div className="fixed inset-0 w-full overflow-hidden bg-(--color-background) text-(--color-foreground)">
+    <div className="fixed inset-0 w-full overflow-hidden bg-background text-label-primary">
       {children}
     </div>
   );

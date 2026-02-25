@@ -272,7 +272,7 @@ export function InviteOrganizationMemberDialog(props: {
           }
           validateStatus={expiresError ? "error" : undefined}
           help={expiresError || null}
-          className="!mb-0"
+          className="mb-0!"
         >
           <Controller
             control={form.control}

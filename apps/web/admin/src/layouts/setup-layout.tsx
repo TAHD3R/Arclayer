@@ -43,10 +43,10 @@ export function SetupLayout({ children }: PropsWithChildren) {
   }, [isOnboardingPath, pathname, t]);
 
   return (
-    <div className="fixed inset-0 w-full overflow-hidden bg-(--color-background) text-(--color-foreground)">
+    <div className="fixed inset-0 w-full overflow-hidden bg-background text-label-primary">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {!reducedMotion ? (
-          <Suspense fallback={<div className="absolute inset-0 bg-(--color-background)" />}>
+          <Suspense fallback={<div className="absolute inset-0 bg-background" />}>
             <ColorBendsLazy
               colors={SETUP_BEND_COLORS}
               rotation={45}
@@ -64,7 +64,7 @@ export function SetupLayout({ children }: PropsWithChildren) {
         ) : null}
 
         {/* Subtle overlay to keep foreground readable over the animated background. */}
-        <div className="absolute inset-0 bg-(--color-background) opacity-80" />
+        <div className="absolute inset-0 bg-background opacity-80" />
       </div>
 
       {/* Top-right toggles */}

@@ -1,10 +1,9 @@
-import { Space, Typography } from "antd";
+import { Space } from "antd";
 import { lazy, Suspense, type PropsWithChildren, useEffect, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 import { useRouterState } from "@tanstack/react-router";
 
 import { getAppConfig } from "@/constants/app-config";
-import { usePreferencesStore } from "@/stores/use-preference-store";
 import { AdminLocaleToggle } from "@/components/common/admin-toggle-locales";
 import { AdminThemeModeToggle } from "@/components/common/admin-toggle-theme";
 import { RouteTransition } from "@/components/common/route-transition";
@@ -16,8 +15,6 @@ const AUTH_BEND_COLORS = ["#3b82f6"] as const;
 export function AuthLayout({ children }: PropsWithChildren) {
   const { t } = useTranslation();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const themeMode = usePreferencesStore((s) => s.themeMode);
-  const isDark = themeMode === "dark";
 
   const reducedMotion = usePrefersReducedMotion();
   const [isLargeScreen, setIsLargeScreen] = useState(false);
@@ -60,13 +57,11 @@ export function AuthLayout({ children }: PropsWithChildren) {
   }, []);
 
   return (
-    <div className="fixed inset-0 w-full overflow-hidden grid grid-cols-1 lg:grid-cols-2 bg-(--color-background) text-(--color-foreground)">
-      <div className="relative hidden lg:block min-h-0 h-full overflow-hidden bg-(--color-background)">
+    <div className="fixed inset-0 w-full overflow-hidden grid grid-cols-1 lg:grid-cols-2 bg-background text-label-primary">
+      <div className="relative hidden lg:block min-h-0 h-full overflow-hidden bg-background">
         {isLargeScreen && !reducedMotion ? (
           <Suspense
-            fallback={
-              <div className="absolute inset-0 bg-(--color-background) animate-pulse opacity-50" />
-            }
+            fallback={<div className="absolute inset-0 bg-background animate-pulse opacity-50" />}
           >
             <ColorBendsLazy
               colors={AUTH_BEND_COLORS}
@@ -86,36 +81,15 @@ export function AuthLayout({ children }: PropsWithChildren) {
 
         <div className="absolute inset-0 flex items-end p-14">
           <div className="max-w-120 select-none">
-            <Typography.Title
-              level={1}
-              className="!m-0 text-[3.25rem] font-bold leading-[1.05] tracking-[-0.015em]"
-              style={{
-                color: isDark ? "rgba(255,255,255,0.96)" : "rgba(20,20,20,0.96)",
-                textShadow: isDark
-                  ? "0 18px 60px rgba(0,0,0,0.35)"
-                  : "0 18px 60px rgba(0,0,0,0.45)",
-              }}
-            >
-              {t("auth:SLOGAN_TITLE")}
-            </Typography.Title>
-            <Typography.Paragraph
-              className="!mt-[14px] !mb-0 text-title2 leading-[1.6]"
-              style={{
-                color: isDark ? "rgba(255,255,255,0.78)" : "rgba(20,20,20,0.78)",
-                textShadow: isDark
-                  ? "0 18px 60px rgba(0,0,0,0.35)"
-                  : "0 18px 60px rgba(0,0,0,0.45)",
-              }}
-            >
-              {t("auth:SLOGAN_SUBTITLE")}
-            </Typography.Paragraph>
+            <div className="text-largetitle">{t("auth:SLOGAN_TITLE")}</div>
+            <p className="text-title2 text-label-secondary">{t("auth:SLOGAN_SUBTITLE")}</p>
           </div>
         </div>
       </div>
 
-      <div className="relative flex flex-col min-h-0 h-full overflow-hidden bg-(--color-background) text-(--color-foreground)">
+      <div className="relative flex flex-col min-h-0 h-full overflow-hidden ">
         <div className="absolute top-0 right-0 p-4">
-          <Space size={6}>
+          <Space size={8}>
             <AdminLocaleToggle />
             <AdminThemeModeToggle />
           </Space>
@@ -133,7 +107,7 @@ export function AuthLayout({ children }: PropsWithChildren) {
           <Trans
             i18nKey="auth:FOOTER_COPYRIGHT"
             components={{
-              brand: <span className="text-(--color-foreground)">Celestial CMS</span>,
+              brand: <span className="text-label-primary">Celestial CMS</span>,
             }}
           />
         </div>

@@ -3,7 +3,6 @@ import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-quer
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Check, ShieldCheck, Trash2, Users, Wrench } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 
 import {
@@ -12,11 +11,11 @@ import {
   markNotificationRead,
   deleteNotification,
   seedDemoNotifications,
-  type NotificationCategory,
   type NotificationItem,
 } from "@/api/notifications";
 import { listMyWorkspaces } from "@/api/workspaces";
 import { DefaultPage } from "@/components/common/default-page";
+import { NotificationCard } from "@/components/common/notification-card";
 import { PageState } from "@/components/common/page-state";
 import {
   ChromeTabs,
@@ -24,32 +23,14 @@ import {
   ChromeTabsList,
   ChromeTabsTrigger,
 } from "@/components/ui/chrome-tabs";
-import { Button as UiButton } from "@/components/ui/button";
+import { ItemGroup, ItemSeparator } from "@/components/ui/item";
 import { LoaderOne } from "@/components/ui/loader";
-import {
-  Item,
-  ItemContent,
-  ItemDescription,
-  ItemGroup,
-  ItemHeader,
-  ItemMedia,
-  ItemSeparator,
-  ItemTitle,
-} from "@/components/ui/item";
 import { useNowTick } from "@/hooks/use-now-tick";
 import { notifyErrorText } from "@/lib/notifications";
-import { formatRelativeTimeAt } from "@/lib/time/relative-time";
 import { cn } from "@/lib/utils";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
 type ListStatus = "unread" | "all";
-
-function pickCategoryIcon(category: NotificationCategory) {
-  const normalized = String(category || "").toLowerCase();
-  if (normalized === "team") return Users;
-  if (normalized === "security") return ShieldCheck;
-  return Wrench;
-}
 
 function resolveNotificationTarget(item: NotificationItem): string | null {
   const workspaceId = String(item.workspaceId || "").trim();
@@ -324,10 +305,8 @@ export function NotificationsPage() {
 
                 <AnimatePresence initial={false}>
                   {(status === "all" ? unreadItems : items).map((n, idx) => {
-                    const Icon = pickCategoryIcon(n.category);
-                    const timeText = formatRelativeTimeAt(n.createdAt, i18n.language, nowMs);
                     const isRead = Boolean(n.readAt);
-                    const showSeparator = idx < (status === "all" ? unreadItems : items).length - 1;
+                    const showSep = idx < (status === "all" ? unreadItems : items).length - 1;
 
                     return (
                       <motion.div
@@ -339,99 +318,17 @@ export function NotificationsPage() {
                         transition={{ type: "spring", stiffness: 380, damping: 32 }}
                       >
                         <motion.div whileTap={{ scale: 0.99 }}>
-                          <Item
-                            size="sm"
-                            variant={isRead ? "muted" : "default"}
-                            className={cn(
-                              "rounded-md border-0 transition-[background-color,box-shadow,opacity] duration-150",
-                              "hover:bg-accent/40 hover:shadow-sm active:bg-accent/60",
-                            )}
-                            role="button"
-                            tabIndex={0}
-                            onKeyDown={(e) => {
-                              if (e.key !== "Enter") return;
-                              void navigateToNotificationTarget(n);
-                            }}
-                            onClick={() => {
-                              void navigateToNotificationTarget(n);
-                            }}
-                          >
-                            <ItemMedia variant="icon" className="size-12 rounded-md">
-                              <Icon
-                                className={cn(
-                                  "size-4",
-                                  isRead ? "text-label-secondary/60" : "text-label-secondary",
-                                )}
-                                aria-hidden="true"
-                              />
-                            </ItemMedia>
-
-                            <ItemContent>
-                              <ItemHeader>
-                                <ItemTitle className="min-w-0 flex-1">
-                                  <span
-                                    className={cn(
-                                      "min-w-0 text-body truncate",
-                                      isRead ? "line-through text-label-secondary" : undefined,
-                                    )}
-                                  >
-                                    {n.title}
-                                  </span>
-                                </ItemTitle>
-                              </ItemHeader>
-                              {n.body ? (
-                                <ItemDescription
-                                  className={cn(
-                                    "text-callout",
-                                    isRead ? "text-label-secondary/80" : undefined,
-                                  )}
-                                >
-                                  {n.body}
-                                </ItemDescription>
-                              ) : null}
-                            </ItemContent>
-
-                            <div className="ml-auto flex flex-col items-end gap-2">
-                              {timeText ? (
-                                <span className="shrink-0 text-footnote text-label-secondary">
-                                  {timeText}
-                                </span>
-                              ) : null}
-                              <div className="flex items-center gap-1">
-                                {!isRead ? (
-                                  <UiButton
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    aria-label={t("NOTIFICATIONS_MARK_AS_READ")}
-                                    onClick={(e) => {
-                                      e.preventDefault();
-                                      e.stopPropagation();
-                                      void markRead(n);
-                                    }}
-                                  >
-                                    <Check className="size-4" aria-hidden="true" />
-                                  </UiButton>
-                                ) : null}
-                                <UiButton
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  aria-label={t("NOTIFICATIONS_DELETE")}
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    void removeItem(n);
-                                  }}
-                                >
-                                  <Trash2 className="size-4" aria-hidden="true" />
-                                </UiButton>
-                              </div>
-                            </div>
-                          </Item>
+                          <NotificationCard
+                            item={n}
+                            nowMs={nowMs}
+                            locale={i18n.language}
+                            isRead={isRead}
+                            onNavigate={() => void navigateToNotificationTarget(n)}
+                            onMarkRead={isRead ? undefined : () => void markRead(n)}
+                            onDelete={() => void removeItem(n)}
+                          />
                         </motion.div>
-
-                        {showSeparator ? <ItemSeparator /> : null}
+                        {showSep ? <ItemSeparator /> : null}
                       </motion.div>
                     );
                   })}
@@ -445,9 +342,7 @@ export function NotificationsPage() {
                     </div>
                     <AnimatePresence initial={false}>
                       {readItems.map((n, idx) => {
-                        const Icon = pickCategoryIcon(n.category);
-                        const timeText = formatRelativeTimeAt(n.createdAt, i18n.language, nowMs);
-                        const showSeparator = idx < readItems.length - 1;
+                        const showSep = idx < readItems.length - 1;
 
                         return (
                           <motion.div
@@ -459,71 +354,16 @@ export function NotificationsPage() {
                             transition={{ type: "spring", stiffness: 380, damping: 32 }}
                           >
                             <motion.div whileTap={{ scale: 0.99 }}>
-                              <Item
-                                size="sm"
-                                variant="muted"
-                                className={cn(
-                                  "rounded-md border-0 transition-[background-color,box-shadow,opacity] duration-150",
-                                  "hover:bg-accent/40 hover:shadow-sm active:bg-accent/60",
-                                )}
-                                role="button"
-                                tabIndex={0}
-                                onKeyDown={(e) => {
-                                  if (e.key !== "Enter") return;
-                                  navigateToReadNotificationTarget(n);
-                                }}
-                                onClick={() => {
-                                  navigateToReadNotificationTarget(n);
-                                }}
-                              >
-                                <ItemMedia variant="icon" className="size-12 rounded-md">
-                                  <Icon
-                                    className="size-4 text-label-secondary/60"
-                                    aria-hidden="true"
-                                  />
-                                </ItemMedia>
-
-                                <ItemContent>
-                                  <ItemHeader>
-                                    <ItemTitle className="min-w-0 flex-1">
-                                      <span className="min-w-0 text-body truncate line-through text-label-secondary">
-                                        {n.title}
-                                      </span>
-                                    </ItemTitle>
-                                  </ItemHeader>
-                                  {n.body ? (
-                                    <ItemDescription className="text-callout text-label-secondary/80">
-                                      {n.body}
-                                    </ItemDescription>
-                                  ) : null}
-                                </ItemContent>
-
-                                <div className="ml-auto flex flex-col items-end gap-2">
-                                  {timeText ? (
-                                    <span className="shrink-0 text-footnote text-label-secondary">
-                                      {timeText}
-                                    </span>
-                                  ) : null}
-                                  <div className="flex items-center gap-1">
-                                    <UiButton
-                                      type="button"
-                                      variant="ghost"
-                                      size="icon"
-                                      aria-label={t("NOTIFICATIONS_DELETE")}
-                                      onClick={(e) => {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        void removeItem(n);
-                                      }}
-                                    >
-                                      <Trash2 className="size-4" aria-hidden="true" />
-                                    </UiButton>
-                                  </div>
-                                </div>
-                              </Item>
+                              <NotificationCard
+                                item={n}
+                                nowMs={nowMs}
+                                locale={i18n.language}
+                                isRead
+                                onNavigate={() => navigateToReadNotificationTarget(n)}
+                                onDelete={() => void removeItem(n)}
+                              />
                             </motion.div>
-
-                            {showSeparator ? <ItemSeparator /> : null}
+                            {showSep ? <ItemSeparator /> : null}
                           </motion.div>
                         );
                       })}

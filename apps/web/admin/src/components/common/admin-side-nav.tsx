@@ -204,7 +204,7 @@ function NavNode({
               "rounded-none relative z-10",
               "h-8 pl-5",
               "transition-[width,height,padding,color] duration-150 ease-out",
-              "text-label-secondary! hover:text-foreground! hover:bg-transparent! active:bg-transparent!",
+              "text-label-secondary! hover:text-label-primary! hover:bg-transparent! active:bg-transparent!",
               "data-[active=true]:font-semibold data-[active=true]:bg-transparent! data-[active=true]:text-foreground!",
               item.disabled
                 ? cn(
@@ -263,7 +263,7 @@ function NavNode({
               "rounded-none relative z-10",
               "h-8 pl-5",
               "transition-[width,height,padding,color] duration-150 ease-out",
-              "text-label-secondary! hover:text-foreground! hover:bg-transparent! active:bg-transparent!",
+              "text-label-secondary! hover:text-label-primary! hover:bg-transparent! active:bg-transparent!",
               "data-[active=true]:font-semibold data-[active=true]:bg-transparent! data-[active=true]:text-foreground!",
               item.disabled
                 ? cn(
@@ -424,7 +424,7 @@ export function AdminSiderNav(props: {
                           "rounded-none relative z-10",
                           "h-8 pl-5",
                           "transition-[color] duration-150 ease-out",
-                          "text-label-secondary! hover:text-foreground! hover:bg-transparent! active:bg-transparent!",
+                          "text-label-secondary! hover:text-label-primary! hover:bg-transparent! active:bg-transparent!",
                           "data-[active=true]:font-semibold data-[active=true]:bg-transparent! data-[active=true]:text-foreground!",
                         )}
                         style={{ paddingLeft: NAV_ITEM_BASE_PADDING_LEFT } as CSSProperties}

@@ -1,8 +1,8 @@
 import { Badge, Radio, Select } from "antd";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { Check } from "lucide-react";
-import { type ReactNode, useMemo, useState } from "react";
+
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -10,9 +10,9 @@ import {
   listNotifications,
   markNotificationRead,
   type NotificationItem,
-  type PageData,
 } from "@/api/notifications";
 import { listMyWorkspaces } from "@/api/workspaces";
+import { NotificationCard } from "@/components/common/notification-card";
 import { PageState } from "@/components/common/page-state";
 import {
   ChromeTabs,
@@ -32,16 +32,16 @@ import BellIcon from "@/components/ui/icons/bell-icon";
 import SettingsIcon from "@/components/ui/icons/settings-icon";
 import SupportIcon from "@/components/ui/icons/support-icon";
 import { setThemePreferenceWithTransition } from "@/components/ui/theme-transition";
+import { LoaderOne } from "@/components/ui/loader";
 import { useNowTick } from "@/hooks/use-now-tick";
 import { type AppLocale, SUPPORTED_LOCALES } from "@/lib/i18n";
 import { notifyErrorText } from "@/lib/notifications";
-import { formatRelativeTimeAt } from "@/lib/time/relative-time";
 import { cn } from "@/lib/utils";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 
 type NotificationPanelTab = "unread" | "all";
 
-const HEADER_NOTIFICATION_LIMIT = 10;
+const PANEL_PAGE_SIZE = 20;
 
 function resolveNotificationTarget(item: NotificationItem): string | null {
   const workspaceId = String(item.workspaceId || "").trim();
@@ -82,6 +82,7 @@ function HeaderNotificationsPanel() {
   const queryClient = useQueryClient();
   const nowMs = useNowTick(60_000);
   const [tab, setTab] = useState<NotificationPanelTab>("unread");
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   const workspacesQuery = useQuery({
     queryKey: ["workspaces", "me", "list", "notifications"],
@@ -96,63 +97,42 @@ function HeaderNotificationsPanel() {
     [workspacesQuery.data?.items],
   );
 
-  const unreadQuery = useQuery({
-    queryKey: ["notifications", "panel", "unread"],
-    queryFn: async () =>
+  const listQuery = useInfiniteQuery({
+    queryKey: ["notifications", "panel", tab, PANEL_PAGE_SIZE],
+    queryFn: async ({ pageParam }) =>
       listNotifications({
-        status: "unread",
-        page: 1,
-        size: HEADER_NOTIFICATION_LIMIT,
+        status: tab,
+        page: typeof pageParam === "number" ? pageParam : 1,
+        size: PANEL_PAGE_SIZE,
       }),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => lastPage.next ?? undefined,
     enabled: isOpen,
     staleTime: 15 * 1000,
     meta: { silent: true },
   });
 
-  const allQuery = useQuery({
-    queryKey: ["notifications", "panel", "all"],
-    queryFn: async () =>
-      listNotifications({
-        status: "all",
-        page: 1,
-        size: HEADER_NOTIFICATION_LIMIT,
-      }),
-    enabled: isOpen,
-    staleTime: 15 * 1000,
-    meta: { silent: true },
-  });
+  const rawItems = useMemo(
+    () => (listQuery.data?.pages ?? []).flatMap((p) => p.items ?? []),
+    [listQuery.data?.pages],
+  );
+
+  const items = useMemo(() => {
+    if (tab !== "all") return rawItems;
+    return [...rawItems].sort((a, b) => {
+      const aUnread = !a.readAt;
+      const bUnread = !b.readAt;
+      if (aUnread !== bUnread) return aUnread ? -1 : 1;
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+  }, [rawItems, tab]);
 
   const invalidateNotifications = async () => {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ["notifications", "preview"] }),
       queryClient.invalidateQueries({ queryKey: ["notifications", "list"] }),
-      queryClient.invalidateQueries({ queryKey: ["notifications", "panel", "unread"] }),
-      queryClient.invalidateQueries({ queryKey: ["notifications", "panel", "all"] }),
+      queryClient.invalidateQueries({ queryKey: ["notifications", "panel"] }),
     ]);
-  };
-
-  const patchUnreadQuery = (
-    old: PageData<NotificationItem> | undefined,
-    notificationId: string,
-  ): PageData<NotificationItem> | undefined => {
-    if (!old) return old;
-    return {
-      ...old,
-      total: Math.max(0, old.total - 1),
-      items: old.items.filter((item) => item.id !== notificationId),
-    };
-  };
-
-  const patchAllQuery = (
-    old: PageData<NotificationItem> | undefined,
-    notificationId: string,
-  ): PageData<NotificationItem> | undefined => {
-    if (!old) return old;
-    const readAt = new Date().toISOString();
-    return {
-      ...old,
-      items: old.items.map((item) => (item.id === notificationId ? { ...item, readAt } : item)),
-    };
   };
 
   const markRead = async (item: NotificationItem) => {
@@ -162,21 +142,26 @@ function HeaderNotificationsPanel() {
       ["notifications", "preview"],
       (old: { unreadCount: number } | undefined) => {
         if (!old) return old;
-        return {
-          ...old,
-          unreadCount: Math.max(0, old.unreadCount - 1),
-        };
+        return { ...old, unreadCount: Math.max(0, old.unreadCount - 1) };
       },
     );
 
     queryClient.setQueryData(
-      ["notifications", "panel", "unread"],
-      (old: PageData<NotificationItem> | undefined) => patchUnreadQuery(old, item.id),
-    );
-
-    queryClient.setQueryData(
-      ["notifications", "panel", "all"],
-      (old: PageData<NotificationItem> | undefined) => patchAllQuery(old, item.id),
+      ["notifications", "panel", tab, PANEL_PAGE_SIZE],
+      (old: typeof listQuery.data | undefined) => {
+        if (!old) return old;
+        const readAt = new Date().toISOString();
+        return {
+          ...old,
+          pages: old.pages.map((p) => ({
+            ...p,
+            items:
+              tab === "unread"
+                ? p.items.filter((it) => it.id !== item.id)
+                : p.items.map((it) => (it.id === item.id ? { ...it, readAt } : it)),
+          })),
+        };
+      },
     );
 
     try {
@@ -201,102 +186,91 @@ function HeaderNotificationsPanel() {
     void navigate({ to: target as never });
   };
 
-  const renderList = (status: NotificationPanelTab) => {
-    const query = status === "unread" ? unreadQuery : allQuery;
-    const items = query.data?.items ?? [];
-    const hasMore = (query.data?.total ?? 0) > items.length;
+  const emptyTitle =
+    tab === "unread" ? t("NOTIFICATIONS_EMPTY_UNREAD_TITLE") : t("NOTIFICATIONS_EMPTY_ALL_TITLE");
+  const emptyDescription =
+    tab === "unread" ? t("NOTIFICATIONS_EMPTY_UNREAD_DESC") : t("NOTIFICATIONS_EMPTY_ALL_DESC");
 
-    const emptyTitle =
-      status === "unread"
-        ? t("NOTIFICATIONS_EMPTY_UNREAD_TITLE")
-        : t("NOTIFICATIONS_EMPTY_ALL_TITLE");
-    const emptyDescription =
-      status === "unread"
-        ? t("NOTIFICATIONS_EMPTY_UNREAD_DESC")
-        : t("NOTIFICATIONS_EMPTY_ALL_DESC");
+  const effectiveError = listQuery.isError && !listQuery.data ? listQuery.error : null;
+  const loading = listQuery.isLoading && !listQuery.data;
 
-    const effectiveError = query.isError && !query.data ? query.error : null;
-    const loading = query.isLoading && !query.data;
+  // Infinite scroll observer
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    if (listQuery.isError) return;
+    if (listQuery.hasNextPage !== true) return;
 
-    return (
-      <PageState
-        loading={loading}
-        loadingVariant="table"
-        variant="compact"
-        className="py-2"
-        error={effectiveError}
-        onRetry={effectiveError ? () => void query.refetch() : undefined}
-        empty={!loading && !effectiveError && items.length === 0}
-        emptyTitle={emptyTitle}
-        emptyDescription={emptyDescription}
-      >
-        <div className="space-y-2 px-3 py-3">
-          {items.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              className={cn(
-                "w-full rounded-md border border-border/60 px-3 py-2 text-left",
-                "hover:bg-muted/60 transition-colors",
-              )}
-              onClick={() => void openTarget(item)}
-            >
-              <div className="flex items-center justify-between gap-2">
-                <div
-                  className={cn(
-                    "min-w-0 truncate text-footnote font-semibold",
-                    item.readAt ? "text-label-secondary" : "text-foreground",
-                  )}
-                >
-                  {item.title}
-                </div>
-                {!item.readAt ? (
-                  <span className="inline-flex items-center gap-1 text-caption text-label-secondary">
-                    <Check className="size-3" aria-hidden="true" />
-                    {t("NOTIFICATIONS_MARK_AS_READ")}
-                  </span>
-                ) : null}
-              </div>
-              {item.body ? (
-                <div className="mt-1 line-clamp-2 text-caption text-label-secondary">
-                  {item.body}
-                </div>
-              ) : null}
-              <div className="mt-1 text-caption text-label-secondary">
-                {formatRelativeTimeAt(item.createdAt, i18n.language, nowMs)}
-              </div>
-            </button>
-          ))}
-
-          {hasMore ? (
-            <div className="rounded-md border border-dashed border-border px-3 py-2 text-caption text-label-secondary">
-              {t("NOTIFICATIONS_PREVIEW_MORE_HINT")}
-            </div>
-          ) : null}
-        </div>
-      </PageState>
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (!entry?.isIntersecting) return;
+        if (listQuery.isError) return;
+        if (listQuery.isFetchingNextPage) return;
+        listQuery.fetchNextPage().catch(() => {});
+      },
+      { root: null, rootMargin: "400px", threshold: 0 },
     );
-  };
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [
+    listQuery.fetchNextPage,
+    listQuery.hasNextPage,
+    listQuery.isError,
+    listQuery.isFetchingNextPage,
+  ]);
 
   return (
-    <FloatingPanelBody className="w-[24rem] p-0">
-      <ChromeTabs value={tab} onValueChange={(next) => setTab(next as NotificationPanelTab)}>
-        <div className="px-3 pt-2">
+    <FloatingPanelBody className="w-[24rem] max-h-[70vh] flex flex-col p-0">
+      <ChromeTabs
+        value={tab}
+        onValueChange={(next) => setTab(next as NotificationPanelTab)}
+        className="flex flex-col min-h-0 flex-1"
+      >
+        <div className="px-3 pt-2 shrink-0">
           <ChromeTabsList>
             <ChromeTabsTrigger value="unread">{t("NOTIFICATIONS_TAB_UNREAD")}</ChromeTabsTrigger>
             <ChromeTabsTrigger value="all">{t("NOTIFICATIONS_TAB_ALL")}</ChromeTabsTrigger>
           </ChromeTabsList>
         </div>
 
-        <ChromeTabsContent value="unread" className="pt-2">
-          {renderList("unread")}
-        </ChromeTabsContent>
-        <ChromeTabsContent value="all" className="pt-2">
-          {renderList("all")}
+        <ChromeTabsContent value={tab} className="pt-2 overflow-y-auto">
+          <PageState
+            loading={loading}
+            loadingVariant="table"
+            variant="compact"
+            className="py-2"
+            error={effectiveError}
+            onRetry={effectiveError ? () => void listQuery.refetch() : undefined}
+            empty={!loading && !effectiveError && items.length === 0}
+            emptyTitle={emptyTitle}
+            emptyDescription={emptyDescription}
+          >
+            <div className="px-1 py-1">
+              {items.map((n) => (
+                <NotificationCard
+                  key={n.id}
+                  item={n}
+                  nowMs={nowMs}
+                  locale={i18n.language}
+                  isRead={Boolean(n.readAt)}
+                  compact
+                  onNavigate={() => void openTarget(n)}
+                  onMarkRead={n.readAt ? undefined : () => void markRead(n)}
+                />
+              ))}
+
+              <div className="flex justify-center py-3">
+                {listQuery.isFetchingNextPage ? <LoaderOne /> : <div className="h-6 w-6" />}
+              </div>
+              <div ref={sentinelRef} />
+            </div>
+          </PageState>
         </ChromeTabsContent>
       </ChromeTabs>
 
-      <div className="border-t border-border/60 p-2">
+      <div className="border-t border-border/60 p-2 shrink-0">
         <FloatingPanelButton
           className="rounded-md"
           onClick={() => {
@@ -385,13 +359,13 @@ function HeaderSettingsPanel() {
           }}
         >
           <div className="flex w-full flex-col gap-2">
-            <Radio value="light" className="!m-0 text-footnote">
+            <Radio value="light" className="m-0! text-footnote">
               {t("ACCOUNT_THEME_LIGHT")}
             </Radio>
-            <Radio value="dark" className="!m-0 text-footnote">
+            <Radio value="dark" className="m-0! text-footnote">
               {t("ACCOUNT_THEME_DARK")}
             </Radio>
-            <Radio value="system" className="!m-0 text-footnote">
+            <Radio value="system" className="m-0! text-footnote">
               {t("ACCOUNT_THEME_SYSTEM")}
             </Radio>
           </div>
@@ -401,26 +375,15 @@ function HeaderSettingsPanel() {
   );
 }
 
-function NotificationTriggerWithRibbon(props: { unreadCount: number; title: string }) {
-  const badgeText = props.unreadCount > 99 ? "99+" : String(props.unreadCount);
-
-  const trigger = (
-    <HeaderActionTrigger title={props.title}>
-      {(hovered) => <BellIcon size={18} isHovered={hovered} className="text-current" />}
-    </HeaderActionTrigger>
-  );
-
-  if (props.unreadCount <= 0) return trigger;
-
+function NotificationTriggerWithBadge(props: { unreadCount: number; title: string }) {
   return (
-    <Badge.Ribbon
-      text={badgeText}
-      placement="end"
-      color="var(--color-primary)"
-      style={{ fontSize: 11, lineHeight: "16px", height: 16, paddingInline: 6 }}
-    >
-      <div className="inline-flex">{trigger}</div>
-    </Badge.Ribbon>
+    <HeaderActionTrigger title={props.title}>
+      {(hovered) => (
+        <Badge dot={props.unreadCount > 0}>
+          <BellIcon size={18} isHovered={hovered} className="text-current" />
+        </Badge>
+      )}
+    </HeaderActionTrigger>
   );
 }
 
@@ -437,7 +400,7 @@ export function AdminHeaderActions() {
   return (
     <div className="flex items-center gap-2">
       <FloatingPanelRoot>
-        <NotificationTriggerWithRibbon
+        <NotificationTriggerWithBadge
           title={t("notifications:NOTIFICATIONS_PAGE_TITLE")}
           unreadCount={previewQuery.data?.unreadCount ?? 0}
         />

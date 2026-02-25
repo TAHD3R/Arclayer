@@ -220,7 +220,7 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
                 </div>
               </div>
               <Typography.Paragraph
-                className="w-full !mb-0 text-label-secondary"
+                className="w-full mb-0! text-label-secondary"
                 ellipsis={{
                   rows: 2,
                   expandable: true,

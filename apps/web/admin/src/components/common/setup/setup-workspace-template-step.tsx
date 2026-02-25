@@ -63,7 +63,7 @@ export function SetupWorkspaceTemplateStep(props: {
               )}
               styles={{ body: { paddingTop: 14, paddingBottom: 14 } }}
               cover={
-                <div className="h-28 border-b border-border/50 bg-(--color-muted)/35">
+                <div className="h-28 border-b border-border/50 bg-muted/35">
                   {/* Template cover image placeholder (to be replaced with real preview image). */}
                 </div>
               }
@@ -100,7 +100,7 @@ export function SetupWorkspaceTemplateStep(props: {
             >
               <Card.Meta
                 title={
-                  <span className={clsx("text-title2", selected ? "text-primary" : undefined)}>
+                  <span className={clsx("text-headline", selected ? "text-primary" : undefined)}>
                     {template.title}
                   </span>
                 }

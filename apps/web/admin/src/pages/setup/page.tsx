@@ -150,7 +150,6 @@ export function SetupView() {
   const access = useSetupWizardStore((s) => s.access);
   const deploymentMode = useSetupWizardStore((s) => s.deploymentMode);
   const themeMode = usePreferencesStore((s) => s.themeMode);
-  const isDark = themeMode === "dark";
 
   const setupDryRunEnabled = useMemo(() => resolveSetupDryRunFlag(), []);
 
@@ -556,7 +555,7 @@ export function SetupView() {
       expanded={isLauncherExpanded}
       onExpandChange={setLauncherExpanded}
     >
-      <div className="mx-auto w-full max-w-3xl px-2 py-8 text-center sm:px-8 sm:py-10">
+      <div className="mx-auto w-full max-w-3xl px-2 py-8 text-center sm:px-8 sm:py-10 select-none">
         <img
           src="/logo.svg"
           width={96}
@@ -565,10 +564,10 @@ export function SetupView() {
           alt={t("setup:SETUP_BRAND_LOGO_ALT")}
         />
 
-        <Typography.Title level={1} className="!mt-5 !mb-2.5 text-largetitle text-label-primary">
+        <Typography.Title level={1} className="text-largetitle text-label-primary">
           {t("setup:SETUP_WELCOME_TITLE")}
         </Typography.Title>
-        <Typography.Paragraph className="!mt-0 !mb-[1.375rem] text-title2 text-label-secondary">
+        <Typography.Paragraph className="text-title2 text-label-secondary">
           {t("setup:SETUP_WELCOME_DESC")}
         </Typography.Paragraph>
 
@@ -602,7 +601,7 @@ export function SetupView() {
               </span>
             </div>
             {setupProgressStage ? (
-              <div className="mt-1 text-footnote text-(--color-foreground)">
+              <div className="mt-1 text-footnote text-label-primary">
                 {setupProgressStageLabels[setupProgressStage]}
               </div>
             ) : null}
@@ -631,15 +630,15 @@ export function SetupView() {
       </div>
 
       <ExpandableScreenContent
-        className="border border-border/60 bg-(--color-background) shadow-2xl"
-        closeButtonClassName="bg-(--color-muted)/70 text-(--color-foreground) hover:bg-(--color-muted)"
+        className="border border-border/60 bg-background shadow-2xl"
+        closeButtonClassName="bg-muted/35/70 text-label-primary hover:bg-muted/35"
       >
         <div className="grid h-full min-h-0 grid-cols-1 lg:grid-cols-3">
           <aside className="relative hidden overflow-hidden border-r border-border/70 lg:block">
             <div className="pointer-events-none absolute inset-0">
               <Suspense
                 fallback={
-                  <div className="absolute inset-0 bg-(--color-background) animate-pulse opacity-50" />
+                  <div className="absolute inset-0 bg-background animate-pulse opacity-50" />
                 }
               >
                 <ColorBendsLazy
@@ -656,34 +655,13 @@ export function SetupView() {
                   transparent
                 />
               </Suspense>
-              <div className="absolute inset-0 bg-(--color-background)/72" />
+              <div className="absolute inset-0 bg-background/72" />
             </div>
 
-            <div className="relative z-10 flex h-full min-h-[220px] items-end p-6 sm:p-8">
+            <div className="relative z-10 flex h-full min-h-55 items-end p-6 sm:p-8">
               <div className="max-w-110 select-none">
-                <Typography.Title
-                  level={1}
-                  className="!m-0 text-[3.25rem] font-bold leading-[1.05] tracking-[-0.015em]"
-                  style={{
-                    color: isDark ? "rgba(255,255,255,0.96)" : "rgba(20,20,20,0.96)",
-                    textShadow: isDark
-                      ? "0 18px 60px rgba(0,0,0,0.35)"
-                      : "0 18px 60px rgba(0,0,0,0.45)",
-                  }}
-                >
-                  {t("auth:SLOGAN_TITLE")}
-                </Typography.Title>
-                <Typography.Paragraph
-                  className="!mt-[14px] !mb-0 text-title2 leading-[1.6]"
-                  style={{
-                    color: isDark ? "rgba(255,255,255,0.78)" : "rgba(20,20,20,0.78)",
-                    textShadow: isDark
-                      ? "0 18px 60px rgba(0,0,0,0.35)"
-                      : "0 18px 60px rgba(0,0,0,0.45)",
-                  }}
-                >
-                  {t("auth:SLOGAN_SUBTITLE")}
-                </Typography.Paragraph>
+                <div className="text-largetitle">{t("auth:SLOGAN_TITLE")}</div>
+                <p className="text-title2 text-label-secondary">{t("auth:SLOGAN_SUBTITLE")}</p>
               </div>
             </div>
           </aside>
@@ -698,10 +676,10 @@ export function SetupView() {
                     animate={{ opacity: 1, y: 0 }}
                     exit={reducedMotion ? { opacity: 1 } : { opacity: 0, y: -8 }}
                   >
-                    <h2 className="text-largetitle text-label-primary font-bold">
+                    <h2 className="text-title text-label-primary font-bold">
                       {stageMeta[step].title}
                     </h2>
-                    <p className="mt-3 text-title2 text-label-secondary">
+                    <p className="mt-3 text-body text-label-secondary">
                       {stageMeta[step].description}
                     </p>
                   </motion.div>
@@ -725,14 +703,14 @@ export function SetupView() {
               </MotionConfig>
             </div>
 
-            <div className="border-t border-border/70 bg-(--color-background)/95 px-4 py-3 sm:px-6">
+            <div className="border-t border-border/70 bg-background/95 px-4 py-3 sm:px-6">
               {step === MAX_STEP && access === "token" ? (
                 <div className="mb-3">
                   <Form.Item
                     label={t("setup:SETUP_FIELD_SETUP_TOKEN_LABEL")}
                     help={t("setup:SETUP_FIELD_SETUP_TOKEN_HELP")}
                     required
-                    className="!mb-0"
+                    className="mb-0!"
                   >
                     <Input.Password
                       value={setupToken}
