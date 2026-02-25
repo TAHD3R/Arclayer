@@ -14,6 +14,8 @@ export type PortalApi = EditorHostPenpalConnection["portal"];
 export type UseEditorBridgeOptions = {
   iframeRef: React.RefObject<HTMLIFrameElement | null>;
   methods: HostEditorRpcApi;
+  /** Whether the iframe element is expected to be in the DOM. */
+  iframeReady: boolean;
   onConnected?: (portal: PortalApi) => void | Promise<void>;
 };
 
@@ -24,7 +26,7 @@ export type UseEditorBridgeReturn = {
 };
 
 export function useEditorBridge(opts: UseEditorBridgeOptions): UseEditorBridgeReturn {
-  const { iframeRef, methods, onConnected } = opts;
+  const { iframeRef, methods, iframeReady, onConnected } = opts;
 
   const [status, setStatus] = React.useState<BridgeStatus>("disconnected");
   const [error, setError] = React.useState<string | null>(null);
@@ -86,7 +88,7 @@ export function useEditorBridge(opts: UseEditorBridgeOptions): UseEditorBridgeRe
       connectorRef.current = null;
       setStatus("disconnected");
     };
-  }, [iframeRef, portalOrigin]);
+  }, [iframeRef, iframeReady, portalOrigin]);
 
   return {
     status,

@@ -4,6 +4,7 @@ import type { CoreDocumentIR } from "@celestial/site-renderer-core";
 import { isCoreDocumentIR } from "@celestial/site-renderer-core";
 
 import type { ViewerContext } from "@celestial/site-block-protocol";
+import { CORE_BLOCK_MANIFESTS, CORE_BLOCK_PATTERNS } from "@celestial/site-block-protocol";
 import type {
   BlockId,
   EditorCanvasState,
@@ -57,6 +58,7 @@ type HostOptionalEvents = {
 function getHostOptionalEvents(
   host: EditorPortalPenpalConnection["host"] | null,
 ): HostOptionalEvents {
+  if (!host) return {};
   return host as unknown as HostOptionalEvents;
 }
 
@@ -297,6 +299,7 @@ export function EditorSiteView(props: EditorSiteViewProps) {
         if (overlayModeRef.current === "off") return;
         setSelectedBlockId(blockId);
       },
+      getDocument: () => historyRef.current.present,
       pushDraftDocument: ({ document, pathname: incomingPathname }) => {
         // Optional scope guard: avoid applying drafts for other pathnames.
         if (incomingPathname && incomingPathname !== pathnameRef.current) {
@@ -381,6 +384,24 @@ export function EditorSiteView(props: EditorSiteViewProps) {
           },
         })),
       getCanvasState: () => canvasStateRef.current,
+
+      // --- Block registry & patterns ---
+      getAvailableBlocks: () => CORE_BLOCK_MANIFESTS,
+      getBlockPatterns: ({ category }) =>
+        category ? CORE_BLOCK_PATTERNS.filter((p) => p.category === category) : CORE_BLOCK_PATTERNS,
+
+      // --- Block manipulation (skeleton stubs) ---
+      moveBlock: () => buildLayerTree(historyRef.current.present),
+      deleteBlock: () => buildLayerTree(historyRef.current.present),
+      duplicateBlock: ({ blockId }) => ({
+        blockId,
+        inspector: buildSelectionInspector(historyRef.current.present, blockId),
+        layers: buildLayerTree(historyRef.current.present),
+      }),
+
+      // --- Responsive (skeleton stub) ---
+      setBreakpointOverride: () =>
+        buildSelectionInspector(historyRef.current.present, selectedBlockIdRef.current),
 
       // --- Inline editing (skeleton stubs) ---
       startInlineEdit: ({ blockId: _b, fieldKey: _f }) => ({ content: [] }),

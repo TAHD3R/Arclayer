@@ -179,6 +179,8 @@ export type PortalEditorRpcApi = {
    * cross-page draft overwrites when the host shell navigates quickly.
    */
   pushDraftDocument: (args: { document: DocumentIR; pathname?: string }) => void;
+  /** Return the current in-memory document (including unsaved edits). */
+  getDocument: () => DocumentIR;
   undo: () => EditorHistoryState;
   redo: () => EditorHistoryState;
   getHistoryState: () => EditorHistoryState;

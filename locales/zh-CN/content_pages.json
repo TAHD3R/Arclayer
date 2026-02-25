@@ -171,6 +171,8 @@
   "EDITOR_SHELL_SAVE_DISABLED_NON_PAGE": "当前仅页面模式支持保存草稿。",
   "EDITOR_SHELL_PUBLISH_DISABLED_NON_PAGE": "当前仅页面模式支持发布。",
   "EDITOR_SHELL_PUBLISH_SUCCESS": "已发布版本 {{revision}}",
+  "EDITOR_SHELL_PUBLISH_BRIDGE_NOT_READY": "无法发布：编辑器桥接未连接",
+  "EDITOR_SHELL_PUBLISH_GET_DOCUMENT_FAILED": "无法发布：无法从编辑器获取文档",
   "EDITOR_SHELL_DRAFT_CONFLICT": "草稿冲突：期望版本 {{expected}}，当前版本 {{current}}",
   "EDITOR_SHELL_DRAFT_CONFLICT_GENERIC": "检测到草稿冲突",
   "EDITOR_SHELL_PANEL_SITE_CHROME": "站点框架（页头/页脚/菜单集）",

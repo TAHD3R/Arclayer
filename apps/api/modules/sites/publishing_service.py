@@ -403,7 +403,22 @@ class SitePublishingService(BaseService):
                         document=doc,
                     )
 
-            # No published revision in public mode -> treat as not found.
+            # Page exists but has no usable revision.
+            # In preview mode (editor), return an empty document so the canvas can load.
+            # In public mode, the page is genuinely not ready → not_found.
+            if mode == "preview":
+                return SiteRouteResolveOut(
+                    match=SiteRouteMatchOut(
+                        kind="page",
+                        params={},
+                        page_id=UUID(str(page.id)),
+                        revision=None,
+                        revision_state=None,
+                        draft_revision=draft_rev,
+                        published_revision=published_rev or None,
+                    ),
+                    document=DocumentIR(version=1, blocks=[]),
+                )
             return SiteRouteResolveOut(match=SiteRouteMatchOut(kind="not_found"), document=None)
 
         # 2) RouteTemplate match.

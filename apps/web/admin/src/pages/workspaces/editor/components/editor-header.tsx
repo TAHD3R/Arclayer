@@ -10,6 +10,8 @@ import {
   Palette,
   ChevronRight,
   Check,
+  Wifi,
+  WifiOff,
 } from "lucide-react";
 import { Button, Tooltip, Avatar, Space, Popover, Checkbox, InputNumber } from "antd";
 
@@ -43,7 +45,7 @@ import {
 } from "@/components/ui/floating-panel";
 import { useEditorStore } from "@/pages/workspaces/editor/stores/editor-store";
 import { useEditorBridgeContext } from "@/pages/workspaces/editor/contexts/editor-bridge-context";
-import { useEditorSave } from "@/pages/workspaces/editor/hooks/use-editor-save";
+import { useEditorSaveContext } from "@/pages/workspaces/editor/contexts/editor-save-context";
 import { useEditorConfig } from "@/pages/workspaces/editor/contexts/editor-config-context";
 import { usePlatform } from "@/pages/workspaces/editor/hooks/use-platform";
 
@@ -241,30 +243,55 @@ function EditorUserMenuContent() {
   );
 }
 
+function BridgeStatusIndicator() {
+  const { t } = useTranslation(["content_pages"]);
+  const bridgeStatus = useEditorStore((s) => s.bridgeStatus);
+
+  const config = {
+    connected: {
+      icon: <Wifi className="size-3.5 text-green-500" />,
+      label: t("content_pages:EDITOR_SHELL_BRIDGE_CONNECTED"),
+    },
+    connecting: {
+      icon: <Wifi className="size-3.5 animate-pulse text-amber-500" />,
+      label: t("content_pages:EDITOR_SHELL_BRIDGE_CONNECTING"),
+    },
+    disconnected: {
+      icon: <WifiOff className="size-3.5 text-red-500" />,
+      label: t("content_pages:EDITOR_SHELL_BRIDGE_DISCONNECTED"),
+    },
+  } as const;
+
+  const { icon, label } = config[bridgeStatus];
+
+  return (
+    <Tooltip title={label}>
+      <Button type="text" size="small" className="cursor-default" icon={icon} />
+    </Tooltip>
+  );
+}
+
 export function EditorHeader() {
   const { t } = useTranslation(["content_pages"]);
-  const { workspaceId, entityId, editorMode } = useEditorConfig();
+  const { workspaceId } = useEditorConfig();
   const { portal } = useEditorBridgeContext();
   const sc = useShortcut();
 
   const isDirty = useEditorStore((s) => s.isDirty);
   const isSaving = useEditorStore((s) => s.isSaving);
   const isPublishing = useEditorStore((s) => s.isPublishing);
+  const bridgeStatus = useEditorStore((s) => s.bridgeStatus);
   const zoomPercent = useEditorStore((s) => s.zoomPercent);
   const setZoomPercent = useEditorStore((s) => s.setZoomPercent);
   const showLineGuides = useEditorStore((s) => s.showLineGuides);
   const setShowLineGuides = useEditorStore((s) => s.setShowLineGuides);
 
-  const { publish } = useEditorSave({
-    workspaceId,
-    entityId,
-    isPageMode: editorMode === "page",
-  });
+  const { saveDraft, publish } = useEditorSaveContext();
 
   const handleSave = async () => {
     if (!portal) return;
-    // Request the portal to provide the current document for saving
-    // The bridge's requestSave callback handles the actual save
+    const doc = await portal.getDocument();
+    await saveDraft(doc);
   };
 
   return (
@@ -285,7 +312,10 @@ export function EditorHeader() {
                 {t("content_pages:EDITOR_V2_MENU_FILE_SAVE", { defaultValue: "Save" })}
                 <MenubarShortcut>{sc("⌘S", "Ctrl+S")}</MenubarShortcut>
               </MenubarItem>
-              <MenubarItem disabled={isPublishing} onClick={() => void publish()}>
+              <MenubarItem
+                disabled={isPublishing || bridgeStatus !== "connected"}
+                onClick={() => void publish()}
+              >
                 {t("content_pages:EDITOR_V2_MENU_FILE_PUBLISH", { defaultValue: "Publish" })}
               </MenubarItem>
               <MenubarSeparator />
@@ -383,8 +413,10 @@ export function EditorHeader() {
 
       {/* Right: Save + Publish + Avatar */}
       <div className="flex items-center gap-2">
+        <BridgeStatusIndicator />
+
         {/* Save with settings popover */}
-        <Space.Compact size="small">
+        <Space.Compact>
           <Tooltip title={t("content_pages:EDITOR_V2_TOOLBAR_SAVE", { defaultValue: "Save" })}>
             <Button
               type={isDirty ? "primary" : "default"}
@@ -401,8 +433,7 @@ export function EditorHeader() {
         {/* Publish */}
         <Button
           type="primary"
-          size="small"
-          disabled={isPublishing}
+          disabled={isPublishing || bridgeStatus !== "connected"}
           icon={<Globe className="size-3.5" />}
           onClick={() => void publish()}
         >
@@ -416,9 +447,9 @@ export function EditorHeader() {
         <FloatingPanelRoot>
           <FloatingPanelTrigger
             title={t("content_pages:EDITOR_V2_USER_MENU_TITLE", { defaultValue: "User menu" })}
-            className="size-7 justify-center rounded-full border-0 bg-transparent"
+            className="size-8 justify-center rounded-full border-0 bg-transparent"
           >
-            <Avatar size="small" icon={<User className="size-3.5" />} />
+            <Avatar icon={<User className="size-3.5" />} />
           </FloatingPanelTrigger>
           <FloatingPanelContent placement="bottom" className="w-auto">
             <FloatingPanelBody className="p-0">

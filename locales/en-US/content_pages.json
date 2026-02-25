@@ -171,6 +171,8 @@
   "EDITOR_SHELL_SAVE_DISABLED_NON_PAGE": "Draft save is currently available for page mode only.",
   "EDITOR_SHELL_PUBLISH_DISABLED_NON_PAGE": "Publish is currently available for page mode only.",
   "EDITOR_SHELL_PUBLISH_SUCCESS": "Published revision {{revision}}",
+  "EDITOR_SHELL_PUBLISH_BRIDGE_NOT_READY": "Cannot publish: editor bridge is not connected",
+  "EDITOR_SHELL_PUBLISH_GET_DOCUMENT_FAILED": "Cannot publish: failed to retrieve document from editor",
   "EDITOR_SHELL_DRAFT_CONFLICT": "Draft conflict: expected {{expected}}, current {{current}}",
   "EDITOR_SHELL_DRAFT_CONFLICT_GENERIC": "Draft conflict detected",
   "EDITOR_SHELL_PANEL_SITE_CHROME": "Site Chrome (Header/Footer/Menu Sets)",

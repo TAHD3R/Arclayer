@@ -77,7 +77,6 @@ export function CanvasToolbar() {
         <Tooltip title={t("content_pages:EDITOR_V2_TOOLBAR_UNDO", { defaultValue: "Undo" })}>
           <Button
             type="text"
-            size="small"
             disabled={!canUndo}
             icon={<Undo2 className="size-4" />}
             onClick={onUndo}
@@ -86,7 +85,6 @@ export function CanvasToolbar() {
         <Tooltip title={t("content_pages:EDITOR_V2_TOOLBAR_REDO", { defaultValue: "Redo" })}>
           <Button
             type="text"
-            size="small"
             disabled={!canRedo}
             icon={<Redo2 className="size-4" />}
             onClick={onRedo}
@@ -96,7 +94,7 @@ export function CanvasToolbar() {
 
       {/* Center: Device preset switcher + Canvas Settings */}
       <div className="flex items-center gap-0.5">
-        <Space.Compact size="small">
+        <Space.Compact>
           {DEVICE_KEYS.map((key) => {
             const Icon = DEVICE_ICONS[key];
             const isActive = devicePreset === key;
@@ -109,7 +107,6 @@ export function CanvasToolbar() {
               >
                 <Button
                   type={isActive ? "primary" : "default"}
-                  size="small"
                   icon={<Icon className="size-4" />}
                   onClick={() => setDevicePreset(key)}
                 />
@@ -121,25 +118,24 @@ export function CanvasToolbar() {
         {/* Canvas Settings Popover */}
         <Popover>
           <PopoverTrigger asChild>
-            <Button type="text" size="small" className="ml-1 !gap-0.5 tabular-nums">
-              <span className="text-xs text-muted-foreground">{displayWidth} px</span>
+            <Button type="text" className="ml-1 gap-0.5! tabular-nums">
+              <span className="text-callout text-secondary">{displayWidth} px</span>
               <ChevronDown className="size-3 text-muted-foreground" />
             </Button>
           </PopoverTrigger>
           <PopoverContent align="center" className="w-64 space-y-3 p-3">
-            <p className="text-xs font-medium">
+            <p className="text-callout font-medium">
               {t("content_pages:EDITOR_V2_CANVAS_SETTINGS_TITLE", {
                 defaultValue: "Canvas Settings",
               })}
             </p>
 
             {/* Width */}
-            <label className="flex items-center gap-2 text-xs">
+            <label className="flex items-center gap-2 text-callout">
               <span className="w-16 shrink-0 text-muted-foreground">
                 {t("content_pages:EDITOR_V2_CANVAS_SETTINGS_WIDTH", { defaultValue: "Width" })}
               </span>
               <InputNumber
-                size="small"
                 className="flex-1"
                 min={320}
                 max={3840}
@@ -150,12 +146,11 @@ export function CanvasToolbar() {
             </label>
 
             {/* Scale */}
-            <label className="flex items-center gap-2 text-xs">
+            <label className="flex items-center gap-2 text-callout">
               <span className="w-16 shrink-0 text-muted-foreground">
                 {t("content_pages:EDITOR_V2_CANVAS_SETTINGS_SCALE", { defaultValue: "Scale" })}
               </span>
               <InputNumber
-                size="small"
                 className="flex-1"
                 min={25}
                 max={200}
@@ -174,14 +169,14 @@ export function CanvasToolbar() {
               title={t("content_pages:EDITOR_V2_COMING_SOON", { defaultValue: "Coming soon" })}
             >
               <div className="flex flex-col gap-1.5 opacity-50">
-                <span className="text-xs text-muted-foreground">
+                <span className="text-callout text-muted-foreground">
                   {t("content_pages:EDITOR_V2_CANVAS_SETTINGS_RULER", { defaultValue: "Ruler" })}
                 </span>
-                <Radio.Group size="small" value={rulerMode} disabled>
+                <Radio.Group value={rulerMode} disabled>
                   <div className="flex flex-col gap-1">
                     {RULER_OPTIONS.map((opt) => (
                       <Radio key={opt.value} value={opt.value}>
-                        <span className="text-xs">
+                        <span className="text-callout">
                           {t(opt.labelKey, { defaultValue: opt.defaultValue })}
                         </span>
                       </Radio>
@@ -197,7 +192,7 @@ export function CanvasToolbar() {
             >
               <div className="opacity-50">
                 <Checkbox checked={showLineGuides} disabled>
-                  <span className="text-xs">
+                  <span className="text-callout">
                     {t("content_pages:EDITOR_V2_CANVAS_SETTINGS_LINE_GUIDES", {
                       defaultValue: "Show line guides",
                     })}
@@ -216,21 +211,19 @@ export function CanvasToolbar() {
         >
           <Button
             type="text"
-            size="small"
             disabled={zoomPercent <= 25}
             icon={<ZoomOut className="size-4" />}
             onClick={() => setZoomPercent(zoomPercent - ZOOM_STEP)}
           />
         </Tooltip>
 
-        <span className="w-10 text-center text-xs tabular-nums text-muted-foreground">
+        <span className="w-10 text-center text-callout tabular-nums text-muted-foreground">
           {zoomPercent}%
         </span>
 
         <Tooltip title={t("content_pages:EDITOR_V2_TOOLBAR_ZOOM_IN", { defaultValue: "Zoom in" })}>
           <Button
             type="text"
-            size="small"
             disabled={zoomPercent >= 200}
             icon={<ZoomIn className="size-4" />}
             onClick={() => setZoomPercent(zoomPercent + ZOOM_STEP)}
@@ -242,7 +235,6 @@ export function CanvasToolbar() {
         >
           <Button
             type="text"
-            size="small"
             disabled={zoomPercent === 100}
             icon={<RotateCcw className="size-4" />}
             onClick={() => setZoomPercent(100)}

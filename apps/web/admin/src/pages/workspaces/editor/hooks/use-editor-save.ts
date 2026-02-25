@@ -3,6 +3,8 @@ import { useTranslation } from "react-i18next";
 
 import type { DocumentIR } from "@celestial/site-block-protocol";
 
+import type { BridgeStatus } from "@/pages/workspaces/editor/hooks/use-editor-bridge";
+
 import { publishWorkspaceSitePage, saveWorkspaceSitePageDraft } from "@/api/workspace-site";
 import {
   getErrorMessage,
@@ -17,10 +19,14 @@ export type UseEditorSaveOptions = {
   workspaceId: string;
   entityId: string;
   isPageMode: boolean;
+  /** Retrieve the current document from the Portal iframe (via RPC). */
+  getDocument: (() => Promise<DocumentIR | null>) | null;
+  /** Current bridge connection status. */
+  bridgeStatus: BridgeStatus;
 };
 
 export function useEditorSave(opts: UseEditorSaveOptions) {
-  const { workspaceId, entityId, isPageMode } = opts;
+  const { workspaceId, entityId, isPageMode, getDocument, bridgeStatus } = opts;
   const { t } = useTranslation(["content_pages"]);
 
   const setSaving = useEditorStore((s) => s.setSaving);
@@ -59,8 +65,28 @@ export function useEditorSave(opts: UseEditorSaveOptions) {
       return;
     }
 
+    if (bridgeStatus !== "connected") {
+      notifyErrorText(t("content_pages:EDITOR_SHELL_PUBLISH_BRIDGE_NOT_READY"));
+      return;
+    }
+
     setPublishing(true);
     try {
+      // No draft yet — save the current document first so there is something to publish.
+      if (draftRevisionRef.current === null && getDocument) {
+        const doc = await getDocument();
+        if (!doc) {
+          notifyErrorText(t("content_pages:EDITOR_SHELL_PUBLISH_GET_DOCUMENT_FAILED"));
+          return;
+        }
+        const saved = await saveWorkspaceSitePageDraft(workspaceId, entityId, {
+          document: doc,
+          expectedRevision: null,
+        });
+        draftRevisionRef.current = saved.revision;
+        setDirty(false);
+      }
+
       const revision = draftRevisionRef.current;
       const out = await publishWorkspaceSitePage(
         workspaceId,
@@ -75,7 +101,7 @@ export function useEditorSave(opts: UseEditorSaveOptions) {
     } finally {
       setPublishing(false);
     }
-  }, [entityId, isPageMode, setPublishing, t, workspaceId]);
+  }, [bridgeStatus, entityId, getDocument, isPageMode, setDirty, setPublishing, t, workspaceId]);
 
   // Cmd/Ctrl+S keyboard shortcut — triggers save via bridge
   React.useEffect(() => {

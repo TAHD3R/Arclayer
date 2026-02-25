@@ -262,7 +262,7 @@ function buildCoreBlockByType(type: EditorInsertBlockArgs["type"]): CoreBlockNod
     props: {
       variant: "default",
     },
-  };
+  } as CoreBlockNode;
 }
 
 function mergePropsRecord(
