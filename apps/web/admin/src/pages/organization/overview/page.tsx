@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 
 import { listMyWorkspaces } from "@/api/workspaces";
 import { DefaultPage } from "@/components/common/default-page";
-import { PageState } from "@/components/common/page-state";
+import { ContentGuard } from "@/components/common/content-guard";
 import { buildOrganizationPath } from "@/lib/organization-routing";
 
 export function OrganizationOverviewPage(props: { organizationId: string }) {
@@ -29,7 +29,7 @@ export function OrganizationOverviewPage(props: { organizationId: string }) {
       width="full"
       contentClassName="min-h-0"
     >
-      <PageState
+      <ContentGuard
         loading={workspacesQuery.isLoading && !workspacesQuery.data}
         error={workspacesQuery.error}
         onRetry={() => void workspacesQuery.refetch()}
@@ -71,7 +71,7 @@ export function OrganizationOverviewPage(props: { organizationId: string }) {
             </div>
           </Card>
         </div>
-      </PageState>
+      </ContentGuard>
     </DefaultPage>
   );
 }

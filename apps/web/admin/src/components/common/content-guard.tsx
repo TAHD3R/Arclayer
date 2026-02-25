@@ -19,7 +19,7 @@ import {
 } from "@/components/illustrations/open-doodles";
 import { PageSkeleton, type PageSkeletonVariant } from "@/components/common/page-skeleton";
 
-export type PageStateProps = {
+export type ContentGuardProps = {
   loading: boolean;
   error?: unknown | null;
   empty?: boolean;
@@ -57,7 +57,7 @@ function pickErrorIllustration(err: unknown) {
   return OpenDoodlesClumsy;
 }
 
-export function PageState(props: PageStateProps) {
+export function ContentGuard(props: ContentGuardProps) {
   const { t } = useTranslation();
 
   const error = props.error ?? null;
@@ -104,8 +104,8 @@ export function PageState(props: PageStateProps) {
           </EmptyHeader>
           {hasExtra ? (
             <EmptyContent>
-              {retryExtra}
               {props.errorExtra}
+              {retryExtra}
             </EmptyContent>
           ) : null}
         </Empty>

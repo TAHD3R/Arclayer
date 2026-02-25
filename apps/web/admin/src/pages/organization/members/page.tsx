@@ -13,7 +13,7 @@ import {
 } from "@/api/organization-members";
 import { ConfirmDialog } from "@/components/common/confirm-dialog";
 import { DefaultPage } from "@/components/common/default-page";
-import { PageState } from "@/components/common/page-state";
+import { ContentGuard } from "@/components/common/content-guard";
 import { DataTablePresenter, useDataTable } from "@/components/data-table";
 import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
@@ -134,13 +134,13 @@ export function OrganizationMembersPage() {
         />
       }
     >
-      <PageState
+      <ContentGuard
         loading={tableHook.isLoading}
         error={tableHook.error}
         onRetry={() => void tableHook.refetch()}
       >
         <DataTablePresenter table={table} emptyText={t("common:EMPTY_DESC")} />
-      </PageState>
+      </ContentGuard>
 
       <InviteOrganizationMemberDialog
         open={inviteOpen}

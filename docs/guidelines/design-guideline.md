@@ -124,7 +124,7 @@ Every data-driven page must define all key states up front:
 - Empty state: meaningful, actionable message
 - Error state: clear error feedback + retry path
 
-Use `PageState` and project-standard skeleton patterns instead of ad-hoc per-page implementations.
+Use `ContentGuard` and project-standard skeleton patterns instead of ad-hoc per-page implementations.
 
 ### 5.3 Skeleton quality requirements
 

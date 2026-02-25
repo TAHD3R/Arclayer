@@ -2,7 +2,7 @@ import { Input, Pagination } from "antd";
 import { type Table } from "@tanstack/react-table";
 import { Search } from "lucide-react";
 
-import { PageState } from "@/components/common/page-state";
+import { ContentGuard } from "@/components/common/content-guard";
 import { DataTablePresenter } from "@/components/data-table";
 import { LoaderOne } from "@/components/ui/loader";
 import { cn } from "@/lib/utils";
@@ -61,7 +61,7 @@ export function TeamInvitationsTableSection<TRow>(props: TeamInvitationsTableSec
         </div>
       ) : null}
 
-      <PageState
+      <ContentGuard
         loading={tableHook.isLoading}
         error={tableHook.error}
         onRetry={() => void tableHook.refetch()}
@@ -108,7 +108,7 @@ export function TeamInvitationsTableSection<TRow>(props: TeamInvitationsTableSec
             />
           </div>
         ) : null}
-      </PageState>
+      </ContentGuard>
     </div>
   );
 }

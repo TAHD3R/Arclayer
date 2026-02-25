@@ -4,7 +4,7 @@ import * as React from "react";
 import { useTranslation } from "react-i18next";
 
 import { DefaultPage } from "@/components/common/default-page";
-import { PageState } from "@/components/common/page-state";
+import { ContentGuard } from "@/components/common/content-guard";
 import { LoaderOne } from "@/components/ui/loader";
 import { ActivityDetailDialog } from "@/components/activity/activity-detail-dialog";
 import { ActivityTimeline } from "@/components/activity/activity-timeline";
@@ -156,7 +156,7 @@ export function WorkspaceActivityPage() {
         </div>
       }
     >
-      <PageState
+      <ContentGuard
         loading={listQuery.isLoading}
         error={listQuery.error}
         onRetry={() => void listQuery.refetch()}
@@ -178,7 +178,7 @@ export function WorkspaceActivityPage() {
             <div ref={sentinelRef} className="h-10" />
           </div>
         </div>
-      </PageState>
+      </ContentGuard>
 
       <ActivityDetailDialog
         open={Boolean(selected)}

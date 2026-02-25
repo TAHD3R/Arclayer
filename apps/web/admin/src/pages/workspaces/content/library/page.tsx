@@ -56,7 +56,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { DefaultPage } from "@/components/common/default-page";
-import { PageState } from "@/components/common/page-state";
+import { ContentGuard } from "@/components/common/content-guard";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
@@ -449,7 +449,7 @@ export function ContentLibraryView() {
             ) : null}
           </div>
 
-          <PageState
+          <ContentGuard
             loading={loading}
             error={firstError}
             onRetry={() => {
@@ -533,7 +533,7 @@ export function ContentLibraryView() {
                 </Button>
               </div>
             </div>
-          </PageState>
+          </ContentGuard>
         </ChromeTabs>
       </DefaultPage>
 

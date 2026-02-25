@@ -1,5 +1,5 @@
 import { DefaultPage } from "@/components/common/default-page";
-import { PageState } from "@/components/common/page-state";
+import { ContentGuard } from "@/components/common/content-guard";
 
 import { OrganizationMembersDialogs } from "./members-dialogs";
 import { OrganizationMembersTableSection } from "./members-table-section";
@@ -19,7 +19,7 @@ export function OrganizationTeamMembersPage() {
       action={<OrganizationMembersInviteAction onInvite={openInviteDialog} />}
       extra={<OrganizationMembersToolbar {...toolbarProps} />}
     >
-      <PageState
+      <ContentGuard
         loading={tableState.isLoading}
         error={tableState.error}
         onRetry={() => void tableState.refetch()}
@@ -33,7 +33,7 @@ export function OrganizationTeamMembersPage() {
           pageData={tableState.pageData}
           onPaginationChange={tableState.onPaginationChange}
         />
-      </PageState>
+      </ContentGuard>
 
       <OrganizationMembersDialogs {...dialogsProps} />
     </DefaultPage>

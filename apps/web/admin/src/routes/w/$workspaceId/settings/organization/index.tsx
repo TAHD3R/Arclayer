@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 
 import { getMyOrganization } from "@/api/me";
-import { PageState } from "@/components/common/page-state";
+import { ContentGuard } from "@/components/common/content-guard";
 import { buildOrganizationPath } from "@/lib/organization-routing";
 
 export const Route = createFileRoute("/w/$workspaceId/settings/organization/")({
@@ -33,7 +33,7 @@ function WorkspaceOrganizationSettingsRedirectRoute() {
   }, [myOrganizationQuery.data?.organization.id, navigate]);
 
   return (
-    <PageState
+    <ContentGuard
       loading={myOrganizationQuery.isLoading || Boolean(myOrganizationQuery.data?.organization.id)}
       error={myOrganizationQuery.error}
       onRetry={() => {

@@ -4,7 +4,7 @@ import { Plus } from "lucide-react";
 import { DefaultPage } from "@/components/common/default-page";
 import { LoaderOne } from "@/components/ui/loader";
 import type { AdminAssetFolder, AdminAssetTag } from "@/api/assets";
-import { getErrorMessage } from "@/lib/notifications";
+
 import { clearSelection } from "@/lib/assets/asset-selection";
 import { useAssetsViewController } from "./use-assets-view-controller";
 import { AssetsViewHeader } from "./assets-view-header";
@@ -188,7 +188,7 @@ export function AssetsView() {
         onOpenBulkDelete={() => openBulkDeleteDialog()}
       />
 
-      <AssetsViewMasonrySection controller={controller} getErrorMessage={getErrorMessage} />
+      <AssetsViewMasonrySection controller={controller} />
 
       {assetsQuery.hasNextPage ? (
         <div ref={sentinelRef} className="py-8 flex justify-center">

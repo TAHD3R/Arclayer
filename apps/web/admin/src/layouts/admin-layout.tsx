@@ -37,7 +37,7 @@ import { AdminAccountMenu } from "@/components/common/admin-account-menu";
 import { AdminHeader } from "@/components/common/admin-header";
 import { RouteProgress } from "@/components/common/route-progress";
 import { RouteTransition } from "@/components/common/route-transition";
-import { PageState } from "@/components/common/page-state";
+import { ContentGuard } from "@/components/common/content-guard";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
@@ -456,7 +456,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
           }}
         />
         <div className="flex-1 min-h-0 overflow-auto">
-          <PageState
+          <ContentGuard
             loading={false}
             error={workspaceRouteGuard.kind === "error" ? workspaceRouteGuard.error : null}
             onRetry={
@@ -473,7 +473,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
             ) : (
               <RouteTransition className="w-full">{children ?? <Outlet />}</RouteTransition>
             )}
-          </PageState>
+          </ContentGuard>
         </div>
       </SidebarInset>
     </SidebarProvider>

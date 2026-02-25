@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 
 import { PageSkeleton } from "@/components/common/page-skeleton";
-import { PageState } from "@/components/common/page-state";
+import { ContentGuard } from "@/components/common/content-guard";
 
 import {
   type ResolvedMemberWorkspace,
@@ -30,7 +30,7 @@ export function OrganizationMemberInspectWorkspacesTab({
   }
 
   return (
-    <PageState
+    <ContentGuard
       loading={false}
       error={workspaceDataError && workspaces.length === 0 ? workspaceDataError : null}
       empty={workspaces.length === 0}
@@ -47,6 +47,6 @@ export function OrganizationMemberInspectWorkspacesTab({
           searchable
         />
       </div>
-    </PageState>
+    </ContentGuard>
   );
 }

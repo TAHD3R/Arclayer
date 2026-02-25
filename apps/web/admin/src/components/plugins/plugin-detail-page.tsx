@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import type { SystemSettingsDetail } from "@/api/settings";
 import { DefaultPage } from "@/components/common/default-page";
-import { PageState } from "@/components/common/page-state";
+import { ContentGuard } from "@/components/common/content-guard";
 import { PluginSettingsForm } from "@/components/plugins/plugin-settings-form";
 import {
   ChromeTabs,
@@ -132,11 +132,11 @@ export function PluginDetailPage(props: PluginDetailPageProps) {
       );
     }
     if (props.settingsLoading && !props.settingsDetail) {
-      return <PageState loading loadingVariant="form" />;
+      return <ContentGuard loading loadingVariant="form" />;
     }
     if (props.settingsError) {
       return (
-        <PageState loading={false} error={props.settingsError} onRetry={props.onRetrySettings} />
+        <ContentGuard loading={false} error={props.settingsError} onRetry={props.onRetrySettings} />
       );
     }
     if (!props.settingsDetail) {
@@ -177,7 +177,7 @@ export function PluginDetailPage(props: PluginDetailPageProps) {
         </div>
       }
     >
-      <PageState loading={props.loading} error={props.loadError} onRetry={props.onRetryLoad}>
+      <ContentGuard loading={props.loading} error={props.loadError} onRetry={props.onRetryLoad}>
         {props.plugin ? (
           <ChromeTabs value={tab} onValueChange={(value) => setTab(String(value))}>
             <ChromeTabsList>
@@ -247,14 +247,14 @@ export function PluginDetailPage(props: PluginDetailPageProps) {
             ) : null}
           </ChromeTabs>
         ) : (
-          <PageState
+          <ContentGuard
             loading={false}
             empty
             emptyTitle={t("plugin:PLUGIN_NOT_FOUND")}
             emptyDescription={t("plugin:PLUGIN_CENTER_EMPTY")}
           />
         )}
-      </PageState>
+      </ContentGuard>
     </DefaultPage>
   );
 }

@@ -17,7 +17,7 @@ import {
   patchWorkspaceDetail,
 } from "@/api/workspaces";
 import { DefaultPage } from "@/components/common/default-page";
-import { PageState } from "@/components/common/page-state";
+import { ContentGuard } from "@/components/common/content-guard";
 import { Accordion } from "@/components/ui/accordion";
 import { SettingActionItem } from "@/components/common/setting-action-item";
 import { SettingAccordionItem } from "@/components/common/setting-accordion-item";
@@ -374,7 +374,7 @@ export function WorkspaceSettingsView() {
       description={t("settings:SETTINGS_WORKSPACE_DESC")}
       width="fixed"
     >
-      <PageState
+      <ContentGuard
         loading={Boolean(
           workspaceId && (detailQuery.isLoading || rolesQuery.isLoading) && !detailQuery.data,
         )}
@@ -1109,7 +1109,7 @@ export function WorkspaceSettingsView() {
             </Form.Item>
           </Form>
         </SettingDialog>
-      </PageState>
+      </ContentGuard>
     </DefaultPage>
   );
 }

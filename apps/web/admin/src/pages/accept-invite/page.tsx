@@ -18,7 +18,7 @@ import {
 import { ApiError } from "@/lib/http";
 import { buildOrganizationPath } from "@/lib/organization-routing";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
-import { PageState } from "@/components/common/page-state";
+import { ContentGuard } from "@/components/common/content-guard";
 import { Card } from "@/components/ui/card";
 import {
   Dialog,
@@ -172,21 +172,21 @@ export function AcceptInviteView(props: { token: string | null }) {
   }, [previewQuery.error, previewQuery.isError, t]);
   const tokenActions = (
     <div className="flex flex-wrap justify-center gap-3">
-      <Button type="primary" onClick={() => setTokenDialogOpen(true)}>
-        {t("invite:INVITE_ACTION_ENTER_TOKEN")}
-      </Button>
       <Button type="text" onClick={() => void onBackToLogin()}>
         {t("invite:INVITE_ACTION_BACK_TO_LOGIN")}
+      </Button>
+      <Button type="primary" onClick={() => setTokenDialogOpen(true)}>
+        {t("invite:INVITE_ACTION_ENTER_TOKEN")}
       </Button>
     </div>
   );
   const tokenActionsWithRetry = (
     <div className="flex flex-wrap justify-center gap-3">
+      <Button type="text" onClick={() => setTokenDialogOpen(true)}>
+        {t("invite:INVITE_ACTION_ENTER_TOKEN")}
+      </Button>
       <Button type="primary" onClick={() => void previewQuery.refetch()}>
         {t("common:RETRY")}
-      </Button>
-      <Button onClick={() => setTokenDialogOpen(true)}>
-        {t("invite:INVITE_ACTION_ENTER_TOKEN")}
       </Button>
     </div>
   );
@@ -338,7 +338,7 @@ export function AcceptInviteView(props: { token: string | null }) {
     <div className="w-full">
       {!token ? (
         <Card className="p-8">
-          <PageState
+          <ContentGuard
             loading={false}
             empty
             variant="compact"
@@ -349,7 +349,7 @@ export function AcceptInviteView(props: { token: string | null }) {
         </Card>
       ) : inviteBusinessFailure ? (
         <Card className="p-8">
-          <PageState
+          <ContentGuard
             loading={false}
             empty
             variant="compact"
@@ -360,7 +360,7 @@ export function AcceptInviteView(props: { token: string | null }) {
         </Card>
       ) : (
         <Card className="p-8">
-          <PageState
+          <ContentGuard
             loading={previewQuery.isLoading}
             error={previewQuery.isError ? previewQuery.error : null}
             onRetry={() => void previewQuery.refetch()}
@@ -450,7 +450,7 @@ export function AcceptInviteView(props: { token: string | null }) {
                 </motion.div>
               </motion.div>
             ) : null}
-          </PageState>
+          </ContentGuard>
         </Card>
       )}
     </div>
@@ -459,7 +459,7 @@ export function AcceptInviteView(props: { token: string | null }) {
     <div className="w-full">
       {!token ? (
         <Card className="p-8">
-          <PageState
+          <ContentGuard
             loading={false}
             empty
             variant="compact"
@@ -470,7 +470,7 @@ export function AcceptInviteView(props: { token: string | null }) {
         </Card>
       ) : inviteBusinessFailure ? (
         <Card className="p-8">
-          <PageState
+          <ContentGuard
             loading={false}
             empty
             variant="compact"
@@ -481,7 +481,7 @@ export function AcceptInviteView(props: { token: string | null }) {
         </Card>
       ) : (
         <Card className="p-8">
-          <PageState
+          <ContentGuard
             loading={previewQuery.isLoading || (isLoggedIn && meQuery.isLoading)}
             error={previewQuery.isError ? previewQuery.error : null}
             onRetry={() => void previewQuery.refetch()}
@@ -698,7 +698,7 @@ export function AcceptInviteView(props: { token: string | null }) {
                 </motion.div>
               </AnimatePresence>
             )}
-          </PageState>
+          </ContentGuard>
         </Card>
       )}
     </div>

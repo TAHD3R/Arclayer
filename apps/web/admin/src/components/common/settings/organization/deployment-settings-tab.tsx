@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { getSystemCoreSettings, patchSystemCoreSettings } from "@/api/settings";
-import { PageState } from "@/components/common/page-state";
+import { ContentGuard } from "@/components/common/content-guard";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 
 import { buildGeneralSettingsInitialValues } from "@/lib/settings/general/adapters";
@@ -67,7 +67,7 @@ export function DeploymentSettingsTab() {
   const disabled = systemCoreQuery.isFetching || saveSystemMutation.isPending;
 
   return (
-    <PageState
+    <ContentGuard
       loading={systemCoreQuery.isLoading && !systemCoreQuery.data}
       loadingVariant="form"
       error={systemCoreQuery.isError ? systemCoreQuery.error : null}
@@ -103,6 +103,6 @@ export function DeploymentSettingsTab() {
           />
         </div>
       </Form>
-    </PageState>
+    </ContentGuard>
   );
 }

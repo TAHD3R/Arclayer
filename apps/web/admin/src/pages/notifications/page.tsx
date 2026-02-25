@@ -16,7 +16,7 @@ import {
 import { listMyWorkspaces } from "@/api/workspaces";
 import { DefaultPage } from "@/components/common/default-page";
 import { NotificationCard } from "@/components/common/notification-card";
-import { PageState } from "@/components/common/page-state";
+import { ContentGuard } from "@/components/common/content-guard";
 import {
   ChromeTabs,
   ChromeTabsContent,
@@ -286,7 +286,7 @@ export function NotificationsPage() {
         </ChromeTabsList>
 
         <ChromeTabsContent value={status}>
-          <PageState
+          <ContentGuard
             loading={listQuery.isLoading && !listQuery.data}
             loadingVariant="table"
             error={loadError}
@@ -377,7 +377,7 @@ export function NotificationsPage() {
               </div>
               <div ref={sentinelRef} />
             </div>
-          </PageState>
+          </ContentGuard>
         </ChromeTabsContent>
       </ChromeTabs>
     </DefaultPage>

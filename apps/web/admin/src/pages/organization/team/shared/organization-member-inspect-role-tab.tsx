@@ -2,7 +2,7 @@ import { Check, Minus } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { PageSkeleton } from "@/components/common/page-skeleton";
-import { PageState } from "@/components/common/page-state";
+import { ContentGuard } from "@/components/common/content-guard";
 
 export type OrganizationMemberInspectRolePermission = {
   code: string;
@@ -43,7 +43,7 @@ export function OrganizationMemberInspectRoleTab({
     : rolesError || permissionsError;
 
   return (
-    <PageState
+    <ContentGuard
       loading={false}
       error={error}
       empty={!roleName}
@@ -90,6 +90,6 @@ export function OrganizationMemberInspectRoleTab({
           </div>
         </div>
       </div>
-    </PageState>
+    </ContentGuard>
   );
 }

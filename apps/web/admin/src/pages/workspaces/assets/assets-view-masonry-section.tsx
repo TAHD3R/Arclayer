@@ -11,7 +11,7 @@ import {
   AssetsExplorerFolderTile,
   AssetsExplorerFolderUpTile,
 } from "@/components/common/assets/explorer/assets-explorer-folder-tiles";
-import { PageState } from "@/components/common/page-state";
+import { ContentGuard } from "@/components/common/content-guard";
 import { LoaderOne } from "@/components/ui/loader";
 import {
   clearSelection,
@@ -37,14 +37,13 @@ import type { AssetsViewController } from "./use-assets-view-controller";
 
 interface AssetsViewMasonrySectionProps {
   controller: AssetsViewController;
-  getErrorMessage: (error: unknown) => string;
 }
 
 type MasonryEntry = AssetsViewController["masonryEntries"][number];
 type MenuClickInfo = Parameters<NonNullable<MenuProps["onClick"]>>[0];
 
 export function AssetsViewMasonrySection(props: AssetsViewMasonrySectionProps) {
-  const { controller, getErrorMessage } = props;
+  const { controller } = props;
   const {
     t,
     assetsQuery,
@@ -88,36 +87,23 @@ export function AssetsViewMasonrySection(props: AssetsViewMasonrySectionProps) {
   } = controller;
 
   return (
-    <PageState
+    <ContentGuard
       loading={assetsQuery.isLoading && !assetsQuery.data}
       loadingVariant="masonry"
       error={assetsQuery.isError ? assetsQuery.error : null}
       onRetry={() => void assetsQuery.refetch()}
-      errorDescription={
-        assetsQuery.isError ? (
-          <div className="space-y-1">
-            <div>{t("assets:ASSET_LIST_LOAD_FAILED_DESC")}</div>
-            <div className="text-label-secondary">{getErrorMessage(assetsQuery.error)}</div>
-          </div>
-        ) : undefined
-      }
+      errorDescription={assetsQuery.isError ? t("assets:ASSET_LIST_LOAD_FAILED_DESC") : undefined}
       empty={masonryEntries.length === 0}
       emptyTitle={
         explicitFilterActive ? t("assets:ASSET_EMPTY_SEARCH_TITLE") : t("assets:ASSET_EMPTY")
       }
       emptyDescription={
-        <div>
-          <p>
-            {explicitFilterActive
-              ? t("assets:ASSET_EMPTY_SEARCH_DESC")
-              : t("assets:ASSET_EMPTY_DESC")}
-          </p>
-        </div>
+        explicitFilterActive ? t("assets:ASSET_EMPTY_SEARCH_DESC") : t("assets:ASSET_EMPTY_DESC")
       }
       emptyExtra={
         explicitFilterActive ? (
           <Button
-            type="default"
+            type="primary"
             onClick={() => {
               setSearchInput("");
               setSearchQuery("");
@@ -520,6 +506,6 @@ export function AssetsViewMasonrySection(props: AssetsViewMasonrySectionProps) {
           </AnimatePresence>
         </DragOverlay>
       </DndContext>
-    </PageState>
+    </ContentGuard>
   );
 }

@@ -13,7 +13,7 @@ import {
 } from "@/api/notifications";
 import { listMyWorkspaces } from "@/api/workspaces";
 import { NotificationCard } from "@/components/common/notification-card";
-import { PageState } from "@/components/common/page-state";
+import { ContentGuard } from "@/components/common/content-guard";
 import {
   ChromeTabs,
   ChromeTabsContent,
@@ -236,7 +236,7 @@ function HeaderNotificationsPanel() {
         </div>
 
         <ChromeTabsContent value={tab} className="pt-2 overflow-y-auto">
-          <PageState
+          <ContentGuard
             loading={loading}
             loadingVariant="table"
             variant="compact"
@@ -266,7 +266,7 @@ function HeaderNotificationsPanel() {
               </div>
               <div ref={sentinelRef} />
             </div>
-          </PageState>
+          </ContentGuard>
         </ChromeTabsContent>
       </ChromeTabs>
 

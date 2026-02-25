@@ -25,7 +25,7 @@ import {
 } from "@/api/workspace-plugins";
 import { ConfirmDialog } from "@/components/common/confirm-dialog";
 import { DefaultPage } from "@/components/common/default-page";
-import { PageState } from "@/components/common/page-state";
+import { ContentGuard } from "@/components/common/content-guard";
 import { AdminExtensionsSlot } from "@/components/extensions/admin-extensions-slot";
 import { PluginIcon } from "@/components/plugins/plugin-icon";
 import { PluginInstallDialog } from "@/components/plugins/plugin-install-dialog";
@@ -276,7 +276,7 @@ export function PluginsInstalledView({
   if (!isOrganizationScope && !workspaceId) {
     return (
       <DefaultPage title={t("nav:NAV_PLUGINS_INSTALLED")} description={pageDescription}>
-        <PageState
+        <ContentGuard
           loading={false}
           empty
           emptyTitle={t("settings:SETTINGS_WORKSPACE_NOT_SELECTED_TITLE")}
@@ -289,7 +289,7 @@ export function PluginsInstalledView({
   if (listQuery.isLoading && !listQuery.data) {
     return (
       <DefaultPage title={t("nav:NAV_PLUGINS_INSTALLED")} description={pageDescription}>
-        <PageState loading loadingVariant="masonry" />
+        <ContentGuard loading loadingVariant="masonry" />
       </DefaultPage>
     );
   }
@@ -297,7 +297,7 @@ export function PluginsInstalledView({
   if (listQuery.isError) {
     return (
       <DefaultPage title={t("nav:NAV_PLUGINS_INSTALLED")} description={pageDescription}>
-        <PageState
+        <ContentGuard
           loading={false}
           error={listQuery.error}
           onRetry={() => void listQuery.refetch()}
@@ -393,7 +393,7 @@ export function PluginsInstalledView({
       ) : null}
 
       {filtered.length === 0 ? (
-        <PageState
+        <ContentGuard
           loading={false}
           empty
           emptyTitle={t("common:EMPTY_TITLE")}

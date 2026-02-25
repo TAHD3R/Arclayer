@@ -283,7 +283,7 @@ export function useAssetsViewController() {
     },
   });
   // Note: Do not toast for initial page-load errors.
-  // PageState will render a full error UI with details + retry.
+  // ContentGuard will render a full error UI with details + retry.
   useEffect(() => {
     // Filters changed => selection & active detail should not "stick" to stale items.
     setSelection((prev) => clearSelection(prev));

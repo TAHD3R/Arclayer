@@ -18,7 +18,7 @@ import {
   type OrganizationWorkspace,
 } from "@/api/organization-workspaces";
 import { getWorkspaceDetail } from "@/api/workspaces";
-import { PageState } from "@/components/common/page-state";
+import { ContentGuard } from "@/components/common/content-guard";
 import { SettingDialog } from "@/components/common/setting-dialog";
 import {
   FloatingPanelContent,
@@ -138,7 +138,7 @@ function OrgSwitcherPanel(props: {
         {props.loading ? (
           <PanelListSkeleton rows={6} />
         ) : props.error ? (
-          <PageState
+          <ContentGuard
             loading={false}
             error={props.error}
             onRetry={props.onRefresh}
@@ -266,7 +266,7 @@ function WsSwitcherPanel(props: {
         {props.loading ? (
           <PanelListSkeleton rows={6} />
         ) : props.error ? (
-          <PageState
+          <ContentGuard
             loading={false}
             error={props.error}
             onRetry={props.onRefresh}

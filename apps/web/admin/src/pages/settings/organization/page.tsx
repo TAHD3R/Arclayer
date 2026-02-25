@@ -16,7 +16,7 @@ import { listOrganizationRoles } from "@/api/organization-rbac";
 import { reinitializeSelfHostSystem } from "@/api/system";
 import { getMyOrganization } from "@/api/me";
 import { DefaultPage } from "@/components/common/default-page";
-import { PageState } from "@/components/common/page-state";
+import { ContentGuard } from "@/components/common/content-guard";
 import { SettingAccordionItem } from "@/components/common/setting-accordion-item";
 import { SettingActionItem } from "@/components/common/setting-action-item";
 import { SettingDialog } from "@/components/common/setting-dialog";
@@ -316,7 +316,7 @@ export function OrganizationSettingsView() {
         description={t("settings:SETTINGS_ORG_DESC")}
         width="fixed"
       >
-        <PageState loading loadingVariant="form" />
+        <ContentGuard loading loadingVariant="form" />
       </DefaultPage>
     );
   }
@@ -328,7 +328,7 @@ export function OrganizationSettingsView() {
         description={t("settings:SETTINGS_ORG_DESC")}
         width="fixed"
       >
-        <PageState
+        <ContentGuard
           loading={false}
           error={myOrgQuery.error}
           onRetry={() => void myOrgQuery.refetch()}
@@ -344,7 +344,7 @@ export function OrganizationSettingsView() {
         description={t("settings:SETTINGS_ORG_DESC")}
         width="fixed"
       >
-        <PageState loading={false} error={forbiddenError} hideRetry />
+        <ContentGuard loading={false} error={forbiddenError} hideRetry />
       </DefaultPage>
     );
   }
@@ -355,7 +355,7 @@ export function OrganizationSettingsView() {
       description={t("settings:SETTINGS_ORG_DESC")}
       width="fixed"
     >
-      <PageState
+      <ContentGuard
         loading={coreQuery.isLoading || rolesQuery.isLoading}
         error={coreQuery.error || rolesQuery.error}
         onRetry={() => {
@@ -1059,7 +1059,7 @@ export function OrganizationSettingsView() {
             </Form.Item>
           </Form>
         </SettingDialog>
-      </PageState>
+      </ContentGuard>
     </DefaultPage>
   );
 }

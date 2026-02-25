@@ -5,7 +5,7 @@ import { Button, Input } from "antd";
 
 import { getWorkspaceSiteStyle, upsertWorkspaceSiteStyle } from "@/api/workspace-site";
 import { DefaultPage } from "@/components/common/default-page";
-import { PageState } from "@/components/common/page-state";
+import { ContentGuard } from "@/components/common/content-guard";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
@@ -76,7 +76,7 @@ export function WorkspaceGlobalStylesView() {
       title={t("nav:NAV_APPEARANCE_STYLES")}
       description={t("appearance:GLOBAL_STYLES_DESC")}
     >
-      <PageState
+      <ContentGuard
         loading={styleQuery.isLoading && !styleQuery.data}
         loadingVariant="form"
         error={styleQuery.isError ? styleQuery.error : null}
@@ -123,7 +123,7 @@ export function WorkspaceGlobalStylesView() {
             </p>
           </div>
         </div>
-      </PageState>
+      </ContentGuard>
     </DefaultPage>
   );
 }

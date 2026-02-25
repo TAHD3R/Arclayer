@@ -18,7 +18,7 @@ import {
   type UserStatus,
 } from "@/api/team";
 import { DefaultPage } from "@/components/common/default-page";
-import { PageState } from "@/components/common/page-state";
+import { ContentGuard } from "@/components/common/content-guard";
 import { useDataTable } from "@/components/data-table";
 import { Button } from "@/components/ui/button";
 import { LoaderOne } from "@/components/ui/loader";
@@ -433,7 +433,7 @@ export function TeamMembersView() {
         </div>
       }
     >
-      <PageState
+      <ContentGuard
         loading={tableHook.isLoading}
         error={tableHook.error}
         onRetry={() => void tableHook.refetch()}
@@ -512,7 +512,7 @@ export function TeamMembersView() {
             })
           }
         />
-      </PageState>
+      </ContentGuard>
     </DefaultPage>
   );
 }

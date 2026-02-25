@@ -12,7 +12,7 @@ import {
 } from "@/api/workspace-themes";
 import { ConfirmDialog } from "@/components/common/confirm-dialog";
 import { DefaultPage } from "@/components/common/default-page";
-import { PageState } from "@/components/common/page-state";
+import { ContentGuard } from "@/components/common/content-guard";
 import {
   Dialog,
   DialogContent,
@@ -86,7 +86,7 @@ export function WorkspaceThemesView() {
         </Button>
       }
     >
-      <PageState
+      <ContentGuard
         loading={listQuery.isLoading && !listQuery.data}
         loadingVariant="masonry"
         error={listQuery.isError ? listQuery.error : null}
@@ -95,7 +95,7 @@ export function WorkspaceThemesView() {
         emptyDescription={t("appearance:THEME_CENTER_EMPTY")}
       >
         <ThemeCardGrid items={items} onDelete={setDeleteTarget} t={t} />
-      </PageState>
+      </ContentGuard>
 
       {/* Import dialog */}
       <ImportThemeDialog

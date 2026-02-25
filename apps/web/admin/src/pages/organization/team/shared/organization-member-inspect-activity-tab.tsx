@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import type { ActivityEvent } from "@/api/activity";
 import { ActivityTimeline } from "@/components/activity/activity-timeline";
 import { PageSkeleton } from "@/components/common/page-skeleton";
-import { PageState } from "@/components/common/page-state";
+import { ContentGuard } from "@/components/common/content-guard";
 
 type OrganizationMemberInspectActivityTabProps = {
   items: ActivityEvent[];
@@ -34,7 +34,7 @@ export function OrganizationMemberInspectActivityTab({
   }
 
   return (
-    <PageState
+    <ContentGuard
       loading={false}
       error={error}
       onRetry={onRetry}
@@ -52,6 +52,6 @@ export function OrganizationMemberInspectActivityTab({
         />
         <div ref={sentinelRef} className="h-10" />
       </div>
-    </PageState>
+    </ContentGuard>
   );
 }

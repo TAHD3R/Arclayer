@@ -12,7 +12,7 @@ import {
   ChromeTabsTrigger,
 } from "@/components/ui/chrome-tabs";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
-import { PageState } from "@/components/common/page-state";
+import { ContentGuard } from "@/components/common/content-guard";
 
 import { buildGeneralSettingsInitialValues } from "@/lib/settings/general/adapters";
 import type {
@@ -116,7 +116,7 @@ export function GeneralSettingsView(props: GeneralSettingsViewProps) {
       description={t("settings:SETTINGS_SITE_IDENTITY_DESC")}
       width="fixed"
     >
-      <PageState
+      <ContentGuard
         loading={workspaceCoreQuery.isLoading && !workspaceCoreQuery.data}
         loadingVariant="form"
         error={loadError}
@@ -172,7 +172,7 @@ export function GeneralSettingsView(props: GeneralSettingsViewProps) {
             </ChromeTabsContent>
           </ChromeTabs>
         </Form>
-      </PageState>
+      </ContentGuard>
     </DefaultPage>
   );
 }

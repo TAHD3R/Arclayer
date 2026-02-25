@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 
 import { listMyOrganizations } from "@/api/me";
 import { DefaultPage } from "@/components/common/default-page";
-import { PageState } from "@/components/common/page-state";
+import { ContentGuard } from "@/components/common/content-guard";
 
 export const Route = createFileRoute("/")({
   component: IndexRoute,
@@ -48,7 +48,7 @@ function IndexRoute() {
       title={t("nav:NAV_ORG_WORKSPACES")}
       description={t("common:WORKSPACE_SWITCHER_ORG_EMPTY_DESC")}
     >
-      <PageState
+      <ContentGuard
         loading={
           Boolean(firstOrganizationId) || (organizationsQuery.isLoading && !organizationsQuery.data)
         }

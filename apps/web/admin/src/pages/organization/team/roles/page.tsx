@@ -11,7 +11,7 @@ import {
   setOrganizationPermissionRoles,
 } from "@/api/organization-rbac";
 import { DefaultPage } from "@/components/common/default-page";
-import { PageState } from "@/components/common/page-state";
+import { ContentGuard } from "@/components/common/content-guard";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { useDialogSnapshotState } from "@/pages/organization/team/shared/use-dialog-snapshot-state";
 import { CreateRoleDialog, DeleteRoleDialog } from "./roles-dialogs";
@@ -113,7 +113,7 @@ export function OrganizationTeamRolesPage() {
         title={t("settings:SETTINGS_ORG_ROLES_TITLE")}
         description={t("common:ORG_ROLES_DESC")}
       >
-        <PageState loading loadingVariant="table" />
+        <ContentGuard loading loadingVariant="table" />
       </DefaultPage>
     );
   }
@@ -125,7 +125,7 @@ export function OrganizationTeamRolesPage() {
         title={t("settings:SETTINGS_ORG_ROLES_TITLE")}
         description={t("common:ORG_ROLES_DESC")}
       >
-        <PageState
+        <ContentGuard
           loading={false}
           error={matrixQuery.error}
           onRetry={() => void matrixQuery.refetch()}

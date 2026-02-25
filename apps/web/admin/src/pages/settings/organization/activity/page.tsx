@@ -4,7 +4,7 @@ import * as React from "react";
 import { useTranslation } from "react-i18next";
 
 import { DefaultPage } from "@/components/common/default-page";
-import { PageState } from "@/components/common/page-state";
+import { ContentGuard } from "@/components/common/content-guard";
 import { ActivityDetailDialog } from "@/components/activity/activity-detail-dialog";
 import { ActivityTimeline } from "@/components/activity/activity-timeline";
 import {
@@ -164,7 +164,7 @@ export function OrganizationActivityPage() {
         </div>
       }
     >
-      <PageState
+      <ContentGuard
         loading={listQuery.isLoading || workspacesQuery.isLoading}
         error={listQuery.error || workspacesQuery.error}
         onRetry={() => {
@@ -189,7 +189,7 @@ export function OrganizationActivityPage() {
             <div ref={sentinelRef} className="h-10" />
           </div>
         </div>
-      </PageState>
+      </ContentGuard>
 
       <ActivityDetailDialog
         open={Boolean(selected)}

@@ -16,7 +16,7 @@ import {
   saveWorkspaceSitePageDraft,
 } from "@/api/workspace-site";
 import { DefaultPage } from "@/components/common/default-page";
-import { PageState } from "@/components/common/page-state";
+import { ContentGuard } from "@/components/common/content-guard";
 import { DataTablePresenter, useDataTable } from "@/components/data-table";
 import { Button as UiButton } from "@/components/ui/button";
 import { ApiError } from "@/lib/http";
@@ -524,7 +524,7 @@ export function ContentPagesView() {
           />
         }
       >
-        <PageState
+        <ContentGuard
           loading={tableHook.isLoading}
           error={tableHook.error}
           onRetry={() => void tableHook.refetch()}
@@ -611,7 +611,7 @@ export function ContentPagesView() {
               </div>
             </div>
           ) : null}
-        </PageState>
+        </ContentGuard>
       </DefaultPage>
 
       <ContentPagesSheet

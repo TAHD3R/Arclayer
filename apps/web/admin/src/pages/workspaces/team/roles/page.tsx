@@ -14,7 +14,7 @@ import {
   setWorkspacePermissionRoles,
 } from "@/api/rbac";
 import { DefaultPage } from "@/components/common/default-page";
-import { PageState } from "@/components/common/page-state";
+import { ContentGuard } from "@/components/common/content-guard";
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
@@ -229,7 +229,7 @@ export function TeamRolesView(props: { workspaceIdOverride?: string | null } = {
         description={t("team:TEAM_ROLES_DESC")}
         width="fixed"
       >
-        <PageState
+        <ContentGuard
           loading={false}
           empty
           emptyTitle={t("settings:SETTINGS_WORKSPACE_NOT_SELECTED_TITLE")}
@@ -246,7 +246,7 @@ export function TeamRolesView(props: { workspaceIdOverride?: string | null } = {
         description={t("team:TEAM_ROLES_DESC")}
         width="full"
       >
-        <PageState loading loadingVariant="table" />
+        <ContentGuard loading loadingVariant="table" />
       </DefaultPage>
     );
   }
@@ -258,7 +258,7 @@ export function TeamRolesView(props: { workspaceIdOverride?: string | null } = {
         description={t("team:TEAM_ROLES_DESC")}
         width="full"
       >
-        <PageState
+        <ContentGuard
           loading={false}
           error={matrixQuery.error}
           onRetry={() => void matrixQuery.refetch()}
@@ -295,7 +295,7 @@ export function TeamRolesView(props: { workspaceIdOverride?: string | null } = {
         />
 
         {hasEmptySearch ? (
-          <PageState loading={false} empty emptyTitle={t("team:TEAM_ROLES_EMPTY_SEARCH")} />
+          <ContentGuard loading={false} empty emptyTitle={t("team:TEAM_ROLES_EMPTY_SEARCH")} />
         ) : (
           <div className="relative isolate rounded-lg border bg-card">
             {showTopScrollbar ? (

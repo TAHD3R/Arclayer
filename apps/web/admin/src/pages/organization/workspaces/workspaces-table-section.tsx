@@ -1,7 +1,7 @@
 import type { Row } from "@tanstack/react-table";
 
 import type { OrganizationWorkspace } from "@/api/organization-workspaces";
-import { PageState } from "@/components/common/page-state";
+import { ContentGuard } from "@/components/common/content-guard";
 import { DataTablePresenter } from "@/components/data-table";
 
 import type { OrganizationWorkspaceTableHook } from "./use-organization-workspaces-tables";
@@ -18,7 +18,7 @@ export function WorkspacesTableSection(props: {
   const empty = !props.tableHook.isLoading && props.tableHook.items.length === 0;
 
   return (
-    <PageState
+    <ContentGuard
       loading={props.tableHook.isLoading}
       error={props.tableHook.error}
       onRetry={props.onRetry}
@@ -36,6 +36,6 @@ export function WorkspacesTableSection(props: {
         }
         onRowClick={props.onRowClick}
       />
-    </PageState>
+    </ContentGuard>
   );
 }
