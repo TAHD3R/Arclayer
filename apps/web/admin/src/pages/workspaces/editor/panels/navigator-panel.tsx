@@ -2,9 +2,13 @@ import { useTranslation } from "react-i18next";
 
 import type { EditorLayerNode } from "@celestial/site-editor-protocol";
 
+import { useEditorBridgeContext } from "@/pages/workspaces/editor/contexts/editor-bridge-context";
 import { useEditorStore } from "@/pages/workspaces/editor/stores/editor-store";
+import { getTreeIndentClass } from "@/pages/workspaces/editor/constants/tree-indent";
+import { cn } from "@/lib/utils";
 
 function LayerNode({ node, depth }: { node: EditorLayerNode; depth: number }) {
+  const { portal } = useEditorBridgeContext();
   const selectedBlockId = useEditorStore((s) => s.selectedBlockId);
   const setSelectedBlockId = useEditorStore((s) => s.setSelectedBlockId);
   const isSelected = selectedBlockId === node.id;
@@ -13,11 +17,16 @@ function LayerNode({ node, depth }: { node: EditorLayerNode; depth: number }) {
     <>
       <button
         type="button"
-        className={`flex w-full items-center gap-1.5 rounded px-2 py-1 text-left text-caption ${
-          isSelected ? "bg-accent text-accent-foreground" : "hover:bg-muted"
-        }`}
-        style={{ paddingLeft: `${depth * 16 + 8}px` }}
-        onClick={() => setSelectedBlockId(node.id)}
+        className={cn(
+          "flex w-full items-center gap-1.5 rounded py-1 pr-2 text-left text-caption",
+          getTreeIndentClass(depth),
+          isSelected ? "bg-accent text-accent-foreground" : "hover:bg-muted",
+        )}
+        onClick={() => {
+          // Optimistic local selection keeps the navigator responsive even if the bridge is reconnecting.
+          setSelectedBlockId(node.id);
+          void portal?.selectBlock({ blockId: node.id });
+        }}
       >
         <span className="truncate">{node.label || node.type}</span>
       </button>
@@ -36,9 +45,7 @@ export function NavigatorPanel() {
     return (
       <div className="flex flex-1 items-center justify-center p-4">
         <span className="text-caption text-label-secondary">
-          {t("content_pages:EDITOR_V2_LAYERS_EMPTY", {
-            defaultValue: "No layers yet",
-          })}
+          {t("content_pages:EDITOR_V2_EMPTY_LAYERS")}
         </span>
       </div>
     );

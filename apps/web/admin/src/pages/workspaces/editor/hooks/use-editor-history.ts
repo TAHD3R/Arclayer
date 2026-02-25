@@ -2,6 +2,7 @@ import * as React from "react";
 
 import { getErrorMessage, notifyErrorText } from "@/lib/notifications";
 import { useEditorStore } from "@/pages/workspaces/editor/stores/editor-store";
+import { isEditableTarget } from "@/pages/workspaces/editor/hooks/editor-keyboard";
 
 import type { PortalApi } from "./use-editor-bridge";
 
@@ -28,8 +29,11 @@ export function useEditorHistory(portal: PortalApi | null) {
 
   React.useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      if (isEditableTarget(e.target)) return;
+
       const mod = e.metaKey || e.ctrlKey;
       if (!mod || e.key.toLowerCase() !== "z") return;
+      if (!portal) return;
 
       e.preventDefault();
       if (e.shiftKey) {

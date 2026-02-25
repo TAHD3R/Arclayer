@@ -24,6 +24,7 @@ import {
 } from "@/pages/workspaces/editor/stores/editor-store";
 import { useEditorBridgeContext } from "@/pages/workspaces/editor/contexts/editor-bridge-context";
 import { useEditorHistory } from "@/pages/workspaces/editor/hooks/use-editor-history";
+import { DEVICE_PRESET_WIDTHS } from "@/pages/workspaces/editor/constants/canvas";
 
 const ZOOM_STEP = 10;
 
@@ -35,24 +36,10 @@ const DEVICE_ICONS = {
 
 const DEVICE_KEYS: DevicePreset[] = ["desktop", "tablet", "mobile"];
 
-const DEVICE_NUMERIC_WIDTHS: Record<DevicePreset, number> = {
-  desktop: 1920,
-  tablet: 768,
-  mobile: 375,
-};
-
-const RULER_OPTIONS: { value: RulerMode; labelKey: string; defaultValue: string }[] = [
-  { value: "off", labelKey: "content_pages:EDITOR_V2_CANVAS_RULER_OFF", defaultValue: "Off" },
-  {
-    value: "ruler",
-    labelKey: "content_pages:EDITOR_V2_CANVAS_RULER_PINNED",
-    defaultValue: "Pinned ruler",
-  },
-  {
-    value: "ruler-crosshair",
-    labelKey: "content_pages:EDITOR_V2_CANVAS_RULER_CROSSHAIR",
-    defaultValue: "Ruler + crosshair",
-  },
+const RULER_OPTIONS: { value: RulerMode; labelKey: string }[] = [
+  { value: "off", labelKey: "content_pages:EDITOR_V2_CANVAS_RULER_OFF" },
+  { value: "ruler", labelKey: "content_pages:EDITOR_V2_CANVAS_RULER_PINNED" },
+  { value: "ruler-crosshair", labelKey: "content_pages:EDITOR_V2_CANVAS_RULER_CROSSHAIR" },
 ];
 
 const ZOOM_PRESETS = [50, 75, 100, 125, 150, 200];
@@ -76,13 +63,18 @@ export function CanvasToolbar() {
 
   const { onUndo, onRedo } = useEditorHistory(portal);
 
-  const displayWidth = canvasWidth ?? DEVICE_NUMERIC_WIDTHS[devicePreset];
+  const displayWidth = canvasWidth ?? DEVICE_PRESET_WIDTHS[devicePreset];
 
   // Keyboard shortcuts for tool switching
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       const tag = (e.target as HTMLElement).tagName.toLowerCase();
-      if (tag === "input" || tag === "textarea" || (e.target as HTMLElement).isContentEditable) {
+      if (
+        tag === "input" ||
+        tag === "textarea" ||
+        tag === "select" ||
+        (e.target as HTMLElement).isContentEditable
+      ) {
         return;
       }
       if (e.key === "v" || e.key === "V") {
@@ -99,7 +91,7 @@ export function CanvasToolbar() {
   const zoomMenuItems: MenuProps["items"] = [
     {
       key: "fit",
-      label: t("content_pages:EDITOR_V2_TOOLBAR_ZOOM_FIT", { defaultValue: "Zoom to Fit" }),
+      label: t("content_pages:EDITOR_V2_TOOLBAR_ZOOM_FIT"),
       onClick: () => setZoomPercent(100),
     },
     { type: "divider" },
@@ -115,22 +107,14 @@ export function CanvasToolbar() {
       {/* Left: Select/Hand toggle + Undo / Redo */}
       <div className="flex items-center gap-1">
         <Space.Compact>
-          <Tooltip
-            title={t("content_pages:EDITOR_V2_TOOLBAR_TOOL_SELECT", {
-              defaultValue: "Select (V)",
-            })}
-          >
+          <Tooltip title={t("content_pages:EDITOR_V2_TOOLBAR_TOOL_SELECT")}>
             <Button
               type={activeTool === "select" ? "primary" : "default"}
               icon={<MousePointer2 className="size-4" />}
               onClick={() => setActiveTool("select")}
             />
           </Tooltip>
-          <Tooltip
-            title={t("content_pages:EDITOR_V2_TOOLBAR_TOOL_HAND", {
-              defaultValue: "Hand (H)",
-            })}
-          >
+          <Tooltip title={t("content_pages:EDITOR_V2_TOOLBAR_TOOL_HAND")}>
             <Button
               type={activeTool === "hand" ? "primary" : "default"}
               icon={<Hand className="size-4" />}
@@ -141,7 +125,7 @@ export function CanvasToolbar() {
 
         <div className="mx-1 h-5 w-px bg-border" />
 
-        <Tooltip title={t("content_pages:EDITOR_V2_TOOLBAR_UNDO", { defaultValue: "Undo" })}>
+        <Tooltip title={t("content_pages:EDITOR_V2_TOOLBAR_UNDO")}>
           <Button
             type="text"
             disabled={!canUndo}
@@ -149,7 +133,7 @@ export function CanvasToolbar() {
             onClick={onUndo}
           />
         </Tooltip>
-        <Tooltip title={t("content_pages:EDITOR_V2_TOOLBAR_REDO", { defaultValue: "Redo" })}>
+        <Tooltip title={t("content_pages:EDITOR_V2_TOOLBAR_REDO")}>
           <Button
             type="text"
             disabled={!canRedo}
@@ -168,14 +152,16 @@ export function CanvasToolbar() {
             return (
               <Tooltip
                 key={key}
-                title={t(`content_pages:EDITOR_V2_TOOLBAR_DEVICE_${key.toUpperCase()}` as const, {
-                  defaultValue: key,
-                })}
+                title={t(`content_pages:EDITOR_V2_DEVICE_${key.toUpperCase()}` as const)}
               >
                 <Button
                   type={isActive ? "primary" : "default"}
                   icon={<Icon className="size-4" />}
-                  onClick={() => setDevicePreset(key)}
+                  onClick={() => {
+                    // If the user has entered a custom width, clear it so presets always take effect.
+                    setCanvasWidth(null);
+                    setDevicePreset(key);
+                  }}
                 />
               </Tooltip>
             );
@@ -193,21 +179,17 @@ export function CanvasToolbar() {
           <PopoverContent align="center" className="w-64 space-y-3 p-3">
             <div>
               <p className="text-callout font-medium">
-                {t("content_pages:EDITOR_V2_CANVAS_SETTINGS_TITLE", {
-                  defaultValue: "Canvas Settings",
-                })}
+                {t("content_pages:EDITOR_V2_CANVAS_SETTINGS_TITLE")}
               </p>
               <p className="text-caption text-label-secondary">
-                {t("content_pages:EDITOR_V2_CANVAS_SETTINGS_DESC", {
-                  defaultValue: "Adjust viewport dimensions and display options",
-                })}
+                {t("content_pages:EDITOR_V2_CANVAS_SETTINGS_DESC")}
               </p>
             </div>
 
             {/* Width */}
             <label className="flex items-center gap-2 text-callout">
               <span className="w-16 shrink-0 text-label-secondary">
-                {t("content_pages:EDITOR_V2_CANVAS_SETTINGS_WIDTH", { defaultValue: "Width" })}
+                {t("content_pages:EDITOR_V2_CANVAS_SETTINGS_WIDTH")}
               </span>
               <InputNumber
                 className="flex-1"
@@ -222,7 +204,7 @@ export function CanvasToolbar() {
             {/* Scale */}
             <label className="flex items-center gap-2 text-callout">
               <span className="w-16 shrink-0 text-label-secondary">
-                {t("content_pages:EDITOR_V2_CANVAS_SETTINGS_SCALE", { defaultValue: "Scale" })}
+                {t("content_pages:EDITOR_V2_CANVAS_SETTINGS_SCALE")}
               </span>
               <InputNumber
                 className="flex-1"
@@ -239,20 +221,16 @@ export function CanvasToolbar() {
             <div className="border-t pt-2" />
 
             {/* Ruler — disabled, coming soon */}
-            <Tooltip
-              title={t("content_pages:EDITOR_V2_COMING_SOON", { defaultValue: "Coming soon" })}
-            >
+            <Tooltip title={t("content_pages:EDITOR_V2_COMING_SOON")}>
               <div className="flex flex-col gap-1.5 opacity-50">
                 <span className="text-callout text-label-secondary">
-                  {t("content_pages:EDITOR_V2_CANVAS_SETTINGS_RULER", { defaultValue: "Ruler" })}
+                  {t("content_pages:EDITOR_V2_CANVAS_SETTINGS_RULER")}
                 </span>
                 <Radio.Group value={rulerMode} disabled>
                   <div className="flex flex-col gap-1">
                     {RULER_OPTIONS.map((opt) => (
                       <Radio key={opt.value} value={opt.value}>
-                        <span className="text-callout">
-                          {t(opt.labelKey, { defaultValue: opt.defaultValue })}
-                        </span>
+                        <span className="text-callout">{t(opt.labelKey)}</span>
                       </Radio>
                     ))}
                   </div>
@@ -261,15 +239,11 @@ export function CanvasToolbar() {
             </Tooltip>
 
             {/* Line guides — disabled, coming soon */}
-            <Tooltip
-              title={t("content_pages:EDITOR_V2_COMING_SOON", { defaultValue: "Coming soon" })}
-            >
+            <Tooltip title={t("content_pages:EDITOR_V2_COMING_SOON")}>
               <div className="opacity-50">
                 <Checkbox checked={showLineGuides} disabled>
                   <span className="text-callout">
-                    {t("content_pages:EDITOR_V2_CANVAS_SETTINGS_LINE_GUIDES", {
-                      defaultValue: "Show line guides",
-                    })}
+                    {t("content_pages:EDITOR_V2_CANVAS_SETTINGS_LINE_GUIDES")}
                   </span>
                 </Checkbox>
               </div>
@@ -280,9 +254,7 @@ export function CanvasToolbar() {
 
       {/* Right: Zoom controls */}
       <div className="flex items-center gap-1">
-        <Tooltip
-          title={t("content_pages:EDITOR_V2_TOOLBAR_ZOOM_OUT", { defaultValue: "Zoom out" })}
-        >
+        <Tooltip title={t("content_pages:EDITOR_V2_TOOLBAR_ZOOM_OUT")}>
           <Button
             type="text"
             disabled={zoomPercent <= 25}
@@ -298,7 +270,7 @@ export function CanvasToolbar() {
           </Button>
         </Dropdown>
 
-        <Tooltip title={t("content_pages:EDITOR_V2_TOOLBAR_ZOOM_IN", { defaultValue: "Zoom in" })}>
+        <Tooltip title={t("content_pages:EDITOR_V2_TOOLBAR_ZOOM_IN")}>
           <Button
             type="text"
             disabled={zoomPercent >= 200}
@@ -307,9 +279,7 @@ export function CanvasToolbar() {
           />
         </Tooltip>
 
-        <Tooltip
-          title={t("content_pages:EDITOR_V2_TOOLBAR_ZOOM_RESET", { defaultValue: "Reset zoom" })}
-        >
+        <Tooltip title={t("content_pages:EDITOR_V2_TOOLBAR_ZOOM_RESET")}>
           <Button
             type="text"
             disabled={zoomPercent === 100}

@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useEditorStore } from "@/pages/workspaces/editor/stores/editor-store";
+import { isSpaceKeyReservedTarget } from "@/pages/workspaces/editor/hooks/editor-keyboard";
 
 // 缩放范围与步进常量
 const MIN_ZOOM = 25;
@@ -13,6 +14,7 @@ interface CanvasPanZoomReturn {
     onPointerDown: (e: React.PointerEvent) => void;
     onPointerMove: (e: React.PointerEvent) => void;
     onPointerUp: (e: React.PointerEvent) => void;
+    onPointerCancel: (e: React.PointerEvent) => void;
   };
   isPanning: boolean;
   cursor: string;
@@ -40,8 +42,8 @@ export function useCanvasPanZoom(
   const isPanningRef = useRef(false);
   const panStartRef = useRef({ x: 0, y: 0, panX: 0, panY: 0 });
   const spaceHeldRef = useRef(false);
-  // Expose isPanning as reactive state for cursor
-  const isPanningStateRef = useRef(false);
+  const [isPanning, setIsPanning] = useState(false);
+  const [spaceHeld, setSpaceHeld] = useState(false);
 
   // 用 ref 缓存最新 store 值，供 wheel 回调读取（避免闭包过期）
   const storeRef = useRef({ zoomPercent, panX, panY });
@@ -87,22 +89,31 @@ export function useCanvasPanZoom(
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.code === "Space" && !e.repeat) {
+        if (isSpaceKeyReservedTarget(e.target)) return;
         // 避免页面滚动
         e.preventDefault();
         spaceHeldRef.current = true;
+        setSpaceHeld(true);
       }
     };
     const handleKeyUp = (e: KeyboardEvent) => {
       if (e.code === "Space") {
         spaceHeldRef.current = false;
+        setSpaceHeld(false);
       }
+    };
+    const handleBlur = () => {
+      spaceHeldRef.current = false;
+      setSpaceHeld(false);
     };
 
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("keyup", handleKeyUp);
+    window.addEventListener("blur", handleBlur);
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
+      window.removeEventListener("blur", handleBlur);
     };
   }, []);
 
@@ -121,7 +132,7 @@ export function useCanvasPanZoom(
       if (!shouldPan(e)) return;
 
       isPanningRef.current = true;
-      isPanningStateRef.current = true;
+      setIsPanning(true);
       panStartRef.current = {
         x: e.clientX,
         y: e.clientY,
@@ -147,14 +158,19 @@ export function useCanvasPanZoom(
     [setCanvasPan],
   );
 
-  const onPointerUp = useCallback((e: React.PointerEvent) => {
+  const stopPanning = useCallback((e: React.PointerEvent) => {
     if (!isPanningRef.current) return;
 
     isPanningRef.current = false;
-    isPanningStateRef.current = false;
+    setIsPanning(false);
 
-    (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+    const el = e.currentTarget as HTMLElement;
+    if (el.hasPointerCapture(e.pointerId)) {
+      el.releasePointerCapture(e.pointerId);
+    }
   }, []);
+  const onPointerUp = stopPanning;
+  const onPointerCancel = stopPanning;
 
   // --- Transform style ---
   const scale = zoomPercent / 100;
@@ -164,9 +180,8 @@ export function useCanvasPanZoom(
   };
 
   // --- Cursor ---
-  const isPanning = isPanningStateRef.current;
   let cursor = "default";
-  if (activeTool === "hand" || spaceHeldRef.current) {
+  if (activeTool === "hand" || spaceHeld) {
     cursor = isPanning ? "grabbing" : "grab";
   }
 
@@ -176,6 +191,7 @@ export function useCanvasPanZoom(
       onPointerDown,
       onPointerMove,
       onPointerUp,
+      onPointerCancel,
     },
     isPanning,
     cursor,

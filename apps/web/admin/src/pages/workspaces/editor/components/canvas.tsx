@@ -1,14 +1,11 @@
 import { useRef } from "react";
 import { motion } from "motion/react";
 
+import type { DevicePreset } from "@/pages/workspaces/editor/stores/editor-store";
 import { useEditorStore } from "@/pages/workspaces/editor/stores/editor-store";
 import { useCanvasPanZoom } from "@/pages/workspaces/editor/hooks/use-canvas-pan-zoom";
-
-const DEVICE_NUMERIC_WIDTHS: Record<string, number> = {
-  desktop: 1440,
-  tablet: 768,
-  mobile: 375,
-};
+import { DEVICE_PRESET_WIDTHS } from "@/pages/workspaces/editor/constants/canvas";
+import { cn } from "@/lib/utils";
 
 type CanvasProps = {
   iframeSrc: string;
@@ -20,7 +17,7 @@ type CanvasProps = {
 export function Canvas({ iframeSrc, iframeRef, isLoading, loadError }: CanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const devicePreset = useEditorStore((s) => s.devicePreset);
+  const devicePreset = useEditorStore((s) => s.devicePreset) as DevicePreset;
   const canvasWidth = useEditorStore((s) => s.canvasWidth);
   const panX = useEditorStore((s) => s.canvasPanX);
   const panY = useEditorStore((s) => s.canvasPanY);
@@ -28,13 +25,18 @@ export function Canvas({ iframeSrc, iframeRef, isLoading, loadError }: CanvasPro
   const { transformStyle, containerHandlers, cursor } = useCanvasPanZoom(containerRef);
 
   // 视口宽度：优先使用自定义宽度，否则按设备预设
-  const displayWidth = canvasWidth ?? DEVICE_NUMERIC_WIDTHS[devicePreset] ?? 1440;
+  const displayWidth = canvasWidth ?? DEVICE_PRESET_WIDTHS[devicePreset] ?? 1440;
+  const cursorClassName =
+    cursor === "grab"
+      ? "cursor-grab"
+      : cursor === "grabbing"
+        ? "cursor-grabbing"
+        : "cursor-default";
 
   return (
     <main
       ref={containerRef}
-      className="relative min-w-0 flex-1 overflow-hidden canvas-bg"
-      style={{ cursor }}
+      className={cn("relative min-w-0 flex-1 overflow-hidden canvas-bg", cursorClassName)}
       {...containerHandlers}
     >
       {/* 点阵背景（跟随 pan 偏移） */}
@@ -56,15 +58,13 @@ export function Canvas({ iframeSrc, iframeRef, isLoading, loadError }: CanvasPro
           <motion.div
             animate={{ width: displayWidth }}
             transition={{ duration: 0.3, ease: "easeInOut" }}
-            className="relative bg-white shadow-lg dark:bg-zinc-900"
-            style={{ marginLeft: `-${displayWidth / 2}px` }}
+            className="relative -translate-x-1/2 bg-white shadow-lg dark:bg-zinc-900"
           >
             <iframe
               ref={iframeRef}
               title="editor-canvas"
               src={iframeSrc}
-              className="pointer-events-auto h-full w-full border-0"
-              style={{ minHeight: "100vh" }}
+              className="pointer-events-auto min-h-screen w-full border-0"
             />
           </motion.div>
         </div>

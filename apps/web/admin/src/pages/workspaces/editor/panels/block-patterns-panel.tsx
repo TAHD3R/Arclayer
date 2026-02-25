@@ -1,23 +1,18 @@
 import { useTranslation } from "react-i18next";
 
-import {
-  CORE_BLOCK_PATTERNS,
-  resolveLocalizedValue,
-  type ViewerContext,
-} from "@celestial/site-block-protocol";
+import { CORE_BLOCK_PATTERNS, resolveLocalizedValue } from "@celestial/site-block-protocol";
 
-const VIEWER_CTX: ViewerContext = { locale: "zh-CN", fallbackLocale: "en-US" };
+import { useViewerContext } from "@/pages/workspaces/editor/hooks/use-viewer-context";
 
 export function BlockPatternsPanel() {
   const { t } = useTranslation(["content_pages"]);
+  const viewerCtx = useViewerContext();
 
   if (CORE_BLOCK_PATTERNS.length === 0) {
     return (
       <div className="flex flex-1 items-center justify-center p-4">
         <span className="text-caption text-label-secondary">
-          {t("content_pages:EDITOR_V2_BLOCKS_EMPTY", {
-            defaultValue: "No blocks available",
-          })}
+          {t("content_pages:EDITOR_V2_EMPTY_BLOCK_PATTERNS")}
         </span>
       </div>
     );
@@ -31,7 +26,7 @@ export function BlockPatternsPanel() {
           type="button"
           className="rounded-md border p-2 text-left text-caption hover:bg-muted"
         >
-          {resolveLocalizedValue(p.label, VIEWER_CTX) ?? p.code}
+          {resolveLocalizedValue(p.label, viewerCtx) ?? p.code}
         </button>
       ))}
     </div>

@@ -6,38 +6,34 @@ import {
   useEditorStore,
   type ActivityBarMenuId,
 } from "@/pages/workspaces/editor/stores/editor-store";
+import { EDITOR_MENU_TITLE_KEYS } from "@/pages/workspaces/editor/constants/menus";
+import { cn } from "@/lib/utils";
 
 type MenuEntry = {
   id: ActivityBarMenuId;
   icon: typeof FileText;
-  labelKey: string;
-  defaultValue: string;
 };
 
-/* 主菜单项 — 按新顺序排列，plugins 已合并进来 */
+/* Main menu items */
 const MAIN_ITEMS: MenuEntry[] = [
   {
     id: "add-elements",
     icon: Plus,
-    labelKey: "EDITOR_V2_MENU_ADD_ELEMENTS",
-    defaultValue: "Add Elements",
   },
   {
     id: "navigator",
     icon: Layers,
-    labelKey: "EDITOR_V2_MENU_NAVIGATOR",
-    defaultValue: "Navigator",
   },
-  { id: "pages", icon: FileText, labelKey: "EDITOR_V2_MENU_PAGES", defaultValue: "Pages" },
-  { id: "assets", icon: Image, labelKey: "EDITOR_V2_MENU_ASSETS", defaultValue: "Assets" },
-  { id: "blocks", icon: Blocks, labelKey: "EDITOR_V2_MENU_BLOCKS", defaultValue: "Blocks" },
-  { id: "plugins", icon: Puzzle, labelKey: "EDITOR_V2_MENU_PLUGINS", defaultValue: "Plugins" },
+  { id: "pages", icon: FileText },
+  { id: "assets", icon: Image },
+  { id: "blocks", icon: Blocks },
+  { id: "plugins", icon: Puzzle },
 ];
 
-/* 底部固定项 */
+/* Bottom pinned items */
 const BOTTOM_ITEMS: MenuEntry[] = [
-  { id: "search", icon: Search, labelKey: "EDITOR_V2_MENU_SEARCH", defaultValue: "Find anything" },
-  { id: "settings", icon: Settings, labelKey: "EDITOR_V2_MENU_SETTINGS", defaultValue: "Settings" },
+  { id: "search", icon: Search },
+  { id: "settings", icon: Settings },
 ];
 
 function BarButton({
@@ -51,21 +47,20 @@ function BarButton({
 }) {
   const { t } = useTranslation(["content_pages"]);
   const Icon = entry.icon;
+  const label = t(EDITOR_MENU_TITLE_KEYS[entry.id]);
 
   return (
-    <Tooltip
-      title={t(`content_pages:${entry.labelKey}`, { defaultValue: entry.defaultValue })}
-      placement="right"
-    >
+    <Tooltip title={label} placement="right">
       <button
         type="button"
-        className={`flex size-10 items-center justify-center rounded-md transition-all hover:scale-105 ${
+        className={cn(
+          "flex size-10 items-center justify-center rounded-md transition-all hover:scale-105",
           isActive
             ? "bg-accent text-accent-foreground"
-            : "text-label-secondary hover:bg-muted hover:text-foreground"
-        }`}
+            : "text-label-secondary hover:bg-muted hover:text-foreground",
+        )}
         onClick={onClick}
-        aria-label={t(`content_pages:${entry.labelKey}`, { defaultValue: entry.defaultValue })}
+        aria-label={label}
       >
         <Icon className="size-5" />
       </button>
@@ -79,7 +74,7 @@ export function ActivityBar() {
 
   return (
     <aside className="flex w-12 shrink-0 flex-col items-center gap-1 border-r bg-card py-2">
-      {/* 主菜单项 */}
+      {/* Main menu items */}
       {MAIN_ITEMS.map((entry) => (
         <BarButton
           key={entry.id}
@@ -89,10 +84,10 @@ export function ActivityBar() {
         />
       ))}
 
-      {/* 弹性间隔 */}
+      {/* Flexible spacer */}
       <div className="flex-1" />
 
-      {/* 底部固定项 */}
+      {/* Bottom pinned items */}
       {BOTTOM_ITEMS.map((entry) => (
         <BarButton
           key={entry.id}

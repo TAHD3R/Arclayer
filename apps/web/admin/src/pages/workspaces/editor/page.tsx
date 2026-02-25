@@ -31,7 +31,7 @@ export function WorkspaceEditorView(props: WorkspaceEditorViewProps) {
     [workspaceId, entityId, editorMode, initialPathname],
   );
 
-  const { iframeSrc, iframeRef, isLoading, error, portalOrigin } = useEditorIframe({
+  const { iframeSrc, iframeRef, isLoading, error } = useEditorIframe({
     workspaceId,
     pathname: initialPathname,
   });
@@ -110,7 +110,6 @@ export function WorkspaceEditorView(props: WorkspaceEditorViewProps) {
             iframeRef={iframeRef}
             isLoading={isLoading}
             loadError={error}
-            portalOrigin={portalOrigin}
           />
         </EditorSaveProvider>
       </EditorBridgeProvider>

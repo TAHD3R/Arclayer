@@ -1,7 +1,8 @@
-import { useTranslation } from "react-i18next";
 import { Input } from "antd";
 
 import type { EditorInspectorLayout } from "@celestial/site-editor-protocol";
+
+import { useEditorSelectionPatch } from "@/pages/workspaces/editor/hooks/use-editor-selection-patch";
 
 const LAYOUT_KEYS = [
   "width",
@@ -23,20 +24,19 @@ const LAYOUT_KEYS = [
 ] as const;
 
 export function InspectorLayout({ data }: { data: EditorInspectorLayout }) {
-  const { t } = useTranslation(["content_pages"]);
+  const patchSelection = useEditorSelectionPatch();
 
   return (
     <div className="flex flex-col gap-2">
-      <p className="text-caption font-medium text-label-secondary">
-        {t("content_pages:EDITOR_V2_INSPECTOR_LAYOUT_TITLE", { defaultValue: "Layout" })}
-      </p>
       {LAYOUT_KEYS.map((key) => (
         <label key={key} className="flex items-center gap-2 text-caption">
           <span className="w-24 shrink-0 text-label-secondary">{key}</span>
           <Input
             size="small"
             value={String(data[key] ?? "")}
-            onChange={(e) => console.log("layout.patch", key, e.target.value)}
+            onChange={(e) =>
+              void patchSelection("layout", { [key]: e.target.value }, { commit: "debounced" })
+            }
           />
         </label>
       ))}

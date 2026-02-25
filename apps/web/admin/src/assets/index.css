@@ -164,12 +164,12 @@ body {
 
 /* Infinite canvas */
 :root {
-  --canvas-bg: #e9edf3;
+  --canvas-bg: #efefef;
   --canvas-dot-color: rgba(0, 0, 0, 0.08);
 }
 
 [data-theme="dark"] {
-  --canvas-bg: #1a1a2e;
+  --canvas-bg: #202020;
   --canvas-dot-color: rgba(255, 255, 255, 0.06);
 }
 

@@ -108,12 +108,25 @@ export function useEditorSave(opts: UseEditorSaveOptions) {
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
         e.preventDefault();
+        if (!getDocument) return;
+        void (async () => {
+          try {
+            const doc = await getDocument();
+            if (!doc) {
+              notifyErrorText(t("content_pages:EDITOR_SHELL_IFRAME_EMPTY"));
+              return;
+            }
+            await saveDraft(doc);
+          } catch (err) {
+            notifyErrorText(getErrorMessage(err));
+          }
+        })();
       }
     };
 
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, []);
+  }, [getDocument, saveDraft, t]);
 
   return { saveDraft, publish, draftRevisionRef };
 }

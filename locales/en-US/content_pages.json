@@ -195,6 +195,7 @@
   "EDITOR_V2_MENU_TOOLS": "Tools",
   "EDITOR_V2_MENU_VIEWS": "Views",
   "EDITOR_V2_MENU_PAGE_SWITCH": "Pages",
+  "EDITOR_V2_PAGE_SWITCHER_TRIGGER": "Switch page",
   "EDITOR_V2_PAGE_PICKER_SEARCH_PLACEHOLDER": "Search pages",
   "EDITOR_V2_PAGE_PICKER_GROUP_STATIC": "Static pages",
   "EDITOR_V2_PAGE_PICKER_GROUP_TEMPLATE": "Template pages",
@@ -338,5 +339,18 @@
   "EDITOR_V2_TAB_LAYOUT": "Layout",
   "EDITOR_V2_TAB_DESIGN": "Design",
   "EDITOR_V2_TAB_ANIMATION": "Animation",
-  "EDITOR_V2_INSPECTOR_EMPTY": "Select an element to inspect its properties."
+  "EDITOR_V2_INSPECTOR_EMPTY": "Select an element to inspect its properties.",
+  "EDITOR_V2_PREVIEW_EXIT": "Exit preview",
+  "EDITOR_V2_ELEMENTS_SEARCH": "Search blocks...",
+  "EDITOR_V2_EMPTY_LAYERS": "No layers yet.",
+  "EDITOR_V2_EMPTY_BLOCK_PATTERNS": "No block patterns available.",
+  "EDITOR_V2_INSPECTOR_NO_MANIFEST": "No manifest for {{type}}",
+  "EDITOR_V2_DESIGN_TOKENS_EMPTY": "No design tokens",
+  "EDITOR_V2_BLOCK_CATEGORY_LAYOUT": "Layout",
+  "EDITOR_V2_BLOCK_CATEGORY_TEXT": "Text",
+  "EDITOR_V2_BLOCK_CATEGORY_MEDIA": "Media",
+  "EDITOR_V2_BLOCK_CATEGORY_DATA": "Data",
+  "EDITOR_V2_BLOCK_CATEGORY_NAVIGATION": "Navigation",
+  "EDITOR_V2_BLOCK_CATEGORY_INTERACTIVE": "Interactive",
+  "EDITOR_V2_BLOCK_CATEGORY_CUSTOM": "Custom"
 }

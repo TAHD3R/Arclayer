@@ -19,7 +19,6 @@ export type UseEditorIframeReturn = {
   iframeRef: React.RefObject<HTMLIFrameElement | null>;
   isLoading: boolean;
   error: string | null;
-  portalOrigin: string;
 };
 
 export function useEditorIframe(opts: UseEditorIframeOptions): UseEditorIframeReturn {
@@ -78,5 +77,5 @@ export function useEditorIframe(opts: UseEditorIframeOptions): UseEditorIframeRe
     return null;
   }, [siteQuery.error, tokenQuery.error]);
 
-  return { iframeSrc, iframeRef, isLoading, error, portalOrigin };
+  return { iframeSrc, iframeRef, isLoading, error };
 }

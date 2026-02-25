@@ -7,32 +7,41 @@ import {
   CORE_BLOCK_MANIFESTS,
   resolveLocalizedValue,
   type BlockCategory,
-  type ViewerContext,
 } from "@celestial/site-block-protocol";
 
-const VIEWER_CTX: ViewerContext = { locale: "zh-CN", fallbackLocale: "en-US" };
+import { getErrorMessage, notifyErrorText } from "@/lib/notifications";
+import { useEditorBridgeContext } from "@/pages/workspaces/editor/contexts/editor-bridge-context";
+import { useViewerContext } from "@/pages/workspaces/editor/hooks/use-viewer-context";
+import { useEditorStore } from "@/pages/workspaces/editor/stores/editor-store";
 
-const CATEGORY_LABELS: Record<BlockCategory, string> = {
-  layout: "Layout",
-  text: "Text",
-  media: "Media",
-  data: "Data",
-  navigation: "Navigation",
-  interactive: "Interactive",
-  custom: "Custom",
-};
+const CATEGORY_LABEL_KEYS: Record<BlockCategory, string> = {
+  layout: "content_pages:EDITOR_V2_BLOCK_CATEGORY_LAYOUT",
+  text: "content_pages:EDITOR_V2_BLOCK_CATEGORY_TEXT",
+  media: "content_pages:EDITOR_V2_BLOCK_CATEGORY_MEDIA",
+  data: "content_pages:EDITOR_V2_BLOCK_CATEGORY_DATA",
+  navigation: "content_pages:EDITOR_V2_BLOCK_CATEGORY_NAVIGATION",
+  interactive: "content_pages:EDITOR_V2_BLOCK_CATEGORY_INTERACTIVE",
+  custom: "content_pages:EDITOR_V2_BLOCK_CATEGORY_CUSTOM",
+} as const;
 
 export function ComponentsPanel() {
   const { t } = useTranslation(["content_pages"]);
+  const { portal } = useEditorBridgeContext();
   const [query, setQuery] = useState("");
+
+  const viewerCtx = useViewerContext();
+
+  const setInspectorData = useEditorStore((s) => s.setInspectorData);
+  const setLayerTree = useEditorStore((s) => s.setLayerTree);
+  const setDirty = useEditorStore((s) => s.setDirty);
 
   const filtered = useMemo(() => {
     const q = query.toLowerCase();
     return CORE_BLOCK_MANIFESTS.filter((m) => {
-      const label = resolveLocalizedValue(m.label, VIEWER_CTX) ?? m.type;
+      const label = resolveLocalizedValue(m.label, viewerCtx) ?? m.type;
       return label.toLowerCase().includes(q) || m.type.toLowerCase().includes(q);
     });
-  }, [query]);
+  }, [query, viewerCtx]);
 
   const grouped = useMemo(() => {
     const map = new Map<BlockCategory, typeof filtered>();
@@ -53,9 +62,7 @@ export function ComponentsPanel() {
           prefix={<Search className="size-3.5 text-label-secondary" />}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder={t("content_pages:EDITOR_V2_ELEMENTS_SEARCH", {
-            defaultValue: "Search blocks...",
-          })}
+          placeholder={t("content_pages:EDITOR_V2_ELEMENTS_SEARCH")}
           allowClear
         />
       </div>
@@ -65,7 +72,7 @@ export function ComponentsPanel() {
         {[...grouped.entries()].map(([category, manifests]) => (
           <div key={category} className="mb-3">
             <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-label-secondary">
-              {CATEGORY_LABELS[category]}
+              {t(CATEGORY_LABEL_KEYS[category])}
             </div>
             <div className="grid grid-cols-2 gap-1">
               {manifests.map((m) => (
@@ -73,10 +80,26 @@ export function ComponentsPanel() {
                   key={m.type}
                   type="button"
                   className="flex flex-col items-center gap-1 rounded-md border p-2 text-caption hover:bg-muted"
+                  onClick={() => {
+                    if (!portal) {
+                      notifyErrorText(t("content_pages:EDITOR_SHELL_BRIDGE_DISCONNECTED"));
+                      return;
+                    }
+                    void (async () => {
+                      try {
+                        const out = await portal.insertBlock({ type: m.type });
+                        setInspectorData(out.inspector);
+                        setLayerTree(out.layers);
+                        setDirty(true);
+                      } catch (err) {
+                        notifyErrorText(getErrorMessage(err));
+                      }
+                    })();
+                  }}
                 >
                   <span className="text-[10px] text-label-secondary">{m.icon ?? m.type}</span>
                   <span className="truncate">
-                    {resolveLocalizedValue(m.label, VIEWER_CTX) ?? m.type}
+                    {resolveLocalizedValue(m.label, viewerCtx) ?? m.type}
                   </span>
                 </button>
               ))}

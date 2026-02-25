@@ -1,25 +1,25 @@
-import { useTranslation } from "react-i18next";
 import { Input } from "antd";
 
 import type { EditorInspectorAnimation } from "@celestial/site-editor-protocol";
 
+import { useEditorSelectionPatch } from "@/pages/workspaces/editor/hooks/use-editor-selection-patch";
+
 const ANIMATION_KEYS = ["type", "trigger", "durationMs", "delayMs", "easing"] as const;
 
 export function InspectorAnimation({ data }: { data: EditorInspectorAnimation }) {
-  const { t } = useTranslation(["content_pages"]);
+  const patchSelection = useEditorSelectionPatch();
 
   return (
     <div className="flex flex-col gap-2">
-      <p className="text-caption font-medium text-label-secondary">
-        {t("content_pages:EDITOR_V2_INSPECTOR_ANIMATION_TITLE", { defaultValue: "Animation" })}
-      </p>
       {ANIMATION_KEYS.map((key) => (
         <label key={key} className="flex items-center gap-2 text-caption">
           <span className="w-24 shrink-0 text-label-secondary">{key}</span>
           <Input
             size="small"
             value={String(data[key] ?? "")}
-            onChange={(e) => console.log("animation.patch", key, e.target.value)}
+            onChange={(e) =>
+              void patchSelection("animation", { [key]: e.target.value }, { commit: "debounced" })
+            }
           />
         </label>
       ))}

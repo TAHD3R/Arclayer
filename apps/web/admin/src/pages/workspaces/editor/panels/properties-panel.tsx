@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "motion/react";
 
 import type { EditorSelectionInspector } from "@celestial/site-editor-protocol";
 
+import { cn } from "@/lib/utils";
 import {
   useEditorStore,
   type PropertiesPanelTab,
@@ -18,43 +19,20 @@ const TABS: {
   id: PropertiesPanelTab;
   icon: typeof Settings2;
   labelKey: string;
-  defaultValue: string;
 }[] = [
   {
     id: "component",
     icon: Settings2,
     labelKey: "EDITOR_V2_TAB_COMPONENT",
-    defaultValue: "Component",
   },
-  { id: "layout", icon: LayoutDashboard, labelKey: "EDITOR_V2_TAB_LAYOUT", defaultValue: "Layout" },
-  { id: "design", icon: Palette, labelKey: "EDITOR_V2_TAB_DESIGN", defaultValue: "Design" },
+  { id: "layout", icon: LayoutDashboard, labelKey: "EDITOR_V2_TAB_LAYOUT" },
+  { id: "design", icon: Palette, labelKey: "EDITOR_V2_TAB_DESIGN" },
   {
     id: "animation",
     icon: Sparkles,
     labelKey: "EDITOR_V2_TAB_ANIMATION",
-    defaultValue: "Animation",
   },
 ];
-
-// 各 tab 的描述文案映射
-const TAB_DESCRIPTIONS: Record<PropertiesPanelTab, { descKey: string; descDefault: string }> = {
-  component: {
-    descKey: "EDITOR_V2_TAB_COMPONENT_DESC",
-    descDefault: "Configure the selected block's properties",
-  },
-  layout: {
-    descKey: "EDITOR_V2_TAB_LAYOUT_DESC",
-    descDefault: "Adjust positioning, spacing, and sizing",
-  },
-  design: {
-    descKey: "EDITOR_V2_TAB_DESIGN_DESC",
-    descDefault: "Style colors, typography, and effects",
-  },
-  animation: {
-    descKey: "EDITOR_V2_TAB_ANIMATION_DESC",
-    descDefault: "Add motion and transition effects",
-  },
-};
 
 function TabContent({
   tab,
@@ -101,31 +79,20 @@ export function PropertiesPanel() {
             transition={{ duration: 0.15, ease: "easeInOut" }}
             className="flex shrink-0 flex-col overflow-hidden border-l bg-card"
           >
-            {/* Header: title + description */}
+            {/* Header */}
             <div className="flex shrink-0 flex-col gap-0.5 border-b px-3 py-2">
               <span className="text-caption font-medium">
                 {activeTab
-                  ? t(`content_pages:${activeTab.labelKey}`, {
-                      defaultValue: activeTab.defaultValue,
-                    })
-                  : t("content_pages:EDITOR_V2_RIGHT_TITLE", { defaultValue: "Inspector" })}
+                  ? t(`content_pages:${activeTab.labelKey}`)
+                  : t("content_pages:EDITOR_V2_RIGHT_TITLE")}
               </span>
-              {activeTab && (
-                <span className="text-caption text-label-secondary">
-                  {t(`content_pages:${TAB_DESCRIPTIONS[activeTab.id].descKey}`, {
-                    defaultValue: TAB_DESCRIPTIONS[activeTab.id].descDefault,
-                  })}
-                </span>
-              )}
             </div>
             <div className="flex min-h-0 flex-1 flex-col overflow-auto p-3">
               {selectedBlockId ? (
                 <TabContent tab={tab} inspector={inspectorData} />
               ) : (
                 <p className="text-caption text-label-secondary">
-                  {t("content_pages:EDITOR_V2_INSPECTOR_EMPTY", {
-                    defaultValue: "Select an element to inspect its properties.",
-                  })}
+                  {t("content_pages:EDITOR_V2_INSPECTOR_EMPTY")}
                 </p>
               )}
             </div>
@@ -135,21 +102,18 @@ export function PropertiesPanel() {
 
       {/* Vertical tab bar (rightmost) */}
       <aside className="flex w-12 shrink-0 flex-col items-center gap-1 border-l bg-card py-2">
-        {TABS.map(({ id, icon: Icon, labelKey, defaultValue }) => {
+        {TABS.map(({ id, icon: Icon, labelKey }) => {
           const isActive = propertiesPanelOpen && tab === id;
           return (
-            <Tooltip
-              key={id}
-              title={t(`content_pages:${labelKey}`, { defaultValue })}
-              placement="left"
-            >
+            <Tooltip key={id} title={t(`content_pages:${labelKey}`)} placement="left">
               <button
                 type="button"
-                className={`flex size-10 items-center justify-center rounded-md transition-colors ${
+                className={cn(
+                  "flex size-10 items-center justify-center rounded-md transition-colors",
                   isActive
                     ? "bg-accent text-primary"
-                    : "text-label-secondary hover:bg-accent hover:text-foreground"
-                }`}
+                    : "text-label-secondary hover:bg-accent hover:text-foreground",
+                )}
                 onClick={() => {
                   if (tab === id && propertiesPanelOpen) {
                     togglePropertiesPanel();
