@@ -13,10 +13,11 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import {
-  OpenDoodlesChilling,
-  OpenDoodlesClumsy,
-  OpenDoodlesHouseplant,
-} from "@/components/illustrations/open-doodles";
+  Illust403ForbiddenGateway,
+  Illust404BrokenLink,
+  Illust500CrashedServer,
+  IllustEmptyContainer,
+} from "@/components/illustrations";
 import { PageSkeleton, type PageSkeletonVariant } from "@/components/common/page-skeleton";
 
 export type ContentGuardProps = {
@@ -50,11 +51,11 @@ function pickErrorTitle(err: unknown, t: (key: string) => string): string {
 
 function pickErrorIllustration(err: unknown) {
   if (err instanceof ApiError) {
-    if (err.status === 403) return OpenDoodlesHouseplant;
-    if (err.status === 404) return OpenDoodlesChilling;
-    if (err.status >= 500) return OpenDoodlesClumsy;
+    if (err.status === 403) return Illust403ForbiddenGateway;
+    if (err.status === 404) return Illust404BrokenLink;
+    if (err.status >= 500) return Illust500CrashedServer;
   }
-  return OpenDoodlesClumsy;
+  return Illust500CrashedServer;
 }
 
 export function ContentGuard(props: ContentGuardProps) {
@@ -120,7 +121,7 @@ export function ContentGuard(props: ContentGuardProps) {
         <Empty className={emptyClassName}>
           <EmptyHeader>
             <EmptyMedia className="mb-0">
-              <OpenDoodlesChilling className={illustrationClassName} />
+              <IllustEmptyContainer className={illustrationClassName} />
             </EmptyMedia>
             <EmptyTitle className={titleClassName}>
               {props.emptyTitle ?? t("common:EMPTY_TITLE")}

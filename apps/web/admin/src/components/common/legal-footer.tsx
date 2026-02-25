@@ -22,7 +22,7 @@ export function LegalFooter({ i18nKey }: LegalFooterProps) {
 
   return (
     <>
-      <p className="text-caption text-label-tertiary">
+      <p className="text-caption text-label-secondary">
         <Trans
           i18nKey={i18nKey}
           components={{
@@ -30,7 +30,7 @@ export function LegalFooter({ i18nKey }: LegalFooterProps) {
               <Button
                 type="link"
                 size="small"
-                className="!p-0 !h-auto !text-caption !text-label-tertiary underline"
+                className="p-0! h-auto! text-caption! text-label-primary! underline"
                 onClick={() => setOpenModal("terms")}
               />
             ),
@@ -38,7 +38,7 @@ export function LegalFooter({ i18nKey }: LegalFooterProps) {
               <Button
                 type="link"
                 size="small"
-                className="!p-0 !h-auto !text-caption !text-label-tertiary underline"
+                className="p-0! h-auto! text-caption! text-label-primary! underline"
                 onClick={() => setOpenModal("privacy")}
               />
             ),

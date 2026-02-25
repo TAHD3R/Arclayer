@@ -5,10 +5,10 @@ import { useTranslation } from "react-i18next";
 
 import { DefaultPage } from "@/components/common/default-page";
 import {
-  OpenDoodlesClumsy,
-  OpenDoodlesHouseplant,
-  OpenDoodlesSkating,
-} from "@/components/illustrations/open-doodles";
+  Illust403ForbiddenGateway,
+  Illust404BrokenLink,
+  Illust500CrashedServer,
+} from "@/components/illustrations";
 import {
   Empty,
   EmptyContent,
@@ -51,9 +51,9 @@ function DefaultAction(props: { status: BuiltinResultStatus }) {
 }
 
 function pickBuiltinIllustration(status: BuiltinResultStatus) {
-  if (status === "403") return OpenDoodlesHouseplant;
-  if (status === "404") return OpenDoodlesSkating;
-  return OpenDoodlesClumsy;
+  if (status === "403") return Illust403ForbiddenGateway;
+  if (status === "404") return Illust404BrokenLink;
+  return Illust500CrashedServer;
 }
 
 export function BuiltinResultPage({
