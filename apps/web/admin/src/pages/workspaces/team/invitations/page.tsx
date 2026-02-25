@@ -575,7 +575,7 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
     <DefaultPage
       title={t("nav:NAV_SETTINGS_TEAM_MEMBERS")}
       description={t("team:TEAM_INVITATIONS_DESC")}
-      width="full"
+      width="fixed"
       className="h-full"
       contentClassName="min-h-0 flex flex-col"
       action={inviteAction}

@@ -137,7 +137,7 @@ export function OrganizationActivityPage() {
 
   return (
     <DefaultPage
-      width="full"
+      width="fixed"
       title={t("nav:NAV_ORG_ACTIVITY")}
       description={t("activity:ACTIVITY_DESC_ORG")}
       contentClassName="min-h-0 flex flex-col"

@@ -73,7 +73,7 @@ export function DefaultPage({
             {(title || action) && (
               <div className={styles.titleRow}>
                 <div className={clsx(styles.titleArea, "flex justify-center items-center gap-2")}>
-                  {title ? <span className="text-largetitle">{title}</span> : null}
+                  {title ? <span className="text-largetitle select-none">{title}</span> : null}
                   {title ? <FavoriteToggle /> : null}
                 </div>
 
@@ -81,7 +81,7 @@ export function DefaultPage({
               </div>
             )}
 
-            {description ? <p className="text-label-secondary">{description}</p> : null}
+            {description ? <p className="text-label-secondary select-none">{description}</p> : null}
 
             {extra ? <div className={styles.extra}>{extra}</div> : null}
           </header>

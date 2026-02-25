@@ -496,7 +496,7 @@ export function ContentPagesView() {
       <DefaultPage
         title={t("nav:NAV_CONTENT_PAGES")}
         description={t("content_pages:INDEX_DESC")}
-        width="full"
+        width="fixed"
         className="h-full"
         contentClassName="min-h-0 flex flex-col"
         action={

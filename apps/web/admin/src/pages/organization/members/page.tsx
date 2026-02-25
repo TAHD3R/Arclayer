@@ -115,7 +115,7 @@ export function OrganizationMembersPage() {
 
   return (
     <DefaultPage
-      width="full"
+      width="fixed"
       title={t("nav:NAV_ORG_MEMBERS")}
       description={t("common:ORG_MEMBERS_DESC")}
       contentClassName="min-h-0"

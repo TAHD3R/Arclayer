@@ -125,7 +125,7 @@ export function WorkspaceActivityPage() {
 
   return (
     <DefaultPage
-      width="full"
+      width="fixed"
       title={t("nav:NAV_SETTINGS_MAINTENANCE_ACTIVITY")}
       description={t("activity:ACTIVITY_DESC_WORKSPACE")}
       contentClassName="min-h-0 flex flex-col"

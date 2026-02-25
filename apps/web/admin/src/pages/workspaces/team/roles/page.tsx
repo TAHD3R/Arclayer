@@ -244,7 +244,7 @@ export function TeamRolesView(props: { workspaceIdOverride?: string | null } = {
       <DefaultPage
         title={t("team:TEAM_ROLES_TITLE")}
         description={t("team:TEAM_ROLES_DESC")}
-        width="full"
+        width="fixed"
       >
         <ContentGuard loading loadingVariant="table" />
       </DefaultPage>
@@ -256,7 +256,7 @@ export function TeamRolesView(props: { workspaceIdOverride?: string | null } = {
       <DefaultPage
         title={t("team:TEAM_ROLES_TITLE")}
         description={t("team:TEAM_ROLES_DESC")}
-        width="full"
+        width="fixed"
       >
         <ContentGuard
           loading={false}
@@ -273,7 +273,7 @@ export function TeamRolesView(props: { workspaceIdOverride?: string | null } = {
     <DefaultPage
       title={t("team:TEAM_ROLES_TITLE")}
       description={t("team:TEAM_ROLES_DESC")}
-      width="full"
+      width="fixed"
       action={
         <Button
           type="primary"

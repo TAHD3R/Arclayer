@@ -26,7 +26,7 @@ export function OrganizationOverviewPage(props: { organizationId: string }) {
     <DefaultPage
       title={t("nav:NAV_ORG_OVERVIEW")}
       description={t("common:ORG_OVERVIEW_DESC")}
-      width="full"
+      width="fixed"
       contentClassName="min-h-0"
     >
       <ContentGuard

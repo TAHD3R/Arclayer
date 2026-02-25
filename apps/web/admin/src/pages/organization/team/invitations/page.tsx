@@ -61,7 +61,7 @@ export function OrganizationTeamInvitationsPage() {
 
   return (
     <DefaultPage
-      width="full"
+      width="fixed"
       title={t("nav:NAV_SETTINGS_TEAM_MEMBERS")}
       description={t("common:ORG_INVITATIONS_DESC")}
       action={
