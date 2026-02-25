@@ -77,9 +77,8 @@ export function NotificationCard({
           <ItemTitle className="min-w-0 flex-1">
             <span
               className={cn(
-                "min-w-0 truncate",
-                compact ? "text-footnote" : "text-body",
-                isRead ? "line-through text-label-secondary" : undefined,
+                "min-w-0 truncate text-headline",
+                isRead ? "line-through text-headline! text-label-secondary" : undefined,
               )}
             >
               {item.title}
@@ -89,8 +88,8 @@ export function NotificationCard({
         {item.body ? (
           <ItemDescription
             className={cn(
-              compact ? "text-caption" : "text-callout",
-              isRead ? "text-label-secondary/80" : undefined,
+              "text-label-secondary! text-callout!",
+              isRead ? "text-label-secondary/80!" : undefined,
             )}
           >
             {item.body}

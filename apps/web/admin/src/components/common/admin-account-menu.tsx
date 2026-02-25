@@ -95,7 +95,7 @@ function AdminAccountPanelContent(props: {
   const menuItemClassName = cn(
     "group",
     "transition-colors",
-    "hover:bg-primary hover:text-primary-foreground",
+    "hover:bg-accent hover:text-primary-foreground",
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0",
   );
 
@@ -262,8 +262,8 @@ export function AdminAccountMenu() {
     "border-0 bg-transparent",
     "rounded-none",
     "text-label-secondary",
-    "hover:bg-primary hover:text-sidebar-accent-foreground",
-    "data-[state=open]:bg-primary data-[state=open]:text-sidebar-accent-foreground",
+    "hover:bg-accent hover:text-sidebar-accent-foreground",
+    "data-[state=open]:bg-accent data-[state=open]:text-sidebar-accent-foreground",
     "transition-colors duration-150 ease-out",
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0",
   );
@@ -297,7 +297,7 @@ export function AdminAccountMenu() {
           </Typography.Text>
         </span>
 
-        <ChevronDown className="size-4 shrink-0 opacity-70 transition-colors group-hover:opacity-100" />
+        <ChevronDown className="ml-auto size-4 shrink-0 opacity-70 transition-colors group-hover:opacity-100" />
       </FloatingPanelTrigger>
 
       <FloatingPanelContent placement="top" showTitle={false} className="p-0">
