@@ -433,6 +433,14 @@ export function AcceptInviteView(props: { token: string | null }) {
                   </Button>
                 </motion.div>
 
+                {!isLoggedIn && previewQuery.data?.userExists && (
+                  <motion.div variants={v} className="mt-3">
+                    <Button type="link" size="small" onClick={() => void onBackToLogin()}>
+                      {t("invite:INVITE_ACTION_SWITCH_TO_LOGIN")}
+                    </Button>
+                  </motion.div>
+                )}
+
                 <motion.div variants={v} className="mt-4 text-callout text-label-tertiary">
                   {t(
                     isOrgOnlyInvite
@@ -628,15 +636,25 @@ export function AcceptInviteView(props: { token: string | null }) {
                             onBackToLogin={onBackToLogin}
                           />
                         ) : (
-                          <Button
-                            block
-                            size="large"
-                            type="primary"
-                            className="!rounded-full"
-                            onClick={() => void onBackToLogin()}
-                          >
-                            {t("invite:INVITE_ACTION_BACK_TO_LOGIN")}
-                          </Button>
+                          <div className="flex flex-col gap-3">
+                            <Button
+                              block
+                              size="large"
+                              type="primary"
+                              className="!rounded-full"
+                              onClick={() => void onBackToLogin()}
+                            >
+                              {t("invite:INVITE_ACTION_GO_TO_LOGIN")}
+                            </Button>
+                            <Button
+                              block
+                              size="large"
+                              className="!rounded-full"
+                              onClick={() => setStep(0)}
+                            >
+                              {t("invite:INVITE_ACTION_BACK")}
+                            </Button>
+                          </div>
                         )}
                       </motion.div>
 
@@ -666,7 +684,13 @@ export function AcceptInviteView(props: { token: string | null }) {
                           emailLocked={hasBoundEmail ? previewQuery.data.invitation.email : null}
                           loading={registerAcceptMutation.isPending}
                           onSubmit={onRegisterAndJoin}
-                          onSwitchToLogin={() => setMode("login")}
+                          onSwitchToLogin={() => {
+                            if (hasBoundEmail) {
+                              setMode("login");
+                            } else {
+                              void onBackToLogin();
+                            }
+                          }}
                         />
                       </motion.div>
                     </>

@@ -83,5 +83,6 @@
   "INVITE_STEP2_TITLE_ORG": "Join Organization",
   "INVITE_STEP2_DESC_ORG": "Sign in or create an account to join the organization.",
   "INVITE_EMAIL_DOMAIN_FORBIDDEN": "Your email domain is not allowed for this invitation. Please use an email with the required domain.",
-  "INVITE_ALREADY_MEMBER": "You are already a member of this workspace."
+  "INVITE_ALREADY_MEMBER": "You are already a member of this workspace.",
+  "INVITE_ACTION_GO_TO_LOGIN": "Go to Login"
 }
