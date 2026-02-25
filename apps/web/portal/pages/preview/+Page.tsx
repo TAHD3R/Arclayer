@@ -5,7 +5,7 @@ import type { CoreDocumentIR } from "@celestial/site-renderer-core";
 import type { ViewerContext } from "@celestial/site-block-protocol";
 import type { PortalRouteMatch } from "@celestial/web-types";
 
-import { PortalDocumentPage } from "@/features/portal-document-page";
+import { PortalDocumentPage } from "@/views/portal-document-page";
 import { ensurePortalRequestContext } from "@/runtime/request-context";
 import { HttpError, toAbortStatus } from "@/runtime/http-error";
 import { buildPreviewHref } from "@/runtime/url-helpers";

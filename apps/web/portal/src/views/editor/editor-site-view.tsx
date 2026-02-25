@@ -26,7 +26,7 @@ import {
   redoEditorHistory,
   toEditorHistoryState,
   undoEditorHistory,
-} from "@/features/editor/editor-document-state";
+} from "@/views/editor/editor-document-state";
 
 export interface EditorSiteViewProps {
   initialDocument: unknown;

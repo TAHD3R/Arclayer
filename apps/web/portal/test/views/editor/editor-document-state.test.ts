@@ -11,7 +11,7 @@ import {
   insertBlock,
   redoEditorHistory,
   undoEditorHistory,
-} from "@/features/editor/editor-document-state";
+} from "@/views/editor/editor-document-state";
 
 function createSampleDocument(): CoreDocumentIR {
   return {

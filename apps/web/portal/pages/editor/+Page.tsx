@@ -4,7 +4,7 @@ import { render } from "vike/abort";
 import type { ViewerContext } from "@celestial/site-block-protocol";
 import type { PortalRouteMatch } from "@celestial/web-types";
 
-import { EditorSiteView } from "@/features/editor/editor-site-view";
+import { EditorSiteView } from "@/views/editor/editor-site-view";
 import { ensurePortalRequestContext } from "@/runtime/request-context";
 import { HttpError, toAbortStatus } from "@/runtime/http-error";
 import { parseModeFromUrl, resolveEditorDocument } from "@/runtime/route-entry";

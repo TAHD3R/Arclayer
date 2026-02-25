@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { fetchRuntimeConfigFromApi, resolveRouteFromApi } from "./site-api";
+import { fetchRuntimeConfigFromApi, resolveRouteFromApi } from "@/runtime/site-api";
 
 describe("runtime/site-api (parsing)", () => {
   it("resolveRouteFromApi() parses redirect (snake_case) output", async () => {
