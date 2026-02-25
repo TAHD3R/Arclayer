@@ -54,11 +54,6 @@ export interface EditorState {
   isSaving: boolean;
   isPublishing: boolean;
 
-  // Auto-save configuration
-  autoSaveEnabled: boolean;
-  autoSaveIntervalSec: number;
-  saveOnBlur: boolean;
-
   // History
   canUndo: boolean;
   canRedo: boolean;
@@ -89,9 +84,6 @@ export interface EditorState {
   setDirty: (dirty: boolean) => void;
   setSaving: (saving: boolean) => void;
   setPublishing: (publishing: boolean) => void;
-  setAutoSaveEnabled: (enabled: boolean) => void;
-  setAutoSaveIntervalSec: (sec: number) => void;
-  setSaveOnBlur: (enabled: boolean) => void;
   setHistoryState: (state: { canUndo: boolean; canRedo: boolean }) => void;
   setBridgeStatus: (status: BridgeStatus) => void;
   setInspectorData: (data: EditorSelectionInspector) => void;
@@ -132,10 +124,6 @@ export const useEditorStore = create<EditorState>()((set) => ({
   isSaving: false,
   isPublishing: false,
 
-  autoSaveEnabled: true,
-  autoSaveIntervalSec: 30,
-  saveOnBlur: true,
-
   canUndo: false,
   canRedo: false,
 
@@ -169,9 +157,6 @@ export const useEditorStore = create<EditorState>()((set) => ({
   setDirty: (dirty) => set({ isDirty: dirty }),
   setSaving: (saving) => set({ isSaving: saving }),
   setPublishing: (publishing) => set({ isPublishing: publishing }),
-  setAutoSaveEnabled: (enabled) => set({ autoSaveEnabled: enabled }),
-  setAutoSaveIntervalSec: (sec) => set({ autoSaveIntervalSec: Math.max(10, Math.min(300, sec)) }),
-  setSaveOnBlur: (enabled) => set({ saveOnBlur: enabled }),
   setHistoryState: ({ canUndo, canRedo }) => set({ canUndo, canRedo }),
   setBridgeStatus: (status) => set({ bridgeStatus: status }),
   setInspectorData: (data) => set({ inspectorData: data }),

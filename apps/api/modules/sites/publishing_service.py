@@ -44,6 +44,9 @@ from apps.api.modules.sites.schema import (
 )
 from apps.api.modules.sites.stores import PresenceStore, RouteTemplateVersionStore
 from apps.api.modules.sites.utils import normalize_path as normalize_site_path
+from apps.api.modules.system.models.setting import SettingRecord
+from apps.api.settings.core_schema import CORE_SETTINGS_NAMESPACE
+from apps.api.settings.scopes import SCOPE_TYPE_WORKSPACE
 
 
 class SitePublishingService(BaseService):
@@ -59,6 +62,30 @@ class SitePublishingService(BaseService):
         self._repo = repo
         self._presence = presence
         self._route_templates_version = route_templates_version
+
+    async def _read_workspace_draft_retention_max_revisions(self, *, workspace_id: UUID) -> int:
+        """
+        Read workspace-level draft retention policy from core settings.
+
+        Notes:
+        - When workspace settings are missing or malformed, fall back to a safe default.
+        - Published revision must never be deleted (handled at repository level via exclude).
+        """
+
+        rec = await SettingRecord.get_or_none(
+            scope_type=SCOPE_TYPE_WORKSPACE,
+            scope_id=workspace_id,
+            namespace=CORE_SETTINGS_NAMESPACE,
+        )
+
+        value = rec.value if rec is not None and isinstance(rec.value, dict) else {}
+        cs = value.get("content_strategy") if isinstance(value, dict) else None
+        retention = cs.get("retention") if isinstance(cs, dict) else None
+        raw = retention.get("draft_max_revisions") if isinstance(retention, dict) else None
+
+        if isinstance(raw, int) and 1 <= raw <= 5000:
+            return int(raw)
+        return 100
 
     async def _get_route_templates_cache_version(self, *, site_id: UUID) -> int:
         """
@@ -268,7 +295,10 @@ class SitePublishingService(BaseService):
         if not self.settings.database.enabled:
             raise Conflict("Entry drafts require database storage", error="ENTRY_DRAFT_DB_REQUIRED")
 
-        await self._repo.get_site_by_id(site_id=site_id)
+        site = await self._repo.get_site_by_id(site_id=site_id)
+        retain_last_n = await self._read_workspace_draft_retention_max_revisions(
+            workspace_id=UUID(str(site.workspace_id)),
+        )
         et = await self._repo.get_entry_type_by_code(site_id=site_id, code=payload.entry_type_code)
 
         deps = await self._build_revision_deps(
@@ -292,6 +322,7 @@ class SitePublishingService(BaseService):
             deps=deps,
             expected_revision=payload.expected_revision,
             created_by_user_id=None,
+            retain_last_n=retain_last_n,
         )
         self.logger.info(
             "Saved entry draft",
@@ -465,7 +496,10 @@ class SitePublishingService(BaseService):
         if not self.settings.database.enabled:
             raise Conflict("Route drafts require database storage", error="ROUTE_DRAFT_DB_REQUIRED")
 
-        await self._repo.get_site_by_id(site_id=site_id)
+        site = await self._repo.get_site_by_id(site_id=site_id)
+        retain_last_n = await self._read_workspace_draft_retention_max_revisions(
+            workspace_id=UUID(str(site.workspace_id)),
+        )
 
         deps = await self._build_revision_deps(
             site_id=site_id,
@@ -486,6 +520,7 @@ class SitePublishingService(BaseService):
             deps=deps,
             expected_revision=payload.expected_revision,
             created_by_user_id=None,
+            retain_last_n=retain_last_n,
         )
         self.logger.info(
             "Saved page draft",
@@ -548,7 +583,10 @@ class SitePublishingService(BaseService):
         if not self.settings.database.enabled:
             raise Conflict("Page drafts require database storage", error="PAGE_DRAFT_DB_REQUIRED")
 
-        await self._repo.get_site_by_id(site_id=site_id)
+        site = await self._repo.get_site_by_id(site_id=site_id)
+        retain_last_n = await self._read_workspace_draft_retention_max_revisions(
+            workspace_id=UUID(str(site.workspace_id)),
+        )
 
         deps = await self._build_revision_deps(
             site_id=site_id,
@@ -569,6 +607,7 @@ class SitePublishingService(BaseService):
             deps=deps,
             expected_revision=payload.expected_revision,
             created_by_user_id=actor_user_id,
+            retain_last_n=retain_last_n,
         )
 
         self.logger.info(

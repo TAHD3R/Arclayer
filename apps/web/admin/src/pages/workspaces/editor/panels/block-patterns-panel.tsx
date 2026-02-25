@@ -12,7 +12,7 @@ export function BlockPatternsPanel() {
     return (
       <div className="flex flex-1 items-center justify-center p-4">
         <span className="text-caption text-label-secondary">
-          {t("content_pages:EDITOR_V2_EMPTY_BLOCK_PATTERNS")}
+          {t("content_pages:EDITOR_EMPTY_BLOCK_PATTERNS")}
         </span>
       </div>
     );

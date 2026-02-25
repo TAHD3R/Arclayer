@@ -24,7 +24,7 @@ function PreviewHeader() {
   return (
     <header className="flex h-12 shrink-0 items-center border-b bg-card px-3">
       <Button type="text" icon={<ArrowLeft className="size-4" />} onClick={togglePreviewMode}>
-        {t("content_pages:EDITOR_V2_PREVIEW_EXIT")}
+        {t("content_pages:EDITOR_PREVIEW_EXIT")}
       </Button>
     </header>
   );

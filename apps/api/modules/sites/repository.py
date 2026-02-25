@@ -434,6 +434,7 @@ class SitesRepository(BaseRepository):
         deps: dict | None,
         expected_revision: int | None,
         created_by_user_id: UUID | None,
+        retain_last_n: int | None = None,
     ) -> tuple[UUID, int, int]:
         return await self._publishing_repo.save_entry_draft_by_slug(
             site_id=site_id,
@@ -447,6 +448,7 @@ class SitesRepository(BaseRepository):
             deps=deps,
             expected_revision=expected_revision,
             created_by_user_id=created_by_user_id,
+            retain_last_n=retain_last_n,
         )
 
     async def publish_entry_by_slug(
@@ -476,6 +478,7 @@ class SitesRepository(BaseRepository):
         deps: dict | None,
         expected_revision: int | None,
         created_by_user_id: UUID | None,
+        retain_last_n: int | None = None,
     ) -> tuple[int, int]:
         return await self._publishing_repo.save_page_draft_by_path(
             site_id=site_id,
@@ -487,6 +490,7 @@ class SitesRepository(BaseRepository):
             deps=deps,
             expected_revision=expected_revision,
             created_by_user_id=created_by_user_id,
+            retain_last_n=retain_last_n,
         )
 
     async def save_page_draft_by_id(
@@ -501,6 +505,7 @@ class SitesRepository(BaseRepository):
         deps: dict | None,
         expected_revision: int | None,
         created_by_user_id: UUID | None,
+        retain_last_n: int | None = None,
     ) -> tuple[str, int, int]:
         return await self._publishing_repo.save_page_draft_by_id(
             site_id=site_id,
@@ -512,6 +517,7 @@ class SitesRepository(BaseRepository):
             deps=deps,
             expected_revision=expected_revision,
             created_by_user_id=created_by_user_id,
+            retain_last_n=retain_last_n,
         )
 
     async def publish_page_by_path(

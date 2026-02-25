@@ -106,7 +106,7 @@ export function DesignTokenEditor({
     return (
       <div className="flex flex-1 items-center justify-center p-4">
         <span className="text-caption text-label-secondary">
-          {t("content_pages:EDITOR_V2_DESIGN_TOKENS_EMPTY")}
+          {t("content_pages:EDITOR_DESIGN_TOKENS_EMPTY")}
         </span>
       </div>
     );

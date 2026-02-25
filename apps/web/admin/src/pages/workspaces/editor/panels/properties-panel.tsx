@@ -23,16 +23,23 @@ const TABS: {
   {
     id: "component",
     icon: Settings2,
-    labelKey: "EDITOR_V2_TAB_COMPONENT",
+    labelKey: "EDITOR_TAB_COMPONENT",
   },
-  { id: "layout", icon: LayoutDashboard, labelKey: "EDITOR_V2_TAB_LAYOUT" },
-  { id: "design", icon: Palette, labelKey: "EDITOR_V2_TAB_DESIGN" },
+  { id: "layout", icon: LayoutDashboard, labelKey: "EDITOR_TAB_LAYOUT" },
+  { id: "design", icon: Palette, labelKey: "EDITOR_TAB_DESIGN" },
   {
     id: "animation",
     icon: Sparkles,
-    labelKey: "EDITOR_V2_TAB_ANIMATION",
+    labelKey: "EDITOR_TAB_ANIMATION",
   },
 ];
+
+const TAB_DESC_KEYS: Record<PropertiesPanelTab, string> = {
+  component: "EDITOR_PROPERTIES_DESC_COMPONENT",
+  layout: "EDITOR_PROPERTIES_DESC_LAYOUT",
+  design: "EDITOR_PROPERTIES_DESC_DESIGN",
+  animation: "EDITOR_PROPERTIES_DESC_ANIMATION",
+} as const;
 
 function TabContent({
   tab,
@@ -61,6 +68,7 @@ export function PropertiesPanel() {
   const setTab = useEditorStore((s) => s.setPropertiesPanelTab);
   const propertiesPanelOpen = useEditorStore((s) => s.propertiesPanelOpen);
   const togglePropertiesPanel = useEditorStore((s) => s.togglePropertiesPanel);
+  const bridgeStatus = useEditorStore((s) => s.bridgeStatus);
   const selectedBlockId = useEditorStore((s) => s.selectedBlockId);
   const inspectorData = useEditorStore((s) => s.inspectorData);
 
@@ -84,17 +92,36 @@ export function PropertiesPanel() {
               <span className="text-caption font-medium">
                 {activeTab
                   ? t(`content_pages:${activeTab.labelKey}`)
-                  : t("content_pages:EDITOR_V2_RIGHT_TITLE")}
+                  : t("content_pages:EDITOR_RIGHT_TITLE")}
+              </span>
+              <span className="text-caption text-label-secondary">
+                {selectedBlockId
+                  ? t(`content_pages:${TAB_DESC_KEYS[tab]}`)
+                  : t("content_pages:EDITOR_SELECT_HINT")}
               </span>
             </div>
             <div className="flex min-h-0 flex-1 flex-col overflow-auto p-3">
-              {selectedBlockId ? (
-                <TabContent tab={tab} inspector={inspectorData} />
-              ) : (
-                <p className="text-caption text-label-secondary">
-                  {t("content_pages:EDITOR_V2_INSPECTOR_EMPTY")}
-                </p>
-              )}
+              {bridgeStatus !== "connected" ? (
+                <div className="mb-3 rounded-md border border-border bg-muted/40 px-3 py-2 text-caption text-label-secondary">
+                  {bridgeStatus === "connecting"
+                    ? t("content_pages:EDITOR_BRIDGE_CONNECTING_NOTICE")
+                    : t("content_pages:EDITOR_BRIDGE_DISCONNECTED_NOTICE")}
+                </div>
+              ) : null}
+
+              <div
+                className={cn(
+                  bridgeStatus !== "connected" ? "pointer-events-none opacity-60" : undefined,
+                )}
+              >
+                {selectedBlockId ? (
+                  <TabContent tab={tab} inspector={inspectorData} />
+                ) : (
+                  <p className="text-caption text-label-secondary">
+                    {t("content_pages:EDITOR_INSPECTOR_EMPTY")}
+                  </p>
+                )}
+              </div>
             </div>
           </motion.aside>
         )}

@@ -1,56 +1,72 @@
-import { InputNumber, Switch } from "antd";
+import { Button } from "antd";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "@tanstack/react-router";
 
-import { useEditorStore } from "@/pages/workspaces/editor/stores/editor-store";
+import { useEditorConfig } from "@/pages/workspaces/editor/contexts/editor-config-context";
+import { useWorkspaceContentStrategy } from "@/pages/workspaces/editor/hooks/use-workspace-content-strategy";
 
 export function EditorSettingsPanel() {
   const { t } = useTranslation(["content_pages"]);
-
-  const autoSaveEnabled = useEditorStore((s) => s.autoSaveEnabled);
-  const autoSaveIntervalSec = useEditorStore((s) => s.autoSaveIntervalSec);
-  const saveOnBlur = useEditorStore((s) => s.saveOnBlur);
-  const setAutoSaveEnabled = useEditorStore((s) => s.setAutoSaveEnabled);
-  const setAutoSaveIntervalSec = useEditorStore((s) => s.setAutoSaveIntervalSec);
-  const setSaveOnBlur = useEditorStore((s) => s.setSaveOnBlur);
+  const navigate = useNavigate();
+  const { workspaceId } = useEditorConfig();
+  const { policy } = useWorkspaceContentStrategy(workspaceId);
 
   return (
     <div className="flex flex-col gap-4 p-4">
       <div className="flex flex-col gap-1">
-        <h2 className="text-title3 font-bold">
-          {t("content_pages:EDITOR_V2_SAVE_SETTINGS_TITLE")}
-        </h2>
+        <h2 className="text-title3 font-bold">{t("content_pages:EDITOR_SAVE_SETTINGS_TITLE")}</h2>
+        <p className="text-caption text-label-secondary">
+          {t("content_pages:EDITOR_SAVE_SETTINGS_WORKSPACE_POLICY_DESC")}
+        </p>
       </div>
 
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-3 rounded-md border border-border p-3">
         <div className="flex items-center justify-between">
-          <span className="text-callout">
-            {t("content_pages:EDITOR_V2_SAVE_SETTINGS_AUTO_SAVE")}
+          <span className="text-callout">{t("content_pages:EDITOR_SAVE_SETTINGS_AUTO_SAVE")}</span>
+          <span className="text-caption text-label-secondary">
+            {policy.autosave.enabled
+              ? t("content_pages:EDITOR_STATUS_ENABLED")
+              : t("content_pages:EDITOR_STATUS_DISABLED")}
           </span>
-          <Switch checked={autoSaveEnabled} onChange={setAutoSaveEnabled} />
+        </div>
+
+        <div className="flex items-center justify-between">
+          <span className="text-callout">{t("content_pages:EDITOR_SAVE_SETTINGS_INTERVAL")}</span>
+          <span className="text-caption text-label-secondary">{policy.autosave.intervalSec}s</span>
         </div>
 
         <div className="flex items-center justify-between">
           <span className="text-callout">
-            {t("content_pages:EDITOR_V2_SAVE_SETTINGS_INTERVAL")}
+            {t("content_pages:EDITOR_SAVE_SETTINGS_SAVE_ON_BLUR")}
           </span>
-          <InputNumber
-            min={10}
-            max={300}
-            value={autoSaveIntervalSec}
-            onChange={(val) => {
-              if (val !== null) setAutoSaveIntervalSec(val);
-            }}
-            disabled={!autoSaveEnabled}
-          />
+          <span className="text-caption text-label-secondary">
+            {policy.autosave.saveOnBlur
+              ? t("content_pages:EDITOR_STATUS_ENABLED")
+              : t("content_pages:EDITOR_STATUS_DISABLED")}
+          </span>
         </div>
 
         <div className="flex items-center justify-between">
-          <span className="text-callout">
-            {t("content_pages:EDITOR_V2_SAVE_SETTINGS_SAVE_ON_BLUR")}
+          <span className="text-callout">{t("content_pages:EDITOR_SAVE_SETTINGS_RETENTION")}</span>
+          <span className="text-caption text-label-secondary">
+            {t("content_pages:EDITOR_SAVE_SETTINGS_RETENTION_VALUE", {
+              count: policy.retention.draftMaxRevisions,
+            })}
           </span>
-          <Switch checked={saveOnBlur} onChange={setSaveOnBlur} />
         </div>
       </div>
+
+      <Button
+        type="primary"
+        onClick={() => {
+          void navigate({
+            to: `/w/${workspaceId}/settings/workspace`,
+            search: { index: "content_strategy" },
+          });
+        }}
+      >
+        {t("content_pages:EDITOR_SAVE_SETTINGS_OPEN_WORKSPACE_SETTINGS")}
+      </Button>
     </div>
   );
 }

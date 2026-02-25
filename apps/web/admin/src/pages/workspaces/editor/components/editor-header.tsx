@@ -50,10 +50,9 @@ import {
   FloatingPanelBody,
 } from "@/components/ui/floating-panel";
 import { useEditorStore } from "@/pages/workspaces/editor/stores/editor-store";
-import { useEditorBridgeContext } from "@/pages/workspaces/editor/contexts/editor-bridge-context";
-import { useEditorSaveContext } from "@/pages/workspaces/editor/contexts/editor-save-context";
 import { useEditorConfig } from "@/pages/workspaces/editor/contexts/editor-config-context";
 import { usePlatform } from "@/pages/workspaces/editor/hooks/use-platform";
+import { useEditorActions } from "@/pages/workspaces/editor/hooks/use-editor-actions";
 import { EditorPageSwitcher } from "@/pages/workspaces/editor/components/editor-page-switcher";
 import * as authApi from "@/api/auth";
 import { useAuthStore } from "@/stores/use-auth-store";
@@ -92,9 +91,7 @@ function EditorUserMenuContent() {
           }}
         >
           <Languages className="size-4 shrink-0" />
-          <span className="flex-1 text-left">
-            {t("content_pages:EDITOR_V2_USER_MENU_LANGUAGE")}
-          </span>
+          <span className="flex-1 text-left">{t("content_pages:EDITOR_USER_MENU_LANGUAGE")}</span>
           <ChevronRight className="size-3.5 text-label-secondary" />
         </button>
         {showLangSub && (
@@ -127,7 +124,7 @@ function EditorUserMenuContent() {
           }}
         >
           <Palette className="size-4 shrink-0" />
-          <span className="flex-1 text-left">{t("content_pages:EDITOR_V2_USER_MENU_THEME")}</span>
+          <span className="flex-1 text-left">{t("content_pages:EDITOR_USER_MENU_THEME")}</span>
           <ChevronRight className="size-3.5 text-label-secondary" />
         </button>
         {showThemeSub && (
@@ -146,7 +143,7 @@ function EditorUserMenuContent() {
                 }}
               >
                 <span className="flex-1 text-left">
-                  {t(`content_pages:EDITOR_V2_USER_MENU_THEME_${m.toUpperCase()}` as const)}
+                  {t(`content_pages:EDITOR_USER_MENU_THEME_${m.toUpperCase()}` as const)}
                 </span>
                 {themePreference === m && <Check className="size-3.5 text-primary" />}
               </button>
@@ -166,7 +163,7 @@ function EditorUserMenuContent() {
           }}
         >
           <LogOut className="size-4 shrink-0" />
-          <span className="flex-1 text-left">{t("content_pages:EDITOR_V2_USER_MENU_EXIT")}</span>
+          <span className="flex-1 text-left">{t("content_pages:EDITOR_USER_MENU_EXIT")}</span>
         </button>
       </div>
     </div>
@@ -228,7 +225,7 @@ function EditorAvatar() {
   return (
     <FloatingPanelRoot>
       <FloatingPanelTrigger
-        title={t("content_pages:EDITOR_V2_USER_MENU_TITLE")}
+        title={t("content_pages:EDITOR_USER_MENU_TITLE")}
         className="size-8 justify-center rounded-full border-0 bg-transparent"
       >
         <Avatar size={28} src={avatarSrc ?? undefined}>
@@ -247,26 +244,8 @@ function EditorAvatar() {
 export function EditorHeader() {
   const { t } = useTranslation(["content_pages"]);
   const { workspaceId } = useEditorConfig();
-  const { portal } = useEditorBridgeContext();
   const sc = useShortcut();
-
-  const isDirty = useEditorStore((s) => s.isDirty);
-  const isSaving = useEditorStore((s) => s.isSaving);
-  const isPublishing = useEditorStore((s) => s.isPublishing);
-  const bridgeStatus = useEditorStore((s) => s.bridgeStatus);
-  const zoomPercent = useEditorStore((s) => s.zoomPercent);
-  const setZoomPercent = useEditorStore((s) => s.setZoomPercent);
-  const showLineGuides = useEditorStore((s) => s.showLineGuides);
-  const setShowLineGuides = useEditorStore((s) => s.setShowLineGuides);
-  const togglePreviewMode = useEditorStore((s) => s.togglePreviewMode);
-
-  const { saveDraft, publish } = useEditorSaveContext();
-
-  const handleSave = async () => {
-    if (!portal) return;
-    const doc = await portal.getDocument();
-    await saveDraft(doc);
-  };
+  const actions = useEditorActions();
 
   return (
     <header className="flex h-12 shrink-0 items-center border-b bg-card px-3">
@@ -278,25 +257,28 @@ export function EditorHeader() {
           {/* File */}
           <MenubarMenu>
             <MenubarTrigger className="transition-colors">
-              {t("content_pages:EDITOR_V2_MENU_FILE")}
+              {t("content_pages:EDITOR_MENU_FILE")}
             </MenubarTrigger>
             <MenubarContent>
-              <MenubarItem disabled={!isDirty || isSaving} onClick={handleSave}>
+              <MenubarItem
+                disabled={!actions.isEnabled("file.save_draft")}
+                onClick={() => void actions.run("file.save_draft")}
+              >
                 <Save className="mr-2 size-4" />
-                {t("content_pages:EDITOR_V2_MENU_FILE_SAVE")}
+                {t("content_pages:EDITOR_MENU_FILE_SAVE")}
                 <MenubarShortcut>{sc("⌘S", "Ctrl+S")}</MenubarShortcut>
               </MenubarItem>
               <MenubarItem
-                disabled={isPublishing || bridgeStatus !== "connected"}
-                onClick={() => void publish()}
+                disabled={!actions.isEnabled("file.publish")}
+                onClick={() => void actions.run("file.publish")}
               >
                 <ArrowUpFromLine className="mr-2 size-4" />
-                {t("content_pages:EDITOR_V2_MENU_FILE_PUBLISH")}
+                {t("content_pages:EDITOR_MENU_FILE_PUBLISH")}
               </MenubarItem>
               <MenubarSeparator />
-              <MenubarItem>
+              <MenubarItem disabled>
                 <Download className="mr-2 size-4" />
-                {t("content_pages:EDITOR_V2_MENU_FILE_EXPORT")}
+                {t("content_pages:EDITOR_MENU_FILE_EXPORT")}
               </MenubarItem>
               <MenubarSeparator />
               <MenubarItem
@@ -305,7 +287,7 @@ export function EditorHeader() {
                 }}
               >
                 <LogOut className="mr-2 size-4" />
-                {t("content_pages:EDITOR_V2_MENU_FILE_EXIT")}
+                {t("content_pages:EDITOR_MENU_FILE_EXIT")}
               </MenubarItem>
             </MenubarContent>
           </MenubarMenu>
@@ -313,39 +295,51 @@ export function EditorHeader() {
           {/* Edit */}
           <MenubarMenu>
             <MenubarTrigger className="transition-colors">
-              {t("content_pages:EDITOR_V2_MENU_EDIT")}
+              {t("content_pages:EDITOR_MENU_EDIT")}
             </MenubarTrigger>
             <MenubarContent>
-              <MenubarItem onClick={() => void portal?.undo()}>
+              <MenubarItem
+                disabled={!actions.isEnabled("edit.undo")}
+                onClick={() => void actions.run("edit.undo")}
+              >
                 <Undo2 className="mr-2 size-4" />
-                {t("content_pages:EDITOR_V2_MENU_EDIT_UNDO")}
+                {t("content_pages:EDITOR_MENU_EDIT_UNDO")}
                 <MenubarShortcut>{sc("⌘Z", "Ctrl+Z")}</MenubarShortcut>
               </MenubarItem>
-              <MenubarItem onClick={() => void portal?.redo()}>
+              <MenubarItem
+                disabled={!actions.isEnabled("edit.redo")}
+                onClick={() => void actions.run("edit.redo")}
+              >
                 <Redo2 className="mr-2 size-4" />
-                {t("content_pages:EDITOR_V2_MENU_EDIT_REDO")}
+                {t("content_pages:EDITOR_MENU_EDIT_REDO")}
                 <MenubarShortcut>{sc("⇧⌘Z", "Ctrl+Shift+Z")}</MenubarShortcut>
               </MenubarItem>
               <MenubarSeparator />
-              <MenubarItem>
+              <MenubarItem disabled>
                 <Copy className="mr-2 size-4" />
-                {t("content_pages:EDITOR_V2_MENU_EDIT_COPY")}
+                {t("content_pages:EDITOR_MENU_EDIT_COPY")}
                 <MenubarShortcut>{sc("⌘C", "Ctrl+C")}</MenubarShortcut>
               </MenubarItem>
-              <MenubarItem>
+              <MenubarItem disabled>
                 <ClipboardPaste className="mr-2 size-4" />
-                {t("content_pages:EDITOR_V2_MENU_EDIT_PASTE")}
+                {t("content_pages:EDITOR_MENU_EDIT_PASTE")}
                 <MenubarShortcut>{sc("⌘V", "Ctrl+V")}</MenubarShortcut>
               </MenubarItem>
-              <MenubarItem>
+              <MenubarItem
+                disabled={!actions.isEnabled("edit.delete")}
+                onClick={() => void actions.run("edit.delete")}
+              >
                 <Trash2 className="mr-2 size-4" />
-                {t("content_pages:EDITOR_V2_MENU_EDIT_DELETE")}
+                {t("content_pages:EDITOR_MENU_EDIT_DELETE")}
                 <MenubarShortcut>{sc("⌫", "Del")}</MenubarShortcut>
               </MenubarItem>
               <MenubarSeparator />
-              <MenubarItem>
+              <MenubarItem
+                disabled={!actions.isEnabled("edit.duplicate")}
+                onClick={() => void actions.run("edit.duplicate")}
+              >
                 <CopyPlus className="mr-2 size-4" />
-                {t("content_pages:EDITOR_V2_MENU_EDIT_DUPLICATE")}
+                {t("content_pages:EDITOR_MENU_EDIT_DUPLICATE")}
                 <MenubarShortcut>{sc("⌘D", "Ctrl+D")}</MenubarShortcut>
               </MenubarItem>
             </MenubarContent>
@@ -354,32 +348,41 @@ export function EditorHeader() {
           {/* View */}
           <MenubarMenu>
             <MenubarTrigger className="transition-colors">
-              {t("content_pages:EDITOR_V2_MENU_VIEW")}
+              {t("content_pages:EDITOR_MENU_VIEW")}
             </MenubarTrigger>
             <MenubarContent>
-              <MenubarItem onClick={() => setZoomPercent(zoomPercent + 10)}>
+              <MenubarItem
+                disabled={!actions.isEnabled("view.zoom_in")}
+                onClick={() => void actions.run("view.zoom_in")}
+              >
                 <ZoomIn className="mr-2 size-4" />
-                {t("content_pages:EDITOR_V2_MENU_VIEW_ZOOM_IN")}
+                {t("content_pages:EDITOR_MENU_VIEW_ZOOM_IN")}
                 <MenubarShortcut>{sc("⌘+", "Ctrl++")}</MenubarShortcut>
               </MenubarItem>
-              <MenubarItem onClick={() => setZoomPercent(zoomPercent - 10)}>
+              <MenubarItem
+                disabled={!actions.isEnabled("view.zoom_out")}
+                onClick={() => void actions.run("view.zoom_out")}
+              >
                 <ZoomOut className="mr-2 size-4" />
-                {t("content_pages:EDITOR_V2_MENU_VIEW_ZOOM_OUT")}
+                {t("content_pages:EDITOR_MENU_VIEW_ZOOM_OUT")}
                 <MenubarShortcut>{sc("⌘-", "Ctrl+-")}</MenubarShortcut>
               </MenubarItem>
-              <MenubarItem onClick={() => setZoomPercent(100)}>
+              <MenubarItem
+                disabled={!actions.isEnabled("view.zoom_reset")}
+                onClick={() => void actions.run("view.zoom_reset")}
+              >
                 <RotateCcw className="mr-2 size-4" />
-                {t("content_pages:EDITOR_V2_MENU_VIEW_ZOOM_RESET")}
+                {t("content_pages:EDITOR_MENU_VIEW_ZOOM_RESET")}
                 <MenubarShortcut>{sc("⌘0", "Ctrl+0")}</MenubarShortcut>
               </MenubarItem>
               <MenubarSeparator />
-              <MenubarItem onClick={() => setShowLineGuides(!showLineGuides)}>
+              <MenubarItem disabled>
                 <Ruler className="mr-2 size-4" />
-                {t("content_pages:EDITOR_V2_MENU_VIEW_GUIDES")}
+                {t("content_pages:EDITOR_MENU_VIEW_GUIDES")}
               </MenubarItem>
-              <MenubarItem>
+              <MenubarItem disabled>
                 <Square className="mr-2 size-4" />
-                {t("content_pages:EDITOR_V2_MENU_VIEW_BOUNDS")}
+                {t("content_pages:EDITOR_MENU_VIEW_BOUNDS")}
               </MenubarItem>
             </MenubarContent>
           </MenubarMenu>
@@ -396,18 +399,22 @@ export function EditorHeader() {
         <BridgeStatusIndicator />
 
         {/* Preview */}
-        <Tooltip title={t("content_pages:EDITOR_V2_SITE_ACTION_PREVIEW")}>
-          <Button type="text" icon={<Play className="size-3.5" />} onClick={togglePreviewMode} />
+        <Tooltip title={t("content_pages:EDITOR_SITE_ACTION_PREVIEW")}>
+          <Button
+            type="text"
+            icon={<Play className="size-3.5" />}
+            onClick={() => void actions.run("view.toggle_preview")}
+          />
         </Tooltip>
 
         {/* Publish */}
         <Button
           type="primary"
-          disabled={isPublishing || bridgeStatus !== "connected"}
+          disabled={!actions.isEnabled("file.publish")}
           icon={<ArrowUpFromLine className="size-3.5" />}
-          onClick={() => void publish()}
+          onClick={() => void actions.run("file.publish")}
         >
-          {t("content_pages:EDITOR_V2_TOOLBAR_PUBLISH")}
+          {t("content_pages:EDITOR_TOOLBAR_PUBLISH")}
         </Button>
 
         {/* Divider */}

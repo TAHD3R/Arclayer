@@ -75,7 +75,7 @@ function PageListPanel({ workspaceId }: { workspaceId: string }) {
         <Input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder={t("content_pages:EDITOR_V2_PAGE_PICKER_SEARCH_PLACEHOLDER")}
+          placeholder={t("content_pages:EDITOR_PAGE_PICKER_SEARCH_PLACEHOLDER")}
           allowClear
           variant="borderless"
           prefix={<Search className="size-4 text-label-secondary" />}
@@ -89,7 +89,7 @@ function PageListPanel({ workspaceId }: { workspaceId: string }) {
           </div>
         ) : filtered.length === 0 ? (
           <div className="px-4 py-8 text-center text-footnote text-label-secondary">
-            {t("content_pages:EDITOR_V2_PAGE_PICKER_EMPTY_STATIC")}
+            {t("content_pages:EDITOR_PAGE_PICKER_EMPTY_STATIC")}
           </div>
         ) : (
           <motion.div
@@ -151,7 +151,7 @@ export function EditorPageSwitcher() {
   });
 
   const workspaceName = workspaceDetailQuery.data?.name ?? "";
-  const pageName = t("content_pages:EDITOR_V2_PAGE_PICKER_CURRENT");
+  const pageName = t("content_pages:EDITOR_PAGE_PICKER_CURRENT");
 
   const triggerClassName = cn(
     "flex items-center gap-1.5 rounded-md px-2.5 py-1",
@@ -165,8 +165,8 @@ export function EditorPageSwitcher() {
   return (
     <FloatingPanelRoot>
       <FloatingPanelTrigger
-        title={t("content_pages:EDITOR_V2_MENU_PAGE_SWITCH")}
-        aria-label={t("content_pages:EDITOR_V2_PAGE_SWITCHER_TRIGGER")}
+        title={t("content_pages:EDITOR_MENU_PAGE_SWITCH")}
+        aria-label={t("content_pages:EDITOR_PAGE_SWITCHER_TRIGGER")}
         className={triggerClassName}
       >
         <span className="max-w-48 truncate text-label-secondary">{workspaceName || "..."}</span>

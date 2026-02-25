@@ -7,7 +7,10 @@ import {
   useEditorStore,
   type ActivityBarMenuId,
 } from "@/pages/workspaces/editor/stores/editor-store";
-import { EDITOR_MENU_TITLE_KEYS } from "@/pages/workspaces/editor/constants/menus";
+import {
+  EDITOR_MENU_DESC_KEYS,
+  EDITOR_MENU_TITLE_KEYS,
+} from "@/pages/workspaces/editor/constants/menus";
 import { PagesPanel } from "@/pages/workspaces/editor/panels/pages-panel";
 import { NavigatorPanel } from "@/pages/workspaces/editor/panels/navigator-panel";
 import { ComponentsPanel } from "@/pages/workspaces/editor/panels/components-panel";
@@ -36,7 +39,7 @@ function PanelContent({ menuId, t }: { menuId: ActivityBarMenuId; t: (key: strin
       return (
         <div className="flex flex-1 items-center justify-center p-4">
           <span className="text-caption text-label-secondary">
-            {t("content_pages:EDITOR_V2_COMING_SOON")}
+            {t("content_pages:EDITOR_COMING_SOON")}
           </span>
         </div>
       );
@@ -51,6 +54,7 @@ export function SidebarPanel() {
 
   const isVisible = sidebarOpen && activeMenuId !== null;
   const titleKey = activeMenuId ? EDITOR_MENU_TITLE_KEYS[activeMenuId] : null;
+  const descKey = activeMenuId ? EDITOR_MENU_DESC_KEYS[activeMenuId] : null;
 
   return (
     <AnimatePresence initial={false}>
@@ -67,6 +71,7 @@ export function SidebarPanel() {
           <div className="flex shrink-0 items-start justify-between border-b px-3 py-2">
             <div className="flex min-w-0 flex-1 flex-col gap-0.5">
               <span className="text-caption font-medium">{titleKey ? t(titleKey) : ""}</span>
+              <span className="text-caption text-label-secondary">{descKey ? t(descKey) : ""}</span>
             </div>
             <Button
               type="text"

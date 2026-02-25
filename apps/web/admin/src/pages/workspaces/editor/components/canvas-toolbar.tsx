@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Monitor,
@@ -22,11 +21,8 @@ import {
   type DevicePreset,
   type RulerMode,
 } from "@/pages/workspaces/editor/stores/editor-store";
-import { useEditorBridgeContext } from "@/pages/workspaces/editor/contexts/editor-bridge-context";
-import { useEditorHistory } from "@/pages/workspaces/editor/hooks/use-editor-history";
+import { useEditorActions } from "@/pages/workspaces/editor/hooks/use-editor-actions";
 import { DEVICE_PRESET_WIDTHS } from "@/pages/workspaces/editor/constants/canvas";
-
-const ZOOM_STEP = 10;
 
 const DEVICE_ICONS = {
   desktop: Monitor,
@@ -37,19 +33,17 @@ const DEVICE_ICONS = {
 const DEVICE_KEYS: DevicePreset[] = ["desktop", "tablet", "mobile"];
 
 const RULER_OPTIONS: { value: RulerMode; labelKey: string }[] = [
-  { value: "off", labelKey: "content_pages:EDITOR_V2_CANVAS_RULER_OFF" },
-  { value: "ruler", labelKey: "content_pages:EDITOR_V2_CANVAS_RULER_PINNED" },
-  { value: "ruler-crosshair", labelKey: "content_pages:EDITOR_V2_CANVAS_RULER_CROSSHAIR" },
+  { value: "off", labelKey: "content_pages:EDITOR_CANVAS_RULER_OFF" },
+  { value: "ruler", labelKey: "content_pages:EDITOR_CANVAS_RULER_PINNED" },
+  { value: "ruler-crosshair", labelKey: "content_pages:EDITOR_CANVAS_RULER_CROSSHAIR" },
 ];
 
 const ZOOM_PRESETS = [50, 75, 100, 125, 150, 200];
 
 export function CanvasToolbar() {
   const { t } = useTranslation(["content_pages"]);
-  const { portal } = useEditorBridgeContext();
+  const actions = useEditorActions();
 
-  const canUndo = useEditorStore((s) => s.canUndo);
-  const canRedo = useEditorStore((s) => s.canRedo);
   const devicePreset = useEditorStore((s) => s.devicePreset);
   const zoomPercent = useEditorStore((s) => s.zoomPercent);
   const canvasWidth = useEditorStore((s) => s.canvasWidth);
@@ -59,39 +53,14 @@ export function CanvasToolbar() {
   const setDevicePreset = useEditorStore((s) => s.setDevicePreset);
   const setZoomPercent = useEditorStore((s) => s.setZoomPercent);
   const setCanvasWidth = useEditorStore((s) => s.setCanvasWidth);
-  const setActiveTool = useEditorStore((s) => s.setActiveTool);
-
-  const { onUndo, onRedo } = useEditorHistory(portal);
 
   const displayWidth = canvasWidth ?? DEVICE_PRESET_WIDTHS[devicePreset];
-
-  // Keyboard shortcuts for tool switching
-  useEffect(() => {
-    function handleKeyDown(e: KeyboardEvent) {
-      const tag = (e.target as HTMLElement).tagName.toLowerCase();
-      if (
-        tag === "input" ||
-        tag === "textarea" ||
-        tag === "select" ||
-        (e.target as HTMLElement).isContentEditable
-      ) {
-        return;
-      }
-      if (e.key === "v" || e.key === "V") {
-        setActiveTool("select");
-      } else if (e.key === "h" || e.key === "H") {
-        setActiveTool("hand");
-      }
-    }
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [setActiveTool]);
 
   // Zoom dropdown menu items
   const zoomMenuItems: MenuProps["items"] = [
     {
       key: "fit",
-      label: t("content_pages:EDITOR_V2_TOOLBAR_ZOOM_FIT"),
+      label: t("content_pages:EDITOR_TOOLBAR_ZOOM_FIT"),
       onClick: () => setZoomPercent(100),
     },
     { type: "divider" },
@@ -107,38 +76,38 @@ export function CanvasToolbar() {
       {/* Left: Select/Hand toggle + Undo / Redo */}
       <div className="flex items-center gap-1">
         <Space.Compact>
-          <Tooltip title={t("content_pages:EDITOR_V2_TOOLBAR_TOOL_SELECT")}>
+          <Tooltip title={t("content_pages:EDITOR_TOOLBAR_TOOL_SELECT")}>
             <Button
               type={activeTool === "select" ? "primary" : "default"}
               icon={<MousePointer2 className="size-4" />}
-              onClick={() => setActiveTool("select")}
+              onClick={() => void actions.run("tool.select")}
             />
           </Tooltip>
-          <Tooltip title={t("content_pages:EDITOR_V2_TOOLBAR_TOOL_HAND")}>
+          <Tooltip title={t("content_pages:EDITOR_TOOLBAR_TOOL_HAND")}>
             <Button
               type={activeTool === "hand" ? "primary" : "default"}
               icon={<Hand className="size-4" />}
-              onClick={() => setActiveTool("hand")}
+              onClick={() => void actions.run("tool.hand")}
             />
           </Tooltip>
         </Space.Compact>
 
         <div className="mx-1 h-5 w-px bg-border" />
 
-        <Tooltip title={t("content_pages:EDITOR_V2_TOOLBAR_UNDO")}>
+        <Tooltip title={t("content_pages:EDITOR_TOOLBAR_UNDO")}>
           <Button
             type="text"
-            disabled={!canUndo}
+            disabled={!actions.isEnabled("edit.undo")}
             icon={<Undo2 className="size-4" />}
-            onClick={onUndo}
+            onClick={() => void actions.run("edit.undo")}
           />
         </Tooltip>
-        <Tooltip title={t("content_pages:EDITOR_V2_TOOLBAR_REDO")}>
+        <Tooltip title={t("content_pages:EDITOR_TOOLBAR_REDO")}>
           <Button
             type="text"
-            disabled={!canRedo}
+            disabled={!actions.isEnabled("edit.redo")}
             icon={<Redo2 className="size-4" />}
-            onClick={onRedo}
+            onClick={() => void actions.run("edit.redo")}
           />
         </Tooltip>
       </div>
@@ -152,7 +121,7 @@ export function CanvasToolbar() {
             return (
               <Tooltip
                 key={key}
-                title={t(`content_pages:EDITOR_V2_DEVICE_${key.toUpperCase()}` as const)}
+                title={t(`content_pages:EDITOR_DEVICE_${key.toUpperCase()}` as const)}
               >
                 <Button
                   type={isActive ? "primary" : "default"}
@@ -179,17 +148,17 @@ export function CanvasToolbar() {
           <PopoverContent align="center" className="w-64 space-y-3 p-3">
             <div>
               <p className="text-callout font-medium">
-                {t("content_pages:EDITOR_V2_CANVAS_SETTINGS_TITLE")}
+                {t("content_pages:EDITOR_CANVAS_SETTINGS_TITLE")}
               </p>
               <p className="text-caption text-label-secondary">
-                {t("content_pages:EDITOR_V2_CANVAS_SETTINGS_DESC")}
+                {t("content_pages:EDITOR_CANVAS_SETTINGS_DESC")}
               </p>
             </div>
 
             {/* Width */}
             <label className="flex items-center gap-2 text-callout">
               <span className="w-16 shrink-0 text-label-secondary">
-                {t("content_pages:EDITOR_V2_CANVAS_SETTINGS_WIDTH")}
+                {t("content_pages:EDITOR_CANVAS_SETTINGS_WIDTH")}
               </span>
               <InputNumber
                 className="flex-1"
@@ -204,7 +173,7 @@ export function CanvasToolbar() {
             {/* Scale */}
             <label className="flex items-center gap-2 text-callout">
               <span className="w-16 shrink-0 text-label-secondary">
-                {t("content_pages:EDITOR_V2_CANVAS_SETTINGS_SCALE")}
+                {t("content_pages:EDITOR_CANVAS_SETTINGS_SCALE")}
               </span>
               <InputNumber
                 className="flex-1"
@@ -221,10 +190,10 @@ export function CanvasToolbar() {
             <div className="border-t pt-2" />
 
             {/* Ruler — disabled, coming soon */}
-            <Tooltip title={t("content_pages:EDITOR_V2_COMING_SOON")}>
+            <Tooltip title={t("content_pages:EDITOR_COMING_SOON")}>
               <div className="flex flex-col gap-1.5 opacity-50">
                 <span className="text-callout text-label-secondary">
-                  {t("content_pages:EDITOR_V2_CANVAS_SETTINGS_RULER")}
+                  {t("content_pages:EDITOR_CANVAS_SETTINGS_RULER")}
                 </span>
                 <Radio.Group value={rulerMode} disabled>
                   <div className="flex flex-col gap-1">
@@ -239,11 +208,11 @@ export function CanvasToolbar() {
             </Tooltip>
 
             {/* Line guides — disabled, coming soon */}
-            <Tooltip title={t("content_pages:EDITOR_V2_COMING_SOON")}>
+            <Tooltip title={t("content_pages:EDITOR_COMING_SOON")}>
               <div className="opacity-50">
                 <Checkbox checked={showLineGuides} disabled>
                   <span className="text-callout">
-                    {t("content_pages:EDITOR_V2_CANVAS_SETTINGS_LINE_GUIDES")}
+                    {t("content_pages:EDITOR_CANVAS_SETTINGS_LINE_GUIDES")}
                   </span>
                 </Checkbox>
               </div>
@@ -254,12 +223,12 @@ export function CanvasToolbar() {
 
       {/* Right: Zoom controls */}
       <div className="flex items-center gap-1">
-        <Tooltip title={t("content_pages:EDITOR_V2_TOOLBAR_ZOOM_OUT")}>
+        <Tooltip title={t("content_pages:EDITOR_TOOLBAR_ZOOM_OUT")}>
           <Button
             type="text"
-            disabled={zoomPercent <= 25}
+            disabled={!actions.isEnabled("view.zoom_out")}
             icon={<ZoomOut className="size-4" />}
-            onClick={() => setZoomPercent(zoomPercent - ZOOM_STEP)}
+            onClick={() => void actions.run("view.zoom_out")}
           />
         </Tooltip>
 
@@ -270,21 +239,21 @@ export function CanvasToolbar() {
           </Button>
         </Dropdown>
 
-        <Tooltip title={t("content_pages:EDITOR_V2_TOOLBAR_ZOOM_IN")}>
+        <Tooltip title={t("content_pages:EDITOR_TOOLBAR_ZOOM_IN")}>
           <Button
             type="text"
-            disabled={zoomPercent >= 200}
+            disabled={!actions.isEnabled("view.zoom_in")}
             icon={<ZoomIn className="size-4" />}
-            onClick={() => setZoomPercent(zoomPercent + ZOOM_STEP)}
+            onClick={() => void actions.run("view.zoom_in")}
           />
         </Tooltip>
 
-        <Tooltip title={t("content_pages:EDITOR_V2_TOOLBAR_ZOOM_RESET")}>
+        <Tooltip title={t("content_pages:EDITOR_TOOLBAR_ZOOM_RESET")}>
           <Button
             type="text"
-            disabled={zoomPercent === 100}
+            disabled={!actions.isEnabled("view.zoom_reset")}
             icon={<RotateCcw className="size-4" />}
-            onClick={() => setZoomPercent(100)}
+            onClick={() => void actions.run("view.zoom_reset")}
           />
         </Tooltip>
       </div>

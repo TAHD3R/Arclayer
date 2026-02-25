@@ -28,6 +28,7 @@ from apps.api.modules.system.models.rbac import Role
 from apps.api.modules.system.rbac.constants import ROLE_ADMIN, ROLE_OWNER
 from apps.api.modules.system.rbac.service import RBACService
 from apps.api.modules.workspaces.models.workspace import Workspace, WorkspaceMembershipRole
+from apps.api.modules.workspaces.settings.service import WorkspaceSettingsService
 from apps.api.modules.workspaces.site.service import WorkspaceSiteService
 
 _ORG_WORKSPACE_ALLOWED_ORDER_FIELDS: frozenset[str] = frozenset({"name", "slug", "created_at", "archived_at"})
@@ -259,6 +260,19 @@ class OrganizationWorkspaceService(BaseService):
         await self.site_service.get_or_create_site_for_workspace(
             workspace_id=UUID(str(ws.id)),
             actor_user_id=user_id,
+        )
+
+        # Initialize workspace-level content strategy defaults so editors can rely on a stable policy contract.
+        settings_service = WorkspaceSettingsService(self.settings)
+        await settings_service.patch_core(
+            workspace_id=UUID(str(ws.id)),
+            patch={
+                "content_strategy": {
+                    "autosave": {"enabled": True, "interval_sec": 30, "save_on_blur": True},
+                    "retention": {"draft_max_revisions": 100},
+                }
+            },
+            updated_by=user_id,
         )
 
         self.logger.info(

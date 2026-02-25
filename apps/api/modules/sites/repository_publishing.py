@@ -240,6 +240,7 @@ class SitePublishingRepository(BaseRepository):
         deps: dict | None,
         expected_revision: int | None,
         created_by_user_id: UUID | None,
+        retain_last_n: int | None = None,
     ) -> tuple[UUID, int, int]:
         """
         Save an entry draft by (entry_type_id, slug).
@@ -295,6 +296,15 @@ class SitePublishingRepository(BaseRepository):
             )
             entry.draft_rev = next_rev
             await entry.save(update_fields=["draft_rev"], using_db=conn)
+
+            if retain_last_n is not None and retain_last_n > 0:
+                threshold = next_rev - int(retain_last_n)
+                if threshold > 0:
+                    qs = EntryRevisionRecord.filter(entry_id=entry.id, rev__lte=threshold).using_db(conn)
+                    published_rev = int(entry.published_rev or 0)
+                    if published_rev:
+                        qs = qs.exclude(rev=published_rev)
+                    await qs.delete()
 
         return UUID(str(entry.id)), next_rev, now_ms
 
@@ -360,6 +370,7 @@ class SitePublishingRepository(BaseRepository):
         deps: dict | None,
         expected_revision: int | None,
         created_by_user_id: UUID | None,
+        retain_last_n: int | None = None,
     ) -> tuple[int, int]:
         """
         Save a page draft by pathname (helper for editor mode).
@@ -418,6 +429,15 @@ class SitePublishingRepository(BaseRepository):
                 update_fields.append("updated_by_user_id")
             await page.save(update_fields=update_fields, using_db=conn)
 
+            if retain_last_n is not None and retain_last_n > 0:
+                threshold = next_rev - int(retain_last_n)
+                if threshold > 0:
+                    qs = SitePageRevisionRecord.filter(page_id=page.id, rev__lte=threshold).using_db(conn)
+                    published_rev = int(page.published_rev or 0)
+                    if published_rev:
+                        qs = qs.exclude(rev=published_rev)
+                    await qs.delete()
+
         return next_rev, now_ms
 
     async def save_page_draft_by_id(
@@ -432,6 +452,7 @@ class SitePublishingRepository(BaseRepository):
         deps: dict | None,
         expected_revision: int | None,
         created_by_user_id: UUID | None,
+        retain_last_n: int | None = None,
     ) -> tuple[str, int, int]:
         """
         Save a page draft by page id.
@@ -473,6 +494,15 @@ class SitePublishingRepository(BaseRepository):
                 mutable_page.updated_by_user_id = created_by_user_id
                 update_fields.append("updated_by_user_id")
             await page.save(update_fields=update_fields, using_db=conn)
+
+            if retain_last_n is not None and retain_last_n > 0:
+                threshold = next_rev - int(retain_last_n)
+                if threshold > 0:
+                    qs = SitePageRevisionRecord.filter(page_id=page.id, rev__lte=threshold).using_db(conn)
+                    published_rev = int(page.published_rev or 0)
+                    if published_rev:
+                        qs = qs.exclude(rev=published_rev)
+                    await qs.delete()
 
         return normalize_path(str(page.path)), next_rev, now_ms
 

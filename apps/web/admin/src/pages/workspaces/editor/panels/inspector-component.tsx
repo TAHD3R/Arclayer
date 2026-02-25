@@ -103,7 +103,7 @@ export function InspectorComponent({
   if (!manifest) {
     return (
       <p className="text-caption text-label-secondary">
-        {t("content_pages:EDITOR_V2_INSPECTOR_NO_MANIFEST", { type: blockType })}
+        {t("content_pages:EDITOR_INSPECTOR_NO_MANIFEST", { type: blockType })}
       </p>
     );
   }

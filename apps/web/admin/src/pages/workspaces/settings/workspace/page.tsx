@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { Button, Form, Input, Select } from "antd";
+import { Button, Form, Input, InputNumber, Select, Switch } from "antd";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
 
@@ -40,19 +40,18 @@ import {
   resolveDateFormatLabel,
 } from "@/lib/settings/general/localization-options";
 import { pickString } from "@/lib/settings/general/utils";
+import {
+  buildWorkspaceContentAutosavePatch,
+  buildWorkspaceContentRetentionPatch,
+  DEFAULT_WORKSPACE_CONTENT_STRATEGY,
+  readWorkspaceContentStrategy,
+} from "@/lib/settings/workspace/content-strategy";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 import type { AppLocale } from "@/lib/i18n";
 import { normalizeLocale } from "@/lib/i18n";
 import { buildOrganizationPath } from "@/lib/organization-routing";
-
-type WorkspaceSettingsTabKey =
-  | "basics"
-  | "collaboration"
-  | "content_strategy"
-  | "integrations"
-  | "resource_processing"
-  | "danger";
+import type { WorkspaceSettingsTabKey } from "@/types/settings-workspace";
 
 type FormValues = {
   name: string;
@@ -61,6 +60,10 @@ type FormValues = {
   dateFormat: string;
   defaultRoleCode: string;
   assignRoleCode: string;
+  contentAutosaveEnabled: boolean;
+  contentAutosaveIntervalSec: number;
+  contentAutosaveSaveOnBlur: boolean;
+  contentRetentionDraftMaxRevisions: number;
 };
 
 type AssignRoleDialogValues = {
@@ -75,11 +78,17 @@ type DeleteWorkspaceDialogValues = {
   confirmName: string;
 };
 
-export function WorkspaceSettingsView() {
+export type WorkspaceSettingsViewProps = {
+  tab?: WorkspaceSettingsTabKey;
+  onTabChange?: (tab: WorkspaceSettingsTabKey) => void;
+};
+
+export function WorkspaceSettingsView(props: WorkspaceSettingsViewProps = {}) {
   const { t } = useTranslation(["settings", "common"]);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [form] = Form.useForm<FormValues>();
+  const autosaveEnabled = Form.useWatch("contentAutosaveEnabled", form);
   const [assignRoleDialogForm] = Form.useForm<AssignRoleDialogValues>();
   const [leaveDialogForm] = Form.useForm<LeaveWorkspaceDialogValues>();
   const [deleteDialogForm] = Form.useForm<DeleteWorkspaceDialogValues>();
@@ -92,6 +101,10 @@ export function WorkspaceSettingsView() {
   const [assignRoleDialogOpen, setAssignRoleDialogOpen] = React.useState(false);
   const [leaveDialogOpen, setLeaveDialogOpen] = React.useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
+  const [localTab, setLocalTab] = React.useState<WorkspaceSettingsTabKey>("basics");
+
+  const tab = props.tab ?? localTab;
+  const onTabChange = props.onTabChange ?? setLocalTab;
 
   const withSavingKey = React.useCallback(async (key: string, fn: () => Promise<void>) => {
     setSavingKey(key);
@@ -150,6 +163,11 @@ export function WorkspaceSettingsView() {
     meta: { silent: true },
   });
 
+  const persistedContentStrategy = React.useMemo(
+    () => readWorkspaceContentStrategy(coreQuery.data?.value),
+    [coreQuery.data?.value],
+  );
+
   React.useEffect(() => {
     if (!detailQuery.data) return;
     if (form.isFieldTouched("name")) return;
@@ -175,6 +193,25 @@ export function WorkspaceSettingsView() {
       timezone: pickString(value, ["workspace_localization", "timezone"]) ?? DEFAULT_TIMEZONE,
       dateFormat:
         pickString(value, ["workspace_localization", "date_format"]) ?? DEFAULT_DATE_FORMAT,
+    });
+  }, [coreQuery.data, form]);
+
+  React.useEffect(() => {
+    if (!coreQuery.data) return;
+    if (
+      form.isFieldTouched("contentAutosaveEnabled") ||
+      form.isFieldTouched("contentAutosaveIntervalSec") ||
+      form.isFieldTouched("contentAutosaveSaveOnBlur") ||
+      form.isFieldTouched("contentRetentionDraftMaxRevisions")
+    ) {
+      return;
+    }
+    const policy = readWorkspaceContentStrategy(coreQuery.data.value);
+    form.setFieldsValue({
+      contentAutosaveEnabled: policy.autosave.enabled,
+      contentAutosaveIntervalSec: policy.autosave.intervalSec,
+      contentAutosaveSaveOnBlur: policy.autosave.saveOnBlur,
+      contentRetentionDraftMaxRevisions: policy.retention.draftMaxRevisions,
     });
   }, [coreQuery.data, form]);
 
@@ -420,9 +457,16 @@ export function WorkspaceSettingsView() {
               DEFAULT_DATE_FORMAT,
             defaultRoleCode: initialDefaultRoleCode,
             assignRoleCode: initialDefaultRoleCode,
+            contentAutosaveEnabled: persistedContentStrategy.autosave.enabled,
+            contentAutosaveIntervalSec: persistedContentStrategy.autosave.intervalSec,
+            contentAutosaveSaveOnBlur: persistedContentStrategy.autosave.saveOnBlur,
+            contentRetentionDraftMaxRevisions: persistedContentStrategy.retention.draftMaxRevisions,
           }}
         >
-          <ChromeTabs defaultValue={"basics" satisfies WorkspaceSettingsTabKey}>
+          <ChromeTabs
+            value={tab}
+            onValueChange={(next) => onTabChange(next as WorkspaceSettingsTabKey)}
+          >
             <ChromeTabsList>
               <ChromeTabsTrigger value="basics">
                 {t("settings:SETTINGS_WORKSPACE_TAB_BASICS")}
@@ -821,20 +865,209 @@ export function WorkspaceSettingsView() {
             </ChromeTabsContent>
 
             <ChromeTabsContent value="content_strategy">
-              <PlaceholderPoliciesPanel
+              <SettingPanel
                 title={t("settings:SETTINGS_WORKSPACE_TAB_CONTENT_STRATEGY")}
                 description={t("settings:SETTINGS_WORKSPACE_CONTENT_STRATEGY_DESC")}
-                items={[
-                  {
-                    title: t("settings:SETTINGS_WORKSPACE_CONTENT_AUTOSAVE_TITLE"),
-                    description: t("settings:SETTINGS_WORKSPACE_CONTENT_AUTOSAVE_DESC"),
-                  },
-                  {
-                    title: t("settings:SETTINGS_WORKSPACE_CONTENT_RETENTION_TITLE"),
-                    description: t("settings:SETTINGS_WORKSPACE_CONTENT_RETENTION_DESC"),
-                  },
-                ]}
-              />
+              >
+                <Accordion type="single" collapsible className="rounded-lg border border-border">
+                  <SettingAccordionItem
+                    value="content_autosave"
+                    variant="action"
+                    title={t("settings:SETTINGS_WORKSPACE_CONTENT_AUTOSAVE_TITLE")}
+                    description={t("settings:SETTINGS_WORKSPACE_CONTENT_AUTOSAVE_DESC")}
+                    showSummary
+                    summary={t("settings:SETTINGS_WORKSPACE_CONTENT_AUTOSAVE_SUMMARY", {
+                      enabled: persistedContentStrategy.autosave.enabled
+                        ? t("settings:SETTINGS_ENABLED")
+                        : t("settings:SETTINGS_DISABLED"),
+                      interval: persistedContentStrategy.autosave.intervalSec,
+                      saveOnBlur: persistedContentStrategy.autosave.saveOnBlur
+                        ? t("settings:SETTINGS_ENABLED")
+                        : t("settings:SETTINGS_DISABLED"),
+                    })}
+                    disabled={disabled || !coreQuery.data}
+                    confirmLoading={savingKey === "workspace:content_strategy:autosave"}
+                    onConfirm={() =>
+                      void withSavingKey("workspace:content_strategy:autosave", async () => {
+                        const values = await form.validateFields([
+                          "contentAutosaveEnabled",
+                          "contentAutosaveIntervalSec",
+                          "contentAutosaveSaveOnBlur",
+                        ]);
+
+                        await patchWorkspaceCoreMutation.mutateAsync(
+                          buildWorkspaceContentAutosavePatch({
+                            enabled: Boolean(values.contentAutosaveEnabled),
+                            intervalSec: Number(values.contentAutosaveIntervalSec),
+                            saveOnBlur: Boolean(values.contentAutosaveSaveOnBlur),
+                          }),
+                        );
+                      })
+                    }
+                    onReset={() =>
+                      void withSavingKey("reset:content_strategy:autosave", async () => {
+                        form.setFieldsValue({
+                          contentAutosaveEnabled:
+                            DEFAULT_WORKSPACE_CONTENT_STRATEGY.autosave.enabled,
+                          contentAutosaveIntervalSec:
+                            DEFAULT_WORKSPACE_CONTENT_STRATEGY.autosave.intervalSec,
+                          contentAutosaveSaveOnBlur:
+                            DEFAULT_WORKSPACE_CONTENT_STRATEGY.autosave.saveOnBlur,
+                        });
+                        await patchWorkspaceCoreMutation.mutateAsync(
+                          buildWorkspaceContentAutosavePatch(
+                            DEFAULT_WORKSPACE_CONTENT_STRATEGY.autosave,
+                          ),
+                        );
+                      })
+                    }
+                    resetLoading={savingKey === "reset:content_strategy:autosave"}
+                    keepRendered
+                  >
+                    <div className="flex flex-col gap-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="text-callout font-medium">
+                            {t("settings:SETTINGS_WORKSPACE_CONTENT_AUTOSAVE_ENABLED_LABEL")}
+                          </div>
+                          <div className="text-caption text-label-secondary">
+                            {t("settings:SETTINGS_WORKSPACE_CONTENT_AUTOSAVE_ENABLED_DESC")}
+                          </div>
+                        </div>
+                        <Form.Item
+                          name="contentAutosaveEnabled"
+                          valuePropName="checked"
+                          style={{ marginBottom: 0 }}
+                        >
+                          <Switch />
+                        </Form.Item>
+                      </div>
+
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="text-callout font-medium">
+                            {t("settings:SETTINGS_WORKSPACE_CONTENT_AUTOSAVE_INTERVAL_LABEL")}
+                          </div>
+                          <div className="text-caption text-label-secondary">
+                            {t("settings:SETTINGS_WORKSPACE_CONTENT_AUTOSAVE_INTERVAL_DESC")}
+                          </div>
+                        </div>
+                        <Form.Item
+                          name="contentAutosaveIntervalSec"
+                          rules={[
+                            {
+                              required: true,
+                              message: t(
+                                "settings:SETTINGS_WORKSPACE_CONTENT_AUTOSAVE_INTERVAL_REQUIRED",
+                              ),
+                            },
+                          ]}
+                          style={{ marginBottom: 0 }}
+                        >
+                          <InputNumber
+                            min={10}
+                            max={300}
+                            step={5}
+                            addonAfter={t("settings:SETTINGS_SECONDS")}
+                            disabled={!autosaveEnabled}
+                          />
+                        </Form.Item>
+                      </div>
+
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="text-callout font-medium">
+                            {t("settings:SETTINGS_WORKSPACE_CONTENT_AUTOSAVE_SAVE_ON_BLUR_LABEL")}
+                          </div>
+                          <div className="text-caption text-label-secondary">
+                            {t("settings:SETTINGS_WORKSPACE_CONTENT_AUTOSAVE_SAVE_ON_BLUR_DESC")}
+                          </div>
+                        </div>
+                        <Form.Item
+                          name="contentAutosaveSaveOnBlur"
+                          valuePropName="checked"
+                          style={{ marginBottom: 0 }}
+                        >
+                          <Switch disabled={!autosaveEnabled} />
+                        </Form.Item>
+                      </div>
+                    </div>
+                  </SettingAccordionItem>
+
+                  <SettingAccordionItem
+                    value="content_retention"
+                    variant="action"
+                    title={t("settings:SETTINGS_WORKSPACE_CONTENT_RETENTION_TITLE")}
+                    description={t("settings:SETTINGS_WORKSPACE_CONTENT_RETENTION_DESC")}
+                    showSummary
+                    summary={t("settings:SETTINGS_WORKSPACE_CONTENT_RETENTION_SUMMARY", {
+                      count: persistedContentStrategy.retention.draftMaxRevisions,
+                    })}
+                    disabled={disabled || !coreQuery.data}
+                    confirmLoading={savingKey === "workspace:content_strategy:retention"}
+                    onConfirm={() =>
+                      void withSavingKey("workspace:content_strategy:retention", async () => {
+                        const values = await form.validateFields([
+                          "contentRetentionDraftMaxRevisions",
+                        ]);
+                        await patchWorkspaceCoreMutation.mutateAsync(
+                          buildWorkspaceContentRetentionPatch({
+                            draftMaxRevisions: Number(values.contentRetentionDraftMaxRevisions),
+                          }),
+                        );
+                      })
+                    }
+                    onReset={() =>
+                      void withSavingKey("reset:content_strategy:retention", async () => {
+                        form.setFieldValue(
+                          "contentRetentionDraftMaxRevisions",
+                          DEFAULT_WORKSPACE_CONTENT_STRATEGY.retention.draftMaxRevisions,
+                        );
+                        await patchWorkspaceCoreMutation.mutateAsync(
+                          buildWorkspaceContentRetentionPatch(
+                            DEFAULT_WORKSPACE_CONTENT_STRATEGY.retention,
+                          ),
+                        );
+                      })
+                    }
+                    resetLoading={savingKey === "reset:content_strategy:retention"}
+                    keepRendered
+                  >
+                    <div className="flex flex-col gap-2">
+                      <div className="text-callout font-medium">
+                        {t(
+                          "settings:SETTINGS_WORKSPACE_CONTENT_RETENTION_DRAFT_MAX_REVISIONS_LABEL",
+                        )}
+                      </div>
+                      <div className="text-caption text-label-secondary">
+                        {t(
+                          "settings:SETTINGS_WORKSPACE_CONTENT_RETENTION_DRAFT_MAX_REVISIONS_DESC",
+                        )}
+                      </div>
+
+                      <Form.Item
+                        name="contentRetentionDraftMaxRevisions"
+                        rules={[
+                          {
+                            required: true,
+                            message: t(
+                              "settings:SETTINGS_WORKSPACE_CONTENT_RETENTION_DRAFT_MAX_REVISIONS_REQUIRED",
+                            ),
+                          },
+                        ]}
+                        style={{ marginBottom: 0 }}
+                      >
+                        <InputNumber
+                          min={1}
+                          max={5000}
+                          step={10}
+                          addonAfter={t("settings:SETTINGS_REVISIONS")}
+                        />
+                      </Form.Item>
+                    </div>
+                  </SettingAccordionItem>
+                </Accordion>
+              </SettingPanel>
             </ChromeTabsContent>
 
             <ChromeTabsContent value="integrations">

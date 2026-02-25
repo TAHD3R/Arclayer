@@ -15,13 +15,13 @@ import { useViewerContext } from "@/pages/workspaces/editor/hooks/use-viewer-con
 import { useEditorStore } from "@/pages/workspaces/editor/stores/editor-store";
 
 const CATEGORY_LABEL_KEYS: Record<BlockCategory, string> = {
-  layout: "content_pages:EDITOR_V2_BLOCK_CATEGORY_LAYOUT",
-  text: "content_pages:EDITOR_V2_BLOCK_CATEGORY_TEXT",
-  media: "content_pages:EDITOR_V2_BLOCK_CATEGORY_MEDIA",
-  data: "content_pages:EDITOR_V2_BLOCK_CATEGORY_DATA",
-  navigation: "content_pages:EDITOR_V2_BLOCK_CATEGORY_NAVIGATION",
-  interactive: "content_pages:EDITOR_V2_BLOCK_CATEGORY_INTERACTIVE",
-  custom: "content_pages:EDITOR_V2_BLOCK_CATEGORY_CUSTOM",
+  layout: "content_pages:EDITOR_BLOCK_CATEGORY_LAYOUT",
+  text: "content_pages:EDITOR_BLOCK_CATEGORY_TEXT",
+  media: "content_pages:EDITOR_BLOCK_CATEGORY_MEDIA",
+  data: "content_pages:EDITOR_BLOCK_CATEGORY_DATA",
+  navigation: "content_pages:EDITOR_BLOCK_CATEGORY_NAVIGATION",
+  interactive: "content_pages:EDITOR_BLOCK_CATEGORY_INTERACTIVE",
+  custom: "content_pages:EDITOR_BLOCK_CATEGORY_CUSTOM",
 } as const;
 
 export function ComponentsPanel() {
@@ -31,9 +31,12 @@ export function ComponentsPanel() {
 
   const viewerCtx = useViewerContext();
 
+  const bridgeStatus = useEditorStore((s) => s.bridgeStatus);
   const setInspectorData = useEditorStore((s) => s.setInspectorData);
   const setLayerTree = useEditorStore((s) => s.setLayerTree);
   const setDirty = useEditorStore((s) => s.setDirty);
+
+  const canInsert = bridgeStatus === "connected" && Boolean(portal);
 
   const filtered = useMemo(() => {
     const q = query.toLowerCase();
@@ -62,10 +65,18 @@ export function ComponentsPanel() {
           prefix={<Search className="size-3.5 text-label-secondary" />}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder={t("content_pages:EDITOR_V2_ELEMENTS_SEARCH")}
+          placeholder={t("content_pages:EDITOR_ELEMENTS_SEARCH")}
           allowClear
         />
       </div>
+
+      {bridgeStatus !== "connected" ? (
+        <div className="mx-2 mb-2 rounded-md border border-border bg-muted/40 px-3 py-2 text-caption text-label-secondary">
+          {bridgeStatus === "connecting"
+            ? t("content_pages:EDITOR_BRIDGE_CONNECTING_NOTICE")
+            : t("content_pages:EDITOR_BRIDGE_DISCONNECTED_NOTICE")}
+        </div>
+      ) : null}
 
       {/* Block list by category */}
       <div className="flex-1 overflow-auto px-2 pb-2">
@@ -79,12 +90,10 @@ export function ComponentsPanel() {
                 <button
                   key={m.type}
                   type="button"
-                  className="flex flex-col items-center gap-1 rounded-md border p-2 text-caption hover:bg-muted"
+                  disabled={!canInsert}
+                  className="flex flex-col items-center gap-1 rounded-md border p-2 text-caption hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-transparent"
                   onClick={() => {
-                    if (!portal) {
-                      notifyErrorText(t("content_pages:EDITOR_SHELL_BRIDGE_DISCONNECTED"));
-                      return;
-                    }
+                    if (!portal) return;
                     void (async () => {
                       try {
                         const out = await portal.insertBlock({ type: m.type });
