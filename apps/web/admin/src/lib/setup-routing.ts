@@ -9,12 +9,7 @@ function isAcceptInvitePath(pathname: string): boolean {
 }
 
 export function isOnboardingScenePath(pathname: string): boolean {
-  return (
-    isSetupPath(pathname) ||
-    isAcceptInvitePath(pathname) ||
-    pathname === "/onboarding" ||
-    pathname.startsWith("/onboarding/")
-  );
+  return isSetupPath(pathname) || pathname === "/onboarding" || pathname.startsWith("/onboarding/");
 }
 
 export function resolveSetupGateRedirect(params: {

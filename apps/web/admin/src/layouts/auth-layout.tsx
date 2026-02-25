@@ -1,4 +1,3 @@
-import { Space } from "antd";
 import {
   createContext,
   lazy,
@@ -13,6 +12,7 @@ import { Trans, useTranslation } from "react-i18next";
 import { useRouterState } from "@tanstack/react-router";
 
 import { getAppConfig } from "@/constants/app-config";
+import { AdminFullLogo } from "@/components/common/admin-logo";
 import { AdminLocaleToggle } from "@/components/common/admin-toggle-locales";
 import { AdminThemeModeToggle } from "@/components/common/admin-toggle-theme";
 import { LegalFooter } from "@/components/common/legal-footer";
@@ -95,6 +95,16 @@ export function AuthLayout({ children }: PropsWithChildren) {
 
   return (
     <div className="fixed inset-0 w-full overflow-hidden grid grid-cols-1 lg:grid-cols-2 bg-background text-label-primary">
+      <div className="absolute top-0 inset-x-0 z-10 p-4 flex items-center justify-between pointer-events-none">
+        <div className="pointer-events-auto">
+          <AdminFullLogo to="/login" ariaLabel="Celestial CMS" width={120} />
+        </div>
+        <div className="flex items-center gap-2 pointer-events-auto">
+          <AdminLocaleToggle />
+          <AdminThemeModeToggle />
+        </div>
+      </div>
+
       <div className="relative hidden lg:block min-h-0 h-full overflow-hidden bg-background">
         {isLargeScreen && !reducedMotion ? (
           <Suspense
@@ -125,13 +135,6 @@ export function AuthLayout({ children }: PropsWithChildren) {
       </div>
 
       <div className="relative flex flex-col min-h-0 h-full overflow-hidden ">
-        <div className="absolute top-0 right-0 p-4">
-          <Space size={8}>
-            <AdminLocaleToggle />
-            <AdminThemeModeToggle />
-          </Space>
-        </div>
-
         <div className="flex-1 min-h-0 flex items-center justify-center overflow-hidden p-8">
           <div className="w-full max-w-90">
             <AuthLegalContext.Provider value={legalCtx}>

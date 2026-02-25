@@ -33,14 +33,9 @@ export function SetupLayout({ children }: PropsWithChildren) {
 
   useEffect(() => {
     const brand = (getAppConfig().title || "Celestial").trim();
-    const pageTitle =
-      pathname === "/accept-invite"
-        ? t("invite:INVITE_PAGE_TITLE")
-        : isOnboardingPath
-          ? t("onboarding:ONBOARDING_TITLE")
-          : t("setup:SETUP_TITLE");
+    const pageTitle = isOnboardingPath ? t("onboarding:ONBOARDING_TITLE") : t("setup:SETUP_TITLE");
     document.title = `${pageTitle} | ${brand}`;
-  }, [isOnboardingPath, pathname, t]);
+  }, [isOnboardingPath, t]);
 
   return (
     <div className="fixed inset-0 w-full overflow-hidden bg-background text-label-primary">

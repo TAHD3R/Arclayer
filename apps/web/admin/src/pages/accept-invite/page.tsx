@@ -18,7 +18,6 @@ import {
 import { ApiError } from "@/lib/http";
 import { buildOrganizationPath } from "@/lib/organization-routing";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
-import { LegalFooter } from "@/components/common/legal-footer";
 import { PageState } from "@/components/common/page-state";
 import { Card } from "@/components/ui/card";
 import {
@@ -743,10 +742,6 @@ export function AcceptInviteView(props: { token: string | null }) {
           </motion.div>
         </AnimatePresence>
       </MotionConfig>
-
-      <div className="mt-4 text-center">
-        <LegalFooter i18nKey="auth:LEGAL_CONTINUE" />
-      </div>
     </div>
   );
 }
