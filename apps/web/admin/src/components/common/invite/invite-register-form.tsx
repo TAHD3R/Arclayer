@@ -1,5 +1,5 @@
-import { Button, Divider, Form, Input, Typography } from "antd";
-import { Lock, Mail, User } from "lucide-react";
+import { Button, Form, Input, Typography } from "antd";
+import { Lock, Mail, User, UserRound } from "lucide-react";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
 
@@ -31,6 +31,9 @@ export function InviteRegisterForm(props: {
 
   return (
     <div>
+      {/* TODO: enable after OAuth is implemented for invite-only onboarding. */}
+      <AuthOauthButtons disabled />
+
       <Form<InviteRegisterFormValues>
         layout="vertical"
         requiredMark={false}
@@ -43,13 +46,12 @@ export function InviteRegisterForm(props: {
         disabled={props.loading}
       >
         {props.emailLocked ? (
-          <Form.Item label={t("auth:FIELD_EMAIL_LABEL")} style={{ marginBottom: 12 }}>
+          <Form.Item style={{ marginBottom: 12 }}>
             <Input value={props.emailLocked} disabled prefix={<Mail size={16} />} size="large" />
           </Form.Item>
         ) : (
           <Form.Item<InviteRegisterFormValues>
             name="email"
-            label={t("auth:FIELD_EMAIL_LABEL")}
             rules={[
               { required: true, message: t("auth:VALIDATION_EMAIL_REQUIRED") },
               { type: "email", message: t("auth:VALIDATION_EMAIL_INVALID") },
@@ -67,7 +69,6 @@ export function InviteRegisterForm(props: {
 
         <Form.Item<InviteRegisterFormValues>
           name="username"
-          label={t("auth:FIELD_USERNAME_LABEL")}
           rules={[{ required: true, message: t("auth:VALIDATION_USERNAME_REQUIRED") }]}
         >
           <Input
@@ -81,7 +82,6 @@ export function InviteRegisterForm(props: {
 
         <Form.Item<InviteRegisterFormValues>
           name="displayName"
-          label={t("setup:SETUP_FIELD_DISPLAY_NAME_LABEL")}
           rules={[
             { required: true, message: t("setup:SETUP_VALIDATION_DISPLAY_NAME_REQUIRED") },
             { max: 64, message: t("setup:SETUP_VALIDATION_DISPLAY_NAME_MAX") },
@@ -91,13 +91,13 @@ export function InviteRegisterForm(props: {
             autoComplete="off"
             aria-label={t("setup:SETUP_FIELD_DISPLAY_NAME_LABEL")}
             placeholder={t("setup:SETUP_FIELD_DISPLAY_NAME_PLACEHOLDER")}
+            prefix={<UserRound size={16} />}
             size="large"
           />
         </Form.Item>
 
         <Form.Item<InviteRegisterFormValues>
           name="password"
-          label={t("auth:FIELD_PASSWORD_LABEL")}
           rules={[
             { required: true, message: t("auth:VALIDATION_PASSWORD_REQUIRED") },
             {
@@ -120,7 +120,6 @@ export function InviteRegisterForm(props: {
 
         <Form.Item<InviteRegisterFormValues>
           name="confirmPassword"
-          label={t("auth:FIELD_CONFIRM_PASSWORD_LABEL")}
           dependencies={["password"]}
           rules={[
             { required: true, message: t("auth:VALIDATION_CONFIRM_PASSWORD_REQUIRED") },
@@ -145,11 +144,6 @@ export function InviteRegisterForm(props: {
         <Button type="primary" htmlType="submit" block size="large" loading={props.loading}>
           {t("invite:INVITE_ACTION_REGISTER_JOIN")}
         </Button>
-
-        <Divider style={{ margin: "18px 0" }}>{t("auth:OAUTH_DIVIDER")}</Divider>
-
-        {/* TODO: enable after OAuth is implemented for invite-only onboarding. */}
-        <AuthOauthButtons disabled />
       </Form>
 
       <div className="mt-4 text-center">

@@ -1,4 +1,4 @@
-import { Button, Divider, Space } from "antd";
+import { Button, Divider } from "antd";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 
@@ -48,8 +48,7 @@ export function AuthOauthButtons({ disabled = false, redirect }: AuthOauthButton
 
   return (
     <>
-      <Divider style={{ margin: "18px 0" }}>{t("auth:OAUTH_DIVIDER")}</Divider>
-      <Space orientation="vertical" size={10} style={{ width: "100%" }}>
+      <div className="flex flex-col gap-2.5">
         {google ? (
           <Button
             block
@@ -87,7 +86,8 @@ export function AuthOauthButtons({ disabled = false, redirect }: AuthOauthButton
             {t("auth:OAUTH_GITHUB")}
           </Button>
         ) : null}
-      </Space>
+      </div>
+      <Divider style={{ margin: "24px 0" }}>{t("auth:OAUTH_ACCOUNT_DIVIDER")}</Divider>
     </>
   );
 }

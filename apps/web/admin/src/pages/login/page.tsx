@@ -103,6 +103,10 @@ export function LoginView({
         </p>
       </motion.div>
 
+      <motion.div variants={reducedMotion ? {} : itemVariants}>
+        <AuthOauthButtons disabled={loginLoading} redirect={redirect} />
+      </motion.div>
+
       <Form<LoginFormValues>
         layout="vertical"
         onFinish={onLoginSubmit}
@@ -165,10 +169,6 @@ export function LoginView({
             {t("auth:LOGIN_BUTTON")}
           </Button>
         </motion.div>
-
-        <motion.div variants={reducedMotion ? {} : itemVariants}>
-          <AuthOauthButtons disabled={loginLoading} redirect={redirect} />
-        </motion.div>
       </Form>
 
       {publicRegisterEnabled ? (
@@ -191,6 +191,10 @@ export function LoginView({
         <p className="mt-2 mb-8 text-title2 text-label-secondary">
           {t("auth:REGISTER_PAGE_SUBTITLE")}
         </p>
+      </motion.div>
+
+      <motion.div variants={reducedMotion ? {} : itemVariants}>
+        <AuthOauthButtons disabled={registerLoading} redirect={redirect} />
       </motion.div>
 
       <Form<RegisterFormValues>
@@ -277,10 +281,6 @@ export function LoginView({
           <Button type="primary" htmlType="submit" block size="large" loading={registerLoading}>
             {t("auth:REGISTER_BUTTON")}
           </Button>
-        </motion.div>
-
-        <motion.div variants={reducedMotion ? {} : itemVariants}>
-          <AuthOauthButtons disabled={registerLoading} redirect={redirect} />
         </motion.div>
       </Form>
 
