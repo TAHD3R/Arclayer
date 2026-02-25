@@ -1,4 +1,4 @@
-import { Button as AntButton, Form, Input, Typography } from "antd";
+import { Button as AntButton, Form, Input } from "antd";
 import { Lock, KeyRound } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { motion, type Variants } from "motion/react";
@@ -46,12 +46,12 @@ export function ResetPasswordView({
       }}
     >
       <motion.div variants={v}>
-        <Typography.Title level={1} className="!mt-0 !mb-2 text-largetitle text-label-primary">
+        <h1 className="text-largetitle text-label-primary">
           {t("auth:RESET_PASSWORD_PAGE_TITLE")}
-        </Typography.Title>
-        <Typography.Paragraph className="!mt-0 !mb-[1.625rem] text-title2 text-label-secondary">
+        </h1>
+        <p className="mt-2 mb-8 text-title2 text-label-secondary">
           {t("auth:RESET_PASSWORD_PAGE_SUBTITLE")}
-        </Typography.Paragraph>
+        </p>
       </motion.div>
 
       <Form<ResetPasswordFormValues>

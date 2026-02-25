@@ -1,16 +1,40 @@
 import { Space } from "antd";
-import { lazy, Suspense, type PropsWithChildren, useEffect, useState } from "react";
+import {
+  createContext,
+  lazy,
+  Suspense,
+  useContext,
+  type PropsWithChildren,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { Trans, useTranslation } from "react-i18next";
 import { useRouterState } from "@tanstack/react-router";
 
 import { getAppConfig } from "@/constants/app-config";
 import { AdminLocaleToggle } from "@/components/common/admin-toggle-locales";
 import { AdminThemeModeToggle } from "@/components/common/admin-toggle-theme";
+import { LegalFooter } from "@/components/common/legal-footer";
 import { RouteTransition } from "@/components/common/route-transition";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 
 const ColorBendsLazy = lazy(() => import("@/components/ui/color-bends"));
 const AUTH_BEND_COLORS = ["#3b82f6"] as const;
+
+interface AuthLegalContextValue {
+  legalKey: string | null;
+  setLegalKey: (key: string | null) => void;
+}
+
+const AuthLegalContext = createContext<AuthLegalContextValue>({
+  legalKey: null,
+  setLegalKey: () => {},
+});
+
+export function useAuthLegalKey() {
+  return useContext(AuthLegalContext);
+}
 
 export function AuthLayout({ children }: PropsWithChildren) {
   const { t } = useTranslation();
@@ -18,6 +42,19 @@ export function AuthLayout({ children }: PropsWithChildren) {
 
   const reducedMotion = usePrefersReducedMotion();
   const [isLargeScreen, setIsLargeScreen] = useState(false);
+
+  // Legal disclaimer key — default inferred from pathname, overridable by child pages via context.
+  const defaultLegalKey = useMemo(() => {
+    if (pathname === "/login") return "auth:LEGAL_LOGIN";
+    // reset-password is not a login/signup action — no legal disclaimer needed.
+    return null;
+  }, [pathname]);
+  const [legalKeyOverride, setLegalKeyOverride] = useState<string | null | undefined>(undefined);
+  const legalKey = legalKeyOverride !== undefined ? legalKeyOverride : defaultLegalKey;
+  const legalCtx = useMemo<AuthLegalContextValue>(
+    () => ({ legalKey, setLegalKey: setLegalKeyOverride }),
+    [legalKey],
+  );
 
   // Auth pages should always be a full-viewport "scene" without any document scrolling.
   // This also avoids 1px scrollbars caused by fractional rem sizing during resize.
@@ -97,19 +134,24 @@ export function AuthLayout({ children }: PropsWithChildren) {
 
         <div className="flex-1 min-h-0 flex items-center justify-center overflow-hidden p-8">
           <div className="w-full max-w-90">
-            <RouteTransition className="w-full" variant="fade">
-              {children}
-            </RouteTransition>
+            <AuthLegalContext.Provider value={legalCtx}>
+              <RouteTransition className="w-full" variant="fade">
+                {children}
+              </RouteTransition>
+            </AuthLegalContext.Provider>
           </div>
         </div>
 
-        <div className="p-4 text-center text-caption text-label-secondary">
-          <Trans
-            i18nKey="auth:FOOTER_COPYRIGHT"
-            components={{
-              brand: <span className="text-label-primary">Celestial CMS</span>,
-            }}
-          />
+        <div className="p-4 text-center space-y-1">
+          {legalKey ? <LegalFooter i18nKey={legalKey} /> : null}
+          <div className="text-caption text-label-secondary">
+            <Trans
+              i18nKey="auth:FOOTER_COPYRIGHT"
+              components={{
+                brand: <span className="text-label-primary">Celestial CMS</span>,
+              }}
+            />
+          </div>
         </div>
       </div>
     </div>

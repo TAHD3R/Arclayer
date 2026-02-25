@@ -1,4 +1,4 @@
-import { Button, Checkbox, Form, Input, Typography } from "antd";
+import { Button, Checkbox, Form, Input } from "antd";
 import { Lock, Mail, User } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "@tanstack/react-router";
@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { AuthOauthButtons } from "@/components/common/auth-oauth-buttons";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
+import { useAuthLegalKey } from "@/layouts/auth-layout";
 
 export type AuthMode = "login" | "register";
 
@@ -88,11 +89,18 @@ export function LoginView({
 
   const resolvedMode: AuthMode = publicRegisterEnabled ? mode : "login";
 
+  const { setLegalKey } = useAuthLegalKey();
+  useEffect(() => {
+    setLegalKey(resolvedMode === "register" ? "auth:LEGAL_REGISTER" : "auth:LEGAL_LOGIN");
+  }, [resolvedMode, setLegalKey]);
+
   const loginPane = (
     <>
       <motion.div variants={reducedMotion ? {} : itemVariants}>
-        <div className="text-largetitle text-label-primary mb-2">{t("auth:LOGIN_PAGE_TITLE")}</div>
-        <div className="text-title2 text-label-secondary mb-6">{t("auth:LOGIN_PAGE_SUBTITLE")}</div>
+        <h1 className="text-largetitle text-label-primary">{t("auth:LOGIN_PAGE_TITLE")}</h1>
+        <p className="mt-2 mb-8 text-title2 text-label-secondary">
+          {t("auth:LOGIN_PAGE_SUBTITLE")}
+        </p>
       </motion.div>
 
       <Form<LoginFormValues>
@@ -165,12 +173,12 @@ export function LoginView({
 
       {publicRegisterEnabled ? (
         <motion.div variants={reducedMotion ? {} : itemVariants} className="mt-4 text-center">
-          <Typography.Text className="text-label-secondary">
+          <span className="text-label-secondary">
             {t("auth:NO_ACCOUNT")}{" "}
             <Button type="link" className="px-0!" onClick={() => onModeChange("register")}>
               {t("auth:CREATE_ACCOUNT")}
             </Button>
-          </Typography.Text>
+          </span>
         </motion.div>
       ) : null}
     </>
@@ -179,12 +187,10 @@ export function LoginView({
   const registerPane = (
     <>
       <motion.div variants={reducedMotion ? {} : itemVariants}>
-        <div className="text-largetitle text-label-primary mb-1">
-          {t("auth:REGISTER_PAGE_TITLE")}
-        </div>
-        <div className="text-title2 text-label-secondary mb-6">
+        <h1 className="text-largetitle text-label-primary">{t("auth:REGISTER_PAGE_TITLE")}</h1>
+        <p className="mt-2 mb-8 text-title2 text-label-secondary">
           {t("auth:REGISTER_PAGE_SUBTITLE")}
-        </div>
+        </p>
       </motion.div>
 
       <Form<RegisterFormValues>
@@ -279,12 +285,12 @@ export function LoginView({
       </Form>
 
       <motion.div variants={reducedMotion ? {} : itemVariants} className="mt-4 text-center">
-        <Typography.Text className="text-label-secondary">
+        <span className="text-label-secondary">
           {t("auth:HAVE_ACCOUNT")}{" "}
           <Button type="link" className="px-0!" onClick={() => onModeChange("login")}>
             {t("auth:SIGN_IN")}
           </Button>
-        </Typography.Text>
+        </span>
       </motion.div>
     </>
   );

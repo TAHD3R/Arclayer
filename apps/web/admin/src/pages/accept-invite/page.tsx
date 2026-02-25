@@ -1,4 +1,4 @@
-import { Avatar, Button, Typography } from "antd";
+import { Avatar, Button } from "antd";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -18,6 +18,7 @@ import {
 import { ApiError } from "@/lib/http";
 import { buildOrganizationPath } from "@/lib/organization-routing";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
+import { LegalFooter } from "@/components/common/legal-footer";
 import { PageState } from "@/components/common/page-state";
 import { Card } from "@/components/ui/card";
 import {
@@ -175,7 +176,7 @@ export function AcceptInviteView(props: { token: string | null }) {
       <Button type="primary" onClick={() => setTokenDialogOpen(true)}>
         {t("invite:INVITE_ACTION_ENTER_TOKEN")}
       </Button>
-      <Button onClick={() => void onBackToLogin()}>
+      <Button type="text" onClick={() => void onBackToLogin()}>
         {t("invite:INVITE_ACTION_BACK_TO_LOGIN")}
       </Button>
     </div>
@@ -500,16 +501,13 @@ export function AcceptInviteView(props: { token: string | null }) {
                 </motion.div>
 
                 <motion.div variants={v}>
-                  <Typography.Title
-                    level={1}
-                    className="!mt-3 !mb-1 text-largetitle text-label-primary"
-                  >
+                  <h1 className="mt-3 text-largetitle text-label-primary">
                     {t(
                       isOrgOnlyInvite
                         ? "invite:INVITE_STEP2_TITLE_ORG"
                         : "invite:INVITE_STEP2_TITLE",
                     )}
-                  </Typography.Title>
+                  </h1>
                 </motion.div>
 
                 <motion.div variants={v} className="mt-2 text-headline text-label-secondary">
@@ -599,19 +597,16 @@ export function AcceptInviteView(props: { token: string | null }) {
                   {mode === "login" ? (
                     <>
                       <motion.div variants={v} className="text-center">
-                        <Typography.Title
-                          level={1}
-                          className="!mt-0 !mb-1 text-largetitle text-label-primary"
-                        >
+                        <h1 className="text-largetitle text-label-primary">
                           {t(
                             isOrgOnlyInvite
                               ? "invite:INVITE_STEP2_TITLE_ORG"
                               : "invite:INVITE_STEP2_TITLE",
                           )}
-                        </Typography.Title>
-                        <Typography.Paragraph className="!mt-0 !mb-5 text-headline text-label-secondary">
+                        </h1>
+                        <p className="mt-1 mb-5 text-headline text-label-secondary">
                           {t("invite:INVITE_MODE_LOGIN_DESC")}
-                        </Typography.Paragraph>
+                        </p>
                       </motion.div>
 
                       <motion.div variants={v} className="text-callout text-label-secondary mb-4">
@@ -655,19 +650,16 @@ export function AcceptInviteView(props: { token: string | null }) {
                   ) : (
                     <>
                       <motion.div variants={v} className="text-center">
-                        <Typography.Title
-                          level={1}
-                          className="!mt-0 !mb-1 text-largetitle text-label-primary"
-                        >
+                        <h1 className="text-largetitle text-label-primary">
                           {t(
                             isOrgOnlyInvite
                               ? "invite:INVITE_STEP2_TITLE_ORG"
                               : "invite:INVITE_STEP2_TITLE",
                           )}
-                        </Typography.Title>
-                        <Typography.Paragraph className="!mt-0 !mb-5 text-headline text-label-secondary">
+                        </h1>
+                        <p className="mt-1 mb-5 text-headline text-label-secondary">
                           {t("invite:INVITE_MODE_REGISTER_DESC")}
-                        </Typography.Paragraph>
+                        </p>
                       </motion.div>
 
                       <motion.div variants={v}>
@@ -751,6 +743,10 @@ export function AcceptInviteView(props: { token: string | null }) {
           </motion.div>
         </AnimatePresence>
       </MotionConfig>
+
+      <div className="mt-4 text-center">
+        <LegalFooter i18nKey="auth:LEGAL_CONTINUE" />
+      </div>
     </div>
   );
 }
