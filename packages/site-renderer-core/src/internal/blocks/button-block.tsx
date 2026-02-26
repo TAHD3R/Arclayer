@@ -7,11 +7,12 @@ export function ButtonBlock({ block, ctx }: { block: BlockNode; ctx: ViewerConte
   const text = resolveLocalizedValue(props.text, ctx) ?? "";
 
   if (props.href) {
+    const href = resolveHref(props.href, ctx.basePath);
     return (
       <a
         data-block-type={block.type}
         data-block-id={block.id}
-        href={props.href}
+        href={href}
         data-variant={props.variant}
         data-size={props.size}
       >
@@ -30,4 +31,18 @@ export function ButtonBlock({ block, ctx }: { block: BlockNode; ctx: ViewerConte
       {text}
     </button>
   );
+}
+
+function resolveHref(href: string, basePath: string | undefined): string {
+  const raw = (href || "").trim();
+  if (!raw) return raw;
+
+  // Only prefix absolute-path links. Keep external URLs, protocol-relative URLs, hashes, and mailto/tel intact.
+  if (!raw.startsWith("/") || raw.startsWith("//")) return raw;
+
+  const base = (basePath || "").trim();
+  if (!base) return raw;
+
+  const normalizedBase = base.endsWith("/") ? base.slice(0, -1) : base;
+  return normalizedBase + raw;
 }

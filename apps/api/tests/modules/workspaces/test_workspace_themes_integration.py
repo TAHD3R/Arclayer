@@ -109,7 +109,6 @@ async def test_workspace_theme_import_and_site_runtime_output(
             workspace_id=ws.id,
             slug=f"site_{uuid4().hex[:8]}",
             name="Site",
-            primary_host=f"{uuid4().hex[:8]}.example.test",
             is_active=True,
             created_by_user_id=owner.id,
         )

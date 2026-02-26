@@ -6,7 +6,7 @@ export { normalizePathname };
 
 export type ParsedPortalMode =
   | { mode: "public"; pathname: string }
-  | { mode: "preview"; pathname: string; token?: string }
+  | { mode: "preview"; pathname: string; siteId: string; token?: string }
   | { mode: "editor"; pathname: string; siteId: string; token?: string };
 
 export function parseModeFromUrl(urlOriginal: string): ParsedPortalMode | null {
@@ -15,7 +15,14 @@ export function parseModeFromUrl(urlOriginal: string): ParsedPortalMode | null {
   const token = getTokenFromSearch(url.searchParams);
 
   if (pathname === "/preview" || pathname.startsWith("/preview/")) {
-    return { mode: "preview", pathname: stripPreviewPrefix(pathname), ...(token ? { token } : {}) };
+    const parsed = parsePreviewPath(pathname);
+    if (!parsed) return null;
+    return {
+      mode: "preview",
+      siteId: parsed.siteId,
+      pathname: parsed.pathname,
+      ...(token ? { token } : {}),
+    };
   }
 
   if (pathname.startsWith("/editor/site/")) {
@@ -56,13 +63,19 @@ export async function resolveEditorDocument(args: {
   return resolveEditorDocumentInternal(args);
 }
 
-function stripPreviewPrefix(pathnameRaw: string): string {
-  const base = "/preview";
-  if (pathnameRaw === base) return "/";
-  if (pathnameRaw.startsWith(base + "/")) {
-    return normalizePathname(pathnameRaw.slice(base.length));
-  }
-  return normalizePathname(pathnameRaw);
+function parsePreviewPath(pathnameRaw: string): { siteId: string; pathname: string } | null {
+  const base = "/preview/site/";
+  if (!pathnameRaw.startsWith(base)) return null;
+
+  const rest = pathnameRaw.slice(base.length);
+  if (!rest) return null;
+
+  const [siteIdRaw, ...segments] = rest.split("/");
+  if (!siteIdRaw) return null;
+
+  const siteId = safeDecodeURIComponent(siteIdRaw);
+  const pathname = segments.length ? "/" + segments.join("/") : "/";
+  return { siteId, pathname: normalizePathname(pathname) };
 }
 
 function parseEditorPath(pathnameRaw: string): { siteId: string; pathname: string } | null {

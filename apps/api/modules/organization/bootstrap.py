@@ -59,9 +59,15 @@ async def ensure_organization_ready() -> None:
 
         # Ensure a default workspace exists for the default org (best-effort).
         if users and await Workspace.filter(organization_id=org.id).count() == 0:
+            from apps.api.modules.workspaces.slug_policy import next_available_workspace_slug
+
+            slug = await next_available_workspace_slug(
+                base_slug="default",
+                exists_fn=lambda candidate: Workspace.filter(slug=candidate).exists(),
+            )
             await Workspace.create(
                 organization_id=org.id,
-                slug="default",
+                slug=slug,
                 name=org.name,
                 is_active=True,
                 created_by_user_id=users[0].id,

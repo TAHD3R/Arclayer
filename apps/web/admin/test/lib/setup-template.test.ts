@@ -6,21 +6,25 @@ describe("applyWorkspaceTemplatePreset", () => {
   test("applies blog template defaults", () => {
     const next = applyWorkspaceTemplatePreset({
       templateKey: "blog",
-      organizationName: "Acme",
+      displayName: "Acme",
       siteUrl: "https://demo.local",
-      t: (key) => {
+      t: (key, params) => {
         const map: Record<string, string> = {
-          "setup:SETUP_TEMPLATE_BLOG_WORKSPACE": "Acme Blog Workspace",
-          "setup:SETUP_TEMPLATE_BLOG_SITE": "Acme Blog",
           "setup:SETUP_TEMPLATE_BLOG_DESC": "Blog default description",
         };
+        if (key === "setup:SETUP_DEFAULT_WORKSPACE_NAME") {
+          return `${String(params?.username || "")}'s Workspace`;
+        }
+        if (key === "setup:SETUP_DEFAULT_SITE_NAME") {
+          return `${String(params?.username || "")}'s Site`;
+        }
         return map[key] || key;
       },
     });
 
     expect(next.templateKey).toBe("blog");
-    expect(next.workspaceName).toBe("Acme Blog Workspace");
-    expect(next.siteName).toBe("Acme Blog");
+    expect(next.workspaceName).toBe("Acme's Workspace");
+    expect(next.siteName).toBe("Acme's Site");
     expect(next.siteUrl).toBe("https://demo.local");
     expect(next.siteDescription).toBe("Blog default description");
   });
@@ -28,21 +32,25 @@ describe("applyWorkspaceTemplatePreset", () => {
   test("applies blank template defaults", () => {
     const next = applyWorkspaceTemplatePreset({
       templateKey: "blank",
-      organizationName: "Celestial",
+      displayName: "Celestial",
       siteUrl: "https://demo.local",
-      t: (key) => {
+      t: (key, params) => {
         const map: Record<string, string> = {
-          "setup:SETUP_TEMPLATE_BLANK_WORKSPACE": "Celestial Workspace",
-          "setup:SETUP_TEMPLATE_BLANK_SITE": "Celestial Site",
           "setup:SETUP_TEMPLATE_BLANK_DESC": "",
         };
+        if (key === "setup:SETUP_DEFAULT_WORKSPACE_NAME") {
+          return `${String(params?.username || "")}'s Workspace`;
+        }
+        if (key === "setup:SETUP_DEFAULT_SITE_NAME") {
+          return `${String(params?.username || "")}'s Site`;
+        }
         return map[key] || key;
       },
     });
 
     expect(next.templateKey).toBe("blank");
-    expect(next.workspaceName).toBe("Celestial Workspace");
-    expect(next.siteName).toBe("Celestial Site");
+    expect(next.workspaceName).toBe("Celestial's Workspace");
+    expect(next.siteName).toBe("Celestial's Site");
     expect(next.siteDescription).toBe("");
   });
 });

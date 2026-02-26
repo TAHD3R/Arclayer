@@ -26,7 +26,6 @@ export type SetupAdminDraft = {
 export type SetupAdminDraftPartial = Partial<SetupAdminDraft>;
 
 export type SetupSiteDraft = {
-  organizationName: string;
   templateKey: SetupWorkspaceTemplate;
   workspaceName: string;
   siteName: string;

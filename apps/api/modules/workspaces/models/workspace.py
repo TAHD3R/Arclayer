@@ -24,7 +24,8 @@ class Workspace(BaseModel):
         related_name="workspaces",
         on_delete=fields.CASCADE,
     )
-    slug = fields.CharField(max_length=64, db_index=True)
+    # workspaceSlug is the public portal identifier; keep it globally unique.
+    slug = fields.CharField(max_length=64, unique=True)
     name = fields.CharField(max_length=128)
     description = fields.CharField(max_length=256, null=True)
     icon_url = fields.CharField(max_length=1024, null=True)
@@ -37,7 +38,6 @@ class Workspace(BaseModel):
     class Meta(BaseModel.Meta):
         table = "workspaces"
         abstract = False
-        unique_together = (("organization_id", "slug"),)
 
 
 @post_save(Workspace)

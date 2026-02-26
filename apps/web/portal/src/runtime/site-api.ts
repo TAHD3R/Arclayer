@@ -13,16 +13,17 @@ export function getPortalApiPrefix(): string {
   return raw && raw.startsWith("/") ? raw : "/api/v1";
 }
 
-export function getPortalSiteIdFromEnv(): string | null {
-  const raw = (import.meta.env.VITE_PORTAL_SITE_ID || "").trim();
-  return raw || null;
-}
-
-export async function resolveSiteFromApi(host: string): Promise<PortalSiteContext> {
+export async function resolveSiteFromApi(args: {
+  host?: string | null;
+  workspaceSlug?: string | null;
+}): Promise<PortalSiteContext> {
   const apiPrefix = getPortalApiPrefix();
   const requestPath = `${apiPrefix}/sites/resolve`;
   const url = new URL(requestPath, "http://localhost");
-  url.searchParams.set("host", host);
+  const host = (args.host || "").trim();
+  const workspaceSlug = (args.workspaceSlug || "").trim();
+  if (workspaceSlug) url.searchParams.set("workspaceSlug", workspaceSlug);
+  if (host) url.searchParams.set("host", host);
 
   const input =
     typeof window === "undefined"

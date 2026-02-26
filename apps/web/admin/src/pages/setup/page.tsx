@@ -14,7 +14,6 @@ import {
 } from "@/api/system";
 import { SetupAdminStep } from "@/components/common/setup/setup-admin-step";
 import { SetupDefaultsStep } from "@/components/common/setup/setup-defaults-step";
-import { SetupOrganizationStep } from "@/components/common/setup/setup-organization-step";
 import { SetupWorkspaceTemplateStep } from "@/components/common/setup/setup-workspace-template-step";
 import {
   ExpandableScreen,
@@ -44,7 +43,6 @@ import {
 const MAX_STEP: SetupWizardStep = 2;
 const FALLBACK_PRIMARY_BEND_COLOR = "#3b82f6";
 
-const ORG_FIELDS: Array<keyof SetupSiteDraft> = ["organizationName"];
 const WORKSPACE_FIELDS: Array<keyof SetupSiteDraft> = [
   "templateKey",
   "workspaceName",
@@ -63,12 +61,10 @@ const SETUP_PROGRESS_STAGE_ORDER: SystemSetupJobStage[] = [
 const SETUP_JOB_POLL_INTERVAL_MS = 650;
 const SETUP_JOB_MAX_POLLS = 180;
 
-function resolveWindowOrigin(): string {
-  try {
-    return window.location.origin;
-  } catch {
-    return "";
-  }
+function resolvePortalOrigin(): string {
+  const raw = (import.meta.env.VITE_PORTAL_ORIGIN || "").trim();
+  if (raw) return raw;
+  return "http://localhost:3100";
 }
 
 function resolveSetupDryRunFlag(): boolean {
@@ -208,28 +204,17 @@ export function SetupView() {
   }, [defaultsDraft, defaultsForm]);
 
   useEffect(() => {
-    const username = (adminDraft.username || "").trim() || "admin";
-    const next: Partial<SetupSiteDraft> = {};
-
-    if (siteDraft.organizationName === undefined) {
-      next.organizationName = t("setup:SETUP_DEFAULT_ORGANIZATION_NAME", { username });
-    }
-
-    if (Object.keys(next).length > 0) {
-      patchSite(next);
-    }
-  }, [adminDraft.username, patchSite, siteDraft.organizationName, t]);
-
-  useEffect(() => {
     if (step !== 1) return;
 
     const templateKey: SetupWorkspaceTemplate = siteDraft.templateKey || "blank";
-    const siteUrl = siteDraft.siteUrl ?? resolveWindowOrigin();
-    const organizationName = (siteDraft.organizationName || "").trim();
+    const displayName = (adminDraft.displayName || adminDraft.username || "").trim() || "admin";
+    const slugSeed = (adminDraft.username || "").trim() || "admin";
+    const portalOrigin = resolvePortalOrigin().trim().replace(/\/+$/, "");
+    const siteUrl = siteDraft.siteUrl ?? `${portalOrigin}/w/${slugSeed}`;
 
     const preset = applyWorkspaceTemplatePreset({
       templateKey,
-      organizationName,
+      displayName,
       siteUrl,
       t,
     });
@@ -245,8 +230,9 @@ export function SetupView() {
       patchSite(next);
     }
   }, [
+    adminDraft.displayName,
+    adminDraft.username,
     patchSite,
-    siteDraft.organizationName,
     siteDraft.siteDescription,
     siteDraft.siteName,
     siteDraft.siteUrl,
@@ -319,12 +305,14 @@ export function SetupView() {
 
   const onTemplateSelect = (templateKey: SetupWorkspaceTemplate) => {
     const current = siteForm.getFieldsValue(true) as SetupSiteDraft;
-    const organizationName = (current.organizationName || "").trim();
-    const siteUrl = (current.siteUrl || "").trim() || resolveWindowOrigin();
+    const displayName = (adminDraft.displayName || adminDraft.username || "").trim() || "admin";
+    const slugSeed = (adminDraft.username || "").trim() || "admin";
+    const portalOrigin = resolvePortalOrigin().trim().replace(/\/+$/, "");
+    const siteUrl = (current.siteUrl || "").trim() || `${portalOrigin}/w/${slugSeed}`;
 
     const preset = applyWorkspaceTemplatePreset({
       templateKey,
-      organizationName,
+      displayName,
       siteUrl,
       t,
     });
@@ -341,7 +329,6 @@ export function SetupView() {
   const onNext = async () => {
     if (step === 0) {
       await adminForm.validateFields();
-      await siteForm.validateFields(ORG_FIELDS as string[]);
     }
 
     if (step === 1) {
@@ -396,14 +383,13 @@ export function SetupView() {
       setSubmitting(true);
 
       await adminForm.validateFields();
-      await siteForm.validateFields([...ORG_FIELDS, ...WORKSPACE_FIELDS] as string[]);
+      await siteForm.validateFields(WORKSPACE_FIELDS as string[]);
       await defaultsForm.validateFields();
 
       const admin = adminForm.getFieldsValue(true) as SetupAdminDraft;
       const site = siteForm.getFieldsValue(true) as SetupSiteDraft;
       const defaults = defaultsForm.getFieldsValue(true) as SetupDefaultsDraft;
 
-      const organizationName = (site.organizationName || "").trim();
       const templateKey = site.templateKey || "blank";
       const workspaceName = (site.workspaceName || "").trim();
       const siteName = (site.siteName || "").trim();
@@ -418,7 +404,7 @@ export function SetupView() {
           kind: templateKey,
         },
         workspace: {
-          name: workspaceName || organizationName,
+          name: workspaceName,
           template: templateKey,
         },
         workspace_localization: {
@@ -454,9 +440,6 @@ export function SetupView() {
             password: admin.password,
             email: admin.email.trim(),
             display_name: admin.displayName.trim(),
-          },
-          organization: {
-            name: organizationName,
           },
           core_patch: corePatch,
         },
@@ -514,12 +497,6 @@ export function SetupView() {
             form={adminForm}
             disabled={setupEnabled === false}
             onValuesChange={(_changed, values) => patchAdmin(values)}
-          />
-
-          <SetupOrganizationStep
-            form={siteForm}
-            disabled={setupEnabled === false}
-            onValuesChange={(_changed, values) => patchSite(values)}
           />
         </div>
       );

@@ -6,7 +6,7 @@ import {
   detectRequestLocaleFromHeaders,
 } from "@celestial/web-core/i18n";
 
-import { getPortalSiteIdFromEnv, resolveSiteByIdFromApi, resolveSiteFromApi } from "./site-api";
+import { resolveSiteByIdFromApi, resolveSiteFromApi } from "./site-api";
 
 type PortalPageContextLike = {
   urlOriginal: string;
@@ -17,7 +17,7 @@ type PortalPageContextLike = {
 
 export async function ensurePortalRequestContext(
   pageContext: PortalPageContextLike,
-  opts?: { siteId?: string },
+  opts?: { siteId?: string; workspaceSlug?: string; basePath?: string },
 ): Promise<{ siteCtx: PortalSiteContext; viewerCtx: ViewerContext }> {
   let siteCtx = pageContext.siteCtx;
   if (!siteCtx) {
@@ -26,17 +26,11 @@ export async function ensurePortalRequestContext(
     } else {
       const host =
         pageContext.headers?.host || getHostFromUrl(pageContext.urlOriginal) || getBrowserHost();
-      try {
-        siteCtx = await resolveSiteFromApi(host || "localhost");
-      } catch (hostError) {
-        // Host-based resolution failed — fall back to VITE_PORTAL_SITE_ID (dev/self-hosted)
-        const fallbackSiteId = getPortalSiteIdFromEnv();
-        if (fallbackSiteId) {
-          siteCtx = await resolveSiteByIdFromApi(fallbackSiteId);
-        } else {
-          throw hostError;
-        }
-      }
+      const args: { host?: string | null; workspaceSlug?: string | null } = {
+        host: host || "localhost",
+      };
+      if (opts?.workspaceSlug) args.workspaceSlug = opts.workspaceSlug;
+      siteCtx = await resolveSiteFromApi(args);
     }
   }
 
@@ -48,6 +42,7 @@ export async function ensurePortalRequestContext(
     viewerCtx = {
       locale,
       fallbackLocale: siteCtx.fallbackLocale ?? DEFAULT_FALLBACK_LOCALE,
+      ...(opts?.basePath ? { basePath: opts.basePath } : {}),
     };
   }
 

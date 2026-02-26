@@ -47,7 +47,6 @@ from apps.api.modules.sites.schema import (
     SitePresenceListOut,
     SitePreviewTokenCreateIn,
     SitePreviewTokenOut,
-    SiteResolveOut,
     SiteRouteDraftSaveIn,
     SiteRouteDraftSaveOut,
     SiteRoutePublishIn,
@@ -76,23 +75,6 @@ def get_site_service(
     except RuntimeError:
         valkey = None
     return SiteService(settings, valkey=valkey)
-
-
-@router.get(
-    "/sites/resolve",
-    response_model=ResponseModel[SiteResolveOut],
-    response_model_exclude_none=True,
-    summary="Resolve site by request host",
-)
-async def resolve_site(
-    host: Annotated[str, Query(..., description="Request host (e.g. example.com).")],
-    raw_response: FastAPIResponse,
-    service: Annotated[SiteService, Depends(get_site_service)],
-) -> ResponseModel[SiteResolveOut]:
-    # Low-frequency mapping, safe to cache briefly.
-    raw_response.headers["cache-control"] = "public, max-age=300, stale-while-revalidate=600"
-    data = await service.resolve_site(host=host)
-    return Response.success(data=data)
 
 
 @router.get(

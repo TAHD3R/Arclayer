@@ -9,9 +9,17 @@ export function getTokenFromSearch(
   return token ? token : undefined;
 }
 
-export function buildPreviewHref(pathnameRaw: string, token: string | undefined): string {
+export function buildPreviewHref(
+  pathnameRaw: string,
+  token: string | undefined,
+  siteId: string,
+): string {
   const pathname = normalizePathname(pathnameRaw);
-  const base = pathname === "/" ? "/preview" : "/preview" + pathname;
+  const encodedSiteId = encodeURIComponent(siteId);
+  const base =
+    pathname === "/"
+      ? `/preview/site/${encodedSiteId}`
+      : `/preview/site/${encodedSiteId}${pathname}`;
   if (!token) return base;
 
   const url = new URL(base, "http://localhost");

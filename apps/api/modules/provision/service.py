@@ -24,6 +24,7 @@ from apps.api.modules.workspaces.models.workspace import (
     WorkspaceMembershipStatus,
 )
 from apps.api.modules.workspaces.site.service import WorkspaceSiteService
+from apps.api.modules.workspaces.slug_policy import next_available_workspace_slug
 
 ProvisionSource = Literal["setup", "register", "repair"]
 
@@ -147,10 +148,14 @@ class TenantProvisioningService(BaseService):
         )
         actions.extend(org_actions)
 
+        # Workspace slug is the public portal identifier; default to username when available.
+        preferred_ws_slug = (user.username or "").strip() or None
         workspace, ws_actions = await self._ensure_workspace(
             organization_id=organization.id,
             actor_user_id=user.id,
-            preferred_name=workspace_name or organization.name,
+            preferred_name=workspace_name,
+            preferred_slug=preferred_ws_slug,
+            fallback_seed=(user.display_name or user.username or "User"),
         )
         actions.extend(ws_actions)
 
@@ -170,7 +175,6 @@ class TenantProvisioningService(BaseService):
         site, site_actions = await self._ensure_workspace_site(
             workspace_id=workspace.id,
             actor_user_id=user.id,
-            org_slug=organization.slug,
         )
         actions.extend(site_actions)
 
@@ -192,7 +196,8 @@ class TenantProvisioningService(BaseService):
     ) -> tuple[Organization, OrgMembership, list[str]]:
         actions: list[str] = []
 
-        orgm = await OrgMembership.get_or_none(user_id=user.id)
+        # A user can belong to multiple organizations; bootstrap reuses the oldest membership.
+        orgm = await OrgMembership.filter(user_id=user.id, status="active").order_by("created_at", "id").first()
         if orgm is not None:
             orgm_like = cast(HasOrganizationId, orgm)
             organization = await Organization.get_or_none(id=orgm_like.organization_id)
@@ -210,7 +215,8 @@ class TenantProvisioningService(BaseService):
 
                 return organization, orgm, actions
 
-        base_name = (preferred_name or user.display_name or user.username or "Workspace").strip() or "Workspace"
+        seed = (user.display_name or user.username or "User").strip() or "User"
+        base_name = (preferred_name or f"{seed}'s Organization").strip() or f"{seed}'s Organization"
         base_slug_seed = (preferred_slug or base_name).strip() or "workspace"
         base_slug = self._normalize_slug(base_slug_seed, fallback=f"org-{str(user.id)[:8]}")
         org_slug = await self._next_available_org_slug(base_slug)
@@ -240,6 +246,8 @@ class TenantProvisioningService(BaseService):
         organization_id: UUID,
         actor_user_id: UUID,
         preferred_name: str | None,
+        preferred_slug: str | None,
+        fallback_seed: str,
     ) -> tuple[Workspace, list[str]]:
         actions: list[str] = []
 
@@ -249,8 +257,13 @@ class TenantProvisioningService(BaseService):
         if workspace is not None:
             return workspace, actions
 
-        name = (preferred_name or "Default").strip() or "Default"
-        slug = await self._next_available_workspace_slug(organization_id=organization_id, base_slug="default")
+        seed = (fallback_seed or "User").strip() or "User"
+        name = (preferred_name or f"{seed}'s Workspace").strip() or f"{seed}'s Workspace"
+        slug_seed = (preferred_slug or seed).strip() or "workspace"
+        slug = await next_available_workspace_slug(
+            base_slug=slug_seed,
+            exists_fn=lambda candidate: Workspace.filter(slug=candidate).exists(),
+        )
         workspace = await Workspace.create(
             organization_id=organization_id,
             slug=slug,
@@ -315,29 +328,16 @@ class TenantProvisioningService(BaseService):
         *,
         workspace_id: UUID,
         actor_user_id: UUID,
-        org_slug: str | None = None,
     ) -> tuple[SiteRecord, list[str]]:
         actions: list[str] = []
 
         existing = await SiteRecord.filter(workspace_id=workspace_id).order_by("created_at", "id").first()
         if existing is not None:
-            # Back-fill primary_host for SaaS mode if missing.
-            if existing.primary_host is None and org_slug and self.settings.application.deployment_mode == "saas":
-                host = f"{org_slug}.{self.settings.saas.base_domain}"
-                existing.primary_host = host
-                await existing.save(update_fields=["primary_host", "updated_at"])
-                actions.append("site_primary_host_backfilled")
             return existing, actions
-
-        # Derive primary_host in SaaS mode.
-        primary_host: str | None = None
-        if org_slug and self.settings.application.deployment_mode == "saas":
-            primary_host = f"{org_slug}.{self.settings.saas.base_domain}"
 
         site = await self.workspace_site_service.get_or_create_site_for_workspace(
             workspace_id=workspace_id,
             actor_user_id=actor_user_id,
-            primary_host=primary_host,
         )
         actions.append("workspace_site_created")
         return site, actions
@@ -345,12 +345,6 @@ class TenantProvisioningService(BaseService):
     async def _next_available_org_slug(self, base_slug: str) -> str:
         return await self._next_available_slug(
             exists_fn=lambda slug: Organization.filter(slug=slug).exists(),
-            base_slug=base_slug,
-        )
-
-    async def _next_available_workspace_slug(self, *, organization_id: UUID, base_slug: str) -> str:
-        return await self._next_available_slug(
-            exists_fn=lambda slug: Workspace.filter(organization_id=organization_id, slug=slug).exists(),
             base_slug=base_slug,
         )
 

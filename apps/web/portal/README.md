@@ -8,8 +8,9 @@
 
 ## 路由约定
 
-- 公共站点：`/` 与非 preview/editor/debug 的所有路径（由 `pages/public/+route.ts` 过滤）。
-- 预览模式：`/preview/*?token=...`
+- 公共站点（Self-host/Dev）：`/w/:workspaceSlug/*`（路径多租户；`/` 在无 host 映射时返回 404）。
+- 公共站点（SaaS）：`https://{workspaceSlug}.{base_domain}/*`（host 派生 workspaceSlug；仍可兼容 `/w/:workspaceSlug/*`）。
+- 预览模式：`/preview/site/:siteId/*?token=...`
 - 编辑器 iframe：`/editor/site/:siteId/*?token=...`
 - 编辑器 host：`/editor-host`
 - Debug：`/debug/403`、`/debug/500`

@@ -92,6 +92,11 @@ export interface ViewerContext {
   fallbackLocale?: LocaleCode;
   routeParams?: Record<string, string>;
   variantId?: string | null;
+  /**
+   * Optional base path prefix for internal links (e.g. "/w/{workspaceSlug}").
+   * This helps a single Portal instance serve multiple workspaces/sites via path-based routing.
+   */
+  basePath?: string;
   /** Active design token mode (e.g. "light", "dark"). */
   mode?: string;
   /** Active breakpoint name (e.g. "desktop", "mobile"). */

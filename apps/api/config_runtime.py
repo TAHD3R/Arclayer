@@ -355,7 +355,7 @@ class SaasSettings(BaseSettings):
 
     base_domain: str = Field(
         default="celestial.app",
-        description="Base domain for tenant subdomains (e.g. {org_slug}.celestial.app).",
+        description="Base domain for tenant subdomains (e.g. {workspace_slug}.celestial.app).",
     )
     admin_url: str = Field(
         default="https://admin.celestial.app",

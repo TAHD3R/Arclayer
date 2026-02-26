@@ -1,4 +1,5 @@
 import { Button, Card, Statistic } from "antd";
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
@@ -20,7 +21,12 @@ export function OrganizationOverviewPage(props: { organizationId: string }) {
     meta: { silent: true },
   });
 
-  const workspaceCount = workspacesQuery.data?.items?.length ?? 0;
+  const workspaceItems = workspacesQuery.data?.items ?? [];
+  const workspaceCount = useMemo(() => {
+    const orgId = String(props.organizationId || "").trim();
+    if (!orgId) return workspaceItems.length;
+    return workspaceItems.filter((w) => String(w.organizationId) === orgId).length;
+  }, [props.organizationId, workspaceItems]);
 
   return (
     <DefaultPage

@@ -11,8 +11,8 @@ class SiteRecord(BaseModel):
 
     Sprint 3:
     - A site belongs to a workspace (tenant boundary).
-    - Host mapping is simplified to a single `primary_host` string.
-      Future: support multiple domains + verification workflow.
+    - Single-site workspace model: 1 workspace -> 1 site.
+    - Public routing is resolved by `Workspace.slug` (workspaceSlug) instead of a site-level host field.
     """
 
     workspace = fields.ForeignKeyField(
@@ -26,9 +26,6 @@ class SiteRecord(BaseModel):
 
     default_locale = fields.CharField(max_length=16, default="zh-CN")
     fallback_locale = fields.CharField(max_length=16, default="en-US")
-
-    # Postgres allows multiple NULLs for UNIQUE; this keeps dev bootstrap flexible.
-    primary_host = fields.CharField(max_length=255, null=True, unique=True)
 
     is_active = fields.BooleanField(default=True, db_index=True)
     created_by_user_id = fields.UUIDField(null=True, db_index=True)

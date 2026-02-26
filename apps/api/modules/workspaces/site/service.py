@@ -17,7 +17,6 @@ class WorkspaceSiteService(BaseService):
         *,
         workspace_id: UUID,
         actor_user_id: UUID | None,
-        primary_host: str | None = None,
     ):
         """
         Resolve the single site for a workspace.
@@ -30,21 +29,30 @@ class WorkspaceSiteService(BaseService):
         # at the repository layer; DB uniqueness should prevent this going forward.
         existing = await self.repo.get_site_by_workspace_id(workspace_id=workspace_id)
         if existing is not None:
+            # Best-effort repair: keep site.slug aligned with workspaceSlug.
+            ws = await Workspace.get_or_none(id=workspace_id)
+            if ws is not None:
+                desired = (ws.slug or "").strip()
+                if desired and str(existing.slug) != desired:
+                    existing.slug = desired[:64]
+                    await existing.save(update_fields=["slug", "updated_at"])
             return existing
 
         ws = await Workspace.get_or_none(id=workspace_id)
         if ws is not None:
             ws_name = ws.name.strip() or "Workspace"
+            ws_slug = ws.slug.strip() or "default"
         else:
             ws_name = "Workspace"
+            ws_slug = "default"
 
         # Keep defaults conservative and aligned with current SiteRecord defaults.
         return await self.repo.create_site(
             workspace_id=workspace_id,
-            slug="default",
+            # Keep site.slug aligned with workspaceSlug for the single-site workspace model.
+            slug=ws_slug[:64],
             name=f"{ws_name} Site",
             default_locale="zh-CN",
             fallback_locale="en-US",
-            primary_host=primary_host,
             created_by_user_id=actor_user_id,
         )

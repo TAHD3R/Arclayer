@@ -24,5 +24,4 @@ class WorkspaceSiteOut(BaseSchema):
     default_locale: str = Field(default="zh-CN", alias="defaultLocale", description="Default locale code.")
     fallback_locale: str = Field(default="en-US", alias="fallbackLocale", description="Fallback locale code.")
 
-    primary_host: str | None = Field(default=None, alias="primaryHost", description="Optional primary host mapping.")
     is_active: bool = Field(default=True, alias="isActive", description="Whether the site is active.")

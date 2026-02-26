@@ -151,11 +151,18 @@ class SiteService(BaseService):
         await self._preview_tokens.issue(site_id=site_id, token=token, ttl_seconds=ttl, expires_at_ms=expires_at_ms)
         return SitePreviewTokenOut(site_id=site_id, token=token, expires_at_ms=expires_at_ms)
 
-    async def resolve_site(self, *, host: str) -> SiteResolveOut:
+    async def resolve_site(self, *, host: str | None = None, workspace_slug: str | None = None) -> SiteResolveOut:
         if not self.settings.database.enabled:
             raise Conflict("Site resolution requires database storage", error="SITE_RESOLVE_DB_REQUIRED")
 
-        site = await self._repo.get_site_by_host(host=host)
+        ws_slug = (workspace_slug or "").strip().lower() or None
+        if ws_slug is None and host is not None:
+            ws_slug = self._extract_workspace_slug_from_host(host)
+
+        if ws_slug is None:
+            raise NotFound("Site not found", error="SITE_NOT_FOUND")
+
+        site = await self._repo.get_site_by_workspace_slug(workspace_slug=ws_slug)
         if site is None:
             raise NotFound("Site not found", error="SITE_NOT_FOUND")
 
@@ -164,6 +171,41 @@ class SiteService(BaseService):
             default_locale=site.default_locale,
             fallback_locale=site.fallback_locale,
         )
+
+    def _extract_workspace_slug_from_host(self, host: str) -> str | None:
+        """
+        Derive workspaceSlug from request host.
+
+        Rules:
+        - SaaS: `{workspace_slug}.{base_domain}` -> workspace_slug
+        - Self-host: do not attempt host-based resolution (use explicit workspaceSlug)
+        """
+
+        raw = (host or "").strip().lower()
+        if not raw:
+            return None
+
+        # Strip port for common Host header formats like "localhost:3100".
+        if ":" in raw and "]" not in raw:
+            raw = raw.split(":", 1)[0]
+
+        if self.settings.application.deployment_mode != "saas":
+            return None
+
+        base_domain = (self.settings.saas.base_domain or "").strip().lower()
+        if not base_domain:
+            return None
+
+        suffix = f".{base_domain}"
+        if raw == base_domain:
+            return None
+        if not raw.endswith(suffix):
+            return None
+
+        sub = raw[: -len(suffix)]
+        if not sub or "." in sub:
+            return None
+        return sub
 
     async def get_site_context(self, *, site_id: UUID) -> SiteResolveOut:
         """Retrieve site context by internal ID (used by Portal editor)."""

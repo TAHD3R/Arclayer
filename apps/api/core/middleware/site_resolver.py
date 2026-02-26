@@ -12,9 +12,9 @@ class SiteResolverMiddleware(BaseHTTPMiddleware):
     """
     Extract subdomain from Host header and resolve to a SiteRecord.
 
-    In SaaS mode, requests to `{org_slug}.{base_domain}` are resolved to the
-    matching site via `SiteRecord.primary_host`. The resolved site id is
-    injected into `request.state.site_id`.
+    In SaaS mode, requests to `{workspace_slug}.{base_domain}` are resolved to the
+    matching workspace/site via `Workspace.slug` (workspaceSlug). The resolved
+    site id is injected into `request.state.site_id`.
     """
 
     def __init__(self, app, settings: Settings) -> None:  # type: ignore[no-untyped-def]
@@ -32,7 +32,22 @@ class SiteResolverMiddleware(BaseHTTPMiddleware):
         if not host or not host.endswith(f".{self.base_domain}"):
             return await call_next(request)
 
-        site = await SiteRecord.filter(primary_host=host, is_active=True).first()
+        # SaaS: {workspace_slug}.{base_domain}
+        suffix = f".{self.base_domain}"
+        workspace_slug = host[: -len(suffix)]
+        if not workspace_slug or "." in workspace_slug:
+            return await call_next(request)
+
+        site = (
+            await SiteRecord
+            .filter(
+                workspace__slug=workspace_slug,
+                workspace__is_active=True,
+                is_active=True,
+            )
+            .order_by("created_at", "id")
+            .first()
+        )
         if site is not None:
             request.state.site_id = site.id
 

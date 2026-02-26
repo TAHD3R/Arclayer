@@ -4,7 +4,7 @@ from collections import defaultdict
 from datetime import UTC, datetime
 from math import ceil
 from typing import Any, cast
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from apps.api.common.protocols.tortoise import HasUserId, HasWorkspaceId, WorkspaceArchiveMutableFields
 from apps.api.common.services import BaseService
@@ -12,7 +12,6 @@ from apps.api.config import Settings
 from apps.api.core.exceptions import BadRequest, Forbidden, NotFound
 from apps.api.core.http.pagination import PageData, PageParams, paginate_items
 from apps.api.core.i18n import t
-from apps.api.modules.assets.utils import slugify
 from apps.api.modules.organization.models.org_membership import OrgRole
 from apps.api.modules.organization.models.user import User
 from apps.api.modules.organization.workspaces.repository import OrganizationWorkspaceRepository
@@ -30,6 +29,7 @@ from apps.api.modules.system.rbac.service import RBACService
 from apps.api.modules.workspaces.models.workspace import Workspace, WorkspaceMembershipRole
 from apps.api.modules.workspaces.settings.service import WorkspaceSettingsService
 from apps.api.modules.workspaces.site.service import WorkspaceSiteService
+from apps.api.modules.workspaces.slug_policy import next_available_workspace_slug
 
 _ORG_WORKSPACE_ALLOWED_ORDER_FIELDS: frozenset[str] = frozenset({"name", "slug", "created_at", "archived_at"})
 
@@ -238,10 +238,7 @@ class OrganizationWorkspaceService(BaseService):
 
         description = str(payload.description or "").strip() or None
 
-        slug = await self._next_available_workspace_slug(
-            organization_id=organization_id,
-            base_slug=slugify(name) or "workspace",
-        )
+        slug = await self._next_available_workspace_slug(base_slug=name)
 
         ws = await self.repo.create_workspace(
             organization_id=organization_id,
@@ -431,16 +428,11 @@ class OrganizationWorkspaceService(BaseService):
 
         return OrganizationWorkspaceDeleteResult(workspace_id=workspace_id, deleted=True)
 
-    async def _next_available_workspace_slug(self, *, organization_id: UUID, base_slug: str) -> str:
-        base = (base_slug or "workspace").strip("-") or "workspace"
-        candidate = base[:64]
-        for index in range(1, 200):
-            in_use = await self.repo.slug_exists(organization_id=organization_id, slug=candidate)
-            if not in_use:
-                return candidate
-            suffix = f"-{index + 1}"
-            candidate = f"{base[: max(1, 64 - len(suffix))]}{suffix}"
-        return f"{base[:55]}-{uuid4().hex[:8]}"
+    async def _next_available_workspace_slug(self, *, base_slug: str) -> str:
+        return await next_available_workspace_slug(
+            base_slug=base_slug,
+            exists_fn=lambda slug: self.repo.slug_exists(slug=slug),
+        )
 
     async def _ensure_operator_role_binding(
         self,

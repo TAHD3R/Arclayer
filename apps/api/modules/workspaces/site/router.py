@@ -64,7 +64,6 @@ async def get_workspace_site(
         name=str(site.name),
         defaultLocale=str(site.default_locale),
         fallbackLocale=str(site.fallback_locale),
-        primaryHost=(str(site.primary_host) if site.primary_host else None),
         isActive=bool(site.is_active),
     )
     return Response.success(data=out)

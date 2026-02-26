@@ -47,14 +47,22 @@ class SitesRepository(BaseRepository):
             raise NotFound("Site not found", error="SITE_NOT_FOUND")
         return site
 
-    async def get_site_by_host(self, *, host: str) -> SiteRecord | None:
-        raw = (host or "").strip().lower()
+    async def get_site_by_workspace_slug(self, *, workspace_slug: str) -> SiteRecord | None:
+        raw = (workspace_slug or "").strip().lower()
         if not raw:
             return None
-        # Strip port for common Host header formats like "localhost:3100".
-        if ":" in raw and "]" not in raw:
-            raw = raw.split(":", 1)[0]
-        return await SiteRecord.get_or_none(primary_host=raw)
+
+        # Single-site workspace model: deterministic select (should be at most 1).
+        return (
+            await SiteRecord
+            .filter(
+                workspace__slug=raw,
+                workspace__is_active=True,
+                is_active=True,
+            )
+            .order_by("created_at", "id")
+            .first()
+        )
 
     async def get_site_setting(self, *, site_id: UUID, namespace: str) -> SettingRecord | None:
         ns = (namespace or "").strip()

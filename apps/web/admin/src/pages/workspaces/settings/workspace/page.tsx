@@ -55,6 +55,7 @@ import type { WorkspaceSettingsTabKey } from "@/types/settings-workspace";
 
 type FormValues = {
   name: string;
+  slug: string;
   locale: AppLocale;
   timezone: string;
   dateFormat: string;
@@ -170,10 +171,12 @@ export function WorkspaceSettingsView(props: WorkspaceSettingsViewProps = {}) {
 
   React.useEffect(() => {
     if (!detailQuery.data) return;
-    if (form.isFieldTouched("name")) return;
-    form.setFieldsValue({
-      name: detailQuery.data.name,
-    });
+    const next: Partial<FormValues> = {};
+    if (!form.isFieldTouched("name")) next.name = detailQuery.data.name;
+    if (!form.isFieldTouched("slug")) next.slug = detailQuery.data.slug;
+    if (Object.keys(next).length > 0) {
+      form.setFieldsValue(next);
+    }
   }, [detailQuery.data, form]);
 
   React.useEffect(() => {
@@ -230,7 +233,7 @@ export function WorkspaceSettingsView(props: WorkspaceSettingsViewProps = {}) {
   }, [form, rolesQuery.data?.items]);
 
   const patchWorkspaceMutation = useMutation({
-    mutationFn: async (patch: { name?: string }) => {
+    mutationFn: async (patch: { name?: string; slug?: string }) => {
       if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
       return patchWorkspaceDetail(String(workspaceId), patch);
     },
@@ -319,6 +322,11 @@ export function WorkspaceSettingsView(props: WorkspaceSettingsViewProps = {}) {
   const currentWorkspaceName =
     (Form.useWatch("name", form) as string | undefined) ?? initialWorkspaceName;
 
+  const initialWorkspaceSlug = detailQuery.data?.slug ?? "";
+  const persistedWorkspaceSlug = String(initialWorkspaceSlug || "").trim();
+  const currentWorkspaceSlug =
+    (Form.useWatch("slug", form) as string | undefined) ?? initialWorkspaceSlug;
+
   const initialWorkspaceLocale = normalizeLocale(
     pickString(coreQuery.data?.value, ["workspace_localization", "locale"]) ?? DEFAULT_LOCALE,
   ) as AppLocale;
@@ -368,6 +376,7 @@ export function WorkspaceSettingsView(props: WorkspaceSettingsViewProps = {}) {
   const assignRoleLabel = roleLabelMap.get(assignRoleCode) ?? assignRoleCode;
 
   const isWorkspaceNameDirty = (currentWorkspaceName || "") !== (initialWorkspaceName || "");
+  const isWorkspaceSlugDirty = (currentWorkspaceSlug || "") !== (initialWorkspaceSlug || "");
   const isWorkspaceLocaleDirty = (workspaceLocale || "") !== (initialWorkspaceLocale || "");
   const isWorkspaceTimezoneDirty = (workspaceTimezone || "") !== (initialWorkspaceTimezone || "");
   const isWorkspaceDateFormatDirty =
@@ -445,6 +454,7 @@ export function WorkspaceSettingsView(props: WorkspaceSettingsViewProps = {}) {
           disabled={disabled}
           initialValues={{
             name: detailQuery.data?.name ?? "",
+            slug: detailQuery.data?.slug ?? "",
             locale: normalizeLocale(
               pickString(coreQuery.data?.value, ["workspace_localization", "locale"]) ??
                 DEFAULT_LOCALE,
@@ -545,6 +555,65 @@ export function WorkspaceSettingsView(props: WorkspaceSettingsViewProps = {}) {
                             placeholder={t("settings:SETTINGS_WORKSPACE_NAME_PLACEHOLDER")}
                           />
                         </Form.Item>
+                      </SettingAccordionItem>
+
+                      <SettingAccordionItem
+                        value="workspace_slug"
+                        variant="action"
+                        title={t("settings:SETTINGS_WORKSPACE_SLUG_LABEL")}
+                        description={t("settings:SETTINGS_WORKSPACE_SLUG_DESC")}
+                        showSummary
+                        summary={currentWorkspaceSlug}
+                        placeholder={t("settings:SETTINGS_NOT_SET")}
+                        keepRendered
+                        disabled={disabled || !detailQuery.data}
+                        confirmText={t("settings:SETTINGS_SAVE")}
+                        confirmLoading={savingKey === "workspace:slug"}
+                        onConfirm={() =>
+                          void withSavingKey("workspace:slug", async () => {
+                            const values = await form.validateFields(["slug"]);
+                            await patchWorkspaceMutation.mutateAsync({
+                              slug: String(values.slug || "").trim(),
+                            });
+                          })
+                        }
+                        onReset={
+                          isWorkspaceSlugDirty && detailQuery.data
+                            ? () =>
+                                void withSavingKey("reset:workspace:slug", async () => {
+                                  form.setFieldValue("slug", initialWorkspaceSlug);
+                                  await patchWorkspaceMutation.mutateAsync({
+                                    slug: String(persistedWorkspaceSlug || "").trim(),
+                                  });
+                                })
+                            : undefined
+                        }
+                        resetLoading={savingKey === "reset:workspace:slug"}
+                      >
+                        <div className="space-y-2">
+                          <Form.Item
+                            name="slug"
+                            rules={[
+                              {
+                                required: true,
+                                message: t("settings:SETTINGS_WORKSPACE_SLUG_REQUIRED"),
+                              },
+                              { max: 64, message: t("settings:SETTINGS_WORKSPACE_SLUG_TOO_LONG") },
+                            ]}
+                            style={{ marginBottom: 0 }}
+                          >
+                            <Input
+                              size="large"
+                              placeholder={t("settings:SETTINGS_WORKSPACE_SLUG_PLACEHOLDER")}
+                            />
+                          </Form.Item>
+
+                          <div className="text-label-secondary">
+                            {t("settings:SETTINGS_WORKSPACE_SLUG_PORTAL_HINT", {
+                              url: buildWorkspacePortalUrl(currentWorkspaceSlug),
+                            })}
+                          </div>
+                        </div>
                       </SettingAccordionItem>
                     </Accordion>
                   </div>
@@ -1345,6 +1414,15 @@ export function WorkspaceSettingsView(props: WorkspaceSettingsViewProps = {}) {
       </ContentGuard>
     </DefaultPage>
   );
+}
+
+function buildWorkspacePortalUrl(workspaceSlug: string | null | undefined): string {
+  const slug = String(workspaceSlug || "").trim();
+  const origin = (import.meta.env.VITE_PORTAL_ORIGIN || "http://localhost:3100")
+    .trim()
+    .replace(/\/+$/, "");
+  if (!slug) return origin;
+  return `${origin}/w/${encodeURIComponent(slug)}`;
 }
 
 function PlaceholderPoliciesPanel(props: {

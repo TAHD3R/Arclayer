@@ -2,17 +2,22 @@ import { Button, Form, Input } from "antd";
 import { Building2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import { type SetupSiteDraft } from "@/stores/use-setup-wizard-store";
+type SetupOrganizationDraft = {
+  organizationName: string;
+};
 
 export function SetupOrganizationStep(props: {
-  form: ReturnType<typeof Form.useForm<SetupSiteDraft>>[0];
+  form: ReturnType<typeof Form.useForm<SetupOrganizationDraft>>[0];
   disabled?: boolean;
-  onValuesChange: (changed: Partial<SetupSiteDraft>, values: Partial<SetupSiteDraft>) => void;
+  onValuesChange: (
+    changed: Partial<SetupOrganizationDraft>,
+    values: Partial<SetupOrganizationDraft>,
+  ) => void;
 }) {
   const { t } = useTranslation();
 
   return (
-    <Form<SetupSiteDraft>
+    <Form<SetupOrganizationDraft>
       form={props.form}
       layout="vertical"
       requiredMark={false}
@@ -20,7 +25,7 @@ export function SetupOrganizationStep(props: {
       disabled={props.disabled}
       onValuesChange={props.onValuesChange}
     >
-      <Form.Item<SetupSiteDraft>
+      <Form.Item<SetupOrganizationDraft>
         name="organizationName"
         label={t("setup:SETUP_FIELD_ORGANIZATION_NAME_LABEL")}
         rules={[

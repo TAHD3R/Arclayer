@@ -101,6 +101,7 @@ async def get_workspace_detail(
 async def update_workspace(
     payload: WorkspaceUpdateRequest,
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
+    user_id: UUID = Depends(get_current_user_id),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[WorkspaceDetailOut]:
     service = WorkspaceService(settings)
@@ -108,6 +109,7 @@ async def update_workspace(
         organization_id=ctx.organization_id,
         workspace_id=ctx.workspace_id,
         payload=payload,
+        actor_user_id=user_id,
     )
     return Response.success(data=detail)
 

@@ -71,7 +71,6 @@ async def test_sites_presence_heartbeat_and_list(prepared_schema) -> None:
             name="Demo",
             default_locale="zh-CN",
             fallback_locale="en-US",
-            primary_host="example.test",
             is_active=True,
             created_by_user_id=user.id,
         )

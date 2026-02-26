@@ -4,16 +4,16 @@ type SetupTranslate = (key: string, params?: Record<string, unknown>) => string;
 
 export interface ApplyWorkspaceTemplatePresetParams {
   templateKey: SetupWorkspaceTemplate;
-  organizationName: string;
+  displayName: string;
   siteUrl: string;
   t: SetupTranslate;
 }
 
 export const SETUP_WORKSPACE_TEMPLATE_KEYS: SetupWorkspaceTemplate[] = ["blog", "website", "blank"];
 
-function normalizeOrganizationName(name: string): string {
-  const raw = name.trim();
-  return raw || "Celestial";
+function normalizeDisplayName(name: string | null | undefined): string {
+  const raw = (name || "").trim();
+  return raw || "User";
 }
 
 function resolveOptionalTranslation(
@@ -29,33 +29,37 @@ export function applyWorkspaceTemplatePreset(
   params: ApplyWorkspaceTemplatePresetParams,
 ): Partial<SetupSiteDraft> {
   const { templateKey, siteUrl, t } = params;
-  const orgName = normalizeOrganizationName(params.organizationName);
+  const displayName = normalizeDisplayName(params.displayName);
+  const workspaceName = t("setup:SETUP_DEFAULT_WORKSPACE_NAME", { username: displayName });
+  const siteName = t("setup:SETUP_DEFAULT_SITE_NAME", { username: displayName });
 
   if (templateKey === "blog") {
     return {
       templateKey,
-      workspaceName: t("setup:SETUP_TEMPLATE_BLOG_WORKSPACE", { orgName }),
-      siteName: t("setup:SETUP_TEMPLATE_BLOG_SITE", { orgName }),
+      workspaceName,
+      siteName,
       siteUrl,
-      siteDescription: t("setup:SETUP_TEMPLATE_BLOG_DESC", { orgName }),
+      siteDescription: t("setup:SETUP_TEMPLATE_BLOG_DESC", { orgName: displayName }),
     };
   }
 
   if (templateKey === "website") {
     return {
       templateKey,
-      workspaceName: t("setup:SETUP_TEMPLATE_WEBSITE_WORKSPACE", { orgName }),
-      siteName: t("setup:SETUP_TEMPLATE_WEBSITE_SITE", { orgName }),
+      workspaceName,
+      siteName,
       siteUrl,
-      siteDescription: t("setup:SETUP_TEMPLATE_WEBSITE_DESC", { orgName }),
+      siteDescription: t("setup:SETUP_TEMPLATE_WEBSITE_DESC", { orgName: displayName }),
     };
   }
 
   return {
     templateKey,
-    workspaceName: t("setup:SETUP_TEMPLATE_BLANK_WORKSPACE", { orgName }),
-    siteName: t("setup:SETUP_TEMPLATE_BLANK_SITE", { orgName }),
+    workspaceName,
+    siteName,
     siteUrl,
-    siteDescription: resolveOptionalTranslation(t, "setup:SETUP_TEMPLATE_BLANK_DESC", { orgName }),
+    siteDescription: resolveOptionalTranslation(t, "setup:SETUP_TEMPLATE_BLANK_DESC", {
+      orgName: displayName,
+    }),
   };
 }

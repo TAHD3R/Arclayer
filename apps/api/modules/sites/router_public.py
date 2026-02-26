@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Path, Query, Request
+from fastapi import Response as FastAPIResponse
 
 from apps.api.common.types.public_uuid import PublicUUID
 from apps.api.config import Settings, get_settings
@@ -30,14 +31,25 @@ def get_site_service(
 @router.get(
     "/resolve",
     response_model=ResponseModel[SiteResolveOut],
-    summary="Resolve a site by hostname",
-    description="Public endpoint for Portal SSR to resolve a hostname to a site.",
+    summary="Resolve a site (workspaceSlug or host)",
+    description="Public endpoint for Portal SSR to resolve a workspaceSlug/host to a site.",
 )
 async def resolve_site_by_host(
-    host: str = Query(..., description="Hostname to resolve (e.g. myorg.celestial.app)."),
+    raw_response: FastAPIResponse,
+    workspace_slug: str | None = Query(
+        default=None,
+        alias="workspaceSlug",
+        description="Workspace slug to resolve (e.g. philipcole).",
+    ),
+    host: str | None = Query(
+        default=None,
+        description="Request host (e.g. philipcole.celestial.app, localhost:3100).",
+    ),
     svc: SiteService = Depends(get_site_service),
 ) -> ResponseModel[SiteResolveOut]:
-    data = await svc.resolve_site(host=host)
+    # Low-frequency mapping, safe to cache briefly.
+    raw_response.headers["cache-control"] = "public, max-age=300, stale-while-revalidate=600"
+    data = await svc.resolve_site(host=host, workspace_slug=workspace_slug)
     return Response.success(data=data)
 
 

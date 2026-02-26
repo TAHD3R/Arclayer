@@ -29,7 +29,6 @@ async def _bootstrap_site() -> str:
         workspace_id=ws.id,
         slug=f"site_{uuid4().hex[:8]}",
         name="Test Site",
-        primary_host=f"{uuid4().hex[:8]}.example.test",
         is_active=True,
         created_by_user_id=uuid4(),
     )

@@ -524,9 +524,23 @@ class SystemSetupService(BaseService):
 
         workspace_id = provisioned.workspace_id
         if workspace_id is not None:
+            from apps.api.modules.workspaces.models.workspace import Workspace
+            from apps.api.modules.workspaces.portal_url_policy import rewrite_workspace_slug_in_portal_url
             from apps.api.modules.workspaces.settings.service import WorkspaceSettingsService
 
             workspace_patch = {k: v for k, v in raw_patch.items() if k != "system"}
+            # Best-effort: keep site.url aligned with the actual workspaceSlug.
+            # This prevents mismatches when slug is auto-adjusted (reserved word / collision).
+            ws = await Workspace.get_or_none(id=workspace_id)
+            if ws is not None:
+                site_section = workspace_patch.get("site")
+                if isinstance(site_section, dict):
+                    url_raw = site_section.get("url")
+                    if isinstance(url_raw, str) and url_raw.strip():
+                        site_section["url"] = rewrite_workspace_slug_in_portal_url(
+                            url_raw,
+                            workspace_slug=str(ws.slug),
+                        )
             # Best-effort: if patch fails validation, setup should still succeed.
             try:
                 await WorkspaceSettingsService(self.settings).patch_core(
@@ -624,9 +638,15 @@ class SystemSetupService(BaseService):
 
             ws = await Workspace.filter(organization_id=org_id).order_by("created_at").first()
             if ws is None:
-                # Keep slug conservative; collisions are handled at db level.
-                slug = "default"
                 name = (workspace_name or "Default").strip() or "Default"
+                # Workspace.slug is globally unique (public portal identifier), so we must avoid
+                # collisions across organizations even for bootstrap defaults.
+                from apps.api.modules.workspaces.slug_policy import next_available_workspace_slug
+
+                slug = await next_available_workspace_slug(
+                    base_slug=name,
+                    exists_fn=lambda candidate: Workspace.filter(slug=candidate).exists(),
+                )
                 ws = await Workspace.create(
                     organization_id=org_id,
                     slug=slug,

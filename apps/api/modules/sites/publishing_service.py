@@ -758,7 +758,35 @@ class SitePublishingService(BaseService):
             raise Conflict("Sitemap requires database storage", error="SITEMAP_DB_REQUIRED")
 
         site = await self._repo.get_site_by_id(site_id=site_id)
-        base = f"https://{site.primary_host}" if site.primary_host else "https://example.invalid"
+
+        workspace_id = getattr(site, "workspace_id", None)
+        ws_id = UUID(str(workspace_id)) if workspace_id is not None else None
+
+        base = "https://example.invalid"
+        if ws_id is not None:
+            # SaaS: derive from workspaceSlug + base_domain.
+            if self.settings.application.deployment_mode == "saas":
+                from apps.api.modules.workspaces.models.workspace import Workspace
+
+                ws = await Workspace.get_or_none(id=ws_id)
+                if ws is not None and str(ws.slug).strip():
+                    base = f"https://{str(ws.slug).strip()}.{self.settings.saas.base_domain}".rstrip("/")
+            else:
+                # Self-host: use workspace-scoped core setting `site.url` as canonical base.
+                rec = await SettingRecord.get_or_none(
+                    scope_type=SCOPE_TYPE_WORKSPACE,
+                    scope_id=ws_id,
+                    namespace=CORE_SETTINGS_NAMESPACE,
+                )
+                value = rec.value if rec is not None and isinstance(rec.value, dict) else {}
+                site_cfg = value.get("site") if isinstance(value, dict) else None
+                raw_url = site_cfg.get("url") if isinstance(site_cfg, dict) else None
+                if isinstance(raw_url, str) and raw_url.strip():
+                    candidate = raw_url.strip().rstrip("/")
+                    # Be tolerant with host-only inputs like "localhost:3100".
+                    if "://" not in candidate:
+                        candidate = f"http://{candidate}"
+                    base = candidate
         paths = await self._repo.list_public_sitemap_paths(site_id=site_id)
 
         lines: list[str] = [

@@ -84,7 +84,6 @@ async def test_sites_public_preview_draft_publish_flow(prepared_schema) -> None:
             name="Demo",
             default_locale="zh-CN",
             fallback_locale="en-US",
-            primary_host="example.test",
             is_active=True,
             created_by_user_id=user.id,
         )
@@ -177,8 +176,7 @@ async def test_sites_public_preview_draft_publish_flow(prepared_schema) -> None:
         )
 
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            # Host resolution strips the port.
-            resp = await client.get("/api/v1/sites/resolve", params={"host": "example.test:3100"})
+            resp = await client.get("/api/v1/sites/resolve", params={"workspaceSlug": "ws"})
             assert resp.status_code == 200
             assert resp.json()["data"]["siteId"] == site_pid
 

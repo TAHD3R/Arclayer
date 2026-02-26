@@ -35,7 +35,6 @@ class WorkspaceSiteRepository(BaseRepository):
         name: str,
         default_locale: str,
         fallback_locale: str,
-        primary_host: str | None,
         created_by_user_id: UUID | None,
     ) -> SiteRecord:
         # Use a transaction so callers can safely chain "get or create".
@@ -50,7 +49,6 @@ class WorkspaceSiteRepository(BaseRepository):
                 name=name,
                 default_locale=default_locale,
                 fallback_locale=fallback_locale,
-                primary_host=primary_host,
                 is_active=True,
                 created_by_user_id=created_by_user_id,
                 using_db=conn,

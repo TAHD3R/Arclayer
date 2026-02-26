@@ -54,7 +54,7 @@ export async function getWorkspaceDetail(workspaceId: string): Promise<Workspace
 
 export async function patchWorkspaceDetail(
   workspaceId: string,
-  payload: { name?: string },
+  payload: { name?: string; slug?: string },
 ): Promise<WorkspaceDetail> {
   const id = encodeURIComponent(String(workspaceId));
   return api.patch<WorkspaceDetail>(`/workspaces/${id}`, payload);

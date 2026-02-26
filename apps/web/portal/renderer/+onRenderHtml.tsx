@@ -24,11 +24,20 @@ type VikePageContextLike = {
 async function onRenderHtml(pageContext: VikePageContextLike) {
   // Extract siteId from URL for editor/preview routes to avoid host-based resolution failure
   const parsed = parseModeFromUrl(pageContext.urlOriginal);
-  const siteIdFromUrl = parsed?.mode === "editor" ? parsed.siteId : undefined;
+  const siteIdFromUrl =
+    parsed?.mode === "editor" || parsed?.mode === "preview" ? parsed.siteId : undefined;
+  const basePathFromUrl =
+    parsed?.mode === "editor"
+      ? `/editor/site/${parsed.siteId}`
+      : parsed?.mode === "preview"
+        ? `/preview/site/${parsed.siteId}`
+        : undefined;
 
   const { siteCtx, viewerCtx } = await ensurePortalRequestContext(
     pageContext,
-    siteIdFromUrl ? { siteId: siteIdFromUrl } : undefined,
+    siteIdFromUrl
+      ? { siteId: siteIdFromUrl, ...(basePathFromUrl ? { basePath: basePathFromUrl } : {}) }
+      : undefined,
   );
   const mode = pageContext.pageProps?.mode ?? "public";
   const token = pageContext.pageProps?.token;
