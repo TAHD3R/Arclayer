@@ -7,16 +7,16 @@ import { isSpaceKeyReservedTarget } from "@/pages/workspaces/editor/hooks/editor
 const MIN_ZOOM = 25;
 const MAX_ZOOM = 200;
 const ZOOM_STEP = 5;
+// 进入平移的最小拖拽距离（px），避免轻微抖动导致误触发。
+const PAN_ACTIVATION_DISTANCE_PX = 3;
 
 interface CanvasPanZoomReturn {
   transformStyle: React.CSSProperties;
-  containerHandlers: {
+  startPanHandlers: {
     onPointerDown: (e: React.PointerEvent) => void;
-    onPointerMove: (e: React.PointerEvent) => void;
-    onPointerUp: (e: React.PointerEvent) => void;
-    onPointerCancel: (e: React.PointerEvent) => void;
   };
   isPanning: boolean;
+  spaceHeld: boolean;
   cursor: string;
 }
 
@@ -39,8 +39,26 @@ export function useCanvasPanZoom(
   const setCanvasPan = useEditorStore((s) => s.setCanvasPan);
 
   // --- Local refs for drag state (avoid re-renders) ---
-  const isPanningRef = useRef(false);
-  const panStartRef = useRef({ x: 0, y: 0, panX: 0, panY: 0 });
+  type PanStartReason = "hand" | "space" | "middle";
+  const panSessionRef = useRef<{
+    pointerId: number | null;
+    reason: PanStartReason | null;
+    startClientX: number;
+    startClientY: number;
+    startPanX: number;
+    startPanY: number;
+    isPending: boolean;
+    hasActivated: boolean;
+  }>({
+    pointerId: null,
+    reason: null,
+    startClientX: 0,
+    startClientY: 0,
+    startPanX: 0,
+    startPanY: 0,
+    isPending: false,
+    hasActivated: false,
+  });
   const spaceHeldRef = useRef(false);
   const [isPanning, setIsPanning] = useState(false);
   const [spaceHeld, setSpaceHeld] = useState(false);
@@ -48,6 +66,23 @@ export function useCanvasPanZoom(
   // 用 ref 缓存最新 store 值，供 wheel 回调读取（避免闭包过期）
   const storeRef = useRef({ zoomPercent, panX, panY });
   storeRef.current = { zoomPercent, panX, panY };
+
+  const forceStopPanning = useCallback(() => {
+    const s = panSessionRef.current;
+    if (s.pointerId == null) return;
+
+    panSessionRef.current = {
+      pointerId: null,
+      reason: null,
+      startClientX: 0,
+      startClientY: 0,
+      startPanX: 0,
+      startPanY: 0,
+      isPending: false,
+      hasActivated: false,
+    };
+    setIsPanning(false);
+  }, []);
 
   // --- Wheel zoom (passive: false to preventDefault) ---
   useEffect(() => {
@@ -117,6 +152,84 @@ export function useCanvasPanZoom(
     };
   }, []);
 
+  // --- 全局监听：平移期间持续接管 move/up/cancel（不依赖 pointer capture，避免泄漏影响全局点击） ---
+  useEffect(() => {
+    const onPointerMove = (e: PointerEvent) => {
+      const s = panSessionRef.current;
+      if (s.pointerId == null) return;
+      if (e.pointerId !== s.pointerId) return;
+
+      const dx = e.clientX - s.startClientX;
+      const dy = e.clientY - s.startClientY;
+
+      // 未超过阈值前保持 pending，避免轻微抖动误触发。
+      if (s.isPending && !s.hasActivated) {
+        const dist2 = dx * dx + dy * dy;
+        if (dist2 < PAN_ACTIVATION_DISTANCE_PX * PAN_ACTIVATION_DISTANCE_PX) return;
+        s.isPending = false;
+        s.hasActivated = true;
+        setIsPanning(true);
+      }
+
+      if (!s.hasActivated) return;
+      e.preventDefault();
+      setCanvasPan(s.startPanX + dx, s.startPanY + dy);
+    };
+
+    const onPointerUp = (e: PointerEvent) => {
+      const s = panSessionRef.current;
+      if (s.pointerId == null) return;
+      if (e.pointerId !== s.pointerId) return;
+      if (s.hasActivated) e.preventDefault();
+      forceStopPanning();
+    };
+
+    const onPointerCancel = (e: PointerEvent) => {
+      const s = panSessionRef.current;
+      if (s.pointerId == null) return;
+      if (e.pointerId !== s.pointerId) return;
+      forceStopPanning();
+    };
+
+    const onBlur = () => forceStopPanning();
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "hidden") forceStopPanning();
+    };
+    // 鼠标释放在窗口外时，pointerup/pointercancel 可能不会回到当前文档，兜底结束平移。
+    const onMouseOut = (e: MouseEvent) => {
+      const s = panSessionRef.current;
+      if (s.pointerId == null) return;
+      // relatedTarget 为空通常表示离开当前窗口/文档。
+      if (e.relatedTarget != null) return;
+      forceStopPanning();
+    };
+
+    // 使用 capture 阶段监听，避免某些组件 stopPropagation 造成遗漏。
+    window.addEventListener("pointermove", onPointerMove, { capture: true });
+    window.addEventListener("pointerup", onPointerUp, { capture: true });
+    window.addEventListener("pointercancel", onPointerCancel, { capture: true });
+    window.addEventListener("blur", onBlur);
+    window.addEventListener("mouseout", onMouseOut, { capture: true });
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      window.removeEventListener("pointermove", onPointerMove, { capture: true });
+      window.removeEventListener("pointerup", onPointerUp, { capture: true });
+      window.removeEventListener("pointercancel", onPointerCancel, { capture: true });
+      window.removeEventListener("blur", onBlur);
+      window.removeEventListener("mouseout", onMouseOut, { capture: true });
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, [forceStopPanning, setCanvasPan]);
+
+  // 切换离开 Hand 工具时强制停止，避免平移状态卡住影响其它交互。
+  useEffect(() => {
+    const s = panSessionRef.current;
+    if (s.pointerId == null) return;
+    if (s.reason !== "hand") return;
+    if (activeTool === "hand") return;
+    forceStopPanning();
+  }, [activeTool, forceStopPanning]);
+
   // --- 判断是否应进入平移模式 ---
   const shouldPan = useCallback(
     (e: React.PointerEvent) => {
@@ -129,53 +242,30 @@ export function useCanvasPanZoom(
     [activeTool],
   );
 
-  // --- Pointer handlers ---
+  // --- Pointer handlers (start only) ---
   const onPointerDown = useCallback(
     (e: React.PointerEvent) => {
       if (!shouldPan(e)) return;
 
       // 避免触发浏览器默认拖拽/选择反馈（跨域 iframe 场景会导致 not-allowed 等状态）
       e.preventDefault();
-      isPanningRef.current = true;
-      setIsPanning(true);
-      panStartRef.current = {
-        x: e.clientX,
-        y: e.clientY,
-        panX: storeRef.current.panX,
-        panY: storeRef.current.panY,
-      };
+      forceStopPanning();
 
-      // 捕获指针，确保拖拽到容器外仍能接收事件
-      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+      const reason: PanStartReason =
+        e.button === 1 ? "middle" : activeTool === "hand" ? "hand" : "space";
+
+      // 进入 pending 状态：只有移动超过阈值才算真正开始平移（避免误触发）。
+      panSessionRef.current.pointerId = e.pointerId;
+      panSessionRef.current.reason = reason;
+      panSessionRef.current.startClientX = e.clientX;
+      panSessionRef.current.startClientY = e.clientY;
+      panSessionRef.current.startPanX = storeRef.current.panX;
+      panSessionRef.current.startPanY = storeRef.current.panY;
+      panSessionRef.current.isPending = true;
+      panSessionRef.current.hasActivated = false;
     },
-    [shouldPan],
+    [forceStopPanning, shouldPan, activeTool],
   );
-
-  const onPointerMove = useCallback(
-    (e: React.PointerEvent) => {
-      if (!isPanningRef.current) return;
-
-      const dx = e.clientX - panStartRef.current.x;
-      const dy = e.clientY - panStartRef.current.y;
-
-      setCanvasPan(panStartRef.current.panX + dx, panStartRef.current.panY + dy);
-    },
-    [setCanvasPan],
-  );
-
-  const stopPanning = useCallback((e: React.PointerEvent) => {
-    if (!isPanningRef.current) return;
-
-    isPanningRef.current = false;
-    setIsPanning(false);
-
-    const el = e.currentTarget as HTMLElement;
-    if (el.hasPointerCapture(e.pointerId)) {
-      el.releasePointerCapture(e.pointerId);
-    }
-  }, []);
-  const onPointerUp = stopPanning;
-  const onPointerCancel = stopPanning;
 
   // --- Transform style ---
   const scale = zoomPercent / 100;
@@ -192,13 +282,11 @@ export function useCanvasPanZoom(
 
   return {
     transformStyle,
-    containerHandlers: {
+    startPanHandlers: {
       onPointerDown,
-      onPointerMove,
-      onPointerUp,
-      onPointerCancel,
     },
     isPanning,
+    spaceHeld,
     cursor,
   };
 }

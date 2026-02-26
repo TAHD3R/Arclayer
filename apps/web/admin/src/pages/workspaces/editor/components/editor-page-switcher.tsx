@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { ChevronsUpDown, ChevronRight, FileText, Search } from "lucide-react";
@@ -340,10 +340,16 @@ export function EditorPageSwitcher() {
 
 function CloseOnOverlaySignal({ signal }: { signal: number }) {
   const { isOpen, closeFloatingPanel } = useFloatingPanel();
+  const lastSignalRef = useRef(signal);
 
   // Close floating panel when the outer iframe receives focus (signal emitted by host shell).
   // This avoids "stuck open" popovers when users click inside the iframe.
   useEffect(() => {
+    // Only close when the signal actually changes.
+    // Avoid "open -> immediately close" due to the effect running on open state changes.
+    if (signal === lastSignalRef.current) return;
+    lastSignalRef.current = signal;
+
     if (!isOpen) return;
     closeFloatingPanel();
   }, [closeFloatingPanel, isOpen, signal]);

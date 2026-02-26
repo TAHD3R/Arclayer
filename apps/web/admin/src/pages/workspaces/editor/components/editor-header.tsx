@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -356,8 +356,14 @@ function EditorAvatar() {
 
 function CloseFloatingPanelOnOverlaySignal({ signal }: { signal: number }) {
   const { isOpen, closeFloatingPanel } = useFloatingPanel();
+  const lastSignalRef = useRef(signal);
 
   useEffect(() => {
+    // Only close when the signal actually changes.
+    // Avoid "open -> immediately close" due to the effect running on open state changes.
+    if (signal === lastSignalRef.current) return;
+    lastSignalRef.current = signal;
+
     if (!isOpen) return;
     closeFloatingPanel();
   }, [closeFloatingPanel, isOpen, signal]);

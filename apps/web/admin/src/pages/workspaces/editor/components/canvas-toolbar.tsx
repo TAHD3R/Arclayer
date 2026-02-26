@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { Button, Tooltip, InputNumber, Radio, Checkbox, Space, Dropdown } from "antd";
 import type { MenuProps } from "antd";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import {
@@ -57,8 +57,14 @@ export function CanvasToolbar() {
   const overlayCloseSignal = useEditorStore((s) => s.overlayCloseSignal);
 
   const [canvasSettingsOpen, setCanvasSettingsOpen] = useState(false);
+  const lastOverlayCloseSignalRef = useRef(overlayCloseSignal);
 
   useEffect(() => {
+    // Only close when the signal actually changes.
+    // Avoid "open -> immediately close" on initial mount or on local open state changes.
+    if (overlayCloseSignal === lastOverlayCloseSignalRef.current) return;
+    lastOverlayCloseSignalRef.current = overlayCloseSignal;
+
     if (!canvasSettingsOpen) return;
     setCanvasSettingsOpen(false);
   }, [canvasSettingsOpen, overlayCloseSignal]);
