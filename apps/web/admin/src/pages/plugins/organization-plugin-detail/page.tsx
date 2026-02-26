@@ -101,9 +101,7 @@ export function OrganizationPluginDetailView({
       loading={loading}
       loadError={loadError}
       onRetryLoad={loadError ? () => void pluginsQuery.refetch() : undefined}
-      onBack={() =>
-        void navigate({ to: buildOrganizationPath(organizationId, "/plugins/installed") })
-      }
+      onBack={() => void navigate({ to: buildOrganizationPath(organizationId, "/extensions") })}
       onToggleEnabled={async (enabled) => toggleMutation.mutateAsync(enabled)}
       togglePending={toggleMutation.isPending}
       canManage={canManage}

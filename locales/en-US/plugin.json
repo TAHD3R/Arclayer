@@ -110,5 +110,17 @@
   "PLUGIN_SETTINGS_MANAGED_BY_PLATFORM": "This plugin is configured at the instance level and is managed by the platform in SaaS mode.",
 
   "PLUGIN_ENABLED_TRUE": "Enabled",
-  "PLUGIN_ENABLED_FALSE": "Disabled"
+  "PLUGIN_ENABLED_FALSE": "Disabled",
+
+  "EXTENSION_PAGE_TITLE": "Extensions",
+  "EXTENSION_PAGE_DESC": "Discover and manage extensions to enhance your platform.",
+  "EXTENSION_TAB_EXPLORE": "Explore",
+  "EXTENSION_TAB_INSTALLED": "Installed",
+  "EXTENSION_EXPLORE_TITLE": "Find an extension",
+  "EXTENSION_EXPLORE_DESC": "Unlock powerful tools to extend functionality and streamline your workflow.",
+  "EXTENSION_FILTER_OFFICIAL": "Official",
+  "EXTENSION_FILTER_COMMUNITY": "Community",
+  "EXTENSION_CARD_INSTALLED": "Installed",
+  "EXTENSION_CARD_VERSION": "v{{version}}",
+  "EXTENSION_CARD_DEVELOPED_BY": "Developed by"
 }

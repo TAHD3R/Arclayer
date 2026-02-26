@@ -13,11 +13,11 @@ import { getSystemSettingsNamespace, patchSystemSettingsNamespace } from "@/api/
 import { PluginDetailPage, findPluginBySlug } from "@/components/plugins/plugin-detail-page";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 
-export const Route = createFileRoute("/w/$workspaceId/plugins/$pluginSlug/")({
-  component: WorkspacePluginDetailPage,
+export const Route = createFileRoute("/w/$workspaceId/extensions/$pluginSlug/")({
+  component: WorkspaceExtensionDetailPage,
 });
 
-function WorkspacePluginDetailPage() {
+function WorkspaceExtensionDetailPage() {
   const { t } = useTranslation(["settings"]);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -98,7 +98,7 @@ function WorkspacePluginDetailPage() {
       loading={loading}
       loadError={loadError}
       onRetryLoad={loadError ? () => void pluginsQuery.refetch() : undefined}
-      onBack={() => void navigate({ to: `/w/${workspaceId}/plugins/installed` })}
+      onBack={() => void navigate({ to: `/w/${workspaceId}/extensions` })}
       onToggleEnabled={async (enabled) => toggleMutation.mutateAsync(enabled)}
       togglePending={toggleMutation.isPending}
       canManage

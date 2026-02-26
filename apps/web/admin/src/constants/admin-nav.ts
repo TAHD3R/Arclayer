@@ -9,7 +9,7 @@ import {
   Images,
   LibraryBig,
   Navigation2,
-  Package,
+  Puzzle,
   Paintbrush,
   Palette,
   Settings,
@@ -101,19 +101,11 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
     ],
   },
   {
-    key: "plugins",
-    label: "Plugins",
-    labelKey: "nav:NAV_PLUGINS",
-    icon: Package,
-    children: [
-      {
-        key: "plugins.installed",
-        label: "Installed",
-        labelKey: "nav:NAV_PLUGINS_INSTALLED",
-        to: "/plugins/installed",
-        icon: Package,
-      },
-    ],
+    key: "extensions",
+    label: "Extensions",
+    labelKey: "nav:NAV_EXTENSIONS",
+    to: "/extensions",
+    icon: Puzzle,
   },
   {
     key: "settings.team",
