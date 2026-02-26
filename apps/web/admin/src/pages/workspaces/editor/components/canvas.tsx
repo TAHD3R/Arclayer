@@ -31,6 +31,7 @@ export function Canvas({ iframeSrc, iframeRef, isLoading, loadError }: CanvasPro
   const containerRef = useRef<HTMLElement>(null);
 
   const devicePreset = useEditorStore((s) => s.devicePreset) as DevicePreset;
+  const activeTool = useEditorStore((s) => s.activeTool);
   const canvasWidth = useEditorStore((s) => s.canvasWidth);
   const panX = useEditorStore((s) => s.canvasPanX);
   const panY = useEditorStore((s) => s.canvasPanY);
@@ -41,13 +42,17 @@ export function Canvas({ iframeSrc, iframeRef, isLoading, loadError }: CanvasPro
 
   // 视口宽度：优先使用自定义宽度，否则按设备预设
   const displayWidth = canvasWidth ?? DEVICE_PRESET_WIDTHS[devicePreset] ?? 1440;
+  // 用 activeTool 做强条件：Hand 模式必须接管 iframe 上方指针事件（Glass Pane）
+  // 避免某些环境下 click/hover 正常，但 pointer 事件在 iframe 内被吞导致无法平移。
+  const effectiveCursor =
+    isPanning || activeTool === "hand" ? (isPanning ? "grabbing" : "grab") : cursor;
   const cursorClassName =
-    cursor === "grab"
+    effectiveCursor === "grab"
       ? "cursor-grab"
-      : cursor === "grabbing"
+      : effectiveCursor === "grabbing"
         ? "cursor-grabbing"
         : "cursor-default";
-  const panOverlayEnabled = cursor !== "default" || isPanning;
+  const panOverlayEnabled = activeTool === "hand" || cursor !== "default" || isPanning;
 
   return (
     <ContextMenu>
