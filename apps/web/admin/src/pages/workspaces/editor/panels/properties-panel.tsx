@@ -56,7 +56,7 @@ function TabContent({
     case "layout":
       return <InspectorLayout data={inspector.layout} />;
     case "design":
-      return <InspectorDesign data={inspector.design} />;
+      return <InspectorDesign data={inspector.design} blockType={inspector.blockType} />;
     case "animation":
       return <InspectorAnimation data={inspector.animation} />;
   }

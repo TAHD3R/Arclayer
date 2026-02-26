@@ -1,4 +1,5 @@
 import type { CoreBlockNode, CoreDocumentIR } from "./core-blocks";
+import type { BlockNode, DocumentIR } from "@celestial/site-block-protocol";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object";
@@ -373,4 +374,55 @@ export function isCoreDocumentIR(value: unknown): value is CoreDocumentIR {
   if (value.version !== 1) return false;
   if (!Array.isArray(value.blocks)) return false;
   return value.blocks.every(isCoreBlockNode);
+}
+
+function isDocumentBlockNode(value: unknown): value is BlockNode {
+  if (!isRecord(value)) return false;
+  if (typeof value.id !== "string" || !isSafeCoreBlockId(value.id)) return false;
+  if (typeof value.type !== "string" || !value.type.trim()) return false;
+  if (!isRecord(value.props)) return false;
+
+  // custom block / prefab 的 props 允许任意字段，但 layout/style/animation 必须是可解析的视觉协议
+  if (!hasValidCommonVisualProps(value.props)) return false;
+
+  if (value.responsive !== undefined) {
+    if (!isRecord(value.responsive)) return false;
+    for (const [bp, override] of Object.entries(value.responsive)) {
+      if (!bp.trim()) return false;
+      if (!isRecord(override)) return false;
+      // responsive 覆写只允许 layout/style/animation 三个字段
+      if (!hasOnlyAllowedKeys(override, ["layout", "style", "animation"])) return false;
+      if (!hasValidCommonVisualProps(override)) return false;
+    }
+  }
+
+  if (value.children !== undefined) {
+    if (!Array.isArray(value.children)) return false;
+    if (!value.children.every(isDocumentBlockNode)) return false;
+  }
+
+  return true;
+}
+
+/**
+ * DocumentIR 结构级校验：
+ * - 允许自定义 blocks / prefabs（不限制 type）
+ * - 只约束：id/type/children/props/responsive 的基本结构与视觉协议字段合法性
+ *
+ * 用途：
+ * - 运行时从 API 接收 DocumentIR
+ * - editor/host 与 portal 间 postMessage 传输
+ */
+export function isDocumentIR(value: unknown): value is DocumentIR {
+  if (!isRecord(value)) return false;
+  if (value.version !== 1) return false;
+  if (!Array.isArray(value.blocks)) return false;
+
+  if (value.meta !== undefined) {
+    if (!isRecord(value.meta)) return false;
+    // meta 目前只校验视觉字段，SEO 等字段由上层协议约束
+    if (!hasValidCommonVisualProps(value.meta)) return false;
+  }
+
+  return value.blocks.every(isDocumentBlockNode);
 }

@@ -2,18 +2,23 @@ import React from "react";
 import {
   compileDesignDocumentV1ToDocumentIR,
   DocumentRenderer,
-  isCoreDocumentIR,
+  isDocumentIR,
   isDesignDocumentV1,
   migrateDocumentIRToDesignDocumentV1,
 } from "@celestial/site-renderer-core";
-import type { CoreDocumentIR } from "@celestial/site-renderer-core";
+import type { DocumentIR } from "@celestial/site-renderer-core";
 
 import type {
   DesignBlockNodeV1,
   DesignDocumentV1,
   ViewerContext,
 } from "@celestial/site-block-protocol";
-import { CORE_BLOCK_MANIFESTS, CORE_BLOCK_PATTERNS } from "@celestial/site-block-protocol";
+import {
+  CORE_BLOCK_MANIFESTS,
+  CORE_BLOCK_PATTERNS,
+  PREFAB_BLOCK_MANIFESTS,
+  resolveBreakpointNameByWidth,
+} from "@celestial/site-block-protocol";
 import type {
   BlockId,
   EditorCanvasState,
@@ -31,6 +36,8 @@ import {
   applySelectionPatch,
   buildLayerTree,
   buildSelectionInspector,
+  buildSelectionInspectorForBreakpoint,
+  setBreakpointOverride as setBreakpointOverrideInDocument,
   commitEditorHistory,
   createEditorHistory,
   deleteBlock as deleteBlockInDocument,
@@ -87,11 +94,35 @@ export function EditorSiteView(props: EditorSiteViewProps) {
   const siteId = props.siteId;
   const viewerCtx = props.viewerCtx;
 
+  const [viewportWidth, setViewportWidth] = React.useState<number | null>(null);
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    const read = () => setViewportWidth(window.innerWidth);
+    read();
+    window.addEventListener("resize", read);
+    return () => window.removeEventListener("resize", read);
+  }, []);
+
+  const breakpointFromWidth = React.useMemo(() => {
+    if (viewportWidth == null) return null;
+    return resolveBreakpointNameByWidth(viewportWidth);
+  }, [viewportWidth]);
+
+  const renderCtx = React.useMemo<ViewerContext>(() => {
+    if (!breakpointFromWidth) return viewerCtx;
+    return { ...viewerCtx, breakpoint: breakpointFromWidth };
+  }, [breakpointFromWidth, viewerCtx]);
+
+  const breakpointRef = React.useRef<string | null>(breakpointFromWidth);
+  React.useEffect(() => {
+    breakpointRef.current = breakpointFromWidth;
+  }, [breakpointFromWidth]);
+
   const baseDesignDocument = React.useMemo<DesignDocumentV1>(() => {
     if (isDesignDocumentV1(initialDocumentUnknown)) {
       return initialDocumentUnknown;
     }
-    if (isCoreDocumentIR(initialDocumentUnknown)) {
+    if (isDocumentIR(initialDocumentUnknown)) {
       return migrateDocumentIRToDesignDocumentV1(initialDocumentUnknown);
     }
     // Keep editor mode strict to avoid accepting arbitrary JSON.
@@ -126,12 +157,12 @@ export function EditorSiteView(props: EditorSiteViewProps) {
   const pendingHoverRef = React.useRef<BlockId | null>(null);
 
   const renderDocument = draftDocument ?? history.present;
-  const compiledDocument = React.useMemo(() => {
+  const compiledDocument = React.useMemo<DocumentIR>(() => {
     const compiled = compileDesignDocumentV1ToDocumentIR(renderDocument);
-    if (!isCoreDocumentIR(compiled)) {
-      throw new Error("Compiled DesignDocument is not a valid CoreDocumentIR");
+    if (!isDocumentIR(compiled)) {
+      throw new Error("Compiled DesignDocument is not a valid DocumentIR");
     }
-    return compiled as CoreDocumentIR;
+    return compiled;
   }, [renderDocument]);
 
   type ResizeSession = {
@@ -248,13 +279,22 @@ export function EditorSiteView(props: EditorSiteViewProps) {
     onMissing: () => setSelectedBlockId(null),
   });
 
+  const buildEffectiveInspector = React.useCallback(
+    (document: DesignDocumentV1, blockId: BlockId | null) => {
+      const bp = breakpointRef.current;
+      if (!bp) return buildSelectionInspector(document, blockId);
+      return buildSelectionInspectorForBreakpoint(document, blockId, bp);
+    },
+    [],
+  );
+
   const syncSelectionInspector = React.useCallback(
     (document: DesignDocumentV1, blockId: BlockId | null) => {
-      const inspector = buildSelectionInspector(document, blockId);
+      const inspector = buildEffectiveInspector(document, blockId);
       getHostOptionalEvents(hostRef.current).selectionInspectorChanged?.({ inspector });
       return inspector;
     },
-    [],
+    [buildEffectiveInspector],
   );
 
   const syncLayers = React.useCallback((document: DesignDocumentV1) => {
@@ -275,14 +315,13 @@ export function EditorSiteView(props: EditorSiteViewProps) {
       setHasDraftOverride(true);
 
       const currentSelected = opts?.preserveSelection ? selectedBlockIdRef.current : null;
-      const inspector = buildSelectionInspector(nextDocument, currentSelected);
+      const inspector = syncSelectionInspector(nextDocument, currentSelected);
       if (inspector.blockId !== currentSelected) {
         setSelectedBlockId(inspector.blockId);
       }
 
       syncHistoryState(toEditorHistoryState(nextHistory));
       syncLayers(nextDocument);
-      syncSelectionInspector(nextDocument, inspector.blockId);
       return inspector;
     },
     [syncHistoryState, syncLayers, syncSelectionInspector],
@@ -447,7 +486,7 @@ export function EditorSiteView(props: EditorSiteViewProps) {
         const incoming = document as unknown;
         const nextDocument = isDesignDocumentV1(incoming)
           ? incoming
-          : isCoreDocumentIR(incoming)
+          : isDocumentIR(incoming)
             ? migrateDocumentIRToDesignDocumentV1(incoming)
             : null;
         if (!nextDocument) return;
@@ -471,7 +510,7 @@ export function EditorSiteView(props: EditorSiteViewProps) {
       redo: () => redoFromPortal(),
       getHistoryState: () => toEditorHistoryState(historyRef.current),
       getSelectionInspector: () =>
-        buildSelectionInspector(historyRef.current.present, selectedBlockIdRef.current),
+        buildEffectiveInspector(historyRef.current.present, selectedBlockIdRef.current),
       applySelectionPatch: ({ patch }) => {
         const patched = applySelectionPatch(
           historyRef.current.present,
@@ -483,8 +522,7 @@ export function EditorSiteView(props: EditorSiteViewProps) {
           return commitNextDocument(patched.document, { preserveSelection: true });
         }
 
-        syncSelectionInspector(historyRef.current.present, selectedBlockIdRef.current);
-        return patched.inspector;
+        return syncSelectionInspector(historyRef.current.present, selectedBlockIdRef.current);
       },
       getLayerTree: () => buildLayerTree(historyRef.current.present),
       insertBlock: (args) => {
@@ -500,11 +538,11 @@ export function EditorSiteView(props: EditorSiteViewProps) {
         setSelectedBlockId(inserted.blockId);
         syncHistoryState(toEditorHistoryState(nextHistory));
         syncLayers(inserted.document);
-        syncSelectionInspector(inserted.document, inserted.blockId);
+        const inspector = syncSelectionInspector(inserted.document, inserted.blockId);
 
         return {
           blockId: inserted.blockId,
-          inspector: inserted.inspector,
+          inspector,
           layers: inserted.layers,
         };
       },
@@ -521,11 +559,11 @@ export function EditorSiteView(props: EditorSiteViewProps) {
         setSelectedBlockId(inserted.blockId);
         syncHistoryState(toEditorHistoryState(nextHistory));
         syncLayers(inserted.document);
-        syncSelectionInspector(inserted.document, inserted.blockId);
+        const inspector = syncSelectionInspector(inserted.document, inserted.blockId);
 
         return {
           blockId: inserted.blockId,
-          inspector: inserted.inspector,
+          inspector,
           layers: inserted.layers,
         };
       },
@@ -555,7 +593,7 @@ export function EditorSiteView(props: EditorSiteViewProps) {
       getCanvasState: () => canvasStateRef.current,
 
       // --- Block registry & patterns ---
-      getAvailableBlocks: () => CORE_BLOCK_MANIFESTS,
+      getAvailableBlocks: () => [...CORE_BLOCK_MANIFESTS, ...PREFAB_BLOCK_MANIFESTS],
       getBlockPatterns: ({ category }) =>
         category ? CORE_BLOCK_PATTERNS.filter((p) => p.category === category) : CORE_BLOCK_PATTERNS,
 
@@ -594,11 +632,10 @@ export function EditorSiteView(props: EditorSiteViewProps) {
         setHistory(nextHistory);
         setHasDraftOverride(true);
 
-        const inspector = buildSelectionInspector(deleted.document, selectedBlockIdRef.current);
+        const inspector = syncSelectionInspector(deleted.document, selectedBlockIdRef.current);
         setSelectedBlockId(inspector.blockId);
         syncHistoryState(toEditorHistoryState(nextHistory));
         const layers = syncLayers(deleted.document);
-        syncSelectionInspector(deleted.document, inspector.blockId);
         return layers;
       },
       duplicateBlock: ({ blockId }) => {
@@ -611,18 +648,53 @@ export function EditorSiteView(props: EditorSiteViewProps) {
         setSelectedBlockId(duplicated.blockId);
         syncHistoryState(toEditorHistoryState(nextHistory));
         syncLayers(duplicated.document);
-        syncSelectionInspector(duplicated.document, duplicated.blockId);
+        const inspector = syncSelectionInspector(duplicated.document, duplicated.blockId);
 
         return {
           blockId: duplicated.blockId,
-          inspector: duplicated.inspector,
+          inspector,
           layers: duplicated.layers,
         };
       },
 
-      // --- Responsive (skeleton stub) ---
-      setBreakpointOverride: () =>
-        buildSelectionInspector(historyRef.current.present, selectedBlockIdRef.current),
+      // --- Responsive ---
+      setBreakpointOverride: ({ blockId, breakpoint, patch }) => {
+        const current = historyRef.current.present;
+        const resolvedBlockId = blockId ?? selectedBlockIdRef.current;
+
+        const next = setBreakpointOverrideInDocument(current, {
+          blockId: resolvedBlockId,
+          breakpoint,
+          patch,
+        });
+
+        if (next.document !== current) {
+          const nextHistory = commitEditorHistory(historyRef.current, next.document);
+          historyRef.current = nextHistory;
+          setHistory(nextHistory);
+          setHasDraftOverride(true);
+
+          // 默认保留选中项；如果 patch 导致选中项失效，则跟随 inspector 的 blockId。
+          const currentSelected = selectedBlockIdRef.current;
+          if (next.inspector.blockId !== currentSelected) {
+            setSelectedBlockId(next.inspector.blockId);
+          }
+
+          syncHistoryState(toEditorHistoryState(nextHistory));
+          syncLayers(next.document);
+          getHostOptionalEvents(hostRef.current).selectionInspectorChanged?.({
+            inspector: next.inspector,
+          });
+
+          return next.inspector;
+        }
+
+        // No-op update still needs to keep the host inspector in sync.
+        getHostOptionalEvents(hostRef.current).selectionInspectorChanged?.({
+          inspector: next.inspector,
+        });
+        return next.inspector;
+      },
 
       // --- Inline editing (skeleton stubs) ---
       startInlineEdit: ({ blockId: _b, fieldKey: _f }) => ({ content: [] }),
@@ -663,6 +735,11 @@ export function EditorSiteView(props: EditorSiteViewProps) {
     void hostRef.current?.selectionChanged({ blockId: selectedBlockId });
     syncSelectionInspector(history.present, selectedBlockId);
   }, [history.present, selectedBlockId, syncSelectionInspector]);
+
+  React.useEffect(() => {
+    // Breakpoint changed (iframe resized) -> refresh inspector to reflect responsive overrides.
+    syncSelectionInspector(history.present, selectedBlockId);
+  }, [breakpointFromWidth, history.present, selectedBlockId, syncSelectionInspector]);
 
   React.useEffect(() => {
     const presence = {
@@ -748,7 +825,7 @@ export function EditorSiteView(props: EditorSiteViewProps) {
           setHoveredBlockId(null);
         }}
       >
-        <DocumentRenderer document={compiledDocument} ctx={viewerCtx} />
+        <DocumentRenderer document={compiledDocument} ctx={renderCtx} />
       </div>
       <div data-editor-overlay="true">
         {inlineEdit && selectedRect && selectedBlockId === inlineEdit.blockId ? (

@@ -6,6 +6,7 @@ import { useDraggable } from "@dnd-kit/core";
 
 import {
   CORE_BLOCK_MANIFESTS,
+  PREFAB_BLOCK_MANIFESTS,
   resolveLocalizedValue,
   type BlockCategory,
   type BlockManifest,
@@ -72,7 +73,7 @@ export function ComponentsPanel() {
 
   const filtered = useMemo(() => {
     const q = query.toLowerCase();
-    return CORE_BLOCK_MANIFESTS.filter((m) => {
+    return [...CORE_BLOCK_MANIFESTS, ...PREFAB_BLOCK_MANIFESTS].filter((m) => {
       const label = resolveLocalizedValue(m.label, viewerCtx) ?? m.type;
       return label.toLowerCase().includes(q) || m.type.toLowerCase().includes(q);
     });

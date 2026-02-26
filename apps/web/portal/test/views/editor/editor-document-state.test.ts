@@ -3,9 +3,10 @@ import { describe, expect, test } from "vitest";
 import {
   compileDesignDocumentV1ToDocumentIR,
   isCoreDocumentIR,
+  isDocumentIR,
   migrateDocumentIRToDesignDocumentV1,
 } from "@celestial/site-renderer-core";
-import type { CoreDocumentIR } from "@celestial/site-renderer-core";
+import type { CoreDocumentIR, DocumentIR } from "@celestial/site-renderer-core";
 import { EDITOR_PAGE_ROOT_BLOCK_ID } from "@celestial/site-editor-protocol";
 import type { DesignDocumentV1 } from "@celestial/site-block-protocol";
 
@@ -13,6 +14,7 @@ import {
   applySelectionPatch,
   buildLayerTree,
   buildSelectionInspector,
+  buildSelectionInspectorForBreakpoint,
   commitEditorHistory,
   createEditorHistory,
   deleteBlock,
@@ -21,6 +23,7 @@ import {
   moveBlock,
   redoEditorHistory,
   duplicateBlock,
+  setBreakpointOverride,
   undoEditorHistory,
 } from "@/views/editor/editor-document-state";
 
@@ -77,6 +80,14 @@ function compile(doc: DesignDocumentV1): CoreDocumentIR {
   return compiled;
 }
 
+function compileAny(doc: DesignDocumentV1): DocumentIR {
+  const compiled = compileDesignDocumentV1ToDocumentIR(doc);
+  if (!isDocumentIR(compiled)) {
+    throw new Error("Expected compiled document to be DocumentIR");
+  }
+  return compiled;
+}
+
 describe("editor document state", () => {
   test("buildSelectionInspector extracts block sections", () => {
     const doc = createSampleDesignDocument();
@@ -109,6 +120,44 @@ describe("editor document state", () => {
     const heading = second.inspector;
     expect(heading.component.level).toBe(2);
     expect(heading.layout.width).toBe(640);
+  });
+
+  test("prefab nodes: inspector uses prefab:<code> blockType and patches nested props + style whitelist", () => {
+    const doc = createSampleDesignDocument();
+
+    const inserted = insertBlock(doc, {
+      type: "prefab:card",
+      targetBlockId: "c-root",
+      position: "inside",
+    });
+
+    const prefabId = inserted.selectedBlockId;
+    const inspector = buildSelectionInspector(inserted.document, prefabId);
+    expect(inspector.blockType).toBe("prefab:card");
+    expect(inspector.component).toHaveProperty("title");
+
+    const patchedComponent = applySelectionPatch(inserted.document, prefabId, {
+      section: "component",
+      values: {
+        title: { "en-US": "My Card", "zh-CN": "我的卡片" },
+      },
+    });
+    expect(patchedComponent.inspector.component).toMatchObject({
+      title: { "en-US": "My Card", "zh-CN": "我的卡片" },
+    });
+
+    const patchedDesign = applySelectionPatch(patchedComponent.document, prefabId, {
+      section: "design",
+      values: {
+        color: "#ff0000", // not in whitelist
+        backgroundColor: "#111111",
+      },
+    });
+    expect(patchedDesign.inspector.design).not.toHaveProperty("color");
+    expect(patchedDesign.inspector.design.backgroundColor).toBe("#111111");
+
+    const compiled = compileAny(patchedDesign.document);
+    expect(JSON.stringify(compiled)).toContain('"__prefab__"');
   });
 
   test("insertBlock appends into selected container", () => {
@@ -251,5 +300,36 @@ describe("editor document state", () => {
     const compiled = compile(patched.document);
     expect(compiled.meta?.title?.["en-US"]).toBe("Home");
     expect(compiled.meta?.title?.["zh-CN"]).toBe("主页");
+  });
+
+  test("setBreakpointOverride writes node.responsive and merges inspector", () => {
+    const doc = createSampleDesignDocument();
+
+    const first = setBreakpointOverride(doc, {
+      blockId: "h-title",
+      breakpoint: "mobile",
+      patch: {
+        section: "layout",
+        values: { width: 320 },
+      },
+    });
+
+    const node = first.document.nodesById["h-title"] as unknown as { responsive?: any };
+    expect(node.responsive?.mobile?.layout?.width).toBe(320);
+
+    const merged = buildSelectionInspectorForBreakpoint(first.document, "h-title", "mobile");
+    expect(merged.layout.width).toBe(320);
+
+    const cleared = setBreakpointOverride(first.document, {
+      blockId: "h-title",
+      breakpoint: "mobile",
+      patch: {
+        section: "layout",
+        values: { width: null },
+      },
+    });
+
+    const clearedNode = cleared.document.nodesById["h-title"] as unknown as { responsive?: any };
+    expect(clearedNode.responsive).toBeUndefined();
   });
 });

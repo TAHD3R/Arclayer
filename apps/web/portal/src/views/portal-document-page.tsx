@@ -1,12 +1,12 @@
 import React from "react";
 import { DocumentRenderer } from "@celestial/site-renderer-core";
-import type { CoreDocumentIR } from "@celestial/site-renderer-core";
+import type { DocumentIR } from "@celestial/site-renderer-core";
 
 import type { ViewerContext } from "@celestial/site-block-protocol";
 import type { PortalRouteMatch } from "@celestial/web-types";
 
 export type PortalDocumentPageProps = {
-  document: CoreDocumentIR;
+  document: DocumentIR;
   match: PortalRouteMatch;
   viewerCtx: ViewerContext;
   showHydration?: boolean;

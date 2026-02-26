@@ -1,13 +1,22 @@
 import React from "react";
 import type { ReactNode } from "react";
 
-import type { CommonBlockVisualProps, ViewerContext } from "@celestial/site-block-protocol";
-import type { CoreBlockNode, CoreDocumentIR } from "./core-blocks";
-import { buildBlockStyles, renderCoreBlock } from "./core-blocks";
+import type { CommonBlockVisualProps, DocumentIR, ViewerContext } from "@celestial/site-block-protocol";
+import type { BlockRegistry } from "./BlockRegistry";
+import { createDefaultBlockRegistry } from "./default-registry";
+import { buildBlockStyles } from "./visual-props";
 
 export interface DocumentRendererProps {
-  document: CoreDocumentIR;
+  document: DocumentIR;
   ctx: ViewerContext;
+  /**
+   * 自定义渲染注册表：
+   * - 允许覆盖 core blocks（同 type 重注册）
+   * - 允许注册自定义 blocks / prefabs（配合 `__prefab__`）
+   *
+   * 未提供时会使用默认注册表（core blocks + prefab 支持 + fallback）。
+   */
+  registry?: BlockRegistry;
 }
 
 type ProcessLike = {
@@ -27,7 +36,12 @@ function isProductionEnv(): boolean {
 }
 
 export function DocumentRenderer(props: DocumentRendererProps) {
-  const { document, ctx } = props;
+  const { document, ctx, registry: registryFromProps } = props;
+
+  const registry = React.useMemo(
+    () => registryFromProps ?? createDefaultBlockRegistry(),
+    [registryFromProps],
+  );
 
   const rootVisualProps: CommonBlockVisualProps = {};
   if (document.meta?.layout) rootVisualProps.layout = document.meta.layout;
@@ -41,16 +55,12 @@ export function DocumentRenderer(props: DocumentRendererProps) {
       {document.blocks.map((block) => (
         <React.Fragment key={block.id}>
           <BlockErrorBoundary blockId={block.id} blockType={block.type}>
-            {render(block, ctx)}
+            {registry.render(block, ctx)}
           </BlockErrorBoundary>
         </React.Fragment>
       ))}
     </main>
   );
-}
-
-function render(block: CoreBlockNode, ctx: ViewerContext): ReactNode {
-  return renderCoreBlock(block, ctx);
 }
 
 interface BlockErrorBoundaryProps {

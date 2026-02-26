@@ -17,10 +17,106 @@ import type {
   DesignNodeId,
   DesignNodeV1,
 } from "@celestial/site-block-protocol";
+import {
+  CORE_BLOCK_MANIFESTS,
+  PREFAB_BLOCK_MANIFESTS,
+  type BlockManifest,
+  type FieldDefinition,
+} from "@celestial/site-block-protocol";
+
+import { PREFAB_INSTANCE_BLOCK_TYPE } from "@celestial/site-renderer-core";
 
 const HISTORY_LIMIT_DEFAULT = 100;
 
 const COMPONENT_META_KEYS = new Set(["layout", "style", "animation"]);
+
+const PREFAB_INSPECTOR_PREFIX = "prefab:";
+
+const MANIFEST_BY_TYPE = new Map<string, BlockManifest>(
+  [...CORE_BLOCK_MANIFESTS, ...PREFAB_BLOCK_MANIFESTS].map((m) => [m.type, m]),
+);
+
+function isLocalizedStringMap(value: unknown): value is Record<string, string> {
+  if (!isRecord(value)) return false;
+  for (const v of Object.values(value)) {
+    if (v === undefined) continue;
+    if (typeof v !== "string") return false;
+  }
+  return true;
+}
+
+function findManifestByType(type: string): BlockManifest | null {
+  const normalized = (type || "").trim();
+  if (!normalized) return null;
+  return MANIFEST_BY_TYPE.get(normalized) ?? null;
+}
+
+function parsePrefabCodeFromInspectorType(type: string): string | null {
+  const raw = (type || "").trim();
+  if (!raw.startsWith(PREFAB_INSPECTOR_PREFIX)) return null;
+  const code = raw.slice(PREFAB_INSPECTOR_PREFIX.length).trim();
+  return code ? code : null;
+}
+
+function prefabInspectorTypeFromCode(code: string): string {
+  return `${PREFAB_INSPECTOR_PREFIX}${code}`;
+}
+
+function validateFieldValue(field: FieldDefinition, value: unknown): boolean {
+  // undefined 会被 mergePropsRecord 忽略；null 表示删除（required 字段不允许删除）
+  if (value === undefined) return true;
+  if (value === null) return !field.required;
+
+  switch (field.kind) {
+    case "boolean":
+      return typeof value === "boolean";
+    case "number":
+      return typeof value === "number" && Number.isFinite(value);
+    case "select":
+      if (typeof value !== "string") return false;
+      if (!field.validation?.options) return true;
+      return field.validation.options.some((opt) => opt.value === value);
+    case "text":
+      return typeof value === "string" || isLocalizedStringMap(value);
+    case "color":
+    case "url":
+      return typeof value === "string";
+    default:
+      return true;
+  }
+}
+
+function filterComponentPatchByManifest(
+  values: Record<string, unknown>,
+  manifest: BlockManifest | null,
+): Record<string, unknown> {
+  if (!manifest) return values;
+  const fields = new Map<string, FieldDefinition>(manifest.attributes.map((f) => [f.key, f]));
+
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(values)) {
+    const field = fields.get(key);
+    if (!field) continue;
+    if (!validateFieldValue(field, value)) continue;
+    out[key] = value;
+  }
+  return out;
+}
+
+function filterDesignPatchByWhitelist(
+  values: Record<string, unknown>,
+  whitelist: string[] | undefined,
+): Record<string, unknown> {
+  if (!Array.isArray(whitelist) || whitelist.length === 0) return values;
+  const allow = new Set(whitelist);
+
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(values)) {
+    // 允许删除任何字段（回到 prefab 内部默认），但只允许设置白名单字段
+    if (value === null || allow.has(key)) out[key] = value;
+  }
+  return out;
+}
 
 type EditorDocumentHistory = {
   past: DesignDocumentV1[];
@@ -85,7 +181,7 @@ function isBlockNode(node: DesignNodeV1 | undefined): node is DesignBlockNodeV1 
 
 function isParentBlockType(type: string): boolean {
   // Keep v1 aligned with current core blocks.
-  return type === "container" || type === "grid";
+  return type === "container" || type === "grid" || type === PREFAB_INSTANCE_BLOCK_TYPE;
 }
 
 function getNodeChildren(node: DesignNodeV1): DesignNodeId[] {
@@ -279,6 +375,14 @@ function buildLayerLabel(node: DesignBlockNodeV1): string {
   const props = node.props;
 
   switch (node.type) {
+    case PREFAB_INSTANCE_BLOCK_TYPE: {
+      const record = asRecord(props);
+      const code = typeof record.prefab === "string" ? record.prefab.trim() : "";
+      const prefabProps = asRecord(record.props);
+      const title = localizedTextFromProps(prefabProps.title);
+      const base = code ? `Prefab(${code})` : "Prefab";
+      return title ? `${base}: ${title}` : base;
+    }
     case "heading": {
       const text = localizedTextFromProps(props.text);
       return text ? `Heading: ${text}` : "Heading";
@@ -328,6 +432,30 @@ function localized(en: string, zh: string): Record<string, string> {
 
 function buildDesignBlockByType(type: EditorInsertBlockArgs["type"]): DesignBlockNodeV1 {
   const id = generateBlockId();
+
+  const prefabCode = parsePrefabCodeFromInspectorType(type);
+  if (prefabCode) {
+    const defaultPrefabProps: Record<string, unknown> =
+      prefabCode === "card"
+        ? {
+            title: localized("Card", "卡片"),
+            description: localized("Description", "描述"),
+            imageSrc: "",
+            href: "",
+          }
+        : {};
+
+    return {
+      id,
+      type: PREFAB_INSTANCE_BLOCK_TYPE,
+      props: {
+        prefab: prefabCode,
+        props: defaultPrefabProps,
+        layout: { width: "100%" },
+      },
+      children: [],
+    };
+  }
 
   if (type === "container") {
     return {
@@ -631,6 +759,19 @@ export function buildSelectionInspector(
   }
 
   const props = asRecord(node.props);
+  if (node.type === PREFAB_INSTANCE_BLOCK_TYPE) {
+    const prefab = typeof props.prefab === "string" ? props.prefab.trim() : "";
+    const inspectorType = prefab ? prefabInspectorTypeFromCode(prefab) : node.type;
+
+    return {
+      blockId: node.id,
+      blockType: inspectorType,
+      component: asRecord(props.props),
+      layout: asRecord(props.layout),
+      design: asRecord(props.style),
+      animation: asRecord(props.animation),
+    };
+  }
   return {
     blockId: node.id,
     blockType: node.type,
@@ -638,6 +779,39 @@ export function buildSelectionInspector(
     layout: asRecord(props.layout),
     design: asRecord(props.style),
     animation: asRecord(props.animation),
+  };
+}
+
+export function buildSelectionInspectorForBreakpoint(
+  document: DesignDocumentV1,
+  blockId: string | null,
+  breakpoint: string,
+): EditorSelectionInspector {
+  const base = buildSelectionInspector(document, blockId);
+  if (!base.blockId || base.blockId === EDITOR_PAGE_ROOT_BLOCK_ID) return base;
+
+  const node = document.nodesById[base.blockId];
+  if (!isBlockNode(node)) return base;
+
+  const bp = (breakpoint || "").trim();
+  if (!bp) return base;
+
+  const override = node.responsive?.[bp];
+  if (!override) return base;
+
+  const nextLayout = override.layout
+    ? { ...base.layout, ...asRecord(override.layout) }
+    : base.layout;
+  const nextDesign = override.style ? { ...base.design, ...asRecord(override.style) } : base.design;
+  const nextAnimation = override.animation
+    ? { ...base.animation, ...asRecord(override.animation) }
+    : base.animation;
+
+  return {
+    ...base,
+    layout: nextLayout,
+    design: nextDesign,
+    animation: nextAnimation,
   };
 }
 
@@ -721,7 +895,27 @@ export function applySelectionPatch(
 
   const nextNode = (() => {
     if (patch.section === "component") {
-      const nextComponent = mergePropsRecord(componentSectionFromProps(currentProps), patch.values);
+      if (node.type === PREFAB_INSTANCE_BLOCK_TYPE) {
+        const prefab = typeof currentProps.prefab === "string" ? currentProps.prefab.trim() : "";
+        const manifest = prefab ? findManifestByType(prefabInspectorTypeFromCode(prefab)) : null;
+        const filteredValues = filterComponentPatchByManifest(patch.values, manifest);
+        const nextPrefabProps = mergePropsRecord(asRecord(currentProps.props), filteredValues);
+
+        return {
+          ...node,
+          props: {
+            ...currentProps,
+            props: nextPrefabProps,
+          },
+        };
+      }
+
+      const manifest = findManifestByType(node.type);
+      const filteredValues = filterComponentPatchByManifest(patch.values, manifest);
+      const nextComponent = mergePropsRecord(
+        componentSectionFromProps(currentProps),
+        filteredValues,
+      );
       const merged: Record<string, unknown> = {
         ...nextComponent,
       };
@@ -736,6 +930,16 @@ export function applySelectionPatch(
     }
 
     if (patch.section === "design") {
+      if (node.type === PREFAB_INSTANCE_BLOCK_TYPE) {
+        const prefab = typeof currentProps.prefab === "string" ? currentProps.prefab.trim() : "";
+        const manifest = prefab ? findManifestByType(prefabInspectorTypeFromCode(prefab)) : null;
+        const filteredValues = filterDesignPatchByWhitelist(
+          patch.values,
+          manifest?.styleOverrideWhitelist,
+        );
+        return { ...node, props: mergeNestedProps(currentProps, "style", filteredValues) };
+      }
+
       return { ...node, props: mergeNestedProps(currentProps, "style", patch.values) };
     }
 
@@ -753,6 +957,109 @@ export function applySelectionPatch(
   return {
     document: updated.document,
     inspector: buildSelectionInspector(updated.document, blockId),
+  };
+}
+
+function isEmptyRecordValue(value: unknown): boolean {
+  if (!isRecord(value)) return true;
+  return Object.keys(value).length === 0;
+}
+
+export function setBreakpointOverride(
+  document: DesignDocumentV1,
+  args: {
+    blockId: string | null;
+    breakpoint: string;
+    patch: EditorSelectionPatch;
+  },
+): { document: DesignDocumentV1; inspector: EditorSelectionInspector } {
+  const blockId = args.blockId;
+  if (!blockId) {
+    return { document, inspector: buildSelectionInspector(document, null) };
+  }
+
+  const bp = (args.breakpoint || "").trim();
+  if (!bp) {
+    return { document, inspector: buildSelectionInspector(document, blockId) };
+  }
+
+  if (blockId === EDITOR_PAGE_ROOT_BLOCK_ID) {
+    // Page root 当前不支持 responsive override（后续 PageRoot 扩展时再接入）。
+    return { document, inspector: buildSelectionInspector(document, EDITOR_PAGE_ROOT_BLOCK_ID) };
+  }
+
+  if (args.patch.section === "component") {
+    // v1 仅允许响应式覆写 visual props（layout/design/animation），组件字段暂不支持。
+    return { document, inspector: buildSelectionInspectorForBreakpoint(document, blockId, bp) };
+  }
+
+  const node = document.nodesById[blockId];
+  if (!isBlockNode(node)) {
+    return { document, inspector: buildSelectionInspector(document, null) };
+  }
+
+  const currentResponsive = node.responsive ? cloneJson(node.responsive) : {};
+  const currentOverride = asRecord(currentResponsive[bp]);
+
+  const nextOverride = (() => {
+    if (args.patch.section === "layout") {
+      const nextLayout = mergePropsRecord(asRecord(currentOverride.layout), args.patch.values);
+      const out: Record<string, unknown> = { ...currentOverride, layout: nextLayout };
+      if (isEmptyRecordValue(nextLayout)) delete out.layout;
+      return out;
+    }
+
+    if (args.patch.section === "design") {
+      const filteredValues =
+        node.type === PREFAB_INSTANCE_BLOCK_TYPE
+          ? (() => {
+              const nodeProps = asRecord(node.props);
+              const prefab = typeof nodeProps.prefab === "string" ? nodeProps.prefab.trim() : "";
+              const manifest = prefab
+                ? findManifestByType(prefabInspectorTypeFromCode(prefab))
+                : null;
+              return filterDesignPatchByWhitelist(
+                args.patch.values,
+                manifest?.styleOverrideWhitelist,
+              );
+            })()
+          : args.patch.values;
+
+      const nextStyle = mergePropsRecord(asRecord(currentOverride.style), filteredValues);
+      const out: Record<string, unknown> = { ...currentOverride, style: nextStyle };
+      if (isEmptyRecordValue(nextStyle)) delete out.style;
+      return out;
+    }
+
+    const nextAnimation = mergePropsRecord(asRecord(currentOverride.animation), args.patch.values);
+    const out: Record<string, unknown> = { ...currentOverride, animation: nextAnimation };
+    if (isEmptyRecordValue(nextAnimation)) delete out.animation;
+    return out;
+  })();
+
+  const nextResponsive: Record<string, unknown> = { ...currentResponsive };
+  if (isEmptyRecordValue(nextOverride)) {
+    delete nextResponsive[bp];
+  } else {
+    nextResponsive[bp] = nextOverride;
+  }
+
+  const { responsive: _responsive, ...restNode } = node;
+  const updatedNode: DesignBlockNodeV1 = isEmptyRecordValue(nextResponsive)
+    ? restNode
+    : {
+        ...restNode,
+        responsive: nextResponsive as NonNullable<DesignBlockNodeV1["responsive"]>,
+      };
+
+  const updated = updateNodeById(document, node.id, () => updatedNode);
+  if (!updated.changed) {
+    return { document, inspector: buildSelectionInspectorForBreakpoint(document, blockId, bp) };
+  }
+
+  return {
+    document: updated.document,
+    inspector: buildSelectionInspectorForBreakpoint(updated.document, blockId, bp),
   };
 }
 

@@ -1,16 +1,18 @@
 import React from "react";
 
 import type {
-  BlockAnimationProps,
-  BlockDesignProps,
-  BlockLayoutProps,
   BlockNode,
   CommonBlockVisualProps,
   DocumentIR,
   LocalizedString,
   ViewerContext,
 } from "@celestial/site-block-protocol";
-import { resolveLocalizedValue } from "@celestial/site-block-protocol";
+import type { BlockManifest } from "@celestial/site-block-protocol";
+import { CORE_BLOCK_MANIFESTS, resolveLocalizedValue } from "@celestial/site-block-protocol";
+
+import type { BlockRenderer } from "./BlockRegistry";
+import { BlockRegistry } from "./BlockRegistry";
+import { buildBlockStyles, resolveNodeVisualProps } from "./visual-props";
 
 export type CoreBlockType =
   | "container"
@@ -142,103 +144,6 @@ export interface CoreDocumentIR extends Omit<DocumentIR, "blocks"> {
   blocks: CoreBlockNode[];
 }
 
-function mapFlexAlign(value: BlockLayoutProps["justifyContent"] | BlockLayoutProps["alignItems"]): string | undefined {
-  if (!value) return undefined;
-  if (value === "start") return "flex-start";
-  if (value === "end") return "flex-end";
-  return value;
-}
-
-function toCssLength(value: unknown): string | number | undefined {
-  if (typeof value === "number" && Number.isFinite(value)) return `${value}px`;
-  if (typeof value === "string" && value.trim()) return value;
-  return undefined;
-}
-
-function applyLayoutStyles(style: React.CSSProperties, layout: BlockLayoutProps | undefined): void {
-  if (!layout) return;
-
-  style.width = toCssLength(layout.width);
-  style.minWidth = toCssLength(layout.minWidth);
-  style.maxWidth = toCssLength(layout.maxWidth);
-  style.height = toCssLength(layout.height);
-  style.minHeight = toCssLength(layout.minHeight);
-  style.maxHeight = toCssLength(layout.maxHeight);
-  style.margin = toCssLength(layout.margin);
-  style.padding = toCssLength(layout.padding);
-
-  const paddingX = toCssLength(layout.paddingX);
-  if (paddingX !== undefined) {
-    style.paddingLeft = paddingX;
-    style.paddingRight = paddingX;
-  }
-
-  const paddingY = toCssLength(layout.paddingY);
-  if (paddingY !== undefined) {
-    style.paddingTop = paddingY;
-    style.paddingBottom = paddingY;
-  }
-
-  style.gap = toCssLength(layout.gap);
-  style.display = layout.display;
-  style.flexDirection = layout.direction;
-  style.flexWrap = layout.wrap;
-  style.justifyContent = mapFlexAlign(layout.justifyContent) as React.CSSProperties["justifyContent"];
-  style.alignItems = mapFlexAlign(layout.alignItems) as React.CSSProperties["alignItems"];
-}
-
-function applyDesignStyles(style: React.CSSProperties, design: BlockDesignProps | undefined): void {
-  if (!design) return;
-
-  style.color = design.color;
-  style.backgroundColor = design.backgroundColor;
-  style.borderColor = design.borderColor;
-  style.borderStyle = design.borderStyle;
-  style.borderWidth = toCssLength(design.borderWidth);
-  style.borderRadius = toCssLength(design.borderRadius);
-  style.boxShadow = design.boxShadow;
-
-  if (typeof design.opacity === "number" && Number.isFinite(design.opacity)) {
-    style.opacity = Math.min(1, Math.max(0, design.opacity));
-  }
-}
-
-function applyAnimationStyles(style: React.CSSProperties, animation: BlockAnimationProps | undefined): void {
-  if (!animation || !animation.type || animation.type === "none") return;
-
-  style.animationName =
-    animation.type === "fade"
-      ? "celestial-editor-fade-in"
-      : animation.type === "slide-up"
-        ? "celestial-editor-slide-up"
-        : animation.type === "slide-down"
-          ? "celestial-editor-slide-down"
-          : "celestial-editor-zoom-in";
-
-  style.animationDuration = `${Math.max(60, animation.durationMs ?? 260)}ms`;
-  style.animationDelay = `${Math.max(0, animation.delayMs ?? 0)}ms`;
-  style.animationTimingFunction = animation.easing || "cubic-bezier(0.2, 0.9, 0.2, 1)";
-  style.animationIterationCount = `${Math.max(1, Math.round(animation.iterationCount ?? 1))}`;
-  style.animationFillMode = animation.fillMode ?? "both";
-}
-
-export function buildBlockStyles(props: CommonBlockVisualProps | undefined): React.CSSProperties {
-  const style: React.CSSProperties = {};
-  if (!props) return style;
-  applyLayoutStyles(style, props.layout);
-  applyDesignStyles(style, props.style);
-  applyAnimationStyles(style, props.animation);
-  return style;
-}
-
-export function renderCoreBlock(node: CoreBlockNode, ctx: ViewerContext): React.ReactNode {
-  try {
-    return renderCoreBlockUnsafe(node, ctx);
-  } catch (err) {
-    return renderBlockError(node, err);
-  }
-}
-
 function resolveText(value: LocalizedString, ctx: ViewerContext): string {
   return resolveLocalizedValue(value, ctx) ?? "";
 }
@@ -257,190 +162,270 @@ function resolveHref(href: string, basePath: string | undefined): string {
   return normalizedBase + raw;
 }
 
-function renderCoreBlockUnsafe(node: CoreBlockNode, ctx: ViewerContext): React.ReactNode {
-  switch (node.type) {
-    case "container": {
-      const Tag = node.props.as ?? "section";
-      return (
-        <Tag
-          data-block-type={node.type}
-          data-block-id={node.id}
-          className={node.props.className}
-          style={buildBlockStyles(node.props)}
-        >
-          {node.children?.map((child) => (
-            <React.Fragment key={child.id}>{renderCoreBlock(child, ctx)}</React.Fragment>
-          ))}
-        </Tag>
-      );
-    }
-    case "grid": {
-      const columns = Number.isFinite(node.props.columns) ? Math.max(1, Math.round(node.props.columns ?? 2)) : 2;
-      const style = buildBlockStyles(node.props);
-      style.display = "grid";
-      style.gridTemplateColumns = `repeat(${columns}, 1fr)`;
-      if (node.props.columnGap) style.columnGap = node.props.columnGap;
-      if (node.props.rowGap) style.rowGap = node.props.rowGap;
+function resolveContainerTag(value: unknown): "div" | "section" | "article" {
+  if (value === "div" || value === "section" || value === "article") return value;
+  return "section";
+}
 
-      return (
-        <div data-block-type={node.type} data-block-id={node.id} style={style}>
-          {node.children?.map((child) => (
-            <React.Fragment key={child.id}>{renderCoreBlock(child, ctx)}</React.Fragment>
-          ))}
-        </div>
-      );
-    }
-    case "spacer": {
-      const style = buildBlockStyles(node.props);
-      if (node.props.height) {
-        style.height = node.props.height;
-      } else if (!style.height) {
-        style.height = "24px";
-      }
-      return <div data-block-type={node.type} data-block-id={node.id} style={style} aria-hidden="true" />;
-    }
-    case "heading": {
-      const Tag = `h${node.props.level}` as const;
-      const text = resolveText(node.props.text, ctx);
-      const style = buildBlockStyles(node.props);
-      style.textAlign = node.props.align ?? "left";
-      return (
-        <Tag data-block-type={node.type} data-block-id={node.id} data-align={node.props.align ?? "left"} style={style}>
-          {text}
-        </Tag>
-      );
-    }
-    case "paragraph": {
-      const text = resolveText(node.props.text, ctx);
-      const style = buildBlockStyles(node.props);
-      style.textAlign = node.props.align ?? "left";
-      return (
-        <p data-block-type={node.type} data-block-id={node.id} data-align={node.props.align ?? "left"} style={style}>
-          {text}
-        </p>
-      );
-    }
-    case "list": {
-      const Tag = node.props.ordered ? "ol" : "ul";
-      const items = Array.isArray(node.props.items) ? node.props.items : [];
-      const style = buildBlockStyles(node.props);
-      return (
-        <Tag data-block-type={node.type} data-block-id={node.id} style={style}>
-          {items.map((item, index) => (
-            <li key={index}>{resolveText(item, ctx)}</li>
-          ))}
-        </Tag>
-      );
-    }
-    case "quote": {
-      const text = resolveText(node.props.text, ctx);
-      const citation = node.props.citation ? resolveText(node.props.citation, ctx) : "";
-      const style = buildBlockStyles(node.props);
-      return (
-        <blockquote data-block-type={node.type} data-block-id={node.id} style={style}>
-          <p>{text}</p>
-          {citation ? <cite>{citation}</cite> : null}
-        </blockquote>
-      );
-    }
-    case "image": {
-      const style = buildBlockStyles(node.props);
-      style.objectFit = node.props.objectFit ?? "cover";
-      return (
-        <img
-          data-block-type={node.type}
-          data-block-id={node.id}
-          src={node.props.src}
-          alt={node.props.alt ?? ""}
-          style={style}
-        />
-      );
-    }
-    case "video": {
-      const style = buildBlockStyles(node.props);
-      return (
-        <video
-          data-block-type={node.type}
-          data-block-id={node.id}
-          src={node.props.src}
-          poster={node.props.poster}
-          autoPlay={!!node.props.autoplay}
-          loop={!!node.props.loop}
-          muted={!!node.props.muted}
-          controls={!node.props.autoplay}
-          style={style}
-        />
-      );
-    }
-    case "icon": {
-      const style = buildBlockStyles(node.props);
-      if (node.props.size) style.fontSize = node.props.size;
-      return (
-        <span
-          data-block-type={node.type}
-          data-block-id={node.id}
-          data-icon={node.props.name}
-          role="img"
-          aria-label={node.props.name}
-          style={style}
-        />
-      );
-    }
-    case "button": {
-      const text = resolveText(node.props.text, ctx);
-      const style = buildBlockStyles(node.props);
-      if (node.props.href) {
-        return (
-          <a
-            data-block-type={node.type}
-            data-block-id={node.id}
-            href={resolveHref(node.props.href, ctx.basePath)}
-            data-variant={node.props.variant}
-            data-size={node.props.size}
-            style={style}
-          >
-            {text}
-          </a>
-        );
-      }
-
-      return (
-        <button
-          type="button"
-          data-block-type={node.type}
-          data-block-id={node.id}
-          data-variant={node.props.variant}
-          data-size={node.props.size}
-          style={style}
-        >
-          {text}
-        </button>
-      );
-    }
-    case "divider": {
-      return (
-        <hr
-          data-block-type={node.type}
-          data-block-id={node.id}
-          data-variant={node.props.variant ?? "default"}
-          style={buildBlockStyles(node.props)}
-        />
-      );
-    }
+function resolveHeadingTag(level: number): "h1" | "h2" | "h3" | "h4" | "h5" | "h6" {
+  switch (level) {
+    case 1:
+      return "h1";
+    case 2:
+      return "h2";
+    case 3:
+      return "h3";
+    case 4:
+      return "h4";
+    case 5:
+      return "h5";
+    case 6:
+      return "h6";
+    default:
+      return "h2";
   }
-
-  return assertUnreachable(node);
 }
 
-function assertUnreachable(_value: never): never {
-  throw new Error("Unreachable core block type");
+function asString(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim() ? value : undefined;
 }
 
-function renderBlockError(node: CoreBlockNode, err: unknown): React.ReactNode {
-  const message = err instanceof Error ? err.message : String(err);
-  return (
-    <pre data-block-error="true" data-block-type={node.type} data-block-id={node.id}>
-      Block render error: {message}
-    </pre>
-  );
+function asNumber(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+const CORE_MANIFEST_BY_TYPE = new Map<string, BlockManifest>(
+  CORE_BLOCK_MANIFESTS.map((m) => [m.type, m]),
+);
+
+export const coreBlockRenderers = {
+  container: (node, ctx, registry) => {
+    const props = node.props as Record<string, unknown>;
+    const Tag = resolveContainerTag(props["as"]);
+    const className = asString(props["className"]);
+    const style = buildBlockStyles(resolveNodeVisualProps(node, ctx));
+
+    return (
+      <Tag data-block-type={node.type} data-block-id={node.id} className={className} style={style}>
+        {Array.isArray(node.children)
+          ? node.children.map((child) => <React.Fragment key={child.id}>{registry.render(child, ctx)}</React.Fragment>)
+          : null}
+      </Tag>
+    );
+  },
+  grid: (node, ctx, registry) => {
+    const props = node.props as Record<string, unknown>;
+    const columnsRaw = asNumber(props["columns"]);
+    const columns = columnsRaw !== undefined ? Math.max(1, Math.round(columnsRaw)) : 2;
+
+    const style = buildBlockStyles(resolveNodeVisualProps(node, ctx));
+    style.display = "grid";
+    style.gridTemplateColumns = `repeat(${columns}, 1fr)`;
+
+    const columnGap = asString(props["columnGap"]);
+    const rowGap = asString(props["rowGap"]);
+    if (columnGap) style.columnGap = columnGap;
+    if (rowGap) style.rowGap = rowGap;
+
+    return (
+      <div data-block-type={node.type} data-block-id={node.id} style={style}>
+        {Array.isArray(node.children)
+          ? node.children.map((child) => <React.Fragment key={child.id}>{registry.render(child, ctx)}</React.Fragment>)
+          : null}
+      </div>
+    );
+  },
+  spacer: (node, ctx) => {
+    const props = node.props as Record<string, unknown>;
+    const style = buildBlockStyles(resolveNodeVisualProps(node, ctx));
+
+    const height = asString(props["height"]);
+    if (height) {
+      style.height = height;
+    } else if (!style.height) {
+      style.height = "24px";
+    }
+
+    return <div data-block-type={node.type} data-block-id={node.id} style={style} aria-hidden="true" />;
+  },
+  divider: (node, ctx) => {
+    const props = node.props as Record<string, unknown>;
+    const variant = asString(props["variant"]) ?? "default";
+    return (
+      <hr
+        data-block-type={node.type}
+        data-block-id={node.id}
+        data-variant={variant}
+        style={buildBlockStyles(resolveNodeVisualProps(node, ctx))}
+      />
+    );
+  },
+  heading: (node, ctx) => {
+    const props = node.props as Record<string, unknown>;
+    const levelRaw = asNumber(props["level"]);
+    const level = levelRaw !== undefined ? Math.min(6, Math.max(1, Math.round(levelRaw))) : 2;
+    const Tag = resolveHeadingTag(level);
+
+    const textValue = props["text"] as LocalizedString;
+    const text = resolveText(textValue, ctx);
+
+    const align = asString(props["align"]) ?? "left";
+    const style = buildBlockStyles(resolveNodeVisualProps(node, ctx));
+    style.textAlign = align as React.CSSProperties["textAlign"];
+
+    return (
+      <Tag data-block-type={node.type} data-block-id={node.id} data-align={align} style={style}>
+        {text}
+      </Tag>
+    );
+  },
+  paragraph: (node, ctx) => {
+    const props = node.props as Record<string, unknown>;
+    const textValue = props["text"] as LocalizedString;
+    const text = resolveText(textValue, ctx);
+
+    const align = asString(props["align"]) ?? "left";
+    const style = buildBlockStyles(resolveNodeVisualProps(node, ctx));
+    style.textAlign = align as React.CSSProperties["textAlign"];
+
+    return (
+      <p data-block-type={node.type} data-block-id={node.id} data-align={align} style={style}>
+        {text}
+      </p>
+    );
+  },
+  list: (node, ctx) => {
+    const props = node.props as Record<string, unknown>;
+    const ordered = props["ordered"] === true;
+    const Tag = ordered ? "ol" : "ul";
+
+    const items = Array.isArray(props["items"]) ? (props["items"] as LocalizedString[]) : [];
+    const style = buildBlockStyles(resolveNodeVisualProps(node, ctx));
+
+    return (
+      <Tag data-block-type={node.type} data-block-id={node.id} style={style}>
+        {items.map((item, index) => (
+          <li key={index}>{resolveText(item, ctx)}</li>
+        ))}
+      </Tag>
+    );
+  },
+  quote: (node, ctx) => {
+    const props = node.props as Record<string, unknown>;
+    const textValue = props["text"] as LocalizedString;
+    const citationValue = props["citation"] as LocalizedString | undefined;
+
+    const text = resolveText(textValue, ctx);
+    const citation = citationValue ? resolveText(citationValue, ctx) : "";
+    const style = buildBlockStyles(resolveNodeVisualProps(node, ctx));
+
+    return (
+      <blockquote data-block-type={node.type} data-block-id={node.id} style={style}>
+        <p>{text}</p>
+        {citation ? <cite>{citation}</cite> : null}
+      </blockquote>
+    );
+  },
+  image: (node, ctx) => {
+    const props = node.props as Record<string, unknown>;
+    const src = asString(props["src"]) ?? "";
+    const alt = asString(props["alt"]) ?? "";
+
+    const style = buildBlockStyles(resolveNodeVisualProps(node, ctx));
+    const objectFit = asString(props["objectFit"]) ?? "cover";
+    style.objectFit = objectFit as React.CSSProperties["objectFit"];
+
+    return <img data-block-type={node.type} data-block-id={node.id} src={src} alt={alt} style={style} />;
+  },
+  video: (node, ctx) => {
+    const props = node.props as Record<string, unknown>;
+    const src = asString(props["src"]) ?? "";
+    const poster = asString(props["poster"]);
+    const autoplay = props["autoplay"] === true;
+    const loop = props["loop"] === true;
+    const muted = props["muted"] === true;
+
+    const style = buildBlockStyles(resolveNodeVisualProps(node, ctx));
+
+    return (
+      <video
+        data-block-type={node.type}
+        data-block-id={node.id}
+        src={src}
+        poster={poster}
+        autoPlay={autoplay}
+        loop={loop}
+        muted={muted}
+        controls={!autoplay}
+        style={style}
+      />
+    );
+  },
+  icon: (node, ctx) => {
+    const props = node.props as Record<string, unknown>;
+    const name = asString(props["name"]) ?? "";
+    const size = asString(props["size"]);
+
+    const style = buildBlockStyles(resolveNodeVisualProps(node, ctx));
+    if (size) style.fontSize = size;
+
+    return (
+      <span
+        data-block-type={node.type}
+        data-block-id={node.id}
+        data-icon={name}
+        role="img"
+        aria-label={name}
+        style={style}
+      />
+    );
+  },
+  button: (node, ctx) => {
+    const props = node.props as Record<string, unknown>;
+    const textValue = props["text"] as LocalizedString;
+    const text = resolveText(textValue, ctx);
+
+    const href = asString(props["href"]);
+    const variant = asString(props["variant"]);
+    const size = asString(props["size"]);
+    const style = buildBlockStyles(resolveNodeVisualProps(node, ctx));
+
+    if (href) {
+      return (
+        <a
+          data-block-type={node.type}
+          data-block-id={node.id}
+          href={resolveHref(href, ctx.basePath)}
+          data-variant={variant}
+          data-size={size}
+          style={style}
+        >
+          {text}
+        </a>
+      );
+    }
+
+    return (
+      <button
+        type="button"
+        data-block-type={node.type}
+        data-block-id={node.id}
+        data-variant={variant}
+        data-size={size}
+        style={style}
+      >
+        {text}
+      </button>
+    );
+  },
+} satisfies Record<CoreBlockType, BlockRenderer>;
+
+export function registerCoreBlocks(registry: BlockRegistry): void {
+  for (const [type, renderer] of Object.entries(coreBlockRenderers) as Array<[CoreBlockType, BlockRenderer]>) {
+    const manifest = CORE_MANIFEST_BY_TYPE.get(type);
+    if (!manifest) {
+      throw new Error(`[site-renderer-core] Missing core block manifest: ${type}`);
+    }
+    registry.register(manifest, renderer);
+  }
 }

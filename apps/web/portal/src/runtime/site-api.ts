@@ -1,5 +1,5 @@
-import { isCoreDocumentIR } from "@celestial/site-renderer-core";
-import type { CoreDocumentIR } from "@celestial/site-renderer-core";
+import { isDocumentIR } from "@celestial/site-renderer-core";
+import type { DocumentIR } from "@celestial/site-renderer-core";
 import { ApiError } from "@celestial/web-core/http";
 import type { PortalResolveMode, PortalRouteMatch, PortalSiteContext } from "@celestial/web-types";
 
@@ -87,7 +87,7 @@ export async function resolveRouteFromApi(
   siteId: string,
   opts: { mode: PortalResolveMode; token?: string },
 ): Promise<
-  | { kind: "page"; document: CoreDocumentIR; match: PortalRouteMatch }
+  | { kind: "page"; document: DocumentIR; match: PortalRouteMatch }
   | { kind: "redirect"; to: string; status: 301 | 302 }
   | { kind: "not_found" }
 > {
@@ -135,7 +135,7 @@ export async function resolveRouteFromApi(
   }
 
   const document = getRecordField(data, "document");
-  if (!isCoreDocumentIR(document)) {
+  if (!isDocumentIR(document)) {
     throw new Error("Invalid DocumentIR returned by API");
   }
 

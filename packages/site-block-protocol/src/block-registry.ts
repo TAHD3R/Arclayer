@@ -25,9 +25,19 @@ export interface BlockManifest<Type extends string = string> {
   label: LocalizedString;
   icon?: string;
   category: BlockCategory;
+  /** Manifest kind: default is normal block. Prefab manifests are editor insert entries. */
+  kind?: "block" | "prefab";
   supports: BlockSupports;
   /** Block-specific attribute schema, reuses FieldDefinition. */
   attributes: FieldDefinition[];
+  /**
+   * Prefab 样式覆写白名单：仅允许覆写这些 design key。
+   *
+   * 说明：
+   * - 这是一种“组件边界”约束：prefab 内部的关键样式应由 prefab 自己控制
+   * - 编辑器与运行时都应以此为准（编辑时过滤 patch，运行时可做降级/提示）
+   */
+  styleOverrideWhitelist?: string[];
 }
 
 export interface BlockPattern {

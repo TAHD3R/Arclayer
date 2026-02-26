@@ -131,6 +131,19 @@ export const DEFAULT_BREAKPOINTS: BreakpointDefinition[] = [
   { name: "mobile", minWidth: 0, label: { "en-US": "Mobile", "zh-CN": "手机" } },
 ];
 
+export function resolveBreakpointNameByWidth(
+  width: number,
+  breakpoints: BreakpointDefinition[] = DEFAULT_BREAKPOINTS,
+): string {
+  const w = Number.isFinite(width) ? width : 0;
+  const sorted = [...breakpoints].sort((a, b) => b.minWidth - a.minWidth);
+  for (const bp of sorted) {
+    if (w >= bp.minWidth) return bp.name;
+  }
+  // Fallback: keep behavior deterministic even for empty breakpoints array.
+  return sorted[sorted.length - 1]?.name ?? "mobile";
+}
+
 // --- Display Mode ---
 
 export interface DisplayMode {
@@ -190,6 +203,7 @@ export type {
 
 export { CORE_BLOCK_MANIFESTS } from "./manifests/index";
 export { EDITOR_INTERNAL_BLOCK_MANIFESTS } from "./manifests/index";
+export { PREFAB_BLOCK_MANIFESTS } from "./manifests/index";
 
 export { CORE_BLOCK_PATTERNS } from "./patterns/index";
 
