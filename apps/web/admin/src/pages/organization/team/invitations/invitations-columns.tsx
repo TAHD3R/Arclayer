@@ -116,6 +116,7 @@ export function useOrganizationInvitationColumns(options: UseOrganizationInvitat
       },
       {
         id: "actions",
+        size: 220,
         meta: { kind: "actions" },
         header: "",
         cell: ({ row }) => (
@@ -274,6 +275,7 @@ export function useOrganizationInvitationColumns(options: UseOrganizationInvitat
       },
       {
         id: "actions",
+        size: 220,
         meta: { kind: "actions" },
         header: "",
         cell: ({ row }) => (

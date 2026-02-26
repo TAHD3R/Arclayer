@@ -5,7 +5,6 @@ import { Search } from "lucide-react";
 import { ContentGuard } from "@/components/common/content-guard";
 import { DataTablePresenter } from "@/components/data-table";
 import { LoaderOne } from "@/components/ui/loader";
-import { cn } from "@/lib/utils";
 
 type TranslateFn = (key: string, options?: Record<string, unknown>) => string;
 
@@ -75,10 +74,6 @@ export function TeamInvitationsTableSection<TRow>(props: TeamInvitationsTableSec
           table={table}
           className="flex-1 min-h-0"
           emptyText={t("team:TEAM_EMPTY_TABLE")}
-          rowClassName={(_row, rowIndex) => {
-            const stripeClass = rowIndex % 2 === 1 ? "bg-muted/20" : "bg-card";
-            return cn(stripeClass, "hover:bg-muted/40 transition-colors");
-          }}
         />
 
         {pageData ? (

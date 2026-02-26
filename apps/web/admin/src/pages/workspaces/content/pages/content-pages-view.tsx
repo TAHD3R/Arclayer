@@ -233,6 +233,7 @@ export function ContentPagesView() {
     initialState: {
       pageSize: 10,
       sorting: [{ id: "updatedAt", desc: true }],
+      columnPinning: { left: ["select"] },
     },
     fetcher: async (params) => {
       if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
@@ -288,23 +289,6 @@ export function ContentPagesView() {
   const pageData = tableHook.pageData;
   const selectedRows = table.getSelectedRowModel().rows.map((row) => row.original);
   const selectedCount = selectedRows.length;
-
-  React.useEffect(() => {
-    table.setColumnPinning((prev) => {
-      const left = ["select"];
-      const right: string[] = [];
-
-      const leftSame =
-        (prev.left ?? []).length === left.length &&
-        left.every((value, index) => prev.left?.[index] === value);
-      const rightSame =
-        (prev.right ?? []).length === right.length &&
-        right.every((value, index) => prev.right?.[index] === value);
-
-      if (leftSame && rightSame) return prev;
-      return { left, right };
-    });
-  }, [table]);
 
   const resetFilters = React.useCallback(() => {
     setFilters({
@@ -551,14 +535,6 @@ export function ContentPagesView() {
             table={table}
             emptyText={t("content_pages:INDEX_EMPTY")}
             className="flex-1 min-h-0"
-            rowClassName={(row, rowIndex) => {
-              const selected = row.getIsSelected()
-                ? "bg-muted/40"
-                : rowIndex % 2 === 1
-                  ? "bg-muted/20"
-                  : "";
-              return cn(selected, "hover:bg-muted/40 transition-colors cursor-pointer");
-            }}
             onRowClick={(row) => openEditor(row.original)}
           />
 

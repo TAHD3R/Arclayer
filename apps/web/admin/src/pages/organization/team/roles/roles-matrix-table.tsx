@@ -23,11 +23,11 @@ export function RolesMatrixTable(props: RolesMatrixTableProps) {
     props;
 
   return (
-    <div className="relative isolate overflow-auto rounded-lg border bg-card">
-      <table className="w-full min-w-max text-footnote [&_th]:whitespace-nowrap">
-        <TableHeader className="sticky top-0 z-[2] bg-card">
-          <TableRow>
-            <TableHead className="sticky left-0 z-[3] w-[360px] bg-card text-center">
+    <div className="relative isolate overflow-auto">
+      <table className="w-full min-w-max text-callout [&_th]:whitespace-nowrap">
+        <TableHeader className="sticky top-0 z-[2] bg-background">
+          <TableRow className="border-border/40 hover:bg-transparent">
+            <TableHead className="sticky left-0 z-[3] w-[360px] bg-background text-center uppercase tracking-wider">
               {t("team:TEAM_ROLES_COL_PERMISSION")}
             </TableHead>
             {filteredRoles.map((role) => {
@@ -42,7 +42,10 @@ export function RolesMatrixTable(props: RolesMatrixTableProps) {
               ];
 
               return (
-                <TableHead key={role.code} className="min-w-[160px] text-center">
+                <TableHead
+                  key={role.code}
+                  className="min-w-[160px] text-center uppercase tracking-wider"
+                >
                   <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
                     <div />
                     <div className="truncate font-medium text-foreground">{role.name}</div>
@@ -72,8 +75,11 @@ export function RolesMatrixTable(props: RolesMatrixTableProps) {
 
         <TableBody>
           {filteredPermissions.map((permission) => (
-            <TableRow key={permission.code}>
-              <TableCell className="sticky left-0 z-[1] w-90 bg-card">
+            <TableRow
+              key={permission.code}
+              className="group/row border-border/40 hover:bg-muted/40"
+            >
+              <TableCell className="sticky left-0 z-[1] w-90 bg-background group-hover/row:bg-muted/40 transition-colors">
                 <div className="min-w-0">
                   <div className="truncate font-semibold text-foreground">
                     {permission.displayName}

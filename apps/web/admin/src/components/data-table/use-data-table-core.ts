@@ -35,6 +35,7 @@ export type UseDataTableCoreOptions<TData> = {
     sorting?: SortingState;
     q?: string;
     columnVisibility?: VisibilityState;
+    columnPinning?: ColumnPinningState;
   };
   rowSelection?: {
     enabled?: boolean;
@@ -79,6 +80,20 @@ export function useDataTableCore<TData>(
     [columnsWithSorting],
   );
 
+  // Auto-detect actions/select columns and derive initial pinning state.
+  const autoPinning = React.useMemo<ColumnPinningState>(() => {
+    const right: string[] = [];
+    for (const col of options.columns) {
+      const id = col.id ?? (col as { accessorKey?: string }).accessorKey;
+      if (!id) continue;
+      const meta = col.meta as { kind?: string } | undefined;
+      if (meta?.kind === "actions" || id === "actions") right.push(id);
+    }
+    return right.length > 0 ? { right } : {};
+  }, [options.columns]);
+
+  const hasAutoPinning = (autoPinning.left?.length ?? 0) + (autoPinning.right?.length ?? 0) > 0;
+
   const [committedSearch, setCommittedSearch] = React.useState(() => options.initialState?.q ?? "");
   const [sorting, setSorting] = React.useState<SortingState>(
     () => options.initialState?.sorting ?? [],
@@ -87,7 +102,17 @@ export function useDataTableCore<TData>(
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>(
     () => options.initialState?.columnVisibility ?? {},
   );
-  const [columnPinning, setColumnPinning] = React.useState<ColumnPinningState>({});
+  const [columnPinning, setColumnPinning] = React.useState<ColumnPinningState>(() => {
+    const explicit = options.initialState?.columnPinning;
+    if (!hasAutoPinning) return explicit ?? {};
+    // Merge: explicit takes precedence, auto-detected ids are appended.
+    const left = [...(explicit?.left ?? []), ...(autoPinning.left ?? [])];
+    const right = [...(explicit?.right ?? []), ...(autoPinning.right ?? [])];
+    return {
+      ...(left.length > 0 ? { left: [...new Set(left)] } : {}),
+      ...(right.length > 0 ? { right: [...new Set(right)] } : {}),
+    };
+  });
   const [columnSizing, setColumnSizing] = React.useState<ColumnSizingState>({});
   const [expanded, setExpanded] = React.useState<ExpandedState>({});
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
@@ -172,7 +197,7 @@ export function useDataTableCore<TData>(
     enableSorting: sortingEnabled,
     enableMultiSort: sortingOptions?.multiSort ?? true,
     enableSortingRemoval: sortingOptions?.allowRemoval ?? true,
-    enableColumnPinning: options.features?.columnPinning?.enabled ?? false,
+    enableColumnPinning: options.features?.columnPinning?.enabled ?? hasAutoPinning,
     enableColumnResizing: options.features?.columnSizing?.enabled ?? false,
     enableExpanding: options.features?.rowExpansion?.enabled ?? false,
 

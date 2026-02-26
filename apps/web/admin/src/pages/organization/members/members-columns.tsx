@@ -109,6 +109,7 @@ export function createOrganizationMembersColumns(
     },
     {
       id: "actions",
+      size: 120,
       meta: { kind: "actions" },
       header: t("common:ORG_MEMBERS_TABLE_ACTIONS"),
       cell: ({ row }) => (

@@ -31,9 +31,6 @@ export function WorkspacesTableSection(props: {
       <DataTablePresenter
         table={table}
         emptyText={props.t("common:EMPTY_DESC")}
-        rowClassName={() =>
-          props.onRowClick ? "hover:bg-muted/40 transition-colors cursor-pointer" : ""
-        }
         onRowClick={props.onRowClick}
       />
     </ContentGuard>

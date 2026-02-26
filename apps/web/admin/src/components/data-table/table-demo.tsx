@@ -3,6 +3,7 @@
 import {
   type ColumnDef,
   type ColumnFiltersState,
+  type ColumnPinningState,
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
@@ -175,6 +176,9 @@ export default function DataTableColumnsVisibilityDemo() {
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
+  const [columnPinning, setColumnPinning] = React.useState<ColumnPinningState>({
+    right: ["actions"],
+  });
 
   const table = useReactTable({
     data,
@@ -187,11 +191,14 @@ export default function DataTableColumnsVisibilityDemo() {
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
+    onColumnPinningChange: setColumnPinning,
+    enableColumnPinning: true,
     state: {
       sorting,
       columnFilters,
       columnVisibility,
       rowSelection,
+      columnPinning,
     },
   });
 

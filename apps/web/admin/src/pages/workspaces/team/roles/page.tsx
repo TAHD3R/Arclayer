@@ -297,12 +297,12 @@ export function TeamRolesView(props: { workspaceIdOverride?: string | null } = {
         {hasEmptySearch ? (
           <ContentGuard loading={false} empty emptyTitle={t("team:TEAM_ROLES_EMPTY_SEARCH")} />
         ) : (
-          <div className="relative isolate rounded-lg border bg-card">
+          <div className="relative isolate">
             {showTopScrollbar ? (
               <div
                 ref={topScrollRef}
                 onScroll={onTopScroll}
-                className="h-4 overflow-x-auto overflow-y-hidden border-b bg-card"
+                className="h-4 overflow-x-auto overflow-y-hidden border-b"
               >
                 <div ref={scrollSpacerRef} className="h-1" />
               </div>
@@ -310,11 +310,11 @@ export function TeamRolesView(props: { workspaceIdOverride?: string | null } = {
             <div ref={mainScrollRef} onScroll={onMainScroll} className="overflow-auto">
               <table
                 ref={tableRef}
-                className="w-full min-w-max caption-bottom text-footnote [&_th]:whitespace-nowrap"
+                className="w-full min-w-max caption-bottom text-callout [&_th]:whitespace-nowrap"
               >
-                <TableHeader className="sticky top-0 z-[2] bg-card">
-                  <TableRow>
-                    <TableHead className="sticky left-0 z-[3] w-[360px] bg-card text-center">
+                <TableHeader className="sticky top-0 z-[2] bg-background">
+                  <TableRow className="border-border/40 hover:bg-transparent">
+                    <TableHead className="sticky left-0 z-[3] w-[360px] bg-background text-center uppercase tracking-wider">
                       {t("team:TEAM_ROLES_COL_PERMISSION")}
                     </TableHead>
                     {filteredRoles.map((role) => {
@@ -333,7 +333,10 @@ export function TeamRolesView(props: { workspaceIdOverride?: string | null } = {
                       ];
 
                       return (
-                        <TableHead key={role.code} className="min-w-[160px] text-center">
+                        <TableHead
+                          key={role.code}
+                          className="min-w-[160px] text-center uppercase tracking-wider"
+                        >
                           <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
                             <div />
                             <div className="min-w-0">
@@ -366,8 +369,11 @@ export function TeamRolesView(props: { workspaceIdOverride?: string | null } = {
                 </TableHeader>
                 <TableBody>
                   {filteredPermissions.map((perm) => (
-                    <TableRow key={perm.code}>
-                      <TableCell className="sticky left-0 z-[1] w-90 bg-card">
+                    <TableRow
+                      key={perm.code}
+                      className="group/row border-border/40 hover:bg-muted/40"
+                    >
+                      <TableCell className="sticky left-0 z-[1] w-90 bg-background group-hover/row:bg-muted/40 transition-colors">
                         <div className="min-w-0">
                           <div className="truncate font-semibold text-foreground">{perm.name}</div>
                           {perm.description ? (

@@ -4,7 +4,6 @@ import { useTranslation } from "react-i18next";
 
 import { DataTablePresenter } from "@/components/data-table";
 import type { PageData } from "@/components/data-table";
-import { cn } from "@/lib/utils";
 import type { OrganizationMember } from "@/api/organization-members";
 
 interface OrganizationMembersTableSectionProps {
@@ -22,13 +21,7 @@ export function OrganizationMembersTableSection({
 
   return (
     <>
-      <DataTablePresenter
-        table={table}
-        emptyText={t("team:TEAM_EMPTY_TABLE")}
-        rowClassName={(_row, rowIndex) =>
-          cn(rowIndex % 2 === 1 ? "bg-muted/20" : "bg-card", "transition-colors hover:bg-muted/40")
-        }
-      />
+      <DataTablePresenter table={table} emptyText={t("team:TEAM_EMPTY_TABLE")} />
 
       {pageData ? (
         <div className="flex flex-wrap items-center justify-between gap-3 pt-4">

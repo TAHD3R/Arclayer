@@ -35,6 +35,7 @@ export type UseDataTableOptions<
     pageSize?: number;
     sorting?: SortingState;
     q?: string;
+    columnPinning?: import("@tanstack/react-table").ColumnPinningState;
   };
   rowSelection?: {
     enabled?: boolean;
@@ -151,6 +152,7 @@ export function useDataTable<
       sorting: initialState?.sorting,
       q: initialState?.q,
       columnVisibility: initialVisibility,
+      columnPinning: initialState?.columnPinning,
     },
     rowSelection: {
       enabled: rowSelection?.enabled,

@@ -8,16 +8,16 @@ import {
   type Table as ReactTable,
 } from "@tanstack/react-table";
 import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
-import type { CSSProperties, MouseEvent } from "react";
-
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+  type CSSProperties,
+  type MouseEvent,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+
+import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 
 type DataTablePresenterProps<TData> = {
@@ -59,12 +59,22 @@ function resolveHeaderJustifyClass(align: AlignClass): string {
 function SortStateIcon(props: { state: false | "asc" | "desc" }) {
   if (props.state === "asc") return <ArrowUp className="size-3.5 text-foreground" />;
   if (props.state === "desc") return <ArrowDown className="size-3.5 text-foreground" />;
-  return <ArrowUpDown className="size-3.5 text-label-secondary/70" />;
+  return (
+    <ArrowUpDown className="size-3.5 text-label-secondary/40 transition-colors group-hover:text-foreground/80" />
+  );
 }
 
-function resolveColumnBaseStyle<TData>(column: Header<TData, unknown>["column"]): CSSProperties {
+function resolveColumnBaseStyle<TData>(
+  column: Header<TData, unknown>["column"],
+  pinned?: "left" | "right" | false,
+): CSSProperties {
   const size = column.getSize();
   if (!size) return {};
+  // Pinned columns use minWidth only — let content determine actual width
+  // so buttons/icons in actions columns are never clipped.
+  if (pinned) {
+    return { minWidth: size };
+  }
   return {
     width: size,
     minWidth: size,
@@ -74,7 +84,7 @@ function resolveColumnBaseStyle<TData>(column: Header<TData, unknown>["column"])
 
 function resolveHeaderPinStyle<TData>(header: Header<TData, unknown>): PinStyleState {
   const pinned = header.column.getIsPinned();
-  const style: CSSProperties = resolveColumnBaseStyle(header.column);
+  const style: CSSProperties = resolveColumnBaseStyle(header.column, pinned);
 
   if (!pinned) return { className: undefined, style };
 
@@ -88,12 +98,12 @@ function resolveHeaderPinStyle<TData>(header: Header<TData, unknown>): PinStyleS
 
   return {
     className: cn(
-      "z-30 bg-card",
+      "z-30 bg-background",
       pinned === "left" && header.column.getIsLastColumn("left")
-        ? "shadow-[2px_0_0_0_hsl(var(--border))]"
+        ? "shadow-[8px_0_16px_-4px_rgba(0,0,0,0.05),_1px_0_0_0_hsl(var(--border)/0.3)]"
         : "",
       pinned === "right" && header.column.getIsFirstColumn("right")
-        ? "shadow-[-2px_0_0_0_hsl(var(--border))]"
+        ? "shadow-[-8px_0_16px_-4px_rgba(0,0,0,0.05),_-1px_0_0_0_hsl(var(--border)/0.3)]"
         : "",
     ),
     style,
@@ -102,7 +112,7 @@ function resolveHeaderPinStyle<TData>(header: Header<TData, unknown>): PinStyleS
 
 function resolveCellPinStyle<TData>(cell: Cell<TData, unknown>): PinStyleState {
   const pinned = cell.column.getIsPinned();
-  const style: CSSProperties = resolveColumnBaseStyle(cell.column);
+  const style: CSSProperties = resolveColumnBaseStyle(cell.column, pinned);
 
   if (!pinned) return { className: undefined, style };
 
@@ -116,16 +126,50 @@ function resolveCellPinStyle<TData>(cell: Cell<TData, unknown>): PinStyleState {
 
   return {
     className: cn(
-      "z-20 bg-card",
+      "z-20 bg-background group-hover/row:bg-muted/60 transition-colors",
       pinned === "left" && cell.column.getIsLastColumn("left")
-        ? "shadow-[2px_0_0_0_hsl(var(--border))]"
+        ? "shadow-[8px_0_16px_-4px_rgba(0,0,0,0.05),_1px_0_0_0_hsl(var(--border)/0.3)]"
         : "",
       pinned === "right" && cell.column.getIsFirstColumn("right")
-        ? "shadow-[-2px_0_0_0_hsl(var(--border))]"
+        ? "shadow-[-8px_0_16px_-4px_rgba(0,0,0,0.05),_-1px_0_0_0_hsl(var(--border)/0.3)]"
         : "",
     ),
     style,
   };
+}
+
+/**
+ * Detect whether the scroll container has overflow on the right side.
+ * Returns true when there is still content to scroll to the right.
+ */
+function useScrollOverflow(ref: React.RefObject<HTMLDivElement | null>) {
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const check = useCallback(() => {
+    const el = ref.current;
+    if (!el) return;
+    // 1px tolerance for sub-pixel rounding
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
+  }, [ref]);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    check();
+    el.addEventListener("scroll", check, { passive: true });
+
+    // ResizeObserver may be unavailable in test environments (jsdom).
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(check) : null;
+    ro?.observe(el);
+
+    return () => {
+      el.removeEventListener("scroll", check);
+      ro?.disconnect();
+    };
+  }, [ref, check]);
+
+  return canScrollRight;
 }
 
 function shouldIgnoreRowClick(target: EventTarget | null): boolean {
@@ -149,12 +193,35 @@ export function DataTablePresenter<TData>(props: DataTablePresenterProps<TData>)
     cellClassName,
   } = props;
 
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const canScrollRight = useScrollOverflow(scrollRef);
+
+  // Compute total width of right-pinned columns for gradient positioning.
+  const rightPinnedWidth = table.getRightLeafColumns().reduce((sum, col) => sum + col.getSize(), 0);
+  const hasRightPinned = rightPinnedWidth > 0;
+
   return (
-    <div className={cn("relative isolate rounded-md border bg-card overflow-auto", className)}>
-      <Table className={tableClassName}>
+    <div ref={scrollRef} className={cn("relative isolate overflow-auto bg-transparent", className)}>
+      {/* Scroll overflow gradient — visible only when right side has hidden content */}
+      {hasRightPinned && (
+        <div
+          aria-hidden
+          className={cn(
+            "pointer-events-none absolute inset-y-0 z-25 w-10 transition-opacity duration-200",
+            canScrollRight ? "opacity-100" : "opacity-0",
+          )}
+          style={{
+            right: rightPinnedWidth,
+            background: "linear-gradient(to right, transparent, hsl(var(--background) / 0.6))",
+          }}
+        />
+      )}
+      {/* Render <table> directly — the Table component adds a nested overflow-auto
+          wrapper that would capture scroll events before our scrollRef container. */}
+      <table className={cn("w-full caption-bottom text-callout", tableClassName)}>
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
-            <TableRow key={headerGroup.id}>
+            <TableRow key={headerGroup.id} className="border-border/40 hover:bg-transparent">
               {headerGroup.headers.map((header) => {
                 const alignClass = resolveHeaderAlignClass(header);
                 const justifyClass = resolveHeaderJustifyClass(alignClass);
@@ -172,7 +239,12 @@ export function DataTablePresenter<TData>(props: DataTablePresenterProps<TData>)
                   <TableHead
                     key={header.id}
                     aria-sort={canSort ? ariaSort : undefined}
-                    className={cn(alignClass, pinStyle.className, headerCellClassName?.(header))}
+                    className={cn(
+                      alignClass,
+                      pinStyle.className,
+                      "uppercase tracking-wider text-label-secondary",
+                      headerCellClassName?.(header),
+                    )}
                     style={pinStyle.style}
                   >
                     {canSort ? (
@@ -202,7 +274,10 @@ export function DataTablePresenter<TData>(props: DataTablePresenterProps<TData>)
             table.getRowModel().rows.map((row, rowIndex) => (
               <TableRow
                 key={row.id}
-                className={rowClassName?.(row, rowIndex)}
+                className={cn(
+                  "group/row bg-background transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted/50 last:border-b-0",
+                  rowClassName?.(row, rowIndex),
+                )}
                 onClick={(event) => {
                   if (!onRowClick) return;
                   if (shouldIgnoreRowClick(event.target)) return;
@@ -224,7 +299,7 @@ export function DataTablePresenter<TData>(props: DataTablePresenterProps<TData>)
               </TableRow>
             ))
           ) : (
-            <TableRow>
+            <TableRow className="border-border/40 hover:bg-transparent last:border-b-0">
               <TableCell
                 className="h-24 text-center text-label-secondary"
                 colSpan={table.getVisibleLeafColumns().length}
@@ -234,7 +309,7 @@ export function DataTablePresenter<TData>(props: DataTablePresenterProps<TData>)
             </TableRow>
           )}
         </TableBody>
-      </Table>
+      </table>
     </div>
   );
 }

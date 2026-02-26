@@ -246,6 +246,7 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
       {
         id: "actions",
         enableHiding: false,
+        size: 220,
         meta: {
           title: t("team:TEAM_TABLE_COL_ACTIONS"),
           kind: "actions",
@@ -438,6 +439,7 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
       {
         id: "actions",
         enableHiding: false,
+        size: 220,
         meta: {
           title: t("team:TEAM_INVITE_LINKS_COL_ACTIONS"),
           kind: "actions",
