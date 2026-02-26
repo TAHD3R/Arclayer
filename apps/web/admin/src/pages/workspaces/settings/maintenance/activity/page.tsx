@@ -172,7 +172,6 @@ export function WorkspaceActivityPage() {
               items={items}
               onSelect={(e) => setSelected(e)}
               loading={listQuery.isFetchingNextPage}
-              titleSpan={4}
             />
 
             <div ref={sentinelRef} className="h-10" />

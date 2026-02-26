@@ -44,12 +44,7 @@ export function OrganizationMemberInspectActivityTab({
       variant="compact"
     >
       <div ref={scrollRef} className="min-h-0 flex-1 overflow-auto px-8">
-        <ActivityTimeline
-          items={items}
-          onSelect={onSelect}
-          loading={isFetchingNextPage}
-          titleSpan={4}
-        />
+        <ActivityTimeline items={items} onSelect={onSelect} loading={isFetchingNextPage} />
         <div ref={sentinelRef} className="h-10" />
       </div>
     </ContentGuard>

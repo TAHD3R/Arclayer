@@ -1,21 +1,26 @@
-import type { CSSProperties } from "react";
-import { Timeline } from "antd";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
+import { Activity, AlertTriangle, Circle, ShieldAlert } from "lucide-react";
 
 import type { ActivityEvent } from "@/api/activity";
+import type { ActivityEventLevel } from "@/components/activity/event-catalog";
 import { resolveCatalogEntry } from "@/components/activity/event-catalog";
+import { ActivityUserPill } from "@/components/activity/activity-user-pill";
+import {
+  Timeline,
+  TimelineContent,
+  TimelineIndicator,
+  TimelineItem,
+  TimelineSeparator,
+} from "@/components/ui/timeline";
+import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";
 import { formatDateTimeWithPattern } from "@/lib/time/date-time";
 import { cn } from "@/lib/utils";
-import { ActivityUserPill } from "@/components/activity/activity-user-pill";
-import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";
 
 type ActivityTimelineProps = {
   items: ActivityEvent[];
   onSelect?: (event: ActivityEvent) => void;
   loading?: boolean;
-  titleSpan?: number | string;
-  reverse?: boolean;
 };
 
 type DayGroup = {
@@ -115,12 +120,23 @@ function groupByDay(params: {
   return groups.sort((a, b) => b.key.localeCompare(a.key));
 }
 
+const LEVEL_INDICATOR: Record<ActivityEventLevel, { icon: typeof Activity; className: string }> = {
+  info: { icon: Activity, className: "text-blue-500" },
+  warning: { icon: AlertTriangle, className: "text-amber-500" },
+  danger: { icon: ShieldAlert, className: "text-destructive" },
+};
+
+function getEventIndicator(level?: ActivityEventLevel) {
+  const config = level ? LEVEL_INDICATOR[level] : null;
+  return {
+    Icon: config?.icon ?? Circle,
+    className: config?.className ?? "text-muted-foreground",
+  };
+}
+
 export function ActivityTimeline(props: ActivityTimelineProps) {
   const { t } = useTranslation(["activity"]);
   const dateTime = useWorkspaceDateTimeFormatter();
-
-  const titleSpan = props.titleSpan ?? 4;
-  const reverse = props.reverse ?? false;
 
   const groups = React.useMemo(
     () =>
@@ -140,10 +156,12 @@ export function ActivityTimeline(props: ActivityTimelineProps) {
     ],
   );
 
+  const clickable = Boolean(props.onSelect);
+
   return (
     <div>
       {groups.map((group, groupIndex) => {
-        const showLoadingInThisGroup = Boolean(props.loading) && groupIndex === groups.length - 1;
+        const showLoading = Boolean(props.loading) && groupIndex === groups.length - 1;
 
         return (
           <div key={group.key}>
@@ -151,139 +169,144 @@ export function ActivityTimeline(props: ActivityTimelineProps) {
               <div className="text-title2 font-bold">{group.label}</div>
             </div>
 
-            <Timeline
-              className={cn("mt-2")}
-              titleSpan={titleSpan}
-              reverse={reverse}
-              items={[
-                ...group.items.map((event) => {
-                  const d = safeDate(event.occurredAt);
-                  const timeText = d
-                    ? formatTimeHHmm({
-                        date: d,
-                        locale: dateTime.localization.locale,
-                        timeZone: dateTime.localization.timeZone,
-                      })
-                    : "-";
+            <Timeline orientation="vertical" defaultValue={Infinity} className="mt-2">
+              {group.items.map((event, index) => (
+                <ActivityTimelineEntry
+                  key={event.id}
+                  event={event}
+                  step={index + 1}
+                  clickable={clickable}
+                  onSelect={props.onSelect}
+                  dateTime={dateTime}
+                  t={t}
+                />
+              ))}
 
-                  const catalog = resolveCatalogEntry(event.eventName);
-                  const eventTitle = catalog ? t(`activity:${catalog.titleKey}`) : event.eventName;
-                  const eventDesc = catalog?.descriptionKey
-                    ? t(`activity:${catalog.descriptionKey}`)
-                    : null;
-
-                  const actor = event.actor
-                    ? {
-                        id: event.actor.id,
-                        username: event.actor.username,
-                        displayName: event.actor.displayName,
-                        avatarUrl: event.actor.avatarUrl,
-                      }
-                    : event.actorUserId
-                      ? {
-                          id: event.actorUserId,
-                          username: null,
-                          displayName: null,
-                          avatarUrl: null,
-                        }
-                      : null;
-
-                  const clickable = Boolean(props.onSelect);
-                  const onSelect = () => props.onSelect?.(event);
-
-                  const cardClassName = cn(
-                    "group min-w-0 rounded-md px-3 py-2",
-                    "transition-colors duration-150",
-                    clickable ? "cursor-pointer hover:bg-muted/60 active:scale-[0.99]" : null,
-                  );
-
-                  const cardStyle: CSSProperties | undefined = clickable
-                    ? { outline: "none" }
-                    : undefined;
-
-                  return {
-                    key: event.id,
-                    title: (
-                      <time
-                        className="font-mono font-semibold text-label-secondary"
-                        dateTime={event.occurredAt}
-                        title={
-                          d
-                            ? formatDateTimeWithPattern({
-                                date: d,
-                                locale: dateTime.localization.locale,
-                                timeZone: dateTime.localization.timeZone,
-                                dateFormat: dateTime.localization.dateFormat,
-                                includeTime: true,
-                              })
-                            : undefined
-                        }
-                      >
-                        {timeText}
-                      </time>
-                    ),
-                    content: (
-                      <article
-                        className={cardClassName}
-                        style={cardStyle}
-                        role={clickable ? "button" : undefined}
-                        tabIndex={clickable ? 0 : undefined}
-                        onClick={clickable ? onSelect : undefined}
-                        onKeyDown={
-                          clickable
-                            ? (e) => {
-                                if (e.key === "Enter" || e.key === " ") {
-                                  e.preventDefault();
-                                  onSelect();
-                                }
-                              }
-                            : undefined
-                        }
-                      >
-                        <header className="min-w-0">
-                          <div className="font-semibold wrap-break-word">{eventTitle}</div>
-                          {eventDesc ? (
-                            <p className="mt-1 text-label-secondary wrap-break-word">{eventDesc}</p>
-                          ) : null}
-                        </header>
-
-                        <div>
-                          <ActivityUserPill user={actor} size={24} />
-                        </div>
-                      </article>
-                    ),
-                    styles: {
-                      root: {
-                        paddingBottom: 10,
-                      },
-                    },
-                  };
-                }),
-                ...(showLoadingInThisGroup
-                  ? [
-                      {
-                        key: `${group.key}:loading`,
-                        loading: true,
-                        title: (
-                          <span className="font-mono text-caption text-label-secondary"> </span>
-                        ),
-                        content: <div className="h-6" />,
-                        styles: {
-                          root: {
-                            paddingBottom: 0,
-                          },
-                          content: {
-                            opacity: 0.65,
-                          },
-                        },
-                      },
-                    ]
-                  : []),
-              ]}
-            />
+              {showLoading && (
+                <TimelineItem step={group.items.length + 1}>
+                  <TimelineSeparator />
+                  <TimelineIndicator className="flex size-6 items-center justify-center border-0 bg-background animate-pulse">
+                    <Circle className="size-3 text-muted-foreground" />
+                  </TimelineIndicator>
+                  <TimelineContent>
+                    <div className="h-6 opacity-65" />
+                  </TimelineContent>
+                </TimelineItem>
+              )}
+            </Timeline>
           </div>
         );
       })}
     </div>
+  );
+}
+
+type DateTimeFormatter = ReturnType<typeof useWorkspaceDateTimeFormatter>;
+
+type ActivityTimelineEntryProps = {
+  event: ActivityEvent;
+  step: number;
+  clickable: boolean;
+  onSelect?: (event: ActivityEvent) => void;
+  dateTime: DateTimeFormatter;
+  t: (key: string) => string;
+};
+
+function ActivityTimelineEntry({
+  event,
+  step,
+  clickable,
+  onSelect,
+  dateTime,
+  t,
+}: ActivityTimelineEntryProps) {
+  const d = safeDate(event.occurredAt);
+  const timeText = d
+    ? formatTimeHHmm({
+        date: d,
+        locale: dateTime.localization.locale,
+        timeZone: dateTime.localization.timeZone,
+      })
+    : "-";
+
+  const catalog = resolveCatalogEntry(event.eventName);
+  const eventTitle = catalog ? t(`activity:${catalog.titleKey}`) : event.eventName;
+  const eventDesc = catalog?.descriptionKey ? t(`activity:${catalog.descriptionKey}`) : null;
+  const { Icon, className: iconClass } = getEventIndicator(catalog?.level);
+
+  const actor = event.actor
+    ? {
+        id: event.actor.id,
+        username: event.actor.username,
+        displayName: event.actor.displayName,
+        avatarUrl: event.actor.avatarUrl,
+      }
+    : event.actorUserId
+      ? { id: event.actorUserId, username: null, displayName: null, avatarUrl: null }
+      : null;
+
+  const handleSelect = () => onSelect?.(event);
+
+  const cardClassName = cn(
+    "min-w-0 rounded-md px-3 py-2",
+    "transition-colors duration-150",
+    clickable && "cursor-pointer hover:bg-muted/60 active:scale-[0.99]",
+  );
+
+  return (
+    <TimelineItem step={step}>
+      <TimelineSeparator />
+      <TimelineIndicator className="flex size-6 items-center justify-center border-0 bg-background">
+        <Icon className={cn("size-3.5", iconClass)} />
+      </TimelineIndicator>
+
+      <div className="flex items-start gap-3 min-w-0 pb-2.5">
+        <time
+          className="shrink-0 w-12 pt-0.5 font-mono font-semibold text-label-secondary"
+          dateTime={event.occurredAt}
+          title={
+            d
+              ? formatDateTimeWithPattern({
+                  date: d,
+                  locale: dateTime.localization.locale,
+                  timeZone: dateTime.localization.timeZone,
+                  dateFormat: dateTime.localization.dateFormat,
+                  includeTime: true,
+                })
+              : undefined
+          }
+        >
+          {timeText}
+        </time>
+
+        <article
+          className={cardClassName}
+          style={clickable ? { outline: "none" } : undefined}
+          role={clickable ? "button" : undefined}
+          tabIndex={clickable ? 0 : undefined}
+          onClick={clickable ? handleSelect : undefined}
+          onKeyDown={
+            clickable
+              ? (e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    handleSelect();
+                  }
+                }
+              : undefined
+          }
+        >
+          <header className="min-w-0">
+            <div className="font-semibold wrap-break-word">{eventTitle}</div>
+            {eventDesc ? (
+              <p className="mt-1 text-label-secondary wrap-break-word">{eventDesc}</p>
+            ) : null}
+          </header>
+          <div>
+            <ActivityUserPill user={actor} size={24} />
+          </div>
+        </article>
+      </div>
+    </TimelineItem>
   );
 }
