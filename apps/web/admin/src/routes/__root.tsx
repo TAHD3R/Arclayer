@@ -1,6 +1,7 @@
 import { createRootRoute, Outlet, redirect, useRouterState } from "@tanstack/react-router";
-import { useLayoutEffect, useRef } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 
+import { SceneLoadingOverlay } from "@/components/common/scene-loading-overlay";
 import { AdminLayout } from "@/layouts/admin-layout";
 import { AuthLayout } from "@/layouts/auth-layout";
 import { EditorLayout } from "@/layouts/editor-layout";
@@ -30,69 +31,43 @@ function isDevSetupOverrideEnabled(searchStr: string): boolean {
   }
 }
 
+/**
+ * Manages a full-screen overlay that hides layout flicker during scene transitions.
+ *
+ * Flow:
+ *  1. sceneKey changes → overlayVisible = true (instant cover)
+ *  2. Next frame: displayedScene updates (layout swap hidden behind overlay)
+ *  3. After layout swap: overlayVisible = false (200ms fade-out reveals new layout)
+ */
 function useSceneRevealTransition(sceneKey: string) {
   const reducedMotion = usePrefersReducedMotion();
+  const [overlayVisible, setOverlayVisible] = useState(false);
+  const [displayedScene, setDisplayedScene] = useState(sceneKey);
   const prevSceneRef = useRef(sceneKey);
-  const overlayRef = useRef<HTMLDivElement | null>(null);
 
   useLayoutEffect(() => {
-    if (reducedMotion) {
-      prevSceneRef.current = sceneKey;
-      return;
-    }
-
-    const prevScene = prevSceneRef.current;
+    if (prevSceneRef.current === sceneKey) return;
     prevSceneRef.current = sceneKey;
-    if (prevScene === sceneKey) return;
 
-    // Remove any previous overlay (for example rapid redirects).
-    overlayRef.current?.remove();
-    overlayRef.current = null;
-
-    const overlay = document.createElement("div");
-    overlayRef.current = overlay;
-    overlay.style.position = "fixed";
-    overlay.style.inset = "0";
-    overlay.style.zIndex = "2147483646";
-    overlay.style.pointerEvents = "none";
-    // Match current theme background to avoid flashes during layout switches.
-    overlay.style.background = window.getComputedStyle(document.body).backgroundColor;
-    overlay.style.willChange = "clip-path, opacity";
-    overlay.style.clipPath = "inset(0 0 0 0)";
-    document.body.appendChild(overlay);
-
-    const cleanup = () => {
-      overlay.remove();
-      if (overlayRef.current === overlay) overlayRef.current = null;
-    };
-
-    // Prefer a subtle LTR reveal so layout swaps (auth to admin) feel less abrupt.
-    // Fall back to a quick fade if clip-path is unsupported.
-    const supportsClip =
-      typeof CSS !== "undefined" &&
-      (CSS.supports("clip-path", "inset(0 0 0 0)") ||
-        CSS.supports("-webkit-clip-path", "inset(0 0 0 0)"));
-
-    if (!supportsClip || typeof overlay.animate !== "function") {
-      overlay.style.opacity = "1";
-      overlay.style.transition = "opacity 160ms ease-out";
-      void overlay.getBoundingClientRect();
-      requestAnimationFrame(() => {
-        overlay.style.opacity = "0";
-      });
-      overlay.addEventListener("transitionend", cleanup, { once: true });
-      window.setTimeout(cleanup, 260);
+    if (reducedMotion) {
+      setDisplayedScene(sceneKey);
       return;
     }
 
-    // Ensure initial state is painted before we start animating clip-path.
-    void overlay.getBoundingClientRect();
-    const anim = overlay.animate(
-      { clipPath: ["inset(0 0 0 0)", "inset(0 0 0 100%)"] },
-      { duration: 260, easing: "cubic-bezier(0.2, 0, 0, 1)", fill: "forwards" },
-    );
-    void anim.finished.then(cleanup, cleanup);
+    // Step 1: show overlay immediately
+    setOverlayVisible(true);
+
+    // Step 2: swap layout behind the overlay on next frame
+    requestAnimationFrame(() => {
+      setDisplayedScene(sceneKey);
+      // Step 3: reveal new layout after one more frame (layout has painted)
+      requestAnimationFrame(() => {
+        setOverlayVisible(false);
+      });
+    });
   }, [reducedMotion, sceneKey]);
+
+  return { displayedScene, overlayVisible };
 }
 
 function RootLayout() {
@@ -111,28 +86,37 @@ function RootLayout() {
         : isEditorRoute
           ? "editor"
           : "admin";
-  useSceneRevealTransition(sceneKey);
 
-  return isOnboardingRoute ? (
-    <SetupLayout>
-      <Outlet />
-    </SetupLayout>
-  ) : isAuthRoute ? (
-    <AuthLayout>
-      <Outlet />
-    </AuthLayout>
-  ) : isInviteRoute ? (
-    <InviteLayout>
-      <Outlet />
-    </InviteLayout>
-  ) : isEditorRoute ? (
-    <EditorLayout>
-      <Outlet />
-    </EditorLayout>
-  ) : (
-    <AdminLayout>
-      <Outlet />
-    </AdminLayout>
+  const { displayedScene, overlayVisible } = useSceneRevealTransition(sceneKey);
+
+  const layoutContent =
+    displayedScene === "setup" ? (
+      <SetupLayout>
+        <Outlet />
+      </SetupLayout>
+    ) : displayedScene === "auth" ? (
+      <AuthLayout>
+        <Outlet />
+      </AuthLayout>
+    ) : displayedScene === "invite" ? (
+      <InviteLayout>
+        <Outlet />
+      </InviteLayout>
+    ) : displayedScene === "editor" ? (
+      <EditorLayout>
+        <Outlet />
+      </EditorLayout>
+    ) : (
+      <AdminLayout>
+        <Outlet />
+      </AdminLayout>
+    );
+
+  return (
+    <>
+      {layoutContent}
+      <SceneLoadingOverlay visible={overlayVisible} />
+    </>
   );
 }
 
