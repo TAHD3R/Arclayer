@@ -28,3 +28,10 @@ export { coreBlockRenderers } from "./internal/blocks/index";
 
 export { PortableTextRenderer } from "./internal/rich-text/portable-text-renderer";
 export { InlineEditor } from "./internal/rich-text/inline-editor";
+
+// --- DesignDocument v1 (editor-first document format) ---
+export {
+  isDesignDocumentV1,
+  migrateDocumentIRToDesignDocumentV1,
+  compileDesignDocumentV1ToDocumentIR,
+} from "./internal/design-document";

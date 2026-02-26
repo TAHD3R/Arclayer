@@ -222,8 +222,9 @@ function applyAnimationStyles(style: React.CSSProperties, animation: BlockAnimat
   style.animationFillMode = animation.fillMode ?? "both";
 }
 
-function buildBlockStyles(props: CommonBlockVisualProps): React.CSSProperties {
+export function buildBlockStyles(props: CommonBlockVisualProps | undefined): React.CSSProperties {
   const style: React.CSSProperties = {};
+  if (!props) return style;
   applyLayoutStyles(style, props.layout);
   applyDesignStyles(style, props.style);
   applyAnimationStyles(style, props.animation);

@@ -21,6 +21,9 @@ class DocumentMeta(BaseSchema):
     description: LocalizedString | None = Field(
         default=None, description="Document description (field-level i18n map)."
     )
+    layout: BlockLayoutProps | None = Field(default=None, description="Optional page layout settings.")
+    style: BlockDesignProps | None = Field(default=None, description="Optional page style settings.")
+    animation: BlockAnimationProps | None = Field(default=None, description="Optional page animation settings.")
 
 
 class BlockLayoutProps(BaseSchema):

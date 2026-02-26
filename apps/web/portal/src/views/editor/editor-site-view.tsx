@@ -1,9 +1,18 @@
 import React from "react";
-import { DocumentRenderer } from "@celestial/site-renderer-core";
+import {
+  compileDesignDocumentV1ToDocumentIR,
+  DocumentRenderer,
+  isCoreDocumentIR,
+  isDesignDocumentV1,
+  migrateDocumentIRToDesignDocumentV1,
+} from "@celestial/site-renderer-core";
 import type { CoreDocumentIR } from "@celestial/site-renderer-core";
-import { isCoreDocumentIR } from "@celestial/site-renderer-core";
 
-import type { ViewerContext } from "@celestial/site-block-protocol";
+import type {
+  DesignBlockNodeV1,
+  DesignDocumentV1,
+  ViewerContext,
+} from "@celestial/site-block-protocol";
 import { CORE_BLOCK_MANIFESTS, CORE_BLOCK_PATTERNS } from "@celestial/site-block-protocol";
 import type {
   BlockId,
@@ -14,6 +23,7 @@ import type {
   EditorSelectionInspector,
   PortalEditorRpcApi,
 } from "@celestial/site-editor-protocol";
+import { EDITOR_PAGE_ROOT_BLOCK_ID } from "@celestial/site-editor-protocol";
 import type { EditorPortalPenpalConnection } from "@celestial/site-editor-bridge";
 import { connectEditorPortalToHost, isHttpOrigin } from "@celestial/site-editor-bridge";
 
@@ -77,20 +87,24 @@ export function EditorSiteView(props: EditorSiteViewProps) {
   const siteId = props.siteId;
   const viewerCtx = props.viewerCtx;
 
-  if (!isCoreDocumentIR(initialDocumentUnknown)) {
-    // If we ever loosen the API schema, keep editor mode strict to avoid accepting arbitrary JSON.
-    throw new Error("Invalid DocumentIR in editor mode");
-  }
+  const baseDesignDocument = React.useMemo<DesignDocumentV1>(() => {
+    if (isDesignDocumentV1(initialDocumentUnknown)) {
+      return initialDocumentUnknown;
+    }
+    if (isCoreDocumentIR(initialDocumentUnknown)) {
+      return migrateDocumentIRToDesignDocumentV1(initialDocumentUnknown);
+    }
+    // Keep editor mode strict to avoid accepting arbitrary JSON.
+    throw new Error("Invalid editor document");
+  }, [initialDocumentUnknown]);
 
-  const baseDocument = initialDocumentUnknown as CoreDocumentIR;
-
-  const [history, setHistory] = React.useState(() => createEditorHistory(baseDocument));
+  const [history, setHistory] = React.useState(() => createEditorHistory(baseDesignDocument));
   const [hasDraftOverride, setHasDraftOverride] = React.useState(false);
   const [overlayMode, setOverlayMode] = React.useState<EditorOverlayMode>("inspect");
   const [selectedBlockId, setSelectedBlockId] = React.useState<BlockId | null>(null);
   const [hoveredBlockId, setHoveredBlockId] = React.useState<BlockId | null>(null);
   const [canvasState, setCanvasState] = React.useState<EditorCanvasState>(DEFAULT_CANVAS_STATE);
-  const [draftDocument, setDraftDocument] = React.useState<CoreDocumentIR | null>(null);
+  const [draftDocument, setDraftDocument] = React.useState<DesignDocumentV1 | null>(null);
 
   type InlineEditState = {
     blockId: BlockId;
@@ -106,12 +120,19 @@ export function EditorSiteView(props: EditorSiteViewProps) {
   const historyRef = React.useRef(history);
   const selectedBlockIdRef = React.useRef<BlockId | null>(selectedBlockId);
   const canvasStateRef = React.useRef<EditorCanvasState>(canvasState);
-  const draftDocumentRef = React.useRef<CoreDocumentIR | null>(draftDocument);
+  const draftDocumentRef = React.useRef<DesignDocumentV1 | null>(draftDocument);
   const inlineEditRef = React.useRef<InlineEditState | null>(inlineEdit);
   const hoverRafRef = React.useRef<number | null>(null);
   const pendingHoverRef = React.useRef<BlockId | null>(null);
 
   const renderDocument = draftDocument ?? history.present;
+  const compiledDocument = React.useMemo(() => {
+    const compiled = compileDesignDocumentV1ToDocumentIR(renderDocument);
+    if (!isCoreDocumentIR(compiled)) {
+      throw new Error("Compiled DesignDocument is not a valid CoreDocumentIR");
+    }
+    return compiled as CoreDocumentIR;
+  }, [renderDocument]);
 
   type ResizeSession = {
     pointerId: number;
@@ -120,7 +141,7 @@ export function EditorSiteView(props: EditorSiteViewProps) {
     startClientY: number;
     startWidth: number;
     startHeight: number;
-    baseDocument: CoreDocumentIR;
+    baseDocument: DesignDocumentV1;
   };
   const resizeSessionRef = React.useRef<ResizeSession | null>(null);
 
@@ -163,7 +184,7 @@ export function EditorSiteView(props: EditorSiteViewProps) {
 
   React.useEffect(() => {
     // Route changed -> clear host overrides so we do not accidentally show a draft from another page.
-    const nextHistory = createEditorHistory(baseDocument);
+    const nextHistory = createEditorHistory(baseDesignDocument);
     historyRef.current = nextHistory;
     setHistory(nextHistory);
     setHasDraftOverride(false);
@@ -172,7 +193,7 @@ export function EditorSiteView(props: EditorSiteViewProps) {
     setDraftDocument(null);
     setInlineEdit(null);
     resizeSessionRef.current = null;
-  }, [baseDocument, pathname]);
+  }, [baseDesignDocument, pathname]);
 
   // Forward wheel events to the host so canvas pan/zoom works even when the cursor is inside the iframe.
   //
@@ -222,13 +243,13 @@ export function EditorSiteView(props: EditorSiteViewProps) {
   });
 
   const selectedRect = useObservedBlockRect({
-    enabled: overlayMode !== "off",
+    enabled: overlayMode !== "off" && selectedBlockId !== EDITOR_PAGE_ROOT_BLOCK_ID,
     blockId: selectedBlockId,
     onMissing: () => setSelectedBlockId(null),
   });
 
   const syncSelectionInspector = React.useCallback(
-    (document: CoreDocumentIR, blockId: BlockId | null) => {
+    (document: DesignDocumentV1, blockId: BlockId | null) => {
       const inspector = buildSelectionInspector(document, blockId);
       getHostOptionalEvents(hostRef.current).selectionInspectorChanged?.({ inspector });
       return inspector;
@@ -236,7 +257,7 @@ export function EditorSiteView(props: EditorSiteViewProps) {
     [],
   );
 
-  const syncLayers = React.useCallback((document: CoreDocumentIR) => {
+  const syncLayers = React.useCallback((document: DesignDocumentV1) => {
     const layers = buildLayerTree(document);
     getHostOptionalEvents(hostRef.current).layerTreeChanged?.({ layers });
     return layers;
@@ -247,7 +268,7 @@ export function EditorSiteView(props: EditorSiteViewProps) {
   }, []);
 
   const commitNextDocument = React.useCallback(
-    (nextDocument: CoreDocumentIR, opts?: { preserveSelection?: boolean }) => {
+    (nextDocument: DesignDocumentV1, opts?: { preserveSelection?: boolean }) => {
       const nextHistory = commitEditorHistory(historyRef.current, nextDocument);
       historyRef.current = nextHistory;
       setHistory(nextHistory);
@@ -268,12 +289,12 @@ export function EditorSiteView(props: EditorSiteViewProps) {
   );
 
   const commitInlineTextEdit = React.useCallback(
-    (args: { document: CoreDocumentIR; blockId: BlockId; locale: string; nextText: string }) => {
+    (args: { document: DesignDocumentV1; blockId: BlockId; locale: string; nextText: string }) => {
       const found = findBlockById(args.document, args.blockId);
       if (!found) return;
       if (found.type !== "heading" && found.type !== "paragraph") return;
 
-      const currentTextValue = (found.props as { text?: unknown }).text;
+      const currentTextValue = found.props.text;
       const nextTextMap = mergeLocalizedText(currentTextValue, args.locale, args.nextText);
 
       // 避免在当前语言内容不变时写入新的历史记录。
@@ -354,7 +375,7 @@ export function EditorSiteView(props: EditorSiteViewProps) {
         void hostRef.current?.requestSave({
           siteId,
           pathname,
-          document: historyRef.current.present,
+          document: compileDesignDocumentV1ToDocumentIR(historyRef.current.present),
         });
         return;
       }
@@ -417,17 +438,21 @@ export function EditorSiteView(props: EditorSiteViewProps) {
         if (overlayModeRef.current === "off") return;
         setSelectedBlockId(blockId);
       },
-      getDocument: () => historyRef.current.present,
+      getDocument: () => compileDesignDocumentV1ToDocumentIR(historyRef.current.present),
       pushDraftDocument: ({ document, pathname: incomingPathname }) => {
         // Optional scope guard: avoid applying drafts for other pathnames.
         if (incomingPathname && incomingPathname !== pathnameRef.current) {
           return;
         }
-        if (!isCoreDocumentIR(document)) {
-          return;
-        }
+        const incoming = document as unknown;
+        const nextDocument = isDesignDocumentV1(incoming)
+          ? incoming
+          : isCoreDocumentIR(incoming)
+            ? migrateDocumentIRToDesignDocumentV1(incoming)
+            : null;
+        if (!nextDocument) return;
 
-        const nextHistory = createEditorHistory(document);
+        const nextHistory = createEditorHistory(nextDocument);
         historyRef.current = nextHistory;
         setHistory(nextHistory);
         setHasDraftOverride(true);
@@ -723,7 +748,7 @@ export function EditorSiteView(props: EditorSiteViewProps) {
           setHoveredBlockId(null);
         }}
       >
-        <DocumentRenderer document={renderDocument} ctx={viewerCtx} />
+        <DocumentRenderer document={compiledDocument} ctx={viewerCtx} />
       </div>
       <div data-editor-overlay="true">
         {inlineEdit && selectedRect && selectedBlockId === inlineEdit.blockId ? (
@@ -883,27 +908,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object";
 }
 
-type CoreNode = CoreDocumentIR["blocks"][number];
-
-type ParentNode = Extract<CoreNode, { type: "container" | "grid" }>;
-
-function isParentNode(node: CoreNode): node is ParentNode {
-  return node.type === "container" || node.type === "grid";
-}
-
-function findBlockById(document: CoreDocumentIR, blockId: BlockId): CoreNode | null {
-  const walk = (nodes: CoreNode[]): CoreNode | null => {
-    for (const node of nodes) {
-      if (node.id === blockId) return node;
-      if (isParentNode(node) && Array.isArray(node.children)) {
-        const found = walk(node.children);
-        if (found) return found;
-      }
-    }
-    return null;
-  };
-
-  return walk(document.blocks);
+function findBlockById(document: DesignDocumentV1, blockId: BlockId): DesignBlockNodeV1 | null {
+  const node = document.nodesById[blockId];
+  if (!node || node.type === "page") return null;
+  return node as DesignBlockNodeV1;
 }
 
 function resolveLocalizedText(

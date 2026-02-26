@@ -43,6 +43,14 @@ export type BlockId = string;
 
 export type RpcRequestId = string;
 
+/**
+ * Special "virtual" block id used by the editor layer tree to represent
+ * the page/document root (SEO, page-level layout/design/animation, data sources, etc.).
+ *
+ * This id is NOT part of DocumentIR.blocks.
+ */
+export const EDITOR_PAGE_ROOT_BLOCK_ID = "page";
+
 export type EditorInspectorComponent = Record<string, unknown>;
 
 export type EditorInspectorLayout = Record<string, unknown>;

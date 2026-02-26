@@ -4,6 +4,7 @@ import { Tree } from "antd";
 
 import type { DataNode } from "antd/es/tree";
 import type { EditorLayerNode } from "@celestial/site-editor-protocol";
+import { EDITOR_PAGE_ROOT_BLOCK_ID } from "@celestial/site-editor-protocol";
 
 import { useEditorBridgeContext } from "@/pages/workspaces/editor/contexts/editor-bridge-context";
 import { useEditorStore } from "@/pages/workspaces/editor/stores/editor-store";
@@ -25,6 +26,7 @@ function toTreeData(nodes: EditorLayerNode[]): TreeNode[] {
     key: node.id,
     title: node.label || node.type,
     dataRef: node,
+    draggable: node.id !== EDITOR_PAGE_ROOT_BLOCK_ID,
     children: node.children?.length ? toTreeData(node.children) : undefined,
   }));
 }
@@ -127,6 +129,7 @@ export function NavigatorPanel() {
           const dropId = String(info.node.key);
           if (!portal || bridgeStatus !== "connected") return;
           if (!dragId || !dropId || dragId === dropId) return;
+          if (dragId === EDITOR_PAGE_ROOT_BLOCK_ID || dropId === EDITOR_PAGE_ROOT_BLOCK_ID) return;
 
           const position = info.dropToGap
             ? info.dropPosition < 0

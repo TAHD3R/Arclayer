@@ -1,6 +1,13 @@
 import { describe, expect, test } from "vitest";
 
+import {
+  compileDesignDocumentV1ToDocumentIR,
+  isCoreDocumentIR,
+  migrateDocumentIRToDesignDocumentV1,
+} from "@celestial/site-renderer-core";
 import type { CoreDocumentIR } from "@celestial/site-renderer-core";
+import { EDITOR_PAGE_ROOT_BLOCK_ID } from "@celestial/site-editor-protocol";
+import type { DesignDocumentV1 } from "@celestial/site-block-protocol";
 
 import {
   applySelectionPatch,
@@ -17,7 +24,7 @@ import {
   undoEditorHistory,
 } from "@/views/editor/editor-document-state";
 
-function createSampleDocument(): CoreDocumentIR {
+function createSampleDocumentIR(): CoreDocumentIR {
   return {
     version: 1,
     blocks: [
@@ -58,9 +65,21 @@ function createSampleDocument(): CoreDocumentIR {
   };
 }
 
+function createSampleDesignDocument(): DesignDocumentV1 {
+  return migrateDocumentIRToDesignDocumentV1(createSampleDocumentIR());
+}
+
+function compile(doc: DesignDocumentV1): CoreDocumentIR {
+  const compiled = compileDesignDocumentV1ToDocumentIR(doc);
+  if (!isCoreDocumentIR(compiled)) {
+    throw new Error("Expected compiled document to be CoreDocumentIR");
+  }
+  return compiled;
+}
+
 describe("editor document state", () => {
   test("buildSelectionInspector extracts block sections", () => {
-    const doc = createSampleDocument();
+    const doc = createSampleDesignDocument();
 
     const inspector = buildSelectionInspector(doc, "h-title");
 
@@ -71,7 +90,7 @@ describe("editor document state", () => {
   });
 
   test("applySelectionPatch updates component and layout fields", () => {
-    const doc = createSampleDocument();
+    const doc = createSampleDesignDocument();
 
     const first = applySelectionPatch(doc, "h-title", {
       section: "component",
@@ -93,7 +112,7 @@ describe("editor document state", () => {
   });
 
   test("insertBlock appends into selected container", () => {
-    const doc = createSampleDocument();
+    const doc = createSampleDesignDocument();
 
     const inserted = insertBlock(doc, {
       type: "heading",
@@ -102,16 +121,25 @@ describe("editor document state", () => {
     });
 
     const tree = buildLayerTree(inserted.document);
-    const root = tree[0];
+    const page = tree[0];
+    expect(page).toBeDefined();
+    if (!page) return;
+    expect(page.id).toBe(EDITOR_PAGE_ROOT_BLOCK_ID);
+
+    const root = page.children[0];
     expect(root).toBeDefined();
     if (!root) return;
     expect(root.id).toBe("c-root");
-    expect(root.children).toHaveLength(3);
     expect(inserted.selectedBlockId).toMatch(/^b-/);
+
+    const compiled = compile(inserted.document);
+    const container = compiled.blocks[0] as unknown as { children?: Array<{ id: string }> };
+    const ids = (container.children ?? []).map((n) => n.id);
+    expect(ids).toEqual(["h-title", "p-body", inserted.selectedBlockId]);
   });
 
   test("history supports commit undo redo", () => {
-    const doc = createSampleDocument();
+    const doc = createSampleDesignDocument();
     const history = createEditorHistory(doc, 10);
 
     const patched = applySelectionPatch(doc, "h-title", {
@@ -133,7 +161,7 @@ describe("editor document state", () => {
   });
 
   test("insertBlockTree rewrites ids and inserts multiple blocks inside container", () => {
-    const doc = createSampleDocument();
+    const doc = createSampleDesignDocument();
 
     const inserted = insertBlockTree(doc, {
       blocks: [
@@ -161,13 +189,9 @@ describe("editor document state", () => {
     expect(inserted.selectedBlockId).not.toBe("temp-container");
     expect(inserted.selectedBlockId).not.toBe("temp-heading");
 
-    const root = inserted.document.blocks[0];
-    expect(root).toBeDefined();
-    if (!root) return;
-
-    const children = (root as unknown as { children?: unknown }).children;
-    expect(Array.isArray(children)).toBe(true);
-    expect((children as unknown[]).length).toBe(3);
+    const compiled = compile(inserted.document);
+    const container = compiled.blocks[0] as unknown as { children?: Array<{ id: string }> };
+    expect((container.children ?? []).length).toBe(3);
 
     const tree = buildLayerTree(inserted.document);
     expect(JSON.stringify(tree)).not.toContain("temp-container");
@@ -175,31 +199,57 @@ describe("editor document state", () => {
   });
 
   test("duplicateBlock clones subtree and inserts after original", () => {
-    const doc = createSampleDocument();
+    const doc = createSampleDesignDocument();
 
     const duplicated = duplicateBlock(doc, { blockId: "h-title" });
 
     expect(duplicated.selectedBlockId).not.toBe("h-title");
-    const container = duplicated.document.blocks[0] as unknown as { children?: unknown[] };
-    const ids = (container.children ?? []).map((n) => (n as { id?: unknown }).id);
+    const compiled = compile(duplicated.document);
+    const container = compiled.blocks[0] as unknown as { children?: Array<{ id: string }> };
+    const ids = (container.children ?? []).map((n) => n.id);
     expect(ids).toEqual(["h-title", duplicated.selectedBlockId, "p-body"]);
   });
 
   test("deleteBlock removes node and its subtree", () => {
-    const doc = createSampleDocument();
+    const doc = createSampleDesignDocument();
 
     const deleted = deleteBlock(doc, { blockId: "h-title" });
-    const container = deleted.document.blocks[0] as unknown as { children?: unknown[] };
-    const ids = (container.children ?? []).map((n) => (n as { id?: unknown }).id);
+    expect(deleted.deleted).toBe(true);
+
+    const compiled = compile(deleted.document);
+    const container = compiled.blocks[0] as unknown as { children?: Array<{ id: string }> };
+    const ids = (container.children ?? []).map((n) => n.id);
     expect(ids).toEqual(["p-body"]);
   });
 
   test("moveBlock reorders nodes within same parent", () => {
-    const doc = createSampleDocument();
+    const doc = createSampleDesignDocument();
 
     const moved = moveBlock(doc, { blockId: "p-body", targetId: "h-title", position: "before" });
-    const container = moved.document.blocks[0] as unknown as { children?: unknown[] };
-    const ids = (container.children ?? []).map((n) => (n as { id?: unknown }).id);
+    expect(moved.moved).toBe(true);
+
+    const compiled = compile(moved.document);
+    const container = compiled.blocks[0] as unknown as { children?: Array<{ id: string }> };
+    const ids = (container.children ?? []).map((n) => n.id);
     expect(ids).toEqual(["p-body", "h-title"]);
+  });
+
+  test("page root inspector/patch updates DocumentIR.meta", () => {
+    const doc = createSampleDesignDocument();
+
+    const rootInspector = buildSelectionInspector(doc, EDITOR_PAGE_ROOT_BLOCK_ID);
+    expect(rootInspector.blockId).toBe(EDITOR_PAGE_ROOT_BLOCK_ID);
+    expect(rootInspector.blockType).toBe("page");
+
+    const patched = applySelectionPatch(doc, EDITOR_PAGE_ROOT_BLOCK_ID, {
+      section: "component",
+      values: {
+        title: { "en-US": "Home", "zh-CN": "主页" },
+      },
+    });
+
+    const compiled = compile(patched.document);
+    expect(compiled.meta?.title?.["en-US"]).toBe("Home");
+    expect(compiled.meta?.title?.["zh-CN"]).toBe("主页");
   });
 });

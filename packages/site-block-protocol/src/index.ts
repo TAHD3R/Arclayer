@@ -13,9 +13,22 @@ export type LocalizedString = LocalizedValue<string>;
 export interface DocumentMeta {
   title?: LocalizedString;
   description?: LocalizedString;
+  /**
+   * Page-level visual props.
+   *
+   * Note: These are NOT block props; they apply to the document root container.
+   * We reuse Block*Props for now to keep the inspector and renderer consistent.
+   */
+  layout?: BlockLayoutProps;
+  style?: BlockDesignProps;
+  animation?: BlockAnimationProps;
 }
 
 export type BlockDimensionValue = number | string;
+
+// --- DesignDocument (Editor-first document format) ---
+
+export type { DesignNodeId, DesignNodeV1, DesignPageNodeV1, DesignBlockNodeV1, DesignDocumentV1 } from "./design-document";
 
 export interface BlockLayoutProps {
   width?: BlockDimensionValue;
@@ -176,6 +189,7 @@ export type {
 } from "./block-registry";
 
 export { CORE_BLOCK_MANIFESTS } from "./manifests/index";
+export { EDITOR_INTERNAL_BLOCK_MANIFESTS } from "./manifests/index";
 
 export { CORE_BLOCK_PATTERNS } from "./patterns/index";
 

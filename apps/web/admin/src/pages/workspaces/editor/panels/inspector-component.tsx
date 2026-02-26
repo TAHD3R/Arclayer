@@ -3,6 +3,7 @@ import { Input, InputNumber, Checkbox, Select } from "antd";
 
 import {
   CORE_BLOCK_MANIFESTS,
+  EDITOR_INTERNAL_BLOCK_MANIFESTS,
   resolveLocalizedValue,
   type FieldDefinition,
   type ViewerContext,
@@ -170,7 +171,9 @@ export function InspectorComponent({
   const { t } = useTranslation(["content_pages"]);
   const patchSelection = useEditorSelectionPatch();
   const viewerCtx = useViewerContext();
-  const manifest = CORE_BLOCK_MANIFESTS.find((m) => m.type === blockType);
+  const manifest = [...CORE_BLOCK_MANIFESTS, ...EDITOR_INTERNAL_BLOCK_MANIFESTS].find(
+    (m) => m.type === blockType,
+  );
 
   if (!manifest) {
     return (

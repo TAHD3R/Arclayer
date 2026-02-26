@@ -1,9 +1,9 @@
 import React from "react";
 import type { ReactNode } from "react";
 
-import type { ViewerContext } from "@celestial/site-block-protocol";
+import type { CommonBlockVisualProps, ViewerContext } from "@celestial/site-block-protocol";
 import type { CoreBlockNode, CoreDocumentIR } from "./core-blocks";
-import { renderCoreBlock } from "./core-blocks";
+import { buildBlockStyles, renderCoreBlock } from "./core-blocks";
 
 export interface DocumentRendererProps {
   document: CoreDocumentIR;
@@ -29,8 +29,15 @@ function isProductionEnv(): boolean {
 export function DocumentRenderer(props: DocumentRendererProps) {
   const { document, ctx } = props;
 
+  const rootVisualProps: CommonBlockVisualProps = {};
+  if (document.meta?.layout) rootVisualProps.layout = document.meta.layout;
+  if (document.meta?.style) rootVisualProps.style = document.meta.style;
+  if (document.meta?.animation) rootVisualProps.animation = document.meta.animation;
+
+  const rootStyle = buildBlockStyles(rootVisualProps);
+
   return (
-    <main data-celestial="document" data-ir-version={document.version}>
+    <main data-celestial="document" data-ir-version={document.version} style={rootStyle}>
       {document.blocks.map((block) => (
         <React.Fragment key={block.id}>
           <BlockErrorBoundary blockId={block.id} blockType={block.type}>

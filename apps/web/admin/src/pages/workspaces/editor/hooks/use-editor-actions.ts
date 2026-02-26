@@ -1,6 +1,8 @@
 import * as React from "react";
 import { useTranslation } from "react-i18next";
 
+import { EDITOR_PAGE_ROOT_BLOCK_ID } from "@celestial/site-editor-protocol";
+
 import { getErrorMessage, notifyErrorText } from "@/lib/notifications";
 import { useEditorConfig } from "@/pages/workspaces/editor/contexts/editor-config-context";
 import { useEditorBridgeContext } from "@/pages/workspaces/editor/contexts/editor-bridge-context";
@@ -62,7 +64,12 @@ export function useEditorActions(): {
           return Boolean(portal) && canRedo;
         case "edit.delete":
         case "edit.duplicate":
-          return bridgeStatus === "connected" && Boolean(portal) && Boolean(selectedBlockId);
+          return (
+            bridgeStatus === "connected" &&
+            Boolean(portal) &&
+            Boolean(selectedBlockId) &&
+            selectedBlockId !== EDITOR_PAGE_ROOT_BLOCK_ID
+          );
         case "view.zoom_in":
           return zoomPercent < 200;
         case "view.zoom_out":
@@ -123,6 +130,7 @@ export function useEditorActions(): {
               return;
             }
             if (!selectedBlockId) return;
+            if (selectedBlockId === EDITOR_PAGE_ROOT_BLOCK_ID) return;
 
             // Optimistic local selection reset keeps the inspector consistent even if the bridge is slow.
             setSelectedBlockId(null);
@@ -143,6 +151,7 @@ export function useEditorActions(): {
               return;
             }
             if (!selectedBlockId) return;
+            if (selectedBlockId === EDITOR_PAGE_ROOT_BLOCK_ID) return;
 
             const out = await portal.duplicateBlock({ blockId: selectedBlockId });
             setSelectedBlockId(out.blockId);
