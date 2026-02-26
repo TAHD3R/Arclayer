@@ -27,10 +27,14 @@ export interface EditorState {
   // Left panel (ActivityBar + Sidebar)
   activeMenuId: ActivityBarMenuId | null;
   sidebarOpen: boolean;
+  sidebarWidthByMenu: Partial<Record<ActivityBarMenuId, number>>;
 
   // Right panel (Properties)
   propertiesPanelOpen: boolean;
   propertiesPanelTab: PropertiesPanelTab;
+
+  // Overlay close signal (e.g. close popovers when iframe receives focus)
+  overlayCloseSignal: number;
 
   // Canvas
   activeTool: ActiveTool;
@@ -68,8 +72,10 @@ export interface EditorState {
   // Actions
   setActiveMenuId: (id: ActivityBarMenuId | null) => void;
   toggleSidebar: () => void;
+  setSidebarWidth: (menuId: ActivityBarMenuId, width: number) => void;
   togglePropertiesPanel: () => void;
   setPropertiesPanelTab: (tab: PropertiesPanelTab) => void;
+  emitOverlayCloseSignal: () => void;
   setDevicePreset: (preset: DevicePreset) => void;
   setActiveTool: (tool: ActiveTool) => void;
   setZoomPercent: (zoom: number) => void;
@@ -102,9 +108,21 @@ const EMPTY_INSPECTOR: EditorSelectionInspector = {
 export const useEditorStore = create<EditorState>()((set) => ({
   activeMenuId: "add-elements",
   sidebarOpen: true,
+  sidebarWidthByMenu: {
+    "add-elements": 280,
+    navigator: 280,
+    pages: 280,
+    assets: 360,
+    blocks: 320,
+    plugins: 280,
+    search: 320,
+    settings: 420,
+  },
 
   propertiesPanelOpen: true,
   propertiesPanelTab: "component",
+
+  overlayCloseSignal: 0,
 
   activeTool: "select",
   devicePreset: "desktop",
@@ -141,8 +159,16 @@ export const useEditorStore = create<EditorState>()((set) => ({
       return { activeMenuId: id, sidebarOpen: true };
     }),
   toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
+  setSidebarWidth: (menuId, width) =>
+    set((s) => ({
+      sidebarWidthByMenu: {
+        ...s.sidebarWidthByMenu,
+        [menuId]: Math.max(240, Math.min(520, Math.round(width))),
+      },
+    })),
   togglePropertiesPanel: () => set((s) => ({ propertiesPanelOpen: !s.propertiesPanelOpen })),
   setPropertiesPanelTab: (tab) => set({ propertiesPanelTab: tab, propertiesPanelOpen: true }),
+  emitOverlayCloseSignal: () => set((s) => ({ overlayCloseSignal: s.overlayCloseSignal + 1 })),
   setDevicePreset: (preset) => set({ devicePreset: preset }),
   setActiveTool: (tool) => set({ activeTool: tool }),
   setZoomPercent: (zoom) => set({ zoomPercent: Math.max(25, Math.min(200, Math.round(zoom))) }),

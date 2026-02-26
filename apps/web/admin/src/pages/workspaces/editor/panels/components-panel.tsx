@@ -2,11 +2,13 @@ import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Search } from "lucide-react";
 import { Input } from "antd";
+import { useDraggable } from "@dnd-kit/core";
 
 import {
   CORE_BLOCK_MANIFESTS,
   resolveLocalizedValue,
   type BlockCategory,
+  type BlockManifest,
 } from "@celestial/site-block-protocol";
 
 import { getErrorMessage, notifyErrorText } from "@/lib/notifications";
@@ -23,6 +25,36 @@ const CATEGORY_LABEL_KEYS: Record<BlockCategory, string> = {
   interactive: "content_pages:EDITOR_BLOCK_CATEGORY_INTERACTIVE",
   custom: "content_pages:EDITOR_BLOCK_CATEGORY_CUSTOM",
 } as const;
+
+function BlockInsertTile(props: {
+  manifest: BlockManifest;
+  canInsert: boolean;
+  onInsert: () => void;
+  label: string;
+}) {
+  const dnd = useDraggable({
+    id: `new-block:${props.manifest.type}`,
+    data: { editorItem: { kind: "new-block", blockType: props.manifest.type } },
+    disabled: !props.canInsert,
+  });
+
+  return (
+    <button
+      ref={dnd.setNodeRef}
+      type="button"
+      disabled={!props.canInsert}
+      className="flex flex-col items-center gap-1 rounded-md border p-2 text-caption hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-transparent"
+      onClick={props.onInsert}
+      {...dnd.listeners}
+      {...dnd.attributes}
+    >
+      <span className="text-[10px] text-label-secondary">
+        {props.manifest.icon ?? props.manifest.type}
+      </span>
+      <span className="truncate">{props.label}</span>
+    </button>
+  );
+}
 
 export function ComponentsPanel() {
   const { t } = useTranslation(["content_pages"]);
@@ -87,12 +119,12 @@ export function ComponentsPanel() {
             </div>
             <div className="grid grid-cols-2 gap-1">
               {manifests.map((m) => (
-                <button
+                <BlockInsertTile
                   key={m.type}
-                  type="button"
-                  disabled={!canInsert}
-                  className="flex flex-col items-center gap-1 rounded-md border p-2 text-caption hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-transparent"
-                  onClick={() => {
+                  manifest={m}
+                  canInsert={canInsert}
+                  label={resolveLocalizedValue(m.label, viewerCtx) ?? m.type}
+                  onInsert={() => {
                     if (!portal) return;
                     void (async () => {
                       try {
@@ -105,12 +137,7 @@ export function ComponentsPanel() {
                       }
                     })();
                   }}
-                >
-                  <span className="text-[10px] text-label-secondary">{m.icon ?? m.type}</span>
-                  <span className="truncate">
-                    {resolveLocalizedValue(m.label, viewerCtx) ?? m.type}
-                  </span>
-                </button>
+                />
               ))}
             </div>
           </div>

@@ -23,9 +23,13 @@ import {
   buildSelectionInspector,
   commitEditorHistory,
   createEditorHistory,
+  deleteBlock as deleteBlockInDocument,
   insertBlockWithMeta,
+  insertBlockTreeWithMeta,
+  moveBlock as moveBlockInDocument,
   redoEditorHistory,
   toEditorHistoryState,
+  duplicateBlockWithMeta,
   undoEditorHistory,
 } from "@/views/editor/editor-document-state";
 
@@ -86,6 +90,15 @@ export function EditorSiteView(props: EditorSiteViewProps) {
   const [selectedBlockId, setSelectedBlockId] = React.useState<BlockId | null>(null);
   const [hoveredBlockId, setHoveredBlockId] = React.useState<BlockId | null>(null);
   const [canvasState, setCanvasState] = React.useState<EditorCanvasState>(DEFAULT_CANVAS_STATE);
+  const [draftDocument, setDraftDocument] = React.useState<CoreDocumentIR | null>(null);
+
+  type InlineEditState = {
+    blockId: BlockId;
+    blockType: "heading" | "paragraph";
+    initialText: string;
+    draftText: string;
+  };
+  const [inlineEdit, setInlineEdit] = React.useState<InlineEditState | null>(null);
 
   const hostRef = React.useRef<EditorPortalPenpalConnection["host"] | null>(null);
   const overlayModeRef = React.useRef<EditorOverlayMode>("inspect");
@@ -93,10 +106,23 @@ export function EditorSiteView(props: EditorSiteViewProps) {
   const historyRef = React.useRef(history);
   const selectedBlockIdRef = React.useRef<BlockId | null>(selectedBlockId);
   const canvasStateRef = React.useRef<EditorCanvasState>(canvasState);
+  const draftDocumentRef = React.useRef<CoreDocumentIR | null>(draftDocument);
+  const inlineEditRef = React.useRef<InlineEditState | null>(inlineEdit);
   const hoverRafRef = React.useRef<number | null>(null);
   const pendingHoverRef = React.useRef<BlockId | null>(null);
 
-  const renderDocument = history.present;
+  const renderDocument = draftDocument ?? history.present;
+
+  type ResizeSession = {
+    pointerId: number;
+    blockId: BlockId;
+    startClientX: number;
+    startClientY: number;
+    startWidth: number;
+    startHeight: number;
+    baseDocument: CoreDocumentIR;
+  };
+  const resizeSessionRef = React.useRef<ResizeSession | null>(null);
 
   React.useEffect(() => {
     historyRef.current = history;
@@ -109,6 +135,14 @@ export function EditorSiteView(props: EditorSiteViewProps) {
   React.useEffect(() => {
     canvasStateRef.current = canvasState;
   }, [canvasState]);
+
+  React.useEffect(() => {
+    draftDocumentRef.current = draftDocument;
+  }, [draftDocument]);
+
+  React.useEffect(() => {
+    inlineEditRef.current = inlineEdit;
+  }, [inlineEdit]);
 
   React.useEffect(() => {
     overlayModeRef.current = overlayMode;
@@ -135,7 +169,23 @@ export function EditorSiteView(props: EditorSiteViewProps) {
     setHasDraftOverride(false);
     setSelectedBlockId(null);
     setHoveredBlockId(null);
+    setDraftDocument(null);
+    setInlineEdit(null);
+    resizeSessionRef.current = null;
   }, [baseDocument, pathname]);
+
+  React.useEffect(() => {
+    if (overlayMode !== "edit") {
+      setInlineEdit(null);
+      resizeSessionRef.current = null;
+      setDraftDocument(null);
+      return;
+    }
+
+    if (inlineEdit && selectedBlockId && inlineEdit.blockId !== selectedBlockId) {
+      setInlineEdit(null);
+    }
+  }, [inlineEdit, overlayMode, selectedBlockId]);
 
   const hoveredRect = useObservedBlockRect({
     enabled: overlayMode === "inspect",
@@ -187,6 +237,34 @@ export function EditorSiteView(props: EditorSiteViewProps) {
       return inspector;
     },
     [syncHistoryState, syncLayers, syncSelectionInspector],
+  );
+
+  const commitInlineTextEdit = React.useCallback(
+    (args: { document: CoreDocumentIR; blockId: BlockId; locale: string; nextText: string }) => {
+      const found = findBlockById(args.document, args.blockId);
+      if (!found) return;
+      if (found.type !== "heading" && found.type !== "paragraph") return;
+
+      const currentTextValue = (found.props as { text?: unknown }).text;
+      const nextTextMap = mergeLocalizedText(currentTextValue, args.locale, args.nextText);
+
+      // 避免在当前语言内容不变时写入新的历史记录。
+      if (isRecord(currentTextValue)) {
+        const currentLocaleValue = currentTextValue[args.locale];
+        if (typeof currentLocaleValue === "string" && currentLocaleValue === args.nextText) {
+          return;
+        }
+      }
+
+      const patched = applySelectionPatch(args.document, args.blockId, {
+        section: "component",
+        values: { text: nextTextMap },
+      });
+      if (patched.document === args.document) return;
+
+      commitNextDocument(patched.document, { preserveSelection: true });
+    },
+    [commitNextDocument],
   );
 
   const undoFromPortal = React.useCallback((): EditorHistoryState => {
@@ -253,8 +331,19 @@ export function EditorSiteView(props: EditorSiteViewProps) {
         return;
       }
 
+      // When the user is typing inside an input/textarea, keep undo/redo local to the input.
+      const target = ev.target;
+      const isTyping =
+        target instanceof HTMLElement &&
+        Boolean(
+          target.closest(
+            "textarea,input,[contenteditable='true'],[data-editor-inline-input='true']",
+          ),
+        );
+
       const isUndo = isMeta && !ev.shiftKey && key === "z";
       if (isUndo) {
+        if (isTyping) return;
         ev.preventDefault();
         ev.stopPropagation();
         undoFromPortal();
@@ -263,6 +352,7 @@ export function EditorSiteView(props: EditorSiteViewProps) {
 
       const isRedo = (isMeta && ev.shiftKey && key === "z") || (ev.ctrlKey && key === "y");
       if (isRedo) {
+        if (isTyping) return;
         ev.preventDefault();
         ev.stopPropagation();
         redoFromPortal();
@@ -315,6 +405,11 @@ export function EditorSiteView(props: EditorSiteViewProps) {
         setHasDraftOverride(true);
         setSelectedBlockId(null);
         setHoveredBlockId(null);
+        setDraftDocument(null);
+        draftDocumentRef.current = null;
+        setInlineEdit(null);
+        inlineEditRef.current = null;
+        resizeSessionRef.current = null;
         syncHistoryState(toEditorHistoryState(nextHistory));
         syncLayers(nextHistory.present);
         syncSelectionInspector(nextHistory.present, null);
@@ -341,6 +436,27 @@ export function EditorSiteView(props: EditorSiteViewProps) {
       getLayerTree: () => buildLayerTree(historyRef.current.present),
       insertBlock: (args) => {
         const inserted = insertBlockWithMeta(historyRef.current.present, {
+          ...args,
+          targetBlockId: args.targetBlockId ?? selectedBlockIdRef.current,
+        });
+
+        const nextHistory = commitEditorHistory(historyRef.current, inserted.document);
+        historyRef.current = nextHistory;
+        setHistory(nextHistory);
+        setHasDraftOverride(true);
+        setSelectedBlockId(inserted.blockId);
+        syncHistoryState(toEditorHistoryState(nextHistory));
+        syncLayers(inserted.document);
+        syncSelectionInspector(inserted.document, inserted.blockId);
+
+        return {
+          blockId: inserted.blockId,
+          inspector: inserted.inspector,
+          layers: inserted.layers,
+        };
+      },
+      insertBlockTree: (args) => {
+        const inserted = insertBlockTreeWithMeta(historyRef.current.present, {
           ...args,
           targetBlockId: args.targetBlockId ?? selectedBlockIdRef.current,
         });
@@ -390,14 +506,66 @@ export function EditorSiteView(props: EditorSiteViewProps) {
       getBlockPatterns: ({ category }) =>
         category ? CORE_BLOCK_PATTERNS.filter((p) => p.category === category) : CORE_BLOCK_PATTERNS,
 
-      // --- Block manipulation (skeleton stubs) ---
-      moveBlock: () => buildLayerTree(historyRef.current.present),
-      deleteBlock: () => buildLayerTree(historyRef.current.present),
-      duplicateBlock: ({ blockId }) => ({
-        blockId,
-        inspector: buildSelectionInspector(historyRef.current.present, blockId),
-        layers: buildLayerTree(historyRef.current.present),
-      }),
+      // --- Block manipulation ---
+      moveBlock: ({ blockId, targetId, position }) => {
+        const moved = moveBlockInDocument(historyRef.current.present, {
+          blockId,
+          targetId,
+          position,
+        });
+
+        if (!moved.moved || moved.document === historyRef.current.present) {
+          return buildLayerTree(historyRef.current.present);
+        }
+
+        const nextHistory = commitEditorHistory(historyRef.current, moved.document);
+        historyRef.current = nextHistory;
+        setHistory(nextHistory);
+        setHasDraftOverride(true);
+
+        // Keep the moved block selected for predictable UX.
+        setSelectedBlockId(blockId);
+        syncHistoryState(toEditorHistoryState(nextHistory));
+        const layers = syncLayers(moved.document);
+        syncSelectionInspector(moved.document, blockId);
+        return layers;
+      },
+      deleteBlock: ({ blockId }) => {
+        const deleted = deleteBlockInDocument(historyRef.current.present, { blockId });
+        if (!deleted.deleted || deleted.document === historyRef.current.present) {
+          return buildLayerTree(historyRef.current.present);
+        }
+
+        const nextHistory = commitEditorHistory(historyRef.current, deleted.document);
+        historyRef.current = nextHistory;
+        setHistory(nextHistory);
+        setHasDraftOverride(true);
+
+        const inspector = buildSelectionInspector(deleted.document, selectedBlockIdRef.current);
+        setSelectedBlockId(inspector.blockId);
+        syncHistoryState(toEditorHistoryState(nextHistory));
+        const layers = syncLayers(deleted.document);
+        syncSelectionInspector(deleted.document, inspector.blockId);
+        return layers;
+      },
+      duplicateBlock: ({ blockId }) => {
+        const duplicated = duplicateBlockWithMeta(historyRef.current.present, { blockId });
+
+        const nextHistory = commitEditorHistory(historyRef.current, duplicated.document);
+        historyRef.current = nextHistory;
+        setHistory(nextHistory);
+        setHasDraftOverride(true);
+        setSelectedBlockId(duplicated.blockId);
+        syncHistoryState(toEditorHistoryState(nextHistory));
+        syncLayers(duplicated.document);
+        syncSelectionInspector(duplicated.document, duplicated.blockId);
+
+        return {
+          blockId: duplicated.blockId,
+          inspector: duplicated.inspector,
+          layers: duplicated.layers,
+        };
+      },
 
       // --- Responsive (skeleton stub) ---
       setBreakpointOverride: () =>
@@ -477,6 +645,35 @@ export function EditorSiteView(props: EditorSiteViewProps) {
           const blockId = el?.getAttribute("data-block-id") ?? null;
           setSelectedBlockId(blockId);
         }}
+        onDoubleClick={(ev) => {
+          if (overlayMode !== "edit") return;
+          if (resizeSessionRef.current) return;
+          if (inlineEditRef.current) return;
+
+          const target = ev.target as HTMLElement | null;
+          const el = target?.closest?.("[data-block-id]") as HTMLElement | null;
+          const blockId = (el?.getAttribute("data-block-id") ?? null) as BlockId | null;
+          if (!blockId) return;
+
+          const found = findBlockById(historyRef.current.present, blockId);
+          if (!found) return;
+          if (found.type !== "heading" && found.type !== "paragraph") return;
+
+          const textValue = (found.props as { text?: unknown }).text;
+          const initialText = resolveLocalizedText(
+            textValue,
+            viewerCtx.locale,
+            viewerCtx.fallbackLocale,
+          );
+
+          setSelectedBlockId(blockId);
+          setInlineEdit({
+            blockId,
+            blockType: found.type,
+            initialText,
+            draftText: initialText,
+          });
+        }}
         onMouseMove={(ev) => {
           if (overlayMode !== "inspect") return;
           const target = ev.target as HTMLElement | null;
@@ -501,6 +698,60 @@ export function EditorSiteView(props: EditorSiteViewProps) {
         <DocumentRenderer document={renderDocument} ctx={viewerCtx} />
       </div>
       <div data-editor-overlay="true">
+        {inlineEdit && selectedRect && selectedBlockId === inlineEdit.blockId ? (
+          <textarea
+            data-editor-inline-input="true"
+            value={inlineEdit.draftText}
+            autoFocus
+            style={{
+              transform: `translate3d(${selectedRect.left}px, ${selectedRect.top}px, 0)`,
+              width: `${Math.max(16, selectedRect.width)}px`,
+              height: `${Math.max(24, selectedRect.height)}px`,
+            }}
+            onChange={(ev) => {
+              const next = ev.target.value;
+              setInlineEdit((prev) => (prev ? { ...prev, draftText: next } : prev));
+            }}
+            onKeyDown={(ev) => {
+              if (ev.key === "Escape") {
+                ev.preventDefault();
+                ev.stopPropagation();
+                inlineEditRef.current = null;
+                setInlineEdit(null);
+                return;
+              }
+
+              if (ev.key !== "Enter") return;
+
+              const shouldCommit = inlineEdit.blockType === "heading" || ev.metaKey || ev.ctrlKey;
+              if (!shouldCommit) return;
+
+              ev.preventDefault();
+              ev.stopPropagation();
+
+              commitInlineTextEdit({
+                document: historyRef.current.present,
+                blockId: inlineEdit.blockId,
+                locale: viewerCtx.locale,
+                nextText: inlineEdit.draftText,
+              });
+              inlineEditRef.current = null;
+              setInlineEdit(null);
+            }}
+            onBlur={() => {
+              const current = inlineEditRef.current;
+              if (!current) return;
+              commitInlineTextEdit({
+                document: historyRef.current.present,
+                blockId: current.blockId,
+                locale: viewerCtx.locale,
+                nextText: current.draftText,
+              });
+              inlineEditRef.current = null;
+              setInlineEdit(null);
+            }}
+          />
+        ) : null}
         {hoveredRect && overlayMode === "inspect" ? (
           <div
             data-editor-overlay="hover"
@@ -520,16 +771,155 @@ export function EditorSiteView(props: EditorSiteViewProps) {
               height: `${selectedRect.height}px`,
             }}
           >
-            <div data-editor-overlay-handle="nw" />
-            <div data-editor-overlay-handle="ne" />
-            <div data-editor-overlay-handle="sw" />
-            <div data-editor-overlay-handle="se" />
+            {overlayMode === "edit" && selectedBlockId ? (
+              <div
+                data-editor-overlay-handle="se"
+                onPointerDown={(ev) => {
+                  if (!selectedRect) return;
+                  if (overlayMode !== "edit") return;
+                  if (!selectedBlockId) return;
+                  if (inlineEditRef.current) return;
+
+                  ev.preventDefault();
+                  ev.stopPropagation();
+
+                  const target = ev.currentTarget;
+                  target.setPointerCapture(ev.pointerId);
+
+                  resizeSessionRef.current = {
+                    pointerId: ev.pointerId,
+                    blockId: selectedBlockId,
+                    startClientX: ev.clientX,
+                    startClientY: ev.clientY,
+                    startWidth: selectedRect.width,
+                    startHeight: selectedRect.height,
+                    baseDocument: historyRef.current.present,
+                  };
+
+                  document.body.style.userSelect = "none";
+                }}
+                onPointerMove={(ev) => {
+                  const session = resizeSessionRef.current;
+                  if (!session) return;
+                  if (ev.pointerId !== session.pointerId) return;
+
+                  ev.preventDefault();
+                  ev.stopPropagation();
+
+                  const dx = ev.clientX - session.startClientX;
+                  const dy = ev.clientY - session.startClientY;
+
+                  const nextWidth = Math.max(40, Math.round(session.startWidth + dx));
+                  const nextHeight = Math.max(16, Math.round(session.startHeight + dy));
+
+                  const patched = applySelectionPatch(session.baseDocument, session.blockId, {
+                    section: "layout",
+                    values: { width: nextWidth, height: nextHeight },
+                  });
+
+                  draftDocumentRef.current = patched.document;
+                  setDraftDocument(patched.document);
+                }}
+                onPointerCancel={() => {
+                  if (!resizeSessionRef.current) return;
+                  resizeSessionRef.current = null;
+                  document.body.style.userSelect = "";
+                  draftDocumentRef.current = null;
+                  setDraftDocument(null);
+                }}
+                onPointerUp={(ev) => {
+                  const session = resizeSessionRef.current;
+                  if (!session) return;
+                  if (ev.pointerId !== session.pointerId) return;
+
+                  resizeSessionRef.current = null;
+                  document.body.style.userSelect = "";
+
+                  const nextDocument = draftDocumentRef.current;
+                  draftDocumentRef.current = null;
+                  setDraftDocument(null);
+                  if (!nextDocument || nextDocument === historyRef.current.present) return;
+                  commitNextDocument(nextDocument, { preserveSelection: true });
+                }}
+              />
+            ) : null}
             {selectedBlockId ? <div data-editor-overlay-label>{selectedBlockId}</div> : null}
           </div>
         ) : null}
       </div>
     </div>
   );
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object";
+}
+
+type CoreNode = CoreDocumentIR["blocks"][number];
+
+type ParentNode = Extract<CoreNode, { type: "container" | "grid" }>;
+
+function isParentNode(node: CoreNode): node is ParentNode {
+  return node.type === "container" || node.type === "grid";
+}
+
+function findBlockById(document: CoreDocumentIR, blockId: BlockId): CoreNode | null {
+  const walk = (nodes: CoreNode[]): CoreNode | null => {
+    for (const node of nodes) {
+      if (node.id === blockId) return node;
+      if (isParentNode(node) && Array.isArray(node.children)) {
+        const found = walk(node.children);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
+
+  return walk(document.blocks);
+}
+
+function resolveLocalizedText(
+  value: unknown,
+  locale: string,
+  fallbackLocale: string | undefined,
+): string {
+  if (!isRecord(value)) return "";
+
+  const direct = value[locale];
+  if (typeof direct === "string") return direct;
+
+  if (fallbackLocale) {
+    const fallback = value[fallbackLocale];
+    if (typeof fallback === "string") return fallback;
+  }
+
+  const en = value["en-US"];
+  if (typeof en === "string") return en;
+
+  const zh = value["zh-CN"];
+  if (typeof zh === "string") return zh;
+
+  for (const v of Object.values(value)) {
+    if (typeof v === "string") return v;
+  }
+
+  return "";
+}
+
+function mergeLocalizedText(
+  value: unknown,
+  locale: string,
+  nextText: string,
+): Record<string, string> {
+  const base: Record<string, string> = {};
+  if (isRecord(value)) {
+    for (const [key, item] of Object.entries(value)) {
+      if (typeof item === "string") base[key] = item;
+    }
+  }
+
+  base[locale] = nextText;
+  return base;
 }
 
 function getBlockElement(blockId: string): HTMLElement | null {

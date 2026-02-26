@@ -95,4 +95,49 @@ describe("site-renderer-core guards (imported via Portal)", () => {
 
     expect(isCoreDocumentIR(doc)).toBe(true);
   });
+
+  test("accepts core media blocks (image)", () => {
+    const doc = {
+      version: 1,
+      blocks: [
+        {
+          id: "img1",
+          type: "image",
+          props: {
+            src: "/assets/example.png",
+            alt: "Example",
+            objectFit: "cover",
+          },
+        },
+      ],
+    };
+
+    expect(isCoreDocumentIR(doc)).toBe(true);
+  });
+
+  test("accepts grid blocks with children", () => {
+    const doc = {
+      version: 1,
+      blocks: [
+        {
+          id: "g1",
+          type: "grid",
+          props: {
+            columns: 2,
+            columnGap: "16px",
+            rowGap: "16px",
+          },
+          children: [
+            {
+              id: "h1",
+              type: "heading",
+              props: { level: 1, text: { "en-US": "Hello" } },
+            },
+          ],
+        },
+      ],
+    };
+
+    expect(isCoreDocumentIR(doc)).toBe(true);
+  });
 });

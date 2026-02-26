@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -48,12 +48,15 @@ import {
   FloatingPanelTrigger,
   FloatingPanelContent,
   FloatingPanelBody,
+  useFloatingPanel,
 } from "@/components/ui/floating-panel";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { useEditorStore } from "@/pages/workspaces/editor/stores/editor-store";
 import { useEditorConfig } from "@/pages/workspaces/editor/contexts/editor-config-context";
 import { usePlatform } from "@/pages/workspaces/editor/hooks/use-platform";
 import { useEditorActions } from "@/pages/workspaces/editor/hooks/use-editor-actions";
 import { EditorPageSwitcher } from "@/pages/workspaces/editor/components/editor-page-switcher";
+import { useEditorBridgeContext } from "@/pages/workspaces/editor/contexts/editor-bridge-context";
 import * as authApi from "@/api/auth";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { resolveAssetRefToPublicUrlPath } from "@/lib/assets/asset-urls";
@@ -172,35 +175,140 @@ function EditorUserMenuContent() {
 
 function BridgeStatusIndicator() {
   const { t } = useTranslation(["content_pages"]);
+  const { portal } = useEditorBridgeContext();
   const bridgeStatus = useEditorStore((s) => s.bridgeStatus);
+  const overlayCloseSignal = useEditorStore((s) => s.overlayCloseSignal);
+
+  const portalOrigin = useMemo(() => {
+    const raw = import.meta.env.VITE_PORTAL_ORIGIN as string | undefined;
+    return raw && raw.trim() ? raw.trim() : "http://localhost:3100";
+  }, []);
 
   const config = {
     connected: {
-      icon: <Wifi className="size-3.5 text-green-500" />,
+      icon: <Wifi className="size-4 text-green-500" />,
       label: t("content_pages:EDITOR_SHELL_BRIDGE_CONNECTED"),
     },
     connecting: {
-      icon: <Wifi className="size-3.5 animate-pulse text-amber-500" />,
+      icon: <Wifi className="size-4 animate-pulse text-amber-500" />,
       label: t("content_pages:EDITOR_SHELL_BRIDGE_CONNECTING"),
     },
     disconnected: {
-      icon: <WifiOff className="size-3.5 text-red-500" />,
+      icon: <WifiOff className="size-4 text-red-500" />,
       label: t("content_pages:EDITOR_SHELL_BRIDGE_DISCONNECTED"),
     },
   } as const;
 
   const { icon, label } = config[bridgeStatus];
+  const [open, setOpen] = useState(false);
+
+  const latency = useBridgeLatency({ portal, enabled: bridgeStatus === "connected" && open });
+
+  useEffect(() => {
+    if (!open) return;
+    setOpen(false);
+  }, [overlayCloseSignal]); // Close on iframe focus.
 
   return (
-    <Tooltip title={label}>
-      <Button type="text" size="small" className="cursor-default" icon={icon} />
-    </Tooltip>
+    <Popover open={open} onOpenChange={setOpen}>
+      <Tooltip title={label}>
+        <PopoverTrigger asChild>
+          <Button type="text" size="small" icon={icon} aria-label={label} />
+        </PopoverTrigger>
+      </Tooltip>
+      <PopoverContent align="end" className="w-80 space-y-3 p-3">
+        <div>
+          <div className="text-callout font-medium">
+            {t("content_pages:EDITOR_BRIDGE_STATUS_TITLE")}
+          </div>
+          <div className="text-caption text-label-secondary">
+            {t("content_pages:EDITOR_BRIDGE_STATUS_DESC")}
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <StatusRow
+            title={t("content_pages:EDITOR_BRIDGE_STATUS_ITEM_CONNECTION")}
+            desc={t("content_pages:EDITOR_BRIDGE_STATUS_ITEM_CONNECTION_DESC")}
+            value={label}
+          />
+          <StatusRow
+            title={t("content_pages:EDITOR_BRIDGE_STATUS_ITEM_ORIGIN")}
+            desc={t("content_pages:EDITOR_BRIDGE_STATUS_ITEM_ORIGIN_DESC")}
+            value={portalOrigin}
+          />
+          <StatusRow
+            title={t("content_pages:EDITOR_BRIDGE_STATUS_ITEM_LATENCY")}
+            desc={t("content_pages:EDITOR_BRIDGE_STATUS_ITEM_LATENCY_DESC")}
+            value={
+              bridgeStatus === "connected" && latency.rttMs != null ? `${latency.rttMs} ms` : "--"
+            }
+            meta={
+              latency.updatedAtMs ? new Date(latency.updatedAtMs).toLocaleTimeString() : undefined
+            }
+          />
+        </div>
+      </PopoverContent>
+    </Popover>
   );
+}
+
+function StatusRow(props: { title: string; desc: string; value: string; meta?: string }) {
+  return (
+    <div className="rounded-md border border-border bg-muted/30 p-2">
+      <div className="flex items-baseline justify-between gap-2">
+        <div className="text-callout font-medium">{props.title}</div>
+        <div className="text-callout font-semibold tabular-nums">{props.value}</div>
+      </div>
+      <div className="mt-0.5 flex items-center justify-between gap-2">
+        <div className="text-caption text-label-secondary">{props.desc}</div>
+        {props.meta ? <div className="text-caption text-label-secondary">{props.meta}</div> : null}
+      </div>
+    </div>
+  );
+}
+
+function useBridgeLatency(args: { portal: unknown; enabled: boolean }): {
+  rttMs: number | null;
+  updatedAtMs: number | null;
+} {
+  const portal = args.portal as null | { ping: (args: { sentAt: number }) => Promise<unknown> };
+  const [rttMs, setRttMs] = useState<number | null>(null);
+  const [updatedAtMs, setUpdatedAtMs] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!args.enabled || !portal) return;
+
+    let cancelled = false;
+
+    const tick = async () => {
+      const sentAt = Date.now();
+      try {
+        await portal.ping({ sentAt });
+        if (cancelled) return;
+        setRttMs(Math.max(0, Date.now() - sentAt));
+        setUpdatedAtMs(Date.now());
+      } catch {
+        if (cancelled) return;
+        setRttMs(null);
+      }
+    };
+
+    void tick();
+    const timer = window.setInterval(() => void tick(), 2000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [args.enabled, portal]);
+
+  return { rttMs, updatedAtMs };
 }
 
 function EditorAvatar() {
   const { t } = useTranslation(["content_pages"]);
   const accessToken = useAuthStore((s) => s.accessToken);
+  const overlayCloseSignal = useEditorStore((s) => s.overlayCloseSignal);
 
   const meQuery = useQuery({
     queryKey: ["auth", "me"],
@@ -224,6 +332,7 @@ function EditorAvatar() {
 
   return (
     <FloatingPanelRoot>
+      <CloseFloatingPanelOnOverlaySignal signal={overlayCloseSignal} />
       <FloatingPanelTrigger
         title={t("content_pages:EDITOR_USER_MENU_TITLE")}
         className="size-8 justify-center rounded-full border-0 bg-transparent"
@@ -239,6 +348,17 @@ function EditorAvatar() {
       </FloatingPanelContent>
     </FloatingPanelRoot>
   );
+}
+
+function CloseFloatingPanelOnOverlaySignal({ signal }: { signal: number }) {
+  const { isOpen, closeFloatingPanel } = useFloatingPanel();
+
+  useEffect(() => {
+    if (!isOpen) return;
+    closeFloatingPanel();
+  }, [closeFloatingPanel, isOpen, signal]);
+
+  return null;
 }
 
 export function EditorHeader() {

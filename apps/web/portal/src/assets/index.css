@@ -38,6 +38,7 @@ body {
   border: 2px solid var(--color-primary, #1677ff);
   border-radius: 8px;
   background: rgba(22, 119, 255, 0.06);
+  pointer-events: none;
 }
 
 [data-editor-overlay-handle] {
@@ -48,6 +49,8 @@ body {
   background: var(--color-primary, #1677ff);
   border: 2px solid var(--color-background, #ffffff);
   box-sizing: border-box;
+  pointer-events: auto;
+  cursor: nwse-resize;
 }
 
 [data-editor-overlay-handle="nw"] {
@@ -91,6 +94,28 @@ body {
   border: 1px dashed rgba(22, 119, 255, 0.85);
   border-radius: 8px;
   background: rgba(22, 119, 255, 0.03);
+  pointer-events: none;
+}
+
+[data-editor-inline-input="true"] {
+  position: absolute;
+  top: 0;
+  left: 0;
+  box-sizing: border-box;
+  pointer-events: auto;
+  resize: none;
+  border: 1px solid var(--color-border, rgba(17, 24, 39, 0.12));
+  border-radius: 8px;
+  padding: 6px 8px;
+  font: inherit;
+  line-height: 1.4;
+  background: var(--color-background, #ffffff);
+  color: var(--color-foreground, #111827);
+}
+
+[data-editor-inline-input="true"]:focus {
+  outline: 2px solid var(--color-primary, #1677ff);
+  outline-offset: 2px;
 }
 
 @keyframes celestial-editor-fade-in {

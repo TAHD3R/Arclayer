@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { Button, Tooltip, InputNumber, Radio, Checkbox, Space, Dropdown } from "antd";
 import type { MenuProps } from "antd";
+import { useEffect, useState } from "react";
 
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import {
@@ -53,6 +54,14 @@ export function CanvasToolbar() {
   const setDevicePreset = useEditorStore((s) => s.setDevicePreset);
   const setZoomPercent = useEditorStore((s) => s.setZoomPercent);
   const setCanvasWidth = useEditorStore((s) => s.setCanvasWidth);
+  const overlayCloseSignal = useEditorStore((s) => s.overlayCloseSignal);
+
+  const [canvasSettingsOpen, setCanvasSettingsOpen] = useState(false);
+
+  useEffect(() => {
+    if (!canvasSettingsOpen) return;
+    setCanvasSettingsOpen(false);
+  }, [canvasSettingsOpen, overlayCloseSignal]);
 
   const displayWidth = canvasWidth ?? DEVICE_PRESET_WIDTHS[devicePreset];
 
@@ -138,7 +147,7 @@ export function CanvasToolbar() {
         </Space.Compact>
 
         {/* Canvas Settings Popover */}
-        <Popover>
+        <Popover open={canvasSettingsOpen} onOpenChange={setCanvasSettingsOpen}>
           <PopoverTrigger asChild>
             <Button type="text" className="ml-1 gap-0.5! tabular-nums">
               <span className="text-callout text-secondary">{displayWidth} px</span>

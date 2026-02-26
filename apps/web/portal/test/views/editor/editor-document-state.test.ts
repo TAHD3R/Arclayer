@@ -8,8 +8,12 @@ import {
   buildSelectionInspector,
   commitEditorHistory,
   createEditorHistory,
+  deleteBlock,
   insertBlock,
+  insertBlockTree,
+  moveBlock,
   redoEditorHistory,
+  duplicateBlock,
   undoEditorHistory,
 } from "@/views/editor/editor-document-state";
 
@@ -126,5 +130,76 @@ describe("editor document state", () => {
     const redone = redoEditorHistory(undone);
     expect(redone.past).toHaveLength(1);
     expect(buildSelectionInspector(redone.present, "h-title").component.level).toBe(3);
+  });
+
+  test("insertBlockTree rewrites ids and inserts multiple blocks inside container", () => {
+    const doc = createSampleDocument();
+
+    const inserted = insertBlockTree(doc, {
+      blocks: [
+        {
+          id: "temp-container",
+          type: "container",
+          props: { as: "section" },
+          children: [
+            {
+              id: "temp-heading",
+              type: "heading",
+              props: {
+                level: 2,
+                text: { "en-US": "Inserted", "zh-CN": "插入" },
+                align: "left",
+              },
+            },
+          ],
+        },
+      ],
+      targetBlockId: "c-root",
+      position: "inside",
+    });
+
+    expect(inserted.selectedBlockId).not.toBe("temp-container");
+    expect(inserted.selectedBlockId).not.toBe("temp-heading");
+
+    const root = inserted.document.blocks[0];
+    expect(root).toBeDefined();
+    if (!root) return;
+
+    const children = (root as unknown as { children?: unknown }).children;
+    expect(Array.isArray(children)).toBe(true);
+    expect((children as unknown[]).length).toBe(3);
+
+    const tree = buildLayerTree(inserted.document);
+    expect(JSON.stringify(tree)).not.toContain("temp-container");
+    expect(JSON.stringify(tree)).not.toContain("temp-heading");
+  });
+
+  test("duplicateBlock clones subtree and inserts after original", () => {
+    const doc = createSampleDocument();
+
+    const duplicated = duplicateBlock(doc, { blockId: "h-title" });
+
+    expect(duplicated.selectedBlockId).not.toBe("h-title");
+    const container = duplicated.document.blocks[0] as unknown as { children?: unknown[] };
+    const ids = (container.children ?? []).map((n) => (n as { id?: unknown }).id);
+    expect(ids).toEqual(["h-title", duplicated.selectedBlockId, "p-body"]);
+  });
+
+  test("deleteBlock removes node and its subtree", () => {
+    const doc = createSampleDocument();
+
+    const deleted = deleteBlock(doc, { blockId: "h-title" });
+    const container = deleted.document.blocks[0] as unknown as { children?: unknown[] };
+    const ids = (container.children ?? []).map((n) => (n as { id?: unknown }).id);
+    expect(ids).toEqual(["p-body"]);
+  });
+
+  test("moveBlock reorders nodes within same parent", () => {
+    const doc = createSampleDocument();
+
+    const moved = moveBlock(doc, { blockId: "p-body", targetId: "h-title", position: "before" });
+    const container = moved.document.blocks[0] as unknown as { children?: unknown[] };
+    const ids = (container.children ?? []).map((n) => (n as { id?: unknown }).id);
+    expect(ids).toEqual(["p-body", "h-title"]);
   });
 });

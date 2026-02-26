@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { X } from "lucide-react";
 import { Button } from "antd";
 import { AnimatePresence, motion } from "motion/react";
+import { useRef } from "react";
 
 import {
   useEditorStore,
@@ -14,7 +15,7 @@ import {
 import { PagesPanel } from "@/pages/workspaces/editor/panels/pages-panel";
 import { NavigatorPanel } from "@/pages/workspaces/editor/panels/navigator-panel";
 import { ComponentsPanel } from "@/pages/workspaces/editor/panels/components-panel";
-import { BlockPatternsPanel } from "@/pages/workspaces/editor/panels/block-patterns-panel";
+import { BlocksPanel } from "@/pages/workspaces/editor/panels/blocks-panel";
 import { AssetsPanel } from "@/pages/workspaces/editor/panels/assets-panel";
 import { SearchPanel } from "@/pages/workspaces/editor/panels/search-panel";
 import { EditorSettingsPanel } from "@/pages/workspaces/editor/panels/editor-settings-panel";
@@ -28,7 +29,7 @@ function PanelContent({ menuId, t }: { menuId: ActivityBarMenuId; t: (key: strin
     case "add-elements":
       return <ComponentsPanel />;
     case "blocks":
-      return <BlockPatternsPanel />;
+      return <BlocksPanel />;
     case "assets":
       return <AssetsPanel />;
     case "search":
@@ -51,10 +52,15 @@ export function SidebarPanel() {
   const activeMenuId = useEditorStore((s) => s.activeMenuId);
   const sidebarOpen = useEditorStore((s) => s.sidebarOpen);
   const toggleSidebar = useEditorStore((s) => s.toggleSidebar);
+  const sidebarWidthByMenu = useEditorStore((s) => s.sidebarWidthByMenu);
+  const setSidebarWidth = useEditorStore((s) => s.setSidebarWidth);
+
+  const resizeRef = useRef<{ startX: number; startWidth: number } | null>(null);
 
   const isVisible = sidebarOpen && activeMenuId !== null;
   const titleKey = activeMenuId ? EDITOR_MENU_TITLE_KEYS[activeMenuId] : null;
   const descKey = activeMenuId ? EDITOR_MENU_DESC_KEYS[activeMenuId] : null;
+  const sidebarWidth = activeMenuId ? (sidebarWidthByMenu[activeMenuId] ?? 280) : 280;
 
   return (
     <AnimatePresence initial={false}>
@@ -62,10 +68,10 @@ export function SidebarPanel() {
         <motion.aside
           key="sidebar"
           initial={{ width: 0, opacity: 0 }}
-          animate={{ width: 256, opacity: 1 }}
+          animate={{ width: sidebarWidth, opacity: 1 }}
           exit={{ width: 0, opacity: 0 }}
           transition={{ duration: 0.15, ease: "easeInOut" }}
-          className="flex shrink-0 flex-col overflow-hidden border-r bg-card"
+          className="relative flex shrink-0 flex-col overflow-hidden border-r bg-card"
         >
           {/* Header */}
           <div className="flex shrink-0 items-start justify-between border-b px-3 py-2">
@@ -85,6 +91,38 @@ export function SidebarPanel() {
           {/* Content */}
           <div className="flex min-h-0 flex-1 flex-col overflow-auto">
             <PanelContent menuId={activeMenuId} t={t} />
+          </div>
+
+          {/* Resize handle */}
+          <div
+            role="separator"
+            aria-orientation="vertical"
+            className="absolute right-0 top-0 h-full w-2 cursor-col-resize"
+            onPointerDown={(e) => {
+              if (!activeMenuId) return;
+              resizeRef.current = { startX: e.clientX, startWidth: sidebarWidth };
+              (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+              e.preventDefault();
+            }}
+            onPointerMove={(e) => {
+              if (!activeMenuId) return;
+              if (!resizeRef.current) return;
+              const nextWidth =
+                resizeRef.current.startWidth + (e.clientX - resizeRef.current.startX);
+              setSidebarWidth(activeMenuId, nextWidth);
+            }}
+            onPointerUp={(e) => {
+              resizeRef.current = null;
+              const el = e.currentTarget as HTMLElement;
+              if (el.hasPointerCapture(e.pointerId)) el.releasePointerCapture(e.pointerId);
+            }}
+            onPointerCancel={(e) => {
+              resizeRef.current = null;
+              const el = e.currentTarget as HTMLElement;
+              if (el.hasPointerCapture(e.pointerId)) el.releasePointerCapture(e.pointerId);
+            }}
+          >
+            <div className="absolute right-0 top-0 h-full w-px bg-border opacity-0 transition-opacity hover:opacity-100" />
           </div>
         </motion.aside>
       ) : null}

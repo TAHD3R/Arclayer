@@ -222,6 +222,27 @@ export function isCoreBlockNode(value: unknown): value is CoreBlockNode {
       if (!Array.isArray(value.children)) return false;
       return value.children.every(isCoreBlockNode);
     }
+    case "grid": {
+      if (!hasOnlyAllowedKeys(value.props, ["columns", "columnGap", "rowGap", "layout", "style", "animation"])) {
+        return false;
+      }
+      if (value.props.columns !== undefined) {
+        if (typeof value.props.columns !== "number" || !Number.isFinite(value.props.columns)) return false;
+        if (value.props.columns < 1 || value.props.columns > 12) return false;
+      }
+      if (value.props.columnGap !== undefined && typeof value.props.columnGap !== "string") return false;
+      if (value.props.rowGap !== undefined && typeof value.props.rowGap !== "string") return false;
+      if (!hasValidCommonVisualProps(value.props)) return false;
+      if (value.children === undefined) return true;
+      if (!Array.isArray(value.children)) return false;
+      return value.children.every(isCoreBlockNode);
+    }
+    case "spacer": {
+      if (!hasOnlyAllowedKeys(value.props, ["height", "layout", "style", "animation"])) return false;
+      if (value.props.height !== undefined && typeof value.props.height !== "string") return false;
+      if (!hasValidCommonVisualProps(value.props)) return false;
+      return value.children === undefined;
+    }
     case "heading": {
       if (!hasOnlyAllowedKeys(value.props, ["level", "text", "align", "layout", "style", "animation"])) return false;
       if (typeof value.props.level !== "number") return false;
@@ -242,6 +263,91 @@ export function isCoreBlockNode(value: unknown): value is CoreBlockNode {
         if (value.props.align !== "left" && value.props.align !== "center" && value.props.align !== "right") {
           return false;
         }
+      }
+      if (!hasValidCommonVisualProps(value.props)) return false;
+      return value.children === undefined;
+    }
+    case "list": {
+      if (!hasOnlyAllowedKeys(value.props, ["ordered", "items", "layout", "style", "animation"])) return false;
+      if (value.props.ordered !== undefined && typeof value.props.ordered !== "boolean") return false;
+      if (value.props.items !== undefined) {
+        if (!Array.isArray(value.props.items)) return false;
+        if (!value.props.items.every(isLocalizedString)) return false;
+      }
+      if (!hasValidCommonVisualProps(value.props)) return false;
+      return value.children === undefined;
+    }
+    case "quote": {
+      if (!hasOnlyAllowedKeys(value.props, ["text", "citation", "layout", "style", "animation"])) return false;
+      if (!isLocalizedString(value.props.text)) return false;
+      if (value.props.citation !== undefined && !isLocalizedString(value.props.citation)) return false;
+      if (!hasValidCommonVisualProps(value.props)) return false;
+      return value.children === undefined;
+    }
+    case "image": {
+      if (!hasOnlyAllowedKeys(value.props, ["src", "alt", "objectFit", "layout", "style", "animation"])) return false;
+      if (typeof value.props.src !== "string") return false;
+      if (value.props.alt !== undefined && typeof value.props.alt !== "string") return false;
+      if (value.props.objectFit !== undefined) {
+        if (
+          value.props.objectFit !== "cover" &&
+          value.props.objectFit !== "contain" &&
+          value.props.objectFit !== "fill" &&
+          value.props.objectFit !== "none"
+        ) {
+          return false;
+        }
+      }
+      if (!hasValidCommonVisualProps(value.props)) return false;
+      return value.children === undefined;
+    }
+    case "video": {
+      if (
+        !hasOnlyAllowedKeys(value.props, [
+          "src",
+          "poster",
+          "autoplay",
+          "loop",
+          "muted",
+          "layout",
+          "style",
+          "animation",
+        ])
+      ) {
+        return false;
+      }
+      if (typeof value.props.src !== "string") return false;
+      if (value.props.poster !== undefined && typeof value.props.poster !== "string") return false;
+      if (value.props.autoplay !== undefined && typeof value.props.autoplay !== "boolean") return false;
+      if (value.props.loop !== undefined && typeof value.props.loop !== "boolean") return false;
+      if (value.props.muted !== undefined && typeof value.props.muted !== "boolean") return false;
+      if (!hasValidCommonVisualProps(value.props)) return false;
+      return value.children === undefined;
+    }
+    case "icon": {
+      if (!hasOnlyAllowedKeys(value.props, ["name", "size", "layout", "style", "animation"])) return false;
+      if (typeof value.props.name !== "string") return false;
+      if (value.props.size !== undefined && typeof value.props.size !== "string") return false;
+      if (!hasValidCommonVisualProps(value.props)) return false;
+      return value.children === undefined;
+    }
+    case "button": {
+      if (!hasOnlyAllowedKeys(value.props, ["text", "href", "variant", "size", "layout", "style", "animation"])) {
+        return false;
+      }
+      if (!isLocalizedString(value.props.text)) return false;
+      if (value.props.href !== undefined && typeof value.props.href !== "string") return false;
+      if (value.props.variant !== undefined) {
+        if (
+          value.props.variant !== "primary" &&
+          value.props.variant !== "secondary" &&
+          value.props.variant !== "outline"
+        ) {
+          return false;
+        }
+      }
+      if (value.props.size !== undefined) {
+        if (value.props.size !== "sm" && value.props.size !== "md" && value.props.size !== "lg") return false;
       }
       if (!hasValidCommonVisualProps(value.props)) return false;
       return value.children === undefined;

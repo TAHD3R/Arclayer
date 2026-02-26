@@ -1,5 +1,6 @@
 import type {
   DocumentIR,
+  BlockNode,
   BlockManifest,
   BlockPattern,
   PortableTextContent,
@@ -91,6 +92,12 @@ export type EditorInsertBlockResult = {
   blockId: BlockId;
   inspector: EditorSelectionInspector;
   layers: EditorLayerNode[];
+};
+
+export type EditorInsertBlockTreeArgs = {
+  blocks: BlockNode[];
+  targetBlockId?: BlockId | null;
+  position?: EditorInsertBlockPosition;
 };
 
 export type EditorPresence = {
@@ -191,6 +198,7 @@ export type PortalEditorRpcApi = {
   }) => EditorSelectionInspector;
   getLayerTree: () => EditorLayerNode[];
   insertBlock: (args: EditorInsertBlockArgs) => EditorInsertBlockResult;
+  insertBlockTree: (args: EditorInsertBlockTreeArgs) => EditorInsertBlockResult;
   setDevicePreset: (args: { devicePreset: EditorDevicePreset }) => EditorCanvasState;
   setZoom: (args: { zoomPercent: number }) => EditorCanvasState;
   resetZoom: () => EditorCanvasState;

@@ -1,6 +1,8 @@
 import type {
   EditorHistoryState,
   EditorInsertBlockArgs,
+  EditorInsertBlockPosition,
+  EditorInsertBlockTreeArgs,
   EditorInsertBlockResult,
   EditorLayerNode,
   EditorSelectionInspector,
@@ -37,6 +39,13 @@ function cloneDocument(doc: CoreDocumentIR): CoreDocumentIR {
   return JSON.parse(JSON.stringify(doc)) as CoreDocumentIR;
 }
 
+function cloneJson<T>(value: T): T {
+  if (typeof structuredClone === "function") {
+    return structuredClone(value) as T;
+  }
+  return JSON.parse(JSON.stringify(value)) as T;
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object";
 }
@@ -46,8 +55,20 @@ function asRecord(value: unknown): Record<string, unknown> {
   return value;
 }
 
-function isContainer(node: CoreBlockNode): node is Extract<CoreBlockNode, { type: "container" }> {
-  return node.type === "container";
+type ParentBlockNode = Extract<CoreBlockNode, { type: "container" | "grid" }>;
+
+function isParentBlockNode(node: CoreBlockNode): node is ParentBlockNode {
+  return node.type === "container" || node.type === "grid";
+}
+
+function getChildNodes(node: CoreBlockNode): CoreBlockNode[] | null {
+  if (!isParentBlockNode(node)) return null;
+  if (!Array.isArray(node.children)) return null;
+  return node.children;
+}
+
+function ensureChildren(node: ParentBlockNode): CoreBlockNode[] {
+  return Array.isArray(node.children) ? node.children : [];
 }
 
 function localizedTextFromProps(value: unknown): string {
@@ -56,23 +77,50 @@ function localizedTextFromProps(value: unknown): string {
 }
 
 function buildLayerLabel(block: CoreBlockNode): string {
-  if (block.type === "heading") {
-    const text = localizedTextFromProps(block.props.text);
-    return text ? `Heading: ${text}` : "Heading";
+  switch (block.type) {
+    case "heading": {
+      const text = localizedTextFromProps(block.props.text);
+      return text ? `Heading: ${text}` : "Heading";
+    }
+    case "paragraph": {
+      const text = localizedTextFromProps(block.props.text);
+      return text ? `Paragraph: ${text}` : "Paragraph";
+    }
+    case "button": {
+      const text = localizedTextFromProps(block.props.text);
+      return text ? `Button: ${text}` : "Button";
+    }
+    case "quote": {
+      const text = localizedTextFromProps(block.props.text);
+      return text ? `Quote: ${text}` : "Quote";
+    }
+    case "divider":
+      return "Divider";
+    case "container":
+      return "Container";
+    case "grid":
+      return "Grid";
+    case "list":
+      return "List";
+    case "image":
+      return "Image";
+    case "video":
+      return "Video";
+    case "spacer":
+      return "Spacer";
+    case "icon": {
+      const name = block.props.name;
+      return name.trim() ? `Icon: ${name}` : "Icon";
+    }
   }
-  if (block.type === "paragraph") {
-    const text = localizedTextFromProps(block.props.text);
-    return text ? `Paragraph: ${text}` : "Paragraph";
-  }
-  if (block.type === "divider") return "Divider";
-  return "Container";
 }
 
 function findBlock(nodes: CoreBlockNode[], blockId: string): CoreBlockNode | null {
   for (const node of nodes) {
     if (node.id === blockId) return node;
-    if (isContainer(node) && Array.isArray(node.children)) {
-      const found = findBlock(node.children, blockId);
+    const children = getChildNodes(node);
+    if (children) {
+      const found = findBlock(children, blockId);
       if (found) return found;
     }
   }
@@ -95,7 +143,7 @@ function updateBlockById(
       return updated;
     }
 
-    if (isContainer(node) && Array.isArray(node.children)) {
+    if (isParentBlockNode(node) && Array.isArray(node.children)) {
       const childResult = updateBlockById(node.children, blockId, updater);
       if (!childResult.changed) return node;
       changed = true;
@@ -117,43 +165,8 @@ function updateBlockById(
 }
 
 function withNodeProps(node: CoreBlockNode, nextProps: Record<string, unknown>): CoreBlockNode {
-  if (node.type === "container") {
-    if (Array.isArray(node.children)) {
-      return {
-        id: node.id,
-        type: node.type,
-        props: nextProps as typeof node.props,
-        children: node.children,
-      };
-    }
-    return {
-      id: node.id,
-      type: node.type,
-      props: nextProps as typeof node.props,
-    };
-  }
-
-  if (node.type === "heading") {
-    return {
-      id: node.id,
-      type: node.type,
-      props: nextProps as unknown as typeof node.props,
-    };
-  }
-
-  if (node.type === "paragraph") {
-    return {
-      id: node.id,
-      type: node.type,
-      props: nextProps as unknown as typeof node.props,
-    };
-  }
-
-  return {
-    id: node.id,
-    type: node.type,
-    props: nextProps as unknown as typeof node.props,
-  };
+  // Keep children untouched (if present); only update props.
+  return { ...node, props: nextProps as unknown as typeof node.props } as CoreBlockNode;
 }
 
 function insertRelativeToTarget(
@@ -172,8 +185,38 @@ function insertRelativeToTarget(
       return { nodes: next, inserted: true };
     }
 
-    if (isContainer(node) && Array.isArray(node.children)) {
+    if (isParentBlockNode(node) && Array.isArray(node.children)) {
       const child = insertRelativeToTarget(node.children, targetBlockId, newBlock, position);
+      if (!child.inserted) continue;
+      const next = [...nodes];
+      next[index] = { ...node, children: child.nodes };
+      return { nodes: next, inserted: true };
+    }
+  }
+
+  return { nodes, inserted: false };
+}
+
+function insertManyRelativeToTarget(
+  nodes: CoreBlockNode[],
+  targetBlockId: string,
+  newBlocks: CoreBlockNode[],
+  position: "before" | "after",
+): InsertBlockResult {
+  if (newBlocks.length === 0) return { nodes, inserted: false };
+
+  for (let index = 0; index < nodes.length; index += 1) {
+    const node = nodes[index];
+    if (!node) continue;
+    if (node.id === targetBlockId) {
+      const next = [...nodes];
+      const at = position === "before" ? index : index + 1;
+      next.splice(at, 0, ...newBlocks);
+      return { nodes: next, inserted: true };
+    }
+
+    if (isParentBlockNode(node) && Array.isArray(node.children)) {
+      const child = insertManyRelativeToTarget(node.children, targetBlockId, newBlocks, position);
       if (!child.inserted) continue;
       const next = [...nodes];
       next[index] = { ...node, children: child.nodes };
@@ -193,8 +236,8 @@ function insertInsideTarget(
     const node = nodes[index];
     if (!node) continue;
 
-    if (node.id === targetBlockId && isContainer(node)) {
-      const children = Array.isArray(node.children) ? node.children : [];
+    if (node.id === targetBlockId && isParentBlockNode(node)) {
+      const children = ensureChildren(node);
       const next = [...nodes];
       next[index] = {
         ...node,
@@ -203,7 +246,7 @@ function insertInsideTarget(
       return { nodes: next, inserted: true };
     }
 
-    if (isContainer(node) && Array.isArray(node.children)) {
+    if (isParentBlockNode(node) && Array.isArray(node.children)) {
       const child = insertInsideTarget(node.children, targetBlockId, newBlock);
       if (!child.inserted) continue;
       const next = [...nodes];
@@ -215,8 +258,86 @@ function insertInsideTarget(
   return { nodes, inserted: false };
 }
 
+function insertManyInsideTarget(
+  nodes: CoreBlockNode[],
+  targetBlockId: string,
+  newBlocks: CoreBlockNode[],
+): InsertBlockResult {
+  if (newBlocks.length === 0) return { nodes, inserted: false };
+
+  for (let index = 0; index < nodes.length; index += 1) {
+    const node = nodes[index];
+    if (!node) continue;
+
+    if (node.id === targetBlockId && isParentBlockNode(node)) {
+      const children = ensureChildren(node);
+      const next = [...nodes];
+      next[index] = {
+        ...node,
+        children: [...children, ...newBlocks],
+      };
+      return { nodes: next, inserted: true };
+    }
+
+    if (isParentBlockNode(node) && Array.isArray(node.children)) {
+      const child = insertManyInsideTarget(node.children, targetBlockId, newBlocks);
+      if (!child.inserted) continue;
+      const next = [...nodes];
+      next[index] = { ...node, children: child.nodes };
+      return { nodes: next, inserted: true };
+    }
+  }
+
+  return { nodes, inserted: false };
+}
+
+function generateBlockId(): string {
+  return `b-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+type BlockTreeCloneResult = {
+  blocks: CoreBlockNode[];
+  selectedBlockId: string;
+};
+
+function cloneBlockTreeWithNewIds(blocks: CoreBlockNode[]): BlockTreeCloneResult {
+  const cloneNode = (node: CoreBlockNode): CoreBlockNode => {
+    const base = cloneJson(node);
+    const nextId = generateBlockId();
+
+    if (isParentBlockNode(base) && Array.isArray(base.children)) {
+      return {
+        ...base,
+        id: nextId,
+        children: base.children.map(cloneNode),
+      };
+    }
+
+    return {
+      ...base,
+      id: nextId,
+    };
+  };
+
+  if (blocks.length === 0) {
+    throw new Error("insertBlockTree requires non-empty blocks");
+  }
+
+  const nextBlocks = blocks.map(cloneNode);
+  const selectedBlockId = nextBlocks[0]?.id;
+  if (!selectedBlockId) {
+    throw new Error("insertBlockTree failed to generate a selected block id");
+  }
+
+  return { blocks: nextBlocks, selectedBlockId };
+}
+
+function localized(en: string, zh: string): Record<string, string> {
+  return { "en-US": en, "zh-CN": zh };
+}
+
 function buildCoreBlockByType(type: EditorInsertBlockArgs["type"]): CoreBlockNode {
-  const id = `b-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+  const id = generateBlockId();
 
   if (type === "container") {
     return {
@@ -229,16 +350,47 @@ function buildCoreBlockByType(type: EditorInsertBlockArgs["type"]): CoreBlockNod
     };
   }
 
+  if (type === "grid") {
+    return {
+      id,
+      type,
+      props: {
+        columns: 2,
+        columnGap: "16px",
+        rowGap: "16px",
+      },
+      children: [],
+    } as CoreBlockNode;
+  }
+
+  if (type === "spacer") {
+    return {
+      id,
+      type,
+      props: {
+        height: "24px",
+      },
+    } as CoreBlockNode;
+  }
+
+  if (type === "divider") {
+    return {
+      id,
+      type,
+      props: {
+        variant: "default",
+      },
+    } as CoreBlockNode;
+  }
+
   if (type === "heading") {
     return {
       id,
       type,
       props: {
         level: 2,
-        text: {
-          "en-US": "Heading",
-          "zh-CN": "标题",
-        },
+        text: localized("Heading", "标题"),
+        align: "left",
       },
     };
   }
@@ -248,19 +400,89 @@ function buildCoreBlockByType(type: EditorInsertBlockArgs["type"]): CoreBlockNod
       id,
       type,
       props: {
-        text: {
-          "en-US": "Paragraph",
-          "zh-CN": "段落",
-        },
+        text: localized("Paragraph", "段落"),
+        align: "left",
       },
     };
+  }
+
+  if (type === "list") {
+    return {
+      id,
+      type,
+      props: {
+        ordered: false,
+        items: [localized("Item 1", "列表项 1"), localized("Item 2", "列表项 2")],
+      },
+    } as CoreBlockNode;
+  }
+
+  if (type === "quote") {
+    return {
+      id,
+      type,
+      props: {
+        text: localized("Quote", "引用"),
+        citation: localized("Source", "来源"),
+      },
+    } as CoreBlockNode;
+  }
+
+  if (type === "image") {
+    return {
+      id,
+      type,
+      props: {
+        src: "",
+        alt: "",
+        objectFit: "cover",
+      },
+    } as CoreBlockNode;
+  }
+
+  if (type === "video") {
+    return {
+      id,
+      type,
+      props: {
+        src: "",
+        poster: "",
+        autoplay: false,
+        loop: false,
+        muted: false,
+      },
+    } as CoreBlockNode;
+  }
+
+  if (type === "icon") {
+    return {
+      id,
+      type,
+      props: {
+        name: "star",
+        size: "24px",
+      },
+    } as CoreBlockNode;
+  }
+
+  if (type === "button") {
+    return {
+      id,
+      type,
+      props: {
+        text: localized("Button", "按钮"),
+        href: "",
+        variant: "primary",
+        size: "md",
+      },
+    } as CoreBlockNode;
   }
 
   return {
     id,
     type,
     props: {
-      variant: "default",
+      // Keep unknown blocks minimally renderable.
     },
   } as CoreBlockNode;
 }
@@ -463,7 +685,7 @@ export function buildLayerTree(document: CoreDocumentIR): EditorLayerNode[] {
       id: node.id,
       type: node.type,
       label: buildLayerLabel(node),
-      children: isContainer(node) && Array.isArray(node.children) ? walk(node.children) : [],
+      children: getChildNodes(node) ? walk(getChildNodes(node) ?? []) : [],
     }));
 
   return walk(document.blocks);
@@ -527,6 +749,237 @@ export function insertBlockWithMeta(
     blockId: inserted.selectedBlockId,
     inspector,
     layers,
+  };
+}
+
+export function insertBlockTree(
+  document: CoreDocumentIR,
+  args: EditorInsertBlockTreeArgs,
+): { document: CoreDocumentIR; selectedBlockId: string } {
+  const inputBlocks = args.blocks as unknown as CoreBlockNode[];
+  const cloned = cloneBlockTreeWithNewIds(inputBlocks);
+
+  const targetBlockId = args.targetBlockId ?? null;
+  const position = args.position ?? "inside";
+
+  if (!targetBlockId) {
+    return {
+      document: {
+        ...document,
+        blocks: [...document.blocks, ...cloned.blocks],
+      },
+      selectedBlockId: cloned.selectedBlockId,
+    };
+  }
+
+  let inserted: InsertBlockResult;
+  if (position === "inside") {
+    inserted = insertManyInsideTarget(document.blocks, targetBlockId, cloned.blocks);
+
+    // If the target cannot have children, fall back to inserting after it.
+    if (!inserted.inserted) {
+      inserted = insertManyRelativeToTarget(document.blocks, targetBlockId, cloned.blocks, "after");
+    }
+  } else {
+    inserted = insertManyRelativeToTarget(document.blocks, targetBlockId, cloned.blocks, position);
+  }
+
+  if (!inserted.inserted) {
+    return {
+      document: {
+        ...document,
+        blocks: [...document.blocks, ...cloned.blocks],
+      },
+      selectedBlockId: cloned.selectedBlockId,
+    };
+  }
+
+  return {
+    document: {
+      ...document,
+      blocks: inserted.nodes,
+    },
+    selectedBlockId: cloned.selectedBlockId,
+  };
+}
+
+export function insertBlockTreeWithMeta(
+  document: CoreDocumentIR,
+  args: EditorInsertBlockTreeArgs,
+): EditorInsertBlockResult & { document: CoreDocumentIR } {
+  const inserted = insertBlockTree(document, args);
+  const inspector = buildSelectionInspector(inserted.document, inserted.selectedBlockId);
+  const layers = buildLayerTree(inserted.document);
+
+  return {
+    document: inserted.document,
+    blockId: inserted.selectedBlockId,
+    inspector,
+    layers,
+  };
+}
+
+type ExtractBlockResult = {
+  nodes: CoreBlockNode[];
+  extracted: CoreBlockNode | null;
+  extractedParentId: string | null;
+};
+
+function extractBlockById(
+  nodes: CoreBlockNode[],
+  blockId: string,
+  parentId: string | null = null,
+): ExtractBlockResult {
+  const next: CoreBlockNode[] = [];
+  let extracted: CoreBlockNode | null = null;
+  let extractedParentId: string | null = null;
+
+  for (const node of nodes) {
+    if (!node) continue;
+    if (node.id === blockId) {
+      extracted = node;
+      extractedParentId = parentId;
+      continue;
+    }
+
+    if (isParentBlockNode(node) && Array.isArray(node.children)) {
+      const child = extractBlockById(node.children, blockId, node.id);
+      if (child.extracted) {
+        extracted = child.extracted;
+        extractedParentId = child.extractedParentId;
+        next.push({ ...node, children: child.nodes });
+        continue;
+      }
+    }
+
+    next.push(node);
+  }
+
+  return { nodes: next, extracted, extractedParentId };
+}
+
+function containsBlockId(node: CoreBlockNode, candidateId: string): boolean {
+  if (node.id === candidateId) return true;
+  const children = getChildNodes(node);
+  if (!children) return false;
+  return children.some((child) => containsBlockId(child, candidateId));
+}
+
+export function duplicateBlock(
+  document: CoreDocumentIR,
+  args: { blockId: string },
+): { document: CoreDocumentIR; selectedBlockId: string } {
+  const existing = findBlock(document.blocks, args.blockId);
+  if (!existing) {
+    return { document, selectedBlockId: args.blockId };
+  }
+
+  const cloned = cloneBlockTreeWithNewIds([existing]);
+  const cloneRoot = cloned.blocks[0];
+  if (!cloneRoot) {
+    return { document, selectedBlockId: args.blockId };
+  }
+
+  const inserted = insertManyRelativeToTarget(document.blocks, args.blockId, [cloneRoot], "after");
+  if (!inserted.inserted) {
+    return {
+      document: {
+        ...document,
+        blocks: [...document.blocks, cloneRoot],
+      },
+      selectedBlockId: cloneRoot.id,
+    };
+  }
+
+  return {
+    document: {
+      ...document,
+      blocks: inserted.nodes,
+    },
+    selectedBlockId: cloneRoot.id,
+  };
+}
+
+export function duplicateBlockWithMeta(
+  document: CoreDocumentIR,
+  args: { blockId: string },
+): EditorInsertBlockResult & { document: CoreDocumentIR } {
+  const duplicated = duplicateBlock(document, args);
+  const inspector = buildSelectionInspector(duplicated.document, duplicated.selectedBlockId);
+  const layers = buildLayerTree(duplicated.document);
+
+  return {
+    document: duplicated.document,
+    blockId: duplicated.selectedBlockId,
+    inspector,
+    layers,
+  };
+}
+
+export function deleteBlock(
+  document: CoreDocumentIR,
+  args: { blockId: string },
+): { document: CoreDocumentIR; deleted: boolean } {
+  const extracted = extractBlockById(document.blocks, args.blockId);
+  if (!extracted.extracted) {
+    return { document, deleted: false };
+  }
+
+  return {
+    document: {
+      ...document,
+      blocks: extracted.nodes,
+    },
+    deleted: true,
+  };
+}
+
+export function moveBlock(
+  document: CoreDocumentIR,
+  args: { blockId: string; targetId: string; position: EditorInsertBlockPosition },
+): { document: CoreDocumentIR; moved: boolean } {
+  if (args.blockId === args.targetId) {
+    return { document, moved: false };
+  }
+
+  const extracted = extractBlockById(document.blocks, args.blockId);
+  if (!extracted.extracted) {
+    return { document, moved: false };
+  }
+
+  // Do not allow moving a node inside its own subtree.
+  if (containsBlockId(extracted.extracted, args.targetId)) {
+    return { document, moved: false };
+  }
+
+  let inserted: InsertBlockResult;
+  if (args.position === "inside") {
+    inserted = insertInsideTarget(extracted.nodes, args.targetId, extracted.extracted);
+    if (!inserted.inserted) {
+      inserted = insertRelativeToTarget(
+        extracted.nodes,
+        args.targetId,
+        extracted.extracted,
+        "after",
+      );
+    }
+  } else {
+    inserted = insertRelativeToTarget(
+      extracted.nodes,
+      args.targetId,
+      extracted.extracted,
+      args.position,
+    );
+  }
+
+  const nextBlocks = inserted.inserted ? inserted.nodes : [...extracted.nodes, extracted.extracted];
+
+  return {
+    document: {
+      ...document,
+      blocks: nextBlocks,
+    },
+    moved: true,
   };
 }
 

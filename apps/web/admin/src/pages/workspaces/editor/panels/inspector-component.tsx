@@ -6,6 +6,7 @@ import {
   resolveLocalizedValue,
   type FieldDefinition,
   type ViewerContext,
+  type LocalizedValue,
 } from "@celestial/site-block-protocol";
 import type { EditorInspectorComponent } from "@celestial/site-editor-protocol";
 
@@ -14,6 +15,31 @@ import {
   type EditorSelectionPatchCommitMode,
 } from "@/pages/workspaces/editor/hooks/use-editor-selection-patch";
 import { useViewerContext } from "@/pages/workspaces/editor/hooks/use-viewer-context";
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object";
+}
+
+function isLocalizedString(value: unknown): value is LocalizedValue<string> {
+  if (!isRecord(value)) return false;
+  for (const v of Object.values(value)) {
+    if (v === undefined) continue;
+    if (typeof v !== "string") return false;
+  }
+  return true;
+}
+
+function safeStringifyValue(value: unknown): string {
+  if (value === null || value === undefined) return "";
+  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+}
 
 function FieldInput({
   field,
@@ -36,6 +62,38 @@ function FieldInput({
           onChange={(e) => onChange(field.key, e.target.checked, "immediate")}
         />
         <span className="text-label-secondary">{label}</span>
+      </label>
+    );
+  }
+
+  if (field.kind === "text") {
+    const localized = isLocalizedString(value) ? value : null;
+    const displayValue = localized
+      ? (resolveLocalizedValue(localized, viewerCtx) ?? "")
+      : String(value ?? "");
+
+    return (
+      <label className="flex items-center gap-2 text-caption">
+        <span className="w-24 shrink-0 text-label-secondary">{label}</span>
+        <Input
+          size="small"
+          value={displayValue}
+          onChange={(e) => {
+            const nextRaw = e.target.value;
+            if (localized) {
+              onChange(
+                field.key,
+                {
+                  ...(localized as Record<string, string>),
+                  [viewerCtx.locale]: nextRaw,
+                },
+                "debounced",
+              );
+              return;
+            }
+            onChange(field.key, nextRaw, "debounced");
+          }}
+        />
       </label>
     );
   }
@@ -78,12 +136,26 @@ function FieldInput({
   return (
     <label className="flex items-center gap-2 text-caption">
       <span className="w-24 shrink-0 text-label-secondary">{label}</span>
-      <Input
-        size="small"
-        type={field.kind === "color" ? "color" : "text"}
-        value={String(value ?? "")}
-        onChange={(e) => onChange(field.key, e.target.value, "debounced")}
-      />
+      {field.kind === "array" ||
+      field.kind === "object" ||
+      field.kind === "json" ||
+      field.kind === "richtext" ||
+      field.kind === "reference" ||
+      field.kind === "media" ? (
+        <Input.TextArea
+          size="small"
+          value={safeStringifyValue(value)}
+          autoSize={{ minRows: 2, maxRows: 6 }}
+          readOnly
+        />
+      ) : (
+        <Input
+          size="small"
+          type={field.kind === "color" ? "color" : "text"}
+          value={String(value ?? "")}
+          onChange={(e) => onChange(field.key, e.target.value, "debounced")}
+        />
+      )}
     </label>
   );
 }
