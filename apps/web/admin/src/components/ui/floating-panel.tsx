@@ -112,16 +112,39 @@ export function FloatingPanelTrigger({
 }: FloatingPanelTriggerProps) {
   const { isOpen, openFloatingPanel, closeFloatingPanel, uniqueId, setTitle } = useFloatingPanel();
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const suppressNextClickRef = useRef(false);
 
-  const handleClick = () => {
+  const toggleOpen = (triggerEl: HTMLButtonElement) => {
     if (isOpen) {
       closeFloatingPanel();
       return;
     }
-    if (triggerRef.current) {
-      openFloatingPanel(triggerRef.current);
-      setTitle(title);
+    openFloatingPanel(triggerEl);
+    setTitle(title);
+  };
+
+  const handleClick: React.MouseEventHandler<HTMLButtonElement> = (e) => {
+    // Pointer interactions may be handled via onPointerUp (more robust in some complex shells).
+    // Avoid double-toggle when both pointerup and click fire.
+    if (suppressNextClickRef.current) {
+      suppressNextClickRef.current = false;
+      return;
     }
+    toggleOpen(e.currentTarget);
+  };
+
+  const handlePointerUp: React.PointerEventHandler<HTMLButtonElement> = (e) => {
+    // Only primary (left) button should toggle; keep right-click for context menus.
+    if (e.button !== 0) return;
+    if (buttonProps.disabled) return;
+
+    // Some environments can suppress click; opening on pointerup keeps behavior consistent.
+    suppressNextClickRef.current = true;
+    window.setTimeout(() => {
+      suppressNextClickRef.current = false;
+    }, 0);
+
+    toggleOpen(e.currentTarget);
   };
 
   return (
@@ -133,8 +156,10 @@ export function FloatingPanelTrigger({
         "border border-border bg-background text-foreground",
         className,
       )}
-      onClick={handleClick}
       {...buttonProps}
+      type="button"
+      onPointerUp={handlePointerUp}
+      onClick={handleClick}
       data-state={isOpen ? "open" : "closed"}
       aria-haspopup="dialog"
       aria-expanded={isOpen}
