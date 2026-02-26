@@ -1,161 +1,155 @@
 import { motion } from "motion/react";
-
 import { IllustrationWrapper } from "./illustration-wrapper";
 import type { IllustrationProps } from "./types";
-import { SPRING, TWEEN, useIllustrationAnimation } from "./use-illustration-animation";
+import { SPRING, useIllustrationAnimation } from "./use-illustration-animation";
 
-/**
- * 401 Unauthorized tech-style illustration.
- * Locked terminal: rounded screen + padlock + keyhole.
- */
 export function Illust401LockedTerminal(props: IllustrationProps) {
   const { animate } = useIllustrationAnimation();
 
   return (
     <IllustrationWrapper {...props}>
-      {/* Screen / monitor */}
+      <defs>
+        <filter id="glow-401" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="3" result="blur" />
+          <feComposite in="SourceGraphic" in2="blur" operator="over" />
+        </filter>
+        <linearGradient id="grad-401" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="var(--color-primary)" stopOpacity="0.2" />
+          <stop offset="100%" stopColor="var(--color-primary)" stopOpacity="0.0" />
+        </linearGradient>
+      </defs>
+
+      {/* Background Tech Grid */}
       <motion.g
         initial={animate ? { opacity: 0 } : undefined}
-        animate={animate ? { opacity: 1 } : undefined}
-        transition={{ duration: 0.3 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 1 }}
       >
-        {/* Monitor body */}
-        <rect
-          x="40"
-          y="20"
-          width="120"
-          height="80"
-          rx="8"
-          fill="hsl(var(--card))"
-          stroke="hsl(var(--border))"
-          strokeWidth="1.5"
-        />
-
-        {/* Terminal decorative dots (top-left) */}
-        <circle cx="54" cy="32" r="2" fill="hsl(var(--muted))" />
-        <circle cx="62" cy="32" r="2" fill="hsl(var(--muted))" />
-        <circle cx="70" cy="32" r="2" fill="hsl(var(--muted))" />
-
-        {/* Terminal scan lines */}
-        <line
-          x1="50"
-          y1="42"
-          x2="150"
-          y2="42"
-          stroke="hsl(var(--border))"
-          strokeWidth="0.5"
-          opacity="0.5"
-        />
-
-        {/* Stand neck */}
-        <rect
-          x="92"
-          y="100"
-          width="16"
-          height="14"
-          rx="2"
-          fill="hsl(var(--muted))"
-          stroke="hsl(var(--border))"
-          strokeWidth="1.5"
-        />
-
-        {/* Stand base */}
-        <rect
-          x="78"
-          y="112"
-          width="44"
-          height="6"
-          rx="3"
-          fill="hsl(var(--muted))"
-          stroke="hsl(var(--border))"
-          strokeWidth="1.5"
-        />
-
-        {/* Corner decorative marks */}
-        <line
-          x1="44"
-          y1="26"
-          x2="48"
-          y2="26"
-          stroke="hsl(var(--border))"
+        <circle cx="100" cy="80" r="70" fill="url(#grad-401)" />
+        <circle
+          cx="100"
+          cy="80"
+          r="50"
+          fill="none"
+          stroke="var(--color-primary)"
+          strokeOpacity="0.1"
           strokeWidth="1"
-          opacity="0.4"
         />
-        <line
-          x1="44"
-          y1="26"
-          x2="44"
-          y2="30"
-          stroke="hsl(var(--border))"
+        <circle
+          cx="100"
+          cy="80"
+          r="30"
+          fill="none"
+          stroke="var(--color-primary)"
+          strokeOpacity="0.2"
           strokeWidth="1"
-          opacity="0.4"
-        />
-        <line
-          x1="152"
-          y1="26"
-          x2="156"
-          y2="26"
-          stroke="hsl(var(--border))"
-          strokeWidth="1"
-          opacity="0.4"
-        />
-        <line
-          x1="156"
-          y1="26"
-          x2="156"
-          y2="30"
-          stroke="hsl(var(--border))"
-          strokeWidth="1"
-          opacity="0.4"
+          strokeDasharray="4 4"
         />
       </motion.g>
 
-      {/* Lock icon (padlock) — springs in */}
+      {/* Floating Terminal Panels */}
       <motion.g
-        initial={animate ? { scale: 0, opacity: 0 } : undefined}
-        animate={animate ? { scale: 1, opacity: 1 } : undefined}
-        transition={animate ? { ...SPRING, delay: 0.2 } : undefined}
-        style={{ transformOrigin: "100px 72px" }}
+        initial={animate ? { y: 20, opacity: 0 } : undefined}
+        animate={{ y: [0, -5, 0], opacity: 1 }}
+        transition={{
+          y: { duration: 4, repeat: Infinity, ease: "easeInOut" },
+          opacity: { duration: 0.5 },
+        }}
       >
-        {/* Shackle (arc) */}
+        {/* Back Panel */}
+        <rect
+          x="35"
+          y="25"
+          width="110"
+          height="70"
+          rx="8"
+          fill="var(--color-card)"
+          opacity="0.5"
+          stroke="var(--color-border)"
+          strokeWidth="1"
+        />
+
+        {/* Main Panel */}
+        <rect
+          x="45"
+          y="35"
+          width="110"
+          height="70"
+          rx="8"
+          fill="var(--color-card)"
+          stroke="var(--color-border)"
+          strokeWidth="1.5"
+          style={{ filter: "drop-shadow(0 10px 15px rgba(0,0,0,0.1))" }}
+        />
+
+        {/* Terminal Header */}
         <path
-          d="M90 68 V62 A10 10 0 0 1 110 62 V68"
+          d="M45 43 Q45 35 53 35 H147 Q155 35 155 43 V50 H45 Z"
+          fill="var(--color-muted)"
+          opacity="0.5"
+        />
+        <line x1="45" y1="50" x2="155" y2="50" stroke="var(--color-border)" strokeWidth="1.5" />
+
+        {/* Window Controls */}
+        <circle cx="55" cy="42.5" r="2.5" fill="var(--color-destructive)" opacity="0.7" />
+        <circle cx="65" cy="42.5" r="2.5" fill="var(--color-primary)" opacity="0.4" />
+        <circle cx="75" cy="42.5" r="2.5" fill="var(--color-primary)" opacity="0.4" />
+
+        {/* Code Lines */}
+        <rect
+          x="55"
+          y="60"
+          width="40"
+          height="4"
+          rx="2"
+          fill="var(--color-primary)"
+          opacity="0.3"
+        />
+        <rect x="55" y="72" width="60" height="4" rx="2" fill="var(--color-muted)" />
+        <rect x="55" y="84" width="30" height="4" rx="2" fill="var(--color-muted)" />
+      </motion.g>
+
+      {/* Giant Glowing Lock */}
+      <motion.g
+        initial={animate ? { scale: 0.8, opacity: 0 } : undefined}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ type: "spring", ...SPRING, delay: 0.2 }}
+      >
+        {/* Glowing Aura behind lock */}
+        <circle
+          cx="120"
+          cy="95"
+          r="25"
+          fill="var(--color-primary)"
+          opacity="0.15"
+          filter="url(#glow-401)"
+        />
+
+        {/* Shackle */}
+        <path
+          d="M108 85 V75 A12 12 0 0 1 132 75 V85"
           fill="none"
-          stroke="hsl(var(--primary))"
-          strokeWidth="2"
+          stroke="var(--color-primary)"
+          strokeWidth="3"
           strokeLinecap="round"
         />
 
-        {/* Lock body */}
+        {/* Lock Body */}
         <rect
-          x="86"
-          y="68"
-          width="28"
-          height="22"
-          rx="4"
-          fill="hsl(var(--muted))"
-          stroke="hsl(var(--primary))"
-          strokeWidth="2"
+          x="100"
+          y="85"
+          width="40"
+          height="30"
+          rx="6"
+          fill="var(--color-card)"
+          stroke="var(--color-primary)"
+          strokeWidth="2.5"
         />
 
-        {/* Keyhole — delayed fade in */}
-        <motion.g
-          initial={animate ? { opacity: 0 } : undefined}
-          animate={animate ? { opacity: 1 } : undefined}
-          transition={animate ? { ...TWEEN, duration: 0.4, delay: 0.5 } : undefined}
-        >
-          {/* Keyhole circle */}
-          <circle cx="100" cy="77" r="3" fill="hsl(var(--primary))" />
-          {/* Keyhole slot */}
-          <rect x="98.5" y="79" width="3" height="5" rx="1" fill="hsl(var(--primary))" />
-        </motion.g>
+        {/* Keyhole */}
+        <circle cx="120" cy="97" r="3.5" fill="var(--color-primary)" />
+        <path d="M118 99 L116.5 107 H123.5 L122 99 Z" fill="var(--color-primary)" />
       </motion.g>
-
-      {/* Subtle side decorative dots */}
-      <circle cx="30" cy="60" r="1.5" fill="hsl(var(--border))" opacity="0.4" />
-      <circle cx="170" cy="60" r="1.5" fill="hsl(var(--border))" opacity="0.4" />
-      <circle cx="26" cy="70" r="1" fill="hsl(var(--border))" opacity="0.3" />
-      <circle cx="174" cy="70" r="1" fill="hsl(var(--border))" opacity="0.3" />
     </IllustrationWrapper>
   );
 }

@@ -1,119 +1,142 @@
 import { motion } from "motion/react";
-
 import { IllustrationWrapper } from "./illustration-wrapper";
 import type { IllustrationProps } from "./types";
-import { useIllustrationAnimation, SPRING, TWEEN } from "./use-illustration-animation";
+import { useIllustrationAnimation } from "./use-illustration-animation";
 
-/**
- * 空容器 / 无数据状态插图。
- * 展示一个打开的空盒子 + 虚线圆环 + 放大镜图标。
- */
 export function IllustEmptyContainer(props: IllustrationProps) {
   const { animate } = useIllustrationAnimation();
 
   return (
     <IllustrationWrapper {...props}>
-      {/* ── 打开的空盒子 ── */}
-      <motion.g
-        initial={animate ? { scale: 0.8, opacity: 0 } : undefined}
-        animate={animate ? { scale: 1, opacity: 1 } : undefined}
-        transition={{ type: "spring", ...SPRING }}
-        style={{ originX: "100px", originY: "110px" }}
-      >
-        {/* 盒体（梯形透视） */}
-        <path
-          d="M70 90 L60 130 L140 130 L130 90 Z"
-          fill="hsl(var(--card))"
-          stroke="currentColor"
-          strokeWidth={1.5}
-          strokeLinejoin="round"
-        />
-        {/* 盒体底部高光线 */}
-        <line
-          x1={68}
-          y1={110}
-          x2={132}
-          y2={110}
-          stroke="hsl(var(--border))"
-          strokeWidth={1}
-          opacity={0.5}
-        />
-        {/* 左侧翻盖 */}
-        <path
-          d="M70 90 L58 72 L92 72 L100 90 Z"
-          fill="hsl(var(--card))"
-          stroke="currentColor"
-          strokeWidth={1.5}
-          strokeLinejoin="round"
-        />
-        {/* 右侧翻盖 */}
-        <path
-          d="M100 90 L108 72 L142 72 L130 90 Z"
-          fill="hsl(var(--card))"
-          stroke="currentColor"
-          strokeWidth={1.5}
-          strokeLinejoin="round"
-        />
-      </motion.g>
+      <defs>
+        <filter id="glow-empty" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="4" result="blur" />
+          <feComposite in="SourceGraphic" in2="blur" operator="over" />
+        </filter>
+        <linearGradient id="hologram-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="var(--color-primary)" stopOpacity="0.3" />
+          <stop offset="100%" stopColor="var(--color-primary)" stopOpacity="0.0" />
+        </linearGradient>
+      </defs>
 
-      {/* ── 虚线圆环（缓慢旋转描边偏移） ── */}
-      <motion.circle
-        cx={100}
-        cy={70}
-        r={20}
-        fill="none"
-        stroke="hsl(var(--border))"
-        strokeWidth={1.5}
-        strokeDasharray="4 3"
-        animate={animate ? { strokeDashoffset: [0, -44] } : undefined}
-        transition={{
-          duration: 8,
-          repeat: Infinity,
-          ease: "linear",
-        }}
-      />
-
-      {/* ── 放大镜图标（浮动动画） ── */}
-      <motion.g
-        animate={animate ? { y: [0, -3, 0] } : undefined}
-        transition={{
-          duration: 2.5,
-          repeat: Infinity,
-          ease: "easeInOut",
-        }}
-      >
-        <circle
-          cx={135}
-          cy={45}
-          r={8}
-          fill="none"
-          stroke="hsl(var(--primary))"
-          strokeWidth={2}
-          strokeLinecap="round"
-        />
-        <line
-          x1={141}
-          y1={51}
-          x2={148}
-          y2={58}
-          stroke="hsl(var(--primary))"
-          strokeWidth={2}
-          strokeLinecap="round"
-        />
-      </motion.g>
-
-      {/* ── 装饰性小圆点 ── */}
+      {/* Background Tech Grid */}
       <motion.g
         initial={animate ? { opacity: 0 } : undefined}
-        animate={animate ? { opacity: 1 } : undefined}
-        transition={{ ...TWEEN, delay: 0.3 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 1 }}
       >
-        <circle cx={55} cy={55} r={2} fill="hsl(var(--muted))" />
-        <circle cx={150} cy={75} r={1.5} fill="hsl(var(--muted))" />
-        <circle cx={45} cy={100} r={1.5} fill="hsl(var(--muted))" />
-        <circle cx={160} cy={110} r={2} fill="hsl(var(--muted))" />
-        <circle cx={80} cy={45} r={1.5} fill="hsl(var(--border))" />
-        <circle cx={120} cy={140} r={1.5} fill="hsl(var(--border))" />
+        <circle
+          cx="100"
+          cy="80"
+          r="70"
+          fill="none"
+          stroke="var(--color-border)"
+          strokeWidth="1"
+          strokeDasharray="2 6"
+          opacity="0.5"
+        />
+        <circle
+          cx="100"
+          cy="80"
+          r="45"
+          fill="none"
+          stroke="var(--color-border)"
+          strokeWidth="1"
+          strokeDasharray="4 4"
+          opacity="0.5"
+        />
+      </motion.g>
+
+      {/* Holographic Empty Container */}
+      <motion.g
+        initial={animate ? { y: 20, opacity: 0 } : undefined}
+        animate={{ y: [0, -6, 0], opacity: 1 }}
+        transition={{
+          y: { duration: 4, repeat: Infinity, ease: "easeInOut" },
+          opacity: { duration: 0.6 },
+        }}
+      >
+        {/* Container Back Wall (Inside) */}
+        <path
+          d="M 50 60 V 110 A 50 20 0 0 0 150 110 V 60 A 50 20 0 0 1 50 60 Z"
+          fill="var(--color-muted)"
+          opacity="0.3"
+        />
+
+        {/* Holographic Fill */}
+        <path d="M 50 60 V 110 A 50 20 0 0 0 150 110 V 60 Z" fill="url(#hologram-grad)" />
+
+        {/* Wireframe Body */}
+        <path
+          d="M 50 60 V 110 A 50 20 0 0 0 150 110 V 60"
+          fill="none"
+          stroke="var(--color-primary)"
+          strokeWidth="1.5"
+          opacity="0.6"
+        />
+
+        {/* Top Opening */}
+        <ellipse
+          cx="100"
+          cy="60"
+          rx="50"
+          ry="20"
+          fill="none"
+          stroke="var(--color-primary)"
+          strokeWidth="2"
+          filter="url(#glow-empty)"
+        />
+        <ellipse
+          cx="100"
+          cy="60"
+          rx="40"
+          ry="15"
+          fill="none"
+          stroke="var(--color-primary)"
+          strokeWidth="1"
+          opacity="0.4"
+          strokeDasharray="4 4"
+        />
+      </motion.g>
+
+      {/* Scanning Laser Plane */}
+      <motion.g
+        initial={animate ? { opacity: 0 } : undefined}
+        animate={{ y: [60, 110, 60], opacity: 1 }}
+        transition={{
+          y: { duration: 3, repeat: Infinity, ease: "linear" },
+          opacity: { duration: 0.5, delay: 0.5 },
+        }}
+      >
+        <ellipse
+          cx="100"
+          cy="0"
+          rx="48"
+          ry="18"
+          fill="var(--color-primary)"
+          opacity="0.2"
+          filter="url(#glow-empty)"
+        />
+        <ellipse
+          cx="100"
+          cy="0"
+          rx="48"
+          ry="18"
+          fill="none"
+          stroke="var(--color-primary)"
+          strokeWidth="1.5"
+          opacity="0.8"
+        />
+      </motion.g>
+
+      {/* Floating Dust / Data Particles */}
+      <motion.g
+        animate={{ y: [0, -15, 0], opacity: [0, 0.8, 0] }}
+        transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+      >
+        <circle cx="80" cy="80" r="2" fill="var(--color-primary)" filter="url(#glow-empty)" />
+        <circle cx="120" cy="90" r="1.5" fill="var(--color-primary)" opacity="0.6" />
+        <circle cx="100" cy="100" r="2.5" fill="var(--color-primary)" opacity="0.4" />
       </motion.g>
     </IllustrationWrapper>
   );

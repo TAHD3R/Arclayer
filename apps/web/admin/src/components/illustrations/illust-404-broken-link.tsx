@@ -1,162 +1,159 @@
 import { motion } from "motion/react";
-
 import { IllustrationWrapper } from "./illustration-wrapper";
 import type { IllustrationProps } from "./types";
-import { SPRING, TWEEN, useIllustrationAnimation } from "./use-illustration-animation";
+import { SPRING, useIllustrationAnimation } from "./use-illustration-animation";
 
-/**
- * 404 "Broken Link" illustration.
- * Two nodes connected by a dashed line that is broken in the middle,
- * with a floating question mark above the break point.
- */
 export function Illust404BrokenLink(props: IllustrationProps) {
   const { animate } = useIllustrationAnimation();
 
   return (
     <IllustrationWrapper {...props}>
-      {/* --- Left node --- */}
-      <motion.g
-        initial={animate ? { x: -20, opacity: 0 } : undefined}
-        animate={{ x: 0, opacity: 1 }}
-        transition={{ type: "spring", ...SPRING, delay: 0 }}
-      >
-        <rect
-          x="35"
-          y="57"
-          width="36"
-          height="36"
-          rx="6"
-          fill="hsl(var(--card))"
-          stroke="currentColor"
-          strokeWidth="1.5"
-        />
-        <circle cx="53" cy="75" r="4" fill="hsl(var(--primary))" />
-      </motion.g>
+      <defs>
+        <filter id="glow-404" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="3" result="blur" />
+          <feComposite in="SourceGraphic" in2="blur" operator="over" />
+        </filter>
+        <linearGradient id="grad-404" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="var(--color-primary)" stopOpacity="0.2" />
+          <stop offset="100%" stopColor="var(--color-muted)" stopOpacity="0.1" />
+        </linearGradient>
+      </defs>
 
-      {/* --- Right node --- */}
-      <motion.g
-        initial={animate ? { x: 20, opacity: 0 } : undefined}
-        animate={{ x: 0, opacity: 1 }}
-        transition={{ type: "spring", ...SPRING, delay: 0.1 }}
-      >
-        <rect
-          x="130"
-          y="57"
-          width="36"
-          height="36"
-          rx="6"
-          fill="hsl(var(--card))"
-          stroke="currentColor"
-          strokeWidth="1.5"
-        />
-        <circle cx="148" cy="75" r="4" fill="hsl(var(--primary))" />
-      </motion.g>
-
-      {/* --- Left dashed segment (node → break) --- */}
-      <motion.line
-        x1="71"
-        y1="75"
-        x2="88"
-        y2="75"
-        stroke="hsl(var(--border))"
-        strokeWidth="2"
-        strokeDasharray="4 3"
-        strokeLinecap="round"
-        initial={animate ? { opacity: 0 } : undefined}
-        animate={{ opacity: 1 }}
-        transition={{ ...TWEEN, delay: 0.2 }}
-      />
-
-      {/* --- Right dashed segment (break → node) --- */}
-      <motion.line
-        x1="113"
-        y1="75"
-        x2="130"
-        y2="75"
-        stroke="hsl(var(--border))"
-        strokeWidth="2"
-        strokeDasharray="4 3"
-        strokeLinecap="round"
-        initial={animate ? { opacity: 0 } : undefined}
-        animate={{ opacity: 1 }}
-        transition={{ ...TWEEN, delay: 0.2 }}
-      />
-
-      {/* --- Break-point snap marks --- */}
+      {/* Background Grid */}
       <motion.g
         initial={animate ? { opacity: 0 } : undefined}
         animate={{ opacity: 1 }}
-        transition={{ ...TWEEN, delay: 0.3 }}
+        transition={{ duration: 1 }}
       >
-        {/* Left snap */}
-        <line
-          x1="89"
-          y1="70"
-          x2="93"
-          y2="80"
-          stroke="hsl(var(--destructive))"
-          strokeWidth="1.5"
-          strokeLinecap="round"
+        <path
+          d="M 20 80 Q 60 40 100 80 T 180 80"
+          fill="none"
+          stroke="var(--color-border)"
+          strokeWidth="1"
+          strokeDasharray="4 4"
+          opacity="0.5"
         />
-        <line
-          x1="93"
-          y1="70"
-          x2="89"
-          y2="80"
-          stroke="hsl(var(--destructive))"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-        />
-        {/* Right snap */}
-        <line
-          x1="108"
-          y1="70"
-          x2="112"
-          y2="80"
-          stroke="hsl(var(--destructive))"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-        />
-        <line
-          x1="112"
-          y1="70"
-          x2="108"
-          y2="80"
-          stroke="hsl(var(--destructive))"
-          strokeWidth="1.5"
-          strokeLinecap="round"
+        <path
+          d="M 20 100 Q 60 60 100 100 T 180 100"
+          fill="none"
+          stroke="var(--color-border)"
+          strokeWidth="1"
+          strokeDasharray="4 4"
+          opacity="0.3"
         />
       </motion.g>
 
-      {/* --- Question mark --- */}
-      <motion.text
-        x="100"
-        y="48"
-        textAnchor="middle"
-        dominantBaseline="central"
-        fill="hsl(var(--primary))"
-        fontSize="22"
-        fontWeight="700"
+      {/* Left Node (Active) */}
+      <motion.g
+        initial={animate ? { x: -30, opacity: 0 } : undefined}
+        animate={{ x: 0, opacity: 1, y: [0, -4, 0] }}
+        transition={{
+          x: { type: "spring", ...SPRING },
+          opacity: { duration: 0.4 },
+          y: { duration: 3.5, repeat: Infinity, ease: "easeInOut" },
+        }}
+      >
+        <circle cx="50" cy="80" r="24" fill="url(#grad-404)" />
+        <polygon
+          points="50,60 68,80 50,100 32,80"
+          fill="var(--color-card)"
+          stroke="var(--color-primary)"
+          strokeWidth="2"
+          style={{ filter: "drop-shadow(0 4px 6px rgba(0,0,0,0.1))" }}
+        />
+        <circle cx="50" cy="80" r="4" fill="var(--color-primary)" filter="url(#glow-404)" />
+      </motion.g>
+
+      {/* Right Node (Dead) */}
+      <motion.g
+        initial={animate ? { x: 30, opacity: 0 } : undefined}
+        animate={{ x: 0, opacity: 1, y: [0, 4, 0] }}
+        transition={{
+          x: { type: "spring", ...SPRING, delay: 0.1 },
+          opacity: { duration: 0.4, delay: 0.1 },
+          y: { duration: 4, repeat: Infinity, ease: "easeInOut", delay: 0.5 },
+        }}
+      >
+        <circle cx="150" cy="80" r="24" fill="var(--color-muted)" opacity="0.2" />
+        <polygon
+          points="150,60 168,80 150,100 132,80"
+          fill="var(--color-card)"
+          stroke="var(--color-border)"
+          strokeWidth="2"
+          strokeDasharray="4 2"
+        />
+        <circle cx="150" cy="80" r="4" fill="var(--color-muted)" />
+      </motion.g>
+
+      {/* Broken Beam */}
+      <motion.g
+        initial={animate ? { opacity: 0 } : undefined}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5, delay: 0.4 }}
+      >
+        {/* Left Beam */}
+        <line
+          x1="68"
+          y1="80"
+          x2="90"
+          y2="80"
+          stroke="var(--color-primary)"
+          strokeWidth="3"
+          strokeLinecap="round"
+          filter="url(#glow-404)"
+        />
+        {/* Right Beam (Faded) */}
+        <line
+          x1="110"
+          y1="80"
+          x2="132"
+          y2="80"
+          stroke="var(--color-border)"
+          strokeWidth="3"
+          strokeLinecap="round"
+          strokeDasharray="2 4"
+        />
+      </motion.g>
+
+      {/* 404 Text / Glitch */}
+      <motion.g
         initial={animate ? { scale: 0, opacity: 0 } : undefined}
         animate={{ scale: 1, opacity: 1 }}
-        transition={{ type: "spring", ...SPRING, delay: 0.4 }}
+        transition={{ type: "spring", ...SPRING, delay: 0.5 }}
       >
-        ?
-      </motion.text>
+        <text
+          x="100"
+          y="70"
+          textAnchor="middle"
+          dominantBaseline="central"
+          fill="var(--color-destructive)"
+          fontSize="28"
+          fontWeight="900"
+          fontStyle="italic"
+          letterSpacing="2"
+        >
+          404
+        </text>
+        {/* Glitch lines */}
+        <motion.line
+          x1="85"
+          y1="70"
+          x2="115"
+          y2="70"
+          stroke="var(--color-card)"
+          strokeWidth="2"
+          animate={{ y: [70, 65, 75, 70], opacity: [0, 1, 1, 0] }}
+          transition={{ duration: 0.2, repeat: Infinity, repeatDelay: 3 }}
+        />
+      </motion.g>
 
-      {/* --- Decorative dots --- */}
+      {/* Floating Particles */}
       <motion.g
-        initial={animate ? { opacity: 0 } : undefined}
-        animate={{ opacity: 0.35 }}
-        transition={{ ...TWEEN, delay: 0.3 }}
+        animate={{ y: [0, -10, 0], opacity: [0, 1, 0] }}
+        transition={{ duration: 2, repeat: Infinity }}
       >
-        <circle cx="25" cy="50" r="1.5" fill="hsl(var(--muted))" />
-        <circle cx="175" cy="55" r="1.5" fill="hsl(var(--muted))" />
-        <circle cx="60" cy="110" r="1.5" fill="hsl(var(--muted))" />
-        <circle cx="140" cy="108" r="1.5" fill="hsl(var(--muted))" />
-        <circle cx="100" cy="120" r="2" fill="hsl(var(--muted))" />
-        <circle cx="30" cy="95" r="1" fill="hsl(var(--muted))" />
-        <circle cx="170" cy="98" r="1" fill="hsl(var(--muted))" />
+        <circle cx="95" cy="90" r="1.5" fill="var(--color-primary)" />
+        <circle cx="105" cy="85" r="1" fill="var(--color-destructive)" />
       </motion.g>
     </IllustrationWrapper>
   );

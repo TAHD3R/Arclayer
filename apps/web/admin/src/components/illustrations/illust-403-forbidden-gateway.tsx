@@ -1,89 +1,131 @@
 import { motion } from "motion/react";
-
 import { IllustrationWrapper } from "./illustration-wrapper";
 import type { IllustrationProps } from "./types";
-import { useIllustrationAnimation, SPRING, PATH_DRAW } from "./use-illustration-animation";
+import { SPRING, PATH_DRAW, useIllustrationAnimation } from "./use-illustration-animation";
 
-/**
- * 403 Forbidden — "Forbidden Gateway" tech-style illustration.
- * Screen + shield + diagonal prohibition slash.
- */
 export function Illust403ForbiddenGateway(props: IllustrationProps) {
   const { animate } = useIllustrationAnimation();
 
   return (
     <IllustrationWrapper {...props}>
-      {/* Screen / monitor */}
+      <defs>
+        <filter id="glow-403" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="4" result="blur" />
+          <feComposite in="SourceGraphic" in2="blur" operator="over" />
+        </filter>
+        <linearGradient id="grad-403" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="var(--color-destructive)" stopOpacity="0.2" />
+          <stop offset="100%" stopColor="var(--color-destructive)" stopOpacity="0.0" />
+        </linearGradient>
+      </defs>
+
+      {/* Background Aura */}
       <motion.g
         initial={animate ? { opacity: 0 } : undefined}
         animate={{ opacity: 1 }}
-        transition={{ duration: 0.3 }}
+        transition={{ duration: 1 }}
       >
-        <rect
-          x="40"
-          y="30"
-          width="120"
-          height="80"
-          rx="6"
-          fill="hsl(var(--card))"
-          stroke="hsl(var(--border))"
-          strokeWidth="1.5"
+        <circle cx="100" cy="80" r="60" fill="url(#grad-403)" />
+        <path
+          d="M 40 140 L 100 80 L 160 140"
+          fill="none"
+          stroke="var(--color-destructive)"
+          strokeOpacity="0.1"
+          strokeWidth="1"
         />
-        {/* Screen stand */}
-        <line
-          x1="100"
-          y1="110"
-          x2="100"
-          y2="124"
-          stroke="hsl(var(--border))"
-          strokeWidth="1.5"
-          strokeLinecap="round"
+        <path
+          d="M 40 20 L 100 80 L 160 20"
+          fill="none"
+          stroke="var(--color-destructive)"
+          strokeOpacity="0.1"
+          strokeWidth="1"
         />
-        <line
-          x1="82"
-          y1="124"
-          x2="118"
-          y2="124"
-          stroke="hsl(var(--border))"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-        />
-        {/* Status dots */}
-        <circle cx="52" cy="38" r="2" fill="hsl(var(--muted))" />
-        <circle cx="59" cy="38" r="2" fill="hsl(var(--muted))" />
-        <circle cx="66" cy="38" r="2" fill="hsl(var(--muted))" />
-        {/* Screen inner area divider */}
-        <line x1="40" y1="44" x2="160" y2="44" stroke="hsl(var(--border))" strokeWidth="1" />
       </motion.g>
 
-      {/* Shield */}
+      {/* Gateway / Core */}
       <motion.g
-        initial={animate ? { opacity: 0, y: -15 } : undefined}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ type: "spring", ...SPRING, delay: 0.15 }}
+        initial={animate ? { scale: 0.9, opacity: 0 } : undefined}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ type: "spring", ...SPRING }}
+      >
+        <polygon
+          points="100,30 145,55 145,105 100,130 55,105 55,55"
+          fill="var(--color-card)"
+          stroke="var(--color-border)"
+          strokeWidth="1.5"
+        />
+        <polygon
+          points="100,45 130,62 130,98 100,115 70,98 70,62"
+          fill="none"
+          stroke="var(--color-muted)"
+          strokeWidth="1"
+        />
+      </motion.g>
+
+      {/* Giant Shield */}
+      <motion.g
+        initial={animate ? { y: -20, opacity: 0 } : undefined}
+        animate={{ y: [0, -3, 0], opacity: 1 }}
+        transition={{
+          y: { duration: 3, repeat: Infinity, ease: "easeInOut" },
+          opacity: { duration: 0.4, delay: 0.2 },
+        }}
+        style={{ transformOrigin: "100px 80px" }}
       >
         <path
-          d="M100 52 L120 60 L120 80 Q120 94 100 100 Q80 94 80 80 L80 60 Z"
-          fill="hsl(var(--muted))"
-          stroke="hsl(var(--primary))"
-          strokeWidth="1.5"
+          d="M100 45 L135 55 L135 85 Q135 115 100 135 Q65 115 65 85 L65 55 Z"
+          fill="var(--color-card)"
+          stroke="var(--color-destructive)"
+          strokeWidth="2.5"
           strokeLinejoin="round"
+          style={{ filter: "drop-shadow(0 8px 12px rgba(0,0,0,0.15))" }}
+        />
+        {/* Inner Shield Detail */}
+        <path
+          d="M100 55 L125 63 L125 85 Q125 108 100 122 Q75 108 75 85 L75 63 Z"
+          fill="var(--color-destructive)"
+          opacity="0.1"
+        />
+
+        {/* Prohibition Slash */}
+        <motion.line
+          x1="80"
+          y1="70"
+          x2="120"
+          y2="110"
+          stroke="var(--color-destructive)"
+          strokeWidth="3.5"
+          strokeLinecap="round"
+          initial={animate ? { pathLength: 0 } : undefined}
+          animate={{ pathLength: 1 }}
+          transition={{ ...PATH_DRAW, delay: 0.4 }}
+          filter="url(#glow-403)"
         />
       </motion.g>
 
-      {/* Prohibition slash */}
-      <motion.line
-        x1="86"
-        y1="58"
-        x2="114"
-        y2="94"
-        stroke="hsl(var(--destructive))"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        initial={animate ? { pathLength: 0 } : undefined}
-        animate={{ pathLength: 1 }}
-        transition={{ ...PATH_DRAW, delay: 0.4 }}
-      />
+      {/* Rejected Packets */}
+      <motion.g
+        initial={animate ? { opacity: 0 } : undefined}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.8 }}
+      >
+        <motion.circle
+          cx="40"
+          cy="100"
+          r="3"
+          fill="var(--color-destructive)"
+          animate={{ x: [0, 15, 0], y: [0, -15, 0], opacity: [0, 1, 0] }}
+          transition={{ duration: 1.5, repeat: Infinity, ease: "easeOut" }}
+        />
+        <motion.circle
+          cx="160"
+          cy="60"
+          r="3"
+          fill="var(--color-destructive)"
+          animate={{ x: [0, -15, 0], y: [0, 15, 0], opacity: [0, 1, 0] }}
+          transition={{ duration: 1.5, repeat: Infinity, ease: "easeOut", delay: 0.7 }}
+        />
+      </motion.g>
     </IllustrationWrapper>
   );
 }

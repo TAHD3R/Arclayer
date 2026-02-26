@@ -1,147 +1,174 @@
 import { motion } from "motion/react";
-
 import { IllustrationWrapper } from "./illustration-wrapper";
 import type { IllustrationProps } from "./types";
-import { useIllustrationAnimation, TWEEN, PATH_DRAW } from "./use-illustration-animation";
+import { SPRING, useIllustrationAnimation } from "./use-illustration-animation";
 
-/** Gear cog path: circle with 8 rectangular teeth */
-function buildGearPath(cx: number, cy: number, r: number): string {
-  const inner = r - 3;
-  const outer = r + 3;
-  const teeth = 8;
-  const segments: string[] = [];
-
-  for (let i = 0; i < teeth; i++) {
-    const angle = (i / teeth) * Math.PI * 2;
-    const half = (0.3 / teeth) * Math.PI * 2;
-    // Outer tooth corners
-    const x1 = cx + outer * Math.cos(angle - half);
-    const y1 = cy + outer * Math.sin(angle - half);
-    const x2 = cx + outer * Math.cos(angle + half);
-    const y2 = cy + outer * Math.sin(angle + half);
-    // Inner arc endpoints
-    const nextAngle = ((i + 1) / teeth) * Math.PI * 2;
-    const x3 = cx + inner * Math.cos(nextAngle - half);
-    const y3 = cy + inner * Math.sin(nextAngle - half);
-    const x4 = cx + inner * Math.cos(angle + half);
-    const y4 = cy + inner * Math.sin(angle + half);
-
-    if (i === 0) {
-      segments.push(`M ${x1} ${y1}`);
-    } else {
-      segments.push(`L ${x1} ${y1}`);
-    }
-    segments.push(`L ${x2} ${y2}`);
-    segments.push(`L ${x4} ${y4}`);
-    segments.push(`L ${x3} ${y3}`);
-  }
-  segments.push("Z");
-  return segments.join(" ");
-}
-
-const GEAR_CX = 148;
-const GEAR_CY = 42;
-const gearPath = buildGearPath(GEAR_CX, GEAR_CY, 14);
-
-export function Illust500CrashedServer({ className, ariaLabel }: IllustrationProps) {
+export function Illust500CrashedServer(props: IllustrationProps) {
   const { animate } = useIllustrationAnimation();
 
   return (
-    <IllustrationWrapper className={className} ariaLabel={ariaLabel}>
-      {/* --- Server rack body --- */}
-      <motion.rect
-        x={70}
-        y={32}
-        width={60}
-        height={96}
-        rx={6}
-        fill="hsl(var(--card))"
-        stroke="currentColor"
-        strokeWidth={2}
-        initial={animate ? { opacity: 0 } : undefined}
-        animate={animate ? { opacity: 1 } : undefined}
-        transition={{ duration: 0.3 }}
-      />
+    <IllustrationWrapper {...props}>
+      <defs>
+        <filter id="glow-500" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="4" result="blur" />
+          <feComposite in="SourceGraphic" in2="blur" operator="over" />
+        </filter>
+        <linearGradient id="server-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="var(--color-card)" />
+          <stop offset="100%" stopColor="var(--color-muted)" />
+        </linearGradient>
+      </defs>
 
-      {/* --- Drive bays --- */}
-      {[56, 76, 96].map((y) => (
-        <motion.g
-          key={y}
-          initial={animate ? { opacity: 0 } : undefined}
-          animate={animate ? { opacity: 1 } : undefined}
-          transition={{ duration: 0.3 }}
-        >
-          {/* Bay slot */}
-          <rect
-            x={78}
-            y={y}
-            width={44}
-            height={12}
-            rx={2}
-            fill="hsl(var(--muted))"
-            stroke="hsl(var(--border))"
-            strokeWidth={1}
-          />
-          {/* Status LED */}
-          <circle cx={116} cy={y + 6} r={2} fill="hsl(var(--border))" />
-        </motion.g>
-      ))}
-
-      {/* --- Gear cog --- */}
+      {/* Background Grid */}
       <motion.g
-        initial={animate ? { rotate: 0 } : undefined}
-        animate={animate ? { rotate: 45 } : undefined}
-        transition={{ ...TWEEN, delay: 0.2 }}
-        style={{ originX: `${GEAR_CX}px`, originY: `${GEAR_CY}px` }}
+        initial={animate ? { opacity: 0 } : undefined}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 1 }}
       >
         <path
-          d={gearPath}
-          fill="none"
-          stroke="hsl(var(--primary))"
-          strokeWidth={1.5}
-          strokeLinejoin="round"
+          d="M 50 20 V 140 M 100 20 V 140 M 150 20 V 140"
+          stroke="var(--color-border)"
+          strokeWidth="1"
+          strokeDasharray="4 4"
+          opacity="0.4"
         />
-        <circle
-          cx={GEAR_CX}
-          cy={GEAR_CY}
-          r={5}
-          fill="none"
-          stroke="hsl(var(--primary))"
-          strokeWidth={1.5}
+        <path
+          d="M 20 50 H 180 M 20 110 H 180"
+          stroke="var(--color-border)"
+          strokeWidth="1"
+          strokeDasharray="4 4"
+          opacity="0.4"
         />
       </motion.g>
 
-      {/* --- Crack / lightning bolt --- */}
-      <motion.path
-        d="M 92 42 L 97 62 L 90 64 L 96 82 L 89 84 L 95 100"
-        fill="none"
-        stroke="hsl(var(--destructive))"
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        initial={animate ? { pathLength: 0 } : undefined}
-        animate={animate ? { pathLength: 1 } : undefined}
-        transition={{ ...PATH_DRAW, delay: 0.4 }}
+      {/* Server Rack Frame */}
+      <motion.rect
+        x="60"
+        y="25"
+        width="80"
+        height="110"
+        rx="6"
+        fill="url(#server-grad)"
+        stroke="var(--color-border)"
+        strokeWidth="2"
+        style={{ filter: "drop-shadow(0 10px 15px rgba(0,0,0,0.2))" }}
+        initial={animate ? { y: 20, opacity: 0 } : undefined}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ type: "spring", ...SPRING }}
       />
 
-      {/* --- Smoke wisps --- */}
-      {[
-        { d: "M 90 30 Q 87 22 90 16", delay: 0.6 },
-        { d: "M 100 28 Q 103 20 100 12", delay: 0.8 },
-        { d: "M 110 30 Q 107 22 110 14", delay: 1.0 },
-      ].map(({ d, delay }) => (
-        <motion.path
-          key={d}
-          d={d}
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={1.5}
-          strokeLinecap="round"
-          initial={animate ? { opacity: 0.6, y: 0 } : undefined}
-          animate={animate ? { opacity: 0, y: -8 } : undefined}
-          transition={{ duration: 1.5, delay, ease: "easeOut" }}
+      {/* Healthy Blades (Top & Bottom) */}
+      <motion.g
+        initial={animate ? { opacity: 0 } : undefined}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5, delay: 0.2 }}
+      >
+        {/* Top Blade */}
+        <rect
+          x="65"
+          y="35"
+          width="70"
+          height="20"
+          rx="3"
+          fill="var(--color-card)"
+          stroke="var(--color-border)"
+          strokeWidth="1"
         />
-      ))}
+        <circle cx="120" cy="45" r="3" fill="var(--color-primary)" filter="url(#glow-500)" />
+        <rect x="75" y="43" width="30" height="4" rx="2" fill="var(--color-muted)" />
+
+        {/* Bottom Blade */}
+        <rect
+          x="65"
+          y="105"
+          width="70"
+          height="20"
+          rx="3"
+          fill="var(--color-card)"
+          stroke="var(--color-border)"
+          strokeWidth="1"
+        />
+        <circle cx="120" cy="115" r="3" fill="var(--color-primary)" filter="url(#glow-500)" />
+        <rect x="75" y="113" width="30" height="4" rx="2" fill="var(--color-muted)" />
+      </motion.g>
+
+      {/* Crashed Blade (Middle) */}
+      <motion.g
+        initial={animate ? { x: 0, opacity: 0 } : undefined}
+        animate={{ x: -20, opacity: 1 }}
+        transition={{ type: "spring", stiffness: 300, damping: 12, delay: 0.4 }}
+      >
+        {/* Ejected Blade */}
+        <rect
+          x="65"
+          y="70"
+          width="70"
+          height="20"
+          rx="3"
+          fill="var(--color-card)"
+          stroke="var(--color-destructive)"
+          strokeWidth="2"
+          style={{ filter: "drop-shadow(5px 5px 10px rgba(0,0,0,0.3))" }}
+        />
+        <rect
+          x="75"
+          y="78"
+          width="30"
+          height="4"
+          rx="2"
+          fill="var(--color-destructive)"
+          opacity="0.3"
+        />
+
+        {/* Blinking Error Light */}
+        <motion.circle
+          cx="120"
+          cy="80"
+          r="3"
+          fill="var(--color-destructive)"
+          filter="url(#glow-500)"
+          animate={{ opacity: [1, 0.2, 1] }}
+          transition={{ duration: 0.4, repeat: Infinity }}
+        />
+      </motion.g>
+
+      {/* Smoke / Sparks */}
+      <motion.g
+        initial={animate ? { opacity: 0 } : undefined}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.6 }}
+      >
+        {/* Lightning Crack */}
+        <motion.path
+          d="M 135 60 L 148 72 L 140 80 L 155 95"
+          fill="none"
+          stroke="var(--color-destructive)"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          filter="url(#glow-500)"
+          animate={{ opacity: [0, 1, 0] }}
+          transition={{ duration: 0.5, repeat: Infinity, repeatDelay: 1.5 }}
+        />
+
+        {/* Floating Embers */}
+        <motion.circle
+          cx="145"
+          cy="65"
+          r="1.5"
+          fill="var(--color-destructive)"
+          animate={{ y: [0, -15], opacity: [1, 0] }}
+          transition={{ duration: 1, repeat: Infinity }}
+        />
+        <motion.circle
+          cx="150"
+          cy="85"
+          r="2"
+          fill="var(--color-destructive)"
+          animate={{ y: [0, -20], opacity: [1, 0] }}
+          transition={{ duration: 1.2, repeat: Infinity, delay: 0.3 }}
+        />
+      </motion.g>
     </IllustrationWrapper>
   );
 }
