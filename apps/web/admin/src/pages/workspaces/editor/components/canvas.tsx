@@ -35,7 +35,7 @@ export function Canvas({ iframeSrc, iframeRef, isLoading, loadError }: CanvasPro
   const panX = useEditorStore((s) => s.canvasPanX);
   const panY = useEditorStore((s) => s.canvasPanY);
 
-  const { transformStyle, containerHandlers, cursor } = useCanvasPanZoom(containerRef);
+  const { transformStyle, containerHandlers, cursor, isPanning } = useCanvasPanZoom(containerRef);
   const actions = useEditorActions();
   const { setNodeRef, isOver } = useDroppable({ id: EDITOR_CANVAS_DROPPABLE_ID });
 
@@ -47,6 +47,7 @@ export function Canvas({ iframeSrc, iframeRef, isLoading, loadError }: CanvasPro
       : cursor === "grabbing"
         ? "cursor-grabbing"
         : "cursor-default";
+  const panOverlayEnabled = cursor !== "default" || isPanning;
 
   return (
     <ContextMenu>
@@ -84,13 +85,46 @@ export function Canvas({ iframeSrc, iframeRef, isLoading, loadError }: CanvasPro
                 transition={{ duration: 0.3, ease: "easeInOut" }}
                 className="relative -translate-x-1/2 bg-white shadow-lg dark:bg-zinc-900"
               >
-                {/* Hand tool / Space-panning overlay: capture pointer events above the iframe so panning works. */}
-                {cursor !== "default" ? <div className="absolute inset-0 z-10" /> : null}
+                {panOverlayEnabled ? (
+                  <div
+                    className={cn(
+                      "absolute inset-0 z-10 select-none touch-none",
+                      // overlay 承接指针事件，所以需要显式设置 cursor
+                      cursorClassName,
+                    )}
+                    onPointerDown={(e) => {
+                      // 右键保留给 context-menu 等交互，不进入平移逻辑
+                      if (e.button !== 0 && e.button !== 1) return;
+                      e.preventDefault();
+                      e.stopPropagation();
+                      containerHandlers.onPointerDown(e);
+                    }}
+                    onPointerMove={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      containerHandlers.onPointerMove(e);
+                    }}
+                    onPointerUp={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      containerHandlers.onPointerUp(e);
+                    }}
+                    onPointerCancel={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      containerHandlers.onPointerCancel(e);
+                    }}
+                  />
+                ) : null}
                 <iframe
                   ref={iframeRef}
                   title="editor-canvas"
                   src={iframeSrc}
-                  className="pointer-events-auto min-h-screen w-full border-0"
+                  className={cn(
+                    "min-h-screen w-full border-0",
+                    // Hand tool / Space-panning 时禁用 iframe 指针事件，避免跨域 iframe 吞事件导致平移中断
+                    panOverlayEnabled ? "pointer-events-none" : "pointer-events-auto",
+                  )}
                 />
               </motion.div>
             </div>

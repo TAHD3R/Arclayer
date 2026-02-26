@@ -126,8 +126,8 @@ export function EditorDndProvider(props: { children: React.ReactNode }) {
         onDragCancel={onDragCancel}
       >
         {props.children}
-        <DragOverlay>
-          {activeItem ? (
+        {activeItem ? (
+          <DragOverlay>
             <div
               className={cn(
                 "pointer-events-none select-none rounded-md border border-border bg-card px-3 py-2 shadow-md",
@@ -138,8 +138,8 @@ export function EditorDndProvider(props: { children: React.ReactNode }) {
                 ? t("content_pages:EDITOR_DND_NEW_BLOCK", { type: activeItem.blockType })
                 : t("content_pages:EDITOR_DND_ASSET")}
             </div>
-          ) : null}
-        </DragOverlay>
+          </DragOverlay>
+        ) : null}
       </DndContext>
     </EditorDndContext.Provider>
   );

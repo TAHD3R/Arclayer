@@ -119,10 +119,13 @@ export function useCanvasPanZoom(
 
   // --- 判断是否应进入平移模式 ---
   const shouldPan = useCallback(
-    (e: React.PointerEvent) =>
-      activeTool === "hand" ||
-      e.button === 1 || // 中键拖拽
-      spaceHeldRef.current,
+    (e: React.PointerEvent) => {
+      // 中键拖拽：无论工具如何都允许
+      if (e.button === 1) return true;
+      // 其它模式只允许左键（避免右键阻塞 context-menu）
+      if (e.button !== 0) return false;
+      return activeTool === "hand" || spaceHeldRef.current;
+    },
     [activeTool],
   );
 
@@ -131,6 +134,8 @@ export function useCanvasPanZoom(
     (e: React.PointerEvent) => {
       if (!shouldPan(e)) return;
 
+      // 避免触发浏览器默认拖拽/选择反馈（跨域 iframe 场景会导致 not-allowed 等状态）
+      e.preventDefault();
       isPanningRef.current = true;
       setIsPanning(true);
       panStartRef.current = {
