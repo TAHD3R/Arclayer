@@ -73,6 +73,18 @@ export function WorkspaceEditorPage() {
     () => ({
       ready: () => {},
       selectionChanged: ({ blockId }) => setSelectedBlockId(blockId),
+      canvasWheel: (args) => {
+        // Convert iframe client coords to parent viewport coords.
+        const iframe = iframeRef.current;
+        const handler = useEditorStore.getState().canvasWheelHandler;
+        if (!iframe || !handler) return;
+        const rect = iframe.getBoundingClientRect();
+        handler({
+          ...args,
+          clientX: rect.left + args.clientX,
+          clientY: rect.top + args.clientY,
+        });
+      },
       requestSave: ({ document }) => {
         void saveDraftRef.current(document);
       },
@@ -88,7 +100,7 @@ export function WorkspaceEditorPage() {
       selectionInspectorChanged: ({ inspector }) => setInspectorData(inspector),
       layerTreeChanged: ({ layers }) => setLayerTree(layers),
     }),
-    [setSelectedBlockId, setHistoryState, setInspectorData, setLayerTree, setDirty],
+    [setSelectedBlockId, setHistoryState, setInspectorData, setLayerTree, setDirty, iframeRef],
   );
 
   const bridge = useEditorBridge({

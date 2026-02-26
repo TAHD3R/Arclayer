@@ -37,8 +37,10 @@ export function Canvas({ iframeSrc, iframeRef, isLoading, loadError }: CanvasPro
   const panX = useEditorStore((s) => s.canvasPanX);
   const panY = useEditorStore((s) => s.canvasPanY);
 
-  const { transformStyle, startPanHandlers, cursor, isPanning, spaceHeld } =
-    useCanvasPanZoom(containerRef);
+  const { transformStyle, startPanHandlers, cursor, isPanning, spaceHeld } = useCanvasPanZoom(
+    containerRef,
+    { extraWheelTargets: [iframeRef] },
+  );
   const actions = useEditorActions();
   const { setNodeRef, isOver } = useDroppable({ id: EDITOR_CANVAS_DROPPABLE_ID });
 

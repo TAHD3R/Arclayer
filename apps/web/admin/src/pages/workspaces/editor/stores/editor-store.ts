@@ -36,6 +36,20 @@ export interface EditorState {
   // Overlay close signal (e.g. close popovers when iframe receives focus)
   overlayCloseSignal: number;
 
+  // Canvas wheel bridge: allows the portal iframe to forward wheel events to the host.
+  canvasWheelHandler:
+    | ((args: {
+        deltaX: number;
+        deltaY: number;
+        deltaMode: number;
+        ctrlKey: boolean;
+        metaKey: boolean;
+        shiftKey: boolean;
+        clientX: number;
+        clientY: number;
+      }) => void)
+    | null;
+
   // Canvas
   activeTool: ActiveTool;
   devicePreset: DevicePreset;
@@ -76,6 +90,7 @@ export interface EditorState {
   togglePropertiesPanel: () => void;
   setPropertiesPanelTab: (tab: PropertiesPanelTab) => void;
   emitOverlayCloseSignal: () => void;
+  setCanvasWheelHandler: (handler: EditorState["canvasWheelHandler"]) => void;
   setDevicePreset: (preset: DevicePreset) => void;
   setActiveTool: (tool: ActiveTool) => void;
   setZoomPercent: (zoom: number) => void;
@@ -123,6 +138,7 @@ export const useEditorStore = create<EditorState>()((set) => ({
   propertiesPanelTab: "component",
 
   overlayCloseSignal: 0,
+  canvasWheelHandler: null,
 
   activeTool: "select",
   devicePreset: "desktop",
@@ -169,6 +185,7 @@ export const useEditorStore = create<EditorState>()((set) => ({
   togglePropertiesPanel: () => set((s) => ({ propertiesPanelOpen: !s.propertiesPanelOpen })),
   setPropertiesPanelTab: (tab) => set({ propertiesPanelTab: tab, propertiesPanelOpen: true }),
   emitOverlayCloseSignal: () => set((s) => ({ overlayCloseSignal: s.overlayCloseSignal + 1 })),
+  setCanvasWheelHandler: (handler) => set({ canvasWheelHandler: handler }),
   setDevicePreset: (preset) => set({ devicePreset: preset }),
   setActiveTool: (tool) => set({ activeTool: tool }),
   setZoomPercent: (zoom) => set({ zoomPercent: Math.max(25, Math.min(200, Math.round(zoom))) }),

@@ -174,6 +174,34 @@ export function EditorSiteView(props: EditorSiteViewProps) {
     resizeSessionRef.current = null;
   }, [baseDocument, pathname]);
 
+  // Forward wheel events to the host so canvas pan/zoom works even when the cursor is inside the iframe.
+  //
+  // Browsers do not reliably bubble iframe-internal wheel events to the host document (especially cross-origin),
+  // so the portal must send the wheel input via RPC.
+  React.useEffect(() => {
+    const onWheel = (ev: WheelEvent) => {
+      const host = hostRef.current as unknown as { canvasWheel?: (args: any) => void } | null;
+      if (!host?.canvasWheel) return;
+
+      host.canvasWheel({
+        deltaX: ev.deltaX,
+        deltaY: ev.deltaY,
+        deltaMode: ev.deltaMode,
+        ctrlKey: ev.ctrlKey,
+        metaKey: ev.metaKey,
+        shiftKey: ev.shiftKey,
+        clientX: ev.clientX,
+        clientY: ev.clientY,
+      });
+
+      // Figma-style: prevent the preview page itself from scrolling; host handles pan/zoom.
+      ev.preventDefault();
+    };
+
+    window.addEventListener("wheel", onWheel, { passive: false, capture: true });
+    return () => window.removeEventListener("wheel", onWheel, true);
+  }, []);
+
   React.useEffect(() => {
     if (overlayMode !== "edit") {
       setInlineEdit(null);

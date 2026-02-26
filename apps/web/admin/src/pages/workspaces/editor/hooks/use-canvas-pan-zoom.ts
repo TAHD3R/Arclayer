@@ -6,9 +6,14 @@ import { isSpaceKeyReservedTarget } from "@/pages/workspaces/editor/hooks/editor
 // 缩放范围与步进常量
 const MIN_ZOOM = 25;
 const MAX_ZOOM = 200;
-const ZOOM_STEP = 5;
 // 进入平移的最小拖拽距离（px），避免轻微抖动导致误触发。
 const PAN_ACTIVATION_DISTANCE_PX = 3;
+// 滚轮缩放手感参数（值越大缩放越快）
+const ZOOM_SENSITIVITY_MOUSE = 0.002;
+const ZOOM_SENSITIVITY_TRACKPAD = 0.008;
+// WheelEvent.deltaMode 的像素换算
+const WHEEL_LINE_HEIGHT_PX = 16;
+const WHEEL_PAGE_HEIGHT_PX = 800;
 
 interface CanvasPanZoomReturn {
   transformStyle: React.CSSProperties;
@@ -29,6 +34,9 @@ interface CanvasPanZoomReturn {
  */
 export function useCanvasPanZoom(
   containerRef: React.RefObject<HTMLElement | null>,
+  options?: {
+    extraWheelTargets?: Array<React.RefObject<HTMLElement | null>>;
+  },
 ): CanvasPanZoomReturn {
   // --- Store state ---
   const activeTool = useEditorStore((s) => s.activeTool);
@@ -37,6 +45,7 @@ export function useCanvasPanZoom(
   const panY = useEditorStore((s) => s.canvasPanY);
   const setZoomPercent = useEditorStore((s) => s.setZoomPercent);
   const setCanvasPan = useEditorStore((s) => s.setCanvasPan);
+  const setCanvasWheelHandler = useEditorStore((s) => s.setCanvasWheelHandler);
 
   // --- Local refs for drag state (avoid re-renders) ---
   type PanStartReason = "hand" | "space" | "middle";
@@ -89,36 +98,116 @@ export function useCanvasPanZoom(
     const el = containerRef.current;
     if (!el) return;
 
-    const handleWheel = (e: WheelEvent) => {
-      // 仅 Ctrl+wheel 触发缩放（含触控板 pinch）
-      if (!e.ctrlKey) return;
-      e.preventDefault();
+    const applyWheel = (args: {
+      deltaX: number;
+      deltaY: number;
+      deltaMode: number;
+      ctrlKey: boolean;
+      metaKey: boolean;
+      shiftKey: boolean;
+      clientX: number;
+      clientY: number;
+      preventDefault?: () => void;
+    }) => {
+      // 拖拽平移过程中忽略滚轮，避免状态叠加导致手感怪异。
+      if (panSessionRef.current.pointerId != null) return;
 
-      const { zoomPercent: curZoom, panX: curPanX, panY: curPanY } = storeRef.current;
-      const oldScale = curZoom / 100;
+      // 将 wheel delta 归一化为 px，兼容鼠标/触控板与不同 deltaMode。
+      const deltaScale =
+        args.deltaMode === 1
+          ? WHEEL_LINE_HEIGHT_PX
+          : args.deltaMode === 2
+            ? WHEEL_PAGE_HEIGHT_PX
+            : 1;
+      let dx = args.deltaX * deltaScale;
+      let dy = args.deltaY * deltaScale;
 
-      // 计算新缩放值
-      const delta = e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP;
-      const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, curZoom + delta));
-      const newScale = newZoom / 100;
+      // Ctrl/⌘ + 滚轮：缩放（触控板 pinch 通常也会表现为 ctrlKey wheel）
+      if (args.ctrlKey || args.metaKey) {
+        args.preventDefault?.();
 
-      if (newZoom === curZoom) return;
+        const { zoomPercent: curZoom, panX: curPanX, panY: curPanY } = storeRef.current;
+        const oldScale = curZoom / 100;
 
-      // 以鼠标位置为中心缩放：调整 pan 使鼠标指向的画布点保持不变
-      const rect = el.getBoundingClientRect();
-      const mouseX = e.clientX - rect.left;
-      const mouseY = e.clientY - rect.top;
+        // 连续缩放：触控板 delta 通常很小，鼠标滚轮/按行滚动 delta 通常更大。
+        const isProbablyMouseWheel = args.deltaMode !== 0 || Math.abs(dy) >= 50;
+        const sensitivity = isProbablyMouseWheel
+          ? ZOOM_SENSITIVITY_MOUSE
+          : ZOOM_SENSITIVITY_TRACKPAD;
+        const zoomFactor = Math.exp(-dy * sensitivity);
+        const nextScaleRaw = oldScale * zoomFactor;
+        const nextZoomRaw = nextScaleRaw * 100;
+        const nextZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, Math.round(nextZoomRaw)));
+        const newScale = nextZoom / 100;
 
-      const newPanX = mouseX - ((mouseX - curPanX) / oldScale) * newScale;
-      const newPanY = mouseY - ((mouseY - curPanY) / oldScale) * newScale;
+        if (nextZoom === curZoom) return;
 
-      setZoomPercent(newZoom);
-      setCanvasPan(newPanX, newPanY);
+        // 以鼠标位置为中心缩放：调整 pan 使鼠标指向的画布点保持不变
+        const rect = el.getBoundingClientRect();
+        const mouseX = args.clientX - rect.left;
+        const mouseY = args.clientY - rect.top;
+
+        const newPanX = mouseX - ((mouseX - curPanX) / oldScale) * newScale;
+        const newPanY = mouseY - ((mouseY - curPanY) / oldScale) * newScale;
+
+        setZoomPercent(nextZoom);
+        setCanvasPan(newPanX, newPanY);
+        return;
+      }
+
+      // 默认滚轮：平移画布（Figma 风格）
+      // Shift + 滚轮：多数鼠标会把横向滚动表现为 deltaY，因此做一次映射。
+      if (args.shiftKey && Math.abs(dx) < 0.5 && Math.abs(dy) > 0.5) {
+        dx = dy;
+        dy = 0;
+      }
+
+      // 只有我们接管滚轮平移时才阻止默认滚动（避免整页滚动）。
+      args.preventDefault?.();
+      const { panX: curPanX, panY: curPanY } = storeRef.current;
+      setCanvasPan(curPanX - dx, curPanY - dy);
     };
 
-    el.addEventListener("wheel", handleWheel, { passive: false });
-    return () => el.removeEventListener("wheel", handleWheel);
-  }, [containerRef, setZoomPercent, setCanvasPan]);
+    const handleWheel = (e: WheelEvent) => {
+      applyWheel({
+        deltaX: e.deltaX,
+        deltaY: e.deltaY,
+        deltaMode: e.deltaMode,
+        ctrlKey: e.ctrlKey,
+        metaKey: e.metaKey,
+        shiftKey: e.shiftKey,
+        clientX: e.clientX,
+        clientY: e.clientY,
+        preventDefault: () => e.preventDefault(),
+      });
+    };
+
+    const targets: HTMLElement[] = [el];
+    for (const ref of options?.extraWheelTargets ?? []) {
+      const node = ref.current;
+      if (node && node !== el) targets.push(node);
+    }
+
+    for (const t of targets) {
+      t.addEventListener("wheel", handleWheel, { passive: false });
+    }
+
+    // Register a handler so the portal iframe can forward wheel events to the host via RPC.
+    setCanvasWheelHandler((args) => applyWheel({ ...args }));
+
+    return () => {
+      setCanvasWheelHandler(null);
+      for (const t of targets) {
+        t.removeEventListener("wheel", handleWheel);
+      }
+    };
+  }, [
+    containerRef,
+    options?.extraWheelTargets,
+    setZoomPercent,
+    setCanvasPan,
+    setCanvasWheelHandler,
+  ]);
 
   // --- Space key tracking ---
   useEffect(() => {

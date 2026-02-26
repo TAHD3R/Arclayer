@@ -233,6 +233,24 @@ export type PortalEditorRpcApi = {
 export type HostEditorRpcApi = {
   ready: (args: { readyAt: number }) => void;
   selectionChanged: (args: { blockId: BlockId | null }) => void;
+  /**
+   * Wheel events that happen inside the portal iframe (cross-origin safe).
+   *
+   * Browsers do not reliably bubble iframe-internal wheel events to the host document, so the portal
+   * forwards them to the host for unified canvas pan/zoom behavior.
+   */
+  canvasWheel?: (args: {
+    deltaX: number;
+    deltaY: number;
+    deltaMode: number;
+    ctrlKey: boolean;
+    metaKey: boolean;
+    shiftKey: boolean;
+    /** iframe viewport clientX */
+    clientX: number;
+    /** iframe viewport clientY */
+    clientY: number;
+  }) => void;
 
   /**
    * Portal notifies the host that a save should happen (e.g. Cmd+S inside the iframe).
