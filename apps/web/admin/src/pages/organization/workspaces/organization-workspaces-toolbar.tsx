@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
-import { Input } from "antd";
+import { Button as AntButton, Input, Space } from "antd";
+import { LayoutGrid, List } from "lucide-react";
 
 import {
   ChromeTabs,
@@ -12,6 +13,7 @@ import {
 import type {
   OrganizationWorkspacesTab,
   OrganizationWorkspacesTranslateFn,
+  OrganizationWorkspacesViewMode,
 } from "./organization-workspaces-types";
 
 interface OrganizationWorkspacesToolbarProps {
@@ -20,11 +22,22 @@ interface OrganizationWorkspacesToolbarProps {
   onTabChange: (nextTab: OrganizationWorkspacesTab) => void;
   searchInput: string;
   onSearchInputChange: (nextValue: string) => void;
+  viewMode: OrganizationWorkspacesViewMode;
+  onViewModeChange: (mode: OrganizationWorkspacesViewMode) => void;
   children: ReactNode;
 }
 
 export function OrganizationWorkspacesToolbar(props: OrganizationWorkspacesToolbarProps) {
-  const { t, tab, onTabChange, searchInput, onSearchInputChange, children } = props;
+  const {
+    t,
+    tab,
+    onTabChange,
+    searchInput,
+    onSearchInputChange,
+    viewMode,
+    onViewModeChange,
+    children,
+  } = props;
 
   return (
     <ChromeTabs
@@ -43,14 +56,28 @@ export function OrganizationWorkspacesToolbar(props: OrganizationWorkspacesToolb
           </ChromeTabsList>
         }
         right={
-          <Input.Search
-            variant="borderless"
-            className="w-[320px]"
-            value={searchInput}
-            onChange={(event) => onSearchInputChange(event.target.value)}
-            placeholder={t("common:ORG_WORKSPACES_SEARCH_PLACEHOLDER")}
-            allowClear
-          />
+          <div className="flex items-center gap-2">
+            <Input.Search
+              variant="borderless"
+              className="w-[320px]"
+              value={searchInput}
+              onChange={(event) => onSearchInputChange(event.target.value)}
+              placeholder={t("common:ORG_WORKSPACES_SEARCH_PLACEHOLDER")}
+              allowClear
+            />
+            <Space.Compact>
+              <AntButton
+                type={viewMode === "card" ? "primary" : "text"}
+                icon={<LayoutGrid className="size-4" />}
+                onClick={() => onViewModeChange("card")}
+              />
+              <AntButton
+                type={viewMode === "table" ? "primary" : "text"}
+                icon={<List className="size-4" />}
+                onClick={() => onViewModeChange("table")}
+              />
+            </Space.Compact>
+          </div>
         }
       />
 

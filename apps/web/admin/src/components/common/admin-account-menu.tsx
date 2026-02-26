@@ -1,15 +1,13 @@
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Avatar, Tag, Typography } from "antd";
+import { Avatar } from "antd";
 import { useTranslation } from "react-i18next";
-import { ChevronDown, Inbox, LogOut, Settings } from "lucide-react";
+import { Boxes, Building2, ChevronDown, CircleHelp, Inbox, LogOut, UserCog } from "lucide-react";
 import { type ReactNode, useMemo } from "react";
 
 import * as authApi from "@/api/auth";
 import { getMyOrganization } from "@/api/me";
-import { getMyWorkspaceAuthz } from "@/api/workspaces";
 import { useAuthStore } from "@/stores/use-auth-store";
-import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import {
   FloatingPanelButton,
   FloatingPanelContent,
@@ -42,47 +40,17 @@ function divider() {
   return <div className="mx-4 my-2 h-px bg-border/60" />;
 }
 
-function asRecord(input: unknown): Record<string, unknown> | null {
-  if (!input || typeof input !== "object") return null;
-  return input as Record<string, unknown>;
-}
-
-function getBooleanValue(record: Record<string, unknown>, keys: readonly string[]): boolean | null {
-  for (const k of keys) {
-    const v = record[k];
-    if (typeof v === "boolean") return v;
-  }
-  return null;
-}
-
-function getStringArrayValue(
-  record: Record<string, unknown>,
-  keys: readonly string[],
-): string[] | null {
-  for (const k of keys) {
-    const v = record[k];
-    if (!Array.isArray(v)) continue;
-    if (v.every((item) => typeof item === "string")) return v;
-  }
-  return null;
-}
-
-function getPrimaryRoleCode(input: { isSuper: boolean; roleCodes: string[] }): string {
-  if (input.isSuper) return "superuser";
-  if (input.roleCodes.includes("admin")) return "admin";
-  if (input.roleCodes.includes("user")) return "user";
-  return input.roleCodes[0] ?? "user";
-}
-
 function AdminAccountPanelContent(props: {
   displayName: string;
+  email: string | null;
   avatarUrl: string | null;
-  roleText: string;
   showOrganizationSettings: boolean;
   onLogout: () => Promise<void>;
-  onPersonalSettings: () => Promise<void> | void;
-  onNotifications: () => Promise<void> | void;
+  onAccountSettings: () => Promise<void> | void;
   onOrganizationSettings: () => Promise<void> | void;
+  onWorkspaces: () => Promise<void> | void;
+  onNotifications: () => Promise<void> | void;
+  onHelpCenter: () => Promise<void> | void;
 }) {
   const { t } = useTranslation("account");
   const { closeFloatingPanel } = useFloatingPanel();
@@ -116,18 +84,10 @@ function AdminAccountPanelContent(props: {
           </Avatar>
 
           <div className="min-w-0 flex-1">
-            <Typography.Text
-              strong
-              ellipsis={{ tooltip: props.displayName }}
-              style={{ display: "block" }}
-            >
-              {props.displayName}
-            </Typography.Text>
-            <div className="pt-1">
-              <Tag className="m-0" variant="filled">
-                {props.roleText}
-              </Tag>
-            </div>
+            <div className="truncate text-footnote font-semibold">{props.displayName}</div>
+            {props.email ? (
+              <div className="truncate text-caption text-label-secondary">{props.email}</div>
+            ) : null}
           </div>
         </div>
       </div>
@@ -137,9 +97,9 @@ function AdminAccountPanelContent(props: {
       <div className="py-1">
         <FloatingPanelButton
           className={menuItemClassName}
-          onClick={() => onClickAndClose(props.onPersonalSettings)}
+          onClick={() => onClickAndClose(props.onAccountSettings)}
         >
-          <MenuItemContent icon={<Settings />} label={t("ACCOUNT_PERSONAL_SETTINGS")} />
+          <MenuItemContent icon={<UserCog />} label={t("ACCOUNT_ACCOUNT_SETTINGS")} />
         </FloatingPanelButton>
 
         {props.showOrganizationSettings ? (
@@ -147,15 +107,33 @@ function AdminAccountPanelContent(props: {
             className={menuItemClassName}
             onClick={() => onClickAndClose(props.onOrganizationSettings)}
           >
-            <MenuItemContent icon={<Settings />} label={t("ACCOUNT_ORGANIZATION_SETTINGS")} />
+            <MenuItemContent icon={<Building2 />} label={t("ACCOUNT_ORGANIZATION_SETTINGS")} />
           </FloatingPanelButton>
         ) : null}
+      </div>
+
+      {divider()}
+
+      <div className="py-1">
+        <FloatingPanelButton
+          className={menuItemClassName}
+          onClick={() => onClickAndClose(props.onWorkspaces)}
+        >
+          <MenuItemContent icon={<Boxes />} label={t("ACCOUNT_WORKSPACES")} />
+        </FloatingPanelButton>
 
         <FloatingPanelButton
           className={menuItemClassName}
           onClick={() => onClickAndClose(props.onNotifications)}
         >
           <MenuItemContent icon={<Inbox />} label={t("ACCOUNT_NOTIFICATIONS")} />
+        </FloatingPanelButton>
+
+        <FloatingPanelButton
+          className={menuItemClassName}
+          onClick={() => onClickAndClose(props.onHelpCenter)}
+        >
+          <MenuItemContent icon={<CircleHelp />} label={t("ACCOUNT_HELP_CENTER")} />
         </FloatingPanelButton>
       </div>
 
@@ -179,19 +157,11 @@ export function AdminAccountMenu() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const clear = useAuthStore((s) => s.clear);
   const accessToken = useAuthStore((s) => s.accessToken);
-  const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
 
   const meQuery = useQuery({
     queryKey: ["auth", "me"],
     enabled: Boolean(accessToken),
     queryFn: async () => authApi.me(),
-    meta: { silent: true },
-  });
-
-  const authzQuery = useQuery({
-    queryKey: ["workspaces", "me", "authz", workspaceId],
-    enabled: Boolean(accessToken && workspaceId),
-    queryFn: async () => getMyWorkspaceAuthz(String(workspaceId)),
     meta: { silent: true },
   });
 
@@ -201,10 +171,6 @@ export function AdminAccountMenu() {
     queryFn: async () => getMyOrganization(),
     meta: { silent: true },
   });
-
-  const rawAuthz = asRecord(authzQuery.data) ?? {};
-  const isSuper = getBooleanValue(rawAuthz, ["is_superuser", "isSuperuser"]) ?? false;
-  const roleCodes = getStringArrayValue(rawAuthz, ["role_codes", "roleCodes"]) ?? [];
 
   const profile = useMemo(() => normalizeUserProfile(meQuery.data), [meQuery.data]);
 
@@ -217,14 +183,6 @@ export function AdminAccountMenu() {
     [accessToken, profile.displayName, profile.username, profile.email],
   );
 
-  const roleText = useMemo(() => {
-    const role = getPrimaryRoleCode({ isSuper, roleCodes });
-    if (role === "superuser") return t("ACCOUNT_ROLE_SUPERUSER");
-    if (role === "admin") return t("ACCOUNT_ROLE_ADMIN");
-    if (role === "user") return t("ACCOUNT_ROLE_USER");
-    return role;
-  }, [isSuper, roleCodes, t]);
-
   const routeOrganizationId = parseOrganizationIdFromPath(pathname);
   const currentOrganizationId = routeOrganizationId || myOrgQuery.data?.organization.id || null;
 
@@ -233,7 +191,7 @@ export function AdminAccountMenu() {
     await navigate({ to: "/login", replace: true });
   };
 
-  const onPersonalSettings = () => {
+  const onAccountSettings = () => {
     if (currentOrganizationId) {
       void navigate({ to: buildOrganizationPath(currentOrganizationId) });
       return;
@@ -243,6 +201,18 @@ export function AdminAccountMenu() {
 
   const onNotifications = () => {
     void navigate({ to: "/me/notifications" });
+  };
+
+  const onWorkspaces = () => {
+    if (currentOrganizationId) {
+      void navigate({ to: buildOrganizationPath(currentOrganizationId, "/workspaces") });
+      return;
+    }
+    void navigate({ to: "/" });
+  };
+
+  const onHelpCenter = () => {
+    // TODO: route not yet available
   };
 
   const canManageOrganization =
@@ -286,16 +256,14 @@ export function AdminAccountMenu() {
           {initialsFromName(displayName)}
         </Avatar>
 
-        <span>
-          <Typography.Text
-            strong
-            ellipsis={{ tooltip: displayName }}
-            style={{ maxWidth: "100%", display: "block" }}
-            className={nameClassName}
-          >
+        <div className="min-w-0 text-left">
+          <div className={cn("truncate text-footnote font-semibold", nameClassName)}>
             {displayName}
-          </Typography.Text>
-        </span>
+          </div>
+          {profile.email ? (
+            <div className="truncate text-caption text-label-secondary">{profile.email}</div>
+          ) : null}
+        </div>
 
         <ChevronDown className="ml-auto size-4 shrink-0 opacity-70 transition-colors group-hover:opacity-100" />
       </FloatingPanelTrigger>
@@ -303,13 +271,15 @@ export function AdminAccountMenu() {
       <FloatingPanelContent placement="top" showTitle={false} className="p-0">
         <AdminAccountPanelContent
           displayName={displayName}
+          email={profile.email}
           avatarUrl={profile.avatarUrl ?? profile.avatarAssetId}
-          roleText={roleText}
           showOrganizationSettings={canManageOrganization}
           onLogout={onLogout}
-          onPersonalSettings={onPersonalSettings}
-          onNotifications={onNotifications}
+          onAccountSettings={onAccountSettings}
           onOrganizationSettings={onOrganizationSettings}
+          onWorkspaces={onWorkspaces}
+          onNotifications={onNotifications}
+          onHelpCenter={onHelpCenter}
         />
       </FloatingPanelContent>
     </FloatingPanelRoot>

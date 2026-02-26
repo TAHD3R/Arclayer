@@ -1,6 +1,9 @@
 {
   "ACCOUNT_TITLE": "Account",
   "ACCOUNT_PERSONAL_SETTINGS": "Personal settings",
+  "ACCOUNT_ACCOUNT_SETTINGS": "Account settings",
+  "ACCOUNT_WORKSPACES": "Workspaces",
+  "ACCOUNT_HELP_CENTER": "Help center",
   "ACCOUNT_ORGANIZATION_SETTINGS": "Organization settings",
   "ACCOUNT_PREFERENCES": "Preferences",
   "ACCOUNT_THEME": "Theme",

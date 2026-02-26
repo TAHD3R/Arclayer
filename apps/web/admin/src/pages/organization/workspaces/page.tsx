@@ -2,7 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 
 import { useNavigate } from "@tanstack/react-router";
 import { Button as AntButton, Form } from "antd";
-import { Plus } from "lucide-react";
+import type { MenuProps } from "antd";
+import { Archive, LogIn, Plus, Trash2, Undo2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { type OrganizationWorkspace } from "@/api/organization-workspaces";
@@ -15,11 +16,14 @@ import {
   type CreateWorkspaceFormValues,
 } from "./organization-workspaces-dialogs";
 import { OrganizationWorkspacesToolbar } from "./organization-workspaces-toolbar";
-import type { OrganizationWorkspacesTab } from "./organization-workspaces-types";
+import type {
+  OrganizationWorkspacesTab,
+  OrganizationWorkspacesViewMode,
+} from "./organization-workspaces-types";
 import { useOrganizationWorkspacesColumns } from "./use-organization-workspaces-columns";
 import { useOrganizationWorkspacesMutations } from "./use-organization-workspaces-mutations";
 import { useOrganizationWorkspacesTables } from "./use-organization-workspaces-tables";
-import { WorkspacesTableSection } from "./workspaces-table-section";
+import { WorkspacesContentSection } from "./workspaces-table-section";
 
 export function OrganizationWorkspacesPage(props?: {
   organizationId?: string;
@@ -30,6 +34,7 @@ export function OrganizationWorkspacesPage(props?: {
   const setCurrentWorkspaceId = useWorkspaceStore((state) => state.setCurrentWorkspaceId);
 
   const [tab, setTab] = useState<OrganizationWorkspacesTab>("active");
+  const [viewMode, setViewMode] = useState<OrganizationWorkspacesViewMode>("card");
   const [createOpen, setCreateOpen] = useState(Boolean(props?.autoOpenCreate));
   const [confirmArchive, setConfirmArchive] = useState<OrganizationWorkspace | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<OrganizationWorkspace | null>(null);
@@ -78,6 +83,52 @@ export function OrganizationWorkspacesPage(props?: {
     [mutations.unarchiveMutation],
   );
 
+  const buildCardMenuItems = useCallback(
+    (workspace: OrganizationWorkspace): MenuProps["items"] => {
+      if (workspace.isArchived) {
+        return [
+          {
+            key: "unarchive",
+            icon: <Undo2 className="size-4" />,
+            label: t("common:ORG_WORKSPACES_ACTION_UNARCHIVE"),
+            onClick: () => handleUnarchiveWorkspace(workspace.workspaceId),
+          },
+          { type: "divider" as const },
+          {
+            key: "delete",
+            danger: true,
+            icon: <Trash2 className="size-4" />,
+            label: t("common:ORG_WORKSPACES_ACTION_DELETE"),
+            onClick: () => handleRequestDeleteWorkspace(workspace),
+          },
+        ];
+      }
+      return [
+        {
+          key: "enter",
+          icon: <LogIn className="size-4" />,
+          label: t("common:ORG_WORKSPACES_ACTION_ENTER"),
+          onClick: () => handleEnterWorkspace(workspace.workspaceId),
+        },
+        { type: "divider" as const },
+        {
+          key: "archive",
+          icon: <Archive className="size-4" />,
+          label: t("common:ORG_WORKSPACES_ACTION_ARCHIVE"),
+          onClick: () => setConfirmArchive(workspace),
+        },
+        {
+          key: "delete",
+          danger: true,
+          icon: <Trash2 className="size-4" />,
+          label: t("common:ORG_WORKSPACES_ACTION_DELETE"),
+          onClick: () => handleRequestDeleteWorkspace(workspace),
+        },
+      ];
+    },
+    [t, handleEnterWorkspace, handleUnarchiveWorkspace, handleRequestDeleteWorkspace],
+  );
+
   const columns = useOrganizationWorkspacesColumns({
     t,
     onArchiveWorkspace: setConfirmArchive,
@@ -116,25 +167,38 @@ export function OrganizationWorkspacesPage(props?: {
         onTabChange={setTab}
         searchInput={currentTableHook.searchInput}
         onSearchInputChange={currentTableHook.setSearchInput}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
       >
         <ChromeTabsContent value="active">
-          <WorkspacesTableSection
+          <WorkspacesContentSection
+            viewMode={viewMode}
             tableHook={activeTableHook}
             emptyTitle={t("common:ORG_WORKSPACES_ACTIVE_EMPTY_TITLE")}
             emptyDescription={t("common:ORG_WORKSPACES_ACTIVE_EMPTY_DESC")}
             onRetry={() => void activeTableHook.refetch()}
             onRowClick={(row) => handleEnterWorkspace(row.original.workspaceId)}
             t={t}
+            organizationId={props?.organizationId}
+            archived={false}
+            searchInput={activeTableHook.searchInput}
+            buildMenuItems={buildCardMenuItems}
+            onCardClick={(ws) => handleEnterWorkspace(ws.workspaceId)}
           />
         </ChromeTabsContent>
 
         <ChromeTabsContent value="archived">
-          <WorkspacesTableSection
+          <WorkspacesContentSection
+            viewMode={viewMode}
             tableHook={archivedTableHook}
             emptyTitle={t("common:ORG_WORKSPACES_ARCHIVED_EMPTY_TITLE")}
             emptyDescription={t("common:ORG_WORKSPACES_ARCHIVED_EMPTY_DESC")}
             onRetry={() => void archivedTableHook.refetch()}
             t={t}
+            organizationId={props?.organizationId}
+            archived={true}
+            searchInput={archivedTableHook.searchInput}
+            buildMenuItems={buildCardMenuItems}
           />
         </ChromeTabsContent>
       </OrganizationWorkspacesToolbar>
