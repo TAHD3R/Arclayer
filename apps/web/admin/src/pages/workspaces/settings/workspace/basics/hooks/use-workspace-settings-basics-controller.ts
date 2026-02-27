@@ -1,0 +1,327 @@
+import { Form } from "antd";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+
+import { listWorkspaceRoles } from "@/api/rbac";
+import { getCoreSettings, patchCoreSettings } from "@/api/settings";
+import {
+  assignWorkspaceRoleToAllUsers,
+  getWorkspaceDetail,
+  patchWorkspaceDetail,
+  patchWorkspaceRolePolicy,
+} from "@/api/workspaces";
+import { useSavingKey } from "@/hooks/use-saving-key";
+import { normalizeLocale } from "@/lib/i18n";
+import { notifyError, notifySuccessText } from "@/lib/notifications";
+import {
+  buildDateFormatOptions,
+  buildLocaleOptions,
+  buildTimezoneOptions,
+  DEFAULT_DATE_FORMAT,
+  DEFAULT_LOCALE,
+  DEFAULT_TIMEZONE,
+  resolveDateFormatLabel,
+} from "@/lib/settings/general/localization-options";
+import { pickString } from "@/lib/settings/general/utils";
+import { usePreferencesStore } from "@/stores/use-preference-store";
+import { useWorkspaceStore } from "@/stores/use-workspace-store";
+import type { WorkspaceSettingsTabKey } from "@/types/settings-workspace";
+
+import type { AssignRoleDialogValues, WorkspaceSettingsFormValues } from "../../types";
+import { buildWorkspacePortalUrl, resolveWorkspaceSettingsTabNavigation } from "../../utils";
+
+export function useWorkspaceSettingsBasicsController(props: { workspaceId: string }) {
+  const workspaceId = String(props.workspaceId || "").trim();
+  const { t } = useTranslation(["settings", "common", "setup"]);
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  const setCurrentWorkspaceId = useWorkspaceStore((s) => s.setCurrentWorkspaceId);
+  const localePreferenceMode = usePreferencesStore((s) => s.localePreferenceMode);
+  const setEffectiveLocale = usePreferencesStore((s) => s.setEffectiveLocale);
+  const cacheWorkspaceLocale = usePreferencesStore((s) => s.cacheWorkspaceLocale);
+
+  const [form] = Form.useForm<WorkspaceSettingsFormValues>();
+  const [assignRoleDialogForm] = Form.useForm<AssignRoleDialogValues>();
+  const { savingKey, withSavingKey } = useSavingKey();
+  const [assignRoleDialogOpen, setAssignRoleDialogOpen] = useState(false);
+
+  useEffect(() => {
+    if (!workspaceId) return;
+    setCurrentWorkspaceId(workspaceId);
+  }, [setCurrentWorkspaceId, workspaceId]);
+
+  const onTabChange = useCallback(
+    (next: WorkspaceSettingsTabKey) => {
+      void navigate({
+        ...resolveWorkspaceSettingsTabNavigation(workspaceId, next),
+      });
+    },
+    [navigate, workspaceId],
+  );
+
+  const closeAssignRoleDialog = useCallback(() => {
+    assignRoleDialogForm.resetFields();
+    setAssignRoleDialogOpen(false);
+  }, [assignRoleDialogForm]);
+
+  const detailQuery = useQuery({
+    queryKey: ["workspace", "detail", workspaceId],
+    enabled: Boolean(workspaceId),
+    queryFn: async () => getWorkspaceDetail(workspaceId),
+    retry: false,
+    meta: { silent: true },
+  });
+
+  const coreQuery = useQuery({
+    queryKey: ["settings", "workspace", "core", workspaceId],
+    enabled: Boolean(workspaceId),
+    queryFn: async () => getCoreSettings(workspaceId),
+    staleTime: 5 * 60 * 1000,
+    meta: { silent: true },
+  });
+
+  const rolesQuery = useQuery({
+    queryKey: ["workspace", "rbac", "roles", workspaceId],
+    enabled: Boolean(workspaceId),
+    queryFn: async () => listWorkspaceRoles(workspaceId, { page: 1, size: 200 }),
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+    meta: { silent: true },
+  });
+
+  useEffect(() => {
+    if (!detailQuery.data) return;
+    const next: Partial<WorkspaceSettingsFormValues> = {};
+    if (!form.isFieldTouched("name")) next.name = detailQuery.data.name;
+    if (!form.isFieldTouched("slug")) next.slug = detailQuery.data.slug;
+    if (Object.keys(next).length > 0) {
+      form.setFieldsValue(next);
+    }
+  }, [detailQuery.data, form]);
+
+  useEffect(() => {
+    if (!coreQuery.data) return;
+    if (
+      form.isFieldTouched("locale") ||
+      form.isFieldTouched("timezone") ||
+      form.isFieldTouched("dateFormat")
+    ) {
+      return;
+    }
+    const value = coreQuery.data.value;
+    form.setFieldsValue({
+      locale: normalizeLocale(
+        pickString(value, ["workspace_localization", "locale"]) ?? DEFAULT_LOCALE,
+      ),
+      timezone: pickString(value, ["workspace_localization", "timezone"]) ?? DEFAULT_TIMEZONE,
+      dateFormat:
+        pickString(value, ["workspace_localization", "date_format"]) ?? DEFAULT_DATE_FORMAT,
+    });
+  }, [coreQuery.data, form]);
+
+  useEffect(() => {
+    const items = rolesQuery.data?.items ?? [];
+    if (!items.length) return;
+    const nextRoleCode = items.find((item) => item.isDefault)?.code ?? items[0]?.code;
+    if (!nextRoleCode) return;
+
+    if (!form.isFieldTouched("defaultRoleCode")) {
+      form.setFieldValue("defaultRoleCode", nextRoleCode);
+    }
+    if (!form.isFieldTouched("assignRoleCode")) {
+      form.setFieldValue("assignRoleCode", nextRoleCode);
+    }
+  }, [form, rolesQuery.data?.items]);
+
+  const patchWorkspaceMutation = useMutation({
+    mutationFn: async (patch: { name?: string; slug?: string }) =>
+      patchWorkspaceDetail(workspaceId, patch),
+    onSuccess: async () => {
+      notifySuccessText(t("settings:SETTINGS_SAVED"));
+      await queryClient.invalidateQueries({ queryKey: ["workspace", "detail", workspaceId] });
+      await queryClient.invalidateQueries({ queryKey: ["me", "workspaces"] });
+    },
+    onError: (err) => notifyError(err),
+  });
+
+  const patchWorkspaceCoreMutation = useMutation({
+    mutationFn: async (patch: Record<string, unknown>) => patchCoreSettings(workspaceId, patch),
+    onSuccess: async () => {
+      notifySuccessText(t("settings:SETTINGS_SAVED"));
+      await queryClient.invalidateQueries({
+        queryKey: ["settings", "workspace", "core", workspaceId],
+      });
+    },
+    onError: (err) => notifyError(err),
+  });
+
+  const patchWorkspaceRolePolicyMutation = useMutation({
+    mutationFn: async (input: { defaultRoleCode: string }) =>
+      patchWorkspaceRolePolicy(workspaceId, input),
+    onSuccess: async () => {
+      notifySuccessText(t("settings:SETTINGS_SAVED"));
+      await queryClient.invalidateQueries({
+        queryKey: ["workspace", "rbac", "roles", workspaceId],
+      });
+    },
+    onError: (err) => notifyError(err),
+  });
+
+  const assignWorkspaceRoleMutation = useMutation({
+    mutationFn: async (input: { roleCode: string; confirmName: string }) =>
+      assignWorkspaceRoleToAllUsers(workspaceId, input),
+    onSuccess: async () => {
+      notifySuccessText(t("common:ACTION_SUCCESS"));
+      await queryClient.invalidateQueries({
+        queryKey: ["workspace", "rbac", "roles", workspaceId],
+      });
+    },
+    onError: (err) => notifyError(err),
+  });
+
+  const disabled =
+    detailQuery.isFetching ||
+    coreQuery.isFetching ||
+    rolesQuery.isFetching ||
+    patchWorkspaceMutation.isPending ||
+    patchWorkspaceCoreMutation.isPending ||
+    patchWorkspaceRolePolicyMutation.isPending ||
+    assignWorkspaceRoleMutation.isPending ||
+    Boolean(savingKey);
+
+  const initialWorkspaceName = detailQuery.data?.name ?? "";
+  const persistedWorkspaceName = String(initialWorkspaceName || "").trim();
+  const currentWorkspaceName =
+    (Form.useWatch("name", form) as string | undefined) ?? initialWorkspaceName;
+
+  const initialWorkspaceSlug = detailQuery.data?.slug ?? "";
+  const persistedWorkspaceSlug = String(initialWorkspaceSlug || "").trim();
+  const currentWorkspaceSlug =
+    (Form.useWatch("slug", form) as string | undefined) ?? initialWorkspaceSlug;
+
+  const initialWorkspaceLocale = normalizeLocale(
+    pickString(coreQuery.data?.value, ["workspace_localization", "locale"]) ?? DEFAULT_LOCALE,
+  );
+  const initialWorkspaceTimezone =
+    pickString(coreQuery.data?.value, ["workspace_localization", "timezone"]) ?? DEFAULT_TIMEZONE;
+  const initialWorkspaceDateFormat =
+    pickString(coreQuery.data?.value, ["workspace_localization", "date_format"]) ??
+    DEFAULT_DATE_FORMAT;
+
+  const roleItems = rolesQuery.data?.items ?? [];
+  const initialDefaultRoleCode =
+    roleItems.find((item) => item.isDefault)?.code ?? roleItems[0]?.code ?? "viewer";
+
+  const workspaceLocale =
+    (Form.useWatch("locale", form) as string | undefined) ?? String(initialWorkspaceLocale);
+  const workspaceTimezone =
+    (Form.useWatch("timezone", form) as string | undefined) ?? initialWorkspaceTimezone;
+  const workspaceDateFormat =
+    (Form.useWatch("dateFormat", form) as string | undefined) ?? initialWorkspaceDateFormat;
+  const defaultRoleCode =
+    (Form.useWatch("defaultRoleCode", form) as string | undefined) ?? initialDefaultRoleCode;
+  const assignRoleCode =
+    (Form.useWatch("assignRoleCode", form) as string | undefined) ?? initialDefaultRoleCode;
+
+  const localeOptions = useMemo(() => buildLocaleOptions(t), [t]);
+  const timezoneOptions = useMemo(
+    () => buildTimezoneOptions(workspaceTimezone),
+    [workspaceTimezone],
+  );
+  const dateFormatOptions = useMemo(() => buildDateFormatOptions(), []);
+
+  const roleOptions = useMemo(
+    () => roleItems.map((item) => ({ label: item.name, value: item.code })),
+    [roleItems],
+  );
+  const roleLabelMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const role of roleItems) {
+      map.set(String(role.code), String(role.name));
+    }
+    return map;
+  }, [roleItems]);
+
+  const workspaceLocaleLabel =
+    localeOptions.find((item) => item.value === workspaceLocale)?.label ?? workspaceLocale;
+  const workspaceTimezoneLabel =
+    timezoneOptions.find((item) => item.value === workspaceTimezone)?.label ??
+    String(workspaceTimezone);
+  const workspaceDateFormatLabel = resolveDateFormatLabel(String(workspaceDateFormat));
+  const defaultRoleLabel = roleLabelMap.get(String(defaultRoleCode)) ?? String(defaultRoleCode);
+  const assignRoleLabel = roleLabelMap.get(String(assignRoleCode)) ?? String(assignRoleCode);
+
+  const isWorkspaceNameDirty = (currentWorkspaceName || "") !== (initialWorkspaceName || "");
+  const isWorkspaceSlugDirty = (currentWorkspaceSlug || "") !== (initialWorkspaceSlug || "");
+  const isWorkspaceLocaleDirty = (workspaceLocale || "") !== String(initialWorkspaceLocale);
+  const isWorkspaceTimezoneDirty = (workspaceTimezone || "") !== (initialWorkspaceTimezone || "");
+  const isWorkspaceDateFormatDirty =
+    (workspaceDateFormat || "") !== (initialWorkspaceDateFormat || "");
+  const isDefaultRoleDirty = String(defaultRoleCode) !== String(initialDefaultRoleCode);
+
+  return {
+    workspaceId,
+    t,
+    navigate,
+    queryClient,
+    form,
+    assignRoleDialogForm,
+    savingKey,
+    withSavingKey,
+    assignRoleDialogOpen,
+    setAssignRoleDialogOpen,
+    closeAssignRoleDialog,
+    onTabChange,
+    detailQuery,
+    coreQuery,
+    rolesQuery,
+    patchWorkspaceMutation,
+    patchWorkspaceCoreMutation,
+    patchWorkspaceRolePolicyMutation,
+    assignWorkspaceRoleMutation,
+    disabled,
+    initialWorkspaceName,
+    persistedWorkspaceName,
+    currentWorkspaceName,
+    initialWorkspaceSlug,
+    persistedWorkspaceSlug,
+    currentWorkspaceSlug,
+    initialWorkspaceLocale,
+    initialWorkspaceTimezone,
+    initialWorkspaceDateFormat,
+    initialDefaultRoleCode,
+    workspaceLocale,
+    workspaceTimezone,
+    workspaceDateFormat,
+    defaultRoleCode,
+    assignRoleCode,
+    localeOptions,
+    timezoneOptions,
+    dateFormatOptions,
+    roleOptions,
+    roleOptionsLength: roleOptions.length,
+    roleLabelMap,
+    workspaceLocaleLabel,
+    workspaceTimezoneLabel,
+    workspaceDateFormatLabel,
+    defaultRoleLabel,
+    assignRoleLabel,
+    isWorkspaceNameDirty,
+    isWorkspaceSlugDirty,
+    isWorkspaceLocaleDirty,
+    isWorkspaceTimezoneDirty,
+    isWorkspaceDateFormatDirty,
+    isDefaultRoleDirty,
+    localePreferenceMode,
+    setEffectiveLocale,
+    cacheWorkspaceLocale,
+    portalUrl: buildWorkspacePortalUrl(currentWorkspaceSlug),
+  };
+}
+
+export type WorkspaceSettingsBasicsController = ReturnType<
+  typeof useWorkspaceSettingsBasicsController
+>;

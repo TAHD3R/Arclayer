@@ -23,34 +23,17 @@ describe("workspace content and appearance routes", () => {
     expect(source).toContain("component: ContentPagesIndexPage");
   });
 
-  test("workspace content library route uses lazy-loaded content library page", () => {
-    const source = readFileSync(
-      resolveSource("routes/w/$workspaceId/content/library/index.lazy.tsx"),
-      "utf-8",
-    );
-
-    expect(source).toContain(
-      'import { ContentLibraryPage } from "@/pages/workspaces/content/library/page"',
-    );
-    expect(source).toContain("component: ContentLibraryPage");
+  test("workspace content library route has been removed", () => {
+    const contentLibraryRoute = resolveSource("routes/w/$workspaceId/content/library/index.tsx");
+    expect(existsSync(contentLibraryRoute)).toBe(false);
   });
 
-  test("workspace themes and styles routes use dedicated lazy-loaded pages", () => {
-    const themesSource = readFileSync(
-      resolveSource("routes/w/$workspaceId/appearance/themes/index.lazy.tsx"),
-      "utf-8",
-    );
-    const stylesSource = readFileSync(
-      resolveSource("routes/w/$workspaceId/appearance/styles/index.lazy.tsx"),
-      "utf-8",
-    );
+  test("workspace appearance routes have been removed", () => {
+    const themesRoute = resolveSource("routes/w/$workspaceId/appearance/themes/index.tsx");
+    const stylesRoute = resolveSource("routes/w/$workspaceId/appearance/styles/index.tsx");
 
-    expect(themesSource).toContain(
-      'import { WorkspaceThemesPage } from "@/pages/workspaces/appearance/themes/page"',
-    );
-    expect(stylesSource).toContain(
-      'import { WorkspaceGlobalStylesPage } from "@/pages/workspaces/appearance/styles/page"',
-    );
+    expect(existsSync(themesRoute)).toBe(false);
+    expect(existsSync(stylesRoute)).toBe(false);
   });
 
   test("workspace editor route exists", () => {

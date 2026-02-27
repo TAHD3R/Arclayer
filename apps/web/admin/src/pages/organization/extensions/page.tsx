@@ -1,9 +1,8 @@
-import { ExtensionsView } from "@/components/extensions/extensions-view";
+import { useParams } from "@tanstack/react-router";
 
-type OrganizationExtensionsPageProps = {
-  organizationId: string;
-};
+import { ExtensionsView } from "@/pages/_shared/extensions/components/extensions-view";
 
-export function OrganizationExtensionsPage({ organizationId }: OrganizationExtensionsPageProps) {
-  return <ExtensionsView scope="organization" organizationId={organizationId} />;
+export function OrganizationExtensionsPage() {
+  const { orgId } = useParams({ from: "/o/$orgId/extensions/" });
+  return <ExtensionsView scope="organization" organizationId={orgId} />;
 }

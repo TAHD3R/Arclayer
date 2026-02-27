@@ -4,7 +4,7 @@ import {
   buildDuplicatePath,
   normalizePathInput,
   validatePathWithType,
-} from "@/pages/workspaces/content/pages/content-pages-utils";
+} from "@/pages/workspaces/content/pages/utils";
 
 describe("content pages utils", () => {
   test("normalizePathInput adds a leading slash", () => {

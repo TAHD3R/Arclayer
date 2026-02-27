@@ -60,8 +60,8 @@ export function EditorSettingsPanel() {
         type="primary"
         onClick={() => {
           void navigate({
-            to: `/w/${workspaceId}/settings/workspace`,
-            search: { index: "content_strategy" },
+            to: "/w/$workspaceId/settings/workspace/content-strategy",
+            params: { workspaceId },
           });
         }}
       >

@@ -1,4 +1,4 @@
-import { ExtensionsView } from "@/components/extensions/extensions-view";
+import { ExtensionsView } from "@/pages/_shared/extensions/components/extensions-view";
 
 export function WorkspaceExtensionsPage() {
   return <ExtensionsView scope="workspace" />;

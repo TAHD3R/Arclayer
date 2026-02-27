@@ -14,16 +14,13 @@ import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import {
   OrganizationWorkspacesDialogs,
   type CreateWorkspaceFormValues,
-} from "./organization-workspaces-dialogs";
-import { OrganizationWorkspacesToolbar } from "./organization-workspaces-toolbar";
-import type {
-  OrganizationWorkspacesTab,
-  OrganizationWorkspacesViewMode,
-} from "./organization-workspaces-types";
-import { useOrganizationWorkspacesColumns } from "./use-organization-workspaces-columns";
-import { useOrganizationWorkspacesMutations } from "./use-organization-workspaces-mutations";
-import { useOrganizationWorkspacesTables } from "./use-organization-workspaces-tables";
-import { WorkspacesContentSection } from "./workspaces-table-section";
+} from "./components/organization-workspaces-dialogs";
+import { OrganizationWorkspacesToolbar } from "./components/organization-workspaces-toolbar";
+import type { OrganizationWorkspacesTab, OrganizationWorkspacesViewMode } from "./types";
+import { useOrganizationWorkspacesColumns } from "./components/workspaces-columns";
+import { useOrganizationWorkspacesMutations } from "./hooks/use-organization-workspaces-mutations";
+import { useOrganizationWorkspacesTables } from "./hooks/use-organization-workspaces-tables";
+import { WorkspacesContentSection } from "./components/workspaces-table-section";
 
 export function OrganizationWorkspacesPage() {
   const { orgId: organizationId } = useParams({ from: "/o/$orgId/workspaces/" });

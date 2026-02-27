@@ -1,19 +1,11 @@
-import { createFileRoute } from "@tanstack/react-router";
-
-import type { WorkspaceSettingsTabKey } from "@/types/settings-workspace";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/w/$workspaceId/settings/workspace/")({
-  validateSearch: (search: Record<string, unknown>): { index?: WorkspaceSettingsTabKey } => {
-    const indexRaw = typeof search.index === "string" ? search.index : undefined;
-    if (
-      indexRaw === "collaboration" ||
-      indexRaw === "content_strategy" ||
-      indexRaw === "integrations" ||
-      indexRaw === "resource_processing" ||
-      indexRaw === "danger"
-    ) {
-      return { index: indexRaw };
-    }
-    return {};
+  beforeLoad: ({ params }) => {
+    throw redirect({
+      to: "/w/$workspaceId/settings/workspace/basics",
+      params: { workspaceId: params.workspaceId },
+      replace: true,
+    });
   },
 });

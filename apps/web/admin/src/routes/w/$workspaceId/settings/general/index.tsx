@@ -1,11 +1,11 @@
-import { createFileRoute } from "@tanstack/react-router";
-
-import type { GeneralSettingsTabKey } from "@/types/settings-general";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/w/$workspaceId/settings/general/")({
-  validateSearch: (search: Record<string, unknown>): { index?: GeneralSettingsTabKey } => {
-    const indexRaw = typeof search.index === "string" ? search.index : undefined;
-    if (indexRaw === "localization") return { index: indexRaw };
-    return {};
+  beforeLoad: ({ params }) => {
+    throw redirect({
+      to: "/w/$workspaceId/settings/general/site",
+      params: { workspaceId: params.workspaceId },
+      replace: true,
+    });
   },
 });

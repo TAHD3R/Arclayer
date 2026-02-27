@@ -3,64 +3,43 @@ import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
 
-import { DefaultPage } from "@/components/common/default-page";
+import * as activityApi from "@/api/activity";
+import { listTeamUserOptions } from "@/api/team";
+import { listMyWorkspaces } from "@/api/workspaces";
 import { ContentGuard } from "@/components/common/content-guard";
-import { ActivityDetailDialog } from "@/components/activity/activity-detail-dialog";
-import { ActivityTimeline } from "@/components/activity/activity-timeline";
+import { DefaultPage } from "@/components/common/default-page";
+import { LoaderOne } from "@/components/ui/loader";
+import { ActivityDetailDialog } from "@/pages/organization/activity/components/activity-detail-dialog";
 import {
   ActivityFilterPopover,
   type ActivityFilters,
-} from "@/components/activity/activity-filter-popover";
-import { LoaderOne } from "@/components/ui/loader";
-import { listMyWorkspaces } from "@/api/workspaces";
-import * as activityApi from "@/api/activity";
+} from "@/pages/organization/activity/components/activity-filter-popover";
+import { ActivityTimeline } from "@/pages/organization/activity/components/activity-timeline";
+import { useActivityInfiniteScroll } from "@/pages/organization/activity/hooks/use-activity-infinite-scroll";
+import type { WorkspaceLabelById } from "@/pages/organization/activity/types";
+import {
+  ACTIVITY_PAGE_SIZE,
+  createDefaultActivityFilters,
+  normalizeActivityFilters,
+  stableStringify,
+} from "@/pages/organization/activity/utils";
 import type { ActivityEvent } from "@/types/api";
-import { listTeamUserOptions } from "@/api/team";
-
-function stableStringify(value: unknown): string {
-  try {
-    return JSON.stringify(value);
-  } catch {
-    return String(value);
-  }
-}
-
-function normalizeFilters(filters: ActivityFilters): ActivityFilters {
-  const trimOrUndef = (v: string | undefined) => {
-    const s = String(v || "").trim();
-    return s ? s : undefined;
-  };
-
-  return {
-    occurredFrom: trimOrUndef(filters.occurredFrom),
-    occurredTo: trimOrUndef(filters.occurredTo),
-    eventName: trimOrUndef(filters.eventName),
-    workspaceId: trimOrUndef(filters.workspaceId),
-    actorUserId: trimOrUndef(filters.actorUserId),
-    subjectUserId: trimOrUndef(filters.subjectUserId),
-  };
-}
 
 export function OrganizationActivityPage() {
   const { t } = useTranslation(["nav", "activity"]);
 
-  const defaultFilters = React.useMemo<ActivityFilters>(() => {
-    const to = new Date();
-    const from = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    return {
-      occurredFrom: from.toISOString(),
-      occurredTo: to.toISOString(),
-    };
-  }, []);
-
+  const defaultFilters = React.useMemo<ActivityFilters>(() => createDefaultActivityFilters(), []);
   const [filters, setFilters] = React.useState<ActivityFilters>(() => defaultFilters);
 
-  const pageSize = 20;
   const scrollRef = React.useRef<HTMLDivElement | null>(null);
   const sentinelRef = React.useRef<HTMLDivElement | null>(null);
 
-  const normalizedFilters = React.useMemo(() => normalizeFilters(filters), [filters]);
+  const normalizedFilters = React.useMemo(
+    () => normalizeActivityFilters(filters, { includeWorkspaceId: true }),
+    [filters],
+  );
   const filtersKey = stableStringify(normalizedFilters);
+
   React.useEffect(() => {
     scrollRef.current?.scrollTo({ top: 0 });
   }, [filtersKey]);
@@ -74,23 +53,24 @@ export function OrganizationActivityPage() {
   });
   const workspaceItems = workspacesQuery.data?.items ?? [];
 
-  const workspaceLabelById = React.useMemo(() => {
-    const map: Record<string, string> = {};
-    for (const w of workspaceItems) {
-      map[String(w.workspaceId)] = w.name || w.slug || w.workspaceId;
+  const workspaceLabelById = React.useMemo<WorkspaceLabelById>(() => {
+    const map: WorkspaceLabelById = {};
+    for (const workspace of workspaceItems) {
+      map[String(workspace.workspaceId)] =
+        workspace.name || workspace.slug || workspace.workspaceId;
     }
     return map;
   }, [workspaceItems]);
 
   const listQuery = useInfiniteQuery({
-    queryKey: ["activity", "org", pageSize, filtersKey] as const,
+    queryKey: ["activity", "org", ACTIVITY_PAGE_SIZE, filtersKey] as const,
     retry: false,
     meta: { silent: true },
     initialPageParam: 1,
     queryFn: async ({ pageParam }) =>
       activityApi.listSystemActivity({
         page: Number(pageParam) || 1,
-        size: pageSize,
+        size: ACTIVITY_PAGE_SIZE,
         occurredFrom: normalizedFilters.occurredFrom,
         occurredTo: normalizedFilters.occurredTo,
         eventName: normalizedFilters.eventName,
@@ -103,37 +83,19 @@ export function OrganizationActivityPage() {
 
   const items = React.useMemo(() => {
     const pages = listQuery.data?.pages ?? [];
-    return pages.flatMap((p) => p.items ?? []);
+    return pages.flatMap((page) => page.items ?? []);
   }, [listQuery.data?.pages]);
 
+  useActivityInfiniteScroll({
+    root: scrollRef.current,
+    target: sentinelRef.current,
+    hasNextPage: Boolean(listQuery.hasNextPage),
+    isFetchingNextPage: listQuery.isFetchingNextPage,
+    fetchNextPage: listQuery.fetchNextPage,
+    extraDeps: [items.length],
+  });
+
   const empty = items.length === 0;
-
-  React.useEffect(() => {
-    const root = scrollRef.current;
-    const target = sentinelRef.current;
-    if (!root || !target) return;
-    if (!listQuery.hasNextPage) return;
-    if (listQuery.isFetchingNextPage) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const entry = entries[0];
-        if (!entry?.isIntersecting) return;
-        if (!listQuery.hasNextPage) return;
-        if (listQuery.isFetchingNextPage) return;
-        void listQuery.fetchNextPage();
-      },
-      {
-        root,
-        rootMargin: "200px",
-        threshold: 0,
-      },
-    );
-
-    observer.observe(target);
-    return () => observer.disconnect();
-  }, [listQuery.fetchNextPage, listQuery.hasNextPage, listQuery.isFetchingNextPage, items.length]);
-
   const [selected, setSelected] = React.useState<ActivityEvent | null>(null);
 
   return (
@@ -153,10 +115,10 @@ export function OrganizationActivityPage() {
             workspacesLoading={workspacesQuery.isLoading}
             fetchUserOptions={async (wid, q) => {
               const pageData = await listTeamUserOptions(String(wid), { q, page: 1, size: 20 });
-              return (pageData.items ?? []).map((u) => ({
-                value: u.value,
-                label: u.label,
-                avatarUrl: u.avatarUrl ?? null,
+              return (pageData.items ?? []).map((user) => ({
+                value: user.value,
+                label: user.label,
+                avatarUrl: user.avatarUrl ?? null,
               }));
             }}
           />
@@ -182,7 +144,7 @@ export function OrganizationActivityPage() {
           <div className="py-4">
             <ActivityTimeline
               items={items}
-              onSelect={(e) => setSelected(e)}
+              onSelect={(event) => setSelected(event)}
               loading={listQuery.isFetchingNextPage}
             />
 

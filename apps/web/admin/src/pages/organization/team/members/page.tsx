@@ -1,10 +1,13 @@
 import { DefaultPage } from "@/components/common/default-page";
 import { ContentGuard } from "@/components/common/content-guard";
 
-import { OrganizationMembersDialogs } from "./members-dialogs";
-import { OrganizationMembersTableSection } from "./members-table-section";
-import { OrganizationMembersInviteAction, OrganizationMembersToolbar } from "./members-toolbar";
-import { useOrganizationTeamMembers } from "./use-organization-team-members";
+import { OrganizationMembersDialogs } from "./components/members-dialogs";
+import { OrganizationMembersTableSection } from "./components/members-table-section";
+import {
+  OrganizationMembersInviteAction,
+  OrganizationMembersToolbar,
+} from "./components/members-toolbar";
+import { useOrganizationTeamMembers } from "./hooks/use-organization-team-members";
 
 export function OrganizationTeamMembersPage() {
   const { t, openInviteDialog, toolbarProps, tableState, dialogsProps } =

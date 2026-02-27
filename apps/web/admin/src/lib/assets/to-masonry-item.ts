@@ -1,7 +1,7 @@
 import { getAppConfig } from "@/constants/app-config";
 import { resolvePublicAssetUrlPath } from "@/lib/assets/asset-urls";
 import type { AdminAssetSummary } from "@/types/api";
-import type { AssetMasonryItem } from "@/components/assets/asset-masonry-card";
+import type { AssetMasonryItem } from "@/types/assets-masonry";
 
 function formatBytes(bytes: number | undefined | null): string | undefined {
   if (!bytes || bytes < 0) return undefined;

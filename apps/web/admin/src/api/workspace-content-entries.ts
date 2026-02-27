@@ -50,7 +50,8 @@ export function extractDesignDocumentFromSnapshot(snapshot: unknown): DesignDocu
     snapshot.documentIr ??
     null;
   if (!raw || !isRecord(raw)) return null;
-  return isDesignDocumentV1(raw) ? raw : null;
+  if (!isDesignDocumentV1(raw)) return null;
+  return raw as unknown as DesignDocumentV1;
 }
 
 export async function getWorkspaceContentEntryRevision(

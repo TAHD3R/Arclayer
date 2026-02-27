@@ -1,5 +1,5 @@
-import { ContentPagesView } from "./content-pages-view";
+import { ContentPagesView } from "./components/content-pages-view";
 
-export function ContentPagesIndexPage() {
+export function WorkspaceContentPagesPage() {
   return <ContentPagesView />;
 }

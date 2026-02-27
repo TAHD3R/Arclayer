@@ -4,12 +4,12 @@ import { Input, Button } from "antd";
 import { useDraggable } from "@dnd-kit/core";
 import { Search } from "lucide-react";
 
-import type { AssetMasonryItem } from "@/components/assets/asset-masonry-card";
+import type { AssetMasonryItem } from "@/types/assets-masonry";
 import {
   AssetsExplorerFolderTile,
   AssetsExplorerFolderUpTile,
-} from "@/components/assets/explorer/assets-explorer-folder-tiles";
-import { useAssetsExplorerController } from "@/components/assets/explorer/use-assets-explorer-controller";
+} from "@/pages/workspaces/assets/components/explorer/assets-explorer-folder-tiles";
+import { useAssetsExplorerController } from "@/pages/workspaces/assets/components/explorer/use-assets-explorer-controller";
 import type { AdminAssetFolder } from "@/types/api";
 import { resolveAssetRefToPublicUrlPath } from "@/lib/assets/asset-urls";
 import { cn } from "@/lib/utils";
