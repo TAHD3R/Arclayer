@@ -1,5 +1,5 @@
 import type { DeploymentMode } from "@/types/api";
-import { isAcceptInvitePath, isSetupPath } from "@/lib/route-identity";
+import { isAcceptInvitePath, isSetupPath } from "@/lib/routing/route-identity";
 
 /**
  * Checks whether the dev-only setup override is active.

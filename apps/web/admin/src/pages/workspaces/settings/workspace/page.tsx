@@ -50,7 +50,7 @@ import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 import type { AppLocale } from "@/lib/i18n";
 import { normalizeLocale } from "@/lib/i18n";
-import { buildOrganizationPath } from "@/lib/organization-routing";
+import { buildOrganizationPath } from "@/lib/routing/organization-routing";
 import type { WorkspaceSettingsTabKey } from "@/types/settings-workspace";
 
 type FormValues = {

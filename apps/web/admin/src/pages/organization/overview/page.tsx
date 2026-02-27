@@ -7,7 +7,7 @@ import { useTranslation } from "react-i18next";
 import { listMyWorkspaces } from "@/api/workspaces";
 import { DefaultPage } from "@/components/common/default-page";
 import { ContentGuard } from "@/components/common/content-guard";
-import { buildOrganizationPath } from "@/lib/organization-routing";
+import { buildOrganizationPath } from "@/lib/routing/organization-routing";
 
 export function OrganizationOverviewPage() {
   const { orgId } = useParams({ from: "/o/$orgId/" });

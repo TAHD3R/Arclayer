@@ -4,7 +4,7 @@ import {
   pickDefaultWorkspaceId,
   switchWorkspacePath,
   workspaceHomePath,
-} from "@/lib/workspace-routing";
+} from "@/lib/routing/workspace-routing";
 
 describe("workspace-routing", () => {
   test("pickDefaultWorkspaceId prefers lastWorkspaceId when it exists in list", () => {

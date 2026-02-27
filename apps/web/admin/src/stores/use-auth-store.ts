@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
 import { STORAGE_KEYS } from "@/constants/storage";
-import { normalizeTokenPair } from "@/lib/token-normalizer";
+import { normalizeTokenPair } from "@/lib/auth/token-normalizer";
 import type { AuthState } from "@/types/stores";
 
 export const useAuthStore = create<AuthState>()(

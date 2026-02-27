@@ -12,7 +12,7 @@ function resolveSource(relativePath: string) {
 
 describe("editor layout routing", () => {
   test("scene registry includes editor layout with correct predicate", () => {
-    const registrySource = readFileSync(resolveSource("lib/scene-registry.ts"), "utf-8");
+    const registrySource = readFileSync(resolveSource("lib/routing/scene-registry.ts"), "utf-8");
 
     expect(registrySource).toContain('import { EditorLayout } from "@/layouts/editor-layout"');
     expect(registrySource).toContain("isEditorPath");
@@ -27,7 +27,10 @@ describe("editor layout routing", () => {
   });
 
   test("isEditorPath regex matches workspace editor paths", () => {
-    const routeIdentitySource = readFileSync(resolveSource("lib/route-identity.ts"), "utf-8");
+    const routeIdentitySource = readFileSync(
+      resolveSource("lib/routing/route-identity.ts"),
+      "utf-8",
+    );
 
     expect(routeIdentitySource).toContain(
       "return /^\\/w\\/[^/]+\\/editor(?:\\/|$)/.test(pathname)",

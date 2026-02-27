@@ -19,8 +19,11 @@ import {
   useFloatingPanel,
 } from "@/components/ui/floating-panel";
 import { Skeleton } from "@/components/ui/skeleton";
-import { buildOrganizationPath, parseOrganizationIdFromPath } from "@/lib/organization-routing";
-import { switchWorkspacePath } from "@/lib/workspace-routing";
+import {
+  buildOrganizationPath,
+  parseOrganizationIdFromPath,
+} from "@/lib/routing/organization-routing";
+import { switchWorkspacePath } from "@/lib/routing/workspace-routing";
 import { cn } from "@/lib/utils";
 
 import { useAuthStore } from "@/stores/use-auth-store";

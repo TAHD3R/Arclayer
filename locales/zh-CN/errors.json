@@ -83,5 +83,7 @@
   "CONTENT_VIEW_CODE_INVALID": "视图编码不合法",
   "CONTENT_VIEW_NAME_INVALID": "视图名称不合法",
   "CONTENT_VIEW_CODE_CONFLICT": "视图编码已存在",
-  "CONTENT_VIEW_NOT_FOUND": "视图不存在"
+  "CONTENT_VIEW_NOT_FOUND": "视图不存在",
+
+  "REQUEST_FAILED": "请求失败"
 }

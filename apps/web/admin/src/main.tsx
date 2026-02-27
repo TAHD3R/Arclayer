@@ -7,7 +7,7 @@ import App from "./app";
 import { initI18n } from "@/lib/i18n";
 import { router } from "@/routes/-router";
 import { setUnauthorizedHandler } from "@/lib/http/client";
-import { isPublicPath } from "@/lib/route-identity";
+import { isPublicPath } from "@/lib/routing/route-identity";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { initializePreferences, usePreferencesStore } from "@/stores/use-preference-store";
 import { getSetupStatus, getSystemRuntime } from "@/api/system";

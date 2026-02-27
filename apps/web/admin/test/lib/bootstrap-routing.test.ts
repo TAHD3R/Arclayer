@@ -15,7 +15,7 @@ vi.mock("@/api/workspaces", () => ({
   listMyWorkspaces: mocked.listMyWorkspaces,
 }));
 
-import { resolvePostAuthRoute } from "@/lib/bootstrap-routing";
+import { resolvePostAuthRoute } from "@/lib/routing/bootstrap-routing";
 
 describe("bootstrap-routing", () => {
   beforeEach(() => {

@@ -60,7 +60,11 @@ import { useEditorBridgeContext } from "@/pages/workspaces/editor/contexts/edito
 import * as authApi from "@/api/auth";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { resolveAssetRefToPublicUrlPath } from "@/lib/assets/asset-urls";
-import { normalizeUserProfile, initialsFromName, getUserDisplayName } from "@/lib/user-profile";
+import {
+  normalizeUserProfile,
+  initialsFromName,
+  getUserDisplayName,
+} from "@/lib/auth/user-profile";
 
 /** Returns the platform-appropriate shortcut label. */
 function useShortcut() {

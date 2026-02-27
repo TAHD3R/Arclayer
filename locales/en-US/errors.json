@@ -83,5 +83,7 @@
   "CONTENT_VIEW_CODE_INVALID": "Invalid view code",
   "CONTENT_VIEW_NAME_INVALID": "Invalid view name",
   "CONTENT_VIEW_CODE_CONFLICT": "View code already exists",
-  "CONTENT_VIEW_NOT_FOUND": "View not found"
+  "CONTENT_VIEW_NOT_FOUND": "View not found",
+
+  "REQUEST_FAILED": "Request failed"
 }

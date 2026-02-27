@@ -1,3 +1,10 @@
+/** Encode an ID and append an optional sub-path. Internal helper – not exported. */
+function buildResourcePath(base: string, id: string, path?: string): string {
+  const encoded = encodeURIComponent(String(id));
+  const suffix = path ? (path.startsWith("/") ? path : `/${path}`) : "";
+  return `${base}/${encoded}${suffix}`;
+}
+
 /** Build a workspace-scoped API path: `/workspaces/{id}{path}`. */
 export function workspacePath(workspaceId: string, path: string): string {
   const id = encodeURIComponent(String(workspaceId));
@@ -24,10 +31,7 @@ export function organizationWorkspacePath(
   workspaceId: string,
   path?: string,
 ): string {
-  const base = organizationWorkspacesBasePath(organizationId);
-  const wsId = encodeURIComponent(String(workspaceId));
-  const suffix = path ? (path.startsWith("/") ? path : `/${path}`) : "";
-  return `${base}/${wsId}${suffix}`;
+  return buildResourcePath(organizationWorkspacesBasePath(organizationId), workspaceId, path);
 }
 
 // ---------------------------------------------------------------------------
@@ -36,37 +40,27 @@ export function organizationWorkspacePath(
 
 /** `/organizations/me/invitations/{id}{path}` */
 export function orgInvitationPath(invitationId: string, path?: string): string {
-  const id = encodeURIComponent(String(invitationId));
-  const suffix = path ? (path.startsWith("/") ? path : `/${path}`) : "";
-  return `/organizations/me/invitations/${id}${suffix}`;
+  return buildResourcePath("/organizations/me/invitations", invitationId, path);
 }
 
 /** `/organizations/me/invitations/links/{id}{path}` */
 export function orgInviteLinkPath(linkId: string, path?: string): string {
-  const id = encodeURIComponent(String(linkId));
-  const suffix = path ? (path.startsWith("/") ? path : `/${path}`) : "";
-  return `/organizations/me/invitations/links/${id}${suffix}`;
+  return buildResourcePath("/organizations/me/invitations/links", linkId, path);
 }
 
 /** `/organizations/me/members/{id}{path}` */
 export function orgMemberPath(membershipId: string, path?: string): string {
-  const id = encodeURIComponent(String(membershipId));
-  const suffix = path ? (path.startsWith("/") ? path : `/${path}`) : "";
-  return `/organizations/me/members/${id}${suffix}`;
+  return buildResourcePath("/organizations/me/members", membershipId, path);
 }
 
 /** `/organizations/me/rbac/roles/{code}{path}` */
 export function orgRbacRolePath(roleCode: string, path?: string): string {
-  const code = encodeURIComponent(String(roleCode));
-  const suffix = path ? (path.startsWith("/") ? path : `/${path}`) : "";
-  return `/organizations/me/rbac/roles/${code}${suffix}`;
+  return buildResourcePath("/organizations/me/rbac/roles", roleCode, path);
 }
 
 /** `/organizations/me/rbac/permissions/{code}{path}` */
 export function orgRbacPermissionPath(permissionCode: string, path?: string): string {
-  const code = encodeURIComponent(String(permissionCode));
-  const suffix = path ? (path.startsWith("/") ? path : `/${path}`) : "";
-  return `/organizations/me/rbac/permissions/${code}${suffix}`;
+  return buildResourcePath("/organizations/me/rbac/permissions", permissionCode, path);
 }
 
 // ---------------------------------------------------------------------------
@@ -75,9 +69,7 @@ export function orgRbacPermissionPath(permissionCode: string, path?: string): st
 
 /** `/sites/{siteId}{path}` */
 export function sitePath(siteId: string, path?: string): string {
-  const id = encodeURIComponent(String(siteId));
-  const suffix = path ? (path.startsWith("/") ? path : `/${path}`) : "";
-  return `/sites/${id}${suffix}`;
+  return buildResourcePath("/sites", siteId, path);
 }
 
 /** `/system/settings/{namespace}` */

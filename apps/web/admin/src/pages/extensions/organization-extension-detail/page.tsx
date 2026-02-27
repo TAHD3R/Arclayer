@@ -12,7 +12,7 @@ import {
   patchOrganizationPluginSettings,
 } from "@/api/org-plugins";
 import { PluginDetailPage, findPluginBySlug } from "@/components/plugins/plugin-detail-page";
-import { buildOrganizationPath } from "@/lib/organization-routing";
+import { buildOrganizationPath } from "@/lib/routing/organization-routing";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 
 export function OrganizationExtensionDetailPage() {

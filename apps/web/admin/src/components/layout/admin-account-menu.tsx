@@ -15,10 +15,17 @@ import {
   FloatingPanelTrigger,
   useFloatingPanel,
 } from "@/components/ui/floating-panel";
-import { buildOrganizationPath, parseOrganizationIdFromPath } from "@/lib/organization-routing";
+import {
+  buildOrganizationPath,
+  parseOrganizationIdFromPath,
+} from "@/lib/routing/organization-routing";
 import { cn } from "@/lib/utils";
 import { resolveAssetRefToPublicUrlPath } from "@/lib/assets/asset-urls";
-import { getUserDisplayName, initialsFromName, normalizeUserProfile } from "@/lib/user-profile";
+import {
+  getUserDisplayName,
+  initialsFromName,
+  normalizeUserProfile,
+} from "@/lib/auth/user-profile";
 
 function MenuItemContent(props: { icon?: ReactNode; label: string; right?: ReactNode }) {
   return (

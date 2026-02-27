@@ -24,7 +24,7 @@ export function getErrorMessage(err: unknown): string {
 
   if (err instanceof Error) return err.message;
 
-  return "请求失败";
+  return i18n.t("REQUEST_FAILED", { ns: "errors" });
 }
 
 export function notifyError(err: unknown) {

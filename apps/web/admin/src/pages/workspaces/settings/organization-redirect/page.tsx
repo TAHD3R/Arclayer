@@ -5,7 +5,7 @@ import { useNavigate } from "@tanstack/react-router";
 
 import { getMyOrganization } from "@/api/me";
 import { ContentGuard } from "@/components/common/content-guard";
-import { buildOrganizationPath } from "@/lib/organization-routing";
+import { buildOrganizationPath } from "@/lib/routing/organization-routing";
 
 export function WorkspaceOrganizationRedirectPage() {
   const navigate = useNavigate();

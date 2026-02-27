@@ -20,7 +20,7 @@ import { useDocumentTitle } from "@/hooks/use-document-title";
 import { useLockViewport } from "@/hooks/use-lock-viewport";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
-import { isLoginPath, isResetPasswordPath } from "@/lib/route-identity";
+import { isLoginPath, isResetPasswordPath } from "@/lib/routing/route-identity";
 
 const ColorBendsLazy = lazy(() => import("@/components/ui/color-bends"));
 

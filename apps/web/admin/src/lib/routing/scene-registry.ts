@@ -10,7 +10,7 @@ import {
   isAuthScenePath,
   isEditorPath,
   isSetupPath,
-} from "@/lib/route-identity";
+} from "@/lib/routing/route-identity";
 
 export type SceneKey = "setup" | "auth" | "invite" | "editor" | "admin";
 

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { resolveSetupGateRedirect } from "@/lib/setup-routing";
+import { resolveSetupGateRedirect } from "@/lib/routing/setup-routing";
 
 describe("resolveSetupGateRedirect", () => {
   test("redirects /setup to /login in saas mode", () => {

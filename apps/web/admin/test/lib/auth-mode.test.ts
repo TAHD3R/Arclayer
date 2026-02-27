@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { resolveLoginMode } from "@/lib/auth-mode";
+import { resolveLoginMode } from "@/lib/auth/auth-mode";
 
 describe("resolveLoginMode", () => {
   test("keeps register mode when public register is enabled", () => {

@@ -16,7 +16,7 @@ import {
   notifySuccessText,
 } from "@/lib/notifications";
 import { ApiError } from "@/lib/http";
-import { buildOrganizationPath } from "@/lib/organization-routing";
+import { buildOrganizationPath } from "@/lib/routing/organization-routing";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import { ContentGuard } from "@/components/common/content-guard";
 import { Card } from "@/components/ui/card";

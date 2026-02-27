@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { isAuthScenePath } from "@/lib/route-identity";
+import { isAuthScenePath } from "@/lib/routing/route-identity";
 import type { AuthMode } from "@/pages/login/page";
 
 type LoginSearch = {
