@@ -1,15 +1,26 @@
 import type { DeploymentMode } from "@/types/api";
+import { isAcceptInvitePath, isSetupPath } from "@/lib/route-identity";
 
-function isSetupPath(pathname: string): boolean {
-  return pathname === "/setup" || pathname.startsWith("/setup/");
-}
+/**
+ * Checks whether the dev-only setup override is active.
+ * In production builds this always returns false.
+ */
+export function isDevSetupOverrideEnabled(searchStr: string): boolean {
+  if (!import.meta.env.DEV) return false;
 
-function isAcceptInvitePath(pathname: string): boolean {
-  return pathname === "/accept-invite";
-}
+  // Explicit opt-in only: keep behavior identical in production builds.
+  try {
+    const params = new URLSearchParams((searchStr || "").replace(/^\?/, ""));
+    if (params.get("__dev_setup") === "1") return true;
+  } catch {
+    // ignore
+  }
 
-export function isOnboardingScenePath(pathname: string): boolean {
-  return isSetupPath(pathname) || pathname === "/onboarding" || pathname.startsWith("/onboarding/");
+  try {
+    return window.localStorage.getItem("celestial.dev.allow_setup") === "1";
+  } catch {
+    return false;
+  }
 }
 
 export function resolveSetupGateRedirect(params: {

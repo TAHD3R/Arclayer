@@ -76,7 +76,7 @@ export const ORG_NAV_ITEMS: AdminNavItem[] = [
     key: "org.settings",
     label: "Settings",
     labelKey: "nav:NAV_ORG_SETTINGS",
-    to: "/settings/organization",
+    to: "/settings",
     icon: Settings,
   },
 ] as const;

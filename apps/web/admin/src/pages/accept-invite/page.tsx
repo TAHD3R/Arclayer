@@ -2,7 +2,7 @@ import { Avatar, Button } from "antd";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
+import { getRouteApi, useNavigate } from "@tanstack/react-router";
 import { AnimatePresence, MotionConfig, motion, type Variants } from "motion/react";
 
 import * as authApi from "@/api/auth";
@@ -768,4 +768,13 @@ export function AcceptInviteView(props: { token: string | null }) {
       </MotionConfig>
     </div>
   );
+}
+
+// --- Route-level container (extracts search params and delegates to AcceptInviteView) ---
+
+const acceptInviteRouteApi = getRouteApi("/accept-invite/");
+
+export function AcceptInvitePage() {
+  const { token } = acceptInviteRouteApi.useSearch();
+  return <AcceptInviteView token={token ?? null} />;
 }

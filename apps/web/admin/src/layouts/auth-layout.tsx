@@ -18,6 +18,7 @@ import { AdminThemeModeToggle } from "@/components/common/admin-toggle-theme";
 import { LegalFooter } from "@/components/common/legal-footer";
 import { RouteTransition } from "@/components/common/route-transition";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
+import { isLoginPath, isResetPasswordPath } from "@/lib/route-identity";
 
 const ColorBendsLazy = lazy(() => import("@/components/ui/color-bends"));
 const AUTH_BEND_COLORS = ["#3b82f6"] as const;
@@ -45,7 +46,7 @@ export function AuthLayout({ children }: PropsWithChildren) {
 
   // Legal disclaimer key — default inferred from pathname, overridable by child pages via context.
   const defaultLegalKey = useMemo(() => {
-    if (pathname === "/login") return "auth:LEGAL_LOGIN";
+    if (isLoginPath(pathname)) return "auth:LEGAL_LOGIN";
     // reset-password is not a login/signup action — no legal disclaimer needed.
     return null;
   }, [pathname]);
@@ -73,12 +74,11 @@ export function AuthLayout({ children }: PropsWithChildren) {
 
   useEffect(() => {
     const brand = (getAppConfig().title || "Celestial").trim();
-    const pageTitle =
-      pathname === "/reset-password"
-        ? t("auth:RESET_PASSWORD_PAGE_TITLE")
-        : pathname === "/login"
-          ? t("auth:LOGIN_PAGE_TITLE")
-          : brand;
+    const pageTitle = isResetPasswordPath(pathname)
+      ? t("auth:RESET_PASSWORD_PAGE_TITLE")
+      : isLoginPath(pathname)
+        ? t("auth:LOGIN_PAGE_TITLE")
+        : brand;
     document.title = `${pageTitle} | ${brand}`;
   }, [pathname, t]);
 

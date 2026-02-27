@@ -219,7 +219,7 @@ export function AdminAccountMenu() {
     myOrgQuery.data?.membership?.role === "owner" || myOrgQuery.data?.membership?.role === "admin";
   const onOrganizationSettings = () => {
     if (currentOrganizationId) {
-      void navigate({ to: buildOrganizationPath(currentOrganizationId, "/settings/organization") });
+      void navigate({ to: buildOrganizationPath(currentOrganizationId, "/settings") });
       return;
     }
     void navigate({ to: "/" });

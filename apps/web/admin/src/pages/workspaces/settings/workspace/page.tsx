@@ -82,6 +82,8 @@ type DeleteWorkspaceDialogValues = {
 export type WorkspaceSettingsViewProps = {
   tab?: WorkspaceSettingsTabKey;
   onTabChange?: (tab: WorkspaceSettingsTabKey) => void;
+  /** validated search param from route — used for URL cleanup */
+  searchIndex?: WorkspaceSettingsTabKey;
 };
 
 export function WorkspaceSettingsView(props: WorkspaceSettingsViewProps = {}) {
@@ -102,10 +104,33 @@ export function WorkspaceSettingsView(props: WorkspaceSettingsViewProps = {}) {
   const [assignRoleDialogOpen, setAssignRoleDialogOpen] = React.useState(false);
   const [leaveDialogOpen, setLeaveDialogOpen] = React.useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
-  const [localTab, setLocalTab] = React.useState<WorkspaceSettingsTabKey>("basics");
+  const tab = props.tab ?? "basics";
 
-  const tab = props.tab ?? localTab;
-  const onTabChange = props.onTabChange ?? setLocalTab;
+  // Clean up invalid/redundant index param that validateSearch discarded.
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const rawIndex = params.get("index");
+    if (rawIndex && !props.searchIndex) {
+      if (workspaceId) {
+        void navigate({ to: `/w/${workspaceId}/settings/workspace`, search: {}, replace: true });
+      }
+    }
+  }, [props.searchIndex, navigate, workspaceId]);
+
+  const onTabChange = React.useCallback(
+    (next: WorkspaceSettingsTabKey) => {
+      if (props.onTabChange) {
+        props.onTabChange(next);
+        return;
+      }
+      if (!workspaceId) return;
+      void navigate({
+        to: `/w/${workspaceId}/settings/workspace`,
+        search: next === "basics" ? {} : { index: next },
+      });
+    },
+    [props.onTabChange, navigate, workspaceId],
+  );
 
   const withSavingKey = React.useCallback(async (key: string, fn: () => Promise<void>) => {
     setSavingKey(key);
@@ -407,7 +432,7 @@ export function WorkspaceSettingsView(props: WorkspaceSettingsViewProps = {}) {
     setCurrentWorkspaceId(null);
     const orgId = String(myOrgQuery.data?.organization.id || "").trim();
     if (orgId) {
-      await navigate({ to: buildOrganizationPath(orgId, "/settings/organization"), replace: true });
+      await navigate({ to: buildOrganizationPath(orgId, "/settings"), replace: true });
       return;
     }
 

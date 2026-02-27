@@ -11,7 +11,7 @@ export interface PostAuthRouteDecision {
  * Post-auth routing policy (org-first):
  * - Ready bootstrap -> land on organization overview (`/`).
  * - Not ready but user has at least one workspace -> land on `/`.
- * - No resolvable workspace -> `/onboarding`.
+ * - No resolvable workspace -> `/` (org overview fallback).
  */
 export async function resolvePostAuthRoute(params: {
   lastWorkspaceId: string | null;
@@ -46,7 +46,7 @@ export async function resolvePostAuthRoute(params: {
   }
 
   return {
-    path: "/onboarding",
+    path: "/",
     workspaceId: null,
     repaired,
   };

@@ -1,7 +1,12 @@
 import { Button as AntButton, Form, Input } from "antd";
 import { Lock, KeyRound } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { useMutation } from "@tanstack/react-query";
+import { getRouteApi, useNavigate } from "@tanstack/react-router";
 import { motion, type Variants } from "motion/react";
+
+import * as authApi from "@/api/auth";
+import { notifySuccessText } from "@/lib/notifications";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 
 const PASSWORD_PATTERN =
@@ -145,5 +150,39 @@ export function ResetPasswordView({
         </motion.div>
       </Form>
     </motion.div>
+  );
+}
+
+// --- Route-level container (wires mutations and navigation to the presentational view) ---
+
+const resetPasswordRouteApi = getRouteApi("/reset-password/");
+
+export function ResetPasswordPage() {
+  const navigate = useNavigate();
+  const { t } = useTranslation();
+  const { token } = resetPasswordRouteApi.useSearch();
+
+  const resetMutation = useMutation({
+    mutationFn: async (values: { reset_token: string; new_password: string }) =>
+      authApi.resetPassword(values),
+  });
+
+  return (
+    <ResetPasswordView
+      initialToken={token}
+      loading={resetMutation.isPending}
+      onSubmit={async (values) => {
+        try {
+          await resetMutation.mutateAsync(values);
+          notifySuccessText(t("auth:RESET_SUCCESS"));
+          void navigate({ to: "/login", search: { mode: "login" } });
+        } catch {
+          // Error toast is handled globally by TanStack Query's MutationCache onError.
+        }
+      }}
+      onBackToLogin={() => {
+        void navigate({ to: "/login", search: { mode: "login" } });
+      }}
+    />
   );
 }

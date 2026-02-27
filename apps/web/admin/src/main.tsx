@@ -7,6 +7,7 @@ import App from "./app";
 import { initI18n } from "@/lib/i18n";
 import { router } from "@/routes/-router";
 import { setUnauthorizedHandler } from "@/lib/http/client";
+import { isPublicPath } from "@/lib/route-identity";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { initializePreferences, usePreferencesStore } from "@/stores/use-preference-store";
 import { getSetupStatus, getSystemRuntime } from "@/api/system";
@@ -55,12 +56,7 @@ async function bootstrap() {
     useWorkspaceStore.getState().clearWorkspace();
     // Avoid redirect loops on public auth pages.
     const current = `${window.location.pathname}${window.location.search}`;
-    if (
-      window.location.pathname === "/login" ||
-      window.location.pathname === "/reset-password" ||
-      window.location.pathname.startsWith("/setup") ||
-      window.location.pathname === "/accept-invite"
-    ) {
+    if (isPublicPath(window.location.pathname)) {
       return;
     }
     void router.navigate({

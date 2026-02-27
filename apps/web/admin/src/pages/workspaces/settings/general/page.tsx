@@ -1,6 +1,7 @@
 import { Form } from "antd";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 
 import { getCoreSettings, patchCoreSettings } from "@/api/settings";
@@ -32,14 +33,43 @@ type GeneralSettingsViewProps = {
    */
   tab?: GeneralSettingsTabKey;
   onTabChange?: (next: GeneralSettingsTabKey) => void;
+  /** validated search param from route — used for URL cleanup */
+  searchIndex?: GeneralSettingsTabKey;
 };
 
 export function GeneralSettingsView(props: GeneralSettingsViewProps) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [form] = Form.useForm<GeneralSettingsFormValues>();
   const [savingKey, setSavingKey] = useState<string | null>(null);
   const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
+
+  // Clean up invalid/redundant index param that validateSearch discarded.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const rawIndex = params.get("index");
+    if (rawIndex && !props.searchIndex) {
+      if (workspaceId) {
+        void navigate({ to: `/w/${workspaceId}/settings/general`, search: {}, replace: true });
+      }
+    }
+  }, [props.searchIndex, navigate, workspaceId]);
+
+  const handleTabChange = useCallback(
+    (next: GeneralSettingsTabKey) => {
+      if (props.onTabChange) {
+        props.onTabChange(next);
+        return;
+      }
+      if (!workspaceId) return;
+      void navigate({
+        to: `/w/${workspaceId}/settings/general`,
+        search: next === "site" ? {} : { index: next },
+      });
+    },
+    [props.onTabChange, navigate, workspaceId],
+  );
 
   const workspaceCoreQuery = useQuery({
     queryKey: ["settings", "workspace", "core", workspaceId],
@@ -135,7 +165,7 @@ export function GeneralSettingsView(props: GeneralSettingsViewProps) {
               ? {
                   value: props.tab,
                   onValueChange: (next) => {
-                    props.onTabChange?.(next as GeneralSettingsTabKey);
+                    handleTabChange(next as GeneralSettingsTabKey);
                   },
                 }
               : { defaultValue: "site" })}

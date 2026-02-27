@@ -87,7 +87,7 @@ describe("bootstrap-routing", () => {
     expect(decision.repaired).toBe(false);
   });
 
-  test("routes to onboarding when no workspace can be resolved", async () => {
+  test("falls back to root when no workspace can be resolved", async () => {
     mocked.getBootstrapState.mockResolvedValue({
       ready: false,
       repairRequired: false,
@@ -100,7 +100,7 @@ describe("bootstrap-routing", () => {
     mocked.listMyWorkspaces.mockResolvedValue({ items: [] });
 
     const decision = await resolvePostAuthRoute({ lastWorkspaceId: null, attemptRepair: false });
-    expect(decision.path).toBe("/onboarding");
+    expect(decision.path).toBe("/");
     expect(decision.workspaceId).toBeNull();
   });
 });

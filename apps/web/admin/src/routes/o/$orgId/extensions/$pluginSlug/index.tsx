@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { OrganizationPluginDetailView } from "@/pages/plugins/organization-plugin-detail/page";
+import { OrganizationExtensionDetailView } from "@/pages/extensions/organization-extension-detail/page";
 
 export const Route = createFileRoute("/o/$orgId/extensions/$pluginSlug/")({
   component: ExtensionSlugPage,
@@ -8,5 +8,5 @@ export const Route = createFileRoute("/o/$orgId/extensions/$pluginSlug/")({
 
 function ExtensionSlugPage() {
   const { orgId, pluginSlug } = Route.useParams();
-  return <OrganizationPluginDetailView organizationId={orgId} pluginSlug={pluginSlug} />;
+  return <OrganizationExtensionDetailView organizationId={orgId} pluginSlug={pluginSlug} />;
 }

@@ -1,7 +1,6 @@
 import { Space } from "antd";
 import { lazy, Suspense, type PropsWithChildren, useEffect } from "react";
 import { Trans, useTranslation } from "react-i18next";
-import { useRouterState } from "@tanstack/react-router";
 
 import { getAppConfig } from "@/constants/app-config";
 import { AdminLocaleToggle } from "@/components/common/admin-toggle-locales";
@@ -13,8 +12,6 @@ const SETUP_BEND_COLORS = ["#3b82f6"] as const;
 
 export function SetupLayout({ children }: PropsWithChildren) {
   const { t } = useTranslation();
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const isOnboardingPath = pathname === "/onboarding" || pathname.startsWith("/onboarding/");
   const reducedMotion = usePrefersReducedMotion();
 
   // Setup pages should behave like auth pages: full-viewport scene, no document scrolling.
@@ -33,9 +30,8 @@ export function SetupLayout({ children }: PropsWithChildren) {
 
   useEffect(() => {
     const brand = (getAppConfig().title || "Celestial").trim();
-    const pageTitle = isOnboardingPath ? t("onboarding:ONBOARDING_TITLE") : t("setup:SETUP_TITLE");
-    document.title = `${pageTitle} | ${brand}`;
-  }, [isOnboardingPath, t]);
+    document.title = `${t("setup:SETUP_TITLE")} | ${brand}`;
+  }, [t]);
 
   return (
     <div className="fixed inset-0 w-full overflow-hidden bg-background text-label-primary">

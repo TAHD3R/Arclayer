@@ -1,8 +1,9 @@
 import { Button, Checkbox, Form, Input } from "antd";
 import { Lock, Mail, User } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { getRouteApi, useNavigate } from "@tanstack/react-router";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, MotionConfig, motion, type Variants } from "motion/react";
 
 import {
@@ -13,9 +14,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import * as authApi from "@/api/auth";
+import * as authSsoApi from "@/api/auth-sso";
 import { AuthOauthButtons } from "@/components/common/auth-oauth-buttons";
+import { useSystemRuntime } from "@/hooks/use-system-runtime";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
+import { resolveLoginMode } from "@/lib/auth-mode";
+import { resolvePostAuthRoute } from "@/lib/bootstrap-routing";
+import { notifyErrorText, notifyInfoText, notifySuccessText } from "@/lib/notifications";
 import { useAuthLegalKey } from "@/layouts/auth-layout";
+import { useAuthStore } from "@/stores/use-auth-store";
+import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
 export type AuthMode = "login" | "register";
 
@@ -426,5 +435,204 @@ export function LoginView({
         </div>
       </MotionConfig>
     </div>
+  );
+}
+
+// --- Route-level container (wires mutations, OAuth, SSO and navigation to the presentational view) ---
+
+const loginRouteApi = getRouteApi("/login/");
+
+export function LoginPage() {
+  const applyLogin = useAuthStore((s) => s.applyLogin);
+  const keepSession = useAuthStore((s) => s.keepSession);
+  const lastWorkspaceId = useWorkspaceStore((s) => s.lastWorkspaceId);
+  const setCurrentWorkspaceId = useWorkspaceStore((s) => s.setCurrentWorkspaceId);
+  const navigate = useNavigate();
+  const { t } = useTranslation();
+  const runtime = useSystemRuntime();
+  const {
+    redirect: redirectTo,
+    mode = "login",
+    oauth_code: oauthCode,
+    oauth_error: oauthError,
+  } = loginRouteApi.useSearch();
+  const publicRegisterEnabled = runtime.publicRegisterEnabled;
+  const effectiveMode = resolveLoginMode(mode, publicRegisterEnabled);
+
+  useEffect(() => {
+    // Clean up legacy/accidental recursive `redirect=/login?...` parameters to avoid URL bloat.
+    const params = new URLSearchParams(window.location.search);
+    const rawRedirect = params.get("redirect");
+    if (!rawRedirect) return;
+
+    // If `validateSearch` dropped the redirect, it means it's unsafe; remove it from the URL.
+    if (!redirectTo) {
+      void navigate({ to: "/login", search: { mode: effectiveMode }, replace: true });
+    }
+  }, [effectiveMode, navigate, redirectTo]);
+
+  useEffect(() => {
+    if (mode !== "register" || publicRegisterEnabled) return;
+
+    void navigate({
+      to: "/login",
+      search: { ...(redirectTo ? { redirect: redirectTo } : {}), mode: "login" },
+      replace: true,
+    });
+  }, [mode, navigate, publicRegisterEnabled, redirectTo]);
+
+  const loginMutation = useMutation({
+    mutationFn: async (values: LoginFormValues) =>
+      authApi.login({ identifier: values.account, password: values.password }),
+  });
+
+  const registerMutation = useMutation({
+    mutationFn: async (values: RegisterFormValues) =>
+      authApi.register({
+        username: values.username,
+        email: values.email,
+        password: values.password,
+        confirm_password: values.confirmPassword,
+      }),
+  });
+
+  const ssoExchangeMutation = useMutation({
+    mutationFn: async (code: string) => authSsoApi.exchangeSSOCode(code),
+    retry: false,
+    meta: { silent: true },
+  });
+
+  const navigateAfterAuth = useCallback(async () => {
+    if (redirectTo) {
+      await navigate({ to: redirectTo, replace: true });
+      return;
+    }
+
+    const decision = await resolvePostAuthRoute({ lastWorkspaceId, attemptRepair: true });
+    if (decision.workspaceId) {
+      setCurrentWorkspaceId(decision.workspaceId);
+    }
+    await navigate({ to: decision.path, replace: true });
+  }, [lastWorkspaceId, navigate, redirectTo, setCurrentWorkspaceId]);
+
+  useEffect(() => {
+    if (!oauthCode) return;
+
+    const run = async () => {
+      try {
+        const tokens = await ssoExchangeMutation.mutateAsync(oauthCode);
+        // SSO login is always a short-lived action; respect the user's existing keepSession preference.
+        applyLogin(tokens, { keepSession });
+        await navigateAfterAuth();
+      } catch {
+        // Error toast is handled globally by TanStack Query's MutationCache onError.
+        void navigate({
+          to: "/login",
+          search: { redirect: redirectTo, mode: effectiveMode },
+          replace: true,
+        });
+      }
+    };
+
+    void run();
+  }, [
+    applyLogin,
+    keepSession,
+    effectiveMode,
+    navigate,
+    oauthCode,
+    redirectTo,
+    navigateAfterAuth,
+    ssoExchangeMutation,
+  ]);
+
+  useEffect(() => {
+    if (!oauthError) return;
+
+    const msg = (() => {
+      if (oauthError === "email_not_verified") return t("auth:OAUTH_ERROR_EMAIL_NOT_VERIFIED");
+      if (oauthError === "provisioning_disabled")
+        return t("auth:OAUTH_ERROR_PROVISIONING_DISABLED");
+      return t("auth:OAUTH_ERROR_GENERIC");
+    })();
+
+    notifyErrorText(msg);
+    void navigate({
+      to: "/login",
+      search: { redirect: redirectTo, mode: effectiveMode },
+      replace: true,
+    });
+  }, [effectiveMode, navigate, oauthError, redirectTo, t]);
+
+  const forgotPasswordMutation = useMutation({
+    mutationFn: async (identifier: string) => authApi.forgotPassword({ identifier }),
+  });
+
+  const onModeChange = (next: AuthMode) => {
+    const nextMode = resolveLoginMode(next, publicRegisterEnabled);
+    void navigate({
+      to: "/login",
+      search: { redirect: redirectTo, mode: nextMode },
+    });
+  };
+
+  const onLoginFinish = async (values: LoginFormValues) => {
+    try {
+      const tokens = await loginMutation.mutateAsync(values);
+      applyLogin(tokens, { keepSession: values.keepSession });
+
+      notifySuccessText(t("auth:LOGIN_SUCCESS"));
+      await navigateAfterAuth();
+    } catch {
+      // Error toast is handled globally by TanStack Query's MutationCache onError.
+    }
+  };
+
+  const onForgotPassword = async (identifier: string) => {
+    try {
+      const payload = await forgotPasswordMutation.mutateAsync(identifier);
+      notifyInfoText(t("auth:RESET_SENT"));
+      if (payload?.reset_token) {
+        // Dev/Test convenience: backend returns token payload only in non-prod env.
+        void navigate({ to: "/reset-password", search: { token: payload.reset_token } });
+      }
+    } catch {
+      // Error toast is handled globally by TanStack Query's MutationCache onError.
+    }
+  };
+
+  const onRegisterFinish = async (values: RegisterFormValues) => {
+    if (!publicRegisterEnabled) return;
+
+    try {
+      await registerMutation.mutateAsync(values);
+
+      const tokens = await loginMutation.mutateAsync({
+        account: values.email || values.username,
+        password: values.password,
+        keepSession: true,
+      });
+      applyLogin(tokens, { keepSession: true });
+
+      notifySuccessText(t("auth:REGISTER_SUCCESS"));
+      await navigateAfterAuth();
+    } catch {
+      // Error toast is handled globally by TanStack Query's MutationCache onError.
+    }
+  };
+
+  return (
+    <LoginView
+      mode={effectiveMode}
+      onModeChange={onModeChange}
+      onLoginSubmit={onLoginFinish}
+      loginLoading={loginMutation.isPending || ssoExchangeMutation.isPending}
+      initialKeepSession={keepSession}
+      redirect={redirectTo}
+      onForgotPassword={onForgotPassword}
+      onRegisterSubmit={onRegisterFinish}
+      registerLoading={registerMutation.isPending}
+      publicRegisterEnabled={publicRegisterEnabled}
+    />
   );
 }

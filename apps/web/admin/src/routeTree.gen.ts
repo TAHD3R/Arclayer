@@ -9,38 +9,29 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from "./routes/__root";
-import { Route as SetupRouteImport } from "./routes/setup";
-import { Route as ResetPasswordRouteImport } from "./routes/reset-password";
-import { Route as OnboardingRouteImport } from "./routes/onboarding";
-import { Route as LoginRouteImport } from "./routes/login";
-import { Route as AcceptInviteRouteImport } from "./routes/accept-invite";
 import { Route as IndexRouteImport } from "./routes/index";
+import { Route as SetupIndexRouteImport } from "./routes/setup/index";
+import { Route as ResetPasswordIndexRouteImport } from "./routes/reset-password/index";
+import { Route as LoginIndexRouteImport } from "./routes/login/index";
+import { Route as AcceptInviteIndexRouteImport } from "./routes/accept-invite/index";
 import { Route as WWorkspaceIdRouteImport } from "./routes/w/$workspaceId";
 import { Route as OOrgIdRouteImport } from "./routes/o/$orgId";
-import { Route as MeNotificationsRouteImport } from "./routes/me/notifications";
 import { Route as WWorkspaceIdIndexRouteImport } from "./routes/w/$workspaceId/index";
-import { Route as SettingsWorkspaceIndexRouteImport } from "./routes/settings/workspace/index";
-import { Route as SettingsSeoIndexRouteImport } from "./routes/settings/seo/index";
-import { Route as SettingsGeneralIndexRouteImport } from "./routes/settings/general/index";
 import { Route as OOrgIdIndexRouteImport } from "./routes/o/$orgId/index";
+import { Route as MeNotificationsIndexRouteImport } from "./routes/me/notifications/index";
 import { Route as WWorkspaceIdTeamIndexRouteImport } from "./routes/w/$workspaceId/team/index";
 import { Route as WWorkspaceIdNotificationsIndexRouteImport } from "./routes/w/$workspaceId/notifications/index";
 import { Route as WWorkspaceIdExtensionsIndexRouteImport } from "./routes/w/$workspaceId/extensions/index";
 import { Route as WWorkspaceIdAssetsIndexRouteImport } from "./routes/w/$workspaceId/assets/index";
-import { Route as SettingsMaintenanceStatusIndexRouteImport } from "./routes/settings/maintenance/status/index";
-import { Route as SettingsMaintenanceSnapshotsIndexRouteImport } from "./routes/settings/maintenance/snapshots/index";
-import { Route as SettingsMaintenanceActivityIndexRouteImport } from "./routes/settings/maintenance/activity/index";
 import { Route as OOrgIdWorkspacesIndexRouteImport } from "./routes/o/$orgId/workspaces/index";
 import { Route as OOrgIdTeamIndexRouteImport } from "./routes/o/$orgId/team/index";
+import { Route as OOrgIdSettingsIndexRouteImport } from "./routes/o/$orgId/settings/index";
 import { Route as OOrgIdMembersIndexRouteImport } from "./routes/o/$orgId/members/index";
 import { Route as OOrgIdExtensionsIndexRouteImport } from "./routes/o/$orgId/extensions/index";
 import { Route as OOrgIdActivityIndexRouteImport } from "./routes/o/$orgId/activity/index";
-import { Route as WWorkspaceIdTeamRolesRouteImport } from "./routes/w/$workspaceId/team/roles";
-import { Route as WWorkspaceIdTeamMembersRouteImport } from "./routes/w/$workspaceId/team/members";
-import { Route as WWorkspaceIdTeamInvitationsRouteImport } from "./routes/w/$workspaceId/team/invitations";
-import { Route as OOrgIdTeamRolesRouteImport } from "./routes/o/$orgId/team/roles";
-import { Route as OOrgIdTeamMembersRouteImport } from "./routes/o/$orgId/team/members";
-import { Route as OOrgIdTeamInvitationsRouteImport } from "./routes/o/$orgId/team/invitations";
+import { Route as WWorkspaceIdTeamRolesIndexRouteImport } from "./routes/w/$workspaceId/team/roles/index";
+import { Route as WWorkspaceIdTeamMembersIndexRouteImport } from "./routes/w/$workspaceId/team/members/index";
+import { Route as WWorkspaceIdTeamInvitationsIndexRouteImport } from "./routes/w/$workspaceId/team/invitations/index";
 import { Route as WWorkspaceIdSettingsWorkspaceIndexRouteImport } from "./routes/w/$workspaceId/settings/workspace/index";
 import { Route as WWorkspaceIdSettingsSeoIndexRouteImport } from "./routes/w/$workspaceId/settings/seo/index";
 import { Route as WWorkspaceIdSettingsOrganizationIndexRouteImport } from "./routes/w/$workspaceId/settings/organization/index";
@@ -50,43 +41,39 @@ import { Route as WWorkspaceIdContentPagesIndexRouteImport } from "./routes/w/$w
 import { Route as WWorkspaceIdContentLibraryIndexRouteImport } from "./routes/w/$workspaceId/content/library/index";
 import { Route as WWorkspaceIdAppearanceThemesIndexRouteImport } from "./routes/w/$workspaceId/appearance/themes/index";
 import { Route as WWorkspaceIdAppearanceStylesIndexRouteImport } from "./routes/w/$workspaceId/appearance/styles/index";
-import { Route as WWorkspaceIdAppearanceNavigationIndexRouteImport } from "./routes/w/$workspaceId/appearance/navigation/index";
-import { Route as OOrgIdSettingsOrganizationIndexRouteImport } from "./routes/o/$orgId/settings/organization/index";
+import { Route as OOrgIdTeamRolesIndexRouteImport } from "./routes/o/$orgId/team/roles/index";
+import { Route as OOrgIdTeamMembersIndexRouteImport } from "./routes/o/$orgId/team/members/index";
+import { Route as OOrgIdTeamInvitationsIndexRouteImport } from "./routes/o/$orgId/team/invitations/index";
+import { Route as OOrgIdSettingsActivityIndexRouteImport } from "./routes/o/$orgId/settings/activity/index";
 import { Route as OOrgIdExtensionsPluginSlugIndexRouteImport } from "./routes/o/$orgId/extensions/$pluginSlug/index";
 import { Route as WWorkspaceIdEditorEditorModeEntityIdRouteImport } from "./routes/w/$workspaceId/editor/$editorMode/$entityId";
 import { Route as WWorkspaceIdSettingsMaintenanceStatusIndexRouteImport } from "./routes/w/$workspaceId/settings/maintenance/status/index";
 import { Route as WWorkspaceIdSettingsMaintenanceSnapshotsIndexRouteImport } from "./routes/w/$workspaceId/settings/maintenance/snapshots/index";
 import { Route as WWorkspaceIdSettingsMaintenanceActivityIndexRouteImport } from "./routes/w/$workspaceId/settings/maintenance/activity/index";
-import { Route as OOrgIdSettingsOrganizationActivityIndexRouteImport } from "./routes/o/$orgId/settings/organization/activity/index";
 
-const SetupRoute = SetupRouteImport.update({
-  id: "/setup",
-  path: "/setup",
-  getParentRoute: () => rootRouteImport,
-} as any);
-const ResetPasswordRoute = ResetPasswordRouteImport.update({
-  id: "/reset-password",
-  path: "/reset-password",
-  getParentRoute: () => rootRouteImport,
-} as any);
-const OnboardingRoute = OnboardingRouteImport.update({
-  id: "/onboarding",
-  path: "/onboarding",
-  getParentRoute: () => rootRouteImport,
-} as any);
-const LoginRoute = LoginRouteImport.update({
-  id: "/login",
-  path: "/login",
-  getParentRoute: () => rootRouteImport,
-} as any);
-const AcceptInviteRoute = AcceptInviteRouteImport.update({
-  id: "/accept-invite",
-  path: "/accept-invite",
-  getParentRoute: () => rootRouteImport,
-} as any);
 const IndexRoute = IndexRouteImport.update({
   id: "/",
   path: "/",
+  getParentRoute: () => rootRouteImport,
+} as any);
+const SetupIndexRoute = SetupIndexRouteImport.update({
+  id: "/setup/",
+  path: "/setup/",
+  getParentRoute: () => rootRouteImport,
+} as any);
+const ResetPasswordIndexRoute = ResetPasswordIndexRouteImport.update({
+  id: "/reset-password/",
+  path: "/reset-password/",
+  getParentRoute: () => rootRouteImport,
+} as any);
+const LoginIndexRoute = LoginIndexRouteImport.update({
+  id: "/login/",
+  path: "/login/",
+  getParentRoute: () => rootRouteImport,
+} as any);
+const AcceptInviteIndexRoute = AcceptInviteIndexRouteImport.update({
+  id: "/accept-invite/",
+  path: "/accept-invite/",
   getParentRoute: () => rootRouteImport,
 } as any);
 const WWorkspaceIdRoute = WWorkspaceIdRouteImport.update({
@@ -99,35 +86,20 @@ const OOrgIdRoute = OOrgIdRouteImport.update({
   path: "/o/$orgId",
   getParentRoute: () => rootRouteImport,
 } as any);
-const MeNotificationsRoute = MeNotificationsRouteImport.update({
-  id: "/me/notifications",
-  path: "/me/notifications",
-  getParentRoute: () => rootRouteImport,
-} as any);
 const WWorkspaceIdIndexRoute = WWorkspaceIdIndexRouteImport.update({
   id: "/",
   path: "/",
   getParentRoute: () => WWorkspaceIdRoute,
 } as any);
-const SettingsWorkspaceIndexRoute = SettingsWorkspaceIndexRouteImport.update({
-  id: "/settings/workspace/",
-  path: "/settings/workspace/",
-  getParentRoute: () => rootRouteImport,
-} as any);
-const SettingsSeoIndexRoute = SettingsSeoIndexRouteImport.update({
-  id: "/settings/seo/",
-  path: "/settings/seo/",
-  getParentRoute: () => rootRouteImport,
-} as any);
-const SettingsGeneralIndexRoute = SettingsGeneralIndexRouteImport.update({
-  id: "/settings/general/",
-  path: "/settings/general/",
-  getParentRoute: () => rootRouteImport,
-} as any);
 const OOrgIdIndexRoute = OOrgIdIndexRouteImport.update({
   id: "/",
   path: "/",
   getParentRoute: () => OOrgIdRoute,
+} as any);
+const MeNotificationsIndexRoute = MeNotificationsIndexRouteImport.update({
+  id: "/me/notifications/",
+  path: "/me/notifications/",
+  getParentRoute: () => rootRouteImport,
 } as any);
 const WWorkspaceIdTeamIndexRoute = WWorkspaceIdTeamIndexRouteImport.update({
   id: "/team/",
@@ -149,21 +121,6 @@ const WWorkspaceIdAssetsIndexRoute = WWorkspaceIdAssetsIndexRouteImport.update({
   path: "/assets/",
   getParentRoute: () => WWorkspaceIdRoute,
 } as any);
-const SettingsMaintenanceStatusIndexRoute = SettingsMaintenanceStatusIndexRouteImport.update({
-  id: "/settings/maintenance/status/",
-  path: "/settings/maintenance/status/",
-  getParentRoute: () => rootRouteImport,
-} as any);
-const SettingsMaintenanceSnapshotsIndexRoute = SettingsMaintenanceSnapshotsIndexRouteImport.update({
-  id: "/settings/maintenance/snapshots/",
-  path: "/settings/maintenance/snapshots/",
-  getParentRoute: () => rootRouteImport,
-} as any);
-const SettingsMaintenanceActivityIndexRoute = SettingsMaintenanceActivityIndexRouteImport.update({
-  id: "/settings/maintenance/activity/",
-  path: "/settings/maintenance/activity/",
-  getParentRoute: () => rootRouteImport,
-} as any);
 const OOrgIdWorkspacesIndexRoute = OOrgIdWorkspacesIndexRouteImport.update({
   id: "/workspaces/",
   path: "/workspaces/",
@@ -172,6 +129,11 @@ const OOrgIdWorkspacesIndexRoute = OOrgIdWorkspacesIndexRouteImport.update({
 const OOrgIdTeamIndexRoute = OOrgIdTeamIndexRouteImport.update({
   id: "/team/",
   path: "/team/",
+  getParentRoute: () => OOrgIdRoute,
+} as any);
+const OOrgIdSettingsIndexRoute = OOrgIdSettingsIndexRouteImport.update({
+  id: "/settings/",
+  path: "/settings/",
   getParentRoute: () => OOrgIdRoute,
 } as any);
 const OOrgIdMembersIndexRoute = OOrgIdMembersIndexRouteImport.update({
@@ -189,35 +151,20 @@ const OOrgIdActivityIndexRoute = OOrgIdActivityIndexRouteImport.update({
   path: "/activity/",
   getParentRoute: () => OOrgIdRoute,
 } as any);
-const WWorkspaceIdTeamRolesRoute = WWorkspaceIdTeamRolesRouteImport.update({
-  id: "/team/roles",
-  path: "/team/roles",
+const WWorkspaceIdTeamRolesIndexRoute = WWorkspaceIdTeamRolesIndexRouteImport.update({
+  id: "/team/roles/",
+  path: "/team/roles/",
   getParentRoute: () => WWorkspaceIdRoute,
 } as any);
-const WWorkspaceIdTeamMembersRoute = WWorkspaceIdTeamMembersRouteImport.update({
-  id: "/team/members",
-  path: "/team/members",
+const WWorkspaceIdTeamMembersIndexRoute = WWorkspaceIdTeamMembersIndexRouteImport.update({
+  id: "/team/members/",
+  path: "/team/members/",
   getParentRoute: () => WWorkspaceIdRoute,
 } as any);
-const WWorkspaceIdTeamInvitationsRoute = WWorkspaceIdTeamInvitationsRouteImport.update({
-  id: "/team/invitations",
-  path: "/team/invitations",
+const WWorkspaceIdTeamInvitationsIndexRoute = WWorkspaceIdTeamInvitationsIndexRouteImport.update({
+  id: "/team/invitations/",
+  path: "/team/invitations/",
   getParentRoute: () => WWorkspaceIdRoute,
-} as any);
-const OOrgIdTeamRolesRoute = OOrgIdTeamRolesRouteImport.update({
-  id: "/team/roles",
-  path: "/team/roles",
-  getParentRoute: () => OOrgIdRoute,
-} as any);
-const OOrgIdTeamMembersRoute = OOrgIdTeamMembersRouteImport.update({
-  id: "/team/members",
-  path: "/team/members",
-  getParentRoute: () => OOrgIdRoute,
-} as any);
-const OOrgIdTeamInvitationsRoute = OOrgIdTeamInvitationsRouteImport.update({
-  id: "/team/invitations",
-  path: "/team/invitations",
-  getParentRoute: () => OOrgIdRoute,
 } as any);
 const WWorkspaceIdSettingsWorkspaceIndexRoute =
   WWorkspaceIdSettingsWorkspaceIndexRouteImport.update({
@@ -267,15 +214,24 @@ const WWorkspaceIdAppearanceStylesIndexRoute = WWorkspaceIdAppearanceStylesIndex
   path: "/appearance/styles/",
   getParentRoute: () => WWorkspaceIdRoute,
 } as any);
-const WWorkspaceIdAppearanceNavigationIndexRoute =
-  WWorkspaceIdAppearanceNavigationIndexRouteImport.update({
-    id: "/appearance/navigation/",
-    path: "/appearance/navigation/",
-    getParentRoute: () => WWorkspaceIdRoute,
-  } as any);
-const OOrgIdSettingsOrganizationIndexRoute = OOrgIdSettingsOrganizationIndexRouteImport.update({
-  id: "/settings/organization/",
-  path: "/settings/organization/",
+const OOrgIdTeamRolesIndexRoute = OOrgIdTeamRolesIndexRouteImport.update({
+  id: "/team/roles/",
+  path: "/team/roles/",
+  getParentRoute: () => OOrgIdRoute,
+} as any);
+const OOrgIdTeamMembersIndexRoute = OOrgIdTeamMembersIndexRouteImport.update({
+  id: "/team/members/",
+  path: "/team/members/",
+  getParentRoute: () => OOrgIdRoute,
+} as any);
+const OOrgIdTeamInvitationsIndexRoute = OOrgIdTeamInvitationsIndexRouteImport.update({
+  id: "/team/invitations/",
+  path: "/team/invitations/",
+  getParentRoute: () => OOrgIdRoute,
+} as any);
+const OOrgIdSettingsActivityIndexRoute = OOrgIdSettingsActivityIndexRouteImport.update({
+  id: "/settings/activity/",
+  path: "/settings/activity/",
   getParentRoute: () => OOrgIdRoute,
 } as any);
 const OOrgIdExtensionsPluginSlugIndexRoute = OOrgIdExtensionsPluginSlugIndexRouteImport.update({
@@ -307,50 +263,34 @@ const WWorkspaceIdSettingsMaintenanceActivityIndexRoute =
     path: "/settings/maintenance/activity/",
     getParentRoute: () => WWorkspaceIdRoute,
   } as any);
-const OOrgIdSettingsOrganizationActivityIndexRoute =
-  OOrgIdSettingsOrganizationActivityIndexRouteImport.update({
-    id: "/settings/organization/activity/",
-    path: "/settings/organization/activity/",
-    getParentRoute: () => OOrgIdRoute,
-  } as any);
 
 export interface FileRoutesByFullPath {
   "/": typeof IndexRoute;
-  "/accept-invite": typeof AcceptInviteRoute;
-  "/login": typeof LoginRoute;
-  "/onboarding": typeof OnboardingRoute;
-  "/reset-password": typeof ResetPasswordRoute;
-  "/setup": typeof SetupRoute;
-  "/me/notifications": typeof MeNotificationsRoute;
   "/o/$orgId": typeof OOrgIdRouteWithChildren;
   "/w/$workspaceId": typeof WWorkspaceIdRouteWithChildren;
+  "/accept-invite/": typeof AcceptInviteIndexRoute;
+  "/login/": typeof LoginIndexRoute;
+  "/reset-password/": typeof ResetPasswordIndexRoute;
+  "/setup/": typeof SetupIndexRoute;
+  "/me/notifications/": typeof MeNotificationsIndexRoute;
   "/o/$orgId/": typeof OOrgIdIndexRoute;
-  "/settings/general/": typeof SettingsGeneralIndexRoute;
-  "/settings/seo/": typeof SettingsSeoIndexRoute;
-  "/settings/workspace/": typeof SettingsWorkspaceIndexRoute;
   "/w/$workspaceId/": typeof WWorkspaceIdIndexRoute;
-  "/o/$orgId/team/invitations": typeof OOrgIdTeamInvitationsRoute;
-  "/o/$orgId/team/members": typeof OOrgIdTeamMembersRoute;
-  "/o/$orgId/team/roles": typeof OOrgIdTeamRolesRoute;
-  "/w/$workspaceId/team/invitations": typeof WWorkspaceIdTeamInvitationsRoute;
-  "/w/$workspaceId/team/members": typeof WWorkspaceIdTeamMembersRoute;
-  "/w/$workspaceId/team/roles": typeof WWorkspaceIdTeamRolesRoute;
   "/o/$orgId/activity/": typeof OOrgIdActivityIndexRoute;
   "/o/$orgId/extensions/": typeof OOrgIdExtensionsIndexRoute;
   "/o/$orgId/members/": typeof OOrgIdMembersIndexRoute;
+  "/o/$orgId/settings/": typeof OOrgIdSettingsIndexRoute;
   "/o/$orgId/team/": typeof OOrgIdTeamIndexRoute;
   "/o/$orgId/workspaces/": typeof OOrgIdWorkspacesIndexRoute;
-  "/settings/maintenance/activity/": typeof SettingsMaintenanceActivityIndexRoute;
-  "/settings/maintenance/snapshots/": typeof SettingsMaintenanceSnapshotsIndexRoute;
-  "/settings/maintenance/status/": typeof SettingsMaintenanceStatusIndexRoute;
   "/w/$workspaceId/assets/": typeof WWorkspaceIdAssetsIndexRoute;
   "/w/$workspaceId/extensions/": typeof WWorkspaceIdExtensionsIndexRoute;
   "/w/$workspaceId/notifications/": typeof WWorkspaceIdNotificationsIndexRoute;
   "/w/$workspaceId/team/": typeof WWorkspaceIdTeamIndexRoute;
   "/w/$workspaceId/editor/$editorMode/$entityId": typeof WWorkspaceIdEditorEditorModeEntityIdRoute;
   "/o/$orgId/extensions/$pluginSlug/": typeof OOrgIdExtensionsPluginSlugIndexRoute;
-  "/o/$orgId/settings/organization/": typeof OOrgIdSettingsOrganizationIndexRoute;
-  "/w/$workspaceId/appearance/navigation/": typeof WWorkspaceIdAppearanceNavigationIndexRoute;
+  "/o/$orgId/settings/activity/": typeof OOrgIdSettingsActivityIndexRoute;
+  "/o/$orgId/team/invitations/": typeof OOrgIdTeamInvitationsIndexRoute;
+  "/o/$orgId/team/members/": typeof OOrgIdTeamMembersIndexRoute;
+  "/o/$orgId/team/roles/": typeof OOrgIdTeamRolesIndexRoute;
   "/w/$workspaceId/appearance/styles/": typeof WWorkspaceIdAppearanceStylesIndexRoute;
   "/w/$workspaceId/appearance/themes/": typeof WWorkspaceIdAppearanceThemesIndexRoute;
   "/w/$workspaceId/content/library/": typeof WWorkspaceIdContentLibraryIndexRoute;
@@ -360,46 +300,38 @@ export interface FileRoutesByFullPath {
   "/w/$workspaceId/settings/organization/": typeof WWorkspaceIdSettingsOrganizationIndexRoute;
   "/w/$workspaceId/settings/seo/": typeof WWorkspaceIdSettingsSeoIndexRoute;
   "/w/$workspaceId/settings/workspace/": typeof WWorkspaceIdSettingsWorkspaceIndexRoute;
-  "/o/$orgId/settings/organization/activity/": typeof OOrgIdSettingsOrganizationActivityIndexRoute;
+  "/w/$workspaceId/team/invitations/": typeof WWorkspaceIdTeamInvitationsIndexRoute;
+  "/w/$workspaceId/team/members/": typeof WWorkspaceIdTeamMembersIndexRoute;
+  "/w/$workspaceId/team/roles/": typeof WWorkspaceIdTeamRolesIndexRoute;
   "/w/$workspaceId/settings/maintenance/activity/": typeof WWorkspaceIdSettingsMaintenanceActivityIndexRoute;
   "/w/$workspaceId/settings/maintenance/snapshots/": typeof WWorkspaceIdSettingsMaintenanceSnapshotsIndexRoute;
   "/w/$workspaceId/settings/maintenance/status/": typeof WWorkspaceIdSettingsMaintenanceStatusIndexRoute;
 }
 export interface FileRoutesByTo {
   "/": typeof IndexRoute;
-  "/accept-invite": typeof AcceptInviteRoute;
-  "/login": typeof LoginRoute;
-  "/onboarding": typeof OnboardingRoute;
-  "/reset-password": typeof ResetPasswordRoute;
-  "/setup": typeof SetupRoute;
-  "/me/notifications": typeof MeNotificationsRoute;
+  "/accept-invite": typeof AcceptInviteIndexRoute;
+  "/login": typeof LoginIndexRoute;
+  "/reset-password": typeof ResetPasswordIndexRoute;
+  "/setup": typeof SetupIndexRoute;
+  "/me/notifications": typeof MeNotificationsIndexRoute;
   "/o/$orgId": typeof OOrgIdIndexRoute;
-  "/settings/general": typeof SettingsGeneralIndexRoute;
-  "/settings/seo": typeof SettingsSeoIndexRoute;
-  "/settings/workspace": typeof SettingsWorkspaceIndexRoute;
   "/w/$workspaceId": typeof WWorkspaceIdIndexRoute;
-  "/o/$orgId/team/invitations": typeof OOrgIdTeamInvitationsRoute;
-  "/o/$orgId/team/members": typeof OOrgIdTeamMembersRoute;
-  "/o/$orgId/team/roles": typeof OOrgIdTeamRolesRoute;
-  "/w/$workspaceId/team/invitations": typeof WWorkspaceIdTeamInvitationsRoute;
-  "/w/$workspaceId/team/members": typeof WWorkspaceIdTeamMembersRoute;
-  "/w/$workspaceId/team/roles": typeof WWorkspaceIdTeamRolesRoute;
   "/o/$orgId/activity": typeof OOrgIdActivityIndexRoute;
   "/o/$orgId/extensions": typeof OOrgIdExtensionsIndexRoute;
   "/o/$orgId/members": typeof OOrgIdMembersIndexRoute;
+  "/o/$orgId/settings": typeof OOrgIdSettingsIndexRoute;
   "/o/$orgId/team": typeof OOrgIdTeamIndexRoute;
   "/o/$orgId/workspaces": typeof OOrgIdWorkspacesIndexRoute;
-  "/settings/maintenance/activity": typeof SettingsMaintenanceActivityIndexRoute;
-  "/settings/maintenance/snapshots": typeof SettingsMaintenanceSnapshotsIndexRoute;
-  "/settings/maintenance/status": typeof SettingsMaintenanceStatusIndexRoute;
   "/w/$workspaceId/assets": typeof WWorkspaceIdAssetsIndexRoute;
   "/w/$workspaceId/extensions": typeof WWorkspaceIdExtensionsIndexRoute;
   "/w/$workspaceId/notifications": typeof WWorkspaceIdNotificationsIndexRoute;
   "/w/$workspaceId/team": typeof WWorkspaceIdTeamIndexRoute;
   "/w/$workspaceId/editor/$editorMode/$entityId": typeof WWorkspaceIdEditorEditorModeEntityIdRoute;
   "/o/$orgId/extensions/$pluginSlug": typeof OOrgIdExtensionsPluginSlugIndexRoute;
-  "/o/$orgId/settings/organization": typeof OOrgIdSettingsOrganizationIndexRoute;
-  "/w/$workspaceId/appearance/navigation": typeof WWorkspaceIdAppearanceNavigationIndexRoute;
+  "/o/$orgId/settings/activity": typeof OOrgIdSettingsActivityIndexRoute;
+  "/o/$orgId/team/invitations": typeof OOrgIdTeamInvitationsIndexRoute;
+  "/o/$orgId/team/members": typeof OOrgIdTeamMembersIndexRoute;
+  "/o/$orgId/team/roles": typeof OOrgIdTeamRolesIndexRoute;
   "/w/$workspaceId/appearance/styles": typeof WWorkspaceIdAppearanceStylesIndexRoute;
   "/w/$workspaceId/appearance/themes": typeof WWorkspaceIdAppearanceThemesIndexRoute;
   "/w/$workspaceId/content/library": typeof WWorkspaceIdContentLibraryIndexRoute;
@@ -409,7 +341,9 @@ export interface FileRoutesByTo {
   "/w/$workspaceId/settings/organization": typeof WWorkspaceIdSettingsOrganizationIndexRoute;
   "/w/$workspaceId/settings/seo": typeof WWorkspaceIdSettingsSeoIndexRoute;
   "/w/$workspaceId/settings/workspace": typeof WWorkspaceIdSettingsWorkspaceIndexRoute;
-  "/o/$orgId/settings/organization/activity": typeof OOrgIdSettingsOrganizationActivityIndexRoute;
+  "/w/$workspaceId/team/invitations": typeof WWorkspaceIdTeamInvitationsIndexRoute;
+  "/w/$workspaceId/team/members": typeof WWorkspaceIdTeamMembersIndexRoute;
+  "/w/$workspaceId/team/roles": typeof WWorkspaceIdTeamRolesIndexRoute;
   "/w/$workspaceId/settings/maintenance/activity": typeof WWorkspaceIdSettingsMaintenanceActivityIndexRoute;
   "/w/$workspaceId/settings/maintenance/snapshots": typeof WWorkspaceIdSettingsMaintenanceSnapshotsIndexRoute;
   "/w/$workspaceId/settings/maintenance/status": typeof WWorkspaceIdSettingsMaintenanceStatusIndexRoute;
@@ -417,41 +351,31 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport;
   "/": typeof IndexRoute;
-  "/accept-invite": typeof AcceptInviteRoute;
-  "/login": typeof LoginRoute;
-  "/onboarding": typeof OnboardingRoute;
-  "/reset-password": typeof ResetPasswordRoute;
-  "/setup": typeof SetupRoute;
-  "/me/notifications": typeof MeNotificationsRoute;
   "/o/$orgId": typeof OOrgIdRouteWithChildren;
   "/w/$workspaceId": typeof WWorkspaceIdRouteWithChildren;
+  "/accept-invite/": typeof AcceptInviteIndexRoute;
+  "/login/": typeof LoginIndexRoute;
+  "/reset-password/": typeof ResetPasswordIndexRoute;
+  "/setup/": typeof SetupIndexRoute;
+  "/me/notifications/": typeof MeNotificationsIndexRoute;
   "/o/$orgId/": typeof OOrgIdIndexRoute;
-  "/settings/general/": typeof SettingsGeneralIndexRoute;
-  "/settings/seo/": typeof SettingsSeoIndexRoute;
-  "/settings/workspace/": typeof SettingsWorkspaceIndexRoute;
   "/w/$workspaceId/": typeof WWorkspaceIdIndexRoute;
-  "/o/$orgId/team/invitations": typeof OOrgIdTeamInvitationsRoute;
-  "/o/$orgId/team/members": typeof OOrgIdTeamMembersRoute;
-  "/o/$orgId/team/roles": typeof OOrgIdTeamRolesRoute;
-  "/w/$workspaceId/team/invitations": typeof WWorkspaceIdTeamInvitationsRoute;
-  "/w/$workspaceId/team/members": typeof WWorkspaceIdTeamMembersRoute;
-  "/w/$workspaceId/team/roles": typeof WWorkspaceIdTeamRolesRoute;
   "/o/$orgId/activity/": typeof OOrgIdActivityIndexRoute;
   "/o/$orgId/extensions/": typeof OOrgIdExtensionsIndexRoute;
   "/o/$orgId/members/": typeof OOrgIdMembersIndexRoute;
+  "/o/$orgId/settings/": typeof OOrgIdSettingsIndexRoute;
   "/o/$orgId/team/": typeof OOrgIdTeamIndexRoute;
   "/o/$orgId/workspaces/": typeof OOrgIdWorkspacesIndexRoute;
-  "/settings/maintenance/activity/": typeof SettingsMaintenanceActivityIndexRoute;
-  "/settings/maintenance/snapshots/": typeof SettingsMaintenanceSnapshotsIndexRoute;
-  "/settings/maintenance/status/": typeof SettingsMaintenanceStatusIndexRoute;
   "/w/$workspaceId/assets/": typeof WWorkspaceIdAssetsIndexRoute;
   "/w/$workspaceId/extensions/": typeof WWorkspaceIdExtensionsIndexRoute;
   "/w/$workspaceId/notifications/": typeof WWorkspaceIdNotificationsIndexRoute;
   "/w/$workspaceId/team/": typeof WWorkspaceIdTeamIndexRoute;
   "/w/$workspaceId/editor/$editorMode/$entityId": typeof WWorkspaceIdEditorEditorModeEntityIdRoute;
   "/o/$orgId/extensions/$pluginSlug/": typeof OOrgIdExtensionsPluginSlugIndexRoute;
-  "/o/$orgId/settings/organization/": typeof OOrgIdSettingsOrganizationIndexRoute;
-  "/w/$workspaceId/appearance/navigation/": typeof WWorkspaceIdAppearanceNavigationIndexRoute;
+  "/o/$orgId/settings/activity/": typeof OOrgIdSettingsActivityIndexRoute;
+  "/o/$orgId/team/invitations/": typeof OOrgIdTeamInvitationsIndexRoute;
+  "/o/$orgId/team/members/": typeof OOrgIdTeamMembersIndexRoute;
+  "/o/$orgId/team/roles/": typeof OOrgIdTeamRolesIndexRoute;
   "/w/$workspaceId/appearance/styles/": typeof WWorkspaceIdAppearanceStylesIndexRoute;
   "/w/$workspaceId/appearance/themes/": typeof WWorkspaceIdAppearanceThemesIndexRoute;
   "/w/$workspaceId/content/library/": typeof WWorkspaceIdContentLibraryIndexRoute;
@@ -461,7 +385,9 @@ export interface FileRoutesById {
   "/w/$workspaceId/settings/organization/": typeof WWorkspaceIdSettingsOrganizationIndexRoute;
   "/w/$workspaceId/settings/seo/": typeof WWorkspaceIdSettingsSeoIndexRoute;
   "/w/$workspaceId/settings/workspace/": typeof WWorkspaceIdSettingsWorkspaceIndexRoute;
-  "/o/$orgId/settings/organization/activity/": typeof OOrgIdSettingsOrganizationActivityIndexRoute;
+  "/w/$workspaceId/team/invitations/": typeof WWorkspaceIdTeamInvitationsIndexRoute;
+  "/w/$workspaceId/team/members/": typeof WWorkspaceIdTeamMembersIndexRoute;
+  "/w/$workspaceId/team/roles/": typeof WWorkspaceIdTeamRolesIndexRoute;
   "/w/$workspaceId/settings/maintenance/activity/": typeof WWorkspaceIdSettingsMaintenanceActivityIndexRoute;
   "/w/$workspaceId/settings/maintenance/snapshots/": typeof WWorkspaceIdSettingsMaintenanceSnapshotsIndexRoute;
   "/w/$workspaceId/settings/maintenance/status/": typeof WWorkspaceIdSettingsMaintenanceStatusIndexRoute;
@@ -470,41 +396,31 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath;
   fullPaths:
     | "/"
-    | "/accept-invite"
-    | "/login"
-    | "/onboarding"
-    | "/reset-password"
-    | "/setup"
-    | "/me/notifications"
     | "/o/$orgId"
     | "/w/$workspaceId"
+    | "/accept-invite/"
+    | "/login/"
+    | "/reset-password/"
+    | "/setup/"
+    | "/me/notifications/"
     | "/o/$orgId/"
-    | "/settings/general/"
-    | "/settings/seo/"
-    | "/settings/workspace/"
     | "/w/$workspaceId/"
-    | "/o/$orgId/team/invitations"
-    | "/o/$orgId/team/members"
-    | "/o/$orgId/team/roles"
-    | "/w/$workspaceId/team/invitations"
-    | "/w/$workspaceId/team/members"
-    | "/w/$workspaceId/team/roles"
     | "/o/$orgId/activity/"
     | "/o/$orgId/extensions/"
     | "/o/$orgId/members/"
+    | "/o/$orgId/settings/"
     | "/o/$orgId/team/"
     | "/o/$orgId/workspaces/"
-    | "/settings/maintenance/activity/"
-    | "/settings/maintenance/snapshots/"
-    | "/settings/maintenance/status/"
     | "/w/$workspaceId/assets/"
     | "/w/$workspaceId/extensions/"
     | "/w/$workspaceId/notifications/"
     | "/w/$workspaceId/team/"
     | "/w/$workspaceId/editor/$editorMode/$entityId"
     | "/o/$orgId/extensions/$pluginSlug/"
-    | "/o/$orgId/settings/organization/"
-    | "/w/$workspaceId/appearance/navigation/"
+    | "/o/$orgId/settings/activity/"
+    | "/o/$orgId/team/invitations/"
+    | "/o/$orgId/team/members/"
+    | "/o/$orgId/team/roles/"
     | "/w/$workspaceId/appearance/styles/"
     | "/w/$workspaceId/appearance/themes/"
     | "/w/$workspaceId/content/library/"
@@ -514,7 +430,9 @@ export interface FileRouteTypes {
     | "/w/$workspaceId/settings/organization/"
     | "/w/$workspaceId/settings/seo/"
     | "/w/$workspaceId/settings/workspace/"
-    | "/o/$orgId/settings/organization/activity/"
+    | "/w/$workspaceId/team/invitations/"
+    | "/w/$workspaceId/team/members/"
+    | "/w/$workspaceId/team/roles/"
     | "/w/$workspaceId/settings/maintenance/activity/"
     | "/w/$workspaceId/settings/maintenance/snapshots/"
     | "/w/$workspaceId/settings/maintenance/status/";
@@ -523,37 +441,27 @@ export interface FileRouteTypes {
     | "/"
     | "/accept-invite"
     | "/login"
-    | "/onboarding"
     | "/reset-password"
     | "/setup"
     | "/me/notifications"
     | "/o/$orgId"
-    | "/settings/general"
-    | "/settings/seo"
-    | "/settings/workspace"
     | "/w/$workspaceId"
-    | "/o/$orgId/team/invitations"
-    | "/o/$orgId/team/members"
-    | "/o/$orgId/team/roles"
-    | "/w/$workspaceId/team/invitations"
-    | "/w/$workspaceId/team/members"
-    | "/w/$workspaceId/team/roles"
     | "/o/$orgId/activity"
     | "/o/$orgId/extensions"
     | "/o/$orgId/members"
+    | "/o/$orgId/settings"
     | "/o/$orgId/team"
     | "/o/$orgId/workspaces"
-    | "/settings/maintenance/activity"
-    | "/settings/maintenance/snapshots"
-    | "/settings/maintenance/status"
     | "/w/$workspaceId/assets"
     | "/w/$workspaceId/extensions"
     | "/w/$workspaceId/notifications"
     | "/w/$workspaceId/team"
     | "/w/$workspaceId/editor/$editorMode/$entityId"
     | "/o/$orgId/extensions/$pluginSlug"
-    | "/o/$orgId/settings/organization"
-    | "/w/$workspaceId/appearance/navigation"
+    | "/o/$orgId/settings/activity"
+    | "/o/$orgId/team/invitations"
+    | "/o/$orgId/team/members"
+    | "/o/$orgId/team/roles"
     | "/w/$workspaceId/appearance/styles"
     | "/w/$workspaceId/appearance/themes"
     | "/w/$workspaceId/content/library"
@@ -563,48 +471,40 @@ export interface FileRouteTypes {
     | "/w/$workspaceId/settings/organization"
     | "/w/$workspaceId/settings/seo"
     | "/w/$workspaceId/settings/workspace"
-    | "/o/$orgId/settings/organization/activity"
+    | "/w/$workspaceId/team/invitations"
+    | "/w/$workspaceId/team/members"
+    | "/w/$workspaceId/team/roles"
     | "/w/$workspaceId/settings/maintenance/activity"
     | "/w/$workspaceId/settings/maintenance/snapshots"
     | "/w/$workspaceId/settings/maintenance/status";
   id:
     | "__root__"
     | "/"
-    | "/accept-invite"
-    | "/login"
-    | "/onboarding"
-    | "/reset-password"
-    | "/setup"
-    | "/me/notifications"
     | "/o/$orgId"
     | "/w/$workspaceId"
+    | "/accept-invite/"
+    | "/login/"
+    | "/reset-password/"
+    | "/setup/"
+    | "/me/notifications/"
     | "/o/$orgId/"
-    | "/settings/general/"
-    | "/settings/seo/"
-    | "/settings/workspace/"
     | "/w/$workspaceId/"
-    | "/o/$orgId/team/invitations"
-    | "/o/$orgId/team/members"
-    | "/o/$orgId/team/roles"
-    | "/w/$workspaceId/team/invitations"
-    | "/w/$workspaceId/team/members"
-    | "/w/$workspaceId/team/roles"
     | "/o/$orgId/activity/"
     | "/o/$orgId/extensions/"
     | "/o/$orgId/members/"
+    | "/o/$orgId/settings/"
     | "/o/$orgId/team/"
     | "/o/$orgId/workspaces/"
-    | "/settings/maintenance/activity/"
-    | "/settings/maintenance/snapshots/"
-    | "/settings/maintenance/status/"
     | "/w/$workspaceId/assets/"
     | "/w/$workspaceId/extensions/"
     | "/w/$workspaceId/notifications/"
     | "/w/$workspaceId/team/"
     | "/w/$workspaceId/editor/$editorMode/$entityId"
     | "/o/$orgId/extensions/$pluginSlug/"
-    | "/o/$orgId/settings/organization/"
-    | "/w/$workspaceId/appearance/navigation/"
+    | "/o/$orgId/settings/activity/"
+    | "/o/$orgId/team/invitations/"
+    | "/o/$orgId/team/members/"
+    | "/o/$orgId/team/roles/"
     | "/w/$workspaceId/appearance/styles/"
     | "/w/$workspaceId/appearance/themes/"
     | "/w/$workspaceId/content/library/"
@@ -614,7 +514,9 @@ export interface FileRouteTypes {
     | "/w/$workspaceId/settings/organization/"
     | "/w/$workspaceId/settings/seo/"
     | "/w/$workspaceId/settings/workspace/"
-    | "/o/$orgId/settings/organization/activity/"
+    | "/w/$workspaceId/team/invitations/"
+    | "/w/$workspaceId/team/members/"
+    | "/w/$workspaceId/team/roles/"
     | "/w/$workspaceId/settings/maintenance/activity/"
     | "/w/$workspaceId/settings/maintenance/snapshots/"
     | "/w/$workspaceId/settings/maintenance/status/";
@@ -622,64 +524,50 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute;
-  AcceptInviteRoute: typeof AcceptInviteRoute;
-  LoginRoute: typeof LoginRoute;
-  OnboardingRoute: typeof OnboardingRoute;
-  ResetPasswordRoute: typeof ResetPasswordRoute;
-  SetupRoute: typeof SetupRoute;
-  MeNotificationsRoute: typeof MeNotificationsRoute;
   OOrgIdRoute: typeof OOrgIdRouteWithChildren;
   WWorkspaceIdRoute: typeof WWorkspaceIdRouteWithChildren;
-  SettingsGeneralIndexRoute: typeof SettingsGeneralIndexRoute;
-  SettingsSeoIndexRoute: typeof SettingsSeoIndexRoute;
-  SettingsWorkspaceIndexRoute: typeof SettingsWorkspaceIndexRoute;
-  SettingsMaintenanceActivityIndexRoute: typeof SettingsMaintenanceActivityIndexRoute;
-  SettingsMaintenanceSnapshotsIndexRoute: typeof SettingsMaintenanceSnapshotsIndexRoute;
-  SettingsMaintenanceStatusIndexRoute: typeof SettingsMaintenanceStatusIndexRoute;
+  AcceptInviteIndexRoute: typeof AcceptInviteIndexRoute;
+  LoginIndexRoute: typeof LoginIndexRoute;
+  ResetPasswordIndexRoute: typeof ResetPasswordIndexRoute;
+  SetupIndexRoute: typeof SetupIndexRoute;
+  MeNotificationsIndexRoute: typeof MeNotificationsIndexRoute;
 }
 
 declare module "@tanstack/react-router" {
   interface FileRoutesByPath {
-    "/setup": {
-      id: "/setup";
-      path: "/setup";
-      fullPath: "/setup";
-      preLoaderRoute: typeof SetupRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/reset-password": {
-      id: "/reset-password";
-      path: "/reset-password";
-      fullPath: "/reset-password";
-      preLoaderRoute: typeof ResetPasswordRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/onboarding": {
-      id: "/onboarding";
-      path: "/onboarding";
-      fullPath: "/onboarding";
-      preLoaderRoute: typeof OnboardingRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/login": {
-      id: "/login";
-      path: "/login";
-      fullPath: "/login";
-      preLoaderRoute: typeof LoginRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/accept-invite": {
-      id: "/accept-invite";
-      path: "/accept-invite";
-      fullPath: "/accept-invite";
-      preLoaderRoute: typeof AcceptInviteRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
     "/": {
       id: "/";
       path: "/";
       fullPath: "/";
       preLoaderRoute: typeof IndexRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/setup/": {
+      id: "/setup/";
+      path: "/setup";
+      fullPath: "/setup/";
+      preLoaderRoute: typeof SetupIndexRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/reset-password/": {
+      id: "/reset-password/";
+      path: "/reset-password";
+      fullPath: "/reset-password/";
+      preLoaderRoute: typeof ResetPasswordIndexRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/login/": {
+      id: "/login/";
+      path: "/login";
+      fullPath: "/login/";
+      preLoaderRoute: typeof LoginIndexRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/accept-invite/": {
+      id: "/accept-invite/";
+      path: "/accept-invite";
+      fullPath: "/accept-invite/";
+      preLoaderRoute: typeof AcceptInviteIndexRouteImport;
       parentRoute: typeof rootRouteImport;
     };
     "/w/$workspaceId": {
@@ -696,13 +584,6 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof OOrgIdRouteImport;
       parentRoute: typeof rootRouteImport;
     };
-    "/me/notifications": {
-      id: "/me/notifications";
-      path: "/me/notifications";
-      fullPath: "/me/notifications";
-      preLoaderRoute: typeof MeNotificationsRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
     "/w/$workspaceId/": {
       id: "/w/$workspaceId/";
       path: "/";
@@ -710,33 +591,19 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof WWorkspaceIdIndexRouteImport;
       parentRoute: typeof WWorkspaceIdRoute;
     };
-    "/settings/workspace/": {
-      id: "/settings/workspace/";
-      path: "/settings/workspace";
-      fullPath: "/settings/workspace/";
-      preLoaderRoute: typeof SettingsWorkspaceIndexRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/settings/seo/": {
-      id: "/settings/seo/";
-      path: "/settings/seo";
-      fullPath: "/settings/seo/";
-      preLoaderRoute: typeof SettingsSeoIndexRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/settings/general/": {
-      id: "/settings/general/";
-      path: "/settings/general";
-      fullPath: "/settings/general/";
-      preLoaderRoute: typeof SettingsGeneralIndexRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
     "/o/$orgId/": {
       id: "/o/$orgId/";
       path: "/";
       fullPath: "/o/$orgId/";
       preLoaderRoute: typeof OOrgIdIndexRouteImport;
       parentRoute: typeof OOrgIdRoute;
+    };
+    "/me/notifications/": {
+      id: "/me/notifications/";
+      path: "/me/notifications";
+      fullPath: "/me/notifications/";
+      preLoaderRoute: typeof MeNotificationsIndexRouteImport;
+      parentRoute: typeof rootRouteImport;
     };
     "/w/$workspaceId/team/": {
       id: "/w/$workspaceId/team/";
@@ -766,27 +633,6 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof WWorkspaceIdAssetsIndexRouteImport;
       parentRoute: typeof WWorkspaceIdRoute;
     };
-    "/settings/maintenance/status/": {
-      id: "/settings/maintenance/status/";
-      path: "/settings/maintenance/status";
-      fullPath: "/settings/maintenance/status/";
-      preLoaderRoute: typeof SettingsMaintenanceStatusIndexRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/settings/maintenance/snapshots/": {
-      id: "/settings/maintenance/snapshots/";
-      path: "/settings/maintenance/snapshots";
-      fullPath: "/settings/maintenance/snapshots/";
-      preLoaderRoute: typeof SettingsMaintenanceSnapshotsIndexRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/settings/maintenance/activity/": {
-      id: "/settings/maintenance/activity/";
-      path: "/settings/maintenance/activity";
-      fullPath: "/settings/maintenance/activity/";
-      preLoaderRoute: typeof SettingsMaintenanceActivityIndexRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
     "/o/$orgId/workspaces/": {
       id: "/o/$orgId/workspaces/";
       path: "/workspaces";
@@ -799,6 +645,13 @@ declare module "@tanstack/react-router" {
       path: "/team";
       fullPath: "/o/$orgId/team/";
       preLoaderRoute: typeof OOrgIdTeamIndexRouteImport;
+      parentRoute: typeof OOrgIdRoute;
+    };
+    "/o/$orgId/settings/": {
+      id: "/o/$orgId/settings/";
+      path: "/settings";
+      fullPath: "/o/$orgId/settings/";
+      preLoaderRoute: typeof OOrgIdSettingsIndexRouteImport;
       parentRoute: typeof OOrgIdRoute;
     };
     "/o/$orgId/members/": {
@@ -822,47 +675,26 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof OOrgIdActivityIndexRouteImport;
       parentRoute: typeof OOrgIdRoute;
     };
-    "/w/$workspaceId/team/roles": {
-      id: "/w/$workspaceId/team/roles";
+    "/w/$workspaceId/team/roles/": {
+      id: "/w/$workspaceId/team/roles/";
       path: "/team/roles";
-      fullPath: "/w/$workspaceId/team/roles";
-      preLoaderRoute: typeof WWorkspaceIdTeamRolesRouteImport;
+      fullPath: "/w/$workspaceId/team/roles/";
+      preLoaderRoute: typeof WWorkspaceIdTeamRolesIndexRouteImport;
       parentRoute: typeof WWorkspaceIdRoute;
     };
-    "/w/$workspaceId/team/members": {
-      id: "/w/$workspaceId/team/members";
+    "/w/$workspaceId/team/members/": {
+      id: "/w/$workspaceId/team/members/";
       path: "/team/members";
-      fullPath: "/w/$workspaceId/team/members";
-      preLoaderRoute: typeof WWorkspaceIdTeamMembersRouteImport;
+      fullPath: "/w/$workspaceId/team/members/";
+      preLoaderRoute: typeof WWorkspaceIdTeamMembersIndexRouteImport;
       parentRoute: typeof WWorkspaceIdRoute;
     };
-    "/w/$workspaceId/team/invitations": {
-      id: "/w/$workspaceId/team/invitations";
+    "/w/$workspaceId/team/invitations/": {
+      id: "/w/$workspaceId/team/invitations/";
       path: "/team/invitations";
-      fullPath: "/w/$workspaceId/team/invitations";
-      preLoaderRoute: typeof WWorkspaceIdTeamInvitationsRouteImport;
+      fullPath: "/w/$workspaceId/team/invitations/";
+      preLoaderRoute: typeof WWorkspaceIdTeamInvitationsIndexRouteImport;
       parentRoute: typeof WWorkspaceIdRoute;
-    };
-    "/o/$orgId/team/roles": {
-      id: "/o/$orgId/team/roles";
-      path: "/team/roles";
-      fullPath: "/o/$orgId/team/roles";
-      preLoaderRoute: typeof OOrgIdTeamRolesRouteImport;
-      parentRoute: typeof OOrgIdRoute;
-    };
-    "/o/$orgId/team/members": {
-      id: "/o/$orgId/team/members";
-      path: "/team/members";
-      fullPath: "/o/$orgId/team/members";
-      preLoaderRoute: typeof OOrgIdTeamMembersRouteImport;
-      parentRoute: typeof OOrgIdRoute;
-    };
-    "/o/$orgId/team/invitations": {
-      id: "/o/$orgId/team/invitations";
-      path: "/team/invitations";
-      fullPath: "/o/$orgId/team/invitations";
-      preLoaderRoute: typeof OOrgIdTeamInvitationsRouteImport;
-      parentRoute: typeof OOrgIdRoute;
     };
     "/w/$workspaceId/settings/workspace/": {
       id: "/w/$workspaceId/settings/workspace/";
@@ -927,18 +759,32 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof WWorkspaceIdAppearanceStylesIndexRouteImport;
       parentRoute: typeof WWorkspaceIdRoute;
     };
-    "/w/$workspaceId/appearance/navigation/": {
-      id: "/w/$workspaceId/appearance/navigation/";
-      path: "/appearance/navigation";
-      fullPath: "/w/$workspaceId/appearance/navigation/";
-      preLoaderRoute: typeof WWorkspaceIdAppearanceNavigationIndexRouteImport;
-      parentRoute: typeof WWorkspaceIdRoute;
+    "/o/$orgId/team/roles/": {
+      id: "/o/$orgId/team/roles/";
+      path: "/team/roles";
+      fullPath: "/o/$orgId/team/roles/";
+      preLoaderRoute: typeof OOrgIdTeamRolesIndexRouteImport;
+      parentRoute: typeof OOrgIdRoute;
     };
-    "/o/$orgId/settings/organization/": {
-      id: "/o/$orgId/settings/organization/";
-      path: "/settings/organization";
-      fullPath: "/o/$orgId/settings/organization/";
-      preLoaderRoute: typeof OOrgIdSettingsOrganizationIndexRouteImport;
+    "/o/$orgId/team/members/": {
+      id: "/o/$orgId/team/members/";
+      path: "/team/members";
+      fullPath: "/o/$orgId/team/members/";
+      preLoaderRoute: typeof OOrgIdTeamMembersIndexRouteImport;
+      parentRoute: typeof OOrgIdRoute;
+    };
+    "/o/$orgId/team/invitations/": {
+      id: "/o/$orgId/team/invitations/";
+      path: "/team/invitations";
+      fullPath: "/o/$orgId/team/invitations/";
+      preLoaderRoute: typeof OOrgIdTeamInvitationsIndexRouteImport;
+      parentRoute: typeof OOrgIdRoute;
+    };
+    "/o/$orgId/settings/activity/": {
+      id: "/o/$orgId/settings/activity/";
+      path: "/settings/activity";
+      fullPath: "/o/$orgId/settings/activity/";
+      preLoaderRoute: typeof OOrgIdSettingsActivityIndexRouteImport;
       parentRoute: typeof OOrgIdRoute;
     };
     "/o/$orgId/extensions/$pluginSlug/": {
@@ -976,59 +822,48 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof WWorkspaceIdSettingsMaintenanceActivityIndexRouteImport;
       parentRoute: typeof WWorkspaceIdRoute;
     };
-    "/o/$orgId/settings/organization/activity/": {
-      id: "/o/$orgId/settings/organization/activity/";
-      path: "/settings/organization/activity";
-      fullPath: "/o/$orgId/settings/organization/activity/";
-      preLoaderRoute: typeof OOrgIdSettingsOrganizationActivityIndexRouteImport;
-      parentRoute: typeof OOrgIdRoute;
-    };
   }
 }
 
 interface OOrgIdRouteChildren {
   OOrgIdIndexRoute: typeof OOrgIdIndexRoute;
-  OOrgIdTeamInvitationsRoute: typeof OOrgIdTeamInvitationsRoute;
-  OOrgIdTeamMembersRoute: typeof OOrgIdTeamMembersRoute;
-  OOrgIdTeamRolesRoute: typeof OOrgIdTeamRolesRoute;
   OOrgIdActivityIndexRoute: typeof OOrgIdActivityIndexRoute;
   OOrgIdExtensionsIndexRoute: typeof OOrgIdExtensionsIndexRoute;
   OOrgIdMembersIndexRoute: typeof OOrgIdMembersIndexRoute;
+  OOrgIdSettingsIndexRoute: typeof OOrgIdSettingsIndexRoute;
   OOrgIdTeamIndexRoute: typeof OOrgIdTeamIndexRoute;
   OOrgIdWorkspacesIndexRoute: typeof OOrgIdWorkspacesIndexRoute;
   OOrgIdExtensionsPluginSlugIndexRoute: typeof OOrgIdExtensionsPluginSlugIndexRoute;
-  OOrgIdSettingsOrganizationIndexRoute: typeof OOrgIdSettingsOrganizationIndexRoute;
-  OOrgIdSettingsOrganizationActivityIndexRoute: typeof OOrgIdSettingsOrganizationActivityIndexRoute;
+  OOrgIdSettingsActivityIndexRoute: typeof OOrgIdSettingsActivityIndexRoute;
+  OOrgIdTeamInvitationsIndexRoute: typeof OOrgIdTeamInvitationsIndexRoute;
+  OOrgIdTeamMembersIndexRoute: typeof OOrgIdTeamMembersIndexRoute;
+  OOrgIdTeamRolesIndexRoute: typeof OOrgIdTeamRolesIndexRoute;
 }
 
 const OOrgIdRouteChildren: OOrgIdRouteChildren = {
   OOrgIdIndexRoute: OOrgIdIndexRoute,
-  OOrgIdTeamInvitationsRoute: OOrgIdTeamInvitationsRoute,
-  OOrgIdTeamMembersRoute: OOrgIdTeamMembersRoute,
-  OOrgIdTeamRolesRoute: OOrgIdTeamRolesRoute,
   OOrgIdActivityIndexRoute: OOrgIdActivityIndexRoute,
   OOrgIdExtensionsIndexRoute: OOrgIdExtensionsIndexRoute,
   OOrgIdMembersIndexRoute: OOrgIdMembersIndexRoute,
+  OOrgIdSettingsIndexRoute: OOrgIdSettingsIndexRoute,
   OOrgIdTeamIndexRoute: OOrgIdTeamIndexRoute,
   OOrgIdWorkspacesIndexRoute: OOrgIdWorkspacesIndexRoute,
   OOrgIdExtensionsPluginSlugIndexRoute: OOrgIdExtensionsPluginSlugIndexRoute,
-  OOrgIdSettingsOrganizationIndexRoute: OOrgIdSettingsOrganizationIndexRoute,
-  OOrgIdSettingsOrganizationActivityIndexRoute: OOrgIdSettingsOrganizationActivityIndexRoute,
+  OOrgIdSettingsActivityIndexRoute: OOrgIdSettingsActivityIndexRoute,
+  OOrgIdTeamInvitationsIndexRoute: OOrgIdTeamInvitationsIndexRoute,
+  OOrgIdTeamMembersIndexRoute: OOrgIdTeamMembersIndexRoute,
+  OOrgIdTeamRolesIndexRoute: OOrgIdTeamRolesIndexRoute,
 };
 
 const OOrgIdRouteWithChildren = OOrgIdRoute._addFileChildren(OOrgIdRouteChildren);
 
 interface WWorkspaceIdRouteChildren {
   WWorkspaceIdIndexRoute: typeof WWorkspaceIdIndexRoute;
-  WWorkspaceIdTeamInvitationsRoute: typeof WWorkspaceIdTeamInvitationsRoute;
-  WWorkspaceIdTeamMembersRoute: typeof WWorkspaceIdTeamMembersRoute;
-  WWorkspaceIdTeamRolesRoute: typeof WWorkspaceIdTeamRolesRoute;
   WWorkspaceIdAssetsIndexRoute: typeof WWorkspaceIdAssetsIndexRoute;
   WWorkspaceIdExtensionsIndexRoute: typeof WWorkspaceIdExtensionsIndexRoute;
   WWorkspaceIdNotificationsIndexRoute: typeof WWorkspaceIdNotificationsIndexRoute;
   WWorkspaceIdTeamIndexRoute: typeof WWorkspaceIdTeamIndexRoute;
   WWorkspaceIdEditorEditorModeEntityIdRoute: typeof WWorkspaceIdEditorEditorModeEntityIdRoute;
-  WWorkspaceIdAppearanceNavigationIndexRoute: typeof WWorkspaceIdAppearanceNavigationIndexRoute;
   WWorkspaceIdAppearanceStylesIndexRoute: typeof WWorkspaceIdAppearanceStylesIndexRoute;
   WWorkspaceIdAppearanceThemesIndexRoute: typeof WWorkspaceIdAppearanceThemesIndexRoute;
   WWorkspaceIdContentLibraryIndexRoute: typeof WWorkspaceIdContentLibraryIndexRoute;
@@ -1038,6 +873,9 @@ interface WWorkspaceIdRouteChildren {
   WWorkspaceIdSettingsOrganizationIndexRoute: typeof WWorkspaceIdSettingsOrganizationIndexRoute;
   WWorkspaceIdSettingsSeoIndexRoute: typeof WWorkspaceIdSettingsSeoIndexRoute;
   WWorkspaceIdSettingsWorkspaceIndexRoute: typeof WWorkspaceIdSettingsWorkspaceIndexRoute;
+  WWorkspaceIdTeamInvitationsIndexRoute: typeof WWorkspaceIdTeamInvitationsIndexRoute;
+  WWorkspaceIdTeamMembersIndexRoute: typeof WWorkspaceIdTeamMembersIndexRoute;
+  WWorkspaceIdTeamRolesIndexRoute: typeof WWorkspaceIdTeamRolesIndexRoute;
   WWorkspaceIdSettingsMaintenanceActivityIndexRoute: typeof WWorkspaceIdSettingsMaintenanceActivityIndexRoute;
   WWorkspaceIdSettingsMaintenanceSnapshotsIndexRoute: typeof WWorkspaceIdSettingsMaintenanceSnapshotsIndexRoute;
   WWorkspaceIdSettingsMaintenanceStatusIndexRoute: typeof WWorkspaceIdSettingsMaintenanceStatusIndexRoute;
@@ -1045,15 +883,11 @@ interface WWorkspaceIdRouteChildren {
 
 const WWorkspaceIdRouteChildren: WWorkspaceIdRouteChildren = {
   WWorkspaceIdIndexRoute: WWorkspaceIdIndexRoute,
-  WWorkspaceIdTeamInvitationsRoute: WWorkspaceIdTeamInvitationsRoute,
-  WWorkspaceIdTeamMembersRoute: WWorkspaceIdTeamMembersRoute,
-  WWorkspaceIdTeamRolesRoute: WWorkspaceIdTeamRolesRoute,
   WWorkspaceIdAssetsIndexRoute: WWorkspaceIdAssetsIndexRoute,
   WWorkspaceIdExtensionsIndexRoute: WWorkspaceIdExtensionsIndexRoute,
   WWorkspaceIdNotificationsIndexRoute: WWorkspaceIdNotificationsIndexRoute,
   WWorkspaceIdTeamIndexRoute: WWorkspaceIdTeamIndexRoute,
   WWorkspaceIdEditorEditorModeEntityIdRoute: WWorkspaceIdEditorEditorModeEntityIdRoute,
-  WWorkspaceIdAppearanceNavigationIndexRoute: WWorkspaceIdAppearanceNavigationIndexRoute,
   WWorkspaceIdAppearanceStylesIndexRoute: WWorkspaceIdAppearanceStylesIndexRoute,
   WWorkspaceIdAppearanceThemesIndexRoute: WWorkspaceIdAppearanceThemesIndexRoute,
   WWorkspaceIdContentLibraryIndexRoute: WWorkspaceIdContentLibraryIndexRoute,
@@ -1063,6 +897,9 @@ const WWorkspaceIdRouteChildren: WWorkspaceIdRouteChildren = {
   WWorkspaceIdSettingsOrganizationIndexRoute: WWorkspaceIdSettingsOrganizationIndexRoute,
   WWorkspaceIdSettingsSeoIndexRoute: WWorkspaceIdSettingsSeoIndexRoute,
   WWorkspaceIdSettingsWorkspaceIndexRoute: WWorkspaceIdSettingsWorkspaceIndexRoute,
+  WWorkspaceIdTeamInvitationsIndexRoute: WWorkspaceIdTeamInvitationsIndexRoute,
+  WWorkspaceIdTeamMembersIndexRoute: WWorkspaceIdTeamMembersIndexRoute,
+  WWorkspaceIdTeamRolesIndexRoute: WWorkspaceIdTeamRolesIndexRoute,
   WWorkspaceIdSettingsMaintenanceActivityIndexRoute:
     WWorkspaceIdSettingsMaintenanceActivityIndexRoute,
   WWorkspaceIdSettingsMaintenanceSnapshotsIndexRoute:
@@ -1074,20 +911,13 @@ const WWorkspaceIdRouteWithChildren = WWorkspaceIdRoute._addFileChildren(WWorksp
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AcceptInviteRoute: AcceptInviteRoute,
-  LoginRoute: LoginRoute,
-  OnboardingRoute: OnboardingRoute,
-  ResetPasswordRoute: ResetPasswordRoute,
-  SetupRoute: SetupRoute,
-  MeNotificationsRoute: MeNotificationsRoute,
   OOrgIdRoute: OOrgIdRouteWithChildren,
   WWorkspaceIdRoute: WWorkspaceIdRouteWithChildren,
-  SettingsGeneralIndexRoute: SettingsGeneralIndexRoute,
-  SettingsSeoIndexRoute: SettingsSeoIndexRoute,
-  SettingsWorkspaceIndexRoute: SettingsWorkspaceIndexRoute,
-  SettingsMaintenanceActivityIndexRoute: SettingsMaintenanceActivityIndexRoute,
-  SettingsMaintenanceSnapshotsIndexRoute: SettingsMaintenanceSnapshotsIndexRoute,
-  SettingsMaintenanceStatusIndexRoute: SettingsMaintenanceStatusIndexRoute,
+  AcceptInviteIndexRoute: AcceptInviteIndexRoute,
+  LoginIndexRoute: LoginIndexRoute,
+  ResetPasswordIndexRoute: ResetPasswordIndexRoute,
+  SetupIndexRoute: SetupIndexRoute,
+  MeNotificationsIndexRoute: MeNotificationsIndexRoute,
 };
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

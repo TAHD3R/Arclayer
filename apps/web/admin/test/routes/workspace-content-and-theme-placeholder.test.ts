@@ -66,14 +66,9 @@ describe("workspace content and appearance routes", () => {
     expect(editorRouteSource).toContain("WorkspaceEditorView");
   });
 
-  test("appearance navigation route redirects to content pages", () => {
-    const source = readFileSync(
-      resolveSource("routes/w/$workspaceId/appearance/navigation/index.tsx"),
-      "utf-8",
-    );
-
-    expect(source).toContain("redirect({");
-    expect(source).toContain('to: "/w/$workspaceId/content/pages"');
+  test("appearance navigation route has been removed", () => {
+    const navRouteFile = resolveSource("routes/w/$workspaceId/appearance/navigation/index.tsx");
+    expect(existsSync(navRouteFile)).toBe(false);
   });
 
   test("legacy workspace content page edit route file is still removed", () => {

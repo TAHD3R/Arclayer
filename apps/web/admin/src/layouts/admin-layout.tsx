@@ -181,7 +181,7 @@ function collectAllowedWorkspacePathPrefixes(
   prefixes.add(normalizePath(`${base}/notifications`));
   // This route immediately redirects to the canonical org-scope path, but guard it as allowed
   // so the redirect can happen without being blocked.
-  prefixes.add(normalizePath(`${base}/settings/organization`));
+  prefixes.add(normalizePath(`${base}/settings`));
 
   const walk = (nodes: AdminNavItem[]) => {
     for (const n of nodes) {
