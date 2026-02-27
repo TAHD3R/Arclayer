@@ -71,7 +71,10 @@ class EntryRevisionRecord(BaseModel):
     rev = fields.IntField()
 
     data = fields.JSONField(null=True)
+    # Legacy DocumentIR payload (deprecated).
     document = fields.JSONField(null=True)
+    # DesignDocumentV1 payload (new source of truth).
+    design_document = fields.JSONField(null=True)
 
     # M2: layered revision payload (nullable for backward compatibility).
     meta = fields.JSONField(null=True)

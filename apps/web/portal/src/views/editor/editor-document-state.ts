@@ -31,6 +31,8 @@ import {
   type FieldDefinition,
 } from "@celestial/site-block-protocol";
 
+import { resolveDesignNodeAtBreakpointV1 } from "@celestial/site-renderer-core";
+
 const HISTORY_LIMIT_DEFAULT = 100;
 
 const MANIFEST_BY_TYPE = new Map<string, BlockManifest>(
@@ -48,6 +50,14 @@ type EditorDocumentHistory = {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function isMotionRefsV1(value: unknown): value is NonNullable<DesignNodeV1["motionRefs"]> {
+  if (!Array.isArray(value)) return false;
+  return value.every(
+    (item) =>
+      isRecord(item) && typeof item.motionId === "string" && item.motionId.trim().length > 0,
+  );
 }
 
 function cloneJson<T>(value: T): T {
@@ -268,6 +278,7 @@ export function buildLayerTree(document: DesignDocumentV1): EditorLayerNode[] {
 
 function resolveInspectorType(node: DesignNodeV1): string {
   if (node.type === "prefab_instance") return `prefab:${node.prefabId}`;
+  if (node.type === "page_root") return "page";
   return node.type;
 }
 
@@ -299,6 +310,13 @@ function toLiteralValue(value: unknown): DesignValueV1 {
 }
 
 function buildComponentInspector(node: DesignNodeV1): Record<string, unknown> {
+  if (node.type === "page_root") {
+    return {
+      title: node.seo?.title,
+      description: node.seo?.description,
+      dataSources: node.dataSources,
+    };
+  }
   if (node.type === "text") {
     return { text: node.text, tag: node.tag, align: node.align };
   }
@@ -371,17 +389,44 @@ export function buildSelectionInspector(
   };
 }
 
-function mergeObject<T extends object>(base: T | undefined, patch: Record<string, unknown>): T {
-  const out = { ...(base ?? ({} as T)) } as Record<string, unknown>;
+function mergePatchValue(base: unknown, patch: unknown): unknown {
+  if (patch === undefined) return base;
+  if (patch === null) return undefined;
+
+  // Patch arrays are treated as replacement.
+  if (Array.isArray(patch)) return patch;
+
+  // Primitives are treated as replacement.
+  if (!isRecord(patch)) return patch;
+
+  const baseObj = isRecord(base) ? base : {};
+  const out: Record<string, unknown> = { ...(baseObj as Record<string, unknown>) };
   for (const [k, v] of Object.entries(patch)) {
     if (v === undefined) continue;
     if (v === null) {
       delete out[k];
       continue;
     }
-    out[k] = v;
+    const merged = mergePatchValue((baseObj as Record<string, unknown>)[k], v);
+    if (merged === undefined) delete out[k];
+    else out[k] = merged;
   }
-  return out as T;
+  return out;
+}
+
+function mergePatch<T extends object>(base: T | undefined, patch: Record<string, unknown>): T {
+  const merged = mergePatchValue(base, patch);
+  return (merged && isRecord(merged) ? merged : {}) as unknown as T;
+}
+
+function omitResponsive(node: DesignNodeV1): DesignNodeV1 {
+  const { responsive: _omit, ...rest } = node;
+  return rest as DesignNodeV1;
+}
+
+function omitMotionRefs(node: DesignNodeV1): DesignNodeV1 {
+  const { motionRefs: _omit, ...rest } = node;
+  return rest as DesignNodeV1;
 }
 
 function deepEqual(a: unknown, b: unknown): boolean {
@@ -924,28 +969,66 @@ export function applySelectionPatch(args: {
 
   const updated = (() => {
     if (section === "layout") {
-      return { ...node, layout: mergeObject<DesignLayoutV1>(node.layout, values) };
+      return { ...node, layout: mergePatch<DesignLayoutV1>(node.layout, values) };
     }
     if (section === "design") {
-      return { ...node, style: mergeObject<DesignStyleV1>(node.style, values) };
+      if (node.type === "prefab_instance") {
+        const manifest = findManifestByType(`prefab:${node.prefabId}`);
+        const allow = new Set(manifest?.styleOverrideWhitelist ?? []);
+        const filtered: Record<string, unknown> = {};
+        for (const [k, v] of Object.entries(values)) {
+          if (!allow.has(k)) continue;
+          filtered[k] = v;
+        }
+        return { ...node, style: mergePatch<DesignStyleV1>(node.style, filtered) };
+      }
+      return { ...node, style: mergePatch<DesignStyleV1>(node.style, values) };
     }
     if (section === "animation") {
       // v1：先把 motionRefs 当作不透明结构传递，阶段 4 会替换为明确 schema。
-      return {
-        ...node,
-        motionRefs: Array.isArray(values.motionRefs) ? (values.motionRefs as any) : node.motionRefs,
-      };
+      if (values.motionRefs === null) return omitMotionRefs(node);
+      if (isMotionRefsV1(values.motionRefs)) return { ...node, motionRefs: values.motionRefs };
+      return node;
     }
     // component
+    if (node.type === "page_root") {
+      const nextTitle = values.title;
+      const nextDescription = values.description;
+      const nextDataSources = values.dataSources;
+
+      const seoChanged = nextTitle !== undefined || nextDescription !== undefined;
+      const nextSeoBase = { ...node.seo } as Record<string, unknown>;
+      if (nextTitle === null) delete nextSeoBase.title;
+      else if (nextTitle !== undefined)
+        nextSeoBase.title = nextTitle as unknown as NonNullable<typeof node.seo>["title"];
+      if (nextDescription === null) delete nextSeoBase.description;
+      else if (nextDescription !== undefined)
+        nextSeoBase.description = nextDescription as unknown as NonNullable<
+          typeof node.seo
+        >["description"];
+      return {
+        ...node,
+        ...(seoChanged
+          ? {
+              seo: nextSeoBase as unknown as NonNullable<typeof node.seo>,
+            }
+          : {}),
+        ...(nextDataSources !== undefined
+          ? { dataSources: nextDataSources as unknown as typeof node.dataSources }
+          : {}),
+      };
+    }
     if (node.type === "text") {
       const nextText = values.text;
       const nextTag = values.tag;
       const nextAlign = values.align;
       return {
         ...node,
-        ...(nextText !== undefined ? { text: nextText as any } : {}),
-        ...(typeof nextTag === "string" ? { tag: nextTag as any } : {}),
-        ...(typeof nextAlign === "string" ? { align: nextAlign as any } : {}),
+        ...(nextText !== undefined ? { text: nextText as unknown as typeof node.text } : {}),
+        ...(typeof nextTag === "string" ? { tag: nextTag as unknown as typeof node.tag } : {}),
+        ...(typeof nextAlign === "string"
+          ? { align: nextAlign as unknown as typeof node.align }
+          : {}),
       };
     }
     if (node.type === "image") {
@@ -954,14 +1037,19 @@ export function applySelectionPatch(args: {
       const nextFit = values.objectFit;
       return {
         ...node,
-        ...(nextSrc !== undefined ? { src: nextSrc as any } : {}),
-        ...(nextAlt !== undefined ? { alt: nextAlt as any } : {}),
-        ...(typeof nextFit === "string" ? { objectFit: nextFit as any } : {}),
+        ...(nextSrc !== undefined ? { src: nextSrc as unknown as typeof node.src } : {}),
+        ...(nextAlt !== undefined ? { alt: nextAlt as unknown as typeof node.alt } : {}),
+        ...(typeof nextFit === "string"
+          ? { objectFit: nextFit as unknown as typeof node.objectFit }
+          : {}),
       };
     }
     if (node.type === "embed") {
       const nextUrl = values.url;
-      return { ...node, ...(nextUrl !== undefined ? { url: nextUrl as any } : {}) };
+      return {
+        ...node,
+        ...(nextUrl !== undefined ? { url: nextUrl as unknown as typeof node.url } : {}),
+      };
     }
     if (node.type === "prefab_instance") {
       const manifest = findManifestByType(`prefab:${node.prefabId}`);
@@ -973,9 +1061,10 @@ export function applySelectionPatch(args: {
       for (const [k, v] of Object.entries(incomingProps)) {
         const field = fields.get(k);
         if (!field) continue;
-        const literal = isRecord(v) && v.kind === "binding" ? (v as any) : toLiteralValue(v);
-        if (literal.kind === "literal" && !validateFieldValue(field, literal.value)) continue;
-        nextProps[k] = literal as DesignValueV1;
+        const nextValue =
+          isRecord(v) && v.kind === "binding" ? (v as unknown as DesignValueV1) : toLiteralValue(v);
+        if (nextValue.kind === "literal" && !validateFieldValue(field, nextValue.value)) continue;
+        nextProps[k] = nextValue;
       }
       return { ...node, props: nextProps };
     }
@@ -991,9 +1080,19 @@ export function buildSelectionInspectorForBreakpoint(args: {
   blockId: BlockId | null;
   breakpoint: string;
 }): EditorSelectionInspector {
-  // v1：UI 会在 breakpoint 模式下构建 inspector 并编辑 override。
-  // 这里直接返回 base inspector；override 的读取/展示由 Host UI 决定。
-  return buildSelectionInspector(args.document, args.blockId);
+  if (!args.blockId) return buildSelectionInspector(args.document, null);
+  const base = args.document.nodesById[args.blockId];
+  if (!base) return buildSelectionInspector(args.document, null);
+
+  const resolved = resolveDesignNodeAtBreakpointV1({ node: base, breakpoint: args.breakpoint });
+  return {
+    blockId: resolved.id,
+    blockType: resolveInspectorType(resolved),
+    component: buildComponentInspector(resolved),
+    layout: buildLayoutInspector(resolved),
+    design: buildDesignInspector(resolved),
+    animation: buildAnimationInspector(resolved),
+  };
 }
 
 export function setBreakpointOverride(args: {
@@ -1021,18 +1120,45 @@ export function setBreakpointOverride(args: {
 
   const nextOverride: DesignNodeResponsiveOverrideV1 = { ...current };
   if (section === "layout") {
-    const base = node.layout ?? {};
-    const merged = mergeObject<DesignLayoutV1>(node.layout, values);
-    const diff = diffObject(base, merged);
-    nextOverride.layout = (diff as any) ?? {};
+    const merged = mergePatch<DesignLayoutV1>(
+      resolveDesignNodeAtBreakpointV1({ node, breakpoint: bp }).layout,
+      values,
+    );
+    const diff = diffObject(node.layout, merged);
+    if (diff && isRecord(diff) && Object.keys(diff).length) {
+      nextOverride.layout = diff as unknown as NonNullable<
+        DesignNodeResponsiveOverrideV1["layout"]
+      >;
+    } else {
+      delete nextOverride.layout;
+    }
   } else if (section === "design") {
-    const base = node.style ?? {};
-    const merged = mergeObject<DesignStyleV1>(node.style, values);
-    const diff = diffObject(base, merged);
-    nextOverride.style = (diff as any) ?? {};
+    const valuesForMerge = (() => {
+      if (node.type !== "prefab_instance") return values;
+      const manifest = findManifestByType(`prefab:${node.prefabId}`);
+      const allow = new Set(manifest?.styleOverrideWhitelist ?? []);
+      const filtered: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(values)) {
+        if (!allow.has(k)) continue;
+        filtered[k] = v;
+      }
+      return filtered;
+    })();
+
+    const merged = mergePatch<DesignStyleV1>(
+      resolveDesignNodeAtBreakpointV1({ node, breakpoint: bp }).style,
+      valuesForMerge,
+    );
+    const diff = diffObject(node.style, merged);
+    if (diff && isRecord(diff) && Object.keys(diff).length) {
+      nextOverride.style = diff as unknown as NonNullable<DesignNodeResponsiveOverrideV1["style"]>;
+    } else {
+      delete nextOverride.style;
+    }
   } else if (section === "animation") {
     // motionRefs 在 v1 允许 override，但目前 UI 尚未实现。
-    if (Array.isArray(values.motionRefs)) nextOverride.motionRefs = values.motionRefs as any;
+    if (values.motionRefs === null) delete nextOverride.motionRefs;
+    else if (isMotionRefsV1(values.motionRefs)) nextOverride.motionRefs = values.motionRefs;
   } else {
     // component 不属于 visual override 范围（v1 只支持 layout/style/transform/motionRefs）。
   }
@@ -1062,7 +1188,11 @@ export function setBreakpointOverride(args: {
     responsive[bp] = cleaned;
   }
 
-  const updatedNode: DesignNodeV1 = { ...node, responsive };
+  const responsiveOut =
+    isRecord(responsive) && Object.keys(responsive).length ? responsive : undefined;
+  const updatedNode: DesignNodeV1 = responsiveOut
+    ? { ...node, responsive: responsiveOut }
+    : omitResponsive(node);
   const nextDocument = setNode(args.document, updatedNode);
   return { document: nextDocument, inspector: buildSelectionInspector(nextDocument, args.blockId) };
 }

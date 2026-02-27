@@ -26,6 +26,8 @@ import {
   validatePrefabInstancePropsV1,
   validateSlotChildrenAgainstManifest,
 } from "./prefab-registry";
+import { createDefaultPrefabRegistryV1 } from "./default-prefab-registry";
+import { resolveDesignNodeAtBreakpointV1 } from "./responsive-overrides";
 
 export type DesignDocumentRendererViewport = {
   width: number;
@@ -80,35 +82,8 @@ function isBindingExpr(value: unknown): value is DesignBindingExprV1 {
   return value.kind === "binding" && typeof value.source === "string" && typeof value.path === "string";
 }
 
-function mergeOverride<T extends object>(base: T | undefined, override: T | undefined): T | undefined {
-  if (!base && !override) return undefined;
-  return { ...(base ?? ({} as T)), ...(override ?? ({} as T)) };
-}
-
-function mergeResponsiveOverride(args: {
-  node: DesignNodeV1;
-  override: DesignNodeResponsiveOverrideV1 | undefined;
-}): DesignNodeV1 {
-  const { node, override } = args;
-  if (!override) return node;
-
-  // v1：仅合并 layout/style/transform/motionRefs，其他字段不允许 override。
-  return {
-    ...node,
-    layout: mergeOverride(node.layout, override.layout),
-    style: mergeOverride(node.style, override.style),
-    transform: mergeOverride(node.transform, override.transform),
-    motionRefs: override.motionRefs ?? node.motionRefs,
-  } as DesignNodeV1;
-}
-
 function resolveNodeAtBreakpoint(node: DesignNodeV1, ctx: ViewerContext): DesignNodeV1 {
-  const bp = (ctx.breakpoint || "").trim();
-  if (!bp) return node;
-  const responsive = node.responsive;
-  if (!responsive || !isRecord(responsive)) return node;
-  const override = responsive[bp] as DesignNodeResponsiveOverrideV1 | undefined;
-  return mergeResponsiveOverride({ node, override });
+  return resolveDesignNodeAtBreakpointV1({ node, breakpoint: ctx.breakpoint });
 }
 
 function resolveTextValue(value: LocalizedString, ctx: ViewerContext): string {
@@ -243,8 +218,9 @@ function toLayoutNodes(args: {
 }
 
 function defaultPrefabRegistry(): PrefabRegistryV1 | undefined {
-  // 目前：内置 registry 由外部 createDefaultPrefabRegistry 提供（后续补齐）。
-  return undefined;
+  // 约定：未显式传入 registry 时，使用内置 PrefabRegistry。
+  // 目的：确保 PrefabInstance 在阶段 3 即可“开箱即用”渲染，而不是只能依赖 host 注入。
+  return createDefaultPrefabRegistryV1();
 }
 
 export function DesignDocumentRenderer(props: DesignDocumentRendererProps) {

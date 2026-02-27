@@ -15,6 +15,7 @@ from apps.api.common.protocols.tortoise import (
 )
 from apps.api.common.repositories.base import BaseRepository
 from apps.api.core.exceptions import Conflict, NotFound
+from apps.api.modules.sites.design_document_schema import DesignDocumentV1
 from apps.api.modules.sites.models.site import SiteRecord
 from apps.api.modules.sites.models.site_entry import EntryRecord, EntryRevisionRecord, EntryTypeRecord
 from apps.api.modules.sites.models.site_page import SitePageRecord, SitePageRevisionRecord, SitePageVisibility
@@ -29,7 +30,6 @@ from apps.api.modules.sites.repository_routing import (
 from apps.api.modules.sites.repository_routing import (
     _match_path_pattern as _routing_match_path_pattern,
 )
-from apps.api.modules.sites.schema import DocumentIR
 from apps.api.modules.sites.types import ResolvedEntryDocument, RouteTemplateMatch, _CompiledRouteTemplate
 from apps.api.modules.sites.utils import normalize_path
 from apps.api.modules.system.models.setting import SettingRecord
@@ -435,7 +435,7 @@ class SitesRepository(BaseRepository):
         entry_type_id: UUID,
         slug: str,
         data: dict | None,
-        document: DocumentIR | None,
+        document: DesignDocumentV1 | None,
         meta: dict | None,
         style_overrides: dict | None,
         variant_id: str | None,
@@ -479,7 +479,7 @@ class SitesRepository(BaseRepository):
         *,
         site_id: UUID,
         path: str,
-        document: DocumentIR,
+        document: DesignDocumentV1,
         meta: dict | None,
         style_overrides: dict | None,
         variant_id: str | None,
@@ -506,7 +506,7 @@ class SitesRepository(BaseRepository):
         *,
         site_id: UUID,
         page_id: UUID,
-        document: DocumentIR,
+        document: DesignDocumentV1,
         meta: dict | None,
         style_overrides: dict | None,
         variant_id: str | None,

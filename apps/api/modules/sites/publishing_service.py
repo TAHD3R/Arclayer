@@ -13,6 +13,11 @@ from apps.api.modules.sites.constants import (
     THEME_CONFIG_NAMESPACE,
     THEME_VARS_NAMESPACE,
 )
+from apps.api.modules.sites.design_document_migrations import (
+    create_empty_design_document_v1,
+    migrate_document_ir_to_design_document_v1,
+)
+from apps.api.modules.sites.design_document_schema import DesignDocumentV1
 from apps.api.modules.sites.repository import SitesRepository
 from apps.api.modules.sites.schema import (
     DocumentIR,
@@ -62,6 +67,47 @@ class SitePublishingService(BaseService):
         self._repo = repo
         self._presence = presence
         self._route_templates_version = route_templates_version
+
+    async def _load_design_document_from_revision(
+        self,
+        rec,
+        *,
+        site_id: UUID,
+        locale: str | None = None,
+        fallback_locale: str | None = None,
+    ) -> DesignDocumentV1 | None:
+        """
+        Load DesignDocumentV1 from a revision record.
+
+        Resolution order:
+        1) design_document (new source of truth)
+        2) legacy document (DocumentIR) -> migrate -> backfill design_document
+        """
+
+        if rec.design_document is not None:
+            try:
+                return DesignDocumentV1.model_validate(rec.design_document)
+            except Exception:
+                return None
+
+        if rec.document is None:
+            return None
+
+        # Legacy: on-read migrate DocumentIR -> DesignDocumentV1, then backfill for future requests.
+        if locale is None or fallback_locale is None:
+            site = await self._repo.get_site_by_id(site_id=site_id)
+            locale = str(site.default_locale)
+            fallback_locale = str(site.fallback_locale)
+
+        legacy = DocumentIR.model_validate(rec.document)
+        migrated = migrate_document_ir_to_design_document_v1(
+            doc=legacy,
+            locale=str(locale),
+            fallback_locale=str(fallback_locale),
+        )
+        rec.design_document = migrated.model_dump(by_alias=True)
+        await rec.save(update_fields=["design_document"])
+        return migrated
 
     async def _read_workspace_draft_retention_max_revisions(self, *, workspace_id: UUID) -> int:
         """
@@ -230,7 +276,12 @@ class SitePublishingService(BaseService):
         if rec is None:
             raise NotFound("Revision not found", error="REVISION_NOT_FOUND")
 
-        doc = DocumentIR.model_validate(rec.document)
+        doc = await self._load_design_document_from_revision(
+            rec,
+            site_id=site_id,
+        )
+        if doc is None:
+            raise NotFound("Revision document not found", error="REVISION_DOC_NOT_FOUND")
         created_at_ms = int(rec.created_at.timestamp() * 1000)
         return SitePageRevisionOut(
             page_id=UUID(str(page.id)),
@@ -267,7 +318,10 @@ class SitePublishingService(BaseService):
         if rec is None:
             raise NotFound("Revision not found", error="REVISION_NOT_FOUND")
 
-        doc = DocumentIR.model_validate(rec.document) if rec.document is not None else None
+        doc = await self._load_design_document_from_revision(
+            rec,
+            site_id=site_id,
+        )
         data = rec.data if isinstance(rec.data, dict) else None
         created_at_ms = int(rec.created_at.timestamp() * 1000)
         return SiteEntryRevisionOut(
@@ -391,8 +445,8 @@ class SitePublishingService(BaseService):
         if not self.settings.database.enabled:
             raise Conflict("Route resolution requires database storage", error="ROUTE_RESOLVE_DB_REQUIRED")
 
-        # Ensure site exists.
-        await self._repo.get_site_by_id(site_id=site_id)
+        # Ensure site exists (also provides locale config for legacy migrations).
+        site = await self._repo.get_site_by_id(site_id=site_id)
 
         # Redirect stub: validate redirect protocol and SSR integration.
         # Sprint 2/3: redirects will be driven by RouteTemplate resolver / site settings.
@@ -419,7 +473,14 @@ class SitePublishingService(BaseService):
             if use_rev:
                 rec = await self._repo.get_page_revision(page_id=UUID(str(page.id)), rev=int(use_rev))
                 if rec is not None:
-                    doc = DocumentIR.model_validate(rec.document)
+                    doc = await self._load_design_document_from_revision(
+                        rec,
+                        site_id=site_id,
+                        locale=str(site.default_locale),
+                        fallback_locale=str(site.fallback_locale),
+                    )
+                    if doc is None:
+                        raise ServiceUnavailable("Failed to load page design document", error="DESIGN_DOCUMENT_INVALID")
                     return SiteRouteResolveOut(
                         match=SiteRouteMatchOut(
                             kind="page",
@@ -448,7 +509,7 @@ class SitePublishingService(BaseService):
                         draft_revision=draft_rev,
                         published_revision=published_rev or None,
                     ),
-                    document=DocumentIR(version=1, blocks=[]),
+                    document=create_empty_design_document_v1(),
                 )
             return SiteRouteResolveOut(match=SiteRouteMatchOut(kind="not_found"), document=None)
 
@@ -762,7 +823,7 @@ class SitePublishingService(BaseService):
         workspace_id = getattr(site, "workspace_id", None)
         ws_id = UUID(str(workspace_id)) if workspace_id is not None else None
 
-        base = "https://example.invalid"
+        base = "https://example.test" if self.settings.app_env == "test" else "https://example.invalid"
         if ws_id is not None:
             # SaaS: derive from workspaceSlug + base_domain.
             if self.settings.application.deployment_mode == "saas":

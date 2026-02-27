@@ -7,6 +7,7 @@ from pydantic import AliasChoices, ConfigDict, Field, field_validator
 
 from apps.api.common.schemas import BaseSchema
 from apps.api.common.types.public_uuid import PublicUUID
+from apps.api.modules.sites.design_document_schema import DesignDocumentV1
 
 # ---- Block Protocol (server-side, minimal for stub) ----
 
@@ -499,7 +500,7 @@ class SiteRouteResolveOut(BaseSchema):
     model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
 
     match: SiteRouteMatchOut = Field(..., description="Match result.")
-    document: DocumentIR | None = Field(default=None, description="Resolved document (if any).")
+    document: DesignDocumentV1 | None = Field(default=None, description="Resolved design document (if any).")
 
 
 class SitePreviewTokenCreateIn(BaseSchema):
@@ -526,7 +527,7 @@ class SiteRouteDraftSaveIn(BaseSchema):
     model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
 
     path: str = Field(..., description="Route pathname to save (e.g. /about).", examples=["/about"])
-    document: DocumentIR = Field(..., description="Draft document payload.")
+    document: DesignDocumentV1 = Field(..., description="Draft design document payload.")
     meta: dict[str, Any] | None = Field(default=None, description="Optional metadata payload (JSON).")
     style_overrides: dict[str, Any] | None = Field(default=None, description="Optional style overrides payload (JSON).")
     variant_id: str | None = Field(default=None, description="Optional theme variant id.")
@@ -572,7 +573,7 @@ class SiteRoutePublishOut(BaseSchema):
 class SitePageDraftSaveIn(BaseSchema):
     model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
 
-    document: DocumentIR = Field(..., description="Draft document payload.")
+    document: DesignDocumentV1 = Field(..., description="Draft design document payload.")
     meta: dict[str, Any] | None = Field(default=None, description="Optional metadata payload (JSON).")
     style_overrides: dict[str, Any] | None = Field(default=None, description="Optional style overrides payload (JSON).")
     variant_id: str | None = Field(default=None, description="Optional theme variant id.")
@@ -873,7 +874,7 @@ class SitePageRevisionOut(BaseSchema):
     state: Literal["draft", "published"] = Field(..., description="Revision state.")
     revision: int = Field(..., ge=1, description="Revision number.")
     created_at_ms: int = Field(..., description="Revision created timestamp in milliseconds (UTC).")
-    document: DocumentIR = Field(..., description="DocumentIR payload.")
+    document: DesignDocumentV1 = Field(..., description="DesignDocumentV1 payload.")
     meta: dict[str, Any] | None = Field(default=None, description="Optional metadata payload (JSON).")
     style_overrides: dict[str, Any] | None = Field(default=None, description="Optional style overrides payload (JSON).")
     variant_id: str | None = Field(default=None, description="Optional theme variant id.")
@@ -904,7 +905,7 @@ class SiteEntryRevisionOut(BaseSchema):
     state: Literal["draft", "published"] = Field(..., description="Revision state.")
     revision: int = Field(..., ge=1, description="Revision number.")
     created_at_ms: int = Field(..., description="Revision created timestamp in milliseconds (UTC).")
-    document: DocumentIR | None = Field(default=None, description="Optional DocumentIR payload.")
+    document: DesignDocumentV1 | None = Field(default=None, description="Optional DesignDocumentV1 payload.")
     data: dict[str, Any] | None = Field(default=None, description="Optional entry data payload (JSON).")
     meta: dict[str, Any] | None = Field(default=None, description="Optional metadata payload (JSON).")
     style_overrides: dict[str, Any] | None = Field(default=None, description="Optional style overrides payload (JSON).")
@@ -934,7 +935,7 @@ class SiteEntryDraftSaveIn(BaseSchema):
 
     entry_type_code: str = Field(..., min_length=1, max_length=64, description="Entry type code (e.g. blog_post).")
     slug: str = Field(..., min_length=1, max_length=256, description="Entry slug (unique within entry type).")
-    document: DocumentIR | None = Field(default=None, description="Optional DocumentIR payload.")
+    document: DesignDocumentV1 | None = Field(default=None, description="Optional DesignDocumentV1 payload.")
     data: dict[str, Any] | None = Field(default=None, description="Optional entry data payload (JSON).")
     meta: dict[str, Any] | None = Field(default=None, description="Optional metadata payload (JSON).")
     style_overrides: dict[str, Any] | None = Field(default=None, description="Optional style overrides payload (JSON).")

@@ -105,10 +105,18 @@ export type DesignMotionRefV1 = {
   motionId: string;
 };
 
+export type DeepPartial<T> = T extends Function
+  ? T
+  : T extends Array<infer U>
+    ? Array<U>
+    : T extends object
+      ? { [K in keyof T]?: DeepPartial<T[K]> }
+      : T;
+
 export type DesignNodeResponsiveOverrideV1 = Partial<{
-  layout: Partial<DesignLayoutV1>;
-  style: Partial<DesignStyleV1>;
-  transform: Partial<DesignTransformV1>;
+  layout: DeepPartial<DesignLayoutV1>;
+  style: DeepPartial<DesignStyleV1>;
+  transform: DeepPartial<DesignTransformV1>;
   motionRefs: DesignMotionRefV1[];
 }>;
 

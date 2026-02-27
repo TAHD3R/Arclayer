@@ -250,6 +250,19 @@ function collectSubtreeIds(nodesById: Record<string, DesignNodeV1>, rootId: stri
         if (typeof childId === "string") stack.push(childId);
       }
     }
+
+    // Prefab instances can reference additional children through slotChildren.
+    if (node.type === "prefab_instance") {
+      const slotChildren = (node as DesignPrefabInstanceNodeV1).slotChildren;
+      if (slotChildren && typeof slotChildren === "object") {
+        for (const ids of Object.values(slotChildren)) {
+          if (!Array.isArray(ids)) continue;
+          for (const childId of ids) {
+            if (typeof childId === "string") stack.push(childId);
+          }
+        }
+      }
+    }
   }
 
   return out;
@@ -273,7 +286,11 @@ export function expandPrefabInstanceV1(args: {
   const warnings: string[] = [];
   const instanceId = args.instance.id;
 
-  const prefix = `__prefab:${args.def.prefabId}:${instanceId}:`;
+  // Expanded template node ids must remain DesignDocument-safe. In particular:
+  // - must start with [A-Za-z0-9]
+  // - may only contain [A-Za-z0-9:_-]
+  const toSafeSegment = (value: string) => value.replaceAll(/[^A-Za-z0-9:_-]/g, "_");
+  const prefix = `p_${toSafeSegment(args.def.prefabId)}_${toSafeSegment(instanceId)}_`;
   const mapId = (id: string) => `${prefix}${id}`;
 
   const tplNodes: Record<string, DesignNodeV1> = {};

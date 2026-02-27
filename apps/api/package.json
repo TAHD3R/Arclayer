@@ -14,7 +14,7 @@
     "format": "UV_CACHE_DIR=../../.uv-cache PYTHONPATH=../.. uv run ruff format .",
     "typecheck": "UV_CACHE_DIR=../../.uv-cache PYTHONPATH=../.. uv run pyright --project ../../pyproject.toml",
     "test": "UV_CACHE_DIR=../../.uv-cache PYTHONPATH=../.. uv run pytest --cov=.",
-    "test:integration": "RUN_INTEGRATION_TESTS=1 UV_CACHE_DIR=../../.uv-cache PYTHONPATH=../.. uv run pytest -m integration --cov=.",
+    "test:integration": "RUN_INTEGRATION_TESTS=1 MAIL__ENABLED=1 MAIL__SUPPRESS_SEND=1 UV_CACHE_DIR=../../.uv-cache PYTHONPATH=../.. uv run pytest -m integration --cov=.",
     "db:migrate": "UV_CACHE_DIR=../../.uv-cache PYTHONPATH=../.. uv run aerich migrate",
     "db:upgrade": "UV_CACHE_DIR=../../.uv-cache PYTHONPATH=../.. uv run aerich upgrade",
     "jobs:worker": "UV_CACHE_DIR=../../.uv-cache PYTHONPATH=../.. uv run arq apps.api.infra.jobs.worker.WorkerSettings"

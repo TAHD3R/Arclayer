@@ -44,14 +44,39 @@ async def _create_preview_token(client: AsyncClient, *, site_id: str) -> str:
 def _doc(*, title: str) -> dict:
     return {
         "version": 1,
-        "meta": {"title": {"en-US": title}},
-        "blocks": [
-            {
+        "rootId": "page",
+        "nodesById": {
+            "page": {
+                "id": "page",
+                "type": "page_root",
+                "name": "Page",
+                "children": ["h1"],
+                "seo": {"title": {"en-US": title}},
+                "layout": {
+                    "children": {
+                        "mode": "auto",
+                        "direction": "column",
+                        "gap": 0,
+                        "padding": 0,
+                        "alignItems": "start",
+                        "justifyContent": "start",
+                        "wrap": "nowrap",
+                    }
+                },
+            },
+            "h1": {
                 "id": "h1",
-                "type": "heading",
-                "props": {"level": 1, "text": {"en-US": title}},
-            }
-        ],
+                "type": "text",
+                "name": "Title",
+                "text": {"en-US": title},
+                "tag": "h1",
+                "layout": {
+                    "self": {"rect": {"x": 0, "y": 0, "width": 720, "height": 0}, "alignX": "start", "alignY": "start"},
+                    "children": {"mode": "absolute"},
+                },
+                "style": {"typography": {"fontSize": 32, "lineHeight": 40, "fontWeight": 700}},
+            },
+        },
     }
 
 

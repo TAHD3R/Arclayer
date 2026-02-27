@@ -1,7 +1,7 @@
-import { isDocumentIR } from "@celestial/site-renderer-core";
-import type { DocumentIR } from "@celestial/site-renderer-core";
+import { isDesignDocumentV1 } from "@celestial/site-renderer-core";
 import { ApiError } from "@celestial/web-core/http";
 import type { PortalResolveMode, PortalRouteMatch, PortalSiteContext } from "@celestial/web-types";
+import type { DesignDocumentV1 } from "@celestial/site-block-protocol";
 
 export function getPortalApiPrefix(): string {
   // Use a relative prefix so it works in both SSR and browser via the Portal server proxy.
@@ -87,7 +87,7 @@ export async function resolveRouteFromApi(
   siteId: string,
   opts: { mode: PortalResolveMode; token?: string },
 ): Promise<
-  | { kind: "page"; document: DocumentIR; match: PortalRouteMatch }
+  | { kind: "page"; document: DesignDocumentV1; match: PortalRouteMatch }
   | { kind: "redirect"; to: string; status: 301 | 302 }
   | { kind: "not_found" }
 > {
@@ -135,8 +135,8 @@ export async function resolveRouteFromApi(
   }
 
   const document = getRecordField(data, "document");
-  if (!isDocumentIR(document)) {
-    throw new Error("Invalid DocumentIR returned by API");
+  if (!isDesignDocumentV1(document)) {
+    throw new Error("Invalid DesignDocumentV1 returned by API");
   }
 
   // Both "page" and "route_template" are rendered as a "page" at runtime. We keep the

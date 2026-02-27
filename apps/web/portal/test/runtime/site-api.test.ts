@@ -52,8 +52,17 @@ describe("runtime/site-api (parsing)", () => {
               },
               document: {
                 version: 1,
-                meta: { title: { "en-US": "Entry world v2" } },
-                blocks: [],
+                rootId: "page",
+                nodesById: {
+                  page: {
+                    id: "page",
+                    type: "page_root",
+                    name: "Page",
+                    children: [],
+                    seo: { title: { "en-US": "Entry world v2" } },
+                    layout: { children: { mode: "absolute" } },
+                  },
+                },
               },
             },
             timestamp: 0,

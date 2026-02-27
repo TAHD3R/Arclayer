@@ -7,10 +7,9 @@ from uuid import UUID
 from apps.api.common.protocols.tortoise import HasOrganizationId, HasWorkspaceId
 from apps.api.common.services import BaseService
 from apps.api.config import Settings
-from apps.api.core.exceptions import BadRequest, Conflict, Forbidden, NotFound
+from apps.api.core.exceptions import BadRequest, Forbidden, NotFound
 from apps.api.core.i18n import t
 from apps.api.modules.organization.models.org_membership import OrgMembership, OrgRole
-from apps.api.modules.sites.models.site import SiteRecord
 from apps.api.modules.system.models.rbac import Role
 from apps.api.modules.system.rbac.constants import ROLE_OWNER
 from apps.api.modules.workspaces.models.workspace import Workspace, WorkspaceMembership, WorkspaceMembershipStatus
@@ -20,7 +19,6 @@ from apps.api.modules.workspaces.schema import (
     WorkspaceDetailOut,
     WorkspaceUpdateRequest,
 )
-from apps.api.modules.workspaces.slug_policy import parse_explicit_workspace_slug
 
 
 class WorkspaceService(BaseService):
@@ -154,74 +152,16 @@ class WorkspaceService(BaseService):
             updates["name"] = name
 
         if payload.slug is not None:
-            normalized, reason = parse_explicit_workspace_slug(str(payload.slug))
-            if reason == "invalid":
-                raise BadRequest(
-                    message=t("errors", "BAD_REQUEST", default="参数错误"),
-                    error="WORKSPACE_SLUG_INVALID",
-                )
-            if reason == "reserved":
-                assert normalized is not None
-                raise BadRequest(
-                    message=t("errors", "BAD_REQUEST", default="参数错误"),
-                    error="WORKSPACE_SLUG_RESERVED",
-                    meta={"slug": normalized},
-                )
-
-            assert normalized is not None
-
-            if normalized != str(ws.slug):
-                exists = await Workspace.filter(slug=normalized).exclude(id=workspace_id).exists()
-                if exists:
-                    raise Conflict(
-                        message=t("errors", "CONFLICT", default="请求冲突"),
-                        error="WORKSPACE_SLUG_TAKEN",
-                        meta={"slug": normalized},
-                    )
-                updates["slug"] = normalized
+            # Workspace slug 在创建后不可变（用于 URL 与权限边界）。
+            raise BadRequest(
+                message=t("errors", "BAD_REQUEST", default="参数错误"),
+                error="WORKSPACE_SLUG_IMMUTABLE",
+            )
 
         if updates:
             for k, v in updates.items():
                 setattr(ws, k, v)
             await ws.save(update_fields=list(updates.keys()) + ["updated_at"])
-
-            # Keep SiteRecord.slug in sync for the single-site workspace model.
-            if "slug" in updates:
-                site = await SiteRecord.filter(workspace_id=ws.id).order_by("created_at", "id").first()
-                if site is not None:
-                    site.slug = updates["slug"]
-                    await site.save(update_fields=["slug", "updated_at"])
-
-                # Best-effort: keep workspace-scoped core settings `site.url` aligned with /w/:workspaceSlug.
-                # This avoids stale Portal base URLs after slug changes.
-                try:
-                    from apps.api.modules.workspaces.portal_url_policy import rewrite_workspace_slug_in_portal_url
-                    from apps.api.modules.workspaces.settings.service import WorkspaceSettingsService
-
-                    settings_service = WorkspaceSettingsService(self.settings)
-                    core = await settings_service.get_core_detail(workspace_id=UUID(str(ws.id)))
-                    value = core.value if isinstance(core.value, dict) else {}
-                    site_cfg = value.get("site") if isinstance(value, dict) else None
-                    url_raw = site_cfg.get("url") if isinstance(site_cfg, dict) else None
-                    if isinstance(url_raw, str) and url_raw.strip():
-                        rewritten = rewrite_workspace_slug_in_portal_url(
-                            url_raw,
-                            workspace_slug=updates["slug"],
-                        )
-                        if rewritten and rewritten != url_raw:
-                            await settings_service.patch_core(
-                                workspace_id=UUID(str(ws.id)),
-                                patch={"site": {"url": rewritten}},
-                                updated_by=actor_user_id,
-                            )
-                except BaseException as exc:
-                    self.logger.warning(
-                        "Workspace slug change: portal base url rewrite failed",
-                        action="workspace_slug_rewrite_portal_url",
-                        workspace_id=str(ws.id),
-                        user_id=str(actor_user_id),
-                        error=str(exc),
-                    )
 
         return WorkspaceDetailOut(
             id=ws.id,

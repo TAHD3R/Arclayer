@@ -58,8 +58,10 @@ class EmailService:
         enabled = mail.get("enabled")
         if isinstance(enabled, bool):
             return enabled
-        # Once email is configurable via core settings, default to disabled unless explicitly enabled.
-        return False
+        # Fallback to env settings when no core settings are present.
+        # This keeps dev/test/self-host bootstrap workable, while still allowing DB settings
+        # to override env when configured.
+        return bool(self.settings.email.enabled)
 
     async def _is_template_enabled(self, template_key: str) -> bool:
         """

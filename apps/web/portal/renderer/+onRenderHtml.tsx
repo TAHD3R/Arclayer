@@ -7,8 +7,17 @@ import { ensurePortalRequestContext } from "@/runtime/request-context";
 import { parseModeFromUrl } from "@/runtime/route-entry";
 import { getPortalRuntimeConfigForSite } from "@/runtime/runtime-config";
 import { fetchPortalExtensionsFromApi, type PortalExtension } from "@/runtime/site-api";
-import { resolveLocalizedValue, serializeCssVarsToStyleText } from "@celestial/site-renderer-core";
-import type { LocalizedString, ViewerContext } from "@celestial/site-renderer-core";
+import {
+  isDesignDocumentV1,
+  resolveLocalizedValue,
+  serializeCssVarsToStyleText,
+} from "@celestial/site-renderer-core";
+import type { LocalizedString } from "@celestial/site-renderer-core";
+import type {
+  DesignBindingExprV1,
+  DesignDocumentV1,
+  ViewerContext,
+} from "@celestial/site-block-protocol";
 
 export { onRenderHtml };
 
@@ -97,21 +106,35 @@ function getSeoFromPageContext(
   pageContext: { pageProps?: { document?: unknown } },
   viewerCtx: ViewerContext | undefined,
 ): { viewerCtx?: ViewerContext; title?: string; description?: string } {
-  const doc = pageContext.pageProps?.document as { meta?: unknown } | undefined;
-  const meta = doc?.meta as { title?: unknown; description?: unknown } | undefined;
-  if (!viewerCtx || !meta) return viewerCtx ? { viewerCtx } : {};
+  const docUnknown = pageContext.pageProps?.document;
+  if (!viewerCtx) return {};
+  if (!isDesignDocumentV1(docUnknown)) return { viewerCtx };
 
-  const title = resolveLocalizedValue(meta.title as LocalizedString | undefined, viewerCtx);
-  const description = resolveLocalizedValue(
-    meta.description as LocalizedString | undefined,
-    viewerCtx,
-  );
+  const doc = docUnknown as DesignDocumentV1;
+  const root = doc.nodesById[doc.rootId];
+  if (!root || root.type !== "page_root") return { viewerCtx };
+
+  const title = resolveSeoValue(root.seo?.title, viewerCtx);
+  const description = resolveSeoValue(root.seo?.description, viewerCtx);
 
   const seo: { viewerCtx?: ViewerContext; title?: string; description?: string } = {};
   if (viewerCtx) seo.viewerCtx = viewerCtx;
   if (title !== undefined) seo.title = title;
   if (description !== undefined) seo.description = description;
   return seo;
+}
+
+function resolveSeoValue(
+  value: LocalizedString | DesignBindingExprV1 | undefined,
+  viewerCtx: ViewerContext,
+): string | undefined {
+  if (!value) return undefined;
+  if (typeof value === "object" && (value as DesignBindingExprV1).kind === "binding") {
+    // SSR SEO：不在 HTML 层执行 binding（避免引入数据源与安全边界问题）。
+    // 有需要时可以在 resolve_route 端提前把 SEO 绑定解析成 literal/localized。
+    return undefined;
+  }
+  return resolveLocalizedValue(value as LocalizedString, viewerCtx);
 }
 
 function serializeFontFacesToStyleText(runtimeConfig: unknown): string {

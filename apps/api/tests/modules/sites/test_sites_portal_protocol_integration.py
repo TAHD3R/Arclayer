@@ -50,12 +50,83 @@ async def prepared_schema(integration_db_settings, integration_valkey_settings, 
     await close_orm()
 
 
-def _doc(title: str) -> dict:
+def _legacy_doc_ir(title: str) -> dict:
+    """
+    Legacy DocumentIR fixture.
+
+    We keep at least one legacy revision in integration tests to validate the on-read migration
+    (DocumentIR -> DesignDocumentV1) remains stable.
+    """
+
     return {
         "version": 1,
         "meta": {"title": {"en-US": title}},
         "blocks": [{"id": "h1", "type": "heading", "props": {"level": 1, "text": {"en-US": title}}}],
     }
+
+
+def _design_doc(title: str) -> dict:
+    return {
+        "version": 1,
+        "rootId": "page",
+        "nodesById": {
+            "page": {
+                "id": "page",
+                "type": "page_root",
+                "name": "Page",
+                "children": ["h1"],
+                "seo": {"title": {"en-US": title}},
+                "layout": {
+                    "children": {
+                        "mode": "auto",
+                        "direction": "column",
+                        "gap": 0,
+                        "padding": 0,
+                        "alignItems": "start",
+                        "justifyContent": "start",
+                        "wrap": "nowrap",
+                    }
+                },
+            },
+            "h1": {
+                "id": "h1",
+                "type": "text",
+                "name": "Title",
+                "text": {"en-US": title},
+                "tag": "h1",
+                "layout": {
+                    "self": {
+                        "rect": {"x": 0, "y": 0, "width": 720, "height": 0},
+                        "alignX": "start",
+                        "alignY": "start",
+                    },
+                    "children": {"mode": "absolute"},
+                },
+                "style": {"typography": {"fontSize": 32, "lineHeight": 40, "fontWeight": 700}},
+            },
+        },
+    }
+
+
+def _get_seo_title_from_resolved_document(payload: dict) -> str | None:
+    doc = payload.get("data", {}).get("document")
+    if not isinstance(doc, dict):
+        return None
+    root_id = doc.get("rootId")
+    nodes = doc.get("nodesById")
+    if not isinstance(root_id, str) or not isinstance(nodes, dict):
+        return None
+    root = nodes.get(root_id)
+    if not isinstance(root, dict):
+        return None
+    seo = root.get("seo")
+    if not isinstance(seo, dict):
+        return None
+    title = seo.get("title")
+    if not isinstance(title, dict):
+        return None
+    v = title.get("en-US")
+    return v if isinstance(v, str) else None
 
 
 async def test_sites_public_preview_draft_publish_flow(prepared_schema) -> None:
@@ -113,7 +184,11 @@ async def test_sites_public_preview_draft_publish_flow(prepared_schema) -> None:
             created_by_user_id=user.id,
         )
         await SitePageRevisionRecord.create(
-            page_id=about.id, rev=1, document=_doc("About v1"), created_by_user_id=user.id
+            page_id=about.id,
+            rev=1,
+            document=_legacy_doc_ir("About v1"),
+            design_document=None,
+            created_by_user_id=user.id,
         )
 
         # Static page for /blog/hello (to test static priority over template match).
@@ -128,7 +203,11 @@ async def test_sites_public_preview_draft_publish_flow(prepared_schema) -> None:
             created_by_user_id=user.id,
         )
         await SitePageRevisionRecord.create(
-            page_id=blog_hello.id, rev=1, document=_doc("Static /blog/hello"), created_by_user_id=user.id
+            page_id=blog_hello.id,
+            rev=1,
+            document=_legacy_doc_ir("Static /blog/hello"),
+            design_document=None,
+            created_by_user_id=user.id,
         )
 
         # Entry type + entry + published revision.
@@ -145,7 +224,8 @@ async def test_sites_public_preview_draft_publish_flow(prepared_schema) -> None:
             entry_id=entry.id,
             rev=1,
             data=None,
-            document=_doc("Entry /blog/:slug hello"),
+            document=_legacy_doc_ir("Entry /blog/:slug hello"),
+            design_document=None,
             created_by_user_id=user.id,
         )
 
@@ -162,7 +242,8 @@ async def test_sites_public_preview_draft_publish_flow(prepared_schema) -> None:
             entry_id=entry2.id,
             rev=1,
             data=None,
-            document=_doc("Entry /blog/:slug world"),
+            document=_legacy_doc_ir("Entry /blog/:slug world"),
+            design_document=None,
             created_by_user_id=user.id,
         )
 
@@ -201,7 +282,7 @@ async def test_sites_public_preview_draft_publish_flow(prepared_schema) -> None:
                 json={
                     "entryTypeCode": "blog_post",
                     "slug": "world",
-                    "document": _doc("Entry world v2 (draft)"),
+                    "document": _design_doc("Entry world v2 (draft)"),
                     "expectedRevision": 1,
                 },
             )
@@ -221,7 +302,7 @@ async def test_sites_public_preview_draft_publish_flow(prepared_schema) -> None:
                 params={"path": "/blog/world", "mode": "public"},
             )
             assert resp.status_code == 200
-            assert resp.json()["data"]["document"]["meta"]["title"]["en-US"] == "Entry world v2 (draft)"
+            assert _get_seo_title_from_resolved_document(resp.json()) == "Entry world v2 (draft)"
 
             # Creating a new entry from scratch should allow expectedRevision=0.
             resp = await client.post(
@@ -230,7 +311,7 @@ async def test_sites_public_preview_draft_publish_flow(prepared_schema) -> None:
                 json={
                     "entryTypeCode": "blog_post",
                     "slug": "new",
-                    "document": _doc("Entry new v1 (draft)"),
+                    "document": _design_doc("Entry new v1 (draft)"),
                     "expectedRevision": 0,
                 },
             )
@@ -244,7 +325,7 @@ async def test_sites_public_preview_draft_publish_flow(prepared_schema) -> None:
                 json={
                     "entryTypeCode": "blog_post",
                     "slug": "new",
-                    "document": _doc("Entry new v2 (draft)"),
+                    "document": _design_doc("Entry new v2 (draft)"),
                     "expectedRevision": 0,
                 },
             )
@@ -273,7 +354,7 @@ async def test_sites_public_preview_draft_publish_flow(prepared_schema) -> None:
                 json={
                     "entryTypeCode": "missing_type",
                     "slug": "x",
-                    "document": _doc("Entry x"),
+                    "document": _design_doc("Entry x"),
                     "expectedRevision": 0,
                 },
             )
@@ -291,7 +372,7 @@ async def test_sites_public_preview_draft_publish_flow(prepared_schema) -> None:
             resp = await client.get(f"/api/v1/sites/{site_pid}/pages/{encode_uuid(about.id)}/revisions/published")
             assert resp.status_code == 200
             assert resp.json()["data"]["revision"] == 1
-            assert resp.json()["data"]["document"]["meta"]["title"]["en-US"] == "About v1"
+            assert _get_seo_title_from_resolved_document(resp.json()) == "About v1"
 
             resp = await client.get(
                 f"/api/v1/sites/{site_pid}/pages/{encode_uuid(about.id)}/revisions/draft",
@@ -308,13 +389,13 @@ async def test_sites_public_preview_draft_publish_flow(prepared_schema) -> None:
             assert resp.status_code == 200
             payload = resp.json()["data"]
             assert payload["match"]["kind"] == "page"
-            assert payload["document"]["meta"]["title"]["en-US"] == "Static /blog/hello"
+            assert _get_seo_title_from_resolved_document(resp.json()) == "Static /blog/hello"
 
             # Save a draft for /about (rev=2).
             resp = await client.post(
                 f"/api/v1/sites/{site_pid}/routes/draft",
                 params={"token": token},
-                json={"path": "/about", "document": _doc("About v2 (draft)"), "expectedRevision": 1},
+                json={"path": "/about", "document": _design_doc("About v2 (draft)"), "expectedRevision": 1},
             )
             assert resp.status_code == 201
             assert resp.json()["data"]["revision"] == 2
@@ -325,7 +406,7 @@ async def test_sites_public_preview_draft_publish_flow(prepared_schema) -> None:
             )
             assert resp.status_code == 200
             assert resp.json()["data"]["revision"] == 2
-            assert resp.json()["data"]["document"]["meta"]["title"]["en-US"] == "About v2 (draft)"
+            assert _get_seo_title_from_resolved_document(resp.json()) == "About v2 (draft)"
 
             # Public mode still sees published v1.
             resp = await client.get(
@@ -333,7 +414,7 @@ async def test_sites_public_preview_draft_publish_flow(prepared_schema) -> None:
                 params={"path": "/about", "mode": "public"},
             )
             assert resp.status_code == 200
-            assert resp.json()["data"]["document"]["meta"]["title"]["en-US"] == "About v1"
+            assert _get_seo_title_from_resolved_document(resp.json()) == "About v1"
 
             # Preview mode sees latest draft v2.
             resp = await client.get(
@@ -341,7 +422,7 @@ async def test_sites_public_preview_draft_publish_flow(prepared_schema) -> None:
                 params={"path": "/about", "mode": "preview", "token": token},
             )
             assert resp.status_code == 200
-            assert resp.json()["data"]["document"]["meta"]["title"]["en-US"] == "About v2 (draft)"
+            assert _get_seo_title_from_resolved_document(resp.json()) == "About v2 (draft)"
 
             # Publishing makes v2 visible to public.
             resp = await client.post(
@@ -357,7 +438,7 @@ async def test_sites_public_preview_draft_publish_flow(prepared_schema) -> None:
                 params={"path": "/about", "mode": "public"},
             )
             assert resp.status_code == 200
-            assert resp.json()["data"]["document"]["meta"]["title"]["en-US"] == "About v2 (draft)"
+            assert _get_seo_title_from_resolved_document(resp.json()) == "About v2 (draft)"
 
             resp = await client.get(f"/api/v1/sites/{site_pid}/pages/{encode_uuid(about.id)}/revisions/published")
             assert resp.status_code == 200
@@ -367,7 +448,7 @@ async def test_sites_public_preview_draft_publish_flow(prepared_schema) -> None:
             resp = await client.post(
                 f"/api/v1/sites/{site_pid}/routes/draft",
                 params={"token": token},
-                json={"path": "/about", "document": _doc("About v3"), "expectedRevision": 1},
+                json={"path": "/about", "document": _design_doc("About v3"), "expectedRevision": 1},
             )
             assert resp.status_code == 409
 
@@ -376,7 +457,7 @@ async def test_sites_public_preview_draft_publish_flow(prepared_schema) -> None:
                 f"/api/v1/sites/{site_pid}/pages/{encode_uuid(about.id)}/revisions/draft",
                 params={"token": token},
                 json={
-                    "document": _doc("About v3 (draft by id)"),
+                    "document": _design_doc("About v3 (draft by id)"),
                     "expectedRevision": 2,
                 },
             )
@@ -389,7 +470,7 @@ async def test_sites_public_preview_draft_publish_flow(prepared_schema) -> None:
                 params={"path": "/about", "mode": "preview", "token": token},
             )
             assert resp.status_code == 200
-            assert resp.json()["data"]["document"]["meta"]["title"]["en-US"] == "About v3 (draft by id)"
+            assert _get_seo_title_from_resolved_document(resp.json()) == "About v3 (draft by id)"
 
             resp = await client.post(
                 f"/api/v1/sites/{site_pid}/pages/{encode_uuid(about.id)}/revisions/publish",
@@ -404,10 +485,10 @@ async def test_sites_public_preview_draft_publish_flow(prepared_schema) -> None:
                 params={"path": "/about", "mode": "public"},
             )
             assert resp.status_code == 200
-            assert resp.json()["data"]["document"]["meta"]["title"]["en-US"] == "About v3 (draft by id)"
+            assert _get_seo_title_from_resolved_document(resp.json()) == "About v3 (draft by id)"
 
             # Entry revisions: ensure published snapshot is accessible.
             resp = await client.get(f"/api/v1/sites/{site_pid}/entries/{encode_uuid(entry.id)}/revisions/published")
             assert resp.status_code == 200
             assert resp.json()["data"]["revision"] == 1
-            assert resp.json()["data"]["document"]["meta"]["title"]["en-US"] == "Entry /blog/:slug hello"
+            assert _get_seo_title_from_resolved_document(resp.json()) == "Entry /blog/:slug hello"

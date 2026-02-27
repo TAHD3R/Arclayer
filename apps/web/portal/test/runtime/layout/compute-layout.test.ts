@@ -117,4 +117,73 @@ describe("layout engine (computeLayoutBoxes)", () => {
     // b: y = 172.5 + 20 + 5 = 197.5
     expect(out.boxesById.b).toMatchObject({ x: 160, y: 197.5, width: 80, height: 30 });
   });
+
+  test("viewport switch: 1440/1024/768/375 produces predictable constraint results", () => {
+    const nodesById: Record<string, LayoutNode> = {
+      root: {
+        id: "root",
+        type: "page",
+        childrenLayout: { mode: "absolute" },
+        children: ["right", "center", "stretch"],
+      },
+      right: {
+        id: "right",
+        type: "frame",
+        positioning: {
+          kind: "absolute",
+          rect: { x: 1240, y: 40, width: 200, height: 100 },
+          constraints: { horizontal: "right", vertical: "top" },
+        },
+      },
+      center: {
+        id: "center",
+        type: "frame",
+        positioning: {
+          kind: "absolute",
+          rect: { x: 620, y: 0, width: 200, height: 50 },
+          constraints: { horizontal: "center", vertical: "top" },
+        },
+      },
+      stretch: {
+        id: "stretch",
+        type: "frame",
+        positioning: {
+          kind: "absolute",
+          rect: { x: 100, y: 0, width: 1000, height: 20 },
+          constraints: { horizontal: "leftRight", vertical: "top" },
+        },
+      },
+    };
+
+    const widths = [1440, 1024, 768, 375] as const;
+    for (const width of widths) {
+      const out = computeLayoutBoxes({
+        rootId: "root",
+        nodesById,
+        viewport: { width, height: 800, baseWidth: 1440, baseHeight: 800 },
+      });
+
+      expect(out.warnings).toHaveLength(0);
+
+      // right-anchored: keep right offset constant (base right offset is 0).
+      expect(out.boxesById.right).toMatchObject({ x: width - 200, y: 40, width: 200, height: 100 });
+
+      // center: shift by delta/2.
+      expect(out.boxesById.center).toMatchObject({
+        x: 620 + (width - 1440) / 2,
+        y: 0,
+        width: 200,
+        height: 50,
+      });
+
+      // leftRight: width changes by deltaW and is clamped to >= 0.
+      const stretchWidth = Math.max(0, 1000 + (width - 1440));
+      expect(out.boxesById.stretch).toMatchObject({
+        x: 100,
+        y: 0,
+        width: stretchWidth,
+        height: 20,
+      });
+    }
+  });
 });

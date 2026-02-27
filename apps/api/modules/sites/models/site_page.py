@@ -65,7 +65,11 @@ class SitePageRevisionRecord(BaseModel):
     )
 
     rev = fields.IntField()
-    document = fields.JSONField()
+    # Legacy DocumentIR payload (deprecated).
+    # Kept nullable to allow a hard switch to DesignDocumentV1 without writing DocumentIR artifacts.
+    document = fields.JSONField(null=True)
+    # DesignDocumentV1 payload (new source of truth).
+    design_document = fields.JSONField(null=True)
 
     # M2: layered revision payload (nullable for backward compatibility).
     meta = fields.JSONField(null=True)

@@ -6,7 +6,7 @@ from uuid import UUID
 from pydantic import ConfigDict
 
 from apps.api.common.schemas import BaseSchema
-from apps.api.modules.sites.schema import DocumentIR
+from apps.api.modules.sites.design_document_schema import DesignDocumentV1
 
 
 class RouteTemplateMatch(BaseSchema):
@@ -27,7 +27,7 @@ class ResolvedEntryDocument(BaseSchema):
     revision: int
     revision_state: Literal["draft", "published"]
     variant_id: str | None
-    document: DocumentIR
+    document: DesignDocumentV1
 
 
 class _CompiledRouteTemplate(BaseSchema):

@@ -42,6 +42,7 @@ export type {
   DesignPrefabInstanceNodeV1,
   DesignRectNodeV1,
   DesignStyleV1,
+  DesignTypographyV1,
   DesignTextNodeV1,
   DesignTransformV1,
   DesignValueV1,

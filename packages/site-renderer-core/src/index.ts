@@ -50,6 +50,17 @@ export type {
   DesignDocumentRendererViewport,
 } from "./internal/design/DesignDocumentRenderer";
 export { DesignDocumentRenderer } from "./internal/design/DesignDocumentRenderer";
+export {
+  mergeDesignNodeResponsiveOverrideV1,
+  resolveDesignNodeAtBreakpointV1,
+} from "./internal/design/responsive-overrides";
+export type {
+  DesignRenderDataSourcesV1,
+  PrefabDefinitionV1,
+  PrefabTemplateV1,
+} from "./internal/design/prefab-registry";
+export { PrefabRegistryV1 } from "./internal/design/prefab-registry";
+export { createDefaultPrefabRegistryV1, createEmptyDesignDocumentV1 } from "./internal/design/default-prefab-registry";
 
 // --- Layout compute (absolute constraints + auto-layout subset) ---
 export type {

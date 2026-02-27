@@ -8,7 +8,7 @@ from apps.api.common.repositories import BaseRepository
 from apps.api.modules.organization.models.org_membership import OrgMembership, OrgRole
 from apps.api.modules.organization.models.organization import Organization
 from apps.api.modules.system.models.setting import SettingRecord
-from apps.api.modules.workspaces.models.workspace import WorkspaceMembership, WorkspaceMembershipStatus
+from apps.api.modules.workspaces.models.workspace import Workspace, WorkspaceMembership, WorkspaceMembershipStatus
 from apps.api.settings.scopes import SCOPE_TYPE_ORG
 
 
@@ -52,10 +52,16 @@ class OrganizationSettingsRepository(BaseRepository):
         return int(await OrgMembership.filter(organization_id=organization_id, role=OrgRole.OWNER).count())
 
     async def disable_workspace_memberships(self, *, organization_id: UUID, user_id: UUID) -> None:
-        await WorkspaceMembership.filter(
-            user_id=user_id,
-            workspace__organization_id=organization_id,
-        ).update(status=WorkspaceMembershipStatus.DISABLED)
+        # Tortoise 在 UPDATE + 关联字段过滤（workspace__organization_id）下会生成
+        # Postgres 不合法 SQL（FROM clause reference），因此改为两段式：
+        # 1) 先取 workspace_id 列表
+        # 2) 再按 workspace_id__in 做批量 update
+        ws_ids = await Workspace.filter(organization_id=organization_id).values_list("id", flat=True)
+        if not ws_ids:
+            return
+        await WorkspaceMembership.filter(user_id=user_id, workspace_id__in=list(ws_ids)).update(
+            status=WorkspaceMembershipStatus.DISABLED
+        )
 
     async def update_member_role_code_for_active_members(
         self,

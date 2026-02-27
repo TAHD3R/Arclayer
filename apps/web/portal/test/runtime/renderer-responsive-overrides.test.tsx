@@ -2,31 +2,43 @@ import React from "react";
 import { describe, expect, test } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 
-import { DocumentRenderer } from "@celestial/site-renderer-core";
-import type { CoreDocumentIR } from "@celestial/site-renderer-core";
-import type { ViewerContext } from "@celestial/site-block-protocol";
+import { DesignDocumentRenderer } from "@celestial/site-renderer-core";
+import type { DesignDocumentV1, ViewerContext } from "@celestial/site-block-protocol";
 
-describe("site-renderer-core responsive overrides", () => {
-  test("applies node.responsive visual overrides for ctx.breakpoint", () => {
-    const doc: CoreDocumentIR = {
+describe("site-renderer-core responsive overrides (DesignDocumentV1)", () => {
+  test("applies node.responsive overrides for ctx.breakpoint", () => {
+    const doc: DesignDocumentV1 = {
       version: 1,
-      blocks: [
-        {
-          id: "c-root",
-          type: "container",
-          props: {
-            as: "section",
-            layout: { padding: 12 },
-            style: { backgroundColor: "#111111" },
+      rootId: "page",
+      nodesById: {
+        page: {
+          id: "page",
+          type: "page_root",
+          name: "Page",
+          children: ["a"],
+          layout: { children: { mode: "absolute" } },
+        },
+        a: {
+          id: "a",
+          type: "frame",
+          name: "Frame",
+          children: [],
+          layout: {
+            self: {
+              rect: { x: 0, y: 0, width: 100, height: 100 },
+              alignX: "start",
+              alignY: "start",
+            },
+            children: { mode: "absolute" },
           },
+          style: { backgroundColor: "#111111" },
           responsive: {
             mobile: {
               style: { backgroundColor: "#123456" },
             },
           },
-          children: [],
         },
-      ],
+      },
     };
 
     const ctx: ViewerContext = {
@@ -34,7 +46,13 @@ describe("site-renderer-core responsive overrides", () => {
       breakpoint: "mobile",
     };
 
-    const html = renderToStaticMarkup(<DocumentRenderer document={doc} ctx={ctx} />);
+    const html = renderToStaticMarkup(
+      <DesignDocumentRenderer
+        document={doc}
+        ctx={ctx}
+        viewport={{ width: 375, height: 800, baseWidth: 1440, baseHeight: 800 }}
+      />,
+    );
     expect(html).toContain("background-color:#123456");
   });
 });

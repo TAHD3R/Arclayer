@@ -14,12 +14,12 @@ from apps.api.common.repositories.base import BaseRepository
 from apps.api.common.utils.public_ids import decode_public_id, encode_uuid, is_public_id
 from apps.api.core.exceptions import Conflict, NotFound
 from apps.api.modules.assets.models.asset import AssetRecord
+from apps.api.modules.sites.design_document_schema import DesignDocumentV1
 from apps.api.modules.sites.models.site import SiteRecord
 from apps.api.modules.sites.models.site_entry import EntryRecord, EntryRevisionRecord
 from apps.api.modules.sites.models.site_page import SitePageRecord, SitePageRevisionRecord, SitePageVisibility
 from apps.api.modules.sites.models.site_route_template import RouteTemplateRecord
 from apps.api.modules.sites.repository_routing import SiteRoutingRepository
-from apps.api.modules.sites.schema import DocumentIR
 from apps.api.modules.sites.types import ResolvedEntryDocument, RouteTemplateMatch
 from apps.api.modules.sites.utils import normalize_path
 
@@ -232,7 +232,7 @@ class SitePublishingRepository(BaseRepository):
         site_id: UUID,
         entry_type_id: UUID,
         slug: str,
-        document: DocumentIR | None,
+        document: DesignDocumentV1 | None,
         data: dict | None,
         meta: dict | None,
         style_overrides: dict | None,
@@ -286,7 +286,8 @@ class SitePublishingRepository(BaseRepository):
                 entry_id=entry.id,
                 rev=next_rev,
                 data=data,
-                document=(document.model_dump(by_alias=True) if document is not None else None),
+                document=None,
+                design_document=(document.model_dump(by_alias=True) if document is not None else None),
                 meta=meta,
                 style_overrides=style_overrides,
                 variant_id=variant_id,
@@ -363,7 +364,7 @@ class SitePublishingRepository(BaseRepository):
         *,
         site_id: UUID,
         path: str,
-        document: DocumentIR,
+        document: DesignDocumentV1,
         meta: dict | None,
         style_overrides: dict | None,
         variant_id: str | None,
@@ -413,7 +414,8 @@ class SitePublishingRepository(BaseRepository):
             await SitePageRevisionRecord.create(
                 page_id=page.id,
                 rev=next_rev,
-                document=document.model_dump(by_alias=True),
+                document=None,
+                design_document=document.model_dump(by_alias=True),
                 meta=meta,
                 style_overrides=style_overrides,
                 variant_id=variant_id,
@@ -445,7 +447,7 @@ class SitePublishingRepository(BaseRepository):
         *,
         site_id: UUID,
         page_id: UUID,
-        document: DocumentIR,
+        document: DesignDocumentV1,
         meta: dict | None,
         style_overrides: dict | None,
         variant_id: str | None,
@@ -479,7 +481,8 @@ class SitePublishingRepository(BaseRepository):
             await SitePageRevisionRecord.create(
                 page_id=page.id,
                 rev=next_rev,
-                document=document.model_dump(by_alias=True),
+                document=None,
+                design_document=document.model_dump(by_alias=True),
                 meta=meta,
                 style_overrides=style_overrides,
                 variant_id=variant_id,
@@ -656,10 +659,25 @@ class SitePublishingRepository(BaseRepository):
             revision_state = "draft" if draft_rev else "published"
 
         rec = await EntryRevisionRecord.get_or_none(entry_id=entry.id, rev=revision)
-        if rec is None or rec.document is None:
+        if rec is None:
             return None
 
-        doc = DocumentIR.model_validate(rec.document)
+        doc: DesignDocumentV1 | None = None
+        if rec.design_document is not None:
+            doc = DesignDocumentV1.model_validate(rec.design_document)
+        elif rec.document is not None:
+            # Legacy: on-read migrate DocumentIR -> DesignDocumentV1.
+            from apps.api.modules.sites.design_document_migrations import migrate_document_ir_to_design_document_v1
+            from apps.api.modules.sites.schema import DocumentIR
+
+            legacy = DocumentIR.model_validate(rec.document)
+            doc = migrate_document_ir_to_design_document_v1(doc=legacy)
+            rec.design_document = doc.model_dump(by_alias=True)
+            await rec.save(update_fields=["design_document"])
+
+        if doc is None:
+            return None
+
         return ResolvedEntryDocument(
             entry_id=UUID(str(entry.id)),
             draft_rev=draft_rev,
