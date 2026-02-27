@@ -1,4 +1,4 @@
-import type { SitePageTreeNode, SitePageUserSummary } from "@/api/workspace-site";
+import type { SitePageTreeNode, SitePageUserSummary } from "@/types/api";
 
 export type PageType = "static" | "template";
 export type PageStatus = "draft" | "published";

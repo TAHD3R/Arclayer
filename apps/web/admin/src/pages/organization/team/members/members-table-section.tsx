@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import { DataTablePresenter } from "@/components/data-table";
 import type { PageData } from "@/components/data-table";
-import type { OrganizationMember } from "@/api/organization-members";
+import type { OrganizationMember } from "@/types/api";
 
 interface OrganizationMembersTableSectionProps {
   table: ReactTable<OrganizationMember>;

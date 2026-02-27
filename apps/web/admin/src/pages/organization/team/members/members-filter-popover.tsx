@@ -2,7 +2,7 @@ import { Button as AntButton, Select } from "antd";
 import { Filter } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import type { OrgMembershipStatus, OrgRole, OrgUserStatus } from "@/api/organization-members";
+import type { OrgMembershipStatus, OrgRole, OrgUserStatus } from "@/types/api";
 import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 

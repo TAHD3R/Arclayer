@@ -14,9 +14,8 @@ import {
   listTeamInviteLinks,
   renewTeamInvitation,
   renewTeamInviteLink,
-  type TeamInvitation,
-  type TeamInviteLink,
 } from "@/api/team";
+import type { TeamInvitation, TeamInviteLink } from "@/types/api";
 import { DefaultPage } from "@/components/common/default-page";
 import { useDataTable } from "@/components/data-table";
 import {

@@ -4,7 +4,7 @@ import { Avatar, Button as AntButton, Dropdown } from "antd";
 import type { MenuProps } from "antd";
 import { Archive, LogIn, MoreVertical, Trash2, Undo2 } from "lucide-react";
 
-import type { OrganizationWorkspace } from "@/api/organization-workspaces";
+import type { OrganizationWorkspace } from "@/types/api";
 import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";
 import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 

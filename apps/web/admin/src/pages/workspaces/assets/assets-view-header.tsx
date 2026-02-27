@@ -3,7 +3,7 @@ import { Search } from "lucide-react";
 import type { MenuProps } from "antd";
 import type React from "react";
 
-import type { AdminAssetTag } from "@/api/assets";
+import type { AdminAssetTag } from "@/types/api";
 import ChevronDownIcon from "@/components/ui/icons/chevron-down";
 import { ChromeTabs, ChromeTabsList, ChromeTabsTrigger } from "@/components/ui/chrome-tabs";
 import { AssetsFilterPopover } from "@/components/common/assets/assets-filter-popover";

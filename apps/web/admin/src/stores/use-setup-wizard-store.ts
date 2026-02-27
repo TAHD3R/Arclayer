@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-import type { DeploymentMode } from "@/api/system";
+import type { DeploymentMode } from "@/types/api";
 import { type AppLocale } from "@/lib/i18n";
 
 /**

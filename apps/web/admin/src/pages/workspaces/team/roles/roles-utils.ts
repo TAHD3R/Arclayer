@@ -1,4 +1,4 @@
-import type { Role } from "@/api/rbac";
+import type { Role } from "@/types/api";
 
 export type CreateRoleFormValues = {
   templateRoleCode: string;

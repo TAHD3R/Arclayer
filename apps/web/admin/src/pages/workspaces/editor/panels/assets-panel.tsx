@@ -10,7 +10,7 @@ import {
   AssetsExplorerFolderUpTile,
 } from "@/components/common/assets/explorer/assets-explorer-folder-tiles";
 import { useAssetsExplorerController } from "@/components/common/assets/explorer/use-assets-explorer-controller";
-import type { AdminAssetFolder } from "@/api/assets";
+import type { AdminAssetFolder } from "@/types/api";
 import { resolveAssetRefToPublicUrlPath } from "@/lib/assets/asset-urls";
 import { cn } from "@/lib/utils";
 import { useEditorConfig } from "@/pages/workspaces/editor/contexts/editor-config-context";

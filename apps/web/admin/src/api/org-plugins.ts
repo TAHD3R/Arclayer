@@ -1,32 +1,11 @@
 import { api } from "@/lib/http";
+import { orgPluginPath } from "@/lib/api";
 
-import type { SystemSettingsDetail } from "@/api/settings";
-
-export type OrganizationPluginItem = {
-  pluginId: string;
-  managementScope: "organization" | "workspace" | (string & {});
-  slug?: string | null;
-  name: string;
-  description?: string | null;
-  version: string;
-  requires?: string | null;
-  author: string;
-  license?: string | null;
-  status: string;
-  category?: string | null;
-  hasConfigSchema?: boolean;
-  iconUrl?: string | null;
-  enabled: boolean;
-};
-
-export type OrganizationPluginListOut = {
-  items: OrganizationPluginItem[];
-};
-
-function orgPluginPath(pluginRef?: string): string {
-  if (!pluginRef) return "/organizations/current/plugins";
-  return `/organizations/current/plugins/${encodeURIComponent(pluginRef)}`;
-}
+import type {
+  SystemSettingsDetail,
+  OrganizationPluginItem,
+  OrganizationPluginListOut,
+} from "@/types/api";
 
 export async function listOrganizationPlugins(): Promise<OrganizationPluginListOut> {
   return api.get<OrganizationPluginListOut>(orgPluginPath());

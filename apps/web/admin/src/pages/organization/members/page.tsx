@@ -9,8 +9,8 @@ import {
   inviteOrganizationMember,
   listOrganizationMembers,
   patchOrganizationMemberRole,
-  type OrganizationMember,
 } from "@/api/organization-members";
+import type { OrganizationMember } from "@/types/api";
 import { ConfirmDialog } from "@/components/common/confirm-dialog";
 import { DefaultPage } from "@/components/common/default-page";
 import { ContentGuard } from "@/components/common/content-guard";

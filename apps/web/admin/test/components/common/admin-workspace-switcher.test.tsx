@@ -3,9 +3,8 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { MyOrganization, MyOrganizationListResult } from "@/api/me";
+import type { MyOrganization, MyOrganizationListResult, OrganizationWorkspace } from "@/types/api";
 import { listMyOrganizations } from "@/api/me";
-import type { OrganizationWorkspace } from "@/api/organization-workspaces";
 import { listAllOrganizationWorkspaces } from "@/api/organization-workspaces";
 import { getWorkspaceDetail } from "@/api/workspaces";
 import { AdminWorkspaceSwitcher } from "@/components/common/admin-workspace-switcher";

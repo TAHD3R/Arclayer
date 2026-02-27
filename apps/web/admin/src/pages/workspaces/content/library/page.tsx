@@ -13,11 +13,9 @@ import {
   listWorkspaceSiteEntryTypes,
   listWorkspaceSitePagesTree,
   publishWorkspaceSiteEntry,
-  type SiteEntry,
-  type SiteEntryType,
-  type SitePageTreeNode,
   unpublishWorkspaceSiteEntry,
 } from "@/api/workspace-site";
+import type { SiteEntry, SiteEntryType, SitePageTreeNode } from "@/types/api";
 import {
   AlertDialog,
   AlertDialogAction,

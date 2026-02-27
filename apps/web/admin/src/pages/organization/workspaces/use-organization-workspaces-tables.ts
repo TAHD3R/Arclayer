@@ -1,9 +1,7 @@
 import { type ColumnDef } from "@tanstack/react-table";
 
-import {
-  listOrganizationWorkspaces,
-  type OrganizationWorkspace,
-} from "@/api/organization-workspaces";
+import { listOrganizationWorkspaces } from "@/api/organization-workspaces";
+import type { OrganizationWorkspace } from "@/types/api";
 import { useDataTable, type UseDataTableResult } from "@/components/data-table";
 
 interface UseOrganizationWorkspacesTablesOptions {

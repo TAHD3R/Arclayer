@@ -14,6 +14,7 @@ import {
 import { LoaderOne } from "@/components/ui/loader";
 import { listMyWorkspaces } from "@/api/workspaces";
 import * as activityApi from "@/api/activity";
+import type { ActivityEvent } from "@/types/api";
 import { listTeamUserOptions } from "@/api/team";
 
 function stableStringify(value: unknown): string {
@@ -133,7 +134,7 @@ export function OrganizationActivityPage() {
     return () => observer.disconnect();
   }, [listQuery.fetchNextPage, listQuery.hasNextPage, listQuery.isFetchingNextPage, items.length]);
 
-  const [selected, setSelected] = React.useState<activityApi.ActivityEvent | null>(null);
+  const [selected, setSelected] = React.useState<ActivityEvent | null>(null);
 
   return (
     <DefaultPage

@@ -1,4 +1,4 @@
-import type { AdminAssetFolder } from "@/api/assets";
+import type { AdminAssetFolder } from "@/types/api";
 import type { AssetMasonryItem } from "@/components/common/assets/asset-masonry-card";
 
 export type AssetsExplorerPagination = "infinite" | "paged";

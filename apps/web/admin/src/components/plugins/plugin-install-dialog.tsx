@@ -8,7 +8,7 @@ import { SettingDialog } from "@/components/common/setting-dialog";
 import { LoaderOne } from "@/components/ui/loader";
 import { cn } from "@/lib/utils";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
-import type { WorkspacePluginPackageValidateOut } from "@/api/workspace-plugins";
+import type { WorkspacePluginPackageValidateOut } from "@/types/api";
 import {
   installValidatedWorkspacePlugin,
   validateWorkspacePluginPackage,

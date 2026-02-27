@@ -1,5 +1,9 @@
-import type { OrgMembershipStatus, OrgRole, OrgUserStatus } from "@/api/organization-members";
-import type { OrganizationRbacMatrixPermissionRow } from "@/api/organization-rbac";
+import type {
+  OrgMembershipStatus,
+  OrgRole,
+  OrgUserStatus,
+  OrganizationRbacMatrixPermissionRow,
+} from "@/types/api";
 
 import { ORG_PERMISSION_COPY_MAP } from "../shared/permission-copy-map";
 

@@ -1,8 +1,5 @@
 import { useMemo } from "react";
-import type {
-  OrganizationRbacMatrixPermissionRow,
-  OrganizationRole,
-} from "@/api/organization-rbac";
+import type { OrganizationRbacMatrixPermissionRow, OrganizationRole } from "@/types/api";
 import {
   getOrganizationRoleDisplayDescription,
   getOrganizationRoleDisplayName,

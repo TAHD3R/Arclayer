@@ -1,60 +1,12 @@
 import { api } from "@/lib/http";
-import { workspacePath } from "@/api/workspace-path";
+import { toQueryString, workspacePath } from "@/lib/api";
 
-export type PageData<T> = {
-  items: T[];
-  total: number;
-  page: number;
-  size: number;
-  pages: number;
-  next?: number | null;
-  prev?: number | null;
-};
-
-export type NotificationCategory = "team" | "security" | "task" | string;
-
-export type NotificationItem = {
-  id: string;
-  workspaceId: string;
-  recipientUserId: string;
-  actorUserId?: string | null;
-
-  category: NotificationCategory;
-  title: string;
-  body?: string | null;
-
-  targetTo: string;
-  targetMeta?: Record<string, unknown> | null;
-
-  eventName?: string | null;
-  dedupeKey?: string | null;
-
-  readAt?: string | null;
-  createdAt: string;
-  updatedAt: string;
-};
-
-export type NotificationPreview = {
-  unreadCount: number;
-  items: NotificationItem[];
-};
-
-export type ListNotificationsParams = {
-  status?: "unread" | "all";
-  category?: NotificationCategory;
-  page?: number;
-  size?: number;
-};
-
-function toQueryString(params: Record<string, unknown>): string {
-  const qs = new URLSearchParams();
-  for (const [key, value] of Object.entries(params)) {
-    if (value === undefined || value === null) continue;
-    qs.set(key, String(value));
-  }
-  const s = qs.toString();
-  return s ? `?${s}` : "";
-}
+import type {
+  ListNotificationsParams,
+  NotificationItem,
+  NotificationPreview,
+  PageData,
+} from "@/types/api";
 
 export async function getUnreadNotificationPreview(params?: {
   limit?: number;

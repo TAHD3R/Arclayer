@@ -11,9 +11,8 @@ import {
   renewOrganizationInvitation,
   renewOrganizationInviteLink,
   revokeOrganizationInvitation,
-  type OrganizationInvitation,
-  type OrganizationInviteLink,
 } from "@/api/organization-members";
+import type { OrganizationInvitation, OrganizationInviteLink } from "@/types/api";
 import { listOrganizationRoles } from "@/api/organization-rbac";
 import { useDataTable } from "@/components/data-table";
 import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";

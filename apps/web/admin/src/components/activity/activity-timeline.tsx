@@ -2,7 +2,7 @@ import * as React from "react";
 import { useTranslation } from "react-i18next";
 import { Activity, AlertTriangle, Circle, ShieldAlert } from "lucide-react";
 
-import type { ActivityEvent } from "@/api/activity";
+import type { ActivityEvent } from "@/types/api";
 import type { ActivityEventLevel } from "@/components/activity/event-catalog";
 import { resolveCatalogEntry } from "@/components/activity/event-catalog";
 import { ActivityUserPill } from "@/components/activity/activity-user-pill";

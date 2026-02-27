@@ -1,7 +1,7 @@
 import { Button as AntButton, Select } from "antd";
 import { useTranslation } from "react-i18next";
 
-import type { OrganizationMember, OrganizationMemberWorkspace } from "@/api/organization-members";
+import type { OrganizationMember, OrganizationMemberWorkspace } from "@/types/api";
 import { ConfirmDialog } from "@/components/common/confirm-dialog";
 import { SettingDialog } from "@/components/common/setting-dialog";
 import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";

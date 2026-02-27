@@ -1,4 +1,4 @@
-import type { TeamMember, UserStatus } from "@/api/team";
+import type { TeamMember, UserStatus } from "@/types/api";
 
 export interface TeamMemberFilters {
   membershipStatus?: "active" | "invited" | "disabled";

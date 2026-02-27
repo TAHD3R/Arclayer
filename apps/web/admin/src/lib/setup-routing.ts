@@ -1,4 +1,4 @@
-import type { DeploymentMode } from "@/api/system";
+import type { DeploymentMode } from "@/types/api";
 
 function isSetupPath(pathname: string): boolean {
   return pathname === "/setup" || pathname.startsWith("/setup/");

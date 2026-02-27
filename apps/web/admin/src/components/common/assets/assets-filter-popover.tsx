@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 
 import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import type { AdminAssetTag } from "@/api/assets";
+import type { AdminAssetTag } from "@/types/api";
 export type AssetsFilters = {
   mimePrefix?: string;
   visibility?: string;

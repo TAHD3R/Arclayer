@@ -1,7 +1,7 @@
 import { Check, ShieldCheck, Trash2, Users, Wrench } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import type { NotificationCategory, NotificationItem } from "@/api/notifications";
+import type { NotificationCategory, NotificationItem } from "@/types/api";
 import { Button } from "@/components/ui/button";
 import {
   Item,

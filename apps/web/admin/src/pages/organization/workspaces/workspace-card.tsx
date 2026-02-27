@@ -2,7 +2,7 @@ import { Avatar, Button as AntButton, Dropdown } from "antd";
 import type { MenuProps } from "antd";
 import { MoreVertical } from "lucide-react";
 
-import type { OrganizationWorkspace } from "@/api/organization-workspaces";
+import type { OrganizationWorkspace } from "@/types/api";
 import { cn } from "@/lib/utils";
 import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 

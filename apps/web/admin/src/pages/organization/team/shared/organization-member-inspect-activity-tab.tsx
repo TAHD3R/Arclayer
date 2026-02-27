@@ -1,7 +1,7 @@
 import type { RefObject } from "react";
 import { useTranslation } from "react-i18next";
 
-import type { ActivityEvent } from "@/api/activity";
+import type { ActivityEvent } from "@/types/api";
 import { ActivityTimeline } from "@/components/activity/activity-timeline";
 import { PageSkeleton } from "@/components/common/page-skeleton";
 import { ContentGuard } from "@/components/common/content-guard";

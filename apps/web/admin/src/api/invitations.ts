@@ -1,60 +1,19 @@
 import { api } from "@/lib/http";
-import type { TokenPair } from "@/api/auth";
-
-export interface InvitationPreviewInvitation {
-  email: string | null;
-  maskedEmail: string | null;
-  roleCode: string | null;
-  expiresAt: string | null;
-}
-
-export interface InvitationPreviewOrganization {
-  id: string;
-  name: string;
-  slug: string;
-  logoUrl: string | null;
-}
-
-export interface InvitationPreviewWorkspace {
-  id: string;
-  name: string;
-  slug: string;
-}
-
-export interface InvitationPreviewInviter {
-  id: string;
-  username: string;
-  displayName: string | null;
-  avatarUrl: string | null;
-}
-
-export interface InvitationPreviewRole {
-  code: string;
-  name: string;
-  description: string | null;
-}
-
-export interface InvitationPreviewResult {
-  invitation: InvitationPreviewInvitation;
-  organization: InvitationPreviewOrganization;
-  workspace: InvitationPreviewWorkspace | null;
-  inviter: InvitationPreviewInviter | null;
-  role: InvitationPreviewRole | null;
-  userExists: boolean;
-}
+import { toQueryString } from "@/lib/api";
+import type {
+  TokenPair,
+  InvitationPreviewResult,
+  AcceptExistingInvitationResult,
+  MyInvitation,
+  PageData,
+} from "@/types/api";
 
 export async function previewInvitation(token: string): Promise<InvitationPreviewResult> {
-  const q = encodeURIComponent(token);
-  return api.get<InvitationPreviewResult>(`/auth/invitations/preview?token=${q}`, {
+  const query = toQueryString({ token });
+  return api.get<InvitationPreviewResult>(`/auth/invitations/preview${query}`, {
     // Public endpoint: do not attempt refresh (keeps behavior consistent for invite links).
     auth: { skipRefresh: true },
   });
-}
-
-export interface AcceptExistingInvitationResult {
-  organizationId: string;
-  workspaceId: string | null;
-  roleCode: string | null;
 }
 
 export async function acceptExistingInvitation(
@@ -63,63 +22,19 @@ export async function acceptExistingInvitation(
   return api.post<AcceptExistingInvitationResult>("/auth/invitations/accept-existing", { token });
 }
 
-export interface MyInvitationOrganization {
-  id: string;
-  name: string;
-  slug: string;
-  logoUrl: string | null;
-}
-
-export interface MyInvitationWorkspace {
-  id: string;
-  name: string;
-  slug: string;
-}
-
-export interface MyInvitationInviter {
-  id: string;
-  username: string;
-  email: string | null;
-  displayName: string | null;
-  avatarUrl: string | null;
-}
-
-export interface MyInvitation {
-  id: string;
-  email: string;
-  roleCode: string | null;
-  expiresAt: string | null;
-  organization: MyInvitationOrganization;
-  workspace: MyInvitationWorkspace | null;
-  inviter: MyInvitationInviter | null;
-  status: "pending" | "accepted";
-  acceptedAt: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface PageData<T> {
-  items: T[];
-  total: number;
-  page: number;
-  size: number;
-  pages: number;
-  next?: number | null;
-  prev?: number | null;
-}
-
 export async function listMyInvitations(params: {
   page?: number;
   size?: number;
   q?: string;
   status: "pending" | "accepted";
 }): Promise<PageData<MyInvitation>> {
-  const qs = new URLSearchParams();
-  qs.set("page", String(params.page ?? 1));
-  qs.set("size", String(params.size ?? 10));
-  qs.set("status", params.status);
-  if (params.q) qs.set("q", params.q);
-  return api.get<PageData<MyInvitation>>(`/auth/me/invitations?${qs.toString()}`);
+  const query = toQueryString({
+    page: params.page ?? 1,
+    size: params.size ?? 10,
+    status: params.status,
+    q: params.q,
+  });
+  return api.get<PageData<MyInvitation>>(`/auth/me/invitations${query}`);
 }
 
 export async function acceptInvitation(payload: {

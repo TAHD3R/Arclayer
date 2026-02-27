@@ -1,4 +1,4 @@
-import type { OrganizationInvitation } from "@/api/organization-members";
+import type { OrganizationInvitation } from "@/types/api";
 
 export type OrgInvitationsTab = "pending" | "processed" | "links";
 

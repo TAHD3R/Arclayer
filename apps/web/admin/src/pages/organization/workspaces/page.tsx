@@ -6,7 +6,7 @@ import type { MenuProps } from "antd";
 import { Archive, LogIn, Plus, Trash2, Undo2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import { type OrganizationWorkspace } from "@/api/organization-workspaces";
+import { type OrganizationWorkspace } from "@/types/api";
 import { DefaultPage } from "@/components/common/default-page";
 import { ChromeTabsContent } from "@/components/ui/chrome-tabs";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";

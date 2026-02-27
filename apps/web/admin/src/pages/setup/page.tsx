@@ -5,13 +5,8 @@ import { useNavigate } from "@tanstack/react-router";
 import { AnimatePresence, MotionConfig, motion } from "motion/react";
 import { Sparkles } from "lucide-react";
 
-import {
-  getSetupJobStatus,
-  getSetupStatus,
-  setupSystem,
-  type SystemSetupJobStage,
-  type SystemSetupJobStatusPayload,
-} from "@/api/system";
+import { getSetupJobStatus, getSetupStatus, setupSystem } from "@/api/system";
+import type { SystemSetupJobStage, SystemSetupJobStatusPayload } from "@/types/api";
 import { SetupAdminStep } from "@/components/common/setup/setup-admin-step";
 import { SetupDefaultsStep } from "@/components/common/setup/setup-defaults-step";
 import { SetupWorkspaceTemplateStep } from "@/components/common/setup/setup-workspace-template-step";

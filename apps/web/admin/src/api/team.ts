@@ -1,101 +1,21 @@
 import { api } from "@/lib/http";
-import { workspacePath } from "@/api/workspace-path";
+import { workspacePath, toQueryString } from "@/lib/api";
 
-export type PageData<T> = {
-  items: T[];
-  total: number;
-  page: number;
-  size: number;
-  pages: number;
-  next?: number | null;
-  prev?: number | null;
-};
-
-export type MembershipStatus = "active" | "invited" | "disabled";
-export type UserStatus = "active" | "disabled" | "locked";
-
-export type TeamMember = {
-  id: string;
-  membershipId: string;
-  membershipStatus: MembershipStatus;
-
-  userId: string;
-  username: string;
-  email: string | null;
-  displayName: string | null;
-  avatarUrl: string | null;
-  userStatus: UserStatus;
-  lastLoginAt: string | null;
-
-  roleCodes: string[];
-};
-
-export type TeamUserOption = {
-  value: string;
-  label: string;
-  avatarUrl?: string | null;
-};
-
-export type ListTeamMembersParams = {
-  page?: number;
-  size?: number;
-  q?: string;
-  status?: MembershipStatus;
-  roleCode?: string;
-  userStatus?: UserStatus;
-  ordering?: string;
-};
-
-export type InvitationStatus = "pending" | "accepted" | "revoked" | "expired";
-
-export type TeamInvitation = {
-  id: string;
-  email: string;
-  roleCode: string | null;
-  expiresAt: string | null;
-  createdByUserId: string;
-  createdBy: TeamUserRef | null;
-  acceptedByUserId: string | null;
-  acceptedBy: TeamUserRef | null;
-  acceptedAt: string | null;
-  revokedAt: string | null;
-  status: InvitationStatus;
-  createdAt: string;
-  updatedAt: string;
-};
-
-export type TeamInvitationCreateResult = {
-  invitation: TeamInvitation;
-  token: string;
-  inviteUrl: string | null;
-};
-
-export type ListTeamInvitationsParams = {
-  page?: number;
-  size?: number;
-  q?: string;
-  ordering?: string;
-  status?: InvitationStatus;
-  mine?: boolean;
-};
-
-function toQueryString(params: Record<string, unknown>): string {
-  const qs = new URLSearchParams();
-  for (const [k, v] of Object.entries(params)) {
-    if (v === undefined) continue;
-    if (v === null) continue;
-    if (Array.isArray(v)) {
-      for (const item of v) {
-        if (item === undefined || item === null) continue;
-        qs.append(k, String(item));
-      }
-      continue;
-    }
-    qs.set(k, String(v));
-  }
-  const s = qs.toString();
-  return s ? `?${s}` : "";
-}
+import type {
+  PageData,
+  MembershipStatus,
+  TeamMember,
+  TeamUserOption,
+  ListTeamMembersParams,
+  TeamInvitation,
+  TeamInvitationCreateResult,
+  ListTeamInvitationsParams,
+  TeamInviteLink,
+  TeamInviteLinkCreateResult,
+  ListTeamInviteLinksParams,
+  TeamInviteLinkParticipant,
+  ListTeamInviteLinkParticipantsParams,
+} from "@/types/api";
 
 export async function listTeamMembers(
   workspaceId: string,
@@ -232,65 +152,6 @@ export async function deleteTeamInvitation(
 ): Promise<null> {
   return api.delete<null>(workspacePath(workspaceId, `/team/email-invites/${invitationId}`));
 }
-
-export type TeamUserRef = {
-  userId: string;
-  username: string;
-  email: string | null;
-  displayName: string | null;
-  avatarUrl: string | null;
-};
-
-export type TeamInviteLink = {
-  id: string;
-  displayCode: string;
-  roleCode: string | null;
-  expiresAt: string | null;
-  disabledAt: string | null;
-  maxUses: number | null;
-  allowedEmailDomain: string | null;
-
-  token: string;
-  inviteUrl: string | null;
-
-  createdBy: TeamUserRef | null;
-  lastUsedBy: TeamUserRef | null;
-  lastUsedAt: string | null;
-  usesCount: number;
-
-  recentParticipants: {
-    user: TeamUserRef;
-    usedAt: string;
-  }[];
-
-  createdAt: string;
-  updatedAt: string;
-};
-
-export type TeamInviteLinkCreateResult = {
-  link: TeamInviteLink;
-  token: string;
-  inviteUrl: string | null;
-};
-
-export type ListTeamInviteLinksParams = {
-  page?: number;
-  size?: number;
-  q?: string;
-  ordering?: string;
-  mine?: boolean;
-};
-
-export type TeamInviteLinkParticipant = {
-  user: TeamUserRef;
-  usedAt: string;
-};
-
-export type ListTeamInviteLinkParticipantsParams = {
-  page?: number;
-  size?: number;
-  q?: string;
-};
 
 export async function listTeamInviteLinks(
   workspaceId: string,

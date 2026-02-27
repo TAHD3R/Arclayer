@@ -3,10 +3,7 @@ import { type ColumnDef } from "@tanstack/react-table";
 import { Button as AntButton, Tag } from "antd";
 import { Link2Off, RotateCcw } from "lucide-react";
 
-import {
-  type OrganizationInvitation,
-  type OrganizationInviteLink,
-} from "@/api/organization-members";
+import type { OrganizationInvitation, OrganizationInviteLink } from "@/types/api";
 import { InviteLinkParticipantsPopover } from "@/components/common/team/invite-link-participants-popover";
 import { renderUserLabel } from "@/pages/workspaces/team/invitations/invitations-helpers";
 

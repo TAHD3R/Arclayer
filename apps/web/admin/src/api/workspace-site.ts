@@ -1,278 +1,45 @@
 import { api } from "@/lib/http";
-import { workspacePath } from "@/api/workspace-path";
+import { toQueryString, workspacePath } from "@/lib/api";
 
-export type PageData<T> = {
-  items: T[];
-  total: number;
-  page: number;
-  size: number;
-  pages: number;
-  next?: number | null;
-  prev?: number | null;
-};
-
-export type WorkspaceSite = {
-  siteId: string;
-  workspaceId: string;
-  slug: string;
-  name: string;
-  defaultLocale: string;
-  fallbackLocale: string;
-  primaryHost?: string | null;
-  isActive: boolean;
-};
-
-export type PreviewTokenRequest = {
-  ttlSeconds?: number;
-};
-
-export type PreviewTokenOut = {
-  siteId: string;
-  token: string;
-  expiresAtMs: number;
-};
-
-export type SiteSettingDetail = {
-  namespace: string;
-  value: Record<string, unknown> | null;
-};
-
-export type SitePageTreeNode = {
-  id: string;
-  title?: string | null;
-  description?: string | null;
-  path: string;
-  parentId?: string | null;
-  sortOrder: number;
-  visibility: "public" | "private";
-  draftRevision: number;
-  publishedRevision?: number | null;
-  updatedAt?: string | null;
-  updatedBy?: SitePageUserSummary | null;
-  children: SitePageTreeNode[];
-};
-
-export type SitePageUserSummary = {
-  id: string;
-  displayName?: string | null;
-  email?: string | null;
-  avatarUrl?: string | null;
-};
-
-export type SitePageCreateIn = {
-  title?: string | null;
-  description?: string | null;
-  path: string;
-  parentId?: string | null;
-  sortOrder?: number;
-  visibility?: "public" | "private";
-};
-
-export type SitePageUpdateIn = Partial<SitePageCreateIn>;
-
-export type SitePageDraftSaveIn = {
-  document: unknown;
-  meta?: Record<string, unknown> | null;
-  styleOverrides?: Record<string, unknown> | null;
-  variantId?: string | null;
-  deps?: Record<string, unknown> | null;
-  expectedRevision?: number | null;
-};
-
-export type SitePageDraftSaveOut = {
-  siteId: string;
-  pageId: string;
-  path: string;
-  revision: number;
-  savedAtMs: number;
-};
-
-export type SitePagePublishIn = {
-  revision?: number | null;
-};
-
-export type SitePagePublishOut = {
-  siteId: string;
-  pageId: string;
-  path: string;
-  revision: number;
-  publishedAtMs: number;
-};
-
-export type SitePageRevisionOut = {
-  pageId: string;
-  state: "draft" | "published";
-  revision: number;
-  createdAtMs: number;
-  document: unknown;
-  meta?: Record<string, unknown> | null;
-  styleOverrides?: Record<string, unknown> | null;
-  variantId?: string | null;
-  deps?: Record<string, unknown> | null;
-};
-
-export type SiteEntryRevisionOut = {
-  entryId: string;
-  state: "draft" | "published";
-  revision: number;
-  createdAtMs: number;
-  document?: unknown;
-  data?: Record<string, unknown> | null;
-  meta?: Record<string, unknown> | null;
-  styleOverrides?: Record<string, unknown> | null;
-  variantId?: string | null;
-  deps?: Record<string, unknown> | null;
-};
-
-export type SitePageUnpublishOut = {
-  siteId: string;
-  pageId: string;
-  path: string;
-  unpublishedAtMs: number;
-};
-
-export type SiteEntryType = {
-  id: string;
-  siteId: string;
-  code: string;
-  name: string;
-  fieldsSchema?: Record<string, unknown> | null;
-};
-
-export type SiteEntry = {
-  id: string;
-  siteId: string;
-  entryTypeId: string;
-  entryTypeCode: string;
-  slug: string;
-  draftRevision: number;
-  publishedRevision?: number | null;
-};
-
-export type SiteEntryTypeCreateIn = {
-  code: string;
-  name: string;
-  fieldsSchema?: Record<string, unknown> | null;
-};
-
-export type SiteEntryTypeUpdateIn = {
-  name?: string;
-  fieldsSchema?: Record<string, unknown> | null;
-};
-
-export type SiteEntryCreateIn = {
-  entryTypeCode: string;
-  slug: string;
-};
-
-export type SiteEntryUpdateIn = {
-  slug?: string;
-};
-
-export type SiteEntryDraftSaveIn = {
-  entryTypeCode: string;
-  slug: string;
-  document?: unknown;
-  data?: Record<string, unknown> | null;
-  meta?: Record<string, unknown> | null;
-  styleOverrides?: Record<string, unknown> | null;
-  variantId?: string | null;
-  deps?: Record<string, unknown> | null;
-  expectedRevision?: number | null;
-};
-
-export type SiteEntryDraftSaveOut = {
-  siteId: string;
-  entryId: string;
-  entryTypeCode: string;
-  slug: string;
-  revision: number;
-  savedAtMs: number;
-};
-
-export type SiteEntryPublishIn = {
-  entryTypeCode: string;
-  slug: string;
-  revision?: number | null;
-};
-
-export type SiteEntryPublishOut = {
-  siteId: string;
-  entryId: string;
-  entryTypeCode: string;
-  slug: string;
-  revision: number;
-  publishedAtMs: number;
-};
-
-export type SiteEntryUnpublishIn = {
-  entryTypeCode: string;
-  slug: string;
-};
-
-export type SiteEntryUnpublishOut = {
-  siteId: string;
-  entryId: string;
-  entryTypeCode: string;
-  slug: string;
-  unpublishedAtMs: number;
-};
-
-export type SiteEntryDeleteOut = {
-  entryId: string;
-};
-
-export type SiteEntryTypeDeleteOut = {
-  entryTypeId: string;
-};
-
-export type SiteStyleOut = {
-  namespace: string;
-  value: Record<string, unknown> | null;
-};
-
-export type SiteStyleUpsertIn = {
-  value: Record<string, unknown> | null;
-};
-
-export type SiteGlobalSection = {
-  id: string;
-  name: string;
-  kind: string;
-  enabled: boolean;
-  payload?: Record<string, unknown> | null;
-  updatedAtMs: number;
-};
-
-export type SiteGlobalSectionsOut = {
-  items: SiteGlobalSection[];
-};
-
-export type SiteGlobalSectionCreateIn = {
-  name: string;
-  kind: string;
-  enabled?: boolean;
-  payload?: Record<string, unknown> | null;
-};
-
-export type SiteGlobalSectionUpdateIn = Partial<SiteGlobalSectionCreateIn>;
-
-export type SiteGlobalSectionDeleteOut = {
-  id: string;
-};
-
-export type SiteVisualSitemapNode = {
-  id: string;
-  title: string;
-  path: string;
-  pageId?: string | null;
-  children: SiteVisualSitemapNode[];
-};
-
-export type SiteVisualSitemapOut = {
-  nodes: SiteVisualSitemapNode[];
-  updatedAtMs: number;
-};
+import type {
+  PageData,
+  WorkspaceSite,
+  PreviewTokenRequest,
+  PreviewTokenOut,
+  SiteSettingDetail,
+  SitePageTreeNode,
+  SitePageCreateIn,
+  SitePageUpdateIn,
+  SitePageDraftSaveIn,
+  SitePageDraftSaveOut,
+  SitePagePublishIn,
+  SitePagePublishOut,
+  SitePageRevisionOut,
+  SitePageUnpublishOut,
+  SiteEntryRevisionOut,
+  SiteEntryType,
+  SiteEntry,
+  SiteEntryTypeCreateIn,
+  SiteEntryTypeUpdateIn,
+  SiteEntryCreateIn,
+  SiteEntryUpdateIn,
+  SiteEntryDraftSaveIn,
+  SiteEntryDraftSaveOut,
+  SiteEntryPublishIn,
+  SiteEntryPublishOut,
+  SiteEntryUnpublishIn,
+  SiteEntryUnpublishOut,
+  SiteEntryDeleteOut,
+  SiteEntryTypeDeleteOut,
+  SiteStyleOut,
+  SiteStyleUpsertIn,
+  SiteGlobalSection,
+  SiteGlobalSectionsOut,
+  SiteGlobalSectionCreateIn,
+  SiteGlobalSectionUpdateIn,
+  SiteGlobalSectionDeleteOut,
+  SiteVisualSitemapOut,
+} from "@/types/api";
 
 export async function getWorkspaceSite(workspaceId: string): Promise<WorkspaceSite> {
   return api.get<WorkspaceSite>(workspacePath(workspaceId, "/site"));
@@ -290,7 +57,7 @@ export async function getWorkspaceSiteSetting(
   namespace: string,
 ): Promise<SiteSettingDetail> {
   return api.get<SiteSettingDetail>(
-    workspacePath(workspaceId, `/site/settings?namespace=${encodeURIComponent(namespace)}`),
+    workspacePath(workspaceId, `/site/settings${toQueryString({ namespace })}`),
   );
 }
 
@@ -300,7 +67,7 @@ export async function upsertWorkspaceSiteSetting(
   value: Record<string, unknown> | null,
 ): Promise<SiteSettingDetail> {
   return api.put<SiteSettingDetail>(
-    workspacePath(workspaceId, `/site/settings?namespace=${encodeURIComponent(namespace)}`),
+    workspacePath(workspaceId, `/site/settings${toQueryString({ namespace })}`),
     { value },
   );
 }
@@ -396,11 +163,8 @@ export async function listWorkspaceSiteEntryTypes(
   workspaceId: string,
   params?: { page?: number; size?: number },
 ): Promise<PageData<SiteEntryType>> {
-  const qs = new URLSearchParams();
-  if (typeof params?.page === "number") qs.set("page", String(params.page));
-  if (typeof params?.size === "number") qs.set("size", String(params.size));
-  const suffix = qs.size > 0 ? `?${qs.toString()}` : "";
-  return api.get<PageData<SiteEntryType>>(workspacePath(workspaceId, `/content/types${suffix}`));
+  const query = toQueryString({ page: params?.page, size: params?.size });
+  return api.get<PageData<SiteEntryType>>(workspacePath(workspaceId, `/content/types${query}`));
 }
 
 export async function createWorkspaceSiteEntryType(
@@ -434,12 +198,12 @@ export async function listWorkspaceSiteEntries(
   workspaceId: string,
   params?: { page?: number; size?: number; entryTypeCode?: string },
 ): Promise<PageData<SiteEntry>> {
-  const qs = new URLSearchParams();
-  if (typeof params?.page === "number") qs.set("page", String(params.page));
-  if (typeof params?.size === "number") qs.set("size", String(params.size));
-  if (params?.entryTypeCode) qs.set("entryTypeCode", params.entryTypeCode);
-  const suffix = qs.size > 0 ? `?${qs.toString()}` : "";
-  return api.get<PageData<SiteEntry>>(workspacePath(workspaceId, `/content/entries${suffix}`));
+  const query = toQueryString({
+    page: params?.page,
+    size: params?.size,
+    entryTypeCode: params?.entryTypeCode,
+  });
+  return api.get<PageData<SiteEntry>>(workspacePath(workspaceId, `/content/entries${query}`));
 }
 
 export async function createWorkspaceSiteEntry(

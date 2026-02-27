@@ -1,7 +1,7 @@
 import type { Row } from "@tanstack/react-table";
 import type { MenuProps } from "antd";
 
-import type { OrganizationWorkspace } from "@/api/organization-workspaces";
+import type { OrganizationWorkspace } from "@/types/api";
 import { ContentGuard } from "@/components/common/content-guard";
 import { DataTablePresenter } from "@/components/data-table";
 

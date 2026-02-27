@@ -2,7 +2,7 @@ import { Button } from "antd";
 import { FolderInput, Settings2, Trash2 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 
-import type { AdminAssetFolder } from "@/api/assets";
+import type { AdminAssetFolder } from "@/types/api";
 import { AssetPreviewSheet } from "@/components/common/assets/asset-masonry-card";
 import { BulkDeleteAssetsDialog } from "@/components/common/assets/bulk-delete-assets-dialog";
 import { CreateAssetFolderDialog } from "@/components/common/assets/create-asset-folder-dialog";

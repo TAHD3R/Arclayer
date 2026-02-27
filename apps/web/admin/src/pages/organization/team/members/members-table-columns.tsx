@@ -4,7 +4,7 @@ import type { MenuProps } from "antd";
 import { type ColumnDef } from "@tanstack/react-table";
 import { Eye, MoreVertical, Trash2, UserCog } from "lucide-react";
 
-import type { OrganizationMember, OrganizationMemberWorkspace } from "@/api/organization-members";
+import type { OrganizationMember, OrganizationMemberWorkspace } from "@/types/api";
 import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 import {
   builtinRoleLabel,

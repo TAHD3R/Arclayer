@@ -1,31 +1,7 @@
 import { api } from "@/lib/http";
+import { toQueryString } from "@/lib/api";
 
-function toQueryString(params: Record<string, unknown>): string {
-  const qs = new URLSearchParams();
-  for (const [k, v] of Object.entries(params)) {
-    if (v === undefined || v === null || v === "") continue;
-    qs.set(k, String(v));
-  }
-  const s = qs.toString();
-  return s ? `?${s}` : "";
-}
-
-export type OrganizationSettingsCore = {
-  organizationId: string;
-  organizationName: string;
-  organizationLocalization: {
-    locale: string;
-    timezone: string;
-    dateFormat: string;
-  };
-  defaultRoleCode: string;
-};
-
-export type OrganizationAssignDefaultRoleResult = {
-  organizationId: string;
-  roleCode: string;
-  updatedCount: number;
-};
+import type { OrganizationAssignDefaultRoleResult, OrganizationSettingsCore } from "@/types/api";
 
 export async function getOrganizationCoreSettings(): Promise<OrganizationSettingsCore> {
   return api.get<OrganizationSettingsCore>("/organizations/me/settings/core");

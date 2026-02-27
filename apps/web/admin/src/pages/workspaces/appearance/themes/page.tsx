@@ -8,8 +8,8 @@ import {
   deleteWorkspaceTheme,
   importWorkspaceTheme,
   listWorkspaceThemes,
-  type WorkspaceThemeItem,
 } from "@/api/workspace-themes";
+import type { WorkspaceThemeItem } from "@/types/api";
 import { ConfirmDialog } from "@/components/common/confirm-dialog";
 import { DefaultPage } from "@/components/common/default-page";
 import { ContentGuard } from "@/components/common/content-guard";

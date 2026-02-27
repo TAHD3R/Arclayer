@@ -8,7 +8,7 @@ import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
 import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 
-import type { Role } from "@/api/rbac";
+import type { Role } from "@/types/api";
 import { createTeamInvitation, createTeamInviteLink } from "@/api/team";
 import { SettingDialog } from "@/components/common/setting-dialog";
 import { zodResolver } from "@/lib/forms/zod-resolver";

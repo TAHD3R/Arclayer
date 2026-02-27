@@ -1,24 +1,7 @@
 import { api } from "@/lib/http";
-import { workspacePath } from "@/api/workspace-path";
+import { workspacePath } from "@/lib/api";
 
-export type WorkspaceThemeItem = {
-  themeId: string;
-  version: string;
-  name: string | null;
-  description: string | null;
-  artifactHash: string | null;
-  artifactAssetId: string | null;
-  tokensCssAssetId: string;
-  baseCssAssetId: string | null;
-  previewImageAssetId: string | null;
-  presets: Record<string, unknown> | null;
-  variants: Record<string, unknown> | null;
-  manifest: Record<string, unknown>;
-};
-
-export type WorkspaceThemeListOut = {
-  items: WorkspaceThemeItem[];
-};
+import type { WorkspaceThemeItem, WorkspaceThemeListOut } from "@/types/api";
 
 export async function listWorkspaceThemes(workspaceId: string): Promise<WorkspaceThemeListOut> {
   return api.get<WorkspaceThemeListOut>(workspacePath(workspaceId, "/themes"));

@@ -1,6 +1,6 @@
 import { getAppConfig } from "@/constants/app-config";
 import { resolvePublicAssetUrlPath } from "@/lib/assets/asset-urls";
-import type { AdminAssetSummary } from "@/api/assets";
+import type { AdminAssetSummary } from "@/types/api";
 import type { AssetMasonryItem } from "@/components/common/assets/asset-masonry-card";
 
 function formatBytes(bytes: number | undefined | null): string | undefined {

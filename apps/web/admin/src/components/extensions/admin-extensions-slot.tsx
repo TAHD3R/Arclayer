@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "@tanstack/react-router";
 
-import type { AdminUIExtension } from "@/api/admin-extensions";
+import type { AdminUIExtension } from "@/types/api";
 import { listAdminUIExtensions } from "@/api/admin-extensions";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 

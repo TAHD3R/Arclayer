@@ -1,4 +1,4 @@
-import type { SettingsDetail } from "@/api/settings";
+import type { SettingsDetail } from "@/types/api";
 
 import type { AppLocale } from "@/lib/i18n";
 

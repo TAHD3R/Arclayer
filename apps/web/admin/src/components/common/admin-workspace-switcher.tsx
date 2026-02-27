@@ -7,11 +7,9 @@ import { motion, type Variants } from "motion/react";
 import { ChevronDown, Plus, RefreshCw, Search } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import { listMyOrganizations, type MyOrganizationMemberPreview } from "@/api/me";
-import {
-  listAllOrganizationWorkspaces,
-  type OrganizationWorkspace,
-} from "@/api/organization-workspaces";
+import { listMyOrganizations } from "@/api/me";
+import type { MyOrganizationMemberPreview, OrganizationWorkspace } from "@/types/api";
+import { listAllOrganizationWorkspaces } from "@/api/organization-workspaces";
 import { getWorkspaceDetail } from "@/api/workspaces";
 import { ContentGuard } from "@/components/common/content-guard";
 import {

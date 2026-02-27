@@ -4,7 +4,7 @@ import { Eye, FolderInput, FolderPlus, PencilLine, Settings2, Trash2 } from "luc
 import { AnimatePresence } from "motion/react";
 import { flushSync } from "react-dom";
 
-import type { AdminAssetFolder } from "@/api/assets";
+import type { AdminAssetFolder } from "@/types/api";
 import { AssetMasonryTile } from "@/components/common/assets/asset-masonry-card";
 import {
   AssetsExplorerFolderDragOverlay,

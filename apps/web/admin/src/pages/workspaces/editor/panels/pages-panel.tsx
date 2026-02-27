@@ -3,7 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { FileText, ChevronRight } from "lucide-react";
 
-import { listWorkspaceSitePagesTree, type SitePageTreeNode } from "@/api/workspace-site";
+import { listWorkspaceSitePagesTree } from "@/api/workspace-site";
+import type { SitePageTreeNode } from "@/types/api";
 import { useEditorConfig } from "@/pages/workspaces/editor/contexts/editor-config-context";
 import { getTreeIndentClass } from "@/pages/workspaces/editor/constants/tree-indent";
 import { cn } from "@/lib/utils";

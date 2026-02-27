@@ -1,37 +1,9 @@
 import { api } from "@/lib/http";
-
-export interface MyOrganizationMemberPreview {
-  userId: string;
-  username: string;
-  displayName: string | null;
-  avatarUrl: string | null;
-}
-
-export interface MyOrganization {
-  organization: {
-    id: string;
-    name: string;
-    slug: string;
-    logoUrl?: string | null;
-  };
-  membership: {
-    id: string;
-    organizationId: string;
-    role: "owner" | "admin" | "member";
-    status: string;
-  };
-  memberCount: number;
-  membersPreview: MyOrganizationMemberPreview[];
-}
-
-export interface MyOrganizationListResult {
-  items: MyOrganization[];
-  total: number;
-}
-
-export interface CreateMyOrganizationInput {
-  name: string;
-}
+import type {
+  MyOrganization,
+  MyOrganizationListResult,
+  CreateMyOrganizationInput,
+} from "@/types/api";
 
 export async function getMyOrganization(): Promise<MyOrganization> {
   return api.get<MyOrganization>("/me/organization");

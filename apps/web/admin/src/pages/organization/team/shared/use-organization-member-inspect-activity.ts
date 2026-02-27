@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, type RefObject } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 
-import { listSystemActivity, type ActivityEvent } from "@/api/activity";
+import { listSystemActivity } from "@/api/activity";
+import type { ActivityEvent } from "@/types/api";
 
 type UseOrganizationMemberInspectActivityParams = {
   enabled: boolean;

@@ -14,6 +14,7 @@ import {
 } from "@/components/activity/activity-filter-popover";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import * as activityApi from "@/api/activity";
+import type { ActivityEvent } from "@/types/api";
 import { listTeamUserOptions } from "@/api/team";
 
 function stableStringify(value: unknown): string {
@@ -121,7 +122,7 @@ export function WorkspaceActivityPage() {
     return () => observer.disconnect();
   }, [listQuery.fetchNextPage, listQuery.hasNextPage, listQuery.isFetchingNextPage, items.length]);
 
-  const [selected, setSelected] = React.useState<activityApi.ActivityEvent | null>(null);
+  const [selected, setSelected] = React.useState<ActivityEvent | null>(null);
 
   return (
     <DefaultPage

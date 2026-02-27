@@ -18,10 +18,8 @@ import {
   deleteAssetFolder,
   listAssets,
   updateAssetFolder,
-  type PageData,
-  type AdminAssetFolder,
-  type AdminAssetSummary,
 } from "@/api/assets";
+import type { PageData, AdminAssetFolder, AdminAssetSummary } from "@/types/api";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { clearSelection, selectOnly, type AssetSelectionState } from "@/lib/assets/asset-selection";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";

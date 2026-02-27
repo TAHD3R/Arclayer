@@ -2,14 +2,14 @@ import { useEffect, useMemo, useState } from "react";
 import { Avatar, Button as AntButton, Tag, Tooltip } from "antd";
 import { useTranslation } from "react-i18next";
 
-import type { ActivityEvent } from "@/api/activity";
 import type {
+  ActivityEvent,
   OrgRole,
   OrgUserStatus,
   OrganizationMember,
   OrganizationMemberWorkspace,
-} from "@/api/organization-members";
-import type { OrganizationRbacMatrixPermissionRow } from "@/api/organization-rbac";
+  OrganizationRbacMatrixPermissionRow,
+} from "@/types/api";
 import { ActivityDetailDialog } from "@/components/activity/activity-detail-dialog";
 import {
   ChromeTabs,

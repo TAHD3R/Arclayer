@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 
-import { getSystemRuntime, type SystemRuntime } from "@/api/system";
+import { getSystemRuntime } from "@/api/system";
+import type { SystemRuntime } from "@/types/api";
 
 const FALLBACK_RUNTIME: SystemRuntime = {
   deploymentMode: "saas",

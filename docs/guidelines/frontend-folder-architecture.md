@@ -40,6 +40,36 @@ This guideline applies to:
 - `stores/` owns client/UI state only (not server-state mirrors).
 - `types/` owns Admin-local types; cross-app types must move to `packages/web-types`.
 
+### 4.1 Admin API Data Layer Convention (`api/` + `types/api/` + `lib/api/`)
+
+The Admin API layer follows a strict three-tier separation:
+
+```
+src/api/          → Runtime API functions only (HTTP calls)
+src/types/api/    → Pure type definitions (no runtime code)
+src/lib/api/      → Shared utilities (path builders, query-string helpers)
+```
+
+**Rules:**
+
+1. **Type definitions** must live in `types/api/*.ts` and be re-exported through `types/api/index.ts`. API files (`api/*.ts`) must not define `type`, `interface`, or `enum` locally — import them from `@/types/api`.
+
+2. **Path construction** must use centralized builders from `lib/api/path-builders.ts`:
+   - `workspacePath(workspaceId, "/sub/path")` for `/workspaces/{id}/...` endpoints.
+   - `organizationWorkspacePath(orgId, wsId, "/sub/path")` for `/organizations/{orgId}/workspaces/{wsId}/...` endpoints.
+   - `organizationWorkspacesBasePath(orgId)` for collection-level organization-workspace endpoints.
+   - `orgPluginPath(pluginRef)` for organization-plugin endpoints.
+   - Hand-written `encodeURIComponent(String(workspaceId))` + template literal path assembly is prohibited when a builder exists.
+
+3. **Query string construction** must use `toQueryString()` from `lib/api/query-string.ts`. Hand-written `URLSearchParams` or template-literal query assembly is prohibited for standard list/filter parameters.
+
+4. **Internal-only response wrappers** (e.g. `{ items: T[] }` envelope types used only inside one API function) may remain local to the API file as non-exported types.
+
+5. **Adding a new API module** requires:
+   - Create `types/api/<module>.ts` with all type definitions.
+   - Add re-exports to `types/api/index.ts`.
+   - Create `api/<module>.ts` importing types from `@/types/api` and utilities from `@/lib/api`.
+
 ## 5. Portal Structure Rules (`apps/web/portal`)
 
 - `pages/` owns Vike route entries (`+Page.tsx`, `+route.ts`) and route-level selection.

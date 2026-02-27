@@ -2,7 +2,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { Avatar, Button as AntButton, Select, Tag } from "antd";
 import { Trash2 } from "lucide-react";
 
-import type { OrgRole, OrganizationMember } from "@/api/organization-members";
+import type { OrgRole, OrganizationMember } from "@/types/api";
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;
 

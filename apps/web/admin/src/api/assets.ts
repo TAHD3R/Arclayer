@@ -1,105 +1,25 @@
 import { api } from "@/lib/http";
-import { workspacePath } from "@/api/workspace-path";
-
-export type PageData<T> = {
-  items: T[];
-  total: number;
-  page: number;
-  size: number;
-  pages: number;
-  next?: number | null;
-  prev?: number | null;
-};
-
-export type AdminAssetSummary = {
-  id: string;
-  purpose: string;
-  visibility: "public" | "private" | "shared" | string;
-  indexable: boolean;
-  ownerUserId?: string | null;
-  uploaderName?: string | null;
-  title?: string | null;
-  slug?: string | null;
-  originalFilename?: string | null;
-  mime?: string | null;
-  ext?: string | null;
-  sizeBytes: number;
-  checksumSha256?: string | null;
-  folderId?: string | null;
-  createdAt: string;
-
-  // Computed fields (from backend):
-  contentUrlPath: string;
-  publicUrlPath?: string | null;
-  publicDownloadUrlPath?: string | null;
-  publicThumbUrlPath?: string | null;
-};
-
-export type AdminAssetFolder = {
-  id: string;
-  name: string;
-  parentId?: string | null;
-  description?: string | null;
-  sortOrder?: number;
-  createdAt: string;
-};
-
-export type AdminAssetTag = {
-  id: string;
-  name: string;
-  createdAt: string;
-};
-
-export type AdminAssetDetail = AdminAssetSummary & {
-  description?: string | null;
-  tags: AdminAssetTag[];
-};
-
-export type PatchAdminAssetPayload = {
-  description?: string | null;
-  tagIds?: string[];
-  visibility?: string;
-  purpose?: string;
-};
-
-export type ListAdminAssetsParams = {
-  page?: number;
-  size?: number;
-  q?: string;
-  purpose?: string;
-  visibility?: string;
-  indexable?: boolean;
-  folderId?: string | null;
-  /**
-   * When true and folderId is not provided, only return assets in root (folder_id IS NULL).
-   * This avoids showing the same asset both in root and inside its folder.
-   */
-  folderIsNull?: boolean;
-  includeChildren?: boolean;
-  mimePrefix?: string;
-  createdFrom?: string;
-  createdTo?: string;
-  tagIds?: string[];
-  ordering?: string;
-};
-
-function toQueryString(params: Record<string, unknown>): string {
-  const qs = new URLSearchParams();
-  for (const [k, v] of Object.entries(params)) {
-    if (v === undefined) continue;
-    if (v === null) continue;
-    if (Array.isArray(v)) {
-      for (const item of v) {
-        if (item === undefined || item === null) continue;
-        qs.append(k, String(item));
-      }
-      continue;
-    }
-    qs.set(k, String(v));
-  }
-  const s = qs.toString();
-  return s ? `?${s}` : "";
-}
+import { workspacePath, toQueryString } from "@/lib/api";
+import type {
+  PageData,
+  AdminAssetSummary,
+  AdminAssetFolder,
+  AdminAssetTag,
+  AdminAssetDetail,
+  PatchAdminAssetPayload,
+  ListAdminAssetsParams,
+  AdminAssetFolderCreateRequest,
+  AdminAssetFolderUpdateRequest,
+  AdminAssetFolderDeleteOut,
+  AdminAssetDeleteOut,
+  AdminAssetMoveRequest,
+  AdminAssetsBulkMoveRequest,
+  AdminAssetsBulkMoveOut,
+  AdminAssetsBulkDeleteRequest,
+  AdminAssetsBulkDeleteOut,
+  AdminAssetsBulkUpdateRequest,
+  AdminAssetsBulkUpdateOut,
+} from "@/types/api";
 
 export async function listAssets(
   workspaceId: string,
@@ -135,13 +55,6 @@ export async function listAssetFolders(
   return api.get<PageData<AdminAssetFolder>>(workspacePath(workspaceId, `/asset-folders${query}`));
 }
 
-export type AdminAssetFolderCreateRequest = {
-  name: string;
-  parentId?: string | null;
-  description?: string | null;
-  sortOrder?: number;
-};
-
 export async function createAssetFolder(
   workspaceId: string,
   payload: AdminAssetFolderCreateRequest,
@@ -154,13 +67,6 @@ export async function createAssetFolder(
   });
 }
 
-export type AdminAssetFolderUpdateRequest = {
-  name?: string | null;
-  parentId?: string | null;
-  description?: string | null;
-  sortOrder?: number;
-};
-
 export async function updateAssetFolder(
   workspaceId: string,
   folderId: string,
@@ -171,10 +77,6 @@ export async function updateAssetFolder(
     payload,
   );
 }
-
-export type AdminAssetFolderDeleteOut = {
-  id: string;
-};
 
 export async function deleteAssetFolder(
   workspaceId: string,
@@ -223,21 +125,12 @@ export async function patchAsset(
   return api.patch<AdminAssetDetail>(workspacePath(workspaceId, `/assets/${assetId}`), payload);
 }
 
-export type AdminAssetDeleteOut = {
-  id: string;
-  deletedAt: string;
-};
-
 export async function deleteAsset(
   workspaceId: string,
   assetId: string,
 ): Promise<AdminAssetDeleteOut> {
   return api.delete<AdminAssetDeleteOut>(workspacePath(workspaceId, `/assets/${assetId}`));
 }
-
-export type AdminAssetMoveRequest = {
-  folderId?: string | null;
-};
 
 export async function moveAsset(
   workspaceId: string,
@@ -247,32 +140,12 @@ export async function moveAsset(
   return api.put<AdminAssetSummary>(workspacePath(workspaceId, `/assets/${assetId}/move`), payload);
 }
 
-export type AdminAssetsBulkMoveRequest = {
-  assetIds: string[];
-  folderId?: string | null;
-};
-
-export type AdminAssetsBulkMoveOut = {
-  movedCount: number;
-  folderId?: string | null;
-  movedAssetIds: string[];
-};
-
 export async function bulkMoveAssets(
   workspaceId: string,
   payload: AdminAssetsBulkMoveRequest,
 ): Promise<AdminAssetsBulkMoveOut> {
   return api.put<AdminAssetsBulkMoveOut>(workspacePath(workspaceId, `/assets/bulk/move`), payload);
 }
-
-export type AdminAssetsBulkDeleteRequest = {
-  assetIds: string[];
-};
-
-export type AdminAssetsBulkDeleteOut = {
-  deletedCount: number;
-  deletedAssetIds: string[];
-};
 
 export async function bulkDeleteAssets(
   workspaceId: string,
@@ -283,19 +156,6 @@ export async function bulkDeleteAssets(
     payload,
   );
 }
-
-export type AdminAssetsBulkUpdateRequest = {
-  assetIds: string[];
-  visibility?: string;
-  purpose?: string;
-};
-
-export type AdminAssetsBulkUpdateOut = {
-  updatedCount: number;
-  updatedAssetIds: string[];
-  visibility?: string;
-  purpose?: string;
-};
 
 export async function bulkUpdateAssets(
   workspaceId: string,

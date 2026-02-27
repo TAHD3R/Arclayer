@@ -1,66 +1,7 @@
 import { api } from "@/lib/http";
-import { workspacePath } from "@/api/workspace-path";
+import { toQueryString, workspacePath } from "@/lib/api";
 
-export type PageData<T> = {
-  items: T[];
-  total: number;
-  page: number;
-  size: number;
-  pages: number;
-  next?: number | null;
-  prev?: number | null;
-};
-
-export type Role = {
-  id: string;
-  code: string;
-  name: string;
-  description: string | null;
-  isDefault: boolean;
-  isSuperuser: boolean;
-  isSystem: boolean;
-};
-
-export type Permission = {
-  id: string;
-  code: string;
-  name: string;
-  description: string | null;
-  pluginId: string | null;
-  pluginName?: string | null;
-};
-
-export type RbacMatrixPermissionRow = {
-  code: string;
-  name: string;
-  description: string | null;
-  pluginId: string | null;
-  pluginName?: string | null;
-  grantedRoleCodes: string[];
-};
-
-export type RbacMatrix = {
-  roles: Role[];
-  permissions: RbacMatrixPermissionRow[];
-};
-
-function toQueryString(params: Record<string, unknown>): string {
-  const qs = new URLSearchParams();
-  for (const [k, v] of Object.entries(params)) {
-    if (v === undefined) continue;
-    if (v === null) continue;
-    if (Array.isArray(v)) {
-      for (const item of v) {
-        if (item === undefined || item === null) continue;
-        qs.append(k, String(item));
-      }
-      continue;
-    }
-    qs.set(k, String(v));
-  }
-  const s = qs.toString();
-  return s ? `?${s}` : "";
-}
+import type { PageData, Permission, RbacMatrix, Role } from "@/types/api";
 
 export async function listWorkspaceRoles(
   workspaceId: string,

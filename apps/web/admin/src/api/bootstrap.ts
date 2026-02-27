@@ -1,23 +1,6 @@
 import { api } from "@/lib/http";
 
-export interface BootstrapState {
-  ready: boolean;
-  repairRequired: boolean;
-  organizationId: string | null;
-  workspaceId: string | null;
-  siteId: string | null;
-  nextPath: string;
-  reason: string | null;
-}
-
-export interface BootstrapRepairResult {
-  repaired: boolean;
-  ready: boolean;
-  organizationId: string | null;
-  workspaceId: string | null;
-  siteId: string | null;
-  actions: string[];
-}
+import type { BootstrapState, BootstrapRepairResult } from "@/types/api";
 
 export async function getBootstrapState(): Promise<BootstrapState> {
   return api.get<BootstrapState>("/me/bootstrap-state");

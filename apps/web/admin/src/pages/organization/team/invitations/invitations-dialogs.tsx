@@ -1,9 +1,6 @@
 import { Button as AntButton, Input, Select } from "antd";
 
-import {
-  type OrganizationInvitation,
-  type OrganizationInviteLink,
-} from "@/api/organization-members";
+import type { OrganizationInvitation, OrganizationInviteLink } from "@/types/api";
 import { SettingDialog } from "@/components/common/setting-dialog";
 import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 import type { InviteOrganizationRoleOption } from "@/pages/organization/team/shared/invite-organization-member-dialog";

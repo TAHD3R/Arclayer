@@ -41,7 +41,7 @@ import { ContentGuard } from "@/components/common/content-guard";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
-import type { AdminMenuNodeEffective } from "@/api/admin-menus";
+import type { AdminMenuNodeEffective } from "@/types/api";
 import { getAdminMenuCatalogEffective } from "@/api/admin-menus";
 import { getMyOrganization } from "@/api/me";
 import { getWorkspaceDetail } from "@/api/workspaces";

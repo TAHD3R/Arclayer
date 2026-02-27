@@ -7,7 +7,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
 
-import type { TeamMember } from "@/api/team";
+import type { TeamMember } from "@/types/api";
 import { resetTeamMemberPassword } from "@/api/team";
 import { SettingDialog } from "@/components/common/setting-dialog";
 import { Input } from "@/components/ui/input";

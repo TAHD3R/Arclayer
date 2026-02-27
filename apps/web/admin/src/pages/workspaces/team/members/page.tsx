@@ -14,9 +14,8 @@ import {
   enableTeamMember,
   listTeamMembers,
   setTeamMemberRoles,
-  type TeamMember,
-  type UserStatus,
 } from "@/api/team";
+import type { TeamMember, UserStatus } from "@/types/api";
 import { DefaultPage } from "@/components/common/default-page";
 import { ContentGuard } from "@/components/common/content-guard";
 import { useDataTable } from "@/components/data-table";

@@ -2,7 +2,7 @@ import { Button, Input, Select } from "antd";
 import { Controller, type FieldErrors, type UseFormReturn } from "react-hook-form";
 import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 
-import type { Role } from "@/api/rbac";
+import type { Role } from "@/types/api";
 import { SettingDialog } from "@/components/common/setting-dialog";
 
 import type { CreateRoleFormValues } from "./roles-utils";

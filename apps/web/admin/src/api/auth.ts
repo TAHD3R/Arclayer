@@ -1,33 +1,5 @@
 import { api } from "@/lib/http";
-
-export interface TokenPair {
-  access_token: string;
-  refresh_token: string;
-  token_type: "bearer" | string;
-  expires_in: number;
-  refresh_expires_in: number;
-}
-
-export interface UserProfile {
-  id: string;
-  username: string;
-  email: string | null;
-  display_name: string | null;
-  avatar_url: string | null;
-}
-
-export interface ResetTokenPayload {
-  reset_token: string;
-  expires_in: number;
-}
-
-export interface RegisterPayload {
-  username: string;
-  email?: string;
-  password: string;
-  confirm_password: string;
-  display_name?: string;
-}
+import type { TokenPair, UserProfile, ResetTokenPayload, RegisterPayload } from "@/types/api";
 
 export async function login(payload: { identifier: string; password: string }): Promise<TokenPair> {
   return api.post<TokenPair>("/auth/login", payload, { auth: { skipRefresh: true } });

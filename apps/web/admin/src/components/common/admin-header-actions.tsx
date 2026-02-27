@@ -9,8 +9,8 @@ import {
   getUnreadNotificationPreview,
   listNotifications,
   markNotificationRead,
-  type NotificationItem,
 } from "@/api/notifications";
+import type { NotificationItem } from "@/types/api";
 import { listMyWorkspaces } from "@/api/workspaces";
 import { NotificationCard } from "@/components/common/notification-card";
 import { ContentGuard } from "@/components/common/content-guard";

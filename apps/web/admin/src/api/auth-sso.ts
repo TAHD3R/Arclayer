@@ -1,25 +1,14 @@
 import { api } from "@/lib/http";
-
-import type { TokenPair } from "@/api/auth";
-
-export type AuthSSOProvider = {
-  provider: "google" | "github" | (string & {});
-  label: string;
-  startUrl?: string;
-  start_url?: string;
-  icon_key?: string | null;
-};
-
-export type AuthSSOProvidersOut = {
-  providers: AuthSSOProvider[];
-};
+import { toQueryString } from "@/lib/api";
+import type { TokenPair, AuthSSOProvidersOut } from "@/types/api";
 
 export async function listSSOProviders(input?: {
   redirect?: string;
 }): Promise<AuthSSOProvidersOut> {
-  const redirect = input?.redirect;
-  const qs = redirect ? `?redirect=${encodeURIComponent(redirect)}` : "";
-  return api.get<AuthSSOProvidersOut>(`/auth/sso/providers${qs}`, { auth: { skipRefresh: true } });
+  const query = toQueryString({ redirect: input?.redirect });
+  return api.get<AuthSSOProvidersOut>(`/auth/sso/providers${query}`, {
+    auth: { skipRefresh: true },
+  });
 }
 
 export async function exchangeSSOCode(code: string): Promise<TokenPair> {

@@ -5,7 +5,7 @@ import { memo, useEffect, useMemo, useRef, useState, type CSSProperties } from "
 import { useTranslation } from "react-i18next";
 
 import { cn } from "@/lib/utils";
-import { type AdminAssetTag } from "@/api/assets";
+import { type AdminAssetTag } from "@/types/api";
 import { Checkbox } from "@/components/ui/checkbox";
 import { LoaderOne } from "@/components/ui/loader";
 import {

@@ -3,7 +3,7 @@ import { Plus } from "lucide-react";
 
 import { DefaultPage } from "@/components/common/default-page";
 import { LoaderOne } from "@/components/ui/loader";
-import type { AdminAssetFolder, AdminAssetTag } from "@/api/assets";
+import type { AdminAssetFolder, AdminAssetTag } from "@/types/api";
 
 import { clearSelection } from "@/lib/assets/asset-selection";
 import { useAssetsViewController } from "./use-assets-view-controller";

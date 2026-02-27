@@ -5,8 +5,7 @@ import * as React from "react";
 import { useTranslation } from "react-i18next";
 import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 
-import type { Role } from "@/api/rbac";
-import type { TeamMember } from "@/api/team";
+import type { Role, TeamMember } from "@/types/api";
 import { SettingDialog } from "@/components/common/setting-dialog";
 
 export function EditMemberRolesDialog(props: {

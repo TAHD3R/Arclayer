@@ -1,13 +1,8 @@
 import { keepPreviousData, useInfiniteQuery, useQueries, useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 
-import {
-  listAssetFolders,
-  listAssetTags,
-  listAssets,
-  type AdminAssetFolder,
-  type AdminAssetSummary,
-} from "@/api/assets";
+import { listAssetFolders, listAssetTags, listAssets } from "@/api/assets";
+import type { AdminAssetFolder, AdminAssetSummary } from "@/types/api";
 import { filterFoldersByContentCheck } from "@/lib/assets/folder-visibility";
 import { isExplicitAssetsFilterActive } from "@/lib/assets/assets-filtering";
 import { toMasonryItem } from "@/lib/assets/to-masonry-item";

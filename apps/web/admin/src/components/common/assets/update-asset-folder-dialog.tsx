@@ -2,7 +2,7 @@ import { Button, Input } from "antd";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import type { AdminAssetFolder } from "@/api/assets";
+import type { AdminAssetFolder } from "@/types/api";
 import { SettingDialog } from "@/components/common/setting-dialog";
 
 export type UpdateAssetFolderDialogValue = {

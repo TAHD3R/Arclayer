@@ -1,54 +1,12 @@
 import { api } from "@/lib/http";
+import { toQueryString, orgRbacRolePath, orgRbacPermissionPath } from "@/lib/api";
 
-export type PageData<T> = {
-  items: T[];
-  total: number;
-  page: number;
-  size: number;
-  pages: number;
-  next?: number | null;
-  prev?: number | null;
-};
-
-export type OrganizationRole = {
-  id: string;
-  code: string;
-  name: string;
-  description: string | null;
-  isSystem: boolean;
-  isBuiltin: boolean;
-};
-
-export type OrganizationPermission = {
-  id: string;
-  code: string;
-  module: string;
-  name: string;
-  description: string | null;
-};
-
-export type OrganizationRbacMatrixPermissionRow = {
-  code: string;
-  module: string;
-  name: string;
-  description: string | null;
-  grantedRoleCodes: string[];
-};
-
-export type OrganizationRbacMatrix = {
-  roles: OrganizationRole[];
-  permissions: OrganizationRbacMatrixPermissionRow[];
-};
-
-function toQueryString(params: Record<string, unknown>): string {
-  const qs = new URLSearchParams();
-  for (const [k, v] of Object.entries(params)) {
-    if (v === undefined || v === null || v === "") continue;
-    qs.set(k, String(v));
-  }
-  const s = qs.toString();
-  return s ? `?${s}` : "";
-}
+import type {
+  OrganizationPermission,
+  OrganizationRbacMatrix,
+  OrganizationRole,
+  PageData,
+} from "@/types/api";
 
 export async function listOrganizationRoles(
   params: { page?: number; size?: number } = {},
@@ -78,16 +36,14 @@ export async function createOrganizationRoleFromTemplate(input: {
 }
 
 export async function deleteOrganizationRole(roleCode: string): Promise<void> {
-  const code = encodeURIComponent(String(roleCode));
-  await api.delete<null>(`/organizations/me/rbac/roles/${code}`);
+  await api.delete<null>(orgRbacRolePath(roleCode));
 }
 
 export async function setOrganizationPermissionRoles(input: {
   permissionCode: string;
   roleCodes: string[];
 }): Promise<void> {
-  const code = encodeURIComponent(String(input.permissionCode));
-  await api.put<null>(`/organizations/me/rbac/permissions/${code}/roles`, {
+  await api.put<null>(orgRbacPermissionPath(input.permissionCode, "/roles"), {
     roleCodes: input.roleCodes,
   });
 }
@@ -96,8 +52,7 @@ export async function setOrganizationRolePermissions(input: {
   roleCode: string;
   permissionCodes: string[];
 }): Promise<void> {
-  const roleCode = encodeURIComponent(String(input.roleCode));
-  await api.put<null>(`/organizations/me/rbac/roles/${roleCode}/permissions`, {
+  await api.put<null>(orgRbacRolePath(input.roleCode, "/permissions"), {
     permissionCodes: input.permissionCodes,
   });
 }

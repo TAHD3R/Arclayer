@@ -3,7 +3,7 @@ import { Avatar, Input, Tag } from "antd";
 import { Search } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import type { OrganizationMemberWorkspace } from "@/api/organization-members";
+import type { OrganizationMemberWorkspace } from "@/types/api";
 import { cn } from "@/lib/utils";
 
 export type ResolvedMemberWorkspace = OrganizationMemberWorkspace & {

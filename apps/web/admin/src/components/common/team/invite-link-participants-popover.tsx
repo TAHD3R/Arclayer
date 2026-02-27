@@ -3,11 +3,8 @@ import * as React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 
-import {
-  listTeamInviteLinkParticipants,
-  type TeamInviteLinkParticipant,
-  type TeamUserRef,
-} from "@/api/team";
+import { listTeamInviteLinkParticipants } from "@/api/team";
+import type { TeamInviteLinkParticipant, TeamUserRef } from "@/types/api";
 import { listOrganizationInviteLinkParticipants } from "@/api/organization-members";
 import { LoaderOne } from "@/components/ui/loader";
 import { notifyError } from "@/lib/notifications";

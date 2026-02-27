@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useTranslation } from "react-i18next";
 
-import type { ActivityEvent } from "@/api/activity";
+import type { ActivityEvent } from "@/types/api";
 import { SettingDialog } from "@/components/common/setting-dialog";
 import { formatDateTimeWithPattern } from "@/lib/time/date-time";
 import { resolveCatalogEntry } from "@/components/activity/event-catalog";

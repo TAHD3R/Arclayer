@@ -9,12 +9,14 @@ import {
   inviteOrganizationMember,
   listOrganizationMembers,
   patchOrganizationMemberRole,
-  type OrgMembershipStatus,
-  type OrgRole,
-  type OrgUserStatus,
-  type OrganizationMember,
-  type OrganizationMemberWorkspace,
 } from "@/api/organization-members";
+import type {
+  OrgMembershipStatus,
+  OrgRole,
+  OrgUserStatus,
+  OrganizationMember,
+  OrganizationMemberWorkspace,
+} from "@/types/api";
 import { getOrganizationRbacMatrix, listOrganizationRoles } from "@/api/organization-rbac";
 import { listOrganizationWorkspaces } from "@/api/organization-workspaces";
 import { useDataTable } from "@/components/data-table";

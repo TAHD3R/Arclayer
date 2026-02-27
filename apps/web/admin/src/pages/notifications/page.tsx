@@ -11,8 +11,8 @@ import {
   markNotificationRead,
   deleteNotification,
   seedDemoNotifications,
-  type NotificationItem,
 } from "@/api/notifications";
+import type { NotificationItem } from "@/types/api";
 import { listMyWorkspaces } from "@/api/workspaces";
 import { DefaultPage } from "@/components/common/default-page";
 import { NotificationCard } from "@/components/common/notification-card";

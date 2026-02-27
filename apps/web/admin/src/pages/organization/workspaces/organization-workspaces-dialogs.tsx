@@ -2,7 +2,7 @@ import type { Dispatch, SetStateAction } from "react";
 
 import { Button as AntButton, Form, Input, type FormInstance } from "antd";
 
-import type { OrganizationWorkspace } from "@/api/organization-workspaces";
+import type { OrganizationWorkspace } from "@/types/api";
 import { ConfirmDialog } from "@/components/common/confirm-dialog";
 import { SettingDialog } from "@/components/common/setting-dialog";
 

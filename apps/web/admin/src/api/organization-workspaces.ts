@@ -1,83 +1,17 @@
 import { api } from "@/lib/http";
+import {
+  toQueryString,
+  organizationWorkspacesBasePath,
+  organizationWorkspacePath,
+} from "@/lib/api";
 
-export type PageData<T> = {
-  items: T[];
-  total: number;
-  page: number;
-  size: number;
-  pages: number;
-  next?: number | null;
-  prev?: number | null;
-};
-
-export type OrganizationWorkspaceTemplate = "blog" | "website" | "blank";
-
-export type OrganizationWorkspaceMemberPreview = {
-  userId: string;
-  username: string;
-  displayName: string | null;
-  email: string | null;
-  avatarUrl: string | null;
-};
-
-export type OrganizationWorkspaceMember = {
-  membershipId: string;
-  userId: string;
-  username: string;
-  displayName: string | null;
-  email: string | null;
-  avatarUrl: string | null;
-  joinedAt: string;
-};
-
-export type OrganizationWorkspace = {
-  id: string;
-  workspaceId: string;
-  organizationId: string;
-  slug: string;
-  name: string;
-  description: string | null;
-  iconUrl: string | null;
-  isArchived: boolean;
-  archivedAt: string | null;
-  archivedByUserId: string | null;
-  memberCount: number;
-  membersPreview: OrganizationWorkspaceMemberPreview[];
-  createdAt: string;
-  enterable: boolean;
-};
-
-export type OrganizationWorkspaceArchiveResult = {
-  workspaceId: string;
-  isArchived: boolean;
-  archivedAt: string | null;
-  archivedByUserId: string | null;
-};
-
-export type OrganizationWorkspaceCreateInput = {
-  name: string;
-  description?: string;
-  template: OrganizationWorkspaceTemplate;
-  locale?: string;
-  timezone?: string;
-  dateFormat?: string;
-};
-
-function toQueryString(params: Record<string, unknown>): string {
-  const qs = new URLSearchParams();
-  for (const [k, v] of Object.entries(params)) {
-    if (v === undefined || v === null || v === "") continue;
-    qs.set(k, String(v));
-  }
-  const s = qs.toString();
-  return s ? `?${s}` : "";
-}
-
-function organizationWorkspacesBasePath(organizationId?: string): string {
-  if (!organizationId) return "/organizations/me/workspaces";
-  const id = encodeURIComponent(String(organizationId));
-  return `/organizations/${id}/workspaces`;
-}
+import type {
+  PageData,
+  OrganizationWorkspace,
+  OrganizationWorkspaceMember,
+  OrganizationWorkspaceArchiveResult,
+  OrganizationWorkspaceCreateInput,
+} from "@/types/api";
 
 export async function listOrganizationWorkspaces(params: {
   organizationId?: string;
@@ -116,6 +50,7 @@ export async function listAllOrganizationWorkspaces(
   const items: OrganizationWorkspace[] = [];
 
   for (;;) {
+    // eslint-disable-next-line no-await-in-loop -- sequential pagination: each page depends on the previous result
     const result = await listOrganizationWorkspaces({
       organizationId: params.organizationId,
       page,
@@ -144,14 +79,13 @@ export async function listOrganizationWorkspaceMembers(
     q?: string;
   },
 ): Promise<PageData<OrganizationWorkspaceMember>> {
-  const id = encodeURIComponent(String(workspaceId));
   const query = toQueryString({
     page: params.page ?? 1,
     size: params.size ?? 10,
     q: params.q,
   });
   return api.get<PageData<OrganizationWorkspaceMember>>(
-    `${organizationWorkspacesBasePath(organizationId)}/${id}/members${query}`,
+    `${organizationWorkspacePath(organizationId, workspaceId, "/members")}${query}`,
   );
 }
 
@@ -166,9 +100,8 @@ export async function archiveOrganizationWorkspace(
   organizationId: string | undefined,
   workspaceId: string,
 ): Promise<OrganizationWorkspaceArchiveResult> {
-  const id = encodeURIComponent(String(workspaceId));
   return api.post<OrganizationWorkspaceArchiveResult>(
-    `${organizationWorkspacesBasePath(organizationId)}/${id}/archive`,
+    organizationWorkspacePath(organizationId, workspaceId, "/archive"),
   );
 }
 
@@ -176,9 +109,8 @@ export async function unarchiveOrganizationWorkspace(
   organizationId: string | undefined,
   workspaceId: string,
 ): Promise<OrganizationWorkspaceArchiveResult> {
-  const id = encodeURIComponent(String(workspaceId));
   return api.post<OrganizationWorkspaceArchiveResult>(
-    `${organizationWorkspacesBasePath(organizationId)}/${id}/unarchive`,
+    organizationWorkspacePath(organizationId, workspaceId, "/unarchive"),
   );
 }
 
@@ -187,9 +119,8 @@ export async function deleteOrganizationWorkspace(
   workspaceId: string,
   confirmName: string,
 ): Promise<{ workspaceId: string; deleted: boolean }> {
-  const id = encodeURIComponent(String(workspaceId));
   const query = toQueryString({ confirmName });
   return api.delete<{ workspaceId: string; deleted: boolean }>(
-    `${organizationWorkspacesBasePath(organizationId)}/${id}${query}`,
+    `${organizationWorkspacePath(organizationId, workspaceId)}${query}`,
   );
 }

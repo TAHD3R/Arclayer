@@ -5,8 +5,7 @@ import { useTranslation } from "react-i18next";
 import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 
 import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import type { Role } from "@/api/rbac";
-import type { MembershipStatus, UserStatus } from "@/api/team";
+import type { Role, MembershipStatus, UserStatus } from "@/types/api";
 export type TeamMembersFilters = {
   membershipStatus?: MembershipStatus;
   userStatus?: UserStatus;

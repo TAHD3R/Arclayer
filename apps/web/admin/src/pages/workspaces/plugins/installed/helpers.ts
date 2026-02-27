@@ -1,5 +1,4 @@
-import type { OrganizationPluginItem } from "@/api/org-plugins";
-import type { WorkspacePluginItem } from "@/api/workspace-plugins";
+import type { OrganizationPluginItem, WorkspacePluginItem } from "@/types/api";
 
 export type PluginScope = "workspace" | "organization";
 export type InstalledPluginItem = WorkspacePluginItem | OrganizationPluginItem;

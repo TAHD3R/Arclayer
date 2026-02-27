@@ -6,8 +6,9 @@ import { Button, Input } from "antd";
 import { motion, type Variants } from "motion/react";
 import { useTranslation } from "react-i18next";
 
-import { listWorkspaceSitePagesTree, type SitePageTreeNode } from "@/api/workspace-site";
+import { listWorkspaceSitePagesTree } from "@/api/workspace-site";
 import { getWorkspaceDetail } from "@/api/workspaces";
+import type { SitePageTreeNode } from "@/types/api";
 import {
   FloatingPanelContent,
   FloatingPanelRoot,

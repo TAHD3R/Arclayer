@@ -5,11 +5,8 @@ import { Avatar, Button as AntButton, Input, List, Pagination } from "antd";
 import { Search } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import {
-  listOrganizationWorkspaceMembers,
-  type OrganizationWorkspace,
-  type OrganizationWorkspaceMember,
-} from "@/api/organization-workspaces";
+import { listOrganizationWorkspaceMembers } from "@/api/organization-workspaces";
+import type { OrganizationWorkspace, OrganizationWorkspaceMember } from "@/types/api";
 import { LoaderOne } from "@/components/ui/loader";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 

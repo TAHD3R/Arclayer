@@ -1,27 +1,11 @@
 import { api } from "@/lib/http";
-import type { PageData } from "@/api/assets";
-import { workspacePath } from "@/api/workspace-path";
-
-export type AdminShareCreateRequest = {
-  /** 过期秒数；null 表示永不过期 */
-  expiresInSeconds?: number | null;
-};
-
-export type AdminShareLink = {
-  id: string;
-  assetId: string;
-  token: string;
-  expiresAt?: string | null;
-  revokedAt?: string | null;
-  createdAt: string;
-  previewUrlPath: string;
-  downloadUrlPath: string;
-};
-
-export type AdminShareRevokeOut = {
-  id: string;
-  revokedAt: string;
-};
+import { toQueryString, workspacePath } from "@/lib/api";
+import type {
+  PageData,
+  AdminShareCreateRequest,
+  AdminShareLink,
+  AdminShareRevokeOut,
+} from "@/types/api";
 
 export async function createAdminAssetShareLink(params: {
   workspaceId: string;
@@ -40,12 +24,9 @@ export async function listAdminAssetShareLinks(params: {
   page?: number;
   size?: number;
 }): Promise<PageData<AdminShareLink>> {
-  const query = new URLSearchParams();
-  query.set("page", String(params.page ?? 1));
-  query.set("size", String(params.size ?? 50));
-  const qs = query.toString();
+  const query = toQueryString({ page: params.page ?? 1, size: params.size ?? 50 });
   return api.get<PageData<AdminShareLink>>(
-    workspacePath(params.workspaceId, `/assets/${params.assetId}/share-links${qs ? `?${qs}` : ""}`),
+    workspacePath(params.workspaceId, `/assets/${params.assetId}/share-links${query}`),
   );
 }
 

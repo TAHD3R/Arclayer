@@ -11,10 +11,8 @@ import {
   getAssetDetail,
   listAssetTags,
   patchAsset,
-  type AdminAssetTag,
-  type AdminAssetSummary,
-  type PageData,
 } from "@/api/assets";
+import type { AdminAssetTag, AdminAssetSummary, PageData } from "@/types/api";
 import TrashIcon from "@/components/ui/icons/trash-icon";
 import { notifyErrorText, notifySuccessText } from "@/lib/notifications";
 import { usePreferencesStore } from "@/stores/use-preference-store";
@@ -285,7 +283,7 @@ export function useAssetPreviewSheetController(props: {
           if (!data) return old;
           const updatedId = String(updated.id);
           const pages = data.pages.map((page) => {
-            const items = page.items.map((row) =>
+            const items = page.items.map((row: AdminAssetSummary) =>
               String(row.id) === updatedId
                 ? {
                     ...row,

@@ -1,27 +1,6 @@
 import { api } from "@/lib/http";
-import type { PageData } from "@/api/assets";
-import { workspacePath } from "@/api/workspace-path";
-
-export type AdminAssetUsage = {
-  id: string;
-  createdAt: string;
-  updatedAt: string;
-
-  assetId: string;
-  purpose: string;
-  entityType: string;
-  entityId: string;
-  fieldKey: string;
-  createdByUserId?: string | null;
-};
-
-export type UpsertAdminAssetUsagePayload = {
-  assetId: string;
-  purpose: string;
-  entityType: string;
-  entityId: string;
-  fieldKey: string;
-};
+import { toQueryString, workspacePath } from "@/lib/api";
+import type { PageData, AdminAssetUsage, UpsertAdminAssetUsagePayload } from "@/types/api";
 
 export async function listAdminAssetUsages(params: {
   workspaceId: string;
@@ -29,12 +8,9 @@ export async function listAdminAssetUsages(params: {
   page?: number;
   size?: number;
 }): Promise<PageData<AdminAssetUsage>> {
-  const query = new URLSearchParams();
-  query.set("page", String(params.page ?? 1));
-  query.set("size", String(params.size ?? 50));
-  const qs = query.toString();
+  const query = toQueryString({ page: params.page ?? 1, size: params.size ?? 50 });
   return api.get<PageData<AdminAssetUsage>>(
-    workspacePath(params.workspaceId, `/assets/${params.assetId}/usages${qs ? `?${qs}` : ""}`),
+    workspacePath(params.workspaceId, `/assets/${params.assetId}/usages${query}`),
   );
 }
 
