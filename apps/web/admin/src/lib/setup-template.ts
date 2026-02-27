@@ -1,4 +1,4 @@
-import type { SetupSiteDraft, SetupWorkspaceTemplate } from "@/stores/use-setup-wizard-store";
+import type { SetupSiteDraft, SetupWorkspaceTemplate } from "@/types/stores";
 
 type SetupTranslate = (key: string, params?: Record<string, unknown>) => string;
 

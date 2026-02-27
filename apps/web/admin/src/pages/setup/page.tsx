@@ -26,14 +26,14 @@ import {
 import { applyWorkspaceTemplatePreset } from "@/lib/setup-template";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";
-import {
-  type SetupAdminDraft,
-  type SetupDefaultsDraft,
-  type SetupSiteDraft,
-  type SetupWizardStep,
-  type SetupWorkspaceTemplate,
-  useSetupWizardStore,
-} from "@/stores/use-setup-wizard-store";
+import type {
+  SetupAdminDraft,
+  SetupDefaultsDraft,
+  SetupSiteDraft,
+  SetupWizardStep,
+  SetupWorkspaceTemplate,
+} from "@/types/stores";
+import { useSetupWizardStore } from "@/stores/use-setup-wizard-store";
 
 const MAX_STEP: SetupWizardStep = 2;
 const FALLBACK_PRIMARY_BEND_COLOR = "#3b82f6";

@@ -1,14 +1,10 @@
 import { create } from "zustand";
-import { persist, createJSONStorage } from "zustand/middleware";
+import { createJSONStorage, persist } from "zustand/middleware";
 
 import { STORAGE_KEYS } from "@/constants/storage";
+import type { FavoritesState } from "@/types/stores";
 
 const MAX_FAVORITES = 10;
-
-interface FavoritesState {
-  paths: string[];
-  toggle: (path: string) => void;
-}
 
 export const useFavoritesStore = create<FavoritesState>()(
   persist(

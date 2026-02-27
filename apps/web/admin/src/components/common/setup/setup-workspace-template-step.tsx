@@ -7,7 +7,7 @@ import clsx from "clsx";
 import { SettingAccordionItem } from "@/components/common/setting-accordion-item";
 import { Accordion } from "@/components/ui/accordion";
 import { SETUP_WORKSPACE_TEMPLATE_KEYS } from "@/lib/setup-template";
-import { type SetupSiteDraft, type SetupWorkspaceTemplate } from "@/stores/use-setup-wizard-store";
+import type { SetupSiteDraft, SetupWorkspaceTemplate } from "@/types/stores";
 
 const TEMPLATE_ICON: Record<SetupWorkspaceTemplate, ComponentType<{ size?: number }>> = {
   blog: Newspaper,

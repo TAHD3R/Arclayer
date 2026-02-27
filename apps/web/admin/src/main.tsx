@@ -1,7 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "antd/dist/reset.css";
-import "./assets/index.css";
+import "./index.css";
 import App from "./app";
 
 import { initI18n } from "@/lib/i18n";

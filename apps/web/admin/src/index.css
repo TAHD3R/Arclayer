@@ -3,15 +3,7 @@
 @plugin "tailwindcss-animate";
 @custom-variant dark (&:is([data-theme="dark"] *));
 
-:root {
-  --radius-sm: 0.25rem;
-  --radius: 0.5rem;
-  --radius-md: 0.75rem;
-  --radius-lg: 1rem;
-}
-
 html {
-  font-size: 16px;
   color-scheme: light;
 }
 
@@ -25,12 +17,6 @@ body,
   height: 100%;
 }
 
-body {
-  margin: 0;
-  background: var(--color-background);
-  color: var(--color-foreground);
-}
-
 /* Ant Design overrides */
 
 .ant-app {
@@ -40,88 +26,13 @@ body {
   color: inherit;
 }
 
-.ant-btn {
-  .anticon {
-    display: inline-flex;
-  }
-
-  /* Keep inline SVG icons aligned with AntD button content. */
-  > svg {
-    display: inline-block;
-  }
-
-  > svg + span {
-    margin-inline-start: 6px;
-  }
-}
-
-.ant-tag {
-  > svg {
-    display: inline-block;
-  }
-
-  > svg + span {
-    margin-inline-start: 4px;
-  }
-}
-
-.ant-message-notice-content,
-.ant-notification-notice {
-  @apply dark:border-border/60 dark:border;
-}
-
-/* Make Select feel less "boxy" in admin UI (align with Tailwind cards). */
-.ant-select .ant-select-selector {
-  border-radius: var(--radius-lg) !important;
-}
-
-.ant-select-dropdown {
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-}
-
-.form-valid-error {
-  /* Select */
-  .ant-select:not(.valid-success) .ant-select-selector:not(.valid-success) {
-    border-color: hsl(var(--destructive)) !important;
-  }
-
-  .ant-select-focused .ant-select-selector {
-    box-shadow: 0 0 0 2px rgb(255 38 5 / 6%) !important;
-  }
-
-  /* InputNumber */
-  .ant-input-number-focused {
-    box-shadow: 0 0 0 2px rgb(255 38 5 / 6%);
-  }
-
-  /* Password input */
-  .ant-input-affix-wrapper:hover {
-    border-color: hsl(var(--destructive));
-    box-shadow: 0 0 0 2px rgb(255 38 5 / 6%);
-  }
-
-  .ant-input:not(.valid-success) {
-    border-color: hsl(var(--destructive)) !important;
-  }
-}
-
-/* Date range picker active bar */
-.ant-app .form-valid-error .ant-picker-active-bar {
-  background-color: hsl(var(--destructive));
-}
-
-/* Date/time picker focus */
-.ant-app .form-valid-error .ant-picker-focused {
-  box-shadow: 0 0 0 2px rgb(255 38 5 / 6%);
-}
-
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
   body {
     @apply bg-background text-foreground;
+    margin: 0;
     font-size: var(--font-size-body);
     line-height: var(--line-height-body);
     letter-spacing: var(--tracking-body);
@@ -223,24 +134,4 @@ body {
   .scene-loader {
     animation: none;
   }
-}
-
-/* Infinite canvas */
-:root {
-  --canvas-bg: #efefef;
-  --canvas-dot-color: rgba(0, 0, 0, 0.08);
-}
-
-[data-theme="dark"] {
-  --canvas-bg: #202020;
-  --canvas-dot-color: rgba(255, 255, 255, 0.06);
-}
-
-.canvas-bg {
-  background-color: var(--canvas-bg);
-}
-
-.canvas-dot-grid {
-  background-image: radial-gradient(circle, var(--canvas-dot-color) 1px, transparent 1px);
-  background-size: 20px 20px;
 }

@@ -2,7 +2,7 @@ import { Button, Form, Input } from "antd";
 import { Lock, Mail, User } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import { type SetupAdminDraft } from "@/stores/use-setup-wizard-store";
+import type { SetupAdminDraft } from "@/types/stores";
 
 // Keep behavior aligned with backend PASSWORD_REGEX (apps/api/routers/v1/auth/constants.py).
 const PASSWORD_REGEX = /^(?=.*[A-Za-z])(?=.*\d)[[A-Za-z\d~!@#$%^&*()_\-+=\]{}|;:'",.<>?/]{8,128}$/;

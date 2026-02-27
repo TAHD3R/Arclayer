@@ -8,68 +8,35 @@ import {
   DEFAULT_LOCALE,
   normalizeLocale,
 } from "@/lib/i18n";
+import {
+  readStorageItem,
+  readStorageJson,
+  removeStorageItem,
+  writeStorageItem,
+  writeStorageJson,
+} from "@/lib/storage";
+import {
+  applyThemeModeToDom,
+  normalizeThemeMode,
+  normalizeThemePreference,
+  resolveThemeMode,
+  detectSystemThemeMode,
+} from "@/lib/theme";
+import type {
+  LocalePreferenceMode,
+  PreferencesState,
+  ThemePreference,
+  WorkspaceLocaleCache,
+} from "@/types/stores";
 import { type ThemeMode } from "@celestial/ui-theme/antd";
-
-export type ThemePreference = ThemeMode | "system";
-export type LocalePreferenceMode = "workspace" | "browser" | "explicit";
-
-interface PreferencesState {
-  themeMode: ThemeMode;
-  themePreference: ThemePreference;
-  locale: AppLocale;
-  /**
-   * Whether the user explicitly chose a locale:
-   * - set: user preference (client will send X-Locale)
-   * - null: no explicit preference (client won't send X-Locale)
-   */
-  localePreference: AppLocale | null;
-  localePreferenceMode: LocalePreferenceMode;
-  setThemeMode: (mode: ThemeMode) => void;
-  setThemePreference: (preference: ThemePreference) => void;
-  toggleThemeMode: () => void;
-  setLocale: (locale: AppLocale) => void;
-  setBrowserLocale: () => void;
-  /**
-   * Apply an effective locale from workspace/site defaults when user is in workspace mode.
-   *
-   * Notes:
-   * - Does NOT persist to localStorage.
-   * - Does NOT set localePreference, so API requests won't send X-Locale.
-   */
-  setEffectiveLocale: (locale: AppLocale) => void;
-  /**
-   * Persist a workspace's default locale for faster bootstrapping on refresh.
-   *
-   * Notes:
-   * - Does NOT change localePreference.
-   * - Used to avoid "flash to browser language" before workspace settings are loaded.
-   */
-  cacheWorkspaceLocale: (workspaceId: string, locale: AppLocale) => void;
-}
-
-function normalizeThemeMode(input: unknown): ThemeMode {
-  if (input === "dark" || input === "light") return input;
-  return "light";
-}
-
-function normalizeThemePreference(input: unknown): ThemePreference {
-  if (input === "system") return "system";
-  return normalizeThemeMode(input);
-}
 
 function normalizeLocalePreferenceMode(input: unknown): LocalePreferenceMode {
   if (input === "explicit" || input === "browser" || input === "workspace") return input;
   return "workspace";
 }
 
-function detectSystemThemeMode(): ThemeMode {
-  if (typeof window === "undefined") return "light";
-  return window.matchMedia?.("(prefers-color-scheme: dark)")?.matches ? "dark" : "light";
-}
-
-function resolveThemeMode(preference: ThemePreference): ThemeMode {
-  if (preference === "system") return detectSystemThemeMode();
-  return preference;
+function applyLocaleToDom(locale: AppLocale) {
+  document.documentElement.lang = locale;
 }
 
 function getInitialThemePreference(): ThemePreference {
@@ -78,95 +45,19 @@ function getInitialThemePreference(): ThemePreference {
   const fromDom = document.documentElement.dataset.theme;
   if (fromDom) return normalizeThemeMode(fromDom);
 
-  try {
-    const stored = window.localStorage.getItem(STORAGE_KEYS.themeMode);
-    if (stored) return normalizeThemePreference(stored);
-  } catch {
-    // ignore storage errors
-  }
+  const stored = readStorageItem(STORAGE_KEYS.themeMode);
+  if (stored) return normalizeThemePreference(stored);
 
   return "system";
 }
 
-function applyThemeModeToDom(mode: ThemeMode) {
-  document.documentElement.dataset.theme = mode;
-}
-
-function persistThemePreference(preference: ThemePreference) {
-  try {
-    window.localStorage.setItem(STORAGE_KEYS.themeMode, preference);
-  } catch {
-    // ignore storage errors
-  }
-}
-
-function persistLocale(locale: AppLocale) {
-  try {
-    window.localStorage.setItem(STORAGE_KEYS.locale, locale);
-  } catch {
-    // ignore storage errors
-  }
-}
-
-function clearPersistedLocale() {
-  try {
-    window.localStorage.removeItem(STORAGE_KEYS.locale);
-  } catch {
-    // ignore storage errors
-  }
-}
-
-function persistLocalePreferenceMode(mode: LocalePreferenceMode) {
-  try {
-    window.localStorage.setItem(STORAGE_KEYS.localePreferenceMode, mode);
-  } catch {
-    // ignore storage errors
-  }
-}
-
-type WorkspaceLocaleCache = Record<string, AppLocale | undefined>;
-
-function readWorkspaceLocaleCache(): WorkspaceLocaleCache {
-  if (typeof window === "undefined") return {};
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEYS.workspaceLocaleCache);
-    if (!raw) return {};
-    const parsed: unknown = JSON.parse(raw);
-    if (!parsed || typeof parsed !== "object") return {};
-    return parsed as WorkspaceLocaleCache;
-  } catch {
-    return {};
-  }
-}
-
-function writeWorkspaceLocaleCache(next: WorkspaceLocaleCache) {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem(STORAGE_KEYS.workspaceLocaleCache, JSON.stringify(next));
-  } catch {
-    // ignore storage errors
-  }
-}
-
 function readPersistedLastWorkspaceId(): string | null {
   if (typeof window === "undefined") return null;
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEYS.workspace);
-    if (!raw) return null;
-    const parsed: unknown = JSON.parse(raw);
-    if (!parsed || typeof parsed !== "object") return null;
-    const stateCandidate = (parsed as { state?: unknown }).state;
-    if (!stateCandidate || typeof stateCandidate !== "object") return null;
-    const lastWorkspaceId = (stateCandidate as { lastWorkspaceId?: unknown }).lastWorkspaceId;
-    const normalized = typeof lastWorkspaceId === "string" ? lastWorkspaceId.trim() : "";
-    return normalized ? normalized : null;
-  } catch {
-    return null;
-  }
-}
-
-function applyLocaleToDom(locale: AppLocale) {
-  document.documentElement.lang = locale;
+  const parsed = readStorageJson<{ state?: { lastWorkspaceId?: unknown } }>(STORAGE_KEYS.workspace);
+  if (!parsed?.state) return null;
+  const raw = parsed.state.lastWorkspaceId;
+  const normalized = typeof raw === "string" ? raw.trim() : "";
+  return normalized || null;
 }
 
 function getInitialLocaleState(): {
@@ -175,62 +66,34 @@ function getInitialLocaleState(): {
   locale: AppLocale;
 } {
   if (typeof window === "undefined") {
-    return {
-      mode: "workspace",
-      localePreference: null,
-      locale: DEFAULT_LOCALE,
-    };
+    return { mode: "workspace", localePreference: null, locale: DEFAULT_LOCALE };
   }
 
-  let storedLocale: string | null = null;
-  let storedModeRaw: string | null = null;
-  try {
-    storedLocale = window.localStorage.getItem(STORAGE_KEYS.locale);
-    storedModeRaw = window.localStorage.getItem(STORAGE_KEYS.localePreferenceMode);
-  } catch {
-    // ignore storage errors
-  }
-
+  const storedLocale = readStorageItem(STORAGE_KEYS.locale);
+  const storedModeRaw = readStorageItem(STORAGE_KEYS.localePreferenceMode);
   const storedMode = normalizeLocalePreferenceMode(storedModeRaw);
   const hasStoredMode = Boolean(storedModeRaw);
 
-  // Backward compatibility: legacy clients only stored locale, which implies explicit mode.
   if ((hasStoredMode && storedMode === "explicit") || (!hasStoredMode && storedLocale)) {
     const explicitLocale = storedLocale ? normalizeLocale(storedLocale) : detectBrowserLocale();
-    return {
-      mode: "explicit",
-      localePreference: explicitLocale,
-      locale: explicitLocale,
-    };
+    return { mode: "explicit", localePreference: explicitLocale, locale: explicitLocale };
   }
 
   if (hasStoredMode && storedMode === "browser") {
     const browserLocale = detectBrowserLocale();
-    return {
-      mode: "browser",
-      localePreference: null,
-      locale: browserLocale,
-    };
+    return { mode: "browser", localePreference: null, locale: browserLocale };
   }
 
   const lastWorkspaceId = readPersistedLastWorkspaceId();
   if (lastWorkspaceId) {
-    const cache = readWorkspaceLocaleCache();
+    const cache = readStorageJson<WorkspaceLocaleCache>(STORAGE_KEYS.workspaceLocaleCache) ?? {};
     const cached = cache[lastWorkspaceId];
     if (cached) {
-      return {
-        mode: "workspace",
-        localePreference: null,
-        locale: normalizeLocale(cached),
-      };
+      return { mode: "workspace", localePreference: null, locale: normalizeLocale(cached) };
     }
   }
 
-  return {
-    mode: "workspace",
-    localePreference: null,
-    locale: detectBrowserLocale(),
-  };
+  return { mode: "workspace", localePreference: null, locale: detectBrowserLocale() };
 }
 
 export const usePreferencesStore = create<PreferencesState>((set, get) => ({
@@ -248,7 +111,7 @@ export const usePreferencesStore = create<PreferencesState>((set, get) => ({
     const nextPreference = normalizeThemePreference(preference);
     const nextMode = resolveThemeMode(nextPreference);
     applyThemeModeToDom(nextMode);
-    persistThemePreference(nextPreference);
+    writeStorageItem(STORAGE_KEYS.themeMode, nextPreference);
     set({ themeMode: nextMode, themePreference: nextPreference });
   },
 
@@ -260,8 +123,8 @@ export const usePreferencesStore = create<PreferencesState>((set, get) => ({
   setLocale: (locale) => {
     const next = normalizeLocale(locale);
     applyLocaleToDom(next);
-    persistLocale(next);
-    persistLocalePreferenceMode("explicit");
+    writeStorageItem(STORAGE_KEYS.locale, next);
+    writeStorageItem(STORAGE_KEYS.localePreferenceMode, "explicit");
     set({ locale: next, localePreference: next, localePreferenceMode: "explicit" });
     void i18n.changeLanguage(next);
   },
@@ -269,8 +132,8 @@ export const usePreferencesStore = create<PreferencesState>((set, get) => ({
   setBrowserLocale: () => {
     const next = detectBrowserLocale();
     applyLocaleToDom(next);
-    clearPersistedLocale();
-    persistLocalePreferenceMode("browser");
+    removeStorageItem(STORAGE_KEYS.locale);
+    writeStorageItem(STORAGE_KEYS.localePreferenceMode, "browser");
     set({ locale: next, localePreference: null, localePreferenceMode: "browser" });
     void i18n.changeLanguage(next);
   },
@@ -287,10 +150,10 @@ export const usePreferencesStore = create<PreferencesState>((set, get) => ({
     const wid = String(workspaceId || "").trim();
     if (!wid) return;
     const nextLocale = normalizeLocale(locale);
-    const current = readWorkspaceLocaleCache();
+    const current = readStorageJson<WorkspaceLocaleCache>(STORAGE_KEYS.workspaceLocaleCache) ?? {};
     if (current[wid] === nextLocale) return;
     current[wid] = nextLocale;
-    writeWorkspaceLocaleCache(current);
+    writeStorageJson(STORAGE_KEYS.workspaceLocaleCache, current);
   },
 }));
 
@@ -322,14 +185,11 @@ export function initializePreferences() {
 
   themeObserver = new MutationObserver((mutations) => {
     for (const m of mutations) {
-      if (m.type !== "attributes") continue;
-      if (m.attributeName !== "data-theme") continue;
-
+      if (m.type !== "attributes" || m.attributeName !== "data-theme") continue;
       const mode = normalizeThemeMode(document.documentElement.dataset.theme);
       const current = usePreferencesStore.getState().themeMode;
       if (mode === current) continue;
-
-      persistThemePreference(mode);
+      writeStorageItem(STORAGE_KEYS.themeMode, mode);
       usePreferencesStore.setState({ themeMode: mode, themePreference: mode });
     }
   });

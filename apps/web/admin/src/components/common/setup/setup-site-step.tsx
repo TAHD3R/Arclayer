@@ -2,7 +2,7 @@ import { Form, Input } from "antd";
 import { AppWindow, Link } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import { type SetupSiteDraft } from "@/stores/use-setup-wizard-store";
+import type { SetupSiteDraft } from "@/types/stores";
 
 export function SetupSiteStep(props: {
   form: ReturnType<typeof Form.useForm<SetupSiteDraft>>[0];

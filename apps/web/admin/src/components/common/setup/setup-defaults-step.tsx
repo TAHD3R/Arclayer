@@ -12,7 +12,7 @@ import {
   DEFAULT_TIMEZONE,
   resolveDateFormatLabel,
 } from "@/lib/settings/general/localization-options";
-import { type SetupDefaultsDraft } from "@/stores/use-setup-wizard-store";
+import type { SetupDefaultsDraft } from "@/types/stores";
 
 const SETUP_SELECT_DROPDOWN_Z_INDEX = 2600;
 
