@@ -36,6 +36,7 @@ from apps.api.modules.sites.repository_routing import (
 from apps.api.modules.sites.types import ResolvedEntryDocument, RouteTemplateMatch, _CompiledRouteTemplate
 from apps.api.modules.sites.utils import normalize_path
 from apps.api.modules.system.models.setting import SettingRecord
+from apps.api.modules.workspaces.content.models.content import ContentEntryRecord, ContentRevisionRecord
 from apps.api.settings.scopes import SCOPE_TYPE_SITE
 
 
@@ -134,6 +135,23 @@ class SitesRepository(BaseRepository):
     async def get_page_by_path(self, *, site_id: UUID, path: str) -> SitePageRecord | None:
         pathname = normalize_path(path)
         return await SitePageRecord.get_or_none(site_id=site_id, path=pathname)
+
+    async def get_content_entry_by_id(self, *, site_id: UUID, entry_id: UUID) -> ContentEntryRecord | None:
+        return await ContentEntryRecord.get_or_none(id=entry_id, site_id=site_id)
+
+    async def get_content_page_entry_by_path(
+        self,
+        *,
+        site_id: UUID,
+        path: str,
+    ) -> ContentEntryRecord | None:
+        pathname = normalize_path(path)
+        return await ContentEntryRecord.get_or_none(site_id=site_id, type__kind="page", path=pathname).prefetch_related(
+            "type"
+        )
+
+    async def get_content_revision_by_number(self, *, entry_id: UUID, revision: int) -> ContentRevisionRecord | None:
+        return await ContentRevisionRecord.get_or_none(entry_id=entry_id, revision=int(revision))
 
     async def list_pages_by_site(self, *, site_id: UUID) -> list[SitePageRecord]:
         # Keep ordering deterministic so tree building stays stable.

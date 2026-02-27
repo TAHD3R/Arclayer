@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import type {
   DesignDocumentV1,
   DesignBindingExprV1,
+  ContentRefIncludesMap,
   DesignNodeId,
   DesignNodeResponsiveOverrideV1,
   DesignNodeV1,
@@ -28,6 +29,7 @@ import {
 } from "./prefab-registry";
 import { createDefaultPrefabRegistryV1 } from "./default-prefab-registry";
 import { resolveDesignNodeAtBreakpointV1 } from "./responsive-overrides";
+import { resolveRefState } from "./resolve-ref-state";
 
 export type DesignDocumentRendererViewport = {
   width: number;
@@ -55,6 +57,8 @@ export type DesignDocumentRendererProps = {
    * 这是阶段 1-3 的最小闭环：允许在 text/image/prefab props 中绑定。
    */
   dataSources?: DesignRenderDataSourcesV1;
+  /** Flat includes map returned by backend route resolve. */
+  includes?: ContentRefIncludesMap;
 };
 
 type ProcessLike = {
@@ -224,7 +228,14 @@ function defaultPrefabRegistry(): PrefabRegistryV1 | undefined {
 }
 
 export function DesignDocumentRenderer(props: DesignDocumentRendererProps) {
-  const { document: inputDoc, ctx, viewport, prefabRegistry: prefabRegistryFromProps, dataSources } = props;
+  const {
+    document: inputDoc,
+    ctx,
+    viewport,
+    prefabRegistry: prefabRegistryFromProps,
+    dataSources,
+    includes,
+  } = props;
 
   const isValid = React.useMemo(() => isDesignDocumentV1(inputDoc), [inputDoc]);
 
@@ -298,6 +309,7 @@ export function DesignDocumentRenderer(props: DesignDocumentRendererProps) {
               prefabRegistry={prefabRegistry}
               dataSources={dataSources}
               globalNodesById={inputDoc.nodesById}
+              includes={includes}
             />
           </NodeErrorBoundary>
         </React.Fragment>
@@ -315,6 +327,7 @@ function RenderNode(args: {
   prefabRegistry: PrefabRegistryV1 | undefined;
   dataSources: DesignRenderDataSourcesV1 | undefined;
   globalNodesById: Record<DesignNodeId, DesignNodeV1>;
+  includes: ContentRefIncludesMap | undefined;
 }): ReactNode {
   const node = args.document.nodesById[args.nodeId];
   if (!node) return null;
@@ -363,6 +376,7 @@ function RenderNode(args: {
                 prefabRegistry={args.prefabRegistry}
                 dataSources={args.dataSources}
                 globalNodesById={args.globalNodesById}
+                includes={args.includes}
               />
             </NodeErrorBoundary>
           </React.Fragment>
@@ -545,6 +559,93 @@ function RenderNode(args: {
             ...(args.dataSources ?? {}),
             prefabProps: prefabPropsPlain,
           }}
+          includes={args.includes}
+        />
+      </div>
+    );
+  }
+
+  if (resolved.type === "content_ref") {
+    const isProd = isProductionEnv();
+    const mode = args.ctx.mode === "preview" ? "preview" : "public";
+
+    const refState = resolveRefState(resolved.refState, mode);
+    const includeKey = `${resolved.refEntryId}:${refState}`;
+    const include = args.includes?.[includeKey];
+
+    if (!include?.document || include.error) {
+      const errorCode = include?.error?.code ?? "NOT_FOUND";
+      if (!isProd) {
+        const debugStyle: React.CSSProperties = {
+          ...style,
+          border: "2px dashed red",
+          padding: 8,
+          color: "red",
+          fontSize: 12,
+          whiteSpace: "pre-wrap",
+        };
+        return (
+          <div
+            data-node-id={resolved.id}
+            data-node-type={resolved.type}
+            data-ref-entry-id={resolved.refEntryId}
+            data-content-ref-error={errorCode}
+            style={debugStyle}
+          >
+            {`[Missing ref: ${resolved.refEntryId} (${errorCode})]`}
+          </div>
+        );
+      }
+
+      return (
+        <div
+          data-node-id={resolved.id}
+          data-node-type={resolved.type}
+          data-ref-entry-id={resolved.refEntryId}
+          data-content-ref-error={errorCode}
+          style={style}
+        />
+      );
+    }
+
+    const innerViewport = {
+      width: box?.width ?? 0,
+      height: box?.height ?? 0,
+      baseWidth: box?.width ?? 0,
+      baseHeight: box?.height ?? 0,
+    };
+
+    const refPropsPlain = resolved.props
+      ? resolvePrefabPropsToPlainValues({
+          props: resolved.props,
+          ctx: args.ctx,
+          data: args.dataSources,
+        })
+      : undefined;
+
+    const refDataSources: DesignRenderDataSourcesV1 = {
+      ...(args.dataSources ?? {}),
+      ...(include.data ? { primaryEntry: { id: resolved.refEntryId, data: include.data } } : {}),
+      ...(refPropsPlain
+        ? { prefabProps: { ...(args.dataSources?.prefabProps ?? {}), ...refPropsPlain } }
+        : {}),
+    };
+
+    return (
+      <div
+        data-node-id={resolved.id}
+        data-node-type={resolved.type}
+        data-ref-entry-id={resolved.refEntryId}
+        style={style}
+      >
+        <DesignSubdocumentRenderer
+          document={include.document}
+          ctx={args.ctx}
+          viewport={innerViewport}
+          prefabRegistry={args.prefabRegistry ?? createDefaultPrefabRegistryV1()}
+          dataSources={refDataSources}
+          includes={args.includes}
+          nodeIdPrefix={`cr_${resolved.id}_`}
         />
       </div>
     );
@@ -553,20 +654,58 @@ function RenderNode(args: {
   return null;
 }
 
+function prefixDesignDocumentNodeIds(args: {
+  document: DesignDocumentV1;
+  prefix: string;
+}): DesignDocumentV1 {
+  const nodesById: Record<string, DesignNodeV1> = {};
+  for (const [id, node] of Object.entries(args.document.nodesById)) {
+    const nextId = `${args.prefix}${id}`;
+    const base = { ...(node as any), id: nextId } as any;
+
+    if (Array.isArray((node as any).children)) {
+      base.children = (node as any).children.map((childId: string) => `${args.prefix}${childId}`);
+    }
+
+    if (node.type === "prefab_instance" && (node as any).slotChildren) {
+      const slotChildren: Record<string, string[]> = {};
+      for (const [slotName, ids] of Object.entries((node as any).slotChildren as Record<string, unknown>)) {
+        if (!Array.isArray(ids)) continue;
+        slotChildren[slotName] = (ids as string[]).map((childId) => `${args.prefix}${childId}`);
+      }
+      base.slotChildren = slotChildren;
+    }
+
+    nodesById[nextId] = base as DesignNodeV1;
+  }
+
+  return {
+    ...args.document,
+    rootId: `${args.prefix}${args.document.rootId}`,
+    nodesById,
+  };
+}
+
 function DesignSubdocumentRenderer(props: {
   document: DesignDocumentV1;
   ctx: ViewerContext;
   viewport: DesignDocumentRendererViewport;
   prefabRegistry: PrefabRegistryV1;
   dataSources: DesignRenderDataSourcesV1 | undefined;
+  includes: ContentRefIncludesMap | undefined;
+  nodeIdPrefix?: string;
 }) {
-  // 子文档渲染：用于 Prefab 模板展开后的局部渲染。
-  // 约束：必须是合法的 DesignDocumentV1（root 为 page_root）。
-  if (!isDesignDocumentV1(props.document)) {
+  // Subdocument renderer: used for prefab expansions and content_ref documents.
+  const document = props.nodeIdPrefix
+    ? prefixDesignDocumentNodeIds({ document: props.document, prefix: props.nodeIdPrefix })
+    : props.document;
+
+  // Must be a valid DesignDocumentV1 (root is page_root).
+  if (!isDesignDocumentV1(document)) {
     return <div data-celestial="subdocument-invalid" />;
   }
 
-  const layoutNodes = toLayoutNodes({ document: props.document, ctx: props.ctx, dataSources: props.dataSources });
+  const layoutNodes = toLayoutNodes({ document, ctx: props.ctx, dataSources: props.dataSources });
   const viewportArgs: LayoutComputeViewport = Object.assign(
     {},
     { width: props.viewport.width, height: props.viewport.height },
@@ -575,12 +714,12 @@ function DesignSubdocumentRenderer(props: {
   );
 
   const layoutResult = computeLayoutBoxes({
-    rootId: props.document.rootId,
+    rootId: document.rootId,
     nodesById: layoutNodes,
     viewport: viewportArgs,
   });
 
-  const root = props.document.nodesById[props.document.rootId];
+  const root = document.nodesById[document.rootId];
   if (!root || root.type !== "page_root") return null;
 
   const containerStyle: React.CSSProperties = {
@@ -596,13 +735,14 @@ function DesignSubdocumentRenderer(props: {
           <NodeErrorBoundary nodeId={childId}>
             <RenderNode
               nodeId={childId}
-              parentId={props.document.rootId}
-              document={props.document}
+              parentId={document.rootId}
+              document={document}
               ctx={props.ctx}
               boxesById={layoutResult.boxesById}
               prefabRegistry={props.prefabRegistry}
               dataSources={props.dataSources}
-              globalNodesById={props.document.nodesById}
+              globalNodesById={document.nodesById}
+              includes={props.includes}
             />
           </NodeErrorBoundary>
         </React.Fragment>

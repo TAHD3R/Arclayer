@@ -32,6 +32,55 @@ describe("protocol/zod: DesignDocumentV1", () => {
     expect(parsed.success).toBe(true);
   });
 
+  test("content_ref node passes", () => {
+    const doc = {
+      version: 1,
+      rootId: "page",
+      nodesById: {
+        page: {
+          id: "page",
+          type: "page_root",
+          children: ["ref1"],
+          layout: { children: { mode: "absolute" } },
+        },
+        ref1: {
+          id: "ref1",
+          type: "content_ref",
+          refEntryId: "entry_123",
+          refState: "auto",
+        },
+      },
+    };
+
+    const parsed = DesignDocumentV1Schema.safeParse(doc);
+    expect(parsed.success).toBe(true);
+  });
+
+  test("content_ref with children fails", () => {
+    const doc = {
+      version: 1,
+      rootId: "page",
+      nodesById: {
+        page: {
+          id: "page",
+          type: "page_root",
+          children: ["ref1"],
+          layout: { children: { mode: "absolute" } },
+        },
+        ref1: {
+          id: "ref1",
+          type: "content_ref",
+          refEntryId: "entry_123",
+          refState: "auto",
+          children: [],
+        },
+      },
+    };
+
+    const parsed = DesignDocumentV1Schema.safeParse(doc);
+    expect(parsed.success).toBe(false);
+  });
+
   test("missing root node fails", () => {
     const doc = {
       version: 1,

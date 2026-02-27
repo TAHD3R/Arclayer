@@ -43,6 +43,17 @@ class WorkspaceContentRepository(BaseRepository):
         qs = ContentTypeRecord.filter(workspace_id=workspace_id, site_id=site_id, code=code)
         return await self.using_db(qs, conn).first()
 
+    async def get_type_by_kind(
+        self,
+        *,
+        workspace_id: UUID,
+        site_id: UUID,
+        kind: str,
+        conn: BaseDBAsyncClient | None = None,
+    ) -> ContentTypeRecord | None:
+        qs = ContentTypeRecord.filter(workspace_id=workspace_id, site_id=site_id, kind=kind)
+        return await self.using_db(qs, conn).first()
+
     async def create_type(
         self,
         *,
@@ -124,6 +135,37 @@ class WorkspaceContentRepository(BaseRepository):
             qs = qs.filter(type_id=type_id)
         return await qs.prefetch_related("type").order_by("updated_at", "slug").all()
 
+    async def list_page_entries(self, *, workspace_id: UUID, site_id: UUID) -> list[ContentEntryRecord]:
+        qs = ContentEntryRecord.filter(workspace_id=workspace_id, site_id=site_id, type__kind="page")
+        return await qs.prefetch_related("type").order_by("sort_order", "path").all()
+
+    async def get_page_entry_by_path(
+        self,
+        *,
+        workspace_id: UUID,
+        site_id: UUID,
+        path: str,
+        conn: BaseDBAsyncClient | None = None,
+    ) -> ContentEntryRecord | None:
+        qs = ContentEntryRecord.filter(workspace_id=workspace_id, site_id=site_id, type__kind="page", path=path)
+        return await self.using_db(qs, conn).prefetch_related("type").first()
+
+    async def has_page_children(
+        self,
+        *,
+        workspace_id: UUID,
+        site_id: UUID,
+        parent_entry_id: UUID,
+        conn: BaseDBAsyncClient | None = None,
+    ) -> bool:
+        qs = ContentEntryRecord.filter(
+            workspace_id=workspace_id,
+            site_id=site_id,
+            type__kind="page",
+            parent_entry_id=parent_entry_id,
+        )
+        return await self.using_db(qs, conn).exists()
+
     async def get_entry_by_id(
         self,
         *,
@@ -145,6 +187,9 @@ class WorkspaceContentRepository(BaseRepository):
         title: str | None,
         visibility: str,
         locale: str,
+        path: str | None = None,
+        parent_entry_id: UUID | None = None,
+        sort_order: int = 0,
         created_by_user_id: UUID | None,
     ) -> ContentEntryRecord:
         try:
@@ -157,6 +202,9 @@ class WorkspaceContentRepository(BaseRepository):
                 status="draft",
                 visibility=visibility,
                 locale=locale,
+                path=path,
+                parent_entry_id=parent_entry_id,
+                sort_order=int(sort_order or 0),
                 field_values=None,
                 document_ir=None,
                 draft_revision=0,
@@ -251,8 +299,8 @@ class WorkspaceContentRepository(BaseRepository):
 
             next_revision = current_draft + 1
             snapshot: dict[str, Any] = {
-                "documentIr": document_ir,
-                "fieldValues": field_values,
+                "design_document": document_ir,
+                "field_values": field_values,
                 "meta": meta,
                 "slug": rec.slug,
                 "title": rec.title,

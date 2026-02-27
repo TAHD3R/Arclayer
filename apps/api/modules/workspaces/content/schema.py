@@ -8,7 +8,7 @@ from pydantic import AliasChoices, ConfigDict, Field
 from apps.api.common.schemas import BaseSchema
 from apps.api.common.types.public_uuid import PublicUUID
 
-ContentTypeKind = Literal["page", "post", "template", "block", "menu", "view", "custom"]
+ContentTypeKind = Literal["page", "post", "template", "block", "menu", "view", "component", "custom"]
 ContentEntryStatus = Literal["draft", "published", "archived"]
 ContentEntryVisibility = Literal["public", "private"]
 ContentRevisionState = Literal["draft", "published"]
@@ -72,6 +72,9 @@ class ContentEntryOut(BaseSchema):
     status: ContentEntryStatus = Field(..., description="Entry status.")
     visibility: ContentEntryVisibility = Field(..., description="Entry visibility.")
     locale: str = Field(..., description="Entry locale.")
+    path: str | None = Field(default=None, description="Optional pathname for page entries.")
+    parent_entry_id: PublicUUID | None = Field(default=None, description="Optional parent entry id for page tree.")
+    sort_order: int = Field(default=0, description="Optional sort order for page tree.")
     draft_revision: int = Field(default=0, ge=0, description="Current draft revision pointer.")
     published_revision: int | None = Field(default=None, ge=1, description="Current published revision pointer.")
     updated_at: datetime = Field(..., description="Last update time.")
@@ -85,6 +88,9 @@ class ContentEntryCreateIn(BaseSchema):
     title: str | None = Field(default=None, max_length=256, description="Entry title.")
     visibility: ContentEntryVisibility = Field(default="public", description="Entry visibility.")
     locale: str = Field(default="zh-CN", min_length=2, max_length=16, description="Entry locale.")
+    path: str | None = Field(default=None, max_length=512, description="Optional pathname for page entries.")
+    parent_entry_id: PublicUUID | None = Field(default=None, description="Optional parent entry id for page tree.")
+    sort_order: int = Field(default=0, description="Optional sort order for page tree.")
 
 
 class ContentEntryUpdateIn(BaseSchema):
@@ -94,6 +100,9 @@ class ContentEntryUpdateIn(BaseSchema):
     title: str | None = Field(default=None, max_length=256, description="Entry title.")
     visibility: ContentEntryVisibility | None = Field(default=None, description="Entry visibility.")
     locale: str | None = Field(default=None, min_length=2, max_length=16, description="Entry locale.")
+    path: str | None = Field(default=None, max_length=512, description="Optional pathname for page entries.")
+    parent_entry_id: PublicUUID | None = Field(default=None, description="Optional parent entry id for page tree.")
+    sort_order: int | None = Field(default=None, description="Optional sort order for page tree.")
 
 
 class ContentEntryDeleteOut(BaseSchema):

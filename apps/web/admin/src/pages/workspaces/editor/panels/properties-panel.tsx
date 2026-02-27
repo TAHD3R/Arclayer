@@ -1,11 +1,14 @@
 import { useTranslation } from "react-i18next";
 import { LayoutDashboard, Palette, Settings2, Sparkles } from "lucide-react";
-import { Tooltip } from "antd";
+import { Button, Input, Select, Tooltip } from "antd";
 import { AnimatePresence, motion } from "motion/react";
 
 import type { EditorSelectionInspector } from "@celestial/site-editor-protocol";
 
 import { cn } from "@/lib/utils";
+import { useEditorConfig } from "@/pages/workspaces/editor/contexts/editor-config-context";
+import { useRequestEditContentRef } from "@/pages/workspaces/editor/hooks/use-editor-bridge";
+import { useEditorSelectionPatch } from "@/pages/workspaces/editor/hooks/use-editor-selection-patch";
 import {
   useEditorStore,
   type PropertiesPanelTab,
@@ -41,6 +44,74 @@ const TAB_DESC_KEYS: Record<PropertiesPanelTab, string> = {
   animation: "EDITOR_PROPERTIES_DESC_ANIMATION",
 } as const;
 
+type ContentRefState = "auto" | "draft" | "published";
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object";
+}
+
+function isContentRefState(value: unknown): value is ContentRefState {
+  return value === "auto" || value === "draft" || value === "published";
+}
+
+function InspectorContentRef(props: { data: EditorSelectionInspector }) {
+  const { t } = useTranslation(["content_pages"]);
+  const patchSelection = useEditorSelectionPatch();
+  const { workspaceId } = useEditorConfig();
+  const requestEditContentRef = useRequestEditContentRef({ workspaceId });
+
+  const component = props.data.component;
+  const refEntryId =
+    isRecord(component) && typeof component.refEntryId === "string" ? component.refEntryId : "";
+  const refState: ContentRefState =
+    isRecord(component) && isContentRefState(component.refState) ? component.refState : "auto";
+
+  return (
+    <div className="flex flex-col gap-2">
+      <p className="text-caption font-medium text-label-secondary">
+        {t("content_pages:EDITOR_CONTENT_REF_TITLE")}
+      </p>
+
+      <label className="flex items-center gap-2 text-caption">
+        <span className="w-24 shrink-0 text-label-secondary">
+          {t("content_pages:EDITOR_CONTENT_REF_FIELD_ENTRY_ID")}
+        </span>
+        <Input size="small" value={refEntryId} readOnly />
+      </label>
+
+      <label className="flex items-center gap-2 text-caption">
+        <span className="w-24 shrink-0 text-label-secondary">
+          {t("content_pages:EDITOR_CONTENT_REF_FIELD_STATE")}
+        </span>
+        <Select<ContentRefState>
+          size="small"
+          className="flex-1"
+          value={refState}
+          onChange={(val) => {
+            void patchSelection("component", { refState: val }, { commit: "immediate" });
+          }}
+          options={[
+            { value: "auto", label: t("content_pages:EDITOR_CONTENT_REF_STATE_AUTO") },
+            { value: "draft", label: t("content_pages:EDITOR_CONTENT_REF_STATE_DRAFT") },
+            { value: "published", label: t("content_pages:EDITOR_CONTENT_REF_STATE_PUBLISHED") },
+          ]}
+        />
+      </label>
+
+      <div className="pt-1">
+        <Button
+          size="small"
+          type="default"
+          disabled={!refEntryId}
+          onClick={() => requestEditContentRef({ refEntryId })}
+        >
+          {t("content_pages:EDITOR_CONTENT_REF_ACTION_EDIT")}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 function TabContent({
   tab,
   inspector,
@@ -50,9 +121,12 @@ function TabContent({
 }) {
   switch (tab) {
     case "component":
-      return inspector.blockType ? (
+      if (!inspector.blockType) return null;
+      return inspector.blockType === "content_ref" ? (
+        <InspectorContentRef data={inspector} />
+      ) : (
         <InspectorComponent blockType={inspector.blockType} data={inspector.component} />
-      ) : null;
+      );
     case "layout":
       return <InspectorLayout data={inspector.layout} />;
     case "design":

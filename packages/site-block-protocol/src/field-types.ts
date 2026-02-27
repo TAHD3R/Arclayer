@@ -1,5 +1,7 @@
 import type { LocalizedString } from "./index";
 
+import type { JsonValue } from "./json-types";
+
 export type FieldKind =
   | "text"
   | "richtext"
@@ -42,7 +44,7 @@ export interface FieldDefinition {
   kind: FieldKind;
   label: LocalizedString;
   required?: boolean;
-  default?: unknown;
+  default?: JsonValue;
   validation?: FieldValidation;
   ui?: FieldUIHints;
 }

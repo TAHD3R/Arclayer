@@ -27,6 +27,7 @@ export async function onBeforeRender(pageContext: PortalPublicPageContextLike) {
     });
 
     const resolved = await resolvePublicDocument({ pathname, siteId: siteCtx.siteId });
+    const renderViewerCtx = { ...viewerCtx, mode: "public" as const };
 
     if (resolved.kind === "redirect") {
       throw redirect(applyBasePath(basePath, resolved.to), resolved.status);
@@ -42,12 +43,13 @@ export async function onBeforeRender(pageContext: PortalPublicPageContextLike) {
           document: resolved.document,
           match: resolved.match,
           dataSources: resolved.dataSources,
-          viewerCtx,
+          ...(resolved.includes ? { includes: resolved.includes } : {}),
+          viewerCtx: renderViewerCtx,
           pathname,
           showHydration: pathname === "/",
         },
         siteCtx,
-        viewerCtx,
+        viewerCtx: renderViewerCtx,
       },
     };
   } catch (err) {

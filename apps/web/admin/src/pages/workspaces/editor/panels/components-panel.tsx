@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Search } from "lucide-react";
-import { Input } from "antd";
+import { Button, Input, Select } from "antd";
 import { useDraggable } from "@dnd-kit/core";
 
 import {
@@ -16,6 +16,8 @@ import { getErrorMessage, notifyErrorText } from "@/lib/notifications";
 import { useEditorBridgeContext } from "@/pages/workspaces/editor/contexts/editor-bridge-context";
 import { useViewerContext } from "@/pages/workspaces/editor/hooks/use-viewer-context";
 import { useEditorStore } from "@/pages/workspaces/editor/stores/editor-store";
+
+type ContentRefState = "auto" | "draft" | "published";
 
 const CATEGORY_LABEL_KEYS: Record<BlockCategory, string> = {
   layout: "content_pages:EDITOR_BLOCK_CATEGORY_LAYOUT",
@@ -61,10 +63,13 @@ export function ComponentsPanel() {
   const { t } = useTranslation(["content_pages"]);
   const { portal } = useEditorBridgeContext();
   const [query, setQuery] = useState("");
+  const [contentRefEntryId, setContentRefEntryId] = useState("");
+  const [contentRefState, setContentRefState] = useState<ContentRefState>("auto");
 
   const viewerCtx = useViewerContext();
 
   const bridgeStatus = useEditorStore((s) => s.bridgeStatus);
+  const selectedBlockId = useEditorStore((s) => s.selectedBlockId);
   const setInspectorData = useEditorStore((s) => s.setInspectorData);
   const setLayerTree = useEditorStore((s) => s.setLayerTree);
   const setDirty = useEditorStore((s) => s.setDirty);
@@ -101,6 +106,68 @@ export function ComponentsPanel() {
           placeholder={t("content_pages:EDITOR_ELEMENTS_SEARCH")}
           allowClear
         />
+      </div>
+
+      {/* Insert: content_ref */}
+      <div className="px-2 pb-2">
+        <div className="rounded-md border border-border bg-muted/30 px-2 py-2">
+          <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-label-secondary">
+            {t("content_pages:EDITOR_CONTENT_REF_INSERT_TITLE")}
+          </div>
+          <div className="flex items-center gap-1">
+            <Input
+              size="small"
+              className="flex-1"
+              value={contentRefEntryId}
+              onChange={(e) => setContentRefEntryId(e.target.value)}
+              placeholder={t("content_pages:EDITOR_CONTENT_REF_INSERT_PLACEHOLDER")}
+              disabled={!canInsert}
+            />
+            <Select<ContentRefState>
+              size="small"
+              className="w-28"
+              value={contentRefState}
+              onChange={(val) => setContentRefState(val)}
+              disabled={!canInsert}
+              options={[
+                { value: "auto", label: t("content_pages:EDITOR_CONTENT_REF_STATE_AUTO") },
+                { value: "draft", label: t("content_pages:EDITOR_CONTENT_REF_STATE_DRAFT") },
+                {
+                  value: "published",
+                  label: t("content_pages:EDITOR_CONTENT_REF_STATE_PUBLISHED"),
+                },
+              ]}
+            />
+            <Button
+              size="small"
+              type="default"
+              disabled={!canInsert || !contentRefEntryId.trim()}
+              onClick={() => {
+                if (!portal) return;
+                const refEntryId = contentRefEntryId.trim();
+                if (!refEntryId) return;
+                void (async () => {
+                  try {
+                    const out = await portal.insertContentRef({
+                      refEntryId,
+                      refState: contentRefState,
+                      targetBlockId: selectedBlockId,
+                      position: selectedBlockId ? "inside" : undefined,
+                    });
+                    setInspectorData(out.inspector);
+                    setLayerTree(out.layers);
+                    setDirty(true);
+                    setContentRefEntryId("");
+                  } catch (err) {
+                    notifyErrorText(getErrorMessage(err));
+                  }
+                })();
+              }}
+            >
+              {t("content_pages:EDITOR_CONTENT_REF_INSERT_ACTION")}
+            </Button>
+          </div>
+        </div>
       </div>
 
       {bridgeStatus !== "connected" ? (

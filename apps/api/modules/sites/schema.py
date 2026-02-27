@@ -6,6 +6,7 @@ from typing import Annotated, Any, Literal
 from pydantic import AliasChoices, ConfigDict, Field, field_validator
 
 from apps.api.common.schemas import BaseSchema
+from apps.api.common.types.json_types import JsonValue
 from apps.api.common.types.public_uuid import PublicUUID
 from apps.api.modules.sites.design_document_schema import DesignDocumentV1
 
@@ -516,6 +517,51 @@ class SiteRouteDataSourcesOut(BaseSchema):
     )
 
 
+class ContentRefIncludeErrorV1(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    code: Literal[
+        "NOT_FOUND",
+        "CYCLE_DETECTED",
+        "DEPTH_LIMIT",
+        "INVALID_SCHEMA",
+        "STATE_FORBIDDEN",
+    ] = Field(..., description="Structured error code.")
+    message: str | None = Field(default=None, description="Human-readable error detail.")
+
+
+class ContentRefIncludeV1(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    entry_id: PublicUUID = Field(..., alias="entryId", description="Resolved entry public id.")
+    resolved_state: Literal["draft", "published"] = Field(
+        ...,
+        alias="resolvedState",
+        description="Actual resolved revision state.",
+    )
+    document: DesignDocumentV1 | None = Field(default=None, description="Resolved design document.")
+    data: dict[str, JsonValue] | None = Field(default=None, description="Entry field values snapshot.")
+    meta: dict[str, JsonValue] | None = Field(default=None, description="Entry metadata.")
+    error: ContentRefIncludeErrorV1 | None = Field(default=None, description="Structured error if resolution failed.")
+
+
+class ResolveWarningV1(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    code: str = Field(..., description="Warning code (e.g. CYCLE_DETECTED, DEPTH_LIMIT).")
+    message: str = Field(..., description="Human-readable warning message.")
+    ref_entry_id: str | None = Field(
+        default=None,
+        alias="refEntryId",
+        description="Related entry id.",
+    )
+    ref_node_id: str | None = Field(
+        default=None,
+        alias="refNodeId",
+        description="Related node id.",
+    )
+
+
 class SiteRouteResolveOut(BaseSchema):
     model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
 
@@ -525,6 +571,14 @@ class SiteRouteResolveOut(BaseSchema):
         default=None,
         alias="dataSources",
         description="Optional binding data sources snapshot (v1).",
+    )
+    includes: dict[str, ContentRefIncludeV1] | None = Field(
+        default=None,
+        description="Flat map of content_ref includes. Key = '${entryId}:${resolvedState}'.",
+    )
+    warnings: list[ResolveWarningV1] | None = Field(
+        default=None,
+        description="Structured warnings from resolve (cycles, depth limits, etc.).",
     )
 
 

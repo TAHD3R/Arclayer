@@ -23,6 +23,7 @@ from apps.api.modules.sites.constants import (
     THEME_VARS_NAMESPACE,
 )
 from apps.api.modules.sites.content_service import SiteContentService
+from apps.api.modules.sites.models.site import SiteRecord
 from apps.api.modules.sites.publishing_service import SitePublishingService
 from apps.api.modules.sites.repository import SitesRepository
 from apps.api.modules.sites.schema import (
@@ -127,6 +128,17 @@ class SiteService(BaseService):
             presence=self._presence,
             route_templates_version=self._route_templates_version,
         )
+
+    async def get_site_by_id(self, *, site_id: UUID) -> SiteRecord:
+        """
+        Get the raw SiteRecord by id.
+
+        Notes:
+        - This is primarily used by workspace-scoped services that need the workspace_id for a site.
+        """
+        if not self.settings.database.enabled:
+            raise Conflict("Sites require database storage", error="SITE_DB_REQUIRED")
+        return await self._repo.get_site_by_id(site_id=site_id)
 
     async def create_preview_token(self, *, site_id: UUID, ttl_seconds: int = 600) -> SitePreviewTokenOut:
         """

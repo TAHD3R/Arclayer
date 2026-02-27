@@ -163,6 +163,9 @@ class WorkspaceContentBlocksMixin:
         entries = await self.repo.list_entries(workspace_id=workspace_id, site_id=site_id)
         for entry in entries:
             payload = {
+                "design_document": entry.document_ir,
+                "field_values": entry.field_values,
+                # Backwards-compatible keys (legacy clients / stored snapshots).
                 "documentIr": entry.document_ir,
                 "fieldValues": entry.field_values,
             }

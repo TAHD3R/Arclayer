@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useNavigate } from "@tanstack/react-router";
 
 import type { HostEditorRpcApi } from "@celestial/site-editor-protocol";
 import { createEditorHostConnector, isHttpOrigin } from "@celestial/site-editor-bridge";
@@ -95,4 +96,25 @@ export function useEditorBridge(opts: UseEditorBridgeOptions): UseEditorBridgeRe
     error,
     portal: portalRef.current,
   };
+}
+
+export function useRequestEditContentRef(opts: {
+  workspaceId: string;
+}): HostEditorRpcApi["requestEditContentRef"] {
+  const navigate = useNavigate();
+
+  return React.useCallback(
+    ({ refEntryId }) => {
+      if (!refEntryId) return;
+      void navigate({
+        to: "/w/$workspaceId/editor/$editorMode/$entityId",
+        params: {
+          workspaceId: opts.workspaceId,
+          editorMode: "component",
+          entityId: refEntryId,
+        },
+      });
+    },
+    [navigate, opts.workspaceId],
+  );
 }

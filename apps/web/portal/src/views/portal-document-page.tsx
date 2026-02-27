@@ -3,7 +3,10 @@ import { DesignDocumentRenderer } from "@celestial/site-renderer-core";
 
 import type { DesignDocumentV1, ViewerContext } from "@celestial/site-block-protocol";
 import type { PortalRouteMatch } from "@celestial/web-types";
-import type { DesignRenderDataSourcesV1 } from "@celestial/site-renderer-core";
+import type {
+  ContentRefIncludesMap,
+  DesignRenderDataSourcesV1,
+} from "@celestial/site-renderer-core";
 
 export type PortalDocumentPageProps = {
   document: DesignDocumentV1;
@@ -11,6 +14,7 @@ export type PortalDocumentPageProps = {
   viewerCtx: ViewerContext;
   showHydration?: boolean;
   dataSources?: DesignRenderDataSourcesV1;
+  includes?: ContentRefIncludesMap;
 };
 
 export function PortalDocumentPage({
@@ -18,6 +22,7 @@ export function PortalDocumentPage({
   match,
   viewerCtx: baseViewerCtx,
   dataSources: baseDataSources,
+  includes,
 }: PortalDocumentPageProps) {
   const viewerCtx = React.useMemo(
     () => ({
@@ -77,6 +82,7 @@ export function PortalDocumentPage({
         ctx={viewerCtx}
         viewport={viewport}
         dataSources={dataSources}
+        {...(includes ? { includes } : {})}
       />
     </>
   );

@@ -7,12 +7,14 @@ from xml.sax.saxutils import escape as xml_escape
 
 from apps.api.common.protocols.tortoise import HasWorkspaceId
 from apps.api.common.services.base import BaseService
+from apps.api.common.utils.public_ids import PublicIdDecodeError, decode_public_id
 from apps.api.core.exceptions import Conflict, NotFound, ServiceUnavailable
 from apps.api.modules.sites.constants import (
     ROUTE_TEMPLATES_VERSION_NAMESPACE,
     THEME_ACTIVE_NAMESPACE,
     THEME_CONFIG_NAMESPACE,
     THEME_VARS_NAMESPACE,
+    get_max_content_ref_depth,
 )
 from apps.api.modules.sites.design_document_migrations import (
     create_empty_design_document_v1,
@@ -21,7 +23,10 @@ from apps.api.modules.sites.design_document_migrations import (
 from apps.api.modules.sites.design_document_schema import DesignDocumentV1
 from apps.api.modules.sites.repository import SitesRepository
 from apps.api.modules.sites.schema import (
+    ContentRefIncludeErrorV1,
+    ContentRefIncludeV1,
     DocumentIR,
+    ResolveWarningV1,
     SiteEntryDraftSaveIn,
     SiteEntryDraftSaveOut,
     SiteEntryPublishIn,
@@ -111,6 +116,256 @@ class SitePublishingService(BaseService):
         rec.design_document = migrated.model_dump(by_alias=True)
         await rec.save(update_fields=["design_document"])
         return migrated
+
+    @staticmethod
+    def _resolve_ref_state(
+        ref_state: str,
+        mode: Literal["public", "preview"],
+    ) -> Literal["draft", "published"] | Literal["STATE_FORBIDDEN"]:
+        if ref_state == "auto":
+            return "draft" if mode == "preview" else "published"
+        if ref_state == "draft" and mode == "public":
+            return "STATE_FORBIDDEN"
+        return cast(Literal["draft", "published"], ref_state)
+
+    async def _load_content_ref_entry(
+        self,
+        *,
+        site_id: UUID,
+        entry_id_public: str,
+        state: Literal["draft", "published"],
+    ) -> tuple[
+        DesignDocumentV1 | None,
+        dict | None,
+        dict | None,
+        ContentRefIncludeErrorV1 | None,
+    ]:
+        try:
+            entry_id = decode_public_id(entry_id_public)
+        except PublicIdDecodeError:
+            return None, None, None, ContentRefIncludeErrorV1(code="NOT_FOUND", message="Invalid public id")
+
+        entry = await self._repo.get_content_entry_by_id(site_id=site_id, entry_id=entry_id)
+        if entry is None:
+            return None, None, None, ContentRefIncludeErrorV1(code="NOT_FOUND", message="Entry not found")
+
+        if state == "published":
+            revision_number = entry.published_revision
+            if revision_number is None:
+                return (
+                    None,
+                    None,
+                    None,
+                    ContentRefIncludeErrorV1(code="NOT_FOUND", message="Published revision not found"),
+                )
+        else:
+            revision_number = int(entry.draft_revision or 0)
+            if revision_number < 1:
+                return None, None, None, ContentRefIncludeErrorV1(code="NOT_FOUND", message="Draft revision not found")
+
+        rev = await self._repo.get_content_revision_by_number(entry_id=entry.id, revision=int(revision_number))
+        if rev is None:
+            return None, None, None, ContentRefIncludeErrorV1(code="NOT_FOUND", message="Revision not found")
+
+        snapshot = rev.snapshot if isinstance(rev.snapshot, dict) else {}
+        field_values = snapshot.get("field_values")
+        data = field_values if isinstance(field_values, dict) else None
+        meta_raw = snapshot.get("meta")
+        meta = meta_raw if isinstance(meta_raw, dict) else None
+
+        raw_doc = snapshot.get("design_document")
+        if raw_doc is None:
+            return None, data, meta, None
+
+        try:
+            doc = DesignDocumentV1.model_validate(raw_doc)
+        except Exception as exc:
+            self.logger.warning(
+                "Invalid design_document in content ref snapshot",
+                entry_id=entry_id_public,
+                state=state,
+                error=str(exc),
+            )
+            return (
+                None,
+                data,
+                meta,
+                ContentRefIncludeErrorV1(
+                    code="INVALID_SCHEMA",
+                    message=f"design_document validation failed: {exc}",
+                ),
+            )
+
+        return doc, data, meta, None
+
+    async def _resolve_content_refs(
+        self,
+        *,
+        document: DesignDocumentV1,
+        site_id: UUID,
+        mode: Literal["public", "preview"],
+        depth: int = 0,
+        stack: frozenset[str] | None = None,
+        collector: dict[str, ContentRefIncludeV1] | None = None,
+        warnings: list[ResolveWarningV1] | None = None,
+    ) -> tuple[dict[str, ContentRefIncludeV1], list[ResolveWarningV1]]:
+        if collector is None:
+            collector = {}
+        if stack is None:
+            stack = frozenset()
+        if warnings is None:
+            warnings = []
+
+        max_depth = get_max_content_ref_depth()
+
+        if depth >= max_depth:
+            for node in document.nodes_by_id.values():
+                if getattr(node, "type", None) != "content_ref":
+                    continue
+
+                entry_id_str = getattr(node, "ref_entry_id", "")
+                try:
+                    entry_id = decode_public_id(entry_id_str)
+                except PublicIdDecodeError:
+                    warnings.append(
+                        ResolveWarningV1(
+                            code="INVALID_SCHEMA",
+                            message=f"invalid refEntryId {entry_id_str}",
+                            refEntryId=entry_id_str,
+                            refNodeId=getattr(node, "id", None),
+                        )
+                    )
+                    continue
+                ref_state_raw = getattr(node, "ref_state", "auto")
+                resolved = self._resolve_ref_state(ref_state_raw, mode)
+                if resolved == "STATE_FORBIDDEN":
+                    resolved = "published"
+
+                include_key = f"{entry_id_str}:{resolved}"
+                if include_key not in collector:
+                    collector[include_key] = ContentRefIncludeV1(
+                        entryId=entry_id,
+                        resolvedState=resolved,
+                        document=None,
+                        error=ContentRefIncludeErrorV1(code="DEPTH_LIMIT"),
+                    )
+
+                warnings.append(
+                    ResolveWarningV1(
+                        code="DEPTH_LIMIT",
+                        message=f"max depth {max_depth} reached, skipping {entry_id_str}",
+                        refEntryId=entry_id_str,
+                        refNodeId=getattr(node, "id", None),
+                    )
+                )
+
+            return collector, warnings
+
+        for node in document.nodes_by_id.values():
+            if getattr(node, "type", None) != "content_ref":
+                continue
+
+            entry_id_str = getattr(node, "ref_entry_id", "")
+            try:
+                entry_id = decode_public_id(entry_id_str)
+            except PublicIdDecodeError:
+                warnings.append(
+                    ResolveWarningV1(
+                        code="INVALID_SCHEMA",
+                        message=f"invalid refEntryId {entry_id_str}",
+                        refEntryId=entry_id_str,
+                        refNodeId=getattr(node, "id", None),
+                    )
+                )
+                continue
+            ref_state_raw = getattr(node, "ref_state", "auto")
+            resolved = self._resolve_ref_state(ref_state_raw, mode)
+
+            if resolved == "STATE_FORBIDDEN":
+                include_key = f"{entry_id_str}:published"
+                collector[include_key] = ContentRefIncludeV1(
+                    entryId=entry_id,
+                    resolvedState="published",
+                    document=None,
+                    error=ContentRefIncludeErrorV1(code="STATE_FORBIDDEN"),
+                )
+                warnings.append(
+                    ResolveWarningV1(
+                        code="STATE_FORBIDDEN",
+                        message=f"draft not allowed in public mode for {entry_id_str}",
+                        refEntryId=entry_id_str,
+                        refNodeId=getattr(node, "id", None),
+                    )
+                )
+                continue
+
+            include_key = f"{entry_id_str}:{resolved}"
+
+            if entry_id_str in stack:
+                collector[include_key] = ContentRefIncludeV1(
+                    entryId=entry_id,
+                    resolvedState=resolved,
+                    document=None,
+                    error=ContentRefIncludeErrorV1(code="CYCLE_DETECTED"),
+                )
+                warnings.append(
+                    ResolveWarningV1(
+                        code="CYCLE_DETECTED",
+                        message=f"circular ref detected for {entry_id_str}",
+                        refEntryId=entry_id_str,
+                        refNodeId=getattr(node, "id", None),
+                    )
+                )
+                continue
+
+            if include_key in collector:
+                continue
+
+            entry_doc, entry_data, entry_meta, load_error = await self._load_content_ref_entry(
+                site_id=site_id,
+                entry_id_public=entry_id_str,
+                state=resolved,
+            )
+
+            if load_error is not None:
+                collector[include_key] = ContentRefIncludeV1(
+                    entryId=entry_id,
+                    resolvedState=resolved,
+                    document=None,
+                    data=entry_data,
+                    meta=entry_meta,
+                    error=load_error,
+                )
+                warnings.append(
+                    ResolveWarningV1(
+                        code=load_error.code,
+                        message=load_error.message or f"load failed for {entry_id_str}",
+                        refEntryId=entry_id_str,
+                        refNodeId=getattr(node, "id", None),
+                    )
+                )
+                continue
+
+            collector[include_key] = ContentRefIncludeV1(
+                entryId=entry_id,
+                resolvedState=resolved,
+                document=entry_doc,
+                data=entry_data,
+                meta=entry_meta,
+            )
+
+            if entry_doc is not None:
+                await self._resolve_content_refs(
+                    document=entry_doc,
+                    site_id=site_id,
+                    mode=mode,
+                    depth=depth + 1,
+                    stack=stack | {entry_id_str},
+                    collector=collector,
+                    warnings=warnings,
+                )
+
+        return collector, warnings
 
     async def _read_workspace_draft_retention_max_revisions(self, *, workspace_id: UUID) -> int:
         """
@@ -464,7 +719,68 @@ class SitePublishingService(BaseService):
                 document=None,
             )
 
-        # 1) Static page path match (exact) has priority.
+        # 1) ContentEntry(kind=page) match (Everything-as-Content).
+        entry = await self._repo.get_content_page_entry_by_path(site_id=site_id, path=pathname)
+        if entry is not None:
+            draft_rev = int(entry.draft_revision or 0)
+            published_rev = int(entry.published_revision or 0)
+            use_rev = published_rev if mode == "public" else (draft_rev or published_rev)
+            state: Literal["draft", "published"] | None = None
+            if use_rev:
+                state = "published" if mode == "public" else ("draft" if draft_rev else "published")
+
+            if use_rev:
+                rev_rec = await self._repo.get_content_revision_by_number(
+                    entry_id=UUID(str(entry.id)), revision=int(use_rev)
+                )
+                if rev_rec is not None and isinstance(rev_rec.snapshot, dict):
+                    raw_doc = rev_rec.snapshot.get("design_document")
+                    if raw_doc is not None:
+                        try:
+                            doc = DesignDocumentV1.model_validate(raw_doc)
+                        except Exception as exc:
+                            raise ServiceUnavailable(
+                                "Failed to load page design document",
+                                error="DESIGN_DOCUMENT_INVALID",
+                            ) from exc
+                        includes, warnings = await self._resolve_content_refs(
+                            document=doc,
+                            site_id=site_id,
+                            mode=mode,
+                        )
+                        return SiteRouteResolveOut(
+                            match=SiteRouteMatchOut(
+                                kind="page",
+                                params={},
+                                page_id=UUID(str(entry.id)),
+                                variant_id=None,
+                                revision=int(use_rev),
+                                revision_state=state,
+                                draft_revision=draft_rev,
+                                published_revision=(published_rev if published_rev else None),
+                            ),
+                            document=doc,
+                            includes=includes or None,
+                            warnings=warnings or None,
+                        )
+
+            # Entry exists but has no usable revision.
+            if mode == "preview":
+                return SiteRouteResolveOut(
+                    match=SiteRouteMatchOut(
+                        kind="page",
+                        params={},
+                        page_id=UUID(str(entry.id)),
+                        revision=None,
+                        revision_state=None,
+                        draft_revision=draft_rev,
+                        published_revision=published_rev or None,
+                    ),
+                    document=create_empty_design_document_v1(),
+                )
+            return SiteRouteResolveOut(match=SiteRouteMatchOut(kind="not_found"), document=None)
+
+        # 2) Legacy SitePageRecord match (deprecated, kept for migration compatibility).
         page = await self._repo.get_page_by_path(site_id=site_id, path=pathname)
         if page is not None:
             draft_rev = int(page.draft_rev or 0)
@@ -484,6 +800,12 @@ class SitePublishingService(BaseService):
                     )
                     if doc is None:
                         raise ServiceUnavailable("Failed to load page design document", error="DESIGN_DOCUMENT_INVALID")
+
+                    includes, warnings = await self._resolve_content_refs(
+                        document=doc,
+                        site_id=site_id,
+                        mode=mode,
+                    )
                     return SiteRouteResolveOut(
                         match=SiteRouteMatchOut(
                             kind="page",
@@ -496,11 +818,10 @@ class SitePublishingService(BaseService):
                             published_revision=(published_rev if published_rev else None),
                         ),
                         document=doc,
+                        includes=includes or None,
+                        warnings=warnings or None,
                     )
 
-            # Page exists but has no usable revision.
-            # In preview mode (editor), return an empty document so the canvas can load.
-            # In public mode, the page is genuinely not ready → not_found.
             if mode == "preview":
                 return SiteRouteResolveOut(
                     match=SiteRouteMatchOut(
@@ -516,7 +837,7 @@ class SitePublishingService(BaseService):
                 )
             return SiteRouteResolveOut(match=SiteRouteMatchOut(kind="not_found"), document=None)
 
-        # 2) RouteTemplate match.
+        # 3) RouteTemplate match.
         cache_version = await self._get_route_templates_cache_version(site_id=site_id)
         tm = await self._repo.match_route_template(site_id=site_id, pathname=pathname, cache_version=cache_version)
         if tm is not None:
@@ -529,6 +850,14 @@ class SitePublishingService(BaseService):
                     mode=mode,
                 )
                 if resolved is not None:
+                    includes: dict[str, ContentRefIncludeV1] = {}
+                    warnings: list[ResolveWarningV1] = []
+                    if resolved.document is not None:
+                        includes, warnings = await self._resolve_content_refs(
+                            document=resolved.document,
+                            site_id=site_id,
+                            mode=mode,
+                        )
                     return SiteRouteResolveOut(
                         match=SiteRouteMatchOut(
                             kind="route_template",
@@ -547,6 +876,8 @@ class SitePublishingService(BaseService):
                                 data={"fields": resolved.data or {}},
                             )
                         ),
+                        includes=includes or None,
+                        warnings=warnings or None,
                     )
 
         return SiteRouteResolveOut(match=SiteRouteMatchOut(kind="not_found"), document=None)

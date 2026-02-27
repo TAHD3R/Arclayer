@@ -6,6 +6,7 @@ export type {
   DocumentIR,
   DocumentMeta,
   BlockNode,
+  ContentRefIncludesMap,
 } from "@celestial/site-block-protocol";
 export { resolveLocalizedValue } from "@celestial/site-block-protocol";
 

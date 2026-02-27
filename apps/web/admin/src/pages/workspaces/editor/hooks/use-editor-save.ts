@@ -5,7 +5,10 @@ import type { DesignDocumentV1 } from "@celestial/site-block-protocol";
 
 import type { BridgeStatus } from "@/pages/workspaces/editor/hooks/use-editor-bridge";
 
-import { publishWorkspaceSitePage, saveWorkspaceSitePageDraft } from "@/api/workspace-site";
+import {
+  publishWorkspaceContentEntry,
+  saveWorkspaceContentEntryDraft,
+} from "@/api/workspace-content-entries";
 import {
   getErrorMessage,
   notifyErrorText,
@@ -18,7 +21,7 @@ import { useEditorStore } from "@/pages/workspaces/editor/stores/editor-store";
 export type UseEditorSaveOptions = {
   workspaceId: string;
   entityId: string;
-  isPageMode: boolean;
+  editorMode: "page" | "article" | "component";
   /** Retrieve the current document from the Portal iframe (via RPC). */
   getDocument: (() => Promise<DesignDocumentV1 | null>) | null;
   /** Current bridge connection status. */
@@ -26,7 +29,7 @@ export type UseEditorSaveOptions = {
 };
 
 export function useEditorSave(opts: UseEditorSaveOptions) {
-  const { workspaceId, entityId, isPageMode, getDocument, bridgeStatus } = opts;
+  const { workspaceId, entityId, editorMode, getDocument, bridgeStatus } = opts;
   const { t } = useTranslation(["content_pages"]);
 
   const setSaving = useEditorStore((s) => s.setSaving);
@@ -37,14 +40,14 @@ export function useEditorSave(opts: UseEditorSaveOptions) {
 
   const saveDraft = React.useCallback(
     async (document: DesignDocumentV1) => {
-      if (!isPageMode) {
+      if (editorMode === "article") {
         notifyInfoText(t("content_pages:EDITOR_SHELL_SAVE_DISABLED_NON_PAGE"));
         return;
       }
 
       setSaving(true);
       try {
-        const out = await saveWorkspaceSitePageDraft(workspaceId, entityId, {
+        const out = await saveWorkspaceContentEntryDraft(workspaceId, entityId, {
           document,
           expectedRevision: draftRevisionRef.current,
         });
@@ -56,11 +59,11 @@ export function useEditorSave(opts: UseEditorSaveOptions) {
         setSaving(false);
       }
     },
-    [entityId, isPageMode, setDirty, setSaving, t, workspaceId],
+    [editorMode, entityId, setDirty, setSaving, t, workspaceId],
   );
 
   const publish = React.useCallback(async () => {
-    if (!isPageMode) {
+    if (editorMode === "article") {
       notifyInfoText(t("content_pages:EDITOR_SHELL_PUBLISH_DISABLED_NON_PAGE"));
       return;
     }
@@ -79,7 +82,7 @@ export function useEditorSave(opts: UseEditorSaveOptions) {
           notifyErrorText(t("content_pages:EDITOR_SHELL_PUBLISH_GET_DOCUMENT_FAILED"));
           return;
         }
-        const saved = await saveWorkspaceSitePageDraft(workspaceId, entityId, {
+        const saved = await saveWorkspaceContentEntryDraft(workspaceId, entityId, {
           document: doc,
           expectedRevision: null,
         });
@@ -88,7 +91,7 @@ export function useEditorSave(opts: UseEditorSaveOptions) {
       }
 
       const revision = draftRevisionRef.current;
-      const out = await publishWorkspaceSitePage(
+      const out = await publishWorkspaceContentEntry(
         workspaceId,
         entityId,
         revision === null ? {} : { revision },
@@ -101,7 +104,7 @@ export function useEditorSave(opts: UseEditorSaveOptions) {
     } finally {
       setPublishing(false);
     }
-  }, [bridgeStatus, entityId, getDocument, isPageMode, setDirty, setPublishing, t, workspaceId]);
+  }, [bridgeStatus, editorMode, entityId, getDocument, setDirty, setPublishing, t, workspaceId]);
 
   return { saveDraft, publish, draftRevisionRef };
 }

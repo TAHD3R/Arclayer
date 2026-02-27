@@ -285,6 +285,32 @@ class DesignPrefabInstanceNodeV1(DesignNodeBaseV1):
     )
 
 
+class DesignContentRefNodeV1(DesignNodeBaseV1):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    type: Literal["content_ref"] = Field(..., description="Node type.")
+    ref_entry_id: str = Field(
+        ...,
+        alias="refEntryId",
+        min_length=1,
+        description="PublicUUID of the referenced content entry.",
+    )
+    ref_state: Literal["draft", "published", "auto"] = Field(
+        default="auto",
+        alias="refState",
+        description="Revision state. 'auto' = published in public, draft in preview.",
+    )
+    props: dict[str, DesignValueV1] | None = Field(
+        default=None,
+        description="Override props for the referenced document.",
+    )
+    style_override_whitelist: list[str] | None = Field(
+        default=None,
+        alias="styleOverrideWhitelist",
+        description="Allowed style override keys.",
+    )
+
+
 DesignNodeV1 = Annotated[
     DesignPageRootNodeV1
     | DesignFrameNodeV1
@@ -293,7 +319,8 @@ DesignNodeV1 = Annotated[
     | DesignTextNodeV1
     | DesignImageNodeV1
     | DesignEmbedNodeV1
-    | DesignPrefabInstanceNodeV1,
+    | DesignPrefabInstanceNodeV1
+    | DesignContentRefNodeV1,
     Field(discriminator="type"),
 ]
 

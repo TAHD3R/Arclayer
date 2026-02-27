@@ -17,6 +17,7 @@ from apps.api.modules.sites.models.site_page import SitePageRecord, SitePageVisi
 from apps.api.modules.sites.models.site_route_template import RouteTemplateRecord
 from apps.api.modules.sites.types import RouteTemplateMatch, _CompiledRouteTemplate
 from apps.api.modules.sites.utils import normalize_path
+from apps.api.modules.workspaces.content.models.content import ContentEntryRecord
 
 
 class _RouteTemplateCache:
@@ -212,12 +213,22 @@ class SiteRoutingRepository(BaseRepository):
         - Entries: include published entries for templates that have a single `:slug` param.
         """
 
-        page_paths = await SitePageRecord.filter(
+        content_page_paths = await ContentEntryRecord.filter(
+            site_id=site_id,
+            type__kind="page",
+            visibility="public",
+            published_revision__not_isnull=True,
+            path__not_isnull=True,
+        ).values_list("path", flat=True)
+        content_page_set = {normalize_path(p) for p in content_page_paths if isinstance(p, str) and p}
+
+        legacy_page_paths = await SitePageRecord.filter(
             site_id=site_id,
             visibility=SitePageVisibility.PUBLIC,
             published_rev__not_isnull=True,
         ).values_list("path", flat=True)
-        page_set = {normalize_path(p) for p in page_paths if isinstance(p, str) and p}
+        legacy_page_set = {normalize_path(p) for p in legacy_page_paths if isinstance(p, str) and p}
+        page_set = content_page_set | legacy_page_set
 
         templates = await RouteTemplateRecord.filter(site_id=site_id, is_active=True).all()
         entry_paths: set[str] = set()

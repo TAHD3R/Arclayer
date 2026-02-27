@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Tree } from "antd";
+import { Link2 } from "lucide-react";
 
 import type { DataNode } from "antd/es/tree";
 import type { EditorLayerNode } from "@celestial/site-editor-protocol";
@@ -41,6 +42,12 @@ function NavigatorNodeTitle(props: { node: TreeNode }) {
   const setSelectedBlockId = useEditorStore((s) => s.setSelectedBlockId);
 
   const isSelected = selectedBlockId === String(props.node.key);
+  const isContentRef = props.node.dataRef.type === "content_ref";
+  const label = props.node.dataRef.label?.trim()
+    ? props.node.dataRef.label
+    : isContentRef
+      ? t("content_pages:EDITOR_CONTENT_REF_LABEL")
+      : props.node.dataRef.type;
 
   return (
     <ContextMenu>
@@ -56,7 +63,8 @@ function NavigatorNodeTitle(props: { node: TreeNode }) {
             void portal?.selectBlock({ blockId: id });
           }}
         >
-          <span className="min-w-0 flex-1 truncate">{String(props.node.title ?? "")}</span>
+          {isContentRef ? <Link2 className="size-3.5 shrink-0 text-label-secondary" /> : null}
+          <span className="min-w-0 flex-1 truncate">{label}</span>
         </div>
       </ContextMenuTrigger>
       <ContextMenuContent>

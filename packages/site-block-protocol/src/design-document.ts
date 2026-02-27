@@ -1,4 +1,5 @@
 import type { LocalizedString } from "./localized";
+import type { JsonValue } from "./json-types";
 
 export type DesignNodeId = string;
 
@@ -21,7 +22,7 @@ export type DesignBindingExprV1 = {
   path: string;
 };
 
-export type DesignValueV1 = { kind: "literal"; value: unknown } | DesignBindingExprV1;
+export type DesignValueV1 = { kind: "literal"; value: JsonValue } | DesignBindingExprV1;
 
 export type DesignConstraintHorizontalV1 = "left" | "right" | "leftRight" | "center" | "scale";
 
@@ -201,6 +202,21 @@ export interface DesignPrefabInstanceNodeV1 extends DesignNodeBaseV1 {
   children?: never;
 }
 
+export type DesignPropsMapV1 = Record<string, DesignValueV1>;
+
+export interface DesignContentRefNodeV1 extends DesignNodeBaseV1 {
+  type: "content_ref";
+  /** PublicUUID of the referenced ContentEntry */
+  refEntryId: string;
+  /** Which revision state to resolve: auto = published in public, draft in preview */
+  refState: "draft" | "published" | "auto";
+  /** Override props passed to the referenced document's root bindings */
+  props?: DesignPropsMapV1;
+  /** Style properties allowed to override on the referenced root */
+  styleOverrideWhitelist?: string[];
+  children?: never;
+}
+
 export type DesignNodeV1 =
   | DesignPageRootNodeV1
   | DesignFrameNodeV1
@@ -209,10 +225,42 @@ export type DesignNodeV1 =
   | DesignTextNodeV1
   | DesignImageNodeV1
   | DesignEmbedNodeV1
-  | DesignPrefabInstanceNodeV1;
+  | DesignPrefabInstanceNodeV1
+  | DesignContentRefNodeV1;
 
 export interface DesignDocumentV1 {
   version: 1;
   rootId: DesignNodeId;
   nodesById: Record<DesignNodeId, DesignNodeV1>;
 }
+
+export type ContentRefIncludeErrorCodeV1 =
+  | "NOT_FOUND"
+  | "CYCLE_DETECTED"
+  | "DEPTH_LIMIT"
+  | "INVALID_SCHEMA"
+  | "STATE_FORBIDDEN";
+
+export type ContentRefIncludeErrorV1 = {
+  code: ContentRefIncludeErrorCodeV1;
+  message?: string;
+};
+
+export type ContentRefIncludeV1 = {
+  entryId: string;
+  resolvedState: "draft" | "published";
+  document: DesignDocumentV1 | null;
+  data?: Record<string, JsonValue>;
+  meta?: Record<string, JsonValue>;
+  error?: ContentRefIncludeErrorV1;
+};
+
+/** Key format: `${entryId}:${resolvedState}` */
+export type ContentRefIncludesMap = Record<string, ContentRefIncludeV1>;
+
+export type ResolveWarningV1 = {
+  code: string;
+  message: string;
+  refEntryId?: string;
+  refNodeId?: string;
+};

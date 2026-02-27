@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { JsonValue } from "./json-types";
 
 export const LocaleCodeSchema = z.string().min(1);
 export const LocalizedStringSchema = z.record(LocaleCodeSchema, z.string());
@@ -20,8 +21,8 @@ export const DesignBindingExprV1Schema = z
   .strict();
 
 const JsonScalarSchema = z.union([z.string(), z.number(), z.boolean(), z.null()]);
-export const JsonValueSchema: z.ZodType<unknown> = z.lazy(() =>
-  z.union([JsonScalarSchema, z.array(JsonValueSchema), z.record(z.string(), JsonValueSchema)]),
+export const JsonValueSchema: z.ZodType<JsonValue> = z.lazy(() =>
+  z.union([JsonScalarSchema, z.array(JsonValueSchema), z.record(z.string(), JsonValueSchema)]) as z.ZodType<JsonValue>,
 );
 
 export const DesignLiteralValueV1Schema = z
@@ -305,6 +306,19 @@ export const DesignPrefabInstanceNodeV1Schema = z
   })
   .strict();
 
+export const DesignPropsMapV1Schema = z.record(z.string(), DesignValueV1Schema);
+
+export const DesignContentRefNodeV1Schema = z
+  .object({
+    ...BaseNodeFields,
+    type: z.literal("content_ref"),
+    refEntryId: z.string().min(1),
+    refState: z.enum(["draft", "published", "auto"]).default("auto"),
+    props: DesignPropsMapV1Schema.optional(),
+    styleOverrideWhitelist: z.array(z.string()).optional(),
+  })
+  .strict();
+
 export const DesignNodeV1Schema = z.discriminatedUnion("type", [
   DesignPageRootNodeV1Schema,
   DesignFrameNodeV1Schema,
@@ -314,6 +328,7 @@ export const DesignNodeV1Schema = z.discriminatedUnion("type", [
   DesignImageNodeV1Schema,
   DesignEmbedNodeV1Schema,
   DesignPrefabInstanceNodeV1Schema,
+  DesignContentRefNodeV1Schema,
 ]);
 
 export const DesignDocumentV1Schema = z

@@ -1,7 +1,13 @@
 import { isDesignDocumentV1 } from "@celestial/site-renderer-core";
 import { ApiError } from "@celestial/web-core/http";
 import type { PortalResolveMode, PortalRouteMatch, PortalSiteContext } from "@celestial/web-types";
-import type { DesignDocumentV1 } from "@celestial/site-block-protocol";
+import type {
+  ContentRefIncludeErrorCodeV1,
+  ContentRefIncludesMap,
+  DesignDocumentV1,
+  JsonValue,
+  ResolveWarningV1,
+} from "@celestial/site-block-protocol";
 import type { DesignRenderDataSourcesV1 } from "@celestial/site-renderer-core";
 
 export function getPortalApiPrefix(): string {
@@ -93,6 +99,8 @@ export async function resolveRouteFromApi(
       document: DesignDocumentV1;
       match: PortalRouteMatch;
       dataSources?: DesignRenderDataSourcesV1;
+      includes?: ContentRefIncludesMap;
+      warnings?: ResolveWarningV1[];
     }
   | { kind: "redirect"; to: string; status: 301 | 302 }
   | { kind: "not_found" }
@@ -148,7 +156,92 @@ export async function resolveRouteFromApi(
   // Both "page" and "route_template" are rendered as a "page" at runtime. We keep the
   // original match kind/pointers so editor host shells can initialize optimistic lock state.
   const dataSources = parseRouteDataSources(data);
-  return { kind: "page", document, match: parsedMatch, ...(dataSources ? { dataSources } : {}) };
+  const includes = parseContentRefIncludesMap(data);
+  const warnings = parseResolveWarnings(data);
+  return {
+    kind: "page",
+    document,
+    match: parsedMatch,
+    ...(dataSources ? { dataSources } : {}),
+    ...(includes ? { includes } : {}),
+    ...(warnings ? { warnings } : {}),
+  };
+}
+
+export type ContentEntryRevisionState = "draft" | "published";
+
+export type ContentEntryRevisionSnapshot = {
+  /** Design document for the entry revision (snapshot payload). */
+  design_document: DesignDocumentV1;
+  /** Field values for the entry revision (snapshot payload). */
+  field_values: Record<string, JsonValue>;
+  /** Optional metadata payload for the entry revision (snapshot payload). */
+  meta?: Record<string, JsonValue>;
+};
+
+export async function fetchContentEntryRevision(
+  wsId: string,
+  entryId: string,
+  state: ContentEntryRevisionState = "draft",
+): Promise<ContentEntryRevisionSnapshot> {
+  const apiPrefix = getPortalApiPrefix();
+
+  const requestPath = `${apiPrefix}/workspaces/${encodeURIComponent(wsId)}/content/entries/${encodeURIComponent(entryId)}/revisions/${encodeURIComponent(state)}`;
+  const url = new URL(requestPath, "http://localhost");
+
+  // Browser: fetch relative to Portal origin (requires Portal server proxy for /api/*).
+  // SSR (Node): fetch absolute to backend origin directly (avoid relative URLs in Node fetch).
+  const input =
+    typeof window === "undefined"
+      ? new URL(url.pathname + url.search, getPortalApiOriginForSsr()).toString()
+      : url.pathname + url.search;
+
+  const res = await fetch(input, { headers: { Accept: "application/json" } });
+  if (!res.ok) {
+    throw await toApiError(res, `Failed to fetch content entry revision (${res.status})`);
+  }
+
+  const payload: unknown = await res.json();
+  const data = getResponseData(payload);
+
+  const snapshotUnknown = getUnknownField(data, "snapshot");
+  if (!snapshotUnknown || typeof snapshotUnknown !== "object" || Array.isArray(snapshotUnknown)) {
+    throw new Error("Invalid snapshot returned by API");
+  }
+  const snapshot = snapshotUnknown as Record<string, unknown>;
+
+  // snapshot keys are persisted snake_case, but be tolerant with camelCase for fixtures.
+  const designDocumentUnknown =
+    snapshot.design_document ?? snapshot.designDocument ?? snapshot.document ?? null;
+  if (
+    !designDocumentUnknown ||
+    typeof designDocumentUnknown !== "object" ||
+    Array.isArray(designDocumentUnknown) ||
+    !isDesignDocumentV1(designDocumentUnknown)
+  ) {
+    throw new Error("Invalid design_document returned by API");
+  }
+
+  const fieldValuesUnknown = snapshot.field_values ?? snapshot.fieldValues ?? null;
+  const fieldValues =
+    fieldValuesUnknown &&
+    typeof fieldValuesUnknown === "object" &&
+    !Array.isArray(fieldValuesUnknown)
+      ? toJsonObject(fieldValuesUnknown as Record<string, unknown>)
+      : undefined;
+
+  const metaUnknown = snapshot.meta ?? snapshot.Meta ?? null;
+  const meta =
+    metaUnknown && typeof metaUnknown === "object" && !Array.isArray(metaUnknown)
+      ? toJsonObject(metaUnknown as Record<string, unknown>)
+      : undefined;
+
+  const out: ContentEntryRevisionSnapshot = {
+    design_document: designDocumentUnknown,
+    field_values: fieldValues ?? {},
+  };
+  if (meta) out.meta = meta;
+  return out;
 }
 
 function parseRouteDataSources(data: unknown): DesignRenderDataSourcesV1 | undefined {
@@ -172,6 +265,140 @@ function parseRouteDataSources(data: unknown): DesignRenderDataSourcesV1 | undef
   return {
     primaryEntry: Object.assign({}, id ? { id } : {}, snap ? { data: snap } : {}),
   };
+}
+
+function parseContentRefIncludesMap(data: unknown): ContentRefIncludesMap | undefined {
+  const root = getRecord(data);
+  const raw = root?.includes;
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return undefined;
+
+  const out: ContentRefIncludesMap = {};
+  for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) continue;
+    const rec = value as Record<string, unknown>;
+
+    const entryId = getStringField(rec, ["entryId", "entry_id"])?.trim();
+    const resolvedStateRaw = getStringField(rec, ["resolvedState", "resolved_state"])?.trim();
+    const resolvedState =
+      resolvedStateRaw === "draft" || resolvedStateRaw === "published" ? resolvedStateRaw : null;
+
+    if (!entryId || !resolvedState) continue;
+
+    const documentRaw = getUnknownField(rec, "document");
+    const document =
+      documentRaw &&
+      typeof documentRaw === "object" &&
+      !Array.isArray(documentRaw) &&
+      isDesignDocumentV1(documentRaw)
+        ? (documentRaw as DesignDocumentV1)
+        : null;
+
+    const dataRaw = getUnknownField(rec, "data");
+    const metaRaw = getUnknownField(rec, "meta");
+    const dataObj =
+      dataRaw && typeof dataRaw === "object" && !Array.isArray(dataRaw)
+        ? toJsonObject(dataRaw as Record<string, unknown>)
+        : undefined;
+    const metaObj =
+      metaRaw && typeof metaRaw === "object" && !Array.isArray(metaRaw)
+        ? toJsonObject(metaRaw as Record<string, unknown>)
+        : undefined;
+
+    const errorRaw = getUnknownField(rec, "error");
+    const errorRec =
+      errorRaw && typeof errorRaw === "object" && !Array.isArray(errorRaw)
+        ? (errorRaw as Record<string, unknown>)
+        : undefined;
+    const errorCodeRaw = errorRec ? getStringField(errorRec, ["code"])?.trim() : undefined;
+    const errorCode = isContentRefIncludeErrorCodeV1(errorCodeRaw) ? errorCodeRaw : undefined;
+    const errorMessage = errorRec ? getStringField(errorRec, ["message"]) : undefined;
+
+    const error = errorCode
+      ? { code: errorCode, ...(errorMessage ? { message: errorMessage } : {}) }
+      : undefined;
+
+    out[key] = Object.assign(
+      {},
+      { entryId, resolvedState, document },
+      dataObj ? { data: dataObj } : {},
+      metaObj ? { meta: metaObj } : {},
+      error ? { error } : {},
+    );
+  }
+
+  return Object.keys(out).length ? out : undefined;
+}
+
+function isJsonScalar(value: unknown): value is string | number | boolean | null {
+  return (
+    value === null ||
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean"
+  );
+}
+
+function isJsonValue(value: unknown, depth: number = 0): value is JsonValue {
+  if (depth > 32) return false;
+  if (isJsonScalar(value)) return true;
+  if (Array.isArray(value)) return value.every((v) => isJsonValue(v, depth + 1));
+  if (value && typeof value === "object") {
+    for (const v of Object.values(value as Record<string, unknown>)) {
+      if (!isJsonValue(v, depth + 1)) return false;
+    }
+    return true;
+  }
+  return false;
+}
+
+function toJsonObject(raw: Record<string, unknown>): Record<string, JsonValue> | undefined {
+  const out: Record<string, JsonValue> = {};
+  for (const [k, v] of Object.entries(raw)) {
+    if (!isJsonValue(v)) continue;
+    out[k] = v;
+  }
+  return Object.keys(out).length ? out : undefined;
+}
+
+const CONTENT_REF_INCLUDE_ERROR_CODES: ReadonlySet<ContentRefIncludeErrorCodeV1> = new Set([
+  "NOT_FOUND",
+  "CYCLE_DETECTED",
+  "DEPTH_LIMIT",
+  "INVALID_SCHEMA",
+  "STATE_FORBIDDEN",
+]);
+
+function isContentRefIncludeErrorCodeV1(value: unknown): value is ContentRefIncludeErrorCodeV1 {
+  return (
+    typeof value === "string" &&
+    CONTENT_REF_INCLUDE_ERROR_CODES.has(value as ContentRefIncludeErrorCodeV1)
+  );
+}
+
+function parseResolveWarnings(data: unknown): ResolveWarningV1[] | undefined {
+  const root = getRecord(data);
+  const raw = root?.warnings;
+  if (!Array.isArray(raw)) return undefined;
+
+  const out: ResolveWarningV1[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== "object" || Array.isArray(item)) continue;
+    const rec = item as Record<string, unknown>;
+    const code = getStringField(rec, ["code"])?.trim();
+    const message = getStringField(rec, ["message"]);
+    if (!code || !message) continue;
+    const refEntryId = getStringField(rec, ["refEntryId", "ref_entry_id"])?.trim();
+    const refNodeId = getStringField(rec, ["refNodeId", "ref_node_id"])?.trim();
+    out.push(
+      Object.assign(
+        {},
+        { code, message },
+        refEntryId ? { refEntryId } : {},
+        refNodeId ? { refNodeId } : {},
+      ),
+    );
+  }
+  return out.length ? out : undefined;
 }
 
 export async function fetchRuntimeConfigFromApi(

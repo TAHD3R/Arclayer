@@ -2,9 +2,15 @@ import { ApiError } from "@celestial/web-core/http";
 import type { PortalResolveMode, PortalRouteMatch } from "@celestial/web-types";
 import type { DesignDocumentV1 } from "@celestial/site-block-protocol";
 import type { DesignRenderDataSourcesV1 } from "@celestial/site-renderer-core";
+import type { ContentRefIncludesMap, ResolveWarningV1 } from "@celestial/site-block-protocol";
 
 import { HttpError } from "@/runtime/http-error";
-import { resolveRouteFromApi } from "./site-api";
+import {
+  fetchContentEntryRevision,
+  resolveRouteFromApi,
+  type ContentEntryRevisionSnapshot,
+  type ContentEntryRevisionState,
+} from "./site-api";
 
 export type ResolvedPortalRoute =
   | {
@@ -12,6 +18,8 @@ export type ResolvedPortalRoute =
       document: DesignDocumentV1;
       match: PortalRouteMatch;
       dataSources?: DesignRenderDataSourcesV1;
+      includes?: ContentRefIncludesMap;
+      warnings?: ResolveWarningV1[];
     }
   | { kind: "redirect"; to: string; status: 301 | 302 }
   | { kind: "not_found" };
@@ -26,6 +34,36 @@ export async function resolvePortalRoute(
     const opts: { mode: PortalResolveMode; token?: string } = { mode: args.mode };
     if (args.token) opts.token = args.token;
     return await resolveRouteFromApi(pathname, args.siteId, opts);
+  } catch (err) {
+    throw toHttpError(err);
+  }
+}
+
+export async function loadContentEntryDocument(args: {
+  workspaceId: string;
+  entryId: string;
+  state?: ContentEntryRevisionState;
+}): Promise<{
+  document: DesignDocumentV1;
+  dataSources: DesignRenderDataSourcesV1;
+  snapshot: ContentEntryRevisionSnapshot;
+}> {
+  try {
+    const state = args.state ?? "draft";
+    const snapshot = await fetchContentEntryRevision(args.workspaceId, args.entryId, state);
+
+    const dataSources: DesignRenderDataSourcesV1 = {
+      primaryEntry: {
+        id: args.entryId,
+        data: snapshot.field_values as unknown as Record<string, unknown>,
+      },
+    };
+
+    return {
+      document: snapshot.design_document,
+      dataSources,
+      snapshot,
+    };
   } catch (err) {
     throw toHttpError(err);
   }

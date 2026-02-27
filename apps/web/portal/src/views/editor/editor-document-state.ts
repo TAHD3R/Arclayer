@@ -14,6 +14,7 @@ import { EDITOR_PAGE_ROOT_BLOCK_ID } from "@celestial/site-editor-protocol";
 
 import type {
   BreakpointName,
+  DesignContentRefNodeV1,
   DesignDocumentV1,
   DesignLayoutV1,
   DesignNodeId,
@@ -22,6 +23,7 @@ import type {
   DesignPrefabInstanceNodeV1,
   DesignStyleV1,
   DesignValueV1,
+  JsonValue,
 } from "@celestial/site-block-protocol";
 import {
   CORE_BLOCK_MANIFESTS,
@@ -50,6 +52,39 @@ type EditorDocumentHistory = {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function isJsonValue(value: unknown): value is JsonValue {
+  if (
+    value === null ||
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean"
+  ) {
+    return true;
+  }
+
+  if (Array.isArray(value)) {
+    return value.every((item) => isJsonValue(item));
+  }
+
+  if (isRecord(value)) {
+    return Object.values(value).every((item) => isJsonValue(item));
+  }
+
+  return false;
+}
+
+function coerceToJsonValue(value: unknown): JsonValue {
+  if (isJsonValue(value)) return value;
+  if (value === undefined) return null;
+
+  try {
+    // Best-effort conversion for non-JSON values (e.g. Date, Map).
+    return JSON.parse(JSON.stringify(value)) as JsonValue;
+  } catch {
+    return String(value);
+  }
 }
 
 function isMotionRefsV1(value: unknown): value is NonNullable<DesignNodeV1["motionRefs"]> {
@@ -104,7 +139,7 @@ function buildEmptyDocument(): DesignDocumentV1 {
 }
 
 let idSeq = 0;
-function createNodeId(): DesignNodeId {
+export function createDesignNodeId(): DesignNodeId {
   idSeq += 1;
   // Must match SAFE_NODE_ID_RE in renderer guard: starts with alnum, then alnum/:/_/-
   return `n${Date.now().toString(36)}_${idSeq.toString(36)}`;
@@ -146,7 +181,7 @@ export function convertLegacyBlocksToDesignFragment(blocks: BlockNode[]): {
   const rootIds: DesignNodeId[] = [];
 
   const visit = (block: BlockNode): DesignNodeId => {
-    const id = createNodeId();
+    const id = createDesignNodeId();
     const type = (block.type || "").trim();
     const props = isRecord(block.props) ? block.props : {};
     const children = Array.isArray(block.children) ? block.children : [];
@@ -156,7 +191,7 @@ export function convertLegacyBlocksToDesignFragment(blocks: BlockNode[]): {
       const rawProps = isRecord(props.props) ? (props.props as Record<string, unknown>) : {};
       const mappedProps: Record<string, DesignValueV1> = {};
       for (const [k, v] of Object.entries(rawProps)) {
-        mappedProps[k] = { kind: "literal", value: v };
+        mappedProps[k] = { kind: "literal", value: coerceToJsonValue(v) };
       }
       const slotChildren: Record<string, DesignNodeId[]> = {};
       if (children.length) {
@@ -248,6 +283,12 @@ export function convertLegacyBlocksToDesignFragment(blocks: BlockNode[]): {
 
 function buildNodeLabel(node: DesignNodeV1): string {
   if (node.name && node.name.trim()) return node.name.trim();
+  if (node.type === "content_ref") {
+    const ref = (node.refEntryId || "").trim();
+    if (!ref) return "ContentRef";
+    const short = ref.length > 8 ? `${ref.slice(0, 8)}...` : ref;
+    return `ContentRef(${short})`;
+  }
   if (node.type === "prefab_instance") return `Prefab(${node.prefabId})`;
   return node.type;
 }
@@ -306,7 +347,7 @@ function validateFieldValue(field: FieldDefinition, value: unknown): boolean {
 }
 
 function toLiteralValue(value: unknown): DesignValueV1 {
-  return { kind: "literal", value };
+  return { kind: "literal", value: coerceToJsonValue(value) };
 }
 
 function buildComponentInspector(node: DesignNodeV1): Record<string, unknown> {
@@ -315,6 +356,14 @@ function buildComponentInspector(node: DesignNodeV1): Record<string, unknown> {
       title: node.seo?.title,
       description: node.seo?.description,
       dataSources: node.dataSources,
+    };
+  }
+  if (node.type === "content_ref") {
+    return {
+      refEntryId: node.refEntryId,
+      refState: node.refState,
+      props: node.props ?? {},
+      styleOverrideWhitelist: node.styleOverrideWhitelist ?? [],
     };
   }
   if (node.type === "text") {
@@ -577,7 +626,7 @@ export function commitEditorHistory(
 }
 
 function buildNodeByInsertType(type: string): DesignNodeV1 | null {
-  const id = createNodeId();
+  const id = createDesignNodeId();
 
   if (type === "frame") {
     return {
@@ -649,7 +698,8 @@ function buildNodeByInsertType(type: string): DesignNodeV1 | null {
 
     const props: Record<string, DesignValueV1> = {};
     for (const field of manifest?.attributes ?? []) {
-      props[field.key] = { kind: "literal", value: field.default };
+      if (field.default === undefined) continue;
+      props[field.key] = { kind: "literal", value: coerceToJsonValue(field.default) };
     }
 
     const node: DesignPrefabInstanceNodeV1 = {
@@ -793,6 +843,68 @@ export function insertBlockTreeWithMeta(args: {
   return { document: doc, selectedId: selected, inspector, layers: buildLayerTree(doc) };
 }
 
+function isContentRefState(value: unknown): value is DesignContentRefNodeV1["refState"] {
+  return value === "draft" || value === "published" || value === "auto";
+}
+
+export function insertContentRefWithMeta(args: {
+  document: DesignDocumentV1;
+  insert: {
+    refEntryId: string;
+    refState?: DesignContentRefNodeV1["refState"];
+    targetBlockId?: BlockId | null;
+    position?: EditorInsertBlockPosition;
+  };
+}): {
+  document: DesignDocumentV1;
+  selectedId: BlockId;
+  inspector: EditorSelectionInspector;
+  layers: EditorLayerNode[];
+} {
+  const next = cloneDocument(args.document);
+
+  const refEntryId = (args.insert.refEntryId || "").trim();
+  if (!refEntryId) {
+    const inspector = buildSelectionInspector(next, null);
+    return { document: next, selectedId: "", inspector, layers: buildLayerTree(next) };
+  }
+
+  const refState = args.insert.refState ?? "auto";
+  const nodeId = createDesignNodeId();
+  const label = refEntryId.length > 8 ? `${refEntryId.slice(0, 8)}...` : refEntryId;
+
+  const node: DesignContentRefNodeV1 = {
+    id: nodeId,
+    type: "content_ref",
+    name: `ContentRef(${label})`,
+    refEntryId,
+    refState: isContentRefState(refState) ? refState : "auto",
+    layout: defaultRectLayout(0, 0, 360, 240),
+    style: defaultStyle(),
+  };
+
+  const target = normalizeInsertTarget({
+    document: next,
+    targetId: args.insert.targetBlockId,
+    position: args.insert.position,
+  });
+  if (!target) {
+    const inspector = buildSelectionInspector(next, null);
+    return { document: next, selectedId: "", inspector, layers: buildLayerTree(next) };
+  }
+
+  next.nodesById[node.id] = node;
+  const withChild = insertChildId({
+    document: next,
+    parentId: target.parentId,
+    childId: node.id,
+    index: target.index,
+  });
+
+  const inspector = buildSelectionInspector(withChild, node.id);
+  return { document: withChild, selectedId: node.id, inspector, layers: buildLayerTree(withChild) };
+}
+
 export function deleteBlock(args: { document: DesignDocumentV1; blockId: BlockId }): {
   document: DesignDocumentV1;
   layers: EditorLayerNode[];
@@ -897,7 +1009,7 @@ export function duplicateBlockWithMeta(args: { document: DesignDocumentV1; block
   const mapId = (old: string) => {
     const found = idMap.get(old);
     if (found) return found;
-    const created = createNodeId();
+    const created = createDesignNodeId();
     idMap.set(old, created);
     return created;
   };
@@ -1067,6 +1179,49 @@ export function applySelectionPatch(args: {
         nextProps[k] = nextValue;
       }
       return { ...node, props: nextProps };
+    }
+    if (node.type === "content_ref") {
+      const nextEntryRaw = values.refEntryId;
+      const nextEntry =
+        typeof nextEntryRaw === "string" && nextEntryRaw.trim() ? nextEntryRaw.trim() : undefined;
+
+      const nextState = isContentRefState(values.refState) ? values.refState : undefined;
+
+      const nextPropsRaw = values.props;
+      const nextProps =
+        nextPropsRaw === null
+          ? undefined
+          : isRecord(nextPropsRaw)
+            ? (Object.fromEntries(
+                Object.entries(nextPropsRaw).map(([k, v]) => [
+                  k,
+                  isRecord(v) && v.kind === "binding"
+                    ? (v as unknown as DesignValueV1)
+                    : toLiteralValue(v),
+                ]),
+              ) as Record<string, DesignValueV1>)
+            : node.props;
+
+      const nextWhitelistRaw = values.styleOverrideWhitelist;
+      const nextWhitelist =
+        nextWhitelistRaw === null
+          ? undefined
+          : Array.isArray(nextWhitelistRaw) && nextWhitelistRaw.every((x) => typeof x === "string")
+            ? (nextWhitelistRaw as string[])
+            : node.styleOverrideWhitelist;
+
+      return {
+        ...node,
+        ...(nextEntry ? { refEntryId: nextEntry } : {}),
+        ...(nextState ? { refState: nextState } : {}),
+        ...(nextPropsRaw !== undefined ? { props: nextProps as unknown as typeof node.props } : {}),
+        ...(nextWhitelistRaw !== undefined
+          ? {
+              styleOverrideWhitelist:
+                nextWhitelist as unknown as typeof node.styleOverrideWhitelist,
+            }
+          : {}),
+      };
     }
     return node;
   })();

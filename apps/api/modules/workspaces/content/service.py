@@ -267,6 +267,12 @@ class WorkspaceContentService(
 
         title = payload.title.strip() if isinstance(payload.title, str) and payload.title.strip() else None
 
+        path = payload.path.strip() if isinstance(payload.path, str) and payload.path.strip() else None
+        parent_entry_id = (
+            self._parse_uuid_value(payload.parent_entry_id) if payload.parent_entry_id is not None else None
+        )
+        sort_order = int(payload.sort_order or 0)
+
         record = await self.repo.create_entry(
             workspace_id=workspace_id,
             site_id=site_id,
@@ -275,6 +281,9 @@ class WorkspaceContentService(
             title=title,
             visibility=payload.visibility,
             locale=payload.locale,
+            path=path,
+            parent_entry_id=parent_entry_id,
+            sort_order=sort_order,
             created_by_user_id=actor_user_id,
         )
         hydrated = await self.repo.get_entry_by_id(
@@ -322,6 +331,18 @@ class WorkspaceContentService(
             fields["visibility"] = payload.visibility
         if "locale" in fields_set and payload.locale is not None:
             fields["locale"] = payload.locale
+        if "path" in fields_set:
+            if payload.path is None:
+                fields["path"] = None
+            else:
+                raw_path = payload.path.strip()
+                fields["path"] = raw_path or None
+        if "parent_entry_id" in fields_set:
+            fields["parent_entry_id"] = (
+                self._parse_uuid_value(payload.parent_entry_id) if payload.parent_entry_id is not None else None
+            )
+        if "sort_order" in fields_set and payload.sort_order is not None:
+            fields["sort_order"] = int(payload.sort_order)
 
         updated = await self.repo.update_entry(
             workspace_id=workspace_id,

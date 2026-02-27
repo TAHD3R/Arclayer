@@ -229,6 +229,13 @@ export type PortalEditorRpcApi = {
   getLayerTree: () => EditorLayerNode[];
   insertBlock: (args: EditorInsertBlockArgs) => EditorInsertBlockResult;
   insertBlockTree: (args: EditorInsertBlockTreeArgs) => EditorInsertBlockResult;
+  /** Insert a content_ref node. */
+  insertContentRef: (args: {
+    refEntryId: string;
+    refState?: "draft" | "published" | "auto";
+    targetBlockId?: BlockId | null;
+    position?: EditorInsertBlockPosition;
+  }) => EditorInsertBlockResult;
   setDevicePreset: (args: { devicePreset: EditorDevicePreset }) => EditorCanvasState;
   setZoom: (args: { zoomPercent: number }) => EditorCanvasState;
   resetZoom: () => EditorCanvasState;
@@ -288,6 +295,8 @@ export type HostEditorRpcApi = {
    * The host decides what save means.
    */
   requestSave: (args: { siteId: string; pathname: string; document: DesignDocumentV1 }) => void;
+  /** Request the host to open a content entry editor in a new tab/route. */
+  requestEditContentRef: (args: { refEntryId: string; refEntryTitle?: string }) => void;
 
   /**
    * Presence channel allows the portal iframe to report editor presence

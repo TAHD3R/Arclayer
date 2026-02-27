@@ -43,6 +43,8 @@ export async function onBeforeRender(pageContext: PortalPreviewPageContextLike) 
       throw render(404, "Preview page not found: " + parsed.pathname);
     }
 
+    const renderViewerCtx = { ...viewerCtx, mode: "preview" as const };
+
     return {
       pageContext: {
         pageProps: {
@@ -50,12 +52,13 @@ export async function onBeforeRender(pageContext: PortalPreviewPageContextLike) 
           document: resolved.document,
           match: resolved.match,
           dataSources: resolved.dataSources,
-          viewerCtx,
+          ...(resolved.includes ? { includes: resolved.includes } : {}),
+          viewerCtx: renderViewerCtx,
           pathname: parsed.pathname,
           ...(parsed.token ? { token: parsed.token } : {}),
         },
         siteCtx,
-        viewerCtx,
+        viewerCtx: renderViewerCtx,
       },
     };
   } catch (err) {

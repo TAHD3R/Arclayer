@@ -27,7 +27,12 @@ export type {
   DesignAutoLayoutV1,
   DesignBindingExprV1,
   DesignBindingSourceV1,
+  ContentRefIncludeErrorCodeV1,
+  ContentRefIncludeErrorV1,
+  ContentRefIncludeV1,
+  ContentRefIncludesMap,
   DesignConstraintsV1,
+  DesignContentRefNodeV1,
   DesignDocumentV1,
   DesignEmbedNodeV1,
   DesignFrameNodeV1,
@@ -40,6 +45,7 @@ export type {
   DesignNodeV1,
   DesignPageRootNodeV1,
   DesignPrefabInstanceNodeV1,
+  DesignPropsMapV1,
   DesignRectNodeV1,
   DesignStyleV1,
   DesignTypographyV1,
@@ -48,7 +54,10 @@ export type {
   DesignValueV1,
   PrefabInstancePropsV1,
   PrefabSlotChildrenV1,
+  ResolveWarningV1,
 } from "./design-document";
+
+export type { JsonObject, JsonScalar, JsonValue } from "./json-types";
 
 export {
   DesignBindingExprV1Schema,

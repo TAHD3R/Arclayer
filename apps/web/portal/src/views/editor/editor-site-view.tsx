@@ -35,6 +35,7 @@ import {
   duplicateBlockWithMeta,
   insertBlockTreeWithMeta,
   insertBlockWithMeta,
+  insertContentRefWithMeta,
   moveBlock,
   normalizeInitialDocument,
   redoEditorHistory,
@@ -156,7 +157,7 @@ export function EditorSiteView(props: EditorSiteViewProps) {
   }, [breakpointFromWidth]);
 
   const renderCtx = React.useMemo<ViewerContext>(
-    () => ({ ...viewerCtx, breakpoint: breakpointFromWidth }),
+    () => ({ ...viewerCtx, mode: "preview", breakpoint: breakpointFromWidth }),
     [breakpointFromWidth, viewerCtx],
   );
 
@@ -396,6 +397,22 @@ export function EditorSiteView(props: EditorSiteViewProps) {
           insert: {
             ...insertPayload,
             targetBlockId: insertPayload.targetBlockId ?? selectedBlockIdRef.current,
+          },
+        });
+        const inspector = commitNextDocument(inserted.document, { preserveSelection: false });
+        setSelectedBlockId(inserted.selectedId || null);
+        return {
+          blockId: inserted.selectedId,
+          inspector,
+          layers: inserted.layers,
+        };
+      },
+      insertContentRef: (args) => {
+        const inserted = insertContentRefWithMeta({
+          document: historyRef.current.present,
+          insert: {
+            ...args,
+            targetBlockId: args.targetBlockId ?? selectedBlockIdRef.current,
           },
         });
         const inspector = commitNextDocument(inserted.document, { preserveSelection: false });
