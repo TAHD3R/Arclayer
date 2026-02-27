@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 from uuid import UUID
 
 from tortoise.backends.base.client import BaseDBAsyncClient
 from tortoise.exceptions import IntegrityError
 from tortoise.transactions import in_transaction
 
+from apps.api.common.protocols.tortoise import ContentEntryMutableFields
 from apps.api.common.repositories.base import BaseRepository
 from apps.api.core.exceptions import Conflict, NotFound
 from apps.api.modules.workspaces.content.models.content import (
@@ -188,7 +189,7 @@ class WorkspaceContentRepository(BaseRepository):
 
             for key, value in fields.items():
                 setattr(rec, key, value)
-            rec.updated_by_user_id = updated_by_user_id
+            cast(ContentEntryMutableFields, rec).updated_by_user_id = updated_by_user_id
 
             update_fields = list(fields.keys()) + ["updated_by_user_id"] if fields else ["updated_by_user_id"]
             try:
@@ -269,7 +270,7 @@ class WorkspaceContentRepository(BaseRepository):
             rec.document_ir = document_ir
             rec.field_values = field_values
             rec.draft_revision = next_revision
-            rec.updated_by_user_id = actor_user_id
+            cast(ContentEntryMutableFields, rec).updated_by_user_id = actor_user_id
             rec.status = "published" if rec.published_revision is not None else "draft"
             await rec.save(
                 update_fields=[
@@ -316,9 +317,9 @@ class WorkspaceContentRepository(BaseRepository):
             if rev is None:
                 raise NotFound("Revision not found", error="CONTENT_ENTRY_REVISION_NOT_FOUND")
 
-            rec.published_revision = target
+            cast(ContentEntryMutableFields, rec).published_revision = target
             rec.status = "published"
-            rec.updated_by_user_id = actor_user_id
+            cast(ContentEntryMutableFields, rec).updated_by_user_id = actor_user_id
             await rec.save(update_fields=["published_revision", "status", "updated_by_user_id"], using_db=conn)
 
         out = await self.get_entry_by_id(workspace_id=workspace_id, site_id=site_id, entry_id=entry_id)
@@ -347,9 +348,9 @@ class WorkspaceContentRepository(BaseRepository):
             if rec.published_revision is None:
                 raise Conflict("Content entry is not published", error="CONTENT_ENTRY_NOT_PUBLISHED")
 
-            rec.published_revision = None
+            cast(ContentEntryMutableFields, rec).published_revision = None
             rec.status = "draft"
-            rec.updated_by_user_id = actor_user_id
+            cast(ContentEntryMutableFields, rec).updated_by_user_id = actor_user_id
             await rec.save(update_fields=["published_revision", "status", "updated_by_user_id"], using_db=conn)
 
         out = await self.get_entry_by_id(workspace_id=workspace_id, site_id=site_id, entry_id=entry_id)
@@ -387,7 +388,7 @@ class WorkspaceContentRepository(BaseRepository):
 
             if target == "published":
                 from_revision = rec.published_revision
-                rec.published_revision = revision
+                cast(ContentEntryMutableFields, rec).published_revision = revision
                 rec.status = "published"
                 update_fields = ["published_revision", "status", "updated_by_user_id"]
             else:
@@ -396,7 +397,7 @@ class WorkspaceContentRepository(BaseRepository):
                 rec.status = "published" if rec.published_revision is not None else "draft"
                 update_fields = ["draft_revision", "status", "updated_by_user_id"]
 
-            rec.updated_by_user_id = actor_user_id
+            cast(ContentEntryMutableFields, rec).updated_by_user_id = actor_user_id
             await rec.save(update_fields=update_fields, using_db=conn)
 
         return from_revision, revision

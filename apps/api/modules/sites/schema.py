@@ -496,11 +496,36 @@ class SiteRouteMatchOut(BaseSchema):
     )
 
 
+class SitePrimaryEntryOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    id: PublicUUID = Field(..., description="Primary entry id.")
+    data: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Primary entry data snapshot (JSON). Typically shaped as { fields: {...} }.",
+    )
+
+
+class SiteRouteDataSourcesOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    primary_entry: SitePrimaryEntryOut | None = Field(
+        default=None,
+        alias="primaryEntry",
+        description="Primary entry data source snapshot (if available).",
+    )
+
+
 class SiteRouteResolveOut(BaseSchema):
     model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
 
     match: SiteRouteMatchOut = Field(..., description="Match result.")
     document: DesignDocumentV1 | None = Field(default=None, description="Resolved design document (if any).")
+    data_sources: SiteRouteDataSourcesOut | None = Field(
+        default=None,
+        alias="dataSources",
+        description="Optional binding data sources snapshot (v1).",
+    )
 
 
 class SitePreviewTokenCreateIn(BaseSchema):

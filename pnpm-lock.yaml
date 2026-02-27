@@ -381,7 +381,11 @@ importers:
 
   packages/ox-config: {}
 
-  packages/site-block-protocol: {}
+  packages/site-block-protocol:
+    dependencies:
+      zod:
+        specifier: 3.25.76
+        version: 3.25.76
 
   packages/site-editor-bridge:
     dependencies:

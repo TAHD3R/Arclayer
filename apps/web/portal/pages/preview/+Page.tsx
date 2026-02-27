@@ -2,6 +2,7 @@ import React from "react";
 
 import type { DesignDocumentV1, ViewerContext } from "@celestial/site-block-protocol";
 import type { PortalRouteMatch } from "@celestial/web-types";
+import type { DesignRenderDataSourcesV1 } from "@celestial/site-renderer-core";
 
 import { PortalDocumentPage } from "@/views/portal-document-page";
 
@@ -14,10 +15,16 @@ type PreviewPageProps = {
   viewerCtx: ViewerContext;
   pathname: string;
   token?: string;
+  dataSources?: DesignRenderDataSourcesV1;
 };
 
 function Page(props: PreviewPageProps) {
   return (
-    <PortalDocumentPage document={props.document} match={props.match} viewerCtx={props.viewerCtx} />
+    <PortalDocumentPage
+      document={props.document}
+      match={props.match}
+      viewerCtx={props.viewerCtx}
+      {...(props.dataSources ? { dataSources: props.dataSources } : {})}
+    />
   );
 }

@@ -50,6 +50,17 @@ export type {
   PrefabSlotChildrenV1,
 } from "./design-document";
 
+export {
+  DesignBindingExprV1Schema,
+  DesignDocumentV1Schema,
+  DesignNodeV1Schema,
+  DesignValueV1Schema,
+  isDesignDocumentV1,
+} from "./design-document.zod";
+
+export { BlockManifestSchema, PrefabSlotManifestSchema } from "./block-manifest.zod";
+export { exportBlockManifestJsonSchema, exportDesignDocumentV1JsonSchema } from "./json-schema";
+
 export interface BlockLayoutProps {
   width?: BlockDimensionValue;
   minWidth?: BlockDimensionValue;

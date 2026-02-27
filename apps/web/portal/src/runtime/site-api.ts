@@ -2,6 +2,7 @@ import { isDesignDocumentV1 } from "@celestial/site-renderer-core";
 import { ApiError } from "@celestial/web-core/http";
 import type { PortalResolveMode, PortalRouteMatch, PortalSiteContext } from "@celestial/web-types";
 import type { DesignDocumentV1 } from "@celestial/site-block-protocol";
+import type { DesignRenderDataSourcesV1 } from "@celestial/site-renderer-core";
 
 export function getPortalApiPrefix(): string {
   // Use a relative prefix so it works in both SSR and browser via the Portal server proxy.
@@ -87,7 +88,12 @@ export async function resolveRouteFromApi(
   siteId: string,
   opts: { mode: PortalResolveMode; token?: string },
 ): Promise<
-  | { kind: "page"; document: DesignDocumentV1; match: PortalRouteMatch }
+  | {
+      kind: "page";
+      document: DesignDocumentV1;
+      match: PortalRouteMatch;
+      dataSources?: DesignRenderDataSourcesV1;
+    }
   | { kind: "redirect"; to: string; status: 301 | 302 }
   | { kind: "not_found" }
 > {
@@ -141,7 +147,31 @@ export async function resolveRouteFromApi(
 
   // Both "page" and "route_template" are rendered as a "page" at runtime. We keep the
   // original match kind/pointers so editor host shells can initialize optimistic lock state.
-  return { kind: "page", document, match: parsedMatch };
+  const dataSources = parseRouteDataSources(data);
+  return { kind: "page", document, match: parsedMatch, ...(dataSources ? { dataSources } : {}) };
+}
+
+function parseRouteDataSources(data: unknown): DesignRenderDataSourcesV1 | undefined {
+  const dsRec = getRecord(data);
+  const ds = dsRec?.dataSources ?? dsRec?.data_sources;
+  if (!ds) return undefined;
+
+  const primaryRec = getRecord(ds);
+  const primary = primaryRec?.primaryEntry ?? primaryRec?.primary_entry;
+  if (!primary) return undefined;
+
+  const id = getStringField(primary, ["id"])?.trim() || undefined;
+  const snapUnknown = getUnknownField(primary, "data");
+  const snap =
+    snapUnknown && typeof snapUnknown === "object" && !Array.isArray(snapUnknown)
+      ? (snapUnknown as Record<string, unknown>)
+      : undefined;
+
+  if (!id && !snap) return undefined;
+
+  return {
+    primaryEntry: Object.assign({}, id ? { id } : {}, snap ? { data: snap } : {}),
+  };
 }
 
 export async function fetchRuntimeConfigFromApi(

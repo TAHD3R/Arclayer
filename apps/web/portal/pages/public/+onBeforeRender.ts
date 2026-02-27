@@ -41,6 +41,7 @@ export async function onBeforeRender(pageContext: PortalPublicPageContextLike) {
           mode: "public",
           document: resolved.document,
           match: resolved.match,
+          dataSources: resolved.dataSources,
           viewerCtx,
           pathname,
           showHydration: pathname === "/",

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any, cast
 from uuid import UUID, uuid4
 
 from apps.api.core.exceptions import Conflict, NotFound
@@ -29,6 +29,7 @@ from apps.api.modules.workspaces.content.schema import (
     ContentMenuDeleteOut,
     ContentMenuItemCreateIn,
     ContentMenuItemDeleteOut,
+    ContentMenuItemKind,
     ContentMenuItemOut,
     ContentMenuItemsReorderIn,
     ContentMenuItemUpdateIn,
@@ -38,6 +39,44 @@ from apps.api.modules.workspaces.content.schema import (
 
 
 class WorkspaceContentStructureMixin:
+    if TYPE_CHECKING:
+        from apps.api.modules.sites.service import SiteService
+        from apps.api.modules.workspaces.content.repository import WorkspaceContentRepository
+
+        repo: WorkspaceContentRepository
+        site_service: SiteService
+
+        @staticmethod
+        def _now_ms() -> int: ...
+
+        @staticmethod
+        def _validate_type_code(code: str) -> str: ...
+
+        @staticmethod
+        def _parse_uuid_value(value: Any) -> UUID | None: ...
+
+        async def _ensure_site_entry_type(self, *, workspace_id: UUID, site_id: UUID, type_code: str) -> str: ...
+
+        async def _get_setting_value(self, *, site_id: UUID, namespace: str) -> dict[str, Any] | None: ...
+
+        async def _put_setting_value(
+            self,
+            *,
+            site_id: UUID,
+            namespace: str,
+            value: dict[str, Any] | None,
+        ) -> None: ...
+
+        async def _get_setting_list(self, *, site_id: UUID, namespace: str) -> list[dict[str, Any]]: ...
+
+        async def _put_setting_list(
+            self,
+            *,
+            site_id: UUID,
+            namespace: str,
+            items: list[dict[str, Any]],
+        ) -> None: ...
+
     def _menu_item_from_raw(self, raw: dict[str, Any]) -> ContentMenuItemOut:
         item_id = self._parse_uuid_value(raw.get("id"))
         if item_id is None:
@@ -56,10 +95,15 @@ class WorkspaceContentStructureMixin:
 
         parent_id = self._parse_uuid_value(raw.get("parentId"))
 
+        kind_raw = raw.get("kind")
+        kind: ContentMenuItemKind = "link"
+        if isinstance(kind_raw, str) and kind_raw in ("link", "page", "entry", "custom"):
+            kind = cast(ContentMenuItemKind, kind_raw)
+
         return ContentMenuItemOut(
             id=item_id,
             label=str(raw.get("label") or ""),
-            kind=str(raw.get("kind") or "link"),
+            kind=kind,
             target=(str(raw.get("target")) if raw.get("target") is not None else None),
             parent_id=parent_id,
             sort_order=int(raw.get("sortOrder") or 0),

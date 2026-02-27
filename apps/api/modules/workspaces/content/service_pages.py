@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, Literal
 from uuid import UUID
 
 from apps.api.core.http.pagination import PageData
@@ -45,6 +46,11 @@ from apps.api.modules.sites.schema import (
 
 
 class WorkspaceContentPagesMixin:
+    if TYPE_CHECKING:
+        from apps.api.modules.sites.service import SiteService
+
+        site_service: SiteService
+
     async def list_pages_tree(self, *, site_id: UUID) -> PageData[ContentPageTreeNodeOut]:
         return await self.site_service.list_pages_tree(site_id=site_id)
 
@@ -98,7 +104,7 @@ class WorkspaceContentPagesMixin:
         *,
         site_id: UUID,
         page_id: UUID,
-        state: str,
+        state: Literal["draft", "published"],
     ) -> ContentPageRevisionOut:
         return await self.site_service.get_page_revision(site_id=site_id, page_id=page_id, state=state)
 

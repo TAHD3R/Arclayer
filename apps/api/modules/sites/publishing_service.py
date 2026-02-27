@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import time
-from typing import Literal
+from typing import Literal, cast
 from uuid import UUID
 from xml.sax.saxutils import escape as xml_escape
 
+from apps.api.common.protocols.tortoise import HasWorkspaceId
 from apps.api.common.services.base import BaseService
 from apps.api.core.exceptions import Conflict, NotFound, ServiceUnavailable
 from apps.api.modules.sites.constants import (
@@ -40,6 +41,8 @@ from apps.api.modules.sites.schema import (
     SitePresenceHeartbeatOut,
     SitePresenceListOut,
     SitePresenceRecordOut,
+    SitePrimaryEntryOut,
+    SiteRouteDataSourcesOut,
     SiteRouteDraftSaveIn,
     SiteRouteDraftSaveOut,
     SiteRouteMatchOut,
@@ -351,7 +354,7 @@ class SitePublishingService(BaseService):
 
         site = await self._repo.get_site_by_id(site_id=site_id)
         retain_last_n = await self._read_workspace_draft_retention_max_revisions(
-            workspace_id=UUID(str(site.workspace_id)),
+            workspace_id=UUID(str(cast(HasWorkspaceId, site).workspace_id)),
         )
         et = await self._repo.get_entry_type_by_code(site_id=site_id, code=payload.entry_type_code)
 
@@ -538,6 +541,12 @@ class SitePublishingService(BaseService):
                             published_revision=(resolved.published_rev if resolved.published_rev else None),
                         ),
                         document=resolved.document,
+                        dataSources=SiteRouteDataSourcesOut(
+                            primaryEntry=SitePrimaryEntryOut(
+                                id=resolved.entry_id,
+                                data={"fields": resolved.data or {}},
+                            )
+                        ),
                     )
 
         return SiteRouteResolveOut(match=SiteRouteMatchOut(kind="not_found"), document=None)
@@ -559,7 +568,7 @@ class SitePublishingService(BaseService):
 
         site = await self._repo.get_site_by_id(site_id=site_id)
         retain_last_n = await self._read_workspace_draft_retention_max_revisions(
-            workspace_id=UUID(str(site.workspace_id)),
+            workspace_id=UUID(str(cast(HasWorkspaceId, site).workspace_id)),
         )
 
         deps = await self._build_revision_deps(
@@ -646,7 +655,7 @@ class SitePublishingService(BaseService):
 
         site = await self._repo.get_site_by_id(site_id=site_id)
         retain_last_n = await self._read_workspace_draft_retention_max_revisions(
-            workspace_id=UUID(str(site.workspace_id)),
+            workspace_id=UUID(str(cast(HasWorkspaceId, site).workspace_id)),
         )
 
         deps = await self._build_revision_deps(

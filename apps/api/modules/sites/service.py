@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import secrets
 import time
+from collections.abc import Sequence
 from typing import Any, Literal, cast
 from uuid import UUID
 
@@ -424,7 +425,7 @@ class SiteService(BaseService):
         )
 
     @staticmethod
-    def _collect_sitemap_updated_at_ms(nodes: list[SitePageTreeNodeOut]) -> int:
+    def _collect_sitemap_updated_at_ms(nodes: Sequence[SitePageTreeNodeOut]) -> int:
         updated_at_ms = 0
         stack = list(nodes)
         while stack:

@@ -30,6 +30,10 @@ class HasEntryTypeId(Protocol):
     entry_type_id: UUID | str
 
 
+class HasEntryId(Protocol):
+    entry_id: UUID | str
+
+
 class WorkspaceMembershipIds(Protocol):
     workspace_id: UUID | str
     user_id: UUID | str
@@ -46,6 +50,11 @@ class RouteTemplateIds(Protocol):
 
 class EntryRecordMutableFields(Protocol):
     published_rev: int | None
+
+
+class ContentEntryMutableFields(Protocol):
+    published_revision: int | None
+    updated_by_user_id: UUID | None
 
 
 class SitePageMutableFields(Protocol):

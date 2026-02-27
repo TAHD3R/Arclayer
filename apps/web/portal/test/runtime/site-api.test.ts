@@ -64,6 +64,12 @@ describe("runtime/site-api (parsing)", () => {
                   },
                 },
               },
+              dataSources: {
+                primaryEntry: {
+                  id: "e1",
+                  data: { fields: { title: "World From Data" } },
+                },
+              },
             },
             timestamp: 0,
           }),
@@ -79,6 +85,7 @@ describe("runtime/site-api (parsing)", () => {
     expect(out.match.params.slug).toBe("world");
     expect(out.match.draftRevision).toBe(2);
     expect(out.match.publishedRevision).toBe(1);
+    expect(out.dataSources?.primaryEntry?.data?.fields).toMatchObject({ title: "World From Data" });
   });
 
   it("fetchRuntimeConfigFromApi() filters invalid font sources and keeps CSS vars", async () => {

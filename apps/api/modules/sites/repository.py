@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import time
 from datetime import datetime
-from typing import Literal, cast
+from typing import Any, Literal, cast
 from uuid import UUID
 
 from tortoise.exceptions import IntegrityError
@@ -10,11 +10,14 @@ from tortoise.transactions import in_transaction
 
 from apps.api.common.protocols.tortoise import (
     EntryRecordMutableFields,
+    HasEntryId,
+    HasEntryTypeId,
     SettingUpdatedBy,
     SitePageMutableFields,
 )
 from apps.api.common.repositories.base import BaseRepository
 from apps.api.core.exceptions import Conflict, NotFound
+from apps.api.modules.sites.constants import EDITOR_STYLE_NAMESPACE
 from apps.api.modules.sites.design_document_schema import DesignDocumentV1
 from apps.api.modules.sites.models.site import SiteRecord
 from apps.api.modules.sites.models.site_entry import EntryRecord, EntryRevisionRecord, EntryTypeRecord
@@ -427,6 +430,110 @@ class SitesRepository(BaseRepository):
             if entry.published_rev is not None:
                 raise Conflict("Entry must be unpublished before delete", error="ENTRY_MUST_UNPUBLISH")
             await EntryRecord.filter(site_id=site_id, id=entry_id).using_db(conn).delete()
+
+    # --- Delivery API (public read-only) ---
+
+    async def list_published_entries(
+        self,
+        *,
+        site_id: UUID,
+        entry_type_id: UUID | None = None,
+    ) -> list[dict[str, Any]]:
+        qs = EntryRecord.filter(site_id=site_id, published_rev__not_isnull=True)
+        if entry_type_id is not None:
+            qs = qs.filter(entry_type_id=entry_type_id)
+
+        entries = await qs.order_by("slug", "id").all()
+        if not entries:
+            return []
+
+        # Resolve entry type code map (avoid relying on implicit FK typing).
+        type_ids = {
+            UUID(str(cast(HasEntryTypeId, entry).entry_type_id))
+            for entry in entries
+            if cast(HasEntryTypeId, entry).entry_type_id is not None
+        }
+        type_rows = await EntryTypeRecord.filter(id__in=list(type_ids)).all() if type_ids else []
+        type_code_by_id = {UUID(str(row.id)): str(row.code) for row in type_rows}
+
+        entry_ids = [UUID(str(entry.id)) for entry in entries]
+        revs = {int(entry.published_rev) for entry in entries if entry.published_rev is not None}
+        revisions = await EntryRevisionRecord.filter(entry_id__in=entry_ids, rev__in=list(revs)).all() if revs else []
+        rev_by_key = {(UUID(str(cast(HasEntryId, rev).entry_id)), int(rev.rev)): rev for rev in revisions}
+
+        out: list[dict[str, Any]] = []
+        for entry in entries:
+            entry_id = UUID(str(entry.id))
+            published_rev = int(entry.published_rev) if entry.published_rev is not None else 0
+            rev = rev_by_key.get((entry_id, published_rev))
+
+            data = rev.data if rev is not None and isinstance(rev.data, dict) else None
+            title_raw = data.get("title") if isinstance(data, dict) else None
+            title = title_raw if isinstance(title_raw, str) and title_raw.strip() else None
+            document_ir = rev.document if rev is not None and isinstance(rev.document, dict) else None
+
+            type_id = UUID(str(cast(HasEntryTypeId, entry).entry_type_id))
+            out.append({
+                "slug": str(entry.slug),
+                "entry_type_code": type_code_by_id.get(type_id, ""),
+                "title": title,
+                "field_values": data,
+                "document_ir": document_ir,
+            })
+
+        return out
+
+    async def get_published_entry_by_slug(self, *, site_id: UUID, slug: str) -> dict[str, Any]:
+        s = (slug or "").strip()
+        if not s or "/" in s:
+            raise NotFound("Entry not found", error="DELIVERY_ENTRY_NOT_FOUND")
+
+        entry = (
+            await EntryRecord
+            .filter(site_id=site_id, slug=s, published_rev__not_isnull=True)
+            .order_by("entry_type_id", "id")
+            .first()
+        )
+        if entry is None or entry.published_rev is None:
+            raise NotFound("Entry not found", error="DELIVERY_ENTRY_NOT_FOUND")
+
+        type_id = UUID(str(cast(HasEntryTypeId, entry).entry_type_id))
+        et = await EntryTypeRecord.get_or_none(id=type_id)
+        type_code = str(et.code) if et is not None else ""
+
+        rev = await EntryRevisionRecord.get_or_none(entry_id=UUID(str(entry.id)), rev=int(entry.published_rev))
+        data = rev.data if rev is not None and isinstance(rev.data, dict) else None
+        title_raw = data.get("title") if isinstance(data, dict) else None
+        title = title_raw if isinstance(title_raw, str) and title_raw.strip() else None
+        document_ir = rev.document if rev is not None and isinstance(rev.document, dict) else None
+
+        return {
+            "slug": str(entry.slug),
+            "entry_type_code": type_code,
+            "title": title,
+            "field_values": data,
+            "document_ir": document_ir,
+        }
+
+    async def get_menu_by_key(self, *, site_id: UUID, key: str) -> dict[str, Any]:
+        k = (key or "").strip()
+        if not k:
+            raise NotFound("Menu not found", error="DELIVERY_MENU_NOT_FOUND")
+        ns = f"site.menu.{k}"
+        setting = await SettingRecord.get_or_none(scope_type=SCOPE_TYPE_SITE, scope_id=site_id, namespace=ns)
+        if setting is None or not isinstance(setting.value, dict):
+            raise NotFound("Menu not found", error="DELIVERY_MENU_NOT_FOUND")
+        return cast(dict[str, Any], setting.value)
+
+    async def get_site_style(self, *, site_id: UUID) -> dict[str, Any]:
+        setting = await SettingRecord.get_or_none(
+            scope_type=SCOPE_TYPE_SITE,
+            scope_id=site_id,
+            namespace=EDITOR_STYLE_NAMESPACE,
+        )
+        if setting is None or not isinstance(setting.value, dict):
+            return {}
+        return cast(dict[str, Any], setting.value)
 
     async def save_entry_draft_by_slug(
         self,

@@ -3,18 +3,21 @@ import { DesignDocumentRenderer } from "@celestial/site-renderer-core";
 
 import type { DesignDocumentV1, ViewerContext } from "@celestial/site-block-protocol";
 import type { PortalRouteMatch } from "@celestial/web-types";
+import type { DesignRenderDataSourcesV1 } from "@celestial/site-renderer-core";
 
 export type PortalDocumentPageProps = {
   document: DesignDocumentV1;
   match: PortalRouteMatch;
   viewerCtx: ViewerContext;
   showHydration?: boolean;
+  dataSources?: DesignRenderDataSourcesV1;
 };
 
 export function PortalDocumentPage({
   document,
   match,
   viewerCtx: baseViewerCtx,
+  dataSources: baseDataSources,
 }: PortalDocumentPageProps) {
   const viewerCtx = React.useMemo(
     () => ({
@@ -25,8 +28,28 @@ export function PortalDocumentPage({
     [baseViewerCtx, match.params, match.variantId],
   );
 
-  // SSR 首屏策略：固定 baseWidth/baseHeight，避免 SSR/CSR 首次渲染不一致导致水合 warning。
-  // CSR 水合后再根据 window 实际尺寸触发二次布局校正。
+  const dataSources: DesignRenderDataSourcesV1 = React.useMemo(() => {
+    const viewer = {
+      ...baseDataSources?.viewer,
+      locale: viewerCtx.locale,
+      ...(viewerCtx.fallbackLocale ? { fallbackLocale: viewerCtx.fallbackLocale } : {}),
+      ...(viewerCtx.breakpoint ? { breakpoint: viewerCtx.breakpoint } : {}),
+      ...(viewerCtx.mode ? { mode: viewerCtx.mode } : {}),
+    };
+
+    if (!baseDataSources) {
+      return { routeParams: match.params, viewer };
+    }
+    return { ...baseDataSources, routeParams: match.params, viewer };
+  }, [
+    baseDataSources,
+    match.params,
+    viewerCtx.locale,
+    viewerCtx.fallbackLocale,
+    viewerCtx.breakpoint,
+    viewerCtx.mode,
+  ]);
+
   const [viewport, setViewport] = React.useState(() => ({
     width: 1440,
     height: 800,
@@ -49,7 +72,12 @@ export function PortalDocumentPage({
 
   return (
     <>
-      <DesignDocumentRenderer document={document} ctx={viewerCtx} viewport={viewport} />
+      <DesignDocumentRenderer
+        document={document}
+        ctx={viewerCtx}
+        viewport={viewport}
+        dataSources={dataSources}
+      />
     </>
   );
 }

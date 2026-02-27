@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from uuid import UUID, uuid4
 
 from apps.api.core.exceptions import Conflict, NotFound
@@ -20,6 +20,30 @@ from apps.api.modules.workspaces.content.schema import (
 
 
 class WorkspaceContentViewsMixin:
+    if TYPE_CHECKING:
+        from apps.api.modules.workspaces.content.repository import WorkspaceContentRepository
+
+        repo: WorkspaceContentRepository
+
+        @staticmethod
+        def _now_ms() -> int: ...
+
+        @staticmethod
+        def _validate_type_code(code: str) -> str: ...
+
+        @staticmethod
+        def _parse_uuid_value(value: Any) -> UUID | None: ...
+
+        async def _get_setting_list(self, *, site_id: UUID, namespace: str) -> list[dict[str, Any]]: ...
+
+        async def _put_setting_list(
+            self,
+            *,
+            site_id: UUID,
+            namespace: str,
+            items: list[dict[str, Any]],
+        ) -> None: ...
+
     async def list_views(self, *, site_id: UUID) -> list[ContentViewOut]:
         raw = await self._get_setting_list(site_id=site_id, namespace=CONTENT_VIEWS_NAMESPACE)
         out: list[ContentViewOut] = []

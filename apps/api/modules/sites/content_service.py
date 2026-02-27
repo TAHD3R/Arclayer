@@ -721,7 +721,7 @@ class SiteContentService(BaseService):
         from apps.api.modules.sites.schema_delivery import DeliveryEntryOut
 
         if not self.settings.database.enabled:
-            return paginate_items([], params)
+            return paginate_items([], params=params)
         await self._repo.get_site_by_id(site_id=site_id)
 
         entry_type_id: UUID | None = None
@@ -735,15 +735,19 @@ class SiteContentService(BaseService):
         )
         items = [
             DeliveryEntryOut(
-                slug=str(getattr(e, "slug", "")),
-                type_code=str(getattr(e, "entry_type_code", "")),
-                title=getattr(e, "title", None),
-                field_values=getattr(e, "field_values", None),
-                document_ir=None if not display_mode else getattr(e, "document_ir", None),
+                slug=str(e.get("slug") or ""),
+                type_code=str(e.get("entry_type_code") or ""),
+                title=(e.get("title") if isinstance(e.get("title"), str) else None),
+                field_values=(e.get("field_values") if isinstance(e.get("field_values"), dict) else None),
+                document_ir=(
+                    None
+                    if not display_mode
+                    else (e.get("document_ir") if isinstance(e.get("document_ir"), dict) else None)
+                ),
             )
             for e in entries
         ]
-        return paginate_items(items, params)
+        return paginate_items(items, params=params)
 
     async def delivery_get_entry(
         self,
@@ -759,11 +763,11 @@ class SiteContentService(BaseService):
         await self._repo.get_site_by_id(site_id=site_id)
         e = await self._repo.get_published_entry_by_slug(site_id=site_id, slug=slug)
         return DeliveryEntryOut(
-            slug=str(getattr(e, "slug", "")),
-            type_code=str(getattr(e, "entry_type_code", "")),
-            title=getattr(e, "title", None),
-            field_values=getattr(e, "field_values", None),
-            document_ir=getattr(e, "document_ir", None),
+            slug=str(e.get("slug") or ""),
+            type_code=str(e.get("entry_type_code") or ""),
+            title=(e.get("title") if isinstance(e.get("title"), str) else None),
+            field_values=(e.get("field_values") if isinstance(e.get("field_values"), dict) else None),
+            document_ir=(e.get("document_ir") if isinstance(e.get("document_ir"), dict) else None),
         )
 
     async def delivery_get_menu(self, *, site_id: UUID, menu_key: str):
@@ -771,9 +775,10 @@ class SiteContentService(BaseService):
 
         await self._repo.get_site_by_id(site_id=site_id)
         menu = await self._repo.get_menu_by_key(site_id=site_id, key=menu_key)
+        items_raw = menu.get("items") if isinstance(menu, dict) else None
         return DeliveryMenuOut(
             key=menu_key,
-            items=getattr(menu, "items", []),
+            items=(items_raw if isinstance(items_raw, list) else []),
         )
 
     async def delivery_get_style(self, *, site_id: UUID):

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Literal
+from typing import Any, Literal, TypedDict
 from uuid import UUID
 
 from pydantic import ConfigDict
@@ -22,6 +22,7 @@ class ResolvedEntryDocument(BaseSchema):
     model_config = ConfigDict(frozen=True)
 
     entry_id: UUID
+    data: dict[str, Any] | None
     draft_rev: int
     published_rev: int
     revision: int
@@ -40,3 +41,11 @@ class _CompiledRouteTemplate(BaseSchema):
     segments: tuple[tuple[str, str], ...]
     specificity: int
     sort_key: tuple[int, int, str]
+
+
+class PublishedEntrySnapshot(TypedDict):
+    slug: str
+    entry_type_code: str
+    title: str | None
+    field_values: dict[str, Any] | None
+    document_ir: dict[str, Any] | None

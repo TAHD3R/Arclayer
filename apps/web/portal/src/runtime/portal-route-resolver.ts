@@ -1,12 +1,18 @@
 import { ApiError } from "@celestial/web-core/http";
 import type { PortalResolveMode, PortalRouteMatch } from "@celestial/web-types";
 import type { DesignDocumentV1 } from "@celestial/site-block-protocol";
+import type { DesignRenderDataSourcesV1 } from "@celestial/site-renderer-core";
 
 import { HttpError } from "@/runtime/http-error";
 import { resolveRouteFromApi } from "./site-api";
 
 export type ResolvedPortalRoute =
-  | { kind: "page"; document: DesignDocumentV1; match: PortalRouteMatch }
+  | {
+      kind: "page";
+      document: DesignDocumentV1;
+      match: PortalRouteMatch;
+      dataSources?: DesignRenderDataSourcesV1;
+    }
   | { kind: "redirect"; to: string; status: 301 | 302 }
   | { kind: "not_found" };
 

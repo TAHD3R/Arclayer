@@ -1,0 +1,47 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`protocol/json-schema exports > exportBlockManifestJsonSchema() is stable and contains styleOverrideWhitelist 1`] = `
+{
+  "defs": [
+    "BlockSupports",
+    "LocalizedString",
+    "PrefabSlotManifest",
+  ],
+  "id": "celestial://block-manifest-v1.json",
+  "required": [
+    "type",
+    "label",
+    "category",
+    "supports",
+    "attributes",
+  ],
+}
+`;
+
+exports[`protocol/json-schema exports > exportDesignDocumentV1JsonSchema() is stable and contains node discriminator 1`] = `
+{
+  "defs": [
+    "BaseNodeFields",
+    "DesignBindingExprV1",
+    "DesignConstraintsV1",
+    "DesignEmbedNodeV1",
+    "DesignFrameNodeV1",
+    "DesignGroupNodeV1",
+    "DesignImageNodeV1",
+    "DesignLayoutV1",
+    "DesignNodeV1",
+    "DesignPageRootNodeV1",
+    "DesignPrefabInstanceNodeV1",
+    "DesignRectNodeV1",
+    "DesignTextNodeV1",
+    "DesignValueV1",
+    "LocalizedString",
+  ],
+  "id": "celestial://design-document-v1.json",
+  "required": [
+    "version",
+    "rootId",
+    "nodesById",
+  ],
+}
+`;

@@ -241,7 +241,7 @@ async def test_sites_public_preview_draft_publish_flow(prepared_schema) -> None:
         await EntryRevisionRecord.create(
             entry_id=entry2.id,
             rev=1,
-            data=None,
+            data={"title": "World From Data"},
             document=_legacy_doc_ir("Entry /blog/:slug world"),
             design_document=None,
             created_by_user_id=user.id,
@@ -303,6 +303,8 @@ async def test_sites_public_preview_draft_publish_flow(prepared_schema) -> None:
             )
             assert resp.status_code == 200
             assert _get_seo_title_from_resolved_document(resp.json()) == "Entry world v2 (draft)"
+            ds = resp.json()["data"].get("dataSources") or {}
+            assert ds.get("primaryEntry", {}).get("data", {}).get("fields", {}).get("title") == "World From Data"
 
             # Creating a new entry from scratch should allow expectedRevision=0.
             resp = await client.post(

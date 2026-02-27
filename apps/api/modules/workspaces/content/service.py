@@ -28,6 +28,7 @@ from apps.api.modules.workspaces.content.schema import (
     ContentEntryRollbackOut,
     ContentEntryUnpublishOut,
     ContentEntryUpdateIn,
+    ContentRevisionState,
     ContentTypeCreateIn,
     ContentTypeDeleteOut,
     ContentTypeOut,
@@ -413,7 +414,7 @@ class WorkspaceContentService(
         workspace_id: UUID,
         site_id: UUID,
         entry_id: UUID,
-        state: str,
+        state: ContentRevisionState,
     ) -> ContentEntryRevisionOut:
         entry = await self.repo.get_entry_by_id(workspace_id=workspace_id, site_id=site_id, entry_id=entry_id)
         if entry is None:

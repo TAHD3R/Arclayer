@@ -74,8 +74,16 @@ asyncio_default_fixture_loop_scope = "function"
 markers = ["integration: tests that require external services (database, valkey)"]
 
 [tool.pyright]
-include = ["apps"]
-exclude = ["**/__pycache__", "migrations"]
+include = ["apps/api"]
+exclude = [
+  "**/__pycache__",
+  "**/.venv",
+  "**/node_modules",
+  "**/.turbo",
+  "**/dist",
+  "**/build",
+  "migrations",
+]
 extraPaths = ["."]
 venvPath = "apps/api"
 venv = ".venv"

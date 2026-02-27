@@ -281,13 +281,36 @@ class SitePublishingRepository(BaseRepository):
                     meta={"expectedRevision": expected_revision, "currentRevision": current_rev},
                 )
 
+            prev: EntryRevisionRecord | None = None
+
+            # PATCH semantics: when payload fields are omitted (None),
+            # keep the current draft snapshot to avoid unintentionally wiping data.
+            # (Clients can send {} to explicitly clear a JSON payload.)
+            if current_rev > 0:
+                prev = await EntryRevisionRecord.filter(entry_id=entry.id, rev=current_rev).using_db(conn).first()
+                if prev is not None:
+                    if data is None and isinstance(prev.data, dict):
+                        data = prev.data
+                    if meta is None and isinstance(prev.meta, dict):
+                        meta = prev.meta
+                    if style_overrides is None and isinstance(prev.style_overrides, dict):
+                        style_overrides = prev.style_overrides
+                    if deps is None and isinstance(prev.deps, dict):
+                        deps = prev.deps
+                    if variant_id is None and prev.variant_id:
+                        variant_id = str(prev.variant_id)
+
             next_rev = current_rev + 1 if current_rev else 1
             await EntryRevisionRecord.create(
                 entry_id=entry.id,
                 rev=next_rev,
                 data=data,
                 document=None,
-                design_document=(document.model_dump(by_alias=True) if document is not None else None),
+                design_document=(
+                    document.model_dump(by_alias=True)
+                    if document is not None
+                    else (prev.design_document if prev is not None else None)
+                ),
                 meta=meta,
                 style_overrides=style_overrides,
                 variant_id=variant_id,
@@ -662,6 +685,8 @@ class SitePublishingRepository(BaseRepository):
         if rec is None:
             return None
 
+        data: dict | None = rec.data if isinstance(rec.data, dict) else None
+
         doc: DesignDocumentV1 | None = None
         if rec.design_document is not None:
             doc = DesignDocumentV1.model_validate(rec.design_document)
@@ -680,6 +705,7 @@ class SitePublishingRepository(BaseRepository):
 
         return ResolvedEntryDocument(
             entry_id=UUID(str(entry.id)),
+            data=data,
             draft_rev=draft_rev,
             published_rev=published_rev,
             revision=revision,

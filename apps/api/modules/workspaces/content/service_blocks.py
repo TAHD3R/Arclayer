@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from uuid import UUID, uuid4
 
 from apps.api.common.utils.public_ids import encode_uuid
@@ -18,6 +18,35 @@ from apps.api.modules.workspaces.content.schema import (
 
 
 class WorkspaceContentBlocksMixin:
+    if TYPE_CHECKING:
+        from apps.api.modules.workspaces.content.repository import WorkspaceContentRepository
+        from apps.api.modules.workspaces.content.schema import ContentMenuOut, ContentViewOut
+
+        repo: WorkspaceContentRepository
+
+        @staticmethod
+        def _now_ms() -> int: ...
+
+        @staticmethod
+        def _parse_uuid_value(value: Any) -> UUID | None: ...
+
+        async def _get_setting_list(self, *, site_id: UUID, namespace: str) -> list[dict[str, Any]]: ...
+
+        async def _put_setting_list(
+            self,
+            *,
+            site_id: UUID,
+            namespace: str,
+            items: list[dict[str, Any]],
+        ) -> None: ...
+
+        async def list_menus(self, *, site_id: UUID) -> list[ContentMenuOut]: ...
+
+        async def list_views(self, *, site_id: UUID) -> list[ContentViewOut]: ...
+
+        @staticmethod
+        def _walk_menu_items(items: list[Any]) -> list[Any]: ...
+
     async def list_blocks(self, *, site_id: UUID) -> list[ContentBlockOut]:
         raw = await self._get_setting_list(site_id=site_id, namespace=CONTENT_BLOCKS_NAMESPACE)
         out: list[ContentBlockOut] = []

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
 from apps.api.modules.sites.schema import SiteStyleUpsertIn
@@ -19,6 +19,24 @@ from apps.api.modules.workspaces.content.schema import (
 
 
 class WorkspaceContentAppearanceMixin:
+    if TYPE_CHECKING:
+        from apps.api.modules.sites.service import SiteService
+
+        site_service: SiteService
+
+        @staticmethod
+        def _validate_type_code(code: str) -> str: ...
+
+        async def _get_setting_value(self, *, site_id: UUID, namespace: str) -> dict[str, Any] | None: ...
+
+        async def _put_setting_value(
+            self,
+            *,
+            site_id: UUID,
+            namespace: str,
+            value: dict[str, Any] | None,
+        ) -> None: ...
+
     async def get_active_theme(self, *, site_id: UUID) -> ContentActiveThemeOut:
         setting = await self.site_service.get_site_setting(site_id=site_id, namespace=CONTENT_THEME_ACTIVE_NAMESPACE)
         value = setting.value if isinstance(setting.value, dict) else {}
