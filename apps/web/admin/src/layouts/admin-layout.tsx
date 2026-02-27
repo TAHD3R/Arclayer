@@ -31,7 +31,7 @@ import { getMyOrganization } from "@/api/me";
 import { getWorkspaceDetail } from "@/api/workspaces";
 import { useWorkspaceLocalization } from "@/hooks/use-workspace-localization";
 import { resolvePermissionNameI18nKey } from "@/lib/auth/rbac-permissions";
-import { ForbiddenView } from "@/pages/builtin/forbidden-page";
+import { ForbiddenView } from "@/components/builtin/forbidden-page";
 import {
   Sidebar,
   SidebarContent,

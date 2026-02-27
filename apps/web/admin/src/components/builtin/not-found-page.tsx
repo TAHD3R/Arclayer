@@ -1,6 +1,9 @@
 import { useTranslation } from "react-i18next";
 
-import { BuiltinResultPage, type BuiltinResultVariant } from "@/pages/builtin/builtin-result-page";
+import {
+  BuiltinResultPage,
+  type BuiltinResultVariant,
+} from "@/components/builtin/builtin-result-page";
 
 export type NotFoundViewProps = {
   variant?: BuiltinResultVariant;

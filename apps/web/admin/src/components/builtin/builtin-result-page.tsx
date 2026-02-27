@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 
 import { DefaultPage } from "@/components/common/default-page";
 import {
+  Illust401LockedTerminal,
   Illust403ForbiddenGateway,
   Illust404BrokenLink,
   Illust500CrashedServer,
@@ -20,20 +21,28 @@ import {
 
 export type BuiltinResultVariant = "admin" | "fullscreen";
 
-type BuiltinResultStatus = "403" | "404" | "500" | "error" | "info" | "success" | "warning";
+type BuiltinResultStatus = "401" | "403" | "404" | "500" | "error" | "info" | "success" | "warning";
 
 export type BuiltinResultPageProps = {
   status: BuiltinResultStatus;
   title: string;
   subTitle?: string;
   variant?: BuiltinResultVariant;
-  /** 自定义操作区；不传则使用默认的“返回/回到首页/刷新”。 */
+  /** Custom action area; falls back to a default "go home / login / refresh" button. */
   extra?: ReactNode;
 };
 
 function DefaultAction(props: { status: BuiltinResultStatus }) {
   const { t } = useTranslation();
   const router = useRouter();
+
+  if (props.status === "401") {
+    return (
+      <Button type="primary" onClick={() => void router.navigate({ to: "/login" })}>
+        {t("common:GO_LOGIN")}
+      </Button>
+    );
+  }
 
   if (props.status === "404" || props.status === "403") {
     return (
@@ -51,6 +60,7 @@ function DefaultAction(props: { status: BuiltinResultStatus }) {
 }
 
 function pickBuiltinIllustration(status: BuiltinResultStatus) {
+  if (status === "401") return Illust401LockedTerminal;
   if (status === "403") return Illust403ForbiddenGateway;
   if (status === "404") return Illust404BrokenLink;
   return Illust500CrashedServer;
@@ -90,7 +100,6 @@ export function BuiltinResultPage({
   );
 
   if (variant === "fullscreen") {
-    // Use a fixed overlay so it can safely cover AdminLayout navigation when needed.
     return (
       <div className="fixed inset-0 z-2147483647 flex items-center justify-center bg-background p-6">
         <div className="w-full max-w-2xl">{content}</div>

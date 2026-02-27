@@ -1,11 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { isAuthScenePath } from "@/lib/routing/route-identity";
-import type { AuthMode } from "@/pages/login/page";
+import type { LoginMode } from "@/lib/auth/auth-mode";
 
 type LoginSearch = {
   redirect?: string;
-  mode?: AuthMode;
+  mode?: LoginMode;
   oauth_code?: string;
   oauth_error?: string;
 };

@@ -36,23 +36,13 @@ import { LoaderOne } from "@/components/ui/loader";
 import { useNowTick } from "@/hooks/use-now-tick";
 import { type AppLocale, SUPPORTED_LOCALES } from "@/lib/i18n";
 import { notifyErrorText } from "@/lib/notifications";
+import { resolveNotificationTarget } from "@/lib/routing/notification-target";
 import { cn } from "@/lib/utils";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 
 type NotificationPanelTab = "unread" | "all";
 
 const PANEL_PAGE_SIZE = 20;
-
-function resolveNotificationTarget(item: NotificationItem): string | null {
-  const workspaceId = String(item.workspaceId || "").trim();
-  const targetTo = String(item.targetTo || "").trim();
-  if (!workspaceId || !targetTo) return null;
-
-  if (targetTo === "/") return `/w/${workspaceId}/`;
-  if (targetTo.startsWith("/w/") || targetTo.startsWith("/o/")) return targetTo;
-
-  return `/w/${workspaceId}${targetTo.startsWith("/") ? targetTo : `/${targetTo}`}`;
-}
 
 function HeaderActionTrigger(props: { title: string; children: (hovered: boolean) => ReactNode }) {
   const [hovered, setHovered] = useState(false);

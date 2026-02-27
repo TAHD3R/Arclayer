@@ -34,84 +34,20 @@ import type {
   SetupWorkspaceTemplate,
 } from "@/types/stores";
 import { useSetupWizardStore } from "@/stores/use-setup-wizard-store";
-
-const MAX_STEP: SetupWizardStep = 2;
-const FALLBACK_PRIMARY_BEND_COLOR = "#3b82f6";
-
-const WORKSPACE_FIELDS: Array<keyof SetupSiteDraft> = [
-  "templateKey",
-  "workspaceName",
-  "siteName",
-  "siteUrl",
-  "siteDescription",
-];
-
-const SETUP_PROGRESS_STAGE_ORDER: SystemSetupJobStage[] = [
-  "precheck",
-  "admin",
-  "provision",
-  "workspace",
-  "finalize",
-];
-const SETUP_JOB_POLL_INTERVAL_MS = 650;
-const SETUP_JOB_MAX_POLLS = 180;
-
-function resolvePortalOrigin(): string {
-  const raw = (import.meta.env.VITE_PORTAL_ORIGIN || "").trim();
-  if (raw) return raw;
-  return "http://localhost:3100";
-}
-
-function resolveSetupDryRunFlag(): boolean {
-  try {
-    const params = new URLSearchParams(window.location.search);
-    return params.get("__dev_setup") === "1";
-  } catch {
-    return false;
-  }
-}
-
-function toHex(value: number): string {
-  const safe = Math.max(0, Math.min(255, Math.round(value)));
-  return safe.toString(16).padStart(2, "0");
-}
-
-function resolvePrimaryBendColor(): string {
-  if (typeof document === "undefined") {
-    return FALLBACK_PRIMARY_BEND_COLOR;
-  }
-
-  const probe = document.createElement("span");
-  probe.className = "text-primary";
-  probe.style.position = "absolute";
-  probe.style.opacity = "0";
-  probe.style.pointerEvents = "none";
-  probe.textContent = ".";
-  document.body.appendChild(probe);
-
-  try {
-    const color = getComputedStyle(probe).color;
-    const values = color.match(/[\d.]+/g);
-    if (!values || values.length < 3) {
-      return FALLBACK_PRIMARY_BEND_COLOR;
-    }
-
-    const [r, g, b] = values.slice(0, 3).map((v) => Number(v));
-    if ([r, g, b].some((v) => Number.isNaN(v))) {
-      return FALLBACK_PRIMARY_BEND_COLOR;
-    }
-
-    return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
-  } finally {
-    probe.remove();
-  }
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => {
-    window.setTimeout(resolve, ms);
-  });
-}
+import {
+  FALLBACK_PRIMARY_BEND_COLOR,
+  MAX_STEP,
+  SETUP_JOB_MAX_POLLS,
+  SETUP_JOB_POLL_INTERVAL_MS,
+  SETUP_PROGRESS_STAGE_ORDER,
+  WORKSPACE_FIELDS,
+} from "./constants";
+import {
+  resolvePrimaryBendColor,
+  resolvePortalOrigin,
+  resolveSetupDryRunFlag,
+  sleep,
+} from "./utils";
 
 export function SetupPage() {
   const { t } = useTranslation();

@@ -1,14 +1,4 @@
-import type { OrganizationPluginItem, WorkspacePluginItem } from "@/types/api";
-
-export type PluginScope = "workspace" | "organization";
-export type InstalledPluginItem = WorkspacePluginItem | OrganizationPluginItem;
-
-export interface PluginSearchOption {
-  value: string;
-  label: string;
-  description?: string | null;
-  iconUrl?: string | null;
-}
+import type { InstalledPluginItem } from "./types";
 
 export function normalizeStatus(value: unknown): string {
   return String(value || "")

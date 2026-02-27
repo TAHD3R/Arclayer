@@ -6,7 +6,7 @@ import { Tag } from "antd";
 import { PluginIcon } from "@/components/plugins/plugin-icon";
 import { cn } from "@/lib/utils";
 
-import type { InstalledPluginItem } from "./helpers";
+import type { InstalledPluginItem } from "../types";
 
 type ExtensionCardProps = {
   plugin: InstalledPluginItem;

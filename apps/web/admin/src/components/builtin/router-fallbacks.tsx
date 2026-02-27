@@ -3,9 +3,10 @@ import type { ErrorComponentProps, NotFoundRouteProps } from "@tanstack/react-ro
 import { ApiError } from "@/lib/http";
 import { getErrorMessage } from "@/lib/notifications";
 import { useAuthStore } from "@/stores/use-auth-store";
-import { ForbiddenView } from "@/pages/builtin/forbidden-page";
-import { NotFoundView } from "@/pages/builtin/not-found-page";
-import { ServerErrorView } from "@/pages/builtin/server-error-page";
+import { ForbiddenView } from "@/components/builtin/forbidden-page";
+import { NotFoundView } from "@/components/builtin/not-found-page";
+import { ServerErrorView } from "@/components/builtin/server-error-page";
+import { UnauthorizedView } from "@/components/builtin/unauthorized-page";
 
 export function RouterDefaultNotFound(_props: NotFoundRouteProps) {
   const accessToken = useAuthStore((s) => s.accessToken);
@@ -19,16 +20,10 @@ export function RouterDefaultError(props: ErrorComponentProps) {
   const err = props.error;
   const details = getErrorMessage(err);
 
-  if (!accessToken) {
-    if (err instanceof ApiError) {
-      if (err.status === 403) {
-        return <ForbiddenView variant="fullscreen" details={details} />;
-      }
-    }
-    return <ServerErrorView variant="fullscreen" details={details} />;
-  }
-
   if (err instanceof ApiError) {
+    if (err.status === 401) {
+      return <UnauthorizedView variant="fullscreen" details={details} />;
+    }
     if (err.status === 403) {
       return <ForbiddenView variant={variant} details={details} />;
     }

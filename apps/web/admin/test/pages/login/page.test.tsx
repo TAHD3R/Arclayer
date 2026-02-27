@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { beforeAll, describe, expect, test, vi } from "vitest";
 
-import { LoginView } from "@/pages/login/page";
+import { LoginView } from "@/pages/login/components/login-view";
 
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => vi.fn(),

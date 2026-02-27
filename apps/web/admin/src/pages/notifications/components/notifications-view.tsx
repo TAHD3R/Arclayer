@@ -1,0 +1,122 @@
+import { Button } from "antd";
+
+import { ContentGuard } from "@/components/common/content-guard";
+import { DefaultPage } from "@/components/common/default-page";
+import {
+  ChromeTabs,
+  ChromeTabsContent,
+  ChromeTabsList,
+  ChromeTabsTrigger,
+} from "@/components/ui/chrome-tabs";
+import { ItemGroup, ItemSeparator } from "@/components/ui/item";
+import { LoaderOne } from "@/components/ui/loader";
+import { cn } from "@/lib/utils";
+
+import type { ListStatus } from "../types";
+import { useNotifications } from "../hooks/use-notifications";
+import { NotificationList } from "./notification-list";
+
+export function NotificationsView() {
+  const n = useNotifications();
+  const { t, status } = n;
+
+  const canMarkAllRead = status === "unread";
+  const showDevSeed = n.isDev && Boolean(n.workspaceId);
+
+  const emptyTitle =
+    status === "unread"
+      ? t("NOTIFICATIONS_EMPTY_UNREAD_TITLE")
+      : t("NOTIFICATIONS_EMPTY_ALL_TITLE");
+  const emptyDescription =
+    status === "unread" ? t("NOTIFICATIONS_EMPTY_UNREAD_DESC") : t("NOTIFICATIONS_EMPTY_ALL_DESC");
+
+  const action =
+    !canMarkAllRead && !showDevSeed ? null : (
+      <div className="flex items-center gap-2">
+        {showDevSeed ? (
+          <Button type="default" loading={n.isSeeding} onClick={() => void n.seedDemo()}>
+            {t("NOTIFICATIONS_DEV_SEED")}
+          </Button>
+        ) : null}
+        {canMarkAllRead ? (
+          <Button
+            type="primary"
+            disabled={!n.unreadItems.length || n.listQuery.isFetching}
+            loading={n.listQuery.isFetching && !n.listQuery.isRefetching}
+            onClick={() => void n.markAllRead()}
+          >
+            {t("NOTIFICATIONS_MARK_ALL_AS_READ")}
+          </Button>
+        ) : null}
+      </div>
+    );
+
+  return (
+    <DefaultPage
+      title={t("NOTIFICATIONS_PAGE_TITLE")}
+      description={t("NOTIFICATIONS_PAGE_DESC")}
+      action={action}
+    >
+      <ChromeTabs value={status} onValueChange={(next) => n.setStatus(next as ListStatus)}>
+        <ChromeTabsList className="w-auto">
+          <ChromeTabsTrigger value="unread">{t("NOTIFICATIONS_TAB_UNREAD")}</ChromeTabsTrigger>
+          <ChromeTabsTrigger value="all">{t("NOTIFICATIONS_TAB_ALL")}</ChromeTabsTrigger>
+        </ChromeTabsList>
+
+        <ChromeTabsContent value={status}>
+          <ContentGuard
+            loading={n.listQuery.isLoading && !n.listQuery.data}
+            loadingVariant="table"
+            error={n.loadError}
+            onRetry={n.loadError ? () => void n.listQuery.refetch() : undefined}
+            empty={!n.loadError && !n.listQuery.isLoading && n.items.length === 0}
+            emptyTitle={emptyTitle}
+            emptyDescription={emptyDescription}
+          >
+            <div className="space-y-4">
+              <ItemGroup className={cn("rounded-lg border border-border bg-card")}>
+                {status === "all" && n.unreadItems.length ? (
+                  <div className="px-4 py-2 text-caption font-semibold text-label-secondary">
+                    {t("NOTIFICATIONS_GROUP_UNREAD")}
+                  </div>
+                ) : null}
+
+                <NotificationList
+                  items={status === "all" ? n.unreadItems : n.items}
+                  nowMs={n.nowMs}
+                  locale={n.locale}
+                  isRead={false}
+                  onNavigate={(item) => void n.navigateToTarget(item)}
+                  onMarkRead={(item) => void n.markRead(item)}
+                  onDelete={(item) => void n.removeItem(item)}
+                />
+
+                {status === "all" && n.readItems.length ? (
+                  <>
+                    {n.unreadItems.length ? <ItemSeparator className="my-0" /> : null}
+                    <div className="px-4 py-2 text-caption font-semibold text-label-secondary">
+                      {t("NOTIFICATIONS_GROUP_READ")}
+                    </div>
+                    <NotificationList
+                      items={n.readItems}
+                      nowMs={n.nowMs}
+                      locale={n.locale}
+                      isRead
+                      onNavigate={(item) => n.navigateToReadTarget(item)}
+                      onDelete={(item) => void n.removeItem(item)}
+                    />
+                  </>
+                ) : null}
+              </ItemGroup>
+
+              <div className="flex justify-center py-4">
+                {n.listQuery.isFetchingNextPage ? <LoaderOne /> : <div className="h-6 w-6" />}
+              </div>
+              <div ref={n.sentinelRef} />
+            </div>
+          </ContentGuard>
+        </ChromeTabsContent>
+      </ChromeTabs>
+    </DefaultPage>
+  );
+}
