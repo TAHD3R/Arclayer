@@ -170,6 +170,10 @@ class WorkspaceContentPagesMixin:
         entry: PageEntryLike,
         user_summary_by_id: dict[UUID, SitePageUserSummaryOut],
     ) -> ContentPageTreeNodeOut:
+        field_values = getattr(entry, "field_values", None)
+        raw_description = field_values.get("description") if isinstance(field_values, dict) else None
+        description = (raw_description.strip() or None) if isinstance(raw_description, str) else None
+
         updated_by_user_id = getattr(entry, "updated_by_user_id", None)
         updated_by = None
         if updated_by_user_id is not None:
@@ -179,7 +183,7 @@ class WorkspaceContentPagesMixin:
         return ContentPageTreeNodeOut(
             id=UUID(str(entry.id)),
             title=(entry.title if isinstance(entry.title, str) else None),
-            description=None,
+            description=description,
             path=(str(entry.path) if isinstance(entry.path, str) else "/"),
             parent_id=(UUID(str(parent_id)) if parent_id is not None else None),
             sort_order=int(getattr(entry, "sort_order", 0) or 0),
@@ -330,6 +334,20 @@ class WorkspaceContentPagesMixin:
             created_by_user_id=actor_user_id,
         )
 
+        description = (
+            payload.description.strip()
+            if isinstance(payload.description, str) and payload.description.strip()
+            else None
+        )
+        if description is not None:
+            created = await self.repo.update_entry(
+                workspace_id=workspace_id,
+                site_id=site_id,
+                entry_id=UUID(str(created.id)),
+                fields={"field_values": {"description": description}},
+                updated_by_user_id=actor_user_id,
+            )
+
         user_summary_by_id = await self._load_page_user_summaries(
             user_ids={actor_user_id} if actor_user_id is not None else set(),
         )
@@ -371,6 +389,19 @@ class WorkspaceContentPagesMixin:
             else:
                 title = payload.title.strip()
                 fields["title"] = title or None
+
+        if "description" in fields_set:
+            base = getattr(entry, "field_values", None)
+            next_field_values: dict[str, object] = dict(base) if isinstance(base, dict) else {}
+            if payload.description is None:
+                next_field_values.pop("description", None)
+            else:
+                desc = payload.description.strip()
+                if desc:
+                    next_field_values["description"] = desc
+                else:
+                    next_field_values.pop("description", None)
+            fields["field_values"] = next_field_values or None
 
         if "visibility" in fields_set and payload.visibility is not None:
             fields["visibility"] = payload.visibility
@@ -531,7 +562,11 @@ class WorkspaceContentPagesMixin:
         workspace_id = await self._resolve_workspace_id_for_site(site_id=site_id)
         entry = await self._get_page_entry(workspace_id=workspace_id, site_id=site_id, entry_id=page_id)
 
-        field_values = {"title": (entry.title or "")} if entry.title else {}
+        field_values: dict[str, object] = {"title": (entry.title or "")} if entry.title else {}
+        base = getattr(entry, "field_values", None)
+        raw_description = base.get("description") if isinstance(base, dict) else None
+        if isinstance(raw_description, str) and raw_description.strip():
+            field_values["description"] = raw_description.strip()
         meta = payload.meta if isinstance(payload.meta, dict) else {}
         if isinstance(entry.path, str):
             meta = {**meta, "kind": "page", "path": entry.path}

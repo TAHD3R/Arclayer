@@ -22,4 +22,5 @@ class SitePattern(BaseModel):
 
     class Meta(BaseModel.Meta):
         table = "site_patterns"
+        abstract = False
         unique_together = (("site_id", "code"),)
