@@ -174,6 +174,7 @@
 - `src/types` 统一管理应用内类型；新增类型禁止零散定义。
 - `src/hooks` 仅放全局通用 hooks；业务 hooks 留在业务目录。
 - `src/stores` 仅管理必要 UI 状态，Server State 必须用 React Query。
+- `src/routes/` 仅承载路由配置（`validateSearch`、`beforeLoad`）和懒加载组件绑定，禁止编写业务逻辑、API 调用、复杂 JSX 或状态 Hook。
 
 ### Admin / Portal 共享提升规则（项目特化）
 
@@ -212,7 +213,7 @@
 
 ### 性能与质量
 
-- 路由级强制懒加载（`React.lazy`）。
+- 路由级强制懒加载（TanStack Router `createLazyFileRoute` 双文件拆分，禁止 `React.lazy`）。
 - 引入新依赖需评估包体积与 tree-shaking 友好性。
 - 组件测试使用 `Vitest` + `React Testing Library`。
 - 质量检查严格执行 `oxlint`、`typecheck`、测试。

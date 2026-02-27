@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useParams } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 
@@ -15,15 +15,10 @@ import { PluginDetailPage, findPluginBySlug } from "@/components/plugins/plugin-
 import { buildOrganizationPath } from "@/lib/organization-routing";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 
-type OrganizationExtensionDetailViewProps = {
-  organizationId: string;
-  pluginSlug: string;
-};
-
-export function OrganizationExtensionDetailView({
-  organizationId,
-  pluginSlug,
-}: OrganizationExtensionDetailViewProps) {
+export function OrganizationExtensionDetailPage() {
+  const { orgId: organizationId, pluginSlug } = useParams({
+    from: "/o/$orgId/extensions/$pluginSlug/",
+  });
   const { t } = useTranslation(["settings"]);
   const navigate = useNavigate();
   const queryClient = useQueryClient();

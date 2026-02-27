@@ -1,7 +1,7 @@
 import { Form } from "antd";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 
 import { getCoreSettings, patchCoreSettings } from "@/api/settings";
@@ -26,18 +26,9 @@ import { LocalizationSettingsTab } from "@/components/common/settings/general/ta
 import { SiteSettingsTab } from "@/components/common/settings/general/tabs/site-settings-tab";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
-type GeneralSettingsViewProps = {
-  /**
-   * 当前 Tab（用于支持 URL 深链接/外部跳转）。
-   * - 不传则组件内部默认使用 site
-   */
-  tab?: GeneralSettingsTabKey;
-  onTabChange?: (next: GeneralSettingsTabKey) => void;
-  /** validated search param from route — used for URL cleanup */
-  searchIndex?: GeneralSettingsTabKey;
-};
-
-export function GeneralSettingsView(props: GeneralSettingsViewProps) {
+export function GeneralSettingsPage() {
+  const { index: searchIndex } = useSearch({ from: "/w/$workspaceId/settings/general/" });
+  const tab: GeneralSettingsTabKey = searchIndex ?? "site";
   const { t } = useTranslation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -49,26 +40,22 @@ export function GeneralSettingsView(props: GeneralSettingsViewProps) {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const rawIndex = params.get("index");
-    if (rawIndex && !props.searchIndex) {
+    if (rawIndex && !searchIndex) {
       if (workspaceId) {
         void navigate({ to: `/w/${workspaceId}/settings/general`, search: {}, replace: true });
       }
     }
-  }, [props.searchIndex, navigate, workspaceId]);
+  }, [searchIndex, navigate, workspaceId]);
 
   const handleTabChange = useCallback(
     (next: GeneralSettingsTabKey) => {
-      if (props.onTabChange) {
-        props.onTabChange(next);
-        return;
-      }
       if (!workspaceId) return;
       void navigate({
         to: `/w/${workspaceId}/settings/general`,
         search: next === "site" ? {} : { index: next },
       });
     },
-    [props.onTabChange, navigate, workspaceId],
+    [navigate, workspaceId],
   );
 
   const workspaceCoreQuery = useQuery({
@@ -161,14 +148,10 @@ export function GeneralSettingsView(props: GeneralSettingsViewProps) {
           initialValues={initialValues}
         >
           <ChromeTabs
-            {...(props.tab
-              ? {
-                  value: props.tab,
-                  onValueChange: (next) => {
-                    handleTabChange(next as GeneralSettingsTabKey);
-                  },
-                }
-              : { defaultValue: "site" })}
+            value={tab}
+            onValueChange={(next) => {
+              handleTabChange(next as GeneralSettingsTabKey);
+            }}
           >
             <ChromeTabsList>
               <ChromeTabsTrigger value="site">

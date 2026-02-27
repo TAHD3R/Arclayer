@@ -3,7 +3,6 @@ import path from "path";
 import react from "@vitejs/plugin-react-swc";
 import tailwindcss from "@tailwindcss/vite";
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
-import Inspect from "vite-plugin-inspect";
 
 import { injectAppConfig, injectLoadingScreen, injectPreferences } from "@celestial/vite";
 
@@ -35,13 +34,12 @@ export default defineConfig(({ mode }) => {
       }),
       tanstackRouter({
         target: "react",
-        autoCodeSplitting: true,
+        autoCodeSplitting: false,
         routesDirectory: "./src/routes",
         generatedRouteTree: "./src/routeTree.gen.ts",
       }),
       react(),
       tailwindcss(),
-      mode === "development" ? Inspect() : null,
     ].filter(Boolean),
 
     resolve: {
@@ -50,10 +48,7 @@ export default defineConfig(({ mode }) => {
         "@locales": localesDir,
       },
     },
-
     server: {
-      // Monorepo: allow reading workspace files (e.g. root `locales/` JSON).
-      // Important: setting `server.fs.allow` overrides Vite defaults, so we must include the workspace root.
       fs: {
         allow: [workspaceRoot],
       },

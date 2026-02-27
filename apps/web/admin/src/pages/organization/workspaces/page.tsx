@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useParams, useSearch } from "@tanstack/react-router";
 import { Button as AntButton, Form } from "antd";
 import type { MenuProps } from "antd";
 import { Archive, LogIn, Plus, Trash2, Undo2 } from "lucide-react";
@@ -25,17 +25,18 @@ import { useOrganizationWorkspacesMutations } from "./use-organization-workspace
 import { useOrganizationWorkspacesTables } from "./use-organization-workspaces-tables";
 import { WorkspacesContentSection } from "./workspaces-table-section";
 
-export function OrganizationWorkspacesPage(props?: {
-  organizationId?: string;
-  autoOpenCreate?: boolean;
-}) {
+export function OrganizationWorkspacesPage() {
+  const { orgId: organizationId } = useParams({ from: "/o/$orgId/workspaces/" });
+  const { create } = useSearch({ from: "/o/$orgId/workspaces/" });
+  const autoOpenCreate = create === "1";
+
   const { t } = useTranslation(["nav", "common"]);
   const navigate = useNavigate();
   const setCurrentWorkspaceId = useWorkspaceStore((state) => state.setCurrentWorkspaceId);
 
   const [tab, setTab] = useState<OrganizationWorkspacesTab>("active");
   const [viewMode, setViewMode] = useState<OrganizationWorkspacesViewMode>("card");
-  const [createOpen, setCreateOpen] = useState(Boolean(props?.autoOpenCreate));
+  const [createOpen, setCreateOpen] = useState(autoOpenCreate);
   const [confirmArchive, setConfirmArchive] = useState<OrganizationWorkspace | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<OrganizationWorkspace | null>(null);
   const [deleteConfirmName, setDeleteConfirmName] = useState("");
@@ -43,9 +44,9 @@ export function OrganizationWorkspacesPage(props?: {
   const [createForm] = Form.useForm<CreateWorkspaceFormValues>();
 
   useEffect(() => {
-    if (!props?.autoOpenCreate) return;
+    if (!autoOpenCreate) return;
     setCreateOpen(true);
-  }, [props?.autoOpenCreate]);
+  }, [autoOpenCreate]);
 
   const handleEnterWorkspace = useCallback(
     (workspaceId: string) => {
@@ -61,7 +62,7 @@ export function OrganizationWorkspacesPage(props?: {
   }, []);
 
   const mutations = useOrganizationWorkspacesMutations({
-    organizationId: props?.organizationId,
+    organizationId,
     t,
     onCreateSuccess: () => {
       setCreateOpen(false);
@@ -138,7 +139,7 @@ export function OrganizationWorkspacesPage(props?: {
   });
 
   const { activeTableHook, archivedTableHook } = useOrganizationWorkspacesTables({
-    organizationId: props?.organizationId,
+    organizationId,
     columns,
   });
   const currentTableHook = tab === "active" ? activeTableHook : archivedTableHook;
@@ -179,7 +180,7 @@ export function OrganizationWorkspacesPage(props?: {
             onRetry={() => void activeTableHook.refetch()}
             onRowClick={(row) => handleEnterWorkspace(row.original.workspaceId)}
             t={t}
-            organizationId={props?.organizationId}
+            organizationId={organizationId}
             archived={false}
             searchInput={activeTableHook.searchInput}
             buildMenuItems={buildCardMenuItems}
@@ -195,7 +196,7 @@ export function OrganizationWorkspacesPage(props?: {
             emptyDescription={t("common:ORG_WORKSPACES_ARCHIVED_EMPTY_DESC")}
             onRetry={() => void archivedTableHook.refetch()}
             t={t}
-            organizationId={props?.organizationId}
+            organizationId={organizationId}
             archived={true}
             searchInput={archivedTableHook.searchInput}
             buildMenuItems={buildCardMenuItems}

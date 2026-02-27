@@ -11,45 +11,45 @@ function resolveSource(relativePath: string) {
 }
 
 describe("workspace content and appearance routes", () => {
-  test("workspace content pages route uses content pages view", () => {
+  test("workspace content pages route uses lazy-loaded content pages page", () => {
     const source = readFileSync(
-      resolveSource("routes/w/$workspaceId/content/pages/index.tsx"),
+      resolveSource("routes/w/$workspaceId/content/pages/index.lazy.tsx"),
       "utf-8",
     );
 
     expect(source).toContain(
-      'import { ContentPagesIndexView } from "@/pages/workspaces/content/pages/page"',
+      'import { ContentPagesIndexPage } from "@/pages/workspaces/content/pages/page"',
     );
-    expect(source).toContain("component: ContentPagesIndexView");
+    expect(source).toContain("component: ContentPagesIndexPage");
   });
 
-  test("workspace content library route uses content library view", () => {
+  test("workspace content library route uses lazy-loaded content library page", () => {
     const source = readFileSync(
-      resolveSource("routes/w/$workspaceId/content/library/index.tsx"),
+      resolveSource("routes/w/$workspaceId/content/library/index.lazy.tsx"),
       "utf-8",
     );
 
     expect(source).toContain(
-      'import { ContentLibraryView } from "@/pages/workspaces/content/library/page"',
+      'import { ContentLibraryPage } from "@/pages/workspaces/content/library/page"',
     );
-    expect(source).toContain("component: ContentLibraryView");
+    expect(source).toContain("component: ContentLibraryPage");
   });
 
-  test("workspace themes and styles routes use dedicated pages", () => {
+  test("workspace themes and styles routes use dedicated lazy-loaded pages", () => {
     const themesSource = readFileSync(
-      resolveSource("routes/w/$workspaceId/appearance/themes/index.tsx"),
+      resolveSource("routes/w/$workspaceId/appearance/themes/index.lazy.tsx"),
       "utf-8",
     );
     const stylesSource = readFileSync(
-      resolveSource("routes/w/$workspaceId/appearance/styles/index.tsx"),
+      resolveSource("routes/w/$workspaceId/appearance/styles/index.lazy.tsx"),
       "utf-8",
     );
 
     expect(themesSource).toContain(
-      'import { WorkspaceThemesView } from "@/pages/workspaces/appearance/themes/page"',
+      'import { WorkspaceThemesPage } from "@/pages/workspaces/appearance/themes/page"',
     );
     expect(stylesSource).toContain(
-      'import { WorkspaceGlobalStylesView } from "@/pages/workspaces/appearance/styles/page"',
+      'import { WorkspaceGlobalStylesPage } from "@/pages/workspaces/appearance/styles/page"',
     );
   });
 
@@ -63,7 +63,10 @@ describe("workspace content and appearance routes", () => {
     );
     expect(editorRouteSource).toContain("validateSearch");
     expect(editorRouteSource).toContain("pathname");
-    expect(editorRouteSource).toContain("WorkspaceEditorView");
+
+    const lazyFile = resolveSource("routes/w/$workspaceId/editor/$editorMode/$entityId.lazy.tsx");
+    const lazySource = readFileSync(lazyFile, "utf-8");
+    expect(lazySource).toContain("WorkspaceEditorPage");
   });
 
   test("appearance navigation route has been removed", () => {

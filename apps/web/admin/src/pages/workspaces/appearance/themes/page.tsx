@@ -30,7 +30,7 @@ import {
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
-export function WorkspaceThemesView() {
+export function WorkspaceThemesPage() {
   const { t } = useTranslation(["appearance", "nav", "common"]);
   const queryClient = useQueryClient();
   const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);

@@ -1,5 +1,5 @@
 import { ContentPagesView } from "./content-pages-view";
 
-export function ContentPagesIndexView() {
+export function ContentPagesIndexPage() {
   return <ContentPagesView />;
 }

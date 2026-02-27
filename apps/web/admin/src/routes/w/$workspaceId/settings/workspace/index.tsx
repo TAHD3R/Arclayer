@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { WorkspaceSettingsView } from "@/pages/workspaces/settings/workspace/page";
 import type { WorkspaceSettingsTabKey } from "@/types/settings-workspace";
 
 export const Route = createFileRoute("/w/$workspaceId/settings/workspace/")({
@@ -17,10 +16,4 @@ export const Route = createFileRoute("/w/$workspaceId/settings/workspace/")({
     }
     return {};
   },
-  component: WorkspaceSettingsRoutePage,
 });
-
-function WorkspaceSettingsRoutePage() {
-  const { index } = Route.useSearch();
-  return <WorkspaceSettingsView tab={index ?? "basics"} searchIndex={index} />;
-}

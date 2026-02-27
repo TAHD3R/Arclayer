@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import { DefaultPage } from "@/components/common/default-page";
 
-export function DashboardView() {
+export function DashboardPage() {
   const { t } = useTranslation();
 
   return (

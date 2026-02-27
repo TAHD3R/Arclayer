@@ -111,7 +111,7 @@ function flattenPageTree(items: SitePageTreeNode[]): PageRow[] {
   return rows;
 }
 
-export function ContentLibraryView() {
+export function ContentLibraryPage() {
   const { t } = useTranslation(["content_library", "nav", "common"]);
   const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
   const navigate = useNavigate();

@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { isAuthScenePath } from "@/lib/route-identity";
-import { type AuthMode, LoginPage } from "@/pages/login/page";
+import type { AuthMode } from "@/pages/login/page";
 
 type LoginSearch = {
   redirect?: string;
@@ -39,5 +39,4 @@ export const Route = createFileRoute("/login/")({
       ...(oauth_error ? { oauth_error } : {}),
     };
   },
-  component: LoginPage,
 });

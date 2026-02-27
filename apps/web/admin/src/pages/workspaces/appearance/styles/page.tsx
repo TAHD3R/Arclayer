@@ -9,7 +9,7 @@ import { ContentGuard } from "@/components/common/content-guard";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
-export function WorkspaceGlobalStylesView() {
+export function WorkspaceGlobalStylesPage() {
   const { t } = useTranslation(["appearance", "nav", "common"]);
   const queryClient = useQueryClient();
   const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);

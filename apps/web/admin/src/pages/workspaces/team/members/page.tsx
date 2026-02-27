@@ -68,7 +68,7 @@ function tableSortingToSortValue(sorting: SortingState): TeamMemberSort | null {
   return null;
 }
 
-export function TeamMembersView() {
+export function TeamMembersPage() {
   const { t } = useTranslation(["team", "common"]);
 
   const queryClient = useQueryClient();

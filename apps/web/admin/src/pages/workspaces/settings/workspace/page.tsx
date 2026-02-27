@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useSearch } from "@tanstack/react-router";
 import { Button, Form, Input, InputNumber, Select, Switch } from "antd";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
@@ -79,14 +79,9 @@ type DeleteWorkspaceDialogValues = {
   confirmName: string;
 };
 
-export type WorkspaceSettingsViewProps = {
-  tab?: WorkspaceSettingsTabKey;
-  onTabChange?: (tab: WorkspaceSettingsTabKey) => void;
-  /** validated search param from route — used for URL cleanup */
-  searchIndex?: WorkspaceSettingsTabKey;
-};
-
-export function WorkspaceSettingsView(props: WorkspaceSettingsViewProps = {}) {
+export function WorkspaceSettingsPage() {
+  const { index: searchIndex } = useSearch({ from: "/w/$workspaceId/settings/workspace/" });
+  const tab: WorkspaceSettingsTabKey = searchIndex ?? "basics";
   const { t } = useTranslation(["settings", "common"]);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -104,32 +99,27 @@ export function WorkspaceSettingsView(props: WorkspaceSettingsViewProps = {}) {
   const [assignRoleDialogOpen, setAssignRoleDialogOpen] = React.useState(false);
   const [leaveDialogOpen, setLeaveDialogOpen] = React.useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
-  const tab = props.tab ?? "basics";
 
   // Clean up invalid/redundant index param that validateSearch discarded.
   React.useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const rawIndex = params.get("index");
-    if (rawIndex && !props.searchIndex) {
+    if (rawIndex && !searchIndex) {
       if (workspaceId) {
         void navigate({ to: `/w/${workspaceId}/settings/workspace`, search: {}, replace: true });
       }
     }
-  }, [props.searchIndex, navigate, workspaceId]);
+  }, [searchIndex, navigate, workspaceId]);
 
   const onTabChange = React.useCallback(
     (next: WorkspaceSettingsTabKey) => {
-      if (props.onTabChange) {
-        props.onTabChange(next);
-        return;
-      }
       if (!workspaceId) return;
       void navigate({
         to: `/w/${workspaceId}/settings/workspace`,
         search: next === "basics" ? {} : { index: next },
       });
     },
-    [props.onTabChange, navigate, workspaceId],
+    [navigate, workspaceId],
   );
 
   const withSavingKey = React.useCallback(async (key: string, fn: () => Promise<void>) => {

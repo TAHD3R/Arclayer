@@ -11,7 +11,7 @@ import { AssetsViewHeader } from "./assets-view-header";
 import { AssetsViewMasonrySection } from "./assets-view-masonry-section";
 import { AssetsViewOverlays } from "./assets-view-overlays";
 
-export function AssetsView() {
+export function AssetsPage() {
   const controller = useAssetsViewController();
   const {
     t,

@@ -1,7 +1,3 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { TeamMembersView } from "@/pages/workspaces/team/members/page";
-
-export const Route = createFileRoute("/w/$workspaceId/team/members/")({
-  component: TeamMembersView,
-});
+export const Route = createFileRoute("/w/$workspaceId/team/members/")({});

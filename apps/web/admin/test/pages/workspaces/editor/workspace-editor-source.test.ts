@@ -15,6 +15,6 @@ describe("workspace editor source", () => {
     const source = readFileSync(resolveSource("pages/workspaces/editor/page.tsx"), "utf-8");
 
     expect(source).toContain("EditorLayout");
-    expect(source).toContain("WorkspaceEditorView");
+    expect(source).toContain("WorkspaceEditorPage");
   });
 });

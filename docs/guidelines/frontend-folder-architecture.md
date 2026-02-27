@@ -21,7 +21,7 @@ This guideline applies to:
 
 | Layer | Location | Responsibility | Must Not Own |
 | --- | --- | --- | --- |
-| App routing shell | `admin/src/routes`, `portal/pages`, `portal/renderer`, `portal/server` | Route entry, rendering shell, route-level guards/composition | Business workflow implementation |
+| App routing shell | `admin/src/routes` (`index.tsx` + `index.lazy.tsx`), `portal/pages`, `portal/renderer`, `portal/server` | Route config and lazy component binding, route-level guards | Business workflow implementation, inline page rendering |
 | Feature/page composition | `admin/src/pages`, `portal/src/features` | Feature orchestration and page behavior | Transport/client primitives and global infra concerns |
 | Data access layer | `admin/src/api`, `portal/src/runtime/*api*` | API contracts, request helpers, response normalization | JSX rendering logic |
 | Shared app internals | `admin/src/lib`, `admin/src/hooks`, `portal/src/runtime` (non-API helpers) | App-local reusable helpers | Cross-app contracts that belong in packages |
@@ -70,6 +70,100 @@ src/lib/api/      → Shared utilities (path builders, query-string helpers)
    - Add re-exports to `types/api/index.ts`.
    - Create `api/<module>.ts` importing types from `@/types/api` and utilities from `@/lib/api`.
 
+### 4.2 Admin Route Splitting Convention (`routes/` + `pages/`)
+
+Admin uses TanStack Router manual lazy-loading with `autoCodeSplitting: false`. Every route is split into two files: `index.tsx` for route configuration and `index.lazy.tsx` for component binding.
+
+**File responsibilities:**
+
+| File | API | Owns | Must not contain |
+| --- | --- | --- | --- |
+| `index.tsx` | `createFileRoute` | Route config: `validateSearch`, `beforeLoad`, search type definitions | `component` property, page component imports |
+| `index.lazy.tsx` | `createLazyFileRoute` | `component` property + page component import | Route config logic (`validateSearch`, `beforeLoad`) |
+
+**Examples:**
+
+Simple route (no config):
+
+```typescript
+// routes/setup/index.tsx
+import { createFileRoute } from "@tanstack/react-router";
+export const Route = createFileRoute("/setup/")({});
+
+// routes/setup/index.lazy.tsx
+import { createLazyFileRoute } from "@tanstack/react-router";
+import { SetupPage } from "@/pages/setup/page";
+export const Route = createLazyFileRoute("/setup/")({ component: SetupPage });
+```
+
+Route with `validateSearch` (config stays in `index.tsx`, component in lazy):
+
+```typescript
+// routes/w/$workspaceId/settings/workspace/index.tsx
+import { createFileRoute } from "@tanstack/react-router";
+import type { WorkspaceSettingsTabKey } from "@/types/settings-workspace";
+export const Route = createFileRoute("/w/$workspaceId/settings/workspace/")({
+  validateSearch: (search: Record<string, unknown>): { index?: WorkspaceSettingsTabKey } => {
+    // validation logic only
+  },
+});
+
+// routes/w/$workspaceId/settings/workspace/index.lazy.tsx
+import { createLazyFileRoute } from "@tanstack/react-router";
+import { WorkspaceSettingsPage } from "@/pages/workspaces/settings/workspace/page";
+export const Route = createLazyFileRoute("/w/$workspaceId/settings/workspace/")({
+  component: WorkspaceSettingsPage,
+});
+```
+
+Wrapper component injecting route params into a shared page:
+
+```typescript
+// routes/o/$orgId/extensions/index.lazy.tsx
+import { createLazyFileRoute } from "@tanstack/react-router";
+import { ExtensionsPage } from "@/pages/extensions/extensions-page";
+export const Route = createLazyFileRoute("/o/$orgId/extensions/")({
+  component: OrganizationExtensionsRoute,
+});
+function OrganizationExtensionsRoute() {
+  const { orgId } = Route.useParams();
+  return <ExtensionsPage scope="organization" organizationId={orgId} />;
+}
+```
+
+**Page component naming:**
+
+1. Page components use `*Page` suffix (e.g. `DashboardPage`, `LoginPage`).
+2. Page files are always named `page.tsx`, placed in `src/pages/` mirroring the feature structure.
+3. Lightweight wrapper components in lazy files use `*Route` suffix (e.g. `OrganizationExtensionsRoute`).
+
+**Vite configuration:** The `tanstackRouter` plugin must set `autoCodeSplitting: false`. All code splitting is driven by the manual `index.lazy.tsx` convention.
+
+**Exception:** `__root.tsx` is the only route file allowed to define `component`, `errorComponent`, and `notFoundComponent` directly (using `createRootRoute`).
+
+### 4.3 Route Single Responsibility (mandatory)
+
+Route files (`routes/**/*.tsx`) must follow strict single responsibility. They exist solely for route configuration and lazy component binding.
+
+**Allowed in route files (whitelist):**
+
+- `createFileRoute` / `createLazyFileRoute` invocations.
+- `validateSearch`: search parameter type definitions and validation logic.
+- `beforeLoad`: route guards (authentication checks, redirects).
+- `component`: only in `index.lazy.tsx`, referencing a component from `src/pages/`.
+- Lightweight wrapper functions: only for injecting route params into shared page components (e.g. `Route.useParams()`).
+
+**Prohibited in route files (blacklist):**
+
+- Business logic (data transformation, conditional branching, state computation).
+- API calls or data fetching (belongs in `src/api/` + React Query).
+- Complex JSX rendering (anything beyond a single component reference belongs in `src/pages/`).
+- Stateful hooks (`useEffect`, `useState`, `useMemo`, etc. — `Route.useParams()` / `Route.useSearch()` are exceptions).
+- Style definitions or Tailwind class composition.
+- i18n `useTranslation` calls (belongs in page/component layer).
+
+**Decision principle:** If a piece of code can be removed from a route file without breaking navigation or page loading, it does not belong in the route layer.
+
 ## 5. Portal Structure Rules (`apps/web/portal`)
 
 - `pages/` owns Vike route entries (`+Page.tsx`, `+route.ts`) and route-level selection.
@@ -114,7 +208,7 @@ When the same utility/type/contract appears in Admin and Portal for the second t
 
 ### 7.3 Prohibited patterns
 
-- Business logic embedded in route entry files.
+- Business logic, API calls, complex JSX, or stateful hooks in route entry files (`routes/**/*.tsx`). Route files must only contain route configuration and lazy component binding — all rendering and behavior logic belongs in `pages/`. See section 4.3 for the full whitelist/blacklist.
 - Direct fetch calls spread across multiple page/component files when a shared API wrapper can be used.
 - Circular imports between feature modules and component foundations.
 

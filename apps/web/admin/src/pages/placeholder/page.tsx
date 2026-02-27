@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import { DefaultPage } from "@/components/common/default-page";
 
-export function PlaceholderView(props: { titleKey: string }) {
+export function PlaceholderPage(props: { titleKey: string }) {
   const { t } = useTranslation();
 
   return (

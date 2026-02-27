@@ -25,7 +25,7 @@ import { TeamRolesDialogs } from "./roles-dialogs";
 import { includesText, normalizeNeedle, sortByName } from "./roles-utils";
 import type { CreateRoleFormValues } from "./roles-utils";
 
-export function TeamRolesView(props: { workspaceIdOverride?: string | null } = {}) {
+export function TeamRolesPage(props: { workspaceIdOverride?: string | null } = {}) {
   const { t } = useTranslation(["team", "common", "settings"]);
   const queryClient = useQueryClient();
   const accessToken = useAuthStore((s) => s.accessToken);

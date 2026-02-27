@@ -10,7 +10,7 @@ import {
   publishWorkspaceSiteEntry,
   unpublishWorkspaceSiteEntry,
 } from "@/api/workspace-site";
-import { ContentLibraryView } from "@/pages/workspaces/content/library/page";
+import { ContentLibraryPage } from "@/pages/workspaces/content/library/page";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
 const navigateMock = vi.fn();
@@ -62,7 +62,7 @@ function renderView() {
 
   return render(
     <QueryClientProvider client={queryClient}>
-      <ContentLibraryView />
+      <ContentLibraryPage />
     </QueryClientProvider>,
   );
 }

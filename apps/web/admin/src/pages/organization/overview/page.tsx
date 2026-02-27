@@ -1,7 +1,7 @@
 import { Button, Card, Statistic } from "antd";
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useParams } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 
 import { listMyWorkspaces } from "@/api/workspaces";
@@ -9,7 +9,8 @@ import { DefaultPage } from "@/components/common/default-page";
 import { ContentGuard } from "@/components/common/content-guard";
 import { buildOrganizationPath } from "@/lib/organization-routing";
 
-export function OrganizationOverviewPage(props: { organizationId: string }) {
+export function OrganizationOverviewPage() {
+  const { orgId } = useParams({ from: "/o/$orgId/" });
   const { t } = useTranslation(["nav", "common", "team"]);
   const navigate = useNavigate();
 
@@ -23,10 +24,10 @@ export function OrganizationOverviewPage(props: { organizationId: string }) {
 
   const workspaceItems = workspacesQuery.data?.items ?? [];
   const workspaceCount = useMemo(() => {
-    const orgId = String(props.organizationId || "").trim();
-    if (!orgId) return workspaceItems.length;
-    return workspaceItems.filter((w) => String(w.organizationId) === orgId).length;
-  }, [props.organizationId, workspaceItems]);
+    const id = String(orgId || "").trim();
+    if (!id) return workspaceItems.length;
+    return workspaceItems.filter((w) => String(w.organizationId) === id).length;
+  }, [orgId, workspaceItems]);
 
   return (
     <DefaultPage
@@ -50,16 +51,14 @@ export function OrganizationOverviewPage(props: { organizationId: string }) {
             <div className="mt-4 flex gap-2">
               <Button
                 type="primary"
-                onClick={() =>
-                  void navigate({ to: buildOrganizationPath(props.organizationId, "/workspaces") })
-                }
+                onClick={() => void navigate({ to: buildOrganizationPath(orgId, "/workspaces") })}
               >
                 {t("nav:NAV_ORG_WORKSPACES")}
               </Button>
               <Button
                 onClick={() =>
                   void navigate({
-                    to: buildOrganizationPath(props.organizationId, "/team/members"),
+                    to: buildOrganizationPath(orgId, "/team/members"),
                   })
                 }
               >

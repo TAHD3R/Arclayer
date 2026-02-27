@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useParams, useSearch } from "@tanstack/react-router";
 
 import {
   EditorConfigProvider,
@@ -19,15 +20,20 @@ import type { EditorHistoryState, HostEditorRpcApi } from "@celestial/site-edito
 
 export type WorkspaceEditorMode = "page" | "article";
 
-export type WorkspaceEditorViewProps = {
-  workspaceId: string;
-  editorMode: WorkspaceEditorMode;
-  entityId: string;
-  initialPathname?: string;
-};
+export function WorkspaceEditorPage() {
+  const {
+    workspaceId,
+    editorMode: rawEditorMode,
+    entityId,
+  } = useParams({
+    from: "/w/$workspaceId/editor/$editorMode/$entityId",
+  });
+  const { pathname } = useSearch({
+    from: "/w/$workspaceId/editor/$editorMode/$entityId",
+  });
 
-export function WorkspaceEditorView(props: WorkspaceEditorViewProps) {
-  const { workspaceId, editorMode, entityId, initialPathname = "/" } = props;
+  const editorMode: WorkspaceEditorMode = rawEditorMode === "article" ? "article" : "page";
+  const initialPathname = pathname ?? "/";
 
   const config = React.useMemo<EditorConfig>(
     () => ({ workspaceId, entityId, editorMode, initialPathname }),

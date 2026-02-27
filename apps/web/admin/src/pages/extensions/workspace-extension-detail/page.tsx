@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useParams } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -13,13 +13,10 @@ import { getSystemSettingsNamespace, patchSystemSettingsNamespace } from "@/api/
 import { PluginDetailPage, findPluginBySlug } from "@/components/plugins/plugin-detail-page";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 
-type WorkspaceExtensionDetailPageProps = {
-  workspaceId: string;
-  pluginSlug: string;
-};
-
-export function WorkspaceExtensionDetailPage(props: WorkspaceExtensionDetailPageProps) {
-  const { workspaceId, pluginSlug } = props;
+export function WorkspaceExtensionDetailPage() {
+  const { workspaceId, pluginSlug } = useParams({
+    from: "/w/$workspaceId/extensions/$pluginSlug/",
+  });
   const { t } = useTranslation(["settings"]);
   const navigate = useNavigate();
   const queryClient = useQueryClient();

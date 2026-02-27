@@ -34,7 +34,7 @@ import { renderUserLabel } from "./invitations-helpers";
 import type { RenewExpiresInSeconds, TabKey } from "./invitations-helpers";
 import { TeamInvitationsTableSection } from "./invitations-table-section";
 import { TeamInvitationsDialogs } from "./invitations-dialogs";
-export function TeamInvitationsView(props: { workspaceIdOverride?: string | null } = {}) {
+export function TeamInvitationsPage(props: { workspaceIdOverride?: string | null } = {}) {
   const { t } = useTranslation(["team", "nav", "common"]);
   const queryClient = useQueryClient();
   const accessToken = useAuthStore((s) => s.accessToken);

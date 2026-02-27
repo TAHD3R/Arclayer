@@ -73,7 +73,7 @@ type ReinitializeDialogValues = {
   confirmName: string;
 };
 
-export function OrganizationSettingsView() {
+export function OrganizationSettingsPage() {
   const { t } = useTranslation(["settings", "common"]);
   const navigate = useNavigate();
   const queryClient = useQueryClient();

@@ -113,7 +113,7 @@ function sleep(ms: number): Promise<void> {
   });
 }
 
-export function SetupView() {
+export function SetupPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
 
