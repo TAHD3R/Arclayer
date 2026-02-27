@@ -1,69 +1,38 @@
-import { Space } from "antd";
-import { lazy, Suspense, type PropsWithChildren, useEffect } from "react";
+import { lazy, Suspense, type PropsWithChildren } from "react";
 import { Trans, useTranslation } from "react-i18next";
 
-import { getAppConfig } from "@/constants/app-config";
+import { AUTH_SCENE_BEND_PROPS } from "@/constants/color-bends";
 import { AdminLocaleToggle } from "@/components/layout/admin-toggle-locales";
 import { AdminThemeModeToggle } from "@/components/layout/admin-toggle-theme";
+import { useDocumentTitle } from "@/hooks/use-document-title";
+import { useLockViewport } from "@/hooks/use-lock-viewport";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 
 const ColorBendsLazy = lazy(() => import("@/components/ui/color-bends"));
-const SETUP_BEND_COLORS = ["#3b82f6"] as const;
 
 export function SetupLayout({ children }: PropsWithChildren) {
   const { t } = useTranslation();
   const reducedMotion = usePrefersReducedMotion();
 
-  // Setup pages should behave like auth pages: full-viewport scene, no document scrolling.
-  useEffect(() => {
-    const prevHtmlOverflow = document.documentElement.style.overflow;
-    const prevBodyOverflow = document.body.style.overflow;
-
-    document.documentElement.style.overflow = "hidden";
-    document.body.style.overflow = "hidden";
-
-    return () => {
-      document.documentElement.style.overflow = prevHtmlOverflow;
-      document.body.style.overflow = prevBodyOverflow;
-    };
-  }, []);
-
-  useEffect(() => {
-    const brand = (getAppConfig().title || "Celestial").trim();
-    document.title = `${t("setup:SETUP_TITLE")} | ${brand}`;
-  }, [t]);
+  useLockViewport();
+  useDocumentTitle(t("setup:SETUP_TITLE"));
 
   return (
     <div className="fixed inset-0 w-full overflow-hidden bg-background text-label-primary">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {!reducedMotion ? (
           <Suspense fallback={<div className="absolute inset-0 bg-background" />}>
-            <ColorBendsLazy
-              colors={SETUP_BEND_COLORS}
-              rotation={45}
-              speed={0.2}
-              scale={1}
-              frequency={1}
-              warpStrength={1}
-              mouseInfluence={1}
-              parallax={1}
-              noise={0.3}
-              transparent
-              autoRotate={0}
-            />
+            <ColorBendsLazy {...AUTH_SCENE_BEND_PROPS} />
           </Suspense>
         ) : null}
-
-        {/* Subtle overlay to keep foreground readable over the animated background. */}
         <div className="absolute inset-0 bg-background opacity-80" />
       </div>
 
-      {/* Top-right toggles */}
       <div className="absolute top-0 right-0 p-4 z-30">
-        <Space size={6}>
+        <div className="flex items-center gap-1.5">
           <AdminLocaleToggle />
           <AdminThemeModeToggle />
-        </Space>
+        </div>
       </div>
 
       <div className="relative z-10 h-full w-full flex flex-col min-h-0">
@@ -75,7 +44,7 @@ export function SetupLayout({ children }: PropsWithChildren) {
           <Trans
             i18nKey="auth:FOOTER_COPYRIGHT"
             components={{
-              brand: <span style={{ color: "var(--color-foreground)" }}>Celestial CMS</span>,
+              brand: <span className="text-foreground">Celestial CMS</span>,
             }}
           />
         </div>

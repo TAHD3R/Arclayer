@@ -144,7 +144,7 @@ export function ActivityFilterPopover(props: {
           title={t("activity:ACTIVITY_FILTER_TITLE")}
           aria-label={t("activity:ACTIVITY_FILTER_TITLE")}
           style={{ height: 40 }}
-          className="!bg-transparent hover:!bg-accent/40"
+          className="bg-transparent! hover:bg-accent/40!"
         />
       </PopoverTrigger>
 

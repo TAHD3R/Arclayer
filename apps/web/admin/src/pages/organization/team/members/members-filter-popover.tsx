@@ -29,7 +29,7 @@ export function MembersFilterPopover({
           type="text"
           icon={<Filter size={18} />}
           title={t("common:ORG_MEMBERS_FILTER_TITLE")}
-          className="!h-10 !bg-transparent hover:!bg-accent/40"
+          className="h-10! bg-transparent! hover:bg-accent/40!"
         >
           {t("common:ORG_MEMBERS_FILTER_TITLE")}
         </AntButton>

@@ -96,7 +96,7 @@ export function ActivityDetailDialog(props: {
                   <div className="text-caption text-label-secondary">
                     {t("activity:ACTIVITY_FIELD_EVENT_NAME")}
                   </div>
-                  <div className="mt-1 font-mono text-caption break-words">
+                  <div className="mt-1 font-mono text-caption wrap-break-word">
                     {event.eventName || "-"}
                   </div>
                 </div>
@@ -105,7 +105,7 @@ export function ActivityDetailDialog(props: {
                   <div className="text-caption text-label-secondary">
                     {t("activity:ACTIVITY_FIELD_SOURCE")}
                   </div>
-                  <div className="mt-1 text-footnote break-words">{event.source || "-"}</div>
+                  <div className="mt-1 text-footnote wrap-break-word">{event.source || "-"}</div>
                 </div>
               </div>
 
@@ -114,7 +114,7 @@ export function ActivityDetailDialog(props: {
                   <div className="text-caption text-label-secondary">
                     {t("activity:ACTIVITY_TABLE_WORKSPACE")}
                   </div>
-                  <div className="mt-1 text-footnote break-words">{workspaceLabel || "-"}</div>
+                  <div className="mt-1 text-footnote wrap-break-word">{workspaceLabel || "-"}</div>
                 </div>
               ) : null}
             </>
@@ -132,7 +132,9 @@ export function ActivityDetailDialog(props: {
               <div className="text-caption text-label-secondary">
                 {t("activity:ACTIVITY_FIELD_TRACE_ID")}
               </div>
-              <div className="mt-1 font-mono text-caption break-words">{event.traceId || "-"}</div>
+              <div className="mt-1 font-mono text-caption wrap-break-word">
+                {event.traceId || "-"}
+              </div>
             </div>
           </div>
 
@@ -198,7 +200,7 @@ export function ActivityDetailDialog(props: {
             <div className="text-caption text-label-secondary">
               {t("activity:ACTIVITY_FIELD_PROPERTIES")}
             </div>
-            <pre className="mt-2 max-h-[45vh] overflow-auto whitespace-pre-wrap break-words text-caption">
+            <pre className="mt-2 max-h-[45vh] overflow-auto whitespace-pre-wrap wrap-break-word text-caption">
               {safeJsonStringify(event.properties)}
             </pre>
           </div>

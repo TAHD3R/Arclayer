@@ -71,7 +71,7 @@ export function TeamMembersFilterPopover(props: {
           type="text"
           icon={<Filter size={18} />}
           title={t("team:TEAM_FILTER_TITLE")}
-          className="!h-10 !bg-transparent hover:!bg-accent/40"
+          className="h-10! bg-transparent! hover:bg-accent/40!"
         >
           {t("team:TEAM_FILTER_TITLE")}
         </Button>

@@ -3,33 +3,18 @@ import { type CSSProperties, type PropsWithChildren, useEffect, useMemo } from "
 import { useQuery } from "@tanstack/react-query";
 import { useRouterState } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import type { LucideIcon } from "lucide-react";
-import {
-  Activity,
-  File,
-  FileText,
-  Gauge,
-  HardDrive,
-  History,
-  Images,
-  LibraryBig,
-  Navigation2,
-  Package,
-  Paintbrush,
-  Palette,
-  Search,
-  Settings,
-  ShieldCheck,
-  SlidersHorizontal,
-  UserPlus,
-  Users,
-  Wrench,
-} from "lucide-react";
 
-import { ADMIN_NAV_ITEMS } from "@/constants/admin-nav";
-import type { AdminNavItem } from "@/constants/admin-nav";
+import { ADMIN_NAV_ITEMS, type AdminNavItem } from "@/constants/admin-nav";
 import { ORG_NAV_ITEMS } from "@/constants/org-nav";
-import { getAppConfig } from "@/constants/app-config";
+import {
+  buildDocumentTitle,
+  buildNavItemsFromMenuNodes,
+  collectAllowedWorkspacePathPrefixes,
+  findActiveTrailNodes,
+  isPrefixMatch,
+  mapOrgItemsWithPrefix,
+  normalizePath,
+} from "@/lib/admin-nav-utils";
 import { AdminSiderNav } from "@/components/layout/admin-side-nav";
 import { AdminFullLogo } from "@/components/layout/admin-logo";
 import { AdminAccountMenu } from "@/components/layout/admin-account-menu";
@@ -41,7 +26,6 @@ import { ContentGuard } from "@/components/common/content-guard";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
-import type { AdminMenuNodeEffective } from "@/types/api";
 import { getAdminMenuCatalogEffective } from "@/api/admin-menus";
 import { getMyOrganization } from "@/api/me";
 import { getWorkspaceDetail } from "@/api/workspaces";
@@ -60,161 +44,6 @@ import {
   SidebarMenuSkeleton,
   SidebarProvider,
 } from "@/components/ui/sidebar";
-
-const ICON_MAP: Record<string, LucideIcon> = {
-  Gauge,
-  FileText,
-  File,
-  LibraryBig,
-  Images,
-  Palette,
-  Paintbrush,
-  Navigation2,
-  Package,
-  Users,
-  UserPlus,
-  ShieldCheck,
-  Settings,
-  SlidersHorizontal,
-  Search,
-  Wrench,
-  HardDrive,
-  History,
-  Activity,
-} as const;
-
-function resolveLucideIcon(name?: string | null): LucideIcon {
-  const key = String(name || "").trim();
-  return ICON_MAP[key] ?? Package;
-}
-
-function buildNavItemsFromMenuNodes(nodes: AdminMenuNodeEffective[]): AdminNavItem[] {
-  const walk = (n: AdminMenuNodeEffective): AdminNavItem => {
-    const children = (n.children ?? []).map(walk);
-    return {
-      key: n.code,
-      label: n.title,
-      ...(n.titleI18n ? { labelKey: n.titleI18n } : {}),
-      ...(n.path ? { to: n.path } : {}),
-      icon: resolveLucideIcon(n.icon),
-      disabled: !n.allowed,
-      blockedReason: n.blockedReason ?? null,
-      requiredPermission: n.requiredPermission ?? null,
-      ownerPluginId: n.ownerPluginId ?? null,
-      ...(children.length ? { children } : {}),
-    };
-  };
-
-  return (nodes ?? []).map(walk);
-}
-
-function normalizePath(input: string): string {
-  if (input.length > 1 && input.endsWith("/")) return input.slice(0, -1);
-  return input;
-}
-
-function isExactMatch(to: string, pathname: string): boolean {
-  const t = normalizePath(to);
-  const p = normalizePath(pathname);
-  return p === t;
-}
-
-function isPrefixMatch(to: string, pathname: string): boolean {
-  const t = normalizePath(to);
-  const p = normalizePath(pathname);
-  if (t === "/") return p === "/";
-  return p === t || p.startsWith(`${t}/`);
-}
-
-function findActiveTrailNodes(items: AdminNavItem[], pathname: string): AdminNavItem[] {
-  let bestScore = -1;
-  let bestTrail: AdminNavItem[] = [];
-
-  const dfs = (nodes: AdminNavItem[], parents: AdminNavItem[]) => {
-    for (const node of nodes) {
-      const nextParents = [...parents, node];
-
-      if (node.to) {
-        const isExact = isExactMatch(node.to, pathname);
-        const isPrefix = isPrefixMatch(node.to, pathname);
-        const score = isExact ? 1000 + node.to.length : isPrefix ? 100 + node.to.length : 0;
-        if (score > 0 && score > bestScore) {
-          bestScore = score;
-          bestTrail = nextParents;
-        }
-      }
-
-      if (node.children?.length) dfs(node.children, nextParents);
-    }
-  };
-
-  dfs(items, []);
-  return bestTrail;
-}
-
-function mapOrgItemsWithPrefix(items: AdminNavItem[], orgPathPrefix: string): AdminNavItem[] {
-  return items.map((item) => {
-    let to = item.to;
-    if (item.to) {
-      const subPath = item.to === "/" ? "" : item.to;
-      to = `${orgPathPrefix}${subPath.startsWith("/") ? subPath : `/${subPath}`}`;
-    }
-    return {
-      ...item,
-      ...(to ? { to } : {}),
-      ...(item.children?.length
-        ? { children: mapOrgItemsWithPrefix(item.children, orgPathPrefix) }
-        : {}),
-    };
-  });
-}
-
-function collectAllowedWorkspacePathPrefixes(
-  items: AdminNavItem[],
-  workspaceBase: string,
-): string[] {
-  const base = normalizePath(workspaceBase);
-  const prefixes = new Set<string>();
-
-  prefixes.add(base);
-  // Keep legacy workspace-scoped notifications URL reachable so route-level redirect can run.
-  prefixes.add(normalizePath(`${base}/notifications`));
-  // This route immediately redirects to the canonical org-scope path, but guard it as allowed
-  // so the redirect can happen without being blocked.
-  prefixes.add(normalizePath(`${base}/settings`));
-
-  const walk = (nodes: AdminNavItem[]) => {
-    for (const n of nodes) {
-      // Route guard must not treat disabled items as allowed.
-      if (n.to && !n.disabled) prefixes.add(normalizePath(n.to));
-      if (n.children?.length) walk(n.children);
-    }
-  };
-  walk(items);
-
-  // Alias routes that are implemented as "index" pages but not necessarily present in seeds.
-  // Only enable them when the corresponding module is visible in the menu.
-  const hasTeam = Array.from(prefixes).some((p) => p.startsWith(normalizePath(`${base}/team/`)));
-  if (hasTeam) prefixes.add(normalizePath(`${base}/team`));
-  const hasPlugins = Array.from(prefixes).some((p) =>
-    p.startsWith(normalizePath(`${base}/plugins/`)),
-  );
-  if (hasPlugins) prefixes.add(normalizePath(`${base}/plugins`));
-
-  return Array.from(prefixes);
-}
-
-function buildDocumentTitle(routeTitle: string | null, workspaceName: string | null): string {
-  const brand = (getAppConfig().title || "Celestial").trim();
-  if (!workspaceName || !workspaceName.trim()) {
-    return routeTitle && routeTitle.trim() ? `${routeTitle.trim()} | ${brand}` : brand;
-  }
-
-  const base = workspaceName.trim();
-  const part = base.toLowerCase().includes(brand.toLowerCase()) ? base : `${base} ${brand}`;
-  if (routeTitle && routeTitle.trim()) return `${routeTitle.trim()} | ${part}`;
-  return part;
-}
 
 export function AdminLayout({ children }: PropsWithChildren) {
   const { t } = useTranslation();

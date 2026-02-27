@@ -4,24 +4,25 @@ import {
   Suspense,
   useContext,
   type PropsWithChildren,
-  useEffect,
   useMemo,
   useState,
 } from "react";
 import { Trans, useTranslation } from "react-i18next";
 import { useRouterState } from "@tanstack/react-router";
 
-import { getAppConfig } from "@/constants/app-config";
+import { AUTH_SCENE_BEND_PROPS } from "@/constants/color-bends";
 import { AdminFullLogo } from "@/components/layout/admin-logo";
 import { AdminLocaleToggle } from "@/components/layout/admin-toggle-locales";
 import { AdminThemeModeToggle } from "@/components/layout/admin-toggle-theme";
 import { LegalFooter } from "@/components/auth/legal-footer";
 import { RouteTransition } from "@/components/layout/route-transition";
+import { useDocumentTitle } from "@/hooks/use-document-title";
+import { useLockViewport } from "@/hooks/use-lock-viewport";
+import { useMediaQuery } from "@/hooks/use-media-query";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import { isLoginPath, isResetPasswordPath } from "@/lib/route-identity";
 
 const ColorBendsLazy = lazy(() => import("@/components/ui/color-bends"));
-const AUTH_BEND_COLORS = ["#3b82f6"] as const;
 
 interface AuthLegalContextValue {
   legalKey: string | null;
@@ -42,12 +43,10 @@ export function AuthLayout({ children }: PropsWithChildren) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   const reducedMotion = usePrefersReducedMotion();
-  const [isLargeScreen, setIsLargeScreen] = useState(false);
+  const isLargeScreen = useMediaQuery("(min-width: 1024px)");
 
-  // Legal disclaimer key — default inferred from pathname, overridable by child pages via context.
   const defaultLegalKey = useMemo(() => {
     if (isLoginPath(pathname)) return "auth:LEGAL_LOGIN";
-    // reset-password is not a login/signup action — no legal disclaimer needed.
     return null;
   }, [pathname]);
   const [legalKeyOverride, setLegalKeyOverride] = useState<string | null | undefined>(undefined);
@@ -57,41 +56,14 @@ export function AuthLayout({ children }: PropsWithChildren) {
     [legalKey],
   );
 
-  // Auth pages should always be a full-viewport "scene" without any document scrolling.
-  // This also avoids 1px scrollbars caused by fractional rem sizing during resize.
-  useEffect(() => {
-    const prevHtmlOverflow = document.documentElement.style.overflow;
-    const prevBodyOverflow = document.body.style.overflow;
+  useLockViewport();
 
-    document.documentElement.style.overflow = "hidden";
-    document.body.style.overflow = "hidden";
-
-    return () => {
-      document.documentElement.style.overflow = prevHtmlOverflow;
-      document.body.style.overflow = prevBodyOverflow;
-    };
-  }, []);
-
-  useEffect(() => {
-    const brand = (getAppConfig().title || "Celestial").trim();
-    const pageTitle = isResetPasswordPath(pathname)
-      ? t("auth:RESET_PASSWORD_PAGE_TITLE")
-      : isLoginPath(pathname)
-        ? t("auth:LOGIN_PAGE_TITLE")
-        : brand;
-    document.title = `${pageTitle} | ${brand}`;
+  const pageTitle = useMemo(() => {
+    if (isResetPasswordPath(pathname)) return t("auth:RESET_PASSWORD_PAGE_TITLE");
+    if (isLoginPath(pathname)) return t("auth:LOGIN_PAGE_TITLE");
+    return null;
   }, [pathname, t]);
-
-  useEffect(() => {
-    const mq = window.matchMedia?.("(min-width: 1024px)");
-    if (!mq) return;
-
-    const update = () => setIsLargeScreen(mq.matches);
-    update();
-
-    mq.addEventListener?.("change", update);
-    return () => mq.removeEventListener?.("change", update);
-  }, []);
+  useDocumentTitle(pageTitle);
 
   return (
     <div className="fixed inset-0 w-full overflow-hidden grid grid-cols-1 lg:grid-cols-2 bg-background text-label-primary">
@@ -110,19 +82,7 @@ export function AuthLayout({ children }: PropsWithChildren) {
           <Suspense
             fallback={<div className="absolute inset-0 bg-background animate-pulse opacity-50" />}
           >
-            <ColorBendsLazy
-              colors={AUTH_BEND_COLORS}
-              rotation={45}
-              speed={0.2}
-              scale={1}
-              frequency={1}
-              warpStrength={1}
-              mouseInfluence={1}
-              parallax={1}
-              noise={0.3}
-              transparent
-              autoRotate={0}
-            />
+            <ColorBendsLazy {...AUTH_SCENE_BEND_PROPS} />
           </Suspense>
         ) : null}
 
