@@ -1,25 +1,19 @@
 import { useMemo, useState } from "react";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
-import { Avatar, Button, Form, Input } from "antd";
+import { Avatar, Button, Input } from "antd";
 import { motion, type Variants } from "motion/react";
-import { ChevronRight, ChevronsUpDown, Plus, RefreshCw, Search } from "lucide-react";
+import { ChevronDown, Plus, RefreshCw, Search } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import {
-  createMyOrganization,
-  listMyOrganizations,
-  type CreateMyOrganizationInput,
-  type MyOrganizationMemberPreview,
-} from "@/api/me";
+import { listMyOrganizations, type MyOrganizationMemberPreview } from "@/api/me";
 import {
   listAllOrganizationWorkspaces,
   type OrganizationWorkspace,
 } from "@/api/organization-workspaces";
 import { getWorkspaceDetail } from "@/api/workspaces";
 import { ContentGuard } from "@/components/common/content-guard";
-import { SettingDialog } from "@/components/common/setting-dialog";
 import {
   FloatingPanelContent,
   FloatingPanelRoot,
@@ -30,7 +24,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { buildOrganizationPath, parseOrganizationIdFromPath } from "@/lib/organization-routing";
 import { switchWorkspacePath } from "@/lib/workspace-routing";
 import { cn } from "@/lib/utils";
-import { notifyError, notifySuccessText } from "@/lib/notifications";
+
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
@@ -41,10 +35,6 @@ type OrganizationOption = {
   role: "owner" | "admin" | "member";
   memberCount: number;
   membersPreview: MyOrganizationMemberPreview[];
-};
-
-type CreateOrganizationFormValues = {
-  name: string;
 };
 
 function normalizeSearch(input: string): string {
@@ -97,7 +87,6 @@ function OrgSwitcherPanel(props: {
   currentOrganizationId: string | null;
   onRefresh: () => void;
   onSelectOrganization: (id: string) => void;
-  onOpenCreateOrganization: () => void;
 }) {
   const { t } = useTranslation(["common"]);
   const { closeFloatingPanel } = useFloatingPanel();
@@ -116,8 +105,8 @@ function OrgSwitcherPanel(props: {
   const empty = !props.organizations.length || filtered.length === 0;
 
   return (
-    <div className="flex h-[380px] w-72 flex-col overflow-hidden">
-      <div className="flex items-center gap-1 border-b border-border/60 p-2">
+    <div className="flex max-h-120 flex-col overflow-hidden">
+      <div className="flex items-center gap-1 border-b border-border/60 px-3 py-2.5">
         <Button
           type="text"
           icon={<RefreshCw className={cn("size-4", props.fetching ? "animate-spin" : undefined)} />}
@@ -152,7 +141,7 @@ function OrgSwitcherPanel(props: {
           </div>
         ) : (
           <motion.div
-            className="flex flex-col gap-1 px-2"
+            className="flex flex-col gap-1.5 px-2"
             variants={listContainerVariants}
             initial="hidden"
             animate="visible"
@@ -165,7 +154,7 @@ function OrgSwitcherPanel(props: {
                   variants={listItemVariants}
                   type="button"
                   className={cn(
-                    "group flex w-full items-center gap-3 rounded-md px-3 py-2 text-left transition-colors",
+                    "group flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left transition-colors",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                     current
                       ? "bg-accent text-accent-foreground"
@@ -182,13 +171,18 @@ function OrgSwitcherPanel(props: {
                   <div className="min-w-0 flex-1">
                     <div
                       className={cn(
-                        "truncate text-footnote font-medium",
+                        "truncate text-footnote",
                         current ? "text-accent-foreground" : "text-foreground",
                       )}
                     >
                       {org.name}
                     </div>
-                    <div className="truncate text-caption text-label-secondary">
+                    <div
+                      className={cn(
+                        "truncate text-footnote",
+                        current ? "text-accent-foreground/80" : "text-label-secondary",
+                      )}
+                    >
                       {t("common:WORKSPACE_SWITCHER_ORG_MEMBERS_COUNT", {
                         count: org.memberCount,
                       })}
@@ -199,21 +193,6 @@ function OrgSwitcherPanel(props: {
             })}
           </motion.div>
         )}
-      </div>
-
-      <div className="border-t border-border/60 p-2">
-        <Button
-          type="link"
-          block
-          className="justify-start px-0"
-          icon={<Plus className="size-4" aria-hidden="true" />}
-          onClick={() => {
-            closeFloatingPanel();
-            props.onOpenCreateOrganization();
-          }}
-        >
-          {t("common:WORKSPACE_SWITCHER_CREATE_ORG")}
-        </Button>
       </div>
     </div>
   );
@@ -244,8 +223,8 @@ function WsSwitcherPanel(props: {
   const empty = !props.workspaces.length || filtered.length === 0;
 
   return (
-    <div className="flex h-[380px] w-72 flex-col overflow-hidden">
-      <div className="flex items-center gap-1 border-b border-border/60 p-2">
+    <div className="flex max-h-120 flex-col overflow-hidden">
+      <div className="flex items-center gap-1 border-b border-border/60 px-3 py-2.5">
         <Button
           type="text"
           icon={<RefreshCw className={cn("size-4", props.fetching ? "animate-spin" : undefined)} />}
@@ -280,7 +259,7 @@ function WsSwitcherPanel(props: {
           </div>
         ) : (
           <motion.div
-            className="flex flex-col gap-1 px-2"
+            className="flex flex-col gap-1.5 px-2"
             variants={listContainerVariants}
             initial="hidden"
             animate="visible"
@@ -294,7 +273,7 @@ function WsSwitcherPanel(props: {
                   variants={listItemVariants}
                   type="button"
                   className={cn(
-                    "flex w-full items-center gap-3 rounded-md px-3 py-2 text-left transition-colors",
+                    "flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left transition-colors",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                     current
                       ? "bg-accent text-accent-foreground"
@@ -315,7 +294,7 @@ function WsSwitcherPanel(props: {
                   <div className="min-w-0 flex-1">
                     <div
                       className={cn(
-                        "truncate text-footnote font-medium",
+                        "truncate text-footnote",
                         current ? "text-accent-foreground" : "text-foreground",
                       )}
                     >
@@ -323,7 +302,7 @@ function WsSwitcherPanel(props: {
                     </div>
                     <div
                       className={cn(
-                        "truncate text-caption",
+                        "truncate text-footnote",
                         current ? "text-accent-foreground/80" : "text-label-secondary",
                       )}
                     >
@@ -363,11 +342,7 @@ export function AdminWorkspaceSwitcher() {
   const setCurrentWorkspaceId = useWorkspaceStore((state) => state.setCurrentWorkspaceId);
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
-  const queryClient = useQueryClient();
   const isWorkspaceScopeRoute = pathname.startsWith("/w/");
-
-  const [createOrganizationOpen, setCreateOrganizationOpen] = useState(false);
-  const [createOrganizationForm] = Form.useForm<CreateOrganizationFormValues>();
 
   const organizationsQuery = useQuery({
     queryKey: ["organization", "me", "organizations", "switcher"],
@@ -375,23 +350,6 @@ export function AdminWorkspaceSwitcher() {
     queryFn: listMyOrganizations,
     staleTime: 5 * 60 * 1000,
     meta: { silent: true },
-  });
-
-  const createOrganizationMutation = useMutation({
-    mutationFn: async (payload: CreateMyOrganizationInput) => createMyOrganization(payload),
-    onSuccess: async (created) => {
-      notifySuccessText(t("common:ACTION_SUCCESS"));
-      setCreateOrganizationOpen(false);
-      createOrganizationForm.resetFields();
-      await queryClient.invalidateQueries({
-        queryKey: ["organization", "me", "organizations", "switcher"],
-      });
-      void navigate({
-        to: buildOrganizationPath(created.organization.id, "/workspaces"),
-        search: { create: "1" } as never,
-      });
-    },
-    onError: (error) => notifyError(error),
   });
 
   const organizations = useMemo<OrganizationOption[]>(() => {
@@ -469,138 +427,89 @@ export function AdminWorkspaceSwitcher() {
   );
 
   return (
-    <>
-      <div className="flex max-w-xs min-w-0 items-center gap-0.5">
-        <FloatingPanelRoot>
-          <FloatingPanelTrigger
-            title={t("common:WORKSPACE_SWITCHER_SELECT_ORG")}
-            className={headerTriggerClassName}
-          >
-            <span className="max-w-32 truncate">
-              {organizationName || t("common:WORKSPACE_SWITCHER_SELECT_ORG")}
-            </span>
-            <ChevronsUpDown className="size-3.5 shrink-0 opacity-60" aria-hidden="true" />
-          </FloatingPanelTrigger>
-
-          <FloatingPanelContent placement="bottom" showTitle={false} className="p-0">
-            <OrgSwitcherPanel
-              organizations={organizations}
-              loading={organizationsQuery.isLoading}
-              fetching={organizationsQuery.isFetching}
-              error={organizationsQuery.error}
-              currentOrganizationId={currentOrganization?.id ?? null}
-              onRefresh={() => {
-                void organizationsQuery.refetch();
-              }}
-              onSelectOrganization={(organizationId) => {
-                setCurrentWorkspaceId(null);
-                void navigate({ to: buildOrganizationPath(organizationId) });
-              }}
-              onOpenCreateOrganization={() => {
-                setCreateOrganizationOpen(true);
-              }}
-            />
-          </FloatingPanelContent>
-        </FloatingPanelRoot>
-
-        <ChevronRight className="size-3.5 shrink-0 text-label-secondary/50" aria-hidden="true" />
-
-        <FloatingPanelRoot>
-          <FloatingPanelTrigger
-            title={t("common:WORKSPACE_SWITCHER_SELECT_WORKSPACE")}
-            className={headerTriggerClassName}
-          >
-            <span className="max-w-36 truncate">
-              {workspaceName || t("common:WORKSPACE_SWITCHER_SELECT_WORKSPACE")}
-            </span>
-            <ChevronsUpDown className="size-3.5 shrink-0 opacity-60" aria-hidden="true" />
-          </FloatingPanelTrigger>
-
-          <FloatingPanelContent placement="bottom" showTitle={false} className="p-0">
-            <WsSwitcherPanel
-              workspaces={workspaceQuery.data ?? []}
-              loading={workspaceQuery.isLoading}
-              fetching={workspaceQuery.isFetching}
-              error={workspaceQuery.error}
-              currentWorkspaceId={currentWorkspaceId}
-              canCreateWorkspace={canCreateWorkspace}
-              onRefresh={() => {
-                void workspaceQuery.refetch();
-              }}
-              onSelectWorkspace={(nextWorkspaceId) => {
-                setCurrentWorkspaceId(nextWorkspaceId);
-                const nextPath = switchWorkspacePath({
-                  pathname,
-                  currentWorkspaceId,
-                  nextWorkspaceId,
-                });
-                void navigate({ to: nextPath as never });
-              }}
-              onCreateWorkspace={() => {
-                if (!canCreateWorkspace || !currentOrganization) return;
-                void navigate({
-                  to: buildOrganizationPath(currentOrganization.id, "/workspaces"),
-                  search: { create: "1" } as never,
-                });
-              }}
-            />
-          </FloatingPanelContent>
-        </FloatingPanelRoot>
-      </div>
-
-      <SettingDialog
-        open={createOrganizationOpen}
-        onOpenChange={(open) => {
-          if (createOrganizationMutation.isPending) return;
-          setCreateOrganizationOpen(open);
-        }}
-        title={t("common:WORKSPACE_SWITCHER_CREATE_ORG")}
-        description={t("common:WORKSPACE_SWITCHER_CREATE_ORG_DESC")}
-        contentClassName="max-w-[460px]"
-        footer={
-          <>
-            <Button
-              type="text"
-              onClick={() => {
-                if (createOrganizationMutation.isPending) return;
-                setCreateOrganizationOpen(false);
-              }}
-            >
-              {t("common:CANCEL")}
-            </Button>
-            <Button
-              type="primary"
-              loading={createOrganizationMutation.isPending}
-              onClick={() => {
-                void createOrganizationForm.submit();
-              }}
-            >
-              {t("common:WORKSPACE_SWITCHER_CREATE_ORG_CONFIRM")}
-            </Button>
-          </>
-        }
-      >
-        <Form<CreateOrganizationFormValues>
-          form={createOrganizationForm}
-          layout="vertical"
-          preserve={false}
-          onFinish={async (values) => {
-            const name = String(values.name || "").trim();
-            await createOrganizationMutation.mutateAsync({ name });
-          }}
+    <div className="flex max-w-xs min-w-0 items-center gap-0.5">
+      <FloatingPanelRoot>
+        <FloatingPanelTrigger
+          title={t("common:WORKSPACE_SWITCHER_SELECT_ORG")}
+          className={headerTriggerClassName}
         >
-          <Form.Item
-            label={t("common:WORKSPACE_SWITCHER_CREATE_ORG_NAME_LABEL")}
-            name="name"
-            rules={[
-              { required: true, message: t("common:WORKSPACE_SWITCHER_CREATE_ORG_NAME_REQUIRED") },
-              { max: 128, message: t("common:WORKSPACE_SWITCHER_CREATE_ORG_NAME_MAX") },
-            ]}
-          >
-            <Input placeholder={t("common:WORKSPACE_SWITCHER_CREATE_ORG_NAME_PLACEHOLDER")} />
-          </Form.Item>
-        </Form>
-      </SettingDialog>
-    </>
+          <span className="max-w-32 truncate">
+            {organizationName || t("common:WORKSPACE_SWITCHER_SELECT_ORG")}
+          </span>
+          <ChevronDown className="size-3.5 shrink-0 opacity-60" aria-hidden="true" />
+        </FloatingPanelTrigger>
+
+        <FloatingPanelContent
+          placement="bottom"
+          showTitle
+          description={t("common:WORKSPACE_SWITCHER_ORG_PANEL_DESC")}
+          className="w-80 p-0"
+        >
+          <OrgSwitcherPanel
+            organizations={organizations}
+            loading={organizationsQuery.isLoading}
+            fetching={organizationsQuery.isFetching}
+            error={organizationsQuery.error}
+            currentOrganizationId={currentOrganization?.id ?? null}
+            onRefresh={() => {
+              void organizationsQuery.refetch();
+            }}
+            onSelectOrganization={(organizationId) => {
+              setCurrentWorkspaceId(null);
+              void navigate({ to: buildOrganizationPath(organizationId) });
+            }}
+          />
+        </FloatingPanelContent>
+      </FloatingPanelRoot>
+
+      <div className="mx-1 h-4 w-px bg-border" />
+
+      <FloatingPanelRoot>
+        <FloatingPanelTrigger
+          title={t("common:WORKSPACE_SWITCHER_SELECT_WORKSPACE")}
+          className={headerTriggerClassName}
+        >
+          <span className="max-w-36 truncate">
+            {workspaceName || t("common:WORKSPACE_SWITCHER_SELECT_WORKSPACE")}
+          </span>
+          <ChevronDown className="size-3.5 shrink-0 opacity-60" aria-hidden="true" />
+        </FloatingPanelTrigger>
+
+        <FloatingPanelContent
+          placement="bottom"
+          showTitle
+          description={t("common:WORKSPACE_SWITCHER_WORKSPACE_PANEL_DESC")}
+          className="w-80 p-0"
+        >
+          <WsSwitcherPanel
+            workspaces={workspaceQuery.data ?? []}
+            loading={workspaceQuery.isLoading}
+            fetching={workspaceQuery.isFetching}
+            error={workspaceQuery.error}
+            currentWorkspaceId={currentWorkspaceId}
+            canCreateWorkspace={canCreateWorkspace}
+            onRefresh={() => {
+              void workspaceQuery.refetch();
+            }}
+            onSelectWorkspace={(nextWorkspaceId) => {
+              setCurrentWorkspaceId(nextWorkspaceId);
+              const nextPath = switchWorkspacePath({
+                pathname,
+                currentWorkspaceId,
+                nextWorkspaceId,
+              });
+              void navigate({ to: nextPath as never });
+            }}
+            onCreateWorkspace={() => {
+              if (!canCreateWorkspace || !currentOrganization) return;
+              void navigate({
+                to: buildOrganizationPath(currentOrganization.id, "/workspaces"),
+                search: { create: "1" } as never,
+              });
+            }}
+          />
+        </FloatingPanelContent>
+      </FloatingPanelRoot>
+    </div>
   );
 }

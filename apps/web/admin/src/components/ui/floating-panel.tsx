@@ -385,18 +385,18 @@ function FloatingPanelTitle({
   return (
     <motion.div
       layoutId={`floating-panel-label-container-${uniqueId}`}
-      className={cn("px-4 py-3", "border-b border-border/60")}
+      className={cn("p-4", "border-b border-border/60")}
     >
       <motion.div
         layoutId={`floating-panel-label-${uniqueId}`}
-        className={cn("text-footnote font-bold! text-foreground", titleClassName)}
+        className={cn("text-title3! font-bold! text-foreground", titleClassName)}
         id={`floating-panel-title-${uniqueId}`}
       >
         {children}
       </motion.div>
       {description ? (
         <div
-          className={cn("mt-1 text-caption text-label-secondary", descriptionClassName)}
+          className={cn("mt-1 text-callout text-label-secondary!", descriptionClassName)}
           id={`floating-panel-desc-${uniqueId}`}
         >
           {description}

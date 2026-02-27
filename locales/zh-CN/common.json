@@ -211,6 +211,8 @@
   "WORKSPACE_SWITCHER_CREATE_ORG_NAME_MAX": "组织名称长度不能超过 128 个字符",
   "WORKSPACE_SWITCHER_ORG_MEMBERS_COUNT_one": "{{count}} 位成员",
   "WORKSPACE_SWITCHER_ORG_MEMBERS_COUNT_other": "{{count}} 位成员",
+  "WORKSPACE_SWITCHER_ORG_PANEL_DESC": "在你的组织之间切换",
+  "WORKSPACE_SWITCHER_WORKSPACE_PANEL_DESC": "在当前组织的工作区之间切换",
   "FAVORITE_ADD": "收藏",
   "FAVORITE_ADD_TOOLTIP": "将此页面添加到侧边栏以便快速访问",
   "FAVORITE_REMOVE": "已收藏",

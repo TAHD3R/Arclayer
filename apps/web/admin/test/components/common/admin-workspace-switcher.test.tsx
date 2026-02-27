@@ -28,7 +28,6 @@ vi.mock("react-i18next", () => ({
 
 vi.mock("@/api/me", () => ({
   listMyOrganizations: vi.fn(),
-  createMyOrganization: vi.fn(),
 }));
 
 vi.mock("@/api/organization-workspaces", () => ({
@@ -254,23 +253,5 @@ describe("AdminWorkspaceSwitcher", () => {
       expect(navigateMock).toHaveBeenCalledWith({ to: "/w/ws-beta/assets" });
     });
     expect(useWorkspaceStore.getState().currentWorkspaceId).toBe("ws-beta");
-  });
-
-  it("新增组织弹窗使用新结构且不包含 slug 输入框", async () => {
-    const user = userEvent.setup();
-
-    renderWithQueryClient();
-
-    const orgTrigger = await screen.findByRole("button", { name: /Org Alpha/ });
-    await user.click(orgTrigger);
-
-    await user.click(
-      await screen.findByRole("button", { name: "common:WORKSPACE_SWITCHER_CREATE_ORG" }),
-    );
-
-    expect(
-      await screen.findByPlaceholderText("common:WORKSPACE_SWITCHER_CREATE_ORG_NAME_PLACEHOLDER"),
-    ).toBeInTheDocument();
-    expect(screen.queryByPlaceholderText("example-org")).not.toBeInTheDocument();
   });
 });
