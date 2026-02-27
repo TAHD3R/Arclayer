@@ -1,52 +1,45 @@
 import React from "react";
-import {
-  compileDesignDocumentV1ToDocumentIR,
-  DocumentRenderer,
-  isDocumentIR,
-  isDesignDocumentV1,
-  migrateDocumentIRToDesignDocumentV1,
-} from "@celestial/site-renderer-core";
-import type { DocumentIR } from "@celestial/site-renderer-core";
 
-import type {
-  DesignBlockNodeV1,
-  DesignDocumentV1,
-  ViewerContext,
-} from "@celestial/site-block-protocol";
+import { DesignDocumentRenderer } from "@celestial/site-renderer-core";
+
+import type { DesignDocumentV1, ViewerContext } from "@celestial/site-block-protocol";
 import {
   CORE_BLOCK_MANIFESTS,
   CORE_BLOCK_PATTERNS,
   PREFAB_BLOCK_MANIFESTS,
   resolveBreakpointNameByWidth,
 } from "@celestial/site-block-protocol";
+
 import type {
   BlockId,
+  EditorCanvasPreferences,
   EditorCanvasState,
   EditorHistoryState,
   EditorLayerNode,
   EditorOverlayMode,
   EditorSelectionInspector,
+  HostEditorRpcApi,
   PortalEditorRpcApi,
 } from "@celestial/site-editor-protocol";
-import { EDITOR_PAGE_ROOT_BLOCK_ID } from "@celestial/site-editor-protocol";
 import type { EditorPortalPenpalConnection } from "@celestial/site-editor-bridge";
 import { connectEditorPortalToHost, isHttpOrigin } from "@celestial/site-editor-bridge";
 
 import {
   applySelectionPatch,
+  convertLegacyBlocksToDesignFragment,
   buildLayerTree,
   buildSelectionInspector,
-  buildSelectionInspectorForBreakpoint,
-  setBreakpointOverride as setBreakpointOverrideInDocument,
   commitEditorHistory,
   createEditorHistory,
-  deleteBlock as deleteBlockInDocument,
-  insertBlockWithMeta,
-  insertBlockTreeWithMeta,
-  moveBlock as moveBlockInDocument,
-  redoEditorHistory,
-  toEditorHistoryState,
+  deleteBlock,
   duplicateBlockWithMeta,
+  insertBlockTreeWithMeta,
+  insertBlockWithMeta,
+  moveBlock,
+  normalizeInitialDocument,
+  redoEditorHistory,
+  setBreakpointOverride,
+  toEditorHistoryState,
   undoEditorHistory,
 } from "@/views/editor/editor-document-state";
 
@@ -88,93 +81,38 @@ function clampZoomPercent(value: number): number {
   return Math.min(200, Math.max(25, Math.round(value)));
 }
 
+function getParentOriginFromSearch(): string | null {
+  if (typeof window === "undefined") return null;
+  const url = new URL(window.location.href);
+  const raw = url.searchParams.get("parentOrigin");
+  const origin = (raw || "").trim();
+  if (!origin) return null;
+  return isHttpOrigin(origin) ? origin : null;
+}
+
 export function EditorSiteView(props: EditorSiteViewProps) {
-  const { initialDocument: initialDocumentUnknown } = props;
-  const pathname = props.pathname;
-  const siteId = props.siteId;
-  const viewerCtx = props.viewerCtx;
+  const { initialDocument: initialDocumentUnknown, viewerCtx, pathname, siteId } = props;
 
-  const [viewportWidth, setViewportWidth] = React.useState<number | null>(null);
-  React.useEffect(() => {
-    if (typeof window === "undefined") return;
-    const read = () => setViewportWidth(window.innerWidth);
-    read();
-    window.addEventListener("resize", read);
-    return () => window.removeEventListener("resize", read);
-  }, []);
+  const baseDesignDocument = React.useMemo<DesignDocumentV1>(
+    () => normalizeInitialDocument(initialDocumentUnknown),
+    [initialDocumentUnknown],
+  );
 
-  const breakpointFromWidth = React.useMemo(() => {
-    if (viewportWidth == null) return null;
-    return resolveBreakpointNameByWidth(viewportWidth);
-  }, [viewportWidth]);
-
-  const renderCtx = React.useMemo<ViewerContext>(() => {
-    if (!breakpointFromWidth) return viewerCtx;
-    return { ...viewerCtx, breakpoint: breakpointFromWidth };
-  }, [breakpointFromWidth, viewerCtx]);
-
-  const breakpointRef = React.useRef<string | null>(breakpointFromWidth);
-  React.useEffect(() => {
-    breakpointRef.current = breakpointFromWidth;
-  }, [breakpointFromWidth]);
-
-  const baseDesignDocument = React.useMemo<DesignDocumentV1>(() => {
-    if (isDesignDocumentV1(initialDocumentUnknown)) {
-      return initialDocumentUnknown;
-    }
-    if (isDocumentIR(initialDocumentUnknown)) {
-      return migrateDocumentIRToDesignDocumentV1(initialDocumentUnknown);
-    }
-    // Keep editor mode strict to avoid accepting arbitrary JSON.
-    throw new Error("Invalid editor document");
-  }, [initialDocumentUnknown]);
-
-  const [history, setHistory] = React.useState(() => createEditorHistory(baseDesignDocument));
+  const [history, setHistory] = React.useState(() =>
+    createEditorHistory({ initialDocument: baseDesignDocument }),
+  );
   const [hasDraftOverride, setHasDraftOverride] = React.useState(false);
   const [overlayMode, setOverlayMode] = React.useState<EditorOverlayMode>("inspect");
   const [selectedBlockId, setSelectedBlockId] = React.useState<BlockId | null>(null);
-  const [hoveredBlockId, setHoveredBlockId] = React.useState<BlockId | null>(null);
   const [canvasState, setCanvasState] = React.useState<EditorCanvasState>(DEFAULT_CANVAS_STATE);
-  const [draftDocument, setDraftDocument] = React.useState<DesignDocumentV1 | null>(null);
-
-  type InlineEditState = {
-    blockId: BlockId;
-    blockType: "heading" | "paragraph";
-    initialText: string;
-    draftText: string;
-  };
-  const [inlineEdit, setInlineEdit] = React.useState<InlineEditState | null>(null);
 
   const hostRef = React.useRef<EditorPortalPenpalConnection["host"] | null>(null);
-  const overlayModeRef = React.useRef<EditorOverlayMode>("inspect");
+  const overlayModeRef = React.useRef<EditorOverlayMode>(overlayMode);
   const pathnameRef = React.useRef<string>(pathname);
   const historyRef = React.useRef(history);
   const selectedBlockIdRef = React.useRef<BlockId | null>(selectedBlockId);
   const canvasStateRef = React.useRef<EditorCanvasState>(canvasState);
-  const draftDocumentRef = React.useRef<DesignDocumentV1 | null>(draftDocument);
-  const inlineEditRef = React.useRef<InlineEditState | null>(inlineEdit);
-  const hoverRafRef = React.useRef<number | null>(null);
-  const pendingHoverRef = React.useRef<BlockId | null>(null);
-
-  const renderDocument = draftDocument ?? history.present;
-  const compiledDocument = React.useMemo<DocumentIR>(() => {
-    const compiled = compileDesignDocumentV1ToDocumentIR(renderDocument);
-    if (!isDocumentIR(compiled)) {
-      throw new Error("Compiled DesignDocument is not a valid DocumentIR");
-    }
-    return compiled;
-  }, [renderDocument]);
-
-  type ResizeSession = {
-    pointerId: number;
-    blockId: BlockId;
-    startClientX: number;
-    startClientY: number;
-    startWidth: number;
-    startHeight: number;
-    baseDocument: DesignDocumentV1;
-  };
-  const resizeSessionRef = React.useRef<ResizeSession | null>(null);
+  const breakpointRef = React.useRef<string | null>(null);
 
   React.useEffect(() => {
     historyRef.current = history;
@@ -189,113 +127,42 @@ export function EditorSiteView(props: EditorSiteViewProps) {
   }, [canvasState]);
 
   React.useEffect(() => {
-    draftDocumentRef.current = draftDocument;
-  }, [draftDocument]);
-
-  React.useEffect(() => {
-    inlineEditRef.current = inlineEdit;
-  }, [inlineEdit]);
-
-  React.useEffect(() => {
     overlayModeRef.current = overlayMode;
   }, [overlayMode]);
-
-  React.useEffect(() => {
-    return () => {
-      if (hoverRafRef.current) {
-        window.cancelAnimationFrame(hoverRafRef.current);
-        hoverRafRef.current = null;
-      }
-    };
-  }, []);
 
   React.useEffect(() => {
     pathnameRef.current = pathname;
   }, [pathname]);
 
+  const [viewport, setViewport] = React.useState<{ width: number; height: number }>(() => ({
+    width: typeof window === "undefined" ? 1024 : window.innerWidth,
+    height: typeof window === "undefined" ? 768 : window.innerHeight,
+  }));
+
   React.useEffect(() => {
-    // Route changed -> clear host overrides so we do not accidentally show a draft from another page.
-    const nextHistory = createEditorHistory(baseDesignDocument);
-    historyRef.current = nextHistory;
-    setHistory(nextHistory);
-    setHasDraftOverride(false);
-    setSelectedBlockId(null);
-    setHoveredBlockId(null);
-    setDraftDocument(null);
-    setInlineEdit(null);
-    resizeSessionRef.current = null;
-  }, [baseDesignDocument, pathname]);
-
-  // Forward wheel events to the host so canvas pan/zoom works even when the cursor is inside the iframe.
-  //
-  // Browsers do not reliably bubble iframe-internal wheel events to the host document (especially cross-origin),
-  // so the portal must send the wheel input via RPC.
-  React.useEffect(() => {
-    const onWheel = (ev: WheelEvent) => {
-      const host = hostRef.current as unknown as { canvasWheel?: (args: any) => void } | null;
-      if (!host?.canvasWheel) return;
-
-      host.canvasWheel({
-        deltaX: ev.deltaX,
-        deltaY: ev.deltaY,
-        deltaMode: ev.deltaMode,
-        ctrlKey: ev.ctrlKey,
-        metaKey: ev.metaKey,
-        shiftKey: ev.shiftKey,
-        clientX: ev.clientX,
-        clientY: ev.clientY,
-      });
-
-      // Figma-style: prevent the preview page itself from scrolling; host handles pan/zoom.
-      ev.preventDefault();
-    };
-
-    window.addEventListener("wheel", onWheel, { passive: false, capture: true });
-    return () => window.removeEventListener("wheel", onWheel, true);
+    if (typeof window === "undefined") return;
+    const onResize = () => setViewport({ width: window.innerWidth, height: window.innerHeight });
+    onResize();
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
   }, []);
 
+  const breakpointFromWidth = React.useMemo(
+    () => resolveBreakpointNameByWidth(viewport.width),
+    [viewport.width],
+  );
   React.useEffect(() => {
-    if (overlayMode !== "edit") {
-      setInlineEdit(null);
-      resizeSessionRef.current = null;
-      setDraftDocument(null);
-      return;
-    }
+    breakpointRef.current = breakpointFromWidth;
+  }, [breakpointFromWidth]);
 
-    if (inlineEdit && selectedBlockId && inlineEdit.blockId !== selectedBlockId) {
-      setInlineEdit(null);
-    }
-  }, [inlineEdit, overlayMode, selectedBlockId]);
-
-  const hoveredRect = useObservedBlockRect({
-    enabled: overlayMode === "inspect",
-    blockId: hoveredBlockId,
-    onMissing: () => setHoveredBlockId(null),
-  });
-
-  const selectedRect = useObservedBlockRect({
-    enabled: overlayMode !== "off" && selectedBlockId !== EDITOR_PAGE_ROOT_BLOCK_ID,
-    blockId: selectedBlockId,
-    onMissing: () => setSelectedBlockId(null),
-  });
-
-  const buildEffectiveInspector = React.useCallback(
-    (document: DesignDocumentV1, blockId: BlockId | null) => {
-      const bp = breakpointRef.current;
-      if (!bp) return buildSelectionInspector(document, blockId);
-      return buildSelectionInspectorForBreakpoint(document, blockId, bp);
-    },
-    [],
+  const renderCtx = React.useMemo<ViewerContext>(
+    () => ({ ...viewerCtx, breakpoint: breakpointFromWidth }),
+    [breakpointFromWidth, viewerCtx],
   );
 
-  const syncSelectionInspector = React.useCallback(
-    (document: DesignDocumentV1, blockId: BlockId | null) => {
-      const inspector = buildEffectiveInspector(document, blockId);
-      getHostOptionalEvents(hostRef.current).selectionInspectorChanged?.({ inspector });
-      return inspector;
-    },
-    [buildEffectiveInspector],
-  );
+  const syncHistoryState = React.useCallback((state: EditorHistoryState) => {
+    getHostOptionalEvents(hostRef.current).historyChanged?.(state);
+  }, []);
 
   const syncLayers = React.useCallback((document: DesignDocumentV1) => {
     const layers = buildLayerTree(document);
@@ -303,9 +170,14 @@ export function EditorSiteView(props: EditorSiteViewProps) {
     return layers;
   }, []);
 
-  const syncHistoryState = React.useCallback((nextHistoryState: EditorHistoryState) => {
-    getHostOptionalEvents(hostRef.current).historyChanged?.(nextHistoryState);
-  }, []);
+  const syncSelectionInspector = React.useCallback(
+    (document: DesignDocumentV1, blockId: BlockId | null) => {
+      const inspector = buildSelectionInspector(document, blockId);
+      getHostOptionalEvents(hostRef.current).selectionInspectorChanged?.({ inspector });
+      return inspector;
+    },
+    [],
+  );
 
   const commitNextDocument = React.useCallback(
     (nextDocument: DesignDocumentV1, opts?: { preserveSelection?: boolean }) => {
@@ -314,11 +186,9 @@ export function EditorSiteView(props: EditorSiteViewProps) {
       setHistory(nextHistory);
       setHasDraftOverride(true);
 
-      const currentSelected = opts?.preserveSelection ? selectedBlockIdRef.current : null;
-      const inspector = syncSelectionInspector(nextDocument, currentSelected);
-      if (inspector.blockId !== currentSelected) {
-        setSelectedBlockId(inspector.blockId);
-      }
+      const keep = opts?.preserveSelection ? selectedBlockIdRef.current : null;
+      const inspector = syncSelectionInspector(nextDocument, keep);
+      if (inspector.blockId !== keep) setSelectedBlockId(inspector.blockId);
 
       syncHistoryState(toEditorHistoryState(nextHistory));
       syncLayers(nextDocument);
@@ -327,46 +197,14 @@ export function EditorSiteView(props: EditorSiteViewProps) {
     [syncHistoryState, syncLayers, syncSelectionInspector],
   );
 
-  const commitInlineTextEdit = React.useCallback(
-    (args: { document: DesignDocumentV1; blockId: BlockId; locale: string; nextText: string }) => {
-      const found = findBlockById(args.document, args.blockId);
-      if (!found) return;
-      if (found.type !== "heading" && found.type !== "paragraph") return;
-
-      const currentTextValue = found.props.text;
-      const nextTextMap = mergeLocalizedText(currentTextValue, args.locale, args.nextText);
-
-      // 避免在当前语言内容不变时写入新的历史记录。
-      if (isRecord(currentTextValue)) {
-        const currentLocaleValue = currentTextValue[args.locale];
-        if (typeof currentLocaleValue === "string" && currentLocaleValue === args.nextText) {
-          return;
-        }
-      }
-
-      const patched = applySelectionPatch(args.document, args.blockId, {
-        section: "component",
-        values: { text: nextTextMap },
-      });
-      if (patched.document === args.document) return;
-
-      commitNextDocument(patched.document, { preserveSelection: true });
-    },
-    [commitNextDocument],
-  );
-
   const undoFromPortal = React.useCallback((): EditorHistoryState => {
     const nextHistory = undoEditorHistory(historyRef.current);
     historyRef.current = nextHistory;
     setHistory(nextHistory);
-
-    const inspector = buildSelectionInspector(nextHistory.present, selectedBlockIdRef.current);
-    if (inspector.blockId !== selectedBlockIdRef.current) {
-      setSelectedBlockId(inspector.blockId);
-    }
+    setHasDraftOverride(true);
 
     syncLayers(nextHistory.present);
-    syncSelectionInspector(nextHistory.present, inspector.blockId);
+    syncSelectionInspector(nextHistory.present, selectedBlockIdRef.current);
     const snapshot = toEditorHistoryState(nextHistory);
     syncHistoryState(snapshot);
     return snapshot;
@@ -376,14 +214,10 @@ export function EditorSiteView(props: EditorSiteViewProps) {
     const nextHistory = redoEditorHistory(historyRef.current);
     historyRef.current = nextHistory;
     setHistory(nextHistory);
-
-    const inspector = buildSelectionInspector(nextHistory.present, selectedBlockIdRef.current);
-    if (inspector.blockId !== selectedBlockIdRef.current) {
-      setSelectedBlockId(inspector.blockId);
-    }
+    setHasDraftOverride(true);
 
     syncLayers(nextHistory.present);
-    syncSelectionInspector(nextHistory.present, inspector.blockId);
+    syncSelectionInspector(nextHistory.present, selectedBlockIdRef.current);
     const snapshot = toEditorHistoryState(nextHistory);
     syncHistoryState(snapshot);
     return snapshot;
@@ -400,6 +234,31 @@ export function EditorSiteView(props: EditorSiteViewProps) {
     [],
   );
 
+  // Forward wheel events to the host so canvas pan/zoom works even when the cursor is inside the iframe.
+  React.useEffect(() => {
+    const onWheel = (ev: WheelEvent) => {
+      const host = hostRef.current as unknown as {
+        canvasWheel?: HostEditorRpcApi["canvasWheel"];
+      } | null;
+      if (!host?.canvasWheel) return;
+      host.canvasWheel({
+        deltaX: ev.deltaX,
+        deltaY: ev.deltaY,
+        deltaMode: ev.deltaMode,
+        ctrlKey: ev.ctrlKey,
+        metaKey: ev.metaKey,
+        shiftKey: ev.shiftKey,
+        clientX: ev.clientX,
+        clientY: ev.clientY,
+      });
+      ev.preventDefault();
+    };
+
+    window.addEventListener("wheel", onWheel, { passive: false, capture: true });
+    return () => window.removeEventListener("wheel", onWheel, true);
+  }, []);
+
+  // Keyboard shortcuts (save/undo/redo).
   React.useEffect(() => {
     if (overlayMode === "off") return;
 
@@ -414,12 +273,12 @@ export function EditorSiteView(props: EditorSiteViewProps) {
         void hostRef.current?.requestSave({
           siteId,
           pathname,
-          document: compileDesignDocumentV1ToDocumentIR(historyRef.current.present),
+          document: historyRef.current.present,
         });
         return;
       }
 
-      // When the user is typing inside an input/textarea, keep undo/redo local to the input.
+      // Keep undo/redo local when typing inside inputs.
       const target = ev.target;
       const isTyping =
         target instanceof HTMLElement &&
@@ -451,18 +310,13 @@ export function EditorSiteView(props: EditorSiteViewProps) {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [overlayMode, pathname, redoFromPortal, siteId, undoFromPortal]);
 
+  // Connect to host (Penpal RPC).
   React.useEffect(() => {
     let mounted = true;
     let destroy: (() => void) | null = null;
 
-    // This route is intended to run inside an iframe (Admin host shell).
-    if (!window.parent || window.parent === window) {
-      return () => {};
-    }
+    if (!window.parent || window.parent === window) return () => {};
 
-    // We rely on Penpal built-in origin restriction (`parentOrigin`).
-    // Cross-origin hosts must pass `?parentOrigin=...` explicitly.
-    // Same-origin embeds can omit it; we default to `window.location.origin`.
     const parentOrigin = getParentOriginFromSearch() ?? window.location.origin;
 
     const methods: PortalEditorRpcApi = {
@@ -471,233 +325,161 @@ export function EditorSiteView(props: EditorSiteViewProps) {
       setOverlayMode: ({ mode }) => {
         setOverlayMode(mode);
         if (mode === "off") setSelectedBlockId(null);
-        if (mode === "off") setHoveredBlockId(null);
       },
       selectBlock: ({ blockId }) => {
         if (overlayModeRef.current === "off") return;
         setSelectedBlockId(blockId);
       },
-      getDocument: () => compileDesignDocumentV1ToDocumentIR(historyRef.current.present),
-      pushDraftDocument: ({ document, pathname: incomingPathname }) => {
-        // Optional scope guard: avoid applying drafts for other pathnames.
-        if (incomingPathname && incomingPathname !== pathnameRef.current) {
-          return;
-        }
-        const incoming = document as unknown;
-        const nextDocument = isDesignDocumentV1(incoming)
-          ? incoming
-          : isDocumentIR(incoming)
-            ? migrateDocumentIRToDesignDocumentV1(incoming)
-            : null;
-        if (!nextDocument) return;
 
-        const nextHistory = createEditorHistory(nextDocument);
+      // Document APIs
+      getDocument: () => historyRef.current.present,
+      pushDraftDocument: ({ document, pathname: incomingPathname }) => {
+        if (incomingPathname && incomingPathname !== pathnameRef.current) return;
+        const nextDocument = normalizeInitialDocument(document);
+        const nextHistory = createEditorHistory({ initialDocument: nextDocument });
         historyRef.current = nextHistory;
         setHistory(nextHistory);
         setHasDraftOverride(true);
         setSelectedBlockId(null);
-        setHoveredBlockId(null);
-        setDraftDocument(null);
-        draftDocumentRef.current = null;
-        setInlineEdit(null);
-        inlineEditRef.current = null;
-        resizeSessionRef.current = null;
         syncHistoryState(toEditorHistoryState(nextHistory));
         syncLayers(nextHistory.present);
         syncSelectionInspector(nextHistory.present, null);
       },
+
+      // History
       undo: () => undoFromPortal(),
       redo: () => redoFromPortal(),
       getHistoryState: () => toEditorHistoryState(historyRef.current),
+
+      // Inspector
       getSelectionInspector: () =>
-        buildEffectiveInspector(historyRef.current.present, selectedBlockIdRef.current),
+        buildSelectionInspector(historyRef.current.present, selectedBlockIdRef.current),
       applySelectionPatch: ({ patch }) => {
-        const patched = applySelectionPatch(
-          historyRef.current.present,
-          selectedBlockIdRef.current,
+        const out = applySelectionPatch({
+          document: historyRef.current.present,
+          blockId: selectedBlockIdRef.current,
           patch,
-        );
-
-        if (patched.document !== historyRef.current.present) {
-          return commitNextDocument(patched.document, { preserveSelection: true });
+        });
+        if (out.document !== historyRef.current.present) {
+          return commitNextDocument(out.document, { preserveSelection: true });
         }
-
         return syncSelectionInspector(historyRef.current.present, selectedBlockIdRef.current);
       },
+
+      // Layers
       getLayerTree: () => buildLayerTree(historyRef.current.present),
+
+      // Insertions
       insertBlock: (args) => {
-        const inserted = insertBlockWithMeta(historyRef.current.present, {
-          ...args,
-          targetBlockId: args.targetBlockId ?? selectedBlockIdRef.current,
+        const inserted = insertBlockWithMeta({
+          document: historyRef.current.present,
+          insert: {
+            ...args,
+            targetBlockId: args.targetBlockId ?? selectedBlockIdRef.current,
+          },
         });
-
-        const nextHistory = commitEditorHistory(historyRef.current, inserted.document);
-        historyRef.current = nextHistory;
-        setHistory(nextHistory);
-        setHasDraftOverride(true);
-        setSelectedBlockId(inserted.blockId);
-        syncHistoryState(toEditorHistoryState(nextHistory));
-        syncLayers(inserted.document);
-        const inspector = syncSelectionInspector(inserted.document, inserted.blockId);
-
+        const inspector = commitNextDocument(inserted.document, { preserveSelection: false });
+        setSelectedBlockId(inserted.selectedId || null);
         return {
-          blockId: inserted.blockId,
+          blockId: inserted.selectedId,
           inspector,
           layers: inserted.layers,
         };
       },
       insertBlockTree: (args) => {
-        const inserted = insertBlockTreeWithMeta(historyRef.current.present, {
-          ...args,
-          targetBlockId: args.targetBlockId ?? selectedBlockIdRef.current,
+        const insertPayload =
+          "blocks" in args
+            ? Object.assign({}, args, convertLegacyBlocksToDesignFragment(args.blocks))
+            : args;
+        const inserted = insertBlockTreeWithMeta({
+          document: historyRef.current.present,
+          insert: {
+            ...insertPayload,
+            targetBlockId: insertPayload.targetBlockId ?? selectedBlockIdRef.current,
+          },
         });
-
-        const nextHistory = commitEditorHistory(historyRef.current, inserted.document);
-        historyRef.current = nextHistory;
-        setHistory(nextHistory);
-        setHasDraftOverride(true);
-        setSelectedBlockId(inserted.blockId);
-        syncHistoryState(toEditorHistoryState(nextHistory));
-        syncLayers(inserted.document);
-        const inspector = syncSelectionInspector(inserted.document, inserted.blockId);
-
+        const inspector = commitNextDocument(inserted.document, { preserveSelection: false });
+        setSelectedBlockId(inserted.selectedId || null);
         return {
-          blockId: inserted.blockId,
+          blockId: inserted.selectedId,
           inspector,
           layers: inserted.layers,
         };
       },
-      setDevicePreset: ({ devicePreset }) =>
-        updateCanvas((prev) => ({
-          ...prev,
-          devicePreset,
-        })),
+
+      // Canvas
+      setDevicePreset: ({ devicePreset }) => updateCanvas((prev) => ({ ...prev, devicePreset })),
       setZoom: ({ zoomPercent }) =>
-        updateCanvas((prev) => ({
-          ...prev,
-          zoomPercent: clampZoomPercent(zoomPercent),
-        })),
-      resetZoom: () =>
-        updateCanvas((prev) => ({
-          ...prev,
-          zoomPercent: 100,
-        })),
+        updateCanvas((prev) => ({ ...prev, zoomPercent: clampZoomPercent(zoomPercent) })),
+      resetZoom: () => updateCanvas((prev) => ({ ...prev, zoomPercent: 100 })),
       setCanvasPreferences: ({ preferences }) =>
         updateCanvas((prev) => ({
           ...prev,
-          preferences: {
-            ...prev.preferences,
-            ...preferences,
-          },
+          preferences: { ...prev.preferences, ...preferences } as EditorCanvasPreferences,
         })),
       getCanvasState: () => canvasStateRef.current,
 
-      // --- Block registry & patterns ---
+      // Registry & patterns
       getAvailableBlocks: () => [...CORE_BLOCK_MANIFESTS, ...PREFAB_BLOCK_MANIFESTS],
       getBlockPatterns: ({ category }) =>
         category ? CORE_BLOCK_PATTERNS.filter((p) => p.category === category) : CORE_BLOCK_PATTERNS,
 
-      // --- Block manipulation ---
+      // Manipulation
       moveBlock: ({ blockId, targetId, position }) => {
-        const moved = moveBlockInDocument(historyRef.current.present, {
+        const moved = moveBlock({
+          document: historyRef.current.present,
           blockId,
           targetId,
           position,
         });
-
-        if (!moved.moved || moved.document === historyRef.current.present) {
-          return buildLayerTree(historyRef.current.present);
+        if (moved.document !== historyRef.current.present) {
+          commitNextDocument(moved.document, { preserveSelection: true });
+          setSelectedBlockId(blockId);
         }
-
-        const nextHistory = commitEditorHistory(historyRef.current, moved.document);
-        historyRef.current = nextHistory;
-        setHistory(nextHistory);
-        setHasDraftOverride(true);
-
-        // Keep the moved block selected for predictable UX.
-        setSelectedBlockId(blockId);
-        syncHistoryState(toEditorHistoryState(nextHistory));
-        const layers = syncLayers(moved.document);
-        syncSelectionInspector(moved.document, blockId);
-        return layers;
+        return moved.layers;
       },
       deleteBlock: ({ blockId }) => {
-        const deleted = deleteBlockInDocument(historyRef.current.present, { blockId });
-        if (!deleted.deleted || deleted.document === historyRef.current.present) {
-          return buildLayerTree(historyRef.current.present);
+        const deleted = deleteBlock({ document: historyRef.current.present, blockId });
+        if (deleted.document !== historyRef.current.present) {
+          commitNextDocument(deleted.document, { preserveSelection: false });
+          setSelectedBlockId(null);
         }
-
-        const nextHistory = commitEditorHistory(historyRef.current, deleted.document);
-        historyRef.current = nextHistory;
-        setHistory(nextHistory);
-        setHasDraftOverride(true);
-
-        const inspector = syncSelectionInspector(deleted.document, selectedBlockIdRef.current);
-        setSelectedBlockId(inspector.blockId);
-        syncHistoryState(toEditorHistoryState(nextHistory));
-        const layers = syncLayers(deleted.document);
-        return layers;
+        return deleted.layers;
       },
       duplicateBlock: ({ blockId }) => {
-        const duplicated = duplicateBlockWithMeta(historyRef.current.present, { blockId });
-
-        const nextHistory = commitEditorHistory(historyRef.current, duplicated.document);
-        historyRef.current = nextHistory;
-        setHistory(nextHistory);
-        setHasDraftOverride(true);
-        setSelectedBlockId(duplicated.blockId);
-        syncHistoryState(toEditorHistoryState(nextHistory));
-        syncLayers(duplicated.document);
-        const inspector = syncSelectionInspector(duplicated.document, duplicated.blockId);
-
+        const duplicated = duplicateBlockWithMeta({
+          document: historyRef.current.present,
+          blockId,
+        });
+        const inspector = commitNextDocument(duplicated.document, { preserveSelection: false });
+        setSelectedBlockId(duplicated.selectedId || null);
         return {
-          blockId: duplicated.blockId,
+          blockId: duplicated.selectedId,
           inspector,
           layers: duplicated.layers,
         };
       },
 
-      // --- Responsive ---
+      // Responsive overrides
       setBreakpointOverride: ({ blockId, breakpoint, patch }) => {
-        const current = historyRef.current.present;
-        const resolvedBlockId = blockId ?? selectedBlockIdRef.current;
-
-        const next = setBreakpointOverrideInDocument(current, {
-          blockId: resolvedBlockId,
+        const resolved = blockId ?? selectedBlockIdRef.current;
+        if (!resolved) return buildSelectionInspector(historyRef.current.present, null);
+        const next = setBreakpointOverride({
+          document: historyRef.current.present,
+          blockId: resolved,
           breakpoint,
           patch,
         });
-
-        if (next.document !== current) {
-          const nextHistory = commitEditorHistory(historyRef.current, next.document);
-          historyRef.current = nextHistory;
-          setHistory(nextHistory);
-          setHasDraftOverride(true);
-
-          // 默认保留选中项；如果 patch 导致选中项失效，则跟随 inspector 的 blockId。
-          const currentSelected = selectedBlockIdRef.current;
-          if (next.inspector.blockId !== currentSelected) {
-            setSelectedBlockId(next.inspector.blockId);
-          }
-
-          syncHistoryState(toEditorHistoryState(nextHistory));
-          syncLayers(next.document);
-          getHostOptionalEvents(hostRef.current).selectionInspectorChanged?.({
-            inspector: next.inspector,
-          });
-
-          return next.inspector;
+        if (next.document !== historyRef.current.present) {
+          commitNextDocument(next.document, { preserveSelection: true });
+        } else {
+          syncSelectionInspector(historyRef.current.present, resolved);
         }
-
-        // No-op update still needs to keep the host inspector in sync.
-        getHostOptionalEvents(hostRef.current).selectionInspectorChanged?.({
-          inspector: next.inspector,
-        });
         return next.inspector;
       },
 
-      // --- Inline editing (skeleton stubs) ---
-      startInlineEdit: ({ blockId: _b, fieldKey: _f }) => ({ content: [] }),
+      // Inline editing (not implemented in v1 editor)
+      startInlineEdit: () => ({ content: [] }),
       commitInlineEdit: () => {},
     };
 
@@ -737,11 +519,6 @@ export function EditorSiteView(props: EditorSiteViewProps) {
   }, [history.present, selectedBlockId, syncSelectionInspector]);
 
   React.useEffect(() => {
-    // Breakpoint changed (iframe resized) -> refresh inspector to reflect responsive overrides.
-    syncSelectionInspector(history.present, selectedBlockId);
-  }, [breakpointFromWidth, history.present, selectedBlockId, syncSelectionInspector]);
-
-  React.useEffect(() => {
     const presence = {
       siteId,
       pathname,
@@ -752,431 +529,34 @@ export function EditorSiteView(props: EditorSiteViewProps) {
       updatedAtMs: Date.now(),
     };
 
-    // Throttle presence updates to avoid noisy iframe chatter.
     const timer = window.setTimeout(() => {
       void hostRef.current?.reportPresence({ presence });
-    }, 100);
+    }, 120);
     return () => window.clearTimeout(timer);
   }, [canvasState, hasDraftOverride, overlayMode, pathname, selectedBlockId, siteId]);
 
-  React.useEffect(() => {
-    if (overlayMode !== "inspect") {
-      setHoveredBlockId(null);
-    }
-  }, [overlayMode]);
-
   return (
-    <div data-portal-mode="editor">
-      <div
-        onClick={(ev) => {
-          if (overlayMode === "off") return;
-          const target = ev.target as HTMLElement | null;
-          const el = target?.closest?.("[data-block-id]") as HTMLElement | null;
-          const blockId = el?.getAttribute("data-block-id") ?? null;
-          setSelectedBlockId(blockId);
+    <div data-celestial="portal-editor-root" style={{ width: "100%", height: "100%" }}>
+      <DesignDocumentRenderer
+        document={history.present}
+        ctx={renderCtx}
+        viewport={{
+          width: viewport.width,
+          height: viewport.height,
+          baseWidth: 1440,
+          baseHeight: viewport.height,
         }}
-        onDoubleClick={(ev) => {
-          if (overlayMode !== "edit") return;
-          if (resizeSessionRef.current) return;
-          if (inlineEditRef.current) return;
-
-          const target = ev.target as HTMLElement | null;
-          const el = target?.closest?.("[data-block-id]") as HTMLElement | null;
-          const blockId = (el?.getAttribute("data-block-id") ?? null) as BlockId | null;
-          if (!blockId) return;
-
-          const found = findBlockById(historyRef.current.present, blockId);
-          if (!found) return;
-          if (found.type !== "heading" && found.type !== "paragraph") return;
-
-          const textValue = (found.props as { text?: unknown }).text;
-          const initialText = resolveLocalizedText(
-            textValue,
-            viewerCtx.locale,
-            viewerCtx.fallbackLocale,
-          );
-
-          setSelectedBlockId(blockId);
-          setInlineEdit({
-            blockId,
-            blockType: found.type,
-            initialText,
-            draftText: initialText,
-          });
+        dataSources={{
+          ...(renderCtx.routeParams ? { routeParams: renderCtx.routeParams } : {}),
+          viewer: Object.assign(
+            {},
+            { locale: String(renderCtx.locale) },
+            renderCtx.fallbackLocale ? { fallbackLocale: String(renderCtx.fallbackLocale) } : {},
+            renderCtx.breakpoint ? { breakpoint: String(renderCtx.breakpoint) } : {},
+            renderCtx.mode ? { mode: String(renderCtx.mode) } : {},
+          ),
         }}
-        onMouseMove={(ev) => {
-          if (overlayMode !== "inspect") return;
-          const target = ev.target as HTMLElement | null;
-          const el = target?.closest?.("[data-block-id]") as HTMLElement | null;
-          const blockId = (el?.getAttribute("data-block-id") ?? null) as BlockId | null;
-          pendingHoverRef.current = blockId;
-          if (hoverRafRef.current) return;
-          hoverRafRef.current = window.requestAnimationFrame(() => {
-            hoverRafRef.current = null;
-            setHoveredBlockId(pendingHoverRef.current);
-          });
-        }}
-        onMouseLeave={() => {
-          pendingHoverRef.current = null;
-          if (hoverRafRef.current) {
-            window.cancelAnimationFrame(hoverRafRef.current);
-            hoverRafRef.current = null;
-          }
-          setHoveredBlockId(null);
-        }}
-      >
-        <DocumentRenderer document={compiledDocument} ctx={renderCtx} />
-      </div>
-      <div data-editor-overlay="true">
-        {inlineEdit && selectedRect && selectedBlockId === inlineEdit.blockId ? (
-          <textarea
-            data-editor-inline-input="true"
-            value={inlineEdit.draftText}
-            autoFocus
-            style={{
-              transform: `translate3d(${selectedRect.left}px, ${selectedRect.top}px, 0)`,
-              width: `${Math.max(16, selectedRect.width)}px`,
-              height: `${Math.max(24, selectedRect.height)}px`,
-            }}
-            onChange={(ev) => {
-              const next = ev.target.value;
-              setInlineEdit((prev) => (prev ? { ...prev, draftText: next } : prev));
-            }}
-            onKeyDown={(ev) => {
-              if (ev.key === "Escape") {
-                ev.preventDefault();
-                ev.stopPropagation();
-                inlineEditRef.current = null;
-                setInlineEdit(null);
-                return;
-              }
-
-              if (ev.key !== "Enter") return;
-
-              const shouldCommit = inlineEdit.blockType === "heading" || ev.metaKey || ev.ctrlKey;
-              if (!shouldCommit) return;
-
-              ev.preventDefault();
-              ev.stopPropagation();
-
-              commitInlineTextEdit({
-                document: historyRef.current.present,
-                blockId: inlineEdit.blockId,
-                locale: viewerCtx.locale,
-                nextText: inlineEdit.draftText,
-              });
-              inlineEditRef.current = null;
-              setInlineEdit(null);
-            }}
-            onBlur={() => {
-              const current = inlineEditRef.current;
-              if (!current) return;
-              commitInlineTextEdit({
-                document: historyRef.current.present,
-                blockId: current.blockId,
-                locale: viewerCtx.locale,
-                nextText: current.draftText,
-              });
-              inlineEditRef.current = null;
-              setInlineEdit(null);
-            }}
-          />
-        ) : null}
-        {hoveredRect && overlayMode === "inspect" ? (
-          <div
-            data-editor-overlay="hover"
-            style={{
-              transform: `translate3d(${hoveredRect.left}px, ${hoveredRect.top}px, 0)`,
-              width: `${hoveredRect.width}px`,
-              height: `${hoveredRect.height}px`,
-            }}
-          />
-        ) : null}
-        {selectedRect ? (
-          <div
-            data-editor-overlay="selection"
-            style={{
-              transform: `translate3d(${selectedRect.left}px, ${selectedRect.top}px, 0)`,
-              width: `${selectedRect.width}px`,
-              height: `${selectedRect.height}px`,
-            }}
-          >
-            {overlayMode === "edit" && selectedBlockId ? (
-              <div
-                data-editor-overlay-handle="se"
-                onPointerDown={(ev) => {
-                  if (!selectedRect) return;
-                  if (overlayMode !== "edit") return;
-                  if (!selectedBlockId) return;
-                  if (inlineEditRef.current) return;
-
-                  ev.preventDefault();
-                  ev.stopPropagation();
-
-                  const target = ev.currentTarget;
-                  target.setPointerCapture(ev.pointerId);
-
-                  resizeSessionRef.current = {
-                    pointerId: ev.pointerId,
-                    blockId: selectedBlockId,
-                    startClientX: ev.clientX,
-                    startClientY: ev.clientY,
-                    startWidth: selectedRect.width,
-                    startHeight: selectedRect.height,
-                    baseDocument: historyRef.current.present,
-                  };
-
-                  document.body.style.userSelect = "none";
-                }}
-                onPointerMove={(ev) => {
-                  const session = resizeSessionRef.current;
-                  if (!session) return;
-                  if (ev.pointerId !== session.pointerId) return;
-
-                  ev.preventDefault();
-                  ev.stopPropagation();
-
-                  const dx = ev.clientX - session.startClientX;
-                  const dy = ev.clientY - session.startClientY;
-
-                  const nextWidth = Math.max(40, Math.round(session.startWidth + dx));
-                  const nextHeight = Math.max(16, Math.round(session.startHeight + dy));
-
-                  const patched = applySelectionPatch(session.baseDocument, session.blockId, {
-                    section: "layout",
-                    values: { width: nextWidth, height: nextHeight },
-                  });
-
-                  draftDocumentRef.current = patched.document;
-                  setDraftDocument(patched.document);
-                }}
-                onPointerCancel={() => {
-                  if (!resizeSessionRef.current) return;
-                  resizeSessionRef.current = null;
-                  document.body.style.userSelect = "";
-                  draftDocumentRef.current = null;
-                  setDraftDocument(null);
-                }}
-                onPointerUp={(ev) => {
-                  const session = resizeSessionRef.current;
-                  if (!session) return;
-                  if (ev.pointerId !== session.pointerId) return;
-
-                  resizeSessionRef.current = null;
-                  document.body.style.userSelect = "";
-
-                  const nextDocument = draftDocumentRef.current;
-                  draftDocumentRef.current = null;
-                  setDraftDocument(null);
-                  if (!nextDocument || nextDocument === historyRef.current.present) return;
-                  commitNextDocument(nextDocument, { preserveSelection: true });
-                }}
-              />
-            ) : null}
-            {selectedBlockId ? <div data-editor-overlay-label>{selectedBlockId}</div> : null}
-          </div>
-        ) : null}
-      </div>
+      />
     </div>
   );
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === "object";
-}
-
-function findBlockById(document: DesignDocumentV1, blockId: BlockId): DesignBlockNodeV1 | null {
-  const node = document.nodesById[blockId];
-  if (!node || node.type === "page") return null;
-  return node as DesignBlockNodeV1;
-}
-
-function resolveLocalizedText(
-  value: unknown,
-  locale: string,
-  fallbackLocale: string | undefined,
-): string {
-  if (!isRecord(value)) return "";
-
-  const direct = value[locale];
-  if (typeof direct === "string") return direct;
-
-  if (fallbackLocale) {
-    const fallback = value[fallbackLocale];
-    if (typeof fallback === "string") return fallback;
-  }
-
-  const en = value["en-US"];
-  if (typeof en === "string") return en;
-
-  const zh = value["zh-CN"];
-  if (typeof zh === "string") return zh;
-
-  for (const v of Object.values(value)) {
-    if (typeof v === "string") return v;
-  }
-
-  return "";
-}
-
-function mergeLocalizedText(
-  value: unknown,
-  locale: string,
-  nextText: string,
-): Record<string, string> {
-  const base: Record<string, string> = {};
-  if (isRecord(value)) {
-    for (const [key, item] of Object.entries(value)) {
-      if (typeof item === "string") base[key] = item;
-    }
-  }
-
-  base[locale] = nextText;
-  return base;
-}
-
-function getBlockElement(blockId: string): HTMLElement | null {
-  if (typeof document === "undefined") return null;
-  if (!isSafeEditorBlockId(blockId)) return null;
-  return document.querySelector(`[data-block-id="${blockId}"]`);
-}
-
-function getParentOriginFromSearch(): string | null {
-  const raw = new URLSearchParams(window.location.search).get("parentOrigin");
-  if (!raw) return null;
-  if (!isHttpOrigin(raw)) return null;
-  return raw;
-}
-
-type ObservedBlockRect = {
-  top: number;
-  left: number;
-  width: number;
-  height: number;
-};
-
-// Must match the guard in @celestial/site-renderer-core.
-const SAFE_BLOCK_ID_RE = /^[A-Za-z0-9][A-Za-z0-9:_-]*$/;
-
-function isSafeEditorBlockId(value: string): boolean {
-  return SAFE_BLOCK_ID_RE.test(value);
-}
-
-function useObservedBlockRect(args: {
-  enabled: boolean;
-  blockId: BlockId | null;
-  onMissing: () => void;
-}): ObservedBlockRect | null {
-  const [rect, setRect] = React.useState<ObservedBlockRect | null>(null);
-
-  const onMissingRef = React.useRef(args.onMissing);
-  React.useEffect(() => {
-    onMissingRef.current = args.onMissing;
-  }, [args.onMissing]);
-
-  React.useEffect(() => {
-    if (!args.enabled || !args.blockId) {
-      setRect(null);
-      return;
-    }
-
-    let disposed = false;
-    let rafLoop: number | null = null;
-    let isIntersecting = true;
-    let last: ObservedBlockRect | null = null;
-
-    const readAndSet = () => {
-      const el = getBlockElement(args.blockId as string);
-      if (!el) {
-        setRect(null);
-        onMissingRef.current();
-        return;
-      }
-      const r = el.getBoundingClientRect();
-      const next: ObservedBlockRect = {
-        top: r.top,
-        left: r.left,
-        width: r.width,
-        height: r.height,
-      };
-      if (
-        last &&
-        last.top === next.top &&
-        last.left === next.left &&
-        last.width === next.width &&
-        last.height === next.height
-      ) {
-        return;
-      }
-      last = next;
-      setRect(next);
-    };
-
-    const startLoop = () => {
-      if (rafLoop) return;
-      const tick = () => {
-        rafLoop = window.requestAnimationFrame(() => {
-          rafLoop = null;
-          if (disposed) return;
-          if (!isIntersecting) return;
-          readAndSet();
-          startLoop();
-        });
-      };
-      tick();
-    };
-
-    const stopLoop = () => {
-      if (!rafLoop) return;
-      window.cancelAnimationFrame(rafLoop);
-      rafLoop = null;
-    };
-
-    const el = getBlockElement(args.blockId);
-    if (!el) {
-      setRect(null);
-      onMissingRef.current();
-      return;
-    }
-
-    const resizeObserver = new ResizeObserver(() => {
-      if (disposed) return;
-      readAndSet();
-    });
-    resizeObserver.observe(el);
-
-    const intersectionObserver = new IntersectionObserver(
-      (entries) => {
-        if (disposed) return;
-        const entry = entries[0];
-        if (!entry) return;
-        isIntersecting = Boolean(entry.isIntersecting);
-        if (!isIntersecting) {
-          stopLoop();
-          setRect(null);
-          return;
-        }
-        readAndSet();
-        startLoop();
-      },
-      {
-        root: null,
-        threshold: [0],
-      },
-    );
-    intersectionObserver.observe(el);
-
-    // Initial rect.
-    readAndSet();
-    startLoop();
-
-    return () => {
-      disposed = true;
-      stopLoop();
-      resizeObserver.disconnect();
-      intersectionObserver.disconnect();
-    };
-  }, [args.blockId, args.enabled]);
-
-  return rect;
 }

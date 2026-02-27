@@ -1,48 +1,62 @@
 import type {
+  BlockId,
   EditorHistoryState,
   EditorInsertBlockArgs,
   EditorInsertBlockPosition,
-  EditorInsertBlockTreeArgs,
   EditorInsertBlockResult,
+  EditorInsertBlockTreeArgs,
   EditorLayerNode,
   EditorSelectionInspector,
   EditorSelectionPatch,
+  EditorSelectionPatchSection,
 } from "@celestial/site-editor-protocol";
 import { EDITOR_PAGE_ROOT_BLOCK_ID } from "@celestial/site-editor-protocol";
 
 import type {
-  BlockNode,
-  DesignBlockNodeV1,
+  BreakpointName,
   DesignDocumentV1,
+  DesignLayoutV1,
   DesignNodeId,
+  DesignNodeResponsiveOverrideV1,
   DesignNodeV1,
+  DesignPrefabInstanceNodeV1,
+  DesignStyleV1,
+  DesignValueV1,
 } from "@celestial/site-block-protocol";
 import {
   CORE_BLOCK_MANIFESTS,
   PREFAB_BLOCK_MANIFESTS,
+  type BlockNode,
   type BlockManifest,
   type FieldDefinition,
 } from "@celestial/site-block-protocol";
 
-import { PREFAB_INSTANCE_BLOCK_TYPE } from "@celestial/site-renderer-core";
-
 const HISTORY_LIMIT_DEFAULT = 100;
-
-const COMPONENT_META_KEYS = new Set(["layout", "style", "animation"]);
-
-const PREFAB_INSPECTOR_PREFIX = "prefab:";
 
 const MANIFEST_BY_TYPE = new Map<string, BlockManifest>(
   [...CORE_BLOCK_MANIFESTS, ...PREFAB_BLOCK_MANIFESTS].map((m) => [m.type, m]),
 );
 
-function isLocalizedStringMap(value: unknown): value is Record<string, string> {
-  if (!isRecord(value)) return false;
-  for (const v of Object.values(value)) {
-    if (v === undefined) continue;
-    if (typeof v !== "string") return false;
-  }
-  return true;
+type DesignContainerNodeV1 = Extract<DesignNodeV1, { children: DesignNodeId[] }>;
+
+type EditorDocumentHistory = {
+  past: DesignDocumentV1[];
+  present: DesignDocumentV1;
+  future: DesignDocumentV1[];
+  limit: number;
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function cloneJson<T>(value: T): T {
+  if (typeof structuredClone === "function") return structuredClone(value) as T;
+  return JSON.parse(JSON.stringify(value)) as T;
+}
+
+function cloneDocument(doc: DesignDocumentV1): DesignDocumentV1 {
+  return cloneJson(doc);
 }
 
 function findManifestByType(type: string): BlockManifest | null {
@@ -51,19 +65,213 @@ function findManifestByType(type: string): BlockManifest | null {
   return MANIFEST_BY_TYPE.get(normalized) ?? null;
 }
 
-function parsePrefabCodeFromInspectorType(type: string): string | null {
-  const raw = (type || "").trim();
-  if (!raw.startsWith(PREFAB_INSPECTOR_PREFIX)) return null;
-  const code = raw.slice(PREFAB_INSPECTOR_PREFIX.length).trim();
-  return code ? code : null;
+function isContainerNode(node: DesignNodeV1): node is DesignContainerNodeV1 {
+  return node.type === "page_root" || node.type === "frame" || node.type === "group";
 }
 
-function prefabInspectorTypeFromCode(code: string): string {
-  return `${PREFAB_INSPECTOR_PREFIX}${code}`;
+function isPrefabInspectorType(type: string): boolean {
+  return type.startsWith("prefab:");
+}
+
+function prefabIdFromInspectorType(type: string): string | null {
+  if (!isPrefabInspectorType(type)) return null;
+  const id = type.slice("prefab:".length).trim();
+  return id ? id : null;
+}
+
+function buildEmptyDocument(): DesignDocumentV1 {
+  // Root id must be stable across Host/Admin and Portal/iframe to keep
+  // layer tree + drag rules consistent.
+  const rootId: DesignNodeId = EDITOR_PAGE_ROOT_BLOCK_ID;
+  const root: DesignNodeV1 = {
+    id: rootId,
+    type: "page_root",
+    name: "Page",
+    children: [],
+    layout: { children: { mode: "absolute" } },
+  };
+  return { version: 1, rootId, nodesById: { [rootId]: root } };
+}
+
+let idSeq = 0;
+function createNodeId(): DesignNodeId {
+  idSeq += 1;
+  // Must match SAFE_NODE_ID_RE in renderer guard: starts with alnum, then alnum/:/_/-
+  return `n${Date.now().toString(36)}_${idSeq.toString(36)}`;
+}
+
+function defaultRectLayout(x: number, y: number, width: number, height: number): DesignLayoutV1 {
+  return {
+    self: {
+      rect: { x, y, width, height },
+      constraints: { horizontal: "left", vertical: "top" },
+      alignX: "start",
+      alignY: "start",
+    },
+    children: { mode: "absolute" },
+  };
+}
+
+function defaultStyle(): DesignStyleV1 {
+  return {};
+}
+
+function toLocalizedText(value: unknown): { "en-US": string; "zh-CN": string } {
+  if (typeof value === "string") return { "en-US": value, "zh-CN": value };
+  if (isRecord(value)) {
+    const en = typeof value["en-US"] === "string" ? (value["en-US"] as string) : "";
+    const zh = typeof value["zh-CN"] === "string" ? (value["zh-CN"] as string) : en;
+    const out = en || zh ? { "en-US": en || zh, "zh-CN": zh || en } : null;
+    if (out) return out;
+  }
+  const s = value == null ? "" : String(value);
+  return { "en-US": s, "zh-CN": s };
+}
+
+export function convertLegacyBlocksToDesignFragment(blocks: BlockNode[]): {
+  rootIds: DesignNodeId[];
+  nodesById: Record<DesignNodeId, DesignNodeV1>;
+} {
+  const nodesById: Record<DesignNodeId, DesignNodeV1> = {};
+  const rootIds: DesignNodeId[] = [];
+
+  const visit = (block: BlockNode): DesignNodeId => {
+    const id = createNodeId();
+    const type = (block.type || "").trim();
+    const props = isRecord(block.props) ? block.props : {};
+    const children = Array.isArray(block.children) ? block.children : [];
+
+    if (type === "__prefab__") {
+      const prefabId = typeof props.prefab === "string" ? props.prefab : "unknown";
+      const rawProps = isRecord(props.props) ? (props.props as Record<string, unknown>) : {};
+      const mappedProps: Record<string, DesignValueV1> = {};
+      for (const [k, v] of Object.entries(rawProps)) {
+        mappedProps[k] = { kind: "literal", value: v };
+      }
+      const slotChildren: Record<string, DesignNodeId[]> = {};
+      if (children.length) {
+        slotChildren.default = children.map((c) => visit(c));
+      }
+      const node: DesignPrefabInstanceNodeV1 = {
+        id,
+        type: "prefab_instance",
+        prefabId,
+        props: mappedProps,
+        slotChildren,
+        layout: defaultRectLayout(0, 0, 360, 240),
+        style: defaultStyle(),
+      };
+      nodesById[id] = node;
+      return id;
+    }
+
+    if (type === "container" || type === "grid" || type === "frame" || type === "group") {
+      const node: DesignNodeV1 = {
+        id,
+        type: "frame",
+        name: typeof props.name === "string" ? props.name : "Frame",
+        children: children.map((c) => visit(c)),
+        layout: defaultRectLayout(0, 0, 320, 200),
+        style: defaultStyle(),
+      };
+      nodesById[id] = node;
+      return id;
+    }
+
+    if (type === "image") {
+      const src = typeof props.src === "string" ? props.src : "";
+      const alt = props.alt ?? "";
+      nodesById[id] = {
+        id,
+        type: "image",
+        src,
+        alt: toLocalizedText(alt),
+        objectFit: "cover",
+        layout: defaultRectLayout(0, 0, 240, 180),
+        style: defaultStyle(),
+      };
+      return id;
+    }
+
+    if (type === "embed") {
+      const url = typeof props.url === "string" ? props.url : "";
+      nodesById[id] = {
+        id,
+        type: "embed",
+        url,
+        layout: defaultRectLayout(0, 0, 320, 180),
+        style: defaultStyle(),
+      };
+      return id;
+    }
+
+    if (type === "heading" || type === "paragraph" || type === "quote" || type === "list") {
+      const text = toLocalizedText((props as Record<string, unknown>).text);
+      nodesById[id] = {
+        id,
+        type: "text",
+        text,
+        tag: type === "heading" ? "h2" : "p",
+        layout: defaultRectLayout(0, 0, 240, 40),
+        style: { typography: { fontSize: 16, lineHeight: 20 } },
+      };
+      return id;
+    }
+
+    // Fallback: map to a rect so we don't drop nodes silently.
+    nodesById[id] = {
+      id,
+      type: "rect",
+      name: type || "rect",
+      layout: defaultRectLayout(0, 0, 120, 120),
+      style: { backgroundColor: "#eee" },
+    };
+    return id;
+  };
+
+  for (const block of blocks) {
+    rootIds.push(visit(block));
+  }
+
+  return { rootIds, nodesById };
+}
+
+function buildNodeLabel(node: DesignNodeV1): string {
+  if (node.name && node.name.trim()) return node.name.trim();
+  if (node.type === "prefab_instance") return `Prefab(${node.prefabId})`;
+  return node.type;
+}
+
+function buildLayerSubtree(
+  document: DesignDocumentV1,
+  nodeId: DesignNodeId,
+): EditorLayerNode | null {
+  const node = document.nodesById[nodeId];
+  if (!node) return null;
+  const children = isContainerNode(node) ? node.children : [];
+  return {
+    id: node.id,
+    type: node.type,
+    label: buildNodeLabel(node),
+    children: children
+      .map((id) => buildLayerSubtree(document, id))
+      .filter((x): x is NonNullable<typeof x> => Boolean(x)),
+  };
+}
+
+export function buildLayerTree(document: DesignDocumentV1): EditorLayerNode[] {
+  const root = document.nodesById[document.rootId];
+  if (!root || root.type !== "page_root") return [];
+  const tree = buildLayerSubtree(document, root.id);
+  return tree ? [tree] : [];
+}
+
+function resolveInspectorType(node: DesignNodeV1): string {
+  if (node.type === "prefab_instance") return `prefab:${node.prefabId}`;
+  return node.type;
 }
 
 function validateFieldValue(field: FieldDefinition, value: unknown): boolean {
-  // undefined 会被 mergePropsRecord 忽略；null 表示删除（required 字段不允许删除）
   if (value === undefined) return true;
   if (value === null) return !field.required;
 
@@ -77,7 +285,7 @@ function validateFieldValue(field: FieldDefinition, value: unknown): boolean {
       if (!field.validation?.options) return true;
       return field.validation.options.some((opt) => opt.value === value);
     case "text":
-      return typeof value === "string" || isLocalizedStringMap(value);
+      return typeof value === "string" || isRecord(value);
     case "color":
     case "url":
       return typeof value === "string";
@@ -86,114 +294,119 @@ function validateFieldValue(field: FieldDefinition, value: unknown): boolean {
   }
 }
 
-function filterComponentPatchByManifest(
-  values: Record<string, unknown>,
-  manifest: BlockManifest | null,
-): Record<string, unknown> {
-  if (!manifest) return values;
-  const fields = new Map<string, FieldDefinition>(manifest.attributes.map((f) => [f.key, f]));
+function toLiteralValue(value: unknown): DesignValueV1 {
+  return { kind: "literal", value };
+}
 
+function buildComponentInspector(node: DesignNodeV1): Record<string, unknown> {
+  if (node.type === "text") {
+    return { text: node.text, tag: node.tag, align: node.align };
+  }
+  if (node.type === "image") {
+    return { src: node.src, alt: node.alt, objectFit: node.objectFit };
+  }
+  if (node.type === "embed") {
+    return { url: node.url };
+  }
+  if (node.type === "prefab_instance") {
+    const propsOut: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(node.props)) {
+      propsOut[k] = v;
+    }
+    return {
+      prefabId: node.prefabId,
+      props: propsOut,
+      slotChildren: node.slotChildren ?? {},
+    };
+  }
+  return {};
+}
+
+function buildLayoutInspector(node: DesignNodeV1): Record<string, unknown> {
+  return node.layout ? cloneJson(node.layout) : {};
+}
+
+function buildDesignInspector(node: DesignNodeV1): Record<string, unknown> {
+  return node.style ? cloneJson(node.style) : {};
+}
+
+function buildAnimationInspector(node: DesignNodeV1): Record<string, unknown> {
+  return node.motionRefs ? { motionRefs: cloneJson(node.motionRefs) } : {};
+}
+
+export function buildSelectionInspector(
+  document: DesignDocumentV1,
+  selectedId: BlockId | null,
+): EditorSelectionInspector {
+  if (!selectedId) {
+    return {
+      blockId: null,
+      blockType: null,
+      component: {},
+      layout: {},
+      design: {},
+      animation: {},
+    };
+  }
+
+  const node = document.nodesById[selectedId];
+  if (!node) {
+    return {
+      blockId: null,
+      blockType: null,
+      component: {},
+      layout: {},
+      design: {},
+      animation: {},
+    };
+  }
+
+  return {
+    blockId: node.id,
+    blockType: resolveInspectorType(node),
+    component: buildComponentInspector(node),
+    layout: buildLayoutInspector(node),
+    design: buildDesignInspector(node),
+    animation: buildAnimationInspector(node),
+  };
+}
+
+function mergeObject<T extends object>(base: T | undefined, patch: Record<string, unknown>): T {
+  const out = { ...(base ?? ({} as T)) } as Record<string, unknown>;
+  for (const [k, v] of Object.entries(patch)) {
+    if (v === undefined) continue;
+    if (v === null) {
+      delete out[k];
+      continue;
+    }
+    out[k] = v;
+  }
+  return out as T;
+}
+
+function deepEqual(a: unknown, b: unknown): boolean {
+  try {
+    return JSON.stringify(a) === JSON.stringify(b);
+  } catch {
+    return false;
+  }
+}
+
+function diffObject(base: unknown, next: unknown): unknown {
+  if (deepEqual(base, next)) return undefined;
+  if (!isRecord(base) || !isRecord(next)) return next;
   const out: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(values)) {
-    const field = fields.get(key);
-    if (!field) continue;
-    if (!validateFieldValue(field, value)) continue;
-    out[key] = value;
+  for (const [k, v] of Object.entries(next)) {
+    const d = diffObject((base as Record<string, unknown>)[k], v);
+    if (d !== undefined) out[k] = d;
   }
-  return out;
+  return Object.keys(out).length ? out : undefined;
 }
 
-function filterDesignPatchByWhitelist(
-  values: Record<string, unknown>,
-  whitelist: string[] | undefined,
-): Record<string, unknown> {
-  if (!Array.isArray(whitelist) || whitelist.length === 0) return values;
-  const allow = new Set(whitelist);
-
-  const out: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(values)) {
-    // 允许删除任何字段（回到 prefab 内部默认），但只允许设置白名单字段
-    if (value === null || allow.has(key)) out[key] = value;
-  }
-  return out;
-}
-
-type EditorDocumentHistory = {
-  past: DesignDocumentV1[];
-  present: DesignDocumentV1;
-  future: DesignDocumentV1[];
-  limit: number;
-};
-
-type UpdateNodeResult = {
-  document: DesignDocumentV1;
-  changed: boolean;
-};
-
-type InsertChildrenResult = {
-  document: DesignDocumentV1;
-  inserted: boolean;
-};
-
-function cloneJson<T>(value: T): T {
-  if (typeof structuredClone === "function") {
-    return structuredClone(value) as T;
-  }
-  return JSON.parse(JSON.stringify(value)) as T;
-}
-
-function cloneDocument(doc: DesignDocumentV1): DesignDocumentV1 {
-  return cloneJson(doc);
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === "object";
-}
-
-function asRecord(value: unknown): Record<string, unknown> {
-  if (!isRecord(value)) return {};
-  return value;
-}
-
-function localizedTextFromProps(value: unknown): string {
-  if (!isRecord(value)) return "";
-  return Object.values(value).find((item): item is string => typeof item === "string") ?? "";
-}
-
-function sanitizeLocalizedStringMap(value: unknown): Record<string, string> {
-  if (!isRecord(value)) return {};
-  const out: Record<string, string> = {};
-  for (const [key, item] of Object.entries(value)) {
-    if (typeof item === "string") out[key] = item;
-  }
-  return out;
-}
-
-function isPageNode(
-  node: DesignNodeV1 | undefined,
-): node is Extract<DesignNodeV1, { type: "page" }> {
-  return node !== undefined && node.type === "page";
-}
-
-function isBlockNode(node: DesignNodeV1 | undefined): node is DesignBlockNodeV1 {
-  return node !== undefined && node.type !== "page";
-}
-
-function isParentBlockType(type: string): boolean {
-  // Keep v1 aligned with current core blocks.
-  return type === "container" || type === "grid" || type === PREFAB_INSTANCE_BLOCK_TYPE;
-}
-
-function getNodeChildren(node: DesignNodeV1): DesignNodeId[] {
-  if (isPageNode(node)) return node.children;
-  return Array.isArray(node.children) ? node.children : [];
-}
-
-function withNodeChildren(node: DesignNodeV1, children: DesignNodeId[]): DesignNodeV1 {
-  if (isPageNode(node)) {
-    return { ...node, children };
-  }
-  return { ...node, children };
+function setNode(document: DesignDocumentV1, node: DesignNodeV1): DesignDocumentV1 {
+  const next = cloneDocument(document);
+  next.nodesById[node.id] = node;
+  return next;
 }
 
 function findParentInfo(
@@ -201,1185 +414,678 @@ function findParentInfo(
   childId: DesignNodeId,
 ): { parentId: DesignNodeId; index: number } | null {
   const root = document.nodesById[document.rootId];
-  if (!isPageNode(root)) return null;
+  if (!root || root.type !== "page_root") return null;
 
   const stack: DesignNodeId[] = [root.id];
   while (stack.length) {
     const parentId = stack.pop();
     if (!parentId) continue;
     const parent = document.nodesById[parentId];
-    if (!parent) continue;
-    const children = getNodeChildren(parent);
-
-    for (let index = 0; index < children.length; index += 1) {
-      const id = children[index];
+    if (!parent || !isContainerNode(parent)) continue;
+    for (let i = 0; i < parent.children.length; i += 1) {
+      const id = parent.children[i];
       if (!id) continue;
-      if (id === childId) return { parentId, index };
-
-      const node = document.nodesById[id];
-      if (!isBlockNode(node)) continue;
-      if (Array.isArray(node.children) && node.children.length) {
-        stack.push(node.id);
-      }
+      if (id === childId) return { parentId: parent.id, index: i };
+      stack.push(id);
     }
   }
-
   return null;
 }
 
-function collectSubtreeIds(document: DesignDocumentV1, rootId: DesignNodeId): DesignNodeId[] {
-  const out: DesignNodeId[] = [];
+function removeSubtree(document: DesignDocumentV1, rootId: DesignNodeId): DesignDocumentV1 {
+  const next = cloneDocument(document);
   const stack: DesignNodeId[] = [rootId];
-  const seen = new Set<DesignNodeId>();
-
+  const seen = new Set<string>();
   while (stack.length) {
     const id = stack.pop();
     if (!id) continue;
     if (seen.has(id)) continue;
     seen.add(id);
-    out.push(id);
 
-    const node = document.nodesById[id];
-    if (!isBlockNode(node)) continue;
-    const children = Array.isArray(node.children) ? node.children : [];
-    for (const childId of children) {
-      stack.push(childId);
+    const node = next.nodesById[id];
+    if (!node) continue;
+    if (isContainerNode(node)) {
+      for (const child of node.children) stack.push(child);
     }
-  }
-
-  return out;
-}
-
-function containsNodeId(
-  document: DesignDocumentV1,
-  rootId: DesignNodeId,
-  candidateId: DesignNodeId,
-): boolean {
-  if (rootId === candidateId) return true;
-  const subtree = collectSubtreeIds(document, rootId);
-  return subtree.includes(candidateId);
-}
-
-function updateNodeById(
-  document: DesignDocumentV1,
-  nodeId: DesignNodeId,
-  updater: (node: DesignNodeV1) => DesignNodeV1,
-): UpdateNodeResult {
-  const current = document.nodesById[nodeId];
-  if (!current) return { document, changed: false };
-
-  const nextNode = updater(current);
-  if (nextNode === current) return { document, changed: false };
-
-  return {
-    document: {
-      ...document,
-      nodesById: {
-        ...document.nodesById,
-        [nodeId]: nextNode,
-      },
-    },
-    changed: true,
-  };
-}
-
-function updateChildren(
-  document: DesignDocumentV1,
-  parentId: DesignNodeId,
-  updater: (children: DesignNodeId[]) => DesignNodeId[],
-): UpdateNodeResult {
-  const parent = document.nodesById[parentId];
-  if (!parent) return { document, changed: false };
-
-  // Only update children for known parent nodes.
-  if (parent.type !== "page" && !isParentBlockType(parent.type)) {
-    return { document, changed: false };
-  }
-
-  const currentChildren = getNodeChildren(parent);
-  const nextChildren = updater(currentChildren);
-  if (nextChildren === currentChildren) return { document, changed: false };
-
-  return updateNodeById(document, parentId, (node) => withNodeChildren(node, nextChildren));
-}
-
-function insertInsideTarget(
-  document: DesignDocumentV1,
-  targetId: DesignNodeId,
-  newIds: DesignNodeId[],
-): InsertChildrenResult {
-  if (newIds.length === 0) return { document, inserted: false };
-
-  const updated = updateChildren(document, targetId, (children) => [...children, ...newIds]);
-  return { document: updated.document, inserted: updated.changed };
-}
-
-function insertRelativeToTarget(
-  document: DesignDocumentV1,
-  targetId: DesignNodeId,
-  newIds: DesignNodeId[],
-  position: "before" | "after",
-): InsertChildrenResult {
-  if (newIds.length === 0) return { document, inserted: false };
-
-  const parentInfo = findParentInfo(document, targetId);
-  if (!parentInfo) return { document, inserted: false };
-
-  const updated = updateChildren(document, parentInfo.parentId, (children) => {
-    const next = [...children];
-    const at = position === "before" ? parentInfo.index : parentInfo.index + 1;
-    next.splice(at, 0, ...newIds);
-    return next;
-  });
-
-  return { document: updated.document, inserted: updated.changed };
-}
-
-function mergePropsRecord(
-  source: Record<string, unknown>,
-  values: Record<string, unknown>,
-): Record<string, unknown> {
-  const next: Record<string, unknown> = { ...source };
-  for (const [key, value] of Object.entries(values)) {
-    if (value === undefined) continue;
-    if (value === null) {
-      delete next[key];
-      continue;
+    if (node.type === "prefab_instance" && node.slotChildren) {
+      for (const ids of Object.values(node.slotChildren)) {
+        for (const cid of ids) stack.push(cid);
+      }
     }
-    next[key] = value;
+    delete next.nodesById[id];
   }
   return next;
 }
 
-function mergeNestedProps(
-  source: Record<string, unknown>,
-  key: "layout" | "style" | "animation",
-  values: Record<string, unknown>,
-): Record<string, unknown> {
-  const next = { ...source };
-  const current = asRecord(next[key]);
-  next[key] = mergePropsRecord(current, values);
-  return next;
+function insertChildId(args: {
+  document: DesignDocumentV1;
+  parentId: DesignNodeId;
+  childId: DesignNodeId;
+  index: number;
+}): DesignDocumentV1 {
+  const parent = args.document.nodesById[args.parentId];
+  if (!parent || !isContainerNode(parent)) return args.document;
+  const nextParent: DesignContainerNodeV1 = { ...parent, children: [...parent.children] };
+  const idx = Math.max(0, Math.min(nextParent.children.length, args.index));
+  nextParent.children.splice(idx, 0, args.childId);
+  return setNode(args.document, nextParent);
 }
 
-function componentSectionFromProps(props: Record<string, unknown>): Record<string, unknown> {
-  const section: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(props)) {
-    if (COMPONENT_META_KEYS.has(key)) continue;
-    section[key] = value;
-  }
-  return section;
+function pushHistory(history: EditorDocumentHistory, doc: DesignDocumentV1): EditorDocumentHistory {
+  const past = [...history.past, history.present];
+  const limit = history.limit;
+  const trimmed = past.length > limit ? past.slice(past.length - limit) : past;
+  return { ...history, past: trimmed, present: doc, future: [] };
 }
 
-function buildLayerLabel(node: DesignBlockNodeV1): string {
-  const props = node.props;
-
-  switch (node.type) {
-    case PREFAB_INSTANCE_BLOCK_TYPE: {
-      const record = asRecord(props);
-      const code = typeof record.prefab === "string" ? record.prefab.trim() : "";
-      const prefabProps = asRecord(record.props);
-      const title = localizedTextFromProps(prefabProps.title);
-      const base = code ? `Prefab(${code})` : "Prefab";
-      return title ? `${base}: ${title}` : base;
-    }
-    case "heading": {
-      const text = localizedTextFromProps(props.text);
-      return text ? `Heading: ${text}` : "Heading";
-    }
-    case "paragraph": {
-      const text = localizedTextFromProps(props.text);
-      return text ? `Paragraph: ${text}` : "Paragraph";
-    }
-    case "button": {
-      const text = localizedTextFromProps(props.text);
-      return text ? `Button: ${text}` : "Button";
-    }
-    case "quote": {
-      const text = localizedTextFromProps(props.text);
-      return text ? `Quote: ${text}` : "Quote";
-    }
-    case "divider":
-      return "Divider";
-    case "container":
-      return "Container";
-    case "grid":
-      return "Grid";
-    case "list":
-      return "List";
-    case "image":
-      return "Image";
-    case "video":
-      return "Video";
-    case "spacer":
-      return "Spacer";
-    case "icon": {
-      const name = typeof props.name === "string" ? props.name : "";
-      return name.trim() ? `Icon: ${name}` : "Icon";
-    }
-  }
-
-  return node.type;
-}
-
-function generateBlockId(): string {
-  return `b-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-}
-
-function localized(en: string, zh: string): Record<string, string> {
-  return { "en-US": en, "zh-CN": zh };
-}
-
-function buildDesignBlockByType(type: EditorInsertBlockArgs["type"]): DesignBlockNodeV1 {
-  const id = generateBlockId();
-
-  const prefabCode = parsePrefabCodeFromInspectorType(type);
-  if (prefabCode) {
-    const defaultPrefabProps: Record<string, unknown> =
-      prefabCode === "card"
-        ? {
-            title: localized("Card", "卡片"),
-            description: localized("Description", "描述"),
-            imageSrc: "",
-            href: "",
-          }
-        : {};
-
-    return {
-      id,
-      type: PREFAB_INSTANCE_BLOCK_TYPE,
-      props: {
-        prefab: prefabCode,
-        props: defaultPrefabProps,
-        layout: { width: "100%" },
-      },
-      children: [],
-    };
-  }
-
-  if (type === "container") {
-    return {
-      id,
-      type,
-      props: {
-        as: "section",
-        layout: {
-          width: "100%",
-          padding: "24px",
-          display: "flex",
-          direction: "column",
-          gap: "12px",
-        },
-        style: {
-          backgroundColor: "#ffffff",
-          borderRadius: "12px",
-        },
-      },
-      children: [],
-    };
-  }
-
-  if (type === "grid") {
-    return {
-      id,
-      type,
-      props: {
-        columns: 2,
-        columnGap: "16px",
-        rowGap: "16px",
-      },
-      children: [],
-    };
-  }
-
-  if (type === "spacer") {
-    return {
-      id,
-      type,
-      props: {
-        height: "24px",
-      },
-    };
-  }
-
-  if (type === "divider") {
-    return {
-      id,
-      type,
-      props: {
-        variant: "default",
-      },
-    };
-  }
-
-  if (type === "heading") {
-    return {
-      id,
-      type,
-      props: {
-        level: 2,
-        text: localized("Heading", "标题"),
-        align: "left",
-      },
-    };
-  }
-
-  if (type === "paragraph") {
-    return {
-      id,
-      type,
-      props: {
-        text: localized("Paragraph", "段落"),
-        align: "left",
-      },
-    };
-  }
-
-  if (type === "list") {
-    return {
-      id,
-      type,
-      props: {
-        ordered: false,
-        items: [localized("Item 1", "列表项 1"), localized("Item 2", "列表项 2")],
-      },
-    };
-  }
-
-  if (type === "quote") {
-    return {
-      id,
-      type,
-      props: {
-        text: localized("Quote", "引用"),
-        citation: localized("Source", "来源"),
-      },
-    };
-  }
-
-  if (type === "image") {
-    return {
-      id,
-      type,
-      props: {
-        src: "",
-        alt: "",
-        objectFit: "cover",
-      },
-    };
-  }
-
-  if (type === "video") {
-    return {
-      id,
-      type,
-      props: {
-        src: "",
-        poster: "",
-        autoplay: false,
-        loop: false,
-        muted: false,
-      },
-    };
-  }
-
-  if (type === "icon") {
-    return {
-      id,
-      type,
-      props: {
-        name: "star",
-        size: "24px",
-      },
-    };
-  }
-
-  if (type === "button") {
-    return {
-      id,
-      type,
-      props: {
-        text: localized("Button", "按钮"),
-        href: "",
-        variant: "primary",
-        size: "md",
-      },
-    };
-  }
-
-  return {
-    id,
-    type,
-    props: {},
-  };
-}
-
-type BlockTreeCloneResult = {
-  rootIds: DesignNodeId[];
-  nodesById: Record<DesignNodeId, DesignNodeV1>;
-  selectedBlockId: DesignNodeId;
-};
-
-function cloneBlockTreeWithNewIds(blocks: BlockNode[]): BlockTreeCloneResult {
-  if (blocks.length === 0) {
-    throw new Error("insertBlockTree requires non-empty blocks");
-  }
-
-  const nodesById: Record<DesignNodeId, DesignNodeV1> = {};
-
-  const cloneNode = (node: BlockNode): DesignNodeId => {
-    const nextId = generateBlockId();
-    const childIds = Array.isArray(node.children) ? node.children.map(cloneNode) : undefined;
-
-    nodesById[nextId] = {
-      id: nextId,
-      type: node.type,
-      props: cloneJson(node.props) as Record<string, unknown>,
-      ...(childIds ? { children: childIds } : {}),
-      ...(node.responsive ? { responsive: cloneJson(node.responsive) } : {}),
-    };
-
-    return nextId;
-  };
-
-  const rootIds = blocks.map(cloneNode);
-  const selectedBlockId = rootIds[0];
-  if (!selectedBlockId) {
-    throw new Error("insertBlockTree failed to generate a selected block id");
-  }
-
-  return { rootIds, nodesById, selectedBlockId };
-}
-
-export function createEditorHistory(
-  initialDocument: DesignDocumentV1,
-  limit = HISTORY_LIMIT_DEFAULT,
-): EditorDocumentHistory {
+export function createEditorHistory(args: {
+  initialDocument: DesignDocumentV1;
+  limit?: number;
+}): EditorDocumentHistory {
   return {
     past: [],
-    present: cloneDocument(initialDocument),
+    present: cloneDocument(args.initialDocument),
     future: [],
-    limit,
+    limit: args.limit ?? HISTORY_LIMIT_DEFAULT,
+  };
+}
+
+export function toEditorHistoryState(history: EditorDocumentHistory): EditorHistoryState {
+  return {
+    canUndo: history.past.length > 0,
+    canRedo: history.future.length > 0,
+    undoDepth: history.past.length,
+    redoDepth: history.future.length,
+  };
+}
+
+export function undoEditorHistory(history: EditorDocumentHistory): EditorDocumentHistory {
+  if (history.past.length === 0) return history;
+  const prev = history.past[history.past.length - 1];
+  if (!prev) return history;
+  return {
+    ...history,
+    past: history.past.slice(0, -1),
+    present: prev,
+    future: [history.present, ...history.future],
+  };
+}
+
+export function redoEditorHistory(history: EditorDocumentHistory): EditorDocumentHistory {
+  if (history.future.length === 0) return history;
+  const next = history.future[0];
+  if (!next) return history;
+  return {
+    ...history,
+    past: [...history.past, history.present],
+    present: next,
+    future: history.future.slice(1),
   };
 }
 
 export function commitEditorHistory(
-  state: EditorDocumentHistory,
+  history: EditorDocumentHistory,
   nextDocument: DesignDocumentV1,
 ): EditorDocumentHistory {
-  const nextPast = [...state.past, cloneDocument(state.present)];
-  const overflow = Math.max(0, nextPast.length - state.limit);
-
-  return {
-    ...state,
-    past: overflow > 0 ? nextPast.slice(overflow) : nextPast,
-    present: cloneDocument(nextDocument),
-    future: [],
-  };
+  if (deepEqual(history.present, nextDocument)) return history;
+  return pushHistory(history, nextDocument);
 }
 
-export function undoEditorHistory(state: EditorDocumentHistory): EditorDocumentHistory {
-  if (!state.past.length) return state;
+function buildNodeByInsertType(type: string): DesignNodeV1 | null {
+  const id = createNodeId();
 
-  const previous = state.past[state.past.length - 1];
-  if (!previous) return state;
-  const nextPast = state.past.slice(0, -1);
-  return {
-    ...state,
-    past: nextPast,
-    present: cloneDocument(previous),
-    future: [cloneDocument(state.present), ...state.future],
-  };
-}
-
-export function redoEditorHistory(state: EditorDocumentHistory): EditorDocumentHistory {
-  if (!state.future.length) return state;
-
-  const [next, ...restFuture] = state.future;
-  if (!next) return state;
-  return {
-    ...state,
-    past: [...state.past, cloneDocument(state.present)],
-    present: cloneDocument(next),
-    future: restFuture,
-  };
-}
-
-export function toEditorHistoryState(state: EditorDocumentHistory): EditorHistoryState {
-  return {
-    canUndo: state.past.length > 0,
-    canRedo: state.future.length > 0,
-    undoDepth: state.past.length,
-    redoDepth: state.future.length,
-  };
-}
-
-export function buildSelectionInspector(
-  document: DesignDocumentV1,
-  blockId: string | null,
-): EditorSelectionInspector {
-  if (!blockId) {
+  if (type === "frame") {
     return {
-      blockId: null,
-      blockType: null,
-      component: {},
-      layout: {},
-      design: {},
-      animation: {},
+      id,
+      type: "frame",
+      name: "Frame",
+      children: [],
+      layout: defaultRectLayout(0, 0, 320, 200),
+      style: defaultStyle(),
+    };
+  }
+  if (type === "group") {
+    return {
+      id,
+      type: "group",
+      name: "Group",
+      children: [],
+      layout: defaultRectLayout(0, 0, 320, 200),
+      style: defaultStyle(),
+    };
+  }
+  if (type === "rect") {
+    return {
+      id,
+      type: "rect",
+      name: "Rect",
+      layout: defaultRectLayout(0, 0, 120, 120),
+      style: { backgroundColor: "#ddd" },
+    };
+  }
+  if (type === "text") {
+    return {
+      id,
+      type: "text",
+      name: "Text",
+      text: { "en-US": "Text", "zh-CN": "文本" },
+      tag: "p",
+      layout: defaultRectLayout(0, 0, 240, 40),
+      style: { typography: { fontSize: 16, lineHeight: 20 } },
+    };
+  }
+  if (type === "image") {
+    return {
+      id,
+      type: "image",
+      name: "Image",
+      src: "",
+      alt: { "en-US": "Image", "zh-CN": "图片" },
+      objectFit: "cover",
+      layout: defaultRectLayout(0, 0, 240, 180),
+      style: defaultStyle(),
+    };
+  }
+  if (type === "embed") {
+    return {
+      id,
+      type: "embed",
+      name: "Embed",
+      url: "",
+      layout: defaultRectLayout(0, 0, 320, 180),
+      style: defaultStyle(),
     };
   }
 
-  if (blockId === EDITOR_PAGE_ROOT_BLOCK_ID) {
-    const root = document.nodesById[document.rootId];
-    const meta = isPageNode(root) ? asRecord(root.meta) : {};
+  if (isPrefabInspectorType(type)) {
+    const prefabId = prefabIdFromInspectorType(type);
+    if (!prefabId) return null;
+    const manifest = findManifestByType(type);
 
-    return {
-      blockId: EDITOR_PAGE_ROOT_BLOCK_ID,
-      blockType: "page",
-      component: {
-        title: sanitizeLocalizedStringMap(meta.title),
-        description: sanitizeLocalizedStringMap(meta.description),
-      },
-      layout: asRecord(meta.layout),
-      design: asRecord(meta.style),
-      animation: asRecord(meta.animation),
-    };
-  }
-
-  const node = document.nodesById[blockId];
-  if (!isBlockNode(node)) {
-    return {
-      blockId: null,
-      blockType: null,
-      component: {},
-      layout: {},
-      design: {},
-      animation: {},
-    };
-  }
-
-  const props = asRecord(node.props);
-  if (node.type === PREFAB_INSTANCE_BLOCK_TYPE) {
-    const prefab = typeof props.prefab === "string" ? props.prefab.trim() : "";
-    const inspectorType = prefab ? prefabInspectorTypeFromCode(prefab) : node.type;
-
-    return {
-      blockId: node.id,
-      blockType: inspectorType,
-      component: asRecord(props.props),
-      layout: asRecord(props.layout),
-      design: asRecord(props.style),
-      animation: asRecord(props.animation),
-    };
-  }
-  return {
-    blockId: node.id,
-    blockType: node.type,
-    component: componentSectionFromProps(props),
-    layout: asRecord(props.layout),
-    design: asRecord(props.style),
-    animation: asRecord(props.animation),
-  };
-}
-
-export function buildSelectionInspectorForBreakpoint(
-  document: DesignDocumentV1,
-  blockId: string | null,
-  breakpoint: string,
-): EditorSelectionInspector {
-  const base = buildSelectionInspector(document, blockId);
-  if (!base.blockId || base.blockId === EDITOR_PAGE_ROOT_BLOCK_ID) return base;
-
-  const node = document.nodesById[base.blockId];
-  if (!isBlockNode(node)) return base;
-
-  const bp = (breakpoint || "").trim();
-  if (!bp) return base;
-
-  const override = node.responsive?.[bp];
-  if (!override) return base;
-
-  const nextLayout = override.layout
-    ? { ...base.layout, ...asRecord(override.layout) }
-    : base.layout;
-  const nextDesign = override.style ? { ...base.design, ...asRecord(override.style) } : base.design;
-  const nextAnimation = override.animation
-    ? { ...base.animation, ...asRecord(override.animation) }
-    : base.animation;
-
-  return {
-    ...base,
-    layout: nextLayout,
-    design: nextDesign,
-    animation: nextAnimation,
-  };
-}
-
-export function applySelectionPatch(
-  document: DesignDocumentV1,
-  blockId: string | null,
-  patch: EditorSelectionPatch,
-): { document: DesignDocumentV1; inspector: EditorSelectionInspector } {
-  if (!blockId) {
-    return {
-      document,
-      inspector: buildSelectionInspector(document, null),
-    };
-  }
-
-  if (blockId === EDITOR_PAGE_ROOT_BLOCK_ID) {
-    const root = document.nodesById[document.rootId];
-    if (!isPageNode(root)) {
-      return {
-        document,
-        inspector: buildSelectionInspector(document, EDITOR_PAGE_ROOT_BLOCK_ID),
-      };
+    const props: Record<string, DesignValueV1> = {};
+    for (const field of manifest?.attributes ?? []) {
+      props[field.key] = { kind: "literal", value: field.default };
     }
 
-    const currentMeta = asRecord(root.meta);
-
-    const nextMeta = (() => {
-      if (patch.section === "component") {
-        const nextComponent = mergePropsRecord(
-          componentSectionFromProps(currentMeta),
-          patch.values,
-        );
-        const merged: Record<string, unknown> = {
-          ...nextComponent,
-        };
-        if (currentMeta.layout !== undefined) merged.layout = currentMeta.layout;
-        if (currentMeta.style !== undefined) merged.style = currentMeta.style;
-        if (currentMeta.animation !== undefined) merged.animation = currentMeta.animation;
-        return merged;
-      }
-
-      if (patch.section === "layout") {
-        return mergeNestedProps(currentMeta, "layout", patch.values);
-      }
-
-      if (patch.section === "design") {
-        return mergeNestedProps(currentMeta, "style", patch.values);
-      }
-
-      return mergeNestedProps(currentMeta, "animation", patch.values);
-    })();
-
-    const updatedRoot = {
-      ...root,
-      meta: nextMeta,
+    const node: DesignPrefabInstanceNodeV1 = {
+      id,
+      type: "prefab_instance",
+      name: `Prefab(${prefabId})`,
+      prefabId,
+      props,
+      slotChildren: {},
+      layout: defaultRectLayout(0, 0, 360, 240),
+      style: defaultStyle(),
     };
-
-    const nextDocument = {
-      ...document,
-      nodesById: {
-        ...document.nodesById,
-        [root.id]: updatedRoot,
-      },
-    };
-
-    return {
-      document: nextDocument,
-      inspector: buildSelectionInspector(nextDocument, EDITOR_PAGE_ROOT_BLOCK_ID),
-    };
+    return node;
   }
 
-  const node = document.nodesById[blockId];
-  if (!isBlockNode(node)) {
-    return {
-      document,
-      inspector: buildSelectionInspector(document, null),
-    };
-  }
-
-  const currentProps = asRecord(node.props);
-
-  const nextNode = (() => {
-    if (patch.section === "component") {
-      if (node.type === PREFAB_INSTANCE_BLOCK_TYPE) {
-        const prefab = typeof currentProps.prefab === "string" ? currentProps.prefab.trim() : "";
-        const manifest = prefab ? findManifestByType(prefabInspectorTypeFromCode(prefab)) : null;
-        const filteredValues = filterComponentPatchByManifest(patch.values, manifest);
-        const nextPrefabProps = mergePropsRecord(asRecord(currentProps.props), filteredValues);
-
-        return {
-          ...node,
-          props: {
-            ...currentProps,
-            props: nextPrefabProps,
-          },
-        };
-      }
-
-      const manifest = findManifestByType(node.type);
-      const filteredValues = filterComponentPatchByManifest(patch.values, manifest);
-      const nextComponent = mergePropsRecord(
-        componentSectionFromProps(currentProps),
-        filteredValues,
-      );
-      const merged: Record<string, unknown> = {
-        ...nextComponent,
-      };
-      if (currentProps.layout !== undefined) merged.layout = currentProps.layout;
-      if (currentProps.style !== undefined) merged.style = currentProps.style;
-      if (currentProps.animation !== undefined) merged.animation = currentProps.animation;
-      return { ...node, props: merged };
-    }
-
-    if (patch.section === "layout") {
-      return { ...node, props: mergeNestedProps(currentProps, "layout", patch.values) };
-    }
-
-    if (patch.section === "design") {
-      if (node.type === PREFAB_INSTANCE_BLOCK_TYPE) {
-        const prefab = typeof currentProps.prefab === "string" ? currentProps.prefab.trim() : "";
-        const manifest = prefab ? findManifestByType(prefabInspectorTypeFromCode(prefab)) : null;
-        const filteredValues = filterDesignPatchByWhitelist(
-          patch.values,
-          manifest?.styleOverrideWhitelist,
-        );
-        return { ...node, props: mergeNestedProps(currentProps, "style", filteredValues) };
-      }
-
-      return { ...node, props: mergeNestedProps(currentProps, "style", patch.values) };
-    }
-
-    return { ...node, props: mergeNestedProps(currentProps, "animation", patch.values) };
-  })();
-
-  const updated = updateNodeById(document, node.id, () => nextNode);
-  if (!updated.changed) {
-    return {
-      document,
-      inspector: buildSelectionInspector(document, blockId),
-    };
-  }
-
-  return {
-    document: updated.document,
-    inspector: buildSelectionInspector(updated.document, blockId),
-  };
+  return null;
 }
 
-function isEmptyRecordValue(value: unknown): boolean {
-  if (!isRecord(value)) return true;
-  return Object.keys(value).length === 0;
-}
+function normalizeInsertTarget(args: {
+  document: DesignDocumentV1;
+  targetId: BlockId | null | undefined;
+  position: EditorInsertBlockPosition | undefined;
+}): { parentId: DesignNodeId; index: number } | null {
+  const root = args.document.nodesById[args.document.rootId];
+  if (!root || root.type !== "page_root") return null;
 
-export function setBreakpointOverride(
-  document: DesignDocumentV1,
-  args: {
-    blockId: string | null;
-    breakpoint: string;
-    patch: EditorSelectionPatch;
-  },
-): { document: DesignDocumentV1; inspector: EditorSelectionInspector } {
-  const blockId = args.blockId;
-  if (!blockId) {
-    return { document, inspector: buildSelectionInspector(document, null) };
-  }
-
-  const bp = (args.breakpoint || "").trim();
-  if (!bp) {
-    return { document, inspector: buildSelectionInspector(document, blockId) };
-  }
-
-  if (blockId === EDITOR_PAGE_ROOT_BLOCK_ID) {
-    // Page root 当前不支持 responsive override（后续 PageRoot 扩展时再接入）。
-    return { document, inspector: buildSelectionInspector(document, EDITOR_PAGE_ROOT_BLOCK_ID) };
-  }
-
-  if (args.patch.section === "component") {
-    // v1 仅允许响应式覆写 visual props（layout/design/animation），组件字段暂不支持。
-    return { document, inspector: buildSelectionInspectorForBreakpoint(document, blockId, bp) };
-  }
-
-  const node = document.nodesById[blockId];
-  if (!isBlockNode(node)) {
-    return { document, inspector: buildSelectionInspector(document, null) };
-  }
-
-  const currentResponsive = node.responsive ? cloneJson(node.responsive) : {};
-  const currentOverride = asRecord(currentResponsive[bp]);
-
-  const nextOverride = (() => {
-    if (args.patch.section === "layout") {
-      const nextLayout = mergePropsRecord(asRecord(currentOverride.layout), args.patch.values);
-      const out: Record<string, unknown> = { ...currentOverride, layout: nextLayout };
-      if (isEmptyRecordValue(nextLayout)) delete out.layout;
-      return out;
-    }
-
-    if (args.patch.section === "design") {
-      const filteredValues =
-        node.type === PREFAB_INSTANCE_BLOCK_TYPE
-          ? (() => {
-              const nodeProps = asRecord(node.props);
-              const prefab = typeof nodeProps.prefab === "string" ? nodeProps.prefab.trim() : "";
-              const manifest = prefab
-                ? findManifestByType(prefabInspectorTypeFromCode(prefab))
-                : null;
-              return filterDesignPatchByWhitelist(
-                args.patch.values,
-                manifest?.styleOverrideWhitelist,
-              );
-            })()
-          : args.patch.values;
-
-      const nextStyle = mergePropsRecord(asRecord(currentOverride.style), filteredValues);
-      const out: Record<string, unknown> = { ...currentOverride, style: nextStyle };
-      if (isEmptyRecordValue(nextStyle)) delete out.style;
-      return out;
-    }
-
-    const nextAnimation = mergePropsRecord(asRecord(currentOverride.animation), args.patch.values);
-    const out: Record<string, unknown> = { ...currentOverride, animation: nextAnimation };
-    if (isEmptyRecordValue(nextAnimation)) delete out.animation;
-    return out;
-  })();
-
-  const nextResponsive: Record<string, unknown> = { ...currentResponsive };
-  if (isEmptyRecordValue(nextOverride)) {
-    delete nextResponsive[bp];
-  } else {
-    nextResponsive[bp] = nextOverride;
-  }
-
-  const { responsive: _responsive, ...restNode } = node;
-  const updatedNode: DesignBlockNodeV1 = isEmptyRecordValue(nextResponsive)
-    ? restNode
-    : {
-        ...restNode,
-        responsive: nextResponsive as NonNullable<DesignBlockNodeV1["responsive"]>,
-      };
-
-  const updated = updateNodeById(document, node.id, () => updatedNode);
-  if (!updated.changed) {
-    return { document, inspector: buildSelectionInspectorForBreakpoint(document, blockId, bp) };
-  }
-
-  return {
-    document: updated.document,
-    inspector: buildSelectionInspectorForBreakpoint(updated.document, blockId, bp),
-  };
-}
-
-export function buildLayerTree(document: DesignDocumentV1): EditorLayerNode[] {
-  const root = document.nodesById[document.rootId];
-  if (!isPageNode(root)) return [];
-
-  const walk = (ids: DesignNodeId[]): EditorLayerNode[] =>
-    ids
-      .map((id) => document.nodesById[id])
-      .filter((node): node is DesignBlockNodeV1 => isBlockNode(node))
-      .map((node) => ({
-        id: node.id,
-        type: node.type,
-        label: buildLayerLabel(node),
-        children: Array.isArray(node.children) && node.children.length ? walk(node.children) : [],
-      }));
-
-  const pageTitle = localizedTextFromProps(root.meta?.title);
-  const label = pageTitle ? `Page: ${pageTitle}` : "Page";
-
-  return [
-    {
-      id: EDITOR_PAGE_ROOT_BLOCK_ID,
-      type: "page",
-      label,
-      children: walk(root.children),
-    },
-  ];
-}
-
-export function insertBlock(
-  document: DesignDocumentV1,
-  args: EditorInsertBlockArgs,
-): { document: DesignDocumentV1; selectedBlockId: string } {
-  const newNode = buildDesignBlockByType(args.type);
-  const newId = newNode.id;
-
-  const withNode: DesignDocumentV1 = {
-    ...document,
-    nodesById: {
-      ...document.nodesById,
-      [newId]: newNode,
-    },
-  };
-
-  const targetBlockId = args.targetBlockId ?? null;
   const position = args.position ?? "inside";
+  const targetId = args.targetId ?? null;
 
-  // Default insertion target: page root.
-  if (!targetBlockId || targetBlockId === EDITOR_PAGE_ROOT_BLOCK_ID) {
-    const inserted = insertInsideTarget(withNode, document.rootId, [newId]);
-    return { document: inserted.inserted ? inserted.document : withNode, selectedBlockId: newId };
+  if (!targetId) {
+    // Insert into page root as last child.
+    return { parentId: root.id, index: root.children.length };
   }
 
-  let inserted: InsertChildrenResult;
-  if (position === "inside") {
-    inserted = insertInsideTarget(withNode, targetBlockId, [newId]);
+  const target = args.document.nodesById[targetId];
+  if (!target) return null;
 
-    // If the target cannot have children, fall back to inserting after it.
-    if (!inserted.inserted) {
-      inserted = insertRelativeToTarget(withNode, targetBlockId, [newId], "after");
-    }
-  } else {
-    inserted = insertRelativeToTarget(withNode, targetBlockId, [newId], position);
+  if (position === "inside" && isContainerNode(target)) {
+    return { parentId: target.id, index: target.children.length };
   }
 
-  if (inserted.inserted) {
-    return { document: inserted.document, selectedBlockId: newId };
-  }
+  const parentInfo = findParentInfo(args.document, target.id);
+  if (!parentInfo) return null;
 
-  // Fall back to appending to page root.
-  const appended = insertInsideTarget(withNode, document.rootId, [newId]);
-  return { document: appended.document, selectedBlockId: newId };
+  if (position === "before") return { parentId: parentInfo.parentId, index: parentInfo.index };
+  if (position === "after") return { parentId: parentInfo.parentId, index: parentInfo.index + 1 };
+  // "inside" but target not container: fallback to after
+  return { parentId: parentInfo.parentId, index: parentInfo.index + 1 };
 }
 
-export function insertBlockWithMeta(
-  document: DesignDocumentV1,
-  args: EditorInsertBlockArgs,
-): EditorInsertBlockResult & { document: DesignDocumentV1 } {
-  const inserted = insertBlock(document, args);
-  const inspector = buildSelectionInspector(inserted.document, inserted.selectedBlockId);
-  const layers = buildLayerTree(inserted.document);
+export function insertBlockWithMeta(args: {
+  document: DesignDocumentV1;
+  insert: EditorInsertBlockArgs;
+}): {
+  document: DesignDocumentV1;
+  selectedId: BlockId;
+  inspector: EditorSelectionInspector;
+  layers: EditorLayerNode[];
+} {
+  const next = cloneDocument(args.document);
 
-  return {
-    document: inserted.document,
-    blockId: inserted.selectedBlockId,
-    inspector,
-    layers,
-  };
+  const insertType = (args.insert.type || "").trim();
+  const node = buildNodeByInsertType(insertType);
+  if (!node) {
+    const inspector = buildSelectionInspector(next, null);
+    return { document: next, selectedId: "", inspector, layers: buildLayerTree(next) };
+  }
+
+  const target = normalizeInsertTarget({
+    document: next,
+    targetId: args.insert.targetBlockId,
+    position: args.insert.position,
+  });
+  if (!target) {
+    const inspector = buildSelectionInspector(next, null);
+    return { document: next, selectedId: "", inspector, layers: buildLayerTree(next) };
+  }
+
+  next.nodesById[node.id] = node;
+  const withChild = insertChildId({
+    document: next,
+    parentId: target.parentId,
+    childId: node.id,
+    index: target.index,
+  });
+
+  const inspector = buildSelectionInspector(withChild, node.id);
+  return { document: withChild, selectedId: node.id, inspector, layers: buildLayerTree(withChild) };
 }
 
-export function insertBlockTree(
-  document: DesignDocumentV1,
-  args: EditorInsertBlockTreeArgs,
-): { document: DesignDocumentV1; selectedBlockId: string } {
-  const cloned = cloneBlockTreeWithNewIds(args.blocks);
+export function insertBlockTreeWithMeta(args: {
+  document: DesignDocumentV1;
+  insert: EditorInsertBlockTreeArgs;
+}): {
+  document: DesignDocumentV1;
+  selectedId: BlockId;
+  inspector: EditorSelectionInspector;
+  layers: EditorLayerNode[];
+} {
+  const next = cloneDocument(args.document);
+  const fragment =
+    "rootIds" in args.insert && "nodesById" in args.insert
+      ? { rootIds: args.insert.rootIds, nodesById: args.insert.nodesById }
+      : convertLegacyBlocksToDesignFragment(args.insert.blocks);
+  const rootIds = fragment.rootIds;
+  const incoming = fragment.nodesById;
 
-  const withNodes: DesignDocumentV1 = {
-    ...document,
-    nodesById: {
-      ...document.nodesById,
-      ...cloned.nodesById,
-    },
-  };
+  for (const [id, node] of Object.entries(incoming) as Array<[DesignNodeId, DesignNodeV1]>) {
+    next.nodesById[id] = node;
+  }
 
-  const targetBlockId = args.targetBlockId ?? null;
-  const position = args.position ?? "inside";
+  const target = normalizeInsertTarget({
+    document: next,
+    targetId: args.insert.targetBlockId,
+    position: args.insert.position,
+  });
+  if (!target) {
+    const inspector = buildSelectionInspector(next, null);
+    return { document: next, selectedId: "", inspector, layers: buildLayerTree(next) };
+  }
 
-  if (!targetBlockId || targetBlockId === EDITOR_PAGE_ROOT_BLOCK_ID) {
-    const inserted = insertInsideTarget(withNodes, document.rootId, cloned.rootIds);
+  let insertedFirst: string | null = null;
+  let doc: DesignDocumentV1 = next;
+  for (let i = 0; i < rootIds.length; i += 1) {
+    const id = rootIds[i];
+    if (!id) continue;
+    if (!doc.nodesById[id]) continue;
+    if (!insertedFirst) insertedFirst = id;
+    doc = insertChildId({
+      document: doc,
+      parentId: target.parentId,
+      childId: id,
+      index: target.index + i,
+    });
+  }
+
+  const selected = insertedFirst ?? "";
+  const inspector = selected
+    ? buildSelectionInspector(doc, selected)
+    : buildSelectionInspector(doc, null);
+  return { document: doc, selectedId: selected, inspector, layers: buildLayerTree(doc) };
+}
+
+export function deleteBlock(args: { document: DesignDocumentV1; blockId: BlockId }): {
+  document: DesignDocumentV1;
+  layers: EditorLayerNode[];
+} {
+  const node = args.document.nodesById[args.blockId];
+  if (!node) return { document: args.document, layers: buildLayerTree(args.document) };
+  if (node.id === args.document.rootId)
+    return { document: args.document, layers: buildLayerTree(args.document) };
+
+  const parentInfo = findParentInfo(args.document, node.id);
+  if (!parentInfo) return { document: args.document, layers: buildLayerTree(args.document) };
+
+  let next = cloneDocument(args.document);
+  const parent = next.nodesById[parentInfo.parentId] as DesignContainerNodeV1 | undefined;
+  if (!parent || !isContainerNode(parent))
+    return { document: args.document, layers: buildLayerTree(args.document) };
+
+  const nextParent: DesignContainerNodeV1 = { ...parent, children: [...parent.children] };
+  nextParent.children.splice(parentInfo.index, 1);
+  next = setNode(next, nextParent);
+  next = removeSubtree(next, node.id);
+
+  return { document: next, layers: buildLayerTree(next) };
+}
+
+export function moveBlock(args: {
+  document: DesignDocumentV1;
+  blockId: BlockId;
+  targetId: BlockId;
+  position: "before" | "after" | "inside";
+}): { document: DesignDocumentV1; layers: EditorLayerNode[] } {
+  const node = args.document.nodesById[args.blockId];
+  if (!node) return { document: args.document, layers: buildLayerTree(args.document) };
+  if (node.id === args.document.rootId)
+    return { document: args.document, layers: buildLayerTree(args.document) };
+  if (args.blockId === args.targetId)
+    return { document: args.document, layers: buildLayerTree(args.document) };
+
+  const from = findParentInfo(args.document, node.id);
+  if (!from) return { document: args.document, layers: buildLayerTree(args.document) };
+
+  const to = normalizeInsertTarget({
+    document: args.document,
+    targetId: args.targetId,
+    position: args.position === "inside" ? "inside" : args.position,
+  });
+  if (!to) return { document: args.document, layers: buildLayerTree(args.document) };
+
+  let next = cloneDocument(args.document);
+
+  // Remove from old parent
+  const oldParent = next.nodesById[from.parentId];
+  if (!oldParent || !isContainerNode(oldParent))
+    return { document: args.document, layers: buildLayerTree(args.document) };
+  const patchedOld: DesignContainerNodeV1 = { ...oldParent, children: [...oldParent.children] };
+  patchedOld.children.splice(from.index, 1);
+  next = setNode(next, patchedOld);
+
+  // Insert into new parent
+  next = insertChildId({
+    document: next,
+    parentId: to.parentId,
+    childId: node.id,
+    index: to.index,
+  });
+
+  return { document: next, layers: buildLayerTree(next) };
+}
+
+export function duplicateBlockWithMeta(args: { document: DesignDocumentV1; blockId: BlockId }): {
+  document: DesignDocumentV1;
+  selectedId: BlockId;
+  inspector: EditorSelectionInspector;
+  layers: EditorLayerNode[];
+} {
+  const node = args.document.nodesById[args.blockId];
+  if (!node) {
+    const inspector = buildSelectionInspector(args.document, null);
     return {
-      document: inserted.inserted ? inserted.document : withNodes,
-      selectedBlockId: cloned.selectedBlockId,
+      document: args.document,
+      selectedId: "",
+      inspector,
+      layers: buildLayerTree(args.document),
     };
   }
 
-  let inserted: InsertChildrenResult;
-  if (position === "inside") {
-    inserted = insertInsideTarget(withNodes, targetBlockId, cloned.rootIds);
-
-    // If the target cannot have children, fall back to inserting after it.
-    if (!inserted.inserted) {
-      inserted = insertRelativeToTarget(withNodes, targetBlockId, cloned.rootIds, "after");
-    }
-  } else {
-    inserted = insertRelativeToTarget(withNodes, targetBlockId, cloned.rootIds, position);
-  }
-
-  if (inserted.inserted) {
-    return {
-      document: inserted.document,
-      selectedBlockId: cloned.selectedBlockId,
-    };
-  }
-
-  const appended = insertInsideTarget(withNodes, document.rootId, cloned.rootIds);
-  return {
-    document: appended.document,
-    selectedBlockId: cloned.selectedBlockId,
-  };
-}
-
-export function insertBlockTreeWithMeta(
-  document: DesignDocumentV1,
-  args: EditorInsertBlockTreeArgs,
-): EditorInsertBlockResult & { document: DesignDocumentV1 } {
-  const inserted = insertBlockTree(document, args);
-  const inspector = buildSelectionInspector(inserted.document, inserted.selectedBlockId);
-  const layers = buildLayerTree(inserted.document);
-
-  return {
-    document: inserted.document,
-    blockId: inserted.selectedBlockId,
-    inspector,
-    layers,
-  };
-}
-
-export function duplicateBlock(
-  document: DesignDocumentV1,
-  args: { blockId: string },
-): { document: DesignDocumentV1; selectedBlockId: string } {
-  if (args.blockId === EDITOR_PAGE_ROOT_BLOCK_ID) {
-    return { document, selectedBlockId: EDITOR_PAGE_ROOT_BLOCK_ID };
-  }
-
-  const node = document.nodesById[args.blockId];
-  if (!isBlockNode(node)) {
-    return { document, selectedBlockId: args.blockId };
-  }
-
-  const subtreeIds = collectSubtreeIds(document, node.id);
-  const idMap = new Map<DesignNodeId, DesignNodeId>();
-  for (const oldId of subtreeIds) {
-    idMap.set(oldId, generateBlockId());
-  }
-
-  const nextNodes: Record<DesignNodeId, DesignNodeV1> = {};
-  for (const oldId of subtreeIds) {
-    const oldNode = document.nodesById[oldId];
-    if (!isBlockNode(oldNode)) continue;
-    const nextId = idMap.get(oldId);
-    if (!nextId) continue;
-    const nextChildren = Array.isArray(oldNode.children)
-      ? oldNode.children.map((cid) => idMap.get(cid)).filter((x): x is string => Boolean(x))
-      : undefined;
-
-    nextNodes[nextId] = {
-      id: nextId,
-      type: oldNode.type,
-      props: cloneJson(oldNode.props),
-      ...(oldNode.responsive ? { responsive: cloneJson(oldNode.responsive) } : {}),
-      ...(nextChildren ? { children: nextChildren } : {}),
-    };
-  }
-
-  const cloneRootId = idMap.get(node.id);
-  if (!cloneRootId) {
-    return { document, selectedBlockId: args.blockId };
-  }
-
-  const withNodes: DesignDocumentV1 = {
-    ...document,
-    nodesById: {
-      ...document.nodesById,
-      ...nextNodes,
-    },
-  };
-
-  // Insert clone root after the original node.
-  const inserted = insertRelativeToTarget(withNodes, node.id, [cloneRootId], "after");
-  if (inserted.inserted) {
-    return { document: inserted.document, selectedBlockId: cloneRootId };
-  }
-
-  const appended = insertInsideTarget(withNodes, document.rootId, [cloneRootId]);
-  return { document: appended.document, selectedBlockId: cloneRootId };
-}
-
-export function duplicateBlockWithMeta(
-  document: DesignDocumentV1,
-  args: { blockId: string },
-): EditorInsertBlockResult & { document: DesignDocumentV1 } {
-  const duplicated = duplicateBlock(document, args);
-  const inspector = buildSelectionInspector(duplicated.document, duplicated.selectedBlockId);
-  const layers = buildLayerTree(duplicated.document);
-
-  return {
-    document: duplicated.document,
-    blockId: duplicated.selectedBlockId,
-    inspector,
-    layers,
-  };
-}
-
-export function deleteBlock(
-  document: DesignDocumentV1,
-  args: { blockId: string },
-): { document: DesignDocumentV1; deleted: boolean } {
-  if (args.blockId === EDITOR_PAGE_ROOT_BLOCK_ID) {
-    return { document, deleted: false };
-  }
-
-  const node = document.nodesById[args.blockId];
-  if (!isBlockNode(node)) {
-    return { document, deleted: false };
-  }
-
-  const parentInfo = findParentInfo(document, node.id);
+  const parentInfo = findParentInfo(args.document, node.id);
   if (!parentInfo) {
-    return { document, deleted: false };
+    const inspector = buildSelectionInspector(args.document, null);
+    return {
+      document: args.document,
+      selectedId: "",
+      inspector,
+      layers: buildLayerTree(args.document),
+    };
   }
 
-  const subtreeIds = collectSubtreeIds(document, node.id);
+  // Shallow clone subtree by JSON; regenerate ids to keep uniqueness.
+  const next = cloneDocument(args.document);
 
-  const removedFromParent = updateChildren(document, parentInfo.parentId, (children) =>
-    children.filter((id) => id !== node.id),
-  );
+  const idMap = new Map<string, string>();
+  const mapId = (old: string) => {
+    const found = idMap.get(old);
+    if (found) return found;
+    const created = createNodeId();
+    idMap.set(old, created);
+    return created;
+  };
 
-  const nextNodesById = { ...removedFromParent.document.nodesById };
-  for (const id of subtreeIds) {
-    delete nextNodesById[id];
+  const stack: DesignNodeId[] = [node.id];
+  const order: DesignNodeId[] = [];
+  const seen = new Set<string>();
+  while (stack.length) {
+    const id = stack.pop();
+    if (!id) continue;
+    if (seen.has(id)) continue;
+    seen.add(id);
+    order.push(id);
+    const cur = next.nodesById[id];
+    if (!cur) continue;
+    if (isContainerNode(cur)) {
+      for (const child of cur.children) stack.push(child);
+    }
+    if (cur.type === "prefab_instance" && cur.slotChildren) {
+      for (const ids of Object.values(cur.slotChildren)) for (const cid of ids) stack.push(cid);
+    }
   }
 
+  for (const oldId of order) {
+    const oldNode = next.nodesById[oldId];
+    if (!oldNode) continue;
+    const cloned = cloneJson(oldNode) as DesignNodeV1;
+    const newId = mapId(oldId);
+    (cloned as { id: string }).id = newId;
+
+    if (isContainerNode(cloned)) {
+      cloned.children = cloned.children.map((cid) => mapId(cid));
+    }
+    if (cloned.type === "prefab_instance" && cloned.slotChildren) {
+      const slots: Record<string, string[]> = {};
+      for (const [name, ids] of Object.entries(cloned.slotChildren)) {
+        slots[name] = ids.map((cid) => mapId(cid));
+      }
+      cloned.slotChildren = slots;
+    }
+
+    next.nodesById[newId] = cloned;
+  }
+
+  const newRootId = mapId(node.id);
+  const inserted = insertChildId({
+    document: next,
+    parentId: parentInfo.parentId,
+    childId: newRootId,
+    index: parentInfo.index + 1,
+  });
+
+  const inspector = buildSelectionInspector(inserted, newRootId);
+  return { document: inserted, selectedId: newRootId, inspector, layers: buildLayerTree(inserted) };
+}
+
+export function applySelectionPatch(args: {
+  document: DesignDocumentV1;
+  blockId: BlockId | null;
+  patch: EditorSelectionPatch;
+}): { document: DesignDocumentV1; inspector: EditorSelectionInspector } {
+  const { document, blockId, patch } = args;
+  if (!blockId) return { document, inspector: buildSelectionInspector(document, null) };
+  const node = document.nodesById[blockId];
+  if (!node) return { document, inspector: buildSelectionInspector(document, null) };
+
+  const section = patch.section;
+  const values = patch.values ?? {};
+
+  const updated = (() => {
+    if (section === "layout") {
+      return { ...node, layout: mergeObject<DesignLayoutV1>(node.layout, values) };
+    }
+    if (section === "design") {
+      return { ...node, style: mergeObject<DesignStyleV1>(node.style, values) };
+    }
+    if (section === "animation") {
+      // v1：先把 motionRefs 当作不透明结构传递，阶段 4 会替换为明确 schema。
+      return {
+        ...node,
+        motionRefs: Array.isArray(values.motionRefs) ? (values.motionRefs as any) : node.motionRefs,
+      };
+    }
+    // component
+    if (node.type === "text") {
+      const nextText = values.text;
+      const nextTag = values.tag;
+      const nextAlign = values.align;
+      return {
+        ...node,
+        ...(nextText !== undefined ? { text: nextText as any } : {}),
+        ...(typeof nextTag === "string" ? { tag: nextTag as any } : {}),
+        ...(typeof nextAlign === "string" ? { align: nextAlign as any } : {}),
+      };
+    }
+    if (node.type === "image") {
+      const nextSrc = values.src;
+      const nextAlt = values.alt;
+      const nextFit = values.objectFit;
+      return {
+        ...node,
+        ...(nextSrc !== undefined ? { src: nextSrc as any } : {}),
+        ...(nextAlt !== undefined ? { alt: nextAlt as any } : {}),
+        ...(typeof nextFit === "string" ? { objectFit: nextFit as any } : {}),
+      };
+    }
+    if (node.type === "embed") {
+      const nextUrl = values.url;
+      return { ...node, ...(nextUrl !== undefined ? { url: nextUrl as any } : {}) };
+    }
+    if (node.type === "prefab_instance") {
+      const manifest = findManifestByType(`prefab:${node.prefabId}`);
+      const fields = new Map<string, FieldDefinition>(
+        (manifest?.attributes ?? []).map((f) => [f.key, f]),
+      );
+      const incomingProps = isRecord(values.props) ? (values.props as Record<string, unknown>) : {};
+      const nextProps: Record<string, DesignValueV1> = { ...node.props };
+      for (const [k, v] of Object.entries(incomingProps)) {
+        const field = fields.get(k);
+        if (!field) continue;
+        const literal = isRecord(v) && v.kind === "binding" ? (v as any) : toLiteralValue(v);
+        if (literal.kind === "literal" && !validateFieldValue(field, literal.value)) continue;
+        nextProps[k] = literal as DesignValueV1;
+      }
+      return { ...node, props: nextProps };
+    }
+    return node;
+  })();
+
+  const nextDocument = setNode(document, updated);
+  return { document: nextDocument, inspector: buildSelectionInspector(nextDocument, updated.id) };
+}
+
+export function buildSelectionInspectorForBreakpoint(args: {
+  document: DesignDocumentV1;
+  blockId: BlockId | null;
+  breakpoint: string;
+}): EditorSelectionInspector {
+  // v1：UI 会在 breakpoint 模式下构建 inspector 并编辑 override。
+  // 这里直接返回 base inspector；override 的读取/展示由 Host UI 决定。
+  return buildSelectionInspector(args.document, args.blockId);
+}
+
+export function setBreakpointOverride(args: {
+  document: DesignDocumentV1;
+  blockId: BlockId;
+  breakpoint: string;
+  patch: EditorSelectionPatch;
+}): { document: DesignDocumentV1; inspector: EditorSelectionInspector } {
+  const bp = (args.breakpoint || "").trim() as BreakpointName;
+  if (!bp)
+    return {
+      document: args.document,
+      inspector: buildSelectionInspector(args.document, args.blockId),
+    };
+
+  const node = args.document.nodesById[args.blockId];
+  if (!node)
+    return { document: args.document, inspector: buildSelectionInspector(args.document, null) };
+
+  const responsive = { ...node.responsive };
+  const current = (responsive[bp] ?? {}) as DesignNodeResponsiveOverrideV1;
+
+  const section: EditorSelectionPatchSection = args.patch.section;
+  const values = args.patch.values ?? {};
+
+  const nextOverride: DesignNodeResponsiveOverrideV1 = { ...current };
+  if (section === "layout") {
+    const base = node.layout ?? {};
+    const merged = mergeObject<DesignLayoutV1>(node.layout, values);
+    const diff = diffObject(base, merged);
+    nextOverride.layout = (diff as any) ?? {};
+  } else if (section === "design") {
+    const base = node.style ?? {};
+    const merged = mergeObject<DesignStyleV1>(node.style, values);
+    const diff = diffObject(base, merged);
+    nextOverride.style = (diff as any) ?? {};
+  } else if (section === "animation") {
+    // motionRefs 在 v1 允许 override，但目前 UI 尚未实现。
+    if (Array.isArray(values.motionRefs)) nextOverride.motionRefs = values.motionRefs as any;
+  } else {
+    // component 不属于 visual override 范围（v1 只支持 layout/style/transform/motionRefs）。
+  }
+
+  // 清理空 override，保证只存差异字段。
+  const cleaned: DesignNodeResponsiveOverrideV1 = {};
+  if (
+    nextOverride.layout &&
+    isRecord(nextOverride.layout) &&
+    Object.keys(nextOverride.layout).length
+  )
+    cleaned.layout = nextOverride.layout;
+  if (nextOverride.style && isRecord(nextOverride.style) && Object.keys(nextOverride.style).length)
+    cleaned.style = nextOverride.style;
+  if (
+    nextOverride.transform &&
+    isRecord(nextOverride.transform) &&
+    Object.keys(nextOverride.transform).length
+  )
+    cleaned.transform = nextOverride.transform;
+  if (Array.isArray(nextOverride.motionRefs) && nextOverride.motionRefs.length)
+    cleaned.motionRefs = nextOverride.motionRefs;
+
+  if (Object.keys(cleaned).length === 0) {
+    delete responsive[bp];
+  } else {
+    responsive[bp] = cleaned;
+  }
+
+  const updatedNode: DesignNodeV1 = { ...node, responsive };
+  const nextDocument = setNode(args.document, updatedNode);
+  return { document: nextDocument, inspector: buildSelectionInspector(nextDocument, args.blockId) };
+}
+
+export function createInsertBlockResult(args: {
+  document: DesignDocumentV1;
+  blockId: BlockId;
+}): EditorInsertBlockResult {
   return {
-    document: {
-      ...removedFromParent.document,
-      nodesById: nextNodesById,
-    },
-    deleted: true,
+    blockId: args.blockId,
+    inspector: buildSelectionInspector(args.document, args.blockId),
+    layers: buildLayerTree(args.document),
   };
 }
 
-export function moveBlock(
-  document: DesignDocumentV1,
-  args: { blockId: string; targetId: string; position: EditorInsertBlockPosition },
-): { document: DesignDocumentV1; moved: boolean } {
-  if (args.blockId === args.targetId) {
-    return { document, moved: false };
+export function normalizeInitialDocument(value: unknown): DesignDocumentV1 {
+  if (
+    isRecord(value) &&
+    value.version === 1 &&
+    typeof value.rootId === "string" &&
+    isRecord(value.nodesById)
+  ) {
+    return value as unknown as DesignDocumentV1;
   }
-
-  if (args.blockId === EDITOR_PAGE_ROOT_BLOCK_ID) {
-    return { document, moved: false };
-  }
-
-  const node = document.nodesById[args.blockId];
-  if (!isBlockNode(node)) return { document, moved: false };
-
-  // Do not allow moving a node inside its own subtree.
-  if (containsNodeId(document, node.id, args.targetId)) {
-    return { document, moved: false };
-  }
-
-  const fromParent = findParentInfo(document, node.id);
-  if (!fromParent) return { document, moved: false };
-
-  // 1) Remove from original parent.
-  const removed = updateChildren(document, fromParent.parentId, (children) =>
-    children.filter((id) => id !== node.id),
-  );
-
-  // 2) Insert into target.
-  let inserted: InsertChildrenResult;
-  if (args.position === "inside") {
-    inserted = insertInsideTarget(removed.document, args.targetId, [node.id]);
-    if (!inserted.inserted) {
-      inserted = insertRelativeToTarget(removed.document, args.targetId, [node.id], "after");
-    }
-  } else {
-    inserted = insertRelativeToTarget(removed.document, args.targetId, [node.id], args.position);
-  }
-
-  if (inserted.inserted) {
-    return { document: inserted.document, moved: true };
-  }
-
-  // Fall back to appending to page root.
-  const appended = insertInsideTarget(removed.document, document.rootId, [node.id]);
-  return { document: appended.document, moved: true };
+  return buildEmptyDocument();
 }
-
-export type { EditorDocumentHistory };

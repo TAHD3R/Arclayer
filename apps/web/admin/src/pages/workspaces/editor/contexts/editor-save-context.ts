@@ -1,9 +1,9 @@
 import { createContext, useContext } from "react";
 
-import type { DocumentIR } from "@celestial/site-block-protocol";
+import type { DesignDocumentV1 } from "@celestial/site-block-protocol";
 
 export type EditorSaveContextValue = {
-  saveDraft: (document: DocumentIR) => Promise<void>;
+  saveDraft: (document: DesignDocumentV1) => Promise<void>;
   publish: () => Promise<void>;
   draftRevisionRef: React.RefObject<number | null>;
 };

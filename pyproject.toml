@@ -82,4 +82,4 @@ venv = ".venv"
 typeCheckingMode = "standard"
 reportMissingImports = true
 reportMissingTypeStubs = false
-pythonVersion = "3.13"
+pythonVersion = "3.12"

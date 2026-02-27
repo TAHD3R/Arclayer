@@ -17,6 +17,7 @@ import { EditorLayout } from "@/pages/workspaces/editor/editor-layout";
 import { EditorActionSystem } from "@/pages/workspaces/editor/components/editor-action-system";
 
 import type { EditorHistoryState, HostEditorRpcApi } from "@celestial/site-editor-protocol";
+import type { DesignDocumentV1 } from "@celestial/site-block-protocol";
 
 export type WorkspaceEditorMode = "page" | "article";
 
@@ -57,9 +58,7 @@ export function WorkspaceEditorPage() {
   );
 
   // Lift save/publish to the top so requestSave can trigger a real save.
-  const saveDraftRef = React.useRef<
-    (doc: import("@celestial/site-block-protocol").DocumentIR) => Promise<void>
-  >(null!);
+  const saveDraftRef = React.useRef<(doc: DesignDocumentV1) => Promise<void>>(null!);
   const portalRef = React.useRef<PortalApi | null>(null);
 
   // Stable callback that always reads the latest portal ref.

@@ -12,7 +12,7 @@
     "dev": "UV_CACHE_DIR=../../.uv-cache PYTHONPATH=../.. uv run uvicorn apps.api.main:app --reload",
     "lint": "UV_CACHE_DIR=../../.uv-cache PYTHONPATH=../.. uv run ruff check . --fix",
     "format": "UV_CACHE_DIR=../../.uv-cache PYTHONPATH=../.. uv run ruff format .",
-    "typecheck": "UV_CACHE_DIR=../../.uv-cache PYTHONPATH=../.. uv run pyright",
+    "typecheck": "UV_CACHE_DIR=../../.uv-cache PYTHONPATH=../.. uv run pyright --project ../../pyproject.toml",
     "test": "UV_CACHE_DIR=../../.uv-cache PYTHONPATH=../.. uv run pytest --cov=.",
     "test:integration": "RUN_INTEGRATION_TESTS=1 UV_CACHE_DIR=../../.uv-cache PYTHONPATH=../.. uv run pytest -m integration --cov=.",
     "db:migrate": "UV_CACHE_DIR=../../.uv-cache PYTHONPATH=../.. uv run aerich migrate",

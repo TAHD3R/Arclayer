@@ -1,9 +1,11 @@
 import type {
-  DocumentIR,
   BlockNode,
   BlockManifest,
   BlockPattern,
   PortableTextContent,
+  DesignDocumentV1,
+  DesignNodeId,
+  DesignNodeV1,
 } from "@celestial/site-block-protocol";
 
 export type EditorProtocolVersion = 1;
@@ -39,16 +41,18 @@ export type EditorHistoryState = {
   redoDepth: number;
 };
 
-export type BlockId = string;
+/**
+ * Editor-level node identifier.
+ *
+ * 注意：阶段 1-3 起，编辑器的真相源是 DesignDocument（nodesById），因此这里的 BlockId 实际上是 NodeId。
+ * 为减少迁移成本（以及保持 Host/Portal 协议的兼容性），暂时沿用 BlockId 命名。
+ */
+export type BlockId = DesignNodeId;
 
 export type RpcRequestId = string;
 
-/**
- * Special "virtual" block id used by the editor layer tree to represent
- * the page/document root (SEO, page-level layout/design/animation, data sources, etc.).
- *
- * This id is NOT part of DocumentIR.blocks.
- */
+// 迁移说明：DesignDocument 已有真实的 page_root 节点（document.rootId），不再需要虚拟 root id。
+// 该常量保留仅用于兼容旧代码路径，避免一次性大改。
 export const EDITOR_PAGE_ROOT_BLOCK_ID = "page";
 
 export type EditorInspectorComponent = Record<string, unknown>;
@@ -103,10 +107,28 @@ export type EditorInsertBlockResult = {
 };
 
 export type EditorInsertBlockTreeArgs = {
-  blocks: BlockNode[];
   targetBlockId?: BlockId | null;
   position?: EditorInsertBlockPosition;
-};
+} & (
+  | {
+      /**
+       * Legacy insertion tree (DocumentIR-style block subtree).
+       * Portal side will convert blocks -> DesignDocument nodes before insertion.
+       */
+      blocks: BlockNode[];
+    }
+  | {
+      /**
+       * DesignDocument fragment insertion (preferred).
+       *
+       * 约束：
+       * - rootIds 必须存在于 nodesById
+       * - nodesById 内部引用必须闭合（child id / slotChildren id）
+       */
+      rootIds: DesignNodeId[];
+      nodesById: Record<DesignNodeId, DesignNodeV1>;
+    }
+);
 
 export type EditorPresence = {
   siteId: string;
@@ -148,7 +170,7 @@ export type HostToPortalMessage =
   | PortalEditorMessageEnvelope<
       "PUSH_DRAFT_DOCUMENT",
       {
-        document: DocumentIR;
+        document: DesignDocumentV1;
       }
     >;
 
@@ -193,9 +215,9 @@ export type PortalEditorRpcApi = {
    * if it does not match the currently rendered route. This prevents accidental
    * cross-page draft overwrites when the host shell navigates quickly.
    */
-  pushDraftDocument: (args: { document: DocumentIR; pathname?: string }) => void;
+  pushDraftDocument: (args: { document: DesignDocumentV1; pathname?: string }) => void;
   /** Return the current in-memory document (including unsaved edits). */
-  getDocument: () => DocumentIR;
+  getDocument: () => DesignDocumentV1;
   undo: () => EditorHistoryState;
   redo: () => EditorHistoryState;
   getHistoryState: () => EditorHistoryState;
@@ -265,7 +287,7 @@ export type HostEditorRpcApi = {
    *
    * The host decides what save means.
    */
-  requestSave: (args: { siteId: string; pathname: string; document: DocumentIR }) => void;
+  requestSave: (args: { siteId: string; pathname: string; document: DesignDocumentV1 }) => void;
 
   /**
    * Presence channel allows the portal iframe to report editor presence

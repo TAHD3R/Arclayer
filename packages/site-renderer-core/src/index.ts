@@ -44,11 +44,12 @@ export { PortableTextRenderer } from "./internal/rich-text/portable-text-rendere
 export { InlineEditor } from "./internal/rich-text/inline-editor";
 
 // --- DesignDocument v1 (editor-first document format) ---
-export {
-  isDesignDocumentV1,
-  migrateDocumentIRToDesignDocumentV1,
-  compileDesignDocumentV1ToDocumentIR,
-} from "./internal/design-document";
+export { isDesignDocumentV1 } from "./internal/design-document";
+export type {
+  DesignDocumentRendererProps,
+  DesignDocumentRendererViewport,
+} from "./internal/design/DesignDocumentRenderer";
+export { DesignDocumentRenderer } from "./internal/design/DesignDocumentRenderer";
 
 // --- Layout compute (absolute constraints + auto-layout subset) ---
 export type {

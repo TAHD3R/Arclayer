@@ -4,12 +4,12 @@ import type { BlockManifest } from "../block-registry";
  * Prefab manifests（插入入口 + Inspector schema）。
  *
  * 注意：
- * - 这些 manifest.type 不是 DocumentIR 中真实节点的 type；它们是“插入指令 / Inspector blockType”。
- * - Portal 会把 `prefab:<code>` 映射为真实的 `__prefab__` 节点，并写入 props.prefab = <code>。
+ * - 这些 manifest.type 不是 DesignDocument 中真实节点的 type；它们是“插入指令 / Inspector blockType”。
+ * - Portal 会把 `prefab:<code>` 映射为真实的 `prefab_instance` 节点，并写入 prefabId = <code>。
  *
  * 这样做的好处是：
  * - 既能让 UI 以 registry/manifest 驱动（可搜索、可分组）
- * - 又能保持 DocumentIR 的 PrefabInstance 节点类型稳定（`__prefab__`）
+ * - 又能保持 DesignDocument 的 PrefabInstance 节点类型稳定（`prefab_instance`）
  */
 export const PREFAB_BLOCK_MANIFESTS: BlockManifest[] = [
   {
@@ -25,6 +25,16 @@ export const PREFAB_BLOCK_MANIFESTS: BlockManifest[] = [
       { key: "description", kind: "text", label: { "zh-CN": "描述", "en-US": "Description" } },
       { key: "imageSrc", kind: "url", label: { "zh-CN": "图片地址", "en-US": "Image URL" } },
       { key: "href", kind: "url", label: { "zh-CN": "链接", "en-US": "Link" } },
+    ],
+    slots: [
+      {
+        name: "default",
+        label: { "zh-CN": "内容", "en-US": "Content" },
+        allowedNodeTypes: ["frame", "group", "rect", "text", "image", "embed", "prefab_instance"],
+        required: false,
+        minChildren: 0,
+        maxChildren: 12,
+      },
     ],
     // 仅允许覆写外观相关的少量字段（避免 prefab 内部样式边界被破坏）
     styleOverrideWhitelist: ["backgroundColor", "borderColor", "borderRadius", "boxShadow", "opacity"],

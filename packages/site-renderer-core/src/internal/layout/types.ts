@@ -36,6 +36,14 @@ export type NodePositioningAbsolute = {
    */
   rect: AbsoluteRect;
   constraints?: Partial<AbsoluteConstraints>;
+  /**
+   * Interpret rect.x/rect.y as:
+   * - "start": top-left
+   * - "center": center point
+   * - "end": bottom-right
+   */
+  alignX?: "start" | "center" | "end";
+  alignY?: "start" | "center" | "end";
 };
 
 export type NodeChildrenLayout =
@@ -49,6 +57,7 @@ export type NodeChildrenLayout =
       padding?: number;
       alignItems?: LayoutAlign;
       justifyContent?: LayoutJustify;
+      wrap?: "nowrap" | "wrap";
     };
 
 export type LayoutNode = {

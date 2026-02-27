@@ -8,871 +8,960 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { Route as rootRouteImport } from "./routes/__root";
-import { Route as IndexRouteImport } from "./routes/index";
-import { Route as SetupIndexRouteImport } from "./routes/setup/index";
-import { Route as ResetPasswordIndexRouteImport } from "./routes/reset-password/index";
-import { Route as LoginIndexRouteImport } from "./routes/login/index";
-import { Route as InvitationsIndexRouteImport } from "./routes/invitations/index";
-import { Route as WWorkspaceIdRouteImport } from "./routes/w/$workspaceId";
-import { Route as OOrgIdRouteImport } from "./routes/o/$orgId";
-import { Route as WWorkspaceIdIndexRouteImport } from "./routes/w/$workspaceId/index";
-import { Route as OOrgIdIndexRouteImport } from "./routes/o/$orgId/index";
-import { Route as MeNotificationsIndexRouteImport } from "./routes/me/notifications/index";
-import { Route as WWorkspaceIdTeamIndexRouteImport } from "./routes/w/$workspaceId/team/index";
-import { Route as WWorkspaceIdNotificationsIndexRouteImport } from "./routes/w/$workspaceId/notifications/index";
-import { Route as WWorkspaceIdExtensionsIndexRouteImport } from "./routes/w/$workspaceId/extensions/index";
-import { Route as WWorkspaceIdAssetsIndexRouteImport } from "./routes/w/$workspaceId/assets/index";
-import { Route as OOrgIdWorkspacesIndexRouteImport } from "./routes/o/$orgId/workspaces/index";
-import { Route as OOrgIdTeamIndexRouteImport } from "./routes/o/$orgId/team/index";
-import { Route as OOrgIdSettingsIndexRouteImport } from "./routes/o/$orgId/settings/index";
-import { Route as OOrgIdMembersIndexRouteImport } from "./routes/o/$orgId/members/index";
-import { Route as OOrgIdExtensionsIndexRouteImport } from "./routes/o/$orgId/extensions/index";
-import { Route as OOrgIdActivityIndexRouteImport } from "./routes/o/$orgId/activity/index";
-import { Route as WWorkspaceIdTeamRolesIndexRouteImport } from "./routes/w/$workspaceId/team/roles/index";
-import { Route as WWorkspaceIdTeamMembersIndexRouteImport } from "./routes/w/$workspaceId/team/members/index";
-import { Route as WWorkspaceIdTeamInvitationsIndexRouteImport } from "./routes/w/$workspaceId/team/invitations/index";
-import { Route as WWorkspaceIdSettingsWorkspaceIndexRouteImport } from "./routes/w/$workspaceId/settings/workspace/index";
-import { Route as WWorkspaceIdSettingsSeoIndexRouteImport } from "./routes/w/$workspaceId/settings/seo/index";
-import { Route as WWorkspaceIdSettingsOrganizationIndexRouteImport } from "./routes/w/$workspaceId/settings/organization/index";
-import { Route as WWorkspaceIdSettingsGeneralIndexRouteImport } from "./routes/w/$workspaceId/settings/general/index";
-import { Route as WWorkspaceIdExtensionsExtensionSlugIndexRouteImport } from "./routes/w/$workspaceId/extensions/$extensionSlug/index";
-import { Route as WWorkspaceIdContentPagesIndexRouteImport } from "./routes/w/$workspaceId/content/pages/index";
-import { Route as WWorkspaceIdContentLibraryIndexRouteImport } from "./routes/w/$workspaceId/content/library/index";
-import { Route as WWorkspaceIdAppearanceThemesIndexRouteImport } from "./routes/w/$workspaceId/appearance/themes/index";
-import { Route as WWorkspaceIdAppearanceStylesIndexRouteImport } from "./routes/w/$workspaceId/appearance/styles/index";
-import { Route as OOrgIdTeamRolesIndexRouteImport } from "./routes/o/$orgId/team/roles/index";
-import { Route as OOrgIdTeamMembersIndexRouteImport } from "./routes/o/$orgId/team/members/index";
-import { Route as OOrgIdTeamInvitationsIndexRouteImport } from "./routes/o/$orgId/team/invitations/index";
-import { Route as OOrgIdSettingsActivityIndexRouteImport } from "./routes/o/$orgId/settings/activity/index";
-import { Route as OOrgIdExtensionsExtensionSlugIndexRouteImport } from "./routes/o/$orgId/extensions/$extensionSlug/index";
-import { Route as WWorkspaceIdEditorEditorModeEntityIdRouteImport } from "./routes/w/$workspaceId/editor/$editorMode/$entityId";
-import { Route as WWorkspaceIdSettingsMaintenanceStatusIndexRouteImport } from "./routes/w/$workspaceId/settings/maintenance/status/index";
-import { Route as WWorkspaceIdSettingsMaintenanceSnapshotsIndexRouteImport } from "./routes/w/$workspaceId/settings/maintenance/snapshots/index";
-import { Route as WWorkspaceIdSettingsMaintenanceActivityIndexRouteImport } from "./routes/w/$workspaceId/settings/maintenance/activity/index";
+import { Route as rootRouteImport } from './routes/__root'
+import { Route as IndexRouteImport } from './routes/index'
+import { Route as SetupIndexRouteImport } from './routes/setup/index'
+import { Route as ResetPasswordIndexRouteImport } from './routes/reset-password/index'
+import { Route as LoginIndexRouteImport } from './routes/login/index'
+import { Route as InvitationsIndexRouteImport } from './routes/invitations/index'
+import { Route as WWorkspaceIdRouteImport } from './routes/w/$workspaceId'
+import { Route as OOrgIdRouteImport } from './routes/o/$orgId'
+import { Route as WWorkspaceIdIndexRouteImport } from './routes/w/$workspaceId/index'
+import { Route as OOrgIdIndexRouteImport } from './routes/o/$orgId/index'
+import { Route as MeNotificationsIndexRouteImport } from './routes/me/notifications/index'
+import { Route as WWorkspaceIdTeamIndexRouteImport } from './routes/w/$workspaceId/team/index'
+import { Route as WWorkspaceIdNotificationsIndexRouteImport } from './routes/w/$workspaceId/notifications/index'
+import { Route as WWorkspaceIdExtensionsIndexRouteImport } from './routes/w/$workspaceId/extensions/index'
+import { Route as WWorkspaceIdAssetsIndexRouteImport } from './routes/w/$workspaceId/assets/index'
+import { Route as OOrgIdWorkspacesIndexRouteImport } from './routes/o/$orgId/workspaces/index'
+import { Route as OOrgIdTeamIndexRouteImport } from './routes/o/$orgId/team/index'
+import { Route as OOrgIdSettingsIndexRouteImport } from './routes/o/$orgId/settings/index'
+import { Route as OOrgIdMembersIndexRouteImport } from './routes/o/$orgId/members/index'
+import { Route as OOrgIdExtensionsIndexRouteImport } from './routes/o/$orgId/extensions/index'
+import { Route as OOrgIdActivityIndexRouteImport } from './routes/o/$orgId/activity/index'
+import { Route as WWorkspaceIdTeamRolesIndexRouteImport } from './routes/w/$workspaceId/team/roles/index'
+import { Route as WWorkspaceIdTeamMembersIndexRouteImport } from './routes/w/$workspaceId/team/members/index'
+import { Route as WWorkspaceIdTeamInvitationsIndexRouteImport } from './routes/w/$workspaceId/team/invitations/index'
+import { Route as WWorkspaceIdSettingsWorkspaceIndexRouteImport } from './routes/w/$workspaceId/settings/workspace/index'
+import { Route as WWorkspaceIdSettingsSeoIndexRouteImport } from './routes/w/$workspaceId/settings/seo/index'
+import { Route as WWorkspaceIdSettingsOrganizationIndexRouteImport } from './routes/w/$workspaceId/settings/organization/index'
+import { Route as WWorkspaceIdSettingsGeneralIndexRouteImport } from './routes/w/$workspaceId/settings/general/index'
+import { Route as WWorkspaceIdExtensionsExtensionSlugIndexRouteImport } from './routes/w/$workspaceId/extensions/$extensionSlug/index'
+import { Route as WWorkspaceIdContentPagesIndexRouteImport } from './routes/w/$workspaceId/content/pages/index'
+import { Route as WWorkspaceIdContentLibraryIndexRouteImport } from './routes/w/$workspaceId/content/library/index'
+import { Route as WWorkspaceIdAppearanceThemesIndexRouteImport } from './routes/w/$workspaceId/appearance/themes/index'
+import { Route as WWorkspaceIdAppearanceStylesIndexRouteImport } from './routes/w/$workspaceId/appearance/styles/index'
+import { Route as OOrgIdTeamRolesIndexRouteImport } from './routes/o/$orgId/team/roles/index'
+import { Route as OOrgIdTeamMembersIndexRouteImport } from './routes/o/$orgId/team/members/index'
+import { Route as OOrgIdTeamInvitationsIndexRouteImport } from './routes/o/$orgId/team/invitations/index'
+import { Route as OOrgIdSettingsActivityIndexRouteImport } from './routes/o/$orgId/settings/activity/index'
+import { Route as OOrgIdExtensionsExtensionSlugIndexRouteImport } from './routes/o/$orgId/extensions/$extensionSlug/index'
+import { Route as WWorkspaceIdEditorEditorModeEntityIdRouteImport } from './routes/w/$workspaceId/editor/$editorMode/$entityId'
+import { Route as WWorkspaceIdSettingsMaintenanceStatusIndexRouteImport } from './routes/w/$workspaceId/settings/maintenance/status/index'
+import { Route as WWorkspaceIdSettingsMaintenanceSnapshotsIndexRouteImport } from './routes/w/$workspaceId/settings/maintenance/snapshots/index'
+import { Route as WWorkspaceIdSettingsMaintenanceActivityIndexRouteImport } from './routes/w/$workspaceId/settings/maintenance/activity/index'
 
 const IndexRoute = IndexRouteImport.update({
-  id: "/",
-  path: "/",
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
-} as any).lazy(() => import("./routes/index.lazy").then((d) => d.Route));
+} as any).lazy(() => import('./routes/index.lazy').then((d) => d.Route))
 const SetupIndexRoute = SetupIndexRouteImport.update({
-  id: "/setup/",
-  path: "/setup/",
+  id: '/setup/',
+  path: '/setup/',
   getParentRoute: () => rootRouteImport,
-} as any).lazy(() => import("./routes/setup/index.lazy").then((d) => d.Route));
+} as any).lazy(() => import('./routes/setup/index.lazy').then((d) => d.Route))
 const ResetPasswordIndexRoute = ResetPasswordIndexRouteImport.update({
-  id: "/reset-password/",
-  path: "/reset-password/",
+  id: '/reset-password/',
+  path: '/reset-password/',
   getParentRoute: () => rootRouteImport,
-} as any).lazy(() => import("./routes/reset-password/index.lazy").then((d) => d.Route));
+} as any).lazy(() =>
+  import('./routes/reset-password/index.lazy').then((d) => d.Route),
+)
 const LoginIndexRoute = LoginIndexRouteImport.update({
-  id: "/login/",
-  path: "/login/",
+  id: '/login/',
+  path: '/login/',
   getParentRoute: () => rootRouteImport,
-} as any).lazy(() => import("./routes/login/index.lazy").then((d) => d.Route));
+} as any).lazy(() => import('./routes/login/index.lazy').then((d) => d.Route))
 const InvitationsIndexRoute = InvitationsIndexRouteImport.update({
-  id: "/invitations/",
-  path: "/invitations/",
+  id: '/invitations/',
+  path: '/invitations/',
   getParentRoute: () => rootRouteImport,
-} as any).lazy(() => import("./routes/invitations/index.lazy").then((d) => d.Route));
+} as any).lazy(() =>
+  import('./routes/invitations/index.lazy').then((d) => d.Route),
+)
 const WWorkspaceIdRoute = WWorkspaceIdRouteImport.update({
-  id: "/w/$workspaceId",
-  path: "/w/$workspaceId",
+  id: '/w/$workspaceId',
+  path: '/w/$workspaceId',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const OOrgIdRoute = OOrgIdRouteImport.update({
-  id: "/o/$orgId",
-  path: "/o/$orgId",
+  id: '/o/$orgId',
+  path: '/o/$orgId',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const WWorkspaceIdIndexRoute = WWorkspaceIdIndexRouteImport.update({
-  id: "/",
-  path: "/",
+  id: '/',
+  path: '/',
   getParentRoute: () => WWorkspaceIdRoute,
-} as any).lazy(() => import("./routes/w/$workspaceId/index.lazy").then((d) => d.Route));
+} as any).lazy(() =>
+  import('./routes/w/$workspaceId/index.lazy').then((d) => d.Route),
+)
 const OOrgIdIndexRoute = OOrgIdIndexRouteImport.update({
-  id: "/",
-  path: "/",
+  id: '/',
+  path: '/',
   getParentRoute: () => OOrgIdRoute,
-} as any).lazy(() => import("./routes/o/$orgId/index.lazy").then((d) => d.Route));
+} as any).lazy(() =>
+  import('./routes/o/$orgId/index.lazy').then((d) => d.Route),
+)
 const MeNotificationsIndexRoute = MeNotificationsIndexRouteImport.update({
-  id: "/me/notifications/",
-  path: "/me/notifications/",
+  id: '/me/notifications/',
+  path: '/me/notifications/',
   getParentRoute: () => rootRouteImport,
-} as any).lazy(() => import("./routes/me/notifications/index.lazy").then((d) => d.Route));
+} as any).lazy(() =>
+  import('./routes/me/notifications/index.lazy').then((d) => d.Route),
+)
 const WWorkspaceIdTeamIndexRoute = WWorkspaceIdTeamIndexRouteImport.update({
-  id: "/team/",
-  path: "/team/",
-  getParentRoute: () => WWorkspaceIdRoute,
-} as any).lazy(() => import("./routes/w/$workspaceId/team/index.lazy").then((d) => d.Route));
-const WWorkspaceIdNotificationsIndexRoute = WWorkspaceIdNotificationsIndexRouteImport.update({
-  id: "/notifications/",
-  path: "/notifications/",
-  getParentRoute: () => WWorkspaceIdRoute,
-} as any);
-const WWorkspaceIdExtensionsIndexRoute = WWorkspaceIdExtensionsIndexRouteImport.update({
-  id: "/extensions/",
-  path: "/extensions/",
-  getParentRoute: () => WWorkspaceIdRoute,
-} as any).lazy(() => import("./routes/w/$workspaceId/extensions/index.lazy").then((d) => d.Route));
-const WWorkspaceIdAssetsIndexRoute = WWorkspaceIdAssetsIndexRouteImport.update({
-  id: "/assets/",
-  path: "/assets/",
-  getParentRoute: () => WWorkspaceIdRoute,
-} as any).lazy(() => import("./routes/w/$workspaceId/assets/index.lazy").then((d) => d.Route));
-const OOrgIdWorkspacesIndexRoute = OOrgIdWorkspacesIndexRouteImport.update({
-  id: "/workspaces/",
-  path: "/workspaces/",
-  getParentRoute: () => OOrgIdRoute,
-} as any).lazy(() => import("./routes/o/$orgId/workspaces/index.lazy").then((d) => d.Route));
-const OOrgIdTeamIndexRoute = OOrgIdTeamIndexRouteImport.update({
-  id: "/team/",
-  path: "/team/",
-  getParentRoute: () => OOrgIdRoute,
-} as any).lazy(() => import("./routes/o/$orgId/team/index.lazy").then((d) => d.Route));
-const OOrgIdSettingsIndexRoute = OOrgIdSettingsIndexRouteImport.update({
-  id: "/settings/",
-  path: "/settings/",
-  getParentRoute: () => OOrgIdRoute,
-} as any).lazy(() => import("./routes/o/$orgId/settings/index.lazy").then((d) => d.Route));
-const OOrgIdMembersIndexRoute = OOrgIdMembersIndexRouteImport.update({
-  id: "/members/",
-  path: "/members/",
-  getParentRoute: () => OOrgIdRoute,
-} as any).lazy(() => import("./routes/o/$orgId/members/index.lazy").then((d) => d.Route));
-const OOrgIdExtensionsIndexRoute = OOrgIdExtensionsIndexRouteImport.update({
-  id: "/extensions/",
-  path: "/extensions/",
-  getParentRoute: () => OOrgIdRoute,
-} as any).lazy(() => import("./routes/o/$orgId/extensions/index.lazy").then((d) => d.Route));
-const OOrgIdActivityIndexRoute = OOrgIdActivityIndexRouteImport.update({
-  id: "/activity/",
-  path: "/activity/",
-  getParentRoute: () => OOrgIdRoute,
-} as any).lazy(() => import("./routes/o/$orgId/activity/index.lazy").then((d) => d.Route));
-const WWorkspaceIdTeamRolesIndexRoute = WWorkspaceIdTeamRolesIndexRouteImport.update({
-  id: "/team/roles/",
-  path: "/team/roles/",
-  getParentRoute: () => WWorkspaceIdRoute,
-} as any).lazy(() => import("./routes/w/$workspaceId/team/roles/index.lazy").then((d) => d.Route));
-const WWorkspaceIdTeamMembersIndexRoute = WWorkspaceIdTeamMembersIndexRouteImport.update({
-  id: "/team/members/",
-  path: "/team/members/",
+  id: '/team/',
+  path: '/team/',
   getParentRoute: () => WWorkspaceIdRoute,
 } as any).lazy(() =>
-  import("./routes/w/$workspaceId/team/members/index.lazy").then((d) => d.Route),
-);
-const WWorkspaceIdTeamInvitationsIndexRoute = WWorkspaceIdTeamInvitationsIndexRouteImport.update({
-  id: "/team/invitations/",
-  path: "/team/invitations/",
-  getParentRoute: () => WWorkspaceIdRoute,
-} as any).lazy(() =>
-  import("./routes/w/$workspaceId/team/invitations/index.lazy").then((d) => d.Route),
-);
-const WWorkspaceIdSettingsWorkspaceIndexRoute =
-  WWorkspaceIdSettingsWorkspaceIndexRouteImport.update({
-    id: "/settings/workspace/",
-    path: "/settings/workspace/",
+  import('./routes/w/$workspaceId/team/index.lazy').then((d) => d.Route),
+)
+const WWorkspaceIdNotificationsIndexRoute =
+  WWorkspaceIdNotificationsIndexRouteImport.update({
+    id: '/notifications/',
+    path: '/notifications/',
+    getParentRoute: () => WWorkspaceIdRoute,
+  } as any)
+const WWorkspaceIdExtensionsIndexRoute =
+  WWorkspaceIdExtensionsIndexRouteImport.update({
+    id: '/extensions/',
+    path: '/extensions/',
     getParentRoute: () => WWorkspaceIdRoute,
   } as any).lazy(() =>
-    import("./routes/w/$workspaceId/settings/workspace/index.lazy").then((d) => d.Route),
-  );
-const WWorkspaceIdSettingsSeoIndexRoute = WWorkspaceIdSettingsSeoIndexRouteImport.update({
-  id: "/settings/seo/",
-  path: "/settings/seo/",
-  getParentRoute: () => WWorkspaceIdRoute,
-} as any).lazy(() =>
-  import("./routes/w/$workspaceId/settings/seo/index.lazy").then((d) => d.Route),
-);
-const WWorkspaceIdSettingsOrganizationIndexRoute =
-  WWorkspaceIdSettingsOrganizationIndexRouteImport.update({
-    id: "/settings/organization/",
-    path: "/settings/organization/",
-    getParentRoute: () => WWorkspaceIdRoute,
-  } as any).lazy(() =>
-    import("./routes/w/$workspaceId/settings/organization/index.lazy").then((d) => d.Route),
-  );
-const WWorkspaceIdSettingsGeneralIndexRoute = WWorkspaceIdSettingsGeneralIndexRouteImport.update({
-  id: "/settings/general/",
-  path: "/settings/general/",
-  getParentRoute: () => WWorkspaceIdRoute,
-} as any).lazy(() =>
-  import("./routes/w/$workspaceId/settings/general/index.lazy").then((d) => d.Route),
-);
-const WWorkspaceIdExtensionsExtensionSlugIndexRoute =
-  WWorkspaceIdExtensionsExtensionSlugIndexRouteImport.update({
-    id: "/extensions/$extensionSlug/",
-    path: "/extensions/$extensionSlug/",
-    getParentRoute: () => WWorkspaceIdRoute,
-  } as any).lazy(() =>
-    import("./routes/w/$workspaceId/extensions/$extensionSlug/index.lazy").then((d) => d.Route),
-  );
-const WWorkspaceIdContentPagesIndexRoute = WWorkspaceIdContentPagesIndexRouteImport.update({
-  id: "/content/pages/",
-  path: "/content/pages/",
-  getParentRoute: () => WWorkspaceIdRoute,
-} as any).lazy(() =>
-  import("./routes/w/$workspaceId/content/pages/index.lazy").then((d) => d.Route),
-);
-const WWorkspaceIdContentLibraryIndexRoute = WWorkspaceIdContentLibraryIndexRouteImport.update({
-  id: "/content/library/",
-  path: "/content/library/",
-  getParentRoute: () => WWorkspaceIdRoute,
-} as any).lazy(() =>
-  import("./routes/w/$workspaceId/content/library/index.lazy").then((d) => d.Route),
-);
-const WWorkspaceIdAppearanceThemesIndexRoute = WWorkspaceIdAppearanceThemesIndexRouteImport.update({
-  id: "/appearance/themes/",
-  path: "/appearance/themes/",
-  getParentRoute: () => WWorkspaceIdRoute,
-} as any).lazy(() =>
-  import("./routes/w/$workspaceId/appearance/themes/index.lazy").then((d) => d.Route),
-);
-const WWorkspaceIdAppearanceStylesIndexRoute = WWorkspaceIdAppearanceStylesIndexRouteImport.update({
-  id: "/appearance/styles/",
-  path: "/appearance/styles/",
-  getParentRoute: () => WWorkspaceIdRoute,
-} as any).lazy(() =>
-  import("./routes/w/$workspaceId/appearance/styles/index.lazy").then((d) => d.Route),
-);
-const OOrgIdTeamRolesIndexRoute = OOrgIdTeamRolesIndexRouteImport.update({
-  id: "/team/roles/",
-  path: "/team/roles/",
-  getParentRoute: () => OOrgIdRoute,
-} as any).lazy(() => import("./routes/o/$orgId/team/roles/index.lazy").then((d) => d.Route));
-const OOrgIdTeamMembersIndexRoute = OOrgIdTeamMembersIndexRouteImport.update({
-  id: "/team/members/",
-  path: "/team/members/",
-  getParentRoute: () => OOrgIdRoute,
-} as any).lazy(() => import("./routes/o/$orgId/team/members/index.lazy").then((d) => d.Route));
-const OOrgIdTeamInvitationsIndexRoute = OOrgIdTeamInvitationsIndexRouteImport.update({
-  id: "/team/invitations/",
-  path: "/team/invitations/",
-  getParentRoute: () => OOrgIdRoute,
-} as any).lazy(() => import("./routes/o/$orgId/team/invitations/index.lazy").then((d) => d.Route));
-const OOrgIdSettingsActivityIndexRoute = OOrgIdSettingsActivityIndexRouteImport.update({
-  id: "/settings/activity/",
-  path: "/settings/activity/",
-  getParentRoute: () => OOrgIdRoute,
-} as any).lazy(() => import("./routes/o/$orgId/settings/activity/index.lazy").then((d) => d.Route));
-const OOrgIdExtensionsExtensionSlugIndexRoute =
-  OOrgIdExtensionsExtensionSlugIndexRouteImport.update({
-    id: "/extensions/$extensionSlug/",
-    path: "/extensions/$extensionSlug/",
-    getParentRoute: () => OOrgIdRoute,
-  } as any).lazy(() =>
-    import("./routes/o/$orgId/extensions/$extensionSlug/index.lazy").then((d) => d.Route),
-  );
-const WWorkspaceIdEditorEditorModeEntityIdRoute =
-  WWorkspaceIdEditorEditorModeEntityIdRouteImport.update({
-    id: "/editor/$editorMode/$entityId",
-    path: "/editor/$editorMode/$entityId",
-    getParentRoute: () => WWorkspaceIdRoute,
-  } as any).lazy(() =>
-    import("./routes/w/$workspaceId/editor/$editorMode/$entityId.lazy").then((d) => d.Route),
-  );
-const WWorkspaceIdSettingsMaintenanceStatusIndexRoute =
-  WWorkspaceIdSettingsMaintenanceStatusIndexRouteImport.update({
-    id: "/settings/maintenance/status/",
-    path: "/settings/maintenance/status/",
-    getParentRoute: () => WWorkspaceIdRoute,
-  } as any).lazy(() =>
-    import("./routes/w/$workspaceId/settings/maintenance/status/index.lazy").then((d) => d.Route),
-  );
-const WWorkspaceIdSettingsMaintenanceSnapshotsIndexRoute =
-  WWorkspaceIdSettingsMaintenanceSnapshotsIndexRouteImport.update({
-    id: "/settings/maintenance/snapshots/",
-    path: "/settings/maintenance/snapshots/",
-    getParentRoute: () => WWorkspaceIdRoute,
-  } as any).lazy(() =>
-    import("./routes/w/$workspaceId/settings/maintenance/snapshots/index.lazy").then(
+    import('./routes/w/$workspaceId/extensions/index.lazy').then(
       (d) => d.Route,
     ),
-  );
-const WWorkspaceIdSettingsMaintenanceActivityIndexRoute =
-  WWorkspaceIdSettingsMaintenanceActivityIndexRouteImport.update({
-    id: "/settings/maintenance/activity/",
-    path: "/settings/maintenance/activity/",
+  )
+const WWorkspaceIdAssetsIndexRoute = WWorkspaceIdAssetsIndexRouteImport.update({
+  id: '/assets/',
+  path: '/assets/',
+  getParentRoute: () => WWorkspaceIdRoute,
+} as any).lazy(() =>
+  import('./routes/w/$workspaceId/assets/index.lazy').then((d) => d.Route),
+)
+const OOrgIdWorkspacesIndexRoute = OOrgIdWorkspacesIndexRouteImport.update({
+  id: '/workspaces/',
+  path: '/workspaces/',
+  getParentRoute: () => OOrgIdRoute,
+} as any).lazy(() =>
+  import('./routes/o/$orgId/workspaces/index.lazy').then((d) => d.Route),
+)
+const OOrgIdTeamIndexRoute = OOrgIdTeamIndexRouteImport.update({
+  id: '/team/',
+  path: '/team/',
+  getParentRoute: () => OOrgIdRoute,
+} as any).lazy(() =>
+  import('./routes/o/$orgId/team/index.lazy').then((d) => d.Route),
+)
+const OOrgIdSettingsIndexRoute = OOrgIdSettingsIndexRouteImport.update({
+  id: '/settings/',
+  path: '/settings/',
+  getParentRoute: () => OOrgIdRoute,
+} as any).lazy(() =>
+  import('./routes/o/$orgId/settings/index.lazy').then((d) => d.Route),
+)
+const OOrgIdMembersIndexRoute = OOrgIdMembersIndexRouteImport.update({
+  id: '/members/',
+  path: '/members/',
+  getParentRoute: () => OOrgIdRoute,
+} as any).lazy(() =>
+  import('./routes/o/$orgId/members/index.lazy').then((d) => d.Route),
+)
+const OOrgIdExtensionsIndexRoute = OOrgIdExtensionsIndexRouteImport.update({
+  id: '/extensions/',
+  path: '/extensions/',
+  getParentRoute: () => OOrgIdRoute,
+} as any).lazy(() =>
+  import('./routes/o/$orgId/extensions/index.lazy').then((d) => d.Route),
+)
+const OOrgIdActivityIndexRoute = OOrgIdActivityIndexRouteImport.update({
+  id: '/activity/',
+  path: '/activity/',
+  getParentRoute: () => OOrgIdRoute,
+} as any).lazy(() =>
+  import('./routes/o/$orgId/activity/index.lazy').then((d) => d.Route),
+)
+const WWorkspaceIdTeamRolesIndexRoute =
+  WWorkspaceIdTeamRolesIndexRouteImport.update({
+    id: '/team/roles/',
+    path: '/team/roles/',
     getParentRoute: () => WWorkspaceIdRoute,
   } as any).lazy(() =>
-    import("./routes/w/$workspaceId/settings/maintenance/activity/index.lazy").then((d) => d.Route),
-  );
+    import('./routes/w/$workspaceId/team/roles/index.lazy').then(
+      (d) => d.Route,
+    ),
+  )
+const WWorkspaceIdTeamMembersIndexRoute =
+  WWorkspaceIdTeamMembersIndexRouteImport.update({
+    id: '/team/members/',
+    path: '/team/members/',
+    getParentRoute: () => WWorkspaceIdRoute,
+  } as any).lazy(() =>
+    import('./routes/w/$workspaceId/team/members/index.lazy').then(
+      (d) => d.Route,
+    ),
+  )
+const WWorkspaceIdTeamInvitationsIndexRoute =
+  WWorkspaceIdTeamInvitationsIndexRouteImport.update({
+    id: '/team/invitations/',
+    path: '/team/invitations/',
+    getParentRoute: () => WWorkspaceIdRoute,
+  } as any).lazy(() =>
+    import('./routes/w/$workspaceId/team/invitations/index.lazy').then(
+      (d) => d.Route,
+    ),
+  )
+const WWorkspaceIdSettingsWorkspaceIndexRoute =
+  WWorkspaceIdSettingsWorkspaceIndexRouteImport.update({
+    id: '/settings/workspace/',
+    path: '/settings/workspace/',
+    getParentRoute: () => WWorkspaceIdRoute,
+  } as any).lazy(() =>
+    import('./routes/w/$workspaceId/settings/workspace/index.lazy').then(
+      (d) => d.Route,
+    ),
+  )
+const WWorkspaceIdSettingsSeoIndexRoute =
+  WWorkspaceIdSettingsSeoIndexRouteImport.update({
+    id: '/settings/seo/',
+    path: '/settings/seo/',
+    getParentRoute: () => WWorkspaceIdRoute,
+  } as any).lazy(() =>
+    import('./routes/w/$workspaceId/settings/seo/index.lazy').then(
+      (d) => d.Route,
+    ),
+  )
+const WWorkspaceIdSettingsOrganizationIndexRoute =
+  WWorkspaceIdSettingsOrganizationIndexRouteImport.update({
+    id: '/settings/organization/',
+    path: '/settings/organization/',
+    getParentRoute: () => WWorkspaceIdRoute,
+  } as any).lazy(() =>
+    import('./routes/w/$workspaceId/settings/organization/index.lazy').then(
+      (d) => d.Route,
+    ),
+  )
+const WWorkspaceIdSettingsGeneralIndexRoute =
+  WWorkspaceIdSettingsGeneralIndexRouteImport.update({
+    id: '/settings/general/',
+    path: '/settings/general/',
+    getParentRoute: () => WWorkspaceIdRoute,
+  } as any).lazy(() =>
+    import('./routes/w/$workspaceId/settings/general/index.lazy').then(
+      (d) => d.Route,
+    ),
+  )
+const WWorkspaceIdExtensionsExtensionSlugIndexRoute =
+  WWorkspaceIdExtensionsExtensionSlugIndexRouteImport.update({
+    id: '/extensions/$extensionSlug/',
+    path: '/extensions/$extensionSlug/',
+    getParentRoute: () => WWorkspaceIdRoute,
+  } as any).lazy(() =>
+    import('./routes/w/$workspaceId/extensions/$extensionSlug/index.lazy').then(
+      (d) => d.Route,
+    ),
+  )
+const WWorkspaceIdContentPagesIndexRoute =
+  WWorkspaceIdContentPagesIndexRouteImport.update({
+    id: '/content/pages/',
+    path: '/content/pages/',
+    getParentRoute: () => WWorkspaceIdRoute,
+  } as any).lazy(() =>
+    import('./routes/w/$workspaceId/content/pages/index.lazy').then(
+      (d) => d.Route,
+    ),
+  )
+const WWorkspaceIdContentLibraryIndexRoute =
+  WWorkspaceIdContentLibraryIndexRouteImport.update({
+    id: '/content/library/',
+    path: '/content/library/',
+    getParentRoute: () => WWorkspaceIdRoute,
+  } as any).lazy(() =>
+    import('./routes/w/$workspaceId/content/library/index.lazy').then(
+      (d) => d.Route,
+    ),
+  )
+const WWorkspaceIdAppearanceThemesIndexRoute =
+  WWorkspaceIdAppearanceThemesIndexRouteImport.update({
+    id: '/appearance/themes/',
+    path: '/appearance/themes/',
+    getParentRoute: () => WWorkspaceIdRoute,
+  } as any).lazy(() =>
+    import('./routes/w/$workspaceId/appearance/themes/index.lazy').then(
+      (d) => d.Route,
+    ),
+  )
+const WWorkspaceIdAppearanceStylesIndexRoute =
+  WWorkspaceIdAppearanceStylesIndexRouteImport.update({
+    id: '/appearance/styles/',
+    path: '/appearance/styles/',
+    getParentRoute: () => WWorkspaceIdRoute,
+  } as any).lazy(() =>
+    import('./routes/w/$workspaceId/appearance/styles/index.lazy').then(
+      (d) => d.Route,
+    ),
+  )
+const OOrgIdTeamRolesIndexRoute = OOrgIdTeamRolesIndexRouteImport.update({
+  id: '/team/roles/',
+  path: '/team/roles/',
+  getParentRoute: () => OOrgIdRoute,
+} as any).lazy(() =>
+  import('./routes/o/$orgId/team/roles/index.lazy').then((d) => d.Route),
+)
+const OOrgIdTeamMembersIndexRoute = OOrgIdTeamMembersIndexRouteImport.update({
+  id: '/team/members/',
+  path: '/team/members/',
+  getParentRoute: () => OOrgIdRoute,
+} as any).lazy(() =>
+  import('./routes/o/$orgId/team/members/index.lazy').then((d) => d.Route),
+)
+const OOrgIdTeamInvitationsIndexRoute =
+  OOrgIdTeamInvitationsIndexRouteImport.update({
+    id: '/team/invitations/',
+    path: '/team/invitations/',
+    getParentRoute: () => OOrgIdRoute,
+  } as any).lazy(() =>
+    import('./routes/o/$orgId/team/invitations/index.lazy').then(
+      (d) => d.Route,
+    ),
+  )
+const OOrgIdSettingsActivityIndexRoute =
+  OOrgIdSettingsActivityIndexRouteImport.update({
+    id: '/settings/activity/',
+    path: '/settings/activity/',
+    getParentRoute: () => OOrgIdRoute,
+  } as any).lazy(() =>
+    import('./routes/o/$orgId/settings/activity/index.lazy').then(
+      (d) => d.Route,
+    ),
+  )
+const OOrgIdExtensionsExtensionSlugIndexRoute =
+  OOrgIdExtensionsExtensionSlugIndexRouteImport.update({
+    id: '/extensions/$extensionSlug/',
+    path: '/extensions/$extensionSlug/',
+    getParentRoute: () => OOrgIdRoute,
+  } as any).lazy(() =>
+    import('./routes/o/$orgId/extensions/$extensionSlug/index.lazy').then(
+      (d) => d.Route,
+    ),
+  )
+const WWorkspaceIdEditorEditorModeEntityIdRoute =
+  WWorkspaceIdEditorEditorModeEntityIdRouteImport.update({
+    id: '/editor/$editorMode/$entityId',
+    path: '/editor/$editorMode/$entityId',
+    getParentRoute: () => WWorkspaceIdRoute,
+  } as any).lazy(() =>
+    import('./routes/w/$workspaceId/editor/$editorMode/$entityId.lazy').then(
+      (d) => d.Route,
+    ),
+  )
+const WWorkspaceIdSettingsMaintenanceStatusIndexRoute =
+  WWorkspaceIdSettingsMaintenanceStatusIndexRouteImport.update({
+    id: '/settings/maintenance/status/',
+    path: '/settings/maintenance/status/',
+    getParentRoute: () => WWorkspaceIdRoute,
+  } as any).lazy(() =>
+    import('./routes/w/$workspaceId/settings/maintenance/status/index.lazy').then(
+      (d) => d.Route,
+    ),
+  )
+const WWorkspaceIdSettingsMaintenanceSnapshotsIndexRoute =
+  WWorkspaceIdSettingsMaintenanceSnapshotsIndexRouteImport.update({
+    id: '/settings/maintenance/snapshots/',
+    path: '/settings/maintenance/snapshots/',
+    getParentRoute: () => WWorkspaceIdRoute,
+  } as any).lazy(() =>
+    import('./routes/w/$workspaceId/settings/maintenance/snapshots/index.lazy').then(
+      (d) => d.Route,
+    ),
+  )
+const WWorkspaceIdSettingsMaintenanceActivityIndexRoute =
+  WWorkspaceIdSettingsMaintenanceActivityIndexRouteImport.update({
+    id: '/settings/maintenance/activity/',
+    path: '/settings/maintenance/activity/',
+    getParentRoute: () => WWorkspaceIdRoute,
+  } as any).lazy(() =>
+    import('./routes/w/$workspaceId/settings/maintenance/activity/index.lazy').then(
+      (d) => d.Route,
+    ),
+  )
 
 export interface FileRoutesByFullPath {
-  "/": typeof IndexRoute;
-  "/o/$orgId": typeof OOrgIdRouteWithChildren;
-  "/w/$workspaceId": typeof WWorkspaceIdRouteWithChildren;
-  "/invitations/": typeof InvitationsIndexRoute;
-  "/login/": typeof LoginIndexRoute;
-  "/reset-password/": typeof ResetPasswordIndexRoute;
-  "/setup/": typeof SetupIndexRoute;
-  "/me/notifications/": typeof MeNotificationsIndexRoute;
-  "/o/$orgId/": typeof OOrgIdIndexRoute;
-  "/w/$workspaceId/": typeof WWorkspaceIdIndexRoute;
-  "/o/$orgId/activity/": typeof OOrgIdActivityIndexRoute;
-  "/o/$orgId/extensions/": typeof OOrgIdExtensionsIndexRoute;
-  "/o/$orgId/members/": typeof OOrgIdMembersIndexRoute;
-  "/o/$orgId/settings/": typeof OOrgIdSettingsIndexRoute;
-  "/o/$orgId/team/": typeof OOrgIdTeamIndexRoute;
-  "/o/$orgId/workspaces/": typeof OOrgIdWorkspacesIndexRoute;
-  "/w/$workspaceId/assets/": typeof WWorkspaceIdAssetsIndexRoute;
-  "/w/$workspaceId/extensions/": typeof WWorkspaceIdExtensionsIndexRoute;
-  "/w/$workspaceId/notifications/": typeof WWorkspaceIdNotificationsIndexRoute;
-  "/w/$workspaceId/team/": typeof WWorkspaceIdTeamIndexRoute;
-  "/w/$workspaceId/editor/$editorMode/$entityId": typeof WWorkspaceIdEditorEditorModeEntityIdRoute;
-  "/o/$orgId/extensions/$extensionSlug/": typeof OOrgIdExtensionsExtensionSlugIndexRoute;
-  "/o/$orgId/settings/activity/": typeof OOrgIdSettingsActivityIndexRoute;
-  "/o/$orgId/team/invitations/": typeof OOrgIdTeamInvitationsIndexRoute;
-  "/o/$orgId/team/members/": typeof OOrgIdTeamMembersIndexRoute;
-  "/o/$orgId/team/roles/": typeof OOrgIdTeamRolesIndexRoute;
-  "/w/$workspaceId/appearance/styles/": typeof WWorkspaceIdAppearanceStylesIndexRoute;
-  "/w/$workspaceId/appearance/themes/": typeof WWorkspaceIdAppearanceThemesIndexRoute;
-  "/w/$workspaceId/content/library/": typeof WWorkspaceIdContentLibraryIndexRoute;
-  "/w/$workspaceId/content/pages/": typeof WWorkspaceIdContentPagesIndexRoute;
-  "/w/$workspaceId/extensions/$extensionSlug/": typeof WWorkspaceIdExtensionsExtensionSlugIndexRoute;
-  "/w/$workspaceId/settings/general/": typeof WWorkspaceIdSettingsGeneralIndexRoute;
-  "/w/$workspaceId/settings/organization/": typeof WWorkspaceIdSettingsOrganizationIndexRoute;
-  "/w/$workspaceId/settings/seo/": typeof WWorkspaceIdSettingsSeoIndexRoute;
-  "/w/$workspaceId/settings/workspace/": typeof WWorkspaceIdSettingsWorkspaceIndexRoute;
-  "/w/$workspaceId/team/invitations/": typeof WWorkspaceIdTeamInvitationsIndexRoute;
-  "/w/$workspaceId/team/members/": typeof WWorkspaceIdTeamMembersIndexRoute;
-  "/w/$workspaceId/team/roles/": typeof WWorkspaceIdTeamRolesIndexRoute;
-  "/w/$workspaceId/settings/maintenance/activity/": typeof WWorkspaceIdSettingsMaintenanceActivityIndexRoute;
-  "/w/$workspaceId/settings/maintenance/snapshots/": typeof WWorkspaceIdSettingsMaintenanceSnapshotsIndexRoute;
-  "/w/$workspaceId/settings/maintenance/status/": typeof WWorkspaceIdSettingsMaintenanceStatusIndexRoute;
+  '/': typeof IndexRoute
+  '/o/$orgId': typeof OOrgIdRouteWithChildren
+  '/w/$workspaceId': typeof WWorkspaceIdRouteWithChildren
+  '/invitations/': typeof InvitationsIndexRoute
+  '/login/': typeof LoginIndexRoute
+  '/reset-password/': typeof ResetPasswordIndexRoute
+  '/setup/': typeof SetupIndexRoute
+  '/me/notifications/': typeof MeNotificationsIndexRoute
+  '/o/$orgId/': typeof OOrgIdIndexRoute
+  '/w/$workspaceId/': typeof WWorkspaceIdIndexRoute
+  '/o/$orgId/activity/': typeof OOrgIdActivityIndexRoute
+  '/o/$orgId/extensions/': typeof OOrgIdExtensionsIndexRoute
+  '/o/$orgId/members/': typeof OOrgIdMembersIndexRoute
+  '/o/$orgId/settings/': typeof OOrgIdSettingsIndexRoute
+  '/o/$orgId/team/': typeof OOrgIdTeamIndexRoute
+  '/o/$orgId/workspaces/': typeof OOrgIdWorkspacesIndexRoute
+  '/w/$workspaceId/assets/': typeof WWorkspaceIdAssetsIndexRoute
+  '/w/$workspaceId/extensions/': typeof WWorkspaceIdExtensionsIndexRoute
+  '/w/$workspaceId/notifications/': typeof WWorkspaceIdNotificationsIndexRoute
+  '/w/$workspaceId/team/': typeof WWorkspaceIdTeamIndexRoute
+  '/w/$workspaceId/editor/$editorMode/$entityId': typeof WWorkspaceIdEditorEditorModeEntityIdRoute
+  '/o/$orgId/extensions/$extensionSlug/': typeof OOrgIdExtensionsExtensionSlugIndexRoute
+  '/o/$orgId/settings/activity/': typeof OOrgIdSettingsActivityIndexRoute
+  '/o/$orgId/team/invitations/': typeof OOrgIdTeamInvitationsIndexRoute
+  '/o/$orgId/team/members/': typeof OOrgIdTeamMembersIndexRoute
+  '/o/$orgId/team/roles/': typeof OOrgIdTeamRolesIndexRoute
+  '/w/$workspaceId/appearance/styles/': typeof WWorkspaceIdAppearanceStylesIndexRoute
+  '/w/$workspaceId/appearance/themes/': typeof WWorkspaceIdAppearanceThemesIndexRoute
+  '/w/$workspaceId/content/library/': typeof WWorkspaceIdContentLibraryIndexRoute
+  '/w/$workspaceId/content/pages/': typeof WWorkspaceIdContentPagesIndexRoute
+  '/w/$workspaceId/extensions/$extensionSlug/': typeof WWorkspaceIdExtensionsExtensionSlugIndexRoute
+  '/w/$workspaceId/settings/general/': typeof WWorkspaceIdSettingsGeneralIndexRoute
+  '/w/$workspaceId/settings/organization/': typeof WWorkspaceIdSettingsOrganizationIndexRoute
+  '/w/$workspaceId/settings/seo/': typeof WWorkspaceIdSettingsSeoIndexRoute
+  '/w/$workspaceId/settings/workspace/': typeof WWorkspaceIdSettingsWorkspaceIndexRoute
+  '/w/$workspaceId/team/invitations/': typeof WWorkspaceIdTeamInvitationsIndexRoute
+  '/w/$workspaceId/team/members/': typeof WWorkspaceIdTeamMembersIndexRoute
+  '/w/$workspaceId/team/roles/': typeof WWorkspaceIdTeamRolesIndexRoute
+  '/w/$workspaceId/settings/maintenance/activity/': typeof WWorkspaceIdSettingsMaintenanceActivityIndexRoute
+  '/w/$workspaceId/settings/maintenance/snapshots/': typeof WWorkspaceIdSettingsMaintenanceSnapshotsIndexRoute
+  '/w/$workspaceId/settings/maintenance/status/': typeof WWorkspaceIdSettingsMaintenanceStatusIndexRoute
 }
 export interface FileRoutesByTo {
-  "/": typeof IndexRoute;
-  "/invitations": typeof InvitationsIndexRoute;
-  "/login": typeof LoginIndexRoute;
-  "/reset-password": typeof ResetPasswordIndexRoute;
-  "/setup": typeof SetupIndexRoute;
-  "/me/notifications": typeof MeNotificationsIndexRoute;
-  "/o/$orgId": typeof OOrgIdIndexRoute;
-  "/w/$workspaceId": typeof WWorkspaceIdIndexRoute;
-  "/o/$orgId/activity": typeof OOrgIdActivityIndexRoute;
-  "/o/$orgId/extensions": typeof OOrgIdExtensionsIndexRoute;
-  "/o/$orgId/members": typeof OOrgIdMembersIndexRoute;
-  "/o/$orgId/settings": typeof OOrgIdSettingsIndexRoute;
-  "/o/$orgId/team": typeof OOrgIdTeamIndexRoute;
-  "/o/$orgId/workspaces": typeof OOrgIdWorkspacesIndexRoute;
-  "/w/$workspaceId/assets": typeof WWorkspaceIdAssetsIndexRoute;
-  "/w/$workspaceId/extensions": typeof WWorkspaceIdExtensionsIndexRoute;
-  "/w/$workspaceId/notifications": typeof WWorkspaceIdNotificationsIndexRoute;
-  "/w/$workspaceId/team": typeof WWorkspaceIdTeamIndexRoute;
-  "/w/$workspaceId/editor/$editorMode/$entityId": typeof WWorkspaceIdEditorEditorModeEntityIdRoute;
-  "/o/$orgId/extensions/$extensionSlug": typeof OOrgIdExtensionsExtensionSlugIndexRoute;
-  "/o/$orgId/settings/activity": typeof OOrgIdSettingsActivityIndexRoute;
-  "/o/$orgId/team/invitations": typeof OOrgIdTeamInvitationsIndexRoute;
-  "/o/$orgId/team/members": typeof OOrgIdTeamMembersIndexRoute;
-  "/o/$orgId/team/roles": typeof OOrgIdTeamRolesIndexRoute;
-  "/w/$workspaceId/appearance/styles": typeof WWorkspaceIdAppearanceStylesIndexRoute;
-  "/w/$workspaceId/appearance/themes": typeof WWorkspaceIdAppearanceThemesIndexRoute;
-  "/w/$workspaceId/content/library": typeof WWorkspaceIdContentLibraryIndexRoute;
-  "/w/$workspaceId/content/pages": typeof WWorkspaceIdContentPagesIndexRoute;
-  "/w/$workspaceId/extensions/$extensionSlug": typeof WWorkspaceIdExtensionsExtensionSlugIndexRoute;
-  "/w/$workspaceId/settings/general": typeof WWorkspaceIdSettingsGeneralIndexRoute;
-  "/w/$workspaceId/settings/organization": typeof WWorkspaceIdSettingsOrganizationIndexRoute;
-  "/w/$workspaceId/settings/seo": typeof WWorkspaceIdSettingsSeoIndexRoute;
-  "/w/$workspaceId/settings/workspace": typeof WWorkspaceIdSettingsWorkspaceIndexRoute;
-  "/w/$workspaceId/team/invitations": typeof WWorkspaceIdTeamInvitationsIndexRoute;
-  "/w/$workspaceId/team/members": typeof WWorkspaceIdTeamMembersIndexRoute;
-  "/w/$workspaceId/team/roles": typeof WWorkspaceIdTeamRolesIndexRoute;
-  "/w/$workspaceId/settings/maintenance/activity": typeof WWorkspaceIdSettingsMaintenanceActivityIndexRoute;
-  "/w/$workspaceId/settings/maintenance/snapshots": typeof WWorkspaceIdSettingsMaintenanceSnapshotsIndexRoute;
-  "/w/$workspaceId/settings/maintenance/status": typeof WWorkspaceIdSettingsMaintenanceStatusIndexRoute;
+  '/': typeof IndexRoute
+  '/invitations': typeof InvitationsIndexRoute
+  '/login': typeof LoginIndexRoute
+  '/reset-password': typeof ResetPasswordIndexRoute
+  '/setup': typeof SetupIndexRoute
+  '/me/notifications': typeof MeNotificationsIndexRoute
+  '/o/$orgId': typeof OOrgIdIndexRoute
+  '/w/$workspaceId': typeof WWorkspaceIdIndexRoute
+  '/o/$orgId/activity': typeof OOrgIdActivityIndexRoute
+  '/o/$orgId/extensions': typeof OOrgIdExtensionsIndexRoute
+  '/o/$orgId/members': typeof OOrgIdMembersIndexRoute
+  '/o/$orgId/settings': typeof OOrgIdSettingsIndexRoute
+  '/o/$orgId/team': typeof OOrgIdTeamIndexRoute
+  '/o/$orgId/workspaces': typeof OOrgIdWorkspacesIndexRoute
+  '/w/$workspaceId/assets': typeof WWorkspaceIdAssetsIndexRoute
+  '/w/$workspaceId/extensions': typeof WWorkspaceIdExtensionsIndexRoute
+  '/w/$workspaceId/notifications': typeof WWorkspaceIdNotificationsIndexRoute
+  '/w/$workspaceId/team': typeof WWorkspaceIdTeamIndexRoute
+  '/w/$workspaceId/editor/$editorMode/$entityId': typeof WWorkspaceIdEditorEditorModeEntityIdRoute
+  '/o/$orgId/extensions/$extensionSlug': typeof OOrgIdExtensionsExtensionSlugIndexRoute
+  '/o/$orgId/settings/activity': typeof OOrgIdSettingsActivityIndexRoute
+  '/o/$orgId/team/invitations': typeof OOrgIdTeamInvitationsIndexRoute
+  '/o/$orgId/team/members': typeof OOrgIdTeamMembersIndexRoute
+  '/o/$orgId/team/roles': typeof OOrgIdTeamRolesIndexRoute
+  '/w/$workspaceId/appearance/styles': typeof WWorkspaceIdAppearanceStylesIndexRoute
+  '/w/$workspaceId/appearance/themes': typeof WWorkspaceIdAppearanceThemesIndexRoute
+  '/w/$workspaceId/content/library': typeof WWorkspaceIdContentLibraryIndexRoute
+  '/w/$workspaceId/content/pages': typeof WWorkspaceIdContentPagesIndexRoute
+  '/w/$workspaceId/extensions/$extensionSlug': typeof WWorkspaceIdExtensionsExtensionSlugIndexRoute
+  '/w/$workspaceId/settings/general': typeof WWorkspaceIdSettingsGeneralIndexRoute
+  '/w/$workspaceId/settings/organization': typeof WWorkspaceIdSettingsOrganizationIndexRoute
+  '/w/$workspaceId/settings/seo': typeof WWorkspaceIdSettingsSeoIndexRoute
+  '/w/$workspaceId/settings/workspace': typeof WWorkspaceIdSettingsWorkspaceIndexRoute
+  '/w/$workspaceId/team/invitations': typeof WWorkspaceIdTeamInvitationsIndexRoute
+  '/w/$workspaceId/team/members': typeof WWorkspaceIdTeamMembersIndexRoute
+  '/w/$workspaceId/team/roles': typeof WWorkspaceIdTeamRolesIndexRoute
+  '/w/$workspaceId/settings/maintenance/activity': typeof WWorkspaceIdSettingsMaintenanceActivityIndexRoute
+  '/w/$workspaceId/settings/maintenance/snapshots': typeof WWorkspaceIdSettingsMaintenanceSnapshotsIndexRoute
+  '/w/$workspaceId/settings/maintenance/status': typeof WWorkspaceIdSettingsMaintenanceStatusIndexRoute
 }
 export interface FileRoutesById {
-  __root__: typeof rootRouteImport;
-  "/": typeof IndexRoute;
-  "/o/$orgId": typeof OOrgIdRouteWithChildren;
-  "/w/$workspaceId": typeof WWorkspaceIdRouteWithChildren;
-  "/invitations/": typeof InvitationsIndexRoute;
-  "/login/": typeof LoginIndexRoute;
-  "/reset-password/": typeof ResetPasswordIndexRoute;
-  "/setup/": typeof SetupIndexRoute;
-  "/me/notifications/": typeof MeNotificationsIndexRoute;
-  "/o/$orgId/": typeof OOrgIdIndexRoute;
-  "/w/$workspaceId/": typeof WWorkspaceIdIndexRoute;
-  "/o/$orgId/activity/": typeof OOrgIdActivityIndexRoute;
-  "/o/$orgId/extensions/": typeof OOrgIdExtensionsIndexRoute;
-  "/o/$orgId/members/": typeof OOrgIdMembersIndexRoute;
-  "/o/$orgId/settings/": typeof OOrgIdSettingsIndexRoute;
-  "/o/$orgId/team/": typeof OOrgIdTeamIndexRoute;
-  "/o/$orgId/workspaces/": typeof OOrgIdWorkspacesIndexRoute;
-  "/w/$workspaceId/assets/": typeof WWorkspaceIdAssetsIndexRoute;
-  "/w/$workspaceId/extensions/": typeof WWorkspaceIdExtensionsIndexRoute;
-  "/w/$workspaceId/notifications/": typeof WWorkspaceIdNotificationsIndexRoute;
-  "/w/$workspaceId/team/": typeof WWorkspaceIdTeamIndexRoute;
-  "/w/$workspaceId/editor/$editorMode/$entityId": typeof WWorkspaceIdEditorEditorModeEntityIdRoute;
-  "/o/$orgId/extensions/$extensionSlug/": typeof OOrgIdExtensionsExtensionSlugIndexRoute;
-  "/o/$orgId/settings/activity/": typeof OOrgIdSettingsActivityIndexRoute;
-  "/o/$orgId/team/invitations/": typeof OOrgIdTeamInvitationsIndexRoute;
-  "/o/$orgId/team/members/": typeof OOrgIdTeamMembersIndexRoute;
-  "/o/$orgId/team/roles/": typeof OOrgIdTeamRolesIndexRoute;
-  "/w/$workspaceId/appearance/styles/": typeof WWorkspaceIdAppearanceStylesIndexRoute;
-  "/w/$workspaceId/appearance/themes/": typeof WWorkspaceIdAppearanceThemesIndexRoute;
-  "/w/$workspaceId/content/library/": typeof WWorkspaceIdContentLibraryIndexRoute;
-  "/w/$workspaceId/content/pages/": typeof WWorkspaceIdContentPagesIndexRoute;
-  "/w/$workspaceId/extensions/$extensionSlug/": typeof WWorkspaceIdExtensionsExtensionSlugIndexRoute;
-  "/w/$workspaceId/settings/general/": typeof WWorkspaceIdSettingsGeneralIndexRoute;
-  "/w/$workspaceId/settings/organization/": typeof WWorkspaceIdSettingsOrganizationIndexRoute;
-  "/w/$workspaceId/settings/seo/": typeof WWorkspaceIdSettingsSeoIndexRoute;
-  "/w/$workspaceId/settings/workspace/": typeof WWorkspaceIdSettingsWorkspaceIndexRoute;
-  "/w/$workspaceId/team/invitations/": typeof WWorkspaceIdTeamInvitationsIndexRoute;
-  "/w/$workspaceId/team/members/": typeof WWorkspaceIdTeamMembersIndexRoute;
-  "/w/$workspaceId/team/roles/": typeof WWorkspaceIdTeamRolesIndexRoute;
-  "/w/$workspaceId/settings/maintenance/activity/": typeof WWorkspaceIdSettingsMaintenanceActivityIndexRoute;
-  "/w/$workspaceId/settings/maintenance/snapshots/": typeof WWorkspaceIdSettingsMaintenanceSnapshotsIndexRoute;
-  "/w/$workspaceId/settings/maintenance/status/": typeof WWorkspaceIdSettingsMaintenanceStatusIndexRoute;
+  __root__: typeof rootRouteImport
+  '/': typeof IndexRoute
+  '/o/$orgId': typeof OOrgIdRouteWithChildren
+  '/w/$workspaceId': typeof WWorkspaceIdRouteWithChildren
+  '/invitations/': typeof InvitationsIndexRoute
+  '/login/': typeof LoginIndexRoute
+  '/reset-password/': typeof ResetPasswordIndexRoute
+  '/setup/': typeof SetupIndexRoute
+  '/me/notifications/': typeof MeNotificationsIndexRoute
+  '/o/$orgId/': typeof OOrgIdIndexRoute
+  '/w/$workspaceId/': typeof WWorkspaceIdIndexRoute
+  '/o/$orgId/activity/': typeof OOrgIdActivityIndexRoute
+  '/o/$orgId/extensions/': typeof OOrgIdExtensionsIndexRoute
+  '/o/$orgId/members/': typeof OOrgIdMembersIndexRoute
+  '/o/$orgId/settings/': typeof OOrgIdSettingsIndexRoute
+  '/o/$orgId/team/': typeof OOrgIdTeamIndexRoute
+  '/o/$orgId/workspaces/': typeof OOrgIdWorkspacesIndexRoute
+  '/w/$workspaceId/assets/': typeof WWorkspaceIdAssetsIndexRoute
+  '/w/$workspaceId/extensions/': typeof WWorkspaceIdExtensionsIndexRoute
+  '/w/$workspaceId/notifications/': typeof WWorkspaceIdNotificationsIndexRoute
+  '/w/$workspaceId/team/': typeof WWorkspaceIdTeamIndexRoute
+  '/w/$workspaceId/editor/$editorMode/$entityId': typeof WWorkspaceIdEditorEditorModeEntityIdRoute
+  '/o/$orgId/extensions/$extensionSlug/': typeof OOrgIdExtensionsExtensionSlugIndexRoute
+  '/o/$orgId/settings/activity/': typeof OOrgIdSettingsActivityIndexRoute
+  '/o/$orgId/team/invitations/': typeof OOrgIdTeamInvitationsIndexRoute
+  '/o/$orgId/team/members/': typeof OOrgIdTeamMembersIndexRoute
+  '/o/$orgId/team/roles/': typeof OOrgIdTeamRolesIndexRoute
+  '/w/$workspaceId/appearance/styles/': typeof WWorkspaceIdAppearanceStylesIndexRoute
+  '/w/$workspaceId/appearance/themes/': typeof WWorkspaceIdAppearanceThemesIndexRoute
+  '/w/$workspaceId/content/library/': typeof WWorkspaceIdContentLibraryIndexRoute
+  '/w/$workspaceId/content/pages/': typeof WWorkspaceIdContentPagesIndexRoute
+  '/w/$workspaceId/extensions/$extensionSlug/': typeof WWorkspaceIdExtensionsExtensionSlugIndexRoute
+  '/w/$workspaceId/settings/general/': typeof WWorkspaceIdSettingsGeneralIndexRoute
+  '/w/$workspaceId/settings/organization/': typeof WWorkspaceIdSettingsOrganizationIndexRoute
+  '/w/$workspaceId/settings/seo/': typeof WWorkspaceIdSettingsSeoIndexRoute
+  '/w/$workspaceId/settings/workspace/': typeof WWorkspaceIdSettingsWorkspaceIndexRoute
+  '/w/$workspaceId/team/invitations/': typeof WWorkspaceIdTeamInvitationsIndexRoute
+  '/w/$workspaceId/team/members/': typeof WWorkspaceIdTeamMembersIndexRoute
+  '/w/$workspaceId/team/roles/': typeof WWorkspaceIdTeamRolesIndexRoute
+  '/w/$workspaceId/settings/maintenance/activity/': typeof WWorkspaceIdSettingsMaintenanceActivityIndexRoute
+  '/w/$workspaceId/settings/maintenance/snapshots/': typeof WWorkspaceIdSettingsMaintenanceSnapshotsIndexRoute
+  '/w/$workspaceId/settings/maintenance/status/': typeof WWorkspaceIdSettingsMaintenanceStatusIndexRoute
 }
 export interface FileRouteTypes {
-  fileRoutesByFullPath: FileRoutesByFullPath;
+  fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    | "/"
-    | "/o/$orgId"
-    | "/w/$workspaceId"
-    | "/invitations/"
-    | "/login/"
-    | "/reset-password/"
-    | "/setup/"
-    | "/me/notifications/"
-    | "/o/$orgId/"
-    | "/w/$workspaceId/"
-    | "/o/$orgId/activity/"
-    | "/o/$orgId/extensions/"
-    | "/o/$orgId/members/"
-    | "/o/$orgId/settings/"
-    | "/o/$orgId/team/"
-    | "/o/$orgId/workspaces/"
-    | "/w/$workspaceId/assets/"
-    | "/w/$workspaceId/extensions/"
-    | "/w/$workspaceId/notifications/"
-    | "/w/$workspaceId/team/"
-    | "/w/$workspaceId/editor/$editorMode/$entityId"
-    | "/o/$orgId/extensions/$extensionSlug/"
-    | "/o/$orgId/settings/activity/"
-    | "/o/$orgId/team/invitations/"
-    | "/o/$orgId/team/members/"
-    | "/o/$orgId/team/roles/"
-    | "/w/$workspaceId/appearance/styles/"
-    | "/w/$workspaceId/appearance/themes/"
-    | "/w/$workspaceId/content/library/"
-    | "/w/$workspaceId/content/pages/"
-    | "/w/$workspaceId/extensions/$extensionSlug/"
-    | "/w/$workspaceId/settings/general/"
-    | "/w/$workspaceId/settings/organization/"
-    | "/w/$workspaceId/settings/seo/"
-    | "/w/$workspaceId/settings/workspace/"
-    | "/w/$workspaceId/team/invitations/"
-    | "/w/$workspaceId/team/members/"
-    | "/w/$workspaceId/team/roles/"
-    | "/w/$workspaceId/settings/maintenance/activity/"
-    | "/w/$workspaceId/settings/maintenance/snapshots/"
-    | "/w/$workspaceId/settings/maintenance/status/";
-  fileRoutesByTo: FileRoutesByTo;
+    | '/'
+    | '/o/$orgId'
+    | '/w/$workspaceId'
+    | '/invitations/'
+    | '/login/'
+    | '/reset-password/'
+    | '/setup/'
+    | '/me/notifications/'
+    | '/o/$orgId/'
+    | '/w/$workspaceId/'
+    | '/o/$orgId/activity/'
+    | '/o/$orgId/extensions/'
+    | '/o/$orgId/members/'
+    | '/o/$orgId/settings/'
+    | '/o/$orgId/team/'
+    | '/o/$orgId/workspaces/'
+    | '/w/$workspaceId/assets/'
+    | '/w/$workspaceId/extensions/'
+    | '/w/$workspaceId/notifications/'
+    | '/w/$workspaceId/team/'
+    | '/w/$workspaceId/editor/$editorMode/$entityId'
+    | '/o/$orgId/extensions/$extensionSlug/'
+    | '/o/$orgId/settings/activity/'
+    | '/o/$orgId/team/invitations/'
+    | '/o/$orgId/team/members/'
+    | '/o/$orgId/team/roles/'
+    | '/w/$workspaceId/appearance/styles/'
+    | '/w/$workspaceId/appearance/themes/'
+    | '/w/$workspaceId/content/library/'
+    | '/w/$workspaceId/content/pages/'
+    | '/w/$workspaceId/extensions/$extensionSlug/'
+    | '/w/$workspaceId/settings/general/'
+    | '/w/$workspaceId/settings/organization/'
+    | '/w/$workspaceId/settings/seo/'
+    | '/w/$workspaceId/settings/workspace/'
+    | '/w/$workspaceId/team/invitations/'
+    | '/w/$workspaceId/team/members/'
+    | '/w/$workspaceId/team/roles/'
+    | '/w/$workspaceId/settings/maintenance/activity/'
+    | '/w/$workspaceId/settings/maintenance/snapshots/'
+    | '/w/$workspaceId/settings/maintenance/status/'
+  fileRoutesByTo: FileRoutesByTo
   to:
-    | "/"
-    | "/invitations"
-    | "/login"
-    | "/reset-password"
-    | "/setup"
-    | "/me/notifications"
-    | "/o/$orgId"
-    | "/w/$workspaceId"
-    | "/o/$orgId/activity"
-    | "/o/$orgId/extensions"
-    | "/o/$orgId/members"
-    | "/o/$orgId/settings"
-    | "/o/$orgId/team"
-    | "/o/$orgId/workspaces"
-    | "/w/$workspaceId/assets"
-    | "/w/$workspaceId/extensions"
-    | "/w/$workspaceId/notifications"
-    | "/w/$workspaceId/team"
-    | "/w/$workspaceId/editor/$editorMode/$entityId"
-    | "/o/$orgId/extensions/$extensionSlug"
-    | "/o/$orgId/settings/activity"
-    | "/o/$orgId/team/invitations"
-    | "/o/$orgId/team/members"
-    | "/o/$orgId/team/roles"
-    | "/w/$workspaceId/appearance/styles"
-    | "/w/$workspaceId/appearance/themes"
-    | "/w/$workspaceId/content/library"
-    | "/w/$workspaceId/content/pages"
-    | "/w/$workspaceId/extensions/$extensionSlug"
-    | "/w/$workspaceId/settings/general"
-    | "/w/$workspaceId/settings/organization"
-    | "/w/$workspaceId/settings/seo"
-    | "/w/$workspaceId/settings/workspace"
-    | "/w/$workspaceId/team/invitations"
-    | "/w/$workspaceId/team/members"
-    | "/w/$workspaceId/team/roles"
-    | "/w/$workspaceId/settings/maintenance/activity"
-    | "/w/$workspaceId/settings/maintenance/snapshots"
-    | "/w/$workspaceId/settings/maintenance/status";
+    | '/'
+    | '/invitations'
+    | '/login'
+    | '/reset-password'
+    | '/setup'
+    | '/me/notifications'
+    | '/o/$orgId'
+    | '/w/$workspaceId'
+    | '/o/$orgId/activity'
+    | '/o/$orgId/extensions'
+    | '/o/$orgId/members'
+    | '/o/$orgId/settings'
+    | '/o/$orgId/team'
+    | '/o/$orgId/workspaces'
+    | '/w/$workspaceId/assets'
+    | '/w/$workspaceId/extensions'
+    | '/w/$workspaceId/notifications'
+    | '/w/$workspaceId/team'
+    | '/w/$workspaceId/editor/$editorMode/$entityId'
+    | '/o/$orgId/extensions/$extensionSlug'
+    | '/o/$orgId/settings/activity'
+    | '/o/$orgId/team/invitations'
+    | '/o/$orgId/team/members'
+    | '/o/$orgId/team/roles'
+    | '/w/$workspaceId/appearance/styles'
+    | '/w/$workspaceId/appearance/themes'
+    | '/w/$workspaceId/content/library'
+    | '/w/$workspaceId/content/pages'
+    | '/w/$workspaceId/extensions/$extensionSlug'
+    | '/w/$workspaceId/settings/general'
+    | '/w/$workspaceId/settings/organization'
+    | '/w/$workspaceId/settings/seo'
+    | '/w/$workspaceId/settings/workspace'
+    | '/w/$workspaceId/team/invitations'
+    | '/w/$workspaceId/team/members'
+    | '/w/$workspaceId/team/roles'
+    | '/w/$workspaceId/settings/maintenance/activity'
+    | '/w/$workspaceId/settings/maintenance/snapshots'
+    | '/w/$workspaceId/settings/maintenance/status'
   id:
-    | "__root__"
-    | "/"
-    | "/o/$orgId"
-    | "/w/$workspaceId"
-    | "/invitations/"
-    | "/login/"
-    | "/reset-password/"
-    | "/setup/"
-    | "/me/notifications/"
-    | "/o/$orgId/"
-    | "/w/$workspaceId/"
-    | "/o/$orgId/activity/"
-    | "/o/$orgId/extensions/"
-    | "/o/$orgId/members/"
-    | "/o/$orgId/settings/"
-    | "/o/$orgId/team/"
-    | "/o/$orgId/workspaces/"
-    | "/w/$workspaceId/assets/"
-    | "/w/$workspaceId/extensions/"
-    | "/w/$workspaceId/notifications/"
-    | "/w/$workspaceId/team/"
-    | "/w/$workspaceId/editor/$editorMode/$entityId"
-    | "/o/$orgId/extensions/$extensionSlug/"
-    | "/o/$orgId/settings/activity/"
-    | "/o/$orgId/team/invitations/"
-    | "/o/$orgId/team/members/"
-    | "/o/$orgId/team/roles/"
-    | "/w/$workspaceId/appearance/styles/"
-    | "/w/$workspaceId/appearance/themes/"
-    | "/w/$workspaceId/content/library/"
-    | "/w/$workspaceId/content/pages/"
-    | "/w/$workspaceId/extensions/$extensionSlug/"
-    | "/w/$workspaceId/settings/general/"
-    | "/w/$workspaceId/settings/organization/"
-    | "/w/$workspaceId/settings/seo/"
-    | "/w/$workspaceId/settings/workspace/"
-    | "/w/$workspaceId/team/invitations/"
-    | "/w/$workspaceId/team/members/"
-    | "/w/$workspaceId/team/roles/"
-    | "/w/$workspaceId/settings/maintenance/activity/"
-    | "/w/$workspaceId/settings/maintenance/snapshots/"
-    | "/w/$workspaceId/settings/maintenance/status/";
-  fileRoutesById: FileRoutesById;
+    | '__root__'
+    | '/'
+    | '/o/$orgId'
+    | '/w/$workspaceId'
+    | '/invitations/'
+    | '/login/'
+    | '/reset-password/'
+    | '/setup/'
+    | '/me/notifications/'
+    | '/o/$orgId/'
+    | '/w/$workspaceId/'
+    | '/o/$orgId/activity/'
+    | '/o/$orgId/extensions/'
+    | '/o/$orgId/members/'
+    | '/o/$orgId/settings/'
+    | '/o/$orgId/team/'
+    | '/o/$orgId/workspaces/'
+    | '/w/$workspaceId/assets/'
+    | '/w/$workspaceId/extensions/'
+    | '/w/$workspaceId/notifications/'
+    | '/w/$workspaceId/team/'
+    | '/w/$workspaceId/editor/$editorMode/$entityId'
+    | '/o/$orgId/extensions/$extensionSlug/'
+    | '/o/$orgId/settings/activity/'
+    | '/o/$orgId/team/invitations/'
+    | '/o/$orgId/team/members/'
+    | '/o/$orgId/team/roles/'
+    | '/w/$workspaceId/appearance/styles/'
+    | '/w/$workspaceId/appearance/themes/'
+    | '/w/$workspaceId/content/library/'
+    | '/w/$workspaceId/content/pages/'
+    | '/w/$workspaceId/extensions/$extensionSlug/'
+    | '/w/$workspaceId/settings/general/'
+    | '/w/$workspaceId/settings/organization/'
+    | '/w/$workspaceId/settings/seo/'
+    | '/w/$workspaceId/settings/workspace/'
+    | '/w/$workspaceId/team/invitations/'
+    | '/w/$workspaceId/team/members/'
+    | '/w/$workspaceId/team/roles/'
+    | '/w/$workspaceId/settings/maintenance/activity/'
+    | '/w/$workspaceId/settings/maintenance/snapshots/'
+    | '/w/$workspaceId/settings/maintenance/status/'
+  fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute;
-  OOrgIdRoute: typeof OOrgIdRouteWithChildren;
-  WWorkspaceIdRoute: typeof WWorkspaceIdRouteWithChildren;
-  InvitationsIndexRoute: typeof InvitationsIndexRoute;
-  LoginIndexRoute: typeof LoginIndexRoute;
-  ResetPasswordIndexRoute: typeof ResetPasswordIndexRoute;
-  SetupIndexRoute: typeof SetupIndexRoute;
-  MeNotificationsIndexRoute: typeof MeNotificationsIndexRoute;
+  IndexRoute: typeof IndexRoute
+  OOrgIdRoute: typeof OOrgIdRouteWithChildren
+  WWorkspaceIdRoute: typeof WWorkspaceIdRouteWithChildren
+  InvitationsIndexRoute: typeof InvitationsIndexRoute
+  LoginIndexRoute: typeof LoginIndexRoute
+  ResetPasswordIndexRoute: typeof ResetPasswordIndexRoute
+  SetupIndexRoute: typeof SetupIndexRoute
+  MeNotificationsIndexRoute: typeof MeNotificationsIndexRoute
 }
 
-declare module "@tanstack/react-router" {
+declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    "/": {
-      id: "/";
-      path: "/";
-      fullPath: "/";
-      preLoaderRoute: typeof IndexRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/setup/": {
-      id: "/setup/";
-      path: "/setup";
-      fullPath: "/setup/";
-      preLoaderRoute: typeof SetupIndexRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/reset-password/": {
-      id: "/reset-password/";
-      path: "/reset-password";
-      fullPath: "/reset-password/";
-      preLoaderRoute: typeof ResetPasswordIndexRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/login/": {
-      id: "/login/";
-      path: "/login";
-      fullPath: "/login/";
-      preLoaderRoute: typeof LoginIndexRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/invitations/": {
-      id: "/invitations/";
-      path: "/invitations";
-      fullPath: "/invitations/";
-      preLoaderRoute: typeof InvitationsIndexRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/w/$workspaceId": {
-      id: "/w/$workspaceId";
-      path: "/w/$workspaceId";
-      fullPath: "/w/$workspaceId";
-      preLoaderRoute: typeof WWorkspaceIdRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/o/$orgId": {
-      id: "/o/$orgId";
-      path: "/o/$orgId";
-      fullPath: "/o/$orgId";
-      preLoaderRoute: typeof OOrgIdRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/w/$workspaceId/": {
-      id: "/w/$workspaceId/";
-      path: "/";
-      fullPath: "/w/$workspaceId/";
-      preLoaderRoute: typeof WWorkspaceIdIndexRouteImport;
-      parentRoute: typeof WWorkspaceIdRoute;
-    };
-    "/o/$orgId/": {
-      id: "/o/$orgId/";
-      path: "/";
-      fullPath: "/o/$orgId/";
-      preLoaderRoute: typeof OOrgIdIndexRouteImport;
-      parentRoute: typeof OOrgIdRoute;
-    };
-    "/me/notifications/": {
-      id: "/me/notifications/";
-      path: "/me/notifications";
-      fullPath: "/me/notifications/";
-      preLoaderRoute: typeof MeNotificationsIndexRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/w/$workspaceId/team/": {
-      id: "/w/$workspaceId/team/";
-      path: "/team";
-      fullPath: "/w/$workspaceId/team/";
-      preLoaderRoute: typeof WWorkspaceIdTeamIndexRouteImport;
-      parentRoute: typeof WWorkspaceIdRoute;
-    };
-    "/w/$workspaceId/notifications/": {
-      id: "/w/$workspaceId/notifications/";
-      path: "/notifications";
-      fullPath: "/w/$workspaceId/notifications/";
-      preLoaderRoute: typeof WWorkspaceIdNotificationsIndexRouteImport;
-      parentRoute: typeof WWorkspaceIdRoute;
-    };
-    "/w/$workspaceId/extensions/": {
-      id: "/w/$workspaceId/extensions/";
-      path: "/extensions";
-      fullPath: "/w/$workspaceId/extensions/";
-      preLoaderRoute: typeof WWorkspaceIdExtensionsIndexRouteImport;
-      parentRoute: typeof WWorkspaceIdRoute;
-    };
-    "/w/$workspaceId/assets/": {
-      id: "/w/$workspaceId/assets/";
-      path: "/assets";
-      fullPath: "/w/$workspaceId/assets/";
-      preLoaderRoute: typeof WWorkspaceIdAssetsIndexRouteImport;
-      parentRoute: typeof WWorkspaceIdRoute;
-    };
-    "/o/$orgId/workspaces/": {
-      id: "/o/$orgId/workspaces/";
-      path: "/workspaces";
-      fullPath: "/o/$orgId/workspaces/";
-      preLoaderRoute: typeof OOrgIdWorkspacesIndexRouteImport;
-      parentRoute: typeof OOrgIdRoute;
-    };
-    "/o/$orgId/team/": {
-      id: "/o/$orgId/team/";
-      path: "/team";
-      fullPath: "/o/$orgId/team/";
-      preLoaderRoute: typeof OOrgIdTeamIndexRouteImport;
-      parentRoute: typeof OOrgIdRoute;
-    };
-    "/o/$orgId/settings/": {
-      id: "/o/$orgId/settings/";
-      path: "/settings";
-      fullPath: "/o/$orgId/settings/";
-      preLoaderRoute: typeof OOrgIdSettingsIndexRouteImport;
-      parentRoute: typeof OOrgIdRoute;
-    };
-    "/o/$orgId/members/": {
-      id: "/o/$orgId/members/";
-      path: "/members";
-      fullPath: "/o/$orgId/members/";
-      preLoaderRoute: typeof OOrgIdMembersIndexRouteImport;
-      parentRoute: typeof OOrgIdRoute;
-    };
-    "/o/$orgId/extensions/": {
-      id: "/o/$orgId/extensions/";
-      path: "/extensions";
-      fullPath: "/o/$orgId/extensions/";
-      preLoaderRoute: typeof OOrgIdExtensionsIndexRouteImport;
-      parentRoute: typeof OOrgIdRoute;
-    };
-    "/o/$orgId/activity/": {
-      id: "/o/$orgId/activity/";
-      path: "/activity";
-      fullPath: "/o/$orgId/activity/";
-      preLoaderRoute: typeof OOrgIdActivityIndexRouteImport;
-      parentRoute: typeof OOrgIdRoute;
-    };
-    "/w/$workspaceId/team/roles/": {
-      id: "/w/$workspaceId/team/roles/";
-      path: "/team/roles";
-      fullPath: "/w/$workspaceId/team/roles/";
-      preLoaderRoute: typeof WWorkspaceIdTeamRolesIndexRouteImport;
-      parentRoute: typeof WWorkspaceIdRoute;
-    };
-    "/w/$workspaceId/team/members/": {
-      id: "/w/$workspaceId/team/members/";
-      path: "/team/members";
-      fullPath: "/w/$workspaceId/team/members/";
-      preLoaderRoute: typeof WWorkspaceIdTeamMembersIndexRouteImport;
-      parentRoute: typeof WWorkspaceIdRoute;
-    };
-    "/w/$workspaceId/team/invitations/": {
-      id: "/w/$workspaceId/team/invitations/";
-      path: "/team/invitations";
-      fullPath: "/w/$workspaceId/team/invitations/";
-      preLoaderRoute: typeof WWorkspaceIdTeamInvitationsIndexRouteImport;
-      parentRoute: typeof WWorkspaceIdRoute;
-    };
-    "/w/$workspaceId/settings/workspace/": {
-      id: "/w/$workspaceId/settings/workspace/";
-      path: "/settings/workspace";
-      fullPath: "/w/$workspaceId/settings/workspace/";
-      preLoaderRoute: typeof WWorkspaceIdSettingsWorkspaceIndexRouteImport;
-      parentRoute: typeof WWorkspaceIdRoute;
-    };
-    "/w/$workspaceId/settings/seo/": {
-      id: "/w/$workspaceId/settings/seo/";
-      path: "/settings/seo";
-      fullPath: "/w/$workspaceId/settings/seo/";
-      preLoaderRoute: typeof WWorkspaceIdSettingsSeoIndexRouteImport;
-      parentRoute: typeof WWorkspaceIdRoute;
-    };
-    "/w/$workspaceId/settings/organization/": {
-      id: "/w/$workspaceId/settings/organization/";
-      path: "/settings/organization";
-      fullPath: "/w/$workspaceId/settings/organization/";
-      preLoaderRoute: typeof WWorkspaceIdSettingsOrganizationIndexRouteImport;
-      parentRoute: typeof WWorkspaceIdRoute;
-    };
-    "/w/$workspaceId/settings/general/": {
-      id: "/w/$workspaceId/settings/general/";
-      path: "/settings/general";
-      fullPath: "/w/$workspaceId/settings/general/";
-      preLoaderRoute: typeof WWorkspaceIdSettingsGeneralIndexRouteImport;
-      parentRoute: typeof WWorkspaceIdRoute;
-    };
-    "/w/$workspaceId/extensions/$extensionSlug/": {
-      id: "/w/$workspaceId/extensions/$extensionSlug/";
-      path: "/extensions/$extensionSlug";
-      fullPath: "/w/$workspaceId/extensions/$extensionSlug/";
-      preLoaderRoute: typeof WWorkspaceIdExtensionsExtensionSlugIndexRouteImport;
-      parentRoute: typeof WWorkspaceIdRoute;
-    };
-    "/w/$workspaceId/content/pages/": {
-      id: "/w/$workspaceId/content/pages/";
-      path: "/content/pages";
-      fullPath: "/w/$workspaceId/content/pages/";
-      preLoaderRoute: typeof WWorkspaceIdContentPagesIndexRouteImport;
-      parentRoute: typeof WWorkspaceIdRoute;
-    };
-    "/w/$workspaceId/content/library/": {
-      id: "/w/$workspaceId/content/library/";
-      path: "/content/library";
-      fullPath: "/w/$workspaceId/content/library/";
-      preLoaderRoute: typeof WWorkspaceIdContentLibraryIndexRouteImport;
-      parentRoute: typeof WWorkspaceIdRoute;
-    };
-    "/w/$workspaceId/appearance/themes/": {
-      id: "/w/$workspaceId/appearance/themes/";
-      path: "/appearance/themes";
-      fullPath: "/w/$workspaceId/appearance/themes/";
-      preLoaderRoute: typeof WWorkspaceIdAppearanceThemesIndexRouteImport;
-      parentRoute: typeof WWorkspaceIdRoute;
-    };
-    "/w/$workspaceId/appearance/styles/": {
-      id: "/w/$workspaceId/appearance/styles/";
-      path: "/appearance/styles";
-      fullPath: "/w/$workspaceId/appearance/styles/";
-      preLoaderRoute: typeof WWorkspaceIdAppearanceStylesIndexRouteImport;
-      parentRoute: typeof WWorkspaceIdRoute;
-    };
-    "/o/$orgId/team/roles/": {
-      id: "/o/$orgId/team/roles/";
-      path: "/team/roles";
-      fullPath: "/o/$orgId/team/roles/";
-      preLoaderRoute: typeof OOrgIdTeamRolesIndexRouteImport;
-      parentRoute: typeof OOrgIdRoute;
-    };
-    "/o/$orgId/team/members/": {
-      id: "/o/$orgId/team/members/";
-      path: "/team/members";
-      fullPath: "/o/$orgId/team/members/";
-      preLoaderRoute: typeof OOrgIdTeamMembersIndexRouteImport;
-      parentRoute: typeof OOrgIdRoute;
-    };
-    "/o/$orgId/team/invitations/": {
-      id: "/o/$orgId/team/invitations/";
-      path: "/team/invitations";
-      fullPath: "/o/$orgId/team/invitations/";
-      preLoaderRoute: typeof OOrgIdTeamInvitationsIndexRouteImport;
-      parentRoute: typeof OOrgIdRoute;
-    };
-    "/o/$orgId/settings/activity/": {
-      id: "/o/$orgId/settings/activity/";
-      path: "/settings/activity";
-      fullPath: "/o/$orgId/settings/activity/";
-      preLoaderRoute: typeof OOrgIdSettingsActivityIndexRouteImport;
-      parentRoute: typeof OOrgIdRoute;
-    };
-    "/o/$orgId/extensions/$extensionSlug/": {
-      id: "/o/$orgId/extensions/$extensionSlug/";
-      path: "/extensions/$extensionSlug";
-      fullPath: "/o/$orgId/extensions/$extensionSlug/";
-      preLoaderRoute: typeof OOrgIdExtensionsExtensionSlugIndexRouteImport;
-      parentRoute: typeof OOrgIdRoute;
-    };
-    "/w/$workspaceId/editor/$editorMode/$entityId": {
-      id: "/w/$workspaceId/editor/$editorMode/$entityId";
-      path: "/editor/$editorMode/$entityId";
-      fullPath: "/w/$workspaceId/editor/$editorMode/$entityId";
-      preLoaderRoute: typeof WWorkspaceIdEditorEditorModeEntityIdRouteImport;
-      parentRoute: typeof WWorkspaceIdRoute;
-    };
-    "/w/$workspaceId/settings/maintenance/status/": {
-      id: "/w/$workspaceId/settings/maintenance/status/";
-      path: "/settings/maintenance/status";
-      fullPath: "/w/$workspaceId/settings/maintenance/status/";
-      preLoaderRoute: typeof WWorkspaceIdSettingsMaintenanceStatusIndexRouteImport;
-      parentRoute: typeof WWorkspaceIdRoute;
-    };
-    "/w/$workspaceId/settings/maintenance/snapshots/": {
-      id: "/w/$workspaceId/settings/maintenance/snapshots/";
-      path: "/settings/maintenance/snapshots";
-      fullPath: "/w/$workspaceId/settings/maintenance/snapshots/";
-      preLoaderRoute: typeof WWorkspaceIdSettingsMaintenanceSnapshotsIndexRouteImport;
-      parentRoute: typeof WWorkspaceIdRoute;
-    };
-    "/w/$workspaceId/settings/maintenance/activity/": {
-      id: "/w/$workspaceId/settings/maintenance/activity/";
-      path: "/settings/maintenance/activity";
-      fullPath: "/w/$workspaceId/settings/maintenance/activity/";
-      preLoaderRoute: typeof WWorkspaceIdSettingsMaintenanceActivityIndexRouteImport;
-      parentRoute: typeof WWorkspaceIdRoute;
-    };
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/setup/': {
+      id: '/setup/'
+      path: '/setup'
+      fullPath: '/setup/'
+      preLoaderRoute: typeof SetupIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password/': {
+      id: '/reset-password/'
+      path: '/reset-password'
+      fullPath: '/reset-password/'
+      preLoaderRoute: typeof ResetPasswordIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login/': {
+      id: '/login/'
+      path: '/login'
+      fullPath: '/login/'
+      preLoaderRoute: typeof LoginIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/invitations/': {
+      id: '/invitations/'
+      path: '/invitations'
+      fullPath: '/invitations/'
+      preLoaderRoute: typeof InvitationsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/w/$workspaceId': {
+      id: '/w/$workspaceId'
+      path: '/w/$workspaceId'
+      fullPath: '/w/$workspaceId'
+      preLoaderRoute: typeof WWorkspaceIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/o/$orgId': {
+      id: '/o/$orgId'
+      path: '/o/$orgId'
+      fullPath: '/o/$orgId'
+      preLoaderRoute: typeof OOrgIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/w/$workspaceId/': {
+      id: '/w/$workspaceId/'
+      path: '/'
+      fullPath: '/w/$workspaceId/'
+      preLoaderRoute: typeof WWorkspaceIdIndexRouteImport
+      parentRoute: typeof WWorkspaceIdRoute
+    }
+    '/o/$orgId/': {
+      id: '/o/$orgId/'
+      path: '/'
+      fullPath: '/o/$orgId/'
+      preLoaderRoute: typeof OOrgIdIndexRouteImport
+      parentRoute: typeof OOrgIdRoute
+    }
+    '/me/notifications/': {
+      id: '/me/notifications/'
+      path: '/me/notifications'
+      fullPath: '/me/notifications/'
+      preLoaderRoute: typeof MeNotificationsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/w/$workspaceId/team/': {
+      id: '/w/$workspaceId/team/'
+      path: '/team'
+      fullPath: '/w/$workspaceId/team/'
+      preLoaderRoute: typeof WWorkspaceIdTeamIndexRouteImport
+      parentRoute: typeof WWorkspaceIdRoute
+    }
+    '/w/$workspaceId/notifications/': {
+      id: '/w/$workspaceId/notifications/'
+      path: '/notifications'
+      fullPath: '/w/$workspaceId/notifications/'
+      preLoaderRoute: typeof WWorkspaceIdNotificationsIndexRouteImport
+      parentRoute: typeof WWorkspaceIdRoute
+    }
+    '/w/$workspaceId/extensions/': {
+      id: '/w/$workspaceId/extensions/'
+      path: '/extensions'
+      fullPath: '/w/$workspaceId/extensions/'
+      preLoaderRoute: typeof WWorkspaceIdExtensionsIndexRouteImport
+      parentRoute: typeof WWorkspaceIdRoute
+    }
+    '/w/$workspaceId/assets/': {
+      id: '/w/$workspaceId/assets/'
+      path: '/assets'
+      fullPath: '/w/$workspaceId/assets/'
+      preLoaderRoute: typeof WWorkspaceIdAssetsIndexRouteImport
+      parentRoute: typeof WWorkspaceIdRoute
+    }
+    '/o/$orgId/workspaces/': {
+      id: '/o/$orgId/workspaces/'
+      path: '/workspaces'
+      fullPath: '/o/$orgId/workspaces/'
+      preLoaderRoute: typeof OOrgIdWorkspacesIndexRouteImport
+      parentRoute: typeof OOrgIdRoute
+    }
+    '/o/$orgId/team/': {
+      id: '/o/$orgId/team/'
+      path: '/team'
+      fullPath: '/o/$orgId/team/'
+      preLoaderRoute: typeof OOrgIdTeamIndexRouteImport
+      parentRoute: typeof OOrgIdRoute
+    }
+    '/o/$orgId/settings/': {
+      id: '/o/$orgId/settings/'
+      path: '/settings'
+      fullPath: '/o/$orgId/settings/'
+      preLoaderRoute: typeof OOrgIdSettingsIndexRouteImport
+      parentRoute: typeof OOrgIdRoute
+    }
+    '/o/$orgId/members/': {
+      id: '/o/$orgId/members/'
+      path: '/members'
+      fullPath: '/o/$orgId/members/'
+      preLoaderRoute: typeof OOrgIdMembersIndexRouteImport
+      parentRoute: typeof OOrgIdRoute
+    }
+    '/o/$orgId/extensions/': {
+      id: '/o/$orgId/extensions/'
+      path: '/extensions'
+      fullPath: '/o/$orgId/extensions/'
+      preLoaderRoute: typeof OOrgIdExtensionsIndexRouteImport
+      parentRoute: typeof OOrgIdRoute
+    }
+    '/o/$orgId/activity/': {
+      id: '/o/$orgId/activity/'
+      path: '/activity'
+      fullPath: '/o/$orgId/activity/'
+      preLoaderRoute: typeof OOrgIdActivityIndexRouteImport
+      parentRoute: typeof OOrgIdRoute
+    }
+    '/w/$workspaceId/team/roles/': {
+      id: '/w/$workspaceId/team/roles/'
+      path: '/team/roles'
+      fullPath: '/w/$workspaceId/team/roles/'
+      preLoaderRoute: typeof WWorkspaceIdTeamRolesIndexRouteImport
+      parentRoute: typeof WWorkspaceIdRoute
+    }
+    '/w/$workspaceId/team/members/': {
+      id: '/w/$workspaceId/team/members/'
+      path: '/team/members'
+      fullPath: '/w/$workspaceId/team/members/'
+      preLoaderRoute: typeof WWorkspaceIdTeamMembersIndexRouteImport
+      parentRoute: typeof WWorkspaceIdRoute
+    }
+    '/w/$workspaceId/team/invitations/': {
+      id: '/w/$workspaceId/team/invitations/'
+      path: '/team/invitations'
+      fullPath: '/w/$workspaceId/team/invitations/'
+      preLoaderRoute: typeof WWorkspaceIdTeamInvitationsIndexRouteImport
+      parentRoute: typeof WWorkspaceIdRoute
+    }
+    '/w/$workspaceId/settings/workspace/': {
+      id: '/w/$workspaceId/settings/workspace/'
+      path: '/settings/workspace'
+      fullPath: '/w/$workspaceId/settings/workspace/'
+      preLoaderRoute: typeof WWorkspaceIdSettingsWorkspaceIndexRouteImport
+      parentRoute: typeof WWorkspaceIdRoute
+    }
+    '/w/$workspaceId/settings/seo/': {
+      id: '/w/$workspaceId/settings/seo/'
+      path: '/settings/seo'
+      fullPath: '/w/$workspaceId/settings/seo/'
+      preLoaderRoute: typeof WWorkspaceIdSettingsSeoIndexRouteImport
+      parentRoute: typeof WWorkspaceIdRoute
+    }
+    '/w/$workspaceId/settings/organization/': {
+      id: '/w/$workspaceId/settings/organization/'
+      path: '/settings/organization'
+      fullPath: '/w/$workspaceId/settings/organization/'
+      preLoaderRoute: typeof WWorkspaceIdSettingsOrganizationIndexRouteImport
+      parentRoute: typeof WWorkspaceIdRoute
+    }
+    '/w/$workspaceId/settings/general/': {
+      id: '/w/$workspaceId/settings/general/'
+      path: '/settings/general'
+      fullPath: '/w/$workspaceId/settings/general/'
+      preLoaderRoute: typeof WWorkspaceIdSettingsGeneralIndexRouteImport
+      parentRoute: typeof WWorkspaceIdRoute
+    }
+    '/w/$workspaceId/extensions/$extensionSlug/': {
+      id: '/w/$workspaceId/extensions/$extensionSlug/'
+      path: '/extensions/$extensionSlug'
+      fullPath: '/w/$workspaceId/extensions/$extensionSlug/'
+      preLoaderRoute: typeof WWorkspaceIdExtensionsExtensionSlugIndexRouteImport
+      parentRoute: typeof WWorkspaceIdRoute
+    }
+    '/w/$workspaceId/content/pages/': {
+      id: '/w/$workspaceId/content/pages/'
+      path: '/content/pages'
+      fullPath: '/w/$workspaceId/content/pages/'
+      preLoaderRoute: typeof WWorkspaceIdContentPagesIndexRouteImport
+      parentRoute: typeof WWorkspaceIdRoute
+    }
+    '/w/$workspaceId/content/library/': {
+      id: '/w/$workspaceId/content/library/'
+      path: '/content/library'
+      fullPath: '/w/$workspaceId/content/library/'
+      preLoaderRoute: typeof WWorkspaceIdContentLibraryIndexRouteImport
+      parentRoute: typeof WWorkspaceIdRoute
+    }
+    '/w/$workspaceId/appearance/themes/': {
+      id: '/w/$workspaceId/appearance/themes/'
+      path: '/appearance/themes'
+      fullPath: '/w/$workspaceId/appearance/themes/'
+      preLoaderRoute: typeof WWorkspaceIdAppearanceThemesIndexRouteImport
+      parentRoute: typeof WWorkspaceIdRoute
+    }
+    '/w/$workspaceId/appearance/styles/': {
+      id: '/w/$workspaceId/appearance/styles/'
+      path: '/appearance/styles'
+      fullPath: '/w/$workspaceId/appearance/styles/'
+      preLoaderRoute: typeof WWorkspaceIdAppearanceStylesIndexRouteImport
+      parentRoute: typeof WWorkspaceIdRoute
+    }
+    '/o/$orgId/team/roles/': {
+      id: '/o/$orgId/team/roles/'
+      path: '/team/roles'
+      fullPath: '/o/$orgId/team/roles/'
+      preLoaderRoute: typeof OOrgIdTeamRolesIndexRouteImport
+      parentRoute: typeof OOrgIdRoute
+    }
+    '/o/$orgId/team/members/': {
+      id: '/o/$orgId/team/members/'
+      path: '/team/members'
+      fullPath: '/o/$orgId/team/members/'
+      preLoaderRoute: typeof OOrgIdTeamMembersIndexRouteImport
+      parentRoute: typeof OOrgIdRoute
+    }
+    '/o/$orgId/team/invitations/': {
+      id: '/o/$orgId/team/invitations/'
+      path: '/team/invitations'
+      fullPath: '/o/$orgId/team/invitations/'
+      preLoaderRoute: typeof OOrgIdTeamInvitationsIndexRouteImport
+      parentRoute: typeof OOrgIdRoute
+    }
+    '/o/$orgId/settings/activity/': {
+      id: '/o/$orgId/settings/activity/'
+      path: '/settings/activity'
+      fullPath: '/o/$orgId/settings/activity/'
+      preLoaderRoute: typeof OOrgIdSettingsActivityIndexRouteImport
+      parentRoute: typeof OOrgIdRoute
+    }
+    '/o/$orgId/extensions/$extensionSlug/': {
+      id: '/o/$orgId/extensions/$extensionSlug/'
+      path: '/extensions/$extensionSlug'
+      fullPath: '/o/$orgId/extensions/$extensionSlug/'
+      preLoaderRoute: typeof OOrgIdExtensionsExtensionSlugIndexRouteImport
+      parentRoute: typeof OOrgIdRoute
+    }
+    '/w/$workspaceId/editor/$editorMode/$entityId': {
+      id: '/w/$workspaceId/editor/$editorMode/$entityId'
+      path: '/editor/$editorMode/$entityId'
+      fullPath: '/w/$workspaceId/editor/$editorMode/$entityId'
+      preLoaderRoute: typeof WWorkspaceIdEditorEditorModeEntityIdRouteImport
+      parentRoute: typeof WWorkspaceIdRoute
+    }
+    '/w/$workspaceId/settings/maintenance/status/': {
+      id: '/w/$workspaceId/settings/maintenance/status/'
+      path: '/settings/maintenance/status'
+      fullPath: '/w/$workspaceId/settings/maintenance/status/'
+      preLoaderRoute: typeof WWorkspaceIdSettingsMaintenanceStatusIndexRouteImport
+      parentRoute: typeof WWorkspaceIdRoute
+    }
+    '/w/$workspaceId/settings/maintenance/snapshots/': {
+      id: '/w/$workspaceId/settings/maintenance/snapshots/'
+      path: '/settings/maintenance/snapshots'
+      fullPath: '/w/$workspaceId/settings/maintenance/snapshots/'
+      preLoaderRoute: typeof WWorkspaceIdSettingsMaintenanceSnapshotsIndexRouteImport
+      parentRoute: typeof WWorkspaceIdRoute
+    }
+    '/w/$workspaceId/settings/maintenance/activity/': {
+      id: '/w/$workspaceId/settings/maintenance/activity/'
+      path: '/settings/maintenance/activity'
+      fullPath: '/w/$workspaceId/settings/maintenance/activity/'
+      preLoaderRoute: typeof WWorkspaceIdSettingsMaintenanceActivityIndexRouteImport
+      parentRoute: typeof WWorkspaceIdRoute
+    }
   }
 }
 
 interface OOrgIdRouteChildren {
-  OOrgIdIndexRoute: typeof OOrgIdIndexRoute;
-  OOrgIdActivityIndexRoute: typeof OOrgIdActivityIndexRoute;
-  OOrgIdExtensionsIndexRoute: typeof OOrgIdExtensionsIndexRoute;
-  OOrgIdMembersIndexRoute: typeof OOrgIdMembersIndexRoute;
-  OOrgIdSettingsIndexRoute: typeof OOrgIdSettingsIndexRoute;
-  OOrgIdTeamIndexRoute: typeof OOrgIdTeamIndexRoute;
-  OOrgIdWorkspacesIndexRoute: typeof OOrgIdWorkspacesIndexRoute;
-  OOrgIdExtensionsExtensionSlugIndexRoute: typeof OOrgIdExtensionsExtensionSlugIndexRoute;
-  OOrgIdSettingsActivityIndexRoute: typeof OOrgIdSettingsActivityIndexRoute;
-  OOrgIdTeamInvitationsIndexRoute: typeof OOrgIdTeamInvitationsIndexRoute;
-  OOrgIdTeamMembersIndexRoute: typeof OOrgIdTeamMembersIndexRoute;
-  OOrgIdTeamRolesIndexRoute: typeof OOrgIdTeamRolesIndexRoute;
+  OOrgIdIndexRoute: typeof OOrgIdIndexRoute
+  OOrgIdActivityIndexRoute: typeof OOrgIdActivityIndexRoute
+  OOrgIdExtensionsIndexRoute: typeof OOrgIdExtensionsIndexRoute
+  OOrgIdMembersIndexRoute: typeof OOrgIdMembersIndexRoute
+  OOrgIdSettingsIndexRoute: typeof OOrgIdSettingsIndexRoute
+  OOrgIdTeamIndexRoute: typeof OOrgIdTeamIndexRoute
+  OOrgIdWorkspacesIndexRoute: typeof OOrgIdWorkspacesIndexRoute
+  OOrgIdExtensionsExtensionSlugIndexRoute: typeof OOrgIdExtensionsExtensionSlugIndexRoute
+  OOrgIdSettingsActivityIndexRoute: typeof OOrgIdSettingsActivityIndexRoute
+  OOrgIdTeamInvitationsIndexRoute: typeof OOrgIdTeamInvitationsIndexRoute
+  OOrgIdTeamMembersIndexRoute: typeof OOrgIdTeamMembersIndexRoute
+  OOrgIdTeamRolesIndexRoute: typeof OOrgIdTeamRolesIndexRoute
 }
 
 const OOrgIdRouteChildren: OOrgIdRouteChildren = {
@@ -883,37 +972,39 @@ const OOrgIdRouteChildren: OOrgIdRouteChildren = {
   OOrgIdSettingsIndexRoute: OOrgIdSettingsIndexRoute,
   OOrgIdTeamIndexRoute: OOrgIdTeamIndexRoute,
   OOrgIdWorkspacesIndexRoute: OOrgIdWorkspacesIndexRoute,
-  OOrgIdExtensionsExtensionSlugIndexRoute: OOrgIdExtensionsExtensionSlugIndexRoute,
+  OOrgIdExtensionsExtensionSlugIndexRoute:
+    OOrgIdExtensionsExtensionSlugIndexRoute,
   OOrgIdSettingsActivityIndexRoute: OOrgIdSettingsActivityIndexRoute,
   OOrgIdTeamInvitationsIndexRoute: OOrgIdTeamInvitationsIndexRoute,
   OOrgIdTeamMembersIndexRoute: OOrgIdTeamMembersIndexRoute,
   OOrgIdTeamRolesIndexRoute: OOrgIdTeamRolesIndexRoute,
-};
+}
 
-const OOrgIdRouteWithChildren = OOrgIdRoute._addFileChildren(OOrgIdRouteChildren);
+const OOrgIdRouteWithChildren =
+  OOrgIdRoute._addFileChildren(OOrgIdRouteChildren)
 
 interface WWorkspaceIdRouteChildren {
-  WWorkspaceIdIndexRoute: typeof WWorkspaceIdIndexRoute;
-  WWorkspaceIdAssetsIndexRoute: typeof WWorkspaceIdAssetsIndexRoute;
-  WWorkspaceIdExtensionsIndexRoute: typeof WWorkspaceIdExtensionsIndexRoute;
-  WWorkspaceIdNotificationsIndexRoute: typeof WWorkspaceIdNotificationsIndexRoute;
-  WWorkspaceIdTeamIndexRoute: typeof WWorkspaceIdTeamIndexRoute;
-  WWorkspaceIdEditorEditorModeEntityIdRoute: typeof WWorkspaceIdEditorEditorModeEntityIdRoute;
-  WWorkspaceIdAppearanceStylesIndexRoute: typeof WWorkspaceIdAppearanceStylesIndexRoute;
-  WWorkspaceIdAppearanceThemesIndexRoute: typeof WWorkspaceIdAppearanceThemesIndexRoute;
-  WWorkspaceIdContentLibraryIndexRoute: typeof WWorkspaceIdContentLibraryIndexRoute;
-  WWorkspaceIdContentPagesIndexRoute: typeof WWorkspaceIdContentPagesIndexRoute;
-  WWorkspaceIdExtensionsExtensionSlugIndexRoute: typeof WWorkspaceIdExtensionsExtensionSlugIndexRoute;
-  WWorkspaceIdSettingsGeneralIndexRoute: typeof WWorkspaceIdSettingsGeneralIndexRoute;
-  WWorkspaceIdSettingsOrganizationIndexRoute: typeof WWorkspaceIdSettingsOrganizationIndexRoute;
-  WWorkspaceIdSettingsSeoIndexRoute: typeof WWorkspaceIdSettingsSeoIndexRoute;
-  WWorkspaceIdSettingsWorkspaceIndexRoute: typeof WWorkspaceIdSettingsWorkspaceIndexRoute;
-  WWorkspaceIdTeamInvitationsIndexRoute: typeof WWorkspaceIdTeamInvitationsIndexRoute;
-  WWorkspaceIdTeamMembersIndexRoute: typeof WWorkspaceIdTeamMembersIndexRoute;
-  WWorkspaceIdTeamRolesIndexRoute: typeof WWorkspaceIdTeamRolesIndexRoute;
-  WWorkspaceIdSettingsMaintenanceActivityIndexRoute: typeof WWorkspaceIdSettingsMaintenanceActivityIndexRoute;
-  WWorkspaceIdSettingsMaintenanceSnapshotsIndexRoute: typeof WWorkspaceIdSettingsMaintenanceSnapshotsIndexRoute;
-  WWorkspaceIdSettingsMaintenanceStatusIndexRoute: typeof WWorkspaceIdSettingsMaintenanceStatusIndexRoute;
+  WWorkspaceIdIndexRoute: typeof WWorkspaceIdIndexRoute
+  WWorkspaceIdAssetsIndexRoute: typeof WWorkspaceIdAssetsIndexRoute
+  WWorkspaceIdExtensionsIndexRoute: typeof WWorkspaceIdExtensionsIndexRoute
+  WWorkspaceIdNotificationsIndexRoute: typeof WWorkspaceIdNotificationsIndexRoute
+  WWorkspaceIdTeamIndexRoute: typeof WWorkspaceIdTeamIndexRoute
+  WWorkspaceIdEditorEditorModeEntityIdRoute: typeof WWorkspaceIdEditorEditorModeEntityIdRoute
+  WWorkspaceIdAppearanceStylesIndexRoute: typeof WWorkspaceIdAppearanceStylesIndexRoute
+  WWorkspaceIdAppearanceThemesIndexRoute: typeof WWorkspaceIdAppearanceThemesIndexRoute
+  WWorkspaceIdContentLibraryIndexRoute: typeof WWorkspaceIdContentLibraryIndexRoute
+  WWorkspaceIdContentPagesIndexRoute: typeof WWorkspaceIdContentPagesIndexRoute
+  WWorkspaceIdExtensionsExtensionSlugIndexRoute: typeof WWorkspaceIdExtensionsExtensionSlugIndexRoute
+  WWorkspaceIdSettingsGeneralIndexRoute: typeof WWorkspaceIdSettingsGeneralIndexRoute
+  WWorkspaceIdSettingsOrganizationIndexRoute: typeof WWorkspaceIdSettingsOrganizationIndexRoute
+  WWorkspaceIdSettingsSeoIndexRoute: typeof WWorkspaceIdSettingsSeoIndexRoute
+  WWorkspaceIdSettingsWorkspaceIndexRoute: typeof WWorkspaceIdSettingsWorkspaceIndexRoute
+  WWorkspaceIdTeamInvitationsIndexRoute: typeof WWorkspaceIdTeamInvitationsIndexRoute
+  WWorkspaceIdTeamMembersIndexRoute: typeof WWorkspaceIdTeamMembersIndexRoute
+  WWorkspaceIdTeamRolesIndexRoute: typeof WWorkspaceIdTeamRolesIndexRoute
+  WWorkspaceIdSettingsMaintenanceActivityIndexRoute: typeof WWorkspaceIdSettingsMaintenanceActivityIndexRoute
+  WWorkspaceIdSettingsMaintenanceSnapshotsIndexRoute: typeof WWorkspaceIdSettingsMaintenanceSnapshotsIndexRoute
+  WWorkspaceIdSettingsMaintenanceStatusIndexRoute: typeof WWorkspaceIdSettingsMaintenanceStatusIndexRoute
 }
 
 const WWorkspaceIdRouteChildren: WWorkspaceIdRouteChildren = {
@@ -922,16 +1013,22 @@ const WWorkspaceIdRouteChildren: WWorkspaceIdRouteChildren = {
   WWorkspaceIdExtensionsIndexRoute: WWorkspaceIdExtensionsIndexRoute,
   WWorkspaceIdNotificationsIndexRoute: WWorkspaceIdNotificationsIndexRoute,
   WWorkspaceIdTeamIndexRoute: WWorkspaceIdTeamIndexRoute,
-  WWorkspaceIdEditorEditorModeEntityIdRoute: WWorkspaceIdEditorEditorModeEntityIdRoute,
-  WWorkspaceIdAppearanceStylesIndexRoute: WWorkspaceIdAppearanceStylesIndexRoute,
-  WWorkspaceIdAppearanceThemesIndexRoute: WWorkspaceIdAppearanceThemesIndexRoute,
+  WWorkspaceIdEditorEditorModeEntityIdRoute:
+    WWorkspaceIdEditorEditorModeEntityIdRoute,
+  WWorkspaceIdAppearanceStylesIndexRoute:
+    WWorkspaceIdAppearanceStylesIndexRoute,
+  WWorkspaceIdAppearanceThemesIndexRoute:
+    WWorkspaceIdAppearanceThemesIndexRoute,
   WWorkspaceIdContentLibraryIndexRoute: WWorkspaceIdContentLibraryIndexRoute,
   WWorkspaceIdContentPagesIndexRoute: WWorkspaceIdContentPagesIndexRoute,
-  WWorkspaceIdExtensionsExtensionSlugIndexRoute: WWorkspaceIdExtensionsExtensionSlugIndexRoute,
+  WWorkspaceIdExtensionsExtensionSlugIndexRoute:
+    WWorkspaceIdExtensionsExtensionSlugIndexRoute,
   WWorkspaceIdSettingsGeneralIndexRoute: WWorkspaceIdSettingsGeneralIndexRoute,
-  WWorkspaceIdSettingsOrganizationIndexRoute: WWorkspaceIdSettingsOrganizationIndexRoute,
+  WWorkspaceIdSettingsOrganizationIndexRoute:
+    WWorkspaceIdSettingsOrganizationIndexRoute,
   WWorkspaceIdSettingsSeoIndexRoute: WWorkspaceIdSettingsSeoIndexRoute,
-  WWorkspaceIdSettingsWorkspaceIndexRoute: WWorkspaceIdSettingsWorkspaceIndexRoute,
+  WWorkspaceIdSettingsWorkspaceIndexRoute:
+    WWorkspaceIdSettingsWorkspaceIndexRoute,
   WWorkspaceIdTeamInvitationsIndexRoute: WWorkspaceIdTeamInvitationsIndexRoute,
   WWorkspaceIdTeamMembersIndexRoute: WWorkspaceIdTeamMembersIndexRoute,
   WWorkspaceIdTeamRolesIndexRoute: WWorkspaceIdTeamRolesIndexRoute,
@@ -939,10 +1036,13 @@ const WWorkspaceIdRouteChildren: WWorkspaceIdRouteChildren = {
     WWorkspaceIdSettingsMaintenanceActivityIndexRoute,
   WWorkspaceIdSettingsMaintenanceSnapshotsIndexRoute:
     WWorkspaceIdSettingsMaintenanceSnapshotsIndexRoute,
-  WWorkspaceIdSettingsMaintenanceStatusIndexRoute: WWorkspaceIdSettingsMaintenanceStatusIndexRoute,
-};
+  WWorkspaceIdSettingsMaintenanceStatusIndexRoute:
+    WWorkspaceIdSettingsMaintenanceStatusIndexRoute,
+}
 
-const WWorkspaceIdRouteWithChildren = WWorkspaceIdRoute._addFileChildren(WWorkspaceIdRouteChildren);
+const WWorkspaceIdRouteWithChildren = WWorkspaceIdRoute._addFileChildren(
+  WWorkspaceIdRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -953,7 +1053,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordIndexRoute: ResetPasswordIndexRoute,
   SetupIndexRoute: SetupIndexRoute,
   MeNotificationsIndexRoute: MeNotificationsIndexRoute,
-};
+}
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
-  ._addFileTypes<FileRouteTypes>();
+  ._addFileTypes<FileRouteTypes>()

@@ -1,14 +1,7 @@
-export type LocaleCode = "zh-CN" | "en-US" | (string & {});
+import type { LocaleCode, LocalizedString } from "./localized";
 
-/**
- * Field-level i18n map.
- *
- * Example:
- * - { "zh-CN": "你好", "en-US": "Hello" }
- */
-export type LocalizedValue<T> = Partial<Record<LocaleCode, T>>;
-
-export type LocalizedString = LocalizedValue<string>;
+export type { LocaleCode, LocalizedString, LocalizedValue } from "./localized";
+export { resolveLocalizedValue } from "./localized";
 
 export interface DocumentMeta {
   title?: LocalizedString;
@@ -26,9 +19,35 @@ export interface DocumentMeta {
 
 export type BlockDimensionValue = number | string;
 
-// --- DesignDocument (Editor-first document format) ---
+// --- DesignDocument v1 (editor-first document format) ---
 
-export type { DesignNodeId, DesignNodeV1, DesignPageNodeV1, DesignBlockNodeV1, DesignDocumentV1 } from "./design-document";
+export type {
+  BreakpointName,
+  DesignAlignV1,
+  DesignAutoLayoutV1,
+  DesignBindingExprV1,
+  DesignBindingSourceV1,
+  DesignConstraintsV1,
+  DesignDocumentV1,
+  DesignEmbedNodeV1,
+  DesignFrameNodeV1,
+  DesignGroupNodeV1,
+  DesignImageNodeV1,
+  DesignLayoutV1,
+  DesignNodeBaseV1,
+  DesignNodeId,
+  DesignNodeResponsiveOverrideV1,
+  DesignNodeV1,
+  DesignPageRootNodeV1,
+  DesignPrefabInstanceNodeV1,
+  DesignRectNodeV1,
+  DesignStyleV1,
+  DesignTextNodeV1,
+  DesignTransformV1,
+  DesignValueV1,
+  PrefabInstancePropsV1,
+  PrefabSlotChildrenV1,
+} from "./design-document";
 
 export interface BlockLayoutProps {
   width?: BlockDimensionValue;
@@ -206,19 +225,3 @@ export { EDITOR_INTERNAL_BLOCK_MANIFESTS } from "./manifests/index";
 export { PREFAB_BLOCK_MANIFESTS } from "./manifests/index";
 
 export { CORE_BLOCK_PATTERNS } from "./patterns/index";
-
-export function resolveLocalizedValue<T>(
-  value: LocalizedValue<T> | undefined,
-  ctx: ViewerContext,
-): T | undefined {
-  if (!value) return undefined;
-  const direct = value[ctx.locale];
-  if (direct !== undefined) return direct;
-  if (ctx.fallbackLocale) {
-    const fallback = value[ctx.fallbackLocale];
-    if (fallback !== undefined) return fallback;
-  }
-  // Pick a deterministic "first" locale entry if present.
-  const entries = Object.entries(value) as Array<[string, T]>;
-  return entries.length ? entries[0]![1] : undefined;
-}

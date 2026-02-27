@@ -1,18 +1,18 @@
 import type {
-  BlockNode,
-  DesignBlockNodeV1,
+  DesignBindingExprV1,
   DesignDocumentV1,
-  DesignNodeId,
+  DesignLayoutV1,
+  DesignNodeResponsiveOverrideV1,
   DesignNodeV1,
-  DesignPageNodeV1,
-  DocumentIR,
+  DesignStyleV1,
+  DesignTransformV1,
 } from "@celestial/site-block-protocol";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === "object";
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
-// Must match the guard used by the editor overlay selectors.
+// Must match the selector guard used by the editor overlay.
 const SAFE_NODE_ID_RE = /^[A-Za-z0-9][A-Za-z0-9:_-]*$/;
 
 function isSafeNodeId(value: string): boolean {
@@ -23,23 +23,138 @@ function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((item) => typeof item === "string");
 }
 
-function isDesignPageNodeV1(value: unknown): value is DesignPageNodeV1 {
+function isBindingExpr(value: unknown): value is DesignBindingExprV1 {
   if (!isRecord(value)) return false;
-  if (typeof value.id !== "string" || !isSafeNodeId(value.id)) return false;
-  if (value.type !== "page") return false;
-  if (!Array.isArray(value.children) || !value.children.every((x) => typeof x === "string")) return false;
-  // meta is validated by DocumentIR guard; keep it permissive here.
+  if (value.kind !== "binding") return false;
+  if (
+    value.source !== "primaryEntry" &&
+    value.source !== "prefabProps" &&
+    value.source !== "routeParams" &&
+    value.source !== "site" &&
+    value.source !== "viewer"
+  ) {
+    return false;
+  }
+  return typeof value.path === "string" && value.path.trim().length > 0;
+}
+
+function isLayout(value: unknown): value is DesignLayoutV1 {
+  if (!isRecord(value)) return false;
+  if (!isRecord(value.children)) return false;
+  const children = value.children as Record<string, unknown>;
+  if (children.mode !== "absolute" && children.mode !== "auto") return false;
+  if (children.mode === "auto") {
+    if (children.direction !== "row" && children.direction !== "column") return false;
+  }
+  if (value.self !== undefined) {
+    if (!isRecord(value.self)) return false;
+    const self = value.self as Record<string, unknown>;
+    if (!isRecord(self.rect)) return false;
+    const rect = self.rect as Record<string, unknown>;
+    if (typeof rect.x !== "number" || typeof rect.y !== "number") return false;
+    if (typeof rect.width !== "number" || typeof rect.height !== "number") return false;
+  }
   return true;
 }
 
-function isDesignBlockNodeV1(value: unknown): value is DesignBlockNodeV1 {
+function isStyle(value: unknown): value is DesignStyleV1 {
+  if (!isRecord(value)) return false;
+  // Keep permissive for v1; renderer will sanitize.
+  return true;
+}
+
+function isTransform(value: unknown): value is DesignTransformV1 {
+  if (!isRecord(value)) return false;
+  return true;
+}
+
+function isResponsiveOverride(value: unknown): value is DesignNodeResponsiveOverrideV1 {
+  if (!isRecord(value)) return false;
+  const allowed = new Set(["layout", "style", "transform", "motionRefs"]);
+  for (const key of Object.keys(value)) {
+    if (!allowed.has(key)) return false;
+  }
+  if (value.layout !== undefined && !isRecord(value.layout)) return false;
+  if (value.style !== undefined && !isRecord(value.style)) return false;
+  if (value.transform !== undefined && !isRecord(value.transform)) return false;
+  if (value.motionRefs !== undefined && !Array.isArray(value.motionRefs)) return false;
+  return true;
+}
+
+function isNode(value: unknown): value is DesignNodeV1 {
   if (!isRecord(value)) return false;
   if (typeof value.id !== "string" || !isSafeNodeId(value.id)) return false;
-  if (typeof value.type !== "string" || !value.type.trim()) return false;
-  if (!isRecord(value.props)) return false;
-  if (value.children !== undefined && !isStringArray(value.children)) return false;
-  // responsive is optional; keep permissive (validated when compiled into DocumentIR).
-  return true;
+  if (typeof value.type !== "string") return false;
+  if (value.name !== undefined && typeof value.name !== "string") return false;
+  if (value.locked !== undefined && typeof value.locked !== "boolean") return false;
+  if (value.hidden !== undefined && typeof value.hidden !== "boolean") return false;
+
+  if (value.layout !== undefined && !isLayout(value.layout)) return false;
+  if (value.style !== undefined && !isStyle(value.style)) return false;
+  if (value.transform !== undefined && !isTransform(value.transform)) return false;
+
+  if (value.responsive !== undefined) {
+    if (!isRecord(value.responsive)) return false;
+    for (const [bp, ov] of Object.entries(value.responsive)) {
+      if (!bp.trim()) return false;
+      if (!isResponsiveOverride(ov)) return false;
+    }
+  }
+
+  switch (value.type) {
+    case "page_root":
+    case "frame":
+    case "group": {
+      if (!isStringArray(value.children)) return false;
+      return true;
+    }
+    case "rect": {
+      return value.children === undefined;
+    }
+    case "text": {
+      if (value.tag !== undefined) {
+        if (value.tag !== "p" && value.tag !== "span" && value.tag !== "h1" && value.tag !== "h2" && value.tag !== "h3") {
+          return false;
+        }
+      }
+      if (value.align !== undefined) {
+        if (value.align !== "left" && value.align !== "center" && value.align !== "right") return false;
+      }
+      // text is localized string map or binding
+      if (!isRecord(value.text) && !isBindingExpr(value.text)) return false;
+      return value.children === undefined;
+    }
+    case "image": {
+      if (typeof value.src !== "string" && !isBindingExpr(value.src)) return false;
+      if (value.alt !== undefined) {
+        if (typeof value.alt !== "string" && !isRecord(value.alt) && !isBindingExpr(value.alt)) return false;
+      }
+      if (value.objectFit !== undefined) {
+        if (value.objectFit !== "cover" && value.objectFit !== "contain" && value.objectFit !== "fill" && value.objectFit !== "none") {
+          return false;
+        }
+      }
+      return value.children === undefined;
+    }
+    case "embed": {
+      if (typeof value.url !== "string" && !isBindingExpr(value.url)) return false;
+      return value.children === undefined;
+    }
+    case "prefab_instance": {
+      if (typeof value.prefabId !== "string" || !value.prefabId.trim()) return false;
+      if (!isRecord(value.props)) return false;
+      if (value.slotChildren !== undefined) {
+        if (!isRecord(value.slotChildren)) return false;
+        for (const [name, ids] of Object.entries(value.slotChildren)) {
+          if (!name.trim()) return false;
+          if (!isStringArray(ids)) return false;
+        }
+      }
+      return value.children === undefined;
+    }
+  }
+
+  return false;
 }
 
 export function isDesignDocumentV1(value: unknown): value is DesignDocumentV1 {
@@ -50,19 +165,17 @@ export function isDesignDocumentV1(value: unknown): value is DesignDocumentV1 {
 
   const nodesById = value.nodesById as Record<string, unknown>;
   const root = nodesById[value.rootId];
-  if (!isDesignPageNodeV1(root)) return false;
+  if (!isNode(root)) return false;
+  if (isRecord(root) && root.type !== "page_root") return false;
 
   for (const [id, node] of Object.entries(nodesById)) {
     if (!isSafeNodeId(id)) return false;
     if (!node) return false;
-    // Ensure node.id matches the key to keep patches predictable.
+    if (!isNode(node)) return false;
     if (isRecord(node) && node.id !== id) return false;
-
-    if (id === value.rootId) continue;
-    if (!isDesignBlockNodeV1(node)) return false;
   }
 
-  // Ensure all child references exist (tree-like validation, no cycles check here).
+  // Ensure all child references exist (no cycle detection here).
   for (const node of Object.values(nodesById)) {
     if (!isRecord(node)) return false;
     const children = node.children;
@@ -73,91 +186,20 @@ export function isDesignDocumentV1(value: unknown): value is DesignDocumentV1 {
     }
   }
 
-  return true;
-}
-
-export function migrateDocumentIRToDesignDocumentV1(doc: DocumentIR): DesignDocumentV1 {
-  const nodesById: Record<DesignNodeId, DesignNodeV1> = {};
-
-  const visit = (node: BlockNode): DesignNodeId => {
-    const id = node.id;
-    if (!id || !isSafeNodeId(id)) throw new Error("Invalid block id in DocumentIR");
-    const type = node.type;
-    if (!type.trim()) throw new Error(`Invalid block type for ${id}`);
-
-    const childIds = Array.isArray(node.children) ? node.children.map(visit) : undefined;
-
-    nodesById[id] = {
-      id,
-      type,
-      props: node.props as Record<string, unknown>,
-      ...(childIds ? { children: childIds } : {}),
-      ...(node.responsive ? { responsive: node.responsive } : {}),
-    };
-
-    return id;
-  };
-
-  const rootId = "page";
-  const rootChildren = Array.isArray(doc.blocks) ? doc.blocks.map(visit) : [];
-
-  nodesById[rootId] = {
-    id: rootId,
-    type: "page",
-    ...(doc.meta ? { meta: doc.meta } : {}),
-    children: rootChildren,
-  };
-
-  return {
-    version: 1,
-    rootId,
-    nodesById,
-  };
-}
-
-export function compileDesignDocumentV1ToDocumentIR(designDoc: DesignDocumentV1): DocumentIR {
-  const root = designDoc.nodesById[designDoc.rootId];
-  if (!isDesignPageNodeV1(root)) {
-    throw new Error("DesignDocument root node missing or invalid");
+  // slotChildren references must exist too.
+  for (const node of Object.values(nodesById)) {
+    if (!isRecord(node)) return false;
+    if (node.type !== "prefab_instance") continue;
+    const slotChildren = node.slotChildren;
+    if (slotChildren === undefined) continue;
+    if (!isRecord(slotChildren)) return false;
+    for (const ids of Object.values(slotChildren)) {
+      if (!isStringArray(ids)) return false;
+      for (const childId of ids) {
+        if (!nodesById[childId]) return false;
+      }
+    }
   }
 
-  const visiting = new Set<DesignNodeId>();
-
-  const compileNode = (id: DesignNodeId): BlockNode => {
-    const node = designDoc.nodesById[id] as DesignNodeV1 | undefined;
-    if (!node) {
-      throw new Error(`Missing node: ${id}`);
-    }
-    if (!isDesignBlockNodeV1(node)) throw new Error(`Invalid block node: ${id}`);
-
-    if (visiting.has(id)) {
-      throw new Error(`Cycle detected at node: ${id}`);
-    }
-    visiting.add(id);
-
-    const base: BlockNode = {
-      id: node.id,
-      type: node.type,
-      props: node.props,
-    };
-
-    if (node.responsive !== undefined) {
-      base.responsive = node.responsive;
-    }
-
-    if (Array.isArray(node.children) && node.children.length) {
-      base.children = node.children.map((childId) => compileNode(childId));
-    }
-
-    visiting.delete(id);
-    return base;
-  };
-
-  const blocks = root.children.map((id) => compileNode(id));
-
-  return {
-    version: 1,
-    ...(root.meta ? { meta: root.meta } : {}),
-    blocks,
-  };
+  return true;
 }

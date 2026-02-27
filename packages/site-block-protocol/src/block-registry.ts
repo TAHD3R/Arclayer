@@ -20,6 +20,19 @@ export interface BlockSupports {
   reusable?: boolean;
 }
 
+export type PrefabSlotManifest = {
+  name: string;
+  label: LocalizedString;
+  /**
+   * Allowed node types inside this slot.
+   * If omitted/empty, the editor should allow all core nodes by default.
+   */
+  allowedNodeTypes?: string[];
+  required?: boolean;
+  minChildren?: number;
+  maxChildren?: number;
+};
+
 export interface BlockManifest<Type extends string = string> {
   type: Type;
   label: LocalizedString;
@@ -30,6 +43,11 @@ export interface BlockManifest<Type extends string = string> {
   supports: BlockSupports;
   /** Block-specific attribute schema, reuses FieldDefinition. */
   attributes: FieldDefinition[];
+  /**
+   * Prefab slot definitions.
+   * Only meaningful when `kind === "prefab"`.
+   */
+  slots?: PrefabSlotManifest[];
   /**
    * Prefab 样式覆写白名单：仅允许覆写这些 design key。
    *

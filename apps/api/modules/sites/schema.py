@@ -213,6 +213,10 @@ class ContainerBlock(BaseSchema):
     id: str = Field(..., description="Block id.")
     type: Literal["container"] = Field(..., description="Block type.")
     props: ContainerBlockProps = Field(..., description="Block props.")
+    responsive: dict[str, BlockVisualProps] | None = Field(
+        default=None,
+        description="Per-breakpoint visual overrides (layout/style/animation).",
+    )
     children: list[BlockNode] | None = Field(default=None, description="Child blocks.")
 
 
@@ -222,6 +226,10 @@ class HeadingBlock(BaseSchema):
     id: str = Field(..., description="Block id.")
     type: Literal["heading"] = Field(..., description="Block type.")
     props: HeadingBlockProps = Field(..., description="Block props.")
+    responsive: dict[str, BlockVisualProps] | None = Field(
+        default=None,
+        description="Per-breakpoint visual overrides (layout/style/animation).",
+    )
 
 
 class ParagraphBlock(BaseSchema):
@@ -230,6 +238,10 @@ class ParagraphBlock(BaseSchema):
     id: str = Field(..., description="Block id.")
     type: Literal["paragraph"] = Field(..., description="Block type.")
     props: ParagraphBlockProps = Field(..., description="Block props.")
+    responsive: dict[str, BlockVisualProps] | None = Field(
+        default=None,
+        description="Per-breakpoint visual overrides (layout/style/animation).",
+    )
 
 
 class DividerBlock(BaseSchema):
@@ -238,6 +250,10 @@ class DividerBlock(BaseSchema):
     id: str = Field(..., description="Block id.")
     type: Literal["divider"] = Field(..., description="Block type.")
     props: DividerBlockProps = Field(..., description="Block props.")
+    responsive: dict[str, BlockVisualProps] | None = Field(
+        default=None,
+        description="Per-breakpoint visual overrides (layout/style/animation).",
+    )
 
 
 class ImageBlock(BaseSchema):
@@ -246,6 +262,10 @@ class ImageBlock(BaseSchema):
     id: str = Field(..., description="Block id.")
     type: Literal["image"] = Field(..., description="Block type.")
     props: ImageBlockProps = Field(..., description="Block props.")
+    responsive: dict[str, BlockVisualProps] | None = Field(
+        default=None,
+        description="Per-breakpoint visual overrides (layout/style/animation).",
+    )
 
 
 class ButtonBlock(BaseSchema):
@@ -254,6 +274,10 @@ class ButtonBlock(BaseSchema):
     id: str = Field(..., description="Block id.")
     type: Literal["button"] = Field(..., description="Block type.")
     props: ButtonBlockProps = Field(..., description="Block props.")
+    responsive: dict[str, BlockVisualProps] | None = Field(
+        default=None,
+        description="Per-breakpoint visual overrides (layout/style/animation).",
+    )
 
 
 class VideoBlock(BaseSchema):
@@ -262,6 +286,10 @@ class VideoBlock(BaseSchema):
     id: str = Field(..., description="Block id.")
     type: Literal["video"] = Field(..., description="Block type.")
     props: VideoBlockProps = Field(..., description="Block props.")
+    responsive: dict[str, BlockVisualProps] | None = Field(
+        default=None,
+        description="Per-breakpoint visual overrides (layout/style/animation).",
+    )
 
 
 class GridBlock(BaseSchema):
@@ -270,6 +298,10 @@ class GridBlock(BaseSchema):
     id: str = Field(..., description="Block id.")
     type: Literal["grid"] = Field(..., description="Block type.")
     props: GridBlockProps = Field(..., description="Block props.")
+    responsive: dict[str, BlockVisualProps] | None = Field(
+        default=None,
+        description="Per-breakpoint visual overrides (layout/style/animation).",
+    )
     children: list[BlockNode] | None = Field(default=None, description="Child blocks.")
 
 
@@ -279,6 +311,10 @@ class SpacerBlock(BaseSchema):
     id: str = Field(..., description="Block id.")
     type: Literal["spacer"] = Field(..., description="Block type.")
     props: SpacerBlockProps = Field(..., description="Block props.")
+    responsive: dict[str, BlockVisualProps] | None = Field(
+        default=None,
+        description="Per-breakpoint visual overrides (layout/style/animation).",
+    )
 
 
 class IconBlock(BaseSchema):
@@ -287,6 +323,10 @@ class IconBlock(BaseSchema):
     id: str = Field(..., description="Block id.")
     type: Literal["icon"] = Field(..., description="Block type.")
     props: IconBlockProps = Field(..., description="Block props.")
+    responsive: dict[str, BlockVisualProps] | None = Field(
+        default=None,
+        description="Per-breakpoint visual overrides (layout/style/animation).",
+    )
 
 
 class ListBlock(BaseSchema):
@@ -295,6 +335,10 @@ class ListBlock(BaseSchema):
     id: str = Field(..., description="Block id.")
     type: Literal["list"] = Field(..., description="Block type.")
     props: ListBlockProps = Field(..., description="Block props.")
+    responsive: dict[str, BlockVisualProps] | None = Field(
+        default=None,
+        description="Per-breakpoint visual overrides (layout/style/animation).",
+    )
 
 
 class QuoteBlock(BaseSchema):
@@ -303,6 +347,32 @@ class QuoteBlock(BaseSchema):
     id: str = Field(..., description="Block id.")
     type: Literal["quote"] = Field(..., description="Block type.")
     props: QuoteBlockProps = Field(..., description="Block props.")
+    responsive: dict[str, BlockVisualProps] | None = Field(
+        default=None,
+        description="Per-breakpoint visual overrides (layout/style/animation).",
+    )
+
+
+class PrefabBlockProps(BlockVisualProps):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    prefab: str = Field(..., min_length=1, max_length=128, description="Prefab code (e.g. 'card').")
+    props: dict[str, Any] | None = Field(default=None, description="Prefab props payload (JSON).")
+    # Backwards-compatible alias: older drafts may use `data` to store prefab props.
+    data: dict[str, Any] | None = Field(default=None, description="Legacy prefab data payload (JSON).")
+
+
+class PrefabBlock(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    id: str = Field(..., description="Block id.")
+    type: Literal["__prefab__"] = Field(..., description="Prefab instance block type.")
+    props: PrefabBlockProps = Field(..., description="Prefab instance props.")
+    responsive: dict[str, BlockVisualProps] | None = Field(
+        default=None,
+        description="Per-breakpoint visual overrides (layout/style/animation).",
+    )
+    children: list[BlockNode] | None = Field(default=None, description="Child blocks (slots).")
 
 
 BlockNode = Annotated[
@@ -317,7 +387,8 @@ BlockNode = Annotated[
     | SpacerBlock
     | IconBlock
     | ListBlock
-    | QuoteBlock,
+    | QuoteBlock
+    | PrefabBlock,
     Field(discriminator="type"),
 ]
 
@@ -1049,6 +1120,7 @@ class SitePatternDeleteOut(BaseSchema):
 
 ContainerBlock.model_rebuild()
 GridBlock.model_rebuild()
+PrefabBlock.model_rebuild()
 DocumentIR.model_rebuild()
 SitePageTreeNodeOut.model_rebuild()
 SiteVisualSitemapNodeOut.model_rebuild()

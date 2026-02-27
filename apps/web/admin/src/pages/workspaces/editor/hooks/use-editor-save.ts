@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useTranslation } from "react-i18next";
 
-import type { DocumentIR } from "@celestial/site-block-protocol";
+import type { DesignDocumentV1 } from "@celestial/site-block-protocol";
 
 import type { BridgeStatus } from "@/pages/workspaces/editor/hooks/use-editor-bridge";
 
@@ -20,7 +20,7 @@ export type UseEditorSaveOptions = {
   entityId: string;
   isPageMode: boolean;
   /** Retrieve the current document from the Portal iframe (via RPC). */
-  getDocument: (() => Promise<DocumentIR | null>) | null;
+  getDocument: (() => Promise<DesignDocumentV1 | null>) | null;
   /** Current bridge connection status. */
   bridgeStatus: BridgeStatus;
 };
@@ -36,7 +36,7 @@ export function useEditorSave(opts: UseEditorSaveOptions) {
   const draftRevisionRef = React.useRef<number | null>(null);
 
   const saveDraft = React.useCallback(
-    async (document: DocumentIR) => {
+    async (document: DesignDocumentV1) => {
       if (!isPageMode) {
         notifyInfoText(t("content_pages:EDITOR_SHELL_SAVE_DISABLED_NON_PAGE"));
         return;

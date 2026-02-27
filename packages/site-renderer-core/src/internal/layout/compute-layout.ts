@@ -114,6 +114,23 @@ function applyConstraintsToRect(args: {
   return next;
 }
 
+function applyAlignmentToRect(
+  rect: AbsoluteRect,
+  alignX: "start" | "center" | "end" | undefined,
+  alignY: "start" | "center" | "end" | undefined,
+): AbsoluteRect {
+  const base = normalizeAbsoluteRect(rect);
+  const ax = alignX ?? "start";
+  const ay = alignY ?? "start";
+
+  const x =
+    ax === "center" ? base.x - base.width / 2 : ax === "end" ? base.x - base.width : base.x;
+  const y =
+    ay === "center" ? base.y - base.height / 2 : ay === "end" ? base.y - base.height : base.y;
+
+  return { ...base, x, y };
+}
+
 function defaultMeasureText(node: LayoutNode): LayoutSize {
   const content = (node.text?.content ?? "").trim();
   const fontSize = isFiniteNumber(node.text?.fontSize) ? Math.max(1, node.text!.fontSize!) : 16;
@@ -178,7 +195,44 @@ function normalizeChildrenLayout(layout: NodeChildrenLayout | undefined): NodeCh
     padding: isFiniteNumber(layout.padding) ? layout.padding : 0,
     alignItems: layout.alignItems ?? "start",
     justifyContent: layout.justifyContent ?? "start",
+    wrap: layout.wrap ?? "nowrap",
   };
+}
+
+function computeJustify(args: {
+  justifyContent: Extract<NodeChildrenLayout, { mode: "auto" }>["justifyContent"];
+  mainSize: number;
+  totalMain: number;
+  baseGap: number;
+  itemCount: number;
+}): { startOffset: number; gap: number } {
+  const justifyContent = args.justifyContent ?? "start";
+  const extra = Math.max(0, args.mainSize - args.totalMain);
+
+  let startOffset = 0;
+  let gap = args.baseGap;
+
+  switch (justifyContent) {
+    case "start":
+      break;
+    case "center":
+      startOffset = extra / 2;
+      break;
+    case "end":
+      startOffset = extra;
+      break;
+    case "space-between":
+      if (args.itemCount > 1) {
+        gap = args.baseGap + extra / (args.itemCount - 1);
+      }
+      break;
+    case "space-around":
+      gap = args.baseGap + extra / Math.max(1, args.itemCount);
+      startOffset = gap / 2;
+      break;
+  }
+
+  return { startOffset, gap };
 }
 
 function computeAutoLayoutChildren(args: {
@@ -190,6 +244,7 @@ function computeAutoLayoutChildren(args: {
 }): Array<{ id: string; box: LayoutBox }> {
   const alignItems = args.layout.alignItems ?? "start";
   const justifyContent = args.layout.justifyContent ?? "start";
+  const wrap = args.layout.wrap ?? "nowrap";
 
   const padding = clampNonNegative(args.layout.padding ?? 0);
   const baseGap = clampNonNegative(args.layout.gap ?? 0);
@@ -219,82 +274,147 @@ function computeAutoLayoutChildren(args: {
   const mainSizes = items.map((it) => (isRow ? it.size.width : it.size.height));
   const crossSizes = items.map((it) => (isRow ? it.size.height : it.size.width));
 
-  const totalBaseGap = baseGap * Math.max(0, items.length - 1);
-  const totalMain = mainSizes.reduce((sum, v) => sum + clampNonNegative(v), 0) + totalBaseGap;
-  const extra = Math.max(0, mainSize - totalMain);
-
-  let startOffset = 0;
-  let gap = baseGap;
-
-  switch (justifyContent) {
-    case "start":
-      break;
-    case "center":
-      startOffset = extra / 2;
-      break;
-    case "end":
-      startOffset = extra;
-      break;
-    case "space-between":
-      if (items.length > 1) {
-        gap = baseGap + extra / (items.length - 1);
-      }
-      break;
-    case "space-around":
-      gap = baseGap + extra / items.length;
-      startOffset = gap / 2;
-      break;
-  }
-
-  let cursor = startOffset;
   const out: Array<{ id: string; box: LayoutBox }> = [];
 
-  for (let i = 0; i < items.length; i += 1) {
-    const it = items[i];
-    if (!it) continue;
+  if (wrap === "nowrap") {
+    const totalBaseGap = baseGap * Math.max(0, items.length - 1);
+    const totalMain = mainSizes.reduce((sum, v) => sum + clampNonNegative(v), 0) + totalBaseGap;
+    const { startOffset, gap } = computeJustify({
+      justifyContent,
+      mainSize,
+      totalMain,
+      baseGap,
+      itemCount: items.length,
+    });
 
+    let cursor = startOffset;
+    for (let i = 0; i < items.length; i += 1) {
+      const it = items[i];
+      if (!it) continue;
+
+      const main = clampNonNegative(mainSizes[i] ?? 0);
+      const cross = clampNonNegative(crossSizes[i] ?? 0);
+
+      const crossPos = (() => {
+        switch (alignItems) {
+          case "start":
+            return 0;
+          case "center":
+            return (crossSize - cross) / 2;
+          case "end":
+            return crossSize - cross;
+          case "stretch":
+            return 0;
+        }
+      })();
+
+      const width = isRow
+        ? clampNonNegative(main)
+        : alignItems === "stretch"
+          ? clampNonNegative(crossSize)
+          : clampNonNegative(cross);
+      const height = isRow
+        ? alignItems === "stretch"
+          ? clampNonNegative(crossSize)
+          : clampNonNegative(cross)
+        : clampNonNegative(main);
+
+      const x = isRow ? inner.x + cursor : inner.x + crossPos;
+      const y = isRow ? inner.y + crossPos : inner.y + cursor;
+
+      out.push({ id: it.id, box: { x, y, width, height } });
+
+      cursor += main;
+      if (i < items.length - 1) cursor += gap;
+    }
+
+    return out;
+  }
+
+  // wrap layout: compute lines (rows or columns)
+  type LineItem = { id: string; main: number; cross: number };
+  const lines: Array<{ items: LineItem[]; totalMain: number; maxCross: number }> = [];
+
+  let current: LineItem[] = [];
+  let curMain = 0;
+  let curMaxCross = 0;
+
+  const flush = () => {
+    if (current.length === 0) return;
+    const totalGaps = baseGap * Math.max(0, current.length - 1);
+    const totalMain = current.reduce((s, it) => s + it.main, 0) + totalGaps;
+    lines.push({ items: current, totalMain, maxCross: curMaxCross });
+    current = [];
+    curMain = 0;
+    curMaxCross = 0;
+  };
+
+  for (let i = 0; i < items.length; i += 1) {
     const main = clampNonNegative(mainSizes[i] ?? 0);
     const cross = clampNonNegative(crossSizes[i] ?? 0);
 
-    const crossPos = (() => {
-      switch (alignItems) {
-        case "start":
-          return 0;
-        case "center":
-          return (crossSize - cross) / 2;
-        case "end":
-          return crossSize - cross;
-        case "stretch":
-          return 0;
-      }
-    })();
+    const nextMain = current.length === 0 ? main : curMain + baseGap + main;
+    const willOverflow = current.length > 0 && nextMain > mainSize;
+    if (willOverflow) flush();
 
-    const width = isRow
-      ? clampNonNegative(main)
-      : alignItems === "stretch"
-        ? clampNonNegative(crossSize)
-        : clampNonNegative(cross);
-    const height = isRow
-      ? alignItems === "stretch"
-        ? clampNonNegative(crossSize)
-        : clampNonNegative(cross)
-      : clampNonNegative(main);
+    current.push({ id: items[i]!.id, main, cross });
+    curMain = current.length === 1 ? main : curMain + baseGap + main;
+    curMaxCross = Math.max(curMaxCross, cross);
+  }
+  flush();
 
-    const x = isRow ? inner.x + cursor : inner.x + crossPos;
-    const y = isRow ? inner.y + crossPos : inner.y + cursor;
+  const crossGap = baseGap;
+  let crossCursor = 0;
 
-    out.push({
-      id: it.id,
-      box: {
-        x,
-        y,
-        width,
-        height,
-      },
+  for (const line of lines) {
+    const { startOffset, gap } = computeJustify({
+      justifyContent,
+      mainSize,
+      totalMain: line.totalMain,
+      baseGap,
+      itemCount: line.items.length,
     });
 
-    cursor += main;
-    if (i < items.length - 1) cursor += gap;
+    let cursor = startOffset;
+    for (let i = 0; i < line.items.length; i += 1) {
+      const it = line.items[i];
+      if (!it) continue;
+
+      const crossPos = (() => {
+        switch (alignItems) {
+          case "start":
+            return 0;
+          case "center":
+            return (line.maxCross - it.cross) / 2;
+          case "end":
+            return line.maxCross - it.cross;
+          case "stretch":
+            return 0;
+        }
+      })();
+
+      const width = isRow
+        ? clampNonNegative(it.main)
+        : alignItems === "stretch"
+          ? clampNonNegative(line.maxCross)
+          : clampNonNegative(it.cross);
+      const height = isRow
+        ? alignItems === "stretch"
+          ? clampNonNegative(line.maxCross)
+          : clampNonNegative(it.cross)
+        : clampNonNegative(it.main);
+
+      const x = isRow ? inner.x + cursor : inner.x + crossCursor + crossPos;
+      const y = isRow ? inner.y + crossCursor + crossPos : inner.y + cursor;
+
+      out.push({ id: it.id, box: { x, y, width, height } });
+
+      cursor += it.main;
+      if (i < line.items.length - 1) cursor += gap;
+    }
+
+    crossCursor += line.maxCross;
+    if (line !== lines[lines.length - 1]) crossCursor += crossGap;
   }
 
   return out;
@@ -366,12 +486,13 @@ export function computeLayoutBoxes(args: {
           parentBase: parentBaseSize,
           parentActual: { width: parentBox.width, height: parentBox.height },
         });
+        const aligned = applyAlignmentToRect(mapped, positioning.alignX, positioning.alignY);
 
         const childBox: LayoutBox = {
-          x: parentBox.x + mapped.x,
-          y: parentBox.y + mapped.y,
-          width: mapped.width,
-          height: mapped.height,
+          x: parentBox.x + aligned.x,
+          y: parentBox.y + aligned.y,
+          width: aligned.width,
+          height: aligned.height,
         };
         boxesById[childId] = childBox;
 
@@ -441,12 +562,13 @@ export function computeLayoutBoxes(args: {
         parentBase: rootBase,
         parentActual: rootActual,
       });
+      const aligned = applyAlignmentToRect(mapped, positioning.alignX, positioning.alignY);
 
       const childBox: LayoutBox = {
-        x: rootBox.x + mapped.x,
-        y: rootBox.y + mapped.y,
-        width: mapped.width,
-        height: mapped.height,
+        x: rootBox.x + aligned.x,
+        y: rootBox.y + aligned.y,
+        width: aligned.width,
+        height: aligned.height,
       };
       boxesById[childId] = childBox;
 
