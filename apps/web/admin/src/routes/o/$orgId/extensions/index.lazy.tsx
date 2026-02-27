@@ -1,6 +1,6 @@
 import { createLazyFileRoute } from "@tanstack/react-router";
 
-import { ExtensionsPage } from "@/pages/extensions/page";
+import { OrganizationExtensionsPage } from "@/pages/organization/extensions/page";
 
 export const Route = createLazyFileRoute("/o/$orgId/extensions/")({
   component: OrganizationExtensionsRoute,
@@ -8,5 +8,5 @@ export const Route = createLazyFileRoute("/o/$orgId/extensions/")({
 
 function OrganizationExtensionsRoute() {
   const { orgId } = Route.useParams();
-  return <ExtensionsPage scope="organization" organizationId={orgId} />;
+  return <OrganizationExtensionsPage organizationId={orgId} />;
 }

@@ -5,7 +5,7 @@ import { AUTH_SCENE_BEND_PROPS } from "@/constants/color-bends";
 import { AdminFullLogo } from "@/components/layout/admin-logo";
 import { AdminLocaleToggle } from "@/components/layout/admin-toggle-locales";
 import { AdminThemeModeToggle } from "@/components/layout/admin-toggle-theme";
-import { LegalFooter } from "@/components/auth/legal-footer";
+import { LegalFooter } from "@/components/layout/legal-footer";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { useLockViewport } from "@/hooks/use-lock-viewport";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";

@@ -173,7 +173,7 @@ export function InviteMembersDialog(props: {
       const url =
         created.inviteUrl ??
         (typeof window !== "undefined"
-          ? `${window.location.origin}/accept-invite?token=${encodeURIComponent(created.token)}`
+          ? `${window.location.origin}/invitations?token=${encodeURIComponent(created.token)}`
           : null);
 
       return {

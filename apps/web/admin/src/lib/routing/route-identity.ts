@@ -12,7 +12,7 @@ export function isResetPasswordPath(pathname: string): boolean {
 }
 
 export function isAcceptInvitePath(pathname: string): boolean {
-  return pathname === "/accept-invite" || pathname === "/accept-invite/";
+  return pathname === "/invitations" || pathname === "/invitations/";
 }
 
 export function isSetupPath(pathname: string): boolean {

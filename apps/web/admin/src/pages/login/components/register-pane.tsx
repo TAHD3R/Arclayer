@@ -3,7 +3,7 @@ import { Lock, Mail, User } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { motion, type Variants } from "motion/react";
 
-import { AuthOauthButtons } from "@/components/auth/auth-oauth-buttons";
+import { AuthOauthButtons } from "@/components/ui/oauth-buttons";
 
 import type { RegisterFormValues } from "../types";
 

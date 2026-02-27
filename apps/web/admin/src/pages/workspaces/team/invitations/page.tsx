@@ -361,7 +361,7 @@ export function TeamInvitationsPage(props: { workspaceIdOverride?: string | null
           const inviteUrl =
             row.original.inviteUrl ??
             (typeof window !== "undefined"
-              ? `${window.location.origin}/accept-invite?token=${encodeURIComponent(token)}`
+              ? `${window.location.origin}/invitations?token=${encodeURIComponent(token)}`
               : null);
           return (
             <AntButton
