@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import type { OrganizationMember, OrganizationMemberWorkspace } from "@/types/api";
 import { ConfirmDialog } from "@/components/common/confirm-dialog";
-import { SettingDialog } from "@/components/common/setting-dialog";
+import { SettingDialog } from "@/components/settings-primitives/setting-dialog";
 import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 import {
   InviteOrganizationMemberDialog,

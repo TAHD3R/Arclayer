@@ -17,10 +17,10 @@ import { reinitializeSelfHostSystem } from "@/api/system";
 import { getMyOrganization } from "@/api/me";
 import { DefaultPage } from "@/components/common/default-page";
 import { ContentGuard } from "@/components/common/content-guard";
-import { SettingAccordionItem } from "@/components/common/setting-accordion-item";
-import { SettingActionItem } from "@/components/common/setting-action-item";
-import { SettingDialog } from "@/components/common/setting-dialog";
-import { SettingPanel } from "@/components/common/setting-panel";
+import { SettingAccordionItem } from "@/components/settings-primitives/setting-accordion-item";
+import { SettingActionItem } from "@/components/settings-primitives/setting-action-item";
+import { SettingDialog } from "@/components/settings-primitives/setting-dialog";
+import { SettingPanel } from "@/components/settings-primitives/setting-panel";
 import {
   ChromeTabs,
   ChromeTabsContent,
@@ -44,7 +44,7 @@ import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
-import { DeploymentSettingsTab } from "@/components/common/settings/organization/deployment-settings-tab";
+import { DeploymentSettingsTab } from "@/components/settings/organization/deployment-settings-tab";
 
 type OrganizationSettingsTabKey = "basics" | "danger" | "deployment";
 

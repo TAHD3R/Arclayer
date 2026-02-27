@@ -1,7 +1,7 @@
 import * as React from "react";
 import { Slot } from "radix-ui";
 
-import { HighlightItem } from "@/components/ui/effect-highlight";
+import { HighlightItem } from "@/components/ui/highlight";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 

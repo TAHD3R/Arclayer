@@ -7,8 +7,8 @@ import { useTranslation } from "react-i18next";
 
 import type { AdminNavItem } from "@/constants/admin-nav";
 import { cn } from "@/lib/utils";
-import { AdminHeaderActions } from "@/components/common/admin-header-actions";
-import { AdminWorkspaceSwitcher } from "@/components/common/admin-workspace-switcher";
+import { AdminHeaderActions } from "@/components/layout/admin-header-actions";
+import { AdminWorkspaceSwitcher } from "@/components/layout/admin-workspace-switcher";
 import RefreshIcon from "@/components/ui/icons/refresh-icon";
 function normalizePath(input: string): string {
   if (input.length > 1 && input.endsWith("/")) return input.slice(0, -1);

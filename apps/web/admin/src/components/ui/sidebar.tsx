@@ -19,7 +19,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { TooltipProvider, Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Highlight, HighlightItem } from "@/components/ui/effect-highlight";
+import { Highlight, HighlightItem } from "@/components/ui/highlight";
 import {
   SidebarMenu,
   SidebarMenuAction,

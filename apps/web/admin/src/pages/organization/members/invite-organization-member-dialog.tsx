@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { Button as AntButton, Form, Input, Select } from "antd";
 
 import type { OrgRole } from "@/types/api";
-import { SettingDialog } from "@/components/common/setting-dialog";
+import { SettingDialog } from "@/components/settings-primitives/setting-dialog";
 import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;

@@ -25,12 +25,12 @@ import { notifyError, notifySuccessText } from "@/lib/notifications";
 import {
   TeamMembersFilterPopover,
   type TeamMemberSort,
-} from "@/components/common/team/team-members-filter-popover";
+} from "@/components/team/team-members-filter-popover";
 import { useAuthStore } from "@/stores/use-auth-store";
-import { InviteMembersDialog } from "@/components/common/team/invite-members-dialog";
+import { InviteMembersDialog } from "@/components/team/invite-members-dialog";
 import { resolveAssetRefToPublicUrlPath } from "@/lib/assets/asset-urls";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
-import { EditMemberRolesDialog } from "@/components/common/team/edit-member-roles-dialog";
+import { EditMemberRolesDialog } from "@/components/team/edit-member-roles-dialog";
 import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";
 import { TeamMembersDataTable } from "./members-data-table";
 import {

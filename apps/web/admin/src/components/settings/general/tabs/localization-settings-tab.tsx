@@ -3,7 +3,7 @@ import type { FormInstance } from "antd";
 import { useTranslation } from "react-i18next";
 
 import { Accordion } from "@/components/ui/accordion";
-import { SettingAccordionItem } from "@/components/common/setting-accordion-item";
+import { SettingAccordionItem } from "@/components/settings-primitives/setting-accordion-item";
 import type { AppLocale } from "@/lib/i18n";
 
 import {

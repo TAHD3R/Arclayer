@@ -10,7 +10,7 @@ import { PencilLine, Trash2, UploadCloud } from "lucide-react";
 
 import type { TeamMember } from "@/types/api";
 import { patchTeamMemberUser } from "@/api/team";
-import { AssetPickerDialog } from "@/components/common/asset-picker-dialog";
+import { AssetPickerDialog } from "@/components/assets/asset-picker-dialog";
 import {
   Sheet,
   SheetContent,

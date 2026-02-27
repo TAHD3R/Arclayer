@@ -22,7 +22,7 @@ import {
   type DialogProps as DialogPrimitiveProps,
   type DialogTitleProps as DialogTitlePrimitiveProps,
   type DialogTriggerProps as DialogTriggerPrimitiveProps,
-} from "@/components/ui/radix-dialog";
+} from "@/components/ui/radix-primitives/radix-dialog";
 import { cn } from "@/lib/utils";
 
 type DialogProps = DialogPrimitiveProps;

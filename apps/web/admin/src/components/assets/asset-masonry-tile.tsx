@@ -20,7 +20,7 @@ import {
   VideoDocumentIcon,
   WordDocumentIcon,
   ZipDocumentIcon,
-} from "@/components/ui/file-icons/document-icons";
+} from "@/components/ui/icons/document-icons";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { formatDateTimeWithPattern } from "@/lib/time/date-time";
 

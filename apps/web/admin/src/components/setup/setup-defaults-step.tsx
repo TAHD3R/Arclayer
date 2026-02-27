@@ -2,7 +2,7 @@ import { Form, Select } from "antd";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
-import { SettingAccordionItem } from "@/components/common/setting-accordion-item";
+import { SettingAccordionItem } from "@/components/settings-primitives/setting-accordion-item";
 import { Accordion } from "@/components/ui/accordion";
 import { type AppLocale } from "@/lib/i18n";
 import {

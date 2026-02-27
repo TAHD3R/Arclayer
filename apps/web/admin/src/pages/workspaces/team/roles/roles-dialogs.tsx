@@ -3,7 +3,7 @@ import { Controller, type FieldErrors, type UseFormReturn } from "react-hook-for
 import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 
 import type { Role } from "@/types/api";
-import { SettingDialog } from "@/components/common/setting-dialog";
+import { SettingDialog } from "@/components/settings-primitives/setting-dialog";
 
 import type { CreateRoleFormValues } from "./roles-utils";
 

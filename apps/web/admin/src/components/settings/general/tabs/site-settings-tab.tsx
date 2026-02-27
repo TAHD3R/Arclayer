@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useMemo, useState } from "react";
 
 import { Accordion } from "@/components/ui/accordion";
-import { SettingAccordionItem } from "@/components/common/setting-accordion-item";
+import { SettingAccordionItem } from "@/components/settings-primitives/setting-accordion-item";
 import { resolvePublicAssetUrlPath } from "@/lib/assets/asset-urls";
 import { deleteAdminAssetUsageByRef, upsertAdminAssetUsage } from "@/api/asset-usages";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";

@@ -25,8 +25,8 @@ import {
   ChromeTabsTrigger,
 } from "@/components/ui/chrome-tabs";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
-import { InviteMembersDialog } from "@/components/common/team/invite-members-dialog";
-import { InviteLinkParticipantsPopover } from "@/components/common/team/invite-link-participants-popover";
+import { InviteMembersDialog } from "@/components/team/invite-members-dialog";
+import { InviteLinkParticipantsPopover } from "@/components/team/invite-link-participants-popover";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";

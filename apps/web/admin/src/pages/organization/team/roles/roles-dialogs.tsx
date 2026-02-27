@@ -1,5 +1,5 @@
 import { Button as AntButton, Input, Select } from "antd";
-import { SettingDialog } from "@/components/common/setting-dialog";
+import { SettingDialog } from "@/components/settings-primitives/setting-dialog";
 import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 
 type Translate = (key: string, opts?: Record<string, unknown>) => string;

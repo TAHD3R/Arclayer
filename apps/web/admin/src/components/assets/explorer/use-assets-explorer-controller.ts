@@ -6,7 +6,7 @@ import type { AdminAssetFolder, AdminAssetSummary } from "@/types/api";
 import { filterFoldersByContentCheck } from "@/lib/assets/folder-visibility";
 import { isExplicitAssetsFilterActive } from "@/lib/assets/assets-filtering";
 import { toMasonryItem } from "@/lib/assets/to-masonry-item";
-import type { AssetsFilters } from "@/components/common/assets/assets-filter-popover";
+import type { AssetsFilters } from "@/components/assets/assets-filter-popover";
 import type { AssetsExplorerEntry, AssetsExplorerPagination } from "@/types/assets-explorer";
 
 type UseAssetsExplorerControllerOptions = {

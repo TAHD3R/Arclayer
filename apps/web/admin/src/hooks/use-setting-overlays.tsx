@@ -1,7 +1,7 @@
 import * as React from "react";
 
-import { SettingDialog } from "@/components/common/setting-dialog";
-import { SettingSheet } from "@/components/common/setting-sheet";
+import { SettingDialog } from "@/components/settings-primitives/setting-dialog";
+import { SettingSheet } from "@/components/settings-primitives/setting-sheet";
 
 export type SettingOverlayType = "dialog" | "sheet";
 

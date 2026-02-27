@@ -6,7 +6,7 @@ import type React from "react";
 import type { AdminAssetTag } from "@/types/api";
 import ChevronDownIcon from "@/components/ui/icons/chevron-down";
 import { ChromeTabs, ChromeTabsList, ChromeTabsTrigger } from "@/components/ui/chrome-tabs";
-import { AssetsFilterPopover } from "@/components/common/assets/assets-filter-popover";
+import { AssetsFilterPopover } from "@/components/assets/assets-filter-popover";
 
 interface AssetsFilterValue {
   mimePrefix?: string;

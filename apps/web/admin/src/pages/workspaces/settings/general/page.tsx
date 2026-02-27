@@ -22,8 +22,8 @@ import type {
   GeneralSettingsTabKey,
   WithSavingKeyFn,
 } from "@/types/settings-general";
-import { LocalizationSettingsTab } from "@/components/common/settings/general/tabs/localization-settings-tab";
-import { SiteSettingsTab } from "@/components/common/settings/general/tabs/site-settings-tab";
+import { LocalizationSettingsTab } from "@/components/settings/general/tabs/localization-settings-tab";
+import { SiteSettingsTab } from "@/components/settings/general/tabs/site-settings-tab";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
 export function GeneralSettingsPage() {

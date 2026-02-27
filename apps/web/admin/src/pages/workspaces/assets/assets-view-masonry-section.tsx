@@ -5,12 +5,12 @@ import { AnimatePresence } from "motion/react";
 import { flushSync } from "react-dom";
 
 import type { AdminAssetFolder } from "@/types/api";
-import { AssetMasonryTile } from "@/components/common/assets/asset-masonry-card";
+import { AssetMasonryTile } from "@/components/assets/asset-masonry-card";
 import {
   AssetsExplorerFolderDragOverlay,
   AssetsExplorerFolderTile,
   AssetsExplorerFolderUpTile,
-} from "@/components/common/assets/explorer/assets-explorer-folder-tiles";
+} from "@/components/assets/explorer/assets-explorer-folder-tiles";
 import { ContentGuard } from "@/components/common/content-guard";
 import { LoaderOne } from "@/components/ui/loader";
 import {

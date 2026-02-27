@@ -3,18 +3,18 @@ import { FolderInput, Settings2, Trash2 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 
 import type { AdminAssetFolder } from "@/types/api";
-import { AssetPreviewSheet } from "@/components/common/assets/asset-masonry-card";
-import { BulkDeleteAssetsDialog } from "@/components/common/assets/bulk-delete-assets-dialog";
-import { CreateAssetFolderDialog } from "@/components/common/assets/create-asset-folder-dialog";
-import { FolderNotEmptyDialog } from "@/components/common/assets/folder-not-empty-dialog";
-import { MoveAssetsToFolderModal } from "@/components/common/assets/move-assets-to-folder-modal";
-import { MoveFolderModal } from "@/components/common/assets/move-folder-modal";
-import { UpdateAssetsAccessDialog } from "@/components/common/assets/update-assets-access-dialog";
-import { UpdateAssetFolderDialog } from "@/components/common/assets/update-asset-folder-dialog";
-import { AssetUploadDialog } from "@/components/common/assets/asset-upload-dialog";
+import { AssetPreviewSheet } from "@/components/assets/asset-masonry-card";
+import { BulkDeleteAssetsDialog } from "@/components/assets/bulk-delete-assets-dialog";
+import { CreateAssetFolderDialog } from "@/components/assets/create-asset-folder-dialog";
+import { FolderNotEmptyDialog } from "@/components/assets/folder-not-empty-dialog";
+import { MoveAssetsToFolderModal } from "@/components/assets/move-assets-to-folder-modal";
+import { MoveFolderModal } from "@/components/assets/move-folder-modal";
+import { UpdateAssetsAccessDialog } from "@/components/assets/update-assets-access-dialog";
+import { UpdateAssetFolderDialog } from "@/components/assets/update-asset-folder-dialog";
+import { AssetUploadDialog } from "@/components/assets/asset-upload-dialog";
 
-import type { AssetMasonryItem } from "@/components/common/assets/asset-masonry-card";
-import type { UpdateAssetFolderDialogValue } from "@/components/common/assets/update-asset-folder-dialog";
+import type { AssetMasonryItem } from "@/components/assets/asset-masonry-card";
+import type { UpdateAssetFolderDialogValue } from "@/components/assets/update-asset-folder-dialog";
 
 interface AssetsViewOverlaysProps {
   t: (key: string, options?: Record<string, unknown>) => string;

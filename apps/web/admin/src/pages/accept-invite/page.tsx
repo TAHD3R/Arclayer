@@ -28,8 +28,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { InviteTokenInputDialog } from "@/components/common/invite/invite-token-input-dialog";
-import { InviteRegisterForm } from "@/components/common/invite/invite-register-form";
+import { InviteTokenInputDialog } from "@/components/invite/invite-token-input-dialog";
+import { InviteRegisterForm } from "@/components/invite/invite-register-form";
 import { InviteLoginJoinForm } from "./login-join-form";
 import { formatInvitationExpiresRelative, resolveRoleText } from "./utils";
 

@@ -7,9 +7,9 @@ import { Sparkles } from "lucide-react";
 
 import { getSetupJobStatus, getSetupStatus, setupSystem } from "@/api/system";
 import type { SystemSetupJobStage, SystemSetupJobStatusPayload } from "@/types/api";
-import { SetupAdminStep } from "@/components/common/setup/setup-admin-step";
-import { SetupDefaultsStep } from "@/components/common/setup/setup-defaults-step";
-import { SetupWorkspaceTemplateStep } from "@/components/common/setup/setup-workspace-template-step";
+import { SetupAdminStep } from "@/components/setup/setup-admin-step";
+import { SetupDefaultsStep } from "@/components/setup/setup-defaults-step";
+import { SetupWorkspaceTemplateStep } from "@/components/setup/setup-workspace-template-step";
 import {
   ExpandableScreen,
   ExpandableScreenContent,

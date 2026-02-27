@@ -1,6 +1,6 @@
 import { Button as AntButton } from "antd";
 
-import { SettingDialog } from "@/components/common/setting-dialog";
+import { SettingDialog } from "@/components/settings-primitives/setting-dialog";
 
 import type { ContentPageRow } from "./content-pages-types";
 import { resolveDisplayName } from "./content-pages-utils";

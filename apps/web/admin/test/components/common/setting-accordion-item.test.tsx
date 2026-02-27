@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { Accordion } from "@/components/ui/accordion";
-import { SettingAccordionItem } from "@/components/common/setting-accordion-item";
+import { SettingAccordionItem } from "@/components/settings-primitives/setting-accordion-item";
 import { DEFAULT_LOCALE, initI18n } from "@/lib/i18n";
 
 beforeAll(async () => {

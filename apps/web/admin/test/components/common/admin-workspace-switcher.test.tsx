@@ -7,7 +7,7 @@ import type { MyOrganization, MyOrganizationListResult, OrganizationWorkspace } 
 import { listMyOrganizations } from "@/api/me";
 import { listAllOrganizationWorkspaces } from "@/api/organization-workspaces";
 import { getWorkspaceDetail } from "@/api/workspaces";
-import { AdminWorkspaceSwitcher } from "@/components/common/admin-workspace-switcher";
+import { AdminWorkspaceSwitcher } from "@/components/layout/admin-workspace-switcher";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 

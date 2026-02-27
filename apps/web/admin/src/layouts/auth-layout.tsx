@@ -12,11 +12,11 @@ import { Trans, useTranslation } from "react-i18next";
 import { useRouterState } from "@tanstack/react-router";
 
 import { getAppConfig } from "@/constants/app-config";
-import { AdminFullLogo } from "@/components/common/admin-logo";
-import { AdminLocaleToggle } from "@/components/common/admin-toggle-locales";
-import { AdminThemeModeToggle } from "@/components/common/admin-toggle-theme";
-import { LegalFooter } from "@/components/common/legal-footer";
-import { RouteTransition } from "@/components/common/route-transition";
+import { AdminFullLogo } from "@/components/layout/admin-logo";
+import { AdminLocaleToggle } from "@/components/layout/admin-toggle-locales";
+import { AdminThemeModeToggle } from "@/components/layout/admin-toggle-theme";
+import { LegalFooter } from "@/components/auth/legal-footer";
+import { RouteTransition } from "@/components/layout/route-transition";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import { isLoginPath, isResetPasswordPath } from "@/lib/route-identity";
 

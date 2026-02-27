@@ -8,7 +8,7 @@ vi.mock("@tanstack/react-router", () => ({
   getRouteApi: () => ({ useSearch: () => ({}) }),
 }));
 
-vi.mock("@/components/common/auth-oauth-buttons", () => ({
+vi.mock("@/components/auth/auth-oauth-buttons", () => ({
   AuthOauthButtons: () => null,
 }));
 

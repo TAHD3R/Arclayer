@@ -5,7 +5,7 @@ import { useMemo } from "react";
 import { z } from "zod";
 import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 
-import { SettingDialog } from "@/components/common/setting-dialog";
+import { SettingDialog } from "@/components/settings-primitives/setting-dialog";
 import { zodResolver } from "@/lib/forms/zod-resolver";
 
 export type InviteOrganizationMemberFormValues = {

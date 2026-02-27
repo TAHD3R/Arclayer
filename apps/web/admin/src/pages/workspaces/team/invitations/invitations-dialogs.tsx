@@ -3,7 +3,7 @@ import * as React from "react";
 import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 
 import type { TeamInvitation, TeamInviteLink } from "@/types/api";
-import { SettingDialog } from "@/components/common/setting-dialog";
+import { SettingDialog } from "@/components/settings-primitives/setting-dialog";
 
 import type { RenewExpiresInSeconds } from "./invitations-helpers";
 

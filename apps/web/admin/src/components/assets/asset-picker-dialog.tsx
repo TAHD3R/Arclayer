@@ -7,13 +7,13 @@ import { useTranslation } from "react-i18next";
 
 import { cn } from "@/lib/utils";
 import { LoaderOne } from "@/components/ui/loader";
-import { SettingDialog } from "@/components/common/setting-dialog";
-import { AssetUploadDialog } from "@/components/common/assets/asset-upload-dialog";
+import { SettingDialog } from "@/components/settings-primitives/setting-dialog";
+import { AssetUploadDialog } from "@/components/assets/asset-upload-dialog";
 import {
   AssetsExplorerFolderTile,
   AssetsExplorerFolderUpTile,
-} from "@/components/common/assets/explorer/assets-explorer-folder-tiles";
-import { useAssetsExplorerController } from "@/components/common/assets/explorer/use-assets-explorer-controller";
+} from "@/components/assets/explorer/assets-explorer-folder-tiles";
+import { useAssetsExplorerController } from "@/components/assets/explorer/use-assets-explorer-controller";
 import {
   clearSelection,
   orderSelectedIds,
@@ -22,14 +22,8 @@ import {
   toggleSelect,
   type AssetSelectionState,
 } from "@/lib/assets/asset-selection";
-import {
-  AssetMasonryTile,
-  type AssetMasonryItem,
-} from "@/components/common/assets/asset-masonry-card";
-import {
-  AssetsFilterPopover,
-  type AssetsFilters,
-} from "@/components/common/assets/assets-filter-popover";
+import { AssetMasonryTile, type AssetMasonryItem } from "@/components/assets/asset-masonry-card";
+import { AssetsFilterPopover, type AssetsFilters } from "@/components/assets/assets-filter-popover";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
 export type AssetPickerDialogValue = {

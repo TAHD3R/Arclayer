@@ -34,10 +34,10 @@ import {
 import {
   AlertDialogAction as AlertDialogActionPrimitive,
   AlertDialogCancel as AlertDialogCancelPrimitive,
-} from "@/components/ui/radix-alert-dialog";
-import { SettingActionItem } from "@/components/common/setting-action-item";
-import { UpdateAssetsAccessDialog } from "@/components/common/assets/update-assets-access-dialog";
-import { AssetSharePopover } from "@/components/common/assets/asset-share-popover";
+} from "@/components/ui/radix-primitives/radix-alert-dialog";
+import { SettingActionItem } from "@/components/settings-primitives/setting-action-item";
+import { UpdateAssetsAccessDialog } from "@/components/assets/update-assets-access-dialog";
+import { AssetSharePopover } from "@/components/assets/asset-share-popover";
 import { copyToClipboard } from "@/lib/clipboard";
 import { cn } from "@/lib/utils";
 import { notifyErrorText, notifySuccessText } from "@/lib/notifications";

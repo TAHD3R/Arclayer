@@ -24,7 +24,7 @@ import {
   uploadPart,
 } from "@/api/uploads";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
-import { SettingDialog } from "@/components/common/setting-dialog";
+import { SettingDialog } from "@/components/settings-primitives/setting-dialog";
 
 type UploadItemStatus = "pending" | "uploading" | "success" | "error" | "canceled";
 

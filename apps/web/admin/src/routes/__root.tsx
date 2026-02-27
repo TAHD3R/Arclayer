@@ -1,6 +1,6 @@
 import { createRootRoute, Outlet, redirect, useRouterState } from "@tanstack/react-router";
 
-import { SceneLoadingOverlay } from "@/components/common/scene-loading-overlay";
+import { SceneLoadingOverlay } from "@/components/layout/scene-loading-overlay";
 import { useSceneRevealTransition } from "@/hooks/use-scene-reveal-transition";
 import { isLoginPath, isPublicPath } from "@/lib/route-identity";
 import { getSceneLayout, resolveSceneKey } from "@/lib/scene-registry";

@@ -2,10 +2,10 @@ import { lazy, Suspense, type PropsWithChildren, useEffect } from "react";
 import { Trans, useTranslation } from "react-i18next";
 
 import { getAppConfig } from "@/constants/app-config";
-import { AdminFullLogo } from "@/components/common/admin-logo";
-import { AdminLocaleToggle } from "@/components/common/admin-toggle-locales";
-import { AdminThemeModeToggle } from "@/components/common/admin-toggle-theme";
-import { LegalFooter } from "@/components/common/legal-footer";
+import { AdminFullLogo } from "@/components/layout/admin-logo";
+import { AdminLocaleToggle } from "@/components/layout/admin-toggle-locales";
+import { AdminThemeModeToggle } from "@/components/layout/admin-toggle-theme";
+import { LegalFooter } from "@/components/auth/legal-footer";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 
 const ColorBendsLazy = lazy(() => import("@/components/ui/color-bends"));

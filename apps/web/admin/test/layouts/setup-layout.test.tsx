@@ -13,11 +13,11 @@ vi.mock("react-i18next", () => ({
   Trans: ({ i18nKey }: { i18nKey: string }) => <span>{i18nKey}</span>,
 }));
 
-vi.mock("@/components/common/admin-toggle-locales", () => ({
+vi.mock("@/components/layout/admin-toggle-locales", () => ({
   AdminLocaleToggle: () => <button type="button">locale</button>,
 }));
 
-vi.mock("@/components/common/admin-toggle-theme", () => ({
+vi.mock("@/components/layout/admin-toggle-theme", () => ({
   AdminThemeModeToggle: () => <button type="button">theme</button>,
 }));
 

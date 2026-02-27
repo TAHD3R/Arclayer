@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 
 import type { Role, TeamMember } from "@/types/api";
-import { SettingDialog } from "@/components/common/setting-dialog";
+import { SettingDialog } from "@/components/settings-primitives/setting-dialog";
 
 export function EditMemberRolesDialog(props: {
   open: boolean;

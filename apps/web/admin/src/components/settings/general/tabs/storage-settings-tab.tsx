@@ -4,10 +4,10 @@ import * as React from "react";
 import { useTranslation } from "react-i18next";
 
 import { Accordion } from "@/components/ui/accordion";
-import { SettingAccordionItem } from "@/components/common/setting-accordion-item";
-import { SettingActionItem } from "@/components/common/setting-action-item";
-import { SettingOverlayFooter } from "@/components/common/setting-overlay-footer";
-import { SettingPanel } from "@/components/common/setting-panel";
+import { SettingAccordionItem } from "@/components/settings-primitives/setting-accordion-item";
+import { SettingActionItem } from "@/components/settings-primitives/setting-action-item";
+import { SettingOverlayFooter } from "@/components/settings-primitives/setting-overlay-footer";
+import { SettingPanel } from "@/components/settings-primitives/setting-panel";
 import { type SettingOverlayConfig, useSettingOverlays } from "@/hooks/use-setting-overlays";
 
 import type { GeneralSettingsTabBaseProps } from "@/types/settings-general";

@@ -14,7 +14,7 @@ import {
   type HighlightItemProps,
   type HighlightProps,
   type ParentModeHighlightProps,
-} from "./effect-highlight.shared";
+} from "./highlight.shared";
 
 const HighlightContext = React.createContext<HighlightContextType<string> | undefined>(undefined);
 

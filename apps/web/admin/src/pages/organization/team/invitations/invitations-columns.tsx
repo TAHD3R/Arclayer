@@ -4,7 +4,7 @@ import { Button as AntButton, Tag } from "antd";
 import { Link2Off, RotateCcw } from "lucide-react";
 
 import type { OrganizationInvitation, OrganizationInviteLink } from "@/types/api";
-import { InviteLinkParticipantsPopover } from "@/components/common/team/invite-link-participants-popover";
+import { InviteLinkParticipantsPopover } from "@/components/team/invite-link-participants-popover";
 import { renderUserLabel } from "@/pages/workspaces/team/invitations/invitations-helpers";
 
 import { toStatusTagColor } from "./invitations-constants";

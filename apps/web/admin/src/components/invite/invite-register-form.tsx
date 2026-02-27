@@ -3,7 +3,7 @@ import { Lock, Mail, User, UserRound } from "lucide-react";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
 
-import { AuthOauthButtons } from "@/components/common/auth-oauth-buttons";
+import { AuthOauthButtons } from "@/components/auth/auth-oauth-buttons";
 
 export type InviteRegisterFormValues = {
   email?: string;

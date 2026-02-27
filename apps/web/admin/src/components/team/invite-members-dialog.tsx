@@ -10,7 +10,7 @@ import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 
 import type { Role } from "@/types/api";
 import { createTeamInvitation, createTeamInviteLink } from "@/api/team";
-import { SettingDialog } from "@/components/common/setting-dialog";
+import { SettingDialog } from "@/components/settings-primitives/setting-dialog";
 import { zodResolver } from "@/lib/forms/zod-resolver";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 

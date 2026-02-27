@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import * as authApi from "@/api/auth";
 import * as authSsoApi from "@/api/auth-sso";
-import { AuthOauthButtons } from "@/components/common/auth-oauth-buttons";
+import { AuthOauthButtons } from "@/components/auth/auth-oauth-buttons";
 import { useSystemRuntime } from "@/hooks/use-system-runtime";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import { resolveLoginMode } from "@/lib/auth-mode";

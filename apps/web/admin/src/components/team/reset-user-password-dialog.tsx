@@ -9,7 +9,7 @@ import { useMutation } from "@tanstack/react-query";
 
 import type { TeamMember } from "@/types/api";
 import { resetTeamMemberPassword } from "@/api/team";
-import { SettingDialog } from "@/components/common/setting-dialog";
+import { SettingDialog } from "@/components/settings-primitives/setting-dialog";
 import { Input } from "@/components/ui/input";
 import { zodResolver } from "@/lib/forms/zod-resolver";
 import { notifyError, notifySuccessText } from "@/lib/notifications";

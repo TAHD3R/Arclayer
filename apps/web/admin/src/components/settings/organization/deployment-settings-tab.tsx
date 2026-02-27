@@ -10,8 +10,8 @@ import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { buildGeneralSettingsInitialValues } from "@/lib/settings/general/adapters";
 import type { GeneralSettingsPatchFn, WithSavingKeyFn } from "@/types/settings-general";
 import type { GeneralSettingsFormValues } from "@/types/settings-general";
-import { MessagingSettingsTab } from "@/components/common/settings/general/tabs/messaging-settings-tab";
-import { StorageSettingsTab } from "@/components/common/settings/general/tabs/storage-settings-tab";
+import { MessagingSettingsTab } from "@/components/settings/general/tabs/messaging-settings-tab";
+import { StorageSettingsTab } from "@/components/settings/general/tabs/storage-settings-tab";
 
 export function DeploymentSettingsTab() {
   const { t } = useTranslation();

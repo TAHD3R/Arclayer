@@ -2,7 +2,7 @@ import { Button, Form, Image, Input } from "antd";
 import type { FormInstance } from "antd";
 import { useTranslation } from "react-i18next";
 
-import { AssetPickerDialog } from "@/components/common/asset-picker-dialog";
+import { AssetPickerDialog } from "@/components/assets/asset-picker-dialog";
 import { formatSummaryText, isValidHttpUrlOrAbsolutePath } from "@/lib/settings/general/utils";
 import type { GeneralSettingsFormValues } from "@/types/settings-general";
 

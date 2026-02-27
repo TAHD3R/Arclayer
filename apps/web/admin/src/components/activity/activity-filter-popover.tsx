@@ -4,7 +4,7 @@ import * as React from "react";
 import { useTranslation } from "react-i18next";
 
 import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { DebounceSelect, type DebounceSelectOption } from "@/components/inputs/debounce-select";
+import { DebounceSelect, type DebounceSelectOption } from "@/components/activity/debounce-select";
 import { listCatalogEventNames, resolveCatalogEntry } from "@/components/activity/event-catalog";
 
 export type ActivityFilters = {

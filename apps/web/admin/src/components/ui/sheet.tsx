@@ -18,7 +18,7 @@ import {
   type SheetFooterProps as SheetFooterPrimitiveProps,
   type SheetTitleProps as SheetTitlePrimitiveProps,
   type SheetDescriptionProps as SheetDescriptionPrimitiveProps,
-} from "@/components/ui/radix-sheet";
+} from "@/components/ui/radix-primitives/radix-sheet";
 import { cn } from "@/lib/utils";
 import { XIcon } from "lucide-react";
 

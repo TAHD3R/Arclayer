@@ -36,7 +36,7 @@ import {
   MenubarSeparator,
   MenubarShortcut,
 } from "@/components/ui/menubar";
-import { AdminLogo } from "@/components/common/admin-logo";
+import { AdminLogo } from "@/components/layout/admin-logo";
 import type { AppLocale } from "@/lib/i18n";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 import {

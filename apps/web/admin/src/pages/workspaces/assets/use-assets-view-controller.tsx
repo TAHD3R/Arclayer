@@ -23,8 +23,8 @@ import type { PageData, AdminAssetFolder, AdminAssetSummary } from "@/types/api"
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { clearSelection, selectOnly, type AssetSelectionState } from "@/lib/assets/asset-selection";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
-import { useAssetsExplorerController } from "@/components/common/assets/explorer/use-assets-explorer-controller";
-import type { AssetMasonryItem } from "@/components/common/assets/asset-masonry-card";
+import { useAssetsExplorerController } from "@/components/assets/explorer/use-assets-explorer-controller";
+import type { AssetMasonryItem } from "@/components/assets/asset-masonry-card";
 import type { MenuProps } from "antd";
 import {
   DND_ROOT_ID,

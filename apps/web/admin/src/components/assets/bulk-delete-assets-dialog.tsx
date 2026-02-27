@@ -12,7 +12,7 @@ import {
 import {
   AlertDialogAction as AlertDialogActionPrimitive,
   AlertDialogCancel as AlertDialogCancelPrimitive,
-} from "@/components/ui/radix-alert-dialog";
+} from "@/components/ui/radix-primitives/radix-alert-dialog";
 
 export type BulkDeleteAssetsDialogProps = {
   open: boolean;

@@ -19,16 +19,16 @@ import {
 import { DefaultPage } from "@/components/common/default-page";
 import { ContentGuard } from "@/components/common/content-guard";
 import { Accordion } from "@/components/ui/accordion";
-import { SettingActionItem } from "@/components/common/setting-action-item";
-import { SettingAccordionItem } from "@/components/common/setting-accordion-item";
-import { SettingDialog } from "@/components/common/setting-dialog";
+import { SettingActionItem } from "@/components/settings-primitives/setting-action-item";
+import { SettingAccordionItem } from "@/components/settings-primitives/setting-accordion-item";
+import { SettingDialog } from "@/components/settings-primitives/setting-dialog";
 import {
   ChromeTabs,
   ChromeTabsContent,
   ChromeTabsList,
   ChromeTabsTrigger,
 } from "@/components/ui/chrome-tabs";
-import { SettingPanel } from "@/components/common/setting-panel";
+import { SettingPanel } from "@/components/settings-primitives/setting-panel";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import {
   buildDateFormatOptions,

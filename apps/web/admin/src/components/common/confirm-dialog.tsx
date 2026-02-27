@@ -4,7 +4,7 @@ import { useEffect, useState, type ReactNode } from "react";
 
 import { Button } from "antd";
 
-import { SettingDialog } from "@/components/common/setting-dialog";
+import { SettingDialog } from "@/components/settings-primitives/setting-dialog";
 
 export interface ConfirmDialogProps {
   open: boolean;

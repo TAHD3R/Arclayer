@@ -3,8 +3,8 @@ import { lazy, Suspense, type PropsWithChildren, useEffect } from "react";
 import { Trans, useTranslation } from "react-i18next";
 
 import { getAppConfig } from "@/constants/app-config";
-import { AdminLocaleToggle } from "@/components/common/admin-toggle-locales";
-import { AdminThemeModeToggle } from "@/components/common/admin-toggle-theme";
+import { AdminLocaleToggle } from "@/components/layout/admin-toggle-locales";
+import { AdminThemeModeToggle } from "@/components/layout/admin-toggle-theme";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 
 const ColorBendsLazy = lazy(() => import("@/components/ui/color-bends"));

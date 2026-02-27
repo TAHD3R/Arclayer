@@ -9,7 +9,7 @@ import {
   HighlightItem,
   type HighlightItemProps,
   type HighlightProps,
-} from "@/components/ui/effect-highlight";
+} from "@/components/ui/highlight";
 import { getStrictContext } from "@/lib/get-strict-context";
 import { useControlledState } from "@/hooks/use-controlled-state";
 import { useDataState } from "@/hooks/use-data-state";

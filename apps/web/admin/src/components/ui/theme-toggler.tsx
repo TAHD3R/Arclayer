@@ -10,7 +10,7 @@ import {
   type ThemeTogglerProps as ThemeTogglerPrimitiveProps,
   type ThemeSelection,
   type Resolved,
-} from "@/components/ui/effect-theme-toggler";
+} from "@/components/ui/theme-toggler-primitive";
 import { buttonVariants } from "@/components/ui/icon-button";
 import { cn } from "@/lib/utils";
 
