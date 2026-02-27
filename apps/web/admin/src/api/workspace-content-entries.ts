@@ -2,7 +2,7 @@ import { isDesignDocumentV1 } from "@celestial/site-block-protocol";
 import type { DesignDocumentV1 } from "@celestial/site-block-protocol";
 
 import { api } from "@/lib/http";
-import { workspacePath } from "@/api/workspace-path";
+import { workspacePath } from "@/lib/api";
 
 export type ContentEntryRevisionState = "draft" | "published";
 

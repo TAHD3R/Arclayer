@@ -72,7 +72,9 @@ export function WorkspaceEditorPage() {
   const setLayerTree = useEditorStore((s) => s.setLayerTree);
   const setDirty = useEditorStore((s) => s.setDirty);
 
-  const lastHistoryRef = React.useRef<Pick<EditorHistoryState, "undoDepth" | "redoDepth"> | null>(null);
+  const lastHistoryRef = React.useRef<Pick<EditorHistoryState, "undoDepth" | "redoDepth"> | null>(
+    null,
+  );
 
   // Lift save/publish to the top so requestSave can trigger a real save.
   const saveDraftRef = React.useRef<(doc: DesignDocumentV1) => Promise<void>>(null!);
@@ -242,4 +244,3 @@ export function WorkspaceEditorPage() {
     </EditorConfigProvider>
   );
 }
-
