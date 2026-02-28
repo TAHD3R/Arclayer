@@ -1,4 +1,4 @@
-import type { ThemeMode } from "@celestial/ui-theme/antd";
+import type { ThemeMode } from "@celestial/design-tokens/antd";
 
 import type { ThemePreference } from "@/types/stores";
 

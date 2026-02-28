@@ -17,7 +17,7 @@ This guideline applies to:
 - Backend HTTP endpoints under `apps/api/modules/**/router.py`
 - Backend request/response schemas under `apps/api/modules/**/schema.py` and `apps/api/common/schemas/*`
 - Frontend API clients under `apps/web/admin/src/api` and portal runtime API wrappers
-- Shared type packages that represent backend contracts (`packages/web-types`, related protocol packages)
+- Shared type packages that represent backend contracts (usually `packages/site-*` protocol packages; Portal runtime types live in `packages/portal-types`)
 
 ## 3. Contract-First Design Rules (mandatory)
 

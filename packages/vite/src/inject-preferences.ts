@@ -7,6 +7,11 @@ export interface InjectPreferencesOptions {
   };
   defaultThemeMode?: "light" | "dark" | "system";
   defaultLocale?: "zh-CN" | "en-US" | "auto";
+  /**
+   * When enabled, the injected script will log warnings on failures.
+   * Default: false
+   */
+  debug?: boolean;
 }
 
 export function injectPreferences(options: InjectPreferencesOptions = {}): Plugin {
@@ -16,9 +21,11 @@ export function injectPreferences(options: InjectPreferencesOptions = {}): Plugi
   };
   const defaultThemeMode = options.defaultThemeMode ?? "system";
   const defaultLocale = options.defaultLocale ?? "auto";
+  const debug = options.debug ?? false;
 
   const code = `
 (function () {
+  var __debug = ${debug ? "true" : "false"};
   try {
     var theme = localStorage.getItem(${JSON.stringify(storageKeys.themeMode)});
     if (theme !== "dark" && theme !== "light") {
@@ -43,12 +50,17 @@ export function injectPreferences(options: InjectPreferencesOptions = {}): Plugi
       }
     }
     document.documentElement.lang = locale;
-  } catch (e) {}
+  } catch (e) {
+    if (__debug && typeof console !== "undefined" && console.warn) {
+      console.warn("[celestial] injectPreferences failed", e);
+    }
+  }
 })();
 `.trim();
 
   return {
     name: "celestial-inject-preferences",
+    enforce: "pre",
     transformIndexHtml() {
       return [
         {

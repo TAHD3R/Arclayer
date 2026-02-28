@@ -7,13 +7,20 @@ export interface InjectAppConfigOptions {
     apiPrefix: string;
   };
   publicUrl?: string;
+  /**
+   * When enabled, the injected script will log warnings on failures.
+   * Default: false
+   */
+  debug?: boolean;
 }
 
 export function injectAppConfig(options: InjectAppConfigOptions): Plugin {
   const publicUrl = options.publicUrl ?? "/app-config.json";
+  const debug = options.debug ?? false;
 
   const code = `
 (function () {
+  var __debug = ${debug ? "true" : "false"};
   try {
     var defaults = ${JSON.stringify(options.defaults)};
     var current = window.__APP_CONFIG__ && typeof window.__APP_CONFIG__ === "object" ? window.__APP_CONFIG__ : {};
@@ -26,13 +33,22 @@ export function injectAppConfig(options: InjectAppConfigOptions): Plugin {
         window.__APP_CONFIG__ = Object.assign({}, window.__APP_CONFIG__, cfg);
         if (cfg.title) document.title = cfg.title;
       })
-      .catch(function () {});
-  } catch (e) {}
+      .catch(function (e) {
+        if (__debug && typeof console !== "undefined" && console.warn) {
+          console.warn("[celestial] injectAppConfig failed to fetch runtime config", e);
+        }
+      });
+  } catch (e) {
+    if (__debug && typeof console !== "undefined" && console.warn) {
+      console.warn("[celestial] injectAppConfig failed", e);
+    }
+  }
 })();
 `.trim();
 
   return {
     name: "celestial-inject-app-config",
+    enforce: "pre",
     transformIndexHtml() {
       return [
         {

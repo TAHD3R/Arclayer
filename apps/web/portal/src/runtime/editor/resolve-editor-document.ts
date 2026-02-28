@@ -1,6 +1,6 @@
 import { resolvePortalRoute } from "@/runtime/portal-route-resolver";
 import { HttpError } from "@/runtime/http-error";
-import type { PortalRouteMatch } from "@celestial/web-types";
+import type { PortalRouteMatch } from "@celestial/portal-types";
 
 export async function resolveEditorDocument(args: {
   pathname: string;

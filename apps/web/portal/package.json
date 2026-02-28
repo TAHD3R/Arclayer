@@ -15,13 +15,13 @@
     "format": "oxfmt -c ./node_modules/@celestial/ox-config/.oxfmtrc.json ."
   },
   "dependencies": {
+    "@celestial/portal-types": "workspace:*",
     "@celestial/site-block-protocol": "workspace:*",
     "@celestial/site-editor-bridge": "workspace:*",
     "@celestial/site-editor-protocol": "workspace:*",
     "@celestial/site-renderer-core": "workspace:*",
     "@celestial/site-theme-default": "workspace:*",
-    "@celestial/web-core": "workspace:*",
-    "@celestial/web-types": "workspace:*",
+    "@celestial/web-runtime": "workspace:*",
     "react": "catalog:",
     "react-dom": "catalog:"
   },

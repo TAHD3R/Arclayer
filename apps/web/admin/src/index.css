@@ -1,4 +1,4 @@
-@import "@celestial/ui-theme/tokens.css";
+@import "@celestial/design-tokens/tokens.css";
 @import "tailwindcss";
 @plugin "tailwindcss-animate";
 @custom-variant dark (&:is([data-theme="dark"] *));

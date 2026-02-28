@@ -1,6 +1,10 @@
 import { isDesignDocumentV1 } from "@celestial/site-renderer-core";
-import { ApiError } from "@celestial/web-core/http";
-import type { PortalResolveMode, PortalRouteMatch, PortalSiteContext } from "@celestial/web-types";
+import { ApiError } from "@celestial/web-runtime/http";
+import type {
+  PortalResolveMode,
+  PortalRouteMatch,
+  PortalSiteContext,
+} from "@celestial/portal-types";
 import type {
   ContentRefIncludeErrorCodeV1,
   ContentRefIncludesMap,

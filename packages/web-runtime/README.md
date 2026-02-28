@@ -1,4 +1,4 @@
-# @celestial/web-core
+# @celestial/web-runtime
 
 Shared web infrastructure for apps (Admin / Portal / future web apps).
 

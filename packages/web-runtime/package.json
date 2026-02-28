@@ -1,5 +1,5 @@
 {
-  "name": "@celestial/web-core",
+  "name": "@celestial/web-runtime",
   "version": "0.0.0",
   "private": true,
   "type": "module",

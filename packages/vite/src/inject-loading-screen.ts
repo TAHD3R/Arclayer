@@ -6,10 +6,21 @@ export interface InjectLoadingScreenOptions {
    * Keep it simple: this runs before React, so avoid WebFont-only designs and heavy JS animation.
    */
   appName?: string;
+
+  /**
+   * Minimum duration (ms) the loading screen stays visible once it becomes visible.
+   * Default: 320
+   */
+  minVisibleMs?: number;
 }
 
 export function injectLoadingScreen(options: InjectLoadingScreenOptions = {}): Plugin {
   const appName = options.appName?.trim() ? options.appName.trim() : "Loading";
+  const minVisibleMsRaw = options.minVisibleMs;
+  const minVisibleMs =
+    typeof minVisibleMsRaw === "number" && Number.isFinite(minVisibleMsRaw)
+      ? Math.max(0, Math.min(5_000, Math.floor(minVisibleMsRaw)))
+      : 320;
 
   const style = `
 #app-loading {
@@ -121,7 +132,7 @@ export function injectLoadingScreen(options: InjectLoadingScreenOptions = {}): P
         var now = Date.now();
         var base = visibleAt || now;
         var elapsed = now - base;
-        var minVisible = 320;
+        var minVisible = ${minVisibleMs};
         var delay = elapsed >= minVisible ? 0 : (minVisible - elapsed);
 
         setTimeout(function () {
@@ -140,6 +151,7 @@ export function injectLoadingScreen(options: InjectLoadingScreenOptions = {}): P
 
   return {
     name: "celestial-inject-loading-screen",
+    enforce: "pre",
     transformIndexHtml() {
       return [
         {

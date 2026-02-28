@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 
-import { createAntdTheme } from "@celestial/ui-theme/antd";
+import { createAntdTheme } from "@celestial/design-tokens/antd";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 
 export function useAntdTheme() {

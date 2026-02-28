@@ -28,7 +28,7 @@ import type {
   ThemePreference,
   WorkspaceLocaleCache,
 } from "@/types/stores";
-import { type ThemeMode } from "@celestial/ui-theme/antd";
+import { type ThemeMode } from "@celestial/design-tokens/antd";
 
 function normalizeLocalePreferenceMode(input: unknown): LocalePreferenceMode {
   if (input === "explicit" || input === "browser" || input === "workspace") return input;

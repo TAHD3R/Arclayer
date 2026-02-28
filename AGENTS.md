@@ -179,8 +179,8 @@
 ### Admin / Portal 共享提升规则（项目特化）
 
 - 跨 Admin 与 Portal 的复用代码出现第 2 次时，必须评估并优先提升到 `packages/`。
-- 无 UI 依赖的运行时能力放 `packages/web-core`。
-- 跨应用共享类型/接口契约放 `packages/web-types`。
+- 无 UI 依赖的运行时能力放 `packages/web-runtime`。
+- 跨应用共享类型/接口契约放 `packages/portal-types`。
 - 禁止在 `apps/web/admin` 与 `apps/web/portal` 复制粘贴同类工具函数、常量、类型。
 
 ### 类型与可维护性

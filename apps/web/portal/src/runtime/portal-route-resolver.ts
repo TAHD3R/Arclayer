@@ -1,5 +1,5 @@
-import { ApiError } from "@celestial/web-core/http";
-import type { PortalResolveMode, PortalRouteMatch } from "@celestial/web-types";
+import { ApiError } from "@celestial/web-runtime/http";
+import type { PortalResolveMode, PortalRouteMatch } from "@celestial/portal-types";
 import type { DesignDocumentV1 } from "@celestial/site-block-protocol";
 import type { DesignRenderDataSourcesV1 } from "@celestial/site-renderer-core";
 import type { ContentRefIncludesMap, ResolveWarningV1 } from "@celestial/site-block-protocol";

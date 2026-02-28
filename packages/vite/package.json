@@ -7,9 +7,17 @@
     ".": "./src/index.ts",
     "./inject-app-config": "./src/inject-app-config.ts",
     "./inject-preferences": "./src/inject-preferences.ts",
-    "./inject-loading-screen": "./src/inject-loading-screen.ts"
+    "./inject-loading-screen": "./src/inject-loading-screen.ts",
+    "./inject-build-meta": "./src/inject-build-meta.ts",
+    "./archive-build-output": "./src/archive-build-output.ts",
+    "./inject-copyright-banner": "./src/inject-copyright-banner.ts",
+    "./build-artifacts": "./src/build-artifacts.ts"
+  },
+  "dependencies": {
+    "archiver": "catalog:"
   },
   "devDependencies": {
+    "@types/archiver": "catalog:",
     "vite": "catalog:"
   },
   "peerDependencies": {

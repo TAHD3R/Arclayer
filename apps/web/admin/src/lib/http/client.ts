@@ -2,7 +2,7 @@ import {
   createApiClient,
   type ApiRequestOptions,
   type UnauthorizedHandler,
-} from "@celestial/web-core/http";
+} from "@celestial/web-runtime/http";
 
 import { getAppConfig } from "@/constants/app-config";
 import { useAuthStore } from "@/stores/use-auth-store";

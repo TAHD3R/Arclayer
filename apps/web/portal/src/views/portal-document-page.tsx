@@ -2,7 +2,7 @@ import React from "react";
 import { DesignDocumentRenderer } from "@celestial/site-renderer-core";
 
 import type { DesignDocumentV1, ViewerContext } from "@celestial/site-block-protocol";
-import type { PortalRouteMatch } from "@celestial/web-types";
+import type { PortalRouteMatch } from "@celestial/portal-types";
 import type {
   ContentRefIncludesMap,
   DesignRenderDataSourcesV1,
