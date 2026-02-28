@@ -381,7 +381,10 @@ export function AdminNotificationsPanel({
             "transition-colors",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
           )}
-          onClick={() => void navigate({ to: "/me/notifications" })}
+          onClick={() => {
+            onClose();
+            void navigate({ to: "/me/notifications" });
+          }}
         >
           {t("NOTIFICATIONS_OPEN_CENTER")}
         </button>

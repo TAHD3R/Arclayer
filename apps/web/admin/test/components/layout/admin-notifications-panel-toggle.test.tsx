@@ -161,4 +161,28 @@ describe("AdminNotificationsPanel toggle", () => {
       expect(screen.queryByText("NOTIFICATIONS_PAGE_TITLE")).not.toBeInTheDocument();
     });
   });
+
+  it("点击面板底部“打开通知中心”后会关闭面板并跳转", async () => {
+    const user = userEvent.setup();
+
+    renderWithQueryClient(
+      <AdminLayout>
+        <div>content</div>
+      </AdminLayout>,
+    );
+
+    const trigger = await screen.findByRole("button", { name: "nav:NAV_NOTIFICATIONS" });
+    await user.click(trigger);
+    expect(await screen.findByText("NOTIFICATIONS_PAGE_TITLE")).toBeInTheDocument();
+
+    const openCenterButton = await screen.findByRole("button", {
+      name: "NOTIFICATIONS_OPEN_CENTER",
+    });
+    await user.click(openCenterButton);
+
+    await waitFor(() => {
+      expect(screen.queryByText("NOTIFICATIONS_PAGE_TITLE")).not.toBeInTheDocument();
+    });
+    expect(navigateMock).toHaveBeenCalledWith({ to: "/me/notifications" });
+  });
 });
