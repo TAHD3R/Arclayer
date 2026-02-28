@@ -1,3 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-export const Route = createFileRoute("/o/$orgId/settings/basics/")({});
+export const Route = createFileRoute("/o/$orgId/settings/basics/")({
+  staticData: { titleKey: "nav:NAV_ORG_SETTINGS" },
+});

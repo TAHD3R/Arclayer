@@ -1,3 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-export const Route = createFileRoute("/w/$workspaceId/settings/workspace/basics/")({});
+export const Route = createFileRoute("/w/$workspaceId/settings/workspace/basics/")({
+  staticData: { titleKey: "nav:NAV_SETTINGS_WORKSPACE" },
+});

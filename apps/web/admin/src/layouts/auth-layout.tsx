@@ -16,11 +16,10 @@ import { AdminLocaleToggle } from "@/components/layout/admin-toggle-locales";
 import { AdminThemeModeToggle } from "@/components/layout/admin-toggle-theme";
 import { LegalFooter } from "@/components/layout/legal-footer";
 import { RouteTransition } from "@/components/layout/route-transition";
-import { useDocumentTitle } from "@/hooks/use-document-title";
 import { useLockViewport } from "@/hooks/use-lock-viewport";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
-import { isLoginPath, isResetPasswordPath } from "@/lib/routing/route-identity";
+import { isLoginPath } from "@/lib/routing/route-identity";
 
 const ColorBendsLazy = lazy(() => import("@/components/ui/color-bends"));
 
@@ -57,13 +56,6 @@ export function AuthLayout({ children }: PropsWithChildren) {
   );
 
   useLockViewport();
-
-  const pageTitle = useMemo(() => {
-    if (isResetPasswordPath(pathname)) return t("auth:RESET_PASSWORD_PAGE_TITLE");
-    if (isLoginPath(pathname)) return t("auth:LOGIN_PAGE_TITLE");
-    return null;
-  }, [pathname, t]);
-  useDocumentTitle(pageTitle);
 
   return (
     <div className="fixed inset-0 w-full overflow-hidden grid grid-cols-1 lg:grid-cols-2 bg-background text-label-primary">

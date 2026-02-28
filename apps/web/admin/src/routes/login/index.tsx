@@ -11,6 +11,7 @@ type LoginSearch = {
 };
 
 export const Route = createFileRoute("/login/")({
+  staticData: { titleKey: "auth:LOGIN_PAGE_TITLE" },
   validateSearch: (search: Record<string, unknown>): LoginSearch => {
     const redirect =
       typeof search.redirect === "string" &&

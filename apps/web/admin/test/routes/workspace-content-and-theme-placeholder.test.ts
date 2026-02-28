@@ -18,9 +18,9 @@ describe("workspace content and appearance routes", () => {
     );
 
     expect(source).toContain(
-      'import { ContentPagesIndexPage } from "@/pages/workspaces/content/pages/page"',
+      'import { WorkspaceContentPagesPage } from "@/pages/workspaces/content/pages/page"',
     );
-    expect(source).toContain("component: ContentPagesIndexPage");
+    expect(source).toContain("component: WorkspaceContentPagesPage");
   });
 
   test("workspace content library route has been removed", () => {

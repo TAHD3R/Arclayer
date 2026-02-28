@@ -9,12 +9,7 @@ import { ADMIN_NAV_ITEMS, type AdminNavItem } from "@/constants/admin-nav";
 import { COMMON_FOOTER_NAV_ITEMS } from "@/constants/common-footer-nav";
 import { useToggle } from "@/hooks/use-toggle";
 import { ORG_NAV_ITEMS } from "@/constants/org-nav";
-import {
-  buildDocumentTitle,
-  findActiveTrailNodes,
-  mapOrgItemsWithPrefix,
-  normalizePath,
-} from "@/lib/admin-nav-utils";
+import { mapOrgItemsWithPrefix, normalizePath } from "@/lib/admin-nav-utils";
 import { AdminSiderNav } from "@/components/layout/admin-side-nav";
 import { AdminAccountMenu } from "@/components/layout/admin-account-menu";
 import { AdminBrandMark } from "@/components/layout/admin-logo";
@@ -177,11 +172,6 @@ export function AdminLayout({ children }: PropsWithChildren) {
     meta: { silent: true },
   });
 
-  const workspaceName = useMemo(() => {
-    const raw = workspaceDetailQuery.data?.name;
-    return typeof raw === "string" && raw.trim() ? raw.trim() : null;
-  }, [workspaceDetailQuery.data?.name]);
-
   const workspaceLocalization = useWorkspaceLocalization();
 
   useEffect(() => {
@@ -202,17 +192,6 @@ export function AdminLayout({ children }: PropsWithChildren) {
     workspaceId,
     workspaceLocalization.localization.locale,
   ]);
-
-  const routeTitle = useMemo(() => {
-    const trail = findActiveTrailNodes(navItems, pathname);
-    const current = trail[trail.length - 1];
-    if (!current) return null;
-    return current.labelKey ? t(current.labelKey) : current.label;
-  }, [navItems, pathname, t]);
-
-  useEffect(() => {
-    document.title = buildDocumentTitle(routeTitle, workspaceName);
-  }, [routeTitle, workspaceName]);
 
   return (
     <SidebarProvider defaultOpen className="h-screen">

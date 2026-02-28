@@ -1,3 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-export const Route = createFileRoute("/w/$workspaceId/team/members/")({});
+export const Route = createFileRoute("/w/$workspaceId/team/members/")({
+  staticData: { titleKey: "nav:NAV_SETTINGS_TEAM_MEMBER_LIST" },
+});

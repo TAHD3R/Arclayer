@@ -164,6 +164,34 @@ Route files (`routes/**/*.tsx`) must follow strict single responsibility. They e
 
 **Decision principle:** If a piece of code can be removed from a route file without breaking navigation or page loading, it does not belong in the route layer.
 
+### 4.4 Route Title Registry (mandatory)
+
+Admin uses a route-driven registry for document titles. This is a governance rule, not a UI preference.
+
+**Goals:**
+
+- Make document titles a first-class route concern.
+- Keep navigation menu items strictly for rendering navigation (no metadata inference).
+- Prevent fragile `pathname` checks or menu-driven title fallbacks.
+
+**Rules:**
+
+1. Every route that represents a page must set `staticData.titleKey` in its `createFileRoute(...)` definition.
+2. `staticData.titleKey` must be an i18n key (e.g. `nav:NAV_DASHBOARD`, `notifications:NOTIFICATIONS_PAGE_TITLE`).
+3. `document.title` must be set in a single place only: `RouteDocumentTitleManager`.
+4. Navigation constants (`admin-nav.ts`, `org-nav.ts`, `common-footer-nav.ts`) are render-only; they must not be used as the source-of-truth for document titles.
+
+**Example:**
+
+```ts
+// routes/me/notifications/index.tsx
+import { createFileRoute } from "@tanstack/react-router";
+
+export const Route = createFileRoute("/me/notifications/")({
+  staticData: { titleKey: "notifications:NOTIFICATIONS_PAGE_TITLE" },
+});
+```
+
 ## 5. Portal Structure Rules (`apps/web/portal`)
 
 - `pages/` owns Vike route entries (`+Page.tsx`, `+route.ts`) and route-level selection.

@@ -6,6 +6,7 @@ import { isLoginPath, isPublicPath } from "@/lib/routing/route-identity";
 import { getSceneLayout, resolveSceneKey } from "@/lib/routing/scene-registry";
 import { isDevSetupOverrideEnabled, resolveSetupGateRedirect } from "@/lib/routing/setup-routing";
 import { RouterDefaultError, RouterDefaultNotFound } from "@/components/builtin/router-fallbacks";
+import { RouteDocumentTitleManager } from "@/components/builtin/route-document-title-manager";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useSetupWizardStore } from "@/stores/use-setup-wizard-store";
 
@@ -23,6 +24,7 @@ function RootLayout() {
 
   return (
     <>
+      <RouteDocumentTitleManager />
       <Layout>
         <Outlet />
       </Layout>

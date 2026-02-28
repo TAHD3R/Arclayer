@@ -1,21 +1,18 @@
 import { lazy, Suspense, type PropsWithChildren } from "react";
-import { Trans, useTranslation } from "react-i18next";
+import { Trans } from "react-i18next";
 
 import { AUTH_SCENE_BEND_PROPS } from "@/constants/color-bends";
 import { AdminLocaleToggle } from "@/components/layout/admin-toggle-locales";
 import { AdminThemeModeToggle } from "@/components/layout/admin-toggle-theme";
-import { useDocumentTitle } from "@/hooks/use-document-title";
 import { useLockViewport } from "@/hooks/use-lock-viewport";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 
 const ColorBendsLazy = lazy(() => import("@/components/ui/color-bends"));
 
 export function SetupLayout({ children }: PropsWithChildren) {
-  const { t } = useTranslation();
   const reducedMotion = usePrefersReducedMotion();
 
   useLockViewport();
-  useDocumentTitle(t("setup:SETUP_TITLE"));
 
   return (
     <div className="fixed inset-0 w-full overflow-hidden bg-background text-label-primary">

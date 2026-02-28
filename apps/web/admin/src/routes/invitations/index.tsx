@@ -5,6 +5,7 @@ type InvitationsSearch = {
 };
 
 export const Route = createFileRoute("/invitations/")({
+  staticData: { titleKey: "invite:INVITE_PAGE_TITLE" },
   validateSearch: (search: Record<string, unknown>): InvitationsSearch => {
     const token = typeof search.token === "string" ? search.token.trim() : "";
     return token ? { token } : {};
