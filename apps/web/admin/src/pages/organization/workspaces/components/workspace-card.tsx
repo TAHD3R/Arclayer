@@ -21,9 +21,9 @@ export function WorkspaceCard({ workspace, menuItems, t, onClick, className }: W
   return (
     <div
       className={cn(
-        "col-span-1 flex cursor-pointer flex-col rounded-lg border border-border bg-accent/50! p-4 shadow-sm!",
+        "col-span-1 flex cursor-pointer flex-col rounded-lg border border-border bg-card! p-4 shadow-sm!",
         "transition-all! duration-200!",
-        "hover:-translate-y-0.5! hover:shadow-md! hover:border-border/80! hover:bg-card!",
+        "hover:-translate-y-0.5! hover:shadow-md! hover:border-border/80! hover:bg-accent/50!",
         className,
       )}
       onClick={onClick}
