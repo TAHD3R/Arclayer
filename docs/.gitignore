@@ -1,5 +1,10 @@
 *
 !.gitignore
+# Guidelines
 !guidelines/
 !guidelines/**
-// Do not add plan folder to git
+# Guides
+!guides/
+!guides/**
+
+# Do not add plan folder to git
