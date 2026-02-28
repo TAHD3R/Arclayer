@@ -8,10 +8,7 @@ import { ADMIN_NAV_ITEMS, type AdminNavItem } from "@/constants/admin-nav";
 import { ORG_NAV_ITEMS } from "@/constants/org-nav";
 import {
   buildDocumentTitle,
-  buildNavItemsFromMenuNodes,
-  collectAllowedWorkspacePathPrefixes,
   findActiveTrailNodes,
-  isPrefixMatch,
   mapOrgItemsWithPrefix,
   normalizePath,
 } from "@/lib/admin-nav-utils";
@@ -26,22 +23,16 @@ import { ContentGuard } from "@/components/common/content-guard";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
-import { getAdminMenuCatalogEffective } from "@/api/admin-menus";
 import { getMyOrganization } from "@/api/me";
 import { getWorkspaceDetail } from "@/api/workspaces";
 import { useWorkspaceLocalization } from "@/hooks/use-workspace-localization";
 import { resolvePermissionNameI18nKey } from "@/lib/auth/rbac-permissions";
-import { ForbiddenView } from "@/components/builtin/forbidden-page";
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
   SidebarInset,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarMenu,
-  SidebarMenuSkeleton,
   SidebarProvider,
 } from "@/components/ui/sidebar";
 
@@ -49,7 +40,6 @@ export function AdminLayout({ children }: PropsWithChildren) {
   const { t } = useTranslation();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const accessToken = useAuthStore((s) => s.accessToken);
-  const effectiveLocale = usePreferencesStore((s) => s.locale);
   const localePreferenceMode = usePreferencesStore((s) => s.localePreferenceMode);
   const setEffectiveLocale = usePreferencesStore((s) => s.setEffectiveLocale);
   const cacheWorkspaceLocale = usePreferencesStore((s) => s.cacheWorkspaceLocale);
@@ -73,14 +63,6 @@ export function AdminLayout({ children }: PropsWithChildren) {
     return `/w/${id}`;
   }, [workspaceId]);
 
-  const workspaceMenuQuery = useQuery({
-    queryKey: ["workspace", "adminMenu", workspaceId, effectiveLocale],
-    enabled: Boolean(accessToken && workspaceId && !isOrgScopeRoute),
-    queryFn: async () => getAdminMenuCatalogEffective(String(workspaceId)),
-    staleTime: 60 * 1000,
-    retry: false,
-    meta: { silent: true },
-  });
   const myOrganizationQuery = useQuery({
     queryKey: ["me", "organization", "layout", accessToken],
     enabled: Boolean(accessToken),
@@ -113,14 +95,6 @@ export function AdminLayout({ children }: PropsWithChildren) {
     return normalizePath(pathname).startsWith(normalizePath(workspaceBase));
   }, [pathname, workspaceBase]);
 
-  const menuBootstrapping = Boolean(
-    accessToken &&
-    workspaceId &&
-    !isOrgScopeRoute &&
-    isWorkspaceScopeRoute &&
-    workspaceMenuQuery.isLoading,
-  );
-
   const navItems = useMemo(() => {
     if (isOrgScopeRoute || isMeScopeRoute) {
       if (!resolvedOrgPathPrefix) return [];
@@ -134,11 +108,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
     }
     const base = workspaceBase.endsWith("/") ? workspaceBase.slice(0, -1) : workspaceBase;
 
-    const baseItems: AdminNavItem[] = workspaceMenuQuery.data?.items?.length
-      ? buildNavItemsFromMenuNodes(workspaceMenuQuery.data.items)
-      : workspaceMenuQuery.isError
-        ? ADMIN_NAV_ITEMS
-        : [];
+    const baseItems: AdminNavItem[] = ADMIN_NAV_ITEMS;
 
     const mapItems = (items: AdminNavItem[]): AdminNavItem[] => {
       return items.map((it) => {
@@ -156,41 +126,11 @@ export function AdminLayout({ children }: PropsWithChildren) {
     };
 
     return mapItems(baseItems);
-  }, [
-    isOrgScopeRoute,
-    isMeScopeRoute,
-    resolvedOrgPathPrefix,
-    workspaceBase,
-    workspaceMenuQuery.data?.items,
-    workspaceMenuQuery.isError,
-  ]);
-
-  const workspaceRouteGuard = useMemo(() => {
-    if (isOrgScopeRoute) return { kind: "skip" as const };
-    if (!workspaceBase || !isWorkspaceScopeRoute) return { kind: "skip" as const };
-    if (workspaceMenuQuery.isLoading && !workspaceMenuQuery.data)
-      return { kind: "loading" as const };
-    if (workspaceMenuQuery.isError)
-      return { kind: "error" as const, error: workspaceMenuQuery.error };
-
-    const allowedPrefixes = collectAllowedWorkspacePathPrefixes(navItems, workspaceBase);
-    const ok = allowedPrefixes.some((p) => isPrefixMatch(p, pathname));
-    return ok ? { kind: "ok" as const } : { kind: "forbidden" as const };
-  }, [
-    isOrgScopeRoute,
-    isWorkspaceScopeRoute,
-    navItems,
-    pathname,
-    workspaceBase,
-    workspaceMenuQuery.data,
-    workspaceMenuQuery.error,
-    workspaceMenuQuery.isError,
-    workspaceMenuQuery.isLoading,
-  ]);
+  }, [isOrgScopeRoute, isMeScopeRoute, resolvedOrgPathPrefix, workspaceBase]);
 
   const workspaceDetailQuery = useQuery({
     queryKey: ["workspace", "detail", workspaceId],
-    enabled: Boolean(accessToken && workspaceId && !isOrgScopeRoute),
+    enabled: Boolean(accessToken && workspaceId && !isOrgScopeRoute && isWorkspaceScopeRoute),
     queryFn: async () => getWorkspaceDetail(String(workspaceId)),
     staleTime: 5 * 60 * 1000,
     retry: false,
@@ -255,21 +195,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
         </SidebarHeader>
 
         <SidebarContent className="relative z-0 pl-0 pr-4 scrollbar-none">
-          {isOrgScopeRoute ? (
-            <AdminSiderNav items={navItems} resolvePermissionName={resolvePermissionName} />
-          ) : menuBootstrapping ? (
-            <SidebarGroup>
-              <SidebarGroupContent>
-                <SidebarMenu className="gap-1.5 mt-12 mb-8">
-                  {Array.from({ length: 12 }).map((_, i) => (
-                    <SidebarMenuSkeleton key={i} showIcon />
-                  ))}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-          ) : (
-            <AdminSiderNav items={navItems} resolvePermissionName={resolvePermissionName} />
-          )}
+          <AdminSiderNav items={navItems} resolvePermissionName={resolvePermissionName} />
         </SidebarContent>
 
         <SidebarFooter className="relative z-10 isolate p-0">
@@ -286,22 +212,20 @@ export function AdminLayout({ children }: PropsWithChildren) {
         />
         <div className="flex-1 min-h-0 overflow-auto">
           <ContentGuard
-            loading={false}
-            error={workspaceRouteGuard.kind === "error" ? workspaceRouteGuard.error : null}
+            loading={Boolean(
+              !isOrgScopeRoute && isWorkspaceScopeRoute && workspaceDetailQuery.isLoading,
+            )}
+            error={!isOrgScopeRoute && isWorkspaceScopeRoute ? workspaceDetailQuery.error : null}
             onRetry={
-              workspaceRouteGuard.kind === "error"
+              !isOrgScopeRoute && isWorkspaceScopeRoute
                 ? () => {
-                    void workspaceMenuQuery.refetch();
+                    void workspaceDetailQuery.refetch();
                   }
                 : undefined
             }
             loadingVariant="form"
           >
-            {workspaceRouteGuard.kind === "forbidden" ? (
-              <ForbiddenView variant="admin" />
-            ) : (
-              <RouteTransition className="w-full">{children ?? <Outlet />}</RouteTransition>
-            )}
+            <RouteTransition className="w-full">{children ?? <Outlet />}</RouteTransition>
           </ContentGuard>
         </div>
       </SidebarInset>

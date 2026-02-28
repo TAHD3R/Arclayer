@@ -53,6 +53,11 @@
   "TEAM_INVITATIONS_TAB_ACCEPTED": "Accepted",
   "TEAM_INVITATIONS_TAB_LINKS": "Invite links",
 
+  "TEAM_INVITATION_TAB_PENDING": "Pending",
+  "TEAM_INVITATION_TAB_PROCESSED": "Processed",
+  "TEAM_INVITATION_TAB_ACCEPTED": "Accepted",
+  "TEAM_INVITATION_TAB_LINKS": "Invite links",
+
   "TEAM_INVITE_MEMBER": "Invite member",
   "TEAM_INVITE_CREATE_LINK_ACTION": "Create invite link",
   "TEAM_INVITE_COMING_SOON": "Inviting members is coming soon",

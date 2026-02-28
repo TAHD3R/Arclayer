@@ -189,11 +189,18 @@ export function AdminHeader(props: {
           onClick={() => props.onRefresh?.()}
           icon={<RefreshIcon size={18} isHovered={refreshHovered} className="text-current" />}
         />
-        <div className="mx-1 h-4 w-px bg-border" />
-        <AdminWorkspaceSwitcher />
-        <div className="mx-1 h-4 w-px bg-border" />
+        <div className="mx-1 h-4 w-px bg-border shrink-0" />
+        <div className="shrink-0 min-w-0 relative z-0">
+          <AdminWorkspaceSwitcher />
+        </div>
+        <div className="mx-1 h-4 w-px bg-border shrink-0" />
 
-        <Breadcrumb items={breadcrumbItems} />
+        <div className="min-w-0 flex-1 overflow-hidden relative z-10">
+          <Breadcrumb
+            items={breadcrumbItems}
+            className="min-w-0 overflow-hidden whitespace-nowrap"
+          />
+        </div>
       </div>
 
       <div className="shrink-0">

@@ -6,9 +6,16 @@ function buildResourcePath(base: string, id: string, path?: string): string {
 }
 
 /** Build a workspace-scoped API path: `/workspaces/{id}{path}`. */
-export function workspacePath(workspaceId: string, path: string): string {
+export function workspacePath(workspaceId: string, path?: string): string {
   const id = encodeURIComponent(String(workspaceId));
-  const suffix = path.startsWith("/") ? path : `/${path}`;
+  const raw = String(path ?? "");
+
+  // Avoid generating a trailing slash when `path` is empty, because backend redirects
+  // `/workspaces/{id}/` -> `/workspaces/{id}` can turn into a cross-origin redirect
+  // under Vite proxy (changeOrigin=true), triggering CORS failures.
+  if (!raw) return `/workspaces/${id}`;
+
+  const suffix = raw.startsWith("/") ? raw : `/${raw}`;
   return `/workspaces/${id}${suffix}`;
 }
 

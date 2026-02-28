@@ -1,5 +1,7 @@
 import { Outlet, createFileRoute } from "@tanstack/react-router";
 
+import { RouterDefaultNotFound } from "@/components/builtin/router-fallbacks";
+
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
 export const Route = createFileRoute("/w/$workspaceId")({
@@ -9,6 +11,7 @@ export const Route = createFileRoute("/w/$workspaceId")({
     useWorkspaceStore.getState().setCurrentWorkspaceId(params.workspaceId);
   },
   component: WorkspaceLayout,
+  notFoundComponent: RouterDefaultNotFound,
 });
 
 function WorkspaceLayout() {

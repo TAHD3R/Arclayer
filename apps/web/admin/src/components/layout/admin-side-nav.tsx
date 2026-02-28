@@ -87,7 +87,9 @@ function findActiveTrail(items: readonly AdminNavItem[], pathname: string): stri
 
       if (node.to) {
         const isExact = isExactMatch(node.to, pathname);
-        const isTrail = node.children?.length ? isPrefixMatch(node.to, pathname) : false;
+        // Treat leaf items as active when a deeper route is visited (e.g. /settings/workspace/basics).
+        // This enables auto-expansion and consistent active styling for index-like menu nodes.
+        const isTrail = isPrefixMatch(node.to, pathname);
         const score = isExact ? 1000 + node.to.length : isTrail ? 100 + node.to.length : 0;
         if (score > 0 && score > bestScore) {
           bestScore = score;
@@ -171,7 +173,7 @@ function NavNode({
   const label = item.labelKey ? t(item.labelKey) : item.label;
   const hasChildren = Boolean(item.children?.length);
   const isOpen = hasChildren && !item.disabled && openByParent[parentKey] === item.key;
-  const isSelected = Boolean(item.to && isExactMatch(item.to, pathname));
+  const isSelected = Boolean(item.to && isPrefixMatch(item.to, pathname));
   const Icon = item.icon;
   const isSectionActive = depth === 0 && hasChildren && activeKeys.has(item.key);
   const isTrailActive = activeKeys.has(item.key);

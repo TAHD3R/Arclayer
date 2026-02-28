@@ -242,7 +242,7 @@ function WsSwitcherPanel(props: {
         />
       </div>
 
-      <div className="min-h-0 flex-1 overflow-auto py-2">
+      <>
         {props.loading ? (
           <PanelListSkeleton rows={6} />
         ) : props.error ? (
@@ -315,7 +315,7 @@ function WsSwitcherPanel(props: {
             })}
           </motion.div>
         )}
-      </div>
+      </>
 
       <div className="border-t border-border/60 p-2">
         <Button
@@ -428,7 +428,7 @@ export function AdminWorkspaceSwitcher() {
   );
 
   return (
-    <div className="flex max-w-xs min-w-0 items-center gap-0.5">
+    <div className="flex max-w-sm min-w-0 items-center gap-0.5">
       <FloatingPanelRoot>
         <FloatingPanelTrigger
           title={t("common:WORKSPACE_SWITCHER_SELECT_ORG")}

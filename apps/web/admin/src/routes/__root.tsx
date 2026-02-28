@@ -10,9 +10,15 @@ import { useAuthStore } from "@/stores/use-auth-store";
 import { useSetupWizardStore } from "@/stores/use-setup-wizard-store";
 
 function RootLayout() {
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const { pathname, isPagePending } = useRouterState({
+    select: (s) => ({
+      pathname: s.location.pathname,
+      isPagePending: s.isLoading || s.matches.some((d) => d.status === "pending"),
+    }),
+    structuralSharing: true,
+  });
   const sceneKey = resolveSceneKey(pathname);
-  const { displayedScene, overlayVisible } = useSceneRevealTransition(sceneKey);
+  const { displayedScene, overlayVisible } = useSceneRevealTransition(sceneKey, { isPagePending });
   const Layout = getSceneLayout(displayedScene);
 
   return (
