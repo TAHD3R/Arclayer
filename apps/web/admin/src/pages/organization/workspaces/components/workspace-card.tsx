@@ -1,17 +1,31 @@
-import { Avatar, Button as AntButton, Dropdown } from "antd";
-import type { MenuProps } from "antd";
+import { Avatar, Button as AntButton } from "antd";
 import { MoreVertical } from "lucide-react";
 
 import type { OrganizationWorkspace } from "@/types/api";
 import { cn } from "@/lib/utils";
-import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 import type { OrganizationWorkspacesTranslateFn } from "../types";
 import { WorkspaceMembersPopover } from "./workspace-members-popover";
 
+type WorkspaceMenuItem = {
+  key: string;
+  label: string;
+  icon?: React.ReactNode;
+  danger?: boolean;
+  onClick?: () => void;
+  type?: "divider";
+};
+
 interface WorkspaceCardProps {
   workspace: OrganizationWorkspace;
-  menuItems: MenuProps["items"];
+  menuItems: WorkspaceMenuItem[];
   t: OrganizationWorkspacesTranslateFn;
   onClick?: () => void;
   className?: string;
@@ -36,13 +50,27 @@ export function WorkspaceCard({ workspace, menuItems, t, onClick, className }: W
           </Avatar>
         </div>
         <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
-          <Dropdown
-            trigger={["click"]}
-            menu={{ items: menuItems }}
-            getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
-          >
-            <AntButton type="text" icon={<MoreVertical className="size-4" />} />
-          </Dropdown>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <AntButton type="text" icon={<MoreVertical className="size-4" />} />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {menuItems.map((item) =>
+                item.type === "divider" ? (
+                  <DropdownMenuSeparator key={item.key} />
+                ) : (
+                  <DropdownMenuItem
+                    key={item.key}
+                    onSelect={item.onClick}
+                    variant={item.danger ? "destructive" : undefined}
+                  >
+                    {item.icon}
+                    {item.label}
+                  </DropdownMenuItem>
+                ),
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 

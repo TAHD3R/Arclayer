@@ -1,4 +1,4 @@
-import { Button, Divider, Input, InputNumber, Select, Switch, Tag } from "antd";
+import { Button, Divider, Input, InputNumber, Select, Tag } from "antd";
 import { Copy, ExternalLink, Link2, Plus, Share2, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -12,6 +12,7 @@ import {
 } from "@/api/shares";
 import type { AdminShareLink } from "@/types/api";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { copyToClipboard } from "@/lib/clipboard";
 import { notifyError, notifyErrorText, notifySuccessText } from "@/lib/notifications";
@@ -166,7 +167,7 @@ export function AssetSharePopover(props: {
           <div className="mt-3">
             <div className="flex items-center justify-between gap-2">
               <div className="font-medium">{t("assets:ASSET_SHARE_PERMANENT")}</div>
-              <Switch checked={permanent} onChange={setPermanent} />
+              <Switch checked={permanent} onCheckedChange={setPermanent} />
             </div>
 
             {!permanent ? (

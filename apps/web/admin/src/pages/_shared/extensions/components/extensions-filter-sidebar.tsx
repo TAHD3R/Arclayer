@@ -1,6 +1,8 @@
 import { useTranslation } from "react-i18next";
-import { Checkbox, Input } from "antd";
+import { Input } from "antd";
 import { Search } from "lucide-react";
+
+import { Checkbox } from "@/components/ui/checkbox";
 import { motion } from "motion/react";
 
 import { cn } from "@/lib/utils";
@@ -44,17 +46,11 @@ export function ExtensionsFilterSidebar({
       {/* Source filter checkboxes */}
       <div className="space-y-3">
         <label className="flex cursor-pointer items-center gap-3">
-          <Checkbox
-            checked={officialChecked}
-            onChange={(e) => onOfficialChange(e.target.checked)}
-          />
+          <Checkbox checked={officialChecked} onCheckedChange={onOfficialChange} />
           <span>{t("plugin:EXTENSION_FILTER_OFFICIAL")}</span>
         </label>
         <label className="flex cursor-pointer items-center gap-3">
-          <Checkbox
-            checked={communityChecked}
-            onChange={(e) => onCommunityChange(e.target.checked)}
-          />
+          <Checkbox checked={communityChecked} onCheckedChange={onCommunityChange} />
           <span>{t("plugin:EXTENSION_FILTER_COMMUNITY")}</span>
         </label>
       </div>

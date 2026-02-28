@@ -1,9 +1,11 @@
-import { Button, Checkbox, Form, Input, InputNumber, Switch } from "antd";
+import { Button, Form, Input, InputNumber } from "antd";
 import type { FormInstance } from "antd";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
 
 import { Accordion } from "@/components/ui/accordion";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { SettingAccordionItem } from "@/components/settings-primitives/setting-accordion-item";
 import { SettingActionItem } from "@/components/settings-primitives/setting-action-item";
 import { SettingOverlayFooter } from "@/components/settings-primitives/setting-overlay-footer";
@@ -60,6 +62,9 @@ export function MessagingSettingsTab({
   const mailServer = useField<string>(form, "mailServer") ?? initialValues.mailServer;
   const mailPort = useField<number>(form, "mailPort") ?? initialValues.mailPort;
   const mailFrom = useField<string>(form, "mailFrom") ?? initialValues.mailFrom;
+
+  const mailStarttls = useField<boolean>(form, "mailStarttls") ?? initialValues.mailStarttls;
+  const mailSslTls = useField<boolean>(form, "mailSslTls") ?? initialValues.mailSslTls;
 
   const mailEnabledTemplates =
     useField<string[]>(form, "mailEnabledTemplates") ?? initialValues.mailEnabledTemplates;
@@ -278,20 +283,24 @@ export function MessagingSettingsTab({
             <div className="grid grid-cols-2 gap-3">
               <Form.Item<GeneralSettingsFormValues>
                 name="mailStarttls"
-                valuePropName="checked"
                 label={t("settings:SETTINGS_MESSAGING_MAIL_STARTTLS")}
                 style={{ marginBottom: 0 }}
               >
-                <Switch />
+                <Switch
+                  checked={mailStarttls}
+                  onCheckedChange={(v) => form.setFieldValue("mailStarttls", v)}
+                />
               </Form.Item>
 
               <Form.Item<GeneralSettingsFormValues>
                 name="mailSslTls"
-                valuePropName="checked"
                 label={t("settings:SETTINGS_MESSAGING_MAIL_SSL_TLS")}
                 style={{ marginBottom: 0 }}
               >
-                <Switch />
+                <Switch
+                  checked={mailSslTls}
+                  onCheckedChange={(v) => form.setFieldValue("mailSslTls", v)}
+                />
               </Form.Item>
             </div>
 
@@ -379,10 +388,9 @@ export function MessagingSettingsTab({
             right={
               <Switch
                 checked={mailEnabled}
-                loading={isTogglingMailEnabled}
-                disabled={disabled}
-                onChange={(checked) => void setMailEnabled(Boolean(checked))}
-                onClick={(_checked, e) => e.stopPropagation()}
+                disabled={disabled || isTogglingMailEnabled}
+                onCheckedChange={(checked) => void setMailEnabled(Boolean(checked))}
+                onClick={(e) => e.stopPropagation()}
               />
             }
           />
@@ -418,37 +426,50 @@ export function MessagingSettingsTab({
                     name="mailEnabledTemplates"
                     style={{ marginBottom: 0 }}
                   >
-                    <Checkbox.Group
-                      className="w-full flex flex-col gap-2"
-                      options={[
-                        {
-                          value: "registration_prompt",
-                          label: (
-                            <div className="flex flex-col">
-                              <div className="font-medium">
-                                {t("settings:SETTINGS_MESSAGING_MAIL_TEMPLATE_REG_PROMPT_TITLE")}
-                              </div>
-                              <div className="text-label-secondary">
-                                {t("settings:SETTINGS_MESSAGING_MAIL_TEMPLATE_REG_PROMPT_DESC")}
-                              </div>
-                            </div>
-                          ),
-                        },
-                        {
-                          value: "welcome_email",
-                          label: (
-                            <div className="flex flex-col">
-                              <div className="font-medium">
-                                {t("settings:SETTINGS_MESSAGING_MAIL_TEMPLATE_WELCOME_TITLE")}
-                              </div>
-                              <div className="text-label-secondary">
-                                {t("settings:SETTINGS_MESSAGING_MAIL_TEMPLATE_WELCOME_DESC")}
-                              </div>
-                            </div>
-                          ),
-                        },
-                      ]}
-                    />
+                    <div className="w-full flex flex-col gap-2">
+                      <label className="flex items-start gap-3 cursor-pointer">
+                        <Checkbox
+                          checked={(mailEnabledTemplates || []).includes("registration_prompt")}
+                          onCheckedChange={(checked) => {
+                            const next = checked
+                              ? [...(mailEnabledTemplates || []), "registration_prompt"]
+                              : (mailEnabledTemplates || []).filter(
+                                  (v) => v !== "registration_prompt",
+                                );
+                            form.setFieldValue("mailEnabledTemplates", next);
+                          }}
+                          className="mt-0.5"
+                        />
+                        <div className="flex flex-col">
+                          <div className="font-medium">
+                            {t("settings:SETTINGS_MESSAGING_MAIL_TEMPLATE_REG_PROMPT_TITLE")}
+                          </div>
+                          <div className="text-label-secondary">
+                            {t("settings:SETTINGS_MESSAGING_MAIL_TEMPLATE_REG_PROMPT_DESC")}
+                          </div>
+                        </div>
+                      </label>
+                      <label className="flex items-start gap-3 cursor-pointer">
+                        <Checkbox
+                          checked={(mailEnabledTemplates || []).includes("welcome_email")}
+                          onCheckedChange={(checked) => {
+                            const next = checked
+                              ? [...(mailEnabledTemplates || []), "welcome_email"]
+                              : (mailEnabledTemplates || []).filter((v) => v !== "welcome_email");
+                            form.setFieldValue("mailEnabledTemplates", next);
+                          }}
+                          className="mt-0.5"
+                        />
+                        <div className="flex flex-col">
+                          <div className="font-medium">
+                            {t("settings:SETTINGS_MESSAGING_MAIL_TEMPLATE_WELCOME_TITLE")}
+                          </div>
+                          <div className="text-label-secondary">
+                            {t("settings:SETTINGS_MESSAGING_MAIL_TEMPLATE_WELCOME_DESC")}
+                          </div>
+                        </div>
+                      </label>
+                    </div>
                   </Form.Item>
                 </SettingAccordionItem>
               </Accordion>
@@ -482,10 +503,14 @@ export function MessagingSettingsTab({
             >
               <Form.Item<GeneralSettingsFormValues>
                 name="notificationInviteEnabled"
-                valuePropName="checked"
                 style={{ marginBottom: 0 }}
               >
-                <Checkbox>
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <Checkbox
+                    checked={Boolean(inviteNotificationsEnabled)}
+                    onCheckedChange={(v) => form.setFieldValue("notificationInviteEnabled", v)}
+                    className="mt-0.5"
+                  />
                   <div className="flex flex-col">
                     <div className="font-medium">
                       {t("settings:SETTINGS_MESSAGING_NOTIFICATION_INVITE_TITLE")}
@@ -494,7 +519,7 @@ export function MessagingSettingsTab({
                       {t("settings:SETTINGS_MESSAGING_NOTIFICATION_INVITE_DESC")}
                     </div>
                   </div>
-                </Checkbox>
+                </label>
               </Form.Item>
             </SettingAccordionItem>
           </Accordion>

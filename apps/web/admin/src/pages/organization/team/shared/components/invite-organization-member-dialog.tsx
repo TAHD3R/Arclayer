@@ -1,7 +1,8 @@
 import { Controller, useForm } from "react-hook-form";
-import { Button as AntButton, Form, Select, Tag, Tooltip } from "antd";
+import { Button as AntButton, Form, Select, Tag } from "antd";
 import { useTranslation } from "react-i18next";
 import { useMemo } from "react";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { z } from "zod";
 import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 
@@ -214,8 +215,9 @@ export function InviteOrganizationMemberDialog(props: {
                   );
 
                   return message ? (
-                    <Tooltip title={message} placement="top">
-                      {tag}
+                    <Tooltip>
+                      <TooltipTrigger asChild>{tag}</TooltipTrigger>
+                      <TooltipContent>{message}</TooltipContent>
                     </Tooltip>
                   ) : (
                     tag

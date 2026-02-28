@@ -8,9 +8,8 @@ import {
   type ReactElement,
 } from "react";
 import { useTranslation } from "react-i18next";
-import { Tooltip as AntdTooltip } from "antd";
-
 import type { AdminNavItem } from "@/types/admin-nav";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import ChevronRightIcon from "@/components/ui/icons/chevron-right";
 import {
@@ -67,9 +66,12 @@ function getBlockedTooltipText(
 function WithBlockedTooltip(props: { tooltip: string | null; children: ReactElement }) {
   if (!props.tooltip) return props.children;
   return (
-    <AntdTooltip title={props.tooltip} placement="top">
-      <span className="block w-full">{props.children}</span>
-    </AntdTooltip>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="block w-full">{props.children}</span>
+      </TooltipTrigger>
+      <TooltipContent>{props.tooltip}</TooltipContent>
+    </Tooltip>
   );
 }
 

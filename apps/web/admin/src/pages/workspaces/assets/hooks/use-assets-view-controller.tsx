@@ -1,6 +1,6 @@
 import { FileText, Music, Package } from "lucide-react";
 import { type InfiniteData, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { flushSync } from "react-dom";
 import { useTranslation } from "react-i18next";
 import {
@@ -25,7 +25,6 @@ import { clearSelection, selectOnly, type AssetSelectionState } from "@/lib/asse
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { useAssetsExplorerController } from "../components/explorer/use-assets-explorer-controller";
 import type { AssetMasonryItem } from "@/types/assets-masonry";
-import type { MenuProps } from "antd";
 import {
   DND_ROOT_ID,
   parseAssetDndId,
@@ -124,7 +123,7 @@ export function useAssetsViewController() {
     if (mp === "application/") return t("assets:ASSET_FILTER_TYPE_APP");
     return t("assets:ASSET_TYPE_TAB_MORE");
   }, [filters.mimePrefix, t]);
-  const moreMenuItems = useMemo<MenuProps["items"]>(
+  const moreMenuItems = useMemo<Array<{ key: string; label: string; icon?: ReactNode }>>(
     () => [
       {
         key: "audio",

@@ -1,12 +1,18 @@
-import { Dropdown, Input } from "antd";
+import { Input } from "antd";
 import { Search } from "lucide-react";
-import type { MenuProps } from "antd";
 import type React from "react";
+import type { ReactNode } from "react";
 
 import type { AdminAssetTag } from "@/types/api";
 import ChevronDownIcon from "@/components/ui/icons/chevron-down";
 import { ChromeTabs, ChromeTabsList, ChromeTabsTrigger } from "@/components/ui/chrome-tabs";
 import { AssetsFilterPopover } from "./assets-filter-popover";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 
 interface AssetsFilterValue {
   mimePrefix?: string;
@@ -22,7 +28,7 @@ interface AssetsViewHeaderProps {
   setFilters: React.Dispatch<React.SetStateAction<AssetsFilterValue>>;
   setMoreOpen: React.Dispatch<React.SetStateAction<boolean>>;
   moreOpen: boolean;
-  moreMenuItems: MenuProps["items"];
+  moreMenuItems: Array<{ key: string; label: string; icon?: ReactNode }>;
   moreTabLabel: string;
   moreHovered: boolean;
   setMoreHovered: React.Dispatch<React.SetStateAction<boolean>>;
@@ -68,44 +74,37 @@ export function AssetsViewHeader(props: AssetsViewHeaderProps) {
             <ChromeTabsTrigger value="video">
               {props.t("assets:ASSET_FILTER_TYPE_VIDEO")}
             </ChromeTabsTrigger>
-            <Dropdown
-              trigger={["click"]}
-              open={props.moreOpen}
-              onOpenChange={(open) => props.setMoreOpen(open)}
-              menu={{
-                items: props.moreMenuItems,
-                onClick: (info) => {
-                  if (info.key === "audio") {
-                    props.setFilters((prev) => ({ ...prev, mimePrefix: "audio/" }));
-                    props.setMoreOpen(false);
-                    return;
-                  }
-                  if (info.key === "text") {
-                    props.setFilters((prev) => ({ ...prev, mimePrefix: "text/" }));
-                    props.setMoreOpen(false);
-                    return;
-                  }
-                  if (info.key === "application") {
-                    props.setFilters((prev) => ({ ...prev, mimePrefix: "application/" }));
-                    props.setMoreOpen(false);
-                  }
-                },
-              }}
-            >
-              <ChromeTabsTrigger
-                value="more"
-                className="flex items-center gap-1"
-                onMouseEnter={() => props.setMoreHovered(true)}
-                onMouseLeave={() => props.setMoreHovered(false)}
-              >
-                <span>{props.moreTabLabel}</span>
-                <ChevronDownIcon
-                  size={16}
-                  className="opacity-75"
-                  isHovered={props.moreHovered || props.moreOpen}
-                />
-              </ChromeTabsTrigger>
-            </Dropdown>
+            <DropdownMenu open={props.moreOpen} onOpenChange={props.setMoreOpen}>
+              <DropdownMenuTrigger asChild>
+                <ChromeTabsTrigger
+                  value="more"
+                  className="flex items-center gap-1"
+                  onMouseEnter={() => props.setMoreHovered(true)}
+                  onMouseLeave={() => props.setMoreHovered(false)}
+                >
+                  <span>{props.moreTabLabel}</span>
+                  <ChevronDownIcon
+                    size={16}
+                    className="opacity-75"
+                    isHovered={props.moreHovered || props.moreOpen}
+                  />
+                </ChromeTabsTrigger>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                {(props.moreMenuItems ?? []).map((item) => (
+                  <DropdownMenuItem
+                    key={item.key}
+                    onSelect={() => {
+                      props.setFilters((prev) => ({ ...prev, mimePrefix: `${item.key}/` }));
+                      props.setMoreOpen(false);
+                    }}
+                  >
+                    {item.icon}
+                    {item.label}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </ChromeTabsList>
         </ChromeTabs>
       </div>

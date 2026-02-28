@@ -1,4 +1,4 @@
-import { Button, Input, Select, Switch, Typography } from "antd";
+import { Button, Input, Select, Typography } from "antd";
 import { useEffect, useMemo } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
@@ -6,6 +6,7 @@ import { z } from "zod";
 import type { ReactNode } from "react";
 
 import { zodResolver } from "@/lib/forms/zod-resolver";
+import { Switch } from "@/components/ui/switch";
 import type { SettingsOptionItem, SystemSettingsDetail, SettingsSchemaItem } from "@/types/api";
 
 type FormValues = Record<string, unknown>;
@@ -232,7 +233,7 @@ export function ExtensionSettingsForm({
                           render={({ field: rhfField }) => (
                             <Switch
                               checked={Boolean(rhfField.value)}
-                              onChange={(checked) => rhfField.onChange(checked)}
+                              onCheckedChange={(checked) => rhfField.onChange(checked)}
                               disabled={disabled || saving}
                             />
                           )}

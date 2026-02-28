@@ -1,10 +1,11 @@
-import { Button, Card, Descriptions, Switch, Typography } from "antd";
+import { Button, Card, Descriptions, Typography } from "antd";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { SystemSettingsDetail } from "@/types/api";
 import { DefaultPage } from "@/components/common/default-page";
 import { ContentGuard } from "@/components/common/content-guard";
+import { Switch } from "@/components/ui/switch";
 import { ExtensionSettingsForm } from "./extension-settings-form";
 import {
   ChromeTabs,
@@ -166,8 +167,7 @@ export function ExtensionDetailPage(props: ExtensionDetailPageProps) {
             <Switch
               checked={props.extension.enabled}
               aria-label={t("plugin:PLUGIN_CENTER_TOGGLE_ARIA", { name: props.extension.name })}
-              onChange={(checked) => void props.onToggleEnabled(checked)}
-              loading={props.togglePending}
+              onCheckedChange={(checked) => void props.onToggleEnabled(checked)}
               disabled={!props.canManage || props.togglePending}
             />
           ) : null}

@@ -1,9 +1,10 @@
-import { Button, Checkbox, Form, Input } from "antd";
+import { Button, Form, Input } from "antd";
 import { Lock, User } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { motion, type Variants } from "motion/react";
 
 import { AuthOauthButtons } from "@/components/ui/oauth-buttons";
+import { Checkbox } from "@/components/ui/checkbox";
 
 import type { LoginFormValues } from "../types";
 
@@ -18,6 +19,21 @@ type LoginPaneProps = {
   reducedMotion: boolean;
   itemVariants: Variants;
 };
+
+function KeepSessionCheckbox() {
+  const { t } = useTranslation();
+  const form = Form.useFormInstance<LoginFormValues>();
+  const keepSession = Form.useWatch("keepSession", form) ?? false;
+  return (
+    <label className="flex items-center gap-2 cursor-pointer">
+      <Checkbox
+        checked={Boolean(keepSession)}
+        onCheckedChange={(v) => form.setFieldValue("keepSession", v)}
+      />
+      <span className="text-callout">{t("auth:KEEP_SESSION")}</span>
+    </label>
+  );
+}
 
 export function LoginPane({
   onSubmit,
@@ -85,8 +101,8 @@ export function LoginPane({
         </motion.div>
 
         <motion.div variants={v} className="flex items-center justify-between mb-3">
-          <Form.Item<LoginFormValues> name="keepSession" valuePropName="checked" className="mb-0!">
-            <Checkbox>{t("auth:KEEP_SESSION")}</Checkbox>
+          <Form.Item<LoginFormValues> name="keepSession" className="mb-0!">
+            <KeepSessionCheckbox />
           </Form.Item>
           <Button
             type="link"

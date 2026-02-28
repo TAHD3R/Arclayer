@@ -1,5 +1,5 @@
 import { DndContext, DragOverlay } from "@dnd-kit/core";
-import { Button, Dropdown, Masonry, type MenuProps } from "antd";
+import { Button, Masonry } from "antd";
 import { Eye, FolderInput, FolderPlus, PencilLine, Settings2, Trash2 } from "lucide-react";
 import { AnimatePresence } from "motion/react";
 import { flushSync } from "react-dom";
@@ -13,6 +13,13 @@ import {
 } from "./explorer/assets-explorer-folder-tiles";
 import { ContentGuard } from "@/components/common/content-guard";
 import { LoaderOne } from "@/components/ui/loader";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
 import {
   clearSelection,
   rangeSelect,
@@ -40,7 +47,6 @@ interface AssetsViewMasonrySectionProps {
 }
 
 type MasonryEntry = AssetsViewController["masonryEntries"][number];
-type MenuClickInfo = Parameters<NonNullable<MenuProps["onClick"]>>[0];
 
 export function AssetsViewMasonrySection(props: AssetsViewMasonrySectionProps) {
   const { controller } = props;
@@ -237,118 +243,92 @@ export function AssetsViewMasonrySection(props: AssetsViewMasonrySectionProps) {
                 return (
                   <AssetDraggableProvider assetId={entry.asset.id}>
                     {(dnd) => (
-                      <Dropdown
-                        trigger={["contextMenu"]}
-                        menu={{
-                          items: [
-                            ...(selectedIds.size <= 1
-                              ? [
-                                  {
-                                    key: "open",
-                                    label: t("assets:ASSET_ACTION_OPEN"),
-                                    icon: <Eye size={16} />,
-                                  },
-                                ]
-                              : []),
-                            {
-                              key: "move",
-                              label: t("assets:ASSET_ACTION_MOVE"),
-                              icon: <FolderInput size={16} />,
-                            },
-                            {
-                              key: "edit_access",
-                              label: t("assets:ASSET_ACTION_EDIT_ACCESS"),
-                              icon: <Settings2 size={16} />,
-                            },
-                            { type: "divider" },
-                            {
-                              key: "delete",
-                              label: t("assets:ASSET_ACTION_DELETE_SELECTED"),
-                              icon: <Trash2 size={16} />,
-                              danger: true,
-                            },
-                          ],
-                          onClick: ({ key, domEvent }: MenuClickInfo) => {
-                            domEvent.preventDefault();
-                            domEvent.stopPropagation();
-                            if (key === "open") {
-                              setActive(entry.asset);
-                              return;
-                            }
-                            if (key === "move") {
-                              setMoveModalOpen(true);
-                              return;
-                            }
-                            if (key === "edit_access") {
-                              openEditAccessDialog();
-                              return;
-                            }
-                            if (key === "delete") {
-                              openBulkDeleteDialog();
-                            }
-                          },
-                        }}
-                      >
-                        <div
-                          onContextMenuCapture={() => {
-                            const assetId = entry.asset.id;
-                            setFocusedFolderId(null);
-                            if (selectedIds.has(assetId)) return;
-                            flushSync(() => {
-                              setSelection((prev) => selectOnly(prev, assetId));
-                            });
-                          }}
-                          onContextMenu={(event) => {
-                            event.preventDefault();
-                          }}
-                        >
-                          <AssetMasonryTile
-                            asset={entry.asset}
-                            selected={selectedIds.has(entry.asset.id)}
-                            moving={movingAssetIds.has(entry.asset.id)}
-                            dragRef={
-                              dnd.setNodeRef as unknown as (node: HTMLDivElement | null) => void
-                            }
-                            dragAttributes={dnd.attributes}
-                            dragListeners={dnd.listeners}
-                            onSelect={(event) => {
-                              setFocusedFolderId(null);
+                      <ContextMenu>
+                        <ContextMenuTrigger asChild>
+                          <div
+                            onContextMenuCapture={() => {
                               const assetId = entry.asset.id;
-                              if (event.shiftKey) {
-                                setSelection((prev) => rangeSelect(prev, assetId, orderedAssetIds));
-                                return;
-                              }
-                              if (event.metaKey || event.ctrlKey) {
-                                setSelection((prev) => toggleSelect(prev, assetId));
-                                return;
-                              }
-                              setSelection((prev) =>
-                                selectOrClearOnPlainClick(prev, assetId, event.detail),
-                              );
-                            }}
-                            onToggleSelected={(assetId) => {
                               setFocusedFolderId(null);
-                              setSelection((prev) => toggleSelect(prev, assetId));
+                              if (selectedIds.has(assetId)) return;
+                              flushSync(() => {
+                                setSelection((prev) => selectOnly(prev, assetId));
+                              });
                             }}
-                            onAspectRatio={(assetId, aspectRatio) => {
-                              const safeAspectRatio =
-                                Number.isFinite(aspectRatio) && aspectRatio > 0.05
-                                  ? aspectRatio
-                                  : 4 / 3;
-                              const previousAspectRatio = aspectRatioRef.current.get(assetId);
-                              if (
-                                previousAspectRatio &&
-                                Math.abs(previousAspectRatio - safeAspectRatio) < 0.02
-                              ) {
-                                return;
+                          >
+                            <AssetMasonryTile
+                              asset={entry.asset}
+                              selected={selectedIds.has(entry.asset.id)}
+                              moving={movingAssetIds.has(entry.asset.id)}
+                              dragRef={
+                                dnd.setNodeRef as unknown as (node: HTMLDivElement | null) => void
                               }
-                              aspectRatioRef.current.set(assetId, safeAspectRatio);
-                              forceLayoutTick((value) => value + 1);
-                            }}
-                            onOpen={setActive}
-                          />
-                        </div>
-                      </Dropdown>
+                              dragAttributes={dnd.attributes}
+                              dragListeners={dnd.listeners}
+                              onSelect={(event) => {
+                                setFocusedFolderId(null);
+                                const assetId = entry.asset.id;
+                                if (event.shiftKey) {
+                                  setSelection((prev) =>
+                                    rangeSelect(prev, assetId, orderedAssetIds),
+                                  );
+                                  return;
+                                }
+                                if (event.metaKey || event.ctrlKey) {
+                                  setSelection((prev) => toggleSelect(prev, assetId));
+                                  return;
+                                }
+                                setSelection((prev) =>
+                                  selectOrClearOnPlainClick(prev, assetId, event.detail),
+                                );
+                              }}
+                              onToggleSelected={(assetId) => {
+                                setFocusedFolderId(null);
+                                setSelection((prev) => toggleSelect(prev, assetId));
+                              }}
+                              onAspectRatio={(assetId, aspectRatio) => {
+                                const safeAspectRatio =
+                                  Number.isFinite(aspectRatio) && aspectRatio > 0.05
+                                    ? aspectRatio
+                                    : 4 / 3;
+                                const previousAspectRatio = aspectRatioRef.current.get(assetId);
+                                if (
+                                  previousAspectRatio &&
+                                  Math.abs(previousAspectRatio - safeAspectRatio) < 0.02
+                                ) {
+                                  return;
+                                }
+                                aspectRatioRef.current.set(assetId, safeAspectRatio);
+                                forceLayoutTick((value) => value + 1);
+                              }}
+                              onOpen={setActive}
+                            />
+                          </div>
+                        </ContextMenuTrigger>
+                        <ContextMenuContent>
+                          {selectedIds.size <= 1 && (
+                            <ContextMenuItem onSelect={() => setActive(entry.asset)}>
+                              <Eye size={16} />
+                              {t("assets:ASSET_ACTION_OPEN")}
+                            </ContextMenuItem>
+                          )}
+                          <ContextMenuItem onSelect={() => setMoveModalOpen(true)}>
+                            <FolderInput size={16} />
+                            {t("assets:ASSET_ACTION_MOVE")}
+                          </ContextMenuItem>
+                          <ContextMenuItem onSelect={() => openEditAccessDialog()}>
+                            <Settings2 size={16} />
+                            {t("assets:ASSET_ACTION_EDIT_ACCESS")}
+                          </ContextMenuItem>
+                          <ContextMenuSeparator />
+                          <ContextMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onSelect={() => openBulkDeleteDialog()}
+                          >
+                            <Trash2 size={16} />
+                            {t("assets:ASSET_ACTION_DELETE_SELECTED")}
+                          </ContextMenuItem>
+                        </ContextMenuContent>
+                      </ContextMenu>
                     )}
                   </AssetDraggableProvider>
                 );
@@ -391,95 +371,81 @@ export function AssetsViewMasonrySection(props: AssetsViewMasonrySectionProps) {
                           }
                           className="block w-full"
                         >
-                          <Dropdown
-                            trigger={["contextMenu"]}
-                            menu={{
-                              items: [
-                                {
-                                  key: "create",
-                                  label: t("assets:ASSET_ACTION_CREATE_FOLDER"),
-                                  icon: <FolderPlus size={16} />,
-                                },
-                                {
-                                  key: "edit",
-                                  label: t("assets:ASSET_ACTION_EDIT_FOLDER"),
-                                  icon: <PencilLine size={16} />,
-                                },
-                                {
-                                  key: "move_folder",
-                                  label: t("assets:ASSET_ACTION_MOVE_FOLDER"),
-                                  icon: <FolderInput size={16} />,
-                                },
-                                { type: "divider" },
-                                {
-                                  key: "delete",
-                                  label: t("assets:ASSET_ACTION_DELETE_FOLDER"),
-                                  icon: <Trash2 size={16} />,
-                                  danger: true,
-                                },
-                              ],
-                              onClick: ({ key, domEvent }: MenuClickInfo) => {
-                                domEvent.preventDefault();
-                                domEvent.stopPropagation();
-                                if (key === "create") {
+                          <ContextMenu>
+                            <ContextMenuTrigger asChild>
+                              <div
+                                onContextMenuCapture={() => {
+                                  flushSync(() => {
+                                    setFocusedFolderId(entry.folder.id);
+                                    setSelection((prev) => clearSelection(prev));
+                                    setActive(null);
+                                  });
+                                }}
+                              >
+                                <AssetsExplorerFolderTile
+                                  ref={
+                                    drag.setNodeRef as unknown as (
+                                      node: HTMLDivElement | null,
+                                    ) => void
+                                  }
+                                  folder={entry.folder}
+                                  folderLabel={t("assets:ASSET_FOLDER")}
+                                  focused={focusedFolderId === entry.folder.id}
+                                  isOver={isOver}
+                                  rootProps={{
+                                    ...(drag.attributes as unknown as Record<string, unknown>),
+                                    ...(drag.listeners as unknown as Record<string, unknown>),
+                                  }}
+                                  onClick={() => {
+                                    setFocusedFolderId(entry.folder.id);
+                                    setSelection((prev) => clearSelection(prev));
+                                    setActive(null);
+                                  }}
+                                  onDoubleClick={() => {
+                                    setCurrentFolderId(entry.folder.id);
+                                    setFocusedFolderId(null);
+                                  }}
+                                />
+                              </div>
+                            </ContextMenuTrigger>
+                            <ContextMenuContent>
+                              <ContextMenuItem
+                                onSelect={() => {
                                   setCreateFolderParentId(String(entry.folder.id));
                                   setCreateFolderOpen(true);
-                                  return;
-                                }
-                                if (key === "edit") {
+                                }}
+                              >
+                                <FolderPlus size={16} />
+                                {t("assets:ASSET_ACTION_CREATE_FOLDER")}
+                              </ContextMenuItem>
+                              <ContextMenuItem
+                                onSelect={() => {
                                   setEditFolderTarget(entry.folder);
                                   setEditFolderOpen(true);
-                                  return;
-                                }
-                                if (key === "move_folder") {
+                                }}
+                              >
+                                <PencilLine size={16} />
+                                {t("assets:ASSET_ACTION_EDIT_FOLDER")}
+                              </ContextMenuItem>
+                              <ContextMenuItem
+                                onSelect={() => {
                                   setMoveFolderTarget(entry.folder);
                                   setMoveFolderOpen(true);
-                                  return;
-                                }
-                                if (key === "delete") {
-                                  void tryDeleteFolder(entry.folder);
-                                }
-                              },
-                            }}
-                          >
-                            <div
-                              onContextMenuCapture={() => {
-                                flushSync(() => {
-                                  setFocusedFolderId(entry.folder.id);
-                                  setSelection((prev) => clearSelection(prev));
-                                  setActive(null);
-                                });
-                              }}
-                              onContextMenu={(event) => {
-                                event.preventDefault();
-                              }}
-                            >
-                              <AssetsExplorerFolderTile
-                                ref={
-                                  drag.setNodeRef as unknown as (
-                                    node: HTMLDivElement | null,
-                                  ) => void
-                                }
-                                folder={entry.folder}
-                                folderLabel={t("assets:ASSET_FOLDER")}
-                                focused={focusedFolderId === entry.folder.id}
-                                isOver={isOver}
-                                rootProps={{
-                                  ...(drag.attributes as unknown as Record<string, unknown>),
-                                  ...(drag.listeners as unknown as Record<string, unknown>),
                                 }}
-                                onClick={() => {
-                                  setFocusedFolderId(entry.folder.id);
-                                  setSelection((prev) => clearSelection(prev));
-                                  setActive(null);
-                                }}
-                                onDoubleClick={() => {
-                                  setCurrentFolderId(entry.folder.id);
-                                  setFocusedFolderId(null);
-                                }}
-                              />
-                            </div>
-                          </Dropdown>
+                              >
+                                <FolderInput size={16} />
+                                {t("assets:ASSET_ACTION_MOVE_FOLDER")}
+                              </ContextMenuItem>
+                              <ContextMenuSeparator />
+                              <ContextMenuItem
+                                className="text-destructive focus:text-destructive"
+                                onSelect={() => void tryDeleteFolder(entry.folder)}
+                              >
+                                <Trash2 size={16} />
+                                {t("assets:ASSET_ACTION_DELETE_FOLDER")}
+                              </ContextMenuItem>
+                            </ContextMenuContent>
+                          </ContextMenu>
                         </DroppablePulse>
                       )}
                     </FolderDroppableProvider>

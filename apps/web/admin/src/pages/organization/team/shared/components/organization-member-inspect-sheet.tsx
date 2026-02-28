@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { Avatar, Button as AntButton, Tag, Tooltip } from "antd";
+import { Avatar, Button as AntButton, Tag } from "antd";
 import { useTranslation } from "react-i18next";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 
 import type {
   ActivityEvent,
@@ -177,16 +178,22 @@ export function OrganizationMemberInspectSheet({
   const secondary = member?.email || "-";
 
   const leaveLabel = isOwnerSelf ? (
-    <Tooltip title={t("common:ORG_MEMBERS_OWNER_SELF_REMOVE_BLOCKED")}>
-      <span>{t("common:ORG_MEMBERS_ACTION_LEAVE_ORGANIZATION")}</span>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span>{t("common:ORG_MEMBERS_ACTION_LEAVE_ORGANIZATION")}</span>
+      </TooltipTrigger>
+      <TooltipContent>{t("common:ORG_MEMBERS_OWNER_SELF_REMOVE_BLOCKED")}</TooltipContent>
     </Tooltip>
   ) : (
     t("common:ORG_MEMBERS_ACTION_LEAVE_ORGANIZATION")
   );
 
   const removeLabel = isOwnerSelf ? (
-    <Tooltip title={t("common:ORG_MEMBERS_OWNER_SELF_REMOVE_BLOCKED")}>
-      <span>{t("common:DELETE")}</span>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span>{t("common:DELETE")}</span>
+      </TooltipTrigger>
+      <TooltipContent>{t("common:ORG_MEMBERS_OWNER_SELF_REMOVE_BLOCKED")}</TooltipContent>
     </Tooltip>
   ) : (
     t("common:DELETE")

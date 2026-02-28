@@ -6,6 +6,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { type PropsWithChildren, useLayoutEffect, useState } from "react";
 import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAntdTheme } from "@/hooks/use-antd-theme";
 import { makeQueryClient } from "@/lib/query/query-client";
 import { setMessageApi } from "@/lib/notifications";
@@ -41,7 +42,9 @@ export function AppProviders({ children }: PropsWithChildren) {
       >
         <App message={{ maxCount: 3 }} notification={{ maxCount: 3 }}>
           <AntdMessageBridge>
-            <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+            <QueryClientProvider client={queryClient}>
+              <TooltipProvider>{children}</TooltipProvider>
+            </QueryClientProvider>
           </AntdMessageBridge>
         </App>
       </ConfigProvider>

@@ -1,11 +1,16 @@
-import type { ReactNode } from "react";
-import { Avatar, Button as AntButton, Dropdown, Tag, Tooltip } from "antd";
-import type { MenuProps } from "antd";
+import { Avatar, Button as AntButton, Tag } from "antd";
 import { type ColumnDef } from "@tanstack/react-table";
 import { Eye, MoreVertical, Trash2, UserCog } from "lucide-react";
 
 import type { OrganizationMember, OrganizationMemberWorkspace } from "@/types/api";
-import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import {
   builtinRoleLabel,
   membershipLabel,
@@ -31,14 +36,6 @@ interface CreateOrganizationMemberColumnsParams {
   onEnterWorkspace: (workspaceId: string) => void;
 }
 
-function buildSelfLeaveLabel(t: TranslateFn): ReactNode {
-  return (
-    <Tooltip title={t("common:ORG_MEMBERS_OWNER_SELF_REMOVE_BLOCKED")}>
-      <span>{t("common:ORG_MEMBERS_ACTION_LEAVE_ORGANIZATION")}</span>
-    </Tooltip>
-  );
-}
-
 export function createOrganizationMemberColumns({
   t,
   currentUserId,
@@ -62,46 +59,6 @@ export function createOrganizationMemberColumns({
         const isCurrentUser = currentUserId !== null && item.userId === currentUserId;
         const isOwnerSelf = item.role === "owner" && isCurrentUser;
 
-        const menuItems: NonNullable<MenuProps["items"]> = [
-          {
-            key: "inspect",
-            icon: <Eye className="size-4" />,
-            label: t("common:ORG_MEMBERS_ACTION_INSPECT_USER"),
-            onClick: () => onInspectMember(item),
-          },
-          {
-            key: "change_role",
-            icon: <UserCog className="size-4" />,
-            label: t("common:ORG_MEMBERS_ACTION_CHANGE_ROLE"),
-            onClick: () => onOpenRoleDialog(item),
-          },
-          { type: "divider" },
-        ];
-
-        if (isCurrentUser) {
-          menuItems.push({
-            key: "leave",
-            icon: <Trash2 className="size-4" />,
-            label: isOwnerSelf
-              ? buildSelfLeaveLabel(t)
-              : t("common:ORG_MEMBERS_ACTION_LEAVE_ORGANIZATION"),
-            danger: true,
-            disabled: isOwnerSelf,
-            onClick: () => {
-              if (isOwnerSelf) return;
-              onOpenRemoveDialog(item);
-            },
-          });
-        } else {
-          menuItems.push({
-            key: "remove",
-            icon: <Trash2 className="size-4" />,
-            label: t("common:DELETE"),
-            danger: true,
-            onClick: () => onOpenRemoveDialog(item),
-          });
-        }
-
         return (
           <div className="flex min-w-0 items-center gap-3">
             <Avatar size={28} src={item.avatarUrl ?? undefined} className="shrink-0">
@@ -114,19 +71,57 @@ export function createOrganizationMemberColumns({
             </div>
 
             <div className="ml-auto pl-2">
-              <Dropdown
-                trigger={["click"]}
-                menu={{ items: menuItems }}
-                getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
-                overlayStyle={{ zIndex: 1400 }}
-              >
-                <AntButton
-                  type="text"
-                  className="h-8! w-8! p-0!"
-                  icon={<MoreVertical className="size-4" />}
-                  aria-label={t("team:TEAM_USER_ACTIONS")}
-                />
-              </Dropdown>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <AntButton
+                    type="text"
+                    className="h-8! w-8! p-0!"
+                    icon={<MoreVertical className="size-4" />}
+                    aria-label={t("team:TEAM_USER_ACTIONS")}
+                  />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onSelect={() => onInspectMember(item)}>
+                    <Eye className="size-4" />
+                    {t("common:ORG_MEMBERS_ACTION_INSPECT_USER")}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => onOpenRoleDialog(item)}>
+                    <UserCog className="size-4" />
+                    {t("common:ORG_MEMBERS_ACTION_CHANGE_ROLE")}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  {isCurrentUser ? (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <DropdownMenuItem
+                          variant="destructive"
+                          disabled={isOwnerSelf}
+                          onSelect={() => {
+                            if (isOwnerSelf) return;
+                            onOpenRemoveDialog(item);
+                          }}
+                        >
+                          <Trash2 className="size-4" />
+                          {t("common:ORG_MEMBERS_ACTION_LEAVE_ORGANIZATION")}
+                        </DropdownMenuItem>
+                      </TooltipTrigger>
+                      {isOwnerSelf && (
+                        <TooltipContent>
+                          {t("common:ORG_MEMBERS_OWNER_SELF_REMOVE_BLOCKED")}
+                        </TooltipContent>
+                      )}
+                    </Tooltip>
+                  ) : (
+                    <DropdownMenuItem
+                      variant="destructive"
+                      onSelect={() => onOpenRemoveDialog(item)}
+                    >
+                      <Trash2 className="size-4" />
+                      {t("common:DELETE")}
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         );

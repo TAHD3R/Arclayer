@@ -1,9 +1,14 @@
-import { Button as AntButton, Checkbox, Dropdown, Spin } from "antd";
-import type { MenuProps } from "antd";
+import { Button as AntButton, Spin } from "antd";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 import { MoreVertical, Trash2 } from "lucide-react";
 
-import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
 
 import type {
   DisplayOrganizationPermission,
@@ -34,16 +39,6 @@ export function RolesMatrixTable(props: RolesMatrixTableProps) {
               {t("team:TEAM_ROLES_COL_PERMISSION")}
             </TableHead>
             {filteredRoles.map((role) => {
-              const menuItems: NonNullable<MenuProps["items"]> = [
-                {
-                  key: "delete",
-                  label: t("team:TEAM_ACTION_DELETE"),
-                  danger: true,
-                  icon: <Trash2 className="h-4 w-4" />,
-                  onClick: () => onDeleteRole(role.code),
-                },
-              ];
-
               return (
                 <TableHead
                   key={role.code}
@@ -54,19 +49,25 @@ export function RolesMatrixTable(props: RolesMatrixTableProps) {
                     <div className="truncate font-medium text-foreground">{role.name}</div>
                     <div className="flex justify-end">
                       {role.isSystem ? null : (
-                        <Dropdown
-                          trigger={["click"]}
-                          menu={{ items: menuItems }}
-                          getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
-                          overlayStyle={{ zIndex: 1400 }}
-                        >
-                          <AntButton
-                            type="text"
-                            className="!h-8 !w-8 !p-0"
-                            icon={<MoreVertical className="h-4 w-4" />}
-                            aria-label={t("team:TEAM_USER_ACTIONS")}
-                          />
-                        </Dropdown>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <AntButton
+                              type="text"
+                              className="!h-8 !w-8 !p-0"
+                              icon={<MoreVertical className="h-4 w-4" />}
+                              aria-label={t("team:TEAM_USER_ACTIONS")}
+                            />
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              variant="destructive"
+                              onSelect={() => onDeleteRole(role.code)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                              {t("team:TEAM_ACTION_DELETE")}
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       )}
                     </div>
                   </div>
@@ -107,8 +108,8 @@ export function RolesMatrixTable(props: RolesMatrixTableProps) {
                         <Checkbox
                           checked={granted}
                           disabled={role.isSystem}
-                          onChange={(e) => {
-                            onTogglePermission(permission.code, role.code, e.target.checked);
+                          onCheckedChange={(checked) => {
+                            onTogglePermission(permission.code, role.code, Boolean(checked));
                           }}
                         />
                       )}

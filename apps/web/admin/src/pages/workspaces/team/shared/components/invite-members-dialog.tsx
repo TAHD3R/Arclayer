@@ -1,12 +1,13 @@
 "use client";
 
-import { Button as AntButton, Input, Select, Tag, Tooltip } from "antd";
+import { Button as AntButton, Input, Select, Tag } from "antd";
 import * as React from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
 import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 
 import type { Role } from "@/types/api";
 import { createTeamInvitation, createTeamInviteLink } from "@/api/team";
@@ -328,8 +329,9 @@ export function InviteMembersDialog(props: {
                 );
 
                 return message ? (
-                  <Tooltip title={message} placement="top">
-                    {tag}
+                  <Tooltip>
+                    <TooltipTrigger asChild>{tag}</TooltipTrigger>
+                    <TooltipContent>{message}</TooltipContent>
                   </Tooltip>
                 ) : (
                   tag

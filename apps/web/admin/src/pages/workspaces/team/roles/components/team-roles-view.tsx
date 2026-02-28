@@ -2,8 +2,13 @@
 import * as React from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Button, Checkbox, Dropdown, Input, Spin } from "antd";
-import type { MenuProps } from "antd";
+import { Button, Input, Spin } from "antd";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { MoreVertical, Plus, Search, Trash2 } from "lucide-react";
@@ -16,7 +21,7 @@ import {
 import { DefaultPage } from "@/components/common/default-page";
 import { ContentGuard } from "@/components/common/content-guard";
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { zodResolver } from "@/lib/forms/zod-resolver";
@@ -318,20 +323,6 @@ export function TeamRolesView(props: { workspaceIdOverride?: string | null } = {
                       {t("team:TEAM_ROLES_COL_PERMISSION")}
                     </TableHead>
                     {filteredRoles.map((role) => {
-                      const menuItems: NonNullable<MenuProps["items"]> = [
-                        {
-                          key: "delete",
-                          label: t("team:TEAM_ACTION_DELETE"),
-                          danger: true,
-                          icon: <Trash2 className="h-4 w-4" />,
-                          onClick: () => {
-                            setDeleteTarget({ code: role.code, name: role.name });
-                            setDeleteOpen(true);
-                          },
-                          disabled: deleteRoleMutation.isPending,
-                        },
-                      ];
-
                       return (
                         <TableHead
                           key={role.code}
@@ -346,19 +337,29 @@ export function TeamRolesView(props: { workspaceIdOverride?: string | null } = {
                             </div>
                             <div className="flex justify-end">
                               {!role.isSystem ? (
-                                <Dropdown
-                                  trigger={["click"]}
-                                  menu={{ items: menuItems }}
-                                  getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
-                                  overlayStyle={{ zIndex: 1400 }}
-                                >
-                                  <Button
-                                    type="text"
-                                    className="!h-8 !w-8 !p-0"
-                                    icon={<MoreVertical className="h-4 w-4" />}
-                                    aria-label={t("team:TEAM_ACTION_DELETE")}
-                                  />
-                                </Dropdown>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button
+                                      type="text"
+                                      className="!h-8 !w-8 !p-0"
+                                      icon={<MoreVertical className="h-4 w-4" />}
+                                      aria-label={t("team:TEAM_ACTION_DELETE")}
+                                    />
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem
+                                      variant="destructive"
+                                      disabled={deleteRoleMutation.isPending}
+                                      onSelect={() => {
+                                        setDeleteTarget({ code: role.code, name: role.name });
+                                        setDeleteOpen(true);
+                                      }}
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                      {t("team:TEAM_ACTION_DELETE")}
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
                               ) : null}
                             </div>
                           </div>
@@ -402,12 +403,12 @@ export function TeamRolesView(props: { workspaceIdOverride?: string | null } = {
                                 <Checkbox
                                   checked={granted}
                                   disabled={role.isSystem}
-                                  onChange={(e) => {
+                                  onCheckedChange={(checked) => {
                                     setTogglingKey(key);
                                     togglePermissionMutation.mutate({
                                       permissionCode: perm.code,
                                       roleCode: role.code,
-                                      granted: e.target.checked,
+                                      granted: Boolean(checked),
                                     });
                                   }}
                                 />

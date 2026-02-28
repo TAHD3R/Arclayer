@@ -1,8 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { Form, InputNumber, Switch } from "antd";
+import { Form, InputNumber } from "antd";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
+
+import { Switch } from "@/components/ui/switch";
 
 import { getCoreSettings, patchCoreSettings } from "@/api/settings";
 import { ContentGuard } from "@/components/common/content-guard";
@@ -38,6 +40,7 @@ export function WorkspaceSettingsContentStrategyView(props: { workspaceId: strin
   const queryClient = useQueryClient();
   const [form] = Form.useForm<FormValues>();
   const autosaveEnabled = Form.useWatch("contentAutosaveEnabled", form);
+  const autosaveSaveOnBlur = Form.useWatch("contentAutosaveSaveOnBlur", form);
   const { savingKey, withSavingKey } = useSavingKey();
 
   const onTabChange = React.useCallback(
@@ -196,12 +199,11 @@ export function WorkspaceSettingsContentStrategyView(props: { workspaceId: strin
                             {t("settings:SETTINGS_WORKSPACE_CONTENT_AUTOSAVE_ENABLED_DESC")}
                           </div>
                         </div>
-                        <Form.Item
-                          name="contentAutosaveEnabled"
-                          valuePropName="checked"
-                          style={{ marginBottom: 0 }}
-                        >
-                          <Switch />
+                        <Form.Item name="contentAutosaveEnabled" style={{ marginBottom: 0 }}>
+                          <Switch
+                            checked={Boolean(autosaveEnabled)}
+                            onCheckedChange={(v) => form.setFieldValue("contentAutosaveEnabled", v)}
+                          />
                         </Form.Item>
                       </div>
 
@@ -245,12 +247,14 @@ export function WorkspaceSettingsContentStrategyView(props: { workspaceId: strin
                             {t("settings:SETTINGS_WORKSPACE_CONTENT_AUTOSAVE_SAVE_ON_BLUR_DESC")}
                           </div>
                         </div>
-                        <Form.Item
-                          name="contentAutosaveSaveOnBlur"
-                          valuePropName="checked"
-                          style={{ marginBottom: 0 }}
-                        >
-                          <Switch disabled={!autosaveEnabled} />
+                        <Form.Item name="contentAutosaveSaveOnBlur" style={{ marginBottom: 0 }}>
+                          <Switch
+                            checked={Boolean(autosaveSaveOnBlur)}
+                            onCheckedChange={(v) =>
+                              form.setFieldValue("contentAutosaveSaveOnBlur", v)
+                            }
+                            disabled={!autosaveEnabled}
+                          />
                         </Form.Item>
                       </div>
                     </div>

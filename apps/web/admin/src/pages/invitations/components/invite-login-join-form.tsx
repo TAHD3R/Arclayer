@@ -1,5 +1,7 @@
-import { Button, Checkbox, Form, Input } from "antd";
+import { Button, Form, Input } from "antd";
 import { Lock } from "lucide-react";
+
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface InviteLoginJoinFormProps {
   t: (key: string) => string;
@@ -11,6 +13,22 @@ interface InviteLoginJoinFormProps {
   onForgotPassword: () => void | Promise<void>;
   onBack: () => void;
   onBackToLogin: () => void | Promise<void>;
+}
+
+type FormValues = { password: string; keepSession: boolean };
+
+function KeepSessionCheckbox({ t }: { t: (key: string) => string }) {
+  const form = Form.useFormInstance<FormValues>();
+  const keepSession = Form.useWatch("keepSession", form) ?? false;
+  return (
+    <label className="flex items-center gap-2 cursor-pointer">
+      <Checkbox
+        checked={Boolean(keepSession)}
+        onCheckedChange={(v) => form.setFieldValue("keepSession", v)}
+      />
+      <span className="text-callout">{t("auth:KEEP_SESSION")}</span>
+    </label>
+  );
 }
 
 export function InviteLoginJoinForm({
@@ -25,7 +43,7 @@ export function InviteLoginJoinForm({
   onBackToLogin,
 }: InviteLoginJoinFormProps) {
   return (
-    <Form<{ password: string; keepSession: boolean }>
+    <Form<FormValues>
       layout="vertical"
       requiredMark={false}
       autoComplete="off"
@@ -51,8 +69,8 @@ export function InviteLoginJoinForm({
       </Form.Item>
 
       <div className="flex items-center justify-between mb-3">
-        <Form.Item name="keepSession" valuePropName="checked" style={{ marginBottom: 0 }}>
-          <Checkbox>{t("auth:KEEP_SESSION")}</Checkbox>
+        <Form.Item name="keepSession" style={{ marginBottom: 0 }}>
+          <KeepSessionCheckbox t={t} />
         </Form.Item>
         <Button
           type="link"

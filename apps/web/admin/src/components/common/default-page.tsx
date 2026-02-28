@@ -2,7 +2,8 @@ import { type ReactNode, useState } from "react";
 import clsx from "clsx";
 import { useRouterState } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { Button, Tooltip } from "antd";
+import { Button } from "antd";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 
 import { useFavoritesStore } from "@/stores/use-favorites-store";
 import BookmarkIcon from "@/components/ui/icons/bookmark-icon";
@@ -36,21 +37,26 @@ function FavoriteToggle() {
     : t("common:FAVORITE_ADD_TOOLTIP");
 
   return (
-    <Tooltip title={tooltip} placement="bottom">
-      <Button
-        type="text"
-        icon={<BookmarkIcon size={16} strokeWidth={2} isHovered={hovered} isFilled={isFavorited} />}
-        onClick={() => toggle(pathname)}
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
-        className={clsx(
-          "inline-flex items-center gap-1 rounded-md px-1.5 py-1 transition-colors",
-          "text-label-secondary hover:text-foreground",
-          isFavorited && "text-amber-500 hover:text-amber-600",
-        )}
-      >
-        <span>{label}</span>
-      </Button>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          type="text"
+          icon={
+            <BookmarkIcon size={16} strokeWidth={2} isHovered={hovered} isFilled={isFavorited} />
+          }
+          onClick={() => toggle(pathname)}
+          onMouseEnter={() => setHovered(true)}
+          onMouseLeave={() => setHovered(false)}
+          className={clsx(
+            "inline-flex items-center gap-1 rounded-md px-1.5 py-1 transition-colors",
+            "text-label-secondary hover:text-foreground",
+            isFavorited && "text-amber-500 hover:text-amber-600",
+          )}
+        >
+          <span>{label}</span>
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent side="bottom">{tooltip}</TooltipContent>
     </Tooltip>
   );
 }

@@ -1,4 +1,5 @@
-import { Button, Tooltip } from "antd";
+import { Button } from "antd";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import {
   CheckCircle2,
   CloudUpload,
@@ -426,20 +427,23 @@ export function AssetUploadDialog(props: {
                             <CheckCircle2 className="size-5 text-emerald-600" />
                           ) : null}
 
-                          <Tooltip title={t("assets:ASSET_UPLOAD_REMOVE")}>
-                            <Button
-                              size="small"
-                              type="text"
-                              icon={
-                                it.status === "uploading" ? (
-                                  <X className="size-4" />
-                                ) : (
-                                  <Trash2 className="size-4" />
-                                )
-                              }
-                              disabled={isUploading && it.status !== "uploading"}
-                              onClick={() => void removeItem(it.id)}
-                            />
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                size="small"
+                                type="text"
+                                icon={
+                                  it.status === "uploading" ? (
+                                    <X className="size-4" />
+                                  ) : (
+                                    <Trash2 className="size-4" />
+                                  )
+                                }
+                                disabled={isUploading && it.status !== "uploading"}
+                                onClick={() => void removeItem(it.id)}
+                              />
+                            </TooltipTrigger>
+                            <TooltipContent>{t("assets:ASSET_UPLOAD_REMOVE")}</TooltipContent>
                           </Tooltip>
                         </div>
                       </div>

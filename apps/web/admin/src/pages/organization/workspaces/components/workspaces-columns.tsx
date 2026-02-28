@@ -1,12 +1,17 @@
 import { useMemo } from "react";
 import { type ColumnDef } from "@tanstack/react-table";
-import { Avatar, Button as AntButton, Dropdown } from "antd";
-import type { MenuProps } from "antd";
+import { Avatar, Button as AntButton } from "antd";
 import { Archive, LogIn, MoreVertical, Trash2, Undo2 } from "lucide-react";
 
 import type { OrganizationWorkspace } from "@/types/api";
 import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";
-import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 import type { OrganizationWorkspacesTranslateFn } from "../types";
 import { WorkspaceMembersPopover } from "./workspace-members-popover";
@@ -39,7 +44,7 @@ export function useOrganizationWorkspacesColumns(
         header: t("common:ORG_WORKSPACES_TABLE_WORKSPACE"),
         cell: ({ row }) => {
           const item = row.original;
-          const menuItems: MenuProps["items"] = item.isArchived
+          const menuItems = item.isArchived
             ? [
                 {
                   key: "unarchive",
@@ -91,13 +96,27 @@ export function useOrganizationWorkspacesColumns(
                 </div>
               </div>
               <div onClick={(e) => e.stopPropagation()}>
-                <Dropdown
-                  trigger={["click"]}
-                  menu={{ items: menuItems }}
-                  getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
-                >
-                  <AntButton type="text" icon={<MoreVertical className="size-4" />} />
-                </Dropdown>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <AntButton type="text" icon={<MoreVertical className="size-4" />} />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    {menuItems.map((item) =>
+                      item.type === "divider" ? (
+                        <DropdownMenuSeparator key="divider" />
+                      ) : (
+                        <DropdownMenuItem
+                          key={item.key}
+                          onSelect={item.onClick}
+                          variant={item.danger ? "destructive" : undefined}
+                        >
+                          {item.icon}
+                          {item.label}
+                        </DropdownMenuItem>
+                      ),
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
           );

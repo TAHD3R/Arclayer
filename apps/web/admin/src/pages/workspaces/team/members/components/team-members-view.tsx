@@ -1,10 +1,9 @@
-import { Avatar, Dropdown, Button as AntButton, Input as AntInput, Pagination, Tag } from "antd";
+import { Avatar, Button as AntButton, Input as AntInput, Pagination, Tag } from "antd";
 import { MoreVertical, Plus, UserCheck, UserCog, UserX, Search } from "lucide-react";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
 import { type ColumnDef } from "@tanstack/react-table";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { MenuProps } from "antd";
 
 import * as authApi from "@/api/auth";
 import { listMyWorkspaces } from "@/api/workspaces";
@@ -20,6 +19,13 @@ import { DefaultPage } from "@/components/common/default-page";
 import { ContentGuard } from "@/components/common/content-guard";
 import { useDataTable } from "@/components/data-table";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import { LoaderOne } from "@/components/ui/loader";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { TeamMembersFilterPopover } from "@/pages/workspaces/team/shared/components/team-members-filter-popover";
@@ -183,39 +189,6 @@ export function TeamMembersView() {
           const isSelf = currentUserId ? String(currentUserId) === String(m.userId) : false;
           const canEditMemberRoles = m.membershipStatus === "active";
 
-          const menuItems: MenuProps["items"] = [
-            {
-              key: "edit_roles",
-              icon: <UserCog className="size-4" />,
-              label: t("team:TEAM_ACTION_EDIT_ROLES"),
-              disabled: !canEditMemberRoles || rolesQueryFailed,
-              onClick: () => {
-                setEditingMember(m);
-                setEditingRoleCode(m.roleCodes?.[0] ?? null);
-              },
-            },
-            { type: "divider" },
-            {
-              key: "enable",
-              icon: <UserCheck className="size-4" />,
-              label: t("team:TEAM_ACTION_ENABLE"),
-              disabled: !canEnable,
-              onClick: () => enableMutation.mutate(m.membershipId),
-            },
-            {
-              key: "disable",
-              icon: <UserX className="size-4" />,
-              label: isSelf
-                ? t("team:TEAM_ACTION_DISABLE_SELF_DISABLED")
-                : t("team:TEAM_ACTION_DISABLE"),
-              disabled: !canDisable || isSelf,
-              onClick: () => {
-                if (isSelf) return;
-                disableMutation.mutate(m.membershipId);
-              },
-            },
-          ];
-
           return (
             <div className="flex items-center gap-3">
               <Avatar
@@ -233,15 +206,49 @@ export function TeamMembersView() {
               </div>
 
               <div className="ml-auto pl-2">
-                <Dropdown trigger={["click"]} menu={{ items: menuItems }}>
-                  <Button
-                    variant="ghost"
-                    className="h-8 w-8 p-0"
-                    aria-label={t("team:TEAM_USER_ACTIONS")}
-                  >
-                    <MoreVertical className="size-4" />
-                  </Button>
-                </Dropdown>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      className="h-8 w-8 p-0"
+                      aria-label={t("team:TEAM_USER_ACTIONS")}
+                    >
+                      <MoreVertical className="size-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem
+                      disabled={!canEditMemberRoles || rolesQueryFailed}
+                      onSelect={() => {
+                        setEditingMember(m);
+                        setEditingRoleCode(m.roleCodes?.[0] ?? null);
+                      }}
+                    >
+                      <UserCog className="size-4" />
+                      {t("team:TEAM_ACTION_EDIT_ROLES")}
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      disabled={!canEnable}
+                      onSelect={() => enableMutation.mutate(m.membershipId)}
+                    >
+                      <UserCheck className="size-4" />
+                      {t("team:TEAM_ACTION_ENABLE")}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      disabled={!canDisable || isSelf}
+                      onSelect={() => {
+                        if (isSelf) return;
+                        disableMutation.mutate(m.membershipId);
+                      }}
+                    >
+                      <UserX className="size-4" />
+                      {isSelf
+                        ? t("team:TEAM_ACTION_DISABLE_SELF_DISABLED")
+                        : t("team:TEAM_ACTION_DISABLE")}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
           );

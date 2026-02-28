@@ -1,12 +1,27 @@
-import type { MenuProps } from "antd";
-import { Button, Dropdown, Pagination } from "antd";
+import { Button, Pagination } from "antd";
 import { MoreVertical } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { ContentGuard } from "@/components/common/content-guard";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 import { ExtensionCard } from "./extension-card";
 import type { InstalledExtensionItem } from "../types";
+
+type ExtensionMenuItem = {
+  key: string;
+  label: string;
+  icon?: React.ReactNode;
+  danger?: boolean;
+  onClick?: () => void;
+  type?: "divider";
+};
 
 type ExtensionsInstalledTabProps = {
   items: InstalledExtensionItem[];
@@ -15,7 +30,7 @@ type ExtensionsInstalledTabProps = {
   pageSize: number;
   onPageChange: (page: number) => void;
   buildConfigureHref: (extension: InstalledExtensionItem) => string | null;
-  buildMenuItems: (extension: InstalledExtensionItem) => MenuProps["items"];
+  buildMenuItems: (extension: InstalledExtensionItem) => ExtensionMenuItem[];
   isEmpty: boolean;
 };
 
@@ -52,9 +67,27 @@ export function ExtensionsInstalledTab({
             href={buildConfigureHref(p)}
             installed
             actions={
-              <Dropdown trigger={["click"]} menu={{ items: buildMenuItems(p) }}>
-                <Button type="text" size="small" icon={<MoreVertical className="size-3.5" />} />
-              </Dropdown>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button type="text" size="small" icon={<MoreVertical className="size-3.5" />} />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {buildMenuItems(p).map((item) =>
+                    item.type === "divider" ? (
+                      <DropdownMenuSeparator key="divider" />
+                    ) : (
+                      <DropdownMenuItem
+                        key={item.key}
+                        onSelect={item.onClick}
+                        variant={item.danger ? "destructive" : undefined}
+                      >
+                        {item.icon}
+                        {item.label}
+                      </DropdownMenuItem>
+                    ),
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
             }
           />
         ))}

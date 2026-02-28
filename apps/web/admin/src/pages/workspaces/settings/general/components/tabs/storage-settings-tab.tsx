@@ -1,7 +1,9 @@
-import { Form, Input, InputNumber, Select, Switch } from "antd";
+import { Form, Input, InputNumber, Select } from "antd";
 import type { FormInstance } from "antd";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
+
+import { Switch } from "@/components/ui/switch";
 
 import { Accordion } from "@/components/ui/accordion";
 import { SettingAccordionItem } from "@/components/settings-primitives/setting-accordion-item";
@@ -460,10 +462,12 @@ export function StorageSettingsTab({
               <Form.Item<GeneralSettingsFormValues>
                 name="s3ForcePathStyle"
                 label={t("settings:SETTINGS_STORAGE_S3_FORCE_PATH_STYLE_LABEL")}
-                valuePropName="checked"
                 style={{ marginBottom: 0 }}
               >
-                <Switch />
+                <Switch
+                  checked={Boolean(s3ForcePathStyle)}
+                  onCheckedChange={(v) => form.setFieldValue("s3ForcePathStyle", v)}
+                />
               </Form.Item>
 
               <Form.Item<GeneralSettingsFormValues>
