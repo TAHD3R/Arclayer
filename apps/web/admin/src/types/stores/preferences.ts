@@ -19,4 +19,6 @@ export interface PreferencesState {
   setBrowserLocale: () => void;
   setEffectiveLocale: (locale: AppLocale) => void;
   cacheWorkspaceLocale: (workspaceId: string, locale: AppLocale) => void;
+  notificationPanelPinned: boolean;
+  setNotificationPanelPinned: (pinned: boolean) => void;
 }

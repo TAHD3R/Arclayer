@@ -54,3 +54,11 @@ export async function seedDemoNotifications(
 export async function deleteNotification(notificationId: string): Promise<{ id: string }> {
   return api.delete<{ id: string }>(`/me/notifications/${notificationId}`);
 }
+
+export async function archiveNotification(
+  notificationId: string,
+): Promise<{ id: string; archivedAt?: string | null }> {
+  return api.post<{ id: string; archivedAt?: string | null }>(
+    `/me/notifications/${notificationId}/archive`,
+  );
+}

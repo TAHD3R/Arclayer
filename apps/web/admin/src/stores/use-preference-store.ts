@@ -102,6 +102,7 @@ export const usePreferencesStore = create<PreferencesState>((set, get) => ({
   locale: DEFAULT_LOCALE,
   localePreference: null,
   localePreferenceMode: "workspace",
+  notificationPanelPinned: false,
 
   setThemeMode: (mode) => {
     get().setThemePreference(mode);
@@ -155,6 +156,11 @@ export const usePreferencesStore = create<PreferencesState>((set, get) => ({
     current[wid] = nextLocale;
     writeStorageJson(STORAGE_KEYS.workspaceLocaleCache, current);
   },
+
+  setNotificationPanelPinned: (pinned) => {
+    writeStorageItem(STORAGE_KEYS.notificationPanelPinned, String(pinned));
+    set({ notificationPanelPinned: pinned });
+  },
 }));
 
 let isInitialized = false;
@@ -175,12 +181,15 @@ export function initializePreferences() {
   applyThemeModeToDom(initialThemeMode);
   applyLocaleToDom(initialLocaleState.locale);
 
+  const notificationPanelPinned = readStorageItem(STORAGE_KEYS.notificationPanelPinned) === "true";
+
   usePreferencesStore.setState({
     themeMode: initialThemeMode,
     themePreference: initialThemePreference,
     locale: initialLocaleState.locale,
     localePreference: initialLocaleState.localePreference,
     localePreferenceMode: initialLocaleState.mode,
+    notificationPanelPinned,
   });
 
   themeObserver = new MutationObserver((mutations) => {

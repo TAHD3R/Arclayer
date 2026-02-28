@@ -48,7 +48,6 @@ function ThemeToggler({
   onImmediateChange,
   direction = "ltr",
   children,
-  ...props
 }: ThemeTogglerProps) {
   const [preview, setPreview] = React.useState<null | {
     effective: ThemeSelection;
@@ -114,7 +113,7 @@ function ThemeToggler({
   );
 
   return (
-    <React.Fragment {...props}>
+    <React.Fragment>
       {typeof children === "function"
         ? children({
             effective: current.effective,

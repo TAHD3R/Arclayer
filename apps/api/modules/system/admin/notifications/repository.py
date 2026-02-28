@@ -72,11 +72,17 @@ class NotificationRepository(BaseRepository):
         workspace_id: UUID,
         recipient_user_id: UUID,
         unread_only: bool,
+        archived_only: bool = False,
         category: str | None,
     ):
         cond = self._build_scope_condition(workspace_id=workspace_id, recipient_user_id=recipient_user_id)
-        if unread_only:
-            cond &= Q(read_at=None)
+        if archived_only:
+            cond &= Q(archived_at__not_isnull=True)
+        elif unread_only:
+            cond &= Q(read_at=None) & Q(archived_at=None)
+        else:
+            # "all" excludes archived
+            cond &= Q(archived_at=None)
         if category:
             cond &= Q(category=category)
         return NotificationRecord.filter(cond).order_by("-created_at")
@@ -86,11 +92,16 @@ class NotificationRepository(BaseRepository):
         *,
         recipient_user_id: UUID,
         unread_only: bool,
+        archived_only: bool = False,
         category: str | None,
     ):
         cond = self._build_scope_condition(recipient_user_id=recipient_user_id)
-        if unread_only:
-            cond &= Q(read_at=None)
+        if archived_only:
+            cond &= Q(archived_at__not_isnull=True)
+        elif unread_only:
+            cond &= Q(read_at=None) & Q(archived_at=None)
+        else:
+            cond &= Q(archived_at=None)
         if category:
             cond &= Q(category=category)
         return NotificationRecord.filter(cond).order_by("-created_at")
@@ -194,3 +205,24 @@ class NotificationRepository(BaseRepository):
                 recipient_user_id=recipient_user_id,
             ).delete()
         )
+
+    async def archive_notification_by_user(
+        self,
+        *,
+        recipient_user_id: UUID,
+        notification_id: UUID,
+    ) -> NotificationRecord | None:
+        row = await NotificationRecord.filter(
+            id=notification_id,
+            recipient_user_id=recipient_user_id,
+        ).first()
+        if row is None:
+            return None
+        if row.archived_at is not None:
+            return row
+        now = datetime.now(tz=UTC)
+        row.archived_at = now
+        if row.read_at is None:
+            row.read_at = now
+        await row.save(update_fields=["archived_at", "read_at", "updated_at"])
+        return row

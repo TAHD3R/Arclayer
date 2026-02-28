@@ -50,6 +50,7 @@ class NotificationRecord(BaseModel):
     dedupe_key = fields.CharField(max_length=128, null=True)
 
     read_at = fields.DatetimeField(null=True, db_index=True)
+    archived_at = fields.DatetimeField(null=True, db_index=True)
 
     class Meta(BaseModel.Meta):
         table = "notifications"

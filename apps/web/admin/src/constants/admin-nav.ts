@@ -2,8 +2,6 @@ import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import {
   Activity,
-  CircleHelp,
-  ExternalLink,
   File,
   FileText,
   Gauge,
@@ -47,6 +45,10 @@ export type AdminNavItem = {
   dividerAfter?: boolean;
   /** Optional trailing icon displayed after the label (e.g. external-link indicator). */
   trailingIcon?: LucideIcon;
+  /** Optional click callback for button-type items (no route, no children). */
+  onAction?: () => void;
+  /** Force active/selected visual state (e.g. when a panel triggered by this item is open). */
+  isActive?: boolean;
 };
 
 export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
@@ -177,14 +179,5 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
         icon: Activity,
       },
     ],
-  },
-  // ── Footer ──
-  {
-    key: "help-center",
-    label: "Support",
-    labelKey: "nav:NAV_HELP_CENTER",
-    icon: CircleHelp,
-    position: "footer",
-    trailingIcon: ExternalLink,
   },
 ] as const;

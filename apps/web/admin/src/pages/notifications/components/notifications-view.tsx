@@ -26,9 +26,15 @@ export function NotificationsView() {
   const emptyTitle =
     status === "unread"
       ? t("NOTIFICATIONS_EMPTY_UNREAD_TITLE")
-      : t("NOTIFICATIONS_EMPTY_ALL_TITLE");
+      : status === "archived"
+        ? t("NOTIFICATIONS_EMPTY_ARCHIVED_TITLE")
+        : t("NOTIFICATIONS_EMPTY_ALL_TITLE");
   const emptyDescription =
-    status === "unread" ? t("NOTIFICATIONS_EMPTY_UNREAD_DESC") : t("NOTIFICATIONS_EMPTY_ALL_DESC");
+    status === "unread"
+      ? t("NOTIFICATIONS_EMPTY_UNREAD_DESC")
+      : status === "archived"
+        ? t("NOTIFICATIONS_EMPTY_ARCHIVED_DESC")
+        : t("NOTIFICATIONS_EMPTY_ALL_DESC");
 
   const action =
     !canMarkAllRead && !showDevSeed ? null : (
@@ -61,6 +67,8 @@ export function NotificationsView() {
         <ChromeTabsList className="w-auto">
           <ChromeTabsTrigger value="unread">{t("NOTIFICATIONS_TAB_UNREAD")}</ChromeTabsTrigger>
           <ChromeTabsTrigger value="all">{t("NOTIFICATIONS_TAB_ALL")}</ChromeTabsTrigger>
+          <ChromeTabsTrigger value="read">{t("NOTIFICATIONS_TAB_READ")}</ChromeTabsTrigger>
+          <ChromeTabsTrigger value="archived">{t("NOTIFICATIONS_TAB_ARCHIVED")}</ChromeTabsTrigger>
         </ChromeTabsList>
 
         <ChromeTabsContent value={status}>
@@ -88,6 +96,7 @@ export function NotificationsView() {
                   isRead={false}
                   onNavigate={(item) => void n.navigateToTarget(item)}
                   onMarkRead={(item) => void n.markRead(item)}
+                  onArchive={(item) => void n.archiveItem(item)}
                   onDelete={(item) => void n.removeItem(item)}
                 />
 
@@ -103,6 +112,7 @@ export function NotificationsView() {
                       locale={n.locale}
                       isRead
                       onNavigate={(item) => n.navigateToReadTarget(item)}
+                      onArchive={(item) => void n.archiveItem(item)}
                       onDelete={(item) => void n.removeItem(item)}
                     />
                   </>

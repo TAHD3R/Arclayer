@@ -27,6 +27,7 @@ class NotificationOut(BaseOut):
     dedupe_key: str | None = Field(default=None, description="Optional dedupe key.")
 
     read_at: datetime | None = Field(default=None, description="Read datetime (UTC) if read.")
+    archived_at: datetime | None = Field(default=None, description="Archived datetime (UTC) if archived.")
     created_at: datetime = Field(..., description="Created datetime (UTC).")
     updated_at: datetime = Field(..., description="Updated datetime (UTC).")
 
@@ -41,6 +42,7 @@ class NotificationPreviewOut(BaseSchema):
 class NotificationListStatus(StrEnum):
     UNREAD = "unread"
     ALL = "all"
+    ARCHIVED = "archived"
 
 
 class NotificationListQuery(BaseSchema):
@@ -76,3 +78,8 @@ class NotificationDevSeedResult(BaseSchema):
 
 class NotificationDeleteResult(BaseSchema):
     id: PublicUUID = Field(..., description="Notification id.")
+
+
+class NotificationArchiveResult(BaseSchema):
+    id: PublicUUID = Field(..., description="Notification id.")
+    archived_at: datetime | None = Field(default=None, description="Archived datetime (UTC).")

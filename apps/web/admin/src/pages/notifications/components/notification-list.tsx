@@ -11,6 +11,7 @@ type NotificationListProps = {
   isRead: boolean;
   onNavigate: (n: NotificationItem) => void;
   onMarkRead?: (n: NotificationItem) => void;
+  onArchive?: (n: NotificationItem) => void;
   onDelete: (n: NotificationItem) => void;
 };
 
@@ -21,6 +22,7 @@ export function NotificationList({
   isRead,
   onNavigate,
   onMarkRead,
+  onArchive,
   onDelete,
 }: NotificationListProps) {
   return (
@@ -44,6 +46,7 @@ export function NotificationList({
                 isRead={isRead}
                 onNavigate={() => onNavigate(n)}
                 onMarkRead={!isRead && onMarkRead ? () => onMarkRead(n) : undefined}
+                onArchive={!n.archivedAt && onArchive ? () => onArchive(n) : undefined}
                 onDelete={() => onDelete(n)}
               />
             </motion.div>

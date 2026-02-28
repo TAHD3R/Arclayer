@@ -1,4 +1,4 @@
-import { Check, ShieldCheck, Trash2, Users, Wrench } from "lucide-react";
+import { Archive, Check, ShieldCheck, Trash2, Users, Wrench } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import type { NotificationCategory, NotificationItem } from "@/types/api";
@@ -22,6 +22,7 @@ interface NotificationCardProps {
   onNavigate: () => void;
   onMarkRead?: () => void;
   onDelete?: () => void;
+  onArchive?: () => void;
   /** Compact mode for popup panel — hides category icon column */
   compact?: boolean;
 }
@@ -41,6 +42,7 @@ export function NotificationCard({
   onNavigate,
   onMarkRead,
   onDelete,
+  onArchive,
   compact = false,
 }: NotificationCardProps) {
   const { t } = useTranslation("notifications");
@@ -115,6 +117,21 @@ export function NotificationCard({
               }}
             >
               <Check className="size-4" aria-hidden="true" />
+            </Button>
+          ) : null}
+          {!item.archivedAt && onArchive ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              aria-label={t("NOTIFICATIONS_ARCHIVE")}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onArchive();
+              }}
+            >
+              <Archive className="size-4" aria-hidden="true" />
             </Button>
           ) : null}
           {onDelete ? (

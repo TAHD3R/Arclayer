@@ -17,6 +17,7 @@ export type NotificationItem = {
   dedupeKey?: string | null;
 
   readAt?: string | null;
+  archivedAt?: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -27,7 +28,7 @@ export type NotificationPreview = {
 };
 
 export type ListNotificationsParams = {
-  status?: "unread" | "all";
+  status?: "unread" | "all" | "archived";
   category?: NotificationCategory;
   page?: number;
   size?: number;

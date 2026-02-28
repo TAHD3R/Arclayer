@@ -1,1 +1,1 @@
-export type ListStatus = "unread" | "all";
+export type ListStatus = "unread" | "all" | "read" | "archived";

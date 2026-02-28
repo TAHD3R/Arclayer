@@ -10,6 +10,7 @@ from apps.api.core.http.pagination import PageData, PageParams, get_page_params
 from apps.api.core.http.response import Response, ResponseModel
 from apps.api.modules.auth.deps import get_current_user_id
 from apps.api.modules.system.admin.notifications.schema import (
+    NotificationArchiveResult,
     NotificationDeleteResult,
     NotificationListQuery,
     NotificationOut,
@@ -96,4 +97,18 @@ async def delete_my_notification(
     service: NotificationService = Depends(get_notification_service),
 ) -> ResponseModel[NotificationDeleteResult]:
     out = await service.delete_notification_for_user(user_id=user_id, notification_id=notification_id)
+    return Response.success(data=out)
+
+
+@router.post(
+    "/{notification_id}/archive",
+    response_model=ResponseModel[NotificationArchiveResult],
+    summary="Archive my notification",
+)
+async def archive_my_notification(
+    notification_id: PublicUUID,
+    user_id: UUID = Depends(get_current_user_id),
+    service: NotificationService = Depends(get_notification_service),
+) -> ResponseModel[NotificationArchiveResult]:
+    out = await service.archive_notification_for_user(user_id=user_id, notification_id=notification_id)
     return Response.success(data=out)

@@ -8,6 +8,7 @@ import {
   markAllNotificationsRead,
   markNotificationRead,
   deleteNotification,
+  archiveNotification,
   seedDemoNotifications,
 } from "@/api/notifications";
 import type { NotificationItem } from "@/types/api";
@@ -51,7 +52,8 @@ export function useNotifications() {
     queryKey: ["notifications", "list", status, PAGE_SIZE],
     queryFn: async ({ pageParam }) =>
       listNotifications({
-        status,
+        // "read" is client-side filtered from "all"
+        status: status === "read" ? "all" : status,
         page: typeof pageParam === "number" ? pageParam : 1,
         size: PAGE_SIZE,
       }),
@@ -69,6 +71,7 @@ export function useNotifications() {
   );
 
   const items = useMemo(() => {
+    if (status === "read") return rawItems.filter((x) => !!x.readAt && !x.archivedAt);
     if (status !== "all") return rawItems;
     return [...rawItems].sort((a, b) => {
       const aUnread = !a.readAt;
@@ -97,7 +100,6 @@ export function useNotifications() {
       queryClient.invalidateQueries({ queryKey: ["notifications", "list"] }),
     ]);
   };
-
   const markRead = async (n: NotificationItem) => {
     const readAt = new Date().toISOString();
     queryClient.setQueryData(
@@ -144,6 +146,36 @@ export function useNotifications() {
     );
     try {
       await deleteNotification(n.id);
+    } finally {
+      await invalidateNotificationQueries();
+    }
+  };
+
+  const archiveItem = async (n: NotificationItem) => {
+    queryClient.setQueryData(
+      ["notifications", "list", status, PAGE_SIZE],
+      (old: typeof listQuery.data | undefined) => {
+        if (!old) return old;
+        return {
+          ...old,
+          pages: old.pages.map((p) => ({
+            ...p,
+            items: p.items.filter((it) => it.id !== n.id),
+          })),
+        };
+      },
+    );
+    if (!n.readAt) {
+      queryClient.setQueryData(
+        ["notifications", "preview"],
+        (old: { unreadCount: number } | undefined) => {
+          if (!old) return old;
+          return { ...old, unreadCount: Math.max(0, old.unreadCount - 1) };
+        },
+      );
+    }
+    try {
+      await archiveNotification(n.id);
     } finally {
       await invalidateNotificationQueries();
     }
@@ -230,6 +262,7 @@ export function useNotifications() {
     markRead,
     markAllRead,
     removeItem,
+    archiveItem,
     seedDemo,
     navigateToTarget,
     navigateToReadTarget,

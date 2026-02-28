@@ -175,20 +175,26 @@ function NavNode({
   const isTrailActive = activeKeys.has(item.key);
   const blockedTooltip = getBlockedTooltipText(item, t, resolvePermissionName);
 
-  // Pure button item (no route, no children) — e.g. Support
+  // Pure button item (no route, no children) — e.g. Support, Notifications
   if (!hasChildren && !item.to) {
     const TrailingIcon = item.trailingIcon;
+    const forcedActive = Boolean(item.isActive);
     return (
       <SidebarMenuItem className="group/nav-item">
         <SidebarMenuButton
+          isActive={forcedActive}
           className={cn(
-            "relative z-10",
+            "relative z-10 cursor-pointer",
             "h-8.5 rounded-lg",
             "transition-[color,background-color] duration-150 ease-out",
             "text-label-secondary! hover:text-label-primary!",
-            depth === 0 ? "bg-card hover:bg-card/80" : "hover:bg-card",
+            depth === 0
+              ? "bg-card hover:bg-card/80 data-[active=true]:bg-accent/50"
+              : "hover:bg-card data-[active=true]:bg-accent/50",
+            forcedActive && "font-semibold text-foreground!",
           )}
           style={{ paddingLeft: NAV_ITEM_BASE_PADDING_LEFT } as CSSProperties}
+          onClick={item.onAction}
         >
           {iconSlot(depth, Icon)}
           <span className="min-w-0 flex-1 truncate">{label}</span>

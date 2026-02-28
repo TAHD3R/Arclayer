@@ -2,16 +2,16 @@ import { Breadcrumb } from "antd";
 import type { BreadcrumbProps } from "antd";
 import type { BreadcrumbItemProps } from "antd/es/breadcrumb/BreadcrumbItem";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { AdminNavItem } from "@/constants/admin-nav";
 import { cn } from "@/lib/utils";
-import { AdminHeaderActions } from "@/components/layout/admin-header-actions";
 import {
   AdminOrgSwitcher,
   AdminWorkspaceSwitcher,
 } from "@/components/layout/admin-workspace-switcher";
+import RefreshIcon from "@/components/ui/icons/refresh-icon";
 
 function normalizePath(input: string): string {
   if (input.length > 1 && input.endsWith("/")) return input.slice(0, -1);
@@ -119,6 +119,7 @@ export function AdminHeader(props: {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const [refreshHovered, setRefreshHovered] = useState(false);
 
   const isWorkspaceScopeRoute = pathname.startsWith("/w/");
 
@@ -130,16 +131,10 @@ export function AdminHeader(props: {
   const breadcrumbItems = useMemo<BreadcrumbProps["items"]>(() => {
     const items: BreadcrumbProps["items"] = [];
 
-    // 首节：组织切换器（始终渲染）
-    items.push({
-      title: <AdminOrgSwitcher />,
-    });
+    items.push({ title: <AdminOrgSwitcher /> });
 
-    // 次节：工作区切换器（仅工作区路由）
     if (isWorkspaceScopeRoute) {
-      items.push({
-        title: <AdminWorkspaceSwitcher />,
-      });
+      items.push({ title: <AdminWorkspaceSwitcher /> });
     }
 
     if (!trailNodes.length) return items;
@@ -191,17 +186,32 @@ export function AdminHeader(props: {
   return (
     <header
       className={cn(
-        "h-12 w-full shrink-0 border-b bg-background px-4",
-        "flex items-center justify-between gap-4",
+        "h-12 w-full shrink-0 border-b bg-background px-2",
+        "flex items-center gap-1",
         props.className,
       )}
     >
+      {props.onRefresh != null ? (
+        <button
+          type="button"
+          aria-label={t("common:REFRESH")}
+          onMouseEnter={() => setRefreshHovered(true)}
+          onMouseLeave={() => setRefreshHovered(false)}
+          onClick={props.onRefresh}
+          className={cn(
+            "shrink-0 size-8 inline-flex items-center justify-center rounded-lg",
+            "border-0 bg-transparent text-label-secondary",
+            "hover:bg-muted hover:text-foreground",
+            "transition-colors duration-150",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          )}
+        >
+          <RefreshIcon size={16} isHovered={refreshHovered} className="text-current" />
+        </button>
+      ) : null}
+
       <div className="min-w-0 flex-1 overflow-hidden">
         <Breadcrumb items={breadcrumbItems} className="min-w-0 overflow-hidden whitespace-nowrap" />
-      </div>
-
-      <div className="shrink-0">
-        <AdminHeaderActions onRefresh={props.onRefresh} />
       </div>
     </header>
   );

@@ -3,8 +3,11 @@ import { type CSSProperties, type PropsWithChildren, useEffect, useMemo } from "
 import { useQuery } from "@tanstack/react-query";
 import { useRouterState } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
+import { AnimatePresence } from "motion/react";
 
 import { ADMIN_NAV_ITEMS, type AdminNavItem } from "@/constants/admin-nav";
+import { COMMON_FOOTER_NAV_ITEMS } from "@/constants/common-footer-nav";
+import { useToggle } from "@/hooks/use-toggle";
 import { ORG_NAV_ITEMS } from "@/constants/org-nav";
 import {
   buildDocumentTitle,
@@ -15,6 +18,7 @@ import {
 import { AdminSiderNav } from "@/components/layout/admin-side-nav";
 import { AdminAccountMenu } from "@/components/layout/admin-account-menu";
 import { AdminBrandMark } from "@/components/layout/admin-logo";
+import { AdminNotificationsPanel } from "@/components/layout/admin-notifications-panel";
 import { AdminHeader } from "@/components/layout/admin-header";
 import { RouteProgress } from "@/components/layout/route-progress";
 import { RouteTransition } from "@/components/layout/route-transition";
@@ -24,6 +28,7 @@ import { usePreferencesStore } from "@/stores/use-preference-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { getMyOrganization } from "@/api/me";
 import { getWorkspaceDetail } from "@/api/workspaces";
+import { getUnreadNotificationPreview } from "@/api/notifications";
 import { useWorkspaceLocalization } from "@/hooks/use-workspace-localization";
 import { resolvePermissionNameI18nKey } from "@/lib/auth/rbac-permissions";
 import {
@@ -42,6 +47,8 @@ export function AdminLayout({ children }: PropsWithChildren) {
   const localePreferenceMode = usePreferencesStore((s) => s.localePreferenceMode);
   const setEffectiveLocale = usePreferencesStore((s) => s.setEffectiveLocale);
   const cacheWorkspaceLocale = usePreferencesStore((s) => s.cacheWorkspaceLocale);
+  const notificationPanelPinned = usePreferencesStore((s) => s.notificationPanelPinned);
+  const setNotificationPanelPinned = usePreferencesStore((s) => s.setNotificationPanelPinned);
   const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
 
   const orgPathPrefix = useMemo(() => {
@@ -128,7 +135,38 @@ export function AdminLayout({ children }: PropsWithChildren) {
   }, [isOrgScopeRoute, isMeScopeRoute, resolvedOrgPathPrefix, workspaceBase]);
 
   const mainItems = useMemo(() => navItems.filter((it) => it.position !== "footer"), [navItems]);
-  const footerItems = useMemo(() => navItems.filter((it) => it.position === "footer"), [navItems]);
+
+  const [notificationPanelOpen, , setNotificationPanelOpen] = useToggle(false);
+
+  const notificationPreviewQuery = useQuery({
+    queryKey: ["notifications", "preview"],
+    enabled: Boolean(accessToken),
+    queryFn: () => getUnreadNotificationPreview({ limit: 1 }),
+    staleTime: 30 * 1000,
+    meta: { silent: true },
+  });
+  const unreadCount = notificationPreviewQuery.data?.unreadCount ?? 0;
+
+  const footerItemsWithActions = useMemo(
+    () =>
+      COMMON_FOOTER_NAV_ITEMS.map((item) => {
+        if (item.key !== "notifications") return item;
+        Object.assign(item, {
+          onAction: () => setNotificationPanelOpen(!notificationPanelOpen),
+          isActive: notificationPanelOpen,
+          actionRenderer:
+            unreadCount > 0
+              ? () => (
+                  <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] rounded-full bg-destructive px-1 text-[10px] font-semibold leading-none text-destructive-foreground">
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
+                )
+              : undefined,
+        });
+        return item;
+      }),
+    [notificationPanelOpen, setNotificationPanelOpen, unreadCount],
+  );
 
   const workspaceDetailQuery = useQuery({
     queryKey: ["workspace", "detail", workspaceId],
@@ -198,19 +236,58 @@ export function AdminLayout({ children }: PropsWithChildren) {
 
         <SidebarContent className="relative z-0 mx-2 scrollbar-none">
           <AdminSiderNav items={mainItems} resolvePermissionName={resolvePermissionName} />
-          {footerItems.length > 0 ? (
-            <AdminSiderNav
-              items={footerItems}
-              resolvePermissionName={resolvePermissionName}
-              className="mt-auto"
-            />
-          ) : null}
+          <div className="mt-auto flex flex-col pb-2">
+            {footerItemsWithActions.length > 0 ? (
+              <AdminSiderNav
+                items={footerItemsWithActions}
+                resolvePermissionName={resolvePermissionName}
+                className="mt-0 mb-0"
+              />
+            ) : null}
+          </div>
         </SidebarContent>
 
         <SidebarFooter className="border-t border-border relative z-10 isolate px-0 ">
           <AdminAccountMenu />
         </SidebarFooter>
       </Sidebar>
+
+      {/* Pinned panel: in document flow, pushes content area */}
+      {notificationPanelOpen && notificationPanelPinned && (
+        <AdminNotificationsPanel
+          className="h-screen shrink-0 border-r"
+          isPinned={true}
+          onPinChange={setNotificationPanelPinned}
+          onClose={() => setNotificationPanelOpen(false)}
+        />
+      )}
+
+      {/* Floating panel: fixed, overlays content area — unmount after exit animation */}
+      {!notificationPanelPinned ? (
+        <AnimatePresence initial={false}>
+          {notificationPanelOpen
+            ? [
+                // Transparent backdrop (does not cover sidebar; left=240) — click to close floating panel
+                <button
+                  key="admin-notifications-backdrop"
+                  type="button"
+                  aria-label={t("notifications:NOTIFICATIONS_PANEL_CLOSE")}
+                  className="fixed inset-y-0 right-0 z-20 bg-transparent"
+                  style={{ left: 240 }}
+                  onClick={() => setNotificationPanelOpen(false)}
+                />,
+                <AdminNotificationsPanel
+                  key="admin-notifications-panel"
+                  className="fixed top-0 h-screen z-30"
+                  style={{ left: 240 }}
+                  isPinned={false}
+                  onPinChange={setNotificationPanelPinned}
+                  onClose={() => setNotificationPanelOpen(false)}
+                />,
+              ]
+            : null}
+        </AnimatePresence>
+      ) : null}
 
       <SidebarInset className="w-auto flex-1 min-w-0 overflow-hidden">
         <AdminHeader

@@ -1,8 +1,6 @@
 import {
   Activity,
   Boxes,
-  CircleHelp,
-  ExternalLink,
   Home,
   Puzzle,
   Settings,
@@ -12,6 +10,7 @@ import {
 } from "lucide-react";
 
 import type { AdminNavItem } from "@/constants/admin-nav";
+import { COMMON_FOOTER_NAV_ITEMS } from "@/constants/common-footer-nav";
 
 /**
  * Organization navigation uses canonical scope routes without `/w/:workspaceId`.
@@ -87,12 +86,5 @@ export const ORG_NAV_ITEMS: AdminNavItem[] = [
     icon: Settings,
   },
   // ── Footer ──
-  {
-    key: "org.help-center",
-    label: "Support",
-    labelKey: "nav:NAV_HELP_CENTER",
-    icon: CircleHelp,
-    position: "footer",
-    trailingIcon: ExternalLink,
-  },
+  ...COMMON_FOOTER_NAV_ITEMS,
 ] as const;

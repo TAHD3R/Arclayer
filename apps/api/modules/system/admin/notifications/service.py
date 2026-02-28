@@ -10,6 +10,7 @@ from apps.api.core.http.pagination import PageData, PageParams, paginate_queryse
 from apps.api.core.i18n import t
 from apps.api.modules.system.admin.notifications.repository import NotificationRepository
 from apps.api.modules.system.admin.notifications.schema import (
+    NotificationArchiveResult,
     NotificationDeleteResult,
     NotificationDevSeedResult,
     NotificationListQuery,
@@ -61,12 +62,14 @@ class NotificationService(BaseService):
         params: PageParams,
         filters: NotificationListQuery,
     ) -> PageData[NotificationOut]:
+        archived_only = filters.status == NotificationListStatus.ARCHIVED
         unread_only = filters.status == NotificationListStatus.UNREAD
         category = filters.category.value if filters.category else None
         queryset = self.repo.build_list_queryset(
             workspace_id=workspace_id,
             recipient_user_id=user_id,
             unread_only=unread_only,
+            archived_only=archived_only,
             category=category,
         )
         return await paginate_queryset(queryset, params=params, out_schema=NotificationOut)
@@ -78,11 +81,13 @@ class NotificationService(BaseService):
         params: PageParams,
         filters: NotificationListQuery,
     ) -> PageData[NotificationOut]:
+        archived_only = filters.status == NotificationListStatus.ARCHIVED
         unread_only = filters.status == NotificationListStatus.UNREAD
         category = filters.category.value if filters.category else None
         queryset = self.repo.build_global_list_queryset(
             recipient_user_id=user_id,
             unread_only=unread_only,
+            archived_only=archived_only,
             category=category,
         )
         return await paginate_queryset(queryset, params=params, out_schema=NotificationOut)
@@ -239,3 +244,17 @@ class NotificationService(BaseService):
         if deleted <= 0:
             raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
         return NotificationDeleteResult(id=notification_id)
+
+    async def archive_notification_for_user(
+        self,
+        *,
+        user_id: UUID,
+        notification_id: UUID,
+    ) -> NotificationArchiveResult:
+        row = await self.repo.archive_notification_by_user(
+            recipient_user_id=user_id,
+            notification_id=notification_id,
+        )
+        if row is None:
+            raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
+        return NotificationArchiveResult(id=row.id, archived_at=row.archived_at)
