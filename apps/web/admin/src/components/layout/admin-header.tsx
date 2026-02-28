@@ -1,15 +1,18 @@
-import { Breadcrumb, Button } from "antd";
+import { Breadcrumb } from "antd";
 import type { BreadcrumbProps } from "antd";
 import type { BreadcrumbItemProps } from "antd/es/breadcrumb/BreadcrumbItem";
-import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useNavigate, useRouterState } from "@tanstack/react-router";
+import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { AdminNavItem } from "@/constants/admin-nav";
 import { cn } from "@/lib/utils";
 import { AdminHeaderActions } from "@/components/layout/admin-header-actions";
-import { AdminWorkspaceSwitcher } from "@/components/layout/admin-workspace-switcher";
-import RefreshIcon from "@/components/ui/icons/refresh-icon";
+import {
+  AdminOrgSwitcher,
+  AdminWorkspaceSwitcher,
+} from "@/components/layout/admin-workspace-switcher";
+
 function normalizePath(input: string): string {
   if (input.length > 1 && input.endsWith("/")) return input.slice(0, -1);
   return input;
@@ -70,13 +73,11 @@ function buildBreadcrumbMenuItems(
     );
   };
 
-  // Flatten to a single-level menu: Breadcrumb menu type intentionally supports only a simple list.
   const walk = (node: AdminNavItem, trailLabels: string[]) => {
     const selfLabel = node.labelKey ? t(node.labelKey) : node.label;
     const nextTrail = [...trailLabels, selfLabel];
 
     if (node.to) {
-      // Show relative path labels (e.g. "Level 2 / Level 3") to keep the menu informative.
       const text = nextTrail.join(" / ");
       items.push({
         key: node.to,
@@ -91,8 +92,6 @@ function buildBreadcrumbMenuItems(
     }
   };
 
-  // Include root itself (if it has a route), then descendants.
-  // For breadcrumb UX, a section dropdown should offer "go to this section page" if available.
   if (root.to) {
     const rootLabel = root.labelKey ? t(root.labelKey) : root.label;
     items.push({
@@ -101,7 +100,6 @@ function buildBreadcrumbMenuItems(
     });
   }
 
-  // Descendants use relative labels (exclude the root label).
   if (root.children?.length) {
     for (const child of root.children) {
       walk(child, []);
@@ -111,6 +109,8 @@ function buildBreadcrumbMenuItems(
   return items;
 }
 
+// ─── AdminHeader ──────────────────────────────────────────────────────────────
+
 export function AdminHeader(props: {
   navItems: readonly AdminNavItem[];
   className?: string;
@@ -119,7 +119,8 @@ export function AdminHeader(props: {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const [refreshHovered, setRefreshHovered] = useState(false);
+
+  const isWorkspaceScopeRoute = pathname.startsWith("/w/");
 
   const trailNodes = useMemo(
     () => findActiveTrailNodes(props.navItems, pathname),
@@ -127,9 +128,23 @@ export function AdminHeader(props: {
   );
 
   const breadcrumbItems = useMemo<BreadcrumbProps["items"]>(() => {
-    if (!trailNodes.length) return [];
+    const items: BreadcrumbProps["items"] = [];
 
-    return trailNodes.map((node, index) => {
+    // 首节：组织切换器（始终渲染）
+    items.push({
+      title: <AdminOrgSwitcher />,
+    });
+
+    // 次节：工作区切换器（仅工作区路由）
+    if (isWorkspaceScopeRoute) {
+      items.push({
+        title: <AdminWorkspaceSwitcher />,
+      });
+    }
+
+    if (!trailNodes.length) return items;
+
+    const navItems = trailNodes.map((node, index) => {
       const label = node.labelKey ? t(node.labelKey) : node.label;
       const Icon = node.icon;
       const hasChildren = Boolean(node.children?.length);
@@ -146,9 +161,13 @@ export function AdminHeader(props: {
 
       const title =
         !isLast && !hasChildren && node.to ? (
-          <Link to={node.to} className="text-label-secondary hover:text-foreground">
+          <button
+            type="button"
+            className="text-label-secondary hover:text-foreground transition-colors focus-visible:outline-none"
+            onClick={() => void navigate({ to: node.to as never })}
+          >
             {titleContent}
-          </Link>
+          </button>
         ) : (
           titleContent
         );
@@ -163,12 +182,11 @@ export function AdminHeader(props: {
           }
         : undefined;
 
-      return {
-        title,
-        menu,
-      };
+      return { title, menu };
     });
-  }, [navigate, t, trailNodes]);
+
+    return [...items, ...navItems];
+  }, [navigate, isWorkspaceScopeRoute, t, trailNodes]);
 
   return (
     <header
@@ -178,33 +196,12 @@ export function AdminHeader(props: {
         props.className,
       )}
     >
-      <div className="min-w-0 flex-1 flex items-center gap-2">
-        <Button
-          size="large"
-          aria-label={t("common:REFRESH")}
-          type="text"
-          disabled={!props.onRefresh}
-          onMouseEnter={() => setRefreshHovered(true)}
-          onMouseLeave={() => setRefreshHovered(false)}
-          onClick={() => props.onRefresh?.()}
-          icon={<RefreshIcon size={18} isHovered={refreshHovered} className="text-current" />}
-        />
-        <div className="mx-1 h-4 w-px bg-border shrink-0" />
-        <div className="shrink-0 min-w-0 relative z-0">
-          <AdminWorkspaceSwitcher />
-        </div>
-        <div className="mx-1 h-4 w-px bg-border shrink-0" />
-
-        <div className="min-w-0 flex-1 overflow-hidden relative z-10">
-          <Breadcrumb
-            items={breadcrumbItems}
-            className="min-w-0 overflow-hidden whitespace-nowrap"
-          />
-        </div>
+      <div className="min-w-0 flex-1 overflow-hidden">
+        <Breadcrumb items={breadcrumbItems} className="min-w-0 overflow-hidden whitespace-nowrap" />
       </div>
 
       <div className="shrink-0">
-        <AdminHeaderActions />
+        <AdminHeaderActions onRefresh={props.onRefresh} />
       </div>
     </header>
   );

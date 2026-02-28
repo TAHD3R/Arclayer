@@ -9,7 +9,7 @@ wheels/
 .pytest_cache/
 .uv-cache/
 .serena/
-
+.omc/
 # Virtual environments
 .venv
 

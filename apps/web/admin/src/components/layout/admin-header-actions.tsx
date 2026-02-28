@@ -4,6 +4,7 @@ import { useNavigate } from "@tanstack/react-router";
 
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import RefreshIcon from "@/components/ui/icons/refresh-icon";
 
 import {
   getUnreadNotificationPreview,
@@ -377,8 +378,9 @@ function NotificationTriggerWithBadge(props: { unreadCount: number; title: strin
   );
 }
 
-export function AdminHeaderActions() {
+export function AdminHeaderActions(props: { onRefresh?: () => void }) {
   const { t } = useTranslation(["account", "notifications"]);
+  const [refreshHovered, setRefreshHovered] = useState(false);
   const previewQuery = useQuery({
     queryKey: ["notifications", "preview"],
     queryFn: async () => getUnreadNotificationPreview({ limit: 1 }),
@@ -388,7 +390,27 @@ export function AdminHeaderActions() {
   });
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-1">
+      {props.onRefresh != null ? (
+        <button
+          type="button"
+          aria-label={t("account:REFRESH")}
+          disabled={!props.onRefresh}
+          onMouseEnter={() => setRefreshHovered(true)}
+          onMouseLeave={() => setRefreshHovered(false)}
+          onClick={() => props.onRefresh?.()}
+          className={cn(
+            "relative size-9 inline-flex items-center justify-center rounded-lg",
+            "border-0 bg-background text-label-secondary",
+            "hover:bg-muted hover:text-foreground",
+            "transition-colors duration-150",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            "disabled:opacity-40 disabled:cursor-not-allowed",
+          )}
+        >
+          <RefreshIcon size={18} isHovered={refreshHovered} className="text-current" />
+        </button>
+      ) : null}
       <FloatingPanelRoot>
         <NotificationTriggerWithBadge
           title={t("notifications:NOTIFICATIONS_PAGE_TITLE")}

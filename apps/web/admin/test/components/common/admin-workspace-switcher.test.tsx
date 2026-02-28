@@ -7,7 +7,10 @@ import type { MyOrganization, MyOrganizationListResult, OrganizationWorkspace } 
 import { listMyOrganizations } from "@/api/me";
 import { listAllOrganizationWorkspaces } from "@/api/organization-workspaces";
 import { getWorkspaceDetail } from "@/api/workspaces";
-import { AdminWorkspaceSwitcher } from "@/components/layout/admin-workspace-switcher";
+import {
+  AdminOrgSwitcher,
+  AdminWorkspaceSwitcher,
+} from "@/components/layout/admin-workspace-switcher";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
@@ -125,7 +128,7 @@ const workspaceFixturesOrg1: OrganizationWorkspace[] = [
   },
 ];
 
-function renderWithQueryClient() {
+function renderWithQueryClient(component: React.ReactElement) {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: {
@@ -134,11 +137,7 @@ function renderWithQueryClient() {
     },
   });
 
-  return render(
-    <QueryClientProvider client={queryClient}>
-      <AdminWorkspaceSwitcher />
-    </QueryClientProvider>,
-  );
+  return render(<QueryClientProvider client={queryClient}>{component}</QueryClientProvider>);
 }
 
 function getLatestDialog(): HTMLElement {
@@ -149,6 +148,98 @@ function getLatestDialog(): HTMLElement {
   }
   return latest;
 }
+
+describe("AdminOrgSwitcher", () => {
+  beforeAll(() => {
+    Object.defineProperty(window, "matchMedia", {
+      writable: true,
+      value: vi.fn().mockImplementation((query: string) => ({
+        matches: false,
+        media: query,
+        onchange: null,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      })),
+    });
+
+    class ResizeObserverMock {
+      observe() {
+        return undefined;
+      }
+      unobserve() {
+        return undefined;
+      }
+      disconnect() {
+        return undefined;
+      }
+    }
+
+    vi.stubGlobal("ResizeObserver", ResizeObserverMock);
+  });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+
+    useAuthStore.setState({ accessToken: "token" });
+    useWorkspaceStore.setState({ currentWorkspaceId: "ws-alpha", lastWorkspaceId: "ws-alpha" });
+
+    vi.mocked(listMyOrganizations).mockResolvedValue(organizationsFixture);
+    vi.mocked(listAllOrganizationWorkspaces).mockResolvedValue(workspaceFixturesOrg1);
+    vi.mocked(getWorkspaceDetail).mockResolvedValue({
+      id: "ws-alpha",
+      organizationId: "org-1",
+      slug: "alpha",
+      name: "Workspace Alpha",
+    });
+  });
+
+  it("trigger 显示当前组织名", async () => {
+    renderWithQueryClient(<AdminOrgSwitcher />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Org Alpha/)).toBeInTheDocument();
+    });
+  });
+
+  it("打开面板后显示组织列表", async () => {
+    const user = userEvent.setup();
+
+    renderWithQueryClient(<AdminOrgSwitcher />);
+
+    const trigger = await screen.findByRole("button", {
+      name: "common:WORKSPACE_SWITCHER_SELECT_ORG",
+    });
+    await user.click(trigger);
+
+    const panel = getLatestDialog();
+    expect(await within(panel).findByText("Org Alpha")).toBeInTheDocument();
+    expect(within(panel).getByText("Org Beta")).toBeInTheDocument();
+  });
+
+  it("点击组织项会导航到组织页面", async () => {
+    const user = userEvent.setup();
+
+    renderWithQueryClient(<AdminOrgSwitcher />);
+
+    const trigger = await screen.findByRole("button", {
+      name: "common:WORKSPACE_SWITCHER_SELECT_ORG",
+    });
+    await user.click(trigger);
+
+    const panel = getLatestDialog();
+    const orgAlphaButton = await within(panel).findByRole("button", {
+      name: /Org Alpha/i,
+    });
+    await user.click(orgAlphaButton);
+
+    await waitFor(() => {
+      expect(navigateMock).toHaveBeenCalled();
+    });
+  });
+});
 
 describe("AdminWorkspaceSwitcher", () => {
   beforeAll(() => {
@@ -197,35 +288,23 @@ describe("AdminWorkspaceSwitcher", () => {
     });
   });
 
-  it("trigger 显示组织名和工作区名", async () => {
-    renderWithQueryClient();
+  it("trigger 显示当前工作区名", async () => {
+    renderWithQueryClient(<AdminWorkspaceSwitcher />);
 
-    expect(await screen.findByText("Org Alpha")).toBeInTheDocument();
     await waitFor(() => {
-      expect(screen.getByText("Workspace Alpha")).toBeInTheDocument();
+      expect(screen.getByText(/Workspace Alpha/)).toBeInTheDocument();
     });
   });
 
-  it("打开组织面板后显示组织列表", async () => {
+  it("打开面板后显示工作区列表", async () => {
     const user = userEvent.setup();
 
-    renderWithQueryClient();
+    renderWithQueryClient(<AdminWorkspaceSwitcher />);
 
-    const orgTrigger = await screen.findByRole("button", { name: /Org Alpha/ });
-    await user.click(orgTrigger);
-
-    const panel = getLatestDialog();
-    expect(within(panel).getByText("Org Alpha")).toBeInTheDocument();
-    expect(within(panel).getByText("Org Beta")).toBeInTheDocument();
-  });
-
-  it("打开工作区面板后显示工作区列表", async () => {
-    const user = userEvent.setup();
-
-    renderWithQueryClient();
-
-    const wsTrigger = await screen.findByRole("button", { name: /Workspace Alpha/ });
-    await user.click(wsTrigger);
+    const trigger = await screen.findByRole("button", {
+      name: "common:WORKSPACE_SWITCHER_SELECT_WORKSPACE",
+    });
+    await user.click(trigger);
 
     const panel = getLatestDialog();
     expect(await within(panel).findByText("Workspace Alpha")).toBeInTheDocument();
@@ -235,15 +314,15 @@ describe("AdminWorkspaceSwitcher", () => {
   it("点击工作区项会切换到对应工作区路径", async () => {
     const user = userEvent.setup();
 
-    renderWithQueryClient();
+    renderWithQueryClient(<AdminWorkspaceSwitcher />);
 
-    const wsTrigger = await screen.findByRole("button", { name: /Workspace Alpha/ });
-    await user.click(wsTrigger);
+    const trigger = await screen.findByRole("button", {
+      name: "common:WORKSPACE_SWITCHER_SELECT_WORKSPACE",
+    });
+    await user.click(trigger);
 
     const panel = getLatestDialog();
-    expect(await within(panel).findByText("Workspace Beta")).toBeInTheDocument();
-
-    const workspaceBetaButton = within(panel).getByRole("button", {
+    const workspaceBetaButton = await within(panel).findByRole("button", {
       name: /Workspace Beta/i,
     });
     await user.click(workspaceBetaButton);
