@@ -13,8 +13,8 @@ import {
   normalizePath,
 } from "@/lib/admin-nav-utils";
 import { AdminSiderNav } from "@/components/layout/admin-side-nav";
-import { AdminFullLogo } from "@/components/layout/admin-logo";
 import { AdminAccountMenu } from "@/components/layout/admin-account-menu";
+import { AdminBrandMark } from "@/components/layout/admin-logo";
 
 import { AdminHeader } from "@/components/layout/admin-header";
 import { RouteProgress } from "@/components/layout/route-progress";
@@ -128,6 +128,9 @@ export function AdminLayout({ children }: PropsWithChildren) {
     return mapItems(baseItems);
   }, [isOrgScopeRoute, isMeScopeRoute, resolvedOrgPathPrefix, workspaceBase]);
 
+  const mainItems = useMemo(() => navItems.filter((it) => it.position !== "footer"), [navItems]);
+  const footerItems = useMemo(() => navItems.filter((it) => it.position === "footer"), [navItems]);
+
   const workspaceDetailQuery = useQuery({
     queryKey: ["workspace", "detail", workspaceId],
     enabled: Boolean(accessToken && workspaceId && !isOrgScopeRoute && isWorkspaceScopeRoute),
@@ -190,15 +193,22 @@ export function AdminLayout({ children }: PropsWithChildren) {
           } as CSSProperties
         }
       >
-        <SidebarHeader className="flex flex-col items-center gap-2 w-full px-0 pt-8">
-          <AdminFullLogo ariaLabel="Celestial" />
+        <SidebarHeader className="flex flex-col items-center w-full px-4 pt-6 pb-2">
+          <AdminBrandMark size={80} />
         </SidebarHeader>
 
-        <SidebarContent className="relative z-0 pl-0 pr-4 scrollbar-none">
-          <AdminSiderNav items={navItems} resolvePermissionName={resolvePermissionName} />
+        <SidebarContent className="relative z-0 mx-2 scrollbar-none">
+          <AdminSiderNav items={mainItems} resolvePermissionName={resolvePermissionName} />
+          {footerItems.length > 0 ? (
+            <AdminSiderNav
+              items={footerItems}
+              resolvePermissionName={resolvePermissionName}
+              className="mt-auto"
+            />
+          ) : null}
         </SidebarContent>
 
-        <SidebarFooter className="relative z-10 isolate p-0">
+        <SidebarFooter className="border-t border-border relative z-10 isolate px-0 ">
           <AdminAccountMenu />
         </SidebarFooter>
       </Sidebar>

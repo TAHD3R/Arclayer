@@ -1,6 +1,8 @@
 import {
   Activity,
   Boxes,
+  CircleHelp,
+  ExternalLink,
   Home,
   Puzzle,
   Settings,
@@ -15,6 +17,7 @@ import type { AdminNavItem } from "@/constants/admin-nav";
  * Organization navigation uses canonical scope routes without `/w/:workspaceId`.
  */
 export const ORG_NAV_ITEMS: AdminNavItem[] = [
+  // ── Group 1 ──
   {
     key: "org.overview",
     label: "Overview",
@@ -28,7 +31,9 @@ export const ORG_NAV_ITEMS: AdminNavItem[] = [
     labelKey: "nav:NAV_ORG_WORKSPACES",
     to: "/workspaces",
     icon: Boxes,
+    dividerAfter: true,
   },
+  // ── Group 2 ──
   {
     key: "org.team",
     label: "Team",
@@ -71,12 +76,23 @@ export const ORG_NAV_ITEMS: AdminNavItem[] = [
     labelKey: "nav:NAV_EXTENSIONS",
     to: "/extensions",
     icon: Puzzle,
+    dividerAfter: true,
   },
+  // ── Group 3 ──
   {
     key: "org.settings",
     label: "Settings",
     labelKey: "nav:NAV_ORG_SETTINGS",
     to: "/settings",
     icon: Settings,
+  },
+  // ── Footer ──
+  {
+    key: "org.help-center",
+    label: "Support",
+    labelKey: "nav:NAV_HELP_CENTER",
+    icon: CircleHelp,
+    position: "footer",
+    trailingIcon: ExternalLink,
   },
 ] as const;

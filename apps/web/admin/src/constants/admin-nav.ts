@@ -1,6 +1,9 @@
 import type { LucideIcon } from "lucide-react";
+import type { ReactNode } from "react";
 import {
   Activity,
+  CircleHelp,
+  ExternalLink,
   File,
   FileText,
   Gauge,
@@ -9,8 +12,8 @@ import {
   Image,
   Navigation2,
   Puzzle,
-  Settings,
   Search,
+  Settings,
   ShieldCheck,
   SlidersHorizontal,
   Users,
@@ -36,9 +39,18 @@ export type AdminNavItem = {
   requiredPermission?: string | null;
   ownerPluginId?: string | null;
   children?: AdminNavItem[];
+  /** Render section: "main" (default) or "footer" (pinned to sidebar bottom). */
+  position?: "main" | "footer";
+  /** Render prop for an action button (e.g. Popover/DropdownMenu) shown on hover. */
+  actionRenderer?: (item: AdminNavItem) => ReactNode;
+  /** When true, a visual separator is rendered after this item. */
+  dividerAfter?: boolean;
+  /** Optional trailing icon displayed after the label (e.g. external-link indicator). */
+  trailingIcon?: LucideIcon;
 };
 
 export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
+  // ── Group 1: Core content ──
   {
     key: "dashboard",
     label: "Dashboard",
@@ -67,7 +79,9 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
     labelKey: "nav:NAV_ASSETS",
     to: "/assets",
     icon: Image,
+    dividerAfter: true,
   },
+  // ── Group 2: Collaboration & extensions ──
   {
     key: "extensions",
     label: "Extensions",
@@ -80,6 +94,7 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
     label: "Team",
     labelKey: "nav:NAV_SETTINGS_TEAM",
     icon: Users,
+    dividerAfter: true,
     children: [
       {
         key: "settings.team.memberList",
@@ -104,6 +119,7 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
       },
     ],
   },
+  // ── Group 3: Configuration ──
   {
     key: "settings",
     label: "Settings",
@@ -131,35 +147,44 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
         to: "/settings/seo",
         icon: Search,
       },
+    ],
+  },
+  {
+    key: "maintenance",
+    label: "Maintenance",
+    labelKey: "nav:NAV_SETTINGS_MAINTENANCE",
+    icon: Wrench,
+    children: [
       {
-        key: "settings.maintenance",
-        label: "Maintenance",
-        labelKey: "nav:NAV_SETTINGS_MAINTENANCE",
-        icon: Wrench,
-        children: [
-          {
-            key: "settings.maintenance.snapshots",
-            label: "Backups & rollback",
-            labelKey: "nav:NAV_SETTINGS_MAINTENANCE_SNAPSHOTS",
-            to: "/settings/maintenance/snapshots",
-            icon: HardDrive,
-          },
-          {
-            key: "settings.maintenance.activity",
-            label: "Activity",
-            labelKey: "nav:NAV_SETTINGS_MAINTENANCE_ACTIVITY",
-            to: "/settings/maintenance/activity",
-            icon: History,
-          },
-          {
-            key: "settings.maintenance.status",
-            label: "System status",
-            labelKey: "nav:NAV_SETTINGS_MAINTENANCE_STATUS",
-            to: "/settings/maintenance/status",
-            icon: Activity,
-          },
-        ],
+        key: "maintenance.snapshots",
+        label: "Backups & rollback",
+        labelKey: "nav:NAV_SETTINGS_MAINTENANCE_SNAPSHOTS",
+        to: "/settings/maintenance/snapshots",
+        icon: HardDrive,
+      },
+      {
+        key: "maintenance.activity",
+        label: "Activity",
+        labelKey: "nav:NAV_SETTINGS_MAINTENANCE_ACTIVITY",
+        to: "/settings/maintenance/activity",
+        icon: History,
+      },
+      {
+        key: "maintenance.status",
+        label: "System status",
+        labelKey: "nav:NAV_SETTINGS_MAINTENANCE_STATUS",
+        to: "/settings/maintenance/status",
+        icon: Activity,
       },
     ],
+  },
+  // ── Footer ──
+  {
+    key: "help-center",
+    label: "Support",
+    labelKey: "nav:NAV_HELP_CENTER",
+    icon: CircleHelp,
+    position: "footer",
+    trailingIcon: ExternalLink,
   },
 ] as const;

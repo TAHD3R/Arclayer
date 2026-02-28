@@ -235,7 +235,7 @@ export function AdminAccountMenu() {
   const triggerClassName = cn(
     "group justify-start gap-3",
     "w-full",
-    "px-4 py-3",
+    "px-5 py-3",
     "border-0 bg-transparent",
     "rounded-none",
     "text-label-secondary",
@@ -255,7 +255,7 @@ export function AdminAccountMenu() {
     <FloatingPanelRoot className="w-full">
       <FloatingPanelTrigger title={t("ACCOUNT_TITLE")} className={triggerClassName}>
         <Avatar
-          size={32}
+          size={28}
           src={
             resolveAssetRefToPublicUrlPath(profile.avatarUrl ?? profile.avatarAssetId) ?? undefined
           }
@@ -263,19 +263,16 @@ export function AdminAccountMenu() {
           {initialsFromName(displayName)}
         </Avatar>
 
-        <div className="min-w-0 text-left">
+        <div className="min-w-0 text-left flex-1">
           <div className={cn("truncate text-footnote font-semibold", nameClassName)}>
             {displayName}
           </div>
-          {profile.email ? (
-            <div className="truncate text-caption text-label-secondary">{profile.email}</div>
-          ) : null}
         </div>
 
         <ChevronDown className="ml-auto size-4 shrink-0 opacity-70 transition-colors group-hover:opacity-100" />
       </FloatingPanelTrigger>
 
-      <FloatingPanelContent placement="top" showTitle={false} className="p-0">
+      <FloatingPanelContent placement="bottom" showTitle={false} className="p-0">
         <AdminAccountPanelContent
           displayName={displayName}
           email={profile.email}

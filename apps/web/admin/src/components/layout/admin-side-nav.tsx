@@ -1,7 +1,13 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { useEffect, useMemo, useState, type CSSProperties, type ReactElement } from "react";
+import {
+  Fragment,
+  useEffect,
+  useMemo,
+  useState,
+  type CSSProperties,
+  type ReactElement,
+} from "react";
 import { useTranslation } from "react-i18next";
-import { motion } from "motion/react";
 import { Tooltip as AntdTooltip } from "antd";
 
 import type { AdminNavItem } from "@/constants/admin-nav";
@@ -36,16 +42,6 @@ function isPrefixMatch(to: string, pathname: string): boolean {
   const p = normalizePath(pathname);
   if (t === "/") return p === "/";
   return p === t || p.startsWith(`${t}/`);
-}
-
-function getFirstDescendantTo(item: AdminNavItem): string | null {
-  if (item.to && !item.disabled) return item.to;
-  if (!item.children?.length) return null;
-  for (const child of item.children) {
-    const found = getFirstDescendantTo(child);
-    if (found) return found;
-  }
-  return null;
 }
 
 function getBlockedTooltipText(
@@ -113,23 +109,27 @@ type NavIndexEntry = {
 
 function buildNavIndex(items: readonly AdminNavItem[]): Map<string, NavIndexEntry> {
   const index = new Map<string, NavIndexEntry>();
-
   const walk = (nodes: readonly AdminNavItem[], parentKey: string) => {
     for (const node of nodes) {
-      index.set(node.key, {
-        key: node.key,
-        parentKey,
-        isGroup: Boolean(node.children?.length),
-      });
+      index.set(node.key, { key: node.key, parentKey, isGroup: Boolean(node.children?.length) });
       if (node.children?.length) walk(node.children, node.key);
     }
   };
-
   walk(items, "__root__");
   return index;
 }
 
 type OpenByParent = Record<string, string | undefined>;
+
+function getFirstDescendantTo(item: AdminNavItem): string | null {
+  if (item.to && !item.disabled) return item.to;
+  if (!item.children?.length) return null;
+  for (const child of item.children) {
+    const found = getFirstDescendantTo(child);
+    if (found) return found;
+  }
+  return null;
+}
 
 function iconSlot(depth: number, Icon: AdminNavItem["icon"] | undefined) {
   if (depth === 0 && Icon) {
@@ -150,8 +150,6 @@ type NodeProps = {
   activeKeys: ReadonlySet<string>;
   openByParent: OpenByParent;
   openChainForKey: (key: string) => void;
-  animateOpenKey: string | null;
-  setAnimateOpenKey: (key: string | null) => void;
   resolvePermissionName?: (code: string) => string | null;
 };
 
@@ -163,8 +161,6 @@ function NavNode({
   activeKeys,
   openByParent,
   openChainForKey,
-  animateOpenKey,
-  setAnimateOpenKey,
   resolvePermissionName,
 }: NodeProps) {
   const { t } = useTranslation(["admin_menu"]);
@@ -173,60 +169,72 @@ function NavNode({
   const label = item.labelKey ? t(item.labelKey) : item.label;
   const hasChildren = Boolean(item.children?.length);
   const isOpen = hasChildren && !item.disabled && openByParent[parentKey] === item.key;
-  const isSelected = Boolean(item.to && isPrefixMatch(item.to, pathname));
+  const isSelected = !hasChildren && activeKeys.has(item.key);
   const Icon = item.icon;
   const isSectionActive = depth === 0 && hasChildren && activeKeys.has(item.key);
   const isTrailActive = activeKeys.has(item.key);
-  const showActiveIndicator = depth === 0 && (isSelected || isSectionActive);
   const blockedTooltip = getBlockedTooltipText(item, t, resolvePermissionName);
 
-  const openSelf = () => {
-    if (!hasChildren) return;
-    if (item.disabled) return;
-    openChainForKey(item.key);
-  };
+  // Pure button item (no route, no children) — e.g. Support
+  if (!hasChildren && !item.to) {
+    const TrailingIcon = item.trailingIcon;
+    return (
+      <SidebarMenuItem className="group/nav-item">
+        <SidebarMenuButton
+          className={cn(
+            "relative z-10",
+            "h-8.5 rounded-lg",
+            "transition-[color,background-color] duration-150 ease-out",
+            "text-label-secondary! hover:text-label-primary!",
+            depth === 0 ? "bg-card hover:bg-card/80" : "hover:bg-card",
+          )}
+          style={{ paddingLeft: NAV_ITEM_BASE_PADDING_LEFT } as CSSProperties}
+        >
+          {iconSlot(depth, Icon)}
+          <span className="min-w-0 flex-1 truncate">{label}</span>
+          {TrailingIcon ? (
+            <TrailingIcon
+              className="ml-auto size-3.5 shrink-0 text-muted-foreground"
+              aria-hidden="true"
+            />
+          ) : null}
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+    );
+  }
 
+  // Leaf item with route
   if (!hasChildren) {
     return (
-      <SidebarMenuItem>
-        {showActiveIndicator ? (
-          <motion.span
-            layoutId="admin-sider-active-indicator"
-            layout="position"
-            className="absolute pointer-events-none z-30 inset-y-0 left-0 w-0.75 bg-sidebar-primary"
-            transition={{ duration: 0.22, ease: [0.2, 0, 0, 1] }}
-          />
-        ) : null}
+      <SidebarMenuItem className="group/nav-item">
         <WithBlockedTooltip tooltip={blockedTooltip}>
           <SidebarMenuButton
             asChild
             isActive={isSelected}
             aria-disabled={item.disabled ? "true" : undefined}
             className={cn(
-              "rounded-none relative z-10",
-              "h-8 pl-5",
-              "transition-[width,height,padding,color] duration-150 ease-out",
-              "text-label-secondary! hover:text-label-primary! hover:bg-transparent! active:bg-transparent!",
-              "data-[active=true]:font-semibold data-[active=true]:bg-transparent! data-[active=true]:text-foreground!",
+              "relative z-10",
+              "h-8.5 rounded-lg",
+              "transition-[color,background-color] duration-150 ease-out",
+              "text-label-secondary! hover:text-label-primary!",
+              depth === 0
+                ? "bg-card hover:bg-card/80 data-[active=true]:bg-accent/50"
+                : "hover:bg-card data-[active=true]:bg-accent/50",
+              "data-[active=true]:font-semibold data-[active=true]:text-foreground!",
               item.disabled
                 ? cn(
                     "opacity-60",
                     "hover:text-label-secondary!",
                     "cursor-not-allowed",
-                    // Override SidebarMenuButton's default aria-disabled pointer-events-none so tooltip still works.
                     "aria-disabled:pointer-events-auto",
                   )
                 : null,
             )}
-            style={
-              {
-                paddingLeft: NAV_ITEM_BASE_PADDING_LEFT,
-              } as CSSProperties
-            }
+            style={{ paddingLeft: NAV_ITEM_BASE_PADDING_LEFT } as CSSProperties}
           >
             <Link
               to={item.to!}
-              aria-current={isSelected ? "page" : undefined}
+              aria-current={item.to && isExactMatch(item.to, pathname) ? "page" : undefined}
               onClick={(e) => {
                 openChainForKey(item.key);
                 if (!item.disabled) return;
@@ -236,6 +244,18 @@ function NavNode({
             >
               {iconSlot(depth, Icon)}
               <span className="min-w-0 flex-1 truncate">{label}</span>
+              {depth === 0 && item.actionRenderer ? (
+                <span
+                  className="opacity-0 group-hover/nav-item:opacity-100 transition-opacity shrink-0"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }}
+                  onKeyDown={(e) => e.stopPropagation()}
+                >
+                  {item.actionRenderer(item)}
+                </span>
+              ) : null}
             </Link>
           </SidebarMenuButton>
         </WithBlockedTooltip>
@@ -243,30 +263,26 @@ function NavNode({
     );
   }
 
+  // Parent item with children — collapsible accordion
   const navTarget = item.children?.[0] ? getFirstDescendantTo(item.children[0]) : null;
-  const shouldAnimateOpen = animateOpenKey === item.key;
 
   return (
     <Collapsible open={isOpen}>
-      <SidebarMenuItem data-section-active={isSectionActive ? "true" : "false"}>
-        {showActiveIndicator ? (
-          <motion.span
-            layoutId="admin-sider-active-indicator"
-            layout="position"
-            className="absolute pointer-events-none z-30 inset-y-0 left-0 w-0.75 bg-sidebar-primary"
-            transition={{ duration: 0.22, ease: [0.2, 0, 0, 1] }}
-          />
-        ) : null}
+      <SidebarMenuItem
+        data-section-active={isSectionActive ? "true" : "false"}
+        className="group/nav-item"
+      >
         <WithBlockedTooltip tooltip={blockedTooltip}>
           <SidebarMenuButton
             isActive={isTrailActive}
             aria-disabled={item.disabled ? "true" : undefined}
             className={cn(
-              "rounded-none relative z-10",
-              "h-8 pl-5",
-              "transition-[width,height,padding,color] duration-150 ease-out",
-              "text-label-secondary! hover:text-label-primary! hover:bg-transparent! active:bg-transparent!",
-              "data-[active=true]:font-semibold data-[active=true]:bg-transparent! data-[active=true]:text-foreground!",
+              "relative z-10",
+              "h-8.5 rounded-lg",
+              "transition-[color,background-color] duration-150 ease-out",
+              "text-label-secondary! hover:text-label-primary!",
+              "bg-card hover:bg-card/80 data-[active=true]:bg-accent/50",
+              "data-[active=true]:font-semibold data-[active=true]:text-foreground!",
               item.disabled
                 ? cn(
                     "opacity-60",
@@ -276,22 +292,26 @@ function NavNode({
                   )
                 : "hover:cursor-pointer",
             )}
-            style={
-              {
-                paddingLeft: NAV_ITEM_BASE_PADDING_LEFT,
-              } as CSSProperties
-            }
+            style={{ paddingLeft: NAV_ITEM_BASE_PADDING_LEFT } as CSSProperties}
             onClick={() => {
               if (item.disabled) return;
-              setAnimateOpenKey(item.key);
-              openSelf();
-              if (navTarget) {
+              openChainForKey(item.key);
+              if (!isOpen && navTarget) {
                 navigate({ to: navTarget });
               }
             }}
           >
             {iconSlot(depth, Icon)}
             <span className="min-w-0 flex-1 truncate">{label}</span>
+            {depth === 0 && item.actionRenderer ? (
+              <span
+                className="opacity-0 group-hover/nav-item:opacity-100 transition-opacity shrink-0"
+                onClick={(e) => e.stopPropagation()}
+                onKeyDown={(e) => e.stopPropagation()}
+              >
+                {item.actionRenderer(item)}
+              </span>
+            ) : null}
             <ChevronRightIcon
               size={16}
               expanded={isOpen}
@@ -302,37 +322,21 @@ function NavNode({
         </WithBlockedTooltip>
 
         <CollapsibleContent>
-          <motion.div
-            // Only animate on user-triggered open; route-driven open should appear instantly.
-            initial={shouldAnimateOpen ? { height: 0, opacity: 0 } : false}
-            animate={{ height: "auto", opacity: 1 }}
-            transition={
-              shouldAnimateOpen ? { duration: 0.18, ease: [0.2, 0, 0, 1] } : { duration: 0 }
-            }
-            style={{ overflow: "hidden" }}
-            onAnimationComplete={() => {
-              // Avoid accidental animations on subsequent re-renders.
-              if (shouldAnimateOpen) setAnimateOpenKey(null);
-            }}
-          >
-            <SidebarMenu>
-              {item.children!.map((child) => (
-                <NavNode
-                  key={child.key}
-                  item={child}
-                  depth={depth + 1}
-                  parentKey={item.key}
-                  pathname={pathname}
-                  activeKeys={activeKeys}
-                  openByParent={openByParent}
-                  openChainForKey={openChainForKey}
-                  animateOpenKey={animateOpenKey}
-                  setAnimateOpenKey={setAnimateOpenKey}
-                  resolvePermissionName={resolvePermissionName}
-                />
-              ))}
-            </SidebarMenu>
-          </motion.div>
+          <SidebarMenu>
+            {item.children!.map((child) => (
+              <NavNode
+                key={child.key}
+                item={child}
+                depth={depth + 1}
+                parentKey={item.key}
+                pathname={pathname}
+                activeKeys={activeKeys}
+                openByParent={openByParent}
+                openChainForKey={openChainForKey}
+                resolvePermissionName={resolvePermissionName}
+              />
+            ))}
+          </SidebarMenu>
         </CollapsibleContent>
       </SidebarMenuItem>
     </Collapsible>
@@ -353,11 +357,13 @@ function findNavItemByPath(items: readonly AdminNavItem[], path: string): AdminN
 export function AdminSiderNav(props: {
   items: readonly AdminNavItem[];
   resolvePermissionName?: (code: string) => string | null;
+  className?: string;
 }) {
   const { t } = useTranslation(["admin_menu"]);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const favoritePaths = useFavoritesStore((s) => s.paths);
   const navIndex = useMemo(() => buildNavIndex(props.items), [props.items]);
+
   const activeTrail = useMemo(
     () => findActiveTrail(props.items, pathname),
     [props.items, pathname],
@@ -365,21 +371,27 @@ export function AdminSiderNav(props: {
   const activeKeys = useMemo(() => new Set(activeTrail), [activeTrail]);
 
   const [openByParent, setOpenByParent] = useState<OpenByParent>({});
-  const [animateOpenKey, setAnimateOpenKey] = useState<string | null>(null);
 
   const openChainForKey = (key: string) => {
-    setOpenByParent(() => {
+    setOpenByParent((prev) => {
+      const entry = navIndex.get(key);
+      if (!entry) return prev;
+      // Toggle: if already open at this parent, close it
+      if (entry.isGroup && prev[entry.parentKey] === key) {
+        const next = { ...prev };
+        delete next[entry.parentKey];
+        return next;
+      }
+      // Build open chain from key up to root
       const next: OpenByParent = {};
-
       let current = key;
       for (;;) {
-        const entry = navIndex.get(current);
-        if (!entry) break;
-        if (entry.isGroup) next[entry.parentKey] = current;
-        if (entry.parentKey === "__root__") break;
-        current = entry.parentKey;
+        const e = navIndex.get(current);
+        if (!e) break;
+        if (e.isGroup) next[e.parentKey] = current;
+        if (e.parentKey === "__root__") break;
+        current = e.parentKey;
       }
-
       return next;
     });
   };
@@ -408,7 +420,7 @@ export function AdminSiderNav(props: {
   }, [favoritePaths, props.items, t]);
 
   return (
-    <nav className="mt-12 mb-8">
+    <nav className={cn("mt-4 mb-8", props.className)}>
       {favoriteItems.length > 0 ? (
         <>
           <SidebarGroup className="p-0 pb-0">
@@ -423,11 +435,12 @@ export function AdminSiderNav(props: {
                         asChild
                         isActive={isSelected}
                         className={cn(
-                          "rounded-none relative z-10",
-                          "h-8 pl-5",
-                          "transition-[color] duration-150 ease-out",
-                          "text-label-secondary! hover:text-label-primary! hover:bg-transparent! active:bg-transparent!",
-                          "data-[active=true]:font-semibold data-[active=true]:bg-transparent! data-[active=true]:text-foreground!",
+                          "relative z-10",
+                          "h-8.5 rounded-lg",
+                          "transition-[color,background-color] duration-150 ease-out",
+                          "text-label-secondary! hover:text-label-primary!",
+                          "bg-card hover:bg-card/80 data-[active=true]:bg-accent/50",
+                          "data-[active=true]:font-semibold data-[active=true]:text-foreground!",
                         )}
                         style={{ paddingLeft: NAV_ITEM_BASE_PADDING_LEFT } as CSSProperties}
                       >
@@ -457,21 +470,21 @@ export function AdminSiderNav(props: {
 
       <SidebarGroup className="p-0">
         <SidebarGroupContent>
-          <SidebarMenu className="gap-2 px-0">
+          <SidebarMenu className="gap-0.5 px-0">
             {props.items.map((item) => (
-              <NavNode
-                key={item.key}
-                item={item}
-                depth={0}
-                parentKey="__root__"
-                pathname={pathname}
-                activeKeys={activeKeys}
-                openByParent={openByParent}
-                openChainForKey={openChainForKey}
-                animateOpenKey={animateOpenKey}
-                setAnimateOpenKey={setAnimateOpenKey}
-                resolvePermissionName={props.resolvePermissionName}
-              />
+              <Fragment key={item.key}>
+                <NavNode
+                  item={item}
+                  depth={0}
+                  parentKey="__root__"
+                  pathname={pathname}
+                  activeKeys={activeKeys}
+                  openByParent={openByParent}
+                  openChainForKey={openChainForKey}
+                  resolvePermissionName={props.resolvePermissionName}
+                />
+                {item.dividerAfter ? <SidebarSeparator className="mx-5 my-1" /> : null}
+              </Fragment>
             ))}
           </SidebarMenu>
         </SidebarGroupContent>

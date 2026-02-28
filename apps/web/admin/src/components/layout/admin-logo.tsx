@@ -27,6 +27,25 @@ export function AdminLogo(props: { to?: string; ariaLabel: string; size?: number
   );
 }
 
+export function AdminBrandMark(props: { size?: number; productName?: string }) {
+  const size = props.size ?? 80;
+  const productName = props.productName;
+
+  return (
+    <div className="flex flex-col items-center gap-1.5">
+      <img
+        src="/logo.svg"
+        width={size}
+        height={size}
+        className="block object-contain"
+        style={{ width: size, height: size }}
+        alt={productName}
+      />
+      {productName ? <span className="text-lg font-medium">{productName}</span> : null}
+    </div>
+  );
+}
+
 export function AdminFullLogo(props: { to?: string; ariaLabel: string; width?: number }) {
   const to = props.to ?? "/";
   const width = props.width ?? 180;
