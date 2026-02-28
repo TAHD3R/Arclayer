@@ -1,4 +1,4 @@
-import { COMMON_TIMEZONES, DATE_FORMAT_ITEMS } from "@/constants/settings-general";
+import { COMMON_TIMEZONES, DATE_FORMAT_ITEMS } from "@/constants/datetime";
 import { type AppLocale } from "@/lib/i18n";
 
 import { formatLocaleLabel } from "./utils";
@@ -31,7 +31,10 @@ export function buildTimezoneOptions(currentTimezone?: string): Array<Localizati
 }
 
 export function buildDateFormatOptions(): Array<LocalizationOption> {
-  return DATE_FORMAT_ITEMS.map((item) => ({ value: item.value, label: item.label }));
+  return DATE_FORMAT_ITEMS.map((item) => ({
+    value: item.value,
+    label: item.label,
+  }));
 }
 
 export function resolveDateFormatLabel(dateFormat: string | undefined): string {

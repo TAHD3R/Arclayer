@@ -1,7 +1,7 @@
 import { History, Search, Settings } from "lucide-react";
 import { describe, expect, test, vi } from "vitest";
 
-import type { AdminNavItem } from "@/constants/admin-nav";
+import type { AdminNavItem } from "@/constants/menu/workspaces";
 import { buildAdminNavCommandItems } from "@/lib/command/nav-command-items";
 
 describe("nav-command-items", () => {

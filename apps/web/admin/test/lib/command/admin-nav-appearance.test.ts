@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { ADMIN_NAV_ITEMS } from "@/constants/admin-nav";
+import { ADMIN_NAV_ITEMS } from "@/constants/menu/workspaces";
 
 describe("admin nav appearance group", () => {
   test("appearance group has been removed", () => {

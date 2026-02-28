@@ -12,7 +12,7 @@ import {
   isPrefixMatch,
   normalizePath,
 } from "@/lib/admin-nav-utils";
-import type { AdminNavItem } from "@/constants/admin-nav";
+import type { AdminNavItem } from "@/constants/menu/workspaces";
 
 // ---------------------------------------------------------------------------
 // normalizePath

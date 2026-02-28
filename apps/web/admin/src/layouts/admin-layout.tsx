@@ -5,11 +5,11 @@ import { useRouterState } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { AnimatePresence } from "motion/react";
 
-import { ADMIN_NAV_ITEMS } from "@/constants/admin-nav";
+import { ADMIN_NAV_ITEMS } from "@/constants/menu/workspaces";
 import type { AdminNavItem } from "@/types/admin-nav";
-import { COMMON_FOOTER_NAV_ITEMS } from "@/constants/common-footer-nav";
+import { COMMON_FOOTER_NAV_ITEMS } from "@/constants/menu/common";
 import { useToggle } from "@/hooks/use-toggle";
-import { ORG_NAV_ITEMS } from "@/constants/org-nav";
+import { ORG_NAV_ITEMS } from "@/constants/menu/organization";
 import { mapOrgItemsWithPrefix, normalizePath } from "@/lib/admin-nav-utils";
 import { AdminSiderNav } from "@/components/layout/admin-side-nav";
 import { AdminAccountMenu } from "@/components/layout/admin-account-menu";
