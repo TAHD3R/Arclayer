@@ -48,7 +48,7 @@ function TooltipContent({
       className={cn("z-50 w-fit bg-primary text-primary-foreground rounded-md", className)}
       {...props}
     >
-      <motion.div className="overflow-hidden px-3 py-1.5 text-caption text-balance">
+      <motion.div className="overflow-hidden px-3 py-1.5 text-xs text-balance">
         <motion.div layout={layout}>{children}</motion.div>
       </motion.div>
       <TooltipArrowPrimitive
