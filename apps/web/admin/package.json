@@ -89,7 +89,6 @@
     "unplugin-auto-import": "^21.0.0",
     "vite": "catalog:",
     "vite-plugin-auto-alias": "^1.0.9",
-    "vite-plugin-compression2": "catalog:",
-    "vite-plugin-react-inspector": "catalog:"
+    "vite-plugin-compression2": "catalog:"
   }
 }

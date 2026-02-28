@@ -20,3 +20,6 @@ export type { ArchiveBuildOutputOptions } from "./archive-build-output.ts";
 
 export { celestialBuildArtifacts } from "./build-artifacts.ts";
 export type { CelestialBuildArtifactsOptions } from "./build-artifacts.ts";
+
+export { celestialReactInspector } from "./react-inspector.ts";
+export type { CelestialReactInspectorOptions } from "./react-inspector.ts";

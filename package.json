@@ -2,8 +2,7 @@
   "name": "celestial-framework",
   "private": true,
   "scripts": {
-    "dev": "turbo run dev jobs:worker --filter=@celestial/admin --filter=@celestial/api",
-    "dev:full": "turbo run dev jobs:worker --filter=@celestial/admin --filter=@celestial/api --filter=@celestial/portal",
+    "dev": "turbo run dev jobs:worker --filter=@celestial/admin --filter=@celestial/api --filter=@celestial/portal",
     "build": "turbo run build --filter=@celestial/admin --filter=@celestial/portal",
     "format": "turbo run format --filter=@celestial/admin --filter=@celestial/api --filter=@celestial/portal",
     "check": "turbo run lint format typecheck test --filter=@celestial/admin --filter=@celestial/api --filter=@celestial/portal",

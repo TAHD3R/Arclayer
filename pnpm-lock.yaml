@@ -338,9 +338,6 @@ importers:
       vite-plugin-compression2:
         specifier: 'catalog:'
         version: 2.4.0(rollup@4.56.0)
-      vite-plugin-react-inspector:
-        specifier: 'catalog:'
-        version: 0.3.3
 
   apps/web/portal:
     dependencies:
@@ -451,6 +448,9 @@ importers:
       archiver:
         specifier: 'catalog:'
         version: 7.0.1
+      vite-plugin-react-inspector:
+        specifier: 'catalog:'
+        version: 0.3.3
     devDependencies:
       '@types/archiver':
         specifier: 'catalog:'

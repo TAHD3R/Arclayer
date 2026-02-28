@@ -11,10 +11,12 @@
     "./inject-build-meta": "./src/inject-build-meta.ts",
     "./archive-build-output": "./src/archive-build-output.ts",
     "./inject-copyright-banner": "./src/inject-copyright-banner.ts",
-    "./build-artifacts": "./src/build-artifacts.ts"
+    "./build-artifacts": "./src/build-artifacts.ts",
+    "./react-inspector": "./src/react-inspector.ts"
   },
   "dependencies": {
-    "archiver": "catalog:"
+    "archiver": "catalog:",
+    "vite-plugin-react-inspector": "catalog:"
   },
   "devDependencies": {
     "@types/archiver": "catalog:",
