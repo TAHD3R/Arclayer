@@ -37,29 +37,6 @@ export const ORG_NAV_ITEMS: AdminNavItem[] = [
   },
   // ── Group 2 ──
   {
-    key: "org.extensionsIntegrations",
-    label: "Extensions & integrations",
-    labelKey: "nav:NAV_EXTENSIONS_INTEGRATIONS",
-    icon: Blocks,
-    children: [
-      {
-        key: "org.extensionsIntegrations.extensions",
-        label: "Extensions",
-        labelKey: "nav:NAV_EXTENSIONS",
-        to: "/extensions",
-        icon: Puzzle,
-      },
-      {
-        key: "org.extensionsIntegrations.integrations",
-        label: "Integrations",
-        labelKey: "nav:NAV_INTEGRATIONS",
-        to: "/integrations",
-        icon: Cable,
-        disabled: true,
-      },
-    ],
-  },
-  {
     key: "org.team",
     label: "Team",
     labelKey: "nav:NAV_SETTINGS_TEAM",
@@ -94,6 +71,30 @@ export const ORG_NAV_ITEMS: AdminNavItem[] = [
     labelKey: "nav:NAV_ORG_ACTIVITY",
     to: "/activity",
     icon: Activity,
+  },
+  {
+    key: "org.extensionsIntegrations",
+    label: "Extensions & integrations",
+    labelKey: "nav:NAV_EXTENSIONS_INTEGRATIONS",
+    icon: Blocks,
+    dividerAfter: true,
+    children: [
+      {
+        key: "org.extensionsIntegrations.extensions",
+        label: "Extensions",
+        labelKey: "nav:NAV_EXTENSIONS",
+        to: "/extensions",
+        icon: Puzzle,
+      },
+      {
+        key: "org.extensionsIntegrations.integrations",
+        label: "Integrations",
+        labelKey: "nav:NAV_INTEGRATIONS",
+        to: "/integrations",
+        icon: Cable,
+        disabled: true,
+      },
+    ],
   },
   // ── Group 3 ──
   {

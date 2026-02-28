@@ -73,33 +73,11 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
   },
   // ── Group 2: Ecosystem & collaboration ──
   {
-    key: "extensionsIntegrations",
-    label: "Extensions & integrations",
-    labelKey: "nav:NAV_EXTENSIONS_INTEGRATIONS",
-    icon: Blocks,
-    children: [
-      {
-        key: "extensionsIntegrations.extensions",
-        label: "Extensions",
-        labelKey: "nav:NAV_EXTENSIONS",
-        to: "/extensions",
-        icon: Puzzle,
-      },
-      {
-        key: "extensionsIntegrations.integrations",
-        label: "Integrations",
-        labelKey: "nav:NAV_INTEGRATIONS",
-        to: "/settings/workspace/integrations",
-        icon: Cable,
-      },
-    ],
-  },
-  {
     key: "settings.team",
     label: "Team",
     labelKey: "nav:NAV_SETTINGS_TEAM",
     icon: Users,
-    dividerAfter: true,
+
     children: [
       {
         key: "settings.team.memberList",
@@ -130,6 +108,29 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
     labelKey: "nav:NAV_SETTINGS_MAINTENANCE_ACTIVITY",
     to: "/settings/maintenance/activity",
     icon: History,
+  },
+  {
+    key: "extensionsIntegrations",
+    label: "Extensions & integrations",
+    labelKey: "nav:NAV_EXTENSIONS_INTEGRATIONS",
+    icon: Blocks,
+    dividerAfter: true,
+    children: [
+      {
+        key: "extensionsIntegrations.extensions",
+        label: "Extensions",
+        labelKey: "nav:NAV_EXTENSIONS",
+        to: "/extensions",
+        icon: Puzzle,
+      },
+      {
+        key: "extensionsIntegrations.integrations",
+        label: "Integrations",
+        labelKey: "nav:NAV_INTEGRATIONS",
+        to: "/settings/workspace/integrations",
+        icon: Cable,
+      },
+    ],
   },
   // ── Group 3: Configuration ──
   {
