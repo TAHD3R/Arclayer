@@ -25,11 +25,6 @@ export function useEditorIframe(opts: UseEditorIframeOptions): UseEditorIframeRe
   const { workspaceId, pathname } = opts;
   const iframeRef = React.useRef<HTMLIFrameElement | null>(null);
 
-  const portalOrigin = React.useMemo(() => {
-    const raw = import.meta.env.VITE_PORTAL_ORIGIN;
-    return raw && isHttpOrigin(raw) ? raw : "http://localhost:3100";
-  }, []);
-
   const hostOrigin = React.useMemo(() => {
     if (typeof window === "undefined") return "";
     return window.location.origin;
@@ -52,6 +47,19 @@ export function useEditorIframe(opts: UseEditorIframeOptions): UseEditorIframeRe
     retry: false,
     meta: { silent: true },
   });
+
+  const portalOrigin = React.useMemo(() => {
+    const templateRaw = (import.meta.env.VITE_PORTAL_ORIGIN_TEMPLATE || "").trim();
+    const fallbackRaw = (import.meta.env.VITE_PORTAL_ORIGIN || "").trim();
+    const slug = (siteQuery.data?.slug || "").trim();
+
+    if (templateRaw && slug) {
+      const resolved = templateRaw.replaceAll("{slug}", slug);
+      if (isHttpOrigin(resolved)) return resolved;
+    }
+
+    return fallbackRaw && isHttpOrigin(fallbackRaw) ? fallbackRaw : "http://localhost:3100";
+  }, [siteQuery.data?.slug]);
 
   const normalizedPath = React.useMemo(() => normalizePathname(pathname || "/"), [pathname]);
 

@@ -7,6 +7,7 @@ from pydantic import Field, SecretStr
 
 from apps.api.common.schemas import BaseSchema
 from apps.api.common.types.public_uuid import PublicUUID
+from apps.api.modules.system.flags import SystemFlagsOut
 
 
 class SetupAdmin(BaseSchema):
@@ -120,4 +121,8 @@ class SystemRuntimeOut(BaseSchema):
     )
     capabilities: SystemRuntimeCapabilities = Field(
         ..., description="Runtime capabilities derived from deployment mode."
+    )
+    system_flags: SystemFlagsOut = Field(
+        ...,
+        description="Non-sensitive system flags used by the frontend for conditional UI rendering.",
     )

@@ -509,6 +509,10 @@ class MiddlewareSettings(BaseSettings):
         default_factory=list,
         validation_alias=AliasChoices("CORS_ALLOW_ORIGINS", "APP_CORS_ALLOW_ORIGINS"),
     )
+    cors_allow_origin_dynamic: bool = Field(
+        default=False,
+        validation_alias=AliasChoices("CORS_ALLOW_ORIGIN_DYNAMIC", "APP_CORS_ALLOW_ORIGIN_DYNAMIC"),
+    )
     cors_allow_methods: list[str] = Field(
         default_factory=lambda: ["GET"],
         validation_alias=AliasChoices("CORS_ALLOW_METHODS", "APP_CORS_ALLOW_METHODS"),

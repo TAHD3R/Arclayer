@@ -68,6 +68,31 @@ class SitesRepository(BaseRepository):
             .first()
         )
 
+    async def get_site_by_custom_hostname(self, *, hostname: str) -> SiteRecord | None:
+        """
+        Resolve a site by a custom hostname binding.
+
+        Notes:
+        - Only verified + active domain records are eligible for routing.
+        - The site and its workspace must be active as well.
+        """
+        raw = (hostname or "").strip().lower().rstrip(".")
+        if not raw:
+            return None
+
+        return (
+            await SiteRecord
+            .filter(
+                domains__hostname=raw,
+                domains__is_verified=True,
+                domains__is_active=True,
+                workspace__is_active=True,
+                is_active=True,
+            )
+            .order_by("created_at", "id")
+            .first()
+        )
+
     async def get_site_setting(self, *, site_id: UUID, namespace: str) -> SettingRecord | None:
         ns = (namespace or "").strip()
         if not ns:

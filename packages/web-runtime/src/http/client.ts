@@ -14,6 +14,12 @@ export interface ApiClientOptions {
   getAccessToken: () => string | null;
   getRefreshToken: () => string | null;
   /**
+   * Credentials mode for fetch calls.
+   *
+   * Note: individual requests can still override via `ApiRequestOptions.credentials`.
+   */
+  getCredentials?: () => RequestCredentials;
+  /**
    * Called after refresh succeeded. The implementation decides where to store tokens.
    */
   setTokens: (tokens: unknown) => void;
@@ -62,6 +68,7 @@ export function createApiClient(opts: ApiClientOptions): ApiClient {
     const url = buildApiUrl(path, opts);
     const headers = toHeaders(requestInit.headers);
     headers.set("accept", "application/json");
+    const credentials: RequestCredentials = requestInit.credentials ?? opts.getCredentials?.() ?? "same-origin";
 
     const localeHeaders = opts.getLocaleHeaders?.();
     if (localeHeaders?.["accept-language"]) headers.set("accept-language", localeHeaders["accept-language"]);
@@ -78,6 +85,7 @@ export function createApiClient(opts: ApiClientOptions): ApiClient {
         // With `exactOptionalPropertyTypes`, we must not set `body: undefined`.
         const init: RequestInit = {
           ...requestInit,
+          credentials,
           headers,
           ...(body !== undefined ? { body } : {}),
         };
@@ -114,10 +122,14 @@ export function createApiClient(opts: ApiClientOptions): ApiClient {
       if (auth?.skipRefresh) return false;
       if (auth?.retried) return false;
       const refreshToken = opts.getRefreshToken();
-      if (!refreshToken) return false;
+      const shouldTryCookieRefresh = !refreshToken && shouldAttemptRefreshCookie(opts, credentials);
+      if (!refreshToken && !shouldTryCookieRefresh) return false;
 
       if (!refreshInFlight) {
-        refreshInFlight = refreshAccessToken(refreshToken, opts).finally(() => {
+        refreshInFlight = (refreshToken
+          ? refreshAccessToken(refreshToken, opts, credentials)
+          : refreshAccessTokenWithCookie(opts, credentials)
+        ).finally(() => {
           refreshInFlight = null;
         });
       }
@@ -218,7 +230,11 @@ function normalizeBody(input: unknown, headers: Headers): BodyInit | undefined {
   return JSON.stringify(input);
 }
 
-async function refreshAccessToken(refreshToken: string, opts: ApiClientOptions): Promise<boolean> {
+async function refreshAccessToken(
+  refreshToken: string,
+  opts: ApiClientOptions,
+  credentials: RequestCredentials,
+): Promise<boolean> {
   const url = buildApiUrl("/auth/refresh", opts);
   const headers = new Headers();
   headers.set("accept", "application/json");
@@ -231,7 +247,64 @@ async function refreshAccessToken(refreshToken: string, opts: ApiClientOptions):
   const res = await fetch(url, {
     method: "POST",
     headers,
+    credentials,
     body: JSON.stringify({ refresh_token: refreshToken }),
+  });
+
+  const parsed: unknown = isJsonResponse(res) ? await res.json().catch(() => null) : await res.text();
+  if (!res.ok) return false;
+
+  if (parsed && typeof parsed === "object" && "timestamp" in parsed && "message" in parsed) {
+    const payload = parsed as ResponseModel<unknown>;
+    if (payload.error) return false;
+
+    const data = payload.data;
+    if (!data || typeof data !== "object") return false;
+    opts.setTokens(data);
+    return true;
+  }
+
+  return false;
+}
+
+function shouldAttemptRefreshCookie(opts: ApiClientOptions, credentials: RequestCredentials): boolean {
+  if (credentials === "omit") return false;
+  if (credentials === "include") return true;
+
+  const apiBaseUrl = opts.getApiBaseUrl();
+
+  // When apiBaseUrl is empty or relative, requests are same-origin and cookies (if any) can be sent.
+  if (!apiBaseUrl || apiBaseUrl.startsWith("/")) return true;
+
+  // If we can detect same-origin at runtime, allow cookie refresh under "same-origin" credentials.
+  const locationOrigin = (globalThis as unknown as { location?: { origin?: string } }).location?.origin;
+  if (typeof locationOrigin === "string" && locationOrigin) {
+    try {
+      const targetOrigin = new URL(apiBaseUrl, locationOrigin).origin;
+      return targetOrigin === locationOrigin;
+    } catch {
+      return false;
+    }
+  }
+
+  return false;
+}
+
+async function refreshAccessTokenWithCookie(opts: ApiClientOptions, credentials: RequestCredentials): Promise<boolean> {
+  const url = buildApiUrl("/auth/refresh-cookie", opts);
+  const headers = new Headers();
+  headers.set("accept", "application/json");
+  headers.set("content-type", "application/json");
+
+  const localeHeaders = opts.getLocaleHeaders?.();
+  if (localeHeaders?.["accept-language"]) headers.set("accept-language", localeHeaders["accept-language"]);
+  if (localeHeaders?.["x-locale"]) headers.set("x-locale", localeHeaders["x-locale"]);
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers,
+    credentials,
+    body: "{}",
   });
 
   const parsed: unknown = isJsonResponse(res) ? await res.json().catch(() => null) : await res.text();

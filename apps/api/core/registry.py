@@ -171,9 +171,17 @@ class AppFactory:
         middleware = self.settings.middleware
 
         if middleware.cors_enabled:
+            allow_origins = middleware.cors_allow_origins
+            if middleware.cors_allow_origin_dynamic:
+                base_domain = (self.settings.saas.base_domain or "").strip()
+                base_domain = base_domain.removeprefix("http://").removeprefix("https://")
+                base_domain = base_domain.strip().lstrip(".").rstrip("/")
+                scheme = "https" if self.settings.app_env == "production" else "http"
+                if base_domain:
+                    allow_origins = [f"{scheme}://app.{base_domain}", f"{scheme}://api.{base_domain}"]
             self.app.add_middleware(
                 CORSMiddleware,
-                allow_origins=middleware.cors_allow_origins,
+                allow_origins=allow_origins,
                 allow_methods=middleware.cors_allow_methods,
                 allow_headers=middleware.cors_allow_headers,
                 allow_credentials=middleware.cors_allow_credentials,
@@ -225,6 +233,10 @@ class AppFactory:
             omit_paths=self.settings.logging.request_log_omit_paths,
             omit_path_prefixes=self.settings.logging.request_log_omit_path_prefixes,
         )
+        if self.settings.application.deployment_mode == "saas":
+            from apps.api.core.middleware.site_resolver import SiteResolverMiddleware
+
+            self.app.add_middleware(SiteResolverMiddleware, settings=self.settings)
         self.app.add_middleware(CorrelationIdMiddleware)
 
         return self

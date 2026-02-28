@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+from urllib.parse import urlparse
+
 from fastapi import APIRouter, BackgroundTasks, Depends, Query, Request
+from fastapi import Response as FastAPIResponse
 
 from apps.api.config import Settings, get_settings
+from apps.api.core.exceptions import BadRequest, Forbidden, Unauthorized
 from apps.api.core.http.pagination import PageData, PageParams, get_page_params
 from apps.api.core.http.response import Response, ResponseModel
 from apps.api.core.i18n import get_current_locale, t
@@ -52,6 +56,103 @@ def _get_auth_service(
     return AuthService(settings, valkey=valkey)
 
 
+def _get_refresh_cookie_domain(settings: Settings) -> str | None:
+    override = settings.auth.cookie.domain
+    if override:
+        return override
+
+    if settings.application.deployment_mode != "saas":
+        return None
+
+    base_domain = (settings.saas.base_domain or "").strip()
+    if not base_domain:
+        return None
+    return f".{base_domain.lstrip('.')}"
+
+
+def _set_refresh_cookie(
+    fastapi_response: FastAPIResponse,
+    *,
+    settings: Settings,
+    refresh_token: str,
+    refresh_ttl_seconds: int,
+) -> None:
+    if not settings.auth.cookie.enabled:
+        return
+    fastapi_response.set_cookie(
+        settings.auth.cookie.name,
+        refresh_token,
+        httponly=True,
+        secure=settings.auth.cookie.secure,
+        samesite=settings.auth.cookie.samesite,  # type: ignore[arg-type]
+        domain=_get_refresh_cookie_domain(settings),
+        path="/",
+        max_age=refresh_ttl_seconds,
+    )
+
+
+def _clear_refresh_cookie(
+    fastapi_response: FastAPIResponse,
+    *,
+    settings: Settings,
+) -> None:
+    if not settings.auth.cookie.enabled:
+        return
+    fastapi_response.delete_cookie(
+        settings.auth.cookie.name,
+        domain=_get_refresh_cookie_domain(settings),
+        path="/",
+    )
+
+
+def _enforce_refresh_cookie_origin_policy(request: Request, *, settings: Settings) -> None:
+    """
+    Basic CSRF mitigation for cookie-based refresh.
+
+    Rationale:
+    - `/auth/refresh-cookie` authenticates via a browser cookie.
+    - When cookies are used for authentication, CSRF becomes relevant.
+    - We enforce an Origin allowlist based on the configured SaaS base domain.
+
+    Notes:
+    - We keep this intentionally minimal and only apply it to the refresh-cookie endpoint.
+    - If you ever switch to `SameSite=None`, consider enabling a full CSRF middleware.
+    """
+
+    if not settings.auth.cookie.enabled:
+        return
+
+    origin = (request.headers.get("origin") or "").strip()
+    if not origin:
+        raise Forbidden(
+            message=t("auth", "CSRF_ORIGIN_REQUIRED", default="Origin header is required for refresh-cookie."),
+            error="CSRF_ORIGIN_REQUIRED",
+        )
+
+    parsed = urlparse(origin)
+    if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+        raise Forbidden(
+            message=t("auth", "CSRF_ORIGIN_INVALID", default="Origin is invalid for refresh-cookie."),
+            error="CSRF_ORIGIN_INVALID",
+        )
+
+    if settings.application.deployment_mode != "saas":
+        return
+
+    base_domain = (settings.saas.base_domain or "").strip().lower().lstrip(".").rstrip(".")
+    if not base_domain:
+        return
+
+    host = parsed.hostname.strip().lower().rstrip(".")
+    if host == base_domain or host.endswith(f".{base_domain}"):
+        return
+
+    raise Forbidden(
+        message=t("auth", "CSRF_ORIGIN_NOT_ALLOWED", default="Origin is not allowed for refresh-cookie."),
+        error="CSRF_ORIGIN_NOT_ALLOWED",
+    )
+
+
 @router.post(
     "/login",
     response_model=ResponseModel[TokenPair],
@@ -60,9 +161,16 @@ def _get_auth_service(
 )
 async def login(
     payload: LoginRequest,
+    fastapi_response: FastAPIResponse,
     service: AuthService = Depends(_get_auth_service),
 ) -> ResponseModel[TokenPair]:
     tokens = await service.login(identifier=payload.username, password=payload.password)
+    _set_refresh_cookie(
+        fastapi_response,
+        settings=service.settings,
+        refresh_token=tokens.refresh_token,
+        refresh_ttl_seconds=tokens.refresh_expires_in,
+    )
     return Response.success(message=t("auth", "LOGIN_SUCCESS", default="登录成功"), data=tokens)
 
 
@@ -107,6 +215,43 @@ async def refresh(
     service: AuthService = Depends(_get_auth_service),
 ) -> ResponseModel[TokenPair]:
     tokens = await service.refresh(refresh_token=payload.refresh_token)
+    return Response.success(message=t("auth", "REFRESH_SUCCESS", default="刷新成功"), data=tokens)
+
+
+@router.post(
+    "/refresh-cookie",
+    response_model=ResponseModel[TokenPair],
+    dependencies=[rate_limit(*REFRESH_RATE_LIMIT)],
+    summary="Refresh tokens using refresh cookie",
+)
+async def refresh_cookie(
+    request: Request,
+    fastapi_response: FastAPIResponse,
+    service: AuthService = Depends(_get_auth_service),
+) -> ResponseModel[TokenPair]:
+    settings = service.settings
+    if not settings.auth.cookie.enabled:
+        raise BadRequest(
+            message=t("auth", "REFRESH_COOKIE_DISABLED", default="Refresh cookie is not enabled."),
+            error="REFRESH_COOKIE_DISABLED",
+        )
+
+    _enforce_refresh_cookie_origin_policy(request, settings=settings)
+
+    raw = request.cookies.get(settings.auth.cookie.name)
+    if not raw:
+        raise Unauthorized(
+            message=t("auth", "REFRESH_COOKIE_MISSING", default="Refresh cookie is missing."),
+            error="REFRESH_COOKIE_MISSING",
+        )
+
+    tokens = await service.refresh(refresh_token=raw)
+    _set_refresh_cookie(
+        fastapi_response,
+        settings=settings,
+        refresh_token=tokens.refresh_token,
+        refresh_ttl_seconds=tokens.refresh_expires_in,
+    )
     return Response.success(message=t("auth", "REFRESH_SUCCESS", default="刷新成功"), data=tokens)
 
 
@@ -178,10 +323,12 @@ async def change_password(
 )
 async def logout(
     payload: LogoutRequest,
+    fastapi_response: FastAPIResponse,
     user: User = Depends(get_current_user),
     service: AuthService = Depends(_get_auth_service),
 ) -> ResponseModel[None]:
     await service.logout(user_id=user.id, refresh_token=payload.refresh_token)
+    _clear_refresh_cookie(fastapi_response, settings=service.settings)
     return Response.success(message=t("auth", "LOGOUT_SUCCESS", default="退出成功"))
 
 

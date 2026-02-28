@@ -14,6 +14,7 @@ from apps.api.core.i18n import t
 from apps.api.modules.analytics.system.router import router as system_activity_router
 from apps.api.modules.organization.deps import require_org_owner
 from apps.api.modules.organization.models.org_membership import OrgMembership
+from apps.api.modules.system.flags import build_system_flags
 from apps.api.modules.system.mail.router import router as system_mail_router
 from apps.api.modules.system.plugins_manager.router import router as system_plugins_router
 from apps.api.modules.system.rbac.router import router as system_rbac_router
@@ -160,6 +161,7 @@ async def get_system_runtime(
                 deployment_settings_enabled=deployment_mode == "self_host",
                 public_register_enabled=settings.auth.allow_public_register,
             ),
+            system_flags=build_system_flags(settings=settings),
         )
     )
 

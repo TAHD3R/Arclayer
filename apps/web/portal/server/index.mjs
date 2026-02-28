@@ -40,6 +40,17 @@ async function start() {
       }
 
       if (vikeDev) {
+        // Vite dev middleware applies host allowlisting (DNS rebinding protection).
+        // When the Portal is accessed via Traefik subdomains (e.g. `philip.celestial.localhost`),
+        // the Host header may be rejected before Vike routing runs.
+        // Rewrite Host for the dev middleware while preserving the original host for app logic.
+        const host = req.headers?.host;
+        const localHost = `localhost:${PORT}`;
+        if (typeof host === "string" && host && host !== localHost) {
+          const forwardedHost = req.headers["x-forwarded-host"];
+          if (!forwardedHost) req.headers["x-forwarded-host"] = host;
+          req.headers.host = localHost;
+        }
         vikeDev.devMiddleware(req, res, async (err) => {
           if (err) throw err;
           await handleVike(req, res);
@@ -61,7 +72,7 @@ async function start() {
     }
   });
 
-  server.listen(PORT, () => {
+  server.listen(PORT, "0.0.0.0", () => {
     console.log(`Portal SSR server running at http://localhost:${PORT}`);
   });
 }
@@ -88,9 +99,9 @@ async function handleVike(req, res) {
     return;
   }
 
-  const { statusCode, headers, body } = httpResponse;
+  const { statusCode, headers: responseHeaders, body } = httpResponse;
   res.statusCode = statusCode;
-  headers.forEach(([name, value]) => res.setHeader(name, value));
+  responseHeaders.forEach(([name, value]) => res.setHeader(name, value));
   res.end(body);
 }
 

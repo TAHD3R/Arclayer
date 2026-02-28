@@ -1,0 +1,64 @@
+http:
+  routers:
+    # Convenience route: allow calling API endpoints through the Admin host.
+    # This prevents accidental 404s when hitting `http://app.<base>/api/*` directly
+    # and provides a safe fallback when Vite proxy is disabled in SaaS mode.
+    admin-api:
+      entryPoints:
+        - web
+      rule: "Host(`app.celestial.localhost`) && PathPrefix(`/api/`)"
+      service: api
+      priority: 20
+
+    api:
+      entryPoints:
+        - web
+      rule: "Host(`api.celestial.localhost`)"
+      service: api
+      priority: 10
+
+    admin:
+      entryPoints:
+        - web
+      rule: "Host(`app.celestial.localhost`)"
+      service: admin
+      priority: 10
+
+    traefik-dashboard:
+      entryPoints:
+        - web
+      rule: "Host(`traefik.celestial.localhost`)"
+      service: api@internal
+      priority: 10
+
+    portal:
+      entryPoints:
+        - web
+      # NOTE: Use the raw regexp form for HostRegexp to avoid template/placeholder compatibility
+      # surprises across Traefik versions. This matches any single-label subdomain under
+      # `*.celestial.localhost` (e.g. `philip.celestial.localhost`).
+      #
+      # Higher-priority routers (`app` / `api` / `traefik-dashboard`) still win, so those hosts won't
+      # be captured by this route.
+      rule: "HostRegexp(`^[^.]+\\.celestial\\.localhost$`)"
+      service: portal
+      priority: 1
+
+  services:
+    api:
+      loadBalancer:
+        passHostHeader: true
+        servers:
+          - url: "http://host.docker.internal:8000"
+
+    admin:
+      loadBalancer:
+        passHostHeader: true
+        servers:
+          - url: "http://host.docker.internal:5173"
+
+    portal:
+      loadBalancer:
+        passHostHeader: true
+        servers:
+          - url: "http://host.docker.internal:3100"

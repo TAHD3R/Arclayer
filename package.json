@@ -3,6 +3,8 @@
   "private": true,
   "scripts": {
     "dev": "turbo run dev jobs:worker --filter=@celestial/admin --filter=@celestial/api --filter=@celestial/portal",
+    "dev:saas": "pnpm infra:saas && pnpm dev",
+    "dev:self_host": "pnpm infra:self_host && pnpm dev",
     "build": "turbo run build --filter=@celestial/admin --filter=@celestial/portal",
     "format": "turbo run format --filter=@celestial/admin --filter=@celestial/api --filter=@celestial/portal",
     "check": "turbo run lint format typecheck test --filter=@celestial/admin --filter=@celestial/api --filter=@celestial/portal",
@@ -16,7 +18,9 @@
     "portal:check": "turbo run lint format typecheck --filter=@celestial/portal",
     "api": "turbo run dev --filter=@celestial/api",
     "api:test": "turbo run test --filter=@celestial/api  --ui=tui",
-    "api:check": "turbo run lint format typecheck test --filter=@celestial/api"
+    "api:check": "turbo run lint format typecheck test --filter=@celestial/api",
+    "infra:saas": "docker compose --profile saas up -d",
+    "infra:self_host": "docker compose up -d"
   },
   "devDependencies": {
     "@types/node": "catalog:",

@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Literal
 
-from pydantic import AliasChoices, Field, SecretStr, field_validator
+from pydantic import AliasChoices, BaseModel, Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -150,6 +151,32 @@ class AuthSettings(BaseSettings):
     Auth/JWT settings for the API application.
     """
 
+    class CookieSettings(BaseModel):
+        enabled: bool = Field(default=False, description="Whether to store refresh token in an HttpOnly cookie.")
+        name: str = Field(
+            default="celestial_refresh_token",
+            min_length=1,
+            max_length=128,
+            description="Cookie name used to store refresh token.",
+        )
+        domain: str | None = Field(
+            default=None,
+            description="Optional cookie Domain override. If omitted, defaults to .{saas.base_domain} in SaaS mode.",
+        )
+        secure: bool = Field(default=False, description="Whether to set Secure on refresh token cookie.")
+        samesite: Literal["lax", "strict", "none"] = Field(
+            default="lax",
+            description="SameSite for refresh token cookie (lax/strict/none).",
+        )
+
+        @field_validator("domain", mode="after")
+        @classmethod
+        def _normalize_domain(cls, value: str | None) -> str | None:
+            if value is None:
+                return None
+            normalized = value.strip()
+            return normalized or None
+
     model_config = SettingsConfigDict(
         env_prefix="AUTH__",
         env_file_encoding="utf-8",
@@ -201,6 +228,8 @@ class AuthSettings(BaseSettings):
         default=16,
         validation_alias=AliasChoices("PASSWORD_HASH_SALT_BYTES", "APP_PASSWORD_HASH_SALT_BYTES"),
     )
+
+    cookie: CookieSettings = Field(default_factory=CookieSettings)
 
 
 class PublicIdSettings(BaseSettings):

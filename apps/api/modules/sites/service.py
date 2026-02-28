@@ -172,6 +172,18 @@ class SiteService(BaseService):
         if ws_slug is None and host is not None:
             ws_slug = self._extract_workspace_slug_from_host(host)
 
+        # SaaS custom domains: if host is not a platform host, try to resolve by verified bindings.
+        if ws_slug is None and host is not None and self.settings.application.deployment_mode == "saas":
+            normalized_host = self._normalize_host_for_custom_domain(host)
+            if normalized_host is not None:
+                site = await self._repo.get_site_by_custom_hostname(hostname=normalized_host)
+                if site is not None:
+                    return SiteResolveOut(
+                        site_id=UUID(str(site.id)),
+                        default_locale=site.default_locale,
+                        fallback_locale=site.fallback_locale,
+                    )
+
         if ws_slug is None:
             raise NotFound("Site not found", error="SITE_NOT_FOUND")
 
@@ -219,6 +231,23 @@ class SiteService(BaseService):
         if not sub or "." in sub:
             return None
         return sub
+
+    def _normalize_host_for_custom_domain(self, host: str) -> str | None:
+        """
+        Normalize host for custom domain lookup, excluding platform base domain hosts.
+        """
+        raw = (host or "").strip().lower()
+        if not raw:
+            return None
+        if ":" in raw and "]" not in raw:
+            raw = raw.split(":", 1)[0]
+        raw = raw.rstrip(".")
+
+        base_domain = (self.settings.saas.base_domain or "").strip().lower().rstrip(".")
+        if base_domain:
+            if raw == base_domain or raw.endswith(f".{base_domain}"):
+                return None
+        return raw or None
 
     async def get_site_context(self, *, site_id: UUID) -> SiteResolveOut:
         """Retrieve site context by internal ID (used by Portal editor)."""

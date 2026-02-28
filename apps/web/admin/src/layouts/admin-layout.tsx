@@ -26,7 +26,9 @@ import { getMyOrganization } from "@/api/me";
 import { getWorkspaceDetail } from "@/api/workspaces";
 import { getUnreadNotificationPreview } from "@/api/notifications";
 import { useWorkspaceLocalization } from "@/hooks/use-workspace-localization";
+import { useSystemRuntime } from "@/hooks/use-system-runtime";
 import { resolvePermissionNameI18nKey } from "@/lib/auth/rbac-permissions";
+import { filterNavByScope } from "@/lib/filter-nav-by-scope";
 import {
   Sidebar,
   SidebarContent,
@@ -46,6 +48,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
   const notificationPanelPinned = usePreferencesStore((s) => s.notificationPanelPinned);
   const setNotificationPanelPinned = usePreferencesStore((s) => s.setNotificationPanelPinned);
   const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
+  const systemRuntime = useSystemRuntime();
 
   const orgPathPrefix = useMemo(() => {
     const matched = /^\/o\/[^/]+/.exec(pathname || "");
@@ -130,7 +133,15 @@ export function AdminLayout({ children }: PropsWithChildren) {
     return mapItems(baseItems);
   }, [isOrgScopeRoute, isMeScopeRoute, resolvedOrgPathPrefix, workspaceBase]);
 
-  const mainItems = useMemo(() => navItems.filter((it) => it.position !== "footer"), [navItems]);
+  const scopedNavItems = useMemo(
+    () => filterNavByScope(navItems, systemRuntime.runtime.deploymentMode),
+    [navItems, systemRuntime.runtime.deploymentMode],
+  );
+
+  const mainItems = useMemo(
+    () => scopedNavItems.filter((it) => it.position !== "footer"),
+    [scopedNavItems],
+  );
 
   const [notificationPanelOpen, , setNotificationPanelOpen] = useToggle(false);
 

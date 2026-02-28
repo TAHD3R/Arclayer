@@ -14,6 +14,23 @@ export function setUnauthorizedHandler(handler: UnauthorizedHandler | null) {
   unauthorizedHandler = handler;
 }
 
+function getRequestCredentials(): RequestCredentials {
+  const { apiBaseUrl } = getAppConfig();
+  const locationOrigin = (globalThis as unknown as { location?: { origin?: string } }).location
+    ?.origin;
+
+  // In non-browser environments, fall back to fetch default behavior (same-origin cookies only).
+  if (!locationOrigin) return "same-origin";
+  if (!apiBaseUrl) return "same-origin";
+
+  try {
+    const apiOrigin = new URL(apiBaseUrl, locationOrigin).origin;
+    return apiOrigin === locationOrigin ? "same-origin" : "include";
+  } catch {
+    return "same-origin";
+  }
+}
+
 function getLocaleHeaders(): { "accept-language"?: string; "x-locale"?: string } {
   const prefs = usePreferencesStore.getState();
   const headers: { "accept-language"?: string; "x-locale"?: string } = {};
@@ -32,6 +49,7 @@ const client = createApiClient({
   getApiPrefix: () => getAppConfig().apiPrefix,
   getAccessToken: () => useAuthStore.getState().accessToken,
   getRefreshToken: () => useAuthStore.getState().refreshToken,
+  getCredentials: getRequestCredentials,
   setTokens: (tokens) => useAuthStore.getState().setTokens(tokens),
   getLocaleHeaders,
   onUnauthorized: (ctx) => unauthorizedHandler?.(ctx),

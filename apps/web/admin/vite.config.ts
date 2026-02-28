@@ -83,6 +83,12 @@ export default defineConfig(({ mode, command }) => {
       },
     },
     server: {
+      // In SaaS dev mode, Traefik runs inside Docker and proxies to the host machine.
+      // The host services must bind to 0.0.0.0 so the Traefik container can reach them.
+      host: enableProxy ? "127.0.0.1" : "0.0.0.0",
+      port: 5173,
+      strictPort: true,
+      hmr: enableProxy ? undefined : { port: 5173, clientPort: 80 },
       fs: {
         allow: [workspaceRoot],
       },
