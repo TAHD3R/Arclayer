@@ -5,7 +5,7 @@ import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import type { AdminNavItem } from "@/constants/admin-nav";
+import type { AdminNavItem } from "@/types/admin-nav";
 import { cn } from "@/lib/utils";
 import {
   AdminOrgSwitcher,

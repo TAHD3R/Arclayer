@@ -89,7 +89,7 @@ export function BuiltinResultPage({
           </EmptyMedia>
           <EmptyTitle>{title}</EmptyTitle>
           {subTitle ? (
-            <EmptyDescription className="text-title3">{subTitle}</EmptyDescription>
+            <EmptyDescription className="text-footnote md:text-body">{subTitle}</EmptyDescription>
           ) : null}
         </EmptyHeader>
         {actions ? (

@@ -1,6 +1,10 @@
 import {
   Activity,
+  BarChart3,
+  Blocks,
   Boxes,
+  Cable,
+  CreditCard,
   Home,
   Puzzle,
   Settings,
@@ -9,8 +13,7 @@ import {
   Users,
 } from "lucide-react";
 
-import type { AdminNavItem } from "@/constants/admin-nav";
-import { COMMON_FOOTER_NAV_ITEMS } from "@/constants/common-footer-nav";
+import type { AdminNavItem } from "@/types/admin-nav";
 
 /**
  * Organization navigation uses canonical scope routes without `/w/:workspaceId`.
@@ -33,6 +36,29 @@ export const ORG_NAV_ITEMS: AdminNavItem[] = [
     dividerAfter: true,
   },
   // ── Group 2 ──
+  {
+    key: "org.extensionsIntegrations",
+    label: "Extensions & integrations",
+    labelKey: "nav:NAV_EXTENSIONS_INTEGRATIONS",
+    icon: Blocks,
+    children: [
+      {
+        key: "org.extensionsIntegrations.extensions",
+        label: "Extensions",
+        labelKey: "nav:NAV_EXTENSIONS",
+        to: "/extensions",
+        icon: Puzzle,
+      },
+      {
+        key: "org.extensionsIntegrations.integrations",
+        label: "Integrations",
+        labelKey: "nav:NAV_INTEGRATIONS",
+        to: "/integrations",
+        icon: Cable,
+        disabled: true,
+      },
+    ],
+  },
   {
     key: "org.team",
     label: "Team",
@@ -69,15 +95,21 @@ export const ORG_NAV_ITEMS: AdminNavItem[] = [
     to: "/activity",
     icon: Activity,
   },
-  {
-    key: "org.extensions",
-    label: "Extensions",
-    labelKey: "nav:NAV_EXTENSIONS",
-    to: "/extensions",
-    icon: Puzzle,
-    dividerAfter: true,
-  },
   // ── Group 3 ──
+  {
+    key: "org.usage",
+    label: "Usage",
+    labelKey: "nav:NAV_ORG_USAGE",
+    to: "/usage",
+    icon: BarChart3,
+  },
+  {
+    key: "org.billing",
+    label: "Billing",
+    labelKey: "nav:NAV_ORG_BILLING",
+    to: "/billing",
+    icon: CreditCard,
+  },
   {
     key: "org.settings",
     label: "Settings",
@@ -85,6 +117,4 @@ export const ORG_NAV_ITEMS: AdminNavItem[] = [
     to: "/settings",
     icon: Settings,
   },
-  // ── Footer ──
-  ...COMMON_FOOTER_NAV_ITEMS,
 ] as const;

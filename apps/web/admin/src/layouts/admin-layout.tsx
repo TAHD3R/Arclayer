@@ -5,7 +5,8 @@ import { useRouterState } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { AnimatePresence } from "motion/react";
 
-import { ADMIN_NAV_ITEMS, type AdminNavItem } from "@/constants/admin-nav";
+import { ADMIN_NAV_ITEMS } from "@/constants/admin-nav";
+import type { AdminNavItem } from "@/types/admin-nav";
 import { COMMON_FOOTER_NAV_ITEMS } from "@/constants/common-footer-nav";
 import { useToggle } from "@/hooks/use-toggle";
 import { ORG_NAV_ITEMS } from "@/constants/org-nav";
@@ -145,8 +146,15 @@ export function AdminLayout({ children }: PropsWithChildren) {
   const footerItemsWithActions = useMemo(
     () =>
       COMMON_FOOTER_NAV_ITEMS.map((item) => {
+        if (item.key === "help-center") {
+          return Object.assign({}, item, {
+            onAction: () => {
+              window.location.assign("#");
+            },
+          });
+        }
         if (item.key !== "notifications") return item;
-        Object.assign(item, {
+        return Object.assign({}, item, {
           onAction: () => setNotificationPanelOpen(!notificationPanelOpen),
           isActive: notificationPanelOpen,
           actionRenderer:
@@ -158,7 +166,6 @@ export function AdminLayout({ children }: PropsWithChildren) {
                 )
               : undefined,
         });
-        return item;
       }),
     [notificationPanelOpen, setNotificationPanelOpen, unreadCount],
   );

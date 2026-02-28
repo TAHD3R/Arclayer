@@ -1,6 +1,6 @@
 import { Bell, CircleHelp, ExternalLink } from "lucide-react";
 
-import type { AdminNavItem } from "@/constants/admin-nav";
+import type { AdminNavItem } from "@/types/admin-nav";
 
 /**
  * Footer nav items shared across all nav contexts (workspace, org, me).

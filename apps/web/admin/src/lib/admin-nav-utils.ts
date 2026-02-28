@@ -21,7 +21,7 @@ import {
   Wrench,
 } from "lucide-react";
 
-import type { AdminNavItem } from "@/constants/admin-nav";
+import type { AdminNavItem } from "@/types/admin-nav";
 import { getAppConfig } from "@/constants/app-config";
 import type { AdminMenuNodeEffective } from "@/types/api";
 

@@ -10,7 +10,7 @@ import {
 import { useTranslation } from "react-i18next";
 import { Tooltip as AntdTooltip } from "antd";
 
-import type { AdminNavItem } from "@/constants/admin-nav";
+import type { AdminNavItem } from "@/types/admin-nav";
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import ChevronRightIcon from "@/components/ui/icons/chevron-right";
 import {
@@ -179,6 +179,7 @@ function NavNode({
   if (!hasChildren && !item.to) {
     const TrailingIcon = item.trailingIcon;
     const forcedActive = Boolean(item.isActive);
+    const showAction = depth === 0 && Boolean(item.actionRenderer);
     return (
       <SidebarMenuItem className="group/nav-item">
         <SidebarMenuButton
@@ -198,6 +199,23 @@ function NavNode({
         >
           {iconSlot(depth, Icon)}
           <span className="min-w-0 flex-1 truncate">{label}</span>
+          {showAction && item.actionRenderer ? (
+            <span
+              className={cn(
+                "ml-auto shrink-0",
+                item.position === "footer"
+                  ? null
+                  : "opacity-0 group-hover/nav-item:opacity-100 transition-opacity",
+              )}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+              onKeyDown={(e) => e.stopPropagation()}
+            >
+              {item.actionRenderer(item)}
+            </span>
+          ) : null}
           {TrailingIcon ? (
             <TrailingIcon
               className="ml-auto size-3.5 shrink-0 text-muted-foreground"

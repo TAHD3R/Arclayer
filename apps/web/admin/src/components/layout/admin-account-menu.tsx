@@ -219,7 +219,7 @@ export function AdminAccountMenu() {
   };
 
   const onHelpCenter = () => {
-    // TODO: route not yet available
+    window.location.assign("#");
   };
 
   const canManageOrganization =

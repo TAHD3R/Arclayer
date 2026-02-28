@@ -1,55 +1,27 @@
-import type { LucideIcon } from "lucide-react";
-import type { ReactNode } from "react";
 import {
   Activity,
+  Blocks,
+  Cable,
+  Database,
   File,
   FileText,
   Gauge,
   HardDrive,
   History,
   Image,
+  Languages,
+  List,
   Navigation2,
   Puzzle,
   Search,
   Settings,
   ShieldCheck,
-  SlidersHorizontal,
   Users,
   UserPlus,
-  Wrench,
 } from "lucide-react";
 
-export type AdminNavItem = {
-  key: string;
-  label: string;
-  labelKey?: string;
-  to?: string;
-  icon: LucideIcon;
-  /**
-   * When true, the item is rendered but should not be navigable (UI will show a blocked/disabled state).
-   *
-   * Notes:
-   * - This is a UI hint; backend APIs must still enforce permissions.
-   * - Workspace route guard should NOT treat disabled items as allowed.
-   */
-  disabled?: boolean;
-  blockedReason?: "missing_permission" | "plugin_disabled" | null;
-  requiredPermission?: string | null;
-  ownerPluginId?: string | null;
-  children?: AdminNavItem[];
-  /** Render section: "main" (default) or "footer" (pinned to sidebar bottom). */
-  position?: "main" | "footer";
-  /** Render prop for an action button (e.g. Popover/DropdownMenu) shown on hover. */
-  actionRenderer?: (item: AdminNavItem) => ReactNode;
-  /** When true, a visual separator is rendered after this item. */
-  dividerAfter?: boolean;
-  /** Optional trailing icon displayed after the label (e.g. external-link indicator). */
-  trailingIcon?: LucideIcon;
-  /** Optional click callback for button-type items (no route, no children). */
-  onAction?: () => void;
-  /** Force active/selected visual state (e.g. when a panel triggered by this item is open). */
-  isActive?: boolean;
-};
+import type { AdminNavItem } from "@/types/admin-nav";
+export type { AdminNavItem } from "@/types/admin-nav";
 
 export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
   // ── Group 1: Core content ──
@@ -73,6 +45,22 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
         to: "/content/pages",
         icon: File,
       },
+      {
+        key: "content.all",
+        label: "All content",
+        labelKey: "nav:NAV_CONTENT_ALL",
+        to: "/content/entries",
+        icon: List,
+        disabled: true,
+      },
+      {
+        key: "content.types",
+        label: "Content types",
+        labelKey: "nav:NAV_CONTENT_TYPES",
+        to: "/content/types",
+        icon: Database,
+        disabled: true,
+      },
     ],
   },
   {
@@ -83,13 +71,28 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
     icon: Image,
     dividerAfter: true,
   },
-  // ── Group 2: Collaboration & extensions ──
+  // ── Group 2: Ecosystem & collaboration ──
   {
-    key: "extensions",
-    label: "Extensions",
-    labelKey: "nav:NAV_EXTENSIONS",
-    to: "/extensions",
-    icon: Puzzle,
+    key: "extensionsIntegrations",
+    label: "Extensions & integrations",
+    labelKey: "nav:NAV_EXTENSIONS_INTEGRATIONS",
+    icon: Blocks,
+    children: [
+      {
+        key: "extensionsIntegrations.extensions",
+        label: "Extensions",
+        labelKey: "nav:NAV_EXTENSIONS",
+        to: "/extensions",
+        icon: Puzzle,
+      },
+      {
+        key: "extensionsIntegrations.integrations",
+        label: "Integrations",
+        labelKey: "nav:NAV_INTEGRATIONS",
+        to: "/settings/workspace/integrations",
+        icon: Cable,
+      },
+    ],
   },
   {
     key: "settings.team",
@@ -121,6 +124,13 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
       },
     ],
   },
+  {
+    key: "activity",
+    label: "Activity",
+    labelKey: "nav:NAV_SETTINGS_MAINTENANCE_ACTIVITY",
+    to: "/settings/maintenance/activity",
+    icon: History,
+  },
   // ── Group 3: Configuration ──
   {
     key: "settings",
@@ -136,11 +146,11 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
         icon: Navigation2,
       },
       {
-        key: "settings.general",
-        label: "General",
-        labelKey: "nav:NAV_SETTINGS_GENERAL",
-        to: "/settings/general",
-        icon: SlidersHorizontal,
+        key: "settings.localization",
+        label: "Localization",
+        labelKey: "nav:NAV_SETTINGS_LOCALIZATION",
+        to: "/settings/general/localization",
+        icon: Languages,
       },
       {
         key: "settings.seo",
@@ -149,30 +159,15 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
         to: "/settings/seo",
         icon: Search,
       },
-    ],
-  },
-  {
-    key: "maintenance",
-    label: "Maintenance",
-    labelKey: "nav:NAV_SETTINGS_MAINTENANCE",
-    icon: Wrench,
-    children: [
       {
-        key: "maintenance.snapshots",
+        key: "settings.snapshots",
         label: "Backups & rollback",
         labelKey: "nav:NAV_SETTINGS_MAINTENANCE_SNAPSHOTS",
         to: "/settings/maintenance/snapshots",
         icon: HardDrive,
       },
       {
-        key: "maintenance.activity",
-        label: "Activity",
-        labelKey: "nav:NAV_SETTINGS_MAINTENANCE_ACTIVITY",
-        to: "/settings/maintenance/activity",
-        icon: History,
-      },
-      {
-        key: "maintenance.status",
+        key: "settings.status",
         label: "System status",
         labelKey: "nav:NAV_SETTINGS_MAINTENANCE_STATUS",
         to: "/settings/maintenance/status",

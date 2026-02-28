@@ -1,4 +1,4 @@
-import type { AdminNavItem } from "@/constants/admin-nav";
+import type { AdminNavItem } from "@/types/admin-nav";
 
 export type AdminCommandItem = {
   id: string;
