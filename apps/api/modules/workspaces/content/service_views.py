@@ -257,10 +257,10 @@ class WorkspaceContentViewsMixin:
 
         if view.dsl.projection:
             rows = _apply_projection(rows, view.dsl.projection)
-        if not view.dsl.include_document_ir:
+        if not view.dsl.include_page_blueprint:
             for row in rows:
-                row.pop("document_ir", None)
-                row.pop("documentIr", None)
+                row.pop("page_blueprint", None)
+                row.pop("pageBlueprint", None)
 
         total = len(rows)
         offset = payload.offset

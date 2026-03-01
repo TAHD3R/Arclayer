@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { exportBlockManifestJsonSchema, exportDesignDocumentV1JsonSchema } from "../src/json-schema";
+import { exportBlockManifestJsonSchema, exportPageBlueprintJsonSchema } from "../src/json-schema";
 
 function asRecord(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
@@ -8,13 +8,13 @@ function asRecord(value: unknown): Record<string, unknown> {
 }
 
 describe("protocol/json-schema exports", () => {
-  test("exportDesignDocumentV1JsonSchema() is stable and contains node discriminator", () => {
-    const schema = exportDesignDocumentV1JsonSchema();
+  test("exportPageBlueprintJsonSchema() is stable and contains node discriminator", () => {
+    const schema = exportPageBlueprintJsonSchema();
     const schemaRec = asRecord(schema);
     const defs = asRecord(schemaRec.$defs);
     const node = asRecord(defs.DesignNodeV1);
     const discriminator = asRecord(node.discriminator);
-    expect(schemaRec.$id).toBe("celestial://design-document-v1.json");
+    expect(schemaRec.$id).toBe("celestial://page-blueprint-v1.json");
     expect(discriminator.propertyName).toBe("type");
 
     // Snapshot key structure (keep snapshot small and stable).

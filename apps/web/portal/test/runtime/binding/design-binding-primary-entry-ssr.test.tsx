@@ -2,13 +2,13 @@ import React from "react";
 import { renderToString } from "react-dom/server";
 import { describe, expect, test } from "vitest";
 
-import { DesignDocumentRenderer } from "@celestial/site-renderer-core";
+import { PageBlueprintRenderer } from "@celestial/site-renderer-core";
 import type { DesignRenderDataSourcesV1 } from "@celestial/site-renderer-core";
-import type { DesignDocumentV1, ViewerContext } from "@celestial/site-block-protocol";
+import type { PageBlueprint, ViewerContext } from "@celestial/site-block-protocol";
 
 describe("binding: primaryEntry (SSR)", () => {
   test("text binding resolves from dataSources.primaryEntry.data.fields", () => {
-    const doc: DesignDocumentV1 = {
+    const doc: PageBlueprint = {
       version: 1,
       rootId: "page",
       nodesById: {
@@ -56,7 +56,7 @@ describe("binding: primaryEntry (SSR)", () => {
     };
 
     const html = renderToString(
-      <DesignDocumentRenderer
+      <PageBlueprintRenderer
         document={doc}
         ctx={viewerCtx}
         viewport={{ width: 1440, height: 800, baseWidth: 1440, baseHeight: 800 }}

@@ -18,6 +18,19 @@ import { useEditorBridgeContext } from "@/pages/workspaces/editor/contexts/edito
 import { useEditorSelectionPatch } from "@/pages/workspaces/editor/hooks/use-editor-selection-patch";
 import { useEditorStore } from "@/pages/workspaces/editor/stores/editor-store";
 import { notifyErrorText, getErrorMessage } from "@/lib/notifications";
+import type { DesignLayoutV1, DesignNodeV1 } from "@celestial/site-block-protocol";
+
+function defaultRectLayout(x: number, y: number, width: number, height: number): DesignLayoutV1 {
+  return {
+    self: {
+      rect: { x, y, width, height },
+      constraints: { horizontal: "left", vertical: "top" },
+      alignX: "start",
+      alignY: "start",
+    },
+    children: { mode: "absolute" },
+  };
+}
 
 function AssetTile(props: { asset: AssetMasonryItem; disabled: boolean; onClick: () => void }) {
   const { asset, disabled } = props;
@@ -228,14 +241,22 @@ export function AssetsPanel() {
 
                   void (async () => {
                     try {
+                      const rootId = "pattern_image";
+                      const nodesById: Record<string, DesignNodeV1> = {
+                        [rootId]: {
+                          id: rootId,
+                          type: "image",
+                          name: asset.name ? `Image(${asset.name})` : "Image",
+                          src,
+                          alt: { "zh-CN": asset.name ?? "", "en-US": asset.name ?? "" },
+                          objectFit: "cover",
+                          layout: defaultRectLayout(0, 0, 360, 240),
+                          style: {},
+                        },
+                      };
                       const out = await portal.insertBlockTree({
-                        blocks: [
-                          {
-                            id: "b-temp",
-                            type: "image",
-                            props: { src, alt: asset.name },
-                          },
-                        ],
+                        rootIds: [rootId],
+                        nodesById,
                         targetBlockId: selectedBlockId,
                         position: selectedBlockId ? "inside" : undefined,
                       });

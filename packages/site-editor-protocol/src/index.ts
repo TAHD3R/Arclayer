@@ -1,11 +1,10 @@
 import type {
-  BlockNode,
   BlockManifest,
-  BlockPattern,
   PortableTextContent,
-  DesignDocumentV1,
+  PageBlueprint,
   DesignNodeId,
   DesignNodeV1,
+  LocalizedString,
 } from "@celestial/site-block-protocol";
 
 export type EditorProtocolVersion = 1;
@@ -44,14 +43,14 @@ export type EditorHistoryState = {
 /**
  * Editor-level node identifier.
  *
- * 注意：阶段 1-3 起，编辑器的真相源是 DesignDocument（nodesById），因此这里的 BlockId 实际上是 NodeId。
+ * 注意：阶段 1-3 起，编辑器的真相源是 PageBlueprint（nodesById），因此这里的 BlockId 实际上是 NodeId。
  * 为减少迁移成本（以及保持 Host/Portal 协议的兼容性），暂时沿用 BlockId 命名。
  */
 export type BlockId = DesignNodeId;
 
 export type RpcRequestId = string;
 
-// 迁移说明：DesignDocument 已有真实的 page_root 节点（document.rootId），不再需要虚拟 root id。
+// 迁移说明：PageBlueprint 已有真实的 page_root 节点（rootId），不再需要虚拟 root id。
 // 该常量保留仅用于兼容旧代码路径，避免一次性大改。
 export const EDITOR_PAGE_ROOT_BLOCK_ID = "page";
 
@@ -109,26 +108,25 @@ export type EditorInsertBlockResult = {
 export type EditorInsertBlockTreeArgs = {
   targetBlockId?: BlockId | null;
   position?: EditorInsertBlockPosition;
-} & (
-  | {
-      /**
-       * Legacy insertion tree (DocumentIR-style block subtree).
-       * Portal side will convert blocks -> DesignDocument nodes before insertion.
-       */
-      blocks: BlockNode[];
-    }
-  | {
-      /**
-       * DesignDocument fragment insertion (preferred).
-       *
-       * 约束：
-       * - rootIds 必须存在于 nodesById
-       * - nodesById 内部引用必须闭合（child id / slotChildren id）
-       */
-      rootIds: DesignNodeId[];
-      nodesById: Record<DesignNodeId, DesignNodeV1>;
-    }
-);
+  /**
+   * PageBlueprint 片段插入。
+   *
+   * 约束：
+   * - rootIds 必须存在于 nodesById
+   * - nodesById 内部引用必须闭合（child id / slotChildren id）
+   */
+  rootIds: DesignNodeId[];
+  nodesById: Record<DesignNodeId, DesignNodeV1>;
+};
+
+export type EditorInsertPatternV1 = {
+  code: string;
+  label: LocalizedString;
+  category: string;
+  previewImageUrl?: string | null;
+  rootIds: DesignNodeId[];
+  nodesById: Record<DesignNodeId, DesignNodeV1>;
+};
 
 export type EditorPresence = {
   siteId: string;
@@ -170,7 +168,7 @@ export type HostToPortalMessage =
   | PortalEditorMessageEnvelope<
       "PUSH_DRAFT_DOCUMENT",
       {
-        document: DesignDocumentV1;
+        document: PageBlueprint;
       }
     >;
 
@@ -209,15 +207,15 @@ export type PortalEditorRpcApi = {
   setOverlayMode: (args: { mode: EditorOverlayMode }) => void;
   selectBlock: (args: { blockId: BlockId | null }) => void;
   /**
-   * Push a draft document override for instant preview.
+   * Push a draft blueprint override for instant preview.
    *
    * When `pathname` is provided, the portal editor mode may ignore the update
    * if it does not match the currently rendered route. This prevents accidental
    * cross-page draft overwrites when the host shell navigates quickly.
    */
-  pushDraftDocument: (args: { document: DesignDocumentV1; pathname?: string }) => void;
-  /** Return the current in-memory document (including unsaved edits). */
-  getDocument: () => DesignDocumentV1;
+  pushDraftDocument: (args: { document: PageBlueprint; pathname?: string }) => void;
+  /** Return the current in-memory blueprint (including unsaved edits). */
+  getDocument: () => PageBlueprint;
   undo: () => EditorHistoryState;
   redo: () => EditorHistoryState;
   getHistoryState: () => EditorHistoryState;
@@ -244,7 +242,7 @@ export type PortalEditorRpcApi = {
 
   // --- Block registry & patterns ---
   getAvailableBlocks: () => BlockManifest[];
-  getBlockPatterns: (args: { category?: string }) => BlockPattern[];
+  getBlockPatterns: (args: { category?: string }) => EditorInsertPatternV1[];
 
   // --- Block manipulation ---
   moveBlock: (args: {
@@ -294,7 +292,7 @@ export type HostEditorRpcApi = {
    *
    * The host decides what save means.
    */
-  requestSave: (args: { siteId: string; pathname: string; document: DesignDocumentV1 }) => void;
+  requestSave: (args: { siteId: string; pathname: string; document: PageBlueprint }) => void;
   /** Request the host to open a content entry editor in a new tab/route. */
   requestEditContentRef: (args: { refEntryId: string; refEntryTitle?: string }) => void;
 

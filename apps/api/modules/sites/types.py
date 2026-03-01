@@ -6,7 +6,7 @@ from uuid import UUID
 from pydantic import ConfigDict
 
 from apps.api.common.schemas import BaseSchema
-from apps.api.modules.sites.design_document_schema import DesignDocumentV1
+from apps.api.modules.sites.design_document_schema import PageBlueprint
 
 
 class RouteTemplateMatch(BaseSchema):
@@ -28,7 +28,7 @@ class ResolvedEntryDocument(BaseSchema):
     revision: int
     revision_state: Literal["draft", "published"]
     variant_id: str | None
-    document: DesignDocumentV1
+    document: PageBlueprint
 
 
 class _CompiledRouteTemplate(BaseSchema):
@@ -48,4 +48,4 @@ class PublishedEntrySnapshot(TypedDict):
     entry_type_code: str
     title: str | None
     field_values: dict[str, Any] | None
-    document_ir: dict[str, Any] | None
+    page_blueprint: dict[str, Any] | None

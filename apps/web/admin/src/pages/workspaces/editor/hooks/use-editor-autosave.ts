@@ -1,6 +1,6 @@
 import * as React from "react";
 
-import type { DesignDocumentV1 } from "@celestial/site-block-protocol";
+import type { PageBlueprint } from "@celestial/site-block-protocol";
 
 import type { BridgeStatus } from "@/pages/workspaces/editor/hooks/use-editor-bridge";
 import { useEditorStore } from "@/pages/workspaces/editor/stores/editor-store";
@@ -12,8 +12,8 @@ export type UseEditorAutoSaveOptions = {
   saveOnBlur: boolean;
   isPageMode: boolean;
   bridgeStatus: BridgeStatus;
-  getDocument: (() => Promise<DesignDocumentV1 | null>) | null;
-  saveDraft: (doc: DesignDocumentV1) => Promise<void>;
+  getDocument: (() => Promise<PageBlueprint | null>) | null;
+  saveDraft: (doc: PageBlueprint) => Promise<void>;
 };
 
 function clampIntervalMs(sec: number): number {

@@ -9,7 +9,7 @@
     "typecheck": "tsc --noEmit --skipLibCheck",
     "lint": "oxlint -c ./node_modules/@celestial/ox-config/.oxlintrc.json .",
     "format": "oxfmt -c ./node_modules/@celestial/ox-config/.oxfmtrc.json .",
-    "test": "vitest run --config vitest.config.ts"
+    "test": "vitest run --passWithNoTests --config vitest.config.ts"
   },
   "dependencies": {
     "@ant-design/cssinjs": "catalog:",

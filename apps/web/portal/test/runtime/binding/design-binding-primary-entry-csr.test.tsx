@@ -5,9 +5,9 @@ import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { describe, expect, test } from "vitest";
 
-import { DesignDocumentRenderer } from "@celestial/site-renderer-core";
+import { PageBlueprintRenderer } from "@celestial/site-renderer-core";
 import type { DesignRenderDataSourcesV1 } from "@celestial/site-renderer-core";
-import type { DesignDocumentV1, ViewerContext } from "@celestial/site-block-protocol";
+import type { PageBlueprint, ViewerContext } from "@celestial/site-block-protocol";
 
 describe("binding: primaryEntry (CSR)", () => {
   test("text binding resolves from dataSources.primaryEntry.data.fields", async () => {
@@ -16,7 +16,7 @@ describe("binding: primaryEntry (CSR)", () => {
     (globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
       true;
 
-    const doc: DesignDocumentV1 = {
+    const doc: PageBlueprint = {
       version: 1,
       rootId: "page",
       nodesById: {
@@ -69,7 +69,7 @@ describe("binding: primaryEntry (CSR)", () => {
 
     await act(async () => {
       root.render(
-        <DesignDocumentRenderer
+        <PageBlueprintRenderer
           document={doc}
           ctx={viewerCtx}
           viewport={{ width: 1440, height: 800, baseWidth: 1440, baseHeight: 800 }}

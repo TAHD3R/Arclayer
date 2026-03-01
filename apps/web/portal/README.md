@@ -3,7 +3,7 @@
 ## 范围
 
 - 以 Vike（vite-plugin-ssr）作为唯一路由主控，使用 Filesystem Routing（`+Page` / `+route`）。
-- API 驱动的 `DocumentIR` 在服务端渲染并在客户端水合。
+- API 驱动的 `PageBlueprint` 在服务端渲染并在客户端水合。
 - SSR `<head>` 注入运行时主题 CSS 变量与字体。
 
 ## 路由约定

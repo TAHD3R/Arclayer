@@ -1,4 +1,4 @@
-import type { BlockNode, LocalizedString } from "./index";
+import type { LocalizedString } from "./localized";
 import type { FieldDefinition } from "./field-types";
 
 export type BlockCategory =
@@ -56,26 +56,4 @@ export interface BlockManifest<Type extends string = string> {
    * - 编辑器与运行时都应以此为准（编辑时过滤 patch，运行时可做降级/提示）
    */
   styleOverrideWhitelist?: string[];
-}
-
-export interface BlockPattern {
-  code: string;
-  label: LocalizedString;
-  category: string;
-  preview_image?: string;
-  blocks: BlockNode[];
-}
-
-/**
- * Reusable block reference node.
- * Renderer resolves ref_id to actual BlockNode[] from block storage.
- */
-export interface ReusableBlockRef {
-  id: string;
-  type: "__reusable__";
-  props: {
-    ref_id: string;
-    overrides?: Record<string, unknown>;
-  };
-  children?: never;
 }

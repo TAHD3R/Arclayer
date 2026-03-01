@@ -1,6 +1,6 @@
 import { ApiError } from "@celestial/web-runtime/http";
 import type { PortalResolveMode, PortalRouteMatch } from "@celestial/portal-types";
-import type { DesignDocumentV1 } from "@celestial/site-block-protocol";
+import type { PageBlueprint } from "@celestial/site-block-protocol";
 import type { DesignRenderDataSourcesV1 } from "@celestial/site-renderer-core";
 import type { ContentRefIncludesMap, ResolveWarningV1 } from "@celestial/site-block-protocol";
 
@@ -15,7 +15,7 @@ import {
 export type ResolvedPortalRoute =
   | {
       kind: "page";
-      document: DesignDocumentV1;
+      document: PageBlueprint;
       match: PortalRouteMatch;
       dataSources?: DesignRenderDataSourcesV1;
       includes?: ContentRefIncludesMap;
@@ -44,7 +44,7 @@ export async function loadContentEntryDocument(args: {
   entryId: string;
   state?: ContentEntryRevisionState;
 }): Promise<{
-  document: DesignDocumentV1;
+  document: PageBlueprint;
   dataSources: DesignRenderDataSourcesV1;
   snapshot: ContentEntryRevisionSnapshot;
 }> {
@@ -60,7 +60,7 @@ export async function loadContentEntryDocument(args: {
     };
 
     return {
-      document: snapshot.design_document,
+      document: snapshot.page_blueprint,
       dataSources,
       snapshot,
     };

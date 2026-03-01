@@ -2,7 +2,7 @@ import React from "react";
 import type { ReactNode } from "react";
 
 import type {
-  DesignDocumentV1,
+  PageBlueprint,
   DesignBindingExprV1,
   ContentRefIncludesMap,
   DesignNodeId,
@@ -14,7 +14,7 @@ import type {
 } from "@celestial/site-block-protocol";
 import { resolveLocalizedValue } from "@celestial/site-block-protocol";
 
-import { isDesignDocumentV1 } from "../design-document";
+import { isPageBlueprint } from "../design-document";
 import type { LayoutComputeViewport, LayoutNode } from "../layout/types";
 import { computeLayoutBoxes } from "../layout/compute-layout";
 import type { DesignRenderDataSourcesV1, PrefabRegistryV1 } from "./prefab-registry";
@@ -30,22 +30,22 @@ import { createDefaultPrefabRegistryV1 } from "./default-prefab-registry";
 import { resolveDesignNodeAtBreakpointV1 } from "./responsive-overrides";
 import { resolveRefState } from "./resolve-ref-state";
 
-export type DesignDocumentRendererViewport = {
+export type PageBlueprintRendererViewport = {
   width: number;
   height: number;
   baseWidth?: number;
   baseHeight?: number;
 };
 
-export type DesignDocumentRendererProps = {
-  document: DesignDocumentV1;
+export type PageBlueprintRendererProps = {
+  document: PageBlueprint;
   ctx: ViewerContext;
   /**
    * SSR 首屏策略：
    * - 在 SSR 中传入稳定的 width（例如 1440），确保 SSR/CSR 首次渲染一致，避免水合 warning。
    * - 在 CSR 水合后可再用真实 window.innerWidth 触发二次布局校正（可选）。
    */
-  viewport: DesignDocumentRendererViewport;
+  viewport: PageBlueprintRendererViewport;
   /**
    * Prefab registry: prefabId -> renderer/schema/slots。
    * 未提供时会使用内置 registry（仅用于开发示例）。
@@ -151,7 +151,7 @@ function computeContentHeight(boxesById: Record<string, { x: number; y: number; 
 }
 
 function toLayoutNodes(args: {
-  document: DesignDocumentV1;
+  document: PageBlueprint;
   ctx: ViewerContext;
   dataSources: DesignRenderDataSourcesV1 | undefined;
 }): Record<string, LayoutNode> {
@@ -226,7 +226,7 @@ function defaultPrefabRegistry(): PrefabRegistryV1 | undefined {
   return createDefaultPrefabRegistryV1();
 }
 
-export function DesignDocumentRenderer(props: DesignDocumentRendererProps) {
+export function PageBlueprintRenderer(props: PageBlueprintRendererProps) {
   const {
     document: inputDoc,
     ctx,
@@ -236,7 +236,7 @@ export function DesignDocumentRenderer(props: DesignDocumentRendererProps) {
     includes,
   } = props;
 
-  const isValid = React.useMemo(() => isDesignDocumentV1(inputDoc), [inputDoc]);
+  const isValid = React.useMemo(() => isPageBlueprint(inputDoc), [inputDoc]);
 
   const prefabRegistry = React.useMemo(
     () => prefabRegistryFromProps ?? defaultPrefabRegistry(),
@@ -244,7 +244,7 @@ export function DesignDocumentRenderer(props: DesignDocumentRendererProps) {
   );
 
   if (!isValid) {
-    return <RenderErrorPanel title="Invalid DesignDocumentV1" detail="Schema validation failed" />;
+    return <RenderErrorPanel title="Invalid PageBlueprint" detail="Schema validation failed" />;
   }
 
   const layoutNodes = React.useMemo(
@@ -285,7 +285,7 @@ export function DesignDocumentRenderer(props: DesignDocumentRendererProps) {
 
   const root = inputDoc.nodesById[inputDoc.rootId];
   if (!root || root.type !== "page_root") {
-    return <RenderErrorPanel title="Invalid DesignDocumentV1" detail="Missing page_root root node" />;
+    return <RenderErrorPanel title="Invalid PageBlueprint" detail="Missing page_root root node" />;
   }
 
   if (layoutResult.warnings.length && !isProductionEnv()) {
@@ -320,7 +320,7 @@ export function DesignDocumentRenderer(props: DesignDocumentRendererProps) {
 function RenderNode(args: {
   nodeId: DesignNodeId;
   parentId: DesignNodeId;
-  document: DesignDocumentV1;
+  document: PageBlueprint;
   ctx: ViewerContext;
   boxesById: Record<string, { x: number; y: number; width: number; height: number }>;
   prefabRegistry: PrefabRegistryV1 | undefined;
@@ -653,10 +653,10 @@ function RenderNode(args: {
   return null;
 }
 
-function prefixDesignDocumentNodeIds(args: {
-  document: DesignDocumentV1;
+function prefixPageBlueprintNodeIds(args: {
+  document: PageBlueprint;
   prefix: string;
-}): DesignDocumentV1 {
+}): PageBlueprint {
   const nodesById: Record<string, DesignNodeV1> = {};
   for (const [id, node] of Object.entries(args.document.nodesById)) {
     const nextId = `${args.prefix}${id}`;
@@ -686,9 +686,9 @@ function prefixDesignDocumentNodeIds(args: {
 }
 
 function DesignSubdocumentRenderer(props: {
-  document: DesignDocumentV1;
+  document: PageBlueprint;
   ctx: ViewerContext;
-  viewport: DesignDocumentRendererViewport;
+  viewport: PageBlueprintRendererViewport;
   prefabRegistry: PrefabRegistryV1;
   dataSources: DesignRenderDataSourcesV1 | undefined;
   includes: ContentRefIncludesMap | undefined;
@@ -696,11 +696,11 @@ function DesignSubdocumentRenderer(props: {
 }) {
   // Subdocument renderer: used for prefab expansions and content_ref documents.
   const document = props.nodeIdPrefix
-    ? prefixDesignDocumentNodeIds({ document: props.document, prefix: props.nodeIdPrefix })
+    ? prefixPageBlueprintNodeIds({ document: props.document, prefix: props.nodeIdPrefix })
     : props.document;
 
-  // Must be a valid DesignDocumentV1 (root is page_root).
-  if (!isDesignDocumentV1(document)) {
+  // Must be a valid PageBlueprint (root is page_root).
+  if (!isPageBlueprint(document)) {
     return <div data-celestial="subdocument-invalid" />;
   }
 

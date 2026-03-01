@@ -7,11 +7,11 @@
  * - 后续如需要完全自动化导出，可替换为基于 Zod AST 的生成器或引入转换依赖。
  */
 
-export function exportDesignDocumentV1JsonSchema(): Record<string, unknown> {
+export function exportPageBlueprintJsonSchema(): Record<string, unknown> {
   return {
     $schema: "https://json-schema.org/draft/2020-12/schema",
-    $id: "celestial://design-document-v1.json",
-    title: "DesignDocumentV1",
+    $id: "celestial://page-blueprint-v1.json",
+    title: "PageBlueprint",
     type: "object",
     additionalProperties: false,
     required: ["version", "rootId", "nodesById"],

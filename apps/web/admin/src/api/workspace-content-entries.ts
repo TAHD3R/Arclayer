@@ -1,5 +1,5 @@
-import { isDesignDocumentV1 } from "@celestial/site-block-protocol";
-import type { DesignDocumentV1 } from "@celestial/site-block-protocol";
+import { isPageBlueprint } from "@celestial/site-block-protocol";
+import type { PageBlueprint } from "@celestial/site-block-protocol";
 
 import { api } from "@/lib/http";
 import { workspacePath } from "@/lib/api";
@@ -15,7 +15,7 @@ export type ContentEntryRevisionOut = {
 };
 
 export type ContentEntryDraftSaveIn = {
-  document: DesignDocumentV1;
+  document: PageBlueprint;
   expectedRevision?: number | null;
   meta?: Record<string, unknown> | null;
   fieldValues?: Record<string, unknown> | null;
@@ -41,17 +41,17 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
-export function extractDesignDocumentFromSnapshot(snapshot: unknown): DesignDocumentV1 | null {
+export function extractPageBlueprintFromSnapshot(snapshot: unknown): PageBlueprint | null {
   if (!isRecord(snapshot)) return null;
   const raw =
+    snapshot.page_blueprint ??
+    snapshot.pageBlueprint ??
     snapshot.design_document ??
     snapshot.designDocument ??
-    snapshot.document_ir ??
-    snapshot.documentIr ??
     null;
   if (!raw || !isRecord(raw)) return null;
-  if (!isDesignDocumentV1(raw)) return null;
-  return raw as unknown as DesignDocumentV1;
+  if (!isPageBlueprint(raw)) return null;
+  return raw as unknown as PageBlueprint;
 }
 
 export async function getWorkspaceContentEntryRevision(
@@ -72,12 +72,10 @@ export async function saveWorkspaceContentEntryDraft(
   entryId: string,
   payload: ContentEntryDraftSaveIn,
 ): Promise<ContentEntryDraftSaveOut> {
-  // Backend schema uses AliasChoices("documentIr","document") etc; we keep the payload
-  // aligned to the editor-first design document contract.
   return api.post<ContentEntryDraftSaveOut>(
     workspacePath(workspaceId, `/content/entries/${encodeURIComponent(entryId)}/draft`),
     {
-      document: payload.document,
+      pageBlueprint: payload.document,
       expectedRevision: payload.expectedRevision ?? null,
       fieldValues: payload.fieldValues ?? null,
       meta: payload.meta ?? null,

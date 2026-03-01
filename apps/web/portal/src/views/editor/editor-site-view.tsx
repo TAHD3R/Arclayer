@@ -1,11 +1,11 @@
 import React from "react";
 
-import { DesignDocumentRenderer } from "@celestial/site-renderer-core";
+import { PageBlueprintRenderer } from "@celestial/site-renderer-core";
 
-import type { DesignDocumentV1, ViewerContext } from "@celestial/site-block-protocol";
+import type { PageBlueprint, ViewerContext } from "@celestial/site-block-protocol";
 import {
   CORE_BLOCK_MANIFESTS,
-  CORE_BLOCK_PATTERNS,
+  CORE_PAGE_BLUEPRINT_PATTERNS_V1,
   PREFAB_BLOCK_MANIFESTS,
   resolveBreakpointNameByWidth,
 } from "@celestial/site-block-protocol";
@@ -26,7 +26,6 @@ import { connectEditorPortalToHost, isHttpOrigin } from "@celestial/site-editor-
 
 import {
   applySelectionPatch,
-  convertLegacyBlocksToDesignFragment,
   buildLayerTree,
   buildSelectionInspector,
   commitEditorHistory,
@@ -94,7 +93,7 @@ function getParentOriginFromSearch(): string | null {
 export function EditorSiteView(props: EditorSiteViewProps) {
   const { initialDocument: initialDocumentUnknown, viewerCtx, pathname, siteId } = props;
 
-  const baseDesignDocument = React.useMemo<DesignDocumentV1>(
+  const baseDesignDocument = React.useMemo<PageBlueprint>(
     () => normalizeInitialDocument(initialDocumentUnknown),
     [initialDocumentUnknown],
   );
@@ -165,14 +164,14 @@ export function EditorSiteView(props: EditorSiteViewProps) {
     getHostOptionalEvents(hostRef.current).historyChanged?.(state);
   }, []);
 
-  const syncLayers = React.useCallback((document: DesignDocumentV1) => {
+  const syncLayers = React.useCallback((document: PageBlueprint) => {
     const layers = buildLayerTree(document);
     getHostOptionalEvents(hostRef.current).layerTreeChanged?.({ layers });
     return layers;
   }, []);
 
   const syncSelectionInspector = React.useCallback(
-    (document: DesignDocumentV1, blockId: BlockId | null) => {
+    (document: PageBlueprint, blockId: BlockId | null) => {
       const inspector = buildSelectionInspector(document, blockId);
       getHostOptionalEvents(hostRef.current).selectionInspectorChanged?.({ inspector });
       return inspector;
@@ -181,7 +180,7 @@ export function EditorSiteView(props: EditorSiteViewProps) {
   );
 
   const commitNextDocument = React.useCallback(
-    (nextDocument: DesignDocumentV1, opts?: { preserveSelection?: boolean }) => {
+    (nextDocument: PageBlueprint, opts?: { preserveSelection?: boolean }) => {
       const nextHistory = commitEditorHistory(historyRef.current, nextDocument);
       historyRef.current = nextHistory;
       setHistory(nextHistory);
@@ -388,15 +387,11 @@ export function EditorSiteView(props: EditorSiteViewProps) {
         };
       },
       insertBlockTree: (args) => {
-        const insertPayload =
-          "blocks" in args
-            ? Object.assign({}, args, convertLegacyBlocksToDesignFragment(args.blocks))
-            : args;
         const inserted = insertBlockTreeWithMeta({
           document: historyRef.current.present,
           insert: {
-            ...insertPayload,
-            targetBlockId: insertPayload.targetBlockId ?? selectedBlockIdRef.current,
+            ...args,
+            targetBlockId: args.targetBlockId ?? selectedBlockIdRef.current,
           },
         });
         const inspector = commitNextDocument(inserted.document, { preserveSelection: false });
@@ -439,7 +434,9 @@ export function EditorSiteView(props: EditorSiteViewProps) {
       // Registry & patterns
       getAvailableBlocks: () => [...CORE_BLOCK_MANIFESTS, ...PREFAB_BLOCK_MANIFESTS],
       getBlockPatterns: ({ category }) =>
-        category ? CORE_BLOCK_PATTERNS.filter((p) => p.category === category) : CORE_BLOCK_PATTERNS,
+        category
+          ? CORE_PAGE_BLUEPRINT_PATTERNS_V1.filter((p) => p.category === category)
+          : CORE_PAGE_BLUEPRINT_PATTERNS_V1,
 
       // Manipulation
       moveBlock: ({ blockId, targetId, position }) => {
@@ -554,7 +551,7 @@ export function EditorSiteView(props: EditorSiteViewProps) {
 
   return (
     <div data-celestial="portal-editor-root" style={{ width: "100%", height: "100%" }}>
-      <DesignDocumentRenderer
+      <PageBlueprintRenderer
         document={history.present}
         ctx={renderCtx}
         viewport={{

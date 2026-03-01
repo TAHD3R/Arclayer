@@ -331,7 +331,7 @@ export const DesignNodeV1Schema = z.discriminatedUnion("type", [
   DesignContentRefNodeV1Schema,
 ]);
 
-export const DesignDocumentV1Schema = z
+export const PageBlueprintSchema = z
   .object({
     version: z.literal(1),
     rootId: z.string().min(1),
@@ -391,6 +391,6 @@ export const DesignDocumentV1Schema = z
     }
   });
 
-export function isDesignDocumentV1(input: unknown): input is z.infer<typeof DesignDocumentV1Schema> {
-  return DesignDocumentV1Schema.safeParse(input).success;
+export function isPageBlueprint(input: unknown): input is z.infer<typeof PageBlueprintSchema> {
+  return PageBlueprintSchema.safeParse(input).success;
 }

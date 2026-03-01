@@ -15,7 +15,7 @@ import { EDITOR_PAGE_ROOT_BLOCK_ID } from "@celestial/site-editor-protocol";
 import type {
   BreakpointName,
   DesignContentRefNodeV1,
-  DesignDocumentV1,
+  PageBlueprint,
   DesignLayoutV1,
   DesignNodeId,
   DesignNodeResponsiveOverrideV1,
@@ -28,7 +28,6 @@ import type {
 import {
   CORE_BLOCK_MANIFESTS,
   PREFAB_BLOCK_MANIFESTS,
-  type BlockNode,
   type BlockManifest,
   type FieldDefinition,
 } from "@celestial/site-block-protocol";
@@ -44,9 +43,9 @@ const MANIFEST_BY_TYPE = new Map<string, BlockManifest>(
 type DesignContainerNodeV1 = Extract<DesignNodeV1, { children: DesignNodeId[] }>;
 
 type EditorDocumentHistory = {
-  past: DesignDocumentV1[];
-  present: DesignDocumentV1;
-  future: DesignDocumentV1[];
+  past: PageBlueprint[];
+  present: PageBlueprint;
+  future: PageBlueprint[];
   limit: number;
 };
 
@@ -100,7 +99,7 @@ function cloneJson<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
 
-function cloneDocument(doc: DesignDocumentV1): DesignDocumentV1 {
+function cloneDocument(doc: PageBlueprint): PageBlueprint {
   return cloneJson(doc);
 }
 
@@ -124,7 +123,7 @@ function prefabIdFromInspectorType(type: string): string | null {
   return id ? id : null;
 }
 
-function buildEmptyDocument(): DesignDocumentV1 {
+function buildEmptyDocument(): PageBlueprint {
   // Root id must be stable across Host/Admin and Portal/iframe to keep
   // layer tree + drag rules consistent.
   const rootId: DesignNodeId = EDITOR_PAGE_ROOT_BLOCK_ID;
@@ -161,124 +160,70 @@ function defaultStyle(): DesignStyleV1 {
   return {};
 }
 
-function toLocalizedText(value: unknown): { "en-US": string; "zh-CN": string } {
-  if (typeof value === "string") return { "en-US": value, "zh-CN": value };
-  if (isRecord(value)) {
-    const en = typeof value["en-US"] === "string" ? (value["en-US"] as string) : "";
-    const zh = typeof value["zh-CN"] === "string" ? (value["zh-CN"] as string) : en;
-    const out = en || zh ? { "en-US": en || zh, "zh-CN": zh || en } : null;
-    if (out) return out;
-  }
-  const s = value == null ? "" : String(value);
-  return { "en-US": s, "zh-CN": s };
-}
-
-export function convertLegacyBlocksToDesignFragment(blocks: BlockNode[]): {
+function remapDesignFragment(fragment: {
+  rootIds: DesignNodeId[];
+  nodesById: Record<DesignNodeId, DesignNodeV1>;
+}): {
   rootIds: DesignNodeId[];
   nodesById: Record<DesignNodeId, DesignNodeV1>;
 } {
-  const nodesById: Record<DesignNodeId, DesignNodeV1> = {};
-  const rootIds: DesignNodeId[] = [];
+  const { rootIds, nodesById } = fragment;
 
-  const visit = (block: BlockNode): DesignNodeId => {
-    const id = createDesignNodeId();
-    const type = (block.type || "").trim();
-    const props = isRecord(block.props) ? block.props : {};
-    const children = Array.isArray(block.children) ? block.children : [];
+  const reachable = new Set<DesignNodeId>();
+  const stack: DesignNodeId[] = [...rootIds];
+  while (stack.length) {
+    const id = stack.pop();
+    if (!id) continue;
+    if (reachable.has(id)) continue;
+    const node = nodesById[id];
+    if (!node) continue;
+    reachable.add(id);
 
-    if (type === "__prefab__") {
-      const prefabId = typeof props.prefab === "string" ? props.prefab : "unknown";
-      const rawProps = isRecord(props.props) ? (props.props as Record<string, unknown>) : {};
-      const mappedProps: Record<string, DesignValueV1> = {};
-      for (const [k, v] of Object.entries(rawProps)) {
-        mappedProps[k] = { kind: "literal", value: coerceToJsonValue(v) };
+    if (isContainerNode(node)) {
+      for (const childId of node.children) stack.push(childId);
+    }
+    if (node.type === "prefab_instance" && node.slotChildren) {
+      for (const ids of Object.values(node.slotChildren)) {
+        for (const childId of ids) stack.push(childId);
       }
-      const slotChildren: Record<string, DesignNodeId[]> = {};
-      if (children.length) {
-        slotChildren.default = children.map((c) => visit(c));
-      }
-      const node: DesignPrefabInstanceNodeV1 = {
-        id,
-        type: "prefab_instance",
-        prefabId,
-        props: mappedProps,
-        slotChildren,
-        layout: defaultRectLayout(0, 0, 360, 240),
-        style: defaultStyle(),
-      };
-      nodesById[id] = node;
-      return id;
     }
-
-    if (type === "container" || type === "grid" || type === "frame" || type === "group") {
-      const node: DesignNodeV1 = {
-        id,
-        type: "frame",
-        name: typeof props.name === "string" ? props.name : "Frame",
-        children: children.map((c) => visit(c)),
-        layout: defaultRectLayout(0, 0, 320, 200),
-        style: defaultStyle(),
-      };
-      nodesById[id] = node;
-      return id;
-    }
-
-    if (type === "image") {
-      const src = typeof props.src === "string" ? props.src : "";
-      const alt = props.alt ?? "";
-      nodesById[id] = {
-        id,
-        type: "image",
-        src,
-        alt: toLocalizedText(alt),
-        objectFit: "cover",
-        layout: defaultRectLayout(0, 0, 240, 180),
-        style: defaultStyle(),
-      };
-      return id;
-    }
-
-    if (type === "embed") {
-      const url = typeof props.url === "string" ? props.url : "";
-      nodesById[id] = {
-        id,
-        type: "embed",
-        url,
-        layout: defaultRectLayout(0, 0, 320, 180),
-        style: defaultStyle(),
-      };
-      return id;
-    }
-
-    if (type === "heading" || type === "paragraph" || type === "quote" || type === "list") {
-      const text = toLocalizedText((props as Record<string, unknown>).text);
-      nodesById[id] = {
-        id,
-        type: "text",
-        text,
-        tag: type === "heading" ? "h2" : "p",
-        layout: defaultRectLayout(0, 0, 240, 40),
-        style: { typography: { fontSize: 16, lineHeight: 20 } },
-      };
-      return id;
-    }
-
-    // Fallback: map to a rect so we don't drop nodes silently.
-    nodesById[id] = {
-      id,
-      type: "rect",
-      name: type || "rect",
-      layout: defaultRectLayout(0, 0, 120, 120),
-      style: { backgroundColor: "#eee" },
-    };
-    return id;
-  };
-
-  for (const block of blocks) {
-    rootIds.push(visit(block));
   }
 
-  return { rootIds, nodesById };
+  const idMap = new Map<DesignNodeId, DesignNodeId>();
+  const mapId = (oldId: DesignNodeId): DesignNodeId => {
+    const found = idMap.get(oldId);
+    if (found) return found;
+    const created = createDesignNodeId();
+    idMap.set(oldId, created);
+    return created;
+  };
+
+  const nextNodesById: Record<DesignNodeId, DesignNodeV1> = {};
+  for (const oldId of reachable) {
+    const old = nodesById[oldId];
+    if (!old) continue;
+    const cloned = cloneJson(old) as DesignNodeV1;
+    const newId = mapId(oldId);
+    (cloned as { id: string }).id = newId;
+
+    if (isContainerNode(cloned)) {
+      cloned.children = cloned.children.map((cid) => mapId(cid));
+    }
+    if (cloned.type === "prefab_instance" && cloned.slotChildren) {
+      const slots: Record<string, DesignNodeId[]> = {};
+      for (const [name, ids] of Object.entries(cloned.slotChildren)) {
+        slots[name] = ids.map((cid) => mapId(cid));
+      }
+      cloned.slotChildren = slots;
+    }
+
+    nextNodesById[newId] = cloned;
+  }
+
+  const nextRootIds = rootIds
+    .map((id) => (reachable.has(id) ? mapId(id) : null))
+    .filter((id): id is DesignNodeId => Boolean(id));
+  return { rootIds: nextRootIds, nodesById: nextNodesById };
 }
 
 function buildNodeLabel(node: DesignNodeV1): string {
@@ -293,10 +238,7 @@ function buildNodeLabel(node: DesignNodeV1): string {
   return node.type;
 }
 
-function buildLayerSubtree(
-  document: DesignDocumentV1,
-  nodeId: DesignNodeId,
-): EditorLayerNode | null {
+function buildLayerSubtree(document: PageBlueprint, nodeId: DesignNodeId): EditorLayerNode | null {
   const node = document.nodesById[nodeId];
   if (!node) return null;
   const children = isContainerNode(node) ? node.children : [];
@@ -310,7 +252,7 @@ function buildLayerSubtree(
   };
 }
 
-export function buildLayerTree(document: DesignDocumentV1): EditorLayerNode[] {
+export function buildLayerTree(document: PageBlueprint): EditorLayerNode[] {
   const root = document.nodesById[document.rootId];
   if (!root || root.type !== "page_root") return [];
   const tree = buildLayerSubtree(document, root.id);
@@ -402,7 +344,7 @@ function buildAnimationInspector(node: DesignNodeV1): Record<string, unknown> {
 }
 
 export function buildSelectionInspector(
-  document: DesignDocumentV1,
+  document: PageBlueprint,
   selectedId: BlockId | null,
 ): EditorSelectionInspector {
   if (!selectedId) {
@@ -497,14 +439,14 @@ function diffObject(base: unknown, next: unknown): unknown {
   return Object.keys(out).length ? out : undefined;
 }
 
-function setNode(document: DesignDocumentV1, node: DesignNodeV1): DesignDocumentV1 {
+function setNode(document: PageBlueprint, node: DesignNodeV1): PageBlueprint {
   const next = cloneDocument(document);
   next.nodesById[node.id] = node;
   return next;
 }
 
 function findParentInfo(
-  document: DesignDocumentV1,
+  document: PageBlueprint,
   childId: DesignNodeId,
 ): { parentId: DesignNodeId; index: number } | null {
   const root = document.nodesById[document.rootId];
@@ -526,7 +468,7 @@ function findParentInfo(
   return null;
 }
 
-function removeSubtree(document: DesignDocumentV1, rootId: DesignNodeId): DesignDocumentV1 {
+function removeSubtree(document: PageBlueprint, rootId: DesignNodeId): PageBlueprint {
   const next = cloneDocument(document);
   const stack: DesignNodeId[] = [rootId];
   const seen = new Set<string>();
@@ -552,11 +494,11 @@ function removeSubtree(document: DesignDocumentV1, rootId: DesignNodeId): Design
 }
 
 function insertChildId(args: {
-  document: DesignDocumentV1;
+  document: PageBlueprint;
   parentId: DesignNodeId;
   childId: DesignNodeId;
   index: number;
-}): DesignDocumentV1 {
+}): PageBlueprint {
   const parent = args.document.nodesById[args.parentId];
   if (!parent || !isContainerNode(parent)) return args.document;
   const nextParent: DesignContainerNodeV1 = { ...parent, children: [...parent.children] };
@@ -565,7 +507,7 @@ function insertChildId(args: {
   return setNode(args.document, nextParent);
 }
 
-function pushHistory(history: EditorDocumentHistory, doc: DesignDocumentV1): EditorDocumentHistory {
+function pushHistory(history: EditorDocumentHistory, doc: PageBlueprint): EditorDocumentHistory {
   const past = [...history.past, history.present];
   const limit = history.limit;
   const trimmed = past.length > limit ? past.slice(past.length - limit) : past;
@@ -573,7 +515,7 @@ function pushHistory(history: EditorDocumentHistory, doc: DesignDocumentV1): Edi
 }
 
 export function createEditorHistory(args: {
-  initialDocument: DesignDocumentV1;
+  initialDocument: PageBlueprint;
   limit?: number;
 }): EditorDocumentHistory {
   return {
@@ -619,7 +561,7 @@ export function redoEditorHistory(history: EditorDocumentHistory): EditorDocumen
 
 export function commitEditorHistory(
   history: EditorDocumentHistory,
-  nextDocument: DesignDocumentV1,
+  nextDocument: PageBlueprint,
 ): EditorDocumentHistory {
   if (deepEqual(history.present, nextDocument)) return history;
   return pushHistory(history, nextDocument);
@@ -719,7 +661,7 @@ function buildNodeByInsertType(type: string): DesignNodeV1 | null {
 }
 
 function normalizeInsertTarget(args: {
-  document: DesignDocumentV1;
+  document: PageBlueprint;
   targetId: BlockId | null | undefined;
   position: EditorInsertBlockPosition | undefined;
 }): { parentId: DesignNodeId; index: number } | null {
@@ -751,10 +693,10 @@ function normalizeInsertTarget(args: {
 }
 
 export function insertBlockWithMeta(args: {
-  document: DesignDocumentV1;
+  document: PageBlueprint;
   insert: EditorInsertBlockArgs;
 }): {
-  document: DesignDocumentV1;
+  document: PageBlueprint;
   selectedId: BlockId;
   inspector: EditorSelectionInspector;
   layers: EditorLayerNode[];
@@ -791,19 +733,19 @@ export function insertBlockWithMeta(args: {
 }
 
 export function insertBlockTreeWithMeta(args: {
-  document: DesignDocumentV1;
+  document: PageBlueprint;
   insert: EditorInsertBlockTreeArgs;
 }): {
-  document: DesignDocumentV1;
+  document: PageBlueprint;
   selectedId: BlockId;
   inspector: EditorSelectionInspector;
   layers: EditorLayerNode[];
 } {
   const next = cloneDocument(args.document);
-  const fragment =
-    "rootIds" in args.insert && "nodesById" in args.insert
-      ? { rootIds: args.insert.rootIds, nodesById: args.insert.nodesById }
-      : convertLegacyBlocksToDesignFragment(args.insert.blocks);
+  const fragment = remapDesignFragment({
+    rootIds: args.insert.rootIds,
+    nodesById: args.insert.nodesById,
+  });
   const rootIds = fragment.rootIds;
   const incoming = fragment.nodesById;
 
@@ -822,7 +764,7 @@ export function insertBlockTreeWithMeta(args: {
   }
 
   let insertedFirst: string | null = null;
-  let doc: DesignDocumentV1 = next;
+  let doc: PageBlueprint = next;
   for (let i = 0; i < rootIds.length; i += 1) {
     const id = rootIds[i];
     if (!id) continue;
@@ -848,7 +790,7 @@ function isContentRefState(value: unknown): value is DesignContentRefNodeV1["ref
 }
 
 export function insertContentRefWithMeta(args: {
-  document: DesignDocumentV1;
+  document: PageBlueprint;
   insert: {
     refEntryId: string;
     refState?: DesignContentRefNodeV1["refState"];
@@ -856,7 +798,7 @@ export function insertContentRefWithMeta(args: {
     position?: EditorInsertBlockPosition;
   };
 }): {
-  document: DesignDocumentV1;
+  document: PageBlueprint;
   selectedId: BlockId;
   inspector: EditorSelectionInspector;
   layers: EditorLayerNode[];
@@ -905,8 +847,8 @@ export function insertContentRefWithMeta(args: {
   return { document: withChild, selectedId: node.id, inspector, layers: buildLayerTree(withChild) };
 }
 
-export function deleteBlock(args: { document: DesignDocumentV1; blockId: BlockId }): {
-  document: DesignDocumentV1;
+export function deleteBlock(args: { document: PageBlueprint; blockId: BlockId }): {
+  document: PageBlueprint;
   layers: EditorLayerNode[];
 } {
   const node = args.document.nodesById[args.blockId];
@@ -931,11 +873,11 @@ export function deleteBlock(args: { document: DesignDocumentV1; blockId: BlockId
 }
 
 export function moveBlock(args: {
-  document: DesignDocumentV1;
+  document: PageBlueprint;
   blockId: BlockId;
   targetId: BlockId;
   position: "before" | "after" | "inside";
-}): { document: DesignDocumentV1; layers: EditorLayerNode[] } {
+}): { document: PageBlueprint; layers: EditorLayerNode[] } {
   const node = args.document.nodesById[args.blockId];
   if (!node) return { document: args.document, layers: buildLayerTree(args.document) };
   if (node.id === args.document.rootId)
@@ -974,8 +916,8 @@ export function moveBlock(args: {
   return { document: next, layers: buildLayerTree(next) };
 }
 
-export function duplicateBlockWithMeta(args: { document: DesignDocumentV1; blockId: BlockId }): {
-  document: DesignDocumentV1;
+export function duplicateBlockWithMeta(args: { document: PageBlueprint; blockId: BlockId }): {
+  document: PageBlueprint;
   selectedId: BlockId;
   inspector: EditorSelectionInspector;
   layers: EditorLayerNode[];
@@ -1067,10 +1009,10 @@ export function duplicateBlockWithMeta(args: { document: DesignDocumentV1; block
 }
 
 export function applySelectionPatch(args: {
-  document: DesignDocumentV1;
+  document: PageBlueprint;
   blockId: BlockId | null;
   patch: EditorSelectionPatch;
-}): { document: DesignDocumentV1; inspector: EditorSelectionInspector } {
+}): { document: PageBlueprint; inspector: EditorSelectionInspector } {
   const { document, blockId, patch } = args;
   if (!blockId) return { document, inspector: buildSelectionInspector(document, null) };
   const node = document.nodesById[blockId];
@@ -1231,7 +1173,7 @@ export function applySelectionPatch(args: {
 }
 
 export function buildSelectionInspectorForBreakpoint(args: {
-  document: DesignDocumentV1;
+  document: PageBlueprint;
   blockId: BlockId | null;
   breakpoint: string;
 }): EditorSelectionInspector {
@@ -1251,11 +1193,11 @@ export function buildSelectionInspectorForBreakpoint(args: {
 }
 
 export function setBreakpointOverride(args: {
-  document: DesignDocumentV1;
+  document: PageBlueprint;
   blockId: BlockId;
   breakpoint: string;
   patch: EditorSelectionPatch;
-}): { document: DesignDocumentV1; inspector: EditorSelectionInspector } {
+}): { document: PageBlueprint; inspector: EditorSelectionInspector } {
   const bp = (args.breakpoint || "").trim() as BreakpointName;
   if (!bp)
     return {
@@ -1353,7 +1295,7 @@ export function setBreakpointOverride(args: {
 }
 
 export function createInsertBlockResult(args: {
-  document: DesignDocumentV1;
+  document: PageBlueprint;
   blockId: BlockId;
 }): EditorInsertBlockResult {
   return {
@@ -1363,14 +1305,14 @@ export function createInsertBlockResult(args: {
   };
 }
 
-export function normalizeInitialDocument(value: unknown): DesignDocumentV1 {
+export function normalizeInitialDocument(value: unknown): PageBlueprint {
   if (
     isRecord(value) &&
     value.version === 1 &&
     typeof value.rootId === "string" &&
     isRecord(value.nodesById)
   ) {
-    return value as unknown as DesignDocumentV1;
+    return value as unknown as PageBlueprint;
   }
   return buildEmptyDocument();
 }

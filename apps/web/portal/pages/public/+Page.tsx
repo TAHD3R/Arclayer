@@ -1,6 +1,6 @@
 import React from "react";
 
-import type { DesignDocumentV1, ViewerContext } from "@celestial/site-block-protocol";
+import type { PageBlueprint, ViewerContext } from "@celestial/site-block-protocol";
 import type { PortalRouteMatch } from "@celestial/portal-types";
 import type {
   ContentRefIncludesMap,
@@ -13,7 +13,7 @@ export { Page };
 
 type PortalPageProps = {
   mode: "public";
-  document: DesignDocumentV1;
+  document: PageBlueprint;
   match: PortalRouteMatch;
   viewerCtx: ViewerContext;
   pathname: string;

@@ -1,3 +1,5 @@
+import type { PageBlueprintFragment } from "@celestial/site-block-protocol";
+
 export type SitePattern = {
   id: string;
   siteId: string;
@@ -5,7 +7,7 @@ export type SitePattern = {
   label: Record<string, string>;
   category: string;
   previewImageUrl?: string | null;
-  blocks: Array<Record<string, unknown>>;
+  pageBlueprintFragment: PageBlueprintFragment;
   createdAtMs: number;
 };
 
@@ -14,7 +16,7 @@ export type SitePatternCreateIn = {
   label: Record<string, string>;
   category?: string;
   previewImageUrl?: string | null;
-  blocks: Array<Record<string, unknown>>;
+  pageBlueprintFragment: PageBlueprintFragment;
 };
 
 // Backend `SitePatternUpdateIn` does NOT accept `code` (extra="forbid").

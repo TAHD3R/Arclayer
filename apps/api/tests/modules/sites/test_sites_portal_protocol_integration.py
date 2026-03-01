@@ -50,21 +50,6 @@ async def prepared_schema(integration_db_settings, integration_valkey_settings, 
     await close_orm()
 
 
-def _legacy_doc_ir(title: str) -> dict:
-    """
-    Legacy DocumentIR fixture.
-
-    We keep at least one legacy revision in integration tests to validate the on-read migration
-    (DocumentIR -> DesignDocumentV1) remains stable.
-    """
-
-    return {
-        "version": 1,
-        "meta": {"title": {"en-US": title}},
-        "blocks": [{"id": "h1", "type": "heading", "props": {"level": 1, "text": {"en-US": title}}}],
-    }
-
-
 def _design_doc(title: str) -> dict:
     return {
         "version": 1,
@@ -186,8 +171,8 @@ async def test_sites_public_preview_draft_publish_flow(prepared_schema) -> None:
         await SitePageRevisionRecord.create(
             page_id=about.id,
             rev=1,
-            document=_legacy_doc_ir("About v1"),
-            design_document=None,
+            document=None,
+            design_document=_design_doc("About v1"),
             created_by_user_id=user.id,
         )
 
@@ -205,8 +190,8 @@ async def test_sites_public_preview_draft_publish_flow(prepared_schema) -> None:
         await SitePageRevisionRecord.create(
             page_id=blog_hello.id,
             rev=1,
-            document=_legacy_doc_ir("Static /blog/hello"),
-            design_document=None,
+            document=None,
+            design_document=_design_doc("Static /blog/hello"),
             created_by_user_id=user.id,
         )
 
@@ -224,8 +209,8 @@ async def test_sites_public_preview_draft_publish_flow(prepared_schema) -> None:
             entry_id=entry.id,
             rev=1,
             data=None,
-            document=_legacy_doc_ir("Entry /blog/:slug hello"),
-            design_document=None,
+            document=None,
+            design_document=_design_doc("Entry /blog/:slug hello"),
             created_by_user_id=user.id,
         )
 
@@ -242,8 +227,8 @@ async def test_sites_public_preview_draft_publish_flow(prepared_schema) -> None:
             entry_id=entry2.id,
             rev=1,
             data={"title": "World From Data"},
-            document=_legacy_doc_ir("Entry /blog/:slug world"),
-            design_document=None,
+            document=None,
+            design_document=_design_doc("Entry /blog/:slug world"),
             created_by_user_id=user.id,
         )
 

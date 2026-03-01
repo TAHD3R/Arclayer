@@ -1,143 +1,43 @@
 import { describe, expect, test } from "vitest";
 
-import { isCoreDocumentIR } from "@celestial/site-renderer-core";
+import { isPageBlueprint } from "@celestial/site-renderer-core";
 
 describe("site-renderer-core guards (imported via Portal)", () => {
-  test("accepts a minimal CoreDocumentIR", () => {
+  test("accepts a minimal PageBlueprint", () => {
     const doc = {
       version: 1,
-      blocks: [
-        {
-          id: "h1",
-          type: "heading",
-          props: { level: 1, text: { "en-US": "Hello", "zh-CN": "你好" } },
+      rootId: "page",
+      nodesById: {
+        page: {
+          id: "page",
+          type: "page_root",
+          children: ["t1"],
+          layout: { children: { mode: "absolute" } },
         },
-      ],
+        t1: { id: "t1", type: "text", text: { "en-US": "Hello", "zh-CN": "你好" }, tag: "h1" },
+      },
     };
 
-    expect(isCoreDocumentIR(doc)).toBe(true);
+    expect(isPageBlueprint(doc)).toBe(true);
   });
 
-  test("rejects unknown props (schema allowlist)", () => {
+  test("rejects wrong version", () => {
     const doc = {
-      version: 1,
-      blocks: [
-        {
-          id: "h1",
-          type: "heading",
-          props: { level: 1, text: { "en-US": "Hello" }, hacked: true },
-        },
-      ],
+      version: 2,
+      rootId: "page",
+      nodesById: {},
     };
 
-    expect(isCoreDocumentIR(doc)).toBe(false);
+    expect(isPageBlueprint(doc)).toBe(false);
   });
 
-  test("rejects invalid nested children", () => {
+  test("rejects missing root node", () => {
     const doc = {
       version: 1,
-      blocks: [
-        {
-          id: "c1",
-          type: "container",
-          props: { as: "section" },
-          children: [
-            {
-              id: "bad",
-              type: "heading",
-              props: { level: 9, text: { "en-US": "Nope" } },
-            },
-          ],
-        },
-      ],
+      rootId: "missing",
+      nodesById: {},
     };
 
-    expect(isCoreDocumentIR(doc)).toBe(false);
-  });
-
-  test("accepts visual layout and animation props", () => {
-    const doc = {
-      version: 1,
-      blocks: [
-        {
-          id: "c1",
-          type: "container",
-          props: {
-            as: "section",
-            layout: {
-              width: "100%",
-              display: "flex",
-              direction: "column",
-              gap: 12,
-            },
-            style: {
-              backgroundColor: "#ffffff",
-              borderRadius: 12,
-            },
-          },
-          children: [
-            {
-              id: "h1",
-              type: "heading",
-              props: {
-                level: 2,
-                text: { "en-US": "Heading" },
-                animation: {
-                  type: "fade",
-                  durationMs: 200,
-                },
-              },
-            },
-          ],
-        },
-      ],
-    };
-
-    expect(isCoreDocumentIR(doc)).toBe(true);
-  });
-
-  test("accepts core media blocks (image)", () => {
-    const doc = {
-      version: 1,
-      blocks: [
-        {
-          id: "img1",
-          type: "image",
-          props: {
-            src: "/assets/example.png",
-            alt: "Example",
-            objectFit: "cover",
-          },
-        },
-      ],
-    };
-
-    expect(isCoreDocumentIR(doc)).toBe(true);
-  });
-
-  test("accepts grid blocks with children", () => {
-    const doc = {
-      version: 1,
-      blocks: [
-        {
-          id: "g1",
-          type: "grid",
-          props: {
-            columns: 2,
-            columnGap: "16px",
-            rowGap: "16px",
-          },
-          children: [
-            {
-              id: "h1",
-              type: "heading",
-              props: { level: 1, text: { "en-US": "Hello" } },
-            },
-          ],
-        },
-      ],
-    };
-
-    expect(isCoreDocumentIR(doc)).toBe(true);
+    expect(isPageBlueprint(doc)).toBe(false);
   });
 });

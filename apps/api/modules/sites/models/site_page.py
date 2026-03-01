@@ -56,7 +56,7 @@ class SitePageRecord(BaseModel):
 
 
 class SitePageRevisionRecord(BaseModel):
-    """Immutable page revision snapshot (DocumentIR + metadata/style/deps)."""
+    """Immutable page revision snapshot (PageBlueprint + metadata/style/deps)."""
 
     page = fields.ForeignKeyField(
         "models.SitePageRecord",
@@ -65,10 +65,9 @@ class SitePageRevisionRecord(BaseModel):
     )
 
     rev = fields.IntField()
-    # Legacy DocumentIR payload (deprecated).
-    # Kept nullable to allow a hard switch to DesignDocumentV1 without writing DocumentIR artifacts.
+    # Legacy page document payload（已废弃）。
     document = fields.JSONField(null=True)
-    # DesignDocumentV1 payload (new source of truth).
+    # PageBlueprint payload（新真相源）。
     design_document = fields.JSONField(null=True)
 
     # M2: layered revision payload (nullable for backward compatibility).

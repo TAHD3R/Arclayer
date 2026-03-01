@@ -1,4 +1,4 @@
-import type { BlockManifest, DesignDocumentV1, DesignNodeV1 } from "@celestial/site-block-protocol";
+import type { BlockManifest, PageBlueprint, DesignNodeV1 } from "@celestial/site-block-protocol";
 import { PREFAB_BLOCK_MANIFESTS } from "@celestial/site-block-protocol";
 
 import type { PrefabDefinitionV1 } from "./prefab-registry";
@@ -152,7 +152,7 @@ export function createDefaultPrefabRegistryV1(): PrefabRegistryV1 {
   return registry;
 }
 
-export function createEmptyDesignDocumentV1(): DesignDocumentV1 {
+export function createEmptyPageBlueprint(): PageBlueprint {
   return {
     version: 1,
     rootId: "page",

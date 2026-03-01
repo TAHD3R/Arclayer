@@ -4,7 +4,13 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button, Input, Modal } from "antd";
 import { Plus, Trash2 } from "lucide-react";
 
-import type { BlockNode, LocalizedValue } from "@celestial/site-block-protocol";
+import type {
+  DesignNodeId,
+  DesignNodeV1,
+  LocalizedValue,
+  PageBlueprint,
+  PageBlueprintFragment,
+} from "@celestial/site-block-protocol";
 
 import { getWorkspaceSite } from "@/api/workspace-site";
 import { createSitePattern, deleteSitePattern, listSitePatterns } from "@/api/site-patterns";
@@ -22,17 +28,50 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 
-function findBlockNodeById(nodes: unknown, id: string): Record<string, unknown> | null {
-  if (!Array.isArray(nodes)) return null;
-  for (const node of nodes) {
-    if (!node || typeof node !== "object") continue;
-    const rec = node as Record<string, unknown>;
-    if (rec.id === id) return rec;
-    const children = rec.children;
-    const found = findBlockNodeById(children, id);
-    if (found) return found;
+type DesignContainerNodeV1 = Extract<DesignNodeV1, { children: DesignNodeId[] }>;
+
+function isContainerNode(node: DesignNodeV1): node is DesignContainerNodeV1 {
+  return node.type === "page_root" || node.type === "frame" || node.type === "group";
+}
+
+function extractPageBlueprintFragmentFromDocument(args: {
+  document: PageBlueprint;
+  rootId: DesignNodeId;
+}): PageBlueprintFragment {
+  const { document, rootId } = args;
+  const root = document.nodesById[rootId];
+  if (!root) {
+    return { version: 1, rootIds: [], nodesById: {} };
   }
-  return null;
+
+  const reachable = new Set<DesignNodeId>();
+  const stack: DesignNodeId[] = [rootId];
+  while (stack.length) {
+    const id = stack.pop();
+    if (!id) continue;
+    if (reachable.has(id)) continue;
+    const node = document.nodesById[id];
+    if (!node) continue;
+    reachable.add(id);
+
+    if (isContainerNode(node)) {
+      for (const childId of node.children) stack.push(childId);
+    }
+    if (node.type === "prefab_instance" && node.slotChildren) {
+      for (const ids of Object.values(node.slotChildren)) {
+        for (const childId of ids) stack.push(childId);
+      }
+    }
+  }
+
+  const nodesById: Record<DesignNodeId, DesignNodeV1> = {};
+  for (const id of reachable) {
+    const node = document.nodesById[id];
+    if (!node) continue;
+    nodesById[id] = node;
+  }
+
+  return { version: 1, rootIds: [rootId], nodesById };
 }
 
 function resolveLocalizedLabel(label: Record<string, string> | undefined, locale: string): string {
@@ -97,9 +136,11 @@ export function BlocksPanel() {
       }
 
       const doc = await portal.getDocument();
-      const root = (doc as { blocks?: unknown }).blocks;
-      const node = findBlockNodeById(root, selectedBlockId);
-      if (!node) {
+      const fragment = extractPageBlueprintFragmentFromDocument({
+        document: doc,
+        rootId: selectedBlockId,
+      });
+      if (!fragment.rootIds.length) {
         throw new Error("BLOCK_NOT_FOUND");
       }
 
@@ -107,7 +148,7 @@ export function BlocksPanel() {
         code: (code || "").trim(),
         label: buildPatternLabel(label || code) as Record<string, string>,
         category: "custom",
-        blocks: [node],
+        pageBlueprintFragment: fragment,
       };
 
       return createSitePattern(siteId, payload);
@@ -214,11 +255,13 @@ export function BlocksPanel() {
                       )}
                       onClick={() => {
                         if (!portal || bridgeStatus !== "connected") return;
-                        const blocks = (p.blocks ?? []) as unknown as BlockNode[];
+                        const fragment = p.pageBlueprintFragment;
+                        if (!fragment?.rootIds?.length) return;
                         void (async () => {
                           try {
                             const out = await portal.insertBlockTree({
-                              blocks,
+                              rootIds: fragment.rootIds,
+                              nodesById: fragment.nodesById,
                               targetBlockId: selectedBlockId,
                               position: selectedBlockId ? "inside" : undefined,
                             });
@@ -243,11 +286,13 @@ export function BlocksPanel() {
                     <ContextMenuItem
                       onSelect={() => {
                         if (!portal || bridgeStatus !== "connected") return;
-                        const blocks = (p.blocks ?? []) as unknown as BlockNode[];
+                        const fragment = p.pageBlueprintFragment;
+                        if (!fragment?.rootIds?.length) return;
                         void (async () => {
                           try {
                             const out = await portal.insertBlockTree({
-                              blocks,
+                              rootIds: fragment.rootIds,
+                              nodesById: fragment.nodesById,
                               targetBlockId: selectedBlockId,
                               position: selectedBlockId ? "inside" : undefined,
                             });

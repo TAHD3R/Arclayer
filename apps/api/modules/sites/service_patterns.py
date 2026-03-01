@@ -29,7 +29,7 @@ class SitePatternService(BaseService):
             label_json=payload.label,
             category=payload.category,
             preview_image_url=payload.preview_image_url,
-            blocks_json=payload.blocks,
+            page_blueprint_fragment_json=payload.page_blueprint_fragment.model_dump(by_alias=True, exclude_none=True),
         )
         return SitePatternOut.model_validate(record, from_attributes=True)
 
@@ -44,8 +44,10 @@ class SitePatternService(BaseService):
             fields["category"] = payload.category
         if payload.preview_image_url is not None:
             fields["preview_image_url"] = payload.preview_image_url
-        if payload.blocks is not None:
-            fields["blocks_json"] = payload.blocks
+        if payload.page_blueprint_fragment is not None:
+            fields["page_blueprint_fragment_json"] = payload.page_blueprint_fragment.model_dump(
+                by_alias=True, exclude_none=True
+            )
         if fields:
             record = await self._repo.update_pattern(record, fields)
         return SitePatternOut.model_validate(record, from_attributes=True)

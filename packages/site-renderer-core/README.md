@@ -3,7 +3,7 @@
 Site rendering core (Sprint 1 minimal implementation).
 
 Scope (Sprint 1)
-- Input: `ViewerContext + DocumentIR` (currently hardcoded JSON only)
+- Input: `ViewerContext + PageBlueprint` (editor-first document tree)
 - Output: React element tree (usable in SSR/CSR)
 - Minimal built-in blocks (heading/paragraph/container/divider) to validate the protocol and SSR pipeline
 

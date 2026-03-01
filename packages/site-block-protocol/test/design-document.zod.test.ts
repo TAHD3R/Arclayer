@@ -1,8 +1,8 @@
 import { describe, expect, test } from "vitest";
 
-import { DesignDocumentV1Schema } from "../src/design-document.zod";
+import { PageBlueprintSchema } from "../src/design-document.zod";
 
-describe("protocol/zod: DesignDocumentV1", () => {
+describe("protocol/zod: PageBlueprint", () => {
   test("valid document passes", () => {
     const doc = {
       version: 1,
@@ -28,7 +28,7 @@ describe("protocol/zod: DesignDocumentV1", () => {
       },
     };
 
-    const parsed = DesignDocumentV1Schema.safeParse(doc);
+    const parsed = PageBlueprintSchema.safeParse(doc);
     expect(parsed.success).toBe(true);
   });
 
@@ -52,7 +52,7 @@ describe("protocol/zod: DesignDocumentV1", () => {
       },
     };
 
-    const parsed = DesignDocumentV1Schema.safeParse(doc);
+    const parsed = PageBlueprintSchema.safeParse(doc);
     expect(parsed.success).toBe(true);
   });
 
@@ -77,7 +77,7 @@ describe("protocol/zod: DesignDocumentV1", () => {
       },
     };
 
-    const parsed = DesignDocumentV1Schema.safeParse(doc);
+    const parsed = PageBlueprintSchema.safeParse(doc);
     expect(parsed.success).toBe(false);
   });
 
@@ -87,7 +87,7 @@ describe("protocol/zod: DesignDocumentV1", () => {
       rootId: "missing",
       nodesById: {},
     };
-    const parsed = DesignDocumentV1Schema.safeParse(doc);
+    const parsed = PageBlueprintSchema.safeParse(doc);
     expect(parsed.success).toBe(false);
   });
 });

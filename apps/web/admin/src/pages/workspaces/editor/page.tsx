@@ -23,18 +23,18 @@ import { EditorLayout } from "@/pages/workspaces/editor/editor-layout";
 import { useEditorStore } from "@/pages/workspaces/editor/stores/editor-store";
 
 import type { EditorHistoryState, HostEditorRpcApi } from "@celestial/site-editor-protocol";
-import { DesignDocumentV1Schema, type DesignDocumentV1 } from "@celestial/site-block-protocol";
+import { PageBlueprintSchema, type PageBlueprint } from "@celestial/site-block-protocol";
 
 import {
-  extractDesignDocumentFromSnapshot,
+  extractPageBlueprintFromSnapshot,
   getWorkspaceContentEntryRevision,
 } from "@/api/workspace-content-entries";
 import { getErrorMessage, notifyErrorText } from "@/lib/notifications";
 
 export type WorkspaceEditorMode = "page" | "article" | "component";
 
-function isDesignDocumentV1ForEditor(input: unknown): input is DesignDocumentV1 {
-  return DesignDocumentV1Schema.safeParse(input).success;
+function isPageBlueprintForEditor(input: unknown): input is PageBlueprint {
+  return PageBlueprintSchema.safeParse(input).success;
 }
 
 export function WorkspaceEditorPage() {
@@ -77,7 +77,7 @@ export function WorkspaceEditorPage() {
   );
 
   // Lift save/publish to the top so requestSave can trigger a real save.
-  const saveDraftRef = React.useRef<(doc: DesignDocumentV1) => Promise<void>>(null!);
+  const saveDraftRef = React.useRef<(doc: PageBlueprint) => Promise<void>>(null!);
   const portalRef = React.useRef<PortalApi | null>(null);
 
   const requestEditContentRef = useRequestEditContentRef({ workspaceId });
@@ -183,8 +183,8 @@ export function WorkspaceEditorPage() {
     if (!revision) return;
     if (pushedComponentDraftRevisionRef.current === revision.revision) return;
 
-    const doc = extractDesignDocumentFromSnapshot(revision.snapshot);
-    if (!doc || !isDesignDocumentV1ForEditor(doc)) {
+    const doc = extractPageBlueprintFromSnapshot(revision.snapshot);
+    if (!doc || !isPageBlueprintForEditor(doc)) {
       if (!warnedComponentDraftErrorRef.current) {
         warnedComponentDraftErrorRef.current = true;
         notifyErrorText(t("content_pages:EDITOR_COMPONENT_DRAFT_INVALID"));

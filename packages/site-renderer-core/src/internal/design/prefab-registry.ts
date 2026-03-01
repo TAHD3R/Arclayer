@@ -2,7 +2,7 @@ import type { BlockManifest, FieldDefinition, LocalizedString, ViewerContext } f
 import { resolveLocalizedValue } from "@celestial/site-block-protocol";
 import type {
   DesignBindingExprV1,
-  DesignDocumentV1,
+  PageBlueprint,
   DesignNodeId,
   DesignNodeV1,
   DesignPrefabInstanceNodeV1,
@@ -269,7 +269,7 @@ function collectSubtreeIds(nodesById: Record<string, DesignNodeV1>, rootId: stri
 }
 
 export type PrefabExpansionResultV1 = {
-  document: DesignDocumentV1;
+  document: PageBlueprint;
   warnings: string[];
 };
 
@@ -286,7 +286,7 @@ export function expandPrefabInstanceV1(args: {
   const warnings: string[] = [];
   const instanceId = args.instance.id;
 
-  // Expanded template node ids must remain DesignDocument-safe. In particular:
+  // Expanded template node ids must remain PageBlueprint-safe. In particular:
   // - must start with [A-Za-z0-9]
   // - may only contain [A-Za-z0-9:_-]
   const toSafeSegment = (value: string) => value.replaceAll(/[^A-Za-z0-9:_-]/g, "_");

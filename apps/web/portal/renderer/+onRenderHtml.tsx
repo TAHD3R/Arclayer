@@ -8,14 +8,14 @@ import { parseModeFromUrl } from "@/runtime/route-entry";
 import { getPortalRuntimeConfigForSite } from "@/runtime/runtime-config";
 import { fetchPortalExtensionsFromApi, type PortalExtension } from "@/runtime/site-api";
 import {
-  isDesignDocumentV1,
+  isPageBlueprint,
   resolveLocalizedValue,
   serializeCssVarsToStyleText,
 } from "@celestial/site-renderer-core";
 import type { LocalizedString } from "@celestial/site-renderer-core";
 import type {
   DesignBindingExprV1,
-  DesignDocumentV1,
+  PageBlueprint,
   ViewerContext,
 } from "@celestial/site-block-protocol";
 
@@ -108,9 +108,9 @@ function getSeoFromPageContext(
 ): { viewerCtx?: ViewerContext; title?: string; description?: string } {
   const docUnknown = pageContext.pageProps?.document;
   if (!viewerCtx) return {};
-  if (!isDesignDocumentV1(docUnknown)) return { viewerCtx };
+  if (!isPageBlueprint(docUnknown)) return { viewerCtx };
 
-  const doc = docUnknown as DesignDocumentV1;
+  const doc = docUnknown as PageBlueprint;
   const root = doc.nodesById[doc.rootId];
   if (!root || root.type !== "page_root") return { viewerCtx };
 

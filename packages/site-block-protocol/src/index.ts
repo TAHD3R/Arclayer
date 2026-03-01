@@ -3,23 +3,9 @@ import type { LocaleCode, LocalizedString } from "./localized";
 export type { LocaleCode, LocalizedString, LocalizedValue } from "./localized";
 export { resolveLocalizedValue } from "./localized";
 
-export interface DocumentMeta {
-  title?: LocalizedString;
-  description?: LocalizedString;
-  /**
-   * Page-level visual props.
-   *
-   * Note: These are NOT block props; they apply to the document root container.
-   * We reuse Block*Props for now to keep the inspector and renderer consistent.
-   */
-  layout?: BlockLayoutProps;
-  style?: BlockDesignProps;
-  animation?: BlockAnimationProps;
-}
-
 export type BlockDimensionValue = number | string;
 
-// --- DesignDocument v1 (editor-first document format) ---
+// --- PageBlueprint v1（编辑器文档格式） ---
 
 export type {
   BreakpointName,
@@ -33,7 +19,7 @@ export type {
   ContentRefIncludesMap,
   DesignConstraintsV1,
   DesignContentRefNodeV1,
-  DesignDocumentV1,
+  PageBlueprint,
   DesignEmbedNodeV1,
   DesignFrameNodeV1,
   DesignGroupNodeV1,
@@ -61,14 +47,16 @@ export type { JsonObject, JsonScalar, JsonValue } from "./json-types";
 
 export {
   DesignBindingExprV1Schema,
-  DesignDocumentV1Schema,
+  PageBlueprintSchema,
   DesignNodeV1Schema,
   DesignValueV1Schema,
-  isDesignDocumentV1,
+  isPageBlueprint,
 } from "./design-document.zod";
 
 export { BlockManifestSchema, PrefabSlotManifestSchema } from "./block-manifest.zod";
-export { exportBlockManifestJsonSchema, exportDesignDocumentV1JsonSchema } from "./json-schema";
+export { exportBlockManifestJsonSchema, exportPageBlueprintJsonSchema } from "./json-schema";
+
+export type { PageBlueprintFragment, PageBlueprintPatternV1 } from "./page-blueprint-fragment";
 
 export interface BlockLayoutProps {
   width?: BlockDimensionValue;
@@ -114,30 +102,6 @@ export interface CommonBlockVisualProps {
   layout?: BlockLayoutProps;
   style?: BlockDesignProps;
   animation?: BlockAnimationProps;
-}
-
-/**
- * Block protocol v1:
- * - `type` is registered in block registry
- * - `props` must be schema-defined (TS + runtime validation in later sprints)
- */
-export interface BlockNode<Type extends string = string, Props extends object = object> {
-  id: string;
-  type: Type;
-  props: Props;
-  children?: BlockNode[];
-  /** Per-breakpoint visual overrides, keyed by breakpoint name. */
-  responsive?: Partial<Record<string, Partial<CommonBlockVisualProps>>>;
-}
-
-export interface DocumentIR {
-  version: 1;
-  meta?: DocumentMeta;
-  /**
-   * The main content blocks of the page.
-   * Future: add slots (header/footer) and other regions.
-   */
-  blocks: BlockNode[];
 }
 
 export interface ViewerContext {
@@ -237,12 +201,10 @@ export type {
   BlockCategory,
   BlockSupports,
   BlockManifest,
-  BlockPattern,
-  ReusableBlockRef,
 } from "./block-registry";
 
 export { CORE_BLOCK_MANIFESTS } from "./manifests/index";
 export { EDITOR_INTERNAL_BLOCK_MANIFESTS } from "./manifests/index";
 export { PREFAB_BLOCK_MANIFESTS } from "./manifests/index";
 
-export { CORE_BLOCK_PATTERNS } from "./patterns/index";
+export { CORE_PAGE_BLUEPRINT_PATTERNS_V1 } from "./patterns/index";

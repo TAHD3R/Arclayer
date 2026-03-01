@@ -10,7 +10,7 @@ import {
 } from "@dnd-kit/core";
 import { useTranslation } from "react-i18next";
 
-import type { BlockNode } from "@celestial/site-block-protocol";
+import type { DesignLayoutV1, DesignNodeV1 } from "@celestial/site-block-protocol";
 
 import { notifyErrorText } from "@/lib/notifications";
 import { getErrorMessage } from "@/lib/notifications";
@@ -20,6 +20,18 @@ import { resolveAssetRefToPublicUrlPath } from "@/lib/assets/asset-urls";
 import { cn } from "@/lib/utils";
 
 export const EDITOR_CANVAS_DROPPABLE_ID = "editor-canvas";
+
+function defaultRectLayout(x: number, y: number, width: number, height: number): DesignLayoutV1 {
+  return {
+    self: {
+      rect: { x, y, width, height },
+      constraints: { horizontal: "left", vertical: "top" },
+      alignX: "start",
+      alignY: "start",
+    },
+    children: { mode: "absolute" },
+  };
+}
 
 export type EditorDragItem =
   | { kind: "new-block"; blockType: string }
@@ -90,19 +102,24 @@ export function EditorDndProvider(props: { children: React.ReactNode }) {
 
         // Asset -> insert an image block with src preset.
         const src = resolveAssetRefToPublicUrlPath(item.assetId) ?? "";
-        const blocks: BlockNode[] = [
-          {
-            id: "b-temp",
+        const rootId = "pattern_image";
+        const alt = item.assetName ?? "";
+        const nodesById: Record<string, DesignNodeV1> = {
+          [rootId]: {
+            id: rootId,
             type: "image",
-            props: {
-              src,
-              alt: item.assetName ?? "",
-            },
+            name: alt ? `Image(${alt})` : "Image",
+            src,
+            alt: { "zh-CN": alt, "en-US": alt },
+            objectFit: "cover",
+            layout: defaultRectLayout(0, 0, 360, 240),
+            style: {},
           },
-        ];
+        };
 
         const out = await portal.insertBlockTree({
-          blocks,
+          rootIds: [rootId],
+          nodesById,
           targetBlockId,
           position,
         });

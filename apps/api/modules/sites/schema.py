@@ -1,407 +1,14 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Annotated, Any, Literal
+from typing import Any, Literal
 
-from pydantic import AliasChoices, ConfigDict, Field, field_validator
+from pydantic import ConfigDict, Field, field_validator
 
 from apps.api.common.schemas import BaseSchema
 from apps.api.common.types.json_types import JsonValue
 from apps.api.common.types.public_uuid import PublicUUID
-from apps.api.modules.sites.design_document_schema import DesignDocumentV1
-
-# ---- Block Protocol (server-side, minimal for stub) ----
-
-LocaleCode = str
-LocalizedString = dict[LocaleCode, str]
-
-
-class DocumentMeta(BaseSchema):
-    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
-
-    title: LocalizedString | None = Field(default=None, description="Document title (field-level i18n map).")
-    description: LocalizedString | None = Field(
-        default=None, description="Document description (field-level i18n map)."
-    )
-    layout: BlockLayoutProps | None = Field(default=None, description="Optional page layout settings.")
-    style: BlockDesignProps | None = Field(default=None, description="Optional page style settings.")
-    animation: BlockAnimationProps | None = Field(default=None, description="Optional page animation settings.")
-
-
-class BlockLayoutProps(BaseSchema):
-    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
-
-    width: int | str | None = Field(default=None, description="Optional width value.")
-    min_width: int | str | None = Field(default=None, alias="minWidth", description="Optional min width value.")
-    max_width: int | str | None = Field(default=None, alias="maxWidth", description="Optional max width value.")
-    height: int | str | None = Field(default=None, description="Optional height value.")
-    min_height: int | str | None = Field(default=None, alias="minHeight", description="Optional min height value.")
-    max_height: int | str | None = Field(default=None, alias="maxHeight", description="Optional max height value.")
-    margin: int | str | None = Field(default=None, description="Optional margin value.")
-    padding: int | str | None = Field(default=None, description="Optional padding value.")
-    padding_x: int | str | None = Field(default=None, alias="paddingX", description="Optional horizontal padding.")
-    padding_y: int | str | None = Field(default=None, alias="paddingY", description="Optional vertical padding.")
-    gap: int | str | None = Field(default=None, description="Optional layout gap.")
-    display: Literal["block", "flex"] | None = Field(default=None, description="Optional CSS display mode.")
-    direction: Literal["row", "column"] | None = Field(default=None, description="Optional flex direction.")
-    wrap: Literal["nowrap", "wrap"] | None = Field(default=None, description="Optional flex wrap mode.")
-    justify_content: Literal["start", "center", "end", "space-between", "space-around"] | None = Field(
-        default=None,
-        alias="justifyContent",
-        description="Optional flex justify-content value.",
-    )
-    align_items: Literal["start", "center", "end", "stretch"] | None = Field(
-        default=None,
-        alias="alignItems",
-        description="Optional flex align-items value.",
-    )
-
-
-class BlockDesignProps(BaseSchema):
-    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
-
-    color: str | None = Field(default=None, description="Optional text color.")
-    background_color: str | None = Field(
-        default=None, alias="backgroundColor", description="Optional background color."
-    )
-    border_color: str | None = Field(default=None, alias="borderColor", description="Optional border color.")
-    border_style: Literal["solid", "dashed", "dotted"] | None = Field(
-        default=None,
-        alias="borderStyle",
-        description="Optional border style.",
-    )
-    border_width: int | str | None = Field(default=None, alias="borderWidth", description="Optional border width.")
-    border_radius: int | str | None = Field(default=None, alias="borderRadius", description="Optional border radius.")
-    box_shadow: str | None = Field(default=None, alias="boxShadow", description="Optional box-shadow.")
-    opacity: float | None = Field(default=None, ge=0, le=1, description="Optional opacity value.")
-
-
-class BlockAnimationProps(BaseSchema):
-    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
-
-    type: Literal["none", "fade", "slide-up", "slide-down", "zoom-in"] | None = Field(
-        default=None,
-        description="Animation type.",
-    )
-    trigger: Literal["load", "hover"] | None = Field(default=None, description="Animation trigger.")
-    duration_ms: int | None = Field(default=None, alias="durationMs", ge=0, description="Animation duration in ms.")
-    delay_ms: int | None = Field(default=None, alias="delayMs", ge=0, description="Animation delay in ms.")
-    easing: str | None = Field(default=None, description="Animation easing expression.")
-    iteration_count: int | None = Field(
-        default=None,
-        alias="iterationCount",
-        ge=1,
-        description="Animation iteration count.",
-    )
-    fill_mode: Literal["none", "forwards", "backwards", "both"] | None = Field(
-        default=None,
-        alias="fillMode",
-        description="Animation fill mode.",
-    )
-
-
-class BlockVisualProps(BaseSchema):
-    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
-
-    layout: BlockLayoutProps | None = Field(default=None, description="Optional block layout settings.")
-    style: BlockDesignProps | None = Field(default=None, description="Optional block style settings.")
-    animation: BlockAnimationProps | None = Field(default=None, description="Optional block animation settings.")
-
-
-class ContainerBlockProps(BlockVisualProps):
-    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
-
-    as_tag: Literal["div", "section", "article"] | None = Field(
-        default=None,
-        validation_alias=AliasChoices("as", "asTag", "as_tag"),
-        serialization_alias="as",
-        description="Semantic HTML wrapper tag.",
-    )
-    class_name: str | None = Field(default=None, alias="className", description="Optional CSS class name.")
-
-
-class HeadingBlockProps(BlockVisualProps):
-    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
-
-    level: int = Field(..., ge=1, le=6, description="Heading level (1-6).")
-    text: LocalizedString = Field(..., description="Heading text (field-level i18n map).")
-    align: Literal["left", "center", "right"] | None = Field(default=None, description="Optional text alignment.")
-
-
-class ParagraphBlockProps(BlockVisualProps):
-    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
-
-    text: LocalizedString = Field(..., description="Paragraph text (field-level i18n map).")
-    align: Literal["left", "center", "right"] | None = Field(default=None, description="Optional text alignment.")
-
-
-class DividerBlockProps(BlockVisualProps):
-    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
-
-    variant: Literal["default", "subtle"] | None = Field(default=None, description="Divider visual variant.")
-
-
-class ImageBlockProps(BlockVisualProps):
-    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
-
-    src: LocalizedString = Field(..., description="Image source URL (field-level i18n map).")
-    alt: LocalizedString | None = Field(default=None, description="Alt text (field-level i18n map).")
-    object_fit: Literal["cover", "contain", "fill", "none"] | None = Field(
-        default=None, alias="objectFit", description="CSS object-fit."
-    )
-
-
-class ButtonBlockProps(BlockVisualProps):
-    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
-
-    text: LocalizedString = Field(..., description="Button label (field-level i18n map).")
-    href: str | None = Field(default=None, description="Link URL.")
-    variant: Literal["primary", "secondary", "outline", "ghost"] | None = Field(
-        default=None, description="Button variant."
-    )
-    size: Literal["sm", "md", "lg"] | None = Field(default=None, description="Button size.")
-
-
-class VideoBlockProps(BlockVisualProps):
-    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
-
-    src: str = Field(..., description="Video source URL.")
-    poster: str | None = Field(default=None, description="Poster image URL.")
-    autoplay: bool = Field(default=False, description="Autoplay on load.")
-    loop: bool = Field(default=False, description="Loop playback.")
-    muted: bool = Field(default=True, description="Muted by default.")
-
-
-class GridBlockProps(BlockVisualProps):
-    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
-
-    columns: int = Field(default=2, ge=1, le=12, description="Number of grid columns.")
-    column_gap: int | str | None = Field(default=None, alias="columnGap", description="Column gap.")
-    row_gap: int | str | None = Field(default=None, alias="rowGap", description="Row gap.")
-
-
-class SpacerBlockProps(BlockVisualProps):
-    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
-
-    size: int | str = Field(default=24, description="Spacer height (px or CSS value).")
-
-
-class IconBlockProps(BlockVisualProps):
-    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
-
-    name: str = Field(..., description="Icon name (e.g. lucide icon id).")
-    size: int | str | None = Field(default=None, description="Icon size.")
-    color: str | None = Field(default=None, description="Icon color.")
-
-
-class ListBlockProps(BlockVisualProps):
-    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
-
-    ordered: bool = Field(default=False, description="Ordered (numbered) list.")
-    items: list[LocalizedString] = Field(default_factory=list, description="List items (field-level i18n).")
-
-
-class QuoteBlockProps(BlockVisualProps):
-    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
-
-    text: LocalizedString = Field(..., description="Quote text (field-level i18n map).")
-    citation: LocalizedString | None = Field(default=None, description="Citation / attribution.")
-    variant: Literal["default", "large"] | None = Field(default=None, description="Quote visual variant.")
-
-
-class ContainerBlock(BaseSchema):
-    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
-
-    id: str = Field(..., description="Block id.")
-    type: Literal["container"] = Field(..., description="Block type.")
-    props: ContainerBlockProps = Field(..., description="Block props.")
-    responsive: dict[str, BlockVisualProps] | None = Field(
-        default=None,
-        description="Per-breakpoint visual overrides (layout/style/animation).",
-    )
-    children: list[BlockNode] | None = Field(default=None, description="Child blocks.")
-
-
-class HeadingBlock(BaseSchema):
-    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
-
-    id: str = Field(..., description="Block id.")
-    type: Literal["heading"] = Field(..., description="Block type.")
-    props: HeadingBlockProps = Field(..., description="Block props.")
-    responsive: dict[str, BlockVisualProps] | None = Field(
-        default=None,
-        description="Per-breakpoint visual overrides (layout/style/animation).",
-    )
-
-
-class ParagraphBlock(BaseSchema):
-    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
-
-    id: str = Field(..., description="Block id.")
-    type: Literal["paragraph"] = Field(..., description="Block type.")
-    props: ParagraphBlockProps = Field(..., description="Block props.")
-    responsive: dict[str, BlockVisualProps] | None = Field(
-        default=None,
-        description="Per-breakpoint visual overrides (layout/style/animation).",
-    )
-
-
-class DividerBlock(BaseSchema):
-    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
-
-    id: str = Field(..., description="Block id.")
-    type: Literal["divider"] = Field(..., description="Block type.")
-    props: DividerBlockProps = Field(..., description="Block props.")
-    responsive: dict[str, BlockVisualProps] | None = Field(
-        default=None,
-        description="Per-breakpoint visual overrides (layout/style/animation).",
-    )
-
-
-class ImageBlock(BaseSchema):
-    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
-
-    id: str = Field(..., description="Block id.")
-    type: Literal["image"] = Field(..., description="Block type.")
-    props: ImageBlockProps = Field(..., description="Block props.")
-    responsive: dict[str, BlockVisualProps] | None = Field(
-        default=None,
-        description="Per-breakpoint visual overrides (layout/style/animation).",
-    )
-
-
-class ButtonBlock(BaseSchema):
-    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
-
-    id: str = Field(..., description="Block id.")
-    type: Literal["button"] = Field(..., description="Block type.")
-    props: ButtonBlockProps = Field(..., description="Block props.")
-    responsive: dict[str, BlockVisualProps] | None = Field(
-        default=None,
-        description="Per-breakpoint visual overrides (layout/style/animation).",
-    )
-
-
-class VideoBlock(BaseSchema):
-    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
-
-    id: str = Field(..., description="Block id.")
-    type: Literal["video"] = Field(..., description="Block type.")
-    props: VideoBlockProps = Field(..., description="Block props.")
-    responsive: dict[str, BlockVisualProps] | None = Field(
-        default=None,
-        description="Per-breakpoint visual overrides (layout/style/animation).",
-    )
-
-
-class GridBlock(BaseSchema):
-    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
-
-    id: str = Field(..., description="Block id.")
-    type: Literal["grid"] = Field(..., description="Block type.")
-    props: GridBlockProps = Field(..., description="Block props.")
-    responsive: dict[str, BlockVisualProps] | None = Field(
-        default=None,
-        description="Per-breakpoint visual overrides (layout/style/animation).",
-    )
-    children: list[BlockNode] | None = Field(default=None, description="Child blocks.")
-
-
-class SpacerBlock(BaseSchema):
-    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
-
-    id: str = Field(..., description="Block id.")
-    type: Literal["spacer"] = Field(..., description="Block type.")
-    props: SpacerBlockProps = Field(..., description="Block props.")
-    responsive: dict[str, BlockVisualProps] | None = Field(
-        default=None,
-        description="Per-breakpoint visual overrides (layout/style/animation).",
-    )
-
-
-class IconBlock(BaseSchema):
-    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
-
-    id: str = Field(..., description="Block id.")
-    type: Literal["icon"] = Field(..., description="Block type.")
-    props: IconBlockProps = Field(..., description="Block props.")
-    responsive: dict[str, BlockVisualProps] | None = Field(
-        default=None,
-        description="Per-breakpoint visual overrides (layout/style/animation).",
-    )
-
-
-class ListBlock(BaseSchema):
-    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
-
-    id: str = Field(..., description="Block id.")
-    type: Literal["list"] = Field(..., description="Block type.")
-    props: ListBlockProps = Field(..., description="Block props.")
-    responsive: dict[str, BlockVisualProps] | None = Field(
-        default=None,
-        description="Per-breakpoint visual overrides (layout/style/animation).",
-    )
-
-
-class QuoteBlock(BaseSchema):
-    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
-
-    id: str = Field(..., description="Block id.")
-    type: Literal["quote"] = Field(..., description="Block type.")
-    props: QuoteBlockProps = Field(..., description="Block props.")
-    responsive: dict[str, BlockVisualProps] | None = Field(
-        default=None,
-        description="Per-breakpoint visual overrides (layout/style/animation).",
-    )
-
-
-class PrefabBlockProps(BlockVisualProps):
-    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
-
-    prefab: str = Field(..., min_length=1, max_length=128, description="Prefab code (e.g. 'card').")
-    props: dict[str, Any] | None = Field(default=None, description="Prefab props payload (JSON).")
-    # Backwards-compatible alias: older drafts may use `data` to store prefab props.
-    data: dict[str, Any] | None = Field(default=None, description="Legacy prefab data payload (JSON).")
-
-
-class PrefabBlock(BaseSchema):
-    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
-
-    id: str = Field(..., description="Block id.")
-    type: Literal["__prefab__"] = Field(..., description="Prefab instance block type.")
-    props: PrefabBlockProps = Field(..., description="Prefab instance props.")
-    responsive: dict[str, BlockVisualProps] | None = Field(
-        default=None,
-        description="Per-breakpoint visual overrides (layout/style/animation).",
-    )
-    children: list[BlockNode] | None = Field(default=None, description="Child blocks (slots).")
-
-
-BlockNode = Annotated[
-    ContainerBlock
-    | HeadingBlock
-    | ParagraphBlock
-    | DividerBlock
-    | ImageBlock
-    | ButtonBlock
-    | VideoBlock
-    | GridBlock
-    | SpacerBlock
-    | IconBlock
-    | ListBlock
-    | QuoteBlock
-    | PrefabBlock,
-    Field(discriminator="type"),
-]
-
-
-class DocumentIR(BaseSchema):
-    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
-
-    version: Literal[1] = Field(1, description="Document protocol version.")
-    meta: DocumentMeta | None = Field(default=None, description="SEO metadata.")
-    blocks: list[BlockNode] = Field(default_factory=list, description="Content blocks.")
-
+from apps.api.modules.sites.design_document_schema import PageBlueprint, PageBlueprintFragment
 
 # ---- Sites API (public consumption, stub) ----
 
@@ -539,7 +146,7 @@ class ContentRefIncludeV1(BaseSchema):
         alias="resolvedState",
         description="Actual resolved revision state.",
     )
-    document: DesignDocumentV1 | None = Field(default=None, description="Resolved design document.")
+    document: PageBlueprint | None = Field(default=None, description="Resolved design document.")
     data: dict[str, JsonValue] | None = Field(default=None, description="Entry field values snapshot.")
     meta: dict[str, JsonValue] | None = Field(default=None, description="Entry metadata.")
     error: ContentRefIncludeErrorV1 | None = Field(default=None, description="Structured error if resolution failed.")
@@ -566,7 +173,7 @@ class SiteRouteResolveOut(BaseSchema):
     model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
 
     match: SiteRouteMatchOut = Field(..., description="Match result.")
-    document: DesignDocumentV1 | None = Field(default=None, description="Resolved design document (if any).")
+    document: PageBlueprint | None = Field(default=None, description="Resolved design document (if any).")
     data_sources: SiteRouteDataSourcesOut | None = Field(
         default=None,
         alias="dataSources",
@@ -606,7 +213,7 @@ class SiteRouteDraftSaveIn(BaseSchema):
     model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
 
     path: str = Field(..., description="Route pathname to save (e.g. /about).", examples=["/about"])
-    document: DesignDocumentV1 = Field(..., description="Draft design document payload.")
+    document: PageBlueprint = Field(..., description="Draft design document payload.")
     meta: dict[str, Any] | None = Field(default=None, description="Optional metadata payload (JSON).")
     style_overrides: dict[str, Any] | None = Field(default=None, description="Optional style overrides payload (JSON).")
     variant_id: str | None = Field(default=None, description="Optional theme variant id.")
@@ -652,7 +259,7 @@ class SiteRoutePublishOut(BaseSchema):
 class SitePageDraftSaveIn(BaseSchema):
     model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
 
-    document: DesignDocumentV1 = Field(..., description="Draft design document payload.")
+    document: PageBlueprint = Field(..., description="Draft design document payload.")
     meta: dict[str, Any] | None = Field(default=None, description="Optional metadata payload (JSON).")
     style_overrides: dict[str, Any] | None = Field(default=None, description="Optional style overrides payload (JSON).")
     variant_id: str | None = Field(default=None, description="Optional theme variant id.")
@@ -953,7 +560,7 @@ class SitePageRevisionOut(BaseSchema):
     state: Literal["draft", "published"] = Field(..., description="Revision state.")
     revision: int = Field(..., ge=1, description="Revision number.")
     created_at_ms: int = Field(..., description="Revision created timestamp in milliseconds (UTC).")
-    document: DesignDocumentV1 = Field(..., description="DesignDocumentV1 payload.")
+    document: PageBlueprint = Field(..., description="PageBlueprint payload.")
     meta: dict[str, Any] | None = Field(default=None, description="Optional metadata payload (JSON).")
     style_overrides: dict[str, Any] | None = Field(default=None, description="Optional style overrides payload (JSON).")
     variant_id: str | None = Field(default=None, description="Optional theme variant id.")
@@ -984,7 +591,7 @@ class SiteEntryRevisionOut(BaseSchema):
     state: Literal["draft", "published"] = Field(..., description="Revision state.")
     revision: int = Field(..., ge=1, description="Revision number.")
     created_at_ms: int = Field(..., description="Revision created timestamp in milliseconds (UTC).")
-    document: DesignDocumentV1 | None = Field(default=None, description="Optional DesignDocumentV1 payload.")
+    document: PageBlueprint | None = Field(default=None, description="Optional PageBlueprint payload.")
     data: dict[str, Any] | None = Field(default=None, description="Optional entry data payload (JSON).")
     meta: dict[str, Any] | None = Field(default=None, description="Optional metadata payload (JSON).")
     style_overrides: dict[str, Any] | None = Field(default=None, description="Optional style overrides payload (JSON).")
@@ -1014,7 +621,7 @@ class SiteEntryDraftSaveIn(BaseSchema):
 
     entry_type_code: str = Field(..., min_length=1, max_length=64, description="Entry type code (e.g. blog_post).")
     slug: str = Field(..., min_length=1, max_length=256, description="Entry slug (unique within entry type).")
-    document: DesignDocumentV1 | None = Field(default=None, description="Optional DesignDocumentV1 payload.")
+    document: PageBlueprint | None = Field(default=None, description="Optional PageBlueprint payload.")
     data: dict[str, Any] | None = Field(default=None, description="Optional entry data payload (JSON).")
     meta: dict[str, Any] | None = Field(default=None, description="Optional metadata payload (JSON).")
     style_overrides: dict[str, Any] | None = Field(default=None, description="Optional style overrides payload (JSON).")
@@ -1156,10 +763,10 @@ class SitePatternOut(BaseSchema):
     )
     category: str = Field(..., description="Pattern category.")
     preview_image_url: str | None = Field(default=None, description="Preview image URL.")
-    blocks: list[dict[str, Any]] = Field(
-        default_factory=list,
-        validation_alias="blocks_json",
-        description="Block nodes (serialized JSON).",
+    page_blueprint_fragment: PageBlueprintFragment = Field(
+        default_factory=lambda: PageBlueprintFragment(version=1),
+        validation_alias="page_blueprint_fragment_json",
+        description="Reusable PageBlueprint fragment (serialized JSON).",
     )
     created_at_ms: int = Field(
         ..., validation_alias="created_at", description="Created timestamp in milliseconds (UTC)."
@@ -1180,7 +787,10 @@ class SitePatternCreateIn(BaseSchema):
     label: dict[str, str] = Field(default_factory=dict, description="Localized label map.")
     category: str = Field(default="custom", max_length=64, description="Pattern category.")
     preview_image_url: str | None = Field(default=None, max_length=512, description="Preview image URL.")
-    blocks: list[dict[str, Any]] = Field(default_factory=list, description="Block nodes (serialized JSON).")
+    page_blueprint_fragment: PageBlueprintFragment = Field(
+        default_factory=lambda: PageBlueprintFragment(version=1),
+        description="Reusable PageBlueprint fragment (serialized JSON).",
+    )
 
 
 class SitePatternUpdateIn(BaseSchema):
@@ -1189,7 +799,10 @@ class SitePatternUpdateIn(BaseSchema):
     label: dict[str, str] | None = Field(default=None, description="Localized label map.")
     category: str | None = Field(default=None, max_length=64, description="Pattern category.")
     preview_image_url: str | None = Field(default=None, max_length=512, description="Preview image URL.")
-    blocks: list[dict[str, Any]] | None = Field(default=None, description="Block nodes (serialized JSON).")
+    page_blueprint_fragment: PageBlueprintFragment | None = Field(
+        default=None,
+        description="Reusable PageBlueprint fragment (serialized JSON).",
+    )
 
 
 class SitePatternDeleteOut(BaseSchema):
@@ -1198,9 +811,5 @@ class SitePatternDeleteOut(BaseSchema):
     pattern_id: PublicUUID = Field(..., description="Deleted pattern id.")
 
 
-ContainerBlock.model_rebuild()
-GridBlock.model_rebuild()
-PrefabBlock.model_rebuild()
-DocumentIR.model_rebuild()
 SitePageTreeNodeOut.model_rebuild()
 SiteVisualSitemapNodeOut.model_rebuild()

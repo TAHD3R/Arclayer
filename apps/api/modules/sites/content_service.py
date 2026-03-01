@@ -739,10 +739,10 @@ class SiteContentService(BaseService):
                 type_code=str(e.get("entry_type_code") or ""),
                 title=(e.get("title") if isinstance(e.get("title"), str) else None),
                 field_values=(e.get("field_values") if isinstance(e.get("field_values"), dict) else None),
-                document_ir=(
+                page_blueprint=(
                     None
                     if not display_mode
-                    else (e.get("document_ir") if isinstance(e.get("document_ir"), dict) else None)
+                    else (e.get("page_blueprint") if isinstance(e.get("page_blueprint"), dict) else None)
                 ),
             )
             for e in entries
@@ -767,7 +767,7 @@ class SiteContentService(BaseService):
             type_code=str(e.get("entry_type_code") or ""),
             title=(e.get("title") if isinstance(e.get("title"), str) else None),
             field_values=(e.get("field_values") if isinstance(e.get("field_values"), dict) else None),
-            document_ir=(e.get("document_ir") if isinstance(e.get("document_ir"), dict) else None),
+            page_blueprint=(e.get("page_blueprint") if isinstance(e.get("page_blueprint"), dict) else None),
         )
 
     async def delivery_get_menu(self, *, site_id: UUID, menu_key: str):

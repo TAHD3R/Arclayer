@@ -1,6 +1,6 @@
 import type {
   DesignBindingExprV1,
-  DesignDocumentV1,
+  PageBlueprint,
   DesignLayoutV1,
   DesignNodeResponsiveOverrideV1,
   DesignNodeV1,
@@ -157,7 +157,7 @@ function isNode(value: unknown): value is DesignNodeV1 {
   return false;
 }
 
-export function isDesignDocumentV1(value: unknown): value is DesignDocumentV1 {
+export function isPageBlueprint(value: unknown): value is PageBlueprint {
   if (!isRecord(value)) return false;
   if (value.version !== 1) return false;
   if (typeof value.rootId !== "string" || !isSafeNodeId(value.rootId)) return false;

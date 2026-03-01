@@ -114,10 +114,10 @@ class ContentEntryDeleteOut(BaseSchema):
 class ContentEntryDraftSaveIn(BaseSchema):
     model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
 
-    document_ir: dict[str, Any] | None = Field(
+    page_blueprint: dict[str, Any] | None = Field(
         default=None,
-        description="Document payload.",
-        validation_alias=AliasChoices("documentIr", "document"),
+        description="Page blueprint payload.",
+        validation_alias=AliasChoices("pageBlueprint", "page_blueprint"),
     )
     field_values: dict[str, Any] | None = Field(
         default=None,
@@ -366,7 +366,7 @@ class ContentViewDslIn(BaseSchema):
     limit: int | None = Field(default=None, ge=1, le=1000, description="Default preview limit.")
     projection: list[str] | None = Field(default=None, description="Field projection list.")
     display_mode: str | None = Field(default=None, max_length=64, description="Display mode code for field filtering.")
-    include_document_ir: bool = Field(default=False, description="Whether to include full DocumentIR.")
+    include_page_blueprint: bool = Field(default=False, description="Whether to include full page blueprint.")
 
 
 class ContentViewOut(BaseSchema):

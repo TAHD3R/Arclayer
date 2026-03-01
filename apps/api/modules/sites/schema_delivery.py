@@ -16,7 +16,7 @@ class DeliveryEntryOut(BaseSchema):
     type_code: str = Field(..., description="Content type code.")
     title: str | None = Field(default=None, description="Entry title.")
     field_values: dict[str, Any] | None = Field(default=None, description="Published field values.")
-    document_ir: dict[str, Any] | None = Field(default=None, description="Published document IR.")
+    page_blueprint: dict[str, Any] | None = Field(default=None, description="Published page blueprint.")
 
 
 class DeliveryMenuOut(BaseSchema):

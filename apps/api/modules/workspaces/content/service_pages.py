@@ -521,16 +521,18 @@ class WorkspaceContentPagesMixin:
         )
 
         snapshot = revision_out.snapshot if isinstance(revision_out.snapshot, dict) else {}
-        raw_doc = snapshot.get("design_document") if isinstance(snapshot, dict) else None
+        raw_doc = snapshot.get("page_blueprint") if isinstance(snapshot, dict) else None
         if raw_doc is None:
-            raise NotFound("Design document not found", error="PAGE_DOCUMENT_NOT_FOUND")
+            raw_doc = snapshot.get("design_document") if isinstance(snapshot, dict) else None
+        if raw_doc is None:
+            raise NotFound("Page blueprint not found", error="PAGE_BLUEPRINT_NOT_FOUND")
 
-        from apps.api.modules.sites.design_document_schema import DesignDocumentV1  # local import to avoid cycles
+        from apps.api.modules.sites.design_document_schema import PageBlueprint  # local import to avoid cycles
 
         try:
-            doc = DesignDocumentV1.model_validate(raw_doc)
+            doc = PageBlueprint.model_validate(raw_doc)
         except Exception as exc:
-            raise Conflict("Invalid design document", error="PAGE_DOCUMENT_INVALID") from exc
+            raise Conflict("Invalid page blueprint", error="PAGE_BLUEPRINT_INVALID") from exc
         meta = snapshot.get("meta") if isinstance(snapshot.get("meta"), dict) else None
         style_overrides = snapshot.get("style_overrides") if isinstance(snapshot.get("style_overrides"), dict) else None
         variant_id = snapshot.get("variant_id") if isinstance(snapshot.get("variant_id"), str) else None
@@ -575,7 +577,7 @@ class WorkspaceContentPagesMixin:
             workspace_id=workspace_id,
             site_id=site_id,
             entry_id=page_id,
-            document_ir=payload.document.model_dump(by_alias=True),
+            page_blueprint=payload.document.model_dump(by_alias=True),
             field_values=field_values,
             meta=meta,
             expected_revision=payload.expected_revision,

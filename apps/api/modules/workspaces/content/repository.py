@@ -206,7 +206,7 @@ class WorkspaceContentRepository(BaseRepository):
                 parent_entry_id=parent_entry_id,
                 sort_order=int(sort_order or 0),
                 field_values=None,
-                document_ir=None,
+                page_blueprint=None,
                 draft_revision=0,
                 published_revision=None,
                 created_by_user_id=created_by_user_id,
@@ -276,7 +276,7 @@ class WorkspaceContentRepository(BaseRepository):
         workspace_id: UUID,
         site_id: UUID,
         entry_id: UUID,
-        document_ir: dict[str, Any] | None,
+        page_blueprint: dict[str, Any] | None,
         field_values: dict[str, Any] | None,
         meta: dict[str, Any] | None,
         expected_revision: int | None,
@@ -299,7 +299,7 @@ class WorkspaceContentRepository(BaseRepository):
 
             next_revision = current_draft + 1
             snapshot: dict[str, Any] = {
-                "design_document": document_ir,
+                "page_blueprint": page_blueprint,
                 "field_values": field_values,
                 "meta": meta,
                 "slug": rec.slug,
@@ -315,14 +315,14 @@ class WorkspaceContentRepository(BaseRepository):
                 using_db=conn,
             )
 
-            rec.document_ir = document_ir
+            rec.page_blueprint = page_blueprint
             rec.field_values = field_values
             rec.draft_revision = next_revision
             cast(ContentEntryMutableFields, rec).updated_by_user_id = actor_user_id
             rec.status = "published" if rec.published_revision is not None else "draft"
             await rec.save(
                 update_fields=[
-                    "document_ir",
+                    "page_blueprint",
                     "field_values",
                     "draft_revision",
                     "updated_by_user_id",

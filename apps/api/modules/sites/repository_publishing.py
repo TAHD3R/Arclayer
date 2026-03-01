@@ -14,7 +14,7 @@ from apps.api.common.repositories.base import BaseRepository
 from apps.api.common.utils.public_ids import decode_public_id, encode_uuid, is_public_id
 from apps.api.core.exceptions import Conflict, NotFound
 from apps.api.modules.assets.models.asset import AssetRecord
-from apps.api.modules.sites.design_document_schema import DesignDocumentV1
+from apps.api.modules.sites.design_document_schema import PageBlueprint
 from apps.api.modules.sites.models.site import SiteRecord
 from apps.api.modules.sites.models.site_entry import EntryRecord, EntryRevisionRecord
 from apps.api.modules.sites.models.site_page import SitePageRecord, SitePageRevisionRecord, SitePageVisibility
@@ -232,7 +232,7 @@ class SitePublishingRepository(BaseRepository):
         site_id: UUID,
         entry_type_id: UUID,
         slug: str,
-        document: DesignDocumentV1 | None,
+        document: PageBlueprint | None,
         data: dict | None,
         meta: dict | None,
         style_overrides: dict | None,
@@ -387,7 +387,7 @@ class SitePublishingRepository(BaseRepository):
         *,
         site_id: UUID,
         path: str,
-        document: DesignDocumentV1,
+        document: PageBlueprint,
         meta: dict | None,
         style_overrides: dict | None,
         variant_id: str | None,
@@ -470,7 +470,7 @@ class SitePublishingRepository(BaseRepository):
         *,
         site_id: UUID,
         page_id: UUID,
-        document: DesignDocumentV1,
+        document: PageBlueprint,
         meta: dict | None,
         style_overrides: dict | None,
         variant_id: str | None,
@@ -687,18 +687,12 @@ class SitePublishingRepository(BaseRepository):
 
         data: dict | None = rec.data if isinstance(rec.data, dict) else None
 
-        doc: DesignDocumentV1 | None = None
+        doc: PageBlueprint | None = None
         if rec.design_document is not None:
-            doc = DesignDocumentV1.model_validate(rec.design_document)
-        elif rec.document is not None:
-            # Legacy: on-read migrate DocumentIR -> DesignDocumentV1.
-            from apps.api.modules.sites.design_document_migrations import migrate_document_ir_to_design_document_v1
-            from apps.api.modules.sites.schema import DocumentIR
-
-            legacy = DocumentIR.model_validate(rec.document)
-            doc = migrate_document_ir_to_design_document_v1(doc=legacy)
-            rec.design_document = doc.model_dump(by_alias=True)
-            await rec.save(update_fields=["design_document"])
+            try:
+                doc = PageBlueprint.model_validate(rec.design_document)
+            except Exception:
+                doc = None
 
         if doc is None:
             return None

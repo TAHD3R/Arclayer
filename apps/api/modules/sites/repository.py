@@ -18,7 +18,7 @@ from apps.api.common.protocols.tortoise import (
 from apps.api.common.repositories.base import BaseRepository
 from apps.api.core.exceptions import Conflict, NotFound
 from apps.api.modules.sites.constants import EDITOR_STYLE_NAMESPACE
-from apps.api.modules.sites.design_document_schema import DesignDocumentV1
+from apps.api.modules.sites.design_document_schema import PageBlueprint
 from apps.api.modules.sites.models.site import SiteRecord
 from apps.api.modules.sites.models.site_entry import EntryRecord, EntryRevisionRecord, EntryTypeRecord
 from apps.api.modules.sites.models.site_page import SitePageRecord, SitePageRevisionRecord, SitePageVisibility
@@ -513,7 +513,7 @@ class SitesRepository(BaseRepository):
             data = rev.data if rev is not None and isinstance(rev.data, dict) else None
             title_raw = data.get("title") if isinstance(data, dict) else None
             title = title_raw if isinstance(title_raw, str) and title_raw.strip() else None
-            document_ir = rev.document if rev is not None and isinstance(rev.document, dict) else None
+            page_blueprint = rev.design_document if rev is not None and isinstance(rev.design_document, dict) else None
 
             type_id = UUID(str(cast(HasEntryTypeId, entry).entry_type_id))
             out.append({
@@ -521,7 +521,7 @@ class SitesRepository(BaseRepository):
                 "entry_type_code": type_code_by_id.get(type_id, ""),
                 "title": title,
                 "field_values": data,
-                "document_ir": document_ir,
+                "page_blueprint": page_blueprint,
             })
 
         return out
@@ -548,14 +548,14 @@ class SitesRepository(BaseRepository):
         data = rev.data if rev is not None and isinstance(rev.data, dict) else None
         title_raw = data.get("title") if isinstance(data, dict) else None
         title = title_raw if isinstance(title_raw, str) and title_raw.strip() else None
-        document_ir = rev.document if rev is not None and isinstance(rev.document, dict) else None
+        page_blueprint = rev.design_document if rev is not None and isinstance(rev.design_document, dict) else None
 
         return {
             "slug": str(entry.slug),
             "entry_type_code": type_code,
             "title": title,
             "field_values": data,
-            "document_ir": document_ir,
+            "page_blueprint": page_blueprint,
         }
 
     async def get_menu_by_key(self, *, site_id: UUID, key: str) -> dict[str, Any]:
@@ -585,7 +585,7 @@ class SitesRepository(BaseRepository):
         entry_type_id: UUID,
         slug: str,
         data: dict | None,
-        document: DesignDocumentV1 | None,
+        document: PageBlueprint | None,
         meta: dict | None,
         style_overrides: dict | None,
         variant_id: str | None,
@@ -629,7 +629,7 @@ class SitesRepository(BaseRepository):
         *,
         site_id: UUID,
         path: str,
-        document: DesignDocumentV1,
+        document: PageBlueprint,
         meta: dict | None,
         style_overrides: dict | None,
         variant_id: str | None,
@@ -656,7 +656,7 @@ class SitesRepository(BaseRepository):
         *,
         site_id: UUID,
         page_id: UUID,
-        document: DesignDocumentV1,
+        document: PageBlueprint,
         meta: dict | None,
         style_overrides: dict | None,
         variant_id: str | None,

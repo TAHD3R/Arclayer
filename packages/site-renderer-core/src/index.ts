@@ -3,54 +3,21 @@ export type {
   LocalizedString,
   LocalizedValue,
   ViewerContext,
-  DocumentIR,
-  DocumentMeta,
-  BlockNode,
+  PageBlueprint,
   ContentRefIncludesMap,
 } from "@celestial/site-block-protocol";
 export { resolveLocalizedValue } from "@celestial/site-block-protocol";
 
-export type {
-  CoreBlockType,
-  CoreDocumentIR,
-  CoreBlockNode,
-  CoreBlockPropsByType,
-} from "./internal/core-blocks";
-export { registerCoreBlocks } from "./internal/core-blocks";
-export { DocumentRenderer } from "./internal/DocumentRenderer";
-export { isCoreBlockNode, isCoreDocumentIR, isDocumentIR } from "./internal/guards";
-
 export type { CssVarMap } from "./internal/theme/css-vars";
 export { serializeCssVarsToStyleText, resolveTokenCollection, serializeTokensToStyleText } from "./internal/theme/css-vars";
 
-export type { BlockRenderer } from "./internal/BlockRegistry";
+// --- PageBlueprint v1（编辑器文档格式） ---
+export { isPageBlueprint } from "./internal/design-document";
 export type {
-  PrefabRenderer,
-  PrefabInstanceNode,
-  PrefabInstanceProps,
-  PrefabInstanceBlockType,
-} from "./internal/BlockRegistry";
-export { BlockRegistry, PREFAB_INSTANCE_BLOCK_TYPE } from "./internal/BlockRegistry";
-
-export { coreBlockRenderers } from "./internal/blocks/index";
-
-export type { CreateDefaultBlockRegistryOptions } from "./internal/default-registry";
-export { createDefaultBlockRegistry, defaultFallbackRenderer } from "./internal/default-registry";
-
-export { buildBlockStyles, resolveNodeVisualProps } from "./internal/visual-props";
-
-export { cardPrefabRenderer } from "./internal/prefabs/card-prefab";
-
-export { PortableTextRenderer } from "./internal/rich-text/portable-text-renderer";
-export { InlineEditor } from "./internal/rich-text/inline-editor";
-
-// --- DesignDocument v1 (editor-first document format) ---
-export { isDesignDocumentV1 } from "./internal/design-document";
-export type {
-  DesignDocumentRendererProps,
-  DesignDocumentRendererViewport,
+  PageBlueprintRendererProps,
+  PageBlueprintRendererViewport,
 } from "./internal/design/DesignDocumentRenderer";
-export { DesignDocumentRenderer } from "./internal/design/DesignDocumentRenderer";
+export { PageBlueprintRenderer } from "./internal/design/DesignDocumentRenderer";
 export {
   mergeDesignNodeResponsiveOverrideV1,
   resolveDesignNodeAtBreakpointV1,
@@ -61,7 +28,7 @@ export type {
   PrefabTemplateV1,
 } from "./internal/design/prefab-registry";
 export { PrefabRegistryV1 } from "./internal/design/prefab-registry";
-export { createDefaultPrefabRegistryV1, createEmptyDesignDocumentV1 } from "./internal/design/default-prefab-registry";
+export { createDefaultPrefabRegistryV1, createEmptyPageBlueprint } from "./internal/design/default-prefab-registry";
 
 // --- Layout compute (absolute constraints + auto-layout subset) ---
 export type {

@@ -3,7 +3,7 @@ import type { BlockManifest } from "../block-registry";
 /**
  * Internal "virtual" manifests used by the editor inspector.
  *
- * These manifests do NOT represent insertable blocks in DocumentIR.blocks.
+ * These manifests do NOT represent insertable nodes in PageBlueprint.
  * They exist to reuse the schema-driven inspector UI for non-block entities
  * (e.g. the page/document root).
  */

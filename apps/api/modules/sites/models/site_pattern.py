@@ -17,7 +17,8 @@ class SitePattern(BaseModel):
     label_json = fields.JSONField(default=dict)
     category = fields.CharField(max_length=64, default="custom")
     preview_image_url = fields.CharField(max_length=512, null=True)
-    blocks_json = fields.JSONField(default=list)
+    # 代码层统一语义为 PageBlueprintFragment；底层数据库列名仍为 blocks_json（历史原因）。
+    page_blueprint_fragment_json = fields.JSONField(default=dict, source_field="blocks_json")
     created_by_user_id = fields.UUIDField(null=True, db_index=True)
 
     class Meta(BaseModel.Meta):

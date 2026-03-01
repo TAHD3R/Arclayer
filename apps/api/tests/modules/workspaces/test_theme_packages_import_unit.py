@@ -66,7 +66,7 @@ def test_theme_import_rejects_executable_files(tmp_path) -> None:
     assert exc.value.error == "THEME_IMPORT_FORBIDDEN_FILE"
 
 
-def test_theme_import_validates_variant_payload_using_document_ir(tmp_path) -> None:
+def test_theme_import_validates_variant_payload_using_page_blueprint(tmp_path) -> None:
     z = tmp_path / "theme.zip"
     manifest = {
         "themeId": "@celestial/theme-modern",
@@ -75,16 +75,23 @@ def test_theme_import_validates_variant_payload_using_document_ir(tmp_path) -> N
         "variants": [{"variantId": "home-a", "name": "Home A", "path": "variants/home.json"}],
     }
     variant = {
-        "document": {
+        "pageBlueprint": {
             "version": 1,
-            "blocks": [
-                {
-                    "id": "root",
-                    "type": "container",
-                    "props": {"as": "section"},
-                    "children": [{"id": "h1", "type": "heading", "props": {"level": 1, "text": {"en-US": "Hi"}}}],
-                }
-            ],
+            "rootId": "page",
+            "nodesById": {
+                "page": {
+                    "id": "page",
+                    "type": "page_root",
+                    "children": ["h1"],
+                    "layout": {"children": {"mode": "absolute"}},
+                },
+                "h1": {
+                    "id": "h1",
+                    "type": "text",
+                    "text": {"en-US": "Hi"},
+                    "tag": "h1",
+                },
+            },
         }
     }
     _write_zip(

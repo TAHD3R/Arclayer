@@ -7,7 +7,7 @@ from pydantic import Field, field_validator
 
 from apps.api.common.schemas import BaseSchema
 from apps.api.common.types.public_uuid import PublicUUID
-from apps.api.modules.sites.schema import DocumentIR
+from apps.api.modules.sites.design_document_schema import PageBlueprint
 
 _NPM_NAME_RE = re.compile(
     # Very small subset of npm package name rules:
@@ -83,11 +83,11 @@ class ThemeVariantPayloadIn(BaseSchema):
     """
     Theme variant payload: PageRevision subset (v0).
 
-    We reuse the same DocumentIR schema as Sites draft/publish flows to ensure
+    We reuse the same PageBlueprint schema as Sites draft/publish flows to ensure
     consistency and to keep "extra=forbid" protection.
     """
 
-    document: DocumentIR = Field(..., description="Document IR (v1).")
+    page_blueprint: PageBlueprint = Field(..., alias="pageBlueprint", description="Page blueprint (v1).")
     meta: dict[str, Any] | None = Field(default=None, description="Optional metadata (JSON).")
     style_overrides: dict[str, Any] | None = Field(default=None, alias="styleOverrides", description="Style overrides.")
     variant_id: str | None = Field(default=None, alias="variantId", description="Optional variant id (for self-check).")

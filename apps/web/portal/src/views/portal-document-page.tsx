@@ -1,7 +1,7 @@
 import React from "react";
-import { DesignDocumentRenderer } from "@celestial/site-renderer-core";
+import { PageBlueprintRenderer } from "@celestial/site-renderer-core";
 
-import type { DesignDocumentV1, ViewerContext } from "@celestial/site-block-protocol";
+import type { PageBlueprint, ViewerContext } from "@celestial/site-block-protocol";
 import type { PortalRouteMatch } from "@celestial/portal-types";
 import type {
   ContentRefIncludesMap,
@@ -9,7 +9,7 @@ import type {
 } from "@celestial/site-renderer-core";
 
 export type PortalDocumentPageProps = {
-  document: DesignDocumentV1;
+  document: PageBlueprint;
   match: PortalRouteMatch;
   viewerCtx: ViewerContext;
   showHydration?: boolean;
@@ -77,7 +77,7 @@ export function PortalDocumentPage({
 
   return (
     <>
-      <DesignDocumentRenderer
+      <PageBlueprintRenderer
         document={document}
         ctx={viewerCtx}
         viewport={viewport}

@@ -18,7 +18,7 @@ exports[`protocol/json-schema exports > exportBlockManifestJsonSchema() is stabl
 }
 `;
 
-exports[`protocol/json-schema exports > exportDesignDocumentV1JsonSchema() is stable and contains node discriminator 1`] = `
+exports[`protocol/json-schema exports > exportPageBlueprintJsonSchema() is stable and contains node discriminator 1`] = `
 {
   "defs": [
     "BaseNodeFields",
@@ -37,7 +37,7 @@ exports[`protocol/json-schema exports > exportDesignDocumentV1JsonSchema() is st
     "DesignValueV1",
     "LocalizedString",
   ],
-  "id": "celestial://design-document-v1.json",
+  "id": "celestial://page-blueprint-v1.json",
   "required": [
     "version",
     "rootId",

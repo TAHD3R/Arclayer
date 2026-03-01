@@ -1,4 +1,4 @@
-import { isDesignDocumentV1 } from "@celestial/site-renderer-core";
+import { isPageBlueprint } from "@celestial/site-renderer-core";
 import { ApiError } from "@celestial/web-runtime/http";
 import type {
   PortalResolveMode,
@@ -8,7 +8,7 @@ import type {
 import type {
   ContentRefIncludeErrorCodeV1,
   ContentRefIncludesMap,
-  DesignDocumentV1,
+  PageBlueprint,
   JsonValue,
   ResolveWarningV1,
 } from "@celestial/site-block-protocol";
@@ -100,7 +100,7 @@ export async function resolveRouteFromApi(
 ): Promise<
   | {
       kind: "page";
-      document: DesignDocumentV1;
+      document: PageBlueprint;
       match: PortalRouteMatch;
       dataSources?: DesignRenderDataSourcesV1;
       includes?: ContentRefIncludesMap;
@@ -153,8 +153,8 @@ export async function resolveRouteFromApi(
   }
 
   const document = getRecordField(data, "document");
-  if (!isDesignDocumentV1(document)) {
-    throw new Error("Invalid DesignDocumentV1 returned by API");
+  if (!isPageBlueprint(document)) {
+    throw new Error("Invalid PageBlueprint returned by API");
   }
 
   // Both "page" and "route_template" are rendered as a "page" at runtime. We keep the
@@ -175,8 +175,8 @@ export async function resolveRouteFromApi(
 export type ContentEntryRevisionState = "draft" | "published";
 
 export type ContentEntryRevisionSnapshot = {
-  /** Design document for the entry revision (snapshot payload). */
-  design_document: DesignDocumentV1;
+  /** Page blueprint for the entry revision (snapshot payload). */
+  page_blueprint: PageBlueprint;
   /** Field values for the entry revision (snapshot payload). */
   field_values: Record<string, JsonValue>;
   /** Optional metadata payload for the entry revision (snapshot payload). */
@@ -215,15 +215,20 @@ export async function fetchContentEntryRevision(
   const snapshot = snapshotUnknown as Record<string, unknown>;
 
   // snapshot keys are persisted snake_case, but be tolerant with camelCase for fixtures.
-  const designDocumentUnknown =
-    snapshot.design_document ?? snapshot.designDocument ?? snapshot.document ?? null;
+  const pageBlueprintUnknown =
+    snapshot.page_blueprint ??
+    snapshot.pageBlueprint ??
+    snapshot.design_document ??
+    snapshot.designDocument ??
+    snapshot.document ??
+    null;
   if (
-    !designDocumentUnknown ||
-    typeof designDocumentUnknown !== "object" ||
-    Array.isArray(designDocumentUnknown) ||
-    !isDesignDocumentV1(designDocumentUnknown)
+    !pageBlueprintUnknown ||
+    typeof pageBlueprintUnknown !== "object" ||
+    Array.isArray(pageBlueprintUnknown) ||
+    !isPageBlueprint(pageBlueprintUnknown)
   ) {
-    throw new Error("Invalid design_document returned by API");
+    throw new Error("Invalid page_blueprint returned by API");
   }
 
   const fieldValuesUnknown = snapshot.field_values ?? snapshot.fieldValues ?? null;
@@ -241,7 +246,7 @@ export async function fetchContentEntryRevision(
       : undefined;
 
   const out: ContentEntryRevisionSnapshot = {
-    design_document: designDocumentUnknown,
+    page_blueprint: pageBlueprintUnknown as PageBlueprint,
     field_values: fieldValues ?? {},
   };
   if (meta) out.meta = meta;
@@ -293,8 +298,8 @@ function parseContentRefIncludesMap(data: unknown): ContentRefIncludesMap | unde
       documentRaw &&
       typeof documentRaw === "object" &&
       !Array.isArray(documentRaw) &&
-      isDesignDocumentV1(documentRaw)
-        ? (documentRaw as DesignDocumentV1)
+      isPageBlueprint(documentRaw)
+        ? (documentRaw as PageBlueprint)
         : null;
 
     const dataRaw = getUnknownField(rec, "data");

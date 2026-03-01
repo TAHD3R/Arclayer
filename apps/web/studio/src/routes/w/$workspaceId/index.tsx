@@ -4,10 +4,10 @@ import { useMemo } from "react";
 import { ViewportCanvas } from "@/components/viewport/viewport-canvas";
 import {
   createDefaultPrefabRegistryV1,
-  createEmptyDesignDocumentV1,
-  DesignDocumentRenderer,
+  createEmptyPageBlueprint,
+  PageBlueprintRenderer,
 } from "@celestial/site-renderer-core";
-import type { DesignDocumentV1, ViewerContext } from "@celestial/site-block-protocol";
+import type { PageBlueprint, ViewerContext } from "@celestial/site-block-protocol";
 import { resolveBreakpointNameByWidth } from "@celestial/site-block-protocol";
 import { usePreferencesStore } from "@/stores/use-preferences-store";
 import { useViewportStore } from "@/stores/use-viewport-store";
@@ -16,8 +16,8 @@ export const Route = createFileRoute("/w/$workspaceId/")({
   component: EditorWorkspaceHome,
 });
 
-function buildExampleDocument(): DesignDocumentV1 {
-  const doc = createEmptyDesignDocumentV1();
+function buildExampleDocument(): PageBlueprint {
+  const doc = createEmptyPageBlueprint();
   doc.nodesById["card_1"] = {
     id: "card_1",
     type: "prefab_instance",
@@ -59,7 +59,7 @@ function EditorWorkspaceHome() {
   return (
     <ViewportCanvas>
       <div className="relative w-full">
-        <DesignDocumentRenderer
+        <PageBlueprintRenderer
           document={doc}
           ctx={ctx}
           viewport={{ width: viewportWidth, height: viewportHeight }}

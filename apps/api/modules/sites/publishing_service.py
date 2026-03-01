@@ -16,16 +16,11 @@ from apps.api.modules.sites.constants import (
     THEME_VARS_NAMESPACE,
     get_max_content_ref_depth,
 )
-from apps.api.modules.sites.design_document_migrations import (
-    create_empty_design_document_v1,
-    migrate_document_ir_to_design_document_v1,
-)
-from apps.api.modules.sites.design_document_schema import DesignDocumentV1
+from apps.api.modules.sites.design_document_schema import PageBlueprint
 from apps.api.modules.sites.repository import SitesRepository
 from apps.api.modules.sites.schema import (
     ContentRefIncludeErrorV1,
     ContentRefIncludeV1,
-    DocumentIR,
     ResolveWarningV1,
     SiteEntryDraftSaveIn,
     SiteEntryDraftSaveOut,
@@ -76,46 +71,35 @@ class SitePublishingService(BaseService):
         self._presence = presence
         self._route_templates_version = route_templates_version
 
-    async def _load_design_document_from_revision(
+    async def _load_page_blueprint_from_revision(
         self,
         rec,
         *,
         site_id: UUID,
-        locale: str | None = None,
-        fallback_locale: str | None = None,
-    ) -> DesignDocumentV1 | None:
-        """
-        Load DesignDocumentV1 from a revision record.
-
-        Resolution order:
-        1) design_document (new source of truth)
-        2) legacy document (DocumentIR) -> migrate -> backfill design_document
-        """
-
-        if rec.design_document is not None:
-            try:
-                return DesignDocumentV1.model_validate(rec.design_document)
-            except Exception:
-                return None
-
-        if rec.document is None:
+    ) -> PageBlueprint | None:
+        """Load PageBlueprint from a revision record."""
+        if rec.design_document is None:
+            return None
+        try:
+            return PageBlueprint.model_validate(rec.design_document)
+        except Exception:
             return None
 
-        # Legacy: on-read migrate DocumentIR -> DesignDocumentV1, then backfill for future requests.
-        if locale is None or fallback_locale is None:
-            site = await self._repo.get_site_by_id(site_id=site_id)
-            locale = str(site.default_locale)
-            fallback_locale = str(site.fallback_locale)
-
-        legacy = DocumentIR.model_validate(rec.document)
-        migrated = migrate_document_ir_to_design_document_v1(
-            doc=legacy,
-            locale=str(locale),
-            fallback_locale=str(fallback_locale),
-        )
-        rec.design_document = migrated.model_dump(by_alias=True)
-        await rec.save(update_fields=["design_document"])
-        return migrated
+    @staticmethod
+    def _create_empty_page_blueprint() -> PageBlueprint:
+        return PageBlueprint.model_validate({
+            "version": 1,
+            "rootId": "page",
+            "nodesById": {
+                "page": {
+                    "id": "page",
+                    "type": "page_root",
+                    "name": "Page",
+                    "children": [],
+                    "layout": {"children": {"mode": "absolute"}},
+                }
+            },
+        })
 
     @staticmethod
     def _resolve_ref_state(
@@ -135,7 +119,7 @@ class SitePublishingService(BaseService):
         entry_id_public: str,
         state: Literal["draft", "published"],
     ) -> tuple[
-        DesignDocumentV1 | None,
+        PageBlueprint | None,
         dict | None,
         dict | None,
         ContentRefIncludeErrorV1 | None,
@@ -173,12 +157,14 @@ class SitePublishingService(BaseService):
         meta_raw = snapshot.get("meta")
         meta = meta_raw if isinstance(meta_raw, dict) else None
 
-        raw_doc = snapshot.get("design_document")
+        raw_doc = snapshot.get("page_blueprint")
+        if raw_doc is None:
+            raw_doc = snapshot.get("design_document")
         if raw_doc is None:
             return None, data, meta, None
 
         try:
-            doc = DesignDocumentV1.model_validate(raw_doc)
+            doc = PageBlueprint.model_validate(raw_doc)
         except Exception as exc:
             self.logger.warning(
                 "Invalid design_document in content ref snapshot",
@@ -192,7 +178,7 @@ class SitePublishingService(BaseService):
                 meta,
                 ContentRefIncludeErrorV1(
                     code="INVALID_SCHEMA",
-                    message=f"design_document validation failed: {exc}",
+                    message=f"page_blueprint validation failed: {exc}",
                 ),
             )
 
@@ -201,7 +187,7 @@ class SitePublishingService(BaseService):
     async def _resolve_content_refs(
         self,
         *,
-        document: DesignDocumentV1,
+        document: PageBlueprint,
         site_id: UUID,
         mode: Literal["public", "preview"],
         depth: int = 0,
@@ -534,7 +520,7 @@ class SitePublishingService(BaseService):
         if rec is None:
             raise NotFound("Revision not found", error="REVISION_NOT_FOUND")
 
-        doc = await self._load_design_document_from_revision(
+        doc = await self._load_page_blueprint_from_revision(
             rec,
             site_id=site_id,
         )
@@ -576,7 +562,7 @@ class SitePublishingService(BaseService):
         if rec is None:
             raise NotFound("Revision not found", error="REVISION_NOT_FOUND")
 
-        doc = await self._load_design_document_from_revision(
+        doc = await self._load_page_blueprint_from_revision(
             rec,
             site_id=site_id,
         )
@@ -734,14 +720,16 @@ class SitePublishingService(BaseService):
                     entry_id=UUID(str(entry.id)), revision=int(use_rev)
                 )
                 if rev_rec is not None and isinstance(rev_rec.snapshot, dict):
-                    raw_doc = rev_rec.snapshot.get("design_document")
+                    raw_doc = rev_rec.snapshot.get("page_blueprint")
+                    if raw_doc is None:
+                        raw_doc = rev_rec.snapshot.get("design_document")
                     if raw_doc is not None:
                         try:
-                            doc = DesignDocumentV1.model_validate(raw_doc)
+                            doc = PageBlueprint.model_validate(raw_doc)
                         except Exception as exc:
                             raise ServiceUnavailable(
-                                "Failed to load page design document",
-                                error="DESIGN_DOCUMENT_INVALID",
+                                "Failed to load page blueprint",
+                                error="PAGE_BLUEPRINT_INVALID",
                             ) from exc
                         includes, warnings = await self._resolve_content_refs(
                             document=doc,
@@ -776,7 +764,7 @@ class SitePublishingService(BaseService):
                         draft_revision=draft_rev,
                         published_revision=published_rev or None,
                     ),
-                    document=create_empty_design_document_v1(),
+                    document=self._create_empty_page_blueprint(),
                 )
             return SiteRouteResolveOut(match=SiteRouteMatchOut(kind="not_found"), document=None)
 
@@ -792,14 +780,12 @@ class SitePublishingService(BaseService):
             if use_rev:
                 rec = await self._repo.get_page_revision(page_id=UUID(str(page.id)), rev=int(use_rev))
                 if rec is not None:
-                    doc = await self._load_design_document_from_revision(
+                    doc = await self._load_page_blueprint_from_revision(
                         rec,
                         site_id=site_id,
-                        locale=str(site.default_locale),
-                        fallback_locale=str(site.fallback_locale),
                     )
                     if doc is None:
-                        raise ServiceUnavailable("Failed to load page design document", error="DESIGN_DOCUMENT_INVALID")
+                        raise ServiceUnavailable("Failed to load page blueprint", error="PAGE_BLUEPRINT_INVALID")
 
                     includes, warnings = await self._resolve_content_refs(
                         document=doc,
@@ -833,7 +819,7 @@ class SitePublishingService(BaseService):
                         draft_revision=draft_rev,
                         published_revision=published_rev or None,
                     ),
-                    document=create_empty_design_document_v1(),
+                    document=self._create_empty_page_blueprint(),
                 )
             return SiteRouteResolveOut(match=SiteRouteMatchOut(kind="not_found"), document=None)
 

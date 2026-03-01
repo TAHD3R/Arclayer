@@ -376,7 +376,7 @@ class WorkspaceContentService(
             workspace_id=workspace_id,
             site_id=site_id,
             entry_id=entry_id,
-            document_ir=payload.document_ir,
+            page_blueprint=payload.page_blueprint,
             field_values=payload.field_values,
             meta=payload.meta,
             expected_revision=payload.expected_revision,

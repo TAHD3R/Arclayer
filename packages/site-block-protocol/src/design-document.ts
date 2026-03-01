@@ -228,7 +228,14 @@ export type DesignNodeV1 =
   | DesignPrefabInstanceNodeV1
   | DesignContentRefNodeV1;
 
-export interface DesignDocumentV1 {
+/**
+ * 页面蓝图（编辑态真相源）。
+ *
+ * 约定：
+ * - 类型名保持稳定（PageBlueprint），通过 version 做版本演进。
+ * - 当前仅支持 v1。
+ */
+export interface PageBlueprint {
   version: 1;
   rootId: DesignNodeId;
   nodesById: Record<DesignNodeId, DesignNodeV1>;
@@ -249,7 +256,7 @@ export type ContentRefIncludeErrorV1 = {
 export type ContentRefIncludeV1 = {
   entryId: string;
   resolvedState: "draft" | "published";
-  document: DesignDocumentV1 | null;
+  document: PageBlueprint | null;
   data?: Record<string, JsonValue>;
   meta?: Record<string, JsonValue>;
   error?: ContentRefIncludeErrorV1;

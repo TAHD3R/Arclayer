@@ -148,7 +148,7 @@ async def test_sites_resolve_includes_for_content_ref(prepared_schema) -> None:
             revision=1,
             snapshot={
                 "field_values": {"title": "Header"},
-                "design_document": _header_doc("Header v1"),
+                "page_blueprint": _header_doc("Header v1"),
                 "meta": {"kind": "component"},
             },
             created_by_user_id=user.id,
@@ -241,7 +241,7 @@ async def test_sites_resolve_content_ref_state_forbidden_in_public(prepared_sche
         await ContentRevisionRecord.create(
             entry_id=entry.id,
             revision=1,
-            snapshot={"field_values": {"title": "X"}, "design_document": _header_doc("X v1"), "meta": {}},
+            snapshot={"field_values": {"title": "X"}, "page_blueprint": _header_doc("X v1"), "meta": {}},
             created_by_user_id=user.id,
         )
 
@@ -355,13 +355,13 @@ async def test_sites_resolve_content_ref_cycle_detected(prepared_schema) -> None
         await ContentRevisionRecord.create(
             entry_id=entry_a.id,
             revision=1,
-            snapshot={"field_values": {"title": "A"}, "design_document": doc_a, "meta": {}},
+            snapshot={"field_values": {"title": "A"}, "page_blueprint": doc_a, "meta": {}},
             created_by_user_id=user.id,
         )
         await ContentRevisionRecord.create(
             entry_id=entry_b.id,
             revision=1,
-            snapshot={"field_values": {"title": "B"}, "design_document": doc_b, "meta": {}},
+            snapshot={"field_values": {"title": "B"}, "page_blueprint": doc_b, "meta": {}},
             created_by_user_id=user.id,
         )
 

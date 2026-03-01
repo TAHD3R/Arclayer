@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 
 import { EDITOR_PAGE_ROOT_BLOCK_ID } from "@celestial/site-editor-protocol";
-import type { DesignDocumentV1 } from "@celestial/site-block-protocol";
+import type { PageBlueprint } from "@celestial/site-block-protocol";
 
 import {
   applySelectionPatch,
@@ -26,7 +26,7 @@ function asRecord(value: unknown): Record<string, unknown> | null {
     : null;
 }
 
-function getChildren(doc: DesignDocumentV1, nodeId: string): string[] {
+function getChildren(doc: PageBlueprint, nodeId: string): string[] {
   const node = doc.nodesById[nodeId] as unknown as { children?: unknown };
   const children = node.children;
   if (!Array.isArray(children)) return [];
@@ -42,7 +42,7 @@ function getLayoutSelfRectWidth(inspector: { layout: unknown }): number | undefi
 }
 
 function getResponsiveOverrideWidth(
-  doc: DesignDocumentV1,
+  doc: PageBlueprint,
   nodeId: string,
   breakpoint: string,
 ): number | undefined {
@@ -56,7 +56,7 @@ function getResponsiveOverrideWidth(
   return typeof width === "number" ? width : undefined;
 }
 
-function createSampleDesignDocument(): DesignDocumentV1 {
+function createSamplePageBlueprint(): PageBlueprint {
   return {
     version: 1,
     rootId: EDITOR_PAGE_ROOT_BLOCK_ID,
@@ -128,7 +128,7 @@ function createSampleDesignDocument(): DesignDocumentV1 {
 
 describe("editor document state", () => {
   test("buildSelectionInspector extracts block sections", () => {
-    const doc = createSampleDesignDocument();
+    const doc = createSamplePageBlueprint();
 
     const inspector = buildSelectionInspector(doc, "h-title");
 
@@ -139,7 +139,7 @@ describe("editor document state", () => {
   });
 
   test("applySelectionPatch updates component and layout fields", () => {
-    const doc = createSampleDesignDocument();
+    const doc = createSamplePageBlueprint();
 
     const first = applySelectionPatch({
       document: doc,
@@ -159,7 +159,7 @@ describe("editor document state", () => {
   });
 
   test("prefab nodes: inspector uses prefab:<code> blockType and patches nested props + style whitelist", () => {
-    const doc = createSampleDesignDocument();
+    const doc = createSamplePageBlueprint();
 
     const inserted = insertBlockWithMeta({
       document: doc,
@@ -207,7 +207,7 @@ describe("editor document state", () => {
   });
 
   test("insertBlock appends into selected container", () => {
-    const doc = createSampleDesignDocument();
+    const doc = createSamplePageBlueprint();
 
     const inserted = insertBlockWithMeta({
       document: doc,
@@ -231,7 +231,7 @@ describe("editor document state", () => {
   });
 
   test("history supports commit undo redo", () => {
-    const doc = createSampleDesignDocument();
+    const doc = createSamplePageBlueprint();
     const history = createEditorHistory({ initialDocument: doc, limit: 10 });
 
     const patched = applySelectionPatch({
@@ -254,7 +254,7 @@ describe("editor document state", () => {
   });
 
   test("insertBlockTree rewrites ids and inserts multiple blocks inside container", () => {
-    const doc = createSampleDesignDocument();
+    const doc = createSamplePageBlueprint();
 
     const inserted = insertBlockTreeWithMeta({
       document: doc,
@@ -293,7 +293,7 @@ describe("editor document state", () => {
   });
 
   test("duplicateBlock clones subtree and inserts after original", () => {
-    const doc = createSampleDesignDocument();
+    const doc = createSamplePageBlueprint();
 
     const duplicated = duplicateBlockWithMeta({ document: doc, blockId: "h-title" });
 
@@ -303,7 +303,7 @@ describe("editor document state", () => {
   });
 
   test("deleteBlock removes node and its subtree", () => {
-    const doc = createSampleDesignDocument();
+    const doc = createSamplePageBlueprint();
 
     const deleted = deleteBlock({ document: doc, blockId: "h-title" });
 
@@ -313,7 +313,7 @@ describe("editor document state", () => {
   });
 
   test("moveBlock reorders nodes within same parent", () => {
-    const doc = createSampleDesignDocument();
+    const doc = createSamplePageBlueprint();
 
     const moved = moveBlock({
       document: doc,
@@ -327,7 +327,7 @@ describe("editor document state", () => {
   });
 
   test("page root inspector/patch updates DesignDocument seo", () => {
-    const doc = createSampleDesignDocument();
+    const doc = createSamplePageBlueprint();
 
     const rootInspector = buildSelectionInspector(doc, EDITOR_PAGE_ROOT_BLOCK_ID);
     expect(rootInspector.blockId).toBe(EDITOR_PAGE_ROOT_BLOCK_ID);
@@ -347,7 +347,7 @@ describe("editor document state", () => {
   });
 
   test("setBreakpointOverride writes node.responsive and merges inspector", () => {
-    const doc = createSampleDesignDocument();
+    const doc = createSamplePageBlueprint();
 
     const first = setBreakpointOverride({
       document: doc,

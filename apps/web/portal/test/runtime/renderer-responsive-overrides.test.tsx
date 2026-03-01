@@ -2,12 +2,12 @@ import React from "react";
 import { describe, expect, test } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 
-import { DesignDocumentRenderer } from "@celestial/site-renderer-core";
-import type { DesignDocumentV1, ViewerContext } from "@celestial/site-block-protocol";
+import { PageBlueprintRenderer } from "@celestial/site-renderer-core";
+import type { PageBlueprint, ViewerContext } from "@celestial/site-block-protocol";
 
-describe("site-renderer-core responsive overrides (DesignDocumentV1)", () => {
+describe("site-renderer-core responsive overrides (PageBlueprint)", () => {
   test("applies node.responsive overrides for ctx.breakpoint", () => {
-    const doc: DesignDocumentV1 = {
+    const doc: PageBlueprint = {
       version: 1,
       rootId: "page",
       nodesById: {
@@ -47,7 +47,7 @@ describe("site-renderer-core responsive overrides (DesignDocumentV1)", () => {
     };
 
     const html = renderToStaticMarkup(
-      <DesignDocumentRenderer
+      <PageBlueprintRenderer
         document={doc}
         ctx={ctx}
         viewport={{ width: 375, height: 800, baseWidth: 1440, baseHeight: 800 }}

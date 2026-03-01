@@ -2,12 +2,12 @@ import React from "react";
 import { renderToString } from "react-dom/server";
 import { describe, expect, test } from "vitest";
 
-import { DesignDocumentRenderer } from "@celestial/site-renderer-core";
-import type { DesignDocumentV1, ViewerContext } from "@celestial/site-block-protocol";
+import { PageBlueprintRenderer } from "@celestial/site-renderer-core";
+import type { PageBlueprint, ViewerContext } from "@celestial/site-block-protocol";
 
-describe("DesignDocumentRenderer + PrefabRegistry (phase 3 acceptance)", () => {
-  test("prefab instance renders with built-in registry; expanded template ids stay DesignDocument-safe; slot subtrees are copied", () => {
-    const doc: DesignDocumentV1 = {
+describe("PageBlueprintRenderer + PrefabRegistry (phase 3 acceptance)", () => {
+  test("prefab instance renders with built-in registry; expanded template ids stay PageBlueprint-safe; slot subtrees are copied", () => {
+    const doc: PageBlueprint = {
       version: 1,
       rootId: "page",
       nodesById: {
@@ -83,7 +83,7 @@ describe("DesignDocumentRenderer + PrefabRegistry (phase 3 acceptance)", () => {
     };
 
     const html = renderToString(
-      <DesignDocumentRenderer
+      <PageBlueprintRenderer
         document={doc}
         ctx={viewerCtx}
         viewport={{ width: 1440, height: 800, baseWidth: 1440 }}
