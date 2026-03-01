@@ -7,8 +7,7 @@ import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip
 
 import { useFavoritesStore } from "@/stores/use-favorites-store";
 import BookmarkIcon from "@/components/ui/icons/bookmark-icon";
-
-import styles from "./styles/default-page.module.css";
+import { AdminRouteContainer } from "@/components/layout/admin-route-container";
 
 export type DefaultPageWidth = "fixed" | "full";
 
@@ -80,31 +79,33 @@ export function DefaultPage({
   contentClassName,
 }: DefaultPageProps) {
   return (
-    <div className={clsx(styles.page, className)}>
-      <div className={clsx(styles.pageInner, width === "fixed" ? styles.fixed : styles.full)}>
-        {(title || description || action || extra) && (
-          <header className={styles.header}>
-            {(title || action) && (
-              <div className={styles.titleRow}>
-                <div className={clsx(styles.titleArea, "flex justify-center items-center gap-2")}>
-                  {title ? <div className="text-largetitle select-none">{title}</div> : null}
-                  {title && showFavoriteToggle ? <FavoriteToggle /> : null}
-                </div>
-
-                {action ? <div className={styles.actionArea}>{action}</div> : null}
+    <AdminRouteContainer width={width} className={clsx("h-full", className)}>
+      {(title || description || action || extra) && (
+        <header className="mb-[18px]">
+          {(title || action) && (
+            <div className="flex items-center justify-between gap-4">
+              <div className={clsx("min-w-0 my-2", "flex justify-center items-center gap-2")}>
+                {title ? <div className="text-largetitle select-none">{title}</div> : null}
+                {title && showFavoriteToggle ? <FavoriteToggle /> : null}
               </div>
-            )}
 
-            {description ? (
-              <div className="text-label-secondary select-none">{description}</div>
-            ) : null}
+              {action ? (
+                <div className="shrink-0 inline-flex items-center gap-2.5">{action}</div>
+              ) : null}
+            </div>
+          )}
 
-            {extra ? <div className={styles.extra}>{extra}</div> : null}
-          </header>
-        )}
+          {description ? (
+            <div className="text-label-secondary select-none">{description}</div>
+          ) : null}
 
-        {children ? <div className={clsx(styles.content, contentClassName)}>{children}</div> : null}
-      </div>
-    </div>
+          {extra ? <div className="mt-3.5">{extra}</div> : null}
+        </header>
+      )}
+
+      {children ? (
+        <div className={clsx("min-w-0 flex-1 min-h-0", contentClassName)}>{children}</div>
+      ) : null}
+    </AdminRouteContainer>
   );
 }

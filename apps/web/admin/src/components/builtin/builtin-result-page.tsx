@@ -3,7 +3,7 @@ import { useRouter } from "@tanstack/react-router";
 import { useMemo, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
-import { DefaultPage } from "@/components/common/default-page";
+import { AdminRouteContainer } from "@/components/layout/admin-route-container";
 import {
   Illust401LockedTerminal,
   Illust403ForbiddenGateway,
@@ -108,8 +108,8 @@ export function BuiltinResultPage({
   }
 
   return (
-    <DefaultPage width="fixed">
+    <AdminRouteContainer width="fixed">
       <div className="w-full">{content}</div>
-    </DefaultPage>
+    </AdminRouteContainer>
   );
 }
