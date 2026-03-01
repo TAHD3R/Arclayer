@@ -220,9 +220,16 @@ async def register(
 )
 async def refresh(
     payload: RefreshRequest,
+    fastapi_response: FastAPIResponse,
     service: AuthService = Depends(_get_auth_service),
 ) -> ResponseModel[TokenPair]:
     tokens = await service.refresh(refresh_token=payload.refresh_token)
+    _set_refresh_cookie(
+        fastapi_response,
+        settings=service.settings,
+        refresh_token=tokens.refresh_token,
+        refresh_ttl_seconds=tokens.refresh_expires_in,
+    )
     return Response.success(message=t("auth", "REFRESH_SUCCESS", default="刷新成功"), data=tokens)
 
 

@@ -9,6 +9,7 @@ import { useSystemRuntime } from "@/hooks/use-system-runtime";
 import { resolveLoginMode } from "@/lib/auth/auth-mode";
 import type { LoginMode } from "@/lib/auth/auth-mode";
 import { resolvePostAuthRoute } from "@/lib/routing/bootstrap-routing";
+import { consumeStudioReturnTo, resolveStudioOrigin } from "@/lib/routing/studio-return";
 import { notifyErrorText, notifyInfoText, notifySuccessText } from "@/lib/notifications";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
@@ -16,6 +17,13 @@ import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import type { LoginFormValues, RegisterFormValues } from "../types";
 
 const loginRouteApi = getRouteApi("/login/");
+
+function normalizeEditorRedirectPath(redirectTo: string): string {
+  if (redirectTo === "/editor") return "/editor/";
+  if (redirectTo.startsWith("/editor?")) return `/editor/${redirectTo.slice("/editor".length)}`;
+  if (redirectTo.startsWith("/editor#")) return `/editor/${redirectTo.slice("/editor".length)}`;
+  return redirectTo;
+}
 
 export function useLoginPage() {
   const applyLogin = useAuthStore((s) => s.applyLogin);
@@ -67,9 +75,34 @@ export function useLoginPage() {
 
   const navigateAfterAuth = useCallback(async () => {
     if (redirectTo) {
+      if (redirectTo.startsWith("/editor")) {
+        window.location.replace(normalizeEditorRedirectPath(redirectTo));
+        return;
+      }
       await navigate({ to: redirectTo, replace: true });
       return;
     }
+
+    const studioReturnTo = consumeStudioReturnTo();
+    if (studioReturnTo) {
+      const studioOrigin = resolveStudioOrigin();
+      // Ensure refresh cookie exists for cross-subdomain Studio auth.
+      const refreshToken = useAuthStore.getState().refreshToken;
+      try {
+        if (refreshToken) {
+          const tokens = await authApi.refresh({ refresh_token: refreshToken });
+          useAuthStore.getState().setTokens(tokens);
+        }
+        await authApi.refreshCookie();
+      } catch {
+        notifyErrorText(t("auth:STUDIO_SESSION_REQUIRED"));
+        await navigate({ to: "/", replace: true });
+        return;
+      }
+      window.location.replace(`${studioOrigin}${studioReturnTo}`);
+      return;
+    }
+
     const decision = await resolvePostAuthRoute({ lastWorkspaceId, attemptRepair: true });
     if (decision.workspaceId) {
       setCurrentWorkspaceId(decision.workspaceId);

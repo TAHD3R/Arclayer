@@ -6,7 +6,6 @@ import type {
   DesignBindingExprV1,
   ContentRefIncludesMap,
   DesignNodeId,
-  DesignNodeResponsiveOverrideV1,
   DesignNodeV1,
   DesignStyleV1,
   DesignTransformV1,

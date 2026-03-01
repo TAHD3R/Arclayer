@@ -1,5 +1,3 @@
-import React from "react";
-
 import type { BlockManifest, BlockNode } from "@celestial/site-block-protocol";
 
 import type { BlockRenderer, PrefabInstanceNode } from "./BlockRegistry";

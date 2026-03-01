@@ -1,0 +1,15 @@
+{
+  "EDITOR_APP_TITLE": "Website Editor",
+  "EDITOR_WORKSPACE_SELECT_TITLE": "Select workspace",
+  "EDITOR_WORKSPACE_SELECT_DESC": "Pick a workspace to start building your website.",
+  "EDITOR_WORKSPACE_OPEN": "Open",
+  "EDITOR_VIEWPORT_PRESET_DESKTOP": "Desktop",
+  "EDITOR_VIEWPORT_PRESET_TABLET": "Tablet",
+  "EDITOR_VIEWPORT_PRESET_MOBILE": "Mobile",
+  "EDITOR_MODE_EDIT": "Edit",
+  "EDITOR_MODE_PREVIEW": "Preview",
+  "EDITOR_ROUTER_NOT_FOUND_TITLE": "Page not found",
+  "EDITOR_ROUTER_NOT_FOUND_DESC": "This URL is not available. Go back to the editor.",
+  "EDITOR_ROUTER_ERROR_TITLE": "Something went wrong",
+  "EDITOR_ROUTER_BACK_HOME": "Back to editor"
+}

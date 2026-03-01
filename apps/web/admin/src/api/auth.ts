@@ -23,6 +23,10 @@ export async function refresh(payload: { refresh_token: string }): Promise<Token
   return api.post<TokenPair>("/auth/refresh", payload, { auth: { skipRefresh: true } });
 }
 
+export async function refreshCookie(): Promise<TokenPair> {
+  return api.post<TokenPair>("/auth/refresh-cookie", {}, { auth: { skipRefresh: true } });
+}
+
 export async function me(): Promise<UserProfile> {
   return api.get<UserProfile>("/auth/me");
 }

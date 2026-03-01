@@ -23,8 +23,8 @@
 ## API 路由解析（本地）
 
 - Portal 通过 `/api/*` 代理到 FastAPI。
-  - 配置位于 `apps/web/portal/.env.development`。
-  - 开发脚本通过 Node `--env-file` 加载（Node >= 20）。
+  - 推荐配置位于 `apps/web/portal/.env.local`（从 `.env.local.example` 复制）。
+  - 开发脚本会在存在时自动通过 Node `--env-file` 加载（Node >= 20），避免缺少 env 文件导致 dev 启动失败。
   - 浏览器保持同源请求，SSR 保持确定性。
   - `VITE_API_PROXY_TARGET` 与 Admin 保持一致。
 

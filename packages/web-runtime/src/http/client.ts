@@ -137,12 +137,32 @@ export function createApiClient(opts: ApiClientOptions): ApiClient {
     };
 
     if (res.status === 401) {
+      const refreshToken = opts.getRefreshToken();
+      const shouldTryCookieRefresh = !refreshToken && shouldAttemptRefreshCookie(opts, credentials);
       const refreshed = await attemptRefresh();
       if (refreshed) {
         return request<T>(path, {
           ...options,
           auth: { ...auth, retried: true },
         });
+      }
+
+      // When no access token is present, the API client can still be authenticated via a refresh cookie.
+      // If refresh was possible but still failed, treat it as an auth failure so apps can redirect to login.
+      if (!hadAccessToken && (refreshToken || shouldTryCookieRefresh)) {
+        const message =
+          parsed && typeof parsed === "object" && "message" in parsed
+            ? String((parsed as { message?: unknown }).message || "Unauthorized")
+            : "Unauthorized";
+        const error =
+          parsed && typeof parsed === "object" && "error" in parsed
+            ? String((parsed as { error?: unknown }).error || "")
+            : undefined;
+        if (error) {
+          opts.onUnauthorized?.({ url, status: res.status, error, message });
+        } else {
+          opts.onUnauthorized?.({ url, status: res.status, message });
+        }
       }
     }
 

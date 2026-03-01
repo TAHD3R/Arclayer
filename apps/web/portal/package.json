@@ -4,10 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "node --env-file=.env.development server/index.mjs",
+    "dev": "if [ -f .env.local ]; then node --env-file=.env.local server/index.mjs; elif [ -f .env.development ]; then node --env-file=.env.development server/index.mjs; else node server/index.mjs; fi",
     "build": "vike build",
     "start": "NODE_ENV=production node server/index.mjs",
-    "start:local": "NODE_ENV=production node --env-file=.env.development server/index.mjs",
+    "start:local": "if [ -f .env.local ]; then NODE_ENV=production node --env-file=.env.local server/index.mjs; elif [ -f .env.development ]; then NODE_ENV=production node --env-file=.env.development server/index.mjs; else NODE_ENV=production node server/index.mjs; fi",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit --skipLibCheck",

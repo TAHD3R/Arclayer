@@ -7,6 +7,8 @@ interface ImportMetaEnv {
   readonly VITE_API_PROXY_TARGET?: string;
   readonly VITE_PORTAL_ORIGIN?: string;
   readonly VITE_PORTAL_ORIGIN_TEMPLATE?: string;
+  readonly VITE_STUDIO_ORIGIN?: string;
+  readonly VITE_SHARED_COOKIE_DOMAIN?: string;
 }
 
 interface ImportMeta {

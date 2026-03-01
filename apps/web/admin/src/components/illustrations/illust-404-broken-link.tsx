@@ -79,7 +79,6 @@ export function Illust404BrokenLink(props: IllustrationProps) {
               className="celestial-illust-anim-pulse absolute bottom-20 right-10 size-3 rounded-full bg-primary/30"
               style={{ animationDuration: "4s" }}
             />
-            <div className="absolute right-20 top-2 font-mono text-xs text-primary/20">404_ERR</div>
           </div>
         </div>
       </div>
