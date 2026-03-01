@@ -197,3 +197,31 @@ body,
     animation: none;
   }
 }
+
+@layer utilities {
+  @keyframes celestial-collapsible-down {
+    from {
+      height: 0;
+      opacity: 0;
+      transform: translateY(-2px);
+    }
+    to {
+      height: var(--radix-collapsible-content-height);
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes celestial-collapsible-up {
+    from {
+      height: var(--radix-collapsible-content-height);
+      opacity: 1;
+      transform: translateY(0);
+    }
+    to {
+      height: 0;
+      opacity: 0;
+      transform: translateY(-2px);
+    }
+  }
+}

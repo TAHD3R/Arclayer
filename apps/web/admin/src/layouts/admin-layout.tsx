@@ -231,17 +231,20 @@ export function AdminLayout({ children }: PropsWithChildren) {
           <AdminBrandMark size={80} />
         </SidebarHeader>
 
-        <SidebarContent className="relative z-0 mx-2 scrollbar-none">
-          <AdminSiderNav items={mainItems} resolvePermissionName={resolvePermissionName} />
-          <div className="mt-auto flex flex-col pb-2">
-            {footerItemsWithActions.length > 0 ? (
+        <SidebarContent className="relative z-0 mx-2 overflow-hidden scrollbar-none">
+          <div className="flex min-h-0 flex-1 flex-col overflow-auto scrollbar-none">
+            <AdminSiderNav items={mainItems} resolvePermissionName={resolvePermissionName} />
+          </div>
+
+          {footerItemsWithActions.length > 0 ? (
+            <div className="shrink-0 flex flex-col pb-2">
               <AdminSiderNav
                 items={footerItemsWithActions}
                 resolvePermissionName={resolvePermissionName}
                 className="mt-0 mb-0"
               />
-            ) : null}
-          </div>
+            </div>
+          ) : null}
         </SidebarContent>
 
         <SidebarFooter className="border-t border-border relative z-10 isolate px-0 ">

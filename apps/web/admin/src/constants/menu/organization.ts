@@ -33,7 +33,6 @@ export const ORG_NAV_ITEMS: AdminNavItem[] = [
     labelKey: "nav:NAV_ORG_WORKSPACES",
     to: "/workspaces",
     icon: Boxes,
-    dividerAfter: true,
   },
   // ── Group 2 ──
   {
@@ -77,7 +76,6 @@ export const ORG_NAV_ITEMS: AdminNavItem[] = [
     label: "Extensions & integrations",
     labelKey: "nav:NAV_EXTENSIONS_INTEGRATIONS",
     icon: Blocks,
-    dividerAfter: true,
     children: [
       {
         key: "org.extensionsIntegrations.extensions",

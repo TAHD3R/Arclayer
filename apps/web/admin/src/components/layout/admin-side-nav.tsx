@@ -1,12 +1,5 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import {
-  Fragment,
-  useEffect,
-  useMemo,
-  useState,
-  type CSSProperties,
-  type ReactElement,
-} from "react";
+import { Fragment, useMemo, useState, type CSSProperties, type ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 import type { AdminNavItem } from "@/types/admin-nav";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -18,12 +11,16 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   SidebarSeparator,
 } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 import { useFavoritesStore } from "@/stores/use-favorites-store";
 
 const NAV_ITEM_BASE_PADDING_LEFT = 20;
+const NAV_ITEM_HEIGHT_CLASSNAME = "h-10";
 
 function normalizePath(input: string): string {
   if (input.length > 1 && input.endsWith("/")) return input.slice(0, -1);
@@ -188,25 +185,78 @@ function NavNode({
   const isSectionActive = depth === 0 && hasChildren && activeKeys.has(item.key);
   const isTrailActive = activeKeys.has(item.key);
   const blockedTooltip = getBlockedTooltipText(item, t, resolvePermissionName);
+  const isSubLevel = depth > 0;
+
+  const interactiveTransition = cn(
+    "transition-[color,background-color,transform,box-shadow] duration-200 ease-out",
+    "motion-reduce:transition-none",
+  );
+  const rootActiveIndicator = !isSubLevel
+    ? cn(
+        "before:absolute before:left-2 before:top-1/2 before:-translate-y-1/2",
+        "before:h-4 before:w-1 before:rounded-full",
+        "before:bg-primary/60 before:opacity-0 before:scale-y-75",
+        "before:transition-[opacity,transform] before:duration-200",
+        "motion-reduce:before:transition-none",
+        "data-[active=true]:before:opacity-100 data-[active=true]:before:scale-y-100",
+      )
+    : null;
 
   // Pure button item (no route, no children) — e.g. Support, Notifications
   if (!hasChildren && !item.to) {
     const TrailingIcon = item.trailingIcon;
     const forcedActive = Boolean(item.isActive);
     const showAction = depth === 0 && Boolean(item.actionRenderer);
+
+    if (isSubLevel) {
+      return (
+        <SidebarMenuSubItem className="group/nav-item">
+          <SidebarMenuSubButton
+            asChild
+            isActive={forcedActive}
+            className={cn(
+              "relative z-10 cursor-pointer",
+              NAV_ITEM_HEIGHT_CLASSNAME,
+              "rounded-lg",
+              interactiveTransition,
+              "text-callout",
+              "text-label-secondary! hover:text-label-primary!",
+              "hover:bg-card data-[active=true]:bg-accent/50",
+              "data-[active=true]:font-semibold data-[active=true]:text-foreground!",
+              "data-[active=true]:translate-x-0.5",
+              forcedActive && "font-semibold text-foreground!",
+            )}
+          >
+            <button type="button" onClick={item.onAction}>
+              <span className="min-w-0 flex-1 truncate">{label}</span>
+              {TrailingIcon ? (
+                <TrailingIcon
+                  className="ml-auto size-3.5 shrink-0 text-label-secondary"
+                  aria-hidden="true"
+                />
+              ) : null}
+            </button>
+          </SidebarMenuSubButton>
+        </SidebarMenuSubItem>
+      );
+    }
+
     return (
       <SidebarMenuItem className="group/nav-item">
         <SidebarMenuButton
           isActive={forcedActive}
           className={cn(
             "relative z-10 cursor-pointer",
-            "h-8.5 rounded-lg",
-            "transition-[color,background-color] duration-150 ease-out",
+            NAV_ITEM_HEIGHT_CLASSNAME,
+            "rounded-lg",
+            interactiveTransition,
+            rootActiveIndicator,
             "text-label-secondary! hover:text-label-primary!",
             depth === 0
               ? "bg-card hover:bg-card/80 data-[active=true]:bg-accent/50"
               : "hover:bg-card data-[active=true]:bg-accent/50",
             forcedActive && "font-semibold text-foreground!",
+            "data-[active=true]:translate-x-0.5",
           )}
           style={{ paddingLeft: NAV_ITEM_BASE_PADDING_LEFT } as CSSProperties}
           onClick={item.onAction}
@@ -243,6 +293,52 @@ function NavNode({
 
   // Leaf item with route
   if (!hasChildren) {
+    if (isSubLevel) {
+      return (
+        <SidebarMenuSubItem className="group/nav-item">
+          <WithBlockedTooltip tooltip={blockedTooltip}>
+            <SidebarMenuSubButton
+              asChild
+              isActive={isSelected}
+              aria-disabled={item.disabled ? "true" : undefined}
+              className={cn(
+                "relative z-10",
+                NAV_ITEM_HEIGHT_CLASSNAME,
+                "rounded-lg",
+                interactiveTransition,
+                "text-callout",
+                "text-label-secondary! hover:text-label-primary!",
+                "hover:bg-card data-[active=true]:bg-accent/50",
+                "data-[active=true]:font-semibold data-[active=true]:text-foreground!",
+                "data-[active=true]:translate-x-0.5",
+                item.disabled
+                  ? cn(
+                      "opacity-60",
+                      "hover:text-label-secondary!",
+                      "cursor-not-allowed",
+                      "aria-disabled:pointer-events-auto",
+                    )
+                  : null,
+              )}
+            >
+              <Link
+                to={item.to!}
+                aria-current={item.to && isExactMatch(item.to, pathname) ? "page" : undefined}
+                onClick={(e) => {
+                  openChainForKey(item.key);
+                  if (!item.disabled) return;
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+              >
+                <span className="min-w-0 flex-1 truncate">{label}</span>
+              </Link>
+            </SidebarMenuSubButton>
+          </WithBlockedTooltip>
+        </SidebarMenuSubItem>
+      );
+    }
+
     return (
       <SidebarMenuItem className="group/nav-item">
         <WithBlockedTooltip tooltip={blockedTooltip}>
@@ -252,13 +348,16 @@ function NavNode({
             aria-disabled={item.disabled ? "true" : undefined}
             className={cn(
               "relative z-10",
-              "h-8.5 rounded-lg",
-              "transition-[color,background-color] duration-150 ease-out",
+              NAV_ITEM_HEIGHT_CLASSNAME,
+              "rounded-lg",
+              interactiveTransition,
+              rootActiveIndicator,
               "text-label-secondary! hover:text-label-primary!",
               depth === 0
                 ? "bg-card hover:bg-card/80 data-[active=true]:bg-accent/50"
                 : "hover:bg-card data-[active=true]:bg-accent/50",
               "data-[active=true]:font-semibold data-[active=true]:text-foreground!",
+              "data-[active=true]:translate-x-0.5",
               item.disabled
                 ? cn(
                     "opacity-60",
@@ -304,6 +403,86 @@ function NavNode({
   // Parent item with children — collapsible accordion
   const navTarget = item.children?.[0] ? getFirstDescendantTo(item.children[0]) : null;
 
+  if (isSubLevel) {
+    return (
+      <Collapsible open={isOpen}>
+        <SidebarMenuSubItem className="group/nav-item">
+          <WithBlockedTooltip tooltip={blockedTooltip}>
+            <SidebarMenuSubButton
+              asChild
+              isActive={isTrailActive}
+              aria-disabled={item.disabled ? "true" : undefined}
+              className={cn(
+                "relative z-10",
+                NAV_ITEM_HEIGHT_CLASSNAME,
+                "rounded-lg",
+                interactiveTransition,
+                "text-callout",
+                "text-label-secondary! hover:text-label-primary!",
+                "hover:bg-card data-[active=true]:bg-accent/50",
+                "data-[active=true]:font-semibold data-[active=true]:text-foreground!",
+                "data-[active=true]:translate-x-0.5",
+                item.disabled
+                  ? cn(
+                      "opacity-60",
+                      "hover:text-label-secondary!",
+                      "cursor-not-allowed",
+                      "aria-disabled:pointer-events-auto",
+                    )
+                  : "hover:cursor-pointer",
+              )}
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  if (item.disabled) return;
+                  const wasOpen = isOpen;
+                  openChainForKey(item.key);
+                  if (!wasOpen && navTarget) {
+                    navigate({ to: navTarget });
+                  }
+                }}
+              >
+                <span className="min-w-0 flex-1 truncate">{label}</span>
+                <ChevronRightIcon
+                  size={16}
+                  expanded={isOpen}
+                  className="ml-auto shrink-0 text-label-secondary"
+                  aria-hidden="true"
+                />
+              </button>
+            </SidebarMenuSubButton>
+          </WithBlockedTooltip>
+
+          <CollapsibleContent
+            className={cn(
+              "pt-1.5 overflow-hidden",
+              "motion-reduce:animate-none",
+              "data-[state=open]:animate-[celestial-collapsible-down_180ms_ease-out]",
+              "data-[state=closed]:animate-[celestial-collapsible-up_160ms_ease-in]",
+            )}
+          >
+            <SidebarMenuSub className="gap-0.5 border-border/60 mx-0 ml-5">
+              {item.children!.map((child) => (
+                <NavNode
+                  key={child.key}
+                  item={child}
+                  depth={depth + 1}
+                  parentKey={item.key}
+                  pathname={pathname}
+                  activeKeys={activeKeys}
+                  openByParent={openByParent}
+                  openChainForKey={openChainForKey}
+                  resolvePermissionName={resolvePermissionName}
+                />
+              ))}
+            </SidebarMenuSub>
+          </CollapsibleContent>
+        </SidebarMenuSubItem>
+      </Collapsible>
+    );
+  }
+
   return (
     <Collapsible open={isOpen}>
       <SidebarMenuItem
@@ -316,11 +495,14 @@ function NavNode({
             aria-disabled={item.disabled ? "true" : undefined}
             className={cn(
               "relative z-10",
-              "h-8.5 rounded-lg",
-              "transition-[color,background-color] duration-150 ease-out",
+              NAV_ITEM_HEIGHT_CLASSNAME,
+              "rounded-lg",
+              interactiveTransition,
+              rootActiveIndicator,
               "text-label-secondary! hover:text-label-primary!",
               "bg-card hover:bg-card/80 data-[active=true]:bg-accent/50",
               "data-[active=true]:font-semibold data-[active=true]:text-foreground!",
+              "data-[active=true]:translate-x-0.5",
               item.disabled
                 ? cn(
                     "opacity-60",
@@ -333,8 +515,9 @@ function NavNode({
             style={{ paddingLeft: NAV_ITEM_BASE_PADDING_LEFT } as CSSProperties}
             onClick={() => {
               if (item.disabled) return;
+              const wasOpen = isOpen;
               openChainForKey(item.key);
-              if (!isOpen && navTarget) {
+              if (!wasOpen && navTarget) {
                 navigate({ to: navTarget });
               }
             }}
@@ -359,8 +542,15 @@ function NavNode({
           </SidebarMenuButton>
         </WithBlockedTooltip>
 
-        <CollapsibleContent className="pt-1.5">
-          <SidebarMenu>
+        <CollapsibleContent
+          className={cn(
+            "pt-1.5 overflow-hidden",
+            "motion-reduce:animate-none",
+            "data-[state=open]:animate-[celestial-collapsible-down_180ms_ease-out]",
+            "data-[state=closed]:animate-[celestial-collapsible-up_160ms_ease-in]",
+          )}
+        >
+          <SidebarMenuSub className="gap-0.5 border-border/60 mx-0 ml-5">
             {item.children!.map((child) => (
               <NavNode
                 key={child.key}
@@ -374,7 +564,7 @@ function NavNode({
                 resolvePermissionName={resolvePermissionName}
               />
             ))}
-          </SidebarMenu>
+          </SidebarMenuSub>
         </CollapsibleContent>
       </SidebarMenuItem>
     </Collapsible>
@@ -434,18 +624,6 @@ export function AdminSiderNav(props: {
     });
   };
 
-  useEffect(() => {
-    setOpenByParent(() => {
-      const next: OpenByParent = {};
-      for (const key of activeTrail) {
-        const entry = navIndex.get(key);
-        if (!entry?.isGroup) continue;
-        next[entry.parentKey] = key;
-      }
-      return next;
-    });
-  }, [activeTrail, navIndex]);
-
   const favoriteItems = useMemo(() => {
     const resolved: Array<{ path: string; label: string; Icon: AdminNavItem["icon"] }> = [];
     for (const path of favoritePaths) {
@@ -474,11 +652,14 @@ export function AdminSiderNav(props: {
                         isActive={isSelected}
                         className={cn(
                           "relative z-10",
-                          "h-8.5 rounded-lg",
-                          "transition-[color,background-color] duration-150 ease-out",
+                          NAV_ITEM_HEIGHT_CLASSNAME,
+                          "rounded-lg",
+                          "transition-[color,background-color,transform,box-shadow] duration-200 ease-out motion-reduce:transition-none",
+                          "before:absolute before:left-2 before:top-1/2 before:-translate-y-1/2 before:h-4 before:w-1 before:rounded-full before:bg-primary/60 before:opacity-0 before:scale-y-75 before:transition-[opacity,transform] before:duration-200 motion-reduce:before:transition-none data-[active=true]:before:opacity-100 data-[active=true]:before:scale-y-100",
                           "text-label-secondary! hover:text-label-primary!",
                           "bg-card hover:bg-card/80 data-[active=true]:bg-accent/50",
                           "data-[active=true]:font-semibold data-[active=true]:text-foreground!",
+                          "data-[active=true]:translate-x-0.5",
                         )}
                         style={{ paddingLeft: NAV_ITEM_BASE_PADDING_LEFT } as CSSProperties}
                       >

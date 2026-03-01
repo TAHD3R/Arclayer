@@ -69,7 +69,6 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
     labelKey: "nav:NAV_ASSETS",
     to: "/assets",
     icon: Image,
-    dividerAfter: true,
   },
   // ── Group 2: Ecosystem & collaboration ──
   {
@@ -114,7 +113,6 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
     label: "Extensions & integrations",
     labelKey: "nav:NAV_EXTENSIONS_INTEGRATIONS",
     icon: Blocks,
-    dividerAfter: true,
     children: [
       {
         key: "extensionsIntegrations.extensions",
