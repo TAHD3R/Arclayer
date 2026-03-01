@@ -2,12 +2,14 @@ import type { Config } from "tailwindcss";
 
 type PartialConfig = Partial<Config>;
 
-function getThemeExtend(theme: Config["theme"] | undefined): Record<string, unknown> {
-  if (!theme || typeof theme !== "object") return {};
+type ThemeExtend = NonNullable<Config["theme"]> extends { extend?: infer E } ? E : never;
 
-  const extend = Reflect.get(theme as object, "extend");
-  if (!extend || typeof extend !== "object") return {};
-  return extend as Record<string, unknown>;
+function getThemeExtend(theme: Config["theme"] | undefined): ThemeExtend {
+  if (!theme || typeof theme !== "object") return {} as ThemeExtend;
+
+  const extend = (theme as { extend?: unknown }).extend;
+  if (!extend || typeof extend !== "object") return {} as ThemeExtend;
+  return extend as ThemeExtend;
 }
 
 function mergeTailwindConfig(base: Config, overrides?: PartialConfig): Config {
@@ -66,11 +68,21 @@ export function createTailwindPreset(overrides?: PartialConfig): Config {
           "sidebar-accent-foreground": "var(--color-sidebar-accent-foreground)",
           "sidebar-border": "var(--color-sidebar-border)",
           "sidebar-ring": "var(--color-sidebar-ring)",
+          "label-primary": "var(--color-label-primary)",
+          "label-secondary": "var(--color-label-secondary)",
+          "label-tertiary": "var(--color-label-tertiary)",
+          "label-quaternary": "var(--color-label-quaternary)",
+          "chart-1": "var(--color-chart-1)",
+          "chart-2": "var(--color-chart-2)",
+          "chart-3": "var(--color-chart-3)",
+          "chart-4": "var(--color-chart-4)",
+          "chart-5": "var(--color-chart-5)",
         },
         borderRadius: {
-          lg: "var(--radius)",
-          md: "calc(var(--radius) - 2px)",
-          sm: "calc(var(--radius) - 4px)",
+          xl: "var(--radius-xl)",
+          lg: "var(--radius-lg)",
+          md: "var(--radius-md)",
+          sm: "var(--radius-sm)",
         },
         fontFamily: {
           sans: "var(--font-sans)",

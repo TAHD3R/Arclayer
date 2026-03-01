@@ -16,10 +16,6 @@ export function useAntdTheme() {
           fontSizeHeading1: 34,
           fontSizeHeading2: 28,
           fontSizeHeading3: 22,
-          colorText: "var(--text-primary)",
-          colorTextSecondary: "var(--text-secondary)",
-          colorTextTertiary: "var(--text-tertiary)",
-          colorTextQuaternary: "var(--text-quaternary)",
         },
         components: {
           Button: {

@@ -1,6 +1,11 @@
 import { App, ConfigProvider, message } from "antd";
 import enUS from "antd/locale/en_US";
 import zhCN from "antd/locale/zh_CN";
+import {
+  StyleProvider,
+  autoPrefixTransformer,
+  legacyLogicalPropertiesTransformer,
+} from "@ant-design/cssinjs";
 import { ProgressProvider } from "@bprogress/react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { type PropsWithChildren, useLayoutEffect, useState } from "react";
@@ -35,19 +40,25 @@ export function AppProviders({ children }: PropsWithChildren) {
 
   return (
     <ProgressProvider color="var(--primary)" height="2px">
-      <ConfigProvider
-        theme={theme}
-        locale={antdLocale}
-        getPopupContainer={(triggerNode) => getPopupContainerWithinOverlay(triggerNode)}
+      <StyleProvider
+        layer
+        hashPriority="high"
+        transformers={[legacyLogicalPropertiesTransformer, autoPrefixTransformer]}
       >
-        <App message={{ maxCount: 3 }} notification={{ maxCount: 3 }}>
-          <AntdMessageBridge>
-            <QueryClientProvider client={queryClient}>
-              <TooltipProvider>{children}</TooltipProvider>
-            </QueryClientProvider>
-          </AntdMessageBridge>
-        </App>
-      </ConfigProvider>
+        <ConfigProvider
+          theme={theme}
+          locale={antdLocale}
+          getPopupContainer={(triggerNode) => getPopupContainerWithinOverlay(triggerNode)}
+        >
+          <App message={{ maxCount: 3 }} notification={{ maxCount: 3 }}>
+            <AntdMessageBridge>
+              <QueryClientProvider client={queryClient}>
+                <TooltipProvider>{children}</TooltipProvider>
+              </QueryClientProvider>
+            </AntdMessageBridge>
+          </App>
+        </ConfigProvider>
+      </StyleProvider>
     </ProgressProvider>
   );
 }

@@ -26,6 +26,7 @@ catalogs:
     "@types/archiver": "^6.0.3"
     tailwindcss: "4.1.18"
     antd: "6.2.1"
+    "@ant-design/cssinjs": "2.0.3"
     vike: "0.4.221"
     penpal: "^6.2.2"
     oxfmt: "^0.26.0"

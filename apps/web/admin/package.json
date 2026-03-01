@@ -17,6 +17,7 @@
     "test": "vitest run --config vitest.config.ts"
   },
   "dependencies": {
+    "@ant-design/cssinjs": "catalog:",
     "@bprogress/react": "^1.2.7",
     "@celestial/design-tokens": "workspace:*",
     "@celestial/portal-types": "workspace:*",
