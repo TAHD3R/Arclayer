@@ -2,7 +2,7 @@ import { createRootRoute, Outlet, redirect, useRouterState } from "@tanstack/rea
 
 import { SceneLoadingOverlay } from "@/components/layout/scene-loading-overlay";
 import { useSceneRevealTransition } from "@/hooks/use-scene-reveal-transition";
-import { isLoginPath, isPublicPath } from "@/lib/routing/route-identity";
+import { isDevToolsPath, isLoginPath, isPublicPath } from "@/lib/routing/route-identity";
 import { getSceneLayout, resolveSceneKey } from "@/lib/routing/scene-registry";
 import { isDevSetupOverrideEnabled, resolveSetupGateRedirect } from "@/lib/routing/setup-routing";
 import { RouterDefaultError, RouterDefaultNotFound } from "@/components/builtin/router-fallbacks";
@@ -35,6 +35,10 @@ function RootLayout() {
 
 export const Route = createRootRoute({
   beforeLoad: ({ location }) => {
+    if (import.meta.env.DEV && isDevToolsPath(location.pathname)) {
+      return;
+    }
+
     const setup = useSetupWizardStore.getState();
     const devAllowSetup = isDevSetupOverrideEnabled(location.searchStr);
 

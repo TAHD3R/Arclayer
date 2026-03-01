@@ -2,17 +2,19 @@ import type { ComponentType, PropsWithChildren } from "react";
 
 import { AdminLayout } from "@/layouts/admin-layout";
 import { AuthLayout } from "@/layouts/auth-layout";
+import { DevLayout } from "@/layouts/dev-layout";
 import { EditorLayout } from "@/layouts/editor-layout";
 import { InviteLayout } from "@/layouts/invite-layout";
 import { SetupLayout } from "@/layouts/setup-layout";
 import {
   isAcceptInvitePath,
   isAuthScenePath,
+  isDevToolsPath,
   isEditorPath,
   isSetupPath,
 } from "@/lib/routing/route-identity";
 
-export type SceneKey = "setup" | "auth" | "invite" | "editor" | "admin";
+export type SceneKey = "dev" | "setup" | "auth" | "invite" | "editor" | "admin";
 
 interface SceneEntry {
   key: SceneKey;
@@ -22,6 +24,7 @@ interface SceneEntry {
 
 // Order matters — first match wins, "admin" is the fallback.
 const SCENE_ENTRIES: SceneEntry[] = [
+  { key: "dev", layout: DevLayout, match: isDevToolsPath },
   { key: "setup", layout: SetupLayout, match: isSetupPath },
   { key: "auth", layout: AuthLayout, match: isAuthScenePath },
   { key: "invite", layout: InviteLayout, match: isAcceptInvitePath },

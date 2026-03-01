@@ -34,5 +34,16 @@
   "DRAFT_CONFLICT": "草稿冲突：期望 {{expected}}，当前 {{current}}",
   "DRAFT_CONFLICT_GENERIC": "草稿冲突（409）",
   "PORTAL_EDITOR_SITE_ID_HINT": "输入站点 ID 以加载编辑器调试页面。可在 Admin → 工作区 → 站点设置中找到。",
-  "PORTAL_EDITOR_GO": "前往"
+  "PORTAL_EDITOR_GO": "前往",
+
+  "DEV_TOOLS_TITLE": "调试工具",
+  "ILLUSTRATIONS_DEBUG_TITLE": "插画预览（错误页）",
+  "ILLUSTRATIONS_DEBUG_DESC": "仅开发环境可访问，用于检查插画动画、文案与按钮布局。",
+  "ILLUSTRATIONS_ACTION_TOAST": "已触发按钮（仅预览，不执行实际操作）",
+  "ILLUSTRATIONS_REDUCED_MOTION_ON": "已开启减少动态效果",
+  "ILLUSTRATIONS_REDUCED_MOTION_OFF": "动画已启用",
+  "ILLUSTRATIONS_PREVIEW_WIDTH": "预览宽度",
+  "ILLUSTRATIONS_SECTION_RESULT": "完整错误块预览",
+  "ILLUSTRATIONS_SECTION_RAW": "纯插画预览",
+  "ILLUSTRATIONS_SECTION_EMPTY": "空状态插画预览"
 }

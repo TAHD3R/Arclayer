@@ -1,155 +1,85 @@
-import { motion } from "motion/react";
-import { IllustrationWrapper } from "./illustration-wrapper";
+import { UserRound } from "lucide-react";
+
+import { cn } from "@/lib/utils";
+
 import type { IllustrationProps } from "./types";
-import { SPRING, useIllustrationAnimation } from "./use-illustration-animation";
+import { IllustrationAnimatedWrapper } from "./illustration-animated-wrapper";
 
 export function Illust401LockedTerminal(props: IllustrationProps) {
-  const { animate } = useIllustrationAnimation();
-
   return (
-    <IllustrationWrapper {...props}>
-      <defs>
-        <filter id="glow-401" x="-20%" y="-20%" width="140%" height="140%">
-          <feGaussianBlur stdDeviation="3" result="blur" />
-          <feComposite in="SourceGraphic" in2="blur" operator="over" />
-        </filter>
-        <linearGradient id="grad-401" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="var(--color-primary)" stopOpacity="0.2" />
-          <stop offset="100%" stopColor="var(--color-primary)" stopOpacity="0.0" />
-        </linearGradient>
-      </defs>
+    <IllustrationAnimatedWrapper {...props}>
+      <div className="relative w-full h-[320px] flex items-center justify-center">
+        <div className="pointer-events-none absolute left-1/2 top-1/2 h-[800px] w-[800px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/5 blur-[100px]" />
 
-      {/* Background Tech Grid */}
-      <motion.g
-        initial={animate ? { opacity: 0 } : undefined}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 1 }}
-      >
-        <circle cx="100" cy="80" r="70" fill="url(#grad-401)" />
-        <circle
-          cx="100"
-          cy="80"
-          r="50"
-          fill="none"
-          stroke="var(--color-primary)"
-          strokeOpacity="0.1"
-          strokeWidth="1"
-        />
-        <circle
-          cx="100"
-          cy="80"
-          r="30"
-          fill="none"
-          stroke="var(--color-primary)"
-          strokeOpacity="0.2"
-          strokeWidth="1"
-          strokeDasharray="4 4"
-        />
-      </motion.g>
+        <div className="relative z-10 w-full max-w-[520px] h-[300px] flex items-center justify-center">
+          <div
+            className="absolute inset-0 opacity-[0.03]"
+            style={{
+              backgroundImage:
+                "radial-gradient(color-mix(in srgb, var(--color-foreground) 65%, transparent) 1px, transparent 1px)",
+              backgroundSize: "20px 20px",
+            }}
+          />
 
-      {/* Floating Terminal Panels */}
-      <motion.g
-        initial={animate ? { y: 20, opacity: 0 } : undefined}
-        animate={{ y: [0, -5, 0], opacity: 1 }}
-        transition={{
-          y: { duration: 4, repeat: Infinity, ease: "easeInOut" },
-          opacity: { duration: 0.5 },
-        }}
-      >
-        {/* Back Panel */}
-        <rect
-          x="35"
-          y="25"
-          width="110"
-          height="70"
-          rx="8"
-          fill="var(--color-card)"
-          opacity="0.5"
-          stroke="var(--color-border)"
-          strokeWidth="1"
-        />
+          <div
+            className={cn(
+              "celestial-illust-anim-spin absolute left-1/2 top-1/2 size-64 -translate-x-1/2 -translate-y-1/2 rounded-full border border-border/70",
+              "border-dashed opacity-80",
+            )}
+            style={{ animationDuration: "20s" }}
+          />
+          <div className="absolute left-1/2 top-1/2 size-52 -translate-x-1/2 -translate-y-1/2 rounded-full border border-border/40 opacity-60" />
 
-        {/* Main Panel */}
-        <rect
-          x="45"
-          y="35"
-          width="110"
-          height="70"
-          rx="8"
-          fill="var(--color-card)"
-          stroke="var(--color-border)"
-          strokeWidth="1.5"
-          style={{ filter: "drop-shadow(0 10px 15px rgba(0,0,0,0.1))" }}
-        />
+          <div className="celestial-illust-anim-float relative z-10 flex h-full items-center justify-center">
+            <div className="relative flex h-56 w-40 flex-col overflow-hidden rounded-xl border border-border bg-gradient-to-br from-muted/20 to-background p-4 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.12)]">
+              <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-primary/5 to-transparent" />
 
-        {/* Terminal Header */}
-        <path
-          d="M45 43 Q45 35 53 35 H147 Q155 35 155 43 V50 H45 Z"
-          fill="var(--color-muted)"
-          opacity="0.5"
-        />
-        <line x1="45" y1="50" x2="155" y2="50" stroke="var(--color-border)" strokeWidth="1.5" />
+              <div className="relative z-10 mb-4 flex items-center justify-between">
+                <div className="flex size-8 items-center justify-center rounded-full bg-muted">
+                  <UserRound className="size-4 text-label-secondary" />
+                </div>
+                <div className="h-2 w-12 rounded-full bg-muted" />
+              </div>
 
-        {/* Window Controls */}
-        <circle cx="55" cy="42.5" r="2.5" fill="var(--color-destructive)" opacity="0.7" />
-        <circle cx="65" cy="42.5" r="2.5" fill="var(--color-primary)" opacity="0.4" />
-        <circle cx="75" cy="42.5" r="2.5" fill="var(--color-primary)" opacity="0.4" />
+              <div className="relative z-10 space-y-2">
+                <div className="h-2 w-full rounded-full bg-muted" />
+                <div className="h-2 w-3/4 rounded-full bg-muted" />
+                <div className="h-2 w-1/2 rounded-full bg-muted" />
+              </div>
 
-        {/* Code Lines */}
-        <rect
-          x="55"
-          y="60"
-          width="40"
-          height="4"
-          rx="2"
-          fill="var(--color-primary)"
-          opacity="0.3"
-        />
-        <rect x="55" y="72" width="60" height="4" rx="2" fill="var(--color-muted)" />
-        <rect x="55" y="84" width="30" height="4" rx="2" fill="var(--color-muted)" />
-      </motion.g>
+              <div className="relative z-10 mt-auto self-center">
+                <div className="flex items-center gap-1 rounded-full border border-border bg-muted/40 px-3 py-1">
+                  <div className="size-2 rounded-full bg-border" />
+                  <span className="text-[8px] font-mono text-label-secondary uppercase tracking-widest">
+                    ID-VERIFY
+                  </span>
+                </div>
+              </div>
 
-      {/* Giant Glowing Lock */}
-      <motion.g
-        initial={animate ? { scale: 0.8, opacity: 0 } : undefined}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ type: "spring", ...SPRING, delay: 0.2 }}
-      >
-        {/* Glowing Aura behind lock */}
-        <circle
-          cx="120"
-          cy="95"
-          r="25"
-          fill="var(--color-primary)"
-          opacity="0.15"
-          filter="url(#glow-401)"
-        />
+              <div className="celestial-illust-anim-scan-y absolute left-0 top-0 z-20 h-0.5 w-full bg-primary shadow-[0_0_15px_color-mix(in_srgb,var(--color-primary)_70%,transparent)]" />
+              <div className="celestial-illust-anim-scan-y pointer-events-none absolute left-0 top-0 z-10 h-10 w-full bg-gradient-to-b from-primary/20 to-transparent" />
+            </div>
+          </div>
 
-        {/* Shackle */}
-        <path
-          d="M108 85 V75 A12 12 0 0 1 132 75 V85"
-          fill="none"
-          stroke="var(--color-primary)"
-          strokeWidth="3"
-          strokeLinecap="round"
-        />
+          <div
+            className="celestial-illust-anim-pulse absolute left-1/2 top-1/2 size-72 -translate-x-1/2 -translate-y-1/2 rounded-full border border-primary/10"
+            style={{
+              borderTopColor: "transparent",
+              borderLeftColor: "transparent",
+              transform: "translate(-50%, -50%) rotate(45deg)",
+            }}
+          />
 
-        {/* Lock Body */}
-        <rect
-          x="100"
-          y="85"
-          width="40"
-          height="30"
-          rx="6"
-          fill="var(--color-card)"
-          stroke="var(--color-primary)"
-          strokeWidth="2.5"
-        />
-
-        {/* Keyhole */}
-        <circle cx="120" cy="97" r="3.5" fill="var(--color-primary)" />
-        <path d="M118 99 L116.5 107 H123.5 L122 99 Z" fill="var(--color-primary)" />
-      </motion.g>
-    </IllustrationWrapper>
+          <div
+            className="celestial-illust-anim-bounce absolute right-20 top-10 size-2 rounded-full bg-primary/25"
+            style={{ animationDelay: "1s" }}
+          />
+          <div
+            className="celestial-illust-anim-bounce absolute bottom-10 left-20 size-3 rounded-full bg-border"
+            style={{ animationDelay: "2s" }}
+          />
+        </div>
+      </div>
+    </IllustrationAnimatedWrapper>
   );
 }

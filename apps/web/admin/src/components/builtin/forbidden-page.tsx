@@ -10,7 +10,7 @@ export type ForbiddenViewProps = {
   details?: string | null;
 };
 
-export function ForbiddenView({ variant = "admin", details }: ForbiddenViewProps) {
+export function ForbiddenView({ variant = "admin" }: ForbiddenViewProps) {
   const { t } = useTranslation();
 
   return (
@@ -18,7 +18,7 @@ export function ForbiddenView({ variant = "admin", details }: ForbiddenViewProps
       variant={variant}
       status="403"
       title={t("common:PAGE_FORBIDDEN_TITLE")}
-      subTitle={details || t("common:PAGE_FORBIDDEN_DESC")}
+      subTitle={t("common:PAGE_FORBIDDEN_DESC")}
     />
   );
 }

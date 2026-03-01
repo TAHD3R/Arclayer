@@ -13,8 +13,11 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import {
+  Illust401LockedTerminal,
   Illust403ForbiddenGateway,
   Illust404BrokenLink,
+  Illust422MalformedPacket,
+  Illust429OverloadedGauge,
   Illust500CrashedServer,
   IllustEmptyContainer,
 } from "@/components/illustrations";
@@ -42,17 +45,38 @@ export type ContentGuardProps = {
 
 function pickErrorTitle(err: unknown, t: (key: string) => string): string {
   if (err instanceof ApiError) {
+    if (err.status === 401) return t("common:PAGE_UNAUTHORIZED_TITLE");
     if (err.status === 403) return t("common:PAGE_FORBIDDEN_TITLE");
     if (err.status === 404) return t("common:PAGE_NOT_FOUND_TITLE");
+    if (err.status === 422) return t("common:PAGE_VALIDATION_TITLE");
+    if (err.status === 429) return t("common:PAGE_RATE_LIMIT_TITLE");
     if (err.status >= 500) return t("common:PAGE_SERVER_ERROR_TITLE");
   }
   return t("common:REQUEST_FAILED");
 }
 
+function pickErrorDescription(err: unknown, t: (key: string) => string): string {
+  if (err instanceof ApiError) {
+    if (err.status === 401) return t("common:PAGE_UNAUTHORIZED_DESC");
+    if (err.status === 403) return t("common:PAGE_FORBIDDEN_DESC");
+    if (err.status === 404) return t("common:PAGE_NOT_FOUND_DESC");
+    if (err.status === 422) return t("common:PAGE_VALIDATION_DESC");
+    if (err.status === 429) return t("common:PAGE_RATE_LIMIT_DESC");
+    if (err.status >= 500) return t("common:PAGE_SERVER_ERROR_DESC");
+    return getErrorMessage(err);
+  }
+
+  // Never surface internal details for unexpected runtime errors in page-level guards.
+  return t("common:PAGE_SERVER_ERROR_DESC");
+}
+
 function pickErrorIllustration(err: unknown) {
   if (err instanceof ApiError) {
+    if (err.status === 401) return Illust401LockedTerminal;
     if (err.status === 403) return Illust403ForbiddenGateway;
     if (err.status === 404) return Illust404BrokenLink;
+    if (err.status === 422) return Illust422MalformedPacket;
+    if (err.status === 429) return Illust429OverloadedGauge;
     if (err.status >= 500) return Illust500CrashedServer;
   }
   return Illust500CrashedServer;
@@ -89,7 +113,7 @@ export function ContentGuard(props: ContentGuardProps) {
 
   if (error) {
     const title = props.errorTitle ?? pickErrorTitle(error, (key) => t(key));
-    const details = props.errorDescription ?? getErrorMessage(error);
+    const details = props.errorDescription ?? pickErrorDescription(error, (key) => t(key));
     const Illustration = pickErrorIllustration(error);
     const hasExtra = Boolean(retryExtra) || Boolean(props.errorExtra);
 

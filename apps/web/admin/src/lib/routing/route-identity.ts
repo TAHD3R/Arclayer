@@ -23,6 +23,10 @@ export function isEditorPath(pathname: string): boolean {
   return /^\/w\/[^/]+\/editor(?:\/|$)/.test(pathname);
 }
 
+export function isDevToolsPath(pathname: string): boolean {
+  return /^\/devtools(?:\/|$)/.test(pathname);
+}
+
 /** Auth scene paths — login & reset-password (used for layout switching). */
 export function isAuthScenePath(pathname: string): boolean {
   return isLoginPath(pathname) || isResetPasswordPath(pathname);

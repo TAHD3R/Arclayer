@@ -10,7 +10,7 @@ export type UnauthorizedViewProps = {
   details?: string | null;
 };
 
-export function UnauthorizedView({ variant = "fullscreen", details }: UnauthorizedViewProps) {
+export function UnauthorizedView({ variant = "fullscreen" }: UnauthorizedViewProps) {
   const { t } = useTranslation();
 
   return (
@@ -18,7 +18,7 @@ export function UnauthorizedView({ variant = "fullscreen", details }: Unauthoriz
       variant={variant}
       status="401"
       title={t("common:PAGE_UNAUTHORIZED_TITLE")}
-      subTitle={details || t("common:PAGE_UNAUTHORIZED_DESC")}
+      subTitle={t("common:PAGE_UNAUTHORIZED_DESC")}
     />
   );
 }

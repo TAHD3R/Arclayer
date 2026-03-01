@@ -19,6 +19,7 @@ import { Route as OOrgIdRouteImport } from './routes/o/$orgId'
 import { Route as WWorkspaceIdIndexRouteImport } from './routes/w/$workspaceId/index'
 import { Route as OOrgIdIndexRouteImport } from './routes/o/$orgId/index'
 import { Route as MeNotificationsIndexRouteImport } from './routes/me/notifications/index'
+import { Route as DevtoolsIllustrationsIndexRouteImport } from './routes/devtools/illustrations/index'
 import { Route as WWorkspaceIdTeamIndexRouteImport } from './routes/w/$workspaceId/team/index'
 import { Route as WWorkspaceIdNotificationsIndexRouteImport } from './routes/w/$workspaceId/notifications/index'
 import { Route as WWorkspaceIdExtensionsIndexRouteImport } from './routes/w/$workspaceId/extensions/index'
@@ -117,6 +118,14 @@ const MeNotificationsIndexRoute = MeNotificationsIndexRouteImport.update({
 } as any).lazy(() =>
   import('./routes/me/notifications/index.lazy').then((d) => d.Route),
 )
+const DevtoolsIllustrationsIndexRoute =
+  DevtoolsIllustrationsIndexRouteImport.update({
+    id: '/devtools/illustrations/',
+    path: '/devtools/illustrations/',
+    getParentRoute: () => rootRouteImport,
+  } as any).lazy(() =>
+    import('./routes/devtools/illustrations/index.lazy').then((d) => d.Route),
+  )
 const WWorkspaceIdTeamIndexRoute = WWorkspaceIdTeamIndexRouteImport.update({
   id: '/team/',
   path: '/team/',
@@ -453,6 +462,7 @@ export interface FileRoutesByFullPath {
   '/login/': typeof LoginIndexRoute
   '/reset-password/': typeof ResetPasswordIndexRoute
   '/setup/': typeof SetupIndexRoute
+  '/devtools/illustrations/': typeof DevtoolsIllustrationsIndexRoute
   '/me/notifications/': typeof MeNotificationsIndexRoute
   '/o/$orgId/': typeof OOrgIdIndexRoute
   '/w/$workspaceId/': typeof WWorkspaceIdIndexRoute
@@ -500,6 +510,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginIndexRoute
   '/reset-password': typeof ResetPasswordIndexRoute
   '/setup': typeof SetupIndexRoute
+  '/devtools/illustrations': typeof DevtoolsIllustrationsIndexRoute
   '/me/notifications': typeof MeNotificationsIndexRoute
   '/o/$orgId': typeof OOrgIdIndexRoute
   '/w/$workspaceId': typeof WWorkspaceIdIndexRoute
@@ -550,6 +561,7 @@ export interface FileRoutesById {
   '/login/': typeof LoginIndexRoute
   '/reset-password/': typeof ResetPasswordIndexRoute
   '/setup/': typeof SetupIndexRoute
+  '/devtools/illustrations/': typeof DevtoolsIllustrationsIndexRoute
   '/me/notifications/': typeof MeNotificationsIndexRoute
   '/o/$orgId/': typeof OOrgIdIndexRoute
   '/w/$workspaceId/': typeof WWorkspaceIdIndexRoute
@@ -601,6 +613,7 @@ export interface FileRouteTypes {
     | '/login/'
     | '/reset-password/'
     | '/setup/'
+    | '/devtools/illustrations/'
     | '/me/notifications/'
     | '/o/$orgId/'
     | '/w/$workspaceId/'
@@ -648,6 +661,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/reset-password'
     | '/setup'
+    | '/devtools/illustrations'
     | '/me/notifications'
     | '/o/$orgId'
     | '/w/$workspaceId'
@@ -697,6 +711,7 @@ export interface FileRouteTypes {
     | '/login/'
     | '/reset-password/'
     | '/setup/'
+    | '/devtools/illustrations/'
     | '/me/notifications/'
     | '/o/$orgId/'
     | '/w/$workspaceId/'
@@ -747,6 +762,7 @@ export interface RootRouteChildren {
   LoginIndexRoute: typeof LoginIndexRoute
   ResetPasswordIndexRoute: typeof ResetPasswordIndexRoute
   SetupIndexRoute: typeof SetupIndexRoute
+  DevtoolsIllustrationsIndexRoute: typeof DevtoolsIllustrationsIndexRoute
   MeNotificationsIndexRoute: typeof MeNotificationsIndexRoute
 }
 
@@ -820,6 +836,13 @@ declare module '@tanstack/react-router' {
       path: '/me/notifications'
       fullPath: '/me/notifications/'
       preLoaderRoute: typeof MeNotificationsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/devtools/illustrations/': {
+      id: '/devtools/illustrations/'
+      path: '/devtools/illustrations'
+      fullPath: '/devtools/illustrations/'
+      preLoaderRoute: typeof DevtoolsIllustrationsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/w/$workspaceId/team/': {
@@ -1204,6 +1227,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginIndexRoute: LoginIndexRoute,
   ResetPasswordIndexRoute: ResetPasswordIndexRoute,
   SetupIndexRoute: SetupIndexRoute,
+  DevtoolsIllustrationsIndexRoute: DevtoolsIllustrationsIndexRoute,
   MeNotificationsIndexRoute: MeNotificationsIndexRoute,
 }
 export const routeTree = rootRouteImport

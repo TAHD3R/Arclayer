@@ -34,5 +34,16 @@
   "DRAFT_CONFLICT": "Draft conflict: expected {{expected}}, current {{current}}",
   "DRAFT_CONFLICT_GENERIC": "Draft conflict (409)",
   "PORTAL_EDITOR_SITE_ID_HINT": "Enter a Site ID to load the editor debug page. You can find it in Admin → Workspace → Site settings.",
-  "PORTAL_EDITOR_GO": "Go"
+  "PORTAL_EDITOR_GO": "Go",
+
+  "DEV_TOOLS_TITLE": "Debug Tools",
+  "ILLUSTRATIONS_DEBUG_TITLE": "Illustrations Preview (Error States)",
+  "ILLUSTRATIONS_DEBUG_DESC": "Dev-only page for verifying illustration animations, copy, and action buttons.",
+  "ILLUSTRATIONS_ACTION_TOAST": "Action triggered (preview only, no real side effects).",
+  "ILLUSTRATIONS_REDUCED_MOTION_ON": "Reduced motion is on",
+  "ILLUSTRATIONS_REDUCED_MOTION_OFF": "Animations enabled",
+  "ILLUSTRATIONS_PREVIEW_WIDTH": "Preview width",
+  "ILLUSTRATIONS_SECTION_RESULT": "Full error block preview",
+  "ILLUSTRATIONS_SECTION_RAW": "Raw illustrations preview",
+  "ILLUSTRATIONS_SECTION_EMPTY": "Empty state illustration"
 }

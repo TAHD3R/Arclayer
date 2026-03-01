@@ -10,7 +10,7 @@ export type ServerErrorViewProps = {
   details?: string | null;
 };
 
-export function ServerErrorView({ variant = "admin", details }: ServerErrorViewProps) {
+export function ServerErrorView({ variant = "admin" }: ServerErrorViewProps) {
   const { t } = useTranslation();
 
   return (
@@ -18,7 +18,7 @@ export function ServerErrorView({ variant = "admin", details }: ServerErrorViewP
       variant={variant}
       status="500"
       title={t("common:PAGE_SERVER_ERROR_TITLE")}
-      subTitle={details || t("common:PAGE_SERVER_ERROR_DESC")}
+      subTitle={t("common:PAGE_SERVER_ERROR_DESC")}
     />
   );
 }

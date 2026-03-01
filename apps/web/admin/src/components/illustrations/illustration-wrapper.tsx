@@ -21,7 +21,7 @@ export function IllustrationWrapper({
       role={decorative ? undefined : "img"}
       aria-label={ariaLabel}
       aria-hidden={decorative ? true : undefined}
-      className={cn("block w-full max-w-[420px]", className)}
+      className={cn("block w-full", className)}
     >
       {children}
     </svg>
