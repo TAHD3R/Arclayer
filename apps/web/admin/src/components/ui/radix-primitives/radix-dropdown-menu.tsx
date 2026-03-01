@@ -14,6 +14,8 @@ import { getStrictContext } from "@/lib/get-strict-context";
 import { useControlledState } from "@/hooks/use-controlled-state";
 import { useDataState } from "@/hooks/use-data-state";
 
+type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
+
 type DropdownMenuContextType = {
   isOpen: boolean;
   setIsOpen: (o: boolean) => void;
@@ -187,7 +189,10 @@ function DropdownMenuSubContent({
   );
 }
 
-type DropdownMenuHighlightProps = Omit<HighlightProps, "controlledItems" | "enabled" | "hover"> & {
+type DropdownMenuHighlightProps = DistributiveOmit<
+  HighlightProps,
+  "controlledItems" | "enabled" | "hover"
+> & {
   animateOnHover?: boolean;
 };
 

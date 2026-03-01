@@ -58,9 +58,11 @@ export function SettingDialog({
           ) : null}
         </DialogHeader>
 
-        <div className={cn("px-6 py-4", bodyClassName)}>{children}</div>
+        <div className={cn("px-6", bodyClassName)}>{children}</div>
 
-        {footer ? <DialogFooter className="mt-0 border-t px-6 py-4">{footer}</DialogFooter> : null}
+        {footer ? (
+          <DialogFooter className="mt-0 border-t px-6 py-4 bg-card">{footer}</DialogFooter>
+        ) : null}
       </DialogContent>
     </Dialog>
   );

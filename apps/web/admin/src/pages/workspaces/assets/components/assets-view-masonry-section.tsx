@@ -1,5 +1,5 @@
 import { DndContext, DragOverlay } from "@dnd-kit/core";
-import { Button, Masonry } from "antd";
+import { Button, Masonry, Space } from "antd";
 import { Eye, FolderInput, FolderPlus, PencilLine, Settings2, Trash2 } from "lucide-react";
 import { AnimatePresence } from "motion/react";
 import { flushSync } from "react-dom";
@@ -307,25 +307,33 @@ export function AssetsViewMasonrySection(props: AssetsViewMasonrySectionProps) {
                         <ContextMenuContent>
                           {selectedIds.size <= 1 && (
                             <ContextMenuItem onSelect={() => setActive(entry.asset)}>
-                              <Eye size={16} />
-                              {t("assets:ASSET_ACTION_OPEN")}
+                              <Space>
+                                <Eye size={16} />
+                                {t("assets:ASSET_ACTION_OPEN")}
+                              </Space>
                             </ContextMenuItem>
                           )}
                           <ContextMenuItem onSelect={() => setMoveModalOpen(true)}>
-                            <FolderInput size={16} />
-                            {t("assets:ASSET_ACTION_MOVE")}
+                            <Space>
+                              <FolderInput size={16} />
+                              {t("assets:ASSET_ACTION_MOVE")}
+                            </Space>
                           </ContextMenuItem>
                           <ContextMenuItem onSelect={() => openEditAccessDialog()}>
-                            <Settings2 size={16} />
-                            {t("assets:ASSET_ACTION_EDIT_ACCESS")}
+                            <Space>
+                              <Settings2 size={16} />
+                              {t("assets:ASSET_ACTION_EDIT_ACCESS")}
+                            </Space>
                           </ContextMenuItem>
                           <ContextMenuSeparator />
                           <ContextMenuItem
                             className="text-destructive focus:text-destructive"
                             onSelect={() => openBulkDeleteDialog()}
                           >
-                            <Trash2 size={16} />
-                            {t("assets:ASSET_ACTION_DELETE_SELECTED")}
+                            <Space>
+                              <Trash2 size={16} />
+                              {t("assets:ASSET_ACTION_DELETE_SELECTED")}
+                            </Space>
                           </ContextMenuItem>
                         </ContextMenuContent>
                       </ContextMenu>

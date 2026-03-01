@@ -220,7 +220,7 @@ function NavNode({
           ) : null}
           {TrailingIcon ? (
             <TrailingIcon
-              className="ml-auto size-3.5 shrink-0 text-muted-foreground"
+              className="ml-auto size-3.5 shrink-0 text-label-secondary"
               aria-hidden="true"
             />
           ) : null}

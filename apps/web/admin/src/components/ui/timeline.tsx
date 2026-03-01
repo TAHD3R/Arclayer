@@ -72,7 +72,7 @@ function Timeline({
 function TimelineContent({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={cn("text-muted-foreground text-sm", className)}
+      className={cn("text-label-secondary text-sm", className)}
       data-slot="timeline-content"
       {...props}
     />
@@ -90,7 +90,7 @@ function TimelineDate({ asChild = false, className, ...props }: TimelineDateProp
   return (
     <Comp
       className={cn(
-        "text-muted-foreground mb-1 block text-xs font-medium group-data-[orientation=vertical]/timeline:max-sm:h-4",
+        "text-label-secondary mb-1 block text-xs font-medium group-data-[orientation=vertical]/timeline:max-sm:h-4",
         className,
       )}
       data-slot="timeline-date"

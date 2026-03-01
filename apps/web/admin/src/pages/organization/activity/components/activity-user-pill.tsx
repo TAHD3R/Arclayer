@@ -36,15 +36,7 @@ export function ActivityUserPill(props: {
 
   return (
     <div className="flex items-center gap-2 min-w-0">
-      <Avatar
-        size={size}
-        src={avatarSrc}
-        style={{
-          backgroundColor: "var(--color-muted)",
-          color: "var(--color-foreground)",
-          flexShrink: 0,
-        }}
-      >
+      <Avatar size={size} src={avatarSrc}>
         {userInitials(primary)}
       </Avatar>
       <div className="min-w-0">

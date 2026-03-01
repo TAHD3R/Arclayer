@@ -260,11 +260,11 @@ const ChromeTabsTrigger = React.forwardRef<
       "relative",
       "rounded-t-md rounded-b-none",
       // Padding requirement: 12px 32px
-      "px-8 py-3",
+      "px-8 py-4",
       "text-footnote font-bold",
       "text-label-secondary",
       "transition-colors",
-      "hover:text-foreground",
+      "hover:text-foreground hover:cursor-pointer",
       // Fallback when the trigger is wrapped by other Radix primitives that also set data-state.
       "aria-selected:text-foreground",
       // Hover underline for inactive tabs (active underline is rendered by ChromeTabsList for animation).

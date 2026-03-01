@@ -116,7 +116,7 @@ type SheetTitleProps = SheetTitlePrimitiveProps;
 function SheetTitle({ className, ...props }: SheetTitleProps) {
   return (
     <SheetTitlePrimitive
-      className={cn("text-foreground font-semibold text-title2", className)}
+      className={cn("text-foreground text-title3! mb-0.5!", className)}
       {...props}
     />
   );
@@ -125,9 +125,7 @@ function SheetTitle({ className, ...props }: SheetTitleProps) {
 type SheetDescriptionProps = SheetDescriptionPrimitiveProps;
 
 function SheetDescription({ className, ...props }: SheetDescriptionProps) {
-  return (
-    <SheetDescriptionPrimitive className={cn("text-label-secondary mb-0!", className)} {...props} />
-  );
+  return <SheetDescriptionPrimitive className={cn("text-label-secondary", className)} {...props} />;
 }
 
 export {

@@ -49,7 +49,7 @@ function AccordionTrigger({
       >
         {children}
         {showArrow && (
-          <ChevronDownIcon className="text-muted-foreground pointer-events-none size-4 shrink-0 translate-y-0.5 transition-transform duration-200" />
+          <ChevronDownIcon className="text-label-secondary pointer-events-none size-4 shrink-0 translate-y-0.5 transition-transform duration-200" />
         )}
       </AccordionTriggerPrimitive>
     </AccordionHeaderPrimitive>

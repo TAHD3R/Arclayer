@@ -130,7 +130,7 @@ function getEventIndicator(level?: ActivityEventLevel) {
   const config = level ? LEVEL_INDICATOR[level] : null;
   return {
     Icon: config?.icon ?? Circle,
-    className: config?.className ?? "text-muted-foreground",
+    className: config?.className ?? "text-label-secondary",
   };
 }
 
@@ -186,7 +186,7 @@ export function ActivityTimeline(props: ActivityTimelineProps) {
                 <TimelineItem step={group.items.length + 1}>
                   <TimelineSeparator />
                   <TimelineIndicator className="flex size-6 items-center justify-center border-0 bg-background animate-pulse">
-                    <Circle className="size-3 text-muted-foreground" />
+                    <Circle className="size-3 text-label-secondary" />
                   </TimelineIndicator>
                   <TimelineContent>
                     <div className="h-6 opacity-65" />

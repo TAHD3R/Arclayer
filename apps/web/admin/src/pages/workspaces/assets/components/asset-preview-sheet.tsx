@@ -138,8 +138,6 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
                 <Avatar
                   size={40}
                   style={{
-                    backgroundColor: "var(--color-muted)",
-                    color: "var(--color-foreground)",
                     flexShrink: 0,
                   }}
                 >

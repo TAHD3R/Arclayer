@@ -97,8 +97,6 @@ export function DebounceSelect<ValueType extends DebounceSelectOption = Debounce
             src={resolveAssetRefToPublicUrlPath(option.data.avatarUrl) || undefined}
             style={{
               marginRight: 8,
-              backgroundColor: "var(--color-muted)",
-              color: "var(--color-foreground)",
             }}
           >
             {avatarFallbackText(option.data.label)}

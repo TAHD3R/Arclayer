@@ -101,7 +101,7 @@ type AlertDialogDescriptionProps = AlertDialogDescriptionPrimitiveProps;
 function AlertDialogDescription({ className, ...props }: AlertDialogDescriptionProps) {
   return (
     <AlertDialogDescriptionPrimitive
-      className={cn("text-muted-foreground text-sm", className)}
+      className={cn("text-label-secondary text-sm", className)}
       {...props}
     />
   );

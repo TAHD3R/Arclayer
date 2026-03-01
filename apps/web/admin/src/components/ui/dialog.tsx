@@ -75,7 +75,7 @@ function DialogContent({
       >
         {children}
         {showCloseButton && (
-          <DialogClosePrimitive className="ring-offset-background focus:ring-ring data-[state=open]:bg-accent data-[state=open]:text-muted-foreground absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4">
+          <DialogClosePrimitive className="ring-offset-background focus:ring-ring data-[state=open]:bg-accent data-[state=open]:text-label-secondary absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4">
             <XIcon />
             <span className="sr-only">Close</span>
           </DialogClosePrimitive>
@@ -112,7 +112,7 @@ type DialogTitleProps = DialogTitlePrimitiveProps;
 function DialogTitle({ className, ...props }: DialogTitleProps) {
   return (
     <DialogTitlePrimitive
-      className={cn("text-lg leading-none font-semibold", className)}
+      className={cn("text-title3 leading-none font-bold! mb-0.5!", className)}
       {...props}
     />
   );
@@ -122,10 +122,7 @@ type DialogDescriptionProps = DialogDescriptionPrimitiveProps;
 
 function DialogDescription({ className, ...props }: DialogDescriptionProps) {
   return (
-    <DialogDescriptionPrimitive
-      className={cn("text-muted-foreground text-sm", className)}
-      {...props}
-    />
+    <DialogDescriptionPrimitive className={cn("text-label-secondary", className)} {...props} />
   );
 }
 
