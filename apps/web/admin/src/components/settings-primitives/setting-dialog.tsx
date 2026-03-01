@@ -50,18 +50,18 @@ export function SettingDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={cn("overflow-hidden p-0", contentClassName)}>
-        <DialogHeader className="border-b px-6 py-4 text-left">
+      <DialogContent className={cn("min-w-0 overflow-hidden p-0", contentClassName)}>
+        <DialogHeader className="min-w-0 border-b px-6 py-4 text-left">
           <DialogTitle>{displayTitle}</DialogTitle>
           {displayDescription ? (
             <DialogDescription className="mb-0!">{displayDescription}</DialogDescription>
           ) : null}
         </DialogHeader>
 
-        <div className={cn("px-6", bodyClassName)}>{children}</div>
+        <div className={cn("min-w-0 px-6", bodyClassName)}>{children}</div>
 
         {footer ? (
-          <DialogFooter className="mt-0 border-t px-6 py-4 bg-card">{footer}</DialogFooter>
+          <DialogFooter className="mt-0 min-w-0 border-t bg-card px-6 py-4">{footer}</DialogFooter>
         ) : null}
       </DialogContent>
     </Dialog>
