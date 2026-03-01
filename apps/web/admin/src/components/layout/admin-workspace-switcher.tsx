@@ -82,7 +82,7 @@ const listItemVariants: Variants = {
 
 // ─── 触发器样式（面包屑节点风格） ─────────────────────────────────────────────
 
-const breadcrumbTriggerClassName = cn(
+export const breadcrumbTriggerClassName = cn(
   "flex items-center gap-1 rounded-md px-1.5 py-0.5",
   "text-label-secondary border-0 bg-transparent",
   "hover:bg-accent hover:text-foreground",

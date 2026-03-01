@@ -73,6 +73,7 @@ export function AssetsPageView() {
   return (
     <DefaultPage
       title={t("nav:NAV_ASSETS")}
+      description={t("assets:ASSET_PAGE_DESC")}
       width="fixed"
       action={
         <Button type="primary" icon={<Plus size={16} />} onClick={() => setUploadOpen(true)}>

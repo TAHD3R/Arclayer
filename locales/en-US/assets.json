@@ -34,6 +34,7 @@
   "ASSET_EMPTY_SEARCH_TITLE": "No results found",
   "ASSET_EMPTY_SEARCH_DESC": "No assets match your current search or filters. Try adjusting the keywords or reset the filters.",
   "ASSET_LIST_LOAD_FAILED_DESC": "Failed to load assets. Please try again later.",
+  "ASSET_PAGE_DESC": "Manage your asset library: upload, organize into folders, and find files quickly with filters and search.",
   "ASSET_UPLOAD_DIALOG_TITLE": "Upload to Asset Library",
   "ASSET_UPLOAD_DIALOG_DESC": "Batch upload is supported. Closing the dialog during upload will cancel the upload.",
   "ASSET_UPLOAD_DROP_TITLE": "Click to upload",

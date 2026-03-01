@@ -133,10 +133,22 @@ function getFirstDescendantTo(item: AdminNavItem): string | null {
   return null;
 }
 
-function iconSlot(depth: number, Icon: AdminNavItem["icon"] | undefined) {
+function iconSlot(
+  depth: number,
+  Icon: AdminNavItem["icon"] | undefined,
+  opts?: {
+    isActive?: boolean;
+  },
+) {
   if (depth === 0 && Icon) {
     return (
-      <span className="size-5 shrink-0 inline-flex items-center justify-center" aria-hidden="true">
+      <span
+        className={cn(
+          "size-5 shrink-0 inline-flex items-center justify-center",
+          opts?.isActive ? "text-primary" : null,
+        )}
+        aria-hidden="true"
+      >
         <Icon className="size-full" />
       </span>
     );
@@ -199,7 +211,7 @@ function NavNode({
           style={{ paddingLeft: NAV_ITEM_BASE_PADDING_LEFT } as CSSProperties}
           onClick={item.onAction}
         >
-          {iconSlot(depth, Icon)}
+          {iconSlot(depth, Icon, { isActive: forcedActive })}
           <span className="min-w-0 flex-1 truncate">{label}</span>
           {showAction && item.actionRenderer ? (
             <span
@@ -268,7 +280,7 @@ function NavNode({
                 e.stopPropagation();
               }}
             >
-              {iconSlot(depth, Icon)}
+              {iconSlot(depth, Icon, { isActive: isSelected })}
               <span className="min-w-0 flex-1 truncate">{label}</span>
               {depth === 0 && item.actionRenderer ? (
                 <span
@@ -327,7 +339,7 @@ function NavNode({
               }
             }}
           >
-            {iconSlot(depth, Icon)}
+            {iconSlot(depth, Icon, { isActive: isTrailActive })}
             <span className="min-w-0 flex-1 truncate">{label}</span>
             {depth === 0 && item.actionRenderer ? (
               <span
@@ -347,7 +359,7 @@ function NavNode({
           </SidebarMenuButton>
         </WithBlockedTooltip>
 
-        <CollapsibleContent>
+        <CollapsibleContent className="pt-1.5">
           <SidebarMenu>
             {item.children!.map((child) => (
               <NavNode

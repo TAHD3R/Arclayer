@@ -34,6 +34,7 @@
   "ASSET_EMPTY_SEARCH_TITLE": "未找到匹配资源",
   "ASSET_EMPTY_SEARCH_DESC": "当前筛选或搜索条件下没有匹配的资源。你可以尝试修改关键词或重置筛选条件。",
   "ASSET_LIST_LOAD_FAILED_DESC": "资源列表加载失败，请稍后重试。",
+  "ASSET_PAGE_DESC": "管理你的资源库：上传文件、按文件夹整理，并通过筛选与搜索快速定位需要的内容。",
   "ASSET_UPLOAD_DIALOG_TITLE": "资源库上传",
   "ASSET_UPLOAD_DIALOG_DESC": "支持批量上传。上传过程中关闭弹窗将自动取消上传。",
   "ASSET_UPLOAD_DROP_TITLE": "点击上传",
