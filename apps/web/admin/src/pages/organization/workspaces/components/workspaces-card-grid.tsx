@@ -1,21 +1,20 @@
 import { useEffect, useMemo, useRef } from "react";
 
 import { useInfiniteQuery } from "@tanstack/react-query";
-import type { MenuProps } from "antd";
 
 import { listOrganizationWorkspaces } from "@/api/organization-workspaces";
 import type { OrganizationWorkspace } from "@/types/api";
 import { ContentGuard } from "@/components/common/content-guard";
 import { LoaderOne } from "@/components/ui/loader";
 
-import type { OrganizationWorkspacesTranslateFn } from "../types";
+import type { OrganizationWorkspacesTranslateFn, WorkspaceMenuItem } from "../types";
 import { WorkspaceCard } from "./workspace-card";
 
 interface WorkspacesCardGridProps {
   organizationId?: string;
   archived: boolean;
   searchInput: string;
-  buildMenuItems: (ws: OrganizationWorkspace) => MenuProps["items"];
+  buildMenuItems: (ws: OrganizationWorkspace) => WorkspaceMenuItem[];
   onCardClick?: (ws: OrganizationWorkspace) => void;
   emptyTitle: string;
   emptyDescription: string;

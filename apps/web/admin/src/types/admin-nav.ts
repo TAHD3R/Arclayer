@@ -1,5 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
+import type { DeploymentScope } from "@/types/api/system";
 
 export type AdminNavItem = {
   key: string;
@@ -7,6 +8,8 @@ export type AdminNavItem = {
   labelKey?: string;
   to?: string;
   icon: LucideIcon;
+  /** Control visibility by deployment mode; default: "both". */
+  scope?: DeploymentScope;
   disabled?: boolean;
   blockedReason?: "missing_permission" | "plugin_disabled" | null;
   requiredPermission?: string | null;

@@ -1,11 +1,14 @@
 import type { Row } from "@tanstack/react-table";
-import type { MenuProps } from "antd";
 
 import type { OrganizationWorkspace } from "@/types/api";
 import { ContentGuard } from "@/components/common/content-guard";
 import { DataTablePresenter } from "@/components/data-table";
 
-import type { OrganizationWorkspacesTranslateFn, OrganizationWorkspacesViewMode } from "../types";
+import type {
+  OrganizationWorkspacesTranslateFn,
+  OrganizationWorkspacesViewMode,
+  WorkspaceMenuItem,
+} from "../types";
 import type { OrganizationWorkspaceTableHook } from "../hooks/use-organization-workspaces-tables";
 import { WorkspacesCardGrid } from "./workspaces-card-grid";
 
@@ -21,7 +24,7 @@ interface WorkspacesContentSectionProps {
   organizationId?: string;
   archived: boolean;
   searchInput: string;
-  buildMenuItems: (ws: OrganizationWorkspace) => MenuProps["items"];
+  buildMenuItems: (ws: OrganizationWorkspace) => WorkspaceMenuItem[];
   onCardClick?: (ws: OrganizationWorkspace) => void;
 }
 

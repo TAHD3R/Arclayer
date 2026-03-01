@@ -16,6 +16,13 @@ export type DefaultPageProps = {
   width?: DefaultPageWidth;
   title?: ReactNode;
   description?: ReactNode;
+  /**
+   * Whether to show the built-in favorite toggle next to title.
+   * Default: true (existing behavior).
+   *
+   * Some pages (e.g. skeleton / pending state) may want a title layout without interactive controls.
+   */
+  showFavoriteToggle?: boolean;
   action?: ReactNode;
   extra?: ReactNode;
   children?: ReactNode;
@@ -37,7 +44,7 @@ function FavoriteToggle() {
     : t("common:FAVORITE_ADD_TOOLTIP");
 
   return (
-    <Tooltip>
+    <Tooltip side="bottom">
       <TooltipTrigger asChild>
         <Button
           type="text"
@@ -56,7 +63,7 @@ function FavoriteToggle() {
           <span>{label}</span>
         </Button>
       </TooltipTrigger>
-      <TooltipContent side="bottom">{tooltip}</TooltipContent>
+      <TooltipContent>{tooltip}</TooltipContent>
     </Tooltip>
   );
 }
@@ -65,6 +72,7 @@ export function DefaultPage({
   width = "fixed",
   title,
   description,
+  showFavoriteToggle = true,
   action,
   extra,
   children,
@@ -79,15 +87,17 @@ export function DefaultPage({
             {(title || action) && (
               <div className={styles.titleRow}>
                 <div className={clsx(styles.titleArea, "flex justify-center items-center gap-2")}>
-                  {title ? <span className="text-largetitle select-none">{title}</span> : null}
-                  {title ? <FavoriteToggle /> : null}
+                  {title ? <div className="text-largetitle select-none">{title}</div> : null}
+                  {title && showFavoriteToggle ? <FavoriteToggle /> : null}
                 </div>
 
                 {action ? <div className={styles.actionArea}>{action}</div> : null}
               </div>
             )}
 
-            {description ? <p className="text-label-secondary select-none">{description}</p> : null}
+            {description ? (
+              <div className="text-label-secondary select-none">{description}</div>
+            ) : null}
 
             {extra ? <div className={styles.extra}>{extra}</div> : null}
           </header>

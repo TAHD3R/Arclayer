@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from "react";
 
 import { useNavigate, useParams, useSearch } from "@tanstack/react-router";
 import { Button as AntButton, Form } from "antd";
-import type { MenuProps } from "antd";
 import { Archive, LogIn, Plus, Trash2, Undo2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -16,7 +15,11 @@ import {
   type CreateWorkspaceFormValues,
 } from "./components/organization-workspaces-dialogs";
 import { OrganizationWorkspacesToolbar } from "./components/organization-workspaces-toolbar";
-import type { OrganizationWorkspacesTab, OrganizationWorkspacesViewMode } from "./types";
+import type {
+  OrganizationWorkspacesTab,
+  OrganizationWorkspacesViewMode,
+  WorkspaceMenuItem,
+} from "./types";
 import { useOrganizationWorkspacesColumns } from "./components/workspaces-columns";
 import { useOrganizationWorkspacesMutations } from "./hooks/use-organization-workspaces-mutations";
 import { useOrganizationWorkspacesTables } from "./hooks/use-organization-workspaces-tables";
@@ -82,7 +85,7 @@ export function OrganizationWorkspacesPage() {
   );
 
   const buildCardMenuItems = useCallback(
-    (workspace: OrganizationWorkspace): MenuProps["items"] => {
+    (workspace: OrganizationWorkspace): WorkspaceMenuItem[] => {
       if (workspace.isArchived) {
         return [
           {
@@ -91,7 +94,7 @@ export function OrganizationWorkspacesPage() {
             label: t("common:ORG_WORKSPACES_ACTION_UNARCHIVE"),
             onClick: () => handleUnarchiveWorkspace(workspace.workspaceId),
           },
-          { type: "divider" as const },
+          { key: "divider", type: "divider" as const, label: "" },
           {
             key: "delete",
             danger: true,
@@ -108,7 +111,7 @@ export function OrganizationWorkspacesPage() {
           label: t("common:ORG_WORKSPACES_ACTION_ENTER"),
           onClick: () => handleEnterWorkspace(workspace.workspaceId),
         },
-        { type: "divider" as const },
+        { key: "divider", type: "divider" as const, label: "" },
         {
           key: "archive",
           icon: <Archive className="size-4" />,

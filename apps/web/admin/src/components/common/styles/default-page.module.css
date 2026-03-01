@@ -16,7 +16,9 @@
 }
 
 .fixed {
-  max-width: 1040px;
+  /* Fixed mode should feel "centered & comfortable" rather than strictly fixed width.
+     Use a proportional cap so 1440×900 / 1920×1080 still show clear side whitespace. */
+  max-width: clamp(1040px, 76vw, 1600px);
   margin: 0 auto;
 }
 

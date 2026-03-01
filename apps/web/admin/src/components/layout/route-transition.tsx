@@ -1,10 +1,11 @@
-import { Skeleton } from "antd";
 import { useRouterState } from "@tanstack/react-router";
 import { AnimatePresence, MotionConfig, motion } from "motion/react";
 import { useEffect, useMemo, useRef, useState, type PropsWithChildren } from "react";
 import clsx from "clsx";
 
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
+import { DefaultPage } from "@/components/common/default-page";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type RouteTransitionProps = PropsWithChildren<{
   className?: string;
@@ -15,9 +16,42 @@ type RouteTransitionProps = PropsWithChildren<{
 
 function DefaultRoutePending() {
   return (
-    <div className="w-full h-full p-6">
-      <Skeleton active title paragraph={{ rows: 6 }} />
-    </div>
+    <DefaultPage
+      width="fixed"
+      showFavoriteToggle={false}
+      title={<Skeleton className="h-8 w-44 rounded-lg" />}
+      description={
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-[32rem] max-w-full" />
+          <Skeleton className="h-4 w-[24rem] max-w-full" />
+        </div>
+      }
+    >
+      <div className="space-y-6">
+        <div className="space-y-3">
+          <Skeleton className="h-4 w-full max-w-[52rem]" />
+          <Skeleton className="h-4 w-full max-w-[48rem]" />
+          <Skeleton className="h-4 w-full max-w-[50rem]" />
+          <Skeleton className="h-4 w-full max-w-[44rem]" />
+          <Skeleton className="h-4 w-full max-w-[46rem]" />
+          <Skeleton className="h-4 w-full max-w-[40rem]" />
+        </div>
+
+        <div className="space-y-3">
+          <Skeleton className="h-5 w-40" />
+          <Skeleton className="h-4 w-full max-w-[54rem]" />
+          <Skeleton className="h-4 w-full max-w-[42rem]" />
+          <Skeleton className="h-4 w-full max-w-[49rem]" />
+        </div>
+
+        <div className="space-y-3">
+          <Skeleton className="h-5 w-36" />
+          <Skeleton className="h-4 w-full max-w-[52rem]" />
+          <Skeleton className="h-4 w-full max-w-[45rem]" />
+          <Skeleton className="h-4 w-full max-w-[47rem]" />
+        </div>
+      </div>
+    </DefaultPage>
   );
 }
 

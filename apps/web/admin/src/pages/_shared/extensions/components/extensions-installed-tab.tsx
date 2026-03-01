@@ -12,16 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 import { ExtensionCard } from "./extension-card";
-import type { InstalledExtensionItem } from "../types";
-
-type ExtensionMenuItem = {
-  key: string;
-  label: string;
-  icon?: React.ReactNode;
-  danger?: boolean;
-  onClick?: () => void;
-  type?: "divider";
-};
+import type { ExtensionMenuItem, InstalledExtensionItem } from "../types";
 
 type ExtensionsInstalledTabProps = {
   items: InstalledExtensionItem[];
@@ -74,11 +65,12 @@ export function ExtensionsInstalledTab({
                 <DropdownMenuContent align="end">
                   {buildMenuItems(p).map((item) =>
                     item.type === "divider" ? (
-                      <DropdownMenuSeparator key="divider" />
+                      <DropdownMenuSeparator key={item.key} />
                     ) : (
                       <DropdownMenuIconItem
                         key={item.key}
                         onSelect={item.onClick}
+                        disabled={item.disabled}
                         variant={item.danger ? "destructive" : undefined}
                         icon={item.icon}
                       >

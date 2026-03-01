@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import type { MenuProps } from "antd";
 import { RotateCcw, Settings2, Trash2 } from "lucide-react";
 
 import { getMyOrganization } from "@/api/me";
@@ -24,7 +23,7 @@ import {
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
-import type { InstalledExtensionItem, ExtensionScope } from "../types";
+import type { ExtensionMenuItem, InstalledExtensionItem, ExtensionScope } from "../types";
 import { buildCategoryTabs, getExtensionRef } from "../utils";
 
 const PAGE_SIZE = 12;
@@ -258,20 +257,19 @@ export function useExtensions({ scope = "workspace", organizationId }: UseExtens
     return workspaceId ? `/w/${workspaceId}/extensions/${encodeURIComponent(extensionRef)}` : null;
   }
 
-  function buildMenuItems(extension: InstalledExtensionItem): MenuProps["items"] {
+  function buildMenuItems(extension: InstalledExtensionItem): ExtensionMenuItem[] {
     const configureHref = buildConfigureHref(extension);
     if (!configureHref) return [];
     return [
       {
         key: "configure",
-        label: (
-          <a href={configureHref} className="block">
-            {t("plugin:PLUGIN_CENTER_CONFIGURE_ACTION")}
-          </a>
-        ),
+        label: t("plugin:PLUGIN_CENTER_CONFIGURE_ACTION"),
         icon: <Settings2 className="size-4" />,
+        onClick: () => {
+          window.location.assign(configureHref);
+        },
       },
-      { type: "divider" as const },
+      { key: "divider", type: "divider" as const, label: "" },
       {
         key: "reset",
         label: t("plugin:PLUGIN_CENTER_RESET_ACTION"),

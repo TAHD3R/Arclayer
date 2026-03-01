@@ -11,17 +11,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-import type { OrganizationWorkspacesTranslateFn } from "../types";
+import type { OrganizationWorkspacesTranslateFn, WorkspaceMenuItem } from "../types";
 import { WorkspaceMembersPopover } from "./workspace-members-popover";
-
-type WorkspaceMenuItem = {
-  key: string;
-  label: string;
-  icon?: React.ReactNode;
-  danger?: boolean;
-  onClick?: () => void;
-  type?: "divider";
-};
 
 interface WorkspaceCardProps {
   workspace: OrganizationWorkspace;
@@ -62,6 +53,7 @@ export function WorkspaceCard({ workspace, menuItems, t, onClick, className }: W
                   <DropdownMenuIconItem
                     key={item.key}
                     onSelect={item.onClick}
+                    disabled={item.disabled}
                     variant={item.danger ? "destructive" : undefined}
                     icon={item.icon}
                   >
