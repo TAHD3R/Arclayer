@@ -11,7 +11,7 @@ import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
-  DropdownMenuItem,
+  DropdownMenuIconItem,
 } from "@/components/ui/dropdown-menu";
 
 interface AssetsFilterValue {
@@ -92,16 +92,16 @@ export function AssetsViewHeader(props: AssetsViewHeaderProps) {
               </DropdownMenuTrigger>
               <DropdownMenuContent>
                 {(props.moreMenuItems ?? []).map((item) => (
-                  <DropdownMenuItem
+                  <DropdownMenuIconItem
                     key={item.key}
                     onSelect={() => {
                       props.setFilters((prev) => ({ ...prev, mimePrefix: `${item.key}/` }));
                       props.setMoreOpen(false);
                     }}
+                    icon={item.icon}
                   >
-                    {item.icon}
                     {item.label}
-                  </DropdownMenuItem>
+                  </DropdownMenuIconItem>
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>

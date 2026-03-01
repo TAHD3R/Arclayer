@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import {
   ContextMenu,
   ContextMenuContent,
+  ContextMenuIconItem,
   ContextMenuItem,
   ContextMenuSeparator,
   ContextMenuTrigger,
@@ -262,15 +263,15 @@ export function BlocksPanel() {
                       {t("content_pages:EDITOR_BLOCKS_ACTION_INSERT")}
                     </ContextMenuItem>
                     <ContextMenuSeparator />
-                    <ContextMenuItem
+                    <ContextMenuIconItem
+                      icon={<Trash2 className="size-4" />}
                       onSelect={() => {
                         void deleteMutation.mutateAsync(p.id);
                       }}
                       className="text-destructive focus:text-destructive"
                     >
-                      <Trash2 className="mr-2 size-4" />
                       {t("content_pages:EDITOR_BLOCKS_ACTION_DELETE")}
-                    </ContextMenuItem>
+                    </ContextMenuIconItem>
                   </ContextMenuContent>
                 </ContextMenu>
               );

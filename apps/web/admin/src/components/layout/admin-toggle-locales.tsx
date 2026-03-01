@@ -1,4 +1,4 @@
-import { Button, Space } from "antd";
+import { Button } from "antd";
 import { Icon } from "@iconify/react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -10,6 +10,7 @@ import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
+  DropdownMenuItemContent,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
 } from "@/components/ui/dropdown-menu";
@@ -36,16 +37,18 @@ export function AdminLocaleToggle(props: { className?: string }) {
       <DropdownMenuContent align="end">
         <DropdownMenuRadioGroup value={locale} onValueChange={(val) => setLocale(val as AppLocale)}>
           <DropdownMenuRadioItem value="zh-CN">
-            <Space size={10}>
-              <Icon icon="twemoji:flag-china" width={18} height={18} />
-              <span>简体中文</span>
-            </Space>
+            <DropdownMenuItemContent
+              icon={<Icon icon="twemoji:flag-china" width={18} height={18} />}
+            >
+              简体中文
+            </DropdownMenuItemContent>
           </DropdownMenuRadioItem>
           <DropdownMenuRadioItem value="en-US">
-            <Space size={10}>
-              <Icon icon="twemoji:flag-united-states" width={18} height={18} />
-              <span>English</span>
-            </Space>
+            <DropdownMenuItemContent
+              icon={<Icon icon="twemoji:flag-united-states" width={18} height={18} />}
+            >
+              English
+            </DropdownMenuItemContent>
           </DropdownMenuRadioItem>
         </DropdownMenuRadioGroup>
       </DropdownMenuContent>

@@ -3,7 +3,7 @@ import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
-  DropdownMenuItem,
+  DropdownMenuIconItem,
 } from "@/components/ui/dropdown-menu";
 import { MoreVertical, Trash2 } from "lucide-react";
 
@@ -59,13 +59,13 @@ export function RolesMatrixTable(props: RolesMatrixTableProps) {
                             />
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem
+                            <DropdownMenuIconItem
+                              icon={<Trash2 className="h-4 w-4" />}
                               variant="destructive"
                               onSelect={() => onDeleteRole(role.code)}
                             >
-                              <Trash2 className="h-4 w-4" />
                               {t("team:TEAM_ACTION_DELETE")}
-                            </DropdownMenuItem>
+                            </DropdownMenuIconItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       )}

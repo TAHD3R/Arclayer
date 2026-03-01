@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
+  DropdownMenuIconItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -59,14 +59,14 @@ export function WorkspaceCard({ workspace, menuItems, t, onClick, className }: W
                 item.type === "divider" ? (
                   <DropdownMenuSeparator key={item.key} />
                 ) : (
-                  <DropdownMenuItem
+                  <DropdownMenuIconItem
                     key={item.key}
                     onSelect={item.onClick}
                     variant={item.danger ? "destructive" : undefined}
+                    icon={item.icon}
                   >
-                    {item.icon}
                     {item.label}
-                  </DropdownMenuItem>
+                  </DropdownMenuIconItem>
                 ),
               )}
             </DropdownMenuContent>

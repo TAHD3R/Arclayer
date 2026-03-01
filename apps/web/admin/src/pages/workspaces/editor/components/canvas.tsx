@@ -16,7 +16,7 @@ import {
   ContextMenu,
   ContextMenuTrigger,
   ContextMenuContent,
-  ContextMenuItem,
+  ContextMenuIconItem,
   ContextMenuSeparator,
 } from "@/components/ui/context-menu";
 
@@ -137,27 +137,37 @@ export function Canvas({ iframeSrc, iframeRef, isLoading, loadError }: CanvasPro
         </ContextMenuTrigger>
 
         <ContextMenuContent>
-          <ContextMenuItem onSelect={() => void actions.run("tool.select")}>
-            <MousePointer2 className="mr-2 size-4" />
+          <ContextMenuIconItem
+            icon={<MousePointer2 className="size-4" />}
+            onSelect={() => void actions.run("tool.select")}
+          >
             {t("content_pages:EDITOR_TOOLBAR_TOOL_SELECT")}
-          </ContextMenuItem>
-          <ContextMenuItem onSelect={() => void actions.run("tool.hand")}>
-            <Hand className="mr-2 size-4" />
+          </ContextMenuIconItem>
+          <ContextMenuIconItem
+            icon={<Hand className="size-4" />}
+            onSelect={() => void actions.run("tool.hand")}
+          >
             {t("content_pages:EDITOR_TOOLBAR_TOOL_HAND")}
-          </ContextMenuItem>
+          </ContextMenuIconItem>
           <ContextMenuSeparator />
-          <ContextMenuItem onSelect={() => void actions.run("view.zoom_in")}>
-            <ZoomIn className="mr-2 size-4" />
+          <ContextMenuIconItem
+            icon={<ZoomIn className="size-4" />}
+            onSelect={() => void actions.run("view.zoom_in")}
+          >
             {t("content_pages:EDITOR_TOOLBAR_ZOOM_IN")}
-          </ContextMenuItem>
-          <ContextMenuItem onSelect={() => void actions.run("view.zoom_out")}>
-            <ZoomOut className="mr-2 size-4" />
+          </ContextMenuIconItem>
+          <ContextMenuIconItem
+            icon={<ZoomOut className="size-4" />}
+            onSelect={() => void actions.run("view.zoom_out")}
+          >
             {t("content_pages:EDITOR_TOOLBAR_ZOOM_OUT")}
-          </ContextMenuItem>
-          <ContextMenuItem onSelect={() => void actions.run("view.zoom_reset")}>
-            <RotateCcw className="mr-2 size-4" />
+          </ContextMenuIconItem>
+          <ContextMenuIconItem
+            icon={<RotateCcw className="size-4" />}
+            onSelect={() => void actions.run("view.zoom_reset")}
+          >
             {t("content_pages:EDITOR_TOOLBAR_ZOOM_RESET")}
-          </ContextMenuItem>
+          </ContextMenuIconItem>
         </ContextMenuContent>
       </ContextMenu>
     </>

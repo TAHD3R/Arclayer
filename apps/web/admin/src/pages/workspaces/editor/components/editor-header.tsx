@@ -33,6 +33,7 @@ import {
   MenubarTrigger,
   MenubarContent,
   MenubarItem,
+  MenubarItemContent,
   MenubarSeparator,
   MenubarShortcut,
 } from "@/components/ui/menubar";
@@ -394,21 +395,24 @@ export function EditorHeader() {
                 disabled={!actions.isEnabled("file.save_draft")}
                 onClick={() => void actions.run("file.save_draft")}
               >
-                <Save className="mr-2 size-4" />
-                {t("content_pages:EDITOR_MENU_FILE_SAVE")}
+                <MenubarItemContent icon={<Save className="size-4" />}>
+                  {t("content_pages:EDITOR_MENU_FILE_SAVE")}
+                </MenubarItemContent>
                 <MenubarShortcut>{sc("⌘S", "Ctrl+S")}</MenubarShortcut>
               </MenubarItem>
               <MenubarItem
                 disabled={!actions.isEnabled("file.publish")}
                 onClick={() => void actions.run("file.publish")}
               >
-                <ArrowUpFromLine className="mr-2 size-4" />
-                {t("content_pages:EDITOR_MENU_FILE_PUBLISH")}
+                <MenubarItemContent icon={<ArrowUpFromLine className="size-4" />}>
+                  {t("content_pages:EDITOR_MENU_FILE_PUBLISH")}
+                </MenubarItemContent>
               </MenubarItem>
               <MenubarSeparator />
               <MenubarItem disabled>
-                <Download className="mr-2 size-4" />
-                {t("content_pages:EDITOR_MENU_FILE_EXPORT")}
+                <MenubarItemContent icon={<Download className="size-4" />}>
+                  {t("content_pages:EDITOR_MENU_FILE_EXPORT")}
+                </MenubarItemContent>
               </MenubarItem>
               <MenubarSeparator />
               <MenubarItem
@@ -416,8 +420,9 @@ export function EditorHeader() {
                   window.location.href = `/w/${workspaceId}`;
                 }}
               >
-                <LogOut className="mr-2 size-4" />
-                {t("content_pages:EDITOR_MENU_FILE_EXIT")}
+                <MenubarItemContent icon={<LogOut className="size-4" />}>
+                  {t("content_pages:EDITOR_MENU_FILE_EXIT")}
+                </MenubarItemContent>
               </MenubarItem>
             </MenubarContent>
           </MenubarMenu>
@@ -432,35 +437,40 @@ export function EditorHeader() {
                 disabled={!actions.isEnabled("edit.undo")}
                 onClick={() => void actions.run("edit.undo")}
               >
-                <Undo2 className="mr-2 size-4" />
-                {t("content_pages:EDITOR_MENU_EDIT_UNDO")}
+                <MenubarItemContent icon={<Undo2 className="size-4" />}>
+                  {t("content_pages:EDITOR_MENU_EDIT_UNDO")}
+                </MenubarItemContent>
                 <MenubarShortcut>{sc("⌘Z", "Ctrl+Z")}</MenubarShortcut>
               </MenubarItem>
               <MenubarItem
                 disabled={!actions.isEnabled("edit.redo")}
                 onClick={() => void actions.run("edit.redo")}
               >
-                <Redo2 className="mr-2 size-4" />
-                {t("content_pages:EDITOR_MENU_EDIT_REDO")}
+                <MenubarItemContent icon={<Redo2 className="size-4" />}>
+                  {t("content_pages:EDITOR_MENU_EDIT_REDO")}
+                </MenubarItemContent>
                 <MenubarShortcut>{sc("⇧⌘Z", "Ctrl+Shift+Z")}</MenubarShortcut>
               </MenubarItem>
               <MenubarSeparator />
               <MenubarItem disabled>
-                <Copy className="mr-2 size-4" />
-                {t("content_pages:EDITOR_MENU_EDIT_COPY")}
+                <MenubarItemContent icon={<Copy className="size-4" />}>
+                  {t("content_pages:EDITOR_MENU_EDIT_COPY")}
+                </MenubarItemContent>
                 <MenubarShortcut>{sc("⌘C", "Ctrl+C")}</MenubarShortcut>
               </MenubarItem>
               <MenubarItem disabled>
-                <ClipboardPaste className="mr-2 size-4" />
-                {t("content_pages:EDITOR_MENU_EDIT_PASTE")}
+                <MenubarItemContent icon={<ClipboardPaste className="size-4" />}>
+                  {t("content_pages:EDITOR_MENU_EDIT_PASTE")}
+                </MenubarItemContent>
                 <MenubarShortcut>{sc("⌘V", "Ctrl+V")}</MenubarShortcut>
               </MenubarItem>
               <MenubarItem
                 disabled={!actions.isEnabled("edit.delete")}
                 onClick={() => void actions.run("edit.delete")}
               >
-                <Trash2 className="mr-2 size-4" />
-                {t("content_pages:EDITOR_MENU_EDIT_DELETE")}
+                <MenubarItemContent icon={<Trash2 className="size-4" />}>
+                  {t("content_pages:EDITOR_MENU_EDIT_DELETE")}
+                </MenubarItemContent>
                 <MenubarShortcut>{sc("⌫", "Del")}</MenubarShortcut>
               </MenubarItem>
               <MenubarSeparator />
@@ -468,8 +478,9 @@ export function EditorHeader() {
                 disabled={!actions.isEnabled("edit.duplicate")}
                 onClick={() => void actions.run("edit.duplicate")}
               >
-                <CopyPlus className="mr-2 size-4" />
-                {t("content_pages:EDITOR_MENU_EDIT_DUPLICATE")}
+                <MenubarItemContent icon={<CopyPlus className="size-4" />}>
+                  {t("content_pages:EDITOR_MENU_EDIT_DUPLICATE")}
+                </MenubarItemContent>
                 <MenubarShortcut>{sc("⌘D", "Ctrl+D")}</MenubarShortcut>
               </MenubarItem>
             </MenubarContent>
@@ -485,34 +496,39 @@ export function EditorHeader() {
                 disabled={!actions.isEnabled("view.zoom_in")}
                 onClick={() => void actions.run("view.zoom_in")}
               >
-                <ZoomIn className="mr-2 size-4" />
-                {t("content_pages:EDITOR_MENU_VIEW_ZOOM_IN")}
+                <MenubarItemContent icon={<ZoomIn className="size-4" />}>
+                  {t("content_pages:EDITOR_MENU_VIEW_ZOOM_IN")}
+                </MenubarItemContent>
                 <MenubarShortcut>{sc("⌘+", "Ctrl++")}</MenubarShortcut>
               </MenubarItem>
               <MenubarItem
                 disabled={!actions.isEnabled("view.zoom_out")}
                 onClick={() => void actions.run("view.zoom_out")}
               >
-                <ZoomOut className="mr-2 size-4" />
-                {t("content_pages:EDITOR_MENU_VIEW_ZOOM_OUT")}
+                <MenubarItemContent icon={<ZoomOut className="size-4" />}>
+                  {t("content_pages:EDITOR_MENU_VIEW_ZOOM_OUT")}
+                </MenubarItemContent>
                 <MenubarShortcut>{sc("⌘-", "Ctrl+-")}</MenubarShortcut>
               </MenubarItem>
               <MenubarItem
                 disabled={!actions.isEnabled("view.zoom_reset")}
                 onClick={() => void actions.run("view.zoom_reset")}
               >
-                <RotateCcw className="mr-2 size-4" />
-                {t("content_pages:EDITOR_MENU_VIEW_ZOOM_RESET")}
+                <MenubarItemContent icon={<RotateCcw className="size-4" />}>
+                  {t("content_pages:EDITOR_MENU_VIEW_ZOOM_RESET")}
+                </MenubarItemContent>
                 <MenubarShortcut>{sc("⌘0", "Ctrl+0")}</MenubarShortcut>
               </MenubarItem>
               <MenubarSeparator />
               <MenubarItem disabled>
-                <Ruler className="mr-2 size-4" />
-                {t("content_pages:EDITOR_MENU_VIEW_GUIDES")}
+                <MenubarItemContent icon={<Ruler className="size-4" />}>
+                  {t("content_pages:EDITOR_MENU_VIEW_GUIDES")}
+                </MenubarItemContent>
               </MenubarItem>
               <MenubarItem disabled>
-                <Square className="mr-2 size-4" />
-                {t("content_pages:EDITOR_MENU_VIEW_BOUNDS")}
+                <MenubarItemContent icon={<Square className="size-4" />}>
+                  {t("content_pages:EDITOR_MENU_VIEW_BOUNDS")}
+                </MenubarItemContent>
               </MenubarItem>
             </MenubarContent>
           </MenubarMenu>

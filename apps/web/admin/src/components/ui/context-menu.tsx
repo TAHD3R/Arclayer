@@ -25,7 +25,7 @@ const ContextMenuSubTrigger = React.forwardRef<
   <ContextMenuPrimitive.SubTrigger
     ref={ref}
     className={cn(
-      "flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-callout outline-none focus:bg-accent focus:text-accent-foreground data-[state=open]:bg-accent data-[state=open]:text-accent-foreground",
+      "relative flex w-full cursor-default select-none items-center gap-2 rounded-sm p-2 text-callout outline-none focus:bg-accent focus:text-accent-foreground data-[state=open]:bg-accent data-[state=open]:text-accent-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
       inset && "pl-8",
       className,
     )}
@@ -78,7 +78,7 @@ const ContextMenuItem = React.forwardRef<
   <ContextMenuPrimitive.Item
     ref={ref}
     className={cn(
-      "relative flex w-full cursor-default select-none items-center rounded-sm p-2 text-callout outline-none focus:bg-accent focus:text-accent-foreground data-disabled:pointer-events-none data-disabled:opacity-50",
+      "relative flex w-full cursor-default select-none items-center gap-2 rounded-sm p-2 text-callout outline-none focus:bg-accent focus:text-accent-foreground data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
       inset && "pl-8",
       className,
     )}
@@ -87,6 +87,44 @@ const ContextMenuItem = React.forwardRef<
 ));
 ContextMenuItem.displayName = ContextMenuPrimitive.Item.displayName;
 
+type ContextMenuItemContentProps = {
+  icon?: React.ReactNode;
+  children: React.ReactNode;
+  className?: string;
+};
+
+function ContextMenuItemContent({ icon, children, className }: ContextMenuItemContentProps) {
+  return (
+    <span className={cn("flex min-w-0 flex-1 items-center gap-2", className)}>
+      {icon ? (
+        <span aria-hidden="true" className="flex min-w-4 shrink-0 items-center justify-center">
+          {icon}
+        </span>
+      ) : (
+        <span aria-hidden="true" className="min-w-4 shrink-0" />
+      )}
+      <span className="min-w-0 flex-1">{children}</span>
+    </span>
+  );
+}
+
+type ContextMenuIconItemProps = Omit<
+  React.ComponentPropsWithoutRef<typeof ContextMenuPrimitive.Item>,
+  "children"
+> & {
+  inset?: boolean;
+  icon?: React.ReactNode;
+  children: React.ReactNode;
+};
+
+function ContextMenuIconItem({ icon, children, className, ...props }: ContextMenuIconItemProps) {
+  return (
+    <ContextMenuItem className={className} {...props}>
+      <ContextMenuItemContent icon={icon}>{children}</ContextMenuItemContent>
+    </ContextMenuItem>
+  );
+}
+
 const ContextMenuCheckboxItem = React.forwardRef<
   React.ElementRef<typeof ContextMenuPrimitive.CheckboxItem>,
   React.ComponentPropsWithoutRef<typeof ContextMenuPrimitive.CheckboxItem>
@@ -94,7 +132,7 @@ const ContextMenuCheckboxItem = React.forwardRef<
   <ContextMenuPrimitive.CheckboxItem
     ref={ref}
     className={cn(
-      "relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-callout outline-none focus:bg-accent focus:text-accent-foreground data-disabled:pointer-events-none data-disabled:opacity-50",
+      "relative flex w-full cursor-default select-none items-center gap-2 rounded-sm py-2 pr-2 pl-8 text-callout outline-none focus:bg-accent focus:text-accent-foreground data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
       className,
     )}
     checked={checked}
@@ -117,7 +155,7 @@ const ContextMenuRadioItem = React.forwardRef<
   <ContextMenuPrimitive.RadioItem
     ref={ref}
     className={cn(
-      "relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-callout outline-none focus:bg-accent focus:text-accent-foreground data-disabled:pointer-events-none data-disabled:opacity-50",
+      "relative flex w-full cursor-default select-none items-center gap-2 rounded-sm py-2 pr-2 pl-8 text-callout outline-none focus:bg-accent focus:text-accent-foreground data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
       className,
     )}
     {...props}
@@ -177,6 +215,8 @@ export {
   ContextMenuTrigger,
   ContextMenuContent,
   ContextMenuItem,
+  ContextMenuItemContent,
+  ContextMenuIconItem,
   ContextMenuCheckboxItem,
   ContextMenuRadioItem,
   ContextMenuLabel,

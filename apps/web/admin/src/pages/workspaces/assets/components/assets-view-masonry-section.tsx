@@ -1,5 +1,5 @@
 import { DndContext, DragOverlay } from "@dnd-kit/core";
-import { Button, Masonry, Space } from "antd";
+import { Button, Masonry } from "antd";
 import { Eye, FolderInput, FolderPlus, PencilLine, Settings2, Trash2 } from "lucide-react";
 import { AnimatePresence } from "motion/react";
 import { flushSync } from "react-dom";
@@ -16,7 +16,7 @@ import { LoaderOne } from "@/components/ui/loader";
 import {
   ContextMenu,
   ContextMenuContent,
-  ContextMenuItem,
+  ContextMenuIconItem,
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
@@ -306,35 +306,33 @@ export function AssetsViewMasonrySection(props: AssetsViewMasonrySectionProps) {
                         </ContextMenuTrigger>
                         <ContextMenuContent>
                           {selectedIds.size <= 1 && (
-                            <ContextMenuItem onSelect={() => setActive(entry.asset)}>
-                              <Space>
-                                <Eye size={16} />
-                                {t("assets:ASSET_ACTION_OPEN")}
-                              </Space>
-                            </ContextMenuItem>
+                            <ContextMenuIconItem
+                              icon={<Eye size={16} />}
+                              onSelect={() => setActive(entry.asset)}
+                            >
+                              {t("assets:ASSET_ACTION_OPEN")}
+                            </ContextMenuIconItem>
                           )}
-                          <ContextMenuItem onSelect={() => setMoveModalOpen(true)}>
-                            <Space>
-                              <FolderInput size={16} />
-                              {t("assets:ASSET_ACTION_MOVE")}
-                            </Space>
-                          </ContextMenuItem>
-                          <ContextMenuItem onSelect={() => openEditAccessDialog()}>
-                            <Space>
-                              <Settings2 size={16} />
-                              {t("assets:ASSET_ACTION_EDIT_ACCESS")}
-                            </Space>
-                          </ContextMenuItem>
+                          <ContextMenuIconItem
+                            icon={<FolderInput size={16} />}
+                            onSelect={() => setMoveModalOpen(true)}
+                          >
+                            {t("assets:ASSET_ACTION_MOVE")}
+                          </ContextMenuIconItem>
+                          <ContextMenuIconItem
+                            icon={<Settings2 size={16} />}
+                            onSelect={() => openEditAccessDialog()}
+                          >
+                            {t("assets:ASSET_ACTION_EDIT_ACCESS")}
+                          </ContextMenuIconItem>
                           <ContextMenuSeparator />
-                          <ContextMenuItem
+                          <ContextMenuIconItem
+                            icon={<Trash2 size={16} />}
                             className="text-destructive focus:text-destructive"
                             onSelect={() => openBulkDeleteDialog()}
                           >
-                            <Space>
-                              <Trash2 size={16} />
-                              {t("assets:ASSET_ACTION_DELETE_SELECTED")}
-                            </Space>
-                          </ContextMenuItem>
+                            {t("assets:ASSET_ACTION_DELETE_SELECTED")}
+                          </ContextMenuIconItem>
                         </ContextMenuContent>
                       </ContextMenu>
                     )}
@@ -417,41 +415,41 @@ export function AssetsViewMasonrySection(props: AssetsViewMasonrySectionProps) {
                               </div>
                             </ContextMenuTrigger>
                             <ContextMenuContent>
-                              <ContextMenuItem
+                              <ContextMenuIconItem
+                                icon={<FolderPlus size={16} />}
                                 onSelect={() => {
                                   setCreateFolderParentId(String(entry.folder.id));
                                   setCreateFolderOpen(true);
                                 }}
                               >
-                                <FolderPlus size={16} />
                                 {t("assets:ASSET_ACTION_CREATE_FOLDER")}
-                              </ContextMenuItem>
-                              <ContextMenuItem
+                              </ContextMenuIconItem>
+                              <ContextMenuIconItem
+                                icon={<PencilLine size={16} />}
                                 onSelect={() => {
                                   setEditFolderTarget(entry.folder);
                                   setEditFolderOpen(true);
                                 }}
                               >
-                                <PencilLine size={16} />
                                 {t("assets:ASSET_ACTION_EDIT_FOLDER")}
-                              </ContextMenuItem>
-                              <ContextMenuItem
+                              </ContextMenuIconItem>
+                              <ContextMenuIconItem
+                                icon={<FolderInput size={16} />}
                                 onSelect={() => {
                                   setMoveFolderTarget(entry.folder);
                                   setMoveFolderOpen(true);
                                 }}
                               >
-                                <FolderInput size={16} />
                                 {t("assets:ASSET_ACTION_MOVE_FOLDER")}
-                              </ContextMenuItem>
+                              </ContextMenuIconItem>
                               <ContextMenuSeparator />
-                              <ContextMenuItem
+                              <ContextMenuIconItem
+                                icon={<Trash2 size={16} />}
                                 className="text-destructive focus:text-destructive"
                                 onSelect={() => void tryDeleteFolder(entry.folder)}
                               >
-                                <Trash2 size={16} />
                                 {t("assets:ASSET_ACTION_DELETE_FOLDER")}
-                              </ContextMenuItem>
+                              </ContextMenuIconItem>
                             </ContextMenuContent>
                           </ContextMenu>
                         </DroppablePulse>

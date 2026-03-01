@@ -23,7 +23,7 @@ import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
-  DropdownMenuItem,
+  DropdownMenuIconItem,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { LoaderOne } from "@/components/ui/loader";
@@ -217,36 +217,36 @@ export function TeamMembersView() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem
+                    <DropdownMenuIconItem
+                      icon={<UserCog className="size-4" />}
                       disabled={!canEditMemberRoles || rolesQueryFailed}
                       onSelect={() => {
                         setEditingMember(m);
                         setEditingRoleCode(m.roleCodes?.[0] ?? null);
                       }}
                     >
-                      <UserCog className="size-4" />
                       {t("team:TEAM_ACTION_EDIT_ROLES")}
-                    </DropdownMenuItem>
+                    </DropdownMenuIconItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem
+                    <DropdownMenuIconItem
+                      icon={<UserCheck className="size-4" />}
                       disabled={!canEnable}
                       onSelect={() => enableMutation.mutate(m.membershipId)}
                     >
-                      <UserCheck className="size-4" />
                       {t("team:TEAM_ACTION_ENABLE")}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
+                    </DropdownMenuIconItem>
+                    <DropdownMenuIconItem
+                      icon={<UserX className="size-4" />}
                       disabled={!canDisable || isSelf}
                       onSelect={() => {
                         if (isSelf) return;
                         disableMutation.mutate(m.membershipId);
                       }}
                     >
-                      <UserX className="size-4" />
                       {isSelf
                         ? t("team:TEAM_ACTION_DISABLE_SELF_DISABLED")
                         : t("team:TEAM_ACTION_DISABLE")}
-                    </DropdownMenuItem>
+                    </DropdownMenuIconItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>

@@ -7,7 +7,7 @@ import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
-  DropdownMenuItem,
+  DropdownMenuIconItem,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
@@ -81,19 +81,24 @@ export function createOrganizationMemberColumns({
                   />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onSelect={() => onInspectMember(item)}>
-                    <Eye className="size-4" />
+                  <DropdownMenuIconItem
+                    icon={<Eye className="size-4" />}
+                    onSelect={() => onInspectMember(item)}
+                  >
                     {t("common:ORG_MEMBERS_ACTION_INSPECT_USER")}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => onOpenRoleDialog(item)}>
-                    <UserCog className="size-4" />
+                  </DropdownMenuIconItem>
+                  <DropdownMenuIconItem
+                    icon={<UserCog className="size-4" />}
+                    onSelect={() => onOpenRoleDialog(item)}
+                  >
                     {t("common:ORG_MEMBERS_ACTION_CHANGE_ROLE")}
-                  </DropdownMenuItem>
+                  </DropdownMenuIconItem>
                   <DropdownMenuSeparator />
                   {isCurrentUser ? (
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <DropdownMenuItem
+                        <DropdownMenuIconItem
+                          icon={<Trash2 className="size-4" />}
                           variant="destructive"
                           disabled={isOwnerSelf}
                           onSelect={() => {
@@ -101,9 +106,8 @@ export function createOrganizationMemberColumns({
                             onOpenRemoveDialog(item);
                           }}
                         >
-                          <Trash2 className="size-4" />
                           {t("common:ORG_MEMBERS_ACTION_LEAVE_ORGANIZATION")}
-                        </DropdownMenuItem>
+                        </DropdownMenuIconItem>
                       </TooltipTrigger>
                       {isOwnerSelf && (
                         <TooltipContent>
@@ -112,13 +116,13 @@ export function createOrganizationMemberColumns({
                       )}
                     </Tooltip>
                   ) : (
-                    <DropdownMenuItem
+                    <DropdownMenuIconItem
+                      icon={<Trash2 className="size-4" />}
                       variant="destructive"
                       onSelect={() => onOpenRemoveDialog(item)}
                     >
-                      <Trash2 className="size-4" />
                       {t("common:DELETE")}
-                    </DropdownMenuItem>
+                    </DropdownMenuIconItem>
                   )}
                 </DropdownMenuContent>
               </DropdownMenu>

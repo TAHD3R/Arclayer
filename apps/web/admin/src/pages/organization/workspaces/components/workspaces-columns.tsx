@@ -8,7 +8,7 @@ import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-f
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
+  DropdownMenuIconItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -105,14 +105,14 @@ export function useOrganizationWorkspacesColumns(
                       item.type === "divider" ? (
                         <DropdownMenuSeparator key="divider" />
                       ) : (
-                        <DropdownMenuItem
+                        <DropdownMenuIconItem
                           key={item.key}
                           onSelect={item.onClick}
                           variant={item.danger ? "destructive" : undefined}
+                          icon={item.icon}
                         >
-                          {item.icon}
                           {item.label}
-                        </DropdownMenuItem>
+                        </DropdownMenuIconItem>
                       ),
                     )}
                   </DropdownMenuContent>

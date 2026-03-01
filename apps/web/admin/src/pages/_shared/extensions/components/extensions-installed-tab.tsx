@@ -6,7 +6,7 @@ import { ContentGuard } from "@/components/common/content-guard";
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
+  DropdownMenuIconItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -76,14 +76,14 @@ export function ExtensionsInstalledTab({
                     item.type === "divider" ? (
                       <DropdownMenuSeparator key="divider" />
                     ) : (
-                      <DropdownMenuItem
+                      <DropdownMenuIconItem
                         key={item.key}
                         onSelect={item.onClick}
                         variant={item.danger ? "destructive" : undefined}
+                        icon={item.icon}
                       >
-                        {item.icon}
                         {item.label}
-                      </DropdownMenuItem>
+                      </DropdownMenuIconItem>
                     ),
                   )}
                 </DropdownMenuContent>

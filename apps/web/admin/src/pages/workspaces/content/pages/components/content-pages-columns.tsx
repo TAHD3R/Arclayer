@@ -7,7 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
+  DropdownMenuIconItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -61,24 +61,33 @@ function RowActionsMenu({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onSelect={() => options.onOpenEditor(row)}>
-          <ExternalLink className="size-4" />
+        <DropdownMenuIconItem
+          icon={<ExternalLink className="size-4" />}
+          onSelect={() => options.onOpenEditor(row)}
+        >
           {options.t("content_pages:INDEX_ACTION_OPEN_EDITOR")}
-        </DropdownMenuItem>
+        </DropdownMenuIconItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onSelect={() => options.onEdit(row)}>
-          <Pencil className="size-4" />
+        <DropdownMenuIconItem
+          icon={<Pencil className="size-4" />}
+          onSelect={() => options.onEdit(row)}
+        >
           {options.t("content_pages:MENU_EDIT")}
-        </DropdownMenuItem>
-        <DropdownMenuItem onSelect={() => options.onDuplicate(row)}>
-          <Copy className="size-4" />
+        </DropdownMenuIconItem>
+        <DropdownMenuIconItem
+          icon={<Copy className="size-4" />}
+          onSelect={() => options.onDuplicate(row)}
+        >
           {options.t("content_pages:MENU_DUPLICATE")}
-        </DropdownMenuItem>
+        </DropdownMenuIconItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem variant="destructive" onSelect={() => options.onDelete(row)}>
-          <Trash2 className="size-4" />
+        <DropdownMenuIconItem
+          icon={<Trash2 className="size-4" />}
+          variant="destructive"
+          onSelect={() => options.onDelete(row)}
+        >
           {options.t("content_pages:MENU_DELETE")}
-        </DropdownMenuItem>
+        </DropdownMenuIconItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

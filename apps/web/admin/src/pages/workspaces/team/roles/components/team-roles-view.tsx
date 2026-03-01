@@ -7,7 +7,7 @@ import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
-  DropdownMenuItem,
+  DropdownMenuIconItem,
 } from "@/components/ui/dropdown-menu";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -347,7 +347,8 @@ export function TeamRolesView(props: { workspaceIdOverride?: string | null } = {
                                     />
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end">
-                                    <DropdownMenuItem
+                                    <DropdownMenuIconItem
+                                      icon={<Trash2 className="h-4 w-4" />}
                                       variant="destructive"
                                       disabled={deleteRoleMutation.isPending}
                                       onSelect={() => {
@@ -355,9 +356,8 @@ export function TeamRolesView(props: { workspaceIdOverride?: string | null } = {
                                         setDeleteOpen(true);
                                       }}
                                     >
-                                      <Trash2 className="h-4 w-4" />
                                       {t("team:TEAM_ACTION_DELETE")}
-                                    </DropdownMenuItem>
+                                    </DropdownMenuIconItem>
                                   </DropdownMenuContent>
                                 </DropdownMenu>
                               ) : null}
