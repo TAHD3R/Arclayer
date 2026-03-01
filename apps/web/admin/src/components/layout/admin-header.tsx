@@ -15,13 +15,14 @@ import RefreshIcon from "@/components/ui/icons/refresh-icon";
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
+  DropdownMenuIconItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
 type BreadcrumbMenuItem = {
   key: string;
-  label: ReactNode;
+  label: string;
+  icon?: ReactNode;
 };
 
 function normalizePath(input: string): string {
@@ -74,14 +75,9 @@ function buildBreadcrumbMenuItems(
 ): BreadcrumbMenuItem[] {
   const items: BreadcrumbMenuItem[] = [];
 
-  const renderLabel = (node: AdminNavItem, text: string) => {
+  const iconFor = (node: AdminNavItem) => {
     const Icon = node.icon;
-    return (
-      <span className="inline-flex min-w-0 items-center gap-2">
-        {Icon ? <Icon className="size-4 shrink-0" aria-hidden="true" /> : null}
-        <span className="min-w-0 truncate">{text}</span>
-      </span>
-    );
+    return Icon ? <Icon className="size-4" aria-hidden="true" /> : undefined;
   };
 
   const walk = (node: AdminNavItem, trailLabels: string[]) => {
@@ -92,7 +88,8 @@ function buildBreadcrumbMenuItems(
       const text = nextTrail.join(" / ");
       items.push({
         key: node.to,
-        label: renderLabel(node, text),
+        label: text,
+        icon: iconFor(node),
       });
     }
 
@@ -107,7 +104,8 @@ function buildBreadcrumbMenuItems(
     const rootLabel = root.labelKey ? t(root.labelKey) : root.label;
     items.push({
       key: root.to,
-      label: renderLabel(root, rootLabel),
+      label: rootLabel,
+      icon: iconFor(root),
     });
   }
 
@@ -233,16 +231,17 @@ export function AdminHeader(props: {
                               />
                             </button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="start" className="max-h-80 overflow-y-auto">
+                          <DropdownMenuContent align="start">
                             {menuItems.map((it) => (
-                              <DropdownMenuItem
+                              <DropdownMenuIconItem
                                 key={it.key}
+                                icon={it.icon}
                                 onSelect={() => {
                                   void navigate({ to: it.key as never });
                                 }}
                               >
                                 {it.label}
-                              </DropdownMenuItem>
+                              </DropdownMenuIconItem>
                             ))}
                           </DropdownMenuContent>
                         </DropdownMenu>
