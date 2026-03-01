@@ -191,15 +191,11 @@ export function AdminAccountMenu() {
   };
 
   const onAccountSettings = () => {
-    if (currentOrganizationId) {
-      void navigate({ to: buildOrganizationPath(currentOrganizationId) });
-      return;
-    }
-    void navigate({ to: "/" });
+    void navigate({ to: "/me/profile" });
   };
 
   const onNotifications = () => {
-    void navigate({ to: "/me/notifications" });
+    void navigate({ to: "/me/inbox" });
   };
 
   const onWorkspaces = () => {

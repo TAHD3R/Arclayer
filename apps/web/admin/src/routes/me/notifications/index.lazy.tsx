@@ -1,7 +1,7 @@
 import { createLazyFileRoute } from "@tanstack/react-router";
 
-import { NotificationsPage } from "@/pages/notifications/page";
+import { MeNotificationSettingsPage } from "@/pages/me/notifications/page";
 
 export const Route = createLazyFileRoute("/me/notifications/")({
-  component: NotificationsPage,
+  component: MeNotificationSettingsPage,
 });

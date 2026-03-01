@@ -17,6 +17,7 @@ export interface PreferencesState {
   toggleThemeMode: () => void;
   setLocale: (locale: AppLocale) => void;
   setBrowserLocale: () => void;
+  setWorkspaceLocaleMode: () => void;
   setEffectiveLocale: (locale: AppLocale) => void;
   cacheWorkspaceLocale: (workspaceId: string, locale: AppLocale) => void;
   notificationPanelPinned: boolean;

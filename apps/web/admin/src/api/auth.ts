@@ -17,6 +17,13 @@ export async function me(): Promise<UserProfile> {
   return api.get<UserProfile>("/auth/me");
 }
 
+export async function changePassword(payload: {
+  old_password: string;
+  new_password: string;
+}): Promise<null> {
+  return api.post<null>("/auth/change-password", payload);
+}
+
 export async function forgotPassword(payload: {
   identifier: string;
 }): Promise<ResetTokenPayload | null> {

@@ -9,16 +9,22 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as MeRouteImport } from './routes/me'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SetupIndexRouteImport } from './routes/setup/index'
 import { Route as ResetPasswordIndexRouteImport } from './routes/reset-password/index'
+import { Route as MeIndexRouteImport } from './routes/me/index'
 import { Route as LoginIndexRouteImport } from './routes/login/index'
 import { Route as InvitationsIndexRouteImport } from './routes/invitations/index'
 import { Route as WWorkspaceIdRouteImport } from './routes/w/$workspaceId'
 import { Route as OOrgIdRouteImport } from './routes/o/$orgId'
 import { Route as WWorkspaceIdIndexRouteImport } from './routes/w/$workspaceId/index'
 import { Route as OOrgIdIndexRouteImport } from './routes/o/$orgId/index'
+import { Route as MeSecurityIndexRouteImport } from './routes/me/security/index'
+import { Route as MeProfileIndexRouteImport } from './routes/me/profile/index'
+import { Route as MePreferencesIndexRouteImport } from './routes/me/preferences/index'
 import { Route as MeNotificationsIndexRouteImport } from './routes/me/notifications/index'
+import { Route as MeInboxIndexRouteImport } from './routes/me/inbox/index'
 import { Route as DevtoolsIllustrationsIndexRouteImport } from './routes/devtools/illustrations/index'
 import { Route as WWorkspaceIdTeamIndexRouteImport } from './routes/w/$workspaceId/team/index'
 import { Route as WWorkspaceIdNotificationsIndexRouteImport } from './routes/w/$workspaceId/notifications/index'
@@ -58,6 +64,11 @@ import { Route as WWorkspaceIdSettingsMaintenanceActivityIndexRouteImport } from
 import { Route as WWorkspaceIdSettingsGeneralSiteIndexRouteImport } from './routes/w/$workspaceId/settings/general/site/index'
 import { Route as WWorkspaceIdSettingsGeneralLocalizationIndexRouteImport } from './routes/w/$workspaceId/settings/general/localization/index'
 
+const MeRoute = MeRouteImport.update({
+  id: '/me',
+  path: '/me',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -75,6 +86,11 @@ const ResetPasswordIndexRoute = ResetPasswordIndexRouteImport.update({
 } as any).lazy(() =>
   import('./routes/reset-password/index.lazy').then((d) => d.Route),
 )
+const MeIndexRoute = MeIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => MeRoute,
+} as any)
 const LoginIndexRoute = LoginIndexRouteImport.update({
   id: '/login/',
   path: '/login/',
@@ -111,12 +127,40 @@ const OOrgIdIndexRoute = OOrgIdIndexRouteImport.update({
 } as any).lazy(() =>
   import('./routes/o/$orgId/index.lazy').then((d) => d.Route),
 )
+const MeSecurityIndexRoute = MeSecurityIndexRouteImport.update({
+  id: '/security/',
+  path: '/security/',
+  getParentRoute: () => MeRoute,
+} as any).lazy(() =>
+  import('./routes/me/security/index.lazy').then((d) => d.Route),
+)
+const MeProfileIndexRoute = MeProfileIndexRouteImport.update({
+  id: '/profile/',
+  path: '/profile/',
+  getParentRoute: () => MeRoute,
+} as any).lazy(() =>
+  import('./routes/me/profile/index.lazy').then((d) => d.Route),
+)
+const MePreferencesIndexRoute = MePreferencesIndexRouteImport.update({
+  id: '/preferences/',
+  path: '/preferences/',
+  getParentRoute: () => MeRoute,
+} as any).lazy(() =>
+  import('./routes/me/preferences/index.lazy').then((d) => d.Route),
+)
 const MeNotificationsIndexRoute = MeNotificationsIndexRouteImport.update({
-  id: '/me/notifications/',
-  path: '/me/notifications/',
-  getParentRoute: () => rootRouteImport,
+  id: '/notifications/',
+  path: '/notifications/',
+  getParentRoute: () => MeRoute,
 } as any).lazy(() =>
   import('./routes/me/notifications/index.lazy').then((d) => d.Route),
+)
+const MeInboxIndexRoute = MeInboxIndexRouteImport.update({
+  id: '/inbox/',
+  path: '/inbox/',
+  getParentRoute: () => MeRoute,
+} as any).lazy(() =>
+  import('./routes/me/inbox/index.lazy').then((d) => d.Route),
 )
 const DevtoolsIllustrationsIndexRoute =
   DevtoolsIllustrationsIndexRouteImport.update({
@@ -456,14 +500,20 @@ const WWorkspaceIdSettingsGeneralLocalizationIndexRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/me': typeof MeRouteWithChildren
   '/o/$orgId': typeof OOrgIdRouteWithChildren
   '/w/$workspaceId': typeof WWorkspaceIdRouteWithChildren
   '/invitations/': typeof InvitationsIndexRoute
   '/login/': typeof LoginIndexRoute
+  '/me/': typeof MeIndexRoute
   '/reset-password/': typeof ResetPasswordIndexRoute
   '/setup/': typeof SetupIndexRoute
   '/devtools/illustrations/': typeof DevtoolsIllustrationsIndexRoute
+  '/me/inbox/': typeof MeInboxIndexRoute
   '/me/notifications/': typeof MeNotificationsIndexRoute
+  '/me/preferences/': typeof MePreferencesIndexRoute
+  '/me/profile/': typeof MeProfileIndexRoute
+  '/me/security/': typeof MeSecurityIndexRoute
   '/o/$orgId/': typeof OOrgIdIndexRoute
   '/w/$workspaceId/': typeof WWorkspaceIdIndexRoute
   '/o/$orgId/activity/': typeof OOrgIdActivityIndexRoute
@@ -508,10 +558,15 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/invitations': typeof InvitationsIndexRoute
   '/login': typeof LoginIndexRoute
+  '/me': typeof MeIndexRoute
   '/reset-password': typeof ResetPasswordIndexRoute
   '/setup': typeof SetupIndexRoute
   '/devtools/illustrations': typeof DevtoolsIllustrationsIndexRoute
+  '/me/inbox': typeof MeInboxIndexRoute
   '/me/notifications': typeof MeNotificationsIndexRoute
+  '/me/preferences': typeof MePreferencesIndexRoute
+  '/me/profile': typeof MeProfileIndexRoute
+  '/me/security': typeof MeSecurityIndexRoute
   '/o/$orgId': typeof OOrgIdIndexRoute
   '/w/$workspaceId': typeof WWorkspaceIdIndexRoute
   '/o/$orgId/activity': typeof OOrgIdActivityIndexRoute
@@ -555,14 +610,20 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/me': typeof MeRouteWithChildren
   '/o/$orgId': typeof OOrgIdRouteWithChildren
   '/w/$workspaceId': typeof WWorkspaceIdRouteWithChildren
   '/invitations/': typeof InvitationsIndexRoute
   '/login/': typeof LoginIndexRoute
+  '/me/': typeof MeIndexRoute
   '/reset-password/': typeof ResetPasswordIndexRoute
   '/setup/': typeof SetupIndexRoute
   '/devtools/illustrations/': typeof DevtoolsIllustrationsIndexRoute
+  '/me/inbox/': typeof MeInboxIndexRoute
   '/me/notifications/': typeof MeNotificationsIndexRoute
+  '/me/preferences/': typeof MePreferencesIndexRoute
+  '/me/profile/': typeof MeProfileIndexRoute
+  '/me/security/': typeof MeSecurityIndexRoute
   '/o/$orgId/': typeof OOrgIdIndexRoute
   '/w/$workspaceId/': typeof WWorkspaceIdIndexRoute
   '/o/$orgId/activity/': typeof OOrgIdActivityIndexRoute
@@ -607,14 +668,20 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/me'
     | '/o/$orgId'
     | '/w/$workspaceId'
     | '/invitations/'
     | '/login/'
+    | '/me/'
     | '/reset-password/'
     | '/setup/'
     | '/devtools/illustrations/'
+    | '/me/inbox/'
     | '/me/notifications/'
+    | '/me/preferences/'
+    | '/me/profile/'
+    | '/me/security/'
     | '/o/$orgId/'
     | '/w/$workspaceId/'
     | '/o/$orgId/activity/'
@@ -659,10 +726,15 @@ export interface FileRouteTypes {
     | '/'
     | '/invitations'
     | '/login'
+    | '/me'
     | '/reset-password'
     | '/setup'
     | '/devtools/illustrations'
+    | '/me/inbox'
     | '/me/notifications'
+    | '/me/preferences'
+    | '/me/profile'
+    | '/me/security'
     | '/o/$orgId'
     | '/w/$workspaceId'
     | '/o/$orgId/activity'
@@ -705,14 +777,20 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/me'
     | '/o/$orgId'
     | '/w/$workspaceId'
     | '/invitations/'
     | '/login/'
+    | '/me/'
     | '/reset-password/'
     | '/setup/'
     | '/devtools/illustrations/'
+    | '/me/inbox/'
     | '/me/notifications/'
+    | '/me/preferences/'
+    | '/me/profile/'
+    | '/me/security/'
     | '/o/$orgId/'
     | '/w/$workspaceId/'
     | '/o/$orgId/activity/'
@@ -756,6 +834,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  MeRoute: typeof MeRouteWithChildren
   OOrgIdRoute: typeof OOrgIdRouteWithChildren
   WWorkspaceIdRoute: typeof WWorkspaceIdRouteWithChildren
   InvitationsIndexRoute: typeof InvitationsIndexRoute
@@ -763,11 +842,17 @@ export interface RootRouteChildren {
   ResetPasswordIndexRoute: typeof ResetPasswordIndexRoute
   SetupIndexRoute: typeof SetupIndexRoute
   DevtoolsIllustrationsIndexRoute: typeof DevtoolsIllustrationsIndexRoute
-  MeNotificationsIndexRoute: typeof MeNotificationsIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/me': {
+      id: '/me'
+      path: '/me'
+      fullPath: '/me'
+      preLoaderRoute: typeof MeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -788,6 +873,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/reset-password/'
       preLoaderRoute: typeof ResetPasswordIndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/me/': {
+      id: '/me/'
+      path: '/'
+      fullPath: '/me/'
+      preLoaderRoute: typeof MeIndexRouteImport
+      parentRoute: typeof MeRoute
     }
     '/login/': {
       id: '/login/'
@@ -831,12 +923,40 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OOrgIdIndexRouteImport
       parentRoute: typeof OOrgIdRoute
     }
+    '/me/security/': {
+      id: '/me/security/'
+      path: '/security'
+      fullPath: '/me/security/'
+      preLoaderRoute: typeof MeSecurityIndexRouteImport
+      parentRoute: typeof MeRoute
+    }
+    '/me/profile/': {
+      id: '/me/profile/'
+      path: '/profile'
+      fullPath: '/me/profile/'
+      preLoaderRoute: typeof MeProfileIndexRouteImport
+      parentRoute: typeof MeRoute
+    }
+    '/me/preferences/': {
+      id: '/me/preferences/'
+      path: '/preferences'
+      fullPath: '/me/preferences/'
+      preLoaderRoute: typeof MePreferencesIndexRouteImport
+      parentRoute: typeof MeRoute
+    }
     '/me/notifications/': {
       id: '/me/notifications/'
-      path: '/me/notifications'
+      path: '/notifications'
       fullPath: '/me/notifications/'
       preLoaderRoute: typeof MeNotificationsIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof MeRoute
+    }
+    '/me/inbox/': {
+      id: '/me/inbox/'
+      path: '/inbox'
+      fullPath: '/me/inbox/'
+      preLoaderRoute: typeof MeInboxIndexRouteImport
+      parentRoute: typeof MeRoute
     }
     '/devtools/illustrations/': {
       id: '/devtools/illustrations/'
@@ -1107,6 +1227,26 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface MeRouteChildren {
+  MeIndexRoute: typeof MeIndexRoute
+  MeInboxIndexRoute: typeof MeInboxIndexRoute
+  MeNotificationsIndexRoute: typeof MeNotificationsIndexRoute
+  MePreferencesIndexRoute: typeof MePreferencesIndexRoute
+  MeProfileIndexRoute: typeof MeProfileIndexRoute
+  MeSecurityIndexRoute: typeof MeSecurityIndexRoute
+}
+
+const MeRouteChildren: MeRouteChildren = {
+  MeIndexRoute: MeIndexRoute,
+  MeInboxIndexRoute: MeInboxIndexRoute,
+  MeNotificationsIndexRoute: MeNotificationsIndexRoute,
+  MePreferencesIndexRoute: MePreferencesIndexRoute,
+  MeProfileIndexRoute: MeProfileIndexRoute,
+  MeSecurityIndexRoute: MeSecurityIndexRoute,
+}
+
+const MeRouteWithChildren = MeRoute._addFileChildren(MeRouteChildren)
+
 interface OOrgIdRouteChildren {
   OOrgIdIndexRoute: typeof OOrgIdIndexRoute
   OOrgIdActivityIndexRoute: typeof OOrgIdActivityIndexRoute
@@ -1221,6 +1361,7 @@ const WWorkspaceIdRouteWithChildren = WWorkspaceIdRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  MeRoute: MeRouteWithChildren,
   OOrgIdRoute: OOrgIdRouteWithChildren,
   WWorkspaceIdRoute: WWorkspaceIdRouteWithChildren,
   InvitationsIndexRoute: InvitationsIndexRoute,
@@ -1228,7 +1369,6 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordIndexRoute: ResetPasswordIndexRoute,
   SetupIndexRoute: SetupIndexRoute,
   DevtoolsIllustrationsIndexRoute: DevtoolsIllustrationsIndexRoute,
-  MeNotificationsIndexRoute: MeNotificationsIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

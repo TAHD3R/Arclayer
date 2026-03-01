@@ -96,6 +96,16 @@ function getInitialLocaleState(): {
   return { mode: "workspace", localePreference: null, locale: detectBrowserLocale() };
 }
 
+function resolveWorkspaceLocaleFallback(): AppLocale {
+  const lastWorkspaceId = readPersistedLastWorkspaceId();
+  if (lastWorkspaceId) {
+    const cache = readStorageJson<WorkspaceLocaleCache>(STORAGE_KEYS.workspaceLocaleCache) ?? {};
+    const cached = cache[lastWorkspaceId];
+    if (cached) return normalizeLocale(cached);
+  }
+  return detectBrowserLocale();
+}
+
 export const usePreferencesStore = create<PreferencesState>((set, get) => ({
   themeMode: "light",
   themePreference: "light",
@@ -136,6 +146,15 @@ export const usePreferencesStore = create<PreferencesState>((set, get) => ({
     removeStorageItem(STORAGE_KEYS.locale);
     writeStorageItem(STORAGE_KEYS.localePreferenceMode, "browser");
     set({ locale: next, localePreference: null, localePreferenceMode: "browser" });
+    void i18n.changeLanguage(next);
+  },
+
+  setWorkspaceLocaleMode: () => {
+    const next = resolveWorkspaceLocaleFallback();
+    applyLocaleToDom(next);
+    removeStorageItem(STORAGE_KEYS.locale);
+    writeStorageItem(STORAGE_KEYS.localePreferenceMode, "workspace");
+    set({ locale: next, localePreference: null, localePreferenceMode: "workspace" });
     void i18n.changeLanguage(next);
   },
 

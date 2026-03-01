@@ -383,7 +383,7 @@ export function AdminNotificationsPanel({
           )}
           onClick={() => {
             onClose();
-            void navigate({ to: "/me/notifications" });
+            void navigate({ to: "/me/inbox" });
           }}
         >
           {t("NOTIFICATIONS_OPEN_CENTER")}

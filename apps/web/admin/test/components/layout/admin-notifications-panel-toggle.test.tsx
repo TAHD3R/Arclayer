@@ -183,6 +183,6 @@ describe("AdminNotificationsPanel toggle", () => {
     await waitFor(() => {
       expect(screen.queryByText("NOTIFICATIONS_PAGE_TITLE")).not.toBeInTheDocument();
     });
-    expect(navigateMock).toHaveBeenCalledWith({ to: "/me/notifications" });
+    expect(navigateMock).toHaveBeenCalledWith({ to: "/me/inbox" });
   });
 });
