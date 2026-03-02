@@ -12,11 +12,17 @@ import {
   MousePointer2,
   Hand,
 } from "lucide-react";
-import { Button, Tooltip, InputNumber, Radio, Checkbox, Space, Dropdown } from "antd";
-import type { MenuProps } from "antd";
+import { Button, Tooltip, InputNumber, Radio, Checkbox, Space } from "antd";
 import { useEffect, useRef, useState } from "react";
 
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   useEditorStore,
   type DevicePreset,
@@ -70,21 +76,6 @@ export function CanvasToolbar() {
   }, [canvasSettingsOpen, overlayCloseSignal]);
 
   const displayWidth = canvasWidth ?? DEVICE_PRESET_WIDTHS[devicePreset];
-
-  // Zoom dropdown menu items
-  const zoomMenuItems: MenuProps["items"] = [
-    {
-      key: "fit",
-      label: t("content_pages:EDITOR_TOOLBAR_ZOOM_FIT"),
-      onClick: () => setZoomPercent(100),
-    },
-    { type: "divider" },
-    ...ZOOM_PRESETS.map((value) => ({
-      key: String(value),
-      label: `${value}%`,
-      onClick: () => setZoomPercent(value),
-    })),
-  ];
 
   return (
     <div className="flex h-10 shrink-0 items-center justify-between border-b bg-card px-3">
@@ -247,12 +238,25 @@ export function CanvasToolbar() {
           />
         </Tooltip>
 
-        <Dropdown menu={{ items: zoomMenuItems }} trigger={["click"]}>
-          <Button type="text" className="gap-0.5! tabular-nums">
-            <span className="text-callout text-label-secondary">{zoomPercent}%</span>
-            <ChevronDown className="size-3 text-label-secondary" />
-          </Button>
-        </Dropdown>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button type="text" className="gap-0.5! tabular-nums">
+              <span className="text-callout text-label-secondary">{zoomPercent}%</span>
+              <ChevronDown className="size-3 text-label-secondary" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onSelect={() => setZoomPercent(100)}>
+              {t("content_pages:EDITOR_TOOLBAR_ZOOM_FIT")}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            {ZOOM_PRESETS.map((value) => (
+              <DropdownMenuItem key={value} onSelect={() => setZoomPercent(value)}>
+                {value}%
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         <Tooltip title={t("content_pages:EDITOR_TOOLBAR_ZOOM_IN")}>
           <Button

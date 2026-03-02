@@ -1,15 +1,5 @@
-import {
-  Avatar,
-  Button,
-  Descriptions,
-  Dropdown,
-  Flex,
-  Input,
-  Tag,
-  Tooltip,
-  Typography,
-} from "antd";
-import { Check, EllipsisVertical, PencilLine, Plus } from "lucide-react";
+import { Avatar, Button, Descriptions, Flex, Input, Tag, Tooltip } from "antd";
+import { EllipsisVertical, Plus } from "lucide-react";
 import {
   Accordion,
   AccordionContent,
@@ -41,6 +31,13 @@ import { AssetSharePopover } from "./asset-share-popover";
 import { copyToClipboard } from "@/lib/clipboard";
 import { cn } from "@/lib/utils";
 import { notifyErrorText, notifySuccessText } from "@/lib/notifications";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuIconItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import type { AssetMasonryItem } from "@/types/assets-masonry";
 import {
   downloadWithAuth,
@@ -54,8 +51,10 @@ import {
   LazyAssetImage,
   tagInputStyle,
 } from "./asset-masonry-tile";
-import { useAssetPreviewSheetController } from "./asset-preview-sheet-controller";
-import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
+import {
+  useAssetPreviewSheetController,
+  type AssetMoreMenuItem,
+} from "./asset-preview-sheet-controller";
 export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onClose: () => void }) {
   const {
     t,
@@ -102,6 +101,48 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
     confirmAddTag,
     confirmEditTag,
   } = useAssetPreviewSheetController(props);
+
+  type AssetMoreActionKey = Extract<AssetMoreMenuItem, { type: "item" }>["key"];
+
+  const handleMoreAction = (key: AssetMoreActionKey) => {
+    if (!active) return;
+    if (key === "download") {
+      const publicDownload = active.downloadUrl;
+      if (publicDownload) {
+        window.open(publicDownload, "_blank", "noopener,noreferrer");
+        return;
+      }
+      const contentUrl = active.contentUrl;
+      if (!contentUrl) return;
+      downloadWithAuth({ url: contentUrl, filename: active.name })
+        .then(() => notifySuccessText(t("assets:ASSET_DOWNLOAD_STARTED")))
+        .catch(() => notifyErrorText(t("assets:ASSET_DOWNLOAD_FAILED")));
+      return;
+    }
+    if (key === "copy_link") {
+      const url = publicAbsoluteUrl;
+      if (!url) {
+        notifyErrorText(t("assets:ASSET_SHARE_REQUIRES_PUBLIC"));
+        return;
+      }
+      copyToClipboard(url)
+        .then(() => notifySuccessText(t("assets:ASSET_LINK_COPIED")))
+        .catch(() => notifyErrorText(t("assets:ASSET_COPY_LINK_FAILED")));
+      return;
+    }
+    if (key === "open_new_tab") {
+      if (!publicAbsoluteUrl) return;
+      window.open(publicAbsoluteUrl, "_blank", "noopener,noreferrer");
+      return;
+    }
+    if (key === "edit_access") {
+      setEditAccessOpen(true);
+      return;
+    }
+    if (key === "delete") {
+      setDeleteOpen(true);
+    }
+  };
   return (
     <Sheet
       open={Boolean(active)}
@@ -117,19 +158,6 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
           "w-full sm:w-105 md:w-120",
           "p-0 gap-0 overflow-hidden",
         )}
-        onInteractOutside={(e) => {
-          const target = e.target as HTMLElement | null;
-          // antd Dropdown renders overlay in a Portal. Prevent Radix Sheet from treating it as "outside click".
-          if (
-            target?.closest(".ant-dropdown") ||
-            target?.closest(".ant-dropdown-menu") ||
-            target?.closest(".ant-dropdown-menu-root") ||
-            target?.closest(".ant-menu") ||
-            target?.closest(".rc-dropdown")
-          ) {
-            e.preventDefault();
-          }
-        }}
       >
         {active ? (
           <>
@@ -160,90 +188,35 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
                     assetId={active.id}
                     disabled={!workspaceId}
                   />
-                  <Dropdown
-                    trigger={["click"]}
-                    placement="bottomRight"
-                    // Match the proven pattern used in AssetSharePopover:
-                    // avoid rendering overlay into body (Portal) which can be treated as "outside interaction" by Radix.
-                    getPopupContainer={(triggerNode) => getPopupContainerWithinOverlay(triggerNode)}
-                    menu={{
-                      items: moreMenuItems,
-                      onClick: ({ key, domEvent }) => {
-                        domEvent.stopPropagation();
-                        if (key === "download") {
-                          const publicDownload = active.downloadUrl;
-                          if (publicDownload) {
-                            window.open(publicDownload, "_blank", "noopener,noreferrer");
-                            return;
-                          }
-                          const contentUrl = active.contentUrl;
-                          if (!contentUrl) return;
-                          downloadWithAuth({ url: contentUrl, filename: active.name })
-                            .then(() => notifySuccessText(t("assets:ASSET_DOWNLOAD_STARTED")))
-                            .catch(() => notifyErrorText(t("assets:ASSET_DOWNLOAD_FAILED")));
-                          return;
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        type="text"
+                        icon={<EllipsisVertical size={18} />}
+                        style={{ width: 36, height: 36, paddingInline: 0 }}
+                      />
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      {moreMenuItems.map((item, idx) => {
+                        if (item.type === "separator") {
+                          return <DropdownMenuSeparator key={`sep:${idx}`} />;
                         }
-                        if (key === "copy_link") {
-                          const url = publicAbsoluteUrl;
-                          if (!url) {
-                            notifyErrorText(t("assets:ASSET_SHARE_REQUIRES_PUBLIC"));
-                            return;
-                          }
-                          copyToClipboard(url)
-                            .then(() => notifySuccessText(t("assets:ASSET_LINK_COPIED")))
-                            .catch(() => notifyErrorText(t("assets:ASSET_COPY_LINK_FAILED")));
-                          return;
-                        }
-                        if (key === "open_new_tab") {
-                          if (!publicAbsoluteUrl) return;
-                          window.open(publicAbsoluteUrl, "_blank", "noopener,noreferrer");
-                          return;
-                        }
-                        if (key === "edit_access") {
-                          setEditAccessOpen(true);
-                          return;
-                        }
-                        if (key === "delete") {
-                          setDeleteOpen(true);
-                        }
-                      },
-                    }}
-                  >
-                    <Button
-                      type="text"
-                      icon={<EllipsisVertical size={18} />}
-                      style={{ width: 36, height: 36, paddingInline: 0 }}
-                    />
-                  </Dropdown>
+                        return (
+                          <DropdownMenuIconItem
+                            key={item.key}
+                            icon={item.icon}
+                            disabled={item.disabled}
+                            variant={item.variant === "destructive" ? "destructive" : "default"}
+                            onSelect={() => handleMoreAction(item.key)}
+                          >
+                            {item.label}
+                          </DropdownMenuIconItem>
+                        );
+                      })}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
-              <Typography.Paragraph
-                className="w-full mb-0! text-label-secondary"
-                ellipsis={{
-                  rows: 2,
-                  expandable: true,
-                  symbol: t("assets:ASSET_DESCRIPTION_MORE"),
-                }}
-                editable={{
-                  icon: <PencilLine size={16} />,
-                  tooltip: t("assets:ASSET_DESCRIPTION_EDIT_TOOLTIP"),
-                  enterIcon: <Check size={16} />,
-                  text: descriptionDraft,
-                  onChange: (val) => {
-                    dirtyRef.current.description = true;
-                    setDescriptionDraft(val);
-                  },
-                  autoSize: { minRows: 2, maxRows: 6 },
-                }}
-              >
-                {descriptionDraft ? (
-                  descriptionDraft
-                ) : (
-                  <span className="text-label-secondary/70">
-                    {t("assets:ASSET_DESCRIPTION_EMPTY")}
-                  </span>
-                )}
-              </Typography.Paragraph>
             </SheetHeader>
             <UpdateAssetsAccessDialog
               open={editAccessOpen}
@@ -312,7 +285,7 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
                       <AccordionTrigger className="py-3">
                         {t("assets:ASSET_META_TITLE")}
                       </AccordionTrigger>
-                      <AccordionContent>
+                      <AccordionContent className="px-2">
                         <Descriptions
                           size="small"
                           layout="vertical"
@@ -351,10 +324,28 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
                         <div className="mt-4">
                           <div className="mb-2 grid gap-1.5">
                             <div className="font-semibold text-foreground">
-                              {t("assets:ASSET_TAG_FIELD_TITLE")}
+                              {t("assets:ASSET_META_DESCRIPTION")}
                             </div>
-                            <div className="text-label-secondary">
-                              {t("assets:ASSET_TAG_FIELD_DESC")}
+                          </div>
+                          <textarea
+                            className={cn(
+                              "w-full resize-none rounded-md border border-border/60 bg-background/60 px-3 py-2",
+                              "text-callout text-foreground outline-none",
+                              "focus-visible:ring-2 focus-visible:ring-ring",
+                            )}
+                            rows={4}
+                            placeholder={t("assets:ASSET_META_DESCRIPTION_PLACEHOLDER")}
+                            value={descriptionDraft}
+                            onChange={(e) => {
+                              dirtyRef.current.description = true;
+                              setDescriptionDraft(e.target.value);
+                            }}
+                          />
+                        </div>
+                        <div className="mt-5">
+                          <div className="mb-2 grid gap-1.5">
+                            <div className="font-semibold text-foreground">
+                              {t("assets:ASSET_TAG_FIELD_TITLE")}
                             </div>
                           </div>
                           <Flex gap="small" align="center" wrap>
@@ -422,10 +413,12 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
                                   borderStyle: "dashed",
                                   cursor: "pointer",
                                 }}
-                                icon={<Plus size={14} />}
                                 onClick={() => setInputVisible(true)}
                               >
-                                {t("assets:ASSET_TAG_NEW")}
+                                <span className="inline-flex items-center gap-1 whitespace-nowrap">
+                                  <Plus size={14} />
+                                  <span>{t("assets:ASSET_TAG_NEW")}</span>
+                                </span>
                               </Tag>
                             )}
                           </Flex>
@@ -447,7 +440,7 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
                       <AccordionTrigger className="py-3">
                         {t("assets:ASSET_LINKS_TITLE")}
                       </AccordionTrigger>
-                      <AccordionContent>
+                      <AccordionContent className="px-2">
                         {linkSnippets ? (
                           <>
                             <div className="mb-2 text-label-secondary">
@@ -508,7 +501,7 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
                       <AccordionTrigger className="py-3">
                         {t("assets:ASSET_META_ADVANCED_TITLE")}
                       </AccordionTrigger>
-                      <AccordionContent>
+                      <AccordionContent className="px-2">
                         <Descriptions
                           size="small"
                           layout="vertical"
