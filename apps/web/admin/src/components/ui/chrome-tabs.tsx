@@ -165,10 +165,22 @@ function ChromeTabsListImpl(
         el.querySelector<HTMLElement>('[aria-selected="true"]')) ||
       null;
     if (!active) return;
-    active.scrollIntoView({
+    const listRect = el.getBoundingClientRect();
+    const activeRect = active.getBoundingClientRect();
+
+    const targetLeft =
+      el.scrollLeft +
+      (activeRect.left - listRect.left) -
+      Math.max(0, (el.clientWidth - activeRect.width) / 2);
+    const maxLeft = Math.max(0, el.scrollWidth - el.clientWidth);
+    const nextLeft = Math.min(maxLeft, Math.max(0, Math.round(targetLeft)));
+
+    const threshold = 2;
+    if (Math.abs(nextLeft - el.scrollLeft) <= threshold) return;
+
+    el.scrollTo({
+      left: nextLeft,
       behavior: reducedMotion ? "auto" : "smooth",
-      block: "nearest",
-      inline: "center",
     });
   }, [reducedMotion]);
 
