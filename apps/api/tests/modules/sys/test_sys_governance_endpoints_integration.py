@@ -96,7 +96,9 @@ async def test_sys_settings_requires_super_admin_and_step_up(prepared_db, monkey
             payload = res.json()
             assert payload.get("error") is None
             items = ((payload.get("data") or {}).get("items")) or []
-            assert any(i.get("namespace") == "core" for i in items)
+            namespaces = {i.get("namespace") for i in items if isinstance(i, dict)}
+            assert "storage" in namespaces
+            assert "mail" in namespaces
 
 
 async def test_sys_config_revision_flow_with_step_up(prepared_db, monkeypatch, tmp_path) -> None:
@@ -130,7 +132,7 @@ async def test_sys_config_revision_flow_with_step_up(prepared_db, monkeypatch, t
 
             # Create a revision without activating it (draft).
             res_patch = await client.patch(
-                "/api/v1/sys/settings/core",
+                "/api/v1/sys/settings/storage",
                 json={"patch": {"storage": {"provider": "local"}}, "activate": False},
                 headers=sys_headers,
             )
@@ -140,21 +142,21 @@ async def test_sys_config_revision_flow_with_step_up(prepared_db, monkeypatch, t
             assert isinstance(rev_id, str) and rev_id
 
             # Revisions list should include the newly created revision.
-            res_revs = await client.get("/api/v1/sys/settings/core/revisions?page=1&size=20", headers=sys_headers)
+            res_revs = await client.get("/api/v1/sys/settings/storage/revisions?page=1&size=20", headers=sys_headers)
             assert res_revs.status_code == 200
             items = ((res_revs.json().get("data") or {}).get("items")) or []
             assert any(i.get("id") == rev_id for i in items)
 
             # Test the revision before activation.
             res_test = await client.post(
-                "/api/v1/sys/settings/core/test", json={"revisionId": rev_id}, headers=sys_headers
+                "/api/v1/sys/settings/storage/test", json={"revisionId": rev_id}, headers=sys_headers
             )
             assert res_test.status_code == 200
             assert (res_test.json().get("data") or {}).get("ok") is True
 
             # Activate the revision.
             res_activate = await client.post(
-                "/api/v1/sys/settings/core/activate",
+                "/api/v1/sys/settings/storage/activate",
                 json={"revisionId": rev_id},
                 headers=sys_headers,
             )
@@ -175,10 +177,10 @@ async def test_sys_config_revision_flow_with_step_up(prepared_db, monkeypatch, t
             assert storage.get("provider") == "local"
 
             # New revision detail endpoint should work and should not leak secrets.
-            res_detail = await client.get(f"/api/v1/sys/settings/core/revisions/{rev_id}", headers=sys_headers)
+            res_detail = await client.get(f"/api/v1/sys/settings/storage/revisions/{rev_id}", headers=sys_headers)
             assert res_detail.status_code == 200
             detail = res_detail.json().get("data") or {}
-            assert detail.get("namespace") == "core"
+            assert detail.get("namespace") == "storage"
             assert detail.get("id") == rev_id
             assert isinstance(detail.get("value"), dict)
             assert isinstance(detail.get("secrets"), dict)

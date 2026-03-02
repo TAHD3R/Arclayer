@@ -14,7 +14,7 @@ class SysConfigNamespaceSummary(BaseSchema):
     """Sys config namespace summary."""
 
     namespace: str
-    kind: Literal["core"] = "core"
+    kind: str = "core"
     title: str
     description: str | None = None
 

@@ -62,7 +62,7 @@ export function SysSettingsPage() {
   const [lastDraftRevisionId, setLastDraftRevisionId] = useState<string | null>(null);
   const [lastTestChecks, setLastTestChecks] = useState<SysConfigTestCheck[] | null>(null);
 
-  const namespaceId = String(namespace || "").trim() || "core";
+  const namespaceId = String(namespace || "").trim() || "storage";
 
   useEffect(() => {
     setLastDraftRevisionId(null);

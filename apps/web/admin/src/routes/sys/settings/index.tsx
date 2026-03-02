@@ -5,7 +5,7 @@ export const Route = createFileRoute("/sys/settings/")({
   beforeLoad: () => {
     throw redirect({
       to: "/sys/settings/$namespace",
-      params: { namespace: "core" },
+      params: { namespace: "storage" },
       replace: true,
     });
   },

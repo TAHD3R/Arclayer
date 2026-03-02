@@ -31,7 +31,14 @@ from apps.api.modules.sys.settings.schema import (
     SysConfigTestCheck,
     SysConfigTestResult,
 )
-from apps.api.modules.sys.settings.schemas import SYS_CORE_SETTINGS_SCHEMA
+from apps.api.modules.sys.settings.schemas import (
+    SYS_CORE_SETTINGS_SCHEMA,
+    SYS_MAIL_SETTINGS_SCHEMA,
+    SYS_NAMESPACE_CORE_LEGACY,
+    SYS_NAMESPACE_MAIL,
+    SYS_NAMESPACE_STORAGE,
+    SYS_STORAGE_SETTINGS_SCHEMA,
+)
 from apps.api.modules.system.models.setting import SettingRecord
 from apps.api.plugin.manifest import ConfigSchema
 from apps.api.settings.core_schema import CORE_SETTINGS_NAMESPACE
@@ -71,9 +78,10 @@ class SysConfigService(BaseService):
     Sys-domain configuration service (super admin only).
 
     Current scope:
-    - Manages `core` namespace using the existing CORE_SETTINGS_SCHEMA.
+    - Manages split namespaces: `storage` and `mail` (system-level only).
     - Stores revision history in sys_config_revisions/sys_config_active.
-    - Writes active value into the legacy `settings` store for runtime compatibility.
+    - Persists active values into the legacy `core` settings store for runtime compatibility.
+    - Keeps legacy sys namespace `core` readable for early migrations.
     """
 
     def __init__(self, settings: Settings) -> None:
@@ -81,8 +89,12 @@ class SysConfigService(BaseService):
         self.repo = SysConfigRepository()
 
     def _get_schema_for_namespace(self, namespace: str) -> ConfigSchema:
-        if namespace == CORE_SETTINGS_NAMESPACE:
-            # Sys governance should only expose system-scoped sections.
+        if namespace == SYS_NAMESPACE_STORAGE:
+            return SYS_STORAGE_SETTINGS_SCHEMA
+        if namespace == SYS_NAMESPACE_MAIL:
+            return SYS_MAIL_SETTINGS_SCHEMA
+        if namespace == CORE_SETTINGS_NAMESPACE or namespace == SYS_NAMESPACE_CORE_LEGACY:
+            # Backward compatible: legacy sys namespace "core" (mail+storage).
             return SYS_CORE_SETTINGS_SCHEMA
         raise NotFound(message=_ts("NAMESPACE_NOT_FOUND", "配置域不存在"), error="SYS_NAMESPACE_NOT_FOUND")
 
@@ -139,26 +151,67 @@ class SysConfigService(BaseService):
     async def list_namespaces(self) -> list[SysConfigNamespaceSummary]:
         return [
             SysConfigNamespaceSummary(
-                namespace=CORE_SETTINGS_NAMESPACE,
-                kind="core",
-                title=_ts("CORE_SETTINGS_TITLE", "系统设置"),
-                description=_ts("CORE_SETTINGS_DESC", "站点设置与基础系统配置。"),
-            )
+                namespace=SYS_NAMESPACE_STORAGE,
+                kind="storage",
+                title=_ts("STORAGE_TITLE", "存储"),
+                description=None,
+            ),
+            SysConfigNamespaceSummary(
+                namespace=SYS_NAMESPACE_MAIL,
+                kind="mail",
+                title=_ts("MAIL_TITLE", "邮件"),
+                description=None,
+            ),
         ]
 
-    async def _get_current_value(self, namespace: str) -> dict[str, Any]:
-        # Prefer sys-config active revision (new source of truth).
-        _active, rev = await self.repo.get_active(namespace=namespace)
-        if rev is not None and isinstance(rev.value, dict):
-            return rev.value
-
-        # Backward compatible fallback: legacy settings store.
+    async def _get_legacy_core_value(self) -> dict[str, Any]:
         record = await SettingRecord.get_or_none(
             scope_type=SCOPE_TYPE_SYSTEM,
             scope_id=SYSTEM_SCOPE_ID,
-            namespace=namespace,
+            namespace=CORE_SETTINGS_NAMESPACE,
         )
         return record.value if record and isinstance(record.value, dict) else {}
+
+    async def _get_active_payload(self, namespace: str) -> dict[str, Any] | None:
+        _active, rev = await self.repo.get_active(namespace=namespace)
+        if rev is None:
+            return None
+        value = rev.value if isinstance(rev.value, dict) else None
+        return value if isinstance(value, dict) else None
+
+    async def _get_effective_core_value(self, *, override: dict[str, Any] | None = None) -> dict[str, Any]:
+        """
+        Build an effective core settings dict for validation/runtime compatibility.
+
+        Sources (ordered):
+        1) Legacy settings store (core)
+        2) Legacy sys-config "core" active revision (mail/storage only)
+        3) Split sys-config active revisions (storage/mail)
+        4) Optional override (used for draft/test/activation checks)
+        """
+
+        core = await self._get_legacy_core_value()
+
+        legacy_sys_core = await self._get_active_payload(SYS_NAMESPACE_CORE_LEGACY)
+        if legacy_sys_core is not None:
+            allowed = {"mail", "storage"}
+            legacy_visible = {k: v for k, v in legacy_sys_core.items() if k in allowed}
+            core = merge_deep(core, legacy_visible)
+
+        storage_payload = await self._get_active_payload(SYS_NAMESPACE_STORAGE)
+        if storage_payload is not None:
+            core = merge_deep(core, storage_payload)
+        mail_payload = await self._get_active_payload(SYS_NAMESPACE_MAIL)
+        if mail_payload is not None:
+            core = merge_deep(core, mail_payload)
+
+        if override is not None and isinstance(override, dict):
+            core = merge_deep(core, override)
+        return core
+
+    async def _get_current_namespace_visible_value(self, *, namespace: str, schema: ConfigSchema) -> dict[str, Any]:
+        core = await self._get_effective_core_value()
+        return self._filter_to_schema_sections(schema=schema, value=core)
 
     def _mask_secrets(self, schema: ConfigSchema, config: dict[str, Any]) -> tuple[dict[str, Any], dict[str, bool]]:
         masked: dict[str, Any] = dict(config or {})
@@ -182,8 +235,7 @@ class SysConfigService(BaseService):
     async def get_detail(self, *, namespace: str) -> SysConfigDetail:
         schema = self._get_schema_for_namespace(namespace)
         await self._bootstrap_from_legacy_if_needed(namespace=namespace, schema=schema)
-        current = await self._get_current_value(namespace)
-        current = self._filter_to_schema_sections(schema=schema, value=current)
+        current = await self._get_current_namespace_visible_value(namespace=namespace, schema=schema)
         masked, secrets = self._mask_secrets(schema, current)
 
         active, rev = await self.repo.get_active(namespace=namespace)
@@ -218,22 +270,19 @@ class SysConfigService(BaseService):
         schema = self._get_schema_for_namespace(namespace)
         await self._bootstrap_from_legacy_if_needed(namespace=namespace, schema=schema)
         self._assert_patch_within_schema(schema=schema, patch=patch)
-        current = await self._get_current_value(namespace)
-        # Only allow editing schema-visible sections.
-        current_visible = self._filter_to_schema_sections(schema=schema, value=current)
+        current_visible = await self._get_current_namespace_visible_value(namespace=namespace, schema=schema)
         merged_visible = merge_deep(current_visible, patch)
 
         validate_config_schema(schema, merged_visible, allow_unknown=True)
         merged_visible = await self._encrypt_secrets_if_needed(
-            namespace=namespace,
+            namespace=CORE_SETTINGS_NAMESPACE,
             schema=schema,
             current=current_visible,
             merged=merged_visible,
         )
 
-        # Preserve other (non-schema) sections in the stored payload for backward compatibility.
-        merged: dict[str, Any] = dict(current or {})
-        merged.update(merged_visible)
+        # Store schema-visible payload only (split namespaces).
+        merged: dict[str, Any] = dict(merged_visible or {})
 
         # Sign the merged payload (best-effort).
         signature: str | None = None
@@ -274,27 +323,27 @@ class SysConfigService(BaseService):
                 revision_value=merged,
                 revision_id=rev.id,
             )
-            # Legacy runtime compatibility: persist active config into the existing `settings` store.
+            # Legacy runtime compatibility: persist into system-scoped core settings store.
+            core_value = await self._get_effective_core_value(override=merged)
             record = await SettingRecord.get_or_none(
                 scope_type=SCOPE_TYPE_SYSTEM,
                 scope_id=SYSTEM_SCOPE_ID,
-                namespace=namespace,
+                namespace=CORE_SETTINGS_NAMESPACE,
             )
             if record is None:
                 await SettingRecord.create(
                     scope_type=SCOPE_TYPE_SYSTEM,
                     scope_id=SYSTEM_SCOPE_ID,
-                    namespace=namespace,
-                    value=merged,
+                    namespace=CORE_SETTINGS_NAMESPACE,
+                    value=core_value,
                     updated_by=updated_by,
                 )
             else:
-                record.value = merged
+                record.value = core_value
                 record.updated_by = updated_by
                 await record.save()
             await self.repo.activate(namespace=namespace, revision=rev, activated_by=updated_by)
-            if namespace == CORE_SETTINGS_NAMESPACE:
-                invalidate_core_settings_cache()
+            invalidate_core_settings_cache()
 
         detail = await self.get_detail(namespace=namespace)
         detail.revision_id = rev.id
@@ -320,27 +369,27 @@ class SysConfigService(BaseService):
             revision_id=rev.id,
         )
 
+        core_value = await self._get_effective_core_value(override=value)
         record = await SettingRecord.get_or_none(
             scope_type=SCOPE_TYPE_SYSTEM,
             scope_id=SYSTEM_SCOPE_ID,
-            namespace=namespace,
+            namespace=CORE_SETTINGS_NAMESPACE,
         )
         if record is None:
             await SettingRecord.create(
                 scope_type=SCOPE_TYPE_SYSTEM,
                 scope_id=SYSTEM_SCOPE_ID,
-                namespace=namespace,
-                value=value,
+                namespace=CORE_SETTINGS_NAMESPACE,
+                value=core_value,
                 updated_by=activated_by,
             )
         else:
-            record.value = value
+            record.value = core_value
             record.updated_by = activated_by
             await record.save()
 
         await self.repo.activate(namespace=namespace, revision=rev, activated_by=activated_by)
-        if namespace == CORE_SETTINGS_NAMESPACE:
-            invalidate_core_settings_cache()
+        invalidate_core_settings_cache()
         detail = await self.get_detail(namespace=namespace)
         detail.revision_id = rev.id
         return detail
@@ -356,7 +405,8 @@ class SysConfigService(BaseService):
         visible = self._filter_to_schema_sections(schema=schema, value=value)
         validate_config_schema(schema, visible, allow_unknown=True)
         self._assert_revision_secrets_encrypted(namespace=namespace, schema=schema, value=value)
-        checks = await self._run_revision_checks(namespace=namespace, visible_value=visible, full_value=value)
+        effective = await self._get_effective_core_value(override=value)
+        checks = await self._run_revision_checks(namespace=namespace, effective_core_value=effective)
         ok = all(c.ok for c in checks)
         return SysConfigTestResult(ok=ok, checks=checks)
 
@@ -407,12 +457,22 @@ class SysConfigService(BaseService):
         if active_rev is not None:
             return
 
-        record = await SettingRecord.get_or_none(
-            scope_type=SCOPE_TYPE_SYSTEM,
-            scope_id=SYSTEM_SCOPE_ID,
-            namespace=namespace,
-        )
-        legacy_value = record.value if record and isinstance(record.value, dict) else None
+        created_by: UUID | None = None
+        legacy_value: dict[str, Any] | None = None
+
+        legacy_sys_core = await self._get_active_payload(SYS_NAMESPACE_CORE_LEGACY)
+        if legacy_sys_core is not None:
+            legacy_value = legacy_sys_core
+        else:
+            record = await SettingRecord.get_or_none(
+                scope_type=SCOPE_TYPE_SYSTEM,
+                scope_id=SYSTEM_SCOPE_ID,
+                namespace=CORE_SETTINGS_NAMESPACE,
+            )
+            if record is not None and isinstance(record.value, dict):
+                legacy_value = record.value
+                created_by = getattr(record, "updated_by", None)
+
         if legacy_value is None:
             return
 
@@ -437,10 +497,9 @@ class SysConfigService(BaseService):
                 error=str(exc),
             )
 
-        created_by = getattr(record, "updated_by", None)
         rev = await self.repo.create_revision(
             namespace=namespace,
-            value=legacy_value,
+            value=visible,
             base_revision_id=None,
             created_by=created_by,
             signature=signature,
@@ -528,16 +587,20 @@ class SysConfigService(BaseService):
         self,
         *,
         namespace: str,
-        visible_value: dict[str, Any],
-        full_value: dict[str, Any],
+        effective_core_value: dict[str, Any],
     ) -> list[SysConfigTestCheck]:
-        if namespace != CORE_SETTINGS_NAMESPACE:
-            return []
-
         checks: list[SysConfigTestCheck] = []
-        checks.append(await self._check_core_storage(full_value=full_value))
-        checks.append(await self._check_core_mail(full_value=full_value))
-        return checks
+        if namespace in {SYS_NAMESPACE_STORAGE}:
+            checks.append(await self._check_core_storage(full_value=effective_core_value))
+            return checks
+        if namespace in {SYS_NAMESPACE_MAIL}:
+            checks.append(await self._check_core_mail(full_value=effective_core_value))
+            return checks
+        if namespace in {CORE_SETTINGS_NAMESPACE, SYS_NAMESPACE_CORE_LEGACY}:
+            checks.append(await self._check_core_storage(full_value=effective_core_value))
+            checks.append(await self._check_core_mail(full_value=effective_core_value))
+            return checks
+        return []
 
     async def _assert_revision_can_activate(
         self,
@@ -547,8 +610,8 @@ class SysConfigService(BaseService):
         revision_value: dict[str, Any],
         revision_id: UUID,
     ) -> None:
-        visible = self._filter_to_schema_sections(schema=schema, value=revision_value)
-        checks = await self._run_revision_checks(namespace=namespace, visible_value=visible, full_value=revision_value)
+        effective = await self._get_effective_core_value(override=revision_value)
+        checks = await self._run_revision_checks(namespace=namespace, effective_core_value=effective)
         failures = [c for c in checks if not bool(c.ok)]
         if not failures:
             return
