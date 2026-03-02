@@ -2,10 +2,21 @@ export type PortalMode = "public" | "preview";
 
 export type PortalResolveMode = PortalMode;
 
+export type TitlePolicyV1Part =
+  | { kind: "token"; value: "pageTitle" | "siteName" | "siteSubtitle" }
+  | { kind: "literal"; value: string };
+
+export type TitlePolicyV1 = {
+  parts: TitlePolicyV1Part[];
+  homeMode?: "siteOnly" | "policy";
+  dedupe?: boolean;
+};
+
 export type PortalSiteContext = {
   siteId: string;
-  defaultLocale: "zh-CN" | "en-US";
-  fallbackLocale: "zh-CN" | "en-US";
+  defaultLocale: string;
+  fallbackLocale: string;
+  supportedLocales: string[];
 };
 
 export type PortalRouteMatch = {
@@ -42,4 +53,26 @@ export interface PortalRuntimeConfig {
       style?: "normal" | "italic" | "oblique";
     }>;
   }>;
+  site?: {
+    name?: string;
+    subtitle?: string;
+    description?: string;
+    url?: string;
+    logoUrl?: string;
+    faviconUrl?: string;
+    contactEmail?: string;
+  };
+  siteLocalization?: {
+    locale?: string;
+    supportedLocales?: string[];
+    defaultLocale?: string;
+    fallbackLocale?: string;
+    timezone?: string;
+    dateFormat?: string;
+  };
+  seo?: {
+    defaultTitle?: string;
+    defaultDescription?: string;
+    titlePolicyV1?: TitlePolicyV1;
+  };
 }

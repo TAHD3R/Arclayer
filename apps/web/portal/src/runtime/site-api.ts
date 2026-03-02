@@ -65,16 +65,26 @@ export async function resolveSiteFromApi(args: {
   const siteId = getStringField(data, ["siteId", "site_id"]);
   const defaultLocale = getStringField(data, ["defaultLocale", "default_locale"]);
   const fallbackLocale = getStringField(data, ["fallbackLocale", "fallback_locale"]);
+  const supportedLocalesUnknown =
+    getUnknownField(data, "supportedLocales") ?? getUnknownField(data, "supported_locales");
+  const supportedLocales = toStringArray(supportedLocalesUnknown);
 
   if (!siteId) throw new Error("Invalid siteId returned by API");
-  if (defaultLocale !== "zh-CN" && defaultLocale !== "en-US") {
-    throw new Error("Invalid defaultLocale returned by API");
-  }
-  if (fallbackLocale !== "zh-CN" && fallbackLocale !== "en-US") {
-    throw new Error("Invalid fallbackLocale returned by API");
-  }
+  const defaultLocaleOut = (defaultLocale || "").trim();
+  const fallbackLocaleOut = (fallbackLocale || "").trim();
+  if (!defaultLocaleOut) throw new Error("Invalid defaultLocale returned by API");
+  if (!fallbackLocaleOut) throw new Error("Invalid fallbackLocale returned by API");
 
-  return { siteId, defaultLocale, fallbackLocale };
+  const supportedOut = supportedLocales.length
+    ? supportedLocales
+    : [defaultLocaleOut, fallbackLocaleOut];
+
+  return {
+    siteId,
+    defaultLocale: defaultLocaleOut,
+    fallbackLocale: fallbackLocaleOut,
+    supportedLocales: supportedOut,
+  };
 }
 
 export async function resolveSiteByIdFromApi(siteId: string): Promise<PortalSiteContext> {
@@ -93,16 +103,26 @@ export async function resolveSiteByIdFromApi(siteId: string): Promise<PortalSite
   const resolvedSiteId = getStringField(data, ["siteId", "site_id"]);
   const defaultLocale = getStringField(data, ["defaultLocale", "default_locale"]);
   const fallbackLocale = getStringField(data, ["fallbackLocale", "fallback_locale"]);
+  const supportedLocalesUnknown =
+    getUnknownField(data, "supportedLocales") ?? getUnknownField(data, "supported_locales");
+  const supportedLocales = toStringArray(supportedLocalesUnknown);
 
   if (!resolvedSiteId) throw new Error("Invalid siteId returned by API");
-  if (defaultLocale !== "zh-CN" && defaultLocale !== "en-US") {
-    throw new Error("Invalid defaultLocale returned by API");
-  }
-  if (fallbackLocale !== "zh-CN" && fallbackLocale !== "en-US") {
-    throw new Error("Invalid fallbackLocale returned by API");
-  }
+  const defaultLocaleOut = (defaultLocale || "").trim();
+  const fallbackLocaleOut = (fallbackLocale || "").trim();
+  if (!defaultLocaleOut) throw new Error("Invalid defaultLocale returned by API");
+  if (!fallbackLocaleOut) throw new Error("Invalid fallbackLocale returned by API");
 
-  return { siteId: resolvedSiteId, defaultLocale, fallbackLocale };
+  const supportedOut = supportedLocales.length
+    ? supportedLocales
+    : [defaultLocaleOut, fallbackLocaleOut];
+
+  return {
+    siteId: resolvedSiteId,
+    defaultLocale: defaultLocaleOut,
+    fallbackLocale: fallbackLocaleOut,
+    supportedLocales: supportedOut,
+  };
 }
 
 export async function resolveRouteFromApi(
@@ -114,6 +134,7 @@ export async function resolveRouteFromApi(
       kind: "page";
       document: PageBlueprint;
       match: PortalRouteMatch;
+      pageMeta?: { title?: string; description?: string };
       dataSources?: DesignRenderDataSourcesV1;
       includes?: ContentRefIncludesMap;
       warnings?: ResolveWarningV1[];
@@ -168,6 +189,18 @@ export async function resolveRouteFromApi(
     throw new Error("Invalid PageBlueprint returned by API");
   }
 
+  const pageMetaUnknown = getRecordField(data, "pageMeta") ?? getRecordField(data, "page_meta");
+  const pageMetaTitle = (getStringField(pageMetaUnknown, ["title"]) ?? "").trim();
+  const pageMetaDesc = (getStringField(pageMetaUnknown, ["description"]) ?? "").trim();
+  const pageMeta =
+    pageMetaTitle || pageMetaDesc
+      ? Object.assign(
+          {},
+          pageMetaTitle ? { title: pageMetaTitle } : {},
+          pageMetaDesc ? { description: pageMetaDesc } : {},
+        )
+      : undefined;
+
   // Both "page" and "route_template" are rendered as a "page" at runtime. We keep the
   // original match kind/pointers so editor host shells can initialize optimistic lock state.
   const dataSources = parseRouteDataSources(data);
@@ -177,6 +210,7 @@ export async function resolveRouteFromApi(
     kind: "page",
     document,
     match: parsedMatch,
+    ...(pageMeta ? { pageMeta } : {}),
     ...(dataSources ? { dataSources } : {}),
     ...(includes ? { includes } : {}),
     ...(warnings ? { warnings } : {}),
@@ -420,7 +454,7 @@ function parseResolveWarnings(data: unknown): ResolveWarningV1[] | undefined {
 
 export async function fetchRuntimeConfigFromApi(
   siteId: string,
-  opts: { mode: PortalResolveMode; token?: string },
+  opts: { mode: PortalResolveMode; token?: string; locale?: string },
 ): Promise<{
   theme: {
     cssVars: Record<string, string>;
@@ -441,6 +475,24 @@ export async function fetchRuntimeConfigFromApi(
       style?: "normal" | "italic" | "oblique";
     }>;
   }>;
+  site?: {
+    name?: string;
+    subtitle?: string;
+    url?: string;
+    logoUrl?: string;
+    faviconUrl?: string;
+    contactEmail?: string;
+  };
+  siteLocalization?: {
+    locale?: "zh-CN" | "en-US" | (string & {});
+    timezone?: string;
+    dateFormat?: string;
+  };
+  seo?: {
+    defaultTitle?: string;
+    defaultDescription?: string;
+    titlePolicyV1?: import("@celestial/portal-types").TitlePolicyV1;
+  };
 }> {
   const apiPrefix = getPortalApiPrefix();
 
@@ -448,6 +500,7 @@ export async function fetchRuntimeConfigFromApi(
   const url = new URL(requestPath, "http://localhost");
   url.searchParams.set("mode", opts.mode);
   if (opts.token) url.searchParams.set("token", opts.token);
+  if (opts.locale) url.searchParams.set("locale", opts.locale);
 
   const input =
     typeof window === "undefined"
@@ -459,6 +512,11 @@ export async function fetchRuntimeConfigFromApi(
 
   const payload: unknown = await res.json();
   const data = getResponseData(payload);
+  const site = getRecordField(data, "site");
+  const seoDefaults = getRecordField(data, "seo");
+  const siteLocalization =
+    getRecordField(data, "siteLocalization") ?? getRecordField(data, "site_localization");
+
   const theme = getRecordField(data, "theme");
   const cssVarsUnknown = getRecordField(theme, "cssVars");
   const cssVars = toStringRecord(cssVarsUnknown);
@@ -475,6 +533,70 @@ export async function fetchRuntimeConfigFromApi(
       : undefined;
   const fontsUnknown = getUnknownField(data, "fonts");
   const fonts = Array.isArray(fontsUnknown) ? fontsUnknown : [];
+
+  const siteName = getStringField(site, ["name"])?.trim() || undefined;
+  const siteSubtitle = getStringField(site, ["subtitle"])?.trim() || undefined;
+  const siteDescription = getStringField(site, ["description"])?.trim() || undefined;
+  const siteUrl = getStringField(site, ["url"])?.trim() || undefined;
+  const logoUrl = getStringField(site, ["logoUrl", "logo_url"])?.trim() || undefined;
+  const faviconUrl = getStringField(site, ["faviconUrl", "favicon_url"])?.trim() || undefined;
+  const contactEmail = getStringField(site, ["contactEmail", "contact_email"])?.trim() || undefined;
+  const siteOut =
+    siteName || siteSubtitle || siteDescription || siteUrl || logoUrl || faviconUrl || contactEmail
+      ? Object.assign(
+          {},
+          siteName ? { name: siteName } : {},
+          siteSubtitle ? { subtitle: siteSubtitle } : {},
+          siteDescription ? { description: siteDescription } : {},
+          siteUrl ? { url: siteUrl } : {},
+          logoUrl ? { logoUrl } : {},
+          faviconUrl ? { faviconUrl } : {},
+          contactEmail ? { contactEmail } : {},
+        )
+      : undefined;
+
+  const defaultTitle =
+    getStringField(seoDefaults, ["defaultTitle", "default_title"])?.trim() || undefined;
+  const defaultDescription =
+    getStringField(seoDefaults, ["defaultDescription", "default_description"])?.trim() || undefined;
+  const titlePolicyV1 = parseTitlePolicyV1(
+    getUnknownField(seoDefaults, "titlePolicyV1") ??
+      getUnknownField(seoDefaults, "title_policy_v1"),
+  );
+  const seoOut =
+    defaultTitle || defaultDescription || titlePolicyV1
+      ? Object.assign(
+          {},
+          defaultTitle ? { defaultTitle } : {},
+          defaultDescription ? { defaultDescription } : {},
+          titlePolicyV1 ? { titlePolicyV1 } : {},
+        )
+      : undefined;
+
+  const locale = getStringField(siteLocalization, ["locale"])?.trim() || undefined;
+  const supportedLocales = toStringArray(
+    getUnknownField(siteLocalization, "supportedLocales") ??
+      getUnknownField(siteLocalization, "supported_locales"),
+  );
+  const defaultLocale =
+    getStringField(siteLocalization, ["defaultLocale", "default_locale"])?.trim() || undefined;
+  const fallbackLocale =
+    getStringField(siteLocalization, ["fallbackLocale", "fallback_locale"])?.trim() || undefined;
+  const timezone = getStringField(siteLocalization, ["timezone"])?.trim() || undefined;
+  const dateFormat =
+    getStringField(siteLocalization, ["dateFormat", "date_format"])?.trim() || undefined;
+  const siteLocalizationOut =
+    locale || supportedLocales.length || defaultLocale || fallbackLocale || timezone || dateFormat
+      ? Object.assign(
+          {},
+          locale ? { locale } : {},
+          supportedLocales.length ? { supportedLocales } : {},
+          defaultLocale ? { defaultLocale } : {},
+          fallbackLocale ? { fallbackLocale } : {},
+          timezone ? { timezone } : {},
+          dateFormat ? { dateFormat } : {},
+        )
+      : undefined;
 
   return {
     theme: Object.assign(
@@ -500,7 +622,59 @@ export async function fetchRuntimeConfigFromApi(
         return Object.assign({ family }, display ? { display } : {}, { sources });
       })
       .filter((x): x is NonNullable<typeof x> => Boolean(x)),
+    ...(siteOut ? { site: siteOut } : {}),
+    ...(seoOut ? { seo: seoOut } : {}),
+    ...(siteLocalizationOut ? { siteLocalization: siteLocalizationOut } : {}),
   };
+}
+
+function parseTitlePolicyV1(
+  input: unknown,
+): import("@celestial/portal-types").TitlePolicyV1 | undefined {
+  if (!input || typeof input !== "object" || Array.isArray(input)) return undefined;
+  const rec = input as Record<string, unknown>;
+
+  const partsUnknown = rec.parts;
+  if (!Array.isArray(partsUnknown)) return undefined;
+
+  const parts: import("@celestial/portal-types").TitlePolicyV1Part[] = [];
+  for (const p of partsUnknown) {
+    if (!p || typeof p !== "object" || Array.isArray(p)) continue;
+    const pr = p as Record<string, unknown>;
+    const kind = String(pr.kind || "").trim();
+    const value = typeof pr.value === "string" ? pr.value : String(pr.value ?? "");
+    if (!kind) continue;
+
+    if (kind === "literal") {
+      parts.push({ kind: "literal", value });
+      continue;
+    }
+    if (kind === "token") {
+      const token = value.trim();
+      if (token === "pageTitle" || token === "siteName" || token === "siteSubtitle") {
+        parts.push({ kind: "token", value: token });
+      }
+      continue;
+    }
+  }
+  if (!parts.length) return undefined;
+
+  const homeModeRaw = (typeof rec.homeMode === "string" ? rec.homeMode : rec.home_mode) as unknown;
+  const homeMode = typeof homeModeRaw === "string" ? homeModeRaw.trim() : "";
+  const parsedHomeMode =
+    homeMode === "siteOnly" || homeMode === "policy"
+      ? (homeMode as "siteOnly" | "policy")
+      : undefined;
+
+  const dedupeRaw = rec.dedupe;
+  const dedupe = typeof dedupeRaw === "boolean" ? dedupeRaw : undefined;
+
+  return Object.assign(
+    {},
+    { parts },
+    parsedHomeMode ? { homeMode: parsedHomeMode } : {},
+    dedupe !== undefined ? { dedupe } : {},
+  );
 }
 
 export type PortalExtension = {
@@ -717,6 +891,18 @@ function toStringRecord(input: unknown): Record<string, string> {
   const out: Record<string, string> = {};
   for (const [k, v] of Object.entries(rec)) {
     if (typeof v === "string") out[k] = v;
+  }
+  return out;
+}
+
+function toStringArray(input: unknown): string[] {
+  if (!Array.isArray(input)) return [];
+  const out: string[] = [];
+  for (const v of input) {
+    if (typeof v !== "string") continue;
+    const s = v.trim();
+    if (!s) continue;
+    out.push(s);
   }
   return out;
 }

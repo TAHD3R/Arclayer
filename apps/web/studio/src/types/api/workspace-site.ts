@@ -36,4 +36,26 @@ export type SiteRuntimeOut = {
     config: Record<string, unknown> | null;
   };
   fonts: SiteRuntimeFontOut[];
+  site?: {
+    name?: string | null;
+    subtitle?: string | null;
+    description?: string | null;
+    url?: string | null;
+    logoUrl?: string | null;
+    faviconUrl?: string | null;
+    contactEmail?: string | null;
+  } | null;
+  siteLocalization?: {
+    locale?: string | null;
+    supportedLocales?: string[] | null;
+    defaultLocale?: string | null;
+    fallbackLocale?: string | null;
+    timezone?: string | null;
+    dateFormat?: string | null;
+  } | null;
+  seo?: {
+    defaultTitle?: string | null;
+    defaultDescription?: string | null;
+    titlePolicyV1?: Record<string, unknown> | null;
+  } | null;
 };

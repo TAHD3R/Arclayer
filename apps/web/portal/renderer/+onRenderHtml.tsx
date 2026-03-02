@@ -7,12 +7,14 @@ import { ensurePortalRequestContext } from "@/runtime/request-context";
 import { parseModeFromUrl } from "@/runtime/route-entry";
 import { getPortalRuntimeConfigForSite } from "@/runtime/runtime-config";
 import { fetchPortalExtensionsFromApi, type PortalExtension } from "@/runtime/site-api";
+import { resolvePortalTitle } from "@/runtime/seo-title";
 import {
   isPageBlueprint,
   resolveLocalizedValue,
   serializeCssVarsToStyleText,
 } from "@celestial/site-renderer-core";
 import type { LocalizedString } from "@celestial/site-renderer-core";
+import type { PortalSiteContext } from "@celestial/portal-types";
 import type {
   DesignBindingExprV1,
   PageBlueprint,
@@ -24,9 +26,17 @@ export { onRenderHtml };
 type VikePageContextLike = {
   urlOriginal: string;
   headers?: Record<string, string> | null;
-  viewerCtx?: { locale: "zh-CN" | "en-US"; fallbackLocale?: "zh-CN" | "en-US" };
-  siteCtx?: { siteId: string; defaultLocale: "zh-CN" | "en-US"; fallbackLocale: "zh-CN" | "en-US" };
-  pageProps?: { mode?: string; token?: string; document?: unknown };
+  viewerCtx?: { locale: string; fallbackLocale?: string; basePath?: string };
+  siteCtx?: PortalSiteContext;
+  pageProps?: {
+    mode?: string;
+    token?: string;
+    document?: unknown;
+    pageMeta?: { title?: string; description?: string };
+    pathnameNoLocale?: string;
+    resolvedLocale?: string;
+    publicBasePath?: string;
+  };
   Page: React.ComponentType<Record<string, unknown>>;
 };
 
@@ -52,9 +62,16 @@ async function onRenderHtml(pageContext: VikePageContextLike) {
   const token = pageContext.pageProps?.token;
   const resolveMode = mode === "public" || mode === "debug" ? "public" : "preview";
 
+  const resolvedLocaleForRuntime =
+    (pageContext.pageProps?.resolvedLocale ?? "").trim() ||
+    (pageContext.viewerCtx?.locale ?? "").trim() ||
+    siteCtx.defaultLocale;
+
   const runtimeConfig = await getPortalRuntimeConfigForSite(
     siteCtx.siteId,
-    token ? { mode: resolveMode, token } : { mode: resolveMode },
+    token
+      ? { mode: resolveMode, token, locale: resolvedLocaleForRuntime }
+      : { mode: resolveMode, locale: resolvedLocaleForRuntime },
   );
 
   const portalExtensions = await fetchPortalExtensionsFromApi(
@@ -70,11 +87,74 @@ async function onRenderHtml(pageContext: VikePageContextLike) {
 
   const appHtml = ReactDOMServer.renderToString(<PageShell pageContext={pageContext} />);
 
-  const seo = getSeoFromPageContext(pageContext, viewerCtx);
-  const lang = seo.viewerCtx?.locale ?? "en";
-  const title = seo.title ?? "Celestial Portal";
-  const description = seo.description;
+  const pageSeo = getSeoFromPageContext(pageContext, viewerCtx);
+  const pageMetaTitle = (pageContext.pageProps?.pageMeta?.title ?? "").trim() || undefined;
+  const pageMetaDescription =
+    (pageContext.pageProps?.pageMeta?.description ?? "").trim() || undefined;
+
+  const lang =
+    runtimeConfig.siteLocalization?.locale ??
+    pageSeo.viewerCtx?.locale ??
+    siteCtx.defaultLocale ??
+    "en-US";
+
+  const siteName = runtimeConfig.site?.name;
+  const siteSubtitle = runtimeConfig.site?.subtitle;
+  const siteTitle =
+    siteName && siteSubtitle ? `${siteName} - ${siteSubtitle}` : siteName || undefined;
+
+  const titlePolicyV1 = runtimeConfig.seo?.titlePolicyV1;
+  const title =
+    resolvePortalTitle({
+      policy: titlePolicyV1,
+      pathnameNoLocale: pageContext.pageProps?.pathnameNoLocale ?? "/",
+      pageSeoTitle: pageSeo.title,
+      pageMetaTitle,
+      defaultTitle: runtimeConfig.seo?.defaultTitle,
+      siteName,
+      siteSubtitle,
+      siteTitleFallback: siteTitle,
+    }) ?? "Celestial Portal";
+  const description =
+    pageSeo.description ??
+    pageMetaDescription ??
+    runtimeConfig.site?.description ??
+    runtimeConfig.seo?.defaultDescription;
+  const faviconUrl = runtimeConfig.site?.faviconUrl;
   const isNoIndex = mode !== "public";
+
+  const resolvedLocale = (pageContext.pageProps?.resolvedLocale ?? lang).trim() || "en-US";
+  const pathnameNoLocale = (pageContext.pageProps?.pathnameNoLocale ?? "/").trim() || "/";
+  const publicBasePath = (pageContext.pageProps?.publicBasePath ?? "").trim();
+  const supportedLocales =
+    runtimeConfig.siteLocalization?.supportedLocales ?? pageContext.siteCtx?.supportedLocales ?? [];
+  const defaultLocale =
+    runtimeConfig.siteLocalization?.defaultLocale ??
+    pageContext.siteCtx?.defaultLocale ??
+    resolvedLocale;
+
+  const origin = resolveRequestOrigin(pageContext.headers);
+  const canonicalUrl =
+    !isNoIndex && origin
+      ? origin +
+        buildLocalePublicPath({
+          basePath: publicBasePath,
+          locale: resolvedLocale,
+          pathnameNoLocale,
+        })
+      : null;
+  const hreflangLinksHtml =
+    !isNoIndex && origin && supportedLocales.length
+      ? serializeHreflangLinks({
+          origin,
+          basePath: publicBasePath,
+          pathnameNoLocale,
+          supportedLocales,
+          defaultLocale,
+        })
+      : "";
+
+  const ogLocale = String(lang).replaceAll("-", "_");
 
   const documentHtml = escapeInject`<!DOCTYPE html>
     <html lang="${lang}">
@@ -84,10 +164,18 @@ async function onRenderHtml(pageContext: VikePageContextLike) {
         <title>${title}</title>
         ${description ? escapeInject`<meta name="description" content="${description}" />` : ""}
         ${isNoIndex ? escapeInject`<meta name="robots" content="noindex, nofollow, noarchive" />` : ""}
+        ${canonicalUrl ? escapeInject`<link rel="canonical" href="${canonicalUrl}" />` : ""}
+        ${hreflangLinksHtml ? dangerouslySkipEscape(hreflangLinksHtml) : ""}
+        ${
+          faviconUrl && isSafeUrl(faviconUrl)
+            ? escapeInject`<link rel="icon" href="${faviconUrl}" />`
+            : ""
+        }
         <meta property="og:title" content="${title}" />
         ${description ? escapeInject`<meta property="og:description" content="${description}" />` : ""}
         <meta property="og:type" content="website" />
-        <meta property="og:locale" content="${lang}" />
+        <meta property="og:locale" content="${ogLocale}" />
+        ${siteName ? escapeInject`<meta property="og:site_name" content="${siteName}" />` : ""}
         ${themeTokensCssUrl ? escapeInject`<link rel="stylesheet" href="${themeTokensCssUrl}" />` : ""}
         ${themeBaseCssUrl ? escapeInject`<link rel="stylesheet" href="${themeBaseCssUrl}" />` : ""}
         ${fontFaceStyleText ? escapeInject`<style id="portal-font-faces">${fontFaceStyleText}</style>` : ""}
@@ -203,6 +291,74 @@ function isSafeUrl(url: string): boolean {
   if (u.startsWith("/")) return true;
   // Allow explicit http(s) URLs.
   return u.startsWith("https://") || u.startsWith("http://");
+}
+
+function resolveRequestOrigin(headers: Record<string, string> | null | undefined): string | null {
+  const h = headers || null;
+  const host = (h?.["x-forwarded-host"] || h?.host || "").toString().trim();
+  if (!host) return null;
+  const proto = (h?.["x-forwarded-proto"] || "").toString().trim().toLowerCase();
+  const scheme = proto === "https" ? "https" : "http";
+  return `${scheme}://${host}`;
+}
+
+function buildLocalePublicPath(args: {
+  basePath: string;
+  locale: string;
+  pathnameNoLocale: string;
+}): string {
+  const base = (args.basePath || "").trim();
+  const locale = (args.locale || "").trim();
+  const pathname = normalizePathname(args.pathnameNoLocale || "/");
+  const baseNorm = base ? normalizePathname(base) : "";
+  const prefix = normalizePathname(`${baseNorm}/${locale}`);
+  if (pathname === "/") return prefix;
+  return normalizePathname(prefix + pathname);
+}
+
+function normalizePathname(pathnameRaw: string): string {
+  const pathname = pathnameRaw.startsWith("/") ? pathnameRaw : `/${pathnameRaw}`;
+  if (pathname === "/") return "/";
+  return pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
+}
+
+function serializeHreflangLinks(args: {
+  origin: string;
+  basePath: string;
+  pathnameNoLocale: string;
+  supportedLocales: string[];
+  defaultLocale: string;
+}): string {
+  const supported = Array.isArray(args.supportedLocales) ? args.supportedLocales : [];
+  const origin = args.origin;
+  const links = supported
+    .map((locale) => {
+      const loc = (locale || "").trim();
+      if (!loc) return null;
+      const href =
+        origin +
+        buildLocalePublicPath({
+          basePath: args.basePath,
+          locale: loc,
+          pathnameNoLocale: args.pathnameNoLocale,
+        });
+      return `<link rel="alternate" hreflang="${escapeHtmlAttr(loc)}" href="${escapeHtmlAttr(href)}" />`;
+    })
+    .filter(Boolean);
+
+  const def = (args.defaultLocale || "").trim();
+  if (def) {
+    const href =
+      origin +
+      buildLocalePublicPath({
+        basePath: args.basePath,
+        locale: def,
+        pathnameNoLocale: args.pathnameNoLocale,
+      });
+    links.push(`<link rel="alternate" hreflang="x-default" href="${escapeHtmlAttr(href)}" />`);
+  }
+
+  return links.join("\n");
 }
 
 function serializePortalExtensionsToHeadHtml(items: PortalExtension[]): string {

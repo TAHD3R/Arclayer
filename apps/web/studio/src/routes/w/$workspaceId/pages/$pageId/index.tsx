@@ -19,6 +19,7 @@ import {
   getWorkspacePagePublishedRevision,
   publishWorkspacePageRevision,
   saveWorkspacePageDraftRevision,
+  updateWorkspacePage,
   unpublishWorkspacePage,
 } from "@/api/pages";
 import {
@@ -26,10 +27,11 @@ import {
   getSiteRuntimePreview,
   getWorkspaceSite,
 } from "@/api/workspace-site";
+import { PageSettingsDrawer } from "@/components/pages/page-settings-drawer";
 import { ViewportCanvas } from "@/components/viewport/viewport-canvas";
 import { usePreferencesStore } from "@/stores/use-preferences-store";
 import { useViewportStore } from "@/stores/use-viewport-store";
-import type { SiteRuntimeOut, WorkspaceSiteOut } from "@/types/api";
+import type { SiteRuntimeOut, WorkspacePageUpdateIn, WorkspaceSiteOut } from "@/types/api";
 
 export const Route = createFileRoute("/w/$workspaceId/pages/$pageId/")({
   component: WorkspacePageEditorRoute,
@@ -110,6 +112,7 @@ function WorkspacePageEditorRoute() {
   const [doc, setDoc] = useState<PageBlueprint>(() => createEmptyPageBlueprint());
   const [dirty, setDirty] = useState(false);
   const loadedSignatureRef = useRef<string | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const siteQuery = useQuery({
     queryKey: ["workspace", workspaceId, "site"],
@@ -209,6 +212,24 @@ function WorkspacePageEditorRoute() {
       await qc.invalidateQueries({
         queryKey: ["workspace", workspaceId, "content", "pages", pageId],
       });
+    },
+    onError: (err) => {
+      message.error(String(err));
+    },
+  });
+
+  const updatePageMutation = useMutation({
+    mutationFn: async (payload: WorkspacePageUpdateIn) =>
+      updateWorkspacePage(workspaceId, pageId, payload),
+    onSuccess: async () => {
+      message.success(t("editor:EDITOR_PAGE_SETTINGS_SAVED"));
+      await qc.invalidateQueries({
+        queryKey: ["workspace", workspaceId, "content", "pages", pageId],
+      });
+      await qc.invalidateQueries({
+        queryKey: ["workspace", workspaceId, "content", "pages", "tree"],
+      });
+      setSettingsOpen(false);
     },
     onError: (err) => {
       message.error(String(err));
@@ -364,6 +385,13 @@ function WorkspacePageEditorRoute() {
             ) : (
               <Tag color="default">{t("editor:EDITOR_PAGE_STATUS_DRAFT_ONLY")}</Tag>
             )}
+            <Button
+              onClick={() => setSettingsOpen(true)}
+              disabled={loading || dirty || updatePageMutation.isPending}
+              title={dirty ? t("editor:EDITOR_PAGE_SETTINGS_DISABLED_DIRTY") : undefined}
+            >
+              {t("editor:EDITOR_PAGE_SETTINGS")}
+            </Button>
             <Button onClick={onInsertCard} disabled={loading || saveMutation.isPending}>
               {t("editor:EDITOR_PAGE_INSERT_CARD")}
             </Button>
@@ -377,7 +405,12 @@ function WorkspacePageEditorRoute() {
             </Button>
             <Button
               onClick={() => void publishMutation.mutateAsync()}
-              disabled={loading || dirty || publishMutation.isPending}
+              disabled={
+                loading ||
+                dirty ||
+                publishMutation.isPending ||
+                !(pageQuery.data?.draftRevision && pageQuery.data.draftRevision > 0)
+              }
               loading={publishMutation.isPending}
               title={dirty ? t("editor:EDITOR_PAGE_PUBLISH_DISABLED_DIRTY") : undefined}
             >
@@ -433,6 +466,31 @@ function WorkspacePageEditorRoute() {
         </div>
       ) : (
         <div style={mergeCssVars(runtimeQuery.data)}>
+          <PageSettingsDrawer
+            open={settingsOpen}
+            page={pageQuery.data}
+            pageBlueprint={doc}
+            supportedLocales={runtimeQuery.data?.siteLocalization?.supportedLocales ?? null}
+            defaultLocale={
+              runtimeQuery.data?.siteLocalization?.defaultLocale ??
+              siteQuery.data?.defaultLocale ??
+              null
+            }
+            fallbackLocale={
+              runtimeQuery.data?.siteLocalization?.fallbackLocale ??
+              siteQuery.data?.fallbackLocale ??
+              null
+            }
+            saving={updatePageMutation.isPending}
+            onClose={() => setSettingsOpen(false)}
+            onSubmit={async (payload) => {
+              await updatePageMutation.mutateAsync(payload);
+            }}
+            onChangePageBlueprintSeo={(next) => {
+              setDoc(next);
+              setDirty(true);
+            }}
+          />
           <ViewportCanvas>
             <div className="relative w-full">
               <PageBlueprintRenderer

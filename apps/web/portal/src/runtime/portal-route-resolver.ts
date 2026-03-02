@@ -17,6 +17,7 @@ export type ResolvedPortalRoute =
       kind: "page";
       document: PageBlueprint;
       match: PortalRouteMatch;
+      pageMeta?: { title?: string; description?: string };
       dataSources?: DesignRenderDataSourcesV1;
       includes?: ContentRefIncludesMap;
       warnings?: ResolveWarningV1[];

@@ -33,6 +33,24 @@ export type WorkspacePageCreateIn = {
   visibility?: "public" | "private";
 };
 
+export type WorkspacePageUpdateIn = {
+  path?: string | null;
+  title?: string | null;
+  description?: string | null;
+  parentId?: string | null;
+  sortOrder?: number | null;
+  visibility?: "public" | "private" | null;
+};
+
+export type WorkspacePageMoveIn = {
+  parentId?: string | null;
+  sortOrder: number;
+};
+
+export type WorkspacePageDeleteOut = {
+  pageId: string;
+};
+
 export type PageTreeResult<T> = PageData<T>;
 
 export type ContentPageRevisionOut = {

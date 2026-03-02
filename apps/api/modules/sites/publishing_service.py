@@ -42,6 +42,7 @@ from apps.api.modules.sites.schema import (
     SitePresenceListOut,
     SitePresenceRecordOut,
     SitePrimaryEntryOut,
+    SiteResolvedPageMetaOut,
     SiteRouteDataSourcesOut,
     SiteRouteDraftSaveIn,
     SiteRouteDraftSaveOut,
@@ -708,6 +709,19 @@ class SitePublishingService(BaseService):
         # 1) ContentEntry(kind=page) match (Everything-as-Content).
         entry = await self._repo.get_content_page_entry_by_path(site_id=site_id, path=pathname)
         if entry is not None:
+            meta_title = entry.title if isinstance(entry.title, str) and entry.title.strip() else None
+            meta_desc = None
+            raw_fields = getattr(entry, "field_values", None)
+            if isinstance(raw_fields, dict):
+                raw_desc = raw_fields.get("description")
+                if isinstance(raw_desc, str) and raw_desc.strip():
+                    meta_desc = raw_desc.strip()
+            page_meta = (
+                SiteResolvedPageMetaOut(title=meta_title, description=meta_desc)
+                if meta_title is not None or meta_desc is not None
+                else None
+            )
+
             draft_rev = int(entry.draft_revision or 0)
             published_rev = int(entry.published_revision or 0)
             use_rev = published_rev if mode == "public" else (draft_rev or published_rev)
@@ -747,6 +761,7 @@ class SitePublishingService(BaseService):
                                 draft_revision=draft_rev,
                                 published_revision=(published_rev if published_rev else None),
                             ),
+                            pageMeta=page_meta,
                             pageBlueprint=doc,
                             includes=includes or None,
                             warnings=warnings or None,
@@ -764,6 +779,7 @@ class SitePublishingService(BaseService):
                         draft_revision=draft_rev,
                         published_revision=published_rev or None,
                     ),
+                    pageMeta=page_meta,
                     pageBlueprint=self._create_empty_page_blueprint(),
                 )
             return SiteRouteResolveOut(match=SiteRouteMatchOut(kind="not_found"), pageBlueprint=None)
@@ -771,6 +787,20 @@ class SitePublishingService(BaseService):
         # 2) Legacy SitePageRecord match (deprecated, kept for migration compatibility).
         page = await self._repo.get_page_by_path(site_id=site_id, path=pathname)
         if page is not None:
+            page_meta = (
+                SiteResolvedPageMetaOut(
+                    title=(page.title if isinstance(page.title, str) and page.title.strip() else None),
+                    description=(
+                        page.description if isinstance(page.description, str) and page.description.strip() else None
+                    ),
+                )
+                if (
+                    (isinstance(page.title, str) and page.title.strip())
+                    or (isinstance(page.description, str) and page.description.strip())
+                )
+                else None
+            )
+
             draft_rev = int(page.draft_rev or 0)
             published_rev = int(page.published_rev or 0)
             use_rev = published_rev if mode == "public" else (draft_rev or published_rev)
@@ -803,6 +833,7 @@ class SitePublishingService(BaseService):
                             draft_revision=draft_rev,
                             published_revision=(published_rev if published_rev else None),
                         ),
+                        pageMeta=page_meta,
                         pageBlueprint=doc,
                         includes=includes or None,
                         warnings=warnings or None,
@@ -819,6 +850,7 @@ class SitePublishingService(BaseService):
                         draft_revision=draft_rev,
                         published_revision=published_rev or None,
                     ),
+                    pageMeta=page_meta,
                     pageBlueprint=self._create_empty_page_blueprint(),
                 )
             return SiteRouteResolveOut(match=SiteRouteMatchOut(kind="not_found"), pageBlueprint=None)

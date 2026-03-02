@@ -50,6 +50,8 @@ from apps.api.modules.sites.schema import (
     SiteGlobalSectionOut,
     SiteGlobalSectionsOut,
     SiteGlobalSectionUpdateIn,
+    SiteIdentityOut,
+    SiteLocalizationOut,
     SitePageCreateIn,
     SitePageDeleteOut,
     SitePageDraftSaveIn,
@@ -78,6 +80,7 @@ from apps.api.modules.sites.schema import (
     SiteRouteTemplateOut,
     SiteRouteTemplateUpdateIn,
     SiteRuntimeOut,
+    SiteSeoDefaultsOut,
     SiteSettingGetOut,
     SiteSettingUpsertIn,
     SiteStyleOut,
@@ -87,6 +90,9 @@ from apps.api.modules.sites.schema import (
     SiteVisualSitemapOut,
 )
 from apps.api.modules.sites.stores import PresenceStore, PreviewTokenStore, RouteTemplateVersionStore
+from apps.api.modules.system.models.setting import SettingRecord
+from apps.api.settings.core_schema import CORE_SETTINGS_NAMESPACE
+from apps.api.settings.scopes import SCOPE_TYPE_WORKSPACE
 
 
 class SiteService(BaseService):
@@ -178,10 +184,15 @@ class SiteService(BaseService):
             if normalized_host is not None:
                 site = await self._repo.get_site_by_custom_hostname(hostname=normalized_host)
                 if site is not None:
+                    workspace_id = UUID(str(cast(HasWorkspaceId, site).workspace_id))
+                    default_locale, fallback_locale, supported_locales = await self._read_workspace_site_localization(
+                        workspace_id=workspace_id, site=site
+                    )
                     return SiteResolveOut(
                         site_id=UUID(str(site.id)),
-                        default_locale=site.default_locale,
-                        fallback_locale=site.fallback_locale,
+                        default_locale=default_locale,
+                        fallback_locale=fallback_locale,
+                        supported_locales=supported_locales,
                     )
 
         if ws_slug is None:
@@ -191,10 +202,15 @@ class SiteService(BaseService):
         if site is None:
             raise NotFound("Site not found", error="SITE_NOT_FOUND")
 
+        workspace_id = UUID(str(cast(HasWorkspaceId, site).workspace_id))
+        default_locale, fallback_locale, supported_locales = await self._read_workspace_site_localization(
+            workspace_id=workspace_id, site=site
+        )
         return SiteResolveOut(
             site_id=UUID(str(site.id)),
-            default_locale=site.default_locale,
-            fallback_locale=site.fallback_locale,
+            default_locale=default_locale,
+            fallback_locale=fallback_locale,
+            supported_locales=supported_locales,
         )
 
     def _extract_workspace_slug_from_host(self, host: str) -> str | None:
@@ -255,13 +271,141 @@ class SiteService(BaseService):
             raise Conflict("Site context requires database storage", error="SITE_CONTEXT_DB_REQUIRED")
 
         site = await self._repo.get_site_by_id(site_id=site_id)
-        return SiteResolveOut(
-            site_id=UUID(str(site.id)),
-            default_locale=site.default_locale,
-            fallback_locale=site.fallback_locale,
+        workspace_id = UUID(str(cast(HasWorkspaceId, site).workspace_id))
+
+        # Keep locale config consistent with the public /sites/resolve endpoint.
+        # See resolve_site(): workspace core settings override site record defaults.
+        default_locale, fallback_locale, supported_locales = await self._read_workspace_site_localization(
+            workspace_id=workspace_id, site=site
         )
 
-    async def get_runtime(self, *, site_id: UUID, mode: Literal["public", "preview"]) -> SiteRuntimeOut:
+        return SiteResolveOut(
+            site_id=UUID(str(site.id)),
+            default_locale=default_locale,
+            fallback_locale=fallback_locale,
+            supported_locales=supported_locales,
+        )
+
+    @staticmethod
+    def _normalize_locale_tag(value: str) -> str | None:
+        raw = (value or "").strip()
+        if not raw:
+            return None
+        raw = raw.replace("_", "-")
+        parts = [p for p in raw.split("-") if p]
+        if not parts:
+            return None
+        parts[0] = parts[0].lower()
+        if len(parts) >= 2 and len(parts[1]) == 2 and parts[1].isalpha():
+            parts[1] = parts[1].upper()
+        return "-".join(parts)
+
+    @classmethod
+    def _uniq_locales(cls, values: list[str]) -> list[str]:
+        out: list[str] = []
+        seen: set[str] = set()
+        for v in values:
+            norm = cls._normalize_locale_tag(v)
+            if not norm:
+                continue
+            key = norm.lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            out.append(norm)
+        return out
+
+    async def _read_workspace_site_localization(self, *, workspace_id: UUID, site) -> tuple[str, str, list[str]]:
+        rec = await SettingRecord.get_or_none(
+            scope_type=SCOPE_TYPE_WORKSPACE,
+            scope_id=workspace_id,
+            namespace=CORE_SETTINGS_NAMESPACE,
+        )
+        value = rec.value if rec is not None and isinstance(rec.value, dict) else {}
+        section = value.get("site_localization") if isinstance(value, dict) else None
+        section_dict = section if isinstance(section, dict) else {}
+
+        default_locale = self._normalize_locale_tag(str(section_dict.get("default_locale") or "")) or None
+        # Backward-compatible: existing config uses `site_localization.locale`.
+        if default_locale is None:
+            default_locale = self._normalize_locale_tag(str(section_dict.get("locale") or "")) or None
+        if default_locale is None:
+            default_locale = self._normalize_locale_tag(str(getattr(site, "default_locale", "") or "")) or None
+        if default_locale is None:
+            default_locale = "zh-CN"
+
+        fallback_locale = self._normalize_locale_tag(str(section_dict.get("fallback_locale") or "")) or None
+        if fallback_locale is None:
+            fallback_locale = self._normalize_locale_tag(str(getattr(site, "fallback_locale", "") or "")) or None
+        if fallback_locale is None:
+            fallback_locale = "en-US"
+
+        supported_raw = section_dict.get("supported_locales")
+        supported = self._uniq_locales(supported_raw) if isinstance(supported_raw, list) else []
+
+        # Keep the shape stable: default & fallback must be included.
+        if default_locale.lower() not in {s.lower() for s in supported}:
+            supported.insert(0, default_locale)
+        if fallback_locale.lower() not in {s.lower() for s in supported}:
+            supported.append(fallback_locale)
+
+        supported = self._uniq_locales(supported)
+        return default_locale, fallback_locale, supported
+
+    @classmethod
+    def _resolve_localized_str(
+        cls,
+        raw: object,
+        *,
+        locale: str,
+        fallback_locale: str,
+    ) -> str | None:
+        if not isinstance(raw, dict):
+            return None
+        if not locale:
+            return None
+
+        # Case-insensitive map for locale tags.
+        lowered: dict[str, str] = {}
+        for k, v in raw.items():
+            if not isinstance(k, str) or not isinstance(v, str):
+                continue
+            kk = k.strip()
+            if not kk:
+                continue
+            lowered[kk.lower()] = v
+
+        def _pick(tag: str) -> str | None:
+            if not tag:
+                return None
+            v = lowered.get(tag.lower())
+            if not isinstance(v, str):
+                return None
+            s = v.strip()
+            return s or None
+
+        direct = _pick(locale)
+        if direct is not None:
+            return direct
+
+        fb = _pick(fallback_locale)
+        if fb is not None:
+            return fb
+
+        # Deterministic fallback to the first entry.
+        for v in lowered.values():
+            s = str(v).strip()
+            if s:
+                return s
+        return None
+
+    async def get_runtime(
+        self,
+        *,
+        site_id: UUID,
+        mode: Literal["public", "preview"],
+        locale: str | None = None,
+    ) -> SiteRuntimeOut:
         default_css_vars: dict[str, str] = {
             "--color-primary": "#1677ff",
             "--color-background": "#ffffff",
@@ -275,6 +419,119 @@ class SiteService(BaseService):
 
         site = await self._repo.get_site_by_id(site_id=site_id)
         workspace_id = UUID(str(cast(HasWorkspaceId, site).workspace_id))
+
+        # Workspace core settings (public-safe subset for Portal SSR/head rendering).
+        # NOTE: This endpoint is consumed by Portal in both public/preview modes.
+        core_rec = await SettingRecord.get_or_none(
+            scope_type=SCOPE_TYPE_WORKSPACE,
+            scope_id=workspace_id,
+            namespace=CORE_SETTINGS_NAMESPACE,
+        )
+        core_value = core_rec.value if core_rec is not None and isinstance(core_rec.value, dict) else {}
+
+        def _pick_str(section: object, key: str) -> str | None:
+            if not isinstance(section, dict):
+                return None
+            raw = section.get(key)
+            if not isinstance(raw, str):
+                return None
+            s = raw.strip()
+            return s or None
+
+        site_section = core_value.get("site") if isinstance(core_value, dict) else None
+        site_identity_raw: dict[str, str | None] = {
+            "name": _pick_str(site_section, "name"),
+            "subtitle": _pick_str(site_section, "subtitle"),
+            "description": _pick_str(site_section, "description"),
+            "url": _pick_str(site_section, "url"),
+            "logo_url": _pick_str(site_section, "logo_url"),
+            "favicon_url": _pick_str(site_section, "favicon_url"),
+            "contact_email": _pick_str(site_section, "contact_email"),
+        }
+
+        # Localization context: Portal public routes provide locale prefix; otherwise default locale.
+        loc_section = core_value.get("site_localization") if isinstance(core_value, dict) else None
+        default_locale, fallback_locale, supported_locales = await self._read_workspace_site_localization(
+            workspace_id=workspace_id,
+            site=site,
+        )
+        resolved_locale = self._normalize_locale_tag(str(locale or "")) or default_locale
+
+        # Optional field-level i18n for site identity (SEO title policy tokens consumption).
+        if isinstance(site_section, dict):
+            name_i18n = site_section.get("name_i18n")
+            subtitle_i18n = site_section.get("subtitle_i18n")
+            description_i18n = site_section.get("description_i18n")
+            resolved_name = self._resolve_localized_str(
+                name_i18n, locale=resolved_locale, fallback_locale=fallback_locale
+            )
+            resolved_subtitle = self._resolve_localized_str(
+                subtitle_i18n, locale=resolved_locale, fallback_locale=fallback_locale
+            )
+            resolved_description = self._resolve_localized_str(
+                description_i18n, locale=resolved_locale, fallback_locale=fallback_locale
+            )
+            if resolved_name is not None:
+                site_identity_raw["name"] = resolved_name
+            if resolved_subtitle is not None:
+                site_identity_raw["subtitle"] = resolved_subtitle
+            if resolved_description is not None:
+                site_identity_raw["description"] = resolved_description
+
+        site_identity = (
+            SiteIdentityOut(**{k: v for k, v in site_identity_raw.items() if v is not None})
+            if any(v is not None for v in site_identity_raw.values())
+            else None
+        )
+
+        seo_section = core_value.get("seo") if isinstance(core_value, dict) else None
+        seo_payload: dict[str, Any] = {}
+        default_title = _pick_str(seo_section, "default_title")
+        # Prefer `site.description` as the product-level source of truth; fall back to legacy `seo.default_description`.
+        default_description = site_identity_raw.get("description") or _pick_str(seo_section, "default_description")
+
+        # Optional field-level i18n for site SEO defaults.
+        if isinstance(seo_section, dict):
+            resolved_default_title = self._resolve_localized_str(
+                seo_section.get("default_title_i18n"),
+                locale=resolved_locale,
+                fallback_locale=fallback_locale,
+            )
+            resolved_default_description = self._resolve_localized_str(
+                seo_section.get("default_description_i18n"),
+                locale=resolved_locale,
+                fallback_locale=fallback_locale,
+            )
+            if resolved_default_title is not None:
+                default_title = resolved_default_title
+            if resolved_default_description is not None:
+                default_description = resolved_default_description
+        if default_title is not None:
+            seo_payload["default_title"] = default_title
+        if default_description is not None:
+            seo_payload["default_description"] = default_description
+
+        if isinstance(seo_section, dict) and isinstance(seo_section.get("title_policy_v1"), dict):
+            seo_payload["title_policy_v1"] = seo_section.get("title_policy_v1")
+
+        seo_defaults = None
+        if seo_payload:
+            try:
+                seo_defaults = SiteSeoDefaultsOut(**seo_payload)
+            except ValidationError:
+                seo_defaults = None
+
+        tz = _pick_str(loc_section, "timezone")
+        date_format = _pick_str(loc_section, "date_format")
+        site_localization = SiteLocalizationOut(
+            # Keep legacy `locale` aligned with new default_locale.
+            locale=default_locale,
+            supported_locales=supported_locales,
+            default_locale=default_locale,
+            fallback_locale=fallback_locale,
+            timezone=tz,
+            date_format=date_format,
+        )
 
         # Theme contract v0:
         # - theme.vars provides site-scoped CSS vars (overrides)
@@ -394,6 +651,9 @@ class SiteService(BaseService):
                 config=config_out,
             ),
             fonts=fonts_out,
+            site=site_identity,
+            site_localization=site_localization,
+            seo=seo_defaults,
         )
 
     async def get_site_setting(self, *, site_id: UUID, namespace: str) -> SiteSettingGetOut:

@@ -6,7 +6,12 @@ export async function resolveEditorDocument(args: {
   pathname: string;
   siteId: string;
   token?: string;
-}): Promise<{ document: unknown; pathname: string; match: PortalRouteMatch }> {
+}): Promise<{
+  document: unknown;
+  pathname: string;
+  match: PortalRouteMatch;
+  pageMeta?: { title?: string; description?: string };
+}> {
   const token = args.token;
   if (!token) throw new HttpError(403, "Preview token required");
 
@@ -25,5 +30,10 @@ export async function resolveEditorDocument(args: {
     throw new HttpError(404, `Editor page not found: ${args.pathname}`);
   }
 
-  return { document: resolved.document, pathname: args.pathname, match: resolved.match };
+  return {
+    document: resolved.document,
+    pathname: args.pathname,
+    match: resolved.match,
+    ...(resolved.pageMeta ? { pageMeta: resolved.pageMeta } : {}),
+  };
 }

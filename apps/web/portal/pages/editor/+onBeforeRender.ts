@@ -40,6 +40,7 @@ export async function onBeforeRender(pageContext: PortalEditorPageContextLike) {
           mode: "editor",
           document: resolved.document,
           match: resolved.match,
+          ...(resolved.pageMeta ? { pageMeta: resolved.pageMeta } : {}),
           viewerCtx,
           pathname: resolved.pathname,
           siteId: parsed.siteId,

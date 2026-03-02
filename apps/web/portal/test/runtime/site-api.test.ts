@@ -56,6 +56,52 @@ describe("runtime/site-api (parsing)", () => {
     expect(out).toEqual({ kind: "redirect", to: "/about", status: 301 });
   });
 
+  it("resolveRouteFromApi() parses pageMeta (title/description) and returns it for head rendering", async () => {
+    process.env.VITE_API_PROXY_TARGET = "http://127.0.0.1:8000";
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        return new Response(
+          JSON.stringify({
+            message: "OK",
+            data: {
+              match: {
+                kind: "page",
+                params: {},
+                pageId: "p1",
+              },
+              pageMeta: {
+                title: "About",
+                description: "Hello world",
+              },
+              pageBlueprint: {
+                version: 1,
+                rootId: "page",
+                nodesById: {
+                  page: {
+                    id: "page",
+                    type: "page_root",
+                    name: "Page",
+                    children: [],
+                    layout: { children: { mode: "absolute" } },
+                  },
+                },
+              },
+            },
+            timestamp: 0,
+          }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        );
+      }),
+    );
+
+    const out = await resolveRouteFromApi("/about", "s1", { mode: "public" });
+    expect(out.kind).toBe("page");
+    if (out.kind !== "page") throw new Error("unexpected kind");
+    expect(out.pageMeta).toEqual({ title: "About", description: "Hello world" });
+  });
+
   it("resolveRouteFromApi() keeps match pointers for editor optimistic lock init", async () => {
     process.env.VITE_API_PROXY_TARGET = "http://127.0.0.1:8000";
 

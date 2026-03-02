@@ -1,7 +1,5 @@
 import type { SettingsDetail } from "@/types/api";
 
-import type { AppLocale } from "@/lib/i18n";
-
 import type { GeneralSettingsFormValues, StorageProvider } from "@/types/settings-general";
 import { pickBool, pickNumber, pickString, pickStringArray } from "./utils";
 
@@ -21,7 +19,10 @@ export function buildGeneralSettingsInitialValues(params: {
 
   const siteName = pickString(workspaceValue, ["site", "name"]) ?? "Celestial CMS";
   const siteSubtitle = pickString(workspaceValue, ["site", "subtitle"]) ?? "";
-  const siteDescription = pickString(workspaceValue, ["seo", "default_description"]) ?? "";
+  const siteDescription =
+    pickString(workspaceValue, ["site", "description"]) ??
+    pickString(workspaceValue, ["seo", "default_description"]) ??
+    "";
   const siteUrl = pickString(workspaceValue, ["site", "url"]) ?? "";
   const siteLogoUrl = pickString(workspaceValue, ["site", "logo_url"]) ?? "";
   const siteLogoAssetId = pickString(workspaceValue, ["site", "logo_asset_id"]) ?? "";
@@ -33,12 +34,43 @@ export function buildGeneralSettingsInitialValues(params: {
     pickString(workspaceValue, ["site", "avatar_placeholder_asset_id"]) ?? "";
   const siteContactEmail = pickString(workspaceValue, ["site", "contact_email"]) ?? "";
 
-  const locale =
-    (pickString(workspaceValue, ["site_localization", "locale"]) as AppLocale | undefined) ??
+  const defaultLocale =
+    normalizeLocaleTag(pickString(workspaceValue, ["site_localization", "default_locale"])) ??
+    normalizeLocaleTag(pickString(workspaceValue, ["site_localization", "locale"])) ??
     "zh-CN";
+  const fallbackLocale =
+    normalizeLocaleTag(pickString(workspaceValue, ["site_localization", "fallback_locale"])) ??
+    "en-US";
+  const supportedLocalesInput =
+    pickStringArray(workspaceValue, ["site_localization", "supported_locales"]) ?? [];
+  const supportedLocales = uniqLocales([...supportedLocalesInput, defaultLocale, fallbackLocale]);
   const timezone = pickString(workspaceValue, ["site_localization", "timezone"]) ?? "Asia/Shanghai";
   const dateFormat =
     pickString(workspaceValue, ["site_localization", "date_format"]) ?? "YYYY-MM-DD";
+
+  const seoTitlePolicyV1 = parseTitlePolicyV1(
+    pickUnknown(workspaceValue, ["seo", "title_policy_v1"]),
+  ) ?? {
+    parts: [
+      { kind: "token", value: "pageTitle" },
+      { kind: "literal", value: " - " },
+      { kind: "token", value: "siteName" },
+    ],
+    homeMode: "siteOnly",
+    dedupe: true,
+  };
+
+  const siteNameI18n =
+    parseLocalizedStringMap(pickUnknown(workspaceValue, ["site", "name_i18n"])) ?? {};
+  const siteNameI18nEnabled = Object.keys(siteNameI18n).length > 0;
+
+  // Prefer new `site.description_i18n`, fall back to legacy `seo.default_description_i18n` to avoid
+  // losing previously saved values.
+  const siteDescriptionI18n =
+    parseLocalizedStringMap(pickUnknown(workspaceValue, ["site", "description_i18n"])) ??
+    parseLocalizedStringMap(pickUnknown(workspaceValue, ["seo", "default_description_i18n"])) ??
+    {};
+  const siteDescriptionI18nEnabled = Object.keys(siteDescriptionI18n).length > 0;
 
   const storageProvider =
     (pickString(systemValue, ["storage", "provider"]) as StorageProvider | undefined) ?? "local";
@@ -81,8 +113,12 @@ export function buildGeneralSettingsInitialValues(params: {
 
   return {
     siteName,
+    siteNameI18nEnabled,
+    siteNameI18n,
     siteSubtitle,
     siteDescription,
+    siteDescriptionI18nEnabled,
+    siteDescriptionI18n,
     siteUrl,
     siteLogoUrl,
     siteLogoAssetId,
@@ -91,9 +127,12 @@ export function buildGeneralSettingsInitialValues(params: {
     siteAvatarPlaceholderUrl,
     siteAvatarPlaceholderAssetId,
     siteContactEmail,
-    locale,
+    supportedLocales,
+    defaultLocale,
+    fallbackLocale,
     timezone,
     dateFormat,
+    seoTitlePolicyV1,
 
     storageProvider,
     storagePublicBaseUrl,
@@ -125,4 +164,100 @@ export function buildGeneralSettingsInitialValues(params: {
 
     notificationInviteEnabled,
   };
+}
+
+function pickUnknown(obj: unknown, path: readonly string[]): unknown {
+  let current: unknown = obj;
+  for (const key of path) {
+    if (!current || typeof current !== "object") return undefined;
+    current = (current as Record<string, unknown>)[key];
+  }
+  return current;
+}
+
+function parseTitlePolicyV1(
+  input: unknown,
+): import("@celestial/portal-types").TitlePolicyV1 | null {
+  if (!input || typeof input !== "object" || Array.isArray(input)) return null;
+  const rec = input as Record<string, unknown>;
+  const partsUnknown = rec.parts;
+  if (!Array.isArray(partsUnknown)) return null;
+
+  const parts: import("@celestial/portal-types").TitlePolicyV1Part[] = [];
+  for (const p of partsUnknown) {
+    if (!p || typeof p !== "object" || Array.isArray(p)) continue;
+    const pr = p as Record<string, unknown>;
+    const kind = typeof pr.kind === "string" ? pr.kind.trim() : "";
+    const value = typeof pr.value === "string" ? pr.value : String(pr.value ?? "");
+    if (!kind) continue;
+    if (kind === "literal") {
+      parts.push({ kind: "literal", value });
+      continue;
+    }
+    if (kind === "token") {
+      const token = value.trim();
+      if (token === "pageTitle" || token === "siteName" || token === "siteSubtitle") {
+        parts.push({ kind: "token", value: token });
+      }
+    }
+  }
+  if (!parts.length) return null;
+
+  const homeModeRaw = (typeof rec.home_mode === "string" ? rec.home_mode : rec.homeMode) as unknown;
+  const homeMode = typeof homeModeRaw === "string" ? homeModeRaw.trim() : "";
+  const parsedHomeMode =
+    homeMode === "siteOnly" || homeMode === "policy"
+      ? (homeMode as "siteOnly" | "policy")
+      : undefined;
+
+  const dedupeRaw = rec.dedupe;
+  const dedupe = typeof dedupeRaw === "boolean" ? dedupeRaw : undefined;
+
+  return Object.assign(
+    {},
+    { parts },
+    parsedHomeMode ? { homeMode: parsedHomeMode } : {},
+    dedupe !== undefined ? { dedupe } : {},
+  );
+}
+
+function parseLocalizedStringMap(input: unknown): Record<string, string> | null {
+  if (!input || typeof input !== "object" || Array.isArray(input)) return null;
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(input as Record<string, unknown>)) {
+    if (typeof k !== "string") continue;
+    if (typeof v !== "string") continue;
+    const key = k.trim();
+    const val = v.trim();
+    if (!key || !val) continue;
+    out[key] = val;
+  }
+  return Object.keys(out).length ? out : {};
+}
+
+function normalizeLocaleTag(input: string | null | undefined): string | null {
+  const raw = (input || "").trim();
+  if (!raw) return null;
+  const parts = raw.replaceAll("_", "-").split("-").filter(Boolean);
+  if (!parts.length) return null;
+  parts[0] = parts[0].toLowerCase();
+  if (parts.length >= 2) {
+    // Region subtag is typically 2 letters (e.g. en-US).
+    if (parts[1].length === 2) parts[1] = parts[1].toUpperCase();
+  }
+  return parts.join("-");
+}
+
+function uniqLocales(values: string[]): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const v of values) {
+    const norm = normalizeLocaleTag(v);
+    if (!norm) continue;
+    const key = norm.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(norm);
+  }
+  return out;
 }

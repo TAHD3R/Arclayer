@@ -7,4 +7,5 @@ export {
   detectLocaleFromAcceptLanguage,
   detectRequestLocaleFromHeaders,
   normalizeLocale,
+  resolveLocaleFromAcceptLanguage,
 } from "./locales";

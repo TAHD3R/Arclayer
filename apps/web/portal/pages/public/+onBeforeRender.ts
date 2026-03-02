@@ -1,9 +1,11 @@
 import { redirect, render } from "vike/abort";
 
 import { ApiError } from "@celestial/web-runtime/http";
+import { resolveLocaleFromAcceptLanguage } from "@celestial/web-runtime/i18n";
 
 import { ensurePortalRequestContext } from "@/runtime/request-context";
 import { HttpError, toAbortStatus } from "@/runtime/http-error";
+import { joinLocalePath, resolveCookieLocale, splitLocalePrefix } from "@/runtime/locale-routing";
 import { normalizePathname, resolvePublicDocument } from "@/runtime/route-entry";
 
 type PortalPublicPageContextLike = {
@@ -17,7 +19,7 @@ export async function onBeforeRender(pageContext: PortalPublicPageContextLike) {
 
   const parsed = parseWorkspacePublicPath(fullPathname);
   const workspaceSlug = parsed?.workspaceSlug;
-  const pathname = parsed?.pathname ?? fullPathname;
+  const pathnameWithPotentialLocale = parsed?.pathname ?? fullPathname;
   const basePath = parsed?.basePath;
 
   try {
@@ -26,14 +28,63 @@ export async function onBeforeRender(pageContext: PortalPublicPageContextLike) {
       ...(basePath ? { basePath } : {}),
     });
 
-    const resolved = await resolvePublicDocument({ pathname, siteId: siteCtx.siteId });
-    const renderViewerCtx = { ...viewerCtx, mode: "public" as const };
+    const supportedLocales =
+      Array.isArray(siteCtx.supportedLocales) && siteCtx.supportedLocales.length
+        ? siteCtx.supportedLocales
+        : [siteCtx.defaultLocale, siteCtx.fallbackLocale].filter(Boolean);
+
+    const { prefixCandidate, canonicalLocaleFromUrl, pathnameNoLocale } = splitLocalePrefix(
+      pathnameWithPotentialLocale,
+      supportedLocales,
+    );
+
+    const cookieLocale = resolveCookieLocale(pageContext.headers, supportedLocales);
+    const acceptLanguage =
+      pageContext.headers?.["accept-language"] ?? pageContext.headers?.["Accept-Language"];
+    const negotiatedLocale = resolveLocaleFromAcceptLanguage(
+      typeof acceptLanguage === "string" ? acceptLanguage : undefined,
+      supportedLocales,
+      siteCtx.defaultLocale,
+    );
+
+    const resolvedLocale =
+      canonicalLocaleFromUrl ?? cookieLocale ?? negotiatedLocale ?? siteCtx.defaultLocale;
+    const localeBasePath = applyBasePath(basePath, `/${resolvedLocale}`);
+
+    const shouldRedirect =
+      // Missing locale prefix.
+      prefixCandidate === null ||
+      // Unsupported locale prefix: strip it and redirect.
+      (prefixCandidate !== null && canonicalLocaleFromUrl === null) ||
+      // Non-canonical casing (e.g. /en-us -> /en-US).
+      (canonicalLocaleFromUrl !== null && prefixCandidate !== canonicalLocaleFromUrl);
+
+    if (shouldRedirect) {
+      const canonicalPath = applyBasePath(
+        basePath,
+        joinLocalePath(resolvedLocale, pathnameNoLocale),
+      );
+      const target = canonicalPath + (url.search || "");
+      throw redirect(target, 302);
+    }
+
+    const resolved = await resolvePublicDocument({
+      pathname: pathnameNoLocale,
+      siteId: siteCtx.siteId,
+    });
+    const renderViewerCtx = {
+      ...viewerCtx,
+      mode: "public" as const,
+      locale: resolvedLocale,
+      fallbackLocale: siteCtx.fallbackLocale,
+      basePath: localeBasePath,
+    };
 
     if (resolved.kind === "redirect") {
       throw redirect(applyBasePath(basePath, resolved.to), resolved.status);
     }
     if (resolved.kind === "not_found") {
-      throw render(404, "Page not found: " + pathname);
+      throw render(404, "Page not found: " + pathnameNoLocale);
     }
 
     return {
@@ -44,9 +95,13 @@ export async function onBeforeRender(pageContext: PortalPublicPageContextLike) {
           match: resolved.match,
           dataSources: resolved.dataSources,
           ...(resolved.includes ? { includes: resolved.includes } : {}),
+          ...(resolved.pageMeta ? { pageMeta: resolved.pageMeta } : {}),
           viewerCtx: renderViewerCtx,
-          pathname,
-          showHydration: pathname === "/",
+          pathname: pathnameNoLocale,
+          pathnameNoLocale,
+          resolvedLocale,
+          publicBasePath: basePath ?? "",
+          showHydration: pathnameNoLocale === "/",
         },
         siteCtx,
         viewerCtx: renderViewerCtx,

@@ -1,6 +1,5 @@
 import type { FormInstance } from "antd";
-
-import type { AppLocale } from "@/lib/i18n";
+import type { TitlePolicyV1 } from "@celestial/portal-types";
 
 export type StorageProvider = "local" | "s3";
 
@@ -8,8 +7,12 @@ export type GeneralSettingsTabKey = "site" | "localization";
 
 export type GeneralSettingsFormValues = {
   siteName: string;
+  siteNameI18nEnabled: boolean;
+  siteNameI18n: Record<string, string>;
   siteSubtitle: string;
   siteDescription: string;
+  siteDescriptionI18nEnabled: boolean;
+  siteDescriptionI18n: Record<string, string>;
   siteUrl: string;
   siteLogoUrl: string;
   siteLogoAssetId: string;
@@ -18,9 +21,12 @@ export type GeneralSettingsFormValues = {
   siteAvatarPlaceholderUrl: string;
   siteAvatarPlaceholderAssetId: string;
   siteContactEmail: string;
-  locale: AppLocale;
+  supportedLocales: string[];
+  defaultLocale: string;
+  fallbackLocale: string;
   timezone: string;
   dateFormat: string;
+  seoTitlePolicyV1: TitlePolicyV1;
 
   storageProvider: StorageProvider;
   storagePublicBaseUrl: string;

@@ -9,6 +9,9 @@ export type {
   ContentPageUnpublishOut,
   PageTreeResult,
   WorkspacePageCreateIn,
+  WorkspacePageDeleteOut,
+  WorkspacePageMoveIn,
+  WorkspacePageUpdateIn,
   WorkspacePageTreeNode,
   WorkspacePageUserSummary,
 } from "./pages";

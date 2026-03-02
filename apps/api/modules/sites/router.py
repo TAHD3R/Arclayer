@@ -83,7 +83,7 @@ def get_site_service(
     "/sites/{site_id}/runtime",
     response_model=ResponseModel[SiteRuntimeOut],
     response_model_exclude_none=True,
-    summary="Get site runtime config (theme tokens, fonts)",
+    summary="Get site runtime config (theme, fonts, site identity, SEO defaults)",
 )
 async def get_site_runtime(
     site_id: PublicUUID,
@@ -91,12 +91,13 @@ async def get_site_runtime(
     service: Annotated[SiteService, Depends(get_site_service)],
     mode: Annotated[Literal["public", "preview"], Query(description="Runtime mode.")] = "public",
     token: Annotated[str | None, Query(description="Preview token (required when mode=preview).")] = None,
+    locale: Annotated[str | None, Query(description="Resolved locale for localized settings (e.g. en-US).")] = None,
 ) -> ResponseModel[SiteRuntimeOut]:
     await service.assert_preview_access_async(site_id=site_id, mode=mode, token=token)
     raw_response.headers["cache-control"] = (
         "no-store" if mode == "preview" else "public, max-age=300, stale-while-revalidate=3600"
     )
-    data = await service.get_runtime(site_id=site_id, mode=mode)
+    data = await service.get_runtime(site_id=site_id, mode=mode, locale=locale)
     return Response.success(data=data)
 
 

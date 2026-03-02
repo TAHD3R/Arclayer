@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-from math import ceil
 from typing import Any
 
 from fastapi import Depends, FastAPI, HTTPException
-from fastapi_limiter import FastAPILimiter
 from fastapi_limiter.depends import RateLimiter
+from pyrate_limiter import Duration, Limiter, Rate
 from starlette.requests import Request
 from starlette.responses import Response
 from starlette.status import HTTP_429_TOO_MANY_REQUESTS
@@ -26,17 +25,32 @@ async def default_identifier(request: Request) -> str:
     return f"{ip}:{request.scope.get('path', '')}"
 
 
-async def default_callback(request: Request, response: Response, pexpire: int) -> None:
-    expire = ceil(pexpire / 1000)
-    detail: dict[str, Any] = {"message": t("errors", "RATE_LIMITED", default="请求过于频繁"), "error": "RATE_LIMITED"}
+def default_callback(*args: Any, **kwargs: Any) -> None:
+    # Keep callback lightweight: fastapi-limiter expects callbacks to raise HTTPException.
+    # (It's fine for this to be sync because it always raises.)
+    _ = args, kwargs
+    detail: dict[str, Any] = {
+        "message": t("errors", "RATE_LIMITED", default="请求过于频繁"),
+        "error": "RATE_LIMITED",
+    }
     raise HTTPException(
         HTTP_429_TOO_MANY_REQUESTS,
         detail=detail,
-        headers={"Retry-After": str(expire)},
     )
 
 
 def rate_limit(times: int, seconds: int) -> Any:
+    limiter = Limiter(Rate(times, Duration.SECOND * seconds))
+
+    async def _identifier(request: Request) -> str:
+        # fastapi-limiter uses `identifier + route_index + dep_index` as the bucket key.
+        # Our `rate_limit()` wraps RateLimiter in another dependency, so dep_index may not
+        # distinguish multiple limiters; we include times/seconds to avoid collisions.
+        base = await default_identifier(request)
+        return f"{base}:{times}:{seconds}"
+
+    dep = RateLimiter(limiter=limiter, identifier=_identifier, callback=default_callback)
+
     async def _dependency(
         request: Request,
         response: Response,
@@ -44,48 +58,23 @@ def rate_limit(times: int, seconds: int) -> Any:
     ) -> None:
         if not settings.valkey.enabled or not settings.valkey.limiter_enabled:
             return
-        if FastAPILimiter.redis is None:
-            logger.warning("Rate limiter not initialized", path=request.url.path)
-            return
-        limiter = RateLimiter(times=times, seconds=seconds)
-        await limiter(request, response)
+        await dep(request, response)
 
     return Depends(_dependency)
 
 
 async def init_rate_limiter(app: FastAPI, settings: Settings) -> None:
-    if not settings.valkey.enabled:
-        logger.info("Rate limiter init skipped (valkey disabled)")
-        return
-    if not settings.valkey.limiter_enabled:
-        logger.info("Rate limiter init skipped (limiter disabled)")
-        return
-
-    client = getattr(app.state, "valkey", None)
-    if client is None:
-        raise RuntimeError(
-            "Rate limiter requires Valkey client. Ensure VALKEY__ENABLED=true and VALKEY__LIMITER_ENABLED=true."
+    if not settings.valkey.enabled or not settings.valkey.limiter_enabled:
+        logger.info(
+            "Rate limiter init skipped",
+            enabled=settings.valkey.enabled,
+            limiter_enabled=settings.valkey.limiter_enabled,
         )
-
-    await FastAPILimiter.init(
-        client.raw,
-        prefix=settings.valkey.limiter_prefix,
-        identifier=default_identifier,
-        http_callback=default_callback,
-    )
-    logger.info("Rate limiter initialized", prefix=settings.valkey.limiter_prefix)
+        return
+    _ = app
+    logger.info("Rate limiter enabled")
 
 
 async def close_rate_limiter(app: FastAPI) -> None:
-    if not FastAPILimiter.redis:
-        return
-    client = getattr(app.state, "valkey", None)
-    if client is not None and FastAPILimiter.redis is client.raw:
-        FastAPILimiter.redis = None
-        FastAPILimiter.lua_sha = None
-        FastAPILimiter.prefix = None
-        FastAPILimiter.identifier = None
-        FastAPILimiter.http_callback = None
-        FastAPILimiter.ws_callback = None
-        return
-    await FastAPILimiter.close()
+    _ = app
+    return

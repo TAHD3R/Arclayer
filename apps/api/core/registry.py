@@ -4,7 +4,6 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI
-from fastapi.responses import ORJSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.gzip import GZipMiddleware
@@ -110,10 +109,8 @@ class AppFactory:
             version=self.settings.application.app_version,
             description=self.settings.application.app_description,
             openapi_url=self.settings.application.app_openapi_url if self.settings.enable_docs else None,
-            # Disable built-in Swagger UI and ReDoc. We serve Stoplight Elements instead.
             docs_url=None,
             redoc_url=None,
-            default_response_class=ORJSONResponse,
             lifespan=_build_lifespan(self.settings, plugin_manager=self.plugin_manager),
         )
 

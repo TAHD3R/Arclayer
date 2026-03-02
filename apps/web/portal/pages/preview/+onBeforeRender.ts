@@ -53,6 +53,7 @@ export async function onBeforeRender(pageContext: PortalPreviewPageContextLike) 
           match: resolved.match,
           dataSources: resolved.dataSources,
           ...(resolved.includes ? { includes: resolved.includes } : {}),
+          ...(resolved.pageMeta ? { pageMeta: resolved.pageMeta } : {}),
           viewerCtx: renderViewerCtx,
           pathname: parsed.pathname,
           ...(parsed.token ? { token: parsed.token } : {}),

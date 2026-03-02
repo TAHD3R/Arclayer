@@ -1,10 +1,17 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Button, Card, Form, Input, List, Modal, Space, Tag, Typography } from "antd";
+import { App, Button, Card, Form, Input, List, Modal, Space, Tag, Typography } from "antd";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ApiError } from "@celestial/web-runtime/http";
 
-import { createWorkspacePage, listWorkspacePagesTree } from "@/api/pages";
+import {
+  createWorkspacePage,
+  deleteWorkspacePage,
+  listWorkspacePagesTree,
+  moveWorkspacePage,
+} from "@/api/pages";
+import { PageMoveDrawer } from "@/components/pages/page-move-drawer";
 import type { WorkspacePageCreateIn, WorkspacePageTreeNode } from "@/types/api";
 
 export const Route = createFileRoute("/w/$workspaceId/")({
@@ -25,16 +32,42 @@ function flattenTree(nodes: WorkspacePageTreeNode[], depth = 0): FlatNode[] {
   return out;
 }
 
+function findNodeById(nodes: WorkspacePageTreeNode[], id: string): WorkspacePageTreeNode | null {
+  for (const n of nodes) {
+    if (n.id === id) return n;
+    if (n.children?.length) {
+      const found = findNodeById(n.children, id);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+function collectSubtreeIds(node: WorkspacePageTreeNode | null): Set<string> {
+  const out = new Set<string>();
+  if (!node) return out;
+  const stack: WorkspacePageTreeNode[] = [node];
+  while (stack.length) {
+    const cur = stack.pop();
+    if (!cur) continue;
+    out.add(cur.id);
+    for (const child of cur.children ?? []) stack.push(child);
+  }
+  return out;
+}
+
 function WorkspacePagesHome() {
   const { t } = useTranslation(["editor"]);
   const { workspaceId } = Route.useParams();
   const qc = useQueryClient();
+  const { message } = App.useApp();
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["workspace", workspaceId, "content", "pages", "tree"],
     queryFn: () => listWorkspacePagesTree(workspaceId),
   });
 
+  const treeItems = data?.items ?? [];
   const [createOpen, setCreateOpen] = useState(false);
   const [form] = Form.useForm<WorkspacePageCreateIn>();
 
@@ -49,7 +82,51 @@ function WorkspacePagesHome() {
     },
   });
 
-  const flatItems = useMemo(() => flattenTree(data?.items ?? []), [data?.items]);
+  const flatItems = useMemo(() => flattenTree(treeItems), [treeItems]);
+
+  const [moveOpen, setMoveOpen] = useState(false);
+  const [moveTargetId, setMoveTargetId] = useState<string | null>(null);
+  const moveTarget = useMemo(
+    () => (moveTargetId ? findNodeById(treeItems, moveTargetId) : null),
+    [moveTargetId, treeItems],
+  );
+  const disabledParentIds = useMemo(() => collectSubtreeIds(moveTarget), [moveTarget]);
+
+  const moveMutation = useMutation({
+    mutationFn: async (payload: { pageId: string; parentId: string | null; sortOrder: number }) => {
+      return await moveWorkspacePage(workspaceId, payload.pageId, {
+        parentId: payload.parentId,
+        sortOrder: payload.sortOrder,
+      });
+    },
+    onSuccess: async () => {
+      await qc.invalidateQueries({
+        queryKey: ["workspace", workspaceId, "content", "pages", "tree"],
+      });
+      setMoveOpen(false);
+      setMoveTargetId(null);
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (pageId: string) => deleteWorkspacePage(workspaceId, pageId),
+    onSuccess: async () => {
+      await qc.invalidateQueries({
+        queryKey: ["workspace", workspaceId, "content", "pages", "tree"],
+      });
+    },
+    onError: (err) => {
+      if (err instanceof ApiError) {
+        if (err.status === 409 && err.error === "CONTENT_ENTRY_MUST_UNPUBLISH") {
+          message.error(t("editor:EDITOR_PAGES_DELETE_MUST_UNPUBLISH"));
+          return;
+        }
+        message.error(err.message || t("editor:EDITOR_PAGES_DELETE_FAILED"));
+        return;
+      }
+      message.error(t("editor:EDITOR_PAGES_DELETE_FAILED"));
+    },
+  });
 
   const onSubmitCreate = async () => {
     const values = await form.validateFields();
@@ -96,6 +173,39 @@ function WorkspacePagesHome() {
                     >
                       <Button>{t("editor:EDITOR_PAGES_OPEN")}</Button>
                     </Link>,
+                    <Button
+                      key="move"
+                      onClick={() => {
+                        setMoveTargetId(node.id);
+                        setMoveOpen(true);
+                      }}
+                      disabled={moveMutation.isPending || deleteMutation.isPending}
+                    >
+                      {t("editor:EDITOR_PAGES_MOVE")}
+                    </Button>,
+                    <Button
+                      key="delete"
+                      danger
+                      disabled={moveMutation.isPending || deleteMutation.isPending}
+                      onClick={() => {
+                        Modal.confirm({
+                          title: t("editor:EDITOR_PAGES_DELETE_CONFIRM_TITLE"),
+                          content: `${node.path}`,
+                          okText: t("editor:EDITOR_PAGES_DELETE_CONFIRM_OK"),
+                          cancelText: t("editor:EDITOR_PAGES_DELETE_CONFIRM_CANCEL"),
+                          okButtonProps: { danger: true },
+                          onOk: async () => {
+                            try {
+                              await deleteMutation.mutateAsync(node.id);
+                            } catch {
+                              // Error handled by mutation onError -> toast.
+                            }
+                          },
+                        });
+                      }}
+                    >
+                      {t("editor:EDITOR_PAGES_DELETE")}
+                    </Button>,
                   ]}
                 >
                   <List.Item.Meta
@@ -125,6 +235,26 @@ function WorkspacePagesHome() {
           )}
         </div>
       </Card>
+
+      <PageMoveDrawer
+        open={moveOpen}
+        page={moveTarget}
+        pages={treeItems}
+        disabledParentIds={disabledParentIds}
+        saving={moveMutation.isPending}
+        onClose={() => {
+          setMoveOpen(false);
+          setMoveTargetId(null);
+        }}
+        onSubmit={async (payload) => {
+          if (!moveTargetId) return;
+          await moveMutation.mutateAsync({
+            pageId: moveTargetId,
+            parentId: payload.parentId ?? null,
+            sortOrder: payload.sortOrder,
+          });
+        }}
+      />
 
       <Modal
         title={t("editor:EDITOR_PAGES_CREATE")}

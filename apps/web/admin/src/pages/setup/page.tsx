@@ -351,7 +351,7 @@ export function SetupPage() {
       };
 
       if (siteDescription) {
-        corePatch.seo = { default_description: siteDescription };
+        corePatch.site = Object.assign({}, corePatch.site, { description: siteDescription });
       }
 
       setLauncherExpanded(false);

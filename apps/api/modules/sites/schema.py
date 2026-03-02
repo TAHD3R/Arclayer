@@ -19,6 +19,10 @@ class SiteResolveOut(BaseSchema):
     site_id: PublicUUID = Field(..., description="Resolved site id.")
     default_locale: str = Field(..., description="Default locale (e.g. zh-CN).")
     fallback_locale: str = Field(..., description="Fallback locale (e.g. en-US).")
+    supported_locales: list[str] = Field(
+        default_factory=list,
+        description="Supported locales enabled for the site (BCP 47 tags).",
+    )
 
 
 class SiteThemeOut(BaseSchema):
@@ -61,6 +65,43 @@ class SiteFontOut(BaseSchema):
     sources: list[SiteFontSourceOut] = Field(default_factory=list, description="Font sources.")
 
 
+class SiteIdentityOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    name: str | None = Field(default=None, description="Site name.")
+    subtitle: str | None = Field(default=None, description="Site subtitle.")
+    description: str | None = Field(default=None, description="Site description.")
+    url: str | None = Field(default=None, description="Site canonical URL.")
+    logo_url: str | None = Field(default=None, description="Logo URL.")
+    favicon_url: str | None = Field(default=None, description="Favicon URL.")
+    contact_email: str | None = Field(default=None, description="Contact email.")
+
+
+class SiteLocalizationOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    locale: str | None = Field(default=None, description="Default locale (e.g. zh-CN).")
+    supported_locales: list[str] | None = Field(
+        default=None,
+        description="Supported locales enabled for the site (BCP 47 tags).",
+    )
+    default_locale: str | None = Field(default=None, description="Default locale (BCP 47).")
+    fallback_locale: str | None = Field(default=None, description="Fallback locale (BCP 47).")
+    timezone: str | None = Field(default=None, description="Default timezone (IANA, e.g. Asia/Shanghai).")
+    date_format: str | None = Field(default=None, description="Default date format (e.g. YYYY-MM-DD).")
+
+
+class SiteSeoDefaultsOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    default_title: str | None = Field(default=None, description="Default page title.")
+    default_description: str | None = Field(default=None, description="Default page description.")
+    title_policy_v1: dict[str, JsonValue] | None = Field(
+        default=None,
+        description="Structured title composition policy (v1).",
+    )
+
+
 class SiteRuntimeOut(BaseSchema):
     model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
 
@@ -68,6 +109,12 @@ class SiteRuntimeOut(BaseSchema):
     mode: Literal["public", "preview"] = Field(..., description="Runtime mode.")
     theme: SiteThemeOut = Field(..., description="Theme configuration.")
     fonts: list[SiteFontOut] = Field(default_factory=list, description="Self-hosted fonts.")
+    site: SiteIdentityOut | None = Field(default=None, description="Site identity (public-safe).")
+    site_localization: SiteLocalizationOut | None = Field(
+        default=None,
+        description="Site localization settings (public-safe).",
+    )
+    seo: SiteSeoDefaultsOut | None = Field(default=None, description="Default SEO config (public-safe).")
 
 
 class SiteRouteMatchOut(BaseSchema):
@@ -173,10 +220,22 @@ class ResolveWarningV1(BaseSchema):
     )
 
 
+class SiteResolvedPageMetaOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    title: str | None = Field(default=None, description="Page title (metadata).")
+    description: str | None = Field(default=None, description="Page description (metadata).")
+
+
 class SiteRouteResolveOut(BaseSchema):
     model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
 
     match: SiteRouteMatchOut = Field(..., description="Match result.")
+    page_meta: SiteResolvedPageMetaOut | None = Field(
+        default=None,
+        alias="pageMeta",
+        description="Resolved page metadata (title/description) used for SSR head.",
+    )
     page_blueprint: PageBlueprint | None = Field(
         default=None,
         alias="pageBlueprint",

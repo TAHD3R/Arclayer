@@ -100,9 +100,77 @@ async function handleVike(req, res) {
   }
 
   const { statusCode, headers: responseHeaders, body } = httpResponse;
+
+  // Persist locale preference (cookie) when URL contains a locale prefix:
+  // - /{locale}/...
+  // - /w/{workspaceSlug}/{locale}/...
+  // This supports the "cookie > accept-language" locale strategy for later visits.
+  try {
+    const contentType =
+      responseHeaders.find(([name]) => String(name).toLowerCase() === "content-type")?.[1] || "";
+    const isHtml = String(contentType).toLowerCase().startsWith("text/html");
+    const isOk = statusCode >= 200 && statusCode < 300;
+    if (isOk && isHtml && req.url) {
+      const url = new URL(req.url, "http://localhost");
+      const locale = extractLocalePrefixFromPath(url.pathname);
+      if (locale) {
+        const existing = parseCookieValue(req.headers?.cookie || "", "celestial_locale");
+        if (existing !== locale) {
+          const cookie = buildLocaleCookie(locale, req.headers);
+          responseHeaders.push(["Set-Cookie", cookie]);
+        }
+      }
+    }
+  } catch {
+    // Ignore cookie failures: do not break SSR.
+  }
+
   res.statusCode = statusCode;
   responseHeaders.forEach(([name, value]) => res.setHeader(name, value));
   res.end(body);
+}
+
+function extractLocalePrefixFromPath(pathnameRaw) {
+  const pathname = String(pathnameRaw || "");
+  if (!pathname.startsWith("/")) return null;
+  const segs = pathname.split("/").filter(Boolean);
+  if (!segs.length) return null;
+
+  let candidate = null;
+  if (segs[0] === "w" && segs.length >= 3) {
+    candidate = segs[2];
+  } else {
+    candidate = segs[0];
+  }
+  if (!candidate) return null;
+
+  const looksLikeLocale = /^[A-Za-z]{2,3}(?:[_-][A-Za-z0-9]{2,8})*$/.test(candidate);
+  return looksLikeLocale ? candidate : null;
+}
+
+function parseCookieValue(cookieHeader, key) {
+  const raw = String(cookieHeader || "");
+  if (!raw) return null;
+  const pairs = raw
+    .split(";")
+    .map((p) => p.trim())
+    .filter(Boolean);
+  for (const pair of pairs) {
+    const idx = pair.indexOf("=");
+    if (idx <= 0) continue;
+    const k = pair.slice(0, idx).trim();
+    if (k !== key) continue;
+    return pair.slice(idx + 1).trim() || null;
+  }
+  return null;
+}
+
+function buildLocaleCookie(locale, headers) {
+  const value = encodeURIComponent(String(locale || "").trim());
+  const parts = [`celestial_locale=${value}`, "Path=/", "Max-Age=31536000", "SameSite=Lax"];
+  const xfProto = String(headers?.["x-forwarded-proto"] || "").toLowerCase();
+  if (xfProto === "https") parts.push("Secure");
+  return parts.join("; ");
 }
 
 async function tryServeStaticAsset(req, res, distClientDir) {
