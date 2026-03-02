@@ -24,9 +24,11 @@ import {
   stableStringify,
 } from "@/pages/organization/activity/utils";
 import type { ActivityEvent } from "@/types/api";
+import { useAuthStore } from "@/stores/use-auth-store";
 
 export function OrganizationActivityPage() {
   const { t } = useTranslation(["nav", "activity"]);
+  const sessionVersion = useAuthStore((s) => s.sessionVersion);
 
   const defaultFilters = React.useMemo<ActivityFilters>(() => createDefaultActivityFilters(), []);
   const [filters, setFilters] = React.useState<ActivityFilters>(() => defaultFilters);
@@ -45,7 +47,7 @@ export function OrganizationActivityPage() {
   }, [filtersKey]);
 
   const workspacesQuery = useQuery({
-    queryKey: ["me", "workspaces"],
+    queryKey: ["me", "workspaces", sessionVersion],
     queryFn: async () => listMyWorkspaces(),
     staleTime: 60 * 1000,
     retry: false,

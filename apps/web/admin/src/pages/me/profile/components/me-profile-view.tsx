@@ -27,10 +27,11 @@ function getSearchParam(searchStr: string, key: string): string | null {
 export function MeProfileView() {
   const { t } = useTranslation("account");
   const accessToken = useAuthStore((s) => s.accessToken);
+  const sessionVersion = useAuthStore((s) => s.sessionVersion);
   const searchStr = useRouterState({ select: (s) => s.location.searchStr });
 
   const meQuery = useQuery({
-    queryKey: ["auth", "me"],
+    queryKey: ["auth", "me", sessionVersion],
     enabled: Boolean(accessToken),
     queryFn: async () => authApi.me(),
     meta: { silent: true },

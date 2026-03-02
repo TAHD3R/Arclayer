@@ -39,6 +39,7 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
   const { t } = useTranslation(["team", "nav", "common"]);
   const queryClient = useQueryClient();
   const accessToken = useAuthStore((s) => s.accessToken);
+  const sessionVersion = useAuthStore((s) => s.sessionVersion);
   const workspaceIdFromStore = useWorkspaceStore((s) => s.currentWorkspaceId);
   const workspaceId = props.workspaceIdOverride ?? workspaceIdFromStore;
   const dateTime = useWorkspaceDateTimeFormatter();
@@ -52,7 +53,7 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
     7 * 24 * 60 * 60,
   );
   const workspacesQuery = useQuery({
-    queryKey: ["me", "workspaces"],
+    queryKey: ["me", "workspaces", sessionVersion],
     enabled: Boolean(accessToken),
     queryFn: async () => listMyWorkspaces(),
     staleTime: 60 * 1000,

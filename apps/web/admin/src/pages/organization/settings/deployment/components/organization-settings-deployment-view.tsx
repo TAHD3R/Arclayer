@@ -35,6 +35,7 @@ export function OrganizationSettingsDeploymentView(props: { organizationId: stri
   const runtime = useSystemRuntime();
   const clearAuth = useAuthStore((s) => s.clear);
   const clearWorkspace = useWorkspaceStore((s) => s.clearWorkspace);
+  const sessionVersion = useAuthStore((s) => s.sessionVersion);
 
   const [reinitializeDialogForm] = Form.useForm<ReinitializeDialogValues>();
   const { savingKey, withSavingKey } = useSavingKey();
@@ -63,7 +64,7 @@ export function OrganizationSettingsDeploymentView(props: { organizationId: stri
   }, [reinitializeDialogForm]);
 
   const myOrgQuery = useQuery({
-    queryKey: ["me", "organization"],
+    queryKey: ["me", "organization", sessionVersion],
     queryFn: async () => getMyOrganization(),
     staleTime: 5 * 60 * 1000,
     retry: false,

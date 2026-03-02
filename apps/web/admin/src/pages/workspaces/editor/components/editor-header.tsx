@@ -313,10 +313,11 @@ function useBridgeLatency(args: { portal: unknown; enabled: boolean }): {
 function EditorAvatar() {
   const { t } = useTranslation(["content_pages"]);
   const accessToken = useAuthStore((s) => s.accessToken);
+  const sessionVersion = useAuthStore((s) => s.sessionVersion);
   const overlayCloseSignal = useEditorStore((s) => s.overlayCloseSignal);
 
   const meQuery = useQuery({
-    queryKey: ["auth", "me"],
+    queryKey: ["auth", "me", sessionVersion],
     enabled: Boolean(accessToken),
     queryFn: () => authApi.me(),
     meta: { silent: true },

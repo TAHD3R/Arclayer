@@ -14,6 +14,7 @@ import { SettingPanel } from "@/components/settings-primitives/setting-panel";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { useSavingKey } from "@/hooks/use-saving-key";
 import { buildOrganizationPath } from "@/lib/routing/organization-routing";
+import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import type { WorkspaceSettingsTabKey } from "@/types/settings-workspace";
 import {
@@ -32,6 +33,7 @@ export function WorkspaceSettingsDangerView(props: { workspaceId: string }) {
   const { t } = useTranslation(["settings", "common"]);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const sessionVersion = useAuthStore((s) => s.sessionVersion);
   const setCurrentWorkspaceId = useWorkspaceStore((s) => s.setCurrentWorkspaceId);
   const { savingKey, withSavingKey } = useSavingKey();
 
@@ -65,7 +67,7 @@ export function WorkspaceSettingsDangerView(props: { workspaceId: string }) {
   }, [deleteDialogForm]);
 
   const detailQuery = useQuery({
-    queryKey: ["workspace", "detail", workspaceId],
+    queryKey: ["workspace", "detail", workspaceId, sessionVersion],
     enabled: Boolean(workspaceId),
     queryFn: async () => getWorkspaceDetail(workspaceId),
     retry: false,
@@ -73,7 +75,7 @@ export function WorkspaceSettingsDangerView(props: { workspaceId: string }) {
   });
 
   const myOrgQuery = useQuery({
-    queryKey: ["me", "organization"],
+    queryKey: ["me", "organization", sessionVersion],
     queryFn: async () => getMyOrganization(),
     staleTime: 5 * 60 * 1000,
     retry: false,

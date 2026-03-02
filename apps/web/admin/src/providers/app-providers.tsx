@@ -8,12 +8,12 @@ import {
 } from "@ant-design/cssinjs";
 import { ProgressProvider } from "@bprogress/react";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { type PropsWithChildren, useLayoutEffect, useState } from "react";
+import { type PropsWithChildren, useLayoutEffect } from "react";
 import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAntdTheme } from "@/hooks/use-antd-theme";
-import { makeQueryClient } from "@/lib/query/query-client";
+import { queryClient } from "@/lib/query/query-client-instance";
 import { setMessageApi } from "@/lib/notifications";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 function AntdMessageBridge({ children }: PropsWithChildren) {
@@ -36,7 +36,6 @@ export function AppProviders({ children }: PropsWithChildren) {
   const locale = usePreferencesStore((s) => s.locale);
   const theme = useAntdTheme();
   const antdLocale = locale === "zh-CN" ? zhCN : enUS;
-  const [queryClient] = useState(() => makeQueryClient());
 
   return (
     <ProgressProvider color="var(--primary)" height="2px">

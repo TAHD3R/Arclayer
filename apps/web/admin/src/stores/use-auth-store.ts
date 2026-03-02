@@ -9,6 +9,7 @@ export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
       keepSession: true,
+      sessionVersion: 0,
       accessToken: null,
       refreshToken: null,
       tokenType: null,
@@ -35,12 +36,13 @@ export const useAuthStore = create<AuthState>()(
 
       applyLogin: (tokens, options) => {
         const normalized = normalizeTokenPair(tokens);
-        set({
+        set((prev) => ({
           keepSession: options.keepSession,
           ...normalized,
           // Drop refresh token when user does not opt in to persistent sessions.
           ...(options.keepSession ? {} : { refreshToken: null, refreshExpiresIn: null }),
-        });
+          sessionVersion: prev.sessionVersion + 1,
+        }));
       },
 
       clear: () =>
@@ -51,6 +53,7 @@ export const useAuthStore = create<AuthState>()(
           tokenType: null,
           expiresIn: null,
           refreshExpiresIn: null,
+          sessionVersion: prev.sessionVersion + 1,
         })),
     }),
     {
@@ -59,6 +62,7 @@ export const useAuthStore = create<AuthState>()(
       version: 1,
       partialize: (s) => ({
         keepSession: s.keepSession,
+        // sessionVersion is intentionally NOT persisted.
         accessToken: s.accessToken,
         tokenType: s.tokenType,
         expiresIn: s.expiresIn,

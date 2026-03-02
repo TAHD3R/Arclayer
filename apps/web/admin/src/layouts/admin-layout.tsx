@@ -30,6 +30,8 @@ import { useWorkspaceLocalization } from "@/hooks/use-workspace-localization";
 import { useSystemRuntime } from "@/hooks/use-system-runtime";
 import { resolvePermissionNameI18nKey } from "@/lib/auth/rbac-permissions";
 import { filterNavByScope } from "@/lib/filter-nav-by-scope";
+import { Illust404BrokenLink } from "@/components/illustrations";
+import { Button } from "antd";
 import {
   Sidebar,
   SidebarContent,
@@ -37,12 +39,14 @@ import {
   SidebarHeader,
   SidebarInset,
   SidebarProvider,
+  SidebarMenuSkeleton,
 } from "@/components/ui/sidebar";
 
 export function AdminLayout({ children }: PropsWithChildren) {
   const { t } = useTranslation();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const accessToken = useAuthStore((s) => s.accessToken);
+  const sessionVersion = useAuthStore((s) => s.sessionVersion);
   const localePreferenceMode = usePreferencesStore((s) => s.localePreferenceMode);
   const setEffectiveLocale = usePreferencesStore((s) => s.setEffectiveLocale);
   const cacheWorkspaceLocale = usePreferencesStore((s) => s.cacheWorkspaceLocale);
@@ -148,7 +152,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
   const [notificationPanelOpen, , setNotificationPanelOpen] = useToggle(false);
 
   const notificationPreviewQuery = useQuery({
-    queryKey: ["notifications", "preview"],
+    queryKey: ["notifications", "preview", sessionVersion],
     enabled: Boolean(accessToken),
     queryFn: () => getUnreadNotificationPreview({ limit: 1 }),
     staleTime: 30 * 1000,
@@ -184,13 +188,17 @@ export function AdminLayout({ children }: PropsWithChildren) {
   );
 
   const workspaceDetailQuery = useQuery({
-    queryKey: ["workspace", "detail", workspaceId],
+    queryKey: ["workspace", "detail", workspaceId, sessionVersion],
     enabled: Boolean(accessToken && workspaceId && !isOrgScopeRoute && isWorkspaceScopeRoute),
     queryFn: async () => getWorkspaceDetail(String(workspaceId)),
     staleTime: 5 * 60 * 1000,
     retry: false,
     meta: { silent: true },
   });
+
+  const orgContextMissing = (isOrgScopeRoute || isMeScopeRoute) && !resolvedOrgPathPrefix;
+  const showOrgNavSkeleton = Boolean(accessToken) && orgContextMissing;
+  const showOrgNavErrorOverlay = showOrgNavSkeleton && myOrganizationQuery.isError;
 
   const workspaceLocalization = useWorkspaceLocalization();
 
@@ -251,8 +259,52 @@ export function AdminLayout({ children }: PropsWithChildren) {
         </SidebarHeader>
 
         <SidebarContent className="relative z-10 mx-2 overflow-hidden scrollbar-none">
-          <div className="flex min-h-0 flex-1 flex-col overflow-auto scrollbar-none">
-            <AdminSiderNav items={mainItems} resolvePermissionName={resolvePermissionName} />
+          <div className="relative flex min-h-0 flex-1">
+            <div className="flex min-h-0 flex-1 flex-col overflow-auto scrollbar-none">
+              {showOrgNavSkeleton ? (
+                <div className="mt-4 mb-8">
+                  <div className="px-3.5 py-2">
+                    <SidebarMenuSkeleton showIcon />
+                    <SidebarMenuSkeleton showIcon />
+                    <SidebarMenuSkeleton showIcon />
+                    <SidebarMenuSkeleton showIcon />
+                    <SidebarMenuSkeleton showIcon />
+                    <SidebarMenuSkeleton showIcon />
+                    <SidebarMenuSkeleton showIcon />
+                  </div>
+                </div>
+              ) : (
+                <AdminSiderNav items={mainItems} resolvePermissionName={resolvePermissionName} />
+              )}
+            </div>
+
+            {showOrgNavErrorOverlay ? (
+              <div className="absolute inset-0 z-20 flex items-start justify-center p-3">
+                <div className="absolute inset-0 bg-sidebar/70 supports-[backdrop-filter]:bg-sidebar/50 backdrop-blur-md" />
+                <div className="relative w-full max-w-[280px]">
+                  <div className="rounded-xl border border-border/60 bg-background/70 supports-[backdrop-filter]:bg-background/55 backdrop-blur-md shadow-sm">
+                    <div className="px-4 pt-4 pb-3 text-center">
+                      <Illust404BrokenLink className="mx-auto max-w-[160px]" />
+                      <div className="mt-2 text-title text-label-primary">
+                        {t("common:REQUEST_FAILED")}
+                      </div>
+                      <div className="mt-1 text-footnote text-label-secondary">
+                        {t("common:PAGE_SERVER_ERROR_DESC")}
+                      </div>
+                      <div className="mt-3 flex items-center justify-center gap-2">
+                        <Button
+                          size="small"
+                          type="primary"
+                          onClick={() => void myOrganizationQuery.refetch()}
+                        >
+                          {t("common:RETRY")}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : null}
           </div>
 
           {footerItemsWithActions.length > 0 ? (

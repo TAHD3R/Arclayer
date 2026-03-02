@@ -25,6 +25,7 @@ import {
   DEFAULT_TIMEZONE,
   resolveDateFormatLabel,
 } from "@/lib/settings/general/localization-options";
+import { useAuthStore } from "@/stores/use-auth-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 
 import type { OrganizationSettingsTabKey } from "../../types";
@@ -52,6 +53,7 @@ export function useOrganizationSettingsBasicsController(props: { organizationId:
   const runtime = useSystemRuntime();
   const localePreferenceMode = usePreferencesStore((s) => s.localePreferenceMode);
   const setEffectiveLocale = usePreferencesStore((s) => s.setEffectiveLocale);
+  const sessionVersion = useAuthStore((s) => s.sessionVersion);
   const [form] = Form.useForm<OrganizationSettingsBasicsFormValues>();
   const [assignRoleDialogForm] = Form.useForm<OrganizationSettingsAssignRoleDialogValues>();
   const { savingKey, withSavingKey } = useSavingKey();
@@ -72,7 +74,7 @@ export function useOrganizationSettingsBasicsController(props: { organizationId:
   }, [assignRoleDialogForm]);
 
   const myOrgQuery = useQuery({
-    queryKey: ["me", "organization"],
+    queryKey: ["me", "organization", sessionVersion],
     queryFn: async () => getMyOrganization(),
     staleTime: 5 * 60 * 1000,
     retry: false,

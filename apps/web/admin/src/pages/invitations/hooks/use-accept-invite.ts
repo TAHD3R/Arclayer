@@ -15,6 +15,7 @@ import {
 } from "@/lib/notifications";
 import { ApiError } from "@/lib/http";
 import { buildOrganizationPath } from "@/lib/routing/organization-routing";
+import { queryClient } from "@/lib/query/query-client-instance";
 
 import { formatInvitationExpiresRelative, resolveRoleText } from "../utils";
 import type { WizardStep, JoinMode } from "../types";
@@ -236,6 +237,8 @@ export function useAcceptInvite(rawToken: string | null) {
     try {
       const tokens = await loginMutation.mutateAsync({ password: values.password });
       applyLogin(tokens, { keepSession: values.keepSession });
+      void queryClient.cancelQueries();
+      queryClient.clear();
       const accepted = await acceptExistingMutation.mutateAsync();
       await applyJoinedWorkspace({
         organizationId: accepted.organizationId || previewQuery.data?.organization.id,
@@ -261,6 +264,8 @@ export function useAcceptInvite(rawToken: string | null) {
     try {
       const tokens = await registerAcceptMutation.mutateAsync(values);
       applyLogin(tokens, { keepSession: true });
+      void queryClient.cancelQueries();
+      queryClient.clear();
       await applyJoinedWorkspace({
         organizationId: previewQuery.data.organization.id,
         workspaceId: previewQuery.data.workspace?.id,

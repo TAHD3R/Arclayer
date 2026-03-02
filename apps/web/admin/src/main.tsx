@@ -13,6 +13,7 @@ import { initializePreferences, usePreferencesStore } from "@/stores/use-prefere
 import { getSetupStatus, getSystemRuntime } from "@/api/system";
 import { useSetupWizardStore } from "@/stores/use-setup-wizard-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
+import { queryClient } from "@/lib/query/query-client-instance";
 
 async function bootstrap() {
   initializePreferences();
@@ -52,6 +53,8 @@ async function bootstrap() {
   }
 
   setUnauthorizedHandler(() => {
+    void queryClient.cancelQueries();
+    queryClient.clear();
     useAuthStore.getState().clear();
     useWorkspaceStore.getState().clearWorkspace();
     // Avoid redirect loops on public auth pages.

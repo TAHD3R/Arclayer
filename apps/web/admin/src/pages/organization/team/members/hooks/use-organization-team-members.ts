@@ -22,6 +22,7 @@ import { listOrganizationWorkspaces } from "@/api/organization-workspaces";
 import { useDataTable } from "@/components/data-table";
 import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
+import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
 import {
@@ -53,6 +54,7 @@ export function useOrganizationTeamMembers() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const setCurrentWorkspaceId = useWorkspaceStore((state) => state.setCurrentWorkspaceId);
+  const sessionVersion = useAuthStore((s) => s.sessionVersion);
 
   const [inviteOpen, setInviteOpen] = useState(false);
   const [filters, setFilters] = useState<OrgMemberFilters>({});
@@ -79,7 +81,7 @@ export function useOrganizationTeamMembers() {
   });
 
   const meQuery = useQuery({
-    queryKey: ["auth", "me"],
+    queryKey: ["auth", "me", sessionVersion],
     queryFn: async () => authApi.me(),
     staleTime: 60 * 1000,
     retry: false,

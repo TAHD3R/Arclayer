@@ -240,12 +240,13 @@ function OrgPanelContent(props: {
 export function AdminOrgSwitcher() {
   const { t } = useTranslation(["common"]);
   const accessToken = useAuthStore((state) => state.accessToken);
+  const sessionVersion = useAuthStore((state) => state.sessionVersion);
   const currentWorkspaceId = useWorkspaceStore((state) => state.currentWorkspaceId);
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const isWorkspaceScopeRoute = pathname.startsWith("/w/");
 
   const organizationsQuery = useQuery({
-    queryKey: ["organization", "me", "organizations", "switcher"],
+    queryKey: ["organization", "me", "organizations", "switcher", sessionVersion],
     enabled: Boolean(accessToken),
     queryFn: listMyOrganizations,
     staleTime: 5 * 60 * 1000,
@@ -269,7 +270,7 @@ export function AdminOrgSwitcher() {
 
   // 从工作区详情反查当前组织
   const workspaceDetailQuery = useQuery({
-    queryKey: ["workspace", "detail", currentWorkspaceId],
+    queryKey: ["workspace", "detail", currentWorkspaceId, sessionVersion],
     enabled: Boolean(accessToken && currentWorkspaceId && isWorkspaceScopeRoute),
     queryFn: async () => getWorkspaceDetail(String(currentWorkspaceId)),
     staleTime: 5 * 60 * 1000,

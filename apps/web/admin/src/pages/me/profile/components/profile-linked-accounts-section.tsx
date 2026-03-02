@@ -35,6 +35,7 @@ export type MeProfileLinkedAccountsSectionProps = {
 export function MeProfileLinkedAccountsSection(props: MeProfileLinkedAccountsSectionProps) {
   const { t } = useTranslation("account");
   const accessToken = useAuthStore((s) => s.accessToken);
+  const sessionVersion = useAuthStore((s) => s.sessionVersion);
   const queryClient = useQueryClient();
   const themeMode = usePreferencesStore((s) => s.themeMode);
   const isDark = themeMode === "dark";
@@ -49,7 +50,7 @@ export function MeProfileLinkedAccountsSection(props: MeProfileLinkedAccountsSec
   });
 
   const identitiesQuery = useQuery({
-    queryKey: ["me", "oauth", "identities"],
+    queryKey: ["me", "oauth", "identities", sessionVersion],
     enabled: Boolean(accessToken),
     queryFn: async () => listMyOAuthIdentities(),
     staleTime: 10 * 1000,

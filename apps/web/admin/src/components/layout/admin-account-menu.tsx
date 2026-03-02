@@ -8,6 +8,7 @@ import { type ReactNode, useMemo } from "react";
 import * as authApi from "@/api/auth";
 import { getMyOrganization } from "@/api/me";
 import { useAuthStore } from "@/stores/use-auth-store";
+import { queryClient } from "@/lib/query/query-client-instance";
 import {
   FloatingPanelButton,
   FloatingPanelContent,
@@ -156,16 +157,17 @@ export function AdminAccountMenu() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const clear = useAuthStore((s) => s.clear);
   const accessToken = useAuthStore((s) => s.accessToken);
+  const sessionVersion = useAuthStore((s) => s.sessionVersion);
 
   const meQuery = useQuery({
-    queryKey: ["auth", "me"],
+    queryKey: ["auth", "me", sessionVersion],
     enabled: Boolean(accessToken),
     queryFn: async () => authApi.me(),
     meta: { silent: true },
   });
 
   const myOrgQuery = useQuery({
-    queryKey: ["me", "organization"],
+    queryKey: ["me", "organization", sessionVersion],
     enabled: Boolean(accessToken),
     queryFn: async () => getMyOrganization(),
     meta: { silent: true },
@@ -186,6 +188,8 @@ export function AdminAccountMenu() {
   const currentOrganizationId = routeOrganizationId || myOrgQuery.data?.organization.id || null;
 
   const onLogout = async () => {
+    void queryClient.cancelQueries();
+    queryClient.clear();
     clear();
     await navigate({ to: "/login", replace: true });
   };

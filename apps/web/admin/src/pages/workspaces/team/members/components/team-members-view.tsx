@@ -59,6 +59,7 @@ export function TeamMembersView() {
 
   const queryClient = useQueryClient();
   const accessToken = useAuthStore((s) => s.accessToken);
+  const sessionVersion = useAuthStore((s) => s.sessionVersion);
   const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
 
   const [filters, setFilters] = React.useState<TeamMembersFilters>({});
@@ -68,7 +69,7 @@ export function TeamMembersView() {
   const [inviteOpen, setInviteOpen] = React.useState(false);
 
   const meQuery = useQuery({
-    queryKey: ["auth", "me"],
+    queryKey: ["auth", "me", sessionVersion],
     enabled: Boolean(accessToken),
     queryFn: async () => authApi.me(),
     staleTime: 60 * 1000,
@@ -78,7 +79,7 @@ export function TeamMembersView() {
   const currentUserId = meQuery.data?.id ?? null;
 
   const workspacesQuery = useQuery({
-    queryKey: ["me", "workspaces"],
+    queryKey: ["me", "workspaces", sessionVersion],
     enabled: Boolean(accessToken),
     queryFn: async () => listMyWorkspaces(),
     staleTime: 60 * 1000,

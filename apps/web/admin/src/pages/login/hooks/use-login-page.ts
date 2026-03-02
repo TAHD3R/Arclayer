@@ -13,6 +13,7 @@ import { consumeStudioReturnTo, resolveStudioOrigin } from "@/lib/routing/studio
 import { notifyErrorText, notifyInfoText, notifySuccessText } from "@/lib/notifications";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
+import { queryClient } from "@/lib/query/query-client-instance";
 
 import type { LoginFormValues, RegisterFormValues } from "../types";
 
@@ -136,6 +137,8 @@ export function useLoginPage() {
       try {
         const tokens = await ssoExchangeMutation.mutateAsync(oauthCode);
         applyLogin(tokens, { keepSession });
+        void queryClient.cancelQueries();
+        queryClient.clear();
         await navigateAfterAuth();
       } catch {
         void navigate({
@@ -184,6 +187,8 @@ export function useLoginPage() {
     try {
       const tokens = await loginMutation.mutateAsync(values);
       applyLogin(tokens, { keepSession: values.keepSession });
+      void queryClient.cancelQueries();
+      queryClient.clear();
       notifySuccessText(t("auth:LOGIN_SUCCESS"));
       await navigateAfterAuth();
     } catch {
@@ -213,6 +218,8 @@ export function useLoginPage() {
         keepSession: true,
       });
       applyLogin(tokens, { keepSession: true });
+      void queryClient.cancelQueries();
+      queryClient.clear();
       notifySuccessText(t("auth:REGISTER_SUCCESS"));
       await navigateAfterAuth();
     } catch {
