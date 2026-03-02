@@ -7,8 +7,9 @@ from fastapi import FastAPI
 
 from apps.api.config import Settings
 from apps.api.core.logging import get_logger
-from apps.api.infra.jobs.assets_thumbnails import ASSET_THUMBNAILS_JOB_NAME, generate_asset_thumbnails
-from apps.api.infra.jobs.client import get_arq_client
+from apps.api.infra.jobs.assets_thumbnails import generate_asset_thumbnails
+from apps.api.infra.jobs.client import is_taskiq_enabled, try_dedupe_enqueue, try_enqueue_task
+from apps.api.infra.jobs.tasks import task_generate_asset_thumbnails
 from apps.api.modules.assets.events import ASSET_UPLOADED_EVENT
 from apps.api.plugin.event_bus import Event, EventBus
 
@@ -31,8 +32,8 @@ async def register_core_asset_processors(app: FastAPI, event_bus: EventBus, sett
     Register core asset processors on the in-process EventBus.
 
     Notes:
-    - This is best-effort. In SaaS/multi-replica mode we enqueue to the arq worker.
-    - If arq is disabled/unavailable, we fall back to in-process processing.
+    - This is best-effort. In SaaS/multi-replica mode we enqueue to the Taskiq worker.
+    - If Taskiq is disabled/unavailable, we fall back to in-process processing.
     - We keep the core processors lightweight and safe; they must never crash the app.
     """
 
@@ -46,28 +47,21 @@ async def register_core_asset_processors(app: FastAPI, event_bus: EventBus, sett
 
             asset_id = UUID(str(raw_asset_id))
             workspace_id = UUID(str(raw_workspace_id))
-            # Try enqueueing to arq (preferred for SaaS/multi-replica).
-            if settings.arq.enabled:
-                arq = get_arq_client(app)
-                if arq is not None:
-                    try:
-                        await arq.enqueue_job(
-                            ASSET_THUMBNAILS_JOB_NAME,
-                            str(asset_id),
-                            str(workspace_id),
-                            _job_id=f"asset-thumbs:{asset_id}",
-                            _expires=60 * 60,
-                        )
+            # Try enqueueing to Taskiq (preferred for SaaS/multi-replica).
+            if settings.taskiq.enabled and is_taskiq_enabled(app):
+                dedupe_ok = await try_dedupe_enqueue(
+                    app,
+                    dedupe_key=f"taskiq:dedupe:asset-thumbs:{asset_id}",
+                    ttl_seconds=60 * 60,
+                )
+                if dedupe_ok:
+                    enqueued = await try_enqueue_task(
+                        task_generate_asset_thumbnails,
+                        str(asset_id),
+                        str(workspace_id),
+                    )
+                    if enqueued:
                         return
-                    except BaseException as exc:
-                        _raise_if_fatal(exc)
-                        logger.warning(
-                            "Asset thumbnail enqueue failed, falling back to in-process",
-                            action="asset_thumbs_enqueue_failed",
-                            workspace_id=str(workspace_id),
-                            asset_id=str(asset_id),
-                            error=str(exc),
-                        )
 
             # Fallback: run in-process (best-effort).
             await generate_asset_thumbnails({"settings": settings}, str(asset_id), str(workspace_id))

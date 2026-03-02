@@ -2,7 +2,7 @@
   "name": "celestial-framework",
   "private": true,
   "scripts": {
-    "dev": "turbo run dev jobs:worker --filter=@celestial/admin --filter=@celestial/api --filter=@celestial/portal  --filter=@celestial/studio",
+    "dev": "turbo run dev jobs:worker jobs:scheduler --filter=@celestial/admin --filter=@celestial/api --filter=@celestial/portal  --filter=@celestial/studio",
     "dev:saas": "DEPLOYMENT_MODE=saas pnpm infra:saas && pnpm dev",
     "dev:self_host": "pnpm infra:self_host && pnpm dev",
     "dev:self_host:min": "pnpm infra:self_host:min && pnpm dev",

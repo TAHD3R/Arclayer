@@ -25,11 +25,11 @@ class CoreHookImpl:
         return []
 
     @hookimpl
-    def arq_functions(self):  # type: ignore[no-untyped-def]
+    def taskiq_tasks(self):  # type: ignore[no-untyped-def]
         return []
 
     @hookimpl
-    def arq_cron_jobs(self):  # type: ignore[no-untyped-def]
+    def taskiq_schedules(self):  # type: ignore[no-untyped-def]
         return []
 
     @hookimpl

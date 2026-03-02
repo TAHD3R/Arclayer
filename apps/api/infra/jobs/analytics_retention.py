@@ -69,7 +69,7 @@ async def _release_lock() -> None:
 
 async def analytics_audit_log_retention_cleanup(ctx: dict[str, Any]) -> None:
     """
-    arq cron job: delete expired audit log events in bounded batches.
+    Scheduled job: delete expired audit log events in bounded batches.
 
     Safety goals:
     - never run if DB/analytics is disabled

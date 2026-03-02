@@ -156,7 +156,7 @@ def _is_image_asset(asset: AssetRecord) -> bool:
 
 async def generate_asset_thumbnails(ctx: dict[str, Any], asset_id_raw: str, workspace_id_raw: str) -> None:
     """
-    arq job: generate and upload asset thumbnails.
+    Background job: generate and upload asset thumbnails.
 
     Goals:
     - idempotent: skip if all desired variants exist

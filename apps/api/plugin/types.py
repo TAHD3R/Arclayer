@@ -51,3 +51,14 @@ class BasePlugin:
 
     async def on_stop(self) -> None:
         """Stop hook (may perform I/O)."""
+
+    def taskiq_tasks(self) -> list[Any]:
+        """
+        Return Taskiq job coroutine functions to be registered in the worker.
+
+        Notes:
+        - Keep it declarative: return coroutine callables only.
+        - The host will wrap these functions and register them into the broker.
+        """
+
+        return []

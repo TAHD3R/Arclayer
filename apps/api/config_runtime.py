@@ -28,18 +28,19 @@ def _normalize_runtime_fs_path(value: Path, *, default_base: Path) -> Path:
     return (default_base / value).resolve()
 
 
-class ArqSettings(BaseSettings):
+class TaskiqSettings(BaseSettings):
     """
-    arq worker settings.
+    Taskiq worker/scheduler settings.
 
     Notes:
-    - arq requires Redis-compatible storage (Valkey is supported).
-    - We run arq as a separate worker process for periodic maintenance jobs
-      (e.g. analytics retention cleanup).
+    - Taskiq requires Redis-compatible storage (Valkey is supported).
+    - We run Taskiq as separate processes:
+      - worker: executes background jobs
+      - scheduler: enqueues scheduled jobs (cron)
     """
 
     model_config = SettingsConfigDict(
-        env_prefix="ARQ__",
+        env_prefix="TASKIQ__",
         env_file_encoding="utf-8",
         env_nested_delimiter="__",
         extra="ignore",
@@ -49,7 +50,7 @@ class ArqSettings(BaseSettings):
     )
 
     enabled: bool = Field(default=False)
-    queue_name: str = Field(default="celestial:arq")
+    queue_name: str = Field(default="celestial:taskiq")
     redis_dsn: str | None = Field(default=None)
 
 

@@ -43,16 +43,16 @@ class CelestialHooks:
         raise NotImplementedError
 
     @hookspec
-    def arq_functions(self) -> list[Any]:
+    def taskiq_tasks(self) -> list[Any]:
         """
-        Return Arq job functions to be registered in the worker.
+        Return Taskiq job coroutine functions to be registered in the worker.
         """
         raise NotImplementedError
 
     @hookspec
-    def arq_cron_jobs(self) -> list[Any]:
+    def taskiq_schedules(self) -> list[Any]:
         """
-        Return Arq cron job declarations to be registered in the worker.
+        Return Taskiq schedule declarations to be registered in the scheduler.
         """
         raise NotImplementedError
 

@@ -53,6 +53,10 @@
     "jobs:worker": {
       "cache": false,
       "persistent": true
+    },
+    "jobs:scheduler": {
+      "cache": false,
+      "persistent": true
     }
   }
 }

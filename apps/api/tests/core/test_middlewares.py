@@ -18,7 +18,7 @@ def _configure_logging_env(monkeypatch, log_dir: Path) -> None:
     monkeypatch.setenv("VALKEY__ENABLED", "0")
     monkeypatch.setenv("TEST_VALKEY__ENABLED", "0")
     monkeypatch.setenv("VALKEY__LIMITER_ENABLED", "0")
-    monkeypatch.setenv("ARQ__ENABLED", "0")
+    monkeypatch.setenv("TASKIQ__ENABLED", "0")
     get_settings.cache_clear()
 
 

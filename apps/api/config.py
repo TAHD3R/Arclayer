@@ -6,7 +6,6 @@ from pydantic import AliasChoices, Field, SecretStr, computed_field, field_valid
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from apps.api.config_runtime import (
-    ArqSettings,
     AuthSettings,
     EmailSettings,
     ObservabilitySettings,
@@ -14,6 +13,7 @@ from apps.api.config_runtime import (
     PublicIdSettings,
     SaasSettings,
     SetupSettings,
+    TaskiqSettings,
     TestingSettings,
 )
 
@@ -436,7 +436,7 @@ class AnalyticsAuditLogSettings(BaseSettings):
 
     Notes:
     - Audit log writes are best-effort and should never block the main request path.
-    - Retention cleanup is handled by arq jobs (not in-process coroutines).
+    - Retention cleanup is handled by Taskiq jobs (not in-process coroutines).
     """
 
     model_config = SettingsConfigDict(
@@ -461,7 +461,7 @@ class AnalyticsAuditLogSettings(BaseSettings):
     max_string_length: int = Field(default=512, ge=16, le=16_384)
     max_depth: int = Field(default=5, ge=1, le=20)
 
-    # Retention (days). Cleanup is executed by arq cron jobs.
+    # Retention (days). Cleanup is executed by Taskiq scheduled jobs.
     retention_enabled: bool = Field(default=True)
     retention_days: int = Field(default=90, ge=1, le=3650)
     retention_batch_size: int = Field(default=2000, ge=100, le=100_000)
@@ -657,7 +657,7 @@ class Settings(BaseSettings):
     database: DatabaseSettings = Field(default_factory=DatabaseSettings)
     valkey: ValkeySettings = Field(default_factory=ValkeySettings)
     analytics: AnalyticsSettings = Field(default_factory=AnalyticsSettings)
-    arq: ArqSettings = Field(default_factory=ArqSettings)
+    taskiq: TaskiqSettings = Field(default_factory=TaskiqSettings)
     observability: ObservabilitySettings = Field(default_factory=ObservabilitySettings)
     middleware: MiddlewareSettings = Field(default_factory=MiddlewareSettings)
     auth: AuthSettings = Field(default_factory=AuthSettings)
@@ -735,9 +735,9 @@ class Settings(BaseSettings):
             self.analytics,
             _build_settings_from_env_file(AnalyticsSettings, env_file=env_file, env_file_encoding=env_file_encoding),
         )
-        self.arq = _merge_settings(
-            self.arq,
-            _build_settings_from_env_file(ArqSettings, env_file=env_file, env_file_encoding=env_file_encoding),
+        self.taskiq = _merge_settings(
+            self.taskiq,
+            _build_settings_from_env_file(TaskiqSettings, env_file=env_file, env_file_encoding=env_file_encoding),
         )
         self.observability = _merge_settings(
             self.observability,

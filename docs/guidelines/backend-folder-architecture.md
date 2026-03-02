@@ -152,14 +152,13 @@ If a new directory is introduced, include a minimal README or guideline entry.
 - Promote shared constants/enums/protocols/utilities to `common/`.
 - Search existing helpers before adding new utility methods.
 
-### 7.5 Database migrations (Aerich)
+### 7.5 Database migrations (Tortoise)
 
-- Do not hand-write new migration files under `apps/api/migrations/**`.
-- Always generate migrations via Aerich (`pnpm -C apps/api db:migrate`) and apply via (`pnpm -C apps/api db:upgrade`).
-- If a migration requires custom SQL:
-  - Generate the file via `db:migrate` first, then edit only the SQL inside `upgrade()` / `downgrade()`.
-  - Keep the Aerich-generated module structure and `MODELS_STATE` intact (Aerich 0.9.2+ format).
-  - If the repository contains older migrations, run `pnpm -C apps/api uv -- aerich fix-migrations` before upgrading.
+- Use the Tortoise ORM v1+ built-in migrations system (Aerich is legacy and incompatible with `tortoise-orm>=1.0.0`).
+- New migration files are generated under `apps/api/tortoise_migrations/**`. Do not hand-write migration files there.
+- Generate migrations via `pnpm -C apps/api db:migrate` and apply via `pnpm -C apps/api db:upgrade`.
+- If a migration requires custom SQL or data transforms:
+  - Generate the file via `db:migrate` first, then apply minimal edits to the generated operations.
 
 ## 8. Architecture PR Checklist
 

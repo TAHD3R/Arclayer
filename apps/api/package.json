@@ -8,6 +8,7 @@
   },
   "scripts": {
     "uv": "UV_CACHE_DIR=../../.uv-cache PYTHONPATH=../.. uv run",
+    "lock": "UV_CACHE_DIR=../../.uv-cache PYTHONPATH=../.. uv lock",
     "install": "UV_CACHE_DIR=../../.uv-cache PYTHONPATH=../.. uv sync",
     "dev": "UV_CACHE_DIR=../../.uv-cache PYTHONPATH=../.. uv run uvicorn apps.api.main:app --reload --host 0.0.0.0 --port 8000",
     "lint": "UV_CACHE_DIR=../../.uv-cache PYTHONPATH=../.. uv run ruff check . --fix",
@@ -15,8 +16,9 @@
     "typecheck": "UV_CACHE_DIR=../../.uv-cache PYTHONPATH=../.. uv run pyright --project ../../pyproject.toml",
     "test": "UV_CACHE_DIR=../../.uv-cache PYTHONPATH=../.. uv run pytest --cov=.",
     "test:integration": "RUN_INTEGRATION_TESTS=1 MAIL__ENABLED=1 MAIL__SUPPRESS_SEND=1 UV_CACHE_DIR=../../.uv-cache PYTHONPATH=../.. uv run pytest -m integration --cov=.",
-    "db:migrate": "UV_CACHE_DIR=../../.uv-cache PYTHONPATH=../.. uv run aerich migrate",
-    "db:upgrade": "UV_CACHE_DIR=../../.uv-cache PYTHONPATH=../.. uv run aerich upgrade",
-    "jobs:worker": "UV_CACHE_DIR=../../.uv-cache PYTHONPATH=../.. uv run arq apps.api.infra.jobs.worker.WorkerSettings"
+    "db:migrate": "UV_CACHE_DIR=../../.uv-cache PYTHONPATH=../.. uv run python -m tortoise makemigrations",
+    "db:upgrade": "UV_CACHE_DIR=../../.uv-cache PYTHONPATH=../.. uv run python -m tortoise migrate",
+    "jobs:worker": "UV_CACHE_DIR=../../.uv-cache PYTHONPATH=../.. uv run taskiq worker apps.api.infra.jobs.taskiq_app:broker apps.api.infra.jobs.tasks",
+    "jobs:scheduler": "UV_CACHE_DIR=../../.uv-cache PYTHONPATH=../.. uv run taskiq scheduler apps.api.infra.jobs.taskiq_app:scheduler apps.api.infra.jobs.tasks"
   }
 }

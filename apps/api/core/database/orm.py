@@ -7,7 +7,7 @@ from collections.abc import Iterable
 from functools import lru_cache
 from importlib.util import find_spec
 from pathlib import Path
-from typing import Final
+from typing import Final, Protocol, cast
 
 from pydantic import ValidationError
 from tortoise import Tortoise
@@ -27,6 +27,10 @@ _FATAL_ORM_ERRORS: tuple[type[BaseException], ...] = (
     KeyboardInterrupt,
     SystemExit,
 )
+
+
+class _TortoiseInternal(Protocol):
+    _inited: bool
 
 
 def _raise_if_fatal(exc: BaseException) -> None:
@@ -148,7 +152,6 @@ def build_models_list(
         modules.update(discover_model_modules(pkg))
     for module in extra_modules or []:
         modules.add(module)
-    modules.add("aerich.models")
     return sorted(modules)
 
 
@@ -178,6 +181,8 @@ def build_tortoise_config(
             "models": {
                 "models": models,
                 "default_connection": "default",
+                # Tortoise ORM v1+ built-in migrations.
+                "migrations": "apps.api.migrations",
             }
         },
         "use_tz": settings.database.use_tz,
@@ -252,7 +257,7 @@ async def close_orm() -> None:
         _raise_if_fatal(exc)
         # Best-effort: do not mask shutdown errors in production.
         logger.warning("Tortoise app reset failed during close", error=str(exc))
-    Tortoise._inited = False
+    cast(_TortoiseInternal, Tortoise)._inited = False
 
 
 async def verify_db_ready(

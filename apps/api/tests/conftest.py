@@ -53,7 +53,7 @@ def base_test_env(monkeypatch) -> Iterator[None]:
     monkeypatch.setenv("DATABASE__ENABLED", "0")
     monkeypatch.setenv("VALKEY__ENABLED", "0")
     monkeypatch.setenv("VALKEY__LIMITER_ENABLED", "0")
-    monkeypatch.setenv("ARQ__ENABLED", "0")
+    monkeypatch.setenv("TASKIQ__ENABLED", "0")
 
     # Avoid async log queue threads in tests unless explicitly enabled.
     monkeypatch.setenv("LOG_ASYNC", "0")

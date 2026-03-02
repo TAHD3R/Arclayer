@@ -577,10 +577,10 @@ class PluginManager:
 
     async def _run_migrations(self, plugin_id: str) -> None:
         # Integration tests use `Tortoise.generate_schemas()` to build a clean schema.
-        # Running Aerich here is slow and can spawn subprocesses that outlive the test
+        # Running DB migrations here is slow and can spawn subprocesses that outlive the test
         # event loop, leading to flaky "Event loop is closed" errors.
         #
-        # If we ever need to explicitly test Aerich integration, we can opt in via env.
+        # If we ever need to explicitly test migration integration, we can opt in via env.
         if self.settings.app_env == "test" and os.getenv("PLUGIN__MIGRATE_IN_TEST") != "1":
             logger.info("Plugin migrations skipped in test env", plugin_id=plugin_id)
             return
@@ -592,10 +592,10 @@ class PluginManager:
             if token is None and self.valkey is not None:
                 raise RuntimeError("Plugin migration lock busy")
             try:
-                # Aerich migration names become part of Python module filenames; keep them import-safe.
+                # Migration names become part of generated filenames; keep them import-safe.
                 safe_name = _sanitize_migration_name(f"plugin_{plugin_id}")
-                await self._run_aerich("migrate", "--name", safe_name, "--no-input")
-                await self._run_aerich("upgrade")
+                await self._run_tortoise_cli("makemigrations", "--name", safe_name)
+                await self._run_tortoise_cli("migrate", "models")
             finally:
                 if token and self.valkey is not None:
                     await self._release_migration_lock(token)
@@ -631,23 +631,21 @@ class PluginManager:
         except MIGRATION_LOCK_RELEASE_ERRORS as exc:
             logger.warning("Plugin migration lock release failed", error=str(exc))
 
-    async def _run_aerich(self, *args: str) -> None:
+    async def _run_tortoise_cli(self, *args: str) -> None:
         # Convention: API runtime dotenv files (e.g. `.env`) live under `apps/api`.
-        # Aerich runs in a subprocess and imports `apps.api.core.database.orm.TORTOISE_ORM`, which calls `get_settings()`.
-        # Set cwd to `apps/api` so the subprocess reads the same dotenv files as the main process,
-        # avoiding mismatched DB configuration.
-        pyproject = self.project_root / "apps" / "api" / "pyproject.toml"
+        # The Tortoise CLI runs in a subprocess and imports `apps.api.core.database.orm.TORTOISE_ORM`,
+        # which calls `get_settings()`. Set cwd to `apps/api` so the subprocess reads the same dotenv
+        # files as the main process, avoiding mismatched DB configuration.
+        api_root = self.project_root / "apps" / "api"
         env = os.environ.copy()
         # In some launch modes (e.g. `apps/api` as cwd), ensure repo root is importable as `apps.*`.
         env.setdefault("PYTHONPATH", str(self.project_root))
         proc = await asyncio.create_subprocess_exec(
             sys.executable,
             "-m",
-            "aerich",
-            "--config",
-            str(pyproject),
+            "tortoise",
             *args,
-            cwd=str(pyproject.parent),
+            cwd=str(api_root),
             env=env,
             stdout=PIPE,
             stderr=PIPE,
@@ -656,12 +654,12 @@ class PluginManager:
         out = stdout.decode("utf-8", errors="ignore").strip()
         err = stderr.decode("utf-8", errors="ignore").strip()
         if proc.returncode != 0:
-            logger.error("Aerich command failed", args=list(args), stdout=out, stderr=err)
-            raise RuntimeError("Aerich command failed")
+            logger.error("Tortoise CLI command failed", args=list(args), stdout=out, stderr=err)
+            raise RuntimeError("Tortoise CLI command failed")
         if out:
-            logger.info("Aerich command output", args=list(args))
+            logger.info("Tortoise CLI command output", args=list(args))
         if err:
-            logger.warning("Aerich command stderr", args=list(args), stderr=err)
+            logger.warning("Tortoise CLI command stderr", args=list(args), stderr=err)
 
     async def _request_restart(self, plugin_id: str | None, *, reason: str) -> None:
         if not self.settings.plugin.auto_restart:
