@@ -1,4 +1,9 @@
-import type { BlockManifest, FieldDefinition, LocalizedString, ViewerContext } from "@celestial/site-block-protocol";
+import type {
+  BlockManifest,
+  FieldDefinition,
+  LocalizedString,
+  ViewerContext,
+} from "@celestial/site-block-protocol";
 import { resolveLocalizedValue } from "@celestial/site-block-protocol";
 import type {
   DesignBindingExprV1,
@@ -55,7 +60,9 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function isBindingExpr(value: unknown): value is DesignBindingExprV1 {
   if (!isRecord(value)) return false;
-  return value.kind === "binding" && typeof value.source === "string" && typeof value.path === "string";
+  return (
+    value.kind === "binding" && typeof value.source === "string" && typeof value.path === "string"
+  );
 }
 
 function isDesignValue(value: unknown): value is DesignValueV1 {
@@ -153,18 +160,21 @@ export function resolveBindingToUnknown(args: {
       ? data?.primaryEntry?.data
       : expr.source === "prefabProps"
         ? data?.prefabProps
-      : expr.source === "routeParams"
-        ? data?.routeParams
-        : expr.source === "site"
-          ? data?.site
-          : data?.viewer;
+        : expr.source === "routeParams"
+          ? data?.routeParams
+          : expr.source === "site"
+            ? data?.site
+            : data?.viewer;
 
   if (!root) return undefined;
 
   const path = expr.path.trim();
   if (!path) return undefined;
 
-  const segs = path.split(".").map((s) => s.trim()).filter(Boolean);
+  const segs = path
+    .split(".")
+    .map((s) => s.trim())
+    .filter(Boolean);
   let cur: unknown = root;
   for (const seg of segs) {
     if (!isRecord(cur)) return undefined;
@@ -325,7 +335,9 @@ export function expandPrefabInstanceV1(args: {
     const targetId = mapId(targetTplId);
     const target = nodesById[targetId];
     if (!target) {
-      warnings.push(`Missing slot target "${targetTplId}" in prefab template "${args.def.prefabId}"`);
+      warnings.push(
+        `Missing slot target "${targetTplId}" in prefab template "${args.def.prefabId}"`,
+      );
       continue;
     }
 
@@ -386,7 +398,9 @@ function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
 }
 
-function toSlotManifestMap(manifest: BlockManifest): Map<string, NonNullable<BlockManifest["slots"]>[number]> {
+function toSlotManifestMap(
+  manifest: BlockManifest,
+): Map<string, NonNullable<BlockManifest["slots"]>[number]> {
   const out = new Map<string, NonNullable<BlockManifest["slots"]>[number]>();
   const slots = manifest.slots ?? [];
   for (const slot of slots) {
@@ -420,13 +434,23 @@ export function validateSlotChildrenAgainstManifest(args: {
       continue;
     }
 
-    const min = typeof slot.minChildren === "number" && Number.isFinite(slot.minChildren) ? slot.minChildren : 0;
-    const max = typeof slot.maxChildren === "number" && Number.isFinite(slot.maxChildren) ? slot.maxChildren : undefined;
+    const min =
+      typeof slot.minChildren === "number" && Number.isFinite(slot.minChildren)
+        ? slot.minChildren
+        : 0;
+    const max =
+      typeof slot.maxChildren === "number" && Number.isFinite(slot.maxChildren)
+        ? slot.maxChildren
+        : undefined;
 
     if (ids.length < min) errors.push(`Slot "${slotName}" requires at least ${min} children`);
-    if (max !== undefined && ids.length > max) errors.push(`Slot "${slotName}" allows at most ${max} children`);
+    if (max !== undefined && ids.length > max)
+      errors.push(`Slot "${slotName}" allows at most ${max} children`);
 
-    const allowed = Array.isArray(slot.allowedNodeTypes) && slot.allowedNodeTypes.length ? new Set(slot.allowedNodeTypes) : null;
+    const allowed =
+      Array.isArray(slot.allowedNodeTypes) && slot.allowedNodeTypes.length
+        ? new Set(slot.allowedNodeTypes)
+        : null;
     for (const id of ids) {
       const node = args.globalNodesById[id];
       if (!node) {

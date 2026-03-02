@@ -18,7 +18,7 @@ export interface AntdThemeOptions {
    *
    * - Pass this to avoid touching `document` in SSR/test environments
    * - Useful for Shadow DOM / multi-document scenarios
-  */
+   */
   element?: HTMLElement | null;
   zIndexPopupBase?: number;
   token?: Record<string, AntdTokenValue>;
@@ -90,10 +90,7 @@ function readLengthPx(
   return num;
 }
 
-export function readAntdTokensFromCssVars(
-  el: HTMLElement | null | undefined,
-  mode: ThemeMode,
-) {
+export function readAntdTokensFromCssVars(el: HTMLElement | null | undefined, mode: ThemeMode) {
   if (!el || typeof getComputedStyle === "undefined") {
     // In SSR/tests, avoid reading CSS variables. Final appearance is controlled by
     // Antd defaults + user-provided overrides.
@@ -108,8 +105,7 @@ export function readAntdTokensFromCssVars(
       colorBgContainer: "#fff",
       colorBgElevated: "#fff",
       colorBgLayout: "#f5f5f5",
-      colorBgMask:
-        mode === "dark" ? "rgba(0, 0, 0, 0.45)" : "rgba(0, 0, 0, 0.35)",
+      colorBgMask: mode === "dark" ? "rgba(0, 0, 0, 0.45)" : "rgba(0, 0, 0, 0.35)",
       colorBorder: "#d9d9d9",
       colorBorderSecondary: "#f0f0f0",
       colorTextBase: "#000",
@@ -135,11 +131,7 @@ export function readAntdTokensFromCssVars(
     colorBgBase: readColor(el, "--background", "#fff"),
     colorBgContainer: readColor(el, "--card", "#fff"),
     colorBgElevated: readColor(el, "--popover", "#fff"),
-    colorBgLayout: readColor(
-      el,
-      "--background-deep",
-      readColor(el, "--background", "#f5f5f5"),
-    ),
+    colorBgLayout: readColor(el, "--background-deep", readColor(el, "--background", "#f5f5f5")),
     colorBgMask: readColor(
       el,
       "--overlay",
@@ -150,16 +142,8 @@ export function readAntdTokensFromCssVars(
     colorError: readColor(el, "--destructive", "#ff4d4f"),
     colorInfo: colorPrimary,
     colorPrimary,
-    colorSuccess: readColor(
-      el,
-      "--success",
-      readColor(el, "--chart-2", "#52c41a"),
-    ),
-    colorText: readColor(
-      el,
-      "--text-primary",
-      readColor(el, "--foreground", "rgba(0,0,0,0.88)"),
-    ),
+    colorSuccess: readColor(el, "--success", readColor(el, "--chart-2", "#52c41a")),
+    colorText: readColor(el, "--text-primary", readColor(el, "--foreground", "rgba(0,0,0,0.88)")),
     colorTextSecondary: readColor(
       el,
       "--text-secondary",
@@ -176,27 +160,13 @@ export function readAntdTokensFromCssVars(
       mode === "dark" ? "rgba(255, 255, 255, 0.30)" : "rgba(0, 0, 0, 0.25)",
     ),
     colorTextBase: readColor(el, "--foreground", "#000"),
-    colorWarning: readColor(
-      el,
-      "--warning",
-      readColor(el, "--chart-3", "#faad14"),
-    ),
+    colorWarning: readColor(el, "--warning", readColor(el, "--chart-3", "#faad14")),
     fontSize: readLengthPx(el, "--font-size-body", 16, rootFontSizePx),
     fontSizeSM: readLengthPx(el, "--font-size-footnote", 13, rootFontSizePx),
     fontSizeLG: readLengthPx(el, "--font-size-body", 16, rootFontSizePx),
-    fontSizeHeading1: readLengthPx(
-      el,
-      "--font-size-largetitle",
-      34,
-      rootFontSizePx,
-    ),
+    fontSizeHeading1: readLengthPx(el, "--font-size-largetitle", 34, rootFontSizePx),
     fontSizeHeading2: readLengthPx(el, "--font-size-title", 28, rootFontSizePx),
-    fontSizeHeading3: readLengthPx(
-      el,
-      "--font-size-title2",
-      22,
-      rootFontSizePx,
-    ),
+    fontSizeHeading3: readLengthPx(el, "--font-size-title2", 22, rootFontSizePx),
   } as const;
 }
 
@@ -213,8 +183,7 @@ export function createAntdTheme(options: AntdThemeOptions) {
     zeroRuntime,
     algorithm,
   } = options;
-  const rootEl =
-    element ?? (typeof document === "undefined" ? null : document.documentElement);
+  const rootEl = element ?? (typeof document === "undefined" ? null : document.documentElement);
   const baseTokens = readAntdTokensFromCssVars(rootEl, mode);
 
   const token = tokenOverrides
@@ -224,8 +193,7 @@ export function createAntdTheme(options: AntdThemeOptions) {
   const components = componentOverrides ? { ...componentOverrides } : {};
 
   const resolvedAlgorithm =
-    algorithm ??
-    (mode === "dark" ? theme.darkAlgorithm : theme.defaultAlgorithm);
+    algorithm ?? (mode === "dark" ? theme.darkAlgorithm : theme.defaultAlgorithm);
 
   return {
     algorithm: resolvedAlgorithm,

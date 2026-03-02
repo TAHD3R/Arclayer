@@ -163,8 +163,18 @@ export function exportPageBlueprintJsonSchema(): Record<string, unknown> {
             type: "object",
             additionalProperties: false,
             properties: {
-              title: { oneOf: [{ $ref: "#/$defs/LocalizedString" }, { $ref: "#/$defs/DesignBindingExprV1" }] },
-              description: { oneOf: [{ $ref: "#/$defs/LocalizedString" }, { $ref: "#/$defs/DesignBindingExprV1" }] },
+              title: {
+                oneOf: [
+                  { $ref: "#/$defs/LocalizedString" },
+                  { $ref: "#/$defs/DesignBindingExprV1" },
+                ],
+              },
+              description: {
+                oneOf: [
+                  { $ref: "#/$defs/LocalizedString" },
+                  { $ref: "#/$defs/DesignBindingExprV1" },
+                ],
+              },
             },
           },
         },
@@ -202,7 +212,9 @@ export function exportPageBlueprintJsonSchema(): Record<string, unknown> {
         properties: {
           ...baseProps(),
           type: { const: "text" },
-          text: { oneOf: [{ $ref: "#/$defs/LocalizedString" }, { $ref: "#/$defs/DesignBindingExprV1" }] },
+          text: {
+            oneOf: [{ $ref: "#/$defs/LocalizedString" }, { $ref: "#/$defs/DesignBindingExprV1" }],
+          },
           tag: { enum: ["p", "span", "h1", "h2", "h3"] },
           align: { enum: ["left", "center", "right"] },
         },
@@ -215,7 +227,9 @@ export function exportPageBlueprintJsonSchema(): Record<string, unknown> {
           ...baseProps(),
           type: { const: "image" },
           src: { oneOf: [{ type: "string" }, { $ref: "#/$defs/DesignBindingExprV1" }] },
-          alt: { oneOf: [{ $ref: "#/$defs/LocalizedString" }, { $ref: "#/$defs/DesignBindingExprV1" }] },
+          alt: {
+            oneOf: [{ $ref: "#/$defs/LocalizedString" }, { $ref: "#/$defs/DesignBindingExprV1" }],
+          },
           objectFit: { enum: ["cover", "contain", "fill", "none"] },
         },
       },

@@ -31,14 +31,15 @@ const DEFAULT_GIT_SHA_ENV_KEYS = [
 export function resolveBuildMeta(input: ResolveBuildMetaInput): BuildMeta {
   const rootDir = input.rootDir ?? process.cwd();
 
-  const version =
-    input.version?.trim() || readPackageVersion(rootDir) || "0.0.0";
+  const version = input.version?.trim() || readPackageVersion(rootDir) || "0.0.0";
 
   const buildTime = input.buildTime?.trim() || new Date().toISOString();
 
   const gitSha =
     input.gitSha?.trim() ||
-    DEFAULT_GIT_SHA_ENV_KEYS.map((k) => process.env[k]).find((v) => typeof v === "string" && v.trim())?.trim();
+    DEFAULT_GIT_SHA_ENV_KEYS.map((k) => process.env[k])
+      .find((v) => typeof v === "string" && v.trim())
+      ?.trim();
 
   return {
     appName: input.appName,

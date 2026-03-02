@@ -84,7 +84,9 @@ export function resolveLocaleFromAcceptLanguage(
 
     const primary = tagLower.split("-")[0] || "";
     if (!primary) continue;
-    const primaryIdx = supportedLower.findIndex((s) => s === primary || s.startsWith(primary + "-"));
+    const primaryIdx = supportedLower.findIndex(
+      (s) => s === primary || s.startsWith(primary + "-"),
+    );
     if (primaryIdx >= 0) return supported[primaryIdx] || def || DEFAULT_LOCALE;
   }
 

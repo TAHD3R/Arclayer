@@ -41,9 +41,10 @@ function isFiniteNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
 }
 
-function deriveBaseViewportFromPrefabTemplate(args: {
-  nodesById: Record<string, DesignNodeV1>;
-}): { width: number; height: number } {
+function deriveBaseViewportFromPrefabTemplate(args: { nodesById: Record<string, DesignNodeV1> }): {
+  width: number;
+  height: number;
+} {
   let maxX = 0;
   let maxY = 0;
   for (const node of Object.values(args.nodesById)) {
@@ -105,7 +106,9 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function isBindingExpr(value: unknown): value is DesignBindingExprV1 {
   if (!isRecord(value)) return false;
-  return value.kind === "binding" && typeof value.source === "string" && typeof value.path === "string";
+  return (
+    value.kind === "binding" && typeof value.source === "string" && typeof value.path === "string"
+  );
 }
 
 function resolveNodeAtBreakpoint(node: DesignNodeV1, ctx: ViewerContext): DesignNodeV1 {
@@ -172,7 +175,10 @@ function applyStyle(style: React.CSSProperties, design: DesignStyleV1 | undefine
   }
 }
 
-function applyTransform(style: React.CSSProperties, transform: DesignTransformV1 | undefined): void {
+function applyTransform(
+  style: React.CSSProperties,
+  transform: DesignTransformV1 | undefined,
+): void {
   if (!transform) return;
   const parts: string[] = [];
   if (typeof transform.rotation === "number" && Number.isFinite(transform.rotation)) {
@@ -187,7 +193,9 @@ function applyTransform(style: React.CSSProperties, transform: DesignTransformV1
   if (parts.length) style.transform = parts.join(" ");
 }
 
-function computeContentHeight(boxesById: Record<string, { x: number; y: number; width: number; height: number }>): number {
+function computeContentHeight(
+  boxesById: Record<string, { x: number; y: number; width: number; height: number }>,
+): number {
   let max = 0;
   for (const box of Object.values(boxesById)) {
     max = Math.max(max, box.y + box.height);
@@ -225,7 +233,9 @@ function toLayoutNodes(args: {
             typeof layout.children.gap === "number" ? { gap: layout.children.gap } : {},
             typeof layout.children.padding === "number" ? { padding: layout.children.padding } : {},
             layout.children.alignItems ? { alignItems: layout.children.alignItems } : {},
-            layout.children.justifyContent ? { justifyContent: layout.children.justifyContent } : {},
+            layout.children.justifyContent
+              ? { justifyContent: layout.children.justifyContent }
+              : {},
             layout.children.wrap ? { wrap: layout.children.wrap } : {},
           )
         : { mode: "absolute" as const }
@@ -310,14 +320,21 @@ export function PageBlueprintRenderer(props: PageBlueprintRendererProps) {
 
   const layoutResult = React.useMemo(() => {
     try {
-      return computeLayoutBoxes({ rootId: inputDoc.rootId, nodesById: layoutNodes, viewport: viewportArgs });
+      return computeLayoutBoxes({
+        rootId: inputDoc.rootId,
+        nodesById: layoutNodes,
+        viewport: viewportArgs,
+      });
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Unknown error";
       return { boxesById: {}, warnings: [{ nodeId: inputDoc.rootId, message: msg }] };
     }
   }, [inputDoc.rootId, layoutNodes, viewportArgs]);
 
-  const contentHeight = React.useMemo(() => computeContentHeight(layoutResult.boxesById), [layoutResult.boxesById]);
+  const contentHeight = React.useMemo(
+    () => computeContentHeight(layoutResult.boxesById),
+    [layoutResult.boxesById],
+  );
 
   const rootStyle: React.CSSProperties = React.useMemo(
     () => ({
@@ -409,11 +426,7 @@ function RenderNode(args: {
   if (resolved.type === "frame" || resolved.type === "group") {
     const children = resolved.children ?? [];
     return (
-      <div
-        data-node-id={resolved.id}
-        data-node-type={resolved.type}
-        style={style}
-      >
+      <div data-node-id={resolved.id} data-node-type={resolved.type} style={style}>
         {children.map((childId) => (
           <React.Fragment key={childId}>
             <NodeErrorBoundary nodeId={childId}>
@@ -447,13 +460,17 @@ function RenderNode(args: {
       dataSources: args.dataSources,
     });
     if (resolved.align) style.textAlign = resolved.align;
-    if (resolved.style?.typography?.fontFamily) style.fontFamily = resolved.style.typography.fontFamily;
-    if (resolved.style?.typography?.fontSize) style.fontSize = toCssLengthPx(resolved.style.typography.fontSize);
-    if (resolved.style?.typography?.lineHeight) style.lineHeight = toCssLengthPx(resolved.style.typography.lineHeight);
+    if (resolved.style?.typography?.fontFamily)
+      style.fontFamily = resolved.style.typography.fontFamily;
+    if (resolved.style?.typography?.fontSize)
+      style.fontSize = toCssLengthPx(resolved.style.typography.fontSize);
+    if (resolved.style?.typography?.lineHeight)
+      style.lineHeight = toCssLengthPx(resolved.style.typography.lineHeight);
     if (resolved.style?.typography?.letterSpacing !== undefined) {
       style.letterSpacing = toCssLengthPx(resolved.style.typography.letterSpacing);
     }
-    if (resolved.style?.typography?.fontWeight) style.fontWeight = `${resolved.style.typography.fontWeight}`;
+    if (resolved.style?.typography?.fontWeight)
+      style.fontWeight = `${resolved.style.typography.fontWeight}`;
 
     return (
       <Tag data-node-id={resolved.id} data-node-type={resolved.type} style={style}>
@@ -588,7 +605,9 @@ function RenderNode(args: {
       });
     }
 
-    const baseViewport = deriveBaseViewportFromPrefabTemplate({ nodesById: def.template.nodesById });
+    const baseViewport = deriveBaseViewportFromPrefabTemplate({
+      nodesById: def.template.nodesById,
+    });
     const innerViewport = {
       width: box?.width ?? 0,
       height: box?.height ?? 0,
@@ -609,7 +628,7 @@ function RenderNode(args: {
           viewport={innerViewport}
           prefabRegistry={registry}
           dataSources={{
-            ...(args.dataSources ?? {}),
+            ...args.dataSources,
             prefabProps: prefabPropsPlain,
           }}
           includes={args.includes}
@@ -677,10 +696,10 @@ function RenderNode(args: {
       : undefined;
 
     const refDataSources: DesignRenderDataSourcesV1 = {
-      ...(args.dataSources ?? {}),
+      ...args.dataSources,
       ...(include.data ? { primaryEntry: { id: resolved.refEntryId, data: include.data } } : {}),
       ...(refPropsPlain
-        ? { prefabProps: { ...(args.dataSources?.prefabProps ?? {}), ...refPropsPlain } }
+        ? { prefabProps: { ...args.dataSources?.prefabProps, ...refPropsPlain } }
         : {}),
     };
 
@@ -722,7 +741,9 @@ function prefixPageBlueprintNodeIds(args: {
 
     if (node.type === "prefab_instance" && (node as any).slotChildren) {
       const slotChildren: Record<string, string[]> = {};
-      for (const [slotName, ids] of Object.entries((node as any).slotChildren as Record<string, unknown>)) {
+      for (const [slotName, ids] of Object.entries(
+        (node as any).slotChildren as Record<string, unknown>,
+      )) {
         if (!Array.isArray(ids)) continue;
         slotChildren[slotName] = (ids as string[]).map((childId) => `${args.prefix}${childId}`);
       }
@@ -809,7 +830,9 @@ function RenderErrorPanel(props: { title: string; detail?: string }) {
   return (
     <div role="alert" data-celestial="design-document-error">
       <div data-celestial="design-document-error-title">{props.title}</div>
-      {!isProd && props.detail ? <pre data-celestial="design-document-error-detail">{props.detail}</pre> : null}
+      {!isProd && props.detail ? (
+        <pre data-celestial="design-document-error-detail">{props.detail}</pre>
+      ) : null}
     </div>
   );
 }
@@ -843,7 +866,9 @@ class NodeErrorBoundary extends React.Component<
       <div role="alert" data-celestial="node-error" data-node-id={this.props.nodeId}>
         <div data-celestial="node-error-title">Node render error</div>
         <div data-celestial="node-error-meta">{this.props.nodeId}</div>
-        {!isProd && this.state.message ? <pre data-celestial="node-error-message">{this.state.message}</pre> : null}
+        {!isProd && this.state.message ? (
+          <pre data-celestial="node-error-message">{this.state.message}</pre>
+        ) : null}
       </div>
     );
   }

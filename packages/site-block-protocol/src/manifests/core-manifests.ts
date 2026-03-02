@@ -73,7 +73,12 @@ export const CORE_BLOCK_MANIFESTS: BlockManifest[] = [
     category: "media",
     supports: { layout: true, design: true, responsive: true },
     attributes: [
-      { key: "src", kind: "url", label: { "zh-CN": "图片地址", "en-US": "Source URL" }, required: true },
+      {
+        key: "src",
+        kind: "url",
+        label: { "zh-CN": "图片地址", "en-US": "Source URL" },
+        required: true,
+      },
       { key: "alt", kind: "text", label: { "zh-CN": "替代文本", "en-US": "Alt Text" } },
       {
         key: "objectFit",

@@ -1,7 +1,4 @@
-export type OriginMatcher =
-  | string
-  | readonly string[]
-  | ((origin: string) => boolean);
+export type OriginMatcher = string | readonly string[] | ((origin: string) => boolean);
 
 export function isAllowedOrigin(origin: string, expected: OriginMatcher): boolean {
   if (typeof expected === "string") return origin === expected;

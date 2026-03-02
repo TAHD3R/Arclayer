@@ -25,7 +25,10 @@ function normalizeSize(value: LayoutSize): LayoutSize {
   };
 }
 
-function normalizeViewport(viewport: LayoutComputeViewport): { actual: LayoutSize; base: LayoutSize } {
+function normalizeViewport(viewport: LayoutComputeViewport): {
+  actual: LayoutSize;
+  base: LayoutSize;
+} {
   const actual = normalizeSize({
     width: viewport.width,
     height: viewport.height,
@@ -48,7 +51,9 @@ function normalizeAbsoluteRect(rect: AbsoluteRect): AbsoluteRect {
   };
 }
 
-function normalizeConstraints(constraints: Partial<AbsoluteConstraints> | undefined): AbsoluteConstraints {
+function normalizeConstraints(
+  constraints: Partial<AbsoluteConstraints> | undefined,
+): AbsoluteConstraints {
   return {
     horizontal: constraints?.horizontal ?? "left",
     vertical: constraints?.vertical ?? "top",
@@ -123,8 +128,7 @@ function applyAlignmentToRect(
   const ax = alignX ?? "start";
   const ay = alignY ?? "start";
 
-  const x =
-    ax === "center" ? base.x - base.width / 2 : ax === "end" ? base.x - base.width : base.x;
+  const x = ax === "center" ? base.x - base.width / 2 : ax === "end" ? base.x - base.width : base.x;
   const y =
     ay === "center" ? base.y - base.height / 2 : ay === "end" ? base.y - base.height : base.y;
 
@@ -474,7 +478,10 @@ export function computeLayoutBoxes(args: {
         }
         const positioning = child.positioning;
         if (!positioning || positioning.kind !== "absolute") {
-          warnings.push({ nodeId: childId, message: `缺少 absolute positioning（parent=${nodeId}）` });
+          warnings.push({
+            nodeId: childId,
+            message: `缺少 absolute positioning（parent=${nodeId}）`,
+          });
           continue;
         }
 
@@ -496,7 +503,11 @@ export function computeLayoutBoxes(args: {
         };
         boxesById[childId] = childBox;
 
-        visitNode(childId, childBox, resolveNodeBaseSize(child, { width: childBox.width, height: childBox.height }));
+        visitNode(
+          childId,
+          childBox,
+          resolveNodeBaseSize(child, { width: childBox.width, height: childBox.height }),
+        );
       }
 
       visiting.delete(nodeId);
@@ -516,7 +527,11 @@ export function computeLayoutBoxes(args: {
       boxesById[it.id] = it.box;
       const child = args.nodesById[it.id];
       if (!child) continue;
-      visitNode(it.id, it.box, resolveNodeBaseSize(child, { width: it.box.width, height: it.box.height }));
+      visitNode(
+        it.id,
+        it.box,
+        resolveNodeBaseSize(child, { width: it.box.width, height: it.box.height }),
+      );
     }
 
     visiting.delete(nodeId);
@@ -538,7 +553,11 @@ export function computeLayoutBoxes(args: {
       boxesById[it.id] = it.box;
       const child = args.nodesById[it.id];
       if (!child) continue;
-      visitNode(it.id, it.box, resolveNodeBaseSize(child, { width: it.box.width, height: it.box.height }));
+      visitNode(
+        it.id,
+        it.box,
+        resolveNodeBaseSize(child, { width: it.box.width, height: it.box.height }),
+      );
     }
   } else {
     // absolute children layout
@@ -550,7 +569,10 @@ export function computeLayoutBoxes(args: {
       }
       const positioning = child.positioning;
       if (!positioning || positioning.kind !== "absolute") {
-        warnings.push({ nodeId: childId, message: `缺少 absolute positioning（parent=${args.rootId}）` });
+        warnings.push({
+          nodeId: childId,
+          message: `缺少 absolute positioning（parent=${args.rootId}）`,
+        });
         continue;
       }
 
@@ -572,7 +594,11 @@ export function computeLayoutBoxes(args: {
       };
       boxesById[childId] = childBox;
 
-      visitNode(childId, childBox, resolveNodeBaseSize(child, { width: childBox.width, height: childBox.height }));
+      visitNode(
+        childId,
+        childBox,
+        resolveNodeBaseSize(child, { width: childBox.width, height: childBox.height }),
+      );
     }
   }
 

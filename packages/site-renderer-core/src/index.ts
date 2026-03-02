@@ -9,7 +9,11 @@ export type {
 export { resolveLocalizedValue } from "@celestial/site-block-protocol";
 
 export type { CssVarMap } from "./internal/theme/css-vars";
-export { serializeCssVarsToStyleText, resolveTokenCollection, serializeTokensToStyleText } from "./internal/theme/css-vars";
+export {
+  serializeCssVarsToStyleText,
+  resolveTokenCollection,
+  serializeTokensToStyleText,
+} from "./internal/theme/css-vars";
 
 // --- PageBlueprint v1（编辑器文档格式） ---
 export { isPageBlueprint } from "./internal/design-document";
@@ -28,7 +32,10 @@ export type {
   PrefabTemplateV1,
 } from "./internal/design/prefab-registry";
 export { PrefabRegistryV1 } from "./internal/design/prefab-registry";
-export { createDefaultPrefabRegistryV1, createEmptyPageBlueprint } from "./internal/design/default-prefab-registry";
+export {
+  createDefaultPrefabRegistryV1,
+  createEmptyPageBlueprint,
+} from "./internal/design/default-prefab-registry";
 
 // --- Layout compute (absolute constraints + auto-layout subset) ---
 export type {

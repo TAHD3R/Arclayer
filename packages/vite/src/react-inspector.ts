@@ -152,7 +152,8 @@ function findMatchingAngleBracketEnd(code: string, start: number): number {
 export function injectReactInspectorOverlay(): Plugin {
   let repoRoot = "";
 
-  const buildCode = (repoRootPath: string) => `
+  const buildCode = (repoRootPath: string) =>
+    `
 (function () {
   function init() {
     try {

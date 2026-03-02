@@ -7,7 +7,11 @@ export type { EditorHostConnector } from "./host-connector";
 export { createEditorHostConnector } from "./host-connector";
 
 export type { EditorBridgeOptions, EditorMessageHandler } from "./postMessage";
-export { createEditorPostMessageBridge, isHostToPortalMessage, isPortalToHostMessage } from "./postMessage";
+export {
+  createEditorPostMessageBridge,
+  isHostToPortalMessage,
+  isPortalToHostMessage,
+} from "./postMessage";
 
 export type { EditorRpcClient, EditorRpcClientOptions } from "./rpc";
 export { createEditorRpcClient } from "./rpc";

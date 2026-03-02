@@ -10,7 +10,10 @@ declare global {
   }
 }
 
-export function mergeRuntimeConfig(defaults: AppConfig, runtime?: Partial<AppConfig> | null): AppConfig {
+export function mergeRuntimeConfig(
+  defaults: AppConfig,
+  runtime?: Partial<AppConfig> | null,
+): AppConfig {
   return runtime ? { ...defaults, ...runtime } : defaults;
 }
 

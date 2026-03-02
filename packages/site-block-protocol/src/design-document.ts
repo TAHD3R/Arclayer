@@ -71,9 +71,7 @@ export type DesignAutoLayoutV1 = {
  */
 export type DesignLayoutV1 = {
   self?: DesignAbsoluteLayoutV1;
-  children:
-    | { mode: "absolute" }
-    | ({ mode: "auto" } & DesignAutoLayoutV1);
+  children: { mode: "absolute" } | ({ mode: "auto" } & DesignAutoLayoutV1);
 };
 
 export type DesignTypographyV1 = {

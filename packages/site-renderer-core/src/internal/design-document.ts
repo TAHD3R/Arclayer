@@ -113,12 +113,19 @@ function isNode(value: unknown): value is DesignNodeV1 {
     }
     case "text": {
       if (value.tag !== undefined) {
-        if (value.tag !== "p" && value.tag !== "span" && value.tag !== "h1" && value.tag !== "h2" && value.tag !== "h3") {
+        if (
+          value.tag !== "p" &&
+          value.tag !== "span" &&
+          value.tag !== "h1" &&
+          value.tag !== "h2" &&
+          value.tag !== "h3"
+        ) {
           return false;
         }
       }
       if (value.align !== undefined) {
-        if (value.align !== "left" && value.align !== "center" && value.align !== "right") return false;
+        if (value.align !== "left" && value.align !== "center" && value.align !== "right")
+          return false;
       }
       // text is localized string map or binding
       if (!isRecord(value.text) && !isBindingExpr(value.text)) return false;
@@ -127,10 +134,16 @@ function isNode(value: unknown): value is DesignNodeV1 {
     case "image": {
       if (typeof value.src !== "string" && !isBindingExpr(value.src)) return false;
       if (value.alt !== undefined) {
-        if (typeof value.alt !== "string" && !isRecord(value.alt) && !isBindingExpr(value.alt)) return false;
+        if (typeof value.alt !== "string" && !isRecord(value.alt) && !isBindingExpr(value.alt))
+          return false;
       }
       if (value.objectFit !== undefined) {
-        if (value.objectFit !== "cover" && value.objectFit !== "contain" && value.objectFit !== "fill" && value.objectFit !== "none") {
+        if (
+          value.objectFit !== "cover" &&
+          value.objectFit !== "contain" &&
+          value.objectFit !== "fill" &&
+          value.objectFit !== "none"
+        ) {
           return false;
         }
       }

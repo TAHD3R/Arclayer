@@ -68,10 +68,12 @@ export function createApiClient(opts: ApiClientOptions): ApiClient {
     const url = buildApiUrl(path, opts);
     const headers = toHeaders(requestInit.headers);
     headers.set("accept", "application/json");
-    const credentials: RequestCredentials = requestInit.credentials ?? opts.getCredentials?.() ?? "same-origin";
+    const credentials: RequestCredentials =
+      requestInit.credentials ?? opts.getCredentials?.() ?? "same-origin";
 
     const localeHeaders = opts.getLocaleHeaders?.();
-    if (localeHeaders?.["accept-language"]) headers.set("accept-language", localeHeaders["accept-language"]);
+    if (localeHeaders?.["accept-language"])
+      headers.set("accept-language", localeHeaders["accept-language"]);
     if (localeHeaders?.["x-locale"]) headers.set("x-locale", localeHeaders["x-locale"]);
 
     const token = opts.getAccessToken();
@@ -99,7 +101,9 @@ export function createApiClient(opts: ApiClientOptions): ApiClient {
     };
 
     let res = await doFetch();
-    const parsed: unknown = isJsonResponse(res) ? await res.json().catch(() => null) : await res.text();
+    const parsed: unknown = isJsonResponse(res)
+      ? await res.json().catch(() => null)
+      : await res.text();
 
     if (res.ok) {
       if (parsed && typeof parsed === "object" && "timestamp" in parsed && "message" in parsed) {
@@ -126,9 +130,10 @@ export function createApiClient(opts: ApiClientOptions): ApiClient {
       if (!refreshToken && !shouldTryCookieRefresh) return false;
 
       if (!refreshInFlight) {
-        refreshInFlight = (refreshToken
-          ? refreshAccessToken(refreshToken, opts, credentials)
-          : refreshAccessTokenWithCookie(opts, credentials)
+        refreshInFlight = (
+          refreshToken
+            ? refreshAccessToken(refreshToken, opts, credentials)
+            : refreshAccessTokenWithCookie(opts, credentials)
         ).finally(() => {
           refreshInFlight = null;
         });
@@ -261,7 +266,8 @@ async function refreshAccessToken(
   headers.set("content-type", "application/json");
 
   const localeHeaders = opts.getLocaleHeaders?.();
-  if (localeHeaders?.["accept-language"]) headers.set("accept-language", localeHeaders["accept-language"]);
+  if (localeHeaders?.["accept-language"])
+    headers.set("accept-language", localeHeaders["accept-language"]);
   if (localeHeaders?.["x-locale"]) headers.set("x-locale", localeHeaders["x-locale"]);
 
   const res = await fetch(url, {
@@ -271,7 +277,9 @@ async function refreshAccessToken(
     body: JSON.stringify({ refresh_token: refreshToken }),
   });
 
-  const parsed: unknown = isJsonResponse(res) ? await res.json().catch(() => null) : await res.text();
+  const parsed: unknown = isJsonResponse(res)
+    ? await res.json().catch(() => null)
+    : await res.text();
   if (!res.ok) return false;
 
   if (parsed && typeof parsed === "object" && "timestamp" in parsed && "message" in parsed) {
@@ -287,7 +295,10 @@ async function refreshAccessToken(
   return false;
 }
 
-function shouldAttemptRefreshCookie(opts: ApiClientOptions, credentials: RequestCredentials): boolean {
+function shouldAttemptRefreshCookie(
+  opts: ApiClientOptions,
+  credentials: RequestCredentials,
+): boolean {
   if (credentials === "omit") return false;
   if (credentials === "include") return true;
 
@@ -297,7 +308,8 @@ function shouldAttemptRefreshCookie(opts: ApiClientOptions, credentials: Request
   if (!apiBaseUrl || apiBaseUrl.startsWith("/")) return true;
 
   // If we can detect same-origin at runtime, allow cookie refresh under "same-origin" credentials.
-  const locationOrigin = (globalThis as unknown as { location?: { origin?: string } }).location?.origin;
+  const locationOrigin = (globalThis as unknown as { location?: { origin?: string } }).location
+    ?.origin;
   if (typeof locationOrigin === "string" && locationOrigin) {
     try {
       const targetOrigin = new URL(apiBaseUrl, locationOrigin).origin;
@@ -310,14 +322,18 @@ function shouldAttemptRefreshCookie(opts: ApiClientOptions, credentials: Request
   return false;
 }
 
-async function refreshAccessTokenWithCookie(opts: ApiClientOptions, credentials: RequestCredentials): Promise<boolean> {
+async function refreshAccessTokenWithCookie(
+  opts: ApiClientOptions,
+  credentials: RequestCredentials,
+): Promise<boolean> {
   const url = buildApiUrl("/auth/refresh-cookie", opts);
   const headers = new Headers();
   headers.set("accept", "application/json");
   headers.set("content-type", "application/json");
 
   const localeHeaders = opts.getLocaleHeaders?.();
-  if (localeHeaders?.["accept-language"]) headers.set("accept-language", localeHeaders["accept-language"]);
+  if (localeHeaders?.["accept-language"])
+    headers.set("accept-language", localeHeaders["accept-language"]);
   if (localeHeaders?.["x-locale"]) headers.set("x-locale", localeHeaders["x-locale"]);
 
   const res = await fetch(url, {
@@ -327,7 +343,9 @@ async function refreshAccessTokenWithCookie(opts: ApiClientOptions, credentials:
     body: "{}",
   });
 
-  const parsed: unknown = isJsonResponse(res) ? await res.json().catch(() => null) : await res.text();
+  const parsed: unknown = isJsonResponse(res)
+    ? await res.json().catch(() => null)
+    : await res.text();
   if (!res.ok) return false;
 
   if (parsed && typeof parsed === "object" && "timestamp" in parsed && "message" in parsed) {

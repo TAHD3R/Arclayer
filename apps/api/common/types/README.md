@@ -5,4 +5,3 @@ This folder contains small shared runtime/type utilities that are used across mu
 Rules:
 - Keep types small and focused.
 - Prefer importing from here instead of duplicating complex `Annotated[...]` / Pydantic v2 patterns.
-

@@ -13,16 +13,25 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
-function mergeOverride<T extends object>(base: T | undefined, override: Partial<T> | undefined): T | undefined {
+function mergeOverride<T extends object>(
+  base: T | undefined,
+  override: Partial<T> | undefined,
+): T | undefined {
   if (!base && !override) return undefined;
   return { ...(base ?? ({} as T)), ...(override ?? ({} as Partial<T>)) } as T;
 }
 
-function mergeTypography(base: DesignTypographyV1 | undefined, override: Partial<DesignTypographyV1> | undefined): DesignTypographyV1 | undefined {
+function mergeTypography(
+  base: DesignTypographyV1 | undefined,
+  override: Partial<DesignTypographyV1> | undefined,
+): DesignTypographyV1 | undefined {
   return mergeOverride(base, override);
 }
 
-function mergeStyle(base: DesignStyleV1 | undefined, override: Partial<DesignStyleV1> | undefined): DesignStyleV1 | undefined {
+function mergeStyle(
+  base: DesignStyleV1 | undefined,
+  override: Partial<DesignStyleV1> | undefined,
+): DesignStyleV1 | undefined {
   const merged = mergeOverride(base, override);
   if (!merged) return undefined;
   const typography = mergeTypography(base?.typography, override?.typography);
@@ -30,11 +39,17 @@ function mergeStyle(base: DesignStyleV1 | undefined, override: Partial<DesignSty
   return merged;
 }
 
-function mergeTransform(base: DesignTransformV1 | undefined, override: Partial<DesignTransformV1> | undefined): DesignTransformV1 | undefined {
+function mergeTransform(
+  base: DesignTransformV1 | undefined,
+  override: Partial<DesignTransformV1> | undefined,
+): DesignTransformV1 | undefined {
   return mergeOverride(base, override);
 }
 
-function mergeConstraints(base: Partial<DesignConstraintsV1> | undefined, override: Partial<DesignConstraintsV1> | undefined): Partial<DesignConstraintsV1> | undefined {
+function mergeConstraints(
+  base: Partial<DesignConstraintsV1> | undefined,
+  override: Partial<DesignConstraintsV1> | undefined,
+): Partial<DesignConstraintsV1> | undefined {
   return mergeOverride(base, override);
 }
 
@@ -52,7 +67,8 @@ function mergeChildrenLayout(
     overrideMode ??
     // Diff-only overrides may omit `mode`; keep base mode when possible.
     baseMode ??
-    (overrideAny && (overrideAny.direction || overrideAny.gap !== undefined || overrideAny.padding !== undefined)
+    (overrideAny &&
+    (overrideAny.direction || overrideAny.gap !== undefined || overrideAny.padding !== undefined)
       ? "auto"
       : "absolute");
 
@@ -101,7 +117,10 @@ function mergeAbsoluteSelfLayout(
   return out;
 }
 
-function mergeLayout(base: DesignLayoutV1 | undefined, override: Partial<DesignLayoutV1> | undefined): DesignLayoutV1 | undefined {
+function mergeLayout(
+  base: DesignLayoutV1 | undefined,
+  override: Partial<DesignLayoutV1> | undefined,
+): DesignLayoutV1 | undefined {
   if (!base && !override) return undefined;
 
   const baseChildren = base?.children;
@@ -131,12 +150,18 @@ export function mergeDesignNodeResponsiveOverrideV1(args: {
     ...node,
     layout: mergeLayout(node.layout, override.layout as Partial<DesignLayoutV1> | undefined),
     style: mergeStyle(node.style, override.style as Partial<DesignStyleV1> | undefined),
-    transform: mergeTransform(node.transform, override.transform as Partial<DesignTransformV1> | undefined),
+    transform: mergeTransform(
+      node.transform,
+      override.transform as Partial<DesignTransformV1> | undefined,
+    ),
     motionRefs: override.motionRefs ?? node.motionRefs,
   } as DesignNodeV1;
 }
 
-export function resolveDesignNodeAtBreakpointV1(args: { node: DesignNodeV1; breakpoint: string | undefined }): DesignNodeV1 {
+export function resolveDesignNodeAtBreakpointV1(args: {
+  node: DesignNodeV1;
+  breakpoint: string | undefined;
+}): DesignNodeV1 {
   const bp = (args.breakpoint || "").trim();
   if (!bp) return args.node;
 

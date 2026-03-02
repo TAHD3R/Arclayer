@@ -197,11 +197,7 @@ export type {
   PortableTextContent,
 } from "./portable-text";
 
-export type {
-  BlockCategory,
-  BlockSupports,
-  BlockManifest,
-} from "./block-registry";
+export type { BlockCategory, BlockSupports, BlockManifest } from "./block-registry";
 
 export { CORE_BLOCK_MANIFESTS } from "./manifests/index";
 export { EDITOR_INTERNAL_BLOCK_MANIFESTS } from "./manifests/index";

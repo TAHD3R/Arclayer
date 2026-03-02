@@ -1,10 +1,6 @@
 import type { Plugin } from "vite";
 
-import {
-  buildDefaultBanner,
-  resolveBuildMeta,
-  type BuildMeta,
-} from "./internal/build-meta.ts";
+import { buildDefaultBanner, resolveBuildMeta, type BuildMeta } from "./internal/build-meta.ts";
 
 export interface CopyrightBannerOptions {
   appName: string;

@@ -67,13 +67,28 @@ export const PREFAB_BLOCK_MANIFESTS: BlockManifest[] = [
       {
         name: "default",
         label: { "zh-CN": "内容", "en-US": "Content" },
-        allowedNodeTypes: ["frame", "group", "rect", "text", "image", "embed", "prefab_instance", "content_ref"],
+        allowedNodeTypes: [
+          "frame",
+          "group",
+          "rect",
+          "text",
+          "image",
+          "embed",
+          "prefab_instance",
+          "content_ref",
+        ],
         required: false,
         minChildren: 0,
         maxChildren: 200,
       },
     ],
-    styleOverrideWhitelist: ["backgroundColor", "borderColor", "borderRadius", "boxShadow", "opacity"],
+    styleOverrideWhitelist: [
+      "backgroundColor",
+      "borderColor",
+      "borderRadius",
+      "boxShadow",
+      "opacity",
+    ],
   },
   {
     type: "prefab:card",
@@ -100,6 +115,12 @@ export const PREFAB_BLOCK_MANIFESTS: BlockManifest[] = [
       },
     ],
     // 仅允许覆写外观相关的少量字段（避免 prefab 内部样式边界被破坏）
-    styleOverrideWhitelist: ["backgroundColor", "borderColor", "borderRadius", "boxShadow", "opacity"],
+    styleOverrideWhitelist: [
+      "backgroundColor",
+      "borderColor",
+      "borderRadius",
+      "boxShadow",
+      "opacity",
+    ],
   },
 ];

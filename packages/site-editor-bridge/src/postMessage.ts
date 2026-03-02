@@ -1,4 +1,8 @@
-import type { AnyEditorMessage, HostToPortalMessage, PortalToHostMessage } from "@celestial/site-editor-protocol";
+import type {
+  AnyEditorMessage,
+  HostToPortalMessage,
+  PortalToHostMessage,
+} from "@celestial/site-editor-protocol";
 
 import type { OriginMatcher } from "./origin";
 import { isAllowedOrigin } from "./origin";
@@ -57,14 +61,14 @@ export function createEditorPostMessageBridge(opts: EditorBridgeOptions) {
 }
 
 export function isHostToPortalMessage(value: AnyEditorMessage): value is HostToPortalMessage {
-  return value.type === "PING"
-    || value.type === "SET_OVERLAY_MODE"
-    || value.type === "SELECT_BLOCK"
-    || value.type === "PUSH_DRAFT_DOCUMENT";
+  return (
+    value.type === "PING" ||
+    value.type === "SET_OVERLAY_MODE" ||
+    value.type === "SELECT_BLOCK" ||
+    value.type === "PUSH_DRAFT_DOCUMENT"
+  );
 }
 
 export function isPortalToHostMessage(value: AnyEditorMessage): value is PortalToHostMessage {
-  return value.type === "READY"
-    || value.type === "PONG"
-    || value.type === "SELECTION_CHANGED";
+  return value.type === "READY" || value.type === "PONG" || value.type === "SELECTION_CHANGED";
 }

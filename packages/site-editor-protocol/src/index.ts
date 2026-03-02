@@ -237,7 +237,9 @@ export type PortalEditorRpcApi = {
   setDevicePreset: (args: { devicePreset: EditorDevicePreset }) => EditorCanvasState;
   setZoom: (args: { zoomPercent: number }) => EditorCanvasState;
   resetZoom: () => EditorCanvasState;
-  setCanvasPreferences: (args: { preferences: Partial<EditorCanvasPreferences> }) => EditorCanvasState;
+  setCanvasPreferences: (args: {
+    preferences: Partial<EditorCanvasPreferences>;
+  }) => EditorCanvasState;
   getCanvasState: () => EditorCanvasState;
 
   // --- Block registry & patterns ---
@@ -261,8 +263,14 @@ export type PortalEditorRpcApi = {
   }) => EditorSelectionInspector;
 
   // --- Inline editing ---
-  startInlineEdit: (args: { blockId: BlockId; fieldKey: string }) => { content: PortableTextContent };
-  commitInlineEdit: (args: { blockId: BlockId; fieldKey: string; content: PortableTextContent }) => void;
+  startInlineEdit: (args: { blockId: BlockId; fieldKey: string }) => {
+    content: PortableTextContent;
+  };
+  commitInlineEdit: (args: {
+    blockId: BlockId;
+    fieldKey: string;
+    content: PortableTextContent;
+  }) => void;
 };
 
 export type HostEditorRpcApi = {
@@ -308,4 +316,11 @@ export type HostEditorRpcApi = {
   layerTreeChanged?: (args: { layers: EditorLayerNode[] }) => void;
 };
 
-export type { DndItemKind, DndNewBlockItem, DndExistingBlockItem, DndItem, DndDropTarget, DndDropResult } from "./dnd";
+export type {
+  DndItemKind,
+  DndNewBlockItem,
+  DndExistingBlockItem,
+  DndItem,
+  DndDropTarget,
+  DndDropResult,
+} from "./dnd";

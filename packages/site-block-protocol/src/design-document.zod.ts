@@ -21,8 +21,13 @@ export const DesignBindingExprV1Schema = z
   .strict();
 
 const JsonScalarSchema = z.union([z.string(), z.number(), z.boolean(), z.null()]);
-export const JsonValueSchema: z.ZodType<JsonValue> = z.lazy(() =>
-  z.union([JsonScalarSchema, z.array(JsonValueSchema), z.record(z.string(), JsonValueSchema)]) as z.ZodType<JsonValue>,
+export const JsonValueSchema: z.ZodType<JsonValue> = z.lazy(
+  () =>
+    z.union([
+      JsonScalarSchema,
+      z.array(JsonValueSchema),
+      z.record(z.string(), JsonValueSchema),
+    ]) as z.ZodType<JsonValue>,
 );
 
 export const DesignLiteralValueV1Schema = z
@@ -85,9 +90,7 @@ export const DesignAutoLayoutV1Schema = z
     gap: z.number().optional(),
     padding: z.number().optional(),
     alignItems: z.enum(["start", "center", "end", "stretch"]).optional(),
-    justifyContent: z
-      .enum(["start", "center", "end", "space-between", "space-around"])
-      .optional(),
+    justifyContent: z.enum(["start", "center", "end", "space-between", "space-around"]).optional(),
     wrap: z.enum(["nowrap", "wrap"]).optional(),
   })
   .strict();
@@ -157,9 +160,7 @@ const DesignChildrenLayoutOverrideV1Schema = z
     gap: z.number().optional(),
     padding: z.number().optional(),
     alignItems: z.enum(["start", "center", "end", "stretch"]).optional(),
-    justifyContent: z
-      .enum(["start", "center", "end", "space-between", "space-around"])
-      .optional(),
+    justifyContent: z.enum(["start", "center", "end", "space-between", "space-around"]).optional(),
     wrap: z.enum(["nowrap", "wrap"]).optional(),
   })
   .strict();
@@ -228,7 +229,10 @@ export const DesignPageRootDataSourcesV1Schema = z
     primaryEntryId: z.string().optional(),
     primaryEntryTypeHint: z.string().optional(),
     named: z
-      .record(z.string(), z.object({ entryId: z.string(), typeHint: z.string().optional() }).strict())
+      .record(
+        z.string(),
+        z.object({ entryId: z.string(), typeHint: z.string().optional() }).strict(),
+      )
       .optional(),
   })
   .strict();

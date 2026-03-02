@@ -30,16 +30,27 @@ repos:
     hooks:
       - id: frontend-format
         name: Frontend Format (oxfmt)
-        entry: pnpm -w oxfmt
+        entry: pnpm -w exec oxfmt
         language: system
-        files: ^apps/web/
+        files: ^(apps/(admin|portal|studio)|packages|plugins)/
+        # 兼容较旧 identify：使用 ts/tsx 而非 typescript
+        types_or: [javascript, jsx, ts, tsx]
         pass_filenames: true
+        args: ["-c", "packages/ox-config/.oxfmtrc.json"]
 
-      # 静态检查
       - id: frontend-lint
         name: Frontend Lint (oxlint)
-        entry: pnpm -w oxlint --fix
+        entry: pnpm -w exec oxlint
         language: system
-        files: ^apps/web/
+        files: ^(apps/(admin|portal|studio)|packages|plugins)/
+        # 兼容较旧 identify：使用 ts/tsx 而非 typescript
+        types_or: [javascript, jsx, ts, tsx]
         pass_filenames: true
-        args: ["--deny=correctness", "--deny=perf"]
+        args:
+          [
+            "-c",
+            "packages/ox-config/.oxlintrc.json",
+            "--fix",
+            "--deny=correctness",
+            "--deny=perf",
+          ]
