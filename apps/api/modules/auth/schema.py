@@ -187,6 +187,7 @@ class UserProfile(BaseOut):
     email: str | None = None
     display_name: str | None = None
     avatar_url: str | None = None
+    is_super_admin: bool = False
 
 
 class UpdateMyProfileRequest(BaseSchema):

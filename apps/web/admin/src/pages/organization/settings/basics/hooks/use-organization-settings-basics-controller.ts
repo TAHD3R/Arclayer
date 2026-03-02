@@ -11,7 +11,6 @@ import {
   patchOrganizationCoreSettings,
 } from "@/api/organization-settings";
 import { listOrganizationRoles } from "@/api/organization-rbac";
-import { useSystemRuntime } from "@/hooks/use-system-runtime";
 import { useSavingKey } from "@/hooks/use-saving-key";
 import { ApiError } from "@/lib/http";
 import { normalizeLocale } from "@/lib/i18n";
@@ -50,7 +49,6 @@ export function useOrganizationSettingsBasicsController(props: { organizationId:
   const { t } = useTranslation(["settings", "common"]);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const runtime = useSystemRuntime();
   const localePreferenceMode = usePreferencesStore((s) => s.localePreferenceMode);
   const setEffectiveLocale = usePreferencesStore((s) => s.setEffectiveLocale);
   const sessionVersion = useAuthStore((s) => s.sessionVersion);
@@ -237,7 +235,6 @@ export function useOrganizationSettingsBasicsController(props: { organizationId:
     organizationId,
     tab,
     t,
-    runtime,
     form,
     assignRoleDialogForm,
     savingKey,

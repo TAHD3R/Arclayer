@@ -36,7 +36,7 @@ export function OrganizationSettingsBasicsForm(props: {
         value={c.tab}
         onValueChange={(next) => c.onTabChange(next as OrganizationSettingsTabKey)}
       >
-        <OrganizationSettingsTabs deploymentEnabled={c.runtime.deploymentSettingsEnabled} />
+        <OrganizationSettingsTabs />
 
         <ChromeTabsContent value="basics">
           <div className="flex flex-col gap-8">

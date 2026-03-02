@@ -59,6 +59,19 @@ export type {
   SystemSettingsDetail,
 } from "./settings";
 export type {
+  SysStepUpResult,
+  SysConfigNamespaceSummary,
+  SysConfigDetail,
+  SysConfigPatchPayload,
+  SysConfigActivatePayload,
+  SysConfigRevisionOut,
+  SysConfigRevisionDetail,
+  SysConfigTestCheck,
+  SysConfigTestResult,
+  ListSysConfigNamespacesOut,
+  ListSysConfigRevisionsOut,
+} from "./sys";
+export type {
   OrganizationSettingsCore,
   OrganizationAssignDefaultRoleResult,
 } from "./organization-settings";

@@ -26,6 +26,21 @@ _core_cache_expires_at: float = 0.0
 _warned_missing_master_key: bool = False
 
 
+def invalidate_core_settings_cache() -> None:
+    """
+    Invalidate the in-process core settings cache.
+
+    Notes:
+    - This is per-worker memory only (does not fan out across processes).
+    - Call it after any endpoint that mutates system-scoped core settings so runtime
+      overlays pick up changes immediately.
+    """
+
+    global _core_cache, _core_cache_expires_at
+    _core_cache = None
+    _core_cache_expires_at = 0.0
+
+
 def _safe_int(value: Any) -> int | None:
     if isinstance(value, bool):
         return None

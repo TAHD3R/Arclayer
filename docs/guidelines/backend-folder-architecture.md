@@ -13,7 +13,7 @@ This document defines the target backend architecture for CelestialCMS. It is a 
 
 | Layer | Directory | Responsibility | Must Not Own |
 | --- | --- | --- | --- |
-| API aggregation | `api/` | Versioned router composition and route grouping | Business workflows and data access |
+| API aggregation | `modules/api_aggregation/` | Versioned router composition and route grouping | Business workflows and data access |
 | Domain modules | `modules/` | Product/business capabilities, use cases, domain policies | Cross-domain infrastructure drivers |
 | Core runtime | `core/` | App factory, middleware, exception handlers, HTTP protocol contracts, observability integration | Domain-specific business logic |
 | Infrastructure | `infra/` | Cache, storage, limiter, background worker adapters | Product policies and feature-level orchestration |
@@ -24,7 +24,7 @@ This document defines the target backend architecture for CelestialCMS. It is a 
 
 ## 3. Directory Responsibilities
 
-### `api/` (route aggregation only)
+### `modules/api_aggregation/` (route aggregation only)
 
 - Compose routers from `modules/*` and plugin routes.
 - Keep versioning (`v1`) and route grouping explicit.
@@ -93,11 +93,11 @@ When a module grows, split by subdomain instead of creating monolithic files. Ex
 
 | Caller | Allowed imports |
 | --- | --- |
-| `api/` | `modules/`, `plugin/`, minimal `core/` contracts |
+| `modules/api_aggregation/` | `modules/`, `plugin/`, minimal `core/` contracts |
 | `modules/*/router` | same-module `service/schema/deps`, `core/http`, `core/exceptions`, `common/*` |
 | `modules/*/service` | same-module `repository/schema`, `common/*`, selected `core/*` cross-cutting helpers |
 | `modules/*/repository` | same-module `models`, `infra/*` adapters, `common/*` |
-| `core/` | `api/` (mounting), `infra/*`, `plugin/*`, `settings/*` |
+| `core/` | `modules/api_aggregation/` (mounting), `infra/*`, `plugin/*`, `settings/*` |
 | `infra/` | `common/*`, external drivers, low-level model access only when unavoidable |
 | `plugin/` | `common/*`, `settings/*`, plugin runtime contracts, minimal integration boundaries |
 

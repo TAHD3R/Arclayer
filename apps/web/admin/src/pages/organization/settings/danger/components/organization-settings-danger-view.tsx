@@ -13,7 +13,6 @@ import { ChromeTabs, ChromeTabsContent } from "@/components/ui/chrome-tabs";
 import { SettingActionItem } from "@/components/settings-primitives/setting-action-item";
 import { SettingDialog } from "@/components/settings-primitives/setting-dialog";
 import { SettingPanel } from "@/components/settings-primitives/setting-panel";
-import { useSystemRuntime } from "@/hooks/use-system-runtime";
 import { useSavingKey } from "@/hooks/use-saving-key";
 import { ApiError } from "@/lib/http";
 import { notifyError } from "@/lib/notifications";
@@ -33,7 +32,6 @@ export function OrganizationSettingsDangerView(props: { organizationId: string }
   const tab: OrganizationSettingsTabKey = "danger";
   const { t } = useTranslation(["settings", "common"]);
   const navigate = useNavigate();
-  const runtime = useSystemRuntime();
   const clearAuth = useAuthStore((s) => s.clear);
   const clearWorkspace = useWorkspaceStore((s) => s.clearWorkspace);
   const sessionVersion = useAuthStore((s) => s.sessionVersion);
@@ -163,7 +161,7 @@ export function OrganizationSettingsDangerView(props: { organizationId: string }
           value={tab}
           onValueChange={(next) => onTabChange(next as OrganizationSettingsTabKey)}
         >
-          <OrganizationSettingsTabs deploymentEnabled={runtime.deploymentSettingsEnabled} />
+          <OrganizationSettingsTabs />
 
           <ChromeTabsContent value="danger">
             <SettingPanel

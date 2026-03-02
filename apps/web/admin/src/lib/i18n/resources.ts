@@ -18,6 +18,7 @@ import zhContentLibrary from "@locales/zh-CN/content_library.json";
 import zhAppearance from "@locales/zh-CN/appearance.json";
 import zhAdminMenu from "@locales/zh-CN/admin_menu.json";
 import zhRbac from "@locales/zh-CN/rbac.json";
+import zhSys from "@locales/zh-CN/sys.json";
 
 import enCommon from "@locales/en-US/common.json";
 import enNav from "@locales/en-US/nav.json";
@@ -39,12 +40,14 @@ import enContentLibrary from "@locales/en-US/content_library.json";
 import enAppearance from "@locales/en-US/appearance.json";
 import enAdminMenu from "@locales/en-US/admin_menu.json";
 import enRbac from "@locales/en-US/rbac.json";
+import enSys from "@locales/en-US/sys.json";
 
 export const I18N_NAMESPACES = [
   "common",
   "nav",
   "admin_menu",
   "rbac",
+  "sys",
   "setup",
   "invite",
   "team",
@@ -69,6 +72,7 @@ export const i18nResources = {
     nav: zhNav,
     admin_menu: zhAdminMenu,
     rbac: zhRbac,
+    sys: zhSys,
     setup: zhSetup,
     invite: zhInvite,
     team: zhTeam,
@@ -91,6 +95,7 @@ export const i18nResources = {
     nav: enNav,
     admin_menu: enAdminMenu,
     rbac: enRbac,
+    sys: enSys,
     setup: enSetup,
     invite: enInvite,
     team: enTeam,

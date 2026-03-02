@@ -1,4 +1,5 @@
 export type { AuthState } from "./auth";
+export type { SysAuthState } from "./sys-auth";
 export type { FavoritesState } from "./favorites";
 export type {
   ThemePreference,

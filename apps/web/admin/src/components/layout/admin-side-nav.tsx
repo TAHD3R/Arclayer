@@ -1,5 +1,12 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { Fragment, useMemo, useState, type CSSProperties, type ReactElement } from "react";
+import {
+  Fragment,
+  useMemo,
+  useState,
+  type CSSProperties,
+  type MouseEvent,
+  type ReactElement,
+} from "react";
 import { useTranslation } from "react-i18next";
 import type { AdminNavItem } from "@/types/admin-nav";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -324,7 +331,7 @@ function NavNode({
               <Link
                 to={item.to!}
                 aria-current={item.to && isExactMatch(item.to, pathname) ? "page" : undefined}
-                onClick={(e) => {
+                onClick={(e: MouseEvent<HTMLAnchorElement>) => {
                   openChainForKey(item.key);
                   if (!item.disabled) return;
                   e.preventDefault();
@@ -372,7 +379,7 @@ function NavNode({
             <Link
               to={item.to!}
               aria-current={item.to && isExactMatch(item.to, pathname) ? "page" : undefined}
-              onClick={(e) => {
+              onClick={(e: MouseEvent<HTMLAnchorElement>) => {
                 openChainForKey(item.key);
                 if (!item.disabled) return;
                 e.preventDefault();

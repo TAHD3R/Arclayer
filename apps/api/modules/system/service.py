@@ -37,6 +37,7 @@ from apps.api.plugin.event_bus import Event
 from apps.api.plugin.events import SYSTEM_SETUP_COMPLETED
 from apps.api.plugin.manager import PluginManager
 from apps.api.settings.crypto import ensure_master_key, master_key_exists
+from apps.api.settings.signing import ensure_signing_keypair
 
 
 def _ts(key: str, default: str) -> str:
@@ -368,11 +369,20 @@ class SystemSetupService(BaseService):
         key_path = Path(self.settings.setup.master_key_path)
         created = not master_key_exists(key_path)
         key, fingerprint = ensure_master_key(key_path)
+        _priv, _pub, signing_fp = ensure_signing_keypair(
+            private_path=self.settings.setup.signing_private_key_path,
+            public_path=self.settings.setup.signing_public_key_path,
+        )
 
         try:
             await SettingsService(self.settings, manager=self.manager).patch_namespace(
                 "core",
-                patch={"system": {"master_key_fingerprint": fingerprint}},
+                patch={
+                    "system": {
+                        "master_key_fingerprint": fingerprint,
+                        "signing_key_fingerprint": signing_fp,
+                    }
+                },
                 updated_by=None,
             )
         except BaseException as exc:
@@ -465,6 +475,10 @@ class SystemSetupService(BaseService):
                 self.settings.setup.master_key_path,
                 provided_b64=master_key_b64,
             )
+            _priv, _pub, signing_fp = ensure_signing_keypair(
+                private_path=self.settings.setup.signing_private_key_path,
+                public_path=self.settings.setup.signing_public_key_path,
+            )
         except ValueError as exc:
             raise BadRequest(message=_ts("MASTER_KEY_INVALID", "系统密钥不合法"), error="MASTER_KEY_INVALID") from exc
 
@@ -493,6 +507,7 @@ class SystemSetupService(BaseService):
         if isinstance(system_patch["system"], dict):
             system_patch["system"]["initialized_at"] = now.isoformat()
             system_patch["system"]["master_key_fingerprint"] = fingerprint
+            system_patch["system"]["signing_key_fingerprint"] = signing_fp
         # Keep a global default workspace locale as a best-effort fallback for requests without workspace context.
         # This is used by LocaleMiddleware for API i18n when the URL doesn't include a workspace id.
         if isinstance(raw_patch.get("workspace_localization"), dict):

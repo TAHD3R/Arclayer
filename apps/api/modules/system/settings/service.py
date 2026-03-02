@@ -24,6 +24,7 @@ from apps.api.plugin.manager import PluginManager
 from apps.api.plugin.manifest import ConfigSchema, build_default_config
 from apps.api.settings.core_schema import CORE_SETTINGS_NAMESPACE, CORE_SETTINGS_SCHEMA
 from apps.api.settings.crypto import encrypt_secret, ensure_master_key, is_encrypted, master_key_exists
+from apps.api.settings.runtime import invalidate_core_settings_cache
 from apps.api.settings.scopes import SCOPE_TYPE_SYSTEM, SYSTEM_SCOPE_ID
 from apps.api.settings.validation import iter_secret_field_paths, merge_deep, validate_config_schema
 
@@ -144,6 +145,7 @@ class SettingsService(BaseService):
             merged = await self._encrypt_core_secrets(schema, merged)
 
             saved = await self.repo.upsert(namespace=CORE_SETTINGS_NAMESPACE, value=merged, updated_by=updated_by)
+            invalidate_core_settings_cache()
             await self._emit_settings_updated(
                 namespace=CORE_SETTINGS_NAMESPACE,
                 schema=schema,

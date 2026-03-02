@@ -755,6 +755,7 @@ class AuthService(BaseService):
             email=user.email,
             display_name=user.display_name,
             avatar_url=user.avatar_url,
+            is_super_admin=bool(getattr(user, "is_super_admin", False)),
         )
 
     async def update_my_profile(self, *, user: User, payload: UpdateMyProfileRequest) -> UserProfile:

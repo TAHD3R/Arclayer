@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import Any
 from uuid import UUID
 
 from fastapi import Depends
@@ -25,6 +26,27 @@ def _parse_user_id(raw: str | None) -> UUID:
         raise Unauthorized(message=t("auth", "TOKEN_INVALID", default="Token 无效"), error="TOKEN_INVALID") from exc
 
 
+async def get_current_access_payload(
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    settings: Settings = Depends(get_settings),
+) -> dict[str, Any]:
+    """
+    Return the decoded JWT payload for the current access token.
+
+    Notes:
+    - Used by sys-governance endpoints to enforce step-up context (ctx=sys).
+    - Keep this dependency lightweight: do not load user records here.
+    """
+
+    if credentials is None:
+        raise Unauthorized(message=t("auth", "UNAUTHORIZED", default="未授权"), error="UNAUTHORIZED")
+
+    payload = decode_token(credentials.credentials, settings.auth)
+    if payload.get("typ") != TOKEN_TYPE_ACCESS:
+        raise Unauthorized(message=t("auth", "TOKEN_INVALID", default="Token 无效"), error="TOKEN_INVALID")
+    return payload
+
+
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
     settings: Settings = Depends(get_settings),
@@ -32,9 +54,7 @@ async def get_current_user(
     if credentials is None:
         raise Unauthorized(message=t("auth", "UNAUTHORIZED", default="未授权"), error="UNAUTHORIZED")
 
-    payload = decode_token(credentials.credentials, settings.auth)
-    if payload.get("typ") != TOKEN_TYPE_ACCESS:
-        raise Unauthorized(message=t("auth", "TOKEN_INVALID", default="Token 无效"), error="TOKEN_INVALID")
+    payload = await get_current_access_payload(credentials=credentials, settings=settings)
 
     user_id = _parse_user_id(payload.get("sub"))
     user_repo = UserRepository()

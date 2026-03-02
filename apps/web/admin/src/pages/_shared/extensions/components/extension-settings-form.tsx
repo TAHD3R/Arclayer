@@ -96,6 +96,7 @@ export interface ExtensionSettingsFormProps {
   saving?: boolean;
   sectionId?: string;
   submitText?: string;
+  resetOnSubmit?: boolean;
   onSubmitPatch: (patch: Record<string, unknown>) => Promise<void>;
 }
 
@@ -105,6 +106,7 @@ export function ExtensionSettingsForm({
   saving = false,
   sectionId,
   submitText,
+  resetOnSubmit = true,
   onSubmitPatch,
 }: ExtensionSettingsFormProps) {
   const { t } = useTranslation(["common", "settings", "plugin"]);
@@ -164,8 +166,10 @@ export function ExtensionSettingsForm({
     }
 
     await onSubmitPatch(patch);
-    // After saving, keep the form clean; caller should invalidate/refetch detail.
-    form.reset(buildInitialValues(detail, { sectionId }));
+    if (resetOnSubmit) {
+      // After saving, keep the form clean; caller should invalidate/refetch detail.
+      form.reset(buildInitialValues(detail, { sectionId }));
+    }
   });
 
   const secrets = detail.secrets || {};

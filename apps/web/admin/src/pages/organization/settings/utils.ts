@@ -16,12 +16,6 @@ export function resolveOrganizationSettingsTabNavigation(
       params: { orgId: organizationId },
     };
   }
-  if (tab === "deployment") {
-    return {
-      to: "/o/$orgId/settings/deployment",
-      params: { orgId: organizationId },
-    };
-  }
   return {
     to: "/o/$orgId/settings",
     params: { orgId: organizationId },

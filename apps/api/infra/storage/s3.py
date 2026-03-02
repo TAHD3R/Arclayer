@@ -88,6 +88,13 @@ class S3StorageProvider:
 
         return await asyncio.to_thread(_call)
 
+    async def head_bucket(self) -> None:
+        def _call() -> None:
+            client = self._client()
+            client.head_bucket(Bucket=self.bucket)
+
+        await asyncio.to_thread(_call)
+
     async def get_object(self, *, object_key: str, byte_range: tuple[int, int] | None) -> S3GetObject:
         """
         Fetch an object (optionally ranged).

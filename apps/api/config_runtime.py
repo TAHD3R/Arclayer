@@ -207,6 +207,13 @@ class AuthSettings(BaseSettings):
         default=900,
         validation_alias=AliasChoices("ACCESS_TOKEN_TTL_SECONDS", "ACCESS_TOKEN_TTL"),
     )
+    sys_access_token_ttl_seconds: int = Field(
+        default=300,
+        ge=60,
+        le=24 * 3600,
+        validation_alias=AliasChoices("SYS_ACCESS_TOKEN_TTL_SECONDS", "SYS_ACCESS_TOKEN_TTL"),
+        description="Short-lived step-up token TTL (seconds) for /sys governance endpoints.",
+    )
     refresh_token_ttl_seconds: int = Field(
         default=2592000,
         validation_alias=AliasChoices("REFRESH_TOKEN_TTL_SECONDS", "REFRESH_TOKEN_TTL"),
@@ -415,10 +422,25 @@ class SetupSettings(BaseSettings):
         default=Path(__file__).resolve().parents[2] / "data" / "secrets" / "master.key",
         description="Path to the master key file used to encrypt secrets in settings.",
     )
+    signing_private_key_path: Path = Field(
+        default=Path(__file__).resolve().parents[2] / "data" / "secrets" / "signing.ed25519",
+        description="Path to the Ed25519 private key used to sign system config revisions.",
+    )
+    signing_public_key_path: Path = Field(
+        default=Path(__file__).resolve().parents[2] / "data" / "secrets" / "signing.ed25519.pub",
+        description="Path to the Ed25519 public key used to verify system config revision signatures.",
+    )
 
     @field_validator("master_key_path", mode="after")
     @classmethod
     def _normalize_master_key_path(cls, value: Path) -> Path:
+        current = Path(__file__).resolve().parent
+        repo_root = current.parents[1]
+        return _normalize_runtime_fs_path(value, default_base=repo_root)
+
+    @field_validator("signing_private_key_path", "signing_public_key_path", mode="after")
+    @classmethod
+    def _normalize_signing_key_paths(cls, value: Path) -> Path:
         current = Path(__file__).resolve().parent
         repo_root = current.parents[1]
         return _normalize_runtime_fs_path(value, default_base=repo_root)

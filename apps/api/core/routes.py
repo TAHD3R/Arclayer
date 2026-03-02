@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from fastapi import FastAPI
 
-from apps.api.api.router import build_root_router
-from apps.api.api.v1.router import build_v1_router
 from apps.api.config import Settings
+from apps.api.modules.api_aggregation.router import build_root_router
+from apps.api.modules.api_aggregation.v1.router import build_v1_router
 from apps.api.plugin.manager import PluginManager
 
 

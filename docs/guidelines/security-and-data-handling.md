@@ -68,6 +68,24 @@ When unsure between Sensitive and Secret, default to Secret handling.
 - Access token and refresh token lifecycles must remain separated.
 - Refresh token issuance and rotation must be stateful and auditable.
 
+## 6.1.1 Privileged sys governance step-up (mandatory)
+
+Sys governance endpoints under `/api/v1/sys/*` are privileged surfaces and must require a
+short-lived step-up token:
+
+- Normal access tokens can authenticate users, but must not be sufficient for `/sys` governance.
+- `/api/v1/sys/*` must require an access token with context claim `ctx=sys` (step-up).
+- Step-up token is issued via `/api/v1/sys/auth/step-up` and must require re-entering password
+  (future: 2FA/TOTP).
+- Step-up token TTL must be short (`AUTH__SYS_ACCESS_TOKEN_TTL_SECONDS`, default 300s).
+- Sys step-up tokens must be treated as ephemeral: clients must not persist them to cookies,
+  localStorage, or other durable storage (memory-only store).
+- Sys HTTP clients must not attempt refresh-token rotation/auto-refresh for step-up tokens.
+
+Operational note:
+- Production/staging environments must be isolated at the database level (separate deployments
+  with separate DBs). Do not multiplex multiple environment configs inside the same DB.
+
 ## 6.2 Rotation and reuse detection (mandatory)
 
 - Refresh tokens must be single-use by rotation chain semantics.

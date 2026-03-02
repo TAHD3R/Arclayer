@@ -1,0 +1,23 @@
+{
+  "SYS_TITLE": "System Governance",
+  "SYS_DESC": "System-level configuration and governance for super admins only.",
+  "SYS_STEP_UP_TITLE": "Step-up required",
+  "SYS_STEP_UP_DESC": "To protect system-level configuration, please re-enter your password.",
+  "SYS_STEP_UP_PASSWORD_LABEL": "Password",
+  "SYS_STEP_UP_SUBMIT": "Continue",
+  "SYS_STEP_UP_CANCEL": "Cancel",
+  "SYS_SETTINGS_TITLE": "System Settings",
+  "SYS_SETTINGS_DESC": "Manage system-level storage, mail, and other configurations.",
+  "SYS_NAMESPACE_CORE_TITLE": "Core",
+  "SYS_NAMESPACE_CORE_DESC": "System-level mail and storage settings.",
+  "SYS_REVISION_TITLE": "Revisions",
+  "SYS_REVISION_TEST": "Test",
+  "SYS_REVISION_ACTIVATE": "Activate",
+  "SYS_REVISION_ACTIVE": "Active",
+  "SYS_REVISION_ID": "Revision ID",
+  "SYS_REVISION_CREATED_AT": "Created at",
+  "SYS_REVISION_STATUS": "Status",
+  "SYS_TEST_OK": "Test passed",
+  "SYS_TEST_FAILED": "Test failed",
+  "SYS_STEP_UP_REQUIRED": "Step-up is required to access system governance"
+}
