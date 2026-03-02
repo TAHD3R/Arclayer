@@ -69,6 +69,17 @@ def _build_lifespan(settings: Settings, *, plugin_manager: PluginManager):
             await verify_db_ready(settings)
             # Hotfix legacy DB constraint that blocks v2 workspace-scoped settings.
             await ensure_settings_schema_constraints()
+            # Cache "initialized" flag for lightweight request guards.
+            try:
+                from apps.api.modules.organization.models.user import User
+
+                app.state.system_initialized = await User.all().exists()
+            except BaseException as exc:
+                _raise_if_fatal(exc)
+                logger.warning(
+                    "Failed to probe system initialization state", action="probe_system_init", error=str(exc)
+                )
+                app.state.system_initialized = False
             await init_domain_bootstrap(app, settings, plugin_manager=plugin_manager)
             await init_valkey(app, settings)
             plugin_manager.bind_valkey(getattr(app.state, "valkey", None))
@@ -231,6 +242,9 @@ class AppFactory:
         from apps.api.core.middleware.locale import LocaleMiddleware
 
         self.app.add_middleware(LocaleMiddleware)
+        from apps.api.core.middleware.master_key_guard import MasterKeyGuardMiddleware
+
+        self.app.add_middleware(MasterKeyGuardMiddleware, settings=self.settings)
         from apps.api.core.middleware.request_log import RequestLogMiddleware
 
         # Place request logging inside CorrelationIdMiddleware so the summary line

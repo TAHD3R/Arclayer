@@ -12,6 +12,7 @@ export type UserProfile = {
   email: string | null;
   display_name: string | null;
   avatar_url: string | null;
+  isSuperAdmin: boolean;
 };
 
 export type UpdateMyProfilePayload = {

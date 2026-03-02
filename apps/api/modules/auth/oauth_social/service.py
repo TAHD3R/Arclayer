@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import binascii
 import hashlib
 import inspect
 import secrets
@@ -12,6 +13,7 @@ from urllib.parse import urlencode
 from uuid import UUID
 
 import httpx
+from cryptography.exceptions import InvalidTag
 from fastapi import Request
 from pydantic import ValidationError
 from starlette.responses import RedirectResponse
@@ -19,28 +21,25 @@ from tortoise.expressions import Q
 
 from apps.api.common.services.base import BaseService
 from apps.api.config import Settings
-from apps.api.core.exceptions import BadRequest, Forbidden, ServiceUnavailable
+from apps.api.core.exceptions import BadRequest, Forbidden
 from apps.api.core.i18n import t
 from apps.api.infra.cache.valkey import ValkeyClientLike
-from apps.api.modules.auth.service import AuthService
-from apps.api.modules.auth.sso.exchange_store import issue_exchange_code
-from apps.api.modules.auth.sso.schema import AuthSSOExchangePayload
-from apps.api.modules.organization.models.org_plugin_state import OrganizationPluginState
-from apps.api.modules.organization.runtime import get_single_organization_id
-from apps.api.modules.workspaces.invitations.tokens import build_invite_token
-from apps.api.plugin.manifest import PluginManifest, build_default_config
-from apps.api.settings.runtime import get_core_settings_value_cached
-from apps.api.settings.runtime_plugins import get_org_plugin_settings_decrypted
-from oauth_social.repository import OAuthSocialRepository
-from oauth_social.schema import (
+from apps.api.modules.auth.oauth_social.repository import OAuthSocialRepository
+from apps.api.modules.auth.oauth_social.schema import (
     GitHubEmailItem,
     GitHubUser,
     GoogleUserInfo,
+    OAuthLinkedIdentityListOut,
+    OAuthLinkedIdentityOut,
     OAuthStatePayload,
 )
-from oauth_social.models import OAuthIdentity
+from apps.api.modules.auth.sso.exchange_store import issue_exchange_code
+from apps.api.modules.auth.sso.schema import AuthSSOExchangePayload
+from apps.api.settings.core_schema import CORE_SETTINGS_NAMESPACE
+from apps.api.settings.crypto import decrypt_secret, is_encrypted, load_master_key, master_key_exists
+from apps.api.settings.runtime import get_core_settings_value_cached
 
-_FATAL_OAUTH_SOCIAL_ERRORS: tuple[type[BaseException], ...] = (
+_FATAL_OAUTH_ERRORS: tuple[type[BaseException], ...] = (
     asyncio.CancelledError,
     GeneratorExit,
     KeyboardInterrupt,
@@ -49,7 +48,7 @@ _FATAL_OAUTH_SOCIAL_ERRORS: tuple[type[BaseException], ...] = (
 
 
 def _raise_if_fatal(exc: BaseException) -> None:
-    if isinstance(exc, _FATAL_OAUTH_SOCIAL_ERRORS):
+    if isinstance(exc, _FATAL_OAUTH_ERRORS):
         raise exc
 
 
@@ -94,17 +93,22 @@ async def _valkey_getdel_best_effort(client: ValkeyClientLike, key: str) -> str 
 
 
 class OAuthSocialService(BaseService):
-    def __init__(
-        self,
-        settings: Settings,
-        *,
-        manifest: PluginManifest,
-        valkey: ValkeyClientLike,
-    ) -> None:
+    """
+    Core OAuth social login (Google/GitHub).
+
+    Notes:
+    - Configuration is managed by sys config namespaces: oauth/auth (stored in core settings record).
+    - OAuth callback issues a one-time exchange code, then the frontend exchanges it for a token pair.
+    """
+
+    def __init__(self, settings: Settings, *, valkey: ValkeyClientLike) -> None:
         super().__init__(settings)
-        self.manifest = manifest
         self.valkey = valkey
         self.repo = OAuthSocialRepository()
+
+        # Local import to avoid auth module cycles at import time.
+        from apps.api.modules.auth.service import AuthService
+
         self.auth_service = AuthService(settings, valkey=valkey)
 
     async def start(
@@ -115,25 +119,22 @@ class OAuthSocialService(BaseService):
         redirect: str | None,
         link_state: str | None,
     ) -> RedirectResponse:
-        provider = (provider or "").strip().lower()
+        provider_key = (provider or "").strip().lower()
         safe_redirect = redirect if _is_safe_redirect(redirect) else None
 
-        if provider not in {"google", "github"}:
+        if provider_key not in {"google", "github"}:
             raise BadRequest(
                 message=t("auth", "SSO_PROVIDER_INVALID", default="登录方式不支持"),
                 error="SSO_PROVIDER_INVALID",
             )
 
-        config = await self._load_org_plugin_config(require_enabled=True)
+        config = await self._load_core_oauth_config()
 
         link_user_id: str | None = None
         raw_link_state = (link_state or "").strip()
         if raw_link_state:
             try:
-                linked = await _valkey_getdel_best_effort(
-                    self.valkey,
-                    f"auth:sso:link_state:{raw_link_state}",
-                )
+                linked = await _valkey_getdel_best_effort(self.valkey, f"auth:sso:link_state:{raw_link_state}")
             except BaseException as exc:
                 _raise_if_fatal(exc)
                 linked = None
@@ -151,26 +152,23 @@ class OAuthSocialService(BaseService):
         code_challenge = _pkce_challenge(code_verifier)
 
         payload = OAuthStatePayload(
-            provider=provider,
+            provider=provider_key,
             redirect=safe_redirect,
             code_verifier=code_verifier,
             link_user_id=link_user_id,
         )
-        await self.valkey.set(
-            f"oauth:social:state:{state}",
-            payload.model_dump_json(),
-            ex=600,
-        )
+        await self.valkey.set(f"oauth:social:state:{state}", payload.model_dump_json(), ex=600)
 
-        if provider == "google":
-            section = config.get("google") if isinstance(config, dict) else None
+        if provider_key == "google":
+            section = config.get("oauth_google") if isinstance(config, dict) else None
             if not isinstance(section, dict) or not bool(section.get("enabled")):
                 raise Forbidden(message=t("auth", "SSO_UNAVAILABLE", default="SSO 不可用"), error="SSO_UNAVAILABLE")
             client_id = (section.get("client_id") or "").strip() if isinstance(section.get("client_id"), str) else ""
             if not client_id:
                 raise Forbidden(message=t("auth", "SSO_UNAVAILABLE", default="SSO 不可用"), error="SSO_UNAVAILABLE")
 
-            callback_url = str(request.url_for("oauth_social_callback", provider="google"))
+            callback_url = str(request.url_for("auth_sso_oauth_callback", provider="google"))
+            auth_url = "https://accounts.google.com/o/oauth2/v2/auth"
             params = {
                 "client_id": client_id,
                 "redirect_uri": callback_url,
@@ -180,32 +178,29 @@ class OAuthSocialService(BaseService):
                 "code_challenge": code_challenge,
                 "code_challenge_method": "S256",
                 "access_type": "online",
-                "prompt": "consent",
+                "prompt": "select_account",
             }
-            url = "https://accounts.google.com/o/oauth2/v2/auth?" + urlencode(params)
-            return RedirectResponse(url=url, status_code=302)
+            return RedirectResponse(url=f"{auth_url}?{urlencode(params)}", status_code=302)
 
-        if provider == "github":
-            section = config.get("github") if isinstance(config, dict) else None
-            if not isinstance(section, dict) or not bool(section.get("enabled")):
-                raise Forbidden(message=t("auth", "SSO_UNAVAILABLE", default="SSO 不可用"), error="SSO_UNAVAILABLE")
-            client_id = (section.get("client_id") or "").strip() if isinstance(section.get("client_id"), str) else ""
-            if not client_id:
-                raise Forbidden(message=t("auth", "SSO_UNAVAILABLE", default="SSO 不可用"), error="SSO_UNAVAILABLE")
+        section = config.get("oauth_github") if isinstance(config, dict) else None
+        if not isinstance(section, dict) or not bool(section.get("enabled")):
+            raise Forbidden(message=t("auth", "SSO_UNAVAILABLE", default="SSO 不可用"), error="SSO_UNAVAILABLE")
+        client_id = (section.get("client_id") or "").strip() if isinstance(section.get("client_id"), str) else ""
+        if not client_id:
+            raise Forbidden(message=t("auth", "SSO_UNAVAILABLE", default="SSO 不可用"), error="SSO_UNAVAILABLE")
 
-            callback_url = str(request.url_for("oauth_social_callback", provider="github"))
-            params = {
-                "client_id": client_id,
-                "redirect_uri": callback_url,
-                "response_type": "code",
-                "scope": "read:user user:email",
-                "state": state,
-                "code_challenge": code_challenge,
-                "code_challenge_method": "S256",
-            }
-            url = "https://github.com/login/oauth/authorize?" + urlencode(params)
-            return RedirectResponse(url=url, status_code=302)
-        raise BadRequest(message=t("auth", "SSO_PROVIDER_INVALID", default="登录方式不支持"), error="SSO_PROVIDER_INVALID")
+        callback_url = str(request.url_for("auth_sso_oauth_callback", provider="github"))
+        auth_url = "https://github.com/login/oauth/authorize"
+        params = {
+            "client_id": client_id,
+            "redirect_uri": callback_url,
+            "response_type": "code",
+            "scope": "read:user user:email",
+            "state": state,
+            "code_challenge": code_challenge,
+            "code_challenge_method": "S256",
+        }
+        return RedirectResponse(url=f"{auth_url}?{urlencode(params)}", status_code=302)
 
     async def callback(
         self,
@@ -215,59 +210,67 @@ class OAuthSocialService(BaseService):
         code: str | None,
         state: str | None,
     ) -> RedirectResponse:
+        provider_key = (provider or "").strip().lower()
+        raw_code = (code or "").strip()
+        raw_state = (state or "").strip()
+
         frontend_base = await self._resolve_frontend_base_url()
+
+        if provider_key not in {"google", "github"}:
+            return self._redirect_to_login_error(frontend_base, error="oauth_failed", redirect=None)
+        if not raw_code or not raw_state:
+            return self._redirect_to_login_error(frontend_base, error="oauth_failed", redirect=None)
+
         try:
-            provider = (provider or "").strip().lower()
-            if provider not in {"google", "github"}:
-                return self._redirect_to_login_error(frontend_base, error="oauth_failed", redirect=None)
+            payload_raw = await _valkey_getdel_best_effort(self.valkey, f"oauth:social:state:{raw_state}")
+        except BaseException as exc:
+            _raise_if_fatal(exc)
+            payload_raw = None
+        if not payload_raw:
+            return self._redirect_to_login_error(frontend_base, error="state_expired", redirect=None)
 
-            raw_code = (code or "").strip()
-            raw_state = (state or "").strip()
-            if not raw_code or not raw_state:
-                return self._redirect_to_login_error(frontend_base, error="oauth_failed", redirect=None)
-
-            state_key = f"oauth:social:state:{raw_state}"
-            payload_raw = await _valkey_getdel_best_effort(self.valkey, state_key)
-            if not payload_raw:
-                return self._redirect_to_login_error(frontend_base, error="oauth_failed", redirect=None)
-
+        try:
             payload = OAuthStatePayload.model_validate_json(payload_raw)
-            redirect = payload.redirect if _is_safe_redirect(payload.redirect) else None
-            link_user_id = (payload.link_user_id or "").strip() or None
+        except ValidationError:
+            return self._redirect_to_login_error(frontend_base, error="oauth_failed", redirect=None)
 
-            try:
-                config = await self._load_org_plugin_config(require_enabled=True)
-            except BaseException as exc:
-                _raise_if_fatal(exc)
-                self.logger.warning(
-                    "OAuth config load failed during callback",
-                    action="load_org_plugin_config",
-                    provider=provider,
-                    error=str(exc),
-                )
-                return self._redirect_to_login_error(frontend_base, error="oauth_failed", redirect=redirect)
+        if payload.provider != provider_key:
+            return self._redirect_to_login_error(frontend_base, error="oauth_failed", redirect=None)
 
-            subject: str | None = None
-            email: str | None = None
-            email_verified: bool = False
-            display_name: str | None = None
-            avatar_url: str | None = None
+        redirect = payload.redirect if _is_safe_redirect(payload.redirect) else None
+        link_user_id = (payload.link_user_id or "").strip() or None
 
+        config = await self._load_core_oauth_config()
+
+        subject: str = ""
+        email: str | None = None
+        email_verified: bool = False
+        display_name: str | None = None
+        avatar_url: str | None = None
+
+        try:
             async with httpx.AsyncClient(timeout=15.0) as client:
-                if provider == "google":
-                    section = config.get("google") if isinstance(config, dict) else None
+                if provider_key == "google":
+                    section = config.get("oauth_google") if isinstance(config, dict) else None
                     client_id = section.get("client_id") if isinstance(section, dict) else None
-                    client_secret = section.get("client_secret") if isinstance(section, dict) else None
+                    client_secret_raw = section.get("client_secret") if isinstance(section, dict) else None
                     if not isinstance(client_id, str) or not client_id.strip():
                         return self._redirect_to_login_error(frontend_base, error="oauth_failed", redirect=redirect)
-                    if not isinstance(client_secret, str) or not client_secret.strip():
+                    if not isinstance(client_secret_raw, str) or not client_secret_raw.strip():
                         return self._redirect_to_login_error(frontend_base, error="oauth_failed", redirect=redirect)
 
-                    callback_url = str(request.url_for("oauth_social_callback", provider="google"))
+                    client_secret = self._decrypt_core_secret_best_effort(
+                        secret_path="oauth_google.client_secret",
+                        raw=client_secret_raw,
+                    )
+                    if client_secret is None:
+                        return self._redirect_to_login_error(frontend_base, error="oauth_failed", redirect=redirect)
+
+                    callback_url = str(request.url_for("auth_sso_oauth_callback", provider="google"))
                     token_res = await client.post(
                         "https://oauth2.googleapis.com/token",
                         data={
-                            "client_id": client_id,
+                            "client_id": client_id.strip(),
                             "client_secret": client_secret,
                             "code": raw_code,
                             "code_verifier": payload.code_verifier,
@@ -294,20 +297,27 @@ class OAuthSocialService(BaseService):
                     display_name = info.name
                     avatar_url = info.picture
 
-                elif provider == "github":
-                    section = config.get("github") if isinstance(config, dict) else None
+                elif provider_key == "github":
+                    section = config.get("oauth_github") if isinstance(config, dict) else None
                     client_id = section.get("client_id") if isinstance(section, dict) else None
-                    client_secret = section.get("client_secret") if isinstance(section, dict) else None
+                    client_secret_raw = section.get("client_secret") if isinstance(section, dict) else None
                     if not isinstance(client_id, str) or not client_id.strip():
                         return self._redirect_to_login_error(frontend_base, error="oauth_failed", redirect=redirect)
-                    if not isinstance(client_secret, str) or not client_secret.strip():
+                    if not isinstance(client_secret_raw, str) or not client_secret_raw.strip():
                         return self._redirect_to_login_error(frontend_base, error="oauth_failed", redirect=redirect)
 
-                    callback_url = str(request.url_for("oauth_social_callback", provider="github"))
+                    client_secret = self._decrypt_core_secret_best_effort(
+                        secret_path="oauth_github.client_secret",
+                        raw=client_secret_raw,
+                    )
+                    if client_secret is None:
+                        return self._redirect_to_login_error(frontend_base, error="oauth_failed", redirect=redirect)
+
+                    callback_url = str(request.url_for("auth_sso_oauth_callback", provider="github"))
                     token_res = await client.post(
                         "https://github.com/login/oauth/access_token",
                         data={
-                            "client_id": client_id,
+                            "client_id": client_id.strip(),
                             "client_secret": client_secret,
                             "code": raw_code,
                             "redirect_uri": callback_url,
@@ -368,151 +378,126 @@ class OAuthSocialService(BaseService):
                 return self._redirect_to_login_error(frontend_base, error="oauth_failed", redirect=redirect)
 
             if link_user_id:
-                # Account linking flow: bind identity to the existing authenticated user.
-                try:
-                    from apps.api.modules.organization.models.user import User
-                    target_user = await User.get_or_none(id=UUID(link_user_id))
-                    if target_user is None:
-                        return self._redirect_to_frontend_link_error(
-                            frontend_base,
-                            error="oauth_failed",
-                            redirect=redirect,
-                        )
+                return await self._handle_account_linking(
+                    frontend_base=frontend_base,
+                    provider=provider_key,
+                    subject=subject,
+                    email=email,
+                    link_user_id=link_user_id,
+                    redirect=redirect,
+                )
 
-                    existing = await self.repo.get_identity(provider=provider, subject=subject)
-                    if existing is not None and str(existing.user_id) != str(target_user.id):
-                        return self._redirect_to_frontend_link_error(
-                            frontend_base,
-                            error="oauth_already_linked",
-                            redirect=redirect,
-                        )
+            user_id: UUID | None = None
+            identity = await self.repo.get_identity(provider=provider_key, subject=subject)
+            if identity is not None:
+                user_id = UUID(str(identity.user_id))
 
-                    if existing is None:
-                        await self.repo.create_identity(
-                            provider=provider,
-                            subject=subject,
-                            user_id=UUID(str(target_user.id)),
-                            email=email,
-                        )
-
-                    return self._redirect_to_frontend_link_result(
-                        frontend_base,
-                        provider=provider,
-                        redirect=redirect,
-                    )
-                except BaseException as exc:
-                    _raise_if_fatal(exc)
-                    return self._redirect_to_frontend_link_error(
-                        frontend_base,
-                        error="oauth_failed",
-                        redirect=redirect,
-                    )
-
-            # Resolve local user.
-            identity = await self.repo.get_identity(provider=provider, subject=subject)
-            user_id: UUID | None = UUID(str(identity.user_id)) if identity is not None else None
-
+            created_new_user = False
             if user_id is None:
                 if not email or not email_verified:
-                    # Verified email is required for account binding and provisioning.
                     return self._redirect_to_login_error(frontend_base, error="email_not_verified", redirect=redirect)
 
                 existing_user = await self.repo.get_user_by_email(email=email)
                 if existing_user is not None:
                     user_id = UUID(str(existing_user.id))
                 else:
-                    if not self.settings.auth.allow_public_register:
-                        org_id = await self._resolve_organization_id_for_logs()
-                        self.logger.info(
-                            "OAuth provisioning blocked by global register policy",
-                            action="oauth_provisioning_blocked",
-                            reason="public_register_disabled",
-                            provider=provider,
-                            organization_id=org_id,
-                        )
+                    if not await self._is_public_register_allowed(email=email):
                         return self._redirect_to_login_error(
                             frontend_base, error="provisioning_disabled", redirect=redirect
                         )
 
-                    provisioning = config.get("provisioning") if isinstance(config, dict) else None
+                    provisioning = config.get("oauth_provisioning") if isinstance(config, dict) else None
                     auto_provision = (
                         bool(provisioning.get("auto_provision_enabled")) if isinstance(provisioning, dict) else False
                     )
                     if not auto_provision:
-                        org_id = await self._resolve_organization_id_for_logs()
-                        self.logger.info(
-                            "OAuth provisioning blocked by plugin auto-provision policy",
-                            action="oauth_provisioning_blocked",
-                            reason="plugin_auto_provision_disabled",
-                            provider=provider,
-                            organization_id=org_id,
-                        )
                         return self._redirect_to_login_error(
                             frontend_base, error="provisioning_disabled", redirect=redirect
                         )
+
                     created = await self.repo.create_user(email=email, display_name=display_name, avatar_url=avatar_url)
                     user_id = UUID(str(created.id))
+                    created_new_user = True
 
-                # Create identity mapping.
-                await self.repo.create_identity(provider=provider, subject=subject, user_id=user_id, email=email)
+                await self.repo.create_identity(provider=provider_key, subject=subject, user_id=user_id, email=email)
 
-            # Optional: auto accept email invites.
-            provisioning = config.get("provisioning") if isinstance(config, dict) else None
+            provisioning = config.get("oauth_provisioning") if isinstance(config, dict) else None
             auto_accept_invites = (
                 bool(provisioning.get("auto_accept_email_invites")) if isinstance(provisioning, dict) else False
             )
             if auto_accept_invites and email and email_verified:
                 await self._auto_accept_email_invites(user_id=user_id, email=email)
 
-            # Issue exchange code (one-time).
+            if created_new_user:
+                await self._ensure_user_bootstrap_best_effort(user_id=user_id)
+
             exchange_code = await issue_exchange_code(
                 self.valkey,
                 payload=AuthSSOExchangePayload(user_id=user_id, redirect=redirect),
             )
-
             return self._redirect_to_frontend_login(frontend_base, oauth_code=exchange_code, redirect=redirect)
         except BaseException as exc:
             _raise_if_fatal(exc)
             self.logger.warning(
                 "OAuth callback flow failed",
                 action="oauth_callback",
-                provider=provider,
+                provider=provider_key,
                 error=str(exc),
             )
             return self._redirect_to_login_error(frontend_base, error="oauth_failed", redirect=None)
 
-    def _redirect_to_frontend_link_result(
-        self,
-        frontend_base: str,
-        *,
-        provider: str,
-        redirect: str | None,
-    ) -> RedirectResponse:
-        safe_redirect = redirect if _is_safe_redirect(redirect) else "/"
-        sep = "&" if "?" in safe_redirect else "?"
-        url = f"{frontend_base}{safe_redirect}{sep}linked_provider={provider}"
-        return RedirectResponse(url=url, status_code=302)
-
-    def _redirect_to_frontend_link_error(
-        self,
-        frontend_base: str,
-        *,
-        error: str,
-        redirect: str | None,
-    ) -> RedirectResponse:
-        safe_redirect = redirect if _is_safe_redirect(redirect) else "/"
-        sep = "&" if "?" in safe_redirect else "?"
-        url = f"{frontend_base}{safe_redirect}{sep}link_error={error}"
-        return RedirectResponse(url=url, status_code=302)
-
-    async def list_identities(self, *, user_id: UUID) -> list[OAuthIdentity]:
-        return await self.repo.list_identities_for_user(user_id=user_id)
+    async def list_identities_out(self, *, user_id: UUID) -> OAuthLinkedIdentityListOut:
+        rows = await self.repo.list_identities_for_user(user_id=user_id)
+        identities = [
+            OAuthLinkedIdentityOut(
+                provider=str(row.provider),
+                email=(str(row.email) if row.email is not None else None),
+                created_at=row.created_at,
+            )
+            for row in rows
+        ]
+        return OAuthLinkedIdentityListOut(identities=identities)
 
     async def unlink_identity(self, *, user_id: UUID, provider: str) -> int:
         provider_key = (provider or "").strip().lower()
         if not provider_key:
             return 0
         return await self.repo.delete_identity_for_user(user_id=user_id, provider=provider_key)
+
+    async def _handle_account_linking(
+        self,
+        *,
+        frontend_base: str,
+        provider: str,
+        subject: str,
+        email: str | None,
+        link_user_id: str,
+        redirect: str | None,
+    ) -> RedirectResponse:
+        try:
+            from apps.api.modules.organization.models.user import User
+
+            target_user = await User.get_or_none(id=UUID(link_user_id))
+            if target_user is None:
+                return self._redirect_to_frontend_link_error(frontend_base, error="oauth_failed", redirect=redirect)
+
+            existing = await self.repo.get_identity(provider=provider, subject=subject)
+            if existing is not None and str(existing.user_id) != str(target_user.id):
+                return self._redirect_to_frontend_link_error(
+                    frontend_base, error="oauth_already_linked", redirect=redirect
+                )
+
+            if existing is None:
+                await self.repo.create_identity(
+                    provider=provider,
+                    subject=subject,
+                    user_id=UUID(str(target_user.id)),
+                    email=email,
+                )
+            return self._redirect_to_frontend_link_result(frontend_base, provider=provider, redirect=redirect)
+        except BaseException as exc:
+            _raise_if_fatal(exc)
+            return self._redirect_to_frontend_link_error(frontend_base, error="oauth_failed", redirect=redirect)
 
     async def _auto_accept_email_invites(self, *, user_id: UUID, email: str) -> None:
         try:
@@ -524,14 +509,17 @@ class OAuthSocialService(BaseService):
                 return
 
             now = datetime.now(UTC)
-            qs = WorkspaceEmailInvite.filter(email=(email or "").strip().lower()).filter(accepted_at=None, revoked_at=None)
+            qs = WorkspaceEmailInvite.filter(email=(email or "").strip().lower()).filter(
+                accepted_at=None, revoked_at=None
+            )
             qs = qs.filter(Q(expires_at__isnull=True) | Q(expires_at__gt=now))
             rows = await qs.limit(20).all()
             for inv in rows:
                 try:
-                    token = build_invite_token(self.settings, code=str(inv.code))
                     from apps.api.modules.auth.schema import AcceptExistingInvitationRequest
+                    from apps.api.modules.workspaces.invitations.tokens import build_invite_token
 
+                    token = build_invite_token(self.settings, code=str(inv.code))
                     await self.auth_service.accept_existing_invitation(
                         payload=AcceptExistingInvitationRequest(token=token),
                         user=user,
@@ -558,54 +546,9 @@ class OAuthSocialService(BaseService):
             )
             return
 
-    async def _load_org_plugin_config(self, *, require_enabled: bool) -> dict[str, Any]:
-        schema = self.manifest.config_schema
-        if schema is None:
-            raise ServiceUnavailable(message=t("plugin", "PLUGIN_CONFIG_NOT_SUPPORTED", default="插件不支持配置"))
-
-        organization_id = await get_single_organization_id()
-        if organization_id is None:
-            raise ServiceUnavailable(message=t("auth", "SSO_UNAVAILABLE", default="SSO 不可用"), error="SSO_UNAVAILABLE")
-
-        if require_enabled:
-            try:
-                state = await OrganizationPluginState.get_or_none(
-                    organization_id=organization_id,
-                    plugin_id=self.manifest.plugin.id,
-                )
-            except BaseException as exc:
-                _raise_if_fatal(exc)
-                self.logger.warning(
-                    "OAuth plugin state lookup failed",
-                    action="load_org_plugin_state",
-                    plugin_id=self.manifest.plugin.id,
-                    organization_id=str(organization_id),
-                    error=str(exc),
-                )
-                state = None
-            if state is None or not bool(state.enabled):
-                raise Forbidden(message=t("auth", "SSO_UNAVAILABLE", default="SSO 不可用"), error="SSO_UNAVAILABLE")
-
-        defaults = build_default_config(self.manifest)
-        return await get_org_plugin_settings_decrypted(
-            self.settings,
-            organization_id=organization_id,
-            plugin_id=self.manifest.plugin.id,
-            schema=schema,
-            defaults=defaults,
-        )
-
-    async def _resolve_organization_id_for_logs(self) -> str | None:
-        try:
-            organization_id = await get_single_organization_id()
-        except BaseException as exc:
-            _raise_if_fatal(exc)
-            return None
-        return str(organization_id) if organization_id is not None else None
-
     async def _resolve_frontend_base_url(self) -> str:
         """
-        Resolve the frontend base url for redirects.
+        Resolve frontend base URL for redirects.
 
         Priority:
         1) APPLICATION__FRONTEND_BASE_URL (env)
@@ -632,12 +575,66 @@ class OAuthSocialService(BaseService):
             )
         return ""
 
+    async def _load_core_oauth_config(self) -> dict[str, Any]:
+        core = await get_core_settings_value_cached(self.settings, ttl_seconds=2.0)
+        if not isinstance(core, dict):
+            return {}
+        # Keep only the sections owned by sys oauth namespace.
+        out: dict[str, Any] = {}
+        for key in ["oauth_google", "oauth_github", "oauth_provisioning", "auth"]:
+            val = core.get(key)
+            if isinstance(val, dict):
+                out[key] = val
+        return out
+
+    def _decrypt_core_secret_best_effort(self, *, secret_path: str, raw: str) -> str | None:
+        if not isinstance(raw, str) or not raw.strip():
+            return None
+        if not is_encrypted(raw):
+            return raw
+        key_path = self.settings.setup.master_key_path
+        if not master_key_exists(key_path):
+            return None
+        try:
+            key = load_master_key(key_path)
+            aad = f"{CORE_SETTINGS_NAMESPACE}:{secret_path}"
+            return decrypt_secret(raw, key=key, aad=aad)
+        except (binascii.Error, OSError, RuntimeError, TypeError, ValueError, UnicodeError, InvalidTag):
+            return None
+
+    async def _is_public_register_allowed(self, *, email: str | None) -> bool:
+        from apps.api.modules.auth.registration.policy import get_public_register_policy
+
+        policy = await get_public_register_policy(self.settings)
+        if not policy.enabled:
+            return False
+        if policy.require_email and not (email or "").strip():
+            return False
+        if not policy.is_email_allowed(email):
+            return False
+        return True
+
+    async def _ensure_user_bootstrap_best_effort(self, *, user_id: UUID) -> None:
+        try:
+            from apps.api.modules.provision.service import TenantProvisioningService
+
+            provisioning = TenantProvisioningService(self.settings)
+            await provisioning.ensure_user_bootstrap(user_id=user_id, source="register")
+        except BaseException as exc:
+            _raise_if_fatal(exc)
+            self.logger.warning(
+                "OAuth user bootstrap failed (best-effort)",
+                action="oauth_user_bootstrap",
+                user_id=str(user_id),
+                error=str(exc),
+            )
+
     def _redirect_to_frontend_login(self, base: str, *, oauth_code: str, redirect: str | None) -> RedirectResponse:
         base = (base or "").strip().rstrip("/")
         path = "/login"
         params: dict[str, str] = {"oauth_code": oauth_code}
-        if _is_safe_redirect(redirect):
-            params["redirect"] = redirect  # redirect is a path, not a full URL
+        if redirect is not None and _is_safe_redirect(redirect):
+            params["redirect"] = redirect
         url = f"{base}{path}" if base else path
         url = f"{url}?{urlencode(params)}"
         return RedirectResponse(url=url, status_code=302)
@@ -646,8 +643,24 @@ class OAuthSocialService(BaseService):
         base = (base or "").strip().rstrip("/")
         path = "/login"
         params: dict[str, str] = {"oauth_error": (error or "oauth_failed")}
-        if _is_safe_redirect(redirect):
+        if redirect is not None and _is_safe_redirect(redirect):
             params["redirect"] = redirect
         url = f"{base}{path}" if base else path
         url = f"{url}?{urlencode(params)}"
+        return RedirectResponse(url=url, status_code=302)
+
+    def _redirect_to_frontend_link_result(
+        self, frontend_base: str, *, provider: str, redirect: str | None
+    ) -> RedirectResponse:
+        safe_redirect = redirect if (redirect is not None and _is_safe_redirect(redirect)) else "/"
+        sep = "&" if "?" in safe_redirect else "?"
+        url = f"{frontend_base}{safe_redirect}{sep}linked_provider={provider}"
+        return RedirectResponse(url=url, status_code=302)
+
+    def _redirect_to_frontend_link_error(
+        self, frontend_base: str, *, error: str, redirect: str | None
+    ) -> RedirectResponse:
+        safe_redirect = redirect if (redirect is not None and _is_safe_redirect(redirect)) else "/"
+        sep = "&" if "?" in safe_redirect else "?"
+        url = f"{frontend_base}{safe_redirect}{sep}link_error={error}"
         return RedirectResponse(url=url, status_code=302)

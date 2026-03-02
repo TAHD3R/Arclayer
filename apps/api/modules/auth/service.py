@@ -265,7 +265,7 @@ class AuthService(BaseService):
 
         # Best-effort: remove OAuth identity mappings to prevent SSO sign-in after deletion.
         try:
-            from oauth_social.models import OAuthIdentity  # type: ignore
+            from apps.api.modules.auth.oauth_social.models import OAuthIdentity
 
             await OAuthIdentity.filter(user_id=user_id).delete()
         except BaseException as exc:
@@ -796,13 +796,25 @@ class AuthService(BaseService):
         email: str | None = None,
         display_name: str | None = None,
     ) -> UserLike:
-        if not self.settings.auth.allow_public_register:
+        from apps.api.modules.auth.registration.policy import get_public_register_policy
+
+        policy = await get_public_register_policy(self.settings)
+        if not policy.enabled:
             # Hide the endpoint by default to enforce invitation-only onboarding.
             raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
+
+        normalized_email = (email or "").strip().lower() or None
+        if policy.require_email and not normalized_email:
+            raise BadRequest(message=self._ta("EMAIL_REQUIRED", "邮箱必填"), error="EMAIL_REQUIRED")
+        if normalized_email and not policy.is_email_allowed(normalized_email):
+            raise Forbidden(
+                message=self._ta("REGISTER_DOMAIN_NOT_ALLOWED", "该邮箱域名不允许注册"),
+                error="REGISTER_DOMAIN_NOT_ALLOWED",
+            )
         user = await self.register(
             username=username,
             password=password,
-            email=email,
+            email=normalized_email,
             display_name=display_name,
         )
 

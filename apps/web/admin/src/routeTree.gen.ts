@@ -15,6 +15,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as SysIndexRouteImport } from './routes/sys/index'
 import { Route as SetupIndexRouteImport } from './routes/setup/index'
 import { Route as ResetPasswordIndexRouteImport } from './routes/reset-password/index'
+import { Route as RepairIndexRouteImport } from './routes/repair/index'
 import { Route as MeIndexRouteImport } from './routes/me/index'
 import { Route as LoginIndexRouteImport } from './routes/login/index'
 import { Route as InvitationsIndexRouteImport } from './routes/invitations/index'
@@ -22,6 +23,7 @@ import { Route as WWorkspaceIdRouteImport } from './routes/w/$workspaceId'
 import { Route as OOrgIdRouteImport } from './routes/o/$orgId'
 import { Route as WWorkspaceIdIndexRouteImport } from './routes/w/$workspaceId/index'
 import { Route as SysSettingsIndexRouteImport } from './routes/sys/settings/index'
+import { Route as RepairMasterKeyIndexRouteImport } from './routes/repair/master-key/index'
 import { Route as OOrgIdIndexRouteImport } from './routes/o/$orgId/index'
 import { Route as MeSecurityIndexRouteImport } from './routes/me/security/index'
 import { Route as MeProfileIndexRouteImport } from './routes/me/profile/index'
@@ -101,6 +103,11 @@ const ResetPasswordIndexRoute = ResetPasswordIndexRouteImport.update({
 } as any).lazy(() =>
   import('./routes/reset-password/index.lazy').then((d) => d.Route),
 )
+const RepairIndexRoute = RepairIndexRouteImport.update({
+  id: '/repair/',
+  path: '/repair/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MeIndexRoute = MeIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -140,6 +147,13 @@ const SysSettingsIndexRoute = SysSettingsIndexRouteImport.update({
   path: '/settings/',
   getParentRoute: () => SysRoute,
 } as any)
+const RepairMasterKeyIndexRoute = RepairMasterKeyIndexRouteImport.update({
+  id: '/repair/master-key/',
+  path: '/repair/master-key/',
+  getParentRoute: () => rootRouteImport,
+} as any).lazy(() =>
+  import('./routes/repair/master-key/index.lazy').then((d) => d.Route),
+)
 const OOrgIdIndexRoute = OOrgIdIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -539,6 +553,7 @@ export interface FileRoutesByFullPath {
   '/invitations/': typeof InvitationsIndexRoute
   '/login/': typeof LoginIndexRoute
   '/me/': typeof MeIndexRoute
+  '/repair/': typeof RepairIndexRoute
   '/reset-password/': typeof ResetPasswordIndexRoute
   '/setup/': typeof SetupIndexRoute
   '/sys/': typeof SysIndexRoute
@@ -549,6 +564,7 @@ export interface FileRoutesByFullPath {
   '/me/profile/': typeof MeProfileIndexRoute
   '/me/security/': typeof MeSecurityIndexRoute
   '/o/$orgId/': typeof OOrgIdIndexRoute
+  '/repair/master-key/': typeof RepairMasterKeyIndexRoute
   '/sys/settings/': typeof SysSettingsIndexRoute
   '/w/$workspaceId/': typeof WWorkspaceIdIndexRoute
   '/o/$orgId/activity/': typeof OOrgIdActivityIndexRoute
@@ -596,6 +612,7 @@ export interface FileRoutesByTo {
   '/invitations': typeof InvitationsIndexRoute
   '/login': typeof LoginIndexRoute
   '/me': typeof MeIndexRoute
+  '/repair': typeof RepairIndexRoute
   '/reset-password': typeof ResetPasswordIndexRoute
   '/setup': typeof SetupIndexRoute
   '/sys': typeof SysIndexRoute
@@ -606,6 +623,7 @@ export interface FileRoutesByTo {
   '/me/profile': typeof MeProfileIndexRoute
   '/me/security': typeof MeSecurityIndexRoute
   '/o/$orgId': typeof OOrgIdIndexRoute
+  '/repair/master-key': typeof RepairMasterKeyIndexRoute
   '/sys/settings': typeof SysSettingsIndexRoute
   '/w/$workspaceId': typeof WWorkspaceIdIndexRoute
   '/o/$orgId/activity': typeof OOrgIdActivityIndexRoute
@@ -658,6 +676,7 @@ export interface FileRoutesById {
   '/invitations/': typeof InvitationsIndexRoute
   '/login/': typeof LoginIndexRoute
   '/me/': typeof MeIndexRoute
+  '/repair/': typeof RepairIndexRoute
   '/reset-password/': typeof ResetPasswordIndexRoute
   '/setup/': typeof SetupIndexRoute
   '/sys/': typeof SysIndexRoute
@@ -668,6 +687,7 @@ export interface FileRoutesById {
   '/me/profile/': typeof MeProfileIndexRoute
   '/me/security/': typeof MeSecurityIndexRoute
   '/o/$orgId/': typeof OOrgIdIndexRoute
+  '/repair/master-key/': typeof RepairMasterKeyIndexRoute
   '/sys/settings/': typeof SysSettingsIndexRoute
   '/w/$workspaceId/': typeof WWorkspaceIdIndexRoute
   '/o/$orgId/activity/': typeof OOrgIdActivityIndexRoute
@@ -721,6 +741,7 @@ export interface FileRouteTypes {
     | '/invitations/'
     | '/login/'
     | '/me/'
+    | '/repair/'
     | '/reset-password/'
     | '/setup/'
     | '/sys/'
@@ -731,6 +752,7 @@ export interface FileRouteTypes {
     | '/me/profile/'
     | '/me/security/'
     | '/o/$orgId/'
+    | '/repair/master-key/'
     | '/sys/settings/'
     | '/w/$workspaceId/'
     | '/o/$orgId/activity/'
@@ -778,6 +800,7 @@ export interface FileRouteTypes {
     | '/invitations'
     | '/login'
     | '/me'
+    | '/repair'
     | '/reset-password'
     | '/setup'
     | '/sys'
@@ -788,6 +811,7 @@ export interface FileRouteTypes {
     | '/me/profile'
     | '/me/security'
     | '/o/$orgId'
+    | '/repair/master-key'
     | '/sys/settings'
     | '/w/$workspaceId'
     | '/o/$orgId/activity'
@@ -839,6 +863,7 @@ export interface FileRouteTypes {
     | '/invitations/'
     | '/login/'
     | '/me/'
+    | '/repair/'
     | '/reset-password/'
     | '/setup/'
     | '/sys/'
@@ -849,6 +874,7 @@ export interface FileRouteTypes {
     | '/me/profile/'
     | '/me/security/'
     | '/o/$orgId/'
+    | '/repair/master-key/'
     | '/sys/settings/'
     | '/w/$workspaceId/'
     | '/o/$orgId/activity/'
@@ -900,9 +926,11 @@ export interface RootRouteChildren {
   WWorkspaceIdRoute: typeof WWorkspaceIdRouteWithChildren
   InvitationsIndexRoute: typeof InvitationsIndexRoute
   LoginIndexRoute: typeof LoginIndexRoute
+  RepairIndexRoute: typeof RepairIndexRoute
   ResetPasswordIndexRoute: typeof ResetPasswordIndexRoute
   SetupIndexRoute: typeof SetupIndexRoute
   DevtoolsIllustrationsIndexRoute: typeof DevtoolsIllustrationsIndexRoute
+  RepairMasterKeyIndexRoute: typeof RepairMasterKeyIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -947,6 +975,13 @@ declare module '@tanstack/react-router' {
       path: '/reset-password'
       fullPath: '/reset-password/'
       preLoaderRoute: typeof ResetPasswordIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/repair/': {
+      id: '/repair/'
+      path: '/repair'
+      fullPath: '/repair/'
+      preLoaderRoute: typeof RepairIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/me/': {
@@ -997,6 +1032,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/sys/settings/'
       preLoaderRoute: typeof SysSettingsIndexRouteImport
       parentRoute: typeof SysRoute
+    }
+    '/repair/master-key/': {
+      id: '/repair/master-key/'
+      path: '/repair/master-key'
+      fullPath: '/repair/master-key/'
+      preLoaderRoute: typeof RepairMasterKeyIndexRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/o/$orgId/': {
       id: '/o/$orgId/'
@@ -1479,9 +1521,11 @@ const rootRouteChildren: RootRouteChildren = {
   WWorkspaceIdRoute: WWorkspaceIdRouteWithChildren,
   InvitationsIndexRoute: InvitationsIndexRoute,
   LoginIndexRoute: LoginIndexRoute,
+  RepairIndexRoute: RepairIndexRoute,
   ResetPasswordIndexRoute: ResetPasswordIndexRoute,
   SetupIndexRoute: SetupIndexRoute,
   DevtoolsIllustrationsIndexRoute: DevtoolsIllustrationsIndexRoute,
+  RepairMasterKeyIndexRoute: RepairMasterKeyIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

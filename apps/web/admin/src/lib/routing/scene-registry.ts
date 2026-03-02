@@ -11,6 +11,7 @@ import {
   isAuthScenePath,
   isDevToolsPath,
   isEditorPath,
+  isRepairPath,
   isSetupPath,
 } from "@/lib/routing/route-identity";
 
@@ -25,7 +26,11 @@ interface SceneEntry {
 // Order matters — first match wins, "admin" is the fallback.
 const SCENE_ENTRIES: SceneEntry[] = [
   { key: "dev", layout: DevLayout, match: isDevToolsPath },
-  { key: "setup", layout: SetupLayout, match: isSetupPath },
+  {
+    key: "setup",
+    layout: SetupLayout,
+    match: (pathname) => isSetupPath(pathname) || isRepairPath(pathname),
+  },
   { key: "auth", layout: AuthLayout, match: isAuthScenePath },
   { key: "invite", layout: InviteLayout, match: isAcceptInvitePath },
   { key: "editor", layout: EditorLayout, match: isEditorPath },

@@ -11,6 +11,8 @@ import type {
 // In-memory only: contains sensitive fields (e.g. password), never persisted.
 export const useSetupWizardStore = create<SetupWizardState>((set, get) => ({
   initialized: null,
+  masterKeyReady: null,
+  repairRequired: null,
   setupEnabled: null,
   access: null,
   deploymentMode: null,
@@ -24,11 +26,19 @@ export const useSetupWizardStore = create<SetupWizardState>((set, get) => ({
 
   setSystemStatus: (status) => {
     if (!status) {
-      set({ initialized: null, setupEnabled: null, access: null });
+      set({
+        initialized: null,
+        masterKeyReady: null,
+        repairRequired: null,
+        setupEnabled: null,
+        access: null,
+      });
       return;
     }
     set({
       initialized: status.initialized,
+      masterKeyReady: status.masterKeyReady,
+      repairRequired: status.repairRequired,
       setupEnabled: status.setupEnabled,
       access: status.access,
     });

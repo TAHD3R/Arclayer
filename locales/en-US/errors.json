@@ -34,6 +34,7 @@
   "SETUP_LOCAL_ONLY": "Setup endpoint is only available from localhost",
   "SETUP_JOB_NOT_FOUND": "Setup job not found",
   "MASTER_KEY_INVALID": "Invalid master key",
+  "MASTER_KEY_MISSING": "System master key is missing",
   "DEV_SETUP_ONLY": "Dry-run setup is only available in development or test environments",
   "DATABASE_DISABLED": "Database is disabled for this instance",
 

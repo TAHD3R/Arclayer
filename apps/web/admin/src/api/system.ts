@@ -36,10 +36,11 @@ export async function getSetupJobStatus(
 
 export async function repairSetupMasterKey(input: {
   confirmText: string;
+  password: string;
 }): Promise<{ masterKeyReady: boolean; created: boolean; masterKeyFingerprint: string }> {
   return api.post<{ masterKeyReady: boolean; created: boolean; masterKeyFingerprint: string }>(
     "/system/setup/master-key/repair",
-    { confirmText: input.confirmText },
+    { confirmText: input.confirmText, password: input.password },
   );
 }
 

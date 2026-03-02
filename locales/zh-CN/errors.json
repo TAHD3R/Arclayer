@@ -34,6 +34,7 @@
   "SETUP_LOCAL_ONLY": "初始化接口仅允许本机访问",
   "SETUP_JOB_NOT_FOUND": "初始化任务不存在",
   "MASTER_KEY_INVALID": "系统密钥不合法",
+  "MASTER_KEY_MISSING": "系统密钥缺失",
   "DEV_SETUP_ONLY": "仅开发或测试环境支持 dry-run 初始化",
   "DATABASE_DISABLED": "当前实例未启用数据库",
 

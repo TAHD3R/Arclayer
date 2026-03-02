@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import binascii
 from typing import Any, cast
 from urllib.parse import urlencode
 from uuid import UUID
@@ -23,6 +24,9 @@ from apps.api.modules.system.models.plugin import PluginRecord
 from apps.api.plugin.manager import PluginManager
 from apps.api.plugin.manifest import build_default_config
 from apps.api.plugin.types import PluginStatus
+from apps.api.settings.core_schema import CORE_SETTINGS_NAMESPACE
+from apps.api.settings.crypto import decrypt_secret, is_encrypted, load_master_key, master_key_exists
+from apps.api.settings.runtime import get_core_settings_value_cached
 from apps.api.settings.runtime_plugins import get_org_plugin_settings_decrypted
 
 logger = get_logger(__name__)
@@ -90,8 +94,6 @@ class AuthSSOService(BaseService):
             self.manager.discover()
 
         organization_id = await get_single_organization_id()
-        if organization_id is None:
-            return []
 
         raw = self.manager.host.hook.auth_sso_providers()
         decls = _flatten_hook_results(raw)
@@ -105,6 +107,33 @@ class AuthSSOService(BaseService):
         safe_redirect = redirect if _is_safe_redirect(redirect) else None
 
         out: list[dict[str, Any]] = []
+        seen: set[str] = set()
+
+        core_providers = await self._list_core_oauth_providers()
+        for item in core_providers:
+            provider_key = str(item.get("provider", "") or "").strip().lower()
+            if not provider_key or provider_key in seen:
+                continue
+            start_path = str(item.get("start_path", "") or "").strip()
+            if not start_path.startswith("/"):
+                continue
+
+            start_url = f"{base}{prefix}{start_path}"
+            if safe_redirect:
+                start_url = f"{start_url}?{urlencode({'redirect': safe_redirect})}"
+
+            out.append({
+                "provider": provider_key,
+                "label": str(item.get("label", "") or provider_key),
+                "icon_key": item.get("icon_key", None),
+                "start_url": start_url,
+            })
+            seen.add(provider_key)
+
+        # Plugin providers are organization-scoped. If we cannot resolve a stable org id,
+        # keep only the core providers (best-effort, avoids cross-tenant leakage).
+        if organization_id is None:
+            return out
         for obj in decls:
             decl = cast(AuthSSOProviderDecl, obj)
             plugin_id = (getattr(decl, "plugin_id", None) or "").strip()
@@ -178,7 +207,69 @@ class AuthSSOService(BaseService):
                 "icon_key": getattr(decl, "icon_key", None),
                 "start_url": start_url,
             })
+            seen.add(str(getattr(decl, "provider", "") or "").strip().lower())
 
+        return out
+
+    def _decrypt_core_secret_best_effort(self, *, secret_path: str, raw: str) -> str | None:
+        if not isinstance(raw, str) or not raw.strip():
+            return None
+        if not is_encrypted(raw):
+            return raw
+
+        key_path = self.settings.setup.master_key_path
+        if not master_key_exists(key_path):
+            return None
+        try:
+            key = load_master_key(key_path)
+            aad = f"{CORE_SETTINGS_NAMESPACE}:{secret_path}"
+            return decrypt_secret(raw, key=key, aad=aad)
+        except (binascii.Error, OSError, RuntimeError, TypeError, ValueError, UnicodeError):
+            return None
+
+    async def _list_core_oauth_providers(self) -> list[dict[str, Any]]:
+        """
+        List built-in OAuth providers controlled by sys config (non-plugin).
+        """
+
+        core = await get_core_settings_value_cached(self.settings, ttl_seconds=2.0)
+        if not isinstance(core, dict):
+            return []
+
+        def _enabled(section_id: str) -> bool:
+            section = core.get(section_id)
+            if not isinstance(section, dict) or section.get("enabled") is not True:
+                return False
+            client_id = section.get("client_id")
+            client_secret_raw = section.get("client_secret")
+            if not isinstance(client_id, str) or not client_id.strip():
+                return False
+            if not isinstance(client_secret_raw, str) or not client_secret_raw.strip():
+                return False
+            if is_encrypted(client_secret_raw):
+                secret = self._decrypt_core_secret_best_effort(
+                    secret_path=f"{section_id}.client_secret",
+                    raw=client_secret_raw,
+                )
+                if secret is None:
+                    return False
+            return True
+
+        out: list[dict[str, Any]] = []
+        if _enabled("oauth_google"):
+            out.append({
+                "provider": "google",
+                "label": "Continue with Google",
+                "icon_key": "google",
+                "start_path": "/auth/sso/start/google",
+            })
+        if _enabled("oauth_github"):
+            out.append({
+                "provider": "github",
+                "label": "Continue with GitHub",
+                "icon_key": "github",
+                "start_path": "/auth/sso/start/github",
+            })
         return out
 
     async def exchange(self, *, code: str):

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+
 from pydantic import Field
 
 from apps.api.common.schemas import BaseSchema
@@ -11,11 +12,6 @@ class OAuthStatePayload(BaseSchema):
     redirect: str | None = Field(default=None, description="Optional frontend redirect path.")
     code_verifier: str = Field(..., description="PKCE code verifier.")
     link_user_id: str | None = Field(default=None, description="Optional user id for account linking flow.")
-
-
-class OAuthExchangePayload(BaseSchema):
-    user_id: str = Field(..., description="User id (UUID string).")
-    redirect: str | None = Field(default=None, description="Optional frontend redirect path.")
 
 
 class OAuthLinkedIdentityOut(BaseSchema):

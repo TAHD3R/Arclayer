@@ -6,13 +6,14 @@ import json
 import os
 import smtplib
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 from uuid import UUID
 
 from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 from pydantic import EmailStr, SecretStr, TypeAdapter, ValidationError
 
+from apps.api.common.protocols.tortoise import SettingUpdatedBy
 from apps.api.common.services.base import BaseService
 from apps.api.common.utils.ids import uuid7
 from apps.api.common.utils.public_ids import encode_uuid
@@ -32,11 +33,15 @@ from apps.api.modules.sys.settings.schema import (
     SysConfigTestResult,
 )
 from apps.api.modules.sys.settings.schemas import (
+    SYS_AUTH_SETTINGS_SCHEMA,
     SYS_CORE_SETTINGS_SCHEMA,
     SYS_MAIL_SETTINGS_SCHEMA,
+    SYS_NAMESPACE_AUTH,
     SYS_NAMESPACE_CORE_LEGACY,
     SYS_NAMESPACE_MAIL,
+    SYS_NAMESPACE_OAUTH,
     SYS_NAMESPACE_STORAGE,
+    SYS_OAUTH_SETTINGS_SCHEMA,
     SYS_STORAGE_SETTINGS_SCHEMA,
 )
 from apps.api.modules.system.models.setting import SettingRecord
@@ -93,6 +98,10 @@ class SysConfigService(BaseService):
             return SYS_STORAGE_SETTINGS_SCHEMA
         if namespace == SYS_NAMESPACE_MAIL:
             return SYS_MAIL_SETTINGS_SCHEMA
+        if namespace == SYS_NAMESPACE_OAUTH:
+            return SYS_OAUTH_SETTINGS_SCHEMA
+        if namespace == SYS_NAMESPACE_AUTH:
+            return SYS_AUTH_SETTINGS_SCHEMA
         if namespace == CORE_SETTINGS_NAMESPACE or namespace == SYS_NAMESPACE_CORE_LEGACY:
             # Backward compatible: legacy sys namespace "core" (mail+storage).
             return SYS_CORE_SETTINGS_SCHEMA
@@ -162,6 +171,18 @@ class SysConfigService(BaseService):
                 title=_ts("MAIL_TITLE", "邮件"),
                 description=None,
             ),
+            SysConfigNamespaceSummary(
+                namespace=SYS_NAMESPACE_OAUTH,
+                kind="oauth",
+                title=_ts("OAUTH_TITLE", "OAuth"),
+                description=_ts("OAUTH_DESC", "第三方登录（Google/GitHub）与自动开通策略"),
+            ),
+            SysConfigNamespaceSummary(
+                namespace=SYS_NAMESPACE_AUTH,
+                kind="auth",
+                title=_ts("AUTH_TITLE", "认证"),
+                description=_ts("AUTH_DESC", "注册开放与注册限制策略"),
+            ),
         ]
 
     async def _get_legacy_core_value(self) -> dict[str, Any]:
@@ -204,6 +225,12 @@ class SysConfigService(BaseService):
         mail_payload = await self._get_active_payload(SYS_NAMESPACE_MAIL)
         if mail_payload is not None:
             core = merge_deep(core, mail_payload)
+        oauth_payload = await self._get_active_payload(SYS_NAMESPACE_OAUTH)
+        if oauth_payload is not None:
+            core = merge_deep(core, oauth_payload)
+        auth_payload = await self._get_active_payload(SYS_NAMESPACE_AUTH)
+        if auth_payload is not None:
+            core = merge_deep(core, auth_payload)
 
         if override is not None and isinstance(override, dict):
             core = merge_deep(core, override)
@@ -340,7 +367,7 @@ class SysConfigService(BaseService):
                 )
             else:
                 record.value = core_value
-                record.updated_by = updated_by
+                cast(SettingUpdatedBy, record).updated_by = updated_by
                 await record.save()
             await self.repo.activate(namespace=namespace, revision=rev, activated_by=updated_by)
             invalidate_core_settings_cache()
@@ -385,7 +412,7 @@ class SysConfigService(BaseService):
             )
         else:
             record.value = core_value
-            record.updated_by = activated_by
+            cast(SettingUpdatedBy, record).updated_by = activated_by
             await record.save()
 
         await self.repo.activate(namespace=namespace, revision=rev, activated_by=activated_by)
@@ -595,6 +622,12 @@ class SysConfigService(BaseService):
             return checks
         if namespace in {SYS_NAMESPACE_MAIL}:
             checks.append(await self._check_core_mail(full_value=effective_core_value))
+            return checks
+        if namespace in {SYS_NAMESPACE_OAUTH}:
+            checks.extend(await self._check_oauth_social(full_value=effective_core_value))
+            return checks
+        if namespace in {SYS_NAMESPACE_AUTH}:
+            checks.extend(await self._check_auth_policy(full_value=effective_core_value))
             return checks
         if namespace in {CORE_SETTINGS_NAMESPACE, SYS_NAMESPACE_CORE_LEGACY}:
             checks.append(await self._check_core_storage(full_value=effective_core_value))
@@ -864,6 +897,105 @@ class SysConfigService(BaseService):
                 message="Unexpected mail test error",
                 details={"error": str(exc)},
             )
+
+    async def _check_oauth_social(self, *, full_value: dict[str, Any]) -> list[SysConfigTestCheck]:
+        """
+        Validate OAuth social login configuration (core capability).
+
+        Notes:
+        - This is a config-level check only (no external network calls).
+        - Secrets are expected to be encrypted with AAD: "core:{section.key}".
+        """
+
+        checks: list[SysConfigTestCheck] = []
+
+        def _check_provider(section_id: str, *, code: str) -> SysConfigTestCheck:
+            section = full_value.get(section_id)
+            if not isinstance(section, dict):
+                section = {}
+            enabled = section.get("enabled") is True
+            if not enabled:
+                return SysConfigTestCheck(code=code, ok=True, kind="config", message="OAuth disabled (skipped)")
+
+            client_id = section.get("client_id")
+            client_secret_raw = section.get("client_secret")
+            if not isinstance(client_id, str) or not client_id.strip():
+                return SysConfigTestCheck(code=code, ok=False, kind="config", message="Missing client_id")
+            if not isinstance(client_secret_raw, str) or not client_secret_raw.strip():
+                return SysConfigTestCheck(code=code, ok=False, kind="config", message="Missing client_secret")
+
+            secret = self._decrypt_secret_str_best_effort(
+                namespace=CORE_SETTINGS_NAMESPACE,
+                secret_path=f"{section_id}.client_secret",
+                raw=client_secret_raw,
+            )
+            if secret is None:
+                return SysConfigTestCheck(
+                    code=code,
+                    ok=False,
+                    kind="config",
+                    message="Cannot decrypt client_secret (master key missing or invalid)",
+                )
+            return SysConfigTestCheck(code=code, ok=True, kind="config")
+
+        checks.append(_check_provider("oauth_google", code="core.oauth.google"))
+        checks.append(_check_provider("oauth_github", code="core.oauth.github"))
+        return checks
+
+    async def _check_auth_policy(self, *, full_value: dict[str, Any]) -> list[SysConfigTestCheck]:
+        """
+        Validate instance-level auth policies (registration gates).
+
+        Notes:
+        - This is a config-level check only.
+        - Runtime enforcement happens in auth service endpoints.
+        """
+
+        section = full_value.get("auth")
+        if not isinstance(section, dict):
+            section = {}
+
+        allowlist = section.get("public_register_email_domains_allowlist")
+        if allowlist is None:
+            return [SysConfigTestCheck(code="core.auth.registration", ok=True, kind="config")]
+
+        if not isinstance(allowlist, list):
+            return [
+                SysConfigTestCheck(
+                    code="core.auth.registration",
+                    ok=False,
+                    kind="config",
+                    message="public_register_email_domains_allowlist must be a list",
+                )
+            ]
+
+        normalized: list[str] = []
+        for item in allowlist:
+            if not isinstance(item, str):
+                return [
+                    SysConfigTestCheck(
+                        code="core.auth.registration",
+                        ok=False,
+                        kind="config",
+                        message="public_register_email_domains_allowlist must only contain strings",
+                    )
+                ]
+            d = item.strip().lower().lstrip(".")
+            if not d:
+                continue
+            normalized.append(d)
+
+        if len(normalized) != len({*normalized}):
+            return [
+                SysConfigTestCheck(
+                    code="core.auth.registration",
+                    ok=False,
+                    kind="config",
+                    message="public_register_email_domains_allowlist contains duplicates",
+                )
+            ]
+
+        return [SysConfigTestCheck(code="core.auth.registration", ok=True, kind="config")]
 
     async def _encrypt_secrets_if_needed(
         self,

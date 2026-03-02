@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 from uuid import UUID
 
 from tortoise.exceptions import IntegrityError
 
+from apps.api.common.protocols.tortoise import SysConfigActiveMutableFields
 from apps.api.common.repositories.base import BaseRepository
 from apps.api.modules.sys.models.sys_config_active import SysConfigActive
 from apps.api.modules.sys.models.sys_config_revision import SysConfigRevision
@@ -72,6 +73,6 @@ class SysConfigRepository(BaseRepository):
                 if active is None:
                     raise
         active.active_revision = revision
-        active.activated_by = activated_by
+        cast(SysConfigActiveMutableFields, active).activated_by = activated_by
         await active.save()
         return active

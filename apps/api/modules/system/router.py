@@ -14,6 +14,7 @@ from apps.api.core.i18n import t
 from apps.api.modules.analytics.system.router import router as system_activity_router
 from apps.api.modules.organization.deps import require_org_owner
 from apps.api.modules.organization.models.org_membership import OrgMembership
+from apps.api.modules.sys.deps import require_super_admin
 from apps.api.modules.system.flags import build_system_flags
 from apps.api.modules.system.mail.router import router as system_mail_router
 from apps.api.modules.system.plugins_manager.router import router as system_plugins_router
@@ -114,10 +115,15 @@ async def get_setup_job_status(
 )
 async def repair_setup_master_key(
     payload: SystemMasterKeyRepairRequest,
-    _orgm: OrgMembership = Depends(require_org_owner),
+    user=Depends(require_super_admin),
     service: SystemSetupService = Depends(get_setup_service),
 ) -> ResponseModel[SystemMasterKeyRepairResult]:
-    out = await service.repair_master_key(confirm_text=payload.confirm_text)
+    out = await service.repair_master_key(
+        confirm_text=payload.confirm_text,
+        password=payload.password.get_secret_value(),
+        actor_user_id=getattr(user, "id", None),
+        updated_by=getattr(user, "id", None),
+    )
     return Response.success(data=out)
 
 
@@ -153,15 +159,19 @@ async def get_system_runtime(
     (e.g. storage/mail) should be exposed in the UI.
     """
 
+    from apps.api.modules.auth.registration.policy import get_public_register_policy
+
     deployment_mode = settings.application.deployment_mode
+    policy = await get_public_register_policy(settings)
+    flags = build_system_flags(settings=settings).model_copy(update={"public_register": policy.enabled})
     return Response.success(
         data=SystemRuntimeOut(
             deployment_mode=deployment_mode,
             capabilities=SystemRuntimeCapabilities(
                 deployment_settings_enabled=deployment_mode == "self_host",
-                public_register_enabled=settings.auth.allow_public_register,
+                public_register_enabled=policy.enabled,
             ),
-            system_flags=build_system_flags(settings=settings),
+            system_flags=flags,
         )
     )
 

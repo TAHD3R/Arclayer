@@ -8,9 +8,8 @@ from tortoise.exceptions import IntegrityError
 
 from apps.api.common.repositories.base import BaseRepository
 from apps.api.common.utils.ids import uuid7
+from apps.api.modules.auth.oauth_social.models import OAuthIdentity
 from apps.api.modules.organization.models.user import User, UserStatus
-
-from oauth_social.models import OAuthIdentity
 
 
 def _sanitize_username_base(value: str) -> str:
@@ -45,7 +44,6 @@ class OAuthSocialRepository(BaseRepository):
                 email=email,
             )
         except IntegrityError:
-            # Another request may have created it concurrently; return the existing one.
             existing = await OAuthIdentity.get_or_none(provider=provider, subject=subject)
             if existing is not None:
                 return existing
@@ -89,7 +87,6 @@ class OAuthSocialRepository(BaseRepository):
             except IntegrityError:
                 continue
 
-        # Last resort: let DB error surface (should be extremely unlikely).
         user = await User.create(
             username=f"user_{uuid7().hex[:12]}",
             email=normalized_email,

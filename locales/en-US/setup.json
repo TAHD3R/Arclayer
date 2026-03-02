@@ -122,5 +122,26 @@
   "SETUP_PROGRESS_STEP_INDICATOR": "Step {{current}} / {{total}}",
   "SETUP_PROGRESS_TIMEOUT": "Setup timed out. Please retry after checking system status.",
   "SETUP_PROGRESS_FAILED": "Setup failed. Please review your configuration and try again.",
-  "SETUP_SUCCESS_WITH_WARNINGS": "Setup completed with non-blocking warnings."
+  "SETUP_SUCCESS_WITH_WARNINGS": "Setup completed with non-blocking warnings.",
+
+  "MASTER_KEY_REPAIR_TITLE": "Repair system master key",
+  "MASTER_KEY_REPAIR_SUBTITLE": "This instance is missing its master key and cannot proceed until an operator repairs it.",
+  "MASTER_KEY_REPAIR_STATUS_LOAD_FAILED": "Failed to load system status",
+  "MASTER_KEY_REPAIR_STATUS_OK": "Master key is ready",
+  "MASTER_KEY_REPAIR_STATUS_OK_DESC": "The system master key is present. You can return to the admin.",
+  "MASTER_KEY_REPAIR_STATUS_REQUIRED": "Master key repair required",
+  "MASTER_KEY_REPAIR_STATUS_REQUIRED_DESC": "The system master key is missing. Most API endpoints are temporarily unavailable until it is repaired.",
+  "MASTER_KEY_REPAIR_STATUS_UNKNOWN": "System status unknown",
+  "MASTER_KEY_REPAIR_STATUS_UNKNOWN_DESC": "We couldn't verify whether the master key is ready. Please retry.",
+  "MASTER_KEY_REPAIR_LOGIN_REQUIRED": "Sign in as a super admin to repair the master key.",
+  "MASTER_KEY_REPAIR_SUPER_ADMIN_REQUIRED": "Super admin required",
+  "MASTER_KEY_REPAIR_SUPER_ADMIN_REQUIRED_DESC": "You are signed in, but this operation requires a super admin account.",
+  "MASTER_KEY_REPAIR_FORM_TITLE": "Repair now",
+  "MASTER_KEY_REPAIR_FORM_DESC": "This action regenerates the master key for this instance. Previously encrypted system secrets may need to be re-saved afterwards.",
+  "MASTER_KEY_REPAIR_CONFIRM_LABEL": "Type REPAIR to confirm",
+  "MASTER_KEY_REPAIR_CONFIRM_REQUIRED": "Please type REPAIR to confirm",
+  "MASTER_KEY_REPAIR_CONFIRM_MISMATCH": "Confirmation text must be exactly REPAIR",
+  "MASTER_KEY_REPAIR_PASSWORD_LABEL": "Password (step-up confirmation)",
+  "MASTER_KEY_REPAIR_ACTION": "Repair master key",
+  "MASTER_KEY_REPAIR_SUCCESS": "Master key repaired successfully."
 }

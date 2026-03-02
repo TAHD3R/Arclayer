@@ -84,6 +84,10 @@ class SettingUpdatedBy(Protocol):
     updated_by: UUID | None
 
 
+class SysConfigActiveMutableFields(Protocol):
+    activated_by: UUID | None
+
+
 class PermissionMutableFields(Protocol):
     description: str | None
     name_i18n: str | None

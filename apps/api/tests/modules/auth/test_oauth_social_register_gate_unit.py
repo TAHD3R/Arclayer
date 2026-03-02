@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from importlib import import_module
 from types import SimpleNamespace
-from typing import Any, cast
+from typing import Any
 from urllib.parse import parse_qs, urlparse
 from uuid import UUID, uuid4
 
@@ -12,10 +11,8 @@ from starlette.requests import Request
 
 from apps.api.config import get_settings
 from apps.api.infra.cache.valkey import ValkeyClientLike
-from apps.api.plugin.manifest import PluginManifest
-
-OAuthStatePayload = cast(Any, import_module("oauth_social.schema").OAuthStatePayload)
-OAuthSocialService = cast(Any, import_module("oauth_social.service").OAuthSocialService)
+from apps.api.modules.auth.oauth_social.schema import OAuthStatePayload
+from apps.api.modules.auth.oauth_social.service import OAuthSocialService
 
 
 class _FakeValkey(ValkeyClientLike):
@@ -79,44 +76,15 @@ class _FakeValkey(ValkeyClientLike):
         return set()
 
 
-def _build_manifest() -> PluginManifest:
-    return PluginManifest.model_validate({
-        "plugin": {
-            "id": "plugin-oauth-social",
-            "slug": "oauth",
-            "management_scope": "organization",
-            "name": "OAuth Social Login",
-            "description": "Provide social login",
-            "author": "Test",
-            "version": "0.1.0",
-            "requires": ">=2026.01.18-dev",
-            "entrypoint": "oauth_social.plugin:OAuthSocialPlugin",
-        },
-        "config_schema": {
-            "sections": [
-                {
-                    "id": "google",
-                    "title": "Google",
-                    "fields": [
-                        {"key": "enabled", "type": "bool", "default": False},
-                        {"key": "client_id", "type": "str"},
-                        {"key": "client_secret", "type": "str", "secret": True},
-                    ],
-                }
-            ]
-        },
-    })
-
-
 def _build_callback_request(provider: str) -> Request:
     app = FastAPI()
 
-    @app.get("/plugins/oauth/callback/{provider}", name="oauth_social_callback")
+    @app.get("/auth/sso/callback/{provider}", name="auth_sso_oauth_callback")
     async def _noop_callback(provider: str):
         _ = provider
         return {"ok": True}
 
-    path = f"/plugins/oauth/callback/{provider}"
+    path = f"/auth/sso/callback/{provider}"
     scope = {
         "type": "http",
         "http_version": "1.1",
@@ -174,7 +142,7 @@ async def test_oauth_social_blocks_new_user_auto_provision_when_public_register_
     old_allow = settings.auth.allow_public_register
     settings.auth.allow_public_register = False
 
-    service = OAuthSocialService(settings, manifest=_build_manifest(), valkey=_FakeValkey())
+    service = OAuthSocialService(settings, valkey=_FakeValkey())
     request = _build_callback_request("google")
 
     payload_json = OAuthStatePayload(
@@ -183,11 +151,10 @@ async def test_oauth_social_blocks_new_user_auto_provision_when_public_register_
         code_verifier="verifier",
     ).model_dump_json()
 
-    async def _fake_load_config(*, require_enabled: bool) -> dict[str, object]:
-        _ = require_enabled
+    async def _fake_load_config() -> dict[str, object]:
         return {
-            "google": {"enabled": True, "client_id": "cid", "client_secret": "secret"},
-            "provisioning": {"auto_provision_enabled": True, "auto_accept_email_invites": False},
+            "oauth_google": {"enabled": True, "client_id": "cid", "client_secret": "secret"},
+            "oauth_provisioning": {"auto_provision_enabled": True, "auto_accept_email_invites": False},
         }
 
     create_user_called = {"count": 0}
@@ -211,10 +178,13 @@ async def test_oauth_social_blocks_new_user_auto_provision_when_public_register_
     async def _fake_getdel(*_args, **_kwargs) -> str:
         return payload_json
 
-    monkeypatch.setattr(service, "_load_org_plugin_config", _fake_load_config)
+    monkeypatch.setattr(service, "_load_core_oauth_config", _fake_load_config)
     monkeypatch.setattr(service, "_resolve_frontend_base_url", _fake_frontend_base_url)
-    monkeypatch.setattr("oauth_social.service._valkey_getdel_best_effort", _fake_getdel)
-    monkeypatch.setattr("oauth_social.service.httpx.AsyncClient", lambda *args, **kwargs: _FakeGoogleClient())
+    monkeypatch.setattr("apps.api.modules.auth.oauth_social.service._valkey_getdel_best_effort", _fake_getdel)
+    monkeypatch.setattr(
+        "apps.api.modules.auth.oauth_social.service.httpx.AsyncClient",
+        lambda *args, **kwargs: _FakeGoogleClient(),
+    )
     monkeypatch.setattr(service.repo, "get_identity", _fake_get_identity)
     monkeypatch.setattr(service.repo, "get_user_by_email", _fake_get_user_by_email)
     monkeypatch.setattr(service.repo, "create_user", _fake_create_user)
@@ -239,7 +209,7 @@ async def test_oauth_social_allows_existing_user_signin_when_public_register_dis
     old_allow = settings.auth.allow_public_register
     settings.auth.allow_public_register = False
 
-    service = OAuthSocialService(settings, manifest=_build_manifest(), valkey=_FakeValkey())
+    service = OAuthSocialService(settings, valkey=_FakeValkey())
     request = _build_callback_request("google")
 
     payload_json = OAuthStatePayload(
@@ -251,11 +221,10 @@ async def test_oauth_social_allows_existing_user_signin_when_public_register_dis
     existing_user_id = uuid4()
     created_identity: dict[str, UUID | None] = {"user_id": None}
 
-    async def _fake_load_config(*, require_enabled: bool) -> dict[str, object]:
-        _ = require_enabled
+    async def _fake_load_config() -> dict[str, object]:
         return {
-            "google": {"enabled": True, "client_id": "cid", "client_secret": "secret"},
-            "provisioning": {"auto_provision_enabled": False, "auto_accept_email_invites": False},
+            "oauth_google": {"enabled": True, "client_id": "cid", "client_secret": "secret"},
+            "oauth_provisioning": {"auto_provision_enabled": False, "auto_accept_email_invites": False},
         }
 
     async def _fake_get_identity(*, provider: str, subject: str):
@@ -280,11 +249,14 @@ async def test_oauth_social_allows_existing_user_signin_when_public_register_dis
     async def _fake_getdel(*_args, **_kwargs) -> str:
         return payload_json
 
-    monkeypatch.setattr(service, "_load_org_plugin_config", _fake_load_config)
+    monkeypatch.setattr(service, "_load_core_oauth_config", _fake_load_config)
     monkeypatch.setattr(service, "_resolve_frontend_base_url", _fake_frontend_base_url)
-    monkeypatch.setattr("oauth_social.service._valkey_getdel_best_effort", _fake_getdel)
-    monkeypatch.setattr("oauth_social.service.httpx.AsyncClient", lambda *args, **kwargs: _FakeGoogleClient())
-    monkeypatch.setattr("oauth_social.service.issue_exchange_code", _fake_issue_exchange_code)
+    monkeypatch.setattr("apps.api.modules.auth.oauth_social.service._valkey_getdel_best_effort", _fake_getdel)
+    monkeypatch.setattr(
+        "apps.api.modules.auth.oauth_social.service.httpx.AsyncClient",
+        lambda *args, **kwargs: _FakeGoogleClient(),
+    )
+    monkeypatch.setattr("apps.api.modules.auth.oauth_social.service.issue_exchange_code", _fake_issue_exchange_code)
     monkeypatch.setattr(service.repo, "get_identity", _fake_get_identity)
     monkeypatch.setattr(service.repo, "get_user_by_email", _fake_get_user_by_email)
     monkeypatch.setattr(service.repo, "create_identity", _fake_create_identity)
@@ -309,7 +281,7 @@ async def test_oauth_social_blocks_new_user_when_auto_provision_disabled_even_if
     old_allow = settings.auth.allow_public_register
     settings.auth.allow_public_register = True
 
-    service = OAuthSocialService(settings, manifest=_build_manifest(), valkey=_FakeValkey())
+    service = OAuthSocialService(settings, valkey=_FakeValkey())
     request = _build_callback_request("google")
 
     payload_json = OAuthStatePayload(
@@ -318,11 +290,10 @@ async def test_oauth_social_blocks_new_user_when_auto_provision_disabled_even_if
         code_verifier="verifier",
     ).model_dump_json()
 
-    async def _fake_load_config(*, require_enabled: bool) -> dict[str, object]:
-        _ = require_enabled
+    async def _fake_load_config() -> dict[str, object]:
         return {
-            "google": {"enabled": True, "client_id": "cid", "client_secret": "secret"},
-            "provisioning": {"auto_provision_enabled": False, "auto_accept_email_invites": False},
+            "oauth_google": {"enabled": True, "client_id": "cid", "client_secret": "secret"},
+            "oauth_provisioning": {"auto_provision_enabled": False, "auto_accept_email_invites": False},
         }
 
     create_user_called = {"count": 0}
@@ -346,10 +317,13 @@ async def test_oauth_social_blocks_new_user_when_auto_provision_disabled_even_if
     async def _fake_getdel(*_args, **_kwargs) -> str:
         return payload_json
 
-    monkeypatch.setattr(service, "_load_org_plugin_config", _fake_load_config)
+    monkeypatch.setattr(service, "_load_core_oauth_config", _fake_load_config)
     monkeypatch.setattr(service, "_resolve_frontend_base_url", _fake_frontend_base_url)
-    monkeypatch.setattr("oauth_social.service._valkey_getdel_best_effort", _fake_getdel)
-    monkeypatch.setattr("oauth_social.service.httpx.AsyncClient", lambda *args, **kwargs: _FakeGoogleClient())
+    monkeypatch.setattr("apps.api.modules.auth.oauth_social.service._valkey_getdel_best_effort", _fake_getdel)
+    monkeypatch.setattr(
+        "apps.api.modules.auth.oauth_social.service.httpx.AsyncClient",
+        lambda *args, **kwargs: _FakeGoogleClient(),
+    )
     monkeypatch.setattr(service.repo, "get_identity", _fake_get_identity)
     monkeypatch.setattr(service.repo, "get_user_by_email", _fake_get_user_by_email)
     monkeypatch.setattr(service.repo, "create_user", _fake_create_user)
@@ -374,7 +348,7 @@ async def test_oauth_social_auto_provisions_new_user_when_all_gates_enabled(
     old_allow = settings.auth.allow_public_register
     settings.auth.allow_public_register = True
 
-    service = OAuthSocialService(settings, manifest=_build_manifest(), valkey=_FakeValkey())
+    service = OAuthSocialService(settings, valkey=_FakeValkey())
     request = _build_callback_request("google")
 
     payload_json = OAuthStatePayload(
@@ -387,11 +361,10 @@ async def test_oauth_social_auto_provisions_new_user_when_all_gates_enabled(
     created_identity: dict[str, UUID | None] = {"user_id": None}
     create_user_called = {"count": 0}
 
-    async def _fake_load_config(*, require_enabled: bool) -> dict[str, object]:
-        _ = require_enabled
+    async def _fake_load_config() -> dict[str, object]:
         return {
-            "google": {"enabled": True, "client_id": "cid", "client_secret": "secret"},
-            "provisioning": {"auto_provision_enabled": True, "auto_accept_email_invites": False},
+            "oauth_google": {"enabled": True, "client_id": "cid", "client_secret": "secret"},
+            "oauth_provisioning": {"auto_provision_enabled": True, "auto_accept_email_invites": False},
         }
 
     async def _fake_get_identity(*, provider: str, subject: str):
@@ -421,11 +394,14 @@ async def test_oauth_social_auto_provisions_new_user_when_all_gates_enabled(
     async def _fake_getdel(*_args, **_kwargs) -> str:
         return payload_json
 
-    monkeypatch.setattr(service, "_load_org_plugin_config", _fake_load_config)
+    monkeypatch.setattr(service, "_load_core_oauth_config", _fake_load_config)
     monkeypatch.setattr(service, "_resolve_frontend_base_url", _fake_frontend_base_url)
-    monkeypatch.setattr("oauth_social.service._valkey_getdel_best_effort", _fake_getdel)
-    monkeypatch.setattr("oauth_social.service.httpx.AsyncClient", lambda *args, **kwargs: _FakeGoogleClient())
-    monkeypatch.setattr("oauth_social.service.issue_exchange_code", _fake_issue_exchange_code)
+    monkeypatch.setattr("apps.api.modules.auth.oauth_social.service._valkey_getdel_best_effort", _fake_getdel)
+    monkeypatch.setattr(
+        "apps.api.modules.auth.oauth_social.service.httpx.AsyncClient",
+        lambda *args, **kwargs: _FakeGoogleClient(),
+    )
+    monkeypatch.setattr("apps.api.modules.auth.oauth_social.service.issue_exchange_code", _fake_issue_exchange_code)
     monkeypatch.setattr(service.repo, "get_identity", _fake_get_identity)
     monkeypatch.setattr(service.repo, "get_user_by_email", _fake_get_user_by_email)
     monkeypatch.setattr(service.repo, "create_user", _fake_create_user)

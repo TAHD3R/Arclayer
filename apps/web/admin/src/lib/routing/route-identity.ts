@@ -19,6 +19,10 @@ export function isSetupPath(pathname: string): boolean {
   return pathname === "/setup" || pathname.startsWith("/setup/");
 }
 
+export function isRepairPath(pathname: string): boolean {
+  return pathname === "/repair" || pathname.startsWith("/repair/");
+}
+
 export function isEditorPath(pathname: string): boolean {
   return /^\/w\/[^/]+\/editor(?:\/|$)/.test(pathname);
 }
@@ -38,6 +42,7 @@ export function isPublicPath(pathname: string): boolean {
     isLoginPath(pathname) ||
     isResetPasswordPath(pathname) ||
     isSetupPath(pathname) ||
+    isRepairPath(pathname) ||
     isAcceptInvitePath(pathname)
   );
 }

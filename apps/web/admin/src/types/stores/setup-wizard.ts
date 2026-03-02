@@ -34,6 +34,8 @@ export type SetupDefaultsDraftPartial = Partial<SetupDefaultsDraft>;
 
 export interface SetupWizardState {
   initialized: boolean | null;
+  masterKeyReady: boolean | null;
+  repairRequired: boolean | null;
   setupEnabled: boolean | null;
   access: SetupAccessMode | null;
   deploymentMode: DeploymentMode | null;
@@ -46,6 +48,8 @@ export interface SetupWizardState {
   setSystemStatus: (
     status: {
       initialized: boolean;
+      masterKeyReady: boolean;
+      repairRequired: boolean;
       setupEnabled: boolean;
       access: SetupAccessMode;
     } | null,

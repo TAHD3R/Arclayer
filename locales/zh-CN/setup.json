@@ -122,5 +122,26 @@
   "SETUP_PROGRESS_STEP_INDICATOR": "第 {{current}} / {{total}} 步",
   "SETUP_PROGRESS_TIMEOUT": "初始化超时，请检查系统状态后重试。",
   "SETUP_PROGRESS_FAILED": "初始化失败，请检查配置后重试。",
-  "SETUP_SUCCESS_WITH_WARNINGS": "初始化完成，但存在可忽略的警告。"
+  "SETUP_SUCCESS_WITH_WARNINGS": "初始化完成，但存在可忽略的警告。",
+
+  "MASTER_KEY_REPAIR_TITLE": "修复系统密钥",
+  "MASTER_KEY_REPAIR_SUBTITLE": "当前实例缺失系统密钥，系统将暂时不可用，需由超级管理员修复后才能继续使用。",
+  "MASTER_KEY_REPAIR_STATUS_LOAD_FAILED": "加载系统状态失败",
+  "MASTER_KEY_REPAIR_STATUS_OK": "系统密钥已就绪",
+  "MASTER_KEY_REPAIR_STATUS_OK_DESC": "系统密钥已存在，你可以返回管理后台继续使用。",
+  "MASTER_KEY_REPAIR_STATUS_REQUIRED": "需要修复系统密钥",
+  "MASTER_KEY_REPAIR_STATUS_REQUIRED_DESC": "系统密钥缺失。为避免更多异常，系统会临时拒绝大多数接口请求，直到完成修复。",
+  "MASTER_KEY_REPAIR_STATUS_UNKNOWN": "系统状态未知",
+  "MASTER_KEY_REPAIR_STATUS_UNKNOWN_DESC": "暂时无法确认系统密钥状态，请点击重试。",
+  "MASTER_KEY_REPAIR_LOGIN_REQUIRED": "请先以超级管理员账号登录后再执行修复。",
+  "MASTER_KEY_REPAIR_SUPER_ADMIN_REQUIRED": "需要超级管理员权限",
+  "MASTER_KEY_REPAIR_SUPER_ADMIN_REQUIRED_DESC": "你已登录，但该操作仅允许超级管理员执行。",
+  "MASTER_KEY_REPAIR_FORM_TITLE": "立即修复",
+  "MASTER_KEY_REPAIR_FORM_DESC": "该操作会为当前实例重新生成系统密钥。历史加密的系统级敏感配置可能需要在修复后重新保存。",
+  "MASTER_KEY_REPAIR_CONFIRM_LABEL": "输入 REPAIR 确认",
+  "MASTER_KEY_REPAIR_CONFIRM_REQUIRED": "请输入 REPAIR 确认",
+  "MASTER_KEY_REPAIR_CONFIRM_MISMATCH": "确认文本必须严格为 REPAIR",
+  "MASTER_KEY_REPAIR_PASSWORD_LABEL": "密码（再次确认）",
+  "MASTER_KEY_REPAIR_ACTION": "修复系统密钥",
+  "MASTER_KEY_REPAIR_SUCCESS": "系统密钥修复成功。"
 }

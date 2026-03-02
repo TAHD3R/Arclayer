@@ -7,6 +7,7 @@ import {
   isDevToolsPath,
   isLoginPath,
   isPublicPath,
+  isRepairPath,
 } from "@/lib/routing/route-identity";
 import { getSceneLayout, resolveSceneKey } from "@/lib/routing/scene-registry";
 import { isDevSetupOverrideEnabled, resolveSetupGateRedirect } from "@/lib/routing/setup-routing";
@@ -66,6 +67,14 @@ export const Route = createRootRoute({
     });
     if (setupRedirect) {
       throw redirect({ to: setupRedirect });
+    }
+
+    if (
+      setup.repairRequired === true &&
+      !isRepairPath(location.pathname) &&
+      !isAuthScenePath(location.pathname)
+    ) {
+      throw redirect({ to: "/repair/master-key", replace: true });
     }
 
     const token = useAuthStore.getState().accessToken;

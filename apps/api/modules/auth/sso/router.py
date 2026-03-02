@@ -3,6 +3,7 @@ from __future__ import annotations
 import secrets
 
 from fastapi import APIRouter, Depends, Query, Request
+from starlette.responses import RedirectResponse
 
 from apps.api.config import Settings, get_settings
 from apps.api.core.exceptions import ServiceUnavailable
@@ -11,6 +12,9 @@ from apps.api.infra.cache.valkey import get_valkey
 from apps.api.infra.limiter.limiter import rate_limit
 from apps.api.modules.auth.constants import SSO_EXCHANGE_RATE_LIMIT, SSO_PROVIDERS_RATE_LIMIT
 from apps.api.modules.auth.deps import get_current_user
+from apps.api.modules.auth.oauth_social.models import OAuthIdentity
+from apps.api.modules.auth.oauth_social.schema import OAuthLinkedIdentityListOut
+from apps.api.modules.auth.oauth_social.service import OAuthSocialService
 from apps.api.modules.auth.schema import TokenPair
 from apps.api.modules.auth.service import AuthService
 from apps.api.modules.auth.sso.schema import (
@@ -20,7 +24,7 @@ from apps.api.modules.auth.sso.schema import (
     AuthSSOProvidersOut,
 )
 from apps.api.modules.auth.sso.service import AuthSSOService
-from apps.api.modules.organization.models.user import User
+from apps.api.modules.organization.models.user import User, UserCredential
 from apps.api.plugin.manager import PluginManager
 
 router = APIRouter(prefix="/sso", tags=["Services: Auth SSO"])
@@ -58,6 +62,17 @@ def get_sso_service(
     except RuntimeError:
         valkey = None
     return AuthSSOService(settings, manager=manager, valkey=valkey, auth_service=auth_service)
+
+
+def get_oauth_social_service(
+    request: Request,
+    settings: Settings = Depends(get_settings),
+) -> OAuthSocialService:
+    try:
+        valkey = get_valkey(request)
+    except RuntimeError as exc:
+        raise ServiceUnavailable(message="Valkey unavailable", error="VALKEY_UNAVAILABLE") from exc
+    return OAuthSocialService(settings, valkey=valkey)
 
 
 @router.get(
@@ -111,3 +126,73 @@ async def issue_link_state(
     token = secrets.token_urlsafe(32)
     await valkey.set(f"{_SSO_LINK_STATE_KEY_PREFIX}{token}", str(user.id), ex=_SSO_LINK_STATE_EXPIRES_IN)
     return Response.success(data=AuthSSOLinkStateOut(token=token, expires_in=_SSO_LINK_STATE_EXPIRES_IN))
+
+
+@router.get(
+    "/start/{provider}",
+    summary="Start OAuth social login flow",
+    name="auth_sso_oauth_start",
+    dependencies=[rate_limit(20, 60)],
+)
+async def start_oauth(
+    provider: str,
+    request: Request,
+    redirect: str | None = Query(default=None, description="Optional safe redirect path after login."),
+    link_state: str | None = Query(default=None, description="Optional one-time link state token."),
+    service: OAuthSocialService = Depends(get_oauth_social_service),
+) -> RedirectResponse:
+    return await service.start(request, provider=provider, redirect=redirect, link_state=link_state)
+
+
+@router.get(
+    "/callback/{provider}",
+    summary="OAuth social login callback",
+    name="auth_sso_oauth_callback",
+    dependencies=[rate_limit(20, 60)],
+)
+async def callback_oauth(
+    provider: str,
+    request: Request,
+    code: str | None = Query(default=None, description="Authorization code."),
+    state: str | None = Query(default=None, description="OAuth state."),
+    service: OAuthSocialService = Depends(get_oauth_social_service),
+) -> RedirectResponse:
+    return await service.callback(request, provider=provider, code=code, state=state)
+
+
+@router.get(
+    "/me/identities",
+    response_model=ResponseModel[OAuthLinkedIdentityListOut],
+    summary="List linked OAuth identities for current user",
+)
+async def list_my_oauth_identities(
+    user: User = Depends(get_current_user),
+    service: OAuthSocialService = Depends(get_oauth_social_service),
+) -> ResponseModel[OAuthLinkedIdentityListOut]:
+    out = await service.list_identities_out(user_id=user.id)
+    return Response.success(data=out)
+
+
+@router.delete(
+    "/me/identities/{provider}",
+    response_model=ResponseModel[None],
+    summary="Unlink an OAuth identity for current user",
+)
+async def unlink_my_oauth_identity(
+    provider: str,
+    user: User = Depends(get_current_user),
+    service: OAuthSocialService = Depends(get_oauth_social_service),
+) -> ResponseModel[None]:
+    provider_key = (provider or "").strip().lower()
+    if not provider_key:
+        return Response.success(data=None)
+
+    # Safety: prevent users from locking themselves out (no password + last identity).
+    has_password = await UserCredential.get_or_none(user_id=user.id) is not None
+    identities = await OAuthIdentity.filter(user_id=user.id).all()
+    has_other_identity = any((i.provider or "").strip().lower() != provider_key for i in identities)
+    if not has_password and not has_other_identity:
+        return Response.fail(message="Cannot unlink the last sign-in method.", error="LAST_SIGNIN_METHOD")
+
+    await service.unlink_identity(user_id=user.id, provider=provider_key)
+    return Response.success(data=None)

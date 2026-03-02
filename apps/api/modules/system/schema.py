@@ -65,6 +65,7 @@ class SystemSetupStatus(BaseSchema):
 
 class SystemMasterKeyRepairRequest(BaseSchema):
     confirm_text: str = Field(..., min_length=1, max_length=64, description="Confirmation text, must be REPAIR.")
+    password: SecretStr = Field(..., description="Super admin password for step-up confirmation.")
 
 
 class SystemMasterKeyRepairResult(BaseSchema):

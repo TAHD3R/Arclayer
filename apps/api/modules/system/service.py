@@ -12,12 +12,20 @@ from pydantic import ValidationError
 from apps.api.common.protocols.tortoise import HasOrganizationId, OrganizationLogoUrlMutableFields
 from apps.api.common.services.base import BaseService
 from apps.api.config import Settings
-from apps.api.core.exceptions import APIError, BadRequest, Conflict, Forbidden, NotFound, ServiceUnavailable
+from apps.api.core.exceptions import (
+    APIError,
+    BadRequest,
+    Conflict,
+    Forbidden,
+    NotFound,
+    ServiceUnavailable,
+    Unauthorized,
+)
 from apps.api.core.i18n import t
 from apps.api.modules.auth.repository import UserRepository
-from apps.api.modules.auth.security import hash_password
+from apps.api.modules.auth.security import hash_password, verify_password
 from apps.api.modules.organization.models.organization import Organization
-from apps.api.modules.organization.models.user import User
+from apps.api.modules.organization.models.user import User, UserCredential
 from apps.api.modules.provision.service import TenantProvisioningService
 from apps.api.modules.system.models.setting import SettingRecord
 from apps.api.modules.system.models.setup_job import SetupJobRecord
@@ -359,12 +367,45 @@ class SystemSetupService(BaseService):
     async def is_initialized(self) -> bool:
         return await User.all().exists()
 
-    async def repair_master_key(self, *, confirm_text: str) -> SystemMasterKeyRepairResult:
+    async def repair_master_key(
+        self,
+        *,
+        confirm_text: str,
+        password: str,
+        actor_user_id: UUID | None,
+        updated_by: UUID | None,
+    ) -> SystemMasterKeyRepairResult:
         if str(confirm_text or "").strip() != "REPAIR":
             raise BadRequest(message=_ts("BAD_REQUEST", "参数错误"), error="MASTER_KEY_REPAIR_CONFIRM_MISMATCH")
 
         if not await self.is_initialized():
             raise Conflict(message=_ts("SETUP_NOT_DONE", "系统尚未初始化"), error="SETUP_NOT_DONE")
+
+        if actor_user_id is None:
+            raise Unauthorized(message=t("auth", "UNAUTHORIZED", default="未登录"), error="UNAUTHORIZED")
+
+        user_with_cred = await self.user_repo.get_by_id_with_credential(actor_user_id)
+        if user_with_cred is None:
+            raise Unauthorized(message=t("auth", "USER_NOT_FOUND", default="用户不存在"), error="USER_NOT_FOUND")
+
+        if not bool(getattr(user_with_cred, "is_super_admin", False)):
+            raise Forbidden(
+                message=t("auth", "FORBIDDEN", default="无权限"),
+                error="SUPER_ADMIN_REQUIRED",
+            )
+
+        credential = cast(UserCredential | None, getattr(user_with_cred, "credential", None))
+        if credential is None:
+            raise Unauthorized(
+                message=t("auth", "INVALID_CREDENTIALS", default="账号或密码错误"),
+                error="INVALID_CREDENTIALS",
+            )
+
+        if not verify_password(password, credential.password_hash, self.settings.auth):
+            raise Unauthorized(
+                message=t("auth", "INVALID_CREDENTIALS", default="账号或密码错误"),
+                error="INVALID_CREDENTIALS",
+            )
 
         key_path = Path(self.settings.setup.master_key_path)
         created = not master_key_exists(key_path)
@@ -383,7 +424,7 @@ class SystemSetupService(BaseService):
                         "signing_key_fingerprint": signing_fp,
                     }
                 },
-                updated_by=None,
+                updated_by=updated_by,
             )
         except BaseException as exc:
             _raise_if_fatal(exc)
