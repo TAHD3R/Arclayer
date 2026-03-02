@@ -22,6 +22,7 @@ import { ContentGuard } from "@/components/common/content-guard";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
+import { LightRays } from "@/components/ui/light-rays";
 import { getMyOrganization } from "@/api/me";
 import { getWorkspaceDetail } from "@/api/workspaces";
 import { getUnreadNotificationPreview } from "@/api/notifications";
@@ -219,7 +220,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
       <Sidebar
         collapsible="none"
         animateOnHover={false}
-        className="shrink-0 h-full border-r"
+        className="relative isolate shrink-0 h-full border-r"
         style={
           {
             width: 240,
@@ -228,11 +229,28 @@ export function AdminLayout({ children }: PropsWithChildren) {
           } as CSSProperties
         }
       >
-        <SidebarHeader className="flex flex-col items-center w-full px-4 pt-6 pb-2">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 top-0 h-80 opacity-90 [mask-image:linear-gradient(to_bottom,black,transparent)]"
+        >
+          <LightRays
+            count={7}
+            speed={16}
+            blur={48}
+            length="70vh"
+            color="rgba(140, 200, 255, 0.18)"
+          />
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 bg-gradient-to-b from-primary/10 via-transparent to-transparent"
+          />
+        </div>
+
+        <SidebarHeader className="relative z-10 flex flex-col items-center w-full px-4 pt-6 pb-2">
           <AdminBrandMark size={80} />
         </SidebarHeader>
 
-        <SidebarContent className="relative z-0 mx-2 overflow-hidden scrollbar-none">
+        <SidebarContent className="relative z-10 mx-2 overflow-hidden scrollbar-none">
           <div className="flex min-h-0 flex-1 flex-col overflow-auto scrollbar-none">
             <AdminSiderNav items={mainItems} resolvePermissionName={resolvePermissionName} />
           </div>

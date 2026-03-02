@@ -253,7 +253,7 @@ function NavNode({
             rootActiveIndicator,
             "text-label-secondary! hover:text-label-primary!",
             depth === 0
-              ? "bg-card hover:bg-card/80 data-[active=true]:bg-accent/50"
+              ? "bg-transparent hover:bg-card/80 data-[active=true]:bg-accent/50"
               : "hover:bg-card data-[active=true]:bg-accent/50",
             forcedActive && "font-semibold text-foreground!",
             "data-[active=true]:translate-x-0.5",
@@ -354,7 +354,7 @@ function NavNode({
               rootActiveIndicator,
               "text-label-secondary! hover:text-label-primary!",
               depth === 0
-                ? "bg-card hover:bg-card/80 data-[active=true]:bg-accent/50"
+                ? "bg-transparent hover:bg-card/80 data-[active=true]:bg-accent/50"
                 : "hover:bg-card data-[active=true]:bg-accent/50",
               "data-[active=true]:font-semibold data-[active=true]:text-foreground!",
               "data-[active=true]:translate-x-0.5",
@@ -500,7 +500,7 @@ function NavNode({
               interactiveTransition,
               rootActiveIndicator,
               "text-label-secondary! hover:text-label-primary!",
-              "bg-card hover:bg-card/80 data-[active=true]:bg-accent/50",
+              "bg-transparent hover:bg-card/80 data-[active=true]:bg-accent/50",
               "data-[active=true]:font-semibold data-[active=true]:text-foreground!",
               "data-[active=true]:translate-x-0.5",
               item.disabled
@@ -657,7 +657,7 @@ export function AdminSiderNav(props: {
                           "transition-[color,background-color,transform,box-shadow] duration-200 ease-out motion-reduce:transition-none",
                           "before:absolute before:left-2 before:top-1/2 before:-translate-y-1/2 before:h-4 before:w-1 before:rounded-full before:bg-primary/60 before:opacity-0 before:scale-y-75 before:transition-[opacity,transform] before:duration-200 motion-reduce:before:transition-none data-[active=true]:before:opacity-100 data-[active=true]:before:scale-y-100",
                           "text-label-secondary! hover:text-label-primary!",
-                          "bg-card hover:bg-card/80 data-[active=true]:bg-accent/50",
+                          "bg-transparent hover:bg-card/80 data-[active=true]:bg-accent/50",
                           "data-[active=true]:font-semibold data-[active=true]:text-foreground!",
                           "data-[active=true]:translate-x-0.5",
                         )}
