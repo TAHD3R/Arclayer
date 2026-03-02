@@ -39,6 +39,15 @@ class UserRepositoryLike(Protocol):
 
     async def exists_email(self, email: str) -> bool: ...
 
+    async def set_email(self, user: UserLike, email: str | None) -> UserLike: ...
+
+    async def patch_profile(
+        self,
+        user: UserLike,
+        *,
+        display_name: str | None | object = ...,
+    ) -> UserLike: ...
+
     async def create_user(
         self,
         *,

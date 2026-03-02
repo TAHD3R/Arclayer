@@ -7,6 +7,7 @@ from uuid import UUID
 
 from tortoise.expressions import Q
 
+from apps.api.common.protocols.tortoise import UserMutableFields
 from apps.api.common.repositories import BaseRepository
 from apps.api.common.utils.ids import uuid7
 from apps.api.config import AuthSettings
@@ -98,7 +99,8 @@ class UserRepository(BaseRepository):
         update_fields: list[str] = []
 
         if display_name is not self._UNSET:
-            record.display_name = cast(str | None, display_name)
+            mutable = cast(UserMutableFields, record)
+            mutable.display_name = cast(str | None, display_name)
             update_fields.append("display_name")
 
         if not update_fields:
@@ -109,7 +111,8 @@ class UserRepository(BaseRepository):
 
     async def set_email(self, user: UserLike, email: str | None) -> User:
         record = cast(User, user)
-        record.email = email
+        mutable = cast(UserMutableFields, record)
+        mutable.email = email
         await record.save(update_fields=["email"])
         return record
 
@@ -121,13 +124,14 @@ class UserRepository(BaseRepository):
 
     async def anonymize_user(self, user: UserLike) -> User:
         record = cast(User, user)
+        mutable = cast(UserMutableFields, record)
         # Keep username unique and within the allowed charset.
         suffix = secrets.token_hex(6)
-        record.username = f"deleted_{suffix}"
-        record.email = None
-        record.display_name = None
-        record.avatar_url = None
-        record.avatar_asset_id = None
+        mutable.username = f"deleted_{suffix}"
+        mutable.email = None
+        mutable.display_name = None
+        mutable.avatar_url = None
+        mutable.avatar_asset_id = None
         record.status = UserStatus.DISABLED
         await record.save(
             update_fields=[

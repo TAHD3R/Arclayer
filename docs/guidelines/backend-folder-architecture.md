@@ -152,6 +152,15 @@ If a new directory is introduced, include a minimal README or guideline entry.
 - Promote shared constants/enums/protocols/utilities to `common/`.
 - Search existing helpers before adding new utility methods.
 
+### 7.5 Database migrations (Aerich)
+
+- Do not hand-write new migration files under `apps/api/migrations/**`.
+- Always generate migrations via Aerich (`pnpm -C apps/api db:migrate`) and apply via (`pnpm -C apps/api db:upgrade`).
+- If a migration requires custom SQL:
+  - Generate the file via `db:migrate` first, then edit only the SQL inside `upgrade()` / `downgrade()`.
+  - Keep the Aerich-generated module structure and `MODELS_STATE` intact (Aerich 0.9.2+ format).
+  - If the repository contains older migrations, run `pnpm -C apps/api uv -- aerich fix-migrations` before upgrading.
+
 ## 8. Architecture PR Checklist
 
 A backend PR should pass all items:

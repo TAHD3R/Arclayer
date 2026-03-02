@@ -259,37 +259,56 @@ describe("editor document state", () => {
     const inserted = insertBlockTreeWithMeta({
       document: doc,
       insert: {
-        blocks: [
-          {
-            id: "temp-container",
-            type: "container",
-            props: { as: "section" },
-            children: [
-              {
-                id: "temp-heading",
-                type: "heading",
-                props: {
-                  level: 2,
-                  text: { "en-US": "Inserted", "zh-CN": "插入" },
-                  align: "left",
-                },
+        rootIds: ["temp-frame"],
+        nodesById: {
+          "temp-frame": {
+            id: "temp-frame",
+            type: "frame",
+            name: "InsertedFrame",
+            children: ["temp-text"],
+            layout: {
+              self: {
+                rect: { x: 24, y: 160, width: 320, height: 120 },
+                constraints: { horizontal: "left", vertical: "top" },
+                alignX: "start",
+                alignY: "start",
               },
-            ],
+              children: { mode: "absolute" },
+            },
+            style: { backgroundColor: "#ffffff" },
           },
-        ],
+          "temp-text": {
+            id: "temp-text",
+            type: "text",
+            name: "InsertedTitle",
+            text: { "en-US": "Inserted", "zh-CN": "插入" },
+            tag: "h2",
+            align: "left",
+            layout: {
+              self: {
+                rect: { x: 0, y: 0, width: 240, height: 40 },
+                constraints: { horizontal: "left", vertical: "top" },
+                alignX: "start",
+                alignY: "start",
+              },
+              children: { mode: "absolute" },
+            },
+            style: { typography: { fontSize: 24, lineHeight: 32, fontWeight: 600 } },
+          },
+        },
         targetBlockId: "c-root",
         position: "inside",
       },
     });
 
-    expect(inserted.selectedId).not.toBe("temp-container");
-    expect(inserted.selectedId).not.toBe("temp-heading");
+    expect(inserted.selectedId).not.toBe("temp-frame");
+    expect(inserted.selectedId).not.toBe("temp-text");
 
     expect(getChildren(inserted.document, "c-root").length).toBe(3);
 
     const tree = buildLayerTree(inserted.document);
-    expect(JSON.stringify(tree)).not.toContain("temp-container");
-    expect(JSON.stringify(tree)).not.toContain("temp-heading");
+    expect(JSON.stringify(tree)).not.toContain("temp-frame");
+    expect(JSON.stringify(tree)).not.toContain("temp-text");
   });
 
   test("duplicateBlock clones subtree and inserts after original", () => {

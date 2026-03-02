@@ -164,6 +164,22 @@ class FakeUserRepository:
     async def exists_email(self, email: str) -> bool:
         return False
 
+    async def set_email(self, user: UserLike, email: str | None) -> FakeUser:
+        record = cast(FakeUser, user)
+        record.email = email
+        return record
+
+    async def patch_profile(
+        self,
+        user: UserLike,
+        *,
+        display_name: str | None | object = ...,
+    ) -> FakeUser:
+        record = cast(FakeUser, user)
+        if display_name is not ...:
+            record.display_name = cast(str | None, display_name)
+        return record
+
     async def create_user(
         self,
         *,

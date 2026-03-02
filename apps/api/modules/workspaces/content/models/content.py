@@ -71,8 +71,7 @@ class ContentEntryRecord(BaseModel):
     sort_order = fields.IntField(default=0)
 
     field_values = fields.JSONField(null=True)
-    # 代码层统一语义为 PageBlueprint；底层数据库列名仍为 document_ir（历史原因）。
-    page_blueprint = fields.JSONField(null=True, source_field="document_ir")
+    page_blueprint = fields.JSONField(null=True)
 
     draft_revision = fields.IntField(default=0)
     published_revision = fields.IntField(null=True)

@@ -3,6 +3,31 @@ import { describe, expect, it, vi } from "vitest";
 import { fetchRuntimeConfigFromApi, resolveRouteFromApi } from "@/runtime/site-api";
 
 describe("runtime/site-api (parsing)", () => {
+  it("resolveRouteFromApi() uses VITE_API_BASE_URL as SSR origin fallback", async () => {
+    delete process.env.VITE_API_PROXY_TARGET;
+    process.env.VITE_API_BASE_URL = "http://api.example.test";
+
+    const fetchSpy = vi.fn(async () => {
+      return new Response(
+        JSON.stringify({
+          message: "OK",
+          data: {
+            match: { kind: "not_found" },
+            document: null,
+          },
+          timestamp: 0,
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      );
+    });
+    vi.stubGlobal("fetch", fetchSpy);
+
+    await resolveRouteFromApi("/test", "s1", { mode: "public" });
+    expect(fetchSpy).toHaveBeenCalled();
+    const firstArg = fetchSpy.mock.calls[0]?.[0];
+    expect(String(firstArg).startsWith("http://api.example.test/api/v1/")).toBe(true);
+  });
+
   it("resolveRouteFromApi() parses redirect (snake_case) output", async () => {
     process.env.VITE_API_PROXY_TARGET = "http://127.0.0.1:8000";
 
@@ -50,7 +75,7 @@ describe("runtime/site-api (parsing)", () => {
                 draftRevision: 2,
                 publishedRevision: 1,
               },
-              document: {
+              pageBlueprint: {
                 version: 1,
                 rootId: "page",
                 nodesById: {

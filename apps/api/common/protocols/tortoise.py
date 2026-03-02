@@ -135,3 +135,11 @@ class SiteDomainRecordView(Protocol):
     verification_token: str
     verified_at: datetime | None
     created_by_user_id: UUID | str | None
+
+
+class UserMutableFields(Protocol):
+    username: str
+    email: str | None
+    display_name: str | None
+    avatar_url: str | None
+    avatar_asset_id: UUID | None

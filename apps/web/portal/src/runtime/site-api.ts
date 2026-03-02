@@ -24,6 +24,24 @@ export function getPortalApiPrefix(): string {
   return raw && raw.startsWith("/") ? raw : "/api/v1";
 }
 
+function getPortalApiBaseUrlForBrowser(): string | null {
+  const raw = (import.meta.env.VITE_API_BASE_URL || "").trim();
+  if (!raw) return null;
+  // Keep it strict: only accept absolute http(s) origins to avoid accidental relative prefixes.
+  if (!raw.startsWith("http://") && !raw.startsWith("https://")) return null;
+  return raw;
+}
+
+function buildPortalApiFetchInput(url: URL): string {
+  const path = url.pathname + url.search;
+  if (typeof window === "undefined") {
+    return new URL(path, getPortalApiOriginForSsr()).toString();
+  }
+  const baseUrl = getPortalApiBaseUrlForBrowser();
+  if (baseUrl) return new URL(path, baseUrl).toString();
+  return path;
+}
+
 export async function resolveSiteFromApi(args: {
   host?: string | null;
   workspaceSlug?: string | null;
@@ -36,12 +54,9 @@ export async function resolveSiteFromApi(args: {
   if (workspaceSlug) url.searchParams.set("workspaceSlug", workspaceSlug);
   if (host) url.searchParams.set("host", host);
 
-  const input =
-    typeof window === "undefined"
-      ? new URL(url.pathname + url.search, getPortalApiOriginForSsr()).toString()
-      : url.pathname + url.search;
-
-  const res = await fetch(input, { headers: { Accept: "application/json" } });
+  const res = await fetch(buildPortalApiFetchInput(url), {
+    headers: { Accept: "application/json" },
+  });
   if (!res.ok) throw await toApiError(res, `Failed to resolve site (${res.status})`);
 
   const payload: unknown = await res.json();
@@ -67,12 +82,9 @@ export async function resolveSiteByIdFromApi(siteId: string): Promise<PortalSite
   const requestPath = `${apiPrefix}/sites/${encodeURIComponent(siteId)}/context`;
   const url = new URL(requestPath, "http://localhost");
 
-  const input =
-    typeof window === "undefined"
-      ? new URL(url.pathname + url.search, getPortalApiOriginForSsr()).toString()
-      : url.pathname + url.search;
-
-  const res = await fetch(input, { headers: { Accept: "application/json" } });
+  const res = await fetch(buildPortalApiFetchInput(url), {
+    headers: { Accept: "application/json" },
+  });
   if (!res.ok) throw await toApiError(res, `Failed to resolve site by ID (${res.status})`);
 
   const payload: unknown = await res.json();
@@ -119,12 +131,9 @@ export async function resolveRouteFromApi(
 
   // Browser: fetch relative to Portal origin (requires Portal server proxy for /api/*).
   // SSR (Node): fetch absolute to backend origin directly (avoid relative URLs in Node fetch).
-  const input =
-    typeof window === "undefined"
-      ? new URL(url.pathname + url.search, getPortalApiOriginForSsr()).toString()
-      : url.pathname + url.search;
-
-  const res = await fetch(input, { headers: { Accept: "application/json" } });
+  const res = await fetch(buildPortalApiFetchInput(url), {
+    headers: { Accept: "application/json" },
+  });
   if (!res.ok) {
     throw await toApiError(res, `Failed to resolve route (${res.status})`);
   }
@@ -152,7 +161,9 @@ export async function resolveRouteFromApi(
     return { kind: "redirect", to, status };
   }
 
-  const document = getRecordField(data, "document");
+  // Backend standard output is `pageBlueprint` (SiteRouteResolveOut).
+  // Keep backward-compat with older payloads that used `document`.
+  const document = getRecordField(data, "pageBlueprint") ?? getRecordField(data, "document");
   if (!isPageBlueprint(document)) {
     throw new Error("Invalid PageBlueprint returned by API");
   }
@@ -195,12 +206,9 @@ export async function fetchContentEntryRevision(
 
   // Browser: fetch relative to Portal origin (requires Portal server proxy for /api/*).
   // SSR (Node): fetch absolute to backend origin directly (avoid relative URLs in Node fetch).
-  const input =
-    typeof window === "undefined"
-      ? new URL(url.pathname + url.search, getPortalApiOriginForSsr()).toString()
-      : url.pathname + url.search;
-
-  const res = await fetch(input, { headers: { Accept: "application/json" } });
+  const res = await fetch(buildPortalApiFetchInput(url), {
+    headers: { Accept: "application/json" },
+  });
   if (!res.ok) {
     throw await toApiError(res, `Failed to fetch content entry revision (${res.status})`);
   }
@@ -569,15 +577,23 @@ export async function fetchPortalExtensionsFromApi(
 
 function getPortalApiOriginForSsr(): string {
   const raw = (
+    process.env.VITE_API_BASE_URL ||
     process.env.VITE_API_PROXY_TARGET ||
     // Backwards-compatible fallback (older Portal-only naming).
     process.env.PORTAL_API_PROXY_TARGET ||
     ""
   ).trim();
-  if (!raw) {
-    throw new Error("Missing VITE_API_PROXY_TARGET for SSR API route source.");
-  }
-  return raw;
+  if (raw) return raw;
+
+  // Dev-friendly fallback:
+  // - Admin/Studio default to localhost:8000 when no base URL/proxy is provided.
+  // - Portal SSR should behave the same to avoid hard failure on local pages.
+  const isProd = process.env.NODE_ENV === "production";
+  if (!isProd) return "http://127.0.0.1:8000";
+
+  throw new Error(
+    "Missing VITE_API_BASE_URL (preferred) or VITE_API_PROXY_TARGET for SSR API route source.",
+  );
 }
 
 async function toApiError(res: Response, fallbackMessage: string): Promise<ApiError> {
