@@ -232,7 +232,7 @@ class SitePublishingService(BaseService):
                     collector[include_key] = ContentRefIncludeV1(
                         entryId=entry_id,
                         resolvedState=resolved,
-                        document=None,
+                        pageBlueprint=None,
                         error=ContentRefIncludeErrorV1(code="DEPTH_LIMIT"),
                     )
 
@@ -272,7 +272,7 @@ class SitePublishingService(BaseService):
                 collector[include_key] = ContentRefIncludeV1(
                     entryId=entry_id,
                     resolvedState="published",
-                    document=None,
+                    pageBlueprint=None,
                     error=ContentRefIncludeErrorV1(code="STATE_FORBIDDEN"),
                 )
                 warnings.append(
@@ -291,7 +291,7 @@ class SitePublishingService(BaseService):
                 collector[include_key] = ContentRefIncludeV1(
                     entryId=entry_id,
                     resolvedState=resolved,
-                    document=None,
+                    pageBlueprint=None,
                     error=ContentRefIncludeErrorV1(code="CYCLE_DETECTED"),
                 )
                 warnings.append(
@@ -317,7 +317,7 @@ class SitePublishingService(BaseService):
                 collector[include_key] = ContentRefIncludeV1(
                     entryId=entry_id,
                     resolvedState=resolved,
-                    document=None,
+                    pageBlueprint=None,
                     data=entry_data,
                     meta=entry_meta,
                     error=load_error,
@@ -335,7 +335,7 @@ class SitePublishingService(BaseService):
             collector[include_key] = ContentRefIncludeV1(
                 entryId=entry_id,
                 resolvedState=resolved,
-                document=entry_doc,
+                pageBlueprint=entry_doc,
                 data=entry_data,
                 meta=entry_meta,
             )
@@ -532,7 +532,7 @@ class SitePublishingService(BaseService):
             state=state,
             revision=rev,
             created_at_ms=created_at_ms,
-            document=doc,
+            pageBlueprint=doc,
             meta=(rec.meta if isinstance(rec.meta, dict) else None),
             style_overrides=(rec.style_overrides if isinstance(rec.style_overrides, dict) else None),
             variant_id=(str(rec.variant_id) if rec.variant_id else None),
@@ -573,7 +573,7 @@ class SitePublishingService(BaseService):
             state=state,
             revision=rev,
             created_at_ms=created_at_ms,
-            document=doc,
+            pageBlueprint=doc,
             data=data,
             meta=(rec.meta if isinstance(rec.meta, dict) else None),
             style_overrides=(rec.style_overrides if isinstance(rec.style_overrides, dict) else None),
@@ -608,7 +608,7 @@ class SitePublishingService(BaseService):
             site_id=site_id,
             entry_type_id=UUID(str(et.id)),
             slug=slug,
-            document=payload.document,
+            page_blueprint=payload.page_blueprint,
             data=(payload.data if isinstance(payload.data, dict) else None),
             meta=(payload.meta if isinstance(payload.meta, dict) else None),
             style_overrides=(payload.style_overrides if isinstance(payload.style_overrides, dict) else None),
@@ -702,7 +702,7 @@ class SitePublishingService(BaseService):
                     redirect_to="/about",
                     redirect_status=301,
                 ),
-                document=None,
+                pageBlueprint=None,
             )
 
         # 1) ContentEntry(kind=page) match (Everything-as-Content).
@@ -747,7 +747,7 @@ class SitePublishingService(BaseService):
                                 draft_revision=draft_rev,
                                 published_revision=(published_rev if published_rev else None),
                             ),
-                            document=doc,
+                            pageBlueprint=doc,
                             includes=includes or None,
                             warnings=warnings or None,
                         )
@@ -764,9 +764,9 @@ class SitePublishingService(BaseService):
                         draft_revision=draft_rev,
                         published_revision=published_rev or None,
                     ),
-                    document=self._create_empty_page_blueprint(),
+                    pageBlueprint=self._create_empty_page_blueprint(),
                 )
-            return SiteRouteResolveOut(match=SiteRouteMatchOut(kind="not_found"), document=None)
+            return SiteRouteResolveOut(match=SiteRouteMatchOut(kind="not_found"), pageBlueprint=None)
 
         # 2) Legacy SitePageRecord match (deprecated, kept for migration compatibility).
         page = await self._repo.get_page_by_path(site_id=site_id, path=pathname)
@@ -803,7 +803,7 @@ class SitePublishingService(BaseService):
                             draft_revision=draft_rev,
                             published_revision=(published_rev if published_rev else None),
                         ),
-                        document=doc,
+                        pageBlueprint=doc,
                         includes=includes or None,
                         warnings=warnings or None,
                     )
@@ -819,9 +819,9 @@ class SitePublishingService(BaseService):
                         draft_revision=draft_rev,
                         published_revision=published_rev or None,
                     ),
-                    document=self._create_empty_page_blueprint(),
+                    pageBlueprint=self._create_empty_page_blueprint(),
                 )
-            return SiteRouteResolveOut(match=SiteRouteMatchOut(kind="not_found"), document=None)
+            return SiteRouteResolveOut(match=SiteRouteMatchOut(kind="not_found"), pageBlueprint=None)
 
         # 3) RouteTemplate match.
         cache_version = await self._get_route_templates_cache_version(site_id=site_id)
@@ -838,9 +838,9 @@ class SitePublishingService(BaseService):
                 if resolved is not None:
                     includes: dict[str, ContentRefIncludeV1] = {}
                     warnings: list[ResolveWarningV1] = []
-                    if resolved.document is not None:
+                    if resolved.page_blueprint is not None:
                         includes, warnings = await self._resolve_content_refs(
-                            document=resolved.document,
+                            document=resolved.page_blueprint,
                             site_id=site_id,
                             mode=mode,
                         )
@@ -855,7 +855,7 @@ class SitePublishingService(BaseService):
                             draft_revision=resolved.draft_rev,
                             published_revision=(resolved.published_rev if resolved.published_rev else None),
                         ),
-                        document=resolved.document,
+                        pageBlueprint=resolved.page_blueprint,
                         dataSources=SiteRouteDataSourcesOut(
                             primaryEntry=SitePrimaryEntryOut(
                                 id=resolved.entry_id,
@@ -866,7 +866,7 @@ class SitePublishingService(BaseService):
                         warnings=warnings or None,
                     )
 
-        return SiteRouteResolveOut(match=SiteRouteMatchOut(kind="not_found"), document=None)
+        return SiteRouteResolveOut(match=SiteRouteMatchOut(kind="not_found"), pageBlueprint=None)
 
     async def save_route_draft(
         self,
@@ -896,7 +896,7 @@ class SitePublishingService(BaseService):
         next_rev, saved_at_ms = await self._repo.save_page_draft_by_path(
             site_id=site_id,
             path=pathname,
-            document=payload.document,
+            page_blueprint=payload.page_blueprint,
             meta=(payload.meta if isinstance(payload.meta, dict) else None),
             style_overrides=(payload.style_overrides if isinstance(payload.style_overrides, dict) else None),
             variant_id=(
@@ -983,7 +983,7 @@ class SitePublishingService(BaseService):
         path, revision, saved_at_ms = await self._repo.save_page_draft_by_id(
             site_id=site_id,
             page_id=page_id,
-            document=payload.document,
+            page_blueprint=payload.page_blueprint,
             meta=(payload.meta if isinstance(payload.meta, dict) else None),
             style_overrides=(payload.style_overrides if isinstance(payload.style_overrides, dict) else None),
             variant_id=(

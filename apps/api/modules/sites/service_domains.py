@@ -3,9 +3,10 @@ from __future__ import annotations
 import ipaddress
 import secrets
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, cast
 from uuid import UUID
 
+from apps.api.common.protocols.tortoise import HasOrganizationId, SiteDomainRecordView
 from apps.api.common.services.base import BaseService
 from apps.api.core.exceptions import Conflict, NotFound, ServiceUnavailable
 from apps.api.infra.cache.valkey import ValkeyClientLike
@@ -65,8 +66,8 @@ class SiteDomainsService(BaseService):
         # - TXT value: "celestial-site-verification=<token>"
         txt_name = f"{_TXT_LABEL}.{hostname}".rstrip(".")
         return SiteDomainDnsInstructionOut(
-            txt_record_name=txt_name,
-            txt_record_value=f"{_TXT_PREFIX}{token}",
+            txtRecordName=txt_name,
+            txtRecordValue=f"{_TXT_PREFIX}{token}",
         )
 
     def _validate_custom_hostname(self, *, hostname: str) -> str:
@@ -121,9 +122,10 @@ class SiteDomainsService(BaseService):
         if ws is None or not ws.is_active:
             raise NotFound("Workspace not found", error="WORKSPACE_NOT_FOUND")
 
+        ws_with_org = cast(HasOrganizationId, ws)
         plan = (
             await OrgPlan
-            .filter(organization_id=ws.organization_id, is_active=True)
+            .filter(organization_id=ws_with_org.organization_id, is_active=True)
             .order_by("-created_at", "id")
             .first()
         )
@@ -174,10 +176,12 @@ class SiteDomainsService(BaseService):
     ) -> SiteDomainRecord:
         site_id = await self._resolve_site_id_for_workspace(workspace_id=workspace_id, actor_user_id=actor_user_id)
         rec = await self._repo.get_domain_by_id(site_id=site_id, domain_id=domain_id)
-        if bool(is_active) and not rec.is_verified:
+        rec_view = cast(SiteDomainRecordView, rec)
+        if bool(is_active) and not rec_view.is_verified:
             raise Conflict("Domain must be verified before activation", error="SITE_DOMAIN_NOT_VERIFIED")
         updated = await self._repo.set_domain_active(site_id=site_id, domain_id=domain_id, is_active=bool(is_active))
-        await self._invalidate_resolve_cache_best_effort(hostname=str(updated.hostname))
+        updated_view = cast(SiteDomainRecordView, updated)
+        await self._invalidate_resolve_cache_best_effort(hostname=str(updated_view.hostname))
         return updated
 
     async def delete_domain(
@@ -190,7 +194,8 @@ class SiteDomainsService(BaseService):
         site_id = await self._resolve_site_id_for_workspace(workspace_id=workspace_id, actor_user_id=actor_user_id)
         rec = await self._repo.get_domain_by_id(site_id=site_id, domain_id=domain_id)
         await self._repo.delete_domain(site_id=site_id, domain_id=domain_id)
-        await self._invalidate_resolve_cache_best_effort(hostname=str(rec.hostname))
+        rec_view = cast(SiteDomainRecordView, rec)
+        await self._invalidate_resolve_cache_best_effort(hostname=str(rec_view.hostname))
 
     async def _lookup_dns_txt_async(self, *, txt_name: str) -> _DnsTxtLookupResult:
         """
@@ -255,8 +260,9 @@ class SiteDomainsService(BaseService):
     ) -> tuple[SiteDomainRecord, SiteDomainDnsInstructionOut, list[str]]:
         site_id = await self._resolve_site_id_for_workspace(workspace_id=workspace_id, actor_user_id=actor_user_id)
         rec = await self._repo.get_domain_by_id(site_id=site_id, domain_id=domain_id)
+        rec_view = cast(SiteDomainRecordView, rec)
 
-        dns = self.build_dns_instruction(hostname=str(rec.hostname), token=str(rec.verification_token))
+        dns = self.build_dns_instruction(hostname=str(rec_view.hostname), token=str(rec_view.verification_token))
         txt_name = dns.txt_record_name
         expected_value = dns.txt_record_value
 
@@ -265,20 +271,22 @@ class SiteDomainsService(BaseService):
 
         if expected_value in observed:
             updated = await self._repo.mark_domain_verified(site_id=site_id, domain_id=domain_id)
-            await self._invalidate_resolve_cache_best_effort(hostname=str(updated.hostname))
+            updated_view = cast(SiteDomainRecordView, updated)
+            await self._invalidate_resolve_cache_best_effort(hostname=str(updated_view.hostname))
             return updated, dns, observed
 
         return rec, dns, observed
 
     def to_out(self, rec: SiteDomainRecord) -> dict[str, Any]:
-        verified_at_ms = domain_datetime_to_ms(getattr(rec, "verified_at", None))
+        rec_view = cast(SiteDomainRecordView, rec)
+        verified_at_ms = domain_datetime_to_ms(rec_view.verified_at)
         return {
-            "domainId": rec.id,
-            "siteId": rec.site_id,
-            "hostname": str(rec.hostname),
-            "isVerified": bool(rec.is_verified),
-            "isActive": bool(rec.is_active),
-            "verificationToken": str(rec.verification_token),
+            "domainId": rec_view.id,
+            "siteId": rec_view.site_id,
+            "hostname": str(rec_view.hostname),
+            "isVerified": bool(rec_view.is_verified),
+            "isActive": bool(rec_view.is_active),
+            "verificationToken": str(rec_view.verification_token),
             "verifiedAtMs": verified_at_ms,
-            "createdByUserId": rec.created_by_user_id,
+            "createdByUserId": rec_view.created_by_user_id,
         }

@@ -51,6 +51,17 @@ def _build_lifespan(settings: Settings, *, plugin_manager: PluginManager):
         # Make startup/teardown resilient: if any step raises before `yield`,
         # we still want to close DB/cache connections and stop partially-started plugins.
         try:
+            # Starlette's TestClient runs the app in a separate thread with its own event loop.
+            # Recreate the plugin host state in that loop to avoid cross-thread asyncio primitives
+            # (e.g. EventBus locks) created at import time.
+            if settings.app_env == "test":
+                plugin_manager.host.reset()
+                # In pure unit-test mode we often disable DB/Valkey entirely. In that case we can
+                # skip heavyweight startup steps and still exercise routers/middlewares safely.
+                if not settings.database.enabled and not settings.valkey.enabled:
+                    app.state.plugin_manager = plugin_manager
+                    yield
+                    return
             if not plugin_manager.descriptors:
                 plugin_manager.discover()
             extra_models = plugin_manager.collect_model_modules()

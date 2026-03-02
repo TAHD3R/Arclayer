@@ -232,7 +232,7 @@ class SitePublishingRepository(BaseRepository):
         site_id: UUID,
         entry_type_id: UUID,
         slug: str,
-        document: PageBlueprint | None,
+        page_blueprint: PageBlueprint | None,
         data: dict | None,
         meta: dict | None,
         style_overrides: dict | None,
@@ -307,8 +307,8 @@ class SitePublishingRepository(BaseRepository):
                 data=data,
                 document=None,
                 design_document=(
-                    document.model_dump(by_alias=True)
-                    if document is not None
+                    page_blueprint.model_dump(by_alias=True)
+                    if page_blueprint is not None
                     else (prev.design_document if prev is not None else None)
                 ),
                 meta=meta,
@@ -387,7 +387,7 @@ class SitePublishingRepository(BaseRepository):
         *,
         site_id: UUID,
         path: str,
-        document: PageBlueprint,
+        page_blueprint: PageBlueprint,
         meta: dict | None,
         style_overrides: dict | None,
         variant_id: str | None,
@@ -438,7 +438,7 @@ class SitePublishingRepository(BaseRepository):
                 page_id=page.id,
                 rev=next_rev,
                 document=None,
-                design_document=document.model_dump(by_alias=True),
+                design_document=page_blueprint.model_dump(by_alias=True),
                 meta=meta,
                 style_overrides=style_overrides,
                 variant_id=variant_id,
@@ -470,7 +470,7 @@ class SitePublishingRepository(BaseRepository):
         *,
         site_id: UUID,
         page_id: UUID,
-        document: PageBlueprint,
+        page_blueprint: PageBlueprint,
         meta: dict | None,
         style_overrides: dict | None,
         variant_id: str | None,
@@ -505,7 +505,7 @@ class SitePublishingRepository(BaseRepository):
                 page_id=page.id,
                 rev=next_rev,
                 document=None,
-                design_document=document.model_dump(by_alias=True),
+                design_document=page_blueprint.model_dump(by_alias=True),
                 meta=meta,
                 style_overrides=style_overrides,
                 variant_id=variant_id,
@@ -705,7 +705,7 @@ class SitePublishingRepository(BaseRepository):
             revision=revision,
             revision_state=revision_state,
             variant_id=(str(rec.variant_id) if rec.variant_id else None),
-            document=doc,
+            page_blueprint=doc,
         )
 
     async def list_route_templates(self, *, site_id: UUID) -> list[RouteTemplateRecord]:

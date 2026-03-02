@@ -28,7 +28,7 @@ class ResolvedEntryDocument(BaseSchema):
     revision: int
     revision_state: Literal["draft", "published"]
     variant_id: str | None
-    document: PageBlueprint
+    page_blueprint: PageBlueprint
 
 
 class _CompiledRouteTemplate(BaseSchema):

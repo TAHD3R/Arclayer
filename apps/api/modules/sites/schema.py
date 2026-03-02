@@ -146,7 +146,11 @@ class ContentRefIncludeV1(BaseSchema):
         alias="resolvedState",
         description="Actual resolved revision state.",
     )
-    document: PageBlueprint | None = Field(default=None, description="Resolved design document.")
+    page_blueprint: PageBlueprint | None = Field(
+        default=None,
+        alias="pageBlueprint",
+        description="Resolved PageBlueprint document.",
+    )
     data: dict[str, JsonValue] | None = Field(default=None, description="Entry field values snapshot.")
     meta: dict[str, JsonValue] | None = Field(default=None, description="Entry metadata.")
     error: ContentRefIncludeErrorV1 | None = Field(default=None, description="Structured error if resolution failed.")
@@ -173,7 +177,11 @@ class SiteRouteResolveOut(BaseSchema):
     model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
 
     match: SiteRouteMatchOut = Field(..., description="Match result.")
-    document: PageBlueprint | None = Field(default=None, description="Resolved design document (if any).")
+    page_blueprint: PageBlueprint | None = Field(
+        default=None,
+        alias="pageBlueprint",
+        description="Resolved PageBlueprint document (if any).",
+    )
     data_sources: SiteRouteDataSourcesOut | None = Field(
         default=None,
         alias="dataSources",
@@ -213,7 +221,11 @@ class SiteRouteDraftSaveIn(BaseSchema):
     model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
 
     path: str = Field(..., description="Route pathname to save (e.g. /about).", examples=["/about"])
-    document: PageBlueprint = Field(..., description="Draft design document payload.")
+    page_blueprint: PageBlueprint = Field(
+        ...,
+        alias="pageBlueprint",
+        description="Draft PageBlueprint payload.",
+    )
     meta: dict[str, Any] | None = Field(default=None, description="Optional metadata payload (JSON).")
     style_overrides: dict[str, Any] | None = Field(default=None, description="Optional style overrides payload (JSON).")
     variant_id: str | None = Field(default=None, description="Optional theme variant id.")
@@ -259,7 +271,11 @@ class SiteRoutePublishOut(BaseSchema):
 class SitePageDraftSaveIn(BaseSchema):
     model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
 
-    document: PageBlueprint = Field(..., description="Draft design document payload.")
+    page_blueprint: PageBlueprint = Field(
+        ...,
+        alias="pageBlueprint",
+        description="Draft PageBlueprint payload.",
+    )
     meta: dict[str, Any] | None = Field(default=None, description="Optional metadata payload (JSON).")
     style_overrides: dict[str, Any] | None = Field(default=None, description="Optional style overrides payload (JSON).")
     variant_id: str | None = Field(default=None, description="Optional theme variant id.")
@@ -560,7 +576,11 @@ class SitePageRevisionOut(BaseSchema):
     state: Literal["draft", "published"] = Field(..., description="Revision state.")
     revision: int = Field(..., ge=1, description="Revision number.")
     created_at_ms: int = Field(..., description="Revision created timestamp in milliseconds (UTC).")
-    document: PageBlueprint = Field(..., description="PageBlueprint payload.")
+    page_blueprint: PageBlueprint = Field(
+        ...,
+        alias="pageBlueprint",
+        description="PageBlueprint payload.",
+    )
     meta: dict[str, Any] | None = Field(default=None, description="Optional metadata payload (JSON).")
     style_overrides: dict[str, Any] | None = Field(default=None, description="Optional style overrides payload (JSON).")
     variant_id: str | None = Field(default=None, description="Optional theme variant id.")
@@ -591,7 +611,11 @@ class SiteEntryRevisionOut(BaseSchema):
     state: Literal["draft", "published"] = Field(..., description="Revision state.")
     revision: int = Field(..., ge=1, description="Revision number.")
     created_at_ms: int = Field(..., description="Revision created timestamp in milliseconds (UTC).")
-    document: PageBlueprint | None = Field(default=None, description="Optional PageBlueprint payload.")
+    page_blueprint: PageBlueprint | None = Field(
+        default=None,
+        alias="pageBlueprint",
+        description="Optional PageBlueprint payload.",
+    )
     data: dict[str, Any] | None = Field(default=None, description="Optional entry data payload (JSON).")
     meta: dict[str, Any] | None = Field(default=None, description="Optional metadata payload (JSON).")
     style_overrides: dict[str, Any] | None = Field(default=None, description="Optional style overrides payload (JSON).")
@@ -621,7 +645,11 @@ class SiteEntryDraftSaveIn(BaseSchema):
 
     entry_type_code: str = Field(..., min_length=1, max_length=64, description="Entry type code (e.g. blog_post).")
     slug: str = Field(..., min_length=1, max_length=256, description="Entry slug (unique within entry type).")
-    document: PageBlueprint | None = Field(default=None, description="Optional PageBlueprint payload.")
+    page_blueprint: PageBlueprint | None = Field(
+        default=None,
+        alias="pageBlueprint",
+        description="Optional PageBlueprint payload.",
+    )
     data: dict[str, Any] | None = Field(default=None, description="Optional entry data payload (JSON).")
     meta: dict[str, Any] | None = Field(default=None, description="Optional metadata payload (JSON).")
     style_overrides: dict[str, Any] | None = Field(default=None, description="Optional style overrides payload (JSON).")

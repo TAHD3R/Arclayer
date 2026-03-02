@@ -81,7 +81,7 @@ def _doc(*, title: str) -> dict:
 
 
 def _get_title_from_route_resolve(payload: dict) -> str | None:
-    doc = payload.get("data", {}).get("document")
+    doc = payload.get("data", {}).get("pageBlueprint")
     if not isinstance(doc, dict):
         return None
     root_id = doc.get("rootId")
@@ -134,12 +134,12 @@ async def test_page_rollback_draft_affects_preview_route_resolve(prepared_db, in
             # Create draft revisions for "/about": rev1 -> rev2.
             resp = await client.post(
                 f"/api/v1/sites/{site_id}/routes/draft?token={token}",
-                json={"path": "/about", "document": _doc(title="rev1"), "expectedRevision": 0},
+                json={"path": "/about", "pageBlueprint": _doc(title="rev1"), "expectedRevision": 0},
             )
             assert resp.status_code == 201, resp.text
             resp = await client.post(
                 f"/api/v1/sites/{site_id}/routes/draft?token={token}",
-                json={"path": "/about", "document": _doc(title="rev2"), "expectedRevision": 1},
+                json={"path": "/about", "pageBlueprint": _doc(title="rev2"), "expectedRevision": 1},
             )
             assert resp.status_code == 201, resp.text
 
@@ -185,12 +185,12 @@ async def test_page_rollback_published_affects_public_route_resolve(prepared_db,
             # rev1 -> rev2, publish rev2, create rev3 draft.
             resp = await client.post(
                 f"/api/v1/sites/{site_id}/routes/draft?token={token}",
-                json={"path": "/about", "document": _doc(title="rev1"), "expectedRevision": 0},
+                json={"path": "/about", "pageBlueprint": _doc(title="rev1"), "expectedRevision": 0},
             )
             assert resp.status_code == 201, resp.text
             resp = await client.post(
                 f"/api/v1/sites/{site_id}/routes/draft?token={token}",
-                json={"path": "/about", "document": _doc(title="rev2"), "expectedRevision": 1},
+                json={"path": "/about", "pageBlueprint": _doc(title="rev2"), "expectedRevision": 1},
             )
             assert resp.status_code == 201, resp.text
             resp = await client.post(
@@ -200,7 +200,7 @@ async def test_page_rollback_published_affects_public_route_resolve(prepared_db,
             assert resp.status_code == 200, resp.text
             resp = await client.post(
                 f"/api/v1/sites/{site_id}/routes/draft?token={token}",
-                json={"path": "/about", "document": _doc(title="rev3"), "expectedRevision": 2},
+                json={"path": "/about", "pageBlueprint": _doc(title="rev3"), "expectedRevision": 2},
             )
             assert resp.status_code == 201, resp.text
 
@@ -265,7 +265,7 @@ async def test_entry_rollback_published_affects_public_route_resolve(prepared_db
                 json={
                     "entryTypeCode": "blog_post",
                     "slug": "hello",
-                    "document": _doc(title="rev1"),
+                    "pageBlueprint": _doc(title="rev1"),
                     "data": None,
                     "expectedRevision": 0,
                 },
@@ -276,7 +276,7 @@ async def test_entry_rollback_published_affects_public_route_resolve(prepared_db
                 json={
                     "entryTypeCode": "blog_post",
                     "slug": "hello",
-                    "document": _doc(title="rev2"),
+                    "pageBlueprint": _doc(title="rev2"),
                     "data": None,
                     "expectedRevision": 1,
                 },
@@ -292,7 +292,7 @@ async def test_entry_rollback_published_affects_public_route_resolve(prepared_db
                 json={
                     "entryTypeCode": "blog_post",
                     "slug": "hello",
-                    "document": _doc(title="rev3"),
+                    "pageBlueprint": _doc(title="rev3"),
                     "data": None,
                     "expectedRevision": 2,
                 },

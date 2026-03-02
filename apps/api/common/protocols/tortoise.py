@@ -14,6 +14,10 @@ class HasOrganizationId(Protocol):
     organization_id: UUID | str
 
 
+class HasSiteId(Protocol):
+    site_id: UUID | str
+
+
 class HasWorkspaceId(Protocol):
     workspace_id: UUID | str
 
@@ -120,3 +124,14 @@ class OrganizationLogoUrlMutableFields(Protocol):
 class WorkspaceArchiveMutableFields(Protocol):
     archived_at: datetime | None
     archived_by_user_id: UUID | None
+
+
+class SiteDomainRecordView(Protocol):
+    id: UUID | str
+    site_id: UUID | str
+    hostname: str
+    is_verified: bool
+    is_active: bool
+    verification_token: str
+    verified_at: datetime | None
+    created_by_user_id: UUID | str | None

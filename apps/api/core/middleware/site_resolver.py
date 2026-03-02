@@ -1,12 +1,16 @@
 from __future__ import annotations
 
 import ipaddress
+from typing import cast
 from uuid import UUID
 
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.requests import Request
 from starlette.responses import Response
+from tortoise import Tortoise
+from tortoise.exceptions import ConfigurationError
 
+from apps.api.common.protocols.tortoise import HasSiteId
 from apps.api.config import Settings
 from apps.api.infra.cache.valkey import ValkeyClient
 from apps.api.modules.sites.models.site import SiteRecord
@@ -75,6 +79,11 @@ class SiteResolverMiddleware(BaseHTTPMiddleware):
         if not self.settings.database.enabled:
             return await call_next(request)
 
+        # In unit tests or early-boot states, Tortoise may not be initialized.
+        # This middleware must never fail the request pipeline due to DB init state.
+        if not Tortoise._inited:
+            return await call_next(request)
+
         # Best-effort Valkey cache.
         valkey: ValkeyClient | None = getattr(request.app.state, "valkey", None)
         cache_key = f"{_CACHE_KEY_PREFIX}:{host}"
@@ -94,44 +103,47 @@ class SiteResolverMiddleware(BaseHTTPMiddleware):
 
         resolved_site_id: UUID | None = None
 
-        # Path A: `{workspace_slug}.{base_domain}` -> SiteRecord by Workspace.slug.
-        suffix = f".{(self.base_domain or '').strip().lower().rstrip('.')}"
-        if suffix.strip(".") and host.endswith(suffix) and host != suffix.strip("."):
-            workspace_slug = host[: -len(suffix)]
-            if workspace_slug and "." not in workspace_slug:
-                # Prevent platform-reserved subdomains from being treated as tenant slugs.
-                if workspace_slug not in {"api", "app", "admin", "traefik"}:
-                    site = (
-                        await SiteRecord
+        try:
+            # Path A: `{workspace_slug}.{base_domain}` -> SiteRecord by Workspace.slug.
+            suffix = f".{(self.base_domain or '').strip().lower().rstrip('.')}"
+            if suffix.strip(".") and host.endswith(suffix) and host != suffix.strip("."):
+                workspace_slug = host[: -len(suffix)]
+                if workspace_slug and "." not in workspace_slug:
+                    # Prevent platform-reserved subdomains from being treated as tenant slugs.
+                    if workspace_slug not in {"api", "app", "admin", "traefik"}:
+                        site = (
+                            await SiteRecord
+                            .filter(
+                                workspace__slug=workspace_slug,
+                                workspace__is_active=True,
+                                is_active=True,
+                            )
+                            .order_by("created_at", "id")
+                            .first()
+                        )
+                        if site is not None:
+                            resolved_site_id = UUID(str(site.id))
+
+            # Path B: non-platform host -> SiteDomainRecord by hostname (verified + active).
+            if resolved_site_id is None:
+                base_domain = (self.base_domain or "").strip().lower().rstrip(".")
+                if not base_domain or (host != base_domain and not host.endswith(f".{base_domain}")):
+                    dom = (
+                        await SiteDomainRecord
                         .filter(
-                            workspace__slug=workspace_slug,
-                            workspace__is_active=True,
+                            hostname=host,
+                            is_verified=True,
                             is_active=True,
+                            site__is_active=True,
+                            site__workspace__is_active=True,
                         )
                         .order_by("created_at", "id")
                         .first()
                     )
-                    if site is not None:
-                        resolved_site_id = UUID(str(site.id))
-
-        # Path B: non-platform host -> SiteDomainRecord by hostname (verified + active).
-        if resolved_site_id is None:
-            base_domain = (self.base_domain or "").strip().lower().rstrip(".")
-            if not base_domain or (host != base_domain and not host.endswith(f".{base_domain}")):
-                dom = (
-                    await SiteDomainRecord
-                    .filter(
-                        hostname=host,
-                        is_verified=True,
-                        is_active=True,
-                        site__is_active=True,
-                        site__workspace__is_active=True,
-                    )
-                    .order_by("created_at", "id")
-                    .first()
-                )
-                if dom is not None:
-                    resolved_site_id = UUID(str(dom.site_id))
+                    if dom is not None:
+                        resolved_site_id = UUID(str(cast(HasSiteId, dom).site_id))
+        except ConfigurationError:
+            resolved_site_id = None
 
         request.state.site_id = resolved_site_id
 

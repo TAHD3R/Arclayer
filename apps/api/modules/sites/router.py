@@ -104,7 +104,7 @@ async def get_site_runtime(
     "/sites/{site_id}/routes/resolve",
     response_model=ResponseModel[SiteRouteResolveOut],
     response_model_exclude_none=True,
-    summary="Resolve site route (pathname -> document)",
+    summary="Resolve site route (pathname -> page blueprint)",
 )
 async def resolve_site_route(
     site_id: PublicUUID,
@@ -146,7 +146,7 @@ async def create_preview_token(
     response_model=ResponseModel[SiteRouteDraftSaveOut],
     response_model_exclude_none=True,
     status_code=status.HTTP_201_CREATED,
-    summary="Save a draft document for a route (stub)",
+    summary="Save a draft page blueprint for a route (stub)",
 )
 async def save_site_route_draft(
     site_id: PublicUUID,
@@ -267,7 +267,7 @@ async def heartbeat_presence(
     "/sites/{site_id}/presence",
     response_model=ResponseModel[SitePresenceListOut],
     response_model_exclude_none=True,
-    summary="List presence records for a document (v1)",
+    summary="List presence records for a document key (v1)",
 )
 async def list_presence(
     site_id: PublicUUID,

@@ -32,6 +32,34 @@ def clear_settings_cache() -> Iterator[None]:
     get_settings.cache_clear()
 
 
+@pytest.fixture(autouse=True)
+def base_test_env(monkeypatch) -> Iterator[None]:
+    """
+    Make unit tests hermetic by default.
+
+    Rationale:
+    - `get_settings()` loads `.env` first. In local dev this often enables DB/Valkey, which makes
+      pure unit tests flaky/hanging in sandboxed environments (no external sockets).
+    - Integration tests opt-in via `RUN_INTEGRATION_TESTS=1` and explicitly enable DB/Valkey using
+      `TEST_DATABASE__ENABLED` / `TEST_VALKEY__ENABLED`.
+    """
+
+    # External dependencies off by default.
+    #
+    # Notes:
+    # - Do NOT set `APP_ENV` here. Some unit tests construct `Settings(...)` explicitly and expect
+    #   init kwargs to win; our Settings source order prioritizes env over init kwargs.
+    # - Do NOT force `TEST_*` flags here; integration fixtures control those explicitly.
+    monkeypatch.setenv("DATABASE__ENABLED", "0")
+    monkeypatch.setenv("VALKEY__ENABLED", "0")
+    monkeypatch.setenv("VALKEY__LIMITER_ENABLED", "0")
+    monkeypatch.setenv("ARQ__ENABLED", "0")
+
+    # Avoid async log queue threads in tests unless explicitly enabled.
+    monkeypatch.setenv("LOG_ASYNC", "0")
+    yield
+
+
 def _integration_enabled() -> bool:
     return os.getenv("RUN_INTEGRATION_TESTS") == "1"
 
@@ -42,8 +70,12 @@ def integration_db_settings(monkeypatch) -> Iterator[None]:
         pytest.skip("integration tests disabled")
 
     monkeypatch.setenv("APP_ENV", "test")
+    monkeypatch.setenv("APPLICATION__DEPLOYMENT_MODE", "self_host")
+    monkeypatch.setenv("DEPLOYMENT_MODE", "self_host")
     monkeypatch.setenv("TEST_DATABASE__ENABLED", "1")
     monkeypatch.setenv("TEST_DATABASE__NAME", os.getenv("TEST_DATABASE__NAME", "celestial_test"))
+    # Ensure subsequent `get_settings()` calls see the updated integration env.
+    get_settings.cache_clear()
     yield
 
 
@@ -54,10 +86,14 @@ def integration_valkey_settings(monkeypatch) -> str:
 
     prefix = os.getenv("TEST_VALKEY__PREFIX") or f"test:{uuid4().hex}"
     monkeypatch.setenv("APP_ENV", "test")
+    monkeypatch.setenv("APPLICATION__DEPLOYMENT_MODE", "self_host")
+    monkeypatch.setenv("DEPLOYMENT_MODE", "self_host")
     monkeypatch.setenv("TEST_VALKEY__ENABLED", "1")
     monkeypatch.setenv("TEST_VALKEY__DB", os.getenv("TEST_VALKEY__DB", "15"))
     monkeypatch.setenv("TEST_VALKEY__DEFAULT_TTL", os.getenv("TEST_VALKEY__DEFAULT_TTL", "5"))
     monkeypatch.setenv("TEST_VALKEY__PREFIX", prefix)
+    # `get_settings()` is cached; clear it so valkey gets enabled for the app under test.
+    get_settings.cache_clear()
     return prefix
 
 

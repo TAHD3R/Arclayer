@@ -5,7 +5,6 @@ from uuid import UUID, uuid4
 
 import pytest
 from fastapi import FastAPI
-from fastapi.testclient import TestClient
 
 from apps.api.config import get_settings
 from apps.api.modules.auth.deps import get_current_user
@@ -13,19 +12,21 @@ from apps.api.modules.organization.deps import require_org_owner
 from apps.api.modules.organization.models.org_membership import OrgRole
 from apps.api.modules.organization.router import router as me_router
 from apps.api.modules.system.router import router as system_router
+from apps.api.tests.utils.asgi_client import asgi_client
 
 pytestmark = pytest.mark.integration
 
 
-def test_system_runtime_public_endpoint(monkeypatch) -> None:
+async def test_system_runtime_public_endpoint(monkeypatch) -> None:
     monkeypatch.setenv("APPLICATION__DEPLOYMENT_MODE", "self_host")
+    monkeypatch.setenv("DEPLOYMENT_MODE", "self_host")
     get_settings.cache_clear()
 
     app = FastAPI()
     app.include_router(system_router, prefix="/api/v1/system")
 
-    client = TestClient(app)
-    res = client.get("/api/v1/system/runtime")
+    async with asgi_client(app) as client:
+        res = await client.get("/api/v1/system/runtime")
 
     assert res.status_code == 200
     payload = res.json()
@@ -37,7 +38,7 @@ def test_system_runtime_public_endpoint(monkeypatch) -> None:
     assert caps.get("publicRegisterEnabled") is False
 
 
-def test_me_organization_owner_flag() -> None:
+async def test_me_organization_owner_flag() -> None:
     """
     Keep this test dependency-light:
     - override auth/org membership dependency
@@ -86,8 +87,8 @@ def test_me_organization_owner_flag() -> None:
 
     app.dependency_overrides[get_current_org_membership] = _get_orgm_owner_override
 
-    client = TestClient(app)
-    res = client.get("/api/v1/me/organization")
+    async with asgi_client(app) as client:
+        res = await client.get("/api/v1/me/organization")
 
     assert res.status_code == 200
     data = res.json().get("data") or {}
@@ -98,8 +99,9 @@ def test_me_organization_owner_flag() -> None:
     assert organization.get("slug") == "demo"
 
 
-def test_system_endpoints_disabled_in_saas_mode(monkeypatch) -> None:
+async def test_system_endpoints_disabled_in_saas_mode(monkeypatch) -> None:
     monkeypatch.setenv("APPLICATION__DEPLOYMENT_MODE", "saas")
+    monkeypatch.setenv("DEPLOYMENT_MODE", "saas")
     get_settings.cache_clear()
 
     app = FastAPI()
@@ -125,10 +127,9 @@ def test_system_endpoints_disabled_in_saas_mode(monkeypatch) -> None:
     app.dependency_overrides[require_org_owner] = _org_owner_override
     app.dependency_overrides[get_current_user] = _user_override
 
-    client = TestClient(app)
+    async with asgi_client(app) as client:
+        res_settings = await client.get("/api/v1/system/settings")
+        assert res_settings.status_code == 404
 
-    res_settings = client.get("/api/v1/system/settings")
-    assert res_settings.status_code == 404
-
-    res_mail = client.post("/api/v1/system/mail/test", json={"recipient": "demo@example.com"})
-    assert res_mail.status_code == 404
+        res_mail = await client.post("/api/v1/system/mail/test", json={"recipient": "demo@example.com"})
+        assert res_mail.status_code == 404

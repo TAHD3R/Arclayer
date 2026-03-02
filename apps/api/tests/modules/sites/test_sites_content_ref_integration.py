@@ -185,7 +185,7 @@ async def test_sites_resolve_includes_for_content_ref(prepared_schema) -> None:
             include = includes.get(f"{header_pid}:published") or {}
             assert include.get("entryId") == header_pid
             assert include.get("resolvedState") == "published"
-            assert include.get("document") is not None
+            assert include.get("pageBlueprint") is not None
 
 
 async def test_sites_resolve_content_ref_state_forbidden_in_public(prepared_schema) -> None:

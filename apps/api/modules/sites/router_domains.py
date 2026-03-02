@@ -104,7 +104,7 @@ async def verify_site_domain(
         data=SiteDomainVerifyOut(
             domain=out,
             dns=dns,
-            observed_txt_values=observed,
+            observedTxtValues=observed,
         )
     )
 
@@ -153,4 +153,4 @@ async def delete_site_domain(
         domain_id=UUID(str(domain_id)),
         actor_user_id=user_id,
     )
-    return Response.success(data=SiteDomainDeleteOut(domain_id=domain_id))
+    return Response.success(data=SiteDomainDeleteOut(domainId=domain_id))

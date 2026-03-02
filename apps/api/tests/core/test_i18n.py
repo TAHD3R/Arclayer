@@ -4,35 +4,34 @@ import json
 from pathlib import Path
 
 from fastapi import FastAPI, Request
-from fastapi.testclient import TestClient
 
 from apps.api.core import i18n
 from apps.api.core.i18n import get_request_locale, localize_message, t
+from apps.api.tests.utils.asgi_client import asgi_client
 
 
-def test_get_request_locale_priority() -> None:
+async def test_get_request_locale_priority() -> None:
     app = FastAPI()
 
     @app.get("/locale")
-    def locale_handler(request: Request) -> dict[str, str]:
+    async def locale_handler(request: Request) -> dict[str, str]:
         return {"locale": get_request_locale(request)}
 
-    client = TestClient(app)
+    async with asgi_client(app) as client:
+        response = await client.get(
+            "/locale?lang=zh-CN",
+            headers={"X-Locale": "en-US", "Accept-Language": "zh-CN"},
+        )
+        assert response.json()["locale"] == "en-US"
 
-    response = client.get(
-        "/locale?lang=zh-CN",
-        headers={"X-Locale": "en-US", "Accept-Language": "zh-CN"},
-    )
-    assert response.json()["locale"] == "en-US"
+        response = await client.get("/locale?lang=zh-CN", headers={"Accept-Language": "en-US"})
+        assert response.json()["locale"] == "zh-CN"
 
-    response = client.get("/locale?lang=zh-CN", headers={"Accept-Language": "en-US"})
-    assert response.json()["locale"] == "zh-CN"
+        response = await client.get("/locale", headers={"Accept-Language": "en-US,en;q=0.9"})
+        assert response.json()["locale"] == "en-US"
 
-    response = client.get("/locale", headers={"Accept-Language": "en-US,en;q=0.9"})
-    assert response.json()["locale"] == "en-US"
-
-    response = client.get("/locale")
-    assert response.json()["locale"] == "zh-CN"
+        response = await client.get("/locale")
+        assert response.json()["locale"] == "zh-CN"
 
 
 def test_t_fallback_and_translate() -> None:

@@ -79,7 +79,7 @@ async def test_entries_delete_requires_unpublish(prepared_db, integration_valkey
                 json={
                     "entry_type_code": "blog_post",
                     "slug": "hello",
-                    "document": None,
+                    "pageBlueprint": None,
                     "data": None,
                     "expected_revision": 0,
                 },

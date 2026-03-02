@@ -102,7 +102,7 @@ async def test_page_publish_fails_when_deps_assets_missing(prepared_db, integrat
                 f"/api/v1/sites/{site_id}/routes/draft?token={token}",
                 json={
                     "path": "/about",
-                    "document": _doc(title="rev1"),
+                    "pageBlueprint": _doc(title="rev1"),
                     "deps": {"assetIds": [missing_asset_id]},
                     "expectedRevision": 0,
                 },
@@ -153,7 +153,7 @@ async def test_entry_publish_fails_when_deps_assets_missing(prepared_db, integra
                 json={
                     "entryTypeCode": "blog_post",
                     "slug": "hello",
-                    "document": _doc(title="rev1"),
+                    "pageBlueprint": _doc(title="rev1"),
                     "data": None,
                     "deps": {"assetIds": [missing_asset_id]},
                     "expectedRevision": 0,
@@ -190,7 +190,7 @@ async def test_page_rollback_fails_when_deps_assets_missing(prepared_db, integra
             # rev1 without deps (ok)
             resp = await client.post(
                 f"/api/v1/sites/{site_id}/routes/draft?token={token}",
-                json={"path": "/about", "document": _doc(title="rev1"), "expectedRevision": 0},
+                json={"path": "/about", "pageBlueprint": _doc(title="rev1"), "expectedRevision": 0},
             )
             assert resp.status_code == 201, resp.text
 
@@ -199,7 +199,7 @@ async def test_page_rollback_fails_when_deps_assets_missing(prepared_db, integra
                 f"/api/v1/sites/{site_id}/routes/draft?token={token}",
                 json={
                     "path": "/about",
-                    "document": _doc(title="rev2"),
+                    "pageBlueprint": _doc(title="rev2"),
                     "deps": {"assetIds": [missing_asset_id]},
                     "expectedRevision": 1,
                 },

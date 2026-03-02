@@ -20,7 +20,8 @@ from apps.api.modules.sites.models.site_page import SitePageRecord, SitePageRevi
 from apps.api.modules.sites.models.site_route_template import RouteTemplateRecord
 from apps.api.modules.system.models.setting import SettingRecord
 from apps.api.modules.workspaces.models.workspace import Workspace
-from apps.api.settings.scopes import SCOPE_TYPE_SITE
+from apps.api.settings.core_schema import CORE_SETTINGS_NAMESPACE
+from apps.api.settings.scopes import SCOPE_TYPE_SITE, SCOPE_TYPE_WORKSPACE
 from apps.api.tests.utils.tortoise import reset_postgres_schema
 
 pytestmark = pytest.mark.integration
@@ -94,7 +95,7 @@ def _design_doc(title: str) -> dict:
 
 
 def _get_seo_title_from_resolved_document(payload: dict) -> str | None:
-    doc = payload.get("data", {}).get("document")
+    doc = payload.get("data", {}).get("pageBlueprint")
     if not isinstance(doc, dict):
         return None
     root_id = doc.get("rootId")
@@ -132,6 +133,15 @@ async def test_sites_public_preview_draft_publish_flow(prepared_schema) -> None:
             name="Workspace",
             is_active=True,
             created_by_user_id=user.id,
+        )
+
+        # Ensure deterministic sitemap base URL in self-host mode.
+        await SettingRecord.create(
+            scope_type=SCOPE_TYPE_WORKSPACE,
+            scope_id=ws.id,
+            namespace=CORE_SETTINGS_NAMESPACE,
+            value={"site": {"url": "https://example.test"}},
+            updated_by=None,
         )
 
         site = await SiteRecord.create(
@@ -267,7 +277,7 @@ async def test_sites_public_preview_draft_publish_flow(prepared_schema) -> None:
                 json={
                     "entryTypeCode": "blog_post",
                     "slug": "world",
-                    "document": _design_doc("Entry world v2 (draft)"),
+                    "pageBlueprint": _design_doc("Entry world v2 (draft)"),
                     "expectedRevision": 1,
                 },
             )
@@ -298,7 +308,7 @@ async def test_sites_public_preview_draft_publish_flow(prepared_schema) -> None:
                 json={
                     "entryTypeCode": "blog_post",
                     "slug": "new",
-                    "document": _design_doc("Entry new v1 (draft)"),
+                    "pageBlueprint": _design_doc("Entry new v1 (draft)"),
                     "expectedRevision": 0,
                 },
             )
@@ -312,7 +322,7 @@ async def test_sites_public_preview_draft_publish_flow(prepared_schema) -> None:
                 json={
                     "entryTypeCode": "blog_post",
                     "slug": "new",
-                    "document": _design_doc("Entry new v2 (draft)"),
+                    "pageBlueprint": _design_doc("Entry new v2 (draft)"),
                     "expectedRevision": 0,
                 },
             )
@@ -341,7 +351,7 @@ async def test_sites_public_preview_draft_publish_flow(prepared_schema) -> None:
                 json={
                     "entryTypeCode": "missing_type",
                     "slug": "x",
-                    "document": _design_doc("Entry x"),
+                    "pageBlueprint": _design_doc("Entry x"),
                     "expectedRevision": 0,
                 },
             )
@@ -382,7 +392,7 @@ async def test_sites_public_preview_draft_publish_flow(prepared_schema) -> None:
             resp = await client.post(
                 f"/api/v1/sites/{site_pid}/routes/draft",
                 params={"token": token},
-                json={"path": "/about", "document": _design_doc("About v2 (draft)"), "expectedRevision": 1},
+                json={"path": "/about", "pageBlueprint": _design_doc("About v2 (draft)"), "expectedRevision": 1},
             )
             assert resp.status_code == 201
             assert resp.json()["data"]["revision"] == 2
@@ -435,7 +445,7 @@ async def test_sites_public_preview_draft_publish_flow(prepared_schema) -> None:
             resp = await client.post(
                 f"/api/v1/sites/{site_pid}/routes/draft",
                 params={"token": token},
-                json={"path": "/about", "document": _design_doc("About v3"), "expectedRevision": 1},
+                json={"path": "/about", "pageBlueprint": _design_doc("About v3"), "expectedRevision": 1},
             )
             assert resp.status_code == 409
 
@@ -444,7 +454,7 @@ async def test_sites_public_preview_draft_publish_flow(prepared_schema) -> None:
                 f"/api/v1/sites/{site_pid}/pages/{encode_uuid(about.id)}/revisions/draft",
                 params={"token": token},
                 json={
-                    "document": _design_doc("About v3 (draft by id)"),
+                    "pageBlueprint": _design_doc("About v3 (draft by id)"),
                     "expectedRevision": 2,
                 },
             )

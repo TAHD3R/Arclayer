@@ -140,7 +140,7 @@ async def test_workspace_content_pages_flow_single_site_model(prepared_db, integ
             # Save a draft revision.
             res4 = await client.post(
                 f"/api/v1/workspaces/{ws.id}/content/pages/{page_id}/revisions/draft",
-                json={"document": _doc("About v1"), "expectedRevision": 0},
+                json={"pageBlueprint": _doc("About v1"), "expectedRevision": 0},
             )
             assert res4.status_code == 201, res4.text
             draft = res4.json()["data"]
