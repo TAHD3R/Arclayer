@@ -226,6 +226,7 @@ export const DesignPageRootSeoV1Schema = z
 export const DesignPageRootDataSourcesV1Schema = z
   .object({
     primaryEntryId: z.string().optional(),
+    primaryEntryTypeHint: z.string().optional(),
     named: z
       .record(z.string(), z.object({ entryId: z.string(), typeHint: z.string().optional() }).strict())
       .optional(),

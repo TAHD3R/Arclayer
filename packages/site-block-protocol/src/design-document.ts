@@ -143,6 +143,11 @@ export type DesignPageRootSeoV1 = {
 
 export type DesignPageRootDataSourcesV1 = {
   primaryEntryId?: string;
+  /**
+   * Stable content type hint for primaryEntry, used by Studio to provide field path suggestions.
+   * Stored as content type code (recommended).
+   */
+  primaryEntryTypeHint?: string;
   named?: Record<string, { entryId: string; typeHint?: string }>;
 };
 

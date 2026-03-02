@@ -94,6 +94,9 @@ describe("PageBlueprintRenderer + PrefabRegistry (phase 3 acceptance)", () => {
     expect(html).not.toContain('data-celestial="subdocument-invalid"');
     // Sanity: card template should render a subtree; the root wrapper exists.
     expect(html).toContain('data-prefab-id="card"');
+    // Localized prefab props should be resolved by ViewerContext locale.
+    expect(html).toContain("Hello");
+    expect(html).toContain("World");
     // Slot subtree nodes should still exist after expansion (rendered with data-node-id).
     expect(html).toContain('data-node-id="slotRect"');
   });

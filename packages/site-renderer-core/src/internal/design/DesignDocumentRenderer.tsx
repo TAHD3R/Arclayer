@@ -103,9 +103,31 @@ function resolveValueToString(args: {
   if (typeof v === "string") return v;
   if (isBindingExpr(v)) {
     const out = resolveBindingToUnknown({ expr: v, data: args.dataSources });
-    return typeof out === "string" ? out : out == null ? "" : String(out);
+    if (typeof out === "string") return out;
+    if (out == null) return "";
+    // Allow bindings to return LocalizedString maps (e.g. prefabProps.title is a localized map).
+    if (isRecord(out) && isLocalizedStringMap(out)) {
+      return resolveTextValue(out as unknown as LocalizedString, args.ctx);
+    }
+    // Empty object is a common "cleared i18n map" representation in editors; treat it as empty string.
+    if (isRecord(out) && Object.keys(out).length === 0) return "";
+    return String(out);
   }
   return resolveTextValue(v as LocalizedString, args.ctx);
+}
+
+function isLocalizedStringMap(value: Record<string, unknown>): boolean {
+  const entries = Object.entries(value);
+  if (!entries.length) return false;
+  const localeLike = /^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$/;
+  for (const [, v] of entries) {
+    if (typeof v !== "string") return false;
+  }
+  for (const [k] of entries) {
+    const key = String(k || "").trim();
+    if (!localeLike.test(key)) return false;
+  }
+  return true;
 }
 
 function toCssLengthPx(value: number | undefined): string | undefined {
@@ -412,11 +434,12 @@ function RenderNode(args: {
   }
 
   if (resolved.type === "image") {
-    const src = resolveValueToString({
+    const srcRaw = resolveValueToString({
       value: resolved.src,
       ctx: args.ctx,
       dataSources: args.dataSources,
     });
+    const src = srcRaw.trim() ? srcRaw : undefined;
     const alt = resolveValueToString({
       value: resolved.alt,
       ctx: args.ctx,
@@ -437,11 +460,12 @@ function RenderNode(args: {
   }
 
   if (resolved.type === "embed") {
-    const url = resolveValueToString({
+    const urlRaw = resolveValueToString({
       value: resolved.url,
       ctx: args.ctx,
       dataSources: args.dataSources,
     });
+    const url = urlRaw.trim() ? urlRaw : undefined;
     return (
       <iframe
         data-node-id={resolved.id}

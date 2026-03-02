@@ -213,6 +213,11 @@ class DesignPageRootDataSourcesV1(BaseSchema):
     model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
 
     primary_entry_id: str | None = Field(default=None, alias="primaryEntryId", description="Primary entry id.")
+    primary_entry_type_hint: str | None = Field(
+        default=None,
+        alias="primaryEntryTypeHint",
+        description="Stable content type hint for primary entry (recommended: content type code).",
+    )
     named: dict[str, dict] | None = Field(default=None, description="Named sources map.")
 
 

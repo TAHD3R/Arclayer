@@ -56,7 +56,7 @@ export async function loadContentEntryDocument(args: {
     const dataSources: DesignRenderDataSourcesV1 = {
       primaryEntry: {
         id: args.entryId,
-        data: snapshot.field_values as unknown as Record<string, unknown>,
+        data: { fields: snapshot.field_values as unknown as Record<string, unknown> },
       },
     };
 

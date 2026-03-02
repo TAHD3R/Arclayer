@@ -734,9 +734,10 @@ class SitePublishingService(BaseService):
                     entry_id=UUID(str(entry.id)), revision=int(use_rev)
                 )
                 if rev_rec is not None and isinstance(rev_rec.snapshot, dict):
-                    raw_doc = rev_rec.snapshot.get("page_blueprint")
+                    snapshot = rev_rec.snapshot
+                    raw_doc = snapshot.get("page_blueprint")
                     if raw_doc is None:
-                        raw_doc = rev_rec.snapshot.get("design_document")
+                        raw_doc = snapshot.get("design_document")
                     if raw_doc is not None:
                         try:
                             doc = PageBlueprint.model_validate(raw_doc)
@@ -745,6 +746,52 @@ class SitePublishingService(BaseService):
                                 "Failed to load page blueprint",
                                 error="PAGE_BLUEPRINT_INVALID",
                             ) from exc
+
+                        primary_fields_raw = snapshot.get("field_values")
+                        primary_fields: dict = primary_fields_raw if isinstance(primary_fields_raw, dict) else {}
+                        # Ensure title/description always reflect latest entry metadata to avoid drift.
+                        # For Everything-as-Content pages, entry.title / entry.field_values.description are canonical.
+                        if isinstance(entry.title, str) and entry.title.strip():
+                            primary_fields = {**primary_fields, "title": entry.title.strip()}
+                        if meta_desc is not None:
+                            primary_fields = {**primary_fields, "description": meta_desc}
+
+                        root = doc.nodes_by_id.get(doc.root_id)
+                        root_ds = getattr(root, "data_sources", None)
+                        preferred_primary_public = (
+                            getattr(root_ds, "primary_entry_id", None) if root_ds is not None else None
+                        )
+
+                        primary_entry_id = UUID(str(entry.id))
+                        primary_entry_fields = primary_fields
+
+                        if isinstance(preferred_primary_public, str) and preferred_primary_public.strip():
+                            try:
+                                preferred_uuid = decode_public_id(preferred_primary_public.strip())
+                            except PublicIdDecodeError:
+                                preferred_uuid = None
+
+                            if preferred_uuid is not None and preferred_uuid != primary_entry_id:
+                                # Resolve a custom primaryEntryId configured in PageBlueprint.
+                                # For preview mode: prefer draft if available, else fall back to published.
+                                preferred_state: Literal["draft", "published"] = (
+                                    "published" if mode == "public" else "draft"
+                                )
+                                _, data, _, err = await self._load_content_ref_entry(
+                                    site_id=site_id,
+                                    entry_id_public=preferred_primary_public.strip(),
+                                    state=preferred_state,
+                                )
+                                if err is not None and mode == "preview":
+                                    _, data, _, err = await self._load_content_ref_entry(
+                                        site_id=site_id,
+                                        entry_id_public=preferred_primary_public.strip(),
+                                        state="published",
+                                    )
+                                if err is None and isinstance(data, dict):
+                                    primary_entry_id = preferred_uuid
+                                    primary_entry_fields = data
+
                         includes, warnings = await self._resolve_content_refs(
                             document=doc,
                             site_id=site_id,
@@ -763,6 +810,12 @@ class SitePublishingService(BaseService):
                             ),
                             pageMeta=page_meta,
                             pageBlueprint=doc,
+                            dataSources=SiteRouteDataSourcesOut(
+                                primaryEntry=SitePrimaryEntryOut(
+                                    id=primary_entry_id,
+                                    data={"fields": primary_entry_fields},
+                                )
+                            ),
                             includes=includes or None,
                             warnings=warnings or None,
                         )
@@ -835,6 +888,25 @@ class SitePublishingService(BaseService):
                         ),
                         pageMeta=page_meta,
                         pageBlueprint=doc,
+                        dataSources=SiteRouteDataSourcesOut(
+                            primaryEntry=SitePrimaryEntryOut(
+                                id=UUID(str(page.id)),
+                                data={
+                                    "fields": {
+                                        **(
+                                            {"title": page.title.strip()}
+                                            if isinstance(page.title, str) and page.title.strip()
+                                            else {}
+                                        ),
+                                        **(
+                                            {"description": page.description.strip()}
+                                            if isinstance(page.description, str) and page.description.strip()
+                                            else {}
+                                        ),
+                                    }
+                                },
+                            )
+                        ),
                         includes=includes or None,
                         warnings=warnings or None,
                     )

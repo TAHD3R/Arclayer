@@ -1,5 +1,7 @@
 export type { MyWorkspace, MyWorkspaceListResult } from "./workspaces";
 export type { PageData } from "./pagination";
+export type { ContentTypeOut } from "./content-types";
+export type { ContentEntryOut, ContentEntryRevisionOut } from "./content-entries";
 export type {
   ContentPageDraftSaveOut,
   ContentPageDraftSavePayload,
