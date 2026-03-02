@@ -8,23 +8,47 @@ wheels/
 .ruff_cache/
 .pytest_cache/
 .uv-cache/
+
+# MCP files
 .serena/
 .omc/
+.claude/
+
 # Virtual environments
 .venv
 
-# Environment files
+# Editor directories and files
+.vscode/.debug.env
+.vscode/settings.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Env variables
 .env
-.env.local
-.env.*.local
-.env.development
 .env.production
+.env.development
+.env.test
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
 # Logs
-apps/api/logs/
+logs
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 
 # Node / pnpm
+dist
 node_modules/
 .pnpm-store/
 .turbo/
@@ -41,9 +65,5 @@ htmlcov/
 # Local data (runtime)
 /data/
 
-
 # Frontend files
 .tanstack
-
-# Agent files
-.claude/
