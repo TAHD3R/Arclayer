@@ -9,3 +9,8 @@ export type AuthSSOProvider = {
 export type AuthSSOProvidersOut = {
   providers: AuthSSOProvider[];
 };
+
+export type AuthSSOLinkStateOut = {
+  token: string;
+  expires_in: number;
+};

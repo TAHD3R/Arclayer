@@ -50,6 +50,7 @@ export type ResolveAdminLocalizationSnapshotParams = {
   workspaceLocalization: LocalizationCandidate;
   organizationLocalization: LocalizationCandidate;
   preferencesLocale: AppLocale;
+  preferencesTimeZone: string | null;
   browserTimeZone: string;
 };
 
@@ -62,6 +63,7 @@ export function resolveAdminLocalizationSnapshot(
       params.organizationLocalization.locale ??
       params.preferencesLocale,
     timeZone:
+      params.preferencesTimeZone ??
       params.workspaceLocalization.timeZone ??
       params.organizationLocalization.timeZone ??
       params.browserTimeZone,
@@ -73,6 +75,7 @@ export function resolveAdminLocalizationSnapshot(
 export function useAdminDateTimeFormatter(params?: { workspaceId?: string | null }) {
   const workspaceIdFromStore = useWorkspaceStore((state) => state.currentWorkspaceId);
   const preferencesLocale = usePreferencesStore((state) => state.locale);
+  const preferencesTimeZone = usePreferencesStore((state) => state.timeZonePreference);
 
   const workspaceId = params?.workspaceId ?? workspaceIdFromStore ?? null;
 
@@ -132,9 +135,10 @@ export function useAdminDateTimeFormatter(params?: { workspaceId?: string | null
       workspaceLocalization,
       organizationLocalization,
       preferencesLocale,
+      preferencesTimeZone,
       browserTimeZone: getBrowserTimeZone(),
     });
-  }, [organizationLocalization, preferencesLocale, workspaceLocalization]);
+  }, [organizationLocalization, preferencesLocale, preferencesTimeZone, workspaceLocalization]);
 
   const formatFromDate = useCallback(
     (date: Date | null, options: FormatDateTimeOptions = {}): string => {

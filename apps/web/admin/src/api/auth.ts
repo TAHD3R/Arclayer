@@ -1,5 +1,15 @@
 import { api } from "@/lib/http";
-import type { TokenPair, UserProfile, ResetTokenPayload, RegisterPayload } from "@/types/api";
+import type {
+  TokenPair,
+  UserProfile,
+  UpdateMyProfilePayload,
+  RequestMyEmailChangePayload,
+  RequestMyEmailChangeOut,
+  ConfirmMyEmailChangePayload,
+  DeleteMyAccountPayload,
+  ResetTokenPayload,
+  RegisterPayload,
+} from "@/types/api";
 
 export async function login(payload: { identifier: string; password: string }): Promise<TokenPair> {
   return api.post<TokenPair>("/auth/login", payload, { auth: { skipRefresh: true } });
@@ -15,6 +25,26 @@ export async function refresh(payload: { refresh_token: string }): Promise<Token
 
 export async function me(): Promise<UserProfile> {
   return api.get<UserProfile>("/auth/me");
+}
+
+export async function updateMyProfile(payload: UpdateMyProfilePayload): Promise<UserProfile> {
+  return api.patch<UserProfile>("/auth/me", payload);
+}
+
+export async function requestMyEmailChange(
+  payload: RequestMyEmailChangePayload,
+): Promise<RequestMyEmailChangeOut> {
+  return api.post<RequestMyEmailChangeOut>("/auth/me/email/request", payload);
+}
+
+export async function confirmMyEmailChange(
+  payload: ConfirmMyEmailChangePayload,
+): Promise<UserProfile> {
+  return api.post<UserProfile>("/auth/me/email/confirm", payload);
+}
+
+export async function deleteMyAccount(payload: DeleteMyAccountPayload): Promise<null> {
+  return api.post<null>("/auth/me/delete", payload);
 }
 
 export async function changePassword(payload: {

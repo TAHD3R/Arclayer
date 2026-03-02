@@ -38,6 +38,7 @@ from oauth_social.schema import (
     GoogleUserInfo,
     OAuthStatePayload,
 )
+from oauth_social.models import OAuthIdentity
 
 _FATAL_OAUTH_SOCIAL_ERRORS: tuple[type[BaseException], ...] = (
     asyncio.CancelledError,
@@ -106,7 +107,14 @@ class OAuthSocialService(BaseService):
         self.repo = OAuthSocialRepository()
         self.auth_service = AuthService(settings, valkey=valkey)
 
-    async def start(self, request: Request, *, provider: str, redirect: str | None) -> RedirectResponse:
+    async def start(
+        self,
+        request: Request,
+        *,
+        provider: str,
+        redirect: str | None,
+        link_state: str | None,
+    ) -> RedirectResponse:
         provider = (provider or "").strip().lower()
         safe_redirect = redirect if _is_safe_redirect(redirect) else None
 
@@ -118,11 +126,36 @@ class OAuthSocialService(BaseService):
 
         config = await self._load_org_plugin_config(require_enabled=True)
 
+        link_user_id: str | None = None
+        raw_link_state = (link_state or "").strip()
+        if raw_link_state:
+            try:
+                linked = await _valkey_getdel_best_effort(
+                    self.valkey,
+                    f"auth:sso:link_state:{raw_link_state}",
+                )
+            except BaseException as exc:
+                _raise_if_fatal(exc)
+                linked = None
+            link_user_id = (linked or "").strip() or None
+            if not link_user_id:
+                frontend_base = await self._resolve_frontend_base_url()
+                return self._redirect_to_frontend_link_error(
+                    frontend_base,
+                    error="link_state_expired",
+                    redirect=safe_redirect,
+                )
+
         state = secrets.token_urlsafe(32)
         code_verifier = secrets.token_urlsafe(64)
         code_challenge = _pkce_challenge(code_verifier)
 
-        payload = OAuthStatePayload(provider=provider, redirect=safe_redirect, code_verifier=code_verifier)
+        payload = OAuthStatePayload(
+            provider=provider,
+            redirect=safe_redirect,
+            code_verifier=code_verifier,
+            link_user_id=link_user_id,
+        )
         await self.valkey.set(
             f"oauth:social:state:{state}",
             payload.model_dump_json(),
@@ -200,6 +233,7 @@ class OAuthSocialService(BaseService):
 
             payload = OAuthStatePayload.model_validate_json(payload_raw)
             redirect = payload.redirect if _is_safe_redirect(payload.redirect) else None
+            link_user_id = (payload.link_user_id or "").strip() or None
 
             try:
                 config = await self._load_org_plugin_config(require_enabled=True)
@@ -333,6 +367,47 @@ class OAuthSocialService(BaseService):
             if not subject:
                 return self._redirect_to_login_error(frontend_base, error="oauth_failed", redirect=redirect)
 
+            if link_user_id:
+                # Account linking flow: bind identity to the existing authenticated user.
+                try:
+                    from apps.api.modules.organization.models.user import User
+                    target_user = await User.get_or_none(id=UUID(link_user_id))
+                    if target_user is None:
+                        return self._redirect_to_frontend_link_error(
+                            frontend_base,
+                            error="oauth_failed",
+                            redirect=redirect,
+                        )
+
+                    existing = await self.repo.get_identity(provider=provider, subject=subject)
+                    if existing is not None and str(existing.user_id) != str(target_user.id):
+                        return self._redirect_to_frontend_link_error(
+                            frontend_base,
+                            error="oauth_already_linked",
+                            redirect=redirect,
+                        )
+
+                    if existing is None:
+                        await self.repo.create_identity(
+                            provider=provider,
+                            subject=subject,
+                            user_id=UUID(str(target_user.id)),
+                            email=email,
+                        )
+
+                    return self._redirect_to_frontend_link_result(
+                        frontend_base,
+                        provider=provider,
+                        redirect=redirect,
+                    )
+                except BaseException as exc:
+                    _raise_if_fatal(exc)
+                    return self._redirect_to_frontend_link_error(
+                        frontend_base,
+                        error="oauth_failed",
+                        redirect=redirect,
+                    )
+
             # Resolve local user.
             identity = await self.repo.get_identity(provider=provider, subject=subject)
             user_id: UUID | None = UUID(str(identity.user_id)) if identity is not None else None
@@ -405,6 +480,39 @@ class OAuthSocialService(BaseService):
                 error=str(exc),
             )
             return self._redirect_to_login_error(frontend_base, error="oauth_failed", redirect=None)
+
+    def _redirect_to_frontend_link_result(
+        self,
+        frontend_base: str,
+        *,
+        provider: str,
+        redirect: str | None,
+    ) -> RedirectResponse:
+        safe_redirect = redirect if _is_safe_redirect(redirect) else "/"
+        sep = "&" if "?" in safe_redirect else "?"
+        url = f"{frontend_base}{safe_redirect}{sep}linked_provider={provider}"
+        return RedirectResponse(url=url, status_code=302)
+
+    def _redirect_to_frontend_link_error(
+        self,
+        frontend_base: str,
+        *,
+        error: str,
+        redirect: str | None,
+    ) -> RedirectResponse:
+        safe_redirect = redirect if _is_safe_redirect(redirect) else "/"
+        sep = "&" if "?" in safe_redirect else "?"
+        url = f"{frontend_base}{safe_redirect}{sep}link_error={error}"
+        return RedirectResponse(url=url, status_code=302)
+
+    async def list_identities(self, *, user_id: UUID) -> list[OAuthIdentity]:
+        return await self.repo.list_identities_for_user(user_id=user_id)
+
+    async def unlink_identity(self, *, user_id: UUID, provider: str) -> int:
+        provider_key = (provider or "").strip().lower()
+        if not provider_key:
+            return 0
+        return await self.repo.delete_identity_for_user(user_id=user_id, provider=provider_key)
 
     async def _auto_accept_email_invites(self, *, user_id: UUID, email: str) -> None:
         try:

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import secrets
+
 from fastapi import APIRouter, Depends, Query, Request
 
 from apps.api.config import Settings, get_settings
@@ -8,13 +10,23 @@ from apps.api.core.http.response import Response, ResponseModel
 from apps.api.infra.cache.valkey import get_valkey
 from apps.api.infra.limiter.limiter import rate_limit
 from apps.api.modules.auth.constants import SSO_EXCHANGE_RATE_LIMIT, SSO_PROVIDERS_RATE_LIMIT
+from apps.api.modules.auth.deps import get_current_user
 from apps.api.modules.auth.schema import TokenPair
 from apps.api.modules.auth.service import AuthService
-from apps.api.modules.auth.sso.schema import AuthSSOExchangeIn, AuthSSOProviderItem, AuthSSOProvidersOut
+from apps.api.modules.auth.sso.schema import (
+    AuthSSOExchangeIn,
+    AuthSSOLinkStateOut,
+    AuthSSOProviderItem,
+    AuthSSOProvidersOut,
+)
 from apps.api.modules.auth.sso.service import AuthSSOService
+from apps.api.modules.organization.models.user import User
 from apps.api.plugin.manager import PluginManager
 
 router = APIRouter(prefix="/sso", tags=["Services: Auth SSO"])
+
+_SSO_LINK_STATE_EXPIRES_IN = 10 * 60
+_SSO_LINK_STATE_KEY_PREFIX = "auth:sso:link_state:"
 
 
 def get_plugin_manager(request: Request) -> PluginManager:
@@ -76,3 +88,26 @@ async def exchange(
 ) -> ResponseModel[TokenPair]:
     tokens = await service.exchange(code=payload.code)
     return Response.success(data=tokens)
+
+
+@router.post(
+    "/link-state",
+    response_model=ResponseModel[AuthSSOLinkStateOut],
+    summary="Issue a one-time token for linking an OAuth identity to current user",
+)
+async def issue_link_state(
+    request: Request,
+    user: User = Depends(get_current_user),
+) -> ResponseModel[AuthSSOLinkStateOut]:
+    """
+    Issue a short-lived token used by public OAuth start endpoints to bind the upcoming
+    OAuth callback to the current authenticated user (account linking flow).
+    """
+    try:
+        valkey = get_valkey(request)
+    except RuntimeError as exc:
+        raise ServiceUnavailable(message="Valkey unavailable", error="VALKEY_UNAVAILABLE") from exc
+
+    token = secrets.token_urlsafe(32)
+    await valkey.set(f"{_SSO_LINK_STATE_KEY_PREFIX}{token}", str(user.id), ex=_SSO_LINK_STATE_EXPIRES_IN)
+    return Response.success(data=AuthSSOLinkStateOut(token=token, expires_in=_SSO_LINK_STATE_EXPIRES_IN))

@@ -13,6 +13,9 @@ from apps.api.core.i18n import get_current_locale, t
 from apps.api.infra.cache.valkey import get_valkey
 from apps.api.infra.limiter.limiter import rate_limit
 from apps.api.modules.auth.constants import (
+    ACCOUNT_DELETE_RATE_LIMIT,
+    EMAIL_CHANGE_CONFIRM_RATE_LIMIT,
+    EMAIL_CHANGE_REQUEST_RATE_LIMIT,
     FORGOT_PASSWORD_RATE_LIMIT,
     LOGIN_RATE_LIMIT,
     REFRESH_RATE_LIMIT,
@@ -25,6 +28,8 @@ from apps.api.modules.auth.schema import (
     AcceptExistingInvitationResult,
     AcceptInvitationRequest,
     ChangePasswordRequest,
+    ConfirmMyEmailChangeRequest,
+    DeleteMyAccountRequest,
     ForgotPasswordRequest,
     InvitationPreviewResult,
     LoginRequest,
@@ -33,9 +38,12 @@ from apps.api.modules.auth.schema import (
     MyInvitationOut,
     RefreshRequest,
     RegisterRequest,
+    RequestMyEmailChangeOut,
+    RequestMyEmailChangeRequest,
     ResetPasswordRequest,
     ResetTokenPayload,
     TokenPair,
+    UpdateMyProfileRequest,
     UserProfile,
 )
 from apps.api.modules.auth.service import AuthService
@@ -343,6 +351,83 @@ async def me(
 ) -> ResponseModel[UserProfile]:
     profile = service.build_user_profile(user)
     return Response.success(data=profile)
+
+
+@router.patch(
+    "/me",
+    response_model=ResponseModel[UserProfile],
+    summary="Update current user profile",
+)
+async def update_me(
+    payload: UpdateMyProfileRequest,
+    user: User = Depends(get_current_user),
+    service: AuthService = Depends(_get_auth_service),
+) -> ResponseModel[UserProfile]:
+    profile = await service.update_my_profile(user=user, payload=payload)
+    return Response.success(message=t("auth", "PROFILE_UPDATED", default="资料已更新"), data=profile)
+
+
+@router.post(
+    "/me/email/request",
+    response_model=ResponseModel[RequestMyEmailChangeOut],
+    dependencies=[rate_limit(*EMAIL_CHANGE_REQUEST_RATE_LIMIT)],
+    summary="Request email change verification code",
+)
+async def request_email_change(
+    payload: RequestMyEmailChangeRequest,
+    background_tasks: BackgroundTasks,
+    user: User = Depends(get_current_user),
+    service: AuthService = Depends(_get_auth_service),
+) -> ResponseModel[RequestMyEmailChangeOut]:
+    code, ttl, new_email = await service.request_email_change(user=user, new_email=str(payload.new_email))
+    locale = get_current_locale()
+    background_tasks.add_task(
+        service.send_email_change_code,
+        recipient=new_email,
+        code=code,
+        expires_in=ttl,
+        user_id=user.id,
+        locale=locale,
+    )
+    return Response.success(
+        message=t("auth", "EMAIL_CODE_SENT", default="验证码已发送"),
+        data=RequestMyEmailChangeOut(expires_in=ttl),
+    )
+
+
+@router.post(
+    "/me/email/confirm",
+    response_model=ResponseModel[UserProfile],
+    dependencies=[rate_limit(*EMAIL_CHANGE_CONFIRM_RATE_LIMIT)],
+    summary="Confirm email change",
+)
+async def confirm_email_change(
+    payload: ConfirmMyEmailChangeRequest,
+    user: User = Depends(get_current_user),
+    service: AuthService = Depends(_get_auth_service),
+) -> ResponseModel[UserProfile]:
+    profile = await service.confirm_email_change(
+        user=user,
+        new_email=str(payload.new_email),
+        code=payload.code,
+        password=payload.password,
+    )
+    return Response.success(message=t("auth", "EMAIL_CHANGED", default="邮箱已更新"), data=profile)
+
+
+@router.post(
+    "/me/delete",
+    response_model=ResponseModel[None],
+    dependencies=[rate_limit(*ACCOUNT_DELETE_RATE_LIMIT)],
+    summary="Delete current account",
+)
+async def delete_my_account(
+    payload: DeleteMyAccountRequest,
+    user: User = Depends(get_current_user),
+    service: AuthService = Depends(_get_auth_service),
+) -> ResponseModel[None]:
+    await service.delete_my_account(user=user, email=str(payload.email), password=payload.password)
+    return Response.success(message=t("auth", "ACCOUNT_DELETED", default="账号已删除"))
 
 
 @router.get(

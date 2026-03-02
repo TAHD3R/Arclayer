@@ -46,6 +46,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
   const setEffectiveLocale = usePreferencesStore((s) => s.setEffectiveLocale);
   const cacheWorkspaceLocale = usePreferencesStore((s) => s.cacheWorkspaceLocale);
   const notificationPanelPinned = usePreferencesStore((s) => s.notificationPanelPinned);
+  const showNotificationsBadge = usePreferencesStore((s) => s.showNotificationsBadge);
   const setNotificationPanelPinned = usePreferencesStore((s) => s.setNotificationPanelPinned);
   const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
   const systemRuntime = useSystemRuntime();
@@ -169,7 +170,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
           onAction: () => setNotificationPanelOpen(!notificationPanelOpen),
           isActive: notificationPanelOpen,
           actionRenderer:
-            unreadCount > 0
+            showNotificationsBadge && unreadCount > 0
               ? () => (
                   <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] rounded-full bg-destructive px-1 text-[10px] font-semibold leading-none text-destructive-foreground">
                     {unreadCount > 99 ? "99+" : unreadCount}
@@ -178,7 +179,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
               : undefined,
         });
       }),
-    [notificationPanelOpen, setNotificationPanelOpen, unreadCount],
+    [notificationPanelOpen, setNotificationPanelOpen, showNotificationsBadge, unreadCount],
   );
 
   const workspaceDetailQuery = useQuery({

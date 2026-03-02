@@ -1,4 +1,4 @@
-import { COMMON_TIMEZONES, DATE_FORMAT_ITEMS } from "@/constants/datetime";
+import { DATE_FORMAT_ITEMS } from "@/constants/datetime";
 import { type AppLocale } from "@/lib/i18n";
 
 import { formatLocaleLabel } from "./utils";
@@ -25,9 +25,20 @@ export function buildLocaleOptions(
 
 export function buildTimezoneOptions(currentTimezone?: string): Array<LocalizationOption> {
   const normalizedCurrentTimezone = (currentTimezone || "").trim();
-  const values = [normalizedCurrentTimezone, ...COMMON_TIMEZONES].filter(Boolean);
+  const values = [normalizedCurrentTimezone, ...listSupportedTimeZones()].filter(Boolean);
   const deduped = Array.from(new Set(values));
   return deduped.map((timezone) => ({ value: timezone, label: timezone }));
+}
+
+function listSupportedTimeZones(): string[] {
+  try {
+    const fn = (Intl as unknown as { supportedValuesOf?: (key: string) => string[] })
+      .supportedValuesOf;
+    const supported = fn?.("timeZone") ?? [];
+    return Array.isArray(supported) ? supported : [];
+  } catch {
+    return [];
+  }
 }
 
 export function buildDateFormatOptions(): Array<LocalizationOption> {

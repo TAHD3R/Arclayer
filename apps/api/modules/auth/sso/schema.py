@@ -18,6 +18,11 @@ class AuthSSOProvidersOut(BaseSchema):
     providers: list[AuthSSOProviderItem] = Field(default_factory=list, description="Enabled SSO providers.")
 
 
+class AuthSSOLinkStateOut(BaseSchema):
+    token: str = Field(..., description="One-time token used to link an OAuth identity to the current user.")
+    expires_in: int = Field(..., description="Seconds until the token expires.")
+
+
 class AuthSSOExchangeIn(BaseSchema):
     code: str = Field(..., min_length=8, max_length=512, description="One-time exchange code.")
 

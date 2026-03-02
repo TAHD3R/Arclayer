@@ -5,11 +5,15 @@ from starlette.responses import RedirectResponse
 
 from apps.api.config import Settings, get_settings
 from apps.api.core.exceptions import ServiceUnavailable
+from apps.api.core.http.response import Response, ResponseModel
 from apps.api.infra.cache.valkey import get_valkey
 from apps.api.infra.limiter.limiter import rate_limit
+from apps.api.modules.auth.deps import get_current_user
+from apps.api.modules.organization.models.user import User, UserCredential
 from apps.api.plugin.manager import PluginManager
 
 from oauth_social.service import OAuthSocialService
+from oauth_social.schema import OAuthLinkedIdentityListOut, OAuthLinkedIdentityOut
 
 public_router = APIRouter()
 
@@ -50,9 +54,10 @@ async def start_oauth(
     provider: str,
     request: Request,
     redirect: str | None = Query(default=None, description="Optional safe redirect path after login."),
+    link_state: str | None = Query(default=None, description="Optional one-time link state token."),
     service: OAuthSocialService = Depends(get_service),
 ) -> RedirectResponse:
-    return await service.start(request, provider=provider, redirect=redirect)
+    return await service.start(request, provider=provider, redirect=redirect, link_state=link_state)
 
 
 @public_router.get(
@@ -69,3 +74,49 @@ async def callback_oauth(
     service: OAuthSocialService = Depends(get_service),
 ) -> RedirectResponse:
     return await service.callback(request, provider=provider, code=code, state=state)
+
+
+@public_router.get(
+    "/me/identities",
+    response_model=ResponseModel[OAuthLinkedIdentityListOut],
+    summary="List linked OAuth identities for current user",
+)
+async def list_my_oauth_identities(
+    user: User = Depends(get_current_user),
+    service: OAuthSocialService = Depends(get_service),
+) -> ResponseModel[OAuthLinkedIdentityListOut]:
+    rows = await service.list_identities(user_id=user.id)
+    identities = [
+        OAuthLinkedIdentityOut(
+            provider=str(row.provider),
+            email=(str(row.email) if row.email is not None else None),
+            created_at=row.created_at,
+        )
+        for row in rows
+    ]
+    return Response.success(data=OAuthLinkedIdentityListOut(identities=identities))
+
+
+@public_router.delete(
+    "/me/identities/{provider}",
+    response_model=ResponseModel[None],
+    summary="Unlink an OAuth identity for current user",
+)
+async def unlink_my_oauth_identity(
+    provider: str,
+    user: User = Depends(get_current_user),
+    service: OAuthSocialService = Depends(get_service),
+) -> ResponseModel[None]:
+    provider_key = (provider or "").strip().lower()
+    if not provider_key:
+        return Response.success(data=None)
+
+    # Safety: prevent users from locking themselves out (no password + last identity).
+    has_password = await UserCredential.get_or_none(user_id=user.id) is not None
+    identities = await service.list_identities(user_id=user.id)
+    has_other_identity = any((i.provider or "").strip().lower() != provider_key for i in identities)
+    if not has_password and not has_other_identity:
+        return Response.fail(message="Cannot unlink the last sign-in method.", error="LAST_SIGNIN_METHOD")
+
+    await service.unlink_identity(user_id=user.id, provider=provider_key)
+    return Response.success(data=None)

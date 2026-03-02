@@ -14,6 +14,29 @@ export type UserProfile = {
   avatar_url: string | null;
 };
 
+export type UpdateMyProfilePayload = {
+  display_name?: string | null;
+};
+
+export type RequestMyEmailChangePayload = {
+  new_email: string;
+};
+
+export type RequestMyEmailChangeOut = {
+  expires_in: number;
+};
+
+export type ConfirmMyEmailChangePayload = {
+  new_email: string;
+  code: string;
+  password: string;
+};
+
+export type DeleteMyAccountPayload = {
+  email: string;
+  password: string;
+};
+
 export type ResetTokenPayload = {
   reset_token: string;
   expires_in: number;

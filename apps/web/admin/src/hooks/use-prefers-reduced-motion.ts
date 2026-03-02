@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 
+import { usePreferencesStore } from "@/stores/use-preference-store";
+
 export function usePrefersReducedMotion(): boolean {
+  const userReduced = usePreferencesStore((s) => s.reduceMotion);
   const [reduced, setReduced] = useState(false);
 
   useEffect(() => {
@@ -14,5 +17,5 @@ export function usePrefersReducedMotion(): boolean {
     return () => mq.removeEventListener?.("change", update);
   }, []);
 
-  return reduced;
+  return reduced || userReduced;
 }

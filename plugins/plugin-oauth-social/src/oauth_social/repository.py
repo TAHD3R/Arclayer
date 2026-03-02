@@ -51,6 +51,12 @@ class OAuthSocialRepository(BaseRepository):
                 return existing
             raise
 
+    async def list_identities_for_user(self, *, user_id: UUID) -> list[OAuthIdentity]:
+        return await OAuthIdentity.filter(user_id=user_id).order_by("-created_at").all()
+
+    async def delete_identity_for_user(self, *, user_id: UUID, provider: str) -> int:
+        return await OAuthIdentity.filter(user_id=user_id, provider=provider).delete()
+
     async def get_user_by_email(self, *, email: str) -> User | None:
         normalized = (email or "").strip().lower()
         if not normalized:
@@ -92,4 +98,3 @@ class OAuthSocialRepository(BaseRepository):
             avatar_url=(avatar_url or "").strip() or None,
         )
         return cast(User, user)
-

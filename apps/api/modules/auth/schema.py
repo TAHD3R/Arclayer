@@ -189,6 +189,55 @@ class UserProfile(BaseOut):
     avatar_url: str | None = None
 
 
+class UpdateMyProfileRequest(BaseSchema):
+    """Update current user profile request."""
+
+    model_config = ConfigDict(str_strip_whitespace=True, validate_assignment=True)
+
+    display_name: str | None = Field(default=None, max_length=64, description="Display name.")
+
+    @field_validator("display_name")
+    @classmethod
+    def normalize_display_name(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.strip()
+        if not normalized:
+            return None
+        if not re.match(r"^[a-zA-Z0-9_\u4e00-\u9fa5][a-zA-Z0-9_\u4e00-\u9fa5 ._-]*$", normalized):
+            raise ValueError(
+                "Display name may only contain letters, numbers, underscore, CJK characters, space, dot and hyphen."
+            )
+        return normalized
+
+
+class RequestMyEmailChangeRequest(BaseSchema):
+    """Request email change verification code."""
+
+    new_email: EmailStr = Field(..., description="New email address.")
+
+
+class RequestMyEmailChangeOut(BaseSchema):
+    """Email change request response."""
+
+    expires_in: int = Field(..., ge=1, description="Code expires in seconds.")
+
+
+class ConfirmMyEmailChangeRequest(BaseSchema):
+    """Confirm email change."""
+
+    new_email: EmailStr = Field(..., description="New email address.")
+    code: str = Field(min_length=4, max_length=16, description="Email verification code.")
+    password: str = Field(min_length=1, max_length=128, description="Current password.")
+
+
+class DeleteMyAccountRequest(BaseSchema):
+    """Delete (or anonymize) current account."""
+
+    email: EmailStr = Field(..., description="Current account email for confirmation.")
+    password: str = Field(min_length=1, max_length=128, description="Current password.")
+
+
 class InvitationPreviewInvitationOut(BaseSchema):
     """Invitation summary for public preview."""
 

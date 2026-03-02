@@ -361,6 +361,74 @@ class EmailService:
                 user_id=user_id,
             )
 
+    async def send_email_change_code(
+        self,
+        *,
+        recipient: str,
+        code: str,
+        expires_in: int,
+        user_id: str | None = None,
+        locale: str | None = None,
+    ) -> None:
+        if not await self._enabled():
+            self.logger.info(
+                "Attempt to send email change code while email sending is disabled",
+                recipient=recipient,
+                type="email_change_code",
+                user_id=user_id,
+            )
+            return
+        if not valid_recipient(recipient):
+            self.logger.warning(
+                "Recipient email is invalid, skip sending mail",
+                recipient=recipient,
+                type="email_change_code",
+                user_id=user_id,
+            )
+            return
+
+        cid = uuid7().hex
+        try:
+            fm = await self._get_fast_mail()
+            subject = t(
+                "auth",
+                "EMAIL_CHANGE_CODE_SUBJECT",
+                default="验证你的新邮箱",
+                locale=locale,
+            )
+            plain_body = t(
+                "auth",
+                "EMAIL_CHANGE_CODE_PLAIN",
+                default="你的验证码是：{code}\n有效期：{expires_in} 秒。\n如非本人操作，请忽略本邮件。",
+                locale=locale,
+                code=code,
+                expires_in=expires_in,
+            )
+            message = MessageSchema(
+                subject=subject,
+                recipients=[to_name_email(recipient)],
+                body=plain_body,
+                subtype=MessageType.plain,
+            )
+            await fm.send_message(message)
+            self.logger.info(
+                "Successfully sent email change code",
+                recipient=recipient,
+                type="email_change_code",
+                cid=cid,
+                user_id=user_id,
+            )
+        except BaseException as exc:
+            raise_if_fatal(exc)
+            self.logger.exception(
+                "Failed to send email change code",
+                recipient=recipient,
+                type="email_change_code",
+                cid=cid,
+                error=str(exc),
+                user_id=user_id,
+            )
+
     async def send_invitation(
         self,
         *,

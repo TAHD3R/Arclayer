@@ -1,13 +1,3 @@
-export const COMMON_TIMEZONES = [
-  "Asia/Shanghai",
-  "UTC",
-  "America/Los_Angeles",
-  "America/New_York",
-  "Europe/London",
-  "Europe/Berlin",
-  "Asia/Tokyo",
-] as const;
-
 export const DATE_FORMAT_ITEMS = [
   { value: "YYYY-MM-DD", label: "YYYY-MM-DD (2026-01-28)" },
   { value: "YYYY/MM/DD", label: "YYYY/MM/DD (2026/01/28)" },

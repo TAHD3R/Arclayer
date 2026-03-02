@@ -19,7 +19,7 @@ from apps.api.infra.cache.valkey import ValkeyClientLike
 from apps.api.modules.auth.constants import PASSWORD_REGEX, REFRESH_STATUS_ACTIVE, RESET_TOKEN_REGEX
 from apps.api.modules.auth.contracts import CredentialLike, UserLike, UserRepositoryLike
 from apps.api.modules.auth.invitation_service import AuthInvitationService
-from apps.api.modules.auth.repository import PasswordResetStore, RefreshTokenStore, UserRepository
+from apps.api.modules.auth.repository import EmailChangeStore, PasswordResetStore, RefreshTokenStore, UserRepository
 from apps.api.modules.auth.schema import (
     AcceptExistingInvitationRequest,
     AcceptExistingInvitationResult,
@@ -29,6 +29,7 @@ from apps.api.modules.auth.schema import (
     MyInvitationOut,
     ResetTokenPayload,
     TokenPair,
+    UpdateMyProfileRequest,
     UserProfile,
 )
 from apps.api.modules.auth.security import (
@@ -68,6 +69,7 @@ class AuthService(BaseService):
         self.valkey = valkey
         self.refresh_store = RefreshTokenStore(valkey, settings.auth) if valkey else None
         self.reset_store = PasswordResetStore(valkey, settings.auth) if valkey else None
+        self.email_change_store = EmailChangeStore(valkey) if valkey else None
         self.email_service = EmailService(settings)
         self.invitation_service = AuthInvitationService(settings)
 
@@ -81,6 +83,14 @@ class AuthService(BaseService):
                 error="REFRESH_STORE_UNAVAILABLE",
             )
         return self.refresh_store
+
+    def _require_email_change_store(self) -> EmailChangeStore:
+        if self.email_change_store is None:
+            raise ServiceUnavailable(
+                message=self._ta("EMAIL_CHANGE_STORE_UNAVAILABLE", "邮箱验证服务不可用"),
+                error="EMAIL_CHANGE_STORE_UNAVAILABLE",
+            )
+        return self.email_change_store
 
     def _require_reset_store(self) -> PasswordResetStore:
         if self.reset_store is None:
@@ -128,6 +138,150 @@ class AuthService(BaseService):
                 message=self._ta("RESET_TOKEN_FORMAT_INVALID", "重置令牌格式不正确"),
                 error="RESET_TOKEN_INVALID",
             )
+
+    async def request_email_change(self, *, user: User, new_email: str) -> tuple[str, int, str]:
+        """
+        Issue a verification code to the new email address.
+        """
+
+        if not await self.email_service.is_enabled():
+            raise BadRequest(
+                message=self._ta("MAIL_DISABLED", "系统未开启邮件服务，请联系管理员"),
+                error="MAIL_DISABLED",
+            )
+
+        new_email = new_email.strip().lower()
+        if user.email and new_email == user.email.strip().lower():
+            raise BadRequest(message=self._ta("EMAIL_SAME", "新邮箱不能与当前邮箱相同"), error="EMAIL_SAME")
+
+        if await self.user_repo.exists_email(new_email):
+            raise Conflict(message=self._ta("EMAIL_EXISTS", "邮箱已被占用"), error="EMAIL_EXISTS")
+
+        store = self._require_email_change_store()
+        code, ttl = await store.issue(user_id=cast(UUID, user.id), new_email=new_email)
+        return code, ttl, new_email
+
+    async def send_email_change_code(
+        self,
+        *,
+        recipient: str,
+        code: str,
+        expires_in: int,
+        user_id: UUID | None = None,
+        locale: str | None = None,
+    ) -> None:
+        await self.email_service.send_email_change_code(
+            recipient=recipient,
+            code=code,
+            expires_in=expires_in,
+            user_id=str(user_id) if user_id else None,
+            locale=locale,
+        )
+
+    async def confirm_email_change(
+        self,
+        *,
+        user: User,
+        new_email: str,
+        code: str,
+        password: str,
+    ) -> UserProfile:
+        new_email = new_email.strip().lower()
+        code = code.strip()
+
+        # Ensure credential is loaded for password verification.
+        # `get_current_user` does not prefetch relations to keep it lightweight.
+        user_with_cred = await UserRepository().get_by_id_with_credential(cast(UUID, user.id))
+        if user_with_cred is None:
+            raise Unauthorized(message=self._ta("USER_NOT_FOUND", "用户不存在"), error="USER_NOT_FOUND")
+
+        credential = cast(CredentialLike | None, getattr(user_with_cred, "credential", None))
+        if credential is None or not verify_password(password, credential.password_hash, self.settings.auth):
+            raise Unauthorized(
+                message=self._ta("INVALID_CREDENTIALS", "账号或密码错误"),
+                error="INVALID_CREDENTIALS",
+            )
+
+        store = self._require_email_change_store()
+        record = await store.get(user_id=cast(UUID, user.id))
+        if not record:
+            raise Unauthorized(message=self._ta("EMAIL_CODE_INVALID", "验证码无效或已过期"), error="EMAIL_CODE_INVALID")
+
+        issued_email = str(record.get("new_email") or "").strip().lower()
+        issued_code = str(record.get("code") or "").strip()
+
+        if issued_email != new_email:
+            raise BadRequest(message=self._ta("EMAIL_MISMATCH", "邮箱与验证码不匹配"), error="EMAIL_MISMATCH")
+        if issued_code != code:
+            tries = await store.bump_attempts(user_id=cast(UUID, user.id))
+            if tries >= 5:
+                await store.delete(user_id=cast(UUID, user.id))
+            raise Unauthorized(message=self._ta("EMAIL_CODE_INVALID", "验证码无效或已过期"), error="EMAIL_CODE_INVALID")
+
+        if user_with_cred.email and new_email == user_with_cred.email.strip().lower():
+            await store.delete(user_id=cast(UUID, user.id))
+            raise BadRequest(message=self._ta("EMAIL_SAME", "新邮箱不能与当前邮箱相同"), error="EMAIL_SAME")
+
+        if await self.user_repo.exists_email(new_email):
+            await store.delete(user_id=cast(UUID, user.id))
+            raise Conflict(message=self._ta("EMAIL_EXISTS", "邮箱已被占用"), error="EMAIL_EXISTS")
+
+        await self.user_repo.set_email(user_with_cred, new_email)
+        await store.delete(user_id=cast(UUID, user.id))
+        return self.build_user_profile(user_with_cred)
+
+    async def delete_my_account(self, *, user: User, email: str, password: str) -> None:
+        """
+        Delete/anonymize the current account.
+
+        For safety, we anonymize instead of hard-deleting to avoid breaking foreign-key-less references
+        (many tables store `*_user_id` as raw UUID fields).
+        """
+
+        user_with_cred = await UserRepository().get_by_id_with_credential(cast(UUID, user.id))
+        if user_with_cred is None:
+            raise Unauthorized(message=self._ta("USER_NOT_FOUND", "用户不存在"), error="USER_NOT_FOUND")
+
+        if not user_with_cred.email:
+            raise BadRequest(message=self._ta("EMAIL_REQUIRED", "当前账号未绑定邮箱"), error="EMAIL_REQUIRED")
+
+        normalized_email = email.strip().lower()
+        if normalized_email != user_with_cred.email.strip().lower():
+            raise BadRequest(message=self._ta("EMAIL_MISMATCH", "邮箱与当前账号不匹配"), error="EMAIL_MISMATCH")
+
+        credential = cast(CredentialLike | None, getattr(user_with_cred, "credential", None))
+        if credential is None or not verify_password(password, credential.password_hash, self.settings.auth):
+            raise Unauthorized(
+                message=self._ta("INVALID_CREDENTIALS", "账号或密码错误"),
+                error="INVALID_CREDENTIALS",
+            )
+
+        user_id = cast(UUID, user.id)
+
+        # Revoke refresh tokens + invalidate existing access tokens.
+        await self.user_repo.increment_token_version(user)
+        if self.refresh_store is not None:
+            await self.refresh_store.revoke_all(user_id)
+
+        # Best-effort: remove OAuth identity mappings to prevent SSO sign-in after deletion.
+        try:
+            from oauth_social.models import OAuthIdentity  # type: ignore
+
+            await OAuthIdentity.filter(user_id=user_id).delete()
+        except BaseException as exc:
+            _raise_if_fatal(exc)
+            self.logger.warning("OAuth identities cleanup failed", user_id=str(user_id), error=str(exc))
+
+        # Remove password credential and scrub PII.
+        try:
+            from apps.api.modules.organization.models.user import UserCredential
+
+            await UserCredential.filter(user_id=user_id).delete()
+        except BaseException as exc:
+            _raise_if_fatal(exc)
+            self.logger.warning("Credential cleanup failed", user_id=str(user_id), error=str(exc))
+
+        await cast(UserRepository, self.user_repo).anonymize_user(user_with_cred)
 
     async def _handle_refresh_reuse(self, user_id: UUID) -> None:
         user = await self.user_repo.get_by_id(user_id)
@@ -602,6 +756,25 @@ class AuthService(BaseService):
             display_name=user.display_name,
             avatar_url=user.avatar_url,
         )
+
+    async def update_my_profile(self, *, user: User, payload: UpdateMyProfileRequest) -> UserProfile:
+        """
+        Update current user's profile fields.
+
+        NOTE:
+        - Only fields present in the payload are updated.
+        - Empty strings are normalized to None by schema validators.
+        """
+
+        # Avoid importing schema types at module import time to keep the service layer light.
+        model_fields_set = getattr(payload, "model_fields_set", set())
+
+        should_update_display_name = "display_name" in model_fields_set
+        if not should_update_display_name:
+            return self.build_user_profile(user)
+
+        updated = await self.user_repo.patch_profile(user, display_name=payload.display_name)
+        return self.build_user_profile(updated)
 
     @staticmethod
     def mask_email(email: str) -> str:

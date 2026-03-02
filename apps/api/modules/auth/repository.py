@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import secrets
 from datetime import UTC, datetime
 from typing import Any, cast
 from uuid import UUID
@@ -19,6 +20,8 @@ from apps.api.modules.organization.models.user import User, UserCredential, User
 
 
 class UserRepository(BaseRepository):
+    _UNSET = object()
+
     async def get_by_identifier(self, identifier: str) -> User | None:
         identifier = identifier.strip()
         filters = Q()
@@ -84,6 +87,111 @@ class UserRepository(BaseRepository):
         credential.password_hash = password_hash
         credential.password_updated_at = datetime.now(UTC)
         await credential.save(update_fields=["password_hash", "password_updated_at"])
+
+    async def patch_profile(
+        self,
+        user: UserLike,
+        *,
+        display_name: str | None | object = _UNSET,
+    ) -> User:
+        record = cast(User, user)
+        update_fields: list[str] = []
+
+        if display_name is not self._UNSET:
+            record.display_name = cast(str | None, display_name)
+            update_fields.append("display_name")
+
+        if not update_fields:
+            return record
+
+        await record.save(update_fields=update_fields)
+        return record
+
+    async def set_email(self, user: UserLike, email: str | None) -> User:
+        record = cast(User, user)
+        record.email = email
+        await record.save(update_fields=["email"])
+        return record
+
+    async def set_status(self, user: UserLike, status: UserStatus) -> User:
+        record = cast(User, user)
+        record.status = status
+        await record.save(update_fields=["status"])
+        return record
+
+    async def anonymize_user(self, user: UserLike) -> User:
+        record = cast(User, user)
+        # Keep username unique and within the allowed charset.
+        suffix = secrets.token_hex(6)
+        record.username = f"deleted_{suffix}"
+        record.email = None
+        record.display_name = None
+        record.avatar_url = None
+        record.avatar_asset_id = None
+        record.status = UserStatus.DISABLED
+        await record.save(
+            update_fields=[
+                "username",
+                "email",
+                "display_name",
+                "avatar_url",
+                "avatar_asset_id",
+                "status",
+            ]
+        )
+        return record
+
+
+class EmailChangeStore:
+    """
+    Store email change verification codes (per-user).
+
+    Notes:
+    - We only allow one active code per user.
+    - We store the code in plain text because Valkey is already a trusted server-side store,
+      and the code has short TTL + limited attempts.
+    """
+
+    def __init__(self, client: ValkeyClientLike, *, ttl_seconds: int = 10 * 60) -> None:
+        self._client = client
+        self._ttl_seconds = max(int(ttl_seconds), 60)
+
+    def _user_key(self, user_id: UUID) -> str:
+        return f"auth:email_change:user:{user_id}"
+
+    async def issue(self, *, user_id: UUID, new_email: str) -> tuple[str, int]:
+        code = f"{secrets.randbelow(1_000_000):06d}"
+        ttl = self._ttl_seconds
+        now_ts = int(datetime.now(UTC).timestamp())
+        record = {
+            "user_id": str(user_id),
+            "new_email": new_email,
+            "code": code,
+            "issued_at": now_ts,
+            "expires_at": now_ts + ttl,
+            "attempts": 0,
+        }
+        await self._client.set_json(self._user_key(user_id), record, ex=ttl)
+        return code, ttl
+
+    async def get(self, *, user_id: UUID) -> dict[str, Any] | None:
+        record = await self._client.get_json(self._user_key(user_id))
+        return record if isinstance(record, dict) else None
+
+    async def delete(self, *, user_id: UUID) -> None:
+        await self._client.delete(self._user_key(user_id))
+
+    async def bump_attempts(self, *, user_id: UUID) -> int:
+        record = await self.get(user_id=user_id)
+        if not record:
+            return 0
+        tries = int(record.get("attempts") or 0) + 1
+        record["attempts"] = tries
+        # Preserve remaining TTL when updating.
+        ttl = await self._client.ttl(self._user_key(user_id))
+        ex = ttl if ttl and ttl > 0 else None
+        await self._client.set_json(self._user_key(user_id), record, ex=ex)
+        return tries
 
 
 class RefreshTokenStore:

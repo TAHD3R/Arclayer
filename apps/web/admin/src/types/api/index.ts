@@ -2,8 +2,19 @@
 export type { PageData } from "./common";
 
 // Auth
-export type { TokenPair, UserProfile, ResetTokenPayload, RegisterPayload } from "./auth";
-export type { AuthSSOProvider, AuthSSOProvidersOut } from "./auth-sso";
+export type {
+  TokenPair,
+  UserProfile,
+  UpdateMyProfilePayload,
+  RequestMyEmailChangePayload,
+  RequestMyEmailChangeOut,
+  ConfirmMyEmailChangePayload,
+  DeleteMyAccountPayload,
+  ResetTokenPayload,
+  RegisterPayload,
+} from "./auth";
+export type { AuthSSOProvider, AuthSSOProvidersOut, AuthSSOLinkStateOut } from "./auth-sso";
+export type { OAuthLinkedIdentity, OAuthLinkedIdentityListOut } from "./oauth-social";
 
 // Bootstrap & System
 export type { BootstrapState, BootstrapRepairResult } from "./bootstrap";

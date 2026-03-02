@@ -30,6 +30,8 @@ export type ContentGuardProps = {
   onRetry?: () => void;
   /** Compact mode for tight containers (e.g. onboarding cards) to avoid unnecessary scroll. */
   variant?: "default" | "compact";
+  /** Control whether to show illustrations for empty/error states. */
+  mediaVariant?: "illustration" | "none";
   /** Hide the built-in retry button (use `errorExtra` for custom action layout). */
   hideRetry?: boolean;
   loadingVariant?: PageSkeletonVariant;
@@ -87,6 +89,7 @@ export function ContentGuard(props: ContentGuardProps) {
 
   const error = props.error ?? null;
   const variant = props.variant ?? "default";
+  const mediaVariant = props.mediaVariant ?? "illustration";
   const wrapperClassName = props.className || (variant === "compact" ? "py-6" : "py-10");
   const emptyClassName = variant === "compact" ? "gap-4 p-4 md:p-8" : undefined;
   const titleClassName = variant === "compact" ? "text-title md:text-largetitle" : undefined;
@@ -121,9 +124,11 @@ export function ContentGuard(props: ContentGuardProps) {
       <div className={wrapperClassName}>
         <Empty className={emptyClassName}>
           <EmptyHeader>
-            <EmptyMedia className="mb-0">
-              <Illustration className={illustrationClassName} />
-            </EmptyMedia>
+            {mediaVariant === "illustration" ? (
+              <EmptyMedia className="mb-0">
+                <Illustration className={illustrationClassName} />
+              </EmptyMedia>
+            ) : null}
             <EmptyTitle className={titleClassName}>{title}</EmptyTitle>
             <EmptyDescription className={descriptionClassName}>{details}</EmptyDescription>
           </EmptyHeader>
@@ -144,9 +149,11 @@ export function ContentGuard(props: ContentGuardProps) {
       <div className={wrapperClassName}>
         <Empty className={emptyClassName}>
           <EmptyHeader>
-            <EmptyMedia className="mb-0">
-              <IllustEmptyContainer className={illustrationClassName} />
-            </EmptyMedia>
+            {mediaVariant === "illustration" ? (
+              <EmptyMedia className="mb-0">
+                <IllustEmptyContainer className={illustrationClassName} />
+              </EmptyMedia>
+            ) : null}
             <EmptyTitle className={titleClassName}>
               {props.emptyTitle ?? t("common:EMPTY_TITLE")}
             </EmptyTitle>

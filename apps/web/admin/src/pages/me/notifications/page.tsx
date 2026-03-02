@@ -2,10 +2,11 @@ import { Switch } from "antd";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { SettingPanel } from "@/components/settings-primitives/setting-panel";
-import { SettingActionItem } from "@/components/settings-primitives/setting-action-item";
+import { SettingVerticalItem } from "@/components/settings-primitives/setting-vertical-item";
 import { readStorageJson, writeStorageJson } from "@/lib/storage";
 import { STORAGE_KEYS } from "@/constants/storage";
+import { MeSettingPanel } from "@/pages/me/components/me-setting-panel";
+import { MeSettingsCategoryLayout } from "@/pages/me/components/me-settings-category-layout";
 
 type TopicKey =
   | "security.password_changed"
@@ -87,56 +88,64 @@ export function MeNotificationSettingsPage() {
   );
 
   return (
-    <div className="flex flex-col gap-8">
-      <SettingPanel title={t("ME_NOTIFY_PANEL_TITLE")} description={t("ME_NOTIFY_PANEL_DESC")}>
-        <div className="rounded-lg border border-border bg-card">
-          <SettingActionItem
-            as="div"
-            title={t("ME_NOTIFY_CHANNEL_IN_APP_TITLE")}
-            description={t("ME_NOTIFY_CHANNEL_IN_APP_DESC")}
-            showChevron={false}
-            showSummary={false}
-            right={<Switch disabled checked={false} />}
-          />
-        </div>
-      </SettingPanel>
-
-      <SettingPanel
-        title={t("ME_NOTIFY_EMAIL_PANEL_TITLE")}
-        description={t("ME_NOTIFY_EMAIL_PANEL_DESC")}
-      >
-        <div className="rounded-lg border border-border bg-card">
-          {topics.map((topic) => {
-            const current = state[topic.key];
-            const emailLocked = topic.security;
-            return (
-              <SettingActionItem
-                key={topic.key}
-                as="div"
-                title={topic.title}
-                description={topic.desc}
-                showChevron={false}
-                showSummary={false}
-                right={
-                  <Switch
-                    checked={emailLocked ? true : current.email}
-                    disabled={emailLocked}
-                    onChange={(checked) => {
-                      if (emailLocked) return;
-                      const next = {
-                        ...state,
-                        [topic.key]: { ...current, email: Boolean(checked) },
-                      };
-                      writeState(next);
-                      setState(next);
-                    }}
-                  />
-                }
-              />
-            );
-          })}
-        </div>
-      </SettingPanel>
-    </div>
+    <MeSettingsCategoryLayout
+      categories={[
+        {
+          key: "channels",
+          label: t("ME_NOTIFY_PANEL_TITLE"),
+          content: (
+            <MeSettingPanel title={t("ME_NOTIFY_PANEL_TITLE")} showDivider>
+              <div className="flex flex-col gap-8">
+                <SettingVerticalItem
+                  title={t("ME_NOTIFY_CHANNEL_IN_APP_TITLE")}
+                  description={t("ME_NOTIFY_CHANNEL_IN_APP_DESC")}
+                  control={<Switch disabled checked={false} />}
+                />
+              </div>
+            </MeSettingPanel>
+          ),
+        },
+        {
+          key: "email",
+          label: t("ME_NOTIFY_EMAIL_PANEL_TITLE"),
+          content: (
+            <MeSettingPanel
+              title={t("ME_NOTIFY_EMAIL_PANEL_TITLE")}
+              description={t("ME_NOTIFY_EMAIL_PANEL_DESC")}
+              showDivider={false}
+            >
+              <div className="flex flex-col gap-8">
+                {topics.map((topic) => {
+                  const current = state[topic.key];
+                  const emailLocked = topic.security;
+                  return (
+                    <SettingVerticalItem
+                      key={topic.key}
+                      title={topic.title}
+                      description={topic.desc}
+                      control={
+                        <Switch
+                          checked={emailLocked ? true : current.email}
+                          disabled={emailLocked}
+                          onChange={(checked) => {
+                            if (emailLocked) return;
+                            const next = {
+                              ...state,
+                              [topic.key]: { ...current, email: Boolean(checked) },
+                            };
+                            writeState(next);
+                            setState(next);
+                          }}
+                        />
+                      }
+                    />
+                  );
+                })}
+              </div>
+            </MeSettingPanel>
+          ),
+        },
+      ]}
+    />
   );
 }

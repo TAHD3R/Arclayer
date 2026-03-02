@@ -1,6 +1,6 @@
 import { api } from "@/lib/http";
 import { toQueryString } from "@/lib/api";
-import type { TokenPair, AuthSSOProvidersOut } from "@/types/api";
+import type { TokenPair, AuthSSOProvidersOut, AuthSSOLinkStateOut } from "@/types/api";
 
 export async function listSSOProviders(input?: {
   redirect?: string;
@@ -13,4 +13,8 @@ export async function listSSOProviders(input?: {
 
 export async function exchangeSSOCode(code: string): Promise<TokenPair> {
   return api.post<TokenPair>("/auth/sso/exchange", { code }, { auth: { skipRefresh: true } });
+}
+
+export async function issueSSOLinkState(): Promise<AuthSSOLinkStateOut> {
+  return api.post<AuthSSOLinkStateOut>("/auth/sso/link-state");
 }

@@ -26,8 +26,16 @@ __all__ = [
     "RESET_TOKEN_REGEX",
     "SSO_PROVIDERS_RATE_LIMIT",
     "SSO_EXCHANGE_RATE_LIMIT",
+    "EMAIL_CHANGE_REQUEST_RATE_LIMIT",
+    "EMAIL_CHANGE_CONFIRM_RATE_LIMIT",
+    "ACCOUNT_DELETE_RATE_LIMIT",
 ]
 
 # Public SSO probe/exchange endpoints are hot paths; keep them reasonably limited.
 SSO_PROVIDERS_RATE_LIMIT = (30, 60)
 SSO_EXCHANGE_RATE_LIMIT = (10, 60)
+
+# Account-sensitive actions; keep them stricter.
+EMAIL_CHANGE_REQUEST_RATE_LIMIT = (5, 60)
+EMAIL_CHANGE_CONFIRM_RATE_LIMIT = (10, 60)
+ACCOUNT_DELETE_RATE_LIMIT = (5, 60)

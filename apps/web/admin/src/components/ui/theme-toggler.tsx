@@ -13,6 +13,9 @@ import {
 } from "@/components/ui/theme-toggler-primitive";
 import { buttonVariants } from "@/components/ui/icon-button";
 import { cn } from "@/lib/utils";
+import { usePreferencesStore } from "@/stores/use-preference-store";
+import { setThemePreferenceWithTransition } from "@/components/ui/theme-transition";
+import type { ThemePreference } from "@/types/stores";
 
 const getIcon = (effective: ThemeSelection, resolved: Resolved, modes: ThemeSelection[]) => {
   const theme = modes.includes("system") ? effective : resolved;
@@ -69,4 +72,66 @@ function ThemeTogglerButton({
   );
 }
 
-export { ThemeTogglerButton, type ThemeTogglerButtonProps };
+type ThemePreferenceToggleGroupProps = {
+  className?: string;
+  direction?: ThemeTogglerPrimitiveProps["direction"];
+  size?: VariantProps<typeof buttonVariants>["size"];
+  labels: { system: string; light: string; dark: string };
+};
+
+function ThemePreferenceToggleGroup({
+  className,
+  direction = "ltr",
+  size = "sm",
+  labels,
+}: ThemePreferenceToggleGroupProps) {
+  const themePreference = usePreferencesStore((s) => s.themePreference);
+
+  const items: Array<{ value: ThemePreference; icon: React.ReactNode; label: string }> = [
+    { value: "system", icon: <Monitor />, label: labels.system },
+    { value: "light", icon: <Sun />, label: labels.light },
+    { value: "dark", icon: <Moon />, label: labels.dark },
+  ];
+
+  return (
+    <div
+      role="radiogroup"
+      className={cn(
+        "inline-flex items-center gap-1 rounded-md border border-border bg-background p-1",
+        className,
+      )}
+    >
+      {items.map((it) => {
+        const selected = themePreference === it.value;
+        return (
+          <button
+            key={it.value}
+            type="button"
+            role="radio"
+            aria-checked={selected}
+            className={cn(
+              buttonVariants({
+                variant: selected ? "secondary" : "ghost",
+                size,
+                className: "h-9 w-auto gap-2 px-3",
+              }),
+            )}
+            onClick={() => {
+              void setThemePreferenceWithTransition(it.value, { direction });
+            }}
+          >
+            {it.icon}
+            <span className="text-footnote font-medium">{it.label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+export {
+  ThemeTogglerButton,
+  ThemePreferenceToggleGroup,
+  type ThemeTogglerButtonProps,
+  type ThemePreferenceToggleGroupProps,
+};

@@ -35,8 +35,164 @@ function normalizeLocalePreferenceMode(input: unknown): LocalePreferenceMode {
   return "workspace";
 }
 
+function normalizeTimeZonePreference(input: unknown): string | null {
+  const raw = typeof input === "string" ? input.trim() : "";
+  if (!raw) return null;
+  try {
+    // Validate by attempting to construct a formatter.
+    // This avoids persisting invalid values that could break date formatting.
+    Intl.DateTimeFormat(undefined, { timeZone: raw }).format(new Date());
+    return raw;
+  } catch {
+    return null;
+  }
+}
+
+function normalizeFontScalePreference(input: unknown): number | null {
+  if (input === null || input === undefined) return null;
+  const raw = typeof input === "number" ? input : Number(String(input));
+  if (!Number.isFinite(raw)) return null;
+  // Keep a conservative range to avoid breaking layout.
+  const clamped = Math.max(0.85, Math.min(1.25, raw));
+  return Math.round(clamped * 100) / 100;
+}
+
+function normalizeFontWeightPreference(input: unknown): number | null {
+  if (input === null || input === undefined) return null;
+  const raw = typeof input === "number" ? input : Number(String(input));
+  if (!Number.isFinite(raw)) return null;
+  const clamped = Math.max(300, Math.min(700, Math.round(raw)));
+  return clamped;
+}
+
 function applyLocaleToDom(locale: AppLocale) {
   document.documentElement.lang = locale;
+}
+
+function applyReduceMotionToDom(reduced: boolean) {
+  if (reduced) {
+    document.documentElement.dataset.motion = "reduced";
+    return;
+  }
+  delete document.documentElement.dataset.motion;
+}
+
+function applyContrastToDom(enabled: boolean) {
+  if (enabled) {
+    document.documentElement.dataset.contrast = "more";
+    return;
+  }
+  delete document.documentElement.dataset.contrast;
+}
+
+const FONT_SIZE_VARS = [
+  "--font-size-largetitle",
+  "--font-size-title",
+  "--font-size-title2",
+  "--font-size-title3",
+  "--font-size-headline",
+  "--font-size-body",
+  "--font-size-callout",
+  "--font-size-footnote",
+  "--font-size-caption",
+] as const;
+
+const FONT_WEIGHT_VARS = [
+  "--font-weight-largetitle",
+  "--font-weight-title",
+  "--font-weight-title2",
+  "--font-weight-title3",
+  "--font-weight-headline",
+  "--font-weight-body",
+  "--font-weight-callout",
+  "--font-weight-footnote",
+  "--font-weight-caption",
+] as const;
+
+let baseFontSizesPx: Record<(typeof FONT_SIZE_VARS)[number], number> | null = null;
+let baseFontWeights: Record<(typeof FONT_WEIGHT_VARS)[number], number> | null = null;
+
+function parseLengthToPx(value: string, rootFontSizePx: number): number | null {
+  const raw = String(value || "").trim();
+  if (!raw) return null;
+  if (raw.endsWith("px")) {
+    const n = Number(raw.replace("px", "").trim());
+    return Number.isFinite(n) ? n : null;
+  }
+  if (raw.endsWith("rem")) {
+    const n = Number(raw.replace("rem", "").trim());
+    return Number.isFinite(n) ? n * rootFontSizePx : null;
+  }
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : null;
+}
+
+function ensureTypographySnapshot() {
+  if (typeof window === "undefined") return;
+  const root = document.documentElement;
+  const styles = getComputedStyle(root);
+  const rootFontSizePx = Number.parseFloat(styles.fontSize || "16") || 16;
+
+  if (!baseFontSizesPx) {
+    baseFontSizesPx = Object.fromEntries(
+      FONT_SIZE_VARS.map((k) => {
+        const px = parseLengthToPx(styles.getPropertyValue(k), rootFontSizePx) ?? 16;
+        return [k, px];
+      }),
+    ) as Record<(typeof FONT_SIZE_VARS)[number], number>;
+  }
+
+  if (!baseFontWeights) {
+    baseFontWeights = Object.fromEntries(
+      FONT_WEIGHT_VARS.map((k) => {
+        const raw = styles.getPropertyValue(k).trim();
+        const n = Number.parseInt(raw, 10);
+        return [k, Number.isFinite(n) ? n : 400];
+      }),
+    ) as Record<(typeof FONT_WEIGHT_VARS)[number], number>;
+  }
+}
+
+function applyFontScalePreferenceToDom(scale: number | null) {
+  if (typeof window === "undefined") return;
+  ensureTypographySnapshot();
+  const root = document.documentElement;
+  if (!baseFontSizesPx) return;
+
+  if (!scale) {
+    for (const key of FONT_SIZE_VARS) {
+      root.style.removeProperty(key);
+    }
+    return;
+  }
+
+  for (const key of FONT_SIZE_VARS) {
+    root.style.setProperty(key, `${baseFontSizesPx[key] * scale}px`);
+  }
+}
+
+function clampInt(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, Math.round(value)));
+}
+
+function applyFontWeightPreferenceToDom(weight: number | null) {
+  if (typeof window === "undefined") return;
+  ensureTypographySnapshot();
+  const root = document.documentElement;
+  if (!baseFontWeights) return;
+
+  if (!weight) {
+    for (const key of FONT_WEIGHT_VARS) {
+      root.style.removeProperty(key);
+    }
+    return;
+  }
+
+  const delta = weight - baseFontWeights["--font-weight-body"];
+  for (const key of FONT_WEIGHT_VARS) {
+    const next = clampInt(baseFontWeights[key] + delta, 300, 800);
+    root.style.setProperty(key, String(next));
+  }
 }
 
 function getInitialThemePreference(): ThemePreference {
@@ -112,7 +268,13 @@ export const usePreferencesStore = create<PreferencesState>((set, get) => ({
   locale: DEFAULT_LOCALE,
   localePreference: null,
   localePreferenceMode: "workspace",
+  timeZonePreference: null,
+  reduceMotion: false,
+  contrastMore: false,
+  fontScalePreference: null,
+  fontWeightPreference: null,
   notificationPanelPinned: false,
+  showNotificationsBadge: true,
 
   setThemeMode: (mode) => {
     get().setThemePreference(mode);
@@ -158,6 +320,55 @@ export const usePreferencesStore = create<PreferencesState>((set, get) => ({
     void i18n.changeLanguage(next);
   },
 
+  setTimeZonePreference: (timeZone) => {
+    const next = normalizeTimeZonePreference(timeZone);
+    if (!next) {
+      removeStorageItem(STORAGE_KEYS.timeZonePreference);
+      set({ timeZonePreference: null });
+      return;
+    }
+    writeStorageItem(STORAGE_KEYS.timeZonePreference, next);
+    set({ timeZonePreference: next });
+  },
+
+  setReduceMotion: (reduced) => {
+    writeStorageItem(STORAGE_KEYS.reduceMotion, String(Boolean(reduced)));
+    applyReduceMotionToDom(Boolean(reduced));
+    set({ reduceMotion: Boolean(reduced) });
+  },
+
+  setContrastMore: (enabled) => {
+    writeStorageItem(STORAGE_KEYS.contrastMore, String(Boolean(enabled)));
+    applyContrastToDom(Boolean(enabled));
+    set({ contrastMore: Boolean(enabled) });
+  },
+
+  setFontScalePreference: (scale) => {
+    const next = normalizeFontScalePreference(scale);
+    if (!next) {
+      removeStorageItem(STORAGE_KEYS.fontScalePreference);
+      applyFontScalePreferenceToDom(null);
+      set({ fontScalePreference: null });
+      return;
+    }
+    writeStorageItem(STORAGE_KEYS.fontScalePreference, String(next));
+    applyFontScalePreferenceToDom(next);
+    set({ fontScalePreference: next });
+  },
+
+  setFontWeightPreference: (weight) => {
+    const next = normalizeFontWeightPreference(weight);
+    if (!next) {
+      removeStorageItem(STORAGE_KEYS.fontWeightPreference);
+      applyFontWeightPreferenceToDom(null);
+      set({ fontWeightPreference: null });
+      return;
+    }
+    writeStorageItem(STORAGE_KEYS.fontWeightPreference, String(next));
+    applyFontWeightPreferenceToDom(next);
+    set({ fontWeightPreference: next });
+  },
+
   setEffectiveLocale: (locale) => {
     if (get().localePreferenceMode !== "workspace") return;
     const next = normalizeLocale(locale);
@@ -180,6 +391,11 @@ export const usePreferencesStore = create<PreferencesState>((set, get) => ({
     writeStorageItem(STORAGE_KEYS.notificationPanelPinned, String(pinned));
     set({ notificationPanelPinned: pinned });
   },
+
+  setShowNotificationsBadge: (show) => {
+    writeStorageItem(STORAGE_KEYS.showNotificationsBadge, String(show));
+    set({ showNotificationsBadge: show });
+  },
 }));
 
 let isInitialized = false;
@@ -201,6 +417,26 @@ export function initializePreferences() {
   applyLocaleToDom(initialLocaleState.locale);
 
   const notificationPanelPinned = readStorageItem(STORAGE_KEYS.notificationPanelPinned) === "true";
+  const timeZonePreference = normalizeTimeZonePreference(
+    readStorageItem(STORAGE_KEYS.timeZonePreference),
+  );
+  const reduceMotion = readStorageItem(STORAGE_KEYS.reduceMotion) === "true";
+  const contrastMore = readStorageItem(STORAGE_KEYS.contrastMore) === "true";
+  const fontScalePreference = normalizeFontScalePreference(
+    readStorageItem(STORAGE_KEYS.fontScalePreference),
+  );
+  const fontWeightPreference = normalizeFontWeightPreference(
+    readStorageItem(STORAGE_KEYS.fontWeightPreference),
+  );
+  const showNotificationsBadgeStored = readStorageItem(STORAGE_KEYS.showNotificationsBadge);
+  const showNotificationsBadge = showNotificationsBadgeStored
+    ? showNotificationsBadgeStored === "true"
+    : true;
+
+  applyReduceMotionToDom(reduceMotion);
+  applyContrastToDom(contrastMore);
+  applyFontScalePreferenceToDom(fontScalePreference);
+  applyFontWeightPreferenceToDom(fontWeightPreference);
 
   usePreferencesStore.setState({
     themeMode: initialThemeMode,
@@ -208,7 +444,13 @@ export function initializePreferences() {
     locale: initialLocaleState.locale,
     localePreference: initialLocaleState.localePreference,
     localePreferenceMode: initialLocaleState.mode,
+    timeZonePreference,
+    reduceMotion,
+    contrastMore,
+    fontScalePreference,
+    fontWeightPreference,
     notificationPanelPinned,
+    showNotificationsBadge,
   });
 
   themeObserver = new MutationObserver((mutations) => {

@@ -12,14 +12,26 @@ export interface PreferencesState {
   locale: AppLocale;
   localePreference: AppLocale | null;
   localePreferenceMode: LocalePreferenceMode;
+  timeZonePreference: string | null;
+  reduceMotion: boolean;
+  contrastMore: boolean;
+  fontScalePreference: number | null;
+  fontWeightPreference: number | null;
   setThemeMode: (mode: ThemeMode) => void;
   setThemePreference: (preference: ThemePreference) => void;
   toggleThemeMode: () => void;
   setLocale: (locale: AppLocale) => void;
   setBrowserLocale: () => void;
   setWorkspaceLocaleMode: () => void;
+  setTimeZonePreference: (timeZone: string | null) => void;
+  setReduceMotion: (reduced: boolean) => void;
+  setContrastMore: (enabled: boolean) => void;
+  setFontScalePreference: (scale: number | null) => void;
+  setFontWeightPreference: (weight: number | null) => void;
   setEffectiveLocale: (locale: AppLocale) => void;
   cacheWorkspaceLocale: (workspaceId: string, locale: AppLocale) => void;
   notificationPanelPinned: boolean;
   setNotificationPanelPinned: (pinned: boolean) => void;
+  showNotificationsBadge: boolean;
+  setShowNotificationsBadge: (show: boolean) => void;
 }

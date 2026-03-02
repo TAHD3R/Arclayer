@@ -16,6 +16,7 @@ describe("resolveAdminLocalizationSnapshot", () => {
         dateFormat: "MM/DD/YYYY",
       },
       preferencesLocale: "en-US",
+      preferencesTimeZone: null,
       browserTimeZone: "America/Los_Angeles",
     });
 
@@ -35,6 +36,7 @@ describe("resolveAdminLocalizationSnapshot", () => {
         dateFormat: "DD/MM/YYYY",
       },
       preferencesLocale: "zh-CN",
+      preferencesTimeZone: null,
       browserTimeZone: "Asia/Tokyo",
     });
 
@@ -56,6 +58,7 @@ describe("resolveAdminLocalizationSnapshot", () => {
         dateFormat: "YYYY-MM-DD",
       },
       preferencesLocale: "en-US",
+      preferencesTimeZone: null,
       browserTimeZone: "America/Chicago",
     });
 
@@ -71,6 +74,7 @@ describe("resolveAdminLocalizationSnapshot", () => {
       workspaceLocalization: {},
       organizationLocalization: {},
       preferencesLocale: "en-US",
+      preferencesTimeZone: null,
       browserTimeZone: "America/Denver",
     });
 
