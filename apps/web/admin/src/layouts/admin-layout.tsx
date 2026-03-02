@@ -177,7 +177,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
           actionRenderer:
             showNotificationsBadge && unreadCount > 0
               ? () => (
-                  <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] rounded-full bg-destructive px-1 text-[10px] font-semibold leading-none text-destructive-foreground">
+                  <span className="inline-flex items-center justify-center min-w-[20px] h-[20px] rounded-full bg-primary px-1  leading-none text-caption text-label-primary font-semibold">
                     {unreadCount > 99 ? "99+" : unreadCount}
                   </span>
                 )
@@ -373,6 +373,8 @@ export function AdminLayout({ children }: PropsWithChildren) {
               !isOrgScopeRoute && isWorkspaceScopeRoute && workspaceDetailQuery.isLoading,
             )}
             error={!isOrgScopeRoute && isWorkspaceScopeRoute ? workspaceDetailQuery.error : null}
+            container="admin-route"
+            containerWidth="fixed"
             onRetry={
               !isOrgScopeRoute && isWorkspaceScopeRoute
                 ? () => {

@@ -2,10 +2,8 @@ import { useTranslation } from "react-i18next";
 import { Input } from "antd";
 import { Search } from "lucide-react";
 
+import { MiniCategoryNav } from "@/components/common/mini-category-nav";
 import { Checkbox } from "@/components/ui/checkbox";
-import { motion } from "motion/react";
-
-import { cn } from "@/lib/utils";
 
 type ExtensionsFilterSidebarProps = {
   categories: { key: string; label: string }[];
@@ -59,31 +57,11 @@ export function ExtensionsFilterSidebar({
       <div className="border-t border-border" />
 
       {/* Category menu */}
-      <nav className="space-y-0.5">
-        {categories.map((cat) => (
-          <button
-            key={cat.key}
-            type="button"
-            onClick={() => onCategoryChange(cat.key)}
-            className={cn(
-              "relative flex h-8 w-full items-center pl-3 text-footnote transition-colors duration-150",
-              selectedCategory === cat.key
-                ? "font-semibold text-foreground"
-                : "text-label-secondary hover:text-label-primary",
-            )}
-          >
-            {selectedCategory === cat.key ? (
-              <motion.span
-                layoutId="category-indicator"
-                layout="position"
-                className="absolute pointer-events-none inset-y-0 left-0 w-0.75 bg-primary"
-                transition={{ duration: 0.22, ease: [0.2, 0, 0, 1] }}
-              />
-            ) : null}
-            {cat.label}
-          </button>
-        ))}
-      </nav>
+      <MiniCategoryNav
+        items={categories}
+        selectedKey={selectedCategory}
+        onSelect={onCategoryChange}
+      />
     </aside>
   );
 }

@@ -20,7 +20,7 @@ export function getExtensionRef(extension: InstalledExtensionItem): string {
 }
 
 export function buildCategoryTabs(
-  items: InstalledExtensionItem[],
+  _items: InstalledExtensionItem[],
   t: (key: string) => string,
 ): { key: string; label: string }[] {
   const defs = [
@@ -34,18 +34,5 @@ export function buildCategoryTabs(
     { key: "data_analytics", label: t("PLUGIN_CATEGORY_DATA_ANALYTICS") },
   ];
 
-  const counts = new Map<string, number>();
-  for (const item of items) {
-    const category = String(item.category || "")
-      .trim()
-      .toLowerCase();
-    if (!category) continue;
-    counts.set(category, (counts.get(category) || 0) + 1);
-  }
-
-  const tabs: { key: string; label: string }[] = [{ key: "all", label: t("PLUGIN_CATEGORY_ALL") }];
-  for (const def of defs) {
-    if ((counts.get(def.key) || 0) > 0) tabs.push(def);
-  }
-  return tabs;
+  return [{ key: "all", label: t("PLUGIN_CATEGORY_ALL") }, ...defs];
 }

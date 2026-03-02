@@ -101,6 +101,7 @@ export const ORG_NAV_ITEMS: AdminNavItem[] = [
     labelKey: "nav:NAV_ORG_USAGE",
     to: "/usage",
     icon: BarChart3,
+    scope: "saas",
   },
   {
     key: "org.billing",
@@ -108,6 +109,7 @@ export const ORG_NAV_ITEMS: AdminNavItem[] = [
     labelKey: "nav:NAV_ORG_BILLING",
     to: "/billing",
     icon: CreditCard,
+    scope: "saas",
   },
   {
     key: "org.settings",

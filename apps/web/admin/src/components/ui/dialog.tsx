@@ -46,10 +46,14 @@ type DialogOverlayProps = DialogOverlayPrimitiveProps;
 function DialogOverlay({ className, ...props }: DialogOverlayProps) {
   return (
     <DialogOverlayPrimitive
-      initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
-      animate={{ opacity: 1, backdropFilter: "blur(4px)" }}
-      exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
-      className={cn("fixed inset-0 z-50 bg-black/50", className)}
+      className={cn(
+        "fixed inset-0 z-50",
+        // Fallback: when backdrop-filter is unsupported, keep a stronger scrim.
+        "bg-black/55 supports-[backdrop-filter]:bg-black/45",
+        // Desired: blur the app behind the dialog (subtle, avoid over-blur).
+        "backdrop-blur-sm backdrop-saturate-150",
+        className,
+      )}
       {...props}
     />
   );
@@ -68,21 +72,24 @@ function DialogContent({
   return (
     <DialogPortalPrimitive>
       <DialogOverlay />
-      <DialogContentPrimitive
-        className={cn(
-          "bg-background fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border p-6 shadow-lg sm:max-w-lg",
-          className,
-        )}
-        {...props}
-      >
-        {children}
-        {showCloseButton && (
-          <DialogClosePrimitive className="ring-offset-background focus:ring-ring data-[state=open]:bg-accent data-[state=open]:text-label-secondary absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4">
-            <XIcon />
-            <span className="sr-only">Close</span>
-          </DialogClosePrimitive>
-        )}
-      </DialogContentPrimitive>
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <DialogContentPrimitive
+          className={cn(
+            "bg-background grid w-full max-w-[calc(100%-2rem)] gap-4 rounded-lg border p-6 shadow-lg sm:max-w-lg",
+            "relative",
+            className,
+          )}
+          {...props}
+        >
+          {children}
+          {showCloseButton && (
+            <DialogClosePrimitive className="ring-offset-background focus:ring-ring data-[state=open]:bg-accent data-[state=open]:text-label-secondary absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4">
+              <XIcon />
+              <span className="sr-only">Close</span>
+            </DialogClosePrimitive>
+          )}
+        </DialogContentPrimitive>
+      </div>
     </DialogPortalPrimitive>
   );
 }

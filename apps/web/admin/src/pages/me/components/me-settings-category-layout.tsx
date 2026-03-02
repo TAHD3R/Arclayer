@@ -1,6 +1,6 @@
-import { motion } from "motion/react";
 import { useCallback, useMemo, useState, type ReactNode } from "react";
 
+import { MiniCategoryNav } from "@/components/common/mini-category-nav";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import { cn } from "@/lib/utils";
 
@@ -45,33 +45,12 @@ export function MeSettingsCategoryLayout(props: MeSettingsCategoryLayoutProps) {
 
   const nav = useMemo(
     () => (
-      <nav className={cn("space-y-1.5", props.navClassName)}>
-        {categories.map((cat) => (
-          <button
-            key={cat.key}
-            type="button"
-            onClick={() => onCategoryChange(cat.key)}
-            aria-current={selectedCategory === cat.key ? "true" : undefined}
-            className={cn(
-              "relative flex h-10 w-full min-w-0 items-center pl-3 pr-2 text-footnote transition-colors duration-150",
-              "rounded-md",
-              selectedCategory === cat.key
-                ? "font-semibold text-foreground bg-muted/40"
-                : "text-label-secondary hover:text-label-primary hover:bg-muted/30",
-            )}
-          >
-            {selectedCategory === cat.key ? (
-              <motion.span
-                layoutId="category-indicator"
-                layout="position"
-                className="absolute pointer-events-none inset-y-0 left-0 w-1 bg-primary rounded-l-md"
-                transition={{ duration: 0.22, ease: [0.2, 0, 0, 1] }}
-              />
-            ) : null}
-            <span className="min-w-0 truncate">{cat.label}</span>
-          </button>
-        ))}
-      </nav>
+      <MiniCategoryNav
+        items={categories}
+        selectedKey={selectedCategory}
+        onSelect={onCategoryChange}
+        className={props.navClassName}
+      />
     ),
     [categories, onCategoryChange, props.navClassName, selectedCategory],
   );

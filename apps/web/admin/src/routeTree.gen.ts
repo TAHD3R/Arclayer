@@ -31,9 +31,11 @@ import { Route as WWorkspaceIdNotificationsIndexRouteImport } from './routes/w/$
 import { Route as WWorkspaceIdExtensionsIndexRouteImport } from './routes/w/$workspaceId/extensions/index'
 import { Route as WWorkspaceIdAssetsIndexRouteImport } from './routes/w/$workspaceId/assets/index'
 import { Route as OOrgIdWorkspacesIndexRouteImport } from './routes/o/$orgId/workspaces/index'
+import { Route as OOrgIdUsageIndexRouteImport } from './routes/o/$orgId/usage/index'
 import { Route as OOrgIdTeamIndexRouteImport } from './routes/o/$orgId/team/index'
 import { Route as OOrgIdSettingsIndexRouteImport } from './routes/o/$orgId/settings/index'
 import { Route as OOrgIdExtensionsIndexRouteImport } from './routes/o/$orgId/extensions/index'
+import { Route as OOrgIdBillingIndexRouteImport } from './routes/o/$orgId/billing/index'
 import { Route as OOrgIdActivityIndexRouteImport } from './routes/o/$orgId/activity/index'
 import { Route as WWorkspaceIdTeamRolesIndexRouteImport } from './routes/w/$workspaceId/team/roles/index'
 import { Route as WWorkspaceIdTeamMembersIndexRouteImport } from './routes/w/$workspaceId/team/members/index'
@@ -207,6 +209,13 @@ const OOrgIdWorkspacesIndexRoute = OOrgIdWorkspacesIndexRouteImport.update({
 } as any).lazy(() =>
   import('./routes/o/$orgId/workspaces/index.lazy').then((d) => d.Route),
 )
+const OOrgIdUsageIndexRoute = OOrgIdUsageIndexRouteImport.update({
+  id: '/usage/',
+  path: '/usage/',
+  getParentRoute: () => OOrgIdRoute,
+} as any).lazy(() =>
+  import('./routes/o/$orgId/usage/index.lazy').then((d) => d.Route),
+)
 const OOrgIdTeamIndexRoute = OOrgIdTeamIndexRouteImport.update({
   id: '/team/',
   path: '/team/',
@@ -227,6 +236,13 @@ const OOrgIdExtensionsIndexRoute = OOrgIdExtensionsIndexRouteImport.update({
   getParentRoute: () => OOrgIdRoute,
 } as any).lazy(() =>
   import('./routes/o/$orgId/extensions/index.lazy').then((d) => d.Route),
+)
+const OOrgIdBillingIndexRoute = OOrgIdBillingIndexRouteImport.update({
+  id: '/billing/',
+  path: '/billing/',
+  getParentRoute: () => OOrgIdRoute,
+} as any).lazy(() =>
+  import('./routes/o/$orgId/billing/index.lazy').then((d) => d.Route),
 )
 const OOrgIdActivityIndexRoute = OOrgIdActivityIndexRouteImport.update({
   id: '/activity/',
@@ -517,9 +533,11 @@ export interface FileRoutesByFullPath {
   '/o/$orgId/': typeof OOrgIdIndexRoute
   '/w/$workspaceId/': typeof WWorkspaceIdIndexRoute
   '/o/$orgId/activity/': typeof OOrgIdActivityIndexRoute
+  '/o/$orgId/billing/': typeof OOrgIdBillingIndexRoute
   '/o/$orgId/extensions/': typeof OOrgIdExtensionsIndexRoute
   '/o/$orgId/settings/': typeof OOrgIdSettingsIndexRoute
   '/o/$orgId/team/': typeof OOrgIdTeamIndexRoute
+  '/o/$orgId/usage/': typeof OOrgIdUsageIndexRoute
   '/o/$orgId/workspaces/': typeof OOrgIdWorkspacesIndexRoute
   '/w/$workspaceId/assets/': typeof WWorkspaceIdAssetsIndexRoute
   '/w/$workspaceId/extensions/': typeof WWorkspaceIdExtensionsIndexRoute
@@ -570,9 +588,11 @@ export interface FileRoutesByTo {
   '/o/$orgId': typeof OOrgIdIndexRoute
   '/w/$workspaceId': typeof WWorkspaceIdIndexRoute
   '/o/$orgId/activity': typeof OOrgIdActivityIndexRoute
+  '/o/$orgId/billing': typeof OOrgIdBillingIndexRoute
   '/o/$orgId/extensions': typeof OOrgIdExtensionsIndexRoute
   '/o/$orgId/settings': typeof OOrgIdSettingsIndexRoute
   '/o/$orgId/team': typeof OOrgIdTeamIndexRoute
+  '/o/$orgId/usage': typeof OOrgIdUsageIndexRoute
   '/o/$orgId/workspaces': typeof OOrgIdWorkspacesIndexRoute
   '/w/$workspaceId/assets': typeof WWorkspaceIdAssetsIndexRoute
   '/w/$workspaceId/extensions': typeof WWorkspaceIdExtensionsIndexRoute
@@ -627,9 +647,11 @@ export interface FileRoutesById {
   '/o/$orgId/': typeof OOrgIdIndexRoute
   '/w/$workspaceId/': typeof WWorkspaceIdIndexRoute
   '/o/$orgId/activity/': typeof OOrgIdActivityIndexRoute
+  '/o/$orgId/billing/': typeof OOrgIdBillingIndexRoute
   '/o/$orgId/extensions/': typeof OOrgIdExtensionsIndexRoute
   '/o/$orgId/settings/': typeof OOrgIdSettingsIndexRoute
   '/o/$orgId/team/': typeof OOrgIdTeamIndexRoute
+  '/o/$orgId/usage/': typeof OOrgIdUsageIndexRoute
   '/o/$orgId/workspaces/': typeof OOrgIdWorkspacesIndexRoute
   '/w/$workspaceId/assets/': typeof WWorkspaceIdAssetsIndexRoute
   '/w/$workspaceId/extensions/': typeof WWorkspaceIdExtensionsIndexRoute
@@ -685,9 +707,11 @@ export interface FileRouteTypes {
     | '/o/$orgId/'
     | '/w/$workspaceId/'
     | '/o/$orgId/activity/'
+    | '/o/$orgId/billing/'
     | '/o/$orgId/extensions/'
     | '/o/$orgId/settings/'
     | '/o/$orgId/team/'
+    | '/o/$orgId/usage/'
     | '/o/$orgId/workspaces/'
     | '/w/$workspaceId/assets/'
     | '/w/$workspaceId/extensions/'
@@ -738,9 +762,11 @@ export interface FileRouteTypes {
     | '/o/$orgId'
     | '/w/$workspaceId'
     | '/o/$orgId/activity'
+    | '/o/$orgId/billing'
     | '/o/$orgId/extensions'
     | '/o/$orgId/settings'
     | '/o/$orgId/team'
+    | '/o/$orgId/usage'
     | '/o/$orgId/workspaces'
     | '/w/$workspaceId/assets'
     | '/w/$workspaceId/extensions'
@@ -794,9 +820,11 @@ export interface FileRouteTypes {
     | '/o/$orgId/'
     | '/w/$workspaceId/'
     | '/o/$orgId/activity/'
+    | '/o/$orgId/billing/'
     | '/o/$orgId/extensions/'
     | '/o/$orgId/settings/'
     | '/o/$orgId/team/'
+    | '/o/$orgId/usage/'
     | '/o/$orgId/workspaces/'
     | '/w/$workspaceId/assets/'
     | '/w/$workspaceId/extensions/'
@@ -1000,6 +1028,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OOrgIdWorkspacesIndexRouteImport
       parentRoute: typeof OOrgIdRoute
     }
+    '/o/$orgId/usage/': {
+      id: '/o/$orgId/usage/'
+      path: '/usage'
+      fullPath: '/o/$orgId/usage/'
+      preLoaderRoute: typeof OOrgIdUsageIndexRouteImport
+      parentRoute: typeof OOrgIdRoute
+    }
     '/o/$orgId/team/': {
       id: '/o/$orgId/team/'
       path: '/team'
@@ -1019,6 +1054,13 @@ declare module '@tanstack/react-router' {
       path: '/extensions'
       fullPath: '/o/$orgId/extensions/'
       preLoaderRoute: typeof OOrgIdExtensionsIndexRouteImport
+      parentRoute: typeof OOrgIdRoute
+    }
+    '/o/$orgId/billing/': {
+      id: '/o/$orgId/billing/'
+      path: '/billing'
+      fullPath: '/o/$orgId/billing/'
+      preLoaderRoute: typeof OOrgIdBillingIndexRouteImport
       parentRoute: typeof OOrgIdRoute
     }
     '/o/$orgId/activity/': {
@@ -1250,9 +1292,11 @@ const MeRouteWithChildren = MeRoute._addFileChildren(MeRouteChildren)
 interface OOrgIdRouteChildren {
   OOrgIdIndexRoute: typeof OOrgIdIndexRoute
   OOrgIdActivityIndexRoute: typeof OOrgIdActivityIndexRoute
+  OOrgIdBillingIndexRoute: typeof OOrgIdBillingIndexRoute
   OOrgIdExtensionsIndexRoute: typeof OOrgIdExtensionsIndexRoute
   OOrgIdSettingsIndexRoute: typeof OOrgIdSettingsIndexRoute
   OOrgIdTeamIndexRoute: typeof OOrgIdTeamIndexRoute
+  OOrgIdUsageIndexRoute: typeof OOrgIdUsageIndexRoute
   OOrgIdWorkspacesIndexRoute: typeof OOrgIdWorkspacesIndexRoute
   OOrgIdExtensionsExtensionSlugIndexRoute: typeof OOrgIdExtensionsExtensionSlugIndexRoute
   OOrgIdSettingsActivityIndexRoute: typeof OOrgIdSettingsActivityIndexRoute
@@ -1267,9 +1311,11 @@ interface OOrgIdRouteChildren {
 const OOrgIdRouteChildren: OOrgIdRouteChildren = {
   OOrgIdIndexRoute: OOrgIdIndexRoute,
   OOrgIdActivityIndexRoute: OOrgIdActivityIndexRoute,
+  OOrgIdBillingIndexRoute: OOrgIdBillingIndexRoute,
   OOrgIdExtensionsIndexRoute: OOrgIdExtensionsIndexRoute,
   OOrgIdSettingsIndexRoute: OOrgIdSettingsIndexRoute,
   OOrgIdTeamIndexRoute: OOrgIdTeamIndexRoute,
+  OOrgIdUsageIndexRoute: OOrgIdUsageIndexRoute,
   OOrgIdWorkspacesIndexRoute: OOrgIdWorkspacesIndexRoute,
   OOrgIdExtensionsExtensionSlugIndexRoute:
     OOrgIdExtensionsExtensionSlugIndexRoute,

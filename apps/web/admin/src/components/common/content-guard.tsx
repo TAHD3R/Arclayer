@@ -22,6 +22,10 @@ import {
   IllustEmptyContainer,
 } from "@/components/illustrations";
 import { PageSkeleton, type PageSkeletonVariant } from "@/components/common/page-skeleton";
+import {
+  AdminRouteContainer,
+  type AdminRouteContainerWidth,
+} from "@/components/layout/admin-route-container";
 
 export type ContentGuardProps = {
   loading: boolean;
@@ -35,6 +39,12 @@ export type ContentGuardProps = {
   /** Hide the built-in retry button (use `errorExtra` for custom action layout). */
   hideRetry?: boolean;
   loadingVariant?: PageSkeletonVariant;
+  /**
+   * Wrap loading/error/empty states in an admin route container.
+   * This keeps pending UI aligned with `DefaultPage` indentation.
+   */
+  container?: "raw" | "admin-route";
+  containerWidth?: AdminRouteContainerWidth;
   emptyTitle?: ReactNode;
   emptyDescription?: ReactNode;
   emptyExtra?: ReactNode;
@@ -91,6 +101,8 @@ export function ContentGuard(props: ContentGuardProps) {
   const variant = props.variant ?? "default";
   const mediaVariant = props.mediaVariant ?? "illustration";
   const wrapperClassName = props.className || (variant === "compact" ? "py-6" : "py-10");
+  const container = props.container ?? "raw";
+  const containerWidth = props.containerWidth ?? "fixed";
   const emptyClassName = variant === "compact" ? "gap-4 p-4 md:p-8" : undefined;
   const titleClassName = variant === "compact" ? "text-title md:text-largetitle" : undefined;
   const descriptionClassName = variant === "compact" ? "text-footnote md:text-body" : undefined;
@@ -107,11 +119,13 @@ export function ContentGuard(props: ContentGuardProps) {
   }, [props.onRetry, t, props.hideRetry]);
 
   if (props.loading) {
-    return (
-      <div className={wrapperClassName}>
-        <PageSkeleton variant={props.loadingVariant ?? "form"} />
-      </div>
-    );
+    const content = <PageSkeleton variant={props.loadingVariant ?? "form"} />;
+
+    if (container === "admin-route") {
+      return <AdminRouteContainer width={containerWidth}>{content}</AdminRouteContainer>;
+    }
+
+    return <div className={wrapperClassName}>{content}</div>;
   }
 
   if (error) {
@@ -120,51 +134,59 @@ export function ContentGuard(props: ContentGuardProps) {
     const Illustration = pickErrorIllustration(error);
     const hasExtra = Boolean(retryExtra) || Boolean(props.errorExtra);
 
-    return (
-      <div className={wrapperClassName}>
-        <Empty className={emptyClassName}>
-          <EmptyHeader>
-            {mediaVariant === "illustration" ? (
-              <EmptyMedia className="mb-0">
-                <Illustration className={illustrationClassName} />
-              </EmptyMedia>
-            ) : null}
-            <EmptyTitle className={titleClassName}>{title}</EmptyTitle>
-            <EmptyDescription className={descriptionClassName}>{details}</EmptyDescription>
-          </EmptyHeader>
-          {hasExtra ? (
-            <EmptyContent>
-              {props.errorExtra}
-              {retryExtra}
-            </EmptyContent>
+    const content = (
+      <Empty className={emptyClassName}>
+        <EmptyHeader>
+          {mediaVariant === "illustration" ? (
+            <EmptyMedia className="mb-0">
+              <Illustration className={illustrationClassName} />
+            </EmptyMedia>
           ) : null}
-        </Empty>
-      </div>
+          <EmptyTitle className={titleClassName}>{title}</EmptyTitle>
+          <EmptyDescription className={descriptionClassName}>{details}</EmptyDescription>
+        </EmptyHeader>
+        {hasExtra ? (
+          <EmptyContent>
+            {props.errorExtra}
+            {retryExtra}
+          </EmptyContent>
+        ) : null}
+      </Empty>
     );
+
+    if (container === "admin-route") {
+      return <AdminRouteContainer width={containerWidth}>{content}</AdminRouteContainer>;
+    }
+
+    return <div className={wrapperClassName}>{content}</div>;
   }
 
   if (props.empty) {
     const hasExtra = Boolean(props.emptyExtra);
-    return (
-      <div className={wrapperClassName}>
-        <Empty className={emptyClassName}>
-          <EmptyHeader>
-            {mediaVariant === "illustration" ? (
-              <EmptyMedia className="mb-0">
-                <IllustEmptyContainer className={illustrationClassName} />
-              </EmptyMedia>
-            ) : null}
-            <EmptyTitle className={titleClassName}>
-              {props.emptyTitle ?? t("common:EMPTY_TITLE")}
-            </EmptyTitle>
-            <EmptyDescription className={descriptionClassName}>
-              {props.emptyDescription ?? t("common:EMPTY_DESC")}
-            </EmptyDescription>
-          </EmptyHeader>
-          {hasExtra ? <EmptyContent>{props.emptyExtra}</EmptyContent> : null}
-        </Empty>
-      </div>
+    const content = (
+      <Empty className={emptyClassName}>
+        <EmptyHeader>
+          {mediaVariant === "illustration" ? (
+            <EmptyMedia className="mb-0">
+              <IllustEmptyContainer className={illustrationClassName} />
+            </EmptyMedia>
+          ) : null}
+          <EmptyTitle className={titleClassName}>
+            {props.emptyTitle ?? t("common:EMPTY_TITLE")}
+          </EmptyTitle>
+          <EmptyDescription className={descriptionClassName}>
+            {props.emptyDescription ?? t("common:EMPTY_DESC")}
+          </EmptyDescription>
+        </EmptyHeader>
+        {hasExtra ? <EmptyContent>{props.emptyExtra}</EmptyContent> : null}
+      </Empty>
     );
+
+    if (container === "admin-route") {
+      return <AdminRouteContainer width={containerWidth}>{content}</AdminRouteContainer>;
+    }
+
+    return <div className={wrapperClassName}>{content}</div>;
   }
 
   return <>{props.children}</>;

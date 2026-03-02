@@ -31,7 +31,7 @@ export function RegisterPane({
     <>
       <motion.div variants={v}>
         <h1 className="text-largetitle text-label-primary">{t("auth:REGISTER_PAGE_TITLE")}</h1>
-        <p className="mt-2 mb-8 text-title2 text-label-secondary">
+        <p className="mt-2 mb-8 text-title3 font-normal text-label-secondary">
           {t("auth:REGISTER_PAGE_SUBTITLE")}
         </p>
       </motion.div>
