@@ -4,6 +4,8 @@ import type {
   DesignContentRefNodeV1,
   DesignImageNodeV1,
   DesignNodeV1,
+  DesignPageRootNodeV1,
+  DesignPrefabInstanceNodeV1,
   DesignTextNodeV1,
   DesignValueV1,
   FieldDefinition,
@@ -127,6 +129,17 @@ export function NodeInspectorPanel(props: {
               </div>
             </div>
 
+            {node.type === "page_root" ? (
+              <PageRootInspector
+                node={node}
+                workspaceId={props.workspaceId}
+                primaryEntryTypeHint={primaryEntryTypeHint}
+                supportedLocales={supportedLocales}
+                defaultLocale={props.defaultLocale}
+                onChange={(next) => updateNode((draft) => Object.assign(draft, next))}
+              />
+            ) : null}
+
             {node.type === "text" ? (
               <TextNodeInspector
                 node={node}
@@ -167,6 +180,19 @@ export function NodeInspectorPanel(props: {
               />
             ) : null}
 
+            {node.type === "prefab_instance" ? (
+              <PrefabInstanceStyleInspector
+                node={node}
+                styleOverrideWhitelist={prefabManifest?.styleOverrideWhitelist ?? []}
+                onChangeStyle={(nextStyle) =>
+                  updateNode((draft) => {
+                    if (draft.type !== "prefab_instance") return;
+                    draft.style = nextStyle;
+                  })
+                }
+              />
+            ) : null}
+
             {node.type === "content_ref" ? (
               <ContentRefNodeInspector
                 node={node}
@@ -178,7 +204,9 @@ export function NodeInspectorPanel(props: {
               />
             ) : null}
 
-            {!["text", "image", "prefab_instance", "content_ref"].includes(node.type) ? (
+            {!["page_root", "text", "image", "prefab_instance", "content_ref"].includes(
+              node.type,
+            ) ? (
               <Alert
                 type="info"
                 showIcon
@@ -190,6 +218,315 @@ export function NodeInspectorPanel(props: {
         )}
       </div>
     </div>
+  );
+}
+
+function PageRootInspector(props: {
+  node: DesignPageRootNodeV1;
+  workspaceId: string;
+  primaryEntryTypeHint: string | null;
+  supportedLocales: string[];
+  defaultLocale: string;
+  onChange: (next: Partial<DesignPageRootNodeV1>) => void;
+}) {
+  const { t } = useTranslation(["editor"]);
+
+  const seo = props.node.seo ?? {};
+  const titleValue = seo.title;
+  const descValue = seo.description;
+
+  const titleIsBinding = Boolean(titleValue && isBindingExpr(titleValue));
+  const titleMode = titleIsBinding ? "binding" : "literal";
+  const titleBinding = titleIsBinding ? (titleValue as DesignBindingExprV1) : null;
+  const titleLocalized = titleValue && !titleIsBinding ? (titleValue as LocalizedString) : {};
+
+  const descIsBinding = Boolean(descValue && isBindingExpr(descValue));
+  const descMode = descIsBinding ? "binding" : "literal";
+  const descBinding = descIsBinding ? (descValue as DesignBindingExprV1) : null;
+  const descLocalized = descValue && !descIsBinding ? (descValue as LocalizedString) : {};
+
+  const dataSources = props.node.dataSources ?? {};
+
+  return (
+    <Space direction="vertical" size={12} className="w-full">
+      <Typography.Text strong>{t("editor:EDITOR_PAGE_NODE_TITLE")}</Typography.Text>
+
+      <div className="rounded-md border border-border p-3">
+        <Typography.Text strong>{t("editor:EDITOR_PAGE_NODE_SEO")}</Typography.Text>
+
+        <div className="mt-3">
+          <div className="flex items-center justify-between gap-3">
+            <Typography.Text type="secondary">
+              {t("editor:EDITOR_PAGE_NODE_SEO_TITLE")}
+            </Typography.Text>
+            <Select
+              size="small"
+              value={titleMode}
+              options={[
+                { value: "literal", label: t("editor:EDITOR_FIELD_VALUE_MODE_LITERAL") },
+                { value: "binding", label: t("editor:EDITOR_FIELD_VALUE_MODE_BINDING") },
+              ]}
+              onChange={(v) => {
+                if (v === "binding") {
+                  props.onChange({
+                    seo: {
+                      ...seo,
+                      title: defaultBindingExprForField({ kind: "text", key: "title" }),
+                    },
+                  });
+                } else {
+                  props.onChange({ seo: { ...seo, title: {} } });
+                }
+              }}
+              style={{ minWidth: 120 }}
+            />
+          </div>
+          <div className="mt-2">
+            {titleMode === "binding" && titleBinding ? (
+              <DesignBindingExprField
+                value={titleBinding}
+                allowedSources={["primaryEntry", "routeParams", "site", "viewer"]}
+                hint={t("editor:EDITOR_BINDING_PREVIEW_HINT")}
+                workspaceId={props.workspaceId}
+                primaryEntryTypeHint={props.primaryEntryTypeHint}
+                defaultLocale={props.defaultLocale}
+                onChange={(next) => props.onChange({ seo: { ...seo, title: next } })}
+              />
+            ) : (
+              <LocalizedStringField
+                supportedLocales={props.supportedLocales}
+                defaultLocale={props.defaultLocale}
+                value={titleLocalized}
+                onChange={(next) => props.onChange({ seo: { ...seo, title: next } })}
+                placeholder={t("editor:EDITOR_PAGE_NODE_SEO_TITLE_PLACEHOLDER")}
+              />
+            )}
+          </div>
+        </div>
+
+        <div className="mt-4">
+          <div className="flex items-center justify-between gap-3">
+            <Typography.Text type="secondary">
+              {t("editor:EDITOR_PAGE_NODE_SEO_DESCRIPTION")}
+            </Typography.Text>
+            <Select
+              size="small"
+              value={descMode}
+              options={[
+                { value: "literal", label: t("editor:EDITOR_FIELD_VALUE_MODE_LITERAL") },
+                { value: "binding", label: t("editor:EDITOR_FIELD_VALUE_MODE_BINDING") },
+              ]}
+              onChange={(v) => {
+                if (v === "binding") {
+                  props.onChange({
+                    seo: {
+                      ...seo,
+                      description: defaultBindingExprForField({ kind: "text", key: "description" }),
+                    },
+                  });
+                } else {
+                  props.onChange({ seo: { ...seo, description: {} } });
+                }
+              }}
+              style={{ minWidth: 120 }}
+            />
+          </div>
+          <div className="mt-2">
+            {descMode === "binding" && descBinding ? (
+              <DesignBindingExprField
+                value={descBinding}
+                allowedSources={["primaryEntry", "routeParams", "site", "viewer"]}
+                hint={t("editor:EDITOR_BINDING_PREVIEW_HINT")}
+                workspaceId={props.workspaceId}
+                primaryEntryTypeHint={props.primaryEntryTypeHint}
+                defaultLocale={props.defaultLocale}
+                onChange={(next) => props.onChange({ seo: { ...seo, description: next } })}
+              />
+            ) : (
+              <LocalizedStringField
+                supportedLocales={props.supportedLocales}
+                defaultLocale={props.defaultLocale}
+                value={descLocalized}
+                onChange={(next) => props.onChange({ seo: { ...seo, description: next } })}
+                multiline
+                placeholder={t("editor:EDITOR_PAGE_NODE_SEO_DESCRIPTION_PLACEHOLDER")}
+              />
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-md border border-border p-3">
+        <Typography.Text strong>{t("editor:EDITOR_PAGE_NODE_DATA_SOURCES")}</Typography.Text>
+        <div className="mt-3">
+          <Typography.Text type="secondary">
+            {t("editor:EDITOR_PAGE_NODE_PRIMARY_ENTRY_ID")}
+          </Typography.Text>
+          <Input
+            className="mt-2"
+            value={dataSources.primaryEntryId ?? ""}
+            onChange={(e) =>
+              props.onChange({
+                dataSources: { ...dataSources, primaryEntryId: e.target.value.trim() },
+              })
+            }
+            placeholder={t("editor:EDITOR_PAGE_NODE_PRIMARY_ENTRY_ID_PLACEHOLDER")}
+            allowClear
+          />
+        </div>
+        <div className="mt-3">
+          <Typography.Text type="secondary">
+            {t("editor:EDITOR_PAGE_NODE_PRIMARY_ENTRY_TYPE")}
+          </Typography.Text>
+          <Input
+            className="mt-2"
+            value={dataSources.primaryEntryTypeHint ?? ""}
+            onChange={(e) =>
+              props.onChange({
+                dataSources: { ...dataSources, primaryEntryTypeHint: e.target.value.trim() },
+              })
+            }
+            placeholder={t("editor:EDITOR_PAGE_NODE_PRIMARY_ENTRY_TYPE_PLACEHOLDER")}
+            allowClear
+          />
+        </div>
+      </div>
+    </Space>
+  );
+}
+
+function PrefabInstanceStyleInspector(props: {
+  node: DesignPrefabInstanceNodeV1;
+  styleOverrideWhitelist: string[];
+  onChangeStyle: (next: DesignNodeV1["style"] | undefined) => void;
+}) {
+  const { t } = useTranslation(["editor"]);
+  const allow = useMemo(
+    () => new Set(props.styleOverrideWhitelist ?? []),
+    [props.styleOverrideWhitelist],
+  );
+
+  if (allow.size === 0) return null;
+
+  const style = props.node.style ?? {};
+
+  const setStyle = (patch: Partial<NonNullable<DesignNodeV1["style"]>>) => {
+    props.onChangeStyle({ ...style, ...patch });
+  };
+
+  const unsetKey = (key: keyof NonNullable<DesignNodeV1["style"]>) => {
+    const next: any = { ...style };
+    delete next[key];
+    props.onChangeStyle(Object.keys(next).length ? next : undefined);
+  };
+
+  return (
+    <Space direction="vertical" size={10} className="w-full">
+      <Typography.Text strong>{t("editor:EDITOR_NODE_FIELD_STYLE")}</Typography.Text>
+
+      {allow.has("backgroundColor") ? (
+        <div>
+          <Typography.Text type="secondary">
+            {t("editor:EDITOR_STYLE_BACKGROUND_COLOR")}
+          </Typography.Text>
+          <div className="mt-2 flex items-center gap-2">
+            <Input
+              value={typeof style.backgroundColor === "string" ? style.backgroundColor : ""}
+              onChange={(e) => setStyle({ backgroundColor: e.target.value })}
+              placeholder="rgba(0,0,0,0.0)"
+              allowClear
+            />
+            <Button size="small" onClick={() => unsetKey("backgroundColor")}>
+              {t("editor:EDITOR_FIELD_CLEAR")}
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
+      {allow.has("borderColor") ? (
+        <div>
+          <Typography.Text type="secondary">
+            {t("editor:EDITOR_STYLE_BORDER_COLOR")}
+          </Typography.Text>
+          <div className="mt-2 flex items-center gap-2">
+            <Input
+              value={typeof style.borderColor === "string" ? style.borderColor : ""}
+              onChange={(e) => setStyle({ borderColor: e.target.value })}
+              placeholder="rgba(0,0,0,0.12)"
+              allowClear
+            />
+            <Button size="small" onClick={() => unsetKey("borderColor")}>
+              {t("editor:EDITOR_FIELD_CLEAR")}
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
+      {allow.has("borderRadius") ? (
+        <div>
+          <Typography.Text type="secondary">
+            {t("editor:EDITOR_STYLE_BORDER_RADIUS")}
+          </Typography.Text>
+          <div className="mt-2 flex items-center gap-2">
+            <Input
+              value={style.borderRadius == null ? "" : String(style.borderRadius)}
+              onChange={(e) => setStyle({ borderRadius: e.target.value })}
+              placeholder="12px"
+              allowClear
+            />
+            <Button size="small" onClick={() => unsetKey("borderRadius")}>
+              {t("editor:EDITOR_FIELD_CLEAR")}
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
+      {allow.has("boxShadow") ? (
+        <div>
+          <Typography.Text type="secondary">{t("editor:EDITOR_STYLE_BOX_SHADOW")}</Typography.Text>
+          <div className="mt-2 flex items-center gap-2">
+            <Input
+              value={typeof style.boxShadow === "string" ? style.boxShadow : ""}
+              onChange={(e) => setStyle({ boxShadow: e.target.value })}
+              placeholder="0 1px 2px rgba(0,0,0,0.06)"
+              allowClear
+            />
+            <Button size="small" onClick={() => unsetKey("boxShadow")}>
+              {t("editor:EDITOR_FIELD_CLEAR")}
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
+      {allow.has("opacity") ? (
+        <div>
+          <Typography.Text type="secondary">{t("editor:EDITOR_STYLE_OPACITY")}</Typography.Text>
+          <div className="mt-2 flex items-center gap-2">
+            <InputNumber
+              className="w-full"
+              min={0}
+              max={1}
+              step={0.05}
+              value={
+                typeof style.opacity === "number" && Number.isFinite(style.opacity)
+                  ? style.opacity
+                  : null
+              }
+              onChange={(v) => {
+                if (typeof v !== "number" || !Number.isFinite(v)) {
+                  unsetKey("opacity");
+                  return;
+                }
+                setStyle({ opacity: Math.max(0, Math.min(1, v)) });
+              }}
+            />
+            <Button size="small" onClick={() => unsetKey("opacity")}>
+              {t("editor:EDITOR_FIELD_CLEAR")}
+            </Button>
+          </div>
+        </div>
+      ) : null}
+    </Space>
   );
 }
 
@@ -727,7 +1064,7 @@ function ContentRefPropValueEditor(props: {
   );
 }
 
-function PrefabPropFieldEditor(props: {
+export function PrefabPropFieldEditor(props: {
   field: FieldDefinition;
   label: string;
   defaultLocale: string;

@@ -146,8 +146,70 @@ function createCardPrefabDefinition(): PrefabDefinitionV1 {
   };
 }
 
+function createSectionPrefabDefinition(): PrefabDefinitionV1 {
+  const manifest = findPrefabManifest("prefab:section");
+
+  // Section template: a full-size container frame with a default slot.
+  // The actual layout/grid behavior is handled by Studio (snapping/guides) and by absolute rects persisted on children.
+  const nodesById: Record<string, DesignNodeV1> = {
+    page: {
+      id: "page",
+      type: "page_root",
+      name: "SectionTemplateRoot",
+      children: ["section_root"],
+      layout: { children: { mode: "absolute" } },
+    },
+    section_root: {
+      id: "section_root",
+      type: "frame",
+      name: "Section",
+      children: ["section_slot"],
+      layout: {
+        self: {
+          rect: { x: 0, y: 0, width: 1200, height: 600 },
+          constraints: { horizontal: "leftRight", vertical: "topBottom" },
+          alignX: "start",
+          alignY: "start",
+        },
+        children: { mode: "absolute" },
+      },
+      style: {
+        backgroundColor: "rgba(255,255,255,0.0)",
+      },
+    },
+    section_slot: {
+      id: "section_slot",
+      type: "frame",
+      name: "Content",
+      children: [],
+      layout: {
+        self: {
+          rect: { x: 0, y: 0, width: 1200, height: 600 },
+          constraints: { horizontal: "leftRight", vertical: "topBottom" },
+          alignX: "start",
+          alignY: "start",
+        },
+        children: { mode: "absolute" },
+      },
+    },
+  };
+
+  const template: Pick<PrefabDefinitionV1["template"], "rootId" | "nodesById" | "slotTargets"> = {
+    rootId: "page",
+    nodesById,
+    slotTargets: { default: "section_slot" },
+  };
+
+  return {
+    prefabId: "section",
+    manifest,
+    template,
+  };
+}
+
 export function createDefaultPrefabRegistryV1(): PrefabRegistryV1 {
   const registry = new PrefabRegistryV1();
+  registry.register(createSectionPrefabDefinition());
   registry.register(createCardPrefabDefinition());
   return registry;
 }

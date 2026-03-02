@@ -13,6 +13,69 @@ import type { BlockManifest } from "../block-registry";
  */
 export const PREFAB_BLOCK_MANIFESTS: BlockManifest[] = [
   {
+    type: "prefab:section",
+    kind: "prefab",
+    label: { "zh-CN": "区块（Section）", "en-US": "Section" },
+    icon: "section",
+    category: "layout",
+    supports: { children: true, layout: true, design: true, animation: true, responsive: true },
+    attributes: [
+      {
+        key: "columns",
+        kind: "number",
+        label: { "zh-CN": "列数", "en-US": "Columns" },
+        default: 12,
+      },
+      {
+        key: "columnGap",
+        kind: "number",
+        label: { "zh-CN": "列间距", "en-US": "Column Gap" },
+        default: 24,
+      },
+      {
+        key: "paddingX",
+        kind: "number",
+        label: { "zh-CN": "左右内边距", "en-US": "Padding X" },
+        default: 24,
+      },
+      {
+        key: "paddingY",
+        kind: "number",
+        label: { "zh-CN": "上下内边距", "en-US": "Padding Y" },
+        default: 24,
+      },
+      {
+        key: "rowHeight",
+        kind: "number",
+        label: { "zh-CN": "行高", "en-US": "Row Height" },
+        default: 8,
+      },
+      {
+        key: "rowGap",
+        kind: "number",
+        label: { "zh-CN": "行间距", "en-US": "Row Gap" },
+        default: 8,
+      },
+      {
+        key: "showGrid",
+        kind: "boolean",
+        label: { "zh-CN": "显示网格参考线", "en-US": "Show Grid" },
+        default: true,
+      },
+    ],
+    slots: [
+      {
+        name: "default",
+        label: { "zh-CN": "内容", "en-US": "Content" },
+        allowedNodeTypes: ["frame", "group", "rect", "text", "image", "embed", "prefab_instance", "content_ref"],
+        required: false,
+        minChildren: 0,
+        maxChildren: 200,
+      },
+    ],
+    styleOverrideWhitelist: ["backgroundColor", "borderColor", "borderRadius", "boxShadow", "opacity"],
+  },
+  {
     type: "prefab:card",
     kind: "prefab",
     label: { "zh-CN": "卡片", "en-US": "Card" },

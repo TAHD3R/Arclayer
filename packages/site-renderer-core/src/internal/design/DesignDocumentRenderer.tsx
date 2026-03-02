@@ -37,6 +37,29 @@ export type PageBlueprintRendererViewport = {
   baseHeight?: number;
 };
 
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
+function deriveBaseViewportFromPrefabTemplate(args: {
+  nodesById: Record<string, DesignNodeV1>;
+}): { width: number; height: number } {
+  let maxX = 0;
+  let maxY = 0;
+  for (const node of Object.values(args.nodesById)) {
+    const rect = (node as any)?.layout?.self?.rect;
+    if (!rect) continue;
+    const x = isFiniteNumber(rect.x) ? rect.x : 0;
+    const y = isFiniteNumber(rect.y) ? rect.y : 0;
+    const w = isFiniteNumber(rect.width) ? rect.width : 0;
+    const h = isFiniteNumber(rect.height) ? rect.height : 0;
+    maxX = Math.max(maxX, x + w);
+    maxY = Math.max(maxY, y + h);
+  }
+  // Ensure base sizes are non-zero so constraint mapping can work.
+  return { width: Math.max(1, Math.round(maxX)), height: Math.max(1, Math.round(maxY)) };
+}
+
 export type PageBlueprintRendererProps = {
   document: PageBlueprint;
   ctx: ViewerContext;
@@ -317,7 +340,13 @@ export function PageBlueprintRenderer(props: PageBlueprintRendererProps) {
   }
 
   return (
-    <main data-celestial="design-document" data-version={inputDoc.version} style={rootStyle}>
+    <main
+      data-celestial="design-document"
+      data-version={inputDoc.version}
+      data-node-id={root.id}
+      data-node-type={root.type}
+      style={rootStyle}
+    >
       {root.children.map((id) => (
         <React.Fragment key={id}>
           <NodeErrorBoundary nodeId={id}>
@@ -559,11 +588,12 @@ function RenderNode(args: {
       });
     }
 
+    const baseViewport = deriveBaseViewportFromPrefabTemplate({ nodesById: def.template.nodesById });
     const innerViewport = {
       width: box?.width ?? 0,
       height: box?.height ?? 0,
-      baseWidth: box?.width ?? 0,
-      baseHeight: box?.height ?? 0,
+      baseWidth: baseViewport.width,
+      baseHeight: baseViewport.height,
     };
 
     return (
