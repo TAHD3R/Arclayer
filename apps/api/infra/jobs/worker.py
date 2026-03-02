@@ -14,6 +14,7 @@ from apps.api.config import get_settings
 from apps.api.core.database.orm import close_orm, init_orm, verify_db_ready
 from apps.api.core.logging import configure_logging, get_logger
 from apps.api.infra.jobs.analytics_retention import analytics_audit_log_retention_cleanup
+from apps.api.infra.jobs.assets_thumbnails import ASSET_THUMBNAILS_JOB_NAME, generate_asset_thumbnails
 from apps.api.modules.system.models.plugin import PluginRecord
 from apps.api.plugin.manager import PluginManager, _load_plugin_class
 from apps.api.plugin.types import PluginStatus
@@ -200,6 +201,7 @@ class WorkerSettings:
 
     functions = [
         analytics_audit_log_retention_cleanup,
+        arq_func(generate_asset_thumbnails, name=ASSET_THUMBNAILS_JOB_NAME, timeout=180, max_tries=3, keep_result=60),
         *_PLUGIN_FUNCTIONS,
     ]
 

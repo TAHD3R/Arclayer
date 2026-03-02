@@ -97,7 +97,6 @@ export type {
   AdminAssetsBulkUpdateOut,
 } from "./assets";
 export type { AdminAssetUsage, UpsertAdminAssetUsagePayload } from "./asset-usages";
-export type { AdminShareCreateRequest, AdminShareLink, AdminShareRevokeOut } from "./shares";
 
 // Uploads
 export type {

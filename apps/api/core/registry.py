@@ -25,6 +25,7 @@ from apps.api.core.logging import configure_logging, get_logger
 from apps.api.core.observability import configure_observability
 from apps.api.core.routes import register_routes
 from apps.api.infra.cache.valkey import close_valkey, init_valkey
+from apps.api.infra.jobs.client import close_arq_client, init_arq_client
 from apps.api.infra.limiter.limiter import close_rate_limiter, init_rate_limiter
 from apps.api.plugin.manager import PluginManager
 from apps.api.plugin.restart import start_restart_watcher, stop_restart_watcher
@@ -95,6 +96,7 @@ def _build_lifespan(settings: Settings, *, plugin_manager: PluginManager):
                 )
             await init_domain_bootstrap(app, settings, plugin_manager=plugin_manager)
             await init_valkey(app, settings)
+            await init_arq_client(app, settings)
             plugin_manager.bind_valkey(getattr(app.state, "valkey", None))
             await init_rate_limiter(app, settings)
             if settings.database.enabled and settings.plugin.enabled:
@@ -118,6 +120,7 @@ def _build_lifespan(settings: Settings, *, plugin_manager: PluginManager):
                 logger.warning("Plugin event bus close failed", action="close_plugin_event_bus", error=str(exc))
             await close_rate_limiter(app)
             await close_orm()
+            await close_arq_client(app)
             await close_valkey(app)
 
     return lifespan

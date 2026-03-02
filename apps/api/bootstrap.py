@@ -38,7 +38,7 @@ async def init_domain_bootstrap(app: FastAPI, settings: Settings, *, plugin_mana
     from apps.api.modules.assets.bootstrap import register_core_asset_processors
 
     # Register core event-driven processors (e.g. thumbnails) after DB is ready.
-    await register_core_asset_processors(plugin_manager.host.event_bus, settings)
+    await register_core_asset_processors(app, plugin_manager.host.event_bus, settings)
 
     if not settings.database.enabled:
         return

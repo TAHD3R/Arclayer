@@ -8,7 +8,6 @@ from apps.api.config import Settings, get_settings
 from apps.api.core.http.response import Response, ResponseModel
 from apps.api.modules.analytics.workspaces.router import router as workspace_activity_router
 from apps.api.modules.assets.admin.assets.router import router as workspace_assets_router
-from apps.api.modules.assets.admin.shares.router import router as workspace_shares_router
 from apps.api.modules.assets.admin.uploads.router import router as workspace_uploads_router
 from apps.api.modules.assets.admin.usages.router import router as workspace_usages_router
 from apps.api.modules.auth.deps import get_current_user_id
@@ -50,7 +49,6 @@ router.include_router(workspace_authz_router)
 router.include_router(workspace_rbac_router)
 router.include_router(workspace_assets_router)
 router.include_router(workspace_uploads_router)
-router.include_router(workspace_shares_router)
 router.include_router(workspace_usages_router)
 router.include_router(workspace_notifications_router)
 router.include_router(my_notifications_router)

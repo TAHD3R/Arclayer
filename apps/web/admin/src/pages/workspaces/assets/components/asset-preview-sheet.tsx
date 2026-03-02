@@ -27,7 +27,6 @@ import {
 } from "@/components/ui/radix-primitives/radix-alert-dialog";
 import { SettingActionItem } from "@/components/settings-primitives/setting-action-item";
 import { UpdateAssetsAccessDialog } from "./update-assets-access-dialog";
-import { AssetSharePopover } from "./asset-share-popover";
 import { copyToClipboard } from "@/lib/clipboard";
 import { cn } from "@/lib/utils";
 import { notifyErrorText, notifySuccessText } from "@/lib/notifications";
@@ -58,7 +57,6 @@ import {
 export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onClose: () => void }) {
   const {
     t,
-    workspaceId,
     token,
     active,
     activeAspectRatio,
@@ -183,11 +181,6 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
                   </SheetDescription>
                 </div>
                 <div className="shrink-0 flex items-center gap-1">
-                  <AssetSharePopover
-                    workspaceId={workspaceId ? String(workspaceId) : ""}
-                    assetId={active.id}
-                    disabled={!workspaceId}
-                  />
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button
