@@ -15,8 +15,8 @@ It is a normative guideline for backend, admin frontend, and portal frontend cha
 This guideline applies to all authored code changes in:
 
 - `apps/api`
-- `apps/web/admin`
-- `apps/web/portal`
+- `apps/admin`
+- `apps/portal`
 - Shared packages under `packages/*` used by the above apps
 
 ## 3. Command Execution Rules (mandatory)
@@ -41,7 +41,7 @@ Canonical commands:
 - `pnpm api:test`
 - Optional focused execution: `pnpm --filter @celestial/api test:integration`
 
-### 4.2 Admin frontend (`apps/web/admin`)
+### 4.2 Admin frontend (`apps/admin`)
 
 Minimum pass conditions:
 
@@ -54,7 +54,7 @@ Canonical command:
 
 - `pnpm admin:check`
 
-### 4.3 Portal frontend (`apps/web/portal`)
+### 4.3 Portal frontend (`apps/portal`)
 
 Minimum pass conditions:
 

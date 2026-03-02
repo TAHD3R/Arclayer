@@ -20,7 +20,7 @@ export default defineConfig({
     alias: {
       "@": path.resolve(__dirname, "./src"),
       // Keep consistent with Vite config so i18n resource imports work in tests.
-      "@locales": path.resolve(__dirname, "../../../locales"),
+      "@locales": path.resolve(__dirname, "../../locales"),
     },
   },
   test: {

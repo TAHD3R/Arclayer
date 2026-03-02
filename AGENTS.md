@@ -13,8 +13,8 @@
 ### 目录约定
 
 - `apps/api`：FastAPI 服务端
-- `apps/web/admin`：Admin 前端
-- `apps/web/portal`：Portal 前端
+- `apps/admin`：Admin 前端
+- `apps/portal`：Portal 前端
 - `plugins`：插件目录
 - `packages`：跨应用复用包（协议、类型、运行时能力、主题等）
 
@@ -168,7 +168,7 @@
 
 ### 架构与目录
 
-- `apps/web/admin` 与 `apps/web/portal` 必须保持模块边界清晰，禁止循环依赖。
+- `apps/admin` 与 `apps/portal` 必须保持模块边界清晰，禁止循环依赖。
 - `src/api` 负责请求封装与数据清洗，组件层禁止直接处理原始响应字典。
 - `src/components` 管理可复用组件；业务组件优先放 `components/common`。
 - `src/types` 统一管理应用内类型；新增类型禁止零散定义。
@@ -181,7 +181,7 @@
 - 跨 Admin 与 Portal 的复用代码出现第 2 次时，必须评估并优先提升到 `packages/`。
 - 无 UI 依赖的运行时能力放 `packages/web-runtime`。
 - 跨应用共享类型/接口契约放 `packages/portal-types`。
-- 禁止在 `apps/web/admin` 与 `apps/web/portal` 复制粘贴同类工具函数、常量、类型。
+- 禁止在 `apps/admin` 与 `apps/portal` 复制粘贴同类工具函数、常量、类型。
 
 ### 类型与可维护性
 

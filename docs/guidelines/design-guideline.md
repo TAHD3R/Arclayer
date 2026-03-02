@@ -1,6 +1,6 @@
 # Admin UI Design and Behavior Guideline (CelestialCMS)
 
-This document is the primary UI guideline for `apps/web/admin`.
+This document is the primary UI guideline for `apps/admin`.
 
 It defines design philosophy, UX behavior, component selection defaults, layout conventions, and implementation guardrails that should prevent style drift.
 
@@ -35,14 +35,14 @@ Design intent:
 
 ### 3.1 In scope
 
-- `apps/web/admin` UI implementation
+- `apps/admin` UI implementation
 - Admin route/page layout behavior
 - Admin component choice defaults
 - Admin UX/copywriting and interaction consistency
 
 ### 3.2 Portal relationship
 
-Portal (`apps/web/portal`) uses a theme/runtime mechanism and is not governed by Admin implementation details in this document.
+Portal (`apps/portal`) uses a theme/runtime mechanism and is not governed by Admin implementation details in this document.
 
 Portal should still inherit:
 

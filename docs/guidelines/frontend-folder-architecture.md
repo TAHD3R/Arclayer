@@ -1,4 +1,4 @@
-# Frontend Folder Architecture (`apps/web`)
+# Frontend Folder Architecture (`apps/*`)
 
 This document defines the target frontend architecture for CelestialCMS. It is a normative guideline for Admin and Portal applications, plus cross-app shared packages.
 
@@ -13,8 +13,8 @@ This document defines the target frontend architecture for CelestialCMS. It is a
 
 This guideline applies to:
 
-- `apps/web/admin`
-- `apps/web/portal`
+- `apps/admin`
+- `apps/portal`
 - Cross-app shared frontend packages in `packages/*` (especially `web-runtime`, `portal-types`, and protocol packages)
 
 ## 3. Canonical Layer Map
@@ -29,7 +29,7 @@ This guideline applies to:
 | App state layer | `admin/src/stores` | UI state only; transient app state | Mirroring server state from API responses |
 | Cross-app shared packages | `packages/web-runtime`, `packages/portal-types`, `packages/site-*`, `packages/design-tokens` | Shared contracts, protocol, runtime primitives, theme/tokens | App-specific view logic |
 
-## 4. Admin Structure Rules (`apps/web/admin/src`)
+## 4. Admin Structure Rules (`apps/admin/src`)
 
 - `routes/` owns route definitions and route guards only.
 - `pages/` owns page-level composition and feature wiring.
@@ -194,7 +194,7 @@ export const Route = createFileRoute("/me/notifications/")({
 
 ### 4.5 Admin Pages Directory Convention (mandatory)
 
-This section defines governance rules for `apps/web/admin/src/pages/`. It extends the layer map and route conventions in this document and must be followed for any new or modified pages.
+This section defines governance rules for `apps/admin/src/pages/`. It extends the layer map and route conventions in this document and must be followed for any new or modified pages.
 
 #### 4.5.1 Route-to-pages path alignment (mandatory)
 
@@ -331,7 +331,7 @@ For patterns like `organization/team/shared/`:
 - Page-local utility/constant/type files must be named `utils.ts`, `constants.ts`, and `types.ts` (no page-level prefixes).
 - Prohibited names: `helpers.ts`, `display.ts`, `*-helpers.tsx`, `*-display.ts`.
 
-## 5. Portal Structure Rules (`apps/web/portal`)
+## 5. Portal Structure Rules (`apps/portal`)
 
 - `pages/` owns Vike route entries (`+Page.tsx`, `+route.ts`) and route-level selection.
 - `renderer/` owns render pipeline integration (`+onRender*`, shell wrappers).
@@ -355,7 +355,7 @@ When the same utility/type/contract appears in Admin and Portal for the second t
 
 ### 6.3 Hard prohibitions
 
-- No direct source import between apps (`apps/web/admin` must not import from `apps/web/portal`, and vice versa).
+- No direct source import between apps (`apps/admin` must not import from `apps/portal`, and vice versa).
 - No duplicated shared helpers across both apps when package extraction is viable.
 
 ## 7. Dependency Direction Rules
