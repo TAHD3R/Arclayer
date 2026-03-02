@@ -82,6 +82,12 @@ class AdminAssetSummaryOut(BaseOut):
             return None
         return f"/assets/{encode_uuid(self.id)}/thumb"
 
+    # Filled by service (needs effective settings); optional for backward compatibility.
+    public_direct_url: str | None = Field(
+        default=None,
+        description="Public direct URL (CDN/S3) if configured and available.",
+    )
+
 
 class AdminAssetFolderOut(BaseOut):
     name: str = Field(..., description="Folder name.")

@@ -222,6 +222,7 @@ class UploadsService(BaseService):
         reserved_asset_id = uuid7()
         multipart_upload_id: str | None = None
         object_key: str | None = None
+        s3_bucket: str | None = None
         if provider == "local":
             object_key = build_asset_object_key(workspace_id=workspace_id, asset_id=reserved_asset_id, ext=ext)
         elif provider == "s3":
@@ -234,10 +235,29 @@ class UploadsService(BaseService):
                 workspace_id=workspace_id,
                 action="init_upload_build_storage_provider",
             )
+            # Dual-bucket strategy:
+            # - public assets => s3_public_bucket (required for true direct delivery)
+            # - private/shared => s3_bucket (legacy / private bucket)
+            if (
+                visibility == "public"
+                and isinstance(effective.storage.s3_public_bucket, str)
+                and effective.storage.s3_public_bucket.strip()
+            ):
+                s3_bucket = effective.storage.s3_public_bucket.strip()
+            else:
+                s3_bucket = (effective.storage.s3_bucket or "").strip() or None
+            if not s3_bucket:
+                raise BadRequest(
+                    message=_ts("STORAGE_PROVIDER_INVALID", "存储配置不正确"),
+                    error="STORAGE_PROVIDER_INVALID",
+                )
+
+            provider_impl = provider_impl.with_bucket(s3_bucket)
+            # Ensure bucket exists (auto-create).
+            await provider_impl.ensure_bucket()
             multipart_upload_id = await provider_impl.create_multipart_upload(
                 object_key=object_key,
                 content_type=mime,
-                public_read=(visibility == "public"),
             )
         else:
             raise BadRequest(
@@ -265,6 +285,7 @@ class UploadsService(BaseService):
             resolved_ext=ext,
             object_key=object_key,
             multipart_upload_id=multipart_upload_id,
+            s3_bucket=s3_bucket,
         )
 
     async def get_status(self, *, upload_id: UUID, workspace_id: UUID) -> tuple[UploadSessionRecord, list[int]]:
@@ -349,6 +370,9 @@ class UploadsService(BaseService):
             part_number=part_number,
             action="presign_part_build_storage_provider",
         )
+        bucket = (session.s3_bucket or "").strip()
+        if bucket:
+            provider_impl = provider_impl.with_bucket(bucket)
 
         presign = await provider_impl.presign_upload_part(
             object_key=str(session.object_key),
@@ -643,6 +667,9 @@ class UploadsService(BaseService):
             upload_id=session.id,
             action="complete_s3_build_storage_provider",
         )
+        bucket = (session.s3_bucket or "").strip()
+        if bucket:
+            provider_impl = provider_impl.with_bucket(bucket)
         if not session.reserved_asset_id or not session.object_key or not session.multipart_upload_id:
             await self.repo.set_session_status(session, status=UploadStatus.UPLOADING)
             raise BadRequest(message=_ts("UPLOAD_SESSION_INVALID", "上传会话不完整"), error="UPLOAD_SESSION_INVALID")
@@ -716,6 +743,7 @@ class UploadsService(BaseService):
                 size_bytes=session.size_bytes,
                 checksum_sha256=None,
                 storage_provider="s3",
+                storage_bucket=bucket or None,
                 object_key=object_key,
                 variants=None,
                 meta=None,
@@ -743,6 +771,9 @@ class UploadsService(BaseService):
                     upload_id=upload_id,
                     action="abort_multipart_upload_build_storage_provider",
                 )
+                bucket = (session.s3_bucket or "").strip()
+                if bucket:
+                    provider_impl = provider_impl.with_bucket(bucket)
                 await provider_impl.abort_multipart_upload(
                     object_key=str(session.object_key),
                     upload_id=str(session.multipart_upload_id),

@@ -35,6 +35,7 @@ class UploadsRepository(BaseRepository):
         resolved_ext: str | None,
         object_key: str | None,
         multipart_upload_id: str | None,
+        s3_bucket: str | None,
     ) -> UploadSessionRecord:
         return await UploadSessionRecord.create(
             workspace_id=workspace_id,
@@ -57,6 +58,7 @@ class UploadsRepository(BaseRepository):
             resolved_ext=resolved_ext,
             object_key=object_key,
             multipart_upload_id=multipart_upload_id,
+            s3_bucket=s3_bucket,
         )
 
     async def get_session(self, *, upload_id: UUID, workspace_id: UUID) -> UploadSessionRecord | None:

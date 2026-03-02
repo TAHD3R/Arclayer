@@ -53,6 +53,8 @@ class UploadSessionRecord(BaseModel):
 
     target_folder_id = fields.UUIDField(null=True, db_index=True)
     storage_provider = fields.CharField(max_length=32, default="local")
+    # S3 bucket used for multipart upload (required for complete/presign in dual-bucket setups).
+    s3_bucket = fields.CharField(max_length=255, null=True, db_index=True)
 
     class Meta(BaseModel.Meta):
         table = "upload_sessions"

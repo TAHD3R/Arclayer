@@ -114,9 +114,11 @@ export function useAssetPreviewSheetController(props: {
 
   const publicAbsoluteUrl = useMemo(() => {
     if ((displayVisibility || "").toLowerCase() !== "public") return null;
+    const direct = (detailQuery.data?.publicDirectUrl || "").trim();
+    if (direct) return direct;
     if (!canonicalPublicPath) return null;
     return toShareableAbsoluteUrl(canonicalPublicPath);
-  }, [canonicalPublicPath, displayVisibility]);
+  }, [canonicalPublicPath, detailQuery.data?.publicDirectUrl, displayVisibility]);
 
   const linkSnippets = useMemo(() => {
     if (!publicAbsoluteUrl) return null;

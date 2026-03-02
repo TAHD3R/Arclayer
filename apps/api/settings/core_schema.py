@@ -341,6 +341,15 @@ def build_core_settings_schema() -> ConfigSchema:
                         description_i18n="settings:STORAGE_PUBLIC_BASE_URL_DESC",
                     ),
                     ConfigField(
+                        key="public_delivery_mode",
+                        type="str",
+                        default="auto",
+                        label="Public delivery mode",
+                        label_i18n="settings:SETTINGS_STORAGE_PUBLIC_DELIVERY_MODE_LABEL",
+                        description="Public asset delivery: direct, presign, or auto.",
+                        description_i18n="settings:SETTINGS_STORAGE_PUBLIC_DELIVERY_MODE_DESC",
+                    ),
+                    ConfigField(
                         key="upload_chunk_size_mb",
                         type="int",
                         default=8,
@@ -395,6 +404,15 @@ def build_core_settings_schema() -> ConfigSchema:
                         default=None,
                         label="S3 bucket",
                         label_i18n="settings:STORAGE_S3_BUCKET_LABEL",
+                    ),
+                    ConfigField(
+                        key="s3_public_bucket",
+                        type="str",
+                        default=None,
+                        label="S3 public bucket",
+                        label_i18n="settings:SETTINGS_STORAGE_S3_PUBLIC_BUCKET_LABEL",
+                        description="Optional dedicated bucket for public assets (recommended for S3-compatible providers without ACL).",
+                        description_i18n="settings:SETTINGS_STORAGE_S3_PUBLIC_BUCKET_DESC",
                     ),
                     ConfigField(
                         key="s3_access_key_id",

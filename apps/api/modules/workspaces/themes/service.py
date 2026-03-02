@@ -504,7 +504,6 @@ class WorkspaceThemesService(BaseService):
             object_key=object_key,
             data=data,
             content_type=mime,
-            public_read=True,
             cache_control="public, max-age=31536000, immutable",
         )
 
@@ -544,7 +543,6 @@ class WorkspaceThemesService(BaseService):
             object_key=object_key,
             data=data,
             content_type="application/zip",
-            public_read=False,
             cache_control=None,
         )
         await AssetRecord.create(
@@ -576,7 +574,6 @@ class WorkspaceThemesService(BaseService):
         object_key: str,
         data: bytes,
         content_type: str | None,
-        public_read: bool,
         cache_control: str | None,
     ) -> None:
         if isinstance(provider, LocalStorageProvider):
@@ -587,7 +584,6 @@ class WorkspaceThemesService(BaseService):
                 object_key=object_key,
                 data=data,
                 content_type=content_type,
-                public_read=public_read,
                 cache_control=cache_control,
             )
             return

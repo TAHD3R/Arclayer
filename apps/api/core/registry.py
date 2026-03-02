@@ -80,6 +80,19 @@ def _build_lifespan(settings: Settings, *, plugin_manager: PluginManager):
                     "Failed to probe system initialization state", action="probe_system_init", error=str(exc)
                 )
                 app.state.system_initialized = False
+
+            # SaaS defaults: bootstrap storage sys-config (best-effort, do not crash startup).
+            try:
+                from apps.api.modules.sys.storage_bootstrap import bootstrap_saas_storage_defaults
+
+                await bootstrap_saas_storage_defaults(settings=settings)
+            except BaseException as exc:
+                _raise_if_fatal(exc)
+                logger.warning(
+                    "SaaS storage bootstrap failed",
+                    action="sys_storage_bootstrap_failed",
+                    error=str(exc),
+                )
             await init_domain_bootstrap(app, settings, plugin_manager=plugin_manager)
             await init_valkey(app, settings)
             plugin_manager.bind_valkey(getattr(app.state, "valkey", None))

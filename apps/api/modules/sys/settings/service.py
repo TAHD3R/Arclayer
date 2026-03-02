@@ -696,10 +696,13 @@ class SysConfigService(BaseService):
         if provider == "s3":
             endpoint_url = storage.get("s3_endpoint_url")
             bucket = storage.get("s3_bucket")
+            public_bucket = storage.get("s3_public_bucket")
             access_key_id = storage.get("s3_access_key_id")
             secret_raw = storage.get("s3_secret_access_key")
             force_path_style = storage.get("s3_force_path_style")
             region = storage.get("s3_region")
+            public_base_url = storage.get("public_base_url")
+            public_delivery_mode = storage.get("public_delivery_mode")
 
             if not isinstance(endpoint_url, str) or not endpoint_url.strip():
                 return SysConfigTestCheck(
@@ -710,6 +713,22 @@ class SysConfigService(BaseService):
                 )
             if not isinstance(bucket, str) or not bucket.strip():
                 return SysConfigTestCheck(code="core.storage.s3", ok=False, kind="config", message="Missing s3_bucket")
+            mode = public_delivery_mode if isinstance(public_delivery_mode, str) else "auto"
+            if mode == "direct":
+                if not isinstance(public_bucket, str) or not public_bucket.strip():
+                    return SysConfigTestCheck(
+                        code="core.storage.s3",
+                        ok=False,
+                        kind="config",
+                        message="Missing s3_public_bucket (required for public direct delivery)",
+                    )
+                if not isinstance(public_base_url, str) or not public_base_url.strip():
+                    return SysConfigTestCheck(
+                        code="core.storage.s3",
+                        ok=False,
+                        kind="config",
+                        message="Missing public_base_url (required for public direct delivery)",
+                    )
             if not isinstance(access_key_id, str) or not access_key_id.strip():
                 return SysConfigTestCheck(
                     code="core.storage.s3",
@@ -747,17 +766,38 @@ class SysConfigService(BaseService):
                                 "s3_endpoint_url": endpoint_url.strip(),
                                 "s3_region": (region.strip() if isinstance(region, str) and region.strip() else None),
                                 "s3_bucket": bucket.strip(),
+                                "s3_public_bucket": public_bucket.strip()
+                                if isinstance(public_bucket, str) and public_bucket.strip()
+                                else None,
                                 "s3_access_key_id": access_key_id.strip(),
                                 "s3_secret_access_key": SecretStr(secret),
                                 "s3_force_path_style": bool(force_path_style)
                                 if isinstance(force_path_style, bool)
                                 else False,
+                                "public_base_url": public_base_url.strip()
+                                if isinstance(public_base_url, str) and public_base_url.strip()
+                                else None,
+                                "public_delivery_mode": mode if isinstance(mode, str) else "auto",
                             }
                         )
                     }
                 )
                 provider_impl = S3StorageProvider(effective)
-                await provider_impl.head_bucket()
+                await provider_impl.ensure_bucket()
+                if mode == "direct":
+                    # Ensure public bucket exists too.
+                    pub_name = str(public_bucket).strip() if isinstance(public_bucket, str) else ""
+                    if pub_name:
+                        effective_pub = effective.model_copy(
+                            update={
+                                "storage": effective.storage.model_copy(
+                                    update={
+                                        "s3_bucket": pub_name,
+                                    }
+                                )
+                            }
+                        )
+                        await S3StorageProvider(effective_pub).ensure_bucket()
                 return SysConfigTestCheck(code="core.storage.s3", ok=True, kind="config")
             except ModuleNotFoundError as exc:
                 return SysConfigTestCheck(

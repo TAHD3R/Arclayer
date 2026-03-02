@@ -171,6 +171,11 @@ class StorageSettings(BaseSettings):
         validation_alias=AliasChoices("PUBLIC_BASE_URL", "STORAGE_PUBLIC_BASE_URL"),
         description="Optional public base URL (e.g. CDN) used to build absolute asset URLs.",
     )
+    public_delivery_mode: Literal["auto", "direct", "presign"] = Field(
+        default="auto",
+        validation_alias=AliasChoices("PUBLIC_DELIVERY_MODE", "STORAGE_PUBLIC_DELIVERY_MODE"),
+        description="Public asset delivery mode: direct (CDN/base URL), presign, or auto.",
+    )
     s3_endpoint_url: str | None = Field(
         default=None,
         validation_alias=AliasChoices("S3_ENDPOINT_URL", "STORAGE_S3_ENDPOINT_URL"),
@@ -185,6 +190,11 @@ class StorageSettings(BaseSettings):
         default=None,
         validation_alias=AliasChoices("S3_BUCKET", "STORAGE_S3_BUCKET"),
         description="S3 bucket name.",
+    )
+    s3_public_bucket: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("S3_PUBLIC_BUCKET", "STORAGE_S3_PUBLIC_BUCKET"),
+        description="Optional dedicated bucket for public assets (recommended for S3-compatible providers without ACL).",
     )
     s3_access_key_id: str | None = Field(
         default=None,

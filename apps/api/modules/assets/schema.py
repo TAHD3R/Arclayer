@@ -16,6 +16,7 @@ class AssetPublicView(BaseSchema):
     checksum_sha256: str | None
     original_filename: str | None
     object_key: str
+    storage_bucket: str | None
     indexable: bool
     variants: dict | None
     storage_provider: str

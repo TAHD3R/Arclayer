@@ -13,7 +13,7 @@ export type AdminRouteContainerProps = PropsWithChildren<{
 }>;
 
 const FIXED_WIDTH_STYLE: CSSProperties = {
-  maxWidth: "clamp(1040px, 76vw, 1600px)",
+  maxWidth: "clamp(900px, 70vw, 1600px)",
 };
 
 export function AdminRouteContainer({

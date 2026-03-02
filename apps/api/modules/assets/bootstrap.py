@@ -94,6 +94,9 @@ async def register_core_asset_processors(event_bus: EventBus, settings: Settings
                     return
                 if not isinstance(provider, S3StorageProvider):
                     return
+                bucket = str(getattr(asset, "storage_bucket", "") or "") or None
+                if bucket:
+                    provider = provider.with_bucket(bucket)
 
                 # Download source image into tmp (processor needs local file access).
                 source_key = f"thumbs/{workspace_id}/{asset_id}/source.{ext or 'bin'}"
@@ -133,7 +136,6 @@ async def register_core_asset_processors(event_bus: EventBus, settings: Settings
                 # Upload thumbnails to S3 (best-effort).
                 thumbs = (variants_payload or {}).get("thumbnails") if isinstance(variants_payload, dict) else None
                 if isinstance(thumbs, list):
-                    public_read = str(asset.visibility) == "public"
                     for item in thumbs:
                         if not isinstance(item, dict):
                             continue
@@ -149,7 +151,6 @@ async def register_core_asset_processors(event_bus: EventBus, settings: Settings
                                 object_key=object_key,
                                 data=data,
                                 content_type=str(item.get("mime") or "") or None,
-                                public_read=public_read,
                                 cache_control="public, max-age=31536000, immutable",
                             )
                         except BaseException as exc:

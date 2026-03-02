@@ -182,6 +182,11 @@ async def get_effective_settings(settings: Settings) -> Settings:
     if "public_base_url" in storage_section:
         updates["public_base_url"] = _safe_str(storage_section.get("public_base_url"))
 
+    if "public_delivery_mode" in storage_section:
+        mode = _safe_str(storage_section.get("public_delivery_mode"))
+        if mode in {"auto", "direct", "presign"}:
+            updates["public_delivery_mode"] = mode
+
     # Upload policy overrides.
     for key in [
         "upload_chunk_size_mb",
@@ -201,6 +206,7 @@ async def get_effective_settings(settings: Settings) -> Settings:
         "s3_endpoint_url",
         "s3_region",
         "s3_bucket",
+        "s3_public_bucket",
         "s3_access_key_id",
     ]:
         if key in storage_section:

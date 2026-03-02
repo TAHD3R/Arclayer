@@ -73,7 +73,7 @@ class SharesService:
         self.settings = settings
         self.repo = ShareLinksRepository()
 
-    async def _build_s3_provider(self) -> S3StorageProvider:
+    async def _build_s3_provider(self, *, bucket: str | None) -> S3StorageProvider:
         effective = await get_effective_settings(self.settings)
         try:
             provider = build_storage_provider_for(effective, provider="s3")
@@ -92,7 +92,8 @@ class SharesService:
                 provider_type=type(provider).__name__,
             )
             raise NotFound(message="Not Found", error="NOT_FOUND")
-        return provider
+        b = (bucket or "").strip()
+        return provider.with_bucket(b) if b else provider
 
     async def _stream_s3_object(
         self,
@@ -188,7 +189,7 @@ class SharesService:
             headers["ETag"] = f'"{asset.checksum_sha256}"'
 
         if asset.storage_provider == "s3":
-            provider = await self._build_s3_provider()
+            provider = await self._build_s3_provider(bucket=str(getattr(asset, "storage_bucket", "") or "") or None)
             return await self._stream_s3_object(
                 provider=provider,
                 object_key=asset.object_key,
@@ -223,7 +224,7 @@ class SharesService:
             headers["ETag"] = f'"{asset.checksum_sha256}"'
 
         if asset.storage_provider == "s3":
-            provider = await self._build_s3_provider()
+            provider = await self._build_s3_provider(bucket=str(getattr(asset, "storage_bucket", "") or "") or None)
             return await self._stream_s3_object(
                 provider=provider,
                 object_key=asset.object_key,

@@ -56,6 +56,38 @@ class AssetsService:
         self.settings = settings
         self.repo = AssetsRepository()
 
+    def _can_direct_deliver(
+        self,
+        *,
+        effective: Settings,
+        storage_bucket: str | None,
+    ) -> bool:
+        """
+        Decide whether we should redirect public assets to `public_base_url`.
+
+        For Mode A (direct delivery) we typically use a dedicated public bucket.
+        When `s3_public_bucket` is configured, we only direct-deliver when the asset
+        is stored in that bucket (to avoid leaking private bucket paths and to avoid
+        accidental AccessDenied redirects).
+        """
+
+        mode = str(getattr(effective.storage, "public_delivery_mode", "auto") or "auto").strip().lower()
+        if mode == "presign":
+            return False
+        base = (effective.storage.public_base_url or "").strip()
+        if not base:
+            return False
+
+        public_bucket = (effective.storage.s3_public_bucket or "").strip() or None
+        if public_bucket:
+            b = (storage_bucket or "").strip() or None
+            return b == public_bucket
+
+        # Safety default: without an explicit public bucket, do not attempt direct delivery.
+        # This avoids redirecting to a private bucket URL (AccessDenied) and avoids leaking
+        # implementation details into public links.
+        return False
+
     def _public_absolute_url(self, *, base_url: str | None, path: str) -> str | None:
         base = (base_url or "").strip()
         if not base:
@@ -79,6 +111,7 @@ class AssetsService:
             checksum_sha256=asset.checksum_sha256,
             original_filename=asset.original_filename,
             object_key=asset.object_key,
+            storage_bucket=str(getattr(asset, "storage_bucket", "") or "") or None,
             indexable=bool(asset.indexable),
             variants=asset.variants if isinstance(asset.variants, dict) else None,
             storage_provider=str(asset.storage_provider),
@@ -127,7 +160,10 @@ class AssetsService:
 
         if view.storage_provider == "s3":
             effective = await get_effective_settings(self.settings)
-            url = self._public_absolute_url(base_url=effective.storage.public_base_url, path=f"/{view.object_key}")
+            if self._can_direct_deliver(effective=effective, storage_bucket=view.storage_bucket):
+                url = self._public_absolute_url(base_url=effective.storage.public_base_url, path=f"/{view.object_key}")
+            else:
+                url = None
             if url:
                 return RedirectResponse(url=url, status_code=302, headers=build_asset_headers(view))
 
@@ -135,9 +171,11 @@ class AssetsService:
             provider = self._try_build_s3_provider(effective=effective, object_key=view.object_key)
             if provider is None:
                 raise NotFound(message="Not Found", error="NOT_FOUND")
+            if view.storage_bucket:
+                provider = provider.with_bucket(view.storage_bucket)
             presigned = await provider.presign_get_object(
                 object_key=view.object_key,
-                expires_in=900,
+                expires_in=int(getattr(effective.storage, "s3_presign_expires_seconds", 900) or 900),
                 response_content_type=view.mime or "application/octet-stream",
             )
             return RedirectResponse(url=presigned, status_code=302, headers=build_asset_headers(view))
@@ -174,9 +212,11 @@ class AssetsService:
             provider = self._try_build_s3_provider(effective=effective, object_key=view.object_key)
             if provider is None:
                 raise NotFound(message="Not Found", error="NOT_FOUND")
+            if view.storage_bucket:
+                provider = provider.with_bucket(view.storage_bucket)
             url = await provider.presign_get_object(
                 object_key=view.object_key,
-                expires_in=900,
+                expires_in=int(getattr(effective.storage, "s3_presign_expires_seconds", 900) or 900),
                 response_content_type=view.mime or "application/octet-stream",
                 response_content_disposition=build_attachment_content_disposition(filename),
             )
@@ -238,15 +278,20 @@ class AssetsService:
 
         if view.storage_provider == "s3":
             effective = await get_effective_settings(self.settings)
-            url = self._public_absolute_url(base_url=effective.storage.public_base_url, path=f"/{object_key}")
+            if self._can_direct_deliver(effective=effective, storage_bucket=view.storage_bucket):
+                url = self._public_absolute_url(base_url=effective.storage.public_base_url, path=f"/{object_key}")
+            else:
+                url = None
             if url:
                 return RedirectResponse(url=url, status_code=302, headers=build_asset_headers(view))
 
             provider = self._try_build_s3_provider(effective=effective, object_key=object_key)
             if provider is not None:
+                if view.storage_bucket:
+                    provider = provider.with_bucket(view.storage_bucket)
                 presigned = await provider.presign_get_object(
                     object_key=object_key,
-                    expires_in=900,
+                    expires_in=int(getattr(effective.storage, "s3_presign_expires_seconds", 900) or 900),
                     response_content_type=str((picked or {}).get("mime") or "") or "application/octet-stream",
                 )
                 return RedirectResponse(url=presigned, status_code=302, headers=build_asset_headers(view))

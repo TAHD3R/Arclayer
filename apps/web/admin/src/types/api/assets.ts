@@ -20,6 +20,7 @@ export type AdminAssetSummary = {
   publicUrlPath?: string | null;
   publicDownloadUrlPath?: string | null;
   publicThumbUrlPath?: string | null;
+  publicDirectUrl?: string | null;
 };
 
 export type AdminAssetFolder = {

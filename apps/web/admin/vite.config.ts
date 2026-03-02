@@ -8,7 +8,6 @@ import { compression } from "vite-plugin-compression2";
 
 import {
   archiveBuildOutput,
-  celestialReactInspector,
   injectAppConfig,
   injectBuildMeta,
   injectCopyrightBanner,
@@ -26,7 +25,6 @@ export default defineConfig(({ mode, command }) => {
 
   const appName = "admin";
   const appVersion = process.env.npm_package_version || undefined;
-  const isDevServer = command === "serve" && mode === "development";
   const isBuild = command === "build";
 
   const plugins = [
@@ -55,11 +53,6 @@ export default defineConfig(({ mode, command }) => {
     react(),
     tailwindcss(),
   ];
-
-  // Keep dev-only tooling at the end so any HTML transforms from earlier plugins can't override it.
-  if (isDevServer) {
-    plugins.push(...celestialReactInspector());
-  }
 
   if (isBuild) {
     plugins.push(injectBuildMeta({ appName, version: appVersion }));

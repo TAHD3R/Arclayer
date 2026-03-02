@@ -11,7 +11,10 @@ from apps.api.core.exceptions import BadRequest, Conflict, NotFound
 from apps.api.core.http.file_stream import stream_file_response
 from apps.api.core.http.pagination import PageData, PageParams, paginate_queryset
 from apps.api.core.i18n import t
+from apps.api.infra.storage.factory import build_storage_provider_for
 from apps.api.infra.storage.local import safe_object_key_to_path
+from apps.api.infra.storage.s3 import S3StorageProvider
+from apps.api.infra.storage.s3_stream import stream_s3_object
 from apps.api.modules.assets.admin.assets.repository import AdminAssetsRepository
 from apps.api.modules.assets.admin.assets.schema import (
     AdminAssetBulkDeleteOut,
@@ -34,6 +37,7 @@ from apps.api.modules.assets.admin.assets.schema import (
     AdminAssetUpdateRequest,
 )
 from apps.api.modules.organization.models.user import User
+from apps.api.settings.runtime import get_effective_settings
 
 
 def _ts(key: str, default: str) -> str:
@@ -44,6 +48,109 @@ class AdminAssetsService(BaseService):
     def __init__(self, settings: Settings) -> None:
         super().__init__(settings)
         self.repo = AdminAssetsRepository()
+
+    @staticmethod
+    def _collect_thumbnail_object_keys(variants: object) -> list[str]:
+        out: list[str] = []
+        if not isinstance(variants, dict):
+            return out
+        thumbs = variants.get("thumbnails")
+        if not isinstance(thumbs, list):
+            return out
+        for item in thumbs:
+            if not isinstance(item, dict):
+                continue
+            k = str(item.get("object_key") or "").strip()
+            if not k:
+                continue
+            out.append(k)
+        # Keep ordering stable and avoid duplicates.
+        return list(dict.fromkeys(out))
+
+    def _build_public_direct_url(self, *, base_url: str | None, object_key: str | None) -> str | None:
+        b = (base_url or "").strip().rstrip("/")
+        k = (object_key or "").strip().lstrip("/")
+        if not b or not k:
+            return None
+        return f"{b}/{k}"
+
+    def _can_direct_deliver(self, *, effective: Settings, storage_bucket: str | None) -> bool:
+        mode = str(getattr(effective.storage, "public_delivery_mode", "auto") or "auto").strip().lower()
+        if mode == "presign":
+            return False
+        base = (effective.storage.public_base_url or "").strip()
+        if not base:
+            return False
+
+        public_bucket = (effective.storage.s3_public_bucket or "").strip() or None
+        if not public_bucket:
+            # Safety default:
+            # When using S3-compatible storage, we only direct-deliver when a dedicated public bucket
+            # is configured, otherwise it is too easy to accidentally redirect to a private bucket URL.
+            return False
+        b = (storage_bucket or "").strip() or None
+        return b == public_bucket
+
+    async def _sync_s3_bucket_for_visibility(
+        self,
+        *,
+        effective: Settings,
+        provider: S3StorageProvider,
+        asset,
+        target_visibility: str,
+    ) -> str | None:
+        """
+        Keep S3 object placement consistent with our dual-bucket strategy.
+
+        Rules:
+        - If s3_public_bucket is not configured: do nothing (we will rely on `/assets/*` presign fallback).
+        - If configured:
+          - visibility=public  => object must be in s3_public_bucket
+          - visibility!=public => object must be in s3_bucket (private bucket)
+
+        Returns the target bucket (when a move is required), or None when no action is needed.
+        """
+
+        public_bucket = (effective.storage.s3_public_bucket or "").strip() or None
+        if not public_bucket:
+            return None
+
+        private_bucket = (effective.storage.s3_bucket or "").strip() or None
+        if not private_bucket:
+            raise BadRequest(
+                message=_ts("ASSET_VISIBILITY_SYNC_FAILED", "存储配置异常，无法更新资源可见性"),
+                error="ASSET_VISIBILITY_SYNC_FAILED",
+            )
+
+        next_visibility = str(target_visibility or "").strip().lower()
+        target_bucket = public_bucket if next_visibility == "public" else private_bucket
+
+        current_bucket = str(getattr(asset, "storage_bucket", "") or "").strip() or None
+        if not current_bucket:
+            # Back-compat for old rows: treat as private bucket.
+            current_bucket = private_bucket
+
+        object_key = str(getattr(asset, "object_key", "") or "").strip()
+        if not object_key:
+            return None
+
+        if current_bucket == target_bucket:
+            return None
+
+        src = provider.with_bucket(current_bucket)
+        dest = provider.with_bucket(target_bucket)
+        await dest.ensure_bucket()
+
+        object_keys = [object_key]
+        object_keys.extend(self._collect_thumbnail_object_keys(getattr(asset, "variants", None)))
+
+        # Copy first (to avoid data loss), then delete source. Any failure aborts the visibility update.
+        for k in object_keys:
+            await dest.copy_object_from(source_bucket=current_bucket, source_key=k, dest_key=k)
+        for k in object_keys:
+            await src.delete_object(object_key=k)
+
+        return target_bucket
 
     async def list_assets(
         self, *, workspace_id: UUID, params: PageParams, filters: AdminAssetListQuery
@@ -65,6 +172,23 @@ class AdminAssetsService(BaseService):
         else:
             rows = await qs.limit(params.limit).offset(params.offset)
             items = [AdminAssetSummaryOut.model_validate(r, from_attributes=True) for r in rows]
+
+            # Best-effort: compute a direct URL for public assets (CDN/S3 base URL).
+            # This is intentionally not a computed_field because it requires effective runtime settings.
+            effective = await get_effective_settings(self.settings)
+            base_url = effective.storage.public_base_url
+            for out, row in zip(items, rows, strict=False):
+                try:
+                    provider = str(getattr(row, "storage_provider", "") or "")
+                    object_key = str(getattr(row, "object_key", "") or "")
+                    storage_bucket = str(getattr(row, "storage_bucket", "") or "") or None
+                except Exception:
+                    continue
+                if out.visibility == "public" and provider == "s3":
+                    if self._can_direct_deliver(effective=effective, storage_bucket=storage_bucket):
+                        out.public_direct_url = self._build_public_direct_url(base_url=base_url, object_key=object_key)
+                    else:
+                        out.public_direct_url = None
 
             # Best-effort uploader name (avoid N+1; load all users for current page in one query).
             user_ids = {x.owner_user_id for x in items if x.owner_user_id is not None}
@@ -129,6 +253,17 @@ class AdminAssetsService(BaseService):
             raise NotFound(message=_ts("ASSET_NOT_FOUND", "资源不存在"), error="ASSET_NOT_FOUND")
 
         detail = AdminAssetDetailOut.model_validate(asset, from_attributes=True)
+        if detail.visibility == "public" and str(getattr(asset, "storage_provider", "") or "") == "s3":
+            effective = await get_effective_settings(self.settings)
+            if self._can_direct_deliver(
+                effective=effective, storage_bucket=str(getattr(asset, "storage_bucket", "") or "") or None
+            ):
+                detail.public_direct_url = self._build_public_direct_url(
+                    base_url=effective.storage.public_base_url,
+                    object_key=str(getattr(asset, "object_key", "") or ""),
+                )
+            else:
+                detail.public_direct_url = None
         if detail.owner_user_id is not None:
             user = await User.get_or_none(id=detail.owner_user_id)
             if user is not None:
@@ -182,7 +317,25 @@ class AdminAssetsService(BaseService):
                     message=_ts("ASSET_VISIBILITY_INVALID", "可见性不合法"),
                     error="ASSET_VISIBILITY_INVALID",
                 )
+            if str(getattr(asset, "storage_provider", "") or "") == "s3":
+                effective = await get_effective_settings(self.settings)
+                provider_impl = build_storage_provider_for(effective, provider="s3")
+                if not isinstance(provider_impl, S3StorageProvider):
+                    raise BadRequest(
+                        message=_ts("ASSET_VISIBILITY_SYNC_FAILED", "存储配置异常，无法更新资源可见性"),
+                        error="ASSET_VISIBILITY_SYNC_FAILED",
+                    )
+                moved_to = await self._sync_s3_bucket_for_visibility(
+                    effective=effective,
+                    provider=provider_impl,
+                    asset=asset,
+                    target_visibility=str(payload.visibility),
+                )
+                if moved_to:
+                    updates["storage_bucket"] = moved_to
             updates["visibility"] = payload.visibility
+            if str(payload.visibility) != "public":
+                updates["indexable"] = False
 
         if "purpose" in payload.model_fields_set:
             if payload.purpose is None:
@@ -223,13 +376,51 @@ class AdminAssetsService(BaseService):
         if len(rows) != len(asset_ids):
             raise NotFound(message=_ts("ASSET_NOT_FOUND", "资源不存在"), error="ASSET_NOT_FOUND")
 
-        now = datetime.now(tz=UTC)
-        updated = await self.repo.bulk_update_assets_fields(
-            workspace_id=workspace_id,
-            asset_ids=asset_ids,
-            updates=updates,
-            updated_at=now,
-        )
+        # If visibility changes and S3 dual-bucket is enabled, we must move objects between buckets;
+        # a pure DB bulk update would leave private blobs in the public bucket (security risk).
+        if payload.visibility is not None:
+            effective = await get_effective_settings(self.settings)
+            provider_impl = None
+            if str(getattr(effective.storage, "provider", "") or "") == "s3":
+                built = build_storage_provider_for(effective, provider="s3")
+                provider_impl = built if isinstance(built, S3StorageProvider) else None
+
+            updated = 0
+            for asset in rows:
+                per_updates: dict = {}
+                if payload.visibility is not None:
+                    per_updates["visibility"] = payload.visibility
+                    if str(payload.visibility) != "public":
+                        per_updates["indexable"] = False
+
+                if payload.purpose is not None:
+                    per_updates["purpose"] = payload.purpose
+
+                if (
+                    provider_impl is not None
+                    and str(getattr(asset, "storage_provider", "") or "") == "s3"
+                    and str(getattr(asset, "object_key", "") or "")
+                ):
+                    moved_to = await self._sync_s3_bucket_for_visibility(
+                        effective=effective,
+                        provider=provider_impl,
+                        asset=asset,
+                        target_visibility=str(payload.visibility),
+                    )
+                    if moved_to:
+                        per_updates["storage_bucket"] = moved_to
+
+                if per_updates:
+                    await self.repo.save_asset_updates(asset, updates=per_updates)
+                    updated += 1
+        else:
+            now = datetime.now(tz=UTC)
+            updated = await self.repo.bulk_update_assets_fields(
+                workspace_id=workspace_id,
+                asset_ids=asset_ids,
+                updates=updates,
+                updated_at=now,
+            )
 
         return AdminAssetBulkUpdateOut(
             updated_count=updated,
@@ -456,12 +647,6 @@ class AdminAssetsService(BaseService):
         if asset is None:
             raise NotFound(message=_ts("ASSET_NOT_FOUND", "资源不存在"), error="ASSET_NOT_FOUND")
 
-        # Phase 1: local provider only.
-        root_dir = self.settings.storage.local_root_dir
-        path = safe_object_key_to_path(root_dir, asset.object_key)
-        if not path.is_file():
-            raise NotFound(message=_ts("ASSET_FILE_NOT_FOUND", "文件不存在"), error="ASSET_FILE_NOT_FOUND")
-
         media_type = asset.mime
         if not media_type:
             media_type, _enc = mimetypes.guess_type(f"file.{asset.ext or 'bin'}")
@@ -473,6 +658,27 @@ class AdminAssetsService(BaseService):
         }
         if asset.checksum_sha256:
             headers["ETag"] = f'"{asset.checksum_sha256}"'
+
+        if asset.storage_provider == "s3":
+            effective = await get_effective_settings(self.settings)
+            provider = build_storage_provider_for(effective, provider="s3")
+            if not isinstance(provider, S3StorageProvider):
+                raise NotFound(message=_ts("ASSET_FILE_NOT_FOUND", "文件不存在"), error="ASSET_FILE_NOT_FOUND")
+            bucket = str(getattr(asset, "storage_bucket", "") or "") or None
+            if bucket:
+                provider = provider.with_bucket(bucket)
+            return await stream_s3_object(
+                provider=provider,
+                object_key=asset.object_key,
+                content_type=media_type,
+                range_header=range_header,
+                extra_headers=headers,
+            )
+
+        root_dir = self.settings.storage.local_root_dir
+        path = safe_object_key_to_path(root_dir, asset.object_key)
+        if not path.is_file():
+            raise NotFound(message=_ts("ASSET_FILE_NOT_FOUND", "文件不存在"), error="ASSET_FILE_NOT_FOUND")
 
         return await stream_file_response(
             path=path,
