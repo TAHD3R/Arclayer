@@ -1,4 +1,5 @@
 import { Button, Select } from "antd";
+import { Save } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
@@ -92,11 +93,18 @@ export function UpdateAssetsAccessDialog(props: UpdateAssetsAccessDialogProps) {
       }
       footer={
         <>
-          <Button type="text" disabled={disabled} onClick={() => props.onOpenChange(false)}>
+          <Button
+            autoInsertSpace={false}
+            type="text"
+            disabled={disabled}
+            onClick={() => props.onOpenChange(false)}
+          >
             {t("common:CANCEL")}
           </Button>
           <Button
+            autoInsertSpace={false}
             type="primary"
+            icon={<Save className="size-4" aria-hidden="true" />}
             loading={props.confirmLoading}
             disabled={!canSubmit}
             onClick={async () => {
@@ -117,7 +125,7 @@ export function UpdateAssetsAccessDialog(props: UpdateAssetsAccessDialogProps) {
         </>
       }
     >
-      <div className="mt-4 space-y-4">
+      <div className="grid gap-4 py-2">
         <div className="grid gap-1.5">
           <label className="font-semibold text-foreground">
             {t("assets:ASSET_META_VISIBILITY")}

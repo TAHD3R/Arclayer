@@ -522,6 +522,7 @@ export function SetupPage() {
             icon={<Sparkles size={18} />}
             disabled
             aria-label={t("setup:SETUP_START_BUTTON")}
+            autoInsertSpace={false}
           />
         ) : (
           <ExpandableScreenTrigger>
@@ -633,7 +634,12 @@ export function SetupPage() {
               ) : null}
 
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <Button size="large" disabled={step <= 0 || submitting} onClick={onPrev}>
+                <Button
+                  size="large"
+                  disabled={step <= 0 || submitting}
+                  onClick={onPrev}
+                  autoInsertSpace={false}
+                >
                   {t("setup:SETUP_PREV")}
                 </Button>
 
@@ -643,6 +649,7 @@ export function SetupPage() {
                     size="large"
                     disabled={setupEnabled === false || submitting}
                     onClick={() => void onNext()}
+                    autoInsertSpace={false}
                   >
                     {t("setup:SETUP_NEXT")}
                   </Button>
@@ -653,6 +660,7 @@ export function SetupPage() {
                     loading={submitting}
                     disabled={setupEnabled === false}
                     onClick={() => void onFinish()}
+                    autoInsertSpace={false}
                   >
                     {t("setup:SETUP_FINISH")}
                   </Button>

@@ -187,6 +187,7 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
                         type="text"
                         icon={<EllipsisVertical size={18} />}
                         style={{ width: 36, height: 36, paddingInline: 0 }}
+                        autoInsertSpace={false}
                       />
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
@@ -542,16 +543,12 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-title2 font-bold!">
-              {t("assets:ASSET_DELETE_CONFIRM_TITLE")}
-            </AlertDialogTitle>
-            <AlertDialogDescription className="text-body">
-              {t("assets:ASSET_DELETE_CONFIRM_DESC")}
-            </AlertDialogDescription>
+            <AlertDialogTitle>{t("assets:ASSET_DELETE_CONFIRM_TITLE")}</AlertDialogTitle>
+            <AlertDialogDescription>{t("assets:ASSET_DELETE_CONFIRM_DESC")}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancelPrimitive asChild>
-              <Button type="text" disabled={deleteMutation.isPending}>
+              <Button type="text" disabled={deleteMutation.isPending} autoInsertSpace={false}>
                 {t("assets:ASSET_DELETE_CANCEL")}
               </Button>
             </AlertDialogCancelPrimitive>
@@ -561,6 +558,7 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
                 danger
                 loading={deleteMutation.isPending}
                 onClick={() => deleteMutation.mutate()}
+                autoInsertSpace={false}
               >
                 {deleteMutation.isPending
                   ? t("assets:ASSET_DELETE_DELETING")

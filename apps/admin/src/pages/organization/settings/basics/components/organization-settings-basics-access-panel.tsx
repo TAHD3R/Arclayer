@@ -103,6 +103,7 @@ export function OrganizationSettingsBasicsAccessPanel(props: {
                     })
                     .catch(() => undefined);
                 }}
+                autoInsertSpace={false}
               >
                 {t("settings:SETTINGS_ORG_ASSIGN_ROLE_ALL_CONFIRM")}
               </Button>

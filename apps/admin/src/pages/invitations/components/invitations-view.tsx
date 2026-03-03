@@ -56,20 +56,24 @@ export function InvitationsView(props: { token: string | null }) {
   // Shared action buttons for empty/error states
   const tokenActions = (
     <div className="flex flex-wrap justify-center gap-3">
-      <Button type="text" onClick={() => void state.onBackToLogin()}>
+      <Button type="text" onClick={() => void state.onBackToLogin()} autoInsertSpace={false}>
         {state.t("invite:INVITE_ACTION_BACK_TO_LOGIN")}
       </Button>
-      <Button type="primary" onClick={() => state.setTokenDialogOpen(true)}>
+      <Button type="primary" onClick={() => state.setTokenDialogOpen(true)} autoInsertSpace={false}>
         {state.t("invite:INVITE_ACTION_ENTER_TOKEN")}
       </Button>
     </div>
   );
   const tokenActionsWithRetry = (
     <div className="flex flex-wrap justify-center gap-3">
-      <Button type="text" onClick={() => state.setTokenDialogOpen(true)}>
+      <Button type="text" onClick={() => state.setTokenDialogOpen(true)} autoInsertSpace={false}>
         {state.t("invite:INVITE_ACTION_ENTER_TOKEN")}
       </Button>
-      <Button type="primary" onClick={() => void state.previewQuery.refetch()}>
+      <Button
+        type="primary"
+        onClick={() => void state.previewQuery.refetch()}
+        autoInsertSpace={false}
+      >
         {state.t("common:RETRY")}
       </Button>
     </div>

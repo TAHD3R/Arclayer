@@ -375,7 +375,12 @@ export function TeamMembersView() {
       className="h-full"
       contentClassName="min-h-0 flex flex-col"
       action={
-        <AntButton type="primary" icon={<Plus size={16} />} onClick={() => setInviteOpen(true)}>
+        <AntButton
+          type="primary"
+          icon={<Plus size={16} />}
+          onClick={() => setInviteOpen(true)}
+          autoInsertSpace={false}
+        >
           {t("team:TEAM_INVITE_MEMBER")}
         </AntButton>
       }

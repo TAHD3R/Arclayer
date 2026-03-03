@@ -65,6 +65,7 @@ export function WorkspaceMembersPopover({ workspace }: { workspace: Organization
         <AntButton
           type="text"
           className="!h-auto !px-2 !py-1 !font-medium !text-foreground hover:!bg-accent"
+          autoInsertSpace={false}
         >
           {t("common:ORG_WORKSPACES_MEMBERS_COUNT", { count: workspace.memberCount })}
         </AntButton>
@@ -91,7 +92,11 @@ export function WorkspaceMembersPopover({ workspace }: { workspace: Organization
             ) : membersQuery.isError ? (
               <div className="py-6 text-center">
                 <div className="text-label-secondary">{t("common:REQUEST_FAILED")}</div>
-                <AntButton className="mt-2" onClick={() => void membersQuery.refetch()}>
+                <AntButton
+                  className="mt-2"
+                  onClick={() => void membersQuery.refetch()}
+                  autoInsertSpace={false}
+                >
                   {t("common:RETRY")}
                 </AntButton>
               </div>

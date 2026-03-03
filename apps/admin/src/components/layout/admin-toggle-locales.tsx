@@ -32,6 +32,7 @@ export function AdminLocaleToggle(props: { className?: string }) {
           onMouseEnter={() => setHovered(true)}
           onMouseLeave={() => setHovered(false)}
           icon={<LanguagesIcon size={18} isHovered={hovered} className="text-current" />}
+          autoInsertSpace={false}
         />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">

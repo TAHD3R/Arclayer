@@ -103,6 +103,7 @@ export function WorkspaceSettingsBasicsAccessPanel(props: {
                     })
                     .catch(() => undefined);
                 }}
+                autoInsertSpace={false}
               >
                 {t("settings:SETTINGS_WORKSPACE_ASSIGN_ROLE_ALL_CONFIRM")}
               </Button>

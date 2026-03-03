@@ -30,6 +30,7 @@ export function MembersFilterPopover({
           icon={<Filter size={18} />}
           title={t("common:ORG_MEMBERS_FILTER_TITLE")}
           className="h-10! bg-transparent! hover:bg-accent/40!"
+          autoInsertSpace={false}
         >
           {t("common:ORG_MEMBERS_FILTER_TITLE")}
         </AntButton>
@@ -142,9 +143,13 @@ export function MembersFilterPopover({
         </div>
 
         <div className="mt-4 flex items-center justify-between">
-          <AntButton onClick={() => onChange({})}>{t("team:TEAM_FILTER_RESET")}</AntButton>
+          <AntButton onClick={() => onChange({})} autoInsertSpace={false}>
+            {t("team:TEAM_FILTER_RESET")}
+          </AntButton>
           <PopoverClose asChild>
-            <AntButton type="primary">{t("team:TEAM_FILTER_DONE")}</AntButton>
+            <AntButton type="primary" autoInsertSpace={false}>
+              {t("team:TEAM_FILTER_DONE")}
+            </AntButton>
           </PopoverClose>
         </div>
       </PopoverContent>

@@ -99,6 +99,7 @@ export function ResetUserPasswordDialog(props: {
             type="text"
             onClick={() => props.onOpenChange(false)}
             disabled={mutation.isPending}
+            autoInsertSpace={false}
           >
             {t("common:CANCEL")}
           </AntButton>
@@ -107,6 +108,7 @@ export function ResetUserPasswordDialog(props: {
             loading={mutation.isPending}
             disabled={mutation.isPending || !props.member}
             onClick={() => void onSubmit()}
+            autoInsertSpace={false}
           >
             {t("common:CONFIRM")}
           </AntButton>

@@ -156,6 +156,7 @@ export function ExtensionInstallDialog({
               type="text"
               onClick={() => onOpenChange(false)}
               disabled={step === "installing"}
+              autoInsertSpace={false}
             >
               {t("common:CANCEL")}
             </Button>
@@ -164,6 +165,7 @@ export function ExtensionInstallDialog({
               loading={step === "installing"}
               disabled={step === "installing"}
               onClick={() => void confirmInstall()}
+              autoInsertSpace={false}
             >
               {t("plugin:PLUGIN_CENTER_CONFIRM_INSTALL_ACTION")}
             </Button>
@@ -200,6 +202,7 @@ export function ExtensionInstallDialog({
                   disabled={disabled}
                   icon={<Upload className="size-4" />}
                   onClick={() => openFileDialog()}
+                  autoInsertSpace={false}
                 >
                   {t("plugin:PLUGIN_CENTER_PICK_FILE")}
                 </Button>
@@ -207,6 +210,7 @@ export function ExtensionInstallDialog({
                   disabled={!canValidate}
                   loading={step === "validating"}
                   onClick={() => void validateNow()}
+                  autoInsertSpace={false}
                 >
                   {t("plugin:PLUGIN_CENTER_VALIDATE_ACTION")}
                 </Button>
@@ -285,6 +289,7 @@ export function ExtensionInstallDialog({
                   type="primary"
                   disabled={!file || disabled}
                   onClick={() => void validateNow()}
+                  autoInsertSpace={false}
                 >
                   {t("common:RETRY")}
                 </Button>,

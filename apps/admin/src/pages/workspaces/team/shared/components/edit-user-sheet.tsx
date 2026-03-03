@@ -206,6 +206,7 @@ export function EditUserSheet(props: {
                       setAvatarActionOpen(true);
                     }}
                     aria-label={t("team:TEAM_FIELD_AVATAR")}
+                    autoInsertSpace={false}
                   />
                   <Select
                     open={avatarActionOpen}
@@ -232,6 +233,7 @@ export function EditUserSheet(props: {
                             setAvatarActionOpen(false);
                             setAvatarPickerOpen(true);
                           }}
+                          autoInsertSpace={false}
                         >
                           {t("team:TEAM_AVATAR_ACTION_UPLOAD")}
                         </AntButton>
@@ -248,6 +250,7 @@ export function EditUserSheet(props: {
                               shouldValidate: true,
                             });
                           }}
+                          autoInsertSpace={false}
                         >
                           {t("team:TEAM_AVATAR_ACTION_REMOVE")}
                         </AntButton>
@@ -335,6 +338,7 @@ export function EditUserSheet(props: {
                 type="text"
                 onClick={() => props.onOpenChange(false)}
                 disabled={mutation.isPending}
+                autoInsertSpace={false}
               >
                 {t("common:CANCEL")}
               </AntButton>
@@ -342,6 +346,7 @@ export function EditUserSheet(props: {
                 type="primary"
                 loading={mutation.isPending}
                 onClick={() => void onSubmit()}
+                autoInsertSpace={false}
               >
                 {t("common:CONFIRM")}
               </AntButton>

@@ -163,6 +163,7 @@ export function ComponentsPanel() {
                   }
                 })();
               }}
+              autoInsertSpace={false}
             >
               {t("content_pages:EDITOR_CONTENT_REF_INSERT_ACTION")}
             </Button>

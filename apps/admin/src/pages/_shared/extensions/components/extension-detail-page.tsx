@@ -162,7 +162,9 @@ export function ExtensionDetailPage(props: ExtensionDetailPageProps) {
       width="fixed"
       action={
         <div className="flex items-center gap-3">
-          <Button onClick={props.onBack}>{t("common:BACK")}</Button>
+          <Button onClick={props.onBack} autoInsertSpace={false}>
+            {t("common:BACK")}
+          </Button>
           {props.extension ? (
             <Switch
               checked={props.extension.enabled}

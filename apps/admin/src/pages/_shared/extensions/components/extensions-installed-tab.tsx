@@ -60,7 +60,12 @@ export function ExtensionsInstalledTab({
             actions={
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button type="text" size="small" icon={<MoreVertical className="size-3.5" />} />
+                  <Button
+                    type="text"
+                    size="small"
+                    icon={<MoreVertical className="size-3.5" />}
+                    autoInsertSpace={false}
+                  />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   {buildMenuItems(p).map((item) =>

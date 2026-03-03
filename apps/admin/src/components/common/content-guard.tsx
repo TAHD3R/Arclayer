@@ -112,7 +112,7 @@ export function ContentGuard(props: ContentGuardProps) {
     if (props.hideRetry) return null;
     if (!props.onRetry) return null;
     return (
-      <Button type="primary" size="large" onClick={props.onRetry}>
+      <Button type="primary" size="large" onClick={props.onRetry} autoInsertSpace={false}>
         {t("common:RETRY")}
       </Button>
     );

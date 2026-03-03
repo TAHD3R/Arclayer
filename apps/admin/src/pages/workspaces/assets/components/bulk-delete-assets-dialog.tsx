@@ -29,17 +29,17 @@ export function BulkDeleteAssetsDialog(props: BulkDeleteAssetsDialogProps) {
     <AlertDialog open={props.open} onOpenChange={props.onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle className="text-title2 font-bold!">
+          <AlertDialogTitle>
             {t("assets:ASSET_BULK_DELETE_CONFIRM_TITLE", { count: props.assetCount })}
           </AlertDialogTitle>
-          <AlertDialogDescription className="text-body">
+          <AlertDialogDescription>
             {t("assets:ASSET_BULK_DELETE_CONFIRM_DESC")}
           </AlertDialogDescription>
         </AlertDialogHeader>
 
         <AlertDialogFooter>
           <AlertDialogCancelPrimitive asChild>
-            <Button type="text" disabled={Boolean(props.confirmLoading)}>
+            <Button type="text" disabled={Boolean(props.confirmLoading)} autoInsertSpace={false}>
               {t("common:CANCEL")}
             </Button>
           </AlertDialogCancelPrimitive>
@@ -52,6 +52,7 @@ export function BulkDeleteAssetsDialog(props: BulkDeleteAssetsDialogProps) {
               onClick={async () => {
                 await props.onConfirm();
               }}
+              autoInsertSpace={false}
             >
               {t("assets:ASSET_BULK_DELETE_CONFIRM")}
             </Button>

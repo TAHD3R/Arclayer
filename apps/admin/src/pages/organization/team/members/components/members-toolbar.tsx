@@ -15,7 +15,7 @@ export function OrganizationMembersInviteAction({
   const { t } = useTranslation(["common"]);
 
   return (
-    <AntButton type="primary" icon={<Plus size={16} />} onClick={onInvite}>
+    <AntButton type="primary" icon={<Plus size={16} />} onClick={onInvite} autoInsertSpace={false}>
       {t("common:ORG_MEMBERS_INVITE")}
     </AntButton>
   );

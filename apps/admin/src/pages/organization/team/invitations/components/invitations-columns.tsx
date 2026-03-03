@@ -122,10 +122,16 @@ export function useOrganizationInvitationColumns(options: UseOrganizationInvitat
               type="text"
               icon={<RotateCcw className="size-4" />}
               onClick={() => onOpenRenewInvitation(row.original)}
+              autoInsertSpace={false}
             >
               {t("team:TEAM_ACTION_RENEW")}
             </AntButton>
-            <AntButton type="text" danger onClick={() => onOpenRevokeInvitation(row.original)}>
+            <AntButton
+              type="text"
+              danger
+              onClick={() => onOpenRevokeInvitation(row.original)}
+              autoInsertSpace={false}
+            >
               {t("team:TEAM_ACTION_DELETE")}
             </AntButton>
           </div>
@@ -220,7 +226,12 @@ export function useOrganizationInvitationColumns(options: UseOrganizationInvitat
         cell: ({ row }) => {
           const text = row.original.inviteUrl || row.original.displayCode;
           return (
-            <AntButton type="link" className="font-mono" onClick={() => onCopyLinkText(text)}>
+            <AntButton
+              type="link"
+              className="font-mono"
+              onClick={() => onCopyLinkText(text)}
+              autoInsertSpace={false}
+            >
               {row.original.displayCode}
             </AntButton>
           );
@@ -281,6 +292,7 @@ export function useOrganizationInvitationColumns(options: UseOrganizationInvitat
               type="text"
               icon={<RotateCcw className="size-4" />}
               onClick={() => onOpenRenewLink(row.original)}
+              autoInsertSpace={false}
             >
               {t("team:TEAM_ACTION_RENEW")}
             </AntButton>
@@ -289,6 +301,7 @@ export function useOrganizationInvitationColumns(options: UseOrganizationInvitat
               danger
               icon={<Link2Off className="size-4" />}
               onClick={() => onOpenDisableLink(row.original)}
+              autoInsertSpace={false}
             >
               {t("team:TEAM_INVITE_LINKS_ACTION_DISABLE")}
             </AntButton>

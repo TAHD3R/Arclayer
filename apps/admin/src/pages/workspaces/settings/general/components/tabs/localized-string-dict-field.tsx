@@ -124,6 +124,7 @@ export function LocalizedStringDictField(props: {
                     type="text"
                     onClick={() => removeLocale(locale)}
                     disabled={isDefault}
+                    autoInsertSpace={false}
                   >
                     {t("settings:SETTINGS_I18N_REMOVE_LOCALE")}
                   </Button>

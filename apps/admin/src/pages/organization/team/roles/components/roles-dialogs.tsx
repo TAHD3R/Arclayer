@@ -1,5 +1,16 @@
 import { Button as AntButton, Input, Select } from "antd";
-import { ConfirmDialog } from "@celestial/ui/confirm-dialog";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@celestial/ui/alert-dialog";
+import {
+  AlertDialogAction as AlertDialogActionPrimitive,
+  AlertDialogCancel as AlertDialogCancelPrimitive,
+} from "@celestial/ui/radix-primitives/radix-alert-dialog";
 import { SettingDialog } from "@celestial/ui/setting-dialog";
 import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 
@@ -47,10 +58,11 @@ export function CreateRoleDialog(props: CreateRoleDialogProps) {
       contentClassName="max-w-[640px]"
       footer={
         <>
-          <AntButton type="text" onClick={onCancel} disabled={submitting}>
+          <AntButton autoInsertSpace={false} type="text" onClick={onCancel} disabled={submitting}>
             {t("common:CANCEL")}
           </AntButton>
           <AntButton
+            autoInsertSpace={false}
             type="primary"
             loading={submitting}
             onClick={onConfirm}
@@ -116,21 +128,40 @@ export function DeleteRoleDialog(props: DeleteRoleDialogProps) {
   const { open, onOpenChange, onCancel, onConfirm, roleName, submitting, t } = props;
 
   return (
-    <ConfirmDialog
+    <AlertDialog
       open={open}
       onOpenChange={(nextOpen) => {
         onOpenChange(nextOpen);
         if (!nextOpen) onCancel();
       }}
-      title={t("team:TEAM_ROLES_DELETE_TITLE")}
-      description={t("team:TEAM_ROLES_DELETE_DESC", { roleName })}
-      cancelText={t("common:CANCEL")}
-      confirmText={t("team:TEAM_ACTION_DELETE")}
-      danger
-      loading={submitting}
-      onConfirm={async () => {
-        onConfirm();
-      }}
-    />
+    >
+      <AlertDialogContent className="sm:max-w-[520px]">
+        <AlertDialogHeader>
+          <AlertDialogTitle>{t("team:TEAM_ROLES_DELETE_TITLE")}</AlertDialogTitle>
+          <AlertDialogDescription className="text-body">
+            {t("team:TEAM_ROLES_DELETE_DESC", { roleName })}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+
+        <AlertDialogFooter>
+          <AlertDialogCancelPrimitive asChild>
+            <AntButton autoInsertSpace={false} type="text" onClick={onCancel} disabled={submitting}>
+              {t("common:CANCEL")}
+            </AntButton>
+          </AlertDialogCancelPrimitive>
+          <AlertDialogActionPrimitive asChild>
+            <AntButton
+              autoInsertSpace={false}
+              type="primary"
+              danger
+              loading={submitting}
+              onClick={onConfirm}
+            >
+              {t("team:TEAM_ACTION_DELETE")}
+            </AntButton>
+          </AlertDialogActionPrimitive>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }

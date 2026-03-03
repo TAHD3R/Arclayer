@@ -47,6 +47,7 @@ export function ContentPagesFilterPopover(props: ContentPagesFilterPopoverProps)
           icon={<Filter size={18} />}
           title={props.t("content_pages:FILTER_TITLE")}
           className="h-10! bg-transparent! hover:bg-accent/40!"
+          autoInsertSpace={false}
         >
           {props.t("content_pages:FILTER_TITLE")}
         </Button>
@@ -97,9 +98,13 @@ export function ContentPagesFilterPopover(props: ContentPagesFilterPopoverProps)
         </div>
 
         <div className="mt-4 flex items-center justify-between">
-          <Button onClick={props.onReset}>{props.t("content_pages:FILTER_RESET")}</Button>
+          <Button onClick={props.onReset} autoInsertSpace={false}>
+            {props.t("content_pages:FILTER_RESET")}
+          </Button>
           <PopoverClose asChild>
-            <Button type="primary">{props.t("content_pages:FILTER_DONE")}</Button>
+            <Button type="primary" autoInsertSpace={false}>
+              {props.t("content_pages:FILTER_DONE")}
+            </Button>
           </PopoverClose>
         </div>
       </PopoverContent>

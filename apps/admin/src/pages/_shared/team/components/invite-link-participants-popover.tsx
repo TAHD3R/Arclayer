@@ -101,6 +101,7 @@ export function InviteLinkParticipantsPopover(props: {
               onClick={() => {
                 void query.refetch().catch((err) => notifyError(err));
               }}
+              autoInsertSpace={false}
             >
               {t("common:RETRY")}
             </Button>

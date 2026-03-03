@@ -3,7 +3,18 @@ import * as React from "react";
 import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 
 import type { TeamInvitation, TeamInviteLink } from "@/types/api";
-import { ConfirmDialog } from "@celestial/ui/confirm-dialog";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@celestial/ui/alert-dialog";
+import {
+  AlertDialogAction as AlertDialogActionPrimitive,
+  AlertDialogCancel as AlertDialogCancelPrimitive,
+} from "@celestial/ui/radix-primitives/radix-alert-dialog";
 import { SettingDialog } from "@celestial/ui/setting-dialog";
 
 import type { RenewExpiresInSeconds } from "../types";
@@ -57,28 +68,51 @@ export function TeamInvitationsDialogs(props: TeamInvitationsDialogsProps) {
 
   return (
     <>
-      <ConfirmDialog
+      <AlertDialog
         open={Boolean(deleteInvitation)}
         onOpenChange={(open) => {
           if (!open) setDeleteInvitation(null);
         }}
-        title={t("team:TEAM_INVITATIONS_DELETE_TITLE")}
-        description={
-          deleteInvitation
-            ? t("team:TEAM_INVITATIONS_DELETE_DESC", { email: deleteInvitation.email })
-            : undefined
-        }
-        cancelText={t("common:CANCEL")}
-        confirmText={t("team:TEAM_ACTION_DELETE")}
-        danger
-        loading={deleteInvitationPending}
-        onConfirm={async () => {
-          const invitation = deleteInvitation;
-          if (!invitation) return;
-          await onDeleteInvitation(invitation.id);
-          setDeleteInvitation(null);
-        }}
-      />
+      >
+        <AlertDialogContent className="sm:max-w-[520px]">
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("team:TEAM_INVITATIONS_DELETE_TITLE")}</AlertDialogTitle>
+            {deleteInvitation ? (
+              <AlertDialogDescription className="text-body">
+                {t("team:TEAM_INVITATIONS_DELETE_DESC", { email: deleteInvitation.email })}
+              </AlertDialogDescription>
+            ) : null}
+          </AlertDialogHeader>
+
+          <AlertDialogFooter>
+            <AlertDialogCancelPrimitive asChild>
+              <AntButton
+                autoInsertSpace={false}
+                type="text"
+                onClick={() => setDeleteInvitation(null)}
+                disabled={deleteInvitationPending}
+              >
+                {t("common:CANCEL")}
+              </AntButton>
+            </AlertDialogCancelPrimitive>
+            <AlertDialogActionPrimitive asChild>
+              <AntButton
+                autoInsertSpace={false}
+                type="primary"
+                danger
+                loading={deleteInvitationPending}
+                onClick={() => {
+                  const invitation = deleteInvitation;
+                  if (!invitation) return;
+                  void onDeleteInvitation(invitation.id).then(() => setDeleteInvitation(null));
+                }}
+              >
+                {t("team:TEAM_ACTION_DELETE")}
+              </AntButton>
+            </AlertDialogActionPrimitive>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <SettingDialog
         open={Boolean(renewInvitation)}
@@ -93,6 +127,7 @@ export function TeamInvitationsDialogs(props: TeamInvitationsDialogsProps) {
         footer={
           <>
             <AntButton
+              autoInsertSpace={false}
               type="text"
               onClick={() => setRenewInvitation(null)}
               disabled={renewInvitationPending}
@@ -100,6 +135,7 @@ export function TeamInvitationsDialogs(props: TeamInvitationsDialogsProps) {
               {t("common:CANCEL")}
             </AntButton>
             <AntButton
+              autoInsertSpace={false}
               type="primary"
               loading={renewInvitationPending}
               onClick={() => {
@@ -117,18 +153,20 @@ export function TeamInvitationsDialogs(props: TeamInvitationsDialogsProps) {
         }
       >
         {renewInvitation ? (
-          <div className="grid gap-1.5 py-2">
-            <label className="font-semibold text-foreground">
-              {t("team:TEAM_INVITE_LINK_FIELD_EXPIRES")}
-            </label>
-            <div className="text-label-secondary">{t("team:TEAM_INVITE_FIELD_EXPIRES_HELP")}</div>
-            <Select<RenewExpiresInSeconds>
-              value={renewExpiresInSeconds}
-              onChange={(value) => setRenewExpiresInSeconds(value)}
-              options={renewOptions}
-              className="w-full"
-              getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
-            />
+          <div className="grid gap-4 py-2">
+            <div className="grid gap-1.5">
+              <label className="font-semibold text-foreground">
+                {t("team:TEAM_INVITE_LINK_FIELD_EXPIRES")}
+              </label>
+              <div className="text-label-secondary">{t("team:TEAM_INVITE_FIELD_EXPIRES_HELP")}</div>
+              <Select<RenewExpiresInSeconds>
+                value={renewExpiresInSeconds}
+                onChange={(value) => setRenewExpiresInSeconds(value)}
+                options={renewOptions}
+                className="w-full"
+                getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
+              />
+            </div>
           </div>
         ) : null}
       </SettingDialog>
@@ -145,10 +183,16 @@ export function TeamInvitationsDialogs(props: TeamInvitationsDialogsProps) {
         contentClassName="sm:max-w-xl"
         footer={
           <>
-            <AntButton type="text" onClick={() => setRenewLink(null)} disabled={renewLinkPending}>
+            <AntButton
+              autoInsertSpace={false}
+              type="text"
+              onClick={() => setRenewLink(null)}
+              disabled={renewLinkPending}
+            >
               {t("common:CANCEL")}
             </AntButton>
             <AntButton
+              autoInsertSpace={false}
               type="primary"
               loading={renewLinkPending}
               onClick={() => {
@@ -166,18 +210,20 @@ export function TeamInvitationsDialogs(props: TeamInvitationsDialogsProps) {
         }
       >
         {renewLink ? (
-          <div className="grid gap-1.5 py-2">
-            <label className="font-semibold text-foreground">
-              {t("team:TEAM_INVITE_LINK_FIELD_EXPIRES")}
-            </label>
-            <div className="text-label-secondary">{t("team:TEAM_INVITE_FIELD_EXPIRES_HELP")}</div>
-            <Select<RenewExpiresInSeconds>
-              value={renewExpiresInSeconds}
-              onChange={(value) => setRenewExpiresInSeconds(value)}
-              options={renewOptions}
-              className="w-full"
-              getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
-            />
+          <div className="grid gap-4 py-2">
+            <div className="grid gap-1.5">
+              <label className="font-semibold text-foreground">
+                {t("team:TEAM_INVITE_LINK_FIELD_EXPIRES")}
+              </label>
+              <div className="text-label-secondary">{t("team:TEAM_INVITE_FIELD_EXPIRES_HELP")}</div>
+              <Select<RenewExpiresInSeconds>
+                value={renewExpiresInSeconds}
+                onChange={(value) => setRenewExpiresInSeconds(value)}
+                options={renewOptions}
+                className="w-full"
+                getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
+              />
+            </div>
           </div>
         ) : null}
       </SettingDialog>

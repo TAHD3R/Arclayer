@@ -56,6 +56,7 @@ export function RolesMatrixTable(props: RolesMatrixTableProps) {
                               className="!h-8 !w-8 !p-0"
                               icon={<MoreVertical className="h-4 w-4" />}
                               aria-label={t("team:TEAM_USER_ACTIONS")}
+                              autoInsertSpace={false}
                             />
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">

@@ -1,6 +1,7 @@
 "use client";
 
 import { Button as AntButton, Input, Select, Tag } from "antd";
+import { UserPlus } from "lucide-react";
 import * as React from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
@@ -271,6 +272,7 @@ export function InviteMembersDialog(props: {
       footer={
         <>
           <AntButton
+            autoInsertSpace={false}
             type="text"
             onClick={() => props.onOpenChange(false)}
             disabled={inviteMutation.isPending}
@@ -278,7 +280,9 @@ export function InviteMembersDialog(props: {
             {t("common:CANCEL")}
           </AntButton>
           <AntButton
+            autoInsertSpace={false}
             type="primary"
+            icon={<UserPlus className="size-4" aria-hidden="true" />}
             loading={inviteMutation.isPending}
             onClick={() => void onSubmit()}
           >
@@ -287,7 +291,7 @@ export function InviteMembersDialog(props: {
         </>
       }
     >
-      <form onSubmit={onSubmit} className="grid gap-5 py-2">
+      <form onSubmit={onSubmit} className="grid gap-4 py-2">
         {props.mode === "email" ? (
           <div className="grid gap-1.5">
             <label className="font-semibold text-foreground" htmlFor="to">

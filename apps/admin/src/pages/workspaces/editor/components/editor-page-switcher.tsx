@@ -205,6 +205,7 @@ function PageListPanel({
             closeFloatingPanel();
             setActiveMenuId("pages");
           }}
+          autoInsertSpace={false}
         >
           {t("content_pages:EDITOR_MENU_PAGES")}
         </Button>

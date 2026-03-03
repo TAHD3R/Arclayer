@@ -1,5 +1,7 @@
 @layer theme, base, antd, components, utilities;
 
+@config "../tailwind.config.ts";
+
 @import "@celestial/theme/tokens.css" layer(theme);
 @import "tailwindcss";
 @plugin "tailwindcss-animate";

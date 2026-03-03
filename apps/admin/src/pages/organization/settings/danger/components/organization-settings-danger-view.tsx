@@ -205,7 +205,7 @@ export function OrganizationSettingsDangerView(props: { organizationId: string }
           description={t("settings:SETTINGS_ORG_LEAVE_DESC")}
           footer={
             <div className="flex w-full justify-end gap-2">
-              <Button type="text" onClick={closeLeaveDialog}>
+              <Button type="text" onClick={closeLeaveDialog} autoInsertSpace={false}>
                 {t("common:CANCEL")}
               </Button>
               <Button
@@ -222,6 +222,7 @@ export function OrganizationSettingsDangerView(props: { organizationId: string }
                     await navigate({ to: "/login", replace: true });
                   });
                 }}
+                autoInsertSpace={false}
               >
                 {t("settings:SETTINGS_ORG_LEAVE_CONFIRM_BUTTON")}
               </Button>
@@ -268,7 +269,7 @@ export function OrganizationSettingsDangerView(props: { organizationId: string }
           description={t("settings:SETTINGS_ORG_DELETE_DESC")}
           footer={
             <div className="flex w-full justify-end gap-2">
-              <Button type="text" onClick={closeDeleteDialog}>
+              <Button type="text" onClick={closeDeleteDialog} autoInsertSpace={false}>
                 {t("common:CANCEL")}
               </Button>
               <Button
@@ -286,6 +287,7 @@ export function OrganizationSettingsDangerView(props: { organizationId: string }
                     await navigate({ to: "/login", replace: true });
                   });
                 }}
+                autoInsertSpace={false}
               >
                 {t("common:DELETE")}
               </Button>

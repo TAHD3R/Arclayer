@@ -47,11 +47,9 @@ export function ConfirmDialog(props: ConfirmDialogProps) {
     <AlertDialog open={props.open} onOpenChange={props.onOpenChange}>
       <AlertDialogContent className="sm:max-w-[520px]">
         <AlertDialogHeader>
-          <AlertDialogTitle className="text-title2 font-bold">{displayTitle}</AlertDialogTitle>
+          <AlertDialogTitle>{displayTitle}</AlertDialogTitle>
           {displayDescription ? (
-            <AlertDialogDescription className="text-body">
-              {displayDescription}
-            </AlertDialogDescription>
+            <AlertDialogDescription>{displayDescription}</AlertDialogDescription>
           ) : null}
         </AlertDialogHeader>
 

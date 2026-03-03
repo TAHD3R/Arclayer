@@ -62,6 +62,7 @@ export function TeamMembersFilterPopover(props: {
           icon={<Filter size={18} />}
           title={t("team:TEAM_FILTER_TITLE")}
           className="h-10! bg-transparent! hover:bg-accent/40!"
+          autoInsertSpace={false}
         >
           {t("team:TEAM_FILTER_TITLE")}
         </Button>
@@ -150,12 +151,15 @@ export function TeamMembersFilterPopover(props: {
               });
               props.onSortChange(props.defaultSort ?? "-created_at");
             }}
+            autoInsertSpace={false}
           >
             {t("team:TEAM_FILTER_RESET")}
           </Button>
 
           <PopoverClose asChild>
-            <Button type="primary">{t("team:TEAM_FILTER_DONE")}</Button>
+            <Button type="primary" autoInsertSpace={false}>
+              {t("team:TEAM_FILTER_DONE")}
+            </Button>
           </PopoverClose>
         </div>
       </PopoverContent>

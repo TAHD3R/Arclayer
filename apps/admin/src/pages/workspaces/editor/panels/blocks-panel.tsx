@@ -213,6 +213,7 @@ export function BlocksPanel() {
             setLabel("");
             setCreateOpen(true);
           }}
+          autoInsertSpace={false}
         >
           {t("content_pages:EDITOR_BLOCKS_CREATE")}
         </Button>

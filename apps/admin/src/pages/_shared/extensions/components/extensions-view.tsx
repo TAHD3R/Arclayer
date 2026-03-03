@@ -1,7 +1,18 @@
 import { Button } from "antd";
 import { Upload } from "lucide-react";
 
-import { ConfirmDialog } from "@celestial/ui/confirm-dialog";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@celestial/ui/alert-dialog";
+import {
+  AlertDialogAction as AlertDialogActionPrimitive,
+  AlertDialogCancel as AlertDialogCancelPrimitive,
+} from "@celestial/ui/radix-primitives/radix-alert-dialog";
 import { ContentGuard } from "@/components/common/content-guard";
 import { DefaultPage } from "@/components/common/default-page";
 import { ExtensionInstallDialog } from "./extension-install-dialog";
@@ -72,6 +83,7 @@ export function ExtensionsView({ scope = "workspace", organizationId }: Extensio
       action={
         !isOrganizationScope ? (
           <Button
+            autoInsertSpace={false}
             type="primary"
             icon={<Upload className="size-4" />}
             disabled={!ext.canManage}
@@ -142,43 +154,66 @@ export function ExtensionsView({ scope = "workspace", organizationId }: Extensio
         />
       ) : null}
 
-      <ConfirmDialog
+      <AlertDialog
         open={ext.confirm.open}
         onOpenChange={(open) =>
           open ? ext.setConfirm((prev) => ({ ...prev, open: true })) : ext.closeConfirm()
         }
-        title={
-          ext.confirm.type === "reset"
-            ? isOrganizationScope
-              ? t("plugin:PLUGIN_CENTER_ORG_RESET_CONFIRM_TITLE")
-              : t("plugin:PLUGIN_CENTER_RESET_CONFIRM_TITLE")
-            : isOrganizationScope
-              ? t("plugin:PLUGIN_CENTER_ORG_UNINSTALL_CONFIRM_TITLE")
-              : t("plugin:PLUGIN_CENTER_UNINSTALL_CONFIRM_TITLE")
-        }
-        description={
-          ext.confirm.type === "reset"
-            ? isOrganizationScope
-              ? t("plugin:PLUGIN_CENTER_ORG_RESET_CONFIRM_DESC", {
-                  name: ext.confirm.extension?.name || "",
-                })
-              : t("plugin:PLUGIN_CENTER_RESET_CONFIRM_DESC", {
-                  name: ext.confirm.extension?.name || "",
-                })
-            : isOrganizationScope
-              ? t("plugin:PLUGIN_CENTER_ORG_UNINSTALL_CONFIRM_DESC", {
-                  name: ext.confirm.extension?.name || "",
-                })
-              : t("plugin:PLUGIN_CENTER_UNINSTALL_CONFIRM_DESC", {
-                  name: ext.confirm.extension?.name || "",
-                })
-        }
-        cancelText={t("common:CANCEL")}
-        confirmText={t("common:CONFIRM")}
-        danger
-        loading={ext.confirmLoading}
-        onConfirm={ext.handleConfirm}
-      />
+      >
+        <AlertDialogContent className="sm:max-w-[520px]">
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {ext.confirm.type === "reset"
+                ? isOrganizationScope
+                  ? t("plugin:PLUGIN_CENTER_ORG_RESET_CONFIRM_TITLE")
+                  : t("plugin:PLUGIN_CENTER_RESET_CONFIRM_TITLE")
+                : isOrganizationScope
+                  ? t("plugin:PLUGIN_CENTER_ORG_UNINSTALL_CONFIRM_TITLE")
+                  : t("plugin:PLUGIN_CENTER_UNINSTALL_CONFIRM_TITLE")}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-body">
+              {ext.confirm.type === "reset"
+                ? isOrganizationScope
+                  ? t("plugin:PLUGIN_CENTER_ORG_RESET_CONFIRM_DESC", {
+                      name: ext.confirm.extension?.name || "",
+                    })
+                  : t("plugin:PLUGIN_CENTER_RESET_CONFIRM_DESC", {
+                      name: ext.confirm.extension?.name || "",
+                    })
+                : isOrganizationScope
+                  ? t("plugin:PLUGIN_CENTER_ORG_UNINSTALL_CONFIRM_DESC", {
+                      name: ext.confirm.extension?.name || "",
+                    })
+                  : t("plugin:PLUGIN_CENTER_UNINSTALL_CONFIRM_DESC", {
+                      name: ext.confirm.extension?.name || "",
+                    })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancelPrimitive asChild>
+              <Button
+                autoInsertSpace={false}
+                type="text"
+                onClick={ext.closeConfirm}
+                disabled={ext.confirmLoading}
+              >
+                {t("common:CANCEL")}
+              </Button>
+            </AlertDialogCancelPrimitive>
+            <AlertDialogActionPrimitive asChild>
+              <Button
+                autoInsertSpace={false}
+                type="primary"
+                danger
+                loading={ext.confirmLoading}
+                onClick={() => void ext.handleConfirm()}
+              >
+                {t("common:CONFIRM")}
+              </Button>
+            </AlertDialogActionPrimitive>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DefaultPage>
   );
 }

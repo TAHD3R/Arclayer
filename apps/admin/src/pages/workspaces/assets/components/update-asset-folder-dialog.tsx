@@ -1,4 +1,5 @@
 import { Button, Input } from "antd";
+import { Save } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -49,11 +50,18 @@ export function UpdateAssetFolderDialog(props: UpdateAssetFolderDialogProps) {
       }
       footer={
         <>
-          <Button type="text" disabled={disabled} onClick={() => props.onOpenChange(false)}>
+          <Button
+            autoInsertSpace={false}
+            type="text"
+            disabled={disabled}
+            onClick={() => props.onOpenChange(false)}
+          >
             {t("common:CANCEL")}
           </Button>
           <Button
+            autoInsertSpace={false}
             type="primary"
+            icon={<Save className="size-4" aria-hidden="true" />}
             loading={props.confirmLoading}
             disabled={!canSubmit}
             onClick={async () => {
@@ -69,7 +77,7 @@ export function UpdateAssetFolderDialog(props: UpdateAssetFolderDialogProps) {
         </>
       }
     >
-      <div className="mt-4 space-y-4">
+      <div className="grid gap-4 py-2">
         <div className="grid gap-1.5">
           <label className="font-semibold text-foreground">{t("assets:ASSET_FOLDER_NAME")}</label>
           <div className="text-label-secondary">{t("assets:ASSET_FOLDER_FIELD_NAME_HELP")}</div>

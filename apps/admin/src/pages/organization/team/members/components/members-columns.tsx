@@ -78,6 +78,7 @@ export function createOrganizationMemberColumns({
                     className="h-8! w-8! p-0!"
                     icon={<MoreVertical className="size-4" />}
                     aria-label={t("team:TEAM_USER_ACTIONS")}
+                    autoInsertSpace={false}
                   />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">

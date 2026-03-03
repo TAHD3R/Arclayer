@@ -151,6 +151,7 @@ export function ActivityFilterPopover(props: {
           aria-label={t("activity:ACTIVITY_FILTER_TITLE")}
           style={{ height: 40 }}
           className="bg-transparent! hover:bg-accent/40!"
+          autoInsertSpace={false}
         />
       </PopoverTrigger>
 
@@ -352,6 +353,7 @@ export function ActivityFilterPopover(props: {
               if (!props.defaultValue.occurredFrom && !props.defaultValue.occurredTo)
                 setRangeValue(null);
             }}
+            autoInsertSpace={false}
           >
             {t("activity:ACTIVITY_FILTER_RESET")}
           </Button>
@@ -362,6 +364,7 @@ export function ActivityFilterPopover(props: {
               onClick={() => {
                 props.onApply(normalizeFilters(draft));
               }}
+              autoInsertSpace={false}
             >
               {t("activity:ACTIVITY_FILTER_DONE")}
             </Button>

@@ -40,7 +40,12 @@ export function NotificationsView() {
     !canMarkAllRead && !showDevSeed ? null : (
       <div className="flex items-center gap-2">
         {showDevSeed ? (
-          <Button type="default" loading={n.isSeeding} onClick={() => void n.seedDemo()}>
+          <Button
+            type="default"
+            loading={n.isSeeding}
+            onClick={() => void n.seedDemo()}
+            autoInsertSpace={false}
+          >
             {t("NOTIFICATIONS_DEV_SEED")}
           </Button>
         ) : null}
@@ -50,6 +55,7 @@ export function NotificationsView() {
             disabled={!n.unreadItems.length || n.listQuery.isFetching}
             loading={n.listQuery.isFetching && !n.listQuery.isRefetching}
             onClick={() => void n.markAllRead()}
+            autoInsertSpace={false}
           >
             {t("NOTIFICATIONS_MARK_ALL_AS_READ")}
           </Button>

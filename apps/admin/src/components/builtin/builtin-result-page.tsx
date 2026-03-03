@@ -38,7 +38,11 @@ function DefaultAction(props: { status: BuiltinResultStatus }) {
 
   if (props.status === "401") {
     return (
-      <Button type="primary" onClick={() => void router.navigate({ to: "/login" })}>
+      <Button
+        type="primary"
+        onClick={() => void router.navigate({ to: "/login" })}
+        autoInsertSpace={false}
+      >
         {t("common:GO_LOGIN")}
       </Button>
     );
@@ -46,14 +50,18 @@ function DefaultAction(props: { status: BuiltinResultStatus }) {
 
   if (props.status === "404" || props.status === "403") {
     return (
-      <Button type="primary" onClick={() => void router.navigate({ to: "/" })}>
+      <Button
+        type="primary"
+        onClick={() => void router.navigate({ to: "/" })}
+        autoInsertSpace={false}
+      >
         {t("common:GO_HOME")}
       </Button>
     );
   }
 
   return (
-    <Button type="primary" onClick={() => window.location.reload()}>
+    <Button type="primary" onClick={() => window.location.reload()} autoInsertSpace={false}>
       {t("common:REFRESH")}
     </Button>
   );

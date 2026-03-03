@@ -149,10 +149,20 @@ export function InviteOrganizationMemberDialog(props: {
       contentClassName="sm:max-w-xl"
       footer={
         <>
-          <AntButton type="text" onClick={() => props.onOpenChange(false)} disabled={props.loading}>
+          <AntButton
+            type="text"
+            onClick={() => props.onOpenChange(false)}
+            disabled={props.loading}
+            autoInsertSpace={false}
+          >
             {t("common:CANCEL")}
           </AntButton>
-          <AntButton type="primary" loading={props.loading} onClick={() => void onSubmit()}>
+          <AntButton
+            type="primary"
+            loading={props.loading}
+            onClick={() => void onSubmit()}
+            autoInsertSpace={false}
+          >
             {t("common:CONFIRM")}
           </AntButton>
         </>

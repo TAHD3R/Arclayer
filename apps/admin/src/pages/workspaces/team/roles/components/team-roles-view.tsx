@@ -284,6 +284,7 @@ export function TeamRolesView(props: { workspaceIdOverride?: string | null } = {
           type="primary"
           icon={<Plus className="h-4 w-4" />}
           onClick={() => setCreateOpen(true)}
+          autoInsertSpace={false}
         >
           {t("team:TEAM_ROLES_ADD_ROLE")}
         </Button>
@@ -344,6 +345,7 @@ export function TeamRolesView(props: { workspaceIdOverride?: string | null } = {
                                       className="!h-8 !w-8 !p-0"
                                       icon={<MoreVertical className="h-4 w-4" />}
                                       aria-label={t("team:TEAM_ACTION_DELETE")}
+                                      autoInsertSpace={false}
                                     />
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end">

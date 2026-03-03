@@ -66,10 +66,15 @@ export function OrganizationTeamInvitationsView() {
       description={t("common:ORG_INVITATIONS_DESC")}
       action={
         <div className="flex items-center gap-2">
-          <AntButton onClick={() => setLinkCreateOpen(true)}>
+          <AntButton onClick={() => setLinkCreateOpen(true)} autoInsertSpace={false}>
             {t("team:TEAM_INVITE_CREATE_LINK_ACTION")}
           </AntButton>
-          <AntButton type="primary" icon={<Plus size={16} />} onClick={() => setInviteOpen(true)}>
+          <AntButton
+            type="primary"
+            icon={<Plus size={16} />}
+            onClick={() => setInviteOpen(true)}
+            autoInsertSpace={false}
+          >
             {t("common:ORG_MEMBERS_INVITE")}
           </AntButton>
         </div>

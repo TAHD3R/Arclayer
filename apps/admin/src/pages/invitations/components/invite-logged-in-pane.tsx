@@ -92,6 +92,7 @@ export function InviteLoggedInPane({
           className="!rounded-full !px-8"
           loading={acceptLoading}
           onClick={() => void onJoin()}
+          autoInsertSpace={false}
         >
           {hasBoundEmail && !emailMatches
             ? t("invite:INVITE_ACTION_JOIN_ANYWAY")
@@ -101,7 +102,12 @@ export function InviteLoggedInPane({
 
       {hasBoundEmail && !emailMatches ? (
         <motion.div variants={v} className="mt-3">
-          <Button type="link" size="small" onClick={() => void onLogoutAndSwitch()}>
+          <Button
+            type="link"
+            size="small"
+            onClick={() => void onLogoutAndSwitch()}
+            autoInsertSpace={false}
+          >
             {t("invite:INVITE_ACTION_LOGOUT_SWITCH")}
           </Button>
         </motion.div>

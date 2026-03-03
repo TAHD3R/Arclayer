@@ -41,6 +41,7 @@ export function CreateAssetFolderDialog(props: CreateAssetFolderDialogProps) {
             type="text"
             disabled={Boolean(props.confirmLoading)}
             onClick={() => props.onOpenChange(false)}
+            autoInsertSpace={false}
           >
             {t("common:CANCEL")}
           </Button>
@@ -52,6 +53,7 @@ export function CreateAssetFolderDialog(props: CreateAssetFolderDialogProps) {
               await props.onCreate(name.trim(), description.trim() || null);
               props.onOpenChange(false);
             }}
+            autoInsertSpace={false}
           >
             {t("assets:ASSET_FOLDER_CREATE_CONFIRM")}
           </Button>

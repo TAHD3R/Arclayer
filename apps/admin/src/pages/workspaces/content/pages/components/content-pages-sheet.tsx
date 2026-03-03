@@ -166,10 +166,20 @@ export function ContentPagesSheet(props: ContentPagesSheetProps) {
       }
       footer={
         <div className="flex items-center justify-end gap-2">
-          <Button type="text" onClick={() => props.onOpenChange(false)} disabled={props.submitting}>
+          <Button
+            type="text"
+            onClick={() => props.onOpenChange(false)}
+            disabled={props.submitting}
+            autoInsertSpace={false}
+          >
             {props.t("common:CANCEL")}
           </Button>
-          <Button type="primary" loading={props.submitting} onClick={() => form.submit()}>
+          <Button
+            type="primary"
+            loading={props.submitting}
+            onClick={() => form.submit()}
+            autoInsertSpace={false}
+          >
             {props.mode === "create"
               ? props.t("content_pages:SHEET_ACTION_CREATE")
               : props.t("content_pages:SHEET_ACTION_SAVE")}

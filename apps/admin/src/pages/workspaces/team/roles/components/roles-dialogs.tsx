@@ -3,7 +3,18 @@ import { Controller, type FieldErrors, type UseFormReturn } from "react-hook-for
 import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 
 import type { Role } from "@/types/api";
-import { ConfirmDialog } from "@celestial/ui/confirm-dialog";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@celestial/ui/alert-dialog";
+import {
+  AlertDialogAction as AlertDialogActionPrimitive,
+  AlertDialogCancel as AlertDialogCancelPrimitive,
+} from "@celestial/ui/radix-primitives/radix-alert-dialog";
 import { SettingDialog } from "@celestial/ui/setting-dialog";
 
 import type { CreateRoleFormValues } from "../utils";
@@ -47,25 +58,55 @@ export function TeamRolesDialogs(props: TeamRolesDialogsProps) {
 
   return (
     <>
-      <ConfirmDialog
+      <AlertDialog
         open={deleteOpen}
         onOpenChange={(open) => {
           setDeleteOpen(open);
           if (!open) setDeleteTarget(null);
         }}
-        title={t("team:TEAM_ROLES_DELETE_TITLE")}
-        description={t("team:TEAM_ROLES_DELETE_DESC", { roleName: deleteTarget?.name ?? "" })}
-        cancelText={t("common:CANCEL")}
-        confirmText={t("team:TEAM_ACTION_DELETE")}
-        danger
-        loading={deleteRolePending}
-        onConfirm={async () => {
-          if (!deleteTarget?.code) return;
-          await onDeleteRoleConfirm(deleteTarget.code);
-          setDeleteOpen(false);
-          setDeleteTarget(null);
-        }}
-      />
+      >
+        <AlertDialogContent className="sm:max-w-[520px]">
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("team:TEAM_ROLES_DELETE_TITLE")}</AlertDialogTitle>
+            <AlertDialogDescription className="text-body">
+              {t("team:TEAM_ROLES_DELETE_DESC", { roleName: deleteTarget?.name ?? "" })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <AlertDialogFooter>
+            <AlertDialogCancelPrimitive asChild>
+              <Button
+                autoInsertSpace={false}
+                type="text"
+                onClick={() => {
+                  setDeleteOpen(false);
+                  setDeleteTarget(null);
+                }}
+                disabled={deleteRolePending}
+              >
+                {t("common:CANCEL")}
+              </Button>
+            </AlertDialogCancelPrimitive>
+            <AlertDialogActionPrimitive asChild>
+              <Button
+                autoInsertSpace={false}
+                type="primary"
+                danger
+                loading={deleteRolePending}
+                onClick={() => {
+                  if (!deleteTarget?.code) return;
+                  void onDeleteRoleConfirm(deleteTarget.code).then(() => {
+                    setDeleteOpen(false);
+                    setDeleteTarget(null);
+                  });
+                }}
+              >
+                {t("team:TEAM_ACTION_DELETE")}
+              </Button>
+            </AlertDialogActionPrimitive>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <SettingDialog
         open={createOpen}
@@ -75,10 +116,16 @@ export function TeamRolesDialogs(props: TeamRolesDialogsProps) {
         contentClassName="max-w-[640px]"
         footer={
           <>
-            <Button type="text" onClick={() => setCreateOpen(false)} disabled={createRolePending}>
+            <Button
+              autoInsertSpace={false}
+              type="text"
+              onClick={() => setCreateOpen(false)}
+              disabled={createRolePending}
+            >
               {t("common:CANCEL")}
             </Button>
             <Button
+              autoInsertSpace={false}
               type="primary"
               loading={createRolePending}
               onClick={() => void createForm.handleSubmit(onCreateRoleSubmit)()}
@@ -88,17 +135,12 @@ export function TeamRolesDialogs(props: TeamRolesDialogsProps) {
           </>
         }
       >
-        <form
-          className="flex flex-col gap-4"
-          onSubmit={createForm.handleSubmit(onCreateRoleSubmit)}
-        >
-          <div className="grid gap-2">
-            <div className="grid gap-1.5">
-              <label className="font-semibold text-foreground">
-                {t("team:TEAM_ROLES_FIELD_TEMPLATE")}
-              </label>
-              <div className="text-label-secondary">{t("team:TEAM_ROLES_FIELD_TEMPLATE_HELP")}</div>
-            </div>
+        <form className="grid gap-4" onSubmit={createForm.handleSubmit(onCreateRoleSubmit)}>
+          <div className="grid gap-1.5">
+            <label className="font-semibold text-foreground">
+              {t("team:TEAM_ROLES_FIELD_TEMPLATE")}
+            </label>
+            <div className="text-label-secondary">{t("team:TEAM_ROLES_FIELD_TEMPLATE_HELP")}</div>
             <Controller
               name="templateRoleCode"
               control={createForm.control}
@@ -123,13 +165,11 @@ export function TeamRolesDialogs(props: TeamRolesDialogsProps) {
             ) : null}
           </div>
 
-          <div className="grid gap-2">
-            <div className="grid gap-1.5">
-              <label className="font-semibold text-foreground">
-                {t("team:TEAM_ROLES_FIELD_NAME")}
-              </label>
-              <div className="text-label-secondary">{t("team:TEAM_ROLES_FIELD_NAME_HELP")}</div>
-            </div>
+          <div className="grid gap-1.5">
+            <label className="font-semibold text-foreground">
+              {t("team:TEAM_ROLES_FIELD_NAME")}
+            </label>
+            <div className="text-label-secondary">{t("team:TEAM_ROLES_FIELD_NAME_HELP")}</div>
             <Controller
               name="name"
               control={createForm.control}
@@ -145,13 +185,11 @@ export function TeamRolesDialogs(props: TeamRolesDialogsProps) {
             ) : null}
           </div>
 
-          <div className="grid gap-2">
-            <div className="grid gap-1.5">
-              <label className="font-semibold text-foreground">
-                {t("team:TEAM_ROLES_FIELD_DESC")}
-              </label>
-              <div className="text-label-secondary">{t("team:TEAM_ROLES_FIELD_DESC_HELP")}</div>
-            </div>
+          <div className="grid gap-1.5">
+            <label className="font-semibold text-foreground">
+              {t("team:TEAM_ROLES_FIELD_DESC")}
+            </label>
+            <div className="text-label-secondary">{t("team:TEAM_ROLES_FIELD_DESC_HELP")}</div>
             <Controller
               name="description"
               control={createForm.control}

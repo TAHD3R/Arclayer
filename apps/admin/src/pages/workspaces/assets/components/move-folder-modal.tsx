@@ -1,4 +1,5 @@
 import { Button, Select } from "antd";
+import { FolderInput } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
@@ -124,47 +125,49 @@ export function MoveFolderModal(props: MoveFolderModalProps) {
     <AlertDialog open={props.open} onOpenChange={props.onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle className="text-title2 font-bold!">
-            {t("assets:ASSET_FOLDER_MOVE_TITLE")}
-          </AlertDialogTitle>
-          <AlertDialogDescription className="text-body">
+          <AlertDialogTitle>{t("assets:ASSET_FOLDER_MOVE_TITLE")}</AlertDialogTitle>
+          <AlertDialogDescription>
             {props.folder
               ? t("assets:ASSET_FOLDER_MOVE_DESC", { name: props.folder.name })
               : t("assets:ASSET_FOLDER_MOVE_DESC_FALLBACK")}
           </AlertDialogDescription>
         </AlertDialogHeader>
 
-        <div className="mt-4 grid gap-1.5">
-          <label className="font-semibold text-foreground">
-            {t("assets:ASSET_FOLDER_MOVE_FIELD_TARGET")}
-          </label>
-          <div className="text-label-secondary">
-            {t("assets:ASSET_FOLDER_MOVE_FIELD_TARGET_HELP")}
+        <div className="grid gap-4 py-2">
+          <div className="grid gap-1.5">
+            <label className="font-semibold text-foreground">
+              {t("assets:ASSET_FOLDER_MOVE_FIELD_TARGET")}
+            </label>
+            <div className="text-label-secondary">
+              {t("assets:ASSET_FOLDER_MOVE_FIELD_TARGET_HELP")}
+            </div>
+            <Select
+              showSearch
+              className="w-full"
+              loading={props.foldersLoading}
+              options={options}
+              value={target}
+              onChange={(v) => setTarget(String(v))}
+              getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
+              placeholder={t("assets:ASSET_FOLDER_MOVE_PLACEHOLDER")}
+              optionFilterProp="label"
+              listHeight={320}
+              dropdownStyle={{ maxHeight: 320, overflow: "auto" }}
+            />
           </div>
-          <Select
-            showSearch
-            className="w-full"
-            loading={props.foldersLoading}
-            options={options}
-            value={target}
-            onChange={(v) => setTarget(String(v))}
-            getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
-            placeholder={t("assets:ASSET_FOLDER_MOVE_PLACEHOLDER")}
-            optionFilterProp="label"
-            listHeight={320}
-            dropdownStyle={{ maxHeight: 320, overflow: "auto" }}
-          />
         </div>
 
         <AlertDialogFooter>
           <AlertDialogCancelPrimitive asChild>
-            <Button type="text" disabled={Boolean(props.confirmLoading)}>
+            <Button type="text" disabled={Boolean(props.confirmLoading)} autoInsertSpace={false}>
               {t("common:CANCEL")}
             </Button>
           </AlertDialogCancelPrimitive>
           <AlertDialogActionPrimitive asChild>
             <Button
+              autoInsertSpace={false}
               type="primary"
+              icon={<FolderInput className="size-4" aria-hidden="true" />}
               loading={props.confirmLoading}
               disabled={!canSubmit}
               onClick={async () => {

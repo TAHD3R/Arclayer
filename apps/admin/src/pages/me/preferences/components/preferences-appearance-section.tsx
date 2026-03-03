@@ -95,6 +95,7 @@ export function MePreferencesAppearanceSection() {
                 className="px-0!"
                 disabled={fontScalePreference === null}
                 onClick={() => setFontScalePreference(null)}
+                autoInsertSpace={false}
               >
                 {t("ME_PREF_RESET_TO_DEFAULT")}
               </Button>
@@ -142,6 +143,7 @@ export function MePreferencesAppearanceSection() {
                 className="px-0!"
                 disabled={fontWeightPreference === null}
                 onClick={() => setFontWeightPreference(null)}
+                autoInsertSpace={false}
               >
                 {t("ME_PREF_RESET_TO_DEFAULT")}
               </Button>

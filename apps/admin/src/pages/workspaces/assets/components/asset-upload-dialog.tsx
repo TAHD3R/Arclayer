@@ -314,6 +314,7 @@ export function AssetUploadDialog(props: {
             type="text"
             onClick={() => void abortAllAndClose()}
             disabled={isUploading && !hasUploading}
+            autoInsertSpace={false}
           >
             {t("assets:ASSET_UPLOAD_ACTION_CANCEL")}
           </Button>
@@ -321,6 +322,7 @@ export function AssetUploadDialog(props: {
             type="primary"
             disabled={!canStart || isUploading}
             onClick={() => void startUpload()}
+            autoInsertSpace={false}
           >
             {isUploading
               ? t("assets:ASSET_UPLOAD_ACTION_UPLOADING")

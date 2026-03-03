@@ -106,6 +106,7 @@ export function MeProfileBasicsSection(props: MeProfileBasicsSectionProps) {
                   disabled={!canSaveDisplayName || updateProfileMutation.isPending}
                   loading={updateProfileMutation.isPending}
                   onClick={() => setConfirmDisplayNameOpen(true)}
+                  autoInsertSpace={false}
                 >
                   {t("settings:SETTINGS_SAVE")}
                 </Button>
@@ -133,10 +134,10 @@ export function MeProfileBasicsSection(props: MeProfileBasicsSectionProps) {
 
               <div className="min-w-0 flex flex-col gap-2">
                 <div className="flex items-center gap-2">
-                  <Button disabled type="default">
+                  <Button disabled type="default" autoInsertSpace={false}>
                     {t("account:ME_PROFILE_AVATAR_CHANGE")}
                   </Button>
-                  <Button disabled type="default">
+                  <Button disabled type="default" autoInsertSpace={false}>
                     {t("account:ME_PROFILE_AVATAR_REMOVE")}
                   </Button>
                 </div>
@@ -155,7 +156,11 @@ export function MeProfileBasicsSection(props: MeProfileBasicsSectionProps) {
           control={
             <div className="flex items-center gap-2">
               <Input value={props.profile.email ?? "-"} disabled className="w-80" />
-              <Button type="default" onClick={() => setChangeEmailOpen(true)}>
+              <Button
+                type="default"
+                onClick={() => setChangeEmailOpen(true)}
+                autoInsertSpace={false}
+              >
                 {t("account:ME_PROFILE_EMAIL_CHANGE")}
               </Button>
             </div>
@@ -180,6 +185,7 @@ export function MeProfileBasicsSection(props: MeProfileBasicsSectionProps) {
                     }
                   })();
                 }}
+                autoInsertSpace={false}
               >
                 {t("account:ME_PROFILE_USER_ID_COPY")}
               </Button>
@@ -202,6 +208,7 @@ export function MeProfileBasicsSection(props: MeProfileBasicsSectionProps) {
               type="text"
               disabled={updateProfileMutation.isPending}
               onClick={() => setConfirmDisplayNameOpen(false)}
+              autoInsertSpace={false}
             >
               {t("common:CANCEL")}
             </Button>
@@ -212,6 +219,7 @@ export function MeProfileBasicsSection(props: MeProfileBasicsSectionProps) {
               onClick={() => {
                 void updateProfileMutation.mutateAsync({ display_name: nextDisplayNameNormalized });
               }}
+              autoInsertSpace={false}
             >
               {t("settings:SETTINGS_SAVE")}
             </Button>

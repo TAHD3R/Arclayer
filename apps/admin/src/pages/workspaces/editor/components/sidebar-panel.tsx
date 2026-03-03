@@ -85,6 +85,7 @@ export function SidebarPanel() {
               icon={<X className="size-3.5" />}
               onClick={toggleSidebar}
               className="ml-1 mt-0.5 shrink-0"
+              autoInsertSpace={false}
             />
           </div>
 

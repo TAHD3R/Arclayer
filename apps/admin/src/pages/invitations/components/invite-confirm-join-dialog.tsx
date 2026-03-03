@@ -60,10 +60,10 @@ export function InviteConfirmJoinDialog({
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <Button type="text" onClick={() => onOpenChange(false)}>
+          <Button type="text" onClick={() => onOpenChange(false)} autoInsertSpace={false}>
             {t("invite:INVITE_CONFIRM_JOIN_CANCEL")}
           </Button>
-          <Button type="primary" onClick={onConfirm}>
+          <Button type="primary" onClick={onConfirm} autoInsertSpace={false}>
             {t("invite:INVITE_CONFIRM_JOIN_OK")}
           </Button>
         </DialogFooter>

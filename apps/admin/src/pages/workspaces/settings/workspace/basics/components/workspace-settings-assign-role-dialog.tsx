@@ -1,4 +1,5 @@
 import { Button, Form, Input } from "antd";
+import { UserCog } from "lucide-react";
 import { useCallback } from "react";
 
 import { SettingDialog } from "@celestial/ui/setting-dialog";
@@ -42,11 +43,13 @@ export function WorkspaceSettingsAssignRoleDialog(props: {
       description={t("settings:SETTINGS_WORKSPACE_ASSIGN_ROLE_ALL_DESC")}
       footer={
         <div className="flex w-full justify-end gap-2">
-          <Button type="text" onClick={c.closeAssignRoleDialog}>
+          <Button type="text" onClick={c.closeAssignRoleDialog} autoInsertSpace={false}>
             {t("common:CANCEL")}
           </Button>
           <Button
+            autoInsertSpace={false}
             type="primary"
+            icon={<UserCog className="size-4" aria-hidden="true" />}
             loading={c.savingKey === "workspace:assignRoleAll"}
             disabled={c.disabled || c.roleOptions.length === 0}
             onClick={handleConfirm}
@@ -56,7 +59,13 @@ export function WorkspaceSettingsAssignRoleDialog(props: {
         </div>
       }
     >
-      <Form form={c.assignRoleDialogForm} layout="vertical" requiredMark={false} autoComplete="off">
+      <Form
+        form={c.assignRoleDialogForm}
+        layout="vertical"
+        requiredMark={false}
+        autoComplete="off"
+        className="grid gap-4 py-2"
+      >
         <Form.Item
           name="confirmName"
           label={dialogFieldLabel(

@@ -43,7 +43,11 @@ export function WorkspaceCard({ workspace, menuItems, t, onClick, className }: W
         <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <AntButton type="text" icon={<MoreVertical className="size-4" />} />
+              <AntButton
+                type="text"
+                icon={<MoreVertical className="size-4" />}
+                autoInsertSpace={false}
+              />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               {menuItems.map((item) =>

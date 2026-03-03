@@ -144,6 +144,7 @@ export function OrganizationTeamRolesView() {
           type="primary"
           icon={<Plus className="h-4 w-4" />}
           onClick={() => setCreateOpen(true)}
+          autoInsertSpace={false}
         >
           {t("team:TEAM_ROLES_ADD_ROLE")}
         </AntButton>

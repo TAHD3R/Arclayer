@@ -108,7 +108,9 @@ export function WorkspaceActivityPage() {
               }));
             }}
           />
-          <AntButton onClick={() => {}}>{t("activity:ACTIVITY_ACTION_IMPORT_EXPORT")}</AntButton>
+          <AntButton onClick={() => {}} autoInsertSpace={false}>
+            {t("activity:ACTIVITY_ACTION_IMPORT_EXPORT")}
+          </AntButton>
 
           {listQuery.isFetching && !listQuery.isLoading ? <LoaderOne /> : null}
         </div>

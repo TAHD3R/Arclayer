@@ -124,7 +124,14 @@ export function RegisterPane({
         </motion.div>
 
         <motion.div variants={v}>
-          <Button type="primary" htmlType="submit" block size="large" loading={loading}>
+          <Button
+            type="primary"
+            htmlType="submit"
+            block
+            size="large"
+            loading={loading}
+            autoInsertSpace={false}
+          >
             {t("auth:REGISTER_BUTTON")}
           </Button>
         </motion.div>
@@ -133,7 +140,7 @@ export function RegisterPane({
       <motion.div variants={v} className="mt-4 text-center">
         <span className="text-label-secondary">
           {t("auth:HAVE_ACCOUNT")}{" "}
-          <Button type="link" className="px-0!" onClick={onSwitchToLogin}>
+          <Button type="link" className="px-0!" onClick={onSwitchToLogin} autoInsertSpace={false}>
             {t("auth:SIGN_IN")}
           </Button>
         </span>

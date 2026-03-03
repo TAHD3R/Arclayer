@@ -141,14 +141,26 @@ export function InviteRegisterForm(props: {
           />
         </Form.Item>
 
-        <Button type="primary" htmlType="submit" block size="large" loading={props.loading}>
+        <Button
+          type="primary"
+          htmlType="submit"
+          block
+          size="large"
+          loading={props.loading}
+          autoInsertSpace={false}
+        >
           {t("invite:INVITE_ACTION_REGISTER_JOIN")}
         </Button>
       </Form>
 
       <div className="mt-4 text-center">
         <Typography.Text style={{ color: "var(--color-muted-foreground)" }}>
-          <Button type="link" style={{ paddingInline: 0 }} onClick={props.onSwitchToLogin}>
+          <Button
+            type="link"
+            style={{ paddingInline: 0 }}
+            onClick={props.onSwitchToLogin}
+            autoInsertSpace={false}
+          >
             {t("invite:INVITE_ACTION_SWITCH_TO_LOGIN")}
           </Button>
         </Typography.Text>

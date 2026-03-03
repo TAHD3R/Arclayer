@@ -120,6 +120,7 @@ export function ForgotPasswordDialog({
                   onOpenChange(false);
                   void navigate({ to: "/reset-password" });
                 }}
+                autoInsertSpace={false}
               >
                 {t("auth:FORGOT_PASSWORD_MODAL_HAVE_TOKEN")}
               </Button>
@@ -128,10 +129,20 @@ export function ForgotPasswordDialog({
 
           <motion.div variants={reducedMotion ? {} : itemVariants}>
             <DialogFooter>
-              <Button type="text" disabled={loading} onClick={() => onOpenChange(false)}>
+              <Button
+                type="text"
+                disabled={loading}
+                onClick={() => onOpenChange(false)}
+                autoInsertSpace={false}
+              >
                 {t("auth:MODAL_CANCEL")}
               </Button>
-              <Button type="primary" loading={loading} onClick={() => form.submit()}>
+              <Button
+                type="primary"
+                loading={loading}
+                onClick={() => form.submit()}
+                autoInsertSpace={false}
+              >
                 {t("auth:MODAL_SUBMIT")}
               </Button>
             </DialogFooter>

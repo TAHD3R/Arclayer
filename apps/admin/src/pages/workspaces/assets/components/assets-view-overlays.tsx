@@ -154,7 +154,12 @@ export function AssetsViewOverlays(props: AssetsViewOverlaysProps) {
                   <div className="inline-flex items-center rounded-full bg-muted px-3 py-1 text-footnote font-semibold">
                     {props.t("assets:ASSET_SELECTED_COUNT", { count: props.selectedCount })}
                   </div>
-                  <Button type="text" className="!h-8 !px-2" onClick={props.onClearSelection}>
+                  <Button
+                    type="text"
+                    className="!h-8 !px-2"
+                    onClick={props.onClearSelection}
+                    autoInsertSpace={false}
+                  >
                     {props.t("assets:ASSET_CLEAR_SELECTION")}
                   </Button>
                 </div>
@@ -164,6 +169,7 @@ export function AssetsViewOverlays(props: AssetsViewOverlaysProps) {
                     icon={<FolderInput size={16} />}
                     onClick={props.onOpenMove}
                     disabled={props.bulkMovePending}
+                    autoInsertSpace={false}
                   >
                     {props.t("assets:ASSET_ACTION_MOVE")}
                   </Button>
@@ -172,6 +178,7 @@ export function AssetsViewOverlays(props: AssetsViewOverlaysProps) {
                     icon={<Settings2 size={16} />}
                     onClick={props.onOpenEditAccess}
                     disabled={props.bulkUpdatePending}
+                    autoInsertSpace={false}
                   >
                     {props.t("assets:ASSET_ACTION_EDIT_ACCESS")}
                   </Button>
@@ -181,6 +188,7 @@ export function AssetsViewOverlays(props: AssetsViewOverlaysProps) {
                     icon={<Trash2 size={16} />}
                     onClick={props.onOpenBulkDelete}
                     disabled={props.bulkDeletePending}
+                    autoInsertSpace={false}
                   >
                     {props.t("assets:ASSET_ACTION_DELETE_SELECTED")}
                   </Button>

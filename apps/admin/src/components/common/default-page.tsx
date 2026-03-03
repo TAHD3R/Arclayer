@@ -58,6 +58,7 @@ function FavoriteToggle() {
             "text-label-secondary hover:text-foreground",
             isFavorited && "text-amber-500 hover:text-amber-600",
           )}
+          autoInsertSpace={false}
         >
           <span>{label}</span>
         </Button>

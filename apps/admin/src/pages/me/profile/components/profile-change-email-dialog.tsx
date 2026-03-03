@@ -82,7 +82,12 @@ export function MeProfileChangeEmailDialog(props: MeProfileChangeEmailDialogProp
       description={t("account:ME_PROFILE_EMAIL_DIALOG_DESC")}
       footer={
         <>
-          <Button type="text" disabled={isBusy} onClick={() => closeIfIdle(false)}>
+          <Button
+            type="text"
+            disabled={isBusy}
+            onClick={() => closeIfIdle(false)}
+            autoInsertSpace={false}
+          >
             {t("auth:MODAL_CANCEL")}
           </Button>
           <Button
@@ -99,6 +104,7 @@ export function MeProfileChangeEmailDialog(props: MeProfileChangeEmailDialogProp
                 });
               })();
             }}
+            autoInsertSpace={false}
           >
             {t("settings:SETTINGS_SAVE")}
           </Button>
@@ -138,6 +144,7 @@ export function MeProfileChangeEmailDialog(props: MeProfileChangeEmailDialogProp
                       await requestCodeMutation.mutateAsync({ newEmail: values.newEmail });
                     })();
                   }}
+                  autoInsertSpace={false}
                 >
                   {requestCodeMutation.isPending
                     ? t("account:ME_PROFILE_EMAIL_SENDING_CODE")
@@ -164,6 +171,7 @@ export function MeProfileChangeEmailDialog(props: MeProfileChangeEmailDialogProp
               closeIfIdle(false);
               void navigate({ to: "/reset-password" });
             }}
+            autoInsertSpace={false}
           >
             {t("account:ME_PROFILE_EMAIL_FORGOT_PASSWORD")}
           </Button>

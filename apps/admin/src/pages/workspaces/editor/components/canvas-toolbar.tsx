@@ -87,6 +87,7 @@ export function CanvasToolbar() {
               type={activeTool === "select" ? "primary" : "default"}
               icon={<MousePointer2 className="size-4" />}
               onClick={() => void actions.run("tool.select")}
+              autoInsertSpace={false}
             />
           </Tooltip>
           <Tooltip title={t("content_pages:EDITOR_TOOLBAR_TOOL_HAND")}>
@@ -94,6 +95,7 @@ export function CanvasToolbar() {
               type={activeTool === "hand" ? "primary" : "default"}
               icon={<Hand className="size-4" />}
               onClick={() => void actions.run("tool.hand")}
+              autoInsertSpace={false}
             />
           </Tooltip>
         </Space.Compact>
@@ -106,6 +108,7 @@ export function CanvasToolbar() {
             disabled={!actions.isEnabled("edit.undo")}
             icon={<Undo2 className="size-4" />}
             onClick={() => void actions.run("edit.undo")}
+            autoInsertSpace={false}
           />
         </Tooltip>
         <Tooltip title={t("content_pages:EDITOR_TOOLBAR_REDO")}>
@@ -114,6 +117,7 @@ export function CanvasToolbar() {
             disabled={!actions.isEnabled("edit.redo")}
             icon={<Redo2 className="size-4" />}
             onClick={() => void actions.run("edit.redo")}
+            autoInsertSpace={false}
           />
         </Tooltip>
       </div>
@@ -137,6 +141,7 @@ export function CanvasToolbar() {
                     setCanvasWidth(null);
                     setDevicePreset(key);
                   }}
+                  autoInsertSpace={false}
                 />
               </Tooltip>
             );
@@ -146,7 +151,7 @@ export function CanvasToolbar() {
         {/* Canvas Settings Popover */}
         <Popover open={canvasSettingsOpen} onOpenChange={setCanvasSettingsOpen}>
           <PopoverTrigger asChild>
-            <Button type="text" className="ml-1 gap-0.5! tabular-nums">
+            <Button type="text" className="ml-1 gap-0.5! tabular-nums" autoInsertSpace={false}>
               <span className="text-callout text-secondary">{displayWidth} px</span>
               <ChevronDown className="size-3 text-label-secondary" />
             </Button>
@@ -235,12 +240,13 @@ export function CanvasToolbar() {
             disabled={!actions.isEnabled("view.zoom_out")}
             icon={<ZoomOut className="size-4" />}
             onClick={() => void actions.run("view.zoom_out")}
+            autoInsertSpace={false}
           />
         </Tooltip>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button type="text" className="gap-0.5! tabular-nums">
+            <Button type="text" className="gap-0.5! tabular-nums" autoInsertSpace={false}>
               <span className="text-callout text-label-secondary">{zoomPercent}%</span>
               <ChevronDown className="size-3 text-label-secondary" />
             </Button>
@@ -264,6 +270,7 @@ export function CanvasToolbar() {
             disabled={!actions.isEnabled("view.zoom_in")}
             icon={<ZoomIn className="size-4" />}
             onClick={() => void actions.run("view.zoom_in")}
+            autoInsertSpace={false}
           />
         </Tooltip>
 
@@ -273,6 +280,7 @@ export function CanvasToolbar() {
             disabled={!actions.isEnabled("view.zoom_reset")}
             icon={<RotateCcw className="size-4" />}
             onClick={() => void actions.run("view.zoom_reset")}
+            autoInsertSpace={false}
           />
         </Tooltip>
       </div>

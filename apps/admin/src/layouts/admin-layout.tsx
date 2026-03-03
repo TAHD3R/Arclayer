@@ -298,6 +298,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
                           size="small"
                           type="primary"
                           onClick={() => void myOrganizationQuery.refetch()}
+                          autoInsertSpace={false}
                         >
                           {t("common:RETRY")}
                         </Button>

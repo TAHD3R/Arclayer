@@ -34,7 +34,7 @@ export function MeSecurityView() {
                   title={t("account:ME_SECURITY_2FA_TITLE")}
                   description={t("account:ME_SECURITY_2FA_DISABLED_DESC")}
                   control={
-                    <Button disabled type="primary">
+                    <Button disabled type="primary" autoInsertSpace={false}>
                       {t("account:ME_SECURITY_2FA_ENABLE")}
                     </Button>
                   }
@@ -64,7 +64,7 @@ export function MeSecurityView() {
                   title={t("account:ME_SECURITY_SIGNIN_PANEL_TITLE")}
                   description={t("account:ME_SECURITY_SIGNIN_DISABLED_DESC")}
                   control={
-                    <Button disabled type="default">
+                    <Button disabled type="default" autoInsertSpace={false}>
                       {t("settings:SETTINGS_NOT_SET")}
                     </Button>
                   }

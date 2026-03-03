@@ -296,12 +296,14 @@ export function AdminNotificationsPanel({
             }
             aria-label={isPinned ? t("NOTIFICATIONS_PANEL_UNPIN") : t("NOTIFICATIONS_PANEL_PIN")}
             onClick={() => onPinChange(!isPinned)}
+            autoInsertSpace={false}
           />
           <Button
             type="text"
             icon={<X className="size-4" aria-hidden="true" />}
             aria-label={t("NOTIFICATIONS_PANEL_CLOSE")}
             onClick={onClose}
+            autoInsertSpace={false}
           />
         </div>
         <p className="mt-0.5 text-label-secondary">{t("NOTIFICATIONS_PANEL_DESC")}</p>

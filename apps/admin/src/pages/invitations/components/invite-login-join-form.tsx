@@ -78,18 +78,28 @@ export function InviteLoginJoinForm({
           style={{ paddingInline: 0 }}
           onClick={() => void onForgotPassword()}
           disabled={forgotLoading}
+          autoInsertSpace={false}
         >
           {t("auth:FORGOT_PASSWORD")}
         </Button>
       </div>
 
-      <Button type="primary" htmlType="submit" block size="large" loading={loading}>
+      <Button
+        type="primary"
+        htmlType="submit"
+        block
+        size="large"
+        loading={loading}
+        autoInsertSpace={false}
+      >
         {t("invite:INVITE_ACTION_LOGIN_JOIN")}
       </Button>
 
       <div className="mt-4 flex items-center justify-between">
-        <Button onClick={onBack}>{t("invite:INVITE_ACTION_BACK")}</Button>
-        <Button onClick={() => void onBackToLogin()}>
+        <Button onClick={onBack} autoInsertSpace={false}>
+          {t("invite:INVITE_ACTION_BACK")}
+        </Button>
+        <Button onClick={() => void onBackToLogin()} autoInsertSpace={false}>
           {t("invite:INVITE_ACTION_BACK_TO_LOGIN")}
         </Button>
       </div>

@@ -40,7 +40,7 @@ export function MeSecurityChangePasswordSection() {
       <SettingVerticalItem
         title={t("account:ME_SECURITY_CHANGE_PASSWORD_TITLE")}
         control={
-          <Button type="primary" onClick={() => setOpen(true)}>
+          <Button type="primary" onClick={() => setOpen(true)} autoInsertSpace={false}>
             {t("account:ME_SECURITY_CHANGE_PASSWORD_ACTION")}
           </Button>
         }
@@ -61,6 +61,7 @@ export function MeSecurityChangePasswordSection() {
               type="text"
               disabled={changePasswordMutation.isPending}
               onClick={() => setOpen(false)}
+              autoInsertSpace={false}
             >
               {t("common:CANCEL")}
             </Button>
@@ -76,6 +77,7 @@ export function MeSecurityChangePasswordSection() {
                   });
                 })()
               }
+              autoInsertSpace={false}
             >
               {t("settings:SETTINGS_SAVE")}
             </Button>

@@ -28,6 +28,7 @@ export function WorkspaceAssociationPopover({
         <AntButton
           type="text"
           className="!h-auto !px-2 !py-1 !font-medium !text-foreground hover:!bg-accent"
+          autoInsertSpace={false}
         >
           {t("common:ORG_MEMBERS_ASSOCIATED_WORKSPACES_COUNT", { count: workspaces.length })}
         </AntButton>

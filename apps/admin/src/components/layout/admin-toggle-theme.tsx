@@ -32,6 +32,7 @@ export function AdminThemeModeToggle(props: { className?: string }) {
           <MoonIcon size={18} isHovered={hovered} className="text-current" />
         )
       }
+      autoInsertSpace={false}
     />
   );
 }

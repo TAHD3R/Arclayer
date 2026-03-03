@@ -64,6 +64,7 @@ export function EditorSettingsPanel() {
             params: { workspaceId },
           });
         }}
+        autoInsertSpace={false}
       >
         {t("content_pages:EDITOR_SAVE_SETTINGS_OPEN_WORKSPACE_SETTINGS")}
       </Button>

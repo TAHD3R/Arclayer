@@ -32,6 +32,7 @@ export function LegalFooter({ i18nKey }: LegalFooterProps) {
                 size="small"
                 className="p-0! h-auto! text-caption! text-label-primary! underline"
                 onClick={() => setOpenModal("terms")}
+                autoInsertSpace={false}
               />
             ),
             privacy: (
@@ -40,6 +41,7 @@ export function LegalFooter({ i18nKey }: LegalFooterProps) {
                 size="small"
                 className="p-0! h-auto! text-caption! text-label-primary! underline"
                 onClick={() => setOpenModal("privacy")}
+                autoInsertSpace={false}
               />
             ),
           }}
@@ -56,7 +58,7 @@ export function LegalFooter({ i18nKey }: LegalFooterProps) {
             <p className="text-label-tertiary">{t("auth:MODAL_PLACEHOLDER_HINT")}</p>
           </div>
           <DialogFooter>
-            <Button type="primary" onClick={() => setOpenModal(null)}>
+            <Button type="primary" onClick={() => setOpenModal(null)} autoInsertSpace={false}>
               {t("auth:MODAL_OK")}
             </Button>
           </DialogFooter>
@@ -73,7 +75,7 @@ export function LegalFooter({ i18nKey }: LegalFooterProps) {
             <p className="text-label-tertiary">{t("auth:MODAL_PLACEHOLDER_HINT")}</p>
           </div>
           <DialogFooter>
-            <Button type="primary" onClick={() => setOpenModal(null)}>
+            <Button type="primary" onClick={() => setOpenModal(null)} autoInsertSpace={false}>
               {t("auth:MODAL_OK")}
             </Button>
           </DialogFooter>

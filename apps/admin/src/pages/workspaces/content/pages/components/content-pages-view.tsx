@@ -492,6 +492,7 @@ export function ContentPagesView() {
               setEditingRow(null);
               setSheetOpen(true);
             }}
+            autoInsertSpace={false}
           >
             {t("content_pages:ACTION_CREATE_PAGE")}
           </Button>

@@ -263,7 +263,7 @@ export function SetupWorkspaceTemplateStep(props: {
       </Accordion>
 
       {/* Prevent Enter key from moving steps unexpectedly. */}
-      <Button htmlType="submit" style={{ display: "none" }} />
+      <Button htmlType="submit" style={{ display: "none" }} autoInsertSpace={false} />
     </Form>
   );
 }

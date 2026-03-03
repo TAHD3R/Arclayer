@@ -43,6 +43,7 @@ export function EditMemberRolesDialog(props: {
       footer={
         <>
           <AntButton
+            autoInsertSpace={false}
             type="text"
             onClick={() => props.onOpenChange(false)}
             disabled={props.confirmLoading}
@@ -50,6 +51,7 @@ export function EditMemberRolesDialog(props: {
             {t("common:CANCEL")}
           </AntButton>
           <AntButton
+            autoInsertSpace={false}
             type="primary"
             loading={props.confirmLoading}
             disabled={Boolean(props.confirmDisabled) || props.confirmLoading}
@@ -60,20 +62,24 @@ export function EditMemberRolesDialog(props: {
         </>
       }
     >
-      <div className="grid grid-cols-1 gap-2 py-2">
-        <label className="font-semibold text-foreground">{t("team:TEAM_INVITE_FIELD_ROLE")}</label>
-        <div className="text-label-secondary">{t("team:TEAM_EDIT_ROLES_FIELD_ROLE_HELP")}</div>
-        <Select
-          allowClear
-          placeholder={t("team:TEAM_EDIT_ROLES_PLACEHOLDER")}
-          loading={props.rolesLoading}
-          value={props.value ?? undefined}
-          onChange={(next) => props.onChange(next ? String(next) : null)}
-          options={options}
-          showSearch
-          optionFilterProp="label"
-          getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
-        />
+      <div className="grid gap-4 py-2">
+        <div className="grid gap-1.5">
+          <label className="font-semibold text-foreground">
+            {t("team:TEAM_INVITE_FIELD_ROLE")}
+          </label>
+          <div className="text-label-secondary">{t("team:TEAM_EDIT_ROLES_FIELD_ROLE_HELP")}</div>
+          <Select
+            allowClear
+            placeholder={t("team:TEAM_EDIT_ROLES_PLACEHOLDER")}
+            loading={props.rolesLoading}
+            value={props.value ?? undefined}
+            onChange={(next) => props.onChange(next ? String(next) : null)}
+            options={options}
+            showSearch
+            optionFilterProp="label"
+            getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
+          />
+        </div>
       </div>
     </SettingDialog>
   );

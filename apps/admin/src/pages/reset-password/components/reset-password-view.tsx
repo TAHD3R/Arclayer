@@ -120,12 +120,18 @@ export function ResetPasswordView({
             size="large"
             loading={loading}
             disabled={loading}
+            autoInsertSpace={false}
           >
             {t("auth:RESET_PASSWORD_BUTTON")}
           </AntButton>
 
           <div className="mt-4 text-center">
-            <AntButton type="link" style={{ paddingInline: 0 }} onClick={onBackToLogin}>
+            <AntButton
+              type="link"
+              style={{ paddingInline: 0 }}
+              onClick={onBackToLogin}
+              autoInsertSpace={false}
+            >
               {t("auth:BACK_TO_LOGIN")}
             </AntButton>
           </div>

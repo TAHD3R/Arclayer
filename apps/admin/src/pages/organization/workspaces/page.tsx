@@ -157,6 +157,7 @@ export function OrganizationWorkspacesPage() {
           onClick={() => {
             setCreateOpen(true);
           }}
+          autoInsertSpace={false}
         >
           {t("common:ORG_WORKSPACES_CREATE")}
         </AntButton>

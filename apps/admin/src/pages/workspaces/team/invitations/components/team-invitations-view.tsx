@@ -266,6 +266,7 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
                   setRenewExpiresInSeconds(7 * 24 * 60 * 60);
                   setRenewInvitation(inv);
                 }}
+                autoInsertSpace={false}
               >
                 {t("team:TEAM_ACTION_RENEW")}
               </AntButton>
@@ -275,6 +276,7 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
                 onClick={() => {
                   setDeleteInvitation(inv);
                 }}
+                autoInsertSpace={false}
               >
                 {t("team:TEAM_ACTION_DELETE")}
               </AntButton>
@@ -376,6 +378,7 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
                 notifySuccessText(t("team:TEAM_ACTION_COPIED"));
               }}
               aria-label={t("team:TEAM_INVITE_LINKS_ACTION_COPY_LINK")}
+              autoInsertSpace={false}
             >
               {code}
             </AntButton>
@@ -460,6 +463,7 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
                   setRenewExpiresInSeconds(7 * 24 * 60 * 60);
                   setRenewLink(link);
                 }}
+                autoInsertSpace={false}
               >
                 {t("team:TEAM_ACTION_RENEW")}
               </AntButton>
@@ -469,6 +473,7 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
                 icon={<Link2Off className="size-4" />}
                 disabled={!canManage}
                 onClick={() => disableLinkMutation.mutate(link.id)}
+                autoInsertSpace={false}
               >
                 {t("team:TEAM_INVITE_LINKS_ACTION_DISABLE")}
               </AntButton>
@@ -566,10 +571,15 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
   });
   const inviteAction = (
     <div className="flex items-center gap-2">
-      <AntButton onClick={() => setInviteOpen(true)}>
+      <AntButton onClick={() => setInviteOpen(true)} autoInsertSpace={false}>
         {t("team:TEAM_INVITE_CREATE_LINK_ACTION")}
       </AntButton>
-      <AntButton type="primary" icon={<Plus size={16} />} onClick={() => setInviteEmailOpen(true)}>
+      <AntButton
+        type="primary"
+        icon={<Plus size={16} />}
+        onClick={() => setInviteEmailOpen(true)}
+        autoInsertSpace={false}
+      >
         {t("common:ORG_MEMBERS_INVITE")}
       </AntButton>
     </div>

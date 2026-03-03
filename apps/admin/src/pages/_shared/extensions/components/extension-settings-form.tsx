@@ -316,7 +316,13 @@ export function ExtensionSettingsForm({
         ))}
 
         <div className="flex justify-start gap-2 pt-2">
-          <Button type="primary" htmlType="submit" disabled={disabled || saving} loading={saving}>
+          <Button
+            type="primary"
+            htmlType="submit"
+            disabled={disabled || saving}
+            loading={saving}
+            autoInsertSpace={false}
+          >
             {submitText || t("settings:SETTINGS_SAVE")}
           </Button>
         </div>

@@ -196,6 +196,7 @@ export function MeProfileLinkedAccountsSection(props: MeProfileLinkedAccountsSec
                         danger
                         disabled={unlinkIdentityMutation.isPending}
                         loading={unlinkIdentityMutation.isPending}
+                        autoInsertSpace={false}
                       >
                         {t("ME_LINKED_ACCOUNTS_DISCONNECT")}
                       </Button>
@@ -221,6 +222,7 @@ export function MeProfileLinkedAccountsSection(props: MeProfileLinkedAccountsSec
                           window.location.assign(nextUrl);
                         })();
                       }}
+                      autoInsertSpace={false}
                     >
                       {t("ME_LINKED_ACCOUNTS_CONNECT")}
                     </Button>

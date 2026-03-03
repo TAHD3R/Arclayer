@@ -63,6 +63,7 @@ export function AdminExtensionsSlot(props: AdminExtensionsSlotProps) {
                   }
                   void navigate({ to: to as never });
                 }}
+                autoInsertSpace={false}
               >
                 {label}
               </Button>
@@ -77,6 +78,7 @@ export function AdminExtensionsSlot(props: AdminExtensionsSlotProps) {
               onClick={() => {
                 message.info(label);
               }}
+              autoInsertSpace={false}
             >
               {label}
             </Button>

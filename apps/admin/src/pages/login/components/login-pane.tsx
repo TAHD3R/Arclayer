@@ -110,13 +110,21 @@ export function LoginPane({
             className="px-0!"
             disabled={loading}
             onClick={onForgotPassword}
+            autoInsertSpace={false}
           >
             {t("auth:FORGOT_PASSWORD")}
           </Button>
         </motion.div>
 
         <motion.div variants={v}>
-          <Button type="primary" htmlType="submit" block size="large" loading={loading}>
+          <Button
+            type="primary"
+            htmlType="submit"
+            block
+            size="large"
+            loading={loading}
+            autoInsertSpace={false}
+          >
             {t("auth:LOGIN_BUTTON")}
           </Button>
         </motion.div>
@@ -126,7 +134,12 @@ export function LoginPane({
         <motion.div variants={v} className="mt-4 text-center">
           <span className="text-label-secondary">
             {t("auth:NO_ACCOUNT")}{" "}
-            <Button type="link" className="px-0!" onClick={onSwitchToRegister}>
+            <Button
+              type="link"
+              className="px-0!"
+              onClick={onSwitchToRegister}
+              autoInsertSpace={false}
+            >
               {t("auth:CREATE_ACCOUNT")}
             </Button>
           </span>

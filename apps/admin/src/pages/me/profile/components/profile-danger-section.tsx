@@ -59,7 +59,7 @@ export function MeProfileDangerSection(props: MeProfileDangerSectionProps) {
           title={t("account:ME_DELETE_ACCOUNT_TITLE")}
           description={t("account:ME_DELETE_ACCOUNT_DESC")}
           control={
-            <Button danger type="primary" onClick={() => setOpen(true)}>
+            <Button danger type="primary" onClick={() => setOpen(true)} autoInsertSpace={false}>
               {t("account:ME_DELETE_ACCOUNT_ACTION")}
             </Button>
           }
@@ -76,7 +76,12 @@ export function MeProfileDangerSection(props: MeProfileDangerSectionProps) {
         description={t("account:ME_DELETE_ACCOUNT_DIALOG_DESC")}
         footer={
           <>
-            <Button type="text" disabled={deleteMutation.isPending} onClick={() => setOpen(false)}>
+            <Button
+              type="text"
+              disabled={deleteMutation.isPending}
+              onClick={() => setOpen(false)}
+              autoInsertSpace={false}
+            >
               {t("common:CANCEL")}
             </Button>
             <Button
@@ -90,6 +95,7 @@ export function MeProfileDangerSection(props: MeProfileDangerSectionProps) {
                   await deleteMutation.mutateAsync(values);
                 })();
               }}
+              autoInsertSpace={false}
             >
               {t("account:ME_DELETE_ACCOUNT_ACTION")}
             </Button>

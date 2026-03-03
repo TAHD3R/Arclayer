@@ -124,7 +124,7 @@ export function RepairMasterKeyPage() {
             showIcon
             message={t("setup:MASTER_KEY_REPAIR_LOGIN_REQUIRED")}
             action={
-              <Button type="primary" onClick={onLogin}>
+              <Button type="primary" onClick={onLogin} autoInsertSpace={false}>
                 {t("auth:LOGIN_BUTTON")}
               </Button>
             }
@@ -191,6 +191,7 @@ export function RepairMasterKeyPage() {
                   type="default"
                   onClick={() => void statusQuery.refetch()}
                   disabled={loading || repairMutation.isPending}
+                  autoInsertSpace={false}
                 >
                   {t("common:RETRY")}
                 </Button>
@@ -199,6 +200,7 @@ export function RepairMasterKeyPage() {
                   htmlType="submit"
                   loading={repairMutation.isPending}
                   disabled={!accessToken || !isSuperAdmin || loading}
+                  autoInsertSpace={false}
                 >
                   {t("setup:MASTER_KEY_REPAIR_ACTION")}
                 </Button>
@@ -209,7 +211,11 @@ export function RepairMasterKeyPage() {
 
         {status?.masterKeyReady ? (
           <div className="flex items-center justify-end gap-2">
-            <Button type="primary" onClick={() => void navigate({ to: "/", replace: true })}>
+            <Button
+              type="primary"
+              onClick={() => void navigate({ to: "/", replace: true })}
+              autoInsertSpace={false}
+            >
               {t("common:GO_HOME")}
             </Button>
           </div>

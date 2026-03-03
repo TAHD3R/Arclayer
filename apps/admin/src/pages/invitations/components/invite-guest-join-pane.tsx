@@ -175,10 +175,17 @@ function LoginModeContent({
               type="primary"
               className="!rounded-full"
               onClick={() => void onBackToLogin()}
+              autoInsertSpace={false}
             >
               {t("invite:INVITE_ACTION_GO_TO_LOGIN")}
             </Button>
-            <Button block size="large" className="!rounded-full" onClick={onBack}>
+            <Button
+              block
+              size="large"
+              className="!rounded-full"
+              onClick={onBack}
+              autoInsertSpace={false}
+            >
               {t("invite:INVITE_ACTION_BACK")}
             </Button>
           </div>
@@ -186,7 +193,7 @@ function LoginModeContent({
       </motion.div>
 
       <motion.div variants={v} className="mt-4 text-center">
-        <Button type="link" size="small" onClick={onSwitchToRegister}>
+        <Button type="link" size="small" onClick={onSwitchToRegister} autoInsertSpace={false}>
           {t("invite:INVITE_ACTION_SWITCH_TO_REGISTER")}
         </Button>
       </motion.div>

@@ -116,6 +116,7 @@ export function AssetsViewMasonrySection(props: AssetsViewMasonrySectionProps) {
               setFilters({ visibility: "public" });
               setMoreOpen(false);
             }}
+            autoInsertSpace={false}
           >
             {t("assets:ASSET_FILTER_RESET")}
           </Button>
@@ -148,6 +149,7 @@ export function AssetsViewMasonrySection(props: AssetsViewMasonrySectionProps) {
                         setFocusedFolderId(null);
                         setSelection((prev) => clearSelection(prev));
                       }}
+                      autoInsertSpace={false}
                     >
                       {t("assets:ASSET_BREADCRUMB_ROOT")}
                     </Button>
@@ -184,6 +186,7 @@ export function AssetsViewMasonrySection(props: AssetsViewMasonrySectionProps) {
                               setFocusedFolderId(null);
                               setSelection((prev) => clearSelection(prev));
                             }}
+                            autoInsertSpace={false}
                           >
                             {folder.name}
                           </Button>
@@ -209,6 +212,7 @@ export function AssetsViewMasonrySection(props: AssetsViewMasonrySectionProps) {
                 setCreateFolderParentId(currentFolderId);
                 setCreateFolderOpen(true);
               }}
+              autoInsertSpace={false}
             >
               {t("assets:ASSET_ACTION_CREATE_FOLDER")}
             </Button>

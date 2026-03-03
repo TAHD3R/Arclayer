@@ -298,7 +298,7 @@ export function OrganizationMemberInspectSheet({
 
             <SheetFooter className="sticky bottom-0 border-t bg-card px-6 py-3">
               <div className="flex w-full items-center justify-end gap-2">
-                <AntButton type="text" onClick={() => onAdjustRole(member)}>
+                <AntButton type="text" onClick={() => onAdjustRole(member)} autoInsertSpace={false}>
                   {t("common:ORG_MEMBERS_ACTION_CHANGE_ROLE")}
                 </AntButton>
                 <AntButton
@@ -308,6 +308,7 @@ export function OrganizationMemberInspectSheet({
                     if (isOwnerSelf) return;
                     onRemoveMember(member);
                   }}
+                  autoInsertSpace={false}
                 >
                   {isCurrentUser ? leaveLabel : removeLabel}
                 </AntButton>

@@ -203,7 +203,7 @@ export function WorkspaceSettingsDangerView(props: { workspaceId: string }) {
           description={t("settings:SETTINGS_WORKSPACE_LEAVE_DESC")}
           footer={
             <div className="flex w-full justify-end gap-2">
-              <Button type="text" onClick={closeLeaveDialog}>
+              <Button type="text" onClick={closeLeaveDialog} autoInsertSpace={false}>
                 {t("common:CANCEL")}
               </Button>
               <Button
@@ -222,6 +222,7 @@ export function WorkspaceSettingsDangerView(props: { workspaceId: string }) {
                     await navigateAfterWorkspaceRemoved();
                   });
                 }}
+                autoInsertSpace={false}
               >
                 {t("settings:SETTINGS_WORKSPACE_LEAVE_CONFIRM_BUTTON")}
               </Button>
@@ -268,7 +269,7 @@ export function WorkspaceSettingsDangerView(props: { workspaceId: string }) {
           description={t("settings:SETTINGS_WORKSPACE_DELETE_DESC")}
           footer={
             <div className="flex w-full justify-end gap-2">
-              <Button type="text" onClick={closeDeleteDialog}>
+              <Button type="text" onClick={closeDeleteDialog} autoInsertSpace={false}>
                 {t("common:CANCEL")}
               </Button>
               <Button
@@ -288,6 +289,7 @@ export function WorkspaceSettingsDangerView(props: { workspaceId: string }) {
                     await navigateAfterWorkspaceRemoved();
                   });
                 }}
+                autoInsertSpace={false}
               >
                 {t("common:DELETE")}
               </Button>

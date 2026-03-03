@@ -1,7 +1,18 @@
 import { Button as AntButton, Input, Select } from "antd";
 
 import type { OrganizationInvitation, OrganizationInviteLink } from "@/types/api";
-import { ConfirmDialog } from "@celestial/ui/confirm-dialog";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@celestial/ui/alert-dialog";
+import {
+  AlertDialogAction as AlertDialogActionPrimitive,
+  AlertDialogCancel as AlertDialogCancelPrimitive,
+} from "@celestial/ui/radix-primitives/radix-alert-dialog";
 import { SettingDialog } from "@celestial/ui/setting-dialog";
 import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 import type { InviteOrganizationRoleOption } from "@/pages/organization/team/shared/components/invite-organization-member-dialog";
@@ -92,10 +103,16 @@ export function OrganizationTeamInvitationsDialogs(props: OrganizationTeamInvita
               type="text"
               onClick={() => onLinkCreateOpenChange(false)}
               disabled={createLinkPending}
+              autoInsertSpace={false}
             >
               {t("common:CANCEL")}
             </AntButton>
-            <AntButton type="primary" loading={createLinkPending} onClick={onCreateLink}>
+            <AntButton
+              type="primary"
+              loading={createLinkPending}
+              onClick={onCreateLink}
+              autoInsertSpace={false}
+            >
               {t("common:CONFIRM")}
             </AntButton>
           </>
@@ -164,6 +181,7 @@ export function OrganizationTeamInvitationsDialogs(props: OrganizationTeamInvita
         footer={
           <>
             <AntButton
+              autoInsertSpace={false}
               type="text"
               onClick={renewInvitationDialog.close}
               disabled={renewInvitationPending}
@@ -171,6 +189,7 @@ export function OrganizationTeamInvitationsDialogs(props: OrganizationTeamInvita
               {t("common:CANCEL")}
             </AntButton>
             <AntButton
+              autoInsertSpace={false}
               type="primary"
               loading={renewInvitationPending}
               onClick={() => {
@@ -185,43 +204,68 @@ export function OrganizationTeamInvitationsDialogs(props: OrganizationTeamInvita
         }
       >
         {renewInvitationDialog.displayPayload ? (
-          <div className="grid gap-1.5 py-2">
-            <label className="font-semibold text-foreground">
-              {t("team:TEAM_INVITE_LINK_FIELD_EXPIRES")}
-            </label>
-            <div className="text-label-secondary">{t("team:TEAM_INVITE_FIELD_EXPIRES_HELP")}</div>
-            <Select<RenewExpiresInSeconds>
-              value={renewExpiresInSeconds}
-              onChange={(value) => onRenewExpiresInSecondsChange(value)}
-              options={renewOptions}
-              className="w-full"
-              getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
-            />
+          <div className="grid gap-4 py-2">
+            <div className="grid gap-1.5">
+              <label className="font-semibold text-foreground">
+                {t("team:TEAM_INVITE_LINK_FIELD_EXPIRES")}
+              </label>
+              <div className="text-label-secondary">{t("team:TEAM_INVITE_FIELD_EXPIRES_HELP")}</div>
+              <Select<RenewExpiresInSeconds>
+                value={renewExpiresInSeconds}
+                onChange={(value) => onRenewExpiresInSecondsChange(value)}
+                options={renewOptions}
+                className="w-full"
+                getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
+              />
+            </div>
           </div>
         ) : null}
       </SettingDialog>
 
-      <ConfirmDialog
+      <AlertDialog
         open={revokeInvitationDialog.open}
         onOpenChange={revokeInvitationDialog.onOpenChange}
-        title={t("team:TEAM_INVITATIONS_DELETE_TITLE")}
-        description={
-          revokeInvitationDialog.displayPayload
-            ? t("team:TEAM_INVITATIONS_DELETE_DESC", {
-                email: revokeInvitationDialog.displayPayload.email || "-",
-              })
-            : undefined
-        }
-        cancelText={t("common:CANCEL")}
-        confirmText={t("team:TEAM_ACTION_DELETE")}
-        danger
-        loading={revokeInvitationPending}
-        onConfirm={async () => {
-          const active = revokeInvitationDialog.displayPayload;
-          if (!active) return;
-          onRevokeInvitation(active.id);
-        }}
-      />
+      >
+        <AlertDialogContent className="sm:max-w-[520px]">
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("team:TEAM_INVITATIONS_DELETE_TITLE")}</AlertDialogTitle>
+            {revokeInvitationDialog.displayPayload ? (
+              <AlertDialogDescription className="text-body">
+                {t("team:TEAM_INVITATIONS_DELETE_DESC", {
+                  email: revokeInvitationDialog.displayPayload.email || "-",
+                })}
+              </AlertDialogDescription>
+            ) : null}
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancelPrimitive asChild>
+              <AntButton
+                autoInsertSpace={false}
+                type="text"
+                onClick={revokeInvitationDialog.close}
+                disabled={revokeInvitationPending}
+              >
+                {t("common:CANCEL")}
+              </AntButton>
+            </AlertDialogCancelPrimitive>
+            <AlertDialogActionPrimitive asChild>
+              <AntButton
+                autoInsertSpace={false}
+                type="primary"
+                danger
+                loading={revokeInvitationPending}
+                onClick={() => {
+                  const active = revokeInvitationDialog.displayPayload;
+                  if (!active) return;
+                  onRevokeInvitation(active.id);
+                }}
+              >
+                {t("team:TEAM_ACTION_DELETE")}
+              </AntButton>
+            </AlertDialogActionPrimitive>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <SettingDialog
         open={renewLinkDialog.open}
@@ -237,10 +281,16 @@ export function OrganizationTeamInvitationsDialogs(props: OrganizationTeamInvita
         contentClassName="sm:max-w-xl"
         footer={
           <>
-            <AntButton type="text" onClick={renewLinkDialog.close} disabled={renewLinkPending}>
+            <AntButton
+              autoInsertSpace={false}
+              type="text"
+              onClick={renewLinkDialog.close}
+              disabled={renewLinkPending}
+            >
               {t("common:CANCEL")}
             </AntButton>
             <AntButton
+              autoInsertSpace={false}
               type="primary"
               loading={renewLinkPending}
               onClick={() => {
@@ -255,43 +305,65 @@ export function OrganizationTeamInvitationsDialogs(props: OrganizationTeamInvita
         }
       >
         {renewLinkDialog.displayPayload ? (
-          <div className="grid gap-1.5 py-2">
-            <label className="font-semibold text-foreground">
-              {t("team:TEAM_INVITE_LINK_FIELD_EXPIRES")}
-            </label>
-            <div className="text-label-secondary">{t("team:TEAM_INVITE_FIELD_EXPIRES_HELP")}</div>
-            <Select<RenewExpiresInSeconds>
-              value={renewExpiresInSeconds}
-              onChange={(value) => onRenewExpiresInSecondsChange(value)}
-              options={renewOptions}
-              className="w-full"
-              getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
-            />
+          <div className="grid gap-4 py-2">
+            <div className="grid gap-1.5">
+              <label className="font-semibold text-foreground">
+                {t("team:TEAM_INVITE_LINK_FIELD_EXPIRES")}
+              </label>
+              <div className="text-label-secondary">{t("team:TEAM_INVITE_FIELD_EXPIRES_HELP")}</div>
+              <Select<RenewExpiresInSeconds>
+                value={renewExpiresInSeconds}
+                onChange={(value) => onRenewExpiresInSecondsChange(value)}
+                options={renewOptions}
+                className="w-full"
+                getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
+              />
+            </div>
           </div>
         ) : null}
       </SettingDialog>
 
-      <ConfirmDialog
-        open={disableLinkDialog.open}
-        onOpenChange={disableLinkDialog.onOpenChange}
-        title={t("team:TEAM_INVITE_LINKS_ACTION_DISABLE")}
-        description={
-          disableLinkDialog.displayPayload
-            ? t("team:TEAM_INVITE_LINKS_DISABLE_DESC", {
-                code: disableLinkDialog.displayPayload.displayCode,
-              })
-            : undefined
-        }
-        cancelText={t("common:CANCEL")}
-        confirmText={t("team:TEAM_INVITE_LINKS_ACTION_DISABLE")}
-        danger
-        loading={disableLinkPending}
-        onConfirm={async () => {
-          const active = disableLinkDialog.displayPayload;
-          if (!active) return;
-          onDisableLink(active.id);
-        }}
-      />
+      <AlertDialog open={disableLinkDialog.open} onOpenChange={disableLinkDialog.onOpenChange}>
+        <AlertDialogContent className="sm:max-w-[520px]">
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("team:TEAM_INVITE_LINKS_ACTION_DISABLE")}</AlertDialogTitle>
+            {disableLinkDialog.displayPayload ? (
+              <AlertDialogDescription className="text-body">
+                {t("team:TEAM_INVITE_LINKS_DISABLE_DESC", {
+                  code: disableLinkDialog.displayPayload.displayCode,
+                })}
+              </AlertDialogDescription>
+            ) : null}
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancelPrimitive asChild>
+              <AntButton
+                autoInsertSpace={false}
+                type="text"
+                onClick={disableLinkDialog.close}
+                disabled={disableLinkPending}
+              >
+                {t("common:CANCEL")}
+              </AntButton>
+            </AlertDialogCancelPrimitive>
+            <AlertDialogActionPrimitive asChild>
+              <AntButton
+                autoInsertSpace={false}
+                type="primary"
+                danger
+                loading={disableLinkPending}
+                onClick={() => {
+                  const active = disableLinkDialog.displayPayload;
+                  if (!active) return;
+                  onDisableLink(active.id);
+                }}
+              >
+                {t("team:TEAM_INVITE_LINKS_ACTION_DISABLE")}
+              </AntButton>
+            </AlertDialogActionPrimitive>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

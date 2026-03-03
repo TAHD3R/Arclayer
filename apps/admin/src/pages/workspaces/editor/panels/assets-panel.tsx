@@ -132,6 +132,7 @@ export function AssetsPanel() {
             explorer.setCurrentFolderId(null);
             explorer.setFocusedFolderId(null);
           }}
+          autoInsertSpace={false}
         >
           {t("assets:ASSET_BREADCRUMB_ROOT")}
         </Button>
@@ -145,6 +146,7 @@ export function AssetsPanel() {
                 explorer.setCurrentFolderId(String(folder.id));
                 explorer.setFocusedFolderId(null);
               }}
+              autoInsertSpace={false}
             >
               {folder.name}
             </Button>
@@ -280,6 +282,7 @@ export function AssetsPanel() {
               disabled={!loadMoreEnabled}
               loading={explorer.infiniteAssetsQuery.isFetchingNextPage}
               onClick={() => void explorer.infiniteAssetsQuery.fetchNextPage()}
+              autoInsertSpace={false}
             >
               {t("common:LOAD_MORE")}
             </Button>

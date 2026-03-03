@@ -77,7 +77,7 @@ export function MeSecuritySessionsSection() {
         header: t("account:ME_SECURITY_SESSIONS_COL_ACTIONS"),
         meta: { kind: "actions" },
         cell: () => (
-          <Button disabled type="link" className="px-0!">
+          <Button disabled type="link" className="px-0!" autoInsertSpace={false}>
             {t("account:ME_SECURITY_SESSIONS_KICK")}
           </Button>
         ),
@@ -103,7 +103,7 @@ export function MeSecuritySessionsSection() {
       control={
         <div className="min-w-0">
           <div className="mb-3 flex items-center justify-end">
-            <Button disabled danger type="primary">
+            <Button disabled danger type="primary" autoInsertSpace={false}>
               {t("account:ME_SECURITY_SESSIONS_KICK_ALL")}
             </Button>
           </div>

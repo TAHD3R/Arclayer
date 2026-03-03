@@ -168,6 +168,7 @@ export function LazyAssetImage(props: {
                   setStatus("loading");
                   setReloadKey((v) => v + 1);
                 }}
+                autoInsertSpace={false}
               >
                 {props.retryText || t("common:RETRY")}
               </Button>

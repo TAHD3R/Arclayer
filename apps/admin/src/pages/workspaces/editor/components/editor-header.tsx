@@ -218,7 +218,7 @@ function BridgeStatusIndicator() {
     <Popover open={open} onOpenChange={setOpen}>
       <Tooltip title={label}>
         <PopoverTrigger asChild>
-          <Button type="text" size="small" icon={icon} aria-label={label} />
+          <Button type="text" size="small" icon={icon} aria-label={label} autoInsertSpace={false} />
         </PopoverTrigger>
       </Tooltip>
       <PopoverContent align="end" className="w-80 space-y-3 p-3">
@@ -551,6 +551,7 @@ export function EditorHeader() {
             type="text"
             icon={<Play className="size-3.5" />}
             onClick={() => void actions.run("view.toggle_preview")}
+            autoInsertSpace={false}
           />
         </Tooltip>
 
@@ -560,6 +561,7 @@ export function EditorHeader() {
           disabled={!actions.isEnabled("file.publish")}
           icon={<ArrowUpFromLine className="size-3.5" />}
           onClick={() => void actions.run("file.publish")}
+          autoInsertSpace={false}
         >
           {t("content_pages:EDITOR_TOOLBAR_PUBLISH")}
         </Button>

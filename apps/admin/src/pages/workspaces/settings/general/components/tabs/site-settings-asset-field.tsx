@@ -86,10 +86,11 @@ export function SiteSettingsAssetField({
               form.setFieldValue(assetFieldName, "");
               form.setFieldValue(urlFieldName, "");
             }}
+            autoInsertSpace={false}
           >
             {t("settings:SETTINGS_ASSET_PICKER_CLEAR")}
           </Button>
-          <Button type="primary" onClick={() => onPickerOpenChange(true)}>
+          <Button type="primary" onClick={() => onPickerOpenChange(true)} autoInsertSpace={false}>
             {t("settings:SETTINGS_ASSET_PICKER_SELECT")}
           </Button>
         </div>

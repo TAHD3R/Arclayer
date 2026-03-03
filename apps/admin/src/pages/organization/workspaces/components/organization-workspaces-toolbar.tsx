@@ -70,11 +70,13 @@ export function OrganizationWorkspacesToolbar(props: OrganizationWorkspacesToolb
                 type={viewMode === "card" ? "primary" : "text"}
                 icon={<LayoutGrid className="size-4" />}
                 onClick={() => onViewModeChange("card")}
+                autoInsertSpace={false}
               />
               <AntButton
                 type={viewMode === "table" ? "primary" : "text"}
                 icon={<List className="size-4" />}
                 onClick={() => onViewModeChange("table")}
+                autoInsertSpace={false}
               />
             </Space.Compact>
           </div>

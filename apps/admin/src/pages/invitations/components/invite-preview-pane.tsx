@@ -75,7 +75,13 @@ export function InvitePreviewPane({
       </motion.div>
 
       <motion.div variants={v} className="mt-6">
-        <Button size="large" type="primary" className="!rounded-full !px-8" onClick={onContinue}>
+        <Button
+          size="large"
+          type="primary"
+          className="!rounded-full !px-8"
+          onClick={onContinue}
+          autoInsertSpace={false}
+        >
           {t(
             isOrgOnlyInvite
               ? "invite:INVITE_ACTION_ACCEPT_JOIN_ORG"
@@ -86,7 +92,12 @@ export function InvitePreviewPane({
 
       {!isLoggedIn && data.userExists && (
         <motion.div variants={v} className="mt-3">
-          <Button type="link" size="small" onClick={() => void onBackToLogin()}>
+          <Button
+            type="link"
+            size="small"
+            onClick={() => void onBackToLogin()}
+            autoInsertSpace={false}
+          >
             {t("invite:INVITE_ACTION_SWITCH_TO_LOGIN")}
           </Button>
         </motion.div>

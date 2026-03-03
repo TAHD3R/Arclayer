@@ -32,19 +32,34 @@ export function ContentPagesBulkActions(props: ContentPagesBulkActionsProps) {
                 <span className="inline-flex items-center rounded-full bg-muted px-3 py-1 text-footnote font-semibold">
                   {props.t("content_pages:BULK_SELECTED_COUNT", { count: props.selectedCount })}
                 </span>
-                <Button type="text" onClick={props.onClearSelection}>
+                <Button type="text" onClick={props.onClearSelection} autoInsertSpace={false}>
                   {props.t("content_pages:BULK_CLEAR_SELECTION")}
                 </Button>
               </div>
 
               <div className="flex items-center gap-2">
-                <Button type="text" onClick={props.onSetPublic} loading={props.visibilityLoading}>
+                <Button
+                  type="text"
+                  onClick={props.onSetPublic}
+                  loading={props.visibilityLoading}
+                  autoInsertSpace={false}
+                >
                   {props.t("content_pages:BULK_SET_PUBLIC")}
                 </Button>
-                <Button type="text" onClick={props.onSetPrivate} loading={props.visibilityLoading}>
+                <Button
+                  type="text"
+                  onClick={props.onSetPrivate}
+                  loading={props.visibilityLoading}
+                  autoInsertSpace={false}
+                >
                   {props.t("content_pages:BULK_SET_PRIVATE")}
                 </Button>
-                <Button type="text" onClick={props.onDuplicate} loading={props.duplicateLoading}>
+                <Button
+                  type="text"
+                  onClick={props.onDuplicate}
+                  loading={props.duplicateLoading}
+                  autoInsertSpace={false}
+                >
                   {props.t("content_pages:BULK_DUPLICATE")}
                 </Button>
                 <Button
@@ -52,6 +67,7 @@ export function ContentPagesBulkActions(props: ContentPagesBulkActionsProps) {
                   danger
                   onClick={props.onDelete}
                   loading={props.deleteLoading}
+                  autoInsertSpace={false}
                 >
                   {props.t("content_pages:BULK_DELETE")}
                 </Button>

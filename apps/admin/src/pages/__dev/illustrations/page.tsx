@@ -92,10 +92,16 @@ export function IllustrationsDebugPage() {
         Illustration: Illust401LockedTerminal,
         actions: (
           <Space wrap>
-            <Button type="primary" onClick={() => void router.navigate({ to: "/login" })}>
+            <Button
+              type="primary"
+              onClick={() => void router.navigate({ to: "/login" })}
+              autoInsertSpace={false}
+            >
               {t("common:GO_LOGIN")}
             </Button>
-            <Button onClick={toastAction}>{t("common:REFRESH")}</Button>
+            <Button onClick={toastAction} autoInsertSpace={false}>
+              {t("common:REFRESH")}
+            </Button>
           </Space>
         ),
       },
@@ -106,10 +112,16 @@ export function IllustrationsDebugPage() {
         Illustration: Illust403ForbiddenGateway,
         actions: (
           <Space wrap>
-            <Button type="primary" onClick={() => void router.navigate({ to: "/" })}>
+            <Button
+              type="primary"
+              onClick={() => void router.navigate({ to: "/" })}
+              autoInsertSpace={false}
+            >
               {t("common:GO_HOME")}
             </Button>
-            <Button onClick={toastAction}>{t("common:RETRY")}</Button>
+            <Button onClick={toastAction} autoInsertSpace={false}>
+              {t("common:RETRY")}
+            </Button>
           </Space>
         ),
       },
@@ -120,10 +132,16 @@ export function IllustrationsDebugPage() {
         Illustration: Illust404BrokenLink,
         actions: (
           <Space wrap>
-            <Button type="primary" onClick={() => void router.navigate({ to: "/" })}>
+            <Button
+              type="primary"
+              onClick={() => void router.navigate({ to: "/" })}
+              autoInsertSpace={false}
+            >
               {t("common:GO_HOME")}
             </Button>
-            <Button onClick={toastAction}>{t("common:REFRESH")}</Button>
+            <Button onClick={toastAction} autoInsertSpace={false}>
+              {t("common:REFRESH")}
+            </Button>
           </Space>
         ),
       },
@@ -134,10 +152,12 @@ export function IllustrationsDebugPage() {
         Illustration: Illust422MalformedPacket,
         actions: (
           <Space wrap>
-            <Button type="primary" onClick={toastAction}>
+            <Button type="primary" onClick={toastAction} autoInsertSpace={false}>
               {t("common:RETRY")}
             </Button>
-            <Button onClick={toastAction}>{t("common:BACK")}</Button>
+            <Button onClick={toastAction} autoInsertSpace={false}>
+              {t("common:BACK")}
+            </Button>
           </Space>
         ),
       },
@@ -148,10 +168,12 @@ export function IllustrationsDebugPage() {
         Illustration: Illust429OverloadedGauge,
         actions: (
           <Space wrap>
-            <Button type="primary" onClick={toastAction}>
+            <Button type="primary" onClick={toastAction} autoInsertSpace={false}>
               {t("common:RETRY")}
             </Button>
-            <Button onClick={toastAction}>{t("common:REFRESH")}</Button>
+            <Button onClick={toastAction} autoInsertSpace={false}>
+              {t("common:REFRESH")}
+            </Button>
           </Space>
         ),
       },
@@ -162,10 +184,12 @@ export function IllustrationsDebugPage() {
         Illustration: Illust500CrashedServer,
         actions: (
           <Space wrap>
-            <Button type="primary" onClick={toastAction}>
+            <Button type="primary" onClick={toastAction} autoInsertSpace={false}>
               {t("common:RETRY")}
             </Button>
-            <Button onClick={() => void router.navigate({ to: "/" })}>{t("common:GO_HOME")}</Button>
+            <Button onClick={() => void router.navigate({ to: "/" })} autoInsertSpace={false}>
+              {t("common:GO_HOME")}
+            </Button>
           </Space>
         ),
       },

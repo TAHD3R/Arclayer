@@ -2,7 +2,18 @@ import { Button as AntButton, Select } from "antd";
 import { useTranslation } from "react-i18next";
 
 import type { OrganizationMember, OrganizationMemberWorkspace } from "@/types/api";
-import { ConfirmDialog } from "@celestial/ui/confirm-dialog";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@celestial/ui/alert-dialog";
+import {
+  AlertDialogAction as AlertDialogActionPrimitive,
+  AlertDialogCancel as AlertDialogCancelPrimitive,
+} from "@celestial/ui/radix-primitives/radix-alert-dialog";
 import { SettingDialog } from "@celestial/ui/setting-dialog";
 import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 import {
@@ -137,6 +148,7 @@ export function OrganizationMembersDialogs({
         footer={
           <>
             <AntButton
+              autoInsertSpace={false}
               type="text"
               onClick={() => onRoleDialogOpenChange(false)}
               disabled={roleUpdateLoading}
@@ -144,6 +156,7 @@ export function OrganizationMembersDialogs({
               {t("common:CANCEL")}
             </AntButton>
             <AntButton
+              autoInsertSpace={false}
               type="primary"
               loading={roleUpdateLoading}
               onClick={async () => {
@@ -156,46 +169,68 @@ export function OrganizationMembersDialogs({
           </>
         }
       >
-        <div className="grid gap-1.5 py-2">
-          <label className="font-semibold text-foreground">
-            {t("team:TEAM_INVITE_FIELD_ROLE")}
-          </label>
-          <div className="text-label-secondary">{t("team:TEAM_ROLE_CHANGE_FIELD_ROLE_HELP")}</div>
-          <Select
-            value={roleDraft}
-            onChange={(next) => onRoleDraftChange(String(next))}
-            options={roleOptions}
-            className="w-full"
-            getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
-            disabled={roleUpdateLoading}
-          />
+        <div className="grid gap-4 py-2">
+          <div className="grid gap-1.5">
+            <label className="font-semibold text-foreground">
+              {t("team:TEAM_INVITE_FIELD_ROLE")}
+            </label>
+            <div className="text-label-secondary">{t("team:TEAM_ROLE_CHANGE_FIELD_ROLE_HELP")}</div>
+            <Select
+              value={roleDraft}
+              onChange={(next) => onRoleDraftChange(String(next))}
+              options={roleOptions}
+              className="w-full"
+              getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
+              disabled={roleUpdateLoading}
+            />
+          </div>
         </div>
       </SettingDialog>
 
-      <ConfirmDialog
-        open={Boolean(pendingRemove)}
-        onOpenChange={onPendingRemoveOpenChange}
-        title={
-          pendingRemoveIsCurrentUser
-            ? t("common:ORG_MEMBERS_LEAVE_CONFIRM_TITLE")
-            : t("common:ORG_MEMBERS_REMOVE_CONFIRM_TITLE")
-        }
-        description={
-          pendingRemoveIsCurrentUser
-            ? t("common:ORG_MEMBERS_LEAVE_CONFIRM_DESC")
-            : t("common:ORG_MEMBERS_REMOVE_CONFIRM_DESC", {
-                name: pendingRemove?.displayName || pendingRemove?.username || "",
-              })
-        }
-        cancelText={t("common:CANCEL")}
-        confirmText={t("common:CONFIRM")}
-        danger
-        loading={removeLoading}
-        onConfirm={async () => {
-          if (!pendingRemove) return;
-          await onConfirmRemove(pendingRemove);
-        }}
-      />
+      <AlertDialog open={Boolean(pendingRemove)} onOpenChange={onPendingRemoveOpenChange}>
+        <AlertDialogContent className="sm:max-w-[520px]">
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {pendingRemoveIsCurrentUser
+                ? t("common:ORG_MEMBERS_LEAVE_CONFIRM_TITLE")
+                : t("common:ORG_MEMBERS_REMOVE_CONFIRM_TITLE")}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-body">
+              {pendingRemoveIsCurrentUser
+                ? t("common:ORG_MEMBERS_LEAVE_CONFIRM_DESC")
+                : t("common:ORG_MEMBERS_REMOVE_CONFIRM_DESC", {
+                    name: pendingRemove?.displayName || pendingRemove?.username || "",
+                  })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancelPrimitive asChild>
+              <AntButton
+                autoInsertSpace={false}
+                type="text"
+                onClick={() => onPendingRemoveOpenChange(false)}
+                disabled={removeLoading}
+              >
+                {t("common:CANCEL")}
+              </AntButton>
+            </AlertDialogCancelPrimitive>
+            <AlertDialogActionPrimitive asChild>
+              <AntButton
+                autoInsertSpace={false}
+                type="primary"
+                danger
+                loading={removeLoading}
+                onClick={() => {
+                  if (!pendingRemove) return;
+                  void onConfirmRemove(pendingRemove);
+                }}
+              >
+                {t("common:CONFIRM")}
+              </AntButton>
+            </AlertDialogActionPrimitive>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

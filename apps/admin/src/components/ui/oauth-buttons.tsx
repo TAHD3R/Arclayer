@@ -62,6 +62,7 @@ export function AuthOauthButtons({ disabled = false, redirect }: AuthOauthButton
               }
               window.location.assign(google.startUrl);
             }}
+            autoInsertSpace={false}
           >
             {t("auth:OAUTH_GOOGLE")}
           </Button>
@@ -81,6 +82,7 @@ export function AuthOauthButtons({ disabled = false, redirect }: AuthOauthButton
               }
               window.location.assign(github.startUrl);
             }}
+            autoInsertSpace={false}
           >
             {t("auth:OAUTH_GITHUB")}
           </Button>

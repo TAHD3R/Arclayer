@@ -159,7 +159,7 @@ function TitlePolicyPartRow(props: {
         </Space>
       )}
 
-      <Button danger onClick={props.onRemove}>
+      <Button danger onClick={props.onRemove} autoInsertSpace={false}>
         {t("settings:SETTINGS_REMOVE")}
       </Button>
     </div>
@@ -298,6 +298,7 @@ export function SeoTitlePolicyField(props: {
               parts: [...value.parts, { kind: "token", value: "pageTitle" }],
             })
           }
+          autoInsertSpace={false}
         >
           {t("settings:SETTINGS_SEO_TITLE_FORMAT_ADD_TOKEN")}
         </Button>
@@ -308,6 +309,7 @@ export function SeoTitlePolicyField(props: {
               parts: [...value.parts, { kind: "literal", value: " - " }],
             })
           }
+          autoInsertSpace={false}
         >
           {t("settings:SETTINGS_SEO_TITLE_FORMAT_ADD_LITERAL")}
         </Button>

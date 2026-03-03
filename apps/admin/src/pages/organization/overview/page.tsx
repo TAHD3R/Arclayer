@@ -52,6 +52,7 @@ export function OrganizationOverviewPage() {
               <Button
                 type="primary"
                 onClick={() => void navigate({ to: buildOrganizationPath(orgId, "/workspaces") })}
+                autoInsertSpace={false}
               >
                 {t("nav:NAV_ORG_WORKSPACES")}
               </Button>
@@ -61,6 +62,7 @@ export function OrganizationOverviewPage() {
                     to: buildOrganizationPath(orgId, "/team/members"),
                   })
                 }
+                autoInsertSpace={false}
               >
                 {t("nav:NAV_ORG_MEMBERS")}
               </Button>

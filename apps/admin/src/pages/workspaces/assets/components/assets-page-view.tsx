@@ -76,7 +76,12 @@ export function AssetsPageView() {
       description={t("assets:ASSET_PAGE_DESC")}
       width="fixed"
       action={
-        <Button type="primary" icon={<Plus size={16} />} onClick={() => setUploadOpen(true)}>
+        <Button
+          type="primary"
+          icon={<Plus size={16} />}
+          onClick={() => setUploadOpen(true)}
+          autoInsertSpace={false}
+        >
           {t("assets:ASSET_ACTION_UPLOAD")}
         </Button>
       }

@@ -253,17 +253,19 @@ export function AssetPickerDialog(props: {
                   props.onConfirm({ assetIds: [] });
                   props.onOpenChange(false);
                 }}
+                autoInsertSpace={false}
               >
                 {t("settings:SETTINGS_ASSET_PICKER_CLEAR")}
               </Button>
             ) : null}
-            <Button type="text" onClick={() => props.onOpenChange(false)}>
+            <Button type="text" onClick={() => props.onOpenChange(false)} autoInsertSpace={false}>
               {t("common:CANCEL")}
             </Button>
             <Button
               type="primary"
               disabled={selectedIds.size <= 0}
               onClick={() => confirmSelectionAndClose()}
+              autoInsertSpace={false}
             >
               {t("common:CONFIRM")}
             </Button>
@@ -318,6 +320,7 @@ export function AssetPickerDialog(props: {
                   icon={<UploadCloud size={16} />}
                   onClick={() => setUploadOpen(true)}
                   disabled={isFetching}
+                  autoInsertSpace={false}
                 >
                   {t("assets:ASSET_ACTION_UPLOAD")}
                 </Button>
@@ -333,6 +336,7 @@ export function AssetPickerDialog(props: {
                 setCurrentFolderId(null);
                 setFocusedFolderId(null);
               }}
+              autoInsertSpace={false}
             >
               {t("assets:ASSET_BREADCRUMB_ROOT")}
             </Button>
@@ -346,6 +350,7 @@ export function AssetPickerDialog(props: {
                     setCurrentFolderId(String(f.id));
                     setFocusedFolderId(null);
                   }}
+                  autoInsertSpace={false}
                 >
                   {f.name}
                 </Button>

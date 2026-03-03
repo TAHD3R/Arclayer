@@ -193,6 +193,7 @@ export function FileUploadListItemProgressFill(props: FileUploadListItemProps) {
                 icon={<RotateCcw className="size-4" />}
                 disabled={props.isActionDisabled}
                 onClick={props.onRetry}
+                autoInsertSpace={false}
               >
                 {t("assets:ASSET_UPLOAD_ACTION_RETRY")}
               </Button>
@@ -207,6 +208,7 @@ export function FileUploadListItemProgressFill(props: FileUploadListItemProps) {
                     icon={<Trash2 className="size-4" />}
                     disabled={props.isActionDisabled}
                     onClick={props.onDelete}
+                    autoInsertSpace={false}
                   />
                 </TooltipTrigger>
                 <TooltipContent>{t("assets:ASSET_UPLOAD_REMOVE")}</TooltipContent>
@@ -318,6 +320,7 @@ export function FileUploadDropZone(props: FileUploadDropZoneProps) {
               if (props.isDisabled) return;
               open();
             }}
+            autoInsertSpace={false}
           >
             {t("assets:ASSET_UPLOAD_DROP_TITLE")}
           </Button>

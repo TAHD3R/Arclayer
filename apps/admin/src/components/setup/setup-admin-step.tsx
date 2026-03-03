@@ -118,7 +118,7 @@ export function SetupAdminStep(props: {
       </Form.Item>
 
       {/* Prevent Enter key from submitting/navigating unexpectedly (we drive navigation from the wizard buttons). */}
-      <Button htmlType="submit" style={{ display: "none" }} />
+      <Button htmlType="submit" style={{ display: "none" }} autoInsertSpace={false} />
     </Form>
   );
 }

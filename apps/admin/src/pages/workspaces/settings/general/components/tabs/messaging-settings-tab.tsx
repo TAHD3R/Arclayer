@@ -335,6 +335,7 @@ export function MessagingSettingsTab({
                       .catch((err) => notifyError(err))
                       .finally(() => setIsTestingEmail(false));
                   }}
+                  autoInsertSpace={false}
                 >
                   {t("settings:SETTINGS_MESSAGING_MAIL_TEST_ACTION")}
                 </Button>

@@ -135,6 +135,7 @@ function OrgPanelContent(props: {
           }
           aria-label={t("common:REFRESH")}
           onClick={props.onRefresh}
+          autoInsertSpace={false}
         />
         <Input
           value={search}
@@ -363,6 +364,7 @@ function WsPanelContent(props: {
           }
           aria-label={t("common:REFRESH")}
           onClick={props.onRefresh}
+          autoInsertSpace={false}
         />
         <Input
           value={search}
@@ -463,6 +465,7 @@ function WsPanelContent(props: {
             closeFloatingPanel();
             props.onCreateWorkspace();
           }}
+          autoInsertSpace={false}
         >
           {t("common:WORKSPACE_SWITCHER_CREATE")}
         </Button>

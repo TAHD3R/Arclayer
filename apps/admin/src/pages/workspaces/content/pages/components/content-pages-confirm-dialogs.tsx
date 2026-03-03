@@ -1,4 +1,5 @@
 import { Button as AntButton } from "antd";
+import { Copy, Trash2 } from "lucide-react";
 
 import { SettingDialog } from "@celestial/ui/setting-dialog";
 
@@ -46,6 +47,7 @@ export function ContentPagesConfirmDialogs(props: ContentPagesConfirmDialogsProp
         footer={
           <>
             <AntButton
+              autoInsertSpace={false}
               type="text"
               onClick={props.onCloseDuplicate}
               disabled={props.duplicateLoading}
@@ -53,7 +55,9 @@ export function ContentPagesConfirmDialogs(props: ContentPagesConfirmDialogsProp
               {props.t("common:CANCEL")}
             </AntButton>
             <AntButton
+              autoInsertSpace={false}
               type="primary"
+              icon={<Copy className="size-4" aria-hidden="true" />}
               loading={props.duplicateLoading}
               onClick={props.onConfirmDuplicate}
             >
@@ -62,8 +66,12 @@ export function ContentPagesConfirmDialogs(props: ContentPagesConfirmDialogsProp
           </>
         }
       >
-        <div className="text-label-secondary">
-          {props.t("content_pages:DIALOG_DUPLICATE_DESC", { name: duplicateName })}
+        <div className="grid gap-4 py-2">
+          <div className="grid gap-1.5">
+            <div className="text-label-secondary">
+              {props.t("content_pages:DIALOG_DUPLICATE_DESC", { name: duplicateName })}
+            </div>
+          </div>
         </div>
       </SettingDialog>
 
@@ -76,12 +84,19 @@ export function ContentPagesConfirmDialogs(props: ContentPagesConfirmDialogsProp
         contentClassName="sm:max-w-xl"
         footer={
           <>
-            <AntButton type="text" onClick={props.onCloseDelete} disabled={props.deleteLoading}>
+            <AntButton
+              autoInsertSpace={false}
+              type="text"
+              onClick={props.onCloseDelete}
+              disabled={props.deleteLoading}
+            >
               {props.t("common:CANCEL")}
             </AntButton>
             <AntButton
+              autoInsertSpace={false}
               type="primary"
               danger
+              icon={<Trash2 className="size-4" aria-hidden="true" />}
               loading={props.deleteLoading}
               onClick={props.onConfirmDelete}
             >
@@ -90,7 +105,11 @@ export function ContentPagesConfirmDialogs(props: ContentPagesConfirmDialogsProp
           </>
         }
       >
-        <div className="text-label-secondary">{deleteDescription}</div>
+        <div className="grid gap-4 py-2">
+          <div className="grid gap-1.5">
+            <div className="text-label-secondary">{deleteDescription}</div>
+          </div>
+        </div>
       </SettingDialog>
     </>
   );

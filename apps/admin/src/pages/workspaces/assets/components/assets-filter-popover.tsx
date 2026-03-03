@@ -67,6 +67,7 @@ export function AssetsFilterPopover(props: {
           icon={<Filter size={18} />}
           title={t("assets:ASSET_FILTER_TITLE")}
           className="h-10! bg-transparent! hover:bg-accent/40!"
+          autoInsertSpace={false}
         >
           {t("assets:ASSET_FILTER_TITLE")}
         </Button>
@@ -159,12 +160,15 @@ export function AssetsFilterPopover(props: {
               });
               props.onOrderingChange(props.defaultOrdering ?? "-created_at");
             }}
+            autoInsertSpace={false}
           >
             {t("assets:ASSET_FILTER_RESET")}
           </Button>
 
           <PopoverClose asChild>
-            <Button type="primary">{t("assets:ASSET_FILTER_DONE")}</Button>
+            <Button type="primary" autoInsertSpace={false}>
+              {t("assets:ASSET_FILTER_DONE")}
+            </Button>
           </PopoverClose>
         </div>
       </PopoverContent>

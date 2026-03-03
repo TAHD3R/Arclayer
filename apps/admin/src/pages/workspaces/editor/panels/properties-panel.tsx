@@ -104,6 +104,7 @@ function InspectorContentRef(props: { data: EditorSelectionInspector }) {
           type="default"
           disabled={!refEntryId}
           onClick={() => requestEditContentRef({ refEntryId })}
+          autoInsertSpace={false}
         >
           {t("content_pages:EDITOR_CONTENT_REF_ACTION_EDIT")}
         </Button>

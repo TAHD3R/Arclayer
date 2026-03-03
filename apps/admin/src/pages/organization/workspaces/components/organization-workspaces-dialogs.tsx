@@ -3,7 +3,18 @@ import type { Dispatch, SetStateAction } from "react";
 import { Button as AntButton, Form, Input, type FormInstance } from "antd";
 
 import type { OrganizationWorkspace } from "@/types/api";
-import { ConfirmDialog } from "@celestial/ui/confirm-dialog";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@celestial/ui/alert-dialog";
+import {
+  AlertDialogAction as AlertDialogActionPrimitive,
+  AlertDialogCancel as AlertDialogCancelPrimitive,
+} from "@celestial/ui/radix-primitives/radix-alert-dialog";
 import { SettingDialog } from "@celestial/ui/setting-dialog";
 
 import type { OrganizationWorkspacesTranslateFn } from "../types";
@@ -57,6 +68,7 @@ export function OrganizationWorkspacesDialogs(props: OrganizationWorkspacesDialo
         footer={
           <div className="flex w-full items-center justify-end gap-2">
             <AntButton
+              autoInsertSpace={false}
               type="text"
               onClick={() => createDialog.setOpen(false)}
               disabled={createDialog.pending}
@@ -64,6 +76,7 @@ export function OrganizationWorkspacesDialogs(props: OrganizationWorkspacesDialo
               {t("common:CANCEL")}
             </AntButton>
             <AntButton
+              autoInsertSpace={false}
               type="primary"
               loading={createDialog.pending}
               onClick={async () => {
@@ -115,24 +128,51 @@ export function OrganizationWorkspacesDialogs(props: OrganizationWorkspacesDialo
         </Form>
       </SettingDialog>
 
-      <ConfirmDialog
+      <AlertDialog
         open={Boolean(archiveDialog.workspace)}
         onOpenChange={(open) => {
           if (!open) archiveDialog.setWorkspace(null);
         }}
-        title={t("common:ORG_WORKSPACES_ARCHIVE_CONFIRM_TITLE")}
-        description={t("common:ORG_WORKSPACES_ARCHIVE_CONFIRM_DESC", {
-          name: archiveDialog.workspace?.name || "",
-        })}
-        cancelText={t("common:CANCEL")}
-        confirmText={t("common:ORG_WORKSPACES_ACTION_ARCHIVE")}
-        danger
-        loading={archiveDialog.pending}
-        onConfirm={async () => {
-          if (!archiveDialog.workspace) return;
-          await archiveDialog.onConfirm(archiveDialog.workspace.workspaceId);
-        }}
-      />
+      >
+        <AlertDialogContent className="sm:max-w-[520px]">
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("common:ORG_WORKSPACES_ARCHIVE_CONFIRM_TITLE")}</AlertDialogTitle>
+            <AlertDialogDescription className="text-body">
+              {t("common:ORG_WORKSPACES_ARCHIVE_CONFIRM_DESC", {
+                name: archiveDialog.workspace?.name || "",
+              })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancelPrimitive asChild>
+              <AntButton
+                autoInsertSpace={false}
+                type="text"
+                onClick={() => archiveDialog.setWorkspace(null)}
+                disabled={archiveDialog.pending}
+              >
+                {t("common:CANCEL")}
+              </AntButton>
+            </AlertDialogCancelPrimitive>
+            <AlertDialogActionPrimitive asChild>
+              <AntButton
+                autoInsertSpace={false}
+                type="primary"
+                danger
+                loading={archiveDialog.pending}
+                onClick={() => {
+                  if (!archiveDialog.workspace) return;
+                  void archiveDialog
+                    .onConfirm(archiveDialog.workspace.workspaceId)
+                    .then(() => archiveDialog.setWorkspace(null));
+                }}
+              >
+                {t("common:ORG_WORKSPACES_ACTION_ARCHIVE")}
+              </AntButton>
+            </AlertDialogActionPrimitive>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <SettingDialog
         open={Boolean(deleteDialog.workspace)}
@@ -150,6 +190,7 @@ export function OrganizationWorkspacesDialogs(props: OrganizationWorkspacesDialo
         footer={
           <div className="flex w-full items-center justify-end gap-2">
             <AntButton
+              autoInsertSpace={false}
               type="text"
               disabled={deleteDialog.pending}
               onClick={() => {
@@ -160,6 +201,7 @@ export function OrganizationWorkspacesDialogs(props: OrganizationWorkspacesDialo
               {t("common:CANCEL")}
             </AntButton>
             <AntButton
+              autoInsertSpace={false}
               danger
               type="primary"
               loading={deleteDialog.pending}
@@ -177,8 +219,8 @@ export function OrganizationWorkspacesDialogs(props: OrganizationWorkspacesDialo
           </div>
         }
       >
-        <div className="grid gap-2">
-          <div className="flex flex-col gap-2">
+        <div className="grid gap-4 py-2">
+          <div className="grid gap-1.5">
             <label
               className="font-semibold text-foreground"
               htmlFor="workspace-delete-confirm-name"
@@ -190,14 +232,14 @@ export function OrganizationWorkspacesDialogs(props: OrganizationWorkspacesDialo
             <div className="text-label-secondary">
               {t("common:ORG_WORKSPACES_DELETE_CONFIRM_INPUT_HELP")}
             </div>
+            <Input
+              id="workspace-delete-confirm-name"
+              value={deleteDialog.confirmName}
+              onChange={(event) => deleteDialog.setConfirmName(event.target.value)}
+              placeholder={t("common:ORG_WORKSPACES_DELETE_CONFIRM_INPUT_PLACEHOLDER")}
+              disabled={deleteDialog.pending}
+            />
           </div>
-          <Input
-            id="workspace-delete-confirm-name"
-            value={deleteDialog.confirmName}
-            onChange={(event) => deleteDialog.setConfirmName(event.target.value)}
-            placeholder={t("common:ORG_WORKSPACES_DELETE_CONFIRM_INPUT_PLACEHOLDER")}
-            disabled={deleteDialog.pending}
-          />
         </div>
       </SettingDialog>
     </>

@@ -33,15 +33,17 @@ export function FolderNotEmptyDialog(props: FolderNotEmptyDialogProps) {
     <AlertDialog open={props.open} onOpenChange={props.onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle className="text-title2 font-bold!">
+          <AlertDialogTitle>
             {t("assets:ASSET_FOLDER_DELETE_BLOCKED_TITLE", { name: props.folderName })}
           </AlertDialogTitle>
-          <AlertDialogDescription className="text-body">{reason}</AlertDialogDescription>
+          <AlertDialogDescription>{reason}</AlertDialogDescription>
         </AlertDialogHeader>
 
         <AlertDialogFooter className="mt-6">
           <AlertDialogCancelPrimitive asChild>
-            <Button type="primary">{t("common:CONFIRM")}</Button>
+            <Button type="primary" autoInsertSpace={false}>
+              {t("common:CONFIRM")}
+            </Button>
           </AlertDialogCancelPrimitive>
         </AlertDialogFooter>
       </AlertDialogContent>
