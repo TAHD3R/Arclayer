@@ -84,7 +84,7 @@ def _build_lifespan(settings: Settings, *, plugin_manager: PluginManager):
 
             # SaaS defaults: bootstrap storage sys-config (best-effort, do not crash startup).
             try:
-                from apps.api.src.modules.sys.storage_bootstrap import bootstrap_saas_storage_defaults
+                from apps.api.src.modules.sys.bootstrap.storage.service import bootstrap_saas_storage_defaults
 
                 await bootstrap_saas_storage_defaults(settings=settings)
             except BaseException as exc:

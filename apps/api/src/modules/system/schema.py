@@ -7,7 +7,7 @@ from pydantic import Field, SecretStr
 
 from apps.api.src.common.schemas import BaseSchema
 from apps.api.src.common.types.public_uuid import PublicUUID
-from apps.api.src.modules.system.flags import SystemFlagsOut
+from apps.api.src.modules.system.flags.schema import SystemFlagsOut
 
 
 class SetupAdmin(BaseSchema):

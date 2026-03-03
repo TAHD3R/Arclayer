@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends
 from apps.api.src.config import Settings, get_settings
 from apps.api.src.core.http.response import Response, ResponseModel
 from apps.api.src.core.i18n import get_current_locale
-from apps.api.src.modules.sys.deps import require_sys_super_admin
+from apps.api.src.modules.sys.http.service import require_sys_super_admin
 from apps.api.src.modules.system.mail.schema import MailTestRequest, MailTestResult
 from apps.api.src.modules.system.mail.service import AdminMailService
 

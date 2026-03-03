@@ -11,7 +11,7 @@ from apps.api.src.core.exceptions import BadRequest, NotFound, ServiceUnavailabl
 from apps.api.src.core.i18n import t
 from apps.api.src.modules.system.models.rbac import Role
 from apps.api.src.modules.system.models.setting import SettingRecord
-from apps.api.src.modules.system.rbac.constants import ROLE_ADMIN, ROLE_OWNER
+from apps.api.src.modules.system.rbac.constants.service import ROLE_ADMIN, ROLE_OWNER
 from apps.api.src.modules.workspaces.models.workspace import (
     Workspace,
     WorkspaceMembership,

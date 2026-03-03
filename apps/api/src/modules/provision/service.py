@@ -15,7 +15,7 @@ from apps.api.src.modules.organization.models.organization import Organization
 from apps.api.src.modules.organization.models.user import User
 from apps.api.src.modules.provision.schema import BootstrapStateOut, ProvisionRepairOut
 from apps.api.src.modules.sites.models.site import SiteRecord
-from apps.api.src.modules.system.rbac.constants import ROLE_ADMIN, ROLE_OWNER, ROLE_VIEWER
+from apps.api.src.modules.system.rbac.constants.service import ROLE_ADMIN, ROLE_OWNER, ROLE_VIEWER
 from apps.api.src.modules.system.rbac.service import RBACService
 from apps.api.src.modules.workspaces.models.workspace import (
     Workspace,

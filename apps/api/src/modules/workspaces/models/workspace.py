@@ -67,7 +67,7 @@ async def _bootstrap_workspace_system_roles(  # type: ignore[no-untyped-def]
     from apps.api.src.core.exceptions import Conflict
     from apps.api.src.core.i18n import t
     from apps.api.src.modules.system.models.rbac import Role
-    from apps.api.src.modules.system.rbac.constants import (
+    from apps.api.src.modules.system.rbac.constants.service import (
         ROLE_ADMIN,
         ROLE_DESIGNER,
         ROLE_EDITOR,

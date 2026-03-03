@@ -1,52 +1,36 @@
 from __future__ import annotations
 
-import asyncio
-from typing import Any
+from uuid import UUID
 
 from apps.api.src.common.services.base import BaseService
 from apps.api.src.config import Settings
-from apps.api.src.core.exceptions import BadRequest, NotFound, ServiceUnavailable
+from apps.api.src.core.exceptions import BadRequest, NotFound
 from apps.api.src.core.http.pagination import PageData, PageParams, paginate_items
 from apps.api.src.core.i18n import t
 from apps.api.src.modules.system.models.plugin import PluginRecord
+from apps.api.src.modules.system.settings.crypto.service import SettingsCryptoMixin
+from apps.api.src.modules.system.settings.events.service import SettingsEventsMixin
 from apps.api.src.modules.system.settings.repository import SettingsRepository
-from apps.api.src.modules.system.settings.schema import (
-    SettingsDetail,
-    SettingsFieldItem,
-    SettingsNamespaceSummary,
-    SettingsOptionItem,
-    SettingsSchemaItem,
-    SettingsSectionItem,
-)
-from apps.api.src.plugin.event_bus import Event
-from apps.api.src.plugin.events import SETTINGS_UPDATED
+from apps.api.src.modules.system.settings.schema import SettingsDetail, SettingsNamespaceSummary
+from apps.api.src.modules.system.settings.schemahelpers.service import SettingsSchemaHelpersMixin
 from apps.api.src.plugin.manager import PluginManager
-from apps.api.src.plugin.manifest import ConfigSchema, build_default_config
+from apps.api.src.plugin.manifest import build_default_config
 from apps.api.src.settings.core_schema import CORE_SETTINGS_NAMESPACE, CORE_SETTINGS_SCHEMA
-from apps.api.src.settings.crypto import encrypt_secret, ensure_master_key, is_encrypted, master_key_exists
 from apps.api.src.settings.runtime import invalidate_core_settings_cache
 from apps.api.src.settings.scopes import SCOPE_TYPE_SYSTEM, SYSTEM_SCOPE_ID
-from apps.api.src.settings.validation import iter_secret_field_paths, merge_deep, validate_config_schema
+from apps.api.src.settings.validation import merge_deep, validate_config_schema
 
 
 def _ts(key: str, default: str) -> str:
     return t("settings", key, default=default)
 
 
-_FATAL_SETTINGS_SERVICE_ERRORS: tuple[type[BaseException], ...] = (
-    asyncio.CancelledError,
-    GeneratorExit,
-    KeyboardInterrupt,
-    SystemExit,
-)
-
-
-def _raise_if_fatal(exc: BaseException) -> None:
-    if isinstance(exc, _FATAL_SETTINGS_SERVICE_ERRORS):
-        raise exc
-
-
-class SettingsService(BaseService):
+class SettingsService(
+    SettingsCryptoMixin,
+    SettingsEventsMixin,
+    SettingsSchemaHelpersMixin,
+    BaseService,
+):
     def __init__(self, settings: Settings, *, manager: PluginManager) -> None:
         super().__init__(settings)
         self.repo = SettingsRepository()
@@ -102,13 +86,11 @@ class SettingsService(BaseService):
                     error="SETTINGS_NOT_SUPPORTED",
                 )
 
-            # Prefer the scoped settings store (encrypted secrets, masked output).
             settings_record = await self.repo.get_by_namespace(namespace)
             if settings_record and isinstance(settings_record.value, dict):
                 raw = settings_record.value
                 updated_at = settings_record.updated_at
             else:
-                # Compatibility: older versions stored plugin config in PluginRecord.config.
                 plugin_record = await PluginRecord.get_or_none(plugin_id=plugin_id)
                 raw = (
                     plugin_record.config
@@ -132,8 +114,8 @@ class SettingsService(BaseService):
         self,
         namespace: str,
         *,
-        patch: dict[str, Any],
-        updated_by: Any | None = None,
+        patch: dict[str, object],
+        updated_by: UUID | None,
     ) -> SettingsDetail:
         if namespace == CORE_SETTINGS_NAMESPACE:
             schema = CORE_SETTINGS_SCHEMA
@@ -176,7 +158,6 @@ class SettingsService(BaseService):
             if record and isinstance(record.value, dict):
                 current = record.value
             else:
-                # Compatibility: read legacy PluginRecord.config if settings are missing.
                 legacy = await PluginRecord.get_or_none(plugin_id=plugin_id)
                 current = (
                     legacy.config if legacy and isinstance(legacy.config, dict) else build_default_config(desc.manifest)
@@ -220,209 +201,3 @@ class SettingsService(BaseService):
         if desc is None:
             raise NotFound(message=_ts("PLUGIN_NOT_FOUND", "插件不存在"), error="PLUGIN_NOT_FOUND")
         return desc
-
-    async def _emit_settings_updated(
-        self,
-        *,
-        namespace: str,
-        schema: ConfigSchema,
-        patch: dict[str, Any],
-        plugin_id: str | None,
-        plugin_slug: str | None,
-        actor_user_id: str | None,
-    ) -> None:
-        # Best-effort: never break settings update flows.
-        try:
-            secret_paths = set(iter_secret_field_paths(schema))
-            changed_paths = _flatten_patch_paths(patch)
-            contains_secrets = any((p in secret_paths) or _is_secret_descendant(p, secret_paths) for p in changed_paths)
-            await self.manager.host.event_bus.publish(
-                Event(
-                    name=SETTINGS_UPDATED,
-                    payload={
-                        "namespace": namespace,
-                        "plugin_id": plugin_id,
-                        "plugin_slug": plugin_slug,
-                        "paths": changed_paths,
-                        "contains_secrets": contains_secrets,
-                    },
-                    source="core",
-                    actor_user_id=actor_user_id,
-                )
-            )
-        except BaseException as exc:
-            _raise_if_fatal(exc)
-            self.logger.warning(
-                "Settings updated event publish failed",
-                action="emit_settings_updated_event",
-                namespace=namespace,
-                plugin_id=plugin_id,
-                event_name=SETTINGS_UPDATED,
-                error=str(exc),
-            )
-            return
-
-    async def _encrypt_core_secrets(self, schema: ConfigSchema, config: dict[str, Any]) -> dict[str, Any]:
-        # Core secrets are encrypted at-rest using the system master key.
-        key_path = self.settings.setup.master_key_path
-        if not master_key_exists(key_path):
-            raise ServiceUnavailable(
-                message=_ts("MASTER_KEY_MISSING", "系统密钥未初始化"),
-                error="MASTER_KEY_MISSING",
-            )
-        key, _fp = ensure_master_key(key_path)
-
-        secret_paths = iter_secret_field_paths(schema)
-        for path in secret_paths:
-            section_id, field_key = path.split(".", 1)
-            section = config.get(section_id)
-            if not isinstance(section, dict):
-                continue
-            raw = section.get(field_key)
-            if raw is None:
-                continue
-            if not isinstance(raw, str):
-                continue
-            if is_encrypted(raw):
-                continue
-            aad = f"{CORE_SETTINGS_NAMESPACE}:{path}"
-            section[field_key] = encrypt_secret(raw, key=key, aad=aad)
-
-        return config
-
-    async def _encrypt_plugin_secrets(
-        self,
-        schema: ConfigSchema,
-        config: dict[str, Any],
-        *,
-        namespace: str,
-        scope_type: str,
-        scope_id: Any,
-    ) -> dict[str, Any]:
-        """
-        Encrypt plugin secrets at-rest using the system master key.
-
-        AAD format (must remain stable across versions):
-        - "{scope_type}:{scope_id}:{namespace}:{path}"
-        - path is "section.key"
-        """
-
-        key_path = self.settings.setup.master_key_path
-        if not master_key_exists(key_path):
-            raise ServiceUnavailable(
-                message=_ts("MASTER_KEY_MISSING", "系统密钥未初始化"),
-                error="MASTER_KEY_MISSING",
-            )
-        key, _fp = ensure_master_key(key_path)
-
-        secret_paths = iter_secret_field_paths(schema)
-        for path in secret_paths:
-            section_id, field_key = path.split(".", 1)
-            section = config.get(section_id)
-            if not isinstance(section, dict):
-                continue
-            raw = section.get(field_key)
-            if raw is None:
-                continue
-            if not isinstance(raw, str):
-                continue
-            if is_encrypted(raw):
-                continue
-            aad = f"{scope_type}:{scope_id}:{namespace}:{path}"
-            section[field_key] = encrypt_secret(raw, key=key, aad=aad)
-
-        return config
-
-    def _mask_secrets(self, schema: ConfigSchema, config: dict[str, Any]) -> tuple[dict[str, Any], dict[str, bool]]:
-        masked: dict[str, Any] = dict(config or {})
-        secrets: dict[str, bool] = {}
-
-        for path in iter_secret_field_paths(schema):
-            section_id, field_key = path.split(".", 1)
-            section = masked.get(section_id)
-            if not isinstance(section, dict):
-                secrets[path] = False
-                continue
-            value = section.get(field_key)
-            if value is None:
-                secrets[path] = False
-                continue
-            secrets[path] = True
-            section[field_key] = None
-
-        return masked, secrets
-
-    def _to_schema_item(self, schema: ConfigSchema) -> SettingsSchemaItem:
-        sections: list[SettingsSectionItem] = []
-        for section in schema.sections:
-            fields: list[SettingsFieldItem] = []
-            for field in section.fields:
-                options: list[SettingsOptionItem] = []
-                for opt in getattr(field, "options", []) or []:
-                    options.append(
-                        SettingsOptionItem(
-                            value=getattr(opt, "value", None),
-                            label=self._translate_ref(getattr(opt, "label_i18n", None), getattr(opt, "label", None)),
-                            description=self._translate_ref(
-                                getattr(opt, "description_i18n", None),
-                                getattr(opt, "description", None),
-                            ),
-                        )
-                    )
-                fields.append(
-                    SettingsFieldItem(
-                        key=field.key,
-                        type=field.type,
-                        default=field.default,
-                        secret=bool(getattr(field, "secret", False)),
-                        options=options,
-                        ui=getattr(field, "ui", None),
-                        label=self._translate_ref(field.label_i18n, field.label),
-                        description=self._translate_ref(field.description_i18n, field.description),
-                    )
-                )
-            sections.append(
-                SettingsSectionItem(
-                    id=section.id,
-                    title=self._translate_ref(section.title_i18n, section.title),
-                    fields=fields,
-                )
-            )
-        return SettingsSchemaItem(sections=sections)
-
-    def _translate_ref(self, ref: str | None, default: str | None) -> str | None:
-        if not ref:
-            return default
-        trimmed = ref.strip()
-        if ":" in trimmed:
-            namespace, key = trimmed.split(":", 1)
-        elif "." in trimmed:
-            namespace, key = trimmed.split(".", 1)
-        else:
-            namespace, key = "settings", trimmed
-        namespace = namespace.strip()
-        key = key.strip()
-        return t(namespace, key, default=default)
-
-
-def _flatten_patch_paths(patch: dict[str, Any], *, _prefix: str = "") -> list[str]:
-    # Only emit keys/paths, never values (could contain secrets).
-    out: list[str] = []
-    for key, value in (patch or {}).items():
-        if not key:
-            continue
-        path = f"{_prefix}.{key}" if _prefix else str(key)
-        if isinstance(value, dict):
-            out.extend(_flatten_patch_paths(value, _prefix=path))
-        else:
-            out.append(path)
-    return out
-
-
-def _is_secret_descendant(path: str, secrets: set[str]) -> bool:
-    # If a whole section is patched, treat it as potentially containing secrets.
-    prefix = f"{path}."
-    for s in secrets:
-        if s.startswith(prefix):
-            return True
-    return False

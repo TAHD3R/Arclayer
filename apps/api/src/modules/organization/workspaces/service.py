@@ -24,7 +24,7 @@ from apps.api.src.modules.organization.workspaces.schema import (
     OrganizationWorkspaceOut,
 )
 from apps.api.src.modules.system.models.rbac import Role
-from apps.api.src.modules.system.rbac.constants import ROLE_ADMIN, ROLE_OWNER
+from apps.api.src.modules.system.rbac.constants.service import ROLE_ADMIN, ROLE_OWNER
 from apps.api.src.modules.system.rbac.service import RBACService
 from apps.api.src.modules.workspaces.models.workspace import Workspace, WorkspaceMembershipRole
 from apps.api.src.modules.workspaces.settings.service import WorkspaceSettingsService

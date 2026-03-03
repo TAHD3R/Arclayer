@@ -6,7 +6,7 @@ from apps.api.src.common.types.public_uuid import PublicUUID
 from apps.api.src.config import Settings, get_settings
 from apps.api.src.core.http.pagination import PageData, PageParams, get_page_params, paginate_items
 from apps.api.src.core.http.response import Response, ResponseModel
-from apps.api.src.modules.sys.deps import require_sys_super_admin
+from apps.api.src.modules.sys.http.service import require_sys_super_admin
 from apps.api.src.modules.sys.settings.schema import (
     SysConfigActivateRequest,
     SysConfigDetail,

@@ -14,8 +14,8 @@ from apps.api.src.core.i18n import t
 from apps.api.src.modules.analytics.system.router import router as system_activity_router
 from apps.api.src.modules.organization.deps import require_org_owner
 from apps.api.src.modules.organization.models.org_membership import OrgMembership
-from apps.api.src.modules.sys.deps import require_super_admin
-from apps.api.src.modules.system.flags import build_system_flags
+from apps.api.src.modules.sys.http.service import require_super_admin
+from apps.api.src.modules.system.flags.service import build_system_flags
 from apps.api.src.modules.system.mail.router import router as system_mail_router
 from apps.api.src.modules.system.plugins_manager.router import router as system_plugins_router
 from apps.api.src.modules.system.rbac.router import router as system_rbac_router

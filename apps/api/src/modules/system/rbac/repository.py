@@ -9,7 +9,7 @@ from tortoise.queryset import QuerySet
 from apps.api.src.common.protocols.tortoise import PermissionMutableFields
 from apps.api.src.common.repositories import BaseRepository
 from apps.api.src.modules.system.models.rbac import BootstrapState, Permission, PermissionScope, Role, RolePermission
-from apps.api.src.modules.system.rbac.constants import BOOTSTRAP_KEY
+from apps.api.src.modules.system.rbac.constants.service import BOOTSTRAP_KEY
 
 
 class RBACRepository(BaseRepository):
@@ -48,7 +48,7 @@ class RBACRepository(BaseRepository):
             is_superuser=is_superuser,
         )
 
-    async def update_role(self, role: Role, *, updates: dict) -> Role:
+    async def update_role(self, role: Role, *, updates: dict[str, object]) -> Role:
         for key, value in updates.items():
             setattr(role, key, value)
         await role.save()

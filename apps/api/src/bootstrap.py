@@ -44,18 +44,18 @@ async def init_domain_bootstrap(app: FastAPI, settings: Settings, *, plugin_mana
         return
 
     from apps.api.src.modules.organization.bootstrap import ensure_organization_ready
-    from apps.api.src.modules.system.rbac.bootstrap import ensure_rbac_ready
+    from apps.api.src.modules.system.rbac.bootstrap.service import ensure_rbac_ready
 
     await ensure_organization_ready()
     await ensure_rbac_ready(settings=settings, plugin_manager=plugin_manager)
 
-    from apps.api.src.modules.system.admin.menus.bootstrap import ensure_core_admin_menus_ready
+    from apps.api.src.modules.system.admin.menus.bootstrap.service import ensure_core_admin_menus_ready
 
     await ensure_core_admin_menus_ready(settings=settings)
 
     # Best-effort: ensure plugin-declared admin menus exist (create missing, restore deleted).
     try:
-        from apps.api.src.modules.system.admin.menus.seeds import AdminMenuSeedService
+        from apps.api.src.modules.system.admin.menus.seeds.service import AdminMenuSeedService
 
         seeder = AdminMenuSeedService(settings)
         if not plugin_manager.descriptors:

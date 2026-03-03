@@ -8,7 +8,7 @@ from tortoise.queryset import QuerySet
 
 from apps.api.src.common.protocols.tortoise import AdminMenuItemMutableFields
 from apps.api.src.common.repositories import BaseRepository
-from apps.api.src.modules.system.admin.menus.models import AdminMenuItem
+from apps.api.src.modules.system.admin.menus.models.service import AdminMenuItem
 
 
 class AdminMenuRepository(BaseRepository):
@@ -28,10 +28,10 @@ class AdminMenuRepository(BaseRepository):
     async def get_by_code(self, *, code: str) -> AdminMenuItem | None:
         return await AdminMenuItem.get_or_none(code=code)
 
-    async def create_item(self, *, payload: dict) -> AdminMenuItem:
+    async def create_item(self, *, payload: dict[str, object]) -> AdminMenuItem:
         return await AdminMenuItem.create(**payload)
 
-    async def save_updates(self, item: AdminMenuItem, *, updates: dict) -> AdminMenuItem:
+    async def save_updates(self, item: AdminMenuItem, *, updates: dict[str, object]) -> AdminMenuItem:
         for key, value in updates.items():
             setattr(item, key, value)
         await item.save()
