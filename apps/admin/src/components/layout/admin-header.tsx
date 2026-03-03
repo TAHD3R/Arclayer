@@ -7,7 +7,6 @@ import { useTranslation } from "react-i18next";
 import type { AdminNavItem } from "@/types/admin-nav";
 import { cn } from "@celestial/lib/utils";
 import {
-  AdminOrgSwitcher,
   AdminWorkspaceSwitcher,
   breadcrumbTriggerClassName,
 } from "@/components/layout/admin-workspace-switcher";
@@ -191,15 +190,8 @@ export function AdminHeader(props: {
         className="min-w-0 flex-1 h-full flex items-center overflow-hidden"
       >
         <ol className="m-0 mb-0! flex min-w-0 list-none items-center justify-start gap-1 overflow-hidden whitespace-nowrap p-0">
-          <li className="shrink-0">
-            <AdminOrgSwitcher />
-          </li>
-
           {isWorkspaceScopeRoute ? (
             <>
-              <li aria-hidden="true" className="shrink-0 text-label-secondary/60">
-                <ChevronRight className="size-4" />
-              </li>
               <li className="shrink-0">
                 <AdminWorkspaceSwitcher />
               </li>
@@ -207,14 +199,17 @@ export function AdminHeader(props: {
           ) : null}
 
           {breadcrumbNavItems.length
-            ? breadcrumbNavItems.map(({ node, hasChildren, isLast, menuItems }) => {
+            ? breadcrumbNavItems.map(({ node, hasChildren, isLast, menuItems }, index) => {
                 const content = renderNavNodeTitle(node, t, isLast);
+                const showChevron = isWorkspaceScopeRoute || index > 0;
 
                 return (
                   <Fragment key={node.key}>
-                    <li aria-hidden="true" className="shrink-0 text-label-secondary/60">
-                      <ChevronRight className="size-4" />
-                    </li>
+                    {showChevron ? (
+                      <li aria-hidden="true" className="shrink-0 text-label-secondary/60">
+                        <ChevronRight className="size-4" />
+                      </li>
+                    ) : null}
 
                     <li className="min-w-0">
                       {hasChildren && menuItems?.length ? (

@@ -1,14 +1,14 @@
-import { useNavigate, useRouterState } from "@tanstack/react-router";
+import { useMemo } from "react";
+
 import { useQuery } from "@tanstack/react-query";
+import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { Avatar } from "antd";
 import { useTranslation } from "react-i18next";
 import { Boxes, Building2, ChevronDown, CircleHelp, Inbox, LogOut, UserCog } from "lucide-react";
-import { type ReactNode, useMemo } from "react";
+import { type ReactNode } from "react";
 
 import * as authApi from "@/api/auth";
 import { getMyOrganization } from "@/api/me";
-import { useAuthStore } from "@/stores/use-auth-store";
-import { queryClient } from "@/lib/query/query-client-instance";
 import {
   FloatingPanelButton,
   FloatingPanelContent,
@@ -16,10 +16,6 @@ import {
   FloatingPanelTrigger,
   useFloatingPanel,
 } from "@celestial/ui/floating-panel";
-import {
-  buildOrganizationPath,
-  parseOrganizationIdFromPath,
-} from "@/lib/routing/organization-routing";
 import { cn } from "@celestial/lib/utils";
 import { resolveAssetRefToPublicUrlPath } from "@/lib/assets/asset-urls";
 import {
@@ -27,6 +23,14 @@ import {
   initialsFromName,
   normalizeUserProfile,
 } from "@/lib/auth/user-profile";
+import { queryClient } from "@/lib/query/query-client-instance";
+import {
+  buildOrganizationPath,
+  parseOrganizationIdFromPath,
+} from "@/lib/routing/organization-routing";
+import { useAuthStore } from "@/stores/use-auth-store";
+import { useSidebar } from "@celestial/ui/sidebar";
+import { NAV_ITEM_COLLAPSE_HIDE_CLASSNAME } from "@/components/layout/admin-side-nav/nav-node-styles";
 
 function MenuItemContent(props: { icon?: ReactNode; label: string; right?: ReactNode }) {
   return (
@@ -151,13 +155,25 @@ function AdminAccountPanelContent(props: {
   );
 }
 
-export function AdminAccountMenu() {
+type AdminAccountMenuModel = {
+  displayName: string;
+  email: string | null;
+  avatarUrl: string | null;
+  canManageOrganization: boolean;
+  onLogout: () => Promise<void>;
+  onAccountSettings: () => void;
+  onOrganizationSettings: () => void;
+  onWorkspaces: () => void;
+  onNotifications: () => void;
+  onHelpCenter: () => void;
+};
+
+function useAdminAccountMenuModel(): AdminAccountMenuModel {
   const navigate = useNavigate();
-  const { t } = useTranslation("account");
   const pathname = useRouterState({ select: (state) => state.location.pathname });
-  const clear = useAuthStore((s) => s.clear);
   const accessToken = useAuthStore((s) => s.accessToken);
   const sessionVersion = useAuthStore((s) => s.sessionVersion);
+  const clear = useAuthStore((s) => s.clear);
 
   const meQuery = useQuery({
     queryKey: ["auth", "me", sessionVersion],
@@ -165,6 +181,15 @@ export function AdminAccountMenu() {
     queryFn: async () => authApi.me(),
     meta: { silent: true },
   });
+  const profile = useMemo(() => normalizeUserProfile(meQuery.data), [meQuery.data]);
+  const displayName = useMemo(() => {
+    return (
+      profile.displayName ??
+      profile.username ??
+      profile.email ??
+      getUserDisplayName(accessToken, "用户")
+    );
+  }, [accessToken, profile.displayName, profile.email, profile.username]);
 
   const myOrgQuery = useQuery({
     queryKey: ["me", "organization", sessionVersion],
@@ -173,19 +198,10 @@ export function AdminAccountMenu() {
     meta: { silent: true },
   });
 
-  const profile = useMemo(() => normalizeUserProfile(meQuery.data), [meQuery.data]);
-
-  const displayName = useMemo(
-    () =>
-      profile.displayName ??
-      profile.username ??
-      profile.email ??
-      getUserDisplayName(accessToken, "用户"),
-    [accessToken, profile.displayName, profile.username, profile.email],
-  );
-
   const routeOrganizationId = parseOrganizationIdFromPath(pathname);
   const currentOrganizationId = routeOrganizationId || myOrgQuery.data?.organization.id || null;
+  const canManageOrganization =
+    myOrgQuery.data?.membership?.role === "owner" || myOrgQuery.data?.membership?.role === "admin";
 
   const onLogout = async () => {
     void queryClient.cancelQueries();
@@ -194,46 +210,50 @@ export function AdminAccountMenu() {
     await navigate({ to: "/login", replace: true });
   };
 
-  const onAccountSettings = () => {
-    void navigate({ to: "/me/profile" });
+  return {
+    displayName,
+    email: profile.email,
+    avatarUrl: profile.avatarUrl ?? profile.avatarAssetId,
+    canManageOrganization,
+    onLogout,
+    onAccountSettings: () => void navigate({ to: "/me/profile" }),
+    onOrganizationSettings: () => {
+      if (!currentOrganizationId) {
+        void navigate({ to: "/" });
+        return;
+      }
+      void navigate({ to: buildOrganizationPath(currentOrganizationId, "/settings") as never });
+    },
+    onWorkspaces: () => {
+      if (!currentOrganizationId) {
+        void navigate({ to: "/" });
+        return;
+      }
+      void navigate({ to: buildOrganizationPath(currentOrganizationId, "/workspaces") as never });
+    },
+    onNotifications: () => void navigate({ to: "/me/inbox" }),
+    onHelpCenter: () => window.location.assign("#"),
   };
+}
 
-  const onNotifications = () => {
-    void navigate({ to: "/me/inbox" });
-  };
-
-  const onWorkspaces = () => {
-    if (currentOrganizationId) {
-      void navigate({ to: buildOrganizationPath(currentOrganizationId, "/workspaces") });
-      return;
-    }
-    void navigate({ to: "/" });
-  };
-
-  const onHelpCenter = () => {
-    window.location.assign("#");
-  };
-
-  const canManageOrganization =
-    myOrgQuery.data?.membership?.role === "owner" || myOrgQuery.data?.membership?.role === "admin";
-  const onOrganizationSettings = () => {
-    if (currentOrganizationId) {
-      void navigate({ to: buildOrganizationPath(currentOrganizationId, "/settings") });
-      return;
-    }
-    void navigate({ to: "/" });
-  };
+export function AdminAccountMenu() {
+  const { t } = useTranslation("account");
+  const model = useAdminAccountMenuModel();
+  const { state: sidebarState, isMobile } = useSidebar();
+  const isCollapsed = sidebarState === "collapsed" && !isMobile;
 
   const triggerClassName = cn(
-    "group justify-start gap-3",
-    "w-full",
-    "px-5 py-3",
+    "group",
+    "flex w-full items-center",
+    "h-16 py-0",
+    "justify-start gap-3 px-5",
+    "group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:gap-0",
     "border-0 bg-transparent",
     "rounded-none",
     "text-label-secondary",
     "hover:bg-accent hover:text-sidebar-accent-foreground",
     "data-[state=open]:bg-accent data-[state=open]:text-sidebar-accent-foreground",
-    "transition-colors duration-150 ease-out",
+    "transition-[color,background-color,padding,gap] duration-400 ease-[cubic-bezier(0.75,0,0.25,1)]",
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0",
   );
 
@@ -243,39 +263,51 @@ export function AdminAccountMenu() {
     "group-data-[state=open]:text-sidebar-accent-foreground",
   );
 
+  const emailClassName = cn(
+    "text-label-secondary",
+    "group-hover:text-sidebar-accent-foreground/80",
+    "group-data-[state=open]:text-sidebar-accent-foreground/80",
+  );
+
   return (
     <FloatingPanelRoot className="w-full">
-      <FloatingPanelTrigger title={t("ACCOUNT_TITLE")} className={triggerClassName}>
-        <Avatar
-          size={28}
-          src={
-            resolveAssetRefToPublicUrlPath(profile.avatarUrl ?? profile.avatarAssetId) ?? undefined
-          }
-        >
-          {initialsFromName(displayName)}
+      <FloatingPanelTrigger
+        title={isCollapsed ? model.displayName : t("ACCOUNT_TITLE")}
+        className={triggerClassName}
+      >
+        <Avatar size={40} src={resolveAssetRefToPublicUrlPath(model.avatarUrl) ?? undefined}>
+          {initialsFromName(model.displayName)}
         </Avatar>
 
-        <div className="min-w-0 text-left flex-1">
+        <div className={cn("min-w-0 text-left flex-1", NAV_ITEM_COLLAPSE_HIDE_CLASSNAME)}>
           <div className={cn("truncate text-footnote font-semibold", nameClassName)}>
-            {displayName}
+            {model.displayName}
           </div>
+          {model.email ? (
+            <div className={cn("truncate text-caption", emailClassName)}>{model.email}</div>
+          ) : null}
         </div>
 
-        <ChevronDown className="ml-auto size-4 shrink-0 opacity-70 transition-colors group-hover:opacity-100" />
+        <ChevronDown
+          className={cn(
+            "ml-auto size-4 shrink-0 opacity-70 transition-colors group-hover:opacity-100",
+            NAV_ITEM_COLLAPSE_HIDE_CLASSNAME,
+          )}
+        />
       </FloatingPanelTrigger>
 
       <FloatingPanelContent placement="bottom" showTitle={false} className="p-0">
         <AdminAccountPanelContent
-          displayName={displayName}
-          email={profile.email}
-          avatarUrl={profile.avatarUrl ?? profile.avatarAssetId}
-          showOrganizationSettings={canManageOrganization}
-          onLogout={onLogout}
-          onAccountSettings={onAccountSettings}
-          onOrganizationSettings={onOrganizationSettings}
-          onWorkspaces={onWorkspaces}
-          onNotifications={onNotifications}
-          onHelpCenter={onHelpCenter}
+          displayName={model.displayName}
+          email={model.email}
+          avatarUrl={model.avatarUrl}
+          showOrganizationSettings={model.canManageOrganization}
+          onLogout={model.onLogout}
+          onAccountSettings={model.onAccountSettings}
+          onOrganizationSettings={model.onOrganizationSettings}
+          onWorkspaces={model.onWorkspaces}
+          onNotifications={model.onNotifications}
+          onHelpCenter={model.onHelpCenter}
         />
       </FloatingPanelContent>
     </FloatingPanelRoot>

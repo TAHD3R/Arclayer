@@ -7,12 +7,11 @@ import type { MyOrganization, MyOrganizationListResult, OrganizationWorkspace } 
 import { listMyOrganizations } from "@/api/me";
 import { listAllOrganizationWorkspaces } from "@/api/organization-workspaces";
 import { getWorkspaceDetail } from "@/api/workspaces";
-import {
-  AdminOrgSwitcher,
-  AdminWorkspaceSwitcher,
-} from "@/components/layout/admin-workspace-switcher";
+import { AdminWorkspaceSwitcher } from "@/components/layout/admin-workspace-switcher";
+import { OrgContextPanel } from "@/components/layout/org-context-panel";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
+import { SidebarProvider } from "@celestial/ui/sidebar";
 
 const navigateMock = vi.fn();
 
@@ -137,7 +136,13 @@ function renderWithQueryClient(component: React.ReactElement) {
     },
   });
 
-  return render(<QueryClientProvider client={queryClient}>{component}</QueryClientProvider>);
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <SidebarProvider defaultOpen className="h-screen">
+        {component}
+      </SidebarProvider>
+    </QueryClientProvider>,
+  );
 }
 
 function getLatestDialog(): HTMLElement {
@@ -149,7 +154,7 @@ function getLatestDialog(): HTMLElement {
   return latest;
 }
 
-describe("AdminOrgSwitcher", () => {
+describe("OrgContextPanel", () => {
   beforeAll(() => {
     Object.defineProperty(window, "matchMedia", {
       writable: true,
@@ -183,7 +188,7 @@ describe("AdminOrgSwitcher", () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    useAuthStore.setState({ accessToken: "token" });
+    useAuthStore.setState({ accessToken: "token", sessionVersion: 1 });
     useWorkspaceStore.setState({ currentWorkspaceId: "ws-alpha", lastWorkspaceId: "ws-alpha" });
 
     vi.mocked(listMyOrganizations).mockResolvedValue(organizationsFixture);
@@ -197,7 +202,7 @@ describe("AdminOrgSwitcher", () => {
   });
 
   it("trigger 显示当前组织名", async () => {
-    renderWithQueryClient(<AdminOrgSwitcher />);
+    renderWithQueryClient(<OrgContextPanel />);
 
     await waitFor(() => {
       expect(screen.getByText(/Org Alpha/)).toBeInTheDocument();
@@ -207,7 +212,7 @@ describe("AdminOrgSwitcher", () => {
   it("打开面板后显示组织列表", async () => {
     const user = userEvent.setup();
 
-    renderWithQueryClient(<AdminOrgSwitcher />);
+    renderWithQueryClient(<OrgContextPanel />);
 
     const trigger = await screen.findByRole("button", {
       name: "common:WORKSPACE_SWITCHER_SELECT_ORG",
@@ -215,14 +220,14 @@ describe("AdminOrgSwitcher", () => {
     await user.click(trigger);
 
     const panel = getLatestDialog();
-    expect(await within(panel).findByText("Org Alpha")).toBeInTheDocument();
-    expect(within(panel).getByText("Org Beta")).toBeInTheDocument();
+    expect(await within(panel).findByRole("radio", { name: "Org Alpha" })).toBeInTheDocument();
+    expect(within(panel).getByRole("radio", { name: "Org Beta" })).toBeInTheDocument();
   });
 
   it("点击组织项会导航到组织页面", async () => {
     const user = userEvent.setup();
 
-    renderWithQueryClient(<AdminOrgSwitcher />);
+    renderWithQueryClient(<OrgContextPanel />);
 
     const trigger = await screen.findByRole("button", {
       name: "common:WORKSPACE_SWITCHER_SELECT_ORG",
@@ -230,10 +235,7 @@ describe("AdminOrgSwitcher", () => {
     await user.click(trigger);
 
     const panel = getLatestDialog();
-    const orgAlphaButton = await within(panel).findByRole("button", {
-      name: /Org Alpha/i,
-    });
-    await user.click(orgAlphaButton);
+    await user.click(await within(panel).findByRole("radio", { name: "Org Beta" }));
 
     await waitFor(() => {
       expect(navigateMock).toHaveBeenCalled();

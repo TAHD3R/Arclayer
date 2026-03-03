@@ -96,6 +96,7 @@ interface FloatingPanelTriggerProps {
   children: React.ReactNode;
   className?: string;
   title: string;
+  disableLayoutId?: boolean;
   onMouseEnter?: React.MouseEventHandler<HTMLButtonElement>;
   onMouseLeave?: React.MouseEventHandler<HTMLButtonElement>;
   onFocus?: React.FocusEventHandler<HTMLButtonElement>;
@@ -108,6 +109,7 @@ export function FloatingPanelTrigger({
   children,
   className,
   title,
+  disableLayoutId = false,
   ...buttonProps
 }: FloatingPanelTriggerProps) {
   const { isOpen, openFloatingPanel, closeFloatingPanel, uniqueId, setTitle } = useFloatingPanel();
@@ -150,7 +152,7 @@ export function FloatingPanelTrigger({
   return (
     <motion.button
       ref={triggerRef}
-      layoutId={`floating-panel-trigger-${uniqueId}`}
+      layoutId={disableLayoutId ? undefined : `floating-panel-trigger-${uniqueId}`}
       className={cn(
         "flex items-center",
         "border border-border bg-background text-foreground",

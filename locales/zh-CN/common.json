@@ -15,6 +15,7 @@
   "GO_LOGIN": "去登录",
   "LOADING": "加载中…",
   "NA": "暂无",
+  "SIDEBAR_TOGGLE": "切换侧边栏",
   "ORG_INVITATIONS_DESC": "跟踪组织邀请并管理邀请生命周期。",
   "ORG_INVITATIONS_DIALOG_DESC": "邀请用户加入组织并分配初始组织角色。",
   "ORG_INVITE_LINK_ALLOWED_DOMAIN_LABEL": "允许邮箱域名（可选）",

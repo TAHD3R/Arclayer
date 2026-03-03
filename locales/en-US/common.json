@@ -15,6 +15,7 @@
   "GO_LOGIN": "Go to Login",
   "LOADING": "Loading…",
   "NA": "N/A",
+  "SIDEBAR_TOGGLE": "Toggle sidebar",
   "ORG_INVITATIONS_DESC": "Track organization invitations and manage invite lifecycle.",
   "ORG_INVITATIONS_DIALOG_DESC": "Invite users to your organization and assign an initial organization role.",
   "ORG_INVITE_LINK_ALLOWED_DOMAIN_LABEL": "Allowed email domain (optional)",

@@ -23,6 +23,7 @@
     "./chrome-tabs": "./src/chrome-tabs/index.ts",
     "./dialog": "./src/dialog.tsx",
     "./drawer": "./src/drawer.tsx",
+    "./dropdown-card": "./src/dropdown-card.tsx",
     "./dropdown-menu": "./src/dropdown-menu.tsx",
     "./empty": "./src/empty.tsx",
     "./expandable-screen": "./src/expandable-screen.tsx",
