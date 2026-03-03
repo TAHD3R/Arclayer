@@ -23,6 +23,9 @@ def _set_test_env(monkeypatch, *, base_dir: Path) -> None:
     monkeypatch.setenv("SETUP__SIGNING_PRIVATE_KEY_PATH", str(base_dir / "signing.ed25519"))
     monkeypatch.setenv("SETUP__SIGNING_PUBLIC_KEY_PATH", str(base_dir / "signing.ed25519.pub"))
     monkeypatch.setenv("SETUP__MASTER_KEY_PATH", str(base_dir / "master.key"))
+    # Ensure sys-config revision tests are deterministic and do not depend on repo write permissions.
+    monkeypatch.setenv("STORAGE__LOCAL_ROOT_DIR", str(base_dir / "uploads"))
+    monkeypatch.setenv("STORAGE__LOCAL_TMP_DIR", str(base_dir / "uploads" / ".tmp"))
     get_settings.cache_clear()
 
 

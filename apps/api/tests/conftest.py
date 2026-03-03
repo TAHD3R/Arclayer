@@ -81,7 +81,9 @@ def integration_db_settings(monkeypatch) -> Iterator[None]:
     #
     # The repo recently migrated runtime code under `apps.api.src.*`, so older `.env` files may still
     # point to `apps.api.modules`, which would break Tortoise model discovery during init.
-    monkeypatch.setenv("DATABASE__CORE_MODELS", '["apps.api.src.modules"]')
+    # Models were migrated to `apps.api.src.models` (ORM layer) while routers/services remain under
+    # `apps.api.src.modules`. Keep both for Tortoise discovery.
+    monkeypatch.setenv("DATABASE__CORE_MODELS", '["apps.api.src.models", "apps.api.src.modules"]')
     monkeypatch.setenv("DATABASE__PLUGIN_PACKAGES", '["apps.api.src.plugins"]')
     # Ensure subsequent `get_settings()` calls see the updated integration env.
     get_settings.cache_clear()

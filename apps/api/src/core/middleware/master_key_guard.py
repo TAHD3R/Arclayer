@@ -32,6 +32,9 @@ class MasterKeyGuardMiddleware:
         api_prefix = f"{settings.application.api_prefix}{settings.application.api_version_prefix}"
         self._allow_prefixes = (
             f"{api_prefix}/auth/",
+            # Sys governance endpoints are part of the recovery surface: they must remain reachable
+            # so super admins can step-up and repair misconfigured secrets.
+            f"{api_prefix}/sys/",
             f"{api_prefix}/system/setup/",
         )
         self._allow_paths = {
