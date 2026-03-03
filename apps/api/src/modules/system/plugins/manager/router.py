@@ -41,7 +41,7 @@ def get_plugin_service(
 
 
 @router.get(
-    "",
+    "/",
     response_model=ResponseModel[PageData[PluginSummary]],
     summary="List installed plugins",
 )
