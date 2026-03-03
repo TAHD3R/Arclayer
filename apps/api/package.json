@@ -11,6 +11,7 @@
     "lock": "node ./scripts/uv.mjs lock",
     "install": "node ./scripts/uv.mjs sync",
     "dev": "node ./scripts/uv.mjs run uvicorn apps.api.main:app --reload --host 0.0.0.0 --port 8000",
+    "openapi:export": "node ./scripts/uv.mjs run python scripts/export_openapi.py",
     "lint": "node ./scripts/uv.mjs run ruff check . --fix",
     "format": "node ./scripts/uv.mjs run ruff format .",
     "typecheck": "node ./scripts/uv.mjs run pyright --project ../../pyproject.toml",

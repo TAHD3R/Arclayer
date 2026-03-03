@@ -12,6 +12,10 @@ function parseArgs(argv) {
 
   const remaining = [];
   for (const arg of args) {
+    // pnpm/npm 传参常用 `--` 作为分隔符；这里应直接忽略，避免把它传给下游命令
+    if (arg === "--") {
+      continue;
+    }
     if (arg === "--print" || arg === "--dry-run") {
       flags.print = true;
       continue;
