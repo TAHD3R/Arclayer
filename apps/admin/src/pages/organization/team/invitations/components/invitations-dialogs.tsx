@@ -1,6 +1,7 @@
 import { Button as AntButton, Input, Select } from "antd";
 
 import type { OrganizationInvitation, OrganizationInviteLink } from "@/types/api";
+import { ConfirmDialog } from "@celestial/ui/confirm-dialog";
 import { SettingDialog } from "@celestial/ui/setting-dialog";
 import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 import type { InviteOrganizationRoleOption } from "@/pages/organization/team/shared/components/invite-organization-member-dialog";
@@ -200,7 +201,7 @@ export function OrganizationTeamInvitationsDialogs(props: OrganizationTeamInvita
         ) : null}
       </SettingDialog>
 
-      <SettingDialog
+      <ConfirmDialog
         open={revokeInvitationDialog.open}
         onOpenChange={revokeInvitationDialog.onOpenChange}
         title={t("team:TEAM_INVITATIONS_DELETE_TITLE")}
@@ -211,33 +212,16 @@ export function OrganizationTeamInvitationsDialogs(props: OrganizationTeamInvita
               })
             : undefined
         }
-        contentClassName="sm:max-w-xl"
-        footer={
-          <>
-            <AntButton
-              type="text"
-              onClick={revokeInvitationDialog.close}
-              disabled={revokeInvitationPending}
-            >
-              {t("common:CANCEL")}
-            </AntButton>
-            <AntButton
-              type="primary"
-              danger
-              loading={revokeInvitationPending}
-              onClick={() => {
-                const active = revokeInvitationDialog.displayPayload;
-                if (!active) return;
-                onRevokeInvitation(active.id);
-              }}
-            >
-              {t("team:TEAM_ACTION_DELETE")}
-            </AntButton>
-          </>
-        }
-      >
-        <></>
-      </SettingDialog>
+        cancelText={t("common:CANCEL")}
+        confirmText={t("team:TEAM_ACTION_DELETE")}
+        danger
+        loading={revokeInvitationPending}
+        onConfirm={async () => {
+          const active = revokeInvitationDialog.displayPayload;
+          if (!active) return;
+          onRevokeInvitation(active.id);
+        }}
+      />
 
       <SettingDialog
         open={renewLinkDialog.open}
@@ -287,7 +271,7 @@ export function OrganizationTeamInvitationsDialogs(props: OrganizationTeamInvita
         ) : null}
       </SettingDialog>
 
-      <SettingDialog
+      <ConfirmDialog
         open={disableLinkDialog.open}
         onOpenChange={disableLinkDialog.onOpenChange}
         title={t("team:TEAM_INVITE_LINKS_ACTION_DISABLE")}
@@ -298,29 +282,16 @@ export function OrganizationTeamInvitationsDialogs(props: OrganizationTeamInvita
               })
             : undefined
         }
-        contentClassName="sm:max-w-xl"
-        footer={
-          <>
-            <AntButton type="text" onClick={disableLinkDialog.close} disabled={disableLinkPending}>
-              {t("common:CANCEL")}
-            </AntButton>
-            <AntButton
-              type="primary"
-              danger
-              loading={disableLinkPending}
-              onClick={() => {
-                const active = disableLinkDialog.displayPayload;
-                if (!active) return;
-                onDisableLink(active.id);
-              }}
-            >
-              {t("team:TEAM_INVITE_LINKS_ACTION_DISABLE")}
-            </AntButton>
-          </>
-        }
-      >
-        <></>
-      </SettingDialog>
+        cancelText={t("common:CANCEL")}
+        confirmText={t("team:TEAM_INVITE_LINKS_ACTION_DISABLE")}
+        danger
+        loading={disableLinkPending}
+        onConfirm={async () => {
+          const active = disableLinkDialog.displayPayload;
+          if (!active) return;
+          onDisableLink(active.id);
+        }}
+      />
     </>
   );
 }

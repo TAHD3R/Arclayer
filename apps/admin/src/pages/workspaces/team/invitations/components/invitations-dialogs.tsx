@@ -3,6 +3,7 @@ import * as React from "react";
 import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 
 import type { TeamInvitation, TeamInviteLink } from "@/types/api";
+import { ConfirmDialog } from "@celestial/ui/confirm-dialog";
 import { SettingDialog } from "@celestial/ui/setting-dialog";
 
 import type { RenewExpiresInSeconds } from "../types";
@@ -56,44 +57,28 @@ export function TeamInvitationsDialogs(props: TeamInvitationsDialogsProps) {
 
   return (
     <>
-      <SettingDialog
+      <ConfirmDialog
         open={Boolean(deleteInvitation)}
-        onOpenChange={(open) => (!open ? setDeleteInvitation(null) : null)}
+        onOpenChange={(open) => {
+          if (!open) setDeleteInvitation(null);
+        }}
         title={t("team:TEAM_INVITATIONS_DELETE_TITLE")}
         description={
           deleteInvitation
             ? t("team:TEAM_INVITATIONS_DELETE_DESC", { email: deleteInvitation.email })
             : undefined
         }
-        contentClassName="sm:max-w-xl"
-        footer={
-          <>
-            <AntButton
-              type="text"
-              onClick={() => setDeleteInvitation(null)}
-              disabled={deleteInvitationPending}
-            >
-              {t("common:CANCEL")}
-            </AntButton>
-            <AntButton
-              type="primary"
-              danger
-              loading={deleteInvitationPending}
-              onClick={() => {
-                const invitation = deleteInvitation;
-                if (!invitation) return;
-                void onDeleteInvitation(invitation.id)
-                  .then(() => setDeleteInvitation(null))
-                  .catch(() => undefined);
-              }}
-            >
-              {t("team:TEAM_ACTION_DELETE")}
-            </AntButton>
-          </>
-        }
-      >
-        <></>
-      </SettingDialog>
+        cancelText={t("common:CANCEL")}
+        confirmText={t("team:TEAM_ACTION_DELETE")}
+        danger
+        loading={deleteInvitationPending}
+        onConfirm={async () => {
+          const invitation = deleteInvitation;
+          if (!invitation) return;
+          await onDeleteInvitation(invitation.id);
+          setDeleteInvitation(null);
+        }}
+      />
 
       <SettingDialog
         open={Boolean(renewInvitation)}

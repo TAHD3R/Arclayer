@@ -11,6 +11,7 @@ import { ContentGuard } from "@/components/common/content-guard";
 import { DefaultPage } from "@/components/common/default-page";
 import { ChromeTabs, ChromeTabsContent } from "@celestial/ui/chrome-tabs";
 import { SettingActionItem } from "@celestial/ui/setting-action-item";
+import { SettingActionGroup } from "@celestial/ui/setting-action-group";
 import { SettingDialog } from "@celestial/ui/setting-dialog";
 import { SettingPanel } from "@celestial/ui/setting-panel";
 import { useSavingKey } from "@celestial/hooks/use-saving-key";
@@ -168,7 +169,7 @@ export function OrganizationSettingsDangerView(props: { organizationId: string }
               title={t("settings:SETTINGS_ORG_DANGER_PANEL_TITLE")}
               description={t("settings:SETTINGS_ORG_DANGER_PANEL_DESC")}
             >
-              <div className="divide-y">
+              <SettingActionGroup>
                 <SettingActionItem
                   title={t("settings:SETTINGS_ORG_LEAVE_TITLE")}
                   description={t("settings:SETTINGS_ORG_LEAVE_DESC")}
@@ -190,7 +191,7 @@ export function OrganizationSettingsDangerView(props: { organizationId: string }
                     setDeleteDialogOpen(true);
                   }}
                 />
-              </div>
+              </SettingActionGroup>
             </SettingPanel>
           </ChromeTabsContent>
         </ChromeTabs>

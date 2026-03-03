@@ -4,8 +4,19 @@ import { useEffect, useState, type ReactNode } from "react";
 
 import { LoaderCircle } from "lucide-react";
 
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "./alert-dialog";
+import {
+  AlertDialogAction as AlertDialogActionPrimitive,
+  AlertDialogCancel as AlertDialogCancelPrimitive,
+} from "./radix-primitives/radix-alert-dialog";
 import { Button } from "./button";
-import { SettingDialog } from "./setting-dialog";
 
 export interface ConfirmDialogProps {
   open: boolean;
@@ -33,33 +44,39 @@ export function ConfirmDialog(props: ConfirmDialogProps) {
   const displayDescription = props.open ? props.description : descriptionSnapshot;
 
   return (
-    <SettingDialog
-      open={props.open}
-      onOpenChange={props.onOpenChange}
-      title={displayTitle}
-      description={displayDescription}
-      contentClassName="sm:max-w-[520px]"
-      footer={
-        <>
-          <Button
-            variant="ghost"
-            onClick={() => props.onOpenChange(false)}
-            disabled={Boolean(props.loading)}
-          >
-            {props.cancelText}
-          </Button>
-          <Button
-            variant={props.danger ? "destructive" : "default"}
-            onClick={() => void props.onConfirm()}
-            disabled={Boolean(props.loading)}
-          >
-            {props.loading ? <LoaderCircle className="size-4 animate-spin" /> : null}
-            {props.confirmText}
-          </Button>
-        </>
-      }
-    >
-      <></>
-    </SettingDialog>
+    <AlertDialog open={props.open} onOpenChange={props.onOpenChange}>
+      <AlertDialogContent className="sm:max-w-[520px]">
+        <AlertDialogHeader>
+          <AlertDialogTitle className="text-title2 font-bold">{displayTitle}</AlertDialogTitle>
+          {displayDescription ? (
+            <AlertDialogDescription className="text-body">
+              {displayDescription}
+            </AlertDialogDescription>
+          ) : null}
+        </AlertDialogHeader>
+
+        <AlertDialogFooter>
+          <AlertDialogCancelPrimitive asChild>
+            <Button
+              variant="ghost"
+              onClick={() => props.onOpenChange(false)}
+              disabled={Boolean(props.loading)}
+            >
+              {props.cancelText}
+            </Button>
+          </AlertDialogCancelPrimitive>
+          <AlertDialogActionPrimitive asChild>
+            <Button
+              variant={props.danger ? "destructive" : "default"}
+              onClick={() => void props.onConfirm()}
+              disabled={Boolean(props.loading)}
+            >
+              {props.loading ? <LoaderCircle className="size-4 animate-spin" /> : null}
+              {props.confirmText}
+            </Button>
+          </AlertDialogActionPrimitive>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }

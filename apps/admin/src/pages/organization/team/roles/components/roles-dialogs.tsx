@@ -1,4 +1,5 @@
 import { Button as AntButton, Input, Select } from "antd";
+import { ConfirmDialog } from "@celestial/ui/confirm-dialog";
 import { SettingDialog } from "@celestial/ui/setting-dialog";
 import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 
@@ -115,24 +116,21 @@ export function DeleteRoleDialog(props: DeleteRoleDialogProps) {
   const { open, onOpenChange, onCancel, onConfirm, roleName, submitting, t } = props;
 
   return (
-    <SettingDialog
+    <ConfirmDialog
       open={open}
-      onOpenChange={onOpenChange}
+      onOpenChange={(nextOpen) => {
+        onOpenChange(nextOpen);
+        if (!nextOpen) onCancel();
+      }}
       title={t("team:TEAM_ROLES_DELETE_TITLE")}
       description={t("team:TEAM_ROLES_DELETE_DESC", { roleName })}
-      contentClassName="max-w-[520px]"
-      footer={
-        <>
-          <AntButton type="text" onClick={onCancel} disabled={submitting}>
-            {t("common:CANCEL")}
-          </AntButton>
-          <AntButton danger type="primary" loading={submitting} onClick={onConfirm}>
-            {t("team:TEAM_ACTION_DELETE")}
-          </AntButton>
-        </>
-      }
-    >
-      <></>
-    </SettingDialog>
+      cancelText={t("common:CANCEL")}
+      confirmText={t("team:TEAM_ACTION_DELETE")}
+      danger
+      loading={submitting}
+      onConfirm={async () => {
+        onConfirm();
+      }}
+    />
   );
 }

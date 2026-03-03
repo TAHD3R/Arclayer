@@ -3,6 +3,7 @@ import { Controller, type FieldErrors, type UseFormReturn } from "react-hook-for
 import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 
 import type { Role } from "@/types/api";
+import { ConfirmDialog } from "@celestial/ui/confirm-dialog";
 import { SettingDialog } from "@celestial/ui/setting-dialog";
 
 import type { CreateRoleFormValues } from "../utils";
@@ -46,7 +47,7 @@ export function TeamRolesDialogs(props: TeamRolesDialogsProps) {
 
   return (
     <>
-      <SettingDialog
+      <ConfirmDialog
         open={deleteOpen}
         onOpenChange={(open) => {
           setDeleteOpen(open);
@@ -54,30 +55,17 @@ export function TeamRolesDialogs(props: TeamRolesDialogsProps) {
         }}
         title={t("team:TEAM_ROLES_DELETE_TITLE")}
         description={t("team:TEAM_ROLES_DELETE_DESC", { roleName: deleteTarget?.name ?? "" })}
-        contentClassName="max-w-[520px]"
-        footer={
-          <>
-            <Button type="text" onClick={() => setDeleteOpen(false)} disabled={deleteRolePending}>
-              {t("common:CANCEL")}
-            </Button>
-            <Button
-              danger
-              type="primary"
-              loading={deleteRolePending}
-              onClick={async () => {
-                if (!deleteTarget?.code) return;
-                await onDeleteRoleConfirm(deleteTarget.code);
-                setDeleteOpen(false);
-                setDeleteTarget(null);
-              }}
-            >
-              {t("team:TEAM_ACTION_DELETE")}
-            </Button>
-          </>
-        }
-      >
-        <></>
-      </SettingDialog>
+        cancelText={t("common:CANCEL")}
+        confirmText={t("team:TEAM_ACTION_DELETE")}
+        danger
+        loading={deleteRolePending}
+        onConfirm={async () => {
+          if (!deleteTarget?.code) return;
+          await onDeleteRoleConfirm(deleteTarget.code);
+          setDeleteOpen(false);
+          setDeleteTarget(null);
+        }}
+      />
 
       <SettingDialog
         open={createOpen}

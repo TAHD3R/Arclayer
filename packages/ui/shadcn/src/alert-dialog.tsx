@@ -43,7 +43,7 @@ function AlertDialogOverlay({ className, ...props }: AlertDialogOverlayProps) {
     <AlertDialogOverlayPrimitive
       className={cn(
         "fixed inset-0 z-50",
-        "bg-black/55 supports-backdrop-filter:bg-black/45",
+        "bg-black/55 supports-[backdrop-filter]:bg-black/45",
         "backdrop-blur-sm backdrop-saturate-150",
         className,
       )}
@@ -96,7 +96,7 @@ type AlertDialogTitleProps = AlertDialogTitlePrimitiveProps;
 function AlertDialogTitle({ className, ...props }: AlertDialogTitleProps) {
   return (
     <AlertDialogTitlePrimitive
-      className={cn("text-title3 leading-none font-bold! mb-0.5!", className)}
+      className={cn("text-title3 mb-0.5 font-bold leading-none", className)}
       {...props}
     />
   );
@@ -106,10 +106,7 @@ type AlertDialogDescriptionProps = AlertDialogDescriptionPrimitiveProps;
 
 function AlertDialogDescription({ className, ...props }: AlertDialogDescriptionProps) {
   return (
-    <AlertDialogDescriptionPrimitive
-      className={cn("text-label-secondary!", className)}
-      {...props}
-    />
+    <AlertDialogDescriptionPrimitive className={cn("text-label-secondary", className)} {...props} />
   );
 }
 

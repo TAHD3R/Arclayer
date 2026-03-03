@@ -54,7 +54,7 @@ export function SettingDialog({
         <DialogHeader className="min-w-0 border-b px-6 py-4 text-left">
           <DialogTitle>{displayTitle}</DialogTitle>
           {displayDescription ? (
-            <DialogDescription className="mb-0!">{displayDescription}</DialogDescription>
+            <DialogDescription className="mb-0">{displayDescription}</DialogDescription>
           ) : null}
         </DialogHeader>
 

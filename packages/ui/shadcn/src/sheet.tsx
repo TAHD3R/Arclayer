@@ -39,7 +39,12 @@ type SheetOverlayProps = SheetOverlayPrimitiveProps;
 function SheetOverlay({ className, ...props }: SheetOverlayProps) {
   return (
     <SheetOverlayPrimitive
-      className={cn("fixed inset-0 z-50 bg-black/50 backdrop-blur-xs", className)}
+      className={cn(
+        "fixed inset-0 z-50",
+        "bg-black/55 supports-[backdrop-filter]:bg-black/45",
+        "backdrop-blur-sm backdrop-saturate-150",
+        className,
+      )}
       {...props}
     />
   );
@@ -79,7 +84,7 @@ function SheetContent({
       >
         {children}
         {showCloseButton && (
-          <SheetClose className="ring-offset-background focus:ring-ring data-[state=open]:bg-secondary absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none">
+          <SheetClose className="ring-offset-background focus:ring-ring data-[state=open]:bg-secondary absolute top-4 right-4 rounded-sm opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none">
             <XIcon className="size-4" />
             <span className="sr-only">Close</span>
           </SheetClose>
@@ -116,7 +121,7 @@ type SheetTitleProps = SheetTitlePrimitiveProps;
 function SheetTitle({ className, ...props }: SheetTitleProps) {
   return (
     <SheetTitlePrimitive
-      className={cn("text-foreground text-title3! mb-0.5!", className)}
+      className={cn("text-foreground text-title3 mb-0.5 font-bold", className)}
       {...props}
     />
   );

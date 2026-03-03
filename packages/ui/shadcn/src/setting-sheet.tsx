@@ -36,9 +36,12 @@ export function SettingSheet({
 }: SettingSheetProps) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className={cn("w-130 max-w-[92vw] p-0 gap-0", contentClassName)}>
+      <SheetContent
+        side="right"
+        className={cn("w-[32.5rem] max-w-[92vw] gap-0 p-0", contentClassName)}
+      >
         <SheetHeader>
-          <SheetTitle className="font-bold!">{title}</SheetTitle>
+          <SheetTitle className="font-bold">{title}</SheetTitle>
           {description ? (
             <SheetDescription className="text-callout text-label-secondary">
               {description}

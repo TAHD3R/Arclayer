@@ -8,80 +8,81 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { Route as rootRouteImport } from "./routes/__root";
-import { Route as IndexRouteImport } from "./routes/index";
-import { Route as WWorkspaceIdIndexRouteImport } from "./routes/w/$workspaceId/index";
-import { Route as WWorkspaceIdPagesPageIdIndexRouteImport } from "./routes/w/$workspaceId/pages/$pageId/index";
+import { Route as rootRouteImport } from './routes/__root'
+import { Route as IndexRouteImport } from './routes/index'
+import { Route as WWorkspaceIdIndexRouteImport } from './routes/w/$workspaceId/index'
+import { Route as WWorkspaceIdPagesPageIdIndexRouteImport } from './routes/w/$workspaceId/pages/$pageId/index'
 
 const IndexRoute = IndexRouteImport.update({
-  id: "/",
-  path: "/",
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const WWorkspaceIdIndexRoute = WWorkspaceIdIndexRouteImport.update({
-  id: "/w/$workspaceId/",
-  path: "/w/$workspaceId/",
+  id: '/w/$workspaceId/',
+  path: '/w/$workspaceId/',
   getParentRoute: () => rootRouteImport,
-} as any);
-const WWorkspaceIdPagesPageIdIndexRoute = WWorkspaceIdPagesPageIdIndexRouteImport.update({
-  id: "/w/$workspaceId/pages/$pageId/",
-  path: "/w/$workspaceId/pages/$pageId/",
-  getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
+const WWorkspaceIdPagesPageIdIndexRoute =
+  WWorkspaceIdPagesPageIdIndexRouteImport.update({
+    id: '/w/$workspaceId/pages/$pageId/',
+    path: '/w/$workspaceId/pages/$pageId/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
-  "/": typeof IndexRoute;
-  "/w/$workspaceId/": typeof WWorkspaceIdIndexRoute;
-  "/w/$workspaceId/pages/$pageId/": typeof WWorkspaceIdPagesPageIdIndexRoute;
+  '/': typeof IndexRoute
+  '/w/$workspaceId/': typeof WWorkspaceIdIndexRoute
+  '/w/$workspaceId/pages/$pageId/': typeof WWorkspaceIdPagesPageIdIndexRoute
 }
 export interface FileRoutesByTo {
-  "/": typeof IndexRoute;
-  "/w/$workspaceId": typeof WWorkspaceIdIndexRoute;
-  "/w/$workspaceId/pages/$pageId": typeof WWorkspaceIdPagesPageIdIndexRoute;
+  '/': typeof IndexRoute
+  '/w/$workspaceId': typeof WWorkspaceIdIndexRoute
+  '/w/$workspaceId/pages/$pageId': typeof WWorkspaceIdPagesPageIdIndexRoute
 }
 export interface FileRoutesById {
-  __root__: typeof rootRouteImport;
-  "/": typeof IndexRoute;
-  "/w/$workspaceId/": typeof WWorkspaceIdIndexRoute;
-  "/w/$workspaceId/pages/$pageId/": typeof WWorkspaceIdPagesPageIdIndexRoute;
+  __root__: typeof rootRouteImport
+  '/': typeof IndexRoute
+  '/w/$workspaceId/': typeof WWorkspaceIdIndexRoute
+  '/w/$workspaceId/pages/$pageId/': typeof WWorkspaceIdPagesPageIdIndexRoute
 }
 export interface FileRouteTypes {
-  fileRoutesByFullPath: FileRoutesByFullPath;
-  fullPaths: "/" | "/w/$workspaceId/" | "/w/$workspaceId/pages/$pageId/";
-  fileRoutesByTo: FileRoutesByTo;
-  to: "/" | "/w/$workspaceId" | "/w/$workspaceId/pages/$pageId";
-  id: "__root__" | "/" | "/w/$workspaceId/" | "/w/$workspaceId/pages/$pageId/";
-  fileRoutesById: FileRoutesById;
+  fileRoutesByFullPath: FileRoutesByFullPath
+  fullPaths: '/' | '/w/$workspaceId/' | '/w/$workspaceId/pages/$pageId/'
+  fileRoutesByTo: FileRoutesByTo
+  to: '/' | '/w/$workspaceId' | '/w/$workspaceId/pages/$pageId'
+  id: '__root__' | '/' | '/w/$workspaceId/' | '/w/$workspaceId/pages/$pageId/'
+  fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute;
-  WWorkspaceIdIndexRoute: typeof WWorkspaceIdIndexRoute;
-  WWorkspaceIdPagesPageIdIndexRoute: typeof WWorkspaceIdPagesPageIdIndexRoute;
+  IndexRoute: typeof IndexRoute
+  WWorkspaceIdIndexRoute: typeof WWorkspaceIdIndexRoute
+  WWorkspaceIdPagesPageIdIndexRoute: typeof WWorkspaceIdPagesPageIdIndexRoute
 }
 
-declare module "@tanstack/react-router" {
+declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    "/": {
-      id: "/";
-      path: "/";
-      fullPath: "/";
-      preLoaderRoute: typeof IndexRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/w/$workspaceId/": {
-      id: "/w/$workspaceId/";
-      path: "/w/$workspaceId";
-      fullPath: "/w/$workspaceId/";
-      preLoaderRoute: typeof WWorkspaceIdIndexRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/w/$workspaceId/pages/$pageId/": {
-      id: "/w/$workspaceId/pages/$pageId/";
-      path: "/w/$workspaceId/pages/$pageId";
-      fullPath: "/w/$workspaceId/pages/$pageId/";
-      preLoaderRoute: typeof WWorkspaceIdPagesPageIdIndexRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/w/$workspaceId/': {
+      id: '/w/$workspaceId/'
+      path: '/w/$workspaceId'
+      fullPath: '/w/$workspaceId/'
+      preLoaderRoute: typeof WWorkspaceIdIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/w/$workspaceId/pages/$pageId/': {
+      id: '/w/$workspaceId/pages/$pageId/'
+      path: '/w/$workspaceId/pages/$pageId'
+      fullPath: '/w/$workspaceId/pages/$pageId/'
+      preLoaderRoute: typeof WWorkspaceIdPagesPageIdIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -89,7 +90,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   WWorkspaceIdIndexRoute: WWorkspaceIdIndexRoute,
   WWorkspaceIdPagesPageIdIndexRoute: WWorkspaceIdPagesPageIdIndexRoute,
-};
+}
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
-  ._addFileTypes<FileRouteTypes>();
+  ._addFileTypes<FileRouteTypes>()
