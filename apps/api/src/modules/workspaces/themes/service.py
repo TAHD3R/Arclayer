@@ -3,12 +3,11 @@ from __future__ import annotations
 import json
 import mimetypes
 import zipfile
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, cast
 from uuid import UUID
 
-from pydantic import ValidationError
+from pydantic import BaseModel, ConfigDict, ValidationError
 from starlette.responses import RedirectResponse, Response
 
 from apps.api.src.common.services.base import BaseService
@@ -109,8 +108,9 @@ def _guess_mime(path: str, *, fallback: str) -> str:
     return mime or fallback
 
 
-@dataclass(frozen=True)
-class _ExtractedEntrypoints:
+class _ExtractedEntrypoints(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
     tokens_css_bytes: bytes
     base_css_bytes: bytes | None
     preview_image_bytes: bytes | None

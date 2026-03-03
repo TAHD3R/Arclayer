@@ -1,13 +1,14 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from pydantic import BaseModel, ConfigDict
 
 from apps.api.src.config import Settings
 from apps.api.src.settings.runtime import get_core_settings_value_cached
 
 
-@dataclass(frozen=True)
-class PublicRegisterPolicy:
+class PublicRegisterPolicy(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
     enabled: bool
     require_email: bool
     email_domains_allowlist: frozenset[str]

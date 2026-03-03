@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import asyncio
-from dataclasses import dataclass
 from functools import lru_cache
 from typing import cast
 from uuid import UUID
+
+from pydantic import BaseModel, ConfigDict
 
 from apps.api.src.common.protocols.tortoise import HasParentId
 from apps.api.src.core.exceptions import ServiceUnavailable
@@ -23,8 +24,9 @@ _FATAL_ADMIN_MENU_ERRORS: tuple[type[BaseException], ...] = (
 )
 
 
-@dataclass(frozen=True, slots=True)
-class MenuAccessContext:
+class MenuAccessContext(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
     permission_codes: frozenset[str]
     is_superuser: bool
     enabled_plugin_ids: frozenset[str]

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-from dataclasses import dataclass
 
 from pydantic import ValidationError
 from tortoise.exceptions import IntegrityError, OperationalError
@@ -21,13 +20,7 @@ def _tp(key: str, default: str) -> str:
     return t("plugin", key, default=default)
 
 
-@dataclass(frozen=True)
-class _InstallLockEntry:
-    loop_id: int
-    lock: asyncio.Lock
-
-
-_INSTALL_LOCKS: dict[str, _InstallLockEntry] = {}
+_INSTALL_LOCKS: dict[str, tuple[int, asyncio.Lock]] = {}
 
 
 def get_install_lock(key: str) -> asyncio.Lock:
@@ -36,8 +29,8 @@ def get_install_lock(key: str) -> asyncio.Lock:
     loop_id = id(loop)
     k = str(key)
     entry = _INSTALL_LOCKS.get(k)
-    if entry is None or entry.loop_id != loop_id:
+    if entry is None or entry[0] != loop_id:
         lock = asyncio.Lock()
-        _INSTALL_LOCKS[k] = _InstallLockEntry(loop_id=loop_id, lock=lock)
+        _INSTALL_LOCKS[k] = (loop_id, lock)
         return lock
-    return entry.lock
+    return entry[1]

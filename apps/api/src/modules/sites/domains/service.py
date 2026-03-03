@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import ipaddress
 import secrets
-from dataclasses import dataclass
 from typing import Any, cast
 from uuid import UUID
+
+from pydantic import BaseModel, ConfigDict
 
 from apps.api.src.common.protocols.tortoise import HasOrganizationId, SiteDomainRecordView
 from apps.api.src.common.services.base import BaseService
@@ -26,8 +27,9 @@ _TXT_PREFIX = "celestial-site-verification="
 _TXT_LABEL = "_celestial-site-verification"
 
 
-@dataclass(frozen=True)
-class _DnsTxtLookupResult:
+class _DnsTxtLookupResult(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
     ok: bool
     observed: list[str]
 

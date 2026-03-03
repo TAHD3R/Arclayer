@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-"""
-Sys bootstrap service.
+from apps.api.src.modules.sys.bootstrap.storage.service import bootstrap_saas_storage_defaults
 
-Concrete bootstrap implementations live in nested subdomains (e.g. bootstrap/storage).
-"""
+__all__ = ["bootstrap_saas_storage_defaults"]

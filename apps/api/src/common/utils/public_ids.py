@@ -5,16 +5,16 @@ import binascii
 import hashlib
 import hmac
 import re
-from dataclasses import dataclass
 from typing import Final
 from uuid import RFC_4122, UUID
 
 _PUBLIC_ID_RE: Final[re.Pattern[str]] = re.compile(r"^[A-Za-z0-9_-]{22}$")
 
 
-@dataclass(frozen=True, slots=True)
 class PublicIdDecodeError(ValueError):
-    message: str = "Invalid public id"
+    def __init__(self, message: str = "Invalid public id") -> None:
+        super().__init__(message)
+        self.message = message
 
     def __str__(self) -> str:  # pragma: no cover
         return self.message

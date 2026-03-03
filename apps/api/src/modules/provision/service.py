@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import Literal, cast
 from uuid import UUID, uuid4
+
+from pydantic import BaseModel, ConfigDict
 
 from apps.api.src.common.protocols.tortoise import HasOrganizationId, HasWorkspaceId
 from apps.api.src.common.services import BaseService
@@ -29,12 +30,13 @@ from apps.api.src.modules.workspaces.slug_policy import next_available_workspace
 ProvisionSource = Literal["setup", "register", "repair"]
 
 
-@dataclass(slots=True)
-class ProvisioningResult:
+class ProvisioningResult(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
     organization_id: UUID | None
     workspace_id: UUID | None
     site_id: UUID | None
-    actions: list[str]
+    actions: tuple[str, ...]
 
 
 class TenantProvisioningService(BaseService):
@@ -182,7 +184,7 @@ class TenantProvisioningService(BaseService):
             organization_id=UUID(str(organization.id)),
             workspace_id=UUID(str(workspace.id)),
             site_id=UUID(str(site.id)),
-            actions=actions,
+            actions=tuple(actions),
         )
 
     async def _ensure_organization(
