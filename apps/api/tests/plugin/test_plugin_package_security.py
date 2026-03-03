@@ -6,9 +6,9 @@ from pathlib import Path
 
 import pytest
 
-from apps.api.config import get_settings
-from apps.api.core.exceptions.types import BadRequest
-from apps.api.modules.system.plugins_manager.service import PluginService
+from apps.api.src.config import get_settings
+from apps.api.src.core.exceptions.types import BadRequest
+from apps.api.src.modules.system.plugins_manager.service import PluginService
 
 
 def _write_zip(path: Path, files: dict[str, bytes]) -> None:

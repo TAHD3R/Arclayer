@@ -4,7 +4,7 @@ from pathlib import Path
 
 
 def test_storage_settings_default_root_dir_is_data_uploads() -> None:
-    from apps.api.config import get_settings
+    from apps.api.src.config import get_settings
 
     settings = get_settings()
     root = settings.storage.local_root_dir
@@ -14,7 +14,7 @@ def test_storage_settings_default_root_dir_is_data_uploads() -> None:
 
 
 def test_storage_settings_default_tmp_dir_is_under_data_uploads() -> None:
-    from apps.api.config import get_settings
+    from apps.api.src.config import get_settings
 
     settings = get_settings()
     tmp_dir = settings.storage.local_tmp_dir

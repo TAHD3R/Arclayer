@@ -4,7 +4,7 @@ from pathlib import Path
 
 
 def test_merge_parts_to_file_builds_correct_output_and_sha256(tmp_path: Path) -> None:
-    from apps.api.infra.storage.merge import merge_parts_to_file
+    from apps.api.src.infra.storage.merge import merge_parts_to_file
 
     p1 = tmp_path / "part1"
     p2 = tmp_path / "part2"

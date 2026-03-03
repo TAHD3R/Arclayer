@@ -3,8 +3,8 @@ from __future__ import annotations
 from typing import Literal
 from uuid import uuid4
 
-from apps.api.modules.sites.schema import SitePageTreeNodeOut
-from apps.api.modules.sites.utils import build_pages_tree
+from apps.api.src.modules.sites.schema import SitePageTreeNodeOut
+from apps.api.src.modules.sites.utils import build_pages_tree
 
 
 def _node(*, id, path: str, parent_id=None, sort_order: int = 0, visibility: Literal["public", "private"] = "public"):

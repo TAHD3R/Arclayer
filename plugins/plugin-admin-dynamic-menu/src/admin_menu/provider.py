@@ -3,8 +3,8 @@ from __future__ import annotations
 from uuid import UUID
 
 from admin_menu.services import AdminMenuService
-from apps.api.core.http.pagination import PageData, PageParams
-from apps.api.modules.system.admin.menus.schema import (
+from apps.api.src.core.http.pagination import PageData, PageParams
+from apps.api.src.modules.system.admin.menus.schema import (
     AdminMenuCreateRequest,
     AdminMenuItemOut,
     AdminMenuListQuery,

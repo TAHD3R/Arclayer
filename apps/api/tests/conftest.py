@@ -18,9 +18,9 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from apps.api.config import get_settings
-from apps.api.core.database.orm import close_orm, init_orm, verify_db_ready
-from apps.api.infra.cache.valkey import ValkeyClient, close_valkey, init_valkey
+from apps.api.src.config import get_settings
+from apps.api.src.core.database.orm import close_orm, init_orm, verify_db_ready
+from apps.api.src.infra.cache.valkey import ValkeyClient, close_valkey, init_valkey
 from apps.api.tests.utils.plugins import collect_test_plugin_models
 from apps.api.tests.utils.tortoise import reset_postgres_schema
 
@@ -74,6 +74,15 @@ def integration_db_settings(monkeypatch) -> Iterator[None]:
     monkeypatch.setenv("DEPLOYMENT_MODE", "self_host")
     monkeypatch.setenv("TEST_DATABASE__ENABLED", "1")
     monkeypatch.setenv("TEST_DATABASE__NAME", os.getenv("TEST_DATABASE__NAME", "celestial_test"))
+    # Integration tests may hit email invitation flows. Enable mail but suppress actual sending.
+    monkeypatch.setenv("MAIL__ENABLED", "1")
+    monkeypatch.setenv("MAIL__SUPPRESS_SEND", "1")
+    # Keep integration tests hermetic regardless of local `.env` values.
+    #
+    # The repo recently migrated runtime code under `apps.api.src.*`, so older `.env` files may still
+    # point to `apps.api.modules`, which would break Tortoise model discovery during init.
+    monkeypatch.setenv("DATABASE__CORE_MODELS", '["apps.api.src.modules"]')
+    monkeypatch.setenv("DATABASE__PLUGIN_PACKAGES", '["apps.api.src.plugins"]')
     # Ensure subsequent `get_settings()` calls see the updated integration env.
     get_settings.cache_clear()
     yield
@@ -88,6 +97,9 @@ def integration_valkey_settings(monkeypatch) -> str:
     monkeypatch.setenv("APP_ENV", "test")
     monkeypatch.setenv("APPLICATION__DEPLOYMENT_MODE", "self_host")
     monkeypatch.setenv("DEPLOYMENT_MODE", "self_host")
+    # Default integration Valkey connection matches repo `docker-compose.yml`.
+    monkeypatch.setenv("VALKEY__HOST", os.getenv("VALKEY__HOST", "127.0.0.1"))
+    monkeypatch.setenv("VALKEY__PORT", os.getenv("VALKEY__PORT", "6379"))
     monkeypatch.setenv("TEST_VALKEY__ENABLED", "1")
     monkeypatch.setenv("TEST_VALKEY__DB", os.getenv("TEST_VALKEY__DB", "15"))
     monkeypatch.setenv("TEST_VALKEY__DEFAULT_TTL", os.getenv("TEST_VALKEY__DEFAULT_TTL", "5"))
@@ -147,8 +159,10 @@ async def prepared_db(integration_db_settings, plugin_root) -> AsyncGenerator[No
     await init_orm(settings, extra_modules=extra_models)
     await reset_postgres_schema()
     await Tortoise.generate_schemas(safe=True)
-    await close_orm()
-    yield
+    try:
+        yield
+    finally:
+        await close_orm()
 
 
 @pytest_asyncio.fixture

@@ -5,9 +5,9 @@ import zipfile
 
 import pytest
 
-from apps.api.config import get_settings
-from apps.api.core.exceptions import BadRequest
-from apps.api.modules.workspaces.themes.service import WorkspaceThemesService
+from apps.api.src.config import get_settings
+from apps.api.src.core.exceptions import BadRequest
+from apps.api.src.modules.workspaces.themes.service import WorkspaceThemesService
 
 
 def _write_zip(path, *, files: dict[str, str | bytes]) -> None:

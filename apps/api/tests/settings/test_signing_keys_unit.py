@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from apps.api.settings.signing import (
+from apps.api.src.settings.signing import (
     ensure_signing_keypair,
     load_private_key,
     load_public_key,

@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 from fastapi import FastAPI
 
-from apps.api.common.utils import ensure_unique_route_names, redact, simplify_operation_ids
+from apps.api.src.common.utils import ensure_unique_route_names, redact, simplify_operation_ids
 
 
 def test_redact_dict_and_list() -> None:

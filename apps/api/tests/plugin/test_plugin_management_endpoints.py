@@ -8,10 +8,10 @@ from uuid import uuid4
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-from apps.api.config import get_settings
-from apps.api.core.registry import create_app
-from apps.api.modules.auth.deps import get_current_user_id
-from apps.api.modules.organization.models.org_membership import OrgMembership, OrgRole
+from apps.api.src.config import get_settings
+from apps.api.src.core.registry import create_app
+from apps.api.src.modules.auth.deps import get_current_user_id
+from apps.api.src.modules.organization.models.org_membership import OrgMembership, OrgRole
 
 pytestmark = pytest.mark.integration
 
@@ -26,7 +26,7 @@ def _build_demo_plugin_zip(tmp_path: Path, plugin_id: str) -> Path:
     (package_dir / "plugin.py").write_text(
         textwrap.dedent(
             """
-            from apps.api.plugin.types import BasePlugin
+            from apps.api.src.plugin.types import BasePlugin
 
 
             class DemoPlugin(BasePlugin):
@@ -94,9 +94,9 @@ async def test_plugin_management_flow(prepared_db, plugin_root, tmp_path) -> Non
 
     transport = ASGITransport(app=app)
     async with app.router.lifespan_context(app):
-        from apps.api.modules.auth.repository import UserRepository
-        from apps.api.modules.auth.security import hash_password
-        from apps.api.modules.organization.repository import OrganizationRepository
+        from apps.api.src.modules.auth.repository import UserRepository
+        from apps.api.src.modules.auth.security import hash_password
+        from apps.api.src.modules.organization.repository import OrganizationRepository
 
         settings = get_settings()
         user_repo = UserRepository()

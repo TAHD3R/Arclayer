@@ -1,0 +1,27 @@
+from __future__ import annotations
+
+from pydantic import Field
+
+from apps.api.src.common.schemas import BaseSchema
+from apps.api.src.common.types.public_uuid import PublicUUID
+
+
+class WorkspaceSiteOut(BaseSchema):
+    """
+    Workspace-scoped site metadata.
+
+    Notes:
+    - Single-site workspace model: each workspace maps to exactly one site.
+    - Admin UI uses this endpoint to discover `site_id` for Portal editor URLs.
+    """
+
+    site_id: PublicUUID = Field(..., alias="siteId", description="Resolved site id for the workspace.")
+    workspace_id: PublicUUID = Field(..., alias="workspaceId", description="Workspace id.")
+
+    slug: str = Field(..., description="Site slug (kept for compatibility/future).")
+    name: str = Field(..., description="Site display name.")
+
+    default_locale: str = Field(default="zh-CN", alias="defaultLocale", description="Default locale code.")
+    fallback_locale: str = Field(default="en-US", alias="fallbackLocale", description="Fallback locale code.")
+
+    is_active: bool = Field(default=True, alias="isActive", description="Whether the site is active.")

@@ -67,7 +67,7 @@ known-first-party = ["apps"]
 
 [tool.pytest.ini_options]
 minversion = "6.0"
-addopts = "-ra -q --import-mode=importlib --cov=apps/api --cov-report=term-missing"
+addopts = "-ra -q --import-mode=importlib --cov=apps.api.src --cov-report=term-missing"
 testpaths = ["apps/api/tests"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"

@@ -1,4 +1,4 @@
-from apps.api.config import ApplicationSettings, Settings, get_settings
+from apps.api.src.config import ApplicationSettings, Settings, get_settings
 
 
 def test_settings_defaults(monkeypatch) -> None:

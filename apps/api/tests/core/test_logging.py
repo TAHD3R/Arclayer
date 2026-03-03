@@ -5,8 +5,8 @@ from pathlib import Path
 import structlog
 from asgi_correlation_id import correlation_id
 
-from apps.api.config import get_settings
-from apps.api.core.logging import configure_logging
+from apps.api.src.config import get_settings
+from apps.api.src.core.logging import configure_logging
 
 
 def _configure(monkeypatch, log_dir: Path, *, app_env: str, log_json: bool | None = None) -> None:

@@ -6,12 +6,12 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from apps.api.config import get_settings
-from apps.api.core.exceptions import Unauthorized
-from apps.api.modules.auth.contracts import UserLike
-from apps.api.modules.auth.security import hash_password, verify_password
-from apps.api.modules.auth.service import AuthService
-from apps.api.modules.organization.models.user import UserStatus
+from apps.api.src.config import get_settings
+from apps.api.src.core.exceptions import Unauthorized
+from apps.api.src.modules.auth.contracts import UserLike
+from apps.api.src.modules.auth.security import hash_password, verify_password
+from apps.api.src.modules.auth.service import AuthService
+from apps.api.src.modules.organization.models.user import UserStatus
 
 
 class _FakeRaw:

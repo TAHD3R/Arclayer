@@ -10,7 +10,7 @@
     "uv": "node ./scripts/uv.mjs run",
     "lock": "node ./scripts/uv.mjs lock",
     "install": "node ./scripts/uv.mjs sync",
-    "dev": "node ./scripts/uv.mjs run uvicorn apps.api.main:app --reload --host 0.0.0.0 --port 8000",
+    "dev": "node ./scripts/uv.mjs run uvicorn apps.api.src.main:app --reload --host 0.0.0.0 --port 8000",
     "openapi:export": "node ./scripts/uv.mjs run python scripts/export_openapi.py",
     "lint": "node ./scripts/uv.mjs run ruff check . --fix",
     "format": "node ./scripts/uv.mjs run ruff format .",
@@ -19,7 +19,7 @@
     "test:integration": "node ./scripts/uv.mjs --integration run pytest -m integration --cov=.",
     "db:migrate": "node ./scripts/uv.mjs run python -m tortoise makemigrations",
     "db:upgrade": "node ./scripts/uv.mjs run python -m tortoise migrate",
-    "jobs:worker": "node ./scripts/uv.mjs run taskiq worker apps.api.infra.jobs.taskiq_app:broker apps.api.infra.jobs.tasks",
-    "jobs:scheduler": "node ./scripts/uv.mjs run taskiq scheduler apps.api.infra.jobs.taskiq_app:scheduler apps.api.infra.jobs.tasks"
+    "jobs:worker": "node ./scripts/uv.mjs run taskiq worker apps.api.src.infra.jobs.taskiq_app:broker apps.api.src.infra.jobs.tasks",
+    "jobs:scheduler": "node ./scripts/uv.mjs run taskiq scheduler apps.api.src.infra.jobs.taskiq_app:scheduler apps.api.src.infra.jobs.tasks"
   }
 }

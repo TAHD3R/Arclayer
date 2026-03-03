@@ -5,16 +5,16 @@ from uuid import UUID, uuid4
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-from apps.api.common.utils.public_ids import encode_uuid, is_public_id
-from apps.api.config import get_settings
-from apps.api.core.database.orm import verify_db_ready
-from apps.api.core.registry import create_app
-from apps.api.modules.auth.deps import get_current_user, get_current_user_id
-from apps.api.modules.auth.repository import UserRepository
-from apps.api.modules.organization.models.org_membership import OrgMembership, OrgRole
-from apps.api.modules.organization.models.user import User
-from apps.api.modules.organization.repository import OrganizationRepository
-from apps.api.modules.workspaces.models.workspace import Workspace
+from apps.api.src.common.utils.public_ids import encode_uuid, is_public_id
+from apps.api.src.config import get_settings
+from apps.api.src.core.database.orm import verify_db_ready
+from apps.api.src.core.registry import create_app
+from apps.api.src.modules.auth.deps import get_current_user, get_current_user_id
+from apps.api.src.modules.auth.repository import UserRepository
+from apps.api.src.modules.organization.models.org_membership import OrgMembership, OrgRole
+from apps.api.src.modules.organization.models.user import User
+from apps.api.src.modules.organization.repository import OrganizationRepository
+from apps.api.src.modules.workspaces.models.workspace import Workspace
 
 pytestmark = pytest.mark.integration
 

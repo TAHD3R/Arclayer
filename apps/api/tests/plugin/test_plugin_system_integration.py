@@ -5,10 +5,10 @@ import uuid
 
 import pytest
 
-from apps.api.config import get_settings
-from apps.api.modules.system.models.plugin import PluginRecord
-from apps.api.plugin.manager import PluginManager
-from apps.api.plugin.types import PluginStatus
+from apps.api.src.config import get_settings
+from apps.api.src.modules.system.models.plugin import PluginRecord
+from apps.api.src.plugin.manager import PluginManager
+from apps.api.src.plugin.types import PluginStatus
 
 pytestmark = pytest.mark.integration
 
@@ -27,7 +27,7 @@ def _write_demo_plugin_with_deps(root, plugin_id: str, *, deps: list[dict] | Non
     (plugin_dir / "plugin.py").write_text(
         textwrap.dedent(
             """
-            from apps.api.plugin.types import BasePlugin
+            from apps.api.src.plugin.types import BasePlugin
 
 
             class DemoPlugin(BasePlugin):

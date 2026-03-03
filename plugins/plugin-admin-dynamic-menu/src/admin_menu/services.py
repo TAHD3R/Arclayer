@@ -6,14 +6,14 @@ from tortoise.expressions import Q
 
 from admin_menu.models import AdminMenuItem, AdminMenuItemType
 from admin_menu.repository import AdminMenuRepository, normalize_ordering
-from apps.api.common.services import BaseService
-from apps.api.config import get_settings
-from apps.api.modules.workspaces.authz_snapshot import get_workspace_authz_snapshot
-from apps.api.modules.workspaces.context import get_current_workspace_id
-from apps.api.core.exceptions import BadRequest, Conflict, NotFound, ServiceUnavailable
-from apps.api.core.i18n import t
-from apps.api.core.http.pagination import PageData, PageParams, paginate_queryset
-from apps.api.modules.system.admin.menus.schema import (
+from apps.api.src.common.services import BaseService
+from apps.api.src.config import get_settings
+from apps.api.src.modules.workspaces.authz_snapshot import get_workspace_authz_snapshot
+from apps.api.src.modules.workspaces.context import get_current_workspace_id
+from apps.api.src.core.exceptions import BadRequest, Conflict, NotFound, ServiceUnavailable
+from apps.api.src.core.i18n import t
+from apps.api.src.core.http.pagination import PageData, PageParams, paginate_queryset
+from apps.api.src.modules.system.admin.menus.schema import (
     AdminMenuCreateRequest,
     AdminMenuItemOut,
     AdminMenuListQuery,

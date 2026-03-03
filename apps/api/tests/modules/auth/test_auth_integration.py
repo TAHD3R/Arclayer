@@ -4,11 +4,11 @@ import uuid
 
 import pytest
 
-from apps.api.config import get_settings
-from apps.api.core.exceptions import Unauthorized
-from apps.api.modules.auth.security import hash_password
-from apps.api.modules.auth.service import AuthService
-from apps.api.modules.organization.models.user import User, UserCredential, UserStatus
+from apps.api.src.config import get_settings
+from apps.api.src.core.exceptions import Unauthorized
+from apps.api.src.modules.auth.security import hash_password
+from apps.api.src.modules.auth.service import AuthService
+from apps.api.src.modules.organization.models.user import User, UserCredential, UserStatus
 
 pytestmark = pytest.mark.integration
 

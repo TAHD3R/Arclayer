@@ -5,13 +5,13 @@ from uuid import UUID, uuid4
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-from apps.api.config import get_settings
-from apps.api.core.database.orm import verify_db_ready
-from apps.api.core.registry import create_app
-from apps.api.modules.auth.deps import get_current_user, get_current_user_id
-from apps.api.modules.auth.repository import UserRepository
-from apps.api.modules.auth.security import hash_password
-from apps.api.modules.organization.models.user import User
+from apps.api.src.config import get_settings
+from apps.api.src.core.database.orm import verify_db_ready
+from apps.api.src.core.registry import create_app
+from apps.api.src.modules.auth.deps import get_current_user, get_current_user_id
+from apps.api.src.modules.auth.repository import UserRepository
+from apps.api.src.modules.auth.security import hash_password
+from apps.api.src.modules.organization.models.user import User
 
 pytestmark = pytest.mark.integration
 

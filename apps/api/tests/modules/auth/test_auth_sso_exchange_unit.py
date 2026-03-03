@@ -6,15 +6,15 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from apps.api.config import get_settings
-from apps.api.core.exceptions import BadRequest
-from apps.api.infra.cache.valkey import ValkeyClientLike
-from apps.api.modules.auth.schema import TokenPair
-from apps.api.modules.auth.service import AuthService
-from apps.api.modules.auth.sso.exchange_store import _valkey_getdel_best_effort, issue_exchange_code
-from apps.api.modules.auth.sso.schema import AuthSSOExchangePayload
-from apps.api.modules.auth.sso.service import AuthSSOService
-from apps.api.plugin.manager import PluginManager
+from apps.api.src.config import get_settings
+from apps.api.src.core.exceptions import BadRequest
+from apps.api.src.infra.cache.valkey import ValkeyClientLike
+from apps.api.src.modules.auth.schema import TokenPair
+from apps.api.src.modules.auth.service import AuthService
+from apps.api.src.modules.auth.sso.exchange_store import _valkey_getdel_best_effort, issue_exchange_code
+from apps.api.src.modules.auth.sso.schema import AuthSSOExchangePayload
+from apps.api.src.modules.auth.sso.service import AuthSSOService
+from apps.api.src.plugin.manager import PluginManager
 
 
 class _FakeValkey(ValkeyClientLike):

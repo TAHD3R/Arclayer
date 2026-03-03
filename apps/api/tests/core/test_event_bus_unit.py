@@ -4,7 +4,7 @@ import asyncio
 
 import pytest
 
-from apps.api.plugin.event_bus import Event, EventBus
+from apps.api.src.plugin.event_bus import Event, EventBus
 
 
 @pytest.mark.asyncio

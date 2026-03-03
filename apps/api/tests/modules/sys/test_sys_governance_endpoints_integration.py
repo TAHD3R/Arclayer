@@ -6,13 +6,13 @@ from uuid import uuid4
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-from apps.api.config import get_settings
-from apps.api.core.registry import create_app
-from apps.api.modules.auth.repository import UserRepository
-from apps.api.modules.auth.security import build_access_token, hash_password
-from apps.api.modules.system.models.setting import SettingRecord
-from apps.api.settings.core_schema import CORE_SETTINGS_NAMESPACE
-from apps.api.settings.scopes import SCOPE_TYPE_SYSTEM, SYSTEM_SCOPE_ID
+from apps.api.src.config import get_settings
+from apps.api.src.core.registry import create_app
+from apps.api.src.modules.auth.repository import UserRepository
+from apps.api.src.modules.auth.security import build_access_token, hash_password
+from apps.api.src.modules.system.models.setting import SettingRecord
+from apps.api.src.settings.core_schema import CORE_SETTINGS_NAMESPACE
+from apps.api.src.settings.scopes import SCOPE_TYPE_SYSTEM, SYSTEM_SCOPE_ID
 
 pytestmark = pytest.mark.integration
 

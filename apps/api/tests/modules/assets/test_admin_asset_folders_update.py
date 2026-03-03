@@ -6,8 +6,8 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from apps.api.modules.assets.admin.assets.schema import AdminAssetFolderUpdateRequest
-from apps.api.modules.assets.admin.assets.service import AdminAssetsService
+from apps.api.src.modules.assets.admin.assets.schema import AdminAssetFolderUpdateRequest
+from apps.api.src.modules.assets.admin.assets.service import AdminAssetsService
 
 
 @dataclass
@@ -36,8 +36,8 @@ class _FakeQuery:
 
 @pytest.mark.asyncio
 async def test_update_folder_requires_existing_folder() -> None:
-    from apps.api.config import get_settings
-    from apps.api.core.exceptions import NotFound
+    from apps.api.src.config import get_settings
+    from apps.api.src.core.exceptions import NotFound
 
     service = AdminAssetsService(get_settings())
 
@@ -59,8 +59,8 @@ async def test_update_folder_requires_existing_folder() -> None:
 
 @pytest.mark.asyncio
 async def test_update_folder_rejects_cycle_parent() -> None:
-    from apps.api.config import get_settings
-    from apps.api.core.exceptions import BadRequest
+    from apps.api.src.config import get_settings
+    from apps.api.src.core.exceptions import BadRequest
 
     workspace_id = uuid4()
     target_folder_id = uuid4()
@@ -98,8 +98,8 @@ async def test_update_folder_rejects_cycle_parent() -> None:
 
 @pytest.mark.asyncio
 async def test_update_folder_rejects_duplicate_name_under_target_parent() -> None:
-    from apps.api.config import get_settings
-    from apps.api.core.exceptions import Conflict
+    from apps.api.src.config import get_settings
+    from apps.api.src.core.exceptions import Conflict
 
     workspace_id = uuid4()
     folder_id = uuid4()
@@ -133,7 +133,7 @@ async def test_update_folder_rejects_duplicate_name_under_target_parent() -> Non
 
 @pytest.mark.asyncio
 async def test_update_folder_trims_description_and_allows_clear() -> None:
-    from apps.api.config import get_settings
+    from apps.api.src.config import get_settings
 
     workspace_id = uuid4()
     folder_id = uuid4()

@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from apps.api.config import get_settings
-from apps.api.core.registry import create_app
+from apps.api.src.config import get_settings
+from apps.api.src.core.registry import create_app
 from apps.api.tests.utils.asgi_client import asgi_client
 
 

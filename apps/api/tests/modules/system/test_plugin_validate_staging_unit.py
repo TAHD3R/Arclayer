@@ -8,9 +8,9 @@ import zipfile
 import pytest
 from starlette.datastructures import UploadFile
 
-from apps.api.config import get_settings
-from apps.api.core.exceptions import BadRequest
-from apps.api.modules.system.plugins_manager.service import PluginService
+from apps.api.src.config import get_settings
+from apps.api.src.core.exceptions import BadRequest
+from apps.api.src.modules.system.plugins_manager.service import PluginService
 
 
 def _build_minimal_plugin_zip_bytes(*, plugin_id: str, slug: str, entry_root: str) -> bytes:

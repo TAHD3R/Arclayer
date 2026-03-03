@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from apps.api.modules.sites.repository import _compile_path_pattern, _match_compiled, _match_path_pattern
+from apps.api.src.modules.sites.repository import _compile_path_pattern, _match_compiled, _match_path_pattern
 
 
 def test_match_path_pattern_static_segments() -> None:

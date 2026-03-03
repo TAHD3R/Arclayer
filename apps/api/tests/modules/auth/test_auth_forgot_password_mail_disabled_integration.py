@@ -5,18 +5,18 @@ from uuid import uuid4
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-from apps.api.config import get_settings
-from apps.api.core.database.orm import verify_db_ready
-from apps.api.core.registry import create_app
-from apps.api.modules.system.models.setting import SettingRecord
-from apps.api.settings.scopes import SCOPE_TYPE_SYSTEM, SYSTEM_SCOPE_ID
+from apps.api.src.config import get_settings
+from apps.api.src.core.database.orm import verify_db_ready
+from apps.api.src.core.registry import create_app
+from apps.api.src.modules.system.models.setting import SettingRecord
+from apps.api.src.settings.scopes import SCOPE_TYPE_SYSTEM, SYSTEM_SCOPE_ID
 
 pytestmark = pytest.mark.integration
 
 
 async def _create_user_with_email(*, email: str) -> None:
-    from apps.api.modules.auth.repository import UserRepository
-    from apps.api.modules.auth.security import hash_password
+    from apps.api.src.modules.auth.repository import UserRepository
+    from apps.api.src.modules.auth.security import hash_password
 
     settings = get_settings()
     user_repo = UserRepository()
@@ -77,7 +77,7 @@ async def test_forgot_password_works_when_mail_enabled(
     async def _dummy_get_fast_mail(self):  # type: ignore[no-untyped-def]
         return DummyMail()
 
-    monkeypatch.setattr("apps.api.common.email.service.EmailService._get_fast_mail", _dummy_get_fast_mail)
+    monkeypatch.setattr("apps.api.src.common.email.service.EmailService._get_fast_mail", _dummy_get_fast_mail)
 
     settings = get_settings()
     app = create_app()

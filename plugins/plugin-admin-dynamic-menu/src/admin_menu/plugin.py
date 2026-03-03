@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from apps.api.core.logging import get_logger
-from apps.api.plugin.types import BasePlugin
+from apps.api.src.core.logging import get_logger
+from apps.api.src.plugin.types import BasePlugin
 
 logger = get_logger(__name__)
 

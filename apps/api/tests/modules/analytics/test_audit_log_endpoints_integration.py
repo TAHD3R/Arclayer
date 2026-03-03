@@ -8,11 +8,11 @@ import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 
-from apps.api.common.utils.public_ids import encode_uuid
-from apps.api.modules.analytics.models.audit_event import AuditEvent
-from apps.api.modules.auth.deps import get_current_user
-from apps.api.modules.organization.deps import require_org_admin
-from apps.api.modules.system.router import router as system_router
+from apps.api.src.common.utils.public_ids import encode_uuid
+from apps.api.src.modules.analytics.models.audit_event import AuditEvent
+from apps.api.src.modules.auth.deps import get_current_user
+from apps.api.src.modules.organization.deps import require_org_admin
+from apps.api.src.modules.system.router import router as system_router
 
 pytestmark = pytest.mark.integration
 

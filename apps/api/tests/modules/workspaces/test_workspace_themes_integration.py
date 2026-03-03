@@ -9,20 +9,20 @@ from uuid import uuid4
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-from apps.api.common.utils.public_ids import encode_uuid
-from apps.api.config import get_settings
-from apps.api.core.database.orm import verify_db_ready
-from apps.api.core.registry import create_app
-from apps.api.infra.storage.local import safe_object_key_to_path
-from apps.api.modules.assets.models.asset import AssetPurpose, AssetRecord, AssetVisibility
-from apps.api.modules.assets.utils import build_asset_object_key
-from apps.api.modules.auth.deps import get_current_user, get_current_user_id
-from apps.api.modules.auth.repository import UserRepository
-from apps.api.modules.auth.security import hash_password
-from apps.api.modules.organization.models.org_membership import OrgMembership, OrgRole
-from apps.api.modules.organization.models.user import User
-from apps.api.modules.sites.models.site import SiteRecord
-from apps.api.modules.workspaces.models.workspace import Workspace
+from apps.api.src.common.utils.public_ids import encode_uuid
+from apps.api.src.config import get_settings
+from apps.api.src.core.database.orm import verify_db_ready
+from apps.api.src.core.registry import create_app
+from apps.api.src.infra.storage.local import safe_object_key_to_path
+from apps.api.src.modules.assets.models.asset import AssetPurpose, AssetRecord, AssetVisibility
+from apps.api.src.modules.assets.utils import build_asset_object_key
+from apps.api.src.modules.auth.deps import get_current_user, get_current_user_id
+from apps.api.src.modules.auth.repository import UserRepository
+from apps.api.src.modules.auth.security import hash_password
+from apps.api.src.modules.organization.models.org_membership import OrgMembership, OrgRole
+from apps.api.src.modules.organization.models.user import User
+from apps.api.src.modules.sites.models.site import SiteRecord
+from apps.api.src.modules.workspaces.models.workspace import Workspace
 
 pytestmark = pytest.mark.integration
 
@@ -113,7 +113,7 @@ async def test_workspace_theme_import_and_site_runtime_output(
         await verify_db_ready(settings)
 
         # Bootstrap org/workspace/user (creator-admin path) so workspace RBAC grants work.
-        from apps.api.modules.organization.repository import OrganizationRepository
+        from apps.api.src.modules.organization.repository import OrganizationRepository
 
         org_repo = OrganizationRepository()
         user_repo = UserRepository()

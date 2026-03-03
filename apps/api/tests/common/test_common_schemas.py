@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
-from apps.api.common.schemas.base import BaseOut, BaseSchema, TimestampMixin
+from apps.api.src.common.schemas.base import BaseOut, BaseSchema, TimestampMixin
 
 
 class DemoSchema(BaseSchema):

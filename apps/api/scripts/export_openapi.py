@@ -81,7 +81,7 @@ def main() -> None:
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
     # 仅构建路由与 OpenAPI，不触发 lifespan（不会连接 DB/Valkey）
-    from apps.api.core.registry import create_app
+    from apps.api.src.core.registry import create_app
 
     app = create_app()
     _assign_stable_operation_ids(app)

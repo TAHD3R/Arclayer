@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from apps.api.config import Settings
-from apps.api.plugin.manager import PluginManager
+from apps.api.src.config import Settings
+from apps.api.src.plugin.manager import PluginManager
 
 
 def collect_test_plugin_models(settings: Settings) -> list[str]:

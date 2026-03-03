@@ -4,7 +4,7 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from apps.api.modules.assets.admin.assets.service import AdminAssetsService
+from apps.api.src.modules.assets.admin.assets.service import AdminAssetsService
 
 
 def test_admin_assets_service_exposes_bulk_ops() -> None:
@@ -19,7 +19,7 @@ def test_admin_assets_router_exposes_bulk_endpoints() -> None:
     # router.routes is typed as BaseRoute[], but only APIRoute exposes `.path` in the stubs.
     from fastapi.routing import APIRoute
 
-    from apps.api.modules.assets.admin.assets.router import router
+    from apps.api.src.modules.assets.admin.assets.router import router
 
     paths = {r.path for r in router.routes if isinstance(r, APIRoute)}
 
@@ -31,9 +31,9 @@ def test_admin_assets_router_exposes_bulk_endpoints() -> None:
 @pytest.mark.asyncio
 async def test_bulk_move_assets_validates_folder_exists(monkeypatch) -> None:
     # Behavior: folder_id provided but folder does not exist => NotFound.
-    from apps.api.config import get_settings
-    from apps.api.core.exceptions import NotFound
-    from apps.api.modules.assets.admin.assets.schema import AdminAssetBulkMoveRequest
+    from apps.api.src.config import get_settings
+    from apps.api.src.core.exceptions import NotFound
+    from apps.api.src.modules.assets.admin.assets.schema import AdminAssetBulkMoveRequest
 
     settings = get_settings()
     service = AdminAssetsService(settings)
@@ -56,8 +56,8 @@ async def test_bulk_move_assets_validates_folder_exists(monkeypatch) -> None:
 @pytest.mark.asyncio
 async def test_bulk_delete_assets_marks_assets_deleted(monkeypatch) -> None:
     # Behavior: bulk delete should call repository layer once and return deleted ids/count.
-    from apps.api.config import get_settings
-    from apps.api.modules.assets.admin.assets.schema import AdminAssetBulkDeleteRequest
+    from apps.api.src.config import get_settings
+    from apps.api.src.modules.assets.admin.assets.schema import AdminAssetBulkDeleteRequest
 
     settings = get_settings()
     service = AdminAssetsService(settings)
@@ -89,9 +89,9 @@ async def test_bulk_delete_assets_marks_assets_deleted(monkeypatch) -> None:
 @pytest.mark.asyncio
 async def test_bulk_update_assets_requires_fields(monkeypatch) -> None:
     # Behavior: must provide at least one of visibility/purpose.
-    from apps.api.config import get_settings
-    from apps.api.core.exceptions import BadRequest
-    from apps.api.modules.assets.admin.assets.schema import AdminAssetBulkUpdateRequest
+    from apps.api.src.config import get_settings
+    from apps.api.src.core.exceptions import BadRequest
+    from apps.api.src.modules.assets.admin.assets.schema import AdminAssetBulkUpdateRequest
 
     settings = get_settings()
     service = AdminAssetsService(settings)
@@ -114,9 +114,9 @@ async def test_bulk_update_assets_requires_fields(monkeypatch) -> None:
 @pytest.mark.asyncio
 async def test_bulk_update_assets_updates_repo(monkeypatch) -> None:
     # Behavior: bulk update should call repository once and return updated ids/count.
-    from apps.api.config import get_settings
-    from apps.api.modules.assets.admin.assets.schema import AdminAssetBulkUpdateRequest
-    from apps.api.modules.assets.models.asset import AssetVisibility
+    from apps.api.src.config import get_settings
+    from apps.api.src.modules.assets.admin.assets.schema import AdminAssetBulkUpdateRequest
+    from apps.api.src.modules.assets.models.asset import AssetVisibility
 
     settings = get_settings()
     service = AdminAssetsService(settings)
@@ -148,4 +148,4 @@ async def test_bulk_update_assets_updates_repo(monkeypatch) -> None:
     assert set(out.updated_asset_ids) == set(ids)
     assert called_count == 3
     assert set(called_ids) == set(ids)
-    assert called_updates == {"visibility": AssetVisibility.PRIVATE}
+    assert called_updates == {"visibility": AssetVisibility.PRIVATE, "indexable": False}

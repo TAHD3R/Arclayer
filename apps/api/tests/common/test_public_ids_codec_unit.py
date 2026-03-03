@@ -4,7 +4,7 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from apps.api.common.utils.public_ids import PublicIdDecodeError, decode_public_id, encode_uuid, is_public_id
+from apps.api.src.common.utils.public_ids import PublicIdDecodeError, decode_public_id, encode_uuid, is_public_id
 
 
 def test_public_id_roundtrip_uuid4() -> None:

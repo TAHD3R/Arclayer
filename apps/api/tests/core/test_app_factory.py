@@ -1,4 +1,4 @@
-from apps.api.core.registry import create_app
+from apps.api.src.core.registry import create_app
 from apps.api.tests.utils.asgi_client import asgi_client
 
 

@@ -6,7 +6,7 @@ from uuid import UUID
 from tortoise.queryset import QuerySet
 
 from admin_menu.models import AdminMenuItem
-from apps.api.common.repositories import BaseRepository
+from apps.api.src.common.repositories import BaseRepository
 
 
 class AdminMenuRepository(BaseRepository):

@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from apps.api.plugin.hooks import hookimpl
-from apps.api.plugin.types import BasePlugin
+from apps.api.src.plugin.hooks import hookimpl
+from apps.api.src.plugin.types import BasePlugin
 
 
 class FormsPlugin(BasePlugin):

@@ -3,8 +3,8 @@ from __future__ import annotations
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-from apps.api.config import ApplicationSettings, Settings
-from apps.api.core.registry import AppFactory
+from apps.api.src.config import ApplicationSettings, Settings
+from apps.api.src.core.registry import AppFactory
 
 
 @pytest.mark.asyncio

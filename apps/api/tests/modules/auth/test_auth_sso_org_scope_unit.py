@@ -8,16 +8,16 @@ from uuid import UUID, uuid4
 import pytest
 from starlette.requests import Request
 
-from apps.api.common.protocols.auth_sso import AuthSSOProviderDecl
-from apps.api.config import get_settings
-from apps.api.modules.auth.schema import TokenPair
-from apps.api.modules.auth.service import AuthService
-from apps.api.modules.auth.sso.service import AuthSSOService
-from apps.api.plugin.hooks import hookimpl
-from apps.api.plugin.host import PluginHost
-from apps.api.plugin.manager import PluginManager
-from apps.api.plugin.manifest import PluginManifest
-from apps.api.plugin.types import PluginDescriptor, PluginStatus
+from apps.api.src.common.protocols.auth_sso import AuthSSOProviderDecl
+from apps.api.src.config import get_settings
+from apps.api.src.modules.auth.schema import TokenPair
+from apps.api.src.modules.auth.service import AuthService
+from apps.api.src.modules.auth.sso.service import AuthSSOService
+from apps.api.src.plugin.hooks import hookimpl
+from apps.api.src.plugin.host import PluginHost
+from apps.api.src.plugin.manager import PluginManager
+from apps.api.src.plugin.manifest import PluginManifest
+from apps.api.src.plugin.types import PluginDescriptor, PluginStatus
 
 
 class _FakeAuthService:
@@ -117,10 +117,10 @@ async def test_auth_sso_list_providers_skips_org_plugin_when_disabled(monkeypatc
     async def _fake_config(*_args, **_kwargs):
         return {"google": {"enabled": True, "client_id": "id", "client_secret": "secret"}}
 
-    monkeypatch.setattr("apps.api.modules.auth.sso.service.get_single_organization_id", _fake_org_id)
-    monkeypatch.setattr("apps.api.modules.auth.sso.service.PluginRecord.get_or_none", _fake_record)
-    monkeypatch.setattr("apps.api.modules.auth.sso.service.OrganizationPluginState.get_or_none", _fake_state)
-    monkeypatch.setattr("apps.api.modules.auth.sso.service.get_org_plugin_settings_decrypted", _fake_config)
+    monkeypatch.setattr("apps.api.src.modules.auth.sso.service.get_single_organization_id", _fake_org_id)
+    monkeypatch.setattr("apps.api.src.modules.auth.sso.service.PluginRecord.get_or_none", _fake_record)
+    monkeypatch.setattr("apps.api.src.modules.auth.sso.service.OrganizationPluginState.get_or_none", _fake_state)
+    monkeypatch.setattr("apps.api.src.modules.auth.sso.service.get_org_plugin_settings_decrypted", _fake_config)
 
     request = _build_request("/api/v1/auth/sso/providers")
     items = await service.list_providers(request)
@@ -156,10 +156,10 @@ async def test_auth_sso_list_providers_returns_org_provider_when_enabled(monkeyp
     async def _fake_config(*_args, **_kwargs):
         return {"google": {"enabled": True, "client_id": "id", "client_secret": "secret"}}
 
-    monkeypatch.setattr("apps.api.modules.auth.sso.service.get_single_organization_id", _fake_org_id)
-    monkeypatch.setattr("apps.api.modules.auth.sso.service.PluginRecord.get_or_none", _fake_record)
-    monkeypatch.setattr("apps.api.modules.auth.sso.service.OrganizationPluginState.get_or_none", _fake_state)
-    monkeypatch.setattr("apps.api.modules.auth.sso.service.get_org_plugin_settings_decrypted", _fake_config)
+    monkeypatch.setattr("apps.api.src.modules.auth.sso.service.get_single_organization_id", _fake_org_id)
+    monkeypatch.setattr("apps.api.src.modules.auth.sso.service.PluginRecord.get_or_none", _fake_record)
+    monkeypatch.setattr("apps.api.src.modules.auth.sso.service.OrganizationPluginState.get_or_none", _fake_state)
+    monkeypatch.setattr("apps.api.src.modules.auth.sso.service.get_org_plugin_settings_decrypted", _fake_config)
 
     request = _build_request("/api/v1/auth/sso/providers")
     items = await service.list_providers(request)

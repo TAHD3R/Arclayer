@@ -4,7 +4,7 @@ from enum import StrEnum
 
 from tortoise import fields
 
-from apps.api.common.models.base import BaseModel
+from apps.api.src.common.models.base import BaseModel
 
 
 class AdminMenuItemType(StrEnum):

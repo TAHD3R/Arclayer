@@ -56,4 +56,4 @@ url = "https://pypi.tuna.tsinghua.edu.cn/simple"
 default = true
 
 [tool.tortoise]
-tortoise_orm = "apps.api.core.database.orm.TORTOISE_ORM"
+tortoise_orm = "apps.api.src.core.database.orm.TORTOISE_ORM"

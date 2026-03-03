@@ -3,8 +3,8 @@ from pathlib import Path
 from fastapi import HTTPException
 from httpx import ASGITransport, AsyncClient
 
-from apps.api.core.exceptions import APIError
-from apps.api.core.registry import create_app
+from apps.api.src.core.exceptions import APIError
+from apps.api.src.core.registry import create_app
 
 
 def _configure_logging_env(monkeypatch, log_dir: Path) -> None:

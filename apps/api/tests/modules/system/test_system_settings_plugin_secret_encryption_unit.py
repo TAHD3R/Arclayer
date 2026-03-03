@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import pytest
 
-from apps.api.config import Settings, SetupSettings
-from apps.api.modules.system.settings.service import SettingsService
-from apps.api.plugin.manager import PluginManager
-from apps.api.plugin.manifest import ConfigField, ConfigSchema, ConfigSection
-from apps.api.settings.crypto import ensure_master_key, is_encrypted
-from apps.api.settings.scopes import SCOPE_TYPE_SYSTEM, SYSTEM_SCOPE_ID
+from apps.api.src.config import Settings, SetupSettings
+from apps.api.src.modules.system.settings.service import SettingsService
+from apps.api.src.plugin.manager import PluginManager
+from apps.api.src.plugin.manifest import ConfigField, ConfigSchema, ConfigSection
+from apps.api.src.settings.crypto import ensure_master_key, is_encrypted
+from apps.api.src.settings.scopes import SCOPE_TYPE_SYSTEM, SYSTEM_SCOPE_ID
 
 
 @pytest.mark.asyncio

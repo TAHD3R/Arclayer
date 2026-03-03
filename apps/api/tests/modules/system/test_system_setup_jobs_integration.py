@@ -7,9 +7,9 @@ from uuid import uuid4
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-from apps.api.config import get_settings
-from apps.api.core.database.orm import verify_db_ready
-from apps.api.core.registry import create_app
+from apps.api.src.config import get_settings
+from apps.api.src.core.database.orm import verify_db_ready
+from apps.api.src.core.registry import create_app
 
 pytestmark = pytest.mark.integration
 
@@ -17,7 +17,7 @@ _SETUP_TOKEN = "integration-setup-token"
 
 
 async def _reset_setup_prerequisites() -> None:
-    from apps.api.modules.organization.models.user import User
+    from apps.api.src.modules.organization.models.user import User
 
     settings = get_settings()
     await User.all().delete()
@@ -217,7 +217,7 @@ async def test_setup_job_dry_run_does_not_persist_data(
             assert status_resp.status_code == 200
             assert status_resp.json()["data"]["initialized"] is False
 
-            from apps.api.modules.organization.models.user import User
+            from apps.api.src.modules.organization.models.user import User
 
             assert await User.all().count() == 0
             assert Path(settings.setup.master_key_path).exists() is False
