@@ -14,9 +14,9 @@ It is a normative guideline focused on stable, schema-first, type-safe contracts
 
 This guideline applies to:
 
-- Backend HTTP endpoints under `apps/api/modules/**/router.py`
-- Backend request/response schemas under `apps/api/modules/**/schema.py` and `apps/api/common/schemas/*`
-- Frontend API clients under `apps/admin/src/api` and portal runtime API wrappers
+- Backend HTTP endpoints under `apps/api/src/modules/**/router.py`
+- Backend request/response schemas under `apps/api/src/modules/**/schema.py` and `apps/api/src/common/schemas/*`
+- Frontend API clients under `apps/admin/src/api` and Portal runtime API wrappers under `apps/portal/src/runtime/*api*`
 - Shared type packages that represent backend contracts (usually `packages/protocols/*` packages; Portal runtime types live in `packages/internal/types`)
 
 ## 3. Contract-First Design Rules (mandatory)
@@ -30,7 +30,7 @@ This guideline applies to:
 
 ### 3.2 Canonical response envelope
 
-- Use project envelope contracts from `apps/api/core/http/response.py`.
+- Use project envelope contracts from `apps/api/src/core/http/response.py`.
 - Success payloads must use `Response.success(...)` (or equivalent project wrapper with same envelope semantics).
 - The canonical envelope is `ResponseModel[T]` with fields:
   - `message`
@@ -44,7 +44,7 @@ This guideline applies to:
 
 - List endpoints must use `ResponseModel[PageData[T]]`.
 - `ResponseModel[list[T]]` is forbidden for paginated business APIs.
-- Pagination parameters should use shared pagination contracts from `apps/api/core/http/pagination.py`.
+- Pagination parameters should use shared pagination contracts from `apps/api/src/core/http/pagination.py`.
 
 ## 4. Public ID Contract (mandatory)
 
@@ -67,7 +67,7 @@ This guideline applies to:
 
 ## 5. Error Contract Rules
 
-- Business errors must use `APIError` hierarchy (`apps/api/core/exceptions/types.py`) with stable `error` codes.
+- Business errors must use `APIError` hierarchy (`apps/api/src/core/exceptions/types.py`) with stable `error` codes.
 - Error codes are contract-level identifiers; avoid changing existing codes without migration planning.
 - Validation failures should remain compatible with standard envelope and status semantics.
 - New public error codes must be mapped in i18n resources (`locales/*/errors.json`) for supported locales.

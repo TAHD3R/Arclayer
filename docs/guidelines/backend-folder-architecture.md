@@ -13,26 +13,26 @@ This document defines the target backend architecture for CelestialCMS. It is a 
 
 | Layer | Directory | Responsibility | Must Not Own |
 | --- | --- | --- | --- |
-| API aggregation | `modules/api_aggregation/` | Versioned router composition and route grouping | Business workflows and data access |
-| Domain modules | `modules/` | Product/business capabilities, use cases, domain policies | Cross-domain infrastructure drivers |
-| Core runtime | `core/` | App factory, middleware, exception handlers, HTTP protocol contracts, observability integration | Domain-specific business logic |
-| Infrastructure | `infra/` | Cache, storage, limiter, background worker adapters | Product policies and feature-level orchestration |
-| Shared primitives | `common/` | Base classes, shared schemas/types, cross-domain protocols, utility helpers | Product-specific workflows |
-| Plugin runtime | `plugin/` | Plugin loading, manifest parsing, host runtime, plugin route registration, event bus | Direct feature implementation in domain modules |
-| Runtime settings | `settings/` | Runtime schema, validation, encryption helpers, scope semantics | API routing or domain workflows |
-| Bootstrap entrypoints | `main.py`, `bootstrap.py` | Process startup and domain bootstrap wiring | Reusable domain logic |
+| API aggregation | `src/modules/api_aggregation/` | Versioned router composition and route grouping | Business workflows and data access |
+| Domain modules | `src/modules/` | Product/business capabilities, use cases, domain policies | Cross-domain infrastructure drivers |
+| Core runtime | `src/core/` | App factory, middleware, exception handlers, HTTP protocol contracts, observability integration | Domain-specific business logic |
+| Infrastructure | `src/infra/` | Cache, storage, limiter, background worker adapters | Product policies and feature-level orchestration |
+| Shared primitives | `src/common/` | Base classes, shared schemas/types, cross-domain protocols, utility helpers | Product-specific workflows |
+| Plugin runtime | `src/plugin/` | Plugin loading, manifest parsing, host runtime, plugin route registration, event bus | Direct feature implementation in domain modules |
+| Runtime settings | `src/settings/` | Runtime schema, validation, encryption helpers, scope semantics | API routing or domain workflows |
+| Bootstrap entrypoints | `src/main.py`, `src/bootstrap.py` | Process startup and domain bootstrap wiring | Reusable domain logic |
 
 ## 3. Directory Responsibilities
 
 ### `modules/api_aggregation/` (route aggregation only)
 
-- Compose routers from `modules/*` and plugin routes.
+- Compose routers from `src/modules/*` and plugin routes.
 - Keep versioning (`v1`) and route grouping explicit.
 - Do not implement service/repository behavior here.
 
 ### `modules/` (domain implementation)
 
-- Each domain capability must live in `modules/<domain>/`.
+- Each domain capability must live in `src/modules/<domain>/`.
 - Preferred shape includes `router` / `service` / `repository` / `schema`.
 - Subdomain packages are allowed (for example `modules/workspaces/team/*`, `modules/system/admin/menus/*`) when domain size grows.
 - Router must not call repository directly.
@@ -138,7 +138,7 @@ If a new directory is introduced, include a minimal README or guideline entry.
 
 ### 7.2 Public identifier contract
 
-- External API IDs must use `PublicUUID` (`apps/api/common/types/public_uuid.py`).
+- External API IDs must use `PublicUUID` (`apps/api/src/common/types/public_uuid.py`).
 - Do not expose raw UUID values in public response contracts.
 
 ### 7.3 Schema-driven API contract
@@ -155,7 +155,7 @@ If a new directory is introduced, include a minimal README or guideline entry.
 ### 7.5 Database migrations (Tortoise)
 
 - Use the Tortoise ORM v1+ built-in migrations system (Aerich is legacy and incompatible with `tortoise-orm>=1.0.0`).
-- New migration files are generated under `apps/api/tortoise_migrations/**`. Do not hand-write migration files there.
+- New migration files are generated under `apps/api/src/migrations/**`. Do not hand-write migration files there.
 - Generate migrations via `pnpm -C apps/api db:migrate` and apply via `pnpm -C apps/api db:upgrade`.
 - If a migration requires custom SQL or data transforms:
   - Generate the file via `db:migrate` first, then apply minimal edits to the generated operations.

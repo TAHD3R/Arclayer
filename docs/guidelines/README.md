@@ -9,13 +9,13 @@ and implementation standards.
 
 Current guidelines:
 
+- `agents-guide.md`
 - `api-contract-guideline.md`
 - `backend-folder-architecture.md`
 - `deployment-scope-gating.md`
 - `design-guideline.md`
 - `frontend-folder-architecture.md`
 - `i18n.md`
-- `plugin-development-guideline.md`
 - `security-and-data-handling.md`
 - `testing-and-quality-gates.md`
 

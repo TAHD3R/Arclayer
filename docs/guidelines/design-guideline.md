@@ -51,32 +51,9 @@ Portal should still inherit:
 
 ## 4. Component Selection Matrix (Admin Default)
 
-These are **strong defaults**. They are not absolute bans, but any deviation must include rationale in PR description.
+These are **strong defaults** and guardrails. They are not absolute bans, but any deviation must include rationale in PR description.
 
-### 4.1 Default to Ant Design v6
-
-Use Antd as the first choice for:
-
-- `Button`
-- `Input`
-- `Select`
-- `Dropdown`
-- `Tooltip`
-- `Card`
-- `Descriptions`
-
-### 4.2 Default to first-party / shadcn-based components
-
-Use self-built or shadcn-based components for:
-
-- `Dialog`
-- `Sheet`
-- `Accordion`
-- `Checkbox`
-- `Tabs`
-- `Loader` / skeleton loaders
-
-### 4.3 Deviation rule
+### 4.1 Deviation rule
 
 If a page chooses a non-default implementation:
 
@@ -84,14 +61,14 @@ If a page chooses a non-default implementation:
 - Explain the UX impact and consistency tradeoff.
 - Keep API and style aligned with existing patterns.
 
-### 4.4 Avatar shape rule (Admin)
+### 4.2 Avatar shape rule (Admin)
 
 - Admin `Avatar` components must be round by default.
 - Prefer omitting `shape` (Antd default) or using `shape="circle"` explicitly when needed.
 - Do not use `shape="square"` in Admin UI.
 - Any exception must include product/design approval and a clear rationale in the PR.
 
-### 4.5 Overlay consistency rules (Admin, mandatory)
+### 4.3 Overlay consistency rules (Admin, mandatory)
 
 To avoid style drift across settings and management flows, use the following overlay rules:
 

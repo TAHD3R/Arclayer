@@ -17,16 +17,18 @@ This guideline applies to:
 - `apps/portal`
 - Cross-app shared frontend packages in `packages/*` (especially `packages/core/runtime`, `packages/internal/types`, and `packages/protocols/*`)
 
+`apps/studio` is currently out of scope for these structure rules. It may reuse patterns from Admin, but is not constrained by this document.
+
 ## 3. Canonical Layer Map
 
 | Layer | Location | Responsibility | Must Not Own |
 | --- | --- | --- | --- |
-| App routing shell | `admin/src/routes` (`index.tsx` + `index.lazy.tsx`), `portal/pages`, `portal/renderer`, `portal/server` | Route config and lazy component binding, route-level guards | Business workflow implementation, inline page rendering |
-| Feature/page composition | `admin/src/pages`, `portal/src/features` | Feature orchestration and page behavior | Transport/client primitives and global infra concerns |
-| Data access layer | `admin/src/api`, `portal/src/runtime/*api*` | API contracts, request helpers, response normalization | JSX rendering logic |
-| Shared app internals | `admin/src/lib`, `admin/src/hooks`, `portal/src/runtime` (non-API helpers) | App-local reusable helpers | Cross-app contracts that belong in packages |
-| UI building blocks | `admin/src/components`, `portal/src/components` | Reusable UI components and presentation units | Domain persistence logic and routing policy |
-| App state layer | `admin/src/stores` | UI state only; transient app state | Mirroring server state from API responses |
+| App routing shell | `apps/admin/src/routes` (`index.tsx` + `index.lazy.tsx`), `apps/portal/pages`, `apps/portal/renderer`, `apps/portal/server` | Route config and lazy component binding, route-level guards | Business workflow implementation, inline page rendering |
+| Feature/page composition | `apps/admin/src/pages`, `apps/portal/src/views` | Feature orchestration and page behavior | Transport/client primitives and global infra concerns |
+| Data access layer | `apps/admin/src/api`, `apps/portal/src/runtime/*api*` | API contracts, request helpers, response normalization | JSX rendering logic |
+| Shared app internals | `apps/admin/src/lib`, `apps/admin/src/hooks`, `apps/portal/src/runtime` (non-API helpers) | App-local reusable helpers | Cross-app contracts that belong in packages |
+| UI building blocks | `apps/admin/src/components`, `apps/portal/src/views` (components), `apps/portal/src/runtime` (render/runtime adapters) | Reusable UI components and presentation units | Domain persistence logic and routing policy |
+| App state layer | `apps/admin/src/stores` | UI state only; transient app state | Mirroring server state from API responses |
 | Cross-app shared packages | `packages/core/runtime`, `packages/core/renderer`, `packages/internal/types`, `packages/protocols/*`, `packages/bridges/*`, `packages/ui/tokens` | Shared contracts, protocol, runtime primitives, theme/tokens | App-specific view logic |
 
 ## 4. Admin Structure Rules (`apps/admin/src`)

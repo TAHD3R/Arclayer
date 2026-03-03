@@ -61,6 +61,56 @@ def _should_exclude_parts(parts: tuple[str, ...], exclude: tuple[str, ...]) -> b
     return False
 
 
+_PRIMARY_CORE_MODELS_PKG: Final[str] = "apps.api.src.models"
+_LEGACY_CORE_MODELS_PKGS: Final[tuple[str, ...]] = (
+    # Legacy pre-refactor paths often referenced `modules` as the model package.
+    "apps.api.src.modules",
+    "apps.api.modules",
+)
+
+
+def _normalize_core_model_pkgs(pkgs: Iterable[str]) -> list[str]:
+    return list(_normalize_core_model_pkgs_cached(tuple(str(p or "") for p in pkgs)))
+
+
+@lru_cache(maxsize=32)
+def _normalize_core_model_pkgs_cached(pkgs: tuple[str, ...]) -> tuple[str, ...]:
+    """
+    Normalize core model discovery packages.
+
+    Goals:
+    - Ensure ORM models under `apps.api.src.models` are always discoverable, even if
+      local dotenv files contain legacy `DATABASE__CORE_MODELS` values.
+    - Avoid passing packages that contain no models (e.g. `apps.api.src.modules`) to
+      Tortoise, which triggers noisy "has no models" warnings.
+    """
+
+    seen: set[str] = set()
+    out: list[str] = []
+
+    for raw in pkgs:
+        pkg = str(raw or "").strip()
+        if not pkg:
+            continue
+        if pkg in _LEGACY_CORE_MODELS_PKGS:
+            continue
+        if pkg in seen:
+            continue
+        seen.add(pkg)
+        out.append(pkg)
+
+    if _PRIMARY_CORE_MODELS_PKG not in seen:
+        logger.warning(
+            "DATABASE__CORE_MODELS missing primary models package; adding it automatically",
+            action="db_core_models_normalize",
+            required=_PRIMARY_CORE_MODELS_PKG,
+            provided=list(out),
+        )
+        out.insert(0, _PRIMARY_CORE_MODELS_PKG)
+
+    return tuple(out)
+
+
 @lru_cache(maxsize=32)
 def discover_model_modules(
     base_pkg: str,
@@ -144,7 +194,7 @@ def build_models_list(
     extra_modules: Iterable[str] | None = None,
 ) -> list[str]:
     modules: set[str] = set()
-    for pkg in settings.database.core_models:
+    for pkg in _normalize_core_model_pkgs(settings.database.core_models):
         discovered = discover_model_modules(pkg, max_depth=settings.database.models_max_depth)
         if discovered:
             modules.update(discovered)

@@ -373,7 +373,9 @@ class DatabaseSettings(BaseSettings):
     use_tz: bool = Field(default=True, validation_alias=AliasChoices("DB_USE_TZ", "DATABASE_USE_TZ"))
     timezone: str = Field(default="UTC", validation_alias=AliasChoices("DB_TIMEZONE", "DATABASE_TIMEZONE"))
     core_models: list[str] = Field(
-        default_factory=lambda: ["apps.api.src.models", "apps.api.src.modules"],
+        # ORM models live under `apps.api.src.models`. Do not include `apps.api.src.modules` here:
+        # business modules do not contain Tortoise models by design.
+        default_factory=lambda: ["apps.api.src.models"],
         validation_alias=AliasChoices("DB_CORE_MODELS", "DATABASE_CORE_MODELS"),
     )
     plugin_packages: list[str] = Field(
