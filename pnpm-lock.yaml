@@ -131,12 +131,6 @@ importers:
       '@bprogress/react':
         specifier: ^1.2.7
         version: 1.2.7(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
-      '@celestial/theme':
-        specifier: workspace:*
-        version: link:../../packages/ui/tokens
-      '@celestial/internal-types':
-        specifier: workspace:*
-        version: link:../../packages/internal/legacy-types
       '@celestial/block-protocol':
         specifier: workspace:*
         version: link:../../packages/protocols/block
@@ -146,9 +140,15 @@ importers:
       '@celestial/editor-protocol':
         specifier: workspace:*
         version: link:../../packages/protocols/editor
+      '@celestial/internal-types':
+        specifier: workspace:*
+        version: link:../../packages/internal/legacy-types
       '@celestial/runtime':
         specifier: workspace:*
         version: link:../../packages/core/runtime
+      '@celestial/theme':
+        specifier: workspace:*
+        version: link:../../packages/ui/tokens
       '@dnd-kit/core':
         specifier: ^6.3.1
         version: 6.3.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -287,7 +287,7 @@ importers:
     devDependencies:
       '@celestial/config':
         specifier: workspace:*
-        version: link:../../packages/infra/config
+        version: link:../../packages/infra/oxc
       '@celestial/vite-plugin':
         specifier: workspace:*
         version: link:../../packages/infra/vite-config
@@ -353,24 +353,24 @@ importers:
 
   apps/portal:
     dependencies:
-      '@celestial/internal-types':
-        specifier: workspace:*
-        version: link:../../packages/internal/legacy-types
       '@celestial/block-protocol':
         specifier: workspace:*
         version: link:../../packages/protocols/block
+      '@celestial/default-theme':
+        specifier: workspace:*
+        version: link:../../packages/ui/theme-default
       '@celestial/editor-bridge':
         specifier: workspace:*
         version: link:../../packages/bridges/editor
       '@celestial/editor-protocol':
         specifier: workspace:*
         version: link:../../packages/protocols/editor
+      '@celestial/internal-types':
+        specifier: workspace:*
+        version: link:../../packages/internal/legacy-types
       '@celestial/renderer':
         specifier: workspace:*
         version: link:../../packages/core/renderer
-      '@celestial/default-theme':
-        specifier: workspace:*
-        version: link:../../packages/ui/theme-default
       '@celestial/runtime':
         specifier: workspace:*
         version: link:../../packages/core/runtime
@@ -383,7 +383,7 @@ importers:
     devDependencies:
       '@celestial/config':
         specifier: workspace:*
-        version: link:../../packages/infra/config
+        version: link:../../packages/infra/oxc
       '@celestial/vite-plugin':
         specifier: workspace:*
         version: link:../../packages/infra/vite-config
@@ -411,9 +411,6 @@ importers:
       '@bprogress/react':
         specifier: ^1.2.7
         version: 1.2.7(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
-      '@celestial/theme':
-        specifier: workspace:*
-        version: link:../../packages/ui/tokens
       '@celestial/block-protocol':
         specifier: workspace:*
         version: link:../../packages/protocols/block
@@ -423,6 +420,9 @@ importers:
       '@celestial/runtime':
         specifier: workspace:*
         version: link:../../packages/core/runtime
+      '@celestial/theme':
+        specifier: workspace:*
+        version: link:../../packages/ui/tokens
       '@tanstack/react-query':
         specifier: ^5.90.20
         version: 5.90.21(react@19.2.3)
@@ -465,7 +465,7 @@ importers:
     devDependencies:
       '@celestial/config':
         specifier: workspace:*
-        version: link:../../packages/infra/config
+        version: link:../../packages/infra/oxc
       '@celestial/vite-plugin':
         specifier: workspace:*
         version: link:../../packages/infra/vite-config
@@ -524,7 +524,6 @@ importers:
         specifier: 'catalog:'
         version: 4.0.18(@types/node@24.10.9)(@vitest/ui@4.0.18)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(tsx@4.21.0)
 
-  packages/ui/tokens:
   packages/api-client:
     dependencies:
       '@hey-api/client-fetch':
@@ -538,45 +537,20 @@ importers:
         specifier: 'catalog:'
         version: 5.9.3
 
-  packages/ui/tokens:
-    devDependencies:
-      antd:
-        specifier: 'catalog:'
-        version: 6.2.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
-      tailwindcss:
-        specifier: 'catalog:'
-        version: 4.1.18
-
-  packages/infra/config: {}
-
-  packages/internal/legacy-types: {}
-
-  packages/protocols/block:
-    dependencies:
-      zod:
-        specifier: 3.25.76
-        version: 3.25.76
-
   packages/bridges/editor:
     dependencies:
       '@celestial/editor-protocol':
         specifier: workspace:*
-        version: link:../site-editor-protocol
+        version: link:../../protocols/editor
       penpal:
         specifier: 'catalog:'
         version: 6.2.2
-
-  packages/protocols/editor:
-    dependencies:
-      '@celestial/block-protocol':
-        specifier: workspace:*
-        version: link:../site-block-protocol
 
   packages/core/renderer:
     dependencies:
       '@celestial/block-protocol':
         specifier: workspace:*
-        version: link:../site-block-protocol
+        version: link:../../protocols/block
       react:
         specifier: ^19.2.0
         version: 19.2.3
@@ -588,7 +562,9 @@ importers:
         specifier: 'catalog:'
         version: 19.2.3(@types/react@19.2.9)
 
-  packages/ui/theme-default: {}
+  packages/core/runtime: {}
+
+  packages/infra/oxc: {}
 
   packages/infra/vite-config:
     dependencies:
@@ -606,7 +582,30 @@ importers:
         specifier: 'catalog:'
         version: 7.3.1(@types/node@24.10.9)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)
 
-  packages/core/runtime: {}
+  packages/internal/legacy-types: {}
+
+  packages/protocols/block:
+    dependencies:
+      zod:
+        specifier: 3.25.76
+        version: 3.25.76
+
+  packages/protocols/editor:
+    dependencies:
+      '@celestial/block-protocol':
+        specifier: workspace:*
+        version: link:../block
+
+  packages/ui/theme-default: {}
+
+  packages/ui/tokens:
+    devDependencies:
+      antd:
+        specifier: 'catalog:'
+        version: 6.2.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      tailwindcss:
+        specifier: 'catalog:'
+        version: 4.1.18
 
 packages:
 
