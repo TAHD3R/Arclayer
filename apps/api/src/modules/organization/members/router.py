@@ -13,7 +13,9 @@ from apps.api.src.core.exceptions import BadRequest
 from apps.api.src.core.http.pagination import DependsPagination, PageData, PageParams
 from apps.api.src.core.http.response import Response, ResponseModel
 from apps.api.src.core.i18n import t
-from apps.api.src.modules.organization.deps import get_current_org_membership
+from apps.api.src.models.organization.org_membership import OrgMembership, OrgRole
+from apps.api.src.models.organization.user import UserStatus
+from apps.api.src.modules.organization.http.service import get_current_org_membership
 from apps.api.src.modules.organization.members.schema import (
     OrganizationInvitationOut,
     OrganizationInvitationRenewRequest,
@@ -31,8 +33,6 @@ from apps.api.src.modules.organization.members.schema import (
     OrganizationMemberRoleUpdateRequest,
 )
 from apps.api.src.modules.organization.members.service import OrganizationMemberService
-from apps.api.src.modules.organization.models.org_membership import OrgMembership, OrgRole
-from apps.api.src.modules.organization.models.user import UserStatus
 
 router = APIRouter(prefix="/organizations/me", tags=["Organization"])
 

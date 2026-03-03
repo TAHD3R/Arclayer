@@ -11,10 +11,11 @@ from apps.api.src.core.http.response import Response, ResponseModel
 from apps.api.src.infra.cache.valkey import get_valkey
 from apps.api.src.infra.limiter.limiter import rate_limit
 from apps.api.src.models.auth.oauth_identity import OAuthIdentity
+from apps.api.src.models.organization.user import User, UserCredential
 from apps.api.src.modules.auth.http.service import get_current_user
 from apps.api.src.modules.auth.limits.service import SSO_EXCHANGE_RATE_LIMIT, SSO_PROVIDERS_RATE_LIMIT
-from apps.api.src.modules.auth.oauth_social.schema import OAuthLinkedIdentityListOut
-from apps.api.src.modules.auth.oauth_social.service import OAuthSocialService
+from apps.api.src.modules.auth.oauth.schema import OAuthLinkedIdentityListOut
+from apps.api.src.modules.auth.oauth.service import OAuthSocialService
 from apps.api.src.modules.auth.schema import TokenPair
 from apps.api.src.modules.auth.service import AuthService
 from apps.api.src.modules.auth.sso.schema import (
@@ -24,7 +25,6 @@ from apps.api.src.modules.auth.sso.schema import (
     AuthSSOProvidersOut,
 )
 from apps.api.src.modules.auth.sso.service import AuthSSOService
-from apps.api.src.modules.organization.models.user import User, UserCredential
 from apps.api.src.plugin.manager import PluginManager
 
 router = APIRouter(prefix="/sso", tags=["Services: Auth SSO"])

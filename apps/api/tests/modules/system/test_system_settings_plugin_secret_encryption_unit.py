@@ -31,7 +31,7 @@ async def test_plugin_settings_secrets_are_encrypted_with_stable_aad(tmp_path) -
         ]
     )
     namespace = "plugin:plugin-oauth-social"
-    config = {"google": {"client_secret": "plain-secret"}}
+    config: dict[str, object] = {"google": {"client_secret": "plain-secret"}}
 
     encrypted = await service._encrypt_plugin_secrets(
         schema,
@@ -41,6 +41,8 @@ async def test_plugin_settings_secrets_are_encrypted_with_stable_aad(tmp_path) -
         scope_id=SYSTEM_SCOPE_ID,
     )
 
-    raw = encrypted["google"]["client_secret"]
+    google = encrypted.get("google")
+    assert isinstance(google, dict)
+    raw = google.get("client_secret")
     assert isinstance(raw, str)
     assert is_encrypted(raw)

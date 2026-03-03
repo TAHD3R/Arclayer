@@ -23,7 +23,7 @@ from apps.api.src.config import Settings
 from apps.api.src.core.i18n import register_locale_path
 from apps.api.src.core.logging import get_logger
 from apps.api.src.infra.cache.valkey import ValkeyClient
-from apps.api.src.modules.system.models.plugin import PluginRecord
+from apps.api.src.models.system.plugin import PluginRecord
 from apps.api.src.plugin.event_bus import Event
 from apps.api.src.plugin.events import PLUGIN_DISABLED, PLUGIN_ENABLED
 from apps.api.src.plugin.host import PluginHost, host

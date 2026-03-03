@@ -7,7 +7,7 @@ from tortoise import Tortoise
 
 from apps.api.src.config import Settings
 from apps.api.src.core.logging import get_logger
-from apps.api.src.modules.analytics.models.audit_event import AuditEvent
+from apps.api.src.models.analytics.audit_event import AuditEvent
 
 logger = get_logger(__name__)
 

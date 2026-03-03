@@ -15,7 +15,7 @@ from tortoise.transactions import in_transaction
 
 from apps.api.src.common.protocols.tortoise import EntryRecordMutableFields, HasEntryId, HasEntryTypeId
 from apps.api.src.core.exceptions import Conflict, NotFound
-from apps.api.src.modules.sites.models.site_entry import EntryRecord, EntryRevisionRecord, EntryTypeRecord
+from apps.api.src.models.sites.site_entry import EntryRecord, EntryRevisionRecord, EntryTypeRecord
 
 
 class EntriesRepositoryMixin:

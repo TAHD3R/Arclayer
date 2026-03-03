@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from apps.api.src.config import Settings
 from apps.api.src.core.middleware.site_resolver import _normalize_host
-from apps.api.src.modules.sites.schema_domains import _normalize_hostname
-from apps.api.src.modules.sites.service_domains import SiteDomainsService
+from apps.api.src.modules.sites.domains.schema import _normalize_hostname
+from apps.api.src.modules.sites.domains.service import SiteDomainsService
 
 
 def test_normalize_hostname_lowercase_strip_port_and_trailing_dot() -> None:

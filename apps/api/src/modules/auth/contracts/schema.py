@@ -5,16 +5,28 @@ from uuid import UUID
 
 
 class CredentialLike(Protocol):
-    password_hash: object
+    @property
+    def password_hash(self) -> object: ...
 
 
 class UserLike(Protocol):
-    id: object
-    username: object
-    email: object
-    display_name: object
-    avatar_url: object
-    token_version: object
+    @property
+    def id(self) -> object: ...
+
+    @property
+    def username(self) -> object: ...
+
+    @property
+    def email(self) -> object: ...
+
+    @property
+    def display_name(self) -> object: ...
+
+    @property
+    def avatar_url(self) -> object: ...
+
+    @property
+    def token_version(self) -> object: ...
 
 
 class UserRepositoryLike(Protocol):

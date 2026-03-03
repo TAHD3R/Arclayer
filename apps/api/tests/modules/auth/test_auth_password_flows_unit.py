@@ -1,17 +1,17 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import Any, cast
 from uuid import UUID, uuid4
 
 import pytest
+from pydantic import BaseModel, ConfigDict
 
 from apps.api.src.config import get_settings
 from apps.api.src.core.exceptions import Unauthorized
-from apps.api.src.modules.auth.contracts import UserLike
-from apps.api.src.modules.auth.security import hash_password, verify_password
+from apps.api.src.models.organization.user import UserStatus
+from apps.api.src.modules.auth.contracts.schema import UserLike
 from apps.api.src.modules.auth.service import AuthService
-from apps.api.src.modules.organization.models.user import UserStatus
+from apps.api.src.modules.auth.tokens.service import hash_password, verify_password
 
 
 class _FakeRaw:
@@ -91,13 +91,15 @@ class FakeValkeyClient:
         return await self.raw.expire(key, seconds)
 
 
-@dataclass
-class FakeCredential:
+class FakeCredential(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     password_hash: str
 
 
-@dataclass
-class FakeUser:
+class FakeUser(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     id: UUID
     username: str
     email: str | None = None

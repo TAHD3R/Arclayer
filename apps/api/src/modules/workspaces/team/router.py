@@ -11,8 +11,9 @@ from apps.api.src.core.http.pagination import PageData, PageParams, get_page_par
 from apps.api.src.core.http.response import Response, ResponseModel
 from apps.api.src.core.i18n import get_current_locale, t
 from apps.api.src.modules.auth.http.service import get_current_user_id
-from apps.api.src.modules.workspaces.authz.deps import require_workspace_permission
-from apps.api.src.modules.workspaces.deps import WorkspaceContext, require_workspace_manage_access
+from apps.api.src.modules.workspaces.authz.http.service import require_workspace_permission
+from apps.api.src.modules.workspaces.http.schema import WorkspaceContext
+from apps.api.src.modules.workspaces.http.service import require_workspace_manage_access
 from apps.api.src.modules.workspaces.team.schema import (
     WorkspaceEmailInviteCreateRequest,
     WorkspaceEmailInviteCreateResult,

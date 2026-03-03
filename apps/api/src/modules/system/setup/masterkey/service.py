@@ -1,26 +1,36 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import cast
+from typing import Protocol, cast
 from uuid import UUID
 
+from apps.api.src.common.protocols.logging import LoggerLike
 from apps.api.src.config import Settings
 from apps.api.src.core.exceptions import BadRequest, Conflict, Forbidden, Unauthorized
 from apps.api.src.core.i18n import t
+from apps.api.src.models.organization.user import UserCredential
 from apps.api.src.modules.auth.tokens.service import verify_password
-from apps.api.src.modules.organization.models.user import UserCredential
 from apps.api.src.modules.system.schema import SystemMasterKeyRepairResult
 from apps.api.src.modules.system.settings.service import SettingsService
 from apps.api.src.modules.system.setup.shared.service import _raise_if_fatal, _ts
+from apps.api.src.plugin.manager import PluginManager
 from apps.api.src.settings.crypto import ensure_master_key, master_key_exists
 from apps.api.src.settings.signing import ensure_signing_keypair
+
+
+class _SystemSetupAccess(Protocol):
+    async def is_initialized(self) -> bool: ...
+
+
+class _UserRepoWithCredential(Protocol):
+    async def get_by_id_with_credential(self, user_id: UUID) -> object | None: ...
 
 
 class SystemSetupMasterKeyMixin:
     settings: Settings
     user_repo: object
-    manager: object
-    logger: object
+    manager: PluginManager
+    logger: LoggerLike
 
     async def repair_master_key(
         self,
@@ -33,13 +43,13 @@ class SystemSetupMasterKeyMixin:
         if str(confirm_text or "").strip() != "REPAIR":
             raise BadRequest(message=_ts("BAD_REQUEST", "参数错误"), error="MASTER_KEY_REPAIR_CONFIRM_MISMATCH")
 
-        if not await self.is_initialized():
+        if not await cast(_SystemSetupAccess, self).is_initialized():
             raise Conflict(message=_ts("SETUP_NOT_DONE", "系统尚未初始化"), error="SETUP_NOT_DONE")
 
         if actor_user_id is None:
             raise Unauthorized(message=t("auth", "UNAUTHORIZED", default="未登录"), error="UNAUTHORIZED")
 
-        user_with_cred = await self.user_repo.get_by_id_with_credential(actor_user_id)
+        user_with_cred = await cast(_UserRepoWithCredential, self.user_repo).get_by_id_with_credential(actor_user_id)
         if user_with_cred is None:
             raise Unauthorized(message=t("auth", "USER_NOT_FOUND", default="用户不存在"), error="USER_NOT_FOUND")
 
@@ -53,7 +63,7 @@ class SystemSetupMasterKeyMixin:
                 error="INVALID_CREDENTIALS",
             )
 
-        if not verify_password(password, credential.password_hash, self.settings.auth):
+        if not verify_password(password, cast(str, credential.password_hash), self.settings.auth):
             raise Unauthorized(
                 message=t("auth", "INVALID_CREDENTIALS", default="账号或密码错误"),
                 error="INVALID_CREDENTIALS",

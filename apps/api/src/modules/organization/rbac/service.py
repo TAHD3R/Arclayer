@@ -8,8 +8,8 @@ from apps.api.src.common.services import BaseService
 from apps.api.src.common.utils.ids import uuid7
 from apps.api.src.config import Settings
 from apps.api.src.core.exceptions import BadRequest, Conflict, Forbidden, NotFound
-from apps.api.src.modules.organization.models.org_membership import OrgMembership, OrgRole
-from apps.api.src.modules.organization.models.org_rbac import (
+from apps.api.src.models.organization.org_membership import OrgMembership, OrgRole
+from apps.api.src.models.organization.org_rbac import (
     OrganizationPermission,
     OrganizationRole,
     OrganizationRolePermission,

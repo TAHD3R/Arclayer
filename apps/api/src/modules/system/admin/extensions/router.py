@@ -11,8 +11,8 @@ from apps.api.src.core.i18n import t
 from apps.api.src.modules.auth.http.service import get_current_user_id
 from apps.api.src.modules.system.admin.extensions.schema import AdminUIExtensionListOut
 from apps.api.src.modules.system.admin.extensions.service import AdminExtensionsService
-from apps.api.src.modules.workspaces.authz.deps import require_workspace_permission
-from apps.api.src.modules.workspaces.deps import require_workspace_manage_access
+from apps.api.src.modules.workspaces.authz.http.service import require_workspace_permission
+from apps.api.src.modules.workspaces.http.service import require_workspace_manage_access
 from apps.api.src.plugin.manager import PluginManager
 
 router = APIRouter(

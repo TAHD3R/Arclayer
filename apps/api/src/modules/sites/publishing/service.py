@@ -10,8 +10,10 @@ from apps.api.src.modules.sites.publishing.includes.service import PublishingInc
 from apps.api.src.modules.sites.publishing.pages.service import PublishingPagesService
 from apps.api.src.modules.sites.publishing.presence.service import PublishingPresenceService
 from apps.api.src.modules.sites.publishing.revisions.service import PublishingRevisionsService
-from apps.api.src.modules.sites.publishing.routes.drafts.service import PublishingRoutesDraftsService
-from apps.api.src.modules.sites.publishing.routes.resolve.service import PublishingRoutesResolveService
+from apps.api.src.modules.sites.publishing.routes.service import (
+    PublishingRoutesDraftsService,
+    PublishingRoutesResolveService,
+)
 from apps.api.src.modules.sites.publishing.sitemap.service import PublishingSitemapService
 from apps.api.src.modules.sites.repository import SitesRepository
 from apps.api.src.modules.sites.schema import (

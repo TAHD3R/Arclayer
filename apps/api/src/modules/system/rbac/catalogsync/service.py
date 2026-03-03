@@ -6,7 +6,7 @@ from pathlib import Path
 from pydantic import ValidationError
 
 from apps.api.src.config import Settings
-from apps.api.src.modules.system.models.rbac import Permission, PermissionScope
+from apps.api.src.models.system.rbac import Permission, PermissionScope
 from apps.api.src.modules.system.rbac.catalog.service import CORE_PERMISSION_TEMPLATES
 from apps.api.src.modules.system.rbac.constants.service import CORE_PERMISSION_OWNER
 from apps.api.src.modules.system.rbac.repository import RBACRepository

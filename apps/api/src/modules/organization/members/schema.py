@@ -6,8 +6,8 @@ from pydantic import Field, model_validator
 
 from apps.api.src.common.schemas import BaseOut, BaseSchema
 from apps.api.src.common.types.public_uuid import PublicUUID
-from apps.api.src.modules.organization.models.org_membership import OrgRole
-from apps.api.src.modules.organization.models.user import UserStatus
+from apps.api.src.models.organization.org_membership import OrgRole
+from apps.api.src.models.organization.user import UserStatus
 
 
 class OrganizationMemberWorkspaceOut(BaseSchema):

@@ -3,7 +3,7 @@ from __future__ import annotations
 from uuid import UUID
 
 from apps.api.src.common.repositories.base import BaseRepository
-from apps.api.src.modules.organization.models.org_plugin_state import OrganizationPluginState
+from apps.api.src.models.organization.org_plugin_state import OrganizationPluginState
 
 
 class OrganizationPluginRepository(BaseRepository):

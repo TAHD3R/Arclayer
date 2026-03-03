@@ -7,7 +7,7 @@ from httpx import ASGITransport, AsyncClient
 
 from apps.api.src.config import get_settings
 from apps.api.src.core.registry import create_app
-from apps.api.src.modules.auth.deps import get_current_user_id
+from apps.api.src.modules.auth.http.service import get_current_user_id
 
 pytestmark = pytest.mark.integration
 
@@ -20,16 +20,16 @@ async def test_admin_menu_filtered_for_user(prepared_db) -> None:
     transport = ASGITransport(app=app)
 
     async with app.router.lifespan_context(app):
-        from apps.api.src.modules.auth.repository import UserRepository
-        from apps.api.src.modules.auth.security import hash_password
-        from apps.api.src.modules.organization.models.org_membership import OrgMembership, OrgRole
-        from apps.api.src.modules.organization.repository import OrganizationRepository
-        from apps.api.src.modules.system.rbac.service import RBACService
-        from apps.api.src.modules.workspaces.models.workspace import (
+        from apps.api.src.models.organization.org_membership import OrgMembership, OrgRole
+        from apps.api.src.models.workspaces.workspace import (
             Workspace,
             WorkspaceMembership,
             WorkspaceMembershipRole,
         )
+        from apps.api.src.modules.auth.repository import UserRepository
+        from apps.api.src.modules.auth.tokens.service import hash_password
+        from apps.api.src.modules.organization.repository import OrganizationRepository
+        from apps.api.src.modules.system.rbac.service import RBACService
 
         user_repo = UserRepository()
         org_repo = OrganizationRepository()

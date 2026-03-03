@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends
 from apps.api.src.config import Settings, get_settings
 from apps.api.src.core.http.pagination import PageData, PageParams, get_page_params, paginate_items
 from apps.api.src.core.http.response import Response, ResponseModel
-from apps.api.src.modules.organization.deps import require_org_admin
+from apps.api.src.modules.organization.http.service import require_org_admin
 from apps.api.src.modules.system.rbac.schema import PermissionOut, PermissionSyncResult
 from apps.api.src.modules.system.rbac.service import RBACService
 

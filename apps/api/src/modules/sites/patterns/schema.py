@@ -6,7 +6,7 @@ from pydantic import ConfigDict, Field, field_validator
 
 from apps.api.src.common.schemas import BaseSchema
 from apps.api.src.common.types.public_uuid import PublicUUID
-from apps.api.src.modules.sites.design_document.schema import PageBlueprintFragment
+from apps.api.src.modules.sites.design.schema import PageBlueprintFragment
 
 
 class SitePatternOut(BaseSchema):

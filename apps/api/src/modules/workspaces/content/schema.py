@@ -24,10 +24,10 @@ class ContentTypeOut(BaseSchema):
     code: str = Field(..., description="Stable content type code.")
     name: str = Field(..., description="Display name.")
     kind: ContentTypeKind = Field(..., description="Type kind.")
-    field_schema: dict[str, Any] | None = Field(default=None, description="Field schema payload.")
-    editor_schema: dict[str, Any] | None = Field(default=None, description="Editor schema payload.")
-    render_contract: dict[str, Any] | None = Field(default=None, description="Render contract payload.")
-    workflow_policy: dict[str, Any] | None = Field(default=None, description="Workflow policy payload.")
+    field_schema: dict[str, object] | None = Field(default=None, description="Field schema payload.")
+    editor_schema: dict[str, object] | None = Field(default=None, description="Editor schema payload.")
+    render_contract: dict[str, object] | None = Field(default=None, description="Render contract payload.")
+    workflow_policy: dict[str, object] | None = Field(default=None, description="Workflow policy payload.")
 
 
 class ContentTypeCreateIn(BaseSchema):
@@ -36,10 +36,10 @@ class ContentTypeCreateIn(BaseSchema):
     code: str = Field(..., min_length=1, max_length=64, description="Stable content type code.")
     name: str = Field(..., min_length=1, max_length=128, description="Display name.")
     kind: ContentTypeKind = Field(default="custom", description="Type kind.")
-    field_schema: dict[str, Any] | None = Field(default=None, description="Field schema payload.")
-    editor_schema: dict[str, Any] | None = Field(default=None, description="Editor schema payload.")
-    render_contract: dict[str, Any] | None = Field(default=None, description="Render contract payload.")
-    workflow_policy: dict[str, Any] | None = Field(default=None, description="Workflow policy payload.")
+    field_schema: dict[str, object] | None = Field(default=None, description="Field schema payload.")
+    editor_schema: dict[str, object] | None = Field(default=None, description="Editor schema payload.")
+    render_contract: dict[str, object] | None = Field(default=None, description="Render contract payload.")
+    workflow_policy: dict[str, object] | None = Field(default=None, description="Workflow policy payload.")
 
 
 class ContentTypeUpdateIn(BaseSchema):
@@ -47,10 +47,10 @@ class ContentTypeUpdateIn(BaseSchema):
 
     name: str | None = Field(default=None, min_length=1, max_length=128, description="Display name.")
     kind: ContentTypeKind | None = Field(default=None, description="Type kind.")
-    field_schema: dict[str, Any] | None = Field(default=None, description="Field schema payload.")
-    editor_schema: dict[str, Any] | None = Field(default=None, description="Editor schema payload.")
-    render_contract: dict[str, Any] | None = Field(default=None, description="Render contract payload.")
-    workflow_policy: dict[str, Any] | None = Field(default=None, description="Workflow policy payload.")
+    field_schema: dict[str, object] | None = Field(default=None, description="Field schema payload.")
+    editor_schema: dict[str, object] | None = Field(default=None, description="Editor schema payload.")
+    render_contract: dict[str, object] | None = Field(default=None, description="Render contract payload.")
+    workflow_policy: dict[str, object] | None = Field(default=None, description="Workflow policy payload.")
 
 
 class ContentTypeDeleteOut(BaseSchema):

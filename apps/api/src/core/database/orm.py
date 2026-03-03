@@ -80,19 +80,32 @@ def discover_model_modules(
     root = Path(list(locations)[0])
     results: set[str] = set()
 
-    for models_dir in root.rglob("models"):
-        rel = models_dir.relative_to(root)
-        if _should_exclude_parts(rel.parts, exclude):
+    # Primary model locations:
+    # - <base_pkg>.models.* (when base_pkg is a package that contains model directories)
+    # - <base_pkg>.* when base_pkg itself is the `models` package
+    #
+    # We intentionally do NOT require `__init__.py` under `models/` since this repo uses
+    # namespace packages (PEP 420), and business directories under `modules/**` forbid
+    # non-standard root files like `__init__.py`.
+    model_roots = [root] if root.name == "models" else []
+    model_roots.extend(sorted([p for p in root.rglob("models") if p.is_dir()]))
+
+    for models_dir in model_roots:
+        rel_dir = models_dir.relative_to(root)
+        if _should_exclude_parts(rel_dir.parts, exclude):
             continue
-        if not (models_dir / "__init__.py").exists():
+        if max_depth is not None and len(rel_dir.parts) > max_depth:
             continue
-        if max_depth is not None and len(rel.parts) > max_depth:
-            continue
-        pkg = base_pkg + "." + ".".join(rel.parts)
-        for py in models_dir.glob("*.py"):
+
+        for py in models_dir.rglob("*.py"):
             if py.name == "__init__.py":
                 continue
-            mod = pkg + "." + py.stem
+            rel_file = py.relative_to(root)
+            if _should_exclude_parts(rel_file.parts, exclude):
+                continue
+            if max_depth is not None and len(rel_file.parts) > max_depth:
+                continue
+            mod = base_pkg + "." + ".".join(rel_file.with_suffix("").parts)
             if _should_exclude(mod, exclude, exclude_globs):
                 continue
             results.add(mod)

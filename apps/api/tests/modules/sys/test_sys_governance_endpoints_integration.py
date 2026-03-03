@@ -8,9 +8,9 @@ from httpx import ASGITransport, AsyncClient
 
 from apps.api.src.config import get_settings
 from apps.api.src.core.registry import create_app
+from apps.api.src.models.system.setting import SettingRecord
 from apps.api.src.modules.auth.repository import UserRepository
-from apps.api.src.modules.auth.security import build_access_token, hash_password
-from apps.api.src.modules.system.models.setting import SettingRecord
+from apps.api.src.modules.auth.tokens.service import build_access_token, hash_password
 from apps.api.src.settings.core_schema import CORE_SETTINGS_NAMESPACE
 from apps.api.src.settings.scopes import SCOPE_TYPE_SYSTEM, SYSTEM_SCOPE_ID
 

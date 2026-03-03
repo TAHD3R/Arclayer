@@ -6,7 +6,7 @@ from uuid import UUID
 from apps.api.src.common.services.base import BaseService
 from apps.api.src.common.utils.public_ids import PublicIdDecodeError, decode_public_id
 from apps.api.src.core.exceptions import ServiceUnavailable
-from apps.api.src.modules.sites.design_document.schema import PageBlueprint
+from apps.api.src.modules.sites.design.schema import PageBlueprint
 from apps.api.src.modules.sites.publishing.includes.service import PublishingIncludesService
 from apps.api.src.modules.sites.repository import SitesRepository
 from apps.api.src.modules.sites.schema import (

@@ -7,7 +7,7 @@ from tortoise.expressions import Q
 
 from apps.api.src.core.exceptions import BadRequest, Conflict, NotFound
 from apps.api.src.core.http.pagination import PageData, PageParams, paginate_queryset
-from apps.api.src.modules.system.admin.menus.models.service import AdminMenuItem, AdminMenuItemType
+from apps.api.src.models.system.admin_menu_item import AdminMenuItem, AdminMenuItemType
 from apps.api.src.modules.system.admin.menus.repository import AdminMenuRepository, normalize_ordering
 from apps.api.src.modules.system.admin.menus.schema import (
     AdminMenuCreateRequest,

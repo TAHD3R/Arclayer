@@ -7,13 +7,13 @@ from apps.api.src.common.protocols.tortoise import SettingUpdatedBy
 from apps.api.src.common.utils.public_ids import encode_uuid
 from apps.api.src.config import Settings
 from apps.api.src.core.exceptions import BadRequest, NotFound, ServiceUnavailable
+from apps.api.src.models.system.setting import SettingRecord
 from apps.api.src.modules.sys.settings.checks.service import SysConfigChecksMixin
 from apps.api.src.modules.sys.settings.crypto.service import SysConfigCryptoMixin
 from apps.api.src.modules.sys.settings.namespaces.service import SysConfigNamespacesMixin
 from apps.api.src.modules.sys.settings.repository import SysConfigRepository
 from apps.api.src.modules.sys.settings.schema import SysConfigDetail, SysConfigTestResult
 from apps.api.src.modules.sys.settings.schemahelpers.service import _ts
-from apps.api.src.modules.system.models.setting import SettingRecord
 from apps.api.src.plugin.manifest import ConfigSchema
 from apps.api.src.settings.core_schema import CORE_SETTINGS_NAMESPACE
 from apps.api.src.settings.runtime import invalidate_core_settings_cache

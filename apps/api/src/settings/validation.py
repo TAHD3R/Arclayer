@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import cast
 
 from apps.api.src.core.exceptions import BadRequest
 from apps.api.src.core.i18n import t
@@ -11,7 +11,7 @@ def _ts(key: str, default: str) -> str:
     return t("settings", key, default=default)
 
 
-def merge_deep(current: dict[str, Any], patch: dict[str, Any]) -> dict[str, Any]:
+def merge_deep(current: dict[str, object], patch: dict[str, object]) -> dict[str, object]:
     """
     Deep-merge dictionaries for settings updates.
 
@@ -20,10 +20,13 @@ def merge_deep(current: dict[str, Any], patch: dict[str, Any]) -> dict[str, Any]
     - Unknown keys are preserved.
     """
 
-    merged: dict[str, Any] = dict(current or {})
+    merged: dict[str, object] = dict(current or {})
     for key, value in (patch or {}).items():
         if isinstance(value, dict) and isinstance(merged.get(key), dict):
-            merged[key] = merge_deep(merged[key], value)  # type: ignore[arg-type]
+            merged[key] = merge_deep(
+                cast(dict[str, object], merged[key]),
+                cast(dict[str, object], value),
+            )
         else:
             merged[key] = value
     return merged
@@ -31,7 +34,7 @@ def merge_deep(current: dict[str, Any], patch: dict[str, Any]) -> dict[str, Any]
 
 def validate_config_schema(
     schema: ConfigSchema,
-    config: dict[str, Any],
+    config: dict[str, object],
     *,
     allow_unknown: bool = True,
 ) -> None:
@@ -60,8 +63,9 @@ def validate_config_schema(
                 error="SETTINGS_CONFIG_INVALID",
             )
 
+        values_dict = cast(dict[str, object], values)
         fields = {field.key: field for field in section.fields}
-        for key, value in values.items():
+        for key, value in values_dict.items():
             field = fields.get(key)
             if field is None:
                 if allow_unknown:
@@ -79,7 +83,7 @@ def validate_config_schema(
                 )
 
 
-def _is_type_valid(field_type: str, value: Any) -> bool:
+def _is_type_valid(field_type: str, value: object) -> bool:
     if field_type == "str":
         return isinstance(value, str)
     if field_type == "int":

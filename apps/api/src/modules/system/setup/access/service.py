@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from apps.api.src.config import Settings
 from apps.api.src.core.exceptions import Conflict, Forbidden, ServiceUnavailable
-from apps.api.src.modules.organization.models.user import User
+from apps.api.src.models.organization.user import User
 from apps.api.src.modules.system.schema import SystemSetupStatus
 from apps.api.src.modules.system.setup.shared.service import _ts
 from apps.api.src.settings.crypto import master_key_exists

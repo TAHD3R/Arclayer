@@ -4,7 +4,7 @@ import time
 from uuid import UUID
 
 from apps.api.src.config import Settings
-from apps.api.src.modules.system.admin.menus.models.service import AdminMenuItem
+from apps.api.src.models.system.admin_menu_item import AdminMenuItem
 from apps.api.src.modules.system.admin.menus.shared.service import core_menu_codes_best_effort, logger, raise_if_fatal
 
 _CORE_MENU_HEAL_THROTTLE_SECONDS: float = 10.0

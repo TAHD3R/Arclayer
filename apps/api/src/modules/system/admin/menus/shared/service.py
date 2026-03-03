@@ -11,8 +11,8 @@ from apps.api.src.common.protocols.tortoise import HasParentId
 from apps.api.src.core.exceptions import ServiceUnavailable
 from apps.api.src.core.i18n import t
 from apps.api.src.core.logging import get_logger
-from apps.api.src.modules.system.admin.menus.models.service import AdminMenuItem
-from apps.api.src.modules.workspaces.context import get_current_workspace_id
+from apps.api.src.models.system.admin_menu_item import AdminMenuItem
+from apps.api.src.modules.workspaces.runtime.service import get_current_workspace_id
 
 logger = get_logger(__name__)
 

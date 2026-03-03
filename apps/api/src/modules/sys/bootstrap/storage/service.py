@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from apps.api.src.config import Settings
 from apps.api.src.core.logging import get_logger
-from apps.api.src.modules.sys.models.sys_config_active import SysConfigActive
+from apps.api.src.models.sys.sys_config_active import SysConfigActive
 from apps.api.src.modules.sys.settings.namespaces.schema import SYS_NAMESPACE_STORAGE
 from apps.api.src.modules.sys.settings.service import SysConfigService
 from apps.api.src.settings.crypto import master_key_exists

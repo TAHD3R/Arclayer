@@ -12,8 +12,8 @@ from uuid import UUID
 
 from apps.api.src.common.protocols.tortoise import SettingUpdatedBy
 from apps.api.src.core.exceptions import Conflict, NotFound
+from apps.api.src.models.system.setting import SettingRecord
 from apps.api.src.modules.sites.namespaces.service import EDITOR_STYLE_NAMESPACE
-from apps.api.src.modules.system.models.setting import SettingRecord
 from apps.api.src.settings.scopes import SCOPE_TYPE_SITE
 
 

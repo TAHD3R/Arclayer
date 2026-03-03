@@ -15,7 +15,7 @@ from apps.api.src.infra.assets.thumbnails import generate_image_thumbnails
 from apps.api.src.infra.storage.factory import build_storage_provider_for
 from apps.api.src.infra.storage.local import safe_object_key_to_path
 from apps.api.src.infra.storage.s3 import S3StorageProvider
-from apps.api.src.modules.assets.models.asset import AssetRecord
+from apps.api.src.models.assets.asset import AssetRecord
 from apps.api.src.settings.runtime import get_effective_settings
 
 logger = get_logger(__name__)

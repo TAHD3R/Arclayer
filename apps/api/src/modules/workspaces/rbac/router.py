@@ -10,10 +10,11 @@ from apps.api.src.core.http.pagination import PageData, PageParams, get_page_par
 from apps.api.src.core.http.response import Response, ResponseModel
 from apps.api.src.core.i18n import get_current_locale
 from apps.api.src.core.logging import get_logger
+from apps.api.src.models.system.rbac import PermissionScope
 from apps.api.src.modules.auth.http.service import get_current_user_id
-from apps.api.src.modules.system.models.rbac import PermissionScope
-from apps.api.src.modules.workspaces.authz.deps import require_workspace_permission
-from apps.api.src.modules.workspaces.deps import WorkspaceContext, require_workspace_manage_access
+from apps.api.src.modules.workspaces.authz.http.service import require_workspace_permission
+from apps.api.src.modules.workspaces.http.schema import WorkspaceContext
+from apps.api.src.modules.workspaces.http.service import require_workspace_manage_access
 from apps.api.src.modules.workspaces.rbac.schema import (
     PermissionRoleSetRequest,
     RoleCreateFromTemplateRequest,
@@ -111,13 +112,16 @@ async def list_permissions(
     items: list[WorkspacePermissionOut] = []
     for p in perms:
         lp = service.localize_permission(p)
-        pid = lp.get("plugin_id")
+        pid_raw = lp.get("plugin_id")
+        pid = pid_raw if isinstance(pid_raw, str) else None
+        desc_raw = lp.get("description")
+        description = desc_raw if isinstance(desc_raw, str) else None
         items.append(
             WorkspacePermissionOut(
                 id=UUID(str(lp["id"])),
                 code=str(lp["code"]),
                 name=str(lp["name"]),
-                description=lp.get("description"),
+                description=description,
                 plugin_id=pid,
                 plugin_name=plugin_names.get(str(pid)) if pid else None,
             )
@@ -150,13 +154,16 @@ async def get_matrix(
     for p in permissions:
         lp = service.localize_permission(p)
         granted = grants.get(p.code, [])
-        pid = lp.get("plugin_id")
+        pid_raw = lp.get("plugin_id")
+        pid = pid_raw if isinstance(pid_raw, str) else None
+        desc_raw = lp.get("description")
+        description = desc_raw if isinstance(desc_raw, str) else None
         localized_perm_rows.append(
             WorkspaceRBACMatrixPermissionRowOut(
                 code=p.code,
-                name=lp["name"],
-                description=lp["description"],
-                plugin_id=lp["plugin_id"],
+                name=str(lp.get("name") or ""),
+                description=description,
+                plugin_id=pid,
                 plugin_name=plugin_names.get(str(pid)) if pid else None,
                 granted_role_codes=granted,
             )

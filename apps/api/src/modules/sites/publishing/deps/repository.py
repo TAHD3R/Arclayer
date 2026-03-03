@@ -6,8 +6,8 @@ from uuid import UUID
 from apps.api.src.common.protocols.tortoise import HasWorkspaceId
 from apps.api.src.common.utils.public_ids import decode_public_id, encode_uuid, is_public_id
 from apps.api.src.core.exceptions import Conflict, NotFound
-from apps.api.src.modules.assets.models.asset import AssetRecord
-from apps.api.src.modules.sites.models.site import SiteRecord
+from apps.api.src.models.assets.asset import AssetRecord
+from apps.api.src.models.sites.site import SiteRecord
 
 
 class DepsValidationRepositoryMixin:

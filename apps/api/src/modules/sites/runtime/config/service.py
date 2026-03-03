@@ -8,6 +8,7 @@ from pydantic import ValidationError
 from apps.api.src.common.protocols.tortoise import HasWorkspaceId
 from apps.api.src.common.utils.public_ids import encode_uuid
 from apps.api.src.core.exceptions import Conflict
+from apps.api.src.models.system.setting import SettingRecord
 from apps.api.src.modules.sites import schema as sites_schema
 from apps.api.src.modules.sites.namespaces.service import (
     RUNTIME_SETTING_NAMESPACE,
@@ -16,7 +17,6 @@ from apps.api.src.modules.sites.namespaces.service import (
     THEME_VARS_NAMESPACE,
 )
 from apps.api.src.modules.sites.runtime.localization.service import SiteRuntimeLocalizationMixin
-from apps.api.src.modules.system.models.setting import SettingRecord
 from apps.api.src.settings.core_schema import CORE_SETTINGS_NAMESPACE
 from apps.api.src.settings.scopes import SCOPE_TYPE_WORKSPACE
 
@@ -103,9 +103,9 @@ class SiteRuntimeConfigMixin(SiteRuntimeLocalizationMixin):
     def _build_seo_defaults_out(
         self, *, seo_section: object, site_description: str | None, resolved_locale: str, fallback_locale: str
     ) -> sites_schema.SiteSeoDefaultsOut | None:
-        payload: dict[str, object] = {}
         default_title = self._pick_str(seo_section, "default_title")
         default_description = site_description or self._pick_str(seo_section, "default_description")
+        title_policy_v1: dict[str, sites_schema.JsonValue] | None = None
         if isinstance(seo_section, dict):
             title_i18n = self._resolve_localized_str(
                 seo_section.get("default_title_i18n"),
@@ -121,16 +121,17 @@ class SiteRuntimeConfigMixin(SiteRuntimeLocalizationMixin):
                 default_title = title_i18n
             if desc_i18n is not None:
                 default_description = desc_i18n
-            if isinstance(seo_section.get("title_policy_v1"), dict):
-                payload["title_policy_v1"] = seo_section.get("title_policy_v1")
-        if default_title is not None:
-            payload["default_title"] = default_title
-        if default_description is not None:
-            payload["default_description"] = default_description
-        if not payload:
+            raw_policy = seo_section.get("title_policy_v1")
+            if isinstance(raw_policy, dict):
+                title_policy_v1 = cast(dict[str, sites_schema.JsonValue], raw_policy)
+        if default_title is None and default_description is None and title_policy_v1 is None:
             return None
         try:
-            return sites_schema.SiteSeoDefaultsOut(**payload)
+            return sites_schema.SiteSeoDefaultsOut(
+                default_title=default_title,
+                default_description=default_description,
+                title_policy_v1=title_policy_v1,
+            )
         except ValidationError as exc:
             raise Conflict("Invalid SEO defaults", error="SITE_SEO_DEFAULTS_INVALID") from exc
 
@@ -159,13 +160,13 @@ class SiteRuntimeConfigMixin(SiteRuntimeLocalizationMixin):
     async def _resolve_theme_assets(
         self, *, workspace_id: UUID, theme_id: str, version: str
     ) -> tuple[str | None, str | None]:
-        from apps.api.src.modules.workspaces.models.theme_package import ThemePackageRecord
+        from apps.api.src.models.workspaces.theme_package import ThemePackageRecord
 
         theme_pkg = await ThemePackageRecord.get_or_none(workspace_id=workspace_id, theme_id=theme_id, version=version)
         if theme_pkg is None:
             return None, None
 
-        from apps.api.src.modules.assets.models.asset import AssetRecord
+        from apps.api.src.models.assets.asset import AssetRecord
 
         tokens_css_url: str | None = None
         base_css_url: str | None = None

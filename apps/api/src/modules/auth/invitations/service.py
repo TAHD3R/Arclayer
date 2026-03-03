@@ -6,11 +6,24 @@ from uuid import UUID
 
 from tortoise.expressions import Q
 
+from apps.api.src.common.invitations.tokens.service import verify_invite_token
 from apps.api.src.common.services import BaseService
 from apps.api.src.config import Settings
 from apps.api.src.core.exceptions import BadRequest, Conflict, Forbidden, NotFound
 from apps.api.src.core.http.pagination import PageData, PageParams
 from apps.api.src.core.i18n import get_current_locale, t
+from apps.api.src.models.organization.org_invitation import OrganizationEmailInvite, OrganizationInviteLink
+from apps.api.src.models.organization.org_rbac import OrganizationRole
+from apps.api.src.models.organization.organization import Organization
+from apps.api.src.models.organization.user import User
+from apps.api.src.models.system.rbac import Permission, Role
+from apps.api.src.models.workspaces.workspace import (
+    Workspace,
+)
+from apps.api.src.models.workspaces.workspace_invite import (
+    WorkspaceEmailInvite,
+    WorkspaceInviteLink,
+)
 from apps.api.src.modules.auth.invitations.acceptance.service import AuthInvitationAcceptanceService
 from apps.api.src.modules.auth.schema import (
     AcceptExistingInvitationRequest,
@@ -29,20 +42,7 @@ from apps.api.src.modules.auth.schema import (
     MyInvitationWorkspaceOut,
     TokenPair,
 )
-from apps.api.src.modules.organization.models.org_invitation import OrganizationEmailInvite, OrganizationInviteLink
-from apps.api.src.modules.organization.models.org_rbac import OrganizationRole
-from apps.api.src.modules.organization.models.organization import Organization
-from apps.api.src.modules.organization.models.user import User
 from apps.api.src.modules.organization.rbac.service import OrganizationRBACService
-from apps.api.src.modules.system.models.rbac import Permission, Role
-from apps.api.src.modules.workspaces.invitations.tokens import verify_invite_token
-from apps.api.src.modules.workspaces.models.workspace import (
-    Workspace,
-)
-from apps.api.src.modules.workspaces.models.workspace_invite import (
-    WorkspaceEmailInvite,
-    WorkspaceInviteLink,
-)
 
 
 class AuthInvitationService(BaseService):
@@ -392,10 +392,11 @@ class AuthInvitationService(BaseService):
 
                 rbac = RBACService(self.settings)
                 localized = rbac.localize_role(role_obj, locale=get_current_locale())
+                localized_desc = localized.get("description")
                 role_out = InvitationPreviewRoleOut(
                     code=role_obj.code,
                     name=str(localized.get("name") or role_obj.code),
-                    description=localized.get("description"),
+                    description=str(localized_desc) if isinstance(localized_desc, str) and localized_desc else None,
                 )
         else:
             await OrganizationRBACService(self.settings).ensure_defaults(organization_id=org.id)

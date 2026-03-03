@@ -11,8 +11,9 @@ from apps.api.src.infra.cache.valkey import get_valkey
 from apps.api.src.modules.auth.http.service import get_current_user_id
 from apps.api.src.modules.sites.schema import SitePreviewTokenCreateIn, SitePreviewTokenOut
 from apps.api.src.modules.sites.service import SiteService
-from apps.api.src.modules.workspaces.authz.deps import require_workspace_permission
-from apps.api.src.modules.workspaces.deps import WorkspaceContext, require_workspace_manage_access
+from apps.api.src.modules.workspaces.authz.http.service import require_workspace_permission
+from apps.api.src.modules.workspaces.http.schema import WorkspaceContext
+from apps.api.src.modules.workspaces.http.service import require_workspace_manage_access
 from apps.api.src.modules.workspaces.site.schema import WorkspaceSiteOut
 from apps.api.src.modules.workspaces.site.service import WorkspaceSiteService
 

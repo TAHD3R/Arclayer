@@ -30,12 +30,12 @@ async def init_domain_bootstrap(app: FastAPI, settings: Settings, *, plugin_mana
     `apps.api.src.modules.*` imports.
     """
 
-    from apps.api.src.modules.analytics.bootstrap import init_activity
+    from apps.api.src.modules.analytics.bootstrap.service import init_activity
 
     # Start audit log ingestion (best-effort, non-blocking).
     await init_activity(app, settings, event_bus=plugin_manager.host.event_bus)
 
-    from apps.api.src.modules.assets.bootstrap import register_core_asset_processors
+    from apps.api.src.modules.assets.bootstrap.service import register_core_asset_processors
 
     # Register core event-driven processors (e.g. thumbnails) after DB is ready.
     await register_core_asset_processors(app, plugin_manager.host.event_bus, settings)
@@ -43,7 +43,7 @@ async def init_domain_bootstrap(app: FastAPI, settings: Settings, *, plugin_mana
     if not settings.database.enabled:
         return
 
-    from apps.api.src.modules.organization.bootstrap import ensure_organization_ready
+    from apps.api.src.modules.organization.bootstrap.service import ensure_organization_ready
     from apps.api.src.modules.system.rbac.bootstrap.service import ensure_rbac_ready
 
     await ensure_organization_ready()
@@ -84,7 +84,7 @@ async def close_domain_bootstrap(app: FastAPI, *, plugin_manager: PluginManager)
     Close domain-level background resources started by `init_domain_bootstrap`.
     """
 
-    from apps.api.src.modules.analytics.bootstrap import close_activity
+    from apps.api.src.modules.analytics.bootstrap.service import close_activity
 
     try:
         await close_activity(app, event_bus=plugin_manager.host.event_bus)

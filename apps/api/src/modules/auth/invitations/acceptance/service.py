@@ -9,11 +9,32 @@ from uuid import UUID
 from asgi_correlation_id import correlation_id
 from tortoise.transactions import in_transaction
 
+from apps.api.src.common.invitations.tokens.service import verify_invite_token
 from apps.api.src.common.protocols.tortoise import HasOrganizationId, HasWorkspaceId
 from apps.api.src.common.services import BaseService
 from apps.api.src.config import Settings
 from apps.api.src.core.exceptions import BadRequest, Conflict, Forbidden, NotFound, ServiceUnavailable
 from apps.api.src.core.i18n import t
+from apps.api.src.models.organization.org_invitation import (
+    OrganizationEmailInvite,
+    OrganizationInviteLink,
+    OrganizationInviteLinkUseEvent,
+)
+from apps.api.src.models.organization.org_membership import OrgMembership, OrgRole
+from apps.api.src.models.organization.organization import Organization
+from apps.api.src.models.organization.user import User, UserCredential, UserStatus
+from apps.api.src.models.system.rbac import Role
+from apps.api.src.models.workspaces.workspace import (
+    Workspace,
+    WorkspaceMembership,
+    WorkspaceMembershipRole,
+    WorkspaceMembershipStatus,
+)
+from apps.api.src.models.workspaces.workspace_invite import (
+    WorkspaceEmailInvite,
+    WorkspaceInviteLink,
+    WorkspaceInviteLinkUseEvent,
+)
 from apps.api.src.modules.auth.schema import (
     AcceptExistingInvitationRequest,
     AcceptExistingInvitationResult,
@@ -21,27 +42,6 @@ from apps.api.src.modules.auth.schema import (
     TokenPair,
 )
 from apps.api.src.modules.auth.tokens.service import hash_password
-from apps.api.src.modules.organization.models.org_invitation import (
-    OrganizationEmailInvite,
-    OrganizationInviteLink,
-    OrganizationInviteLinkUseEvent,
-)
-from apps.api.src.modules.organization.models.org_membership import OrgMembership, OrgRole
-from apps.api.src.modules.organization.models.organization import Organization
-from apps.api.src.modules.organization.models.user import User, UserCredential, UserStatus
-from apps.api.src.modules.system.models.rbac import Role
-from apps.api.src.modules.workspaces.invitations.tokens import verify_invite_token
-from apps.api.src.modules.workspaces.models.workspace import (
-    Workspace,
-    WorkspaceMembership,
-    WorkspaceMembershipRole,
-    WorkspaceMembershipStatus,
-)
-from apps.api.src.modules.workspaces.models.workspace_invite import (
-    WorkspaceEmailInvite,
-    WorkspaceInviteLink,
-    WorkspaceInviteLinkUseEvent,
-)
 
 _FATAL_INVITATION_FLOW_ERRORS: tuple[type[BaseException], ...] = (
     asyncio.CancelledError,
@@ -394,8 +394,8 @@ class AuthInvitationAcceptanceService(BaseService):
         # This must never break the onboarding flow if notification creation fails.
         if inviter_user_id is not None and accepted_user_id is not None:
             try:
-                from apps.api.src.modules.system.models.notification import NotificationCategory, NotificationRecord
-                from apps.api.src.modules.system.models.setting import SettingRecord
+                from apps.api.src.models.system.notification import NotificationCategory, NotificationRecord
+                from apps.api.src.models.system.setting import SettingRecord
                 from apps.api.src.settings.scopes import SCOPE_TYPE_SYSTEM, SYSTEM_SCOPE_ID
 
                 # Optional gate: allow disabling invite-related in-app notifications.
@@ -800,7 +800,7 @@ class AuthInvitationAcceptanceService(BaseService):
 
         if inviter_user_id is not None and organization_id is not None:
             try:
-                from apps.api.src.modules.system.models.notification import NotificationCategory, NotificationRecord
+                from apps.api.src.models.system.notification import NotificationCategory, NotificationRecord
 
                 accepted_display_name = user.display_name or user.username
                 is_org_invite = code.startswith("oi_") or code.startswith("ol_")

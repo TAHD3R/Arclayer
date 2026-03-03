@@ -9,6 +9,7 @@ from apps.api.src.config import Settings
 from apps.api.src.core.exceptions import BadRequest, NotFound
 from apps.api.src.core.http.pagination import PageData, PageParams, paginate_queryset
 from apps.api.src.core.i18n import t
+from apps.api.src.models.assets.asset import AssetRecord
 from apps.api.src.modules.assets.admin.usages.repository import AdminAssetUsagesRepository
 from apps.api.src.modules.assets.admin.usages.schema import (
     AdminAssetUsageDeleteOut,
@@ -16,7 +17,6 @@ from apps.api.src.modules.assets.admin.usages.schema import (
     AdminAssetUsageOut,
     AdminAssetUsageUpsertRequest,
 )
-from apps.api.src.modules.assets.models.asset import AssetRecord
 
 
 def _ts(key: str, default: str) -> str:

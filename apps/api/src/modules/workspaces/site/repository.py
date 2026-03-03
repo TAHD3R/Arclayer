@@ -6,7 +6,7 @@ from tortoise.transactions import in_transaction
 
 from apps.api.src.common.repositories.base import BaseRepository
 from apps.api.src.core.exceptions import Conflict
-from apps.api.src.modules.sites.models.site import SiteRecord
+from apps.api.src.models.sites.site import SiteRecord
 
 
 class WorkspaceSiteRepository(BaseRepository):

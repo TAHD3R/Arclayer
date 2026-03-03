@@ -21,7 +21,7 @@ from apps.api.src.common.utils.ids import uuid7
 from apps.api.src.config import Settings
 from apps.api.src.core.i18n import t
 from apps.api.src.core.logging import get_logger
-from apps.api.src.modules.system.models.setting import SettingRecord
+from apps.api.src.models.system.setting import SettingRecord
 from apps.api.src.settings.core_schema import CORE_SETTINGS_NAMESPACE
 from apps.api.src.settings.crypto import decrypt_secret, ensure_master_key, is_encrypted, master_key_exists
 from apps.api.src.settings.scopes import SCOPE_TYPE_SYSTEM, SYSTEM_SCOPE_ID

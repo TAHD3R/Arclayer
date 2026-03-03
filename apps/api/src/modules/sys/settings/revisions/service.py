@@ -1,23 +1,23 @@
 from __future__ import annotations
 
-from typing import cast
+from typing import Protocol, cast
 from uuid import UUID
 
+from apps.api.src.common.protocols.logging import LoggerLike
 from apps.api.src.common.protocols.tortoise import SettingUpdatedBy
 from apps.api.src.config import Settings
 from apps.api.src.core.exceptions import NotFound
 from apps.api.src.core.http.pagination import PageData, PageParams, paginate_queryset
-from apps.api.src.modules.sys.models.sys_config_revision import SysConfigRevision
+from apps.api.src.models.sys.sys_config_revision import SysConfigRevision
+from apps.api.src.models.system.setting import SettingRecord
 from apps.api.src.modules.sys.settings.crypto.service import SysConfigCryptoMixin
 from apps.api.src.modules.sys.settings.namespaces.service import SysConfigNamespacesMixin
 from apps.api.src.modules.sys.settings.repository import SysConfigRepository
 from apps.api.src.modules.sys.settings.schema import SysConfigRevisionDetail, SysConfigRevisionOut
 from apps.api.src.modules.sys.settings.schemahelpers.service import (
-    SysConfigSchemaHelpersMixin,
     _canonical_json_bytes,
     _ts,
 )
-from apps.api.src.modules.system.models.setting import SettingRecord
 from apps.api.src.settings.core_schema import CORE_SETTINGS_NAMESPACE
 from apps.api.src.settings.runtime import invalidate_core_settings_cache
 from apps.api.src.settings.scopes import SCOPE_TYPE_SYSTEM, SYSTEM_SCOPE_ID
@@ -25,10 +25,21 @@ from apps.api.src.settings.signing import ensure_signing_keypair, sign_detached
 from apps.api.src.settings.validation import merge_deep, validate_config_schema
 
 
-class SysConfigRevisionsMixin(SysConfigNamespacesMixin, SysConfigCryptoMixin, SysConfigSchemaHelpersMixin):
+class _SysConfigActivationLike(Protocol):
+    async def _assert_revision_can_activate(
+        self,
+        *,
+        namespace: str,
+        schema: object,
+        revision_value: dict[str, object],
+        revision_id: UUID,
+    ) -> None: ...
+
+
+class SysConfigRevisionsMixin(SysConfigNamespacesMixin, SysConfigCryptoMixin):
     repo: SysConfigRepository
     settings: Settings
-    logger: object
+    logger: LoggerLike
 
     async def list_revisions_page(
         self,
@@ -95,7 +106,7 @@ class SysConfigRevisionsMixin(SysConfigNamespacesMixin, SysConfigCryptoMixin, Sy
         )
 
         if activate:
-            await self._assert_revision_can_activate(
+            await cast(_SysConfigActivationLike, self)._assert_revision_can_activate(
                 namespace=namespace,
                 schema=schema,
                 revision_value=merged,

@@ -3,6 +3,7 @@ from __future__ import annotations
 from uuid import UUID
 
 from apps.api.src.common.services.base import BaseService
+from apps.api.src.models.system.setting import SettingRecord
 from apps.api.src.modules.sites.namespaces.service import (
     ROUTE_TEMPLATES_VERSION_NAMESPACE,
     THEME_ACTIVE_NAMESPACE,
@@ -11,7 +12,6 @@ from apps.api.src.modules.sites.namespaces.service import (
 )
 from apps.api.src.modules.sites.repository import SitesRepository
 from apps.api.src.modules.sites.stores.service import RouteTemplateVersionStore
-from apps.api.src.modules.system.models.setting import SettingRecord
 from apps.api.src.settings.core_schema import CORE_SETTINGS_NAMESPACE
 from apps.api.src.settings.scopes import SCOPE_TYPE_WORKSPACE
 

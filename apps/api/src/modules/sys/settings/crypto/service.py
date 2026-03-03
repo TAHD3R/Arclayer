@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import binascii
+from typing import TYPE_CHECKING
 
 from cryptography.exceptions import InvalidTag
 
@@ -17,9 +18,12 @@ from apps.api.src.settings.crypto import (
 )
 from apps.api.src.settings.validation import iter_secret_field_paths
 
+if TYPE_CHECKING:
+    from apps.api.src.config import Settings
+
 
 class SysConfigCryptoMixin:
-    settings: object
+    settings: Settings
 
     def _assert_revision_secrets_encrypted(
         self,

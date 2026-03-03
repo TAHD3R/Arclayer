@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from apps.api.src.modules.analytics.ingest import sanitize_properties
+from apps.api.src.modules.analytics.ingest.service import sanitize_properties
 
 
 def test_sanitize_properties_drops_sensitive_keys() -> None:

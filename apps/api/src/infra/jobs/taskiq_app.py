@@ -13,7 +13,7 @@ from tortoise.exceptions import OperationalError
 from apps.api.src.config import get_settings
 from apps.api.src.core.database.orm import close_orm, init_orm, verify_db_ready
 from apps.api.src.core.logging import configure_logging, get_logger
-from apps.api.src.modules.system.models.plugin import PluginRecord
+from apps.api.src.models.system.plugin import PluginRecord
 from apps.api.src.plugin.manager import PluginManager, _load_plugin_class
 from apps.api.src.plugin.types import PluginStatus
 

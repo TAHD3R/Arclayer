@@ -1,17 +1,17 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
 import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
+from pydantic import BaseModel, ConfigDict
 
 from apps.api.src.common.utils.public_ids import encode_uuid
-from apps.api.src.modules.analytics.models.audit_event import AuditEvent
-from apps.api.src.modules.auth.deps import get_current_user
-from apps.api.src.modules.organization.deps import require_org_admin
+from apps.api.src.models.analytics.audit_event import AuditEvent
+from apps.api.src.modules.auth.http.service import get_current_user
+from apps.api.src.modules.organization.http.service import require_org_admin
 from apps.api.src.modules.system.router import router as system_router
 
 pytestmark = pytest.mark.integration
@@ -32,12 +32,14 @@ async def test_system_activity_list_returns_events(db_schema) -> None:
         properties={"ip": "127.0.0.1"},
     )
 
-    @dataclass
-    class DummyOrgMembership:
+    class DummyOrgMembership(BaseModel):
+        model_config = ConfigDict(extra="forbid", frozen=True)
+
         organization_id: UUID
 
-    @dataclass
-    class DummyUser:
+    class DummyUser(BaseModel):
+        model_config = ConfigDict(extra="forbid", frozen=True)
+
         id: UUID
 
     async def _org_owner_override() -> DummyOrgMembership:

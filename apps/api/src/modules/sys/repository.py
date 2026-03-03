@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from apps.api.src.core.repositories import BaseRepository
+from apps.api.src.common.repositories.base import BaseRepository
 
 
 class SysRepository(BaseRepository):

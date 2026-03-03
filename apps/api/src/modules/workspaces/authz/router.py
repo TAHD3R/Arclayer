@@ -6,8 +6,9 @@ from apps.api.src.config import Settings, get_settings
 from apps.api.src.core.http.response import Response, ResponseModel
 from apps.api.src.modules.auth.http.service import get_current_user_id
 from apps.api.src.modules.workspaces.authz.schema import AuthzSnapshot
-from apps.api.src.modules.workspaces.authz_snapshot import get_workspace_authz_snapshot
-from apps.api.src.modules.workspaces.deps import WorkspaceContext, require_workspace_manage_access
+from apps.api.src.modules.workspaces.authz.snapshot.service import get_workspace_authz_snapshot
+from apps.api.src.modules.workspaces.http.schema import WorkspaceContext
+from apps.api.src.modules.workspaces.http.service import require_workspace_manage_access
 
 router = APIRouter(prefix="/workspaces/{workspace_id}", tags=["Workspace Authz"])
 

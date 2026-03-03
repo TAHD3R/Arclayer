@@ -1,14 +1,32 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from typing import cast
+from typing import TypedDict, cast
 from uuid import UUID
 
 from tortoise.queryset import QuerySet
 
 from apps.api.src.common.protocols.tortoise import AdminMenuItemMutableFields
 from apps.api.src.common.repositories import BaseRepository
-from apps.api.src.modules.system.admin.menus.models.service import AdminMenuItem
+from apps.api.src.models.system.admin_menu_item import AdminMenuItem, AdminMenuItemType
+
+
+class AdminMenuItemCreatePayload(TypedDict):
+    code: str
+    parent_id: UUID | None
+    title: str
+    title_i18n: str | None
+    icon: str | None
+    type: AdminMenuItemType
+    path: str | None
+    name: str | None
+    component_key: str | None
+    redirect: str | None
+    sort: int
+    is_active: bool
+    permission_code: str | None
+    meta: dict[str, object] | None
+    deleted_at: datetime | None
 
 
 class AdminMenuRepository(BaseRepository):
@@ -28,7 +46,7 @@ class AdminMenuRepository(BaseRepository):
     async def get_by_code(self, *, code: str) -> AdminMenuItem | None:
         return await AdminMenuItem.get_or_none(code=code)
 
-    async def create_item(self, *, payload: dict[str, object]) -> AdminMenuItem:
+    async def create_item(self, *, payload: AdminMenuItemCreatePayload) -> AdminMenuItem:
         return await AdminMenuItem.create(**payload)
 
     async def save_updates(self, item: AdminMenuItem, *, updates: dict[str, object]) -> AdminMenuItem:

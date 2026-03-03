@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 
 from apps.api.src.core.exceptions import Conflict
-from apps.api.src.modules.sites.utils import validate_entry_type_code
+from apps.api.src.modules.sites.shared.service import validate_entry_type_code
 
 
 def test_validate_entry_type_code_accepts_valid_code():

@@ -15,17 +15,18 @@ from apps.api.src.config import Settings
 from apps.api.src.core.exceptions import BadRequest, Conflict, NotFound
 from apps.api.src.core.http.pagination import PageData, PageParams
 from apps.api.src.core.i18n import t
-from apps.api.src.modules.auth.repository import UserRepository
-from apps.api.src.modules.auth.tokens.service import hash_password
-from apps.api.src.modules.organization.models.user import User
-from apps.api.src.modules.system.models.rbac import Role
-from apps.api.src.modules.workspaces.models.workspace import (
+from apps.api.src.models.organization.user import User
+from apps.api.src.models.system.rbac import Role
+from apps.api.src.models.workspaces.workspace import (
     Workspace,
     WorkspaceMembership,
     WorkspaceMembershipRole,
     WorkspaceMembershipStatus,
 )
-from apps.api.src.modules.workspaces.models.workspace_invite import WorkspaceInviteLinkUseEvent
+from apps.api.src.models.workspaces.workspace_invite import WorkspaceInviteLinkUseEvent
+from apps.api.src.modules.auth.repository import UserRepository
+from apps.api.src.modules.auth.tokens.service import hash_password
+from apps.api.src.modules.workspaces.team.invites.service import WorkspaceTeamInviteMixin
 from apps.api.src.modules.workspaces.team.repository import WorkspaceTeamRepository
 from apps.api.src.modules.workspaces.team.schema import (
     InviteStatus,
@@ -38,7 +39,6 @@ from apps.api.src.modules.workspaces.team.schema import (
     WorkspaceTeamUserRefOut,
     WorkspaceTeamUserUpdateRequest,
 )
-from apps.api.src.modules.workspaces.team.service_invites import WorkspaceTeamInviteMixin
 
 _FATAL_TEAM_ACTIVITY_ERRORS: tuple[type[BaseException], ...] = (
     asyncio.CancelledError,

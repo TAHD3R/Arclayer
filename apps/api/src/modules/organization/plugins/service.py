@@ -10,11 +10,11 @@ from apps.api.src.common.services import BaseService
 from apps.api.src.config import Settings
 from apps.api.src.core.exceptions import BadRequest, NotFound, ServiceUnavailable
 from apps.api.src.core.i18n import t
+from apps.api.src.models.system.plugin import PluginRecord
+from apps.api.src.models.system.setting import SettingRecord
 from apps.api.src.modules.organization.plugins.repository import OrganizationPluginRepository
 from apps.api.src.modules.organization.plugins.schema import OrganizationPluginSummary
-from apps.api.src.modules.system.models.plugin import PluginRecord
-from apps.api.src.modules.system.models.setting import SettingRecord
-from apps.api.src.modules.system.plugins_manager.service import PluginService
+from apps.api.src.modules.system.plugins.manager.service import PluginService
 from apps.api.src.modules.system.settings.schema import SettingsDetail, SettingsPatch, SettingsSchemaItem
 from apps.api.src.plugin.manifest import ConfigSchema, build_default_config
 from apps.api.src.settings.crypto import encrypt_secret, ensure_master_key, is_encrypted, master_key_exists

@@ -7,7 +7,7 @@ from apps.api.src.config import Settings
 from apps.api.src.core.exceptions import BadRequest, NotFound
 from apps.api.src.core.http.pagination import PageData, PageParams, paginate_items
 from apps.api.src.core.i18n import t
-from apps.api.src.modules.system.models.plugin import PluginRecord
+from apps.api.src.models.system.plugin import PluginRecord
 from apps.api.src.modules.system.settings.crypto.service import SettingsCryptoMixin
 from apps.api.src.modules.system.settings.events.service import SettingsEventsMixin
 from apps.api.src.modules.system.settings.repository import SettingsRepository

@@ -9,7 +9,7 @@ Settings workflows are implemented on `SiteService` and will be extracted here a
 import secrets
 import time
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Protocol, cast
 from uuid import UUID
 
 from pydantic import ValidationError
@@ -23,6 +23,10 @@ from apps.api.src.modules.sites.namespaces.service import EDITOR_GLOBAL_SECTIONS
 if TYPE_CHECKING:
     from apps.api.src.config import Settings
     from apps.api.src.modules.sites.repository import SitesRepository
+
+
+class _PageTreeLister(Protocol):
+    async def list_pages_tree(self, *, site_id: UUID) -> PageData[sites_schema.SitePageTreeNodeOut]: ...
 
 
 class SiteSettingsMixin:
@@ -215,7 +219,7 @@ class SiteSettingsMixin:
         return sites_schema.SiteGlobalSectionDeleteOut(id=target_section_id)
 
     async def get_visual_sitemap(self, *, site_id: UUID) -> sites_schema.SiteVisualSitemapOut:
-        tree: PageData[sites_schema.SitePageTreeNodeOut] = await self.list_pages_tree(site_id=site_id)
+        tree = await cast(_PageTreeLister, self).list_pages_tree(site_id=site_id)
         nodes = [self._to_visual_sitemap_node(page) for page in tree.items]
         updated_at_ms = self._collect_sitemap_updated_at_ms(tree.items)
         return sites_schema.SiteVisualSitemapOut(nodes=nodes, updated_at_ms=updated_at_ms)

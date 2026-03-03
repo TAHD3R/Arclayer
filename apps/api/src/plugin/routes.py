@@ -9,8 +9,8 @@ from typing import cast
 from fastapi import APIRouter, Depends
 
 from apps.api.src.core.logging import get_logger
-from apps.api.src.modules.workspaces.authz.deps import require_workspace_permission
-from apps.api.src.modules.workspaces.deps import require_workspace_manage_access
+from apps.api.src.modules.workspaces.authz.http.service import require_workspace_permission
+from apps.api.src.modules.workspaces.http.service import require_workspace_manage_access
 from apps.api.src.plugin.deps import require_plugin_enabled
 from apps.api.src.plugin.manager import PluginManager
 

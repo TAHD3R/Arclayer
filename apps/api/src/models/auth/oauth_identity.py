@@ -5,6 +5,7 @@ from tortoise import fields
 from apps.api.src.common.models.base import BaseModel
 
 
+# OAuth identity mapping (provider subject -> local user).
 class OAuthIdentity(BaseModel):
     """OAuth identity mapping (provider subject -> local user)."""
 

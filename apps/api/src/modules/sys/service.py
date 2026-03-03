@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+from apps.api.src.common.services import BaseService
 from apps.api.src.config import Settings
-from apps.api.src.core.services import BaseService
 
 
 class SysService(BaseService):

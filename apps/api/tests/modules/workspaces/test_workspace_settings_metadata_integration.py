@@ -9,7 +9,7 @@ from apps.api.src.common.utils.public_ids import encode_uuid
 from apps.api.src.config import get_settings
 from apps.api.src.core.database.orm import verify_db_ready
 from apps.api.src.core.registry import create_app
-from apps.api.src.modules.auth.deps import get_current_user, get_current_user_id
+from apps.api.src.modules.auth.http.service import get_current_user, get_current_user_id
 
 pytestmark = pytest.mark.integration
 
@@ -25,12 +25,12 @@ async def test_workspace_metadata_get_and_patch(prepared_db, integration_valkey_
     async with app.router.lifespan_context(app):
         await verify_db_ready(settings)
 
+        from apps.api.src.models.organization.org_membership import OrgMembership, OrgRole
+        from apps.api.src.models.organization.user import User
+        from apps.api.src.models.workspaces.workspace import Workspace
         from apps.api.src.modules.auth.repository import UserRepository
-        from apps.api.src.modules.auth.security import hash_password
-        from apps.api.src.modules.organization.models.org_membership import OrgMembership, OrgRole
-        from apps.api.src.modules.organization.models.user import User
+        from apps.api.src.modules.auth.tokens.service import hash_password
         from apps.api.src.modules.organization.repository import OrganizationRepository
-        from apps.api.src.modules.workspaces.models.workspace import Workspace
 
         org_repo = OrganizationRepository()
         user_repo = UserRepository()

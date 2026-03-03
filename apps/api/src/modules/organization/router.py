@@ -7,16 +7,16 @@ from uuid import UUID, uuid4
 from fastapi import APIRouter, Depends
 
 from apps.api.src.common.protocols.tortoise import HasOrganizationId
+from apps.api.src.common.text.slug.service import slugify
 from apps.api.src.core.exceptions import BadRequest, NotFound
 from apps.api.src.core.http.response import Response, ResponseModel
 from apps.api.src.core.i18n import t
-from apps.api.src.modules.assets.utils import slugify
+from apps.api.src.models.organization.org_membership import OrgMembership, OrgRole
+from apps.api.src.models.organization.organization import Organization
+from apps.api.src.models.organization.user import User
 from apps.api.src.modules.auth.http.service import get_current_user_id
-from apps.api.src.modules.organization.deps import get_current_org_membership
+from apps.api.src.modules.organization.http.service import get_current_org_membership
 from apps.api.src.modules.organization.members.router import router as organization_members_router
-from apps.api.src.modules.organization.models.org_membership import OrgMembership, OrgRole
-from apps.api.src.modules.organization.models.organization import Organization
-from apps.api.src.modules.organization.models.user import User
 from apps.api.src.modules.organization.plugins.router import router as organization_plugins_router
 from apps.api.src.modules.organization.rbac.router import router as organization_rbac_router
 from apps.api.src.modules.organization.schema import (

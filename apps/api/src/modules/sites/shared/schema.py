@@ -6,7 +6,7 @@ from uuid import UUID
 from pydantic import ConfigDict
 
 from apps.api.src.common.schemas import BaseSchema
-from apps.api.src.modules.sites.design_document.schema import PageBlueprint
+from apps.api.src.modules.sites.design.schema import PageBlueprint
 
 
 class RouteTemplateMatch(BaseSchema):

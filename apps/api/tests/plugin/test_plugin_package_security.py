@@ -8,7 +8,26 @@ import pytest
 
 from apps.api.src.config import get_settings
 from apps.api.src.core.exceptions.types import BadRequest
-from apps.api.src.modules.system.plugins_manager.service import PluginService
+from apps.api.src.modules.system.plugins.manager.install.service import PluginInstallService
+from apps.api.src.modules.system.plugins.manager.repository import PluginRepository
+
+
+def _merge_config(current: dict[str, object], updates: dict[str, object]) -> dict[str, object]:
+    merged = dict(current or {})
+    for key, value in updates.items():
+        merged[key] = value
+    return merged
+
+
+def _build_install_service(tmp_path: Path) -> PluginInstallService:
+    settings = get_settings()
+    return PluginInstallService(
+        settings,
+        repo=PluginRepository(),
+        manager=None,
+        root_dir=tmp_path,
+        merge_config=_merge_config,
+    )
 
 
 def _write_zip(path: Path, files: dict[str, bytes]) -> None:
@@ -34,16 +53,14 @@ def _minimal_plugin_toml(*, plugin_id: str, slug: str, entrypoint: str) -> bytes
 
 
 def test_plugin_upload_filename_sanitization_accepts_windows_fakepath(tmp_path) -> None:
-    settings = get_settings()
-    service = PluginService(settings, manager=None)
-    assert service._sanitize_upload_filename(r"C:\fakepath\demo.zip") == "demo.zip"
+    install = _build_install_service(tmp_path)
+    assert install._sanitize_upload_filename(r"C:\fakepath\demo.zip") == "demo.zip"
 
 
 def test_plugin_upload_filename_sanitization_rejects_traversal(tmp_path) -> None:
-    settings = get_settings()
-    service = PluginService(settings, manager=None)
+    install = _build_install_service(tmp_path)
     with pytest.raises(BadRequest) as exc:
-        service._sanitize_upload_filename("../../evil.zip")
+        install._sanitize_upload_filename("../../evil.zip")
     assert exc.value.error == "PLUGIN_PACKAGE_INVALID"
 
 
@@ -56,10 +73,9 @@ def test_plugin_manifest_rejects_invalid_id(tmp_path) -> None:
     )
     _write_zip(zip_path, {"plugin.toml": plugin_toml})
 
-    settings = get_settings()
-    service = PluginService(settings, manager=None)
+    install = _build_install_service(tmp_path)
     with pytest.raises(BadRequest) as exc:
-        service._validate_zip(zip_path)
+        install._validate_zip(zip_path)
     assert exc.value.error == "PLUGIN_ID_INVALID"
 
 
@@ -72,17 +88,15 @@ def test_plugin_manifest_rejects_reserved_id(tmp_path) -> None:
     )
     _write_zip(zip_path, {"plugin.toml": plugin_toml})
 
-    settings = get_settings()
-    service = PluginService(settings, manager=None)
+    install = _build_install_service(tmp_path)
     with pytest.raises(BadRequest) as exc:
-        service._validate_zip(zip_path)
+        install._validate_zip(zip_path)
     assert exc.value.error == "PLUGIN_ID_RESERVED"
 
 
 def test_plugin_zip_rejects_too_many_files(tmp_path, monkeypatch) -> None:
     monkeypatch.setenv("PLUGIN__PACKAGE_MAX_FILES", "2")
-    settings = get_settings()
-    service = PluginService(settings, manager=None)
+    install = _build_install_service(tmp_path)
 
     zip_path = tmp_path / "demo.zip"
     plugin_toml = _minimal_plugin_toml(
@@ -102,14 +116,13 @@ def test_plugin_zip_rejects_too_many_files(tmp_path, monkeypatch) -> None:
     extract_dir = tmp_path / "payload"
     with zipfile.ZipFile(zip_path) as zf:
         with pytest.raises(BadRequest) as exc:
-            service._safe_extract(zf, extract_dir)
+            install._safe_extract(zf, extract_dir)
     assert exc.value.error == "PLUGIN_PACKAGE_TOO_MANY_FILES"
 
 
 def test_plugin_zip_rejects_total_uncompressed_size(tmp_path, monkeypatch) -> None:
     monkeypatch.setenv("PLUGIN__PACKAGE_MAX_TOTAL_UNCOMPRESSED_BYTES", "500")
-    settings = get_settings()
-    service = PluginService(settings, manager=None)
+    install = _build_install_service(tmp_path)
 
     zip_path = tmp_path / "demo.zip"
     plugin_toml = _minimal_plugin_toml(
@@ -129,14 +142,13 @@ def test_plugin_zip_rejects_total_uncompressed_size(tmp_path, monkeypatch) -> No
     extract_dir = tmp_path / "payload"
     with zipfile.ZipFile(zip_path) as zf:
         with pytest.raises(BadRequest) as exc:
-            service._safe_extract(zf, extract_dir)
+            install._safe_extract(zf, extract_dir)
     assert exc.value.error == "PLUGIN_PACKAGE_UNCOMPRESSED_TOO_LARGE"
 
 
 def test_plugin_zip_rejects_single_file_size(tmp_path, monkeypatch) -> None:
     monkeypatch.setenv("PLUGIN__PACKAGE_MAX_SINGLE_FILE_BYTES", "100")
-    settings = get_settings()
-    service = PluginService(settings, manager=None)
+    install = _build_install_service(tmp_path)
 
     zip_path = tmp_path / "demo.zip"
     plugin_toml = _minimal_plugin_toml(
@@ -155,13 +167,12 @@ def test_plugin_zip_rejects_single_file_size(tmp_path, monkeypatch) -> None:
     extract_dir = tmp_path / "payload"
     with zipfile.ZipFile(zip_path) as zf:
         with pytest.raises(BadRequest) as exc:
-            service._safe_extract(zf, extract_dir)
+            install._safe_extract(zf, extract_dir)
     assert exc.value.error == "PLUGIN_PACKAGE_FILE_TOO_LARGE"
 
 
 def test_plugin_zip_rejects_symlink_entries(tmp_path) -> None:
-    settings = get_settings()
-    service = PluginService(settings, manager=None)
+    install = _build_install_service(tmp_path)
 
     zip_path = tmp_path / "demo.zip"
     plugin_toml = _minimal_plugin_toml(
@@ -181,13 +192,12 @@ def test_plugin_zip_rejects_symlink_entries(tmp_path) -> None:
     extract_dir = tmp_path / "payload"
     with zipfile.ZipFile(zip_path) as zf:
         with pytest.raises(BadRequest) as exc:
-            service._safe_extract(zf, extract_dir)
+            install._safe_extract(zf, extract_dir)
     assert exc.value.error == "PLUGIN_PACKAGE_HAS_SYMLINK"
 
 
 def test_plugin_zip_rejects_backslash_traversal_paths(tmp_path) -> None:
-    settings = get_settings()
-    service = PluginService(settings, manager=None)
+    install = _build_install_service(tmp_path)
 
     zip_path = tmp_path / "demo.zip"
     plugin_toml = _minimal_plugin_toml(
@@ -206,15 +216,14 @@ def test_plugin_zip_rejects_backslash_traversal_paths(tmp_path) -> None:
     extract_dir = tmp_path / "payload"
     with zipfile.ZipFile(zip_path) as zf:
         with pytest.raises(BadRequest) as exc:
-            service._safe_extract(zf, extract_dir)
+            install._safe_extract(zf, extract_dir)
     assert exc.value.error == "PLUGIN_PACKAGE_INVALID"
 
 
 @pytest.mark.asyncio
 async def test_plugin_upload_rejects_zip_too_large(tmp_path, monkeypatch) -> None:
     monkeypatch.setenv("PLUGIN__PACKAGE_MAX_ZIP_BYTES", "100")
-    settings = get_settings()
-    service = PluginService(settings, manager=None)
+    install = _build_install_service(tmp_path)
 
     class _DummyUpload:
         def __init__(self, filename: str, payload: bytes) -> None:
@@ -229,5 +238,6 @@ async def test_plugin_upload_rejects_zip_too_large(tmp_path, monkeypatch) -> Non
 
     upload = _DummyUpload(filename="demo.zip", payload=b"x" * 200)
     with pytest.raises(BadRequest) as exc:
-        await service._save_upload(upload, tmp_path / "demo.zip", max_bytes=settings.plugin.package_max_zip_bytes)
+        settings = get_settings()
+        await install._save_upload(upload, tmp_path / "demo.zip", max_bytes=settings.plugin.package_max_zip_bytes)
     assert exc.value.error == "PLUGIN_PACKAGE_TOO_LARGE"

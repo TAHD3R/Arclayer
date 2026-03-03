@@ -12,6 +12,7 @@ from apps.api.src.core.http.response import Response, ResponseModel
 from apps.api.src.core.i18n import get_current_locale, t
 from apps.api.src.infra.cache.valkey import get_valkey
 from apps.api.src.infra.limiter.limiter import rate_limit
+from apps.api.src.models.organization.user import User
 from apps.api.src.modules.auth.http.service import get_current_user
 from apps.api.src.modules.auth.limits.service import (
     ACCOUNT_DELETE_RATE_LIMIT,
@@ -48,7 +49,6 @@ from apps.api.src.modules.auth.schema import (
 )
 from apps.api.src.modules.auth.service import AuthService
 from apps.api.src.modules.auth.sso.router import router as auth_sso_router
-from apps.api.src.modules.organization.models.user import User
 
 router = APIRouter(tags=["Services: Auth Service"])
 
@@ -200,13 +200,13 @@ async def register(
         display_name=payload.display_name,
     )
     profile = service.build_user_profile(user)
-    if user.email:
+    if profile.email:
         locale = get_current_locale()
         background_tasks.add_task(
             service.send_welcome_email,
-            recipient=user.email,
-            username=user.username,
-            user_id=user.id,
+            recipient=profile.email,
+            username=profile.username,
+            user_id=profile.id,
             locale=locale,
         )
     return Response.success(message=t("auth", "REGISTER_SUCCESS", default="注册成功"), data=profile)

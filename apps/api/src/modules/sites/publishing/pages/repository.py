@@ -1,16 +1,26 @@
 from __future__ import annotations
 
 import time
-from typing import cast
+from typing import Protocol, cast
 from uuid import UUID
 
 from tortoise.transactions import in_transaction
 
 from apps.api.src.common.protocols.tortoise import SitePageMutableFields
 from apps.api.src.core.exceptions import Conflict, NotFound
-from apps.api.src.modules.sites.design_document.schema import PageBlueprint
-from apps.api.src.modules.sites.models.site_page import SitePageRecord, SitePageRevisionRecord, SitePageVisibility
+from apps.api.src.models.sites.site_page import SitePageRecord, SitePageRevisionRecord, SitePageVisibility
+from apps.api.src.modules.sites.design.schema import PageBlueprint
 from apps.api.src.modules.sites.shared.service import normalize_path
+
+
+class _RevisionDepsAssetsValidator(Protocol):
+    async def _validate_revision_deps_assets(
+        self,
+        *,
+        site_id: UUID,
+        deps: dict | None,
+        conn: object,
+    ) -> None: ...
 
 
 class PublishingPagesRepositoryMixin:
@@ -196,7 +206,7 @@ class PublishingPagesRepositoryMixin:
             if rec is None:
                 raise NotFound("Revision not found", error="REVISION_NOT_FOUND")
 
-            await self._validate_revision_deps_assets(
+            await cast(_RevisionDepsAssetsValidator, self)._validate_revision_deps_assets(
                 site_id=site_id,
                 deps=(rec.deps if isinstance(rec.deps, dict) else None),
                 conn=conn,
@@ -241,7 +251,7 @@ class PublishingPagesRepositoryMixin:
             if rec is None:
                 raise NotFound("Revision not found", error="REVISION_NOT_FOUND")
 
-            await self._validate_revision_deps_assets(
+            await cast(_RevisionDepsAssetsValidator, self)._validate_revision_deps_assets(
                 site_id=site_id,
                 deps=(rec.deps if isinstance(rec.deps, dict) else None),
                 conn=conn,

@@ -7,8 +7,8 @@ from tortoise.exceptions import IntegrityError
 
 from apps.api.src.common.protocols.tortoise import SysConfigActiveMutableFields
 from apps.api.src.common.repositories.base import BaseRepository
-from apps.api.src.modules.sys.models.sys_config_active import SysConfigActive
-from apps.api.src.modules.sys.models.sys_config_revision import SysConfigRevision
+from apps.api.src.models.sys.sys_config_active import SysConfigActive
+from apps.api.src.models.sys.sys_config_revision import SysConfigRevision
 
 
 class SysConfigRepository(BaseRepository):

@@ -11,6 +11,7 @@ from pydantic import BaseModel, ConfigDict, ValidationError
 from starlette.responses import RedirectResponse, Response
 
 from apps.api.src.common.services.base import BaseService
+from apps.api.src.common.text.slug.service import slugify
 from apps.api.src.config import Settings
 from apps.api.src.core.exceptions import BadRequest, Conflict, NotFound
 from apps.api.src.core.http.content_disposition import build_attachment_content_disposition
@@ -18,9 +19,9 @@ from apps.api.src.core.http.file_stream import stream_file_response
 from apps.api.src.infra.storage.factory import build_storage_provider, build_storage_provider_for
 from apps.api.src.infra.storage.local import LocalStorageProvider, safe_object_key_to_path
 from apps.api.src.infra.storage.s3 import S3StorageProvider
-from apps.api.src.modules.assets.models.asset import AssetPurpose, AssetRecord, AssetVisibility
-from apps.api.src.modules.assets.utils import build_asset_object_key, slugify
-from apps.api.src.modules.system.models.setting import SettingRecord
+from apps.api.src.models.assets.asset import AssetPurpose, AssetRecord, AssetVisibility
+from apps.api.src.models.system.setting import SettingRecord
+from apps.api.src.modules.assets.naming.service import build_asset_object_key
 from apps.api.src.modules.workspaces.themes.repository import WorkspaceThemesRepository
 from apps.api.src.modules.workspaces.themes.schema import (
     ThemeManifestIn,

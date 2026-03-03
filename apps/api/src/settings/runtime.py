@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import binascii
 import time
-from typing import Any
 
 from cryptography.exceptions import InvalidTag
 from pydantic import SecretStr
@@ -10,7 +9,7 @@ from tortoise.exceptions import OperationalError
 
 from apps.api.src.config import Settings
 from apps.api.src.core.logging import get_logger
-from apps.api.src.modules.system.models.setting import SettingRecord
+from apps.api.src.models.system.setting import SettingRecord
 from apps.api.src.settings.core_schema import CORE_SETTINGS_NAMESPACE, CORE_SETTINGS_SCHEMA
 from apps.api.src.settings.crypto import decrypt_secret, is_encrypted, load_master_key, master_key_exists
 from apps.api.src.settings.scopes import SCOPE_TYPE_SYSTEM, SYSTEM_SCOPE_ID
@@ -21,9 +20,8 @@ _CORE_SETTINGS_LOAD_ERRORS = (OperationalError, RuntimeError, ValueError, TypeEr
 _CORE_SECRET_DECRYPT_ERRORS = (binascii.Error, RuntimeError, ValueError, TypeError, OSError, UnicodeError, InvalidTag)
 
 # Per-process cache (each worker has its own memory space).
-_core_cache: dict[str, Any] | None = None
+_core_cache: dict[str, object] | None = None
 _core_cache_expires_at: float = 0.0
-_warned_missing_master_key: bool = False
 
 
 def invalidate_core_settings_cache() -> None:
@@ -41,7 +39,7 @@ def invalidate_core_settings_cache() -> None:
     _core_cache_expires_at = 0.0
 
 
-def _safe_int(value: Any) -> int | None:
+def _safe_int(value: object) -> int | None:
     if isinstance(value, bool):
         return None
     if isinstance(value, int):
@@ -54,13 +52,13 @@ def _safe_int(value: Any) -> int | None:
     return None
 
 
-def _safe_bool(value: Any) -> bool | None:
+def _safe_bool(value: object) -> bool | None:
     if isinstance(value, bool):
         return value
     return None
 
 
-def _safe_str(value: Any) -> str | None:
+def _safe_str(value: object) -> str | None:
     if isinstance(value, str):
         return value
     return None
@@ -70,7 +68,7 @@ async def get_core_settings_value_cached(
     settings: Settings,
     *,
     ttl_seconds: float = 5.0,
-) -> dict[str, Any]:
+) -> dict[str, object]:
     """
     Load core settings value from DB, with a small per-process TTL cache.
 
@@ -79,7 +77,7 @@ async def get_core_settings_value_cached(
     - Secrets are decrypted in-memory when possible.
     """
 
-    global _core_cache, _core_cache_expires_at, _warned_missing_master_key
+    global _core_cache, _core_cache_expires_at
 
     now = time.monotonic()
     if _core_cache is not None and _core_cache_expires_at > now:
@@ -99,8 +97,8 @@ async def get_core_settings_value_cached(
         raw = record.value if record and isinstance(record.value, dict) else {}
 
         # Decrypt secret fields (best-effort). If we cannot decrypt, keep the encrypted
-        # string out of downstream configs by turning it into None.
-        decrypted: dict[str, Any] = dict(raw)
+        # string out of downstream configs by raising an error (debug-first policy).
+        decrypted: dict[str, object] = dict(raw)
         if master_key_exists(settings.setup.master_key_path):
             key = load_master_key(settings.setup.master_key_path)
             for path in iter_secret_field_paths(CORE_SETTINGS_SCHEMA):
@@ -125,11 +123,8 @@ async def get_core_settings_value_cached(
                         secret_path=path,
                         error=str(exc),
                     )
-                    section[field_key] = None
+                    raise
         else:
-            if not _warned_missing_master_key:
-                _warned_missing_master_key = True
-                logger.warning("Master key missing: core secrets cannot be decrypted for runtime config")
             for path in iter_secret_field_paths(CORE_SETTINGS_SCHEMA):
                 if not path.startswith("storage."):
                     continue
@@ -139,21 +134,18 @@ async def get_core_settings_value_cached(
                     continue
                 val = section.get(field_key)
                 if isinstance(val, str) and is_encrypted(val):
-                    section[field_key] = None
+                    raise RuntimeError("Master key missing: cannot decrypt core storage secret")
 
         _core_cache = decrypted
         _core_cache_expires_at = now + ttl_seconds
         return _core_cache
     except _CORE_SETTINGS_LOAD_ERRORS as exc:
-        # Best-effort: do not break requests if DB isn't ready.
         logger.warning(
             "Core settings load failed",
             action="load_core_settings_runtime",
             error=str(exc),
         )
-        _core_cache = {}
-        _core_cache_expires_at = now + min(ttl_seconds, 1.0)
-        return _core_cache
+        raise
 
 
 async def get_effective_settings(settings: Settings) -> Settings:
@@ -170,7 +162,7 @@ async def get_effective_settings(settings: Settings) -> Settings:
     if not isinstance(storage_section, dict):
         return settings
 
-    updates: dict[str, Any] = {}
+    updates: dict[str, object] = {}
 
     # Provider (only accept known values).
     if "provider" in storage_section:

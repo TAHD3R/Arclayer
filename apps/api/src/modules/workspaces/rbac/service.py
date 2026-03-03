@@ -4,7 +4,7 @@ from pathlib import Path
 
 from apps.api.src.config import Settings
 from apps.api.src.core.i18n import t
-from apps.api.src.modules.system.models.plugin import PluginRecord
+from apps.api.src.models.system.plugin import PluginRecord
 from apps.api.src.modules.system.rbac.service import RBACService
 from apps.api.src.plugin.manifest import load_plugin_manifest
 

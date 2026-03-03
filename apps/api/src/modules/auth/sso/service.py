@@ -16,11 +16,11 @@ from apps.api.src.core.exceptions import BadRequest, ServiceUnavailable
 from apps.api.src.core.i18n import t
 from apps.api.src.core.logging import get_logger
 from apps.api.src.infra.cache.valkey import ValkeyClientLike
+from apps.api.src.models.organization.org_plugin_state import OrganizationPluginState
+from apps.api.src.models.system.plugin import PluginRecord
 from apps.api.src.modules.auth.service import AuthService
-from apps.api.src.modules.auth.sso.exchange_store import consume_exchange_payload
-from apps.api.src.modules.organization.models.org_plugin_state import OrganizationPluginState
-from apps.api.src.modules.organization.runtime import get_single_organization_id
-from apps.api.src.modules.system.models.plugin import PluginRecord
+from apps.api.src.modules.auth.sso.repository import consume_exchange_payload
+from apps.api.src.modules.organization.runtime.service import get_single_organization_id
 from apps.api.src.plugin.manager import PluginManager
 from apps.api.src.plugin.manifest import build_default_config
 from apps.api.src.plugin.types import PluginStatus

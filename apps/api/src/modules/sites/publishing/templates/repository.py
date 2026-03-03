@@ -1,12 +1,58 @@
 from __future__ import annotations
 
+from typing import Protocol
 from uuid import UUID
 
-from apps.api.src.modules.sites.models.site_route_template import RouteTemplateRecord
+from apps.api.src.models.sites.site_route_template import RouteTemplateRecord
 from apps.api.src.modules.sites.shared.schema import RouteTemplateMatch
 
 
+class _SiteRoutingRepositoryLike(Protocol):
+    async def list_route_templates(self, *, site_id: UUID) -> list[RouteTemplateRecord]: ...
+
+    async def list_route_templates_all(self, *, site_id: UUID) -> list[RouteTemplateRecord]: ...
+
+    async def get_route_template_by_id(self, *, site_id: UUID, template_id: UUID) -> RouteTemplateRecord | None: ...
+
+    async def create_route_template(
+        self,
+        *,
+        site_id: UUID,
+        path_pattern: str,
+        entry_type_id: UUID,
+        template_page_revision_id: UUID | None,
+        is_active: bool,
+    ) -> RouteTemplateRecord: ...
+
+    async def update_route_template(
+        self,
+        *,
+        site_id: UUID,
+        template_id: UUID,
+        path_pattern: str,
+        entry_type_id: UUID,
+        template_page_revision_id: UUID | None,
+        is_active: bool,
+    ) -> RouteTemplateRecord: ...
+
+    async def delete_route_template(self, *, site_id: UUID, template_id: UUID) -> None: ...
+
+    def invalidate_route_template_cache(self, *, site_id: UUID) -> None: ...
+
+    async def match_route_template(
+        self,
+        *,
+        site_id: UUID,
+        pathname: str,
+        cache_version: int = 0,
+    ) -> RouteTemplateMatch | None: ...
+
+    async def list_public_sitemap_paths(self, *, site_id: UUID) -> list[str]: ...
+
+
 class PublishingTemplatesRepositoryMixin:
+    _routing_repo: _SiteRoutingRepositoryLike
+
     async def list_route_templates(self, *, site_id: UUID) -> list[RouteTemplateRecord]:
         return await self._routing_repo.list_route_templates(site_id=site_id)
 

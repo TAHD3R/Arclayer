@@ -22,6 +22,8 @@ from apps.api.src.core.exceptions import BadRequest, Conflict, Forbidden, NotFou
 from apps.api.src.core.http.pagination import PageData, PageParams
 from apps.api.src.core.i18n import t
 from apps.api.src.infra.cache.valkey import ValkeyClientLike
+from apps.api.src.models.organization.org_membership import OrgMembership
+from apps.api.src.models.organization.user import User
 from apps.api.src.modules.auth.contracts.schema import CredentialLike, UserLike, UserRepositoryLike
 from apps.api.src.modules.auth.invitations.service import AuthInvitationService
 from apps.api.src.modules.auth.repository import EmailChangeStore, PasswordResetStore, RefreshTokenStore, UserRepository
@@ -44,8 +46,6 @@ from apps.api.src.modules.auth.tokens.service import (
     hash_password,
     verify_password,
 )
-from apps.api.src.modules.organization.models.org_membership import OrgMembership
-from apps.api.src.modules.organization.models.user import User
 
 _FATAL_AUTH_EVENT_ERRORS: tuple[type[BaseException], ...] = (
     asyncio.CancelledError,
@@ -104,11 +104,14 @@ class AuthService(BaseService):
             )
         return self.reset_store
 
-    def _parse_user_id(self, raw: str | None) -> UUID:
-        if not raw:
+    def _parse_user_id(self, raw: object | None) -> UUID:
+        if raw is None:
+            raise Unauthorized(message=self._ta("TOKEN_INVALID", "Token 无效"), error="TOKEN_INVALID")
+        raw_str = str(raw).strip()
+        if not raw_str:
             raise Unauthorized(message=self._ta("TOKEN_INVALID", "Token 无效"), error="TOKEN_INVALID")
         try:
-            return UUID(str(raw))
+            return UUID(raw_str)
         except ValueError as exc:
             raise Unauthorized(message=self._ta("TOKEN_INVALID", "Token 无效"), error="TOKEN_INVALID") from exc
 
@@ -116,18 +119,43 @@ class AuthService(BaseService):
         return UUID(str(user.id))
 
     def _coerce_token_version(self, user: UserLike) -> int:
-        raw = getattr(user, "token_version", 0)
-        try:
-            return int(raw or 0)
-        except (TypeError, ValueError) as exc:
-            self.logger.warning(
-                "Invalid token_version value on user",
-                user_id=str(getattr(user, "id", "")),
-                action="coerce_token_version",
-                token_version_raw=str(raw),
-                error=str(exc),
-            )
-            return 0
+        raw = user.token_version
+        if isinstance(raw, int):
+            return raw
+        if isinstance(raw, str):
+            value = raw.strip()
+            if not value:
+                raise Unauthorized(message=self._ta("TOKEN_INVALID", "Token 无效"), error="TOKEN_INVALID")
+            try:
+                return int(value)
+            except ValueError as exc:
+                raise Unauthorized(message=self._ta("TOKEN_INVALID", "Token 无效"), error="TOKEN_INVALID") from exc
+        raise Unauthorized(message=self._ta("TOKEN_INVALID", "Token 无效"), error="TOKEN_INVALID")
+
+    def _parse_refresh_jti(self, raw: object | None) -> str:
+        if not isinstance(raw, str):
+            raise Unauthorized(message=self._ta("REFRESH_INVALID", "Refresh Token 无效"), error="REFRESH_INVALID")
+        value = raw.strip()
+        if not value:
+            raise Unauthorized(message=self._ta("REFRESH_INVALID", "Refresh Token 无效"), error="REFRESH_INVALID")
+        return value
+
+    def _parse_refresh_token_version(self, raw: object | None) -> int:
+        if raw is None:
+            raise Unauthorized(message=self._ta("REFRESH_INVALID", "Refresh Token 无效"), error="REFRESH_INVALID")
+        if isinstance(raw, int):
+            return raw
+        if isinstance(raw, str):
+            value = raw.strip()
+            if not value:
+                raise Unauthorized(message=self._ta("REFRESH_INVALID", "Refresh Token 无效"), error="REFRESH_INVALID")
+            try:
+                return int(value)
+            except ValueError as exc:
+                raise Unauthorized(
+                    message=self._ta("REFRESH_INVALID", "Refresh Token 无效"), error="REFRESH_INVALID"
+                ) from exc
+        raise Unauthorized(message=self._ta("REFRESH_INVALID", "Refresh Token 无效"), error="REFRESH_INVALID")
 
     def _ensure_password_strength(self, password: str) -> None:
         if not re.match(PASSWORD_REGEX, password):
@@ -200,7 +228,7 @@ class AuthService(BaseService):
             raise Unauthorized(message=self._ta("USER_NOT_FOUND", "用户不存在"), error="USER_NOT_FOUND")
 
         credential = cast(CredentialLike | None, getattr(user_with_cred, "credential", None))
-        if credential is None or not verify_password(password, credential.password_hash, self.settings.auth):
+        if credential is None or not verify_password(password, cast(str, credential.password_hash), self.settings.auth):
             raise Unauthorized(
                 message=self._ta("INVALID_CREDENTIALS", "账号或密码错误"),
                 error="INVALID_CREDENTIALS",
@@ -254,7 +282,7 @@ class AuthService(BaseService):
             raise BadRequest(message=self._ta("EMAIL_MISMATCH", "邮箱与当前账号不匹配"), error="EMAIL_MISMATCH")
 
         credential = cast(CredentialLike | None, getattr(user_with_cred, "credential", None))
-        if credential is None or not verify_password(password, credential.password_hash, self.settings.auth):
+        if credential is None or not verify_password(password, cast(str, credential.password_hash), self.settings.auth):
             raise Unauthorized(
                 message=self._ta("INVALID_CREDENTIALS", "账号或密码错误"),
                 error="INVALID_CREDENTIALS",
@@ -278,7 +306,7 @@ class AuthService(BaseService):
 
         # Remove password credential and scrub PII.
         try:
-            from apps.api.src.modules.organization.models.user import UserCredential
+            from apps.api.src.models.organization.user import UserCredential
 
             await UserCredential.filter(user_id=user_id).delete()
         except BaseException as exc:
@@ -309,7 +337,7 @@ class AuthService(BaseService):
         if not self.user_repo.is_active(user):
             raise Forbidden(message=self._ta("USER_DISABLED", "账号不可用"), error="USER_DISABLED")
 
-        if not verify_password(password, credential.password_hash, self.settings.auth):
+        if not verify_password(password, cast(str, credential.password_hash), self.settings.auth):
             raise Unauthorized(
                 message=self._ta("INVALID_CREDENTIALS", "账号或密码错误"),
                 error="INVALID_CREDENTIALS",
@@ -492,13 +520,8 @@ class AuthService(BaseService):
             )
 
         user_id = self._parse_user_id(payload.get("sub"))
-        token_version = payload.get("ver")
-        jti = payload.get("jti")
-        if not jti:
-            raise Unauthorized(
-                message=self._ta("REFRESH_INVALID", "Refresh Token 无效"),
-                error="REFRESH_INVALID",
-            )
+        token_version = self._parse_refresh_token_version(payload.get("ver"))
+        jti = self._parse_refresh_jti(payload.get("jti"))
 
         user = await self.user_repo.get_by_id(user_id)
         if not user:
@@ -507,7 +530,7 @@ class AuthService(BaseService):
         if not self.user_repo.is_active(user):
             raise Forbidden(message=self._ta("USER_DISABLED", "账号不可用"), error="USER_DISABLED")
 
-        if self._coerce_token_version(user) != int(token_version or 0):
+        if self._coerce_token_version(user) != token_version:
             raise Unauthorized(message=self._ta("TOKEN_STALE", "Token 已失效"), error="TOKEN_STALE")
 
         record = await store.get(jti)
@@ -594,7 +617,7 @@ class AuthService(BaseService):
         if not self.user_repo.is_active(user):
             raise Forbidden(message=self._ta("USER_DISABLED", "账号不可用"), error="USER_DISABLED")
 
-        if not verify_password(old_password, credential.password_hash, self.settings.auth):
+        if not verify_password(old_password, cast(str, credential.password_hash), self.settings.auth):
             raise Unauthorized(
                 message=self._ta("INVALID_CREDENTIALS", "原密码错误"),
                 error="INVALID_CREDENTIALS",
@@ -709,7 +732,9 @@ class AuthService(BaseService):
             raise Forbidden(message=self._ta("USER_DISABLED", "账号不可用"), error="USER_DISABLED")
 
         credential = cast(CredentialLike | None, getattr(user, "credential", None))
-        if credential is not None and verify_password(new_password, credential.password_hash, self.settings.auth):
+        if credential is not None and verify_password(
+            new_password, cast(str, credential.password_hash), self.settings.auth
+        ):
             raise Conflict(
                 message=self._ta("PASSWORD_DUPLICATE", "新密码不能与旧密码相同"),
                 error="PASSWORD_DUPLICATE",
@@ -754,11 +779,11 @@ class AuthService(BaseService):
     @staticmethod
     def build_user_profile(user: UserLike) -> UserProfile:
         return UserProfile(
-            id=user.id,
-            username=user.username,
-            email=user.email,
-            display_name=user.display_name,
-            avatar_url=user.avatar_url,
+            id=UUID(str(user.id)),
+            username=cast(str, user.username),
+            email=cast(str | None, user.email),
+            display_name=cast(str | None, user.display_name),
+            avatar_url=cast(str | None, user.avatar_url),
             is_super_admin=bool(getattr(user, "is_super_admin", False)),
         )
 

@@ -11,13 +11,13 @@ from tortoise.transactions import in_transaction
 from apps.api.src.common.protocols.tortoise import RouteTemplateIds
 from apps.api.src.common.repositories.base import BaseRepository
 from apps.api.src.core.exceptions import Conflict, NotFound
-from apps.api.src.modules.sites.models.site_entry import EntryRecord
-from apps.api.src.modules.sites.models.site_page import SitePageRecord, SitePageVisibility
-from apps.api.src.modules.sites.models.site_route_template import RouteTemplateRecord
+from apps.api.src.models.content.content import ContentEntryRecord
+from apps.api.src.models.sites.site_entry import EntryRecord
+from apps.api.src.models.sites.site_page import SitePageRecord, SitePageVisibility
+from apps.api.src.models.sites.site_route_template import RouteTemplateRecord
 from apps.api.src.modules.sites.routing.patterns.service import _compile_path_pattern, _match_compiled
 from apps.api.src.modules.sites.shared.schema import RouteTemplateMatch, _CompiledRouteTemplate
 from apps.api.src.modules.sites.shared.service import normalize_path
-from apps.api.src.modules.workspaces.content.models.content import ContentEntryRecord
 
 
 class _RouteTemplateCache:

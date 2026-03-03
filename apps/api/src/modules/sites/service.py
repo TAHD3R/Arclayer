@@ -8,10 +8,10 @@ from uuid import UUID
 from apps.api.src.common.services.base import BaseService
 from apps.api.src.core.exceptions import Conflict, Forbidden, ServiceUnavailable
 from apps.api.src.infra.cache.valkey import ValkeyClientLike
+from apps.api.src.models.sites.site import SiteRecord
 from apps.api.src.modules.sites import schema as sites_schema
 from apps.api.src.modules.sites.content.service import SiteContentService
 from apps.api.src.modules.sites.facade.service import SiteContentPublishingFacadeMixin
-from apps.api.src.modules.sites.models.site import SiteRecord
 from apps.api.src.modules.sites.publishing.service import SitePublishingService
 from apps.api.src.modules.sites.repository import SitesRepository
 from apps.api.src.modules.sites.runtime.config.service import SiteRuntimeConfigMixin

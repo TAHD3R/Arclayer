@@ -14,15 +14,15 @@ from apps.api.src.config import get_settings
 from apps.api.src.core.database.orm import verify_db_ready
 from apps.api.src.core.registry import create_app
 from apps.api.src.infra.storage.local import safe_object_key_to_path
-from apps.api.src.modules.assets.models.asset import AssetPurpose, AssetRecord, AssetVisibility
-from apps.api.src.modules.assets.utils import build_asset_object_key
-from apps.api.src.modules.auth.deps import get_current_user, get_current_user_id
+from apps.api.src.models.assets.asset import AssetPurpose, AssetRecord, AssetVisibility
+from apps.api.src.models.organization.org_membership import OrgMembership, OrgRole
+from apps.api.src.models.organization.user import User
+from apps.api.src.models.sites.site import SiteRecord
+from apps.api.src.models.workspaces.workspace import Workspace
+from apps.api.src.modules.assets.naming.service import build_asset_object_key
+from apps.api.src.modules.auth.http.service import get_current_user, get_current_user_id
 from apps.api.src.modules.auth.repository import UserRepository
-from apps.api.src.modules.auth.security import hash_password
-from apps.api.src.modules.organization.models.org_membership import OrgMembership, OrgRole
-from apps.api.src.modules.organization.models.user import User
-from apps.api.src.modules.sites.models.site import SiteRecord
-from apps.api.src.modules.workspaces.models.workspace import Workspace
+from apps.api.src.modules.auth.tokens.service import hash_password
 
 pytestmark = pytest.mark.integration
 

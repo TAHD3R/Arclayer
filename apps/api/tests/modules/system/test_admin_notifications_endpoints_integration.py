@@ -10,8 +10,8 @@ from apps.api.src.common.utils.public_ids import encode_uuid
 from apps.api.src.config import get_settings
 from apps.api.src.core.database.orm import verify_db_ready
 from apps.api.src.core.registry import create_app
-from apps.api.src.modules.auth.deps import get_current_user_id
-from apps.api.src.modules.system.models.notification import NotificationCategory, NotificationRecord
+from apps.api.src.models.system.notification import NotificationCategory, NotificationRecord
+from apps.api.src.modules.auth.http.service import get_current_user_id
 
 pytestmark = pytest.mark.integration
 
@@ -23,11 +23,11 @@ async def _bootstrap_admin_user(app, *, org_name: str = "Test Org"):
     Returns (workspace_id, admin_user_id).
     """
 
+    from apps.api.src.models.organization.org_membership import OrgMembership, OrgRole
+    from apps.api.src.models.workspaces.workspace import Workspace
     from apps.api.src.modules.auth.repository import UserRepository
-    from apps.api.src.modules.auth.security import hash_password
-    from apps.api.src.modules.organization.models.org_membership import OrgMembership, OrgRole
+    from apps.api.src.modules.auth.tokens.service import hash_password
     from apps.api.src.modules.organization.repository import OrganizationRepository
-    from apps.api.src.modules.workspaces.models.workspace import Workspace
 
     settings = get_settings()
     org_repo = OrganizationRepository()

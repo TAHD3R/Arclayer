@@ -3,19 +3,20 @@ from __future__ import annotations
 from pathlib import Path
 from uuid import UUID
 
+from apps.api.src.common.protocols.logging import LoggerLike
 from apps.api.src.config import Settings
 from apps.api.src.core.exceptions import BadRequest, Forbidden, NotFound
-from apps.api.src.modules.organization.models.organization import Organization
-from apps.api.src.modules.organization.models.user import User
-from apps.api.src.modules.system.models.setting import SettingRecord
-from apps.api.src.modules.system.models.setup_job import SetupJobRecord
+from apps.api.src.models.organization.organization import Organization
+from apps.api.src.models.organization.user import User
+from apps.api.src.models.system.setting import SettingRecord
+from apps.api.src.models.system.setup_job import SetupJobRecord
 from apps.api.src.modules.system.schema import SystemReinitializeResult
 from apps.api.src.modules.system.setup.shared.service import _ts
 
 
 class SystemSetupReinitializeMixin:
     settings: Settings
-    logger: object
+    logger: LoggerLike
 
     async def reinitialize_self_host(
         self,

@@ -9,7 +9,7 @@ from tortoise.queryset import QuerySet
 
 from apps.api.src.common.protocols.tortoise import UploadPartMutableFields
 from apps.api.src.common.repositories import BaseRepository
-from apps.api.src.modules.assets.models.upload import UploadPartRecord, UploadSessionRecord, UploadStatus
+from apps.api.src.models.assets.upload import UploadPartRecord, UploadSessionRecord, UploadStatus
 
 
 class UploadsRepository(BaseRepository):

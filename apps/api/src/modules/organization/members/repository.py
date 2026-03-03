@@ -8,14 +8,14 @@ from tortoise.expressions import Q
 
 from apps.api.src.common.repositories import BaseRepository
 from apps.api.src.core.http.pagination import PageParams
-from apps.api.src.modules.organization.models.org_invitation import (
+from apps.api.src.models.organization.org_invitation import (
     OrganizationEmailInvite,
     OrganizationInviteLink,
     OrganizationInviteLinkUseEvent,
 )
-from apps.api.src.modules.organization.models.org_membership import OrgMembership, OrgRole
-from apps.api.src.modules.organization.models.user import User
-from apps.api.src.modules.workspaces.models.workspace import WorkspaceMembership, WorkspaceMembershipStatus
+from apps.api.src.models.organization.org_membership import OrgMembership, OrgRole
+from apps.api.src.models.organization.user import User
+from apps.api.src.models.workspaces.workspace import WorkspaceMembership, WorkspaceMembershipStatus
 
 
 class OrganizationMemberRepository(BaseRepository):

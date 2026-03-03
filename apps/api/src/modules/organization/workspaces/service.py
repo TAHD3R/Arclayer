@@ -12,8 +12,10 @@ from apps.api.src.config import Settings
 from apps.api.src.core.exceptions import BadRequest, Forbidden, NotFound
 from apps.api.src.core.http.pagination import PageData, PageParams, paginate_items
 from apps.api.src.core.i18n import t
-from apps.api.src.modules.organization.models.org_membership import OrgRole
-from apps.api.src.modules.organization.models.user import User
+from apps.api.src.models.organization.org_membership import OrgRole
+from apps.api.src.models.organization.user import User
+from apps.api.src.models.system.rbac import Role
+from apps.api.src.models.workspaces.workspace import Workspace, WorkspaceMembershipRole
 from apps.api.src.modules.organization.workspaces.repository import OrganizationWorkspaceRepository
 from apps.api.src.modules.organization.workspaces.schema import (
     OrganizationWorkspaceArchiveResult,
@@ -23,13 +25,11 @@ from apps.api.src.modules.organization.workspaces.schema import (
     OrganizationWorkspaceMemberPreviewOut,
     OrganizationWorkspaceOut,
 )
-from apps.api.src.modules.system.models.rbac import Role
 from apps.api.src.modules.system.rbac.constants.service import ROLE_ADMIN, ROLE_OWNER
 from apps.api.src.modules.system.rbac.service import RBACService
-from apps.api.src.modules.workspaces.models.workspace import Workspace, WorkspaceMembershipRole
 from apps.api.src.modules.workspaces.settings.service import WorkspaceSettingsService
 from apps.api.src.modules.workspaces.site.service import WorkspaceSiteService
-from apps.api.src.modules.workspaces.slug_policy import next_available_workspace_slug
+from apps.api.src.modules.workspaces.slug.service import next_available_workspace_slug
 
 _ORG_WORKSPACE_ALLOWED_ORDER_FIELDS: frozenset[str] = frozenset({"name", "slug", "created_at", "archived_at"})
 

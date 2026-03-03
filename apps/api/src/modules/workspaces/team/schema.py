@@ -7,8 +7,8 @@ from pydantic import EmailStr, Field
 
 from apps.api.src.common.schemas import BaseOut, BaseSchema
 from apps.api.src.common.types.public_uuid import PublicUUID
-from apps.api.src.modules.organization.models.user import UserStatus
-from apps.api.src.modules.workspaces.models.workspace import WorkspaceMembershipStatus
+from apps.api.src.models.organization.user import UserStatus
+from apps.api.src.models.workspaces.workspace import WorkspaceMembershipStatus
 
 
 class WorkspaceTeamUserRefOut(BaseSchema):

@@ -8,7 +8,9 @@ from uuid import UUID
 from fastapi import BackgroundTasks
 from tortoise.exceptions import IntegrityError, OperationalError
 
+from apps.api.src.common.constants.assets import ASSET_UPLOADED_EVENT
 from apps.api.src.common.services import BaseService
+from apps.api.src.common.text.slug.service import slugify
 from apps.api.src.common.utils.ids import uuid7
 from apps.api.src.config import Settings
 from apps.api.src.core.exceptions import BadRequest, NotFound
@@ -18,7 +20,9 @@ from apps.api.src.infra.storage.factory import build_storage_provider_for
 from apps.api.src.infra.storage.local import LocalStorageProvider, safe_object_key_to_path
 from apps.api.src.infra.storage.merge import merge_parts_to_file
 from apps.api.src.infra.storage.s3 import S3StorageProvider
-from apps.api.src.modules.assets.admin.uploads.policy import (
+from apps.api.src.models.assets.asset import AssetPurpose, AssetRecord, AssetVisibility
+from apps.api.src.models.assets.upload import UploadSessionRecord, UploadStatus
+from apps.api.src.modules.assets.admin.uploads.policy.service import (
     build_upload_policy,
     normalize_original_filename,
     validate_sha256_hex,
@@ -26,14 +30,10 @@ from apps.api.src.modules.assets.admin.uploads.policy import (
 )
 from apps.api.src.modules.assets.admin.uploads.repository import UploadsRepository
 from apps.api.src.modules.assets.admin.uploads.schema import UploadPartPresignOut
-from apps.api.src.modules.assets.events import ASSET_UPLOADED_EVENT
-from apps.api.src.modules.assets.models.asset import AssetPurpose, AssetRecord, AssetVisibility
-from apps.api.src.modules.assets.models.upload import UploadSessionRecord, UploadStatus
-from apps.api.src.modules.assets.utils import (
+from apps.api.src.modules.assets.naming.service import (
     build_asset_object_key,
     build_upload_part_object_key,
     compute_total_parts,
-    slugify,
 )
 from apps.api.src.plugin.event_bus import Event
 from apps.api.src.plugin.host import host as plugin_host

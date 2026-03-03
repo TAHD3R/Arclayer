@@ -11,11 +11,11 @@ from apps.api.src.common.utils.public_ids import encode_uuid
 from apps.api.src.config import get_settings
 from apps.api.src.core.database.orm import close_orm, init_orm
 from apps.api.src.core.registry import create_app
-from apps.api.src.modules.organization.models.org_membership import OrgMembership, OrgRole
-from apps.api.src.modules.organization.models.organization import Organization
-from apps.api.src.modules.organization.models.user import User, UserCredential, UserStatus
-from apps.api.src.modules.sites.models.site import SiteRecord
-from apps.api.src.modules.workspaces.models.workspace import Workspace
+from apps.api.src.models.organization.org_membership import OrgMembership, OrgRole
+from apps.api.src.models.organization.organization import Organization
+from apps.api.src.models.organization.user import User, UserCredential, UserStatus
+from apps.api.src.models.sites.site import SiteRecord
+from apps.api.src.models.workspaces.workspace import Workspace
 from apps.api.tests.utils.tortoise import reset_postgres_schema
 
 pytestmark = pytest.mark.integration

@@ -9,15 +9,15 @@ from apps.api.src.common.protocols.tortoise import SettingUpdatedBy
 from apps.api.src.common.services import BaseService
 from apps.api.src.core.exceptions import BadRequest, NotFound, ServiceUnavailable
 from apps.api.src.core.i18n import t
-from apps.api.src.modules.system.models.rbac import Role
-from apps.api.src.modules.system.models.setting import SettingRecord
-from apps.api.src.modules.system.rbac.constants.service import ROLE_ADMIN, ROLE_OWNER
-from apps.api.src.modules.workspaces.models.workspace import (
+from apps.api.src.models.system.rbac import Role
+from apps.api.src.models.system.setting import SettingRecord
+from apps.api.src.models.workspaces.workspace import (
     Workspace,
     WorkspaceMembership,
     WorkspaceMembershipRole,
     WorkspaceMembershipStatus,
 )
+from apps.api.src.modules.system.rbac.constants.service import ROLE_ADMIN, ROLE_OWNER
 from apps.api.src.modules.workspaces.settings.schema import (
     WorkspaceAssignRoleToMembersResult,
     WorkspaceRolePolicyOut,

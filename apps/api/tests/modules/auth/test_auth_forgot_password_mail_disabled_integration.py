@@ -8,7 +8,7 @@ from httpx import ASGITransport, AsyncClient
 from apps.api.src.config import get_settings
 from apps.api.src.core.database.orm import verify_db_ready
 from apps.api.src.core.registry import create_app
-from apps.api.src.modules.system.models.setting import SettingRecord
+from apps.api.src.models.system.setting import SettingRecord
 from apps.api.src.settings.scopes import SCOPE_TYPE_SYSTEM, SYSTEM_SCOPE_ID
 
 pytestmark = pytest.mark.integration
@@ -16,7 +16,7 @@ pytestmark = pytest.mark.integration
 
 async def _create_user_with_email(*, email: str) -> None:
     from apps.api.src.modules.auth.repository import UserRepository
-    from apps.api.src.modules.auth.security import hash_password
+    from apps.api.src.modules.auth.tokens.service import hash_password
 
     settings = get_settings()
     user_repo = UserRepository()

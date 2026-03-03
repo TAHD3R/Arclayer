@@ -5,7 +5,9 @@ from uuid import UUID
 
 from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 
+from apps.api.src.common.protocols.logging import LoggerLike
 from apps.api.src.config import Settings
+from apps.api.src.models.system.setting import SettingRecord
 from apps.api.src.modules.sys.settings.namespaces.schema import (
     SYS_NAMESPACE_AUTH,
     SYS_NAMESPACE_CORE_LEGACY,
@@ -20,7 +22,6 @@ from apps.api.src.modules.sys.settings.schemahelpers.service import (
     _canonical_json_bytes,
     _ts,
 )
-from apps.api.src.modules.system.models.setting import SettingRecord
 from apps.api.src.plugin.manifest import ConfigSchema
 from apps.api.src.settings.core_schema import CORE_SETTINGS_NAMESPACE
 from apps.api.src.settings.scopes import SCOPE_TYPE_SYSTEM, SYSTEM_SCOPE_ID
@@ -37,7 +38,7 @@ from apps.api.src.settings.validation import merge_deep
 class SysConfigNamespacesMixin(SysConfigSchemaHelpersMixin):
     repo: SysConfigRepository
     settings: Settings
-    logger: object
+    logger: LoggerLike
 
     async def list_namespaces(self) -> list[SysConfigNamespaceSummary]:
         return [

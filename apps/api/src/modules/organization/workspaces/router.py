@@ -10,11 +10,11 @@ from apps.api.src.common.types.public_uuid import PublicUUID
 from apps.api.src.config import Settings, get_settings
 from apps.api.src.core.http.pagination import DependsPagination, PageData, PageParams
 from apps.api.src.core.http.response import Response, ResponseModel
-from apps.api.src.modules.organization.deps import (
+from apps.api.src.models.organization.org_membership import OrgMembership
+from apps.api.src.modules.organization.http.service import (
     get_current_org_membership,
     get_org_membership_for_organization,
 )
-from apps.api.src.modules.organization.models.org_membership import OrgMembership
 from apps.api.src.modules.organization.workspaces.schema import (
     OrganizationWorkspaceArchiveResult,
     OrganizationWorkspaceCreateRequest,

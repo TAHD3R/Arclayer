@@ -10,15 +10,17 @@ from apps.api.src.common.constants.auth import TOKEN_TYPE_ACCESS
 from apps.api.src.config import Settings, get_settings
 from apps.api.src.core.exceptions import Forbidden, Unauthorized
 from apps.api.src.core.i18n import t
+from apps.api.src.models.organization.user import User
 from apps.api.src.modules.auth.repository import UserRepository
 from apps.api.src.modules.auth.tokens.service import decode_token
-from apps.api.src.modules.organization.models.user import User
 
 bearer_scheme = HTTPBearer(auto_error=False)
 
 
-def _parse_user_id(raw: str | None) -> UUID:
-    if not raw:
+def _parse_user_id(raw: object | None) -> UUID:
+    if raw is None:
+        raise Unauthorized(message=t("auth", "TOKEN_INVALID", default="Token 无效"), error="TOKEN_INVALID")
+    if isinstance(raw, str) and not raw:
         raise Unauthorized(message=t("auth", "TOKEN_INVALID", default="Token 无效"), error="TOKEN_INVALID")
     try:
         return UUID(str(raw))

@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import cast
 from uuid import UUID
 
+from apps.api.src.common.protocols.logging import LoggerLike
 from apps.api.src.common.protocols.tortoise import HasOrganizationId
 from apps.api.src.config import Settings
 from apps.api.src.modules.system.setup.shared.service import _raise_if_fatal
@@ -10,18 +11,24 @@ from apps.api.src.modules.system.setup.shared.service import _raise_if_fatal
 
 class SystemSetupWorkspaceBootstrapMixin:
     settings: Settings
-    logger: object
+    logger: LoggerLike
 
-    async def _ensure_default_workspace(self, *, org_id, owner_user_id, workspace_name: str) -> UUID | None:
+    async def _ensure_default_workspace(
+        self,
+        *,
+        org_id: UUID,
+        owner_user_id: UUID,
+        workspace_name: str,
+    ) -> UUID | None:
         try:
-            from apps.api.src.modules.organization.models.org_membership import OrgMembership, OrgRole
-            from apps.api.src.modules.system.rbac.service import RBACService
-            from apps.api.src.modules.workspaces.models.workspace import (
+            from apps.api.src.models.organization.org_membership import OrgMembership, OrgRole
+            from apps.api.src.models.workspaces.workspace import (
                 Workspace,
                 WorkspaceMembership,
                 WorkspaceMembershipRole,
                 WorkspaceMembershipStatus,
             )
+            from apps.api.src.modules.system.rbac.service import RBACService
 
             await OrgMembership.get_or_create(
                 user_id=owner_user_id,
@@ -54,7 +61,7 @@ class SystemSetupWorkspaceBootstrapMixin:
             ws = await Workspace.filter(organization_id=org_id).order_by("created_at").first()
             if ws is None:
                 name = (workspace_name or "Default").strip() or "Default"
-                from apps.api.src.modules.workspaces.slug_policy import next_available_workspace_slug
+                from apps.api.src.modules.workspaces.slug.service import next_available_workspace_slug
 
                 slug = await next_available_workspace_slug(
                     base_slug=name,

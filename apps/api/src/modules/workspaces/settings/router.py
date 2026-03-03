@@ -7,8 +7,9 @@ from fastapi import APIRouter, Depends
 from apps.api.src.config import Settings, get_settings
 from apps.api.src.core.http.response import Response, ResponseModel
 from apps.api.src.modules.auth.http.service import get_current_user_id
-from apps.api.src.modules.workspaces.authz.deps import require_workspace_permission
-from apps.api.src.modules.workspaces.deps import WorkspaceContext, require_workspace_manage_access
+from apps.api.src.modules.workspaces.authz.http.service import require_workspace_permission
+from apps.api.src.modules.workspaces.http.schema import WorkspaceContext
+from apps.api.src.modules.workspaces.http.service import require_workspace_manage_access
 from apps.api.src.modules.workspaces.settings.schema import (
     WorkspaceAssignRoleToMembersRequest,
     WorkspaceAssignRoleToMembersResult,

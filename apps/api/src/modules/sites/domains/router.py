@@ -21,8 +21,9 @@ from apps.api.src.modules.sites.domains.schema import (
     SiteDomainVerifyOut,
 )
 from apps.api.src.modules.sites.domains.service import SiteDomainsService
-from apps.api.src.modules.workspaces.authz.deps import require_workspace_permission
-from apps.api.src.modules.workspaces.deps import WorkspaceContext, require_workspace_manage_access
+from apps.api.src.modules.workspaces.authz.http.service import require_workspace_permission
+from apps.api.src.modules.workspaces.http.schema import WorkspaceContext
+from apps.api.src.modules.workspaces.http.service import require_workspace_manage_access
 
 router = APIRouter(
     prefix="/workspaces/{workspace_id}/site/domains",

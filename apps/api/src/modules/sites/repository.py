@@ -4,11 +4,11 @@ from typing import Literal
 from uuid import UUID
 
 from apps.api.src.common.repositories.base import BaseRepository
-from apps.api.src.modules.sites.design_document.schema import PageBlueprint
+from apps.api.src.models.sites.site_entry import EntryRecord, EntryRevisionRecord
+from apps.api.src.models.sites.site_route_template import RouteTemplateRecord
+from apps.api.src.modules.sites.design.schema import PageBlueprint
 from apps.api.src.modules.sites.entries.repository import EntriesRepositoryMixin
-from apps.api.src.modules.sites.entry_types.repository import EntryTypesRepositoryMixin
-from apps.api.src.modules.sites.models.site_entry import EntryRecord, EntryRevisionRecord
-from apps.api.src.modules.sites.models.site_route_template import RouteTemplateRecord
+from apps.api.src.modules.sites.entry.types.repository import EntryTypesRepositoryMixin
 from apps.api.src.modules.sites.pages.repository import PagesRepositoryMixin
 from apps.api.src.modules.sites.publishing.repository import SitePublishingRepository
 from apps.api.src.modules.sites.runtime.repository import RuntimeRepositoryMixin

@@ -1,11 +1,16 @@
 from __future__ import annotations
 
 import asyncio
+from typing import TYPE_CHECKING
 
+from apps.api.src.common.protocols.logging import LoggerLike
 from apps.api.src.plugin.event_bus import Event
 from apps.api.src.plugin.events import SETTINGS_UPDATED
 from apps.api.src.plugin.manifest import ConfigSchema
 from apps.api.src.settings.validation import iter_secret_field_paths
+
+if TYPE_CHECKING:
+    from apps.api.src.plugin.manager import PluginManager
 
 _FATAL_SETTINGS_SERVICE_ERRORS: tuple[type[BaseException], ...] = (
     asyncio.CancelledError,
@@ -40,8 +45,8 @@ def _is_secret_descendant(path: str, secrets: set[str]) -> bool:
 
 
 class SettingsEventsMixin:
-    manager: object
-    logger: object
+    manager: PluginManager
+    logger: LoggerLike
 
     async def _emit_settings_updated(
         self,

@@ -10,7 +10,7 @@ from httpx import ASGITransport, AsyncClient
 from apps.api.src.common.utils.public_ids import decode_public_id, encode_uuid
 from apps.api.src.config import get_settings
 from apps.api.src.core.registry import create_app
-from apps.api.src.modules.auth.deps import get_current_user
+from apps.api.src.modules.auth.http.service import get_current_user
 
 pytestmark = pytest.mark.integration
 
@@ -40,11 +40,11 @@ async def test_uploads_resumable_flow(prepared_db, plugin_root, tmp_path: Path, 
 
     transport = ASGITransport(app=app)
     async with app.router.lifespan_context(app):
+        from apps.api.src.models.organization.org_membership import OrgMembership, OrgRole
+        from apps.api.src.models.workspaces.workspace import Workspace
         from apps.api.src.modules.auth.repository import UserRepository
-        from apps.api.src.modules.auth.security import hash_password
-        from apps.api.src.modules.organization.models.org_membership import OrgMembership, OrgRole
+        from apps.api.src.modules.auth.tokens.service import hash_password
         from apps.api.src.modules.organization.repository import OrganizationRepository
-        from apps.api.src.modules.workspaces.models.workspace import Workspace
 
         settings = get_settings()
         user_repo = UserRepository()
@@ -126,7 +126,7 @@ async def test_uploads_resumable_flow(prepared_db, plugin_root, tmp_path: Path, 
             assert complete2.json()["data"]["assetId"] == asset_pid
 
         # Verify the created asset records uploader.
-        from apps.api.src.modules.assets.models.asset import AssetRecord
+        from apps.api.src.models.assets.asset import AssetRecord
 
         asset = await AssetRecord.get_or_none(id=asset_uuid)
         assert asset is not None
@@ -134,7 +134,7 @@ async def test_uploads_resumable_flow(prepared_db, plugin_root, tmp_path: Path, 
 
         # Verify file content on disk (local provider).
         from apps.api.src.infra.storage.local import safe_object_key_to_path
-        from apps.api.src.modules.assets.utils import build_asset_object_key
+        from apps.api.src.modules.assets.naming.service import build_asset_object_key
 
         key = build_asset_object_key(workspace_id=ws.id, asset_id=asset_uuid, ext="png")
         out_path = safe_object_key_to_path(root, key)

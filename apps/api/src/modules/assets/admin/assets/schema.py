@@ -7,7 +7,7 @@ from pydantic import Field, computed_field
 from apps.api.src.common.schemas import BaseOut, BaseSchema
 from apps.api.src.common.types.public_uuid import PublicUUID
 from apps.api.src.common.utils.public_ids import encode_uuid
-from apps.api.src.modules.assets.models.asset import AssetPurpose, AssetVisibility
+from apps.api.src.models.assets.asset import AssetPurpose, AssetVisibility
 
 
 def _canonical_filename(slug: str | None, ext: str | None) -> str:

@@ -24,5 +24,7 @@ def test_mask_secrets_sets_value_to_null_and_reports_secrets_state() -> None:
     )
 
     masked, secrets = service._mask_secrets(schema, {"google": {"client_secret": "enc:v1:dummy"}})
-    assert masked["google"]["client_secret"] is None
+    google = masked.get("google")
+    assert isinstance(google, dict)
+    assert google.get("client_secret") is None
     assert secrets["google.client_secret"] is True

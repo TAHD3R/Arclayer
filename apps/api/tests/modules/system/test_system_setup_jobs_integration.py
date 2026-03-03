@@ -17,7 +17,7 @@ _SETUP_TOKEN = "integration-setup-token"
 
 
 async def _reset_setup_prerequisites() -> None:
-    from apps.api.src.modules.organization.models.user import User
+    from apps.api.src.models.organization.user import User
 
     settings = get_settings()
     await User.all().delete()
@@ -217,7 +217,7 @@ async def test_setup_job_dry_run_does_not_persist_data(
             assert status_resp.status_code == 200
             assert status_resp.json()["data"]["initialized"] is False
 
-            from apps.api.src.modules.organization.models.user import User
+            from apps.api.src.models.organization.user import User
 
             assert await User.all().count() == 0
             assert Path(settings.setup.master_key_path).exists() is False

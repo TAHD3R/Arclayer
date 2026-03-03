@@ -6,7 +6,7 @@ from tortoise.transactions import in_transaction
 
 from apps.api.src.common.utils.ids import uuid7
 from apps.api.src.core.exceptions import BadRequest, Conflict, NotFound
-from apps.api.src.modules.system.models.rbac import PermissionScope, Role
+from apps.api.src.models.system.rbac import PermissionScope, Role
 from apps.api.src.modules.system.rbac.localization.service import _tr
 from apps.api.src.modules.system.rbac.repository import RBACRepository
 

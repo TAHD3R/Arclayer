@@ -1,23 +1,24 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
 import pytest
+from pydantic import BaseModel, ConfigDict, Field
 
 from apps.api.src.modules.assets.admin.assets.schema import AdminAssetFolderUpdateRequest
 from apps.api.src.modules.assets.admin.assets.service import AdminAssetsService
 
 
-@dataclass
-class _Folder:
+class _Folder(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     id: UUID
     parent_id: UUID | None
     name: str
     description: str | None = None
     sort_order: int = 0
-    created_at: datetime = field(default_factory=lambda: datetime.now(tz=UTC))
+    created_at: datetime = Field(default_factory=lambda: datetime.now(tz=UTC))
 
 
 class _FakeQuery:

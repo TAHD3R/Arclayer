@@ -72,7 +72,7 @@ def _build_lifespan(settings: Settings, *, plugin_manager: PluginManager):
             await ensure_settings_schema_constraints()
             # Cache "initialized" flag for lightweight request guards.
             try:
-                from apps.api.src.modules.organization.models.user import User
+                from apps.api.src.models.organization.user import User
 
                 app.state.system_initialized = await User.all().exists()
             except BaseException as exc:

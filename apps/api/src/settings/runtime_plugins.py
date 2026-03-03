@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 import binascii
-from typing import Any
+from uuid import UUID
 
 from cryptography.exceptions import InvalidTag
 from tortoise.exceptions import OperationalError
 
 from apps.api.src.config import Settings
 from apps.api.src.core.logging import get_logger
-from apps.api.src.modules.system.models.setting import SettingRecord
+from apps.api.src.models.system.setting import SettingRecord
 from apps.api.src.plugin.manifest import ConfigSchema
 from apps.api.src.settings.crypto import decrypt_secret, is_encrypted, load_master_key, master_key_exists
 from apps.api.src.settings.scopes import SCOPE_TYPE_ORG, SCOPE_TYPE_SYSTEM, SYSTEM_SCOPE_ID
@@ -25,8 +25,8 @@ async def get_system_plugin_settings_decrypted(
     *,
     plugin_id: str,
     schema: ConfigSchema,
-    defaults: dict[str, Any] | None = None,
-) -> dict[str, Any]:
+    defaults: dict[str, object] | None = None,
+) -> dict[str, object]:
     return await get_scoped_plugin_settings_decrypted(
         settings,
         plugin_id=plugin_id,
@@ -40,11 +40,11 @@ async def get_system_plugin_settings_decrypted(
 async def get_org_plugin_settings_decrypted(
     settings: Settings,
     *,
-    organization_id: Any,
+    organization_id: UUID,
     plugin_id: str,
     schema: ConfigSchema,
-    defaults: dict[str, Any] | None = None,
-) -> dict[str, Any]:
+    defaults: dict[str, object] | None = None,
+) -> dict[str, object]:
     return await get_scoped_plugin_settings_decrypted(
         settings,
         plugin_id=plugin_id,
@@ -61,9 +61,9 @@ async def get_scoped_plugin_settings_decrypted(
     plugin_id: str,
     schema: ConfigSchema,
     scope_type: str,
-    scope_id: Any,
-    defaults: dict[str, Any] | None = None,
-) -> dict[str, Any]:
+    scope_id: UUID,
+    defaults: dict[str, object] | None = None,
+) -> dict[str, object]:
     """
     Load scoped plugin settings (namespace=plugin:<plugin_id>), decrypting secret fields in-memory.
 
@@ -74,7 +74,7 @@ async def get_scoped_plugin_settings_decrypted(
     """
 
     namespace = f"plugin:{plugin_id}"
-    base: dict[str, Any] = dict(defaults or {})
+    base: dict[str, object] = dict(defaults or {})
 
     if not settings.database.enabled:
         return base
@@ -89,7 +89,6 @@ async def get_scoped_plugin_settings_decrypted(
         if isinstance(raw, dict):
             base = dict(raw)
     except _SCOPED_PLUGIN_SETTINGS_LOAD_ERRORS as exc:
-        # Best-effort: do not break auth flows if DB is not ready.
         logger.warning(
             "Plugin scoped settings load failed",
             action="load_scoped_plugin_settings",
@@ -98,7 +97,7 @@ async def get_scoped_plugin_settings_decrypted(
             scope_id=str(scope_id),
             error=str(exc),
         )
-        return base
+        raise
 
     # Decrypt secret fields (best-effort).
     if master_key_exists(settings.setup.master_key_path):
@@ -113,7 +112,7 @@ async def get_scoped_plugin_settings_decrypted(
                 scope_id=str(scope_id),
                 error=str(exc),
             )
-            key = None
+            raise
     else:
         key = None
 
@@ -132,8 +131,7 @@ async def get_scoped_plugin_settings_decrypted(
             continue
 
         if key is None:
-            section[field_key] = None
-            continue
+            raise RuntimeError("Master key missing: cannot decrypt plugin secret")
 
         try:
             aad = f"{scope_type}:{scope_id}:{namespace}:{path}"
@@ -148,7 +146,7 @@ async def get_scoped_plugin_settings_decrypted(
                 secret_path=path,
                 error=str(exc),
             )
-            section[field_key] = None
+            raise
 
     return base
 

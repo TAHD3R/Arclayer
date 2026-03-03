@@ -9,9 +9,9 @@ Runtime payload is derived from settings and other stored entities.
 from uuid import UUID
 
 from apps.api.src.core.exceptions import NotFound
-from apps.api.src.modules.sites.models.site import SiteRecord
+from apps.api.src.models.content.content import ContentEntryRecord, ContentRevisionRecord
+from apps.api.src.models.sites.site import SiteRecord
 from apps.api.src.modules.sites.shared.service import normalize_path
-from apps.api.src.modules.workspaces.content.models.content import ContentEntryRecord, ContentRevisionRecord
 
 
 class RuntimeRepositoryMixin:

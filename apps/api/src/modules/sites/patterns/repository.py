@@ -6,7 +6,7 @@ from uuid import UUID
 from tortoise.queryset import QuerySet
 
 from apps.api.src.common.repositories.base import BaseRepository
-from apps.api.src.modules.sites.models.site_pattern import SitePattern
+from apps.api.src.models.sites.site_pattern import SitePattern
 
 
 class SitePatternRepository(BaseRepository):

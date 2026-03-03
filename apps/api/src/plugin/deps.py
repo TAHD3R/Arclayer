@@ -5,9 +5,9 @@ from tortoise.exceptions import OperationalError
 from apps.api.src.core.exceptions import Forbidden
 from apps.api.src.core.i18n import t
 from apps.api.src.core.logging import get_logger
-from apps.api.src.modules.organization.runtime import get_single_organization_id
-from apps.api.src.modules.system.models.plugin import PluginRecord
-from apps.api.src.modules.workspaces.context import get_current_workspace_id
+from apps.api.src.models.system.plugin import PluginRecord
+from apps.api.src.modules.organization.runtime.service import get_single_organization_id
+from apps.api.src.modules.workspaces.runtime.service import get_current_workspace_id
 from apps.api.src.plugin.types import PluginStatus
 
 logger = get_logger(__name__)
@@ -32,7 +32,7 @@ def require_plugin_enabled(plugin_id: str, *, management_scope: str = "workspace
                     error="PLUGIN_DISABLED",
                 )
             try:
-                from apps.api.src.modules.organization.models.org_plugin_state import OrganizationPluginState
+                from apps.api.src.models.organization.org_plugin_state import OrganizationPluginState
 
                 state = await OrganizationPluginState.get_or_none(organization_id=organization_id, plugin_id=plugin_id)
                 if state is None or not bool(state.enabled):
@@ -61,7 +61,7 @@ def require_plugin_enabled(plugin_id: str, *, management_scope: str = "workspace
         if workspace_id is None:
             return
         try:
-            from apps.api.src.modules.workspaces.plugins_center.models import WorkspacePluginState
+            from apps.api.src.models.plugins.workspace_plugin_state import WorkspacePluginState
 
             state = await WorkspacePluginState.get_or_none(workspace_id=workspace_id, plugin_id=plugin_id)
             if state is None or not bool(state.enabled):

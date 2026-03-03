@@ -4,7 +4,7 @@ from typing import Literal, cast
 from uuid import UUID
 
 from apps.api.src.common.protocols.tortoise import HasParentId
-from apps.api.src.modules.organization.models.user import User
+from apps.api.src.models.organization.user import User
 from apps.api.src.modules.sites.schema import SitePageTreeNodeOut, SitePageUserSummaryOut
 
 

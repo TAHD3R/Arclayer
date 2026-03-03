@@ -7,7 +7,8 @@ from apps.api.src.core.http.pagination import PageData, PageParams, get_page_par
 from apps.api.src.core.http.response import Response, ResponseModel
 from apps.api.src.modules.analytics.schema import AuditEventListQuery, AuditEventOut
 from apps.api.src.modules.analytics.service import ActivityService
-from apps.api.src.modules.workspaces.deps import WorkspaceContext, require_workspace_manage_access
+from apps.api.src.modules.workspaces.http.schema import WorkspaceContext
+from apps.api.src.modules.workspaces.http.service import require_workspace_manage_access
 
 router = APIRouter(
     prefix="/workspaces/{workspace_id}/activity",

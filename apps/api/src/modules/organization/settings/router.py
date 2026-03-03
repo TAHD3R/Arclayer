@@ -8,8 +8,12 @@ from fastapi import APIRouter, Depends, Query
 from apps.api.src.common.protocols.tortoise import HasOrganizationId, HasUserId
 from apps.api.src.config import Settings, get_settings
 from apps.api.src.core.http.response import Response, ResponseModel
-from apps.api.src.modules.organization.deps import get_current_org_membership, require_org_admin, require_org_owner
-from apps.api.src.modules.organization.models.org_membership import OrgMembership
+from apps.api.src.models.organization.org_membership import OrgMembership
+from apps.api.src.modules.organization.http.service import (
+    get_current_org_membership,
+    require_org_admin,
+    require_org_owner,
+)
 from apps.api.src.modules.organization.settings.schema import (
     DeleteOrganizationResult,
     LeaveOrganizationRequest,

@@ -8,15 +8,15 @@ from httpx import ASGITransport, AsyncClient
 from apps.api.src.config import get_settings
 from apps.api.src.core.database.orm import verify_db_ready
 from apps.api.src.core.registry import create_app
-from apps.api.src.modules.auth.deps import get_current_user, get_current_user_id
+from apps.api.src.models.organization.org_membership import OrgMembership, OrgRole
+from apps.api.src.models.organization.organization import Organization
+from apps.api.src.models.organization.user import User
+from apps.api.src.models.system.setting import SettingRecord
+from apps.api.src.models.workspaces.workspace import Workspace, WorkspaceMembership, WorkspaceMembershipStatus
+from apps.api.src.modules.auth.http.service import get_current_user, get_current_user_id
 from apps.api.src.modules.auth.repository import UserRepository
-from apps.api.src.modules.auth.security import hash_password
-from apps.api.src.modules.organization.models.org_membership import OrgMembership, OrgRole
-from apps.api.src.modules.organization.models.organization import Organization
-from apps.api.src.modules.organization.models.user import User
+from apps.api.src.modules.auth.tokens.service import hash_password
 from apps.api.src.modules.organization.repository import OrganizationRepository
-from apps.api.src.modules.system.models.setting import SettingRecord
-from apps.api.src.modules.workspaces.models.workspace import Workspace, WorkspaceMembership, WorkspaceMembershipStatus
 from apps.api.src.settings.scopes import SCOPE_TYPE_ORG
 
 pytestmark = pytest.mark.integration

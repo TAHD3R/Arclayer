@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import cast
 
 from apps.api.src.common.protocols.tortoise import OrganizationLogoUrlMutableFields
-from apps.api.src.modules.organization.models.organization import Organization
+from apps.api.src.models.organization.organization import Organization
 
 
 class SystemSetupOrganizationBootstrapMixin:
@@ -15,7 +15,7 @@ class SystemSetupOrganizationBootstrapMixin:
         logo_url: str | None,
         created_by_user_id,
     ) -> Organization:
-        from apps.api.src.modules.organization.models.organization import Organization
+        from apps.api.src.models.organization.organization import Organization
         from apps.api.src.modules.organization.repository import OrganizationRepository
 
         repo = OrganizationRepository()

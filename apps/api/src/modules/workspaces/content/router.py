@@ -9,13 +9,10 @@ from apps.api.src.common.types.public_uuid import PublicUUID
 from apps.api.src.core.http.pagination import PageData, PageParams, get_page_params
 from apps.api.src.core.http.response import Response, ResponseModel
 from apps.api.src.modules.auth.http.service import get_current_user_id
-from apps.api.src.modules.workspaces.authz.deps import require_workspace_permission
-from apps.api.src.modules.workspaces.content.router_appearance import appearance_router
-from apps.api.src.modules.workspaces.content.router_blocks import blocks_router
-from apps.api.src.modules.workspaces.content.router_pages import pages_router
-from apps.api.src.modules.workspaces.content.router_shared import _resolve_site_id, get_workspace_content_service
-from apps.api.src.modules.workspaces.content.router_structure import structure_router
-from apps.api.src.modules.workspaces.content.router_views import views_router
+from apps.api.src.modules.workspaces.authz.http.service import require_workspace_permission
+from apps.api.src.modules.workspaces.content.appearance.router import appearance_router
+from apps.api.src.modules.workspaces.content.blocks.router import blocks_router
+from apps.api.src.modules.workspaces.content.pages.router import pages_router
 from apps.api.src.modules.workspaces.content.schema import (
     ContentEntryCreateIn,
     ContentEntryDeleteOut,
@@ -35,7 +32,11 @@ from apps.api.src.modules.workspaces.content.schema import (
     ContentTypeUpdateIn,
 )
 from apps.api.src.modules.workspaces.content.service import WorkspaceContentService
-from apps.api.src.modules.workspaces.deps import WorkspaceContext, require_workspace_manage_access
+from apps.api.src.modules.workspaces.content.shared.router import _resolve_site_id, get_workspace_content_service
+from apps.api.src.modules.workspaces.content.structure.router import structure_router
+from apps.api.src.modules.workspaces.content.views.router import views_router
+from apps.api.src.modules.workspaces.http.schema import WorkspaceContext
+from apps.api.src.modules.workspaces.http.service import require_workspace_manage_access
 
 router = APIRouter(
     prefix="/workspaces/{workspace_id}/content",

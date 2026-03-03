@@ -14,7 +14,7 @@ from tortoise.transactions import in_transaction
 
 from apps.api.src.common.protocols.tortoise import SitePageMutableFields
 from apps.api.src.core.exceptions import Conflict, NotFound
-from apps.api.src.modules.sites.models.site_page import SitePageRecord, SitePageRevisionRecord, SitePageVisibility
+from apps.api.src.models.sites.site_page import SitePageRecord, SitePageRevisionRecord, SitePageVisibility
 from apps.api.src.modules.sites.shared.service import normalize_path
 
 

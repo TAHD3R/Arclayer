@@ -8,7 +8,7 @@ from tortoise.queryset import QuerySet
 
 from apps.api.src.common.protocols.tortoise import PermissionMutableFields
 from apps.api.src.common.repositories import BaseRepository
-from apps.api.src.modules.system.models.rbac import BootstrapState, Permission, PermissionScope, Role, RolePermission
+from apps.api.src.models.system.rbac import BootstrapState, Permission, PermissionScope, Role, RolePermission
 from apps.api.src.modules.system.rbac.constants.service import BOOTSTRAP_KEY
 
 

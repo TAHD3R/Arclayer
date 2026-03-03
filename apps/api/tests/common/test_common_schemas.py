@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
@@ -15,8 +14,7 @@ class DemoOut(BaseOut, TimestampMixin):
     name: str
 
 
-@dataclass
-class Dummy:
+class Dummy(BaseSchema):
     id: UUID
     name: str
     created_at: datetime

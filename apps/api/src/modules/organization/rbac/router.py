@@ -9,8 +9,8 @@ from apps.api.src.common.protocols.tortoise import HasOrganizationId
 from apps.api.src.config import Settings, get_settings
 from apps.api.src.core.http.pagination import PageData, PageParams, get_page_params, paginate_items
 from apps.api.src.core.http.response import Response, ResponseModel
-from apps.api.src.modules.organization.deps import get_current_org_membership
-from apps.api.src.modules.organization.models.org_membership import OrgMembership
+from apps.api.src.models.organization.org_membership import OrgMembership
+from apps.api.src.modules.organization.http.service import get_current_org_membership
 from apps.api.src.modules.organization.rbac.schema import (
     OrganizationPermissionOut,
     OrganizationPermissionRoleSetRequest,

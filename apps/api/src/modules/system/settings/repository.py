@@ -5,7 +5,7 @@ from uuid import UUID
 
 from apps.api.src.common.protocols.tortoise import SettingUpdatedBy
 from apps.api.src.common.repositories.base import BaseRepository
-from apps.api.src.modules.system.models.setting import SettingRecord
+from apps.api.src.models.system.setting import SettingRecord
 from apps.api.src.settings.scopes import SCOPE_TYPE_SYSTEM, SYSTEM_SCOPE_ID
 
 

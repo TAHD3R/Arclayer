@@ -148,7 +148,7 @@ class NotificationService(BaseService):
         if self.settings.app_env not in {"development", "test"}:
             raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
 
-        from apps.api.src.modules.system.models.notification import NotificationCategory, NotificationRecord
+        from apps.api.src.models.system.notification import NotificationCategory, NotificationRecord
 
         safe_count = max(0, min(int(count), 50))
         if safe_count <= 0:

@@ -6,9 +6,9 @@ import pytest
 
 from apps.api.src.config import get_settings
 from apps.api.src.core.exceptions import Unauthorized
-from apps.api.src.modules.auth.security import hash_password
+from apps.api.src.models.organization.user import User, UserCredential, UserStatus
 from apps.api.src.modules.auth.service import AuthService
-from apps.api.src.modules.organization.models.user import User, UserCredential, UserStatus
+from apps.api.src.modules.auth.tokens.service import hash_password
 
 pytestmark = pytest.mark.integration
 

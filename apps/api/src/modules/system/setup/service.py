@@ -4,7 +4,6 @@ import asyncio
 
 from apps.api.src.common.services.base import BaseService
 from apps.api.src.config import Settings
-from apps.api.src.modules.auth.repository import UserRepository
 from apps.api.src.modules.system.setup.access.service import SystemSetupAccessMixin
 from apps.api.src.modules.system.setup.initialize.organization.service import SystemSetupOrganizationBootstrapMixin
 from apps.api.src.modules.system.setup.initialize.service import SystemSetupInitializeMixin
@@ -27,7 +26,7 @@ class SystemSetupService(
 ):
     _background_tasks: set[asyncio.Task[None]] = set()
 
-    def __init__(self, settings: Settings, *, manager: PluginManager) -> None:
+    def __init__(self, settings: Settings, *, manager: PluginManager, user_repo: object) -> None:
         super().__init__(settings)
         self.manager = manager
-        self.user_repo = UserRepository()
+        self.user_repo = user_repo

@@ -115,8 +115,8 @@ async def test_bulk_update_assets_requires_fields(monkeypatch) -> None:
 async def test_bulk_update_assets_updates_repo(monkeypatch) -> None:
     # Behavior: bulk update should call repository once and return updated ids/count.
     from apps.api.src.config import get_settings
+    from apps.api.src.models.assets.asset import AssetVisibility
     from apps.api.src.modules.assets.admin.assets.schema import AdminAssetBulkUpdateRequest
-    from apps.api.src.modules.assets.models.asset import AssetVisibility
 
     settings = get_settings()
     service = AdminAssetsService(settings)

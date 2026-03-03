@@ -13,8 +13,8 @@ from tortoise.exceptions import ConfigurationError
 from apps.api.src.common.protocols.tortoise import HasSiteId
 from apps.api.src.config import Settings
 from apps.api.src.infra.cache.valkey import ValkeyClient
-from apps.api.src.modules.sites.models.site import SiteRecord
-from apps.api.src.modules.sites.models.site_domain import SiteDomainRecord
+from apps.api.src.models.sites.site import SiteRecord
+from apps.api.src.models.sites.site_domain import SiteDomainRecord
 
 _CACHE_KEY_PREFIX = "saas:site_resolve:host"
 _POSITIVE_TTL_SECONDS = 300

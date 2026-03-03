@@ -10,7 +10,7 @@ from apps.api.src.common.utils.public_ids import encode_uuid
 from apps.api.src.config import get_settings
 from apps.api.src.core.database.orm import verify_db_ready
 from apps.api.src.core.registry import create_app
-from apps.api.src.modules.auth.deps import get_current_user, get_current_user_id
+from apps.api.src.modules.auth.http.service import get_current_user, get_current_user_id
 
 pytestmark = pytest.mark.integration
 
@@ -33,7 +33,7 @@ async def _enable_mail_service() -> None:
     - Tests should enable mail explicitly to avoid coupling to default bootstrap values.
     """
 
-    from apps.api.src.modules.system.models.setting import SettingRecord
+    from apps.api.src.models.system.setting import SettingRecord
     from apps.api.src.settings.core_schema import CORE_SETTINGS_NAMESPACE
     from apps.api.src.settings.scopes import SCOPE_TYPE_SYSTEM, SYSTEM_SCOPE_ID
 
@@ -83,13 +83,13 @@ async def test_workspace_email_invite_pending_unique_and_accept(
 
         monkeypatch.setattr("apps.api.src.common.email.service.EmailService._get_fast_mail", _dummy_get_fast_mail)
 
+        from apps.api.src.models.organization.org_membership import OrgMembership, OrgRole
+        from apps.api.src.models.organization.user import User
+        from apps.api.src.models.workspaces.workspace import Workspace
+        from apps.api.src.models.workspaces.workspace_invite import WorkspaceEmailInvite
         from apps.api.src.modules.auth.repository import UserRepository
-        from apps.api.src.modules.auth.security import hash_password
-        from apps.api.src.modules.organization.models.org_membership import OrgMembership, OrgRole
-        from apps.api.src.modules.organization.models.user import User
+        from apps.api.src.modules.auth.tokens.service import hash_password
         from apps.api.src.modules.organization.repository import OrganizationRepository
-        from apps.api.src.modules.workspaces.models.workspace import Workspace
-        from apps.api.src.modules.workspaces.models.workspace_invite import WorkspaceEmailInvite
 
         org_repo = OrganizationRepository()
         user_repo = UserRepository()
@@ -226,12 +226,12 @@ async def test_workspace_email_invite_email_mismatch_rejected(
 
         monkeypatch.setattr("apps.api.src.common.email.service.EmailService._get_fast_mail", _dummy_get_fast_mail)
 
+        from apps.api.src.models.organization.org_membership import OrgMembership, OrgRole
+        from apps.api.src.models.organization.user import User
+        from apps.api.src.models.workspaces.workspace import Workspace
         from apps.api.src.modules.auth.repository import UserRepository
-        from apps.api.src.modules.auth.security import hash_password
-        from apps.api.src.modules.organization.models.org_membership import OrgMembership, OrgRole
-        from apps.api.src.modules.organization.models.user import User
+        from apps.api.src.modules.auth.tokens.service import hash_password
         from apps.api.src.modules.organization.repository import OrganizationRepository
-        from apps.api.src.modules.workspaces.models.workspace import Workspace
 
         org_repo = OrganizationRepository()
         user_repo = UserRepository()
@@ -303,12 +303,12 @@ async def test_workspace_invite_link_disable_blocks_accept(prepared_db, integrat
     async with app.router.lifespan_context(app):
         await verify_db_ready(settings)
 
+        from apps.api.src.models.organization.org_membership import OrgMembership, OrgRole
+        from apps.api.src.models.organization.user import User
+        from apps.api.src.models.workspaces.workspace import Workspace
         from apps.api.src.modules.auth.repository import UserRepository
-        from apps.api.src.modules.auth.security import hash_password
-        from apps.api.src.modules.organization.models.org_membership import OrgMembership, OrgRole
-        from apps.api.src.modules.organization.models.user import User
+        from apps.api.src.modules.auth.tokens.service import hash_password
         from apps.api.src.modules.organization.repository import OrganizationRepository
-        from apps.api.src.modules.workspaces.models.workspace import Workspace
 
         org_repo = OrganizationRepository()
         user_repo = UserRepository()
@@ -402,12 +402,12 @@ async def test_workspace_team_member_manage_update_disable_enable_and_reset_pass
     async with app.router.lifespan_context(app):
         await verify_db_ready(settings)
 
+        from apps.api.src.models.organization.org_membership import OrgMembership, OrgRole
+        from apps.api.src.models.organization.user import User
+        from apps.api.src.models.workspaces.workspace import Workspace, WorkspaceMembership
         from apps.api.src.modules.auth.repository import UserRepository
-        from apps.api.src.modules.auth.security import hash_password
-        from apps.api.src.modules.organization.models.org_membership import OrgMembership, OrgRole
-        from apps.api.src.modules.organization.models.user import User
+        from apps.api.src.modules.auth.tokens.service import hash_password
         from apps.api.src.modules.organization.repository import OrganizationRepository
-        from apps.api.src.modules.workspaces.models.workspace import Workspace, WorkspaceMembership
 
         org_repo = OrganizationRepository()
         user_repo = UserRepository()

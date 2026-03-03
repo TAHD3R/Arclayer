@@ -4,6 +4,7 @@ from uuid import UUID
 
 from apps.api.src.config import Settings
 from apps.api.src.core.exceptions import Conflict
+from apps.api.src.models.workspaces.workspace import Workspace
 from apps.api.src.modules.system.rbac.catalogsync.service import RBACCatalogSyncMixin
 from apps.api.src.modules.system.rbac.constants.service import (
     ROLE_ADMIN,
@@ -15,7 +16,6 @@ from apps.api.src.modules.system.rbac.constants.service import (
 from apps.api.src.modules.system.rbac.localization.service import _tr
 from apps.api.src.modules.system.rbac.repository import RBACRepository
 from apps.api.src.modules.system.rbac.schema import PermissionSyncResult, WorkspacesSyncResult
-from apps.api.src.modules.workspaces.models.workspace import Workspace
 from apps.api.src.plugin.manifest import PermissionTemplate
 
 

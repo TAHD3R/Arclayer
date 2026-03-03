@@ -6,10 +6,10 @@ from uuid import UUID
 from apps.api.src.common.services.base import BaseService
 from apps.api.src.core.exceptions import NotFound
 from apps.api.src.core.http.pagination import PageData, PageParams
-from apps.api.src.modules.analytics.models.audit_event import AuditEvent
+from apps.api.src.models.analytics.audit_event import AuditEvent
+from apps.api.src.models.organization.user import User
 from apps.api.src.modules.analytics.repository import AuditEventRepository
 from apps.api.src.modules.analytics.schema import ActivityUserSummaryOut, AuditEventListQuery, AuditEventOut
-from apps.api.src.modules.organization.models.user import User
 
 
 class ActivityService(BaseService):

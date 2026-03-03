@@ -3,14 +3,17 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime
-from typing import Any, cast
+from typing import Protocol, cast
 from uuid import UUID, uuid4
 
 from pydantic import ValidationError
 
+from apps.api.src.common.protocols.logging import LoggerLike
 from apps.api.src.config import Settings
 from apps.api.src.core.exceptions import APIError, Conflict, Forbidden, NotFound, ServiceUnavailable
-from apps.api.src.modules.system.models.setup_job import SetupJobRecord
+from apps.api.src.models.organization.organization import Organization
+from apps.api.src.models.organization.user import User
+from apps.api.src.models.system.setup_job import SetupJobRecord
 from apps.api.src.modules.system.schema import (
     SystemSetupJobOut,
     SystemSetupJobStage,
@@ -32,9 +35,31 @@ _SETUP_STAGE_PROGRESS: dict[SystemSetupJobStage, int] = {
 _DRY_RUN_STAGE_DELAY_SECONDS = 0.28
 
 
+class _SystemSetupAccess(Protocol):
+    async def is_initialized(self) -> bool: ...
+
+
+class _SystemSetupInitializer(Protocol):
+    async def setup(
+        self,
+        *,
+        admin_username: str,
+        admin_password: str,
+        admin_email: str | None,
+        admin_display_name: str | None,
+        organization_name: str | None,
+        organization_slug: str | None,
+        organization_logo_url: str | None,
+        master_key_b64: str | None,
+        core_patch: dict[str, object] | None,
+        on_stage_change: Callable[[SystemSetupJobStage], Awaitable[None]] | None = None,
+        warnings: list[str] | None = None,
+    ) -> tuple[datetime, str, User, bool, Organization | None]: ...
+
+
 class SystemSetupJobMixin:
     settings: Settings
-    logger: object
+    logger: LoggerLike
     _background_tasks: set[asyncio.Task[None]]
 
     async def start_setup_job(self, *, payload: SystemSetupRequest, dry_run: bool = False) -> SystemSetupJobOut:
@@ -49,7 +74,7 @@ class SystemSetupJobMixin:
                 message=_ts("DB_REQUIRED", "系统初始化需要启用数据库"),
                 error="DATABASE_DISABLED",
             )
-        if not dry_run and await self.is_initialized():
+        if not dry_run and await cast(_SystemSetupAccess, self).is_initialized():
             raise Conflict(message=_ts("SETUP_DONE", "系统已初始化"), error="SETUP_ALREADY_DONE")
         if await SetupJobRecord.filter(status__in=list(_SETUP_RUNNING_STATUSES)).exists():
             raise Conflict(message=_ts("SETUP_JOB_RUNNING", "系统初始化任务正在执行中"), error="SETUP_JOB_RUNNING")
@@ -176,7 +201,7 @@ class SystemSetupJobMixin:
         )
 
     @staticmethod
-    def _normalize_warnings(raw: Any) -> list[str]:
+    def _normalize_warnings(raw: object) -> list[str]:
         if not isinstance(raw, list):
             return []
         return [item for item in raw if isinstance(item, str) and item]
@@ -250,7 +275,7 @@ class SystemSetupJobMixin:
         master_key_b64 = payload.master_key.get_secret_value() if payload.master_key is not None else None
         warning_bucket = warnings if warnings is not None else []
 
-        now, fp, user, rbac_ok, organization = await self.setup(
+        now, fp, user, rbac_ok, organization = await cast(_SystemSetupInitializer, self).setup(
             admin_username=admin.username,
             admin_password=admin.password.get_secret_value(),
             admin_email=admin.email,
@@ -266,10 +291,10 @@ class SystemSetupJobMixin:
         return SystemSetupResult(
             initialized_at=now,
             master_key_fingerprint=fp,
-            admin_user_id=user.id,
-            admin_username=user.username,
+            admin_user_id=UUID(str(user.id)),
+            admin_username=str(user.username),
             rbac_bootstrapped=rbac_ok,
-            organization_id=(organization.id if organization is not None else None),
-            organization_slug=(organization.slug if organization is not None else None),
-            organization_name=(organization.name if organization is not None else None),
+            organization_id=(UUID(str(organization.id)) if organization is not None else None),
+            organization_slug=(str(organization.slug) if organization is not None else None),
+            organization_name=(str(organization.name) if organization is not None else None),
         )

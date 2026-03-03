@@ -1,7 +1,9 @@
 from __future__ import annotations
 
-"""
-Publishing routes service.
+from apps.api.src.modules.sites.publishing.routes.drafts.service import PublishingRoutesDraftsService
+from apps.api.src.modules.sites.publishing.routes.resolve.service import PublishingRoutesResolveService
 
-Route resolution + draft/publish workflows are implemented in nested subdomains.
-"""
+__all__ = [
+    "PublishingRoutesDraftsService",
+    "PublishingRoutesResolveService",
+]

@@ -5,7 +5,7 @@ from uuid import UUID
 
 from apps.api.src.common.services.base import BaseService
 from apps.api.src.common.utils.public_ids import PublicIdDecodeError, decode_public_id
-from apps.api.src.modules.sites.design_document.schema import PageBlueprint
+from apps.api.src.modules.sites.design.schema import PageBlueprint
 from apps.api.src.modules.sites.namespaces.service import get_max_content_ref_depth
 from apps.api.src.modules.sites.repository import SitesRepository
 from apps.api.src.modules.sites.schema import ContentRefIncludeErrorV1, ContentRefIncludeV1, ResolveWarningV1

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Iterator
-from dataclasses import dataclass
 from typing import Any, TypeVar
 
 import pytest
@@ -13,8 +12,7 @@ from apps.api.src.core.http.pagination import PageParams, paginate_items, pagina
 T = TypeVar("T")
 
 
-@dataclass(slots=True)
-class _Obj:
+class _Obj(BaseSchema):
     value: int
 
 

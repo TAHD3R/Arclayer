@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from apps.api.src.modules.auth.passwords import hash_password, verify_password
+from apps.api.src.modules.auth.password.service import hash_password, verify_password
 
 
 def test_password_hash_and_verify() -> None:

@@ -1,7 +1,13 @@
 from __future__ import annotations
 
+from typing import Protocol, cast
+
 from apps.api.src.modules.sys.settings.schema import SysConfigTestCheck
 from apps.api.src.settings.core_schema import CORE_SETTINGS_NAMESPACE
+
+
+class _SysConfigCryptoLike(Protocol):
+    def _decrypt_secret_str_best_effort(self, *, namespace: str, secret_path: str, raw: str) -> str | None: ...
 
 
 class SysConfigChecksPolicyMixin:
@@ -23,7 +29,7 @@ class SysConfigChecksPolicyMixin:
             if not isinstance(client_secret_raw, str) or not client_secret_raw.strip():
                 return SysConfigTestCheck(code=code, ok=False, kind="config", message="Missing client_secret")
 
-            secret = self._decrypt_secret_str_best_effort(
+            secret = cast(_SysConfigCryptoLike, self)._decrypt_secret_str_best_effort(
                 namespace=CORE_SETTINGS_NAMESPACE,
                 secret_path=f"{section_id}.client_secret",
                 raw=client_secret_raw,

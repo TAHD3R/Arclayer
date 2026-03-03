@@ -11,8 +11,8 @@ from starlette.requests import Request
 
 from apps.api.src.config import get_settings
 from apps.api.src.infra.cache.valkey import ValkeyClientLike
-from apps.api.src.modules.auth.oauth_social.schema import OAuthStatePayload
-from apps.api.src.modules.auth.oauth_social.service import OAuthSocialService
+from apps.api.src.modules.auth.oauth.social.schema import OAuthStatePayload
+from apps.api.src.modules.auth.oauth.social.service import OAuthSocialService
 
 
 class _FakeValkey(ValkeyClientLike):
@@ -180,9 +180,9 @@ async def test_oauth_social_blocks_new_user_auto_provision_when_public_register_
 
     monkeypatch.setattr(service, "_load_core_oauth_config", _fake_load_config)
     monkeypatch.setattr(service, "_resolve_frontend_base_url", _fake_frontend_base_url)
-    monkeypatch.setattr("apps.api.src.modules.auth.oauth_social.service._valkey_getdel_best_effort", _fake_getdel)
+    monkeypatch.setattr("apps.api.src.modules.auth.oauth.social.service._valkey_getdel_best_effort", _fake_getdel)
     monkeypatch.setattr(
-        "apps.api.src.modules.auth.oauth_social.service.httpx.AsyncClient",
+        "apps.api.src.modules.auth.oauth.social.service.httpx.AsyncClient",
         lambda *args, **kwargs: _FakeGoogleClient(),
     )
     monkeypatch.setattr(service.repo, "get_identity", _fake_get_identity)
@@ -251,12 +251,12 @@ async def test_oauth_social_allows_existing_user_signin_when_public_register_dis
 
     monkeypatch.setattr(service, "_load_core_oauth_config", _fake_load_config)
     monkeypatch.setattr(service, "_resolve_frontend_base_url", _fake_frontend_base_url)
-    monkeypatch.setattr("apps.api.src.modules.auth.oauth_social.service._valkey_getdel_best_effort", _fake_getdel)
+    monkeypatch.setattr("apps.api.src.modules.auth.oauth.social.service._valkey_getdel_best_effort", _fake_getdel)
     monkeypatch.setattr(
-        "apps.api.src.modules.auth.oauth_social.service.httpx.AsyncClient",
+        "apps.api.src.modules.auth.oauth.social.service.httpx.AsyncClient",
         lambda *args, **kwargs: _FakeGoogleClient(),
     )
-    monkeypatch.setattr("apps.api.src.modules.auth.oauth_social.service.issue_exchange_code", _fake_issue_exchange_code)
+    monkeypatch.setattr("apps.api.src.modules.auth.oauth.social.service.issue_exchange_code", _fake_issue_exchange_code)
     monkeypatch.setattr(service.repo, "get_identity", _fake_get_identity)
     monkeypatch.setattr(service.repo, "get_user_by_email", _fake_get_user_by_email)
     monkeypatch.setattr(service.repo, "create_identity", _fake_create_identity)
@@ -319,9 +319,9 @@ async def test_oauth_social_blocks_new_user_when_auto_provision_disabled_even_if
 
     monkeypatch.setattr(service, "_load_core_oauth_config", _fake_load_config)
     monkeypatch.setattr(service, "_resolve_frontend_base_url", _fake_frontend_base_url)
-    monkeypatch.setattr("apps.api.src.modules.auth.oauth_social.service._valkey_getdel_best_effort", _fake_getdel)
+    monkeypatch.setattr("apps.api.src.modules.auth.oauth.social.service._valkey_getdel_best_effort", _fake_getdel)
     monkeypatch.setattr(
-        "apps.api.src.modules.auth.oauth_social.service.httpx.AsyncClient",
+        "apps.api.src.modules.auth.oauth.social.service.httpx.AsyncClient",
         lambda *args, **kwargs: _FakeGoogleClient(),
     )
     monkeypatch.setattr(service.repo, "get_identity", _fake_get_identity)
@@ -396,12 +396,12 @@ async def test_oauth_social_auto_provisions_new_user_when_all_gates_enabled(
 
     monkeypatch.setattr(service, "_load_core_oauth_config", _fake_load_config)
     monkeypatch.setattr(service, "_resolve_frontend_base_url", _fake_frontend_base_url)
-    monkeypatch.setattr("apps.api.src.modules.auth.oauth_social.service._valkey_getdel_best_effort", _fake_getdel)
+    monkeypatch.setattr("apps.api.src.modules.auth.oauth.social.service._valkey_getdel_best_effort", _fake_getdel)
     monkeypatch.setattr(
-        "apps.api.src.modules.auth.oauth_social.service.httpx.AsyncClient",
+        "apps.api.src.modules.auth.oauth.social.service.httpx.AsyncClient",
         lambda *args, **kwargs: _FakeGoogleClient(),
     )
-    monkeypatch.setattr("apps.api.src.modules.auth.oauth_social.service.issue_exchange_code", _fake_issue_exchange_code)
+    monkeypatch.setattr("apps.api.src.modules.auth.oauth.social.service.issue_exchange_code", _fake_issue_exchange_code)
     monkeypatch.setattr(service.repo, "get_identity", _fake_get_identity)
     monkeypatch.setattr(service.repo, "get_user_by_email", _fake_get_user_by_email)
     monkeypatch.setattr(service.repo, "create_user", _fake_create_user)

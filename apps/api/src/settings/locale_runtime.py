@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Literal
 from uuid import UUID
 
-from apps.api.src.modules.system.models.setting import SettingRecord
+from apps.api.src.models.system.setting import SettingRecord
 from apps.api.src.settings.scopes import SCOPE_TYPE_SYSTEM, SCOPE_TYPE_WORKSPACE, SYSTEM_SCOPE_ID
 
 

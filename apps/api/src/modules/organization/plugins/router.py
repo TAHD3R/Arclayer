@@ -10,11 +10,11 @@ from apps.api.src.config import Settings, get_settings
 from apps.api.src.core.exceptions import ServiceUnavailable
 from apps.api.src.core.http.response import Response, ResponseModel
 from apps.api.src.core.i18n import t
-from apps.api.src.modules.organization.deps import require_org_admin
-from apps.api.src.modules.organization.models.org_membership import OrgMembership
+from apps.api.src.models.organization.org_membership import OrgMembership
+from apps.api.src.modules.organization.http.service import require_org_admin
 from apps.api.src.modules.organization.plugins.schema import OrganizationPluginListOut, OrganizationPluginSummary
 from apps.api.src.modules.organization.plugins.service import OrganizationPluginService
-from apps.api.src.modules.system.plugins_manager.service import PluginService
+from apps.api.src.modules.system.plugins.manager.service import PluginService
 from apps.api.src.modules.system.settings.schema import SettingsDetail, SettingsPatch
 from apps.api.src.plugin.manager import PluginManager
 

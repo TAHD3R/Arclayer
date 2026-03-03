@@ -7,7 +7,7 @@ from apps.api.src.common.protocols.tortoise import AdminMenuItemMutableFields
 from apps.api.src.common.services import BaseService
 from apps.api.src.config import Settings
 from apps.api.src.core.logging import get_logger
-from apps.api.src.modules.system.admin.menus.models.service import AdminMenuItem, AdminMenuItemType
+from apps.api.src.models.system.admin_menu_item import AdminMenuItem, AdminMenuItemType
 from apps.api.src.plugin.manifest import AdminMenuSeedItem
 
 logger = get_logger(__name__)

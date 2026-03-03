@@ -11,7 +11,7 @@ from apps.api.src.common.utils.public_ids import encode_uuid
 from apps.api.src.config import get_settings
 from apps.api.src.core.database.orm import verify_db_ready
 from apps.api.src.core.registry import create_app
-from apps.api.src.modules.auth.deps import get_current_user, get_current_user_id
+from apps.api.src.modules.auth.http.service import get_current_user, get_current_user_id
 
 pytestmark = pytest.mark.integration
 
@@ -34,7 +34,7 @@ async def _enable_mail_service() -> None:
     - Tests should enable mail explicitly to avoid coupling to default bootstrap values.
     """
 
-    from apps.api.src.modules.system.models.setting import SettingRecord
+    from apps.api.src.models.system.setting import SettingRecord
     from apps.api.src.settings.core_schema import CORE_SETTINGS_NAMESPACE
     from apps.api.src.settings.scopes import SCOPE_TYPE_SYSTEM, SYSTEM_SCOPE_ID
 
@@ -72,12 +72,12 @@ async def test_me_workspaces_owner_can_see_all_with_visible_only(prepared_db, in
     async with app.router.lifespan_context(app):
         await verify_db_ready(settings)
 
+        from apps.api.src.models.organization.org_membership import OrgMembership, OrgRole
+        from apps.api.src.models.organization.user import User
+        from apps.api.src.models.workspaces.workspace import Workspace
         from apps.api.src.modules.auth.repository import UserRepository
-        from apps.api.src.modules.auth.security import hash_password
-        from apps.api.src.modules.organization.models.org_membership import OrgMembership, OrgRole
-        from apps.api.src.modules.organization.models.user import User
+        from apps.api.src.modules.auth.tokens.service import hash_password
         from apps.api.src.modules.organization.repository import OrganizationRepository
-        from apps.api.src.modules.workspaces.models.workspace import Workspace
 
         org_repo = OrganizationRepository()
         user_repo = UserRepository()
@@ -160,14 +160,14 @@ async def test_workspace_invite_link_accept_existing_creates_use_event(
     async with app.router.lifespan_context(app):
         await verify_db_ready(settings)
 
+        from apps.api.src.models.organization.org_membership import OrgMembership, OrgRole
+        from apps.api.src.models.organization.user import User
+        from apps.api.src.models.system.rbac import Role
+        from apps.api.src.models.workspaces.workspace import Workspace
+        from apps.api.src.models.workspaces.workspace_invite import WorkspaceInviteLinkUseEvent
         from apps.api.src.modules.auth.repository import UserRepository
-        from apps.api.src.modules.auth.security import hash_password
-        from apps.api.src.modules.organization.models.org_membership import OrgMembership, OrgRole
-        from apps.api.src.modules.organization.models.user import User
+        from apps.api.src.modules.auth.tokens.service import hash_password
         from apps.api.src.modules.organization.repository import OrganizationRepository
-        from apps.api.src.modules.system.models.rbac import Role
-        from apps.api.src.modules.workspaces.models.workspace import Workspace
-        from apps.api.src.modules.workspaces.models.workspace_invite import WorkspaceInviteLinkUseEvent
 
         org_repo = OrganizationRepository()
         user_repo = UserRepository()
@@ -291,12 +291,12 @@ async def test_workspace_invite_link_max_uses_enforced(prepared_db, integration_
     async with app.router.lifespan_context(app):
         await verify_db_ready(settings)
 
+        from apps.api.src.models.organization.org_membership import OrgMembership, OrgRole
+        from apps.api.src.models.organization.user import User
+        from apps.api.src.models.workspaces.workspace import Workspace
         from apps.api.src.modules.auth.repository import UserRepository
-        from apps.api.src.modules.auth.security import hash_password
-        from apps.api.src.modules.organization.models.org_membership import OrgMembership, OrgRole
-        from apps.api.src.modules.organization.models.user import User
+        from apps.api.src.modules.auth.tokens.service import hash_password
         from apps.api.src.modules.organization.repository import OrganizationRepository
-        from apps.api.src.modules.workspaces.models.workspace import Workspace
 
         org_repo = OrganizationRepository()
         user_repo = UserRepository()
@@ -387,14 +387,14 @@ async def test_auth_me_invitations_includes_workspace(prepared_db, integration_v
     async with app.router.lifespan_context(app):
         await verify_db_ready(settings)
 
+        from apps.api.src.common.invitations.tokens.service import generate_invite_code
+        from apps.api.src.models.organization.org_membership import OrgMembership, OrgRole
+        from apps.api.src.models.organization.user import User
+        from apps.api.src.models.workspaces.workspace import Workspace
+        from apps.api.src.models.workspaces.workspace_invite import WorkspaceEmailInvite
         from apps.api.src.modules.auth.repository import UserRepository
-        from apps.api.src.modules.auth.security import hash_password
-        from apps.api.src.modules.organization.models.org_membership import OrgMembership, OrgRole
-        from apps.api.src.modules.organization.models.user import User
+        from apps.api.src.modules.auth.tokens.service import hash_password
         from apps.api.src.modules.organization.repository import OrganizationRepository
-        from apps.api.src.modules.workspaces.invitations.tokens import generate_invite_code
-        from apps.api.src.modules.workspaces.models.workspace import Workspace
-        from apps.api.src.modules.workspaces.models.workspace_invite import WorkspaceEmailInvite
 
         org_repo = OrganizationRepository()
         user_repo = UserRepository()
@@ -473,12 +473,12 @@ async def test_workspace_invite_link_domain_restriction_enforced(prepared_db, in
     async with app.router.lifespan_context(app):
         await verify_db_ready(settings)
 
+        from apps.api.src.models.organization.org_membership import OrgMembership, OrgRole
+        from apps.api.src.models.organization.user import User
+        from apps.api.src.models.workspaces.workspace import Workspace
         from apps.api.src.modules.auth.repository import UserRepository
-        from apps.api.src.modules.auth.security import hash_password
-        from apps.api.src.modules.organization.models.org_membership import OrgMembership, OrgRole
-        from apps.api.src.modules.organization.models.user import User
+        from apps.api.src.modules.auth.tokens.service import hash_password
         from apps.api.src.modules.organization.repository import OrganizationRepository
-        from apps.api.src.modules.workspaces.models.workspace import Workspace
 
         org_repo = OrganizationRepository()
         user_repo = UserRepository()
@@ -554,12 +554,12 @@ async def test_a2_single_org_enforced_on_accept_existing(prepared_db, integratio
     async with app.router.lifespan_context(app):
         await verify_db_ready(settings)
 
+        from apps.api.src.models.organization.org_membership import OrgMembership, OrgRole
+        from apps.api.src.models.organization.user import User
+        from apps.api.src.models.workspaces.workspace import Workspace
         from apps.api.src.modules.auth.repository import UserRepository
-        from apps.api.src.modules.auth.security import hash_password
-        from apps.api.src.modules.organization.models.org_membership import OrgMembership, OrgRole
-        from apps.api.src.modules.organization.models.user import User
+        from apps.api.src.modules.auth.tokens.service import hash_password
         from apps.api.src.modules.organization.repository import OrganizationRepository
-        from apps.api.src.modules.workspaces.models.workspace import Workspace
 
         org_repo = OrganizationRepository()
         user_repo = UserRepository()

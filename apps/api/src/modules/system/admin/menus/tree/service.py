@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from uuid import UUID
 
+from apps.api.src.models.system.admin_menu_item import AdminMenuItem, AdminMenuItemType
 from apps.api.src.modules.system.admin.menus.heal.service import AdminMenuHealMixin
-from apps.api.src.modules.system.admin.menus.models.service import AdminMenuItem, AdminMenuItemType
 from apps.api.src.modules.system.admin.menus.repository import AdminMenuRepository
 from apps.api.src.modules.system.admin.menus.schema import (
     AdminMenuBlockedReason,
@@ -22,7 +22,7 @@ from apps.api.src.modules.system.admin.menus.shared.service import (
     raise_if_fatal,
     require_workspace_id,
 )
-from apps.api.src.modules.workspaces.authz_snapshot import get_workspace_authz_snapshot
+from apps.api.src.modules.workspaces.authz.snapshot.service import get_workspace_authz_snapshot
 
 
 class AdminMenuTreeMixin(AdminMenuHealMixin):
@@ -80,7 +80,7 @@ class AdminMenuTreeMixin(AdminMenuHealMixin):
 
     async def _load_enabled_plugin_ids(self, *, workspace_id: UUID) -> set[str]:
         try:
-            from apps.api.src.modules.workspaces.plugins_center.models import WorkspacePluginState
+            from apps.api.src.models.plugins.workspace_plugin_state import WorkspacePluginState
 
             rows = await WorkspacePluginState.filter(workspace_id=workspace_id, enabled=True).values_list(
                 "plugin_id", flat=True

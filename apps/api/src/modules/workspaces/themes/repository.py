@@ -5,9 +5,9 @@ from uuid import UUID
 from tortoise.transactions import in_transaction
 
 from apps.api.src.common.repositories.base import BaseRepository
-from apps.api.src.modules.assets.models.asset import AssetRecord
-from apps.api.src.modules.sites.models.site import SiteRecord
-from apps.api.src.modules.workspaces.models.theme_package import ThemePackageRecord
+from apps.api.src.models.assets.asset import AssetRecord
+from apps.api.src.models.sites.site import SiteRecord
+from apps.api.src.models.workspaces.theme_package import ThemePackageRecord
 
 
 class WorkspaceThemesRepository(BaseRepository):

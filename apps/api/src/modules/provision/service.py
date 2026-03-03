@@ -7,25 +7,25 @@ from pydantic import BaseModel, ConfigDict
 
 from apps.api.src.common.protocols.tortoise import HasOrganizationId, HasWorkspaceId
 from apps.api.src.common.services import BaseService
+from apps.api.src.common.text.slug.service import slugify
 from apps.api.src.common.utils.public_ids import encode_uuid
 from apps.api.src.core.exceptions import NotFound
-from apps.api.src.modules.assets.utils import slugify
-from apps.api.src.modules.auth.repository import UserRepository
-from apps.api.src.modules.organization.models.org_membership import OrgMembership, OrgRole
-from apps.api.src.modules.organization.models.organization import Organization
-from apps.api.src.modules.organization.models.user import User
-from apps.api.src.modules.provision.schema import BootstrapStateOut, ProvisionRepairOut
-from apps.api.src.modules.sites.models.site import SiteRecord
-from apps.api.src.modules.system.rbac.constants.service import ROLE_ADMIN, ROLE_OWNER, ROLE_VIEWER
-from apps.api.src.modules.system.rbac.service import RBACService
-from apps.api.src.modules.workspaces.models.workspace import (
+from apps.api.src.models.organization.org_membership import OrgMembership, OrgRole
+from apps.api.src.models.organization.organization import Organization
+from apps.api.src.models.organization.user import User
+from apps.api.src.models.sites.site import SiteRecord
+from apps.api.src.models.workspaces.workspace import (
     Workspace,
     WorkspaceMembership,
     WorkspaceMembershipRole,
     WorkspaceMembershipStatus,
 )
+from apps.api.src.modules.auth.repository import UserRepository
+from apps.api.src.modules.provision.schema import BootstrapStateOut, ProvisionRepairOut
+from apps.api.src.modules.system.rbac.constants.service import ROLE_ADMIN, ROLE_OWNER, ROLE_VIEWER
+from apps.api.src.modules.system.rbac.service import RBACService
 from apps.api.src.modules.workspaces.site.service import WorkspaceSiteService
-from apps.api.src.modules.workspaces.slug_policy import next_available_workspace_slug
+from apps.api.src.modules.workspaces.slug.service import next_available_workspace_slug
 
 ProvisionSource = Literal["setup", "register", "repair"]
 
@@ -122,7 +122,7 @@ class TenantProvisioningService(BaseService):
             organization_id=state.organization_id,
             workspace_id=state.workspace_id,
             site_id=state.site_id,
-            actions=result.actions,
+            actions=list(result.actions),
         )
 
     async def ensure_user_bootstrap(

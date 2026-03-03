@@ -8,7 +8,7 @@ from tortoise.backends.base.client import BaseDBAsyncClient
 from tortoise.queryset import QuerySet
 
 from apps.api.src.common.repositories.base import BaseRepository
-from apps.api.src.modules.analytics.models.audit_event import AuditEvent
+from apps.api.src.models.analytics.audit_event import AuditEvent
 from apps.api.src.modules.analytics.schema import AuditEventListQuery
 
 

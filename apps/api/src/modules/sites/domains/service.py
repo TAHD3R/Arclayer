@@ -11,15 +11,15 @@ from apps.api.src.common.protocols.tortoise import HasOrganizationId, SiteDomain
 from apps.api.src.common.services.base import BaseService
 from apps.api.src.core.exceptions import Conflict, NotFound, ServiceUnavailable
 from apps.api.src.infra.cache.valkey import ValkeyClientLike
-from apps.api.src.modules.organization.models.org_plan import OrgPlan
+from apps.api.src.models.organization.org_plan import OrgPlan
+from apps.api.src.models.sites.site_domain import SiteDomainRecord
+from apps.api.src.models.workspaces.workspace import Workspace
 from apps.api.src.modules.sites.domains.repository import SiteDomainsRepository
 from apps.api.src.modules.sites.domains.schema import (
     SiteDomainDnsInstructionOut,
     _normalize_hostname,
     domain_datetime_to_ms,
 )
-from apps.api.src.modules.sites.models.site_domain import SiteDomainRecord
-from apps.api.src.modules.workspaces.models.workspace import Workspace
 from apps.api.src.modules.workspaces.site.service import WorkspaceSiteService
 
 _CACHE_KEY_PREFIX = "saas:site_resolve:host"

@@ -10,8 +10,8 @@ from httpx import ASGITransport, AsyncClient
 
 from apps.api.src.config import get_settings
 from apps.api.src.core.registry import create_app
-from apps.api.src.modules.auth.deps import get_current_user_id
-from apps.api.src.modules.organization.models.org_membership import OrgMembership, OrgRole
+from apps.api.src.models.organization.org_membership import OrgMembership, OrgRole
+from apps.api.src.modules.auth.http.service import get_current_user_id
 
 pytestmark = pytest.mark.integration
 
@@ -95,7 +95,7 @@ async def test_plugin_management_flow(prepared_db, plugin_root, tmp_path) -> Non
     transport = ASGITransport(app=app)
     async with app.router.lifespan_context(app):
         from apps.api.src.modules.auth.repository import UserRepository
-        from apps.api.src.modules.auth.security import hash_password
+        from apps.api.src.modules.auth.tokens.service import hash_password
         from apps.api.src.modules.organization.repository import OrganizationRepository
 
         settings = get_settings()

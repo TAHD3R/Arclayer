@@ -4,20 +4,28 @@ import asyncio
 import os
 import smtplib
 from pathlib import Path
+from typing import TYPE_CHECKING, Protocol, cast
 
-from pydantic import EmailStr, TypeAdapter, ValidationError
+from pydantic import EmailStr, SecretStr, TypeAdapter, ValidationError
 
 from apps.api.src.common.utils.ids import uuid7
 from apps.api.src.infra.storage.s3 import S3StorageProvider
 from apps.api.src.modules.sys.settings.schema import SysConfigTestCheck
 from apps.api.src.settings.core_schema import CORE_SETTINGS_NAMESPACE
 
+if TYPE_CHECKING:
+    from apps.api.src.config import Settings
+
 _EMAIL_ADAPTER = TypeAdapter(EmailStr)
 SMTP_PROBE_TIMEOUT_SECONDS = 5.0
 
 
+class _SysConfigCryptoLike(Protocol):
+    def _decrypt_secret_str_best_effort(self, *, namespace: str, secret_path: str, raw: str) -> str | None: ...
+
+
 class SysConfigChecksCoreMixin:
-    settings: object
+    settings: Settings
 
     async def _check_core_storage(self, *, full_value: dict[str, object]) -> SysConfigTestCheck:
         storage = full_value.get("storage")
@@ -105,7 +113,7 @@ class SysConfigChecksCoreMixin:
                 message="Missing s3_secret_access_key",
             )
 
-        secret = self._decrypt_secret_str_best_effort(
+        secret = cast(_SysConfigCryptoLike, self)._decrypt_secret_str_best_effort(
             namespace=CORE_SETTINGS_NAMESPACE,
             secret_path="storage.s3_secret_access_key",
             raw=secret_raw,
@@ -119,17 +127,15 @@ class SysConfigChecksCoreMixin:
             )
 
         try:
-            from apps.api.src.settings.core import CoreSettings
-
             effective = self.settings.model_copy(
                 update={
-                    "storage": CoreSettings(
-                        storage={
+                    "storage": self.settings.storage.model_copy(
+                        update={
                             "provider": "s3",
                             "s3_endpoint_url": endpoint_url.strip(),
                             "s3_bucket": bucket.strip(),
                             "s3_access_key_id": access_key_id.strip(),
-                            "s3_secret_access_key": secret,
+                            "s3_secret_access_key": SecretStr(secret),
                             "s3_force_path_style": bool(force_path_style),
                             "s3_region": region.strip() if isinstance(region, str) and region.strip() else None,
                             "s3_public_bucket": public_bucket.strip()
@@ -140,7 +146,7 @@ class SysConfigChecksCoreMixin:
                             else None,
                             "public_delivery_mode": mode if isinstance(mode, str) else "auto",
                         }
-                    )
+                    ),
                 }
             )
             provider_impl = S3StorageProvider(effective)
@@ -226,7 +232,7 @@ class SysConfigChecksCoreMixin:
 
         password: str | None = None
         if isinstance(password_raw, str) and password_raw.strip():
-            password = self._decrypt_secret_str_best_effort(
+            password = cast(_SysConfigCryptoLike, self)._decrypt_secret_str_best_effort(
                 namespace=CORE_SETTINGS_NAMESPACE,
                 secret_path="mail.password",
                 raw=password_raw,

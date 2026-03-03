@@ -10,7 +10,7 @@ from tortoise.transactions import in_transaction
 from apps.api.src.common.protocols.tortoise import ContentEntryMutableFields
 from apps.api.src.common.repositories.base import BaseRepository
 from apps.api.src.core.exceptions import Conflict, NotFound
-from apps.api.src.modules.workspaces.content.models.content import (
+from apps.api.src.models.content.content import (
     ContentEntryRecord,
     ContentRevisionRecord,
     ContentTypeRecord,
@@ -62,10 +62,10 @@ class WorkspaceContentRepository(BaseRepository):
         code: str,
         name: str,
         kind: str,
-        field_schema: dict[str, Any] | None,
-        editor_schema: dict[str, Any] | None,
-        render_contract: dict[str, Any] | None,
-        workflow_policy: dict[str, Any] | None,
+        field_schema: dict[str, object] | None,
+        editor_schema: dict[str, object] | None,
+        render_contract: dict[str, object] | None,
+        workflow_policy: dict[str, object] | None,
     ) -> ContentTypeRecord:
         try:
             return await ContentTypeRecord.create(
@@ -88,7 +88,7 @@ class WorkspaceContentRepository(BaseRepository):
         workspace_id: UUID,
         site_id: UUID,
         type_id: UUID,
-        fields: dict[str, Any],
+        fields: dict[str, object],
     ) -> ContentTypeRecord:
         async with in_transaction() as conn:
             rec = (

@@ -11,13 +11,14 @@ from apps.api.src.config import Settings, get_settings
 from apps.api.src.core.exceptions import ServiceUnavailable
 from apps.api.src.core.http.response import Response, ResponseModel
 from apps.api.src.core.i18n import t
+from apps.api.src.models.organization.org_membership import OrgMembership
 from apps.api.src.modules.analytics.system.router import router as system_activity_router
-from apps.api.src.modules.organization.deps import require_org_owner
-from apps.api.src.modules.organization.models.org_membership import OrgMembership
+from apps.api.src.modules.auth.repository import UserRepository
+from apps.api.src.modules.organization.http.service import require_org_owner
 from apps.api.src.modules.sys.http.service import require_super_admin
 from apps.api.src.modules.system.flags.service import build_system_flags
 from apps.api.src.modules.system.mail.router import router as system_mail_router
-from apps.api.src.modules.system.plugins_manager.router import router as system_plugins_router
+from apps.api.src.modules.system.plugins.router import router as system_plugins_router
 from apps.api.src.modules.system.rbac.router import router as system_rbac_router
 from apps.api.src.modules.system.schema import (
     SystemMasterKeyRepairRequest,
@@ -52,7 +53,7 @@ def get_setup_service(
     settings: Settings = Depends(get_settings),
     manager: PluginManager = Depends(get_plugin_manager),
 ) -> SystemSetupService:
-    return SystemSetupService(settings, manager=manager)
+    return SystemSetupService(settings, manager=manager, user_repo=UserRepository())
 
 
 @router.get(

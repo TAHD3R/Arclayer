@@ -7,9 +7,9 @@ from tortoise.queryset import QuerySet
 
 from apps.api.src.common.constants.assets import PUBLIC_LIBRARY_ASSET_ALLOWED_ORDER_FIELDS
 from apps.api.src.common.repositories import BaseRepository
-from apps.api.src.modules.assets.models.asset import AssetPurpose, AssetRecord, AssetVisibility
+from apps.api.src.models.assets.asset import AssetPurpose, AssetRecord, AssetVisibility
+from apps.api.src.models.organization.organization import Organization
 from apps.api.src.modules.library.schema import PublicLibraryListQuery
-from apps.api.src.modules.organization.models.organization import Organization
 
 
 class PublicLibraryRepository(BaseRepository):

@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 
 from apps.api.src.core.exceptions import Conflict
-from apps.api.src.modules.sites.utils import validate_route_template_pattern
+from apps.api.src.modules.sites.shared.service import validate_route_template_pattern
 
 
 @pytest.mark.parametrize(

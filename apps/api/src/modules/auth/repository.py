@@ -13,8 +13,8 @@ from apps.api.src.common.repositories import BaseRepository
 from apps.api.src.common.utils.ids import uuid7
 from apps.api.src.config import AuthSettings
 from apps.api.src.infra.cache.valkey import ValkeyClientLike
+from apps.api.src.models.organization.user import User, UserCredential, UserStatus
 from apps.api.src.modules.auth.contracts.schema import UserLike
-from apps.api.src.modules.organization.models.user import User, UserCredential, UserStatus
 
 
 class UserRepository(BaseRepository):

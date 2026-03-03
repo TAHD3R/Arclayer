@@ -10,8 +10,8 @@ from apps.api.src.core.exceptions import ServiceUnavailable
 from apps.api.src.core.i18n import t
 from apps.api.src.core.logging import get_logger
 from apps.api.src.modules.system.admin.extensions.schema import AdminUIExtensionOut
-from apps.api.src.modules.workspaces.authz_snapshot import get_workspace_authz_snapshot
-from apps.api.src.modules.workspaces.context import get_current_workspace_id
+from apps.api.src.modules.workspaces.authz.snapshot.service import get_workspace_authz_snapshot
+from apps.api.src.modules.workspaces.runtime.service import get_current_workspace_id
 from apps.api.src.plugin.manager import PluginManager
 from apps.api.src.plugin.types import PluginStatus
 
@@ -54,7 +54,7 @@ class AdminExtensionsService(BaseService):
 
         enabled_plugin_ids: set[str] = set()
         try:
-            from apps.api.src.modules.workspaces.plugins_center.models import WorkspacePluginState
+            from apps.api.src.models.plugins.workspace_plugin_state import WorkspacePluginState
 
             rows = await WorkspacePluginState.filter(workspace_id=workspace_id, enabled=True).values_list(
                 "plugin_id", flat=True

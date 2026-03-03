@@ -7,8 +7,8 @@ from tortoise.queryset import QuerySet
 
 from apps.api.src.common.constants.users import ADMIN_USERS_ALLOWED_ORDER_FIELDS
 from apps.api.src.common.repositories import BaseRepository
-from apps.api.src.modules.system.models.rbac import Role
-from apps.api.src.modules.workspaces.models.workspace import WorkspaceMembership, WorkspaceMembershipRole
+from apps.api.src.models.system.rbac import Role
+from apps.api.src.models.workspaces.workspace import WorkspaceMembership, WorkspaceMembershipRole
 from apps.api.src.modules.workspaces.team.schema import WorkspaceTeamMemberListQuery
 
 

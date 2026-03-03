@@ -3,7 +3,7 @@ from __future__ import annotations
 from uuid import UUID
 
 from apps.api.src.common.repositories import BaseRepository
-from apps.api.src.modules.assets.models.asset import AssetRecord, AssetVisibility
+from apps.api.src.models.assets.asset import AssetRecord, AssetVisibility
 
 
 class AssetsRepository(BaseRepository):

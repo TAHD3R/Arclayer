@@ -15,6 +15,7 @@ from apps.api.src.infra.storage.factory import build_storage_provider_for
 from apps.api.src.infra.storage.local import safe_object_key_to_path
 from apps.api.src.infra.storage.s3 import S3StorageProvider
 from apps.api.src.infra.storage.s3_stream import stream_s3_object
+from apps.api.src.models.organization.user import User
 from apps.api.src.modules.assets.admin.assets.repository import AdminAssetsRepository
 from apps.api.src.modules.assets.admin.assets.schema import (
     AdminAssetBulkDeleteOut,
@@ -36,7 +37,6 @@ from apps.api.src.modules.assets.admin.assets.schema import (
     AdminAssetTagOut,
     AdminAssetUpdateRequest,
 )
-from apps.api.src.modules.organization.models.user import User
 from apps.api.src.settings.runtime import get_effective_settings
 
 

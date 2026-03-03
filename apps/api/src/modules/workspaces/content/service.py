@@ -13,7 +13,9 @@ from apps.api.src.modules.sites.schema import (
     SiteSettingUpsertIn,
 )
 from apps.api.src.modules.sites.service import SiteService
-from apps.api.src.modules.workspaces.content.mapper import to_content_entry_out, to_content_type_out
+from apps.api.src.modules.workspaces.content.appearance.service import WorkspaceContentAppearanceMixin
+from apps.api.src.modules.workspaces.content.blocks.service import WorkspaceContentBlocksMixin
+from apps.api.src.modules.workspaces.content.pages.service import WorkspaceContentPagesMixin
 from apps.api.src.modules.workspaces.content.repository import WorkspaceContentRepository
 from apps.api.src.modules.workspaces.content.schema import (
     ContentEntryCreateIn,
@@ -34,11 +36,9 @@ from apps.api.src.modules.workspaces.content.schema import (
     ContentTypeOut,
     ContentTypeUpdateIn,
 )
-from apps.api.src.modules.workspaces.content.service_appearance import WorkspaceContentAppearanceMixin
-from apps.api.src.modules.workspaces.content.service_blocks import WorkspaceContentBlocksMixin
-from apps.api.src.modules.workspaces.content.service_pages import WorkspaceContentPagesMixin
-from apps.api.src.modules.workspaces.content.service_structure import WorkspaceContentStructureMixin
-from apps.api.src.modules.workspaces.content.service_views import WorkspaceContentViewsMixin
+from apps.api.src.modules.workspaces.content.shared.service import to_content_entry_out, to_content_type_out
+from apps.api.src.modules.workspaces.content.structure.service import WorkspaceContentStructureMixin
+from apps.api.src.modules.workspaces.content.views.service import WorkspaceContentViewsMixin
 
 
 class WorkspaceContentService(

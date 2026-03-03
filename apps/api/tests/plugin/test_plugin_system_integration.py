@@ -6,7 +6,7 @@ import uuid
 import pytest
 
 from apps.api.src.config import get_settings
-from apps.api.src.modules.system.models.plugin import PluginRecord
+from apps.api.src.models.system.plugin import PluginRecord
 from apps.api.src.plugin.manager import PluginManager
 from apps.api.src.plugin.types import PluginStatus
 

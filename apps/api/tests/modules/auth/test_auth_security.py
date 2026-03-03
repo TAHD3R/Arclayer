@@ -8,7 +8,7 @@ import pytest
 
 from apps.api.src.config import get_settings
 from apps.api.src.core.exceptions import Unauthorized
-from apps.api.src.modules.auth.security import (
+from apps.api.src.modules.auth.tokens.service import (
     TOKEN_TYPE_ACCESS,
     TOKEN_TYPE_REFRESH,
     build_access_token,
