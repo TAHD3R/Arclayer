@@ -2,7 +2,7 @@ import * as React from "react";
 import { useTranslation } from "react-i18next";
 
 import type { ActivityEvent } from "@/types/api";
-import { SettingDialog } from "@/components/settings-primitives/setting-dialog";
+import { SettingDialog } from "@celestial/ui/setting-dialog";
 import { formatDateTimeWithPattern } from "@/lib/time/date-time";
 import { resolveCatalogEntry } from "@/pages/organization/activity/constants";
 import { ActivityUserPill } from "@/pages/organization/activity/components/activity-user-pill";

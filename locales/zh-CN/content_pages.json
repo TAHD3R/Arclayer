@@ -1,6 +1,4 @@
 {
-  "COL_ACTIONS": "操作",
-  "ACTION_EDIT": "编辑",
   "ACTION_CREATE_PAGE": "新建页面",
   "FIELD_PATH_LABEL": "路径",
   "INDEX_DESC": "以数据表方式统一管理静态页面与模板页面。",

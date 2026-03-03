@@ -1,6 +1,6 @@
 import { Form } from "antd";
 
-import { ChromeTabs, ChromeTabsContent } from "@/components/ui/chrome-tabs";
+import { ChromeTabs, ChromeTabsContent } from "@celestial/ui/chrome-tabs";
 import type { WorkspaceSettingsTabKey } from "@/types/settings-workspace";
 
 import { WorkspaceSettingsTabs } from "../../components/workspace-settings-tabs";

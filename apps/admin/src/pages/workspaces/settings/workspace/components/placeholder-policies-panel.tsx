@@ -1,8 +1,8 @@
 import { useTranslation } from "react-i18next";
 
 import { Accordion } from "@celestial/ui/accordion";
-import { SettingAccordionItem } from "@/components/settings-primitives/setting-accordion-item";
-import { SettingPanel } from "@/components/settings-primitives/setting-panel";
+import { SettingAccordionItem } from "@celestial/ui/setting-accordion-item";
+import { SettingPanel } from "@celestial/ui/setting-panel";
 
 export function PlaceholderPoliciesPanel(props: {
   title: string;

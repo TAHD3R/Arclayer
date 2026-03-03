@@ -1,8 +1,8 @@
 import { Form, Input, Select } from "antd";
 
 import { Accordion } from "@celestial/ui/accordion";
-import { SettingAccordionItem } from "@/components/settings-primitives/setting-accordion-item";
-import { SettingPanel } from "@/components/settings-primitives/setting-panel";
+import { SettingAccordionItem } from "@celestial/ui/setting-accordion-item";
+import { SettingPanel } from "@celestial/ui/setting-panel";
 import { normalizeLocale } from "@/lib/i18n";
 
 import type { WorkspaceSettingsBasicsController } from "../hooks/use-workspace-settings-basics-controller";
@@ -52,6 +52,7 @@ export function WorkspaceSettingsBasicsCorePanels(props: {
                       })
                   : undefined
               }
+              resetText={t("settings:SETTINGS_RESET")}
               resetLoading={c.savingKey === "reset:workspace:name"}
             >
               <Form.Item
@@ -103,6 +104,7 @@ export function WorkspaceSettingsBasicsCorePanels(props: {
                       })
                   : undefined
               }
+              resetText={t("settings:SETTINGS_RESET")}
               resetLoading={c.savingKey === "reset:workspace:slug"}
             >
               <div className="space-y-2">
@@ -192,6 +194,7 @@ export function WorkspaceSettingsBasicsCorePanels(props: {
                       })
                   : undefined
               }
+              resetText={t("settings:SETTINGS_RESET")}
               resetLoading={c.savingKey === "reset:workspace:locale"}
             >
               <div className="text-label-secondary mb-4">
@@ -246,6 +249,7 @@ export function WorkspaceSettingsBasicsCorePanels(props: {
                       })
                   : undefined
               }
+              resetText={t("settings:SETTINGS_RESET")}
               resetLoading={c.savingKey === "reset:workspace:timezone"}
             >
               <Form.Item
@@ -300,6 +304,7 @@ export function WorkspaceSettingsBasicsCorePanels(props: {
                       })
                   : undefined
               }
+              resetText={t("settings:SETTINGS_RESET")}
               resetLoading={c.savingKey === "reset:workspace:dateFormat"}
             >
               <Form.Item

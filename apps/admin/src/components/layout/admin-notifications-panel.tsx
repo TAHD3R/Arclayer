@@ -18,7 +18,7 @@ import {
   ChromeTabsList,
   ChromeTabsTrigger,
   ChromeTabsContent,
-} from "@/components/ui/chrome-tabs";
+} from "@celestial/ui/chrome-tabs";
 import { LoaderOne } from "@celestial/ui/loader";
 import { useNowTick } from "@celestial/hooks/use-now-tick";
 import { notifyErrorText } from "@/lib/notifications";

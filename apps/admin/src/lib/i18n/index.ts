@@ -19,8 +19,8 @@ export function getInitialLocale(): AppLocale {
   try {
     const stored = window.localStorage.getItem(STORAGE_KEYS.locale);
     if (stored) return normalizeLocale(stored);
-  } catch {
-    // ignore storage errors (private mode / disabled)
+  } catch (err) {
+    console.error("[i18n] Failed to read locale from localStorage", err);
   }
 
   return detectBrowserLocale();

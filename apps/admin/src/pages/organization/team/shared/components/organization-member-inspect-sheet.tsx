@@ -17,7 +17,7 @@ import {
   ChromeTabsContent,
   ChromeTabsList,
   ChromeTabsTrigger,
-} from "@/components/ui/chrome-tabs";
+} from "@celestial/ui/chrome-tabs";
 import {
   Sheet,
   SheetContent,

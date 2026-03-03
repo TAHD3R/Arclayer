@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 
-import { SettingDialog } from "@/components/settings-primitives/setting-dialog";
+import { SettingDialog } from "@celestial/ui/setting-dialog";
 
 export type UpdateAssetsAccessDialogValue = {
   visibility?: string;

@@ -1,9 +1,1 @@
-{
-  "ONBOARDING_TITLE": "Workspace onboarding",
-  "ONBOARDING_SUBTITLE": "We are preparing your workspace. You can retry provisioning if it is not ready yet.",
-  "ONBOARDING_CHECKING": "Checking provisioning status...",
-  "ONBOARDING_WAITING_TITLE": "Workspace is not ready yet",
-  "ONBOARDING_WAITING_DESC": "If you were invited, ask an owner to complete workspace setup. You can also retry auto-repair.",
-  "ONBOARDING_RETRY_BUTTON": "Retry provisioning",
-  "ONBOARDING_LOGIN_BUTTON": "Back to login"
-}
+{}

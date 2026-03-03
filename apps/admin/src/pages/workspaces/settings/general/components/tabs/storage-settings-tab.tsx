@@ -6,10 +6,10 @@ import { useTranslation } from "react-i18next";
 import { Switch } from "@celestial/ui/switch";
 
 import { Accordion } from "@celestial/ui/accordion";
-import { SettingAccordionItem } from "@/components/settings-primitives/setting-accordion-item";
-import { SettingActionItem } from "@/components/settings-primitives/setting-action-item";
-import { SettingOverlayFooter } from "@/components/settings-primitives/setting-overlay-footer";
-import { SettingPanel } from "@/components/settings-primitives/setting-panel";
+import { SettingAccordionItem } from "@celestial/ui/setting-accordion-item";
+import { SettingActionItem } from "@celestial/ui/setting-action-item";
+import { SettingOverlayFooter } from "@celestial/ui/setting-overlay-footer";
+import { SettingPanel } from "@celestial/ui/setting-panel";
 import { type SettingOverlayConfig, useSettingOverlays } from "@/hooks/use-setting-overlays";
 
 import type { GeneralSettingsTabBaseProps } from "@/types/settings-general";

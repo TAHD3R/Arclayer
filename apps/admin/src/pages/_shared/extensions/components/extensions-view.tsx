@@ -1,7 +1,7 @@
 import { Button } from "antd";
 import { Upload } from "lucide-react";
 
-import { ConfirmDialog } from "@/components/common/confirm-dialog";
+import { ConfirmDialog } from "@celestial/ui/confirm-dialog";
 import { ContentGuard } from "@/components/common/content-guard";
 import { DefaultPage } from "@/components/common/default-page";
 import { ExtensionInstallDialog } from "./extension-install-dialog";
@@ -10,7 +10,7 @@ import {
   ChromeTabsContent,
   ChromeTabsList,
   ChromeTabsTrigger,
-} from "@/components/ui/chrome-tabs";
+} from "@celestial/ui/chrome-tabs";
 
 import type { ExtensionScope } from "../types";
 import { useExtensions } from "../hooks/use-extensions";

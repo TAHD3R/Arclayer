@@ -2,7 +2,7 @@ import { Select } from "antd";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
-import { SettingVerticalItem } from "@/components/settings-primitives/setting-vertical-item";
+import { SettingVerticalItem } from "@celestial/ui/setting-vertical-item";
 import { type AppLocale } from "@/lib/i18n";
 import { buildTimezoneOptions } from "@/lib/settings/general/localization-options";
 import { usePreferencesStore } from "@/stores/use-preference-store";

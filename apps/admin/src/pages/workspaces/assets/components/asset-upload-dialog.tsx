@@ -10,7 +10,7 @@ import {
   presignUploadPart,
   uploadPart,
 } from "@/api/uploads";
-import { SettingDialog } from "@/components/settings-primitives/setting-dialog";
+import { SettingDialog } from "@celestial/ui/setting-dialog";
 import {
   FileUpload,
   type FileUploadItemStatus,

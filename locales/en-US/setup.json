@@ -16,7 +16,6 @@
   "SETUP_FIELD_TIMEZONE_TITLE": "Timezone",
   "SETUP_FIELD_LANGUAGE_TITLE": "Default language",
   "SETUP_FIELD_DATE_FORMAT_TITLE": "Date format",
-  "SETUP_SELECT": "Select",
   "SETUP_DEFAULT_SITE_NAME": "{{username}}'s Site",
   "SETUP_DEFAULT_WORKSPACE_NAME": "{{username}}'s Workspace",
   "SETUP_TIMEZONE_DESC": "Set the admin default timezone for this workspace.",

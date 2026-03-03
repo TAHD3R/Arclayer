@@ -14,7 +14,7 @@ import {
 } from "@/api/organization-members";
 import type { OrganizationInvitation, OrganizationInviteLink } from "@/types/api";
 import { listOrganizationRoles } from "@/api/organization-rbac";
-import { useDataTable } from "@/components/data-table";
+import { useDataTable } from "@celestial/ui/data-table";
 import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import {

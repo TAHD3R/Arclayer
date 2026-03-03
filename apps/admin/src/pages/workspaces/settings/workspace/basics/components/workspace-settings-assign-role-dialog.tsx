@@ -1,7 +1,7 @@
 import { Button, Form, Input } from "antd";
 import { useCallback } from "react";
 
-import { SettingDialog } from "@/components/settings-primitives/setting-dialog";
+import { SettingDialog } from "@celestial/ui/setting-dialog";
 
 import type { WorkspaceSettingsBasicsController } from "../hooks/use-workspace-settings-basics-controller";
 

@@ -11,7 +11,7 @@ import { Tooltip, TooltipTrigger, TooltipContent } from "@celestial/ui/tooltip";
 
 import type { Role } from "@/types/api";
 import { createTeamInvitation, createTeamInviteLink } from "@/api/team";
-import { SettingDialog } from "@/components/settings-primitives/setting-dialog";
+import { SettingDialog } from "@celestial/ui/setting-dialog";
 import { zodResolver } from "@/lib/forms/zod-resolver";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 

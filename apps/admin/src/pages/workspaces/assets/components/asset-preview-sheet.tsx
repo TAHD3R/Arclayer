@@ -25,7 +25,7 @@ import {
   AlertDialogAction as AlertDialogActionPrimitive,
   AlertDialogCancel as AlertDialogCancelPrimitive,
 } from "@celestial/ui/radix-primitives/radix-alert-dialog";
-import { SettingActionItem } from "@/components/settings-primitives/setting-action-item";
+import { SettingActionItem } from "@celestial/ui/setting-action-item";
 import { UpdateAssetsAccessDialog } from "./update-assets-access-dialog";
 import { copyToClipboard } from "@/lib/clipboard";
 import { cn } from "@celestial/lib/utils";

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { useTranslation } from "react-i18next";
 
-import { SettingDialog } from "@/components/settings-primitives/setting-dialog";
+import { SettingDialog } from "@celestial/ui/setting-dialog";
 import { LoaderOne } from "@celestial/ui/loader";
 import { cn } from "@celestial/lib/utils";
 import { notifyError, notifySuccessText } from "@/lib/notifications";

@@ -32,7 +32,6 @@ export function AuthOauthButtons({ disabled = false, redirect }: AuthOauthButton
     queryFn: async () => listSSOProviders({ redirect }),
     staleTime: 15 * 1000,
     retry: false,
-    meta: { silent: true },
   });
 
   const providers = providersQuery.data?.providers ?? [];

@@ -1,7 +1,7 @@
 import { createRootRoute, Outlet, redirect, useRouterState } from "@tanstack/react-router";
 
 import { SceneLoadingOverlay } from "@/components/layout/scene-loading-overlay";
-import { useSceneRevealTransition } from "@/hooks/use-scene-reveal-transition";
+import { useSceneRevealTransition } from "@celestial/hooks/use-scene-reveal-transition";
 import {
   isAuthScenePath,
   isDevToolsPath,
@@ -15,6 +15,7 @@ import { RouterDefaultError, RouterDefaultNotFound } from "@/components/builtin/
 import { RouteDocumentTitleManager } from "@/components/builtin/route-document-title-manager";
 import { refresh as refreshTokens, refreshCookie as refreshCookieTokens } from "@/api/auth";
 import { useAuthStore } from "@/stores/use-auth-store";
+import { usePreferencesStore } from "@/stores/use-preference-store";
 import { useSetupWizardStore } from "@/stores/use-setup-wizard-store";
 import { consumeStudioReturnTo, resolveStudioOrigin } from "@/lib/routing/studio-return";
 
@@ -36,7 +37,11 @@ function RootLayout() {
     structuralSharing: true,
   });
   const sceneKey = resolveSceneKey(pathname);
-  const { displayedScene, overlayVisible } = useSceneRevealTransition(sceneKey, { isPagePending });
+  const userReducedMotion = usePreferencesStore((s) => s.reduceMotion);
+  const { displayedScene, overlayVisible } = useSceneRevealTransition(sceneKey, {
+    isPagePending,
+    userReducedMotion,
+  });
   const Layout = getSceneLayout(displayedScene);
 
   return (

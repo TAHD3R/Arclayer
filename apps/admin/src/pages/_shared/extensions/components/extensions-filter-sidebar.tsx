@@ -2,7 +2,7 @@ import { useTranslation } from "react-i18next";
 import { Input } from "antd";
 import { Search } from "lucide-react";
 
-import { MiniCategoryNav } from "@/components/common/mini-category-nav";
+import { MiniCategoryNav } from "@celestial/ui/mini-category-nav";
 import { Checkbox } from "@celestial/ui/checkbox";
 
 type ExtensionsFilterSidebarProps = {

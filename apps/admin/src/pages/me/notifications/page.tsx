@@ -2,7 +2,7 @@ import { Switch } from "antd";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { SettingVerticalItem } from "@/components/settings-primitives/setting-vertical-item";
+import { SettingVerticalItem } from "@celestial/ui/setting-vertical-item";
 import { readStorageJson, writeStorageJson } from "@/lib/storage";
 import { STORAGE_KEYS } from "@/constants/storage";
 import { MeSettingPanel } from "@/pages/me/components/me-setting-panel";

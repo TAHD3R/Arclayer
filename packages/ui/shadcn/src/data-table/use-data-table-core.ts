@@ -18,13 +18,8 @@ import {
   type VisibilityState,
 } from "@tanstack/react-table";
 
-import type { DataTableBaseQuery, DataTableFeatureOptions } from "@/components/data-table/types";
-import {
-  applyMetaSortability,
-  applyUpdater,
-  buildOrdering,
-  collectColumnSortKeys,
-} from "@/components/data-table/utils";
+import type { DataTableBaseQuery, DataTableFeatureOptions } from "./types";
+import { applyMetaSortability, applyUpdater, buildOrdering, collectColumnSortKeys } from "./utils";
 
 export type UseDataTableCoreOptions<TData> = {
   columns: ColumnDef<TData, unknown>[];

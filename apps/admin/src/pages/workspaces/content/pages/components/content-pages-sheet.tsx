@@ -2,13 +2,13 @@ import { Button, Form, Input } from "antd";
 import { Info } from "lucide-react";
 import * as React from "react";
 
-import { SettingSheet } from "@/components/settings-primitives/setting-sheet";
+import { SettingSheet } from "@celestial/ui/setting-sheet";
 import {
   ChromeTabs,
   ChromeTabsContent,
   ChromeTabsList,
   ChromeTabsTrigger,
-} from "@/components/ui/chrome-tabs";
+} from "@celestial/ui/chrome-tabs";
 
 import type {
   ContentPageFormValues,

@@ -4,29 +4,14 @@ import { getSystemRuntime } from "@/api/system";
 import { queryClient } from "@/lib/query/query-client-instance";
 import type { DeploymentMode, DeploymentScope, SystemRuntime } from "@/types/api/system";
 
-const FALLBACK_RUNTIME: SystemRuntime = {
-  deploymentMode: "saas",
-  capabilities: { deploymentSettingsEnabled: false, publicRegisterEnabled: false },
-  systemFlags: {
-    deploymentMode: "saas",
-    multiTenant: true,
-    customDomain: true,
-    visualEditor: true,
-    deploymentSettings: false,
-    publicRegister: false,
-  },
-};
+const SYSTEM_RUNTIME_STALE_TIME_MS = 10 * 60 * 1000;
 
 export async function ensureSystemRuntime(): Promise<SystemRuntime> {
-  try {
-    return await queryClient.ensureQueryData({
-      queryKey: ["system", "runtime"],
-      queryFn: async () => getSystemRuntime(),
-      staleTime: 10 * 60 * 1000,
-    });
-  } catch {
-    return FALLBACK_RUNTIME;
-  }
+  return await queryClient.ensureQueryData({
+    queryKey: ["system", "runtime"],
+    queryFn: async () => getSystemRuntime(),
+    staleTime: SYSTEM_RUNTIME_STALE_TIME_MS,
+  });
 }
 
 export async function requireDeploymentScope(scope: DeploymentScope): Promise<void> {

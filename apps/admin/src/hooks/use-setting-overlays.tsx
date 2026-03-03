@@ -1,7 +1,7 @@
 import * as React from "react";
 
-import { SettingDialog } from "@/components/settings-primitives/setting-dialog";
-import { SettingSheet } from "@/components/settings-primitives/setting-sheet";
+import { SettingDialog } from "@celestial/ui/setting-dialog";
+import { SettingSheet } from "@celestial/ui/setting-sheet";
 
 export type SettingOverlayType = "dialog" | "sheet";
 

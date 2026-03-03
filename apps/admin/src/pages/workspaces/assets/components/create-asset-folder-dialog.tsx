@@ -2,7 +2,7 @@ import { Button, Input } from "antd";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { SettingDialog } from "@/components/settings-primitives/setting-dialog";
+import { SettingDialog } from "@celestial/ui/setting-dialog";
 
 export type CreateAssetFolderDialogProps = {
   open: boolean;

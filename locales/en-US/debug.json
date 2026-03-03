@@ -1,11 +1,4 @@
 {
-  "PORTAL_ORIGIN": "Portal origin",
-  "OVERLAY": "Overlay",
-  "SELECTED": "Selected",
-  "CLEAR_SELECTION": "Clear selection",
-  "PATH_LABEL": "Path",
-  "DRAFT_CONFLICT": "Draft conflict: expected {{expected}}, current {{current}}",
-  "DRAFT_CONFLICT_GENERIC": "Draft conflict (409)",
   "DEV_TOOLS_TITLE": "Debug Tools",
   "ILLUSTRATIONS_DEBUG_TITLE": "Illustrations Preview (Error States)",
   "ILLUSTRATIONS_DEBUG_DESC": "Dev-only page for verifying illustration animations, copy, and action buttons.",

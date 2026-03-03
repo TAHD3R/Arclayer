@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 
-import { PageSkeleton } from "@/components/common/page-skeleton";
+import { PageSkeleton } from "@celestial/ui/page-skeleton";
 import { ContentGuard } from "@/components/common/content-guard";
 
 import {

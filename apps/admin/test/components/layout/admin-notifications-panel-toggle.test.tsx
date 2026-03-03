@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { MouseEventHandler, ReactNode } from "react";
 
+import { ChromeTabsProvider } from "@celestial/ui/chrome-tabs";
 import { AdminLayout } from "@/layouts/admin-layout";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";
@@ -95,7 +96,15 @@ function renderWithQueryClient(component: React.ReactElement) {
       },
     },
   });
-  return render(<QueryClientProvider client={queryClient}>{component}</QueryClientProvider>);
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <ChromeTabsProvider
+        labels={{ scrollLeftAriaLabel: "scroll left", scrollRightAriaLabel: "scroll right" }}
+      >
+        {component}
+      </ChromeTabsProvider>
+    </QueryClientProvider>,
+  );
 }
 
 describe("AdminNotificationsPanel toggle", () => {

@@ -65,7 +65,6 @@
   "PLUGIN_STATUS_FAILED": "Failed",
   "PLUGIN_NOT_FOUND": "Plugin not found",
   "PLUGIN_CONFIG_NOT_SUPPORTED": "Plugin does not support configuration",
-  "PLUGIN_DISABLED": "Plugin is not enabled",
   "PLUGIN_SECRET_SET": "Set",
   "PLUGIN_SECRET_NOT_SET": "Not set",
   "PLUGIN_SECRET_PLACEHOLDER": "Leave blank to keep unchanged",

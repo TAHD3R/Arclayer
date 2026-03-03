@@ -1,14 +1,10 @@
 {
-  "NOTIFICATIONS_TITLE": "Notifications",
-  "NOTIFICATIONS_VIEW_ALL": "View all",
   "NOTIFICATIONS_MARK_AS_READ": "Mark as read",
-  "NOTIFICATIONS_MARK_ALL_AS_READ": "Mark all as read",
   "NOTIFICATIONS_TAB_UNREAD": "Unread",
   "NOTIFICATIONS_TAB_ALL": "All",
   "NOTIFICATIONS_TAB_READ": "Read",
   "NOTIFICATIONS_TAB_ARCHIVED": "Archived",
   "NOTIFICATIONS_PAGE_TITLE": "Notifications",
-  "NOTIFICATIONS_PAGE_DESC": "Shows global notifications for the current account.",
   "NOTIFICATIONS_PANEL_DESC": "Quick summary of recent notifications.",
   "NOTIFICATIONS_OPEN_CENTER": "Open notification center",
   "NOTIFICATIONS_TARGET_FORBIDDEN": "This notification belongs to a workspace you can no longer access.",
@@ -23,8 +19,5 @@
   "NOTIFICATIONS_PANEL_UNPIN": "Unpin panel",
   "NOTIFICATIONS_PANEL_CLOSE": "Close panel",
   "NOTIFICATIONS_ARCHIVE": "Archive",
-  "NOTIFICATIONS_DEV_SEED": "Generate demo notifications",
-  "NOTIFICATIONS_DELETE": "Delete",
-  "NOTIFICATIONS_GROUP_UNREAD": "Unread",
-  "NOTIFICATIONS_GROUP_READ": "Read"
+  "NOTIFICATIONS_DELETE": "Delete"
 }

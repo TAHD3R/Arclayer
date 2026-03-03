@@ -2,7 +2,7 @@ import { Alert, Button, Slider, Switch } from "antd";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
-import { SettingVerticalItem } from "@/components/settings-primitives/setting-vertical-item";
+import { SettingVerticalItem } from "@celestial/ui/setting-vertical-item";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 import { ThemeCard } from "@/pages/me/preferences/components/preferences-theme-cards";
 import { setThemePreferenceWithTransition } from "@/components/ui/theme-transition";

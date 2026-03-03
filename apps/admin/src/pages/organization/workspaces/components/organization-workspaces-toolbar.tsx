@@ -8,7 +8,7 @@ import {
   ChromeTabsBar,
   ChromeTabsList,
   ChromeTabsTrigger,
-} from "@/components/ui/chrome-tabs";
+} from "@celestial/ui/chrome-tabs";
 
 import type {
   OrganizationWorkspacesTab,

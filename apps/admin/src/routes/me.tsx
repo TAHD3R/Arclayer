@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import { RouterDefaultNotFound } from "@/components/builtin/router-fallbacks";
 import { AdminRouteContainer } from "@/components/layout/admin-route-container";
-import { ChromeTabs, ChromeTabsList, ChromeTabsTrigger } from "@/components/ui/chrome-tabs";
+import { ChromeTabs, ChromeTabsList, ChromeTabsTrigger } from "@celestial/ui/chrome-tabs";
 
 type MeTabKey = "profile" | "preferences" | "security" | "notifications";
 

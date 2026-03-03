@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useMemo, useState } from "react";
 
 import { Accordion } from "@celestial/ui/accordion";
-import { SettingAccordionItem } from "@/components/settings-primitives/setting-accordion-item";
+import { SettingAccordionItem } from "@celestial/ui/setting-accordion-item";
 import { resolvePublicAssetUrlPath } from "@/lib/assets/asset-urls";
 import { deleteAdminAssetUsageByRef, upsertAdminAssetUsage } from "@/api/asset-usages";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
@@ -441,6 +441,7 @@ export function SiteSettingsTab({
           onConfirm={saveSiteName}
           confirmLoading={savingKey === "siteName"}
           onReset={isSiteNameDirty || isResettingSiteName ? resetSiteName : undefined}
+          resetText={t("settings:SETTINGS_RESET")}
           resetLoading={isResettingSiteName}
           disabled={disabled}
           keepRendered
@@ -526,6 +527,7 @@ export function SiteSettingsTab({
           onConfirm={saveSiteSubtitle}
           confirmLoading={savingKey === "siteSubtitle"}
           onReset={isSiteSubtitleDirty || isResettingSiteSubtitle ? resetSiteSubtitle : undefined}
+          resetText={t("settings:SETTINGS_RESET")}
           resetLoading={isResettingSiteSubtitle}
           disabled={disabled}
         >
@@ -554,6 +556,7 @@ export function SiteSettingsTab({
           onReset={
             isSiteDescriptionDirty || isResettingSiteDescription ? resetSiteDescription : undefined
           }
+          resetText={t("settings:SETTINGS_RESET")}
           resetLoading={isResettingSiteDescription}
           disabled={disabled}
           keepRendered
@@ -637,6 +640,7 @@ export function SiteSettingsTab({
           onReset={
             isSeoTitlePolicyDirty || isResettingSeoTitlePolicyV1 ? resetSeoTitlePolicyV1 : undefined
           }
+          resetText={t("settings:SETTINGS_RESET")}
           resetLoading={isResettingSeoTitlePolicyV1}
           disabled={disabled}
           keepRendered
@@ -672,6 +676,7 @@ export function SiteSettingsTab({
           onConfirm={saveSiteUrl}
           confirmLoading={savingKey === "siteUrl"}
           onReset={isSiteUrlDirty || isResettingSiteUrl ? resetSiteUrl : undefined}
+          resetText={t("settings:SETTINGS_RESET")}
           resetLoading={isResettingSiteUrl}
           disabled={disabled}
         >
@@ -708,6 +713,7 @@ export function SiteSettingsTab({
           onConfirm={saveSiteLogoUrl}
           confirmLoading={savingKey === "siteLogoUrl"}
           onReset={isSiteLogoUrlDirty || isResettingSiteLogoUrl ? resetSiteLogoUrl : undefined}
+          resetText={t("settings:SETTINGS_RESET")}
           resetLoading={isResettingSiteLogoUrl}
           disabled={disabled}
           keepRendered
@@ -738,6 +744,7 @@ export function SiteSettingsTab({
           onReset={
             isSiteFaviconUrlDirty || isResettingSiteFaviconUrl ? resetSiteFaviconUrl : undefined
           }
+          resetText={t("settings:SETTINGS_RESET")}
           resetLoading={isResettingSiteFaviconUrl}
           disabled={disabled}
           keepRendered
@@ -772,6 +779,7 @@ export function SiteSettingsTab({
               ? resetSiteContactEmail
               : undefined
           }
+          resetText={t("settings:SETTINGS_RESET")}
           resetLoading={isResettingSiteContactEmail}
           disabled={disabled}
         >

@@ -34,6 +34,7 @@ export function useLoginPage() {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const runtime = useSystemRuntime();
+  const runtimeReady = Boolean(runtime.runtime);
 
   const {
     redirect: redirectTo,
@@ -42,8 +43,8 @@ export function useLoginPage() {
     oauth_error: oauthError,
   } = loginRouteApi.useSearch();
 
-  const publicRegisterEnabled = runtime.publicRegisterEnabled;
-  const effectiveMode = resolveLoginMode(mode, publicRegisterEnabled);
+  const publicRegisterEnabled = runtimeReady ? Boolean(runtime.publicRegisterEnabled) : false;
+  const effectiveMode = runtimeReady ? resolveLoginMode(mode, publicRegisterEnabled) : mode;
 
   // --- Mutations ---
 
@@ -123,13 +124,14 @@ export function useLoginPage() {
   }, [effectiveMode, navigate, redirectTo]);
 
   useEffect(() => {
+    if (!runtimeReady) return;
     if (mode !== "register" || publicRegisterEnabled) return;
     void navigate({
       to: "/login",
       search: { ...(redirectTo ? { redirect: redirectTo } : {}), mode: "login" },
       replace: true,
     });
-  }, [mode, navigate, publicRegisterEnabled, redirectTo]);
+  }, [mode, navigate, publicRegisterEnabled, redirectTo, runtimeReady]);
 
   useEffect(() => {
     if (!oauthCode) return;
@@ -227,6 +229,8 @@ export function useLoginPage() {
     }
   };
 
+  const runtimeLoading = !runtimeReady;
+
   return {
     mode: effectiveMode,
     onModeChange,
@@ -236,7 +240,7 @@ export function useLoginPage() {
     redirect: redirectTo,
     onForgotPassword,
     onRegisterSubmit: onRegisterFinish,
-    registerLoading: registerMutation.isPending,
+    registerLoading: registerMutation.isPending || runtimeLoading,
     publicRegisterEnabled,
   };
 }

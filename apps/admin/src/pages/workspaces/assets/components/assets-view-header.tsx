@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 
 import type { AdminAssetTag } from "@/types/api";
 import ChevronDownIcon from "@celestial/ui/icons/chevron-down";
-import { ChromeTabs, ChromeTabsList, ChromeTabsTrigger } from "@/components/ui/chrome-tabs";
+import { ChromeTabs, ChromeTabsList, ChromeTabsTrigger } from "@celestial/ui/chrome-tabs";
 import { AssetsFilterPopover } from "./assets-filter-popover";
 import {
   DropdownMenu,

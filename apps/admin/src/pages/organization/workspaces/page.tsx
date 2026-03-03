@@ -7,7 +7,7 @@ import { useTranslation } from "react-i18next";
 
 import { type OrganizationWorkspace } from "@/types/api";
 import { DefaultPage } from "@/components/common/default-page";
-import { ChromeTabsContent } from "@/components/ui/chrome-tabs";
+import { ChromeTabsContent } from "@celestial/ui/chrome-tabs";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
 import {

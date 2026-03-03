@@ -1,11 +1,4 @@
 {
-  "PORTAL_ORIGIN": "Portal 地址",
-  "OVERLAY": "覆盖层",
-  "SELECTED": "选中",
-  "CLEAR_SELECTION": "取消选中",
-  "PATH_LABEL": "路径",
-  "DRAFT_CONFLICT": "草稿冲突：期望 {{expected}}，当前 {{current}}",
-  "DRAFT_CONFLICT_GENERIC": "草稿冲突（409）",
   "DEV_TOOLS_TITLE": "调试工具",
   "ILLUSTRATIONS_DEBUG_TITLE": "插画预览（错误页）",
   "ILLUSTRATIONS_DEBUG_DESC": "仅开发环境可访问，用于检查插画动画、文案与按钮布局。",

@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import type { ActivityEvent } from "@/types/api";
 import { ActivityTimeline } from "@/pages/organization/activity/components/activity-timeline";
-import { PageSkeleton } from "@/components/common/page-skeleton";
+import { PageSkeleton } from "@celestial/ui/page-skeleton";
 import { ContentGuard } from "@/components/common/content-guard";
 
 type OrganizationMemberInspectActivityTabProps = {

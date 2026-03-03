@@ -3,7 +3,7 @@ import type { FormInstance } from "antd";
 import { useTranslation } from "react-i18next";
 
 import { Accordion } from "@celestial/ui/accordion";
-import { SettingAccordionItem } from "@/components/settings-primitives/setting-accordion-item";
+import { SettingAccordionItem } from "@celestial/ui/setting-accordion-item";
 
 import {
   buildDateFormatOptions,
@@ -158,6 +158,7 @@ export function LocalizationSettingsTab({
         onReset={
           isSupportedLocalesDirty || isResettingSupportedLocales ? resetSupportedLocales : undefined
         }
+        resetText={t("settings:SETTINGS_RESET")}
         resetLoading={isResettingSupportedLocales}
         disabled={disabled}
       >
@@ -203,6 +204,7 @@ export function LocalizationSettingsTab({
         onConfirm={saveDefaultLocale}
         confirmLoading={savingKey === "defaultLocale"}
         onReset={isDefaultLocaleDirty || isResettingDefaultLocale ? resetDefaultLocale : undefined}
+        resetText={t("settings:SETTINGS_RESET")}
         resetLoading={isResettingDefaultLocale}
         disabled={disabled}
       >
@@ -227,6 +229,7 @@ export function LocalizationSettingsTab({
         onReset={
           isFallbackLocaleDirty || isResettingFallbackLocale ? resetFallbackLocale : undefined
         }
+        resetText={t("settings:SETTINGS_RESET")}
         resetLoading={isResettingFallbackLocale}
         disabled={disabled}
       >
@@ -249,6 +252,7 @@ export function LocalizationSettingsTab({
         onConfirm={saveTimezone}
         confirmLoading={savingKey === "timezone"}
         onReset={isTimezoneDirty || isResettingTimezone ? resetTimezone : undefined}
+        resetText={t("settings:SETTINGS_RESET")}
         resetLoading={isResettingTimezone}
         disabled={disabled}
       >
@@ -271,6 +275,7 @@ export function LocalizationSettingsTab({
         onConfirm={saveDateFormat}
         confirmLoading={savingKey === "dateFormat"}
         onReset={isDateFormatDirty || isResettingDateFormat ? resetDateFormat : undefined}
+        resetText={t("settings:SETTINGS_RESET")}
         resetLoading={isResettingDateFormat}
         disabled={disabled}
       >

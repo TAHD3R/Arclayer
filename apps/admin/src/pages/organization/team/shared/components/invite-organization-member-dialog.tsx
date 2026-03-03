@@ -6,7 +6,7 @@ import { Tooltip, TooltipTrigger, TooltipContent } from "@celestial/ui/tooltip";
 import { z } from "zod";
 import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 
-import { SettingDialog } from "@/components/settings-primitives/setting-dialog";
+import { SettingDialog } from "@celestial/ui/setting-dialog";
 import { zodResolver } from "@/lib/forms/zod-resolver";
 
 export type InviteOrganizationMemberFormValues = {

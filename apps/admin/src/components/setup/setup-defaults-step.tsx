@@ -2,7 +2,7 @@ import { Form, Select } from "antd";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
-import { SettingAccordionItem } from "@/components/settings-primitives/setting-accordion-item";
+import { SettingAccordionItem } from "@celestial/ui/setting-accordion-item";
 import { Accordion } from "@celestial/ui/accordion";
 import { DEFAULT_TIMEZONE } from "@/constants/datetime";
 import { type AppLocale } from "@/lib/i18n";

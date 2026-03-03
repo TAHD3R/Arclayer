@@ -2,8 +2,8 @@ import { Pagination } from "antd";
 import { type Table as ReactTable } from "@tanstack/react-table";
 import { useTranslation } from "react-i18next";
 
-import { DataTablePresenter } from "@/components/data-table";
-import type { PageData } from "@/components/data-table";
+import { DataTablePresenter } from "@celestial/ui/data-table";
+import type { PageData } from "@celestial/ui/data-table";
 import type { OrganizationMember } from "@/types/api";
 
 interface OrganizationMembersTableSectionProps {

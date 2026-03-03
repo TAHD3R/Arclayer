@@ -16,7 +16,6 @@
   "SETUP_FIELD_TIMEZONE_TITLE": "时区",
   "SETUP_FIELD_LANGUAGE_TITLE": "默认语言",
   "SETUP_FIELD_DATE_FORMAT_TITLE": "日期格式",
-  "SETUP_SELECT": "选择",
   "SETUP_DEFAULT_SITE_NAME": "{{username}} 的站点",
   "SETUP_TIMEZONE_DESC": "设置该工作区在管理端的默认时区。",
   "SETUP_LANGUAGE_DESC": "设置该工作区在管理端的默认语言。",

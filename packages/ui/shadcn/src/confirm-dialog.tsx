@@ -2,9 +2,10 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 
-import { Button } from "antd";
+import { LoaderCircle } from "lucide-react";
 
-import { SettingDialog } from "@/components/settings-primitives/setting-dialog";
+import { Button } from "./button";
+import { SettingDialog } from "./setting-dialog";
 
 export interface ConfirmDialogProps {
   open: boolean;
@@ -40,15 +41,19 @@ export function ConfirmDialog(props: ConfirmDialogProps) {
       contentClassName="sm:max-w-[520px]"
       footer={
         <>
-          <Button type="text" onClick={() => props.onOpenChange(false)} disabled={props.loading}>
+          <Button
+            variant="ghost"
+            onClick={() => props.onOpenChange(false)}
+            disabled={Boolean(props.loading)}
+          >
             {props.cancelText}
           </Button>
           <Button
-            type="primary"
-            danger={props.danger}
-            loading={props.loading}
+            variant={props.danger ? "destructive" : "default"}
             onClick={() => void props.onConfirm()}
+            disabled={Boolean(props.loading)}
           >
+            {props.loading ? <LoaderCircle className="size-4 animate-spin" /> : null}
             {props.confirmText}
           </Button>
         </>

@@ -5,7 +5,7 @@ import { useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
 import * as authApi from "@/api/auth";
-import { SettingDialog } from "@/components/settings-primitives/setting-dialog";
+import { SettingDialog } from "@celestial/ui/setting-dialog";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 
 export type MeProfileChangeEmailDialogProps = {

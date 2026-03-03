@@ -1,8 +1,1 @@
-{
-  "INDEX_DESC": "在统一内容中心管理条目、类型和页面。",
-  "SEARCH_PLACEHOLDER": "搜索 slug、类型、标题或路径",
-  "FILTER_STATUS_ALL": "全部状态",
-  "FILTER_STATUS_DRAFT": "草稿",
-  "FILTER_STATUS_PUBLISHED": "已发布",
-  "PAGINATION_TOTAL": "共 {{total}} 条"
-}
+{}

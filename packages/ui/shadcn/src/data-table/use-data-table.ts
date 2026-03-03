@@ -4,7 +4,12 @@ import { keepPreviousData, useQuery, type UseQueryOptions } from "@tanstack/reac
 import type { ColumnDef, SortingState, Table, VisibilityState } from "@tanstack/react-table";
 import * as React from "react";
 
-import { clearVisibilityState, readVisibilityState, writeVisibilityState } from "./storage";
+import {
+  clearVisibilityState,
+  readVisibilityState,
+  writeVisibilityState,
+  type DataTableVisibilityStorageOptions,
+} from "./storage";
 import type {
   DataTableBaseQuery,
   DataTableFeatureOptions,
@@ -47,6 +52,9 @@ export type UseDataTableOptions<
     UseQueryOptions<PageData<TData>, unknown, PageData<TData>, readonly unknown[]>,
     "queryKey" | "queryFn" | "placeholderData"
   >;
+  storage?: {
+    visibility?: DataTableVisibilityStorageOptions;
+  };
 };
 
 export type UseDataTableResult<TData, TExtraQuery extends Record<string, unknown>> = {
@@ -133,12 +141,18 @@ export function useDataTable<
     onSortingChange,
     search,
     queryOptions,
+    storage,
   } = options;
 
+  const visibilityStorage = React.useMemo<DataTableVisibilityStorageOptions | undefined>(
+    () => storage?.visibility,
+    [storage?.visibility],
+  );
+
   const initialVisibility = React.useMemo<VisibilityState | undefined>(() => {
-    const persisted = readVisibilityState(tableId);
+    const persisted = readVisibilityState(tableId, visibilityStorage);
     return persisted ?? undefined;
-  }, [tableId]);
+  }, [tableId, visibilityStorage]);
 
   const [tableData, setTableData] = React.useState<TData[]>([]);
   const [pageCount, setPageCount] = React.useState<number>(0);
@@ -161,7 +175,7 @@ export function useDataTable<
     },
     features,
     onSortingChange,
-    onColumnVisibilityChange: (next) => writeVisibilityState(tableId, next),
+    onColumnVisibilityChange: (next) => writeVisibilityState(tableId, next, visibilityStorage),
   });
 
   // Search input (debounced commit).
@@ -244,8 +258,8 @@ export function useDataTable<
 
   const resetColumnVisibility = React.useCallback(() => {
     core.table.resetColumnVisibility();
-    clearVisibilityState(tableId);
-  }, [core.table, tableId]);
+    clearVisibilityState(tableId, visibilityStorage);
+  }, [core.table, tableId, visibilityStorage]);
 
   return {
     table: core.table,

@@ -11,7 +11,7 @@ import {
   ChromeTabsContent,
   ChromeTabsList,
   ChromeTabsTrigger,
-} from "@/components/ui/chrome-tabs";
+} from "@celestial/ui/chrome-tabs";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { ContentGuard } from "@/components/common/content-guard";
 import { useSavingKey } from "@celestial/hooks/use-saving-key";

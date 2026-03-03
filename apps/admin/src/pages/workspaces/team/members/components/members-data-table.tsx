@@ -1,6 +1,6 @@
 import { type Table as ReactTable } from "@tanstack/react-table";
 
-import { DataTablePresenter } from "@/components/data-table";
+import { DataTablePresenter } from "@celestial/ui/data-table";
 import type { TeamMember } from "@/types/api";
 
 interface TeamMembersDataTableProps {

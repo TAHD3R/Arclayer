@@ -1,10 +1,1 @@
-{
-  "UNAUTHORIZED": "Unauthorized",
-  "FORBIDDEN": "Forbidden",
-  "NOT_FOUND": "Resource not found",
-  "CONFLICT": "Conflict",
-  "SETUP_DISABLED": "Setup endpoint is disabled",
-  "MASTER_KEY_MISSING": "System master key is missing",
-  "INVITE_EMAIL_DOMAIN_FORBIDDEN": "Your email domain is not allowed for this invitation",
-  "REQUEST_FAILED": "Request failed"
-}
+{}

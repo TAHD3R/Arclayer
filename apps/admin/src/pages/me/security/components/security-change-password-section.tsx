@@ -4,8 +4,8 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import * as authApi from "@/api/auth";
-import { SettingDialog } from "@/components/settings-primitives/setting-dialog";
-import { SettingVerticalItem } from "@/components/settings-primitives/setting-vertical-item";
+import { SettingDialog } from "@celestial/ui/setting-dialog";
+import { SettingVerticalItem } from "@celestial/ui/setting-vertical-item";
 
 type ChangePasswordFormValues = {
   oldPassword: string;

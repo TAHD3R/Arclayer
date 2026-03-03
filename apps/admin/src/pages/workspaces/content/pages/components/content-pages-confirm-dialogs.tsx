@@ -1,6 +1,6 @@
 import { Button as AntButton } from "antd";
 
-import { SettingDialog } from "@/components/settings-primitives/setting-dialog";
+import { SettingDialog } from "@celestial/ui/setting-dialog";
 
 import type { ContentPageRow } from "../types";
 import { resolveDisplayName } from "../utils";

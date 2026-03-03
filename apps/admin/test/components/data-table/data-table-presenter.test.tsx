@@ -4,8 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { getCoreRowModel, type SortingState, useReactTable } from "@tanstack/react-table";
 import { describe, expect, it } from "vitest";
 
-import { DataTablePresenter } from "@/components/data-table";
-import { buildOrdering, collectColumnSortKeys } from "@/components/data-table/utils";
+import { DataTablePresenter, buildOrdering, collectColumnSortKeys } from "@celestial/ui/data-table";
 
 function SortableTableHarness() {
   const data = React.useMemo(() => [{ name: "Alice" }], []);

@@ -6,10 +6,10 @@ import { useTranslation } from "react-i18next";
 import { Accordion } from "@celestial/ui/accordion";
 import { Checkbox } from "@celestial/ui/checkbox";
 import { Switch } from "@celestial/ui/switch";
-import { SettingAccordionItem } from "@/components/settings-primitives/setting-accordion-item";
-import { SettingActionItem } from "@/components/settings-primitives/setting-action-item";
-import { SettingOverlayFooter } from "@/components/settings-primitives/setting-overlay-footer";
-import { SettingPanel } from "@/components/settings-primitives/setting-panel";
+import { SettingAccordionItem } from "@celestial/ui/setting-accordion-item";
+import { SettingActionItem } from "@celestial/ui/setting-action-item";
+import { SettingOverlayFooter } from "@celestial/ui/setting-overlay-footer";
+import { SettingPanel } from "@celestial/ui/setting-panel";
 import { type SettingOverlayConfig, useSettingOverlays } from "@/hooks/use-setting-overlays";
 import { sendTestEmail } from "@/api/mail";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
@@ -419,6 +419,7 @@ export function MessagingSettingsTab({
                   onConfirm={saveMailTemplates}
                   confirmLoading={isSavingMailTemplates}
                   onReset={resetMailTemplates}
+                  resetText={t("settings:SETTINGS_RESET")}
                   resetLoading={isResettingMailTemplates}
                   disabled={disabled}
                 >
@@ -498,6 +499,7 @@ export function MessagingSettingsTab({
               onConfirm={saveNotificationTypes}
               confirmLoading={isSavingNotificationTypes}
               onReset={resetNotificationTypes}
+              resetText={t("settings:SETTINGS_RESET")}
               resetLoading={isResettingNotificationTypes}
               disabled={disabled}
             >

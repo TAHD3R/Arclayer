@@ -4,6 +4,8 @@ import {
   type UnauthorizedHandler,
 } from "@celestial/runtime/http";
 
+import { buildLocaleHeaders, resolveRequestCredentials } from "@celestial/lib/http/request-context";
+
 import { getAppConfig } from "@/constants/app-config";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { usePreferencesStore } from "@/stores/use-preferences-store";
@@ -18,22 +20,12 @@ function getRequestCredentials(): RequestCredentials {
   const { apiBaseUrl } = getAppConfig();
   const locationOrigin = (globalThis as unknown as { location?: { origin?: string } }).location
     ?.origin;
-
-  // In non-browser environments, fall back to fetch default behavior (same-origin cookies only).
-  if (!locationOrigin) return "same-origin";
-  if (!apiBaseUrl) return "same-origin";
-
-  try {
-    const apiOrigin = new URL(apiBaseUrl, locationOrigin).origin;
-    return apiOrigin === locationOrigin ? "same-origin" : "include";
-  } catch {
-    return "same-origin";
-  }
+  return resolveRequestCredentials({ apiBaseUrl, locationOrigin });
 }
 
 function getLocaleHeaders(): { "accept-language"?: string; "x-locale"?: string } {
   const { locale } = usePreferencesStore.getState();
-  return { "accept-language": locale };
+  return buildLocaleHeaders({ locale });
 }
 
 const client = createApiClient({

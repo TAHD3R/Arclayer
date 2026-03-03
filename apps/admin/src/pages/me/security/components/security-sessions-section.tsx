@@ -3,9 +3,9 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
-import { DataTablePresenter, useDataTable } from "@/components/data-table";
-import type { PageData } from "@/components/data-table/types";
-import { SettingVerticalItem } from "@/components/settings-primitives/setting-vertical-item";
+import { DataTablePresenter, useDataTable } from "@celestial/ui/data-table";
+import type { PageData } from "@celestial/ui/data-table";
+import { SettingVerticalItem } from "@celestial/ui/setting-vertical-item";
 
 type SessionRow = {
   id: string;

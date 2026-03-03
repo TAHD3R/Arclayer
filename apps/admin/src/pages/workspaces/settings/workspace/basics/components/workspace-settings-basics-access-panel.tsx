@@ -1,8 +1,8 @@
 import { Button, Form, Select } from "antd";
 
 import { Accordion } from "@celestial/ui/accordion";
-import { SettingAccordionItem } from "@/components/settings-primitives/setting-accordion-item";
-import { SettingPanel } from "@/components/settings-primitives/setting-panel";
+import { SettingAccordionItem } from "@celestial/ui/setting-accordion-item";
+import { SettingPanel } from "@celestial/ui/setting-panel";
 
 import type { WorkspaceSettingsBasicsController } from "../hooks/use-workspace-settings-basics-controller";
 
@@ -50,6 +50,7 @@ export function WorkspaceSettingsBasicsAccessPanel(props: {
                     })
                 : undefined
             }
+            resetText={t("settings:SETTINGS_RESET")}
             resetLoading={c.savingKey === "reset:workspace:defaultRole"}
           >
             <Form.Item

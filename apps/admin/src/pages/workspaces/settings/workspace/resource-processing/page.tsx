@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import { ContentGuard } from "@/components/common/content-guard";
 import { DefaultPage } from "@/components/common/default-page";
-import { ChromeTabs, ChromeTabsContent } from "@/components/ui/chrome-tabs";
+import { ChromeTabs, ChromeTabsContent } from "@celestial/ui/chrome-tabs";
 import type { WorkspaceSettingsTabKey } from "@/types/settings-workspace";
 
 import { useWorkspaceStore } from "@/stores/use-workspace-store";

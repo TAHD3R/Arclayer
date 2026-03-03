@@ -17,7 +17,7 @@ import {
 import type { TeamMember, UserStatus } from "@/types/api";
 import { DefaultPage } from "@/components/common/default-page";
 import { ContentGuard } from "@/components/common/content-guard";
-import { useDataTable } from "@/components/data-table";
+import { useDataTable } from "@celestial/ui/data-table";
 import { Button } from "@celestial/ui/button";
 import {
   DropdownMenu,

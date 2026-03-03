@@ -4,7 +4,7 @@ import { MeSettingPanel } from "@/pages/me/components/me-setting-panel";
 import { MeSettingsCategoryLayout } from "@/pages/me/components/me-settings-category-layout";
 import { MeSecurityChangePasswordSection } from "@/pages/me/security/components/security-change-password-section";
 import { MeSecuritySessionsSection } from "@/pages/me/security/components/security-sessions-section";
-import { SettingVerticalItem } from "@/components/settings-primitives/setting-vertical-item";
+import { SettingVerticalItem } from "@celestial/ui/setting-vertical-item";
 import { Button } from "antd";
 
 export function MeSecurityView() {

@@ -1,10 +1,12 @@
-import { Button } from "antd";
 import { type ReactNode } from "react";
-import { useTranslation } from "react-i18next";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, LoaderCircle } from "lucide-react";
 
 import { AccordionContent, AccordionItem, AccordionTrigger } from "@celestial/ui/accordion";
 import { cn } from "@celestial/lib/utils";
+
+import { Button } from "./button";
+
+const DEFAULT_TITLE_COLUMN_WIDTH_PX = 240;
 
 export type SettingAccordionItemProps = {
   value: string;
@@ -65,22 +67,27 @@ export type SettingAccordionItemProps = {
   contentClassName?: string;
 
   /**
-   * 是否在折叠时仍保持内容渲染（用于表单字段保持挂载，避免 validateFields 找不到字段）。
+   * When true, keeps content mounted even when collapsed.
+   * Useful for form libraries that expect fields to stay registered while hidden.
    */
   keepRendered?: boolean;
 };
 
 export function SettingAccordionItem(props: SettingAccordionItemProps) {
-  const { t } = useTranslation();
   const hasActions = Boolean(props.onConfirm || props.onReset);
   const busy = Boolean(props.disabled || props.confirmLoading || props.resetLoading);
-  const summaryPrefix = props.summaryPrefix ?? t("settings:SETTINGS_CURRENT");
-  const resetText = props.resetText ?? t("settings:SETTINGS_RESET");
   const shouldShowSummary = Boolean(props.showSummary);
   const hasDescription = props.description !== undefined && props.description !== null;
   const variant = props.variant ?? "default";
   const showChevron = props.showChevron ?? true;
-  const titleColumnWidth = props.titleColumnWidth ?? 240;
+  const titleColumnWidth = props.titleColumnWidth ?? DEFAULT_TITLE_COLUMN_WIDTH_PX;
+
+  if (props.onConfirm && (props.confirmText === undefined || props.confirmText === null)) {
+    throw new Error("SettingAccordionItem: confirmText is required when onConfirm is provided.");
+  }
+  if (props.onReset && (props.resetText === undefined || props.resetText === null)) {
+    throw new Error("SettingAccordionItem: resetText is required when onReset is provided.");
+  }
 
   const hasSummaryValue = (() => {
     const v = props.summary;
@@ -133,9 +140,10 @@ export function SettingAccordionItem(props: SettingAccordionItemProps) {
               {hasDescription ? (
                 <div className="mt-1 text-callout text-label-secondary">{props.description}</div>
               ) : null}
-              {shouldRenderSummary && summaryPrefix ? (
+              {shouldRenderSummary ? (
                 <div className="sr-only">
-                  {summaryPrefix} {summaryNode}
+                  {props.summaryPrefix ? <>{props.summaryPrefix} </> : null}
+                  {summaryNode}
                 </div>
               ) : null}
             </div>
@@ -167,9 +175,11 @@ export function SettingAccordionItem(props: SettingAccordionItemProps) {
                 {hasDescription ? props.description : null}
                 {shouldRenderSummary ? (
                   <>
-                    <span className={cn(hasDescription ? "ml-2" : undefined, "mr-1")}>
-                      {summaryPrefix}
-                    </span>
+                    {props.summaryPrefix ? (
+                      <span className={cn(hasDescription ? "ml-2" : undefined, "mr-1")}>
+                        {props.summaryPrefix}
+                      </span>
+                    ) : null}
                     <span>{props.summary}</span>
                   </>
                 ) : null}
@@ -191,21 +201,22 @@ export function SettingAccordionItem(props: SettingAccordionItemProps) {
             <div className="flex items-center justify-start gap-2">
               {props.onConfirm ? (
                 <Button
-                  type="primary"
-                  disabled={props.disabled || props.resetLoading}
-                  loading={props.confirmLoading}
+                  variant="default"
+                  disabled={Boolean(props.disabled || props.resetLoading || props.confirmLoading)}
                   onClick={() => void props.onConfirm?.()}
                 >
-                  {props.confirmText ?? t("settings:SETTINGS_SAVE")}
+                  {props.confirmLoading ? <LoaderCircle className="size-4 animate-spin" /> : null}
+                  {props.confirmText}
                 </Button>
               ) : null}
               {props.onReset ? (
                 <Button
-                  disabled={props.disabled || props.confirmLoading}
-                  loading={props.resetLoading}
+                  variant="outline"
+                  disabled={Boolean(props.disabled || props.confirmLoading || props.resetLoading)}
                   onClick={() => void props.onReset?.()}
                 >
-                  {resetText}
+                  {props.resetLoading ? <LoaderCircle className="size-4 animate-spin" /> : null}
+                  {props.resetText}
                 </Button>
               ) : null}
             </div>

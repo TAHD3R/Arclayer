@@ -6,7 +6,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./utils": "./src/utils.ts",
-    "./get-strict-context": "./src/get-strict-context.tsx"
+    "./get-strict-context": "./src/get-strict-context.tsx",
+    "./http/request-context": "./src/http/request-context.ts"
   },
   "dependencies": {
     "clsx": "^2.1.1",

@@ -30,7 +30,7 @@ import { useWorkspaceLocalization } from "@/hooks/use-workspace-localization";
 import { useSystemRuntime } from "@/hooks/use-system-runtime";
 import { resolvePermissionNameI18nKey } from "@/lib/auth/rbac-permissions";
 import { filterNavByScope } from "@/lib/filter-nav-by-scope";
-import { Illust404BrokenLink } from "@/components/illustrations";
+import { Illust404BrokenLink } from "@celestial/ui/illustrations";
 import { Button } from "antd";
 import {
   Sidebar,
@@ -139,10 +139,10 @@ export function AdminLayout({ children }: PropsWithChildren) {
     return mapItems(baseItems);
   }, [isOrgScopeRoute, isMeScopeRoute, resolvedOrgPathPrefix, workspaceBase]);
 
-  const scopedNavItems = useMemo(
-    () => filterNavByScope(navItems, systemRuntime.runtime.deploymentMode),
-    [navItems, systemRuntime.runtime.deploymentMode],
-  );
+  const scopedNavItems = useMemo(() => {
+    if (!systemRuntime.runtime) return [];
+    return filterNavByScope(navItems, systemRuntime.runtime.deploymentMode);
+  }, [navItems, systemRuntime.runtime]);
 
   const mainItems = useMemo(
     () => scopedNavItems.filter((it) => it.position !== "footer"),
@@ -198,6 +198,8 @@ export function AdminLayout({ children }: PropsWithChildren) {
 
   const orgContextMissing = (isOrgScopeRoute || isMeScopeRoute) && !resolvedOrgPathPrefix;
   const showOrgNavSkeleton = Boolean(accessToken) && orgContextMissing;
+  const showSystemRuntimeSkeleton = Boolean(accessToken) && !systemRuntime.runtime;
+  const showNavSkeleton = showOrgNavSkeleton || showSystemRuntimeSkeleton;
   const showOrgNavErrorOverlay = showOrgNavSkeleton && myOrganizationQuery.isError;
 
   const workspaceLocalization = useWorkspaceLocalization();
@@ -261,7 +263,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
         <SidebarContent className="relative z-10 mx-2 overflow-hidden scrollbar-none">
           <div className="relative flex min-h-0 flex-1">
             <div className="flex min-h-0 flex-1 flex-col overflow-auto scrollbar-none">
-              {showOrgNavSkeleton ? (
+              {showNavSkeleton ? (
                 <div className="mt-4 mb-8">
                   <div className="px-3.5 py-2">
                     <SidebarMenuSkeleton showIcon />

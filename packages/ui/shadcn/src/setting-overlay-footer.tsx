@@ -1,5 +1,7 @@
-import { Button } from "antd";
 import type { ReactNode } from "react";
+import { LoaderCircle } from "lucide-react";
+
+import { Button } from "./button";
 
 type AsyncAction = () => void | Promise<void>;
 
@@ -55,43 +57,49 @@ export function SettingOverlayFooter({
   resetLoading,
   disabled,
 }: SettingOverlayFooterProps) {
+  const shouldShowReset = Boolean(resetVisible && onReset);
+  if (shouldShowReset && (resetText === undefined || resetText === null)) {
+    throw new Error("SettingOverlayFooter: resetText is required when reset is enabled.");
+  }
+
   const handleSave = async () => {
-    try {
-      await onSave();
-      close();
-    } catch {
-      // 保持打开，让用户修正/重试
-    }
+    await onSave();
+    close();
   };
 
   const handleReset = async () => {
     if (!onReset) return;
-    try {
-      await onReset();
-      close();
-    } catch {
-      // 保持打开，让用户修正/重试
-    }
+    await onReset();
+    close();
   };
 
   return (
     <div className="flex w-full items-center justify-end gap-2">
-      <Button type="text" onClick={close}>
+      <Button
+        variant="ghost"
+        onClick={close}
+        disabled={Boolean(disabled || saveLoading || resetLoading)}
+      >
         {backText}
       </Button>
 
-      {resetVisible && onReset ? (
-        <Button loading={resetLoading} disabled={disabled} onClick={() => void handleReset()}>
+      {shouldShowReset ? (
+        <Button
+          variant="outline"
+          disabled={Boolean(disabled || resetLoading || saveLoading)}
+          onClick={() => void handleReset()}
+        >
+          {resetLoading ? <LoaderCircle className="size-4 animate-spin" /> : null}
           {resetText}
         </Button>
       ) : null}
 
       <Button
-        type="primary"
-        loading={saveLoading}
-        disabled={disabled}
+        variant="default"
+        disabled={Boolean(disabled || saveLoading || resetLoading)}
         onClick={() => void handleSave()}
       >
+        {saveLoading ? <LoaderCircle className="size-4 animate-spin" /> : null}
         {saveText}
       </Button>
     </div>

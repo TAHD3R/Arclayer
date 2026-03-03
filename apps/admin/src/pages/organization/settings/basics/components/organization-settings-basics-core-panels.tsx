@@ -1,8 +1,8 @@
 import { Form, Input, Select } from "antd";
 
 import { Accordion } from "@celestial/ui/accordion";
-import { SettingAccordionItem } from "@/components/settings-primitives/setting-accordion-item";
-import { SettingPanel } from "@/components/settings-primitives/setting-panel";
+import { SettingAccordionItem } from "@celestial/ui/setting-accordion-item";
+import { SettingPanel } from "@celestial/ui/setting-panel";
 import { normalizeLocale } from "@/lib/i18n";
 
 import type { OrganizationSettingsBasicsController } from "../hooks/use-organization-settings-basics-controller";
@@ -52,6 +52,7 @@ export function OrganizationSettingsBasicsCorePanels(props: {
                       })
                   : undefined
               }
+              resetText={t("settings:SETTINGS_RESET")}
               resetLoading={c.savingKey === "reset:organization:name"}
             >
               <Form.Item
@@ -116,6 +117,7 @@ export function OrganizationSettingsBasicsCorePanels(props: {
                       })
                   : undefined
               }
+              resetText={t("settings:SETTINGS_RESET")}
               resetLoading={c.savingKey === "reset:organization:locale"}
             >
               <Form.Item
@@ -163,6 +165,7 @@ export function OrganizationSettingsBasicsCorePanels(props: {
                       })
                   : undefined
               }
+              resetText={t("settings:SETTINGS_RESET")}
               resetLoading={c.savingKey === "reset:organization:timezone"}
             >
               <Form.Item
@@ -217,6 +220,7 @@ export function OrganizationSettingsBasicsCorePanels(props: {
                       })
                   : undefined
               }
+              resetText={t("settings:SETTINGS_RESET")}
               resetLoading={c.savingKey === "reset:organization:dateFormat"}
             >
               <Form.Item

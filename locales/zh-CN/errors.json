@@ -1,10 +1,1 @@
-{
-  "UNAUTHORIZED": "未授权",
-  "FORBIDDEN": "权限不足",
-  "NOT_FOUND": "资源不存在",
-  "CONFLICT": "请求冲突",
-  "SETUP_DISABLED": "系统初始化接口已关闭",
-  "MASTER_KEY_MISSING": "系统密钥缺失",
-  "INVITE_EMAIL_DOMAIN_FORBIDDEN": "你的邮箱域名不符合该邀请的要求",
-  "REQUEST_FAILED": "请求失败"
-}
+{}

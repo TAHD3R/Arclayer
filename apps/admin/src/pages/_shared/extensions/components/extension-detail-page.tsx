@@ -12,7 +12,7 @@ import {
   ChromeTabsContent,
   ChromeTabsList,
   ChromeTabsTrigger,
-} from "@/components/ui/chrome-tabs";
+} from "@celestial/ui/chrome-tabs";
 import { normalizeStatus } from "../utils";
 
 export type ExtensionDetailItem = {

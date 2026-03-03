@@ -19,7 +19,7 @@ import type {
 } from "@/types/api";
 import { getOrganizationRbacMatrix, listOrganizationRoles } from "@/api/organization-rbac";
 import { listOrganizationWorkspaces } from "@/api/organization-workspaces";
-import { useDataTable } from "@/components/data-table";
+import { useDataTable } from "@celestial/ui/data-table";
 import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { useAuthStore } from "@/stores/use-auth-store";

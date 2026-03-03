@@ -1,9 +1,1 @@
-{
-  "ONBOARDING_TITLE": "工作区引导",
-  "ONBOARDING_SUBTITLE": "系统正在准备你的工作区。如果尚未就绪，可以重试自动修复。",
-  "ONBOARDING_CHECKING": "正在检查租户状态...",
-  "ONBOARDING_WAITING_TITLE": "工作区尚未就绪",
-  "ONBOARDING_WAITING_DESC": "如果你是受邀加入，请联系拥有者完成工作区准备。你也可以重试自动修复。",
-  "ONBOARDING_RETRY_BUTTON": "重试修复",
-  "ONBOARDING_LOGIN_BUTTON": "返回登录"
-}
+{}

@@ -3,8 +3,8 @@ import type { Dispatch, SetStateAction } from "react";
 import { Button as AntButton, Form, Input, type FormInstance } from "antd";
 
 import type { OrganizationWorkspace } from "@/types/api";
-import { ConfirmDialog } from "@/components/common/confirm-dialog";
-import { SettingDialog } from "@/components/settings-primitives/setting-dialog";
+import { ConfirmDialog } from "@celestial/ui/confirm-dialog";
+import { SettingDialog } from "@celestial/ui/setting-dialog";
 
 import type { OrganizationWorkspacesTranslateFn } from "../types";
 

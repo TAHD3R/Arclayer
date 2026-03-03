@@ -9,7 +9,7 @@ import {
   Illust403ForbiddenGateway,
   Illust404BrokenLink,
   Illust500CrashedServer,
-} from "@/components/illustrations";
+} from "@celestial/ui/illustrations";
 import {
   Empty,
   EmptyContent,

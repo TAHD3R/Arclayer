@@ -10,9 +10,9 @@ import { getCoreSettings, patchCoreSettings } from "@/api/settings";
 import { ContentGuard } from "@/components/common/content-guard";
 import { DefaultPage } from "@/components/common/default-page";
 import { Accordion } from "@celestial/ui/accordion";
-import { ChromeTabs, ChromeTabsContent } from "@/components/ui/chrome-tabs";
-import { SettingAccordionItem } from "@/components/settings-primitives/setting-accordion-item";
-import { SettingPanel } from "@/components/settings-primitives/setting-panel";
+import { ChromeTabs, ChromeTabsContent } from "@celestial/ui/chrome-tabs";
+import { SettingAccordionItem } from "@celestial/ui/setting-accordion-item";
+import { SettingPanel } from "@celestial/ui/setting-panel";
 import { useSavingKey } from "@celestial/hooks/use-saving-key";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import {
@@ -151,6 +151,7 @@ export function WorkspaceSettingsContentStrategyView(props: { workspaceId: strin
                         : t("settings:SETTINGS_DISABLED"),
                     })}
                     disabled={disabled || !coreQuery.data}
+                    confirmText={t("settings:SETTINGS_SAVE")}
                     confirmLoading={savingKey === "workspace:content_strategy:autosave"}
                     onConfirm={() =>
                       void withSavingKey("workspace:content_strategy:autosave", async () => {
@@ -186,6 +187,7 @@ export function WorkspaceSettingsContentStrategyView(props: { workspaceId: strin
                         );
                       })
                     }
+                    resetText={t("settings:SETTINGS_RESET")}
                     resetLoading={savingKey === "reset:content_strategy:autosave"}
                     keepRendered
                   >
@@ -270,6 +272,7 @@ export function WorkspaceSettingsContentStrategyView(props: { workspaceId: strin
                       count: persistedContentStrategy.retention.draftMaxRevisions,
                     })}
                     disabled={disabled || !coreQuery.data}
+                    confirmText={t("settings:SETTINGS_SAVE")}
                     confirmLoading={savingKey === "workspace:content_strategy:retention"}
                     onConfirm={() =>
                       void withSavingKey("workspace:content_strategy:retention", async () => {
@@ -296,6 +299,7 @@ export function WorkspaceSettingsContentStrategyView(props: { workspaceId: strin
                         );
                       })
                     }
+                    resetText={t("settings:SETTINGS_RESET")}
                     resetLoading={savingKey === "reset:content_strategy:retention"}
                     keepRendered
                   >

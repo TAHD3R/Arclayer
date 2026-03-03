@@ -42,6 +42,8 @@ import enAdminMenu from "@locales/en-US/admin_menu.json";
 import enRbac from "@locales/en-US/rbac.json";
 import enSys from "@locales/en-US/sys.json";
 
+import type { AppLocale as SharedAppLocale } from "@celestial/internal-types";
+
 export const I18N_NAMESPACES = [
   "common",
   "nav",
@@ -115,4 +117,8 @@ export const i18nResources = {
   },
 } as const;
 
-export type AppLocale = keyof typeof i18nResources;
+export type AppLocale = SharedAppLocale;
+
+// Ensure resources cover all supported locales.
+const _resourcesCoverAllLocales = i18nResources satisfies Record<AppLocale, unknown>;
+void _resourcesCoverAllLocales;

@@ -17,13 +17,13 @@ import {
 } from "@/api/team";
 import type { TeamInvitation, TeamInviteLink } from "@/types/api";
 import { DefaultPage } from "@/components/common/default-page";
-import { useDataTable } from "@/components/data-table";
+import { useDataTable } from "@celestial/ui/data-table";
 import {
   ChromeTabs,
   ChromeTabsContent,
   ChromeTabsList,
   ChromeTabsTrigger,
-} from "@/components/ui/chrome-tabs";
+} from "@celestial/ui/chrome-tabs";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { InviteMembersDialog } from "@/pages/workspaces/team/shared/components/invite-members-dialog";
 import { InviteLinkParticipantsPopover } from "@/pages/_shared/team/components/invite-link-participants-popover";

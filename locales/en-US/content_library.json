@@ -1,8 +1,1 @@
-{
-  "INDEX_DESC": "Manage entries, entry types, and pages from one content center.",
-  "SEARCH_PLACEHOLDER": "Search by slug, type, title, or path",
-  "FILTER_STATUS_ALL": "All statuses",
-  "FILTER_STATUS_DRAFT": "Draft",
-  "FILTER_STATUS_PUBLISHED": "Published",
-  "PAGINATION_TOTAL": "Total {{total}} items"
-}
+{}

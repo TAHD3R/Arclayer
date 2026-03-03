@@ -20,8 +20,8 @@ import {
   Illust429OverloadedGauge,
   Illust500CrashedServer,
   IllustEmptyContainer,
-} from "@/components/illustrations";
-import { PageSkeleton, type PageSkeletonVariant } from "@/components/common/page-skeleton";
+} from "@celestial/ui/illustrations";
+import { PageSkeleton, type PageSkeletonVariant } from "@celestial/ui/page-skeleton";
 import {
   AdminRouteContainer,
   type AdminRouteContainerWidth,

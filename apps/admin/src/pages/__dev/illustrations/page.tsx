@@ -13,7 +13,8 @@ import {
   Illust429OverloadedGauge,
   Illust500CrashedServer,
   IllustEmptyContainer,
-} from "@/components/illustrations";
+  type IllustrationProps,
+} from "@celestial/ui/illustrations";
 import {
   Empty,
   EmptyContent,
@@ -24,7 +25,6 @@ import {
 } from "@celestial/ui/empty";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import { cn } from "@celestial/lib/utils";
-import type { IllustrationProps } from "@/components/illustrations/types";
 
 type PreviewWidth = 280 | 360 | 440 | 520;
 

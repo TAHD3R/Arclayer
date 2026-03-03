@@ -2,7 +2,7 @@ import type { Row } from "@tanstack/react-table";
 
 import type { OrganizationWorkspace } from "@/types/api";
 import { ContentGuard } from "@/components/common/content-guard";
-import { DataTablePresenter } from "@/components/data-table";
+import { DataTablePresenter } from "@celestial/ui/data-table";
 
 import type {
   OrganizationWorkspacesTranslateFn,

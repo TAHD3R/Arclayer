@@ -3,7 +3,7 @@ import { type Table } from "@tanstack/react-table";
 import { Search } from "lucide-react";
 
 import { ContentGuard } from "@/components/common/content-guard";
-import { DataTablePresenter } from "@/components/data-table";
+import { DataTablePresenter } from "@celestial/ui/data-table";
 import { LoaderOne } from "@celestial/ui/loader";
 
 type TranslateFn = (key: string, options?: Record<string, unknown>) => string;

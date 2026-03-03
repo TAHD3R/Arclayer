@@ -1,6 +1,4 @@
 {
-  "COL_ACTIONS": "Actions",
-  "ACTION_EDIT": "Edit",
   "ACTION_CREATE_PAGE": "Create page",
   "FIELD_PATH_LABEL": "Path",
   "INDEX_DESC": "Manage static and template pages in one table-first workflow.",

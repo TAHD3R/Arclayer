@@ -7,7 +7,7 @@ import {
   ChromeTabsContent,
   ChromeTabsList,
   ChromeTabsTrigger,
-} from "@/components/ui/chrome-tabs";
+} from "@celestial/ui/chrome-tabs";
 import { ItemGroup, ItemSeparator } from "@celestial/ui/item";
 import { LoaderOne } from "@celestial/ui/loader";
 import { cn } from "@celestial/lib/utils";
