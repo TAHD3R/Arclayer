@@ -98,8 +98,22 @@ To avoid style drift across settings and management flows, use the following ove
 - Replace `Spin` with `LoaderOne` for loading indicators inside Admin overlays and popovers.
 - For form-oriented business overlays, default to `SettingDialog` instead of wiring `Dialog`
   primitives directly in feature files.
+- Admin must not use `@celestial/ui/confirm-dialog`. Prefer explicit `AlertDialog` for confirmations
+  and keep footer actions owned by the feature (Antd `Button` + loading/disabled semantics).
+- All Antd `Button` usages in Admin must set `autoInsertSpace={false}` to avoid CJK spacing drift.
+  This is enforced by `apps/admin/test/lib/conventions/admin-ui-conventions.test.ts`.
 - `DialogFooter` and `SheetFooter` must provide a `bg-card` background.
 - In overlay footers, cancel actions implemented with Antd `Button` must use `type="text"`.
+- Overlay content spacing (Admin dialogs/sheets):
+  - The dialog body container should be `grid gap-4` (optionally with `py-2` for rhythm).
+  - Each field/setting block inside should be a `grid gap-1.5` group (label + help + control).
+- Icon usage in overlay actions:
+  - Use Antd `Button` `icon={...}` for icon + text buttons.
+  - Do not place icon components directly inside `Button` children.
+  - Icon elements should be `aria-hidden="true"`. Icon-only buttons must include an `aria-label`.
+- Primary action semantics:
+  - Primary/confirm actions should bind `loading` to the pending mutation state.
+  - When the action is blocking, disable cancel/close to avoid inconsistent intermediate states.
 - Any overlay containing input interactions (for example `Input`, `Select`, `Checkbox`,
   `Form`) must provide both `title` and `description`, aligned with the invite-member
   dialog pattern.

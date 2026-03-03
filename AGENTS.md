@@ -63,6 +63,7 @@
 - 插件开发规范：`docs/guidelines/plugin-development-guideline.md`
 - 安全与数据处理规范：`docs/guidelines/security-and-data-handling.md`
 - 测试与质量门禁：`docs/guidelines/testing-and-quality-gates.md`
+- Admin UI 约束测试：`apps/admin/test/lib/conventions/admin-ui-conventions.test.ts`（禁止 `@celestial/ui/confirm-dialog`；Antd `Button` 必须带 `autoInsertSpace={false}`）
 
 ---
 
