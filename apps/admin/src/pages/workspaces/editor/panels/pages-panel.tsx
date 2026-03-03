@@ -7,7 +7,7 @@ import { listWorkspaceSitePagesTree } from "@/api/workspace-site";
 import type { SitePageTreeNode } from "@/types/api";
 import { useEditorConfig } from "@/pages/workspaces/editor/contexts/editor-config-context";
 import { getTreeIndentClass } from "@/pages/workspaces/editor/constants/tree-indent";
-import { cn } from "@/lib/utils";
+import { cn } from "@celestial/lib/utils";
 
 function PageNode({
   node,

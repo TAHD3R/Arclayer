@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 
 import type { AppLocale } from "@/lib/i18n";
 import { usePreferencesStore } from "@/stores/use-preference-store";
-import LanguagesIcon from "@/components/ui/icons/languages-icon";
+import LanguagesIcon from "@celestial/ui/icons/languages-icon";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -13,7 +13,7 @@ import {
   DropdownMenuItemContent,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
-} from "@/components/ui/dropdown-menu";
+} from "@celestial/ui/dropdown-menu";
 
 export function AdminLocaleToggle(props: { className?: string }) {
   const locale = usePreferencesStore((s) => s.locale);

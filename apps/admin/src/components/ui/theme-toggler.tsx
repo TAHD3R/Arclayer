@@ -11,8 +11,8 @@ import {
   type ThemeSelection,
   type Resolved,
 } from "@/components/ui/theme-toggler-primitive";
-import { buttonVariants } from "@/components/ui/icon-button";
-import { cn } from "@/lib/utils";
+import { buttonVariants } from "@celestial/ui/icon-button";
+import { cn } from "@celestial/lib/utils";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 import { setThemePreferenceWithTransition } from "@/components/ui/theme-transition";
 import type { ThemePreference } from "@/types/stores";

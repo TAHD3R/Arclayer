@@ -9,8 +9,8 @@ import {
   DropdownMenuContent,
   DropdownMenuIconItem,
   DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
-import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+} from "@celestial/ui/dropdown-menu";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@celestial/ui/tooltip";
 import {
   builtinRoleLabel,
   membershipLabel,

@@ -5,19 +5,19 @@ import { Fragment, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { AdminNavItem } from "@/types/admin-nav";
-import { cn } from "@/lib/utils";
+import { cn } from "@celestial/lib/utils";
 import {
   AdminOrgSwitcher,
   AdminWorkspaceSwitcher,
   breadcrumbTriggerClassName,
 } from "@/components/layout/admin-workspace-switcher";
-import RefreshIcon from "@/components/ui/icons/refresh-icon";
+import RefreshIcon from "@celestial/ui/icons/refresh-icon";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuIconItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@celestial/ui/dropdown-menu";
 
 type BreadcrumbMenuItem = {
   key: string;

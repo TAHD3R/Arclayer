@@ -11,12 +11,7 @@
   "NOTIFICATIONS_PAGE_DESC": "Shows global notifications for the current account.",
   "NOTIFICATIONS_PANEL_DESC": "Quick summary of recent notifications.",
   "NOTIFICATIONS_OPEN_CENTER": "Open notification center",
-  "NOTIFICATIONS_PREVIEW_MORE_HINT": "Showing the latest 10 records. Open notification center for full history.",
-  "NOTIFICATIONS_EMPTY_PREVIEW": "No unread notifications.",
   "NOTIFICATIONS_TARGET_FORBIDDEN": "This notification belongs to a workspace you can no longer access.",
-  "NOTIFICATIONS_PAGE_PREV": "Previous",
-  "NOTIFICATIONS_PAGE_NEXT": "Next",
-  "NOTIFICATIONS_PAGE_PAGINATION": "Page {page} / {pages}",
   "NOTIFICATIONS_LOAD_FAILED": "Couldn't load notifications.",
   "NOTIFICATIONS_EMPTY_UNREAD_TITLE": "You're all caught up",
   "NOTIFICATIONS_EMPTY_UNREAD_DESC": "No unread notifications right now.",
@@ -28,30 +23,8 @@
   "NOTIFICATIONS_PANEL_UNPIN": "Unpin panel",
   "NOTIFICATIONS_PANEL_CLOSE": "Close panel",
   "NOTIFICATIONS_ARCHIVE": "Archive",
-  "NOTIFICATIONS_FILTER_TITLE": "Filter",
-  "NOTIFICATIONS_FILTER_RESET": "Reset",
-  "NOTIFICATIONS_FILTER_DONE": "Done",
-  "NOTIFICATIONS_FILTER_FIELD_CATEGORY": "Category",
-  "NOTIFICATIONS_CATEGORY_TEAM": "Team",
-  "NOTIFICATIONS_CATEGORY_SECURITY": "Security",
-  "NOTIFICATIONS_CATEGORY_TASK": "Task",
   "NOTIFICATIONS_DEV_SEED": "Generate demo notifications",
   "NOTIFICATIONS_DELETE": "Delete",
   "NOTIFICATIONS_GROUP_UNREAD": "Unread",
-  "NOTIFICATIONS_GROUP_READ": "Read",
-
-  "NOTIFICATIONS_DEMO_1_TITLE": "Import completed",
-  "NOTIFICATIONS_DEMO_1_SUBTITLE": "Successfully imported 24 records.",
-  "NOTIFICATIONS_DEMO_1_TIME": "Just now",
-
-  "NOTIFICATIONS_DEMO_2_TITLE": "Permission changed",
-  "NOTIFICATIONS_DEMO_2_SUBTITLE": "Your role has been updated.",
-  "NOTIFICATIONS_DEMO_2_TIME": "10 minutes ago",
-
-  "NOTIFICATIONS_DEMO_3_TITLE": "Team invitation",
-  "NOTIFICATIONS_DEMO_3_SUBTITLE": "You sent an invitation email.",
-  "NOTIFICATIONS_DEMO_3_TIME": "1 hour ago",
-
-  "NOTIFICATIONS_TEAM_INVITE_ACCEPTED_TITLE": "{name} joined the workspace",
-  "NOTIFICATIONS_TEAM_INVITE_ACCEPTED_BODY": "The invite has been accepted and the member is now active."
+  "NOTIFICATIONS_GROUP_READ": "Read"
 }

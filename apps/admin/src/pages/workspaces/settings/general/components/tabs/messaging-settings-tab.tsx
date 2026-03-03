@@ -3,9 +3,9 @@ import type { FormInstance } from "antd";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
 
-import { Accordion } from "@/components/ui/accordion";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Switch } from "@/components/ui/switch";
+import { Accordion } from "@celestial/ui/accordion";
+import { Checkbox } from "@celestial/ui/checkbox";
+import { Switch } from "@celestial/ui/switch";
 import { SettingAccordionItem } from "@/components/settings-primitives/setting-accordion-item";
 import { SettingActionItem } from "@/components/settings-primitives/setting-action-item";
 import { SettingOverlayFooter } from "@/components/settings-primitives/setting-overlay-footer";

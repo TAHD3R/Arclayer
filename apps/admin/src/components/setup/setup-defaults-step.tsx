@@ -3,13 +3,13 @@ import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
 import { SettingAccordionItem } from "@/components/settings-primitives/setting-accordion-item";
-import { Accordion } from "@/components/ui/accordion";
+import { Accordion } from "@celestial/ui/accordion";
+import { DEFAULT_TIMEZONE } from "@/constants/datetime";
 import { type AppLocale } from "@/lib/i18n";
 import {
   buildDateFormatOptions,
   buildLocaleOptions,
   buildTimezoneOptions,
-  DEFAULT_TIMEZONE,
   resolveDateFormatLabel,
 } from "@/lib/settings/general/localization-options";
 import type { SetupDefaultsDraft } from "@/types/stores";

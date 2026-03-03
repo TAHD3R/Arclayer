@@ -14,10 +14,10 @@ import {
   FloatingPanelRoot,
   FloatingPanelTrigger,
   useFloatingPanel,
-} from "@/components/ui/floating-panel";
+} from "@celestial/ui/floating-panel";
 import { useEditorConfig } from "@/pages/workspaces/editor/contexts/editor-config-context";
 import { useAuthStore } from "@/stores/use-auth-store";
-import { cn } from "@/lib/utils";
+import { cn } from "@celestial/lib/utils";
 import { getTreeIndentClass } from "@/pages/workspaces/editor/constants/tree-indent";
 import { useEditorStore } from "@/pages/workspaces/editor/stores/editor-store";
 

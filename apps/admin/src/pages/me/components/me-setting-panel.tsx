@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 import { SettingPanel } from "@/components/settings-primitives/setting-panel";
-import { cn } from "@/lib/utils";
+import { cn } from "@celestial/lib/utils";
 
 export type MeSettingPanelProps = {
   title: ReactNode;

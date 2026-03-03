@@ -16,12 +16,12 @@ import { AdminLocaleToggle } from "@/components/layout/admin-toggle-locales";
 import { AdminThemeModeToggle } from "@/components/layout/admin-toggle-theme";
 import { LegalFooter } from "@/components/layout/legal-footer";
 import { RouteTransition } from "@/components/layout/route-transition";
-import { useLockViewport } from "@/hooks/use-lock-viewport";
-import { useMediaQuery } from "@/hooks/use-media-query";
+import { useLockViewport } from "@celestial/hooks/use-lock-viewport";
+import { useMediaQuery } from "@celestial/hooks/use-media-query";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import { isLoginPath } from "@/lib/routing/route-identity";
 
-const ColorBendsLazy = lazy(() => import("@/components/ui/color-bends"));
+const ColorBendsLazy = lazy(() => import("@celestial/ui/color-bends"));
 
 interface AuthLegalContextValue {
   legalKey: string | null;

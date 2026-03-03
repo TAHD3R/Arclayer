@@ -12,18 +12,18 @@ import type { NotificationItem } from "@/types/api";
 import { listMyWorkspaces } from "@/api/workspaces";
 import { NotificationCard } from "@/components/common/notification-card";
 import { ContentGuard } from "@/components/common/content-guard";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton } from "@celestial/ui/skeleton";
 import {
   ChromeTabs,
   ChromeTabsList,
   ChromeTabsTrigger,
   ChromeTabsContent,
 } from "@/components/ui/chrome-tabs";
-import { LoaderOne } from "@/components/ui/loader";
-import { useNowTick } from "@/hooks/use-now-tick";
+import { LoaderOne } from "@celestial/ui/loader";
+import { useNowTick } from "@celestial/hooks/use-now-tick";
 import { notifyErrorText } from "@/lib/notifications";
 import { resolveNotificationTarget } from "@/lib/routing/notification-target";
-import { cn } from "@/lib/utils";
+import { cn } from "@celestial/lib/utils";
 
 type NotificationPanelTab = "unread" | "all" | "read" | "archived";
 

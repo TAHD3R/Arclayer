@@ -9,8 +9,8 @@ import {
   CommandInput,
   CommandItem as CommandOption,
   CommandList,
-} from "@/components/ui/command";
-import { Modal, ModalContent, ModalTitle, ModalTrigger } from "@/components/ui/modal";
+} from "@celestial/ui/command";
+import { Modal, ModalContent, ModalTitle, ModalTrigger } from "@celestial/ui/modal";
 
 import type { LucideIcon } from "lucide-react";
 

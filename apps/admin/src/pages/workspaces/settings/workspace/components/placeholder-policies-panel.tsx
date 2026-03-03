@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 
-import { Accordion } from "@/components/ui/accordion";
+import { Accordion } from "@celestial/ui/accordion";
 import { SettingAccordionItem } from "@/components/settings-primitives/setting-accordion-item";
 import { SettingPanel } from "@/components/settings-primitives/setting-panel";
 

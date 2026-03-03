@@ -8,11 +8,11 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+} from "@celestial/ui/alert-dialog";
 import {
   AlertDialogAction as AlertDialogActionPrimitive,
   AlertDialogCancel as AlertDialogCancelPrimitive,
-} from "@/components/ui/radix-primitives/radix-alert-dialog";
+} from "@celestial/ui/radix-primitives/radix-alert-dialog";
 
 export type BulkDeleteAssetsDialogProps = {
   open: boolean;

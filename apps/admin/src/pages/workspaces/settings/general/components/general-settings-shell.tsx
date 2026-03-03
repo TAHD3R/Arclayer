@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/chrome-tabs";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { ContentGuard } from "@/components/common/content-guard";
-import { useSavingKey } from "@/hooks/use-saving-key";
+import { useSavingKey } from "@celestial/hooks/use-saving-key";
 
 import { buildGeneralSettingsInitialValues } from "@/lib/settings/general/adapters";
 import type {

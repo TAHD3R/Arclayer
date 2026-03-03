@@ -4,16 +4,16 @@ import { Form, InputNumber } from "antd";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
 
-import { Switch } from "@/components/ui/switch";
+import { Switch } from "@celestial/ui/switch";
 
 import { getCoreSettings, patchCoreSettings } from "@/api/settings";
 import { ContentGuard } from "@/components/common/content-guard";
 import { DefaultPage } from "@/components/common/default-page";
-import { Accordion } from "@/components/ui/accordion";
+import { Accordion } from "@celestial/ui/accordion";
 import { ChromeTabs, ChromeTabsContent } from "@/components/ui/chrome-tabs";
 import { SettingAccordionItem } from "@/components/settings-primitives/setting-accordion-item";
 import { SettingPanel } from "@/components/settings-primitives/setting-panel";
-import { useSavingKey } from "@/hooks/use-saving-key";
+import { useSavingKey } from "@celestial/hooks/use-saving-key";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import {
   buildWorkspaceContentAutosavePatch,

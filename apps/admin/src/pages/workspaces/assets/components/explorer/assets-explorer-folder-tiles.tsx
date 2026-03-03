@@ -2,7 +2,7 @@ import type React from "react";
 import { forwardRef } from "react";
 import { Folder } from "lucide-react";
 import { motion } from "motion/react";
-import { cn } from "@/lib/utils";
+import { cn } from "@celestial/lib/utils";
 
 import type { AdminAssetFolder } from "@/types/api";
 

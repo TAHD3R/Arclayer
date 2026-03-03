@@ -2,7 +2,7 @@ import { Controller, useForm } from "react-hook-form";
 import { Button as AntButton, Form, Select, Tag } from "antd";
 import { useTranslation } from "react-i18next";
 import { useMemo } from "react";
-import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@celestial/ui/tooltip";
 import { z } from "zod";
 import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 

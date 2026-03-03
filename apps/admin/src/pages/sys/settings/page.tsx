@@ -21,18 +21,18 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+} from "@celestial/ui/dialog";
+import { Button } from "@celestial/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
+} from "@celestial/ui/dropdown-menu";
+import { Input } from "@celestial/ui/input";
 import { ApiError } from "@/lib/http";
 import { notifyError } from "@/lib/notifications";
-import { cn } from "@/lib/utils";
+import { cn } from "@celestial/lib/utils";
 import { useSysAuthStore } from "@/stores/use-sys-auth-store";
 import type { SysConfigDetail, SysConfigNamespaceSummary, SysConfigTestCheck } from "@/types/api";
 import { ExtensionSettingsForm } from "@/pages/_shared/extensions/components/extension-settings-form";

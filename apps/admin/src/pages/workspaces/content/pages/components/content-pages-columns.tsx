@@ -2,15 +2,15 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { Avatar, Tag } from "antd";
 import { Copy, ExternalLink, MoreVertical, Pencil, Trash2 } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@celestial/ui/button";
+import { Checkbox } from "@celestial/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuIconItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@celestial/ui/dropdown-menu";
 
 import type { ContentPageRow } from "../types";
 import { resolveDisplayName } from "../utils";

@@ -5,14 +5,14 @@ import {
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from "@/components/ui/accordion";
+} from "@celestial/ui/accordion";
 import {
   Sheet,
   SheetContent,
   SheetDescription,
   SheetHeader,
   SheetTitle,
-} from "@/components/ui/sheet";
+} from "@celestial/ui/sheet";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -20,15 +20,15 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+} from "@celestial/ui/alert-dialog";
 import {
   AlertDialogAction as AlertDialogActionPrimitive,
   AlertDialogCancel as AlertDialogCancelPrimitive,
-} from "@/components/ui/radix-primitives/radix-alert-dialog";
+} from "@celestial/ui/radix-primitives/radix-alert-dialog";
 import { SettingActionItem } from "@/components/settings-primitives/setting-action-item";
 import { UpdateAssetsAccessDialog } from "./update-assets-access-dialog";
 import { copyToClipboard } from "@/lib/clipboard";
-import { cn } from "@/lib/utils";
+import { cn } from "@celestial/lib/utils";
 import { notifyErrorText, notifySuccessText } from "@/lib/notifications";
 import {
   DropdownMenu,
@@ -36,7 +36,7 @@ import {
   DropdownMenuIconItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@celestial/ui/dropdown-menu";
 import type { AssetMasonryItem } from "@/types/assets-masonry";
 import {
   downloadWithAuth,

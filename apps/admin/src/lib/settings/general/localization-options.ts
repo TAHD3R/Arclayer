@@ -1,13 +1,7 @@
-import { DATE_FORMAT_ITEMS } from "@/constants/datetime";
-import { type AppLocale } from "@/lib/i18n";
+import { DATE_FORMAT_ITEMS, DEFAULT_DATE_FORMAT } from "@/constants/datetime";
+import { SUPPORTED_LOCALES, type AppLocale } from "@/lib/i18n";
 
 import { formatLocaleLabel } from "./utils";
-
-export const DEFAULT_LOCALE: AppLocale = "zh-CN";
-export const DEFAULT_TIMEZONE = "Asia/Shanghai";
-export const DEFAULT_DATE_FORMAT = "YYYY-MM-DD";
-
-const SUPPORTED_LOCALES: ReadonlyArray<AppLocale> = ["zh-CN", "en-US"];
 
 export type LocalizationOption<T extends string = string> = {
   value: T;

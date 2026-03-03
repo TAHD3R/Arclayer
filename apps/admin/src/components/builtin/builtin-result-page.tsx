@@ -17,7 +17,7 @@ import {
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
-} from "@/components/ui/empty";
+} from "@celestial/ui/empty";
 
 export type BuiltinResultVariant = "admin" | "fullscreen";
 

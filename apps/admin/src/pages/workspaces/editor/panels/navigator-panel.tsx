@@ -11,14 +11,14 @@ import { useEditorBridgeContext } from "@/pages/workspaces/editor/contexts/edito
 import { useEditorStore } from "@/pages/workspaces/editor/stores/editor-store";
 import { notifyErrorText, getErrorMessage } from "@/lib/notifications";
 import { useEditorActions } from "@/pages/workspaces/editor/hooks/use-editor-actions";
-import { cn } from "@/lib/utils";
+import { cn } from "@celestial/lib/utils";
 import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuSeparator,
   ContextMenuTrigger,
-} from "@/components/ui/context-menu";
+} from "@celestial/ui/context-menu";
 
 type TreeNode = DataNode & { dataRef: EditorLayerNode };
 

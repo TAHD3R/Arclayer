@@ -180,7 +180,7 @@
 
 - 跨 Admin 与 Portal 的复用代码出现第 2 次时，必须评估并优先提升到 `packages/`。
 - 无 UI 依赖的运行时能力放 `packages/core/runtime`。
-- 跨应用共享类型/接口契约放 `packages/internal/legacy-types`。
+- 跨应用共享类型/接口契约放 `packages/internal/types`。
 - 禁止在 `apps/admin` 与 `apps/portal` 复制粘贴同类工具函数、常量、类型。
 
 ### 类型与可维护性

@@ -1,4 +1,4 @@
-import { cn } from "@/lib/utils";
+import { cn } from "@celestial/lib/utils";
 
 import type { IllustrationProps } from "./types";
 import { useIllustrationAnimation } from "./use-illustration-animation";

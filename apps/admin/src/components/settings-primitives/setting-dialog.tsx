@@ -7,8 +7,8 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { cn } from "@/lib/utils";
+} from "@celestial/ui/dialog";
+import { cn } from "@celestial/lib/utils";
 
 type SettingDialogProps = {
   open: boolean;

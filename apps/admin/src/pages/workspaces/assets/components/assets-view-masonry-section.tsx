@@ -12,14 +12,14 @@ import {
   AssetsExplorerFolderUpTile,
 } from "./explorer/assets-explorer-folder-tiles";
 import { ContentGuard } from "@/components/common/content-guard";
-import { LoaderOne } from "@/components/ui/loader";
+import { LoaderOne } from "@celestial/ui/loader";
 import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuIconItem,
   ContextMenuSeparator,
   ContextMenuTrigger,
-} from "@/components/ui/context-menu";
+} from "@celestial/ui/context-menu";
 import {
   clearSelection,
   rangeSelect,
@@ -28,7 +28,7 @@ import {
   toggleSelect,
 } from "@/lib/assets/asset-selection";
 import { shouldClearMasonrySelectionOnMouseDown } from "@/lib/assets/masonry-interactions";
-import { cn } from "@/lib/utils";
+import { cn } from "@celestial/lib/utils";
 
 import {
   AssetDraggableProvider,

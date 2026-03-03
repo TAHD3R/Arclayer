@@ -1,6 +1,6 @@
 import { type PropsWithChildren } from "react";
 
-import { useLockViewport } from "@/hooks/use-lock-viewport";
+import { useLockViewport } from "@celestial/hooks/use-lock-viewport";
 
 export function EditorLayout({ children }: PropsWithChildren) {
   useLockViewport();

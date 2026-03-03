@@ -3,7 +3,7 @@ import type { FormInstance } from "antd";
 import { useTranslation } from "react-i18next";
 import { useMemo, useState } from "react";
 
-import { Accordion } from "@/components/ui/accordion";
+import { Accordion } from "@celestial/ui/accordion";
 import { SettingAccordionItem } from "@/components/settings-primitives/setting-accordion-item";
 import { resolvePublicAssetUrlPath } from "@/lib/assets/asset-urls";
 import { deleteAdminAssetUsageByRef, upsertAdminAssetUsage } from "@/api/asset-usages";

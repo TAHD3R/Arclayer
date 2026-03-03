@@ -9,9 +9,9 @@ import {
 } from "react";
 import { useTranslation } from "react-i18next";
 import type { AdminNavItem } from "@/types/admin-nav";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
-import ChevronRightIcon from "@/components/ui/icons/chevron-right";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@celestial/ui/tooltip";
+import { Collapsible, CollapsibleContent } from "@celestial/ui/collapsible";
+import ChevronRightIcon from "@celestial/ui/icons/chevron-right";
 import {
   SidebarGroup,
   SidebarGroupContent,
@@ -22,8 +22,8 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
   SidebarSeparator,
-} from "@/components/ui/sidebar";
-import { cn } from "@/lib/utils";
+} from "@celestial/ui/sidebar";
+import { cn } from "@celestial/lib/utils";
 import { useFavoritesStore } from "@/stores/use-favorites-store";
 
 const NAV_ITEM_BASE_PADDING_LEFT = 20;

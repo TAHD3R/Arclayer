@@ -3,8 +3,8 @@ import { type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { ChevronRight } from "lucide-react";
 
-import { AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { cn } from "@/lib/utils";
+import { AccordionContent, AccordionItem, AccordionTrigger } from "@celestial/ui/accordion";
+import { cn } from "@celestial/lib/utils";
 
 export type SettingAccordionItemProps = {
   value: string;

@@ -15,7 +15,7 @@ This guideline applies to:
 
 - `apps/admin`
 - `apps/portal`
-- Cross-app shared frontend packages in `packages/*` (especially `packages/core/runtime`, `packages/internal/legacy-types`, and `packages/protocols/*`)
+- Cross-app shared frontend packages in `packages/*` (especially `packages/core/runtime`, `packages/internal/types`, and `packages/protocols/*`)
 
 ## 3. Canonical Layer Map
 
@@ -27,7 +27,7 @@ This guideline applies to:
 | Shared app internals | `admin/src/lib`, `admin/src/hooks`, `portal/src/runtime` (non-API helpers) | App-local reusable helpers | Cross-app contracts that belong in packages |
 | UI building blocks | `admin/src/components`, `portal/src/components` | Reusable UI components and presentation units | Domain persistence logic and routing policy |
 | App state layer | `admin/src/stores` | UI state only; transient app state | Mirroring server state from API responses |
-| Cross-app shared packages | `packages/core/runtime`, `packages/core/renderer`, `packages/internal/legacy-types`, `packages/protocols/*`, `packages/bridges/*`, `packages/ui/tokens` | Shared contracts, protocol, runtime primitives, theme/tokens | App-specific view logic |
+| Cross-app shared packages | `packages/core/runtime`, `packages/core/renderer`, `packages/internal/types`, `packages/protocols/*`, `packages/bridges/*`, `packages/ui/tokens` | Shared contracts, protocol, runtime primitives, theme/tokens | App-specific view logic |
 
 ## 4. Admin Structure Rules (`apps/admin/src`)
 
@@ -38,7 +38,7 @@ This guideline applies to:
 - `lib/` owns local utilities that are not yet cross-app.
 - `hooks/` owns reusable React behavior hooks.
 - `stores/` owns client/UI state only (not server-state mirrors).
-- `types/` owns Admin-local types; shared types should be promoted to the appropriate `packages/*` package (Portal-specific contracts belong to `packages/internal/legacy-types`).
+- `types/` owns Admin-local types; shared types should be promoted to the appropriate `packages/*` package (Portal-specific contracts belong to `packages/internal/types`).
 
 ### 4.1 Admin API Data Layer Convention (`api/` + `types/api/` + `lib/api/`)
 
@@ -349,7 +349,7 @@ When the same utility/type/contract appears in Admin and Portal for the second t
 ### 6.2 Package placement policy
 
 - `packages/core/runtime`: runtime utilities, HTTP primitives, config/i18n helpers, no React UI dependencies.
-- `packages/internal/legacy-types`: Portal runtime contracts (route match shape, runtime config types, request context types).
+- `packages/internal/types`: Portal runtime contracts (route match shape, runtime config types, request context types).
 - `packages/protocols/*`: protocol/type contracts shared by apps.
 - `packages/core/renderer` + `packages/bridges/*`: renderer core and editor bridges/adapters.
 - `packages/ui/tokens`: shared design tokens, Tailwind preset, and theme adapters.
@@ -364,7 +364,7 @@ When the same utility/type/contract appears in Admin and Portal for the second t
 ### 7.1 Admin dependency flow
 
 - `routes -> pages/layouts/providers -> components/hooks/api/lib/stores/types -> packages/*`
-- `api` may depend on `lib/http` and `packages/core/runtime|packages/internal/legacy-types`.
+- `api` may depend on `lib/http` and `packages/core/runtime|packages/internal/types`.
 - `components` may depend on hooks/lib/types/packages, but must not define transport logic.
 - `stores` must not become a mirror cache of server state already managed by React Query.
 
@@ -403,7 +403,7 @@ Use this decision order when adding frontend code:
 2. Feature orchestration concern? -> `pages/` (Admin) or `src/features/` (Portal)
 3. API/transport concern? -> `src/api/` (Admin) or `src/runtime/*api*` (Portal)
 4. App-local reusable helper? -> `src/lib` or `src/hooks`
-5. Cross-app reusable contract/helper? -> `packages/core/runtime` / `packages/internal/legacy-types`
+5. Cross-app reusable contract/helper? -> `packages/core/runtime` / `packages/internal/types`
 6. Presentation unit? -> `src/components`
 
 ## 11. Architecture PR Checklist

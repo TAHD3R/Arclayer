@@ -3,10 +3,10 @@ import clsx from "clsx";
 import { useRouterState } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { Button } from "antd";
-import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@celestial/ui/tooltip";
 
 import { useFavoritesStore } from "@/stores/use-favorites-store";
-import BookmarkIcon from "@/components/ui/icons/bookmark-icon";
+import BookmarkIcon from "@celestial/ui/icons/bookmark-icon";
 import { AdminRouteContainer } from "@/components/layout/admin-route-container";
 
 export type DefaultPageWidth = "fixed" | "full";

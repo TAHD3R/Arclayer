@@ -1,6 +1,6 @@
 import { Button, Form, Select } from "antd";
 
-import { Accordion } from "@/components/ui/accordion";
+import { Accordion } from "@celestial/ui/accordion";
 import { SettingAccordionItem } from "@/components/settings-primitives/setting-accordion-item";
 import { SettingPanel } from "@/components/settings-primitives/setting-panel";
 

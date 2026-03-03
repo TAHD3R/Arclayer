@@ -12,7 +12,7 @@ import { SettingActionItem } from "@/components/settings-primitives/setting-acti
 import { SettingDialog } from "@/components/settings-primitives/setting-dialog";
 import { SettingPanel } from "@/components/settings-primitives/setting-panel";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
-import { useSavingKey } from "@/hooks/use-saving-key";
+import { useSavingKey } from "@celestial/hooks/use-saving-key";
 import { buildOrganizationPath } from "@/lib/routing/organization-routing";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";

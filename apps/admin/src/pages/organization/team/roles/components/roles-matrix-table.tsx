@@ -4,11 +4,11 @@ import {
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuIconItem,
-} from "@/components/ui/dropdown-menu";
+} from "@celestial/ui/dropdown-menu";
 import { MoreVertical, Trash2 } from "lucide-react";
 
-import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Checkbox } from "@/components/ui/checkbox";
+import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@celestial/ui/table";
+import { Checkbox } from "@celestial/ui/checkbox";
 
 import type {
   DisplayOrganizationPermission,

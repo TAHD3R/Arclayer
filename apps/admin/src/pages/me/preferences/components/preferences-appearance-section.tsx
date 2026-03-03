@@ -6,7 +6,7 @@ import { SettingVerticalItem } from "@/components/settings-primitives/setting-ve
 import { usePreferencesStore } from "@/stores/use-preference-store";
 import { ThemeCard } from "@/pages/me/preferences/components/preferences-theme-cards";
 import { setThemePreferenceWithTransition } from "@/components/ui/theme-transition";
-import { cn } from "@/lib/utils";
+import { cn } from "@celestial/lib/utils";
 
 export function MePreferencesAppearanceSection() {
   const { t } = useTranslation("account");

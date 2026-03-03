@@ -1,7 +1,7 @@
 import { type ReactNode, useMemo, useState } from "react";
 
-import ChevronRightIcon from "@/components/ui/icons/chevron-right";
-import { cn } from "@/lib/utils";
+import ChevronRightIcon from "@celestial/ui/icons/chevron-right";
+import { cn } from "@celestial/lib/utils";
 
 type Description = ReactNode | string | string[] | undefined | null;
 

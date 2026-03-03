@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import type { SystemSettingsDetail } from "@/types/api";
 import { DefaultPage } from "@/components/common/default-page";
 import { ContentGuard } from "@/components/common/content-guard";
-import { Switch } from "@/components/ui/switch";
+import { Switch } from "@celestial/ui/switch";
 import { ExtensionSettingsForm } from "./extension-settings-form";
 import {
   ChromeTabs,

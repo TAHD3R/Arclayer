@@ -17,7 +17,7 @@ import {
   type FileUploadPanelItem,
 } from "@/pages/workspaces/assets/components/file-upload/file-upload";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
-import { cn } from "@/lib/utils";
+import { cn } from "@celestial/lib/utils";
 
 type UploadItem = {
   id: string;

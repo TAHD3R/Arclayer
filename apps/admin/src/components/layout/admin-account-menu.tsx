@@ -15,12 +15,12 @@ import {
   FloatingPanelRoot,
   FloatingPanelTrigger,
   useFloatingPanel,
-} from "@/components/ui/floating-panel";
+} from "@celestial/ui/floating-panel";
 import {
   buildOrganizationPath,
   parseOrganizationIdFromPath,
 } from "@/lib/routing/organization-routing";
-import { cn } from "@/lib/utils";
+import { cn } from "@celestial/lib/utils";
 import { resolveAssetRefToPublicUrlPath } from "@/lib/assets/asset-urls";
 import {
   getUserDisplayName,

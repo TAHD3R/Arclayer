@@ -4,7 +4,7 @@ import { Search } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import type { OrganizationMemberWorkspace } from "@/types/api";
-import { cn } from "@/lib/utils";
+import { cn } from "@celestial/lib/utils";
 
 export type ResolvedMemberWorkspace = OrganizationMemberWorkspace & {
   description?: string | null;

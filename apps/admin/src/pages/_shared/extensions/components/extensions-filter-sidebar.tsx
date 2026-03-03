@@ -3,7 +3,7 @@ import { Input } from "antd";
 import { Search } from "lucide-react";
 
 import { MiniCategoryNav } from "@/components/common/mini-category-nav";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Checkbox } from "@celestial/ui/checkbox";
 
 type ExtensionsFilterSidebarProps = {
   categories: { key: string; label: string }[];

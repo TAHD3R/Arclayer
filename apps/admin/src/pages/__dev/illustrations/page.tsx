@@ -21,9 +21,9 @@ import {
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
-} from "@/components/ui/empty";
+} from "@celestial/ui/empty";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
-import { cn } from "@/lib/utils";
+import { cn } from "@celestial/lib/utils";
 import type { IllustrationProps } from "@/components/illustrations/types";
 
 type PreviewWidth = 280 | 360 | 440 | 520;

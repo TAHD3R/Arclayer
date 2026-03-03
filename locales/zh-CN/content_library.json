@@ -1,63 +1,8 @@
 {
   "INDEX_DESC": "在统一内容中心管理条目、类型和页面。",
-  "ACTION_CREATE_ENTRY": "新建条目",
-
-  "TAB_ENTRIES": "条目",
-  "TAB_TYPES": "类型",
-  "TAB_PAGES": "页面",
-
   "SEARCH_PLACEHOLDER": "搜索 slug、类型、标题或路径",
   "FILTER_STATUS_ALL": "全部状态",
   "FILTER_STATUS_DRAFT": "草稿",
   "FILTER_STATUS_PUBLISHED": "已发布",
-  "FILTER_TYPE_ALL": "全部类型",
-
-  "VIEW_MASONRY": "瀑布流",
-  "VIEW_TABLE": "数据表",
-  "PAGINATION_TOTAL": "共 {{total}} 条",
-
-  "ENTRY_COL_SLUG": "Slug",
-  "ENTRY_COL_TYPE": "类型",
-  "ENTRY_COL_STATUS": "状态",
-  "ENTRY_COL_REVISIONS": "修订（草稿/发布）",
-  "ENTRY_COL_ACTIONS": "操作",
-  "ENTRY_STATUS_DRAFT": "草稿",
-  "ENTRY_STATUS_PUBLISHED": "已发布",
-  "ENTRY_ACTION_EDIT": "打开编辑器",
-  "ENTRY_ACTION_PUBLISH": "发布",
-  "ENTRY_ACTION_UNPUBLISH": "取消发布",
-  "ENTRY_ACTION_DELETE": "删除",
-  "ENTRY_DELETE_CONFIRM_TITLE": "确认删除该条目？如已发布请先取消发布。",
-
-  "TYPE_COL_CODE": "编码",
-  "TYPE_COL_NAME": "名称",
-  "TYPE_COL_ENTRY_COUNT": "条目数",
-  "TYPE_ACTION_DELETE": "删除类型",
-  "TYPE_DELETE_CONFIRM_TITLE": "确认删除类型 {{code}}？",
-
-  "PAGE_COL_TITLE": "标题",
-  "PAGE_COL_PATH": "路径",
-  "PAGE_COL_STATUS": "状态",
-  "PAGE_COL_UPDATED_AT": "更新时间",
-
-  "CREATE_ENTRY_DIALOG_TITLE": "新建条目",
-  "CREATE_ENTRY_FIELD_TYPE": "条目类型",
-  "CREATE_ENTRY_FIELD_SLUG": "条目 slug",
-  "CREATE_ENTRY_SLUG_HINT": "仅允许小写字母、数字和连字符。",
-  "TOAST_CREATE_ENTRY_SUCCESS": "条目创建成功",
-  "TOAST_PUBLISH_ENTRY_SUCCESS": "条目发布成功",
-  "TOAST_UNPUBLISH_ENTRY_SUCCESS": "条目已取消发布",
-  "TOAST_DELETE_ENTRY_SUCCESS": "条目删除成功",
-
-  "ACTION_CREATE_TYPE": "新建类型",
-  "CREATE_TYPE_DIALOG_TITLE": "新建条目类型",
-  "CREATE_TYPE_FIELD_CODE": "类型编码",
-  "CREATE_TYPE_FIELD_NAME": "类型名称",
-  "CREATE_TYPE_CODE_HINT": "仅允许小写字母、数字和下划线，且必须以字母开头。",
-  "TOAST_CREATE_TYPE_SUCCESS": "条目类型创建成功",
-  "TOAST_DELETE_TYPE_SUCCESS": "条目类型删除成功",
-
-  "EMPTY_ENTRIES": "暂无条目",
-  "EMPTY_TYPES": "暂无类型",
-  "EMPTY_PAGES": "暂无页面"
+  "PAGINATION_TOTAL": "共 {{total}} 条"
 }

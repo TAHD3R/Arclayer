@@ -2,14 +2,14 @@ import { Avatar, Button as AntButton } from "antd";
 import { MoreVertical } from "lucide-react";
 
 import type { OrganizationWorkspace } from "@/types/api";
-import { cn } from "@/lib/utils";
+import { cn } from "@celestial/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuIconItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@celestial/ui/dropdown-menu";
 
 import type { OrganizationWorkspacesTranslateFn, WorkspaceMenuItem } from "../types";
 import { WorkspaceMembersPopover } from "./workspace-members-popover";

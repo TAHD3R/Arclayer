@@ -8,9 +8,9 @@ import {
   ChromeTabsList,
   ChromeTabsTrigger,
 } from "@/components/ui/chrome-tabs";
-import { ItemGroup, ItemSeparator } from "@/components/ui/item";
-import { LoaderOne } from "@/components/ui/loader";
-import { cn } from "@/lib/utils";
+import { ItemGroup, ItemSeparator } from "@celestial/ui/item";
+import { LoaderOne } from "@celestial/ui/loader";
+import { cn } from "@celestial/lib/utils";
 
 import type { ListStatus } from "../types";
 import { useNotifications } from "../hooks/use-notifications";

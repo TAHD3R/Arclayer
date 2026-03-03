@@ -2,7 +2,7 @@ import { AnimatePresence, motion } from "motion/react";
 
 import type { NotificationItem } from "@/types/api";
 import { NotificationCard } from "@/components/common/notification-card";
-import { ItemSeparator } from "@/components/ui/item";
+import { ItemSeparator } from "@celestial/ui/item";
 
 type NotificationListProps = {
   items: NotificationItem[];

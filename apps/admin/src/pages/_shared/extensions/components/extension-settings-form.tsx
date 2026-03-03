@@ -6,7 +6,7 @@ import { z } from "zod";
 import type { ReactNode } from "react";
 
 import { zodResolver } from "@/lib/forms/zod-resolver";
-import { Switch } from "@/components/ui/switch";
+import { Switch } from "@celestial/ui/switch";
 import type { SettingsOptionItem, SystemSettingsDetail, SettingsSchemaItem } from "@/types/api";
 
 type FormValues = Record<string, unknown>;

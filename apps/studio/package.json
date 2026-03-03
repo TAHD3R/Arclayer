@@ -14,10 +14,10 @@
   "dependencies": {
     "@ant-design/cssinjs": "catalog:",
     "@bprogress/react": "^1.2.7",
-    "@celestial/theme": "workspace:*",
     "@celestial/block-protocol": "workspace:*",
     "@celestial/renderer": "workspace:*",
     "@celestial/runtime": "workspace:*",
+    "@celestial/theme": "workspace:*",
     "@tanstack/react-query": "^5.90.20",
     "@tanstack/react-router": "catalog:",
     "@tanstack/react-router-devtools": "^1.157.5",

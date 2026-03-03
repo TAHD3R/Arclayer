@@ -12,10 +12,10 @@ import {
   TimelineIndicator,
   TimelineItem,
   TimelineSeparator,
-} from "@/components/ui/timeline";
+} from "@celestial/ui/timeline";
 import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";
 import { formatDateTimeWithPattern } from "@/lib/time/date-time";
-import { cn } from "@/lib/utils";
+import { cn } from "@celestial/lib/utils";
 
 type ActivityTimelineProps = {
   items: ActivityEvent[];

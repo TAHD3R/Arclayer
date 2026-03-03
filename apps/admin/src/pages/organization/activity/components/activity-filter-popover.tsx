@@ -3,7 +3,7 @@ import { Filter, Search } from "lucide-react";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
 
-import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from "@celestial/ui/popover";
 import {
   DebounceSelect,
   type DebounceSelectOption,

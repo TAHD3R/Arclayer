@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Avatar, Button as AntButton, Tag } from "antd";
 import { useTranslation } from "react-i18next";
-import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@celestial/ui/tooltip";
 
 import type {
   ActivityEvent,
@@ -25,7 +25,7 @@ import {
   SheetFooter,
   SheetHeader,
   SheetTitle,
-} from "@/components/ui/sheet";
+} from "@celestial/ui/sheet";
 
 import { OrganizationMemberInspectActivityTab } from "./organization-member-inspect-activity-tab";
 import { OrganizationMemberInspectRoleTab } from "./organization-member-inspect-role-tab";

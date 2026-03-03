@@ -4,7 +4,7 @@ import { Search } from "lucide-react";
 
 import { ContentGuard } from "@/components/common/content-guard";
 import { DataTablePresenter } from "@/components/data-table";
-import { LoaderOne } from "@/components/ui/loader";
+import { LoaderOne } from "@celestial/ui/loader";
 
 type TranslateFn = (key: string, options?: Record<string, unknown>) => string;
 

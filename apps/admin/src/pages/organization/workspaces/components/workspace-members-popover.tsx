@@ -7,8 +7,8 @@ import { useTranslation } from "react-i18next";
 
 import { listOrganizationWorkspaceMembers } from "@/api/organization-workspaces";
 import type { OrganizationWorkspace, OrganizationWorkspaceMember } from "@/types/api";
-import { LoaderOne } from "@/components/ui/loader";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { LoaderOne } from "@celestial/ui/loader";
+import { Popover, PopoverContent, PopoverTrigger } from "@celestial/ui/popover";
 
 function normalizeQuery(input: string): string {
   return String(input || "").trim();

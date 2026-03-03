@@ -18,7 +18,7 @@ import { notifyErrorText, notifySuccessText, getErrorMessage } from "@/lib/notif
 import { useEditorBridgeContext } from "@/pages/workspaces/editor/contexts/editor-bridge-context";
 import { useEditorConfig } from "@/pages/workspaces/editor/contexts/editor-config-context";
 import { useEditorStore } from "@/pages/workspaces/editor/stores/editor-store";
-import { cn } from "@/lib/utils";
+import { cn } from "@celestial/lib/utils";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -26,7 +26,7 @@ import {
   ContextMenuItem,
   ContextMenuSeparator,
   ContextMenuTrigger,
-} from "@/components/ui/context-menu";
+} from "@celestial/ui/context-menu";
 
 type DesignContainerNodeV1 = Extract<DesignNodeV1, { children: DesignNodeId[] }>;
 

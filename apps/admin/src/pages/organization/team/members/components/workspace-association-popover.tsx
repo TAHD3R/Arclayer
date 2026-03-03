@@ -1,7 +1,7 @@
 import { Button as AntButton } from "antd";
 import { useTranslation } from "react-i18next";
 
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@celestial/ui/popover";
 import {
   type ResolvedMemberWorkspace,
   OrganizationMemberWorkspaceList,

@@ -18,10 +18,10 @@ import {
 import { DefaultPage } from "@/components/common/default-page";
 import { ContentGuard } from "@/components/common/content-guard";
 import { DataTablePresenter, useDataTable } from "@/components/data-table";
-import { Button as UiButton } from "@/components/ui/button";
+import { Button as UiButton } from "@celestial/ui/button";
 import { ApiError } from "@/lib/http";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
-import { cn } from "@/lib/utils";
+import { cn } from "@celestial/lib/utils";
 import { useAdminDateTimeFormatter } from "@/hooks/use-admin-date-time-formatter";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 

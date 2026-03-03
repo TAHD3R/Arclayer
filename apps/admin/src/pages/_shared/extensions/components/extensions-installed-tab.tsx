@@ -9,7 +9,7 @@ import {
   DropdownMenuIconItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@celestial/ui/dropdown-menu";
 
 import { ExtensionCard } from "./extension-card";
 import type { ExtensionMenuItem, InstalledExtensionItem } from "../types";

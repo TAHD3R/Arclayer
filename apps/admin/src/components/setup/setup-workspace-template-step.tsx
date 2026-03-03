@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import clsx from "clsx";
 
 import { SettingAccordionItem } from "@/components/settings-primitives/setting-accordion-item";
-import { Accordion } from "@/components/ui/accordion";
+import { Accordion } from "@celestial/ui/accordion";
 import { SETUP_WORKSPACE_TEMPLATE_KEYS } from "@/lib/setup-template";
 import type { SetupSiteDraft, SetupWorkspaceTemplate } from "@/types/stores";
 

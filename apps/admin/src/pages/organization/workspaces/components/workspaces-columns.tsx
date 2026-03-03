@@ -11,7 +11,7 @@ import {
   DropdownMenuIconItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@celestial/ui/dropdown-menu";
 
 import type { OrganizationWorkspacesTranslateFn } from "../types";
 import { WorkspaceMembersPopover } from "./workspace-members-popover";

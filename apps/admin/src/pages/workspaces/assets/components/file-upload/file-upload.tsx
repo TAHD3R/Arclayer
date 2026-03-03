@@ -13,9 +13,9 @@ import { useMemo } from "react";
 import { useDropzone, type FileError, type FileRejection } from "react-dropzone";
 import { useTranslation } from "react-i18next";
 
-import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
-import { FileTypeIcon } from "@/components/ui/icon/file-type-icon";
-import { cn } from "@/lib/utils";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@celestial/ui/tooltip";
+import { FileTypeIcon } from "@celestial/ui/icon/file-type-icon";
+import { cn } from "@celestial/lib/utils";
 
 export type FileUploadItemStatus = "pending" | "uploading" | "success" | "error" | "canceled";
 

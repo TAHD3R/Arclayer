@@ -36,7 +36,7 @@ import {
   MenubarItemContent,
   MenubarSeparator,
   MenubarShortcut,
-} from "@/components/ui/menubar";
+} from "@celestial/ui/menubar";
 import { AdminLogo } from "@/components/layout/admin-logo";
 import type { AppLocale } from "@/lib/i18n";
 import { usePreferencesStore } from "@/stores/use-preference-store";
@@ -50,8 +50,8 @@ import {
   FloatingPanelContent,
   FloatingPanelBody,
   useFloatingPanel,
-} from "@/components/ui/floating-panel";
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+} from "@celestial/ui/floating-panel";
+import { Popover, PopoverTrigger, PopoverContent } from "@celestial/ui/popover";
 import { useEditorStore } from "@/pages/workspaces/editor/stores/editor-store";
 import { useEditorConfig } from "@/pages/workspaces/editor/contexts/editor-config-context";
 import { usePlatform } from "@/pages/workspaces/editor/hooks/use-platform";

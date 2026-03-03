@@ -1,7 +1,7 @@
 import { Input } from "antd";
 import { Search } from "lucide-react";
 
-import { LoaderOne } from "@/components/ui/loader";
+import { LoaderOne } from "@celestial/ui/loader";
 
 import { ContentPagesFilterPopover } from "./content-pages-filter-popover";
 import type { ContentPagesFilters } from "../types";

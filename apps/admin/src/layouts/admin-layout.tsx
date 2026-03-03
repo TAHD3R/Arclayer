@@ -8,7 +8,7 @@ import { AnimatePresence } from "motion/react";
 import { ADMIN_NAV_ITEMS } from "@/constants/menu/workspaces";
 import type { AdminNavItem } from "@/types/admin-nav";
 import { COMMON_FOOTER_NAV_ITEMS } from "@/constants/menu/common";
-import { useToggle } from "@/hooks/use-toggle";
+import { useToggle } from "@celestial/hooks/use-toggle";
 import { ORG_NAV_ITEMS } from "@/constants/menu/organization";
 import { mapOrgItemsWithPrefix, normalizePath } from "@/lib/admin-nav-utils";
 import { AdminSiderNav } from "@/components/layout/admin-side-nav";
@@ -22,7 +22,7 @@ import { ContentGuard } from "@/components/common/content-guard";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
-import { LightRays } from "@/components/ui/light-rays";
+import { LightRays } from "@celestial/ui/light-rays";
 import { getMyOrganization } from "@/api/me";
 import { getWorkspaceDetail } from "@/api/workspaces";
 import { getUnreadNotificationPreview } from "@/api/notifications";
@@ -40,7 +40,7 @@ import {
   SidebarInset,
   SidebarProvider,
   SidebarMenuSkeleton,
-} from "@/components/ui/sidebar";
+} from "@celestial/ui/sidebar";
 
 export function AdminLayout({ children }: PropsWithChildren) {
   const { t } = useTranslation();

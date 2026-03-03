@@ -12,7 +12,7 @@ import {
 import { useAssetsExplorerController } from "@/pages/workspaces/assets/components/explorer/use-assets-explorer-controller";
 import type { AdminAssetFolder } from "@/types/api";
 import { resolveAssetRefToPublicUrlPath } from "@/lib/assets/asset-urls";
-import { cn } from "@/lib/utils";
+import { cn } from "@celestial/lib/utils";
 import { useEditorConfig } from "@/pages/workspaces/editor/contexts/editor-config-context";
 import { useEditorBridgeContext } from "@/pages/workspaces/editor/contexts/editor-bridge-context";
 import { useEditorSelectionPatch } from "@/pages/workspaces/editor/hooks/use-editor-selection-patch";

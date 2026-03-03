@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { motion, type Variants } from "motion/react";
 
 import { AuthOauthButtons } from "@/components/ui/oauth-buttons";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Checkbox } from "@celestial/ui/checkbox";
 
 import type { LoginFormValues } from "../types";
 

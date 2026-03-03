@@ -17,14 +17,14 @@ import {
   FloatingPanelRoot,
   FloatingPanelTrigger,
   useFloatingPanel,
-} from "@/components/ui/floating-panel";
-import { Skeleton } from "@/components/ui/skeleton";
+} from "@celestial/ui/floating-panel";
+import { Skeleton } from "@celestial/ui/skeleton";
 import {
   buildOrganizationPath,
   parseOrganizationIdFromPath,
 } from "@/lib/routing/organization-routing";
 import { switchWorkspacePath } from "@/lib/routing/workspace-routing";
-import { cn } from "@/lib/utils";
+import { cn } from "@celestial/lib/utils";
 
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";

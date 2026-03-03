@@ -8,7 +8,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuIconItem,
-} from "@/components/ui/dropdown-menu";
+} from "@celestial/ui/dropdown-menu";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { MoreVertical, Plus, Search, Trash2 } from "lucide-react";
@@ -20,8 +20,8 @@ import {
 } from "@/api/rbac";
 import { DefaultPage } from "@/components/common/default-page";
 import { ContentGuard } from "@/components/common/content-guard";
-import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Checkbox } from "@/components/ui/checkbox";
+import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@celestial/ui/table";
+import { Checkbox } from "@celestial/ui/checkbox";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { zodResolver } from "@/lib/forms/zod-resolver";

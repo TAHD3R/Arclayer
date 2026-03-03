@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import { listTeamInviteLinkParticipants } from "@/api/team";
 import { listOrganizationInviteLinkParticipants } from "@/api/organization-members";
 import type { TeamInviteLinkParticipant, TeamUserRef } from "@/types/api";
-import { LoaderOne } from "@/components/ui/loader";
+import { LoaderOne } from "@celestial/ui/loader";
 import { notifyError } from "@/lib/notifications";
 import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";
 

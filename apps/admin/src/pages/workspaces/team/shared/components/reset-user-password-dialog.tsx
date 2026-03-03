@@ -10,7 +10,7 @@ import { useMutation } from "@tanstack/react-query";
 import type { TeamMember } from "@/types/api";
 import { resetTeamMemberPassword } from "@/api/team";
 import { SettingDialog } from "@/components/settings-primitives/setting-dialog";
-import { Input } from "@/components/ui/input";
+import { Input } from "@celestial/ui/input";
 import { zodResolver } from "@/lib/forms/zod-resolver";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";

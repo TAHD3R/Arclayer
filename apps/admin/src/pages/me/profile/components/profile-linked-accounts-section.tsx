@@ -6,12 +6,12 @@ import { useTranslation } from "react-i18next";
 import { issueSSOLinkState, listSSOProviders } from "@/api/auth-sso";
 import { listMyOAuthIdentities, unlinkMyOAuthIdentity } from "@/api/oauth-social";
 import { ContentGuard } from "@/components/common/content-guard";
-import GitHubDarkIcon from "@/components/ui/icons/github-dark-icon";
-import GitHubLightIcon from "@/components/ui/icons/github-light-icon";
-import GoogleIcon from "@/components/ui/icons/google-icon";
+import GitHubDarkIcon from "@celestial/ui/icons/github-dark-icon";
+import GitHubLightIcon from "@celestial/ui/icons/github-light-icon";
+import GoogleIcon from "@celestial/ui/icons/google-icon";
 import { ApiError } from "@/lib/http";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
-import { cn } from "@/lib/utils";
+import { cn } from "@celestial/lib/utils";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 

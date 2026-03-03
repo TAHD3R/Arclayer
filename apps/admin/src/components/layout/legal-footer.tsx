@@ -8,7 +8,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from "@celestial/ui/dialog";
 
 type LegalModal = "terms" | "privacy" | null;
 

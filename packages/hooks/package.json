@@ -1,0 +1,31 @@
+{
+  "name": "@celestial/hooks",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./use-auto-height": "./src/use-auto-height.tsx",
+    "./use-controlled-state": "./src/use-controlled-state.tsx",
+    "./use-data-state": "./src/use-data-state.ts",
+    "./use-is-in-view": "./src/use-is-in-view.ts",
+    "./use-is-mobile": "./src/use-is-mobile.ts",
+    "./use-lock-viewport": "./src/use-lock-viewport.ts",
+    "./use-media-query": "./src/use-media-query.tsx",
+    "./use-now-tick": "./src/use-now-tick.ts",
+    "./use-outside-click": "./src/use-outside-click.ts",
+    "./use-saving-key": "./src/use-saving-key.ts",
+    "./use-toggle": "./src/use-toggle.ts",
+    "./use-media-prefers-reduced-motion": "./src/use-media-prefers-reduced-motion.ts"
+  },
+  "dependencies": {
+    "motion": "^12.29.0"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "catalog:",
+    "typescript": "catalog:"
+  }
+}

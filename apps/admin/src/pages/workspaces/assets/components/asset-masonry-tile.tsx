@@ -4,11 +4,11 @@ import { motion } from "motion/react";
 import { memo, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
 
-import { cn } from "@/lib/utils";
+import { cn } from "@celestial/lib/utils";
 import { type AdminAssetTag } from "@/types/api";
 import type { AssetMasonryItem } from "@/types/assets-masonry";
-import { Checkbox } from "@/components/ui/checkbox";
-import { LoaderOne } from "@/components/ui/loader";
+import { Checkbox } from "@celestial/ui/checkbox";
+import { LoaderOne } from "@celestial/ui/loader";
 import {
   ExcelDocumentIcon,
   GdocDocumentIcon,
@@ -21,7 +21,7 @@ import {
   VideoDocumentIcon,
   WordDocumentIcon,
   ZipDocumentIcon,
-} from "@/components/ui/icons/document-icons";
+} from "@celestial/ui/icons/document-icons";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { formatDateTimeWithPattern } from "@/lib/time/date-time";
 

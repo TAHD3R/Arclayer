@@ -17,7 +17,7 @@ import { getErrorMessage } from "@/lib/notifications";
 import { useEditorBridgeContext } from "@/pages/workspaces/editor/contexts/editor-bridge-context";
 import { useEditorStore } from "@/pages/workspaces/editor/stores/editor-store";
 import { resolveAssetRefToPublicUrlPath } from "@/lib/assets/asset-urls";
-import { cn } from "@/lib/utils";
+import { cn } from "@celestial/lib/utils";
 
 export const EDITOR_CANVAS_DROPPABLE_ID = "editor-canvas";
 

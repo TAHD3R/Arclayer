@@ -14,8 +14,8 @@ import {
   ExpandableScreen,
   ExpandableScreenContent,
   ExpandableScreenTrigger,
-} from "@/components/ui/expandable-screen";
-const ColorBendsLazy = lazy(() => import("@/components/ui/color-bends"));
+} from "@celestial/ui/expandable-screen";
+const ColorBendsLazy = lazy(() => import("@celestial/ui/color-bends"));
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import {
   notifyError,

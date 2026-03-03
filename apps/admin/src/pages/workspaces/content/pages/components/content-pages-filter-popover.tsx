@@ -2,7 +2,7 @@ import { Button } from "antd";
 import type { ChangeEvent } from "react";
 import { Filter } from "lucide-react";
 
-import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from "@celestial/ui/popover";
 
 import type { ContentPagesFilters } from "../types";
 

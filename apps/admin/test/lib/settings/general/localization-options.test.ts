@@ -1,12 +1,11 @@
 import { describe, expect, it } from "vitest";
 
+import { DEFAULT_DATE_FORMAT, DEFAULT_TIMEZONE } from "@/constants/datetime";
+import { DEFAULT_LOCALE } from "@/lib/i18n";
 import {
   buildDateFormatOptions,
   buildLocaleOptions,
   buildTimezoneOptions,
-  DEFAULT_DATE_FORMAT,
-  DEFAULT_LOCALE,
-  DEFAULT_TIMEZONE,
   resolveDateFormatLabel,
 } from "@/lib/settings/general/localization-options";
 

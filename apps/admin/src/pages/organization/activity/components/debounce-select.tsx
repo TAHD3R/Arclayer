@@ -4,7 +4,7 @@ import { Avatar, Select } from "antd";
 import type { SelectProps } from "antd";
 import debounce from "lodash/debounce";
 
-import { LoaderOne } from "@/components/ui/loader";
+import { LoaderOne } from "@celestial/ui/loader";
 import { resolveAssetRefToPublicUrlPath } from "@/lib/assets/asset-urls";
 
 export type DebounceSelectOption = {

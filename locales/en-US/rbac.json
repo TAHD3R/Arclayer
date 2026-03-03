@@ -1,54 +1,20 @@
 {
-  "RBAC_ROLE_OWNER_NAME": "Owner",
-  "RBAC_ROLE_OWNER_DESC": "Full access within this workspace.",
-  "RBAC_ROLE_ADMIN_NAME": "Admin",
-  "RBAC_ROLE_ADMIN_DESC": "Workspace administration (team, settings, permissions).",
-  "RBAC_ROLE_EDITOR_NAME": "Editor",
-  "RBAC_ROLE_EDITOR_DESC": "Content editing and publishing.",
-  "RBAC_ROLE_DESIGNER_NAME": "Designer",
-  "RBAC_ROLE_DESIGNER_DESC": "Design and presentation management.",
-  "RBAC_ROLE_VIEWER_NAME": "Viewer",
-  "RBAC_ROLE_VIEWER_DESC": "Read-only access to the admin console.",
-
   "RBAC_PERM_ADMIN_ACCESS_NAME": "Access admin console",
-  "RBAC_PERM_ADMIN_ACCESS_DESC": "Allow accessing admin panel routes.",
-
   "RBAC_PERM_SETTINGS_READ_NAME": "Read settings",
-  "RBAC_PERM_SETTINGS_READ_DESC": "Allow reading system settings and plugin settings.",
   "RBAC_PERM_SETTINGS_MANAGE_NAME": "Manage settings",
-  "RBAC_PERM_SETTINGS_MANAGE_DESC": "Allow updating system settings and plugin settings.",
-
   "RBAC_PERM_RBAC_ROLES_READ_NAME": "Read roles",
-  "RBAC_PERM_RBAC_ROLES_READ_DESC": "Allow listing roles and role details in current workspace.",
   "RBAC_PERM_RBAC_ROLES_WRITE_NAME": "Manage roles",
-  "RBAC_PERM_RBAC_ROLES_WRITE_DESC": "Allow creating, updating, and deleting custom roles in current workspace.",
   "RBAC_PERM_RBAC_USERS_ASSIGN_NAME": "Assign user roles",
-  "RBAC_PERM_RBAC_USERS_ASSIGN_DESC": "Allow assigning and revoking user roles in current workspace.",
   "RBAC_PERM_RBAC_PERMS_READ_NAME": "Read permissions",
-  "RBAC_PERM_RBAC_PERMS_READ_DESC": "Allow listing permissions (workspace-scoped).",
-
   "RBAC_PERM_ADMIN_USERS_READ_NAME": "Read users",
-  "RBAC_PERM_ADMIN_USERS_READ_DESC": "Allow listing users and reading user details in admin console.",
   "RBAC_PERM_ADMIN_USERS_WRITE_NAME": "Manage users",
-  "RBAC_PERM_ADMIN_USERS_WRITE_DESC": "Allow creating, updating, enabling and disabling users in admin console.",
   "RBAC_PERM_ADMIN_USERS_RESET_PW_NAME": "Reset user password",
-  "RBAC_PERM_ADMIN_USERS_RESET_PW_DESC": "Allow resetting user password in admin console.",
-
   "RBAC_PERM_TEAM_MEMBERS_READ_NAME": "Read team members",
-  "RBAC_PERM_TEAM_MEMBERS_READ_DESC": "Allow listing members in current workspace.",
   "RBAC_PERM_TEAM_MEMBER_ROLES_MANAGE_NAME": "Manage member roles",
-  "RBAC_PERM_TEAM_MEMBER_ROLES_MANAGE_DESC": "Allow managing member role bindings in current workspace.",
   "RBAC_PERM_TEAM_MEMBERS_MANAGE_NAME": "Manage team members",
-  "RBAC_PERM_TEAM_MEMBERS_MANAGE_DESC": "Allow enabling/disabling members and updating member profiles in current workspace.",
   "RBAC_PERM_TEAM_MEMBERS_RESET_PW_NAME": "Reset member password",
-  "RBAC_PERM_TEAM_MEMBERS_RESET_PW_DESC": "Allow resetting user password for a member in current workspace.",
   "RBAC_PERM_TEAM_INVITES_MANAGE_NAME": "Manage invitations",
-  "RBAC_PERM_TEAM_INVITES_MANAGE_DESC": "Allow creating, listing, renewing and revoking invites in current workspace.",
   "RBAC_PERM_TEAM_INVITE_LINKS_MANAGE_NAME": "Manage invite links",
-  "RBAC_PERM_TEAM_INVITE_LINKS_MANAGE_DESC": "Allow managing reusable invite links in current workspace.",
-
   "RBAC_PERM_PLUGINS_READ_NAME": "Read plugins",
-  "RBAC_PERM_PLUGINS_READ_DESC": "Allow listing plugins and reading plugin details.",
-  "RBAC_PERM_PLUGINS_MANAGE_NAME": "Manage plugins",
-  "RBAC_PERM_PLUGINS_MANAGE_DESC": "Allow installing, enabling, disabling, and configuring plugins."
+  "RBAC_PERM_PLUGINS_MANAGE_NAME": "Manage plugins"
 }

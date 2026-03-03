@@ -1,4 +1,4 @@
-import { cn } from "@/lib/utils";
+import { cn } from "@celestial/lib/utils";
 import type { ThemePreference } from "@/types/stores";
 
 function AdminLayoutMockup(props: { mode: ThemePreference }) {

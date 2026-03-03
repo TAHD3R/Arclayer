@@ -4,7 +4,7 @@ import { type ComponentProps, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 
-import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from "@celestial/ui/popover";
 import type { AdminAssetTag } from "@/types/api";
 export type AssetsFilters = {
   mimePrefix?: string;

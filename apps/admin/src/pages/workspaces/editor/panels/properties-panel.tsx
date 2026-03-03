@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from "motion/react";
 
 import type { EditorSelectionInspector } from "@celestial/editor-protocol";
 
-import { cn } from "@/lib/utils";
+import { cn } from "@celestial/lib/utils";
 import { useEditorConfig } from "@/pages/workspaces/editor/contexts/editor-config-context";
 import { useRequestEditContentRef } from "@/pages/workspaces/editor/hooks/use-editor-bridge";
 import { useEditorSelectionPatch } from "@/pages/workspaces/editor/hooks/use-editor-selection-patch";

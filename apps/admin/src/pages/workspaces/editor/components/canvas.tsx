@@ -9,7 +9,7 @@ import type { DevicePreset } from "@/pages/workspaces/editor/stores/editor-store
 import { useEditorStore } from "@/pages/workspaces/editor/stores/editor-store";
 import { useCanvasPanZoom } from "@/pages/workspaces/editor/hooks/use-canvas-pan-zoom";
 import { DEVICE_PRESET_WIDTHS } from "@/pages/workspaces/editor/constants/canvas";
-import { cn } from "@/lib/utils";
+import { cn } from "@celestial/lib/utils";
 import { EDITOR_CANVAS_DROPPABLE_ID } from "@/pages/workspaces/editor/contexts/editor-dnd-context";
 import { useEditorActions } from "@/pages/workspaces/editor/hooks/use-editor-actions";
 import {
@@ -18,7 +18,7 @@ import {
   ContextMenuContent,
   ContextMenuIconItem,
   ContextMenuSeparator,
-} from "@/components/ui/context-menu";
+} from "@celestial/ui/context-menu";
 
 type CanvasProps = {
   iframeSrc: string;

@@ -17,8 +17,8 @@ import {
   useState,
 } from "react";
 
-import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { cn } from "@/lib/utils";
+import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@celestial/ui/table";
+import { cn } from "@celestial/lib/utils";
 
 type DataTablePresenterProps<TData> = {
   table: ReactTable<TData>;

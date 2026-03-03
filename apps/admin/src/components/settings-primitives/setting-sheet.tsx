@@ -7,8 +7,8 @@ import {
   SheetFooter,
   SheetHeader,
   SheetTitle,
-} from "@/components/ui/sheet";
-import { cn } from "@/lib/utils";
+} from "@celestial/ui/sheet";
+import { cn } from "@celestial/lib/utils";
 
 type SettingSheetProps = {
   open: boolean;

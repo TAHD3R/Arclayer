@@ -5,8 +5,8 @@ import { Search, UploadCloud } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { cn } from "@/lib/utils";
-import { LoaderOne } from "@/components/ui/loader";
+import { cn } from "@celestial/lib/utils";
+import { LoaderOne } from "@celestial/ui/loader";
 import { SettingDialog } from "@/components/settings-primitives/setting-dialog";
 import { AssetUploadDialog } from "./asset-upload-dialog";
 import {

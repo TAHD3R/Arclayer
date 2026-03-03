@@ -7,7 +7,7 @@ import {
   type ActivityBarMenuId,
 } from "@/pages/workspaces/editor/stores/editor-store";
 import { EDITOR_MENU_TITLE_KEYS } from "@/pages/workspaces/editor/constants/menus";
-import { cn } from "@/lib/utils";
+import { cn } from "@celestial/lib/utils";
 
 type MenuEntry = {
   id: ActivityBarMenuId;

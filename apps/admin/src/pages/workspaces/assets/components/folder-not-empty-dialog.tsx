@@ -8,8 +8,8 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { AlertDialogCancel as AlertDialogCancelPrimitive } from "@/components/ui/radix-primitives/radix-alert-dialog";
+} from "@celestial/ui/alert-dialog";
+import { AlertDialogCancel as AlertDialogCancelPrimitive } from "@celestial/ui/radix-primitives/radix-alert-dialog";
 
 export type FolderNotEmptyDialogProps = {
   open: boolean;

@@ -11,7 +11,7 @@ import {
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
-} from "@/components/ui/empty";
+} from "@celestial/ui/empty";
 import {
   Illust401LockedTerminal,
   Illust403ForbiddenGateway,

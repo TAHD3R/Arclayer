@@ -18,15 +18,15 @@ import type { TeamMember, UserStatus } from "@/types/api";
 import { DefaultPage } from "@/components/common/default-page";
 import { ContentGuard } from "@/components/common/content-guard";
 import { useDataTable } from "@/components/data-table";
-import { Button } from "@/components/ui/button";
+import { Button } from "@celestial/ui/button";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuIconItem,
   DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
-import { LoaderOne } from "@/components/ui/loader";
+} from "@celestial/ui/dropdown-menu";
+import { LoaderOne } from "@celestial/ui/loader";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { TeamMembersFilterPopover } from "@/pages/workspaces/team/shared/components/team-members-filter-popover";
 import {

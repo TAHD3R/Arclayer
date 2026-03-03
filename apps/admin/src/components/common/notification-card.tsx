@@ -2,7 +2,7 @@ import { Archive, Check, ShieldCheck, Trash2, Users, Wrench } from "lucide-react
 import { useTranslation } from "react-i18next";
 
 import type { NotificationCategory, NotificationItem } from "@/types/api";
-import { Button } from "@/components/ui/button";
+import { Button } from "@celestial/ui/button";
 import {
   Item,
   ItemContent,
@@ -10,9 +10,9 @@ import {
   ItemHeader,
   ItemMedia,
   ItemTitle,
-} from "@/components/ui/item";
+} from "@celestial/ui/item";
 import { formatRelativeTimeAt } from "@/lib/time/relative-time";
-import { cn } from "@/lib/utils";
+import { cn } from "@celestial/lib/utils";
 
 interface NotificationCardProps {
   item: NotificationItem;

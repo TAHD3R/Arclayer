@@ -1,7 +1,7 @@
 import { Button, Form, Input } from "antd";
 import { Lock } from "lucide-react";
 
-import { Checkbox } from "@/components/ui/checkbox";
+import { Checkbox } from "@celestial/ui/checkbox";
 
 interface InviteLoginJoinFormProps {
   t: (key: string) => string;

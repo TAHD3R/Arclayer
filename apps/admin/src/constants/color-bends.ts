@@ -1,6 +1,6 @@
 import type { ComponentProps } from "react";
 
-import type ColorBends from "@/components/ui/color-bends";
+import type ColorBends from "@celestial/ui/color-bends";
 
 /** Shared ColorBends props for auth-scene layouts (auth / invite / setup). */
 export const AUTH_SCENE_BEND_PROPS = {

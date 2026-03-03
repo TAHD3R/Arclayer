@@ -15,14 +15,14 @@ import {
 import { Button, Tooltip, InputNumber, Radio, Checkbox, Space } from "antd";
 import { useEffect, useRef, useState } from "react";
 
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { Popover, PopoverTrigger, PopoverContent } from "@celestial/ui/popover";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@celestial/ui/dropdown-menu";
 import {
   useEditorStore,
   type DevicePreset,

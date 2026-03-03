@@ -4,7 +4,7 @@ import { Link } from "@tanstack/react-router";
 import { Tag } from "antd";
 
 import { ExtensionIcon } from "./extension-icon";
-import { cn } from "@/lib/utils";
+import { cn } from "@celestial/lib/utils";
 
 import type { InstalledExtensionItem } from "../types";
 

@@ -13,7 +13,7 @@ import { ChromeTabs, ChromeTabsContent } from "@/components/ui/chrome-tabs";
 import { SettingActionItem } from "@/components/settings-primitives/setting-action-item";
 import { SettingDialog } from "@/components/settings-primitives/setting-dialog";
 import { SettingPanel } from "@/components/settings-primitives/setting-panel";
-import { useSavingKey } from "@/hooks/use-saving-key";
+import { useSavingKey } from "@celestial/hooks/use-saving-key";
 import { ApiError } from "@/lib/http";
 import { notifyError } from "@/lib/notifications";
 import { useAuthStore } from "@/stores/use-auth-store";

@@ -5,7 +5,7 @@ import { AnimatePresence, MotionConfig, motion, type Variants } from "motion/rea
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import { getErrorMessage } from "@/lib/notifications";
 import { ContentGuard } from "@/components/common/content-guard";
-import { Card } from "@/components/ui/card";
+import { Card } from "@celestial/ui/card";
 import { InviteTokenInputDialog } from "./invite-token-input-dialog";
 
 import { useAcceptInvite } from "../hooks/use-accept-invite";

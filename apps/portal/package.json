@@ -15,12 +15,12 @@
     "format": "oxfmt -c ./node_modules/@celestial/config/.oxfmtrc.json ."
   },
   "dependencies": {
-    "@celestial/internal-types": "workspace:*",
     "@celestial/block-protocol": "workspace:*",
+    "@celestial/default-theme": "workspace:*",
     "@celestial/editor-bridge": "workspace:*",
     "@celestial/editor-protocol": "workspace:*",
+    "@celestial/internal-types": "workspace:*",
     "@celestial/renderer": "workspace:*",
-    "@celestial/default-theme": "workspace:*",
     "@celestial/runtime": "workspace:*",
     "react": "catalog:",
     "react-dom": "catalog:"

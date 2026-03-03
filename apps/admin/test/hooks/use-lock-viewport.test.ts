@@ -1,7 +1,7 @@
 import { renderHook } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import { useLockViewport } from "@/hooks/use-lock-viewport";
+import { useLockViewport } from "@celestial/hooks/use-lock-viewport";
 
 describe("useLockViewport", () => {
   it("sets overflow hidden on mount and restores on unmount", () => {

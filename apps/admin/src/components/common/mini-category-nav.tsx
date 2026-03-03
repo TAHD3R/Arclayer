@@ -1,7 +1,7 @@
 import { useId, type ReactNode } from "react";
 import { motion } from "motion/react";
 
-import { cn } from "@/lib/utils";
+import { cn } from "@celestial/lib/utils";
 
 export type MiniCategoryNavItem = {
   key: string;

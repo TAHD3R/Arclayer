@@ -2,7 +2,7 @@ import { Button as AntButton, Input as AntInput } from "antd";
 import { Plus, Search } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import { LoaderOne } from "@/components/ui/loader";
+import { LoaderOne } from "@celestial/ui/loader";
 import { MembersFilterPopover, type OrgMemberFilters } from "./members-filter-popover";
 
 interface OrganizationMembersInviteActionProps {

@@ -4,9 +4,9 @@ import { useTranslation } from "react-i18next";
 
 import { usePreferencesStore } from "@/stores/use-preference-store";
 import { listSSOProviders } from "@/api/auth-sso";
-import GoogleIcon from "@/components/ui/icons/google-icon";
-import GitHubDarkIcon from "@/components/ui/icons/github-dark-icon";
-import GitHubLightIcon from "@/components/ui/icons/github-light-icon";
+import GoogleIcon from "@celestial/ui/icons/google-icon";
+import GitHubDarkIcon from "@celestial/ui/icons/github-dark-icon";
+import GitHubLightIcon from "@celestial/ui/icons/github-light-icon";
 import { notifyErrorText } from "@/lib/notifications";
 
 export interface AuthOauthButtonsProps {

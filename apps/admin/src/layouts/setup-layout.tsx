@@ -4,10 +4,10 @@ import { Trans } from "react-i18next";
 import { AUTH_SCENE_BEND_PROPS } from "@/constants/color-bends";
 import { AdminLocaleToggle } from "@/components/layout/admin-toggle-locales";
 import { AdminThemeModeToggle } from "@/components/layout/admin-toggle-theme";
-import { useLockViewport } from "@/hooks/use-lock-viewport";
+import { useLockViewport } from "@celestial/hooks/use-lock-viewport";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 
-const ColorBendsLazy = lazy(() => import("@/components/ui/color-bends"));
+const ColorBendsLazy = lazy(() => import("@celestial/ui/color-bends"));
 
 export function SetupLayout({ children }: PropsWithChildren) {
   const reducedMotion = usePrefersReducedMotion();

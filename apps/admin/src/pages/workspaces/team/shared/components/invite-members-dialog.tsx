@@ -7,7 +7,7 @@ import { useTranslation } from "react-i18next";
 import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
 import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
-import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@celestial/ui/tooltip";
 
 import type { Role } from "@/types/api";
 import { createTeamInvitation, createTeamInviteLink } from "@/api/team";

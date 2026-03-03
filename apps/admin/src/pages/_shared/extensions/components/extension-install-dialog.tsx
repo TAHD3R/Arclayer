@@ -5,8 +5,8 @@ import { useDropzone } from "react-dropzone";
 import { useTranslation } from "react-i18next";
 
 import { SettingDialog } from "@/components/settings-primitives/setting-dialog";
-import { LoaderOne } from "@/components/ui/loader";
-import { cn } from "@/lib/utils";
+import { LoaderOne } from "@celestial/ui/loader";
+import { cn } from "@celestial/lib/utils";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import type { WorkspacePluginPackageValidateOut } from "@/types/api";
 import {
