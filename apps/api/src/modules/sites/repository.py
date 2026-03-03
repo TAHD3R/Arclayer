@@ -17,24 +17,24 @@ from apps.api.src.common.protocols.tortoise import (
 )
 from apps.api.src.common.repositories.base import BaseRepository
 from apps.api.src.core.exceptions import Conflict, NotFound
-from apps.api.src.modules.sites.constants import EDITOR_STYLE_NAMESPACE
-from apps.api.src.modules.sites.design_document_schema import PageBlueprint
+from apps.api.src.modules.sites.design_document.schema import PageBlueprint
 from apps.api.src.modules.sites.models.site import SiteRecord
 from apps.api.src.modules.sites.models.site_entry import EntryRecord, EntryRevisionRecord, EntryTypeRecord
 from apps.api.src.modules.sites.models.site_page import SitePageRecord, SitePageRevisionRecord, SitePageVisibility
 from apps.api.src.modules.sites.models.site_route_template import RouteTemplateRecord
-from apps.api.src.modules.sites.repository_publishing import SitePublishingRepository
-from apps.api.src.modules.sites.repository_routing import (
+from apps.api.src.modules.sites.namespaces.service import EDITOR_STYLE_NAMESPACE
+from apps.api.src.modules.sites.publishing.repository import SitePublishingRepository
+from apps.api.src.modules.sites.routing.patterns.service import (
     _compile_path_pattern as _routing_compile_path_pattern,
 )
-from apps.api.src.modules.sites.repository_routing import (
+from apps.api.src.modules.sites.routing.patterns.service import (
     _match_compiled as _routing_match_compiled,
 )
-from apps.api.src.modules.sites.repository_routing import (
+from apps.api.src.modules.sites.routing.patterns.service import (
     _match_path_pattern as _routing_match_path_pattern,
 )
-from apps.api.src.modules.sites.types import ResolvedEntryDocument, RouteTemplateMatch, _CompiledRouteTemplate
-from apps.api.src.modules.sites.utils import normalize_path
+from apps.api.src.modules.sites.shared.schema import ResolvedEntryDocument, RouteTemplateMatch, _CompiledRouteTemplate
+from apps.api.src.modules.sites.shared.service import normalize_path
 from apps.api.src.modules.system.models.setting import SettingRecord
 from apps.api.src.modules.workspaces.content.models.content import ContentEntryRecord, ContentRevisionRecord
 from apps.api.src.settings.scopes import SCOPE_TYPE_SITE

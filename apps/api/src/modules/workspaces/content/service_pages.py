@@ -50,7 +50,7 @@ from apps.api.src.modules.sites.schema import (
 )
 from apps.api.src.modules.sites.schema import SitePageUserSummaryOut
 from apps.api.src.modules.sites.service import SiteService
-from apps.api.src.modules.sites.utils import build_pages_tree, validate_page_pathname
+from apps.api.src.modules.sites.shared.service import build_pages_tree, validate_page_pathname
 from apps.api.src.modules.workspaces.content.repository import WorkspaceContentRepository
 from apps.api.src.modules.workspaces.content.schema import ContentEntryRevisionOut, ContentRevisionState
 
@@ -527,7 +527,7 @@ class WorkspaceContentPagesMixin:
         if raw_doc is None:
             raise NotFound("Page blueprint not found", error="PAGE_BLUEPRINT_NOT_FOUND")
 
-        from apps.api.src.modules.sites.design_document_schema import PageBlueprint  # local import to avoid cycles
+        from apps.api.src.modules.sites.design_document.schema import PageBlueprint  # local import to avoid cycles
 
         try:
             doc = PageBlueprint.model_validate(raw_doc)

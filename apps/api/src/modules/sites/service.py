@@ -14,7 +14,9 @@ from apps.api.src.common.utils.public_ids import encode_uuid
 from apps.api.src.core.exceptions import Conflict, Forbidden, NotFound, ServiceUnavailable
 from apps.api.src.core.http.pagination import PageData, PageParams
 from apps.api.src.infra.cache.valkey import ValkeyClientLike
-from apps.api.src.modules.sites.constants import (
+from apps.api.src.modules.sites.content.service import SiteContentService
+from apps.api.src.modules.sites.models.site import SiteRecord
+from apps.api.src.modules.sites.namespaces.service import (
     EDITOR_GLOBAL_SECTIONS_NAMESPACE,
     EDITOR_STYLE_NAMESPACE,
     RUNTIME_SETTING_NAMESPACE,
@@ -22,9 +24,7 @@ from apps.api.src.modules.sites.constants import (
     THEME_CONFIG_NAMESPACE,
     THEME_VARS_NAMESPACE,
 )
-from apps.api.src.modules.sites.content_service import SiteContentService
-from apps.api.src.modules.sites.models.site import SiteRecord
-from apps.api.src.modules.sites.publishing_service import SitePublishingService
+from apps.api.src.modules.sites.publishing.service import SitePublishingService
 from apps.api.src.modules.sites.repository import SitesRepository
 from apps.api.src.modules.sites.schema import (
     SiteEntryCreateIn,
@@ -89,7 +89,7 @@ from apps.api.src.modules.sites.schema import (
     SiteVisualSitemapNodeOut,
     SiteVisualSitemapOut,
 )
-from apps.api.src.modules.sites.stores import PresenceStore, PreviewTokenStore, RouteTemplateVersionStore
+from apps.api.src.modules.sites.stores.service import PresenceStore, PreviewTokenStore, RouteTemplateVersionStore
 from apps.api.src.modules.system.models.setting import SettingRecord
 from apps.api.src.settings.core_schema import CORE_SETTINGS_NAMESPACE
 from apps.api.src.settings.scopes import SCOPE_TYPE_WORKSPACE

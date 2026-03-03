@@ -11,10 +11,10 @@ def build_v1_router(settings: Settings, *, plugin_manager: PluginManager) -> API
     from apps.api.src.modules.auth.router import router as auth_router
     from apps.api.src.modules.organization.router import router as organization_router
     from apps.api.src.modules.provision.router import router as provision_router
+    from apps.api.src.modules.sites.delivery.router import router as delivery_router
+    from apps.api.src.modules.sites.patterns.router import router as patterns_router
+    from apps.api.src.modules.sites.public.router import router as sites_public_router
     from apps.api.src.modules.sites.router import router as sites_router
-    from apps.api.src.modules.sites.router_delivery import router as delivery_router
-    from apps.api.src.modules.sites.router_patterns import router as patterns_router
-    from apps.api.src.modules.sites.router_public import router as sites_public_router
     from apps.api.src.modules.sys.router import router as sys_router
     from apps.api.src.modules.system.router import router as system_router
     from apps.api.src.modules.workspaces.router import router as workspaces_router
