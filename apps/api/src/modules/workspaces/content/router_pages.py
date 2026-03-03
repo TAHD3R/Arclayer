@@ -8,7 +8,7 @@ from fastapi import APIRouter, Body, Depends, status
 from apps.api.src.common.types.public_uuid import PublicUUID
 from apps.api.src.core.http.pagination import PageData
 from apps.api.src.core.http.response import Response, ResponseModel
-from apps.api.src.modules.auth.deps import get_current_user_id
+from apps.api.src.modules.auth.http.service import get_current_user_id
 from apps.api.src.modules.sites.schema import (
     SitePageCreateIn as ContentPageCreateIn,
 )

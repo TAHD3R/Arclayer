@@ -23,7 +23,7 @@ from apps.api.src.core.exceptions import (
 )
 from apps.api.src.core.i18n import t
 from apps.api.src.modules.auth.repository import UserRepository
-from apps.api.src.modules.auth.security import hash_password, verify_password
+from apps.api.src.modules.auth.tokens.service import hash_password, verify_password
 from apps.api.src.modules.organization.models.organization import Organization
 from apps.api.src.modules.organization.models.user import User, UserCredential
 from apps.api.src.modules.provision.service import TenantProvisioningService

@@ -10,7 +10,7 @@ from apps.api.src.modules.analytics.workspaces.router import router as workspace
 from apps.api.src.modules.assets.admin.assets.router import router as workspace_assets_router
 from apps.api.src.modules.assets.admin.uploads.router import router as workspace_uploads_router
 from apps.api.src.modules.assets.admin.usages.router import router as workspace_usages_router
-from apps.api.src.modules.auth.deps import get_current_user_id
+from apps.api.src.modules.auth.http.service import get_current_user_id
 from apps.api.src.modules.organization.deps import get_current_org_membership
 from apps.api.src.modules.organization.models.org_membership import OrgMembership
 from apps.api.src.modules.organization.workspaces.service import OrganizationWorkspaceService

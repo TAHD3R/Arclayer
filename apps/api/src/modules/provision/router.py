@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends
 
 from apps.api.src.config import Settings, get_settings
 from apps.api.src.core.http.response import Response, ResponseModel
-from apps.api.src.modules.auth.deps import get_current_user_id
+from apps.api.src.modules.auth.http.service import get_current_user_id
 from apps.api.src.modules.provision.schema import BootstrapStateOut, ProvisionRepairOut
 from apps.api.src.modules.provision.service import TenantProvisioningService
 

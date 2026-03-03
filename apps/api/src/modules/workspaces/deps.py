@@ -12,7 +12,7 @@ from apps.api.src.common.schemas import BaseSchema
 from apps.api.src.common.types.public_uuid import PublicUUID
 from apps.api.src.core.exceptions import Forbidden, NotFound
 from apps.api.src.core.i18n import t
-from apps.api.src.modules.auth.deps import get_current_user_id
+from apps.api.src.modules.auth.http.service import get_current_user_id
 from apps.api.src.modules.organization.models.org_membership import OrgMembership, OrgRole
 from apps.api.src.modules.workspaces.context import set_current_workspace_context
 from apps.api.src.modules.workspaces.models.workspace import Workspace, WorkspaceMembership, WorkspaceMembershipStatus

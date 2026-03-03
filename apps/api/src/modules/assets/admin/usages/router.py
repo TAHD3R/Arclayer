@@ -14,7 +14,7 @@ from apps.api.src.modules.assets.admin.usages.schema import (
     AdminAssetUsageUpsertRequest,
 )
 from apps.api.src.modules.assets.admin.usages.service import AdminAssetUsagesService
-from apps.api.src.modules.auth.deps import get_current_user
+from apps.api.src.modules.auth.http.service import get_current_user
 from apps.api.src.modules.workspaces.authz.deps import require_workspace_permission
 from apps.api.src.modules.workspaces.deps import WorkspaceContext, require_workspace_manage_access
 

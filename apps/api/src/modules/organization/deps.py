@@ -10,7 +10,7 @@ from apps.api.src.common.protocols.tortoise import HasOrganizationId
 from apps.api.src.common.types.public_uuid import PublicUUID
 from apps.api.src.core.exceptions import Forbidden
 from apps.api.src.core.i18n import t
-from apps.api.src.modules.auth.deps import get_current_user_id
+from apps.api.src.modules.auth.http.service import get_current_user_id
 from apps.api.src.modules.organization.models.org_membership import OrgMembership, OrgRole
 
 

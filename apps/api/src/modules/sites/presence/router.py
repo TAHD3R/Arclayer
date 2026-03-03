@@ -7,7 +7,7 @@ from fastapi import APIRouter, Body, Depends, Query
 from apps.api.src.common.types.public_uuid import PublicUUID
 from apps.api.src.core.http.response import Response, ResponseModel
 from apps.api.src.modules.sites.http.service import get_site_service
-from apps.api.src.modules.sites.schema import (
+from apps.api.src.modules.sites.presence.schema import (
     SitePresenceHeartbeatIn,
     SitePresenceHeartbeatOut,
     SitePresenceListOut,

@@ -1,0 +1,99 @@
+from __future__ import annotations
+
+from uuid import UUID
+
+from apps.api.src.common.services.base import BaseService
+from apps.api.src.core.exceptions import NotFound
+from apps.api.src.core.http.pagination import PageData, PageParams, paginate_items
+from apps.api.src.modules.sites.repository import SitesRepository
+
+
+class ContentDeliveryService(BaseService):
+    def __init__(
+        self,
+        settings,
+        *,
+        repo: SitesRepository,
+    ) -> None:
+        super().__init__(settings)
+        self._repo = repo
+
+    async def delivery_list_entries(
+        self,
+        *,
+        site_id: UUID,
+        params: PageParams,
+        type_code: str | None = None,
+        display_mode: str | None = None,
+    ) -> PageData:
+        from apps.api.src.modules.sites.delivery.schema import DeliveryEntryOut
+
+        if not self.settings.database.enabled:
+            return paginate_items([], params=params)
+        await self._repo.get_site_by_id(site_id=site_id)
+
+        entry_type_id: UUID | None = None
+        if type_code:
+            et = await self._repo.get_entry_type_by_code(site_id=site_id, code=type_code)
+            entry_type_id = UUID(str(et.id))
+
+        entries = await self._repo.list_published_entries(
+            site_id=site_id,
+            entry_type_id=entry_type_id,
+        )
+        items = [
+            DeliveryEntryOut(
+                slug=str(e.get("slug") or ""),
+                type_code=str(e.get("entry_type_code") or ""),
+                title=(e.get("title") if isinstance(e.get("title"), str) else None),
+                field_values=(e.get("field_values") if isinstance(e.get("field_values"), dict) else None),
+                page_blueprint=(
+                    None
+                    if not display_mode
+                    else (e.get("page_blueprint") if isinstance(e.get("page_blueprint"), dict) else None)
+                ),
+            )
+            for e in entries
+        ]
+        return paginate_items(items, params=params)
+
+    async def delivery_get_entry(
+        self,
+        *,
+        site_id: UUID,
+        slug: str,
+        display_mode: str | None = None,
+    ):
+        from apps.api.src.modules.sites.delivery.schema import DeliveryEntryOut
+
+        if not self.settings.database.enabled:
+            raise NotFound("Entry not found", error="DELIVERY_ENTRY_NOT_FOUND")
+        await self._repo.get_site_by_id(site_id=site_id)
+        e = await self._repo.get_published_entry_by_slug(site_id=site_id, slug=slug)
+        return DeliveryEntryOut(
+            slug=str(e.get("slug") or ""),
+            type_code=str(e.get("entry_type_code") or ""),
+            title=(e.get("title") if isinstance(e.get("title"), str) else None),
+            field_values=(e.get("field_values") if isinstance(e.get("field_values"), dict) else None),
+            page_blueprint=(e.get("page_blueprint") if isinstance(e.get("page_blueprint"), dict) else None),
+        )
+
+    async def delivery_get_menu(self, *, site_id: UUID, menu_key: str):
+        from apps.api.src.modules.sites.delivery.schema import DeliveryMenuOut
+
+        await self._repo.get_site_by_id(site_id=site_id)
+        menu = await self._repo.get_menu_by_key(site_id=site_id, key=menu_key)
+        items_raw = menu.get("items") if isinstance(menu, dict) else None
+        return DeliveryMenuOut(
+            key=menu_key,
+            items=(items_raw if isinstance(items_raw, list) else []),
+        )
+
+    async def delivery_get_style(self, *, site_id: UUID):
+        from apps.api.src.modules.sites.delivery.schema import DeliveryStyleOut
+
+        await self._repo.get_site_by_id(site_id=site_id)
+        style = await self._repo.get_site_style(site_id=site_id)
+        return DeliveryStyleOut(
+            effective=style if isinstance(style, dict) else None,
+        )

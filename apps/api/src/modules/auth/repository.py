@@ -7,16 +7,13 @@ from uuid import UUID
 
 from tortoise.expressions import Q
 
+from apps.api.src.common.constants.auth import REFRESH_STATUS_REVOKED, REFRESH_STATUS_ROTATED
 from apps.api.src.common.protocols.tortoise import UserMutableFields
 from apps.api.src.common.repositories import BaseRepository
 from apps.api.src.common.utils.ids import uuid7
 from apps.api.src.config import AuthSettings
 from apps.api.src.infra.cache.valkey import ValkeyClientLike
-from apps.api.src.modules.auth.constants import (
-    REFRESH_STATUS_REVOKED,
-    REFRESH_STATUS_ROTATED,
-)
-from apps.api.src.modules.auth.contracts import UserLike
+from apps.api.src.modules.auth.contracts.schema import UserLike
 from apps.api.src.modules.organization.models.user import User, UserCredential, UserStatus
 
 

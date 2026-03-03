@@ -8,7 +8,7 @@ from tortoise.exceptions import IntegrityError
 
 from apps.api.src.common.repositories.base import BaseRepository
 from apps.api.src.common.utils.ids import uuid7
-from apps.api.src.modules.auth.oauth_social.models import OAuthIdentity
+from apps.api.src.models.auth.oauth_identity import OAuthIdentity
 from apps.api.src.modules.organization.models.user import User, UserStatus
 
 

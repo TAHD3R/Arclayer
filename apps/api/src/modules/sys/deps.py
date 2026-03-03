@@ -4,7 +4,7 @@ from fastapi import Depends
 
 from apps.api.src.core.exceptions import Forbidden
 from apps.api.src.core.i18n import t
-from apps.api.src.modules.auth.deps import get_current_access_payload, get_current_user
+from apps.api.src.modules.auth.http.service import get_current_access_payload, get_current_user
 from apps.api.src.modules.organization.models.user import User
 
 

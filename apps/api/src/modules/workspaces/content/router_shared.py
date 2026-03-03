@@ -7,7 +7,7 @@ from fastapi import Depends, Request
 
 from apps.api.src.config import Settings, get_settings
 from apps.api.src.infra.cache.valkey import get_valkey
-from apps.api.src.modules.auth.deps import get_current_user_id
+from apps.api.src.modules.auth.http.service import get_current_user_id
 from apps.api.src.modules.sites.service import SiteService
 from apps.api.src.modules.workspaces.content.service import WorkspaceContentService
 from apps.api.src.modules.workspaces.deps import WorkspaceContext, require_workspace_manage_access

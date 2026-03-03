@@ -11,7 +11,7 @@ from apps.api.src.core.exceptions import BadRequest, NotFound
 from apps.api.src.core.http.response import Response, ResponseModel
 from apps.api.src.core.i18n import t
 from apps.api.src.modules.assets.utils import slugify
-from apps.api.src.modules.auth.deps import get_current_user_id
+from apps.api.src.modules.auth.http.service import get_current_user_id
 from apps.api.src.modules.organization.deps import get_current_org_membership
 from apps.api.src.modules.organization.members.router import router as organization_members_router
 from apps.api.src.modules.organization.models.org_membership import OrgMembership, OrgRole

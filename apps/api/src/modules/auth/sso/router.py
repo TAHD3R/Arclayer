@@ -10,9 +10,9 @@ from apps.api.src.core.exceptions import ServiceUnavailable
 from apps.api.src.core.http.response import Response, ResponseModel
 from apps.api.src.infra.cache.valkey import get_valkey
 from apps.api.src.infra.limiter.limiter import rate_limit
-from apps.api.src.modules.auth.constants import SSO_EXCHANGE_RATE_LIMIT, SSO_PROVIDERS_RATE_LIMIT
-from apps.api.src.modules.auth.deps import get_current_user
-from apps.api.src.modules.auth.oauth_social.models import OAuthIdentity
+from apps.api.src.models.auth.oauth_identity import OAuthIdentity
+from apps.api.src.modules.auth.http.service import get_current_user
+from apps.api.src.modules.auth.limits.service import SSO_EXCHANGE_RATE_LIMIT, SSO_PROVIDERS_RATE_LIMIT
 from apps.api.src.modules.auth.oauth_social.schema import OAuthLinkedIdentityListOut
 from apps.api.src.modules.auth.oauth_social.service import OAuthSocialService
 from apps.api.src.modules.auth.schema import TokenPair

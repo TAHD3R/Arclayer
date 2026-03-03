@@ -1,0 +1,107 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, cast
+from uuid import UUID
+
+from apps.api.src.common.protocols.tortoise import HasWorkspaceId
+from apps.api.src.core.exceptions import Conflict, NotFound
+from apps.api.src.modules.sites import schema as sites_schema
+from apps.api.src.modules.sites.runtime.localization.service import SiteRuntimeLocalizationMixin
+
+if TYPE_CHECKING:
+    from apps.api.src.config import Settings
+    from apps.api.src.modules.sites.repository import SitesRepository
+
+
+class SiteRuntimeContextMixin(SiteRuntimeLocalizationMixin):
+    settings: Settings
+    _repo: SitesRepository
+
+    def _extract_workspace_slug_from_host(self, host: str) -> str | None:
+        base_domain = (self.settings.saas.base_domain or "").strip().lower().rstrip(".")
+        if not base_domain:
+            return None
+
+        raw = (host or "").strip().lower()
+        if not raw:
+            return None
+        if ":" in raw and "]" not in raw:
+            raw = raw.split(":", 1)[0]
+        raw = raw.rstrip(".")
+
+        suffix = f".{base_domain}"
+        if raw == base_domain:
+            return None
+        if not raw.endswith(suffix):
+            return None
+
+        sub = raw[: -len(suffix)]
+        if not sub or "." in sub:
+            return None
+        return sub
+
+    def _normalize_host_for_custom_domain(self, host: str) -> str | None:
+        raw = (host or "").strip().lower()
+        if not raw:
+            return None
+        if ":" in raw and "]" not in raw:
+            raw = raw.split(":", 1)[0]
+        raw = raw.rstrip(".")
+
+        base_domain = (self.settings.saas.base_domain or "").strip().lower().rstrip(".")
+        if base_domain and (raw == base_domain or raw.endswith(f".{base_domain}")):
+            return None
+        return raw or None
+
+    async def _to_site_resolve_out(self, *, site) -> sites_schema.SiteResolveOut:
+        workspace_id = UUID(str(cast(HasWorkspaceId, site).workspace_id))
+        default_locale, fallback_locale, supported_locales = await self._read_workspace_site_localization(
+            workspace_id=workspace_id,
+            site=site,
+        )
+        return sites_schema.SiteResolveOut(
+            site_id=UUID(str(site.id)),
+            default_locale=default_locale,
+            fallback_locale=fallback_locale,
+            supported_locales=supported_locales,
+        )
+
+    async def _resolve_site_by_custom_domain(self, *, host: str) -> sites_schema.SiteResolveOut | None:
+        normalized_host = self._normalize_host_for_custom_domain(host)
+        if normalized_host is None:
+            return None
+
+        site = await self._repo.get_site_by_custom_hostname(hostname=normalized_host)
+        if site is None:
+            return None
+        return await self._to_site_resolve_out(site=site)
+
+    async def resolve_site(
+        self, *, host: str | None = None, workspace_slug: str | None = None
+    ) -> sites_schema.SiteResolveOut:
+        if not self.settings.database.enabled:
+            raise Conflict("Site resolution requires database storage", error="SITE_RESOLVE_DB_REQUIRED")
+
+        ws_slug = (workspace_slug or "").strip().lower() or None
+        if ws_slug is None and host is not None:
+            ws_slug = self._extract_workspace_slug_from_host(host)
+
+        if ws_slug is None and host is not None and self.settings.application.deployment_mode == "saas":
+            resolved = await self._resolve_site_by_custom_domain(host=host)
+            if resolved is not None:
+                return resolved
+
+        if ws_slug is None:
+            raise NotFound("Site not found", error="SITE_NOT_FOUND")
+
+        site = await self._repo.get_site_by_workspace_slug(workspace_slug=ws_slug)
+        if site is None:
+            raise NotFound("Site not found", error="SITE_NOT_FOUND")
+        return await self._to_site_resolve_out(site=site)
+
+    async def get_site_context(self, *, site_id: UUID) -> sites_schema.SiteResolveOut:
+        if not self.settings.database.enabled:
+            raise Conflict("Site context requires database storage", error="SITE_CONTEXT_DB_REQUIRED")
+
+        site = await self._repo.get_site_by_id(site_id=site_id)
+        return await self._to_site_resolve_out(site=site)

@@ -8,7 +8,7 @@ from apps.api.src.common.types.public_uuid import PublicUUID
 from apps.api.src.config import Settings, get_settings
 from apps.api.src.core.http.pagination import PageData, PageParams, get_page_params
 from apps.api.src.core.http.response import Response, ResponseModel
-from apps.api.src.modules.auth.deps import get_current_user_id
+from apps.api.src.modules.auth.http.service import get_current_user_id
 from apps.api.src.modules.system.admin.notifications.schema import (
     NotificationDeleteResult,
     NotificationDevSeedRequest,

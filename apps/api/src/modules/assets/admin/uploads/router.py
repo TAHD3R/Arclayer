@@ -17,7 +17,7 @@ from apps.api.src.modules.assets.admin.uploads.schema import (
     UploadStatusOut,
 )
 from apps.api.src.modules.assets.admin.uploads.service import UploadsService
-from apps.api.src.modules.auth.deps import get_current_user
+from apps.api.src.modules.auth.http.service import get_current_user
 from apps.api.src.modules.workspaces.authz.deps import require_workspace_permission
 from apps.api.src.modules.workspaces.deps import WorkspaceContext, require_workspace_manage_access
 

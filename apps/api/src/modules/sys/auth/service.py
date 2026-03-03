@@ -8,7 +8,7 @@ from apps.api.src.config import Settings
 from apps.api.src.core.exceptions import Unauthorized
 from apps.api.src.core.i18n import t
 from apps.api.src.modules.auth.repository import UserRepository
-from apps.api.src.modules.auth.security import build_sys_access_token, verify_password
+from apps.api.src.modules.auth.tokens.service import build_sys_access_token, verify_password
 from apps.api.src.modules.organization.models.user import User, UserCredential
 
 

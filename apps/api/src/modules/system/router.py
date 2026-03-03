@@ -159,7 +159,7 @@ async def get_system_runtime(
     (e.g. storage/mail) should be exposed in the UI.
     """
 
-    from apps.api.src.modules.auth.registration.policy import get_public_register_policy
+    from apps.api.src.modules.auth.registration.service import get_public_register_policy
 
     deployment_mode = settings.application.deployment_mode
     policy = await get_public_register_policy(settings)

@@ -11,7 +11,7 @@ from apps.api.src.core.exceptions import Conflict
 from apps.api.src.core.http.pagination import PageData, PageParams, get_page_params, paginate_items
 from apps.api.src.core.http.response import Response, ResponseModel
 from apps.api.src.infra.cache.valkey import get_valkey
-from apps.api.src.modules.auth.deps import get_current_user_id
+from apps.api.src.modules.auth.http.service import get_current_user_id
 from apps.api.src.modules.sites.domains.schema import (
     SiteDomainCreateIn,
     SiteDomainCreateOut,

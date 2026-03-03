@@ -12,7 +12,8 @@ from apps.api.src.core.http.response import Response, ResponseModel
 from apps.api.src.core.i18n import get_current_locale, t
 from apps.api.src.infra.cache.valkey import get_valkey
 from apps.api.src.infra.limiter.limiter import rate_limit
-from apps.api.src.modules.auth.constants import (
+from apps.api.src.modules.auth.http.service import get_current_user
+from apps.api.src.modules.auth.limits.service import (
     ACCOUNT_DELETE_RATE_LIMIT,
     EMAIL_CHANGE_CONFIRM_RATE_LIMIT,
     EMAIL_CHANGE_REQUEST_RATE_LIMIT,
@@ -22,7 +23,6 @@ from apps.api.src.modules.auth.constants import (
     REGISTER_RATE_LIMIT,
     RESET_PASSWORD_RATE_LIMIT,
 )
-from apps.api.src.modules.auth.deps import get_current_user
 from apps.api.src.modules.auth.schema import (
     AcceptExistingInvitationRequest,
     AcceptExistingInvitationResult,

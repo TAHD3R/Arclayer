@@ -8,6 +8,12 @@ from uuid import UUID
 
 from asgi_correlation_id import correlation_id
 
+from apps.api.src.common.constants.auth import (
+    PASSWORD_REGEX,
+    REFRESH_STATUS_ACTIVE,
+    RESET_TOKEN_REGEX,
+    TOKEN_TYPE_REFRESH,
+)
 from apps.api.src.common.email.service import EmailService
 from apps.api.src.common.protocols.tortoise import HasOrganizationId
 from apps.api.src.common.services import BaseService
@@ -16,9 +22,8 @@ from apps.api.src.core.exceptions import BadRequest, Conflict, Forbidden, NotFou
 from apps.api.src.core.http.pagination import PageData, PageParams
 from apps.api.src.core.i18n import t
 from apps.api.src.infra.cache.valkey import ValkeyClientLike
-from apps.api.src.modules.auth.constants import PASSWORD_REGEX, REFRESH_STATUS_ACTIVE, RESET_TOKEN_REGEX
-from apps.api.src.modules.auth.contracts import CredentialLike, UserLike, UserRepositoryLike
-from apps.api.src.modules.auth.invitation_service import AuthInvitationService
+from apps.api.src.modules.auth.contracts.schema import CredentialLike, UserLike, UserRepositoryLike
+from apps.api.src.modules.auth.invitations.service import AuthInvitationService
 from apps.api.src.modules.auth.repository import EmailChangeStore, PasswordResetStore, RefreshTokenStore, UserRepository
 from apps.api.src.modules.auth.schema import (
     AcceptExistingInvitationRequest,
@@ -32,8 +37,7 @@ from apps.api.src.modules.auth.schema import (
     UpdateMyProfileRequest,
     UserProfile,
 )
-from apps.api.src.modules.auth.security import (
-    TOKEN_TYPE_REFRESH,
+from apps.api.src.modules.auth.tokens.service import (
     build_access_token,
     build_refresh_token,
     decode_token,
@@ -265,7 +269,7 @@ class AuthService(BaseService):
 
         # Best-effort: remove OAuth identity mappings to prevent SSO sign-in after deletion.
         try:
-            from apps.api.src.modules.auth.oauth_social.models import OAuthIdentity
+            from apps.api.src.models.auth.oauth_identity import OAuthIdentity
 
             await OAuthIdentity.filter(user_id=user_id).delete()
         except BaseException as exc:
@@ -796,7 +800,7 @@ class AuthService(BaseService):
         email: str | None = None,
         display_name: str | None = None,
     ) -> UserLike:
-        from apps.api.src.modules.auth.registration.policy import get_public_register_policy
+        from apps.api.src.modules.auth.registration.service import get_public_register_policy
 
         policy = await get_public_register_policy(self.settings)
         if not policy.enabled:

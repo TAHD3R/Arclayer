@@ -8,7 +8,7 @@ from apps.api.src.config import Settings, get_settings
 from apps.api.src.core.exceptions import ServiceUnavailable
 from apps.api.src.core.http.response import Response, ResponseModel
 from apps.api.src.core.i18n import t
-from apps.api.src.modules.auth.deps import get_current_user_id
+from apps.api.src.modules.auth.http.service import get_current_user_id
 from apps.api.src.modules.system.admin.extensions.schema import AdminUIExtensionListOut
 from apps.api.src.modules.system.admin.extensions.service import AdminExtensionsService
 from apps.api.src.modules.workspaces.authz.deps import require_workspace_permission

@@ -603,7 +603,7 @@ class OAuthSocialService(BaseService):
             return None
 
     async def _is_public_register_allowed(self, *, email: str | None) -> bool:
-        from apps.api.src.modules.auth.registration.policy import get_public_register_policy
+        from apps.api.src.modules.auth.registration.service import get_public_register_policy
 
         policy = await get_public_register_policy(self.settings)
         if not policy.enabled:

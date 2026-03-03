@@ -16,7 +16,7 @@ from apps.api.src.core.exceptions import BadRequest, Conflict, NotFound
 from apps.api.src.core.http.pagination import PageData, PageParams
 from apps.api.src.core.i18n import t
 from apps.api.src.modules.auth.repository import UserRepository
-from apps.api.src.modules.auth.security import hash_password
+from apps.api.src.modules.auth.tokens.service import hash_password
 from apps.api.src.modules.organization.models.user import User
 from apps.api.src.modules.system.models.rbac import Role
 from apps.api.src.modules.workspaces.models.workspace import (

@@ -7,7 +7,7 @@ from fastapi import APIRouter, Body, Depends, status
 from apps.api.src.common.types.public_uuid import PublicUUID
 from apps.api.src.core.http.response import Response, ResponseModel
 from apps.api.src.modules.sites.http.service import get_site_service
-from apps.api.src.modules.sites.schema import SitePreviewTokenCreateIn, SitePreviewTokenOut
+from apps.api.src.modules.sites.preview_tokens.schema import SitePreviewTokenCreateIn, SitePreviewTokenOut
 from apps.api.src.modules.sites.service import SiteService
 
 router = APIRouter(tags=["Sites"])

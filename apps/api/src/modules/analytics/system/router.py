@@ -12,7 +12,7 @@ from apps.api.src.core.http.pagination import PageData, PageParams, get_page_par
 from apps.api.src.core.http.response import Response, ResponseModel
 from apps.api.src.modules.analytics.schema import AuditEventListQuery, AuditEventOut
 from apps.api.src.modules.analytics.service import ActivityService
-from apps.api.src.modules.auth.deps import get_current_user
+from apps.api.src.modules.auth.http.service import get_current_user
 from apps.api.src.modules.organization.deps import require_org_admin
 
 router = APIRouter(

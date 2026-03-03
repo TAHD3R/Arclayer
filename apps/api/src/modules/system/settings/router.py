@@ -7,7 +7,7 @@ from apps.api.src.core.exceptions import ServiceUnavailable
 from apps.api.src.core.http.pagination import PageData, PageParams, get_page_params
 from apps.api.src.core.http.response import Response, ResponseModel
 from apps.api.src.core.i18n import t
-from apps.api.src.modules.auth.deps import get_current_user
+from apps.api.src.modules.auth.http.service import get_current_user
 from apps.api.src.modules.organization.deps import require_org_owner
 from apps.api.src.modules.system.deps import require_self_host_deployment_mode
 from apps.api.src.modules.system.settings.schema import SettingsDetail, SettingsNamespaceSummary, SettingsPatch
