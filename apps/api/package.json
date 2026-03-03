@@ -7,18 +7,18 @@
     "url": "https://github.com/TAHD4R"
   },
   "scripts": {
-    "uv": "UV_CACHE_DIR=../../.uv-cache PYTHONPATH=../.. uv run",
-    "lock": "UV_CACHE_DIR=../../.uv-cache PYTHONPATH=../.. uv lock",
-    "install": "UV_CACHE_DIR=../../.uv-cache PYTHONPATH=../.. uv sync",
-    "dev": "UV_CACHE_DIR=../../.uv-cache PYTHONPATH=../.. uv run uvicorn apps.api.main:app --reload --host 0.0.0.0 --port 8000",
-    "lint": "UV_CACHE_DIR=../../.uv-cache PYTHONPATH=../.. uv run ruff check . --fix",
-    "format": "UV_CACHE_DIR=../../.uv-cache PYTHONPATH=../.. uv run ruff format .",
-    "typecheck": "UV_CACHE_DIR=../../.uv-cache PYTHONPATH=../.. uv run pyright --project ../../pyproject.toml",
-    "test": "UV_CACHE_DIR=../../.uv-cache PYTHONPATH=../.. uv run pytest --cov=.",
-    "test:integration": "RUN_INTEGRATION_TESTS=1 MAIL__ENABLED=1 MAIL__SUPPRESS_SEND=1 UV_CACHE_DIR=../../.uv-cache PYTHONPATH=../.. uv run pytest -m integration --cov=.",
-    "db:migrate": "UV_CACHE_DIR=../../.uv-cache PYTHONPATH=../.. uv run python -m tortoise makemigrations",
-    "db:upgrade": "UV_CACHE_DIR=../../.uv-cache PYTHONPATH=../.. uv run python -m tortoise migrate",
-    "jobs:worker": "UV_CACHE_DIR=../../.uv-cache PYTHONPATH=../.. uv run taskiq worker apps.api.infra.jobs.taskiq_app:broker apps.api.infra.jobs.tasks",
-    "jobs:scheduler": "UV_CACHE_DIR=../../.uv-cache PYTHONPATH=../.. uv run taskiq scheduler apps.api.infra.jobs.taskiq_app:scheduler apps.api.infra.jobs.tasks"
+    "uv": "node ./scripts/uv.mjs run",
+    "lock": "node ./scripts/uv.mjs lock",
+    "install": "node ./scripts/uv.mjs sync",
+    "dev": "node ./scripts/uv.mjs run uvicorn apps.api.main:app --reload --host 0.0.0.0 --port 8000",
+    "lint": "node ./scripts/uv.mjs run ruff check . --fix",
+    "format": "node ./scripts/uv.mjs run ruff format .",
+    "typecheck": "node ./scripts/uv.mjs run pyright --project ../../pyproject.toml",
+    "test": "node ./scripts/uv.mjs run pytest --cov=.",
+    "test:integration": "node ./scripts/uv.mjs --integration run pytest -m integration --cov=.",
+    "db:migrate": "node ./scripts/uv.mjs run python -m tortoise makemigrations",
+    "db:upgrade": "node ./scripts/uv.mjs run python -m tortoise migrate",
+    "jobs:worker": "node ./scripts/uv.mjs run taskiq worker apps.api.infra.jobs.taskiq_app:broker apps.api.infra.jobs.tasks",
+    "jobs:scheduler": "node ./scripts/uv.mjs run taskiq scheduler apps.api.infra.jobs.taskiq_app:scheduler apps.api.infra.jobs.tasks"
   }
 }

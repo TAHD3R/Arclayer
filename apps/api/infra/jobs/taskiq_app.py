@@ -114,7 +114,7 @@ def _register_plugin_tasks() -> None:
 async def _worker_startup(state: TaskiqState) -> None:
     settings = get_settings()
     configure_logging(settings)
-    state.state["settings"] = settings
+    state["settings"] = settings
 
     if not settings.taskiq.enabled:
         logger.warning("Taskiq worker started while TASKIQ__ENABLED is false")
