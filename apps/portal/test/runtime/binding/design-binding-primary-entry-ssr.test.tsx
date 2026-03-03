@@ -2,9 +2,9 @@ import React from "react";
 import { renderToString } from "react-dom/server";
 import { describe, expect, test } from "vitest";
 
-import { PageBlueprintRenderer } from "@celestial/site-renderer-core";
-import type { DesignRenderDataSourcesV1 } from "@celestial/site-renderer-core";
-import type { PageBlueprint, ViewerContext } from "@celestial/site-block-protocol";
+import { PageBlueprintRenderer } from "@celestial/renderer";
+import type { DesignRenderDataSourcesV1 } from "@celestial/renderer";
+import type { PageBlueprint, ViewerContext } from "@celestial/block-protocol";
 
 describe("binding: primaryEntry (SSR)", () => {
   test("text binding resolves from dataSources.primaryEntry.data.fields", () => {

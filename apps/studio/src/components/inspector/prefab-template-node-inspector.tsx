@@ -4,12 +4,12 @@ import type {
   DesignValueV1,
   FieldDefinition,
   PageBlueprint,
-} from "@celestial/site-block-protocol";
+} from "@celestial/block-protocol";
 import { Alert, Space, Typography } from "antd";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
-import type { PrefabRegistryV1 } from "@celestial/site-renderer-core";
+import type { PrefabRegistryV1 } from "@celestial/renderer";
 
 import { PrefabPropFieldEditor } from "@/components/inspector/node-inspector-drawer";
 import { clonePageBlueprint } from "@/lib/page-blueprint";

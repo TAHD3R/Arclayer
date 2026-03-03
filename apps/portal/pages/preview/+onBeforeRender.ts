@@ -1,6 +1,6 @@
 import { redirect, render } from "vike/abort";
 
-import { ApiError } from "@celestial/web-runtime/http";
+import { ApiError } from "@celestial/runtime/http";
 
 import { ensurePortalRequestContext } from "@/runtime/request-context";
 import { HttpError, toAbortStatus } from "@/runtime/http-error";

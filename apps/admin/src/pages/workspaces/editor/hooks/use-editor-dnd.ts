@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { DndItem, DndDropTarget } from "@celestial/site-editor-protocol";
+import type { DndItem, DndDropTarget } from "@celestial/editor-protocol";
 
 interface UseEditorDndOptions {
   onDrop?: (item: DndItem, target: DndDropTarget) => void;

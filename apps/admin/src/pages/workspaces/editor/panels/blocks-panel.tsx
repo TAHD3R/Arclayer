@@ -10,7 +10,7 @@ import type {
   LocalizedValue,
   PageBlueprint,
   PageBlueprintFragment,
-} from "@celestial/site-block-protocol";
+} from "@celestial/block-protocol";
 
 import { getWorkspaceSite } from "@/api/workspace-site";
 import { createSitePattern, deleteSitePattern, listSitePatterns } from "@/api/site-patterns";

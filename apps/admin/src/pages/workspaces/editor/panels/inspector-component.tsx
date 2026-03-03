@@ -9,8 +9,8 @@ import {
   type FieldDefinition,
   type ViewerContext,
   type LocalizedValue,
-} from "@celestial/site-block-protocol";
-import type { EditorInspectorComponent } from "@celestial/site-editor-protocol";
+} from "@celestial/block-protocol";
+import type { EditorInspectorComponent } from "@celestial/editor-protocol";
 
 import {
   useEditorSelectionPatch,

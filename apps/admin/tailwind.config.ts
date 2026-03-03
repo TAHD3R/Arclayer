@@ -1,6 +1,6 @@
 import type { Config } from "tailwindcss";
 
-import preset from "@celestial/design-tokens";
+import preset from "@celestial/theme";
 
 export default {
   content: ["./index.html", "./src/**/*.{ts,tsx}"],

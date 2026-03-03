@@ -1,4 +1,4 @@
-import type { TitlePolicyV1 } from "@celestial/portal-types";
+import type { TitlePolicyV1 } from "@celestial/internal-types";
 
 export function resolvePortalTitle(args: {
   policy: TitlePolicyV1 | undefined;

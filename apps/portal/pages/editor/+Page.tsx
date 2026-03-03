@@ -1,7 +1,7 @@
 import React from "react";
 
-import type { ViewerContext } from "@celestial/site-block-protocol";
-import type { PortalRouteMatch } from "@celestial/portal-types";
+import type { ViewerContext } from "@celestial/block-protocol";
+import type { PortalRouteMatch } from "@celestial/internal-types";
 
 import { EditorSiteView } from "@/views/editor/editor-site-view";
 

@@ -2,8 +2,8 @@ import { create } from "zustand";
 
 import { STORAGE_KEYS } from "@/constants/storage";
 import type { AppLocale } from "@/lib/i18n/resources";
-import { detectBrowserLocale, normalizeLocale, DEFAULT_LOCALE } from "@celestial/web-runtime/i18n";
-import type { ThemeMode } from "@celestial/design-tokens/antd";
+import { detectBrowserLocale, normalizeLocale, DEFAULT_LOCALE } from "@celestial/runtime/i18n";
+import type { ThemeMode } from "@celestial/theme/antd";
 
 export type PreferencesState = {
   locale: AppLocale;

@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-import type { EditorLayerNode, EditorSelectionInspector } from "@celestial/site-editor-protocol";
+import type { EditorLayerNode, EditorSelectionInspector } from "@celestial/editor-protocol";
 
 import type { BridgeStatus } from "@/pages/workspaces/editor/hooks/use-editor-bridge";
 

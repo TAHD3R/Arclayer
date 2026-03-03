@@ -13,7 +13,7 @@ import {
   injectCopyrightBanner,
   injectLoadingScreen,
   injectPreferences,
-} from "@celestial/vite";
+} from "@celestial/vite-plugin";
 
 export default defineConfig(({ mode, command }) => {
   const env = loadEnv(mode, __dirname, "VITE_");

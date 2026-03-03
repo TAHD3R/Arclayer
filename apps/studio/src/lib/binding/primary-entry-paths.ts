@@ -2,7 +2,7 @@ import type {
   ContentTypeFieldSchema,
   FieldDefinition,
   LocalizedString,
-} from "@celestial/site-block-protocol";
+} from "@celestial/block-protocol";
 
 export type BindingPathOption = { value: string; label: string };
 

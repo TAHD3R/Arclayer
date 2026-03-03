@@ -2,7 +2,7 @@ import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 
 import { type AppLocale, I18N_NAMESPACES, i18nResources } from "@/lib/i18n/resources";
-import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from "@celestial/web-runtime/i18n";
+import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from "@celestial/runtime/i18n";
 
 export type { AppLocale };
 

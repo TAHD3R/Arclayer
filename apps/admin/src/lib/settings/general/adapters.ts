@@ -177,13 +177,13 @@ function pickUnknown(obj: unknown, path: readonly string[]): unknown {
 
 function parseTitlePolicyV1(
   input: unknown,
-): import("@celestial/portal-types").TitlePolicyV1 | null {
+): import("@celestial/internal-types").TitlePolicyV1 | null {
   if (!input || typeof input !== "object" || Array.isArray(input)) return null;
   const rec = input as Record<string, unknown>;
   const partsUnknown = rec.parts;
   if (!Array.isArray(partsUnknown)) return null;
 
-  const parts: import("@celestial/portal-types").TitlePolicyV1Part[] = [];
+  const parts: import("@celestial/internal-types").TitlePolicyV1Part[] = [];
   for (const p of partsUnknown) {
     if (!p || typeof p !== "object" || Array.isArray(p)) continue;
     const pr = p as Record<string, unknown>;

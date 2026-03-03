@@ -1,4 +1,4 @@
-import { readRuntimeConfig, type AppConfig } from "@celestial/web-runtime/config";
+import { readRuntimeConfig, type AppConfig } from "@celestial/runtime/config";
 
 declare global {
   interface Window {

@@ -2,8 +2,8 @@ import React from "react";
 import { describe, expect, test } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 
-import { PageBlueprintRenderer } from "@celestial/site-renderer-core";
-import type { PageBlueprint, ViewerContext } from "@celestial/site-block-protocol";
+import { PageBlueprintRenderer } from "@celestial/renderer";
+import type { PageBlueprint, ViewerContext } from "@celestial/block-protocol";
 
 describe("site-renderer-core responsive overrides (PageBlueprint)", () => {
   test("applies node.responsive overrides for ctx.breakpoint", () => {

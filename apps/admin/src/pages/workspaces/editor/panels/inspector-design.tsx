@@ -1,7 +1,7 @@
 import { Input } from "antd";
 
-import type { EditorInspectorDesign } from "@celestial/site-editor-protocol";
-import { CORE_BLOCK_MANIFESTS, PREFAB_BLOCK_MANIFESTS } from "@celestial/site-block-protocol";
+import type { EditorInspectorDesign } from "@celestial/editor-protocol";
+import { CORE_BLOCK_MANIFESTS, PREFAB_BLOCK_MANIFESTS } from "@celestial/block-protocol";
 
 import { useEditorSelectionPatch } from "@/pages/workspaces/editor/hooks/use-editor-selection-patch";
 

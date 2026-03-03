@@ -4,8 +4,8 @@ import { Tree } from "antd";
 import { Link2 } from "lucide-react";
 
 import type { DataNode } from "antd/es/tree";
-import type { EditorLayerNode } from "@celestial/site-editor-protocol";
-import { EDITOR_PAGE_ROOT_BLOCK_ID } from "@celestial/site-editor-protocol";
+import type { EditorLayerNode } from "@celestial/editor-protocol";
+import { EDITOR_PAGE_ROOT_BLOCK_ID } from "@celestial/editor-protocol";
 
 import { useEditorBridgeContext } from "@/pages/workspaces/editor/contexts/editor-bridge-context";
 import { useEditorStore } from "@/pages/workspaces/editor/stores/editor-store";

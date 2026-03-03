@@ -1,10 +1,10 @@
-import type { ViewerContext } from "@celestial/site-block-protocol";
-import type { PortalSiteContext } from "@celestial/portal-types";
+import type { ViewerContext } from "@celestial/block-protocol";
+import type { PortalSiteContext } from "@celestial/internal-types";
 import {
   DEFAULT_FALLBACK_LOCALE,
   detectBrowserLocale,
   detectRequestLocaleFromHeaders,
-} from "@celestial/web-runtime/i18n";
+} from "@celestial/runtime/i18n";
 
 import { resolveSiteByIdFromApi, resolveSiteFromApi } from "./site-api";
 

@@ -1,18 +1,18 @@
-import { isPageBlueprint } from "@celestial/site-renderer-core";
-import { ApiError } from "@celestial/web-runtime/http";
+import { isPageBlueprint } from "@celestial/renderer";
+import { ApiError } from "@celestial/runtime/http";
 import type {
   PortalResolveMode,
   PortalRouteMatch,
   PortalSiteContext,
-} from "@celestial/portal-types";
+} from "@celestial/internal-types";
 import type {
   ContentRefIncludeErrorCodeV1,
   ContentRefIncludesMap,
   PageBlueprint,
   JsonValue,
   ResolveWarningV1,
-} from "@celestial/site-block-protocol";
-import type { DesignRenderDataSourcesV1 } from "@celestial/site-renderer-core";
+} from "@celestial/block-protocol";
+import type { DesignRenderDataSourcesV1 } from "@celestial/renderer";
 
 export function getPortalApiPrefix(): string {
   // Use a relative prefix so it works in both SSR and browser via the Portal server proxy.
@@ -491,7 +491,7 @@ export async function fetchRuntimeConfigFromApi(
   seo?: {
     defaultTitle?: string;
     defaultDescription?: string;
-    titlePolicyV1?: import("@celestial/portal-types").TitlePolicyV1;
+    titlePolicyV1?: import("@celestial/internal-types").TitlePolicyV1;
   };
 }> {
   const apiPrefix = getPortalApiPrefix();
@@ -630,14 +630,14 @@ export async function fetchRuntimeConfigFromApi(
 
 function parseTitlePolicyV1(
   input: unknown,
-): import("@celestial/portal-types").TitlePolicyV1 | undefined {
+): import("@celestial/internal-types").TitlePolicyV1 | undefined {
   if (!input || typeof input !== "object" || Array.isArray(input)) return undefined;
   const rec = input as Record<string, unknown>;
 
   const partsUnknown = rec.parts;
   if (!Array.isArray(partsUnknown)) return undefined;
 
-  const parts: import("@celestial/portal-types").TitlePolicyV1Part[] = [];
+  const parts: import("@celestial/internal-types").TitlePolicyV1Part[] = [];
   for (const p of partsUnknown) {
     if (!p || typeof p !== "object" || Array.isArray(p)) continue;
     const pr = p as Record<string, unknown>;

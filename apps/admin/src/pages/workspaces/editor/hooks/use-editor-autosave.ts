@@ -1,6 +1,6 @@
 import * as React from "react";
 
-import type { PageBlueprint } from "@celestial/site-block-protocol";
+import type { PageBlueprint } from "@celestial/block-protocol";
 
 import type { BridgeStatus } from "@/pages/workspaces/editor/hooks/use-editor-bridge";
 import { useEditorStore } from "@/pages/workspaces/editor/stores/editor-store";

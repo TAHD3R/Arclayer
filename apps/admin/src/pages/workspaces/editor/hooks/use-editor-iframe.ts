@@ -1,11 +1,7 @@
 import * as React from "react";
 import { useQuery } from "@tanstack/react-query";
 
-import {
-  buildEditorIframeHref,
-  normalizePathname,
-  isHttpOrigin,
-} from "@celestial/site-editor-bridge";
+import { buildEditorIframeHref, normalizePathname, isHttpOrigin } from "@celestial/editor-bridge";
 
 import { getWorkspaceSite, issueWorkspaceSitePreviewToken } from "@/api/workspace-site";
 

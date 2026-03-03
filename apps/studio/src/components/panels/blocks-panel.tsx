@@ -1,10 +1,10 @@
-import type { ViewerContext } from "@celestial/site-block-protocol";
-import { resolveLocalizedValue } from "@celestial/site-block-protocol";
+import type { ViewerContext } from "@celestial/block-protocol";
+import { resolveLocalizedValue } from "@celestial/block-protocol";
 import { Input, Select, Space, Typography, List, Button, Tag } from "antd";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import type { PrefabRegistryV1 } from "@celestial/site-renderer-core";
+import type { PrefabRegistryV1 } from "@celestial/renderer";
 
 type BlockCategory =
   | "all"

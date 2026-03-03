@@ -4,7 +4,7 @@ import zhCN from "antd/locale/zh_CN";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { type PropsWithChildren, useMemo } from "react";
 
-import { createAntdTheme } from "@celestial/design-tokens/antd";
+import { createAntdTheme } from "@celestial/theme/antd";
 import { usePreferencesStore } from "@/stores/use-preferences-store";
 
 function makeQueryClient(): QueryClient {

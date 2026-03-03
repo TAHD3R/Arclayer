@@ -1,6 +1,6 @@
 import { Input } from "antd";
 
-import type { EditorInspectorLayout } from "@celestial/site-editor-protocol";
+import type { EditorInspectorLayout } from "@celestial/editor-protocol";
 
 import { useEditorSelectionPatch } from "@/pages/workspaces/editor/hooks/use-editor-selection-patch";
 

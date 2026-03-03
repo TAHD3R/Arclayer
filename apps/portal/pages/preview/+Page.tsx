@@ -1,11 +1,8 @@
 import React from "react";
 
-import type { PageBlueprint, ViewerContext } from "@celestial/site-block-protocol";
-import type { PortalRouteMatch } from "@celestial/portal-types";
-import type {
-  ContentRefIncludesMap,
-  DesignRenderDataSourcesV1,
-} from "@celestial/site-renderer-core";
+import type { PageBlueprint, ViewerContext } from "@celestial/block-protocol";
+import type { PortalRouteMatch } from "@celestial/internal-types";
+import type { ContentRefIncludesMap, DesignRenderDataSourcesV1 } from "@celestial/renderer";
 
 import { PortalDocumentPage } from "@/views/portal-document-page";
 

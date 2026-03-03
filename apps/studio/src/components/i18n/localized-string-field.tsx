@@ -1,4 +1,4 @@
-import type { LocalizedString } from "@celestial/site-block-protocol";
+import type { LocalizedString } from "@celestial/block-protocol";
 import { Button, Input, Select, Space, Switch, Typography } from "antd";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";

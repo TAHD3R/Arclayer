@@ -7,7 +7,7 @@ import {
   useDroppable,
   type DragEndEvent,
 } from "@dnd-kit/core";
-import type { TitlePolicyV1, TitlePolicyV1Part } from "@celestial/portal-types";
+import type { TitlePolicyV1, TitlePolicyV1Part } from "@celestial/internal-types";
 import { useTranslation } from "react-i18next";
 
 const TOKEN_OPTIONS = [

@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import { useState } from "react";
 
 import type { WorkspacePageTreeNode, WorkspacePageUpdateIn } from "@/types/api";
-import type { PageBlueprint } from "@celestial/site-block-protocol";
+import type { PageBlueprint } from "@celestial/block-protocol";
 
 const formSchema = z.object({
   path: z

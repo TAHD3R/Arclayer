@@ -1,14 +1,14 @@
 import React from "react";
 
-import { PageBlueprintRenderer } from "@celestial/site-renderer-core";
+import { PageBlueprintRenderer } from "@celestial/renderer";
 
-import type { PageBlueprint, ViewerContext } from "@celestial/site-block-protocol";
+import type { PageBlueprint, ViewerContext } from "@celestial/block-protocol";
 import {
   CORE_BLOCK_MANIFESTS,
   CORE_PAGE_BLUEPRINT_PATTERNS_V1,
   PREFAB_BLOCK_MANIFESTS,
   resolveBreakpointNameByWidth,
-} from "@celestial/site-block-protocol";
+} from "@celestial/block-protocol";
 
 import type {
   BlockId,
@@ -20,9 +20,9 @@ import type {
   EditorSelectionInspector,
   HostEditorRpcApi,
   PortalEditorRpcApi,
-} from "@celestial/site-editor-protocol";
-import type { EditorPortalPenpalConnection } from "@celestial/site-editor-bridge";
-import { connectEditorPortalToHost, isHttpOrigin } from "@celestial/site-editor-bridge";
+} from "@celestial/editor-protocol";
+import type { EditorPortalPenpalConnection } from "@celestial/editor-bridge";
+import { connectEditorPortalToHost, isHttpOrigin } from "@celestial/editor-bridge";
 
 import {
   applySelectionPatch,

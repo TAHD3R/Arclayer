@@ -10,7 +10,7 @@ import {
   resolveLocalizedValue,
   type BlockCategory,
   type BlockManifest,
-} from "@celestial/site-block-protocol";
+} from "@celestial/block-protocol";
 
 import { getErrorMessage, notifyErrorText } from "@/lib/notifications";
 import { useEditorBridgeContext } from "@/pages/workspaces/editor/contexts/editor-bridge-context";

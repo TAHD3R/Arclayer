@@ -1,6 +1,6 @@
 import { createContext, useContext } from "react";
 
-import type { PageBlueprint } from "@celestial/site-block-protocol";
+import type { PageBlueprint } from "@celestial/block-protocol";
 
 export type EditorSaveContextValue = {
   saveDraft: (document: PageBlueprint) => Promise<void>;

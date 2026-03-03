@@ -17,7 +17,7 @@
 
 ## 共享桥接
 
-- Portal 与 Admin 共享的编辑器 URL 与通信协议位于 `packages/site-editor-bridge`。
+- Portal 与 Admin 共享的编辑器 URL 与通信协议位于 `packages/bridges/editor`。
 - Admin 调试入口（iframe 容器）为 `/debug/portal-editor`。
 
 ## API 路由解析（本地）

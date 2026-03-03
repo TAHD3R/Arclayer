@@ -1,0 +1,20 @@
+{
+  "name": "@celestial/theme",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./tokens.css": "./src/tokens.css",
+    "./tailwind-preset": "./src/tailwind-preset.ts",
+    "./antd": "./src/antd-theme.ts"
+  },
+  "devDependencies": {
+    "antd": "catalog:",
+    "tailwindcss": "catalog:"
+  },
+  "peerDependencies": {
+    "antd": "^6.2.1",
+    "tailwindcss": "^4.1.18"
+  }
+}

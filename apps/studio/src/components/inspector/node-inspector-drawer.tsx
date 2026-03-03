@@ -12,12 +12,12 @@ import type {
   LocalizedString,
   PageBlueprint,
   JsonValue,
-} from "@celestial/site-block-protocol";
+} from "@celestial/block-protocol";
 import { Drawer, Input, InputNumber, Select, Space, Switch, Typography, Alert, Button } from "antd";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import type { PrefabRegistryV1 } from "@celestial/site-renderer-core";
+import type { PrefabRegistryV1 } from "@celestial/renderer";
 
 import { DesignBindingExprField } from "@/components/binding/design-binding-expr-field";
 import { LocalizedStringField } from "@/components/i18n/localized-string-field";

@@ -3,7 +3,7 @@ import { App, Button, Card, Form, Input, List, Modal, Space, Tag, Typography } f
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ApiError } from "@celestial/web-runtime/http";
+import { ApiError } from "@celestial/runtime/http";
 
 import {
   createWorkspacePage,

@@ -1,5 +1,5 @@
-import { isPageBlueprint } from "@celestial/site-block-protocol";
-import type { PageBlueprint } from "@celestial/site-block-protocol";
+import { isPageBlueprint } from "@celestial/block-protocol";
+import type { PageBlueprint } from "@celestial/block-protocol";
 
 import { api } from "@/lib/http";
 import { workspacePath } from "@/lib/api";

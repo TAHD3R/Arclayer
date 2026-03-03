@@ -1,4 +1,4 @@
-import type { PortalResolveMode, PortalRuntimeConfig } from "@celestial/portal-types";
+import type { PortalResolveMode, PortalRuntimeConfig } from "@celestial/internal-types";
 
 export async function getPortalRuntimeConfigForSite(
   siteId: string,

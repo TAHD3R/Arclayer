@@ -2,7 +2,7 @@ import {
   createApiClient,
   type ApiRequestOptions,
   type UnauthorizedHandler,
-} from "@celestial/web-runtime/http";
+} from "@celestial/runtime/http";
 
 import { getAppConfig } from "@/constants/app-config";
 import { getLocaleHeaders, getRequestCredentials } from "@/lib/http/request-context";

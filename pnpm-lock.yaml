@@ -131,24 +131,24 @@ importers:
       '@bprogress/react':
         specifier: ^1.2.7
         version: 1.2.7(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
-      '@celestial/design-tokens':
+      '@celestial/theme':
         specifier: workspace:*
-        version: link:../../packages/design-tokens
-      '@celestial/portal-types':
+        version: link:../../packages/ui/tokens
+      '@celestial/internal-types':
         specifier: workspace:*
-        version: link:../../packages/portal-types
-      '@celestial/site-block-protocol':
+        version: link:../../packages/internal/legacy-types
+      '@celestial/block-protocol':
         specifier: workspace:*
-        version: link:../../packages/site-block-protocol
-      '@celestial/site-editor-bridge':
+        version: link:../../packages/protocols/block
+      '@celestial/editor-bridge':
         specifier: workspace:*
-        version: link:../../packages/site-editor-bridge
-      '@celestial/site-editor-protocol':
+        version: link:../../packages/bridges/editor
+      '@celestial/editor-protocol':
         specifier: workspace:*
-        version: link:../../packages/site-editor-protocol
-      '@celestial/web-runtime':
+        version: link:../../packages/protocols/editor
+      '@celestial/runtime':
         specifier: workspace:*
-        version: link:../../packages/web-runtime
+        version: link:../../packages/core/runtime
       '@dnd-kit/core':
         specifier: ^6.3.1
         version: 6.3.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -285,12 +285,12 @@ importers:
         specifier: ^5.0.10
         version: 5.0.11(@types/react@19.2.9)(react@19.2.3)(use-sync-external-store@1.6.0(react@19.2.3))
     devDependencies:
-      '@celestial/ox-config':
+      '@celestial/config':
         specifier: workspace:*
-        version: link:../../packages/ox-config
-      '@celestial/vite':
+        version: link:../../packages/infra/config
+      '@celestial/vite-plugin':
         specifier: workspace:*
-        version: link:../../packages/vite
+        version: link:../../packages/infra/vite-config
       '@iconify/react':
         specifier: 'catalog:'
         version: 6.0.2(react@19.2.3)
@@ -353,27 +353,27 @@ importers:
 
   apps/portal:
     dependencies:
-      '@celestial/portal-types':
+      '@celestial/internal-types':
         specifier: workspace:*
-        version: link:../../packages/portal-types
-      '@celestial/site-block-protocol':
+        version: link:../../packages/internal/legacy-types
+      '@celestial/block-protocol':
         specifier: workspace:*
-        version: link:../../packages/site-block-protocol
-      '@celestial/site-editor-bridge':
+        version: link:../../packages/protocols/block
+      '@celestial/editor-bridge':
         specifier: workspace:*
-        version: link:../../packages/site-editor-bridge
-      '@celestial/site-editor-protocol':
+        version: link:../../packages/bridges/editor
+      '@celestial/editor-protocol':
         specifier: workspace:*
-        version: link:../../packages/site-editor-protocol
-      '@celestial/site-renderer-core':
+        version: link:../../packages/protocols/editor
+      '@celestial/renderer':
         specifier: workspace:*
-        version: link:../../packages/site-renderer-core
-      '@celestial/site-theme-default':
+        version: link:../../packages/core/renderer
+      '@celestial/default-theme':
         specifier: workspace:*
-        version: link:../../packages/site-theme-default
-      '@celestial/web-runtime':
+        version: link:../../packages/ui/theme-default
+      '@celestial/runtime':
         specifier: workspace:*
-        version: link:../../packages/web-runtime
+        version: link:../../packages/core/runtime
       react:
         specifier: 'catalog:'
         version: 19.2.3
@@ -381,12 +381,12 @@ importers:
         specifier: 'catalog:'
         version: 19.2.3(react@19.2.3)
     devDependencies:
-      '@celestial/ox-config':
+      '@celestial/config':
         specifier: workspace:*
-        version: link:../../packages/ox-config
-      '@celestial/vite':
+        version: link:../../packages/infra/config
+      '@celestial/vite-plugin':
         specifier: workspace:*
-        version: link:../../packages/vite
+        version: link:../../packages/infra/vite-config
       '@types/react':
         specifier: 'catalog:'
         version: 19.2.9
@@ -411,18 +411,18 @@ importers:
       '@bprogress/react':
         specifier: ^1.2.7
         version: 1.2.7(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
-      '@celestial/design-tokens':
+      '@celestial/theme':
         specifier: workspace:*
-        version: link:../../packages/design-tokens
-      '@celestial/site-block-protocol':
+        version: link:../../packages/ui/tokens
+      '@celestial/block-protocol':
         specifier: workspace:*
-        version: link:../../packages/site-block-protocol
-      '@celestial/site-renderer-core':
+        version: link:../../packages/protocols/block
+      '@celestial/renderer':
         specifier: workspace:*
-        version: link:../../packages/site-renderer-core
-      '@celestial/web-runtime':
+        version: link:../../packages/core/renderer
+      '@celestial/runtime':
         specifier: workspace:*
-        version: link:../../packages/web-runtime
+        version: link:../../packages/core/runtime
       '@tanstack/react-query':
         specifier: ^5.90.20
         version: 5.90.21(react@19.2.3)
@@ -463,12 +463,12 @@ importers:
         specifier: ^5.0.10
         version: 5.0.11(@types/react@19.2.9)(react@19.2.3)(use-sync-external-store@1.6.0(react@19.2.3))
     devDependencies:
-      '@celestial/ox-config':
+      '@celestial/config':
         specifier: workspace:*
-        version: link:../../packages/ox-config
-      '@celestial/vite':
+        version: link:../../packages/infra/config
+      '@celestial/vite-plugin':
         specifier: workspace:*
-        version: link:../../packages/vite
+        version: link:../../packages/infra/vite-config
       '@iconify/react':
         specifier: 'catalog:'
         version: 6.0.2(react@19.2.3)
@@ -524,7 +524,7 @@ importers:
         specifier: 'catalog:'
         version: 4.0.18(@types/node@24.10.9)(@vitest/ui@4.0.18)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(tsx@4.21.0)
 
-  packages/design-tokens:
+  packages/ui/tokens:
     devDependencies:
       antd:
         specifier: 'catalog:'
@@ -533,34 +533,34 @@ importers:
         specifier: 'catalog:'
         version: 4.1.18
 
-  packages/ox-config: {}
+  packages/infra/config: {}
 
-  packages/portal-types: {}
+  packages/internal/legacy-types: {}
 
-  packages/site-block-protocol:
+  packages/protocols/block:
     dependencies:
       zod:
         specifier: 3.25.76
         version: 3.25.76
 
-  packages/site-editor-bridge:
+  packages/bridges/editor:
     dependencies:
-      '@celestial/site-editor-protocol':
+      '@celestial/editor-protocol':
         specifier: workspace:*
         version: link:../site-editor-protocol
       penpal:
         specifier: 'catalog:'
         version: 6.2.2
 
-  packages/site-editor-protocol:
+  packages/protocols/editor:
     dependencies:
-      '@celestial/site-block-protocol':
+      '@celestial/block-protocol':
         specifier: workspace:*
         version: link:../site-block-protocol
 
-  packages/site-renderer-core:
+  packages/core/renderer:
     dependencies:
-      '@celestial/site-block-protocol':
+      '@celestial/block-protocol':
         specifier: workspace:*
         version: link:../site-block-protocol
       react:
@@ -574,9 +574,9 @@ importers:
         specifier: 'catalog:'
         version: 19.2.3(@types/react@19.2.9)
 
-  packages/site-theme-default: {}
+  packages/ui/theme-default: {}
 
-  packages/vite:
+  packages/infra/vite-config:
     dependencies:
       archiver:
         specifier: 'catalog:'
@@ -592,7 +592,7 @@ importers:
         specifier: 'catalog:'
         version: 7.3.1(@types/node@24.10.9)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)
 
-  packages/web-runtime: {}
+  packages/core/runtime: {}
 
 packages:
 

@@ -6,7 +6,7 @@ import type {
   TokenDefinition,
   TokenLayer,
   TokenValue,
-} from "@celestial/site-block-protocol";
+} from "@celestial/block-protocol";
 
 interface DesignTokenEditorProps {
   collection: DesignTokenCollection | null;

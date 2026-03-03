@@ -1,4 +1,4 @@
-import type { PageBlueprint } from "@celestial/site-block-protocol";
+import type { PageBlueprint } from "@celestial/block-protocol";
 
 export function clonePageBlueprint(value: PageBlueprint): PageBlueprint {
   const sc = (globalThis as unknown as { structuredClone?: (v: unknown) => unknown })

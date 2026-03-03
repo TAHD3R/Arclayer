@@ -4,8 +4,8 @@ import {
   createEditorHostConnector,
   type EditorHostPenpalConnection,
   type EditorHostPenpalOptions,
-} from "@celestial/site-editor-bridge";
-import type { EditorProtocolVersion, HostEditorRpcApi } from "@celestial/site-editor-protocol";
+} from "@celestial/editor-bridge";
+import type { EditorProtocolVersion, HostEditorRpcApi } from "@celestial/editor-protocol";
 
 function createPortalStub(): EditorHostPenpalConnection["portal"] {
   return {

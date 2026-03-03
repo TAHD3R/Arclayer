@@ -3,7 +3,7 @@ import { LayoutDashboard, Palette, Settings2, Sparkles } from "lucide-react";
 import { Button, Input, Select, Tooltip } from "antd";
 import { AnimatePresence, motion } from "motion/react";
 
-import type { EditorSelectionInspector } from "@celestial/site-editor-protocol";
+import type { EditorSelectionInspector } from "@celestial/editor-protocol";
 
 import { cn } from "@/lib/utils";
 import { useEditorConfig } from "@/pages/workspaces/editor/contexts/editor-config-context";

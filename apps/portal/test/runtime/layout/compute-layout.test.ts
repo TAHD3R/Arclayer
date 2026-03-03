@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 
-import { computeLayoutBoxes } from "@celestial/site-renderer-core";
-import type { LayoutNode } from "@celestial/site-renderer-core";
+import { computeLayoutBoxes } from "@celestial/renderer";
+import type { LayoutNode } from "@celestial/renderer";
 
 describe("layout engine (computeLayoutBoxes)", () => {
   test("absolute constraints: right/center/leftRight/scale", () => {

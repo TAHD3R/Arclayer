@@ -1,6 +1,6 @@
 import { Input } from "antd";
 
-import type { EditorInspectorAnimation } from "@celestial/site-editor-protocol";
+import type { EditorInspectorAnimation } from "@celestial/editor-protocol";
 
 import { useEditorSelectionPatch } from "@/pages/workspaces/editor/hooks/use-editor-selection-patch";
 

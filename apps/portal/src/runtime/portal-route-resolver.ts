@@ -1,8 +1,8 @@
-import { ApiError } from "@celestial/web-runtime/http";
-import type { PortalResolveMode, PortalRouteMatch } from "@celestial/portal-types";
-import type { PageBlueprint } from "@celestial/site-block-protocol";
-import type { DesignRenderDataSourcesV1 } from "@celestial/site-renderer-core";
-import type { ContentRefIncludesMap, ResolveWarningV1 } from "@celestial/site-block-protocol";
+import { ApiError } from "@celestial/runtime/http";
+import type { PortalResolveMode, PortalRouteMatch } from "@celestial/internal-types";
+import type { PageBlueprint } from "@celestial/block-protocol";
+import type { DesignRenderDataSourcesV1 } from "@celestial/renderer";
+import type { ContentRefIncludesMap, ResolveWarningV1 } from "@celestial/block-protocol";
 
 import { HttpError } from "@/runtime/http-error";
 import {

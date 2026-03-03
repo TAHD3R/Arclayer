@@ -18,7 +18,7 @@ import { useEditorBridgeContext } from "@/pages/workspaces/editor/contexts/edito
 import { useEditorSelectionPatch } from "@/pages/workspaces/editor/hooks/use-editor-selection-patch";
 import { useEditorStore } from "@/pages/workspaces/editor/stores/editor-store";
 import { notifyErrorText, getErrorMessage } from "@/lib/notifications";
-import type { DesignLayoutV1, DesignNodeV1 } from "@celestial/site-block-protocol";
+import type { DesignLayoutV1, DesignNodeV1 } from "@celestial/block-protocol";
 
 function defaultRectLayout(x: number, y: number, width: number, height: number): DesignLayoutV1 {
   return {

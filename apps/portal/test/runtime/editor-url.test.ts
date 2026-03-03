@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildEditorIframeHref, normalizePathname } from "@celestial/site-editor-bridge";
+import { buildEditorIframeHref, normalizePathname } from "@celestial/editor-bridge";
 
 describe("site-editor-bridge url helpers (imported via Portal)", () => {
   it("normalizePathname() normalizes leading and trailing slashes", () => {

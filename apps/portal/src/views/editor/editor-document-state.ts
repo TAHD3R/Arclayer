@@ -9,8 +9,8 @@ import type {
   EditorSelectionInspector,
   EditorSelectionPatch,
   EditorSelectionPatchSection,
-} from "@celestial/site-editor-protocol";
-import { EDITOR_PAGE_ROOT_BLOCK_ID } from "@celestial/site-editor-protocol";
+} from "@celestial/editor-protocol";
+import { EDITOR_PAGE_ROOT_BLOCK_ID } from "@celestial/editor-protocol";
 
 import type {
   BreakpointName,
@@ -24,15 +24,15 @@ import type {
   DesignStyleV1,
   DesignValueV1,
   JsonValue,
-} from "@celestial/site-block-protocol";
+} from "@celestial/block-protocol";
 import {
   CORE_BLOCK_MANIFESTS,
   PREFAB_BLOCK_MANIFESTS,
   type BlockManifest,
   type FieldDefinition,
-} from "@celestial/site-block-protocol";
+} from "@celestial/block-protocol";
 
-import { resolveDesignNodeAtBreakpointV1 } from "@celestial/site-renderer-core";
+import { resolveDesignNodeAtBreakpointV1 } from "@celestial/renderer";
 
 const HISTORY_LIMIT_DEFAULT = 100;
 

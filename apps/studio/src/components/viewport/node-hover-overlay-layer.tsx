@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
 import { useEffect, useMemo, useState } from "react";
-import type { PageBlueprint } from "@celestial/site-block-protocol";
-import type { PrefabRegistryV1 } from "@celestial/site-renderer-core";
+import type { PageBlueprint } from "@celestial/block-protocol";
+import type { PrefabRegistryV1 } from "@celestial/renderer";
 
 type Rect = { x: number; y: number; width: number; height: number };
 

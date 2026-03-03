@@ -1,11 +1,11 @@
 import * as React from "react";
 import { useTranslation } from "react-i18next";
 
-import { resolveBreakpointNameByWidth } from "@celestial/site-block-protocol";
+import { resolveBreakpointNameByWidth } from "@celestial/block-protocol";
 import {
   EDITOR_PAGE_ROOT_BLOCK_ID,
   type EditorSelectionPatchSection,
-} from "@celestial/site-editor-protocol";
+} from "@celestial/editor-protocol";
 
 import { getErrorMessage, notifyErrorText } from "@/lib/notifications";
 import { useEditorBridgeContext } from "@/pages/workspaces/editor/contexts/editor-bridge-context";

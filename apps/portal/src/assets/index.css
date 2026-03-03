@@ -1,4 +1,4 @@
-@import "@celestial/site-theme-default/style.css";
+@import "@celestial/default-theme/style.css";
 
 :root {
   /* Keep a minimal set for Sprint 1; actual themes will override via SSR CSS vars. */

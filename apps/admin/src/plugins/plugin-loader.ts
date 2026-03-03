@@ -1,5 +1,5 @@
 import { lazy } from "react";
-import { pluginSlotRegistry, type PluginUIExtension } from "@celestial/web-runtime/plugin-slots";
+import { pluginSlotRegistry, type PluginUIExtension } from "@celestial/runtime/plugin-slots";
 
 // Raw shape returned by the backend extensions endpoint
 interface RawExtension {

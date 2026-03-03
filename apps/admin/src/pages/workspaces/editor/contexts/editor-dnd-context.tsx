@@ -10,7 +10,7 @@ import {
 } from "@dnd-kit/core";
 import { useTranslation } from "react-i18next";
 
-import type { DesignLayoutV1, DesignNodeV1 } from "@celestial/site-block-protocol";
+import type { DesignLayoutV1, DesignNodeV1 } from "@celestial/block-protocol";
 
 import { notifyErrorText } from "@/lib/notifications";
 import { getErrorMessage } from "@/lib/notifications";

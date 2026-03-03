@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { isPageBlueprint } from "@celestial/site-renderer-core";
+import { isPageBlueprint } from "@celestial/renderer";
 
 describe("site-renderer-core guards (imported via Portal)", () => {
   test("accepts a minimal PageBlueprint", () => {

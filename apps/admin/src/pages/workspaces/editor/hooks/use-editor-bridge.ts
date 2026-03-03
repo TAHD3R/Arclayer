@@ -1,12 +1,9 @@
 import * as React from "react";
 import { useNavigate } from "@tanstack/react-router";
 
-import type { HostEditorRpcApi } from "@celestial/site-editor-protocol";
-import { createEditorHostConnector, isHttpOrigin } from "@celestial/site-editor-bridge";
-import type {
-  EditorHostConnector,
-  EditorHostPenpalConnection,
-} from "@celestial/site-editor-bridge";
+import type { HostEditorRpcApi } from "@celestial/editor-protocol";
+import { createEditorHostConnector, isHttpOrigin } from "@celestial/editor-bridge";
+import type { EditorHostConnector, EditorHostPenpalConnection } from "@celestial/editor-bridge";
 
 export type BridgeStatus = "disconnected" | "connecting" | "connected";
 

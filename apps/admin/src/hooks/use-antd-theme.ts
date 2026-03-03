@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 
-import { createAntdTheme } from "@celestial/design-tokens/antd";
+import { createAntdTheme } from "@celestial/theme/antd";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 
 function clampInt(value: number, min: number, max: number): number {

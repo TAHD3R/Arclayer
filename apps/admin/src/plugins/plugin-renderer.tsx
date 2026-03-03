@@ -1,5 +1,5 @@
 import { type ComponentType, type LazyExoticComponent, Suspense } from "react";
-import { pluginSlotRegistry, type PluginSlotProps } from "@celestial/web-runtime/plugin-slots";
+import { pluginSlotRegistry, type PluginSlotProps } from "@celestial/runtime/plugin-slots";
 
 type LazyPluginComponent = LazyExoticComponent<ComponentType<PluginSlotProps>>;
 

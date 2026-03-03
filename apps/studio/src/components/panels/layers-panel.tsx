@@ -1,10 +1,10 @@
-import type { DesignBindingExprV1, PageBlueprint } from "@celestial/site-block-protocol";
+import type { DesignBindingExprV1, PageBlueprint } from "@celestial/block-protocol";
 import { Button, Space, Tree, Typography } from "antd";
 import type { DataNode } from "antd/es/tree";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
-import type { PrefabRegistryV1 } from "@celestial/site-renderer-core";
+import type { PrefabRegistryV1 } from "@celestial/renderer";
 
 export type LayersSelection =
   | { kind: "doc"; nodeId: string }

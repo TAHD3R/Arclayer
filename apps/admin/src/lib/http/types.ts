@@ -1,1 +1,1 @@
-export type { ResponseModel } from "@celestial/web-runtime/http";
+export type { ResponseModel } from "@celestial/runtime/http";

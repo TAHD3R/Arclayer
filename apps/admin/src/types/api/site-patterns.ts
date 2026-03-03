@@ -1,4 +1,4 @@
-import type { PageBlueprintFragment } from "@celestial/site-block-protocol";
+import type { PageBlueprintFragment } from "@celestial/block-protocol";
 
 export type SitePattern = {
   id: string;

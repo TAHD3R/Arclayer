@@ -4,18 +4,18 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, App, Button, Card, Space, Tag, Typography, Select } from "antd";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ApiError } from "@celestial/web-runtime/http";
-import { resolveBreakpointNameByWidth } from "@celestial/site-block-protocol";
+import { ApiError } from "@celestial/runtime/http";
+import { resolveBreakpointNameByWidth } from "@celestial/block-protocol";
 import type {
   PageBlueprint,
   ViewerContext,
   PrefabInstancePropsV1,
-} from "@celestial/site-block-protocol";
+} from "@celestial/block-protocol";
 import {
   createDefaultPrefabRegistryV1,
   createEmptyPageBlueprint,
   PageBlueprintRenderer,
-} from "@celestial/site-renderer-core";
+} from "@celestial/renderer";
 
 import {
   getWorkspacePage,

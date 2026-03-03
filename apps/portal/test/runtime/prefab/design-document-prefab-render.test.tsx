@@ -2,8 +2,8 @@ import React from "react";
 import { renderToString } from "react-dom/server";
 import { describe, expect, test } from "vitest";
 
-import { PageBlueprintRenderer } from "@celestial/site-renderer-core";
-import type { PageBlueprint, ViewerContext } from "@celestial/site-block-protocol";
+import { PageBlueprintRenderer } from "@celestial/renderer";
+import type { PageBlueprint, ViewerContext } from "@celestial/block-protocol";
 
 describe("PageBlueprintRenderer + PrefabRegistry (phase 3 acceptance)", () => {
   test("prefab instance renders with built-in registry; expanded template ids stay PageBlueprint-safe; slot subtrees are copied", () => {

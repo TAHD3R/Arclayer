@@ -1,4 +1,4 @@
-import type { PageBlueprint } from "@celestial/site-block-protocol";
+import type { PageBlueprint } from "@celestial/block-protocol";
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 import {
   forwardRef,

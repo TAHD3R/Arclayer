@@ -1,5 +1,5 @@
 import type { FormInstance } from "antd";
-import type { TitlePolicyV1 } from "@celestial/portal-types";
+import type { TitlePolicyV1 } from "@celestial/internal-types";
 
 export type StorageProvider = "local" | "s3";
 

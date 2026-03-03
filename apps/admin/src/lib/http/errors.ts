@@ -1,1 +1,1 @@
-export { ApiError } from "@celestial/web-runtime/http";
+export { ApiError } from "@celestial/runtime/http";

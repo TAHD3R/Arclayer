@@ -12,14 +12,10 @@ import {
   isPageBlueprint,
   resolveLocalizedValue,
   serializeCssVarsToStyleText,
-} from "@celestial/site-renderer-core";
-import type { LocalizedString } from "@celestial/site-renderer-core";
-import type { PortalSiteContext } from "@celestial/portal-types";
-import type {
-  DesignBindingExprV1,
-  PageBlueprint,
-  ViewerContext,
-} from "@celestial/site-block-protocol";
+} from "@celestial/renderer";
+import type { LocalizedString } from "@celestial/renderer";
+import type { PortalSiteContext } from "@celestial/internal-types";
+import type { DesignBindingExprV1, PageBlueprint, ViewerContext } from "@celestial/block-protocol";
 
 export { onRenderHtml };
 

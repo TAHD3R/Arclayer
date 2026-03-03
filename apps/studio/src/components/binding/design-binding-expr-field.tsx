@@ -1,4 +1,4 @@
-import type { DesignBindingExprV1, DesignBindingSourceV1 } from "@celestial/site-block-protocol";
+import type { DesignBindingExprV1, DesignBindingSourceV1 } from "@celestial/block-protocol";
 import { Alert, Button, Input, Select, Space, Typography } from "antd";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";

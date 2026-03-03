@@ -202,7 +202,7 @@ Do not bypass token hierarchy with one-off hardcoded values unless justified.
 
 ### 7.2 Source of truth
 
-- Shared visual tokens and theme adapters belong to `packages/design-tokens`.
+- Shared visual tokens and theme adapters belong to `packages/ui/tokens`.
 - Avoid app-local redefinition of core tokens.
 
 ### 7.3 Naming and consistency
@@ -214,7 +214,7 @@ Do not bypass token hierarchy with one-off hardcoded values unless justified.
 
 #### 7.4.1 Token pipeline
 
-The single source of truth for typography values lives in `packages/design-tokens/src/tokens.css` (`:root` block).
+The single source of truth for typography values lives in `packages/ui/tokens/src/tokens.css` (`:root` block).
 The pipeline is:
 
 ```
@@ -316,7 +316,7 @@ A UI PR is acceptable only when all relevant items pass:
 - [ ] Data table date/time text uses the shared formatter chain (workspace -> organization -> user/browser).
 - [ ] Sticky table layering is isolated and does not overlap app-level overlays.
 - [ ] Settings interactions follow the inline-first model unless overlay is justified.
-- [ ] Token usage follows `packages/design-tokens` and avoids style drift.
+- [ ] Token usage follows `packages/ui/tokens` and avoids style drift.
 - [ ] Typography uses semantic classes (`text-body`, `text-footnote`, `text-caption`, etc.) — standard Tailwind size classes (`text-xs`, `text-sm`, etc.) are banned.
 - [ ] Text color uses `text-label-secondary` — no new `text-muted-foreground` usage.
 - [ ] Accessibility baseline (focus, keyboard, labels) is satisfied.

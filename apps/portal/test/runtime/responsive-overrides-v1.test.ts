@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 
-import { resolveDesignNodeAtBreakpointV1 } from "@celestial/site-renderer-core";
-import type { DesignNodeV1 } from "@celestial/site-block-protocol";
+import { resolveDesignNodeAtBreakpointV1 } from "@celestial/renderer";
+import type { DesignNodeV1 } from "@celestial/block-protocol";
 
 describe("DesignDocument v1 responsive overrides (deep merge rules)", () => {
   test("deep merges nested layout/style fields (no shallow overwrite regression)", () => {

@@ -1,4 +1,4 @@
-import type { PageBlueprint } from "@celestial/site-block-protocol";
+import type { PageBlueprint } from "@celestial/block-protocol";
 
 export type ContentEntryStatus = "draft" | "published" | "archived";
 export type ContentEntryVisibility = "public" | "private";

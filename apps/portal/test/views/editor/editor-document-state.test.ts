@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 
-import { EDITOR_PAGE_ROOT_BLOCK_ID } from "@celestial/site-editor-protocol";
-import type { PageBlueprint } from "@celestial/site-block-protocol";
+import { EDITOR_PAGE_ROOT_BLOCK_ID } from "@celestial/editor-protocol";
+import type { PageBlueprint } from "@celestial/block-protocol";
 
 import {
   applySelectionPatch,

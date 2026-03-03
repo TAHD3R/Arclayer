@@ -1,4 +1,4 @@
-import type { ThemeMode } from "@celestial/design-tokens/antd";
+import type { ThemeMode } from "@celestial/theme/antd";
 
 import type { AppLocale } from "@/lib/i18n";
 

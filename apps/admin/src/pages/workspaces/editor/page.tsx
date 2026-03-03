@@ -22,8 +22,8 @@ import { EditorActionSystem } from "@/pages/workspaces/editor/components/editor-
 import { EditorLayout } from "@/pages/workspaces/editor/editor-layout";
 import { useEditorStore } from "@/pages/workspaces/editor/stores/editor-store";
 
-import type { EditorHistoryState, HostEditorRpcApi } from "@celestial/site-editor-protocol";
-import { PageBlueprintSchema, type PageBlueprint } from "@celestial/site-block-protocol";
+import type { EditorHistoryState, HostEditorRpcApi } from "@celestial/editor-protocol";
+import { PageBlueprintSchema, type PageBlueprint } from "@celestial/block-protocol";
 
 import {
   extractPageBlueprintFromSnapshot,
