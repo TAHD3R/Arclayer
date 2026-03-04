@@ -26,12 +26,7 @@ import {
 } from "@celestial/ui/dropdown-card";
 import { RadioGroup, RadioGroupItem } from "@celestial/ui/radio-group";
 
-import {
-  INTERACTIVE_TRANSITION_CLASSNAME,
-  NAV_ITEM_COLLAPSE_HIDE_CLASSNAME,
-  NAV_ITEM_INTERACTIVE_BG_CLASSNAME,
-  NAV_ITEM_INTERACTIVE_TEXT_CLASSNAME,
-} from "@/components/layout/admin-side-nav/nav-node-styles";
+import { NAV_ITEM_COLLAPSE_HIDE_CLASSNAME } from "@/components/layout/admin-side-nav/nav-node-styles";
 
 type OrganizationOption = {
   id: string;
@@ -50,25 +45,49 @@ function firstLetter(input: string): string {
 function OrgMembersPreview(props: {
   memberCount: number;
   membersPreview: readonly MyOrganizationMemberPreview[];
+  onMembersClick?: () => void;
 }) {
   const { t } = useTranslation(["common"]);
+  const membersLabel = t("common:WORKSPACE_SWITCHER_ORG_MEMBERS_COUNT", {
+    count: props.memberCount,
+  });
   return (
     <div className="mt-2 flex items-center gap-2">
       {props.membersPreview.length > 0 ? (
-        <Avatar.Group
-          max={{ count: 3, style: { backgroundColor: "var(--color-primary)", fontSize: 12 } }}
-          size="small"
-        >
-          {props.membersPreview.map((member) => (
-            <Avatar key={member.userId} src={member.avatarUrl ?? undefined}>
-              {(member.displayName || member.username || "U").slice(0, 1).toUpperCase()}
-            </Avatar>
-          ))}
-        </Avatar.Group>
+        props.onMembersClick ? (
+          <button
+            type="button"
+            aria-label={membersLabel}
+            onClick={props.onMembersClick}
+            className="cursor-pointer hover:opacity-80 transition-opacity"
+          >
+            <Avatar.Group
+              max={{ count: 3, style: { backgroundColor: "var(--color-primary)", fontSize: 12 } }}
+              size="small"
+            >
+              {props.membersPreview.map((member) => (
+                <Avatar key={member.userId} src={member.avatarUrl ?? undefined}>
+                  {(member.displayName || member.username || "U").slice(0, 1).toUpperCase()}
+                </Avatar>
+              ))}
+            </Avatar.Group>
+          </button>
+        ) : (
+          <div aria-hidden="true">
+            <Avatar.Group
+              max={{ count: 3, style: { backgroundColor: "var(--color-primary)", fontSize: 12 } }}
+              size="small"
+            >
+              {props.membersPreview.map((member) => (
+                <Avatar key={member.userId} src={member.avatarUrl ?? undefined}>
+                  {(member.displayName || member.username || "U").slice(0, 1).toUpperCase()}
+                </Avatar>
+              ))}
+            </Avatar.Group>
+          </div>
+        )
       ) : null}
-      <span className="text-caption text-label-secondary">
-        {t("common:WORKSPACE_SWITCHER_ORG_MEMBERS_COUNT", { count: props.memberCount })}
-      </span>
+      <span className="text-caption text-label-secondary">{membersLabel}</span>
     </div>
   );
 }
@@ -79,18 +98,19 @@ function OrgHeaderSection(props: {
   membersPreview: readonly MyOrganizationMemberPreview[];
   onInvite: () => void;
   onSettings: () => void;
+  onMembersClick?: () => void;
 }) {
   const { t } = useTranslation(["common", "nav"]);
 
   return (
     <div className="flex items-start gap-3">
-      <Avatar shape="square" size={40} className="shrink-0 rounded-xl bg-muted text-foreground">
+      <Avatar size={40} className="shrink-0 rounded-xl">
         {firstLetter(props.name)}
       </Avatar>
       <div className="min-w-0 flex-1">
         <div className="flex items-start gap-2">
           <div className="min-w-0 flex-1">
-            <div className="truncate text-callout font-semibold text-foreground">{props.name}</div>
+            <div className="truncate text-caption font-semibold text-foreground">{props.name}</div>
           </div>
           <div className="flex items-center gap-1">
             <Button
@@ -111,7 +131,11 @@ function OrgHeaderSection(props: {
             />
           </div>
         </div>
-        <OrgMembersPreview memberCount={props.memberCount} membersPreview={props.membersPreview} />
+        <OrgMembersPreview
+          memberCount={props.memberCount}
+          membersPreview={props.membersPreview}
+          onMembersClick={props.onMembersClick}
+        />
       </div>
     </div>
   );
@@ -165,35 +189,43 @@ function resolveSelectedOrg(args: {
   return args.organizations[0] ?? null;
 }
 
-const TRIGGER_HEIGHT_CLASSNAME = "h-16";
+const TRIGGER_HEIGHT_CLASSNAME = "h-10";
 
 const triggerShellClassName = cn(
   "group relative",
-  TRIGGER_HEIGHT_CLASSNAME,
   "w-full min-w-0",
   "flex items-center gap-2",
-  "rounded-xl border border-transparent",
-  "bg-transparent text-label-secondary",
-  "hover:bg-card/70 hover:text-foreground",
-  "transition-[background-color,color,border-color] duration-150 motion-reduce:transition-none",
+  "group-data-[collapsible=icon]:flex-col",
+  "group-data-[collapsible=icon]:items-center",
+  "group-data-[collapsible=icon]:gap-1",
 );
 
 const triggerButtonClassName = cn(
+  "group/org-switcher",
   TRIGGER_HEIGHT_CLASSNAME,
-  "min-w-0 flex-1",
-  "flex items-center gap-3",
-  "rounded-xl",
-  "bg-transparent",
-  "px-3",
+  "min-w-0 flex-1 group-data-[collapsible=icon]:flex-none",
+  "flex items-center gap-2",
+  "rounded-lg pl-1 pr-2 py-1 group-data-[collapsible=icon]:px-0",
+  "bg-transparent text-sidebar-foreground",
+  "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+  "data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground",
+  "transition-colors",
   "text-left",
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+  "group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:justify-center",
 );
 
 const collapseButtonClassName = cn(
-  "size-8 rounded-lg p-0",
-  INTERACTIVE_TRANSITION_CLASSNAME,
-  NAV_ITEM_INTERACTIVE_TEXT_CLASSNAME,
-  NAV_ITEM_INTERACTIVE_BG_CLASSNAME,
+  TRIGGER_HEIGHT_CLASSNAME,
+  "w-0 shrink-0 overflow-hidden rounded-lg p-0",
+  "opacity-0 pointer-events-none",
+  "bg-transparent text-sidebar-foreground",
+  "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+  "transition-[width,opacity,color,background-color] duration-200 ease-out",
+  "group-hover:w-10 group-hover:opacity-100 group-hover:pointer-events-auto",
+  "group-data-[collapsible=icon]:w-10",
+  "group-data-[collapsible=icon]:opacity-100",
+  "group-data-[collapsible=icon]:pointer-events-auto",
 );
 
 function CollapseButton(props: { ariaLabel: string; onClick: () => void; className?: string }) {
@@ -276,55 +308,42 @@ export function OrgContextPanel(props: { className?: string }) {
 
   return (
     <DropdownCardRoot open={open} onOpenChange={setOpen}>
-      <div
-        className={cn(
-          triggerShellClassName,
-          open ? "bg-card/70 text-foreground" : null,
-          props.className,
-        )}
-      >
+      <div className={cn(triggerShellClassName, props.className)}>
         <DropdownCardTrigger asChild>
           <button
             type="button"
             aria-label={t("common:WORKSPACE_SWITCHER_SELECT_ORG")}
             data-state={open ? "open" : "closed"}
-            className={cn(
-              triggerButtonClassName,
-              "justify-start pr-20",
-              "group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:pr-0",
-              INTERACTIVE_TRANSITION_CLASSNAME,
-              NAV_ITEM_INTERACTIVE_TEXT_CLASSNAME,
-              NAV_ITEM_INTERACTIVE_BG_CLASSNAME,
-            )}
+            className={triggerButtonClassName}
           >
-            <Avatar
-              shape="square"
-              size={40}
-              className="shrink-0 rounded-xl bg-muted text-foreground"
-            >
+            <Avatar size={32} className="shrink-0 rounded-md">
               {firstLetter(selectedOrgName)}
             </Avatar>
 
-            <div className={cn("min-w-0 flex-1", NAV_ITEM_COLLAPSE_HIDE_CLASSNAME)}>
+            <div
+              className={cn(
+                "min-w-0 flex-1",
+                NAV_ITEM_COLLAPSE_HIDE_CLASSNAME,
+                "group-data-[collapsible=icon]:hidden",
+              )}
+            >
               <div className="truncate text-callout font-semibold text-foreground">
                 {selectedOrgName}
               </div>
             </div>
+
+            <ChevronDown
+              className={cn(
+                "size-4 shrink-0 opacity-70 transition-opacity group-hover:opacity-100",
+                NAV_ITEM_COLLAPSE_HIDE_CLASSNAME,
+                "group-data-[collapsible=icon]:hidden",
+              )}
+              aria-hidden="true"
+            />
           </button>
         </DropdownCardTrigger>
 
-        <div
-          className={cn(
-            "absolute right-2 top-1/2 -translate-y-1/2",
-            "flex items-center gap-1",
-            "opacity-0 pointer-events-none",
-            "group-hover:opacity-100 group-hover:pointer-events-auto",
-            "group-focus-within:opacity-100 group-focus-within:pointer-events-auto",
-          )}
-        >
-          <ChevronDown className="size-4 shrink-0 opacity-70" aria-hidden="true" />
-          <CollapseButton ariaLabel={t("common:SIDEBAR_TOGGLE")} onClick={toggleSidebar} />
-        </div>
+        <CollapseButton ariaLabel={t("common:SIDEBAR_TOGGLE")} onClick={toggleSidebar} />
       </div>
 
       <DropdownCardContent side="bottom" align="start" sideOffset={8} className="w-[360px]">
@@ -344,6 +363,9 @@ export function OrgContextPanel(props: { className?: string }) {
                 onNavigate(buildOrganizationPath(selectedOrg.id, "/team/invitations"))
               }
               onSettings={() => onNavigate(buildOrganizationPath(selectedOrg.id, "/settings"))}
+              onMembersClick={() =>
+                onNavigate(buildOrganizationPath(selectedOrg.id, "/team/members"))
+              }
             />
           ) : (
             <div className="text-label-secondary">{t("common:WORKSPACE_SWITCHER_ORG_EMPTY")}</div>

@@ -222,7 +222,6 @@ export function AdminLayout({ children }: PropsWithChildren) {
         mainItems={mainItems}
         footerItems={footerItemsWithActions}
         resolvePermissionName={resolvePermissionName}
-        onRetryOrgNav={() => void myOrganizationQuery.refetch()}
       />
 
       <AdminNotificationsShell

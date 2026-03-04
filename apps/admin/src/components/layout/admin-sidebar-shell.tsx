@@ -1,20 +1,19 @@
 import type { CSSProperties } from "react";
-import { useTranslation } from "react-i18next";
-import { Button } from "antd";
+import { useEffect, useRef, useState } from "react";
 
 import type { AdminNavItem } from "@/types/admin-nav";
 import { AdminSiderNav } from "@/components/layout/admin-side-nav";
 import { AdminAccountMenu } from "@/components/layout/admin-account-menu";
 import { OrgContextPanel } from "@/components/layout/org-context-panel";
-import { LightRays } from "@celestial/ui/light-rays";
-import { Illust404BrokenLink } from "@celestial/ui/illustrations";
 import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarHeader,
-  SidebarMenuSkeleton,
-} from "@celestial/ui/sidebar";
+  AdminSidebarAccountSkeleton,
+  AdminSidebarFooterMenuSkeleton,
+  AdminSidebarHeaderSkeleton,
+  AdminSidebarMainMenuSkeleton,
+} from "@/components/layout/admin-sidebar-skeleton";
+import GradualBlur from "@/components/ui/gradual-blur";
+import { LightRays } from "@celestial/ui/light-rays";
+import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader } from "@celestial/ui/sidebar";
 import { cn } from "@celestial/lib/utils";
 
 const LIGHT_RAYS_COUNT = 7;
@@ -29,9 +28,194 @@ export type AdminSidebarShellProps = {
   mainItems: readonly AdminNavItem[];
   footerItems: readonly AdminNavItem[];
   resolvePermissionName?: (code: string) => string | null;
-  onRetryOrgNav: () => void;
   className?: string;
 };
+
+function shouldShowBottomBlur(el: HTMLElement): boolean {
+  const hasOverflow = el.scrollHeight > el.clientHeight + 1;
+  if (!hasOverflow) return false;
+  const remaining = el.scrollHeight - el.clientHeight - el.scrollTop;
+  return remaining > 1;
+}
+
+function resolveSidebarContentPaddingPx(el: HTMLElement): { left: number; right: number } {
+  const sidebarContentEl = el.closest('[data-slot="sidebar-content"]') as HTMLElement | null;
+  if (!sidebarContentEl) return { left: 0, right: 0 };
+
+  const styles = window.getComputedStyle(sidebarContentEl);
+  const left = Number.parseFloat(styles.paddingLeft) || 0;
+  const right = Number.parseFloat(styles.paddingRight) || 0;
+
+  return { left, right };
+}
+
+function SidebarEffects() {
+  return (
+    <div
+      aria-hidden="true"
+      className="pointer-events-none absolute inset-x-0 top-0 h-80 opacity-90 [mask-image:linear-gradient(to_bottom,black,transparent)]"
+    >
+      <LightRays
+        count={LIGHT_RAYS_COUNT}
+        speed={LIGHT_RAYS_SPEED}
+        blur={LIGHT_RAYS_BLUR}
+        length={LIGHT_RAYS_LENGTH}
+        color={LIGHT_RAYS_COLOR}
+      />
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 bg-gradient-to-b from-primary/10 via-transparent to-transparent"
+      />
+    </div>
+  );
+}
+
+function AdminSidebarHeaderArea(props: { showFailureSkeleton: boolean }) {
+  return (
+    <SidebarHeader
+      className={cn(
+        "relative z-10 flex w-full",
+        "items-center gap-2",
+        "px-2.5 py-0 h-16",
+        "group-data-[collapsible=icon]:h-auto",
+        "group-data-[collapsible=icon]:py-2",
+        "group-data-[collapsible=icon]:justify-center",
+      )}
+    >
+      {props.showFailureSkeleton ? (
+        <AdminSidebarHeaderSkeleton />
+      ) : (
+        <OrgContextPanel className={cn("min-w-0 flex-1 group-data-[collapsible=icon]:flex-none")} />
+      )}
+    </SidebarHeader>
+  );
+}
+
+function AdminSidebarFooterArea(props: { showFailureSkeleton: boolean }) {
+  return (
+    <SidebarFooter className="relative z-10 isolate border-t border-border p-0">
+      {props.showFailureSkeleton ? <AdminSidebarAccountSkeleton /> : <AdminAccountMenu />}
+    </SidebarFooter>
+  );
+}
+
+function useSidebarBottomBlurState(args: {
+  showMenuSkeleton: boolean;
+  mainItemCount: number;
+  footerItemCount: number;
+}) {
+  const navScrollRef = useRef<HTMLDivElement>(null);
+  const [showNavBottomBlur, setShowNavBottomBlur] = useState(false);
+  const [sidebarContentPadding, setSidebarContentPadding] = useState(() => ({ left: 0, right: 0 }));
+
+  useEffect(() => {
+    const el = navScrollRef.current;
+    if (!el) return;
+
+    const updateScroll = () => setShowNavBottomBlur(shouldShowBottomBlur(el));
+    const updatePadding = () => setSidebarContentPadding(resolveSidebarContentPaddingPx(el));
+
+    updatePadding();
+    updateScroll();
+    el.addEventListener("scroll", updateScroll, { passive: true });
+
+    const resizeObserver = new ResizeObserver(() => {
+      updatePadding();
+      updateScroll();
+    });
+    resizeObserver.observe(el);
+
+    return () => {
+      el.removeEventListener("scroll", updateScroll);
+      resizeObserver.disconnect();
+    };
+  }, [args.showMenuSkeleton, args.mainItemCount, args.footerItemCount]);
+
+  return {
+    navScrollRef,
+    showNavBottomBlur,
+    blurStyle: {
+      left: -sidebarContentPadding.left,
+      right: "auto",
+      width: `calc(100% + ${sidebarContentPadding.left + sidebarContentPadding.right}px)`,
+    } satisfies CSSProperties,
+  };
+}
+
+function AdminSidebarFooterMenuArea(props: {
+  showFailureSkeleton: boolean;
+  footerItems: readonly AdminNavItem[];
+  resolvePermissionName?: (code: string) => string | null;
+}) {
+  if (props.footerItems.length === 0) return null;
+
+  return (
+    <div className="shrink-0 flex flex-col pb-2">
+      {props.showFailureSkeleton ? (
+        <AdminSidebarFooterMenuSkeleton />
+      ) : (
+        <AdminSiderNav
+          items={props.footerItems}
+          resolvePermissionName={props.resolvePermissionName}
+          className="mt-0 mb-0"
+        />
+      )}
+    </div>
+  );
+}
+
+function AdminSidebarContentArea(props: {
+  showMenuSkeleton: boolean;
+  showFailureSkeleton: boolean;
+  mainItems: readonly AdminNavItem[];
+  footerItems: readonly AdminNavItem[];
+  resolvePermissionName?: (code: string) => string | null;
+}) {
+  const bottomBlur = useSidebarBottomBlurState({
+    showMenuSkeleton: props.showMenuSkeleton,
+    mainItemCount: props.mainItems.length,
+    footerItemCount: props.footerItems.length,
+  });
+
+  const mainMenu = props.showMenuSkeleton ? (
+    <AdminSidebarMainMenuSkeleton />
+  ) : (
+    <AdminSiderNav items={props.mainItems} resolvePermissionName={props.resolvePermissionName} />
+  );
+
+  return (
+    <SidebarContent className="relative z-10 px-2 overflow-hidden scrollbar-none">
+      <div className="relative flex min-h-0 flex-1">
+        <div
+          ref={bottomBlur.navScrollRef}
+          className="flex min-h-0 flex-1 flex-col overflow-auto scrollbar-none"
+        >
+          {mainMenu}
+        </div>
+        {bottomBlur.showNavBottomBlur ? (
+          <GradualBlur
+            target="parent"
+            position="bottom"
+            height="4rem"
+            strength={2}
+            divCount={5}
+            curve="bezier"
+            exponential={false}
+            opacity={0.75}
+            zIndex={20}
+            className="pointer-events-none"
+            style={bottomBlur.blurStyle}
+          />
+        ) : null}
+      </div>
+      <AdminSidebarFooterMenuArea
+        showFailureSkeleton={props.showFailureSkeleton}
+        footerItems={props.footerItems}
+        resolvePermissionName={props.resolvePermissionName}
+      />
+    </SidebarContent>
+  );
+}
 
 export function AdminSidebarShell({
   showNavSkeleton,
@@ -39,10 +223,10 @@ export function AdminSidebarShell({
   mainItems,
   footerItems,
   resolvePermissionName,
-  onRetryOrgNav,
   className,
 }: AdminSidebarShellProps) {
-  const { t } = useTranslation();
+  const showFailureSkeleton = showOrgNavErrorOverlay;
+  const showMenuSkeleton = showNavSkeleton || showFailureSkeleton;
 
   return (
     <Sidebar
@@ -55,93 +239,16 @@ export function AdminSidebarShell({
         } as CSSProperties
       }
     >
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 h-80 opacity-90 [mask-image:linear-gradient(to_bottom,black,transparent)]"
-      >
-        <LightRays
-          count={LIGHT_RAYS_COUNT}
-          speed={LIGHT_RAYS_SPEED}
-          blur={LIGHT_RAYS_BLUR}
-          length={LIGHT_RAYS_LENGTH}
-          color={LIGHT_RAYS_COLOR}
-        />
-        <div
-          aria-hidden="true"
-          className="absolute inset-0 bg-gradient-to-b from-primary/10 via-transparent to-transparent"
-        />
-      </div>
-
-      <SidebarHeader
-        className={cn("relative z-10 flex w-full h-16", "items-center gap-2", "px-2.5 py-0")}
-      >
-        <OrgContextPanel className={cn("min-w-0 flex-1")} />
-      </SidebarHeader>
-
-      <SidebarContent className="relative z-10 mx-2 overflow-hidden scrollbar-none">
-        <div className="relative flex min-h-0 flex-1">
-          <div className="flex min-h-0 flex-1 flex-col overflow-auto scrollbar-none">
-            {showNavSkeleton ? (
-              <div className="mt-4 mb-8">
-                <div className="px-3.5 py-2">
-                  <SidebarMenuSkeleton showIcon />
-                  <SidebarMenuSkeleton showIcon />
-                  <SidebarMenuSkeleton showIcon />
-                  <SidebarMenuSkeleton showIcon />
-                  <SidebarMenuSkeleton showIcon />
-                  <SidebarMenuSkeleton showIcon />
-                  <SidebarMenuSkeleton showIcon />
-                </div>
-              </div>
-            ) : (
-              <AdminSiderNav items={mainItems} resolvePermissionName={resolvePermissionName} />
-            )}
-          </div>
-
-          {showOrgNavErrorOverlay ? (
-            <div className="absolute inset-0 z-20 flex items-start justify-center p-3">
-              <div className="absolute inset-0 bg-sidebar/70 supports-[backdrop-filter]:bg-sidebar/50 backdrop-blur-md" />
-              <div className="relative w-full max-w-[280px]">
-                <div className="rounded-xl border border-border/60 bg-background/70 supports-[backdrop-filter]:bg-background/55 backdrop-blur-md shadow-sm">
-                  <div className="px-4 pt-4 pb-3 text-center">
-                    <Illust404BrokenLink className="mx-auto max-w-[160px]" />
-                    <div className="mt-2 text-title text-label-primary">
-                      {t("common:REQUEST_FAILED")}
-                    </div>
-                    <div className="mt-1 text-footnote text-label-secondary">
-                      {t("common:PAGE_SERVER_ERROR_DESC")}
-                    </div>
-                    <div className="mt-3 flex items-center justify-center gap-2">
-                      <Button
-                        size="small"
-                        type="primary"
-                        onClick={onRetryOrgNav}
-                        autoInsertSpace={false}
-                      >
-                        {t("common:RETRY")}
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : null}
-        </div>
-
-        {footerItems.length > 0 ? (
-          <div className="shrink-0 flex flex-col pb-2">
-            <AdminSiderNav
-              items={footerItems}
-              resolvePermissionName={resolvePermissionName}
-              className="mt-0 mb-0"
-            />
-          </div>
-        ) : null}
-      </SidebarContent>
-
-      <SidebarFooter className="relative z-10 isolate border-t border-border px-0">
-        <AdminAccountMenu />
-      </SidebarFooter>
+      <SidebarEffects />
+      <AdminSidebarHeaderArea showFailureSkeleton={showFailureSkeleton} />
+      <AdminSidebarContentArea
+        showMenuSkeleton={showMenuSkeleton}
+        showFailureSkeleton={showFailureSkeleton}
+        mainItems={mainItems}
+        footerItems={footerItems}
+        resolvePermissionName={resolvePermissionName}
+      />
+      <AdminSidebarFooterArea showFailureSkeleton={showFailureSkeleton} />
     </Sidebar>
   );
 }

@@ -83,7 +83,7 @@ function AdminAccountPanelContent(props: {
     <div className="w-72">
       <div className="px-4 pt-4 pb-3">
         <div className="flex items-center gap-3">
-          <Avatar size={48} src={resolveAssetRefToPublicUrlPath(props.avatarUrl) ?? undefined}>
+          <Avatar size={56} src={resolveAssetRefToPublicUrlPath(props.avatarUrl) ?? undefined}>
             {initialsFromName(props.displayName)}
           </Avatar>
 
@@ -143,7 +143,7 @@ function AdminAccountPanelContent(props: {
 
       {divider()}
 
-      <div className="py-1">
+      <div>
         <FloatingPanelButton
           className={menuItemClassName}
           onClick={() => onClickAndClose(props.onLogout)}
@@ -263,11 +263,7 @@ export function AdminAccountMenu() {
     "group-data-[state=open]:text-sidebar-accent-foreground",
   );
 
-  const emailClassName = cn(
-    "text-label-secondary",
-    "group-hover:text-sidebar-accent-foreground/80",
-    "group-data-[state=open]:text-sidebar-accent-foreground/80",
-  );
+  const emailClassName = "text-label-secondary";
 
   return (
     <FloatingPanelRoot className="w-full">
@@ -279,21 +275,25 @@ export function AdminAccountMenu() {
           {initialsFromName(model.displayName)}
         </Avatar>
 
-        <div className={cn("min-w-0 text-left flex-1", NAV_ITEM_COLLAPSE_HIDE_CLASSNAME)}>
-          <div className={cn("truncate text-footnote font-semibold", nameClassName)}>
-            {model.displayName}
-          </div>
-          {model.email ? (
-            <div className={cn("truncate text-caption", emailClassName)}>{model.email}</div>
-          ) : null}
-        </div>
+        {isCollapsed ? null : (
+          <>
+            <div className={cn("min-w-0 text-left flex-1", NAV_ITEM_COLLAPSE_HIDE_CLASSNAME)}>
+              <div className={cn("truncate text-footnote font-semibold", nameClassName)}>
+                {model.displayName}
+              </div>
+              {model.email ? (
+                <div className={cn("truncate text-caption", emailClassName)}>{model.email}</div>
+              ) : null}
+            </div>
 
-        <ChevronDown
-          className={cn(
-            "ml-auto size-4 shrink-0 opacity-70 transition-colors group-hover:opacity-100",
-            NAV_ITEM_COLLAPSE_HIDE_CLASSNAME,
-          )}
-        />
+            <ChevronDown
+              className={cn(
+                "ml-auto size-4 shrink-0 opacity-70 transition-colors group-hover:opacity-100",
+                NAV_ITEM_COLLAPSE_HIDE_CLASSNAME,
+              )}
+            />
+          </>
+        )}
       </FloatingPanelTrigger>
 
       <FloatingPanelContent placement="bottom" showTitle={false} className="p-0">
