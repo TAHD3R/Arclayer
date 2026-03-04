@@ -62,6 +62,12 @@ export function OrganizationWorkspacesToolbar(props: OrganizationWorkspacesToolb
         }
         right={
           <div className="flex w-full flex-wrap items-center justify-end gap-2 md:w-auto">
+            <WorkspacesViewModeToggle
+              t={t}
+              value={viewMode}
+              onChange={onViewModeChange}
+              display={showViewModeText ? "icon+text" : "icon"}
+            />
             <Input
               className="w-[240px] sm:w-[280px] md:w-[320px]"
               value={searchInput}
@@ -69,15 +75,7 @@ export function OrganizationWorkspacesToolbar(props: OrganizationWorkspacesToolb
               placeholder={t("common:ORG_WORKSPACES_SEARCH_PLACEHOLDER")}
               allowClear
               variant="filled"
-              size="large"
               prefix={<Search className="size-4 text-label-secondary" />}
-            />
-            <div className="hidden h-8 w-px bg-border/60 md:block" aria-hidden />
-            <WorkspacesViewModeToggle
-              t={t}
-              value={viewMode}
-              onChange={onViewModeChange}
-              display={showViewModeText ? "icon+text" : "icon"}
             />
           </div>
         }

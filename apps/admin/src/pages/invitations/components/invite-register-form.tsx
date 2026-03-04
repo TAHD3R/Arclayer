@@ -47,7 +47,13 @@ export function InviteRegisterForm(props: {
       >
         {props.emailLocked ? (
           <Form.Item style={{ marginBottom: 12 }}>
-            <Input value={props.emailLocked} disabled prefix={<Mail size={16} />} size="large" />
+            <Input
+              value={props.emailLocked}
+              disabled
+              prefix={<Mail size={16} />}
+              size="large"
+              variant="filled"
+            />
           </Form.Item>
         ) : (
           <Form.Item<InviteRegisterFormValues>
@@ -63,6 +69,7 @@ export function InviteRegisterForm(props: {
               placeholder={t("auth:FIELD_EMAIL_PLACEHOLDER")}
               prefix={<Mail size={16} />}
               size="large"
+              variant="filled"
             />
           </Form.Item>
         )}
@@ -77,6 +84,7 @@ export function InviteRegisterForm(props: {
             placeholder={t("auth:FIELD_USERNAME_PLACEHOLDER")}
             prefix={<User size={16} />}
             size="large"
+            variant="filled"
           />
         </Form.Item>
 
@@ -93,6 +101,7 @@ export function InviteRegisterForm(props: {
             placeholder={t("setup:SETUP_FIELD_DISPLAY_NAME_PLACEHOLDER")}
             prefix={<UserRound size={16} />}
             size="large"
+            variant="filled"
           />
         </Form.Item>
 
@@ -115,6 +124,7 @@ export function InviteRegisterForm(props: {
             placeholder={t("auth:FIELD_PASSWORD_PLACEHOLDER")}
             prefix={<Lock size={16} />}
             size="large"
+            variant="filled"
           />
         </Form.Item>
 
@@ -138,6 +148,7 @@ export function InviteRegisterForm(props: {
             placeholder={t("auth:FIELD_CONFIRM_PASSWORD_PLACEHOLDER")}
             prefix={<Lock size={16} />}
             size="large"
+            variant="filled"
           />
         </Form.Item>
 

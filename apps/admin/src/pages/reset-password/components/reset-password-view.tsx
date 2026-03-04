@@ -57,6 +57,7 @@ export function ResetPasswordView({
           >
             <Input
               size="large"
+              variant="filled"
               autoComplete="off"
               aria-label={t("auth:FIELD_RESET_TOKEN_LABEL")}
               placeholder={t("auth:FIELD_RESET_TOKEN_PLACEHOLDER")}
@@ -79,6 +80,7 @@ export function ResetPasswordView({
           >
             <Input.Password
               size="large"
+              variant="filled"
               autoComplete="new-password"
               aria-label={t("auth:FIELD_NEW_PASSWORD_LABEL")}
               placeholder={t("auth:FIELD_NEW_PASSWORD_PLACEHOLDER")}
@@ -104,6 +106,7 @@ export function ResetPasswordView({
           >
             <Input.Password
               size="large"
+              variant="filled"
               autoComplete="new-password"
               aria-label={t("auth:FIELD_CONFIRM_PASSWORD_LABEL")}
               placeholder={t("auth:FIELD_CONFIRM_PASSWORD_PLACEHOLDER")}

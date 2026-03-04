@@ -628,6 +628,7 @@ export function SetupPage() {
                       autoComplete="off"
                       disabled={submitting}
                       size="large"
+                      variant="filled"
                     />
                   </Form.Item>
                 </div>

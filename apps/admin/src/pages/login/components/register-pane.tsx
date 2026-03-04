@@ -61,6 +61,7 @@ export function RegisterPane({
               placeholder={t("auth:FIELD_EMAIL_PLACEHOLDER")}
               prefix={<Mail size={16} />}
               size="large"
+              variant="filled"
             />
           </Form.Item>
         </motion.div>
@@ -76,6 +77,7 @@ export function RegisterPane({
               placeholder={t("auth:FIELD_USERNAME_PLACEHOLDER")}
               prefix={<User size={16} />}
               size="large"
+              variant="filled"
             />
           </Form.Item>
         </motion.div>
@@ -91,6 +93,7 @@ export function RegisterPane({
               placeholder={t("auth:FIELD_PASSWORD_PLACEHOLDER")}
               prefix={<Lock size={16} />}
               size="large"
+              variant="filled"
             />
           </Form.Item>
         </motion.div>
@@ -119,6 +122,7 @@ export function RegisterPane({
               placeholder={t("auth:FIELD_CONFIRM_PASSWORD_PLACEHOLDER")}
               prefix={<Lock size={16} />}
               size="large"
+              variant="filled"
             />
           </Form.Item>
         </motion.div>

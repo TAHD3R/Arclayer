@@ -61,6 +61,8 @@ export function InviteTokenInputDialog(props: InviteTokenInputDialogProps) {
         <div className="text-label-secondary">{t("invite:INVITE_TOKEN_INPUT_FIELD_HELP")}</div>
         <Input
           autoFocus
+          size="large"
+          variant="filled"
           value={value}
           onChange={(e) => setValue(e.target.value)}
           placeholder={t("invite:INVITE_TOKEN_INPUT_PLACEHOLDER")}

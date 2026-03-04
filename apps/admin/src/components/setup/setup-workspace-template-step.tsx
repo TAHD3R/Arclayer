@@ -184,6 +184,7 @@ export function SetupWorkspaceTemplateStep(props: {
             aria-label={t("setup:SETUP_FIELD_WORKSPACE_NAME_LABEL")}
             placeholder={t("setup:SETUP_FIELD_WORKSPACE_NAME_PLACEHOLDER")}
             size="large"
+            variant="filled"
             value={workspaceName}
             onChange={(e) => {
               const next = e.target.value;
@@ -206,6 +207,7 @@ export function SetupWorkspaceTemplateStep(props: {
             aria-label={t("setup:SETUP_FIELD_SITE_NAME_LABEL")}
             placeholder={t("setup:SETUP_FIELD_SITE_NAME_PLACEHOLDER")}
             size="large"
+            variant="filled"
             value={siteName}
             onChange={(e) => {
               const next = e.target.value;
@@ -228,6 +230,7 @@ export function SetupWorkspaceTemplateStep(props: {
             aria-label={t("setup:SETUP_FIELD_SITE_URL_LABEL")}
             placeholder={t("setup:SETUP_FIELD_SITE_URL_PLACEHOLDER")}
             size="large"
+            variant="filled"
             value={siteUrl}
             onChange={(e) => {
               const next = e.target.value;
@@ -251,6 +254,7 @@ export function SetupWorkspaceTemplateStep(props: {
             placeholder={t("setup:SETUP_FIELD_SITE_DESC_PLACEHOLDER")}
             maxLength={160}
             allowClear
+            variant="filled"
             showCount={{ formatter: ({ count }) => `${count}/160` }}
             value={siteDescription}
             onChange={(e) => {

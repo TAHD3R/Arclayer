@@ -102,6 +102,7 @@ export function ForgotPasswordDialog({
               >
                 <Input
                   size="large"
+                  variant="filled"
                   autoComplete="off"
                   aria-label={t("auth:FORGOT_PASSWORD_MODAL_FIELD_PLACEHOLDER")}
                   placeholder={t("auth:FORGOT_PASSWORD_MODAL_FIELD_PLACEHOLDER")}

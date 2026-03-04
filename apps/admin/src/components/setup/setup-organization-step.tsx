@@ -38,6 +38,7 @@ export function SetupOrganizationStep(props: {
           placeholder={t("setup:SETUP_FIELD_ORGANIZATION_NAME_PLACEHOLDER")}
           prefix={<Building2 size={16} />}
           size="large"
+          variant="filled"
         />
       </Form.Item>
 

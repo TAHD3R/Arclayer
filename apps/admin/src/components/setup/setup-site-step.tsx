@@ -30,6 +30,7 @@ export function SetupSiteStep(props: {
           aria-label={t("setup:SETUP_FIELD_WORKSPACE_NAME_LABEL")}
           placeholder={t("setup:SETUP_FIELD_WORKSPACE_NAME_PLACEHOLDER")}
           size="large"
+          variant="filled"
         />
       </Form.Item>
 
@@ -44,6 +45,7 @@ export function SetupSiteStep(props: {
           placeholder={t("setup:SETUP_FIELD_SITE_NAME_PLACEHOLDER")}
           prefix={<AppWindow size={16} />}
           size="large"
+          variant="filled"
         />
       </Form.Item>
 
@@ -74,6 +76,7 @@ export function SetupSiteStep(props: {
           placeholder={t("setup:SETUP_FIELD_SITE_URL_PLACEHOLDER")}
           prefix={<Link size={16} />}
           size="large"
+          variant="filled"
         />
       </Form.Item>
 
@@ -86,6 +89,7 @@ export function SetupSiteStep(props: {
           aria-label={t("setup:SETUP_FIELD_SITE_DESC_LABEL")}
           placeholder={t("setup:SETUP_FIELD_SITE_DESC_PLACEHOLDER")}
           allowClear
+          variant="filled"
           maxLength={160}
           showCount={{
             formatter: ({ count }) => `${count}/160`,

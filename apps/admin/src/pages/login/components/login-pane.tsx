@@ -81,6 +81,7 @@ export function LoginPane({
               placeholder={t("auth:FIELD_ACCOUNT_PLACEHOLDER")}
               prefix={<User size={16} />}
               size="large"
+              variant="filled"
             />
           </Form.Item>
         </motion.div>
@@ -96,6 +97,7 @@ export function LoginPane({
               placeholder={t("auth:FIELD_PASSWORD_PLACEHOLDER")}
               prefix={<Lock size={16} />}
               size="large"
+              variant="filled"
             />
           </Form.Item>
         </motion.div>

@@ -94,6 +94,8 @@ To avoid style drift across settings and management flows, use the following ove
 - Any overlay containing input interactions (for example `Input`, `Select`, `Checkbox`,
   `Form`) must provide both `title` and `description`, aligned with the invite-member
   dialog pattern.
+- Antd `Input` (and `Input.Password` / `Input.TextArea`) `size` + `variant` must follow:
+  `docs/guidelines/antd-input-guideline.md` (primary flows vs toolbars vs dense/technical).
 
 ### 4.4 Tag usage rules (Admin, mandatory)
 

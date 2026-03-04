@@ -34,6 +34,7 @@ export function SetupAdminStep(props: {
           placeholder={t("auth:FIELD_USERNAME_PLACEHOLDER")}
           prefix={<User size={16} />}
           size="large"
+          variant="filled"
         />
       </Form.Item>
 
@@ -57,6 +58,7 @@ export function SetupAdminStep(props: {
           placeholder={t("auth:FIELD_PASSWORD_PLACEHOLDER")}
           prefix={<Lock size={16} />}
           size="large"
+          variant="filled"
         />
       </Form.Item>
 
@@ -81,6 +83,7 @@ export function SetupAdminStep(props: {
           placeholder={t("auth:FIELD_CONFIRM_PASSWORD_PLACEHOLDER")}
           prefix={<Lock size={16} />}
           size="large"
+          variant="filled"
         />
       </Form.Item>
 
@@ -98,6 +101,7 @@ export function SetupAdminStep(props: {
           placeholder={t("auth:FIELD_EMAIL_PLACEHOLDER")}
           prefix={<Mail size={16} />}
           size="large"
+          variant="filled"
         />
       </Form.Item>
 
@@ -114,6 +118,7 @@ export function SetupAdminStep(props: {
           aria-label={t("setup:SETUP_FIELD_DISPLAY_NAME_LABEL")}
           placeholder={t("setup:SETUP_FIELD_DISPLAY_NAME_PLACEHOLDER")}
           size="large"
+          variant="filled"
         />
       </Form.Item>
 

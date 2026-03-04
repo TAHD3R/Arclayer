@@ -145,7 +145,7 @@ export function ActivityFilterPopover(props: {
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
-          size="large"
+          type="text"
           icon={<Filter size={18} />}
           title={t("activity:ACTIVITY_FILTER_TITLE")}
           aria-label={t("activity:ACTIVITY_FILTER_TITLE")}

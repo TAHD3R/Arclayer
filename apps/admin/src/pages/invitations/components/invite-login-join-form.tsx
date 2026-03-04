@@ -52,7 +52,7 @@ export function InviteLoginJoinForm({
       disabled={loading}
     >
       <Form.Item label={t("invite:INVITE_FIELD_EMAIL")} style={{ marginBottom: 12 }}>
-        <Input value={email} disabled size="large" />
+        <Input value={email} disabled size="large" variant="filled" />
       </Form.Item>
 
       <Form.Item
@@ -65,6 +65,7 @@ export function InviteLoginJoinForm({
           placeholder={t("auth:FIELD_PASSWORD_PLACEHOLDER")}
           prefix={<Lock size={16} />}
           size="large"
+          variant="filled"
         />
       </Form.Item>
 
