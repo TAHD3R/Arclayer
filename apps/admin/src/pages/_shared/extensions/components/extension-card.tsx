@@ -35,16 +35,6 @@ export function ExtensionCard({
     ? t(`plugin:PLUGIN_CATEGORY_${category.toUpperCase()}`, { defaultValue: category })
     : null;
 
-  const provider = String(extension.provider || "")
-    .trim()
-    .toLowerCase();
-  const providerLabel =
-    provider === "official"
-      ? t("plugin:EXTENSION_FILTER_OFFICIAL")
-      : provider === "community"
-        ? t("plugin:EXTENSION_FILTER_COMMUNITY")
-        : provider;
-
   const content = (
     <>
       <div className="mb-4 flex flex-col">

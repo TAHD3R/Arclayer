@@ -13,7 +13,6 @@ from apps.api.src.core.http.pagination import PageData, PageParams
 from apps.api.src.core.i18n import t
 from apps.api.src.core.logging import get_logger
 from apps.api.src.models.system.plugin import PluginRecord
-from apps.api.src.modules.system.admin.menus.seeds.service import AdminMenuSeedService
 from apps.api.src.modules.system.plugins.manager.config.service import PluginConfigMixin
 from apps.api.src.modules.system.plugins.manager.install.service import PluginInstallService, UploadLike
 from apps.api.src.modules.system.plugins.manager.presenters.service import PluginPresentersMixin
@@ -155,24 +154,6 @@ class PluginService(
         except KeyError as exc:
             raise NotFound(message=_tp("PLUGIN_NOT_FOUND", "插件未安装"), error="PLUGIN_NOT_FOUND") from exc
         await record.refresh_from_db()
-        try:
-            manifest = self._load_manifest(record)
-            seeds = list(getattr(manifest, "admin_menu", None) or []) if manifest is not None else []
-            if seeds:
-                await AdminMenuSeedService(self.settings).ensure_seeds(
-                    owner_plugin_id=plugin_id,
-                    seeds=seeds,
-                    update_existing=False,
-                    restore_deleted=True,
-                )
-        except BaseException as exc:
-            _raise_if_fatal(exc)
-            logger.warning(
-                "Plugin admin menu seed failed on enable",
-                plugin_id=plugin_id,
-                action="enable_plugin_seed_admin_menu",
-                error=str(exc),
-            )
         return record
 
     async def disable_plugin(self, plugin_id: str) -> PluginRecord:

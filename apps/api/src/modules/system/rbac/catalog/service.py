@@ -24,25 +24,6 @@ CORE_PERMISSION_TEMPLATES: list[PermissionTemplate] = [
         description_i18n="rbac:RBAC_PERM_ADMIN_ACCESS_DESC",
         default_roles=["owner", "admin", "editor", "designer", "viewer"],
     ),
-    # Admin menu management (dynamic routing tree).
-    PermissionTemplate(
-        code="admin:menu:read",
-        scope="workspace",
-        name="Read admin menus",
-        description="Allow listing and viewing admin menu items.",
-        name_i18n="admin_menu:PERM_MENU_READ_NAME",
-        description_i18n="admin_menu:PERM_MENU_READ_DESC",
-        default_roles=["owner", "admin"],
-    ),
-    PermissionTemplate(
-        code="admin:menu:write",
-        scope="workspace",
-        name="Manage admin menus",
-        description="Allow creating, updating, deleting and reordering admin menu items.",
-        name_i18n="admin_menu:PERM_MENU_WRITE_NAME",
-        description_i18n="admin_menu:PERM_MENU_WRITE_DESC",
-        default_roles=["owner", "admin"],
-    ),
     # System (workspace-level) settings.
     PermissionTemplate(
         code="system:settings:read",

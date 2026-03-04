@@ -1,8 +1,0 @@
-{
-  "PERM_MENU_READ_NAME": "Read menus",
-  "PERM_MENU_WRITE_NAME": "Manage menus",
-  "MENU_BLOCKED_PLUGIN_DISABLED": "This menu requires an enabled plugin in the current workspace.",
-  "MENU_BLOCKED_MISSING_PERMISSION": "Access restricted. Please ask an admin to enable [{{permissionName}}] access.",
-  "MENU_BLOCKED_MISSING_PERMISSION_FALLBACK": "Access restricted. Please ask an admin to enable access.",
-  "MENU_BLOCKED_GENERIC": "This menu is not available for your current access scope."
-}

@@ -3,14 +3,11 @@
  * without fetching RBAC catalogs at runtime (which itself may require permissions).
  *
  * Keep this list aligned with backend core permission templates:
- * `apps/api/modules/system/rbac/permissions.py`
+ * `apps/api/src/modules/system/rbac/catalog/service.py`
  */
 
 const PERMISSION_NAME_I18N_KEY_BY_CODE: Record<string, string> = {
   "admin:access": "rbac:RBAC_PERM_ADMIN_ACCESS_NAME",
-
-  "admin:menu:read": "admin_menu:PERM_MENU_READ_NAME",
-  "admin:menu:write": "admin_menu:PERM_MENU_WRITE_NAME",
 
   "system:settings:read": "rbac:RBAC_PERM_SETTINGS_READ_NAME",
   "system:settings:manage": "rbac:RBAC_PERM_SETTINGS_MANAGE_NAME",

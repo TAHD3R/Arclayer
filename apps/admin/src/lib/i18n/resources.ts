@@ -16,7 +16,6 @@ import zhActivity from "@locales/zh-CN/activity.json";
 import zhContentPages from "@locales/zh-CN/content_pages.json";
 import zhContentLibrary from "@locales/zh-CN/content_library.json";
 import zhAppearance from "@locales/zh-CN/appearance.json";
-import zhAdminMenu from "@locales/zh-CN/admin_menu.json";
 import zhRbac from "@locales/zh-CN/rbac.json";
 import zhSys from "@locales/zh-CN/sys.json";
 
@@ -38,7 +37,6 @@ import enActivity from "@locales/en-US/activity.json";
 import enContentPages from "@locales/en-US/content_pages.json";
 import enContentLibrary from "@locales/en-US/content_library.json";
 import enAppearance from "@locales/en-US/appearance.json";
-import enAdminMenu from "@locales/en-US/admin_menu.json";
 import enRbac from "@locales/en-US/rbac.json";
 import enSys from "@locales/en-US/sys.json";
 
@@ -47,7 +45,6 @@ import type { AppLocale as SharedAppLocale } from "@celestial/internal-types";
 export const I18N_NAMESPACES = [
   "common",
   "nav",
-  "admin_menu",
   "rbac",
   "sys",
   "setup",
@@ -72,7 +69,6 @@ export const i18nResources = {
   "zh-CN": {
     common: zhCommon,
     nav: zhNav,
-    admin_menu: zhAdminMenu,
     rbac: zhRbac,
     sys: zhSys,
     setup: zhSetup,
@@ -95,7 +91,6 @@ export const i18nResources = {
   "en-US": {
     common: enCommon,
     nav: enNav,
-    admin_menu: enAdminMenu,
     rbac: enRbac,
     sys: enSys,
     setup: enSetup,

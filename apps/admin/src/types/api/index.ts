@@ -258,14 +258,5 @@ export type { WorkspaceThemeItem, WorkspaceThemeListOut } from "./workspace-them
 // Site Patterns
 export type { SitePattern, SitePatternCreateIn, SitePatternUpdateIn } from "./site-patterns";
 
-// Admin Menus
-export type {
-  AdminMenuNode,
-  AdminMenuTree,
-  AdminMenuBlockedReason,
-  AdminMenuNodeEffective,
-  AdminMenuEffectiveTree,
-} from "./admin-menus";
-
 // Admin Extensions
 export type { AdminUIExtension } from "./admin-extensions";

@@ -49,10 +49,6 @@ async def init_domain_bootstrap(app: FastAPI, settings: Settings, *, event_bus: 
     await ensure_organization_ready()
     await ensure_rbac_ready(settings=settings)
 
-    from apps.api.src.modules.system.admin.menus.bootstrap.service import ensure_core_admin_menus_ready
-
-    await ensure_core_admin_menus_ready(settings=settings)
-
 
 async def close_domain_bootstrap(app: FastAPI, *, event_bus: EventBus) -> None:
     """

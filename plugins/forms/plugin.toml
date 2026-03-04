@@ -14,10 +14,3 @@ slot = "editor.blocks"
 title = "Form"
 kind = "widget"
 icon = "FileInput"
-
-[[admin_menu]]
-code = "forms"
-title = "Forms"
-icon = "FileInput"
-path = "/plugins/forms"
-sort = 50

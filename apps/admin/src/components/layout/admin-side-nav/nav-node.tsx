@@ -212,7 +212,7 @@ function NavNodeImpl(
 }
 
 export function NavNode(props: NodeProps) {
-  const { t } = useTranslation(["admin_menu"]);
+  const { t } = useTranslation();
   const navigate = useNavigate();
   return NavNodeImpl(props, t, navigate);
 }

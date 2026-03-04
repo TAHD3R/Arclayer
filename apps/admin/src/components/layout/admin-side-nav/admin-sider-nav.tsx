@@ -226,7 +226,7 @@ function ItemsSection(props: {
 }
 
 export function AdminSiderNav(props: AdminSiderNavProps) {
-  const { t } = useTranslation(["admin_menu"]);
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { state: sidebarState, isMobile } = useSidebar();
   const pathname = useRouterState({ select: (s) => s.location.pathname });

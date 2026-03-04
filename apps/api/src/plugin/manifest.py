@@ -134,26 +134,8 @@ class PluginManifest(BaseSchema):
     permissions: list[PermissionTemplate] = Field(default_factory=list)
     config_schema: ConfigSchema | None = None
     models: list[str] = Field(default_factory=list)
-    admin_menu: list[AdminMenuSeedItem] = Field(default_factory=list)
     admin_ui_extensions: list[AdminUIExtensionDecl] = Field(default_factory=list)
     portal_extensions: list[PortalExtensionDecl] = Field(default_factory=list)
-
-
-class AdminMenuSeedItem(BaseSchema):
-    code: str
-    parent_code: str | None = None
-    title: str
-    title_i18n: str | None = None
-    icon: str | None = None
-    type: str = "item"
-    path: str | None = None
-    name: str | None = None
-    component_key: str | None = None
-    redirect: str | None = None
-    sort: int = 0
-    is_active: bool = True
-    permission_code: str | None = None
-    meta: dict[str, Any] | None = None
 
 
 class AdminUIExtensionDecl(BaseSchema):

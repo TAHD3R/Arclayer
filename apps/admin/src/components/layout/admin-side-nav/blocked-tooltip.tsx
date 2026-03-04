@@ -11,17 +11,17 @@ function getBlockedTooltipText(
 ): string | null {
   if (!item.disabled) return null;
   if (item.blockedReason === "plugin_disabled") {
-    return t("admin_menu:MENU_BLOCKED_PLUGIN_DISABLED");
+    return t("nav:MENU_BLOCKED_PLUGIN_DISABLED");
   }
   if (item.blockedReason === "missing_permission") {
     const permCode = item.requiredPermission || "admin:access";
     const permissionName = resolvePermissionName?.(permCode) ?? null;
     if (permissionName) {
-      return t("admin_menu:MENU_BLOCKED_MISSING_PERMISSION", { permissionName });
+      return t("nav:MENU_BLOCKED_MISSING_PERMISSION", { permissionName });
     }
-    return t("admin_menu:MENU_BLOCKED_MISSING_PERMISSION_FALLBACK");
+    return t("nav:MENU_BLOCKED_MISSING_PERMISSION_FALLBACK");
   }
-  return t("admin_menu:MENU_BLOCKED_GENERIC");
+  return t("nav:MENU_BLOCKED_GENERIC");
 }
 
 function WithBlockedTooltip(props: { tooltip: string | null; children: ReactElement }) {
@@ -40,7 +40,7 @@ function useBlockedTooltipText(
   item: AdminNavItem,
   resolvePermissionName: ((code: string) => string | null) | undefined,
 ) {
-  const { t } = useTranslation(["admin_menu"]);
+  const { t } = useTranslation();
   return getBlockedTooltipText(item, t, resolvePermissionName);
 }
 

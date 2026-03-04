@@ -82,7 +82,7 @@ exclude = [
   "**/.turbo",
   "**/dist",
   "**/build",
-  "migrations",
+  "**/migrations/**",
 ]
 extraPaths = ["."]
 venvPath = "apps/api"

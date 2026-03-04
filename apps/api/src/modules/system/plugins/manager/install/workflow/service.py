@@ -9,12 +9,10 @@ from apps.api.src.common.utils.ids import uuid7
 from apps.api.src.config import Settings
 from apps.api.src.core.exceptions import BadRequest
 from apps.api.src.models.system.plugin import PluginRecord
-from apps.api.src.modules.system.admin.menus.seeds.service import AdminMenuSeedService
 from apps.api.src.modules.system.plugins.manager.install.files.service import UploadLike
 from apps.api.src.modules.system.plugins.manager.install.shared.service import (
     EVENT_PUBLISH_ERRORS,
     LIFECYCLE_RECOVERY_ERRORS,
-    MENU_SEED_ERRORS,
     PERSISTENCE_ERRORS,
     _tp,
     get_install_lock,
@@ -259,23 +257,6 @@ class PluginInstallWorkflowMixin:
                     ) from exc
 
                 requires_restart = True
-
-                try:
-                    seeds = list(getattr(manifest, "admin_menu", None) or [])
-                    if seeds:
-                        await AdminMenuSeedService(self.settings).ensure_seeds(
-                            owner_plugin_id=plugin_id,
-                            seeds=seeds,
-                            update_existing=False,
-                            restore_deleted=True,
-                        )
-                except MENU_SEED_ERRORS as exc:
-                    logger.warning(
-                        "Plugin admin menu seed failed",
-                        plugin_id=plugin_id,
-                        action="install_seed_admin_menu",
-                        error=str(exc),
-                    )
 
                 await svc._request_restart(plugin_id, reason="install")
                 try:
