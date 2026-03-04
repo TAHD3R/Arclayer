@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from typing import cast
 from uuid import UUID
 
 import pytest
@@ -8,13 +7,12 @@ from starlette.requests import Request
 
 from apps.api.src.config import get_settings
 from apps.api.src.modules.auth.schema import TokenPair
-from apps.api.src.modules.auth.service import AuthService
 from apps.api.src.modules.auth.sso.service import AuthSSOService
 
 
-class _FakeAuthService:
+class _FakeLoginService:
     # `AuthSSOService.list_providers()` doesn't touch auth service, but keep shape compatible.
-    async def issue_token_pair_for_user(self, user_id: UUID) -> TokenPair:
+    async def issue_after_upstream_auth(self, *, user_id: UUID) -> TokenPair:
         raise RuntimeError("not used")
 
 
@@ -45,7 +43,7 @@ async def test_auth_sso_list_providers_returns_empty_when_core_oauth_disabled(
 
     monkeypatch.setattr("apps.api.src.modules.auth.sso.service.get_core_settings_value_cached", _fake_core_settings)
 
-    service = AuthSSOService(settings, valkey=None, auth_service=cast(AuthService, _FakeAuthService()))
+    service = AuthSSOService(settings, valkey=None, login_service=_FakeLoginService())
 
     request = _build_request("/api/v1/auth/sso/providers")
     items = await service.list_providers(request, redirect="/")

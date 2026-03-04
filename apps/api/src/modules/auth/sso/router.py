@@ -14,6 +14,7 @@ from apps.api.src.models.auth.oauth_identity import OAuthIdentity
 from apps.api.src.models.organization.user import User, UserCredential
 from apps.api.src.modules.auth.http.service import get_current_user
 from apps.api.src.modules.auth.limits.service import SSO_EXCHANGE_RATE_LIMIT, SSO_PROVIDERS_RATE_LIMIT
+from apps.api.src.modules.auth.login.service import AuthLoginService
 from apps.api.src.modules.auth.oauth.schema import OAuthLinkedIdentityListOut
 from apps.api.src.modules.auth.oauth.service import OAuthSocialService
 from apps.api.src.modules.auth.schema import TokenPair
@@ -25,6 +26,7 @@ from apps.api.src.modules.auth.sso.schema import (
     AuthSSOProvidersOut,
 )
 from apps.api.src.modules.auth.sso.service import AuthSSOService
+from apps.api.src.modules.auth.two_factor.service import AuthTwoFactorService
 
 router = APIRouter(prefix="/sso", tags=["Services: Auth SSO"])
 
@@ -43,16 +45,29 @@ def get_auth_service(
     return AuthService(settings, valkey=valkey)
 
 
+def get_login_service(
+    request: Request,
+    settings: Settings = Depends(get_settings),
+) -> AuthLoginService:
+    try:
+        valkey = get_valkey(request)
+    except RuntimeError:
+        valkey = None
+    auth_service = AuthService(settings, valkey=valkey)
+    two_factor = AuthTwoFactorService(settings)
+    return AuthLoginService(settings, valkey=valkey, auth_service=auth_service, two_factor=two_factor)
+
+
 def get_sso_service(
     request: Request,
     settings: Settings = Depends(get_settings),
-    auth_service: AuthService = Depends(get_auth_service),
+    login_service: AuthLoginService = Depends(get_login_service),
 ) -> AuthSSOService:
     try:
         valkey = get_valkey(request)
     except RuntimeError:
         valkey = None
-    return AuthSSOService(settings, valkey=valkey, auth_service=auth_service)
+    return AuthSSOService(settings, valkey=valkey, login_service=login_service)
 
 
 def get_oauth_social_service(

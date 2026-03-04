@@ -3,20 +3,24 @@ from __future__ import annotations
 import asyncio
 import re
 from datetime import UTC, datetime
-from typing import cast
+from typing import Protocol, cast
 from uuid import UUID
 
 from asgi_correlation_id import correlation_id
 
 from apps.api.src.common.constants.auth import (
     PASSWORD_REGEX,
+    REAUTH_MAX_AGE_SECONDS,
     REFRESH_STATUS_ACTIVE,
+    REFRESH_STATUS_REVOKED,
+    REFRESH_STATUS_ROTATED,
     RESET_TOKEN_REGEX,
     TOKEN_TYPE_REFRESH,
 )
 from apps.api.src.common.email.service import EmailService
 from apps.api.src.common.protocols.tortoise import HasOrganizationId
 from apps.api.src.common.services import BaseService
+from apps.api.src.common.utils.ids import uuid7
 from apps.api.src.config import Settings
 from apps.api.src.core.exceptions import BadRequest, Conflict, Forbidden, NotFound, ServiceUnavailable, Unauthorized
 from apps.api.src.core.http.pagination import PageData, PageParams
@@ -60,6 +64,12 @@ def _raise_if_fatal(exc: BaseException) -> None:
         raise exc
 
 
+class _TwoFactorReauthLike(Protocol):
+    async def is_enabled(self, *, user_id: UUID) -> bool: ...
+
+    async def verify_for_login(self, *, user_id: UUID, code: str | None, backup_code: str | None) -> None: ...
+
+
 class AuthService(BaseService):
     def __init__(
         self,
@@ -67,9 +77,13 @@ class AuthService(BaseService):
         *,
         valkey: ValkeyClientLike | None = None,
         user_repo: UserRepositoryLike | None = None,
+        two_factor: _TwoFactorReauthLike | None = None,
     ) -> None:
         super().__init__(settings)
         self.user_repo: UserRepositoryLike = user_repo or UserRepository()
+        from apps.api.src.modules.auth.two_factor.service import AuthTwoFactorService
+
+        self.two_factor: _TwoFactorReauthLike = two_factor or AuthTwoFactorService(settings)
         self.valkey = valkey
         self.refresh_store = RefreshTokenStore(valkey, settings.auth) if valkey else None
         self.reset_store = PasswordResetStore(valkey, settings.auth) if valkey else None
@@ -156,6 +170,14 @@ class AuthService(BaseService):
                     message=self._ta("REFRESH_INVALID", "Refresh Token 无效"), error="REFRESH_INVALID"
                 ) from exc
         raise Unauthorized(message=self._ta("REFRESH_INVALID", "Refresh Token 无效"), error="REFRESH_INVALID")
+
+    def _parse_session_id(self, raw: object | None) -> str | None:
+        if raw is None:
+            return None
+        if not isinstance(raw, str):
+            return None
+        value = raw.strip()
+        return value or None
 
     def _ensure_password_strength(self, password: str) -> None:
         if not re.match(PASSWORD_REGEX, password):
@@ -262,7 +284,56 @@ class AuthService(BaseService):
         await store.delete(user_id=cast(UUID, user.id))
         return self.build_user_profile(user_with_cred)
 
-    async def delete_my_account(self, *, user: User, email: str, password: str) -> None:
+    def _reauth_required(self, *, methods: list[str]) -> Unauthorized:
+        return Unauthorized(
+            message=self._ta("REAUTH_REQUIRED", "需要重新验证"),
+            error="REAUTH_REQUIRED",
+            meta={"methods": methods},
+        )
+
+    def _reauth_by_recent_login_or_raise(self, *, user: UserLike) -> None:
+        last_login_at = cast(datetime | None, getattr(user, "last_login_at", None))
+        if last_login_at is None:
+            raise self._reauth_required(methods=["relogin"])
+        now = datetime.now(tz=UTC)
+        age = (now - last_login_at.astimezone(UTC)).total_seconds()
+        if age > float(REAUTH_MAX_AGE_SECONDS):
+            raise self._reauth_required(methods=["relogin"])
+
+    def _reauth_by_password_or_raise_if_present(self, *, user: UserLike, password: str | None) -> bool:
+        credential = cast(CredentialLike | None, getattr(user, "credential", None))
+        if credential is None:
+            return False
+
+        normalized = (password or "").strip()
+        if not normalized:
+            raise self._reauth_required(methods=["password"])
+        if not verify_password(normalized, cast(str, credential.password_hash), self.settings.auth):
+            raise Unauthorized(
+                message=self._ta("INVALID_CREDENTIALS", "账号或密码错误"),
+                error="INVALID_CREDENTIALS",
+            )
+        return True
+
+    async def _reauth_by_two_factor_or_raise(self, *, user_id: UUID, code: str | None, backup_code: str | None) -> None:
+        has_totp = bool(code and str(code).strip())
+        has_backup = bool(backup_code and str(backup_code).strip())
+        if has_totp == has_backup:
+            raise self._reauth_required(methods=["2fa"])
+        try:
+            await self.two_factor.verify_for_login(user_id=user_id, code=code, backup_code=backup_code)
+        except BadRequest as exc:
+            raise Unauthorized(message=exc.message, error=exc.error) from exc
+
+    async def delete_my_account(
+        self,
+        *,
+        user: UserLike,
+        email: str,
+        password: str | None,
+        code: str | None,
+        backup_code: str | None,
+    ) -> None:
         """
         Delete/anonymize the current account.
 
@@ -270,7 +341,7 @@ class AuthService(BaseService):
         (many tables store `*_user_id` as raw UUID fields).
         """
 
-        user_with_cred = await UserRepository().get_by_id_with_credential(cast(UUID, user.id))
+        user_with_cred = cast(User | None, await self.user_repo.get_by_id_with_credential(cast(UUID, user.id)))
         if user_with_cred is None:
             raise Unauthorized(message=self._ta("USER_NOT_FOUND", "用户不存在"), error="USER_NOT_FOUND")
 
@@ -281,14 +352,21 @@ class AuthService(BaseService):
         if normalized_email != user_with_cred.email.strip().lower():
             raise BadRequest(message=self._ta("EMAIL_MISMATCH", "邮箱与当前账号不匹配"), error="EMAIL_MISMATCH")
 
-        credential = cast(CredentialLike | None, getattr(user_with_cred, "credential", None))
-        if credential is None or not verify_password(password, cast(str, credential.password_hash), self.settings.auth):
-            raise Unauthorized(
-                message=self._ta("INVALID_CREDENTIALS", "账号或密码错误"),
-                error="INVALID_CREDENTIALS",
-            )
-
         user_id = cast(UUID, user.id)
+
+        # Explicit re-auth: password users must confirm password; SSO-only users use 2FA if enabled,
+        # otherwise require recent login (SSO re-login) as a fallback.
+        authed_by_password = self._reauth_by_password_or_raise_if_present(user=user_with_cred, password=password)
+        if not authed_by_password:
+            if await self.two_factor.is_enabled(user_id=user_id):
+                await self._reauth_by_two_factor_or_raise(user_id=user_id, code=code, backup_code=backup_code)
+            else:
+                self._reauth_by_recent_login_or_raise(user=user_with_cred)
+
+        # Guard: prevent deleting the last owner in any org/workspace.
+        from apps.api.src.modules.auth.account_deletion.guard import AccountDeletionGuard
+
+        await AccountDeletionGuard().ensure_deletable(user_id=user_id)
 
         # Revoke refresh tokens + invalidate existing access tokens.
         await self.user_repo.increment_token_version(user)
@@ -303,6 +381,27 @@ class AuthService(BaseService):
         except BaseException as exc:
             _raise_if_fatal(exc)
             self.logger.warning("OAuth identities cleanup failed", user_id=str(user_id), error=str(exc))
+
+        # Best-effort: remove 2FA secrets/backup codes.
+        try:
+            from apps.api.src.models.auth.user_two_factor import UserTwoFactor, UserTwoFactorBackupCode
+
+            await UserTwoFactorBackupCode.filter(user_id=user_id).delete()
+            await UserTwoFactor.filter(user_id=user_id).delete()
+        except BaseException as exc:
+            _raise_if_fatal(exc)
+            self.logger.warning("2FA cleanup failed", user_id=str(user_id), error=str(exc))
+
+        # Best-effort: disable memberships to prevent orphaned ownership edges.
+        try:
+            from apps.api.src.models.organization.org_membership import OrgMembership
+            from apps.api.src.models.workspaces.workspace import WorkspaceMembership, WorkspaceMembershipStatus
+
+            await WorkspaceMembership.filter(user_id=user_id).update(status=WorkspaceMembershipStatus.DISABLED)
+            await OrgMembership.filter(user_id=user_id).delete()
+        except BaseException as exc:
+            _raise_if_fatal(exc)
+            self.logger.warning("Membership cleanup failed", user_id=str(user_id), error=str(exc))
 
         # Remove password credential and scrub PII.
         try:
@@ -345,15 +444,18 @@ class AuthService(BaseService):
 
         user_id = self._coerce_user_id(user)
         token_version = self._coerce_token_version(user)
+        session_id = uuid7().hex
 
         access_token, access_ttl = build_access_token(
             user_id=user_id,
             token_version=token_version,
+            session_id=session_id,
             settings=self.settings.auth,
         )
         refresh_token, jti, refresh_ttl = build_refresh_token(
             user_id=user_id,
             token_version=token_version,
+            session_id=session_id,
             settings=self.settings.auth,
         )
 
@@ -362,8 +464,10 @@ class AuthService(BaseService):
             "jti": jti,
             "user_id": str(user_id),
             "token_version": token_version,
+            "sid": session_id,
             "status": REFRESH_STATUS_ACTIVE,
             "issued_at": now_ts,
+            "last_used_at": now_ts,
             "expires_at": now_ts + refresh_ttl,
         }
         await store.store(record, ttl=refresh_ttl)
@@ -424,15 +528,18 @@ class AuthService(BaseService):
 
         resolved_user_id = self._coerce_user_id(user)
         token_version = self._coerce_token_version(user)
+        session_id = uuid7().hex
 
         access_token, access_ttl = build_access_token(
             user_id=resolved_user_id,
             token_version=token_version,
+            session_id=session_id,
             settings=self.settings.auth,
         )
         refresh_token, jti, refresh_ttl = build_refresh_token(
             user_id=resolved_user_id,
             token_version=token_version,
+            session_id=session_id,
             settings=self.settings.auth,
         )
 
@@ -441,8 +548,10 @@ class AuthService(BaseService):
             "jti": jti,
             "user_id": str(resolved_user_id),
             "token_version": token_version,
+            "sid": session_id,
             "status": REFRESH_STATUS_ACTIVE,
             "issued_at": now_ts,
+            "last_used_at": now_ts,
             "expires_at": now_ts + refresh_ttl,
         }
         await store.store(record, ttl=refresh_ttl)
@@ -522,6 +631,7 @@ class AuthService(BaseService):
         user_id = self._parse_user_id(payload.get("sub"))
         token_version = self._parse_refresh_token_version(payload.get("ver"))
         jti = self._parse_refresh_jti(payload.get("jti"))
+        token_sid = self._parse_session_id(payload.get("sid"))
 
         user = await self.user_repo.get_by_id(user_id)
         if not user:
@@ -540,11 +650,22 @@ class AuthService(BaseService):
                 error="REFRESH_NOT_FOUND",
             )
 
-        if record.get("status") != REFRESH_STATUS_ACTIVE:
-            await self._handle_refresh_reuse(user_id)
+        status = record.get("status")
+        if status != REFRESH_STATUS_ACTIVE:
+            if status == REFRESH_STATUS_REVOKED:
+                raise Unauthorized(
+                    message=self._ta("REFRESH_REVOKED", "Refresh Token 已被撤销"),
+                    error="REFRESH_REVOKED",
+                )
+            if status == REFRESH_STATUS_ROTATED:
+                await self._handle_refresh_reuse(user_id)
+                raise Unauthorized(
+                    message=self._ta("TOKEN_REUSED", "Refresh Token 已被使用"),
+                    error="TOKEN_REUSED",
+                )
             raise Unauthorized(
-                message=self._ta("TOKEN_REUSED", "Refresh Token 已被使用"),
-                error="TOKEN_REUSED",
+                message=self._ta("REFRESH_INVALID", "Refresh Token 无效"),
+                error="REFRESH_INVALID",
             )
 
         if record.get("user_id") != str(user_id) or record.get("token_version") != token_version:
@@ -554,27 +675,36 @@ class AuthService(BaseService):
                 error="TOKEN_REUSED",
             )
 
+        now_ts = int(datetime.now(UTC).timestamp())
+        record["last_used_at"] = now_ts
+        await store.update(jti, record)
+
         resolved_user_id = self._coerce_user_id(user)
         resolved_token_version = self._coerce_token_version(user)
+        record_sid = self._parse_session_id(record.get("sid"))
+        session_id = token_sid or record_sid or uuid7().hex
         access_token, access_ttl = build_access_token(
             user_id=resolved_user_id,
             token_version=resolved_token_version,
+            session_id=session_id,
             settings=self.settings.auth,
         )
         new_refresh_token, new_jti, refresh_ttl = build_refresh_token(
             user_id=resolved_user_id,
             token_version=resolved_token_version,
+            session_id=session_id,
             settings=self.settings.auth,
         )
 
         await store.mark_rotated(jti, replaced_by=new_jti)
-        now_ts = int(datetime.now(UTC).timestamp())
         new_record = {
             "jti": new_jti,
             "user_id": str(resolved_user_id),
             "token_version": resolved_token_version,
+            "sid": session_id,
             "status": REFRESH_STATUS_ACTIVE,
             "issued_at": now_ts,
+            "last_used_at": now_ts,
             "expires_at": now_ts + refresh_ttl,
             "parent": jti,
         }
@@ -587,20 +717,37 @@ class AuthService(BaseService):
             refresh_expires_in=refresh_ttl,
         )
 
-    async def logout(self, *, user_id: UUID | None, refresh_token: str | None = None) -> None:
+    async def logout(self, *, user_id: UUID, refresh_token: str | None) -> None:
+        """
+        Logout current session by revoking the provided refresh token.
+
+        Notes:
+        - This endpoint is intentionally scoped to the *current session*.
+        - Use `logout_all()` to revoke all sessions/devices.
+        """
+
         store = self._require_refresh_store()
-        if user_id is None and refresh_token:
-            payload = decode_token(refresh_token, self.settings.auth)
-            if payload.get("typ") != TOKEN_TYPE_REFRESH:
-                raise Unauthorized(
-                    message=self._ta("REFRESH_INVALID", "Refresh Token 无效"),
-                    error="REFRESH_INVALID",
-                )
-            user_id = self._parse_user_id(payload.get("sub"))
+        if not refresh_token:
+            raise BadRequest(message=self._ta("REFRESH_REQUIRED", "需要 Refresh Token"), error="REFRESH_REQUIRED")
 
-        if user_id is None:
-            raise Unauthorized(message=self._ta("UNAUTHORIZED", "未授权"), error="UNAUTHORIZED")
+        payload = decode_token(refresh_token, self.settings.auth)
+        if payload.get("typ") != TOKEN_TYPE_REFRESH:
+            raise Unauthorized(
+                message=self._ta("REFRESH_INVALID", "Refresh Token 无效"),
+                error="REFRESH_INVALID",
+            )
 
+        token_user_id = self._parse_user_id(payload.get("sub"))
+        if token_user_id != user_id:
+            raise Forbidden(
+                message=self._ta("REFRESH_USER_MISMATCH", "Refresh Token 异常"), error="REFRESH_USER_MISMATCH"
+            )
+
+        jti = self._parse_refresh_jti(payload.get("jti"))
+        await store.revoke(jti)
+
+    async def logout_all(self, *, user_id: UUID) -> None:
+        store = self._require_refresh_store()
         user = await self.user_repo.get_by_id(user_id)
         if not user:
             raise Unauthorized(message=self._ta("USER_NOT_FOUND", "用户不存在"), error="USER_NOT_FOUND")

@@ -8,6 +8,7 @@ from apps.api.src.core.exceptions import BadRequest, Forbidden, NotFound
 from apps.api.src.core.i18n import t
 from apps.api.src.models.organization.org_membership import OrgRole
 from apps.api.src.modules.organization.rbac.service import OrganizationRBACService
+from apps.api.src.modules.organization.settings.leave_guard import OrganizationLeaveGuard
 from apps.api.src.modules.organization.settings.repository import OrganizationSettingsRepository
 from apps.api.src.modules.organization.settings.schema import (
     DeleteOrganizationResult,
@@ -47,6 +48,7 @@ class OrganizationSettingsService(BaseService):
         return OrganizationSettingsCoreOut(
             organization_id=org.id,
             organization_name=org.name,
+            organization_logo_url=org.logo_url,
             organization_localization=OrganizationLocalizationOut(
                 locale=locale,
                 timezone=timezone,
@@ -82,6 +84,15 @@ class OrganizationSettingsService(BaseService):
             if org.name != normalized_name:
                 org.name = normalized_name
                 await org.save(update_fields=["name", "updated_at"])
+
+        if patch.organization_logo_url is not None:
+            raw = str(patch.organization_logo_url).strip()
+            logo_url = raw or None
+            if logo_url is not None and len(logo_url) > 512:
+                raise BadRequest(message=t("errors", "BAD_REQUEST", default="参数错误"), error="ORG_LOGO_URL_TOO_LONG")
+            if org.logo_url != logo_url:
+                org.logo_url = logo_url
+                await org.save(update_fields=["logo_url", "updated_at"])
 
         if patch.organization_localization is not None:
             raw_localization = next_value.get("organization_localization")
@@ -176,6 +187,8 @@ class OrganizationSettingsService(BaseService):
                     message=t("errors", "PERMISSION_DENIED", default="权限不足"),
                     error="ORG_OWNER_AT_LEAST_ONE_REQUIRED",
                 )
+
+        await OrganizationLeaveGuard().ensure_can_leave(organization_id=organization_id, user_id=user_id)
 
         membership_id = membership.id
         await self.repo.disable_workspace_memberships(organization_id=organization_id, user_id=user_id)

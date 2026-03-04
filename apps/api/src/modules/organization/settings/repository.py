@@ -49,7 +49,9 @@ class OrganizationSettingsRepository(BaseRepository):
         return record
 
     async def count_owner_memberships(self, *, organization_id: UUID) -> int:
-        return int(await OrgMembership.filter(organization_id=organization_id, role=OrgRole.OWNER).count())
+        return int(
+            await OrgMembership.filter(organization_id=organization_id, role=OrgRole.OWNER, status="active").count()
+        )
 
     async def disable_workspace_memberships(self, *, organization_id: UUID, user_id: UUID) -> None:
         # Tortoise 在 UPDATE + 关联字段过滤（workspace__organization_id）下会生成

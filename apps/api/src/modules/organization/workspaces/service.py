@@ -32,6 +32,7 @@ from apps.api.src.modules.workspaces.site.service import WorkspaceSiteService
 from apps.api.src.modules.workspaces.slug.service import next_available_workspace_slug
 
 _ORG_WORKSPACE_ALLOWED_ORDER_FIELDS: frozenset[str] = frozenset({"name", "slug", "created_at", "archived_at"})
+MAX_WORKSPACE_NAME_LENGTH = 128
 
 
 def _normalize_workspace_ordering(value: str | None) -> list[str]:
@@ -235,6 +236,8 @@ class OrganizationWorkspaceService(BaseService):
         name = str(payload.name or "").strip()
         if not name:
             raise BadRequest(message=t("errors", "BAD_REQUEST", default="参数错误"), error="INVALID_WORKSPACE_NAME")
+        if len(name) > MAX_WORKSPACE_NAME_LENGTH:
+            raise BadRequest(message=t("errors", "BAD_REQUEST", default="参数错误"), error="WORKSPACE_NAME_TOO_LONG")
 
         description = str(payload.description or "").strip() or None
 
@@ -243,7 +246,7 @@ class OrganizationWorkspaceService(BaseService):
         ws = await self.repo.create_workspace(
             organization_id=organization_id,
             slug=slug,
-            name=name[:128],
+            name=name,
             description=description,
             created_by_user_id=user_id,
         )

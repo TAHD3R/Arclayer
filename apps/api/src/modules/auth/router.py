@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from urllib.parse import urlparse
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Query, Request
+from fastapi import APIRouter, BackgroundTasks, Body, Depends, Query, Request
 from fastapi import Response as FastAPIResponse
 
 from apps.api.src.config import Settings, get_settings
@@ -13,7 +13,7 @@ from apps.api.src.core.i18n import get_current_locale, t
 from apps.api.src.infra.cache.valkey import get_valkey
 from apps.api.src.infra.limiter.limiter import rate_limit
 from apps.api.src.models.organization.user import User
-from apps.api.src.modules.auth.http.service import get_current_user
+from apps.api.src.modules.auth.http.service import get_current_access_payload, get_current_user
 from apps.api.src.modules.auth.limits.service import (
     ACCOUNT_DELETE_RATE_LIMIT,
     EMAIL_CHANGE_CONFIRM_RATE_LIMIT,
@@ -23,7 +23,12 @@ from apps.api.src.modules.auth.limits.service import (
     REFRESH_RATE_LIMIT,
     REGISTER_RATE_LIMIT,
     RESET_PASSWORD_RATE_LIMIT,
+    TWO_FACTOR_BACKUP_REGEN_RATE_LIMIT,
+    TWO_FACTOR_CONFIRM_RATE_LIMIT,
+    TWO_FACTOR_DISABLE_RATE_LIMIT,
+    TWO_FACTOR_LOGIN_RATE_LIMIT,
 )
+from apps.api.src.modules.auth.login.service import AuthLoginService
 from apps.api.src.modules.auth.schema import (
     AcceptExistingInvitationRequest,
     AcceptExistingInvitationResult,
@@ -48,7 +53,21 @@ from apps.api.src.modules.auth.schema import (
     UserProfile,
 )
 from apps.api.src.modules.auth.service import AuthService
+from apps.api.src.modules.auth.sessions.schema import AuthSessionListOut, AuthSessionRevokeOthersOut
+from apps.api.src.modules.auth.sessions.service import AuthSessionService
 from apps.api.src.modules.auth.sso.router import router as auth_sso_router
+from apps.api.src.modules.auth.two_factor.schema import (
+    TwoFactorConfirmOut,
+    TwoFactorConfirmRequest,
+    TwoFactorDisableRequest,
+    TwoFactorLoginRequest,
+    TwoFactorRegenerateBackupCodesOut,
+    TwoFactorRegenerateBackupCodesRequest,
+    TwoFactorSetupOut,
+    TwoFactorSetupRequest,
+    TwoFactorStatusOut,
+)
+from apps.api.src.modules.auth.two_factor.service import AuthTwoFactorService
 
 router = APIRouter(tags=["Services: Auth Service"])
 
@@ -62,6 +81,36 @@ def _get_auth_service(
     except RuntimeError:
         valkey = None
     return AuthService(settings, valkey=valkey)
+
+
+def _get_auth_session_service(
+    request: Request,
+    settings: Settings = Depends(get_settings),
+) -> AuthSessionService:
+    try:
+        valkey = get_valkey(request)
+    except RuntimeError:
+        valkey = None
+    return AuthSessionService(settings, valkey=valkey)
+
+
+def _get_auth_two_factor_service(
+    settings: Settings = Depends(get_settings),
+) -> AuthTwoFactorService:
+    return AuthTwoFactorService(settings)
+
+
+def _get_auth_login_service(
+    request: Request,
+    settings: Settings = Depends(get_settings),
+) -> AuthLoginService:
+    try:
+        valkey = get_valkey(request)
+    except RuntimeError:
+        valkey = None
+    auth_service = AuthService(settings, valkey=valkey)
+    two_factor_service = AuthTwoFactorService(settings)
+    return AuthLoginService(settings, valkey=valkey, auth_service=auth_service, two_factor=two_factor_service)
 
 
 def _get_refresh_cookie_domain(settings: Settings) -> str | None:
@@ -170,9 +219,34 @@ def _enforce_refresh_cookie_origin_policy(request: Request, *, settings: Setting
 async def login(
     payload: LoginRequest,
     fastapi_response: FastAPIResponse,
-    service: AuthService = Depends(_get_auth_service),
+    service: AuthLoginService = Depends(_get_auth_login_service),
 ) -> ResponseModel[TokenPair]:
     tokens = await service.login(identifier=payload.username, password=payload.password)
+    _set_refresh_cookie(
+        fastapi_response,
+        settings=service.settings,
+        refresh_token=tokens.refresh_token,
+        refresh_ttl_seconds=tokens.refresh_expires_in,
+    )
+    return Response.success(message=t("auth", "LOGIN_SUCCESS", default="登录成功"), data=tokens)
+
+
+@router.post(
+    "/login/2fa",
+    response_model=ResponseModel[TokenPair],
+    dependencies=[rate_limit(*TWO_FACTOR_LOGIN_RATE_LIMIT)],
+    summary="Complete login with 2FA challenge token",
+)
+async def login_two_factor(
+    payload: TwoFactorLoginRequest,
+    fastapi_response: FastAPIResponse,
+    service: AuthLoginService = Depends(_get_auth_login_service),
+) -> ResponseModel[TokenPair]:
+    tokens = await service.complete_two_factor_login(
+        two_factor_token=payload.two_factor_token,
+        code=payload.code,
+        backup_code=payload.backup_code,
+    )
     _set_refresh_cookie(
         fastapi_response,
         settings=service.settings,
@@ -338,13 +412,159 @@ async def change_password(
 )
 async def logout(
     payload: LogoutRequest,
+    request: Request,
     fastapi_response: FastAPIResponse,
     user: User = Depends(get_current_user),
     service: AuthService = Depends(_get_auth_service),
 ) -> ResponseModel[None]:
-    await service.logout(user_id=user.id, refresh_token=payload.refresh_token)
+    refresh_token = payload.refresh_token
+    if not refresh_token and service.settings.auth.cookie.enabled:
+        refresh_token = request.cookies.get(service.settings.auth.cookie.name)
+    await service.logout(user_id=user.id, refresh_token=refresh_token)
     _clear_refresh_cookie(fastapi_response, settings=service.settings)
     return Response.success(message=t("auth", "LOGOUT_SUCCESS", default="退出成功"))
+
+
+@router.post(
+    "/logout-all",
+    response_model=ResponseModel[None],
+    summary="Logout from all sessions and revoke refresh tokens",
+)
+async def logout_all(
+    fastapi_response: FastAPIResponse,
+    user: User = Depends(get_current_user),
+    service: AuthService = Depends(_get_auth_service),
+) -> ResponseModel[None]:
+    await service.logout_all(user_id=user.id)
+    _clear_refresh_cookie(fastapi_response, settings=service.settings)
+    return Response.success(message=t("auth", "LOGOUT_SUCCESS", default="退出成功"))
+
+
+@router.get(
+    "/sessions",
+    response_model=ResponseModel[AuthSessionListOut],
+    summary="List active sessions for current user",
+)
+async def list_my_sessions(
+    user: User = Depends(get_current_user),
+    access_payload: dict[str, object] = Depends(get_current_access_payload),
+    service: AuthSessionService = Depends(_get_auth_session_service),
+) -> ResponseModel[AuthSessionListOut]:
+    current_sid_raw = access_payload.get("sid")
+    current_sid = current_sid_raw.strip() if isinstance(current_sid_raw, str) and current_sid_raw.strip() else None
+    out = await service.list_sessions(user_id=user.id, current_session_id=current_sid)
+    return Response.success(data=out)
+
+
+@router.post(
+    "/sessions/{session_id}/revoke",
+    response_model=ResponseModel[None],
+    summary="Revoke a session for current user",
+)
+async def revoke_my_session(
+    session_id: str,
+    user: User = Depends(get_current_user),
+    service: AuthSessionService = Depends(_get_auth_session_service),
+) -> ResponseModel[None]:
+    await service.revoke_session(user_id=user.id, session_id=session_id)
+    return Response.success(message=t("auth", "SESSION_REVOKED", default="会话已撤销"))
+
+
+@router.post(
+    "/sessions/revoke-others",
+    response_model=ResponseModel[AuthSessionRevokeOthersOut],
+    summary="Revoke all sessions except current",
+)
+async def revoke_other_sessions(
+    user: User = Depends(get_current_user),
+    access_payload: dict[str, object] = Depends(get_current_access_payload),
+    service: AuthSessionService = Depends(_get_auth_session_service),
+) -> ResponseModel[AuthSessionRevokeOthersOut]:
+    current_sid_raw = access_payload.get("sid")
+    current_sid = current_sid_raw.strip() if isinstance(current_sid_raw, str) and current_sid_raw.strip() else None
+    if not current_sid:
+        raise BadRequest(message=t("errors", "BAD_REQUEST", default="参数错误"), error="CURRENT_SESSION_MISSING")
+    revoked_count = await service.revoke_other_sessions(user_id=user.id, current_session_id=current_sid)
+    return Response.success(data=AuthSessionRevokeOthersOut(revoked_count=revoked_count))
+
+
+@router.get(
+    "/2fa",
+    response_model=ResponseModel[TwoFactorStatusOut],
+    summary="Get 2FA status for current user",
+)
+async def get_two_factor_status(
+    user: User = Depends(get_current_user),
+    service: AuthTwoFactorService = Depends(_get_auth_two_factor_service),
+) -> ResponseModel[TwoFactorStatusOut]:
+    enabled, backup_codes_remaining = await service.get_status(user_id=user.id)
+    return Response.success(data=TwoFactorStatusOut(enabled=enabled, backup_codes_remaining=backup_codes_remaining))
+
+
+@router.post(
+    "/2fa/setup",
+    response_model=ResponseModel[TwoFactorSetupOut],
+    summary="Start 2FA (TOTP) setup for current user",
+)
+async def begin_two_factor_setup(
+    payload: TwoFactorSetupRequest | None = Body(default=None),
+    user: User = Depends(get_current_user),
+    service: AuthTwoFactorService = Depends(_get_auth_two_factor_service),
+) -> ResponseModel[TwoFactorSetupOut]:
+    issuer = service.settings.application.app_name
+    account_label = user.email or user.username
+    secret, otpauth_uri = await service.begin_setup(
+        user_id=user.id,
+        issuer=issuer,
+        account_label=account_label,
+        password=payload.password if payload is not None else None,
+    )
+    return Response.success(data=TwoFactorSetupOut(secret=secret, otpauth_uri=otpauth_uri))
+
+
+@router.post(
+    "/2fa/confirm",
+    response_model=ResponseModel[TwoFactorConfirmOut],
+    dependencies=[rate_limit(*TWO_FACTOR_CONFIRM_RATE_LIMIT)],
+    summary="Confirm 2FA setup (TOTP code required)",
+)
+async def confirm_two_factor_setup(
+    payload: TwoFactorConfirmRequest,
+    user: User = Depends(get_current_user),
+    service: AuthTwoFactorService = Depends(_get_auth_two_factor_service),
+) -> ResponseModel[TwoFactorConfirmOut]:
+    codes = await service.confirm_setup(user_id=user.id, code=payload.code)
+    return Response.success(data=TwoFactorConfirmOut(backup_codes=codes))
+
+
+@router.post(
+    "/2fa/disable",
+    response_model=ResponseModel[None],
+    dependencies=[rate_limit(*TWO_FACTOR_DISABLE_RATE_LIMIT)],
+    summary="Disable 2FA (TOTP or backup code required)",
+)
+async def disable_two_factor(
+    payload: TwoFactorDisableRequest,
+    user: User = Depends(get_current_user),
+    service: AuthTwoFactorService = Depends(_get_auth_two_factor_service),
+) -> ResponseModel[None]:
+    await service.disable(user_id=user.id, code=payload.code, backup_code=payload.backup_code)
+    return Response.success(message=t("auth", "TWO_FACTOR_DISABLED", default="2FA 已禁用"))
+
+
+@router.post(
+    "/2fa/backup-codes/regenerate",
+    response_model=ResponseModel[TwoFactorRegenerateBackupCodesOut],
+    dependencies=[rate_limit(*TWO_FACTOR_BACKUP_REGEN_RATE_LIMIT)],
+    summary="Regenerate 2FA backup codes (TOTP or backup code required)",
+)
+async def regenerate_two_factor_backup_codes(
+    payload: TwoFactorRegenerateBackupCodesRequest,
+    user: User = Depends(get_current_user),
+    service: AuthTwoFactorService = Depends(_get_auth_two_factor_service),
+) -> ResponseModel[TwoFactorRegenerateBackupCodesOut]:
+    codes = await service.regenerate_backup_codes(user_id=user.id, code=payload.code, backup_code=payload.backup_code)
+    return Response.success(data=TwoFactorRegenerateBackupCodesOut(backup_codes=codes))
 
 
 @router.get(
@@ -433,7 +653,13 @@ async def delete_my_account(
     user: User = Depends(get_current_user),
     service: AuthService = Depends(_get_auth_service),
 ) -> ResponseModel[None]:
-    await service.delete_my_account(user=user, email=str(payload.email), password=payload.password)
+    await service.delete_my_account(
+        user=user,
+        email=str(payload.email),
+        password=payload.password,
+        code=payload.code,
+        backup_code=payload.backup_code,
+    )
     return Response.success(message=t("auth", "ACCOUNT_DELETED", default="账号已删除"))
 
 

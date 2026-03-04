@@ -32,11 +32,13 @@ class WorkspaceDetailOut(BaseOut):
     organization_id: PublicUUID = Field(..., description="Organization id.")
     slug: str = Field(..., description="Workspace slug.")
     name: str = Field(..., description="Workspace name.")
+    icon_url: str | None = Field(default=None, description="Workspace icon/logo URL (optional).")
 
 
 class WorkspaceUpdateRequest(BaseSchema):
-    name: str | None = Field(default=None, description="Workspace name.")
-    slug: str | None = Field(default=None, description="Workspace slug.")
+    name: str | None = Field(default=None, min_length=1, max_length=128, description="Workspace name.")
+    slug: str | None = Field(default=None, min_length=1, max_length=64, description="Workspace slug.")
+    icon_url: str | None = Field(default=None, max_length=1024, description="Workspace icon/logo URL.")
 
 
 class LeaveWorkspaceRequest(BaseSchema):

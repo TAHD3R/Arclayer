@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from typing import Any, cast
+from typing import Any
 from uuid import UUID, uuid4
 
 import pytest
@@ -10,7 +10,6 @@ from apps.api.src.config import get_settings
 from apps.api.src.core.exceptions import BadRequest
 from apps.api.src.infra.cache.valkey import ValkeyClientLike
 from apps.api.src.modules.auth.schema import TokenPair
-from apps.api.src.modules.auth.service import AuthService
 from apps.api.src.modules.auth.sso.repository import _valkey_getdel_best_effort, issue_exchange_code
 from apps.api.src.modules.auth.sso.schema import AuthSSOExchangePayload
 from apps.api.src.modules.auth.sso.service import AuthSSOService
@@ -114,8 +113,8 @@ class _FakeValkeyWithSyncGetDel(_FakeValkey):
         return value if isinstance(value, str) else None
 
 
-class _FakeAuthService:
-    async def issue_token_pair_for_user(self, user_id: UUID) -> TokenPair:
+class _FakeLoginService:
+    async def issue_after_upstream_auth(self, *, user_id: UUID) -> TokenPair:
         _ = user_id
         return TokenPair(
             access_token="access",
@@ -159,8 +158,8 @@ async def test_valkey_getdel_best_effort_handles_sync_getdel_fake() -> None:
 async def test_auth_sso_exchange_code_is_one_time() -> None:
     settings = get_settings()
     valkey = _FakeValkey()
-    auth = cast(AuthService, _FakeAuthService())
-    service = AuthSSOService(settings, valkey=valkey, auth_service=auth)
+    login = _FakeLoginService()
+    service = AuthSSOService(settings, valkey=valkey, login_service=login)
 
     user_id = uuid4()
     code = await issue_exchange_code(

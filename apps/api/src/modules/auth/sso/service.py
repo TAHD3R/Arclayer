@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import binascii
-from typing import Any
+from typing import Any, Protocol
 from urllib.parse import urlencode
 from uuid import UUID
 
@@ -13,7 +13,7 @@ from apps.api.src.config import Settings
 from apps.api.src.core.exceptions import BadRequest, ServiceUnavailable
 from apps.api.src.core.i18n import t
 from apps.api.src.infra.cache.valkey import ValkeyClientLike
-from apps.api.src.modules.auth.service import AuthService
+from apps.api.src.modules.auth.schema import TokenPair
 from apps.api.src.modules.auth.sso.repository import consume_exchange_payload
 from apps.api.src.settings.core_schema import CORE_SETTINGS_NAMESPACE
 from apps.api.src.settings.crypto import decrypt_secret, is_encrypted, load_master_key, master_key_exists
@@ -51,17 +51,21 @@ def _is_safe_redirect(value: str | None) -> bool:
     return True
 
 
+class LoginIssuerLike(Protocol):
+    async def issue_after_upstream_auth(self, *, user_id: UUID) -> TokenPair: ...
+
+
 class AuthSSOService(BaseService):
     def __init__(
         self,
         settings: Settings,
         *,
         valkey: ValkeyClientLike | None,
-        auth_service: AuthService,
+        login_service: LoginIssuerLike,
     ) -> None:
         super().__init__(settings)
         self.valkey = valkey
-        self.auth_service = auth_service
+        self.login_service = login_service
 
     async def list_providers(self, request: Request, *, redirect: str | None = None) -> list[dict[str, Any]]:
         # Derive API prefix from the current request path. Example:
@@ -177,5 +181,4 @@ class AuthSSOService(BaseService):
         except (TypeError, ValueError):
             raise BadRequest(message=_ta("SSO_CODE_INVALID", "登录码无效"), error="SSO_CODE_INVALID")
 
-        tokens = await self.auth_service.issue_token_pair_for_user(user_uuid)
-        return tokens
+        return await self.login_service.issue_after_upstream_auth(user_id=user_uuid)

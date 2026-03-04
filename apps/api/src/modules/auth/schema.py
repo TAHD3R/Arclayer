@@ -236,7 +236,22 @@ class DeleteMyAccountRequest(BaseSchema):
     """Delete (or anonymize) current account."""
 
     email: EmailStr = Field(..., description="Current account email for confirmation.")
-    password: str = Field(min_length=1, max_length=128, description="Current password.")
+    password: str | None = Field(default=None, min_length=1, max_length=128, description="Current password.")
+    code: str | None = Field(default=None, min_length=4, max_length=16, description="2FA TOTP code (SSO-only).")
+    backup_code: str | None = Field(
+        default=None, min_length=4, max_length=64, description="2FA backup code (SSO-only)."
+    )
+
+    @model_validator(mode="after")
+    def _validate_reauth_shape(self):
+        has_password = bool(self.password and self.password.strip())
+        has_totp = bool(self.code and self.code.strip())
+        has_backup = bool(self.backup_code and self.backup_code.strip())
+        if has_totp and has_backup:
+            raise ValueError("Provide exactly one of code or backup_code.")
+        if has_password and (has_totp or has_backup):
+            raise ValueError("Provide either password or 2FA code, not both.")
+        return self
 
 
 class InvitationPreviewInvitationOut(BaseSchema):

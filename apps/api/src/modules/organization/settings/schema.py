@@ -27,6 +27,7 @@ class OrganizationLocalizationPatch(BaseSchema):
 class OrganizationSettingsCoreOut(BaseSchema):
     organization_id: PublicUUID = Field(..., description="Organization id.")
     organization_name: str = Field(..., description="Organization display name.")
+    organization_logo_url: str | None = Field(default=None, description="Organization logo URL (optional).")
     organization_localization: OrganizationLocalizationOut = Field(
         ..., description="Organization default localization preferences."
     )
@@ -35,6 +36,7 @@ class OrganizationSettingsCoreOut(BaseSchema):
 
 class OrganizationSettingsCorePatch(BaseSchema):
     organization_name: str | None = Field(default=None, min_length=1, max_length=128, description="Organization name.")
+    organization_logo_url: str | None = Field(default=None, max_length=512, description="Organization logo URL.")
     organization_localization: OrganizationLocalizationPatch | None = Field(
         default=None,
         description="Organization localization merge patch.",
@@ -48,7 +50,12 @@ class OrganizationSettingsCorePatch(BaseSchema):
 
     @model_validator(mode="after")
     def _validate_any_field(self) -> OrganizationSettingsCorePatch:
-        if self.organization_name is None and self.organization_localization is None and self.default_role_code is None:
+        if (
+            self.organization_name is None
+            and self.organization_logo_url is None
+            and self.organization_localization is None
+            and self.default_role_code is None
+        ):
             raise ValueError("At least one patch field is required")
         return self
 

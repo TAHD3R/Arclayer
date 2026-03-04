@@ -38,6 +38,8 @@ router.include_router(organization_members_router)
 router.include_router(organization_rbac_router)
 router.include_router(organization_settings_router)
 
+MAX_ORG_NAME_LENGTH = 128
+
 
 def _normalize_org_slug(value: str, *, fallback: str) -> str:
     raw = slugify(value)
@@ -150,12 +152,14 @@ async def create_my_organization(
     name = str(payload.name or "").strip()
     if not name:
         raise BadRequest(message=t("errors", "BAD_REQUEST", default="参数错误"), error="INVALID_ORGANIZATION_NAME")
+    if len(name) > MAX_ORG_NAME_LENGTH:
+        raise BadRequest(message=t("errors", "BAD_REQUEST", default="参数错误"), error="ORG_NAME_TOO_LONG")
 
     requested_slug = str(payload.slug or "").strip()
     base_slug = requested_slug or name
     slug = await _next_available_org_slug(base_slug)
 
-    organization = await Organization.create(slug=slug, name=name[:128], logo_url=None, is_active=True)
+    organization = await Organization.create(slug=slug, name=name, logo_url=None, is_active=True)
     membership = await OrgMembership.create(
         organization_id=organization.id,
         user_id=user_id,

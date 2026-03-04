@@ -6,7 +6,7 @@ from uuid import UUID, uuid4
 import pytest
 from pydantic import BaseModel, ConfigDict
 
-from apps.api.src.common.constants.auth import REFRESH_STATUS_ROTATED
+from apps.api.src.common.constants.auth import REFRESH_STATUS_REVOKED, REFRESH_STATUS_ROTATED
 from apps.api.src.config import get_settings
 from apps.api.src.core.exceptions import Unauthorized
 from apps.api.src.models.organization.user import UserStatus
@@ -216,6 +216,11 @@ async def test_refresh_rotation_and_reuse_detection(monkeypatch) -> None:
     assert rotated.refresh_token != first_refresh
 
     payload = decode_token(first_refresh, service.settings.auth)
+    first_sid = payload.get("sid")
+    assert isinstance(first_sid, str)
+    rotated_payload = decode_token(rotated.refresh_token, service.settings.auth)
+    assert rotated_payload.get("sid") == first_sid
+
     assert service.refresh_store is not None
     jti = payload.get("jti")
     assert isinstance(jti, str)
@@ -230,11 +235,35 @@ async def test_refresh_rotation_and_reuse_detection(monkeypatch) -> None:
     assert user.token_version == 1
 
 
-async def test_logout_bumps_token_version(monkeypatch) -> None:
+async def test_logout_revokes_current_refresh_token(monkeypatch) -> None:
     service, _, user = _build_service(monkeypatch)
 
     tokens = await service.login(identifier="demo", password="pass")
-    await service.logout(user_id=user.id, refresh_token=None)
+    await service.logout(user_id=user.id, refresh_token=tokens.refresh_token)
+
+    assert user.token_version == 0
+    assert service.refresh_store is not None
+    assert await service.refresh_store.list_active(user.id) == []
+
+    payload = decode_token(tokens.refresh_token, service.settings.auth)
+    jti = payload.get("jti")
+    assert isinstance(jti, str)
+    record = await service.refresh_store.get(jti)
+    assert record is not None
+    assert record["status"] == REFRESH_STATUS_REVOKED
+
+    with pytest.raises(Unauthorized) as exc:
+        await service.refresh(refresh_token=tokens.refresh_token)
+
+    assert exc.value.error == "REFRESH_REVOKED"
+    assert user.token_version == 0
+
+
+async def test_logout_all_bumps_token_version(monkeypatch) -> None:
+    service, _, user = _build_service(monkeypatch)
+
+    tokens = await service.login(identifier="demo", password="pass")
+    await service.logout_all(user_id=user.id)
 
     assert user.token_version == 1
     with pytest.raises(Unauthorized) as exc:

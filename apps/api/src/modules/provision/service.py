@@ -9,7 +9,8 @@ from apps.api.src.common.protocols.tortoise import HasOrganizationId, HasWorkspa
 from apps.api.src.common.services import BaseService
 from apps.api.src.common.text.slug.service import slugify
 from apps.api.src.common.utils.public_ids import encode_uuid
-from apps.api.src.core.exceptions import NotFound
+from apps.api.src.core.exceptions import BadRequest, NotFound
+from apps.api.src.core.i18n import t
 from apps.api.src.models.organization.org_membership import OrgMembership, OrgRole
 from apps.api.src.models.organization.organization import Organization
 from apps.api.src.models.organization.user import User
@@ -28,6 +29,9 @@ from apps.api.src.modules.workspaces.site.service import WorkspaceSiteService
 from apps.api.src.modules.workspaces.slug.service import next_available_workspace_slug
 
 ProvisionSource = Literal["setup", "register", "repair"]
+
+MAX_ORG_NAME_LENGTH = 128
+MAX_WORKSPACE_NAME_LENGTH = 128
 
 
 class ProvisioningResult(BaseModel):
@@ -219,13 +223,15 @@ class TenantProvisioningService(BaseService):
 
         seed = (user.display_name or user.username or "User").strip() or "User"
         base_name = (preferred_name or f"{seed}'s Organization").strip() or f"{seed}'s Organization"
+        if len(base_name) > MAX_ORG_NAME_LENGTH:
+            raise BadRequest(message=t("errors", "BAD_REQUEST", default="参数错误"), error="ORG_NAME_TOO_LONG")
         base_slug_seed = (preferred_slug or base_name).strip() or "workspace"
         base_slug = self._normalize_slug(base_slug_seed, fallback=f"org-{str(user.id)[:8]}")
         org_slug = await self._next_available_org_slug(base_slug)
 
         organization = await Organization.create(
             slug=org_slug,
-            name=base_name[:128],
+            name=base_name,
             logo_url=preferred_logo_url,
             is_active=True,
         )
@@ -261,6 +267,8 @@ class TenantProvisioningService(BaseService):
 
         seed = (fallback_seed or "User").strip() or "User"
         name = (preferred_name or f"{seed}'s Workspace").strip() or f"{seed}'s Workspace"
+        if len(name) > MAX_WORKSPACE_NAME_LENGTH:
+            raise BadRequest(message=t("errors", "BAD_REQUEST", default="参数错误"), error="WORKSPACE_NAME_TOO_LONG")
         slug_seed = (preferred_slug or seed).strip() or "workspace"
         slug = await next_available_workspace_slug(
             base_slug=slug_seed,
@@ -269,7 +277,7 @@ class TenantProvisioningService(BaseService):
         workspace = await Workspace.create(
             organization_id=organization_id,
             slug=slug,
-            name=name[:128],
+            name=name,
             is_active=True,
             created_by_user_id=actor_user_id,
         )

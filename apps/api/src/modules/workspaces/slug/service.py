@@ -15,6 +15,7 @@ RESERVED_WORKSPACE_SLUGS: frozenset[str] = frozenset({
     "admin",
     "api",
     "www",
+    "studio",
     # Portal reserved paths/modes.
     "preview",
     "editor",

@@ -49,13 +49,20 @@ def decode_token(token: str, settings: AuthSettings) -> dict[str, object]:
         raise Unauthorized(message=t("auth", "TOKEN_INVALID", default="Token 无效"), error="TOKEN_INVALID") from exc
 
 
-def build_access_token(*, user_id: UUID, token_version: int, settings: AuthSettings) -> tuple[str, int]:
+def build_access_token(
+    *,
+    user_id: UUID,
+    token_version: int,
+    settings: AuthSettings,
+    session_id: str | None = None,
+) -> tuple[str, int]:
     ttl = max(settings.access_token_ttl_seconds, 1)
     now = _now()
     payload = {
         "sub": str(user_id),
         "typ": TOKEN_TYPE_ACCESS,
         "ver": token_version,
+        **({"sid": session_id} if session_id else {}),
         "iss": settings.jwt_issuer,
         "aud": settings.jwt_audience,
         "iat": int(now.timestamp()),
@@ -90,7 +97,13 @@ def build_sys_access_token(*, user_id: UUID, token_version: int, settings: AuthS
     return _encode(payload, settings), ttl
 
 
-def build_refresh_token(*, user_id: UUID, token_version: int, settings: AuthSettings) -> tuple[str, str, int]:
+def build_refresh_token(
+    *,
+    user_id: UUID,
+    token_version: int,
+    settings: AuthSettings,
+    session_id: str | None = None,
+) -> tuple[str, str, int]:
     ttl = max(settings.refresh_token_ttl_seconds, 1)
     now = _now()
     jti = uuid7().hex
@@ -98,6 +111,7 @@ def build_refresh_token(*, user_id: UUID, token_version: int, settings: AuthSett
         "sub": str(user_id),
         "typ": TOKEN_TYPE_REFRESH,
         "ver": token_version,
+        **({"sid": session_id} if session_id else {}),
         "jti": jti,
         "iss": settings.jwt_issuer,
         "aud": settings.jwt_audience,

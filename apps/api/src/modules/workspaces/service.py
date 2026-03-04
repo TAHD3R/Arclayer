@@ -4,10 +4,12 @@ from collections import defaultdict
 from typing import cast
 from uuid import UUID
 
+from tortoise.exceptions import IntegrityError
+
 from apps.api.src.common.protocols.tortoise import HasOrganizationId, HasWorkspaceId
 from apps.api.src.common.services import BaseService
 from apps.api.src.config import Settings
-from apps.api.src.core.exceptions import BadRequest, Forbidden, NotFound
+from apps.api.src.core.exceptions import BadRequest, Conflict, Forbidden, NotFound
 from apps.api.src.core.i18n import t
 from apps.api.src.models.organization.org_membership import OrgMembership, OrgRole
 from apps.api.src.models.system.rbac import Role
@@ -19,6 +21,7 @@ from apps.api.src.modules.workspaces.schema import (
     WorkspaceDetailOut,
     WorkspaceUpdateRequest,
 )
+from apps.api.src.modules.workspaces.slug.service import parse_explicit_workspace_slug
 
 
 class WorkspaceService(BaseService):
@@ -128,6 +131,7 @@ class WorkspaceService(BaseService):
             organization_id=UUID(str(cast(HasOrganizationId, ws).organization_id)),
             slug=ws.slug,
             name=ws.name,
+            icon_url=ws.icon_url,
         )
 
     async def update_workspace(
@@ -142,7 +146,7 @@ class WorkspaceService(BaseService):
         if ws is None:
             raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
 
-        updates: dict[str, str] = {}
+        updates: dict[str, object] = {}
         if payload.name is not None:
             name = str(payload.name).strip()
             if not name:
@@ -152,22 +156,50 @@ class WorkspaceService(BaseService):
             updates["name"] = name
 
         if payload.slug is not None:
-            # Workspace slug 在创建后不可变（用于 URL 与权限边界）。
-            raise BadRequest(
-                message=t("errors", "BAD_REQUEST", default="参数错误"),
-                error="WORKSPACE_SLUG_IMMUTABLE",
-            )
+            desired = str(payload.slug).strip()
+            normalized, err = parse_explicit_workspace_slug(desired)
+            if err == "invalid" or normalized is None:
+                raise BadRequest(message=t("errors", "BAD_REQUEST", default="参数错误"), error="WORKSPACE_SLUG_INVALID")
+            if err == "reserved":
+                raise BadRequest(
+                    message=t("errors", "BAD_REQUEST", default="参数错误"), error="WORKSPACE_SLUG_RESERVED"
+                )
+
+            if ws.slug != normalized:
+                exists = await Workspace.filter(slug=normalized).exclude(id=ws.id).exists()
+                if exists:
+                    raise Conflict(
+                        message=t("errors", "BAD_REQUEST", default="参数错误"),
+                        error="WORKSPACE_SLUG_EXISTS",
+                    )
+                updates["slug"] = normalized
+
+        if payload.icon_url is not None:
+            raw = str(payload.icon_url).strip()
+            icon_url = raw or None
+            if icon_url is not None and len(icon_url) > 1024:
+                raise BadRequest(
+                    message=t("errors", "BAD_REQUEST", default="参数错误"), error="WORKSPACE_ICON_URL_TOO_LONG"
+                )
+            updates["icon_url"] = icon_url
 
         if updates:
             for k, v in updates.items():
                 setattr(ws, k, v)
-            await ws.save(update_fields=list(updates.keys()) + ["updated_at"])
+            try:
+                await ws.save(update_fields=list(updates.keys()) + ["updated_at"])
+            except IntegrityError as exc:
+                raise Conflict(
+                    message=t("errors", "BAD_REQUEST", default="参数错误"),
+                    error="WORKSPACE_SLUG_EXISTS",
+                ) from exc
 
         return WorkspaceDetailOut(
             id=ws.id,
             organization_id=UUID(str(cast(HasOrganizationId, ws).organization_id)),
             slug=ws.slug,
             name=ws.name,
+            icon_url=ws.icon_url,
         )
 
     async def leave_workspace(
