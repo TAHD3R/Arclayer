@@ -63,11 +63,11 @@ export function OrganizationMemberWorkspaceList({
     <div className={cn("space-y-3", className)}>
       {searchable ? (
         <Input
-          variant="borderless"
           value={searchInput}
           onChange={(event) => setSearchInput(event.target.value)}
           placeholder={t("common:ORG_MEMBERS_WORKSPACE_SEARCH_PLACEHOLDER")}
           allowClear
+          variant="filled"
           prefix={<Search className="size-4 text-label-secondary" />}
         />
       ) : null}

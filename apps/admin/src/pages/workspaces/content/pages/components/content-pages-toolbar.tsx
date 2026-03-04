@@ -22,10 +22,10 @@ export function ContentPagesToolbar(props: ContentPagesToolbarProps) {
       <div className="flex items-center gap-2">
         <Input
           allowClear
-          variant="borderless"
           value={props.searchInput}
           onChange={(event) => props.onSearchInputChange(event.target.value)}
           placeholder={props.t("content_pages:INDEX_SEARCH_PLACEHOLDER")}
+          variant="filled"
           prefix={<Search size={16} className="text-label-secondary" />}
           style={{ width: 320, maxWidth: "100%" }}
         />

@@ -59,11 +59,8 @@ import { Route as OOrgIdSettingsBasicsIndexRouteImport } from './routes/o/$orgId
 import { Route as OOrgIdSettingsActivityIndexRouteImport } from './routes/o/$orgId/settings/activity/index'
 import { Route as OOrgIdExtensionsExtensionSlugIndexRouteImport } from './routes/o/$orgId/extensions/$extensionSlug/index'
 import { Route as WWorkspaceIdEditorEditorModeEntityIdRouteImport } from './routes/w/$workspaceId/editor/$editorMode/$entityId'
-import { Route as WWorkspaceIdSettingsWorkspaceResourceProcessingIndexRouteImport } from './routes/w/$workspaceId/settings/workspace/resource-processing/index'
-import { Route as WWorkspaceIdSettingsWorkspaceIntegrationsIndexRouteImport } from './routes/w/$workspaceId/settings/workspace/integrations/index'
 import { Route as WWorkspaceIdSettingsWorkspaceDangerIndexRouteImport } from './routes/w/$workspaceId/settings/workspace/danger/index'
 import { Route as WWorkspaceIdSettingsWorkspaceContentStrategyIndexRouteImport } from './routes/w/$workspaceId/settings/workspace/content-strategy/index'
-import { Route as WWorkspaceIdSettingsWorkspaceCollaborationIndexRouteImport } from './routes/w/$workspaceId/settings/workspace/collaboration/index'
 import { Route as WWorkspaceIdSettingsWorkspaceBasicsIndexRouteImport } from './routes/w/$workspaceId/settings/workspace/basics/index'
 import { Route as WWorkspaceIdSettingsMaintenanceStatusIndexRouteImport } from './routes/w/$workspaceId/settings/maintenance/status/index'
 import { Route as WWorkspaceIdSettingsMaintenanceSnapshotsIndexRouteImport } from './routes/w/$workspaceId/settings/maintenance/snapshots/index'
@@ -433,26 +430,6 @@ const WWorkspaceIdEditorEditorModeEntityIdRoute =
       (d) => d.Route,
     ),
   )
-const WWorkspaceIdSettingsWorkspaceResourceProcessingIndexRoute =
-  WWorkspaceIdSettingsWorkspaceResourceProcessingIndexRouteImport.update({
-    id: '/settings/workspace/resource-processing/',
-    path: '/settings/workspace/resource-processing/',
-    getParentRoute: () => WWorkspaceIdRoute,
-  } as any).lazy(() =>
-    import('./routes/w/$workspaceId/settings/workspace/resource-processing/index.lazy').then(
-      (d) => d.Route,
-    ),
-  )
-const WWorkspaceIdSettingsWorkspaceIntegrationsIndexRoute =
-  WWorkspaceIdSettingsWorkspaceIntegrationsIndexRouteImport.update({
-    id: '/settings/workspace/integrations/',
-    path: '/settings/workspace/integrations/',
-    getParentRoute: () => WWorkspaceIdRoute,
-  } as any).lazy(() =>
-    import('./routes/w/$workspaceId/settings/workspace/integrations/index.lazy').then(
-      (d) => d.Route,
-    ),
-  )
 const WWorkspaceIdSettingsWorkspaceDangerIndexRoute =
   WWorkspaceIdSettingsWorkspaceDangerIndexRouteImport.update({
     id: '/settings/workspace/danger/',
@@ -470,16 +447,6 @@ const WWorkspaceIdSettingsWorkspaceContentStrategyIndexRoute =
     getParentRoute: () => WWorkspaceIdRoute,
   } as any).lazy(() =>
     import('./routes/w/$workspaceId/settings/workspace/content-strategy/index.lazy').then(
-      (d) => d.Route,
-    ),
-  )
-const WWorkspaceIdSettingsWorkspaceCollaborationIndexRoute =
-  WWorkspaceIdSettingsWorkspaceCollaborationIndexRouteImport.update({
-    id: '/settings/workspace/collaboration/',
-    path: '/settings/workspace/collaboration/',
-    getParentRoute: () => WWorkspaceIdRoute,
-  } as any).lazy(() =>
-    import('./routes/w/$workspaceId/settings/workspace/collaboration/index.lazy').then(
       (d) => d.Route,
     ),
   )
@@ -601,11 +568,8 @@ export interface FileRoutesByFullPath {
   '/w/$workspaceId/settings/maintenance/snapshots/': typeof WWorkspaceIdSettingsMaintenanceSnapshotsIndexRoute
   '/w/$workspaceId/settings/maintenance/status/': typeof WWorkspaceIdSettingsMaintenanceStatusIndexRoute
   '/w/$workspaceId/settings/workspace/basics/': typeof WWorkspaceIdSettingsWorkspaceBasicsIndexRoute
-  '/w/$workspaceId/settings/workspace/collaboration/': typeof WWorkspaceIdSettingsWorkspaceCollaborationIndexRoute
   '/w/$workspaceId/settings/workspace/content-strategy/': typeof WWorkspaceIdSettingsWorkspaceContentStrategyIndexRoute
   '/w/$workspaceId/settings/workspace/danger/': typeof WWorkspaceIdSettingsWorkspaceDangerIndexRoute
-  '/w/$workspaceId/settings/workspace/integrations/': typeof WWorkspaceIdSettingsWorkspaceIntegrationsIndexRoute
-  '/w/$workspaceId/settings/workspace/resource-processing/': typeof WWorkspaceIdSettingsWorkspaceResourceProcessingIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -660,11 +624,8 @@ export interface FileRoutesByTo {
   '/w/$workspaceId/settings/maintenance/snapshots': typeof WWorkspaceIdSettingsMaintenanceSnapshotsIndexRoute
   '/w/$workspaceId/settings/maintenance/status': typeof WWorkspaceIdSettingsMaintenanceStatusIndexRoute
   '/w/$workspaceId/settings/workspace/basics': typeof WWorkspaceIdSettingsWorkspaceBasicsIndexRoute
-  '/w/$workspaceId/settings/workspace/collaboration': typeof WWorkspaceIdSettingsWorkspaceCollaborationIndexRoute
   '/w/$workspaceId/settings/workspace/content-strategy': typeof WWorkspaceIdSettingsWorkspaceContentStrategyIndexRoute
   '/w/$workspaceId/settings/workspace/danger': typeof WWorkspaceIdSettingsWorkspaceDangerIndexRoute
-  '/w/$workspaceId/settings/workspace/integrations': typeof WWorkspaceIdSettingsWorkspaceIntegrationsIndexRoute
-  '/w/$workspaceId/settings/workspace/resource-processing': typeof WWorkspaceIdSettingsWorkspaceResourceProcessingIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -724,11 +685,8 @@ export interface FileRoutesById {
   '/w/$workspaceId/settings/maintenance/snapshots/': typeof WWorkspaceIdSettingsMaintenanceSnapshotsIndexRoute
   '/w/$workspaceId/settings/maintenance/status/': typeof WWorkspaceIdSettingsMaintenanceStatusIndexRoute
   '/w/$workspaceId/settings/workspace/basics/': typeof WWorkspaceIdSettingsWorkspaceBasicsIndexRoute
-  '/w/$workspaceId/settings/workspace/collaboration/': typeof WWorkspaceIdSettingsWorkspaceCollaborationIndexRoute
   '/w/$workspaceId/settings/workspace/content-strategy/': typeof WWorkspaceIdSettingsWorkspaceContentStrategyIndexRoute
   '/w/$workspaceId/settings/workspace/danger/': typeof WWorkspaceIdSettingsWorkspaceDangerIndexRoute
-  '/w/$workspaceId/settings/workspace/integrations/': typeof WWorkspaceIdSettingsWorkspaceIntegrationsIndexRoute
-  '/w/$workspaceId/settings/workspace/resource-processing/': typeof WWorkspaceIdSettingsWorkspaceResourceProcessingIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -789,11 +747,8 @@ export interface FileRouteTypes {
     | '/w/$workspaceId/settings/maintenance/snapshots/'
     | '/w/$workspaceId/settings/maintenance/status/'
     | '/w/$workspaceId/settings/workspace/basics/'
-    | '/w/$workspaceId/settings/workspace/collaboration/'
     | '/w/$workspaceId/settings/workspace/content-strategy/'
     | '/w/$workspaceId/settings/workspace/danger/'
-    | '/w/$workspaceId/settings/workspace/integrations/'
-    | '/w/$workspaceId/settings/workspace/resource-processing/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -848,11 +803,8 @@ export interface FileRouteTypes {
     | '/w/$workspaceId/settings/maintenance/snapshots'
     | '/w/$workspaceId/settings/maintenance/status'
     | '/w/$workspaceId/settings/workspace/basics'
-    | '/w/$workspaceId/settings/workspace/collaboration'
     | '/w/$workspaceId/settings/workspace/content-strategy'
     | '/w/$workspaceId/settings/workspace/danger'
-    | '/w/$workspaceId/settings/workspace/integrations'
-    | '/w/$workspaceId/settings/workspace/resource-processing'
   id:
     | '__root__'
     | '/'
@@ -911,11 +863,8 @@ export interface FileRouteTypes {
     | '/w/$workspaceId/settings/maintenance/snapshots/'
     | '/w/$workspaceId/settings/maintenance/status/'
     | '/w/$workspaceId/settings/workspace/basics/'
-    | '/w/$workspaceId/settings/workspace/collaboration/'
     | '/w/$workspaceId/settings/workspace/content-strategy/'
     | '/w/$workspaceId/settings/workspace/danger/'
-    | '/w/$workspaceId/settings/workspace/integrations/'
-    | '/w/$workspaceId/settings/workspace/resource-processing/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1285,20 +1234,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WWorkspaceIdEditorEditorModeEntityIdRouteImport
       parentRoute: typeof WWorkspaceIdRoute
     }
-    '/w/$workspaceId/settings/workspace/resource-processing/': {
-      id: '/w/$workspaceId/settings/workspace/resource-processing/'
-      path: '/settings/workspace/resource-processing'
-      fullPath: '/w/$workspaceId/settings/workspace/resource-processing/'
-      preLoaderRoute: typeof WWorkspaceIdSettingsWorkspaceResourceProcessingIndexRouteImport
-      parentRoute: typeof WWorkspaceIdRoute
-    }
-    '/w/$workspaceId/settings/workspace/integrations/': {
-      id: '/w/$workspaceId/settings/workspace/integrations/'
-      path: '/settings/workspace/integrations'
-      fullPath: '/w/$workspaceId/settings/workspace/integrations/'
-      preLoaderRoute: typeof WWorkspaceIdSettingsWorkspaceIntegrationsIndexRouteImport
-      parentRoute: typeof WWorkspaceIdRoute
-    }
     '/w/$workspaceId/settings/workspace/danger/': {
       id: '/w/$workspaceId/settings/workspace/danger/'
       path: '/settings/workspace/danger'
@@ -1311,13 +1246,6 @@ declare module '@tanstack/react-router' {
       path: '/settings/workspace/content-strategy'
       fullPath: '/w/$workspaceId/settings/workspace/content-strategy/'
       preLoaderRoute: typeof WWorkspaceIdSettingsWorkspaceContentStrategyIndexRouteImport
-      parentRoute: typeof WWorkspaceIdRoute
-    }
-    '/w/$workspaceId/settings/workspace/collaboration/': {
-      id: '/w/$workspaceId/settings/workspace/collaboration/'
-      path: '/settings/workspace/collaboration'
-      fullPath: '/w/$workspaceId/settings/workspace/collaboration/'
-      preLoaderRoute: typeof WWorkspaceIdSettingsWorkspaceCollaborationIndexRouteImport
       parentRoute: typeof WWorkspaceIdRoute
     }
     '/w/$workspaceId/settings/workspace/basics/': {
@@ -1460,11 +1388,8 @@ interface WWorkspaceIdRouteChildren {
   WWorkspaceIdSettingsMaintenanceSnapshotsIndexRoute: typeof WWorkspaceIdSettingsMaintenanceSnapshotsIndexRoute
   WWorkspaceIdSettingsMaintenanceStatusIndexRoute: typeof WWorkspaceIdSettingsMaintenanceStatusIndexRoute
   WWorkspaceIdSettingsWorkspaceBasicsIndexRoute: typeof WWorkspaceIdSettingsWorkspaceBasicsIndexRoute
-  WWorkspaceIdSettingsWorkspaceCollaborationIndexRoute: typeof WWorkspaceIdSettingsWorkspaceCollaborationIndexRoute
   WWorkspaceIdSettingsWorkspaceContentStrategyIndexRoute: typeof WWorkspaceIdSettingsWorkspaceContentStrategyIndexRoute
   WWorkspaceIdSettingsWorkspaceDangerIndexRoute: typeof WWorkspaceIdSettingsWorkspaceDangerIndexRoute
-  WWorkspaceIdSettingsWorkspaceIntegrationsIndexRoute: typeof WWorkspaceIdSettingsWorkspaceIntegrationsIndexRoute
-  WWorkspaceIdSettingsWorkspaceResourceProcessingIndexRoute: typeof WWorkspaceIdSettingsWorkspaceResourceProcessingIndexRoute
 }
 
 const WWorkspaceIdRouteChildren: WWorkspaceIdRouteChildren = {
@@ -1497,16 +1422,10 @@ const WWorkspaceIdRouteChildren: WWorkspaceIdRouteChildren = {
     WWorkspaceIdSettingsMaintenanceStatusIndexRoute,
   WWorkspaceIdSettingsWorkspaceBasicsIndexRoute:
     WWorkspaceIdSettingsWorkspaceBasicsIndexRoute,
-  WWorkspaceIdSettingsWorkspaceCollaborationIndexRoute:
-    WWorkspaceIdSettingsWorkspaceCollaborationIndexRoute,
   WWorkspaceIdSettingsWorkspaceContentStrategyIndexRoute:
     WWorkspaceIdSettingsWorkspaceContentStrategyIndexRoute,
   WWorkspaceIdSettingsWorkspaceDangerIndexRoute:
     WWorkspaceIdSettingsWorkspaceDangerIndexRoute,
-  WWorkspaceIdSettingsWorkspaceIntegrationsIndexRoute:
-    WWorkspaceIdSettingsWorkspaceIntegrationsIndexRoute,
-  WWorkspaceIdSettingsWorkspaceResourceProcessingIndexRoute:
-    WWorkspaceIdSettingsWorkspaceResourceProcessingIndexRoute,
 }
 
 const WWorkspaceIdRouteWithChildren = WWorkspaceIdRoute._addFileChildren(

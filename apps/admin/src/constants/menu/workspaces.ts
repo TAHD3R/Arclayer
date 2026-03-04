@@ -1,7 +1,6 @@
 import {
   Activity,
   Blocks,
-  Cable,
   Database,
   File,
   FileText,
@@ -121,13 +120,6 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
         labelKey: "nav:NAV_EXTENSIONS",
         to: "/extensions",
         icon: Puzzle,
-      },
-      {
-        key: "extensionsIntegrations.integrations",
-        label: "Integrations",
-        labelKey: "nav:NAV_INTEGRATIONS",
-        to: "/settings/workspace/integrations",
-        icon: Cable,
       },
     ],
   },

@@ -118,7 +118,7 @@ export function OrganizationTeamInvitationsDialogs(props: OrganizationTeamInvita
           </>
         }
       >
-        <div className="grid gap-5 py-2">
+        <div className="grid gap-5">
           <div className="grid gap-1.5">
             <label className="font-semibold text-foreground">
               {t("team:TEAM_INVITE_FIELD_ROLE")}
@@ -204,20 +204,18 @@ export function OrganizationTeamInvitationsDialogs(props: OrganizationTeamInvita
         }
       >
         {renewInvitationDialog.displayPayload ? (
-          <div className="grid gap-4 py-2">
-            <div className="grid gap-1.5">
-              <label className="font-semibold text-foreground">
-                {t("team:TEAM_INVITE_LINK_FIELD_EXPIRES")}
-              </label>
-              <div className="text-label-secondary">{t("team:TEAM_INVITE_FIELD_EXPIRES_HELP")}</div>
-              <Select<RenewExpiresInSeconds>
-                value={renewExpiresInSeconds}
-                onChange={(value) => onRenewExpiresInSecondsChange(value)}
-                options={renewOptions}
-                className="w-full"
-                getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
-              />
-            </div>
+          <div className="grid gap-1.5">
+            <label className="font-semibold text-foreground">
+              {t("team:TEAM_INVITE_LINK_FIELD_EXPIRES")}
+            </label>
+            <div className="text-label-secondary">{t("team:TEAM_INVITE_FIELD_EXPIRES_HELP")}</div>
+            <Select<RenewExpiresInSeconds>
+              value={renewExpiresInSeconds}
+              onChange={(value) => onRenewExpiresInSecondsChange(value)}
+              options={renewOptions}
+              className="w-full"
+              getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
+            />
           </div>
         ) : null}
       </SettingDialog>
@@ -305,20 +303,18 @@ export function OrganizationTeamInvitationsDialogs(props: OrganizationTeamInvita
         }
       >
         {renewLinkDialog.displayPayload ? (
-          <div className="grid gap-4 py-2">
-            <div className="grid gap-1.5">
-              <label className="font-semibold text-foreground">
-                {t("team:TEAM_INVITE_LINK_FIELD_EXPIRES")}
-              </label>
-              <div className="text-label-secondary">{t("team:TEAM_INVITE_FIELD_EXPIRES_HELP")}</div>
-              <Select<RenewExpiresInSeconds>
-                value={renewExpiresInSeconds}
-                onChange={(value) => onRenewExpiresInSecondsChange(value)}
-                options={renewOptions}
-                className="w-full"
-                getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
-              />
-            </div>
+          <div className="grid gap-1.5">
+            <label className="font-semibold text-foreground">
+              {t("team:TEAM_INVITE_LINK_FIELD_EXPIRES")}
+            </label>
+            <div className="text-label-secondary">{t("team:TEAM_INVITE_FIELD_EXPIRES_HELP")}</div>
+            <Select<RenewExpiresInSeconds>
+              value={renewExpiresInSeconds}
+              onChange={(value) => onRenewExpiresInSecondsChange(value)}
+              options={renewOptions}
+              className="w-full"
+              getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
+            />
           </div>
         ) : null}
       </SettingDialog>

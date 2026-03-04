@@ -145,12 +145,10 @@ export function ActivityFilterPopover(props: {
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
-          type="text"
+          size="large"
           icon={<Filter size={18} />}
           title={t("activity:ACTIVITY_FILTER_TITLE")}
           aria-label={t("activity:ACTIVITY_FILTER_TITLE")}
-          style={{ height: 40 }}
-          className="bg-transparent! hover:bg-accent/40!"
           autoInsertSpace={false}
         />
       </PopoverTrigger>
@@ -207,6 +205,7 @@ export function ActivityFilterPopover(props: {
               <AntInput
                 allowClear
                 onFocus={() => setEventNameOpen(true)}
+                variant="filled"
                 prefix={<Search className="size-4 text-label-secondary" />}
                 placeholder={t("activity:ACTIVITY_FILTER_EVENT_NAME_PLACEHOLDER")}
                 aria-label={t("activity:ACTIVITY_FILTER_EVENT_NAME")}

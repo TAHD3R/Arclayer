@@ -125,7 +125,7 @@ export function UpdateAssetsAccessDialog(props: UpdateAssetsAccessDialogProps) {
         </>
       }
     >
-      <div className="grid gap-4 py-2">
+      <div className="grid gap-4">
         <div className="grid gap-1.5">
           <label className="font-semibold text-foreground">
             {t("assets:ASSET_META_VISIBILITY")}

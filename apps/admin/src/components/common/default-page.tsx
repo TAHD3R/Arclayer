@@ -1,13 +1,15 @@
-import { type ReactNode, useState } from "react";
+import { Children, Fragment, isValidElement, type ReactNode, useState } from "react";
 import clsx from "clsx";
 import { useRouterState } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { Button } from "antd";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@celestial/ui/tooltip";
 
+import { ApiError } from "@/lib/http";
 import { useFavoritesStore } from "@/stores/use-favorites-store";
 import BookmarkIcon from "@celestial/ui/icons/bookmark-icon";
 import { AdminRouteContainer } from "@/components/layout/admin-route-container";
+import { ContentGuard, type ContentGuardProps } from "@/components/common/content-guard";
 
 export type DefaultPageWidth = "fixed" | "full";
 
@@ -68,6 +70,38 @@ function FavoriteToggle() {
   );
 }
 
+function resolveContentGuardError(node: ReactNode): unknown | null {
+  let current: ReactNode = node;
+
+  for (let depth = 0; depth < 3; depth += 1) {
+    const asArray = Children.toArray(current);
+    if (asArray.length !== 1) return null;
+
+    const only = asArray[0];
+    if (!isValidElement(only)) return null;
+
+    if (only.type === ContentGuard) {
+      const props = only.props as ContentGuardProps;
+      return props.error ?? null;
+    }
+
+    if (only.type === Fragment) {
+      current = (only.props as { children?: ReactNode }).children;
+      continue;
+    }
+
+    return null;
+  }
+
+  return null;
+}
+
+function shouldHideHeaderForError(err: unknown | null): boolean {
+  if (!err) return false;
+  if (err instanceof ApiError) return err.status === 404 || err.status >= 500;
+  return true;
+}
+
 export function DefaultPage({
   width = "fixed",
   title,
@@ -79,9 +113,12 @@ export function DefaultPage({
   className,
   contentClassName,
 }: DefaultPageProps) {
+  const contentGuardError = resolveContentGuardError(children);
+  const hideHeader = shouldHideHeaderForError(contentGuardError);
+
   return (
     <AdminRouteContainer width={width} className={clsx("h-full", className)}>
-      {(title || description || action || extra) && (
+      {!hideHeader && (title || description || action || extra) && (
         <header className="mb-[18px]">
           {(title || action) && (
             <div className="flex items-center justify-between gap-4">

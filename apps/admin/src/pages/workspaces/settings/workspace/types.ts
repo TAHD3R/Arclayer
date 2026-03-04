@@ -35,10 +35,7 @@ export type WorkspaceSettingsPageProps = {
 export type WorkspaceSettingsTabNavigation = {
   to:
     | "/w/$workspaceId/settings/workspace/basics"
-    | "/w/$workspaceId/settings/workspace/collaboration"
     | "/w/$workspaceId/settings/workspace/content-strategy"
-    | "/w/$workspaceId/settings/workspace/integrations"
-    | "/w/$workspaceId/settings/workspace/resource-processing"
     | "/w/$workspaceId/settings/workspace/danger";
   params: { workspaceId: string };
 };

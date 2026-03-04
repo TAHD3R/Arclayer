@@ -111,10 +111,10 @@ export function AssetsViewHeader(props: AssetsViewHeaderProps) {
       <div className="flex items-center gap-2">
         <Input
           allowClear
-          variant="borderless"
           value={props.searchInput}
           onChange={(event) => props.setSearchInput(event.target.value)}
           placeholder={props.t("assets:ASSET_SEARCH_PLACEHOLDER")}
+          variant="filled"
           prefix={<Search size={16} className="text-label-secondary" />}
           style={{ width: 260 }}
         />

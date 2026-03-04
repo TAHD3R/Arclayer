@@ -102,49 +102,47 @@ export function MeProfileDangerSection(props: MeProfileDangerSectionProps) {
           </>
         }
       >
-        <div className="py-5">
-          <div className="max-w-xl">
-            <Alert
-              type="warning"
-              showIcon
-              message={t("account:ME_DELETE_ACCOUNT_ALERT_TITLE")}
-              description={t("account:ME_DELETE_ACCOUNT_ALERT_DESC")}
+        <div className="max-w-xl">
+          <Alert
+            type="warning"
+            showIcon
+            message={t("account:ME_DELETE_ACCOUNT_ALERT_TITLE")}
+            description={t("account:ME_DELETE_ACCOUNT_ALERT_DESC")}
+            className="mb-4"
+          />
+
+          <Form form={form} layout="vertical" requiredMark={false} autoComplete="off">
+            <Form.Item
+              name="email"
+              label={t("account:ME_DELETE_ACCOUNT_CONFIRM_EMAIL")}
+              rules={[
+                {
+                  required: true,
+                  message: t("account:ME_DELETE_ACCOUNT_CONFIRM_EMAIL_REQUIRED"),
+                },
+                { type: "email", message: t("account:ME_DELETE_ACCOUNT_CONFIRM_EMAIL_INVALID") },
+              ]}
               className="mb-4"
-            />
+            >
+              <Input
+                placeholder={
+                  normalizedEmail || t("account:ME_DELETE_ACCOUNT_CONFIRM_EMAIL_PLACEHOLDER")
+                }
+              />
+            </Form.Item>
 
-            <Form form={form} layout="vertical" requiredMark={false} autoComplete="off">
-              <Form.Item
-                name="email"
-                label={t("account:ME_DELETE_ACCOUNT_CONFIRM_EMAIL")}
-                rules={[
-                  {
-                    required: true,
-                    message: t("account:ME_DELETE_ACCOUNT_CONFIRM_EMAIL_REQUIRED"),
-                  },
-                  { type: "email", message: t("account:ME_DELETE_ACCOUNT_CONFIRM_EMAIL_INVALID") },
-                ]}
-                className="mb-4"
-              >
-                <Input
-                  placeholder={
-                    normalizedEmail || t("account:ME_DELETE_ACCOUNT_CONFIRM_EMAIL_PLACEHOLDER")
-                  }
-                />
-              </Form.Item>
-
-              <Form.Item
-                name="password"
-                label={t("account:ME_DELETE_ACCOUNT_CONFIRM_PASSWORD")}
-                rules={[{ required: true, message: t("auth:VALIDATION_PASSWORD_REQUIRED") }]}
-                className="mb-0!"
-              >
-                <Input.Password
-                  autoComplete="current-password"
-                  placeholder={t("account:ME_DELETE_ACCOUNT_PASSWORD_PLACEHOLDER")}
-                />
-              </Form.Item>
-            </Form>
-          </div>
+            <Form.Item
+              name="password"
+              label={t("account:ME_DELETE_ACCOUNT_CONFIRM_PASSWORD")}
+              rules={[{ required: true, message: t("auth:VALIDATION_PASSWORD_REQUIRED") }]}
+              className="mb-0!"
+            >
+              <Input.Password
+                autoComplete="current-password"
+                placeholder={t("account:ME_DELETE_ACCOUNT_PASSWORD_PLACEHOLDER")}
+              />
+            </Form.Item>
+          </Form>
         </div>
       </SettingDialog>
     </>

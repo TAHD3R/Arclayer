@@ -101,6 +101,7 @@ export function ComponentsPanel() {
         <Input
           size="small"
           prefix={<Search className="size-3.5 text-label-secondary" />}
+          variant="filled"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder={t("content_pages:EDITOR_ELEMENTS_SEARCH")}

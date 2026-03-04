@@ -49,6 +49,7 @@ export function MeSettingsCategoryLayout(props: MeSettingsCategoryLayoutProps) {
         items={categories}
         selectedKey={selectedCategory}
         onSelect={onCategoryChange}
+        anchorFollow={{ getAnchorId: buildSectionId }}
         className={props.navClassName}
       />
     ),

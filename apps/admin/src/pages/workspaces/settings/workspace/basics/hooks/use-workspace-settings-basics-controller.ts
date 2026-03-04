@@ -1,21 +1,15 @@
 import { Form } from "antd";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { listWorkspaceRoles } from "@/api/rbac";
-import { getCoreSettings, patchCoreSettings } from "@/api/settings";
-import {
-  assignWorkspaceRoleToAllUsers,
-  getWorkspaceDetail,
-  patchWorkspaceDetail,
-  patchWorkspaceRolePolicy,
-} from "@/api/workspaces";
+import { getCoreSettings } from "@/api/settings";
+import { getWorkspaceDetail } from "@/api/workspaces";
 import { DEFAULT_DATE_FORMAT, DEFAULT_TIMEZONE } from "@/constants/datetime";
 import { useSavingKey } from "@celestial/hooks/use-saving-key";
 import { DEFAULT_LOCALE, normalizeLocale } from "@/lib/i18n";
-import { notifyError, notifySuccessText } from "@/lib/notifications";
 import {
   buildDateFormatOptions,
   buildLocaleOptions,
@@ -29,6 +23,8 @@ import type { WorkspaceSettingsTabKey } from "@/types/settings-workspace";
 
 import type { AssignRoleDialogValues, WorkspaceSettingsFormValues } from "../../types";
 import { buildWorkspacePortalUrl, resolveWorkspaceSettingsTabNavigation } from "../../utils";
+import { buildWorkspaceRoleMetadata } from "./role-metadata";
+import { useWorkspaceSettingsBasicsMutations } from "./use-workspace-settings-basics-mutations";
 
 export function useWorkspaceSettingsBasicsController(props: { workspaceId: string }) {
   const workspaceId = String(props.workspaceId || "").trim();
@@ -134,51 +130,12 @@ export function useWorkspaceSettingsBasicsController(props: { workspaceId: strin
     }
   }, [form, rolesQuery.data?.items]);
 
-  const patchWorkspaceMutation = useMutation({
-    mutationFn: async (patch: { name?: string; slug?: string }) =>
-      patchWorkspaceDetail(workspaceId, patch),
-    onSuccess: async () => {
-      notifySuccessText(t("settings:SETTINGS_SAVED"));
-      await queryClient.invalidateQueries({ queryKey: ["workspace", "detail", workspaceId] });
-      await queryClient.invalidateQueries({ queryKey: ["me", "workspaces"] });
-    },
-    onError: (err) => notifyError(err),
-  });
-
-  const patchWorkspaceCoreMutation = useMutation({
-    mutationFn: async (patch: Record<string, unknown>) => patchCoreSettings(workspaceId, patch),
-    onSuccess: async () => {
-      notifySuccessText(t("settings:SETTINGS_SAVED"));
-      await queryClient.invalidateQueries({
-        queryKey: ["settings", "workspace", "core", workspaceId],
-      });
-    },
-    onError: (err) => notifyError(err),
-  });
-
-  const patchWorkspaceRolePolicyMutation = useMutation({
-    mutationFn: async (input: { defaultRoleCode: string }) =>
-      patchWorkspaceRolePolicy(workspaceId, input),
-    onSuccess: async () => {
-      notifySuccessText(t("settings:SETTINGS_SAVED"));
-      await queryClient.invalidateQueries({
-        queryKey: ["workspace", "rbac", "roles", workspaceId],
-      });
-    },
-    onError: (err) => notifyError(err),
-  });
-
-  const assignWorkspaceRoleMutation = useMutation({
-    mutationFn: async (input: { roleCode: string; confirmName: string }) =>
-      assignWorkspaceRoleToAllUsers(workspaceId, input),
-    onSuccess: async () => {
-      notifySuccessText(t("common:ACTION_SUCCESS"));
-      await queryClient.invalidateQueries({
-        queryKey: ["workspace", "rbac", "roles", workspaceId],
-      });
-    },
-    onError: (err) => notifyError(err),
-  });
+  const {
+    patchWorkspaceMutation,
+    patchWorkspaceCoreMutation,
+    patchWorkspaceRolePolicyMutation,
+    assignWorkspaceRoleMutation,
+  } = useWorkspaceSettingsBasicsMutations({ workspaceId, t, queryClient });
 
   const disabled =
     detailQuery.isFetching ||
@@ -210,8 +167,8 @@ export function useWorkspaceSettingsBasicsController(props: { workspaceId: strin
     DEFAULT_DATE_FORMAT;
 
   const roleItems = rolesQuery.data?.items ?? [];
-  const initialDefaultRoleCode =
-    roleItems.find((item) => item.isDefault)?.code ?? roleItems[0]?.code ?? "viewer";
+  const roleMetadata = useMemo(() => buildWorkspaceRoleMetadata(roleItems), [roleItems]);
+  const initialDefaultRoleCode = roleMetadata.initialDefaultRoleCode;
 
   const workspaceLocale =
     (Form.useWatch("locale", form) as string | undefined) ?? String(initialWorkspaceLocale);
@@ -231,17 +188,9 @@ export function useWorkspaceSettingsBasicsController(props: { workspaceId: strin
   );
   const dateFormatOptions = useMemo(() => buildDateFormatOptions(), []);
 
-  const roleOptions = useMemo(
-    () => roleItems.map((item) => ({ label: item.name, value: item.code })),
-    [roleItems],
-  );
-  const roleLabelMap = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const role of roleItems) {
-      map.set(String(role.code), String(role.name));
-    }
-    return map;
-  }, [roleItems]);
+  const roleOptions = roleMetadata.roleOptions;
+  const roleLabelMap = roleMetadata.roleLabelMap;
+  const roleDescriptionMap = roleMetadata.roleDescriptionMap;
 
   const workspaceLocaleLabel =
     localeOptions.find((item) => item.value === workspaceLocale)?.label ?? workspaceLocale;
@@ -251,6 +200,7 @@ export function useWorkspaceSettingsBasicsController(props: { workspaceId: strin
   const workspaceDateFormatLabel = resolveDateFormatLabel(String(workspaceDateFormat));
   const defaultRoleLabel = roleLabelMap.get(String(defaultRoleCode)) ?? String(defaultRoleCode);
   const assignRoleLabel = roleLabelMap.get(String(assignRoleCode)) ?? String(assignRoleCode);
+  const assignRoleDescription = roleDescriptionMap.get(String(assignRoleCode)) ?? null;
 
   const isWorkspaceNameDirty = (currentWorkspaceName || "") !== (initialWorkspaceName || "");
   const isWorkspaceSlugDirty = (currentWorkspaceSlug || "") !== (initialWorkspaceSlug || "");
@@ -302,11 +252,13 @@ export function useWorkspaceSettingsBasicsController(props: { workspaceId: strin
     roleOptions,
     roleOptionsLength: roleOptions.length,
     roleLabelMap,
+    roleDescriptionMap,
     workspaceLocaleLabel,
     workspaceTimezoneLabel,
     workspaceDateFormatLabel,
     defaultRoleLabel,
     assignRoleLabel,
+    assignRoleDescription,
     isWorkspaceNameDirty,
     isWorkspaceSlugDirty,
     isWorkspaceLocaleDirty,

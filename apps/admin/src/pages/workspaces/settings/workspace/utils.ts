@@ -6,27 +6,9 @@ export function resolveWorkspaceSettingsTabNavigation(
   workspaceId: string,
   tab: WorkspaceSettingsTabKey,
 ): WorkspaceSettingsTabNavigation {
-  if (tab === "collaboration") {
-    return {
-      to: "/w/$workspaceId/settings/workspace/collaboration",
-      params: { workspaceId },
-    };
-  }
   if (tab === "content_strategy") {
     return {
       to: "/w/$workspaceId/settings/workspace/content-strategy",
-      params: { workspaceId },
-    };
-  }
-  if (tab === "integrations") {
-    return {
-      to: "/w/$workspaceId/settings/workspace/integrations",
-      params: { workspaceId },
-    };
-  }
-  if (tab === "resource_processing") {
-    return {
-      to: "/w/$workspaceId/settings/workspace/resource-processing",
       params: { workspaceId },
     };
   }

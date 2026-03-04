@@ -46,6 +46,33 @@ body,
   color: inherit;
 }
 
+@layer theme {
+  /*
+    Antd Button solid text colors (primary / dangerous)
+
+    Symptom:
+    - Light mode: solid primary/danger buttons render text as `#0f1419` (inherits `--foreground`)
+    - Dark mode: looks "correct" because `--foreground` is already light
+
+    Root cause:
+    Antd styles are emitted via css-in-js with `StyleProvider layer`, which means button color rules can
+    lose in the cascade (especially when `!important` declarations exist in later layers).
+
+    Fix:
+    Put the override into the earliest `theme` layer so `!important` wins consistently, and bind the
+    text color to Antd's own per-button CSS vars (already resolved from theme tokens).
+  */
+  .ant-btn.ant-btn-color-primary.ant-btn-variant-solid,
+  .ant-btn.ant-btn-primary.ant-btn-variant-solid {
+    color: var(--ant-button-primary-color) !important;
+  }
+
+  .ant-btn.ant-btn-color-dangerous.ant-btn-variant-solid,
+  .ant-btn.ant-btn-dangerous.ant-btn-variant-solid {
+    color: var(--ant-button-danger-color) !important;
+  }
+}
+
 @layer antd {
   /* Ensure Select keeps the expected control height/padding even when internal CSS var calc is affected by overrides. */
   :where(.ant-select) {

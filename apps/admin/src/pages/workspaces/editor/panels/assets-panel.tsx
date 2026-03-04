@@ -116,6 +116,7 @@ export function AssetsPanel() {
         <Input
           size="small"
           prefix={<Search className="size-3.5 text-label-secondary" />}
+          variant="filled"
           value={explorer.searchInput}
           onChange={(e) => explorer.setSearchInput(e.target.value)}
           placeholder={t("assets:ASSET_SEARCH_PLACEHOLDER")}

@@ -37,6 +37,7 @@ export function ExtensionsFilterSidebar({
         prefix={<Search className="size-4 text-label-tertiary" />}
         placeholder={t("plugin:PLUGIN_CENTER_SEARCH_PLACEHOLDER")}
         allowClear
+        variant="filled"
         value={searchQuery}
         onChange={(e) => onSearchChange(e.target.value)}
       />

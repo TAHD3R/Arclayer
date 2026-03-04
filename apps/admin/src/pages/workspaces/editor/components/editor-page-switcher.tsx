@@ -195,7 +195,7 @@ function PageListPanel({
           onChange={(e) => setSearch(e.target.value)}
           placeholder={t("content_pages:EDITOR_PAGE_PICKER_SEARCH_PLACEHOLDER")}
           allowClear
-          variant="borderless"
+          variant="filled"
           prefix={<Search className="size-4 text-label-secondary" />}
         />
         <Button

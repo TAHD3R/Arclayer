@@ -58,7 +58,7 @@ export function SettingDialog({
           ) : null}
         </DialogHeader>
 
-        <div className={cn("min-w-0 px-6", bodyClassName)}>{children}</div>
+        <div className={cn("min-w-0 px-6 py-4", bodyClassName)}>{children}</div>
 
         {footer ? (
           <DialogFooter className="mt-0 min-w-0 border-t bg-card px-6 py-4">{footer}</DialogFooter>

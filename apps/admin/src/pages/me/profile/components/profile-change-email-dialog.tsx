@@ -111,72 +111,70 @@ export function MeProfileChangeEmailDialog(props: MeProfileChangeEmailDialogProp
         </>
       }
     >
-      <div className="py-5">
-        <Form form={form} layout="vertical" requiredMark={false} autoComplete="off">
-          <Form.Item
-            name="newEmail"
-            label={t("account:ME_PROFILE_EMAIL_NEW_EMAIL")}
-            rules={[
-              { required: true, message: t("account:ME_PROFILE_EMAIL_NEW_EMAIL_REQUIRED") },
-              { type: "email", message: t("account:ME_PROFILE_EMAIL_NEW_EMAIL_INVALID") },
-            ]}
-            className="mb-4"
-          >
-            <Input placeholder={t("account:ME_PROFILE_EMAIL_NEW_EMAIL_PLACEHOLDER")} />
-          </Form.Item>
+      <Form form={form} layout="vertical" requiredMark={false} autoComplete="off">
+        <Form.Item
+          name="newEmail"
+          label={t("account:ME_PROFILE_EMAIL_NEW_EMAIL")}
+          rules={[
+            { required: true, message: t("account:ME_PROFILE_EMAIL_NEW_EMAIL_REQUIRED") },
+            { type: "email", message: t("account:ME_PROFILE_EMAIL_NEW_EMAIL_INVALID") },
+          ]}
+          className="mb-4"
+        >
+          <Input placeholder={t("account:ME_PROFILE_EMAIL_NEW_EMAIL_PLACEHOLDER")} />
+        </Form.Item>
 
-          <Form.Item
-            name="code"
-            label={t("account:ME_PROFILE_EMAIL_CODE")}
-            rules={[{ required: true, message: t("account:ME_PROFILE_EMAIL_CODE_REQUIRED") }]}
-            className="mb-4"
-          >
-            <Input
-              placeholder={t("account:ME_PROFILE_EMAIL_CODE_PLACEHOLDER")}
-              addonAfter={
-                <Button
-                  type="link"
-                  className="px-0!"
-                  disabled={isBusy}
-                  onClick={() => {
-                    void (async () => {
-                      const values = await form.validateFields(["newEmail"]);
-                      await requestCodeMutation.mutateAsync({ newEmail: values.newEmail });
-                    })();
-                  }}
-                  autoInsertSpace={false}
-                >
-                  {requestCodeMutation.isPending
-                    ? t("account:ME_PROFILE_EMAIL_SENDING_CODE")
-                    : t("account:ME_PROFILE_EMAIL_SEND_CODE")}
-                </Button>
-              }
-            />
-          </Form.Item>
+        <Form.Item
+          name="code"
+          label={t("account:ME_PROFILE_EMAIL_CODE")}
+          rules={[{ required: true, message: t("account:ME_PROFILE_EMAIL_CODE_REQUIRED") }]}
+          className="mb-4"
+        >
+          <Input
+            placeholder={t("account:ME_PROFILE_EMAIL_CODE_PLACEHOLDER")}
+            addonAfter={
+              <Button
+                type="link"
+                className="px-0!"
+                disabled={isBusy}
+                onClick={() => {
+                  void (async () => {
+                    const values = await form.validateFields(["newEmail"]);
+                    await requestCodeMutation.mutateAsync({ newEmail: values.newEmail });
+                  })();
+                }}
+                autoInsertSpace={false}
+              >
+                {requestCodeMutation.isPending
+                  ? t("account:ME_PROFILE_EMAIL_SENDING_CODE")
+                  : t("account:ME_PROFILE_EMAIL_SEND_CODE")}
+              </Button>
+            }
+          />
+        </Form.Item>
 
-          <Form.Item
-            name="password"
-            label={t("account:ME_PROFILE_EMAIL_PASSWORD")}
-            rules={[{ required: true, message: t("auth:VALIDATION_PASSWORD_REQUIRED") }]}
-            className="mb-2"
-          >
-            <Input.Password placeholder={t("account:ME_PROFILE_EMAIL_PASSWORD_PLACEHOLDER")} />
-          </Form.Item>
+        <Form.Item
+          name="password"
+          label={t("account:ME_PROFILE_EMAIL_PASSWORD")}
+          rules={[{ required: true, message: t("auth:VALIDATION_PASSWORD_REQUIRED") }]}
+          className="mb-2"
+        >
+          <Input.Password placeholder={t("account:ME_PROFILE_EMAIL_PASSWORD_PLACEHOLDER")} />
+        </Form.Item>
 
-          <Button
-            type="link"
-            className="px-0!"
-            disabled={isBusy}
-            onClick={() => {
-              closeIfIdle(false);
-              void navigate({ to: "/reset-password" });
-            }}
-            autoInsertSpace={false}
-          >
-            {t("account:ME_PROFILE_EMAIL_FORGOT_PASSWORD")}
-          </Button>
-        </Form>
-      </div>
+        <Button
+          type="link"
+          className="px-0!"
+          disabled={isBusy}
+          onClick={() => {
+            closeIfIdle(false);
+            void navigate({ to: "/reset-password" });
+          }}
+          autoInsertSpace={false}
+        >
+          {t("account:ME_PROFILE_EMAIL_FORGOT_PASSWORD")}
+        </Button>
+      </Form>
     </SettingDialog>
   );
 }

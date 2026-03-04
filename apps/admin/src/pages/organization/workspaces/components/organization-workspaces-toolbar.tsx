@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
-import { Button as AntButton, Input, Space } from "antd";
-import { LayoutGrid, List } from "lucide-react";
+import { Input } from "antd";
+import { Search } from "lucide-react";
 
 import {
   ChromeTabs,
@@ -9,12 +9,14 @@ import {
   ChromeTabsList,
   ChromeTabsTrigger,
 } from "@celestial/ui/chrome-tabs";
+import { useMediaQuery } from "@celestial/hooks/use-media-query";
 
 import type {
   OrganizationWorkspacesTab,
   OrganizationWorkspacesTranslateFn,
   OrganizationWorkspacesViewMode,
 } from "../types";
+import { WorkspacesViewModeToggle } from "./workspaces-view-mode-toggle";
 
 interface OrganizationWorkspacesToolbarProps {
   t: OrganizationWorkspacesTranslateFn;
@@ -39,12 +41,15 @@ export function OrganizationWorkspacesToolbar(props: OrganizationWorkspacesToolb
     children,
   } = props;
 
+  const showViewModeText = useMediaQuery("(min-width: 768px)");
+
   return (
     <ChromeTabs
       value={tab}
       onValueChange={(value) => onTabChange(value === "archived" ? "archived" : "active")}
     >
       <ChromeTabsBar
+        className="flex-wrap gap-y-2"
         left={
           <ChromeTabsList>
             <ChromeTabsTrigger value="active">
@@ -56,29 +61,24 @@ export function OrganizationWorkspacesToolbar(props: OrganizationWorkspacesToolb
           </ChromeTabsList>
         }
         right={
-          <div className="flex items-center gap-2">
-            <Input.Search
-              variant="borderless"
-              className="w-[320px]"
+          <div className="flex w-full flex-wrap items-center justify-end gap-2 md:w-auto">
+            <Input
+              className="w-[240px] sm:w-[280px] md:w-[320px]"
               value={searchInput}
               onChange={(event) => onSearchInputChange(event.target.value)}
               placeholder={t("common:ORG_WORKSPACES_SEARCH_PLACEHOLDER")}
               allowClear
+              variant="filled"
+              size="large"
+              prefix={<Search className="size-4 text-label-secondary" />}
             />
-            <Space.Compact>
-              <AntButton
-                type={viewMode === "card" ? "primary" : "text"}
-                icon={<LayoutGrid className="size-4" />}
-                onClick={() => onViewModeChange("card")}
-                autoInsertSpace={false}
-              />
-              <AntButton
-                type={viewMode === "table" ? "primary" : "text"}
-                icon={<List className="size-4" />}
-                onClick={() => onViewModeChange("table")}
-                autoInsertSpace={false}
-              />
-            </Space.Compact>
+            <div className="hidden h-8 w-px bg-border/60 md:block" aria-hidden />
+            <WorkspacesViewModeToggle
+              t={t}
+              value={viewMode}
+              onChange={onViewModeChange}
+              display={showViewModeText ? "icon+text" : "icon"}
+            />
           </div>
         }
       />

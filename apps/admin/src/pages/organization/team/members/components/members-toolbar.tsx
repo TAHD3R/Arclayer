@@ -44,11 +44,11 @@ export function OrganizationMembersToolbar({
     <div className="flex w-full flex-wrap items-center justify-between gap-3">
       <div className="flex items-center gap-2">
         <AntInput
-          variant="borderless"
           value={searchInput}
           onChange={(event) => onSearchInputChange(event.target.value)}
           placeholder={t("team:TEAM_SEARCH_PLACEHOLDER")}
           allowClear
+          variant="filled"
           prefix={<Search className="size-4 text-label-secondary" />}
           style={{ width: 360, maxWidth: "100%" }}
         />

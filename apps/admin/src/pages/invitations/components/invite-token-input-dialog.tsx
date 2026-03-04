@@ -54,27 +54,25 @@ export function InviteTokenInputDialog(props: InviteTokenInputDialogProps) {
         </>
       }
     >
-      <div className="grid gap-4 py-2">
-        <div className="grid gap-1.5">
-          <label className="font-semibold text-foreground">
-            {t("invite:INVITE_TOKEN_INPUT_FIELD_LABEL")}
-          </label>
-          <div className="text-label-secondary">{t("invite:INVITE_TOKEN_INPUT_FIELD_HELP")}</div>
-          <Input
-            autoFocus
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            placeholder={t("invite:INVITE_TOKEN_INPUT_PLACEHOLDER")}
-            onKeyDown={(e) => {
-              if (e.key !== "Enter") return;
-              if (!canSubmit) return;
-              void (async () => {
-                await props.onSubmit(token);
-                props.onOpenChange(false);
-              })();
-            }}
-          />
-        </div>
+      <div className="grid gap-1.5">
+        <label className="font-semibold text-foreground">
+          {t("invite:INVITE_TOKEN_INPUT_FIELD_LABEL")}
+        </label>
+        <div className="text-label-secondary">{t("invite:INVITE_TOKEN_INPUT_FIELD_HELP")}</div>
+        <Input
+          autoFocus
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          placeholder={t("invite:INVITE_TOKEN_INPUT_PLACEHOLDER")}
+          onKeyDown={(e) => {
+            if (e.key !== "Enter") return;
+            if (!canSubmit) return;
+            void (async () => {
+              await props.onSubmit(token);
+              props.onOpenChange(false);
+            })();
+          }}
+        />
       </div>
     </SettingDialog>
   );

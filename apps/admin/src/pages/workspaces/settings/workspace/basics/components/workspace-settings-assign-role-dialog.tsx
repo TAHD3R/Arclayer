@@ -66,6 +66,13 @@ export function WorkspaceSettingsAssignRoleDialog(props: {
         autoComplete="off"
         className="grid gap-4 py-2"
       >
+        {c.assignRoleDescription ? (
+          <div className="rounded-md border border-border bg-muted/20 px-3 py-2">
+            <div className="text-footnote font-semibold text-foreground">{c.assignRoleLabel}</div>
+            <div className="mt-1 text-caption text-label-secondary">{c.assignRoleDescription}</div>
+          </div>
+        ) : null}
+
         <Form.Item
           name="confirmName"
           label={dialogFieldLabel(

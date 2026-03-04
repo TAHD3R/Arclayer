@@ -66,12 +66,8 @@ export function ContentPagesConfirmDialogs(props: ContentPagesConfirmDialogsProp
           </>
         }
       >
-        <div className="grid gap-4 py-2">
-          <div className="grid gap-1.5">
-            <div className="text-label-secondary">
-              {props.t("content_pages:DIALOG_DUPLICATE_DESC", { name: duplicateName })}
-            </div>
-          </div>
+        <div className="text-label-secondary">
+          {props.t("content_pages:DIALOG_DUPLICATE_DESC", { name: duplicateName })}
         </div>
       </SettingDialog>
 
@@ -105,11 +101,7 @@ export function ContentPagesConfirmDialogs(props: ContentPagesConfirmDialogsProp
           </>
         }
       >
-        <div className="grid gap-4 py-2">
-          <div className="grid gap-1.5">
-            <div className="text-label-secondary">{deleteDescription}</div>
-          </div>
-        </div>
+        <div className="text-label-secondary">{deleteDescription}</div>
       </SettingDialog>
     </>
   );

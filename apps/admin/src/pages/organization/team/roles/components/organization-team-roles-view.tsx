@@ -152,10 +152,10 @@ export function OrganizationTeamRolesView() {
     >
       <div className="space-y-4">
         <Input
-          variant="borderless"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
           placeholder={t("team:TEAM_ROLES_SEARCH_PLACEHOLDER")}
+          variant="filled"
           prefix={<Search className="h-4 w-4 text-label-secondary" />}
           allowClear
         />

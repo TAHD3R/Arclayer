@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import type { CSSProperties } from "react";
-import { AtSign, AlertTriangle } from "lucide-react";
+import { AlertTriangle, User } from "lucide-react";
 
 import { BaseTag, lucideTagIcon } from "./tag-base";
 
@@ -14,7 +14,7 @@ type EmailInputTagProps = {
 };
 
 export function EmailInputTag(props: EmailInputTagProps) {
-  const icon = props.invalid ? lucideTagIcon(AlertTriangle) : lucideTagIcon(AtSign);
+  const icon = props.invalid ? lucideTagIcon(AlertTriangle) : lucideTagIcon(User);
 
   return (
     <BaseTag

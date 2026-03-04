@@ -19,7 +19,6 @@ import type { TeamMember, UserStatus } from "@/types/api";
 import { DefaultPage } from "@/components/common/default-page";
 import { ContentGuard } from "@/components/common/content-guard";
 import { useDataTable } from "@celestial/ui/data-table";
-import { Button } from "@celestial/ui/button";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -208,13 +207,13 @@ export function TeamMembersView() {
               <div className="ml-auto pl-2">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      className="h-8 w-8 p-0"
+                    <AntButton
+                      type="text"
+                      shape="circle"
                       aria-label={t("team:TEAM_USER_ACTIONS")}
-                    >
-                      <MoreVertical className="size-4" />
-                    </Button>
+                      icon={<MoreVertical className="size-4" />}
+                      autoInsertSpace={false}
+                    />
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuIconItem
@@ -397,11 +396,11 @@ export function TeamMembersView() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <AntInput
-              variant="borderless"
               value={tableHook.searchInput}
               onChange={(e) => tableHook.setSearchInput(e.target.value)}
               placeholder={t("team:TEAM_SEARCH_PLACEHOLDER")}
               allowClear
+              variant="filled"
               prefix={<Search className="size-4 text-label-secondary" />}
               style={{ width: 360, maxWidth: "100%" }}
             />

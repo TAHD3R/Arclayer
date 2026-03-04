@@ -169,21 +169,19 @@ export function OrganizationMembersDialogs({
           </>
         }
       >
-        <div className="grid gap-4 py-2">
-          <div className="grid gap-1.5">
-            <label className="font-semibold text-foreground">
-              {t("team:TEAM_INVITE_FIELD_ROLE")}
-            </label>
-            <div className="text-label-secondary">{t("team:TEAM_ROLE_CHANGE_FIELD_ROLE_HELP")}</div>
-            <Select
-              value={roleDraft}
-              onChange={(next) => onRoleDraftChange(String(next))}
-              options={roleOptions}
-              className="w-full"
-              getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
-              disabled={roleUpdateLoading}
-            />
-          </div>
+        <div className="grid gap-1.5">
+          <label className="font-semibold text-foreground">
+            {t("team:TEAM_INVITE_FIELD_ROLE")}
+          </label>
+          <div className="text-label-secondary">{t("team:TEAM_ROLE_CHANGE_FIELD_ROLE_HELP")}</div>
+          <Select
+            value={roleDraft}
+            onChange={(next) => onRoleDraftChange(String(next))}
+            options={roleOptions}
+            className="w-full"
+            getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
+            disabled={roleUpdateLoading}
+          />
         </div>
       </SettingDialog>
 

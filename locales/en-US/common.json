@@ -172,6 +172,8 @@
   "RETRY": "Retry",
   "TABS_SCROLL_LEFT": "Scroll tabs left",
   "TABS_SCROLL_RIGHT": "Scroll tabs right",
+  "VIEW_MODE_CARD": "Card view",
+  "VIEW_MODE_TABLE": "Table view",
   "WORKSPACE_SWITCHER_CREATE": "Create workspace",
   "WORKSPACE_SWITCHER_ORG_EMPTY": "No organizations available",
   "WORKSPACE_SWITCHER_ORG_EMPTY_DESC": "Create an organization to start managing workspaces.",

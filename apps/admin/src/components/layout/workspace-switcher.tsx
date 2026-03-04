@@ -186,7 +186,7 @@ function WsPanelContent(props: {
           onChange={(e) => setSearch(e.target.value)}
           placeholder={t("common:WORKSPACE_SWITCHER_WORKSPACE_SEARCH_PLACEHOLDER")}
           allowClear
-          variant="borderless"
+          variant="filled"
           prefix={<Search className="size-3.5 text-label-secondary" />}
         />
       </div>

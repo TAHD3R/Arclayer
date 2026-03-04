@@ -292,11 +292,11 @@ export function TeamRolesView(props: { workspaceIdOverride?: string | null } = {
     >
       <div className="flex flex-col gap-4">
         <Input
-          variant="borderless"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder={t("team:TEAM_ROLES_SEARCH_PLACEHOLDER")}
           allowClear
+          variant="filled"
           prefix={<Search className="h-4 w-4 text-label-secondary" />}
         />
 

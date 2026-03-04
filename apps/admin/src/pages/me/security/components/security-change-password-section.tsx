@@ -84,47 +84,45 @@ export function MeSecurityChangePasswordSection() {
           </>
         }
       >
-        <div className="py-5">
-          <div className="max-w-xl">
-            <Form form={form} layout="vertical" requiredMark={false} autoComplete="off">
-              <Form.Item<ChangePasswordFormValues>
-                name="oldPassword"
-                label={t("account:ME_SECURITY_OLD_PASSWORD")}
-                rules={[{ required: true, message: t("auth:VALIDATION_PASSWORD_REQUIRED") }]}
-                className="mb-4"
-              >
-                <Input.Password autoComplete="current-password" />
-              </Form.Item>
+        <div className="max-w-xl">
+          <Form form={form} layout="vertical" requiredMark={false} autoComplete="off">
+            <Form.Item<ChangePasswordFormValues>
+              name="oldPassword"
+              label={t("account:ME_SECURITY_OLD_PASSWORD")}
+              rules={[{ required: true, message: t("auth:VALIDATION_PASSWORD_REQUIRED") }]}
+              className="mb-4"
+            >
+              <Input.Password autoComplete="current-password" />
+            </Form.Item>
 
-              <Form.Item<ChangePasswordFormValues>
-                name="newPassword"
-                label={t("account:ME_SECURITY_NEW_PASSWORD")}
-                rules={[{ required: true, message: t("auth:VALIDATION_PASSWORD_REQUIRED") }]}
-                className="mb-4"
-              >
-                <Input.Password autoComplete="new-password" />
-              </Form.Item>
+            <Form.Item<ChangePasswordFormValues>
+              name="newPassword"
+              label={t("account:ME_SECURITY_NEW_PASSWORD")}
+              rules={[{ required: true, message: t("auth:VALIDATION_PASSWORD_REQUIRED") }]}
+              className="mb-4"
+            >
+              <Input.Password autoComplete="new-password" />
+            </Form.Item>
 
-              <Form.Item<ChangePasswordFormValues>
-                name="confirmPassword"
-                label={t("account:ME_SECURITY_CONFIRM_PASSWORD")}
-                dependencies={["newPassword"]}
-                rules={[
-                  { required: true, message: t("auth:VALIDATION_CONFIRM_PASSWORD_REQUIRED") },
-                  ({ getFieldValue }) => ({
-                    validator: async (_, value) => {
-                      const pwd = getFieldValue("newPassword");
-                      if (!value || value === pwd) return;
-                      throw new Error(t("auth:VALIDATION_PASSWORD_MISMATCH"));
-                    },
-                  }),
-                ]}
-                className="mb-0!"
-              >
-                <Input.Password autoComplete="new-password" />
-              </Form.Item>
-            </Form>
-          </div>
+            <Form.Item<ChangePasswordFormValues>
+              name="confirmPassword"
+              label={t("account:ME_SECURITY_CONFIRM_PASSWORD")}
+              dependencies={["newPassword"]}
+              rules={[
+                { required: true, message: t("auth:VALIDATION_CONFIRM_PASSWORD_REQUIRED") },
+                ({ getFieldValue }) => ({
+                  validator: async (_, value) => {
+                    const pwd = getFieldValue("newPassword");
+                    if (!value || value === pwd) return;
+                    throw new Error(t("auth:VALIDATION_PASSWORD_MISMATCH"));
+                  },
+                }),
+              ]}
+              className="mb-0!"
+            >
+              <Input.Password autoComplete="new-password" />
+            </Form.Item>
+          </Form>
         </div>
       </SettingDialog>
     </>

@@ -47,11 +47,11 @@ export function TeamInvitationsTableSection<TRow>(props: TeamInvitationsTableSec
         <div className="flex items-center gap-3">
           <div className="flex-1 min-w-0">
             <Input
-              variant="borderless"
               value={tableHook.searchInput}
               onChange={(event) => tableHook.setSearchInput(event.target.value)}
               placeholder={placeholder}
               allowClear
+              variant="filled"
               prefix={<Search className="size-4 text-label-secondary" />}
               style={{ width: "100%" }}
             />

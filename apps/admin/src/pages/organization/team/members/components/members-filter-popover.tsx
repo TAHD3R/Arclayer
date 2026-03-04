@@ -26,10 +26,9 @@ export function MembersFilterPopover({
     <Popover>
       <PopoverTrigger asChild>
         <AntButton
-          type="text"
+          size="large"
           icon={<Filter size={18} />}
           title={t("common:ORG_MEMBERS_FILTER_TITLE")}
-          className="h-10! bg-transparent! hover:bg-accent/40!"
           autoInsertSpace={false}
         >
           {t("common:ORG_MEMBERS_FILTER_TITLE")}

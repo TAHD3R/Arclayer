@@ -219,27 +219,22 @@ export function OrganizationWorkspacesDialogs(props: OrganizationWorkspacesDialo
           </div>
         }
       >
-        <div className="grid gap-4 py-2">
-          <div className="grid gap-1.5">
-            <label
-              className="font-semibold text-foreground"
-              htmlFor="workspace-delete-confirm-name"
-            >
-              {t("common:ORG_WORKSPACES_DELETE_CONFIRM_INPUT_LABEL", {
-                name: deleteDialog.workspace?.name || "",
-              })}
-            </label>
-            <div className="text-label-secondary">
-              {t("common:ORG_WORKSPACES_DELETE_CONFIRM_INPUT_HELP")}
-            </div>
-            <Input
-              id="workspace-delete-confirm-name"
-              value={deleteDialog.confirmName}
-              onChange={(event) => deleteDialog.setConfirmName(event.target.value)}
-              placeholder={t("common:ORG_WORKSPACES_DELETE_CONFIRM_INPUT_PLACEHOLDER")}
-              disabled={deleteDialog.pending}
-            />
+        <div className="grid gap-1.5">
+          <label className="font-semibold text-foreground" htmlFor="workspace-delete-confirm-name">
+            {t("common:ORG_WORKSPACES_DELETE_CONFIRM_INPUT_LABEL", {
+              name: deleteDialog.workspace?.name || "",
+            })}
+          </label>
+          <div className="text-label-secondary">
+            {t("common:ORG_WORKSPACES_DELETE_CONFIRM_INPUT_HELP")}
           </div>
+          <Input
+            id="workspace-delete-confirm-name"
+            value={deleteDialog.confirmName}
+            onChange={(event) => deleteDialog.setConfirmName(event.target.value)}
+            placeholder={t("common:ORG_WORKSPACES_DELETE_CONFIRM_INPUT_PLACEHOLDER")}
+            disabled={deleteDialog.pending}
+          />
         </div>
       </SettingDialog>
     </>

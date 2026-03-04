@@ -226,7 +226,7 @@ export function MeProfileBasicsSection(props: MeProfileBasicsSectionProps) {
           </>
         }
       >
-        <div className="py-5">
+        <>
           <div className="text-callout text-label-secondary">
             {t("account:ME_PROFILE_DISPLAY_NAME_CONFIRM_PREVIEW")}
           </div>
@@ -254,7 +254,7 @@ export function MeProfileBasicsSection(props: MeProfileBasicsSectionProps) {
               {t("account:ME_PROFILE_DISPLAY_NAME_INVALID")}
             </div>
           ) : null}
-        </div>
+        </>
       </SettingDialog>
 
       <MeProfileChangeEmailDialog

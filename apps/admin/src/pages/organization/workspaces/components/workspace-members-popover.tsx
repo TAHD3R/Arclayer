@@ -76,10 +76,10 @@ export function WorkspaceMembersPopover({ workspace }: { workspace: Organization
           <div className="font-semibold">{t("common:ORG_WORKSPACES_MEMBERS_POPOVER_TITLE")}</div>
 
           <Input
-            variant="borderless"
             allowClear
             value={rawQ}
             onChange={(event) => setRawQ(event.target.value)}
+            variant="filled"
             prefix={<Search className="size-4 text-label-secondary" />}
             placeholder={t("common:ORG_WORKSPACES_MEMBERS_SEARCH_PLACEHOLDER")}
           />

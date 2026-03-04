@@ -82,6 +82,7 @@ export function InviteLinkParticipantsPopover(props: {
           allowClear
           value={rawQ}
           onChange={(e) => setRawQ(e.target.value)}
+          variant="filled"
           placeholder={t("team:TEAM_INVITE_LINKS_PARTICIPANT_SEARCH_PLACEHOLDER")}
         />
       </div>

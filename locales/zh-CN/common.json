@@ -168,6 +168,8 @@
   "RETRY": "重试",
   "TABS_SCROLL_LEFT": "向左滚动标签",
   "TABS_SCROLL_RIGHT": "向右滚动标签",
+  "VIEW_MODE_CARD": "卡片视图",
+  "VIEW_MODE_TABLE": "列表视图",
   "WORKSPACE_SWITCHER_CREATE": "新增工作区",
   "WORKSPACE_SWITCHER_ORG_EMPTY": "暂无组织",
   "WORKSPACE_SWITCHER_ORG_EMPTY_DESC": "请先创建组织，再管理工作区。",

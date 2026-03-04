@@ -73,7 +73,7 @@ export function CreateRoleDialog(props: CreateRoleDialogProps) {
         </>
       }
     >
-      <div className="grid gap-4 py-2">
+      <div className="grid gap-4">
         <div className="grid gap-1.5">
           <label className="font-semibold text-foreground">
             {t("team:TEAM_ROLES_FIELD_TEMPLATE")}

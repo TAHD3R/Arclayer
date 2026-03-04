@@ -113,6 +113,8 @@ export function readAntdTokensFromCssVars(el: HTMLElement | null | undefined, mo
       colorTextSecondary: "rgba(0,0,0,0.65)",
       colorTextTertiary: "rgba(0,0,0,0.45)",
       colorTextQuaternary: "rgba(0,0,0,0.25)",
+      // Solid buttons (e.g. primary) use this for text color.
+      colorTextLightSolid: "#fff",
       fontSize: 16,
       fontSizeSM: 13,
       fontSizeLG: 16,
@@ -143,23 +145,21 @@ export function readAntdTokensFromCssVars(el: HTMLElement | null | undefined, mo
     colorInfo: colorPrimary,
     colorPrimary,
     colorSuccess: readColor(el, "--success", readColor(el, "--chart-2", "#52c41a")),
-    colorText: readColor(el, "--text-primary", readColor(el, "--foreground", "rgba(0,0,0,0.88)")),
-    colorTextSecondary: readColor(
-      el,
-      "--text-secondary",
-      readColor(el, "--muted-foreground", "rgba(0,0,0,0.65)"),
-    ),
+    // Prefer concrete CSS vars to avoid `var(...)` token strings being parsed as black by Antd.
+    colorText: readColor(el, "--foreground", "rgba(0,0,0,0.88)"),
+    colorTextSecondary: readColor(el, "--muted-foreground", "rgba(0,0,0,0.65)"),
     colorTextTertiary: readColor(
       el,
-      "--text-tertiary",
+      "--tertiary-foreground",
       mode === "dark" ? "rgba(255, 255, 255, 0.45)" : "rgba(0, 0, 0, 0.35)",
     ),
     colorTextQuaternary: readColor(
       el,
-      "--text-quaternary",
+      "--quaternary-foreground",
       mode === "dark" ? "rgba(255, 255, 255, 0.30)" : "rgba(0, 0, 0, 0.25)",
     ),
     colorTextBase: readColor(el, "--foreground", "#000"),
+    colorTextLightSolid: readColor(el, "--primary-foreground", "#fff"),
     colorWarning: readColor(el, "--warning", readColor(el, "--chart-3", "#faad14")),
     fontSize: readLengthPx(el, "--font-size-body", 16, rootFontSizePx),
     fontSizeSM: readLengthPx(el, "--font-size-footnote", 13, rootFontSizePx),
@@ -168,6 +168,20 @@ export function readAntdTokensFromCssVars(el: HTMLElement | null | undefined, mo
     fontSizeHeading2: readLengthPx(el, "--font-size-title", 28, rootFontSizePx),
     fontSizeHeading3: readLengthPx(el, "--font-size-title2", 22, rootFontSizePx),
   } as const;
+}
+
+function createDefaultButtonTokenOverrides(el: HTMLElement | null): AntdComponentThemeOverrides {
+  if (!el || typeof getComputedStyle === "undefined") {
+    return {
+      primaryColor: "#fff",
+      dangerColor: "#fff",
+    };
+  }
+
+  return {
+    primaryColor: readColor(el, "--primary-foreground", "#fff"),
+    dangerColor: readColor(el, "--destructive-foreground", "#fff"),
+  };
 }
 
 export function createAntdTheme(options: AntdThemeOptions) {
@@ -191,6 +205,9 @@ export function createAntdTheme(options: AntdThemeOptions) {
     : { ...baseTokens, zIndexPopupBase };
 
   const components = componentOverrides ? { ...componentOverrides } : {};
+  const defaultButtonTokenOverrides = createDefaultButtonTokenOverrides(rootEl);
+  const existingButtonOverrides = components.Button ?? {};
+  components.Button = { ...defaultButtonTokenOverrides, ...existingButtonOverrides };
 
   const resolvedAlgorithm =
     algorithm ?? (mode === "dark" ? theme.darkAlgorithm : theme.defaultAlgorithm);

@@ -201,6 +201,7 @@ export function BlocksPanel() {
           onChange={(e) => setSearch(e.target.value)}
           placeholder={t("content_pages:EDITOR_BLOCKS_SEARCH_PLACEHOLDER")}
           allowClear
+          variant="filled"
         />
         <Button
           size="small"

@@ -285,12 +285,12 @@ export function AssetPickerDialog(props: {
                 </div>
                 <Input
                   className="w-full max-w-[320px]"
-                  variant="borderless"
                   ref={searchInputRef}
                   allowClear
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
                   placeholder={t("settings:SETTINGS_ASSET_PICKER_SEARCH_PLACEHOLDER")}
+                  variant="filled"
                   prefix={<Search size={16} className="text-label-secondary" />}
                 />
               </div>
